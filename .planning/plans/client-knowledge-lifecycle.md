@@ -17,7 +17,7 @@ chunks:
   - "[ ] K2e. Web intake beneath a chosen study: one public URL captured, Deep Research evidence imported"
   - "[ ] K2f. Review payload with evidence beside each proposal; connected acceptance over all three families"
   - "[x] K3a. Refuse an edit written from an item revision that is no longer current (F-K1)"
-  - "[ ] K3. Implement typed knowledge revisions and decisions against the reviewed base revision"
+  - "[x] K3. Implement typed knowledge revisions and decisions against the reviewed base revision"
   - "[ ] K4. Resolve a study's selected, eligible client knowledge into an immutable context snapshot"
   - "[ ] K5. Define and materialize executable dimensions through the existing population authority"
   - "[ ] K6. Implement correction, retirement, conflicts and dependent-study change visibility"
@@ -584,6 +584,63 @@ generic historical records without inventing source spans or validated dimension
 
 **Not in K2:** typed revisions and base-revision checks (K3), study context selection (K4),
 dimensions (K5) and retirement (K6).
+
+## K3 contract (2026-10-21, written before the code)
+
+K3a (F-K1) made an approval compare an edit's `base_revision` with the item's current revision.
+K3 makes the records typed, so that who wrote a revision, what a person decided and against which
+revision is a column read by one rule, not a provenance key a reader has to know about.
+What was decided, and why:
+
+- **Author** (`domain/knowledge.py` `KnowledgeAuthor`: PERSON, STUDY, AI). It is stored on
+  `client_knowledge_proposals.author` when the proposal is filed:
+  - `add` and `propose`: PERSON. A `ClientContext` is only ever a person's.
+  - `propose_from_study`: STUDY.
+  - `propose_from_client_work`: AI.
+
+  A row from before the column is read by `author_of` from what its provenance says outright
+  (`authored: "ai" | "person"`, a `study_id`), and otherwise as UNKNOWN. Nothing is backfilled.
+  A person's `propose` before K3 carried no marker, so it reads UNKNOWN. We do not presume it
+  was a person's.
+- **Decision** (`KnowledgeDecision`: AUTHORED, ACCEPTED, ACCEPTED_OVER, REJECTED), stored on
+  `client_knowledge_proposals.decision`. A CHECK ties it to the status it settled. A decision
+  made before the column reads null (unknown). We do not reconstruct it from the note.
+- **The reviewed revision** (`client_knowledge_proposals.reviewed_revision`) is the item revision
+  the reviewer named, recorded as named and null when they named none. We never fill it in with
+  the current revision, because that would claim they saw it. `reviewed_decision` is the one
+  rule an approval passes, under the item's `FOR UPDATE` lock:
+  - a named revision that is not the current one is stale, whatever the edit's base. The reviewer
+    read an older item than the one the accept would change. This widens F-K1: K3a let such an
+    accept through when the base was current;
+  - a base equal to current is ACCEPTED;
+  - any other base, unknown included, is ACCEPTED_OVER when the reviewer named the current
+    revision, and stale otherwise.
+
+  A rejection is never stale and records the revision it names. Naming a revision for a new item
+  is refused by name: `NoRevisionToReview`, API 422 `no_revision_to_review`. The 409
+  `knowledge_proposal_stale` details now carry `reviewed_revision`.
+- **A typed revision.** `KnowledgeRevision` carries `author`, `decision`, `base_revision`,
+  `reviewed_revision`, `evidence` and `sha256`. They are read through the revision's proposal row
+  in the same scope, one more query per page. The same fields are on
+  `GET …/knowledge/items/{id}/revisions` and on every proposal response.
+  - `evidence` (`RevisionEvidence`) is an AI revision's grounding, whole or not at all: the
+    source, its SHA-256, the reading's SHA-256, the segment, the quote, the locator and the run.
+    This is F089's data half: an accepted AI item keeps its quote, locator and document.
+  - `sha256` (`revision_sha256`) is the SHA-256 of the revision's title, summary and content as
+    canonical JSON (sorted keys, no spaces, UTF-8), pinned by a test. K4's frozen context names
+    the exact text it read by it. It is computed when read, not stored: a revision row is
+    append-only, and a stored hash would be one more value to keep equal to it.
+- **Not typed here**, on purpose:
+  - per-kind payload schemas: assertion class, scope and time (K6); dimension definitions (K5);
+  - a dataset's schema (`client-data-in-analysis`);
+  - batch accept naming displayed versions, and the review screen (K2f, C6).
+
+  `content` stays the shape it is. The provenance JSON is unchanged, and tests still assert it
+  exactly.
+- **No switch.** Nothing a model sees changes. A person meets the new behaviour in one case only:
+  an accept that names a revision the item is no longer at. That was a stale screen accepting
+  over a newer correction (F-K1), and refusing it is the fix. The web sends `reviewed_revision`
+  only from "Schválit místo revize N", with N read from the 409.
 
 ## Findings
 

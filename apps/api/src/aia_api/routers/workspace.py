@@ -39,6 +39,7 @@ from aia_core.domain.knowledge import (
     KnowledgeLabel,
     KnowledgeProposal,
     LabelColour,
+    NoRevisionToReview,
     OrganizerNameTaken,
     ProposalStatus,
     StaleKnowledgeProposal,
@@ -330,8 +331,22 @@ class Placement(BaseModel):
     )
 
 
+class RevisionEvidenceResponse(BaseModel):
+    """What an AI-written revision rests on (lifecycle K3): its document, quote and place."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    source_id: str
+    quote: str
+    locator: dict[str, Any]
+    source_sha256: str | None = None
+    reading_sha256: str | None = None
+    segment: int | None = None
+    run_id: str | None = None
+
+
 class KnowledgeRevisionResponse(BaseModel):
-    """One approved revision of an item."""
+    """One approved revision of an item, typed (lifecycle K3)."""
 
     model_config = ConfigDict(extra="forbid")
 
@@ -342,6 +357,17 @@ class KnowledgeRevisionResponse(BaseModel):
     provenance: dict[str, Any]
     approved_by: str
     approved_at: datetime | None = None
+    #: PERSON, STUDY or AI; UNKNOWN for a revision whose record never said.
+    author: str = "UNKNOWN"
+    #: AUTHORED, ACCEPTED or ACCEPTED_OVER; null for a decision made before it was recorded.
+    decision: str | None = None
+    #: The item revision the edit was written from, and the one the reviewer named.
+    base_revision: int | None = None
+    reviewed_revision: int | None = None
+    #: For an AI-written revision: the document, quote and locator it rests on.
+    evidence: RevisionEvidenceResponse | None = None
+    #: SHA-256 of the revision's title, summary and content (canonical JSON).
+    sha256: str
 
 
 class ProposalGroundingResponse(BaseModel):
@@ -378,6 +404,13 @@ class ProposalResponse(BaseModel):
     revision: int | None = None
     #: The item revision an edit was written from (null for a new item, or unknown).
     base_revision: int | None = None
+    #: PERSON, STUDY or AI; UNKNOWN for a proposal whose record never said (lifecycle K3).
+    author: str = "UNKNOWN"
+    #: Once decided: AUTHORED, ACCEPTED, ACCEPTED_OVER or REJECTED; null while pending or
+    #: for a decision made before it was recorded.
+    decision: str | None = None
+    #: The item revision the reviewer named when deciding; null when they named none.
+    reviewed_revision: int | None = None
     yours: bool = False
     #: The client's source the proposed item names (C7a), so a reviewer sees the file.
     source_id: str | None = None
@@ -604,7 +637,9 @@ class DecisionRequest(BaseModel):
     approve: bool
     note: str = Field(default="", max_length=2_000)
     #: The item's current revision, which the reviewer read: approves an edit written from
-    #: an older one over it. Without it such an approval is refused (409).
+    #: an older one over it. Without it such an approval is refused (409). A revision that is
+    #: not the current one is refused too, whatever the edit's base (409); one named for a new
+    #: item is 422 (lifecycle K3).
     reviewed_revision: int | None = Field(default=None, ge=1)
 
 
@@ -716,6 +751,9 @@ def _proposal(p: KnowledgeProposal, *, actor: str, names: dict[str, str]) -> Pro
         decision_note=p.decision_note,
         revision=p.revision,
         base_revision=p.base_revision,
+        author=p.author.value,
+        decision=p.decision.value if p.decision else None,
+        reviewed_revision=p.reviewed_revision,
         yours=p.proposed_by == actor,
         source_id=_named_source(p),
         from_source=_grounding(p),
@@ -758,6 +796,7 @@ def _stale(exc: StaleKnowledgeProposal) -> HTTPException:
                 "item_id": exc.item_id,
                 "base_revision": exc.base_revision,
                 "current_revision": exc.current_revision,
+                "reviewed_revision": exc.reviewed_revision,
             },
         },
     )
@@ -1836,6 +1875,12 @@ def knowledge_revisions(
             provenance=r.provenance,
             approved_by=r.approved_by,
             approved_at=r.approved_at,
+            author=r.author.value,
+            decision=r.decision.value if r.decision else None,
+            base_revision=r.base_revision,
+            reviewed_revision=r.reviewed_revision,
+            evidence=(RevisionEvidenceResponse(**r.evidence.model_dump()) if r.evidence else None),
+            sha256=r.sha256,
         )
         for r in revisions
     ]
@@ -1957,6 +2002,10 @@ def decide_knowledge(
         )
     except StaleKnowledgeProposal as exc:
         raise _stale(exc) from exc
+    except NoRevisionToReview as exc:
+        raise HTTPException(
+            status_code=422, detail={"code": "no_revision_to_review", "message": str(exc)}
+        ) from exc
     except SeparationOfDutiesViolation as exc:
         raise _forbidden(
             exc.reason, "Someone other than the proposer must decide this update."

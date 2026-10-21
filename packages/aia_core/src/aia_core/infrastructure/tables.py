@@ -1333,6 +1333,14 @@ class ClientKnowledgeProposalRow(Base):
     # The run of the client's own work that proposed it (lifecycle K2d2): an AI proposal from a
     # client's document. A run writes its proposals once; null for every other proposal.
     run_id: Mapped[str | None] = mapped_column(String(64))
+    # Typed (lifecycle K3): who wrote it (``domain.knowledge.KnowledgeAuthor``); null for a
+    # proposal filed before this column, read from its provenance's markers or as unknown.
+    author: Mapped[str | None] = mapped_column(String(16))
+    # What was decided (``KnowledgeDecision``); null while pending and for a decision made
+    # before this column.
+    decision: Mapped[str | None] = mapped_column(String(16))
+    # The item revision the reviewer named when deciding; null when they named none.
+    reviewed_revision: Mapped[int | None] = mapped_column(Integer)
 
     __table_args__ = (
         ForeignKeyConstraint(["client_id"], ["clients.client_id"], ondelete="CASCADE"),
@@ -1341,6 +1349,18 @@ class ClientKnowledgeProposalRow(Base):
         CheckConstraint(f"kind in {_KINDS_SQL}", name="knowledge_proposal_kind_known"),
         CheckConstraint(
             "status in ('PROPOSED','APPROVED','REJECTED')", name="knowledge_proposal_status_known"
+        ),
+        CheckConstraint(
+            "author is null or author in ('PERSON','STUDY','AI')",
+            name="knowledge_proposal_author_known",
+        ),
+        # A decision agrees with the status it settled: a rejection rejected, an approval one
+        # of the three ways in; nothing pending carries one.
+        CheckConstraint(
+            "decision is null"
+            " or (status = 'REJECTED' and decision = 'REJECTED')"
+            " or (status = 'APPROVED' and decision in ('AUTHORED','ACCEPTED','ACCEPTED_OVER'))",
+            name="knowledge_proposal_decision_known",
         ),
         Index("ix_client_knowledge_proposals_client", "client_id", "status"),
         Index("ix_client_knowledge_proposals_run", "run_id"),
