@@ -2215,8 +2215,11 @@ class WorkflowRepository:
 
         A run's analysis modules each hold their own reservation, so eight of them can stop
         at the same cap; the person decides once for the run (CR-3), so the ledger has one
-        row for the lift (``subject_id`` the step when there is one, else the run) and each
-        step its own ``STEP_RESUMED`` event.
+        row for the lift and each step its own ``STEP_RESUMED`` event. The row's
+        ``subject_id`` is always the run (the subject of a budget lift is the run's wait);
+        ``step_id`` names the step when one was lifted, and is null for several. Each event's
+        payload carries the row's ``decision_id`` and every lifted ``step_ids``, so the ledger
+        and the events join by id, never by time or guess.
 
         The caller raises the budget first (``ScopeRepository.set_study_budget``, which
         audits it) and passes both figures so the event shows what was lifted. The steps
@@ -2304,23 +2307,23 @@ class WorkflowRepository:
             approving_user_id=actor_id,
             policy=policy,
         )
-        single = steps[0].step_id if len(steps) == 1 else None
-        self._session.add(
-            ApprovalDecisionRow(
-                organization_id=run.organization_id,
-                client_id=run.client_id,
-                study_id=study_id,
-                subject_type="budget",
-                subject_id=single or run.run_id,
-                run_id=run.run_id,
-                step_id=single,
-                gate_type="budget",
-                decision="lift",
-                comment=note,
-                request_id=request_id,
-                **independence.audit_fields(),
-            )
+        decision = ApprovalDecisionRow(
+            organization_id=run.organization_id,
+            client_id=run.client_id,
+            study_id=study_id,
+            subject_type="budget",
+            subject_id=run.run_id,
+            run_id=run.run_id,
+            step_id=steps[0].step_id if len(steps) == 1 else None,
+            gate_type="budget",
+            decision="lift",
+            comment=note,
+            request_id=request_id,
+            **independence.audit_fields(),
         )
+        self._session.add(decision)
+        self._session.flush()  # the decision's id, named by every step's event below
+        lifted = [step.step_id for step in steps]
         now = utcnow()
         for step in steps:
             step.status = StepRunStatus.RUNNABLE.value
@@ -2339,7 +2342,8 @@ class WorkflowRepository:
                     "budget_before_usd": budget_before,
                     "budget_after_usd": budget_after,
                     "note": note,
-                    "steps_lifted": len(steps),
+                    "decision_id": decision.decision_id,
+                    "step_ids": lifted,
                     **independence.audit_fields(),
                 },
                 step_id=step.step_id,

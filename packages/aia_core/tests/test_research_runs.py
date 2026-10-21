@@ -523,19 +523,14 @@ def test_a_refused_lift_changes_nothing(
     assert _step_status(runs, run_id, node) == "AWAITING_BUDGET"
 
 
-@pytest.fixture
-def analysis_parked_on_budget(session: Any, runs: Any, design: Any) -> Any:
-    """A run whose eight analysis modules each stopped at the study's budget cap (CR-3).
-
-    Each module reserves its own call, so the cap stops them one by one; the steps are put
-    in ``AWAITING_BUDGET`` as a refused reservation leaves them, without spending an attempt.
-    """
+def _park_analysis(session: Any, runs: Any, revision: str) -> tuple[str, list[str]]:
+    """Start a run over ``revision`` and stop its eight analysis modules at the budget cap."""
     from sqlalchemy import update
 
     from aia_core.infrastructure.tables import StepRunRow
 
     started = runs(user="lead").start(
-        design_revision_id=design(), fieldwork_source=AI, analysis_enabled=True
+        design_revision_id=revision, fieldwork_source=AI, analysis_enabled=True
     )
     modules = [s["node_key"] for s in started.run["steps"] if s["node_key"].startswith("analysis_")]
     assert len(modules) == 8
@@ -546,6 +541,161 @@ def analysis_parked_on_budget(session: Any, runs: Any, design: Any) -> Any:
     )
     session.flush()
     return started.run_id, modules
+
+
+@pytest.fixture
+def analysis_parked_on_budget(session: Any, runs: Any, design: Any) -> Any:
+    """A run whose eight analysis modules each stopped at the study's budget cap (CR-3).
+
+    Each module reserves its own call, so the cap stops them one by one; the steps are put
+    in ``AWAITING_BUDGET`` as a refused reservation leaves them, without spending an attempt.
+    """
+    return _park_analysis(session, runs, design())
+
+
+def _step_rows(session: Any, run_id: str, modules: list[str]) -> dict[str, Any]:
+    from sqlalchemy import select
+
+    from aia_core.infrastructure.tables import StepRunRow
+
+    rows = session.scalars(
+        select(StepRunRow)
+        .where(StepRunRow.run_id == run_id, StepRunRow.node_key.in_(modules))
+        .execution_options(populate_existing=True)
+    ).all()
+    return {r.node_key: r for r in rows}
+
+
+def _refused_whole(session: Any, scoped: Any, step_ids: list[str]) -> None:
+    """The repository's lift refuses ``step_ids`` before writing anything (review P3-3)."""
+    from sqlalchemy import select
+
+    from aia_core.infrastructure.tables import ApprovalDecisionRow
+
+    workflows = WorkflowRepository(session, scoped.scope(user="researcher"))
+    with pytest.raises(BudgetWaitNotLiftable):
+        workflows.resume_budget_waits(step_ids, note="", budget_before=1.0, budget_after=2.0)
+    assert session.scalars(select(ApprovalDecisionRow)).all() == []
+
+
+def test_a_lift_of_steps_from_two_runs_is_refused_whole(
+    session: Any, scoped: Any, runs: Any, design: Any, analysis_parked_on_budget: Any
+) -> None:
+    run_id, modules = analysis_parked_on_budget
+    other_id, other_modules = _park_analysis(
+        session, runs, design({**DESIGN, "title": "Druhý návrh"})
+    )
+    assert other_id != run_id
+    mine, theirs = (
+        _step_rows(session, run_id, modules),
+        _step_rows(session, other_id, other_modules),
+    )
+    _refused_whole(session, scoped, [mine[modules[0]].step_id, theirs[other_modules[0]].step_id])
+    for rows in (
+        _step_rows(session, run_id, modules),
+        _step_rows(session, other_id, other_modules),
+    ):
+        assert {r.status for r in rows.values()} == {StepRunStatus.AWAITING_BUDGET.value}
+
+
+def test_a_lift_with_one_step_no_longer_waiting_is_refused_whole(
+    session: Any, scoped: Any, analysis_parked_on_budget: Any
+) -> None:
+    run_id, modules = analysis_parked_on_budget
+    rows = _step_rows(session, run_id, modules)
+    ids = [rows[m].step_id for m in modules]
+    rows[modules[5]].status = StepRunStatus.RUNNABLE.value  # moved on before the lift's lock
+    session.flush()
+    _refused_whole(session, scoped, ids)
+    after = _step_rows(session, run_id, modules)
+    assert [after[m].status for m in modules if m != modules[5]] == [
+        StepRunStatus.AWAITING_BUDGET.value
+    ] * 7
+
+
+def test_a_lift_with_one_step_being_cancelled_is_refused_whole(
+    session: Any, scoped: Any, analysis_parked_on_budget: Any
+) -> None:
+    run_id, modules = analysis_parked_on_budget
+    rows = _step_rows(session, run_id, modules)
+    rows[modules[2]].cancel_requested = True
+    session.flush()
+    _refused_whole(session, scoped, [rows[m].step_id for m in modules])
+    after = _step_rows(session, run_id, modules)
+    assert {r.status for r in after.values()} == {StepRunStatus.AWAITING_BUDGET.value}
+
+
+def test_a_study_lift_decided_on_a_stale_budget_never_lowers_one_raised_meanwhile(
+    session: Any,
+    scoped: Any,
+    runs: Any,
+    design: Any,
+    engine: Any,
+    monkeypatch: pytest.MonkeyPatch,
+    analysis_parked_on_budget: Any,
+) -> None:
+    """Two runs of the study wait. B decides to lift its run to +8 and is held just before it
+    writes; meanwhile A lifts the other run to +10. A must wait for the study's lock and
+    then raise over B's, never be overwritten by it: the budget ends at +10 (review P3-5).
+
+    PostgreSQL only: the guard is the study row's lock, which SQLite does not take (it
+    serialises writers instead)."""
+    import threading
+    import time
+
+    from aia_core.infrastructure.db import create_session_factory
+    from aia_core.infrastructure.scope_repository import ScopeRepository
+
+    if engine.dialect.name != "postgresql":
+        pytest.skip("row locks are PostgreSQL's; SQLite serialises writers")
+    first_run, _ = analysis_parked_on_budget
+    second_run, _ = _park_analysis(session, runs, design({**DESIGN, "title": "Druhý návrh"}))
+    before = _budget(scoped)
+    session.commit()
+    researcher = scoped.scope(user="researcher")
+
+    b_decided, b_go = threading.Event(), threading.Event()
+    real = ScopeRepository.set_study_budget
+
+    def held(self: ScopeRepository, scope: Any, budget_usd: float) -> Any:
+        if budget_usd == before + 8.0:  # B: decided, now held before it writes
+            b_decided.set()
+            assert b_go.wait(30)
+        return real(self, scope, budget_usd)
+
+    monkeypatch.setattr(ScopeRepository, "set_study_budget", held)
+    factory = create_session_factory(engine)
+    errors: list[BaseException] = []
+
+    def lift(run_id: str, amount: float) -> None:
+        try:
+            with factory() as own:
+                ResearchRuns(own, researcher).lift_budget_wait(run_id, budget_usd=amount)
+                own.commit()
+        except BaseException as exc:  # reported below, never swallowed
+            errors.append(exc)
+
+    b = threading.Thread(target=lift, args=(second_run, before + 8.0))
+    b.start()
+    assert b_decided.wait(30)
+    a = threading.Thread(target=lift, args=(first_run, before + 10.0))
+    a.start()
+    time.sleep(1.0)  # room for A to finish if nothing holds it; with the lock it waits for B
+    b_go.set()
+    b.join(30)
+    a.join(30)
+    assert not errors, errors
+    session.expire_all()
+    assert _budget(scoped) == before + 10.0
+
+
+def test_a_lift_of_no_steps_is_refused(
+    session: Any, scoped: Any, analysis_parked_on_budget: Any
+) -> None:
+    run_id, modules = analysis_parked_on_budget
+    _refused_whole(session, scoped, [])
+    after = _step_rows(session, run_id, modules)
+    assert {r.status for r in after.values()} == {StepRunStatus.AWAITING_BUDGET.value}
 
 
 def test_one_lift_releases_every_step_of_the_run_waiting_for_budget(
@@ -577,6 +727,12 @@ def test_one_lift_releases_every_step_of_the_run_waiting_for_budget(
         if e["event_type"] == "STEP_RESUMED"
     ]
     assert len(resumed) == 8  # each step still says it went on, and why
+    # Each event names the one decision and every step it released: the ledger and the events
+    # join by id.
+    lifted_ids = sorted(by_node[m]["step_id"] for m in modules)
+    assert {e["payload"]["decision_id"] for e in resumed} == {row.decision_id}
+    assert all(sorted(e["payload"]["step_ids"]) == lifted_ids for e in resumed)
+    assert sorted(e["step_id"] for e in resumed) == lifted_ids
     # Nothing waits any more: a second lift is refused and writes nothing.
     with pytest.raises(BudgetWaitNotLiftable):
         runs(user="researcher").lift_budget_wait(run_id, budget_usd=before + 40.0)

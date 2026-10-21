@@ -795,7 +795,7 @@ class DeepResearchRuns:
         approval in the ledger for the run. The cap stays hard."""
         run = self.get(run_id)
         lift_study_budget_waits(
-            self.session, self.scope, run["steps"], budget_usd=budget_usd, note=note
+            self.session, self.scope, run_id, run["steps"], budget_usd=budget_usd, note=note
         )
         return self.get(run_id)
 

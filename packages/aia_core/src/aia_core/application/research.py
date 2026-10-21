@@ -253,6 +253,7 @@ class CostCeilingUnknown(Exception):
 def lift_study_budget_waits(
     session: Session,
     scope: StudyContext,
+    run_id: str,
     steps: Sequence[Mapping[str, Any]],
     *,
     budget_usd: float,
@@ -268,7 +269,10 @@ def lift_study_budget_waits(
     changing it (it was raised by hand); below it is refused: this lifts a cap, it does not
     lower one. One lift is one decision: every waiting step of ``steps`` goes on under one
     lock and one approval row in the ledger (CR-3), so a run whose eight analysis modules
-    stopped at the cap needs one lift, not eight. ``steps`` are one run's.
+    stopped at the cap needs one lift, not eight. ``steps`` are the steps of run ``run_id``,
+    whose lock is taken before the study's (the order a completing step takes them in); the
+    study's budget is then read locked, so two lifts at once never compare against the same
+    old budget and a raise is never overwritten by a smaller one decided earlier.
 
     Checked before anything is written, so a refused lift changes nothing, not even the
     budget; the budget change and the resumes share the caller's transaction. The callers
@@ -281,12 +285,18 @@ def lift_study_budget_waits(
     if not waiting:
         raise BudgetWaitNotLiftable("only a step waiting for budget can be lifted")
     scopes = ScopeRepository(session)
-    current = float(scopes.get_study(scope).budget_usd)
+    workflows = WorkflowRepository(session, scope)
+    # The run, then the study: the order a completing step takes them in (run, then the payer
+    # it charges), so the two never wait on each other.
+    workflows.lock_run(run_id)
+    # Locked before it is compared: two lifts at once must not compare against the same old
+    # budget, the later one writing a lower cap over the earlier one's raise.
+    current = float(scopes.get_study(scope, for_update=True).budget_usd)
     if budget_usd < current:
         raise BudgetNotRaised(offered=budget_usd, current=current)
     if budget_usd > current:
         scopes.set_study_budget(scope, budget_usd)
-    WorkflowRepository(session, scope).resume_budget_waits(
+    workflows.resume_budget_waits(
         [str(step["step_id"]) for step in waiting],
         note=note,
         budget_before=current,
@@ -1062,7 +1072,7 @@ class ResearchRuns:
             if step["status"] is not StepRunStatus.AWAITING_BUDGET:
                 raise BudgetWaitNotLiftable("only a step waiting for budget can be lifted")
         lift_study_budget_waits(
-            self.session, self.scope, run["steps"], budget_usd=budget_usd, note=note
+            self.session, self.scope, run_id, run["steps"], budget_usd=budget_usd, note=note
         )
         return self.get(run_id)
 
@@ -1582,7 +1592,7 @@ class ResearchAgentJobs:
         the same revision returns this job, so without the lift it never ends but by a cancel."""
         run = self.get(run_id)
         lift_study_budget_waits(
-            self.session, self.scope, run["steps"], budget_usd=budget_usd, note=note
+            self.session, self.scope, run_id, run["steps"], budget_usd=budget_usd, note=note
         )
         return self.get(run_id)
 
