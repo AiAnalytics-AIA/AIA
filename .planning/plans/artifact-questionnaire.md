@@ -182,6 +182,10 @@ reads as data (D13).
 **Recommendation: (a)**, with the constants proposed by A. Bahbouh. It is a rule, cheap to
 compute, and honest because it is labelled. (b) is the fallback if he declines.
 
+**Settled 2026-10-21 via /pmstatus Q53: (a), as worded on the page: "A declared rule per study type,
+set by Aram on Metodika".** The rule is declared per study type, not per item type as (a) above
+proposed; its constants are the methodology owner's (`mvp-owner-decisions.md`).
+
 ## Doc follow-up
 
 - Register this plan and its chunks. `research-lead-workbench#7`'s questionnaire half is QST5.

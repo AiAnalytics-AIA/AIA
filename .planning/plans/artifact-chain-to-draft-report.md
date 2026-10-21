@@ -335,7 +335,9 @@ G12-G17 are added by this plan.
 
 ## 6. Owner questions about the draft document's shape
 
-**CQ1. Which sections must a draft research document contain at MVP?** Open (Q55).
+**CQ1. Which sections must a draft research document contain at MVP?** **Settled 2026-10-21 via
+/pmstatus Q55: (b)**, "Today's report with gaps closed, plus RD9/RD10, plus literature when chosen,
+in today's order"; the owner's note: "ensure we are not missing anything".
 - (a) Today's internal report as composed (§2), with its gaps closed: the brief, the full audience,
   traced RQs, the run's methods.
 - (b) (a) plus the chapters already planned to be added: assumptions (RD9), coding (RD10), and the
