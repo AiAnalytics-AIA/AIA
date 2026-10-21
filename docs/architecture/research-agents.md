@@ -88,6 +88,13 @@ own activity, which needs `AIA_AI_RUNTIME_ENABLED` and this switch, and names th
 one that is off; the display is not a health check or invocation grant
 ([ai-runtime.md § What Settings shows](ai-runtime.md#what-settings-shows)).
 
+A job is held to the study's confirmation threshold (`spend_confirm_usd`) at start and at
+rebuild, its ceiling the design job's reservation (`AIA_AI_RESEARCH_RESERVATION_USD`):
+`ResearchAgentJobs.spend_gate` applies `money.threshold_verdict` only when a job would be created,
+and a confirmation needs `APPROVE_BUDGET`, which the worker's scope withholds. The routes take
+`confirm_cost_usd` and answer 409 `cost_confirmation_required` or `cost_ceiling_unknown`; the
+request never names the ceiling (`lead-orchestration` LO15, #541; OI-135).
+
 ## Remaining full-process work
 
 Evidence-backed interpretation/report execution must use the existing analysis

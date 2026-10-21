@@ -13,7 +13,11 @@
 import { useRouter } from "next/navigation";
 import { type ReactNode, useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
 
-import { ApiError, api, lead as leadApi, type ResearchAgentJob, type Study } from "@/lib/api";
+import { ApiError, api, lead as leadApi, research, type Readiness, type ResearchAgentJob, type ResearchRun, type Study } from "@/lib/api";
+import { withBudget } from "@/lib/budget-line";
+import { JOB_STAGE, jobMovesByItself } from "@/lib/lead-cards";
+import { unanswerableAsked } from "@/lib/answerability";
+import { jobCostAsked } from "@/lib/research-agent-jobs";
 import { appRoutes } from "@/lib/app-routes";
 import { guardedNavigate } from "@/lib/guarded-navigation";
 import {
@@ -23,13 +27,14 @@ import {
 import { type FocusMode, readSplit, writeSplit } from "@/lib/workbench-split";
 import { PHASES, STAGES, STAGE_ORDER, stageHref, stageOf, stageState, type WorkbenchStage } from "@/lib/workbench-stages";
 import { blockers, designLane, runLane } from "@/research/lane";
-import type { ResearchState, ResearchStore } from "@/research/store";
+import { submitWorkingDesign, type ResearchState, type ResearchStore } from "@/research/store";
 import type { StepKey } from "@/research/steps";
 import type { StudyFrame } from "../rehome/research/frame";
 import { useRuns } from "../rehome/research/StageTrack";
+import { LeadAskContext } from "../rehome/research/AskLead";
 import { Glyph, type GlyphTone } from "./Glyph";
 import { Icon, Mark } from "./Icons";
-import { LeadPane } from "./LeadPane";
+import { LeadPane, type LeadCardsContext } from "./LeadPane";
 import { SampleView } from "./SampleView";
 import { Split } from "./Split";
 import "./workbench.css";
@@ -110,6 +115,18 @@ type AutoList = {
   subscribe: (listener: () => void) => () => void;
 };
 const AUTO_KEY = "workbench:lead-auto-applied";
+/** A job whose review a card asked for on another stage: that stage's screen opens it on mount. */
+export const OPEN_REVIEW_KEY = "workbench:open-review";
+const RUN_LINKS_KEY = "workbench:lead-run-links";
+/** The run each prepared-run card started, by turn, in the study's page memory: the run's card then
+ * stands with the turn that prepared it, across stage changes. */
+function runLinks(memory: Map<string, unknown>): Map<string, string> {
+  const kept = memory.get(RUN_LINKS_KEY);
+  if (kept instanceof Map) return kept as Map<string, string>;
+  const made = new Map<string, string>();
+  memory.set(RUN_LINKS_KEY, made);
+  return made;
+}
 function autoList(memory: Map<string, unknown>): AutoList {
   const kept = memory.get(AUTO_KEY) as AutoList | undefined;
   if (kept) return kept;
@@ -160,7 +177,9 @@ export function Workbench({ frame, step, store, memory, save, inspector, reload,
   const state = useSyncExternalStore(store.subscribe, store.get, store.get);
   const hash = useHash();
   const stage = stageOf(step, hash);
-  const runs = useRuns(frame.studyId, step);
+  // Read again when the conversation starts a run, so its card follows it at once.
+  const [runEpoch, setRunEpoch] = useState(0);
+  const runs = useRuns(frame.studyId, step, runEpoch);
   const lane = useMemo(() => ({ ...designLane(state), ...runLane(runs) }), [state, runs]);
   const [mode, setMode] = useState<FocusMode>("split");
   const [split, setSplit] = useState(() => readSplit(storage()));
@@ -207,15 +226,24 @@ export function Workbench({ frame, step, store, memory, save, inspector, reload,
   }, [picking]);
   const [notice, setNotice] = useState<string | null>(null);
   const [study, setStudy] = useState<Study | null>(null);
-  // A job that still moves is read again, so its card in the conversation follows it; every attempt,
-  // failed or not, moves the poll on, so one failed read does not freeze the card.
-  const moving = jobs.some((j) => !j.is_terminal);
+  // A job that moves on its own (queued or running) is read again, so its card in the conversation
+  // follows it; every attempt, failed or not, moves the poll on, so one failed read does not freeze
+  // the card. A job waiting for budget, recovery or the AI runtime moves only when a person acts: it
+  // is read again on the window's focus, a card's action or a budget change, never on a timer.
+  const moving = jobs.some(jobMovesByItself);
   const [jobPolls, setJobPolls] = useState(0);
   useEffect(() => {
     if (!moving) return;
     const t = setTimeout(() => void onRefreshJobs().finally(() => setJobPolls((n) => n + 1)), 3000);
     return () => clearTimeout(t);
   }, [moving, jobs, jobPolls, onRefreshJobs]);
+  const waiting = jobs.some((j) => !j.is_terminal && !jobMovesByItself(j));
+  useEffect(() => {
+    if (!waiting) return;
+    const onFocus = () => void onRefreshJobs();
+    window.addEventListener("focus", onFocus);
+    return () => window.removeEventListener("focus", onFocus);
+  }, [waiting, onRefreshJobs]);
   // The budget meter is read again whenever a run, a design job or a Lead turn changes state: all spend.
   const jobStates = jobs.map((j) => `${j.run_id}:${j.status}`).join(",");
   const turnStates = turns.map((t) => `${t.turn_id}:${t.status}`).join(",");
@@ -435,9 +463,66 @@ export function Workbench({ frame, step, store, memory, save, inspector, reload,
 
   const blocked = blockers(state).length;
   const flushBeforeMessage = useCallback(() => store.flush(), [store]);
+  // A stage may send the Lead a message as the person would type it (Návrh's "Požádat Vedoucího").
+  const leadSend = useRef<((text: string) => void) | null>(null);
+  const registerSend = useCallback((send: (text: string) => void) => { leadSend.current = send; }, []);
+  const askLead = useCallback((text: string) => leadSend.current?.(text), []);
+
+  // A finished job's review opens on the stage its proposal changes (chunk 23): the stage's screen
+  // opens it when it mounts (ResearchScreen, OPEN_REVIEW_KEY in the study's page memory).
+  const openJob = useCallback((job: ResearchAgentJob) => {
+    const target = JOB_STAGE[job.action];
+    if (!target || target === stage || !memory) return onOpenJob(job);
+    memory.set(OPEN_REVIEW_KEY, job.run_id);
+    go(target);
+  }, [stage, memory, onOpenJob, go]);
+
+  // The prepared research run's card (chunk 23): the design the person sees submitted and read as
+  // Spuštění reads it on a visit, then started through Spuštění's own route, POST …/research/runs
+  // (readiness, the study's spend limit and its confirmation, the default persona source, LIVE).
+  const runOfTurn = useMemo(() => runLinks(memory ?? ownMemory), [memory, ownMemory]);
+  const [, setRunLinksRead] = useState(0);
+  const prepareRun = useCallback(async () => {
+    const revision = await submitWorkingDesign(store, frame.studyId, "run");
+    const [readiness, all] = await Promise.all([research.readiness(frame.studyId, revision.revision_id), research.runs(frame.studyId)]);
+    return { readiness, runs: all };
+  }, [store, frame.studyId]);
+  const startRun = useCallback(async (readiness: Readiness, asked: { ceiling: number; limit: number } | null): Promise<ResearchRun | null> => {
+    const ask = async (a: { ceiling: number; limit: number }) =>
+      confirm(await withBudget(frame.studyId, `Běh může stát až ${usd(a.ceiling)} USD, což dosahuje prahu potvrzení studie ${usd(a.limit)} USD. Spustit?`, a.ceiling));
+    let yes: number | undefined;
+    if (asked) {
+      if (!(await ask(asked))) return null;
+      yes = asked.ceiling;
+    }
+    const source = readiness.persona_source;
+    try {
+      return await research.start(frame.studyId, readiness.design_revision_id, yes, undefined, source);
+    } catch (e) {
+      if (unanswerableAsked(e)) throw new Error("Návrh nezodpoví všechny výzkumné otázky: mezery potvrďte na Spuštění.");
+      // The limit or the ceiling moved since the card read them: asked once more with the server's figure.
+      const again = jobCostAsked(e);
+      if (!again || yes !== undefined || !(await ask(again))) throw e;
+      return research.start(frame.studyId, readiness.design_revision_id, again.ceiling, undefined, source);
+    }
+  }, [frame.studyId, confirm]);
+  const cards: LeadCardsContext = useMemo(() => ({
+    runs: runs ?? [],
+    stepHref: frame.stepHref,
+    onStage: go,
+    prepareRun,
+    startRun,
+    runOfTurn,
+    onJobsChanged: () => void onRefreshJobs(),
+    onRunStarted: (turnId: string, run: ResearchRun) => {
+      runOfTurn.set(turnId, run.run_id);
+      setRunLinksRead((n) => n + 1);
+      setRunEpoch((n) => n + 1);
+    },
+  }), [runs, frame.stepHref, go, prepareRun, startRun, runOfTurn, onRefreshJobs]);
   const leadPane = (
     <LeadPane studyId={frame.studyId} stage={stage} canEdit={frame.canEdit} focus={focus} picking={picking}
-      onPick={() => setPicking((p) => !p)} onClearFocus={() => setFocus(null)} jobs={[...jobs].reverse()} onOpenJob={onOpenJob} onView={onView} onRequest={onRequest} onTurns={onTurns} onLead={onLead} beforeMessage={flushBeforeMessage} epoch={leadEpoch}
+      onPick={() => setPicking((p) => !p)} onClearFocus={() => setFocus(null)} jobs={[...jobs].reverse()} onOpenJob={openJob} cards={cards} onView={onView} onRequest={onRequest} onTurns={onTurns} onLead={onLead} beforeMessage={flushBeforeMessage} epoch={leadEpoch} registerSend={registerSend}
       mode={mode} onFocusMode={() => setMode((m) => (m === "conversation" ? "split" : "conversation"))} />
   );
 
@@ -474,7 +559,7 @@ export function Workbench({ frame, step, store, memory, save, inspector, reload,
                 <div className="artbody" id="artbody"><div className="wb-stage">
                   {stage === "sample" ? <SampleView project={state.project} onOpen={go} /> : null}
                   {/* Sample shows Dimenze's screen hidden, so its readiness still reaches the inspector. */}
-                  <div hidden={stage === "sample"}>{children}</div>
+                  <div hidden={stage === "sample"}><LeadAskContext.Provider value={askLead}>{children}</LeadAskContext.Provider></div>
                 </div></div>
                 <aside className="insp" aria-label="Připravenost a pomoc" hidden={!inspectorOpen}>
                   <div className="insp__head">

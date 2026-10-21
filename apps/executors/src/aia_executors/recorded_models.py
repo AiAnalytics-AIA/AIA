@@ -10,7 +10,11 @@ paid. It answers by the output contract a request names (the tool, ``aia_<agent 
 * ``aia_analysis_module`` -- an analysis module's draft citing one number exactly as the
   evidence the turn sends gives it (or, when a test asks, a draft citing a number no evidence
   row holds, an off-contract draft, or a recorded provider failure);
-* ``aia_research_lead`` -- one Research Lead turn: a reply with no number in it and no edit.
+* ``aia_research_lead`` -- one Research Lead turn: a reply with no number in it and no edit;
+* ``aia_research_<action>`` -- each of the eight design workers (``research_agents``
+  ``ResearchAction``): one fixed answer that keeps its closed contract, with no number in its
+  text, so a Lead card or a stage's job runs end to end at no cost (plan
+  ``artifact-chain-to-draft-report`` CHN7).
 
 Every response states that it is a recording: its provider request id is ``recorded-<kind>-<n>``
 (the id the ledger and the dataset's provenance keep for each call) and it carries
@@ -18,9 +22,9 @@ Every response states that it is a recording: its provider request id is ``recor
 the provider's validation refusal naming it -- an answered, unbilled 400, so the call fails by
 name and nothing is invented for a contract this double has no recording of.
 
-Not yet recorded here (``mvp-acceptance-harness`` chunk 4, listed in the plan): the eight
-design-worker contracts (``aia_research_<action>``), the client-source extraction contract
-(``aia_knowledge_source_proposals``) and the five Deep Research agents; the suites that drive
+Not yet recorded here (``mvp-acceptance-harness`` chunk 4, listed in the plan): the
+client-source extraction contract (``aia_knowledge_source_proposals``) and the five Deep
+Research agents; the suites that drive
 those keep their own doubles until they move here.
 
 Only test compositions use this module: the acceptance harness's worker composition
@@ -46,6 +50,7 @@ from aia_core.infrastructure.model_adapters.transport import (
 
 __all__ = [
     "ANALYSIS_TOOL",
+    "DESIGN_ANSWERS",
     "LEAD_REPLY",
     "LEAD_TOOL",
     "PROFILE",
@@ -67,16 +72,95 @@ LEAD_TOOL: Final = "aia_research_lead"
 #: The Lead's recorded reply: no number, so the number guard has nothing to refuse.
 LEAD_REPLY: Final = "Zaznamenaná odpověď vedoucího výzkumu: návrh si přečtu a navrhnu další krok."
 
+_FICTIONAL: Final = "Fiktivní záznam: "
+_ADVICE: Final[Mapping[str, Any]] = {
+    "answer": _FICTIONAL + "návrh je srozumitelný; doporučuji projít výzkumné otázky.",
+    "source_ids": [],
+    "followup_questions": ["Která výzkumná otázka je nejdůležitější?"],
+    "limitations": ["Zaznamenaná odpověď, ne model."],
+}
+_SCALE_QUESTION: Final[Mapping[str, Any]] = {
+    "text": "Jak často pijete kávu?",
+    "typ": "skala",
+    "kategorie": [],
+    "skala": [1, 5],
+    "popisky_skaly": ["Nikdy", "Denně"],
+    "povolit_nevim": True,
+    "max_slov": 50,
+    "topics": [],
+    "research_questions": [],
+}
+_QUESTIONNAIRE: Final[Mapping[str, Any]] = {
+    "message": _FICTIONAL + "jeden oddíl s jednou škálovou otázkou.",
+    "sections": [
+        {
+            "type": "questions",
+            "title": "Návyky",
+            "purpose": "Fiktivní oddíl ze záznamu.",
+            "questions": [_SCALE_QUESTION],
+        }
+    ],
+    "warnings": [],
+    "comparisons": [],
+}
+#: Each design worker's recorded answer, by its output tool (``aia_research_<action>``).
+DESIGN_ANSWERS: Final[Mapping[str, Mapping[str, Any]]] = {
+    "aia_research_analyze_brief": {
+        "title": "Fiktivní ranní nápoj",
+        "problem_summary": _FICTIONAL + "zjistit, co lidé ráno pijí.",
+        "decision_use": "Volba sortimentu ranních nápojů.",
+        "objectives": ["Popsat ranní nápojové návyky."],
+        "research_questions": ["Jak často lidé ráno pijí kávu?"],
+        "hypotheses": [],
+        "recommended_topics": [],
+        "tracked_sets": [],
+        "non_object_measures": [],
+        "questions_for_user": [],
+        "complexity": "short",
+        "method_reason": "Krátký kvantitativní dotazník.",
+        "ready_for_questionnaire": True,
+    },
+    "aia_research_build_questionnaire": _QUESTIONNAIRE,
+    "aia_research_optimize_questionnaire": _QUESTIONNAIRE,
+    "aia_research_propose_audience": {
+        "description": _FICTIONAL + "dospělí, kteří ráno pijí teplý nápoj.",
+        "inclusion_criteria": ["Dospělí"],
+        "exclusion_criteria": [],
+        "questions_for_user": [],
+        "limitations": ["Zaznamenaná odpověď, ne model."],
+    },
+    "aia_research_suggest_dimensions": {
+        "new_dimension_suggestions": [
+            {
+                "label": "Ranní rutina",
+                "why": _FICTIONAL + "odlišuje skupiny pijáků.",
+                "evidence_needed": ["Otázka na ranní rutinu"],
+                "suggested_predictors": [],
+                "source_strategy": "Odvodit z dotazníku.",
+            }
+        ],
+        "limitations": [],
+    },
+    "aia_research_critique_design": _ADVICE,
+    "aia_research_design_copilot": _ADVICE,
+    "aia_research_answer_memory": _ADVICE,
+}
+
 #: The usage each kind of call reports, as Converse reports it.
 _USAGE: Final[Mapping[str, Mapping[str, int]]] = {
     ANALYSIS_TOOL: {"inputTokens": 2400, "outputTokens": 380, "totalTokens": 2780},
     RESPONDENT_TOOL: {"inputTokens": 900, "outputTokens": 120, "totalTokens": 1020},
     LEAD_TOOL: {"inputTokens": 1800, "outputTokens": 90, "totalTokens": 1890},
+    **{
+        tool: {"inputTokens": 3000, "outputTokens": 600, "totalTokens": 3600}
+        for tool in DESIGN_ANSWERS
+    },
 }
 _KIND: Final[Mapping[str, str]] = {
     ANALYSIS_TOOL: "analysis",
     RESPONDENT_TOOL: "respondent",
     LEAD_TOOL: "lead",
+    **{tool: tool.removeprefix("aia_research_") for tool in DESIGN_ANSWERS},
 }
 
 
@@ -282,6 +366,8 @@ class RecordedModels:
             answer = _respondent(tool["inputSchema"]["json"])
         elif name == LEAD_TOOL:
             answer = {"reply": LEAD_REPLY}
+        elif name in DESIGN_ANSWERS:
+            answer = json.loads(json.dumps(DESIGN_ANSWERS[name]))
         else:
             return _no_recording(name, number)
         return HttpResponse(

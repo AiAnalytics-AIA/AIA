@@ -1,5 +1,5 @@
 ---
-status: planned
+status: in-progress
 chunks:
   - "[ ] DSN1. Návrh's contract as data: view operations, pointable ids (rq, objective, hypothesis, set, assumption) and V2's interaction contract, in research-lead-workbench 14's and 16's tables"
   - "[ ] DSN2. Research questions with their coverage on the working revision: measures, items, comparison and gaps from research_trace, pokryto / částečně / mezera by the trace's own verdict"
@@ -120,6 +120,13 @@ když are not built. What stays is code-derived: measures, items, comparison, an
   "neznámé", never pokryto, §8 of CLAUDE.md); the API test of WCE7's working-revision readiness.
 - Depends on `working-copy-edit-ops#WCE7`. Until then the coverage reads from the newest Design
   Revision and says so.
+- Progress (2026-10-21, `feature/design-rq-coverage`): the interim form landed. `DesignCoverage`
+  reads the newest Design Revision's readiness `research_trace` (a GET), says which revision and
+  whether the working copy moved since (`revisionIsCurrent`), and reads a question the revision does
+  not hold as neznámé (`lib/design-coverage.ts`; `design-coverage.test.ts`, `PlanStep.test.tsx`
+  "Návrh: Výzkumné otázky a jejich pokrytí"). Stays open for WCE7's working-revision coverage, the
+  per-question `rq:<id>` target (WCE1's stable ids) and V2's "Celý řetěz" (needs `expand_chain` in
+  `ARTIFACTS.design`).
 
 **DSN3. The narrative as items.**
 - Replaces `ProposalEditor` and `MeasurementEditor`'s explicit save (A30, A33) with autosaved items.
