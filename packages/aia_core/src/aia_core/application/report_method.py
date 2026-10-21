@@ -22,7 +22,7 @@ from aia_core.domain.fieldwork import (
     origin_kind,
     persona_source_of,
 )
-from aia_core.domain.methodology.pins import read_support_pin, run_methods
+from aia_core.domain.methodology.pins import read_aggregation_pin, read_support_pin, run_methods
 from aia_core.domain.report.model import (
     Block,
     BulletList,
@@ -545,10 +545,15 @@ def _rule_lines(rule: SupportThresholds) -> list[str]:
     return lines
 
 
+def _places(n: int) -> str:
+    return counted(n, "desetinné místo", "desetinná místa", "desetinných míst")
+
+
 def compose_methodology_rules(meta: Mapping[str, Any]) -> tuple[Block, ...]:
     """The rules this run was computed under, from its pins (artifact-chain CHN9): the support
-    rule Results shows and the stricter gate a number passes before analysis, the aggregation
-    methodology and the Sociomap method. A pin that cannot be read is said so, never replaced
+    rule Results shows and the analysis rule a number must also pass (either can be the
+    stricter: both are editable), the aggregation methodology with the places it stored its
+    numbers at, and the Sociomap method. A pin that cannot be read is said so, never replaced
     by a preset's name."""
     methods = run_methods(meta)
     unread = "záznam nelze přečíst"
@@ -562,10 +567,21 @@ def compose_methodology_rules(meta: Mapping[str, Any]) -> tuple[Block, ...]:
         analysis = "; ".join(_rule_lines(support.analysis)) or "nekontroluje žádnou mez"
         items.append(
             f"Pravidlo podpory {support.methodology_version}: ve výsledcích {results}. "
-            f"Do analýzy vstupuje číslo, jen když projde přísnější branou: {analysis}."
+            "Do analýzy vstupuje číslo, jen když projde oběma pravidly, tím ve výsledcích "
+            f"i pravidlem analýzy: {analysis}."
         )
     aggregation = methods.get("aggregation")
-    items.append(f"Agregace: metodika {(aggregation.name if aggregation else None) or unread}.")
+    named = f"Agregace: metodika {(aggregation.name if aggregation else None) or unread}"
+    # The places the aggregate stored its numbers at: the report prints them as stored.
+    try:
+        rounding = read_aggregation_pin(meta.get("aggregation"))[0].rounding
+    except ValueError:
+        items.append(f"{named}; zaokrouhlení: {unread}.")
+    else:
+        items.append(
+            f"{named}; podíly uloženy na {_places(rounding.share_decimals)}, průměry na "
+            f"{_places(rounding.mean_decimals)}; zpráva je dál nezaokrouhluje."
+        )
     sociomap = methods.get("sociomap")
     items.append(
         f"Sociomapa: metoda {(sociomap.name if sociomap else None) or unread}; "
