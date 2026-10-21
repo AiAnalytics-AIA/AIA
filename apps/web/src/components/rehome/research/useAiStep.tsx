@@ -65,8 +65,15 @@ export function useAiStep() {
     }
   };
 
-  /** After a budget lift: follow the same job on to its proposal. Starts nothing. */
-  const resume = (jobId: string) => run(async () => { await continueJob(jobId); });
+  /**
+   * After a budget lift: follow the same job on to its proposal. Starts nothing. `after` gets the
+   * job's result once it is reviewed, so a stage does with it what its own action would have.
+   */
+  const resume = (jobId: string, after?: (result: unknown) => void) =>
+    run(async () => {
+      const result = await continueJob(jobId);
+      after?.(result);
+    });
 
   return { run, resume, providerOk, saved, failure, setFailure, busy };
 }

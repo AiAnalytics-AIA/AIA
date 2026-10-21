@@ -90,6 +90,12 @@ export function BriefStep() {
     if (!(await runAnalysis({ force: true }))) return;
     router.push(stepHref("plan"));
   };
+  // The same analysis job, after a budget lift: on its accept the person goes on to Návrh, as
+  // `analyse` does, so "Další krok" is never pressed again for an analysis already made (CR-2).
+  const continueAnalysis = async (jobId: string) => {
+    if (!(await resume(jobId))) return;
+    router.push(stepHref("plan"));
+  };
 
   const selected = new Set(selectedProblemTypes(p));
   const goal = p.goal || "";
@@ -133,7 +139,7 @@ export function BriefStep() {
         </Readiness>
       </InspectorSlot>
 
-      {failure ? <AnalysisFailureCard failure={failure} onRetry={analyse} onContinue={(id) => void resume(id)} /> : null}
+      {failure ? <AnalysisFailureCard failure={failure} onRetry={analyse} onContinue={(id) => void continueAnalysis(id)} /> : null}
 
       <StepSection id="brief-goal" n={1} lead title={t("research.brief.goalTitle")} hint={t("research.brief.goalHint")}>
         <textarea

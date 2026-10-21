@@ -589,7 +589,13 @@ unless stated.
   for that job with no retry; after the lift `useResearchAgents.continueJob` follows the same job.
   Tests: `research-agent-jobs.test.ts` (the state mapping), `ResearchScreen.test.tsx` "shows a
   stage's AI job stopped at the budget as waiting, lifts it in place and goes on with the same job
-  (CR-2)".
+  (CR-2)". Codex on #533: a continued brief analysis then left the person on Zadání, where "Další
+  krok" could ask a second paid analysis. Each stage now does after a continued job what its own
+  action does: Zadání goes on to Návrh, Dotazník runs the build that waited behind its analysis
+  (the analysis not asked again), Audience says the proposal is saved, Dimenze shows the
+  suggestions. Tests: `BriefStep.test.tsx` "goes on to the plan once an analysis that waited for
+  budget is lifted and accepted, …", `QuestionnaireStep.test.tsx` "builds the questionnaire once its
+  analysis, waiting for budget, is lifted and accepted, …".
 - **CR-3. One budget lift releases one analysis step, so a run's eight steps need eight lifts.**
   Anchor: `components/rehome/research/ExecutionSteps.tsx:1285-1287` (a `BudgetLift` per step),
   `application/research.py:1036-1049 @ 242523e` (line 1048 passes `[step]` to

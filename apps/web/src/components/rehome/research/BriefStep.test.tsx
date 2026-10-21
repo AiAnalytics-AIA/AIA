@@ -200,6 +200,31 @@ describe("Zadání", () => {
     expect((screen.getByLabelText("Cíl výzkumu") as HTMLTextAreaElement).value).toBe("Zjistit zájem o nový nápoj");
   });
 
+  it("goes on to the plan once an analysis that waited for budget is lifted and accepted, asking nothing again (CR-2, Codex on #533)", async () => {
+    let lifted = false;
+    const waiting = { run_id: "RUN-A", design_revision_id: "REV-A", action: "analyze_brief", status: "AWAITING_BUDGET", is_terminal: false, needs_attention: true,
+      steps: [{ step_id: "STEP-A", node_key: "agent", status: "AWAITING_BUDGET", waiting_reason: "budget_exceeded", error_message: null }],
+      created_at: null, context_sha256: "sha", harness_version: "v1", actual_cost_usd: null };
+    unitStub({ goal: "Zjistit zájem o nový nápoj" }, {
+      "native/job": () => (lifted ? undefined : waiting),
+      [`${AGENTS_PATH}/RUN-A/budget`]: () => { lifted = true; return { ...waiting, status: "RUNNING", steps: [{ ...waiting.steps[0], status: "RUNNABLE" }] }; },
+      "/api/v1/studies/STU-1": () => ({ study_id: "STU-1", name: "Alfa", budget_usd: 5, spent_usd: 5, remaining_usd: 0 }),
+    });
+    render(<ResearchScreen step="brief" frame={TEST_FRAME} />);
+    fireEvent.click(await screen.findByRole("button", { name: NEXT }, NATIVE_JOB_WAIT));
+    const form = await screen.findByRole("form", { name: "Zvýšit rozpočet studie" }, NATIVE_JOB_WAIT);
+    expect(screen.queryByRole("button", { name: "Zkusit znovu" })).toBeNull();
+    await within(form).findByText(/5\.00/);
+    fireEvent.change(within(form).getByLabelText("Nový rozpočet studie (USD)"), { target: { value: "7" } });
+    fireEvent.click(within(form).getByRole("button", { name: "Zvýšit rozpočet a pokračovat" }));
+    await approveProposal();
+    await waitFor(() => expect(push).toHaveBeenCalledWith(stagePath("plan")), NATIVE_JOB_WAIT);
+    // One analysis, continued: never a second job for the one that waited.
+    expect(posted(AGENTS_PATH)).toHaveLength(1);
+    expect(posted(`${AGENTS_PATH}/RUN-A/budget`).map((c) => c.body)).toEqual([{ budget_usd: 7, note: "" }]);
+    expect(push).toHaveBeenCalledTimes(1);
+  });
+
   it("requests a frozen native context even when legacy brief signatures match", async () => {
     const project = { goal: "Zjistit zájem" };
     const sig = briefFingerprint(defaultsMerge(project, TEMPLATE));

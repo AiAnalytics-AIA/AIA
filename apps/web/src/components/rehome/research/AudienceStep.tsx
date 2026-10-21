@@ -259,6 +259,9 @@ const ui = (p: ResearchProject) => (p.ui_state || {}) as Record<string, unknown>
  * a study already stores (removable) -- and why the rest is missing. Either way the AI's
  * proposed description of the audience (a native job, ADR 0016/0018).
  */
+/** Said once a native audience proposal is reviewed, whether it ran at once or after a budget lift. */
+const PROPOSE_SAVED = "Návrh audience je uložený. Zkontrolujte popis a omezení.";
+
 function FilterEditor({ live }: { live: Live }) {
   const { store, state, runJob, toast } = useResearch();
   const step = useAiStep();
@@ -273,7 +276,7 @@ function FilterEditor({ live }: { live: Live }) {
       if (!typed) throw new Error(PROPOSE_EMPTY);
       await step.saved();
       const r = (await runJob("audiencePropose", proposePayload(store.get().project, typed), { title: PROPOSE_TITLE, warnMs: PROPOSE_WARN_MS })) as Parameters<typeof applyProposal>[2];
-      if (isNativeResult(r)) { toast("Návrh audience je uložený. Zkontrolujte popis a omezení."); return; }
+      if (isNativeResult(r)) { toast(PROPOSE_SAVED); return; }
       const a = applyProposal(store.get().project, typed, r || {});
       change(a.change);
       if (a.uncovered) toast(PROPOSE_UNCOVERED);
@@ -288,7 +291,7 @@ function FilterEditor({ live }: { live: Live }) {
       <section className="rounded-control border border-border bg-surface p-4" aria-labelledby="aud-filters">
         {step.failure ? (
           <div className="mb-4">
-            <AiFailureCard failure={step.failure} title={t("research.audience.failedTitle")} onRetry={() => step.setFailure(null)} onContinue={(id) => void step.resume(id)} />
+            <AiFailureCard failure={step.failure} title={t("research.audience.failedTitle")} onRetry={() => step.setFailure(null)} onContinue={(id) => void step.resume(id, () => toast(PROPOSE_SAVED))} />
           </div>
         ) : null}
         <div className={EYEBROW}>{t("research.audience.filterTag")}</div>

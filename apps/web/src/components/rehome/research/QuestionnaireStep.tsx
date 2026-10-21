@@ -118,10 +118,8 @@ export function QuestionnaireStep() {
   };
 
   // buildQuestionnaire: the analysis first (reused when the brief is the same), then the job.
-  const build = async () => {
-    step.setFailure(null);
-    if (!(await analysis.analyse())) return;
-    await step.run(async () => {
+  const buildJob = () =>
+    step.run(async () => {
       if (!(await step.providerOk())) return;
       await step.saved();
       const s = store.get();
@@ -129,6 +127,18 @@ export function QuestionnaireStep() {
       if (isNativeResult(result)) return;
       store.update(() => ({ project: applyBuilt(result, template) }), { reason: "questionnaire_ai_1776" });
     }, (m) => m + BUILD_FAILED_SUFFIX);
+  const build = async () => {
+    step.setFailure(null);
+    if (!(await analysis.analyse())) return;
+    await buildJob();
+  };
+  // The build's analysis waited for budget and was lifted: the same analysis job goes on, and on
+  // its accept the build the person asked for follows, as it does after `analyse` (CR-2). The
+  // analysis is not asked again.
+  const continueBuild = async (jobId: string) => {
+    step.setFailure(null);
+    if (!(await analysis.resume(jobId))) return;
+    await buildJob();
   };
 
   // The optimisation remains an agent proposal; Deep Research has its own durable panel.
@@ -231,7 +241,7 @@ export function QuestionnaireStep() {
           </>
         ) : null}
       </div>
-      {analysis.failure ? <AnalysisFailureCard failure={analysis.failure} onRetry={() => void build()} onContinue={(id) => void analysis.resume(id)} /> : null}
+      {analysis.failure ? <AnalysisFailureCard failure={analysis.failure} onRetry={() => void build()} onContinue={(id) => void continueBuild(id)} /> : null}
       {step.failure ? <AiFailureCard failure={step.failure} title={t("research.questionnaire.failedTitle")} onRetry={() => step.setFailure(null)} onContinue={(id) => void step.resume(id)} /> : null}
       {view === "upload" ? <Upload /> : null}
       {view === "ai" ? (
