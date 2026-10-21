@@ -35,6 +35,7 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, Final
 
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
 from ..domain.deployment import DeploymentEnvironment
@@ -44,6 +45,7 @@ from ..domain.population import (
     KnownVersion,
     PopulationImportContract,
     PopulationKind,
+    PromotionRefused,
     RuntimePopulation,
     WeightScheme,
     content_sha256,
@@ -229,47 +231,71 @@ class PopulationDouble:
         and return LIVE's version id. The caller commits.
 
         Idempotent: a database that already holds the double's LIVE keeps it and is not imported
-        again, so a restarted API finds what it established."""
-        runtime = self.runtime(session)
-        established = PopulationRegistryRepository(session).population(self.names.live)
-        if established is not None:
-            live_version = established.current_version_id
+        again, so a restarted API finds what it established. Safe under a race: two first
+        requests (the audience step reads the catalogue and the preview at once) may both find
+        nothing and both import; the second's writes run in a savepoint, and when another
+        transaction got there first (a unique constraint, or the registry refusing to establish
+        a population twice) the savepoint is rolled back and what the first wrote is read back.
+        """
+        registry = PopulationRegistryRepository(session)
+        established = registry.population(self.names.live)
+        if established is None:
+            try:
+                with session.begin_nested():
+                    live_version = self._import(session)
+            except (IntegrityError, PromotionRefused):
+                established = registry.population(self.names.live)
+                if established is None:
+                    raise
+                live_version = established.current_version_id
         else:
-            operator = PopulationAuthority(
-                PopulationOperatorConfig.from_names(
-                    {self.names.imported_by: ("POPULATION_ESTABLISH", "POPULATION_PROMOTE")}
+            live_version = established.current_version_id
+        try:
+            with session.begin_nested():
+                self.runtime(session).record_audience_catalogue(
+                    live_version, recorded_by=self.names.imported_by
                 )
-            ).operator_context(
-                AuthenticatedPrincipal(user_id=self.names.imported_by, organization_id="platform")
-            )
+        except IntegrityError:
+            pass  # another transaction kept the same catalogue first; it is insert-once
+        return live_version
 
-            def load(label: str) -> str:
-                return runtime.import_version(
-                    label=label,
-                    panel_location=f"panels/{label}.csv.gz",
-                    dictionary_location="dictionary.csv",
-                    provenance="the population double's fictional sampling rows",
-                    imported_by=self.names.imported_by,
-                    companion_locations={a: f"companions/{label}/{a}" for a in self.companions},
-                ).version_id
+    def _import(self, session: Session) -> str:
+        """The three versions imported and STATIC and LIVE established; LIVE's version id."""
+        runtime = self.runtime(session)
+        operator = PopulationAuthority(
+            PopulationOperatorConfig.from_names(
+                {self.names.imported_by: ("POPULATION_ESTABLISH", "POPULATION_PROMOTE")}
+            )
+        ).operator_context(
+            AuthenticatedPrincipal(user_id=self.names.imported_by, organization_id="platform")
+        )
 
-            load(_LABELS_IN_ORDER[0])
-            runtime.establish(
-                population_id=self.names.static,
-                kind=PopulationKind.STATIC,
-                version_id=load(_LABELS_IN_ORDER[1]),
-                operator=operator,
-                reason="the population double's fictional anchor",
-            )
-            live_version = load(_LABELS_IN_ORDER[2])
-            runtime.establish(
-                population_id=self.names.live,
-                kind=PopulationKind.LIVE,
-                version_id=live_version,
-                operator=operator,
-                reason="the population double: fictional respondents for tier A (RQC10)",
-            )
-        runtime.record_audience_catalogue(live_version, recorded_by=self.names.imported_by)
+        def load(label: str) -> str:
+            return runtime.import_version(
+                label=label,
+                panel_location=f"panels/{label}.csv.gz",
+                dictionary_location="dictionary.csv",
+                provenance="the population double's fictional sampling rows",
+                imported_by=self.names.imported_by,
+                companion_locations={a: f"companions/{label}/{a}" for a in self.companions},
+            ).version_id
+
+        load(_LABELS_IN_ORDER[0])
+        runtime.establish(
+            population_id=self.names.static,
+            kind=PopulationKind.STATIC,
+            version_id=load(_LABELS_IN_ORDER[1]),
+            operator=operator,
+            reason="the population double's fictional anchor",
+        )
+        live_version = load(_LABELS_IN_ORDER[2])
+        runtime.establish(
+            population_id=self.names.live,
+            kind=PopulationKind.LIVE,
+            version_id=live_version,
+            operator=operator,
+            reason="the population double: fictional respondents for tier A (RQC10)",
+        )
         return live_version
 
 

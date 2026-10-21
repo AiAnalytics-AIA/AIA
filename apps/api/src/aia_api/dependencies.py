@@ -153,10 +153,13 @@ def install_population_double(app: FastAPI, settings: Settings) -> None:
     switch before that, so a deployment never reaches here.
 
     Nothing is read from the database at startup (the schema may not exist yet); the double is
-    established on the first request that needs it (:func:`_established`), idempotently, so a
-    restarted API keeps what it established.
+    established in the transaction of the first request that needs it
+    (:func:`ensure_population_double`), idempotently, so a restarted API keeps what it established.
     """
-    double = population_double(settings.env)
+    # AIA_ENV must be named, as the worker's composition requires: the settings default an
+    # unset AIA_ENV to local, and an unset environment must refuse the double, never admit it.
+    named = settings.env if "env" in settings.model_fields_set else None
+    double = population_double(named)
     population = AudiencePopulation(contract=double.contract, population_id=double.population_id)
     app.state.population_double = double
     app.state.run_population = population
@@ -168,29 +171,30 @@ def install_population_double(app: FastAPI, settings: Settings) -> None:
     )
 
 
-def _established(request: Request, session: Session) -> None:
-    """Establish the population double in this request's transaction when it is composed."""
+def ensure_population_double(request: Request, session: Session) -> None:
+    """Establish the population double in this request's transaction when it is composed.
+
+    Concurrent first requests (the audience step reads its catalogue and its preview at once)
+    may both find nothing: :meth:`PopulationDouble.establish` writes in a savepoint and reads
+    back what the other wrote first, so neither fails; the request commits it with the rest of
+    its work."""
     double: PopulationDouble | None = getattr(request.app.state, "population_double", None)
     if double is not None:
         double.establish(session)
 
 
-def get_run_population(
-    request: Request, session: Annotated[Session, Depends(get_session)]
-) -> AudiencePopulation:
+def get_run_population(request: Request, session: SessionDep) -> AudiencePopulation:
     """The population a new research run records: the Czech LIVE in every deployment; the
     population double's LIVE only where :func:`install_population_double` composed it."""
-    _established(request, session)
+    ensure_population_double(request, session)
     found: AudiencePopulation = getattr(request.app.state, "run_population", CZECH_AUDIENCE)
     return found
 
 
-def get_audience_population(
-    request: Request, session: Annotated[Session, Depends(get_session)]
-) -> AudiencePopulation:
+def get_audience_population(request: Request, session: SessionDep) -> AudiencePopulation:
     """The population the audience catalogue and preview read (the Czech LIVE; the population
     double where it is composed)."""
-    _established(request, session)
+    ensure_population_double(request, session)
     found: AudiencePopulation = getattr(request.app.state, "audience_population", CZECH_AUDIENCE)
     return found
 
@@ -210,11 +214,9 @@ def build_audience_previewer(settings: Settings) -> AudiencePreviewer | None:
     )
 
 
-def get_audience_previewer(
-    request: Request, session: Annotated[Session, Depends(get_session)]
-) -> AudiencePreviewer | None:
+def get_audience_previewer(request: Request, session: SessionDep) -> AudiencePreviewer | None:
     """The process's audience previewer; ``None`` when this deployment has none."""
-    _established(request, session)
+    ensure_population_double(request, session)
     previewer: AudiencePreviewer | None = getattr(request.app.state, "audience_previewer", None)
     return previewer
 

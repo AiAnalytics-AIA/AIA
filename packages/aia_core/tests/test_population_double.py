@@ -7,7 +7,11 @@ before reading anything.
 
 from __future__ import annotations
 
+import threading
 from collections.abc import Iterator
+from pathlib import Path
+from typing import Any
+from unittest import mock
 
 import pytest
 from sqlalchemy import create_engine
@@ -27,7 +31,7 @@ from aia_core.infrastructure.tables import Base
 
 
 @pytest.fixture
-def session() -> Iterator[Session]:
+def memory() -> Iterator[Session]:
     engine = create_engine("sqlite+pysqlite:///:memory:")
     Base.metadata.create_all(engine)
     with sessionmaker(bind=engine)() as s:
@@ -74,7 +78,10 @@ def test_two_processes_build_the_same_contract_and_bytes() -> None:
     }
 
 
-def test_it_is_established_once_and_loads_through_the_canonical_loader(session: Session) -> None:
+def test_it_is_established_once_and_loads_through_the_canonical_loader(
+    memory: Session,
+) -> None:
+    session = memory
     double = population_double(DeploymentEnvironment.TEST)
     live = double.establish(session)
     session.commit()
@@ -98,3 +105,75 @@ def test_a_test_may_leave_a_companion_out() -> None:
     double = population_double(DeploymentEnvironment.TEST, omit=("PERSONA_VALUE_LABELS_v17.json",))
     assert "PERSONA_VALUE_LABELS_v17.json" not in double.companions
     assert all(c.asset_id != "PERSONA_VALUE_LABELS_v17.json" for c in double.contract.companions)
+
+
+def _file_sessions(tmp_path: Path) -> sessionmaker[Session]:
+    engine = create_engine(f"sqlite+pysqlite:///{tmp_path / 'double.db'}")
+    Base.metadata.create_all(engine)
+    return sessionmaker(bind=engine)
+
+
+def test_two_concurrent_first_establishes_both_get_the_one_live(
+    engine: Any, session: Session
+) -> None:
+    """The audience step reads its catalogue and its preview at once: on a fresh database two
+    transactions both find nothing and both import. Neither fails; one LIVE results.
+
+    PostgreSQL only (CI runs this suite against it, and locally with ``DATABASE_URL``): SQLite
+    admits one writer, so two transactions that both read before writing deadlock there."""
+    if engine.dialect.name == "sqlite":
+        pytest.skip("SQLite admits one writer; the race is PostgreSQL's (DATABASE_URL)")
+    sessions = sessionmaker(bind=engine)
+    double = population_double(DeploymentEnvironment.TEST)
+    barrier = threading.Barrier(2)
+    real = PopulationRegistryRepository.population
+    results: list[str] = []
+    errors: list[BaseException] = []
+
+    def first_read_waits(self: PopulationRegistryRepository, pid: str, **k: Any) -> Any:
+        found = real(self, pid, **k)
+        if pid == DOUBLE_NAMES.live and found is None:
+            barrier.wait(timeout=10)  # both have read "nothing" before either writes
+        return found
+
+    def establish() -> None:
+        try:
+            with sessions() as own:
+                results.append(double.establish(own))
+                own.commit()
+        except BaseException as exc:  # the test reports it
+            errors.append(exc)
+
+    with mock.patch.object(PopulationRegistryRepository, "population", first_read_waits):
+        threads = [threading.Thread(target=establish) for _ in range(2)]
+        for t in threads:
+            t.start()
+        for t in threads:
+            t.join(timeout=60)
+    assert errors == []
+    assert len(results) == 2 and results[0] == results[1]
+    live = PopulationRegistryRepository(session).population(DOUBLE_NAMES.live)
+    assert live is not None and live.current_version_id == results[0]
+
+
+def test_an_establish_that_read_before_another_committed_reads_back_what_it_wrote(
+    tmp_path: Path,
+) -> None:
+    sessions = _file_sessions(tmp_path)
+    double = population_double(DeploymentEnvironment.TEST)
+    with sessions() as first:
+        live = double.establish(first)
+        first.commit()
+    real = PopulationRegistryRepository.population
+    calls = {"n": 0}
+
+    def stale_once(self: PopulationRegistryRepository, pid: str, **k: object) -> object:
+        calls["n"] += 1
+        return None if calls["n"] == 1 else real(self, pid, **k)  # type: ignore[arg-type]
+
+    with (
+        sessions() as late,
+        mock.patch.object(PopulationRegistryRepository, "population", stale_once),
+    ):
+        assert double.establish(late) == live
+        late.commit()

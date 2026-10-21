@@ -11,12 +11,13 @@ from collections.abc import Iterator
 from typing import Any
 
 import pytest
-from aia_core.application.population_double import DOUBLE_NAMES
+from aia_core.application.population_double import DOUBLE_NAMES, PopulationDoubleRefused
 from aia_core.infrastructure.tables import Base
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
 
 from aia_api.config import Environment, Settings
+from aia_api.dependencies import ensure_population_double, install_population_double
 from aia_api.main import create_app
 
 API = "/api/v1"
@@ -53,6 +54,20 @@ def test_every_deployed_environment_refuses_the_switch(env: Environment) -> None
         settings.validate_for_production()
     # Off, the same deployment starts: the refusal is the switch's alone.
     Settings(**{**PRODUCTION_OK, "env": env}).validate_for_production()
+
+
+def test_an_unset_aia_env_refuses_the_double(monkeypatch: pytest.MonkeyPatch) -> None:
+    """The settings read an unset AIA_ENV as local; the double needs it named, as the worker's
+    composition does, so an unset environment never composes it."""
+    monkeypatch.delenv("AIA_ENV", raising=False)
+    unset = Settings(population_double=True, database_url="sqlite+pysqlite:///:memory:")
+    assert unset.env is Environment.LOCAL and "env" not in unset.model_fields_set
+    with pytest.raises(PopulationDoubleRefused, match="unset or unknown"):
+        install_population_double(FastAPI(), unset)
+    named = Settings(env=Environment.LOCAL, population_double=True)
+    app = FastAPI()
+    install_population_double(app, named)
+    assert app.state.run_population.population_id == DOUBLE_NAMES.live
 
 
 @pytest.fixture
@@ -96,3 +111,43 @@ def test_the_audience_step_reads_the_double(researcher: TestClient) -> None:
     assert catalogue.json()["version_label"] == "v1_4"
     preview = researcher.post(f"{API}/population/audience-preview", json={"filters": {}, "n": 200})
     assert preview.status_code == 200, preview.text
+
+
+def test_concurrent_first_requests_establish_the_double_once(app: FastAPI) -> None:
+    """The audience step's two first reads arrive together, each in its own request
+    transaction; both find the double established and nothing is imported twice.
+
+    PostgreSQL only (``DATABASE_URL``): SQLite admits one writer, so two transactions that both
+    read before writing deadlock there; the core suite holds the same race at the double."""
+    import threading
+    from types import SimpleNamespace
+
+    from aia_core.infrastructure.db import create_session_factory
+    from aia_core.infrastructure.population_repository import PopulationRegistryRepository
+
+    if app.state.engine.dialect.name == "sqlite":
+        pytest.skip("SQLite admits one writer; the race is PostgreSQL's (DATABASE_URL)")
+    factory = create_session_factory(app.state.engine)
+    request: Any = SimpleNamespace(app=app)
+    barrier = threading.Barrier(2)
+    errors: list[BaseException] = []
+
+    def first_request() -> None:
+        try:
+            with factory() as session:
+                barrier.wait(timeout=10)
+                ensure_population_double(request, session)
+                session.commit()  # as the request's own transaction does at its end
+        except BaseException as exc:  # the test reports it
+            errors.append(exc)
+
+    threads = [threading.Thread(target=first_request) for _ in range(2)]
+    for t in threads:
+        t.start()
+    for t in threads:
+        t.join(timeout=60)
+    assert errors == []
+    with factory() as session:
+        registry = PopulationRegistryRepository(session)
+        assert registry.population(DOUBLE_NAMES.live) is not None
+        assert len(registry.versions(DOUBLE_NAMES.dataset_id)) == 3
