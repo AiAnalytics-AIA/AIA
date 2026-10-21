@@ -33,25 +33,45 @@ describe("SwatchPicker (I3, I5): a colour chosen by its swatch, named in words",
     const trigger = screen.getByRole("button", { name: "Barva štítku: Modrá" });
     expect(screen.queryByRole("radiogroup")).toBeNull();
     fireEvent.click(trigger);
-    const blue = screen.getByRole("radio", { name: "Modrá" });
+    const blue = screen.getByRole("option", { name: "Modrá" });
     expect(document.activeElement).toBe(blue);
     fireEvent.keyDown(blue, { key: "ArrowRight" });
     expect(pick).not.toHaveBeenCalled();
-    fireEvent.click(screen.getByRole("radio", { name: "Zelená" }));
+    fireEvent.click(screen.getByRole("option", { name: "Zelená" }));
     expect(pick).toHaveBeenCalledTimes(1);
     expect(pick).toHaveBeenCalledWith("GREEN");
-    expect(screen.queryByRole("radiogroup")).toBeNull();
+    expect(screen.queryByRole("listbox")).toBeNull();
     expect(document.activeElement).toBe(trigger);
+  });
+
+  it("says what its arrows do: a radio group inline, a listbox of options in the popover (Codex #532)", () => {
+    render(<SwatchPicker {...props} value="TEAL" onChange={() => {}} />);
+    expect(screen.getByRole("radiogroup", { name: "Barva štítku" })).toBeTruthy();
+    expect(screen.getAllByRole("radio").map((r) => r.getAttribute("aria-checked"))).toEqual(["false", "true", "false"]);
+    expect(screen.queryByRole("listbox")).toBeNull();
+    expect(screen.queryByRole("option")).toBeNull();
+    cleanup();
+
+    render(<SwatchPicker {...props} popover value="TEAL" onChange={() => {}} />);
+    const trigger = screen.getByRole("button", { name: "Barva štítku: Tyrkysová" });
+    expect(trigger.getAttribute("aria-haspopup")).toBe("listbox");
+    fireEvent.click(trigger);
+    expect(screen.getByRole("listbox", { name: "Barva štítku" })).toBeTruthy();
+    const options = screen.getAllByRole("option");
+    expect(options.map((o) => o.getAttribute("aria-selected"))).toEqual(["false", "true", "false"]);
+    expect(options.every((o) => !o.hasAttribute("aria-checked"))).toBe(true);
+    expect(screen.queryByRole("radiogroup")).toBeNull();
+    expect(screen.queryByRole("radio")).toBeNull();
   });
 
   it("popover: choosing the colour it already has changes nothing; Esc closes", () => {
     const pick = vi.fn();
     render(<SwatchPicker {...props} popover value="BLUE" onChange={pick} />);
     fireEvent.click(screen.getByRole("button", { name: "Barva štítku: Modrá" }));
-    fireEvent.click(screen.getByRole("radio", { name: "Modrá" }));
+    fireEvent.click(screen.getByRole("option", { name: "Modrá" }));
     expect(pick).not.toHaveBeenCalled();
     fireEvent.click(screen.getByRole("button", { name: "Barva štítku: Modrá" }));
     fireEvent.keyDown(document, { key: "Escape" });
-    expect(screen.queryByRole("radiogroup")).toBeNull();
+    expect(screen.queryByRole("listbox")).toBeNull();
   });
 });

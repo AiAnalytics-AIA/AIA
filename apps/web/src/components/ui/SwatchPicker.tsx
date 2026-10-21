@@ -4,7 +4,7 @@
 // colours a label takes (hue-*), each with its Czech name as the accessible name, so colour is
 // never the only cue. Inline -- inside a row saved as a whole -- it is a radio group whose arrows
 // move and choose. With `popover` the choice is an action (a recolour saved at once), so it is one
-// swatch button that opens the swatches anchored to the item: the arrows only move (audit IA-6),
+// swatch button that opens the swatches anchored to the item as a listbox: the arrows only move (audit IA-6),
 // a click, Enter or Space chooses and closes, Esc or a press outside closes, and focus returns to
 // the button.
 
@@ -39,8 +39,10 @@ function Swatches<C extends string>({
     refs.current[next]?.focus();
     if (chooseOnMove) onChange(colours[next]);
   };
+  // Inline the arrows choose, as radios do: a radio group. In the popover they only move and a
+  // click or Enter chooses: that is a listbox of options, not radios (Codex #532).
   return (
-    <div role="radiogroup" aria-label={label} className="flex flex-wrap gap-1">
+    <div role={chooseOnMove ? "radiogroup" : "listbox"} aria-label={label} className="flex flex-wrap gap-1">
       {colours.map((c, i) => {
         const on = c === value;
         return (
@@ -50,8 +52,9 @@ function Swatches<C extends string>({
               refs.current[i] = el;
             }}
             type="button"
-            role="radio"
-            aria-checked={on}
+            role={chooseOnMove ? "radio" : "option"}
+            aria-checked={chooseOnMove ? on : undefined}
+            aria-selected={chooseOnMove ? undefined : on}
             aria-label={name(c)}
             title={name(c)}
             disabled={disabled}
@@ -83,7 +86,7 @@ export function SwatchPicker<C extends string>({ popover = false, ...props }: Pr
         ref={trigger}
         type="button"
         disabled={props.disabled}
-        aria-haspopup="true"
+        aria-haspopup="listbox"
         aria-expanded={open}
         aria-label={tv("input.swatch", { label: props.label, colour: props.name(props.value) })}
         onClick={() => setOpen((o) => !o)}
