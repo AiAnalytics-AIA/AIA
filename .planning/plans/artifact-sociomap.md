@@ -123,8 +123,8 @@ Depends on `research-lead-workbench#14`, `#16`.
   "Mapa ze starší metody; spusťte nový běh", a battery with no `-5` map); SOC2 shows that text,
   keyed off the same condition, and writes no second notice (PM, 2026-10-21).
 - Delivered so far: the `-5` panel's elements carry the SOC1 ids (`data-aia`): every listed object
-  `object:<battery>/<object>`, the detail card's object and its selected relation
-  `pair:<battery>/<a>~<b>`. Tests: `ObjectMapPanel.test.tsx` › "the Lead's names on the map". The
+  `object:<battery>/<object>` (its one element, selected or not), and the detail card's selected
+  relation `pair:<battery>/<a>~<b>`. Tests: `ObjectMapPanel.test.tsx` › "the Lead's names on the map". The
   frame itself waits for `research-lead-workbench#15`.
 
 **SOC3. Legend and filter bar.** Test: with weak links hidden the bar says what did not change.

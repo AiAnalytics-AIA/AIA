@@ -607,12 +607,12 @@ function ObjectCard({ battery, map, selected, relation }: { battery: BatteryWith
     return <DetailCard title={t(`${p}.objectDetailTitle`)}><p className="py-4 text-center text-ink-muted">{t(`${p}.objectDetailEmpty`)}</p></DetailCard>;
   }
   const o = objectDetail(battery, map, selected);
-  // The Lead's names for what the card shows (lib/artifacts/sociomap.ts): the pair, then the object.
+  // The Lead's name for the card's relation (lib/artifacts/sociomap.ts); the object's one element is its list button.
   const pair = relation ? pairTarget(battery.battery_id, map.object_ids[relation[0]], map.object_ids[relation[1]]) : null;
   return (
     <DetailCard title={t(`${p}.objectDetailTitle`)}>
       {relation ? <div data-aia={pair ?? undefined}><RelationBlock detail={relationDetail(battery, map, relation[0], relation[1])} /></div> : null}
-      <b className="text-sm" data-testid="object-map-detail-label" data-aia={objectTarget(battery.battery_id, map.object_ids[selected]) ?? undefined}>{o.label}</b>
+      <b className="text-sm" data-testid="object-map-detail-label">{o.label}</b>
       {o.primary ? null : <p className="text-[10.5px] text-ink-muted">{t(`${p}.detailSecondary`)}</p>}
       <div className="grid grid-cols-2 gap-1.5">
         <Fact label={t(`${p}.detailHeight`)} help={t(`${p}.detailHeightHelp`)} value={panelNumber(o.height === null ? null : originalRating(o.height, battery.rating_scale) ?? o.height)} />

@@ -701,7 +701,7 @@ describe("the Lead's names on the map", () => {
     expect(document.querySelector(focusSelector(target))).toBe(buttons[2]);
   });
 
-  it("names the selected object and the selected relation in the detail card, one pair id either way", async () => {
+  it("names the selected relation in the detail card, one pair id either way, and each object once", async () => {
     render(<ObjectMapView battery={hudba} dataOrigin={null} />);
     await nextFrame(0);
     const nodes = map.object_ids.map((_, k) => nodeAt(k));
@@ -713,6 +713,12 @@ describe("the Lead's names on the map", () => {
     const pair = screen.getByTestId("object-map-detail-relation").closest("[data-aia]")!;
     expect(pair.getAttribute("data-aia")).toBe(`pair:hudba/${a}~${b}`);
     expect(readTarget(pair.getAttribute("data-aia")!)).toEqual({ kind: "pair", battery: "hudba", a, b });
-    expect(screen.getByTestId("object-map-detail-label").getAttribute("data-aia")).toBe(`object:hudba/${map.object_ids[i]}`);
+    // One element per target, selected or not: the object's list button, never the card's label too.
+    for (const k of [i, j]) {
+      const same = document.querySelectorAll(`[data-aia="object:hudba/${map.object_ids[k]}"]`);
+      expect(same).toHaveLength(1);
+      expect(same[0].tagName).toBe("BUTTON");
+    }
+    expect(document.querySelector(focusSelector(`object:hudba/${map.object_ids[i]}`))?.tagName).toBe("BUTTON");
   });
 });
