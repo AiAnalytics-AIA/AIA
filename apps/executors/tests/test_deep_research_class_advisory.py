@@ -12,16 +12,24 @@ another test module (AGENTS.md § pytest).
 from __future__ import annotations
 
 import dataclasses
+import json
+from collections.abc import Mapping
 from typing import Any
 
+import pytest
 from aia_core.application.deep_research import DeepResearchRuns
-from aia_core.application.web_retrieval import RetrievalGate
-from aia_core.domain.deep_research.tooling import InMemoryToolLedger
+from aia_core.application.web_retrieval import RetrievalGate, WebRetrieval
+from aia_core.domain.ai_material import MaterialApproval, material_sha256
+from aia_core.domain.deep_research.contracts import RetrievalMode, StopReason
+from aia_core.domain.deep_research.tooling import TOOL_EVENT_KINDS, InMemoryToolLedger, ToolOutcome
 from aia_core.domain.deployment import DataClassGates
 from aia_core.domain.residency import DataClass
 from aia_core.domain.workflow import WorkflowRunStatus
+from aia_core.infrastructure.model_adapters.transport import EnvironmentCredentials
 from aia_core.infrastructure.storage import InMemoryArtifactStore
 from aia_core.infrastructure.study_design_repository import StudyDesignRepository
+from aia_core.infrastructure.web_retrieval import FetchedResponse
+from aia_core.infrastructure.web_retrieval_brave import BraveSearch
 from aia_executors.ai_runtime import AIRuntimeSettings
 from aia_executors.deep_research import DeepResearchRuntime, deep_research_registry
 from aia_executors.deep_research_runtime import deep_research_runtime
@@ -185,3 +193,101 @@ def test_brave_composed_declares_the_exception_and_takes_any_class_only_under_ad
             )
             for cls in (DataClass.CLASS_A_CLIENT_CONFIDENTIAL, DataClass.CLASS_B_DERIVED_CLIENT):
                 assert (gate.refusal_for_class(cls) is not None) is refused
+
+
+class _RecordedBrave:
+    """Brave's transport, recorded: every search answered with Brave's documented empty
+    result list. Nothing leaves the process; a request is only counted."""
+
+    retrieval_mode = RetrievalMode.LIVE  # BraveSearch takes a live transport alone
+
+    def __init__(self) -> None:
+        self.queries = 0
+
+    def get(
+        self, url: str, *, address: str, max_bytes: int, headers: Mapping[str, str]
+    ) -> FetchedResponse:
+        self.queries += 1
+        body = {"type": "search", "query": {}, "web": {"type": "search", "results": []}}
+        return FetchedResponse(
+            status=200,
+            headers={"content-type": "application/json; charset=utf-8"},
+            body=json.dumps(body).encode(),
+            truncated=False,
+            provider_request_id=None,
+        )
+
+
+class _Resolver:
+    def resolve(self, host: str) -> tuple[str, ...]:
+        return ("93.184.215.14",)  # public, as the gate requires; never dialled
+
+
+def _over_recorded_brave(retrieval: WebRetrieval, transport: _RecordedBrave) -> WebRetrieval:
+    """Brave's routes, as composed from the deployment's keys, over the recorded transport."""
+    return dataclasses.replace(
+        retrieval,
+        search=BraveSearch(
+            credentials=EnvironmentCredentials(environ=BRAVE),
+            resolver=_Resolver(),
+            transport=transport,
+        ),
+    )
+
+
+@pytest.mark.parametrize("gates", [DataClassGates.ENFORCE, DataClassGates.ADVISORY])
+def test_the_plan_step_reads_the_class_gate_mode_for_a_class_b_design_on_brave(
+    world: Any,
+    deep_research_fixture: Any,
+    database_url: str,
+    store: InMemoryArtifactStore,
+    build: Any,
+    monkeypatch: pytest.MonkeyPatch,
+    gates: DataClassGates,
+) -> None:
+    """Review of #594: the plan step's gate was built without ``class_gates`` and so judged
+    every query under enforce. A Class B design on Brave: under enforce the plan blocks every
+    web track (``SEARCH_ROUTE_REFUSED``) and Brave is sent nothing; under advisory the plan
+    lets its queries leave, and each of Brave's dispatched events records the advisory."""
+    fx = deep_research_fixture
+    # The sign-off (ADR 0022) is its own test; this one is about the class alone.
+    monkeypatch.setattr(DeepResearchRuntime, "sign_off_routes", lambda self: ())
+    class_b = MaterialApproval(
+        sha256=material_sha256(fx.DESIGN),
+        data_class=DataClass.CLASS_B_DERIVED_CLIENT,
+        provenance="generated wholly by this test; class explicitly set",
+        synthetic=True,
+    )
+    settings = dataclasses.replace(
+        fx.ai_settings(world.client_id, approved_for=fx.TEST_ROUTE),
+        material_approvals=(class_b,),
+        data_class_gates=gates,
+    )
+    composed = deep_research_runtime(
+        settings, env=BRAVE, transport=fx.RecordedAgents(fx.ANSWERS), signer=fx.Signer()
+    )
+    assert composed is not None and composed.retrieval is not None
+    assert composed.config.class_gates is gates
+    brave = _RecordedBrave()
+    runtime = dataclasses.replace(
+        composed, retrieval=_over_recorded_brave(composed.retrieval, brave)
+    )
+    run_id = _start(world, fx.DESIGN)
+    _drain(_worker(world, database_url, store, build, runtime))
+    _run_row, events = _run(world, run_id)
+    refused = [
+        e
+        for e in events
+        if e["payload"].get("stop_reason") == StopReason.SEARCH_ROUTE_REFUSED.value
+    ]
+    dispatched = [
+        e
+        for e in events
+        if e["message"] == TOOL_EVENT_KINDS[ToolOutcome.DISPATCHED]
+        and e["payload"].get("route_id") == "brave-web-search"
+    ]
+    if gates is DataClassGates.ENFORCE:
+        assert refused and dispatched == [] and brave.queries == 0
+    else:
+        assert refused == [] and dispatched and brave.queries == len(dispatched)
+        assert all("class_advisory gate=retrieval" in e["payload"]["note"] for e in dispatched)

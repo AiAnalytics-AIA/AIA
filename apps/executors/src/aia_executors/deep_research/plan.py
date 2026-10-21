@@ -270,6 +270,7 @@ class PlanExecutor(_Step):
                 archive=runtime.archive,
                 datasets=runtime.datasets,
                 archives=runtime.archives,
+                class_gates=runtime.config.class_gates,
             )
             refusal = gate.refusal_for_class(dclass)
             if refusal is not None:
