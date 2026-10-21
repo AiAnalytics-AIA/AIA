@@ -33,8 +33,8 @@ chunks:
   - "[ ] 26d. The compact header and stage navigator at 768-1099 and under 768 px: all eleven stages reachable by keyboard, no page overflow"
   - "[ ] 26e. A stale card refused and a direct request held by the same server gates, in the drawer and in the split"
   - "[ ] 26f. The manual AI starts removed in every layout behind one predicate, except Spuštění's own Start (D15, 2026-10-21); a static guard test; the journeys start work through the Lead's cards or a typed start"
-  - "[ ] 27a. Availability, said once and honestly (D20): first an anchored inventory of every path that turns the Lead off or stops it answering, each made hard to trigger by accident (Q43); then lib/lead-availability.ts (ON / WAITING / OFF / UNKNOWN from GET /lead; unknown never on), the launcher's dot and a stage's one line"
-  - "[ ] 27b. The kill switch holds on every Lead start: a card approved after a switch-off is 409 research_lead_disabled, stored text edits can still be accepted or dismissed (Q42); with the Lead off the composer takes only LO5's typed start commands, matched by code, through the same cards, wallet and LO15 confirmation (Q43)"
+  - "[ ] 27a. Availability, said once and honestly (D20): first an anchored inventory of every path that turns the Lead off or stops it answering, each made hard to trigger by accident (Q43); then lib/lead-availability.ts (ON / WAITING / OFF / UNKNOWN from GET /lead, which incorporates the worker's readiness from the composition record, lead-orchestration LO12b; ON only with the worker ready, unknown never on), the launcher's dot and a stage's one line"
+  - "[ ] 27b. The kill switch holds on every Lead start: a card the Lead model prepared, approved after a switch-off, is 409 research_lead_disabled, stored text edits can still be accepted or dismissed (Q42); with the Lead off the composer takes only LO5's typed start commands, matched by code, and their server-matched chat_start cards stay approvable under the same wallet and LO15 confirmation (Q43); GET /lead reports the worker's readiness (LO12b)"
   - "[ ] 27c. Retire the classic study frame and AIA_WEB_RESEARCH_WORKBENCH (Q41, D5 superseded): the workbench serves at every width, so a Lead is always present; the classic-frame journeys move to the workbench at 1440, 1024, 768 and 390 px"
   - "[ ] 27d. The switch matrix as one journey: Lead on, Lead off and worker parked, at 1100 and 390 px; what is shown, no manual AI start, a direct HTTP start meeting the same gates"
   - "[ ] 29. Conversation controls: older-message paging (with its route), copy, edit and resend, ArrowUp to edit the last message, send-now and edit for a queued message (D-38)"
@@ -185,6 +185,12 @@ at an element (`lib/lead.ts:341`, `Workbench.tsx:185-207 @ 0b4e05e`).
     approval with 409 `research_lead_disabled`; the card waits until the Lead is on again. Accepting or
     dismissing stored text edits stays allowed: it calls no model and spends nothing. His note: "this is
     an edge case". Chunk 27b.
+  - **Two kinds of card, one guard (Q42 with Q43).** The refusal is for a card **the Lead model
+    prepared** (a model turn's `request`). A card the server matched from a person's typed command
+    (`lead-orchestration#LO5`: matched by code, no model in the path, ledger `chat_start`) is not
+    Lead-model output and **stays approvable while the Lead is off**, under the same wallet and LO15
+    confirmation checks. The guard reads which kind the card is from the stored turn (its origin
+    recorded by the server when the card was made), never from the request body.
   - **Q43 (11:44 UTC): typed start commands work without the model.** With the Lead off, the composer
     still takes `lead-orchestration#LO5`'s typed start commands, matched by code with no model in the
     path, through the same approval cards, ledger row, wallet and LO15 confirmation; free text is
@@ -520,11 +526,18 @@ so it is rerun on `workbench.py up --fresh`.
      instance a start-time warning when the API and the worker disagree, and the default reconsidered
      in a separate owner-visible change. Nothing here loosens a kill switch.
   2. **The pure reader.** New `apps/web/src/lib/lead-availability.ts` and its Vitest: input `GET /lead`'s
-     `available` and `unavailable_reason`, the newest turn's park reason and a read failure; output `ON |
-     WAITING(reason) | OFF | UNKNOWN`, with words (the `REASON` map moves here from `LeadPane.tsx:36-50`).
-     `UNKNOWN` (unreadable `/lead`, an older API's 404, `LeadPane.tsx:114`) never reads as on;
-     `research_lead_disabled` reads as off; parks read as waiting. Only `GET /lead` decides; `/config`'s
-     copy is never read for it.
+     `available`, `unavailable_reason` and the worker's readiness, the newest turn's park reason and a
+     read failure; output `ON | WAITING(reason) | OFF | UNKNOWN`, with words (the `REASON` map moves
+     here from `LeadPane.tsx:36-50`). `UNKNOWN` (unreadable `/lead`, an older API's 404,
+     `LeadPane.tsx:114`) never reads as on; `research_lead_disabled` reads as off; parks read as
+     waiting. Only `GET /lead` decides; `/config`'s copy is never read for it.
+     **The API's switch alone is not availability.** With the API's switch on and the worker's switch
+     or its model keys off, a fresh study answers `available: true` today (`routers/lead.py:356-359`)
+     while every turn parks `research_lead_unconfigured`. So `GET /lead` incorporates the worker's
+     readiness from the worker composition record (`lead-orchestration#LO12b`, shared with
+     `deep-research-web-search#52`), and the reader reads ON only with an explicit worker-ready signal.
+     Until that record exists, and whenever the worker's readiness has not been read, availability is
+     `UNKNOWN`, never ON: `available: true` without the signal reads as unknown.
   3. **Where it shows.** `LeadLauncher` (26c) shows it, and each stage that lost a start in 26f shows one
      line from it (D13), a `LeadAvailabilityNote` in `rehome/research`. `lead_journey.mjs` with the API's
      switch off: the launcher says vypnutý, the composer takes only typed commands (27b), old turns are
@@ -533,9 +546,17 @@ so it is rerun on `workbench.py up --fresh`.
   (`application/research_lead.py:683`) raises `LeadUnavailable` when not enabled and `routers/lead.py`
   answers 409 `research_lead_disabled` for `/request`; `decide_edits` stays allowed. `post` (`:402`) with
   the Lead off accepts only `lead-orchestration#LO5`'s matched command kinds, still refusing free text.
-  Tests: a card approved after a switch-off is 409 with no workflow row and no reservation;
-  `decide_edits` still works; a typed run start with the Lead off writes `chat_start` and passes the same
-  wallet and LO15 checks, while free text is 409. The typed path depends on LO5.
+  The refusal distinguishes the two kinds of card (D22): a card the Lead model prepared is refused; a
+  server-matched `chat_start` card (LO5) stays approvable while the Lead is off, with the same wallet and
+  LO15 checks. `GET /lead` adds the worker's readiness from the composition record
+  (`lead-orchestration#LO12b`) beside `available`, so 27a's reader can say ON; without the record it
+  answers readiness unknown, never ready.
+  Tests: a card the Lead model prepared, approved after a switch-off, is 409 `research_lead_disabled` with
+  no workflow row and no reservation; **in the same switched-off state a server-matched `chat_start`
+  card is approved, writes `chat_start` and passes the same wallet and LO15 checks**; `decide_edits`
+  still works; a typed run start with the Lead off writes `chat_start`, while free text is 409; with the
+  API's switch on and the worker's off (or its keys unset), `GET /lead` does not report the worker ready.
+  The typed path depends on LO5, the readiness on LO12b.
 - **27c. Retire the classic study frame** (Q41). `ResearchScreen.tsx`: delete `useWorkbenchSwitch`
   (`:232-252`), the classic branch (`:378-409`) and `useStageWide`; the pre-ready states (`:199-227`) take
   the workbench's header so the frame does not jump on load. `app/config/route.ts:31` and
