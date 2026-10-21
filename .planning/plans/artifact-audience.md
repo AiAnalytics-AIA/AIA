@@ -1,9 +1,9 @@
 ---
-status: planned
+status: in-progress
 chunks:
   - "[ ] AUD1. Cílová skupina's contract as data: view operations, pointable ids (definition, filter, subpanel, assumption) and V2's interaction contract; the first Lead targets this screen has"
   - "[ ] AUD2. The body as V2 draws it: Definice, Filtry populace as a table of factor, value and count, the LIVE version named, counts only"
-  - "[ ] AUD3. Each filter's own count: the audience preview answers a per-filter count beside the combined one, still counts only"
+  - "[x] AUD3. Each filter's own count: the audience preview answers a per-filter count beside the combined one, still counts only"
   - "[ ] AUD4. Předpoklady o cílové skupině: the assumption list with attached evidence, external and client knowledge labelled apart"
   - "[ ] AUD5. The Lead on Cílová skupina: propose_audience as a card, its proposal inline, the stage's AI start removed"
   - "[ ] AUD6. Journey: Cílová skupina at 1440, 1100, 768 and 390 px, zero paid jobs"

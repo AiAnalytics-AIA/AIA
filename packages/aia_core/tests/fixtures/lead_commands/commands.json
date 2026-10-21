@@ -1,0 +1,32 @@
+{
+  "about": "The Lead composer's typed start commands (lead-orchestration LO5), matched by code on the server: domain/lead_commands.py COMMANDS. The web's composer reads this file too. A change here is a change to what a person may start without the Lead's model.",
+  "commands": [
+    {"phrase": "Analyzuj zadání", "start": "agent_job:analyze_brief", "label": "Analýza zadání", "takes_instruction": true},
+    {"phrase": "Navrhni dotazník", "start": "agent_job:build_questionnaire", "label": "Návrh dotazníku", "takes_instruction": true},
+    {"phrase": "Uprav dotazník", "start": "agent_job:optimize_questionnaire", "label": "Úprava dotazníku", "takes_instruction": true},
+    {"phrase": "Navrhni audienci", "start": "agent_job:propose_audience", "label": "Návrh audience", "takes_instruction": true},
+    {"phrase": "Navrhni dimenze", "start": "agent_job:suggest_dimensions", "label": "Návrh dimenzí", "takes_instruction": true},
+    {"phrase": "Zkontroluj návrh", "start": "agent_job:critique_design", "label": "Kontrola návrhu", "takes_instruction": true},
+    {"phrase": "Pomoz s návrhem", "start": "agent_job:design_copilot", "label": "Pomoc s návrhem", "takes_instruction": true},
+    {"phrase": "Zeptej se na klientské znalosti", "start": "agent_job:answer_memory", "label": "Klientské znalosti", "takes_instruction": true},
+    {"phrase": "Spusť výzkum", "start": "research_run", "label": "Spuštění výzkumu", "takes_instruction": false}
+  ],
+  "matches": [
+    {"text": "Spusť výzkum", "start": "research_run", "instruction": ""},
+    {"text": "  spusť   VÝZKUM!  ", "start": "research_run", "instruction": ""},
+    {"text": "/Spusť výzkum.", "start": "research_run", "instruction": ""},
+    {"text": "Navrhni dotazník: krátce,  do 10 otázek", "start": "agent_job:build_questionnaire", "instruction": "krátce, do 10 otázek"},
+    {"text": "zkontroluj návrh", "start": "agent_job:critique_design", "instruction": ""}
+  ],
+  "not_matches": [
+    "spust vyzkum",
+    "Spusť výzkum, prosím",
+    "Prosím spusť výzkum",
+    "Spusť výzkum: hned",
+    "Navrhni dotazník:",
+    "Navrhni dotazník:   ",
+    "Co myslíš, mám spustit výzkum?",
+    "Spusť rešerši k návrhu",
+    ""
+  ]
+}

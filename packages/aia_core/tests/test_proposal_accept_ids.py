@@ -158,3 +158,29 @@ def test_a_place_two_designs_fill_with_different_sections_is_refused(
     # Order is no item.
     accepted = _accept(session, scope, design, proposed)
     assert sorted(s["title"] for s in accepted.merged.content["sections"]) == ["Nový", "Úvod"]
+
+
+def test_an_accept_keeps_a_scale_s_labels_on_every_point(session: Any, scoped: Any) -> None:
+    """#559: a proposal whose contract writes a scale's two ends is accepted without dropping
+    the labels the person gave every point of the same range."""
+    points = ["vůbec", "spíše ne", "nevím", "spíše ano", "zcela"]
+    scale = {
+        "id": "Q1",
+        "text": "Jak moc?",
+        "typ": "skala",
+        "skala": [1, 5],
+        "popisky_skaly": points,
+    }
+    content = {
+        "title": "Fictional",
+        "goal": "Test",
+        "sections": [{"id": "s1", "type": "questions", "title": "A", "questions": [scale]}],
+    }
+    scope, design = _study(session, scoped, content)
+    proposed = copy.deepcopy(content)
+    _question(proposed).update(text="Jak moc vás to zaujalo?", popisky_skaly=["vůbec", "zcela"])
+    accepted = _accept(session, scope, design, proposed)
+    assert _question(accepted.merged.content)["text"] == "Jak moc vás to zaujalo?"
+    assert _question(accepted.merged.content)["popisky_skaly"] == points
+    stored = StudyWorkspaceRepository(session).content(scope).content
+    assert stored is not None and _question(stored)["popisky_skaly"] == points

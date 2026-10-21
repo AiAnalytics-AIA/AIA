@@ -57,13 +57,12 @@ import {
   respondentPreview,
   sections,
   setObjectFamily,
-  setObjectLabel,
   setPriceBands,
   setQuestionOptions,
   setQuestionText,
   setQuestionnairePath,
-  setScaleEnd,
-  setScaleLabel,
+  setQuestionScale,
+  setSetScaleLabels,
   setSectionField,
   toAudience,
   updateObjects,
@@ -77,11 +76,15 @@ import { AiButton, Button } from "../ui";
 import { isNativeResult } from "@/lib/research-agent-jobs";
 import { openPlace, scrollBehavior, scrollToPlace } from "@/lib/open-place";
 import { useResearch } from "./context";
+import { QuestionnaireDependencies } from "./QuestionnaireDependencies";
+import { QuestionnaireStrip } from "./QuestionnaireStrip";
 import { InspectorSlot } from "./Inspector";
 import { questionnaireIssues } from "@/research/lane";
+import { AskLead, useLeadOwnsAiStarts } from "./AskLead";
 import { AiFailureCard, useAiStep } from "./useAiStep";
 import { AnalysisFailureCard, useAnalysis } from "./useAnalysis";
 import { DeepResearchPanel } from "./DeepResearchPanel";
+import { ScaleEditor, ScaleUndoProvider } from "./ScaleEditor";
 
 const FOCUS = "focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus-ring";
 const INPUT = `min-h-9 w-full rounded-control border border-border-strong bg-surface-raised px-2.5 text-sm text-ink placeholder:text-ink-faint ${FOCUS}`;
@@ -102,6 +105,7 @@ export function QuestionnaireStep() {
   const router = useRouter();
   const analysis = useAnalysis();
   const step = useAiStep();
+  const leadOwnsAiStarts = useLeadOwnsAiStarts();
   const p = state.project;
   const view = questionnaireView(p);
   const [tab, setTab] = useState<"edit" | "preview">("edit");
@@ -125,7 +129,7 @@ export function QuestionnaireStep() {
       const s = store.get();
       const result = await runJob("researchBuildQuestionnaire", buildPayload(s.project, s.analysis), { title: BUILD_TITLE, warnMs: BUILD_WARN_MS });
       if (isNativeResult(result)) return;
-      store.update(() => ({ project: applyBuilt(result, template) }), { reason: "questionnaire_ai_1776" });
+      store.update(({ project: before }) => ({ project: applyBuilt(result, template, before) }), { reason: "questionnaire_ai_1776" });
     }, (m) => m + BUILD_FAILED_SUFFIX);
   const build = async () => {
     step.setFailure(null);
@@ -148,7 +152,7 @@ export function QuestionnaireStep() {
       const s = store.get();
       const result = await runJob("questionnaireOptimize", optimizePayload(s.project), { title: OPTIMIZE_TITLE });
       if (isNativeResult(result)) return;
-      store.update(({ analysis: a }) => applyOptimized(result, a, template), { reason: "questionnaire_optimized" });
+      store.update(({ project: before, analysis: a }) => applyOptimized(result, a, template, before), { reason: "questionnaire_optimized" });
       toast(OPTIMIZE_DONE);
     });
 
@@ -235,9 +239,11 @@ export function QuestionnaireStep() {
               onChange={setTab}
             />
             <span className="flex-1" />
-            <AiButton small disabled={step.busy} onClick={() => void optimize()}>
-              {t("research.questionnaire.optimizeAction")}
-            </AiButton>
+            {!leadOwnsAiStarts ? (
+              <AiButton small disabled={step.busy} onClick={() => void optimize()}>
+                {t("research.questionnaire.optimizeAction")}
+              </AiButton>
+            ) : null}
           </>
         ) : null}
       </div>
@@ -249,9 +255,11 @@ export function QuestionnaireStep() {
           <h2 id="q-ai" className="text-lg font-semibold">{t("research.questionnaire.aiTitle")}</h2>
           <p className="mt-1 text-sm text-ink-muted">{t("research.questionnaire.aiIntro")}</p>
           <p className="mt-1 text-xs text-ink-muted">{t("research.questionnaire.aiBuildHelp")}</p>
-          <AiButton variant="primary" className="mt-4" disabled={step.busy || analysis.busy} onClick={() => void build()}>
-            {t("research.questionnaire.aiBuild")}
-          </AiButton>
+          {!leadOwnsAiStarts ? (
+            <AiButton variant="primary" className="mt-4" disabled={step.busy || analysis.busy} onClick={() => void build()}>
+              {t("research.questionnaire.aiBuild")}
+            </AiButton>
+          ) : <AskLead className="mt-4" what="Návrh dotazníku i jeho úpravu" />}
         </section>
       ) : null}
       {editor ? (
@@ -259,7 +267,11 @@ export function QuestionnaireStep() {
           <div className="flex flex-wrap items-start gap-4">
             <Outline update={update} />
             <div className="flex min-w-0 flex-[999_1_560px] flex-col gap-4">
-              {tab === "edit" ? <Editor update={update} /> : <Preview items={respondentPreview(p)} />}
+              {tab === "edit" ? (
+                <ScaleUndoProvider>
+                  <Editor update={update} />
+                </ScaleUndoProvider>
+              ) : <Preview items={respondentPreview(p)} />}
             </div>
           </div>
           <section className={CARD} aria-labelledby="q-final">
@@ -540,38 +552,43 @@ function Outline({ update }: { update: Update }) {
     </li>
   );
 
+  // The wrapper stretches to its flex line, and the outline sticks only within it: beside the
+  // editor the line is the editor's height; wrapped onto a line of its own (a narrow pane, a
+  // phone) it is the outline's, so the outline scrolls away instead of covering the editor.
   return (
-    <aside aria-labelledby="q-editor" className="sticky top-[136px] flex flex-[1_1_240px] flex-col gap-3 rounded-card border border-border bg-surface-raised p-3.5">
-      <div>
-        <div className="font-mono text-[11px] uppercase tracking-[0.08em] text-ink-faint">{t("research.questionnaire.editorTag")}</div>
-        <h2 id="q-editor" className={`mt-0.5 rounded-sm text-sm font-semibold ${FOCUS}`}>{tv("research.questionnaire.editorCounts", counts)}</h2>
-      </div>
-      {xs.length ? (
-        <ul className="flex max-h-[45vh] flex-col gap-0.5 overflow-y-auto">
-          {xs.flatMap((sec, si) =>
-            sec.type === "questions"
-              ? [
-                  row(`qblock_${sec.id || si}`, `B${++b}`, String(sec.title || ""), !(sec.questions || []).length),
-                  ...(sec.questions || []).map((x) => row(questionElementId(x), `Q${++q}`, String(x.text || ""), !String(x.text || "").trim(), 1)),
-                ]
-              : [row(setElementId(sec, si), `S${++s}`, String(sec.title || ""), setInvalid(sec))],
-          )}
-        </ul>
-      ) : null}
-      <div className="border-t border-border pt-3">
-        <div className={LABEL}>{t("research.questionnaire.quickAdd")}</div>
-        <div className="mt-1.5 flex flex-wrap gap-1.5">
-          {([["choice", "addChoice"], ["scale", "addScale"], ["open", "addOpen"]] as const).map(([kind, label]) => (
-            <Button key={kind} small variant="secondary" icon="plus" className="!rounded-control" onClick={() => void guided(kind)}>{t(`research.questionnaire.${label}`)}</Button>
-          ))}
+    <div className="flex flex-[1_1_240px] flex-col self-stretch">
+      <aside aria-labelledby="q-editor" className="sticky top-[136px] flex flex-col gap-3 rounded-card border border-border bg-surface-raised p-3.5">
+        <div>
+          <div className="font-mono text-[11px] uppercase tracking-[0.08em] text-ink-faint">{t("research.questionnaire.editorTag")}</div>
+          <h2 id="q-editor" className={`mt-0.5 rounded-sm text-sm font-semibold ${FOCUS}`}>{tv("research.questionnaire.editorCounts", counts)}</h2>
         </div>
-        <p className="mt-1.5 text-xs text-ink-muted">{t("research.questionnaire.quickHelp")}</p>
-      </div>
-      <div className="flex flex-wrap gap-1.5">
-        <Button small icon="plus" className="!rounded-control" onClick={() => update((p) => addQuestionSection(p))}>{t("research.questionnaire.addBlockV3")}</Button>
-        <Button small icon="plus" className="!rounded-control" onClick={() => void trackedSet()}>{t("research.questionnaire.addSet")}</Button>
-      </div>
-    </aside>
+        {xs.length ? (
+          <ul className="flex max-h-[45vh] flex-col gap-0.5 overflow-y-auto">
+            {xs.flatMap((sec, si) =>
+              sec.type === "questions"
+                ? [
+                    row(`qblock_${sec.id || si}`, `B${++b}`, String(sec.title || ""), !(sec.questions || []).length),
+                    ...(sec.questions || []).map((x) => row(questionElementId(x), `Q${++q}`, String(x.text || ""), !String(x.text || "").trim(), 1)),
+                  ]
+                : [row(setElementId(sec, si), `S${++s}`, String(sec.title || ""), setInvalid(sec))],
+            )}
+          </ul>
+        ) : null}
+        <div className="border-t border-border pt-3">
+          <div className={LABEL}>{t("research.questionnaire.quickAdd")}</div>
+          <div className="mt-1.5 flex flex-wrap gap-1.5">
+            {([["choice", "addChoice"], ["scale", "addScale"], ["open", "addOpen"]] as const).map(([kind, label]) => (
+              <Button key={kind} small variant="secondary" icon="plus" className="!rounded-control" onClick={() => void guided(kind)}>{t(`research.questionnaire.${label}`)}</Button>
+            ))}
+          </div>
+          <p className="mt-1.5 text-xs text-ink-muted">{t("research.questionnaire.quickHelp")}</p>
+        </div>
+        <div className="flex flex-wrap gap-1.5">
+          <Button small icon="plus" className="!rounded-control" onClick={() => update((p) => addQuestionSection(p))}>{t("research.questionnaire.addBlockV3")}</Button>
+          <Button small icon="plus" className="!rounded-control" onClick={() => void trackedSet()}>{t("research.questionnaire.addSet")}</Button>
+        </div>
+      </aside>
+    </div>
   );
 }
 
@@ -584,6 +601,7 @@ function Editor({ update }: { update: Update }) {
   let sets = 0;
   return (
     <div className="flex flex-col gap-4">
+      <QuestionnaireStrip />
       <p className="text-[13px] leading-5 text-ink-muted">{t("research.questionnaire.editorIntro")}</p>
       <ResearchQuestionComparisons update={update} />
       {xs.length ? (
@@ -601,6 +619,7 @@ function Editor({ update }: { update: Update }) {
           <p className="mt-1 text-sm text-ink-muted">{t("research.questionnaire.emptyText")}</p>
         </div>
       )}
+      <QuestionnaireDependencies />
     </div>
   );
 }
@@ -762,33 +781,13 @@ function QuestionCard({ n, q, si, qi, update }: { n: number; q: Question; si: nu
         <OptionRows key={(q.kategorie || []).join("\n")} multi={typ === "multi"} options={q.kategorie || []} onCommit={(raw) => update((p) => setQuestionOptions(p, si, qi, raw))} />
       ) : null}
       {typ === "skala" ? (
-        <div className="mt-3 flex flex-col gap-3">
-          <div className="flex flex-wrap items-center gap-2">
-            <input
-              key={`lo-${labels[0]}`}
-              aria-label={t("research.questionnaire.scaleLow")}
-              defaultValue={labels[0]}
-              onBlur={(e) => update((p) => setScaleLabel(p, si, qi, 0, e.target.value))}
-              className={`${INPUT} !w-32`}
-            />
-            <div className="min-w-40 flex-1">
-              <ScaleBoxes low="" high="" from={Number(skala[0])} to={Number(skala[1])} />
-            </div>
-            <input
-              key={`hi-${labels[1]}`}
-              aria-label={t("research.questionnaire.scaleHigh")}
-              defaultValue={labels[1]}
-              onBlur={(e) => update((p) => setScaleLabel(p, si, qi, 1, e.target.value))}
-              className={`${INPUT} !w-32`}
-            />
-          </div>
-          <div className="flex flex-wrap items-center gap-2 text-xs text-ink-muted">
-            <span>{t("research.questionnaire.range")}</span>
-            <input key={`min-${skala[0]}`} type="number" min={0} max={11} aria-label={t("research.questionnaire.scaleMin")} defaultValue={String(skala[0])} onBlur={(e) => update((p) => setScaleEnd(p, si, qi, 0, e.target.value))} className={`${INPUT} !w-20`} />
-            <span aria-hidden="true">–</span>
-            <input key={`max-${skala[1]}`} type="number" min={0} max={11} aria-label={t("research.questionnaire.scaleMax")} defaultValue={String(skala[1])} onBlur={(e) => update((p) => setScaleEnd(p, si, qi, 1, e.target.value))} className={`${INPUT} !w-20`} />
-          </div>
-        </div>
+        <ScaleEditor
+          className="mt-3"
+          name={`Q${n}`}
+          scale={skala}
+          labels={labels}
+          onChange={(v) => update((p) => setQuestionScale(p, si, qi, v.scale, v.labels), "scale")}
+        />
       ) : null}
       {typ === "otevrena" ? (
         <p className="mt-3 rounded-control border border-dashed border-border-strong px-3 py-2 text-xs text-ink-muted">{t("research.questionnaire.openNote")}</p>
@@ -977,16 +976,14 @@ function TrackedSet({ n, sec, si, update }: { n: number; sec: Section; si: numbe
         />
         {note || (objects.length && bad) ? <span className="text-xs text-status-you-ink">{note || SET_TOO_SMALL}</span> : null}
       </div>
-      <div className="grid gap-3 md:grid-cols-2">
-        <label className="flex flex-col gap-1">
-          <span className={LABEL}>{t("research.questionnaire.setLow")}</span>
-          <input key={`lo-${labels[0]}`} className={INPUT} defaultValue={labels[0]} onBlur={(e) => update((p) => setObjectLabel(p, si, 0, e.target.value))} />
-        </label>
-        <label className="flex flex-col gap-1">
-          <span className={LABEL}>{t("research.questionnaire.setHigh")}</span>
-          <input key={`hi-${labels[1]}`} className={INPUT} defaultValue={labels[1]} onBlur={(e) => update((p) => setObjectLabel(p, si, 1, e.target.value))} />
-        </label>
-      </div>
+      <ScaleEditor
+        name={`sada ${n}`}
+        scale={sec.scale || [1, 10]}
+        labels={labels}
+        rangeFixed
+        perPoint={false}
+        onChange={(v) => update((p) => setSetScaleLabels(p, si, v.labels), "scale")}
+      />
       <div className="flex flex-col gap-1">
         <Switch checked={Boolean(sec.familiarity_required)} onChange={(on) => update((p) => setSectionField(p, si, "familiarity_required", on))} label={<b className="font-semibold">{t("research.questionnaire.familiarity")}</b>} />
         <p className="pl-[44px] text-xs text-ink-muted">{t("research.questionnaire.familiarityHelp")}</p>

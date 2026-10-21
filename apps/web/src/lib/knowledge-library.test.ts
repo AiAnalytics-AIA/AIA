@@ -2,7 +2,9 @@ import { describe, expect, it } from "vitest";
 
 import { ApiError } from "@/lib/api";
 
-import { actedOn, atCap, filingFor, folderOf, folderView, olderThanAYear, shown, staleEdit, toggled, toggledAll } from "./knowledge-library";
+import {
+  RESULT_CAP, actedOn, atCap, filingFor, folderOf, folderView, nextLabelColour, olderThanAYear, shown, staleEdit, toggled, toggledAll, undoable,
+} from "./knowledge-library";
 
 const NOW = Date.parse("2026-10-13T12:00:00Z");
 
@@ -68,5 +70,28 @@ describe("an edit refused because the item moved on (F-K1)", () => {
     expect(staleEdit(new ApiError(409, "already_decided", "x", null))).toBeNull();
     expect(staleEdit(new ApiError(409, "knowledge_proposal_stale", "x", null, {}))).toBeNull();
     expect(staleEdit(new Error("boom"))).toBeNull();
+  });
+});
+
+describe("a new label's colour (input-interactions I5)", () => {
+  it("is the first colour no label uses, else the next in turn", () => {
+    expect(nextLabelColour([])).toBe("BLUE");
+    expect(nextLabelColour([{ colour: "BLUE" }, { colour: "GREEN" }])).toBe("TEAL");
+    const six = (["BLUE", "TEAL", "GREEN", "ORANGE", "VIOLET", "SLATE"] as const).map((colour) => ({ colour }));
+    expect(nextLabelColour(six)).toBe("BLUE");
+    expect(nextLabelColour([...six, { colour: "BLUE" as const }])).toBe("TEAL");
+  });
+});
+
+describe("whether a deletion can be taken back (input-interactions I6)", () => {
+  it("only when the items read are every item the API counts as filed there", () => {
+    expect(undoable(0, [])).toBe(true);
+    expect(undoable(2, ["a", "b"])).toBe(true);
+    // One filed meanwhile, or one the read did not return: refiling the rest would not be an undo.
+    expect(undoable(3, ["a", "b"])).toBe(false);
+    expect(undoable(1, ["a", "b"])).toBe(false);
+    // A full page may have more behind it.
+    const full = Array.from({ length: RESULT_CAP }, (_, i) => i);
+    expect(undoable(RESULT_CAP, full)).toBe(false);
   });
 });

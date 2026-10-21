@@ -14,6 +14,7 @@ import { phaseLabel } from "@/lib/research-execution";
 import { coverageWords, deepStepLabel, stepProblem } from "@/lib/reason-words";
 import { CodedWords } from "./CodedWords";
 import { DeepResearchWaits } from "./DeepResearchWaits";
+import { DesignResearchReview } from "./DesignResearchReview";
 import { SearchedNothing } from "./SearchedNothing";
 import { VerifiedSourceButton } from "./VerifiedSourceButton";
 import { isDesignRun } from "@/lib/design-evidence";
@@ -32,7 +33,7 @@ function askedCeiling(e: unknown): number | null {
 }
 
 export function DeepResearchPanel() {
-  const { frame, store, confirm } = useResearch();
+  const { frame, store, confirm, state } = useResearch();
   // Reading a finished review, choosing it for the report and stopping one: a closed study allows them.
   const mayReview = canReview(frame);
   const [runs, setRuns] = useState<DeepResearchRun[]>([]);
@@ -154,6 +155,8 @@ export function DeepResearchPanel() {
             </article>;
           })}
           <p className="text-xs text-ink-muted">Důkazy jsou zapečetěné otiskem {bundle.sha256.slice(0, 12)}. Před použitím mimo AIA je zkontrolujte.</p>
+          {/* ADR 0021 checkpoint 1: the run proposes, a person takes what they choose into the design. */}
+          {current?.purpose === "DESIGN_RESEARCH" ? <DesignResearchReview key={current.run_id} studyId={frame.studyId} runId={current.run_id} store={store} project={state.project as unknown as Record<string, unknown>} canApply={frame.canEdit} /> : null}
         </div>
       ) : null}
     </section>

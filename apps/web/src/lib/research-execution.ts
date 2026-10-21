@@ -293,8 +293,13 @@ export type ResultTable = {
   donors: number;
   effectiveN: number;
   rows: ResultRow[];
+  /** Up to OPEN_ANSWER_EXAMPLES raw answers to an open question (Q52 a): data, not admitted
+   *  evidence; shown inside AIA only, never exported, never in a client deliverable. */
   verbatims: string[];
 };
+
+/** How many raw open answers Výsledky shows per question (the product owner, Q52 a, 2026-10-21). */
+export const OPEN_ANSWER_EXAMPLES = 5;
 
 type Interval = { low: number; high: number } | null | undefined;
 /** One question's (or one set object's) stored aggregate, as the aggregate step wrote it. */
@@ -410,7 +415,7 @@ export function resultTable(id: string, result: QuestionResult, topBox = 2, at: 
     donors: result.n_unique_layer_donors,
     effectiveN: result.effective_n,
     rows,
-    verbatims: suppressed ? [] : ((result.verbatimy as string[] | undefined) ?? []).slice(0, 5),
+    verbatims: suppressed ? [] : ((result.verbatimy as string[] | undefined) ?? []).slice(0, OPEN_ANSWER_EXAMPLES),
   };
 }
 

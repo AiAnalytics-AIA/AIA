@@ -1,9 +1,9 @@
 ---
-status: planned
+status: in-progress
 chunks:
   - "[ ] SMP1. Vzorek's contract as data: view operations, pointable ids (size, quota cell, forecast item, readiness check) and V2's interaction contract"
   - "[ ] SMP2. Velikost a složení: n, the dimensions and the audience summarized; the panel's quota cells before a run, and for the fictional roster the words that it has none"
-  - "[ ] SMP3. Odhad podpory před během: the support forecast and the question outlook, labelled a forecast, never a result"
+  - "[x] SMP3. Odhad podpory před během: the support forecast and the question outlook, labelled a forecast, never a result"
   - "[ ] SMP4. Připravenost ke spuštění: every readiness check with its stage link, on the working revision"
   - "[ ] SMP5. Kdo bude odpovídat: the persona source offered, its default and why an unoffered one is not, read only here with a link to Spuštění, where it is chosen (SQ1 = Q54 b)"
   - "[ ] SMP6. Journey: Vzorek at 1440, 1100, 768 and 390 px, zero paid jobs"
@@ -125,6 +125,20 @@ choice is a start argument on Spuštění (`ExecutionSteps.tsx:820`).
 
 **Recommendation: (b).** The source is pinned by the start and belongs beside it; no new stored
 field. (a) if the owner wants V2's layout exactly.
+
+## Decisions taken while building
+
+- **SMP3 (2026-10-21): readiness is read on a Design Revision until WCE7.** Vzorek reads
+  `GET /research/readiness` as Spuštění does (`ExecutionSteps.tsx:650-669 @ 871c62c5`): an editor's
+  working copy is saved and submitted (source stage `persona`; an unchanged copy answers its existing
+  revision, `study_design_repository.py` `submit`), a reader's is the latest revision. When
+  `working-copy-edit-ops#WCE7` serves readiness on a working revision, `useSampleReadiness.ts`
+  reads that and submits nothing. Test: `SampleView.test.tsx` "loadSampleReadiness".
+- **SMP3: a panel run's forecast is unknown by the domain's rule**, not by the web's reading of
+  words: `forecast_support` cannot count a population draw's donors (`support_forecast.py:170-181
+  @ 871c62c5`), so `supportForecastOf` reads `persona_source: "panel"` (or no `support_forecast`
+  check) as "neznámé". A structured forecast on the readiness response would remove the rule's
+  copy; not needed for SMP3.
 
 ## Doc follow-up
 

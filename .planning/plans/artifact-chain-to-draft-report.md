@@ -1,12 +1,12 @@
 ---
-status: planned
+status: in-progress
 chunks:
   - "[ ] CHN1. The section-source manifest: every section of a stored report names its sources (artifact id with SHA-256, specification field, ledger refs, or fixed text), and the artifact outputs no section read, stored with the document model"
   - "[ ] CHN2. The brief in the draft: goal, decision_use, objectives and the briefing compiled into the specification as typed text, printed in `intro` and given to the analysis with the hypotheses"
   - "[ ] CHN3. Research questions traced into the report: each question's measures and tables, the findings answering it and its recorded gap, in `ch-2`"
   - "[ ] CHN4. The Design Research a design was built on, in `ch-design`: accepted items by bundle id and SHA-256, labelled external context"
   - "[ ] CHN5. The audience in full: the specification keeps the stated description and filters, and `ch-design` prints them"
-  - "[ ] CHN6. The report's audit names every artifact it stands on: the aggregate, the map, the specification, the dataset, and the experimental Sociomapping draft when the run made one"
+  - "[x] CHN6. The report's audit names every artifact it stands on: the aggregate, the map, the specification, the dataset (#579); the experimental Sociomapping draft goes in CHN1's manifest instead (PM decision, 2026-10-21)"
   - "[ ] CHN7. The UI workbench composes analysis and the internal report on recorded models, and runs the stage workers on recordings: local and test only"
   - "[ ] CHN8. Interpretation Research woven into the body (CQ4 = Q58 b): when literature is chosen, each accepted finding in the body section it bears on, labelled external (L class), never respondent evidence; one document, the separate with-research DOCX retired for new reports"
   - "[ ] CHN9. Metodika a způsob interpretace (`methodology`) from the run's pins: aggregation methodology, support rule, Sociomap method and QC warnings, the reading guidance kept and labelled"
@@ -182,6 +182,14 @@ G12-G17 are added by this plan.
   Sociomapping draft when the run made one. The coverage record names that draft as a separate
   document.
 - Test: the audit of a run with Sociomapping lists its artifact id.
+- **Done in #579**, with one change by the PM's decision (2026-10-21): the audit lists the Design
+  Revision and the specification, dataset, aggregate and map, each artifact id with its SHA-256
+  (`application/report.py` `compose_internal_report(map_source=)`; test
+  `test_analysis_results.py` "names every artifact"). The experimental Sociomapping draft is
+  **not** in the audit: the `report` step does not depend on the Sociomapping steps
+  (`domain/workflow_templates.py:227-236`), so whether that draft exists when the report is
+  composed is a race, and making the report wait on it would let an experimental step hold the
+  internal draft. CHN1's section-source manifest names it, read after RD5a.
 
 **CHN7. The workbench on recorded models.**
 - `aia_executors.workbench` composes the analysis and report steps over `RecordedModels`

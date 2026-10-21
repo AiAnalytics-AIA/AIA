@@ -31,6 +31,7 @@ PRODUCTION_OK = {
     "cognito_region": "eu-central-1",
     "cognito_user_pool_id": "eu-central-1_pool",
     "cognito_client_id": "client",
+    "ai_research_lead_enabled": False,
 }
 DESIGN = {
     "title": "Fiktivní ranní nápoj",

@@ -10,6 +10,7 @@ import { proposalAnalysis, type Narrative } from "@/research/plan-edit";
 import { qId, sections, type Question, type Section } from "@/research/questionnaire";
 import type { Analysis } from "@/research/store";
 import type { WorkbenchStage } from "./workbench-stages";
+import { parseAiaId, type TargetKind } from "./workbench-artifacts";
 
 export const LEAD_EDIT_REASON = "lead_edit_accepted";
 
@@ -423,8 +424,10 @@ export function focusSelector(target: string): string {
   const [kind, ...rest] = target.split(":");
   const id = rest.join(":");
   const css = (s: string) => s.replace(/["\\]/g, "\\$&");
-  if (kind === "question" && id) return `[id="qedit_${css(id)}"]`;
-  if (kind === "section" && id) return `[id="qblock_${css(id)}"]`;
+  // A screen's data-aia mark first (a tracked set's card is qset_, not qblock_), then the ids
+  // the stages used before they marked themselves.
+  if (kind === "question" && id) return `[data-aia="${css(target)}"], [id="qedit_${css(id)}"]`;
+  if (kind === "section" && id) return `[data-aia="${css(target)}"], [id="qblock_${css(id)}"]`;
   if (kind === "brief" && id) return `[id="brief-${css(id)}"]`;
   if (kind === "plan" && id) {
     const section: Record<string, string> = { sets: "plan-sets", tracked_sets: "plan-sets", comments: "plan-comments", variants: "plan-variants", questions: "plan-questions" };
@@ -442,6 +445,19 @@ const PLAN_LABELS: Record<string, string> = {
   narrative: "Návrh: porozumění zadání",
 };
 
+/** Each target kind in words (lib/workbench-artifacts.ts TargetKind). */
+const KIND_WORDS: Readonly<Record<TargetKind, string>> = {
+  brief: "Zadání", objective: "Cíl", material: "Podklad", plan: "Návrh", rq: "Výzkumná otázka",
+  hypothesis: "Hypotéza", set: "Sada", assumption: "Předpoklad", section: "Oddíl", question: "Otázka",
+  audience: "Cílová skupina", dimension: "Dimenze", own_dimension: "Vlastní dimenze", sample: "Vzorek",
+  step: "Krok", measure: "Měření", object: "Objekt", pair: "Dvojice", module: "Modul",
+  finding: "Zjištění", claim: "Tvrzení", report: "Zpráva",
+};
+
+const AUDIENCE_PARTS: Readonly<Record<string, string>> = {
+  definition: "Cílová skupina: popis", filters: "Cílová skupina: filtry", preview: "Cílová skupina: náhled",
+};
+
 /** A Lead target in words, for a link that shows it: never the raw code when its kind is known. */
 export function targetLabel(target: string): string {
   const [kind, ...rest] = target.split(":");
@@ -451,7 +467,30 @@ export function targetLabel(target: string): string {
   if (kind === "section") return `Oddíl ${id}`;
   if (kind === "brief") return `Zadání: ${id}`;
   if (kind === "plan") return PLAN_LABELS[id] ?? "Návrh";
-  return target;
+  const parsed = parseAiaId(target);
+  if (!parsed) return target;
+  if (parsed.kind === "audience") {
+    if (id.startsWith("filter:")) return `Filtr: ${id.slice(7)}`;
+    if (id.startsWith("subpanel:")) return `Podpanel: ${id.slice(9)}`;
+    return AUDIENCE_PARTS[id] ?? `Cílová skupina: ${id}`;
+  }
+  return `${KIND_WORDS[parsed.kind]} ${id}`;
+}
+
+/** A section card's title: its heading, else its first field (Dotazník edits a block's or a set's
+ * title in place, as an input), else its id. */
+function titleOf(card: Element, id: string): string {
+  const heading = card.querySelector("h3, h2")?.textContent?.trim();
+  if (heading) return heading;
+  const field = card.querySelector('input:not([type="checkbox"]):not([type="radio"]), textarea');
+  const value = field && "value" in field && typeof field.value === "string" ? field.value.trim() : "";
+  return value || id;
+}
+
+/** A question card's wording: its first field's value, else the card's text. */
+function wordingOf(card: Element, text: string): string {
+  const field = card.querySelector("textarea, input");
+  return field && "value" in field && typeof field.value === "string" && field.value.trim() ? field.value : text;
 }
 
 /**
@@ -464,13 +503,22 @@ export function targetOfElement(el: Element | null): { id: string; label: string
     const id = at.getAttribute("id") ?? "";
     const text = (at.textContent ?? "").replace(/\s+/g, " ").trim();
     const label = (s: string) => (s.length > 60 ? `${s.slice(0, 57)}…` : s);
-    let m: RegExpMatchArray | null;
-    if ((m = id.match(/^qedit_(.+)$/))) {
-      const field = at.querySelector("textarea, input");
-      const wording = field && "value" in field && typeof field.value === "string" && field.value.trim() ? field.value : text;
-      return { id: `question:${m[1]}`, label: `Otázka ${m[1]}: ${label(wording)}` };
+    // An element a screen marked for the Lead (data-aia="<kind>:<id>", aiaId) names itself.
+    const aia = at.getAttribute("data-aia");
+    const parsed = aia ? parseAiaId(aia) : null;
+    // A question keeps its wording as its label, a section its title: a card's first heading can
+    // be a part of it (the research-question legend), never what the person pointed at.
+    if (aia && parsed?.kind === "question") return { id: aia, label: `Otázka ${parsed.id}: ${label(wordingOf(at, text))}` };
+    if (aia && parsed?.kind === "section") {
+      return { id: aia, label: `Oddíl: ${label(titleOf(at, parsed.id))}` };
     }
-    if ((m = id.match(/^qblock_(.+)$/))) return { id: `section:${m[1]}`, label: `Oddíl: ${label(at.querySelector("h3, h2")?.textContent?.trim() || m[1]!)}` };
+    if (aia && parsed) {
+      const heading = at.querySelector("h2, h3, h4, label, legend")?.textContent?.trim();
+      return { id: aia, label: `${targetLabel(aia)}${heading ? `: ${label(heading)}` : ""}` };
+    }
+    let m: RegExpMatchArray | null;
+    if ((m = id.match(/^qedit_(.+)$/))) return { id: `question:${m[1]}`, label: `Otázka ${m[1]}: ${label(wordingOf(at, text))}` };
+    if ((m = id.match(/^qblock_(.+)$/))) return { id: `section:${m[1]}`, label: `Oddíl: ${label(titleOf(at, m[1]!))}` };
     if ((m = id.match(/^brief-(.+)$/))) return { id: `brief:${m[1]}`, label: `Zadání: ${label(at.querySelector("h2, h3, label")?.textContent?.trim() || m[1]!)}` };
     const plan: Record<string, { id: string; label: string }> = {
       "plan-sets": { id: "plan:sets", label: "Návrh: sledované sady" },

@@ -14,6 +14,7 @@ node tools/ui_workbench/ux_journey.mjs # after ui-fixtures + ui-research: 17 rou
 make ui-capture              # screenshot every screen -> tmp/ui-workbench/shots/<time>/index.html
 make ui-fixtures             # the fictional research projects, bound to AIA studies; prints their links
 make ui-research             # one research run in a browser: Run -> Progress -> Results (needs ui-fixtures)
+node tools/ui_workbench/deep_research_journey.mjs # after ui-fixtures: a Design Research run from the panel to its sealed bundle, recorded web, scripted agents, nothing paid
 make ui-workbench-status
 make ui-workbench-down
 python3 tools/ui_workbench/workbench.py up --fresh   # also reset the API's (and the unit's) state
@@ -44,7 +45,7 @@ matchers, `/api/v1/*` to the API, and every other path to the web client, whose 
 |---|---|---|
 | `unit` | with `make ui-workbench-reference` only: the vendored `ui_server.py` on a scratch copy of `app/` (`tmp/ui-workbench/unit/`), `unit_standin.py` | `tmp/ui-workbench/logs/unit.log` |
 | `api` | the real `aia_api` on a scratch SQLite file (`tmp/ui-workbench/aia.sqlite`), the `local` environment's development identity, the develop seed for `workbench@example.invalid` (`api_standin.py`); no model is configured; research runs record the fictional fieldwork source (`--fieldwork synthetic_fixture`, legal only in `local`) and artifacts go to `tmp/ui-workbench/artifacts/` | `…/api.log` |
-| `worker` | `python -m aia_worker` over the same SQLite file and artifact directory, with the workbench composition (`aia_executors.workbench:build_registry`, `AIA_ENV=local`): the research steps, with fictional respondents at fieldwork (ADR 0016). Started once the API has created the schema | `…/worker.log` |
+| `worker` | `python -m aia_worker` over the same SQLite file and artifact directory, with the workbench composition (`aia_executors.workbench:build_registry`, `AIA_ENV=local`): the research steps, with fictional respondents at fieldwork (ADR 0016), and the six Deep Research steps on a fictional recorded web with scripted agents (`AIA_WORKBENCH_DEEP_RESEARCH_FIXTURES=fixtures/deep_research/`: `web.json` replayed by `deep_research_recorded`, `agents.json` answered by `ScriptedDeepResearchModel`; every request id `workbench-scripted-…`, no token reported, so nothing is priced). Started once the API has created the schema | `…/worker.log` |
 | `web` | `next dev` for `apps/web` | `…/web.log` |
 | `facade` | one origin, routed like the develop Caddyfile minus the gates (`facade.py`) | `…/facade.log` |
 

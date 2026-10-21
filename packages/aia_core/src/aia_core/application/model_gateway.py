@@ -77,6 +77,7 @@ from aia_core.domain.ai_models import (
     ResolutionError,
     StructuredOutput,
 )
+from aia_core.domain.deployment import DataClassGates
 from aia_core.domain.licence import LicenceDenied, LicencePolicy
 from aia_core.domain.prompts import prompt_sha256
 from aia_core.domain.providers import check_budget
@@ -188,8 +189,13 @@ class GovernedModelGateway:
         adapters: Mapping[str, ProviderAdapter],
         call_ids: Callable[[], str] = new_call_id,
         event_ids: Callable[[], str] = new_usage_event_id,
+        class_gates: DataClassGates = DataClassGates.ENFORCE,
     ) -> None:
         """``adapters`` is keyed by **route id**, not by provider.
+
+        ``class_gates`` is the deployment's ``AIA_DATA_CLASS_GATES``: advisory (develop only)
+        lets a class-only egress refusal pass, written on every ledger row of the call and in
+        its provenance; residency, licence and budget are judged exactly as under enforce.
 
         ``licence`` is the licence gate's policy -- in every composition root,
         :func:`aia_core.domain.licence_determinations.recorded_policy`; there is
@@ -216,6 +222,12 @@ class GovernedModelGateway:
         self._adapters = dict(adapters)
         self._call_ids = call_ids
         self._event_ids = event_ids
+        self._class_gates = class_gates
+
+    @property
+    def class_gates(self) -> DataClassGates:
+        """``AIA_DATA_CLASS_GATES`` as this gateway applies it (enforce unless develop says)."""
+        return self._class_gates
 
     # ------------------------------------------------------------ entry point --
 
@@ -343,6 +355,7 @@ class GovernedModelGateway:
                 scope=context.scope,
                 data_class=request.data_classification,
                 route_id=resolution.route_id,
+                class_gates=self._class_gates,
             )
         except EgressDenied as exc:
             raise self._failed(
@@ -814,6 +827,7 @@ class GovernedModelGateway:
             started_at=started,
             finished_at=finished,
             input_fingerprint=input_fp,
+            class_advisories=tuple(a.note() for a in lane.egress.advisories),
         )
 
     def _event(
@@ -890,7 +904,8 @@ class GovernedModelGateway:
             system_prompt_sha256=prompt_sha256(
                 sent_system if sent_system is not None else request.system
             ),
-            note=note,
+            # A class-only refusal passed under advisory gates is on every row of the call.
+            note=" ".join(p for p in (note, *(a.note() for a in decision.advisories)) if p),
         )
 
 

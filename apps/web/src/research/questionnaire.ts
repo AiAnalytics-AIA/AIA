@@ -8,6 +8,7 @@
 // under Node. Survey: .planning/plans/research-flow-rehome.md (PR B).
 
 import { type Template, type Json, PROVIDER_FORCED, type ResearchProject, defaultsMerge } from "./model";
+import { keepPointLabels } from "./scale-labels";
 import type { Analysis } from "./store";
 
 type Obj = { [k: string]: Json };
@@ -115,7 +116,10 @@ export function previewQuestion(q: Question, index: number): PreviewItem {
   else if (typ === "skala") {
     const sc = q.skala || [1, 10];
     const lb = q.popisky_skaly || ["vůbec", "zcela"];
-    scale = [String(lb[0] || sc[0]), String(lb[1] || sc[1])];
+    // A scale labelled on every point shows its first and last label as its ends (#559); two
+    // labels or fewer read as previewQuestion1780 read them.
+    const high = lb.length > 2 ? lb[lb.length - 1] : lb[1];
+    scale = [String(lb[0] || sc[0]), String(high || sc[1])];
   }
   return { kind: "question", index, text: String(q.text || "Bez znění"), typ, options, scale };
 }
@@ -124,13 +128,15 @@ export function previewQuestion(q: Question, index: number): PreviewItem {
 export function previewBattery(sec: Section, index: number): PreviewItem {
   const tmpl = String(sec.object_question || "Jak hodnotíte {object}?");
   const lb = sec.scale_labels || ["vůbec", "velmi"];
+  // A set labelled on every point shows its first and last label as its ends (#559).
+  const high = lb.length > 2 ? lb[lb.length - 1] : lb[1];
   return {
     kind: "battery",
     index,
     title: String(sec.title || sec.object_type || "Objekty"),
     rows: (sec.objects || []).slice(0, 8).map((x) => tmpl.replace("{object}", x)),
     low: String(lb[0]),
-    high: String(lb[1]),
+    high: String(high),
   };
 }
 
@@ -256,6 +262,27 @@ export function setScaleLabel(p: ResearchProject, si: number, qi: number, i: 0 |
     const q = (xs[si].questions || [])[qi];
     q.popisky_skaly = [...(q.popisky_skaly || ["vůbec", "zcela"])];
     q.popisky_skaly[i] = v;
+  });
+}
+
+/**
+ * The scale editor's write (input-interactions 3b2): a question's range and its labels, the two
+ * ends or one per point, together, as `ScaleEditor` decided them. The range is whole numbers,
+ * low < high (`scale-labels.ts` `readRange`); the classic `setScaleEnd` (`+raw`) stays for the
+ * parity tests and no screen calls it.
+ */
+export function setQuestionScale(p: ResearchProject, si: number, qi: number, scale: readonly [number, number], labels: readonly string[]): ResearchProject {
+  return edit(p, (xs) => {
+    const q = (xs[si].questions || [])[qi];
+    q.skala = [scale[0], scale[1]];
+    q.popisky_skaly = [...labels];
+  });
+}
+
+/** A tracked set's labels from the scale editor: its two ends (the set's range is not edited). */
+export function setSetScaleLabels(p: ResearchProject, si: number, labels: readonly string[]): ResearchProject {
+  return edit(p, (xs) => {
+    xs[si].scale_labels = [...labels];
   });
 }
 
@@ -394,9 +421,11 @@ export function buildPayload(p: ResearchProject, analysis: Analysis | null): Rec
 }
 
 /** What buildQuestionnaire does with the job's result: the AI's project, whole, on the editor. */
-export function applyBuilt(result: unknown, template: Template): ResearchProject {
+export function applyBuilt(result: unknown, template: Template, before?: ResearchProject): ResearchProject {
   const r = (result || {}) as { project?: unknown };
   const project = defaultsMerge(r.project, template);
+  // A build over a questionnaire keeps its scales' labels on every point, as the optimiser does (#559).
+  if (before) project.sections = keepPointLabels(project.sections, before.sections);
   project.run_policy = { ...(project.run_policy || {}), provider: PROVIDER_FORCED, allow_provider_fallback: false };
   project.ui_state = { ...(project.ui_state || {}), questionnaire_path: "manual" };
   return project;
@@ -411,10 +440,18 @@ export function optimizePayload(p: ResearchProject): Record<string, unknown> {
 }
 
 /** What optimizeQuestionnaireAI keeps: the project, the research if returned, the analysis if returned. */
-export function applyOptimized(result: unknown, analysis: Analysis | null, template: Template): { project: ResearchProject; analysis: Analysis | null } {
+export function applyOptimized(
+  result: unknown,
+  analysis: Analysis | null,
+  template: Template,
+  before?: ResearchProject,
+): { project: ResearchProject; analysis: Analysis | null } {
   const r = (result || {}) as { project?: unknown; research?: Json; analysis?: Analysis };
   const project = defaultsMerge(r.project, template);
   if (r.research) project.pre_research = r.research;
+  // The optimiser's schema carries a scale's two ends only (`_question_schema`, maxItems 2):
+  // labels the person gave every point are kept, never dropped without a word (#559).
+  if (before) project.sections = keepPointLabels(project.sections, before.sections);
   project.ui_state.questionnaire_path = "manual";
   return { project, analysis: r.analysis || analysis };
 }
