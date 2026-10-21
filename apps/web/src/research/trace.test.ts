@@ -102,7 +102,13 @@ describe("Dotazník's coverage strip", () => {
         { type: "intro", questions: [{ text: "Skryto?", research_questions: [RQ2] }] },
       ],
     } as never);
-    expect(coverageOf(p)).toEqual({ items: 4, linked: true, questions: [{ researchQuestion: RQ1, measures: 3 }, { researchQuestion: RQ2, measures: 0 }] });
+    // Two questions, then the set's two distinct objects, each carrying the set's link.
+    expect(coverageOf(p)).toEqual({ items: 4, linked: true, questions: [{ researchQuestion: RQ1, measures: 4 }, { researchQuestion: RQ2, measures: 0 }] });
+  });
+
+  it("declares nothing through a linked set without objects, as the server's trace has no item for it", () => {
+    const p = project({ sections: [{ type: "object_battery", title: "Prázdná", objects: [], research_questions: [RQ1] }] } as never);
+    expect(coverageOf(p)).toEqual({ items: 0, linked: false, questions: [{ researchQuestion: RQ1, measures: 0 }, { researchQuestion: RQ2, measures: 0 }] });
   });
 
   it("leaves coverage unknown, never a gap, until some item declares a link", () => {
