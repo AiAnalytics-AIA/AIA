@@ -10,7 +10,7 @@
 import { type KeyboardEvent, useEffect, useId, useRef, useState } from "react";
 
 import { t, tv } from "@/i18n/t";
-import { type SaveState, type TextRules, editKeyAction, opensEdit, readDraft } from "@/lib/inline-edit";
+import { type SaveState, type TextRules, editKeyAction, isThenable, opensEdit, readDraft } from "@/lib/inline-edit";
 import { Icon } from "../rehome/icons";
 import { EDIT_FIELD, FIELD_ERROR, FOCUS, SaveNote } from "./parts";
 
@@ -21,7 +21,7 @@ export function InlineText({
 }: {
   value: string;
   /** Saves the new value. A returned promise drives the save state; a rejection is "Neuloženo". */
-  onCommit: (value: string) => void | Promise<unknown>;
+  onCommit: (value: string) => void | PromiseLike<unknown>;
   /** What the value is ("Název studie"): the field's accessible name. */
   label: string;
   multiline?: boolean;
@@ -38,8 +38,14 @@ export function InlineText({
   // Once a draft was refused, it is checked as it is typed (I9: from the first blur, then live).
   const [checked, setChecked] = useState(false);
   const [save, setSave] = useState<SaveState>("idle");
-  // What was last sent: on a failure it is shown, so nothing typed is lost, and "Zkusit znovu" resends it.
-  const [sent, setSent] = useState<string | null>(null);
+  // The newest save's value while it is in flight: shown, opened and compared against, so a revert
+  // typed meanwhile is sent and is not lost behind it (review of #532, P2-1).
+  const [pending, setPending] = useState<string | null>(null);
+  // The value whose save failed: shown, so nothing typed is lost, and "Zkusit znovu" resends it.
+  const [failed, setFailed] = useState<string | null>(null);
+  const current = pending ?? failed ?? value;
+  const actionId = useId();
+  const textId = useId();
   const shown = useRef<HTMLButtonElement>(null);
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
   // Set once the field is closed, so the blur that follows an Enter or an Esc saves nothing twice.
@@ -54,7 +60,7 @@ export function InlineText({
   const open = () => {
     if (disabled) return;
     settled.current = false;
-    setDraft(save === "failed" && sent !== null ? sent : value);
+    setDraft(current);
     setProblem(null);
     setChecked(false);
   };
@@ -69,30 +75,38 @@ export function InlineText({
   // Each save is numbered; only the newest one's answer may set the state. An older save that
   // answers late says nothing about the value on screen (Codex on #532).
   const latest = useRef(0);
+  const fail = (next: string) => {
+    setPending(null);
+    setFailed(next);
+    setSave("failed");
+  };
   const send = (next: string) => {
     const op = ++latest.current;
-    setSent(next);
+    setFailed(null);
     if (timer.current) clearTimeout(timer.current);
-    let result: void | Promise<unknown>;
+    let result: unknown;
     try {
       result = onCommit(next);
     } catch {
-      setSave("failed");
+      fail(next);
       return;
     }
-    if (!(result instanceof Promise)) {
+    if (!isThenable(result)) {
+      setPending(null);
       setSave("idle");
       return;
     }
+    setPending(next);
     setSave("saving");
     result.then(
       () => {
         if (op !== latest.current) return;
+        setPending(null);
         setSave("saved");
         timer.current = setTimeout(() => setSave("idle"), SAVED_MS);
       },
       () => {
-        if (op === latest.current) setSave("failed");
+        if (op === latest.current) fail(next);
       },
     );
   };
@@ -105,7 +119,18 @@ export function InlineText({
       setChecked(true);
       return;
     }
-    if (read.value !== value) send(read.value);
+    if (pending !== null) {
+      // A save is in flight: anything but its own value, the stored one included, is a new save.
+      if (read.value !== pending) send(read.value);
+    } else if (read.value !== value) {
+      send(read.value);
+    } else if (failed !== null) {
+      // Back to the stored value after a failed save: nothing to send, and nothing failed any more
+      // (review of #532, P2-2). Any late answer of the failed save is ignored.
+      latest.current++;
+      setFailed(null);
+      setSave("idle");
+    }
     close(refocus);
   };
 
@@ -153,14 +178,17 @@ export function InlineText({
     );
   }
 
-  const text = save === "failed" && sent !== null ? sent : value;
+  const text = current;
   return (
     <span className={`inline-flex min-w-0 max-w-full flex-wrap items-baseline gap-x-2 gap-y-1 ${className}`}>
+      {/* The button's name is the action and the value it shows: "Upravit: Název studie Ranní
+          pečivo", never the action alone (review of #532). */}
+      <span id={actionId} className="sr-only">{tv("input.edit", { label })}</span>
       <button
         ref={shown}
         type="button"
         disabled={disabled}
-        aria-label={tv("input.edit", { label })}
+        aria-labelledby={`${actionId} ${textId}`}
         onClick={open}
         onKeyDown={(e) => {
           // Enter would also click; taking it here opens the field once, as F2 does.
@@ -171,7 +199,7 @@ export function InlineText({
         }}
         className={`group inline-flex min-h-8 min-w-0 max-w-full items-baseline gap-1.5 rounded-sm px-1 -mx-1 text-left ${multiline ? "whitespace-pre-wrap" : ""} hover:bg-surface-sunken disabled:cursor-default disabled:hover:bg-transparent ${FOCUS}`}
       >
-        <span className={`min-w-0 break-words underline decoration-transparent decoration-dotted underline-offset-4 group-hover:decoration-border-strong group-focus-visible:decoration-border-strong ${text ? "" : "text-ink-faint"}`}>
+        <span id={textId} className={`min-w-0 break-words underline decoration-transparent decoration-dotted underline-offset-4 group-hover:decoration-border-strong group-focus-visible:decoration-border-strong ${text ? "" : "text-ink-faint"}`}>
           {text || placeholder || t("input.empty")}
         </span>
         {disabled ? null : (
@@ -181,7 +209,7 @@ export function InlineText({
         )}
       </button>
       {disabled && disabledReason ? <span className="text-xs text-ink-faint">{disabledReason}</span> : null}
-      <SaveNote state={save} onRetry={sent !== null ? () => send(sent) : undefined} />
+      <SaveNote state={save} onRetry={failed !== null ? () => send(failed) : undefined} />
     </span>
   );
 }

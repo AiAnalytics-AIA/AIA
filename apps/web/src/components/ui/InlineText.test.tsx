@@ -9,7 +9,7 @@ afterEach(() => {
   vi.useRealTimers();
 });
 
-const shown = () => screen.getByRole("button", { name: "Upravit: Název studie" });
+const shown = () => screen.getByRole("button", { name: /^Upravit: Název studie/ });
 const field = () => screen.getByRole("textbox", { name: "Název studie" });
 
 describe("InlineText (I1): edit where it is shown", () => {
@@ -145,6 +145,63 @@ describe("InlineText (I1): edit where it is shown", () => {
     expect(screen.getByText("Uloženo")).toBeTruthy();
     expect(screen.queryByText(/Neuloženo/)).toBeNull();
     expect(screen.queryByRole("button", { name: "Zkusit znovu" })).toBeNull();
+  });
+
+  it("names the button by its action and the value it shows (review of #532)", () => {
+    render(<InlineText label="Název studie" value="Ranní pečivo" onCommit={() => {}} />);
+    expect(screen.getByRole("button", { name: "Upravit: Název studie Ranní pečivo" })).toBeTruthy();
+  });
+
+  it("shows, reopens and compares against the value in flight, so a revert typed meanwhile is sent (review of #532, P2-1)", async () => {
+    const answers: (() => void)[] = [];
+    const save = vi.fn(() => new Promise<void>((resolve) => answers.push(resolve)));
+    render(<InlineText label="Název studie" value="A" onCommit={save} />);
+    fireEvent.click(shown());
+    fireEvent.change(field(), { target: { value: "B" } });
+    fireEvent.keyDown(field(), { key: "Enter" });
+    // B is in flight: shown, and the field reopens on it.
+    expect(shown().textContent).toContain("B");
+    fireEvent.click(shown());
+    expect((field() as HTMLInputElement).value).toBe("B");
+    // Back to the stored A: that is a new save, not "nothing changed".
+    fireEvent.change(field(), { target: { value: "A" } });
+    fireEvent.keyDown(field(), { key: "Enter" });
+    expect(save).toHaveBeenLastCalledWith("A");
+    expect(save).toHaveBeenCalledTimes(2);
+    // B's late answer does not count; A's does.
+    await act(async () => answers[0]());
+    expect(screen.getByText("Ukládám…")).toBeTruthy();
+    await act(async () => answers[1]());
+    expect(screen.getByText("Uloženo")).toBeTruthy();
+  });
+
+  it("forgets a failed save when the value is set back to the stored one (review of #532, P2-2)", async () => {
+    const save = vi.fn().mockRejectedValueOnce(new Error("x"));
+    render(<InlineText label="Název studie" value="A" onCommit={save} />);
+    fireEvent.click(shown());
+    fireEvent.change(field(), { target: { value: "B" } });
+    fireEvent.keyDown(field(), { key: "Enter" });
+    expect(await screen.findByText(/Neuloženo/)).toBeTruthy();
+    fireEvent.click(shown());
+    expect((field() as HTMLInputElement).value).toBe("B");
+    fireEvent.change(field(), { target: { value: "A" } });
+    fireEvent.keyDown(field(), { key: "Enter" });
+    expect(save).toHaveBeenCalledTimes(1);
+    expect(shown().textContent).toContain("A");
+    expect(screen.queryByText(/Neuloženo/)).toBeNull();
+    expect(screen.queryByRole("button", { name: "Zkusit znovu" })).toBeNull();
+  });
+
+  it("waits for any thenable, not only a native Promise (review of #532)", async () => {
+    let done!: () => void;
+    const thenable = { then: (ok: () => void) => void (done = ok) };
+    render(<InlineText label="Název studie" value="A" onCommit={() => thenable as unknown as PromiseLike<void>} />);
+    fireEvent.click(shown());
+    fireEvent.change(field(), { target: { value: "B" } });
+    fireEvent.keyDown(field(), { key: "Enter" });
+    expect(screen.getByText("Ukládám…")).toBeTruthy();
+    await act(async () => done());
+    expect(screen.getByText("Uloženo")).toBeTruthy();
   });
 
   it("cannot be opened when disabled, and says why", () => {

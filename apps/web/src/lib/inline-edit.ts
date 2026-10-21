@@ -39,3 +39,8 @@ export function readDraft(draft: string, multiline: boolean, rules: TextRules = 
 }
 
 export type SaveState = "idle" | "saving" | "saved" | "failed";
+
+/** Whether a callback's result is to be waited for: any thenable, not only a native Promise. */
+export function isThenable(result: unknown): result is PromiseLike<unknown> {
+  return typeof (result as { then?: unknown } | null | undefined)?.then === "function";
+}
