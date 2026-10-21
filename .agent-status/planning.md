@@ -22,6 +22,13 @@ It does not:
 - ask Nigel directly. The coordinator asks him on the PM status page (`/pmstatus`) and relays the
   answers.
 
+## Development stopped (2026-10-21 ~21:20 UTC, the owner via the coordinator)
+
+No new work. Open: **#619** (chore/docs-followups-2026-10-21d @ 684443d, ready; the follow-ups of 26
+PRs, OI-182..192, Q51/Q53/Q55/Q67, OI-191 closed by #620; both Codex P2s fixed and resolved). The
+coordinator merges it if green. Nothing uncommitted in any worktree. Not yet carried: the follow-ups
+of #537, #557 (open) and #578's 12a.2 row (needs its plan line).
+
 ## PRs (2026-10-21)
 
 - #548, #549 MERGED 13:38.
