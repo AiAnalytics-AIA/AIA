@@ -23,6 +23,7 @@ from aia_core.domain.licence import (
     LicenceStatus,
 )
 from aia_core.domain.licence_determinations import (
+    CLIENT_KNOWLEDGE_DATASET,
     PANEL_APPROVED_ROUTE,
     PANEL_DERIVED_DATASETS,
     RECORDED,
@@ -93,6 +94,45 @@ def test_the_fictional_fixture_and_no_data_at_all_may_be_sent() -> None:
     policy.authorise(lineage=DataLineage.of(SYNTHETIC_FIXTURE_DATASET), route=BEDROCK_EU)
     policy.authorise(lineage=DataLineage.of(SYNTHETIC_FIXTURE_DATASET), route=OTHER)
     policy.authorise(lineage=DataLineage.none(), route=OTHER)
+
+
+def test_unrecorded_client_knowledge_reaches_the_eu_bedrock_route_and_no_other() -> None:
+    """/pmstatus Q60 (a), 2026-10-21: the data owner approved it for the EU Bedrock route only."""
+    policy = recorded_policy()
+    lineage = DataLineage.of(CLIENT_KNOWLEDGE_DATASET)
+    policy.authorise(lineage=lineage, route=BEDROCK_EU)
+    assert _denied(policy, lineage, OTHER) == "not_approved_for_route"
+    eu_elsewhere = ProviderRoute(route_id="bedrock-eu-secondary", provider="bedrock")
+    assert _denied(policy, lineage, eu_elsewhere) == "not_approved_for_route"
+    found = policy.determination(CLIENT_KNOWLEDGE_DATASET)
+    assert found is not None and found.status is LicenceStatus.APPROVED
+    assert found.approved_routes == frozenset({PANEL_APPROVED_ROUTE})
+    assert found.decided_on == date(2026, 10, 21)
+    assert "data owner" in found.decided_by and "Q60" in found.basis
+
+
+def test_every_consumer_of_unrecorded_knowledge_declares_the_determined_name() -> None:
+    """The determination is keyed by name: the Lead, the design jobs and Deep Research's
+    knowledge declare exactly it, so none is approved by a different spelling, or missed."""
+    from aia_core.domain.deep_research.knowledge_access import UNRESOLVED_LINEAGE
+    from aia_core.domain.knowledge import KnowledgeItem, KnowledgeKind
+    from aia_core.domain.research_agents import ResearchAction, agent_request, context_snapshot
+
+    assert UNRESOLVED_LINEAGE == CLIENT_KNOWLEDGE_DATASET
+    item = KnowledgeItem(
+        item_id="K1", client_id="C1", kind=KnowledgeKind.DATASET, title="t", revision=1
+    )
+    snapshot = context_snapshot({"title": "Fiktivní studie"}, [item])
+    request = agent_request(
+        ResearchAction.ANALYZE,
+        snapshot,
+        instruction="",
+        policy_version="test",
+        max_output_tokens=1024,
+    )
+    assert request.data_lineage == DataLineage.of(CLIENT_KNOWLEDGE_DATASET)
+    recorded_policy().authorise(lineage=request.data_lineage, route=BEDROCK_EU)
+    assert _denied(recorded_policy(), request.data_lineage, OTHER) == "not_approved_for_route"
 
 
 def test_only_the_fixture_is_approved_for_every_route() -> None:

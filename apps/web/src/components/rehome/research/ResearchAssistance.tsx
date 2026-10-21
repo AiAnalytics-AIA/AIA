@@ -34,11 +34,17 @@ const subscribeNarrow = (change: () => void) => {
 const narrowSnapshot = () => media()?.matches ?? false;
 const serverSnapshot = () => false;
 
-/** Claude Research R1 layout, with AIA's real jobs/tokens and study-session drafts. */
-export function ResearchAssistance({ step, studyName, canEdit, memory, actions, agents, job, onCancel, studyId, children }: {
+/**
+ * Claude Research R1 layout, with AIA's real jobs/tokens and study-session drafts. `starts: false`
+ * (the workbench, where every AI action goes through the Research Lead, plan research-lead-workbench
+ * D15): no AI pomoc card and no way to ask from here; an advice answer opened from the
+ * conversation's card is still shown, read-only.
+ */
+export function ResearchAssistance({ step, studyName, canEdit, memory, actions, agents, job, onCancel, studyId, starts = true, children }: {
   step: StepKey; studyName: string; canEdit: boolean; memory: Map<string, unknown>;
   actions: Action[]; agents: Agents; job: JobUpdate | null; studyId: string;
   onCancel: (id: string) => void;
+  starts?: boolean;
   children: (view: { card: ReactNode; panel: ReactNode; expanded: boolean; ask: (action: AdviceAction, question?: string) => void }) => ReactNode;
 }) {
   const [opened, setOpened] = useState(false);
@@ -56,14 +62,14 @@ export function ResearchAssistance({ step, studyName, canEdit, memory, actions, 
   const question = useRef<HTMLTextAreaElement | null>(null);
   const wasOpen = useRef(false);
   const review = agents.adviceReview;
-  const visible = opened || !!review;
+  const visible = (starts && opened) || !!review;
   const adviceJob = isAdviceAction(agents.activeAction) ? job : null;
   const saved = agents.recent.filter((item) => isAdviceAction(item.action));
   const writeQuestion = (action: AdviceAction, value: string) => {
     const next = { ...questions, [action]: value }; memory.set("contextual-ai-questions", next); setQuestions(next);
   };
   const ask = (action: AdviceAction, value?: string) => {
-    if (!actions.some((item) => item.action === action)) return;
+    if (!starts || !actions.some((item) => item.action === action)) return;
     invoker.current = document.activeElement instanceof HTMLElement ? document.activeElement : null;
     setSelected(action); setError(null); setOpened(true);
     if (value !== undefined) writeQuestion(action, value);
@@ -110,7 +116,7 @@ export function ResearchAssistance({ step, studyName, canEdit, memory, actions, 
   };
   const suggestion = SUGGESTIONS[step];
   const suggestionAction: AdviceAction = actions.some((item) => item.action === "design_copilot") ? "design_copilot" : "answer_memory";
-  const card = <section ref={fallback} tabIndex={-1} aria-label={t("research.aiHelpLabel")} data-contextual-assistance className="w-full rounded-card border border-ai-edge bg-ai-wash p-3.5 text-ink">
+  const card = !starts ? null : <section ref={fallback} tabIndex={-1} aria-label={t("research.aiHelpLabel")} data-contextual-assistance className="w-full rounded-card border border-ai-edge bg-ai-wash p-3.5 text-ink">
     <h2 className="flex items-center gap-2 text-sm font-semibold text-ai-ink"><Sparkle size={15} />{t("research.aiHelp")} · {t(`aia.stages.${step}`)}</h2>
     {visible ? <><p className="mt-1 text-xs leading-5 text-ink-muted">Pomoc je otevřená vedle pracovní plochy. Otázka se zachová při přepínání kroků.</p><Button className="mt-2 !min-h-11 !whitespace-normal" onClick={() => (review || selected === "critique_design" ? heading.current : question.current)?.focus()}>Přejít k AI pomoci</Button></> : <>
     <p className="mt-1 text-xs leading-5 text-ink-muted">Uložený návrh a schválené znalosti klienta. AI odpověď nemění návrh ani schválení evidence.</p>

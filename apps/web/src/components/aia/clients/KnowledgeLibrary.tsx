@@ -5,7 +5,7 @@
 // the list -- its text edited into a new revision, its folder and labels, its history.
 // Folders and labels are organization: filing writes no revision and no model sees it (D4).
 
-import { useState } from "react";
+import { type ReactNode, useEffect, useState } from "react";
 
 import { t, tv } from "@/i18n/t";
 import {
@@ -20,13 +20,43 @@ import {
 import { sourceIdOf, takesFile, withSource } from "@/lib/client-sources";
 import { relative } from "@/lib/format";
 import { LABEL_DOT, type LibraryView, actedOn, atCap, filingFor, shown, staleEdit, toggled, toggledAll } from "@/lib/knowledge-library";
-import { Button, Field, Select, Tag, TextArea, TextInput } from "../../rehome/ui";
+import { Button, Field, Tag, TextArea, TextInput } from "../../rehome/ui";
+import { type MenuItem, MenuButton } from "../../ui/MenuButton";
 import { CARD, Empty, Loaded } from "../states";
 import { useResource } from "../useResource";
 import { SourceCard, SourcePicker } from "./SourceFile";
 import type { AiRights } from "./SourceProposals";
 
 const FOCUS = "focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus-ring";
+
+/** How long the search waits for typing to pause before it asks (MemorySearch's 300 ms). */
+export const SEARCH_PAUSE_MS = 300;
+
+/** "Bez složky" as a menu item: takes the items out of every folder. */
+const NO_FOLDER = "none";
+
+/** The folders as menu items, "Bez složky" last; `current` (the item's own) offered but disabled. */
+function folderItems(folders: readonly KnowledgeFolder[], current?: string | null): MenuItem<string>[] {
+  return [
+    ...folders.map((f) => ({ key: f.folder_id, label: f.name, disabled: f.folder_id === current })),
+    { key: NO_FOLDER, label: t("aia.library.noFolder"), disabled: current === null },
+  ];
+}
+
+function labelItems(labels: readonly KnowledgeLabel[]): MenuItem<string>[] {
+  return labels.map((l) => ({ key: l.label_id, label: <LabelName label={l} /> }));
+}
+
+function LabelName({ label }: { label: KnowledgeLabel }): ReactNode {
+  return (
+    <span className="inline-flex min-w-0 items-center gap-2">
+      <span aria-hidden="true" className={`size-[7px] shrink-0 rounded-full ${LABEL_DOT[label.colour]}`} />
+      <span className="truncate">{label.name}</span>
+    </span>
+  );
+}
+
+const folderOfKey = (key: string): string | null => (key === NO_FOLDER ? null : key);
 
 /** A refusal in words: the API's code where AIA has its own wording, else its message. */
 export function said(e: unknown): string {
@@ -75,7 +105,14 @@ type LibraryProps = {
 };
 
 export function KnowledgeLibrary({ clientId, view, label, section, folders, labels, mayPropose, ai, version, onChanged, initialOpen = null }: LibraryProps) {
+  // What is typed, and what is asked: the API is asked once the typing pauses for SEARCH_PAUSE_MS
+  // (audit D9, IA-4: ten letters were ten requests), as project memory's search does.
+  const [typed, setTyped] = useState("");
   const [q, setQ] = useState("");
+  useEffect(() => {
+    const id = setTimeout(() => setQ(typed.trim()), SEARCH_PAUSE_MS);
+    return () => clearTimeout(id);
+  }, [typed]);
   const [selected, setSelected] = useState<Set<string>>(() => new Set());
   const [openId, setOpenId] = useState<string | null>(initialOpen);
   const [error, setError] = useState<string | null>(null);
@@ -83,7 +120,7 @@ export function KnowledgeLibrary({ clientId, view, label, section, folders, labe
   const [now] = useState(() => Date.now());
   const filing = filingFor(view, label);
   const [res, retry] = useResource(
-    () => workspace.knowledge(clientId, section === "all" ? undefined : section, q.trim() || undefined, filing),
+    () => workspace.knowledge(clientId, section === "all" ? undefined : section, q || undefined, filing),
     [clientId, section, q, filing.folder, filing.label, version],
   );
   const folderName = new Map(folders.map((f) => [f.folder_id, f.name]));
@@ -101,7 +138,7 @@ export function KnowledgeLibrary({ clientId, view, label, section, folders, labe
   return (
     <div className="flex min-w-0 flex-1 flex-col gap-3">
       <Field label={t("aia.knowledge.search")} className="max-w-md">
-        <TextInput type="search" value={q} onChange={(e) => setQ(e.target.value)} />
+        <TextInput type="search" value={typed} onChange={(e) => setTyped(e.target.value)} />
       </Field>
       {error ? <p role="alert" className="rounded-sm border border-status-fault/40 bg-status-fault-wash p-3 text-sm text-status-fault">{error}</p> : null}
       <Loaded res={res} retry={retry}>
@@ -236,42 +273,12 @@ function BulkBar({
     <div role="region" aria-label={t("aia.library.bulkLabel")} className="flex flex-wrap items-center gap-2 rounded-md border border-border-strong bg-surface-sunken px-3 py-2">
       <span className="text-sm font-semibold">{tv("aia.library.selected", { n: count })}</span>
       <span className="flex-1" />
-      <label className="flex items-center gap-1.5 text-[13px]">
-        <span className="sr-only">{t("aia.library.moveTo")}</span>
-        <Select
-          value=""
-          className="w-auto min-h-8"
-          onChange={(e) => {
-            if (e.target.value) onPlace({ folder_id: e.target.value === "none" ? null : e.target.value });
-          }}
-        >
-          <option value="">{t("aia.library.moveTo")}</option>
-          {folders.map((f) => (
-            <option key={f.folder_id} value={f.folder_id}>{f.name}</option>
-          ))}
-          <option value="none">{t("aia.library.noFolder")}</option>
-        </Select>
-      </label>
+      {/* Actions, so menus: never a select that files on change (I3, audit D11 / IA-6). */}
+      <MenuButton icon="projects" label={t("aia.library.moveTo")} items={folderItems(folders)} onSelect={(k) => onPlace({ folder_id: folderOfKey(k) })} />
       {labels.length ? (
         <>
-          <label className="flex items-center gap-1.5 text-[13px]">
-            <span className="sr-only">{t("aia.library.addLabel")}</span>
-            <Select value="" className="w-auto min-h-8" onChange={(e) => e.target.value && onPlace({ add_labels: [e.target.value] })}>
-              <option value="">{t("aia.library.addLabel")}</option>
-              {labels.map((l) => (
-                <option key={l.label_id} value={l.label_id}>{l.name}</option>
-              ))}
-            </Select>
-          </label>
-          <label className="flex items-center gap-1.5 text-[13px]">
-            <span className="sr-only">{t("aia.library.removeLabelBulk")}</span>
-            <Select value="" className="w-auto min-h-8" onChange={(e) => e.target.value && onPlace({ remove_labels: [e.target.value] })}>
-              <option value="">{t("aia.library.removeLabelBulk")}</option>
-              {labels.map((l) => (
-                <option key={l.label_id} value={l.label_id}>{l.name}</option>
-              ))}
-            </Select>
-          </label>
+          <MenuButton icon="tag" label={t("aia.library.addLabel")} items={labelItems(labels)} onSelect={(k) => onPlace({ add_labels: [k] })} />
+          <MenuButton label={t("aia.library.removeLabelBulk")} items={labelItems(labels)} onSelect={(k) => onPlace({ remove_labels: [k] })} />
         </>
       ) : null}
       <Button small variant="quiet" onClick={onClear}>{t("aia.library.clearSelection")}</Button>
@@ -378,18 +385,20 @@ function ItemPanel({
       {error ? <p role="alert" className="text-sm text-status-fault">{error}</p> : null}
 
       <div className="grid gap-3 border-t border-border pt-3 sm:grid-cols-2">
-        <Field label={t("aia.library.folder")}>
-          <Select
-            value={item.folder_id ?? "none"}
-            disabled={!mayPropose}
-            onChange={(e) => void onPlace({ folder_id: e.target.value === "none" ? null : e.target.value })}
-          >
-            <option value="none">{t("aia.library.noFolder")}</option>
-            {folders.map((f) => (
-              <option key={f.folder_id} value={f.folder_id}>{f.name}</option>
-            ))}
-          </Select>
-        </Field>
+        <div className="flex flex-col gap-1.5" role="group" aria-labelledby="kn-open-folder">
+          <span id="kn-open-folder" className="text-xs font-medium text-ink-muted">{t("aia.library.folder")}</span>
+          <span className="text-sm">{item.folder_id ? (folders.find((f) => f.folder_id === item.folder_id)?.name ?? "") : t("aia.library.noFolder")}</span>
+          {mayPropose ? (
+            <span>
+              <MenuButton
+                icon="projects"
+                label={t("aia.library.changeFolder")}
+                items={folderItems(folders, item.folder_id ?? null)}
+                onSelect={(k) => void onPlace({ folder_id: folderOfKey(k) })}
+              />
+            </span>
+          ) : null}
+        </div>
         <div className="flex flex-col gap-1.5">
           <span className="text-xs font-medium text-ink-muted">{t("aia.library.labels")}</span>
           <span className="flex flex-wrap items-center gap-1">
@@ -400,18 +409,16 @@ function ItemPanel({
               ))}
             {on.size === 0 ? <span className="text-xs text-ink-faint">{t("aia.library.noLabels")}</span> : null}
           </span>
-          {mayPropose && labels.some((l) => !on.has(l.label_id)) ? (
-            <label>
-              <span className="sr-only">{t("aia.library.addLabel")}</span>
-              <Select value="" className="min-h-8" onChange={(e) => e.target.value && void onPlace({ add_labels: [e.target.value] })}>
-                <option value="">{t("aia.library.addLabel")}</option>
-                {labels
-                  .filter((l) => !on.has(l.label_id))
-                  .map((l) => (
-                    <option key={l.label_id} value={l.label_id}>{l.name}</option>
-                  ))}
-              </Select>
-            </label>
+          {mayPropose && labels.length ? (
+            <span>
+              <MenuButton
+                icon="plus"
+                label={t("aia.library.addLabel")}
+                items={labelItems(labels.filter((l) => !on.has(l.label_id)))}
+                empty={t("aia.library.allLabelsOn")}
+                onSelect={(k) => void onPlace({ add_labels: [k] })}
+              />
+            </span>
           ) : null}
         </div>
       </div>

@@ -124,7 +124,13 @@ function PanelView({ battery, map, facts }: { battery: BatteryWithMaps; map: Obj
   const absolute = norm === "absolute" ? stored : null;
   const grid = people ? density! : absolute ?? relativeGrid;
   const tones = useMemo(() => nodeTones(nodes, norm), [nodes, norm]);
-  const pairs = useMemo(() => relationPairs(map, mode, selected).map((p) => ({ ...p, k: relationStrength(p.v, norm, strongest) })), [map, mode, selected, norm, strongest]);
+  // Full screen shows the stage alone (the canvas follows its new box through the resize observer).
+  const [stage, setStage] = useState<HTMLDivElement | null>(null);
+  const [full, setFull] = useState(false);
+  // In full screen the detail card that names the selection is out of sight, so "Top vztahy" is the
+  // map's five strongest whatever is selected; on the page, the selection's five, as the panel's.
+  const topOf = mode === "top" && full ? -1 : selected;
+  const pairs = useMemo(() => relationPairs(map, mode, topOf).map((p) => ({ ...p, k: relationStrength(p.v, norm, strongest) })), [map, mode, topOf, norm, strongest]);
   // The node size follows the whole set, an object nobody rated included, as the panel's backend counts it.
   const scale = nodeScale(map.object_ids.length + (map.objects_not_placed?.length ?? 0));
   const statements = useMemo(() => mapStatements(map, {
@@ -205,9 +211,6 @@ function PanelView({ battery, map, facts }: { battery: BatteryWithMaps; map: Obj
     return () => node.removeEventListener("wheel", onWheel);
   }, []);
 
-  // Full screen shows the stage alone (the canvas follows its new box through the resize observer).
-  const [stage, setStage] = useState<HTMLDivElement | null>(null);
-  const [full, setFull] = useState(false);
   useEffect(() => {
     const change = () => setFull(stage !== null && document.fullscreenElement === stage);
     document.addEventListener("fullscreenchange", change);
@@ -284,6 +287,11 @@ function PanelView({ battery, map, facts }: { battery: BatteryWithMaps; map: Obj
     link.href = out.toDataURL("image/png");
     link.click();
   };
+  // Each map opens with nothing selected: an object chosen on one is not the other's, nor a ringed respondent.
+  const showMap = (next: "objects" | "respondents") => {
+    if (next === view) return;
+    setView(next); setSelected(-1); setRelation(null); setPerson(-1); setHovered(-1);
+  };
   const choose = (k: number) => { setSelected((s) => (s === k ? -1 : k)); setRelation(null); };
   const detail = people
     ? <PersonCard detail={person >= 0 ? respondentDetail(map, dots[person].id) : null} />
@@ -295,8 +303,8 @@ function PanelView({ battery, map, facts }: { battery: BatteryWithMaps; map: Obj
         {density ? (
           <div className="flex items-center gap-1.5" role="group" aria-label={t("research.exec.objectMap.panel.mapGroup")}>
             <span className="text-[10px] uppercase tracking-[.06em] text-ink-muted">{t("research.exec.objectMap.panel.mapGroup")}</span>
-            <button type="button" className={SWITCH} aria-pressed={view === "respondents"} onClick={() => setView("respondents")}>{t("research.exec.objectMap.panel.mapRespondents")}</button>
-            <button type="button" className={SWITCH} aria-pressed={view === "objects"} onClick={() => setView("objects")}>{t("research.exec.objectMap.panel.mapObjects")}</button>
+            <button type="button" className={SWITCH} aria-pressed={view === "respondents"} onClick={() => showMap("respondents")}>{t("research.exec.objectMap.panel.mapRespondents")}</button>
+            <button type="button" className={SWITCH} aria-pressed={view === "objects"} onClick={() => showMap("objects")}>{t("research.exec.objectMap.panel.mapObjects")}</button>
           </div>
         ) : null}
         {/* The respondent map's height is a density: the panel offers neither Normalizace nor Vztahy there. */}

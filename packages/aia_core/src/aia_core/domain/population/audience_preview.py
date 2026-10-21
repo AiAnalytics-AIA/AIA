@@ -12,6 +12,11 @@ run compiles): where the verdict depends on the draw, the run's own may differ, 
 answer says which seed it asked with. It holds counts and the sampler's verdict, never a row
 or a respondent's value.
 
+Beside the combined count, ``per_filter`` is each filter alone over the same population
+(artifact-audience AUD3): what each one admits, so a person sees which filter narrows the
+audience. Each is :func:`~.audience.select_audience` over that one filter, the function a
+run asks, so the count is the one a run with that filter alone would select.
+
 Pure: stdlib only.
 """
 
@@ -48,6 +53,7 @@ def audience_preview(
         "selected_rows": None,
         "selected_donors": None,
         "filters_applied": None,
+        "per_filter": None,
         "audience": None,
         "n": n,
         "sample": None,
@@ -60,6 +66,12 @@ def audience_preview(
         return out
     out["selected_rows"] = len(selection.rows)
     out["filters_applied"] = selection.filters_json()
+    # Every filter passed the combined selection, so alone each selects at least as many rows:
+    # none can be refused or empty here.
+    out["per_filter"] = {
+        key: len(select_audience(population, {key: (filters or {})[key]}).rows)
+        for key in out["filters_applied"]
+    }
     if DONOR_FIELD in population.fields:
         donors = population.column(DONOR_FIELD)
         out["selected_donors"] = len({donors[r] for r in selection.rows if donors[r] is not None})

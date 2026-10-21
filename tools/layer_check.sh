@@ -632,10 +632,16 @@ forbid "no API code imports recorded web retrieval" \
 forbid "the worker never imports recorded web retrieval" \
   "$RECORDED_WEB|deep_research_recorded" \
   "$WORKER"
-forbid "among the executors, only the recorded composition builds recorded web retrieval" \
+# The workbench composition (local and test only; nothing imports it and no deployment names it,
+# above) composes Deep Research over the recorded composition for its browser journeys
+# (research-lead-workbench 12a); it names the composition and builds no recorded double itself.
+forbid "among the executors, only the recorded and workbench compositions build recorded web retrieval" \
   "$RECORDED_WEB|deep_research_recorded" \
   "$EXECUTORS" \
-  "$EXECUTORS/deep_research_recorded.py"
+  "$EXECUTORS/deep_research_recorded.py" "$EXECUTORS/workbench.py"
+forbid "the workbench composition builds no recorded web double of its own" \
+  "$RECORDED_WEB" \
+  "$EXECUTORS/workbench.py"
 forbid "no deployment runs the recorded Deep Research composition" \
   'deep_research_recorded|load_recorded_web' \
   deploy
