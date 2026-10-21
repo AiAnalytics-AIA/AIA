@@ -125,8 +125,8 @@ function PanelView({ battery, map, facts }: { battery: BatteryWithMaps; map: Obj
   const grid = people ? density! : absolute ?? relativeGrid;
   const tones = useMemo(() => nodeTones(nodes, norm), [nodes, norm]);
   const pairs = useMemo(() => relationPairs(map, mode, selected).map((p) => ({ ...p, k: relationStrength(p.v, norm, strongest) })), [map, mode, selected, norm, strongest]);
-  // The node size follows the whole set, an object nobody rated included, as the panel's backend counts it.
-  const scale = nodeScale(map.object_ids.length + (map.objects_not_placed?.length ?? 0));
+  // The node size follows the mapped objects; an object nobody rated is left out of the map, as the panel counts it.
+  const scale = nodeScale(map.object_ids.length);
   const statements = useMemo(() => mapStatements(map, {
     caption: t("research.exec.objectMap.panel.uncertaintyCaption"),
     weakTitle: t("research.exec.objectMap.panel.weakTitle"),
@@ -493,7 +493,8 @@ export function segmentLines(legend: SegmentLegend): SegmentLines {
       foot: t("research.exec.objectMap.panel.hintNote"),
     };
   }
-  // The panel singles out too few respondents; every other reason reads as no clear segments.
+  // The panel singles out too few respondents and too few objects; every other reason reads as no clear segments.
+  if (legend.reason === "TOO_FEW_OBJECTS") return { title: null, rows: [], foot: tv("research.exec.objectMap.panel.segmentsTooFewObjects", { n: legend.minRatings }) };
   return { title: null, rows: [], foot: t(`research.exec.objectMap.panel.${legend.reason === "TOO_FEW_RESPONDENTS" ? "segmentsTooFew" : "segmentsNone"}`) };
 }
 
@@ -523,6 +524,9 @@ export function segmentsRow(legend: SegmentLegend, map: ObjectMapArtifact): { va
       value: `${legend.segments.length} · ${shares}${legend.distinct ? "" : ` · ${t("research.exec.objectMap.panel.segmentsOverlap")}`}`,
       help: tv("research.exec.objectMap.panel.countSegmentsHelp", { membership: Math.round(100 * (rules.colour_membership ?? 0.8)) }),
     };
+  }
+  if (legend.reason === "TOO_FEW_OBJECTS") {
+    return { value: tv("research.exec.objectMap.panel.countTooFewObjects", { n: legend.minRatings }), help: tv("research.exec.objectMap.panel.countTooFewObjectsHelp", { n: legend.minRatings }) };
   }
   return legend.reason === "TOO_FEW_RESPONDENTS"
     ? { value: t("research.exec.objectMap.panel.countTooFew"), help: tv("research.exec.objectMap.panel.countTooFewHelp", { people: rules.min_respondents ?? 30, ratings: rules.min_ratings ?? 5 }) }

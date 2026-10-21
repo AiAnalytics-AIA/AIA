@@ -1258,7 +1258,7 @@ _CATALOGUE: Final[tuple[MethodStep, ...]] = (
             r"\ \text{pak dokud } \min_{g \ne h} S_{gh} < S_{\min}"
         ),
         implements=f"{_S}.signed_off_segments:map_decision",
-        source_sha256="71428b8a7d0fa53ce7f4e025c97ac57bc03823d00523edf3a41a80b41467a95e",
+        source_sha256="5cdceae3c1d9850a564e864c37ae639ad24cb11f00ac4b60fcc40a098a037cb0",
         symbols=(
             Symbol(
                 r"S_{gh}",
@@ -1291,7 +1291,7 @@ _CATALOGUE: Final[tuple[MethodStep, ...]] = (
             r"\quad \text{jinak hraniční}"
         ),
         implements=f"{_S}.signed_off_segments:taste_segments",
-        source_sha256="008928364d5d1ebe29c6b7c61cae18a67b81ef547e61b1304ab9548d55252794",
+        source_sha256="27e4761647db0e0f3d0b2b35dae06c24a9e957de262a0856bed6a9387813a444",
         symbols=(
             Symbol(
                 r"m",

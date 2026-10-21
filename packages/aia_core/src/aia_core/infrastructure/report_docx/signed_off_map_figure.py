@@ -89,6 +89,7 @@ class FigureTexts:
     segment_grey: str
     segments_none: str
     segments_too_few: str
+    segments_too_few_objects: str  # {n}
     segments_hint: str  # {k}
     decimal_comma: bool
 
@@ -126,6 +127,7 @@ CZECH: Final = FigureTexts(
     segment_grey="není jasně v jednom segmentu",
     segments_none="Žádné zřetelné chuťové segmenty",
     segments_too_few="Chuťové segmenty se nehledají (málo dat)",
+    segments_too_few_objects="Chuťové segmenty se nehledají (méně než {n} objektů)",
     segments_hint="Náznak {k} skupin · nejisté, body nejsou obarvené",
     decimal_comma=True,
 )
@@ -733,6 +735,9 @@ def render_respondents(
         else:
             if seg.decision == "BORDERLINE" and seg.hint is not None:
                 line = texts.segments_hint.format(k=seg.hint.k)
+            elif seg.reason == "TOO_FEW_OBJECTS":
+                rules = artifact.spec.segments
+                line = texts.segments_too_few_objects.format(n=rules.min_ratings if rules else 5)
             else:
                 line = (
                     texts.segments_too_few

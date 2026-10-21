@@ -437,6 +437,8 @@ class NoSegmentsReason(StrEnum):
 
     #: Fewer respondents with a slope than the declared minimum: nothing was looked for.
     TOO_FEW_RESPONDENTS = "TOO_FEW_RESPONDENTS"
+    #: Fewer objects than the ratings a slope needs: nobody can have a taste told from chance.
+    TOO_FEW_OBJECTS = "TOO_FEW_OBJECTS"
     #: One segment fits best, or the step-down left fewer than two.
     NO_CLEAR_SEGMENTS = "NO_CLEAR_SEGMENTS"
     #: The gain is no larger than in the ratings shuffled within each respondent.

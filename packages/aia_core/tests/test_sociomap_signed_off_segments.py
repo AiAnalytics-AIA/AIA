@@ -1,9 +1,11 @@
 """The signed-off methodology's taste segments, number for number against its code.
 
-``fixtures/sociomap/aia/signed_off_tastes.json`` holds eleven studies -- clear segments (300
+``fixtures/sociomap/aia/signed_off_tastes.json`` holds thirteen studies -- clear segments (300
 respondents, 12 objects), none, a borderline near-tie, too few respondents (25), four objects
 (too few for slopes and for jittered maps), a step-down (3,000 respondents, 24 objects, the
-fit's four segments shown as three), a shown map rejected by the shuffle guard (with and
+fit's four segments shown as three), the step-down's rule order (two studies, 400 respondents
+on 16 objects and 800 on 20: four fitted, two shown; every other order of the three rules but
+one shows three on one of them), a shown map rejected by the shuffle guard (with and
 without the other maps), segments not stable across the maps, segments shown only by the other
 maps (fitted on the shown map with their most common number), and a borderline decision no map
 votes for (the likely split from the shown map's criterion) -- with their ratings (1-10), the
@@ -78,6 +80,7 @@ RTOL, ATOL = 1e-9, 1e-12
 #: The methodology's statements, as the decision and reason the map stores.
 STATEMENTS = {
     "Too few respondents to look for taste segments": ("NONE", "TOO_FEW_RESPONDENTS"),
+    "Too few objects (< 5) to tell a taste from chance": ("NONE", "TOO_FEW_OBJECTS"),
     "No clear taste segments": ("NONE", "NO_CLEAR_SEGMENTS"),
     "No clear taste segments (no stronger than in shuffled ratings)": (
         "NONE",
@@ -214,9 +217,15 @@ def test_the_studies_cover_the_decisions() -> None:
     assert decided["borderline"].decision == "BORDERLINE"
     # The step-down: the fit chose four segments, three are shown.
     assert STUDIES["step_down"]["k_fit"] == 4 and STUDIES["step_down"]["segments"]["k"] == 3
-    # Too few respondents with a slope, with and without jittered maps.
+    # The step-down's three rules in their order (last segment's gain, smallest share, closest
+    # pair): four fitted, two shown. Another order shows three on one of the two studies, except the
+    # share rule before the gain rule with the separation last, which no simulated study separated.
+    for name in ("rule_order", "rule_order_share"):
+        assert STUDIES[name]["k_fit"] == 4 and STUDIES[name]["segments"]["k"] == 2
+    # Too few respondents with a slope, with and without jittered maps; too few objects.
     assert len(STUDIES["few"]["ratings"]) < RULES.min_respondents and STUDIES["few"]["maps"]
     assert len(STUDIES["four_objects"]["ruler"]) < RULES.consensus_min_objects
+    assert _segments("four_objects").reason == "TOO_FEW_OBJECTS"
     assert not STUDIES["four_objects"]["alt_maps"]
     # Some respondents of the clear study are labelled but grey: their membership is high,
     # but they are not clearly placed.
@@ -400,7 +409,8 @@ def test_a_set_below_the_consensus_minimum_makes_no_jittered_maps(
     assert len(calls) == 1
     stored = _stored(artifact)
     assert stored.margins is None and stored.votes is None and stored.maps is None
-    assert stored.reason == "TOO_FEW_RESPONDENTS"
+    # ...and below the five ratings a slope needs: too few objects, however many respondents.
+    assert stored.reason == "TOO_FEW_OBJECTS"
 
 
 def test_earlier_presets_store_exactly_what_they_stored() -> None:
@@ -482,8 +492,8 @@ def test_every_value_of_the_stage_changes_the_segments_when_edited() -> None:
     assert _segments("clear", _with(penalty_factor=1.0)).gain != base.gain
     assert _segments("clear", _with(shuffles=0)).null_gain_max is None
     assert _segments("clear", _with(min_respondents=301)).reason == "TOO_FEW_RESPONDENTS"
-    # Every respondent of the clear study rated its twelve objects.
-    assert _segments("clear", _with(min_ratings=13)).reason == "TOO_FEW_RESPONDENTS"
+    # The clear study has twelve objects: thirteen ratings per slope leave nobody a taste.
+    assert _segments("clear", _with(min_ratings=13)).reason == "TOO_FEW_OBJECTS"
     assert k_of(_segments("clear", _with(min_gain_share=0.9))) == 2
     assert k_of(_segments("clear", _with(min_segment_share=0.34))) == 2
     # Stepped down only below the share: at exactly the smallest fitted share, kept.

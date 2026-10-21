@@ -35,7 +35,7 @@ export type SegmentProfile = {
 /** The taste segments of a mapped set. Per-respondent columns are null unless the decision is SEGMENTS. */
 export type StoredSegments = {
   decision: "SEGMENTS" | "NONE" | "BORDERLINE";
-  reason: "TOO_FEW_RESPONDENTS" | "NO_CLEAR_SEGMENTS" | "NOT_ABOVE_SHUFFLED" | "NOT_STABLE" | null;
+  reason: "TOO_FEW_RESPONDENTS" | "TOO_FEW_OBJECTS" | "NO_CLEAR_SEGMENTS" | "NOT_ABOVE_SHUFFLED" | "NOT_STABLE" | null;
   k: number;
   k_fit: number | null;
   gain: number | null;
@@ -148,6 +148,7 @@ export type SegmentLegend = {
   decision: StoredSegments["decision"];
   reason: StoredSegments["reason"];
   distinct: boolean | null;
+  minRatings: number; // the declared ratings a slope needs: a set with fewer objects gets no segments
   // per shown segment, or the borderline hint's likely split: share and the objects rated above / below the rest
   segments: { share: number; likes: string[]; dislikes: string[] }[];
 };
@@ -163,6 +164,7 @@ export function segmentLegend(battery: BatteryWithMaps, map: ObjectMapArtifact):
     decision: seg.decision,
     reason: seg.reason,
     distinct: seg.distinct,
+    minRatings: map.spec.segments?.min_ratings ?? 5,
     segments: (source?.shares ?? []).map((share, g) => ({
       share,
       likes: named(source?.profiles[g]?.likes ?? []),
