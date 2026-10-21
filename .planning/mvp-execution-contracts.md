@@ -67,55 +67,10 @@ E14, E29, E30 and E31, written for the contract-3 route, are re-aimed at the `-5
 defined by descriptors, MVPQ-03) once the methodology owner answers MQ-02 and MQ-05 (`signed-off-sociomap-method#8`, master § The scope
 baseline). E30's "the map figure carries Stress-1" does not hold for `-5`, which computes none.
 
-## Pending: the input-interactions plan (PR #528 @ c5162ab, not on develop)
-
-The product owner asked for edit-in-place inputs (2026-10-20, 21:10 UTC); the plan is
-input-interactions.md on PR #528 @ c5162ab, docs only, in review. #528 registers it in master §3.2 as
-◇ (decided at `MP16`); that row is kept as #528 writes it, and the two PRs merge cleanly in either
-order (checked at 9767be2). Its chunks are named in plain text here, not as register references,
-until it is on develop. Then, in a follow-up commit: the §3.2 ◇ row moves to §3.1 as core (S1, the
-product owner, I-1) and the rows below move into the table that follows. Proposed waves:
-
-| Chunk (input-interactions) | Wave | Basis |
-|---|---|---|
-| 0. Audit, standard and plan | done with #528 | docs only |
-| 1. Shared primitives (InlineText, Stepper, ChoiceChips, InlineCreateRow, SwatchPicker, MenuButton, UndoToast, SpendDialog) | W1 | before the artifact bodies (E26: research-lead-workbench 14-22) are built on them |
-| 2. Knowledge library | W1 | the owner's own example; with client-workspace C6 and C7 |
-| 3. Questionnaire | W2 | applied to the Questionnaire artifact (research-lead-workbench 17); every scale point labelled (Q32) |
-| 3b. Scales: a scale question's end labels, or one per point, compiled into SpecQuestion and read by respondents and the report tables (finding IA-7) | W1 | not input UX alone: it changes what every AI respondent reads (today bare numbers, `ai_respondent.py:379-388`), so the respondent-system fingerprint moves; past runs keep their pins. Before any holdout confirmation run (panel-grounded-respondents 7f-7h, POST) binds to a fingerprint; the methodology owner (A. Bahbouh) signs the wording rule |
-| 4. Brief and plan | W2 | applied to the Brief and Design artifacts (research-lead-workbench 18) |
-| 5. Sample and audience | W2 | with research-lead-workbench 19 and 22 |
-| 6. Run, spend and results: one SpendDialog | W2 | the money prompts of the card path (lead-orchestration LO4, LO10) render through it, so the four money prompts are one dialog |
-| 7. Clients and studies (rename routes) | W2 | API rename routes audited, in the api-contract list; the client rename by any member under EDIT_CLIENT_PROFILE, audited (page Q34) |
-| 8. Client profile | W2 | with client-workspace and client-knowledge-lifecycle K11 (the wallet ceiling stepper) |
-| 9. Settings (parameter bounds in the catalogue) | W3 | after system-prompts-settings and signed-off-sociomap-method 10 (the Metodik mark) |
-| 10. The input journey at four widths | W4 | beside mvp-acceptance-harness's journeys |
-
-Its owner decisions are answered (pages Q31-Q34, master § The scope baseline): batched knowledge
-revisions, scale presets plus "Vlastní" with every point labelled, report approval as a modal, and
-any member renames a client.
-
-## Pending: the Lead conversation plan (PR #529 @ 9791da0, not on develop)
-
-The product owner asked for the Lead's chat capabilities (2026-10-20, 22:25 UTC) and answered Q25-Q30
-(master § The scope baseline). The plan is lead-conversation.md on PR #529 @ 9791da0, with ADR 0041
-Proposed; docs only, in review. Its chunks are named in plain text until it is on develop; then it
-gets a §3.1 row (core, S1, the product owner) and these rows join the table below. The waves are the
-plan's own:
-
-| Chunk (lead-conversation) | Wave | Basis |
-|---|---|---|
-| LC0. ADR 0041 accepted | W0 | the owner; nothing below is built before it |
-| LC1, LC2, LC3, LC5, LC6 (layer table and manifest, Co Vedoucí vidí, decision digest, queued messages on the server, cost per turn) | W1 | with E10, after lead-orchestration LO7's first layer; no model call |
-| LC4, LC7, LC7a, LC8, LC9, LC10, LC11 (budgets, compaction, kept facts, corrections, retrieval, regenerate and edit-and-resend, pins) | W2 | with lead-orchestration LO19, after LC1; LC7 behind its own kill switch |
-| LC12, LC13 (feedback; the long-conversation journey) | W3 | with lead-orchestration LO18 |
-| LC14-LC18 | POST | the plan's own: after the MVP |
-
-**Overlap to settle when it lands:** research-lead-workbench 29 (conversation controls: copy, edit and
-resend, ArrowUp, queued-message send-now and edit; D-38) is the UI of LC5 and LC10, and #529's fold-in
-table does not list it. Proposed: 29 stays the UI owner and takes LC10's replacement-turn rule and
-LC5's server queue as acceptance conditions, as the other folded chunks do; LC10 and LC5 own the
-server side.
+**The Lead conversation's UI overlap (2026-10-21).** `research-lead-workbench#29` (copy, edit and
+resend, ArrowUp, a queued message's send-now and edit; D-38) is the UI of `lead-conversation#LC5` and
+`#LC10`. It stays the UI owner and takes LC10's replacement-turn rule and LC5's server queue as
+acceptance conditions; LC5 and LC10 own the server side.
 
 ## Every other open chunk of a core plan
 
@@ -237,6 +192,38 @@ done or as dropped. `tools/master_check.py` fails when an open chunk of a core p
 | `deep-research-web-search#57` | W2 | owner determination 2026-10-20, page Q20: with chunk 53 (E12) |
 | `deep-research-web-search#57a` | W2 | owner, page Q22: with chunk 57 (E12) |
 | `deep-research-web-search#58` | W2 | owner, page Q23: with chunk 57 |
+| `input-interactions#0` | W0 | done by #528's merge (the audit, standard and plan); its owner ticks it |
+| `input-interactions#1` | W1 | the shared primitives before the artifact bodies (E26: `research-lead-workbench#14`-22) build on them |
+| `input-interactions#2` | W1 | the owner's own example; with `client-workspace` C6 and C7; batched revisions (Q31) |
+| `input-interactions#3b` | W1 | changes what every AI respondent reads (IA-7), so the respondent-system fingerprint moves; before any holdout confirmation (`panel-grounded-respondents` 7f-7h) binds to one; the wording rule is the methodology owner's |
+| `input-interactions#3` | W2 | applied to the Questionnaire artifact (`research-lead-workbench#17`) |
+| `input-interactions#4` | W2 | applied to the Brief and Design artifacts (`research-lead-workbench#18`) |
+| `input-interactions#5` | W2 | with `research-lead-workbench#19` and `#22` |
+| `input-interactions#6` | W2 | one SpendDialog: the card path's money prompts (`lead-orchestration#LO4`, `#LO10`) render through it; report approval a modal (Q33) |
+| `input-interactions#7` | W2 | rename routes in the api-contract list; a client rename by any member under EDIT_CLIENT_PROFILE, audited (Q34) |
+| `input-interactions#8` | W2 | with `client-knowledge-lifecycle#K11` (the wallet ceiling stepper) |
+| `input-interactions#9` | W3 | after `system-prompts-settings` and `signed-off-sociomap-method#10` (the Metodik mark) |
+| `input-interactions#10` | W4 | beside `mvp-acceptance-harness`'s journeys |
+| `lead-conversation#LC0` | W0 | the owner accepts ADR 0041; nothing below is built before it |
+| `lead-conversation#LC1` | W1 | the plan's own: with E10, after `lead-orchestration#LO7`'s first layer; no model call |
+| `lead-conversation#LC2` | W1 | the plan's own: with E10, after `lead-orchestration#LO7`'s first layer; no model call |
+| `lead-conversation#LC3` | W1 | the plan's own: with E10, after `lead-orchestration#LO7`'s first layer; no model call |
+| `lead-conversation#LC5` | W1 | the plan's own: with E10, after `lead-orchestration#LO7`'s first layer; no model call |
+| `lead-conversation#LC6` | W1 | the plan's own: with E10, after `lead-orchestration#LO7`'s first layer; no model call |
+| `lead-conversation#LC4` | W2 | the plan's own: with `lead-orchestration#LO19`, after LC1 |
+| `lead-conversation#LC7` | W2 | the plan's own: with `lead-orchestration#LO19`, after LC1; behind its own kill switch |
+| `lead-conversation#LC7a` | W2 | the plan's own: with `lead-orchestration#LO19`, after LC1 |
+| `lead-conversation#LC8` | W2 | the plan's own: with `lead-orchestration#LO19`, after LC1 |
+| `lead-conversation#LC9` | W2 | the plan's own: with `lead-orchestration#LO19`, after LC1 |
+| `lead-conversation#LC10` | W2 | the plan's own: with `lead-orchestration#LO19`, after LC1 |
+| `lead-conversation#LC11` | W2 | the plan's own: with `lead-orchestration#LO19`, after LC1 |
+| `lead-conversation#LC12` | W3 | the plan's own: with `lead-orchestration#LO18` |
+| `lead-conversation#LC13` | W3 | the plan's own: with `lead-orchestration#LO18` |
+| `lead-conversation#LC14` | POST | the plan's own: after the MVP |
+| `lead-conversation#LC15` | POST | the plan's own: after the MVP |
+| `lead-conversation#LC16` | POST | the plan's own: after the MVP |
+| `lead-conversation#LC17` | POST | the plan's own: after the MVP |
+| `lead-conversation#LC18` | POST | the plan's own: after the MVP |
 | `research-lead-workbench#24` | POST | development plan D16: after the MVP |
 | `research-lead-workbench#25` | POST | development plan D16: after the MVP |
 

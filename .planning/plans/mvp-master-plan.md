@@ -176,38 +176,38 @@ Relayed by the coordinator from the PM status page; recorded in
 
 Relayed by the coordinator from the PM status page (Q29 answered at 22:48-22:51); recorded in
 [`answers-2026-10-20.md`](../evidence/scope-freeze/answers-2026-10-20.md) (seventh table). They
-apply to the Lead conversation plan (`lead-conversation.md`, LC0-LC18) and its Proposed ADR 0041,
+apply to the Lead conversation plan (`lead-conversation.md`, LC0-LC18, #529) and its Proposed ADR 0041,
 which a design session is writing; their chunks get waves when that plan lands.
 
 | Page | Answer | Chunks |
 |---|---|---|
-| Q25 | A long conversation is kept as a decision digest plus a model summary, its context preserved as fully as possible | `lead-conversation.md` (to land), ADR 0041 |
-| Q26 | Feedback on the Lead's answers is in the MVP | `lead-conversation.md` (to land) |
-| Q27 | Messages queued while the Lead works are stored on the server and answered together | `lead-conversation.md` (to land) |
-| Q28 | The 96 KB context cap stays, with a budget per layer | `lead-conversation.md` (to land), ADR 0041 |
-| Q29 | No threads within a study: the study is the thread | `lead-conversation.md` (to land) |
-| Q30 | Regenerate and edit-and-resend are in the MVP | `lead-conversation.md` (to land) |
+| Q25 | A long conversation is kept as a decision digest plus a model summary, its context preserved as fully as possible | `lead-conversation#LC3`, `lead-conversation#LC7`, ADR 0041 |
+| Q26 | Feedback on the Lead's answers is in the MVP | `lead-conversation#LC12` |
+| Q27 | Messages queued while the Lead works are stored on the server and answered together | `lead-conversation#LC5` |
+| Q28 | The 96 KB context cap stays, with a budget per layer | `lead-conversation#LC4`, ADR 0041 |
+| Q29 | No threads within a study: the study is the thread | `lead-conversation.md` |
+| Q30 | Regenerate and edit-and-resend are in the MVP | `lead-conversation#LC10` |
 
 ### The owner's input decisions of 22:48-22:51 UTC (page Q31 to Q34)
 
 Relayed by the coordinator; recorded in
 [`answers-2026-10-20.md`](../evidence/scope-freeze/answers-2026-10-20.md) (eighth table). They apply
-to the input-interactions plan (PR #528), named in plain text until it is on develop.
+to the input-interactions plan (#528).
 
 | Page | Answer | Chunks |
 |---|---|---|
-| Q31 | Inline edits of a knowledge item are batched into one revision per editing session | input-interactions 2 |
-| Q32 | Scale ranges as presets plus "Vlastní"; every scale point (1-10) gets a verbal label, not only the ends | input-interactions 3 |
-| Q33 | Report approval stays a modal naming the document | input-interactions 6 |
-| Q34 | Any member may rename a client, audited, under EDIT_CLIENT_PROFILE | input-interactions 7 |
+| Q31 | Inline edits of a knowledge item are batched into one revision per editing session | `input-interactions#2` |
+| Q32 | Scale ranges as presets plus "Vlastní"; every scale point (1-10) gets a verbal label, not only the ends | `input-interactions#3b` |
+| Q33 | Report approval stays a modal naming the document | `input-interactions#6` |
+| Q34 | Any member may rename a client, audited, under EDIT_CLIENT_PROFILE | `input-interactions#7` |
 
 ### Open: signing does not answer these
 
 | # | Question | Who answers | Waits on it |
 |---|---|---|---|
 | — | The editor's go/no-go after the spike (page Q19): Wordcraft, ONLYOFFICE Docs or Collabora Online, against Tiptap | the owner | `research-lead-workbench#33`, `lead-orchestration#LO19`, `report-delivery#RD6` |
-| — | Scale labels in what respondents read (input-interactions 3b, finding IA-7, PR #528): it moves the respondent-system fingerprint the holdout validation binds to; the wording rule is the methodology owner's | A. Bahbouh | input-interactions 3b; `panel-grounded-respondents` 7f-7h |
-| — | ADR 0041 (the Lead's conversation and context, PR #529) accepted: lead-conversation LC0 | the owner | lead-conversation LC1-LC13 (#529) |
+| — | Scale labels in what respondents read (input-interactions 3b, finding IA-7, PR #528): it moves the respondent-system fingerprint the holdout validation binds to; the wording rule is the methodology owner's | A. Bahbouh | `input-interactions#3b`; `panel-grounded-respondents` 7f-7h |
+| — | ADR 0041 (the Lead's conversation and context, #529) accepted | the owner | `lead-conversation#LC0` |
 | — | The performance budget values for `mvp-acceptance-harness#18` (D-48); planning proposes them in that chunk's PR, the owner approves | the owner | `mvp-acceptance-harness#18` |
 | — | The methodology owner's decisions MQ-01 to MQ-24, MQ-01 (the `-5` register entry) first | A. Bahbouh | `mvp-methodology-packet.md` (#510); §11.4 |
 | — | The Deep Research evaluation tasks and thresholds (MVPQ-06, rest) | the owner | `deep-research-web-search#27` |
@@ -266,6 +266,8 @@ plan. `POST`: after the MVP, by decision. The dispositions of plans outside the 
 | `working-copy-edit-ops` | S1 | I-1, I-2 | WCE0 covers structural operations and text-only default; S2 supplies lock fields before W1 writers |
 | `assumptions-and-open-answer-coding` | S1 (assumption item), S2 (evidence, coding), S3 (report chapters) | I-1, I-3, I-5 | the coding method `MVPQ-02b` before any count; evidence-backed assumption statuses wait for the ADR of `AOC2` |
 | `lead-orchestration` | S1 | I-1, I-3 | money/authority and early worker contracts; card revision binding before the first card |
+| `lead-conversation` | S1 | I-1, I-3 | ADR 0041 accepted (`lead-conversation#LC0`); after `lead-orchestration#LO7`'s first layer |
+| `input-interactions` | S1 | I-1 | the shared primitives (`input-interactions#1`) before the artifact bodies build on them; 3b's wording rule from the methodology owner |
 | `run-qc-and-checkpoint` | S2 | I-1, I-2, I-3 | checkpoint before resumed fieldwork; event payload before Fieldwork UI; replacement method decision before RQC5 |
 | `report-delivery` | S3 | I-2, I-3 | a client-report contract, the evidence gate definitions (§11.4) |
 | `study-data-lifecycle` | S3 | I-5 | the deletion horizons (§11.4) |
@@ -290,7 +292,6 @@ The waves of every chunk are in `.planning/mvp-execution-contracts.md` (the pred
 | `panel-grounded-respondents` | POST | 7f-7h are the holdout validation that lifts client-facing analysis prose; the MVP's client report carries none (AC-13) | none |
 | `sociomapping-engine` | POST | the SOMECS engine depends on the method owner's exports and decisions; the MVP uses `aia-sociomap-5` (MVPQ-13, D-13) | none |
 | `simulation-studio` | POST | Simulation is out of the MVP (`mvp-acceptance.md`) | S0 recorded as deferred |
-| `input-interactions` | ◇ for the scope baseline (`MP16`) | the product owner's request of 2026-10-20: every input edited in place, counted or chosen, no modal text box; overlaps `research-lead-workbench` 7 and 14-22, `client-workspace` C6-C9, `desktop-ux-overhaul-handoff` 2 and 4 | planning decides CORE, SUPPORT, FOLD or POST at `MP16`; no chunk is scheduled until then |
 
 ### 3.3 In the development plan and after the MVP, by decision
 
