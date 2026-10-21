@@ -6,9 +6,10 @@
 // step and src/research. Token utilities only, as in ui.tsx.
 
 import Link from "next/link";
-import { type KeyboardEvent, type ReactNode, useId, useState } from "react";
+import { type KeyboardEvent, type ReactNode, useId, useRef, useState } from "react";
 
 import { t } from "@/i18n/t";
+import { rovingIndex, tabStop } from "@/lib/roving";
 import { Icon } from "./icons";
 
 const FOCUS = "focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus-ring";
@@ -135,16 +136,28 @@ export function Switch({ checked, onChange, label, disabled }: { checked: boolea
   );
 }
 
-/** A small segmented control: one of a few views or modes. */
+/**
+ * A small segmented control: one of a few views or modes. One Tab stop; the arrows move and
+ * choose, as radios do (input-interactions I11, roving tabindex).
+ */
 export function Segmented<K extends string>({ value, options, onChange, label }: {
   value: K;
   options: readonly { key: K; label: ReactNode }[];
   onChange: (key: K) => void;
   label: string;
 }) {
+  const group = useRef<HTMLDivElement>(null);
+  const stop = tabStop(options.length, options.findIndex((o) => o.key === value));
+  const onKey = (i: number) => (e: KeyboardEvent<HTMLButtonElement>) => {
+    const next = rovingIndex(i, e.key, options.length);
+    if (next === null) return;
+    e.preventDefault();
+    group.current?.querySelectorAll<HTMLButtonElement>("[role=radio]")[next]?.focus();
+    onChange(options[next].key);
+  };
   return (
-    <div role="radiogroup" aria-label={label} className="inline-flex gap-0.5 rounded-card bg-surface-sunken p-[3px]">
-      {options.map((o) => {
+    <div ref={group} role="radiogroup" aria-label={label} className="inline-flex gap-0.5 rounded-card bg-surface-sunken p-[3px]">
+      {options.map((o, i) => {
         const on = o.key === value;
         return (
           <button
@@ -152,6 +165,8 @@ export function Segmented<K extends string>({ value, options, onChange, label }:
             type="button"
             role="radio"
             aria-checked={on}
+            tabIndex={i === stop ? 0 : -1}
+            onKeyDown={onKey(i)}
             onClick={() => onChange(o.key)}
             className={`min-h-8 whitespace-nowrap rounded-control px-3 text-[13px] ${FOCUS} ${on ? "bg-surface-raised font-semibold text-ink shadow-[0_1px_2px_rgba(0,0,0,0.08)]" : "text-ink-muted hover:text-ink"}`}
           >

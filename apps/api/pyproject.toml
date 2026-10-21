@@ -9,7 +9,7 @@ description = "AIA HTTP API"
 requires-python = ">=3.12"
 dependencies = [
     "aia-core",
-    "fastapi>=0.115,<1",
+    "fastapi>=0.121.1,<1",  # get_session's scope="function": 0.121.0, fixed in 0.121.1
     "uvicorn[standard]>=0.32,<1",
     "pydantic>=2.9,<3",
     "pydantic-settings>=2.6,<3",

@@ -219,17 +219,29 @@ describe("the knowledge library", () => {
     window.history.replaceState(null, "", "/");
   });
 
-  it("creates a folder, and says so in Czech when the name is taken", async () => {
+  it("creates a folder in the folder list, no dialog, and says at the row when the name is taken", async () => {
     api();
     open();
     await screen.findByText("Hlavní konkurenti");
+    await nav().findByRole("button", { name: /^Trh a konkurence/ });
     fireEvent.click(nav().getByRole("button", { name: "Nová složka" }));
-    const dialog = await screen.findByRole("dialog");
-    fireEvent.change(within(dialog).getByRole("textbox"), { target: { value: "Interní pravidla" } });
-    fireEvent.submit(dialog.querySelector("form")!);
+    // input-interactions I5 (audit D1): a row where the folder will appear, never a modal prompt.
+    expect(screen.queryByRole("dialog")).toBeNull();
+    const row = nav().getByRole("textbox", { name: "Nová složka" });
+    fireEvent.change(row, { target: { value: "  Interní   pravidla " } });
+    fireEvent.keyDown(row, { key: "Enter" });
     await waitFor(() => expect(sent("POST", "/folders")[0].body).toEqual({ name: "Interní pravidla" }));
+    // The next empty row opens for the next folder.
+    await waitFor(() => expect((nav().getByRole("textbox", { name: "Nová složka" }) as HTMLInputElement).value).toBe(""));
+
+    // A name the list already has, case and spacing aside, is said at the row as it is typed and never sent.
+    fireEvent.change(nav().getByRole("textbox", { name: "Nová složka" }), { target: { value: "trh a  KONKURENCE" } });
+    expect(nav().getByRole("alert").textContent).toBe("„Trh a konkurence“ už existuje.");
+    fireEvent.keyDown(nav().getByRole("textbox", { name: "Nová složka" }), { key: "Enter" });
+    expect(sent("POST", "/folders")).toHaveLength(1);
     cleanup();
 
+    // The server's refusal (a folder made meanwhile elsewhere) is said at the same row, the name kept.
     api({
       "POST /api/v1/clients/CLI-a/knowledge/folders": () =>
         new Response(JSON.stringify({ code: "name_taken", message: "This client already has a folder by that name." }), { status: 409 }),
@@ -237,10 +249,14 @@ describe("the knowledge library", () => {
     open();
     await screen.findByText("Hlavní konkurenti");
     fireEvent.click(nav().getByRole("button", { name: "Nová složka" }));
-    const again = await screen.findByRole("dialog");
-    fireEvent.change(within(again).getByRole("textbox"), { target: { value: "trh a konkurence" } });
-    fireEvent.submit(again.querySelector("form")!);
-    expect(await screen.findByText("Takový název už u tohoto klienta je.")).toBeTruthy();
+    const again = nav().getByRole("textbox", { name: "Nová složka" });
+    fireEvent.change(again, { target: { value: "Archiv" } });
+    fireEvent.keyDown(again, { key: "Enter" });
+    expect((await nav().findByRole("alert")).textContent).toBe("Takový název už u tohoto klienta je.");
+    expect((nav().getByRole("textbox", { name: "Nová složka" }) as HTMLInputElement).value).toBe("Archiv");
+    // Esc leaves the row and gives "+ Nová složka" back.
+    fireEvent.keyDown(nav().getByRole("textbox", { name: "Nová složka" }), { key: "Escape" });
+    expect(nav().getByRole("button", { name: "Nová složka" })).toBeTruthy();
   });
 
   it("offers a reader without the right to propose nothing that would write", async () => {
@@ -432,7 +448,7 @@ describe("AI proposals from a document", () => {
 
     // Read again while it moves; done, it says where the proposals wait.
     run = proposalsRun({ status: "COMPLETED", step_status: "SUCCEEDED", output: { batches: 1, proposed: 2, dropped: { quote_not_found: 1 } } });
-    expect(await panel.findByText("AI navrhla 2 návrhy. Čekají v Ke schválení.", {}, { timeout: 4000 })).toBeTruthy();
+    expect(await panel.findByText("AI navrhla 2 návrhy. Čekají v Ke schválení.")).toBeTruthy();
     expect(panel.getByText("Zahozeno bez doložené citace: 1.")).toBeTruthy();
     expect(panel.getByRole("link", { name: "Otevřít Ke schválení" }).getAttribute("href")).toBe("/app/clients/CLI-a/knowledge?view=review");
     expect(calls.filter((c) => c.method === "POST" && c.url.endsWith(`/sources/${SRC}/proposals`))).toHaveLength(1);

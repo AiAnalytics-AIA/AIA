@@ -13,6 +13,7 @@ import { approvalRefusal, reportStatus, reportStatusWords, reviewStatus } from "
 import { t, tv } from "@/i18n/t";
 import { ApiError, deepResearch, type DeepResearchRun, type ReportVariant, type ResearchReport, type ResearchRun, research } from "@/lib/api";
 import { saveBlob } from "@/lib/download";
+import { resultOriginKind, runOriginKinds, type OriginKind } from "@/lib/research-execution";
 import {
   currentVariant,
   czechDate,
@@ -51,6 +52,7 @@ export function reportParts(
   run: { steps: readonly { kind?: string | null; node_key?: string; status: string }[] },
   literature: Part["state"] = "pending",
   prepared = false,
+  origins: ReadonlySet<OriginKind> = new Set(),
 ): Part[] {
   const composed = prepared || run.steps.some((s) => s.kind === "research_report" && s.status === "SUCCEEDED");
   const map = run.steps.find((s) => s.node_key === "sociomap");
@@ -63,8 +65,22 @@ export function reportParts(
     { label: "Literatura (Deep Research)", detail: literature === "excluded" ? "Jen ve variantě s vybranou rešerší" : "Vybraná rešerše, citace ze zachycených zdrojů", state: literature },
     fromReport("Tabulky všech otázek", "Podíly, průměry a intervaly ke každé otázce"),
     fromReport("Návrh studie a dotazník v příloze", "Revize návrhu, podle které běh proběhl"),
-    fromReport("Omezení, původ dat a příloha evidence", "Modelovaná data, otisky artefaktů"),
+    fromReport("Omezení, původ dat a příloha evidence", `${originWords(origins)}, otisky artefaktů`),
   ];
+}
+
+/** The order a run's origin kinds are said in, so a mixed run always reads the same. */
+const ORIGIN_ORDER: readonly OriginKind[] = ["SIMULATED", "MODELLED", "UNKNOWN"];
+
+/**
+ * The data's origin in words, from the kinds the run's steps and its report stated (CR-5): one
+ * kind its own word, a mixed run every kind it holds, and nothing stated yet unknown -- never
+ * presumed modelled.
+ */
+export function originWords(origins: ReadonlySet<OriginKind>): string {
+  const kinds = ORIGIN_ORDER.filter((k) => origins.has(k));
+  if (kinds.length === 0) return t("research.exec.originKind.UNKNOWN");
+  return kinds.map((k) => t(`research.exec.originKind.${k}`)).join(" + ");
 }
 
 const MARK: Record<Part["state"], string> = {
@@ -190,7 +206,12 @@ export function CompleteReport({ run, review = null, onReview }: { run: Research
   // Stored under an earlier composition: still the report prepared (and maybe approved), said so,
   // and offered to be prepared anew; never hidden (review 3).
   const variantEarlier = variantReady && current?.contract_current === false;
-  const parts = reportParts(run, withReview ? literatureState(review, current) : "excluded", variantReady);
+  // The origin as the run's steps stamped it and as the stored report states it: every label
+  // reads the origin, so a fictional run never reads "Modelovaná data" (CR-5).
+  const origins = new Set(runOriginKinds(run));
+  const reportKind = report ? resultOriginKind(report) : null;
+  if (reportKind) origins.add(reportKind);
+  const parts = reportParts(run, withReview ? literatureState(review, current) : "excluded", variantReady, origins);
 
   const clientWhy = modelled ? null : "Klientská zpráva vzniká jen z běhu s AI respondenty z populace.";
   // Why PDF is not offered for the chosen version, in the one wording every PDF state has.
