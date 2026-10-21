@@ -117,26 +117,83 @@ try {
   checks.push("Napsat znalost on Znalosti opens the form; the item is listed at once");
 
   const nav = page.getByRole("navigation", { name: "Pohledy, složky a štítky" });
+  // No modal anywhere in the library (input-interactions I7): never a <dialog> open, never a
+  // role=dialog, at every step below.
+  const noModal = async (step) => {
+    const open = await page.locator("dialog[open], [role=dialog]").count();
+    assert.equal(open, 0, `${step}: a modal is open`);
+  };
+  const folderRow = (name) => nav.getByRole("button", { name: new RegExp(`^${name}`) });
   // "Nová složka" is a row in the folder list (input-interactions I5): Enter creates, Esc leaves.
   await nav.getByRole("button", { name: "Nová složka" }).click();
-  await nav.getByRole("textbox", { name: "Nová složka" }).fill(names.folder);
+  await nav.getByRole("textbox", { name: "Nová složka" }).fill(`${names.folder} (návrh)`);
+  await noModal("new folder");
   await nav.getByRole("textbox", { name: "Nová složka" }).press("Enter");
-  await nav.getByRole("button", { name: new RegExp(`^${names.folder}`) }).waitFor();
+  await folderRow(`${names.folder} \\(návrh\\)`).waitFor();
   await nav.getByRole("textbox", { name: "Nová složka" }).press("Escape");
+  // "+ Nový štítek" is a row too, its swatch beside the name; Enter creates it in that colour.
   await nav.getByRole("button", { name: "Nový štítek" }).click();
-  await nav.getByRole("textbox", { name: "Název štítku" }).fill(names.label);
-  await nav.getByRole("combobox", { name: "Barva štítku" }).selectOption("TEAL");
-  await nav.getByRole("button", { name: "Vytvořit" }).click();
-  await nav.getByRole("button", { name: new RegExp(`^${names.label}`) }).waitFor();
-  checks.push("A folder and a label are created from the side panel");
+  await nav.getByRole("textbox", { name: "Nový štítek" }).fill(names.label);
+  await nav.getByRole("button", { name: /^Barva nového štítku/ }).click();
+  await nav.getByRole("option", { name: "Tyrkysová" }).click();
+  await nav.getByRole("textbox", { name: "Nový štítek" }).press("Enter");
+  await folderRow(names.label).waitFor();
+  await nav.getByRole("textbox", { name: "Nový štítek" }).press("Escape");
+  await nav.getByRole("button", { name: `Barva štítku ${names.label}: Tyrkysová` }).waitFor();
+  await noModal("new label");
+  checks.push("A folder and a label are created in their lists, by typing and Enter; the label in the swatch chosen");
+
+  // Renamed where the name is shown (I1): F2 on the folder's row, Enter saves; focus comes back to it.
+  await folderRow(`${names.folder} \\(návrh\\)`).focus();
+  await page.keyboard.press("F2");
+  const folderName = nav.getByRole("textbox", { name: "Název složky" });
+  await folderName.fill(names.folder);
+  await noModal("rename folder");
+  await folderName.press("Enter");
+  await folderRow(names.folder).waitFor();
+  await nav.getByRole("button", { name: new RegExp(`\\(návrh\\)`) }).waitFor({ state: "detached" });
+  // Esc on a rename restores the name and sends nothing.
+  await folderRow(names.folder).focus();
+  await page.keyboard.press("F2");
+  await folderName.fill("nic z toho");
+  await folderName.press("Escape");
+  await folderRow(names.folder).waitFor();
+  assert.equal(await nav.getByRole("textbox", { name: "Název složky" }).count(), 0);
+  // Recoloured by its swatch (I3): the arrows move, a click chooses and saves.
+  await nav.getByRole("button", { name: `Barva štítku ${names.label}: Tyrkysová` }).click();
+  await page.keyboard.press("ArrowRight");
+  await nav.getByRole("option", { name: "Fialová" }).click();
+  await nav.getByRole("button", { name: `Barva štítku ${names.label}: Fialová` }).waitFor();
+  checks.push("The folder is renamed in place (F2, Enter; Esc restores) and the label recoloured by its swatch");
 
   await row.getByRole("checkbox").check();
   const bar = page.getByRole("region", { name: "Hromadné úpravy vybraných znalostí" });
-  await bar.getByRole("combobox", { name: "Přesunout do složky…" }).selectOption({ label: names.folder });
-  await row.getByText(names.folder).waitFor();
-  await bar.getByRole("combobox", { name: "Přidat štítek…" }).selectOption({ label: names.label });
-  await row.getByText(names.label).waitFor();
-  checks.push("Bulk: the ticked item is moved into the folder and labelled");
+  // Filing is a menu (I3): the arrows move through it, Enter files the one reached.
+  await bar.getByRole("button", { name: "Přesunout do složky" }).click();
+  await bar.getByRole("menu", { name: "Přesunout do složky" }).getByRole("menuitem", { name: names.folder }).click();
+  await row.getByText(names.folder, { exact: true }).waitFor();
+  await bar.getByRole("button", { name: "Přidat štítek" }).focus();
+  await page.keyboard.press("ArrowDown");
+  const labelItem = bar.getByRole("menu", { name: "Přidat štítek" }).getByRole("menuitem", { name: names.label });
+  for (let i = 0; i < 50 && !(await labelItem.evaluate((el) => el === document.activeElement)); i++) await page.keyboard.press("ArrowDown");
+  await page.keyboard.press("Enter");
+  await row.getByText(names.label, { exact: true }).waitFor();
+  await noModal("bulk filing");
+  checks.push("Bulk: the ticked item is moved into the folder and labelled, by menus (keyboard for the label)");
+
+  // At phone width a row's menu opens inside the page.
+  await page.setViewportSize({ width: 390, height: 900 });
+  await nav.getByRole("button", { name: `Akce složky ${names.folder}` }).click();
+  await nav.getByRole("menu", { name: `Akce složky ${names.folder}` }).waitFor();
+  await measure(`${clientPath}/knowledge, a folder's menu open`);
+  await page.screenshot({ path: join(out, "knowledge-390-folder-menu.png"), fullPage: false });
+  await page.keyboard.press("Escape");
+  await bar.getByRole("button", { name: "Odebrat štítek" }).click();
+  await measure(`${clientPath}/knowledge, the bulk menu open`);
+  await page.screenshot({ path: join(out, "knowledge-390-bulk-menu.png"), fullPage: false });
+  await page.keyboard.press("Escape");
+  await page.setViewportSize({ width: 1440, height: 1000 });
+  checks.push("At 390 px a row's menu and the bulk bar's menu open without page overflow");
 
   await nav.getByRole("button", { name: new RegExp(`^${names.folder}`) }).click();
   await main.getByRole("heading", { level: 2, name: names.folder }).waitFor();
@@ -150,15 +207,31 @@ try {
   await panel.getByText("r2").waitFor();
   checks.push("The open item is edited into revision 2 and its history shows it");
 
-  await main.getByRole("button", { name: "Smazat složku" }).click();
-  await page.getByRole("dialog").getByRole("button", { name: "OK" }).click();
-  await nav.getByRole("button", { name: new RegExp(`^${names.folder}`) }).waitFor({ state: "detached" });
-  await nav.getByRole("button", { name: new RegExp(`^${names.label}`) }).click();
-  await main.getByRole("button", { name: "Smazat štítek" }).click();
-  await page.getByRole("dialog").getByRole("button", { name: "OK" }).click();
-  await nav.getByRole("button", { name: new RegExp(`^${names.label}`) }).waitFor({ state: "detached" });
+  // A delete happens at once with Vrátit (I6): the folder goes, Vrátit makes it again with the item
+  // filed back; then it goes for good with the label, and the item stays.
+  const deleteFrom = async (menu, action) => {
+    await nav.getByRole("button", { name: menu }).click();
+    await nav.getByRole("menu", { name: menu }).getByRole("menuitem", { name: action }).click();
+  };
+  await deleteFrom(`Akce složky ${names.folder}`, "Smazat složku");
+  await folderRow(names.folder).waitFor({ state: "detached" });
+  await noModal("delete folder");
+  const toast = page.getByRole("status").filter({ hasText: `Složka „${names.folder}“ smazána` });
+  await toast.waitFor();
+  await page.screenshot({ path: join(out, "knowledge-1440-undo.png"), fullPage: false });
+  await toast.getByRole("button", { name: "Vrátit" }).click();
+  await folderRow(names.folder).waitFor();
+  await main.getByRole("row").filter({ hasText: names.item }).getByText(names.folder, { exact: true }).waitFor();
+  checks.push("Deleting the folder is at once, and Vrátit makes it again with the item filed back");
+
+  await deleteFrom(`Akce složky ${names.folder}`, "Smazat složku");
+  await folderRow(names.folder).waitFor({ state: "detached" });
+  await deleteFrom(`Akce štítku ${names.label}`, "Smazat štítek");
+  await folderRow(names.label).waitFor({ state: "detached" });
+  await page.getByRole("status").filter({ hasText: `Štítek „${names.label}“ smazán` }).waitFor();
   await main.getByRole("row").filter({ hasText: names.item }).waitFor();
-  checks.push("Deleting the folder and the label keeps the item");
+  await noModal("delete label");
+  checks.push("Deleting the folder and the label keeps the item; no modal opened in the library");
 
   // Profil: the details saved on the client and read back; a contact added and removed.
   await visit(`${clientPath}/profile`);

@@ -3,7 +3,7 @@ status: in-progress
 chunks:
   - "[x] 0. Audit, standard and this plan (docs only; .planning/evidence/input-interactions-audit.md)"
   - "[ ] 1. Shared primitives with tests: InlineText, Stepper, ChoiceChips (+ Segmented and Switch adopted everywhere), InlineCreateRow, SwatchPicker, MenuButton, UndoToast, SpendDialog; retire AskDialog's prompt form"
-  - "[ ] 2. Knowledge library: folders and labels created in the list, renamed in place, recoloured by swatch; bulk and item filing by menu; search debounced (audit D1-D13)"
+  - "[x] 2. Knowledge library: folders and labels created in the list, renamed in place, recoloured by swatch; bulk and item filing by menu; search debounced (audit D1-D13)"
   - "[ ] 3. Questionnaire: questions, options, blocks and sets created and edited in place; comparisons as segmented; deletes with undo (audit A1-A8, A11-A21)"
   - "[x] 3b1. Scales, server side: the domain compiling a scale's labels (two ends or one per point; labels that break the rule left out with a readiness WARN, scale_labels_ignored; the compiler aia-research-compile-2) and refusing a non-integer end (invalid_scale); the labels reaching respondents behind AIA_AI_SCALE_LABELS_IN_PROMPT (off), the respondent prompt's identity moving with it; the report printing them; the editor's pure rule (apps/web/src/research/scale-labels.ts) (audit IA-2, IA-7)"
   - "[ ] 3b2. Scales, the editor: range presets 1-5, 1-7, 0-10, 1-10 and Vlastní; a verbal label on every point, on chunk 1's primitives (#532); the range-change rule with its undo toast (audit A9, A10)"
@@ -299,6 +299,64 @@ Also in it: `Segmented` (`rehome/step.tsx`) got roving tabindex (IA-8 below); th
 callers (P2–P9) until the area chunks 2, 3 and 7 replace them (the Approach: it is deleted with its
 last caller). No other call site moved in this PR.
 
+### Chunk 2, as delivered (2026-10-21, `feature/input-interactions-knowledge`)
+
+The knowledge library on chunk 1's primitives, web only: **no route, schema or audit changed**.
+Audit rows closed: D1–D11 and D13; D12 kept as it is (below).
+
+- **Folders and labels are rows of the side panel** (`KnowledgeOrganizers.tsx`: `FolderRow`,
+  `LabelRow`, `NewLabelRow`). Each row selects as before; its name is renamed **in place** (I1) on
+  F2, a double click or its ⋯ menu ("Akce složky / štítku {name}": Přejmenovat, Smazat), as an
+  `InlineText` in the row: Enter or blur saves, Esc restores and sends nothing, focus goes back to
+  the row; a taken, empty or over-80-character name is said at the field by the server's own rule
+  (`name-input.ts` `nameProblem`, the row's own name excepted) and never sent; a server refusal
+  stays at the field as "Neuloženo – Zkusit znovu" (D2, D5; P2, P3 retired). A label is recoloured
+  by its **swatch** at the start of its row, a `SwatchPicker` popover where the arrows only move
+  and a click or Enter saves (D6). "+ Nový štítek" is an `InlineCreateRow` like "+ Nová složka",
+  its swatch beside the name, starting on the first colour no label uses (`nextLabelColour`), so
+  Enter alone creates (D4). The folder's heading and the label filter line lost their
+  Přejmenovat / Smazat / colour select: one place for each action, the row.
+- **Deletes happen at once with "Vrátit"** (I6, D3, D7; `UndoToast`, 8 s). The folder's or label's
+  items are read first (`GET …/knowledge?folder=` / `?label=`); undo makes it again with its name
+  (and colour) and files the same items back through `PUT …/placement`: new ids and two audit
+  entries, which audit §5.6 accepts for the MVP. When the read is not every item the API counts
+  there (`undoable`: a different count, or a full 200-item page), nothing is deleted yet and the
+  row asks with `InlineConfirm`, naming what goes and that it cannot be undone; focus on Ponechat.
+- **Filing is by menu** (I3, D11, D13; IA-6 moot here): the bulk bar's Přesunout do složky / Přidat
+  štítek / Odebrat štítek and the open item's Změnit složku (its own folder offered disabled) and
+  Přidat štítek (only labels it lacks) are `MenuButton`s; the arrows move without filing, Enter or
+  a click files once.
+- **Search is debounced** (D9, IA-4): asked 300 ms after typing pauses (`SEARCH_PAUSE_MS`, as
+  `MemorySearch`), trimmed; ten letters are one request.
+- **Primitives extended, each with its test:** `InlineText` `autoOpen` + `onSettled` (a rename
+  opened from elsewhere; settled only once the save answered, never on a failed one);
+  `MenuButton` `hideLabel` (a row's ⋯, named by what it acts on) and `align`, and `menuSide`
+  flips a menu that would run off the viewport (a bar wrapped at 390 px); `SwatchPicker` `align`
+  and one row of swatches (`w-max`); `InlineCreateRow` `adornment`, moving to it not leaving the
+  row; `parts.tsx` `POPOVER_END`; the `more` icon.
+- **D12 kept.** The open item's Název and Shrnutí stay fields with "Uložit jako revizi n": that
+  button is already the batch the owner chose (Q31 a: one session, one revision). Turning the two
+  fields into `InlineText` would only move the batch's commit; left for the workbench's item panel
+  (research-lead-workbench) rather than built twice.
+- **Tests:** `KnowledgeLibrary.test.tsx` (rename from the menu and on F2, Esc, a taken name, a
+  refused save and its retry, recolour with arrows that only move, a new label's colour, delete
+  and Vrátit for a folder and a label, the row's confirm when undo cannot be whole, bulk and item
+  menus by keyboard, the debounced search, a reader offered none of it); `knowledge-library.test.ts`
+  (`nextLabelColour`, `undoable`); the primitives' own files. `tools/ui_workbench/client_journey.mjs`
+  types in place: folder and label created by Enter (the label's swatch chosen), the folder renamed
+  on F2 (Esc restores), the label recoloured, bulk filing by menu (the label by keyboard), a folder
+  deleted and brought back by Vrátit, then folder and label deleted for good; no `<dialog>` or
+  `role=dialog` open at any step; a row's menu and the bulk menu opened at 390 px without overflow;
+  zero paid jobs. Run at its four widths, green twice.
+
+**AskDialog's prompt form after this chunk** (anchors @ `25f26232`): the knowledge area has none
+(P1 went in chunk 1, P2 and P3 here). Left, for chunks 3 and 7: P4 `apps/web/src/components/aia/
+clients/ClientDirectory.tsx:67` (Nový klient), P5 `apps/web/src/components/aia/clients/
+ClientContext.tsx:85` (Nový výzkum / simulace), P6–P9 `apps/web/src/components/rehome/research/
+QuestionnaireStep.tsx:510-521` through `ResearchScreen.tsx:327` (the questionnaire's quick adds).
+The confirm form keeps its callers outside this area (plan leave, three cancels, the spend
+confirmations; `Workbench.tsx:147`); the knowledge area's two delete confirms are gone.
+
 ## What this does not do
 
 No visual redesign beyond the controls; no soft delete (C9 owns it). The server's rules change in
@@ -324,6 +382,29 @@ IA-1 … IA-6, with all six parts, in the audit's §6. For the docs PR to number
   `step.test.tsx › Segmented is one Tab stop whose arrows move and choose (input-interactions I11)`
   fails on `e09a6c99`. Consequence: a keyboard user tabs through every option of every segmented
   control. Fix: `lib/roving.ts` (`rovingIndex`, `tabStop`) in `Segmented`, the same as ChoiceChips.
+
+- **IA-4 fixed** (chunk 2): the knowledge search asks once typing pauses for 300 ms
+  (`KnowledgeLibrary.test.tsx › asks the API once the typing pauses, never letter by letter`).
+- **IA-6 moot in the knowledge library** (chunk 2): no select there acts on change any more
+  (bulk, the open item, the label colour). Still a hypothesis for the intake sheet's
+  "Přidat štítek" select (`IntakeSheet.tsx:339-355`), chunk 7's.
+
+### CJ-1 (chunk 2): the client journey's bulk filing check passed without filing anything
+
+1. **Claim.** The journey's "the ticked item is moved into the folder" check matched the item's own
+   title, so it passed whether or not the item was filed.
+2. **Anchor.** `tools/ui_workbench/client_journey.mjs:136 @ 25f26232`:
+   `row.getByText(names.folder)`; `names.item` is `` `Cesta ${stamp}: pobočky` `` and `names.folder`
+   `` `Cesta ${stamp}` ``, and Playwright's `getByText` matches a substring by default.
+3. **Reproduction.** Remove the bulk "Přesunout do složky" step from the journey @ `25f26232`
+   and run it: the check at line 136 resolves at once, on the title (the run fails only later, at
+   the folder view). Once the folder is on the row, the same locator fails in strict mode (two
+   elements), which is how it showed up here.
+4. **Consequence.** The browser evidence for bulk filing proved nothing; a broken bulk move would
+   have shipped green.
+5. **Fix.** `{ exact: true }` on the folder and label checks (the journey on this branch).
+6. **Test.** The journey itself: the strict-mode failure is now the signal, and the folder name is
+   matched only as the filed cell says it.
 
 ### WT-1: the web suite timed out on a loaded machine (fixed on `fix/web-test-timeouts-under-load`)
 

@@ -211,3 +211,51 @@ describe("InlineText (I1): edit where it is shown", () => {
     expect(screen.getByText("zmrazeno během běhu")).toBeTruthy();
   });
 });
+
+describe("InlineText opened from elsewhere (input-interactions chunk 2: a row's rename)", () => {
+  it("opens as it mounts with autoOpen, focused, and is settled by Esc without saving", () => {
+    const save = vi.fn();
+    const settled = vi.fn();
+    render(<InlineText autoOpen label="Název studie" value="A" onCommit={save} onSettled={settled} />);
+    expect(document.activeElement).toBe(field());
+    expect((field() as HTMLInputElement).value).toBe("A");
+    expect(settled).not.toHaveBeenCalled();
+    fireEvent.keyDown(field(), { key: "Escape" });
+    expect(save).not.toHaveBeenCalled();
+    expect(settled).toHaveBeenCalledTimes(1);
+  });
+
+  it("settles once its save has answered, not while it is in flight", async () => {
+    let done = () => {};
+    const save = vi.fn(() => new Promise<void>((resolve) => (done = resolve)));
+    const settled = vi.fn();
+    render(<InlineText autoOpen label="Název studie" value="A" onCommit={save} onSettled={settled} />);
+    fireEvent.change(field(), { target: { value: "B" } });
+    fireEvent.keyDown(field(), { key: "Enter" });
+    expect(screen.getByText("Ukládám…")).toBeTruthy();
+    expect(settled).not.toHaveBeenCalled();
+    await act(async () => done());
+    expect(settled).toHaveBeenCalledTimes(1);
+  });
+
+  it("does not settle on a failed save, so Neuloženo – Zkusit znovu stays; it settles when the retry goes", async () => {
+    const save = vi.fn().mockRejectedValueOnce(new Error("x")).mockResolvedValueOnce(undefined);
+    const settled = vi.fn();
+    render(<InlineText autoOpen label="Název studie" value="A" onCommit={save} onSettled={settled} />);
+    fireEvent.change(field(), { target: { value: "B" } });
+    fireEvent.keyDown(field(), { key: "Enter" });
+    expect(await screen.findByText(/Neuloženo/)).toBeTruthy();
+    expect(settled).not.toHaveBeenCalled();
+    fireEvent.click(screen.getByRole("button", { name: "Zkusit znovu" }));
+    expect(await screen.findByText("Uloženo")).toBeTruthy();
+    expect(settled).toHaveBeenCalledTimes(1);
+  });
+
+  it("never settles without having been opened, and does not open when disabled", () => {
+    const settled = vi.fn();
+    render(<InlineText label="Název studie" value="A" onCommit={() => {}} onSettled={settled} />);
+    render(<InlineText autoOpen disabled label="Jiný název" value="B" onCommit={() => {}} onSettled={settled} />);
+    expect(screen.queryByRole("textbox")).toBeNull();
+    expect(settled).not.toHaveBeenCalled();
+  });
+});
