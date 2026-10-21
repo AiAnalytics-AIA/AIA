@@ -42,6 +42,7 @@ import {
 } from "@/research/plan";
 import type { Analysis } from "@/research/store";
 import { applyPlanSets, lines, proposalAnalysis, validMeasurement } from "@/research/plan-edit";
+import { DesignCoverage } from "./DesignCoverage";
 import { ProposalEditor } from "./ProposalEditor";
 import { Icon, type IconName } from "../icons";
 import { ActionDock, ChipInput, InlineConfirm, StepSection } from "../step";
@@ -227,6 +228,7 @@ export function PlanStep() {
         void resume(id).then((ok) => { if (ok && comments) toast(t("research.plan.commentsDone")); });
       }} /> : null}
       {variantSection}
+      <DesignCoverage />
       <Commentable onQuote={(quote) => setDrafts((d) => [...d, { key: ++seq.current, quote, text: "" }])}>
         <div className="flex flex-col gap-4">
           <Understanding n={++n} analysis={a} goal={p.goal || ""} changed={Boolean(p.ui_state.plan_changed26)} editing={editingNarrative} setEditing={setEditingNarrative} blocked={editingSet !== null || busy} />
