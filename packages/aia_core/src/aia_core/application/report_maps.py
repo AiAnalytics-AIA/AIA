@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from collections.abc import Mapping
-from typing import Any
+from typing import Any, Final
 
 from aia_core.domain.report.model import (
     Align,
@@ -21,9 +21,10 @@ from aia_core.domain.report.model import (
 )
 from aia_core.domain.report.numbers import counted, effective_n, number
 from aia_core.domain.sociomap import read_object_maps
-from aia_core.domain.sociomap.models_v3 import MapCredibility
+from aia_core.domain.sociomap.models_v3 import MapCredibility, RespondentMap
 from aia_core.domain.sociomap.pairs import PairRelations
 from aia_core.domain.sociomap.relations import PairStatus
+from aia_core.domain.sociomap.specification import RelationEstimator
 from aia_core.domain.sociomap.terrain import EnvelopeTerrain
 from aia_core.domain.sociomap_register import MethodologyStatus, recorded_statuses
 
@@ -38,6 +39,18 @@ PAIR_STATUS: dict[PairStatus, str] = {
 #: not their count (``PairRelations.basis``; ``aia-sociomap-3``'s, AIA Q6 (c)).
 _EFFECTIVE_N_BASIS = "kish_effective_n"
 _ANSWERS = ("společná odpověď", "společné odpovědi", "společných odpovědí")
+
+
+VIEW_TITLE: Final = {
+    "top": "Pohled shora",
+    "3d": "Prostorový pohled",
+    "respondents": "Mapa respondentů",
+}
+RESPONDENT_ALT: Final = (
+    "Mapa respondentů uložené mapy {title}. Výška ukazuje hustotu jasně umístěných "
+    "respondentů, body jednotlivé respondenty (světlé: slabě umístění){segments}; objekty "
+    "jsou šedé uzly s popisem."
+)
 
 
 def pair_status_means(relations: PairRelations) -> dict[PairStatus, str]:
@@ -229,13 +242,23 @@ def compose_map_sections(
                 isinstance(artifact.terrain, EnvelopeTerrain)
                 and artifact.terrain.method == "framed_relative_envelope"
             )
-            for view in (
+            # A signed-off map is drawn as the AIA panel draws it, labelled on the map, with its
+            # respondent map where it is stored.
+            panel = (
+                artifact.spec.relation.estimator == RelationEstimator.BASELINE_CORRECTED_PEARSON
+                and isinstance(artifact.terrain, EnvelopeTerrain)
+            )
+            views: tuple[str, ...] = (
                 ("top", "3d") if isinstance(artifact.terrain, EnvelopeTerrain) else ("top",)
-            ):
+            )
+            # The respondent map, a dot per respondent, stays in the internal report.
+            if panel and not client and isinstance(artifact.respondents, RespondentMap):
+                views += ("respondents",)
+            for view in views:
                 key = (battery["battery_id"], method, view)
                 if key not in images:
                     raise ValueError(f"missing map snapshot: {key}")
-                view_title = "Pohled shora" if view == "top" else "Prostorový pohled"
+                view_title = VIEW_TITLE[view]
                 blocks.append(
                     SociomapFigure(
                         id=f"fig-native-map-{index}-{ordinal}-{view}",
@@ -248,8 +271,22 @@ def compose_map_sections(
                         else f"rozložení {POSITION_METHOD.get(layout.method, layout.method)}; "
                         "Stress-1 se nepočítá",
                         source=source,
-                        alt=f"{view_title} uložené mapy {battery['title']}. Číslované objekty "
-                        "odpovídají legendě; barva a výška ukazují "
+                        alt=RESPONDENT_ALT.format(
+                            title=battery["title"],
+                            segments=", barva bodu chuťový segment"
+                            if isinstance(artifact.respondents, RespondentMap)
+                            and artifact.respondents.segments is not None
+                            and artifact.respondents.segments.decision == "SEGMENTS"
+                            else "",
+                        )
+                        if view == "respondents"
+                        else f"{view_title} uložené mapy {battery['title']}. "
+                        + (
+                            "Objekty jsou popsané na mapě"
+                            if panel
+                            else "Číslované objekty odpovídají legendě"
+                        )
+                        + "; barva a výška ukazují "
                         + (
                             "průměr hodnocení vůči ostatním objektům sady."
                             if relative

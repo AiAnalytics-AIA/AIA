@@ -1,5 +1,5 @@
 ---
-status: planned
+status: in-progress
 chunks:
   - "[ ] 0. Decide the evidence policy for a client's dataset columns (deferred by the owner, 2026-10-19), and settle ADR 0027's three open questions"
   - "[ ] 1. The origin CLIENT_REPORTED and its fourth reading in origin_kind, every label reading it"
@@ -14,7 +14,7 @@ chunks:
   - "[ ] 7. The Lead and the analysis modules see only admitted client-reported results, never rows"
   - "[ ] 8. Brief materials pick a client dataset; `brief_signature` and `design_material` carry the source id and the contract version, with one fixture for Python and TypeScript"
   - "[ ] 9. The client-data steps placed in the run: a graph node, a contract-version pin on the run, an impact root, and which run's report prints them; class and lineage for client-reported numbers sent to a model"
-  - "[ ] 8a. W0 proposed Brief-material/signature interface and shared fixture; uploaded datasets remain ineligible until an accepted data contract exists"
+  - "[x] 8a. W0 proposed Brief-material/signature interface and shared fixture; uploaded datasets remain ineligible until an accepted data contract exists"
   - "[ ] 10. The data contract accepted in the study's Brief drawer with its quality report; the Data tab shows the accepted contract read-only (D-37)"
 ---
 # A client's own data in a study's analysis
@@ -160,3 +160,51 @@ unless stated.
   placeholder only when one is unrecorded; the seed records `aia_synthetic_fixture`. Test: a design
   job over a seeded client with DATASET knowledge passes the licence gate; one over an item with no
   recorded dataset is still refused by name.
+
+## 8a, delivered as a proposal (2026-10-21, branch `feature/w0-n-authority-population-double`)
+
+**What is built** (the proposed interface; ADR 0027 stays Proposed, nothing stores a contract):
+
+- `packages/aia_core/src/aia_core/domain/brief_materials.py` (`BRIEF_MATERIALS_VERSION =
+  "aia-brief-materials-0-proposed"`). A Brief names a client dataset in `briefing.materials`, beside
+  the legacy `briefing.attachments`, as a closed `BriefMaterial`: `kind: "client_dataset"`,
+  `source_id` (`SRC-` + 16 hex, the client's source), `reading_sha256` (the reading the person
+  picked, as `client_sources.reading_sha256` stores it: a newer reading is another material) and an
+  optional `contract_id` + `contract_version` (both or neither: an intent, not an acceptance). The
+  Brief holds no row, column or file.
+- **Eligibility is computed, never stored.** `eligibility_of(material, accepted)` over the
+  `AcceptedContract`s the server holds (chunk 2 will produce them; nothing does today):
+  `no_contract` (visible as a source, unavailable to analysis), `contract_not_accepted`,
+  `contract_stale` (another version, source or reading) or `eligible` only for an acceptance of
+  exactly that source, reading and version. `read_materials` refuses an entry carrying any other
+  field (`unknown_field`: an `eligibility` or `admitted` the browser wrote is never read past).
+- **The signature.** `design_items.brief_signature` and the web's `briefFingerprint` sign
+  `materials` (`material_signature` / `materialSignature` in `apps/web/src/research/
+  brief-materials.ts`): per entry the source, reading and named contract, in the person's order,
+  null for a non-object, **never an eligibility**. Only a non-empty list is signed, so every brief
+  signed before materials keeps its signature byte for byte (the existing four shared cases are
+  unchanged). Six cases added to the one shared fixture,
+  `packages/aia_core/tests/fixtures/design_items/cases.json` `brief_signatures`, read by
+  `test_design_items.py` and `proposal-diff.items.test.ts`; among them an entry claiming
+  eligibility signs exactly as one that does not.
+- `design_material` shows a model the material's ids and hashes as the Brief stores them, never
+  rows (`test_brief_materials.py::test_the_design_a_model_is_shown_names_the_dataset_never_its_rows`).
+
+**Tests.** `packages/aia_core/tests/test_brief_materials.py` (no dataset eligible without an accepted
+contract; exact-match acceptance; a self-declared eligibility refused by name; the signature carries
+none and old briefs keep theirs), `test_design_items.py::test_the_brief_signature_is_the_browsers`
+and `proposal-diff.items.test.ts` "briefFingerprint signs a brief as brief_signature does" over the
+new cases.
+
+**Still to do, not claimed by 8a.** The review with S1 before `research-lead-workbench` 18 builds
+the Brief picker on it; chunk 2's contract type, its accept route and the `client_data_contracts`
+table (migration lane M8) that would hold `AcceptedContract`s; chunk 8, which adopts the reviewed
+interface and pins the contract version on the run; chunk 9, the run node. Until then the Brief UI
+may list a dataset as the client's source and must say it is not available to analysis.
+
+## Doc follow-up (8a)
+
+- `CLAUDE.md` §2, `domain/`: `brief_materials.py` -- the Brief's materials (proposed, chunk 8a): a
+  client dataset named by source, reading and intended contract; eligibility computed from accepted
+  contracts, never stored; none eligible before chunk 2. `design_items.py` `brief_signature` and
+  `src/research/brief-materials.ts`: `materials` signed only when present, never an eligibility.

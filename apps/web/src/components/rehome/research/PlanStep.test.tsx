@@ -4,7 +4,7 @@ import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { afterEach, beforeEach, describe, expect, it, onTestFinished, vi } from "vitest";
 
-import { DESIGN_PATH, NATIVE_JOB_WAIT, NATIVE_TEST_TIMEOUT_MS, approveProposal, nativeAgentFixture } from "./test-native-agents";
+import { AGENTS_PATH, DESIGN_PATH, NATIVE_JOB_WAIT, NATIVE_TEST_TIMEOUT_MS, approveProposal, nativeAgentFixture } from "./test-native-agents";
 import { briefFingerprint, defaultsMerge } from "@/research/model";
 import { ResearchScreen } from "./ResearchScreen";
 import { workspaceFixture } from "./test-workspace";
@@ -33,6 +33,10 @@ const ANALYSIS = {
   _brief_signature: briefFingerprint(defaultsMerge(PROJECT, TEMPLATE)),
 };
 
+/** The readiness limits in force (RQC9): what a variant's n is held to. */
+const LIMITS_PATH = "/api/v1/studies/STU-1/research/limits";
+const LIMITS = { methodology_version: "aia-readiness-1", version: null, sample_size: { min: 20, max: 10000 } };
+
 type Call = { url: string; body: Record<string, unknown> | null };
 let calls: Call[] = [];
 function unitStub(analysis: unknown = ANALYSIS, over: Record<string, (b: unknown) => unknown> = {}, project: Record<string, unknown> = PROJECT) {
@@ -45,7 +49,8 @@ function unitStub(analysis: unknown = ANALYSIS, over: Record<string, (b: unknown
       const u = String(url);
       const body = init?.body ? JSON.parse(String(init.body)) : null;
       calls.push({ url: u, body });
-      const answer = native(u.split("?")[0], init?.method ?? "GET", body) ?? ws.answer(u.split("?")[0], init?.method ?? "GET", body) ?? over[u.split("?")[0]]?.(body);
+      const answers: Record<string, (b: unknown) => unknown> = { [LIMITS_PATH]: () => LIMITS, ...over };
+      const answer = native(u.split("?")[0], init?.method ?? "GET", body) ?? ws.answer(u.split("?")[0], init?.method ?? "GET", body) ?? answers[u.split("?")[0]]?.(body);
       if (answer === undefined) return new Response(JSON.stringify({ code: "not_found", message: "No such resource." }), { status: 404 });
       return answer instanceof Response ? answer : new Response(JSON.stringify(answer), { status: 200 });
     }),
@@ -127,9 +132,25 @@ describe("Návrh", () => {
   it("applies a design variant to the project", async () => {
     unitStub();
     render(<ResearchScreen step="plan" frame={TEST_FRAME} />);
-    fireEvent.click(await screen.findByRole("radio", { name: /Jen varianty/ }));
+    const radio = await screen.findByRole("radio", { name: /Jen varianty/ });
+    await waitFor(() => {
+      fireEvent.click(radio); // applied once the valid range is read (RQC9)
+      expect(screen.getByText("Použit návrh: Jen varianty")).toBeTruthy();
+    });
     expect(screen.getByRole("radio", { name: /Jen varianty/ }).getAttribute("aria-checked")).toBe("true");
     expect(screen.getByText("Použit návrh: Jen varianty")).toBeTruthy();
+    expect(screen.getByText("Porovnat varianty")).toBeTruthy();
+  });
+
+  it("applies a variant whose n the valid range refuses without its n, and says so", async () => {
+    unitStub(ANALYSIS, { [LIMITS_PATH]: () => ({ ...LIMITS, version: 3, sample_size: { min: 400, max: 500 } }) }, { ...PROJECT, n: 450 });
+    render(<ResearchScreen step="plan" frame={TEST_FRAME} />);
+    // Until the range is read, nothing is applied; the click is repeated until it is.
+    const radio = await screen.findByRole("radio", { name: /Jen varianty/ });
+    await waitFor(() => {
+      fireEvent.click(radio);
+      expect(screen.getByText(/Použit návrh: Jen varianty\. Velikost vzorku z návrhu nebyla uložena: Počet respondentů musí být od 400 do 500/)).toBeTruthy();
+    });
     expect(screen.getByText("Porovnat varianty")).toBeTruthy();
   });
 
@@ -175,10 +196,66 @@ describe("Návrh", () => {
     expect(screen.getByText("1 z 1 zodpovězeno")).toBeTruthy();
     fireEvent.click(screen.getByRole("button", { name: "Doplnit a aktualizovat návrh" }));
     await approveProposal();
-    expect(await screen.findByText("Nové shrnutí.", {}, { timeout: 4000 })).toBeTruthy();
+    expect(await screen.findByText("Nové shrnutí.")).toBeTruthy();
     const [analyze] = posted(DESIGN_PATH);
     expect(((analyze.body?.content as { briefing: { what_is_known: string } }).briefing).what_is_known).toBe("Víme A.\n\nDoplnění k analýze:\nJen MHD?\nAno, jen MHD.");
     expect(push).not.toHaveBeenCalled();
+  });
+
+  describe("an analysis that waited for the study's budget (CR-2, Codex on #533)", () => {
+    const waitingFor = () => {
+      let lifted = false;
+      const waiting = { run_id: "RUN-A", design_revision_id: "REV-A", action: "analyze_brief", status: "AWAITING_BUDGET", is_terminal: false, needs_attention: true,
+        steps: [{ step_id: "STEP-A", node_key: "agent", status: "AWAITING_BUDGET", waiting_reason: "budget_exceeded", error_message: null }],
+        created_at: null, context_sha256: "sha", harness_version: "v1", actual_cost_usd: null };
+      return {
+        "native/job": () => (lifted ? undefined : waiting),
+        [`${AGENTS_PATH}/RUN-A/budget`]: () => { lifted = true; return { ...waiting, status: "RUNNING", steps: [{ ...waiting.steps[0], status: "RUNNABLE" }] }; },
+        "/api/v1/studies/STU-1": () => ({ study_id: "STU-1", name: "Alfa", budget_usd: 5, spent_usd: 5, remaining_usd: 0 }),
+      };
+    };
+    const liftAndAccept = async () => {
+      const form = await screen.findByRole("form", { name: "Zvýšit rozpočet studie" }, NATIVE_JOB_WAIT);
+      await within(form).findByText(/5\.00/);
+      fireEvent.change(within(form).getByLabelText("Nový rozpočet studie (USD)"), { target: { value: "7" } });
+      fireEvent.click(within(form).getByRole("button", { name: "Zvýšit rozpočet a pokračovat" }));
+      await approveProposal();
+    };
+
+    it("keeps the comments' mode with the wait: the plan is marked as changed by them, and says so", async () => {
+      unitStub(ANALYSIS, waitingFor());
+      render(<ResearchScreen step="plan" frame={TEST_FRAME} />);
+      const text = (await screen.findByText("Jde o test nového konceptu.", {}, NATIVE_JOB_WAIT)).firstChild as Text;
+      Range.prototype.getBoundingClientRect = () => ({ left: 100, top: 200, width: 80, height: 16, right: 180, bottom: 216, x: 100, y: 200, toJSON: () => ({}) });
+      const range = document.createRange();
+      range.setStart(text, 0);
+      range.setEnd(text, 10);
+      window.getSelection()!.removeAllRanges();
+      window.getSelection()!.addRange(range);
+      fireEvent.mouseUp(text.parentElement!);
+      fireEvent.click(await screen.findByRole("button", { name: "Přidat komentář" }));
+      const draft = await screen.findByLabelText("Co změnit? Enter uloží komentář");
+      fireEvent.change(draft, { target: { value: "Není to test." } });
+      fireEvent.keyDown(draft, { key: "Enter" });
+      fireEvent.click(screen.getByRole("button", { name: "Zpracovat komentáře" }));
+      await liftAndAccept();
+      expect(await screen.findByText("Upraveno podle vašich komentářů", {}, NATIVE_JOB_WAIT)).toBeTruthy();
+      expect(await screen.findByText("Komentáře zapracovány", {}, NATIVE_JOB_WAIT)).toBeTruthy();
+      expect(posted(AGENTS_PATH)).toHaveLength(1);
+    });
+
+    it("clears an earlier comments mark when a follow-up's analysis waited, as the follow-up itself does", async () => {
+      unitStub(ANALYSIS, waitingFor(), { ...PROJECT, ui_state: { plan_changed26: true } });
+      render(<ResearchScreen step="plan" frame={TEST_FRAME} />);
+      expect(await screen.findByText("Upraveno podle vašich komentářů", {}, NATIVE_JOB_WAIT)).toBeTruthy();
+      fireEvent.change(screen.getByLabelText("Odpověď na otázku 1"), { target: { value: "Ano, jen MHD." } });
+      fireEvent.click(screen.getByRole("button", { name: "Doplnit a aktualizovat návrh" }));
+      await liftAndAccept();
+      expect(await screen.findByText("Nové shrnutí.", {}, NATIVE_JOB_WAIT)).toBeTruthy();
+      await waitFor(() => expect(screen.queryByText("Upraveno podle vašich komentářů")).toBeNull(), NATIVE_JOB_WAIT);
+      expect(screen.queryByText("Komentáře zapracovány")).toBeNull();
+      expect(posted(AGENTS_PATH)).toHaveLength(1);
+    });
   });
 
   it("comments on selected text, then works the comments in with a forced analysis", async () => {
@@ -203,7 +280,7 @@ describe("Návrh", () => {
 
     fireEvent.click(screen.getByRole("button", { name: "Zpracovat komentáře" }));
     await approveProposal();
-    expect(await screen.findByText("Upraveno podle vašich komentářů", {}, { timeout: 4000 })).toBeTruthy();
+    expect(await screen.findByText("Upraveno podle vašich komentářů")).toBeTruthy();
     const [analyze] = posted(DESIGN_PATH);
     // The revised briefing is frozen in the native Design Revision.
     expect(((analyze.body?.content as { briefing: { review_comments: string } }).briefing).review_comments).toBe("1. K textu „Jde o test“: Není to test.");
@@ -230,7 +307,7 @@ describe("direct proposal editing", () => {
     const input = screen.getAllByLabelText("Název sady").find((e) => e.getAttribute("placeholder") !== "Název sady")!;
     fireEvent.change(input, { target: { value: "Nová sada" } });
     fireEvent.submit(input.closest("form")!);
-    await waitFor(() => expect(ws.saves.length).toBeGreaterThan(0), { timeout: 4000 });
+    await waitFor(() => expect(ws.saves.length).toBeGreaterThan(0));
     const sets = (ws.saves.at(-1)!.content.research_plan as { tracked_sets: unknown[] }).tracked_sets;
     expect(sets).toHaveLength(2);
     expect(sets[0]).toEqual(existing);
@@ -247,7 +324,7 @@ describe("direct proposal editing", () => {
     fireEvent.change(within(form).getByLabelText("Co má výzkum zjistit"), { target: { value: "První cíl\n\nDruhý cíl" } });
     fireEvent.change(within(form).getByLabelText("Výzkumné otázky"), { target: { value: "Nová otázka?" } });
     fireEvent.click(within(form).getByRole("button", { name: "Použít úpravy návrhu" }));
-    await waitFor(() => expect(ws.saves.length).toBeGreaterThan(0), { timeout: 4000 });
+    await waitFor(() => expect(ws.saves.length).toBeGreaterThan(0));
     expect(ws.saves.at(-1)?.content.research_plan).toMatchObject({ problem_summary: "Upravený problém", objectives: ["První cíl", "Druhý cíl"], research_questions: ["Nová otázka?"], status: "approved" });
     expect(ws.saves.at(-1)?.analysis).toMatchObject({ problem_summary: "Upravený problém", objectives: ["První cíl", "Druhý cíl"] });
     expect(posted(DESIGN_PATH)).toEqual([]); // manual editing never pays for an AI task
@@ -283,7 +360,7 @@ describe("direct proposal editing", () => {
     fireEvent.change(within(form).getByLabelText("1 na škále"), { target: { value: "určitě ne" } });
     expect(within(form).getByText("Zvolili byste Nová A?")).toBeTruthy();
     fireEvent.click(within(form).getByRole("button", { name: "Použít změny sady" }));
-    await waitFor(() => expect(ws.saves.length).toBeGreaterThan(0), { timeout: 4000 });
+    await waitFor(() => expect(ws.saves.length).toBeGreaterThan(0));
     const body = ws.saves.at(-1)!;
     expect(body.content.sections).toEqual([{ title: "Existující dotazník" }]);
     expect((body.content.research_plan as { tracked_sets: unknown[] }).tracked_sets[0]).toMatchObject({ objects: ["Nová A", "B", "C", "D"], scale_labels: ["určitě ne", "velmi"], custom_method: "keep" });

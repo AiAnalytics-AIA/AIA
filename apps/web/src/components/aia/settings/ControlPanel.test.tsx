@@ -227,8 +227,8 @@ describe("the settings control panel", () => {
     const row = (await screen.findByText("Vnímání značky")).closest("[data-study]") as HTMLElement;
     fireEvent.click(within(row).getByRole("button", { name: "Upravit", hidden: true }));
     const study = document.querySelector('[data-study-edit="STU-1"]') as HTMLElement;
-    fireEvent.change(within(study).getByLabelText("Strop rozpočtu"), { target: { value: "900" } });
-    fireEvent.submit(within(study).getByLabelText("Strop rozpočtu").closest("form") as HTMLFormElement);
+    fireEvent.change(within(study).getByLabelText("Rozpočet studie"), { target: { value: "900" } });
+    fireEvent.submit(within(study).getByLabelText("Rozpočet studie").closest("form") as HTMLFormElement);
     expect(await within(study).findByText(/HTTP 403 · insufficient_role: Your role on this study/)).toBeTruthy();
     expect(called("PUT", "/api/v1/studies/STU-1/budget")[0].body).toEqual({ budget_usd: 900 });
   });
@@ -658,7 +658,7 @@ describe("usable settings controls", () => {
     const study = document.querySelector('[data-study="STU-1"]') as HTMLElement;
     fireEvent.click(within(study).getByRole("button", { name: "Upravit" }));
     const edit = document.querySelector('[data-study-edit="STU-1"]') as HTMLElement;
-    const budget = within(edit).getByLabelText("Strop rozpočtu") as HTMLInputElement;
+    const budget = within(edit).getByLabelText("Rozpočet studie") as HTMLInputElement;
     fireEvent.change(budget, { target: { value: "600" } });
     fireEvent.change(screen.getByRole("searchbox", { name: "Hledat studii nebo klienta" }), { target: { value: "Cizí" } });
     expect(study.hidden).toBe(true);

@@ -98,7 +98,12 @@ def test_sandbox_approval_is_audited_scoped_and_pinned(
     assert settings_in_force_for_study(session, scoped.scope(study="sibling")) == normal
     assert settings_in_force_for_study(session, scoped.scope(study="other_client")) == normal
     audit = list(
-        session.scalars(select(AccessAuditRow).where(AccessAuditRow.action.like("DR_TEST_%")))
+        session.scalars(
+            select(AccessAuditRow)
+            .where(AccessAuditRow.action.like("DR_TEST_%"))
+            # In the order written: PostgreSQL returns rows in no promised order without one.
+            .order_by(AccessAuditRow.event_id)
+        )
     )
     assert [a.action for a in audit] == ["DR_TEST_POLICY_PROPOSED", "DR_TEST_POLICY_APPROVED"]
     assert (

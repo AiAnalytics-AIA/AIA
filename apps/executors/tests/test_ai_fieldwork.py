@@ -27,6 +27,7 @@ import pytest
 from aia_core.application.research import ResearchRuns, research_artifacts
 from aia_core.domain.ai_contracts import Delivery, UsageOutcome
 from aia_core.domain.ai_material import MaterialApproval, material_sha256
+from aia_core.domain.ai_respondent import PROMPT_SHA256
 from aia_core.domain.fieldwork import DataOrigin, FieldworkSource
 from aia_core.domain.pipeline import fingerprint
 from aia_core.domain.report.review import REVIEW_STAMP_CONTRACT
@@ -1183,6 +1184,9 @@ def test_a_run_pinned_to_its_population_is_answered_by_respondents_drawn_from_it
     assert system["population_version"] == source["binding"]["version_id"]
     assert system["model_binding"] == f"aws_bedrock/{PROFILE}/bedrock-eu-primary"
     assert len(respondent_system_fingerprint(system)) == 64
+    # AIA_AI_SCALE_LABELS_IN_PROMPT off: the prompt and its record are what they always were.
+    assert system["respondent_prompt_sha256"] == PROMPT_SHA256
+    assert "scale_labels" not in provenance["prompt"]
     # The certificate those respondents were drawn under, as the loader verified it (B5a).
     import hashlib
 
@@ -1196,6 +1200,35 @@ def test_a_run_pinned_to_its_population_is_answered_by_respondents_drawn_from_it
     for node in ("aggregate", "sociomap"):
         assert steps[node]["status"] is StepRunStatus.SUCCEEDED
         assert steps[node]["output"]["data_origin"] == "MODELLED_AI_PANEL"
+
+
+def test_a_panel_run_with_scale_labels_in_the_prompt_records_another_respondent_system(
+    world: Any, store: InMemoryArtifactStore, run_with: Callable[..., Worker], grounded: Any
+) -> None:
+    """input-interactions 3b: on, the dataset's respondent system names the labelled prompt,
+    so its fingerprint is not the one a validation without labels was earned on."""
+    from aia_core.domain.ai_respondent import SCALE_LABEL_WORDING, respondent_prompt_sha256
+    from aia_core.domain.fieldwork import RESPONDENT_SYSTEM_METADATA
+
+    run_id = _start_grounded(world, grounded)
+    worker = run_with(
+        ScriptedBedrock(),
+        env={**_grounded_env(), "AIA_AI_SCALE_LABELS_IN_PROMPT": "true"},
+        population=grounded.loader(),
+    )
+    assert _drain(worker) == ["completed"] * 5
+    output = _steps(_run(world, run_id))["run"]["output"]
+    with world.sessions() as session:
+        research = research_artifacts(session, world.lead_scope(session), store)
+        artifact = research.get(output["artifact_id"])
+        provenance = research.read_json(output["artifact_id"])["provenance"]
+    system = artifact.metadata[RESPONDENT_SYSTEM_METADATA]
+    assert system["respondent_prompt_sha256"] == respondent_prompt_sha256(
+        scale_labels_in_prompt=True
+    )
+    assert system["respondent_prompt_sha256"] != PROMPT_SHA256
+    assert provenance["prompt"]["scale_labels"] == SCALE_LABEL_WORDING
+    assert provenance["prompt"]["sha256"] == PROMPT_SHA256  # the system prompt itself
 
 
 def test_a_panel_run_has_a_client_report_of_admitted_modelled_numbers_and_a_fictional_none(
@@ -1345,6 +1378,17 @@ def test_the_population_switch_needs_the_directory_it_reads() -> None:
         AIRuntimeSettings.from_env(env)
     off = AIRuntimeSettings.from_env(_env())
     assert off is not None and off.population_personas_enabled is False
+
+
+def test_the_scale_label_switch_is_off_unless_set_and_reaches_the_fieldwork_config() -> None:
+    """AIA_AI_SCALE_LABELS_IN_PROMPT (input-interactions 3b): off by default and in test."""
+    off = AIRuntimeSettings.from_env(_env())
+    assert off is not None and off.scale_labels_in_prompt is False
+    on = AIRuntimeSettings.from_env(_env(AIA_AI_SCALE_LABELS_IN_PROMPT="true"))
+    assert on is not None and on.scale_labels_in_prompt is True
+    build = BuildIdentity(sha="abc")
+    assert build_ai_fieldwork(off, build=build)._config.scale_labels_in_prompt is False
+    assert build_ai_fieldwork(on, build=build)._config.scale_labels_in_prompt is True
 
 
 # --------------------------------------------------------------------------- #

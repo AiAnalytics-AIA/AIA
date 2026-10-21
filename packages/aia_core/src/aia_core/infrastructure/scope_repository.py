@@ -594,13 +594,19 @@ class ScopeRepository:
         self._session.flush()
         return study
 
-    def get_study(self, scope: StudyContext) -> Study:
+    def get_study(self, scope: StudyContext, *, for_update: bool = False) -> Study:
         """Return the study in scope.
 
         No id parameter: the study is whichever one the context authorised, which
         removes any chance of reading a different study under this authorisation.
+        ``for_update`` locks the row and re-reads what is committed, for a caller that
+        compares a value (the budget) before changing it.
         """
-        row = self._session.scalar(select(StudyRow).where(StudyRow.study_id == scope.study_id))
+        query = select(StudyRow).where(StudyRow.study_id == scope.study_id)
+        if for_update:
+            # Blocking FOR UPDATE on PostgreSQL (SQLite has none and serialises writers).
+            query = query.with_for_update().execution_options(populate_existing=True)
+        row = self._session.scalar(query)
         if row is None:
             raise ScopeDenied("not found", reason="unknown_study")
         return _study_to_domain(row)

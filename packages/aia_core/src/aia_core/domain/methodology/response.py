@@ -129,7 +129,7 @@ _STEPS: Final[tuple[MethodStep, ...]] = (
         title_cs="Pravděpodobnosti od modelu",
         formula_latex=r"p = (p_1, \dots, p_K) \text{ od modelu, jeden respondent, teplota } 0",
         implements=f"{_R}:build_request",
-        source_sha256="df1695f68eabd76ef93d467fe9ad22e41f8131b0e07aab674d866de5a68a187b",
+        source_sha256="56d53a0992909f74f30137d293390724b674415e86a6a156114de4ce4523e7cd",
         symbols=(Symbol("K", "počet možností otázky (u škály body a případně „nevím“)"),),
         evidence=(_DIVISION,),
         tests=(f"{_TA}::test_the_request_carries_class_lineage_prompt_and_no_scope",),

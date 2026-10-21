@@ -30,6 +30,7 @@ from uuid import uuid4
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
+from ..domain.approval_ledger import ApprovalSubject
 from ..domain.pipeline import resolve_stage
 from ..domain.providers import Provider
 from ..domain.scope import (
@@ -565,7 +566,7 @@ class ArtifactRepository:
                 organization_id=self._scope.organization_id,
                 client_id=self._scope.client_id,
                 study_id=self._scope.study_id,
-                subject_type="artifact",
+                subject_type=ApprovalSubject.ARTIFACT,
                 subject_id=artifact_id,
                 project_id=row.project_id,
                 project_revision=row.revision,
@@ -590,7 +591,7 @@ class ArtifactRepository:
                 ApprovalDecisionRow.organization_id == self._scope.organization_id,
                 ApprovalDecisionRow.client_id == self._scope.client_id,
                 ApprovalDecisionRow.study_id == self._scope.study_id,
-                ApprovalDecisionRow.subject_type == "artifact",
+                ApprovalDecisionRow.subject_type == ApprovalSubject.ARTIFACT,
                 ApprovalDecisionRow.subject_id == row.artifact_id,
                 ApprovalDecisionRow.decision == "APPROVED",
             )

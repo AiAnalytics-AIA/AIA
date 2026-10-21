@@ -294,3 +294,30 @@ def test_the_lead_models_keys_reach_the_worker_alone_and_its_reservation_must_be
     bindings = settings.model_document()["policies"][0]["bindings"]
     assert bindings["STUDY_LEAD"]["model"] == "eu.test.lead-model:1"
     assert bindings["SIMULATION"]["model"] == HOST_ENV["AIA_BEDROCK_MODEL_ID"]
+
+
+def test_an_invocation_target_reaches_the_worker_alone_and_unset_changes_nothing() -> None:
+    """develop-spend-attribution 5a: the application inference profile chunk 1 will create is
+    passed as what the calls go through; the model id stays the eu. id (fictional ARNs)."""
+    unset = AIRuntimeSettings.from_env(_container("worker", HOST_ENV))
+    assert unset is not None and unset.invocation_target is None
+    assert {m.target for m in unset.invocations().values()} == {HOST_ENV["AIA_BEDROCK_MODEL_ID"]}
+
+    arn = "arn:aws:bedrock:eu-central-1:123456789012:application-inference-profile/test0route"
+    lead_arn = "arn:aws:bedrock:eu-central-1:123456789012:application-inference-profile/test0lead"
+    env = {
+        **LEAD_MODEL_ENV,
+        "AIA_AI_RESEARCH_LEAD_RESERVATION_USD": "2",
+        "AIA_BEDROCK_INVOCATION_TARGET": arn,
+        "AIA_AI_RESEARCH_LEAD_INVOCATION_TARGET": lead_arn,
+    }
+    worker = _container("worker", env)
+    assert worker["AIA_BEDROCK_INVOCATION_TARGET"] == arn
+    assert worker["AIA_AI_RESEARCH_LEAD_INVOCATION_TARGET"] == lead_arn
+    for service in ("api", "web"):
+        assert "AIA_BEDROCK_INVOCATION_TARGET" not in _container(service, env)
+    settings = AIRuntimeSettings.from_env(worker)
+    assert settings is not None and settings.model_id == HOST_ENV["AIA_BEDROCK_MODEL_ID"]
+    called = settings.invocations()
+    assert called[settings.model_id].target == arn
+    assert called["eu.test.lead-model:1"].target == lead_arn

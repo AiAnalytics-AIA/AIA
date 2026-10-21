@@ -227,3 +227,56 @@ def test_a_pattern_grep_cannot_run_fails_the_rule(scratch: Path) -> None:
     assert f"FAIL  {RULE}" in result.stdout, result.stdout
     assert "grep could not search" in result.stdout
     assert f"ok    {RULE}" not in result.stdout
+
+
+def _recorded_rule(root: Path, *exempt: str) -> subprocess.CompletedProcess[str]:
+    """``forbid`` over ``pkg`` with the script's recorded-models patterns, as the API, worker
+    and core rules join them."""
+    args = " ".join(f"'{e}'" for e in exempt)
+    driver = (
+        "source tools/layer_check.sh\n"
+        'forbid "recorded models rule" "$RECORDED_MODELS_IMPORTED|$RECORDED_MODELS_NAMED" '
+        f"pkg {args}\n"
+        'exit "$FAILED"\n'
+    )
+    return subprocess.run(
+        ["bash", "-c", driver], cwd=root, capture_output=True, text=True, check=False
+    )
+
+
+@pytest.mark.parametrize(
+    "line",
+    [
+        "import aia_executors.recorded_models",
+        "from aia_executors.recorded_models import RecordedModels",
+        "from aia_executors import recorded_models",
+        "from aia_executors import acceptance_recorded",
+        "from . import recorded_models",
+        "from . import acceptance_recorded",
+        "from .recorded_models import RecordedModels",
+        "    from .acceptance_recorded import build_registry",
+        "from aia_executors import (registry, recorded_models)",
+        'mod = importlib.import_module("aia_executors.recorded_models")',
+        "factory = 'aia_executors.acceptance_recorded:build_registry'",
+    ],
+)
+def test_every_form_of_reaching_the_recorded_models_is_caught(scratch: Path, line: str) -> None:
+    _write(scratch, "pkg/acceptance_recorded.py", "from .recorded_models import RecordedModels\n")
+    _write(scratch, "pkg/elsewhere.py", f"{line}\n")
+
+    result = _recorded_rule(scratch, "pkg/acceptance_recorded.py")
+
+    assert result.returncode != 0, (line, result.stdout)
+    assert "pkg/elsewhere.py:1:" in result.stdout, result.stdout
+    assert "pkg/acceptance_recorded.py" not in result.stdout
+
+
+def test_prose_about_the_recorded_models_is_not_an_import(scratch: Path) -> None:
+    _write(
+        scratch,
+        "pkg/elsewhere.py",
+        '"""The harness worker is :mod:`aia_executors.acceptance_recorded`."""\n'
+        "# recorded_models answers in tests only\n",
+    )
+
+    assert _recorded_rule(scratch).returncode == 0

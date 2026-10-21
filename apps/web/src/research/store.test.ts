@@ -3,7 +3,7 @@ import { join } from "node:path";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { ApiError, type WorkingContent, type WorkingSave } from "@/lib/api";
-import { type Template, defaultsMerge } from "./model";
+import { type ResearchProject, type Template, defaultsMerge } from "./model";
 import { t, tv } from "@/i18n/t";
 import { ResearchStore, SAVE_DEBOUNCE_MS, canonical, loadResearch, newResearch, originNotice, readWorkingContent, saveReason, submitWorkingDesign } from "./store";
 
@@ -301,5 +301,55 @@ describe("reload", () => {
     } finally {
       vi.useRealTimers();
     }
+  });
+});
+
+describe("stable item ids (working-copy-edit-ops WCE1, behind AIA_WEB_STABLE_ITEM_IDS)", () => {
+  beforeEach(() => vi.useFakeTimers());
+  afterEach(() => vi.useRealTimers());
+  type Plan = { research_plan: Record<string, unknown>; sections: { questions: Record<string, unknown>[] }[] };
+  const plan = { research_questions: ["Jak cena mění zájem?", "Kdo kupuje?"], objectives: ["Zjistit cenovou citlivost"] };
+  const sections = [{ id: "sec_a", type: "questions", title: "Úvod", questions: [{ id: "Q1", text: "Kupujete kávu?", typ: "vyber", kategorie: ["Ano", "Ne"], research_questions: ["Kdo kupuje?"] }] }];
+  const stored = () => defaultsMerge({ title: "Alfa", research_plan: plan, sections }, TEMPLATE) as unknown as Record<string, unknown>;
+  const rqIds = (p: unknown) => (((p as Plan).research_plan.research_question_ids ?? []) as { id: string }[]).map((e) => e.id);
+  const asking = (questions: string[]) => ({ project }: { project: ResearchProject }) => ({
+    project: { ...project, research_plan: { ...(project as unknown as Plan).research_plan, research_questions: questions } } as ResearchProject,
+  });
+
+  it("off, writes no id: what is loaded and saved is what AIA stores", async () => {
+    const loaded = readWorkingContent(content({ content: stored() }));
+    if (loaded.kind !== "research") throw new Error("not research");
+    expect(loaded.state.completed).toBe(false);
+    const { bodies, save } = aia(() => saved(8));
+    const store = new ResearchStore(loaded.state, "STU-1", { save });
+    store.update(asking(["Jak cena mění zájem?", "Kdo si kávu kupuje?"]));
+    await vi.advanceTimersByTimeAsync(SAVE_DEBOUNCE_MS);
+    expect(JSON.stringify(bodies[0].content)).not.toContain("_ids");
+    expect((bodies[0].content as unknown as Plan).sections[0].questions[0].research_questions).toEqual(["Kdo kupuje?"]);
+  });
+
+  it("on, gives stored content its ids on load, owed as a save before a submit", () => {
+    const loaded = readWorkingContent(content({ content: stored() }), { itemIds: true });
+    if (loaded.kind !== "research") throw new Error("not research");
+    expect(rqIds(loaded.state.project)).toHaveLength(2);
+    expect(loaded.state.completed).toBe(true);
+  });
+
+  it("on, keeps a reworded research question's id and carries its links to the new wording", async () => {
+    const loaded = readWorkingContent(content({ content: stored() }), { itemIds: true });
+    if (loaded.kind !== "research") throw new Error("not research");
+    const { bodies, save } = aia(() => saved(8));
+    const store = new ResearchStore(loaded.state, "STU-1", { save, itemIds: true });
+    const before = rqIds(store.get().project);
+    store.update(asking(["Jak cena mění zájem?", "Kdo si kávu kupuje?"]));
+    expect(rqIds(store.get().project)).toEqual(before);
+    expect((store.get().project as unknown as Plan).sections[0].questions[0].research_questions).toEqual(["Kdo si kávu kupuje?"]);
+    // An added question is a new item; the others keep theirs.
+    store.update(asking(["Nová?", "Jak cena mění zájem?", "Kdo si kávu kupuje?"]));
+    const after = rqIds(store.get().project);
+    expect(after.slice(1)).toEqual(before);
+    expect(before).not.toContain(after[0]);
+    await vi.advanceTimersByTimeAsync(SAVE_DEBOUNCE_MS);
+    expect(rqIds(bodies[0].content)).toEqual(after);
   });
 });

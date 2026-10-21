@@ -117,10 +117,12 @@ try {
   checks.push("Napsat znalost on Znalosti opens the form; the item is listed at once");
 
   const nav = page.getByRole("navigation", { name: "Pohledy, složky a štítky" });
+  // "Nová složka" is a row in the folder list (input-interactions I5): Enter creates, Esc leaves.
   await nav.getByRole("button", { name: "Nová složka" }).click();
-  await page.getByRole("dialog").getByRole("textbox").fill(names.folder);
-  await page.getByRole("dialog").getByRole("button", { name: "OK" }).click();
+  await nav.getByRole("textbox", { name: "Nová složka" }).fill(names.folder);
+  await nav.getByRole("textbox", { name: "Nová složka" }).press("Enter");
   await nav.getByRole("button", { name: new RegExp(`^${names.folder}`) }).waitFor();
+  await nav.getByRole("textbox", { name: "Nová složka" }).press("Escape");
   await nav.getByRole("button", { name: "Nový štítek" }).click();
   await nav.getByRole("textbox", { name: "Název štítku" }).fill(names.label);
   await nav.getByRole("combobox", { name: "Barva štítku" }).selectOption("TEAL");

@@ -29,6 +29,7 @@ export function GET() {
       switches,
     },
     workbench: runtimeSwitch(process.env.AIA_WEB_RESEARCH_WORKBENCH) === true,
+    stableItemIds: runtimeSwitch(process.env.AIA_WEB_STABLE_ITEM_IDS) === true,
     build,
     errorTracking: {
       dsn: errorTrackingDsn(process.env.AIA_WEB_ERROR_TRACKING_DSN),

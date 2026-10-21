@@ -278,6 +278,9 @@ class ArmExecutor(_ValidationStep):
             data_class=data_class,
             lineage=lineage,
             require_binding=str(payload["model_binding"]),
+            # The preregistered system's prompt is the one without scale labels: its start
+            # pins ``pinned_components`` with the switch off (application/validation.py).
+            scale_labels_in_prompt=False,
         )
         if isinstance(answered, Failed):
             return answered

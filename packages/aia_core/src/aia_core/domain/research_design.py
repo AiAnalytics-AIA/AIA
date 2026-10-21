@@ -27,7 +27,7 @@ from __future__ import annotations
 
 import re
 import unicodedata
-from collections.abc import Mapping
+from collections.abc import Mapping, Sequence
 from enum import StrEnum
 from typing import Any, Final, Literal
 
@@ -49,6 +49,7 @@ __all__ = [
     "FILTERS_AWAIT_DRAW",
     "FILTERS_NEED_POPULATION",
     "SAMPLE_SIZE_BOUNDS",
+    "SCALE_LABEL_MAX",
     "SELECTION_NOT_APPLIED",
     "TRACKED_SET_LIMITS",
     "CheckStatus",
@@ -58,6 +59,7 @@ __all__ = [
     "ReadinessSpec",
     "ResearchSpecification",
     "SampleSizeLimits",
+    "SampleSizeProblem",
     "SpecBattery",
     "SpecObject",
     "SpecQuestion",
@@ -65,15 +67,21 @@ __all__ = [
     "TrackedSetLimits",
     "assess_readiness",
     "compile_design",
+    "labelled_points",
     "prepare",
     "readiness_problems",
     "readiness_values",
+    "sample_size_problem",
+    "scale_points",
     "selection_receipt",
     "settle_selection",
 ]
 
-#: The compiler's own version: part of the specification's fingerprint.
-COMPILER_VERSION: Final = "aia-research-compile-1"
+#: The compiler's own version: part of the specification's fingerprint. ``-2`` compiles a
+#: scale's verbal labels (input-interactions 3b); a specification ``-1`` stored is read as
+#: stored, held to the revision it records, never recompiled under ``-2``
+#: (``application.analysis_results.native_sources``).
+COMPILER_VERSION: Final = "aia-research-compile-2"
 
 #: The unit's "don't know" option (``dotaznik.py`` ``Otazka.volby``).
 DONT_KNOW: Final = "Nevím / neodpovím"
@@ -84,6 +92,9 @@ SAMPLE_SIZE_BOUNDS: Final = (20, 10000)
 #: ``PRODUCT_POLICY.json`` ``research_design.tracked_set`` for a position map:
 #: hard (min, max) and recommended (min, max).
 TRACKED_SET_LIMITS: Final = ((3, 40), (4, 15))
+
+#: The longest verbal label one point of a scale may carry (input-interactions 3b).
+SCALE_LABEL_MAX: Final = 60
 
 #: The fewest items a tracked set may ever have: fewer give no map (an object map needs
 #: three objects). A version may raise the hard minimum, never lower it below this.
@@ -97,6 +108,31 @@ class SampleSizeLimits(BaseModel):
 
     min: StrictInt
     max: StrictInt
+
+
+class SampleSizeProblem(StrEnum):
+    """Why a sample size cannot start a run (:func:`sample_size_problem`)."""
+
+    #: No whole number of respondents is set.
+    MISSING = "sample_size_missing"
+    #: A whole number outside ``min``-``max`` of the limits in force.
+    OUT_OF_RANGE = "sample_size_out_of_range"
+
+
+def sample_size_problem(n: object, limits: SampleSizeLimits) -> SampleSizeProblem | None:
+    """The one rule for a valid n (plan ``run-qc-and-checkpoint`` RQC9): a whole number within
+    ``limits``, both bounds included; ``None`` when it is one.
+
+    Readiness, the Research Lead's ``set_n`` (grounded at its turn and checked again at its
+    accept) and the API's ``GET …/research/limits``, which the web reads instead of a copy of
+    its own, all ask this. Nothing clamps: a value out of range is refused, never moved to
+    the nearest bound. A boolean is not a count, nor is a fractional or textual number.
+    """
+    if not isinstance(n, int) or isinstance(n, bool):
+        return SampleSizeProblem.MISSING
+    if not limits.min <= n <= limits.max:
+        return SampleSizeProblem.OUT_OF_RANGE
+    return None
 
 
 class TrackedSetLimits(BaseModel):
@@ -192,6 +228,35 @@ class _Frozen(BaseModel):
     model_config = ConfigDict(frozen=True, extra="forbid")
 
 
+def scale_points(scale: tuple[int, int]) -> int:
+    """How many points a scale has, both ends included."""
+    return scale[1] - scale[0] + 1
+
+
+def labelled_points(scale: tuple[int, int], labels: Sequence[str]) -> list[tuple[int, str]]:
+    """Each labelled point of a scale with its label, low to high: the two ends when two
+    labels were declared, else every point (``labels`` one per point)."""
+    if not labels:
+        return []
+    low, high = scale
+    if len(labels) == 2:
+        return [(low, labels[0]), (high, labels[1])]
+    return list(zip(range(low, high + 1), labels, strict=True))
+
+
+def _labels_fit(labels: tuple[str, ...], scale: tuple[int, int] | None, where: str) -> None:
+    """A scale's verbal labels are its two ends or one per point, low to high; nothing else."""
+    if not labels:
+        return
+    if scale is None:
+        raise ValueError(f"{where}: scale labels need a scale")
+    if len(labels) not in (2, scale_points(scale)):
+        raise ValueError(
+            f"{where}: {len(labels)} scale labels for {scale_points(scale)} points; "
+            "give the two ends or one label per point"
+        )
+
+
 class SpecQuestion(_Frozen):
     """One question a respondent answers. ``options`` already includes "don't know"."""
 
@@ -211,6 +276,10 @@ class SpecQuestion(_Frozen):
     #: by their text as the plan states them. A link is a declaration, never inferred; one
     #: that names no stated research question is the trace's to report, not the compiler's.
     research_questions: tuple[str, ...] = ()
+    #: The scale's verbal labels as the design declared them (``popisky_skaly``): the two ends,
+    #: or one per point, low to high. Empty when none were declared, and then absent from the
+    #: fingerprint. Only a scale question carries them.
+    scale_labels: tuple[str, ...] = ()
 
     @model_validator(mode="after")
     def _shape(self) -> SpecQuestion:
@@ -220,7 +289,17 @@ class SpecQuestion(_Frozen):
             raise ValueError(f"{self.id}: a scale question needs its scale")
         if self.rating_item and self.typ != "skala":
             raise ValueError(f"{self.id}: only a scale question can be a rating item")
+        if self.scale_labels and self.typ != "skala":
+            raise ValueError(f"{self.id}: only a scale question carries scale labels")
+        _labels_fit(self.scale_labels, self.scale, self.id)
         return self
+
+    @property
+    def end_labels(self) -> tuple[str, str] | None:
+        """The labels of the scale's two ends, whichever form was declared; ``None`` for none."""
+        if not self.scale_labels:
+            return None
+        return (self.scale_labels[0], self.scale_labels[-1])
 
 
 class SpecObject(_Frozen):
@@ -240,7 +319,9 @@ class SpecBattery(_Frozen):
     family: str
     question_template: str
     scale: tuple[int, int]
-    scale_labels: tuple[str, str]
+    #: The scale's verbal labels: the two ends (``vůbec`` / ``velmi`` when the design named
+    #: none), or one per point, low to high.
+    scale_labels: tuple[str, ...]
     objects: tuple[SpecObject, ...]
     familiarity_required: bool
     output_type: str
@@ -253,6 +334,11 @@ class SpecBattery(_Frozen):
     roles_declared: bool = False
     #: The research questions the design says this set measures, as :class:`SpecQuestion`'s.
     research_questions: tuple[str, ...] = ()
+    #: Develop's reading of the set's ends where it differs from :attr:`end_labels` (input-
+    #: interactions 3b; ``None`` otherwise, and then absent from the fingerprint): the first
+    #: two labels as written, or ``vůbec`` / ``velmi``. What respondents are told while the
+    #: labels stay off the prompt, so a stored design sends what it always sent.
+    develop_ends: tuple[str, str] | None = None
 
     @model_validator(mode="after")
     def _roles(self) -> SpecBattery:
@@ -262,7 +348,23 @@ class SpecBattery(_Frozen):
             raise ValueError(f"{self.id}: context objects that are not in the set: {unknown}")
         if self.context_objects and set(self.context_objects) == ids:
             raise ValueError(f"{self.id}: a set needs at least one PRIMARY object")
+        if not self.scale_labels:
+            raise ValueError(f"{self.id}: a set's scale needs its labels")
+        _labels_fit(self.scale_labels, self.scale, self.id)
         return self
+
+    @property
+    def end_labels(self) -> tuple[str, str]:
+        """The labels of the scale's two ends, whichever form was declared."""
+        return (self.scale_labels[0], self.scale_labels[-1])
+
+    @property
+    def told_ends(self) -> tuple[str, str]:
+        """The two ends a respondent is told while ``AIA_AI_SCALE_LABELS_IN_PROMPT`` is off,
+        and the report and the map print: develop's reading (:func:`_develop_ends`), byte for
+        byte. It differs from :attr:`end_labels` only for labels the new rule leaves out or a
+        set labelled point by point, and is then stored as :attr:`develop_ends`."""
+        return self.develop_ends or self.end_labels
 
     def question_id(self, obj: SpecObject) -> str:
         return f"{self.id}_obj_{obj.id}"
@@ -325,12 +427,16 @@ class ResearchSpecification(_Frozen):
                 del question["rating_item"]
             if not question["research_questions"]:
                 del question["research_questions"]
+            if not question["scale_labels"]:
+                del question["scale_labels"]
         for battery in body["batteries"]:
             if not battery["roles_declared"]:
                 del battery["roles_declared"]
                 del battery["context_objects"]
             if not battery["research_questions"]:
                 del battery["research_questions"]
+            if battery["develop_ends"] is None:
+                del battery["develop_ends"]
         if body["selection"] is None:
             del body["selection"]
         return fingerprint(body)
@@ -397,15 +503,92 @@ def _unique(base: str, used: set[str]) -> str:
     return candidate
 
 
+def _scale_end(value: Any) -> int | None:
+    """One end of a scale as a whole number, or ``None``: 2.5 is refused, never truncated to 2
+    (IA-2). A whole float (``5.0``) and a numeral (``"5"``) are the number they write; a
+    boolean is not a number."""
+    if isinstance(value, bool):
+        return None
+    if isinstance(value, int):
+        return value
+    if isinstance(value, float):
+        return int(value) if value.is_integer() else None
+    if isinstance(value, str):
+        try:
+            return int(value.strip())
+        except ValueError:
+            return None
+    return None
+
+
 def _scale(raw: Any, default: tuple[int, int]) -> tuple[int, int] | None:
     values = list(raw) if isinstance(raw, list | tuple) else list(default)
     if len(values) < 2:
         values = list(default)
-    try:
-        low, high = int(values[0]), int(values[1])
-    except (TypeError, ValueError):
+    low, high = _scale_end(values[0]), _scale_end(values[1])
+    if low is None or high is None:
         return None
     return (low, high) if low < high else None
+
+
+def _develop_ends(raw: Any) -> tuple[str, str]:
+    """A set's two ends exactly as develop compiled them before scale labels were read
+    (``aia-research-compile-1``): the first two entries as text, ``vůbec`` / ``velmi`` unless
+    both are there and not blank. Kept so that, with the labels off the prompt, a stored set
+    sends its respondents what it always sent."""
+    try:
+        ends = [_text(x) for x in (raw or [])][:2]
+    except TypeError:  # not iterable: develop's compile failed here; no design holds one
+        ends = []
+    if len(ends) != 2 or not all(ends):
+        return ("vůbec", "velmi")
+    return (ends[0], ends[1])
+
+
+def _scale_labels(
+    raw: Any, scale: tuple[int, int], *, where: str, instead: str, notes: list[CompileProblem]
+) -> tuple[str, ...]:
+    """A scale's verbal labels as declared: the two ends or one per point, low to high.
+
+    ``()`` when none were declared (absent, an empty list, or every label blank), and also
+    when they break the rule: a list of any other length, a blank, repeated or over-long
+    label, anything but a list of texts. Such labels are left out -- nothing is padded, cut
+    or guessed -- and a ``scale_labels_ignored`` note names why and what is used ``instead``
+    (readiness WARNs with it). They never stop a design from compiling: one that compiled
+    before the labels were read still does (input-interactions 3b; the editor refuses them
+    at the field, ``scale-labels.ts`` ``labelProblem``)."""
+    if raw is None:
+        return ()
+    why: str | None = None
+    labels: list[str] = []
+    if not isinstance(raw, list | tuple) or not all(isinstance(x, str) for x in raw):
+        why = "popisky škály nejsou seznam textů"
+    else:
+        labels = [_text(x) for x in raw]
+        if not any(labels):
+            return ()
+        points = scale_points(scale)
+        if len(labels) not in (2, points):
+            why = (
+                f"škála {scale[0]}\u2013{scale[1]} má {points} bodů a popisků je "
+                f"{len(labels)}; popište oba konce, nebo každý bod"
+            )
+        elif not all(labels):
+            why = "popisek bodu škály je prázdný"
+        elif len({label.casefold() for label in labels}) != len(labels):
+            why = "dva body škály mají stejný popisek"
+        elif any(len(label) > SCALE_LABEL_MAX for label in labels):
+            why = f"popisek bodu škály má víc než {SCALE_LABEL_MAX} znaků"
+    if why is not None:
+        notes.append(
+            CompileProblem(
+                code="scale_labels_ignored",
+                where=where,
+                message=f"{where}: popisky škály se nepoužijí, protože {why}. {instead}",
+            )
+        )
+        return ()
+    return tuple(labels)
 
 
 def _links(
@@ -429,7 +612,13 @@ def _links(
 
 
 def _question(
-    raw: Any, *, section_id: str, ordinal: int, used: set[str], problems: list[CompileProblem]
+    raw: Any,
+    *,
+    section_id: str,
+    ordinal: int,
+    used: set[str],
+    problems: list[CompileProblem],
+    notes: list[CompileProblem],
 ) -> SpecQuestion | None:
     where = f"{section_id}#{ordinal}"
     if not isinstance(raw, dict):
@@ -457,6 +646,7 @@ def _question(
     allow_dont_know = bool(raw.get("povolit_nevim", False))  # research_project.py:155
     options: tuple[str, ...] = ()
     scale: tuple[int, int] | None = None
+    scale_labels: tuple[str, ...] = ()
     if typ in ("vyber", "multi"):
         cats = [_text(x) for x in (raw.get("kategorie") or raw.get("volby") or []) if _text(x)]
         cats = list(dict.fromkeys(cats))[:24]  # research_project.py:139-143
@@ -481,6 +671,13 @@ def _question(
                 )
             )
             return None
+        scale_labels = _scale_labels(
+            raw.get("popisky_skaly"),
+            scale,
+            where=qid,
+            instead="Respondenti uvidí jen čísla škály a zpráva popisky neuvede.",
+            notes=notes,
+        )
     rating_item = raw.get("sociomap_rating") is True
     if rating_item and typ != "skala":
         problems.append(
@@ -505,6 +702,7 @@ def _question(
         has_filter=bool(_text(raw.get("filtr"))),
         rating_item=rating_item,
         research_questions=links,
+        scale_labels=scale_labels,
     )
 
 
@@ -514,6 +712,7 @@ def _battery(
     section_id: str,
     title: str,
     problems: list[CompileProblem],
+    notes: list[CompileProblem],
     limits: TrackedSetLimits,
 ) -> SpecBattery | None:
     family = _text(raw.get("object_family") or raw.get("object_type"))  # research_project.py:318
@@ -551,9 +750,18 @@ def _battery(
     template = _text(raw.get("object_question") or "Jak hodnotíte položku {object}?")
     if "{object}" not in template:  # research_project.py:330-332
         template = template.rstrip(" ?") + " {object}?"
-    scale_labels = [_text(x) for x in (raw.get("scale_labels") or [])][:2]
-    if len(scale_labels) != 2 or not all(scale_labels):
-        scale_labels = ["vůbec", "velmi"]
+    told = _develop_ends(raw.get("scale_labels"))
+    stated = _scale_labels(
+        raw.get("scale_labels"),
+        scale,
+        where=section_id,
+        instead=(
+            f"Respondentům se konce škály posílají jako dosud („{told[0]}“ a „{told[1]}“); "
+            "až se začnou posílat popisky bodů, popíší se jako „vůbec“ a „velmi“."
+        ),
+        notes=notes,
+    )
+    scale_labels = stated or ("vůbec", "velmi")
     used: set[str] = set()
     objects = tuple(
         SpecObject(id=_unique(_slug(label, "o"), used), label=label) for label in labels
@@ -596,7 +804,8 @@ def _battery(
         family=family,
         question_template=template,
         scale=scale,
-        scale_labels=(scale_labels[0], scale_labels[1]),
+        scale_labels=scale_labels,
+        develop_ends=None if told == (scale_labels[0], scale_labels[-1]) else told,
         objects=objects,
         familiarity_required=bool(raw.get("familiarity_required", False)),
         output_type=output_type
@@ -609,14 +818,20 @@ def _battery(
 
 
 def compile_design(
-    content: dict[str, Any], *, limits: ReadinessSpec = AIA_READINESS_V1
+    content: dict[str, Any],
+    *,
+    limits: ReadinessSpec = AIA_READINESS_V1,
+    notes: list[CompileProblem] | None = None,
 ) -> tuple[ResearchSpecification | None, tuple[CompileProblem, ...]]:
     """Compile a design, or say exactly what stops it. Never both a spec and a problem.
 
     ``limits`` gives the hard size of a tracked set: a run compiles under the limits it
     pinned. The default, the preset, is the code's; a caller compiling for a run passes the
-    run's pin."""
+    run's pin. ``notes``, when given, collects what was compiled around rather than refused
+    (scale labels that break the rule: ``scale_labels_ignored``); readiness WARNs with them."""
     problems: list[CompileProblem] = []
+    if notes is None:
+        notes = []
     questions: list[SpecQuestion] = []
     batteries: list[SpecBattery] = []
     section_ids: set[str] = set()
@@ -636,13 +851,23 @@ def compile_design(
         if kind == "questions":
             for qi, q in enumerate(sec.get("questions") or [], start=1):
                 compiled = _question(
-                    q, section_id=sid, ordinal=qi, used=question_ids, problems=problems
+                    q,
+                    section_id=sid,
+                    ordinal=qi,
+                    used=question_ids,
+                    problems=problems,
+                    notes=notes,
                 )
                 if compiled is not None:
                     questions.append(compiled)
         else:
             battery = _battery(
-                sec, section_id=sid, title=title, problems=problems, limits=limits.tracked_set
+                sec,
+                section_id=sid,
+                title=title,
+                problems=problems,
+                notes=notes,
+                limits=limits.tracked_set,
             )
             if battery is not None:
                 batteries.append(battery)
@@ -846,9 +1071,10 @@ def assess_readiness(
         checks.append(ReadinessCheck(id=check_id, status=status, message=message))
 
     low, high = limits.sample_size.min, limits.sample_size.max
-    if spec.n is None:
+    problem = sample_size_problem(spec.n, limits.sample_size)
+    if problem is SampleSizeProblem.MISSING:
         check("sample_size", CheckStatus.FAIL, "Velikost vzorku (n) není zadaná.")
-    elif not low <= spec.n <= high:
+    elif problem is SampleSizeProblem.OUT_OF_RANGE:
         check(
             "sample_size",
             CheckStatus.FAIL,
@@ -996,8 +1222,10 @@ def prepare(
 ) -> tuple[ResearchSpecification | None, Readiness]:
     """Compile and assess in one call. A design that does not compile is not ready.
     ``pair_n_min``, ``filters_applied`` and ``limits`` as :func:`assess_readiness` takes
-    them; the design compiles under the same ``limits``."""
-    spec, problems = compile_design(content, limits=limits)
+    them; the design compiles under the same ``limits``. Labels compiled around are a WARN
+    each, in words, never a FAIL."""
+    notes: list[CompileProblem] = []
+    spec, problems = compile_design(content, limits=limits, notes=notes)
     if spec is None:
         return None, Readiness(
             rules=READINESS_RULES,
@@ -1009,6 +1237,13 @@ def prepare(
                 for p in problems
             ),
         )
-    return spec, assess_readiness(
+    readiness = assess_readiness(
         spec, pair_n_min=pair_n_min, filters_applied=filters_applied, limits=limits
     )
+    if not notes:
+        return spec, readiness
+    warned = tuple(
+        ReadinessCheck(id=f"compile:{n.code}:{n.where}", status=CheckStatus.WARN, message=n.message)
+        for n in notes
+    )
+    return spec, readiness.model_copy(update={"checks": (*readiness.checks, *warned)})

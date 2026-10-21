@@ -14,6 +14,7 @@
 
 import { type KeyboardEvent, type PointerEvent, type ReactNode, type RefObject, useCallback, useEffect, useId, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { boundedCamera, easeOut, INITIAL_CAMERA, terraceLayers, TOP_CAMERA, type TerrainCamera } from "@/lib/object-map-3d";
+import { ObjectMapPanel } from "./ObjectMapPanel";
 import { ObjectMapTerrain } from "./ObjectMapTerrain";
 import { type MarkState, LabelShadow, MapLabel, MapPin, PinButton, TERRACE, casing, fmt, layoutLabels, legendLabel, linkStyle, partialCurve } from "./ObjectMapMarks";
 
@@ -41,6 +42,7 @@ import {
   resolveVars,
   type RegisterEntry,
 } from "@/lib/object-map-view";
+import { isSignedOffMap } from "@/lib/object-map-signed-off";
 import { num } from "@/lib/sociomapping-view";
 import { type OriginKind, originKind } from "@/lib/research-execution";
 
@@ -75,7 +77,9 @@ export function ObjectMapView({ battery, dataOrigin, approvalOf }: {
   const kind = originKind(dataOrigin);
   const origin = ORIGIN_CHIP[kind];
   const originText = tv(origin.text, { origin: dataOrigin ?? "—" });
-  const facts = <Facts map={map} title={battery.title} methodId={methodId} fingerprint={fingerprint} originText={originText} />;
+  // A signed-off map is drawn as the AIA panel draws it; the earlier methods keep their terraces.
+  const signedOff = isSignedOffMap(map);
+  const facts = <Facts map={map} title={battery.title} methodId={methodId} fingerprint={fingerprint} originText={originText} terraces={!signedOff} />;
   return (
     <section aria-label={battery.title} className="flex flex-col gap-4 text-sm leading-5" data-testid={`object-map-${battery.battery_id}`}>
       <header className="flex flex-wrap items-end justify-between gap-3">
@@ -99,7 +103,9 @@ export function ObjectMapView({ battery, dataOrigin, approvalOf }: {
           <span aria-hidden className={`h-1.5 w-1.5 rounded-full ${origin.dot}`} />{t(origin.chip)}
         </span>
       </div>
-      {map.outcome === "MAPPED" && map.layout ? (
+      {map.outcome === "MAPPED" && map.layout && signedOff ? (
+        <ObjectMapPanel key={fingerprint} battery={battery} map={map} facts={facts} />
+      ) : map.outcome === "MAPPED" && map.layout ? (
         <MappedView approved={approval !== null} key={fingerprint} battery={battery} map={map} methodId={methodId} fingerprint={fingerprint} facts={facts} />
       ) : (
         <>
@@ -545,7 +551,7 @@ function Legend({ map, scale }: { map: ObjectMapArtifact; scale?: [number, numbe
 
 /** What the artifact says about its pairs, support and itself; none of it recomputed. The
  * first three lines are the approved design's; the rest waits behind a disclosure. */
-function Facts({ map, title, methodId, fingerprint, originText }: { map: ObjectMapArtifact; title: string; methodId: string; fingerprint: string; originText: string }) {
+function Facts({ map, title, methodId, fingerprint, originText, terraces = true }: { map: ObjectMapArtifact; title: string; methodId: string; fingerprint: string; originText: string; terraces?: boolean }) {
   const quality = map.layout?.quality;
   const s = map.support;
   const c = map.status_counts;
@@ -559,15 +565,16 @@ function Facts({ map, title, methodId, fingerprint, originText }: { map: ObjectM
         <summary className="cursor-pointer">{t("research.exec.objectMap.detailsTitle")}</summary>
         <span className="mt-1 flex flex-col gap-1.5">
           <span>{tv("research.exec.objectMap.readingIntro", { title })}</span>
-          <span>{t("research.exec.objectMap.surfaceMeaning")}</span>
+          {terraces ? <span>{t("research.exec.objectMap.surfaceMeaning")}</span> : null}
           <span>{t("research.exec.objectMap.distanceMeaning")}</span>
           {quality ? <span>{t(`research.exec.objectMap.${quality === "weak" || quality === "unreliable" ? "weakFitMeaning" : "fitMeaning"}`)}</span> : null}
-          <span>{t("research.exec.objectMap.legendBands")}</span>
-          <span>{t("research.exec.objectMap.labelHelp")}</span>
+          {/* The terraces' bands and label placement are the earlier drawing's; the panel's legend explains its own. */}
+          {terraces ? <span>{t("research.exec.objectMap.legendBands")}</span> : null}
+          {terraces ? <span>{t("research.exec.objectMap.labelHelp")}</span> : null}
           <span>{t("research.exec.objectMap.unknownNote")}</span>
           <span>{tv("research.exec.objectMap.support", { placed: s.placed, respondents: s.respondents, effective: s.effective_n === null ? "—" : num(s.effective_n, 1) })}</span>
           {hidden && map.relations.effect_floor !== undefined ? <span>{tv("research.exec.objectMap.belowFloor", { floor: num(map.relations.effect_floor, 2), count: hidden })}</span> : null}
-          {map.spec.terrain ? <span>{tv("research.exec.objectMap.provisional", { sigma: num(map.spec.terrain.sigma, 2) })}</span> : null}
+          {map.spec.terrain && terraces ? <span>{tv("research.exec.objectMap.provisional", { sigma: num(map.spec.terrain.sigma, 2) })}</span> : null}
           <span>{originText}</span>
         </span>
       </details>
