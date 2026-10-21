@@ -245,6 +245,41 @@ The backend each chunk needs is in `.planning/mvp-consolidation.md` §6.
      `test_a_greeting_on_a_new_study_has_its_text_edits_accepted_automatically`,
      `test_a_first_save_is_not_stale_over_the_bare_template_a_server_writer_saved`,
      `test_edited_from_current_names_the_current_revision_or_the_bare_template`.
+- **F-CLOCK-1. A random identifier in the Lead's context grounded a number the model invented**
+  *(a product defect, fixed on `fix/lead-invented-number-test-clock`; found as a CI failure on
+  #554, run 39604369392, 2026-10-21)*.
+  1. Claim: the "numbers only from the context" guard read the digits of an identifier as a
+     citable number, so `REV-7a3f…`, a Design Revision id of random hex, let a reply's invented
+     "7" pass with no repair. The clock was suspected and ruled out: the frozen context carries no
+     timestamp (the request's message was dumped; its only numbers are the budget, the spend,
+     the readiness limits, the workspace revision, `aia-readiness-1` and the revision id).
+  2. Anchor: the id is `"REV-" + uuid4().hex[:16]` (`domain/project.py:80 @ 722dd75c`), frozen
+     into the design layer (`application/research_lead.py:893 @ 722dd75c`); `_NUMBER`
+     (`domain/research_lead.py:320 @ 722dd75c`) starts a number after a hyphen and ends it at the
+     first non-digit, so `REV-7a…` reads 7; `lead_contract` takes every number of the prompt and
+     the whole message as allowed (`domain/research_lead.py:360` and `:846 @ 722dd75c`). A
+     revision id whose hex begins with 7 then a letter (or `07`, `007` …) does this: about one id
+     in forty (1/16 x 6/16 / (1 - 1/16) = 2.5 %). Run ids (`RUN-`, the runs layer), knowledge
+     and note ids do the same for whatever digits they lead with.
+  3. Reproduction: `pytest apps/executors/tests/test_research_lead_executor.py -k
+     only_an_identifier` on 722dd75c's domain fails `assert 1 == 2` at the second request, as
+     `test_a_reply_that_stays_invented_after_its_repair_fails_the_turn` did in CI (line 338); it
+     pins every revision id to start `7a` (monkeypatching `domain.project.uuid4`).
+  4. Consequence: a number the Lead invents reaches the researcher unrepaired whenever an id in
+     the context happens to begin with its digits; the guard held or not by chance, and the test
+     that checks it was flaky at ~2.5 %.
+  5. Fix: an identifier is no number on either side. `context_identifiers(context)` collects the
+     string values under `id`, `*_id`, `*_ids` and `*_version` keys and every focus target; a bare
+     number used as an id is left out, so it can never mask a reply's number. `lead_contract(…,
+     identifiers)` blanks each whole occurrence of one before reading numbers, in the allowed text
+     and in the reply alike, so a reply quoting an id whole writes no number by it and a digit
+     taken from one is held to the context like any other. `lead_request` passes them.
+  6. Tests: `test_an_identifiers_digits_ground_no_number`, `test_the_context_names_its_identifiers`,
+     `test_a_request_holds_a_reply_to_the_context_without_its_identifiers`
+     (`packages/aia_core/tests/test_research_lead.py`) and
+     `test_a_number_only_an_identifier_holds_is_still_invented`
+     (`apps/executors/tests/test_research_lead_executor.py`). The flaky test is unchanged; it no
+     longer depends on the id it is given.
 
 ## Doc follow-up (for the docs PR, not this branch)
 
@@ -257,7 +292,12 @@ The backend each chunk needs is in `.planning/mvp-consolidation.md` §6.
     `study_lead_turns`, `aia_executors/research_lead.py` and `AIA_AI_RESEARCH_LEAD_*`.
 - **`ARCHITECTURE.md`.** The accept route's new shape, and one more human-only gate source (a
   Lead-prepared job).
-- **`.planning/open-items.md`.** F1 and F2 above; F3, closed by its fix.
+- **`.planning/open-items.md`.** F1 and F2 above; F3, closed by its fix; F-CLOCK-1, closed by
+  its fix.
+- **`CLAUDE.md` § 2**, `domain/research_lead.py`: after "lead_contract (numbers only from the
+  context, sign included, exponents refused)" add "; an identifier's digits are no number
+  (context_identifiers: the values under id / *_id / *_ids / *_version and focus targets,
+  blanked in the context and the reply alike)".
 - **`CLAUDE.md` § 2**, `domain/workspace.py` / the working content paragraph: a save naming no
   revision is not stale over a working copy that is still the bare template a server writer
   saved (`edited_from_current`).

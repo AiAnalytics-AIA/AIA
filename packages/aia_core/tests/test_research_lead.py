@@ -36,6 +36,7 @@ from aia_core.domain.research_lead import (
     apply_edit,
     context_bytes,
     context_classification,
+    context_identifiers,
     freeze_context,
     frozen_sample_size,
     ground_edits,
@@ -367,6 +368,78 @@ def test_an_identifiers_digits_are_still_no_number() -> None:
     """The digits of ``Q1``, ``B2`` or ``goal2`` belong to the identifier, before and after."""
     assert number_tokens("Q1, B2, q3 a brief:goal2, s1.q12") == frozenset()
     assert _valid({"reply": "Otázka Q1 a blok B2 platí."}, canonical_json({"ids": ["Q1"]})).ok
+
+
+#: A revision id as ``new_revision_id`` mints it: ``REV-`` and random hex, here one whose hex
+#: starts with a 7 (F-CLOCK-1: about one id in forty does).
+REV_7 = "REV-7a3f0c9e2b1d4e5f"
+
+
+def test_an_identifiers_digits_ground_no_number() -> None:
+    """F-CLOCK-1: ``REV-7a3f…`` read as 7, so a reply inventing 7 passed whenever the random
+    revision id began with one (CI on #554). An identifier is no number on either side."""
+    allowed = canonical_json({"design_revision_id": REV_7, "n": 20})
+    assert "7" in number_tokens(allowed)  # what the bare text reads: the hole
+    ids = frozenset({REV_7})
+    refused = validate_structured_output(
+        lead_contract(allowed, ids), structured={"reply": "Máme 7 otázek."}, text=""
+    )
+    assert not refused.ok and "7" in refused.violations[0]
+    # Quoting the id whole writes no number; its digit alone is held to the context.
+    for reply in (f"Revize {REV_7} má 20 otázek.", f"Běží na {REV_7}."):
+        assert validate_structured_output(
+            lead_contract(allowed, ids), structured={"reply": reply}, text=""
+        ).ok, reply
+    # A longer id or word containing it is not that id.
+    assert not validate_structured_output(
+        lead_contract(allowed, ids), structured={"reply": f"Viz {REV_7}b, 7."}, text=""
+    ).ok
+
+
+def test_the_context_names_its_identifiers() -> None:
+    context = {
+        "layers": [
+            {
+                "layer": "design",
+                "design_revision_id": REV_7,
+                "workspace_revision": 3,
+                "readiness": {"methodology_version": "aia-readiness-1"},
+                "content": {
+                    "sections": [{"id": "s7", "questions": [{"id": "7", "text": "7 dní"}]}]
+                },
+            },
+            {"layer": "runs", "runs": [{"run_id": "RUN-07b", "status": "SUCCEEDED"}]},
+            {
+                "layer": "knowledge",
+                "items": [{"item_id": "KN-9", "title": "Rok 2025"}],
+                "omitted_ids": ["KN-7x"],
+            },
+            {"layer": "view", "focus": {"target": "question:q7", "label": "Otázka 7"}},
+        ]
+    }
+    assert context_identifiers(context) == {
+        REV_7,
+        "aia-readiness-1",
+        "s7",
+        "RUN-07b",
+        "KN-9",
+        "KN-7x",
+        "question:q7",
+    }  # a counter, a text and a bare-number id ("7") are not identifiers to mask
+
+
+def test_a_request_holds_a_reply_to_the_context_without_its_identifiers() -> None:
+    design = {
+        "workspace_revision": 1,
+        "design_revision_id": REV_7,
+        "content": APPROVED_DESIGN,
+        "analysis": None,
+    }
+    contract = _request(_context(design=design), IDENTITY, DESIGN_OK).agent.output_contract
+    invented = {"reply": "Máme 7 otázek."}
+    assert not validate_structured_output(contract, structured=invented, text="").ok
+    quoted = {"reply": f"Návrh {REV_7} je uložený."}
+    assert validate_structured_output(contract, structured=quoted, text="").ok
 
 
 def test_a_number_in_another_field_is_not_the_replys() -> None:

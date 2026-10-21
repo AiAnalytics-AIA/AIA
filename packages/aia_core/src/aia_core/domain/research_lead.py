@@ -122,6 +122,7 @@ __all__ = [
     "baseline_task",
     "context_classification",
     "context_data_class",
+    "context_identifiers",
     "context_sha256",
     "freeze_context",
     "frozen_sample_size",
@@ -351,13 +352,69 @@ def unreadable_numbers(text: str) -> list[str]:
     return [m.group(0) for m in _EXPONENT.finditer(text)]
 
 
-def lead_contract(allowed_text: str) -> type[LeadOutput]:
+#: The keys whose values are identifiers, wherever they sit in a context: ``id``, ``*_id``,
+#: ``*_ids`` and ``*_version`` (``design_revision_id``, ``run_id``, ``item_id``,
+#: ``memory_id``, ``omitted_ids``, ``methodology_version``, a question's ``id``).
+_IDENTIFIER_SUFFIXES: Final = ("_id", "_ids", "_version")
+#: A value that is a number as written (``7``, ``-2,5``) is never masked as an identifier: a
+#: mask would hide that number in a reply, too.
+_BARE_NUMBER: Final = re.compile(r"[-\u2212]?\d+(?:[.,]\d+)?")
+
+
+def _is_identifier_key(key: str) -> bool:
+    return key == "id" or key.endswith(_IDENTIFIER_SUFFIXES)
+
+
+def context_identifiers(context: Mapping[str, Any]) -> frozenset[str]:
+    """Every identifier a frozen context holds: the string values under an identifier key
+    (:data:`_IDENTIFIER_SUFFIXES`) and every string that is a focus target (:data:`FOCUS_ID`).
+
+    An identifier is not a number (F-CLOCK-1): ``REV-7a3f…`` would otherwise ground a reply's
+    invented 7, and the ids are random, so the guard held or not by chance. A bare number used
+    as an id is left out (:data:`_BARE_NUMBER`).
+    """
+    found: set[str] = set()
+
+    def walk(value: Any, identifier: bool) -> None:
+        if isinstance(value, Mapping):
+            for key, item in value.items():
+                walk(item, identifier or _is_identifier_key(str(key)))
+        elif isinstance(value, (list, tuple)):
+            for item in value:
+                walk(item, identifier)
+        elif (
+            isinstance(value, str)
+            and (identifier or FOCUS_ID.fullmatch(value))
+            and value
+            and not _BARE_NUMBER.fullmatch(value)
+        ):
+            found.add(value)
+
+    walk(context, False)
+    return frozenset(found)
+
+
+def _without_identifiers(text: str, identifiers: frozenset[str]) -> str:
+    """``text`` with every whole occurrence of an identifier blanked: not inside a longer word
+    or id, so ``REV-7a`` masks neither ``REV-7ab`` nor ``XREV-7a``."""
+    if not identifiers:
+        return text
+    # One pass, the longest first, so an id that begins another never masks a part of it.
+    alternatives = "|".join(re.escape(i) for i in sorted(identifiers, key=len, reverse=True))
+    return re.sub(rf"(?<![\w-])(?:{alternatives})(?![\w-])", " ", text)
+
+
+def lead_contract(allowed_text: str, identifiers: frozenset[str] = frozenset()) -> type[LeadOutput]:
     """The output contract a turn is validated against: :class:`LeadOutput`, refusing a
     reply that writes a number ``allowed_text`` (the frozen context and the prompt) does not.
 
+    ``identifiers`` (:func:`context_identifiers`) are no numbers on either side: their digits
+    ground nothing in ``allowed_text``, and a reply quoting one whole writes no number by it.
+    A digit of an identifier written on its own is a number, held to the context like any.
+
     A validation error, so the gateway's one schema repair tells the model which numbers.
     """
-    allowed = number_tokens(allowed_text)
+    allowed = number_tokens(_without_identifiers(allowed_text, identifiers))
 
     class CheckedLeadOutput(LeadOutput):
         model_config = ConfigDict(extra="forbid", frozen=True, title="LeadOutput")
@@ -371,7 +428,7 @@ def lead_contract(allowed_text: str) -> type[LeadOutput]:
                     + ", ".join(unreadable[:10])
                     + "; write a number out in digits as the context holds it, or none"
                 )
-            unknown = sorted(number_tokens(self.reply) - allowed)
+            unknown = sorted(number_tokens(_without_identifiers(self.reply, identifiers)) - allowed)
             if unknown:
                 raise ValueError(
                     "reply writes numbers that are not in the context: "
@@ -843,7 +900,7 @@ def lead_request(
             capability=ModelCapability.STUDY_LEAD,
             prompt_id=LEAD_PROMPT_ID,
             prompt_version=prompt.version,
-            output_contract=lead_contract(system + "\n" + message),
+            output_contract=lead_contract(system + "\n" + message, context_identifiers(context)),
             max_output_tokens=max_output_tokens,
             schema_repair_attempts=1,
         ),
