@@ -144,6 +144,15 @@ V2: `QuestionnaireArt` (`DesignStages.tsx:95-142`).
 **QST7. Length.** By §8's answer. Test: the estimate's rule is shown in the inspector, and an
 unknown duration is never zero.
 
+- *Progress (feature/questionnaire-length):* the Dotazník side. `research/length.ts`
+  (`readRule`, `questionnaireLength`) prices each question by its type and each distinct set object;
+  the strip reads the rule from `…/research/limits` `questionnaire_length` and says "pravidlo v
+  Metodice zatím není nastaveno" while it is absent (today), "nepodařilo načíst" when the route
+  fails, "Délka neznámá" when an item's type has no price, else "≈ N min" with the rule in its title
+  and the study type's limit beside it: "limit N min", "nad limitem N min" or "limit nenastaven".
+  Tests: `length.test.ts`, `QuestionnaireStrip.test.tsx`. Open: the server field, with Aram's
+  Metodika entry; the rule in the inspector. QST7 stays unticked.
+
 **QST8. Závislosti.** Test: a set declared as a Sociomap input lists Sociomapa.
 
 *Delivered (feature/questionnaire-dependencies):* `src/research/readers.ts` reads the working copy,
@@ -181,6 +190,31 @@ reads as data (D13).
 
 **Recommendation: (a)**, with the constants proposed by A. Bahbouh. It is a rule, cheap to
 compute, and honest because it is labelled. (b) is the fallback if he declines.
+
+**Decided (the product owner, 2026-10-21, Q53 on /pmstatus): (a).** The questionnaire's length is
+a declared rule set by the methodology owner on Metodika: seconds per answer by question type and per
+tracked-set object (the estimate), and the most a questionnaire may take per study type (the limit;
+the PM's reading of Q53, 2026-10-21). Until he sets them Dotazník says the rule or the limit is
+unset and shows no number. The Metodika entry is his to make (the request below); Dotazník only
+reads it.
+
+*Request to A. Bahbouh (methodology owner), sent through the PM and the product owner:*
+
+> Na Metodice, v modulu připravenosti (ten za `GET …/research/limits`,
+> `domain/methodology/readiness.py`), prosím skupinu **Délka dotazníku**. Všechny hodnoty jsou
+> v sekundách, každá číslo ≥ 0, **bez výchozí hodnoty**: dokud je nenastavíte, Dotazník napíše, že
+> nastavené nejsou, a žádné číslo nedosadí.
+>
+> 1. **Odhad, sekundy na jednu odpověď:** jedna odpověď (`vyber`), více odpovědí (`multi`), škála
+>    (`skala`), otevřená odpověď (`otevrena`) a jedna položka sledované sady (`set_object`).
+> 2. **Limit, nejvýše sekund na celý dotazník, pro každý typ studie** (`StudyKind`: výzkum
+>    `RESEARCH`, simulace `SIMULATION`).
+>
+> Trasa limitů pak pro danou studii vrátí `questionnaire_length: {seconds: {vyber, multi, skala,
+> otevrena, set_object}, max_seconds, version}`: `max_seconds` je limit pro typ té studie (nebo
+> `null`, dokud ho nenastavíte) a `version` verze metodiky v platnosti. Dokud chybí kterákoli
+> z pěti cen, vrátí `null`. Jiný typ otázky se necení: Dotazník pak délku označí za neznámou
+> a s limitem ji neporovná.
 
 ## Doc follow-up
 

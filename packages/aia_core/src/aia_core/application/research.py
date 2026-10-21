@@ -109,6 +109,7 @@ from ..infrastructure.prompt_repository import PromptRefused, PromptResolver
 from ..infrastructure.scope_repository import ScopeRepository
 from ..infrastructure.storage import ArtifactStore
 from ..infrastructure.study_design_repository import StudyDesignRepository
+from ..infrastructure.study_workspace_repository import StudyWorkspaceRepository
 from ..infrastructure.workflow_repository import (
     BudgetWaitNotLiftable,
     RuntimeParkNotResumable,
@@ -141,6 +142,7 @@ __all__ = [
     "ResearchStepNotFound",
     "RunOutlook",
     "RunReservations",
+    "WorkingRevisionNotFound",
     "readiness_in_force",
     "report_pdf_key",
     "research_artifacts",
@@ -374,6 +376,10 @@ class FrozenDataset:
             "artifact_id": self.specification_artifact_id,
             "sha256": self.specification_sha256,
         }
+
+
+class WorkingRevisionNotFound(LookupError):
+    """The Study's working project never wrote this revision, or it holds no content."""
 
 
 @dataclass(frozen=True, slots=True)
@@ -1168,9 +1174,49 @@ class ResearchRuns:
         (``domain.question_outlook``), from that forecast."""
         designs = self._designs()
         revision = designs.get(design_revision_id)
+        return self._assess(
+            designs.content(revision.revision_id),
+            design_revision_id=revision.revision_id,
+            persona_source=persona_source,
+            fieldwork_source=fieldwork_source,
+        )
+
+    def outlook_working(
+        self,
+        working_revision: int,
+        *,
+        persona_source: PersonaSource = PersonaSource.FICTIONAL_ROSTER,
+        fieldwork_source: FieldworkSource | None = None,
+    ) -> RunOutlook:
+        """:meth:`outlook` on a revision of the Study's working content, with no Design
+        Revision submitted (plan working-copy-edit-ops WCE7).
+
+        A Design Revision is the working content it names, byte for byte (its submit is
+        checked by hash), so this is the readiness a submit of that working revision would
+        read; nothing is written. Its answerability names no Design Revision, so its digest
+        never matches a start's: an acknowledgement is read on the revision a start runs.
+        A revision the Study's working project never wrote, or one without content, is
+        :class:`WorkingRevisionNotFound`."""
+        working = StudyWorkspaceRepository(self.session).at_revision(self.scope, working_revision)
+        if working is None or working.content is None:
+            raise WorkingRevisionNotFound(working_revision)
+        return self._assess(
+            working.content,
+            design_revision_id=None,
+            persona_source=persona_source,
+            fieldwork_source=fieldwork_source,
+        )
+
+    def _assess(
+        self,
+        content: dict[str, Any],
+        *,
+        design_revision_id: str | None,
+        persona_source: PersonaSource,
+        fieldwork_source: FieldworkSource | None,
+    ) -> RunOutlook:
         methods, _ = self._methods(None)
         limits, _ = self._readiness(None)
-        content = designs.content(revision.revision_id)
         spec, readiness = prepare(
             content,
             pair_n_min=side_tables_of(methods).n_min,
@@ -1195,7 +1241,7 @@ class ResearchRuns:
         trace = trace_research(
             spec, research_questions_of(content), questions, comparisons_of(content)
         )
-        answer = answerability(trace, questions, design_revision_id=revision.revision_id)
+        answer = answerability(trace, questions, design_revision_id=design_revision_id)
         # One verdict on screen: the trace card and the research-question check read what the
         # gate decided, never "at risk" beside a gap that says the run will not answer it.
         return RunOutlook(

@@ -2028,6 +2028,46 @@ def test_readiness_says_what_would_stop_a_run_before_anything_starts(
     )
 
 
+def test_readiness_reads_a_working_revision_without_submitting_a_design(
+    researcher: TestClient, viewer: TestClient, other_client_lead: TestClient, world: Any
+) -> None:
+    """Plan working-copy-edit-ops WCE7: a stage reads readiness on the working revision it
+    shows. The answer is the one a submit of that revision reads, and nothing is written."""
+    base = f"{API}/studies/{world.study_id()}"
+    now = researcher.get(f"{base}/workspace/content").json().get("revision")
+    saved = researcher.put(
+        f"{base}/workspace/content", json={"content": DESIGN, "base_revision": now}
+    )
+    assert saved.status_code == 200, saved.text
+    number = saved.json()["revision"]
+    url = f"{base}/research/readiness/working"
+
+    working = viewer.get(url, params={"working_revision": number})
+    assert working.status_code == 200, working.text
+    body = working.json()
+    assert body["working_revision"] == number and "design_revision_id" not in body
+    assert viewer.get(f"{base}/design/revisions").json()["items"] == [], "nothing was submitted"
+
+    # The same answer a submit of that revision reads, but for the revision it names.
+    revision_id = submit(researcher, world).json()["revision_id"]
+    design = viewer.get(f"{base}/research/readiness", params={"design_revision_id": revision_id})
+    same = {**design.json()}
+    same.pop("design_revision_id")
+    mine = {k: v for k, v in body.items() if k != "working_revision"}
+    # Its acknowledgement digest names no Design Revision, so it never stands for a start's.
+    assert mine["answerability"]["digest"] != same["answerability"]["digest"]
+    mine["answerability"].pop("digest")
+    same["answerability"].pop("digest")
+    assert mine == same
+
+    # A revision the Study never saved, or another study's, is not found.
+    missing = viewer.get(url, params={"working_revision": number + 50})
+    assert missing.status_code == 404 and missing.json()["code"] == "working_revision_not_found"
+    assert viewer.get(url, params={"working_revision": 0}).status_code == 422
+    other = f"{API}/studies/{world.study_id('other_client')}/research/readiness/working"
+    assert other_client_lead.get(other, params={"working_revision": number}).status_code == 404
+
+
 def test_readiness_forecasts_whether_a_runs_numbers_will_be_shown(
     researcher: TestClient, viewer: TestClient, world: Any
 ) -> None:
@@ -2656,3 +2696,20 @@ def test_a_panel_runs_filters_are_applied_only_once_its_draw_succeeded() -> None
         "dimensions_not_persona_topics",
     )
     assert unmatched.filters_applied is True
+
+
+def test_persona_topics_answer_each_dimension_before_any_run(
+    researcher: TestClient, world: Any
+) -> None:
+    """artifact-dimensions DIM2: Dimenze's chip, from the mapping a run's receipt reads."""
+    url = f"{API}/studies/{world.study_id()}/research/persona-topics"
+    got = researcher.get(url, params=[("dimension", "ekologie"), ("dimension", "barva_obalu")])
+    assert got.status_code == 200
+    assert got.json()["items"] == [
+        {"dimension": "ekologie", "topic": "eko"},
+        {"dimension": "barva_obalu", "topic": None},
+    ]
+    assert researcher.get(url).json() == {"items": []}
+    too_many = researcher.get(url, params=[("dimension", f"d{i}") for i in range(65)])
+    assert too_many.status_code == 422
+    assert researcher.get(url, params={"dimension": "x" * 81}).status_code == 422

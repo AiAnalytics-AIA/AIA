@@ -22,6 +22,9 @@ const SUGGESTION = {
 const CONTEXT_PATH = "/api/v1/studies/STU-1/context";
 const PROPOSALS_PATH = "/api/v1/studies/STU-1/knowledge-proposals";
 const LIMITS_PATH = "/api/v1/studies/STU-1/research/limits";
+const TOPICS_PATH = "/api/v1/studies/STU-1/research/persona-topics";
+/** The server's mapping (persona_topics.dimension_topic), for the ids these tests choose. */
+const TOPICS: Record<string, string | null> = { media: "media", cena: "cena", zdravi: "zdravi", ekologie: "eko", "KNI-ai": null };
 /** The readiness limits in force, as the server answers them (RQC9): the preset's 20-10 000. */
 const LIMITS = { methodology_version: "aia-readiness-1", version: null, sample_size: { min: 20, max: 10000 } };
 /** The study's inherited context: the client's approved knowledge, a dimension among it. */
@@ -55,6 +58,7 @@ function aiaStub(project: Record<string, unknown>, over: Record<string, (b: unkn
       const answers: Record<string, (b: unknown) => unknown> = {
         [CONTEXT_PATH]: () => CONTEXT,
         [LIMITS_PATH]: () => LIMITS,
+        [TOPICS_PATH]: () => ({ items: new URL(u, "http://x").searchParams.getAll("dimension").map((d) => ({ dimension: d, topic: d in TOPICS ? TOPICS[d] : null })) }),
         [PROPOSALS_PATH]: (b) => ({ proposal_id: "KNP-1", origin: "STUDY", status: "PROPOSED", title: (b as { title: string }).title }),
         ...over,
       };
@@ -107,6 +111,29 @@ describe("Dimenze", () => {
     expect(screen.getByRole("button", { name: /Vztah k AI/ })).toBeTruthy();
     expect(screen.getByRole("button", { name: "Další · kontrola" })).toBeTruthy();
     noUnitCalls();
+  });
+
+  it("names each chosen dimension's persona topic as the server maps it, an unmatched one said (DIM2)", async () => {
+    aiaStub({ ...PLANNED, persona_dimensions: { approved: ["ekologie", "KNI-ai"] } });
+    const { container } = render(<ResearchScreen step="persona" frame={TEST_FRAME} />);
+    const eco = await waitFor(() => {
+      const el = container.querySelector('[data-aia="dimension:ekologie"]');
+      expect(el?.textContent).toContain("téma persony: eko");
+      return el as HTMLElement;
+    });
+    expect(eco.textContent).toContain("Ekologie");
+    const own = container.querySelector('[data-aia="dimension:KNI-ai"]') as HTMLElement;
+    await waitFor(() => expect(own.textContent).toContain("bez tématu persony"));
+    expect(own.textContent).toContain("Znalosti klienta");
+    expect(calls.some((c) => c.url.startsWith(`${TOPICS_PATH}?dimension=ekologie&dimension=KNI-ai`))).toBe(true);
+    noUnitCalls();
+  });
+
+  it("a topic the server did not answer is never shown as matched", async () => {
+    aiaStub({ ...PLANNED, persona_dimensions: { approved: ["ekologie"] } }, { [TOPICS_PATH]: () => new Response("{}", { status: 500 }) });
+    const { container } = render(<ResearchScreen step="persona" frame={TEST_FRAME} />);
+    expect(await screen.findByText(/Témata persony se nepodařilo načíst/)).toBeTruthy();
+    expect(container.querySelector('[data-aia="dimension:ekologie"]')?.textContent).toContain("téma persony neověřeno");
   });
 
   it("without the client's knowledge the catalogue is the system's own", async () => {

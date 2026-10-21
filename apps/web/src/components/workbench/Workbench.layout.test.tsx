@@ -41,7 +41,7 @@ function Stage() {
   useEffect(() => {
     mounts += 1;
   }, []);
-  return <div><div id="qedit_q1">Jak často pijete čaj?</div></div>;
+  return <div><div data-aia="question:q1" id="qedit_q1">Jak často pijete čaj?</div></div>;
 }
 
 beforeEach(() => {

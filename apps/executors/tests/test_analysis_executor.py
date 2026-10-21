@@ -419,7 +419,7 @@ def test_native_research_start_and_worker_complete_the_composed_analysis_graph(
         < body.index("Výsledky jednotlivých otázek")
     )
     assert "smyšlení respondenti" in body
-    assert report.metadata["report_contract"] == "aia-internal-report-12"
+    assert report.metadata["report_contract"] == "aia-internal-report-13"
     # The methodology chapter states the rules the run pinned (artifact-chain CHN9).
     assert "Pravidlo podpory aia-support-1" in body and "Agregace: metodika" in body
     # The document the DOCX was rendered from, beside it (report-delivery RD5a).
@@ -444,6 +444,20 @@ def test_native_research_start_and_worker_complete_the_composed_analysis_graph(
     assert "Výsledky jednotlivých otázek" in titles
     cited = {ref for s in payload["sections"] for ref in s["refs"]}
     assert cited and cited == set(payload["ledger"]["refs"])
+    # Every section names its sources, stored with the document (artifact-chain CHN1): the map
+    # chapters the run's Sociomap, the questions the aggregate, who answered the dataset.
+    assert payload["contract"] == "aia-report-document-2"
+    sources = {s["id"]: s["sources"] for s in payload["sections"]}
+    assert all(sources.values()), [k for k, v in sources.items() if not v]
+    named = {k: {x.get("artifact_type") for x in v} for k, v in sources.items()}
+    assert "research_aggregate" in named["ch-questions"]
+    assert "research_fieldwork_dataset" in named["ch-method"]
+    assert all("research_sociomap" in v for k, v in named.items() if k.startswith("ch-native-map"))
+    assert [k for k, v in sources.items() if any(x["kind"] == "fixed" for x in v)] == [
+        "methodology"
+    ]
+    assert payload["unread"] == []
+    assert "Zdroje · Výsledky jednotlivých otázek" in body
 
 
 @pytest.mark.parametrize(

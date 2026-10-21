@@ -12,7 +12,8 @@ import { useRouter } from "next/navigation";
 import { type ReactNode, useCallback, useContext, useEffect, useRef, useState } from "react";
 
 import { t, tv } from "@/i18n/t";
-import { findingAnchor, findingId } from "@/lib/analysis-coverage";
+import { findingAnchor } from "@/lib/analysis-coverage";
+import { analysisTarget, chipKey, claimMarks, type AnalysisModuleKind, type ChipPlace } from "@/lib/artifacts/analysis";
 import {
   ApiError,
   api,
@@ -91,6 +92,7 @@ import { withBudget } from "@/lib/budget-line";
 import { reportStatus, reportStatusWords } from "@/lib/report-status";
 import type { Tone } from "@/lib/tone";
 import { AnalysisCoverage, AnalysisMilestones } from "./AnalysisCoverage";
+import { setShownAnalysis } from "./AnalysisInspect";
 import { CodedWords } from "./CodedWords";
 import { CONFLICT_MESSAGE, submitWorkingDesign } from "@/research/store";
 import { projectVariants, selectedVariant } from "@/research/plan";
@@ -109,8 +111,9 @@ import { StepActivityPanel } from "./StepActivityPanel";
 import { useStepActivity } from "./useStepActivity";
 import { ObjectMapView } from "./ObjectMapView";
 import { InterpretationResearch } from "./InterpretationResearch";
+import { ReportDocumentView } from "./ReportDocumentView";
 import { ResultsWorkspace } from "./ResultsWorkspace";
-import { citedMeasure, untitled, compareObjects, type CompiledSpecification, measureAnchor, measureTarget, objectTarget, readMeasure, type ReadingTone, setTarget } from "@/lib/result-reading";
+import { citedMeasure, untitled, compareObjects, type CompiledSpecification, measureAnchor, measureTarget, readMeasure, type ReadingTone } from "@/lib/result-reading";
 import { FormattedText } from "./FormattedText";
 import { CompleteReport } from "./CompleteReport";
 import { AnswerabilityGate } from "./AnswerabilityGate";
@@ -193,10 +196,12 @@ function RespondentsReceipt({ run }: { run: ResearchRun }) {
   const labels = dimensionLabels({});
   const applied = (on: boolean, reason: string | null) => (on ? t(`${R}.applied`) : reason ? codedText(codeWords(`${R}.reason`, reason)) : t(`${R}.none`));
   const filters = sel ? Object.keys(sel.audience_filters) : [];
-  const rows: [string, string][] = [
+  const rows: [string, ReactNode][] = [
     [t(`${R}.source`), `${t(`research.exec.respondents.${who.pinned}`)} · ${who.observed ? t(`${R}.observed.${who.observed}`) : t(`${R}.pending`)}`],
     [t(`${R}.population`), populationNote(run) ?? t(`${R}.populationNone`)],
   ];
+  // The code as fieldwork stored it, beside the source the run pinned: a mismatch shows both.
+  const origin: [string, ReactNode] = [t(`${R}.origin`), who.origin ? <span className="font-mono text-xs" data-origin-code>{who.origin}</span> : t(`${R}.pending`)];
   if (sel) {
     const unmatched = sel.dimensions_unmatched ?? [];
     const unmatchedNote = unmatched.length ? ` · ${tv(`${R}.unmatched`, { list: unmatched.map((d) => labels[d] ?? d).join(", ") })}` : "";
@@ -207,7 +212,7 @@ function RespondentsReceipt({ run }: { run: ResearchRun }) {
     <Card title={t(`${R}.title`)}>
       {who.mismatch ? <p role="alert" className="mb-2 text-sm font-semibold text-status-fault">{t(`${R}.mismatch`)}</p> : null}
       <dl data-population={run.population?.version_label} className="divide-y divide-border rounded-control border border-border">
-        {rows.map(([k, v]) => (
+        {[...rows, origin].map(([k, v]) => (
           <div key={k} className="grid grid-cols-[8rem_1fr] items-baseline gap-3 px-3 py-2 text-sm">
             <dt className="text-ink-muted">{k}</dt>
             <dd className="min-w-0">{v}</dd>
@@ -1502,6 +1507,7 @@ export function RunResults({ run, progressHref }: { run: ResearchRun | null; pro
       </> }] : []),
       ...(showAnalysis ? [{ id: "analysis", label: "AI analýza", description: "Souhrn, odpovědi na výzkumné otázky a omezení. Interpretace vychází z podkladů tohoto běhu a čeká na posouzení výzkumníkem.", content: <div id="res-analysis"><AnalysisResults key={run.run_id} run={run} progressHref={progressHref} spec={pinnedSpecification(specification?.state === "ready" ? specification.value : null)} /></div> }] : []),
       { id: "report", label: "Rešerše a zpráva", description: "Zkontrolujte připravenost interní zprávy, přijaté externí podklady a omezení rešerše. Dostupnost stažení závisí na úplnosti analýzy.", content: <>
+        <ReportDocumentView run={run} />
         <div id="res-report">{report}</div>
         {showAnalysis && canReview(frame) ? <InterpretationResearch key={run.run_id} run={run} review={review} onReview={setReview} /> : null}
         <details><summary className="cursor-pointer text-sm font-medium">Klientské znalosti a kontextová AI pomoc</summary><div className="mt-3">{knowledgeContext}</div></details>
@@ -1562,7 +1568,8 @@ type AnalysisModule = ResearchAnalysis["modules"][string];
 
 /** The numbers a sentence of the analysis rests on: each claim it names, resolved to its Data
  *  card (result-reading.ts citedMeasure); an unknown reference shows as written. */
-function CitedNumbers({ ids, outcome, spec }: { ids: readonly string[]; outcome: AnalysisModule; spec: CompiledSpecification | null }) {
+/** `place` and `marks`: the chip that carries its claim's Lead target is the first in the page (claimMarks), so a target names one element. */
+function CitedNumbers({ ids, place, marks, outcome, spec }: { ids: readonly string[]; place: ChipPlace; marks: ReadonlySet<string>; outcome: AnalysisModule; spec: CompiledSpecification | null }) {
   const cited = ids.map((id) => outcome.claims.find((claim) => claim.claim_id === id)).filter((claim): claim is AnalysisModule["claims"][number] => Boolean(claim));
   if (!cited.length) return null;
   return (
@@ -1570,7 +1577,7 @@ function CitedNumbers({ ids, outcome, spec }: { ids: readonly string[]; outcome:
       {cited.map((claim) => {
         const measure = citedMeasure(claim.evidence_ref, spec);
         return (
-          <li key={claim.claim_id} data-cited-number className="max-w-full rounded-control border border-border bg-surface-sunken px-2.5 py-1 text-xs leading-5">
+          <li key={claim.claim_id} data-cited-number data-aia={marks.has(chipKey(place, claim.claim_id)) ? analysisTarget({ kind: "claim", module: place.module as AnalysisModuleKind, claimId: claim.claim_id }) ?? undefined : undefined} className="max-w-full rounded-control border border-border bg-surface-sunken px-2.5 py-1 text-xs leading-5">
             {measure
               ? <a href={`#${measureAnchor(measure.measureId)}`} className="no-underline hover:underline"><span className="font-semibold tabular-nums">{measure.format(claim.value, claim.decimals)}</span> {measure.what} · {measure.title}</a>
               : <span><span className="font-semibold tabular-nums">{claim.value.toLocaleString("cs-CZ")}</span> <CodedWords inline coded={{ words: t("research.exec.untitled.cited"), code: claim.evidence_ref }} /></span>}
@@ -1627,11 +1634,20 @@ function AnalysisResults({ run, spec, progressHref }: { run: ResearchRun; spec: 
     );
     return () => { live = false; };
   }, [frame.studyId, run.run_id, states]);
+  const shownValue = loaded.state === "ready" ? loaded.value : null;
+  // The inspector reads the analysis this page shows, never a run it fetched itself (ANL3).
+  useEffect(() => {
+    if (!shownValue) return;
+    const next = { runId: run.run_id, analysis: shownValue, spec };
+    setShownAnalysis(next);
+    return () => setShownAnalysis(null);
+  }, [run.run_id, shownValue, spec]);
   if (loaded.state === "hidden") return null;
-  const analysis = loaded.state === "ready" ? loaded.value : null;
+  const analysis = shownValue;
   const complete = ANALYSIS_ORDER.filter((id) => analysis?.modules[id]?.outcome === "COMPLETED").length;
   const blocked = ANALYSIS_ORDER.filter((id) => analysis?.modules[id]?.outcome === "BLOCKED").length;
   const selected = analysis?.modules[selectedModule];
+  const marks = analysis ? claimMarks(analysis.modules, selectedModule) : new Set<string>();
   const selectedStep = run.steps.find((step) => step.node_key === `analysis_${selectedModule}`);
   const selectedPending = analysis?.pending[selectedModule];
   const findings = ANALYSIS_ORDER.flatMap((id) => {
@@ -1676,9 +1692,9 @@ function AnalysisResults({ run, spec, progressHref }: { run: ResearchRun; spec: 
                 <h4 className="text-xs font-semibold uppercase tracking-wide text-ink-muted">{stepLabel(`analysis_${id}`)}</h4>
                 <ul className="mt-2 flex flex-col gap-3">
                   {outcome.key_findings.map((finding, index) => (
-                    <li key={index} id={findingAnchor({ module: id, index })} data-aia={`finding:${findingId({ module: id, index })}`} className="scroll-mt-4 border-l-2 border-signal pl-3">
+                    <li key={index} id={findingAnchor({ module: id, index })} data-aia={analysisTarget({ kind: "finding", module: id, index }) ?? undefined} className="scroll-mt-4 border-l-2 border-signal pl-3">
                       <FormattedText text={finding.text} />
-                      <CitedNumbers ids={finding.claim_ids} outcome={outcome} spec={spec} />
+                      <CitedNumbers ids={finding.claim_ids} place={{ list: "key", module: id, index }} marks={marks} outcome={outcome} spec={spec} />
                     </li>
                   ))}
                 </ul>
@@ -1692,7 +1708,7 @@ function AnalysisResults({ run, spec, progressHref }: { run: ResearchRun; spec: 
               {ANALYSIS_ORDER.map((id) => {
                 const outcome = analysis.modules[id];
                 const label = outcome?.outcome === "COMPLETED" ? "Dokončeno" : outcome?.outcome === "BLOCKED" ? t("research.exec.stepStatus.ANALYSIS_BLOCKED") : "Čeká";
-                return <button key={id} type="button" onClick={() => setSelectedModule(id)} aria-current={selectedModule === id ? "true" : undefined}
+                return <button key={id} type="button" data-aia={id === "research_questions" ? undefined : analysisTarget({ kind: "module", module: id }) ?? undefined} onClick={() => setSelectedModule(id)} aria-current={selectedModule === id ? "true" : undefined}
                   className={`flex items-center justify-between gap-2 rounded-control px-3 py-2 text-left text-sm focus-visible:outline-2 focus-visible:outline-focus-ring ${selectedModule === id ? "bg-signal-wash font-semibold text-signal" : "hover:bg-surface-sunken"}`}>
                   <span>{stepLabel(`analysis_${id}`)}</span><span className="shrink-0 text-xs font-normal text-ink-muted">{label}</span>
                 </button>;
@@ -1708,9 +1724,9 @@ function AnalysisResults({ run, spec, progressHref }: { run: ResearchRun; spec: 
               </> : selected?.outcome === "COMPLETED" ? <>
                 {selected.summary ? <FormattedText text={selected.summary} className="mt-3" /> : null}
                 {selected.research_question_answers.length ? <div className="mt-5 space-y-4"><h4 className="text-sm font-semibold">Odpovědi na výzkumné otázky</h4>
-                  {selected.research_question_answers.map((answer, index) => <div key={index} className="rounded-md bg-surface-sunken p-3"><h5 className="text-sm font-medium">{answer.question}</h5>{answer.gap ? <p role="note" data-answer-gap className="mt-1 rounded-sm border border-status-you-ink/40 bg-status-you-wash p-2 text-sm">{tv("research.exec.results.answerGap", { words: answer.gap })}</p> : null}<FormattedText text={answer.answer} className="mt-1" /><CitedNumbers ids={answer.claim_ids} outcome={selected} spec={spec} /></div>)}
+                  {selected.research_question_answers.map((answer, index) => <div key={index} className="rounded-md bg-surface-sunken p-3"><h5 className="text-sm font-medium">{answer.question}</h5>{answer.gap ? <p role="note" data-answer-gap className="mt-1 rounded-sm border border-status-you-ink/40 bg-status-you-wash p-2 text-sm">{tv("research.exec.results.answerGap", { words: answer.gap })}</p> : null}<FormattedText text={answer.answer} className="mt-1" /><CitedNumbers ids={answer.claim_ids} place={{ list: "answer", module: selectedModule, index }} marks={marks} outcome={selected} spec={spec} /></div>)}
                 </div> : null}
-                {selected.key_findings.length ? <div className="mt-5"><h4 className="text-sm font-semibold">Hlavní zjištění</h4><ul className="mt-2 flex flex-col gap-3">{selected.key_findings.map((finding, index) => <li key={index} className="border-l-2 border-signal pl-3"><FormattedText text={finding.text} /><CitedNumbers ids={finding.claim_ids} outcome={selected} spec={spec} /></li>)}</ul></div> : null}
+                {selected.key_findings.length ? <div className="mt-5"><h4 className="text-sm font-semibold">Hlavní zjištění</h4><ul className="mt-2 flex flex-col gap-3">{selected.key_findings.map((finding, index) => <li key={index} className="border-l-2 border-signal pl-3"><FormattedText text={finding.text} /><CitedNumbers ids={finding.claim_ids} place={{ list: "finding", module: selectedModule, index }} marks={marks} outcome={selected} spec={spec} /></li>)}</ul></div> : null}
                 {!selected.summary && !selected.research_question_answers.length && !selected.key_findings.length ? <p className="mt-3 text-sm text-ink-muted">Tato část nemá textový souhrn.</p> : null}
                 {selected.claims.length ? <details className="mt-5 border-t border-border pt-3 text-xs text-ink-muted"><summary className="cursor-pointer">{t("research.exec.results.analysisEvidence")} a technický původ tvrzení</summary><p className="mt-2 break-words">{selected.claims.map((claim) => `${claim.claim_id} → ${claim.evidence_ref}`).join(", ")}</p></details> : null}
               </> : <div className="mt-3 text-sm text-ink-muted"><p>{selectedStep ? `Stav kroku: ${stepStatusLabel(selectedStep, run.is_terminal)}` : "Tato část zatím nemá uložený výstup."}</p>{selectedPending && !selectedStep ? <p className="mt-1">{t("research.exec.results.analysisPending")}: <CodedWords inline coded={codeWords("research.exec.stepStatus", selectedPending)} /></p> : null}{selectedStep && waitingDetail(selectedStep) ? <p className="mt-1">{waitingDetail(selectedStep)}</p> : null}</div>}
@@ -1735,7 +1751,7 @@ type SpecificationPayload = {
   specification?: CompiledSpecification;
 };
 
-type AggregateMeasure = { id: string; title: string; group: string | null; result: AggregateResult; table: ResultTable; scale: readonly [number, number] | null };
+type AggregateMeasure = { id: string; target: string | null; title: string; group: string | null; result: AggregateResult; table: ResultTable; scale: readonly [number, number] | null };
 type AggregateFilter = "all" | ResultTable["support"];
 
 function supportLabel(support: ResultTable["support"]): string {
@@ -1762,7 +1778,7 @@ function aggregateMeasures(payload: AggregatePayload, pinned: CompiledSpecificat
   return [
     ...questionIds.map((id) => {
       const q = specQuestions.get(id);
-      return { id, title: q?.text || untitled("question"), group: null, result: questions[id], table: resultTable(id, questions[id], box, at), scale: q?.scale ?? null };
+      return { id, target: measureTarget(id), title: q?.text || untitled("question"), group: null, result: questions[id], table: resultTable(id, questions[id], box, at), scale: q?.scale ?? null };
     }),
     ...batteryIds.flatMap((id) => {
       const battery = batteries[id];
@@ -1770,7 +1786,7 @@ function aggregateMeasures(payload: AggregatePayload, pinned: CompiledSpecificat
       const objectIds = inOrder<string>(Object.keys(battery.objects), (spec?.objects ?? []).map((o) => o.id));
       return objectIds.map((oid) => {
         const result = battery.objects[oid];
-        return { id: `${id}:${oid}`, title: result.label || untitled("object"), group: battery.title || untitled("set"), result, table: resultTable(oid, result, box, at), scale: spec?.scale ?? null };
+        return { id: `${id}:${oid}`, target: measureTarget(id, oid), title: result.label || untitled("object"), group: battery.title || untitled("set"), result, table: resultTable(oid, result, box, at), scale: spec?.scale ?? null };
       });
     }),
   ];
@@ -1796,7 +1812,7 @@ function ObjectComparison({ setId, title, comparison, scale, places }: { setId: 
   const mean = (x: number) => x.toLocaleString("cs-CZ", { minimumFractionDigits: places, maximumFractionDigits: places });
   const objectOf = (id: string) => id.slice(setId.length + 1);
   return (
-    <section aria-label={`Srovnání: ${title}`} data-object-comparison data-aia={setTarget(setId)} className="rounded-md border border-border bg-surface-raised p-4">
+    <section aria-label={`Srovnání: ${title}`} data-object-comparison className="rounded-md border border-border bg-surface-raised p-4">
       <div className="flex flex-wrap items-baseline justify-between gap-2">
         <h4 className="text-sm font-semibold">{title}</h4>
         <span className="text-xs text-ink-muted">{scale ? `Průměr na škále ${scale[0]}–${scale[1]}` : "Průměr; škála běhu není uvedena"} · 95% interval · Kish n</span>
@@ -1814,7 +1830,7 @@ function ObjectComparison({ setId, title, comparison, scale, places }: { setId: 
           </thead>
           <tbody>
             {comparison.ranked.map((o) => (
-              <tr key={o.id} data-aia={objectTarget(setId, objectOf(o.id))} className="border-t border-border">
+              <tr key={o.id} data-object={objectOf(o.id)} className="border-t border-border">
                 <td className="max-w-48 truncate py-1.5 pr-3"><a href={`#${measureAnchor(o.id)}`} className="no-underline hover:underline" title={o.label}>{o.label}</a>{o.support === "INDICATIVE" ? <span className="ml-1 text-xs text-status-you-ink">(orientační)</span> : null}</td>
                 <td className="whitespace-nowrap py-1.5 pr-3 text-right tabular-nums"><b>{mean(o.value)}</b>{scale ? <span className="text-ink-muted"> z {scale[1]}</span> : null}</td>
                 <td className="whitespace-nowrap py-1.5 pr-3 text-right tabular-nums text-ink-muted">{o.low !== null && o.high !== null ? `[${mean(o.low)}; ${mean(o.high)}]` : "interval chybí"}</td>
@@ -1824,16 +1840,16 @@ function ObjectComparison({ setId, title, comparison, scale, places }: { setId: 
                     <span className="absolute top-0.5 size-3 -translate-x-1/2 rounded-full bg-signal" style={{ left: at(o.value) }} />
                   </span>
                 </td>
-                <td className="whitespace-nowrap py-1.5 text-right tabular-nums text-ink-muted">{kish(o.effectiveN)}</td>
+                <td className="whitespace-nowrap py-1.5 text-right tabular-nums text-ink-muted">{kish(o.kishN)}</td>
               </tr>
             ))}
             {comparison.withheld.map((o) => (
-              <tr key={o.id} data-aia={objectTarget(setId, objectOf(o.id))} data-withheld={o.reason} className="border-t border-border">
+              <tr key={o.id} data-object={objectOf(o.id)} data-withheld={o.reason} className="border-t border-border">
                 <td className="max-w-48 truncate py-1.5 pr-3"><a href={`#${measureAnchor(o.id)}`} className="no-underline hover:underline" title={o.label}>{o.label}</a></td>
                 <td colSpan={3} className="py-1.5 pr-3 text-ink-muted">{o.reason === "suppressed"
                   ? `Potlačeno · ${o.donors === null ? "podpora dat nestačí" : `podpora dat nestačí (${o.donors.toLocaleString("cs-CZ")} unikátních dárců)`}`
                   : "Bez průměru"}</td>
-                <td className="whitespace-nowrap py-1.5 text-right tabular-nums text-ink-muted">{kish(o.effectiveN)}</td>
+                <td className="whitespace-nowrap py-1.5 text-right tabular-nums text-ink-muted">{kish(o.kishN)}</td>
               </tr>
             ))}
           </tbody>
@@ -1918,7 +1934,7 @@ function AggregateView({ artifact, run, specification }: { artifact: Artifact; r
         {matching.length ? matching.map((measure) => {
           const anchor = measureAnchor(measure.id);
           const reading = readMeasure(measure.result, measure.scale, box, at);
-          return <section key={measure.id} id={anchor} aria-label={measure.title} data-aia={measureTarget(measure.id)} data-focused={focused === anchor ? "true" : undefined}
+          return <section key={measure.id} id={anchor} aria-label={measure.title} data-aia={measure.target ?? undefined} data-focused={focused === anchor ? "true" : undefined}
             className={`scroll-mt-24 rounded-md border bg-surface-raised p-4 ${focused === anchor ? "border-signal shadow-[0_0_0_1px_var(--color-signal)]" : "border-border"}`}>
             <div className="flex flex-wrap items-start justify-between gap-3">
               <div className="min-w-0 flex-1">
