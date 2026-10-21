@@ -144,6 +144,14 @@ V2: `QuestionnaireArt` (`DesignStages.tsx:95-142`).
 **QST7. Length.** By §8's answer. Test: the estimate's rule is shown in the inspector, and an
 unknown duration is never zero.
 
+- *Progress (feature/questionnaire-length):* the Dotazník side. `research/length.ts`
+  (`readRule`, `questionnaireLength`) prices each question by its type and each distinct set object;
+  the strip reads the rule from `…/research/limits` `questionnaire_length` and says "pravidlo v
+  Metodice zatím není nastaveno" while it is absent (today), "nepodařilo načíst" when the route
+  fails, "Délka neznámá" when an item's type has no price, else "≈ N min" with the rule in its title.
+  Tests: `length.test.ts`, `QuestionnaireStrip.test.tsx`. Open: the server field, with Aram's
+  Metodika entry; the rule in the inspector. QST7 stays unticked.
+
 **QST8. Závislosti.** Test: a set declared as a Sociomap input lists Sociomapa.
 
 *Delivered (feature/questionnaire-dependencies):* `src/research/readers.ts` reads the working copy,
@@ -181,6 +189,19 @@ reads as data (D13).
 
 **Recommendation: (a)**, with the constants proposed by A. Bahbouh. It is a rule, cheap to
 compute, and honest because it is labelled. (b) is the fallback if he declines.
+
+**Decided (the product owner, 2026-10-21, Q53 on /pmstatus): (a).** The constants are the
+methodology owner's, set on Metodika; until he sets them Dotazník says the rule is unset and shows
+no number. The Metodika entry is his to make (the request below); Dotazník only reads it.
+
+*Request to A. Bahbouh (methodology owner), sent through the PM:* on Metodika's readiness module
+(the one behind `GET /studies/{id}/research/limits`, `domain/methodology/readiness.py`), a group
+"Délka dotazníku" with five parameters, seconds per answer, each a number ≥ 0, **no default**
+(unset until he sets them): single choice (`vyber`), multiple choice (`multi`), scale (`skala`),
+open answer (`otevrena`), and one object of a tracked set (`set_object`). The limits route then
+answers `questionnaire_length: {seconds: {vyber, multi, skala, otevrena, set_object}, version}`,
+with `version` the methodology version in force, or `null` while any of the five is unset. A
+question type outside those four is never priced: Dotazník calls the length unknown.
 
 ## Doc follow-up
 

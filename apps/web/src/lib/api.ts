@@ -965,6 +965,10 @@ export type ResearchLimits = {
   methodology_version: string;
   version: number | null;
   sample_size: { min: number; max: number };
+  /** The questionnaire's length rule from Metodika (artifact-questionnaire QST7): seconds per
+   * answer by question type and per tracked-set object, with the methodology version. Absent, or
+   * null, while the methodology owner has set none; read through research/length.ts readRule. */
+  questionnaire_length?: unknown;
 };
 export type Readiness = {
   design_revision_id: string;

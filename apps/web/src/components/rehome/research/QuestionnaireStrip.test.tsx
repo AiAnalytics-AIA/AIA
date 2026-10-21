@@ -19,13 +19,17 @@ const sections = (links: boolean) => [
   { id: "sec_b", type: "object_battery", title: "Varianty", object_type: "varianta", objects: ["A", "B", "C", "D"] },
 ];
 
-function stub(project: Record<string, unknown>) {
+const LIMITS = { methodology_version: "readiness-1", version: null, sample_size: { min: 50, max: 5000 } };
+const RULE = { version: "readiness-1+e2", seconds: { vyber: 10, multi: 15, skala: 8, otevrena: 40, set_object: 6 } };
+
+/** `limits`: what GET …/research/limits answers; null, the route is not found. */
+function stub(project: Record<string, unknown>, limits: Record<string, unknown> | null = LIMITS) {
   const ws = workspaceFixture(project, { analysis: null });
   const native = nativeAgentFixture(() => ({ project: {}, proposal: {} }), {}, ws.write);
   vi.stubGlobal("fetch", vi.fn(async (url: RequestInfo | URL, init?: RequestInit) => {
     const path = String(url).split("?")[0];
     const body = init?.body ? JSON.parse(String(init.body)) : null;
-    const answer = native(path, init?.method ?? "GET", body) ?? ws.answer(path, init?.method ?? "GET", body);
+    const answer = path === "/api/v1/studies/STU-1/research/limits" ? limits ?? undefined : native(path, init?.method ?? "GET", body) ?? ws.answer(path, init?.method ?? "GET", body);
     if (answer === undefined) return new Response(JSON.stringify({ code: "not_found", message: "No such resource." }), { status: 404 });
     return answer instanceof Response ? answer : new Response(JSON.stringify(answer), { status: 200 });
   }));
@@ -45,7 +49,8 @@ describe("Dotazník's strip", () => {
     render(<ResearchScreen step="questionnaire" frame={TEST_FRAME} />);
     const strip = await screen.findByRole("region", { name: "Dotazník v číslech" });
     expect(within(strip).getByText("5 položek pro respondenty")).toBeTruthy();
-    expect(within(strip).getByText("Délka zatím neodhadnuta")).toBeTruthy();
+    // Today's API carries no length rule: the strip says it is unset, never a number.
+    expect(await within(strip).findByText("Délka: pravidlo v Metodice zatím není nastaveno")).toBeTruthy();
     const pills = within(within(strip).getByRole("list", { name: "Pokrytí výzkumných otázek" })).getAllByRole("listitem");
     expect(pills.map((p) => p.getAttribute("title"))).toEqual([`VO1: ${RQ1} · měří 1`, `VO2: ${RQ2} · žádná položka ji neměří`]);
   });
@@ -56,5 +61,22 @@ describe("Dotazník's strip", () => {
     const strip = await screen.findByRole("region", { name: "Dotazník v číslech" });
     expect(within(strip).queryByRole("list")).toBeNull();
     expect(within(strip).getByText(/Pokrytí neznámé/)).toBeTruthy();
+  });
+
+  it("estimates the length by Metodika's rule and shows the rule", async () => {
+    stub({ goal: "G", ...plan, sections: sections(true), ui_state: { questionnaire_path: "manual" } }, { ...LIMITS, questionnaire_length: RULE });
+    render(<ResearchScreen step="questionnaire" frame={TEST_FRAME} />);
+    const strip = await screen.findByRole("region", { name: "Dotazník v číslech" });
+    // One single-choice question (10 s) and four set objects (4 x 6 s): 34 s, 0.5 min.
+    const length = await within(strip).findByText("≈ 0,5 min");
+    expect(length.closest("span[title]")?.getAttribute("title")).toBe("Odhad podle Metodiky readiness-1+e2: výběr 10 s, více odpovědí 15 s, škála 8 s, otevřená 40 s, položka sady 6 s");
+  });
+
+  it("says the rule could not be read rather than show a length", async () => {
+    stub({ goal: "G", ...plan, sections: sections(true), ui_state: { questionnaire_path: "manual" } }, null);
+    render(<ResearchScreen step="questionnaire" frame={TEST_FRAME} />);
+    const strip = await screen.findByRole("region", { name: "Dotazník v číslech" });
+    expect(await within(strip).findByText("Délka: pravidlo z Metodiky se nepodařilo načíst")).toBeTruthy();
+    expect(within(strip).queryByText(/min$/)).toBeNull();
   });
 });
