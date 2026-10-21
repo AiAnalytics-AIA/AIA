@@ -99,10 +99,14 @@ export function readMeasure(result: QuestionResult, scale?: readonly [number, nu
 
 // ---- a set's objects compared ------------------------------------------------------------
 
-/** Kish n as the aggregate stored it; null when it did not (never 0). */
-export type RankedObject = Estimate & { id: string; label: string; support: SupportStatus; effectiveN: number | null };
+/**
+ * `kishN`: Kish's effective n as the aggregate stored it (`effective_n_kish`), null when it did
+ * not (never 0). Not `effective_n`, which is the support size after the donor adjustment
+ * (`effective_n_combined`) and can be far smaller.
+ */
+export type RankedObject = Estimate & { id: string; label: string; support: SupportStatus; kishN: number | null };
 /** An object the comparison shows without a number: suppressed (with its donors, the reason) or with no mean. */
-export type WithheldObject = { id: string; label: string; reason: "suppressed" | "no_mean"; donors: number | null; effectiveN: number | null };
+export type WithheldObject = { id: string; label: string; reason: "suppressed" | "no_mean"; donors: number | null; kishN: number | null };
 export type ObjectComparison = {
   /** Highest mean first; only objects with a number. */
   ranked: RankedObject[];
@@ -127,11 +131,11 @@ export function compareObjects(objects: readonly { id: string; label: string; re
   const omitted: string[] = [];
   const withheld: WithheldObject[] = [];
   for (const { id, label, result } of objects) {
-    const effectiveN = finite(result.effective_n) ? result.effective_n : null;
+    const kishN = finite(result.effective_n_kish) ? result.effective_n_kish : null;
     if (result.support_status === "SUPPRESS" || !finite(result.prumer)) {
       omitted.push(label);
-      withheld.push({ id, label, reason: result.support_status === "SUPPRESS" ? "suppressed" : "no_mean", donors: finite(result.n_unique_layer_donors) ? result.n_unique_layer_donors : null, effectiveN });
-    } else ranked.push({ id, label, support: result.support_status, value: result.prumer, effectiveN, ...interval(result.prumer_interval_95) });
+      withheld.push({ id, label, reason: result.support_status === "SUPPRESS" ? "suppressed" : "no_mean", donors: finite(result.n_unique_layer_donors) ? result.n_unique_layer_donors : null, kishN });
+    } else ranked.push({ id, label, support: result.support_status, value: result.prumer, kishN, ...interval(result.prumer_interval_95) });
   }
   ranked.sort((a, b) => b.value - a.value);
   const lows = ranked.map((o) => o.low ?? o.value);

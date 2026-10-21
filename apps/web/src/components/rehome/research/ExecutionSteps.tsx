@@ -1816,7 +1816,7 @@ function ObjectComparison({ setId, title, comparison, scale, places }: { setId: 
                     <span className="absolute top-0.5 size-3 -translate-x-1/2 rounded-full bg-signal" style={{ left: at(o.value) }} />
                   </span>
                 </td>
-                <td className="whitespace-nowrap py-1.5 text-right tabular-nums text-ink-muted">{kish(o.effectiveN)}</td>
+                <td className="whitespace-nowrap py-1.5 text-right tabular-nums text-ink-muted">{kish(o.kishN)}</td>
               </tr>
             ))}
             {comparison.withheld.map((o) => (
@@ -1825,7 +1825,7 @@ function ObjectComparison({ setId, title, comparison, scale, places }: { setId: 
                 <td colSpan={3} className="py-1.5 pr-3 text-ink-muted">{o.reason === "suppressed"
                   ? `Potlačeno · ${o.donors === null ? "podpora dat nestačí" : `podpora dat nestačí (${o.donors.toLocaleString("cs-CZ")} unikátních dárců)`}`
                   : "Bez průměru"}</td>
-                <td className="whitespace-nowrap py-1.5 text-right tabular-nums text-ink-muted">{kish(o.effectiveN)}</td>
+                <td className="whitespace-nowrap py-1.5 text-right tabular-nums text-ink-muted">{kish(o.kishN)}</td>
               </tr>
             ))}
           </tbody>

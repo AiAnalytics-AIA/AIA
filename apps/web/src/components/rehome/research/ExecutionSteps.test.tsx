@@ -1848,7 +1848,7 @@ describe("Results", () => {
   });
 
   it("compares a set's objects in words and on one scale, and opens a card from its link", async () => {
-    const rating = (mean: number, low: number, high: number, status = "REPORTABLE") => ({ typ: "skala", ...support(status as "REPORTABLE", 140), prumer: mean, prumer_interval_95: { low, high }, top2box_pct: 40, top2box_interval_95: { low: 30, high: 50 } });
+    const rating = (mean: number, low: number, high: number, status = "REPORTABLE") => ({ typ: "skala", ...support(status as "REPORTABLE", 140), effective_n_kish: 401.8, prumer: mean, prumer_interval_95: { low, high }, top2box_pct: 40, top2box_interval_95: { low: 30, high: 50 } });
     const aggregate = { ...AGGREGATE, payload: { aggregate: { ...AGGREGATE.payload.aggregate, batteries: { napoje: { title: "Nápoje", objects: {
       kava: { label: "Káva", ...rating(4.2, 4.0, 4.4) }, caj: { label: "Čaj", ...rating(3.0, 2.7, 3.3) }, voda: { label: "Voda", ...rating(2.9, 2.6, 3.2) },
       mleko: { label: "Mléko", ...rating(3.5, 2.0, 5.0, "SUPPRESS") },
@@ -1871,6 +1871,8 @@ describe("Results", () => {
     const kava = comparison.querySelector('[data-aia="object:napoje.kava"]') as HTMLElement;
     expect(within(kava).getByText("[4,00; 4,40]")).toBeTruthy();
     expect(kava.textContent).toMatch(/z 5/);
+    // Kish n is the aggregate's effective_n_kish (401.8), not the donor-adjusted effective_n (30).
+    expect(kava.querySelector("td:last-child")?.textContent).toBe("401");
     // A suppressed object keeps its row and says why; its mean and interval are not shown.
     const mleko = comparison.querySelector('[data-aia="object:napoje.mleko"]') as HTMLElement;
     expect(mleko.getAttribute("data-withheld")).toBe("suppressed");
