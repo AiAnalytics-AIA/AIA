@@ -135,3 +135,33 @@ def test_a_scales_labels_are_printed_beside_its_values() -> None:
     bare, _ = compile_design(DESIGN)
     assert bare is not None and "q1" not in scale_notes(bare)
     assert scale_notes(bare)["napoje_obj_kava"] == "Škála: 1 = vůbec, 10 = velmi."
+
+
+def test_the_audiences_description_and_subpanel_are_kept_and_printed_when_given() -> None:
+    """Compiler 3 keeps what a person said about the audience (artifact-chain CHN5): the
+    description and the built-in subpanel, each only when given, printed before the filters."""
+    stated = {
+        **DESIGN,
+        "audience": {
+            **DESIGN["audience"],
+            "description": "Pražané, kteří ráno pijí kávu",
+            "builtin_subpanel": "young_18_29",
+        },
+    }
+    spec, problems = compile_design(stated)
+    assert spec is not None, problems
+    assert spec.audience["description"] == "Pražané, kteří ráno pijí kávu"
+    assert spec.audience["builtin_subpanel"] == "young_18_29"
+    words = _words(compose_design_sections(spec, ()).chapter.blocks)
+    assert "Cílová skupina podle návrhu: Pražané, kteří ráno pijí kávu." in words
+    assert "vestavěného podpanelu young_18_29" in words
+    assert "kraj: Praha" in words
+
+    plain, _ = compile_design(DESIGN)
+    assert plain is not None
+    # Neither given: the body has neither key, so its fingerprint is what it was under this
+    # compiler, and the chapter says nothing it was not told.
+    assert set(plain.audience) == {"source_mode", "strategy", "has_filters"}
+    blank, _ = compile_design({**DESIGN, "audience": {**DESIGN["audience"], "description": "  "}})
+    assert blank is not None and blank.fingerprint() == plain.fingerprint()
+    assert "podle návrhu" not in _words(compose_design_sections(plain, ()).chapter.blocks)

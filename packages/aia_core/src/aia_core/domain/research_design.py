@@ -81,7 +81,7 @@ __all__ = [
 #: scale's verbal labels (input-interactions 3b); a specification ``-1`` stored is read as
 #: stored, held to the revision it records, never recompiled under ``-2``
 #: (``application.analysis_results.native_sources``).
-COMPILER_VERSION: Final = "aia-research-compile-2"
+COMPILER_VERSION: Final = "aia-research-compile-3"
 
 #: The unit's "don't know" option (``dotaznik.py`` ``Otazka.volby``).
 DONT_KNOW: Final = "Nevím / neodpovím"
@@ -907,14 +907,26 @@ def compile_design(
         n=n,
         questions=tuple(questions),
         batteries=tuple(batteries),
-        audience={
-            "source_mode": _text(audience.get("source_mode")) or "population",
-            "strategy": _text(audience.get("strategy")) or "population",
-            "has_filters": bool(audience.get("filters")),
-        },
+        audience=_audience(audience),
         selection=selection,
     )
     return spec, ()
+
+
+def _audience(audience: dict[str, Any]) -> dict[str, Any]:
+    """The audience as the design stated it: its source and strategy, whether it narrowed, and
+    (compiler 3, artifact-chain CHN5) the description and built-in subpanel a person gave, each
+    only when given, so a design that states neither keeps the body it always had."""
+    out: dict[str, Any] = {
+        "source_mode": _text(audience.get("source_mode")) or "population",
+        "strategy": _text(audience.get("strategy")) or "population",
+        "has_filters": bool(audience.get("filters")),
+    }
+    if description := _text(audience.get("description")):
+        out["description"] = description
+    if subpanel := _text(audience.get("builtin_subpanel")):
+        out["builtin_subpanel"] = subpanel
+    return out
 
 
 def _filter_value(value: Any) -> Any:
