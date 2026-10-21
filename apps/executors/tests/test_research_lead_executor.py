@@ -9,9 +9,11 @@ from __future__ import annotations
 
 import dataclasses
 import json
+import uuid
 from dataclasses import dataclass, field
 from typing import Any
 
+import aia_core.domain.project as project_module
 import pytest
 from aia_core.application.research import research_artifacts
 from aia_core.application.research_lead import ResearchLead
@@ -342,6 +344,24 @@ def test_a_reply_that_stays_invented_after_its_repair_fails_the_turn(
     transport = RecordedBedrock([{"reply": "Máme 7 otázek."}])
     assert worker(ready, database_url, store, build, transport).run_once()
     assert len(transport.requests) == 2  # the primary and its one repair, never a third
+    turn = lead_turn(ready, turn_id)
+    assert turn["status"] == "FAILED" and turn["output"] is None
+
+
+def test_a_number_only_an_identifier_holds_is_still_invented(
+    ready: Any, database_url: str, store: Any, build: Any, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """F-CLOCK-1: the design revision's id is ``REV-`` and random hex; one starting ``7a``
+    read as a 7 in the context, so the test above passed or failed by chance (CI on #554).
+    Here every revision id starts so, and the invented 7 is still repaired, then failed."""
+    monkeypatch.setattr(project_module, "uuid4", lambda: uuid.UUID("7a" + uuid.uuid4().hex[2:]))
+    turn_id = post(ready)
+    transport = RecordedBedrock([{"reply": "Máme 7 otázek."}])
+    assert worker(ready, database_url, store, build, transport).run_once()
+    sent = json.loads(transport.requests[0].body["messages"][0]["content"][0]["text"])
+    design = next(entry for entry in sent["context"] if entry["layer"] == "design")
+    assert design["design_revision_id"].startswith("REV-7a")
+    assert len(transport.requests) == 2
     turn = lead_turn(ready, turn_id)
     assert turn["status"] == "FAILED" and turn["output"] is None
 

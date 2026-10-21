@@ -1,0 +1,108 @@
+// How "Útrata podle výzkumníka" reads a person's spend (Settings → Studie a rozpočty,
+// develop-spend-attribution 7, Q40). Pure: no fetch, no React.
+//
+// Unknown is shown as unknown, never as 0: a total with a call whose bill is not known says
+// so beside the amount, and a total that is zero only because nothing is known reads
+// "neznámá". A person with no rows at all has spent nothing, which is known (a sum over no
+// rows is zero), and reads 0,00 USD.
+
+import type { PersonSpend, ResearcherSpend, SpendActivity, SpendFigures, SpendPeriod } from "./api";
+
+export const SPEND_PERIODS: readonly SpendPeriod[] = ["this_month", "last_month", "year_to_date"];
+
+export const PERIOD_LABEL: Record<SpendPeriod, string> = {
+  this_month: "Tento měsíc",
+  last_month: "Minulý měsíc",
+  year_to_date: "Od začátku roku",
+};
+
+/** The activities in the order the API sends them. */
+export const ACTIVITY_LABEL: Record<SpendActivity, string> = {
+  lead: "Vedoucí výzkumu",
+  fieldwork: "Sběr dat",
+  analysis_report: "Analýza a zpráva",
+  deep_research: "Deep Research",
+  other: "Ostatní",
+};
+
+export const UNATTRIBUTED = "Nepřiřazeno";
+
+const NUMBER = new Intl.NumberFormat("cs-CZ", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+
+/** An amount in USD as Czech print reads it; a positive amount under a cent is not rounded to 0. */
+export function usd(amount: number): string {
+  if (!Number.isFinite(amount)) return "neznámá";
+  if (amount > 0 && amount < 0.005) return "< 0,01 USD";
+  return `${NUMBER.format(amount)} USD`;
+}
+
+/** "1 volání", "2 volání" -- Czech "volání" does not decline; the count is said as a number. */
+function calls(n: number): string {
+  return `${n} ${n === 1 ? "nejisté volání" : n >= 2 && n <= 4 ? "nejistá volání" : "nejistých volání"}`;
+}
+
+export type AmountLine = {
+  /** The amount as shown. */
+  text: string;
+  /** False: a call's bill is not known, so the amount is not exact. */
+  exact: boolean;
+  /** What is not known, in words; null when everything is. */
+  note: string | null;
+};
+
+/** A total in words, its uncertainty beside it. */
+export function totalLine(f: SpendFigures): AmountLine {
+  if (f.uncertain_calls <= 0) return { text: usd(f.total_usd), exact: true, note: null };
+  const note = `${calls(f.uncertain_calls)}: cena není známa, částka není přesná`;
+  if (f.total_usd === 0) return { text: "neznámá", exact: false, note };
+  return { text: usd(f.total_usd), exact: false, note };
+}
+
+/** Open holds are not spend yet; null when none are open. */
+export function reservedLine(f: SpendFigures): string | null {
+  return f.reserved_usd > 0 ? `${usd(f.reserved_usd)} drženo v běžící práci` : null;
+}
+
+/** Who a row is for: the name, else the e-mail, else the id; the unattributed row by name. */
+export function personLabel(p: Pick<PersonSpend, "user_id" | "display_name" | "email">): string {
+  if (p.user_id === null) return UNATTRIBUTED;
+  return p.display_name?.trim() || p.email?.trim() || p.user_id;
+}
+
+export type Part = { activity: SpendActivity; label: string; line: AmountLine; reserved: string | null };
+
+/** A person's (or a study's) activities that hold anything, in the API's order. An activity
+ *  with nothing settled, held or uncertain is a known zero and is left out of the parts. */
+export function parts(byActivity: readonly (SpendFigures & { activity: SpendActivity })[]): Part[] {
+  return byActivity
+    .filter((a) => a.total_usd !== 0 || a.reserved_usd > 0 || a.uncertain_calls > 0)
+    .map((a) => ({ activity: a.activity, label: ACTIVITY_LABEL[a.activity] ?? a.activity, line: totalLine(a), reserved: reservedLine(a) }));
+}
+
+/** "1 studie", "2 studie", "5 studií". */
+export function studyCount(n: number): string {
+  if (n === 1) return "1 studie";
+  if (n >= 2 && n <= 4) return `${n} studie`;
+  return `${n} studií`;
+}
+
+/** The sum of every person listed: what the organization spent in the period, as far as the
+ *  caller may see. Its uncertainty is the sum of theirs. */
+export function overall(report: ResearcherSpend): SpendFigures {
+  const sum = (k: keyof SpendFigures) => report.people.reduce((n, p) => n + p[k], 0);
+  return {
+    model_usd: sum("model_usd"),
+    outside_ledger_usd: sum("outside_ledger_usd"),
+    total_usd: sum("total_usd"),
+    reserved_usd: sum("reserved_usd"),
+    uncertain_calls: sum("uncertain_calls"),
+  };
+}
+
+/** A response is a spend report only with its people as a list; anything else is not, and the
+ *  card says so rather than show an empty table that reads as "nobody spent anything". */
+export function isSpendReport(value: unknown): value is ResearcherSpend {
+  if (!value || typeof value !== "object") return false;
+  const v = value as Partial<ResearcherSpend>;
+  return Array.isArray(v.people) && typeof v.everyone === "boolean" && typeof v.period === "string";
+}

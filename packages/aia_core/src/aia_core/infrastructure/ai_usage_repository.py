@@ -44,7 +44,8 @@ from aia_core.domain.scope import (
 )
 from aia_core.domain.workflow import FailureClass, as_utc
 
-from .tables import AIUsageEventRow, utcnow
+from .tables import AIUsageEventRow, BudgetReservationRow, WorkflowRunRow, utcnow
+from .workflow_repository import charged_to_for_run
 
 __all__ = ["AIUsageRepository", "LedgerConflict", "UncertainCall"]
 
@@ -241,8 +242,26 @@ class AIUsageRepository:
         ):
             raise LedgerConflict(f"call {event.call_id} already has a terminal entry")
 
-        self._session.add(_row(event))
+        row = _row(event)
+        row.charged_to_user_id = self._charged_to(event)
+        self._session.add(row)
         self._session.flush()
+
+    def _charged_to(self, event: AIUsageEvent) -> str | None:
+        """Who the entry is booked to (Q40): its hold's person, copied, so a call and its hold
+        always agree; a call with no hold (a subscription runtime, no marginal cost) takes the
+        run's by the same rule. Never the event's ``actor_id``: a resolution's actor is whoever
+        resolved it, not who the call was for."""
+        if event.reservation_id is not None:
+            hold = self._session.get(BudgetReservationRow, event.reservation_id)
+            if hold is not None:
+                return hold.charged_to_user_id
+            return None
+        if event.run_id is not None:
+            run = self._session.get(WorkflowRunRow, event.run_id)
+            if run is not None and run.organization_id == event.organization_id:
+                return charged_to_for_run(self._session, run)
+        return None
 
     def resolve_uncertain(
         self,

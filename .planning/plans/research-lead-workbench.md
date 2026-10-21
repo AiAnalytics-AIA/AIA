@@ -31,11 +31,11 @@ chunks:
   - "[ ] 23c. The finished Deep Research card (DRL-7): coverage and counts, the first findings with 'Ověřeno, přidat zdroj', 'Zkontrolovat návrh' (7b), 'Použít ve zprávě' and the report with literature prepared and approved on CompleteReport's routes, a failure's cause and 'Zkusit znovu'"
   - "[ ] 26f.1. The Deep Research half of 26f (DRL-5): the Deep Research starts and retries removed from every layout, their panels kept as readers; after 23b and after lead-orchestration LO5a.3 (Q48); with it lead-orchestration LO5a's acceptance"
   - "[ ] 25. Deep Research reachable from every stage as a capability"
-  - "[ ] 26a. The Lead at every width (D20, MVPQ-11), its pure rules: lib/workbench-layout.ts, the breakpoints (split from 1100 px, drawer 768-1099, sheet under 768), the drawer's states and the one Escape order, tested at 1099, 1100, 768, 767 and 390 px"
+  - "[x] 26a. The Lead at every width (D20, MVPQ-11), its pure rules: lib/workbench-layout.ts, the breakpoints (split from 1100 px, drawer 768-1099, sheet under 768), the drawer's states and the one Escape order, tested at 1099, 1100, 768, 767 and 390 px"
   - "[x] 26b. One tree, three layouts: Workbench renders the artifact and LeadPane once at every width, so crossing 1100 px remounts nothing (a mount-counter test); the workbench serves under 1100 px"
   - "[x] 26c. The launcher and the drawer (D21): the rail or bottom bar opens the same LeadPane as a side drawer (768-1099 px) or a full-screen sheet (under 768 px); keyboard, focus trap and Escape with a return to the targeted artifact; tested at 1099, 768 and 390 px"
   - "[x] 26d. The compact header and stage navigator at 768-1099 and under 768 px: all eleven stages reachable by keyboard, no page overflow"
-  - "[ ] 26e. A stale card refused and a direct request held by the same server gates, in the drawer and in the split"
+  - "[x] 26e. A stale card refused and a direct request held by the same server gates, in the drawer and in the split"
   - "[ ] 26f. The manual AI starts removed in every layout behind one predicate, except Spuštění's own Start (D15, 2026-10-21); a static guard test; the journeys start work through the Lead's cards or a typed start"
   - "[ ] 27a. Availability, said once and honestly (D20): first an anchored inventory of every path that turns the Lead off or stops it answering, each made hard to trigger by accident (Q43); then lib/lead-availability.ts (ON / WAITING / OFF / UNKNOWN from GET /lead, which incorporates the worker's readiness from the composition record, lead-orchestration LO12b; ON only with the worker ready, unknown never on), the launcher's dot and a stage's one line"
   - "[x] 27b. The kill switch holds on every Lead start: a card the Lead model prepared, approved after a switch-off, is 409 research_lead_disabled, stored text edits can still be accepted or dismissed (Q42); with the Lead off the composer takes only LO5's typed start commands, matched by code, and their server-matched chat_start cards stay approvable under the same wallet and LO15 confirmation (Q43); GET /lead reports the worker's readiness (LO12b)"
@@ -384,6 +384,77 @@ appear in the lead researches chat too"). Built on `feature/lead-worker-cards`:
      `test_a_greeting_on_a_new_study_has_its_text_edits_accepted_automatically`,
      `test_a_first_save_is_not_stale_over_the_bare_template_a_server_writer_saved`,
      `test_edited_from_current_names_the_current_revision_or_the_bare_template`.
+- **F-CLOCK-1. A random identifier in the Lead's context grounded a number the model invented**
+  *(a product defect, fixed on `fix/lead-invented-number-test-clock`; found as a CI failure on
+  #554, run 39604369392, 2026-10-21)*.
+  1. Claim: the "numbers only from the context" guard read the digits of an identifier as a
+     citable number, so `REV-7a3f…`, a Design Revision id of random hex, let a reply's invented
+     "7" pass with no repair. The clock was suspected and ruled out: the frozen context carries no
+     timestamp (the request's message was dumped; its only numbers are the budget, the spend,
+     the readiness limits, the workspace revision, `aia-readiness-1` and the revision id).
+  2. Anchor: the id is `"REV-" + uuid4().hex[:16]` (`domain/project.py:80 @ 722dd75c`), frozen
+     into the design layer (`application/research_lead.py:893 @ 722dd75c`); `_NUMBER`
+     (`domain/research_lead.py:320 @ 722dd75c`) starts a number after a hyphen and ends it at the
+     first non-digit, so `REV-7a…` reads 7; `lead_contract` takes every number of the prompt and
+     the whole message as allowed (`domain/research_lead.py:360` and `:846 @ 722dd75c`). A
+     revision id whose hex begins with 7 then a letter (or `07`, `007` …) does this: about one id
+     in forty (1/16 x 6/16 / (1 - 1/16) = 2.5 %). Run ids (`RUN-`, the runs layer), knowledge
+     and note ids do the same for whatever digits they lead with.
+  3. Reproduction: `pytest apps/executors/tests/test_research_lead_executor.py -k
+     only_an_identifier` on 722dd75c's domain fails `assert 1 == 2` at the second request, as
+     `test_a_reply_that_stays_invented_after_its_repair_fails_the_turn` did in CI (line 338); it
+     pins every revision id to start `7a` (monkeypatching `domain.project.uuid4`).
+  4. Consequence: a number the Lead invents reaches the researcher unrepaired whenever an id in
+     the context happens to begin with its digits; the guard held or not by chance, and the test
+     that checks it was flaky at ~2.5 %.
+  5. Fix: identity metadata is no number. The numbers a reply may write are read from
+     `citable_context(context)`: the layers the model is sent with every identity key dropped,
+     with all it holds, before any number is read. The identity keys are `id`, `bound`, `revision` and
+     `item_ids.SIDECAR_KEYS`, plus the suffixes `*_id`, `*_ids`, `*_revision`, `*_version`,
+     `*_at`, `*sha256`, `*_signature` and `*fingerprint`. Every focus target is blanked too.
+     `context_identifiers(context)` names the identifier strings under those keys; a bare number
+     used as an id is left out, so it never masks a reply's number. `lead_contract(…,
+     identifiers)` blanks each whole occurrence of one before reading numbers: in the reply, so
+     a quoted id writes no number by it, and in the allowed text's prose (an earlier reply or a
+     message quoting an id). A digit taken from an id is held to the context like any other
+     number. An identifier is made of word characters, hyphens and dots. A whole quote is never
+     preceded by one, and never followed by one except a dot that ends a sentence, so
+     `X.REV-7a…`, `REV-7a….b` and `REV-7a…-2` are other identifiers.
+     Codex on #557 (0746f29f): (P1) the allowlist was fragile. A `bound` hash was in fact
+     already masked: the walk carried the flag down from `objective_ids`. But an attachment's
+     `sha256`, a material's `reading_sha256`, the analysis's `_brief_signature` and a dimension
+     proposal's `created_at` (`apps/web/src/research/persona.ts:301 @ 722dd75c`) still grounded
+     their digits. Checked by running 0746f29f's `lead_request` on the new test's context; this
+     is where the clock hypothesis was partly right. (P2) the boundary treated `.` as outside an
+     identifier, so `X.REV-7a…` was blanked as a quote.
+     Opaque values the frozen context can carry today, found by reading every writer of its
+     layers: `design_revision_id`, `run_id`, `item_id`, `omitted_ids`, `memory_id`,
+     `methodology_version`; in the design content, sections' and questions' `id`, the sidecars
+     (`objective_ids`, `research_question_ids`, `hypothesis_ids`, `kategorie_ids`,
+     `object_ids`, each entry an `id` and a `bound` FNV hash), the brief's attachments
+     (`attachment_id`, `sha256`, `legacy_attachment_id`), the materials (`source_id`,
+     `reading_sha256`, `contract_id`, `contract_version`), the dimension proposals'
+     `dimension_id`, `proposal_id` and `created_at`; in the analysis, `_brief_signature`; in the
+     view, the focus `target`. No `fingerprint` key is in the context today; the suffix is there
+     for the next writer.
+     Review of 4d434c4d: the design layer's `workspace_revision` is a save counter (the stage
+     autosaves every 1.8 s), yet it stayed citable, so at 7 "Máme 7 otázek." passed; the test
+     asserted it stayed citable, which was the bug. A knowledge entry's `revision`
+     (`domain/research_agents.py:554 @ 4d434c4d`) is the same kind of counter. `revision` and
+     the suffix `*_revision` are identity keys now. Every other number the frozen layers carry
+     was read and kept: the study's `budget_usd`, `spent_usd` and `spend_confirm_usd`, the
+     readiness `sample_size` limits, the conversation's `omitted_turns` and whatever the
+     design's content and analysis hold (none of their keys ends in `_revision`).
+  6. Tests: `test_an_identifiers_digits_ground_no_number`, `test_the_context_names_its_identifiers`,
+     `test_a_request_holds_a_reply_to_the_context_without_its_identifiers`,
+     `test_identity_metadata_grounds_no_number` (a `bound`, a `sha256`, a `reading_sha256`, a
+     `contract_version`, a `_brief_signature`, a `created_at`, a `workspace_revision` of 7 and
+     a knowledge item's `revision` of 7; "Máme 7 otázek." refused),
+     `test_an_identifier_ends_only_where_no_identifier_character_follows`
+     (`packages/aia_core/tests/test_research_lead.py`) and
+     `test_a_number_only_an_identifier_holds_is_still_invented`
+     (`apps/executors/tests/test_research_lead_executor.py`). The flaky test is unchanged; it no
+     longer depends on the id it is given.
 - **F4. A Lead turn parked on the study's budget held the conversation for ever** *(fixed on
   `fix/lead-turn-after-budget`; reported by the product owner on develop, 2026-10-21)*.
   - Claim: a message sent with no study budget parks its turn in `AWAITING_BUDGET`, and that
@@ -466,7 +537,13 @@ appear in the lead researches chat too"). Built on `feature/lead-worker-cards`:
     `study_lead_turns`, `aia_executors/research_lead.py` and `AIA_AI_RESEARCH_LEAD_*`.
 - **`ARCHITECTURE.md`.** The accept route's new shape, and one more human-only gate source (a
   Lead-prepared job).
-- **`.planning/open-items.md`.** F1 and F2 above; F3 and F-STORE-1, each closed by its fix.
+- **`.planning/open-items.md`.** F1 and F2 above; F3, F-STORE-1 and F-CLOCK-1, each closed by
+  its fix.
+- **`CLAUDE.md` § 2**, `domain/research_lead.py`: after "lead_contract (numbers only from the
+  context, sign included, exponents refused)" add "; identity metadata is no number
+  (citable_context: the context without id, bound, revision, the item-id sidecars, *_id, *_ids,
+  *_revision, *_version, *_at, *sha256, *_signature, *fingerprint and focus targets; context_identifiers:
+  an id quoted whole in the reply writes no number)".
 - **`CLAUDE.md` § 2**, `domain/workspace.py` / the working content paragraph: a save naming no
   revision is not stale over a working copy that is still the bare template a server writer
   saved (`edited_from_current`).
@@ -710,6 +787,14 @@ so it is rerun on `workbench.py up --fresh`.
   token meets the same LO15 confirmation and ledger; a direct `POST …/lead/turns/{id}/request` for a stale
   or used turn is refused. A server test only if a gap is found (LO15's tests exist,
   `lead-orchestration.md:23`). Depends on `feature/lead-worker-cards`, whose cards are what go stale.
+  *Landed* as its own journey, `tools/ui_workbench/lead_stale_journey.mjs` (`lead_journey.mjs` passes
+  once per workbench, OI-133), on the recorded design workers (`aia_executors.workbench`
+  `recorded_research_agent`, #597). What it established about the direct request: a *used* turn's
+  `…/request` asked again answers 200 with the same job and starts no second one (idempotent, not a
+  refusal). A *stale* turn's request is approved against the current working copy, not refused
+  (`application/research_lead.py` `approve_request` submits `_working_content()`). That is no gap,
+  because the job's own proposal meets the item-level stale rule when a person accepts it, which is
+  the refusal the journey shows. No server change was needed.
 - **26f. Remove the manual AI starts from every layout**, every row of *What exists* above except
   Spuštění's "Spustit výzkum", which stays and whose run also shows as a Lead chat card (D15,
   2026-10-21). Also `AI_HELP` and `ResearchAssistance` (the inspector keeps readiness and blockers),
@@ -1195,6 +1280,30 @@ Recommended with LO12b, whose record makes the disagreement visible instead.
 - `deploy/develop/README.md` (the switches): the same rule; develop states `true` by Compose.
 - `docs/architecture/adr/0026-…` *Accepted with*: Q42's refusal and the switch stated per
   deployment.
+
+## Contract follow-ups from the stage owners (2026-10-21)
+
+Three changes to chunk 16's contract rows, each one a stage owner asked for. They change no server
+behaviour beyond `FOCUS_KINDS` gaining one kind.
+
+- **Sběr dat (FLD7, #563): kind `receipt`.** The fieldwork row targets `step` and `receipt`.
+  `receipt:respondents` is the "Kdo odpovídal" card, which `ch-method` reads. It was added to
+  `domain/lead_artifacts.py` `TargetKind`, `domain/research_lead.py` `FOCUS_KINDS`,
+  `lib/workbench-artifacts.ts` and `contract.json`. The label is "Kdo odpovídal"
+  (`targetLabel`).
+- **Vzorek (SMP4, SMP5, #606): kind `sample` takes `ready`, `respondents` and
+  `respondents:<persona source>`.** These sit beside the existing ids. `FOCUS_ID` already
+  accepted them; the fixture's grammar now says so.
+- **Dotazník (Codex on #607): `targetOfElement`'s `qedit_` / `qblock_` id fallbacks name only an id
+  the contract can send.** For a card without a stored id, the screen invents one, and the
+  fallbacks used to turn it into a target:
+  - `question:Q`, from `questionElementId`'s placeholder;
+  - `section:0`, from a block's index;
+  - `question:Q 2`, which the server refuses.
+
+  Those are now refused, while a stored id stays pickable whether #607's marks have landed yet or
+  not (review of #618). Test: `lead.test.ts` "names an unmarked card by its DOM id only when the
+  id is a stored one the contract can send".
 
 ## Targets grounded in the working copy (2026-10-21, artifact-audience AUD1)
 

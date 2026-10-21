@@ -9,6 +9,7 @@ import { afterEach, beforeEach, describe, expect, it, onTestFinished, vi } from 
 
 import { t, tv } from "@/i18n/t";
 import type { ResearchRun } from "@/lib/api";
+import { AnalysisInspect } from "./AnalysisInspect";
 import { measureAnchor } from "@/lib/result-reading";
 import { CONFLICT_MESSAGE } from "@/research/store";
 import { RunResults } from "./ExecutionSteps";
@@ -1117,6 +1118,26 @@ describe("Progress", () => {
     expect(within(card).getByText(t(`${R}.unrecorded`))).toBeTruthy();
   });
 
+  it("keeps both sides of a mismatch in view, the stored origin code beside the pinned source (artifact-fieldwork FLD7)", async () => {
+    api(listed(run({ ...COMPLETED, persona_source: "panel" })));
+    render(<ResearchScreen step="progress" frame={TEST_FRAME} />);
+    const R = "research.exec.respondents.receipt";
+    const card = (await screen.findByRole("heading", { name: t(`${R}.title`) })).closest("section") as HTMLElement;
+    const value = (label: string) => within(card).getByText(label).nextElementSibling?.textContent;
+    // Named, never resolved: the pinned panel, what the data say, and the code as stored.
+    expect(value(t(`${R}.source`))).toBe(`${t("research.exec.respondents.panel")} · ${t(`${R}.observed.SIMULATED`)}`);
+    expect(value(t(`${R}.origin`))).toBe("SYNTHETIC_FIXTURE");
+  });
+
+  it("says the data's origin is not yet stored while fieldwork has not stored it", async () => {
+    api(listed(PARKED));
+    render(<ResearchScreen step="progress" frame={TEST_FRAME} />);
+    const R = "research.exec.respondents.receipt";
+    const card = (await screen.findByRole("heading", { name: t(`${R}.title`) })).closest("section") as HTMLElement;
+    expect(within(card).getByText(t(`${R}.origin`)).nextElementSibling?.textContent).toBe(t(`${R}.pending`));
+    expect(card.querySelector("[data-origin-code]")).toBeNull();
+  });
+
   it("tags each step AI or deterministic and makes it pointable by the Lead (artifact-fieldwork FLD2)", async () => {
     api(listed(PARKED));
     render(<ResearchScreen step="progress" frame={TEST_FRAME} />);
@@ -1731,6 +1752,23 @@ describe("Results", () => {
       "34,8 % podíl odpovědi „Kávu“ · Který nápoj byste si vybrali?",
     ]);
     expect(cited[0].getAttribute("href")).toBe("#measure-q2");
+    // Each cited number and the module view carry the Lead's targets (ANL1).
+    expect(keyFindings.querySelector('[data-aia="claim:executive:C1"]')).toBeTruthy();
+    expect(keyFindings.querySelector('[data-aia="finding:executive:0"]')).toBeTruthy();
+    // Every module is a Lead target whichever is selected (Codex P1 on #605), and every target names
+    // exactly one element: research_questions is the coverage table, each claim its first chip.
+    for (const m of ["executive", "research_questions", "objects", "audience", "segments", "hypotheses", "implications", "limitations"]) {
+      expect(document.querySelectorAll(`[data-aia="module:${m}"]`)).toHaveLength(1);
+    }
+    for (const c of ["C1", "C2", "C3"]) expect(document.querySelectorAll(`[data-aia="claim:executive:${c}"]`)).toHaveLength(1);
+    expect(keyFindings.querySelector('[data-aia="claim:executive:C2"]')).toBeTruthy();
+    // The inspector reads this very analysis, published by the page (ANL3), and adds no target of
+    // its own: with the drawer open, every target still names exactly one element.
+    const drawer = render(<AnalysisInspect target={{ kind: "finding", id: "executive:0" }} />);
+    expect(within(drawer.container).getAllByRole("link")[0].getAttribute("href")).toBe("#measure-q2");
+    expect(drawer.container.querySelector("[data-aia]")).toBeNull();
+    for (const c of ["C1", "C2", "C3"]) expect(document.querySelectorAll(`[data-aia="claim:executive:${c}"]`)).toHaveLength(1);
+    drawer.unmount();
     // A number whose question AIA cannot find says so in words; its reference stays as a code (6c).
     expect(within(keyFindings).getByText(/číslo, k němuž AIA nedohledala otázku/)).toBeTruthy();
     expect(within(keyFindings).getByText("x9.median").tagName).toBe("CODE");
@@ -1927,7 +1965,7 @@ describe("Results", () => {
   });
 
   it("compares a set's objects in words and on one scale, and opens a card from its link", async () => {
-    const rating = (mean: number, low: number, high: number, status = "REPORTABLE") => ({ typ: "skala", ...support(status as "REPORTABLE", 140), prumer: mean, prumer_interval_95: { low, high }, top2box_pct: 40, top2box_interval_95: { low: 30, high: 50 } });
+    const rating = (mean: number, low: number, high: number, status = "REPORTABLE") => ({ typ: "skala", ...support(status as "REPORTABLE", 140), effective_n_kish: 401.8, prumer: mean, prumer_interval_95: { low, high }, top2box_pct: 40, top2box_interval_95: { low: 30, high: 50 } });
     const aggregate = { ...AGGREGATE, payload: { aggregate: { ...AGGREGATE.payload.aggregate, batteries: { napoje: { title: "Nápoje", objects: {
       kava: { label: "Káva", ...rating(4.2, 4.0, 4.4) }, caj: { label: "Čaj", ...rating(3.0, 2.7, 3.3) }, voda: { label: "Voda", ...rating(2.9, 2.6, 3.2) },
       mleko: { label: "Mléko", ...rating(3.5, 2.0, 5.0, "SUPPRESS") },
@@ -1947,17 +1985,25 @@ describe("Results", () => {
     expect(within(comparison).getByText("Pořadí platí jen tam, kde se intervaly rozcházejí.")).toBeTruthy();
     // Highest mean first, then the suppressed object in a row of its own.
     expect(within(comparison).getAllByRole("link").map((a) => a.textContent)).toEqual(["Káva", "Čaj", "Voda", "Mléko"]);
-    const kava = comparison.querySelector('[data-aia="object:napoje.kava"]') as HTMLElement;
+    const kava = comparison.querySelector('[data-object="kava"]') as HTMLElement;
     expect(within(kava).getByText("[4,00; 4,40]")).toBeTruthy();
     expect(kava.textContent).toMatch(/z 5/);
+    // Kish n is the aggregate's effective_n_kish (401.8), not the donor-adjusted effective_n (30).
+    expect(kava.querySelector("td:last-child")?.textContent).toBe("401");
     // A suppressed object keeps its row and says why; its mean and interval are not shown.
-    const mleko = comparison.querySelector('[data-aia="object:napoje.mleko"]') as HTMLElement;
+    const mleko = comparison.querySelector('[data-object="mleko"]') as HTMLElement;
     expect(mleko.getAttribute("data-withheld")).toBe("suppressed");
     expect(mleko.textContent).toMatch(/^MlékoPotlačeno · podpora dat nestačí \(\d+ unikátních dárců\)/);
     expect(within(comparison).queryByText("3,50")).toBeNull();
     expect(comparison.textContent).not.toMatch(/2,00|5,00/);
-    // The Lead points at the set, an object's row and each measure's card (artifact-results §4).
-    expect(comparison.getAttribute("data-aia")).toBe("set:napoje");
+    // The Lead names a measure's card and nothing else on Výsledky: no set: or object: (those
+    // kinds are the design's and the map's), and every id names exactly one element.
+    expect(comparison.hasAttribute("data-aia")).toBe(false);
+    expect(comparison.querySelector("[data-aia]")).toBeNull();
+    const marks = [...document.querySelectorAll("[data-aggregate-explorer] [data-aia]")].map((el) => el.getAttribute("data-aia")!);
+    expect(marks).toEqual(expect.arrayContaining(["measure:napoje/kava", "measure:napoje/caj", "measure:napoje/voda", "measure:napoje/mleko"]));
+    expect(marks.every((m) => m.startsWith("measure:"))).toBe(true);
+    for (const m of marks) expect(document.querySelectorAll(`[data-aia="${m}"]`)).toHaveLength(1);
     // No rounding block: 18.6.6's two places, as each card prints them.
     expect(within(comparison).getByText("4,20")).toBeTruthy();
     // A link to a card clears the filters that hide it and opens its detail.
@@ -1968,7 +2014,7 @@ describe("Results", () => {
     fireEvent(window, new HashChangeEvent("hashchange"));
     const card = await within(explorer).findByRole("region", { name: "Čaj" });
     expect(card.getAttribute("data-focused")).toBe("true");
-    expect(card.getAttribute("data-aia")).toBe("measure:napoje:caj");
+    expect(card.getAttribute("data-aia")).toBe("measure:napoje/caj");
     expect((card.querySelector("details") as HTMLDetailsElement).open).toBe(true);
     expect((within(explorer).getByRole("searchbox", { name: "Najít otázku nebo objekt" }) as HTMLInputElement).value).toBe("");
     window.location.hash = "";

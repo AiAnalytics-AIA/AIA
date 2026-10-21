@@ -21,7 +21,7 @@ from typing import Final
 
 from aia_core.domain.evidence.claims import ClaimSurface
 from aia_core.domain.report.copy import METHOD_STATUS_COPY
-from aia_core.domain.report.evidence import PrintGrade, grade_of
+from aia_core.domain.report.evidence import EvidenceLedger, PrintGrade, grade_of
 from aia_core.domain.report.model import (
     AuditBlock,
     Block,
@@ -44,6 +44,7 @@ from aia_core.domain.report.model import (
     Recommendation,
     ReportDocument,
     ReportKind,
+    Section,
     SociomapFigure,
     Table,
     Text,
@@ -357,10 +358,17 @@ def cited_refs(doc: ReportDocument) -> tuple[str, ...]:
     """
     out: dict[str, None] = {}
     for section in doc.sections:
-        for block in section.blocks:
-            for ref in (*_prose_refs(block), *_data_refs(block)):
-                if ref in doc.ledger.rows:
-                    out.setdefault(ref, None)
+        out.update(dict.fromkeys(section_refs(section, doc.ledger)))
+    return tuple(out)
+
+
+def section_refs(section: Section, ledger: EvidenceLedger) -> tuple[str, ...]:
+    """The admitted refs ``section`` prints, once each, in its order (as :func:`cited_refs`)."""
+    out: dict[str, None] = {}
+    for block in section.blocks:
+        for ref in (*_prose_refs(block), *_data_refs(block)):
+            if ref in ledger.rows:
+                out.setdefault(ref, None)
     return tuple(out)
 
 

@@ -68,6 +68,7 @@ from .edit_ops import (
     question_add_problem,
     refusal,
 )
+from .item_ids import SIDECAR_KEYS
 from .licence import DataLineage
 from .material_rules import MaterialRule, classify_by_rule, rule_class
 from .population.subpanels import BUILTIN_SUBPANELS
@@ -123,8 +124,10 @@ __all__ = [
     "TextField",
     "apply_edit",
     "baseline_task",
+    "citable_context",
     "context_classification",
     "context_data_class",
+    "context_identifiers",
     "context_sha256",
     "freeze_context",
     "frozen_sample_size",
@@ -208,7 +211,7 @@ STAGES: Final[tuple[str, ...]] = get_args(Stage)
 FOCUS_KINDS: Final[tuple[str, ...]] = (
     "brief", "objective", "material", "plan", "rq", "hypothesis", "set", "assumption",
     "section", "question", "audience", "dimension", "own_dimension", "sample", "step",
-    "measure", "object", "pair", "module", "finding", "claim", "report",
+    "receipt", "measure", "object", "pair", "module", "finding", "claim", "report",
 )  # fmt: skip
 #: An element's id: an identifier, possibly of colon-separated parts (``finding:executive:2``),
 #: a battery-qualified object (``set1/fio``) or a pair (``set1/fio~air``).
@@ -368,13 +371,111 @@ def unreadable_numbers(text: str) -> list[str]:
     return [m.group(0) for m in _EXPONENT.finditer(text)]
 
 
-def lead_contract(allowed_text: str) -> type[LeadOutput]:
+#: Identity metadata (F-CLOCK-1): keys whose values name, hash, version or date something,
+#: wherever they sit in a context. Their digits are no number: ``REV-7a3f…``, an item's
+#: ``bound`` hash ``7a01…`` or a ``created_at`` of ``…T13:07`` would otherwise ground a reply's
+#: invented 7. The stable-item sidecars (``item_ids.SIDECAR_KEYS``: the ids and their ``bound``
+#: wording hashes) end in ``_ids``; they are named too, so a rename there cannot reopen this.
+#: ``revision`` (a knowledge item's) and ``*_revision`` (the design layer's
+#: ``workspace_revision``) are save counters: the stage autosaves every 1.8 s, so the counter
+#: says how often the copy was saved, nothing about the design, and at 7 it grounded "Máme 7
+#: otázek." (the review of 4d434c4d).
+_IDENTITY_KEYS: Final = frozenset({"id", "bound", "revision"}) | SIDECAR_KEYS
+#: ``*_id`` / ``*_ids`` (``design_revision_id``, ``run_id``, ``item_id``, ``memory_id``,
+#: ``source_id``, ``omitted_ids``), ``*_revision`` (``workspace_revision``), ``*_version``
+#: (``methodology_version``,
+#: ``contract_version``), ``*_at`` (a dimension proposal's ``created_at``), ``*sha256`` (an
+#: attachment's ``sha256``, a material's ``reading_sha256``), ``*_signature`` (an analysis's
+#: ``_brief_signature``) and ``*fingerprint``.
+_IDENTITY_SUFFIXES: Final = (
+    "_id",
+    "_ids",
+    "_revision",
+    "_version",
+    "_at",
+    "sha256",
+    "_signature",
+    "fingerprint",
+)
+#: A value that is a number as written (``7``, ``-2,5``) is never masked as an identifier: a
+#: mask would hide that number in a reply, too.
+_BARE_NUMBER: Final = re.compile(r"[-\u2212]?\d+(?:[.,]\d+)?")
+#: The characters an identifier is made of (``ITEM_ID``, :data:`FOCUS_ID`): word characters, a
+#: hyphen and a dot. A dot ends an identifier only where no identifier character follows it, so
+#: a sentence may end on one.
+_ID_BEFORE: Final = r"(?<![\w.\-])"
+_ID_AFTER: Final = r"(?![\w\-]|\.[\w\-])"
+
+
+def _is_identity_key(key: str) -> bool:
+    return key in _IDENTITY_KEYS or key.endswith(_IDENTITY_SUFFIXES)
+
+
+def citable_context(context: Mapping[str, Any]) -> list[Any]:
+    """The layers the model is sent (:func:`model_message`) with their identity metadata left
+    out: every key :func:`_is_identity_key` names, with all it holds, and every string that is
+    a focus target (:data:`FOCUS_ID`). The numbers a reply may write are this text's."""
+
+    def strip(value: Any) -> Any:
+        if isinstance(value, Mapping):
+            return {k: strip(v) for k, v in value.items() if not _is_identity_key(str(k))}
+        if isinstance(value, (list, tuple)):
+            return [strip(v) for v in value]
+        if isinstance(value, str) and FOCUS_ID.fullmatch(value):
+            return ""
+        return value
+
+    return [strip(entry) for entry in context["layers"] if entry["layer"] != "prompt"]
+
+
+def context_identifiers(context: Mapping[str, Any]) -> frozenset[str]:
+    """Every identifier string a frozen context holds: the strings under an identity key
+    (:func:`_is_identity_key`) and every focus target. A bare number used as one is left out
+    (:data:`_BARE_NUMBER`). A reply quoting one whole writes no number by it, and a quote of one
+    in the context's prose (an earlier reply, a message) grounds none."""
+    found: set[str] = set()
+
+    def walk(value: Any, identity: bool) -> None:
+        if isinstance(value, Mapping):
+            for key, item in value.items():
+                walk(item, identity or _is_identity_key(str(key)))
+        elif isinstance(value, (list, tuple)):
+            for item in value:
+                walk(item, identity)
+        elif (
+            isinstance(value, str)
+            and (identity or FOCUS_ID.fullmatch(value))
+            and value
+            and not _BARE_NUMBER.fullmatch(value)
+        ):
+            found.add(value)
+
+    walk(context, False)
+    return frozenset(found)
+
+
+def _without_identifiers(text: str, identifiers: frozenset[str]) -> str:
+    """``text`` with every whole occurrence of an identifier blanked: not inside a longer word
+    or id, so ``REV-7a`` masks neither ``REV-7ab``, ``X.REV-7a`` nor ``REV-7a.b``."""
+    if not identifiers:
+        return text
+    # One pass, the longest first, so an id that begins another never masks a part of it.
+    alternatives = "|".join(re.escape(i) for i in sorted(identifiers, key=len, reverse=True))
+    return re.sub(rf"{_ID_BEFORE}(?:{alternatives}){_ID_AFTER}", " ", text)
+
+
+def lead_contract(allowed_text: str, identifiers: frozenset[str] = frozenset()) -> type[LeadOutput]:
     """The output contract a turn is validated against: :class:`LeadOutput`, refusing a
     reply that writes a number ``allowed_text`` (the frozen context and the prompt) does not.
 
+    ``allowed_text`` is the context without its identity metadata (:func:`citable_context`).
+    ``identifiers`` (:func:`context_identifiers`) are no numbers on either side: a quote of one
+    in ``allowed_text``'s prose grounds nothing, and a reply quoting one whole writes no number
+    by it. A digit of an identifier written on its own is a number, held to the context.
+
     A validation error, so the gateway's one schema repair tells the model which numbers.
     """
-    allowed = number_tokens(allowed_text)
+    allowed = number_tokens(_without_identifiers(allowed_text, identifiers))
 
     class CheckedLeadOutput(LeadOutput):
         model_config = ConfigDict(extra="forbid", frozen=True, title="LeadOutput")
@@ -388,7 +489,7 @@ def lead_contract(allowed_text: str) -> type[LeadOutput]:
                     + ", ".join(unreadable[:10])
                     + "; write a number out in digits as the context holds it, or none"
                 )
-            unknown = sorted(number_tokens(self.reply) - allowed)
+            unknown = sorted(number_tokens(_without_identifiers(self.reply, identifiers)) - allowed)
             if unknown:
                 raise ValueError(
                     "reply writes numbers that are not in the context: "
@@ -907,7 +1008,10 @@ def lead_request(
             capability=ModelCapability.STUDY_LEAD,
             prompt_id=LEAD_PROMPT_ID,
             prompt_version=prompt.version,
-            output_contract=lead_contract(system + "\n" + message),
+            output_contract=lead_contract(
+                system + "\n" + canonical_json(citable_context(context)),
+                context_identifiers(context),
+            ),
             max_output_tokens=max_output_tokens,
             schema_repair_attempts=1,
         ),
