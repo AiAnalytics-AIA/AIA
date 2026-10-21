@@ -165,7 +165,7 @@ done or as dropped. `tools/master_check.py` fails when an open chunk of a core p
 | `lead-orchestration#LO5a` | W1 | scope freeze, D-12: with `research-lead-workbench#26f` (E26) and E12 |
 | `lead-orchestration#LO5a.1` | W1 | lead deep research plan (2026-10-21, Q44-Q46): the Lead's Deep Research requests and layers; with E26 |
 | `lead-orchestration#LO5a.2` | W1 | lead deep research plan: a Lead card starts Deep Research on the server; after `lead-orchestration#LO10` and `deep-research-web-search#55` (E12) |
-| `lead-orchestration#LO5a.3` | W1 | lead deep research plan: typed Deep Research starts; after `lead-orchestration#LO5` (E10) |
+| `lead-orchestration#LO5a.3` | W1 | lead deep research plan: typed Deep Research starts; after `lead-orchestration#LO5` (E10; landed on the server, #574) and DRL-0 (`deep-research-web-search#55`, landed in #555); still waits for `lead-orchestration#LO5a.1` |
 | `lead-orchestration#LO5a.4` | W1 | lead deep research plan (Q47): Deep Research plan-step kinds; after `lead-orchestration#LO3`, `#LO4` and `#LO17` |
 | `research-lead-workbench#7b` | W1 | lead deep research plan: Design Research proposal review (F-DRL-1); with `research-lead-workbench#7` (E26) |
 | `research-lead-workbench#12a` | W1 | lead deep research plan: Deep Research on recorded web in the UI workbench (F-DRL-6); with `research-lead-workbench#12` (E26) |
@@ -305,7 +305,7 @@ done or as dropped. `tools/master_check.py` fails when an open chunk of a core p
 | `artifact-dimensions#DIM5` | W2 | artifact plans (#560, 2026-10-21): umbrella `research-lead-workbench#22` (E15) |
 | `artifact-dimensions#DIM6` | W2 | artifact plans (#560, 2026-10-21): umbrella `research-lead-workbench#22` (E15) |
 | `artifact-analysis#ANL1` | W3 | artifact plans (#560, 2026-10-21): umbrella `research-lead-workbench#21` (E20) |
-| `artifact-analysis#ANL2` | W3 | artifact plans (#560, 2026-10-21): umbrella `research-lead-workbench#21` (E20) |
+| `artifact-analysis#ANL2` | W3 | artifact plans (#560, 2026-10-21): umbrella `research-lead-workbench#21` (E20); landed in #575 |
 | `artifact-analysis#ANL3` | W3 | artifact plans (#560, 2026-10-21): umbrella `research-lead-workbench#21` (E20) |
 | `artifact-analysis#ANL4` | W3 | artifact plans (#560, 2026-10-21): umbrella `research-lead-workbench#21` (E20) |
 | `artifact-analysis#ANL5` | W3 | artifact plans (#560, 2026-10-21): umbrella `research-lead-workbench#21` (E20) |

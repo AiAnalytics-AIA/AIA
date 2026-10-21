@@ -4156,7 +4156,12 @@ exact bytes. Recorded in ADR 0008, Amendment 2026-10-19, *Addendum*; it narrows 
 **Test.** What holds the decision: `test_deep_research_journey.py` runs on designs an operator
 classified; a design classified by rule there would be the test of any later change.
 
-**Status.** Decided. Nothing to build.
+**Status.** Decided. Nothing to build. On develop, decided again and implemented as advisory (the
+product owner, 2026-10-21, Q65/Q66; plan `develop-class-advisory` chunk 5; #594, merged as `fdd27c9`;
+ADR 0008, Amendment 2026-10-21): under `AIA_DATA_CLASS_GATES=advisory` an unclassified design takes
+the design rule's class (B), recorded on the plan step's event
+(`test_deep_research_class_advisory.py::test_under_advisory_an_unclassified_design_takes_the_design_rule_and_says_so`);
+an operator's classification is kept. Still open for staging and production, where enforce applies.
 
 ---
 
@@ -4500,8 +4505,9 @@ the placeholder only when one is unrecorded; the seed records `aia_synthetic_fix
 dataset, passes the licence gate; one over an item of any of the three kinds with no recorded dataset
 is still refused by name.
 
-**Status.** Open. The smallest fix is #537 (`fix/knowledge-dataset-lineage`), not merged on
-2026-10-21.
+**Status.** Open. The EU Bedrock route is unblocked by #582's determination (merged as `7cd7acd`,
+2026-10-21; `CLIENT_KNOWLEDGE_DATASET` APPROVED for `bedrock-eu-primary` alone, OI-187); per-item
+recorded lineage remains #537 (`fix/knowledge-dataset-lineage`), still open on 2026-10-21.
 
 ---
 
@@ -4598,7 +4604,7 @@ of 3000 puts the slider at its end.
 
 ---
 
-## OI-147 · Finding · The knowledge search sends a request on every keystroke
+## OI-147 · Finding, closed · The knowledge search sends a request on every keystroke
 
 **Claim.** The client library's search sends one GET per keystroke.
 
@@ -4613,7 +4619,7 @@ of 3000 puts the slider at its end.
 
 **Test.** A Vitest with fake timers counting requests.
 
-**Status.** Open.
+**Status.** Closed by #569 (merged as `ec75af1`, 2026-10-21): the library's search is debounced (300 ms).
 
 ---
 
@@ -4656,7 +4662,9 @@ arrow keys, before budgeting.
 
 **Status.** Open; a hypothesis until reproduced. The replacement control exists since #532 (merged as
 `700eab5`: `apps/web/src/components/ui/MenuButton.tsx`, arrows move without acting); no call site above
-has moved to it yet.
+has moved to it yet. Since #569 (merged as `ec75af1`, 2026-10-21) the knowledge library's call sites
+file by menu, so the hypothesis is moot there; it stands for `apps/web/src/components/aia/clients/IntakeSheet.tsx:329, 347 @ c98836c` (the
+intake sheet's folder and label selects).
 
 ---
 
@@ -5255,7 +5263,7 @@ then replaces the parked turn; `leadReasonWords` says what happens.
 
 ---
 
-## OI-175 · Finding · No web path turns a Design Research proposal into a Design Revision
+## OI-175 · Finding, closed · No web path turns a Design Research proposal into a Design Revision
 
 **Claim.** The API's Design Research proposal accept exists, but the web only reads the proposal.
 
@@ -5274,11 +5282,11 @@ completed in the product.
 **Test.** 7b's Vitest that the review posts the ticked `item_ids` with both expected revisions, and its
 journey step.
 
-**Status.** Open (`research-lead-workbench` 7b).
+**Status.** Closed by #554 (merged as `bef820b`, 2026-10-21): `DesignResearchReview.tsx` on Dotazník posts the ticked items to `POST …/design-proposal/accept`, then reloads the working copy; tests `lib/design-research-review.test.ts`, `DesignResearchReview.test.tsx`.
 
 ---
 
-## OI-176 · Finding · A Deep Research ceiling is never computed unless the study has a threshold
+## OI-176 · Finding, closed · A Deep Research ceiling is never computed unless the study has a threshold
 
 **Claim.** A Deep Research start computes its cost ceiling only when the study's confirmation
 threshold is set.
@@ -5296,11 +5304,11 @@ threshold is set.
 
 **Test.** A create with no threshold stores `cost_ceiling_usd`, and the quote equals it.
 
-**Status.** Open (`deep-research-web-search` 55).
+**Status.** Closed by #555 (merged as `7275fcc`, 2026-10-21): every new run stores `cost_ceiling_usd`, threshold or not, and `POST …/deep-research/quote` reads the same admission (`DeepResearchRuns._admit`).
 
 ---
 
-## OI-177 · Finding · A Deep Research ceiling is priced from the API's own environment copy
+## OI-177 · Finding, closed · A Deep Research ceiling is priced from the API's own environment copy
 
 **Claim.** The prices a Deep Research ceiling is computed from are read in the API router alone.
 
@@ -5315,7 +5323,7 @@ threshold is set.
 
 **Test.** Chunk 55's key-combination fixture.
 
-**Status.** Open (`deep-research-web-search` 55).
+**Status.** Closed by #555 (merged as `7275fcc`, 2026-10-21): `application/deep_research_pricing.py` `DeepResearchPricingSettings`, built by each composition root.
 
 ---
 
@@ -5361,7 +5369,7 @@ F-DRL-5.
 
 ---
 
-## OI-180 · Finding · The UI workbench cannot run Deep Research at all
+## OI-180 · Finding, closed · The UI workbench cannot run Deep Research at all
 
 **Claim.** The workbench composition has no Deep Research runtime, so a run parks at plan.
 
@@ -5377,7 +5385,7 @@ study: the run waits at plan.
 
 **Test.** 12a's "a run on the fixture completes with a sealed bundle marked `RECORDED_FIXTURE`".
 
-**Status.** Open (`research-lead-workbench` 12a).
+**Status.** Closed by #578 (merged as `b7f6363`, 2026-10-21): `research-lead-workbench` 12a; `deep_research_journey.mjs` completes a Design Research run on recorded web, 20 ledger rows on `workbench-scripted`, 0 priced. The interpretation exchange on the workbench is not built (the PR's proposed `research-lead-workbench#12a.2`, not yet a chunk line).
 
 ---
 
@@ -5399,3 +5407,275 @@ Findings F-DRL-7.
 **Test.** None; a wording defect.
 
 **Status.** Closed (this docs PR).
+
+---
+
+## OI-182 · Finding, closed · Two flushes waiting behind one save sent the same base revision
+
+**Claim.** `ResearchStore.flush` let every caller waiting behind an in-flight save resume together,
+each building its body from the same `state.revision`, so the second was refused `stale_revision`;
+and a flush saved only the snapshot it took, so an edit typed during the flight stayed pending after
+it resolved.
+
+**Anchor.** `apps/web/src/research/store.ts:225-233 @ 054cf007` (`if (this.inflight) await
+this.inflight;`, then `base_revision: s.revision` with no re-check). Plan `research-lead-workbench`,
+Findings F-STORE-1.
+
+**Reproduction.** The three store tests below fail on `722dd75c`; a scratch Vitest on `054cf007`
+sent bases `[3, 4, 4]`.
+
+**Consequence.** After a fast edit, a false "Uloženo jinde" conflict whose only way on is a reload
+that drops the edit; and a caller that took one flush to mean "saved" (an accept, a job start) acted
+on a revision without the person's last edit.
+
+**Smallest fix.** Done: saves serialised; `flush` waits for whichever save is in flight, reads the
+copy again and saves what is still owed from the revision the previous save returned, at most
+`MAX_FLUSH_ROUNDS` (4) saves, then `FlushIncomplete` with the change kept pending.
+
+**Test.** `store.test.ts`: "serialises the saves of callers waiting behind one: each names the
+revision the one before returned", "saves an edit made during the flight in the same flush, which
+resolves only once it is saved", "says when the copy kept changing through every round, and keeps
+the change waiting for its save".
+
+**Status.** Closed by #556 (merged as `b3b5581`, 2026-10-21).
+
+---
+
+## OI-183 · Finding · An identifier's digits ground a number the Lead invents
+
+**Claim.** The Lead's number guard reads digits inside identifiers in its context as numbers, so a
+number the Lead made up passes unrepaired whenever an id in the context happens to start with its
+digits.
+
+**Anchor.** `packages/aia_core/src/aia_core/domain/project.py:80` (`"REV-" + uuid4().hex[:16]`),
+frozen into the Lead's design layer at `application/research_lead.py:1112`; `_NUMBER`
+(`domain/research_lead.py:334`) starts a number after a hyphen and ends it at the first non-digit,
+so `REV-7a…` reads as 7; `lead_contract` (`:368`) allows every number in the prompt and the message
+(`:860`) @ `c98836c`. Plan `research-lead-workbench`, Findings F-CLOCK-1 (on #557's branch).
+
+**Reproduction.** `apps/executors/tests/test_research_lead_executor.py::test_a_reply_that_stays_invented_after_its_repair_fails_the_turn`
+failed in CI on #554 (run 39604369392, `1 == 2` at line 338); #557's
+`test_a_number_only_an_identifier_holds_is_still_invented` pins every revision id to start `7a` and
+fails the same way on `c98836c`. About one revision id in forty starts with 7 then a letter.
+
+**Consequence.** A number the Lead invented reaches the researcher as if grounded; and the test above
+fails about 2.5 % of runs, which reads as a flake.
+
+**Smallest fix.** #557: `context_identifiers` (the values under `id`, `*_id`, `*_ids`, `*_version`
+and focus targets, a bare-number id skipped), blanked in the allowed text and the reply before
+numbers are read.
+
+**Test.** #557's `test_a_number_only_an_identifier_holds_is_still_invented`,
+`test_an_identifiers_digits_ground_no_number`, `test_the_context_names_its_identifiers`,
+`test_a_request_holds_a_reply_to_the_context_without_its_identifiers`.
+
+**Status.** Open: the fix is #557 (`fix/lead-invented-number-test-clock`), not merged on 2026-10-21.
+
+---
+
+## OI-184 · Finding · A tracked set labelled point by point is told the wrong ends
+
+**Claim.** `SpecBattery.told_ends`, from `_develop_ends`, returns a set's first two labels, so a set
+labelled on every point tells respondents and the map legend that its top end is the second point.
+
+**Anchor.** `packages/aia_core/src/aia_core/domain/research_design.py:535` (`_develop_ends`), read
+at `:363` (`told_ends`), sent at `domain/ai_respondent.py:611-614` and printed at
+`domain/research_sociomapping.py:206 @ c98836c` (first recorded `@ 25f26232`, #559).
+
+**Reproduction.** `pytest packages/aia_core/tests/test_ai_respondent.py::test_on_a_set_is_read_by_the_new_rule`:
+a set labelled `bod 1` … `bod 10` reads `told_ends == ("bod 1", "bod 2")`.
+
+**Consequence.** With the labels off the prompt, respondents read "1 = bod 1, 10 = bod 2" and the map
+legend prints the same, for any set labelled point by point. Today the editor keeps sets to two ends
+(input-interactions 3b2), so no screen writes such a set yet.
+
+**Smallest fix.** Read a valid per-point list as its first and last label in `_develop_ends`.
+
+**Test.** A compile of a set labelled on every point whose `told_ends` is `("bod 1", "bod 10")`, and a
+respondent request reading "10 = bod 10".
+
+**Status.** Open (for input-interactions 3b3 or a server fix).
+
+---
+
+## OI-185 · Finding, closed · The client journey's bulk filing check passed without filing anything
+
+**Claim.** The journey's "the ticked item is moved into the folder" check matched the item's own
+title, so it passed whether or not the item was filed.
+
+**Anchor.** `tools/ui_workbench/client_journey.mjs:136 @ 25f26232` (`row.getByText(names.folder)`,
+where the item's title `Cesta ${stamp}: pobočky` contains the folder's `Cesta ${stamp}` and
+`getByText` matches a substring). Plan `input-interactions`, Findings CJ-1.
+
+**Reproduction.** Remove the bulk "Přesunout do složky" step from the journey @ `25f26232` and run
+it: the check at line 136 resolves at once, on the title.
+
+**Consequence.** The browser evidence for bulk filing proved nothing; a broken bulk move would have
+shipped green.
+
+**Smallest fix.** Done: `{ exact: true }` on the folder and label checks.
+
+**Test.** The journey itself: a substring match now fails in strict mode (two elements).
+
+**Status.** Closed by #569 (merged as `ec75af1`, 2026-10-21).
+
+---
+
+## OI-186 · Finding · Dotazník's outline covers half the screen when it wraps under the editor
+
+**Claim.** The questionnaire outline is `sticky` at every width, so wrapped under the editor it covers
+about half the viewport at 390 px and in the workbench at 1100 px, Závislosti included.
+
+**Anchor.** `apps/web/src/components/rehome/research/QuestionnaireStep.tsx:560 @ c98836c`
+(`className="sticky top-[136px] …"`; recorded at `:545 @ 25f26232`). Plan `artifact-questionnaire`,
+Finding QF-1.
+
+**Reproduction.** `node tools/ui_workbench/questionnaire_journey.mjs` (#572): its
+`390-dependencies-section.png`.
+
+**Consequence.** On a phone, or the workbench at its narrowest split, half the questionnaire is
+hidden under the outline.
+
+**Smallest fix.** Sticky only while it sits beside the editor (a container query).
+
+**Test.** A journey assertion that the dependencies section is not covered at 390 px.
+
+**Status.** Open (`artifact-questionnaire`).
+
+---
+
+## OI-187 · Finding, closed · Every Lead turn of a client with DATASET, ARTIFACT or FINDING knowledge was refused
+
+**Claim.** A Lead turn over a client with any approved DATASET, ARTIFACT or FINDING knowledge item
+declares the lineage `unclassified-client-knowledge`, which no licence determination named, so every
+turn parked `licence_dataset_unknown`.
+
+**Anchor.** `packages/aia_core/src/aia_core/domain/research_lead.py:835-838 @ 871c62c5`, with no
+determination in `domain/licence_determinations.py @ 871c62c5`; the refusal at
+`domain/licence.py:158-164`. PR #564, Finding 1.
+
+**Reproduction.** `pytest apps/executors/tests/test_research_lead_executor.py::test_a_dataset_in_the_client_knowledge_reaches_the_eu_bedrock_route`
+on `871c62c5`: 0 requests sent.
+
+**Consequence.** No Lead for that client (and, OI-142, no AI design job).
+
+**Smallest fix.** Done: the product owner's determination as data owner (2026-10-21, /pmstatus Q60
+(a)): `CLIENT_KNOWLEDGE_DATASET` APPROVED for `bedrock-eu-primary` alone; every other route still
+refuses `not_approved_for_route`.
+
+**Test.** `test_a_dataset_in_the_client_knowledge_reaches_the_eu_bedrock_route`;
+`packages/aia_core/tests/test_research_lead.py::test_a_turn_over_dataset_derived_knowledge_passes_the_licence_gate_on_eu_bedrock_only`.
+
+**Status.** Closed by #582 (merged as `7cd7acd`, 2026-10-21). Per-item recorded lineage stays OI-142
+(#537).
+
+---
+
+## OI-188 · Finding, closed · No report kept its document model
+
+**Claim.** The worker composed every report as a `ReportDocument`, rendered it to DOCX and dropped
+the document, so only DOCX bytes said what a report held.
+
+**Anchor.** `apps/executors/src/aia_executors/report.py:121-167 @ e09a6c99` (`101-146 @ 25f26232`);
+`.planning/evidence/editor-spike-2026-10-21.md` § F-ED3.
+
+**Reproduction.** `git show 25f26232:apps/executors/src/aia_executors/report.py | sed -n 101,146p`:
+only the DOCX is stored.
+
+**Consequence.** The Zpráva pane's claim chips, tracked changes, the sentence-level claim check and
+the Lead's report edits had no paragraph to name and no ledger to resolve against (`report-delivery`
+RD5-RD7).
+
+**Smallest fix.** Done (`report-delivery` RD5a): `domain/report/document_model.py`
+(`aia-report-document-1`), stored as `research_internal_document` beside the internal DOCX and
+`research_client_document` beside the client report's, read by `GET …/report/document` and
+`GET …/report/client/document`.
+
+**Test.** `packages/aia_core/tests/test_report_document_model.py`
+(`test_every_section_and_block_has_a_unique_positional_id`, `test_every_cited_ref_resolves_in_the_ledger`,
+`test_the_ledger_prints_what_the_docx_prints`).
+
+**Status.** Closed by #584 (merged as `9f99c78`, 2026-10-21), for the internal draft and the client
+report; the report with literature is retired for new reports by Q58.
+
+---
+
+## OI-189 · Finding, closed · A renamed folder or label lost focus on a busy runner
+
+**Claim.** Renaming a folder or label scheduled the row's focus on the next animation frame, which
+could run before React mounted the row, so focus fell to the page and never came back.
+
+**Anchor.** `apps/web/src/components/aia/clients/KnowledgeOrganizers.tsx:98-101 @ a15c9917` (#569,
+merged as `ec75af1`): `setRenaming(false)` then `requestAnimationFrame(() => row.current?.focus())`.
+
+**Reproduction.** `apps/web/src/components/aia/clients/KnowledgeLibrary.test.tsx:366` ("The row is
+back, under its new name, and focus with it") failed in the Frontend job of #563 (job 119340985792),
+#586 (job 119341510278) and #585 with `document.activeElement` `<body>`; with every frame callback run
+at once it fails on the old hook every run.
+
+**Consequence.** After a rename, a keyboard user's focus jumps to the page; and an unrelated PR's CI
+went red.
+
+**Smallest fix.** Done: `stop` marks a refocus owed, and an effect keyed on `renaming` focuses the row
+after the render that mounted it (`KnowledgeOrganizers.tsx:91-110 @ c98836c`).
+
+**Test.** The same `KnowledgeLibrary.test.tsx` test, now running every `requestAnimationFrame`
+callback at once, so the losing order is pinned.
+
+**Status.** Closed by #596 (merged as `233881c`, 2026-10-21). Develop's own CI did not report it,
+because its runs were cancelled (OI-191).
+
+---
+
+## OI-190 · Finding · Výsledky's "Kish n" column shows the donor-adjusted n
+
+**Claim.** The rated-set table's column labelled Kish n reads `result.effective_n`, the
+donor-adjusted combined support size, instead of Kish's effective n, which the aggregate stores as
+`effective_n_kish`.
+
+**Anchor.** `apps/web/src/lib/result-reading.ts:130 @ c98836c`
+(`const effectiveN = finite(result.effective_n) ? result.effective_n : null;`); Codex review on #566
+at the same line @ `72e3b27b`.
+
+**Reproduction.** A fixture aggregate where the two differ (125.0 against 401.8) shows 125 under
+"Kish n".
+
+**Consequence.** The evidence size printed beside each mean on Výsledky is the wrong one, smaller by
+up to a factor of three where respondents share donors.
+
+**Smallest fix.** Read `effective_n_kish`, and show "—" when it is not stored, never 0.
+
+**Test.** A `result-reading.test.ts` case with 401.8 against 125.0 that expects 401 in the column.
+
+**Status.** Open: the fix is #611 (`fix/results-kish-and-targets`), not merged on 2026-10-21.
+
+---
+
+## OI-191 · Finding · Back-to-back merges cancelled develop's CI for almost six hours
+
+**Claim.** `ci.yml` cancels an in-progress run when a newer one starts on the same ref, develop push
+runs included, so with merges every few minutes no develop run completed and nothing was deployed.
+
+**Anchor.** `.github/workflows/ci.yml:17-19 @ c98836c` (`concurrency: group: ci-${{ github.ref }}`,
+`cancel-in-progress: true`); deploy-develop is dispatched only after CI succeeds
+(`ci.yml:7-9`).
+
+**Reproduction.** `gh api "repos/AiAnalytics-AIA/AIA/actions/runs?branch=develop&event=push&created=2026-10-21&per_page=100"`:
+63 CI push runs on 2026-10-21 (to 20:22 UTC), 57 cancelled, 5 succeeded, 1 in progress. The last to
+complete was `25f26232` (finished 14:32 UTC); the next 37 (`871c62c5` at 14:41 to `13c36ea9` at 20:07)
+were all cancelled, about 5 h 40 min with no completed develop run.
+
+**Consequence.** Develop was neither verified nor deployed for that stretch, across 37 pushes (merges) to
+it; a failure that only develop's merged state shows (OI-189) went unreported there, and the
+deployed site lagged every merge of the afternoon.
+
+**Smallest fix.** Keep cancelling superseded pull-request runs, never develop's or main's push runs:
+`cancel-in-progress: ${{ github.event_name == 'pull_request' }}` in `ci.yml`'s `concurrency` block.
+GitHub then lets the running develop run finish and keeps only the newest pending one, so a develop
+run completes at least once per run time. Batching merges is the no-code alternative.
+
+**Test.** A CI-contract test that reads `ci.yml` and asserts `cancel-in-progress` is false for a push
+to `develop` and `main`; and, after the change, the same listing showing completed develop runs on a
+busy day.
+
+**Status.** Open. Not changed here (a docs-only PR edits no workflow).
