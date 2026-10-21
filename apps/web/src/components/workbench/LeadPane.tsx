@@ -14,7 +14,7 @@ import { lead as leadApi, researcherLead, ApiError, type Readiness, type Researc
 import { ACTION_LABELS } from "@/lib/research-agent-jobs";
 import { appRoutes } from "@/lib/app-routes";
 import type { LeadOutput, LeadRequest, LeadState, LeadTurn, LeadView, ResearcherLead, SelfUpdateDecision } from "@/lib/lead";
-import { droppedLines, pendingSelfUpdate, targetLabel } from "@/lib/lead";
+import { droppedLines, leadReasonWords as reasonWords, pendingSelfUpdate, targetLabel } from "@/lib/lead";
 import { conversationTimeline } from "@/lib/lead-cards";
 import { STAGES, isWorkbenchStage, type WorkbenchStage } from "@/lib/workbench-stages";
 import type { StepKey } from "@/research/steps";
@@ -53,22 +53,6 @@ const kept = new Map<string, { draft: string; queued: Queued[] }>();
 /** An accepted self-update left a file another turn changed since; its notes did apply. The 200
  * names it, and the turn's decision keeps it after a reload. */
 const STALE_SELF_UPDATE = "Soubor se mezitím změnil, požádejte Vedoucího znovu.";
-
-const REASON: Record<string, string> = {
-  research_lead_unavailable: "Vedoucí výzkumu není v tomto prostředí zapnutý.",
-  research_lead_disabled: "Vedoucí výzkumu není v tomto prostředí zapnutý.",
-  egress_unclassified_material: "Tuto zprávu zatím nelze poslat modelu: materiál studie není klasifikovaný. Rozhoduje o tom správce AIA.",
-  egress_no_approved_route: "Vedoucí výzkumu čeká: pro model AI není schválená trasa.",
-  egress_route_not_approved_for_class: "Tuto studii nelze poslat modelu: trasa AI není schválena pro třídu jejích dat.",
-  research_lead_unconfigured: "Vedoucí výzkumu čeká: model AI není pro pracovníka nastavený.",
-  ai_runtime_unavailable: "Vedoucí výzkumu čeká: AI v tomto prostředí neběží.",
-  licence_undetermined: "Tuto studii nelze poslat modelu: licence dat panelu to neumožňuje.",
-  lead_context_too_large: "Studie je pro jednu odpověď příliš velká. Zkuste se zeptat na konkrétní část.",
-  lead_busy: "Vedoucí ještě odpovídá na předchozí zprávu.",
-  lead_not_hatched: "Nejdřív si vylíhněte vlastního Vedoucího výzkumu.",
-  AWAITING_BUDGET: "Vedoucí čeká na rozpočet studie.",
-};
-const reasonWords = (code: string | null) => (code ? REASON[code] ?? `Vedoucí se zastavil (${code}).` : "Vedoucí se zastavil.");
 
 const time = (iso: string) => {
   const d = new Date(iso);
