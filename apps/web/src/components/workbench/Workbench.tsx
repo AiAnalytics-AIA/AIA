@@ -15,6 +15,7 @@ import { type ReactNode, type Ref, useCallback, useEffect, useMemo, useRef, useS
 
 import { ApiError, api, lead as leadApi, research, type Readiness, type ResearchAgentJob, type ResearchRun, type Study } from "@/lib/api";
 import { withBudget } from "@/lib/budget-line";
+import { backEntry, closeStack, emptyStack, type InspectorStack, onStage, openEntry, topEntry } from "@/lib/inspector-stack";
 import { availabilityWords, leadAvailability, type LeadAvailability, type LeadStateWithWorker } from "@/lib/lead-availability";
 import { JOB_STAGE, jobMovesByItself } from "@/lib/lead-cards";
 import { unanswerableAsked } from "@/lib/answerability";
@@ -29,6 +30,7 @@ import {
   CLOSED, DRAWER_LAYOUT_MIN_PX, SPLIT_LAYOUT_MIN_PX, conversationShown, drawerForLayout, isCompact, isModal, nextDrawer, onEscape,
   type DrawerEvent, type DrawerState, type FocusTarget, type WorkbenchLayout,
 } from "@/lib/workbench-layout";
+import { parseAiaId } from "@/lib/workbench-artifacts";
 import { type FocusMode, readSplit, writeSplit } from "@/lib/workbench-split";
 import { PHASES, STAGES, STAGE_ORDER, stageHref, stageOf, stageState, type WorkbenchStage } from "@/lib/workbench-stages";
 import { blockers, designLane, runLane } from "@/research/lane";
@@ -37,8 +39,11 @@ import type { StepKey } from "@/research/steps";
 import type { StudyFrame } from "../rehome/research/frame";
 import { useRuns } from "../rehome/research/StageTrack";
 import { LeadAskContext } from "../rehome/research/AskLead";
+import { ItemInspector } from "../rehome/research/ItemInspector";
 import { Glyph, type GlyphTone } from "./Glyph";
 import { Icon, Mark } from "./Icons";
+import { ItemInspectBody } from "./ItemInspectBody";
+import { ItemInspectorContext, type ItemInspectorApi } from "./item-inspector-context";
 import { LeadPane, type LeadCardsContext } from "./LeadPane";
 import { SampleView } from "./SampleView";
 import { Split } from "./Split";
@@ -229,6 +234,17 @@ export function Workbench({ frame, step, store, memory, save, inspector, reload,
   }, [drawer, layout, moveFocus]);
   const [split, setSplit] = useState(() => readSplit(storage()));
   const [inspectorOpen, setInspectorOpen] = useState(false);
+  // The item inspector (chunk 2): an item a screen opens (a finding, a cited number) over the
+  // artifact, its back stack the stage's own; another stage starts it empty.
+  const [items, setItems] = useState<InspectorStack>(() => emptyStack(stage));
+  const shownItems = onStage(items, stage);
+  const itemInspector = useMemo<ItemInspectorApi>(() => ({
+    open: (entry) => {
+      if (!parseAiaId(entry.id)) return false;
+      setItems((s) => openEntry(onStage(s, stage), entry));
+      return true;
+    },
+  }), [stage]);
   const [turns, setTurns] = useState<LeadTurn[]>([]);
   const [leadEpoch, setLeadEpoch] = useState(0);
   // Automatic text edits (inline-decisions 2): the researcher's choice, the turns already finished
@@ -635,8 +651,15 @@ export function Workbench({ frame, step, store, memory, save, inspector, reload,
                 <div className="artbody" id="artbody"><div className="wb-stage">
                   {stage === "sample" ? <SampleView project={state.project} onOpen={go} /> : null}
                   {/* Sample shows Dimenze's screen hidden, so its readiness still reaches the inspector. */}
-                  <div hidden={stage === "sample"}><LeadAskContext.Provider value={askLead}>{children}</LeadAskContext.Provider></div>
+                  <div hidden={stage === "sample"}><LeadAskContext.Provider value={askLead}><ItemInspectorContext.Provider value={itemInspector}>{children}</ItemInspectorContext.Provider></LeadAskContext.Provider></div>
                 </div></div>
+                {topEntry(shownItems) ? (
+                  <div className="itemdrawer">
+                    <ItemInspector stack={shownItems} onBack={() => setItems((s) => backEntry(onStage(s, stage)))} onClose={() => setItems((s) => closeStack(onStage(s, stage)))}>
+                      {(entry) => <ItemInspectBody entry={entry} />}
+                    </ItemInspector>
+                  </div>
+                ) : null}
                 <aside className="insp" aria-label="Připravenost a pomoc" hidden={!inspectorOpen}>
                   <div className="insp__head">
                     <div style={{ minWidth: 0, flex: 1 }}><div className="insp__title">Připravenost a pomoc</div><div className="insp__sub">{STAGES[stage].label}</div></div>

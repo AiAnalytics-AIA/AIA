@@ -14,6 +14,7 @@ import type { ResearchProject } from "@/research/model";
 import { ResearchStore } from "@/research/store";
 import { TEST_FRAME } from "../rehome/research/test-frame";
 import { EMPTY_PROJECT } from "../rehome/research/test-workspace";
+import { useItemInspector } from "./item-inspector-context";
 import { Workbench } from "./Workbench";
 
 vi.mock("next/navigation", () => ({ useRouter: () => ({ push: vi.fn(), replace: vi.fn() }), usePathname: () => "/app" }));
@@ -82,12 +83,25 @@ afterEach(() => {
   sessionStorage.clear();
 });
 
-function bench() {
+let opened: boolean[] = [];
+function Opener() {
+  const inspector = useItemInspector();
+  return (
+    <div>
+      <div data-aia="question:q1" id="qedit_q1">Jak často pijete čaj?</div>
+      <button type="button" onClick={() => opened.push(inspector?.open({ id: "question:q1", title: "Otázka q1", sub: "Dotazník" }) ?? false)}>open q1</button>
+      <button type="button" onClick={() => opened.push(inspector?.open({ id: "measure:q1", title: "Měření q1" }) ?? false)}>open m1</button>
+      <button type="button" onClick={() => opened.push(inspector?.open({ id: "question:Q 2", title: "Bad" }) ?? false)}>open bad</button>
+    </div>
+  );
+}
+
+function bench(child = <Stage />) {
   const store = new ResearchStore({ revision: 3, project: EMPTY_PROJECT as unknown as ResearchProject, analysis: null, save: { kind: "saved" }, checkEpoch: 0 }, "STU-1");
   return render(
     <Workbench frame={TEST_FRAME} step="questionnaire" store={store} memory={new Map()} save={null} inspector={null} reload={vi.fn()} confirm={vi.fn(async () => true)}
       onAgentStarted={vi.fn()} jobs={[]} onOpenJob={vi.fn()} onRefreshJobs={vi.fn(async () => [])}>
-      <Stage />
+      {child}
     </Workbench>,
   );
 }
@@ -295,5 +309,46 @@ describe("the compact header and stage navigator (26d)", () => {
     expect(document.querySelector(".shead__state")).toBeNull();
     fireEvent.click(screen.getByRole("button", { name: "Nabídka" }));
     expect(screen.getByRole("menu").textContent).toMatch(/Rozpočet nenastaven/);
+  });
+});
+
+describe("the item inspector", () => {
+  beforeEach(() => {
+    opened = [];
+  });
+
+  it("opens what a screen clicks over the artifact, its back stack the stage's, and closes on Escape", async () => {
+    bench(<Opener />);
+    expect(document.querySelector("[data-item-inspector]")).toBeNull();
+    fireEvent.click(screen.getByRole("button", { name: "open q1" }));
+    const drawer = document.querySelector("[data-item-inspector]")!;
+    expect(drawer.getAttribute("data-item-inspector")).toBe("question:q1");
+    expect(drawer.closest(".artstage")).toBeTruthy();
+    expect(drawer.closest("#artbody")).toBeNull();
+    expect(drawer.textContent).toMatch(/Otázka q1/);
+    // A kind with no body of its own shows what was opened and a way to it on the page.
+    Element.prototype.scrollIntoView = vi.fn();
+    fireEvent.click(screen.getByRole("button", { name: "Ukázat na stránce" }));
+    expect(document.activeElement?.id).toBe("qedit_q1");
+    fireEvent.click(screen.getByRole("button", { name: "open m1" }));
+    expect(document.querySelector("[data-item-inspector]")!.getAttribute("data-item-inspector")).toBe("measure:q1");
+    fireEvent.click(screen.getByRole("button", { name: "Zpět" }));
+    expect(document.querySelector("[data-item-inspector]")!.getAttribute("data-item-inspector")).toBe("question:q1");
+    fireEvent.keyDown(window, { key: "Escape" });
+    await waitFor(() => expect(document.querySelector("[data-item-inspector]")).toBeNull());
+    expect(opened).toEqual([true, true]);
+  });
+
+  it("refuses an id outside the contract's grammar and opens nothing", () => {
+    bench(<Opener />);
+    fireEvent.click(screen.getByRole("button", { name: "open bad" }));
+    expect(opened).toEqual([false]);
+    expect(document.querySelector("[data-item-inspector]")).toBeNull();
+  });
+
+  it("answers null outside the workbench, so a screen keeps its own behaviour", () => {
+    render(<Opener />);
+    fireEvent.click(screen.getByRole("button", { name: "open q1" }));
+    expect(opened).toEqual([false]);
   });
 });

@@ -3,6 +3,7 @@ status: in-progress
 chunks:
   - "[x] 1. Split layout: pure width, keyboard and focus-mode rules with the prototype's bounds"
   - "[x] 2. Inspector back stack: pure state and the item drawer, beside InspectorSlot"
+  - "[x] 2a. The item drawer mounted in the workbench and opened from a screen's click (useItemInspector); bodies by kind (ItemInspectBody BODIES); the Lead's inspect op still to come"
   - "[x] 3. Port the prototype's workbench frame: stylesheet, icons, study header, phase navigator over lane.ts, split, rail"
   - "[x] 4. Mount the workbench as the study screen behind AIA_WEB_RESEARCH_WORKBENCH (on for develop): artifact header and state bars over the existing stage screens"
   - "[x] 5. Lead backend: study_lead_turns, StudyLeadRepository, ResearchLead, /lead routes, research_lead template and executor, settings"
@@ -1195,3 +1196,25 @@ Recommended with LO12b, whose record makes the disagreement visible instead.
 - `deploy/develop/README.md` (the switches): the same rule; develop states `true` by Compose.
 - `docs/architecture/adr/0026-…` *Accepted with*: Q42's refusal and the switch stated per
   deployment.
+
+## 2a. The item drawer, opened from a click (2026-10-21)
+
+Chunk 2 built `ItemInspector` and its stack, but nothing mounted it. Analýza asked for a way to
+open a finding or a cited number in it from a click (ANL3).
+
+- **The workbench owns the stack.** It holds `lib/inspector-stack.ts` state and draws
+  `ItemInspector` over the artifact pane (`.itemdrawer`, inside `.artstage`, outside `#artbody`),
+  so `@`'s picking never lands on it.
+- **Moving to another stage starts it empty** (`onStage`).
+- **A screen opens an entry with `useItemInspector()?.open({ id, title, sub })`**
+  (`components/workbench/item-inspector-context.tsx`).
+  - An id outside `parseAiaId`'s grammar opens nothing and answers false.
+  - Outside the workbench the hook is null, and the screen keeps its own behaviour.
+- **Bodies are by kind** (`ItemInspectBody.tsx` `BODIES`), each written by the stage that owns the
+  kind. Analýza adds `finding` and `claim` (`AnalysisInspect`, #610); `module` stays on the page.
+- **A kind with no body** shows what was opened and "Ukázat na stránce", never a detail it does not
+  have.
+- **Not yet:** the Lead's own `inspect` view op stays non-live until the server's `LeadView` carries
+  it.
+- Tests: `Workbench.layout.test.tsx` "the item inspector".
+
