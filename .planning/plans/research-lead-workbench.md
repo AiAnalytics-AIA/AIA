@@ -283,7 +283,7 @@ The backend each chunk needs is in `.planning/mvp-consolidation.md` §6.
     an unsaved copy. Tests: `offers a loaded proposal only under the run it belongs to`,
     `saves an edit typed during the save before it accepts, so the accept keeps it`,
     `never posts while the copy still has an unsaved edit` (each fails on 054cf007).
-- **F4. Two `flush` waiters behind one in-flight save both save from the same base** *(found on
+- **F-STORE-1. Two `flush` waiters behind one in-flight save both save from the same base** *(found on
   #554; not fixed there)*.
   1. Claim: `ResearchStore.flush` awaits the save in flight, then reads the state and sends. Two
      callers waiting on the same save both resume, and both send `base_revision` = the revision
@@ -324,7 +324,7 @@ The backend each chunk needs is in `.planning/mvp-consolidation.md` §6.
   ticked items accepted through `POST …/design-proposal/accept`, then the working copy reloaded;
   `lib/design-research-review.ts`, its pure part (readProposal, acceptBody, refusalWords); `lib/api.ts`
   `deepResearch.acceptDesignProposal`. `.planning/open-items.md`: F-DRL-1, closed by chunk 7b;
-  F4 (two `flush` waiters save from the same base), open.
+  F-STORE-1 (two `flush` waiters save from the same base), open.
 - **ADR 0026**, under *Accepted with*: the Lead steers the artifact pane through a closed set of
   display operations (D10); its gates are unchanged.
 
