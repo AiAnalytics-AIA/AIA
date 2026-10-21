@@ -8,6 +8,8 @@
 // are typed; everything else is carried through untouched, so a screen never
 // drops a field it does not know.
 
+import { type BriefMaterial, materialSignature } from "./brief-materials";
+
 export type Json = null | boolean | number | string | Json[] | { [k: string]: Json };
 type Obj = { [k: string]: Json };
 
@@ -36,6 +38,8 @@ export type Briefing = Obj & {
   review_comments?: string;
   attachments?: Attachment[];
   attachments_context?: string;
+  /** Client datasets the Brief names (client-data-in-analysis 8a, proposed); never their rows. */
+  materials?: BriefMaterial[];
 };
 
 export type ResearchProject = Obj & {
@@ -160,5 +164,8 @@ export function briefFingerprint(p: ResearchProject): string {
     problem_types: selectedProblemTypes(p).slice().sort(),
     review_comments: String(b.review_comments || ""),
     attachments: (b.attachments || []).map((x) => x.sha256 || x.url || x.filename),
+    // The Brief's materials (client-data-in-analysis 8a, proposed): signed only when there are
+    // any, so every brief signed before them keeps its signature.
+    ...(Array.isArray(b.materials) && b.materials.length ? { materials: materialSignature(b.materials) } : {}),
   });
 }

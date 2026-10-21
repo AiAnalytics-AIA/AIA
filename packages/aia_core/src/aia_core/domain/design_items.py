@@ -46,6 +46,8 @@ from collections.abc import Iterable, Mapping
 from dataclasses import dataclass
 from typing import Any, Final, Literal
 
+from .brief_materials import material_signature
+
 __all__ = [
     "Documents",
     "ItemKey",
@@ -529,7 +531,7 @@ def brief_signature(content: Mapping[str, Any]) -> str:
     """
     briefing = _mapping(content.get("briefing"))
     attachments = briefing.get("attachments") or []
-    signed = {
+    signed: dict[str, Any] = {
         "goal": _trim(_js_string(content.get("goal"))),
         "decision_use": _trim(_js_string(content.get("decision_use"))),
         "product_description": _trim(_js_string(briefing.get("product_description"))),
@@ -545,4 +547,9 @@ def brief_signature(content: Mapping[str, Any]) -> str:
             for x in (attachments if isinstance(attachments, list) else [])
         ],
     }
+    # The Brief's materials (client-data-in-analysis 8a, proposed): signed only when there are
+    # any, so every brief signed before them keeps its signature byte for byte.
+    materials = briefing.get("materials")
+    if isinstance(materials, list) and materials:
+        signed["materials"] = material_signature(materials)
     return json.dumps(signed, ensure_ascii=False, separators=(",", ":"))

@@ -4812,6 +4812,157 @@
    "name": "empty",
    "content": {},
    "signature": "{\"goal\":\"\",\"decision_use\":\"\",\"product_description\":\"\",\"situation\":\"\",\"what_is_known\":\"\",\"constraints\":\"\",\"problem_types\":[],\"review_comments\":\"\",\"attachments\":[]}"
+  },
+  {
+   "name": "materials: an empty list signs as a brief without materials",
+   "content": {
+    "title": "Fiktivní návštěvnost poboček",
+    "goal": "Porovnat návštěvnost poboček s výzkumem",
+    "decision_use": "Kde otevřít pobočku",
+    "briefing": {
+     "product_description": "Fiktivní banka",
+     "situation": "",
+     "what_is_known": "",
+     "constraints": "",
+     "attachments": [],
+     "materials": []
+    }
+   },
+   "signature": "{\"goal\":\"Porovnat návštěvnost poboček s výzkumem\",\"decision_use\":\"Kde otevřít pobočku\",\"product_description\":\"Fiktivní banka\",\"situation\":\"\",\"what_is_known\":\"\",\"constraints\":\"\",\"problem_types\":[],\"review_comments\":\"\",\"attachments\":[]}"
+  },
+  {
+   "name": "materials: a client dataset with no contract named",
+   "content": {
+    "title": "Fiktivní návštěvnost poboček",
+    "goal": "Porovnat návštěvnost poboček s výzkumem",
+    "decision_use": "Kde otevřít pobočku",
+    "briefing": {
+     "product_description": "Fiktivní banka",
+     "situation": "",
+     "what_is_known": "",
+     "constraints": "",
+     "attachments": [],
+     "materials": [
+      {
+       "kind": "client_dataset",
+       "source_id": "SRC-0123456789abcdef",
+       "reading_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+      }
+     ]
+    }
+   },
+   "signature": "{\"goal\":\"Porovnat návštěvnost poboček s výzkumem\",\"decision_use\":\"Kde otevřít pobočku\",\"product_description\":\"Fiktivní banka\",\"situation\":\"\",\"what_is_known\":\"\",\"constraints\":\"\",\"problem_types\":[],\"review_comments\":\"\",\"attachments\":[],\"materials\":[{\"source_id\":\"SRC-0123456789abcdef\",\"reading_sha256\":\"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\",\"contract_id\":null,\"contract_version\":null}]}"
+  },
+  {
+   "name": "materials: a dataset under a named contract",
+   "content": {
+    "title": "Fiktivní návštěvnost poboček",
+    "goal": "Porovnat návštěvnost poboček s výzkumem",
+    "decision_use": "Kde otevřít pobočku",
+    "briefing": {
+     "product_description": "Fiktivní banka",
+     "situation": "",
+     "what_is_known": "",
+     "constraints": "",
+     "attachments": [],
+     "materials": [
+      {
+       "kind": "client_dataset",
+       "source_id": "SRC-0123456789abcdef",
+       "reading_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+       "contract_id": "CDC-visits",
+       "contract_version": 2
+      }
+     ]
+    }
+   },
+   "signature": "{\"goal\":\"Porovnat návštěvnost poboček s výzkumem\",\"decision_use\":\"Kde otevřít pobočku\",\"product_description\":\"Fiktivní banka\",\"situation\":\"\",\"what_is_known\":\"\",\"constraints\":\"\",\"problem_types\":[],\"review_comments\":\"\",\"attachments\":[],\"materials\":[{\"source_id\":\"SRC-0123456789abcdef\",\"reading_sha256\":\"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\",\"contract_id\":\"CDC-visits\",\"contract_version\":2}]}"
+  },
+  {
+   "name": "materials: an entry claiming eligibility signs as one that does not",
+   "content": {
+    "title": "Fiktivní návštěvnost poboček",
+    "goal": "Porovnat návštěvnost poboček s výzkumem",
+    "decision_use": "Kde otevřít pobočku",
+    "briefing": {
+     "product_description": "Fiktivní banka",
+     "situation": "",
+     "what_is_known": "",
+     "constraints": "",
+     "attachments": [],
+     "materials": [
+      {
+       "kind": "client_dataset",
+       "source_id": "SRC-0123456789abcdef",
+       "reading_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+       "contract_id": "CDC-visits",
+       "contract_version": 2,
+       "eligibility": "eligible",
+       "admitted": true
+      }
+     ]
+    }
+   },
+   "signature": "{\"goal\":\"Porovnat návštěvnost poboček s výzkumem\",\"decision_use\":\"Kde otevřít pobočku\",\"product_description\":\"Fiktivní banka\",\"situation\":\"\",\"what_is_known\":\"\",\"constraints\":\"\",\"problem_types\":[],\"review_comments\":\"\",\"attachments\":[],\"materials\":[{\"source_id\":\"SRC-0123456789abcdef\",\"reading_sha256\":\"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\",\"contract_id\":\"CDC-visits\",\"contract_version\":2}]}"
+  },
+  {
+   "name": "materials: a newer reading of the same source is another signature",
+   "content": {
+    "title": "Fiktivní návštěvnost poboček",
+    "goal": "Porovnat návštěvnost poboček s výzkumem",
+    "decision_use": "Kde otevřít pobočku",
+    "briefing": {
+     "product_description": "Fiktivní banka",
+     "situation": "",
+     "what_is_known": "",
+     "constraints": "",
+     "attachments": [],
+     "materials": [
+      {
+       "kind": "client_dataset",
+       "source_id": "SRC-0123456789abcdef",
+       "reading_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+       "contract_id": "CDC-visits",
+       "contract_version": 2
+      }
+     ]
+    }
+   },
+   "signature": "{\"goal\":\"Porovnat návštěvnost poboček s výzkumem\",\"decision_use\":\"Kde otevřít pobočku\",\"product_description\":\"Fiktivní banka\",\"situation\":\"\",\"what_is_known\":\"\",\"constraints\":\"\",\"problem_types\":[],\"review_comments\":\"\",\"attachments\":[],\"materials\":[{\"source_id\":\"SRC-0123456789abcdef\",\"reading_sha256\":\"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb\",\"contract_id\":\"CDC-visits\",\"contract_version\":2}]}"
+  },
+  {
+   "name": "materials: order kept; a non-object, a fractional or textual version read as null",
+   "content": {
+    "title": "Fiktivní návštěvnost poboček",
+    "goal": "Porovnat návštěvnost poboček s výzkumem",
+    "decision_use": "Kde otevřít pobočku",
+    "briefing": {
+     "product_description": "Fiktivní banka",
+     "situation": "",
+     "what_is_known": "",
+     "constraints": "",
+     "attachments": [],
+     "materials": [
+      {
+       "kind": "client_dataset",
+       "source_id": "SRC-0123456789abcdef",
+       "reading_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+      },
+      "SRC-x",
+      {
+       "source_id": "SRC-0123456789abcdef",
+       "reading_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+       "contract_id": "CDC-visits",
+       "contract_version": 2.5
+      },
+      {
+       "source_id": 5,
+       "contract_version": "2"
+      }
+     ]
+    }
+   },
+   "signature": "{\"goal\":\"Porovnat návštěvnost poboček s výzkumem\",\"decision_use\":\"Kde otevřít pobočku\",\"product_description\":\"Fiktivní banka\",\"situation\":\"\",\"what_is_known\":\"\",\"constraints\":\"\",\"problem_types\":[],\"review_comments\":\"\",\"attachments\":[],\"materials\":[{\"source_id\":\"SRC-0123456789abcdef\",\"reading_sha256\":\"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb\",\"contract_id\":null,\"contract_version\":null},null,{\"source_id\":\"SRC-0123456789abcdef\",\"reading_sha256\":\"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\",\"contract_id\":\"CDC-visits\",\"contract_version\":null},{\"source_id\":null,\"reading_sha256\":null,\"contract_id\":null,\"contract_version\":null}]}"
   }
  ],
  "merges": [
