@@ -138,6 +138,15 @@ open: the frame wiring `inspect` and a person's click to it (the integration coo
 **ANL4. Blocked claims and diagnostics.** Test: a module stored BLOCKED shows "Potřebuje opravu",
 never "Hotovo" (`needsRepair`). Depends on `evidence-integrity#9a`.
 
+The part that needs no new API has landed; the chunk stays open for evidence-integrity 9a's diagnostic.
+- `lib/analysis-blocked.ts` (`blockedModules`): every module stored BLOCKED, in module order, its stored
+  violations grouped by reason with every subject named.
+- `AnalysisBlocked.tsx`: "Blokované nároky" on the analysis, each reason in words (`research.exec.violation`,
+  every `ViolationCode` worded, held to `domain/evidence/gate.py` by `analysis-blocked.test.ts`; a code without
+  words keeps its code), the subjects, technical details folded. The way out: the Lead (`AskLead`) when the Lead
+  owns AI starts, else the run's Průběh, where the same-data retry is.
+- Still open: N-3 (per-claim refusals as stored, a new API) and 9a's "no supported finding" diagnostic.
+
 **ANL5. Registers.** Test: an external finding is labelled "Externí kontext" and has no claim chip.
 Depends on `evidence-integrity#7`, `lead-orchestration#LO9b`.
 

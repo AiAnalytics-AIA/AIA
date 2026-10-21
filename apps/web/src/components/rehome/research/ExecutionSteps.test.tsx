@@ -1718,6 +1718,41 @@ describe("Results", () => {
     expect(section.querySelectorAll("tr[data-rq]")).toHaveLength(0);
   });
 
+  it("names each blocked module's refusals in words with the way out, and never reads it as done (ANL4)", async () => {
+    const analysed = run({ ...COMPLETED, steps: [...COMPLETED.steps,
+      step("analysis_executive", "SUCCEEDED", { kind: "research_analysis", artifact_id: "ART-6", analysis_outcome: "COMPLETED" }),
+      step("analysis_hypotheses", "SUCCEEDED", { kind: "research_analysis", artifact_id: "ART-9", analysis_outcome: "BLOCKED" }),
+    ] });
+    api({ ...listed(analysed),
+      "GET /api/v1/studies/STU-1/research/runs/RUN-1/artifacts/ART-4": () => AGGREGATE,
+      "GET /api/v1/studies/STU-1/research/runs/RUN-1/analysis": () => ({ complete: false, synthetic: true, pending: {}, modules: {
+        executive: { outcome: "COMPLETED", summary: null, research_question_answers: [], key_findings: [], claims: [], violations: [] },
+        hypotheses: { outcome: "BLOCKED", summary: null, research_question_answers: [], key_findings: [], claims: [], violations: [
+          { code: "EVIDENCE_REF_UNKNOWN", subject: "c1", detail: "q9.mean not in the run's table" },
+          { code: "EVIDENCE_REF_UNKNOWN", subject: "c2", detail: "q9.mean not in the run's table" },
+          { code: "NOT_A_KNOWN_CODE", subject: "summary", detail: "x" },
+        ] },
+      } }),
+    });
+    render(<ResearchScreen step="results" frame={TEST_FRAME} />);
+    fireEvent.click(await screen.findByRole("tab", { name: "AI analýza" }));
+    const blocked = await screen.findByRole("region", { name: "Blokované nároky" });
+    const blockedEntry = blocked.querySelector('[data-blocked-module="hypotheses"]') as HTMLElement;
+    expect(blockedEntry.textContent).toContain("Potřebuje opravu");
+    // Each reason once, in words, with every subject it named; a code without words keeps its code.
+    expect(blockedEntry.querySelectorAll("[data-violation]")).toHaveLength(2);
+    expect(within(blockedEntry).getByText(/cituje číslo, které v datech běhu není/)).toBeTruthy();
+    expect(blockedEntry.textContent).toContain("c1");
+    expect(blockedEntry.textContent).toContain("c2");
+    expect(blockedEntry.textContent).toContain("NOT_A_KNOWN_CODE");
+    expect(blocked.querySelector('[data-blocked-module="executive"]')).toBeNull();
+    // The way out, and the blockedEntry list never says it is done.
+    expect(within(blocked).getByRole("link", { name: "Zobrazit průběh běhu" })).toBeTruthy();
+    const entry = screen.getByRole("button", { name: /Hypotézy/ });
+    expect(entry.textContent).toContain("Potřebuje opravu");
+    expect(entry.textContent).not.toMatch(/Dokončeno|Hotovo/);
+  });
+
   it("puts every module's key findings first, each with the numbers it cites, and keeps every word formatted", async () => {
     const analysed = run({ ...COMPLETED, steps: [...COMPLETED.steps,
       step("analysis_executive", "SUCCEEDED", { kind: "research_analysis", artifact_id: "ART-6" }),

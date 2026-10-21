@@ -91,6 +91,7 @@ import { codedText, codeWords } from "@/lib/reason-words";
 import { withBudget } from "@/lib/budget-line";
 import { reportStatus, reportStatusWords } from "@/lib/report-status";
 import type { Tone } from "@/lib/tone";
+import { AnalysisBlocked } from "./AnalysisBlocked";
 import { AnalysisCoverage, AnalysisMilestones } from "./AnalysisCoverage";
 import { setShownAnalysis } from "./AnalysisInspect";
 import { CodedWords } from "./CodedWords";
@@ -1676,6 +1677,7 @@ function AnalysisResults({ run, spec, progressHref }: { run: ResearchRun; spec: 
         <div className="flex flex-col gap-4">
           <AnalysisMilestones run={run} analysis={analysis} />
           <AnalysisCoverage run={run} analysis={analysis} />
+          <AnalysisBlocked analysis={analysis} progressHref={progressHref} />
           <section data-analysis-overview className={`rounded-md border p-4 ${blocked ? "border-status-fault/40 bg-status-fault-wash" : "border-border bg-surface-sunken"}`}>
             <p className="text-sm font-semibold">{complete} z {ANALYSIS_ORDER.length} částí analýzy dokončeno{blocked ? ` · k opravě: ${blocked}` : ""}</p>
             <p className="mt-1 text-sm leading-6 text-ink-muted">{blocked
