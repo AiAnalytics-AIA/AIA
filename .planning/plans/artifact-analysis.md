@@ -1,8 +1,8 @@
 ---
-status: planned
+status: in-progress
 chunks:
   - "[ ] ANL1. Analýza's contract as data: view operations, pointable ids (module, finding, claim, research question) and V2's interaction contract"
-  - "[ ] ANL2. Milestones and Pokrytí výzkumných otázek: each research question with its answer state, the findings that answer it and what is missing"
+  - "[x] ANL2. Milestones and Pokrytí výzkumných otázek: each research question with its answer state, the findings that answer it and what is missing"
   - "[ ] ANL3. Findings with their claim and source chips, opened in the inspector down to the measure on Výsledky"
   - "[ ] ANL4. Blokované nároky and a module with no supported finding, each with its reason and the way out"
   - "[ ] ANL5. The three registers apart: findings, labelled interpretation, external context from the sealed bundle"
@@ -98,6 +98,18 @@ V2: `AnalysisArt` (`InterpretStages.tsx:37-101`).
 
 **ANL2. Coverage.** Test: an RQ recorded as a gap at start reads "bez doložené odpovědi" with the
 recorded reason.
+
+Landed ahead of ANL1, whose registry (`research-lead-workbench#14`, `#16`) is not on develop yet:
+`lib/analysis-coverage.ts` (`coverage`, `findingsOf`, `rqTarget`, `findingAnchor`) and
+`AnalysisCoverage.tsx` (the table and the milestones Sběr dokončen and Povinná analýza; Zpráva
+zrevidována is Zpráva's, read there). The research questions are the frozen Design Revision's
+(`researchQuestionsOf`), else the research-questions module's own. A finding answers a question when it
+cites a measure (`evidence_ref`) the module's answer cites; a module stored BLOCKED reads "nelze
+říct", never an answer. Targets `module:research_questions` (the table) and `finding:<module>:<n>`,
+plain strings until ANL1's `aiaId` (#563). No `rq:` target: the coordinator ruled (#563 f174ea5) that
+`rq:<id>` belongs to the design row and waits for stable research-question ids (WCE1); ANL8's Lead
+focus lands on `module:research_questions` or the answering finding until then. Tests: `analysis-coverage.test.ts`, `ExecutionSteps.test.tsx` "covers
+every research question … (ANL2)".
 
 **ANL3. Findings.** Test: a claim chip resolves to its measure on Výsledky (`citedMeasure`); an
 unresolved ref is kept as a code, never as text.

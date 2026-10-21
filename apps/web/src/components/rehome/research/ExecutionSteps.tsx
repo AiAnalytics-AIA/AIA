@@ -12,6 +12,7 @@ import { useRouter } from "next/navigation";
 import { type ReactNode, useCallback, useContext, useEffect, useRef, useState } from "react";
 
 import { t, tv } from "@/i18n/t";
+import { findingAnchor, findingId } from "@/lib/analysis-coverage";
 import {
   ApiError,
   api,
@@ -88,6 +89,7 @@ import { codedText, codeWords } from "@/lib/reason-words";
 import { withBudget } from "@/lib/budget-line";
 import { reportStatus, reportStatusWords } from "@/lib/report-status";
 import type { Tone } from "@/lib/tone";
+import { AnalysisCoverage, AnalysisMilestones } from "./AnalysisCoverage";
 import { CodedWords } from "./CodedWords";
 import { CONFLICT_MESSAGE, submitWorkingDesign } from "@/research/store";
 import { projectVariants, selectedVariant } from "@/research/plan";
@@ -1639,6 +1641,8 @@ function AnalysisResults({ run, spec, progressHref }: { run: ResearchRun; spec: 
       ) : null}
       {analysis ? (
         <div className="flex flex-col gap-4">
+          <AnalysisMilestones run={run} analysis={analysis} />
+          <AnalysisCoverage run={run} analysis={analysis} />
           <section data-analysis-overview className={`rounded-md border p-4 ${blocked ? "border-status-fault/40 bg-status-fault-wash" : "border-border bg-surface-sunken"}`}>
             <p className="text-sm font-semibold">{complete} z {ANALYSIS_ORDER.length} částí analýzy dokončeno{blocked ? ` · k opravě: ${blocked}` : ""}</p>
             <p className="mt-1 text-sm leading-6 text-ink-muted">{blocked
@@ -1655,7 +1659,7 @@ function AnalysisResults({ run, spec, progressHref }: { run: ResearchRun; spec: 
                 <h4 className="text-xs font-semibold uppercase tracking-wide text-ink-muted">{stepLabel(`analysis_${id}`)}</h4>
                 <ul className="mt-2 flex flex-col gap-3">
                   {outcome.key_findings.map((finding, index) => (
-                    <li key={index} className="border-l-2 border-signal pl-3">
+                    <li key={index} id={findingAnchor({ module: id, index })} data-aia={`finding:${findingId({ module: id, index })}`} className="scroll-mt-4 border-l-2 border-signal pl-3">
                       <FormattedText text={finding.text} />
                       <CitedNumbers ids={finding.claim_ids} outcome={outcome} spec={spec} />
                     </li>
