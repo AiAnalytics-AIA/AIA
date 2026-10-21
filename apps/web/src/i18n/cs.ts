@@ -3127,6 +3127,7 @@ export const cs = {
     number: {
       empty: "Zadejte číslo {range}; neuloženo.",
       notNumber: "„{raw}“ není číslo; neuloženo.",
+      ambiguous: "„{raw}“ je nejednoznačné: tisíce oddělte mezerou, desetinná místa čárkou; neuloženo.",
       notInteger: "Jen celé číslo; neuloženo.",
       oneDecimal: "Nejvýš jedno desetinné místo; neuloženo.",
       tooPrecise: "Nejvýš {decimals} desetinná místa; neuloženo.",

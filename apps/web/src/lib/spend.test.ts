@@ -29,6 +29,16 @@ describe("the money modal's words (I7a, D-01)", () => {
     expect(remainingAfter({ name: "study_budget", usd: 80, remainingUsd: 57.8 }, 28.4)).toBe(29.4);
   });
 
+  it("calls an overrun under half a cent an overrun, and binary noise exactly enough (review of #532)", () => {
+    const line = { name: "study_budget" as const, usd: 80, remainingUsd: 1 };
+    const after = remainingAfter(line, 1.004);
+    expect(after).toBeLessThan(0);
+    expect(afterWords(after)).toBe("Může stát víc, než zbývá: krok se pak zastaví a počká na zvýšení.");
+    // 0.3 - 0.1 - 0.2 is -2.8e-17 in binary: exactly enough, not an overrun.
+    expect(remainingAfter({ name: "study_budget", usd: 1, remainingUsd: 0.3 - 0.1 }, 0.2)).toBe(0);
+    expect(Object.is(remainingAfter({ name: "study_budget", usd: 1, remainingUsd: 1 }, 1), 0)).toBe(true);
+  });
+
   it("concludes nothing from a missing figure", () => {
     expect(remainingAfter(undefined, 1)).toBeNull();
     expect(remainingAfter({ name: "study_budget", usd: 80, remainingUsd: null }, 1)).toBeNull();

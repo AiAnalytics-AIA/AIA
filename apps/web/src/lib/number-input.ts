@@ -17,6 +17,7 @@ export type NumberBounds = {
 export type NumberProblem =
   | { kind: "empty" }
   | { kind: "notNumber"; raw: string }
+  | { kind: "ambiguous"; raw: string }
   | { kind: "tooPrecise"; decimals: number }
   | { kind: "outOfRange"; value: number };
 
@@ -25,6 +26,7 @@ export type NumberReading = { ok: true; value: number } | { ok: false; problem: 
 // Spaces a person (or a pasted Czech figure) puts between thousands: space, NBSP, narrow NBSP.
 const GROUPING = /[\s  ]/g;
 const NUMERAL = /^-?\d+(?:\.(\d+))?$/;
+const AMBIGUOUS_DOT = /^-?\d+\.\d{3}$/;
 // Minus signs a value can carry back into the field: formatNumber's own U+2212, and the dashes a
 // pasted figure or a keyboard's autocorrect writes for it (figure dash, en dash, small and
 // full-width hyphen-minus). Each is read as "-", so a displayed negative value edits and saves.
@@ -34,6 +36,9 @@ const MINUS = /[−‒–﹣－]/g;
 export function readNumber(raw: string, bounds: NumberBounds): NumberReading {
   const text = raw.replace(GROUPING, "").replace(MINUS, "-").replace(",", ".");
   if (!text) return { ok: false, problem: { kind: "empty" } };
+  // "1.000" is a thousand to a Czech eye and one to an English one; "1.250" likewise. A dot with
+  // exactly three digits after it is refused as ambiguous, never guessed (review of #532).
+  if (AMBIGUOUS_DOT.test(raw.replace(GROUPING, "").replace(MINUS, "-"))) return { ok: false, problem: { kind: "ambiguous", raw: raw.trim() } };
   const m = NUMERAL.exec(text);
   if (!m) return { ok: false, problem: { kind: "notNumber", raw: raw.trim() } };
   const decimals = bounds.decimals ?? 0;
@@ -101,6 +106,8 @@ export function numberProblemWords(problem: NumberProblem, bounds: NumberBounds,
       return tv("input.number.empty", { range });
     case "notNumber":
       return tv("input.number.notNumber", { raw: problem.raw });
+    case "ambiguous":
+      return tv("input.number.ambiguous", { raw: problem.raw });
     case "tooPrecise":
       if (problem.decimals === 0) return t("input.number.notInteger");
       if (problem.decimals === 1) return t("input.number.oneDecimal");

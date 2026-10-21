@@ -41,6 +41,18 @@ describe("readNumber: a typed value is accepted as typed or refused, never clamp
     for (let v = -10; v <= 10; v += 0.5) expect(readNumber(formatNumber(v, 1), B)).toEqual({ ok: true, value: v });
   });
 
+  it("refuses a dot with three digits after it as ambiguous, never guessing (review of #532)", () => {
+    const B = { min: 0, max: 5000, decimals: 3 };
+    expect(readNumber("1.000", B)).toEqual({ ok: false, problem: { kind: "ambiguous", raw: "1.000" } });
+    expect(readNumber("1.250", B)).toEqual({ ok: false, problem: { kind: "ambiguous", raw: "1.250" } });
+    expect(numberProblemWords({ kind: "ambiguous", raw: "1.250" }, B)).toBe("„1.250“ je nejednoznačné: tisíce oddělte mezerou, desetinná místa čárkou; neuloženo.");
+    // Unambiguous forms still read.
+    expect(readNumber("1,250", B)).toEqual({ ok: true, value: 1.25 });
+    expect(readNumber("1 250", B)).toEqual({ ok: true, value: 1250 });
+    expect(readNumber("1.25", B)).toEqual({ ok: true, value: 1.25 });
+    expect(readNumber("1.2500", { ...B, decimals: 4 })).toEqual({ ok: true, value: 1.25 });
+  });
+
   it("refuses what is not a number", () => {
     expect(readNumber("abc", N)).toEqual({ ok: false, problem: { kind: "notNumber", raw: "abc" } });
     expect(readNumber("1e3", N)).toEqual({ ok: false, problem: { kind: "notNumber", raw: "1e3" } });

@@ -50,7 +50,11 @@ export function remainingAfter(line: MoneyLine | undefined, ceilingUsd: number |
     if (!known(newBudgetUsd) || !known(line.usd)) return null;
     remaining += newBudgetUsd - line.usd;
   }
-  return Number((remaining - ceilingUsd).toFixed(2));
+  // The sign is decided before rounding: an overrun under half a cent is still an overrun, never
+  // "zbude 0,00 USD" (review of #532). Only binary noise (1e-9) counts as exactly enough.
+  const raw = remaining - ceilingUsd;
+  if (raw < -1e-9) return Math.min(Number(raw.toFixed(2)), -0.01);
+  return Math.max(Number(raw.toFixed(2)), 0);
 }
 
 /** The after-line in words: what is left at the highest price, that it may stop, or unknown. */
