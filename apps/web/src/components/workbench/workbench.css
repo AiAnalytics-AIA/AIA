@@ -2,6 +2,16 @@
    research-lead prototype (prototypes/research-lead-v2/src/styles/app.css @ 9b50963f), scoped
    under .wb so nothing reaches the rest of AIA. It reads AIA's own tokens (src/app/tokens.css);
    the prototype's document-level rules are the root's own here. */
+/* The prototype's element-level base rules, in Tailwind's base layer: unlayered CSS beats every
+   layer, so here they would override a re-homed screen's text-* utility on any button inside .wb
+   (a pressed object-map pill rendered ink on ink). The prototype's classes set their own colour. */
+@layer base {
+  .wb {
+    button, input, textarea, select { font: inherit; color: inherit; }
+    button { cursor: pointer; }
+  }
+}
+
 @keyframes caret { 50% { opacity: .25; } }
 @keyframes just { 0% { background: var(--ai-wash); outline: 2px solid var(--ai-edge); } 100% { background: transparent; outline: 2px solid transparent; } }
 
@@ -12,8 +22,7 @@
   *, *::before, *::after { box-sizing: border-box; }
 
 /* ---------- base ---------- */
-button, input, textarea, select { font: inherit; color: inherit; }
-button { cursor: pointer; }
+/* The element rules (font, colour, cursor of form controls) are in @layer base, below the file. */
 :focus-visible { outline: 2px solid var(--focus-ring); outline-offset: 2px; }
 .sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0; }
 .icon, .glyph, .mark { flex: none; display: inline-block; vertical-align: middle; }
