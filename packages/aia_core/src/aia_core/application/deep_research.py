@@ -837,6 +837,13 @@ class DeepResearchRuns:
             threshold_usd=self.spend_limit(),
         )
 
+    def require_start(self) -> None:
+        """What a start requires before anything is frozen or read: ``RUN_WORKFLOW`` and an
+        open study (:meth:`start`, :meth:`start_interpretation`). A quote asks it first too, so
+        a closed study is refused before any artifact is verified."""
+        self.scope.require(Permission.RUN_WORKFLOW)
+        self.scope.require_open_study()
+
     def quote(
         self,
         spec: DeepResearchRunSpec,
@@ -851,8 +858,7 @@ class DeepResearchRuns:
         is reserved, recorded or created. Needs ``RUN_WORKFLOW`` and an open study, as a
         start does. The budget position is shown only to a caller with ``VIEW_COSTS``.
         """
-        self.scope.require(Permission.RUN_WORKFLOW)
-        self.scope.require_open_study()
+        self.require_start()
         require_interpretation_mission(spec)
         admission = self._admit(spec, retry_of=None, prices=prices, modes=modes)
         budget = (

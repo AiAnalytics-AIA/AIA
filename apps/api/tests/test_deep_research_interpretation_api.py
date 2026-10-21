@@ -358,3 +358,37 @@ def test_the_quote_prices_an_interpretation_start_as_the_start_asks(
     for member in (researcher, other_client_lead):
         foreign = member.post(f"{_study(world, 'other_client')}/deep-research/quote", json=body)
         assert foreign.status_code == 404, foreign.text
+
+
+def test_a_quote_marks_nothing_closed_or_open(
+    app: FastAPI,
+    researcher: TestClient,
+    world: Any,
+    damage_artifact: Any,
+    artifact_status: Any,
+) -> None:
+    """Codex on #555: a quote is read-only. On a closed study it is 403 ``study_closed`` before
+    any artifact is read; on an open one a pinned artifact that fails verification is 409
+    ``artifact_corrupt`` and still not marked CORRUPT (a start over it marks it)."""
+    results = _results(app, researcher, world)
+    target = _object_target(results)
+    quote_url = f"{_study(world)}/deep-research/quote"
+    body = {"purpose": "INTERPRETATION_RESEARCH", "target": target, "preset_name": "QUICK"}
+    damage_artifact(results["sociomap"], "tampered")
+    with create_session_factory(app.state.engine)() as session:
+        before = len(session.scalars(select(WorkflowRunRow)).all())
+
+    damaged = researcher.post(quote_url, json=body)
+    assert damaged.status_code == 409, damaged.text
+    assert damaged.json()["code"] == "artifact_corrupt"
+    assert artifact_status(results["sociomap"]) == "VALID"
+
+    closed = researcher.put(f"{_study(world)}/status", json={"status": "ARCHIVED"})
+    assert closed.status_code == 200, closed.text
+    refused = researcher.post(quote_url, json=body)
+    assert refused.status_code == 403, refused.text
+    assert refused.json()["code"] == "study_closed"
+    assert artifact_status(results["sociomap"]) == "VALID"
+    with create_session_factory(app.state.engine)() as session:
+        assert len(session.scalars(select(WorkflowRunRow)).all()) == before
+        assert session.scalars(select(ApprovalDecisionRow)).all() == []

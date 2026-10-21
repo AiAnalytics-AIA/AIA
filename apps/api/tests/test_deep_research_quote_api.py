@@ -249,3 +249,16 @@ def test_the_api_settings_name_every_pricing_key() -> None:
         "engine_lead",
         "enabled",
     }
+
+
+def test_a_closed_study_is_refused_before_anything_is_frozen(
+    app: FastAPI, researcher: TestClient, world: Any
+) -> None:
+    revision = _revision(researcher, world)
+    closed = researcher.put(f"{_study(world)}/status", json={"status": "ARCHIVED"})
+    assert closed.status_code == 200, closed.text
+    before = _counts(app)
+    refused = _quote(researcher, world, revision)
+    assert refused.status_code == 403, refused.text
+    assert refused.json()["code"] == "study_closed"
+    assert _counts(app) == before

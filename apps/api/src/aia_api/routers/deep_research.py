@@ -552,28 +552,47 @@ def quote(
     """What starting this Deep Research run would cost and answer, read-only (chunk 55).
 
     The spec is frozen as the start freezes it and priced by the start's own admission, so
-    ``ceiling_usd`` is the figure the start asks to confirm. Nothing is reserved, recorded or
-    started. It answers whatever ``AIA_DEEP_RESEARCH_ENABLED`` says, and says when a run would
-    park. 404 for a revision or a target that is not this Study's; 422 as the start's.
+    ``ceiling_usd`` is the figure the start asks to confirm. Nothing is reserved, recorded,
+    marked or started: the permission and an open study are checked before any freeze, and a
+    pinned artifact that fails verification is 409 ``artifact_corrupt`` with no CORRUPT mark.
+    It answers whatever ``AIA_DEEP_RESEARCH_ENABLED`` says, and says when a run would park.
+    404 for a revision or a target that is not this Study's; 422 as the start's.
     """
     settings = request.app.state.settings
     with _errors(session):
         runs = DeepResearchRuns(session, scope)
-        if body.purpose == DeepResearchPurpose.DESIGN_RESEARCH.value:
-            assert body.design_revision_id is not None
-            spec = runs.freeze_design(
-                design_revision_id=body.design_revision_id,
-                preset_name=body.preset_name,
-                channels=body.channels,
-            )
-        else:
-            assert body.target is not None
-            spec = runs.freeze_interpretation(
-                target=body.target,
-                preset_name=body.preset_name,
-                store=store,
-                channels=body.channels,
-            )
+        # The start's own order: its permission and an open study before anything is frozen
+        # or read, so a closed study is 403 study_closed and nothing is touched.
+        runs.require_start()
+        try:
+            if body.purpose == DeepResearchPurpose.DESIGN_RESEARCH.value:
+                assert body.design_revision_id is not None
+                spec = runs.freeze_design(
+                    design_revision_id=body.design_revision_id,
+                    preset_name=body.preset_name,
+                    channels=body.channels,
+                )
+            else:
+                assert body.target is not None
+                spec = runs.freeze_interpretation(
+                    target=body.target,
+                    preset_name=body.preset_name,
+                    store=store,
+                    channels=body.channels,
+                )
+        except (IntegrityError, ObjectNotFound) as exc:
+            # A quote is read-only: a pinned artifact that fails verification is reported,
+            # never marked. The CORRUPT mark the read flushed is rolled back here, not
+            # committed (``artifact_corrupt`` commits it); a start over it marks it.
+            session.rollback()
+            raise HTTPException(
+                status_code=409,
+                detail={
+                    "code": "artifact_corrupt",
+                    "message": "A result the run would rest on fails verification; "
+                    "the quote marked nothing.",
+                },
+            ) from exc
         quoted = runs.quote(
             spec,
             prices=_study_prices(settings, session, scope),

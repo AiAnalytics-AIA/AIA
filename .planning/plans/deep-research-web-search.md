@@ -1847,7 +1847,11 @@ chunk's tightened wording and Q44-Q48 live).
     given), `runs_would_park` and `park_reason` (`deep_research_unconfigured`).
 
   It needs `RUN_WORKFLOW` and an open study, as a start does, and nothing is reserved, recorded or
-  started.
+  started. Both are checked before anything is frozen (`require_start`), so a closed study is 403
+  `study_closed` before any artifact is read. A pinned artifact that fails verification on an open
+  study is 409 `artifact_corrupt` with **no CORRUPT mark**: the quote rolls back the mark the read
+  flushed instead of committing it (`artifact_corrupt()`), and a start over the same artifact marks
+  it as before (Codex on #555).
 - **Kill switch.** The quote answers with Deep Research off and says that a run would park. The
   develop Compose file now passes `AIA_DEEP_RESEARCH_ENABLED` to the API, which reads it for this
   statement alone; what the worker composed stays its own to publish (`lead-orchestration#LO12b`).
