@@ -7,6 +7,10 @@ no existing spend path changes: a person's start on the Run stage never consults
 either way (``money.start_verdict``, ``StartPath.PERSON``). The starts that do consult it, the
 typed chat start (LO5) and the plan step (LO3/LO4), call :meth:`StudyWallets.charge` inside the
 transaction that creates their run, after :meth:`StudyWallets.quote` under the same study lock.
+
+A study that closes (DELIVERED, ARCHIVED, CANCELLED) closes its wallet in the same transaction,
+through :func:`set_study_status`, the one status change the API makes; switched off, it changes
+the status alone and reads no wallet row.
 """
 
 from __future__ import annotations
@@ -14,7 +18,7 @@ from __future__ import annotations
 from sqlalchemy.orm import Session
 
 from ..domain.money import WalletVerdict
-from ..domain.scope import StudyContext
+from ..domain.scope import Study, StudyContext, StudyStatus
 from ..domain.wallet import (
     ChargeKind,
     StudyWallet,
@@ -23,6 +27,7 @@ from ..domain.wallet import (
     WalletRaise,
     WalletRaiseRefused,
 )
+from ..infrastructure.scope_repository import ScopeRepository
 from ..infrastructure.study_wallet_repository import StudyWalletRepository
 
 __all__ = [
@@ -30,6 +35,7 @@ __all__ = [
     "WalletChargeRefused",
     "WalletDisabled",
     "WalletRaiseRefused",
+    "set_study_status",
 ]
 
 
@@ -73,6 +79,7 @@ class StudyWallets:
         ceiling_usd: float | None,
         approval_decision_id: int,
         plan_id: str | None = None,
+        plan_step_id: str | None = None,
     ) -> WalletCharge:
         """Hold a started run's ceiling; :class:`WalletChargeRefused` when it does not fit."""
         return self._repository().charge(
@@ -81,4 +88,18 @@ class StudyWallets:
             ceiling_usd=ceiling_usd,
             approval_decision_id=approval_decision_id,
             plan_id=plan_id,
+            plan_step_id=plan_step_id,
         )
+
+
+def set_study_status(
+    session: Session, scope: StudyContext, status: StudyStatus, *, wallet_enabled: bool
+) -> Study:
+    """Change the study's status and, when it closes and the wallet is on, close its wallet in
+    the same transaction, so a closed study never shows an open wallet. The status change's own
+    permission rule is ``ScopeRepository.set_study_status``'s; the wallet's close needs
+    the same permission (``EDIT_STUDY``, or ``SIGN_OFF_DELIVERABLE`` for a delivery)."""
+    study = ScopeRepository(session).set_study_status(scope, status)
+    if wallet_enabled and not status.accepts_work:
+        StudyWalletRepository(session, scope).close()
+    return study

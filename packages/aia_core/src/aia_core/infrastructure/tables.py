@@ -1699,6 +1699,8 @@ class StudyWalletChargeRow(Base):
     kind: Mapped[str] = mapped_column(String(32), nullable=False)
     ceiling_usd: Mapped[float] = mapped_column(Float, nullable=False)
     plan_id: Mapped[str | None] = mapped_column(String(64))
+    # The plan step that started the run (a ``plan_step`` charge only; the ledger row's subject).
+    plan_step_id: Mapped[str | None] = mapped_column(String(64))
     approval_decision_id: Mapped[int] = mapped_column(Integer, nullable=False)
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), nullable=False, default=utcnow
@@ -1708,6 +1710,11 @@ class StudyWalletChargeRow(Base):
         ForeignKeyConstraint(["wallet_id"], ["study_wallets.wallet_id"], ondelete="CASCADE"),
         ForeignKeyConstraint(["study_id"], ["studies.study_id"], ondelete="CASCADE"),
         ForeignKeyConstraint(["run_id"], ["workflow_runs.run_id"], ondelete="CASCADE"),
+        CheckConstraint(
+            "(plan_id is null) = (plan_step_id is null)", name="wallet_charge_plan_and_step"
+        ),
+        # One start decision authorises one charge, of one run.
+        UniqueConstraint("approval_decision_id", name="wallet_charge_decision_once"),
         # NO ACTION, not RESTRICT: checked at the statement's end, so a study's delete cascades
         # through both the ledger and this row.
         ForeignKeyConstraint(["approval_decision_id"], ["approval_decisions.decision_id"]),

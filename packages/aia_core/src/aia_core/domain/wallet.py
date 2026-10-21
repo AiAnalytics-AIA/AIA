@@ -15,7 +15,8 @@ the **effective cap**, which no stored row says by itself.
   charges' ceilings, never their settled spend, so concurrent starts can never exceed the cap
   (ADR 0028 decision 2, "Charge the wallet by settled spend" rejected). Settled spend is read
   from the usage ledger, for display only. A charge is authorised by one approval-ledger row of
-  a start that consults the wallet (``CHARGE_AUTHORITIES``).
+  a start that consults the wallet (``CHARGE_AUTHORITIES``), naming the run it charges, used
+  once.
 
 The effective cap is the smallest of the wallet's own cap, the client's wallet ceiling (when one
 is set) and the study's budget: a ceiling lowered, or a budget cut, after a raise bounds the
@@ -36,6 +37,7 @@ from .scope import OrganizationRole
 
 __all__ = [
     "CHARGE_AUTHORITIES",
+    "CHARGE_DECISION",
     "WALLET_CEILING_SETTERS",
     "ChargeKind",
     "StudyWallet",
@@ -70,6 +72,10 @@ class ChargeKind(StrEnum):
 CHARGE_AUTHORITIES: Final[frozenset[ApprovalSubject]] = frozenset(
     {ApprovalSubject.CHAT_START, ApprovalSubject.PLAN_STEP}
 )
+
+#: The decision a start's ledger row records when a person started it (the approving value a
+#: ``chat_start`` or ``plan_step`` row carries); any other decision authorises no charge.
+CHARGE_DECISION: Final = "start"
 
 #: Who may set ``clients.wallet_ceiling_usd`` (ADR 0028 decision 1), named in a refusal of a
 #: raise above it (D-03: there is no approver queue; the refusal says who can raise the ceiling).
@@ -113,6 +119,7 @@ class WalletCharge:
     kind: ChargeKind
     ceiling_usd: float
     plan_id: str | None
+    plan_step_id: str | None
     approval_decision_id: int
     created_at: datetime
 

@@ -117,6 +117,8 @@ def _wallet_errors() -> Iterator[None]:
             study_budget_usd=exc.bound_usd,
         ) from exc
     except ScopeDenied as exc:
+        if exc.reason == "unknown_study":
+            raise _error(404, "not_found", "No such study.") from exc
         name = "study_closed" if exc.reason == "study_closed" else "insufficient_role"
         raise _error(
             status.HTTP_403_FORBIDDEN, name, "Your role does not permit that.", reason=exc.reason

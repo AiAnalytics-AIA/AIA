@@ -122,6 +122,7 @@ def upgrade() -> None:
         sa.Column("kind", sa.String(length=32), nullable=False),
         sa.Column("ceiling_usd", sa.Float(), nullable=False),
         sa.Column("plan_id", sa.String(length=64), nullable=True),
+        sa.Column("plan_step_id", sa.String(length=64), nullable=True),
         sa.Column("approval_decision_id", sa.Integer(), nullable=False),
         sa.Column("created_at", sa.DateTime(timezone=True), nullable=False),
         sa.CheckConstraint(
@@ -157,6 +158,11 @@ def upgrade() -> None:
         ),
         sa.PrimaryKeyConstraint("charge_id", name=op.f("pk_study_wallet_charges")),
         sa.UniqueConstraint("run_id", name="wallet_charge_run_once"),
+        sa.UniqueConstraint("approval_decision_id", name="wallet_charge_decision_once"),
+        sa.CheckConstraint(
+            "(plan_id is null) = (plan_step_id is null)",
+            name=op.f("ck_study_wallet_charges_wallet_charge_plan_and_step"),
+        ),
     )
     op.create_index(
         "ix_study_wallet_charges_wallet", "study_wallet_charges", ["wallet_id"], unique=False

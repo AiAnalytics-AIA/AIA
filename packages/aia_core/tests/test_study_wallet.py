@@ -23,14 +23,15 @@ from sqlalchemy import func, select, text
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
-from aia_core.application.wallet import StudyWallets, WalletDisabled
+from aia_core.application.wallet import StudyWallets, WalletDisabled, set_study_status
 from aia_core.application.workflows import start_workflow
 from aia_core.domain.approval_ledger import ApprovalSubject
 from aia_core.domain.money import RaiseVerdict, WalletVerdict
 from aia_core.domain.pipeline import ProjectType
-from aia_core.domain.scope import OrganizationRole, ScopeDenied
+from aia_core.domain.scope import OrganizationRole, ScopeDenied, StudyStatus
 from aia_core.domain.wallet import (
     CHARGE_AUTHORITIES,
+    CHARGE_DECISION,
     ChargeKind,
     StudyWallet,
     WalletChargeRefused,
@@ -74,18 +75,26 @@ def _run(session: Session, scope: Any, key: str) -> str:
 
 
 def _authority(
-    session: Session, scope: Any, subject: ApprovalSubject = ApprovalSubject.CHAT_START
+    session: Session,
+    scope: Any,
+    run_id: str | None,
+    subject: ApprovalSubject = ApprovalSubject.CHAT_START,
+    *,
+    subject_id: str = "start-1",
+    decision: str = CHARGE_DECISION,
 ) -> int:
-    """A ledger row of a start that consults the wallet. Its writers (LO5's chat start, LO3's
-    plan step) do not exist yet, so the test writes the row the way they will."""
+    """A ledger row of a start that consults the wallet, naming the run it started. Its writers
+    (LO5's chat start, LO3's plan step) do not exist yet, so the test writes the row the way
+    they will: the run, the decision ``start``, a plan step's id as its subject."""
     row = ApprovalDecisionRow(
         organization_id=scope.organization_id,
         client_id=scope.client_id,
         study_id=scope.study_id,
         subject_type=subject,
-        subject_id="start-1",
+        subject_id=subject_id,
+        run_id=run_id,
         approver_user_id=scope.actor_id,
-        decision="start",
+        decision=decision,
     )
     session.add(row)
     session.flush()
@@ -237,18 +246,23 @@ def test_a_negative_or_non_number_cap_is_refused(session: Session, scoped: Any) 
 # --------------------------------------------------------------------------- charges
 
 
+def _started(session: Session, scope: Any, key: str, **authority: Any) -> tuple[str, int]:
+    run_id = _run(session, scope, key)
+    return run_id, _authority(session, scope, run_id, **authority)
+
+
 def test_a_charge_holds_the_runs_ceiling_once(session: Session, scoped: Any) -> None:
     scope = scoped.scope()
     repo = StudyWalletRepository(session, scope)
     repo.set_cap(10.0)
-    run_id = _run(session, scope, "a")
-    decision = _authority(session, scope)
+    run_id, decision = _started(session, scope, "a")
     charge = repo.charge(
         run_id=run_id, kind=ChargeKind.DEEP_RESEARCH, ceiling_usd=4.0, approval_decision_id=decision
     )
-    assert (charge.kind, charge.ceiling_usd, charge.plan_id) == (
+    assert (charge.kind, charge.ceiling_usd, charge.plan_id, charge.plan_step_id) == (
         ChargeKind.DEEP_RESEARCH,
         4.0,
+        None,
         None,
     )
     wallet = repo.wallet()
@@ -264,16 +278,34 @@ def test_a_charge_holds_the_runs_ceiling_once(session: Session, scoped: Any) -> 
     assert repo.quote(6.01) == (WalletVerdict.OUTSIDE, 6.0)
 
 
+def test_an_exact_fit_is_charged_despite_binary_floats(session: Session, scoped: Any) -> None:
+    """USD 0.30 less 0.10 is 0.20 exactly, so a 0.20 start fits it: in binary floats the
+    remainder is 0.19999999999999998 and the start was refused."""
+    scope = scoped.scope()
+    repo = StudyWalletRepository(session, scope)
+    repo.set_cap(0.30)
+    for key, ceiling in (("a", 0.10), ("b", 0.20)):
+        run_id, decision = _started(session, scope, key)
+        repo.charge(
+            run_id=run_id,
+            kind=ChargeKind.AGENT_JOB,
+            ceiling_usd=ceiling,
+            approval_decision_id=decision,
+        )
+    wallet = repo.wallet()
+    assert wallet is not None and (wallet.charged_usd, wallet.remaining_usd) == (0.3, 0.0)
+
+
 def test_a_charge_above_what_remains_is_refused_and_writes_nothing(
     session: Session, scoped: Any
 ) -> None:
     scope = scoped.scope()
     repo = StudyWalletRepository(session, scope)
     repo.set_cap(5.0)
-    decision = _authority(session, scope)
+    run_id, decision = _started(session, scope, "a")
     with pytest.raises(WalletChargeRefused) as refused:
         repo.charge(
-            run_id=_run(session, scope, "a"),
+            run_id=run_id,
             kind=ChargeKind.RESEARCH_RUN,
             ceiling_usd=5.5,
             approval_decision_id=decision,
@@ -286,12 +318,13 @@ def test_an_unknown_ceiling_is_refused_never_charged_as_zero(session: Session, s
     scope = scoped.scope()
     repo = StudyWalletRepository(session, scope)
     repo.set_cap(5.0)
+    run_id, decision = _started(session, scope, "a")
     with pytest.raises(WalletChargeRefused) as refused:
         repo.charge(
-            run_id=_run(session, scope, "a"),
+            run_id=run_id,
             kind=ChargeKind.AGENT_JOB,
             ceiling_usd=None,
-            approval_decision_id=_authority(session, scope),
+            approval_decision_id=decision,
         )
     assert refused.value.reason == "ceiling_unknown"
     assert repo.quote(None) == (WalletVerdict.CEILING_UNKNOWN, 5.0)
@@ -300,78 +333,134 @@ def test_an_unknown_ceiling_is_refused_never_charged_as_zero(session: Session, s
 
 def test_no_wallet_refuses_a_charge(session: Session, scoped: Any) -> None:
     scope = scoped.scope()
+    run_id, decision = _started(session, scope, "a")
     with pytest.raises(WalletChargeRefused) as refused:
         StudyWalletRepository(session, scope).charge(
-            run_id=_run(session, scope, "a"),
+            run_id=run_id,
             kind=ChargeKind.RESEARCH_RUN,
             ceiling_usd=0.0,
-            approval_decision_id=_authority(session, scope),
+            approval_decision_id=decision,
         )
     assert refused.value.reason == "no_wallet"
 
 
-def test_a_charge_needs_a_chat_start_or_plan_step_of_this_study(
-    session: Session, scoped: Any
-) -> None:
-    scope = scoped.scope()
-    repo = StudyWalletRepository(session, scope)
-    repo.set_cap(10.0)
-    run_id = _run(session, scope, "a")
-    spend = _authority(session, scope, ApprovalSubject.SPEND)
-    with pytest.raises(ScopeDenied, match="chat_start or plan_step"):
-        repo.charge(
-            run_id=run_id, kind=ChargeKind.RESEARCH_RUN, ceiling_usd=1.0, approval_decision_id=spend
-        )
-    sibling = scoped.scope(study="sibling")
-    foreign = _authority(session, sibling, ApprovalSubject.PLAN_STEP)
-    with pytest.raises(ScopeDenied):
+def _refused(repo: StudyWalletRepository, run_id: str, decision: int, **extra: Any) -> str:
+    with pytest.raises(ScopeDenied) as refused:
         repo.charge(
             run_id=run_id,
             kind=ChargeKind.RESEARCH_RUN,
             ceiling_usd=1.0,
-            approval_decision_id=foreign,
+            approval_decision_id=decision,
+            **extra,
         )
-    plan = _authority(session, scope, ApprovalSubject.PLAN_STEP)
+    return refused.value.reason
+
+
+def test_a_charge_needs_this_runs_start_decision(session: Session, scoped: Any) -> None:
+    scope = scoped.scope()
+    repo = StudyWalletRepository(session, scope)
+    repo.set_cap(10.0)
+    run_id = _run(session, scope, "a")
+    other_run = _run(session, scope, "b")
+    sibling = scoped.scope(study="sibling")
+
+    spend = _authority(session, scope, run_id, ApprovalSubject.SPEND)
+    assert _refused(repo, run_id, spend) == "not_a_start_decision"
+    foreign = _authority(session, sibling, run_id, ApprovalSubject.CHAT_START)
+    assert _refused(repo, run_id, foreign) == "not_a_start_decision"
+    assert _refused(repo, run_id, 999_999) == "not_a_start_decision"
+    another = _authority(session, scope, other_run)
+    assert _refused(repo, run_id, another) == "decision_names_another_run"
+    unnamed = _authority(session, scope, None)
+    assert _refused(repo, run_id, unnamed) == "decision_names_another_run"
+    declined = _authority(session, scope, run_id, decision="decline")
+    assert _refused(repo, run_id, declined) == "decision_not_a_start"
+    chat = _authority(session, scope, run_id)
+    assert _refused(repo, run_id, chat, plan_id="PLAN-1") == "chat_start_names_a_plan"
+    assert repo.charges() == []
+
+
+def test_one_chat_start_row_cannot_authorise_a_second_run(session: Session, scoped: Any) -> None:
+    scope = scoped.scope()
+    repo = StudyWalletRepository(session, scope)
+    repo.set_cap(10.0)
+    run_id, decision = _started(session, scope, "a")
+    repo.charge(
+        run_id=run_id, kind=ChargeKind.RESEARCH_RUN, ceiling_usd=1.0, approval_decision_id=decision
+    )
+    second = _run(session, scope, "b")
+    # The row names the first run; were it unnamed, the unique key would refuse it as well.
+    assert _refused(repo, second, decision) == "decision_names_another_run"
+    assert [c.run_id for c in repo.charges()] == [run_id]
+
+
+def test_a_used_decision_is_refused_and_the_table_holds_it_once(
+    session: Session, scoped: Any
+) -> None:
+    scope = scoped.scope()
+    repo = StudyWalletRepository(session, scope)
+    wallet = repo.set_cap(10.0)
+    run_id, decision = _started(session, scope, "a")
+    repo.charge(
+        run_id=run_id, kind=ChargeKind.RESEARCH_RUN, ceiling_usd=1.0, approval_decision_id=decision
+    )
+    second = _run(session, scope, "b")
+    session.add(
+        StudyWalletChargeRow(
+            wallet_id=wallet.wallet_id,
+            study_id=scope.study_id,
+            run_id=second,
+            kind="research_run",
+            ceiling_usd=1.0,
+            approval_decision_id=decision,
+        )
+    )
+    with pytest.raises(
+        IntegrityError,
+        match=r"wallet_charge_decision_once|study_wallet_charges\.approval_decision_id",
+    ):
+        session.flush()
+
+
+def test_a_plan_step_charge_names_its_step_and_plan(session: Session, scoped: Any) -> None:
+    scope = scoped.scope()
+    repo = StudyWalletRepository(session, scope)
+    repo.set_cap(10.0)
+    run_id, decision = _started(
+        session, scope, "a", subject=ApprovalSubject.PLAN_STEP, subject_id="STEP-1"
+    )
+    assert _refused(repo, run_id, decision) == "plan_step_mismatch"
+    assert _refused(repo, run_id, decision, plan_id="PLAN-1") == "plan_step_mismatch"
+    assert (
+        _refused(repo, run_id, decision, plan_id="PLAN-1", plan_step_id="STEP-2")
+        == "plan_step_mismatch"
+    )
     charge = repo.charge(
         run_id=run_id,
-        kind=ChargeKind.RESEARCH_RUN,
+        kind=ChargeKind.INTERPRETATION_RESEARCH,
         ceiling_usd=1.0,
-        approval_decision_id=plan,
+        approval_decision_id=decision,
         plan_id="PLAN-1",
+        plan_step_id="STEP-1",
     )
-    assert charge.plan_id == "PLAN-1"
+    assert (charge.plan_id, charge.plan_step_id) == ("PLAN-1", "STEP-1")
 
 
 def test_another_studys_run_is_never_charged(session: Session, scoped: Any) -> None:
     scope = scoped.scope()
     repo = StudyWalletRepository(session, scope)
     repo.set_cap(10.0)
-    sibling_run = _run(session, scoped.scope(study="sibling"), "s")
-    with pytest.raises(ScopeDenied):
-        repo.charge(
-            run_id=sibling_run,
-            kind=ChargeKind.RESEARCH_RUN,
-            ceiling_usd=1.0,
-            approval_decision_id=_authority(session, scope),
-        )
-    # ... and a charged run of one study is not another study's either.
-    own = _run(session, scope, "o")
-    repo.charge(
-        run_id=own,
-        kind=ChargeKind.RESEARCH_RUN,
-        ceiling_usd=1.0,
-        approval_decision_id=_authority(session, scope),
-    )
     sibling = scoped.scope(study="sibling")
+    sibling_run = _run(session, sibling, "s")
+    assert _refused(repo, sibling_run, _authority(session, scope, sibling_run)) == "unknown_run"
+    # ... and a charged run of one study is not another study's either.
+    own, decision = _started(session, scope, "o")
+    repo.charge(
+        run_id=own, kind=ChargeKind.RESEARCH_RUN, ceiling_usd=1.0, approval_decision_id=decision
+    )
     sibling_repo = StudyWalletRepository(session, sibling)
     sibling_repo.set_cap(10.0)
-    with pytest.raises(ScopeDenied):
-        sibling_repo.charge(
-            run_id=own,
-            kind=ChargeKind.RESEARCH_RUN,
-            ceiling_usd=1.0,
-            approval_decision_id=_authority(session, sibling, ApprovalSubject.PLAN_STEP),
-        )
+    assert _refused(sibling_repo, own, _authority(session, sibling, own)) == "unknown_run"
     wallet = sibling_repo.wallet()
     assert wallet is not None and wallet.charged_usd == 0.0
 
@@ -387,6 +476,66 @@ def test_a_closed_wallet_holds_nothing_and_a_new_one_opens_fresh(
     second = repo.set_cap(5.0)
     assert second.wallet_id != first.wallet_id
     assert [r.from_cap_usd for r in repo.raises()] == [0.0]
+
+
+def test_a_closed_study_refuses_a_raise_a_quote_and_a_charge(session: Session, scoped: Any) -> None:
+    scope = scoped.scope()
+    repo = StudyWalletRepository(session, scope)
+    repo.set_cap(10.0)
+    run_id, decision = _started(session, scope, "a")
+    for status in ("DELIVERED", "ARCHIVED", "CANCELLED"):
+        study = session.get(StudyRow, scope.study_id)
+        assert study is not None
+        study.status = status
+        session.flush()
+        for call in (
+            lambda: repo.set_cap(20.0),
+            lambda: repo.quote(1.0),
+            lambda: repo.charge(
+                run_id=run_id,
+                kind=ChargeKind.RESEARCH_RUN,
+                ceiling_usd=1.0,
+                approval_decision_id=decision,
+            ),
+        ):
+            with pytest.raises(ScopeDenied) as refused:
+                call()
+            assert refused.value.reason == "study_closed"
+    assert repo.charges() == [] and len(repo.raises()) == 1
+
+
+@pytest.mark.parametrize(
+    "status", [StudyStatus.DELIVERED, StudyStatus.ARCHIVED, StudyStatus.CANCELLED]
+)
+def test_closing_the_study_closes_its_wallet_when_the_wallet_is_on(
+    session: Session, scoped: Any, status: StudyStatus
+) -> None:
+    scope = scoped.scope()
+    StudyWalletRepository(session, scope).set_cap(10.0)
+    set_study_status(session, scope, status, wallet_enabled=True)
+    assert StudyWalletRepository(session, scope).wallet() is None
+    row = session.scalars(select(StudyWalletRow)).one()
+    assert row.closed_at is not None
+
+
+def test_a_status_change_that_keeps_the_study_open_keeps_its_wallet(
+    session: Session, scoped: Any
+) -> None:
+    scope = scoped.scope()
+    StudyWalletRepository(session, scope).set_cap(10.0)
+    set_study_status(session, scope, StudyStatus.IN_REVIEW, wallet_enabled=True)
+    assert StudyWalletRepository(session, scope).wallet() is not None
+
+
+def test_off_a_status_change_reads_no_wallet(
+    session: Session, scoped: Any, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    def untouched(*_: Any, **__: Any) -> Any:
+        raise AssertionError("the wallet was read with the switch off")
+
+    monkeypatch.setattr(StudyWalletRepository, "__init__", untouched)
+    study = set_study_status(session, scoped.scope(), StudyStatus.ARCHIVED, wallet_enabled=False)
+    assert study.status is StudyStatus.ARCHIVED
 
 
 def test_the_tables_refuse_a_second_open_wallet_and_a_second_charge(
@@ -409,8 +558,7 @@ def test_the_tables_refuse_a_second_open_wallet_and_a_second_charge(
         session.flush()
     savepoint.rollback()
 
-    run_id = _run(session, scope, "a")
-    decision = _authority(session, scope)
+    run_id, decision = _started(session, scope, "a")
     repo.charge(
         run_id=run_id, kind=ChargeKind.RESEARCH_RUN, ceiling_usd=1.0, approval_decision_id=decision
     )
@@ -421,7 +569,7 @@ def test_the_tables_refuse_a_second_open_wallet_and_a_second_charge(
             run_id=run_id,
             kind="research_run",
             ceiling_usd=1.0,
-            approval_decision_id=decision,
+            approval_decision_id=_authority(session, scope, run_id, subject_id="start-2"),
         )
     )
     with pytest.raises(
@@ -433,14 +581,15 @@ def test_the_tables_refuse_a_second_open_wallet_and_a_second_charge(
 def test_the_table_refuses_an_unknown_charge_kind(session: Session, scoped: Any) -> None:
     scope = scoped.scope()
     wallet = StudyWalletRepository(session, scope).set_cap(10.0)
+    run_id, decision = _started(session, scope, "a")
     session.add(
         StudyWalletChargeRow(
             wallet_id=wallet.wallet_id,
             study_id=scope.study_id,
-            run_id=_run(session, scope, "a"),
+            run_id=run_id,
             kind="lead_turn",
             ceiling_usd=1.0,
-            approval_decision_id=_authority(session, scope),
+            approval_decision_id=decision,
         )
     )
     with pytest.raises(IntegrityError, match="wallet_charge_kind_known"):
@@ -503,7 +652,7 @@ def test_concurrent_charges_never_exceed_the_cap(
     scope = scoped.scope()
     StudyWalletRepository(session, scope).set_cap(10.0)
     runs = [_run(session, scope, f"r{i}") for i in range(8)]
-    decisions = [_authority(session, scope) for _ in runs]
+    decisions = [_authority(session, scope, run_id) for run_id in runs]
     session.commit()
 
     factory = create_session_factory(postgres)
@@ -559,8 +708,7 @@ def test_a_charge_waits_for_a_concurrent_cap_change_and_reads_it(
 
     scope = scoped.scope()
     StudyWalletRepository(session, scope).set_cap(10.0)
-    run_id = _run(session, scope, "r")
-    decision = _authority(session, scope)
+    run_id, decision = _started(session, scope, "r")
     session.commit()
 
     lowered, go = threading.Event(), threading.Event()
@@ -665,3 +813,15 @@ def test_the_downgrade_refuses_while_a_raise_is_stored(
                 migration.downgrade()
         finally:
             transaction.rollback()
+
+
+def test_a_first_cap_of_zero_is_recorded_like_any_other(session: Session, scoped: Any) -> None:
+    """Opening a wallet is a person's act, even at USD 0: one raise and one ledger row."""
+    scope = scoped.scope()
+    repo = StudyWalletRepository(session, scope)
+    wallet = repo.set_cap(0.0)
+    assert (wallet.cap_usd, wallet.remaining_usd) == (0.0, 0.0)
+    assert [(r.from_cap_usd, r.to_cap_usd) for r in repo.raises()] == [(0.0, 0.0)]
+    assert len(WorkflowRepository(session, scope).ledger([ApprovalSubject.WALLET])) == 1
+    repo.set_cap(0.0)  # the same cap on an open wallet writes nothing
+    assert len(repo.raises()) == 1
