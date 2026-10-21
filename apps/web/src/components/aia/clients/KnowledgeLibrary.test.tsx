@@ -350,6 +350,12 @@ describe("the knowledge library", () => {
 
 describe("folders and labels, organized where they are listed", () => {
   it("renames a folder in place from its menu: Enter saves, no dialog, focus back on the row", async () => {
+    // A frame may run before React commits the row's return (a loaded machine): run every frame
+    // callback at once, the earliest it could, so focus cannot depend on that ordering.
+    vi.stubGlobal("requestAnimationFrame", (cb: FrameRequestCallback) => {
+      cb(0);
+      return 0;
+    });
     api();
     open();
     await nav().findByRole("button", { name: "Trh a konkurence 1" });
