@@ -1,4 +1,5 @@
-"""The money a study's paid work is held against: four amounts, their names and one precedence.
+"""The money a study's paid work is held against: five amounts, four of them named on
+screen, and one precedence.
 
 ADR 0028 decision 1 (lead-orchestration LO0; the product owner's names of 2026-10-20, D-01):
 

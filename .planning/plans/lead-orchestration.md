@@ -335,3 +335,20 @@ are held to `tests/fixtures/money/vocabulary.json` (`test_money.py`, `apps/web/s
 and `test_nothing_calls_the_confirmation_threshold_a_hard_stop` reads the code and the governing
 documents. The wallet ceiling has no Czech label: the owner named none, so none is invented.
 
+## Findings (LO0, review of #534)
+
+- **F-LO0-1. The confirmation threshold's rule has three inline copies beside `money.threshold_verdict`.**
+  Anchor: `application/deep_research.py:648-651`, `application/research_lead.py:724-729`,
+  `application/validation.py:200-203 @ fd523a81`; `ResearchRuns.start` calls `threshold_verdict`
+  since #534. Reproduction: `grep -n "confirm_cost_usd <" packages/aia_core/src/aia_core/application/*.py`
+  lists the three. Consequence: none today (all four agree: `>=` asks, a confirmation covers at least
+  the ceiling); a change to the rule made in one place would leave the Deep Research start, the Lead's
+  approve path and a validation start on the old one. Smallest fix: each calls `threshold_verdict`,
+  with its own refusal for an unknown ceiling kept; LO15 (E03) touches two of them and is the natural
+  place. Test: each start's threshold tests, unchanged, plus one asserting it imports the domain rule.
+  Deliberately not adopted in #534 (the reviewer's call).
+
+### Doc follow-up (LO0)
+
+- `open-items.md`: number F-LO0-1, owner LO15.
+

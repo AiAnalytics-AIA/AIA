@@ -2,7 +2,7 @@
 // case file the server's domain/money.py is held to, packages/aia_core/tests/fixtures/money/
 // vocabulary.json. A screen names an amount through `cs.money`, so this is the one place a name
 // can drift from the server's.
-import { readFileSync } from "node:fs";
+import { readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 
@@ -25,6 +25,16 @@ describe("money names", () => {
   it("leave no retired name on any screen", () => {
     const all = JSON.stringify(cs);
     for (const name of FILE.retired_names) expect(all).not.toContain(name);
+  });
+
+  it("leave no retired name in a browser journey that looks a label up", () => {
+    const dir = join(process.cwd(), "../../tools/ui_workbench");
+    const journeys = readdirSync(dir).filter((f) => f.endsWith(".mjs"));
+    expect(journeys.length).toBeGreaterThan(0);
+    for (const f of journeys) {
+      const text = readFileSync(join(dir, f), "utf8");
+      for (const name of FILE.retired_names) expect(text.includes(name), `${f} names "${name}"`).toBe(false);
+    }
   });
 
   it("are what Settings and the run's cost panel label the amounts", () => {
