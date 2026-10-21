@@ -9,7 +9,7 @@ chunks:
   - "[x] 6. Lead pane: conversation, composer, greeting, view tools, edits as change blocks, decision cards"
   - "[x] 6b. Personal Leads: researcher_leads and memories, hatching, the Můj Vedoucí page, per-researcher sessions"
   - "[ ] 7. Agent proposals inline in the artifact, with research-question coverage gained, lost and kept"
-  - "[ ] 7b. Review a Design Research proposal inside the artifact (DRL-6, F-DRL-1): its EVIDENCE items with their findings' quotes and sources, ticked and accepted through POST …/design-proposal/accept with both expected revisions, then the working copy reloaded; a GAP item has no checkbox"
+  - "[x] 7b. Review a Design Research proposal inside the artifact (DRL-6, F-DRL-1): its EVIDENCE items with their findings' quotes and sources, ticked and accepted through POST …/design-proposal/accept with both expected revisions, then the working copy reloaded; a GAP item has no checkbox"
   - "[x] 8. design_items, the working revision on every Design Revision writer (web submit, reuse, accepts), the item-level stale rule"
   - "[x] 9. Accept in one transaction: merged Design Revision, working copy, ledger; the web reloads"
   - "[x] 10. Dismiss and rebuild through the ledger and rebuild_of; the pending-proposals projection"
@@ -427,6 +427,7 @@ appear in the lead researches chat too"). Built on `feature/lead-worker-cards`:
     (`test_research_lead_application.py`);
     `test_setting_the_study_budget_sends_the_message_that_waited_for_it`
     (`apps/api/tests/test_research_lead_api.py`); `leadReasonWords` in `lib/lead.test.ts`.
+- F-DRL-1: closed by #554, see the entry under 7b (anchors, fix and tests).
 - **F-STORE-1. Two flushes waiting behind one save sent the same base revision** *(recorded in
   #554; fixed on `fix/store-flush-serialise`)*.
   1. Claim: `ResearchStore.flush` let every caller waiting behind an in-flight save resume
@@ -451,6 +452,8 @@ appear in the lead researches chat too"). Built on `feature/lead-worker-cards`:
      behind one: each names the revision the one before returned`, `saves an edit made during the
      flight in the same flush, which resolves only once it is saved`, `says when the copy kept
      changing through every round, and keeps the change waiting for its save`.
+  - #554's `DesignResearchReview.tsx` flushes until saved on its own; with the serialised `flush`
+    that loop ends after one flush, and it stays as a guard.
 
 ## Doc follow-up (for the docs PR, not this branch)
 
@@ -469,6 +472,12 @@ appear in the lead researches chat too"). Built on `feature/lead-worker-cards`:
   saved (`edited_from_current`).
 - **`CLAUDE.md` § 2**, beside `src/components/workbench/`: `prototypes/research-lead-v2/` is the
   canonical workspace and artifact reference (MVPQ-01, 2026-10-20); V3 is supporting reference.
+- **`CLAUDE.md` § 2**, beside `DeepResearchPanel` in `components/rehome/research/`:
+  `DesignResearchReview.tsx`, a completed Design Research run's proposal reviewed on Dotazník, its
+  ticked items accepted through `POST …/design-proposal/accept`, then the working copy reloaded;
+  `lib/design-research-review.ts`, its pure part (readProposal, acceptBody, refusalWords); `lib/api.ts`
+  `deepResearch.acceptDesignProposal`. `.planning/open-items.md`: F-DRL-1, closed by chunk 7b;
+  F-STORE-1 (two `flush` waiters save from the same base), closed by #556.
 - **ADR 0026**, under *Accepted with*: the Lead steers the artifact pane through a closed set of
   display operations (D10); its gates are unchanged.
 
@@ -1040,7 +1049,7 @@ turn (`request_decision.run_id`); any other run stands at its creation time.
 
 ### Findings
 
-- **F-DRL-1. No web path turns a Design Research proposal into a Design Revision.**
+- **F-DRL-1. No web path turns a Design Research proposal into a Design Revision** *(closed by 7b, #554)*.
   - Anchor: `apps/api/src/aia_api/routers/deep_research.py:768-796` and
     `application/design_research.py:90-157` exist. The only web reference to the proposal is the GET
     at `apps/web/src/lib/api.ts:1412 @ 095a3e68`.
@@ -1051,6 +1060,37 @@ turn (`request_decision.run_id`); any other run stands at its creation time.
   - Smallest fix: 7b.
   - Test: 7b's Vitest that the review posts the ticked `item_ids` with both expected revisions, and
     its journey step.
+  - Anchors at the branch point: the route `routers/deep_research.py:768-796 @ 722dd75c`; the
+    service `application/design_research.py:90-157 @ 722dd75c` (one transaction through
+    `accept_into_working_copy`, the `design_research` ledger row); the only web caller, the GET at
+    `apps/web/src/lib/api.ts:1412 @ 722dd75c`.
+  - Fix (#554): `DesignResearchReview.tsx` in the Deep Research panel on Dotazník, over
+    `lib/design-research-review.ts` (pure: `readProposal`, `acceptBody`, `refusalWords`) and
+    `deepResearch.acceptDesignProposal`.
+    - A completed `DESIGN_RESEARCH` run's items: each EVIDENCE item with its findings' quotes and
+      sources and a checkbox, each GAP item without one.
+    - "Přijmout vybrané" flushes until the copy is saved (never posting on an unsaved copy), then
+      sends exactly the ticked items on the run's Design Revision and the working revision the
+      person has. The working copy is reloaded with `since`, so a change typed meanwhile is kept in
+      conflict.
+    - A `stale_proposal` is said through `research/proposal-items.ts` (which now names the
+      `design_research` field), and the proposal is never applied.
+    - Items the working copy already took from the run are marked "V návrhu", and the run offers no
+      further accept: its accept wrote a revision the run did not research, which the server
+      refuses (`design_moved`).
+    - The panel keys the review by its run, and a proposal renders only under its own run.
+  - Tests: `lib/design-research-review.test.ts` (the body has exactly the ticked items and both
+    revisions; a GAP or a taken item is never sent; the refusals in Czech) and
+    `DesignResearchReview.test.tsx` (nothing written before the accept; the post, then the reload;
+    a stale proposal said by name and not applied; read-only without the right; `offers a loaded
+    proposal only under the run it belongs to`, `saves an edit typed during the save before it
+    accepts, so the accept keeps it` and `never posts while the copy still has an unsaved edit`,
+    each failing on 054cf007). The journey step waits for F-DRL-6: the workbench composes no Deep
+    Research. The route's contract is unchanged; its success path stays tested by
+    `apps/executors/tests/test_design_research_proposals.py`.
+  - Not done: a ledger row for a dismissed item. Leaving an item unticked writes nothing, and the
+    proposal stays in its run; ADR 0021 asks only that nothing is written without an accept. DRL-7
+    links the Lead's finished card here.
 - **F-DRL-6. The UI workbench cannot run Deep Research at all.**
   - Anchor: `apps/executors/src/aia_executors/workbench.py:158-173 @ 095a3e68` composes no Deep
     Research runtime, so a run parks at plan.
