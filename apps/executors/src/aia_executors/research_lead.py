@@ -276,9 +276,8 @@ class ResearchLeadExecutor:
             if existing is not None:
                 stored = artifacts.read_json(existing.artifact_id)
                 if isinstance(stored, dict) and isinstance(stored.get("result"), dict):
-                    return Succeeded(
-                        output={**stored["result"], "artifact_id": existing.artifact_id}
-                    )
+                    result = _regrounded(stored["result"], layer(frozen, "design"))
+                    return Succeeded(output={**result, "artifact_id": existing.artifact_id})
 
         answer = self._answer(step, context, frozen, pin)
         if isinstance(answer, Failed):
@@ -359,3 +358,22 @@ class ResearchLeadExecutor:
                 },
             )
         return Succeeded(output={**step_output, "artifact_id": artifact.artifact_id})
+
+
+def _regrounded(result: dict[str, Any], design: Mapping[str, Any]) -> dict[str, Any]:
+    """A stored turn's result with today's focus grounding applied (:func:`ground_view`): an
+    answer stored by a worker from before it, reused on a retry, never carries a focus the
+    frozen copy does not show (Codex on #624). Grounding is idempotent: a result stored after
+    it comes back unchanged."""
+    try:
+        output = LeadOutput.model_validate(result.get("lead_output"))
+    except ValidationError:
+        return result
+    grounded, dropped = ground_view(output, design.get("content") or {})
+    if not dropped:
+        return result
+    return {
+        **result,
+        "lead_output": grounded.model_dump(mode="json"),
+        "dropped": [*(result.get("dropped") or []), *(d.model_dump() for d in dropped)],
+    }

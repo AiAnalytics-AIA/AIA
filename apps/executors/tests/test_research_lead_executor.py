@@ -694,3 +694,28 @@ def test_the_registry_parks_turns_without_a_runtime(store: Any, build: Any) -> N
     executor = registry_for(store=store, build=build)["research_lead_turn"]
     assert isinstance(executor, ResearchLeadExecutor)
     assert dataclasses.is_dataclass(ResearchLeadConfig)
+
+
+def test_a_reused_turn_is_grounded_as_a_fresh_one() -> None:
+    """Codex on #624: a turn stored by a worker from before the focus grounding, reused on a
+    retry, never carries a focus the frozen copy does not show."""
+    from aia_executors.research_lead import _regrounded
+
+    stored = {
+        "lead_output": {
+            "reply": "Podívejte se.",
+            "view": [
+                {"op": "focus", "target": "audience:filter:vzdelani"},
+                {"op": "focus", "target": "audience:filter:kraj"},
+            ],
+        },
+        "dropped": [],
+    }
+    design = {"content": {"audience": {"filters": {"kraj": ["Praha"]}}}}
+    result = _regrounded(stored, design)
+    assert result["lead_output"]["view"] == [{"op": "focus", "target": "audience:filter:kraj"}]
+    assert result["dropped"] == [
+        {"index": 0, "op": "focus", "reason": "audience_filter_not_stored"}
+    ]
+    # Idempotent: a result already grounded comes back unchanged.
+    assert _regrounded(result, design) == result
