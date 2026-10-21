@@ -82,6 +82,38 @@ repository, domain function or table is touched directly.
 7. **Tier B.** The runbook for a person on develop: the live providers, the Class B route, the
    AWS-tagged spend check (`develop-spend-attribution`), the record. Run before every MVP release.
 
+## Findings
+
+**F-AH1. A write's 2xx was sent before its transaction committed** (found by an independent
+review of #535; it predates that PR; fixed on `fix/commit-before-response`).
+
+1. *Claim.* `get_session` commits after its `yield`, and under FastAPI's default scope for a
+   `yield` dependency (`"request"`, since 0.118.0, PR fastapi#14099) that code runs after the
+   response has been sent; the API runs FastAPI 0.156.4.
+2. *Anchor.* `apps/api/src/aia_api/dependencies.py:168-181 @ fd523a81` (`session.commit()` after
+   `yield session`), taken as `Depends(get_session)` at `:323`, `:368`, `:441`, `:448` and
+   `SessionDep` `:455`.
+3. *Reproduction.* `pytest apps/api/tests/test_commit_before_response.py` with the scope removed:
+   under uvicorn, `POST /members` answers 201 while the commit is still running, and a commit
+   refused at `before_commit` still answers 201. A minimal uvicorn app with a 0.5 s exit: the
+   client has the response at 0.088 s and the exit finishes at 0.586 s (default scope); with
+   `scope="function"`, response 0.544 s, exit 0.543 s.
+4. *Consequence.* A client reading right after a write sees the state before it: the acceptance
+   step's `POST /members` then `POST /session` inserted the user a second time (UniqueViolation
+   `uq_users_email`, a 500), about 1 run in 4. A commit that failed was rolled back after the client
+   had been told 201: a success for a write that did not persist.
+5. *Smallest fix.* `SessionDep = Annotated[Session, Depends(get_session, scope="function")]` (FastAPI
+   0.121.0, PR fastapi#14262; 0.121.1, fastapi#14301, fixes it for a dependency with no
+   sub-dependency), every user through that one alias (the dependency cache is keyed by scope, so a
+   bare `Depends(get_session)` beside it would be a second session); the floor raised to
+   `fastapi>=0.121.1`. Audit: no API route streams a body, returns a `FileResponse` or schedules a
+   background task; every download is `Response(content=bytes)` read in the handler, and response
+   models are serialised inside the function scope, so nothing reads the session after it closes.
+6. *Tests.* `test_commit_before_response.py`: `test_a_write_is_committed_before_its_response_is_sent`
+   and `test_a_commit_that_fails_is_the_response` on a real uvicorn server (TestClient waits for the
+   whole ASGI cycle and cannot show it), and `test_every_route_takes_its_session_in_function_scope`
+   over every route's dependency tree.
+
 ## Depends on / feeds
 
 Chunks 1-3 can start now. Chunk 5 follows each track's gate (I-1 Lead drives a study, I-2 results
