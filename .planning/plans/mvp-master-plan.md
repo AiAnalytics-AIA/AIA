@@ -267,6 +267,18 @@ plan. `POST`: after the MVP, by decision. The dispositions of plans outside the 
 | `assumptions-and-open-answer-coding` | S1 (assumption item), S2 (evidence, coding), S3 (report chapters) | I-1, I-3, I-5 | the coding method `MVPQ-02b` before any count; evidence-backed assumption statuses wait for the ADR of `AOC2` |
 | `lead-orchestration` | S1 | I-1, I-3 | money/authority and early worker contracts; card revision binding before the first card |
 | `lead-conversation` | S1 | I-1, I-3 | ADR 0041 accepted (`lead-conversation#LC0`); after `lead-orchestration#LO7`'s first layer |
+| `artifact-questionnaire` | S1 | I-1 to I-4 | the umbrella `research-lead-workbench#17` (E26); the artifact contract of `research-lead-workbench#14` and `#16` |
+| `artifact-brief` | S1 | I-1 to I-4 | the umbrella `research-lead-workbench#18` (E26); the artifact contract of `research-lead-workbench#14` and `#16` |
+| `artifact-design` | S1 | I-1 to I-4 | the umbrella `research-lead-workbench#18` (E26); the artifact contract of `research-lead-workbench#14` and `#16` |
+| `artifact-sample` | S1 | I-1 to I-4 | the umbrella `research-lead-workbench#19` (E26); the artifact contract of `research-lead-workbench#14` and `#16` |
+| `artifact-fieldwork` | S1 | I-1 to I-4 | the umbrella `research-lead-workbench#19` (E26); the artifact contract of `research-lead-workbench#14` and `#16` |
+| `artifact-results` | S1 | I-1 to I-4 | the umbrella `research-lead-workbench#20` (E15); the artifact contract of `research-lead-workbench#14` and `#16` |
+| `artifact-sociomap` | S1 | I-1 to I-4 | the umbrella `research-lead-workbench#20` (E15); the artifact contract of `research-lead-workbench#14` and `#16` |
+| `artifact-audience` | S1 | I-1 to I-4 | the umbrella `research-lead-workbench#22` (E15); the artifact contract of `research-lead-workbench#14` and `#16` |
+| `artifact-dimensions` | S1 | I-1 to I-4 | the umbrella `research-lead-workbench#22` (E15); the artifact contract of `research-lead-workbench#14` and `#16` |
+| `artifact-analysis` | S1 | I-1 to I-4 | the umbrella `research-lead-workbench#21` (E20); the artifact contract of `research-lead-workbench#14` and `#16` |
+| `artifact-report` | S1 | I-1 to I-4 | the umbrella `research-lead-workbench#21` (E20); the artifact contract of `research-lead-workbench#14` and `#16` |
+| `artifact-chain-to-draft-report` | S1 and S2 | I-1 to I-4 | every artifact plan's hand-off; the internal report (`research-lead-workbench#21`, `report-delivery`) |
 | `sociomap-5-web` | S2 and the methodology owner | I-2 | the methodology owner's lane (#517); `aia-sociomap-5` registered (MQ-01) before a map is client-facing |
 | `input-interactions` | S1 | I-1 | the shared primitives (`input-interactions#1`) before the artifact bodies build on them; 3b's wording rule from the methodology owner |
 | `run-qc-and-checkpoint` | S2 | I-1, I-2, I-3 | checkpoint before resumed fieldwork; event payload before Fieldwork UI; replacement method decision before RQC5 |
