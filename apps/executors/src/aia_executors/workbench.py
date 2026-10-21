@@ -10,6 +10,13 @@ from its frozen context, without a model, and says so (``scripted: true``, a rep
 "[Workbench · bez modelu]"), so the conversation, the edit and request gates and the Lead's
 memory can be tried on this machine for real.
 
+With ``AIA_AI_ANALYSIS_ENABLED=true`` the eight analysis modules are answered too, by
+:class:`~aia_executors.recorded_models.RecordedModels` behind the real gateway, reservations and
+ledger, at a price of zero, so a fictional run reaches its internal draft report on this machine
+(plan ``artifact-chain-to-draft-report`` CHN7). No other key of the AI runtime is read here: the
+route, model and prices are this composition's own (:data:`RECORDED_RUNTIME`), so nothing a
+developer's environment holds can point it at a provider.
+
 It refuses to build unless ``AIA_ENV`` is ``local`` or ``test`` (unset refuses): a deployed worker
 pointed at it fails at start, before claiming anything. That is the worker's half
 of the refusal; the API refuses the setting on staging and production, and the
@@ -32,6 +39,9 @@ from aia_core.infrastructure.storage import ArtifactStore
 from aia_core.infrastructure.storage_settings import StorageSettings, build_artifact_store
 from aia_worker.executor import Failed, StepContext, StepExecutor, StepInput
 
+from .ai_runtime import AIRuntimeSettings, build_gateway
+from .analysis import AnalysisConfig, analysis_registry
+from .recorded_models import RecordedModels, RecordedSigner
 from .registry import registry_for
 from .research import research_registry
 from .research_lead import KIND as RESEARCH_LEAD_KIND
@@ -39,10 +49,12 @@ from .research_lead import LeadAnswer, ResearchLeadExecutor
 
 __all__ = [
     "ALLOWED_ENVIRONMENTS",
+    "RECORDED_RUNTIME",
     "SCRIPTED_PREFIX",
     "SYNTHETIC_SEED",
     "ScriptedLeadExecutor",
     "build_registry",
+    "recorded_analysis",
     "scripted_lead_output",
     "workbench_registry_for",
 ]
@@ -155,13 +167,56 @@ class ScriptedLeadExecutor(ResearchLeadExecutor):
         )
 
 
+#: The AI runtime the recorded analysis runs on: a test route and model, priced at zero, never
+#: read from the environment. RecordedModels answers every request; nothing leaves the process.
+RECORDED_RUNTIME: Final[Mapping[str, str]] = {
+    "AIA_AI_RUNTIME_ENABLED": "true",
+    "AIA_AI_ROUTE_ID": "bedrock-eu-primary",
+    "AIA_BEDROCK_REGION": "eu-central-1",
+    "AIA_BEDROCK_MODEL_ID": "eu.example.analysis-model-v1:0",
+    "AIA_AI_POLICY_VERSION": "aia-workbench-recorded-1",
+    "AIA_BEDROCK_INPUT_USD_PER_MTOK": "0",
+    "AIA_BEDROCK_OUTPUT_USD_PER_MTOK": "0",
+    "AIA_BEDROCK_MAX_OUTPUT_TOKENS": "8192",
+    "AIA_BEDROCK_CONTEXT_WINDOW_TOKENS": "200000",
+    "AIA_AI_ROUTE_EU_PROCESSING_APPROVED": "true",
+    "AIA_AI_ROUTE_EXCLUDED_FROM_TRAINING": "true",
+    "AIA_AI_ROUTE_APPROVED_FOR": "CLASS_C_INTERNAL,CLASS_B_DERIVED_CLIENT",
+    "AIA_AI_ROUTE_RETENTION_DAYS": "0",
+    "AIA_AI_FIELDWORK_MAX_OUTPUT_TOKENS": "1024",
+    "AIA_AI_FIELDWORK_RESERVATION_USD": "0.25",
+    "AIA_AI_ANALYSIS_ENABLED": "true",
+    "AIA_AI_ANALYSIS_MAX_OUTPUT_TOKENS": "4096",
+    "AIA_AI_ANALYSIS_RESERVATION_USD": "0.01",
+}
+
+
+def recorded_analysis(
+    *, store: ArtifactStore, build: BuildIdentity, models: RecordedModels | None = None
+) -> StepExecutor:
+    """The analysis step over recorded answers behind the real gateway, at zero price."""
+    settings = AIRuntimeSettings.from_env({"AIA_ENV": "test", **RECORDED_RUNTIME})
+    assert settings is not None
+    gateway = build_gateway(settings, transport=models or RecordedModels(), signer=RecordedSigner())
+    config = AnalysisConfig.from_settings(
+        settings,
+        max_output_tokens=settings.analysis_max_output_tokens,
+        reservation_usd=settings.analysis_reservation_usd,
+    )
+    return analysis_registry(store=store, build=build, gateway=gateway, config=config)[
+        "research_analysis"
+    ]
+
+
 def workbench_registry_for(
-    *, store: ArtifactStore, build: BuildIdentity
+    *, store: ArtifactStore, build: BuildIdentity, analysis: StepExecutor | None = None
 ) -> dict[str, StepExecutor]:
     """Production's registry with the fictional fieldwork source added, and the Research
-    Lead's turns answered by a script (no model). Tests use this."""
+    Lead's turns answered by a script (no model); ``analysis`` replaces the analysis step
+    (:func:`recorded_analysis`; without it the step parks, as production's does). Tests use
+    this."""
     return {
-        **registry_for(store=store, build=build),
+        **registry_for(store=store, build=build, analysis=analysis),
         RESEARCH_LEAD_KIND: ScriptedLeadExecutor(store=store, build=build),
         **research_registry(
             store=store,
@@ -183,7 +238,12 @@ def build_registry() -> dict[str, StepExecutor]:
             f"aia_executors.workbench provides fictional fieldwork and refuses AIA_ENV={env!r}; "
             "a deployed worker uses aia_executors.registry:build_registry (ADR 0016)"
         )
-    return workbench_registry_for(
-        store=build_artifact_store(StorageSettings.from_env()),
-        build=BuildIdentity.from_env(),
+    store = build_artifact_store(StorageSettings.from_env())
+    build = BuildIdentity.from_env()
+    analysis = (
+        recorded_analysis(store=store, build=build)
+        if os.environ.get("AIA_AI_ANALYSIS_ENABLED", "").strip().lower()
+        in {"1", "true", "yes", "on"}
+        else None
     )
+    return workbench_registry_for(store=store, build=build, analysis=analysis)
