@@ -1,11 +1,12 @@
 ---
 status: planned
 chunks:
+  - "[ ] LK0. Prerequisite, built in its own fix PR: the licence determination for the unclassified-client-knowledge lineage, approved for bedrock-eu-primary only (Q60 a, 2026-10-21); closes Finding 1"
   - "[ ] LK1. The knowledge index as data: every ACTIVE item, every PROPOSED proposal (unapproved), every client source (an internal one marked, Class C), REJECTED and removed out; compact entries within the knowledge layer's budget, paged past it, never silent; ADR 0042 (Proposed) amends ADR 0026 decision 3 for the read round"
   - "[ ] LK2. The index frozen at enqueue: study-scoped repository reads (no silent 200-row cap), reading pins per source and revisions per item in the frozen context, each entry classed by material_rules, the lineage declared"
   - "[ ] LK3. The read in the closed contract: LeadOutput.read (at most 3 refs, a page each), a read turn holds nothing else, the answering request's contract forbids another read; the reads layer (3 x 8 KB) refitted inside 96 KB; quotes grounded in the segment read and cited by locator, numbers through lead_contract"
   - "[ ] LK4. The read round in the worker behind AIA_AI_RESEARCH_LEAD_KNOWLEDGE_READS (off by default, off in test): pinned, study-scoped fetches from ClientSourceRepository and ClientKnowledgeRepository, the first answer checkpointed, a second STUDY_LEAD request with its own reservation, the class re-read before it; cost and latency per read measured"
-  - "[ ] LK5. Datasets and their licence: a DATASET is read as its preview (columns, kinds, masked samples), never its rows; the licence lineage for client knowledge as the data owner determines it (LCK-Q2, LCK-Q3); closes Finding 1"
+  - "[ ] LK5. Datasets: a DATASET is read as its preview (columns, kinds, fill, masked samples), never its rows (Q62 a); the turn with a dataset item answered on bedrock-eu-primary under LK0's determination, refused by name on any other route"
   - "[ ] LK6. What the Lead read, in the API and on screen: the turn's reads in GET /studies/{id}/lead, and the \"Přečteno: …\" line in LeadPane linking to each item (LeadPane.tsx and lib/lead.ts by the integration coordinator session)"
   - "[ ] LK7. Switched on for develop after the measurement: Compose and env.example carry the key, the runbook section, the acceptance on a fictional client with the cost per read recorded"
 ---
@@ -17,8 +18,8 @@ chose **(a)**, the PM's recommendation: **settled 2026-10-21 via /pmstatus Q59**
 coordinator, 14:40 UTC). Under (a):
 
 1. every Lead turn carries an **index** of everything in the study's client's knowledge: every
-   knowledge item and every client source file, each with its name, kind, status, folder and
-   labels, and summary;
+   knowledge item and every client source file, each with its name, kind, status and summary
+   (folder and label names do not reach the model: Q61 (b), below);
 2. the Lead can **open** any item's or source file's text by id on demand; code fetches it,
    scoped to that one client, and the answer cites the **locator** (page, paragraph, row);
 3. proposals awaiting approval are shown, **marked unapproved**;
@@ -76,7 +77,8 @@ Code anchors are at `develop` @ `871c62c5` unless stated.
   never the model's (`domain/source_proposals.py:334-364 @ 871c62c5`).
 - **Folders and labels are, today, hidden from models by rule**: "They are organization, not
   knowledge: no model sees them" (`domain/knowledge.py:24-28 @ 871c62c5`). The requirement lists
-  them in the index (LCK-Q1).
+  them in the index; the owner decided they stay hidden (Q61 (b), 2026-10-21), so the rule stands
+  and the index carries neither.
 
 ## The design
 
@@ -89,7 +91,7 @@ Lead was shown.
 
 | Entry | Included | Fields |
 |---|---|---|
-| Knowledge item | `status == ACTIVE` | `ref` (`k:<item_id>`), `rev`, `kind`, `title`, `summary` (cut at 240 characters at a word, marked `…`), `folder`, `labels`, `source` (`s:<source_id>` when it names one), `status: "approved"` |
+| Knowledge item | `status == ACTIVE` | `ref` (`k:<item_id>`), `rev`, `kind`, `title`, `summary` (cut at 240 characters at a word, marked `…`), `source` (`s:<source_id>` when it names one), `status: "approved"` |
 | Proposal | `ProposalStatus.PROPOSED` only (`domain/knowledge.py:420-425`) | `ref` (`p:<proposal_id>`), `kind`, `title`, `summary`, `item` (the item it revises, if any), `status: "unapproved"`, `origin` (person / study / AI) |
 | Client source | every source of the client | `ref` (`s:<source_id>`), `name` (`display_name`), `family`, `outcome` (READ / PARTIAL / UNREADABLE / UNSUPPORTED / REFUSED), `segments`, `internal: true` when marked, `items` (the refs naming it) |
 
@@ -108,7 +110,7 @@ pages. The Lead opens page 2 with a read (`ref: "index", page: 2`), which counts
 three reads. Nothing is cut silently, and the 200-row repository cap (Finding 2) is not inherited:
 the index query is counted and paged, not limited.
 
-### 2. The read: a second request inside the same turn (recommended)
+### 2. The read: a second request inside the same turn (settled, LCK-Q4)
 
 `LeadOutput` gains `read`: at most 3 `{ref, page, why}` (page from 1). A turn that reads holds a
 short `reply` ("Otevírám …") and nothing else: `edits`, `request`, `self_update` and `view` must be
@@ -120,7 +122,7 @@ context, plus a `reads` layer, under a contract variant with no `read` field. It
 turn's answer. One read round per turn; a Lead that wants page 2 asks in its reply and reads on
 the next turn.
 
-| | **A. Read round within the turn** (recommended) | B. A `follow`-style read the next (continuation) turn answers, as ADR 0040 |
+| | **A. Read round within the turn** (chosen) | B. A `follow`-style read the next (continuation) turn answers, as ADR 0040 |
 |---|---|---|
 | Model requests for a read | 2, each reserved and metered on its own (`StepModelCaller`, one reservation per request) | 2, the same |
 | Latency added | one model answer; no queue hop | a step finish, an enqueue, a claim, a re-freeze, then the answer |
@@ -133,7 +135,7 @@ The cost is the same; A is faster, keeps the read against the index the Lead was
 unbuilt piece, and keeps ADR 0026's reason (the Lead calls nothing: it names refs, code fetches
 inside the turn's own scope and lease). It needs an ADR, because ADR 0026 decision 3 says one
 request: **ADR 0042 (Proposed, LK1)** amends it. If ADR 0040's lookup later wants the same shape,
-that is its own decision (LCK-Q4).
+that is its own decision. The read round inside the turn is settled (LCK-Q4, below).
 
 **The money.** A read round's second request resends the whole context (up to 96 KB), so its
 cost is roughly one more turn, whatever the read's size. Its hold is a whole turn's: the worker
@@ -211,11 +213,13 @@ anything is switched on (§8 of CLAUDE.md: the burst size, the latency, the mone
 - The route: the Lead's own pinned EU model or the route's (ADR 0026 amendment); panel-derived
   material may reach only `bedrock-eu-primary` (OI-61), and the licence gate stays beside residency.
 - Lineage: a DATASET, ARTIFACT or FINDING entry in the index, or a read of one, declares
-  `unclassified-client-knowledge`, which no determination covers today (Finding 1). LK5 records
-  what the data owner decides (LCK-Q3); until then the turn is refused by the gate, as it is
+  `unclassified-client-knowledge`, which no determination covers at `871c62c5` (Finding 1). The data
+  owner approved it for `bedrock-eu-primary` only (Q60 (a), 2026-10-21); LK0, its own fix PR,
+  records the determination. On any other route the gate still refuses it by name; until LK0
+  merges the turn is refused by the gate, as it is
   today, and the Lead says so in words rather than failing silently.
 - A DATASET read is its preview (`client_datasets`: header, kind, fill, distinct values and
-  five samples, personal columns masked), never its rows (LCK-Q2).
+  five samples, personal columns masked), never its rows (Q62 (a), 2026-10-21).
 
 ### 6. Grounding
 
@@ -260,17 +264,24 @@ loops it over the four widths. Below 1100 px the Lead's compact drawer is decide
 (MVPQ-11, `research-lead-workbench` 26): until it lands, the 768 and 390 px steps assert what the
 classic layout serves and no overflow, and they assert the drawer once it exists.
 
+**LK0. Prerequisite: the licence determination (built in its own fix PR).** Finding 1 is a live
+defect, so the determination Q60 (a) settled, `unclassified-client-knowledge` approved for
+`bedrock-eu-primary` only, recorded in `licence_determinations.py` with the decider and date, ships
+on its own fix PR now, not under this plan. This plan's chunks LK2, LK4 and LK5 build on it; its
+tick here records that PR once merged. It is the one chunk without a journey step: it is a
+policy record, tested by the licence gate's own tests.
+
 **LK1. The index as data, and ADR 0042.** `domain/lead_knowledge.py`: `IndexEntry` (item,
-proposal, source), `knowledge_index(items, proposals, sources, folders, labels, selected)` in the
+proposal, source), `knowledge_index(items, proposals, sources, selected)` in the
 order and budget of §1, `index_page(n)`, each entry's `MaterialRule`. ADR 0042 (Proposed): the
 read round as an amendment of ADR 0026 decision 3, its bounds and its relation to ADR 0040.
-Tests: REJECTED never present; PROPOSED marked unapproved; an internal source C and its item
+Tests: REJECTED never present; no folder or label name in any entry (Q61 (b)); PROPOSED marked unapproved; an internal source C and its item
 marked; summaries cut at a word; a 500-entry client paged with counts and no entry lost across
 pages; the bytes of page 1 within 16 KB. Journey: the scripted greeting names the index's counts
 ("V knihovně klienta vidím 12 položek, 2 návrhy, 5 souborů") at the four widths.
 
 **LK2. The index frozen at enqueue.** `ClientKnowledgeRepository.index_for_study(StudyContext)`
-(ACTIVE items with folder and label names, PROPOSED proposals; counted, not limited at 200) and
+(ACTIVE items, never their folder or label names (Q61 (b)), PROPOSED proposals; counted, not limited at 200) and
 `ClientSourceRepository.sources_for_study(StudyContext)` (each with its reading pin and internal
 mark), both taking the client from the study's row; `_freeze` builds the index in place of
 `knowledge_entries`; `context_classification` emits one part per entry by its rule; the lineage
@@ -303,12 +314,10 @@ a malformed switch stops the worker. Measured on recorded exchanges and stated i
 input bytes and tokens per read round, added latency, USD at the Lead model's configured prices.
 Journey: a read opened at the four widths; zero paid jobs.
 
-**LK5. Datasets and the licence.** A DATASET read is its preview (§5); the lineage as LCK-Q3 is
-answered, recorded in `licence_determinations.py` with the decider and date, or DATASET reads and
-entries kept out by rule if the answer is (b). Tests: a personal column's samples masked in the
-read; the gate's answer for the lineage on `bedrock-eu-primary` and on another route; a turn with
-an approved DATASET item answered (or refused in words, by the answer). Journey: a fictional
-dataset opened as its preview at the four widths.
+**LK5. Datasets.** A DATASET read is its preview (§5; Q62 (a)), never a row. Tests: a personal
+column's samples masked in the read; no read returns a dataset row segment; a turn with an approved
+DATASET item answered on `bedrock-eu-primary` (LK0) and refused by name on another route. Journey:
+a fictional dataset opened as its preview at the four widths.
 
 **LK6. What the Lead read, in the API and on screen.** `reads` in the turn state and OpenAPI;
 `readsLine(turn)` in words (pure, Vitest); the "Přečteno: …" line in LeadPane by the integration
@@ -327,26 +336,18 @@ paid develop acceptance needs the owner's authorization, as `ai-research-activat
 
 - **Q59 — what the Lead sees of a client's knowledge.** Settled 2026-10-21 via /pmstatus Q59:
   **(a)**, an index of everything every turn and reads on demand, as above.
-- **LCK-Q1 — folder and label names reach the model.** Today "no model sees them"
-  (`domain/knowledge.py:24-28`); the requirement lists them. (a) send their names in the index,
-  Class A under `rule:knowledge`, and change the rule's text; (b) send neither; (c) send only
-  whether an item is filed. **Recommend (a)**: they are how people find things, and the Lead
-  answering "ve složce Konkurence" is the point; the class is the client's either way.
-- **LCK-Q2 — what a DATASET read contains.** (a) its preview: columns, kinds, fill and five
-  samples, personal columns masked; (b) rows, personal columns masked; (c) rows as uploaded.
-  **Recommend (a)** for the MVP: rows would be personal data at row level reaching a model by a
-  Lead's choice, and (b)'s masking is a pattern heuristic (`client_datasets`).
-- **LCK-Q3 — the licence lineage of client knowledge (the data owner).** `unclassified-client-
-  knowledge` has no determination, so the gate refuses it (Finding 1). (a) record a determination:
-  a client's own knowledge (items, sources, and datasets the client gave us) approved for
-  `bedrock-eu-primary` alone, as the panel was; (b) keep DATASET, ARTIFACT and FINDING out of the
-  Lead's context and reads entirely; (c) a determination per source, by an operator. **Recommend
-  (a)**: it is the client's material sent to AIA's EU route only, which the panel's own
-  determination already covers; (c) does not survive a busy week.
-- **LCK-Q4 — accept the read round inside the turn (ADR 0042).** (a) the second request inside the
-  same step (§2, A); (b) a continuation turn as ADR 0040's lookup (§2, B), which waits for LO6.
-  **Recommend (a)**: same cost, less latency, no unbuilt dependency, and the read answers against
-  the index the Lead was shown. ADR 0040 is unchanged by it.
+- **LCK-Q1 = Q61 — folder and label names reach the model.** Settled 2026-10-21 via /pmstatus Q61:
+  **(b)**, neither reaches the model, against this plan's recommendation of (a). The index carries
+  each item's name, kind, status, summary and internal mark only; the rule "no model sees them"
+  (`domain/knowledge.py:24-28`) stays as written.
+- **LCK-Q2 = Q62 — what a DATASET read contains.** Settled 2026-10-21 via /pmstatus Q62: **(a)**,
+  its preview only: columns, kinds, fill and five samples, personal columns masked, never rows.
+- **LCK-Q3 = Q60 — the licence lineage of client knowledge (the data owner).** Settled 2026-10-21,
+  14:51 UTC, via /pmstatus Q60: **(a)**, `unclassified-client-knowledge` approved for
+  `bedrock-eu-primary` only. Built as LK0 in its own fix PR (Finding 1).
+- **LCK-Q4 — the read round inside the turn.** Settled 2026-10-21 by the PM within Q59 (a): the
+  second request runs inside the same step (§2, A); ADR 0042 stays Proposed until accepted. ADR 0040
+  is unchanged by it.
 
 ## Findings
 
@@ -360,7 +361,7 @@ paid develop acceptance needs the owner's authorization, as `ai-research-activat
    once a client has one approved dataset item, every Lead turn in every one of its studies parks
    with "Vedoucí výzkumu čeká na povolenou trasu nebo licenci"
    (`apps/executors/src/aia_executors/research_lead.py:186-195`); the design agents share it
-   (`domain/research_agents.py:690-691`). Smallest fix: the data owner's determination (LCK-Q3)
+   (`domain/research_agents.py:690-691`). Smallest fix: the data owner's determination (Q60 (a), LK0)
    recorded in `licence_determinations.py`. Test that would have caught it: a Lead turn's request
    with an approved DATASET item through `GovernedModelGateway` preflight on the develop route.
 2. **Hypothesis (not reproduced here; no database in this session): items past the 200th
@@ -395,10 +396,8 @@ For the docs PR after each chunk merges (no feature PR edits these files):
   `infrastructure/client_source_repository.py` gains `reading_for_study`;
   `client_knowledge_repository.py` gains `index_for_study`, `item_for_study`,
   `proposal_for_study`. The workbench line under LeadPane: "Přečteno: …".
-- `CLAUDE.md` § 2 Client Knowledge paragraph and `domain/knowledge.py`'s docstring: folders and
-  labels reach the Lead's index, if LCK-Q1 is answered (a).
 - `ARCHITECTURE.md`: the Lead's read round as the second exception to "the Lead holds no tools",
   beside ADR 0040.
 - `docs/architecture/adr/README.md`: ADR 0042, Proposed.
-- `.planning/open-items.md`: Findings 1 and 2, with OI numbers.
+- `.planning/open-items.md`: Findings 1 and 2, with OI numbers; Finding 1 closed by LK0's fix PR once it merges.
 - `AGENTS.md`: anything non-obvious the read round's checkpointing teaches (LK4).
