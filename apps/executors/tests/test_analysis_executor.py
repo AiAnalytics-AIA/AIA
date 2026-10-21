@@ -1329,7 +1329,7 @@ def test_a_retry_of_a_run_an_earlier_compiler_compiled_reuses_its_specification(
     first = _started_with_analysis(world)
     _drain(worker)
     monkeypatch.undo()
-    assert research_design.COMPILER_VERSION == "aia-research-compile-2"
+    assert research_design.COMPILER_VERSION == "aia-research-compile-3"
     original = _run(world, first)
     compiled = next(s for s in original["steps"] if s["node_key"] == "compile")["output"]
     spec_payload = _payload(world, store, compiled["artifact_id"])

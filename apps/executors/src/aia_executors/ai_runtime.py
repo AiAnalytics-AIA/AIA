@@ -102,7 +102,13 @@ from aia_core.domain.ai_models import (
     parse_model_config,
 )
 from aia_core.domain.deep_research.request_limits import ModelPrices, reservation_usd
-from aia_core.domain.deployment import fictional_material_problem, parse_environment
+from aia_core.domain.deployment import (
+    DataClassGates,
+    data_class_gates_problem,
+    fictional_material_problem,
+    parse_data_class_gates,
+    parse_environment,
+)
 from aia_core.domain.licence_determinations import recorded_policy
 from aia_core.domain.model_invocation import (
     InvocationTargetRefused,
@@ -140,6 +146,7 @@ __all__ = [
     "LightModelSettings",
     "build_ai_fieldwork",
     "build_gateway",
+    "data_class_gates_from_env",
     "panel_population_source",
 ]
 
@@ -516,6 +523,9 @@ class AIRuntimeSettings:
     #: ``AIA_BEDROCK_INVOCATION_TARGET`` (develop-spend-attribution 5a): the application
     #: inference profile the route model's calls go through; ``None``: ``model_id`` itself.
     invocation_target: str | None = None
+    #: ``AIA_DATA_CLASS_GATES`` (plan develop-class-advisory): ``advisory`` on develop only,
+    #: where a refusal made solely because of a data class is recorded and passed.
+    data_class_gates: DataClassGates = DataClassGates.ENFORCE
 
     def invocations(self, light: LightModelSettings | None = None) -> dict[str, ModelInvocation]:
         """Each model this composition calls, by identity, with what its calls are sent through.
@@ -612,6 +622,7 @@ class AIRuntimeSettings:
         problem = fictional_material_problem(parse_environment(env.get("AIA_ENV")), fictional)
         if problem:
             raise AIRuntimeConfigError(problem)
+        class_gates = data_class_gates_from_env(env)
         reservation = _number(env, "AIA_AI_FIELDWORK_RESERVATION_USD")
         assert reservation is not None
         if reservation <= 0:
@@ -687,6 +698,7 @@ class AIRuntimeSettings:
             else 0,
             lead_model=LeadModelSettings.from_env(env),
             invocation_target=(env.get("AIA_BEDROCK_INVOCATION_TARGET") or "").strip() or None,
+            data_class_gates=class_gates,
         )
         if settings.lead_model is not None and settings.lead_model.model_id == model_id:
             raise AIRuntimeConfigError(
@@ -900,6 +912,22 @@ def _with_study_lead(settings: AIRuntimeSettings, env: Mapping[str, str]) -> AIR
     )
 
 
+def data_class_gates_from_env(env: Mapping[str, str]) -> DataClassGates:
+    """``AIA_DATA_CLASS_GATES``, checked against ``AIA_ENV`` by the rule the API asks too.
+
+    Unset is ``enforce``. A value that is not a mode, or ``advisory`` outside local, test and
+    develop (``deployment.data_class_gates_problem``), stops the worker by name.
+    """
+    try:
+        gates = parse_data_class_gates(env.get("AIA_DATA_CLASS_GATES"))
+    except ValueError as exc:
+        raise AIRuntimeConfigError(str(exc)) from exc
+    problem = data_class_gates_problem(parse_environment(env.get("AIA_ENV")), gates)
+    if problem:
+        raise AIRuntimeConfigError(problem)
+    return gates
+
+
 def build_gateway(
     settings: AIRuntimeSettings,
     *,
@@ -947,6 +975,7 @@ def build_gateway(
         egress=EgressPolicy(routes=(settings.route(),)),
         licence=recorded_policy(),
         adapters={settings.route_id: adapter},
+        class_gates=settings.data_class_gates,
     )
 
 
@@ -997,6 +1026,7 @@ def build_ai_fieldwork(
             fictional_client_ids=settings.fictional_client_ids,
             material_approvals=settings.material_approvals,
             scale_labels_in_prompt=settings.scale_labels_in_prompt,
+            class_gates=settings.data_class_gates,
         ),
         build=build,
     )

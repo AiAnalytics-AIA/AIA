@@ -570,6 +570,8 @@ jobs:
               "/api/v1/studies/{study_id}/workspace/revisions",
               "/api/v1/studies/{study_id}/workspace/attachments",
               "/api/v1/studies/{study_id}/workspace/attachments/{attachment_id}",
+              # The class of each brief material (artifact-brief BRF3).
+              "/api/v1/studies/{study_id}/workspace/materials",
               "/api/v1/studies/{study_id}/workspace/questionnaire-import",
               "/api/v1/studies/{study_id}/workspace/questionnaire-template",
               # Research execution (ADR 0016): the Design Revisions a run executes.

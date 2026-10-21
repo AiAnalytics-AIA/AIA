@@ -187,7 +187,10 @@ def test_a_message_queues_a_turn_and_the_lead_answers_one_at_a_time(
         "workspace_revision",
         "created_at",
         "created_by",
+        # The typed start a person's message named (LO5); null on a Lead turn.
+        "command",
     }
+    assert lead["command"] is None
 
     busy = researcher.post(
         f"{lead_url(world)}/turns", json={"kind": "message", "stage": "brief", "text": "Haló?"}

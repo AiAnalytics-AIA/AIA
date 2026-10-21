@@ -552,6 +552,7 @@ def deep_research_runtime(
             agent_directed=directed,
             lead=planned_by_lead,
             fan_out=fanned_out,
+            class_gates=settings.data_class_gates,
         ),
         retrieval=retrieval,
         source_table=table,

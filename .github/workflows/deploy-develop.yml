@@ -143,6 +143,18 @@ jobs:
           cache-to: type=gha,scope=web,mode=max
           provenance: false
 
+      - name: Check develop's data class gates are advisory
+        # The product owner, 2026-10-21 (plan develop-class-advisory): develop runs
+        # AIA_DATA_CLASS_GATES=advisory, a class-only refusal recorded and passed, Brave's
+        # search open to any class. Set in the Compose file's shared environment, never from
+        # Parameter Store; staging and production refuse to start with it.
+        run: |
+          grep -qx '  AIA_DATA_CLASS_GATES: advisory' deploy/develop/docker-compose.yml || {
+            echo "deploy/develop/docker-compose.yml does not set AIA_DATA_CLASS_GATES: advisory" >&2
+            exit 1
+          }
+          echo "data class gates: advisory (develop only; EU residency, licences, budgets and scope enforced)" >> "$GITHUB_STEP_SUMMARY"
+
       - name: Ship the deploy bundle
         # The compose file, Caddyfile and scripts the host runs, at this SHA, so
         # the host's procedure is versioned with the code it deploys.

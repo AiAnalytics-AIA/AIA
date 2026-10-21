@@ -368,7 +368,7 @@ def test_a_specification_the_earlier_compiler_stored_is_never_reused() -> None:
     from aia_core.domain.research_design import AIA_READINESS_V1, COMPILER_VERSION
     from aia_executors.research import compile_fingerprint
 
-    assert COMPILER_VERSION == "aia-research-compile-2"
+    assert COMPILER_VERSION == "aia-research-compile-3"
     now = compile_fingerprint(DESIGN, COMPILER_VERSION, AIA_READINESS_V1)
     assert now == compile_fingerprint(DESIGN, COMPILER_VERSION, AIA_READINESS_V1)
     assert now != compile_fingerprint(DESIGN, "aia-research-compile-1", AIA_READINESS_V1)

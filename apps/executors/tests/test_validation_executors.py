@@ -13,6 +13,7 @@ from typing import Any
 
 import pytest
 from aia_core.application.validation import ValidationRuns, validation_artifacts
+from aia_core.domain.deployment import DataClassGates
 from aia_core.domain.evidence.validation import respondent_system_fingerprint
 from aia_core.domain.holdout.bank import HoldoutItem, ItemBank, Option, SourceDocument
 from aia_core.domain.holdout.preregistration import (
@@ -187,7 +188,13 @@ def grounded(world: Any) -> Any:
         return grounded_population(session)
 
 
-def _fieldwork(caller: _Caller, grounded: Any, *, approved: bool = True) -> AIFieldwork:
+def _fieldwork(
+    caller: _Caller,
+    grounded: Any,
+    *,
+    approved: bool = True,
+    class_gates: DataClassGates = DataClassGates.ENFORCE,
+) -> AIFieldwork:
     from aia_core.domain.ai_material import MaterialApproval, material_sha256
     from aia_core.domain.holdout.run import validation_specification
 
@@ -212,6 +219,7 @@ def _fieldwork(caller: _Caller, grounded: Any, *, approved: bool = True) -> AIFi
             max_output_tokens=1000,
             fictional_client_ids=frozenset(),
             material_approvals=approvals,
+            class_gates=class_gates,
         ),
         build=BuildIdentity(sha="abc"),
         caller_factory=lambda **_: caller,
@@ -402,3 +410,35 @@ def test_an_unclassified_questionnaire_parks_the_arm_and_sends_nothing(
         "egress_unclassified_material"
     }
     assert caller.requests == []
+
+
+def test_under_advisory_class_gates_an_unclassified_questionnaire_is_sent_and_says_so(
+    world: Any, grounded: Any, worker_with: Any
+) -> None:
+    """Develop only (plan develop-class-advisory): the arm the test above parks is sent, judged
+    as Class A as the gateway judges unknown material, and the step's own event and the arm's
+    artifact name the refusal it would have made."""
+    run_id = _start(world, grounded, _preregistration(_live_version(world, grounded)))
+    caller = _Caller()
+    _drain(
+        worker_with(
+            _fieldwork(caller, grounded, approved=False, class_gates=DataClassGates.ADVISORY)
+        )
+    )
+    assert caller.requests
+    assert {r.data_classification for r in caller.requests} == {
+        DataClass.CLASS_A_CLIENT_CONFIDENTIAL
+    }
+    with world.sessions() as session:
+        events = WorkflowRepository(session, world.lead_scope(session)).events(run_id, limit=2000)
+    recorded = [e["payload"]["class_advisory"] for e in events if "class_advisory" in e["payload"]]
+    assert recorded and all(
+        r
+        == {
+            "gate": "validation_material",
+            "rule": "egress_unclassified_material",
+            "data_class": None,
+            "advisory": True,
+        }
+        for r in recorded
+    )

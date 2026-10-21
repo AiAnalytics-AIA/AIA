@@ -5,6 +5,7 @@
 // the server computed and decides nothing (ARCHITECTURE.md §2).
 
 import type { RegisterEntry } from "@/lib/object-map-view";
+import type { BriefMaterials } from "@/lib/material-class";
 import { currentIdToken, loadConfig } from "@/lib/auth";
 import type { EditDecisionResult, LeadPreferences, LeadState, LeadTurn, RequestApproval, ResearcherLead, SelfUpdateDecision } from "@/lib/lead";
 export type { ResearcherLead as ResearcherLeadView } from "@/lib/lead";
@@ -895,6 +896,8 @@ export const workspace = {
     request<AttachmentRecord>("POST", `/api/v1/studies/${enc(studyId)}/workspace/attachments`, body),
   attachment: (studyId: string, attachmentId: string) =>
     requestBlob(`/api/v1/studies/${enc(studyId)}/workspace/attachments/${enc(attachmentId)}`),
+  /** Each of the brief's files and links, as saved, with the data class its rule gives it (artifact-brief BRF3). */
+  materials: (studyId: string) => request<BriefMaterials>("GET", `/api/v1/studies/${enc(studyId)}/workspace/materials`),
   importQuestionnaire: (studyId: string, body: { filename: string; data_b64: string }) =>
     request<QuestionnaireImport>("POST", `/api/v1/studies/${enc(studyId)}/workspace/questionnaire-import`, body),
   questionnaireTemplate: (studyId: string) => requestBlob(`/api/v1/studies/${enc(studyId)}/workspace/questionnaire-template`),

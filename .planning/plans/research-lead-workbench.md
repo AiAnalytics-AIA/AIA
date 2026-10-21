@@ -32,13 +32,13 @@ chunks:
   - "[ ] 26f.1. The Deep Research half of 26f (DRL-5): the Deep Research starts and retries removed from every layout, their panels kept as readers; after 23b and after lead-orchestration LO5a.3 (Q48); with it lead-orchestration LO5a's acceptance"
   - "[ ] 25. Deep Research reachable from every stage as a capability"
   - "[ ] 26a. The Lead at every width (D20, MVPQ-11), its pure rules: lib/workbench-layout.ts, the breakpoints (split from 1100 px, drawer 768-1099, sheet under 768), the drawer's states and the one Escape order, tested at 1099, 1100, 768, 767 and 390 px"
-  - "[ ] 26b. One tree, three layouts: Workbench renders the artifact and LeadPane once at every width, so crossing 1100 px remounts nothing (a mount-counter test); the workbench serves under 1100 px"
-  - "[ ] 26c. The launcher and the drawer (D21): the rail or bottom bar opens the same LeadPane as a side drawer (768-1099 px) or a full-screen sheet (under 768 px); keyboard, focus trap and Escape with a return to the targeted artifact; tested at 1099, 768 and 390 px"
-  - "[ ] 26d. The compact header and stage navigator at 768-1099 and under 768 px: all eleven stages reachable by keyboard, no page overflow"
+  - "[x] 26b. One tree, three layouts: Workbench renders the artifact and LeadPane once at every width, so crossing 1100 px remounts nothing (a mount-counter test); the workbench serves under 1100 px"
+  - "[x] 26c. The launcher and the drawer (D21): the rail or bottom bar opens the same LeadPane as a side drawer (768-1099 px) or a full-screen sheet (under 768 px); keyboard, focus trap and Escape with a return to the targeted artifact; tested at 1099, 768 and 390 px"
+  - "[x] 26d. The compact header and stage navigator at 768-1099 and under 768 px: all eleven stages reachable by keyboard, no page overflow"
   - "[ ] 26e. A stale card refused and a direct request held by the same server gates, in the drawer and in the split"
   - "[ ] 26f. The manual AI starts removed in every layout behind one predicate, except Spuštění's own Start (D15, 2026-10-21); a static guard test; the journeys start work through the Lead's cards or a typed start"
   - "[ ] 27a. Availability, said once and honestly (D20): first an anchored inventory of every path that turns the Lead off or stops it answering, each made hard to trigger by accident (Q43); then lib/lead-availability.ts (ON / WAITING / OFF / UNKNOWN from GET /lead, which incorporates the worker's readiness from the composition record, lead-orchestration LO12b; ON only with the worker ready, unknown never on), the launcher's dot and a stage's one line"
-  - "[ ] 27b. The kill switch holds on every Lead start: a card the Lead model prepared, approved after a switch-off, is 409 research_lead_disabled, stored text edits can still be accepted or dismissed (Q42); with the Lead off the composer takes only LO5's typed start commands, matched by code, and their server-matched chat_start cards stay approvable under the same wallet and LO15 confirmation (Q43); GET /lead reports the worker's readiness (LO12b)"
+  - "[x] 27b. The kill switch holds on every Lead start: a card the Lead model prepared, approved after a switch-off, is 409 research_lead_disabled, stored text edits can still be accepted or dismissed (Q42); with the Lead off the composer takes only LO5's typed start commands, matched by code, and their server-matched chat_start cards stay approvable under the same wallet and LO15 confirmation (Q43); GET /lead reports the worker's readiness (LO12b)"
   - "[ ] 27c. Retire the classic study frame and AIA_WEB_RESEARCH_WORKBENCH (Q41, D5 superseded): the workbench serves at every width, so a Lead is always present; the classic-frame journeys move to the workbench at 1440, 1024, 768 and 390 px"
   - "[ ] 27d. The switch matrix as one journey: Lead on, Lead off and worker parked, at 1100 and 390 px; what is shown, no manual AI start, a direct HTTP start meeting the same gates"
   - "[ ] 29. Conversation controls: older-message paging (with its route), copy, edit and resend, ArrowUp to edit the last message, send-now and edit for a queued message (D-38)"
@@ -683,6 +683,9 @@ so it is rerun on `workbench.py up --fresh`.
   hidden but mounted and its poll continues; `workbench_journey.mjs`'s "classic at 1024" (`:153-161`)
   becomes "the workbench at 1440/1280/1100/1099/768/390, no page overflow". Lands after
   `feature/lead-worker-cards` merges, or rebased on it: both change `Workbench.tsx` and `LeadPane.tsx`.
+  *Landed (with 26c's launcher, the dialog, Zavřít and Escape):* `useWorkbenchLayout`, `Split`'s
+  `layout`, `wb--split|drawer|sheet`; `Workbench.layout.test.tsx` (mount counter, draft kept,
+  dialog, Escape to the launcher) and `workbench_journey.mjs` at 1280/1100/1099/768/390.
 - **26c. The launcher and the drawer.** `Rail` (`Workbench.tsx:642-649`) becomes `LeadLauncher`, a
   vertical rail in `drawer` and a bottom bar in `sheet`, with the pending badge and 27a's availability
   dot; the drawer shell is `role="dialog"`, `aria-modal`, focus-trapped, with Escape and Zavřít;
