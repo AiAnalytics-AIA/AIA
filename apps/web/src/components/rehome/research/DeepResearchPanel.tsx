@@ -156,7 +156,7 @@ export function DeepResearchPanel() {
           })}
           <p className="text-xs text-ink-muted">Důkazy jsou zapečetěné otiskem {bundle.sha256.slice(0, 12)}. Před použitím mimo AIA je zkontrolujte.</p>
           {/* ADR 0021 checkpoint 1: the run proposes, a person takes what they choose into the design. */}
-          {current?.purpose === "DESIGN_RESEARCH" ? <DesignResearchReview studyId={frame.studyId} runId={current.run_id} store={store} project={state.project as unknown as Record<string, unknown>} canApply={frame.canEdit} /> : null}
+          {current?.purpose === "DESIGN_RESEARCH" ? <DesignResearchReview key={current.run_id} studyId={frame.studyId} runId={current.run_id} store={store} project={state.project as unknown as Record<string, unknown>} canApply={frame.canEdit} /> : null}
         </div>
       ) : null}
     </section>

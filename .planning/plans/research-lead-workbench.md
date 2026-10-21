@@ -275,6 +275,32 @@ The backend each chunk needs is in `.planning/mvp-consolidation.md` §6.
   - Not done here: a ledger row for a dismissed item. Leaving an item unticked writes nothing, and
     the proposal stays in its run; ADR 0021 asks only that nothing is written without an accept.
     DRL-7 links the Lead's finished card here.
+  - Review on #554 (Codex) found two defects in the first version, both fixed on the branch:
+    switching runs could keep the last run's proposal and ticks for one render, and one `flush`
+    before the accept left an edit typed during that save pending, so the reload after the accept
+    could replace it. The review is now keyed by its run and renders a proposal only under its own
+    run, and it flushes until the copy is saved (as `submitWorkingDesign` does) and never posts on
+    an unsaved copy. Tests: `offers a loaded proposal only under the run it belongs to`,
+    `saves an edit typed during the save before it accepts, so the accept keeps it`,
+    `never posts while the copy still has an unsaved edit` (each fails on 054cf007).
+- **F4. Two `flush` waiters behind one in-flight save both save from the same base** *(found on
+  #554; not fixed there)*.
+  1. Claim: `ResearchStore.flush` awaits the save in flight, then reads the state and sends. Two
+     callers waiting on the same save both resume, and both send `base_revision` = the revision
+     that save returns. The second is refused `stale_revision`, and the copy goes into conflict.
+  2. Anchor: `apps/web/src/research/store.ts:225-233 @ 054cf007` (`if (this.inflight) await
+     this.inflight;`, then `const s = this.state;` and `base_revision: s.revision`, with no second
+     check before `this.inflight` is set at :237).
+  3. Reproduction: a Vitest with a `save` that holds its first call and refuses a stale base. Call
+     `flush()`, edit, then call `flush()` twice before releasing the first. The bases sent are
+     `[3, 4, 4]` and the third flush is rejected (run on 054cf007; the scratch test is not committed).
+  4. Consequence: two parts of a stage that flush at once (an autosave timer and an explicit flush,
+     or two buttons) can put the person's copy into "Uloženo jinde" over their own save, with no
+     other writer.
+  5. Smallest fix: after `await this.inflight`, loop while `this.inflight` is set, so only one waiter
+     starts the next save and the rest await it; or chain each flush onto the previous one's promise.
+  6. Test: the reproduction above, asserting no two saves share a base and every flush resolves.
+  - #554 fixes only its own caller (it flushes until saved) and does not change `flush`.
 
 ## Doc follow-up (for the docs PR, not this branch)
 
@@ -297,7 +323,8 @@ The backend each chunk needs is in `.planning/mvp-consolidation.md` §6.
   `DesignResearchReview.tsx`, a completed Design Research run's proposal reviewed on Dotazník, its
   ticked items accepted through `POST …/design-proposal/accept`, then the working copy reloaded;
   `lib/design-research-review.ts`, its pure part (readProposal, acceptBody, refusalWords); `lib/api.ts`
-  `deepResearch.acceptDesignProposal`. `.planning/open-items.md`: F-DRL-1, closed by chunk 7b.
+  `deepResearch.acceptDesignProposal`. `.planning/open-items.md`: F-DRL-1, closed by chunk 7b;
+  F4 (two `flush` waiters save from the same base), open.
 - **ADR 0026**, under *Accepted with*: the Lead steers the artifact pane through a closed set of
   display operations (D10); its gates are unchanged.
 

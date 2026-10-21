@@ -20,7 +20,9 @@ import { Sparkle } from "../icons";
 import { Button } from "../ui";
 
 const message = (e: unknown) => (e instanceof Error ? e.message : String(e));
-const isUrl = (s: string) => /^https?:\/\//i.test(s);
+/** How many saves an accept waits for: each one takes what was typed during the one before. */
+const SAVE_ATTEMPTS = 3;
+const isUrl =(s: string) => /^https?:\/\//i.test(s);
 
 export const REVIEW_LABEL = "Zkontrolovat návrh";
 export const ACCEPT_LABEL = "Přijmout vybrané";
@@ -52,7 +54,10 @@ export function DesignResearchReview({ studyId, runId, store, project, canApply 
     return () => { live = false; };
   }, [studyId, runId]);
 
-  if (!proposal) return error ? <p role="alert" className="text-sm text-status-fault">{error}</p> : null;
+  // A proposal belongs to the run it was read for. For the one render after the run changes, before the
+  // effect clears it, the last run's proposal and ticks are still held: they are never shown, ticked or
+  // sent to this run. The panel also keys this component by its run, so a switch starts it afresh.
+  if (!proposal || proposal.run_id !== runId) return error ?<p role="alert" className="text-sm text-status-fault">{error}</p> : null;
   const reading = readProposal(proposal, project);
   const evidence = reading.items.filter((i) => i.kind === "EVIDENCE").length;
   const toggle = (id: string) => setChosen((old) => {
@@ -65,7 +70,14 @@ export function DesignResearchReview({ studyId, runId, store, project, canApply 
     setBusy(true); setError(null); setNotice(null);
     try {
       // A change still waiting for its save is saved first, so the server checks the items against it.
-      await store.flush();
+      // One flush saves what the copy held when it was called, and an edit typed while it was in flight
+      // stays pending. So flush until the copy is saved, as the design submit does, and never post on an
+      // unsaved copy: the reload after the accept would replace what was typed.
+      for (let i = 0; i < SAVE_ATTEMPTS && store.get().save.kind !== "saved"; i++) await store.flush();
+      if (store.get().save.kind !== "saved") {
+        setError("Vaše poslední úprava se ještě ukládá. Počkejte, až bude uložená, a podklady přijměte znovu.");
+        return;
+      }
       const sent = store.get();
       const body = acceptBody(proposal, reading, chosen, sent.revision);
       if (!body) { setError("Pracovní obsah studie ještě není uložený."); return; }
