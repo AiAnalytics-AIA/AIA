@@ -137,6 +137,7 @@ def compose_internal_report(
     method: Section | None = None,
     research_question_gaps: Mapping[str, str] | None = None,
     map_source: tuple[str, str] | None = None,
+    methodology_rules: tuple[Block, ...] = (),
 ) -> ReportDocument:
     """Make an unapproved AIA-branded internal draft from all eight admitted modules.
 
@@ -151,6 +152,8 @@ def compose_internal_report(
     to one of them say so where the answer is read.
     ``map_source``: the verified Sociomap's artifact id and SHA-256 (``report_chapters``), named
     in the audit beside the specification, dataset and aggregate the analysis was built from.
+    ``methodology_rules`` (``compose_methodology_rules``): the rules the run was computed under,
+    printed in the methodology chapter after its reading guidance.
     Client deliverables have a separate admission and review contract; this
     function never upgrades internal claims to a client-facing surface.
     """
@@ -302,6 +305,7 @@ def compose_internal_report(
                                 "následující kapitoly rozvíjejí jejich věcný význam."
                             )
                         ),
+                        *methodology_rules,
                         *(
                             ()
                             if deviation is None

@@ -592,3 +592,35 @@ def test_the_client_report_never_calls_a_pending_question_one_the_run_could_answ
     )
     assert "mohl odpovědět" not in words
     assert "na kterou běh sbíral odpovědi" in words and "rozhodla až podpora" in words
+
+
+def _rule_words(blocks: Any) -> list[str]:
+    from aia_core.domain.report.model import BulletList
+
+    (listing,) = [b for b in blocks if isinstance(b, BulletList)]
+    return ["".join(i.text for i in item.content if isinstance(i, Text)) for item in listing.items]
+
+
+def test_the_methodology_states_the_rules_the_run_pinned() -> None:
+    """CHN9: the support rule's lines (Results' and the analysis gate's), the aggregation
+    methodology and the Sociomap method, each as the run recorded them."""
+    from aia_core.application.report_method import compose_methodology_rules
+    from aia_core.domain.evidence.support import AIA_SUPPORT_V1
+
+    meta = {"support": AIA_SUPPORT_V1.model_dump(mode="json")}
+    support, aggregation, sociomap = _rule_words(compose_methodology_rules(meta))
+    assert support.startswith("Pravidlo podpory aia-support-1: ve výsledcích méně než 25 dárců")
+    assert "přísnější branou: méně než 50 odpovědí číslo potlačí" in support
+    assert "efektivní velikost vzorku pod 25 číslo potlačí" in support
+    assert aggregation == "Agregace: metodika aia-aggregate-1."
+    assert sociomap.startswith("Sociomapa: metoda ") and "kapitola s mapami" in sociomap
+
+
+def test_a_pin_that_cannot_be_read_is_said_so_never_a_presets_name() -> None:
+    from aia_core.application.report_method import compose_methodology_rules
+
+    support, aggregation, _ = _rule_words(
+        compose_methodology_rules({"support": {"broken": True}, "aggregation": "x"})
+    )
+    assert support == "Pravidlo podpory: záznam nelze přečíst."
+    assert aggregation == "Agregace: metodika záznam nelze přečíst."

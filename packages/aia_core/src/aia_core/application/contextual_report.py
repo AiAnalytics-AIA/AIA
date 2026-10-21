@@ -91,7 +91,7 @@ from aia_core.infrastructure.artifact_repository import (
 from aia_core.infrastructure.scope_repository import ScopeRepository
 from aia_core.infrastructure.storage import ArtifactStore, IntegrityError, ObjectNotFound
 
-CONTEXT_REPORT_CONTRACT = "aia-contextual-report-7"
+CONTEXT_REPORT_CONTRACT = "aia-contextual-report-8"
 # Stored beside the run's own report, on the Study's design project (ADR 0016).
 CONTEXT_REPORT_ARTIFACT_TYPE = "research_internal_docx_with_research"
 CONTEXT_REPORT_STAGE = "REPORT"
@@ -1058,6 +1058,7 @@ def _compose(
         method=chapters.method,
         research_question_gaps=chapters.gaps,
         map_source=(chapters.map_artifact_id, chapters.map_sha256),
+        methodology_rules=chapters.methodology,
     )
     modules = [analysis.modules[m.module_id] for m in ANALYSIS_MODULES]
     return _Composed(

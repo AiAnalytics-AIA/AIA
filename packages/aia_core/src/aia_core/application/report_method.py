@@ -14,6 +14,7 @@ from collections.abc import Mapping
 from typing import Any, Final
 
 from aia_core.domain.answerability import read_answerability_note
+from aia_core.domain.evidence.support import SupportThresholds
 from aia_core.domain.fieldwork import (
     MODELLED_DISCLOSURE,
     DataOrigin,
@@ -21,13 +22,15 @@ from aia_core.domain.fieldwork import (
     origin_kind,
     persona_source_of,
 )
-from aia_core.domain.methodology.pins import run_methods
+from aia_core.domain.methodology.pins import read_support_pin, run_methods
 from aia_core.domain.report.model import (
     Block,
+    BulletList,
     Callout,
     CalloutKind,
     Column,
     Heading,
+    ListItem,
     Paragraph,
     Section,
     Table,
@@ -520,3 +523,55 @@ def compose_method_section(
     )
     blocks.extend(_answerability_blocks(meta, client=client))
     return Section("Respondenti a výpočet", tuple(blocks), id="ch-method")
+
+
+def _number(value: float) -> str:
+    return f"{value:g}".replace(".", ",")
+
+
+def _rule_lines(rule: SupportThresholds) -> list[str]:
+    """One support rule in words: each line it checks, none it does not."""
+    lines: list[str] = []
+    if rule.min_cell is not None:
+        lines.append(f"méně než {rule.min_cell} odpovědí číslo potlačí")
+    if rule.n_guard is not None:
+        lines.append(f"efektivní velikost vzorku pod {_number(rule.n_guard)} číslo potlačí")
+    if rule.indicative is not None:
+        lines.append(f"pod {_number(rule.indicative)} je číslo jen orientační")
+    if rule.min_layer_donors is not None:
+        lines.append(f"méně než {rule.min_layer_donors} dárců ve vrstvě číslo potlačí")
+    if rule.indicative_layer_donors is not None:
+        lines.append(f"pod {rule.indicative_layer_donors} dárci ve vrstvě je číslo jen orientační")
+    return lines
+
+
+def compose_methodology_rules(meta: Mapping[str, Any]) -> tuple[Block, ...]:
+    """The rules this run was computed under, from its pins (artifact-chain CHN9): the support
+    rule Results shows and the stricter gate a number passes before analysis, the aggregation
+    methodology and the Sociomap method. A pin that cannot be read is said so, never replaced
+    by a preset's name."""
+    methods = run_methods(meta)
+    unread = "záznam nelze přečíst"
+    items: list[str] = []
+    try:
+        support = read_support_pin(meta.get("support"))
+    except ValueError:
+        items.append(f"Pravidlo podpory: {unread}.")
+    else:
+        results = "; ".join(_rule_lines(support.results)) or "nekontroluje žádnou mez"
+        analysis = "; ".join(_rule_lines(support.analysis)) or "nekontroluje žádnou mez"
+        items.append(
+            f"Pravidlo podpory {support.methodology_version}: ve výsledcích {results}. "
+            f"Do analýzy vstupuje číslo, jen když projde přísnější branou: {analysis}."
+        )
+    aggregation = methods.get("aggregation")
+    items.append(f"Agregace: metodika {(aggregation.name if aggregation else None) or unread}.")
+    sociomap = methods.get("sociomap")
+    items.append(
+        f"Sociomapa: metoda {(sociomap.name if sociomap else None) or unread}; "
+        "stav jejího schválení uvádí kapitola s mapami."
+    )
+    return (
+        Paragraph(text("Běh počítal podle pravidel, která si připnul při spuštění:")),
+        BulletList(tuple(ListItem(text(item)) for item in items)),
+    )
