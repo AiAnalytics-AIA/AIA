@@ -12,6 +12,7 @@ from __future__ import annotations
 from functools import lru_cache
 from typing import Literal
 
+from aia_core.application.deep_research_pricing import DeepResearchPricingSettings
 from aia_core.domain.deployment import DeploymentEnvironment, fictional_material_problem
 from aia_core.domain.fieldwork import FieldworkSource
 from aia_core.infrastructure.build_identity import BuildIdentity, parse_build_sha
@@ -183,7 +184,13 @@ class Settings(BaseSettings):
     # the names; here only whether any is listed matters to the ceiling.
     deep_research_connectors: str = ""
     deep_research_agent_directed: bool = False
+    # The Deep Research engine's lead-researcher mode, not the Research Lead (F-DRL-7).
     deep_research_lead: bool = False
+    # ``AIA_DEEP_RESEARCH_ENABLED`` as the API's environment carries it (the develop Compose
+    # file passes the worker's value). Read only to say, on a quote, whether a run would park
+    # (plan deep-research-web-search 55); unset is ``None``, unknown, never "off" or "on". What
+    # the worker composed is the worker's to publish (lead-orchestration LO12b).
+    deep_research_enabled: bool | None = None
 
     log_level: Literal["DEBUG", "INFO", "WARNING", "ERROR"] = "INFO"
     log_format: Literal["json", "console"] = "json"
@@ -221,6 +228,7 @@ class Settings(BaseSettings):
         "deep_research_common_crawl_min_billed_bytes",
         "deep_research_common_crawl_billing_increment_bytes",
         "ai_research_lead_enabled",
+        "deep_research_enabled",
         mode="before",
     )
     @classmethod
@@ -237,6 +245,32 @@ class Settings(BaseSettings):
         if isinstance(value, str):
             return [origin.strip() for origin in value.split(",") if origin.strip()]
         return value
+
+    def deep_research_pricing(self) -> DeepResearchPricingSettings:
+        """The keys a Deep Research ceiling is priced from (plan deep-research-web-search 55)."""
+        return DeepResearchPricingSettings(
+            input_usd_per_mtok=self.bedrock_input_usd_per_mtok,
+            output_usd_per_mtok=self.bedrock_output_usd_per_mtok,
+            cache_read_usd_per_mtok=self.bedrock_cache_read_usd_per_mtok,
+            cache_write_usd_per_mtok=self.bedrock_cache_write_usd_per_mtok,
+            context_window_tokens=self.bedrock_context_window_tokens,
+            max_output_tokens=self.ai_research_max_output_tokens,
+            thinking_budget_tokens=self.deep_research_thinking_budget_tokens,
+            web_search=self.deep_research_web_search,
+            wikipedia_enabled=self.deep_research_wikipedia_enabled,
+            brave_usd_per_1000=self.deep_research_brave_usd_per_1000,
+            common_crawl=self.deep_research_common_crawl,
+            common_crawl_max_scan_bytes=self.deep_research_common_crawl_max_scan_bytes,
+            common_crawl_usd_per_tb_scanned=self.deep_research_common_crawl_usd_per_tb_scanned,
+            common_crawl_min_billed_bytes=self.deep_research_common_crawl_min_billed_bytes,
+            common_crawl_billing_increment_bytes=(
+                self.deep_research_common_crawl_billing_increment_bytes
+            ),
+            connectors=self.deep_research_connectors,
+            agent_directed=self.deep_research_agent_directed,
+            engine_lead=self.deep_research_lead,
+            enabled=self.deep_research_enabled,
+        )
 
     @property
     def fictional_client_ids(self) -> frozenset[str]:

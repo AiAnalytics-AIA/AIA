@@ -17,7 +17,7 @@ import { EDIT_FIELD, FIELD_ERROR, FOCUS, SaveNote } from "./parts";
 const SAVED_MS = 3000;
 
 export function InlineText({
-  value, onCommit, label, multiline = false, placeholder, disabled = false, disabledReason, rules, className = "",
+  value, onCommit, label, multiline = false, placeholder, disabled = false, disabledReason, rules, autoOpen = false, onSettled, className = "",
 }: {
   value: string;
   /** Saves the new value. A returned promise drives the save state; a rejection is "Neuloženo". */
@@ -31,9 +31,20 @@ export function InlineText({
   /** Why it cannot be edited now ("zmrazeno během běhu"), said beside it. */
   disabledReason?: string;
   rules?: TextRules;
+  /**
+   * Opens in place as it mounts: a rename asked for from somewhere else (a row's menu, F2 on a
+   * row whose own click does something else), where the caller swaps its row for this field.
+   */
+  autoOpen?: boolean;
+  /**
+   * Called once the value is at rest after it was opened: closed by Esc or by a commit that sent
+   * nothing, or its save answered. Never while a save is in flight or after one failed, so a caller
+   * that swaps this field back for its row keeps "Neuloženo – Zkusit znovu" on screen until it went.
+   */
+  onSettled?: () => void;
   className?: string;
 }) {
-  const [draft, setDraft] = useState<string | null>(null);
+  const [draft, setDraft] = useState<string | null>(() => (autoOpen && !disabled ? value : null));
   const [problem, setProblem] = useState<string | null>(null);
   // Once a draft was refused, it is checked as it is typed (I9: from the first blur, then live).
   const [checked, setChecked] = useState(false);
@@ -57,8 +68,21 @@ export function InlineText({
     if (timer.current) clearTimeout(timer.current);
   }, []);
 
+  // At rest after an opening: the caller is told once per opening (autoOpen counts as one).
+  const opened = useRef(autoOpen && !disabled);
+  const settledNote = useRef(onSettled);
+  useEffect(() => {
+    settledNote.current = onSettled;
+  }, [onSettled]);
+  useEffect(() => {
+    if (!opened.current || editing || pending !== null || failed !== null || save === "saving") return;
+    opened.current = false;
+    settledNote.current?.();
+  }, [editing, pending, failed, save]);
+
   const open = () => {
     if (disabled) return;
+    opened.current = true;
     settled.current = false;
     setDraft(current);
     setProblem(null);

@@ -633,6 +633,43 @@ file is written up ([`editor-spike-2026-10-21.md`](evidence/editor-spike-2026-10
 conditional go for ONLYOFFICE Docs Community, Collabora Online the fallback; the go/no-go is the owner's
 and pending (`research-lead-workbench#33`, page Q19).
 
+**W0 and the first of W1, delivered (2026-10-21).** E02 (#534): `lead-orchestration` LO0 (the money
+vocabulary as types, `domain/money.py`, on ADR 0028) and LO16 (the ledger's closed subjects,
+`domain/approval_ledger.py`, migration M3 `5054d4d610c2`) and `working-copy-edit-ops` WCE0 (the edit
+vocabulary, `domain/edit_ops.py`) are done, with `mvp-master-plan#MP4`'s rows for the edit vocabulary,
+the money contract and M3; MP4's other rows stay open. E01 (#535) runs MVP-ACCEPT-2 tier A over HTTP
+as a blocking CI step, and the owner approved its USD 25 allocation as proposed, option A, on
+2026-10-21 at 07:56 UTC (#545). E03 (#541): LO15 (every agent-job start and rebuild held to the
+confirmation threshold), LO9a (`LeadWorkerSpec`) and `develop-spend-attribution` 5a (a model's
+identity apart from its invocation target; lane migration M9 not needed). E04 (#539): one valid-n
+authority (RQC9), the population double for tier A (RQC10), the Brief-material interface (8a,
+proposed). W1 began with K3/K4a (#542), WCE1's stable item ids behind `AIA_WEB_STABLE_ITEM_IDS`, off
+(#543), and LO1's study wallet behind `AIA_STUDY_WALLET_ENABLED`, off (#544, migration M4
+`60ccc9ff42cf`).
+
+**The owner's decisions of 2026-10-21.** The MVP ships the methodology owner's `aia-sociomap-5`
+(MVPQ-13, decided 2026-10-20; the methodology owner's 24 open decisions and one evidence request are
+in [`mvp-methodology-packet.md`](mvp-methodology-packet.md), #510). Q39 (11:41 UTC): no "Pokračovat"
+button for a Lead turn parked on the budget; setting or raising the budget sends the waiting message
+(#547, OI-174). Q40-Q43: per-researcher spend, the Lead at every width, the classic frame retired,
+the Lead's cards refused once it is off, typed starts without the model
+([`mvp-owner-decisions.md`](mvp-owner-decisions.md) § MVPQ-11, #551). Q44-Q48, the Lead controlling
+Deep Research end to end: every Interpretation target kind from a code-built list, the
+`research_questions` module the default (Q44); a Design Research run may focus on named research
+questions (Q45); QUICK and STANDARD offered, STANDARD the default (Q46); a plan may chain fieldwork,
+then interpretation, parking if its module is BLOCKED (Q47); the Deep Research half of the narrow
+Lead waits for typed starts (Q48). The record is
+[`lead-orchestration.md` § Deep Research under the Lead](plans/lead-orchestration.md) (#553). The artifact plans' answers (#560):
+the `-5` drawing fixes only its two state issues (a selection carried between Objekty and Respondenti; full screen with Top vztahy showing only the selected object's links), the camera snap and the labels go to the methodology owner (Q50);
+Výsledky shows up to five raw open answers per question, internal only (Q52); the persona source is
+chosen on Spuštění (Q54); code writes the report narrative's first draft and the Lead proposes
+tracked changes (Q56); the literature is woven into the one report, labelled external, and the
+separate report with literature is retired for new reports (Q58;
+[`mvp-owner-decisions.md`](mvp-owner-decisions.md)). Q51, Q53 and Q55 are open. Q59 (14:40): the Lead sees an index of all of the study's
+client's knowledge every turn and opens any file's text by id on demand, code-fetched and scoped to
+that client; pending proposals marked unapproved, "Interní dokument" sources marked, rejected items
+left out (plan `lead-client-knowledge.md`, coming).
+
 **Working model (owner, 2026-10-19).** This section is the roadmap. Each track has one owner,
 named here when its work starts; no two agents edit the same plan. An agent marks its own PR ready
 and handles review (MVP-22); **the owner merges**. The method owner works in AIA sessions under CLAUDE.md.

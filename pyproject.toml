@@ -254,7 +254,6 @@ allow_indirect_imports = true
 ignore_imports = [
     "aia_api.routers.client_sources -> aia_core.infrastructure.client_source_repository",
     "aia_api.routers.client_sources -> aia_core.infrastructure.storage",
-    "aia_api.routers.deep_research -> aia_core.infrastructure.deep_research_settings_repository",
     "aia_api.routers.deep_research -> aia_core.infrastructure.storage",
     "aia_api.routers.deep_research -> aia_core.infrastructure.study_design_repository",
     "aia_api.routers.deep_research_settings -> aia_core.infrastructure.deep_research_settings_repository",

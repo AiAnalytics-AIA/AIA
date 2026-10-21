@@ -13,10 +13,12 @@ import asyncio
 from typing import Any
 
 import pytest
+from aia_core.domain.research_agents import CONTRACTS, ResearchAction
 from aia_core.infrastructure.model_adapters.transport import HttpRequest
 from aia_executors import acceptance_recorded
 from aia_executors.recorded_models import (
     ANALYSIS_TOOL,
+    DESIGN_ANSWERS,
     LEAD_REPLY,
     LEAD_TOOL,
     RECORDING,
@@ -114,12 +116,23 @@ def test_a_contract_with_no_recording_is_refused_by_name_never_invented() -> Non
     """An answered 400 (Bedrock's ValidationException: permanent, never retried, not billed):
     the step fails naming the contract, and nothing is made up for it."""
     reply = asyncio.run(
-        RecordedModels().send(_request("aia_research_build_questionnaire"), timeout_s=5)
+        RecordedModels().send(_request("aia_knowledge_source_proposals"), timeout_s=5)
     )
     assert reply.status == 400
     assert reply.headers["x-amzn-errortype"] == "ValidationException"
     assert reply.headers["x-aia-recording"] == RECORDING
-    assert "aia_research_build_questionnaire" in reply.body["message"]
+    assert "aia_knowledge_source_proposals" in reply.body["message"]
+
+
+@pytest.mark.parametrize("action", list(ResearchAction))
+def test_each_design_worker_s_recording_keeps_its_closed_contract(action: ResearchAction) -> None:
+    tool = f"aia_research_{action.value}"
+    reply = asyncio.run(RecordedModels().send(_request(tool), timeout_s=5))
+    assert reply.status == 200
+    assert reply.headers["x-amzn-requestid"].startswith(f"recorded-{action.value}-")
+    answer = reply.body["output"]["message"]["content"][0]["toolUse"]["input"]
+    CONTRACTS[action].model_validate(answer)
+    assert answer == DESIGN_ANSWERS[tool]
 
 
 def test_the_analysis_answer_cites_the_evidence_the_turn_sent() -> None:

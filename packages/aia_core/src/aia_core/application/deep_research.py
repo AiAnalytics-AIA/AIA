@@ -52,12 +52,18 @@ from __future__ import annotations
 
 from collections.abc import Callable, Collection, Sequence
 from dataclasses import dataclass
+from enum import StrEnum
 from typing import Any, Final
 
 from pydantic import BaseModel, ConfigDict
 from sqlalchemy.orm import Session
 
-from ..domain.deep_research.budgets import ROUTE_ALLOWANCES, ResearchMode, track_counts
+from ..domain.deep_research.budgets import (
+    ROUTE_ALLOWANCES,
+    CallKind,
+    ResearchMode,
+    track_counts,
+)
 from ..domain.deep_research.bundle import EvidenceBundle
 from ..domain.deep_research.contracts import (
     HARNESS_VERSION,
@@ -149,6 +155,7 @@ from .workflows import StartedRun
 
 __all__ = [
     "BundleNotReady",
+    "DeepResearchQuote",
     "DeepResearchRunNotFound",
     "DeepResearchRunNotRetryable",
     "DeepResearchRuns",
@@ -161,6 +168,8 @@ __all__ = [
     "ResearchTargetNotFound",
     "RunNotGoverned",
     "RunSpecCorrupt",
+    "StartVerdict",
+    "ceiling_metadata",
     "governed_record",
     "run_settings",
     "run_spec_metadata",
@@ -227,6 +236,92 @@ class BundleNotReady(Exception):
     def __init__(self, message: str, *, status: WorkflowRunStatus | None = None) -> None:
         super().__init__(message)
         self.status = status
+
+
+class StartVerdict(StrEnum):
+    """What a start of a quoted spec would answer, in :meth:`DeepResearchRuns._enqueue`'s order."""
+
+    #: The run exists: a start returns it and spends and asks nothing.
+    EXISTS = "exists"
+    #: A priced live route with a live setting not approved: 409 ``live_settings_unapproved``.
+    LIVE_SETTINGS_UNAPPROVED = "live_settings_unapproved"
+    #: A threshold is set and the ceiling cannot be worked out: 409 ``cost_ceiling_unknown``.
+    CEILING_UNKNOWN = "ceiling_unknown"
+    #: The ceiling reaches the threshold: the start asks for ``confirm_cost_usd`` >= it.
+    CONFIRM = "confirm"
+    #: No threshold, or the ceiling is below it: the start creates the run.
+    START = "start"
+
+
+@dataclass(frozen=True, slots=True)
+class StartAdmission:
+    """What a start checks before it creates a run (:meth:`DeepResearchRuns._admit`)."""
+
+    key: str
+    existing_run_id: str | None
+    in_force: EffectiveSettings
+    #: ``None`` only when the caller stated no prices.
+    ceiling: DeepResearchCeiling | None
+    paid_routes: tuple[CallKind, ...]
+    live_missing: tuple[str, ...]
+    threshold_usd: float | None
+
+    def verdict(self) -> StartVerdict:
+        """The answer a start with no confirmation would give, in :meth:`_enqueue`'s order."""
+        if self.existing_run_id is not None:
+            return StartVerdict.EXISTS
+        if self.live_missing:
+            return StartVerdict.LIVE_SETTINGS_UNAPPROVED
+        total = None if self.ceiling is None else self.ceiling.total_usd
+        verdict = threshold_verdict(total, self.threshold_usd)
+        if verdict is ThresholdVerdict.CEILING_UNKNOWN:
+            return StartVerdict.CEILING_UNKNOWN
+        if verdict is ThresholdVerdict.ASK:
+            return StartVerdict.CONFIRM
+        return StartVerdict.START
+
+
+@dataclass(frozen=True, slots=True)
+class DeepResearchQuote:
+    """A start's price and answer, before it is made (:meth:`DeepResearchRuns.quote`)."""
+
+    purpose: DeepResearchPurpose
+    preset: str
+    #: The most the run can cost, by kind; ``None`` when no prices were stated.
+    ceiling: DeepResearchCeiling | None
+    #: The priced live routes the run would use (Brave's search, Common Crawl's index).
+    paid_routes: tuple[CallKind, ...]
+    #: The live settings those routes still need approved (ADR 0022 decision 6).
+    live_missing: tuple[str, ...]
+    threshold_usd: float | None
+    existing_run_id: str | None
+    verdict: StartVerdict
+    #: The digest of the settings in force, which the run would pin.
+    settings_digest: str
+    #: ``WorkflowRepository.budget_position``; ``None`` without ``VIEW_COSTS``.
+    budget: dict[str, float] | None
+
+
+def ceiling_metadata(ceiling: DeepResearchCeiling | None) -> dict[str, Any]:
+    """What a new run stores of its ceiling, threshold or not (F-DRL-2).
+
+    ``cost_ceiling_usd`` is the total or ``None`` (a price missing, or no prices stated),
+    never 0 for unknown; an unknown one names the kinds whose price is missing.
+    """
+    if ceiling is None:
+        return {
+            "cost_ceiling_usd": None,
+            "cost_ceiling_unknown": CeilingUnknown.DEEP_RESEARCH_PRICE_MISSING.value,
+        }
+    out: dict[str, Any] = {
+        "cost_ceiling_usd": ceiling.total_usd,
+        "cost_ceiling_mode": ceiling.mode.value,
+    }
+    if ceiling.total_usd is None:
+        assert ceiling.unknown is not None
+        out["cost_ceiling_unknown"] = ceiling.unknown.value
+        out["cost_ceiling_unknown_kinds"] = [k.value for k in ceiling.unknown_kinds]
+    return out
 
 
 @dataclass(frozen=True, slots=True)
@@ -588,12 +683,14 @@ class DeepResearchRuns:
         target over the same request. Each step's fingerprint stays the engine request's,
         so the engine's reuse across runs is unchanged.
 
-        When the Study has a spend limit and this would create a run, the run's cost
-        ceiling is worked out from ``prices`` (the deployment's, never the request's)
-        over ``modes``. A ceiling at or above the limit needs ``confirm_cost_usd`` to
-        cover it (:class:`~aia_core.application.research.CostConfirmationRequired`
-        otherwise) and the yes is recorded in the approval ledger with the run. No
-        prices, or a price the run needs missing, is
+        The run's cost ceiling is worked out from ``prices`` (the deployment's, never the
+        request's) over ``modes`` by :meth:`_admit`, the admission :meth:`quote` reads too,
+        and stored with every new run, threshold or not (plan chunk 55, F-DRL-2).
+        When the Study has a spend limit and this would create a run, a ceiling at or above
+        the limit needs ``confirm_cost_usd`` to cover it
+        (:class:`~aia_core.application.research.CostConfirmationRequired` otherwise) and the
+        yes is recorded in the approval ledger with the run. No prices, or a price the run
+        needs missing, is
         :class:`~aia_core.application.research.CostCeilingUnknown`: not let by. A start
         that finds its run already there spends nothing and asks nothing. When ``prices``
         name a priced live route (``DeepResearchPrices.paid_routes``), a new run needs every
@@ -611,34 +708,31 @@ class DeepResearchRuns:
         project_id = self._designs().project_id()
         assert project_id is not None  # a revision exists, so its design project does
         request_fingerprint = request.fingerprint()
-        spec_fingerprint = spec.fingerprint()
         steps = deep_research_steps()
-        # ADR 0022 decision 4: the settings in force in this Study's organization now, pinned
-        # on the run; an approval after this changes only runs enqueued after it.
-        in_force = settings_in_force_for_study(self.session, self.scope)
+        # The same admission a quote reads (:meth:`quote`): the settings in force now (ADR
+        # 0022 decision 4, pinned on the run), the idempotency key, the ceiling, the priced
+        # routes and the threshold. An approval after this changes only later runs.
+        admission = self._admit(spec, retry_of=retry_of, prices=prices, modes=modes)
+        in_force = admission.in_force
         settings_pin = pin(in_force)
         test_approval = test_approval_receipt_for_study(self.session, self.scope)
-        key = f"{DEEP_RESEARCH}:spec:{spec_fingerprint}"
-        if retry_of:
-            key += f":retry:{retry_of}"
+        key = admission.key
         workflows = self._workflows()
-        existing = workflows.find_run_by_idempotency_key(key)
-        if existing is None and prices is not None:
+        existing = admission.existing_run_id
+        if existing is None and admission.live_missing:
             # ADR 0022 decision 6 (chunk 44): a priced live route needs every live setting
             # approved in this organization; the worker checks the pin again.
-            paid = prices.paid_routes()
-            missing = in_force.missing_for_live() if paid else ()
-            if missing:
-                raise LiveNotApproved(missing, kinds=[k.value for k in paid])
+            raise LiveNotApproved(
+                admission.live_missing, kinds=[k.value for k in admission.paid_routes]
+            )
         confirmation: tuple[float, float] | None = None
-        ceiling: DeepResearchCeiling | None = None
-        limit = self.spend_limit()
+        ceiling = admission.ceiling
+        limit = admission.threshold_usd
         if limit is not None and existing is None:
-            if prices is None:
+            if ceiling is None:
                 raise CostCeilingUnknown(
                     CeilingUnknown.DEEP_RESEARCH_PRICE_MISSING, limit_usd=limit
                 )
-            ceiling = self.cost_ceiling(request, prices=prices, modes=modes, settings=in_force)
             if ceiling.total_usd is None:
                 assert ceiling.unknown is not None
                 raise CostCeilingUnknown(
@@ -675,11 +769,9 @@ class DeepResearchRuns:
                 # ADR 0021: why, what and on which immutable state. The engine request
                 # itself is the plan step's input, below.
                 **run_spec_metadata(spec, purpose_source=purpose_source),
-                **(
-                    {"cost_ceiling_usd": ceiling.total_usd, "cost_ceiling_mode": ceiling.mode.value}
-                    if ceiling is not None
-                    else {}
-                ),
+                # Always stored, threshold or not (F-DRL-2): the most this run can cost, or
+                # null with the kinds whose price is missing -- never 0 for unknown.
+                **ceiling_metadata(ceiling),
                 **({"retry_of": retry_of} if retry_of else {}),
             },
             # Each step's fingerprint is the engine request's: a re-run after a crash is
@@ -704,6 +796,85 @@ class DeepResearchRuns:
             workflow_type=DEEP_RESEARCH,
             created=existing is None,
             run=workflows.get_run(run_id),
+        )
+
+    def _admit(
+        self,
+        spec: DeepResearchRunSpec,
+        *,
+        retry_of: str | None,
+        prices: DeepResearchPrices | None,
+        modes: Collection[ResearchMode],
+    ) -> StartAdmission:
+        """What :meth:`_enqueue` checks before it creates a run, read without writing.
+
+        The one place a start and a quote are priced (plan chunk 55, DRL-0): the settings in
+        force, the run's idempotency key and whether its run exists, the ceiling over
+        ``prices`` (always, threshold or not; ``None`` only with no prices), the priced live
+        routes and the live settings they still miss, and the study's threshold.
+        """
+        in_force = settings_in_force_for_study(self.session, self.scope)
+        key = f"{DEEP_RESEARCH}:spec:{spec.fingerprint()}"
+        if retry_of:
+            key += f":retry:{retry_of}"
+        existing = self._workflows().find_run_by_idempotency_key(key)
+        ceiling: DeepResearchCeiling | None = None
+        paid: tuple[CallKind, ...] = ()
+        missing: tuple[str, ...] = ()
+        if prices is not None:
+            ceiling = self.cost_ceiling(
+                spec.engine_request, prices=prices, modes=modes, settings=in_force
+            )
+            paid = prices.paid_routes()
+            missing = tuple(in_force.missing_for_live()) if paid else ()
+        return StartAdmission(
+            key=key,
+            existing_run_id=existing,
+            in_force=in_force,
+            ceiling=ceiling,
+            paid_routes=paid,
+            live_missing=missing,
+            threshold_usd=self.spend_limit(),
+        )
+
+    def require_start(self) -> None:
+        """What a start requires before anything is frozen or read: ``RUN_WORKFLOW`` and an
+        open study (:meth:`start`, :meth:`start_interpretation`). A quote asks it first too, so
+        a closed study is refused before any artifact is verified."""
+        self.scope.require(Permission.RUN_WORKFLOW)
+        self.scope.require_open_study()
+
+    def quote(
+        self,
+        spec: DeepResearchRunSpec,
+        *,
+        prices: DeepResearchPrices | None,
+        modes: Collection[ResearchMode] = tuple(ResearchMode),
+    ) -> DeepResearchQuote:
+        """What starting ``spec`` would cost and what its start would answer. Writes nothing.
+
+        Read from :meth:`_admit`, the admission :meth:`_enqueue` acts on, so a quote and the
+        start it describes cannot disagree: the start asks with exactly this ceiling. Nothing
+        is reserved, recorded or created. Needs ``RUN_WORKFLOW`` and an open study, as a
+        start does. The budget position is shown only to a caller with ``VIEW_COSTS``.
+        """
+        self.require_start()
+        require_interpretation_mission(spec)
+        admission = self._admit(spec, retry_of=None, prices=prices, modes=modes)
+        budget = (
+            self._workflows().budget_position() if self.scope.has(Permission.VIEW_COSTS) else None
+        )
+        return DeepResearchQuote(
+            purpose=spec.purpose,
+            preset=spec.engine_request.preset,
+            ceiling=admission.ceiling,
+            paid_routes=admission.paid_routes,
+            live_missing=admission.live_missing,
+            threshold_usd=admission.threshold_usd,
+            existing_run_id=admission.existing_run_id,
+            verdict=admission.verdict(),
+            settings_digest=admission.in_force.digest(),
+            budget=budget,
         )
 
     def retry(

@@ -6,7 +6,7 @@
 // at the row as the person types; a refusal from the server is said at the same row (I9), with
 // the name kept. Reference: `AddItem`, prototypes/research-lead-v2/src/components/ui.tsx:108.
 
-import { useId, useRef, useState } from "react";
+import { type ReactNode, useId, useRef, useState } from "react";
 
 import { t } from "@/i18n/t";
 import { NAME_MAX, cleanName, nameProblem, nameProblemWords } from "@/lib/name-input";
@@ -14,7 +14,7 @@ import { Icon, type IconName } from "../rehome/icons";
 import { FIELD_ERROR, FOCUS } from "./parts";
 
 export function InlineCreateRow({
-  label, onCreate, existing = [], maxLength = NAME_MAX, icon = "plus", placeholder, next = true, disabled = false, className = "",
+  label, onCreate, existing = [], maxLength = NAME_MAX, icon = "plus", placeholder, next = true, disabled = false, adornment, className = "",
 }: {
   /** The action and the field's name ("Nová složka"). */
   label: string;
@@ -32,6 +32,11 @@ export function InlineCreateRow({
   /** false: the row closes after one creation instead of opening the next. */
   next?: boolean;
   disabled?: boolean;
+  /**
+   * A control inside the row beside the name, chosen with it (a new label's swatch). Moving to it
+   * is not leaving the row: an empty row closes only when focus leaves the row as a whole.
+   */
+  adornment?: ReactNode;
   className?: string;
 }) {
   const [open, setOpen] = useState(false);
@@ -114,7 +119,14 @@ export function InlineCreateRow({
   }
 
   return (
-    <div className={`flex min-w-0 flex-col gap-1 ${className}`}>
+    <div
+      className={`flex min-w-0 flex-col gap-1 ${className}`}
+      onBlur={(e) => {
+        // Leaving for the adornment is not leaving the row.
+        if (e.currentTarget.contains(e.relatedTarget as Node | null)) return;
+        if (!cleanName(draft) && !busy) close(false);
+      }}
+    >
       <div
         className={`flex min-h-8 items-center gap-1.5 rounded-control border px-2 focus-within:outline-2 focus-within:outline-offset-2 focus-within:outline-focus-ring ${shown ? FIELD_ERROR : "border-border-strong bg-surface-raised"}`}
       >
@@ -141,11 +153,9 @@ export function InlineCreateRow({
               close();
             }
           }}
-          onBlur={() => {
-            if (!cleanName(draft) && !busy) close(false);
-          }}
           className="min-h-7 min-w-0 flex-1 border-0 bg-transparent text-[13px] text-ink outline-none placeholder:text-ink-faint"
         />
+        {adornment}
         {busy ? <span aria-live="polite" className="text-xs text-ink-faint">{t("input.saving")}</span> : null}
       </div>
       {shown ? (
