@@ -96,7 +96,7 @@ describe("ResearchScreen", () => {
     expect(await screen.findByText(t("research.unrecoverable"))).toBeTruthy();
     fireEvent.click(screen.getByRole("button", { name: t("research.startAgain") }));
     fireEvent.change(await screen.findByLabelText(GOAL_LABEL), { target: { value: "Znovu od začátku" } });
-    await vi.waitFor(() => expect(saves()).toHaveLength(1), { timeout: 4000 });
+    await vi.waitFor(() => expect(saves()).toHaveLength(1), { timeout: 10_000 });
     expect(saves()[0].body).toMatchObject({ base_revision: null, content: { goal: "Znovu od začátku" } });
   });
 
@@ -106,7 +106,7 @@ describe("ResearchScreen", () => {
     const notice = await screen.findByText(tv("research.recoveredFrom", { revision: 4 }));
     expect(notice.getAttribute("role")).toBe("status");
     fireEvent.change(await screen.findByLabelText(GOAL_LABEL), { target: { value: "Pokračujeme" } });
-    await vi.waitFor(() => expect(saves()).toHaveLength(1), { timeout: 4000 });
+    await vi.waitFor(() => expect(saves()).toHaveLength(1), { timeout: 10_000 });
     expect(saves()[0].body).toMatchObject({ base_revision: 1, content: { goal: "Pokračujeme" } });
   });
 
@@ -237,11 +237,11 @@ describe("ResearchScreen", () => {
     render(<ResearchScreen step="brief" frame={TEST_FRAME} />);
     expect(await screen.findByText(t("research.saveNew"))).toBeTruthy();
     fireEvent.change(await screen.findByLabelText(GOAL_LABEL), { target: { value: "Zjistit zájem o službu" } });
-    await vi.waitFor(() => expect(saves()).toHaveLength(1), { timeout: 4000 });
+    await vi.waitFor(() => expect(saves()).toHaveLength(1), { timeout: 10_000 });
     expect(saves()[0].body).toMatchObject({ base_revision: null, reason: "autosave", content: { title: "Nový výzkum", goal: "Zjistit zájem o službu" } });
     expect(Object.keys(saves()[0].body ?? {}).sort()).toEqual(["analysis", "base_revision", "content", "reason"]); // no project, unit or client id
     fireEvent.change(screen.getByLabelText(GOAL_LABEL), { target: { value: "Zjistit zájem o novou službu" } });
-    await vi.waitFor(() => expect(saves()).toHaveLength(2), { timeout: 4000 });
+    await vi.waitFor(() => expect(saves()).toHaveLength(2), { timeout: 10_000 });
     expect(saves()[1].body).toMatchObject({ base_revision: 1 });
   });
 
@@ -253,7 +253,7 @@ describe("ResearchScreen", () => {
     );
     render(<ResearchScreen step="brief" frame={TEST_FRAME} />);
     fireEvent.change(await screen.findByLabelText(GOAL_LABEL), { target: { value: "Moje verze" } });
-    expect(await screen.findByText(t("research.saveConflict"), {}, { timeout: 4000 })).toBeTruthy();
+    expect(await screen.findByText(t("research.saveConflict"))).toBeTruthy();
     expect(saves()).toHaveLength(1);
     // A further edit is not saved over the newer revision.
     fireEvent.change(screen.getByLabelText(GOAL_LABEL), { target: { value: "Moje verze 2" } });

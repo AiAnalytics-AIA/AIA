@@ -98,7 +98,7 @@ describe("Zadání", () => {
     fireEvent.click(tile);
     // The tile can be on screen before the store's subscription effect has run;
     // a click then renders when it subscribes, not synchronously (AGENTS.md § Next.js / TypeScript).
-    await screen.findByRole("button", { name: /Nový produkt \/ koncept/, pressed: true }, { timeout: 5_000 });
+    await screen.findByRole("button", { name: /Nový produkt \/ koncept/, pressed: true });
     const goal = screen.getByLabelText("Cíl výzkumu") as HTMLTextAreaElement;
     expect(goal.value).toBe(PROBLEM_TYPES[1][3]);
     expect((screen.getByRole("button", { name: NEXT }) as HTMLButtonElement).disabled).toBe(false);
@@ -144,7 +144,7 @@ describe("Zadání", () => {
     expect(posted(ATTACH_PATH).map((c) => c.body)).toEqual([{ filename: "zadani.txt", data_b64: btoa("ahoj") }]);
     // Nothing reaches 18.6.6.
     expect(calls.filter((c) => c.url.startsWith("/api/project"))).toEqual([]);
-    await waitFor(() => expect(ws.saves.at(-1)?.reason).toBe("brief_attachments"), { timeout: 4000 });
+    await waitFor(() => expect(ws.saves.at(-1)?.reason).toBe("brief_attachments"));
     expect((ws.saves.at(-1)?.content.briefing as { attachments: unknown[] }).attachments).toEqual([record({ filename: "zadani.txt" })]);
   });
 
@@ -191,7 +191,7 @@ describe("Zadání", () => {
     render(<ResearchScreen step="brief" frame={TEST_FRAME} />);
     fireEvent.click(await screen.findByRole("button", { name: NEXT }));
     await approveProposal();
-    await waitFor(() => expect(push).toHaveBeenCalledWith(stagePath("plan")), { timeout: 4000 });
+    await waitFor(() => expect(push).toHaveBeenCalledWith(stagePath("plan")));
     expect(posted(AGENTS_PATH)[0].body).toMatchObject({ action: "analyze_brief", design_revision_id: "REV-A" });
     expect(posted("/api/research/analyze")).toEqual([]);
     expect(posted("/api/providers/claude-code/status")).toEqual([]);
@@ -226,7 +226,7 @@ describe("Zadání", () => {
     unitStub({ goal: "Cíl" }, { "native/job": () => ({ status: "RECOVERY_REQUIRED", is_terminal: false, needs_attention: true, steps: [{ error_message: "MODEL_TIMEOUT: nic se nevrátilo" }], run_id: "RUN-A" }) });
     render(<ResearchScreen step="brief" frame={TEST_FRAME} />);
     fireEvent.click(await screen.findByRole("button", { name: NEXT }));
-    expect(await screen.findByText("AI analýza se nedokončila", {}, { timeout: 4000 })).toBeTruthy();
+    expect(await screen.findByText("AI analýza se nedokončila")).toBeTruthy();
     expect(screen.getByText("Zadání zůstalo uložené.")).toBeTruthy();
     expect(screen.getByText("MODEL_TIMEOUT: nic se nevrátilo")).toBeTruthy();
     expect(screen.queryByRole("button", { name: "Diagnostika" })).toBeNull();
@@ -269,7 +269,7 @@ describe("Zadání", () => {
     fireEvent.click(screen.getByRole("button", { name: "Odebrat pole Situace / trh" }));
     await waitFor(() => expect(screen.queryByLabelText("Situace / trh")).toBeNull());
     expect(screen.getByRole("button", { name: "Situace / trh" })).toBeTruthy();
-    await waitFor(() => expect((ws.saves.at(-1)?.content.briefing as { situation?: string })?.situation ?? "").toBe(""), { timeout: 4000 });
+    await waitFor(() => expect((ws.saves.at(-1)?.content.briefing as { situation?: string })?.situation ?? "").toBe(""));
   });
 
   it("takes files dropped anywhere on the stage the way it takes picked ones", async () => {

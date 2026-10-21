@@ -50,7 +50,7 @@ describe("StageTrack", () => {
     render(<StageTrack studyId="STU-1" state={null} current="progress" stepHref={stagePath} />);
     expect(await screen.findByText("Běh 1: běží")).toBeTruthy();
     expect(screen.getByText("Zatím nic")).toBeTruthy();
-    expect(await screen.findByText("Běh 1: výsledky jsou hotové", {}, { timeout: 4000 })).toBeTruthy();
+    expect(await screen.findByText("Běh 1: výsledky jsou hotové")).toBeTruthy();
     expect(screen.getByText("Revize 1")).toBeTruthy();
   });
 

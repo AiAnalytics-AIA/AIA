@@ -448,7 +448,7 @@ describe("AI proposals from a document", () => {
 
     // Read again while it moves; done, it says where the proposals wait.
     run = proposalsRun({ status: "COMPLETED", step_status: "SUCCEEDED", output: { batches: 1, proposed: 2, dropped: { quote_not_found: 1 } } });
-    expect(await panel.findByText("AI navrhla 2 návrhy. Čekají v Ke schválení.", {}, { timeout: 4000 })).toBeTruthy();
+    expect(await panel.findByText("AI navrhla 2 návrhy. Čekají v Ke schválení.")).toBeTruthy();
     expect(panel.getByText("Zahozeno bez doložené citace: 1.")).toBeTruthy();
     expect(panel.getByRole("link", { name: "Otevřít Ke schválení" }).getAttribute("href")).toBe("/app/clients/CLI-a/knowledge?view=review");
     expect(calls.filter((c) => c.method === "POST" && c.url.endsWith(`/sources/${SRC}/proposals`))).toHaveLength(1);

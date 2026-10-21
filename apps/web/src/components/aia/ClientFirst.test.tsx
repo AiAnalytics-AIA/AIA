@@ -539,7 +539,7 @@ describe("a research, re-homed under its client", () => {
     path = "/app/clients/CLI-a/research/STU-1/questionnaire";
     api();
     render(inClient("CLI-a", <ResearchStudy studyId="STU-1"><ResearchStage slug="questionnaire" /></ResearchStudy>));
-    expect(await screen.findByRole("heading", { level: 1, name: "Dotazník" }, { timeout: 4000 })).toBeTruthy();
+    expect(await screen.findByRole("heading", { level: 1, name: "Dotazník" })).toBeTruthy();
     // The heading comes from the study's frame; the content is a request of its own, issued
     // after the token and /config are read, so it is awaited rather than counted at once.
     await waitFor(() => expect(called("GET", "/api/v1/studies/STU-1/workspace/content")).toHaveLength(1));
