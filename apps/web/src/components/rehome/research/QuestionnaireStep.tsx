@@ -54,6 +54,8 @@ import {
   removeCondition,
   removeQuestion,
   removeSection,
+  restoreQuestion,
+  restoreSection,
   respondentPreview,
   sections,
   setObjectFamily,
@@ -84,12 +86,25 @@ import { AskLead, useLeadOwnsAiStarts } from "./AskLead";
 import { AiFailureCard, useAiStep } from "./useAiStep";
 import { AnalysisFailureCard, useAnalysis } from "./useAnalysis";
 import { DeepResearchPanel } from "./DeepResearchPanel";
-import { ScaleEditor, ScaleUndoProvider } from "./ScaleEditor";
+import { ScaleEditor, ScaleUndoProvider, useEditorUndo } from "./ScaleEditor";
 
 const FOCUS = "focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus-ring";
 const INPUT = `min-h-9 w-full rounded-control border border-border-strong bg-surface-raised px-2.5 text-sm text-ink placeholder:text-ink-faint ${FOCUS}`;
 const LABEL = "text-xs font-medium text-ink-muted";
 const CARD = "rounded-card border border-border bg-surface-raised p-5";
+
+/**
+ * A block or a tracked set removed at once, with "Vrátit" on the editor's toast (input-interactions
+ * I6, audit A18): the undo puts the same section back where it was.
+ */
+function removeWithUndo(update: Update, undo: ReturnType<typeof useEditorUndo>, si: number, sec: Section, what: "blockRemoved" | "setRemoved") {
+  update((p) => removeSection(p, si));
+  const title = String(sec.title || "").trim();
+  undo?.offer({
+    message: title ? tv(`research.questionnaire.undo.${what}`, { title }) : t(`research.questionnaire.undo.${what}Bare`),
+    undo: () => update((p) => restoreSection(p, si, sec)),
+  });
+}
 
 /** A tracked set is measured on 4–15 objects (SET_SIZE). */
 const setInvalid = (sec: Section) => {
@@ -681,6 +696,7 @@ function InlineField({ label, value, placeholder, onChange, strong = false }: {
 function QuestionBlock({ n, firstQ, sec, si, update }: { n: number; firstQ: number; sec: Section; si: number; update: Update }) {
   const qs = sec.questions || [];
   const [confirming, setConfirming] = useState(false);
+  const undo = useEditorUndo();
   return (
     <article id={`qblock_${sec.id || si}`} className="scroll-mt-40 rounded-panel bg-surface-sunken p-4">
       <div className="flex items-start gap-3">
@@ -690,7 +706,7 @@ function QuestionBlock({ n, firstQ, sec, si, update }: { n: number; firstQ: numb
           <InlineField label={t("research.questionnaire.blockPurpose")} value={sec.purpose || ""} onChange={(v) => update((p) => setSectionField(p, si, "purpose", v))} />
         </div>
         {confirming ? (
-          <InlineConfirm message={t("research.questionnaire.removeBlockConfirm")} action={t("research.questionnaire.remove")} onConfirm={() => update((p) => removeSection(p, si))} onCancel={() => setConfirming(false)} />
+          <InlineConfirm message={t("research.questionnaire.removeBlockConfirm")} action={t("research.questionnaire.remove")} onConfirm={() => removeWithUndo(update, undo, si, sec, "blockRemoved")} onCancel={() => setConfirming(false)} />
         ) : (
           <Button small variant="quiet" icon="trash" className="!rounded-control" onClick={() => setConfirming(true)}>{t("research.questionnaire.remove")}</Button>
         )}
@@ -718,6 +734,8 @@ const TYPES = [
 
 /** questionCard: the type as pills, the text, and below it what the type needs. */
 function QuestionCard({ n, q, si, qi, update }: { n: number; q: Question; si: number; qi: number; update: Update }) {
+  const undo = useEditorUndo();
+  const { state } = useResearch();
   const typ = String(q.typ || "");
   const skala = q.skala || [1, 10];
   const labels = q.popisky_skaly || ["vůbec", "zcela"];
@@ -751,7 +769,14 @@ function QuestionCard({ n, q, si, qi, update }: { n: number; q: Question; si: nu
           variant="quiet"
           className="ml-auto"
           aria-label={tv("research.questionnaire.removeQuestion", { id: String(q.id || "Q") })}
-          onClick={() => update((p) => removeQuestion(p, si, qi))}
+          onClick={() => {
+            const sectionId = sections(state.project)[si]?.id;
+            update((p) => removeQuestion(p, si, qi));
+            undo?.offer({
+              message: q.text?.trim() ? tv("research.questionnaire.undo.questionRemoved", { text: q.text.trim() }) : t("research.questionnaire.undo.questionRemovedBare"),
+              undo: () => update((p) => restoreQuestion(p, si, sectionId, qi, q)),
+            });
+          }}
         >
           ×
         </Button>
@@ -905,6 +930,7 @@ function OptionRows({ options, multi, onCommit }: { options: string[]; multi: bo
 /** objectSection: a tracked set of 4–15 comparable objects on one question and scale. */
 function TrackedSet({ n, sec, si, update }: { n: number; sec: Section; si: number; update: Update }) {
   const { store } = useResearch();
+  const undo = useEditorUndo();
   const [confirming, setConfirming] = useState(false);
   const [note, setNote] = useState<string | null>(null);
   const labels = sec.scale_labels || ["vůbec", "velmi"];
@@ -928,7 +954,7 @@ function TrackedSet({ n, sec, si, update }: { n: number; sec: Section; si: numbe
           {tv("research.questionnaire.setCount", { n: objects.length })}
         </span>
         {confirming ? (
-          <InlineConfirm message={t("research.questionnaire.removeSetConfirm")} action={t("research.questionnaire.remove")} onConfirm={() => update((p) => removeSection(p, si))} onCancel={() => setConfirming(false)} />
+          <InlineConfirm message={t("research.questionnaire.removeSetConfirm")} action={t("research.questionnaire.remove")} onConfirm={() => removeWithUndo(update, undo, si, sec, "setRemoved")} onCancel={() => setConfirming(false)} />
         ) : (
           <Button small variant="quiet" icon="trash" className="!rounded-control" onClick={() => setConfirming(true)}>{t("research.questionnaire.remove")}</Button>
         )}

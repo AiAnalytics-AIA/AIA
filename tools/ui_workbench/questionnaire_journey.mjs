@@ -4,9 +4,10 @@
  *   AIA_WEB_RESEARCH_WORKBENCH=true python3 tools/ui_workbench/workbench.py up
  *   python3 tools/ui_workbench/fixture_project.py
  *   node tools/ui_workbench/questionnaire_journey.mjs [--facade http://127.0.0.1:8780] [--out DIR]
- * Local fictional identity only. At 1440 and 1100 px (the workbench) and 768 and 390 px (the
- * classic layout): Dotazník's Závislosti lists the tracked set's readers with Sociomapa, keeps the
- * open question out of Analýza, jumps to the set's card, and the page does not overflow; nothing
+ * Local fictional identity only. At 1440, 1100, 768 and 390 px (the workbench at every width):
+ * Dotazník's Závislosti lists the tracked set's readers with Sociomapa, keeps the
+ * open question out of Analýza, jumps to the set's card, and the page does not overflow; a question
+ * removed is put back in its place by Vrátit (input-interactions chunk 3); nothing
  * paid starts: no research run, agent job, Deep Research run or Lead request approval.
  */
 import assert from "node:assert/strict";
@@ -66,7 +67,9 @@ const noOverflow = async (label) => {
 };
 
 try {
-  for (const [width, workbench] of [[1440, true], [1100, true], [768, false], [390, false]]) {
+  // The workbench serves every width since research-lead-workbench 26b: a split from 1100 px, the
+  // Lead in a drawer or a sheet below it.
+  for (const [width, workbench] of [[1440, true], [1100, true], [768, true], [390, true]]) {
     await page.setViewportSize({ width, height: 900 });
     await page.goto(base + stagePath("questionnaire"));
     const deps = page.getByRole("region", { name: "Závislosti" });
@@ -89,6 +92,22 @@ try {
     await page.waitForFunction(() => location.hash === "#qset_sec_wb_set");
     check(`${width}: Závislosti lists the set's readers, the open question apart, no overflow`);
   }
+
+  // A question deleted at once and put back with Vrátit (input-interactions chunk 3, I6), at 1440.
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await page.goto(base + stagePath("questionnaire"));
+  const q4 = page.locator("#qedit_Q_wb4");
+  await q4.waitFor({ timeout: 30000 });
+  const order = () => page.locator('[id^="qedit_"]').evaluateAll((els) => els.map((el) => el.id));
+  const before = await order();
+  await q4.getByRole("button", { name: /^Odebrat otázku/ }).click();
+  await page.getByText("Otázka „Co by vás přesvědčilo nápoj koupit znovu?“ odebrána").waitFor();
+  assert.equal(await q4.count(), 0, "the question is gone at once");
+  await page.getByRole("button", { name: "Vrátit" }).click();
+  await q4.waitFor();
+  assert.deepEqual(await order(), before, "Vrátit puts the question back in its place");
+  await shot("1440-undo-restored");
+  check("1440: a question removed at once, Vrátit puts it back in its place");
 
   const paid = writes.filter((w) => /\/research\/runs$|\/agent-jobs$|\/deep-research\/runs|\/lead\/turns\/[^/]+\/request$/.test(w.path));
   assert.deepEqual(paid, [], "nothing paid started");
