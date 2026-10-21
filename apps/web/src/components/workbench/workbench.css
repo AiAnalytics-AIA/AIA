@@ -99,6 +99,18 @@ button { cursor: pointer; }
 .split__handle:hover::after, .split__handle.is-drag::after, .split__handle:focus-visible::after { background: var(--signal); width: 2px; left: 3.5px; }
 .split__handle:focus-visible { outline: none; }
 
+/* The Lead at every width (research-lead-workbench 26b-26c, D21): one tree; below 1100 px the
+   artifact takes the width and the conversation opens over it, a side drawer from 768 px and a
+   full-screen sheet below, the rail the launcher (a bottom bar in the sheet). Nothing remounts. */
+.split--drawer .split__right, .split--sheet .split__right { min-width: 0; }
+.split--drawer .split__left, .split--sheet .split__left { min-width: 0; z-index: 30; }
+.split--drawer .split__left { position: absolute; top: 0; bottom: 0; left: 64px; width: min(440px, 80vw); box-shadow: 4px 0 18px rgba(21, 26, 32, .14); }
+.split--sheet { flex-direction: column-reverse; }
+.split--sheet .split__rail { flex: 0 0 auto; flex-direction: row; border-right: 0; border-top: 1px solid var(--border); padding-bottom: env(safe-area-inset-bottom); }
+.split--sheet .split__rail .rail { flex-direction: row; padding: 4px 12px; }
+.split--sheet .split__left { position: fixed; inset: 0; height: 100dvh; border-right: 0;
+  padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left); }
+
 /* conversation */
 .conv { display: flex; flex-direction: column; min-height: 0; height: 100%; }
 .conv__head { display: flex; align-items: center; gap: 10px; padding: 8px 12px 8px 16px; border-bottom: 1px solid var(--border); min-height: 48px; }

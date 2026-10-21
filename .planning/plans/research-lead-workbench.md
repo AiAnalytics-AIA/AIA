@@ -33,7 +33,7 @@ chunks:
   - "[ ] 26f.1. The Deep Research half of 26f (DRL-5): the Deep Research starts and retries removed from every layout, their panels kept as readers; after 23b and after lead-orchestration LO5a.3 (Q48); with it lead-orchestration LO5a's acceptance"
   - "[ ] 25. Deep Research reachable from every stage as a capability"
   - "[ ] 26a. The Lead at every width (D20, MVPQ-11), its pure rules: lib/workbench-layout.ts, the breakpoints (split from 1100 px, drawer 768-1099, sheet under 768), the drawer's states and the one Escape order, tested at 1099, 1100, 768, 767 and 390 px"
-  - "[ ] 26b. One tree, three layouts: Workbench renders the artifact and LeadPane once at every width, so crossing 1100 px remounts nothing (a mount-counter test); the workbench serves under 1100 px"
+  - "[x] 26b. One tree, three layouts: Workbench renders the artifact and LeadPane once at every width, so crossing 1100 px remounts nothing (a mount-counter test); the workbench serves under 1100 px"
   - "[ ] 26c. The launcher and the drawer (D21): the rail or bottom bar opens the same LeadPane as a side drawer (768-1099 px) or a full-screen sheet (under 768 px); keyboard, focus trap and Escape with a return to the targeted artifact; tested at 1099, 768 and 390 px"
   - "[ ] 26d. The compact header and stage navigator at 768-1099 and under 768 px: all eleven stages reachable by keyboard, no page overflow"
   - "[ ] 26e. A stale card refused and a direct request held by the same server gates, in the drawer and in the split"
@@ -675,6 +675,9 @@ so it is rerun on `workbench.py up --fresh`.
   hidden but mounted and its poll continues; `workbench_journey.mjs`'s "classic at 1024" (`:153-161`)
   becomes "the workbench at 1440/1280/1100/1099/768/390, no page overflow". Lands after
   `feature/lead-worker-cards` merges, or rebased on it: both change `Workbench.tsx` and `LeadPane.tsx`.
+  *Landed (with 26c's launcher, the dialog, Zavřít and Escape):* `useWorkbenchLayout`, `Split`'s
+  `layout`, `wb--split|drawer|sheet`; `Workbench.layout.test.tsx` (mount counter, draft kept,
+  dialog, Escape to the launcher) and `workbench_journey.mjs` at 1280/1100/1099/768/390.
 - **26c. The launcher and the drawer.** `Rail` (`Workbench.tsx:642-649`) becomes `LeadLauncher`, a
   vertical rail in `drawer` and a bottom bar in `sheet`, with the pending badge and 27a's availability
   dot; the drawer shell is `role="dialog"`, `aria-modal`, focus-trapped, with Escape and Zavřít;

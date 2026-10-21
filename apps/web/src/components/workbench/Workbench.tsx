@@ -11,7 +11,7 @@
 // gate, recorded as automatic -- shown as "Přijato automaticky" with Vrátit; structure still waits.
 
 import { useRouter } from "next/navigation";
-import { type ReactNode, useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
+import { type ReactNode, type Ref, useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
 
 import { ApiError, api, lead as leadApi, research, type Readiness, type ResearchAgentJob, type ResearchRun, type Study } from "@/lib/api";
 import { withBudget } from "@/lib/budget-line";
@@ -24,6 +24,10 @@ import {
   applyLeadEdit, autoAcceptPlan, describeEdit, editRefusalWords, editStage, focusSelector, revertTextEdit, targetOfElement, textEditInverse,
   type LeadEdit, type LeadRequest, type LeadTurn, type LeadView, type ResearcherLead,
 } from "@/lib/lead";
+import {
+  CLOSED, DRAWER_LAYOUT_MIN_PX, SPLIT_LAYOUT_MIN_PX, conversationShown, drawerForLayout, isCompact, isModal, nextDrawer, onEscape,
+  type DrawerEvent, type DrawerState, type FocusTarget, type WorkbenchLayout,
+} from "@/lib/workbench-layout";
 import { type FocusMode, readSplit, writeSplit } from "@/lib/workbench-split";
 import { PHASES, STAGES, STAGE_ORDER, stageHref, stageOf, stageState, type WorkbenchStage } from "@/lib/workbench-stages";
 import { blockers, designLane, runLane } from "@/research/lane";
@@ -63,35 +67,31 @@ function useHash(): string {
   );
 }
 
-/** Wide enough for the workbench: under 1100 px the classic layout serves (the prototype's rule). */
-const WIDE = "(min-width: 1100px)";
-const noSubscription = () => () => {};
 const canMatch = () => typeof window !== "undefined" && typeof window.matchMedia === "function";
-export function useWideEnough(): boolean {
+const SPLIT_QUERY = `(min-width: ${SPLIT_LAYOUT_MIN_PX}px)`;
+const DRAWER_QUERY = `(min-width: ${DRAWER_LAYOUT_MIN_PX}px)`;
+
+/** The workbench's layout at the viewport's width (lib/workbench-layout.ts layoutFor): the split
+ * from 1100 px, the side drawer from 768 px, the full-screen sheet below. Without media queries (a
+ * test's DOM) and on the server the width is unknown, so the split serves. Changing it changes
+ * classes and where the conversation sits, never what is mounted (D21). */
+export function useWorkbenchLayout(): WorkbenchLayout {
   return useSyncExternalStore(
     (on) => {
       if (!canMatch()) return () => {};
-      const mq = window.matchMedia(WIDE);
-      mq.addEventListener("change", on);
-      return () => mq.removeEventListener("change", on);
+      const queries = [window.matchMedia(SPLIT_QUERY), window.matchMedia(DRAWER_QUERY)];
+      for (const mq of queries) mq.addEventListener("change", on);
+      return () => {
+        for (const mq of queries) mq.removeEventListener("change", on);
+      };
     },
-    // Without media queries (a test's DOM) the width is unknown: the classic layout serves.
-    () => (canMatch() ? window.matchMedia(WIDE).matches : false),
-    () => true,
+    () => {
+      if (!canMatch()) return "split";
+      if (window.matchMedia(SPLIT_QUERY).matches) return "split";
+      return window.matchMedia(DRAWER_QUERY).matches ? "drawer" : "sheet";
+    },
+    () => "split",
   );
-}
-
-/** Whether this stage is shown in the workbench: the width when the stage opened, kept until another
- * stage opens. A resize across the breakpoint would otherwise remount the stage's screen in the other
- * layout and drop what its editors hold locally (Návrh's narrative, a measurement being edited)
- * without their leave guard; the next stage opens in the layout the width then allows. */
-export function useStageWide(stage: string): boolean {
-  const live = useWideEnough();
-  // Hydration renders the server's guess first; only the browser's own answer is kept.
-  const inBrowser = useSyncExternalStore(noSubscription, () => true, () => false);
-  const [kept, setKept] = useState<{ stage: string; wide: boolean } | null>(null);
-  if (inBrowser && (kept === null || kept.stage !== stage)) setKept({ stage, wide: live });
-  return kept && kept.stage === stage ? kept.wide : live;
 }
 
 const initials = (name: string) => name.split(/\s+/).filter(Boolean).slice(0, 2).map((w) => w[0]!.toUpperCase()).join("") || "?";
@@ -182,6 +182,43 @@ export function Workbench({ frame, step, store, memory, save, inspector, reload,
   const runs = useRuns(frame.studyId, step, runEpoch);
   const lane = useMemo(() => ({ ...designLane(state), ...runLane(runs) }), [state, runs]);
   const [mode, setMode] = useState<FocusMode>("split");
+  // The conversation at every width (D20, D21): beside the artifact in the split, a side drawer or a
+  // full-screen sheet over it below 1100 px. Its state survives a resize; the split has no drawer.
+  const layout = useWorkbenchLayout();
+  const compact = isCompact(layout);
+  const [drawerState, setDrawerState] = useState<DrawerState>(CLOSED);
+  const drawer = drawerForLayout(drawerState, layout);
+  // Widening to the split closes the drawer for good: narrowing again does not reopen it. Adjusted
+  // while rendering, on the layout's change (React's pattern for state derived from a change).
+  const [layoutSeen, setLayoutSeen] = useState(layout);
+  if (layoutSeen !== layout) {
+    setLayoutSeen(layout);
+    setDrawerState(drawerForLayout(drawerState, layout));
+  }
+  const launcher = useRef<HTMLButtonElement>(null);
+  const moveFocus = useCallback((to: FocusTarget) => {
+    if (!to || to.to === "target") return;
+    requestAnimationFrame(() => (to.to === "launcher" ? launcher.current : document.getElementById("composer"))?.focus());
+  }, []);
+  const drawerEvent = useCallback((event: DrawerEvent) => {
+    const next = nextDrawer(drawer, event, layout);
+    setDrawerState(next.state);
+    moveFocus(next.focus);
+  }, [drawer, layout, moveFocus]);
+  // Escape closes the open drawer last, after anything a handler already took (lib/workbench-layout.ts).
+  useEffect(() => {
+    if (!isModal(layout, drawer)) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key !== "Escape") return;
+      const step = onEscape(drawer, { handled: e.defaultPrevented, askDialogOpen: !!document.querySelector("[data-ask-dialog][open], dialog[open]") }, layout);
+      if (step.action !== "drawer") return;
+      e.preventDefault();
+      setDrawerState(step.state);
+      moveFocus(step.focus);
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [drawer, layout, moveFocus]);
   const [split, setSplit] = useState(() => readSplit(storage()));
   const [inspectorOpen, setInspectorOpen] = useState(false);
   const [turns, setTurns] = useState<LeadTurn[]>([]);
@@ -264,6 +301,9 @@ export function Workbench({ frame, step, store, memory, save, inspector, reload,
   }, [router, step, frame.stepHref]);
 
   const onView = useCallback((ops: LeadView[]) => {
+    // In the drawer or the sheet the conversation steps aside so the person sees what the Lead pointed at.
+    const last = ops[ops.length - 1];
+    if (compact && last) setDrawerState(nextDrawer(drawer, { type: "view", target: last.op === "focus" ? last.target : last.stage }, layout).state);
     for (const v of ops) {
       if (v.op === "open_stage") go(v.stage);
       else {
@@ -280,7 +320,7 @@ export function Workbench({ frame, step, store, memory, save, inspector, reload,
         find();
       }
     }
-  }, [go]);
+  }, [go, compact, drawer, layout]);
 
   // A design job is approved on the server: the spend limit, the ledger row and the start together.
   const onRequest = useCallback(async (turn: LeadTurn, r: LeadRequest) => {
@@ -523,18 +563,20 @@ export function Workbench({ frame, step, store, memory, save, inspector, reload,
   const leadPane = (
     <LeadPane studyId={frame.studyId} stage={stage} canEdit={frame.canEdit} focus={focus} picking={picking}
       onPick={() => setPicking((p) => !p)} onClearFocus={() => setFocus(null)} jobs={[...jobs].reverse()} onOpenJob={openJob} cards={cards} onView={onView} onRequest={onRequest} onTurns={onTurns} onLead={onLead} beforeMessage={flushBeforeMessage} epoch={leadEpoch} registerSend={registerSend}
-      mode={mode} onFocusMode={() => setMode((m) => (m === "conversation" ? "split" : "conversation"))} />
+      mode={mode} onFocusMode={() => setMode((m) => (m === "conversation" ? "split" : "conversation"))}
+      onClose={compact ? () => drawerEvent({ type: "close" }) : undefined} />
   );
 
   return (
-    <div className={`wb${picking ? " wb-picking" : ""}`} data-workbench>
+    <div className={`wb wb--${layout}${picking ? " wb-picking" : ""}`} data-workbench data-layout={layout}>
       <a href="#composer" className="skip">Přeskočit na zprávu</a>
       <StudyHeader frame={frame} study={study} pending={open.length} blocked={blocked} onPending={() => open[0] && go(editStage(open[0].edit))} />
       <StageNav stage={stage} lane={lane} onOpen={go} />
       <main className="workspace">
-        <Split split={split} mode={mode} onSplit={setSplit} onCommit={(v) => { setSplit(v); writeSplit(storage(), v); }}
+        <Split split={split} mode={mode} layout={layout} shown={conversationShown(layout, drawer)} leftLabel="Vedoucí výzkumu"
+          onSplit={setSplit} onCommit={(v) => { setSplit(v); writeSplit(storage(), v); }}
           left={leadPane}
-          rail={<Rail pending={open.length} onOpen={() => setMode("split")} />}
+          rail={<Rail ref={launcher} pending={open.length} open={isModal(layout, drawer)} onOpen={() => (compact ? drawerEvent({ type: "open" }) : setMode("split"))} />}
           right={
             <div className="art" aria-label={`Artefakt ${STAGES[stage].label}`}>
               <div className="arthead">
@@ -724,10 +766,14 @@ function StageNav({ stage, lane, onOpen }: { stage: WorkbenchStage; lane: Parame
   );
 }
 
-function Rail({ pending, onOpen }: { pending: number; onOpen: () => void }) {
+/** The way to the conversation when it is not beside the artifact: the rail in artifact focus and
+ * the drawer, a bottom bar under 768 px. A waiting change is announced in its name, since the
+ * hidden conversation's live region is silent. */
+function Rail({ ref, pending, open = false, onOpen }: { ref?: Ref<HTMLButtonElement>; pending: number; open?: boolean; onOpen: () => void }) {
+  const name = `Otevřít konverzaci s Vedoucím výzkumu${pending > 0 ? `, čeká na vás ${pending}` : ""}`;
   return (
     <div className="rail">
-      <button type="button" className="iconbtn" style={{ width: 40, height: 40 }} aria-label="Otevřít konverzaci" title="Otevřít konverzaci" onClick={onOpen}><Mark size={20} /></button>
+      <button ref={ref} type="button" className="iconbtn" style={{ width: 40, height: 40 }} aria-label={name} title={name} aria-expanded={open} aria-haspopup="dialog" onClick={onOpen} data-lead-launcher><Mark size={20} /></button>
       {pending > 0 ? <span className="rail__badge" title={`Čeká na vás: ${pending}`}>{pending}</span> : null}
     </div>
   );

@@ -62,7 +62,7 @@ const time = (iso: string) => {
 /** The newest Lead turn that finished: the one whose view tools have been applied. */
 const newestCompleted = (turns: LeadTurn[]) => [...turns].reverse().find((t) => t.actor === "lead" && t.status === "COMPLETED") ?? null;
 
-export function LeadPane({ studyId, stage, canEdit, focus, picking, onPick, onClearFocus, onView, onRequest, onTurns, onFocusMode, mode, epoch, jobs = [], onOpenJob, onLead, beforeMessage, cards, registerSend }: {
+export function LeadPane({ studyId, stage, canEdit, focus, picking, onPick, onClearFocus, onView, onRequest, onTurns, onFocusMode, onClose, mode, epoch, jobs = [], onOpenJob, onLead, beforeMessage, cards, registerSend }: {
   studyId: string;
   stage: WorkbenchStage;
   canEdit: boolean;
@@ -88,6 +88,8 @@ export function LeadPane({ studyId, stage, canEdit, focus, picking, onPick, onCl
    * turn is frozen at the revision the person sees (an automatic accept needs the two equal). */
   beforeMessage?: () => Promise<void>;
   onFocusMode: () => void;
+  /** In the drawer or the sheet (research-lead-workbench 26c): Zavřít, in place of the focus toggle. */
+  onClose?: () => void;
   mode: "split" | "conversation" | "artifact";
   /** The worker and run cards' context (chunk 23). */
   cards?: LeadCardsContext;
@@ -246,9 +248,15 @@ export function LeadPane({ studyId, stage, canEdit, focus, picking, onPick, onCl
           <div className="conv__sees">Vidí: {STAGES[stage].label} · pracovní kopie studie{focus ? ` · ${focus.label}` : ""}</div>
         </div>
         <Link className="iconbtn" href={appRoutes.lead()} title="Můj Vedoucí: jeho soubory a paměť" aria-label="Můj Vedoucí"><Icon name="user" size={16} /></Link>
-        <button type="button" className={`iconbtn${mode === "conversation" ? " is-on" : ""}`} aria-pressed={mode === "conversation"} title={mode === "conversation" ? "Zpět na 40 / 60" : "Soustředit se na konverzaci"} aria-label={mode === "conversation" ? "Zpět na 40 / 60" : "Soustředit se na konverzaci"} onClick={onFocusMode}>
-          <Icon name={mode === "conversation" ? "normal" : "focusChat"} size={16} />
-        </button>
+        {onClose ? (
+          <button type="button" className="iconbtn" aria-label="Zavřít konverzaci" title="Zavřít (Esc)" onClick={onClose} data-lead-close>
+            <Icon name="close" size={16} />
+          </button>
+        ) : (
+          <button type="button" className={`iconbtn${mode === "conversation" ? " is-on" : ""}`} aria-pressed={mode === "conversation"} title={mode === "conversation" ? "Zpět na 40 / 60" : "Soustředit se na konverzaci"} aria-label={mode === "conversation" ? "Zpět na 40 / 60" : "Soustředit se na konverzaci"} onClick={onFocusMode}>
+            <Icon name={mode === "conversation" ? "normal" : "focusChat"} size={16} />
+          </button>
+        )}
       </div>
       <Conversation turns={session?.turns ?? []} jobs={jobs} cards={cards} studyId={studyId} onOpenJob={onOpenJob} busy={!!session?.busy || sending} name={name} onFollow={send} onView={onView} onRequest={onRequest} onSelfUpdate={decideSelfUpdate} canEdit={canEdit}>
         {error ? <div className="msg"><div className="notice"><Glyph tone="fault" size={11} />{error}</div></div> : null}

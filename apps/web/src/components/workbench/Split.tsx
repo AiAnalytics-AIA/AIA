@@ -7,11 +7,19 @@
 
 import { type ReactNode, useRef, useState } from "react";
 
+import type { WorkbenchLayout } from "@/lib/workbench-layout";
 import { type FocusMode, SPLIT_DEFAULT, SPLIT_MAX, SPLIT_MIN, leftWidth, splitFromKey, splitFromPointer } from "@/lib/workbench-split";
 
-export function Split({ split, mode, onSplit, onCommit, left, right, rail }: {
+export function Split({ split, mode, layout = "split", shown = true, leftLabel, onSplit, onCommit, left, right, rail }: {
   split: number;
   mode: FocusMode;
+  /** The workbench's layout (lib/workbench-layout.ts): in the drawer and the sheet there is no
+   * handle, the rail is the launcher and the conversation opens over the artifact. */
+  layout?: WorkbenchLayout;
+  /** In the drawer and the sheet: whether the conversation is open. It stays mounted either way. */
+  shown?: boolean;
+  /** The open drawer's or sheet's accessible name: it is a modal dialog then. */
+  leftLabel?: string;
   /** While dragging: the width shown, not yet kept. */
   onSplit: (v: number) => void;
   /** The width the person settled on: kept for this browser. */
@@ -22,17 +30,23 @@ export function Split({ split, mode, onSplit, onCommit, left, right, rail }: {
 }) {
   const box = useRef<HTMLDivElement>(null);
   const [drag, setDrag] = useState(false);
-  const width = leftWidth(split, mode);
+  const compact = layout !== "split";
+  const width = compact ? null : leftWidth(split, mode);
   const fromPointer = (clientX: number) => {
     const r = box.current?.getBoundingClientRect();
     return r ? splitFromPointer(clientX, { left: r.left, width: r.width }, split) : split;
   };
   return (
-    <div className={`split split--${mode === "split" ? "normal" : mode}`} ref={box}>
+    <div className={`split split--${compact ? layout : mode === "split" ? "normal" : mode}`} ref={box}>
       {width === null ? <div className="split__rail">{rail}</div> : null}
-      {/* In artifact focus the conversation is hidden, not unmounted: its draft and queue survive. */}
-      <div className="split__left" hidden={width === null} style={width === null ? undefined : { width: `${width}%` }}>{left}</div>
-      {mode === "split" ? (
+      {/* In artifact focus, and in a closed drawer, the conversation is hidden, not unmounted: its
+          draft, queue, poll and once-only view ops survive (D21: one tree, no remount). */}
+      {compact ? (
+        <div className="split__left" hidden={!shown} role={shown ? "dialog" : undefined} aria-modal={shown ? true : undefined} aria-label={shown ? leftLabel : undefined}>{left}</div>
+      ) : (
+        <div className="split__left" hidden={width === null} style={width === null ? undefined : { width: `${width}%` }}>{left}</div>
+      )}
+      {!compact && mode === "split" ? (
         <div
           className={`split__handle${drag ? " is-drag" : ""}`}
           role="separator"
