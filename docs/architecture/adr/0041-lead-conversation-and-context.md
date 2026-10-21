@@ -129,9 +129,12 @@ step that fits its allocation. Each step keeps the one before it whole:
 3. The focused item and its section verbatim; the rest of the focused stage as an outline of item
    ids and titles; the other stages as counts per section.
 4. The focused item verbatim, everything else as counts.
-5. If even the focused item exceeds the allocation, it is carried as its id, title and size,
-   named `item_over_budget`. The Lead is told it cannot see that item whole, and the researcher
-   is offered to pin it, since pins (decision 6) are reserved in the floor pass.
+5. If even the focused item exceeds the allocation, it is carried as its id, its title, its
+   size and the list of its parts (fields, options, sub-items) with each part's size, named
+   `item_over_budget`. A pin cannot help, since it would be larger than the pin layer. Instead:
+   - the Lead is told it cannot see that item whole, and says so in its reply;
+   - the researcher can point at one part with `@` (`research-lead-workbench#16`). A focused part
+     is then the focused item for step 4, carried verbatim if it fits.
 
 No step takes bytes from another layer, so the conversation keeps its floor. A 60 KB questionnaire
 at a 12 KB allocation lands on step 3 or 4.
@@ -196,8 +199,12 @@ parts, from exact to approximate:
    **It is bounded in context and complete in the ledger.**
    - **Its record is the ledger.** The digest is a view of the approval ledger rows, which are
      immutable, so no decision is ever lost. What is bounded is how much of it a turn carries.
-   - **Each line is exact and short:** at most 200 bytes, with the item, the decision, the turn id
-     and the ledger row id.
+   - **Each line is exact and short:** at most 200 bytes, in one of two schemas.
+     - A **decision line** (groups 1 and 3) carries the item, the decision, the turn id and the
+       ledger row id.
+     - A **pointer line** (group 2) carries the item, the proposal's kind, the turn id and the
+       proposal's index in that turn's output, and no ledger row id: an undecided proposal is in a
+       turn's output and not yet in the ledger.
    - **Its share of layer 10 scales with the layer's allocation.**
      - **Range:** from 5 KB at the layer's 10 KB floor to 8 KB at 16 KB, linearly.
      - **Group caps:** the caps below are the 8 KB values. They scale by the same factor (5/8 at the

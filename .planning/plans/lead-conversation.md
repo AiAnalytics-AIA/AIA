@@ -101,7 +101,8 @@ in the compact drawer.
 
 **LC3. The decision digest.** A pure projection over the ledger rows and turns of this conversation
 (`lead_edit`, `lead_job_request`, `lead_self_update`, plan and lookup rows when they exist), each line
-with its turn id and ledger row id, each at most 200 bytes. It goes in layer 10, within its share, which scales from
+each at most 200 bytes: a decision line with its turn id and ledger row id, a pointer line (an
+undecided proposal) with its turn id and output index and no ledger id. It goes in layer 10, within its share, which scales from
 5 KB at the layer's 10 KB floor to 8 KB at 16 KB, in ADR 0041 decision 4's four capped groups (the
 caps below at 8 KB, scaled with the share, group 4 fixed):
 1. decisions on named items (4 KB; per item, the newest 3, newest first);
@@ -125,10 +126,11 @@ Tests:
 then the remainder in the declared priority order, each layer's over-policy applied to its
 allocation); the design layer's
 five-step shortening ladder (ADR 0041 decision 2: all verbatim; focused stage verbatim; focused
-item and section verbatim; focused item only; `item_over_budget` with a pin offered), each step
+item and section verbatim; focused item only; `item_over_budget` with its parts listed, so a part can be focused with `@`), each step
 named; spare bytes to the verbatim conversation. Tests: a 60 KB questionnaire at a 12 KB
 allocation lands on step 3 or 4 and leaves the conversation its floor; the manifest names every
-item it outlined; a single item over the allocation is carried as `item_over_budget`; floors sum within 96 KB; every layer at 90 % of its ceiling at once still
+item it outlined; a single item over the allocation is carried as `item_over_budget` with its parts listed, and
+focusing one part carries that part verbatim; floors sum within 96 KB; every layer at 90 % of its ceiling at once still
 freezes within 96 KB, with the conversation at its floor and each shortened layer named.
 
 **LC5. Queued messages on the server.** The migration adds `parent_turn_id` (nullable, set on
