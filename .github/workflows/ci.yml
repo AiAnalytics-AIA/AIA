@@ -579,6 +579,8 @@ jobs:
               "/api/v1/studies/{study_id}/design/revisions/{revision_id}",
               # ... and the runs that execute them.
               "/api/v1/studies/{study_id}/research/readiness",
+              # Readiness on a working revision, nothing submitted (working-copy-edit-ops WCE7a).
+              "/api/v1/studies/{study_id}/research/readiness/working",
               "/api/v1/studies/{study_id}/research/runs",
               "/api/v1/studies/{study_id}/research/runs/{run_id}",
               "/api/v1/studies/{study_id}/research/runs/{run_id}/events",
