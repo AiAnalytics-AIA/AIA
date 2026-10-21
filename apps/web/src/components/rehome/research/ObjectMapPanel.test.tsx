@@ -722,3 +722,24 @@ describe("the Lead's names on the map", () => {
     expect(document.querySelector(focusSelector(`object:hudba/${map.object_ids[i]}`))?.tagName).toBe("BUTTON");
   });
 });
+
+// The object list on the respondent map (artifact-sociomap audit, 2026-10-21): a click there marked an
+// object pressed and changed nothing a person could see, the respondent card staying where the object's
+// detail would be. Selection is the object map's; on the respondent map the list only lists.
+describe("the object list on the respondent map", () => {
+  it("lists the objects without offering a selection the respondent map cannot show", () => {
+    render(<ObjectMapView battery={hudba} dataOrigin={null} />);
+    fireEvent.click(screen.getByRole("button", { name: "Respondenti" }));
+    const buttons = within(screen.getByTestId("object-map-panel-list")).getAllByRole("button");
+    expect(buttons.length).toBe(map.object_ids.length);
+    for (const b of buttons) expect((b as HTMLButtonElement).disabled).toBe(true);
+    fireEvent.click(buttons[2]);
+    expect(canvas().getAttribute("data-selected")).toBe("");
+    expect(buttons[2].getAttribute("aria-pressed")).toBe("false");
+    fireEvent.click(screen.getByRole("button", { name: "Objekty" }));
+    const back = within(screen.getByTestId("object-map-panel-list")).getAllByRole("button");
+    expect((back[2] as HTMLButtonElement).disabled).toBe(false);
+    fireEvent.click(back[2]);
+    expect(canvas().getAttribute("data-selected")).toBe(map.object_ids[2]);
+  });
+});

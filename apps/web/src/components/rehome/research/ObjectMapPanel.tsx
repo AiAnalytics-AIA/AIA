@@ -346,7 +346,8 @@ function PanelView({ battery, map, facts }: { battery: BatteryWithMaps; map: Obj
           </div>
           {people ? <DensityLegend segments={segments} /> : <Legend battery={battery} values={nodes.map((n) => (n.primary ? n.value : null))} norm={norm} strongest={strongest} />}
         </div>
-        <Aside battery={battery} facts={facts} selected={selected} onChoose={choose} onHover={setHovered} notPlaced={notPlaced} detail={detail}
+        {/* Selection is the object map's: on the respondent map the list only lists (a click there showed nothing). */}
+        <Aside battery={battery} facts={facts} selected={people ? -1 : selected} onChoose={people ? undefined : choose} onHover={setHovered} notPlaced={notPlaced} detail={detail}
           counts={people ? <RespondentCounts map={map} segments={segments} /> : null}
           items={nodes.map((n, k) => ({ id: n.id, label: n.label, value: n.value, colour: n.primary ? color66(tones[k]) : SECONDARY }))} />
       </div>
