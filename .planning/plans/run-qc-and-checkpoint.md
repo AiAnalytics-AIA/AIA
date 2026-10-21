@@ -1,7 +1,7 @@
 ---
 status: in-progress
 chunks:
-  - "[ ] RQC0. A per-respondent checkpoint (OI-64): each answered respondent and its paid-call identity are stored under the lease; a retry resumes; a possibly-billed uncertain call requires recovery and never triggers an automatic paid replay"
+  - "[x] RQC0. A per-respondent checkpoint (OI-64): each answered respondent and its paid-call identity are stored under the lease; a retry resumes; a possibly-billed uncertain call requires recovery and never triggers an automatic paid replay"
   - "[ ] RQC1. One straight-liner definition in `domain/`, called by the Sociomap engine, the run QC and the worker"
   - "[ ] RQC2. The QC node wired into the run: template node, step kind, registry, `AIA_RUN_QC_ENABLED`, the run-key identity"
   - "[ ] RQC3. A `MaterialRule` and lineage for run-derived material sent to a model (QC flags, the map interpreter)"
