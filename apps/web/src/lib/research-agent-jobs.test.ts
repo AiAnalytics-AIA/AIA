@@ -3,8 +3,8 @@
 // waits for a person's lift and goes on as the same job; it is never read as a failure to retry.
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
-import type { ResearchAgentJob } from "./api";
-import { BUDGET_WAIT_MESSAGE, agentJobState, agentJobUpdate, followAgentJob } from "./research-agent-jobs";
+import { ApiError, type ResearchAgentJob } from "./api";
+import { BUDGET_WAIT_MESSAGE, agentJobState, agentJobUpdate, followAgentJob, jobCostAsked, jobCostQuestion, withJobCostConfirmation } from "./research-agent-jobs";
 import { JobError } from "@/research/jobs";
 
 const job = (status: string, stepStatus: string, over: Partial<ResearchAgentJob> = {}): ResearchAgentJob =>
@@ -72,5 +72,35 @@ describe("followAgentJob", () => {
   it("returns a completed job", async () => {
     serve(job("COMPLETED", "SUCCEEDED"));
     await expect(followAgentJob("STU-1", "RUN-J1", "x", () => {})).resolves.toMatchObject({ run_id: "RUN-J1" });
+  });
+});
+
+describe("a job whose ceiling reaches the study's confirmation threshold (LO15)", () => {
+  const asked = () => new ApiError(409, "cost_confirmation_required", "confirm", null, { ceiling_usd: 2, limit_usd: 1 });
+
+  it("reads the server's ceiling and threshold, and nothing else", () => {
+    expect(jobCostAsked(asked())).toEqual({ ceiling: 2, limit: 1 });
+    expect(jobCostAsked(new ApiError(409, "cost_ceiling_unknown", "x", null, { limit_usd: 1 }))).toBeNull();
+    expect(jobCostAsked(new ApiError(409, "cost_confirmation_required", "x", null, { ceiling_usd: "2", limit_usd: 1 }))).toBeNull();
+    expect(jobCostAsked(new Error("x"))).toBeNull();
+    expect(jobCostQuestion({ ceiling: 2.5, limit: 1 })).toContain("Práh potvrzení");
+  });
+
+  it("asks once and confirms exactly the ceiling the server named", async () => {
+    const create = vi.fn(async (usd?: number) => { if (usd === undefined) throw asked(); return usd; });
+    const confirm = vi.fn(async () => true);
+    await expect(withJobCostConfirmation(create, confirm)).resolves.toBe(2);
+    expect(create.mock.calls).toEqual([[undefined], [2]]);
+    expect(confirm).toHaveBeenCalledTimes(1);
+  });
+
+  it("starts nothing on a no, and passes any other refusal through unasked", async () => {
+    const create = vi.fn(async (): Promise<number> => { throw asked(); });
+    await expect(withJobCostConfirmation(create, async () => false)).rejects.toMatchObject({ code: "cost_confirmation_required" });
+    expect(create).toHaveBeenCalledTimes(1);
+    const other = vi.fn(async (): Promise<number> => { throw new ApiError(409, "stale_design", "x", null); });
+    const confirm = vi.fn(async () => true);
+    await expect(withJobCostConfirmation(other, confirm)).rejects.toMatchObject({ code: "stale_design" });
+    expect(confirm).not.toHaveBeenCalled();
   });
 });

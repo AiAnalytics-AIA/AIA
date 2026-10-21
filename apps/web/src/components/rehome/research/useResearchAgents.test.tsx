@@ -95,11 +95,39 @@ it("refreshes following of an uncertain running advice job without a resume muta
   await act(async () => { await running; }); expect(researchAgents.accept).not.toHaveBeenCalled();
 });
 
+function Confirming({ answer }: { answer: boolean }) {
+  const [error, setError] = useState("");
+  const agents = useResearchAgents("STU-1", store, onUpdate, false, false, async (m) => { asked.push(m); return answer; });
+  return <><button onClick={() => { running = agents.run("analyze_brief", {}, "Brief").catch((e: Error) => setError(e.message)); }}>Run</button><p>{error}</p>{agents.dialog}</>;
+}
+let asked: string[] = [];
+const thresholdAsks = () => new ApiError(409, "cost_confirmation_required", "confirm", null, { ceiling_usd: 2, limit_usd: 1 });
+
+it("a job reaching the confirmation threshold starts only on the person's yes, confirming the server's ceiling", async () => {
+  asked = [];
+  vi.mocked(researchAgents.start).mockRejectedValueOnce(thresholdAsks()).mockResolvedValueOnce(job);
+  render(<Confirming answer />); fireEvent.click(screen.getByText("Run"));
+  await screen.findByRole("dialog");
+  expect(asked).toHaveLength(1); expect(asked[0]).toContain("Práh potvrzení");
+  expect(vi.mocked(researchAgents.start).mock.calls.map((c) => c[5])).toEqual([undefined, 2]);
+});
+
+it("a no to the threshold starts nothing and says why", async () => {
+  asked = [];
+  vi.mocked(researchAgents.start).mockRejectedValueOnce(thresholdAsks());
+  render(<Confirming answer={false} />); fireEvent.click(screen.getByText("Run"));
+  await act(async () => { await running; });
+  expect(asked).toHaveLength(1);
+  expect(researchAgents.start).toHaveBeenCalledOnce(); expect(researchAgents.job).not.toHaveBeenCalled();
+  expect(screen.getByText("confirm")).toBeTruthy();
+});
+
 it("freezes a Study revision naming its working revision, follows the job, and writes nothing until review", async () => {
   render(<Harness />); fireEvent.click(screen.getByText("Run"));
   await screen.findByRole("dialog");
   expect(research.submitDesign).toHaveBeenCalledWith("STU-1", { goal: "Original" }, "brief", 3);
-  expect(researchAgents.start).toHaveBeenCalledWith("STU-1", "REV-1", "analyze_brief", "");
+  // No confirmation is sent unless the server asks for one (LO15).
+  expect(researchAgents.start).toHaveBeenCalledWith("STU-1", "REV-1", "analyze_brief", "", undefined, undefined);
   expect(researchAgents.accept).not.toHaveBeenCalled(); expect(project).toEqual({ goal: "Original" });
   fireEvent.click(screen.getByText("Použít návrh"));
   await waitFor(() => expect(reload).toHaveBeenCalledOnce());
@@ -230,7 +258,7 @@ it("rebuilds a stale proposal on the current design and reviews the new one", as
   await screen.findByText("Rebuilt");
   expect(screen.getByText("fresh")).toBeTruthy();
   expect(research.submitDesign).toHaveBeenLastCalledWith("STU-1", { goal: "Edited" }, "brief", 3);
-  expect(researchAgents.rebuild).toHaveBeenCalledExactlyOnceWith("STU-1", "RUN-1", "REV-1");
+  expect(researchAgents.rebuild).toHaveBeenCalledExactlyOnceWith("STU-1", "RUN-1", "REV-1", undefined);
   fireEvent.click(screen.getByText("Apply"));
   await waitFor(() => expect(reload).toHaveBeenCalledOnce());
   expect(researchAgents.accept).toHaveBeenLastCalledWith("STU-1", "RUN-2", "REV-1", 3);

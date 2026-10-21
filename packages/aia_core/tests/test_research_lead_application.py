@@ -617,6 +617,10 @@ def test_the_spend_limit_holds_a_prepared_job(scoped: Any, session: Any) -> None
         "confirmed_usd": 2.0,
     }
     assert started["run_id"]
+    # The job's own start applied the same rule (LO15) and wrote the job's spend row.
+    (spend,) = _ledger(session, "spend")
+    assert (spend.run_id, spend.decision) == (started["run_id"], "confirm")
+    assert json.loads(spend.comment) == {"ceiling_usd": 2.0, "limit_usd": 1.0, "confirmed_usd": 2.0}
     # Below the limit, nothing is asked.
     scope2, turn2 = _ready(scoped, session, JOB, user="researcher", study="sibling")
     scoped.scope_repo.set_study_spend_confirm(scope2, 5.0)

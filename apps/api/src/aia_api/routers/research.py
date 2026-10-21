@@ -2630,6 +2630,10 @@ class AgentJobStart(BaseModel):
     #: fictional (409 ``prompt_test_requires_fictional_client`` otherwise); the job records
     #: which prompt it ran.
     prompt_version: int | None = Field(default=None, ge=1)
+    #: The ceiling a person confirmed when the study's confirmation threshold asked (409
+    #: ``cost_confirmation_required``, lead-orchestration LO15). Never the ceiling itself: the
+    #: server works that out from the design job's reservation.
+    confirm_cost_usd: float | None = Field(default=None, ge=0, le=1_000_000)
 
 
 class AgentProposalAccept(BaseModel):
@@ -2682,6 +2686,8 @@ class AgentProposalRebuild(BaseModel):
 
     model_config = ConfigDict(extra="forbid")
     design_revision_id: str = Field(max_length=64, pattern=r"^REV-[0-9a-f]{1,32}$")
+    #: As a start's: the new job is paid work and meets the threshold (LO15).
+    confirm_cost_usd: float | None = Field(default=None, ge=0, le=1_000_000)
 
 
 def _agent_response(
@@ -2760,6 +2766,8 @@ def _agent_errors(session: SessionDep) -> Iterator[None]:
         raise _runtime_park_refused(exc) from exc
     except (BudgetWaitNotLiftable, BudgetNotRaised) as exc:
         raise _budget_lift_refused(exc) from exc
+    except (CostConfirmationRequired, CostCeilingUnknown) as exc:
+        raise _cost_refused(exc) from exc
     except (IntegrityError, ObjectNotFound) as exc:
         # The proposal's bytes failed verification on read: keep its CORRUPT mark.
         raise artifact_corrupt(session) from exc
@@ -2769,7 +2777,18 @@ def _agent_errors(session: SessionDep) -> Iterator[None]:
         ) from exc
 
 
-@router.post("/research/agent-jobs", response_model=AgentJobResponse, status_code=201)
+@router.post(
+    "/research/agent-jobs",
+    response_model=AgentJobResponse,
+    status_code=201,
+    responses={
+        409: {
+            "model": ErrorResponse,
+            "description": "The confirmation threshold asks (cost_confirmation_required), or "
+            "the job's ceiling is unknown (cost_ceiling_unknown)",
+        },
+    },
+)
 def start_agent_job(
     body: AgentJobStart,
     scope: StudyScopeDep,
@@ -2779,12 +2798,19 @@ def start_agent_job(
 ) -> AgentJobResponse:
     with _agent_errors(session):
         # The deployment's fictional-client list decides where a draft prompt may be tried.
-        jobs = ResearchAgentJobs(session, scope, draft_client_ids=settings.fictional_client_ids)
+        # What one job can cost at most, for the study's confirmation threshold (LO15).
+        jobs = ResearchAgentJobs(
+            session,
+            scope,
+            draft_client_ids=settings.fictional_client_ids,
+            reservation_usd=settings.ai_research_reservation_usd,
+        )
         started = jobs.start(
             design_revision_id=body.design_revision_id,
             action=body.action,
             instruction=body.instruction,
             prompt_version=body.prompt_version,
+            confirm_cost_usd=body.confirm_cost_usd,
         )
         if not started.created:
             response.status_code = 200
@@ -2902,21 +2928,34 @@ def dismiss_agent_result(
     "/research/agent-jobs/{run_id}/rebuild",
     response_model=AgentJobResponse,
     status_code=201,
-    responses={409: {"model": ErrorResponse, "description": "Advice, or not the newest design"}},
+    responses={
+        409: {
+            "model": ErrorResponse,
+            "description": "Advice, not the newest design, or the confirmation threshold asks",
+        }
+    },
 )
 def rebuild_agent_result(
     run_id: RunIdPath,
     body: AgentProposalRebuild,
     scope: StudyScopeDep,
     session: SessionDep,
+    settings: SettingsDep,
     response: Response,
 ) -> AgentJobResponse:
     """Ask the same action and instruction again on the Study's newest Design Revision: a new
     job, ``rebuild_of`` the old one, which it supersedes (ADR 0026 decision 5). Accepts
-    nothing; the old proposal stays readable."""
+    nothing; the old proposal stays readable. The new job meets the study's confirmation
+    threshold as a start does (LO15)."""
     with _agent_errors(session):
-        jobs = ResearchAgentJobs(session, scope)
-        started = jobs.rebuild(run_id, design_revision_id=body.design_revision_id)
+        jobs = ResearchAgentJobs(
+            session, scope, reservation_usd=settings.ai_research_reservation_usd
+        )
+        started = jobs.rebuild(
+            run_id,
+            design_revision_id=body.design_revision_id,
+            confirm_cost_usd=body.confirm_cost_usd,
+        )
         if not started.created:
             response.status_code = 200
         return _agent_with_state(jobs, started.run_id, scope)

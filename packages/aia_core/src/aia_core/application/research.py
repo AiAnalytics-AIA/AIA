@@ -1332,6 +1332,11 @@ class ResearchAgentJobs:
 
     Approved client memory is frozen at enqueue. Jobs only produce proposals;
     applying one requires EDIT_STUDY and its unchanged Design Revision.
+
+    A job is paid work and meets the study's confirmation threshold like a run
+    (``spend_confirm_usd``, ADR 0019 gate 2, ADR 0028; lead-orchestration LO15): every way a
+    job is created -- a direct start, a rebuild, the Lead's approved request -- goes through
+    :meth:`spend_gate` in :meth:`start`, so none of them evades it.
     """
 
     session: Session
@@ -1339,6 +1344,35 @@ class ResearchAgentJobs:
     #: The clients a draft prompt may be tested on (``AIA_AI_FICTIONAL_CLIENT_IDS``). Empty
     #: by default, so a caller that does not pass it can run no draft at all.
     draft_client_ids: frozenset[str] = frozenset()
+    #: What one job can cost at most: the design job's reservation
+    #: (``AIA_AI_RESEARCH_RESERVATION_USD``, a primary and one repair). ``None`` is unknown,
+    #: never zero: with a threshold set, a new job is then refused (:class:`CostCeilingUnknown`).
+    reservation_usd: float | None = None
+
+    def spend_gate(self, confirm_cost_usd: float | None) -> tuple[float, float] | None:
+        """The confirmation threshold's one rule (``domain/money.py``) for one new job.
+
+        Returns ``(ceiling, threshold)`` when the person's ``confirm_cost_usd`` covers a ceiling
+        that reaches the threshold -- the caller records it once the job exists -- and ``None``
+        when nothing asks. Raises :class:`CostConfirmationRequired` when the ceiling reaches the
+        threshold and nothing covering it was confirmed, and :class:`CostCeilingUnknown` when a
+        threshold is set and the reservation is not configured.
+
+        A confirmation is a person's: using one needs ``APPROVE_BUDGET``, which the worker's
+        scope withholds (``WORKER_PERMISSIONS``), so a step cannot confirm the spend it starts.
+        """
+        limit = ScopeRepository(self.session).get_study(self.scope).spend_confirm_usd
+        verdict = threshold_verdict(self.reservation_usd, limit, confirm_cost_usd)
+        if verdict is ThresholdVerdict.NOT_ASKED:
+            return None
+        assert limit is not None
+        if verdict is ThresholdVerdict.CEILING_UNKNOWN:
+            raise CostCeilingUnknown(CeilingUnknown.RESEARCH_RESERVATION_MISSING, limit_usd=limit)
+        assert self.reservation_usd is not None
+        if verdict is ThresholdVerdict.ASK:
+            raise CostConfirmationRequired(ceiling_usd=self.reservation_usd, limit_usd=limit)
+        self.scope.require(Permission.APPROVE_BUDGET)
+        return (self.reservation_usd, limit)
 
     def start(
         self,
@@ -1348,8 +1382,14 @@ class ResearchAgentJobs:
         instruction: str = "",
         prompt_version: int | None = None,
         rebuild_of: str | None = None,
+        confirm_cost_usd: float | None = None,
     ) -> StartedRun:
         """Queue one proposal. The prompt it runs is chosen here and frozen into the job.
+
+        A start that would create a job is held to the study's confirmation threshold
+        (:meth:`spend_gate`): at or above it, ``confirm_cost_usd`` must cover the job's ceiling
+        (:attr:`reservation_usd`), and the yes is written to the approval ledger with the job.
+        A start that finds its job already there spends nothing and asks nothing, as a run's.
 
         The job records the working revision its Design Revision came from as
         ``base_workspace_revision`` (ADR 0026 decision 5): never the working copy's revision now,
@@ -1416,13 +1456,20 @@ class ResearchAgentJobs:
         round_ = int(newest[0]["metadata"].get("round") or 0) if newest else 0
         if newest and _ended_without_result(workflows.get_run(newest[0]["run_id"])):
             round_ += 1
-        return start_workflow(
+        key = base if round_ == 0 else f"{base}:again-{round_}"
+        # Before anything is created: a job that exists already asks nothing.
+        confirmation = (
+            self.spend_gate(confirm_cost_usd)
+            if workflows.find_run_by_idempotency_key(key) is None
+            else None
+        )
+        started = start_workflow(
             self.session,
             self.scope,
             project_id=project_id,
             revision=revision.revision,
             workflow_type=RESEARCH_AGENT,
-            idempotency_key=base if round_ == 0 else f"{base}:again-{round_}",
+            idempotency_key=key,
             metadata={
                 "design_revision_id": design_revision_id,
                 "action": action.value,
@@ -1437,6 +1484,15 @@ class ResearchAgentJobs:
             step_inputs={"agent": payload},
             owner=DESIGN_PROJECT_OWNER,
         )
+        if confirmation is not None and started.created:
+            assert confirm_cost_usd is not None
+            workflows.record_spend_confirmation(
+                started.run_id,
+                ceiling_usd=confirmation[0],
+                limit_usd=confirmation[1],
+                confirmed_usd=confirm_cost_usd,
+            )
+        return started
 
     def _pin(self, action: ResearchAction, prompt_version: int | None) -> PromptPin:
         """The prompt this job will run: the organization's active one, or a draft to test."""
@@ -1543,14 +1599,17 @@ class ResearchAgentJobs:
             run_id, action=action, artifact_id=str(run["steps"][0]["output"]["artifact_id"])
         )
 
-    def rebuild(self, run_id: str, *, design_revision_id: str) -> StartedRun:
+    def rebuild(
+        self, run_id: str, *, design_revision_id: str, confirm_cost_usd: float | None = None
+    ) -> StartedRun:
         """Ask a proposal again, on the current design: the same action and instruction, a new job.
 
         ADR 0026 decision 5: a stale proposal is never accepted; a rebuild starts a new job on
         ``design_revision_id`` -- which must be the Study's newest Design Revision -- naming the
         old one as ``rebuild_of``, which supersedes it. It accepts nothing, and the old job stays
         readable. The browser submits its working copy first, so the newest revision is the
-        design the person has now.
+        design the person has now. The new job is paid work: held to the threshold as a start
+        is (``confirm_cost_usd``, :meth:`spend_gate`).
         """
         run = self.get(run_id)
         action = ResearchAction(run["metadata"]["action"])
@@ -1567,6 +1626,7 @@ class ResearchAgentJobs:
             action=action,
             instruction=str(asked.get("instruction") or ""),
             rebuild_of=run_id,
+            confirm_cost_usd=confirm_cost_usd,
         )
 
     def cancel(self, run_id: str) -> WorkflowRunStatus:

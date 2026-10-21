@@ -58,7 +58,6 @@ from ..domain.research_lead import (
     stale_files,
 )
 from ..domain.research_template import research_template
-from ..domain.run_cost import CeilingUnknown
 from ..domain.scope import OrganizationContext, Permission, StudyContext
 from ..domain.workflow import StepRunStatus
 from ..domain.workflow_templates import RESEARCH, RESEARCH_LEAD
@@ -77,7 +76,7 @@ from ..infrastructure.study_workspace_repository import (
     WorkspaceConflict,
 )
 from ..infrastructure.workflow_repository import WorkflowRepository
-from .research import CostCeilingUnknown, CostConfirmationRequired, ResearchAgentJobs
+from .research import ResearchAgentJobs
 from .workflows import start_workflow
 
 __all__ = [
@@ -717,21 +716,19 @@ class ResearchLead:
                 "status": run["status"].value,
             }
 
+        # The confirmation threshold's one rule, the job start's own (lead-orchestration LO15):
+        # asked here before the design is submitted, and again by the start, which records the
+        # job's spend row; this turn's approval row carries the same figures.
+        jobs = ResearchAgentJobs(self.session, self.scope, reservation_usd=reservation_usd)
+        confirmed = jobs.spend_gate(confirm_cost_usd)
         spend: dict[str, float] | None = None
-        limit = ScopeRepository(self.session).get_study(self.scope).spend_confirm_usd
-        if limit is not None:
-            if reservation_usd is None:
-                raise CostCeilingUnknown(
-                    CeilingUnknown.RESEARCH_RESERVATION_MISSING, limit_usd=limit
-                )
-            if reservation_usd >= limit:
-                if confirm_cost_usd is None or confirm_cost_usd < reservation_usd:
-                    raise CostConfirmationRequired(ceiling_usd=reservation_usd, limit_usd=limit)
-                spend = {
-                    "ceiling_usd": reservation_usd,
-                    "limit_usd": limit,
-                    "confirmed_usd": confirm_cost_usd,
-                }
+        if confirmed is not None:
+            assert confirm_cost_usd is not None
+            spend = {
+                "ceiling_usd": confirmed[0],
+                "limit_usd": confirmed[1],
+                "confirmed_usd": confirm_cost_usd,
+            }
 
         content, _analysis, workspace_revision = self._working_content()
         revision = self._submit_design(
@@ -739,10 +736,11 @@ class ResearchLead:
             workspace_revision,
             source_stage=_SOURCE_STAGE.get(request.action, "questionnaire"),
         )
-        started = ResearchAgentJobs(self.session, self.scope).start(
+        started = jobs.start(
             design_revision_id=revision.revision_id,
             action=request.action,
             instruction=request.why,
+            confirm_cost_usd=confirm_cost_usd,
         )
         workflows.record_lead_job_approval(
             turn.run_id,

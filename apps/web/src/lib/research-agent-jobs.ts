@@ -1,5 +1,6 @@
 // Native Research job following. Durable identity/state live on the server.
-import { researchAgents, type ResearchAgentAction, type ResearchAgentJob } from "./api";
+import { ApiError, researchAgents, type ResearchAgentAction, type ResearchAgentJob } from "./api";
+import { money } from "@/i18n/cs";
 import { JobError, jobMeta, type JobUpdate } from "@/research/jobs";
 import { agentJobOrb } from "./activity-orb";
 
@@ -37,6 +38,38 @@ export function agentJobState(job: Pick<ResearchAgentJob, "status" | "is_termina
   if (job.status === "AWAITING_BUDGET" || job.steps.some((s) => s.status === "AWAITING_BUDGET")) return "awaiting_budget";
   if (job.needs_attention || job.status.startsWith("WAITING") || job.status.startsWith("AWAITING") || job.status === "RECOVERY_REQUIRED") return "waiting";
   return "running";
+}
+
+/**
+ * The server refused to create a job because its ceiling reaches the study's confirmation threshold
+ * (409 cost_confirmation_required, lead-orchestration LO15): the ceiling it worked out and the
+ * threshold. Anything else, or details that are not both numbers, is not a question to put to a person.
+ */
+export function jobCostAsked(e: unknown): { ceiling: number; limit: number } | null {
+  if (!(e instanceof ApiError) || e.code !== "cost_confirmation_required") return null;
+  const { ceiling_usd, limit_usd } = e.details as { ceiling_usd?: unknown; limit_usd?: unknown };
+  return typeof ceiling_usd === "number" && Number.isFinite(ceiling_usd) && typeof limit_usd === "number" && Number.isFinite(limit_usd)
+    ? { ceiling: ceiling_usd, limit: limit_usd } : null;
+}
+
+const usd = (n: number) => n.toLocaleString("cs-CZ", { maximumFractionDigits: 2 });
+/** The question a person answers before a job that reaches the threshold starts. */
+export const jobCostQuestion = (asked: { ceiling: number; limit: number }) =>
+  `AI krok může stát až ${usd(asked.ceiling)} USD, což dosahuje hodnoty „${money.confirmThreshold}“ studie (${usd(asked.limit)} USD). Spustit?`;
+
+/**
+ * Create a job, asking the person once when the server's threshold asks: `create(undefined)` first,
+ * then, on a yes, `create(ceiling)` with exactly the ceiling the server named. A no, or a second
+ * refusal, is thrown as it came; nothing is started without the server's own figure confirmed.
+ */
+export async function withJobCostConfirmation<T>(create: (confirmCostUsd?: number) => Promise<T>, confirm: (message: string) => Promise<boolean>): Promise<T> {
+  try {
+    return await create(undefined);
+  } catch (e) {
+    const asked = jobCostAsked(e);
+    if (!asked || !(await confirm(jobCostQuestion(asked)))) throw e;
+    return create(asked.ceiling);
+  }
 }
 
 /** What a stage says of a job stopped at the study's budget: it waits, it did not fail. */

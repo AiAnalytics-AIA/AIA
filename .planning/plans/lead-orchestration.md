@@ -20,7 +20,7 @@ chunks:
   - "[ ] LO13. Client-level paid AI (source proposals, `clients.budget_usd`) recorded as an explicit exception to "every AI action goes through the Lead" in AC-02"
   - "[ ] LO14. The Lead's cost per turn measured, and an `AIA_LEAD_*` kill switch and budget line"
   - "[x] LO16. The approval ledger's subject types (lane migration M3, W0, the first migration): `approval_decisions.subject_type` extended with `wallet`, `lead_plan`, `plan_step`, `chat_start`, `data_contract`, `map_snapshot` and `sociomap_unlock`; S3 writes it"
-  - "[ ] LO15. Server spend enforcement (W0): `ResearchAgentJobs.start` and `rebuild` apply `spend_confirm_usd` as `ResearchRuns.start` does, and record the confirmation in the ledger; tested through direct HTTP start and rebuild and through the Lead's approve path"
+  - "[x] LO15. Server spend enforcement (W0): `ResearchAgentJobs.start` and `rebuild` apply `spend_confirm_usd` as `ResearchRuns.start` does, and record the confirmation in the ledger; tested through direct HTTP start and rebuild and through the Lead's approve path"
   - "[ ] LO5a. Deep Research from the Lead: a plan-step kind and a typed chat start, priced by deep-research-web-search 55's ceiling (D-12)"
   - "[ ] LO12c. The composition digest stored on each run and served over HTTP (D-09; the record #513 called MP6b)"
   - "[ ] LO17. Stopping the Lead: cancel a running turn, withdraw an approved plan (the current step finishes or is cancelled, nothing after it starts), with the workbench build line (D-18)"
@@ -352,3 +352,48 @@ documents. The wallet ceiling has no Czech label: the owner named none, so none 
 
 - `open-items.md`: number F-LO0-1, owner LO15.
 
+
+## LO15 delivered (2026-10-21, E03)
+
+Before (`@ b5b369ae`): `ResearchAgentJobs.start` (`application/research.py:1343-1439`) and
+`rebuild` (`:1546-1570`) read no `spend_confirm_usd`; the only check on a design job was the Lead's
+approve path (`application/research_lead.py:720-734`). The worker's scope holds `EDIT_STUDY` and
+`RUN_WORKFLOW` (`domain/scope.py:202-213`), so a step could have created a job past any threshold.
+
+Now:
+
+- `ResearchAgentJobs.spend_gate` is the job's one rule: `money.threshold_verdict` over the job's
+  ceiling (`reservation_usd`, the design job's reservation `AIA_AI_RESEARCH_RESERVATION_USD`, a
+  primary and one repair) and the study's threshold. Using a confirmation needs `APPROVE_BUDGET`,
+  which `WORKER_PERMISSIONS` withholds, so a step can neither evade the threshold nor supply the yes.
+  `start` applies it only when the job would be created (a found job asks nothing, as a run's start)
+  and writes the `spend` ledger row with the new job (`record_spend_confirmation`); `rebuild` passes
+  its `confirm_cost_usd` through to `start`.
+- The API's `POST …/research/agent-jobs` and `POST …/agent-jobs/{id}/rebuild` take
+  `confirm_cost_usd` and pass the deployment's reservation; refusals are the run start's 409
+  `cost_confirmation_required` (ceiling and threshold in `details`) and `cost_ceiling_unknown`
+  (`research_reservation_missing`). The request never names the ceiling.
+- The Lead's approve path asks through the same `spend_gate` before submitting the design, then the
+  job's own start applies it again and writes the job's `spend` row; the turn's `lead_job_request`
+  row keeps its `spend` figures as before. The browser's direct start and rebuild
+  (`useResearchAgents`) ask once with the server's ceiling (`withJobCostConfirmation`,
+  `lib/research-agent-jobs.ts`) and confirm exactly that figure.
+- **F-LO0-1 closed:** `deep_research.py` and `validation.py` call `threshold_verdict` in place of their
+  inline comparisons, each keeping its own refusal for an unknown ceiling; `research_lead.py` calls
+  `spend_gate`. Held by `test_every_start_path_applies_the_one_domain_rule`.
+
+No switch: with no threshold set (the default) nothing changes, and a switch off would reopen the
+path E03 closes. Tests: `packages/aia_core/tests/test_research_agent_spend.py` (below, at and above
+the threshold, an unknown reservation, a rebuild, the worker's scope asked and refused its
+confirmation, the four start paths on the one rule), `test_the_spend_limit_holds_a_prepared_job`
+(the Lead path writes the job's spend row), `apps/api/tests/test_research_agent_spend_api.py`
+(direct HTTP start and rebuild), `apps/web/src/lib/research-agent-jobs.test.ts`.
+
+### Doc follow-up (LO15)
+
+- `open-items.md`: F-LO0-1 closed by LO15 (E03).
+- `CLAUDE.md` map, `routers/research.py` line on agent jobs: "`POST …/agent-jobs` and
+  `…/rebuild` take `confirm_cost_usd`; a new job whose reservation reaches the study's threshold is
+  409 `cost_confirmation_required` (LO15)".
+- `docs/architecture/research-agents.md`: a job is held to `spend_confirm_usd` at start and
+  rebuild, its ceiling the design job's reservation.
