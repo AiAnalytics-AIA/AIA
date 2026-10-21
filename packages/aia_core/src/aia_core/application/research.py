@@ -141,6 +141,7 @@ __all__ = [
     "ResearchStepNotFound",
     "RunOutlook",
     "RunReservations",
+    "readiness_in_force",
     "report_pdf_key",
     "research_artifacts",
 ]
@@ -347,6 +348,12 @@ class FrozenDataset:
     #: Modules whose step will ask a model: the retried ones, and any completed one whose
     #: stored harness or prompt is not today's (its reuse key moved).
     modules_asked: int
+    #: The original's specification, by artifact id and SHA-256: the retry's compile step
+    #: takes it as stored, never compiling the revision again under a later compiler (whose
+    #: specification would move every completed module's reuse key, unpaid in the ceiling).
+    #: ``None`` only for a caller that names none; :func:`retry_failed_modules` always does.
+    specification_artifact_id: str | None = None
+    specification_sha256: str | None = None
 
     def __post_init__(self) -> None:
         if self.analysis_round < 1:
@@ -357,6 +364,16 @@ class FrozenDataset:
 
     def note(self) -> dict[str, Any]:
         return {**self.step_input(), "round": self.analysis_round, "modules": list(self.retried)}
+
+    def specification_input(self) -> dict[str, Any] | None:
+        """The compile step's ``frozen_specification``; ``None`` when none is named."""
+        if self.specification_artifact_id is None or self.specification_sha256 is None:
+            return None
+        return {
+            "run_id": self.run_id,
+            "artifact_id": self.specification_artifact_id,
+            "sha256": self.specification_sha256,
+        }
 
 
 @dataclass(frozen=True, slots=True)
@@ -399,6 +416,27 @@ def _population_note(binding: PopulationBinding, *, read_by_fieldwork: bool) -> 
         "version_id": binding.version_id,
         "version_label": binding.version_label,
         "read_by_fieldwork": read_by_fieldwork,
+    }
+
+
+def readiness_in_force(
+    session: Session, scope: StudyContext
+) -> tuple[ReadinessSpec, dict[str, Any] | None]:
+    """The readiness limits in force for the Study, and the stored version they come from
+    (``None``: nothing stored, so the code's preset ``aia-readiness-1``).
+
+    The one authority for a valid n (plan ``run-qc-and-checkpoint`` RQC9): what a run start
+    checks and pins, what the API's ``GET …/research/limits`` answers the web, and what a
+    Research Lead turn is frozen with and its ``set_n`` accepted under. Read through the
+    Study's resolved scope; only its organization's methodology rows are read."""
+    in_force = methodology_in_force_for_study(session, scope, "readiness")
+    if in_force.version is None:
+        return readiness_spec_for(None), None
+    return readiness_spec_for(in_force.version.payload), {
+        "module": "readiness",
+        "version": in_force.version.version_number,
+        "name": in_force.version.name,
+        "payload_sha256": in_force.version.payload_sha256,
     }
 
 
@@ -800,6 +838,12 @@ class ResearchRuns:
                 "compile": {
                     "design_revision_id": revision.revision_id,
                     "readiness": readiness_pin,
+                    **(
+                        {"frozen_specification": frozen_spec}
+                        if frozen_dataset is not None
+                        and (frozen_spec := frozen_dataset.specification_input()) is not None
+                        else {}
+                    ),
                 },
                 "preflight": {
                     "methods": pinned,
@@ -1191,15 +1235,7 @@ class ResearchRuns:
         ``methodology-tab`` V1a); with nothing stored, 18.6.6's product policy."""
         if readiness is not None:
             return readiness, None
-        in_force = methodology_in_force_for_study(self.session, self.scope, "readiness")
-        if in_force.version is None:
-            return readiness_spec_for(None), None
-        return readiness_spec_for(in_force.version.payload), {
-            "module": "readiness",
-            "version": in_force.version.version_number,
-            "name": in_force.version.name,
-            "payload_sha256": in_force.version.payload_sha256,
-        }
+        return readiness_in_force(self.session, self.scope)
 
     def _response(
         self, response: ResponseProcessSpec | None

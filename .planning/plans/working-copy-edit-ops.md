@@ -242,7 +242,7 @@ on, and the case file pins them.
 - **Sections** without an id get the compiler's (`section_ids`: `compile_design`'s slug and
   uniqueness rules, in order). `test_ids_change_nothing_a_run_compiles` compiles 300 random
   questionnaires and every fixture design before and after ids: identical problems, spec, fingerprint
-  and respondent columns, so `COMPILER_VERSION` stays `aia-research-compile-1`. A question keeps the
+  and respondent columns, so this chunk needs no `COMPILER_VERSION` bump (#538 moved it to `-2` for its own reason). A question keeps the
   id it has; one without stays keyed by place (no case needs it: every writer gives one).
 - **design_items** keys plan-list items by id (`item_values(docs, previous=)`; `design_items` reads
   `after` against `before`); a reword its id list records is one changed item. Values exclude the id

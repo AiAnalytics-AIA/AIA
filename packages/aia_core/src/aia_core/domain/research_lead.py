@@ -77,6 +77,7 @@ from .research_agents import (
     prompt_class_source,
     prompt_data_class,
 )
+from .research_design import SampleSizeLimits
 from .residency import DataClass
 
 __all__ = [
@@ -123,6 +124,7 @@ __all__ = [
     "context_data_class",
     "context_sha256",
     "freeze_context",
+    "frozen_sample_size",
     "ground_edits",
     "ground_self_update",
     "is_text_edit",
@@ -133,6 +135,7 @@ __all__ = [
     "lead_request_window_tokens",
     "number_tokens",
     "question_add_problem",
+    "readiness_layer",
     "self_update_base",
     "split_self_update",
     "stale_files",
@@ -143,7 +146,10 @@ __all__ = [
 LEAD_PROMPT_ID: Final = "aia.research.lead"
 LEAD_AGENT_ID: Final = LEAD_PROMPT_ID
 LEAD_PROMPT_VERSION: Final = "1"
-LEAD_HARNESS_VERSION: Final = "aia-research-lead-1"
+#: 2: the frozen design layer carries the readiness limits in force, and ``set_n`` is held to
+#: them rather than to a range of its own (plan ``run-qc-and-checkpoint`` RQC9). A turn queued
+#: under 1 has no limits to be grounded against, so the executor refuses it by name.
+LEAD_HARNESS_VERSION: Final = "aia-research-lead-2"
 #: A turn's stored output. Served only by the Lead's own routes, never the generic ones.
 ARTIFACT_TYPE: Final = "research_lead_turn"
 
@@ -392,25 +398,50 @@ def ground_edits(
     output: LeadOutput,
     content: Mapping[str, Any],
     analysis: Mapping[str, Any] | None = None,
+    *,
+    sample_size: SampleSizeLimits | None,
 ) -> tuple[LeadOutput, list[Dropped]]:
     """``output`` with only the edits the working content can take, and the rest named.
 
     A question or section id must be one of a questions section in ``content["sections"]``;
     a list item's ``old`` must be in its plan list (the working ``analysis`` first, else
     ``content["research_plan"]``), compared whitespace-collapsed and casefolded; a
-    ``list_add`` already present is dropped too (``edit_ops.refusal``). Nothing else is
+    ``list_add`` already present is dropped too (``edit_ops.refusal``). A ``set_n`` must be a
+    valid n under ``sample_size``, the readiness limits the turn was frozen with; with no limits
+    known it is dropped (``sample_size_limits_unknown``), never presumed valid. Nothing else is
     judged here: a person accepts each edit that is left.
     """
     kept: list[Any] = []
     dropped: list[Dropped] = []
     for i, edit in enumerate(output.edits):
         # The vocabulary's own rule, the one apply_edit refuses with (domain/edit_ops.py).
-        reason = refusal(edit, content, analysis)
+        reason = refusal(edit, content, analysis, sample_size=sample_size)
         if reason is None:
             kept.append(edit)
         else:
             dropped.append(Dropped(index=i, op=edit.op, reason=reason))
     return output.model_copy(update={"edits": kept}), dropped
+
+
+def readiness_layer(sample_size: SampleSizeLimits, methodology_version: str) -> dict[str, Any]:
+    """The readiness limits in force as the design layer carries them (``design.readiness``):
+    what a turn's ``set_n`` is held to, and what the Lead may say n can be."""
+    return {
+        "methodology_version": methodology_version,
+        "sample_size": {"min": sample_size.min, "max": sample_size.max},
+    }
+
+
+def frozen_sample_size(design: Mapping[str, Any]) -> SampleSizeLimits | None:
+    """The sample-size limits a turn was frozen with (:func:`readiness_layer`), or ``None``
+    when the design layer holds none it can read."""
+    readiness = design.get("readiness")
+    if not isinstance(readiness, Mapping):
+        return None
+    try:
+        return SampleSizeLimits.model_validate(readiness.get("sample_size"))
+    except ValueError:
+        return None
 
 
 def ground_self_update(

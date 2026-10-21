@@ -71,6 +71,7 @@ from aia_core.application.research import (
     ResearchRuns,
     ResearchStepNotFound,
     RunReservations,
+    readiness_in_force,
     research_artifacts,
 )
 from aia_core.application.sociomapping_report import SOCIOMAPPING_REPORT_ARTIFACT_TYPE
@@ -129,7 +130,13 @@ from aia_core.infrastructure.workflow_repository import (
 from fastapi import APIRouter, HTTPException, Path, Query, Request, Response, status
 from pydantic import BaseModel, ConfigDict, Field
 
-from ..dependencies import ArtifactStoreDep, SessionDep, SettingsDep, StudyScopeDep
+from ..dependencies import (
+    ArtifactStoreDep,
+    RunPopulationDep,
+    SessionDep,
+    SettingsDep,
+    StudyScopeDep,
+)
 from ..schemas.projects import ErrorResponse
 from ..schemas.runs import ArtifactResponse, RunEventResponse
 from .runs import artifact_corrupt, artifact_response
@@ -529,6 +536,30 @@ class ResearchTraceResponse(BaseModel):
     dangling: list[DanglingLinkResponse]
     #: Whether any item declares a link; without one, coverage is unknown.
     linked: bool
+
+
+class SampleSizeRange(BaseModel):
+    """A valid n: a whole number from ``min`` to ``max``, both included."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    min: int
+    max: int
+
+
+class ResearchLimitsResponse(BaseModel):
+    """The readiness limits in force for the Study (plan ``run-qc-and-checkpoint`` RQC9).
+
+    The one authority for a valid n: what a run start checks and pins and what a Research Lead
+    edit is held to. The web reads it instead of a range of its own, and refuses a value
+    outside it -- never clamps it. ``version`` is the stored methodology version in force;
+    ``None``: nothing stored, the code's preset (``methodology_version``)."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    methodology_version: str
+    version: int | None
+    sample_size: SampleSizeRange
 
 
 class ReadinessResponse(BaseModel):
@@ -1081,6 +1112,22 @@ def _started(runs: ResearchRuns, started: StartedRun, response: Response) -> Res
 
 
 @router.get(
+    "/research/limits",
+    response_model=ResearchLimitsResponse,
+    summary="The readiness limits in force: the valid sample size",
+)
+def research_limits(scope: StudyScopeDep, session: SessionDep) -> ResearchLimitsResponse:
+    """The limits a run start of this Study checks today, read from the organization's
+    readiness methodology in force (the preset when nothing is stored). Starts nothing."""
+    limits, stored = readiness_in_force(session, scope)
+    return ResearchLimitsResponse(
+        methodology_version=limits.methodology_version,
+        version=None if stored is None else int(stored["version"]),
+        sample_size=SampleSizeRange(min=limits.sample_size.min, max=limits.sample_size.max),
+    )
+
+
+@router.get(
     "/research/readiness",
     response_model=ReadinessResponse,
     summary="Can this Design Revision run in AIA?",
@@ -1202,15 +1249,22 @@ def start_run(
     scope: StudyScopeDep,
     session: SessionDep,
     response: Response,
+    population: RunPopulationDep,
 ) -> ResearchRunResponse:
     """Idempotent per Design Revision: a double submission gets the existing run.
 
     Needs ``RUN_WORKFLOW`` on an open Study. The fieldwork source is the
     deployment's, never the request's; who answers is the person's, among the sources the
-    deployment offers (409 ``persona_source_unavailable`` otherwise).
+    deployment offers (409 ``persona_source_unavailable`` otherwise). The population a new run
+    records is the deployment's (the Czech LIVE; the population double only in local and test).
     """
     persona_source = _chosen_persona_source(request, body.persona_source)
-    runs = ResearchRuns(session, scope)
+    runs = ResearchRuns(
+        session,
+        scope,
+        population_contract=population.contract,
+        population_id=population.population_id,
+    )
     try:
         started = runs.start(
             design_revision_id=body.design_revision_id,

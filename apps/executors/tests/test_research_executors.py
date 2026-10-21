@@ -360,3 +360,15 @@ def test_the_fieldwork_step_never_says_fieldwork_is_done_for_answers_no_person_g
     assert _DATA_READY[OriginKind.MODELLED] == "modelovaná data připravena"
     assert _DATA_READY[OriginKind.SIMULATED] == "fiktivní data připravena"
     assert all("sběr dat" not in words for words in _DATA_READY.values())
+
+
+def test_a_specification_the_earlier_compiler_stored_is_never_reused() -> None:
+    """input-interactions 3b: compile-2 reads a scale's labels; a compile-1 specification of
+    the same design (stored before) has another key, so a new run compiles afresh."""
+    from aia_core.domain.research_design import AIA_READINESS_V1, COMPILER_VERSION
+    from aia_executors.research import compile_fingerprint
+
+    assert COMPILER_VERSION == "aia-research-compile-2"
+    now = compile_fingerprint(DESIGN, COMPILER_VERSION, AIA_READINESS_V1)
+    assert now == compile_fingerprint(DESIGN, COMPILER_VERSION, AIA_READINESS_V1)
+    assert now != compile_fingerprint(DESIGN, "aia-research-compile-1", AIA_READINESS_V1)

@@ -17,7 +17,12 @@ from aia_core.domain.ai_respondent import PROMPT_SHA256, dataset_origin
 from aia_core.domain.evidence import respondent_system_fingerprint
 from aia_core.domain.fieldwork import DataOrigin
 from aia_core.domain.panel_persona import PersonaRefused
-from aia_core.domain.panel_source import PANEL_SOURCE, panel_plans, respondent_system
+from aia_core.domain.panel_source import (
+    PANEL_SOURCE,
+    panel_plans,
+    pinned_components,
+    respondent_system,
+)
 from aia_core.domain.population.sampling import SAMPLER_VERSION, SamplingRefused
 from aia_core.domain.research_design import ResearchSpecification, compile_design
 
@@ -134,3 +139,21 @@ def test_the_respondent_system_names_every_component_and_fingerprints(population
     assert len(respondent_system_fingerprint(system)) == 64
     other = respondent_system(population, model_binding="aws_bedrock/model-y/bedrock-eu-primary")
     assert respondent_system_fingerprint(other) != respondent_system_fingerprint(system)
+
+
+def test_scale_labels_in_the_prompt_are_another_respondent_system(population: Any) -> None:
+    """AIA_AI_SCALE_LABELS_IN_PROMPT changes what respondents are told (input-interactions 3b):
+    off, the system is exactly the one it was; on, its prompt and fingerprint are new."""
+    binding = "aws_bedrock/model-x/bedrock-eu-primary"
+    off = respondent_system(population, model_binding=binding)
+    assert off == respondent_system(population, model_binding=binding, scale_labels_in_prompt=False)
+    assert off["respondent_prompt_sha256"] == PROMPT_SHA256
+    on = respondent_system(population, model_binding=binding, scale_labels_in_prompt=True)
+    assert set(on) == set(off)
+    assert on["respondent_prompt_sha256"] != PROMPT_SHA256
+    assert {k for k in on if on[k] != off[k]} == {"respondent_prompt_sha256"}
+    assert respondent_system_fingerprint(on) != respondent_system_fingerprint(off)
+    # A validation preregistered without the labels is stale for the system with them.
+    version = population.binding.version_id
+    assert pinned_components(version) == {k: v for k, v in off.items() if k != "model_binding"}
+    assert pinned_components(version, scale_labels_in_prompt=True) != pinned_components(version)

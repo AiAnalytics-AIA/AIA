@@ -1904,6 +1904,8 @@ export const cs = {
       variantChosen: "zvolený návrh",
       variantUse: "Kliknutím použít",
       variantApplied: "Použit návrh: {title}",
+      variantSampleKept: "Velikost vzorku z návrhu nebyla uložena: {why}",
+      variantWaitLimits: "Načítám platný rozsah vzorku; návrh použijte za okamžik.",
       commentsTag: "KOMENTÁŘE K NÁVRHU",
       commentsTitle: "Označte text a přidejte komentář",
       commentsHelp: "Označte konkrétní text podobně jako ve Wordu. Všechny komentáře odešlete najednou.",

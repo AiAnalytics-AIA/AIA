@@ -53,6 +53,7 @@ from .design_fields import Touch, changed_fields
 from .design_items import Documents, ItemKey, item_values
 from .design_items import design_items as changed_items
 from .item_ids import with_item_ids
+from .research_design import SampleSizeLimits, sample_size_problem
 
 __all__ = [
     "CATALOGUE",
@@ -93,6 +94,7 @@ __all__ = [
     "op_refusal",
     "question_add_problem",
     "refusal",
+    "sample_size_reason",
     "spec_of",
     "touches",
     "whole_copy_lock_refusal",
@@ -268,8 +270,17 @@ class QuestionRemove(_Closed):
 
 
 class SetN(_Closed):
+    """A new sample size. Its shape asks only for a whole number; the range is the readiness
+    limits in force (``design.readiness.sample_size`` in the Lead's context), which
+    :func:`refusal` holds it to at the turn and :func:`apply_edit` again at its accept (plan
+    ``run-qc-and-checkpoint`` RQC9). The schema keeps no range of its own: a second range is the
+    drift RQC9 removed."""
+
     op: Literal["set_n"]
-    value: int = Field(ge=30, le=40_000)
+    value: int = Field(
+        ge=1,
+        description="Celý počet respondentů v rozsahu design.readiness.sample_size (min až max).",
+    )
     why: Why
 
 
@@ -449,6 +460,7 @@ def apply_edit(
     edit: Any,
     *,
     new_id: Callable[[IdKind], str] = new_item_id,
+    sample_size: SampleSizeLimits | None = None,
 ) -> tuple[dict[str, Any], dict[str, Any] | None] | Refused:
     """One accepted Lead edit applied to the working content and analysis, by the web's rules.
 
@@ -459,7 +471,9 @@ def apply_edit(
     options on any other question are refused, never accepted as a change of nothing. The plan
     narrative (``plan.problem_summary`` and the plan lists) is written to both
     ``content.research_plan`` and the analysis (started from the plan when there is none),
-    and marks ``ui_state.plan_manual_changed``.
+    and marks ``ui_state.plan_manual_changed``. A ``set_n`` is refused unless it is a valid n
+    under ``sample_size``, the readiness limits in force at the accept; with none given it is
+    refused (``sample_size_limits_unknown``), never clamped and never presumed valid.
     """
     named = _named_refusal(edit)
     if named is not None:
@@ -568,9 +582,21 @@ def apply_edit(
         section["questions"] = questions
         return body, working
     if isinstance(edit, SetN):
+        reason = sample_size_reason(edit.value, sample_size)
+        if reason is not None:
+            return Refused(reason=reason)
         body["n"] = edit.value
         return body, working
     return Refused(reason="unknown_edit")
+
+
+def sample_size_reason(value: int, limits: SampleSizeLimits | None) -> str | None:
+    """Why a ``set_n`` cannot be taken under ``limits``, or ``None`` when it can (RQC9): the one
+    rule readiness reads (``research_design.sample_size_problem``); no limits known refuses."""
+    if limits is None:
+        return "sample_size_limits_unknown"
+    problem = sample_size_problem(value, limits)
+    return None if problem is None else problem.value
 
 
 # --------------------------------------------------------------------------- the closed set
@@ -780,6 +806,8 @@ REFUSALS: Final = frozenset(
         "options_on_non_selection",
         "options_on_open_question",
         "plan_not_an_object",
+        "sample_size_limits_unknown",
+        "sample_size_out_of_range",
         "scale_labels_not_two",
         "sections_not_a_list",
         "sociomap_input_locked",
@@ -822,7 +850,11 @@ def _named_refusal(edit: object) -> str | None:
 
 
 def refusal(
-    edit: BaseModel, content: Mapping[str, Any], analysis: Mapping[str, Any] | None = None
+    edit: BaseModel,
+    content: Mapping[str, Any],
+    analysis: Mapping[str, Any] | None = None,
+    *,
+    sample_size: SampleSizeLimits | None = None,
 ) -> str | None:
     """Why ``edit`` cannot apply to the working copy, as a word of :data:`REFUSALS`, or ``None``.
 
@@ -831,7 +863,9 @@ def refusal(
     whitespace-collapsed and casefolded, and a ``list_add`` already there is refused; a new
     question must be one its type can carry; options replace only a selection question's. This is
     the grounding the Lead's edits pass (``research_lead.ground_edits``), and :func:`apply_edit`
-    refuses with the same words. The lock is asked separately (:func:`lock_refusal`)."""
+    refuses with the same words. A ``set_n`` must be a valid n under ``sample_size``, the readiness
+    limits in force (:func:`sample_size_reason`); with none given it is refused, never presumed
+    valid. The lock is asked separately (:func:`lock_refusal`)."""
     named = _named_refusal(edit)
     if named is not None:
         return named
@@ -856,7 +890,9 @@ def refusal(
     if isinstance(edit, ListAdd):
         items = {_key(str(x)) for x in _plan_list(content, analysis, edit.list)}
         return "already_present" if _key(edit.value) in items else None
-    if isinstance(edit, SetText | SetN):
+    if isinstance(edit, SetN):
+        return sample_size_reason(edit.value, sample_size)
+    if isinstance(edit, SetText):
         return None
     return "unknown_edit"
 
@@ -893,10 +929,16 @@ def touches(
     if not isinstance(edit, _APPLIED_TYPES):
         raise TypeError(f"not an operation the vocabulary applies: {type(edit).__name__}")
     base, _ = with_item_ids(content)
-    applied = apply_edit(base, None, edit, new_id=new_id)
-    if isinstance(applied, Refused):
-        return frozenset()
-    changed = changed_fields(Documents(content=base), Documents(content=applied[0]))
+    if isinstance(edit, SetN):
+        # What a sample size writes does not depend on the limits it is checked against
+        # (``apply_edit``'s ``sample_size``): a value out of range is refused there, not untouched.
+        after: dict[str, Any] = {**base, "n": edit.value}
+    else:
+        applied = apply_edit(base, None, edit, new_id=new_id)
+        if isinstance(applied, Refused):
+            return frozenset()
+        after = applied[0]
+    changed = changed_fields(Documents(content=base), Documents(content=after))
     return frozenset(t for t in changed if t[0] not in _CONSEQUENCES)
 
 

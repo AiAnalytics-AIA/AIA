@@ -27,6 +27,7 @@ from dataclasses import dataclass
 from typing import Annotated, Final
 
 from aia_core.application.audience_preview import AudiencePreviewer
+from aia_core.application.population_double import PopulationDouble, population_double
 from aia_core.application.scope import AuthenticatedPrincipal, ScopeResolver
 from aia_core.domain.population import CZ_LIVE, PopulationImportContract
 from aia_core.domain.population.czech import CZ_SYNTHETIC_V17
@@ -108,6 +109,9 @@ def init_app_state(app: FastAPI, settings: Settings) -> None:
     # The store's S3 client is created on first use, so building it here costs
     # nothing and needs no credentials until an artifact is actually read.
     app.state.artifact_store = build_artifact_store(settings.storage_settings())
+    # LOCAL AND TEST ONLY: the population double, before the previewer below (RQC10).
+    if settings.population_double:
+        install_population_double(app, settings)
     # A previewer already installed is kept: the UI workbench installs its fictional one
     # before the server's startup runs this again (panel-grounded-respondents 6f).
     if getattr(app.state, "audience_previewer", None) is None:
@@ -138,8 +142,59 @@ class AudiencePopulation:
 CZECH_AUDIENCE: Final = AudiencePopulation(contract=CZ_SYNTHETIC_V17, population_id=CZ_LIVE)
 
 
-def get_audience_population(request: Request) -> AudiencePopulation:
-    """The population the audience catalogue and preview read (the Czech LIVE)."""
+def install_population_double(app: FastAPI, settings: Settings) -> None:
+    """LOCAL AND TEST ONLY: compose the fictional population double (plan
+    ``run-qc-and-checkpoint`` RQC10).
+
+    A new research run then records the double's LIVE (``app.state.run_population``, read by the
+    run start), and the audience catalogue and preview read it too, so a run started over HTTP
+    has respondents the worker's composition ``aia_executors.population_double`` can draw. The
+    double refuses any ``AIA_ENV`` but local and test, and ``validate_for_production`` refuses the
+    switch before that, so a deployment never reaches here.
+
+    Nothing is read from the database at startup (the schema may not exist yet); the double is
+    established in the transaction of the first request that needs it
+    (:func:`ensure_population_double`), idempotently, so a restarted API keeps what it established.
+    """
+    # AIA_ENV must be named, as the worker's composition requires: the settings default an
+    # unset AIA_ENV to local, and an unset environment must refuse the double, never admit it.
+    named = settings.env if "env" in settings.model_fields_set else None
+    double = population_double(named)
+    population = AudiencePopulation(contract=double.contract, population_id=double.population_id)
+    app.state.population_double = double
+    app.state.run_population = population
+    app.state.audience_population = population
+    app.state.audience_previewer = double.previewer()
+    logging.getLogger("aia.population").warning(
+        "population double composed: fictional respondents, local and test only",
+        extra={"context": {"population_id": double.population_id}},
+    )
+
+
+def ensure_population_double(request: Request, session: Session) -> None:
+    """Establish the population double in this request's transaction when it is composed.
+
+    Concurrent first requests (the audience step reads its catalogue and its preview at once)
+    may both find nothing: :meth:`PopulationDouble.establish` writes in a savepoint and reads
+    back what the other wrote first, so neither fails; the request commits it with the rest of
+    its work."""
+    double: PopulationDouble | None = getattr(request.app.state, "population_double", None)
+    if double is not None:
+        double.establish(session)
+
+
+def get_run_population(request: Request, session: SessionDep) -> AudiencePopulation:
+    """The population a new research run records: the Czech LIVE in every deployment; the
+    population double's LIVE only where :func:`install_population_double` composed it."""
+    ensure_population_double(request, session)
+    found: AudiencePopulation = getattr(request.app.state, "run_population", CZECH_AUDIENCE)
+    return found
+
+
+def get_audience_population(request: Request, session: SessionDep) -> AudiencePopulation:
+    """The population the audience catalogue and preview read (the Czech LIVE; the population
+    double where it is composed)."""
+    ensure_population_double(request, session)
     found: AudiencePopulation = getattr(request.app.state, "audience_population", CZECH_AUDIENCE)
     return found
 
@@ -159,8 +214,9 @@ def build_audience_previewer(settings: Settings) -> AudiencePreviewer | None:
     )
 
 
-def get_audience_previewer(request: Request) -> AudiencePreviewer | None:
+def get_audience_previewer(request: Request, session: SessionDep) -> AudiencePreviewer | None:
     """The process's audience previewer; ``None`` when this deployment has none."""
+    ensure_population_double(request, session)
     previewer: AudiencePreviewer | None = getattr(request.app.state, "audience_previewer", None)
     return previewer
 
@@ -473,3 +529,4 @@ ResolverDep = Annotated[ScopeResolver, Depends(get_scope_resolver)]
 SettingsDep = Annotated[Settings, Depends(get_app_settings)]
 AudiencePreviewerDep = Annotated[AudiencePreviewer | None, Depends(get_audience_previewer)]
 AudiencePopulationDep = Annotated[AudiencePopulation, Depends(get_audience_population)]
+RunPopulationDep = Annotated[AudiencePopulation, Depends(get_run_population)]

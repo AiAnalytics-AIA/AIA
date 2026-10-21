@@ -19,8 +19,12 @@ from pydantic import BaseModel, TypeAdapter
 from aia_core.domain import edit_ops as e
 from aia_core.domain.analysis.native import research_questions_of
 from aia_core.domain.design_items import Documents, ItemKey
+from aia_core.domain.research_design import AIA_READINESS_V1
 from aia_core.domain.research_lead import FOCUS_ID, LeadOutput
 from aia_core.domain.research_trace import comparisons_of
+
+#: The readiness preset's valid n, 20-10,000 (RQC9).
+LIMITS = AIA_READINESS_V1.sample_size
 
 CASES: dict[str, Any] = json.loads(
     (Path(__file__).parent / "fixtures/edit_ops/cases.json").read_text(encoding="utf-8")
@@ -161,18 +165,24 @@ def test_an_operation_id_is_its_own() -> None:
 def test_an_edit_applies_as_the_case_says(case: dict[str, Any]) -> None:
     edit = EDIT.validate_python(case["edit"])
     before = case["before"]
-    got = e.apply_edit(before["content"], before["analysis"], edit, new_id=_ids())
+    # The readiness preset's valid n (RQC9): what a set_n case is held to.
+    got = e.apply_edit(
+        before["content"], before["analysis"], edit, new_id=_ids(), sample_size=LIMITS
+    )
     expect = case["expect"]
     if "refused" in expect:
         assert isinstance(got, e.Refused)
         assert got.reason == expect["refused"]
         assert got.reason in e.REFUSALS
         # The grounding refuses with the same word before anything is applied.
-        assert e.refusal(edit, before["content"], before["analysis"]) == expect["refused"]
+        assert (
+            e.refusal(edit, before["content"], before["analysis"], sample_size=LIMITS)
+            == expect["refused"]
+        )
         return
     assert not isinstance(got, e.Refused)
     assert {"content": got[0], "analysis": got[1]} == expect
-    assert e.refusal(edit, before["content"], before["analysis"]) is None
+    assert e.refusal(edit, before["content"], before["analysis"], sample_size=LIMITS) is None
 
 
 def test_apply_changes_nothing_it_was_given() -> None:
@@ -269,3 +279,36 @@ def test_a_link_is_keyed_as_the_trace_keys_it(case: dict[str, str]) -> None:
 )
 def test_the_research_questions_are_read_as_the_case_says(case: dict[str, Any]) -> None:
     assert list(research_questions_of(case["design"])) == case["expect"]
+
+
+# --------------------------------------------------------------------------- the valid n (RQC9)
+
+
+@pytest.mark.parametrize(
+    ("value", "reason"),
+    [
+        (19, "sample_size_out_of_range"),
+        (10_001, "sample_size_out_of_range"),
+        (20, None),
+        (10_000, None),
+    ],
+)
+def test_a_set_n_is_held_to_the_readiness_limits_by_refusal_and_apply(
+    value: int, reason: str | None
+) -> None:
+    """One authority for a valid n: the limits in force, both bounds included, never clamped."""
+    edit = EDIT.validate_python({"op": "set_n", "value": value, "why": "Návrh."})
+    content: dict[str, Any] = {"n": 300}
+    assert e.refusal(edit, content, sample_size=LIMITS) == reason
+    applied = e.apply_edit(content, None, edit, sample_size=LIMITS)
+    if reason is None:
+        assert not isinstance(applied, e.Refused) and applied[0]["n"] == value
+    else:
+        assert applied == e.Refused(reason=reason) and reason in e.REFUSALS
+
+
+def test_a_set_n_with_no_limits_is_refused_never_presumed_valid() -> None:
+    edit = EDIT.validate_python({"op": "set_n", "value": 300, "why": "Návrh."})
+    assert e.refusal(edit, {}) == "sample_size_limits_unknown"
+    assert e.apply_edit({}, None, edit) == e.Refused(reason="sample_size_limits_unknown")
+    assert "sample_size_limits_unknown" in e.REFUSALS

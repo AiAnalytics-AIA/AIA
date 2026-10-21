@@ -340,6 +340,40 @@ const LIST_LABEL: Record<PlanList, string> = {
   "plan.hypotheses": "Hypotézy",
 };
 
+/**
+ * A Lead edit's refusal, as the server names it (grounding's drop or the accept's refusal,
+ * domain/edit_ops.py `REFUSALS`), in Czech: the words `applyLeadEdit` refuses with, and the server's
+ * own beside them -- the sample-size reasons are RQC9's (the readiness limits in force decide a valid
+ * n, at the turn and again at the accept). A code with no words is kept as is, never guessed.
+ */
+export const EDIT_REFUSAL_WORDS: Readonly<Record<string, string>> = {
+  ...REFUSED,
+  sample_size_out_of_range: "Velikost vzorku je mimo platný rozsah metodiky v platnosti; úprava nebyla přijata.",
+  sample_size_limits_unknown: "Platný rozsah vzorku se nepodařilo zjistit, proto úprava velikosti vzorku nebyla přijata.",
+  op_not_available: "Takovou úpravu AIA zatím neumí použít.",
+  sociomap_input_locked: "Vstupy Sociomapy jsou zamčené; úprava je nezmění.",
+  not_a_text_edit: "Tuto úpravu nelze přijmout automaticky; čeká na vaše rozhodnutí.",
+  unknown_edit: "Úpravu už nelze použít.",
+};
+
+export function editRefusalWords(reason: string | null | undefined): string {
+  if (!reason) return "Úpravu už nelze použít.";
+  return EDIT_REFUSAL_WORDS[reason] ?? reason;
+}
+
+/**
+ * What a turn says of the edits grounding dropped: a sample size outside the valid range in its
+ * own words (it concerned the sample, not nothing), the rest counted as before.
+ */
+export function droppedLines(dropped: { reason: string }[]): string[] {
+  const sample = dropped.filter((d) => d.reason.startsWith("sample_size_"));
+  const other = dropped.length - sample.length;
+  const lines = [...new Set(sample.map((d) => editRefusalWords(d.reason)))];
+  if (other === 1) lines.push("1 navržená změna se netýkala ničeho v pracovní kopii a byla vynechána.");
+  else if (other > 1) lines.push(`${other} navržené změny se netýkaly ničeho v pracovní kopii a byly vynechány.`);
+  return lines;
+}
+
 /** The stage an edit belongs to: where its change block is shown. */
 export function editStage(e: LeadEdit): WorkbenchStage {
   if (e.op === "set_text") return e.field.startsWith("plan.") ? "design" : "brief";
