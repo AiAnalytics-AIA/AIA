@@ -80,14 +80,17 @@ threads; the study is the thread, with pinned items (LC11) instead, and branchin
 (LC16). The
 amendments to ADR 0026 decisions 2 and 8 are recorded in the docs PR. Test: none (a decision).
 
-**LC1. The layer table and the manifest.** Hatching and self-update gain byte bounds on the Lead's
+**LC1. The layer table and the manifest.** Saving or activating a version of `aia.research.lead`
+refuses one whose serialized `PromptPin` exceeds 12 KB (`prompt_too_large_for_lead`, byte count in
+the editor). Hatching and self-update gain byte bounds on the Lead's
 files (SOUL and USER 2,800 bytes, name 160, refused as `lead_file_too_large`); an older file over
 them is shortened at a paragraph boundary, named `lead_file_shortened`. `domain/research_lead.py`: a `LeadLayer` table and
 `freeze_context` as a pipeline over it, carrying today's bounds unchanged (12 turns, 20 KB knowledge,
 40 / 16 KB notes, 5 runs); a `ContextManifest` (per layer bytes, floor, ceiling, included ids,
 omitted ids with reason (at most 50 each per layer, beyond that counts and a source range), allocation, class and class source; totals; context file version and summary id when
 they exist) stored in the step input beside the context and hashed with it. Tests: the same inputs
-give the same manifest; every omitted id is listed with a reason or lies in the stored range; a
+give the same manifest; a 12,000-character prompt of multibyte text is refused at activation, not at
+a turn; every omitted id is listed with a reason or lies in the stored range; a
 manifest after 1,000 decisions is the same size as after 100; today's turns freeze byte-identical
 contexts (a regression fixture).
 

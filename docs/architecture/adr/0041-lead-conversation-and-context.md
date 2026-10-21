@@ -82,7 +82,7 @@ its values are proposed here, to be set from LO14's measurement:
 
 | # | Layer | Floor | Ceiling | Over the ceiling |
 |---|---|---|---|---|
-| 1 | Prompt pin | as pinned | 12 KB | refuse the turn (a prompt never truncates) |
+| 1 | Prompt pin | as pinned | 12 KB | cannot happen for a version admitted under the byte bound below; a prompt never truncates |
 | 2 | Lead files (name, SOUL, USER) | 6 KB | 6 KB | cannot happen for a file admitted under the byte bounds below; an older file over them is shortened at its last whole paragraph within the bound, named (`lead_file_shortened`), and the researcher is told |
 | 3 | Lead notes | 4 KB | 12 KB | relevance-ranked (decision 5), then newest; omitted ids named |
 | 4 | Study context file (ADR 0039) | 8 KB | 16 KB | ADR 0039 decision 4: oldest history lines, then oldest notes, named |
@@ -119,6 +119,16 @@ lookup's captured texts (ADR 0040) are verbatim in the turn that answers them; l
 them as references (snapshot, artifact or run id) with the answer's citations, the lightest form of
 compaction, as context editing clears old tool results elsewhere. Retrieval (decision 5) may bring
 one back.
+
+**The Lead's prompt is bounded in bytes when it is stored, never at a turn.**
+- **The gap.** `validate_prompt_text` admits 12,000 characters (`domain/prompts.py:44,93 @
+  237fd0a`), which in multibyte Czech or with JSON escaping can serialize past 12 KB.
+- **The check.** Saving or activating a version of `aia.research.lead` therefore also checks its
+  canonical serialized `PromptPin`. One over 12 KB is refused there, by name
+  (`prompt_too_large_for_lead`), with its byte count shown in the prompt editor. A valid
+  configuration thus cannot disable the conversation.
+- **A version already active and over the bound,** which can only predate this rule, refuses the
+  turn by name with the same reason and says to activate a shorter version. It is never cut.
 
 **The Lead's files are bounded in bytes, not only characters.** Today's limits are 2,000 characters
 for SOUL and USER and 40 for the name (`domain/research_lead.py:123-126 @ 237fd0a`), which in
