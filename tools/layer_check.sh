@@ -94,6 +94,11 @@ forbid() {
 # StepModelCaller's own .invoke( is not it). Their rules are below.
 GATEWAY_BUILT='^[^#]*\bGovernedModelGateway\('
 GATEWAY_INVOKED='^[^#]*[Gg]ateway[A-Za-z0-9_]*\.invoke\('
+# The recorded model wire and the composition over it, imported in any form: `import a.b`,
+# `from a import b`, `from . import b`, `from .b import c` (an import line naming either
+# module), or named as a quoted dotted string (importlib, AIA_WORKER_EXECUTORS, a config).
+RECORDED_MODELS_IMPORTED='^\s*(from|import)\s.*\b(recorded_models|acceptance_recorded)\b'
+RECORDED_MODELS_NAMED='['"'"'"]aia_executors\.(recorded_models|acceptance_recorded)'
 
 # Sourced (packages/aia_core/tests/test_layer_check_tool.py), the file defines
 # `forbid` and stops: the rule engine is tested on a scratch tree, apart from the
@@ -508,9 +513,22 @@ forbid "no deployment runs the workbench composition" \
 # gateway, in tests and in the acceptance harness's worker. No production composition imports
 # them, and no deployment names either module: a recording never answers a deployed request.
 forbid "among the executors, only the acceptance composition imports the recorded models" \
-  '^\s*(from|import)\s+\S*(recorded_models|acceptance_recorded)\b' \
+  "$RECORDED_MODELS_IMPORTED" \
   "$EXECUTORS" \
   "$EXECUTORS/acceptance_recorded.py"
+forbid "among the executors, only the acceptance composition names the recorded models" \
+  "$RECORDED_MODELS_NAMED" \
+  "$EXECUTORS" \
+  "$EXECUTORS/acceptance_recorded.py"
+forbid "no API code imports or names the recorded models" \
+  "$RECORDED_MODELS_IMPORTED|$RECORDED_MODELS_NAMED" \
+  "$API"
+forbid "the worker never imports or names the recorded models" \
+  "$RECORDED_MODELS_IMPORTED|$RECORDED_MODELS_NAMED" \
+  "$WORKER"
+forbid "the core never imports or names the recorded models" \
+  "$RECORDED_MODELS_IMPORTED|$RECORDED_MODELS_NAMED" \
+  "$CORE"
 forbid "no deployment runs the recorded models" \
   'recorded_models|acceptance_recorded' \
   deploy
