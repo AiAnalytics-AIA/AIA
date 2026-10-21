@@ -232,15 +232,18 @@ def compose_internal_report(
     sections: list[Section] = [Section("Úvod a rámec studie", tuple(introduction), id="intro")]
     if design is not None:
         sections.append(design.chapter)
-    refs = first.record.sources
+    upstream = first.record.sources
     audit = [
         ("Běh", run.run_id),
         ("Evidence", table_fingerprint),
         # Every artifact the draft stands on, by id and content (artifact-chain CHN6).
-        ("Revize návrhu", refs.design_revision_id),
-        ("Specifikace", f"{refs.specification.artifact_id} · SHA-256 {refs.specification.sha256}"),
-        ("Data", f"{refs.dataset.artifact_id} · SHA-256 {refs.dataset.sha256}"),
-        ("Agregace", f"{refs.aggregate.artifact_id} · SHA-256 {refs.aggregate.sha256}"),
+        ("Revize návrhu", upstream.design_revision_id),
+        (
+            "Specifikace",
+            f"{upstream.specification.artifact_id} · SHA-256 {upstream.specification.sha256}",
+        ),
+        ("Data", f"{upstream.dataset.artifact_id} · SHA-256 {upstream.dataset.sha256}"),
+        ("Agregace", f"{upstream.aggregate.artifact_id} · SHA-256 {upstream.aggregate.sha256}"),
     ]
     if map_source is not None:
         audit.append(("Sociomapa", f"{map_source[0]} · SHA-256 {map_source[1]}"))
