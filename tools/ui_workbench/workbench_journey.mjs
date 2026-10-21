@@ -86,7 +86,7 @@ try {
 
   // The Brief's Lead targets (artifact-brief BRF1): each field the contract names is one element
   // (an empty context field by its chip), and a name it does not hold finds nothing.
-  const BRIEF_FIELDS = ["goal", "title", "type", "files", "context", "briefing.product_description", "decision_use", "briefing.situation", "briefing.what_is_known", "briefing.constraints"];
+  const BRIEF_FIELDS = ["goal", "title", "objectives", "type", "files", "context", "briefing.product_description", "decision_use", "briefing.situation", "briefing.what_is_known", "briefing.constraints"];
   for (const f of BRIEF_FIELDS) assert.equal(await page.locator(`[id="brief-${f}"]`).count(), 1, `brief:${f}`);
   assert.equal(await page.locator('[id="brief-situation"]').count(), 0, "brief:situation is not a target");
   check("every Brief target the contract names is one element");

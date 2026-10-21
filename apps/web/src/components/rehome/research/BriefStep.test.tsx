@@ -191,6 +191,57 @@ describe("Zadání", () => {
     expect(document.querySelectorAll(focusSelector("brief:situation"))).toHaveLength(0);
   });
 
+  it("edits the objectives in place: one item's words change, Esc restores, add and remove with Vrátit (BRF2)", async () => {
+    const analysis = { problem_summary: "S", objectives: ["Změřit zájem", "Porovnat značky"], research_questions: [], hypotheses: [], tracked_sets: [] };
+    unitStub({ title: "Studie", goal: "Chceme zjistit, jak lidé vnímají značku.", research_plan: { objectives: ["Změřit zájem", "Porovnat značky"] } }, {}, analysis);
+    render(<ResearchScreen step="brief" frame={TEST_FRAME} />);
+    const section = within(await screen.findByRole("region", { name: "Cíle" }));
+    // Each objective is a Lead target, found once, read back by @.
+    const items = document.querySelectorAll("[data-aia^='objective:']");
+    expect(items).toHaveLength(2);
+    for (const el of items) expect(targetOfElement(el)?.id).toBe(el.getAttribute("data-aia"));
+
+    // Esc restores and sends nothing.
+    fireEvent.click(section.getByRole("button", { name: /^Upravit: Cíl 2/ }));
+    fireEvent.change(section.getByRole("textbox", { name: "Cíl 2" }), { target: { value: "Něco jiného" } });
+    fireEvent.keyDown(section.getByRole("textbox", { name: "Cíl 2" }), { key: "Escape" });
+    expect(section.getByText("Porovnat značky")).toBeTruthy();
+
+    // A reword changes that item only, in the plan and the analysis alike.
+    fireEvent.click(section.getByRole("button", { name: /^Upravit: Cíl 2/ }));
+    fireEvent.change(section.getByRole("textbox", { name: "Cíl 2" }), { target: { value: "Porovnat tři značky" } });
+    fireEvent.keyDown(section.getByRole("textbox", { name: "Cíl 2" }), { key: "Enter", ctrlKey: true });
+    await waitFor(() => expect(ws.saves.at(-1)?.reason).toBe("brief_objective"), { timeout: 10_000 });
+    const saved = ws.saves.at(-1)!;
+    expect((saved.content.research_plan as { objectives: string[] }).objectives).toEqual(["Změřit zájem", "Porovnat tři značky"]);
+    expect((saved.analysis as { objectives: string[] }).objectives).toEqual(["Změřit zájem", "Porovnat tři značky"]);
+    expect(saved.content.goal).toBe("Chceme zjistit, jak lidé vnímají značku.");
+
+    // Added in the list.
+    fireEvent.click(section.getByRole("button", { name: "Přidat cíl" }));
+    const row = section.getByRole("textbox", { name: "Přidat cíl" });
+    fireEvent.change(row, { target: { value: "Najít bariéry" } });
+    fireEvent.keyDown(row, { key: "Enter" });
+    expect(await section.findByText("Najít bariéry")).toBeTruthy();
+
+    // Removed at once, and put back in place by Vrátit.
+    fireEvent.click(section.getByRole("button", { name: "Odebrat cíl 1" }));
+    expect(section.queryByText("Změřit zájem")).toBeNull();
+    fireEvent.click(screen.getByRole("button", { name: "Vrátit" }));
+    expect(await section.findByText("Změřit zájem")).toBeTruthy();
+    // Back where it was: first again.
+    expect(document.querySelector("[data-aia^='objective:']")?.textContent).toContain("Změřit zájem");
+  });
+
+  it("says Zatím prázdné when no objectives are stated, never the goal in their place (BRF2)", async () => {
+    unitStub({ title: "Studie", goal: "Chceme zjistit, jak lidé vnímají značku." });
+    render(<ResearchScreen step="brief" frame={TEST_FRAME} />);
+    const section = within(await screen.findByRole("region", { name: "Cíle" }));
+    expect(section.getByText(/^Zatím prázdné/)).toBeTruthy();
+    expect(section.queryByText("Chceme zjistit, jak lidé vnímají značku.")).toBeNull();
+    expect(document.querySelectorAll("[data-aia^='objective:']")).toHaveLength(0);
+  });
+
   it("prints each material's class as the server answers it, and unknown when it names none (BRF3)", async () => {
     const B = { data_class: "CLASS_B_DERIVED_CLIENT", class_source: "rule:design" };
     unitStub(

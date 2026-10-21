@@ -18,6 +18,11 @@ import { workspace } from "@/lib/api";
 import { saveBlob } from "@/lib/download";
 import { type BriefMaterials, classLabel, classOf } from "@/lib/material-class";
 import { briefElementId, contextField, materialAia } from "@/lib/artifacts/brief";
+import { aiaId } from "@/lib/workbench-artifacts";
+import { OBJECTIVE_MAX, addObjective, objectivesEditable, objectivesOf, removeObjective, restoreObjective, setObjective } from "@/research/brief-objectives";
+import { InlineCreateRow } from "../../ui/InlineCreateRow";
+import { InlineText } from "../../ui/InlineText";
+import { UndoToast, useUndo } from "../../ui/UndoToast";
 import {
   type BriefingField,
   MAX_FILES_PER_PICK,
@@ -196,9 +201,11 @@ export function BriefStep() {
         </div>
       </StepSection>
 
+      <Objectives />
+
       <StepSection
         id="brief-type"
-        n={2}
+        n={3}
         title={t("research.brief.typesTitle")}
         hint={t("research.brief.typesHelp")}
         aside={selected.size ? <span className="font-mono text-xs text-ink-muted">{tv("research.brief.readyTypesN", { n: selected.size })}</span> : null}
@@ -241,6 +248,66 @@ export function BriefStep() {
         </div>
       ) : null}
     </div>
+  );
+}
+
+/**
+ * Cíle (artifact-brief BRF2): the study's objectives as items, each edited where it is shown, added
+ * in the list and removed with "Vrátit". The same list Návrh shows (brief-objectives.ts); each item
+ * is a Lead target, objective:<id>. None yet reads "Zatím prázdné", never the goal in their place.
+ */
+function Objectives() {
+  const { store, state } = useResearch();
+  const undo = useUndo();
+  const design = { project: state.project, analysis: state.analysis };
+  const items = objectivesOf(design);
+  const editable = objectivesEditable(design);
+  const remove = (index: number) => {
+    const { removed } = removeObjective(store.get(), index);
+    if (removed === null) return;
+    store.update((d) => removeObjective(d, index).design, { reason: "brief_objective_remove" });
+    undo.offer({
+      message: tv("research.brief.objectiveRemoved", { text: removed.length > 60 ? `${removed.slice(0, 57)}…` : removed }),
+      undo: () => store.update((d) => restoreObjective(d, index, removed), { reason: "brief_objective_restore" }),
+    });
+  };
+  return (
+    <StepSection id={briefElementId("objectives")} n={2} title={t("research.brief.objectivesTitle")} hint={t("research.brief.objectivesHint")}>
+      {items.length ? (
+        <ol className="flex flex-col gap-1.5">
+          {items.map((o, i) => (
+            <li key={o.id} data-aia={aiaId("objective", o.id)} className="flex items-start gap-2">
+              <span aria-hidden="true" className="mt-1.5 w-5 shrink-0 text-right font-mono text-xs text-ink-faint">{i + 1}.</span>
+              <InlineText
+                className="min-w-0 flex-1"
+                multiline
+                value={o.text}
+                label={tv("research.brief.objectiveLabel", { n: i + 1 })}
+                rules={{ maxLength: OBJECTIVE_MAX }}
+                onCommit={(text) => store.update((d) => setObjective(d, i, text), { reason: "brief_objective" })}
+              />
+              <Button small variant="quiet" aria-label={tv("research.brief.objectiveRemoveAria", { n: i + 1 })} onClick={() => remove(i)}>
+                ×
+              </Button>
+            </li>
+          ))}
+        </ol>
+      ) : (
+        <p className="text-sm text-ink-muted">
+          {editable ? t("research.brief.objectivesEmpty") : t("research.brief.objectivesUnreadable")}
+        </p>
+      )}
+      {editable ? (
+        <InlineCreateRow
+          className="mt-2"
+          label={t("research.brief.objectiveAdd")}
+          maxLength={OBJECTIVE_MAX}
+          existing={items.map((o) => o.text)}
+          onCreate={(text) => store.update((d) => addObjective(d, text), { reason: "brief_objective_add" })}
+        />
+      ) : null}
+      <UndoToast offer={undo.current} onDone={undo.clear} />
+    </StepSection>
   );
 }
 
@@ -317,7 +384,7 @@ function ContextFields({ p, edit }: { p: ResearchProject; edit: (field: TopField
   const open = CONTEXT.filter((c) => opened.has(c.field) || contextValue(p, c.field));
   const closed = CONTEXT.filter((c) => !open.includes(c));
   return (
-    <StepSection id="brief-context" n={4} optional title={t("research.brief.contextTitle")} hint={t("research.brief.contextHint")}>
+    <StepSection id="brief-context" n={5} optional title={t("research.brief.contextTitle")} hint={t("research.brief.contextHint")}>
       <div className="flex flex-col gap-3">
         {open.map((c) => (
           <div key={c.field} className="flex flex-col gap-1">
@@ -486,7 +553,7 @@ function Attachments({ uploads }: { uploads: Uploads }) {
   return (
     <StepSection
       id="brief-files"
-      n={3}
+      n={4}
       optional
       title={t("research.brief.filesTitle")}
       hint={t("research.brief.attachHelpAnywhere")}
