@@ -28,6 +28,14 @@ It does not:
 - **#558** chore/docs-followups-2026-10-21b @ 9c2463f (worktree /home/user/AIA-docs): the running Sprint 5
   docs PR. Follow-ups of #510, #532-#547, #551-#553; OI-154..181; runbook switch entries. Ready; full
   suites run (touches docs/architecture and deploy/).
+- **#558 merge:** Nigel told me to merge it (14:41); waiting on Backend CI @ b92c639, then merge commit
+  with expectedHeadSha. Coordinator stays off it.
+- **Next docs PR (after #558 merges):** Q60 (client-knowledge licence for bedrock-eu-primary), Q61 (no
+  folder/label names to a model), Q62 (dataset preview only), Q63 (#574's nine typed commands), Q64
+  (Claude reviews stand in for Codex until 17:42 Prague), Q65 (brief attachments Class B, no
+  classification gates: "full functionality"), Q66 open; PM: experimental Sociomapping draft named in
+  CHN1's manifest only (#579); register #564 lead-client-knowledge LK0-LK7 + ADR 0042 (Proposed) in the
+  ADR index; follow-ups of #537, #550, #554-#557, #560, #564, #574, #579 as they merge.
 - **Permission:** Nigel typed "you can commit" here (docs PR), and signed off Sprint 5 (Q49, 13:53,
   relayed): commit and push docs follow-ups within the sprint without asking per PR. Fold in #537,
   #550, #554-#557 and Sprint 5 PRs as they merge.
