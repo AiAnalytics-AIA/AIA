@@ -520,6 +520,69 @@ def test_an_automatic_accept_leaves_a_save_made_while_the_lead_worked_and_says_w
     assert clicked.json()["results"] == [{"index": 0, "status": "accepted", "reason": None}]
 
 
+def test_a_greeting_on_a_new_study_does_not_make_the_persons_first_save_stale(
+    researcher: TestClient, world: Any, app: FastAPI
+) -> None:
+    """The product owner's report of 2026-10-21: a brand-new study, the Lead's greeting on
+    opening it, two sentences typed into Zadání -- "Uloženo jinde". The greeting needs a Design
+    Revision, and a study with no working copy has its template saved as revision 1 for it
+    (``submit_as_working_copy``), behind the browser, which loaded the study EMPTY and saves
+    its first change from no revision. That copy is the template the browser started from
+    too: nobody's work is in it, so the first save is not stale. The turn names the revision
+    its context was frozen from, so its text edits can be accepted automatically."""
+    _hatched(researcher)
+    assert (
+        researcher.put(
+            "/api/v1/lead/preferences", json={"auto_accept_text_edits": True}
+        ).status_code
+        == 200
+    )
+    content_url = f"/api/v1/studies/{world.study_id()}/workspace/content"
+    assert researcher.get(content_url).json()["state"] == "EMPTY"
+    greeted = researcher.post(
+        f"{lead_url(world)}/turns", json={"kind": "greeting", "stage": "brief"}
+    )
+    assert greeted.status_code == 201, greeted.text
+    (turn,) = greeted.json()["turns"]
+    behind = researcher.get(content_url).json()
+    assert behind["revision"] == 1
+    assert turn["workspace_revision"] == 1
+
+    typed = {**CONTENT, "title": "Dvě věty v zadání."}
+    mine = researcher.put(content_url, json={"content": typed, "base_revision": None})
+    assert mine.status_code == 200, mine.text
+    assert mine.json()["revision"] == 2
+    assert researcher.get(content_url).json()["content"]["title"] == "Dvě věty v zadání."
+
+    # Once a person's work is in the copy, a save from no revision is stale again.
+    again = researcher.put(content_url, json={"content": CONTENT, "base_revision": None})
+    assert again.status_code == 409 and again.json()["code"] == "stale_revision"
+    assert again.json()["details"]["current_revision"] == 2
+
+
+def test_a_greeting_on_a_new_study_has_its_text_edits_accepted_automatically(
+    researcher: TestClient, world: Any, app: FastAPI
+) -> None:
+    """The browser still holds the EMPTY copy (no revision) when the greeting answers; the
+    turn was frozen from the template revision saved for it, so its wording is taken."""
+    _hatched(researcher)
+    researcher.put("/api/v1/lead/preferences", json={"auto_accept_text_edits": True})
+    greeted = researcher.post(
+        f"{lead_url(world)}/turns", json={"kind": "greeting", "stage": "brief"}
+    )
+    turn_id = str(greeted.json()["turns"][-1]["turn_id"])
+    _complete(app, world, TEXT_AND_STRUCTURE)
+    auto = researcher.post(
+        f"{lead_url(world)}/turns/{turn_id}/edits",
+        json={"decision": "accept", "indices": [0], "base_revision": None, "auto": True},
+    )
+    assert auto.status_code == 200, auto.text
+    assert auto.json() == {
+        "workspace_revision": 2,
+        "results": [{"index": 0, "status": "accepted", "reason": None}],
+    }
+
+
 def test_someone_elses_turn_is_not_found(
     researcher: TestClient, viewer: TestClient, world: Any, app: FastAPI
 ) -> None:
