@@ -585,6 +585,8 @@ jobs:
               "/api/v1/studies/{study_id}/research/readiness",
               # Readiness on a working revision, nothing submitted (working-copy-edit-ops WCE7a).
               "/api/v1/studies/{study_id}/research/readiness/working",
+              # Each stage against the working copy, nothing submitted (working-copy-edit-ops WCE7c).
+              "/api/v1/studies/{study_id}/research/impact",
               # Dimenze's persona-topic chip before any run (artifact-dimensions DIM2).
               "/api/v1/studies/{study_id}/research/persona-topics",
               "/api/v1/studies/{study_id}/research/runs",

@@ -19,6 +19,7 @@ from aia_core.domain.pipeline import (
     RESEARCH_STAGES,
     SIMULATION_STAGES,
     ProjectType,
+    StageImpact,
     StageStatus,
     changed_fields,
     fingerprint,
@@ -26,6 +27,7 @@ from aia_core.domain.pipeline import (
     resolve_stage,
     stage_fingerprint,
     stage_ids,
+    stage_impacts,
     stage_input_payload,
 )
 
@@ -366,3 +368,43 @@ def test_stage_status_classification() -> None:
     assert StageStatus.WAITING_CAPACITY.is_waiting
     assert StageStatus.WAITING_USER.is_waiting
     assert not StageStatus.RUNNING.is_waiting
+
+
+# --------------------------------------------------------------------------- #
+# stage_impacts (working-copy-edit-ops WCE7): AIA's, no legacy counterpart
+# --------------------------------------------------------------------------- #
+
+
+def _design(**over: Any) -> dict[str, Any]:
+    return {
+        "title": "Fiktivní studie",
+        "sections": [{"id": "s1", "questions": [{"id": "q1", "text": "Jak často?"}]}],
+        "n": 300,
+        "audience": {"description": "ČR 18+"},
+        **over,
+    }
+
+
+def test_stage_impacts_reads_every_stage_current_for_the_same_design() -> None:
+    impacts = stage_impacts(_design(), _design())
+    assert list(impacts) == stage_ids(ProjectType.RESEARCH)
+    assert set(impacts.values()) == {StageImpact.CURRENT}
+
+
+def test_a_questionnaire_edit_changes_its_stage_and_reopens_every_stage_after_it() -> None:
+    """AC-07 as the plan states it: edit the questionnaire after a run; the stages after it read
+    re-check, the stages before it stay current, and fieldwork (it reads the sections) changed."""
+    after = _design(sections=[{"id": "s1", "questions": [{"id": "q1", "text": "Jak rád?"}]}])
+    impacts = stage_impacts(_design(), after)
+    ids = stage_ids(ProjectType.RESEARCH)
+    at = ids.index("QUESTIONNAIRE")
+    assert all(impacts[s] is StageImpact.CURRENT for s in ids[:at])
+    assert impacts["QUESTIONNAIRE"] is StageImpact.CHANGED
+    assert impacts["FIELDWORK"] is StageImpact.CHANGED
+    assert all(impacts[s] is StageImpact.RECHECK for s in ids[at + 1 :] if s != "FIELDWORK")
+
+
+def test_a_presentation_only_edit_changes_its_stages_and_reopens_nothing_else() -> None:
+    impacts = stage_impacts(_design(), _design(report_style="formal"))
+    assert {s for s, i in impacts.items() if i is not StageImpact.CURRENT} == {"REPORT", "DELIVERY"}
+    assert StageImpact.RECHECK not in impacts.values()

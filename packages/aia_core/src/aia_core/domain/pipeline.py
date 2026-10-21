@@ -30,6 +30,7 @@ __all__ = [
     "STAGE_EQUIVALENTS",
     "ImpactPreview",
     "ProjectType",
+    "StageImpact",
     "StageStatus",
     "changed_fields",
     "fingerprint",
@@ -37,6 +38,7 @@ __all__ = [
     "resolve_stage",
     "stage_fingerprint",
     "stage_ids",
+    "stage_impacts",
     "stage_input_payload",
     "stage_labels",
     "stages_for",
@@ -511,3 +513,41 @@ def impact_preview(
         preserve=ids[:pos],
         presentation_only=presentation_only,
     )
+
+
+class StageImpact(StrEnum):
+    """What an edit means for one stage of a design that already ran (working-copy-edit-ops WCE7).
+
+    ``CHANGED``: the stage's own inputs differ. ``RECHECK``: its inputs are the same, but it lies in
+    the range an earlier change invalidates (:func:`impact_preview`), so what it produced must be
+    looked at again. ``CURRENT``: neither.
+    """
+
+    CURRENT = "CURRENT"
+    CHANGED = "CHANGED"
+    RECHECK = "RECHECK"
+
+
+def stage_impacts(
+    before: dict[str, Any], after: dict[str, Any], project_type: Any = ProjectType.RESEARCH
+) -> dict[str, StageImpact]:
+    """Every stage's :class:`StageImpact` going from design ``before`` to design ``after``, in
+    pipeline order.
+
+    The invalidated range is :func:`impact_preview`'s, from the fields that changed; a stage is
+    ``CHANGED`` when its own input fingerprint differs, whether or not the range reaches it (a
+    presentation-only field changes its stage and invalidates nothing). Identical designs are
+    ``CURRENT`` throughout."""
+    preview = impact_preview(project_type, changed_fields(before, after))
+    invalidated = set(preview.invalidate)
+    impacts: dict[str, StageImpact] = {}
+    for stage in stage_ids(project_type):
+        if stage_fingerprint(before, stage, project_type) != stage_fingerprint(
+            after, stage, project_type
+        ):
+            impacts[stage] = StageImpact.CHANGED
+        elif stage in invalidated:
+            impacts[stage] = StageImpact.RECHECK
+        else:
+            impacts[stage] = StageImpact.CURRENT
+    return impacts
