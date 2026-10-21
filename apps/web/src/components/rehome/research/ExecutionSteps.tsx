@@ -1454,7 +1454,8 @@ export function RunResults({ run, progressHref }: { run: ResearchRun | null; pro
         <Card>
           <p className="text-sm">{run && parkedForRuntime(run) ? t("research.exec.noResultsParked") : t("research.exec.noResults")}</p>
         </Card>
-        {report}
+        {/* With no run there is no run to say a report about (workbench audit, 2026-10-22). */}
+        {run ? report : null}
       </div>
     );
   }

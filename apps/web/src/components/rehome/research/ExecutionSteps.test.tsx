@@ -1547,6 +1547,8 @@ describe("Results", () => {
     fireEvent.click(screen.getByRole("button", { name: t("research.retry") }));
     expect(await screen.findByText(t("research.exec.noResults"))).toBeTruthy();
     expect(screen.queryByText("Výsledky se nepodařilo načíst.")).toBeNull();
+    // No run, so no word about "this run's" report (workbench audit, 2026-10-22).
+    expect(screen.queryByText(t("research.exec.results.reportNotInAia"))).toBeNull();
   });
 
   it("keeps the neutral analysis note while no module has stored an outcome, never 'unknown origin'", async () => {
