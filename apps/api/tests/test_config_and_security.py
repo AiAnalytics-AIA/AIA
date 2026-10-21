@@ -89,6 +89,25 @@ def test_staging_and_production_refuse_advisory_data_class_gates(env: Environmen
     ).validate_for_production()
 
 
+def test_an_unset_environment_refuses_advisory_data_class_gates(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """``env`` defaults to local, but advisory needs AIA_ENV to say so, as the worker does."""
+    monkeypatch.delenv("AIA_ENV", raising=False)
+    monkeypatch.setenv("AIA_DATA_CLASS_GATES", "advisory")
+    settings = Settings(_env_file=None)
+    assert settings.env is Environment.LOCAL and "env" not in settings.model_fields_set
+    with pytest.raises(
+        RuntimeError, match="AIA_DATA_CLASS_GATES=advisory is refused in an unknown environment"
+    ):
+        settings.validate_for_production()
+    monkeypatch.setenv("AIA_DATA_CLASS_GATES", "enforce")
+    Settings(_env_file=None).validate_for_production()
+    monkeypatch.setenv("AIA_ENV", "local")
+    monkeypatch.setenv("AIA_DATA_CLASS_GATES", "advisory")
+    Settings(_env_file=None).validate_for_production()
+
+
 @pytest.mark.parametrize("env", [Environment.DEVELOP, Environment.LOCAL, Environment.TEST])
 def test_develop_local_and_test_accept_advisory_data_class_gates(env: Environment) -> None:
     Settings(

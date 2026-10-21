@@ -351,6 +351,11 @@ class Settings(BaseSettings):
         Raised at startup rather than on first request, so a bad deploy fails its
         health check instead of serving traffic in an unsafe state.
         """
+        if self.data_class_gates.advisory and "env" not in self.model_fields_set:
+            # ``env`` defaults to local, but advisory needs an environment that says so: an
+            # unset AIA_ENV is unknown, as the worker and the executors read it, and refused.
+            problem = data_class_gates_problem(None, self.data_class_gates)
+            raise RuntimeError(f"invalid configuration: {problem}")
         if not self.is_production:
             return
 
