@@ -68,7 +68,7 @@ SOCIOMAP_REGISTER: Final[tuple[MethodApproval, ...]] = (
     ),
     MethodApproval(
         method_id="aia-sociomap-5",
-        spec_fingerprint="8b0b486443024475a64c06dd0124a24a0a39d3b6bf3937813715cd98032969e0",
+        spec_fingerprint="959a587749468ef9265cae579075e5327aedb64d6435b68572aa1fcc6d646ba8",
         status=MethodologyStatus.CLIENT_FACING,
         decided_by="metodik AIA",
         decided_on=date(2026, 10, 21),

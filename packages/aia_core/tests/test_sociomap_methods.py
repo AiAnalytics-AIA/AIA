@@ -105,7 +105,7 @@ def test_a_new_run_pins_aia_sociomap_5_alone_at_its_fingerprint() -> None:
     assert pin == SociomapMethod.of(AIA_SOCIOMAP_V5)
     assert pin.method_id == "aia-sociomap-5" and not pin.formulas
     assert pin.spec_fingerprint == AIA_SOCIOMAP_V5.fingerprint()
-    assert pin.spec_fingerprint.startswith("8b0b4864")
+    assert pin.spec_fingerprint.startswith("959a5877")
     assert read_methods([m.model_dump(mode="json") for m in default_methods()]) == (
         default_methods()
     )

@@ -304,7 +304,8 @@ place in the chapter, drawn from #517's renderer.
 ### Chunk 8 as built: the owner's decisions of 2026-10-21 (relayed by the coordinator)
 
 - **`-5` is registered client-facing.** `SOCIOMAP_REGISTER` holds `aia-sociomap-5` at its spec
-  fingerprint (`8b0b4864…`), decided by the methodology owner on 2026-10-21, beside the `-3` entry
+  fingerprint (`959a5877…`, with the relation detail's `clear_effect` in the spec; `8b0b4864…`
+  before it), decided by the methodology owner on 2026-10-21, beside the `-3` entry
   that old runs still read. A version that changes anything (`-5+e<n>`) stays internal.
 - **Metodika keeps `-2`, `-3` and `-4` offered**, with `-5` listed first and in force; an edit starts
   from the version in force, else from the preset in force.
