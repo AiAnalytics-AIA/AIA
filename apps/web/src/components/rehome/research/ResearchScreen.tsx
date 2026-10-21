@@ -269,6 +269,29 @@ function Ready({ store, template, origin, memory, step, frame, reload }: {
     },
     [nativeRun],
   );
+  const nativeContinue = agents.continueJob;
+  const continueJob = useCallback(
+    async (jobId: string) => {
+      try {
+        return await nativeContinue(jobId);
+      } catch (e) {
+        if (e instanceof JobError && e.kind === "busy") setToast(e.message);
+        throw e;
+      }
+    },
+    [nativeContinue],
+  );
+  // One lift per waiting job (Codex on #533): a stage that shows a job's wait in place claims it,
+  // and the screen's list of waiting jobs leaves that job out.
+  const [claimed, setClaimed] = useState<readonly string[]>([]);
+  const claimWait = useCallback((jobId: string) => {
+    setClaimed((c) => [...c, jobId]);
+    return () => setClaimed((c) => { const i = c.indexOf(jobId); return i < 0 ? c : [...c.slice(0, i), ...c.slice(i + 1)]; });
+  }, []);
+  // A wait lifted from the list goes on as the same job, its proposal opened like any other.
+  const continueListed = useCallback((job: ResearchAgentJob) => {
+    continueJob(job.run_id).catch((e: unknown) => { if (!(e instanceof JobError && e.kind === "busy")) setToast(message(e)); });
+  }, [continueJob]);
 
   const onCancel = (jobId: string) =>
     setAsk({
@@ -289,8 +312,8 @@ function Ready({ store, template, origin, memory, step, frame, reload }: {
     [],
   );
   const value = useMemo(
-    () => ({ store, template, runJob, job, toast: setToast, confirm, prompt, memory, stepHref, frame }),
-    [store, template, runJob, job, confirm, prompt, memory, stepHref, frame],
+    () => ({ store, template, runJob, continueJob, claimWait, job, toast: setToast, confirm, prompt, memory, stepHref, frame }),
+    [store, template, runJob, continueJob, claimWait, job, confirm, prompt, memory, stepHref, frame],
   );
   const Screen = STEP_SCREENS[step];
   const aiHelp = aiHelpFor(step);
@@ -316,7 +339,7 @@ function Ready({ store, template, origin, memory, step, frame, reload }: {
               {expanded ? panel : card}
               {onTrack ? <Blockers state={state} stepHref={stepHref} /> : null}
               {agents.notice ? <p role="status" className="text-sm text-ink-muted">{agents.notice}</p> : null}
-              <AgentBudgetWaits jobs={agents.recent} studyId={frame.studyId} canEdit={frame.canEdit} onChanged={agents.refresh} />
+              <AgentBudgetWaits jobs={agents.recent} studyId={frame.studyId} canEdit={frame.canEdit} onChanged={agents.refresh} exclude={claimed} onLifted={continueListed} />
               {savedProposals.length ? <section className="rounded-md border border-border p-3"><h2 className="mb-2 text-sm font-semibold">{t("research.aiSaved")}</h2>
                 <div className="flex flex-wrap gap-2">
                   {savedProposals.slice(0, 5).map((j) => <Button key={j.run_id} disabled={agents.busy} onClick={() => void agents.open(j)}>{ACTION_LABELS[j.action]} · {j.created_at ? new Date(j.created_at).toLocaleString("cs-CZ") : ""}</Button>)}
@@ -360,7 +383,7 @@ function Ready({ store, template, origin, memory, step, frame, reload }: {
             </div>
           )}</InspectorProvider>
         {agents.notice ? <p role="status" className="my-3 text-sm text-ink-muted">{agents.notice}</p> : null}
-        <AgentBudgetWaits jobs={agents.recent} studyId={frame.studyId} canEdit={frame.canEdit} onChanged={agents.refresh} />
+        <AgentBudgetWaits jobs={agents.recent} studyId={frame.studyId} canEdit={frame.canEdit} onChanged={agents.refresh} exclude={claimed} onLifted={continueListed} />
         {savedProposals.length ? <section className="my-4 rounded-md border border-border p-4"><h2 className="mb-2 font-semibold">{t("research.aiSaved")}</h2>
           <div className="flex flex-wrap gap-2">
             {savedProposals.slice(0, 5).map((j) => <Button key={j.run_id} disabled={agents.busy} onClick={() => void agents.open(j)}>{ACTION_LABELS[j.action]} · {j.created_at ? new Date(j.created_at).toLocaleString("cs-CZ") : ""}</Button>)}

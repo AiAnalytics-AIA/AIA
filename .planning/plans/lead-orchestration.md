@@ -1,7 +1,7 @@
 ---
-status: planned
+status: in-progress
 chunks:
-  - "[ ] LO0. The contract ADR and the money vocabulary: wallet cap, `budget_usd`, `spend_confirm_usd`, the client ceiling, `clients.budget_usd`, OI-64, one precedence"
+  - "[x] LO0. The contract ADR and the money vocabulary: wallet cap, `budget_usd`, `spend_confirm_usd`, the client ceiling, `clients.budget_usd`, OI-64, one precedence"
   - "[ ] LO1. The wallet (M4): `study_wallets`, `_raises`, `_charges` and `clients.wallet_ceiling_usd`; charges for paid work including Deep Research"
   - "[ ] LO2. A typed `start_run` with no `confirm_cost_usd`, and an import rule that a plan step cannot reach the confirming start"
   - "[ ] LO3. `lead_plans` and `lead_plan_steps` (M5), the plan authority capability issued by `ScopeResolver`, the `lead_plan` workflow type, behind `AIA_LEAD_PLANS_ENABLED`"
@@ -19,7 +19,7 @@ chunks:
   - "[ ] LO12b. A pre-flight read of the AI route (W1): the worker publishes a composition record the API, Settings and the Lead pane read (shared with `deep-research-web-search#52`), and the new refusal reasons"
   - "[ ] LO13. Client-level paid AI (source proposals, `clients.budget_usd`) recorded as an explicit exception to "every AI action goes through the Lead" in AC-02"
   - "[ ] LO14. The Lead's cost per turn measured, and an `AIA_LEAD_*` kill switch and budget line"
-  - "[ ] LO16. The approval ledger's subject types (lane migration M3, W0, the first migration): `approval_decisions.subject_type` extended with `wallet`, `lead_plan`, `plan_step`, `chat_start`, `data_contract`, `map_snapshot` and `sociomap_unlock`; S3 writes it"
+  - "[x] LO16. The approval ledger's subject types (lane migration M3, W0, the first migration): `approval_decisions.subject_type` extended with `wallet`, `lead_plan`, `plan_step`, `chat_start`, `data_contract`, `map_snapshot` and `sociomap_unlock`; S3 writes it"
   - "[ ] LO15. Server spend enforcement (W0): `ResearchAgentJobs.start` and `rebuild` apply `spend_confirm_usd` as `ResearchRuns.start` does, and record the confirmation in the ledger; tested through direct HTTP start and rebuild and through the Lead's approve path"
   - "[ ] LO5a. Deep Research from the Lead: a plan-step kind and a typed chat start, priced by deep-research-web-search 55's ceiling (D-12)"
   - "[ ] LO12c. The composition digest stored on each run and served over HTTP (D-09; the record #513 called MP6b)"
@@ -303,4 +303,52 @@ unless stated.
   rows an existing writer already records, e.g. `knowledge_revision` in the knowledge repository's
   revisions, `budget_lift` in `resume_budget_wait`'s ledger row) is decided in LO16's PR, by S3 and
   the owner; until then LO16's list is unchanged.
+
+## LO16 delivered (2026-10-21)
+
+Migration M3, `5054d4d610c2` (down revision `57eaa96a5538`), admits the seven subjects; the
+closed set is `domain/approval_ledger.py` `ApprovalSubject`, from which `tables.py` builds the
+CHECK; every writer names its subject through the enum; `WorkflowRepository.ledger` reads a
+study's rows under all three scope columns. Tests: `packages/aia_core/tests/test_approval_ledger.py`
+(round trip of every subject, isolation across study, client and a forged organization column,
+the upgrade and the refusing downgrade on PostgreSQL). Two `layer_check` rules: the ledger table
+is touched only by its two repositories, and a subject is never a string of its own. The design's
+proposed extra subjects (`qc_decision`, `study_note`, `report_edit`, `knowledge_revision`,
+`budget_lift`) are **not** admitted: LO16's list is unchanged until the owner and S3 decide, and
+admitting any of them later is a new migration on the same constraint, which M3 exists to avoid
+(`budget_lift` is already `budget`; `knowledge_revision` is the knowledge repository's revisions).
+
+## LO0 delivered (2026-10-21)
+
+The contract ADR is ADR 0028, accepted and merged with #512. The vocabulary is typed in
+`domain/money.py`: the five amounts (`MONEY`: column, Czech name, role, who sets it, what null
+means), `PRECEDENCE` (budget, then wallet, then threshold), and the rules LO1, LO3/LO4, LO5 and
+LO15 implement: `threshold_verdict` (today's rule; `ResearchRuns.start` now calls it),
+`wallet_remaining` and `wallet_verdict` (by ceiling, an unknown ceiling refused),
+`wallet_raise_verdict` (D-03: above the client ceiling refused, never above the budget) and
+`start_verdict` for the three paths (D-02: a plan step starts on the ceiling its card showed and
+parks when it grew; it never supplies a confirmation). OI-64 is written into the contract: a retry
+is judged by its own full ceiling, because until RQC0 it may pay its respondents again. The four
+names (D-01) are written once in the web copy module (`cs.money`); Settings' "Strop rozpočtu" is
+"Rozpočet studie", and the run's cost panel calls the threshold "Práh potvrzení" throughout. Both
+are held to `tests/fixtures/money/vocabulary.json` (`test_money.py`, `apps/web/src/i18n/money.test.ts`),
+and `test_nothing_calls_the_confirmation_threshold_a_hard_stop` reads the code and the governing
+documents. The wallet ceiling has no Czech label: the owner named none, so none is invented.
+
+## Findings (LO0, review of #534)
+
+- **F-LO0-1. The confirmation threshold's rule has three inline copies beside `money.threshold_verdict`.**
+  Anchor: `application/deep_research.py:648-651`, `application/research_lead.py:724-729`,
+  `application/validation.py:200-203 @ fd523a81`; `ResearchRuns.start` calls `threshold_verdict`
+  since #534. Reproduction: `grep -n "confirm_cost_usd <" packages/aia_core/src/aia_core/application/*.py`
+  lists the three. Consequence: none today (all four agree: `>=` asks, a confirmation covers at least
+  the ceiling); a change to the rule made in one place would leave the Deep Research start, the Lead's
+  approve path and a validation start on the old one. Smallest fix: each calls `threshold_verdict`,
+  with its own refusal for an unknown ceiling kept; LO15 (E03) touches two of them and is the natural
+  place. Test: each start's threshold tests, unchanged, plus one asserting it imports the domain rule.
+  Deliberately not adopted in #534 (the reviewer's call).
+
+### Doc follow-up (LO0)
+
+- `open-items.md`: number F-LO0-1, owner LO15.
 

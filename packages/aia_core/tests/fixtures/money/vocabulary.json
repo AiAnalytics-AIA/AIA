@@ -1,0 +1,12 @@
+{
+  "description": "The money vocabulary (ADR 0028 decision 1; lead-orchestration LO0; the product owner's names of 2026-10-20, D-01). Read by packages/aia_core/tests/test_money.py against domain/money.py and by apps/web/src/i18n/money.test.ts against the copy module's money block, so the server and the screens name each amount the same way. precedence is the order the amounts decide a study's paid work.",
+  "amounts": [
+    {"amount": "client_budget", "column": "clients.budget_usd", "czech": "Rozpočet klienta", "web_key": "clientBudget", "role": "cap"},
+    {"amount": "study_budget", "column": "studies.budget_usd", "czech": "Rozpočet studie", "web_key": "studyBudget", "role": "cap"},
+    {"amount": "wallet", "column": "study_wallets.cap_usd", "czech": "Peněženka", "web_key": "wallet", "role": "allowance"},
+    {"amount": "confirm_threshold", "column": "studies.spend_confirm_usd", "czech": "Práh potvrzení", "web_key": "confirmThreshold", "role": "threshold"},
+    {"amount": "wallet_ceiling", "column": "clients.wallet_ceiling_usd", "czech": null, "web_key": null, "role": "bound"}
+  ],
+  "precedence": ["study_budget", "wallet", "confirm_threshold"],
+  "retired_names": ["Strop rozpočtu"]
+}

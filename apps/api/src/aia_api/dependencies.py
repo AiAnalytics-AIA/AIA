@@ -242,6 +242,18 @@ def get_session(request: Request) -> Iterator[Session]:
         session.close()
 
 
+# ``scope="function"`` (FastAPI 0.121.0): the code after ``yield`` -- the commit -- runs when the
+# endpoint returns, before the response is sent. The default scope for a ``yield`` dependency
+# has been ``"request"`` since FastAPI 0.118.0: its exit runs *after* the response has gone, so
+# a client held a 201 for a row no other connection could see yet, and a commit that failed was
+# rolled back after the client had been told it succeeded
+# (tests/test_commit_before_response.py). Every user of the session takes it through this one
+# alias: the dependency cache is keyed by scope too, and a ``Depends(get_session)`` without it
+# would be a second session in the same request. Nothing may read the session after the
+# endpoint returns (a streamed body, a background task): it is closed by then.
+SessionDep = Annotated[Session, Depends(get_session, scope="function")]
+
+
 def get_artifact_store(request: Request) -> ArtifactStore:
     """Return the process-wide artifact store."""
     store: ArtifactStore | None = getattr(request.app.state, "artifact_store", None)
@@ -376,7 +388,7 @@ def bearer_credential(authorization: str | None) -> str | None:
 
 def get_principal(
     settings: Annotated[Settings, Depends(get_app_settings)],
-    session: Annotated[Session, Depends(get_session)],
+    session: SessionDep,
     provider: Annotated[IdentityProvider, Depends(get_identity_provider)],
     authorization: Annotated[str | None, Header()] = None,
     x_aia_subject: Annotated[str | None, Header(alias="X-AIA-Subject")] = None,
@@ -421,7 +433,7 @@ def _not_found_for(exc: ScopeDenied) -> HTTPException:
 
 
 def get_scope_resolver(
-    session: Annotated[Session, Depends(get_session)],
+    session: SessionDep,
 ) -> ScopeResolver:
     """Return a scope resolver bound to this request's session."""
     return ScopeResolver(session)
@@ -494,21 +506,20 @@ def require_permission(
 
 def get_project_repository(
     scope: Annotated[StudyContext, Depends(get_study_context)],
-    session: Annotated[Session, Depends(get_session)],
+    session: SessionDep,
 ) -> ProjectRepository:
     """Return a project repository bound to the authorised study scope."""
     return ProjectRepository(session, scope)
 
 
 def get_scope_repository(
-    session: Annotated[Session, Depends(get_session)],
+    session: SessionDep,
 ) -> ScopeRepository:
     """Return the scope repository."""
     return ScopeRepository(session)
 
 
 ArtifactStoreDep = Annotated[ArtifactStore, Depends(get_artifact_store)]
-SessionDep = Annotated[Session, Depends(get_session)]
 PrincipalDep = Annotated[AuthenticatedPrincipal, Depends(get_principal)]
 OrganizationDep = Annotated[OrganizationContext, Depends(get_organization_context)]
 StudyScopeDep = Annotated[StudyContext, Depends(get_study_context)]

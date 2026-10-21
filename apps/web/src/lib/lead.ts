@@ -1,12 +1,12 @@
 // The Research Lead as the web reads it (ADR 0026): its turns, its closed output, and the pure
-// part of its edit tools. An edit is applied only when the person accepts its change block, to
-// the working copy, through the same helpers the stages use (editBrief, applyNarrative, the
-// questionnaire's own edits), and saved as that person's edit (reason "lead_edit_accepted").
+// part of its edit tools. An edit is applied only when the person accepts its change block; the
+// server applies it to the working copy (domain/edit_ops.py apply_edit) and applyLeadEdit keeps
+// the screen's copy the same, held to the server by one case file (ADR 0029 decision 1, WCE0).
 // Nothing here calls a model or the API.
 
-import { editBrief, type BriefingField, type TopField } from "@/research/brief";
-import type { ResearchProject } from "@/research/model";
-import { applyNarrative, proposalAnalysis, type Narrative } from "@/research/plan-edit";
+import type { BriefingField, TopField } from "@/research/brief";
+import type { Json, ResearchProject } from "@/research/model";
+import { proposalAnalysis, type Narrative } from "@/research/plan-edit";
 import { qId, sections, type Question, type Section } from "@/research/questionnaire";
 import type { Analysis } from "@/research/store";
 import type { WorkbenchStage } from "./workbench-stages";
@@ -154,17 +154,22 @@ function narrativeOf(c: Content): Narrative {
   };
 }
 
+const withSections = (p: ResearchProject, xs: Section[]): ResearchProject => ({ ...p, sections: xs as ResearchProject["sections"] });
+const clone = <T,>(x: T): T => JSON.parse(JSON.stringify(x)) as T;
+
 function findQuestion(p: ResearchProject, id: string): { si: number; qi: number } | null {
+  // Only a questions section's questions, as the server's vocabulary finds them.
   const xs = sections(p);
   for (let si = 0; si < xs.length; si++) {
+    if (xs[si]!.type !== "questions") continue;
     const qi = (xs[si]!.questions || []).findIndex((q) => q.id === id);
     if (qi >= 0) return { si, qi };
   }
   return null;
 }
 
-const withSections = (p: ResearchProject, xs: Section[]): ResearchProject => ({ ...p, sections: xs as ResearchProject["sections"] });
-const clone = <T,>(x: T): T => JSON.parse(JSON.stringify(x)) as T;
+type Doc = { [k: string]: Json };
+const isDoc = (x: unknown): x is Doc => !!x && typeof x === "object" && !Array.isArray(x);
 
 function questionFor(text: string, qtype: QType, options: string[], id: string): Question {
   if (qtype === "skala") return { id, text, typ: "skala", skala: [1, 10], popisky_skaly: options.length === 2 ? options : ["vůbec", "zcela"], povolit_nevim: false };
@@ -173,61 +178,143 @@ function questionFor(text: string, qtype: QType, options: string[], id: string):
 }
 
 /**
+ * The words the server's vocabulary refuses an edit with (domain/edit_ops.py `REFUSALS`), each with
+ * what the person is told. The shared case file holds the two sides to the same word.
+ */
+export type EditRefusal =
+  | "already_present"
+  | "unknown_item"
+  | "unknown_section"
+  | "unknown_question"
+  | "options_on_non_selection"
+  | "too_few_options"
+  | "options_on_open_question"
+  | "scale_labels_not_two"
+  | "unknown_question_type"
+  | "plan_not_an_object"
+  | "briefing_not_an_object"
+  | "sections_not_a_list";
+const REFUSED: Record<EditRefusal, string> = {
+  already_present: "Položka už v seznamu je.",
+  unknown_item: "Položka, kterou návrh mění, už v seznamu není.",
+  unknown_section: "Oddíl, do kterého návrh přidává, už v dotazníku není.",
+  unknown_question: "Otázka, kterou návrh mění, už v dotazníku není.",
+  options_on_non_selection: "Možnosti lze nahradit jen u výběrové otázky.",
+  too_few_options: "Výběrová otázka potřebuje aspoň dvě možnosti.",
+  options_on_open_question: "Otevřená otázka nemá možnosti.",
+  scale_labels_not_two: "Škála má popisky obou krajů, nebo žádné.",
+  unknown_question_type: "Takový typ otázky AIA nezná.",
+  plan_not_an_object: "Plán výzkumu v pracovní kopii nelze přečíst.",
+  briefing_not_an_object: "Zadání v pracovní kopii nelze přečíst.",
+  sections_not_a_list: "Dotazník v pracovní kopii nelze přečíst.",
+};
+const refuse = (reason: EditRefusal) => ({ refused: REFUSED[reason], reason });
+
+/** Why a new question of `qtype` cannot carry `options` (the server's `question_add_problem`). */
+export function questionAddProblem(qtype: string, options: readonly string[]): EditRefusal | null {
+  if (qtype === "vyber" || qtype === "multi") return options.length < 2 ? "too_few_options" : null;
+  if (qtype === "otevrena") return options.length ? "options_on_open_question" : null;
+  if (qtype === "skala") return options.length === 0 || options.length === 2 ? null : "scale_labels_not_two";
+  return "unknown_question_type";
+}
+
+/** The plan narrative's two homes, as the server writes them: the plan, and the analysis, which
+ * starts from the plan when there is none. */
+function narrativeHomes(c: Content): { plan: Doc; started: Doc } | EditRefusal {
+  const raw = (c.project as unknown as Doc).research_plan ?? {};
+  if (!isDoc(raw)) return "plan_not_an_object";
+  const plan = { ...raw };
+  return { plan, started: isDoc(c.analysis) ? { ...(c.analysis as unknown as Doc) } : { ...plan } };
+}
+
+/** One narrative key written to both homes, and the plan marked changed by hand; nothing else of
+ * the analysis is copied over the plan. */
+function writeNarrative(c: Content, plan: Doc, started: Doc, key: string, value: Json): Content {
+  plan[key] = value;
+  started[key] = value;
+  const ui = (c.project as unknown as Doc).ui_state;
+  const project = { ...c.project, research_plan: plan, ui_state: { ...(isDoc(ui) ? ui : {}), plan_manual_changed: true } } as ResearchProject;
+  return { project, analysis: started as unknown as Analysis };
+}
+
+/**
  * The working content with one edit applied, or the reason it no longer applies: the item it
  * names is gone or changed since the Lead read it. Never a guess: an edit that does not fit is
- * refused, not bent to fit.
+ * refused, not bent to fit. It is the server's `apply_edit` (domain/edit_ops.py), word for word:
+ * the server applies the accepted edit and this keeps the screen's copy the same, so the shared
+ * case file (packages/aia_core/tests/fixtures/edit_ops/cases.json) holds the two together.
  */
-export function applyLeadEdit(c: Content, e: LeadEdit, newId: () => string = () => qId()): { content: Content } | { refused: string } {
+export function applyLeadEdit(c: Content, e: LeadEdit, newId: () => string = () => qId()): { content: Content } | { refused: string; reason: EditRefusal } {
   switch (e.op) {
     case "set_text": {
       if (e.field === "plan.problem_summary") {
-        const s = applyNarrative(c, { ...narrativeOf(c), problem_summary: e.value });
-        return { content: { project: s.project, analysis: s.analysis } };
+        const homes = narrativeHomes(c);
+        if (typeof homes === "string") return refuse(homes);
+        return { content: writeNarrative(c, homes.plan, homes.started, "problem_summary", e.value) };
       }
-      const field = (e.field.startsWith("briefing.") ? e.field.slice("briefing.".length) : e.field) as TopField | BriefingField;
-      const r = editBrief(c.project, c.analysis, field, e.value);
-      return { content: { project: r.project, analysis: r.analysis } };
+      if (e.field.startsWith("briefing.")) {
+        const raw = (c.project as unknown as Doc).briefing;
+        if (raw !== undefined && raw !== null && !isDoc(raw)) return refuse("briefing_not_an_object");
+        const briefing = { ...(raw ?? {}), [e.field.slice("briefing.".length)]: e.value };
+        // A brief edit drops the analysis that was made of the brief as it was.
+        return { content: { project: { ...c.project, briefing } as ResearchProject, analysis: null } };
+      }
+      const project = { ...c.project, [e.field]: e.value } as ResearchProject;
+      return { content: { project, analysis: e.field === "title" ? c.analysis : null } };
     }
     case "list_add":
     case "list_replace":
     case "list_remove": {
-      const n = narrativeOf(c);
+      const homes = narrativeHomes(c);
+      if (typeof homes === "string") return refuse(homes);
       const key = LIST_KEY[e.list];
-      const items = [...n[key]];
+      const current = Array.isArray(homes.started[key]) ? homes.started[key] : homes.plan[key];
+      const items = Array.isArray(current) ? current.map(String) : [];
       if (e.op === "list_add") {
-        if (items.some((x) => norm(x) === norm(e.value))) return { refused: "Položka už v seznamu je." };
-        items.push(e.value.trim());
+        if (items.some((x) => norm(x) === norm(e.value))) return refuse("already_present");
+        items.push(e.value);
       } else {
         const i = items.findIndex((x) => norm(x) === norm(e.old));
-        if (i < 0) return { refused: "Položka, kterou návrh mění, už v seznamu není." };
-        if (e.op === "list_replace") items[i] = e.value.trim();
+        if (i < 0) return refuse("unknown_item");
+        if (e.op === "list_replace") items[i] = e.value;
         else items.splice(i, 1);
       }
-      const s = applyNarrative(c, { ...n, [key]: items });
-      return { content: { project: s.project, analysis: s.analysis } };
+      return { content: writeNarrative(c, homes.plan, homes.started, key, items) };
     }
     case "question_add": {
-      const xs = clone(sections(c.project));
-      let sec = e.section_id ? xs.find((s) => s.id === e.section_id && s.type === "questions") : xs.find((s) => s.type === "questions");
-      if (e.section_id && !sec) return { refused: "Oddíl, do kterého návrh přidává, už v dotazníku není." };
+      const problem = questionAddProblem(e.qtype, e.options);
+      if (problem) return refuse(problem); // never a question other than the one accepted
+      const raw = (c.project as unknown as Doc).sections;
+      if (raw !== undefined && raw !== null && !Array.isArray(raw)) return refuse("sections_not_a_list");
+      const xs = clone((raw ?? []) as Section[]);
+      let sec = e.section_id
+        ? xs.find((s) => isDoc(s) && s.id === e.section_id && s.type === "questions")
+        : xs.find((s) => isDoc(s) && s.type === "questions");
+      if (e.section_id && !sec) return refuse("unknown_section");
       if (!sec) {
         sec = { id: `sec_${newId().slice(2)}`, type: "questions", title: "Hlavní otázky", purpose: "", questions: [] };
         xs.push(sec);
       }
-      sec.questions = [...(sec.questions || []), questionFor(e.text.trim(), e.qtype, e.options, newId())];
+      sec.questions = [...(sec.questions || []), questionFor(e.text, e.qtype, e.options, newId())];
       return { content: { project: withSections(c.project, xs), analysis: c.analysis } };
     }
     case "question_edit":
     case "question_remove": {
       const at = findQuestion(c.project, e.question_id);
-      if (!at) return { refused: "Otázka, kterou návrh mění, už v dotazníku není." };
+      if (!at) return refuse("unknown_question");
       const xs = clone(sections(c.project));
       const qs = xs[at.si]!.questions || [];
       if (e.op === "question_remove") qs.splice(at.qi, 1);
       else {
         const q = qs[at.qi]!;
-        if (e.text !== null) q.text = e.text;
-        if (e.options !== null && (q.typ === "vyber" || q.typ === "multi")) q.kategorie = e.options;
+        if (e.options !== null && e.options !== undefined) {
+          // Options replace a selection question's categories, and only with a real choice; on
+          // any other question they would change nothing yet be accepted.
+          if (q.typ !== "vyber" && q.typ !== "multi") return refuse("options_on_non_selection");
+          if (e.options.length < 2) return refuse("too_few_options");
+          q.kategorie = e.options;
+        }
+        if (e.text !== null && e.text !== undefined) q.text = e.text;
       }
       xs[at.si]!.questions = qs;
       return { content: { project: withSections(c.project, xs), analysis: c.analysis } };
@@ -255,18 +342,16 @@ const LIST_LABEL: Record<PlanList, string> = {
 
 /**
  * A Lead edit's refusal, as the server names it (grounding's drop or the accept's refusal,
- * domain/research_lead.py), in Czech. The sample-size reasons are RQC9's: the readiness limits in
- * force decide a valid n, at the turn and again at the accept. A code with no words is kept as is.
+ * domain/edit_ops.py `REFUSALS`), in Czech: the words `applyLeadEdit` refuses with, and the server's
+ * own beside them -- the sample-size reasons are RQC9's (the readiness limits in force decide a valid
+ * n, at the turn and again at the accept). A code with no words is kept as is, never guessed.
  */
 export const EDIT_REFUSAL_WORDS: Readonly<Record<string, string>> = {
+  ...REFUSED,
   sample_size_out_of_range: "Velikost vzorku je mimo platný rozsah metodiky v platnosti; úprava nebyla přijata.",
   sample_size_limits_unknown: "Platný rozsah vzorku se nepodařilo zjistit, proto úprava velikosti vzorku nebyla přijata.",
-  unknown_question: "Otázka, kterou úprava mění, už v dotazníku není.",
-  unknown_section: "Oddíl, do kterého úprava přidává, už v dotazníku není.",
-  unknown_item: "Položka, kterou úprava mění, už v seznamu není.",
-  already_present: "Položka už v seznamu je.",
-  options_on_non_selection: "Možnosti lze měnit jen u výběrové otázky.",
-  too_few_options: "Výběrová otázka potřebuje aspoň dvě možnosti.",
+  op_not_available: "Takovou úpravu AIA zatím neumí použít.",
+  sociomap_input_locked: "Vstupy Sociomapy jsou zamčené; úprava je nezmění.",
   not_a_text_edit: "Tuto úpravu nelze přijmout automaticky; čeká na vaše rozhodnutí.",
   unknown_edit: "Úpravu už nelze použít.",
 };

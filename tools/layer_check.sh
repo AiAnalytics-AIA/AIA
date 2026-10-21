@@ -461,6 +461,38 @@ forbid "the researcher Lead tables are touched only by their repository" \
 forbid "the API, worker and executors never touch the researcher Lead tables" \
   'ResearcherLead(Memory|Revision)?Row|researcher_lead_(memories|revisions)|researcher_leads\b' \
   apps
+# The approval ledger is append-only and holds every decision between a person and the AI (ADR
+# 0019): its two repositories write it under the scope's three columns and the permission each
+# decision needs. A row written anywhere else is a decision nobody was checked for.
+forbid "the approval ledger is touched only by its repositories" \
+  'ApprovalDecisionRow|approval_decisions' \
+  "$CORE" \
+  "$CORE/infrastructure/tables.py" "$CORE/infrastructure/workflow_repository.py" \
+  "$CORE/infrastructure/artifact_repository.py"
+forbid "the API never touches the approval ledger" \
+  'ApprovalDecisionRow|approval_decisions' \
+  apps/api/src
+forbid "the worker never touches the approval ledger" \
+  'ApprovalDecisionRow|approval_decisions' \
+  apps/worker/src
+forbid "executors never touch the approval ledger" \
+  'ApprovalDecisionRow|approval_decisions' \
+  apps/executors/src
+# Its subjects are one closed set, domain/approval_ledger.py's ApprovalSubject (lead-orchestration
+# LO16): a writer or a reader naming a subject as a string of its own drifts from the CHECK the
+# table holds (ARCHITECTURE.md A6).
+forbid "approval-ledger subjects are named only through ApprovalSubject" \
+  "subject_type[[:space:]]*(=|==|!=)[[:space:]]*[\"']|subject_type\\.in_\\([([]?[[:space:]]*[\"']" \
+  "$CORE"
+forbid "the apps never name an approval-ledger subject as a string (API)" \
+  "subject_type[[:space:]]*(=|==|!=)[[:space:]]*[\"']|subject_type\\.in_\\([([]?[[:space:]]*[\"']" \
+  apps/api/src
+forbid "the apps never name an approval-ledger subject as a string (worker)" \
+  "subject_type[[:space:]]*(=|==|!=)[[:space:]]*[\"']|subject_type\\.in_\\([([]?[[:space:]]*[\"']" \
+  apps/worker/src
+forbid "the apps never name an approval-ledger subject as a string (executors)" \
+  "subject_type[[:space:]]*(=|==|!=)[[:space:]]*[\"']|subject_type\\.in_\\([([]?[[:space:]]*[\"']" \
+  apps/executors/src
 # A Study's design project is owned (projects.owner): a repository that does not
 # name the owner cannot see it. Naming it anywhere else would reopen the path by
 # which content that skipped validate_design became a Design Revision (ADR 0016).

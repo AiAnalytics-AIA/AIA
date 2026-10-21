@@ -98,7 +98,7 @@ describe("Zadání", () => {
     fireEvent.click(tile);
     // The tile can be on screen before the store's subscription effect has run;
     // a click then renders when it subscribes, not synchronously (AGENTS.md § Next.js / TypeScript).
-    await screen.findByRole("button", { name: /Nový produkt \/ koncept/, pressed: true }, { timeout: 5_000 });
+    await screen.findByRole("button", { name: /Nový produkt \/ koncept/, pressed: true });
     const goal = screen.getByLabelText("Cíl výzkumu") as HTMLTextAreaElement;
     expect(goal.value).toBe(PROBLEM_TYPES[1][3]);
     expect((screen.getByRole("button", { name: NEXT }) as HTMLButtonElement).disabled).toBe(false);
@@ -144,7 +144,7 @@ describe("Zadání", () => {
     expect(posted(ATTACH_PATH).map((c) => c.body)).toEqual([{ filename: "zadani.txt", data_b64: btoa("ahoj") }]);
     // Nothing reaches 18.6.6.
     expect(calls.filter((c) => c.url.startsWith("/api/project"))).toEqual([]);
-    await waitFor(() => expect(ws.saves.at(-1)?.reason).toBe("brief_attachments"), { timeout: 4000 });
+    await waitFor(() => expect(ws.saves.at(-1)?.reason).toBe("brief_attachments"));
     expect((ws.saves.at(-1)?.content.briefing as { attachments: unknown[] }).attachments).toEqual([record({ filename: "zadani.txt" })]);
   });
 
@@ -191,13 +191,70 @@ describe("Zadání", () => {
     render(<ResearchScreen step="brief" frame={TEST_FRAME} />);
     fireEvent.click(await screen.findByRole("button", { name: NEXT }));
     await approveProposal();
-    await waitFor(() => expect(push).toHaveBeenCalledWith(stagePath("plan")), { timeout: 4000 });
+    await waitFor(() => expect(push).toHaveBeenCalledWith(stagePath("plan")));
     expect(posted(AGENTS_PATH)[0].body).toMatchObject({ action: "analyze_brief", design_revision_id: "REV-A" });
     expect(posted("/api/research/analyze")).toEqual([]);
     expect(posted("/api/providers/claude-code/status")).toEqual([]);
     expect(posted(DESIGN_PATH)[0].body).toMatchObject({ content: { briefing: { goal: "Zjistit zájem o nový nápoj" } } });
     // The merged project is saved with the classic reason once the debounce runs.
     expect((screen.getByLabelText("Cíl výzkumu") as HTMLTextAreaElement).value).toBe("Zjistit zájem o nový nápoj");
+  });
+
+  it("goes on to the plan once an analysis that waited for budget is lifted and accepted, asking nothing again (CR-2, Codex on #533)", async () => {
+    let lifted = false;
+    const waiting = { run_id: "RUN-A", design_revision_id: "REV-A", action: "analyze_brief", status: "AWAITING_BUDGET", is_terminal: false, needs_attention: true,
+      steps: [{ step_id: "STEP-A", node_key: "agent", status: "AWAITING_BUDGET", waiting_reason: "budget_exceeded", error_message: null }],
+      created_at: null, context_sha256: "sha", harness_version: "v1", actual_cost_usd: null };
+    unitStub({ goal: "Zjistit zájem o nový nápoj" }, {
+      "native/job": () => (lifted ? undefined : waiting),
+      [`${AGENTS_PATH}/RUN-A/budget`]: () => { lifted = true; return { ...waiting, status: "RUNNING", steps: [{ ...waiting.steps[0], status: "RUNNABLE" }] }; },
+      "/api/v1/studies/STU-1": () => ({ study_id: "STU-1", name: "Alfa", budget_usd: 5, spent_usd: 5, remaining_usd: 0 }),
+    });
+    render(<ResearchScreen step="brief" frame={TEST_FRAME} />);
+    fireEvent.click(await screen.findByRole("button", { name: NEXT }, NATIVE_JOB_WAIT));
+    const form = await screen.findByRole("form", { name: "Zvýšit rozpočet studie" }, NATIVE_JOB_WAIT);
+    expect(screen.queryByRole("button", { name: "Zkusit znovu" })).toBeNull();
+    await within(form).findByText(/5\.00/);
+    fireEvent.change(within(form).getByLabelText("Nový rozpočet studie (USD)"), { target: { value: "7" } });
+    fireEvent.click(within(form).getByRole("button", { name: "Zvýšit rozpočet a pokračovat" }));
+    await approveProposal();
+    await waitFor(() => expect(push).toHaveBeenCalledWith(stagePath("plan")), NATIVE_JOB_WAIT);
+    // One analysis, continued: never a second job for the one that waited.
+    expect(posted(AGENTS_PATH)).toHaveLength(1);
+    expect(posted(`${AGENTS_PATH}/RUN-A/budget`).map((c) => c.body)).toEqual([{ budget_usd: 7, note: "" }]);
+    expect(push).toHaveBeenCalledTimes(1);
+  });
+
+  it("offers to follow the lifted analysis again when following it breaks off, never a retry that starts a new one (review P3-2)", async () => {
+    let lifted = false;
+    let broken = 1; // the first read after the lift fails
+    const waiting = { run_id: "RUN-A", design_revision_id: "REV-A", action: "analyze_brief", status: "AWAITING_BUDGET", is_terminal: false, needs_attention: true,
+      steps: [{ step_id: "STEP-A", node_key: "agent", status: "AWAITING_BUDGET", waiting_reason: "budget_exceeded", error_message: null }],
+      created_at: null, context_sha256: "sha", harness_version: "v1", actual_cost_usd: null };
+    unitStub({ goal: "Zjistit zájem o nový nápoj" }, {
+      "native/job": () => {
+        if (!lifted) return waiting;
+        if (broken-- > 0) return new Response(JSON.stringify({ code: "unavailable", message: "Spojení se přerušilo." }), { status: 503 });
+        return undefined; // completed
+      },
+      [`${AGENTS_PATH}/RUN-A/budget`]: () => { lifted = true; return { ...waiting, status: "RUNNING", steps: [{ ...waiting.steps[0], status: "RUNNABLE" }] }; },
+      "/api/v1/studies/STU-1": () => ({ study_id: "STU-1", name: "Alfa", budget_usd: 5, spent_usd: 5, remaining_usd: 0 }),
+    });
+    render(<ResearchScreen step="brief" frame={TEST_FRAME} />);
+    fireEvent.click(await screen.findByRole("button", { name: NEXT }, NATIVE_JOB_WAIT));
+    const form = await screen.findByRole("form", { name: "Zvýšit rozpočet studie" }, NATIVE_JOB_WAIT);
+    await within(form).findByText(/5\.00/);
+    fireEvent.change(within(form).getByLabelText("Nový rozpočet studie (USD)"), { target: { value: "7" } });
+    fireEvent.click(within(form).getByRole("button", { name: "Zvýšit rozpočet a pokračovat" }));
+    const again = await screen.findByRole("button", { name: "Sledovat znovu" }, NATIVE_JOB_WAIT);
+    expect(screen.getByText("Spojení se přerušilo.")).toBeTruthy();
+    expect(screen.queryByRole("button", { name: "Zkusit znovu" })).toBeNull();
+    fireEvent.click(again);
+    await approveProposal();
+    await waitFor(() => expect(push).toHaveBeenCalledWith(stagePath("plan")), NATIVE_JOB_WAIT);
+    // The same analysis, followed twice: one job, one lift, nothing started anew.
+    expect(posted(AGENTS_PATH)).toHaveLength(1);
+    expect(posted(`${AGENTS_PATH}/RUN-A/budget`)).toHaveLength(1);
   });
 
   it("requests a frozen native context even when legacy brief signatures match", async () => {
@@ -226,7 +283,7 @@ describe("Zadání", () => {
     unitStub({ goal: "Cíl" }, { "native/job": () => ({ status: "RECOVERY_REQUIRED", is_terminal: false, needs_attention: true, steps: [{ error_message: "MODEL_TIMEOUT: nic se nevrátilo" }], run_id: "RUN-A" }) });
     render(<ResearchScreen step="brief" frame={TEST_FRAME} />);
     fireEvent.click(await screen.findByRole("button", { name: NEXT }));
-    expect(await screen.findByText("AI analýza se nedokončila", {}, { timeout: 4000 })).toBeTruthy();
+    expect(await screen.findByText("AI analýza se nedokončila")).toBeTruthy();
     expect(screen.getByText("Zadání zůstalo uložené.")).toBeTruthy();
     expect(screen.getByText("MODEL_TIMEOUT: nic se nevrátilo")).toBeTruthy();
     expect(screen.queryByRole("button", { name: "Diagnostika" })).toBeNull();
@@ -269,7 +326,7 @@ describe("Zadání", () => {
     fireEvent.click(screen.getByRole("button", { name: "Odebrat pole Situace / trh" }));
     await waitFor(() => expect(screen.queryByLabelText("Situace / trh")).toBeNull());
     expect(screen.getByRole("button", { name: "Situace / trh" })).toBeTruthy();
-    await waitFor(() => expect((ws.saves.at(-1)?.content.briefing as { situation?: string })?.situation ?? "").toBe(""), { timeout: 4000 });
+    await waitFor(() => expect((ws.saves.at(-1)?.content.briefing as { situation?: string })?.situation ?? "").toBe(""));
   });
 
   it("takes files dropped anywhere on the stage the way it takes picked ones", async () => {

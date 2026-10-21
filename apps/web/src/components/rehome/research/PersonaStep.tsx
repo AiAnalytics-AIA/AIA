@@ -209,7 +209,7 @@ export function PersonaStep() {
       </InspectorSlot>
 
       <div className="flex min-w-0 flex-col gap-4">
-        {step.failure ? <AiFailureCard failure={step.failure} title={t("research.persona.failedTitle")} onRetry={() => step.setFailure(null)} /> : null}
+        {step.failure ? <AiFailureCard failure={step.failure} title={t("research.persona.failedTitle")} onRetry={() => step.setFailure(null)} onContinue={(id) => void step.resume(id, (r) => setSuggestion(r as Suggestion))} /> : null}
 
         <StepSection
           n={1}

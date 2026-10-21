@@ -1,5 +1,7 @@
 // The Lead's edit tools, applied only when a person accepts them (ADR 0026, Accepted with 2): each
 // edit goes through the stages' own helpers, and one that no longer fits is refused, never bent.
+import { readFileSync } from "node:fs";
+import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 
 import {
@@ -18,7 +20,7 @@ const project = (over: Partial<ResearchProject> = {}): ResearchProject => ({
   ...over,
 });
 const content = (p = project()) => ({ project: p, analysis: null });
-const ok = (r: ReturnType<typeof applyLeadEdit>) => {
+const ok = (r: ReturnType<typeof applyLeadEdit> | ReturnType<typeof revertTextEdit>) => {
   if ("refused" in r) throw new Error(r.refused);
   return r.content;
 };
@@ -186,9 +188,13 @@ describe("a refused or dropped edit says why in words (RQC9)", () => {
   it("names a sample size outside the valid range and unknown limits, never the code", () => {
     expect(editRefusalWords("sample_size_out_of_range")).toContain("mimo platný rozsah");
     expect(editRefusalWords("sample_size_limits_unknown")).toContain("nepodařilo zjistit");
-    expect(editRefusalWords("unknown_question")).toBe("Otázka, kterou úprava mění, už v dotazníku není.");
+    expect(editRefusalWords("unknown_question")).toBe("Otázka, kterou návrh mění, už v dotazníku není.");
     expect(editRefusalWords(null)).toBe("Úpravu už nelze použít.");
     expect(editRefusalWords("something_new")).toBe("something_new"); // kept, never guessed
+  });
+  it("has words for every refusal the server's vocabulary names", () => {
+    const file = JSON.parse(readFileSync(join(process.cwd(), "../../packages/aia_core/tests/fixtures/edit_ops/cases.json"), "utf8")) as { refusals: string[] };
+    for (const code of file.refusals) expect(editRefusalWords(code)).not.toBe(code);
   });
   it("a dropped sample size is its own line; the rest are counted as before", () => {
     expect(droppedLines([{ reason: "sample_size_out_of_range" }, { reason: "unknown_question" }])).toEqual([

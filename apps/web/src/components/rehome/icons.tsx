@@ -6,6 +6,7 @@ export type IconName =
   | "home" | "research" | "simulation" | "assistant" | "library" | "settings" | "command" | "projects"
   | "external" | "plus" | "search" | "pin" | "tag" | "copy" | "archive" | "trash" | "restore" | "back"
   | "attach" | "link" | "next" | "download" | "client" | "knowledge" | "data" | "memory" | "intelligence"
+  | "pencil" | "minus" | "chevron"
   | "done" | "running" | "you" | "world" | "fault" | "dot";
 
 const PATHS: Record<IconName, string> = {
@@ -36,6 +37,10 @@ const PATHS: Record<IconName, string> = {
   link: "M6.5 9.5l3-3M7 4.5l1-1a2.8 2.8 0 0 1 4 4l-1 1M9 11.5l-1 1a2.8 2.8 0 0 1-4-4l1-1",
   next: "M3 8h10M9 4l4 4-4 4",
   download: "M8 2.5v8M4.5 7 8 10.5 11.5 7M2.5 13.5h11",
+  // The input standard's controls (input-interactions I1, I2, I3): edit in place, a stepper, a menu.
+  pencil: "M10.5 2.5l3 3L6 13H3v-3zM9 4l3 3",
+  minus: "M3 8h10",
+  chevron: "M4 6l4 4 4-4",
   // Status glyphs: shape carries the status as well as colour (brief §5).
   done: "M3 8.5 6.5 12 13 4.5",
   running: "M8 2.5a5.5 5.5 0 1 1-5.5 5.5",
