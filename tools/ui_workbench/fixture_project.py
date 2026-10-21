@@ -36,6 +36,8 @@ from typing import Any
 
 ROOT = Path(__file__).resolve().parents[2]
 STUDIES = ROOT / "tmp" / "ui-workbench" / "studies.json"
+#: Each fixture study's budget: room for the analysis's holds; the recorded answers cost nothing.
+FIXTURE_BUDGET_USD = 5.0
 # The workbench's operator: the local API's development credential (api_standin.py).
 OPERATOR = "workbench@example.invalid"
 CLIENT = "Horizont Mobility"
@@ -394,6 +396,9 @@ def write() -> dict[str, dict[str, str]]:
             if current is None:
                 raise SystemExit(f"AIA does not serve the new study {study}'s content")
         assert study is not None
+        # A budget, as a person sets one: the run's analysis holds a reservation before each
+        # recorded call (priced at zero), and a study with none waits at the cap (CHN7).
+        _api("PUT", f"/studies/{study}/budget", {"budget_usd": FIXTURE_BUDGET_USD})
         content = project_of(fx, current["template"])
         saved = _api(
             "PUT",
