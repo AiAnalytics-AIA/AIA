@@ -32,34 +32,50 @@ export function useUndo(): { current: UndoOffer | null; offer: (o: UndoOffer) =>
 
 export function UndoToast({ offer, onDone, ms = UNDO_MS }: { offer: UndoOffer | null; onDone: () => void; ms?: number }) {
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const [held, setHeld] = useState(false);
+  // The pointer and the keyboard each hold the time on their own: leaving with the pointer must not
+  // end a hold the focus still makes, nor the reverse (Codex on #532). It runs only when neither is
+  // on the toast.
+  const [pointerInside, setPointerInside] = useState(false);
+  const [focusInside, setFocusInside] = useState(false);
+  const held = pointerInside || focusInside;
   // A hold ends with the toast. Activating "Vrátit" or "Zavřít" removes it with focus inside, and
   // no blur follows: without this the next offer would never expire. (An offer that replaces
   // another while focus stays on the toast keeps the hold: the person is still on it.)
-  if (!offer && held) setHeld(false);
+  if (!offer && held) {
+    setPointerInside(false);
+    setFocusInside(false);
+  }
   const finish = () => {
-    setHeld(false);
+    setPointerInside(false);
+    setFocusInside(false);
     onDone();
   };
 
+  // The newest onDone, read when the time runs out: a caller passing a new function on each render
+  // must not restart the 8 s (the sweep after Codex on #532).
+  const done = useRef(onDone);
+  useEffect(() => {
+    done.current = onDone;
+  }, [onDone]);
+
   useEffect(() => {
     if (!offer || held) return;
-    timer.current = setTimeout(onDone, ms);
+    timer.current = setTimeout(() => done.current(), ms);
     return () => {
       if (timer.current) clearTimeout(timer.current);
     };
-  }, [offer, held, ms, onDone]);
+  }, [offer, held, ms]);
 
   return (
     <div aria-live="polite" className="pointer-events-none fixed inset-x-0 bottom-6 z-[var(--z-toast)] flex justify-center px-4">
       {offer ? (
         <div
           role="status"
-          onPointerEnter={() => setHeld(true)}
-          onPointerLeave={() => setHeld(false)}
-          onFocus={() => setHeld(true)}
+          onPointerEnter={() => setPointerInside(true)}
+          onPointerLeave={() => setPointerInside(false)}
+          onFocus={() => setFocusInside(true)}
           onBlur={(e) => {
-            if (!e.currentTarget.contains(e.relatedTarget as Node | null)) setHeld(false);
+            if (!e.currentTarget.contains(e.relatedTarget as Node | null)) setFocusInside(false);
           }}
           className="pointer-events-auto flex max-w-full items-center gap-3 rounded-md border border-border-strong bg-surface-inverse py-1.5 pl-4 pr-1.5 text-sm text-ink-inverse shadow-[var(--shadow-overlay)]"
         >

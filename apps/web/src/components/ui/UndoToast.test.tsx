@@ -101,6 +101,33 @@ describe("UndoToast (I6): Vrátit for 8 s, one at a time", () => {
     expect(screen.queryByRole("status")).toBeNull();
   });
 
+  it("holds while either the pointer or the focus is on it; leaving with one keeps the other's hold (Codex #532)", () => {
+    render(<Host />);
+    act(() => offerIt({ message: "Smazáno", undo: () => {} }));
+    const undo = screen.getByRole("button", { name: "Vrátit" });
+    act(() => undo.focus());
+    fireEvent.pointerEnter(screen.getByRole("status"));
+    fireEvent.pointerLeave(screen.getByRole("status"));
+    act(() => vi.advanceTimersByTime(20000));
+    expect(screen.getByRole("status")).toBeTruthy();
+    // Focus leaves the toast: the full 8 s run from then.
+    act(() => undo.blur());
+    act(() => vi.advanceTimersByTime(UNDO_MS - 1));
+    expect(screen.getByRole("status")).toBeTruthy();
+    act(() => vi.advanceTimersByTime(1));
+    expect(screen.queryByRole("status")).toBeNull();
+  });
+
+  it("does not restart the 8 s when its caller re-renders with a new onDone (Codex #532 sweep)", () => {
+    const offer = { message: "Smazáno", undo: () => {} };
+    const { rerender } = render(<UndoToast offer={offer} onDone={() => {}} />);
+    act(() => vi.advanceTimersByTime(5000));
+    const done = vi.fn();
+    rerender(<UndoToast offer={offer} onDone={done} />);
+    act(() => vi.advanceTimersByTime(UNDO_MS - 5000));
+    expect(done).toHaveBeenCalledTimes(1);
+  });
+
   it("can be closed without undoing", () => {
     const undo = vi.fn();
     render(<Host />);
