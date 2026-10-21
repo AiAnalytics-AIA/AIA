@@ -276,12 +276,17 @@ describe("ResearchScreen", () => {
     steps: [{ step_id: "STEP-agent", node_key: "agent", status: stepStatus, waiting_reason: stepStatus === "AWAITING_BUDGET" ? "budget_exceeded" : null, error_message: null }] });
   const AUDIENCE = { content: { title: "Alfa", audience: { strategy: "filters" }, ui_state: { audience_entry: "analytics", analytics_choice: "cz18" } } };
   /** The study's AI job, waiting for budget until lifted; `listed` puts it in the screen's list of jobs too. */
-  const waitingJob = (listed: boolean) => {
-    const state = { lifted: false };
+  /** `runningPolls`: how many reads of the job after the lift still find it running (a slow job). */
+  const waitingJob = (listed: boolean, runningPolls = 0) => {
+    const state = { lifted: false, polls: 0 };
+    const now = () => {
+      if (!state.lifted) return job("AWAITING_BUDGET", "AWAITING_BUDGET");
+      return state.polls <= runningPolls ? job("RUNNING", "RUNNING") : job("COMPLETED", "SUCCEEDED");
+    };
     api(() => content(AUDIENCE), undefined, {
       [`POST ${JOBS}`]: () => job("AWAITING_BUDGET", "AWAITING_BUDGET"),
-      [`GET ${JOBS}`]: () => (listed && !state.lifted ? [job("AWAITING_BUDGET", "AWAITING_BUDGET")] : []),
-      [`GET ${JOBS}/RUN-J1`]: () => (state.lifted ? job("COMPLETED", "SUCCEEDED") : job("AWAITING_BUDGET", "AWAITING_BUDGET")),
+      [`GET ${JOBS}`]: () => (listed ? [now()] : []),
+      [`GET ${JOBS}/RUN-J1`]: () => { if (state.lifted) state.polls += 1; return now(); },
       [`POST ${JOBS}/RUN-J1/budget`]: () => { state.lifted = true; return job("RUNNING", "RUNNABLE"); },
       [`GET ${JOBS}/RUN-J1/result`]: () => ({
         result: { project: { title: "Alfa" }, proposal: { message: "Návrh audience" } },
@@ -313,6 +318,25 @@ describe("ResearchScreen", () => {
     expect(screen.queryByRole("heading", { name: t("research.aiBudget.title") })).toBeNull();
     await lift(screen.getByRole("form", { name: t("research.exec.budget.title") }), "8");
     expect(await screen.findByRole("button", { name: "Použít návrh" }, { timeout: 5000 })).toBeTruthy();
+  });
+
+  it("offers no second lift while a lifted job still runs, though the list was last read while it waited (review P2-1)", async () => {
+    const state = waitingJob(true, 2);
+    render(<ResearchScreen step="audience" frame={TEST_FRAME} />);
+    fireEvent.change(await screen.findByPlaceholderText(t("research.audience.describePlaceholder")), { target: { value: "Ženy 30-45 let" } });
+    fireEvent.click(screen.getByRole("button", { name: t("research.audience.propose") }));
+    await screen.findByRole("status", { name: t("research.aiBudget.waitingTitle") });
+    await vi.waitFor(() => expect(calls.filter((c) => c.method === "GET" && c.url === JOBS).length).toBeGreaterThanOrEqual(2));
+    await lift(screen.getByRole("form", { name: t("research.exec.budget.title") }), "8");
+    // The job reads RUNNING on its first two polls after the lift: no lift form anywhere then.
+    await vi.waitFor(() => expect(state.polls).toBeGreaterThanOrEqual(1), { timeout: 5000 });
+    expect(screen.queryAllByRole("form")).toHaveLength(0);
+    expect(screen.queryByRole("heading", { name: t("research.aiBudget.title") })).toBeNull();
+    await vi.waitFor(() => expect(state.polls).toBeGreaterThanOrEqual(2), { timeout: 5000 });
+    expect(screen.queryAllByRole("form")).toHaveLength(0);
+    expect(await screen.findByRole("button", { name: "Použít návrh" }, { timeout: 8000 })).toBeTruthy();
+    expect(screen.queryAllByRole("form")).toHaveLength(0);
+    expect(calls.filter((c) => c.method === "POST" && c.url === `${JOBS}/RUN-J1/budget`)).toHaveLength(1);
   });
 
   it("opens the proposal of a job lifted from the screen's list of waiting jobs, which no stage shows in place", async () => {

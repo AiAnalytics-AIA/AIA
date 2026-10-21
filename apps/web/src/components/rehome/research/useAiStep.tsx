@@ -22,7 +22,12 @@ export type AiFailure =
   | { kind: "job"; message: string; jobId: string | null }
   | { kind: "provider"; message: string }
   /** The job stopped at the study's budget cap: it waits for a lift, and is never retried as a new job. */
-  | { kind: "budget"; jobId: string };
+  | { kind: "budget"; jobId: string }
+  /**
+   * Following a job that went on after a lift broke off: the job itself may still be running, so
+   * the way on is following it again, never a retry that would start a new paid job.
+   */
+  | { kind: "follow"; message: string; jobId: string };
 
 const message = (e: unknown) => (e instanceof Error ? e.message : String(e));
 
@@ -32,8 +37,28 @@ export function failureOf(e: unknown, wording: (m: string) => string = (m) => m)
   return { kind: "job", message: wording(message(e)), jobId: e instanceof JobError ? e.jobId : null };
 }
 
+/** A continuation's failure: still this job's, waiting again or to be followed again. */
+export function followFailureOf(e: unknown, jobId: string): Extract<AiFailure, { kind: "budget" | "follow" }> {
+  const f = failureOf(e);
+  return f.kind === "budget" ? f : { kind: "follow", message: message(e), jobId };
+}
+
+/**
+ * Follow the same job on after a lift (CR-2), holding the job's claim the whole time: the
+ * screen's list of waiting jobs is read again only when the job settles, and until then it would
+ * still show the job waiting and offer a lift the server refuses (review P2-1).
+ */
+export async function followClaimed<T>(claimWait: (jobId: string) => () => void, jobId: string, follow: () => Promise<T>): Promise<T> {
+  const release = claimWait(jobId);
+  try {
+    return await follow();
+  } finally {
+    release();
+  }
+}
+
 export function useAiStep() {
-  const { store, continueJob } = useResearch();
+  const { store, continueJob, claimWait } = useResearch();
   const [failure, setFailure] = useState<AiFailure | null>(null);
   const [busy, setBusy] = useState(false);
 
@@ -69,11 +94,20 @@ export function useAiStep() {
    * After a budget lift: follow the same job on to its proposal. Starts nothing. `after` gets the
    * job's result once it is reviewed, so a stage does with it what its own action would have.
    */
-  const resume = (jobId: string, after?: (result: unknown) => void) =>
-    run(async () => {
-      const result = await continueJob(jobId);
+  const resume = async (jobId: string, after?: (result: unknown) => void): Promise<boolean> => {
+    setFailure(null);
+    setBusy(true);
+    try {
+      const result = await followClaimed(claimWait, jobId, () => continueJob(jobId));
       after?.(result);
-    });
+      return true;
+    } catch (e) {
+      setFailure(followFailureOf(e, jobId));
+      return false;
+    } finally {
+      setBusy(false);
+    }
+  };
 
   return { run, resume, providerOk, saved, failure, setFailure, busy };
 }
@@ -127,6 +161,22 @@ export function AiFailureCard({ failure, title, sub, onRetry, onContinue }: {
   onContinue: (jobId: string) => void;
 }) {
   if (failure.kind === "budget") return <BudgetWaitCard jobId={failure.jobId} onContinue={onContinue} />;
+  if (failure.kind === "follow") {
+    // The lifted job goes on whatever the screen does: follow it again, never start another.
+    return (
+      <section role="alert" data-ai-follow-failed={failure.jobId} className="rounded-md border border-status-fault/40 bg-status-fault-wash p-5">
+        <h2 className="flex items-center gap-2 font-semibold text-status-fault">
+          <Icon name="fault" size={14} />
+          {title}
+        </h2>
+        <p className="mt-1 text-sm text-ink">{t("research.aiBudget.followFailed")}</p>
+        {failure.message ? <p className="mt-1 whitespace-pre-line text-xs text-ink-muted">{failure.message}</p> : null}
+        <div className="mt-3 flex flex-wrap gap-2">
+          <Button variant="primary" onClick={() => onContinue(failure.jobId)}>{t("research.aiBudget.followAgain")}</Button>
+        </div>
+      </section>
+    );
+  }
   if (failure.kind === "provider") {
     return (
       <section role="alert" className="rounded-md border border-status-you-ink/40 bg-status-you-wash p-5">

@@ -47,7 +47,7 @@ import { Icon, type IconName } from "../icons";
 import { ActionDock, ChipInput, InlineConfirm, StepSection } from "../step";
 import { AiButton, Button, Field, TextArea, TextInput } from "../ui";
 import { useResearch } from "./context";
-import { AnalysisFailureCard, useAnalysis } from "./useAnalysis";
+import { AnalysisFailureCard, modeOf, useAnalysis } from "./useAnalysis";
 
 const FOCUS = "focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus-ring";
 const INPUT = `min-h-9 w-full rounded-control border border-border-strong bg-surface-raised px-2.5 text-sm text-ink placeholder:text-ink-faint ${FOCUS}`;
@@ -212,7 +212,7 @@ export function PlanStep() {
       <JumpChips chips={chips} />
       {failure ? <AnalysisFailureCard failure={failure} onRetry={() => void analyse()} onContinue={(id) => {
         // A wait from "process comments" ends as that action does, with its toast (CR-2).
-        const comments = failure.kind === "budget" && failure.jobId === id && failure.byComments;
+        const comments = modeOf(failure, id) === true;
         void resume(id).then((ok) => { if (ok && comments) toast(t("research.plan.commentsDone")); });
       }} /> : null}
       {variantSection}
