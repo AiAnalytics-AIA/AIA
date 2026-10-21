@@ -10,6 +10,7 @@
 
 import { t } from "@/i18n/t";
 import { type QuestionResult, type StoredPlaces, type SupportStatus, UNIT_PLACES } from "@/lib/research-execution";
+import { aiaId } from "@/lib/workbench-artifacts";
 
 /**
  * A measure's title when its specification gives it no wording (run-recovery-and-truth 6c): said
@@ -175,12 +176,20 @@ export type CompiledSpecification = {
 // The Lead's focus falls through to an element carrying its target as data-aia (lead.ts
 // focusSelector), so these are the ids the Data view's elements carry.
 
-/** A measure's card: a question's id, or `<set>:<object>` (measureAnchor's id). */
-export const measureTarget = (measureId: string): string => `measure:${measureId}`;
-/** A set's comparison. */
-export const setTarget = (setId: string): string => `set:${setId}`;
-/** One object's row in its set's comparison. */
-export const objectTarget = (setId: string, objectId: string): string => `object:${setId}.${objectId}`;
+/**
+ * The Lead's id for a measure's card, the one element on Výsledky the Lead can name
+ * (artifact-results §4): `measure:<question>`, or `measure:<set>/<object>` for an object of a rated
+ * set (the integration coordinator's ruling, 2026-10-21). Rows of a set's table carry none and link
+ * to the card, so each id names one element. Null when an id falls outside aiaId's grammar: the
+ * card then has no Lead id, rather than failing to render.
+ */
+export function measureTarget(questionOrSet: string, object?: string): string | null {
+  try {
+    return aiaId("measure", object === undefined ? questionOrSet : `${questionOrSet}/${object}`);
+  } catch {
+    return null;
+  }
+}
 
 /** The Data card a measure is shown on: a question's id, or `<set>:<object>`. */
 export function measureAnchor(measureId: string): string {

@@ -1947,19 +1947,25 @@ describe("Results", () => {
     expect(within(comparison).getByText("Pořadí platí jen tam, kde se intervaly rozcházejí.")).toBeTruthy();
     // Highest mean first, then the suppressed object in a row of its own.
     expect(within(comparison).getAllByRole("link").map((a) => a.textContent)).toEqual(["Káva", "Čaj", "Voda", "Mléko"]);
-    const kava = comparison.querySelector('[data-aia="object:napoje.kava"]') as HTMLElement;
+    const kava = comparison.querySelector('[data-object="kava"]') as HTMLElement;
     expect(within(kava).getByText("[4,00; 4,40]")).toBeTruthy();
     expect(kava.textContent).toMatch(/z 5/);
     // Kish n is the aggregate's effective_n_kish (401.8), not the donor-adjusted effective_n (30).
     expect(kava.querySelector("td:last-child")?.textContent).toBe("401");
     // A suppressed object keeps its row and says why; its mean and interval are not shown.
-    const mleko = comparison.querySelector('[data-aia="object:napoje.mleko"]') as HTMLElement;
+    const mleko = comparison.querySelector('[data-object="mleko"]') as HTMLElement;
     expect(mleko.getAttribute("data-withheld")).toBe("suppressed");
     expect(mleko.textContent).toMatch(/^MlékoPotlačeno · podpora dat nestačí \(\d+ unikátních dárců\)/);
     expect(within(comparison).queryByText("3,50")).toBeNull();
     expect(comparison.textContent).not.toMatch(/2,00|5,00/);
-    // The Lead points at the set, an object's row and each measure's card (artifact-results §4).
-    expect(comparison.getAttribute("data-aia")).toBe("set:napoje");
+    // The Lead names a measure's card and nothing else on Výsledky: no set: or object: (those
+    // kinds are the design's and the map's), and every id names exactly one element.
+    expect(comparison.hasAttribute("data-aia")).toBe(false);
+    expect(comparison.querySelector("[data-aia]")).toBeNull();
+    const marks = [...document.querySelectorAll("[data-aggregate-explorer] [data-aia]")].map((el) => el.getAttribute("data-aia")!);
+    expect(marks).toEqual(expect.arrayContaining(["measure:napoje/kava", "measure:napoje/caj", "measure:napoje/voda", "measure:napoje/mleko"]));
+    expect(marks.every((m) => m.startsWith("measure:"))).toBe(true);
+    for (const m of marks) expect(document.querySelectorAll(`[data-aia="${m}"]`)).toHaveLength(1);
     // No rounding block: 18.6.6's two places, as each card prints them.
     expect(within(comparison).getByText("4,20")).toBeTruthy();
     // A link to a card clears the filters that hide it and opens its detail.
@@ -1970,7 +1976,7 @@ describe("Results", () => {
     fireEvent(window, new HashChangeEvent("hashchange"));
     const card = await within(explorer).findByRole("region", { name: "Čaj" });
     expect(card.getAttribute("data-focused")).toBe("true");
-    expect(card.getAttribute("data-aia")).toBe("measure:napoje:caj");
+    expect(card.getAttribute("data-aia")).toBe("measure:napoje/caj");
     expect((card.querySelector("details") as HTMLDetailsElement).open).toBe(true);
     expect((within(explorer).getByRole("searchbox", { name: "Najít otázku nebo objekt" }) as HTMLInputElement).value).toBe("");
     window.location.hash = "";

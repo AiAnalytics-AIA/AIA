@@ -2,7 +2,8 @@
 import { describe, expect, it } from "vitest";
 
 import type { QuestionResult } from "./research-execution";
-import { citedMeasure, compareObjects, czechList, inlineRuns, measureAnchor, measureTarget, objectTarget, readMeasure, separation, setTarget, textBlocks } from "./result-reading";
+import { citedMeasure, compareObjects, czechList, inlineRuns, measureAnchor, measureTarget, readMeasure, separation, textBlocks } from "./result-reading";
+import { parseAiaId } from "./workbench-artifacts";
 
 const support = (status: "REPORTABLE" | "INDICATIVE" | "SUPPRESS") => ({ support_status: status, n_platnych: 140, n_unique_layer_donors: 120, effective_n: 110 });
 const choice = (status: "REPORTABLE" | "INDICATIVE" | "SUPPRESS", shares: Record<string, [number, number, number] | [number]>, typ = "vyber"): QuestionResult => ({
@@ -210,10 +211,14 @@ describe("textBlocks", () => {
 });
 
 describe("the Lead's targets on Výsledky", () => {
-  it("names a measure, a set and an object row as the Lead's focus finds them", () => {
+  it("names a question's card and a set object's card in the published grammar, on Výsledky", () => {
     expect(measureTarget("q2")).toBe("measure:q2");
-    expect(measureTarget("napoje:caj")).toBe("measure:napoje:caj");
-    expect(setTarget("napoje")).toBe("set:napoje");
-    expect(objectTarget("napoje", "caj")).toBe("object:napoje.caj");
+    expect(measureTarget("napoje", "caj")).toBe("measure:napoje/caj");
+    for (const id of ["measure:q2", "measure:napoje/caj"]) expect(parseAiaId(id)).toMatchObject({ kind: "measure", stage: "results" });
+  });
+
+  it("gives an id outside the grammar no target, rather than throwing", () => {
+    expect(measureTarget("Q 9")).toBeNull();
+    expect(measureTarget("napoje", "čaj")).toBeNull();
   });
 });
