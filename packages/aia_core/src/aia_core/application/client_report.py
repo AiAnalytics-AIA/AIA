@@ -31,7 +31,7 @@ from aia_core.application.report_design import compose_design_sections
 from aia_core.application.report_export import review_stamp_record
 from aia_core.application.report_maps import compose_map_sections
 from aia_core.application.report_method import compose_method_section
-from aia_core.application.report_tables import question_tables
+from aia_core.application.report_tables import question_tables, scale_notes
 from aia_core.application.research import ResearchRuns, research_artifacts
 from aia_core.domain.analysis.native import native_evidence, native_items
 from aia_core.domain.evidence import ClaimSurface, EvidenceTable
@@ -134,6 +134,7 @@ def compose_client_report(
         joint_status=evidence.joint_status,
         source=scope_line,
         surface=ClaimSurface.CLIENT_FACING,
+        scales=scale_notes(sources.specification),
     )
     if not tables.claims:
         reasons = sorted({r for _, why in tables.refused for r in why})
