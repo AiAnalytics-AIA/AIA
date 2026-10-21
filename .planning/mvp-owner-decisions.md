@@ -264,8 +264,9 @@ per researcher (`develop-spend-attribution#7`).
 
 **2026-10-21, the owner's answers Q50, Q52, Q54, Q56 and Q58** (on the PM status page, relayed by the
 coordinator; the artifact plans, #560). Q50 (b): in the `-5` drawing only the two state issues are
-fixed (the 2D view keeps the 3D rotation; a selection carries across views); the camera and label
-changes go to the methodology owner (A. Bahbouh). Q52 (a): Výsledky shows up to five example raw
+fixed: a selection carries over between Objekty and Respondenti, and full screen with Top vztahy
+shows only the selected object's links. The camera snap (whether the 2D view keeps the 3D rotation)
+and the dropped or overlapping labels go to the methodology owner (A. Bahbouh). Q52 (a): Výsledky shows up to five example raw
 open answers per question, internal only, labelled as data and not admitted evidence, never
 exported. Q54 (b): the persona source is chosen on Spuštění and read-only on Vzorek. Q56 (b): the
 report narrative's first draft is written by code, then the Lead proposes tracked changes. Q58 (b):

@@ -660,7 +660,7 @@ questions (Q45); QUICK and STANDARD offered, STANDARD the default (Q46); a plan 
 then interpretation, parking if its module is BLOCKED (Q47); the Deep Research half of the narrow
 Lead waits for typed starts (Q48). The record is
 [`lead-orchestration.md` § Deep Research under the Lead](plans/lead-orchestration.md) (#553). The artifact plans' answers (#560):
-the `-5` drawing fixes only its two state issues, the rest goes to the methodology owner (Q50);
+the `-5` drawing fixes only its two state issues (a selection carried between Objekty and Respondenti; full screen with Top vztahy showing only the selected object's links), the camera snap and the labels go to the methodology owner (Q50);
 Výsledky shows up to five raw open answers per question, internal only (Q52); the persona source is
 chosen on Spuštění (Q54); code writes the report narrative's first draft and the Lead proposes
 tracked changes (Q56); the literature is woven into the one report, labelled external, and the
