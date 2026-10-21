@@ -112,7 +112,7 @@ import { useStepActivity } from "./useStepActivity";
 import { ObjectMapView } from "./ObjectMapView";
 import { InterpretationResearch } from "./InterpretationResearch";
 import { ResultsWorkspace } from "./ResultsWorkspace";
-import { citedMeasure, untitled, compareObjects, type CompiledSpecification, measureAnchor, measureTarget, objectTarget, readMeasure, type ReadingTone, setTarget } from "@/lib/result-reading";
+import { citedMeasure, untitled, compareObjects, type CompiledSpecification, measureAnchor, measureTarget, readMeasure, type ReadingTone } from "@/lib/result-reading";
 import { FormattedText } from "./FormattedText";
 import { CompleteReport } from "./CompleteReport";
 import { AnswerabilityGate } from "./AnswerabilityGate";
@@ -1747,7 +1747,7 @@ type SpecificationPayload = {
   specification?: CompiledSpecification;
 };
 
-type AggregateMeasure = { id: string; title: string; group: string | null; result: AggregateResult; table: ResultTable; scale: readonly [number, number] | null };
+type AggregateMeasure = { id: string; target: string | null; title: string; group: string | null; result: AggregateResult; table: ResultTable; scale: readonly [number, number] | null };
 type AggregateFilter = "all" | ResultTable["support"];
 
 function supportLabel(support: ResultTable["support"]): string {
@@ -1774,7 +1774,7 @@ function aggregateMeasures(payload: AggregatePayload, pinned: CompiledSpecificat
   return [
     ...questionIds.map((id) => {
       const q = specQuestions.get(id);
-      return { id, title: q?.text || untitled("question"), group: null, result: questions[id], table: resultTable(id, questions[id], box, at), scale: q?.scale ?? null };
+      return { id, target: measureTarget(id), title: q?.text || untitled("question"), group: null, result: questions[id], table: resultTable(id, questions[id], box, at), scale: q?.scale ?? null };
     }),
     ...batteryIds.flatMap((id) => {
       const battery = batteries[id];
@@ -1782,7 +1782,7 @@ function aggregateMeasures(payload: AggregatePayload, pinned: CompiledSpecificat
       const objectIds = inOrder<string>(Object.keys(battery.objects), (spec?.objects ?? []).map((o) => o.id));
       return objectIds.map((oid) => {
         const result = battery.objects[oid];
-        return { id: `${id}:${oid}`, title: result.label || untitled("object"), group: battery.title || untitled("set"), result, table: resultTable(oid, result, box, at), scale: spec?.scale ?? null };
+        return { id: `${id}:${oid}`, target: measureTarget(id, oid), title: result.label || untitled("object"), group: battery.title || untitled("set"), result, table: resultTable(oid, result, box, at), scale: spec?.scale ?? null };
       });
     }),
   ];
@@ -1808,7 +1808,7 @@ function ObjectComparison({ setId, title, comparison, scale, places }: { setId: 
   const mean = (x: number) => x.toLocaleString("cs-CZ", { minimumFractionDigits: places, maximumFractionDigits: places });
   const objectOf = (id: string) => id.slice(setId.length + 1);
   return (
-    <section aria-label={`Srovnání: ${title}`} data-object-comparison data-aia={setTarget(setId)} className="rounded-md border border-border bg-surface-raised p-4">
+    <section aria-label={`Srovnání: ${title}`} data-object-comparison className="rounded-md border border-border bg-surface-raised p-4">
       <div className="flex flex-wrap items-baseline justify-between gap-2">
         <h4 className="text-sm font-semibold">{title}</h4>
         <span className="text-xs text-ink-muted">{scale ? `Průměr na škále ${scale[0]}–${scale[1]}` : "Průměr; škála běhu není uvedena"} · 95% interval · Kish n</span>
@@ -1826,7 +1826,7 @@ function ObjectComparison({ setId, title, comparison, scale, places }: { setId: 
           </thead>
           <tbody>
             {comparison.ranked.map((o) => (
-              <tr key={o.id} data-aia={objectTarget(setId, objectOf(o.id))} className="border-t border-border">
+              <tr key={o.id} data-object={objectOf(o.id)} className="border-t border-border">
                 <td className="max-w-48 truncate py-1.5 pr-3"><a href={`#${measureAnchor(o.id)}`} className="no-underline hover:underline" title={o.label}>{o.label}</a>{o.support === "INDICATIVE" ? <span className="ml-1 text-xs text-status-you-ink">(orientační)</span> : null}</td>
                 <td className="whitespace-nowrap py-1.5 pr-3 text-right tabular-nums"><b>{mean(o.value)}</b>{scale ? <span className="text-ink-muted"> z {scale[1]}</span> : null}</td>
                 <td className="whitespace-nowrap py-1.5 pr-3 text-right tabular-nums text-ink-muted">{o.low !== null && o.high !== null ? `[${mean(o.low)}; ${mean(o.high)}]` : "interval chybí"}</td>
@@ -1836,16 +1836,16 @@ function ObjectComparison({ setId, title, comparison, scale, places }: { setId: 
                     <span className="absolute top-0.5 size-3 -translate-x-1/2 rounded-full bg-signal" style={{ left: at(o.value) }} />
                   </span>
                 </td>
-                <td className="whitespace-nowrap py-1.5 text-right tabular-nums text-ink-muted">{kish(o.effectiveN)}</td>
+                <td className="whitespace-nowrap py-1.5 text-right tabular-nums text-ink-muted">{kish(o.kishN)}</td>
               </tr>
             ))}
             {comparison.withheld.map((o) => (
-              <tr key={o.id} data-aia={objectTarget(setId, objectOf(o.id))} data-withheld={o.reason} className="border-t border-border">
+              <tr key={o.id} data-object={objectOf(o.id)} data-withheld={o.reason} className="border-t border-border">
                 <td className="max-w-48 truncate py-1.5 pr-3"><a href={`#${measureAnchor(o.id)}`} className="no-underline hover:underline" title={o.label}>{o.label}</a></td>
                 <td colSpan={3} className="py-1.5 pr-3 text-ink-muted">{o.reason === "suppressed"
                   ? `Potlačeno · ${o.donors === null ? "podpora dat nestačí" : `podpora dat nestačí (${o.donors.toLocaleString("cs-CZ")} unikátních dárců)`}`
                   : "Bez průměru"}</td>
-                <td className="whitespace-nowrap py-1.5 text-right tabular-nums text-ink-muted">{kish(o.effectiveN)}</td>
+                <td className="whitespace-nowrap py-1.5 text-right tabular-nums text-ink-muted">{kish(o.kishN)}</td>
               </tr>
             ))}
           </tbody>
@@ -1930,7 +1930,7 @@ function AggregateView({ artifact, run, specification }: { artifact: Artifact; r
         {matching.length ? matching.map((measure) => {
           const anchor = measureAnchor(measure.id);
           const reading = readMeasure(measure.result, measure.scale, box, at);
-          return <section key={measure.id} id={anchor} aria-label={measure.title} data-aia={measureTarget(measure.id)} data-focused={focused === anchor ? "true" : undefined}
+          return <section key={measure.id} id={anchor} aria-label={measure.title} data-aia={measure.target ?? undefined} data-focused={focused === anchor ? "true" : undefined}
             className={`scroll-mt-24 rounded-md border bg-surface-raised p-4 ${focused === anchor ? "border-signal shadow-[0_0_0_1px_var(--color-signal)]" : "border-border"}`}>
             <div className="flex flex-wrap items-start justify-between gap-3">
               <div className="min-w-0 flex-1">

@@ -1,0 +1,105 @@
+// @vitest-environment jsdom
+// "Útrata podle výzkumníka" against a fake API: one row per person with the period's total and
+// its parts, the unattributed row named, a researcher's own view said so, the period asked of
+// the API, a row opened to its studies, and a malformed answer refused rather than read as zero.
+import { cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+
+import { resetConfigCache } from "@/lib/auth";
+import { ResearcherSpendCard } from "./ResearcherSpendCard";
+
+vi.mock("next/navigation", () => ({ useRouter: () => ({ push: vi.fn(), replace: vi.fn() }), usePathname: () => "/app/settings" }));
+
+const fig = (total: number, uncertain = 0, reserved = 0) => ({
+  model_usd: total, outside_ledger_usd: 0, total_usd: total, reserved_usd: reserved, uncertain_calls: uncertain,
+});
+const acts = (lead: number, deep: number) => [
+  { activity: "lead", ...fig(lead) },
+  { activity: "fieldwork", ...fig(0) },
+  { activity: "analysis_report", ...fig(0) },
+  { activity: "deep_research", ...fig(deep) },
+  { activity: "other", ...fig(0) },
+];
+const REPORT = (everyone: boolean) => ({
+  period: "this_month", start: "2026-10-01T00:00:00Z", end: "2026-10-21T00:00:00Z", everyone, currency: "USD",
+  people: [
+    {
+      user_id: "USR-1", email: "jana@example.test", display_name: "Jana", is_member: true, study_count: 1,
+      ...fig(0.5, 0, 2), by_activity: acts(0.1, 0.4),
+      studies: [{ study_id: "STU-1", study_name: "Vnímání značky", client_id: "CLI-a", client_name: "Klient A", ...fig(0.5, 0, 2), by_activity: acts(0.1, 0.4) }],
+    },
+    ...(everyone ? [{
+      user_id: null, email: null, display_name: null, is_member: null, study_count: 0,
+      ...fig(0, 1), by_activity: acts(0, 0), studies: [],
+    }] : []),
+  ],
+});
+
+let asked: string[] = [];
+function api(answer: (url: string) => unknown) {
+  asked = [];
+  vi.stubGlobal("fetch", vi.fn(async (url: RequestInfo | URL) => {
+    const u = String(url);
+    if (u.endsWith("/config")) return new Response(JSON.stringify(CONFIG), { status: 200 });
+    asked.push(u);
+    return new Response(JSON.stringify(answer(u)), { status: 200 });
+  }));
+}
+
+const CONFIG = { cognitoDomain: "", cognitoClientId: "", publicOrigin: "http://localhost", apiBase: "", build: { sha: null } };
+
+beforeEach(() => {
+  resetConfigCache();
+  sessionStorage.setItem("aia.session", JSON.stringify({ idToken: "tok", refreshToken: "r", expiresAt: Date.now() + 3_600_000, email: "owner@example.test", subject: "s" }));
+});
+afterEach(() => { cleanup(); vi.unstubAllGlobals(); resetConfigCache(); sessionStorage.clear(); });
+
+describe("ResearcherSpendCard", () => {
+  it("shows each person's total and parts, and the unattributed row as unknown, never 0", async () => {
+    api(() => REPORT(true));
+    render(<ResearcherSpendCard />);
+    const jana = await screen.findByText("Jana");
+    const row = jana.closest("[data-person]") as HTMLElement;
+    expect(within(row).getByText("0,50 USD")).toBeTruthy();
+    expect(row.querySelector('[data-part="lead"]')?.textContent).toContain("0,10 USD");
+    expect(row.querySelector('[data-part="deep_research"]')?.textContent).toContain("0,40 USD");
+    expect(row.querySelector('[data-part="fieldwork"]')).toBeNull();
+    expect(within(row).getByText("2,00 USD")).toBeTruthy();
+    const nobody = document.querySelector('[data-person="__unattributed"]') as HTMLElement;
+    expect(within(nobody).getByText("Nepřiřazeno")).toBeTruthy();
+    expect(within(nobody).getByText("neznámá")).toBeTruthy();
+    expect(nobody.textContent).not.toContain("0,00 USD");
+    expect(screen.getByText(/Vlastník a správce vidí všechny členy/)).toBeTruthy();
+    expect(screen.getByText("Organizace celkem")).toBeTruthy();
+  });
+
+  it("asks the API for the period chosen and opens a row to its studies", async () => {
+    api(() => REPORT(true));
+    render(<ResearcherSpendCard />);
+    await screen.findByText("Jana");
+    expect(asked.at(-1)).toContain("period=this_month");
+    fireEvent.click(screen.getByRole("button", { name: "Od začátku roku" }));
+    await waitFor(() => expect(asked.at(-1)).toContain("period=year_to_date"));
+    await screen.findByText("Jana");
+    fireEvent.click(screen.getByRole("button", { name: "Po studiích" }));
+    const studies = document.querySelector('[data-person-studies="USR-1"]') as HTMLElement;
+    expect(within(studies).getByText("Vnímání značky")).toBeTruthy();
+    expect(studies.textContent).toContain("Klient A");
+  });
+
+  it("says a researcher sees only their own spend", async () => {
+    api(() => REPORT(false));
+    render(<ResearcherSpendCard />);
+    await screen.findByText("Jana");
+    expect(screen.getByText(/Vidíte jen svou vlastní útratu/)).toBeTruthy();
+    expect(document.querySelector('[data-person="__unattributed"]')).toBeNull();
+    expect(screen.queryByText("Organizace celkem")).toBeNull();
+  });
+
+  it("refuses a malformed answer rather than show an empty table", async () => {
+    api(() => ({}));
+    render(<ResearcherSpendCard />);
+    expect(await screen.findByText("Útratu nelze načíst.")).toBeTruthy();
+    expect(screen.queryByText("Za toto období nikdo nic neutratil.")).toBeNull();
+  });
+});

@@ -83,6 +83,13 @@ try {
   await noOverflow("brief @1440");
   await shot("1440-brief");
 
+  // The Brief's Lead targets (artifact-brief BRF1): each field the contract names is one element
+  // (an empty context field by its chip), and a name it does not hold finds nothing.
+  const BRIEF_FIELDS = ["goal", "title", "type", "files", "context", "briefing.product_description", "decision_use", "briefing.situation", "briefing.what_is_known", "briefing.constraints"];
+  for (const f of BRIEF_FIELDS) assert.equal(await page.locator(`[id="brief-${f}"]`).count(), 1, `brief:${f}`);
+  assert.equal(await page.locator('[id="brief-situation"]').count(), 0, "brief:situation is not a target");
+  check("every Brief target the contract names is one element");
+
   // The separator: keyboard moves it 2 % within 28-62 %; Home goes back to 40 %.
   const sep = page.getByRole("separator", { name: "Změnit poměr konverzace a artefaktu" });
   await sep.focus();
@@ -226,6 +233,25 @@ try {
     await coverage.screenshot({ path: join(out, `${width}-plan-coverage.png`) });
   }
   check("Návrh shows its research questions' coverage at 1440, 1100, 768 and 390, no overflow");
+
+  // Cílová skupina names what the Lead can focus (data-aia, the artifact contract's row `audience`):
+  // the description, the filters, each factor by its catalogue id and the preview, at every width.
+  const aud = fixtures.audience;
+  for (const width of [1440, 1100, 768, 390]) {
+    await page.setViewportSize({ width, height: 900 });
+    await page.goto(base + `/app/clients/${aud.client}/research/${aud.study}/audience`);
+    await page.locator('[data-aia="audience:definition"]').waitFor({ timeout: 30000 });
+    for (const target of ["audience:definition", "audience:filters", "audience:preview"]) {
+      await page.locator(`[data-aia="${target}"]`).waitFor({ timeout: 30000 });
+      assert.equal(await page.locator(`[data-aia="${target}"]`).count(), 1, `${target} @${width}`);
+    }
+    // Every stored filter's chip carries its target, whichever factors the editor shows.
+    const chips = await page.getByRole("button", { name: /^Odebrat filtr/ }).count();
+    assert.equal(await page.locator('[data-aia^="audience:filter:"]').count(), chips, `a target per stored filter @${width}`);
+    await noOverflow(`audience @${width}`);
+    await shot(`${width}-audience`);
+  }
+  check("Cílová skupina names its description, filters, factors and preview at 1440, 1100, 768 and 390");
 
   const paid = writes.filter((w) => /\/research\/runs$|\/agent-jobs$|\/deep-research\/runs|\/lead\/turns\/[^/]+\/request$/.test(w.path));
   assert.deepEqual(paid, [], "nothing paid started");

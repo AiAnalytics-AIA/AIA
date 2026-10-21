@@ -1,7 +1,7 @@
 ---
 status: in-progress
 chunks:
-  - "[ ] DSN1. Návrh's contract as data: view operations, pointable ids (rq, objective, hypothesis, set, assumption) and V2's interaction contract, in research-lead-workbench 14's and 16's tables"
+  - "[x] DSN1. Návrh's contract as data: view operations, pointable ids (rq, objective, hypothesis, set, assumption) and V2's interaction contract, in research-lead-workbench 14's and 16's tables"
   - "[ ] DSN2. Research questions with their coverage on the working revision: measures, items, comparison and gaps from research_trace, pokryto / částečně / mezera by the trace's own verdict"
   - "[ ] DSN3. The narrative as items: problem summary, objectives, hypotheses and comparable measurements edited in place and autosaved, ProposalEditor and MeasurementEditor retired"
   - "[ ] DSN4. Ve zprávě: each research question's report chapter and the analysis module answering it, from the newest run's stored report model"

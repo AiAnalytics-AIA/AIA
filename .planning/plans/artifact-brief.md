@@ -1,7 +1,7 @@
 ---
-status: planned
+status: in-progress
 chunks:
-  - "[ ] BRF1. The Brief's contract as data: its view operations, its pointable element ids and V2's interaction contract, registered in research-lead-workbench 14's vocabulary and 16's target table"
+  - "[x] BRF1. The Brief's contract as data: its view operations, its pointable element ids and V2's interaction contract, registered in research-lead-workbench 14's vocabulary and 16's target table"
   - "[ ] BRF2. The Brief body as V2 draws it: Cíle, Rozhodnutí, Kontext and Podklady as items edited in place over the working copy, autosaved"
   - "[ ] BRF3. Podklady with their data class: the attachments and picked client sources served with the class material_rules gives them, shown as chips; links and removal with undo"
   - "[ ] BRF4. The Lead on the Brief: analyze_brief as a Lead card, its proposal inline, the stage's own AI start removed"
@@ -132,6 +132,13 @@ Every item is an `Item` (`src/components/ui.tsx:52`): edit in place, remove, mov
   is refused, never guessed (D10).
 - Depends on `research-lead-workbench#14` and `#16`. It lands as their first consumer if they ship
   together.
+
+- *Landed* (`apps/web/src/lib/artifacts/brief.ts`): `brief:<field>` for every field and section
+  (`briefing.<field>` as the Lead's edits name it) and `material:<attachment_id>` for a file kept in
+  AIA, each one element by the screen's `brief-<field>` id or the row's `data-aia`; an empty context
+  field is named by its chip. Agreed with the integration coordinator: the target kinds are
+  `objective` and `material` of their own (#563), not `brief.<section>.<item>`. `objective:<id>`
+  joins with BRF2. A link has no stable id and is not a target yet.
 
 **BRF2. The body as V2 draws it.**
 - `BriefStep` keeps its data and its save; its layout becomes V2's four sections (Předpoklady is a

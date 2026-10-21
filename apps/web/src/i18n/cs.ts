@@ -2382,6 +2382,8 @@ export const cs = {
       // Studio v3 (PersonaStep).
       asideLabel: "Výběr dimenzí a vzorek",
       chosenTitle: "Vybrané dimenze",
+      selectedHint: "Politika pole rozhoduje o použití. Dimenze bez tématu persony se respondentům nepředá; běh ji pojmenuje v „Kdo odpovídal“.",
+      topicsFailed: "Témata persony se nepodařilo načíst; zda se dimenze respondentům předá, zatím nevíme.",
       baseRow: "Sociodemografie · vždy zapnuto",
       groupRecommended: "Doporučeno pro tento projekt",
       groupCatalog: "Katalog systému",

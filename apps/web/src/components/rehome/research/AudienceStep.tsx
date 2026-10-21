@@ -72,6 +72,21 @@ import { InspectorSlot } from "./Inspector";
 import { AskLead, useLeadOwnsAiStarts } from "./AskLead";
 import { AiFailureCard, useAiStep } from "./useAiStep";
 
+/**
+ * What the Research Lead can name on this screen (artifact-audience § 4): the description, the
+ * filters, one factor by its catalogue id, one built-in subpanel, the preview. The workbench
+ * focuses them through lib/lead.ts focusSelector's `data-aia` fall-through.
+ */
+export const AUDIENCE_TARGET = { definition: "audience:definition", filters: "audience:filters", preview: "audience:preview" } as const;
+/**
+ * One stored filter's target, by its factor's catalogue id (`audience:filter:kraj`). It sits on the
+ * filter's chip under "Vybrané filtry", which every stored filter has whatever category, search or
+ * 80-factor cut the editor shows; a factor's editor may be off screen.
+ */
+export const audienceFactorTarget = (factorId: string) => `audience:filter:${factorId}`;
+/** One built-in subpanel's target, by its key (`audience:subpanel:young_18_29`). */
+export const audienceSubpanelTarget = (key: string) => `audience:subpanel:${key}`;
+
 const NOT_IN_AIA = "rounded-control border border-status-you-ink/40 bg-status-you-wash p-4";
 const EYEBROW = "font-mono text-[11px] uppercase tracking-[0.08em] text-ink-faint";
 
@@ -286,11 +301,14 @@ function FilterEditor({ live }: { live: Live }) {
 
   return (
     <div className="mt-4 flex flex-col gap-3">
-      {live.state === "ready" ? <LiveFilters live={live} /> : null}
-      {live.state === "missing" ? (
-        <NotInAia title={t("research.audience.filterTitle")}>{`${live.text} ${t("research.audience.filtersNotInAia")}`}</NotInAia>
-      ) : null}
-      <section className="rounded-control border border-border bg-surface p-4" aria-labelledby="aud-filters">
+      {live.state === "loading" ? null : (
+        <div data-aia={AUDIENCE_TARGET.filters}>
+          {live.state === "ready" ? <LiveFilters live={live} /> : (
+            <NotInAia title={t("research.audience.filterTitle")}>{`${live.text} ${t("research.audience.filtersNotInAia")}`}</NotInAia>
+          )}
+        </div>
+      )}
+      <section data-aia={AUDIENCE_TARGET.definition} className="rounded-control border border-border bg-surface p-4" aria-labelledby="aud-filters">
         {step.failure ? (
           <div className="mb-4">
             <AiFailureCard failure={step.failure} title={t("research.audience.failedTitle")} onRetry={() => step.setFailure(null)} onContinue={(id) => void step.resume(id, () => toast(PROPOSE_SAVED))} />
@@ -310,7 +328,7 @@ function FilterEditor({ live }: { live: Live }) {
             <p className="mt-3 text-xs text-ink-muted">{live.state === "ready" ? t("research.audience.selectedFilters") : t("research.audience.storedFilters")}</p>
             <ul className="mt-1 flex flex-wrap gap-1.5">
               {chips.map((c) => (
-                <li key={c.id} className="inline-flex items-center gap-1 rounded-sm border border-signal-edge bg-signal-wash py-0.5 pl-2 pr-0.5 text-xs">
+                <li key={c.id} data-aia={audienceFactorTarget(c.id)} className="inline-flex items-center gap-1 rounded-sm border border-signal-edge bg-signal-wash py-0.5 pl-2 pr-0.5 text-xs">
                   <b>{c.label}</b>: {c.text}
                   <button
                     type="button"
@@ -438,7 +456,7 @@ function Preview({ catalog }: { catalog: Catalog }) {
     }
   };
   return (
-    <div className="mt-4 border-t border-border pt-3">
+    <div data-aia={AUDIENCE_TARGET.preview} className="mt-4 border-t border-border pt-3">
       <Button disabled={busy} onClick={() => void check()}>
         {busy ? t("research.audience.previewRunning") : t("research.audience.previewButton")}
       </Button>
@@ -467,11 +485,13 @@ function Subpanels({ live }: { live: Extract<Live, { state: "ready" }> }) {
         <p className="mt-1 text-xs text-ink-muted">{tv("research.audience.subpanelsIntro", { measured: live.api.subpanels_measured_on })}</p>
         <div role="radiogroup" aria-label={t("research.audience.subpanelsTitle")} className="mt-2 grid gap-2 [grid-template-columns:repeat(auto-fit,minmax(240px,1fr))]">
           {live.api.subpanels.map((sp) => (
-            <RadioCard key={sp.key} checked={current === sp.key} disabled={sp.usable !== true} onSelect={() => current !== sp.key && pick(sp.key)} title={sp.name}>
-              {tv("research.audience.subpanelRows", { rows: sp.measured_by_18_6_6.rows.toLocaleString("cs-CZ"), donors: sp.measured_by_18_6_6.unique_core_donors.toLocaleString("cs-CZ") })}
-              {sp.usable === false ? <> · {tv("research.audience.subpanelUnusable", { reason: sp.reason || "?" })}</> : null}
-              {sp.usable == null ? <> · {t("research.audience.subpanelUnknown")}</> : null}
-            </RadioCard>
+            <div key={sp.key} data-aia={audienceSubpanelTarget(sp.key)} className="grid">
+              <RadioCard checked={current === sp.key} disabled={sp.usable !== true} onSelect={() => current !== sp.key && pick(sp.key)} title={sp.name}>
+                {tv("research.audience.subpanelRows", { rows: sp.measured_by_18_6_6.rows.toLocaleString("cs-CZ"), donors: sp.measured_by_18_6_6.unique_core_donors.toLocaleString("cs-CZ") })}
+                {sp.usable === false ? <> · {tv("research.audience.subpanelUnusable", { reason: sp.reason || "?" })}</> : null}
+                {sp.usable == null ? <> · {t("research.audience.subpanelUnknown")}</> : null}
+              </RadioCard>
+            </div>
           ))}
         </div>
       </section>

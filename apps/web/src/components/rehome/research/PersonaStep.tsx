@@ -18,7 +18,7 @@
 import { useRouter } from "next/navigation";
 import { type ReactNode, useEffect, useState } from "react";
 
-import { workspace } from "@/lib/api";
+import { research, workspace } from "@/lib/api";
 import { isNativeResult } from "@/lib/research-agent-jobs";
 import { t, tv } from "@/i18n/t";
 import {
@@ -43,6 +43,9 @@ import {
   clientDimensions,
   dimensionLabels,
   dimensionProposal,
+  dimensionTarget,
+  dimensionTopic,
+  dimensionTopicWords,
   isSampleRefusal,
   matchesDimensionSearch,
   personaDone,
@@ -87,6 +90,28 @@ function useClientDimensions(studyId: string): ActiveDimensions {
   return active;
 }
 
+/**
+ * The persona topic of each chosen dimension, asked of the server whenever the choice changes
+ * (artifact-dimensions DIM2). null until it answers; "failed" says so rather than guessing.
+ */
+function useDimensionTopics(studyId: string, ids: readonly string[]): Record<string, string | null> | null | "failed" {
+  const key = ids.join("\u0000");
+  const [topics, setTopics] = useState<{ key: string; value: Record<string, string | null> | "failed" } | null>(null);
+  useEffect(() => {
+    if (!key) return;
+    let live = true;
+    research.personaTopics(studyId, key.split("\u0000")).then(
+      (r) => live && setTopics({ key, value: Object.fromEntries(r.items.map((x) => [x.dimension, x.topic])) }),
+      () => live && setTopics({ key, value: "failed" }),
+    );
+    return () => {
+      live = false;
+    };
+  }, [studyId, key]);
+  if (!key) return {};
+  return topics?.key === key ? topics.value : null;
+}
+
 export function PersonaStep() {
   const { store, state, runJob, toast, stepHref, frame } = useResearch();
   const router = useRouter();
@@ -106,6 +131,7 @@ export function PersonaStep() {
   const labels = dimensionLabels(active);
   const approved = chosenDimensions(p);
   const chosen = new Set(approved);
+  const topics = useDimensionTopics(frame.studyId, approved);
   const suggested = new Set(suggestedPersonaDims(p));
   const entries = catalogEntries(active, CLIENT_LIBRARY_LABEL);
   const requested = requestedLabels(p);
@@ -212,6 +238,26 @@ export function PersonaStep() {
 
       <div className="flex min-w-0 flex-col gap-4">
         {step.failure ? <AiFailureCard failure={step.failure} title={t("research.persona.failedTitle")} onRetry={() => step.setFailure(null)} onContinue={(id) => void step.resume(id, (r) => setSuggestion(r as Suggestion))} /> : null}
+
+        <StepSection title={t("research.persona.chosenTitle")} hint={t("research.persona.selectedHint")} aside={<span className="font-mono text-xs text-ink-muted">{approved.length}</span>}>
+          {approved.length ? (
+            <ul className="flex flex-col divide-y divide-border px-4" aria-label={t("research.persona.chosenTitle")}>
+              {approved.map((id) => {
+                const topic = dimensionTopic(topics === "failed" ? null : topics, id);
+                return (
+                  <li key={id} data-aia={dimensionTarget(id) ?? undefined} className="flex flex-wrap items-center gap-x-3 gap-y-1 py-2">
+                    <span className="min-w-0 flex-1 basis-48 text-sm font-semibold">{labels[id] || id}</span>
+                    <span className="text-xs text-ink-muted">{entries.find((d) => d.id === id)?.source ?? "Systém"}</span>
+                    <span className={`rounded-pill border px-2 text-xs leading-5 ${topic.state === "matched" ? "border-status-done/40 text-ink" : topic.state === "unmatched" ? "border-status-you-ink/50 text-status-you-ink" : "border-border text-ink-muted"}`}>
+                      {dimensionTopicWords(topic)}
+                    </span>
+                  </li>
+                );
+              })}
+            </ul>
+          ) : null}
+          {topics === "failed" ? <p role="status" className="px-4 pb-3 text-xs text-status-you-ink">{t("research.persona.topicsFailed")}</p> : null}
+        </StepSection>
 
         <StepSection
           n={1}

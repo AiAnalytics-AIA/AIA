@@ -37,6 +37,7 @@ import { appRoutes } from "@/lib/app-routes";
 import { describeError } from "./errors";
 import { DeepResearchSettingsPanel } from "./DeepResearchSettingsPanel";
 import { MethodologyPanel } from "./MethodologyPanel";
+import { ResearcherSpendCard } from "./ResearcherSpendCard";
 import { SETTING_HELP, TAB_GUIDE } from "./settings-guide";
 import { SystemPromptsPanel } from "./SystemPromptsPanel";
 import { Technical, TechnicalProvider, TechnicalSwitch, useTechnical, useTechnicalChoice } from "./technical";
@@ -842,7 +843,12 @@ export function PanelView({ panel, reload }: { panel: Panel; reload: () => void 
         <ClientsPanel clients={clients} vocab={vocab} canAdminister={doc.may_administer} reload={reload} />
       </>
     ),
-    studies: <StudiesPanel studies={studies} clients={clients} vocab={vocab} reload={reload} />,
+    studies: (
+      <>
+        <ResearcherSpendCard />
+        <StudiesPanel studies={studies} clients={clients} vocab={vocab} reload={reload} />
+      </>
+    ),
     approvals: <SelfApprovalPanel levels={levels} clients={clients} studies={studies} reload={reload} />,
     residency: <DataClasses vocab={vocab} />,
     workflow: <Stages vocab={vocab} />,
