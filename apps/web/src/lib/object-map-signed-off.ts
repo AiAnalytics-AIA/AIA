@@ -235,6 +235,7 @@ export type RelationDetail = {
   // reliable / weak, or why it is unknown: too few people rated both, or one of them was rated alike by all
   verdict: "reliable" | "weak" | "fewRatings" | "noSpread";
   noiseRule: boolean; // the reliable status also passed the noise rule
+  clearFrom: number; // the declared |r~| from which a relation reads "zřetelný"; a map stored before it: 0.3
 };
 
 /** The panel's selected-relation block (`relationHtml66`) from the stored pair. The stored map keeps
@@ -253,6 +254,7 @@ export function relationDetail(battery: BatteryWithMaps, map: ObjectMapArtifact,
     respondents: map.support.respondents,
     verdict,
     noiseRule: map.spec.relation.noise_rule?.enabled ?? false,
+    clearFrom: map.spec.relation.clear_effect ?? 0.3,
   };
 }
 

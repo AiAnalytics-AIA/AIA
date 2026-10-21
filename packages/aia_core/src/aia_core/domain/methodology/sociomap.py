@@ -349,12 +349,15 @@ _CATALOGUE: Final[tuple[MethodStep, ...]] = (
             Symbol(r"\tilde r_{ij}", "vztah objektů i a j očištěný o tuto úroveň"),
             Symbol(r"p_{ij}", "Fisherovo p proti úrovni nesouvisejících objektů"),
         ),
+        parameters=(ParameterRef("relation.clear_effect", "Zřetelný vztah od |r̃|"),),
         evidence=(_SIGNED_OFF,),
         tests=(*_SIGNED_OFF_TESTS, _SIGNED_OFF_MAP_TEST),
         note_cs=(
             "Jen aia-sociomap-5 (odhad baseline_corrected_pearson). Pár je známý, když jej "
             "hodnotilo aspoň n_min respondentů (práh stavu, krok Stav páru) a oba sloupce mají "
-            "rozptyl nad 10^-12; jinak je neznámý a nemá žádnou hodnotu."
+            "rozptyl nad 10^-12; jinak je neznámý a nemá žádnou hodnotu. Od |r̃| „Zřetelný vztah "
+            "od“ nazývá detail vztahu na mapě vztah zřetelným, pod ním slabým; jen slovo, "
+            "výpočet nemění (bez hodnoty 0,3)."
         ),
     ),
     MethodStep(

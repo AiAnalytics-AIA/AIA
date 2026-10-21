@@ -3100,7 +3100,7 @@
        "person_centring"
       ],
       "keeps_cs": [],
-      "note_cs": "Jen aia-sociomap-5 (odhad baseline_corrected_pearson). Pár je známý, když jej hodnotilo aspoň n_min respondentů (práh stavu, krok Stav páru) a oba sloupce mají rozptyl nad 10^-12; jinak je neznámý a nemá žádnou hodnotu.",
+      "note_cs": "Jen aia-sociomap-5 (odhad baseline_corrected_pearson). Pár je známý, když jej hodnotilo aspoň n_min respondentů (práh stavu, krok Stav páru) a oba sloupce mají rozptyl nad 10^-12; jinak je neznámý a nemá žádnou hodnotu. Od |r̃| „Zřetelný vztah od“ nazývá detail vztahu na mapě vztah zřetelným, pod ním slabým; jen slovo, výpočet nemění (bez hodnoty 0,3).",
       "reading_cs": "",
       "role_cs": "Jádro mapy podle schválené metodiky: jak podobně lidé hodnotí dva objekty, očištěno o zápornou korelaci, kterou vytvoří samo centrování.",
       "source_cs": "",
@@ -3137,7 +3137,17 @@
        "packages/aia_core/tests/test_sociomap_signed_off_inputs.py::test_the_object_map_records_the_baseline_corrected_relations_under_aia_sociomap_5"
       ],
       "title_cs": "Korelace očištěná o úroveň nesouvisejících objektů",
-      "values": []
+      "values": [
+       {
+        "absent": true,
+        "effect": "",
+        "label_cs": "Zřetelný vztah od |r̃|",
+        "origin": "specification",
+        "reference": "relation.clear_effect",
+        "unit": "",
+        "value": null
+       }
+      ]
      },
      {
       "audit": "AIA",
@@ -7047,7 +7057,7 @@
        "person_centring"
       ],
       "keeps_cs": [],
-      "note_cs": "Jen aia-sociomap-5 (odhad baseline_corrected_pearson). Pár je známý, když jej hodnotilo aspoň n_min respondentů (práh stavu, krok Stav páru) a oba sloupce mají rozptyl nad 10^-12; jinak je neznámý a nemá žádnou hodnotu.",
+      "note_cs": "Jen aia-sociomap-5 (odhad baseline_corrected_pearson). Pár je známý, když jej hodnotilo aspoň n_min respondentů (práh stavu, krok Stav páru) a oba sloupce mají rozptyl nad 10^-12; jinak je neznámý a nemá žádnou hodnotu. Od |r̃| „Zřetelný vztah od“ nazývá detail vztahu na mapě vztah zřetelným, pod ním slabým; jen slovo, výpočet nemění (bez hodnoty 0,3).",
       "reading_cs": "",
       "role_cs": "Jádro mapy podle schválené metodiky: jak podobně lidé hodnotí dva objekty, očištěno o zápornou korelaci, kterou vytvoří samo centrování.",
       "source_cs": "",
@@ -7084,7 +7094,17 @@
        "packages/aia_core/tests/test_sociomap_signed_off_inputs.py::test_the_object_map_records_the_baseline_corrected_relations_under_aia_sociomap_5"
       ],
       "title_cs": "Korelace očištěná o úroveň nesouvisejících objektů",
-      "values": []
+      "values": [
+       {
+        "absent": true,
+        "effect": "",
+        "label_cs": "Zřetelný vztah od |r̃|",
+        "origin": "specification",
+        "reference": "relation.clear_effect",
+        "unit": "",
+        "value": null
+       }
+      ]
      },
      {
       "audit": "AIA",
@@ -10994,7 +11014,7 @@
        "person_centring"
       ],
       "keeps_cs": [],
-      "note_cs": "Jen aia-sociomap-5 (odhad baseline_corrected_pearson). Pár je známý, když jej hodnotilo aspoň n_min respondentů (práh stavu, krok Stav páru) a oba sloupce mají rozptyl nad 10^-12; jinak je neznámý a nemá žádnou hodnotu.",
+      "note_cs": "Jen aia-sociomap-5 (odhad baseline_corrected_pearson). Pár je známý, když jej hodnotilo aspoň n_min respondentů (práh stavu, krok Stav páru) a oba sloupce mají rozptyl nad 10^-12; jinak je neznámý a nemá žádnou hodnotu. Od |r̃| „Zřetelný vztah od“ nazývá detail vztahu na mapě vztah zřetelným, pod ním slabým; jen slovo, výpočet nemění (bez hodnoty 0,3).",
       "reading_cs": "",
       "role_cs": "Jádro mapy podle schválené metodiky: jak podobně lidé hodnotí dva objekty, očištěno o zápornou korelaci, kterou vytvoří samo centrování.",
       "source_cs": "",
@@ -11031,7 +11051,17 @@
        "packages/aia_core/tests/test_sociomap_signed_off_inputs.py::test_the_object_map_records_the_baseline_corrected_relations_under_aia_sociomap_5"
       ],
       "title_cs": "Korelace očištěná o úroveň nesouvisejících objektů",
-      "values": []
+      "values": [
+       {
+        "absent": true,
+        "effect": "",
+        "label_cs": "Zřetelný vztah od |r̃|",
+        "origin": "specification",
+        "reference": "relation.clear_effect",
+        "unit": "",
+        "value": null
+       }
+      ]
      },
      {
       "audit": "AIA",
@@ -14948,7 +14978,7 @@
        "person_centring"
       ],
       "keeps_cs": [],
-      "note_cs": "Jen aia-sociomap-5 (odhad baseline_corrected_pearson). Pár je známý, když jej hodnotilo aspoň n_min respondentů (práh stavu, krok Stav páru) a oba sloupce mají rozptyl nad 10^-12; jinak je neznámý a nemá žádnou hodnotu.",
+      "note_cs": "Jen aia-sociomap-5 (odhad baseline_corrected_pearson). Pár je známý, když jej hodnotilo aspoň n_min respondentů (práh stavu, krok Stav páru) a oba sloupce mají rozptyl nad 10^-12; jinak je neznámý a nemá žádnou hodnotu. Od |r̃| „Zřetelný vztah od“ nazývá detail vztahu na mapě vztah zřetelným, pod ním slabým; jen slovo, výpočet nemění (bez hodnoty 0,3).",
       "reading_cs": "",
       "role_cs": "Jádro mapy podle schválené metodiky: jak podobně lidé hodnotí dva objekty, očištěno o zápornou korelaci, kterou vytvoří samo centrování.",
       "source_cs": "",
@@ -14985,7 +15015,17 @@
        "packages/aia_core/tests/test_sociomap_signed_off_inputs.py::test_the_object_map_records_the_baseline_corrected_relations_under_aia_sociomap_5"
       ],
       "title_cs": "Korelace očištěná o úroveň nesouvisejících objektů",
-      "values": []
+      "values": [
+       {
+        "absent": false,
+        "effect": "",
+        "label_cs": "Zřetelný vztah od |r̃|",
+        "origin": "specification",
+        "reference": "relation.clear_effect",
+        "unit": "",
+        "value": 0.3
+       }
+      ]
      },
      {
       "audit": "AIA",
@@ -22044,6 +22084,7 @@
     },
     "relation": {
      "basis": "respondent_count",
+     "clear_effect": 0.3,
      "confidence": 0.95,
      "estimator": "baseline_corrected_pearson",
      "false_discovery_rate": 0.05,

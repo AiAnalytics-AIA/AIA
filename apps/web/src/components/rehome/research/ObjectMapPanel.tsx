@@ -633,13 +633,13 @@ function ObjectCard({ battery, map, selected, relation }: { battery: BatteryWith
 
 /** The panel's "Vybraný vztah" (`relationHtml66`) without the p-value and the noise level, which
  *  the map does not store (nor, under this estimator, an interval: "95 % —" as the panel prints a
- *  missing one); the verdict reads the stored status. "zřetelný" from |r| 0,3, as the panel words it. */
+ *  missing one); the verdict reads the stored status. "zřetelný" from the declared |r| (Metodika; 0,3 as the panel). */
 function RelationBlock({ detail: d }: { detail: ReturnType<typeof relationDetail> }) {
   const p = "research.exec.objectMap.panel";
   let verdict: ReactNode;
   if (d.r === null) verdict = tv(`${p}.${d.verdict === "noSpread" ? "relationNoSpread" : "relationFewRatings"}`, { n: d.n ?? 0 });
   else {
-    const word = t(`${p}.${Math.abs(d.r) >= 0.3 ? "relationClear" : "relationSlight"}`), sign = t(`${p}.${d.r >= 0 ? "relationPositive" : "relationNegative"}`);
+    const word = t(`${p}.${Math.abs(d.r) >= d.clearFrom ? "relationClear" : "relationSlight"}`), sign = t(`${p}.${d.r >= 0 ? "relationPositive" : "relationNegative"}`);
     verdict = d.verdict === "reliable"
       ? (d.noiseRule ? <><b>{tv(`${p}.relationReliableNoise`, { word, sign })}</b> {t(`${p}.relationReliableNoiseText`)}</> : <><b>{t(`${p}.relationReliable`)}</b> ({word} {sign}).</>)
       : <><b>{t(`${p}.relationWeak`)}</b> {t(`${p}.${d.noiseRule ? "relationWeakNoiseText" : "relationWeakText"}`)}</>;

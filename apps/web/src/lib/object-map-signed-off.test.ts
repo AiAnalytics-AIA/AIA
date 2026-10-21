@@ -195,8 +195,11 @@ describe("what a click shows", () => {
     expect(CLEAR.relations.status[i][j]).toBe("reliable");
     expect(relationDetail(clear, CLEAR, i, j)).toEqual({
       a: labelOf(CLEAR.object_ids[i]), b: labelOf(CLEAR.object_ids[j]), r: CLEAR.relations.r[i][j], interval: CLEAR.relations.interval![i][j],
-      n: CLEAR.relations.n[i][j], respondents: 300, verdict: "reliable", noiseRule: true,
+      n: CLEAR.relations.n[i][j], respondents: 300, verdict: "reliable", noiseRule: true, clearFrom: 0.3,
     });
+    // An edited version declares its own threshold for "zřetelný".
+    const edited = { ...CLEAR, spec: { ...CLEAR.spec, relation: { ...CLEAR.spec.relation, clear_effect: 0.45 } } };
+    expect(relationDetail(clear, edited, i, j).clearFrom).toBe(0.45);
     expect(relationDetail(clear, CLEAR, 0, 1).verdict).toBe("weak");
     const off = { ...CLEAR, spec: { ...CLEAR.spec, relation: { ...CLEAR.spec.relation, noise_rule: { enabled: false } } } };
     expect(relationDetail(clear, off, i, j).noiseRule).toBe(false);
