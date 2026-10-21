@@ -197,7 +197,7 @@ to the input-interactions plan (#528).
 | Page | Answer | Chunks |
 |---|---|---|
 | Q31 | Inline edits of a knowledge item are batched into one revision per editing session | `input-interactions#2` |
-| Q32 | Scale ranges as presets plus "Vlastní"; every scale point (1-10) gets a verbal label, not only the ends | `input-interactions#3b` |
+| Q32 | Scale ranges as presets plus "Vlastní"; every scale point (1-10) gets a verbal label, not only the ends | `input-interactions#3b1`, `input-interactions#3b2` |
 | Q33 | Report approval stays a modal naming the document | `input-interactions#6` |
 | Q34 | Any member may rename a client, audited, under EDIT_CLIENT_PROFILE | `input-interactions#7` |
 
@@ -206,7 +206,7 @@ to the input-interactions plan (#528).
 | # | Question | Who answers | Waits on it |
 |---|---|---|---|
 | — | The editor's go/no-go after the spike (page Q19): Wordcraft, ONLYOFFICE Docs or Collabora Online, against Tiptap | the owner | `research-lead-workbench#33`, `lead-orchestration#LO19`, `report-delivery#RD6` |
-| — | Scale labels in what respondents read (input-interactions 3b, finding IA-7, PR #528): it moves the respondent-system fingerprint the holdout validation binds to; the wording rule is the methodology owner's | A. Bahbouh | `input-interactions#3b`; `panel-grounded-respondents` 7f-7h |
+| — | Scale labels in what respondents read (input-interactions 3b, finding IA-7, PR #528): it moves the respondent-system fingerprint the holdout validation binds to; the wording rule is the methodology owner's | A. Bahbouh | `input-interactions#3b1` (behind `AIA_AI_SCALE_LABELS_IN_PROMPT`, off); `panel-grounded-respondents` 7f-7h |
 | — | ADR 0041 (the Lead's conversation and context, #529) accepted | the owner | `lead-conversation#LC0` |
 | — | The performance budget values for `mvp-acceptance-harness#18` (D-48); planning proposes them in that chunk's PR, the owner approves | the owner | `mvp-acceptance-harness#18` |
 | — | The methodology owner's decisions MQ-01 to MQ-24, MQ-01 (the `-5` register entry) first | A. Bahbouh | `mvp-methodology-packet.md` (#510); §11.4 |
@@ -267,6 +267,7 @@ plan. `POST`: after the MVP, by decision. The dispositions of plans outside the 
 | `assumptions-and-open-answer-coding` | S1 (assumption item), S2 (evidence, coding), S3 (report chapters) | I-1, I-3, I-5 | the coding method `MVPQ-02b` before any count; evidence-backed assumption statuses wait for the ADR of `AOC2` |
 | `lead-orchestration` | S1 | I-1, I-3 | money/authority and early worker contracts; card revision binding before the first card |
 | `lead-conversation` | S1 | I-1, I-3 | ADR 0041 accepted (`lead-conversation#LC0`); after `lead-orchestration#LO7`'s first layer |
+| `sociomap-5-web` | S2 and the methodology owner | I-2 | the methodology owner's lane (#517); `aia-sociomap-5` registered (MQ-01) before a map is client-facing |
 | `input-interactions` | S1 | I-1 | the shared primitives (`input-interactions#1`) before the artifact bodies build on them; 3b's wording rule from the methodology owner |
 | `run-qc-and-checkpoint` | S2 | I-1, I-2, I-3 | checkpoint before resumed fieldwork; event payload before Fieldwork UI; replacement method decision before RQC5 |
 | `report-delivery` | S3 | I-2, I-3 | a client-report contract, the evidence gate definitions (§11.4) |
