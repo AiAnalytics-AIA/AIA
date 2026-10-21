@@ -1,11 +1,12 @@
 ---
-status: planned
+status: in-progress
 chunks:
   - "[ ] 0. Audit, standard and this plan (docs only; .planning/evidence/input-interactions-audit.md)"
   - "[ ] 1. Shared primitives with tests: InlineText, Stepper, ChoiceChips (+ Segmented and Switch adopted everywhere), InlineCreateRow, SwatchPicker, MenuButton, UndoToast, SpendDialog; retire AskDialog's prompt form"
   - "[ ] 2. Knowledge library: folders and labels created in the list, renamed in place, recoloured by swatch; bulk and item filing by menu; search debounced (audit D1-D13)"
   - "[ ] 3. Questionnaire: questions, options, blocks and sets created and edited in place; comparisons as segmented; deletes with undo (audit A1-A8, A11-A21)"
-  - "[ ] 3b. Scales: range presets 1-5, 1-7, 0-10, 1-10 and Vlastní; a verbal label on every point; the domain compiling the labels and refusing a non-integer end, the labels reaching respondents (audit A9, A10, IA-2, IA-7)"
+  - "[x] 3b1. Scales, server side: the domain compiling a scale's labels (two ends or one per point; scale_labels_mismatch, scale_label_invalid) and refusing a non-integer end (invalid_scale); the labels reaching respondents behind AIA_AI_SCALE_LABELS_IN_PROMPT (off), the respondent prompt's identity moving with it; the report printing them; the editor's pure rule (apps/web/src/research/scale-labels.ts) (audit IA-2, IA-7)"
+  - "[ ] 3b2. Scales, the editor: range presets 1-5, 1-7, 0-10, 1-10 and Vlastní; a verbal label on every point, on chunk 1's primitives (#532); the range-change rule with its undo toast (audit A9, A10)"
   - "[ ] 4. Brief and plan: the narrative's questions, objectives and hypotheses as items edited in place; the measurement folded into the set card; autosave replaces the explicit editors (audit A22-A36)"
   - "[ ] 5. Sample and audience: one n stepper 50-5000 with the recommendation, no silent clamp; factor ranges as bounded steppers; subpanels and values as chips or combobox (audit B1-B11)"
   - "[ ] 6. Run, spend and results: one SpendDialog for every money confirmation; cancels as inline confirms; report approval as a modal naming the document; JobPanel non-modal (audit B12-B28, C1-C8)"
@@ -182,6 +183,45 @@ list read from the organization's own clients (chunk 8). Everything else is web-
 - The change alters what respondents are told, so it changes the respondent system's fingerprint
   (ADR 0024 §4); runs made before it keep their pinned specification and are not reinterpreted.
 
+### Chunk 3b1, as delivered (feature/scale-labels: 38bee7b7, b27e5300, c18d6883)
+
+- **Compile.** `popisky_skaly` (question) and `scale_labels` (set) are read by one rule,
+  `research_design._scale_labels`: absent, empty or all blank is *none declared*; two labels are
+  the ends; one per point is every point; any other length `scale_labels_mismatch`; a blank,
+  repeated (case-folded) or over-60-character label, or anything but a list of texts,
+  `scale_label_invalid`. `SpecQuestion.scale_labels` (empty, and absent from the fingerprint, when
+  none were declared; `test_a_design_without_labels_fingerprints_as_it_always_did` pins `DESIGN`'s
+  develop fingerprint) and `SpecBattery.scale_labels` (now two or one per point; `end_labels` on
+  both). A set that names none still gets `vůbec` / `velmi`.
+- **IA-2.** `_scale_end` takes a whole number, a whole float (`5.0`) or a numeral (`"5"`); 2.5,
+  `"1.5"` and a boolean are `invalid_scale`, never truncated
+  (`test_scale_labels_and_ends_that_cannot_be_read_are_refused_never_guessed`).
+- **Respondents, behind `AIA_AI_SCALE_LABELS_IN_PROMPT`** (worker, off by default, off in test,
+  `false` in the develop Compose file). Off, every request is byte for byte what develop sent
+  (`test_off_the_requests_are_byte_identical_whatever_labels_a_question_declares` pins the SHA-256
+  over a roster's requests). On, a scale question's item carries its labels in
+  `ai_respondent.scale_label_wording` -- **PROVISIONAL**, one function, identity
+  `SCALE_LABEL_WORDING = "aia-scale-labels-provisional-1"`; the methodology owner signs or changes
+  it before the switch is turned on. A set's two ends read exactly as before either way.
+- **The respondent system.** On, `respondent_prompt_sha256(scale_labels_in_prompt=True)` is the
+  SHA-256 over the system prompt and the wording's identity, so `pinned_components` and every
+  panel dataset's respondent system name another prompt and fingerprint
+  (`test_scale_labels_in_the_prompt_are_another_respondent_system`,
+  `test_a_panel_run_with_scale_labels_in_the_prompt_records_another_respondent_system`); the
+  dataset's provenance adds `prompt.scale_labels` only when on. Off, nothing recorded moves. The
+  switch is read by the worker when fieldwork runs; a finished run keeps the dataset and system it
+  recorded and is never reinterpreted.
+- **Validation.** A holdout arm asks with the labels off whatever the switch
+  (`AIFieldwork.answer_plans(scale_labels_in_prompt=False)`), because a validation's start pins
+  `pinned_components` with them off (`application/validation.py`). Validating a labelled system
+  needs the switch pinned at preregistration: decided with the methodology owner before it is on.
+- **Report.** The questionnaire appendix prints a question's labelled points, a set's every point
+  when it has them; each scale item's question table carries a note, `Škála: 1 = …, 10 = …`
+  (`report_tables.scale_notes`; `test_a_scales_labels_are_printed_beside_its_values`).
+- **Not done here (3b2):** the editor. #532 (chunk 1's primitives) was open when this landed; the
+  pure rule it will call (presets, `rescaleLabels`, `describeEveryPoint`, `labelProblem`) is in
+  `apps/web/src/research/scale-labels.ts` with its tests, wired to no screen yet.
+
 ## Where this touches other plans
 
 Planning should fold these together rather than build twice:
@@ -212,3 +252,11 @@ named.
 ## Findings
 
 IA-1 … IA-6, with all six parts, in the audit's §6. For the docs PR to number in `open-items.md`.
+
+- **IA-7 fixed** (chunk 3b1): a scale question's `popisky_skaly` is compiled into
+  `SpecQuestion.scale_labels` and, with `AIA_AI_SCALE_LABELS_IN_PROMPT` on, written into the
+  respondent's item (`test_on_a_scale_questions_labels_reach_the_respondent`). Off by default
+  until the methodology owner signs the wording.
+- **IA-2 fixed, server side** (chunk 3b1): a non-integer scale end is `invalid_scale`, never
+  truncated by `int()`. The web's `setScaleEnd` still sends `+raw` (min 8 / max 3, an empty field
+  as 0) until the editor's steppers land in 3b2.
