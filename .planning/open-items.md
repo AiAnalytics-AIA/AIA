@@ -5651,7 +5651,7 @@ up to a factor of three where respondents share donors.
 
 ---
 
-## OI-191 · Finding · Back-to-back merges cancelled develop's CI for almost six hours
+## OI-191 · Finding, closed · Back-to-back merges cancelled develop's CI for almost six hours
 
 **Claim.** `ci.yml` cancels an in-progress run when a newer one starts on the same ref, develop push
 runs included, so with merges every few minutes no develop run completed and nothing was deployed.
@@ -5678,7 +5678,8 @@ run completes at least once per run time. Batching merges is the no-code alterna
 to `develop` and `main`; and, after the change, the same listing showing completed develop runs on a
 busy day.
 
-**Status.** Open. Not changed here (a docs-only PR edits no workflow).
+**Status.** Closed by #620 (merged as `9d1e7e04`, 2026-10-21): `cancel-in-progress` is true only for
+`pull_request` runs, so a develop or main push run is never cancelled by a newer one.
 
 ---
 
