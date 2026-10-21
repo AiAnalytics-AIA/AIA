@@ -225,15 +225,7 @@ describe("Návrh", () => {
     it("keeps the comments' mode with the wait: the plan is marked as changed by them, and says so", async () => {
       unitStub(ANALYSIS, waitingFor());
       render(<ResearchScreen step="plan" frame={TEST_FRAME} />);
-      const text = (await screen.findByText("Jde o test nového konceptu.", {}, NATIVE_JOB_WAIT)).firstChild as Text;
-      Range.prototype.getBoundingClientRect = () => ({ left: 100, top: 200, width: 80, height: 16, right: 180, bottom: 216, x: 100, y: 200, toJSON: () => ({}) });
-      const range = document.createRange();
-      range.setStart(text, 0);
-      range.setEnd(text, 10);
-      window.getSelection()!.removeAllRanges();
-      window.getSelection()!.addRange(range);
-      fireEvent.mouseUp(text.parentElement!);
-      fireEvent.click(await screen.findByRole("button", { name: "Přidat komentář" }));
+      fireEvent.click(await screen.findByRole("button", { name: "Komentovat: Jde o test nového konceptu." }, NATIVE_JOB_WAIT));
       const draft = await screen.findByLabelText("Co změnit? Enter uloží komentář");
       fireEvent.change(draft, { target: { value: "Není to test." } });
       fireEvent.keyDown(draft, { key: "Enter" });
@@ -261,32 +253,44 @@ describe("Návrh", () => {
   it("comments on selected text, then works the comments in with a forced analysis", async () => {
     unitStub();
     render(<ResearchScreen step="plan" frame={TEST_FRAME} />);
-    const text = (await screen.findByText("Jde o test nového konceptu.")).firstChild as Text;
-    // jsdom lays nothing out: a selection has no box of its own.
-    Range.prototype.getBoundingClientRect = () => ({ left: 100, top: 200, width: 80, height: 16, right: 180, bottom: 216, x: 100, y: 200, toJSON: () => ({}) });
-    const range = document.createRange();
-    range.setStart(text, 0);
-    range.setEnd(text, 10);
-    window.getSelection()!.removeAllRanges();
-    window.getSelection()!.addRange(range);
-    fireEvent.mouseUp(text.parentElement!);
-    fireEvent.click(await screen.findByRole("button", { name: "Přidat komentář" }));
+    // An item edited in place is a button, which a browser selects no text in: the narrative's
+    // items are commented on by their own action, quoting the item whole (DSN3).
+    fireEvent.click(await screen.findByRole("button", { name: "Komentovat: Jde o test nového konceptu." }));
     // The comment is typed on its row, not in a prompt; Enter keeps it.
     const draft = await screen.findByLabelText("Co změnit? Enter uloží komentář");
     fireEvent.change(draft, { target: { value: "Není to test." } });
     fireEvent.keyDown(draft, { key: "Enter" });
     expect(await screen.findByText("Není to test.")).toBeTruthy();
-    expect(screen.getByText("„Jde o test“")).toBeTruthy();
+    expect(screen.getByText("„Jde o test nového konceptu.“")).toBeTruthy();
 
     fireEvent.click(screen.getByRole("button", { name: "Zpracovat komentáře" }));
     await approveProposal();
     expect(await screen.findByText("Upraveno podle vašich komentářů")).toBeTruthy();
     const [analyze] = posted(DESIGN_PATH);
     // The revised briefing is frozen in the native Design Revision.
-    expect(((analyze.body?.content as { briefing: { review_comments: string } }).briefing).review_comments).toBe("1. K textu „Jde o test“: Není to test.");
+    expect(((analyze.body?.content as { briefing: { review_comments: string } }).briefing).review_comments).toBe("1. K textu „Jde o test nového konceptu.“: Není to test.");
     expect(screen.queryByText("Není to test.")).toBeNull();
     // Set when the analysis resolves, after the plan above is drawn: waited for, never read at once.
     expect(await screen.findByText("Komentáře zapracovány", {}, NATIVE_JOB_WAIT)).toBeTruthy();
+  });
+
+  it("still comments on text selected outside the narrative's items, such as a set's question", async () => {
+    unitStub();
+    render(<ResearchScreen step="plan" frame={TEST_FRAME} />);
+    const text = (await screen.findByText("Jak vás oslovuje Jemná?")).firstChild as Text;
+    // jsdom lays nothing out: a selection has no box of its own.
+    Range.prototype.getBoundingClientRect = () => ({ left: 100, top: 200, width: 80, height: 16, right: 180, bottom: 216, x: 100, y: 200, toJSON: () => ({}) });
+    const range = document.createRange();
+    range.setStart(text, 0);
+    range.setEnd(text, 15);
+    window.getSelection()!.removeAllRanges();
+    window.getSelection()!.addRange(range);
+    fireEvent.mouseUp(text.parentElement!);
+    fireEvent.click(await screen.findByRole("button", { name: "Přidat komentář" }));
+    const draft = await screen.findByLabelText("Co změnit? Enter uloží komentář");
+    fireEvent.change(draft, { target: { value: "Zkrátit." } });
+    fireEvent.keyDown(draft, { key: "Enter" });
+    expect(await screen.findByText("„Jak vás oslovuj“")).toBeTruthy();
   });
 
   it("goes on to the questionnaire at its three paths", async () => {
@@ -313,37 +317,54 @@ describe("direct proposal editing", () => {
     expect(sets[0]).toEqual(existing);
   });
 
-  it("shows a native saved plan without a legacy analysis and persists human narrative edits to both representations", async () => {
+  it("shows a native saved plan without a legacy analysis and saves each narrative item edited in place to both representations", async () => {
     const ws = unitStub(null, {}, { ...PROJECT, research_plan: { problem_summary: "Uložený problém", objectives: ["Uložený cíl"], research_questions: ["Uložená otázka?"], status: "approved" } });
     render(<ResearchScreen step="plan" frame={TEST_FRAME} />);
     expect(await screen.findByText("Uložený cíl")).toBeTruthy();
     expect(screen.queryByText("Zatím není návrh")).toBeNull();
-    fireEvent.click(screen.getByRole("button", { name: "Upravit text návrhu" }));
-    const form = screen.getByRole("form", { name: "Upravit text návrhu" });
-    fireEvent.change(within(form).getByLabelText("Shrnutí výzkumného problému"), { target: { value: "Upravený problém" } });
-    fireEvent.change(within(form).getByLabelText("Co má výzkum zjistit"), { target: { value: "První cíl\n\nDruhý cíl" } });
-    fireEvent.change(within(form).getByLabelText("Výzkumné otázky"), { target: { value: "Nová otázka?" } });
-    fireEvent.click(within(form).getByRole("button", { name: "Použít úpravy návrhu" }));
-    await waitFor(() => expect(ws.saves.length).toBeGreaterThan(0));
-    expect(ws.saves.at(-1)?.content.research_plan).toMatchObject({ problem_summary: "Upravený problém", objectives: ["První cíl", "Druhý cíl"], research_questions: ["Nová otázka?"], status: "approved" });
-    expect(ws.saves.at(-1)?.analysis).toMatchObject({ problem_summary: "Upravený problém", objectives: ["První cíl", "Druhý cíl"] });
+    // artifact-design DSN3: no separate editor; every item is edited where it is shown.
+    expect(screen.queryByRole("button", { name: "Upravit text návrhu" })).toBeNull();
+    const edit = (label: RegExp, name: string, value: string) => {
+      fireEvent.click(screen.getByRole("button", { name: label }));
+      const field = screen.getByRole("textbox", { name });
+      fireEvent.change(field, { target: { value } });
+      fireEvent.keyDown(field, { key: "Enter", ctrlKey: true });
+    };
+    edit(/^Upravit: Shrnutí výzkumného problému/, "Shrnutí výzkumného problému", "Upravený problém");
+    edit(/^Upravit: Výzkumná otázka 1/, "Výzkumná otázka 1", "Nová otázka?");
+    fireEvent.click(screen.getByRole("button", { name: "Přidat cíl" }));
+    const row = screen.getByRole("textbox", { name: "Přidat cíl" });
+    fireEvent.change(row, { target: { value: "Druhý cíl" } });
+    fireEvent.keyDown(row, { key: "Enter" });
+    await waitFor(() => expect(ws.saves.at(-1)?.content.research_plan).toMatchObject({ objectives: ["Uložený cíl", "Druhý cíl"] }));
+    expect(ws.saves.at(-1)?.content.research_plan).toMatchObject({ problem_summary: "Upravený problém", research_questions: ["Nová otázka?"], status: "approved" });
+    expect(ws.saves.at(-1)?.analysis).toMatchObject({ problem_summary: "Upravený problém", objectives: ["Uložený cíl", "Druhý cíl"] });
     expect(posted(DESIGN_PATH)).toEqual([]); // manual editing never pays for an AI task
   });
 
-  it("validates narrative edits, cancels without changes, and guards leaving an unfinished editor", async () => {
+  it("refuses a repeat at the field, keeps the last objective, and takes a removal back with Vrátit", async () => {
     const ws = unitStub();
     render(<ResearchScreen step="plan" frame={TEST_FRAME} />);
-    fireEvent.click(await screen.findByRole("button", { name: "Upravit text návrhu" }));
-    const form = screen.getByRole("form", { name: "Upravit text návrhu" });
-    fireEvent.change(within(form).getByLabelText("Co má výzkum zjistit"), { target: { value: "" } });
-    fireEvent.click(within(form).getByRole("button", { name: "Použít úpravy návrhu" }));
+    await screen.findByText("Mírnější varianta vyhraje");
+    // The last objective stays: removing it is refused and nothing is saved.
+    fireEvent.click(screen.getByRole("button", { name: "Odebrat: Změřit zájem" }));
     expect(await screen.findByText("Doplňte alespoň jeden cíl výzkumu.")).toBeTruthy();
-    expect((screen.getByRole("button", { name: /Další · dotazník/ }) as HTMLButtonElement).disabled).toBe(true);
-    const unload = new Event("beforeunload", { cancelable: true }); window.dispatchEvent(unload);
-    expect(unload.defaultPrevented).toBe(true);
-    fireEvent.click(within(form).getByRole("button", { name: "Zrušit úpravy" }));
     expect(screen.getByText("Změřit zájem")).toBeTruthy();
+    // A hypothesis added twice is refused at the row.
+    fireEvent.click(screen.getByRole("button", { name: "Přidat hypotézu" }));
+    const row = screen.getByRole("textbox", { name: "Přidat hypotézu" });
+    fireEvent.change(row, { target: { value: "mírnější  varianta vyhraje" } });
+    fireEvent.keyDown(row, { key: "Enter" });
     expect(ws.saves).toEqual([]);
+    fireEvent.keyDown(row, { key: "Escape" });
+    // A removal happens at once and Vrátit puts it back where it was.
+    fireEvent.click(screen.getByRole("button", { name: "Odebrat: Mírnější varianta vyhraje" }));
+    expect(screen.queryByText("Mírnější varianta vyhraje")).toBeNull();
+    fireEvent.click(await screen.findByRole("button", { name: "Vrátit" }));
+    expect(await screen.findByText("Mírnější varianta vyhraje")).toBeTruthy();
+    // No unfinished editor to guard: leaving is not held.
+    const unload = new Event("beforeunload", { cancelable: true }); window.dispatchEvent(unload);
+    expect(unload.defaultPrevented).toBe(false);
   });
 
   it("edits a complete measurement with a live preview, preserves its extra fields and the existing questionnaire, and confirms scope replacement", async () => {

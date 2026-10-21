@@ -33,30 +33,51 @@ const headers = { Authorization: "Bearer workbench@example.invalid" };
 const get = async (url) => { const r = await page.request.get(base + url, { headers }); assert(r.ok(), `${url}: ${r.status()}`); return r.json(); };
 const visit = async (url) => { await page.goto(base + url); await page.locator("h1").waitFor(); };
 const saved = async () => { await page.getByText("Uloženo", { exact: true }).waitFor(); return get(contentPath); };
+// artifact-design DSN3: a narrative item is edited where it is shown (InlineText) and saved at once.
+const editInPlace = async (label, value) => {
+  await page.getByRole("button", { name: new RegExp(`^Upravit: ${label}`) }).click();
+  const field = page.getByRole("textbox", { name: label, exact: true });
+  await field.fill(value);
+  await field.press("Control+Enter");
+};
 const measure = async (label) => {
   const size = await page.evaluate(() => ({ viewport: innerWidth, document: document.documentElement.scrollWidth }));
   assert(size.document <= size.viewport + 2, `${label}: horizontal page overflow`);
   layouts.push({ label, ...size });
 };
 try {
-  await visit(path + "/plan"); await page.getByRole("button", { name: "Upravit text návrhu", exact: true }).waitFor();
+  await visit(path + "/plan"); await page.getByRole("button", { name: /^Upravit: Shrnutí výzkumného problému/ }).waitFor();
   const original = await get(contentPath);
   for (const width of [1440, 1024, 768, 390]) { await page.setViewportSize({ width, height: 1000 }); await measure("proposal"); }
   await page.setViewportSize({ width: 1440, height: 1000 });
-  await page.getByRole("button", { name: "Upravit text návrhu", exact: true }).click();
-  const narrative = page.getByRole("form", { name: "Upravit text návrhu" });
-  await narrative.getByLabel("Shrnutí výzkumného problému").fill("Fiktivní návrh: ověřit preference a dostupnost.");
-  await narrative.getByLabel("Výzkumné otázky", { exact: true }).fill("Která nabídka osloví?\nJakou roli má dostupnost?");
-  await narrative.getByLabel("Co má výzkum zjistit").fill("Porovnat čtyři nabídky\n\nOvěřit bariéry dostupnosti");
-  await narrative.getByLabel("Co stojí za ověření").fill("Dostupnost ovlivní volbu.");
-  for (const width of [1440, 1024, 768, 390]) { await page.setViewportSize({ width, height: 1000 }); await measure("narrative editor"); }
-  await narrative.getByRole("button", { name: "Použít úpravy návrhu" }).click();
+  // The stage shows (and writes back to both) the analysis's narrative when one is stored.
+  const shown = original.analysis ?? original.content.research_plan;
+  const before = shown.objectives?.length ?? 0;
+  await editInPlace("Shrnutí výzkumného problému", "Fiktivní návrh: ověřit preference a dostupnost.");
+  await editInPlace("Cíl 1", "Porovnat čtyři nabídky");
+  await page.getByRole("button", { name: "Přidat cíl", exact: true }).click();
+  const row = page.getByRole("textbox", { name: "Přidat cíl", exact: true });
+  await row.fill("Ověřit bariéry dostupnosti"); await row.press("Enter"); await row.press("Escape");
+  const questions = shown.research_questions?.length ?? 0;
+  await page.getByRole("button", { name: "Přidat výzkumnou otázku", exact: true }).click();
+  const rq = page.getByRole("textbox", { name: "Přidat výzkumnou otázku", exact: true });
+  await rq.fill("Jakou roli má dostupnost?"); await rq.press("Enter"); await rq.press("Escape");
+  const added = `Výzkumná otázka ${questions + 1}`;
+  await page.getByRole("button", { name: new RegExp(`^Upravit: ${added}`) }).click();
+  for (const width of [1440, 1024, 768, 390]) { await page.setViewportSize({ width, height: 1000 }); await measure("narrative item editor"); }
+  await page.getByRole("textbox", { name: added, exact: true }).fill("Která nabídka osloví?");
+  await page.getByRole("textbox", { name: added, exact: true }).press("Control+Enter");
+  await page.setViewportSize({ width: 1440, height: 1000 });
   let current = await saved();
-  assert.deepEqual(current.content.research_plan.objectives, ["Porovnat čtyři nabídky", "Ověřit bariéry dostupnosti"]);
+  assert.equal(current.content.research_plan.objectives[0], "Porovnat čtyři nabídky");
+  assert.equal(current.content.research_plan.objectives.length, before + 1);
+  assert.equal(current.content.research_plan.objectives.at(-1), "Ověřit bariéry dostupnosti");
+  assert.equal(current.content.research_plan.research_questions[questions], "Která nabídka osloví?");
   assert.deepEqual(current.analysis.objectives, current.content.research_plan.objectives);
   assert.deepEqual(current.content.sections, original.content.sections);
+  assert.equal(await page.getByRole("button", { name: "Upravit text návrhu" }).count(), 0, "no separate narrative editor");
   await page.reload(); await page.getByText("Fiktivní návrh: ověřit preference a dostupnost.", { exact: true }).waitFor();
-  checks.push("Narrative edit persists to project and analysis, survives reload and preserves the questionnaire");
+  checks.push("Narrative items edited and added in place persist to project and analysis, survive reload and preserve the questionnaire");
   await page.getByRole("button", { name: "Upravit měření a položky" }).first().click();
   const measurement = page.getByRole("form", { name: "Upravit měření a položky" });
   await measurement.getByLabel("Název sady", { exact: true }).fill("Varianty dostupnosti");
@@ -79,21 +100,22 @@ try {
   checks.push("Measurement template validation, live preview and edited objects/anchors persist after reload");
   await page.setViewportSize({ width: 1440, height: 1000 });
   await page.screenshot({ path: join(out, "proposal-desktop.png"), fullPage: true });
-  await page.getByRole("button", { name: "Upravit text návrhu", exact: true }).click();
-  await page.getByRole("form", { name: "Upravit text návrhu" }).getByLabel("Shrnutí výzkumného problému").fill("Unsaved text must survive");
-  await page.locator(`a[href="${path}/questionnaire"]`).first().click();
-  await page.getByRole("dialog").waitFor(); await page.getByRole("button", { name: "Zrušit", exact: true }).click();
-  assert.equal(await page.getByLabel("Shrnutí výzkumného problému").inputValue(), "Unsaved text must survive");
-  await page.getByRole("form", { name: "Upravit text návrhu" }).getByRole("button", { name: "Zrušit úpravy" }).click();
-  checks.push("Research rail navigation cannot silently discard an unfinished edit");
+  // An item open in place is saved when the person leaves it: following a link blurs the field first.
+  await page.getByRole("button", { name: /^Upravit: Shrnutí výzkumného problému/ }).click();
+  await page.getByRole("textbox", { name: "Shrnutí výzkumného problému", exact: true }).fill("Unsaved text must survive");
+  // The stage's own way out: the workbench's navigator, else the classic stage track's link.
+  const workbench = (await page.locator("[data-workbench]").count()) > 0;
+  await (workbench ? page.locator(".nav__stage", { hasText: "Dotazník" }) : page.locator(`a[href="${path}/questionnaire"]`).first()).click();
+  await page.waitForURL(`**${path}/questionnaire`);
+  await page.waitForFunction(async ([url, auth]) => (await (await fetch(url, { headers: { Authorization: auth } })).json()).content.research_plan.problem_summary === "Unsaved text must survive", [base + contentPath, headers.Authorization], { timeout: 15000 });
+  await visit(path + "/plan");
+  checks.push("Research rail navigation never silently discards an item open in place: it is saved on leaving");
   let injected = false;
   await page.route("**" + contentPath, async (route) => {
     if (route.request().method() === "PUT" && !injected) { injected = true; return route.fulfill({ status: 503, contentType: "application/json", body: JSON.stringify({ code: "temporary_failure", message: "Intentional local save failure" }) }); }
     return route.continue();
   });
-  await page.getByRole("button", { name: "Upravit text návrhu", exact: true }).click();
-  await page.getByLabel("Shrnutí výzkumného problému").fill("Uložení po obnovení spojení.");
-  await page.getByRole("form", { name: "Upravit text návrhu" }).getByRole("button", { name: "Použít úpravy návrhu" }).click();
+  await editInPlace("Shrnutí výzkumného problému", "Uložení po obnovení spojení.");
   await page.getByText("Neuloženo", { exact: true }).waitFor(); await page.getByRole("button", { name: "Zkusit znovu", exact: true }).click();
   current = await saved(); assert.equal(current.content.research_plan.problem_summary, "Uložení po obnovení spojení.");
   await page.unroute("**" + contentPath); checks.push("A refused save keeps the edited content and succeeds on explicit retry");
