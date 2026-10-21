@@ -79,6 +79,7 @@ import { openPlace, scrollBehavior, scrollToPlace } from "@/lib/open-place";
 import { useResearch } from "./context";
 import { InspectorSlot } from "./Inspector";
 import { questionnaireIssues } from "@/research/lane";
+import { AskLead, useLeadOwnsAiStarts } from "./AskLead";
 import { AiFailureCard, useAiStep } from "./useAiStep";
 import { AnalysisFailureCard, useAnalysis } from "./useAnalysis";
 import { DeepResearchPanel } from "./DeepResearchPanel";
@@ -102,6 +103,7 @@ export function QuestionnaireStep() {
   const router = useRouter();
   const analysis = useAnalysis();
   const step = useAiStep();
+  const leadOwnsAiStarts = useLeadOwnsAiStarts();
   const p = state.project;
   const view = questionnaireView(p);
   const [tab, setTab] = useState<"edit" | "preview">("edit");
@@ -235,9 +237,11 @@ export function QuestionnaireStep() {
               onChange={setTab}
             />
             <span className="flex-1" />
-            <AiButton small disabled={step.busy} onClick={() => void optimize()}>
-              {t("research.questionnaire.optimizeAction")}
-            </AiButton>
+            {!leadOwnsAiStarts ? (
+              <AiButton small disabled={step.busy} onClick={() => void optimize()}>
+                {t("research.questionnaire.optimizeAction")}
+              </AiButton>
+            ) : null}
           </>
         ) : null}
       </div>
@@ -249,9 +253,11 @@ export function QuestionnaireStep() {
           <h2 id="q-ai" className="text-lg font-semibold">{t("research.questionnaire.aiTitle")}</h2>
           <p className="mt-1 text-sm text-ink-muted">{t("research.questionnaire.aiIntro")}</p>
           <p className="mt-1 text-xs text-ink-muted">{t("research.questionnaire.aiBuildHelp")}</p>
-          <AiButton variant="primary" className="mt-4" disabled={step.busy || analysis.busy} onClick={() => void build()}>
-            {t("research.questionnaire.aiBuild")}
-          </AiButton>
+          {!leadOwnsAiStarts ? (
+            <AiButton variant="primary" className="mt-4" disabled={step.busy || analysis.busy} onClick={() => void build()}>
+              {t("research.questionnaire.aiBuild")}
+            </AiButton>
+          ) : <AskLead className="mt-4" what="Návrh dotazníku i jeho úpravu" />}
         </section>
       ) : null}
       {editor ? (
