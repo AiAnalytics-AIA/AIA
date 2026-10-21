@@ -161,8 +161,8 @@ jobs:
 
       - name: Lint
         run: |
-          ruff check packages/aia_core apps/api apps/worker apps/executors migrations
-          ruff format --check packages/aia_core apps/api apps/worker apps/executors migrations
+          ruff check packages/aia_core apps/api apps/worker apps/executors migrations tests
+          ruff format --check packages/aia_core apps/api apps/worker apps/executors migrations tests
 
       - name: Python version
         # The runner's Python is PYTHON_VERSION; make python-version also fails when
@@ -193,12 +193,14 @@ jobs:
         # on a push to develop. Two test modules with one basename in different
         # trees collect apart but not together ("import file mismatch"), and the
         # collection error then runs no test at all. 3f7fc500 did exactly that and
-        # was found only after it merged. Collection alone takes about 16 s.
+        # was found only after it merged. Collection alone takes about 16 s. The
+        # acceptance tree is collected here too, so a module of its that cannot import
+        # or an unregistered marker (--strict-markers) fails before its own step.
         env:
           DATABASE_URL: ""
         run: >-
-          pytest packages/aia_core apps/api apps/worker apps/executors -q --collect-only
-          --junit-xml=tmp/junit/collect.xml -o junit_family=xunit1
+          pytest packages/aia_core apps/api apps/worker apps/executors tests/acceptance -q
+          --collect-only --junit-xml=tmp/junit/collect.xml -o junit_family=xunit1
 
       # Every pytest step writes JUnit XML. tools/parity_status.py reads it to
       # tell a parity gate that passed from one that was skipped or never
@@ -238,6 +240,21 @@ jobs:
         env:
           AIA_REQUIRE_POSTGRES: "1"
         run: pytest apps/executors -q --junit-xml=tmp/junit/executors-postgres.xml -o junit_family=xunit1
+
+      - name: MVP acceptance, tier A (over HTTP, recorded providers)
+        # MVP-ACCEPT-2's tier A (docs/migration/mvp-acceptance.md): tests/acceptance starts
+        # the topology production runs -- the API and a worker as processes of their own,
+        # over PostgreSQL -- after one declared operator bootstrap, and drives it over HTTP
+        # alone, every model request answered by a recording behind the real gateway.
+        # A database of its own, so nothing another step left behind is read. Blocking:
+        # a failing criterion fails CI, and parity_status.py gives each criterion its
+        # verdict from this JUnit (a test it lists that did not run is a FAIL there).
+        env:
+          AIA_ACCEPTANCE_DATABASE_URL: postgresql+psycopg://aia:aia_ci@localhost:5432/aia_acceptance
+          PGPASSWORD: aia_ci
+        run: |
+          createdb -h localhost -U aia aia_acceptance
+          pytest tests/acceptance -q -m acceptance --junit-xml=tmp/junit/acceptance.xml -o junit_family=xunit1
 
       - name: Domain tests on SQLite
         # The offline development path must keep working too. The worker's
@@ -463,7 +480,8 @@ jobs:
           REFERENCE_AVAILABLE: ${{ needs.golden-fixtures.outputs.reference }}
           ORACLE_AVAILABLE: ${{ needs.oracle-parity.outputs.oracle }}
         run: |
-          available="postgres"
+          # The backend job runs the acceptance step whenever it runs at all.
+          available="postgres acceptance"
           if [ "$REFERENCE_AVAILABLE" = "true" ]; then available="$available reference_repo"; fi
           if [ "$ORACLE_AVAILABLE" = "true" ]; then available="$available legacy_oracle"; fi
           set +e

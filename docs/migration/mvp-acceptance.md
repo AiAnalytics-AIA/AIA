@@ -129,11 +129,18 @@ The run produces its own evidence, stored as artifacts of the study:
 
 Any `FAIL`, or any criterion not observed, fails the acceptance. There is no partial acceptance.
 
-## 5. Where it will live
+## 5. Where it lives
 
-`tests/acceptance/test_mvp_acceptance.py`, marked `acceptance`, driven over HTTP. It lands with the
-first criterion that can pass end to end, and it is **not** a runtime-skipped placeholder before
-then. Until it exists, `parity_status.py` reports the acceptance as `NOT_RUNNABLE`.
+`tests/acceptance/test_mvp_acceptance.py`, marked `acceptance`, driven over HTTP against the
+stack `tests/acceptance/conftest.py` starts: PostgreSQL (`AIA_ACCEPTANCE_DATABASE_URL`), the API
+and the worker as processes of their own, after one declared operator bootstrap (`alembic upgrade
+head`, then the develop seed: no route creates an organization or its owner). The worker runs
+the production composition over recorded model answers (`aia_executors.acceptance_recorded`).
+The tree imports nothing it drives. CI runs it in a step of its own and writes its JUnit;
+`parity_status.py` gives each criterion its tier-A verdict from the tests it lists (`tests` in
+`parity-matrix.json`): `NOT_RUNNABLE` while it lists none, `PASS` only when all of them passed. A
+criterion's test lands with the work that makes it runnable, never as a runtime-skipped
+placeholder. Tier B is recorded by the person who runs it.
 
 ## 6. Not in this test
 

@@ -478,6 +478,28 @@ def test_every_criterion_states_what_each_tier_proves(matrix: dict[str, Any]) ->
             assert isinstance(crit.get(tier), str) and len(crit[tier]) > 20, (crit["id"], tier)
 
 
+def test_every_criterion_test_is_a_test_in_the_acceptance_module(matrix: dict[str, Any]) -> None:
+    """A criterion's tests are what ``parity_status.py`` judges it by: each must exist, in the
+    acceptance module, named for its criterion -- a renamed test must not leave a criterion
+    reading as merely not executed."""
+    acceptance = matrix["mvp_acceptance"]
+    module = REPO / acceptance["test"]
+    assert module.is_file(), acceptance["test"]
+    defined = set(re.findall(r"^def (test_\w+)\(", module.read_text(encoding="utf-8"), re.M))
+    listed: list[str] = []
+    for crit in acceptance["criteria"]:
+        prefix = "test_" + crit["id"].lower().replace("-", "") + "_"
+        for pattern in crit["tests"]:
+            path, _, name = pattern.partition("::")
+            assert path == acceptance["test"], (crit["id"], pattern)
+            assert name in defined, (crit["id"], pattern)
+            assert name.startswith(prefix), (crit["id"], name)
+            listed.append(name)
+    assert len(listed) == len(set(listed)), "a test proves one criterion"
+    unlisted = {n for n in defined if re.match(r"test_ac\d\d_", n)} - set(listed)
+    assert not unlisted, f"criterion tests no criterion lists: {sorted(unlisted)}"
+
+
 def test_the_acceptance_document_and_the_matrix_list_the_same_criteria(
     matrix: dict[str, Any],
 ) -> None:
@@ -489,6 +511,7 @@ def test_the_acceptance_document_and_the_matrix_list_the_same_criteria(
     tiers = tiers.split("## 4.", 1)[0]
     for section in (criteria, tiers):
         assert re.findall(r"^\| (AC-\d\d) \|", section, re.M) == ids
+    assert matrix["mvp_acceptance"]["test"] in text
 
 
 def test_every_high_risk_behaviour_is_owned_by_a_capability(
@@ -522,7 +545,7 @@ def test_every_ci_pytest_step_writes_junit() -> None:
     silent = [
         step.splitlines()[0]
         for step in steps
-        if re.search(r"^\s*(run:.*)?\bpytest (packages|apps)", step, re.M)
+        if re.search(r"^\s*(run:.*)?\bpytest (packages|apps|tests)", step, re.M)
         and "--junit-xml" not in step
     ]
     assert not silent, f"pytest steps without --junit-xml: {silent}"
