@@ -323,3 +323,30 @@ artifact frame, routing and the old-method panel text (Q2).
     reading. Zero paid jobs.
   - LO19 and RD6 build against the editor the owner chooses; until then they keep a plain editor
     behind the same edit operations, so the choice changes the surface, not the rules.
+  - **Spike written up (2026-10-20):**
+    [`editor-spike-2026-10-21.md`](../evidence/editor-spike-2026-10-21.md).
+    - It is a desk comparison of five editors with cited sources. The local run on fictional files
+      is not done yet: this session's egress refused the vendors' hosts.
+    - Its recommendation: a conditional go for ONLYOFFICE Docs Community, self-hosted. AIA writes
+      the Lead's suggestions as OOXML revisions, and every number is a locked, tagged content
+      control that AIA checks on each save. Collabora Online is the fallback.
+    - It records finding F-ED1: no path that writes digits into a report tags them with their
+      source. The evidence file lists sixteen paths, P1-P16, plus the ones it rules out:
+      - the ledger's values in prose, tables, KPI tiles, captions, charts and the appendix;
+      - the map's pair table, support prose and fit caption;
+      - the design, method and literature chapters' facts.
+
+      Anchors include `report_docx/blocks.py:116-123`, `tables.py:182-198`, `blocks.py:280-299`,
+      `application/report_maps.py:186-223` and `report_docx/figures.py:79 @ e09a6c99`. R3 cannot be
+      checked through a round trip until RD6 emits every one as a locked, tagged content control.
+    - It records finding F-ED3: no report keeps its document model
+      (`apps/executors/src/aia_executors/report.py:121-167 @ e09a6c99`). `report-delivery#RD5a` is
+      therefore a prerequisite of both edit modes.
+    - Open question OQ-ED1, for the owner and A. Bahbouh: map result values (P7-P9) are not
+      admitted ledger refs, which RD6 requires. Either admit them as ledger claims, or approve an
+      exemption that tags them by artifact id. Until then, their tagging is provisional.
+    - The save check compares whole numeric tokens per paragraph, so `Q19` → `Q91` is refused.
+    - The one-day proof covers comments as well as numbers. It reads replies and resolved state by
+      parsing `commentsExtended.xml`, `commentsIds.xml` and `commentsExtensible.xml` directly,
+      because python-docx reads `comments.xml` only.
+    - The go/no-go is the owner's, so the chunk stays open.

@@ -320,7 +320,7 @@ describe("Run", () => {
     const { rerender } = render(at("brief"));
     fireEvent.change(await screen.findByLabelText(t("research.brief.goalLabel")), { target: { value: "Změna, kterou AIA odmítla" } });
     // The debounced save meets the newer revision while the person is still on the brief.
-    expect(await screen.findByText(t("research.saveConflict"), {}, { timeout: 4000 })).toBeTruthy();
+    expect(await screen.findByText(t("research.saveConflict"))).toBeTruthy();
     rerender(at("run"));
     expect(await screen.findByText(t("research.exec.readinessFailed"))).toBeTruthy();
     expect(screen.getAllByText(CONFLICT_MESSAGE).length).toBeGreaterThan(0);
@@ -1411,7 +1411,7 @@ describe("Progress", () => {
     // The page is now about the new run, a reload included.
     expect(window.location.search).toBe("?run=RUN-2");
     // And it keeps reading it: the first step finishes on screen without a reload.
-    await waitFor(() => expect(document.querySelector('[data-step="compile"]')?.getAttribute("data-status")).toBe("SUCCEEDED"), { timeout: 6000 });
+    await waitFor(() => expect(document.querySelector('[data-step="compile"]')?.getAttribute("data-status")).toBe("SUCCEEDED"));
     expect(reads).toBeGreaterThanOrEqual(2);
     expect(called("GET", "/api/v1/studies/STU-1/research/runs/RUN-1").filter((c) => !c.url.includes("/runs/RUN-1/"))).toHaveLength(1);
   }, 10000);

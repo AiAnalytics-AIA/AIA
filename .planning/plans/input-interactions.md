@@ -212,3 +212,53 @@ named.
 ## Findings
 
 IA-1 … IA-6, with all six parts, in the audit's §6. For the docs PR to number in `open-items.md`.
+
+
+### WT-1: the web suite timed out on a loaded machine (fixed on `fix/web-test-timeouts-under-load`)
+
+1. **Claim.** `npm test` (Vitest) failed 3 to 24 jsdom component tests whenever the host was
+   busy, because two time budgets were sized for an idle machine: vitest's 5 s per test and
+   testing-library's 1 s per `findBy*` / `waitFor`. No test shared or leaked state: the pool
+   isolates each file, every fake-timer user restores real timers, and every failing file
+   passes alone.
+2. **Anchor.** `apps/web/vitest.config.mts` @ e09a6c99 (no `testTimeout`, no setup file);
+   `apps/web/src/components/rehome/research/steps.tsx:16-22` @ e09a6c99 (the step screens
+   behind `next/dynamic`: a file's first lookup includes the module's transform and import).
+3. **Reproduction.** `cd apps/web && npx vitest run` on a 4-core host already running other
+   work. At load average ~7: 3 failed (MethodologyVersions 2, QuestionnaireStep 1). At ~13:
+   24 failed in 9 files (MethodologyVersions 14, ResearchScreen 3, QuestionnaireStep 2,
+   MethodologyPanel, SystemPromptsPanel, AudienceStep, BriefStep, ExecutionSteps 1 each).
+   Two shapes only: "Test timed out in 5000ms", and a `findBy*` that found nothing after
+   ~1.1-1.8 s. Evidence it is CPU, not the code: MethodologyVersions' heaviest test takes
+   2.9 s alone and 9.1 s inside the suite; a CPU profile of that file is jsdom, its selector
+   engine and React (~70 %) and garbage collection (14 %); Temml is under 1 %.
+4. **Consequence.** `make test-web` was red on a developer's or agent's machine whenever the
+   host was busy, so it had stopped being a signal there. CI (ubuntu-latest, 4 vCPU, nothing
+   else running) was green at e09a6c99: the Frontend job runs the same `npm test`, 82 s.
+5. **Fix.** One budget each, set once: `testTimeout: 30_000` in `vitest.config.mts` (the size
+   `test-native-agents.ts` already gave the research steps) and
+   `configure({ asyncUtilTimeout: 10_000 })` in the new `vitest.setup.ts`. The 4-6 s
+   per-lookup overrides that had accumulated one at a time are removed: under the new default
+   each would have been tighter than it. A first try at 4 s still failed one Metodika test at
+   load 18 (the panel's first render had not appeared after 4 s), hence 10 s. Vitest's own
+   `vi.waitFor` keeps its 1 s default, so ResearchScreen's four save waits name 10 s where
+   they are written. Worker count left at vitest's default (cores - 1, 3 on CI's 4 vCPU): the
+   contention came from outside the suite, and fewer workers would not remove it. No
+   assertion changed; a lookup that never matches still fails, later.
+6. **Test.** The suite itself, three consecutive full runs on the same loaded host (load
+   average 17.2 -> 10.1 across them): 2448 of 2448 passed each time, in 290 s, 272 s and
+   207 s. The slowest test of each run took 15.8 s (MethodologyVersions, "switches areas…"),
+   8.3 s and 7.3 s (PersonaStep), inside the 30 s budget.
+
+**Doc follow-up (CLAUDE.md §7 Known flakes), in §7's shape:**
+
+```
+- `apps/web` jsdom component tests (MethodologyVersions, MethodologyPanel, QuestionnaireStep,
+  ResearchScreen, IntakeSheet, AudienceStep, BriefStep, ExecutionSteps, FieldOriginPanel,
+  ObjectMapView, SystemPromptsPanel) — symptom: "Test timed out in 5000ms", or a findBy*
+  that finds nothing after ~1 s, only while the host is loaded.
+  Confirmation: passes when run alone. Cause: CPU starvation against idle-sized budgets
+  (vitest 5 s per test, testing-library 1 s per lookup); no shared state. Fix or waiver:
+  testTimeout 30 s (apps/web/vitest.config.mts), asyncUtilTimeout 10 s
+  (apps/web/vitest.setup.ts); vi.waitFor keeps 1 s and names its size where it needs more.
+```
