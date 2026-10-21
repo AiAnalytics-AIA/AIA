@@ -48,11 +48,11 @@ custom XML. (The one exception is the evidence appendix, which prints the ref id
 | P2 | Table number cell: `NumberCell(ref)` (`model.py:203`) | `infrastructure/report_docx/tables.py:182-198` (`_cell`) | the value with or without its unit, the indicative mark, the grade mark, and the interval in a **second paragraph** of the cell | a locked control per cell: block-level when the interval paragraph is shown, inline otherwise |
 | P3 | KPI tile: `Kpi.ref` in a `KpiRow` (`model.py:167-175`) | `infrastructure/report_docx/blocks.py:280-299` (`render_kpi_row`) | the value, grade mark and disclosure in one paragraph; the label; then the base n, interval and "orientační" in a **third paragraph** | a locked block-level control over the tile's cell, tagged with the ref |
 | P4 | Caption base n: `Table.base_ref`, `Figure.base_ref` | `infrastructure/report_docx/tables.py:87` (`caption` → `base_text`, `blocks.py:108-113`) | "n = 1 204" from the row's effective n | an inline locked control tagged `ref#n` |
-| P5 | Chart values: `Series.refs` in a `Figure` | `infrastructure/report_docx/charts.py:85-104` (`points`), labels drawn at `charts.py:176` | values and intervals drawn **into the SVG/PNG image**; no text in `document.xml` | the whole figure in a locked block-level control, tagged with its refs; the image itself cannot be edited |
+| P5 | Chart values: `Series.refs` in a `Figure` | `infrastructure/report_docx/charts.py:85-104` (`points`), labels drawn at `charts.py:176` | values and intervals drawn **into the SVG/PNG image**; no text in `document.xml` | the image paragraph (`figures.py:55-65`) in a locked block-level control, tagged with its refs; the image itself cannot be edited. The figure's caption is P4 and its source line is P13; neither is inside this control |
 | P6 | Evidence appendix: `cited_refs(report)` | `infrastructure/report_docx/blocks.py:346-375` | per ref: the ref id, value, interval, effective n, support, basis, grade, disclosures | the appendix table as one locked block-level region; it is regenerated, never edited |
-| P7 | Map pair table: not from the ledger | `application/report_maps.py:295-302` | the signed r, pair n and Kish n as **`TextCell` text**, from the stored map artifact | a locked region tagged `map:<artifact_id>`. Without it, the census reads these numbers as untagged digits |
-| P8 | Map support and credibility prose: not from the ledger | `application/report_maps.py:186-201` (the "Slabě určená mapa" callout: split-half %); `:203-223` (object count, placed/total profiles, donors, Stress-1 and its quality); `_credibility_note` `:77-100` (split-half %, its threshold %, reliable pairs, the uncertainty radius); `pair_status_means` `:43-66` (the pair rule's `n_min`, written into the reading guide) | split-half agreement, thresholds, profile and donor counts, Stress-1 and uncertainty radii as **ordinary `Paragraph`/`Callout` text** | each paragraph or callout as a locked block-level region tagged `map:<artifact_id>` (regenerated from the artifact, never typed over) |
-| P9 | Map figure caption: not from the ledger | `infrastructure/report_docx/figures.py:71-92` (`render_sociomap`: Stress-1 at `:79`, or `fit_caption` at `:76`); `stress_1` set at `application/report_maps.py:245` | "Stress-1 = 0,123" (or the fit caption) in the caption's `extra` | an inline locked control over the caption's fit text, tagged `map:<artifact_id>` |
+| P7 | Map pair table: not from the ledger | `application/report_maps.py:295-302` | the signed r, pair n and Kish n as **`TextCell` text**, from the stored map artifact | the whole table, from the header to its notes row, as one locked block-level region tagged `map:<artifact_id>` (provisional: OQ-ED1). Without it, the census reads these numbers as untagged tokens |
+| P8 | Map support and credibility prose: not from the ledger | `application/report_maps.py:186-201` (the "Slabě určená mapa" callout: split-half %); `:203-223` (object count, placed/total profiles, donors, Stress-1 and its quality); `_credibility_note` `:77-100` (split-half %, its threshold %, reliable pairs, the uncertainty radius); `pair_status_means` `:43-66` (the pair rule's `n_min`, written into the reading guide) | split-half agreement, thresholds, profile and donor counts, Stress-1 and uncertainty radii as **ordinary `Paragraph`/`Callout` text** | each paragraph or callout as a locked block-level region tagged `map:<artifact_id>` (provisional: OQ-ED1); regenerated from the artifact, never typed over |
+| P9 | Map figure caption: not from the ledger | `infrastructure/report_docx/figures.py:71-92` (`render_sociomap`: Stress-1 at `:79`, or `fit_caption` at `:76`); `stress_1` set at `application/report_maps.py:245` | "Stress-1 = 0,123" (or the fit caption) in the caption's `extra` | an inline locked control over the caption's fit text, tagged `map:<artifact_id>` (provisional: OQ-ED1) |
 
 Paths that print grade marks or disclosures from refs but no number need no control of their own
 (`blocks.py:181-185`, `:211`, `:264`, `:275`). A census must still count their refs, so that a deleted
@@ -70,7 +70,7 @@ hit.
 | P10 | The design chapter and questionnaire appendix | `application/report_design.py:49-51` (scale ends), `:69` (audience filter bounds), `:77`, `:122` (item counts), `:141` ("Návrh počítal s {spec.n} respondenty"), `:164` ("Blok {index}") | design facts from the Design Revision the run executed | a locked block-level region tagged `design:<revision_id>`; regenerated, never edited |
 | P11 | The method chapter, "Respondenti a výpočet" | `application/report_method.py:120` (item counts), `:228-235` (the trace table's counts), `:296`, `:352`, `:432-438` (selection sentences) | counts and ids from the run's record | a locked region tagged `run:<run_id>` |
 | P12 | Refused-question counts | `application/report_tables.py:195` ("Výsledky {len(refused)} otázek zpráva neuvádí") | a count the admission computed | a locked callout tagged `run:<run_id>` |
-| P13 | Suppressed-row and omitted-point counts | `infrastructure/report_docx/tables.py:116-117` (`source_line`: "{removed}"), called with `drawn.omitted` at `figures.py:66` | counts of rows or points suppression removed | inside the table's or figure's locked region (P2/P5) |
+| P13 | Suppressed-row and omitted-point counts | computed at `infrastructure/report_docx/tables.py:209-210` (rows with a suppressed ref removed) and in `charts.py:85-104` (`points`: suppressed refs counted as `omitted`); written by `source_line` at `tables.py:116-117`, which `table_notes()` (`tables.py:131-143`) puts into the table's **notes row**, and which `figures.py:66` puts **below the figure** | the number of rows or points suppression removed | **in no other control**: P2's controls are per cell, and P5's covers the image paragraph only. It needs an inline locked control of its own around the count, tagged `count:suppressed:<table or figure id>`. The census recomputes it from the stored model's refs for that block and the ledger's suppression, and refuses a mismatch |
 | P14 | The literature report's bundle figures | `application/contextual_report.py:312` (labels L1, L2, …), `:392-394` (snapshot, accepted, cited and rejected counts), `:428`, `:439` | counts and labels from the sealed bundle | a locked region tagged `bundle:<run_id>`; L-labels as locked inline controls, because prose cites them |
 | P15 | The audit and provenance rows | `application/report.py:102-112` (the methodology deviation: each changed parameter "18.6.6: {unit}, zde {used}", the replaced formula ids), `:232-234` (run id, evidence fingerprint, methodology version) | parameter values and version strings | the document-control table, a locked region |
 | P16 | The experimental Sociomapping DOCX | `application/sociomapping_report.py:139` (`_n`), `:142-147` (`_fit_caption`), `:161`, `:193`, `:282`, `:288`, `:416-431` | accuracy, counts and versions from the Sociomapping result | out of RD6's scope: an internal draft no editor flow opens. If it is ever opened, it is locked whole |
@@ -85,21 +85,74 @@ hit.
   or the map, design and method chapters. R3 cannot be checked through a DOCX round trip today.
 - **Smallest fix (for RD6, not this spike):**
   - The renderer wraps every printed group P1-P15 in a content control (`w:sdt`) with `w:lock` =
-    `sdtContentLocked`. Its `w:tag` names the source: the ledger ref, `map:<artifact_id>`,
-    `design:<revision_id>`, `run:<run_id>` or `bundle:<run_id>`. A group that spans paragraphs is a
-    block-level control.
+    `sdtContentLocked`. Its `w:tag` names the source:
+    - the ledger ref;
+    - `map:<artifact_id>`, provisional until OQ-ED1 is answered;
+    - `design:<revision_id>`, `run:<run_id>` or `bundle:<run_id>`;
+    - `count:suppressed:<id>`.
+
+    A group that spans paragraphs is a block-level control.
   - On a save, a census over the stored model (F-ED3) refuses a document that:
     - lost a tagged control;
     - changed a control's text;
-    - holds, in an editable paragraph, a digit that the stored model's paragraph did not already
-      hold.
+    - fails the numeric-token rule below.
+  - **The numeric-token rule.** The census does not compare digits; it compares whole numeric
+    tokens. A token is a maximal run of digits with its decimal comma and its digit-group spaces
+    (`1 204`, `42,5`, `Q19`'s `19`).
+    - For every editable paragraph, the sequence of numeric tokens outside controls must equal the
+      stored model's sequence for that paragraph: the same tokens, in the same order.
+    - The only other way a number appears is as a new ledger-ref control written by AIA's edit
+      operation.
+    - So `Q19` → `Q91`, `42,5` → `45,2` and `2026` → `2062` are refused, although each keeps the same
+      digits. Deleting a token is refused too: a sentence that loses its number changes meaning.
   - A new number enters a report only as a ledger ref, through AIA's edit operation, never typed.
 - **Test that would have caught it:** a renderer test over one `ReportDocument` that holds every
   path P1-P15. It collects the refs the model cites (`Value`, `NumberCell`, `Kpi` and `base_ref`
   refs, series refs, `cited_refs`) and the map, design, run and bundle sources, then reads the
   `w:sdt/w:sdtPr/w:tag` values and every `w:t` in the DOCX. It expects:
   - every source to have a tag, and no tag without a source;
-  - every digit outside a field result to sit inside a tagged control or in prose the model holds.
+  - every numeric token outside a field result to sit inside a tagged control, or to be the stored
+    model's token at the same place in its paragraph.
+
+**OQ-ED1 (open, for Nigel Blount and A. Bahbouh). Map result values are not ledger refs, and R3
+says they must be.**
+
+- **The conflict:**
+  - R3 says every number stays a ledger ref.
+  - `report-delivery#RD6` (`.planning/plans/report-delivery.md:105-109 @ e09a6c99`) says "Every
+    number stays an admitted ledger ref".
+  - RD0 (`report-delivery.md:99-101`) exempts only design and method facts fed from the
+    specification.
+  - The map's values (P7-P9) are none of these. They are the signed r, the pair n and Kish n, the
+    split-half agreement, Stress-1, the thresholds and the uncertainty radius. They are written from
+    the stored map artifact (`application/report_maps.py:186-223`, `:295-302`; `figures.py:79`),
+    and the analysis-number gate never admits them.
+  - Tagging them `map:<artifact_id>` gives them provenance, not admission.
+- **This spike does not settle it.** It is a product and methodology decision.
+- **Option (a): admit map outputs as ledger claims.** It would take:
+  - a metric for each map output (r, Kish n, split-half %, Stress-1, radius) in the closed metric
+    set, `domain/evidence/metrics.py:32-56 @ e09a6c99`, which today holds mean, top2box_pct, n,
+    effective_n and pct;
+  - an evidence row per value with its decimals and, where the method has one, its interval;
+  - admission through `admit_numeric_claims` (`domain/evidence/admission.py:298 @ e09a6c99`): field
+    policy, joint structure, support (the pair `n_min`, Kish n) and interval. Stress-1 and the
+    split-half figure have no interval, so they need a rule of their own;
+  - the tier taken from the Sociomap register's status for the map's method;
+  - then `EvidenceLedger` rows (`domain/report/evidence.py:74`), and P7-P9 render as P1/P2
+    controls.
+
+  The cost is a methodology change, signed off by the methodology owner, and work in evidence and
+  reporting before RD6.
+- **Option (b): an explicit, approved exemption.** Map-artifact values stay outside the ledger,
+  tagged `map:<artifact_id>`, locked, and checked by the census against the artifact (verified by
+  SHA-256).
+  - The owner and the methodology owner approve this as a named exception to R3 and RD6.
+  - It is recorded where RD0's design exemption is.
+
+  The cost is that R3 holds for analysis numbers only, and a map number reaches a report without the
+  admission gates.
+- **Until it is answered, P7-P9's tagging is provisional.** The proof still locks them, and still
+  checks that an edit to one is refused.
 
 **F-ED3. AIA does not keep the document model of a rendered report.**
 
@@ -342,7 +395,9 @@ surface and not the store.
 - The editor saves back to AIA (a callback or WOPI PutFile).
 - AIA runs a ref census against the stored model:
   - every tagged control is present, with its text unchanged;
-  - no editable paragraph holds a digit that its stored paragraph did not;
+  - each editable paragraph's numeric tokens outside controls equal its stored paragraph's, in
+    order (the numeric-token rule, F-ED1);
+  - each `count:suppressed` control equals the count recomputed from the stored model;
   - every comment is read back with its author, anchor, replies and resolved state. Author, text
     and anchor come through python-docx. Replies and resolved state come from parsing
     `commentsExtended.xml`, `commentsIds.xml` and `commentsExtensible.xml` directly, because
@@ -385,7 +440,12 @@ whose renderer emits locked, tagged controls on all of P1-P15, the proof runs th
      - `commentsExtensible.xml`: the UTC dates.
 
    Then open the saved file in Word or LibreOffice and confirm the same threads and states.
-9. Try typing a new number into editable prose, and confirm the census refuses the save.
+9. Confirm the census refuses each of these bypasses, saved one at a time:
+   - a new number typed into editable prose;
+   - a number's digits reordered in place (`Q19` → `Q91`, `42,5` → `45,2`);
+   - a number deleted from a sentence;
+   - a suppressed-row count edited in a table's notes row (P13);
+   - an edited map value (P7-P9), whichever way OQ-ED1 is answered.
 
 The proof passes only if every tag survives with its text unchanged, no control could be edited or
 deleted, and every comment round-trips. If it fails, the fallback is Collabora Online (MPL 2.0) under
@@ -457,3 +517,8 @@ keep the Lead's rules in AIA, so the editor can be replaced.
 
 Whichever option is chosen, the study context file keeps the plain editor unless the owner says
 otherwise (F-ED2).
+
+**A second open question, independent of the editor: OQ-ED1** (above, under F-ED1). Do map result
+values become admitted ledger claims (a), or does an exemption approved by the owner and the
+methodology owner cover them, tagged by artifact id (b)? Nigel Blount and A. Bahbouh decide. RD6's
+handling of P7-P9 waits on it.

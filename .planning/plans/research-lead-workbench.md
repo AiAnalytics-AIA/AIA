@@ -342,6 +342,10 @@ artifact frame, routing and the old-method panel text (Q2).
     - It records finding F-ED3: no report keeps its document model
       (`apps/executors/src/aia_executors/report.py:121-167 @ e09a6c99`). `report-delivery#RD5a` is
       therefore a prerequisite of both edit modes.
+    - Open question OQ-ED1, for the owner and A. Bahbouh: map result values (P7-P9) are not
+      admitted ledger refs, which RD6 requires. Either admit them as ledger claims, or approve an
+      exemption that tags them by artifact id. Until then, their tagging is provisional.
+    - The save check compares whole numeric tokens per paragraph, so `Q19` → `Q91` is refused.
     - The one-day proof covers comments as well as numbers. It reads replies and resolved state by
       parsing `commentsExtended.xml`, `commentsIds.xml` and `commentsExtensible.xml` directly,
       because python-docx reads `comments.xml` only.
