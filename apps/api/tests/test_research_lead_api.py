@@ -14,6 +14,7 @@ import pytest
 from aia_core.application.research import research_artifacts
 from aia_core.application.scope import AuthenticatedPrincipal, ScopeResolver
 from aia_core.domain.research_lead import ARTIFACT_TYPE
+from aia_core.domain.workflow import FailureClass
 from aia_core.domain.workflow_templates import RESEARCH_LEAD_TURN
 from aia_core.infrastructure.db import create_session_factory
 from aia_core.infrastructure.scope_repository import ScopeRepository
@@ -771,3 +772,49 @@ def test_an_older_soul_change_never_overwrites_a_newer_one(
     assert "self_update_base" not in turns[first]
     again = decide(first)
     assert again.status_code == 409 and again.json()["code"] == "lead_self_update_decided"
+
+
+# --------------------------------------------------------------------------- the study's budget
+
+
+def test_setting_the_study_budget_sends_the_message_that_waited_for_it(
+    researcher: TestClient, world: Any, app: FastAPI
+) -> None:
+    """F4 and the product owner's Q39 (2026-10-21): the message that parked for lack of budget
+    is sent once a person sets the budget in Nastavení -> Studie, and the ledger names them."""
+    budget_url = f"/api/v1/studies/{world.study_id()}/budget"
+    assert researcher.put(budget_url, json={"budget_usd": 0.0}).status_code == 200
+    _hatched(researcher)
+    posted = researcher.post(
+        f"{lead_url(world)}/turns", json={"kind": "message", "stage": "brief", "text": "Jsi tam?"}
+    )
+    assert posted.status_code == 201, posted.text
+    run_id = posted.json()["turns"][-1]["run_id"]
+    with create_session_factory(app.state.engine)() as session:
+        workflows = WorkflowRepository(session, _scope(app, world, session))
+        work = workflows.claim_next(worker_id="w", kinds={RESEARCH_LEAD_TURN})
+        assert work is not None
+        workflows.fail_attempt(
+            work.attempt_id,
+            worker_id="w",
+            failure=FailureClass.BUDGET_EXCEEDED,
+            error={"requested_usd": 0.5, "remaining_usd": 0.0, "budget_usd": 0.0},
+        )
+        session.commit()
+    lead = researcher.get(lead_url(world)).json()
+    assert (lead["turns"][-1]["status"], lead["turns"][-1]["reason"]) == (
+        "WAITING",
+        "budget_exceeded",
+    )
+    assert lead["busy"] is False
+
+    assert researcher.put(budget_url, json={"budget_usd": 5.0}).status_code == 200
+    lead = researcher.get(lead_url(world)).json()
+    assert lead["turns"][-1]["status"] == "QUEUED" and lead["busy"] is True
+    with create_session_factory(app.state.engine)() as session:
+        rows = session.scalars(
+            select(ApprovalDecisionRow).where(ApprovalDecisionRow.run_id == run_id)
+        ).all()
+        assert [(r.gate_type, r.decision, r.approver_user_id) for r in rows] == [
+            ("budget", "lift", world.users["researcher"])
+        ]

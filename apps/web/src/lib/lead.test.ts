@@ -211,6 +211,8 @@ describe("leadReasonWords", () => {
   it("says what to do about a turn parked on the study's budget, by the code the server sends", () => {
     // The server's waiting reason is budget_exceeded; AWAITING_BUDGET is a step status it never sends.
     expect(leadReasonWords("budget_exceeded")).toContain("Nastavení → Studie");
+    // Setting the budget sends the message by itself (the product owner, 2026-10-21, Q39).
+    expect(leadReasonWords("budget_exceeded")).toContain("odešle sama");
     expect(leadReasonWords("budget_exceeded")).not.toContain("budget_exceeded");
   });
   it("says a superseded turn's message was read with the next one", () => {

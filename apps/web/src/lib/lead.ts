@@ -569,8 +569,9 @@ export function revertTextEdit(now: Content, e: LeadEdit, inverse: LeadEdit): { 
 
 /** A Lead turn's or a refused post's reason code in words, as the pane shows it. A turn parked on
  * the study's budget comes back as `budget_exceeded` (the step's waiting reason, never the status
- * AWAITING_BUDGET); it holds nothing, and the next message supersedes it, so its words say what to
- * do. A cancelled Lead turn is one a later message superseded: no other path cancels a Lead turn. */
+ * AWAITING_BUDGET); it holds nothing, and it is sent by itself once a person sets or raises the
+ * budget (the product owner, 2026-10-21, Q39), so its words say where. A cancelled Lead turn is one
+ * a message written before the budget was set superseded: no other path cancels a Lead turn. */
 export const LEAD_REASON_WORDS: Readonly<Record<string, string>> = {
   research_lead_unavailable: "Vedoucí výzkumu není v tomto prostředí zapnutý.",
   research_lead_disabled: "Vedoucí výzkumu není v tomto prostředí zapnutý.",
@@ -583,7 +584,7 @@ export const LEAD_REASON_WORDS: Readonly<Record<string, string>> = {
   lead_context_too_large: "Studie je pro jednu odpověď příliš velká. Zkuste se zeptat na konkrétní část.",
   lead_busy: "Vedoucí ještě odpovídá na předchozí zprávu.",
   lead_not_hatched: "Nejdřív si vylíhněte vlastního Vedoucího výzkumu.",
-  budget_exceeded: "Na odpověď nezbývá rozpočet studie. Nastavte ho v Nastavení → Studie a napište znovu; Vedoucí odpoví i na tuto zprávu.",
+  budget_exceeded: "Na odpověď nezbývá rozpočet studie. Nastavte ho v Nastavení → Studie a zpráva se odešle sama.",
   CANCELLED: "Na tuto zprávu Vedoucí neodpověděl zvlášť: přečetl ji s vaší další zprávou.",
 };
 

@@ -232,20 +232,35 @@ The backend each chunk needs is in `.planning/mvp-consolidation.md` §6.
     (`domain/workflow.py:583 @ 095a3e68`, read at `research_lead.py:219`), which the pane had no
     words for (its `AWAITING_BUDGET` entry, `LeadPane.tsx:48 @ 095a3e68`, never matched), so it
     showed "Vedoucí se zastavil (budget_exceeded)."
-  - Fix: a parked turn holds nothing; the next **message** supersedes a budget-parked turn (its
-    run cancelled in the post's transaction, never paid: a budget park spends no attempt and holds
-    no reservation), and the new turn's frozen history carries the unanswered message. A greeting
-    never supersedes: it stores nothing. At most one turn ever waits, so 389b54c5's guarantee (no
-    stack of paid turns behind a lift) holds, and a budget set elsewhere never spends on the old
-    turn without the person's new message. The pane says what to do (`leadReasonWords` in
-    `lib/lead.ts`), and a superseded turn reads "přečetl ji s vaší další zprávou".
-  - Tests: `test_a_message_after_the_budget_is_set_is_answered_not_held`,
+  - Owner decision (Q39, the product owner, 2026-10-21 11:41 UTC): no "Pokračovat" button; "once
+    the budget is set or raised, it should automatically resend the message the researcher
+    attempted to send in the first place".
+  - Fix:
+    - A parked turn holds nothing, so the chat never stalls behind one.
+    - Setting or raising the budget sends it: `PUT /studies/{id}/budget` calls
+      `application.research_lead.set_study_budget`, which after the audited change runs
+      `release_lead_budget_waits`. Each of the study's Lead turns parked in `AWAITING_BUDGET` whose
+      recorded hold (`requested_usd` on the parked attempt) now fits what remains is lifted through
+      `WorkflowRepository.resume_budget_waits`: one `budget` / `lift` row in the approval ledger
+      naming the person who set the budget, who is the consent. A hold that would still pass the
+      budget, or that was not recorded (unknown never fits), stays parked with its words; a budget
+      kept or lowered releases nothing.
+    - A message written before the budget is set supersedes the parked turn (its run cancelled in
+      the post's transaction, never paid: a budget park spends no attempt and holds no
+      reservation), and the new turn's frozen history carries the unanswered message. A greeting
+      never supersedes: it stores nothing. At most one turn waits, so 389b54c5's guarantee (no
+      stack of paid turns behind a lift) holds.
+    - The pane says what happens (`leadReasonWords` in `lib/lead.ts`): "Nastavte ho v Nastavení →
+      Studie a zpráva se odešle sama."; a superseded turn reads "přečetl ji s vaší další zprávou".
+  - Tests: `test_a_message_written_again_before_the_budget_is_set_is_answered_not_held`,
+    `test_setting_the_budget_sends_the_parked_message_and_records_the_person`,
+    `test_a_budget_still_too_small_leaves_the_turn_parked`,
+    `test_a_parked_turn_whose_hold_is_unknown_stays_parked`,
     `test_a_greeting_does_not_supersede_a_message_waiting_for_budget`,
     `test_a_turn_resumed_from_a_budget_wait_holds_the_conversation`
-    (`test_research_lead_application.py`); `leadReasonWords` in `lib/lead.test.ts`.
-  - Not done: a "Pokračovat" lift on the parked turn itself (a Lead-turn budget route beside the
-    agent job's). Superseding is enough to keep the chat usable; whether a parked turn should also offer a
-    lift is left to the product owner.
+    (`test_research_lead_application.py`);
+    `test_setting_the_study_budget_sends_the_message_that_waited_for_it`
+    (`apps/api/tests/test_research_lead_api.py`); `leadReasonWords` in `lib/lead.test.ts`.
 
 ## Doc follow-up (for the docs PR, not this branch)
 

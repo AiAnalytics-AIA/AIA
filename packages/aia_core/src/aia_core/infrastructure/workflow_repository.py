@@ -1117,6 +1117,11 @@ class WorkflowRepository:
 
     # ------------------------------------------------------- budget and costs --
 
+    def study_reserved_usd(self) -> float:
+        """What the study in scope's open holds keep from its budget now (calls in flight)."""
+        scope = self.scope
+        return self._outstanding_reservations(client_id=scope.client_id, study_id=scope.study_id)
+
     def _outstanding_reservations(self, *, client_id: str, study_id: str | None) -> float:
         """Sum of reservations still holding the payer's budget.
 

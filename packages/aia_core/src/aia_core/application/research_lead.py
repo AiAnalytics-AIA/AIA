@@ -59,7 +59,7 @@ from ..domain.research_lead import (
     stale_files,
 )
 from ..domain.research_template import research_template
-from ..domain.scope import OrganizationContext, Permission, StudyContext
+from ..domain.scope import OrganizationContext, Permission, Study, StudyContext
 from ..domain.workflow import StepRunStatus
 from ..domain.workflow_templates import RESEARCH, RESEARCH_LEAD
 from ..infrastructure.client_knowledge_repository import ClientKnowledgeRepository
@@ -76,7 +76,7 @@ from ..infrastructure.study_workspace_repository import (
     StudyWorkspaceRepository,
     WorkspaceConflict,
 )
-from ..infrastructure.workflow_repository import WorkflowRepository
+from ..infrastructure.workflow_repository import BudgetWaitNotLiftable, WorkflowRepository
 from .research import ResearchAgentJobs, readiness_in_force
 from .workflows import start_workflow
 
@@ -98,6 +98,8 @@ __all__ = [
     "NotAPaidRequest",
     "ResearchLead",
     "WorkspaceConflict",
+    "release_lead_budget_waits",
+    "set_study_budget",
 ]
 
 #: A greeting within this long of the Lead's last turn is a no-op: the Lead has spoken.
@@ -224,11 +226,11 @@ def _lead_status(step: Mapping[str, Any], last: Mapping[str, Any] | None) -> tup
 def _holds(turn: Mapping[str, Any]) -> bool:
     """Whether a Lead turn holds the conversation: queued or running.
 
-    A turn parked for any reason does not. Nothing frees a parked Lead turn on its own: a
-    budget set in Settings only changes a number (:meth:`WorkflowRepository.resume_budget_waits`),
-    and no route lifts a Lead turn's wait, so a turn that held the conversation while parked
-    held it for ever (F4). A turn parked on the budget is superseded by the next message
-    instead (:meth:`ResearchLead.post`), so at most one turn waits to be paid.
+    A turn parked for any reason does not: one that held the conversation while parked held
+    it for ever when nothing released it (F4). A turn parked on the budget is sent when a
+    person sets or raises the budget (:func:`release_lead_budget_waits`) or superseded by the
+    next message (:meth:`ResearchLead.post`), so at most one turn waits to be paid; while it
+    waits, the conversation stays open.
     """
     return turn["actor"] == "lead" and turn["status"] in ("QUEUED", "RUNNING")
 
@@ -310,6 +312,83 @@ def _view(
             seen = out.get("self_update_base")
             base["self_update_base"] = dict(seen) if isinstance(seen, dict) else None
     return base
+
+
+def release_lead_budget_waits(
+    session: Session, scope: StudyContext, *, budget_before: float, note: str = ""
+) -> list[str]:
+    """Send the Lead turns of this Study parked at the budget cap, once a person set or raised
+    the budget (the product owner, 2026-10-21, Q39: "once the budget is set or raised, it should
+    automatically resend the message the researcher attempted to send in the first place").
+
+    Called in the transaction that changed the budget, after the change. The person who set it
+    is the consent: each released turn's wait is lifted through
+    :meth:`WorkflowRepository.resume_budget_waits`, one approval row in the ledger naming that
+    person, as every other budget lift is. Nothing is released unless the budget went up, the
+    person holds ``APPROVE_BUDGET`` and the Study is open. A turn is released only when the hold
+    its attempt asked for (the parked attempt's ``requested_usd``) now fits what remains; one
+    whose hold would still pass the budget, or whose hold was not recorded (unknown is never
+    taken to fit), stays parked with its words. Oldest first, each released turn's hold counted
+    against the rest. Returns the released runs' ids.
+
+    The study row is already locked by the change; a parked Lead run has no attempt in flight,
+    so taking its lock after the study's waits on nothing that holds the study.
+    """
+    if not scope.has(Permission.APPROVE_BUDGET) or not scope.study_status.accepts_work:
+        return []
+    project_id = StudyDesignRepository(session, scope).project_id()
+    if project_id is None:
+        return []
+    workflows = WorkflowRepository(session, scope)
+    runs = workflows.list_runs(
+        project_id=project_id, workflow_type=RESEARCH_LEAD, steps=True, limit=200
+    )
+    waiting = [
+        (run["run_id"], run["steps"][0])
+        for run in reversed(runs)  # oldest first
+        if run.get("steps") and run["steps"][0]["status"] is StepRunStatus.AWAITING_BUDGET
+    ]
+    if not waiting:
+        return []
+    study = ScopeRepository(session).get_study(scope, for_update=True)
+    budget_after = float(study.budget_usd)
+    if budget_after <= budget_before:
+        return []
+    remaining = budget_after - float(study.spent_usd) - workflows.study_reserved_usd()
+    asked = workflows.last_attempt_errors([str(step["step_id"]) for _, step in waiting])
+    released: list[str] = []
+    for run_id, step in waiting:
+        requested = (asked.get(str(step["step_id"])) or {}).get("error", {}).get("requested_usd")
+        if not isinstance(requested, int | float) or float(requested) > remaining + 1e-9:
+            continue
+        workflows.lock_run(run_id)
+        try:
+            workflows.resume_budget_waits(
+                [str(step["step_id"])],
+                note=note,
+                budget_before=budget_before,
+                budget_after=budget_after,
+            )
+        except BudgetWaitNotLiftable:
+            continue  # superseded or cancelled since it was listed
+        remaining -= float(requested)
+        released.append(run_id)
+    return released
+
+
+def set_study_budget(
+    session: Session, scope: StudyContext, budget_usd: float
+) -> tuple[Study, list[str]]:
+    """Set the study's budget (``ScopeRepository.set_study_budget``, audited) and send the Lead
+    turns that waited for it (:func:`release_lead_budget_waits`). Returns the study and the
+    released runs' ids."""
+    scopes = ScopeRepository(session)
+    before = float(scopes.get_study(scope, for_update=True).budget_usd)
+    study = scopes.set_study_budget(scope, budget_usd)
+    released = release_lead_budget_waits(
+        session, scope, budget_before=before, note="budget set in Nastavení → Studie"
+    )
+    return study, released
 
 
 @dataclass(frozen=True, slots=True)
