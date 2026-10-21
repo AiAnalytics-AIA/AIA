@@ -23,6 +23,7 @@
 
 import { type PointerEvent, type ReactNode, useEffect, useId, useMemo, useRef, useState } from "react";
 import { t, tv } from "@/i18n/t";
+import { type DisplayChange, MAP_REGISTERS, type MapRegister, displayChanges } from "@/lib/sociomap-display";
 import { num } from "@/lib/sociomapping-view";
 import { type BatteryWithMaps, type ObjectMapArtifact, originalRating } from "@/lib/object-map-view";
 import {
@@ -93,6 +94,7 @@ function Aside({ battery, facts, items, selected, notPlaced, counts = null, deta
           <p className="text-xs leading-[17px] text-ink-muted" data-testid="object-map-unplaced-objects">{tv("research.exec.objectMap.panel.notPlaced", { labels: notPlaced.join(", ") })}</p>
         ) : null}
       </div>
+      <Registers />
       <div className="flex flex-col gap-2 rounded-[10px] border border-border bg-surface-raised p-4">{facts}</div>
     </aside>
   );
@@ -293,6 +295,8 @@ function PanelView({ battery, map, facts }: { battery: BatteryWithMaps; map: Obj
     setView(next); setSelected(-1); setRelation(null); setPerson(-1); setHovered(-1);
   };
   const choose = (k: number) => { setSelected((s) => (s === k ? -1 : k)); setRelation(null); };
+  // What the toolbar has changed against the map's opening; the bar names it (SOC3).
+  const changes = displayChanges({ map: people ? "respondents" : "objects", norm, relations: mode });
   const detail = people
     ? <PersonCard detail={person >= 0 ? respondentDetail(map, dots[person].id) : null} />
     : <ObjectCard battery={battery} map={map} selected={selected} relation={relation} />;
@@ -325,6 +329,9 @@ function PanelView({ battery, map, facts }: { battery: BatteryWithMaps; map: Obj
         )}
         <button type="button" className={SWITCH} title={t("research.exec.objectMap.panel.exportHelp")} onClick={exportPng}>{t("research.exec.objectMap.panel.export")}</button>
       </div>
+      {changes.length ? (
+        <FilterBar changes={changes} onReset={() => { showMap("objects"); setNorm("range"); setMode("top"); }} />
+      ) : null}
       <div className="flex flex-wrap items-start gap-4">
         <div ref={setStage} className="relative h-[700px] min-w-0 flex-[999_1_560px] overflow-hidden rounded-[10px] bg-[#07090c] [min-width:min(100%,560px)] [&:fullscreen]:h-screen [&:fullscreen]:w-screen [&:fullscreen]:rounded-none" data-testid="object-map-stage">
           <canvas ref={canvas} className="block h-full w-full cursor-grab touch-none" role="img" data-testid="object-map-canvas"
@@ -682,5 +689,47 @@ function PersonCard({ detail: d }: { detail: ReturnType<typeof respondentDetail>
         </div>
       </div>
     </DetailCard>
+  );
+}
+
+const CHANGE_WORDS: Record<string, string> = {
+  "map:respondents": "research.exec.objectMap.panel.filterMapRespondents",
+  "norm:absolute": "research.exec.objectMap.panel.filterNormAbsolute",
+  "relations:selected": "research.exec.objectMap.panel.filterRelationsSelected",
+  "relations:all": "research.exec.objectMap.panel.filterRelationsAll",
+};
+
+/** The display filter bar (the V2 prototype's `filterbar`): what the toolbar changed, and that the
+ *  computation did not change; one click back to how the map opens. */
+function FilterBar({ changes, onReset }: { changes: DisplayChange[]; onReset: () => void }) {
+  const p = "research.exec.objectMap.panel";
+  return (
+    <div role="status" data-testid="object-map-filter-bar" data-aia-filters={changes.map((c) => `${c.key}:${c.value}`).join(" ")}
+      className="flex flex-wrap items-baseline gap-x-2 gap-y-1 rounded-sm border border-border bg-surface-raised px-3 py-2 text-xs">
+      <b>{t(`${p}.filterTitle`)}</b>{" "}
+      <span>{changes.map((c) => t(CHANGE_WORDS[`${c.key}:${c.value}`]!)).join(", ")}.</span>{" "}
+      <span className="text-ink-muted">{t(`${p}.filterUnchanged`)}</span>{" "}
+      <button type="button" className="text-signal underline underline-offset-2 hover:no-underline focus-visible:outline-2 focus-visible:outline-focus-ring" onClick={onReset}>{t(`${p}.filterReset`)}</button>
+    </div>
+  );
+}
+
+/** The four kinds of content around a map (the V2 prototype's "Co je co"): the frozen result, the
+ *  display, a labelled interpretation, external context. Static words: what each may change. */
+function Registers() {
+  const p = "research.exec.objectMap.panel";
+  const name: Record<MapRegister, string> = { computed: "Computed", display: "Display", interpretation: "Interpretation", external: "External" };
+  return (
+    <div className="flex flex-col gap-1.5 rounded-[10px] border border-border bg-surface-raised p-4 text-xs" data-testid="object-map-registers">
+      <h4 className="font-semibold">{t(`${p}.registersTitle`)}</h4>
+      <dl className="grid gap-1">
+        {MAP_REGISTERS.map((r) => (
+          <div key={r} className="flex flex-wrap gap-x-1.5" data-register={r}>
+            <dt className="font-semibold">{t(`${p}.register${name[r]}`)}</dt>
+            <dd className="text-ink-muted">{t(`${p}.register${name[r]}Text`)}</dd>
+          </div>
+        ))}
+      </dl>
+    </div>
   );
 }
