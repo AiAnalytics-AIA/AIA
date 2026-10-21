@@ -60,7 +60,7 @@ export const ARTIFACTS: Readonly<Record<WorkbenchStage, ArtifactContract>> = {
   },
   design: {
     stage: "design", artifact: "working", edits: true,
-    view_ops: ["open_stage", "focus", "show_diff"], targets: ["plan", "rq", "hypothesis", "set", "assumption"],
+    view_ops: ["open_stage", "focus", "inspect", "show_diff"], targets: ["plan", "rq", "hypothesis", "set", "assumption"],
     starts: ["agent_job:analyze_brief", "agent_job:critique_design", "agent_job:design_copilot", MEMORY, "design_research"],
     inputs: ["brief"],
     hands_off: [

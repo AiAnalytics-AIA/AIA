@@ -249,7 +249,7 @@ ARTIFACTS: Final[dict[str, ArtifactContract]] = {
             "design",
             "working",
             edits=True,
-            view_ops=("show_diff",),
+            view_ops=("inspect", "show_diff"),
             targets=("plan", "rq", "hypothesis", "set", "assumption"),
             starts=(
                 "agent_job:analyze_brief",

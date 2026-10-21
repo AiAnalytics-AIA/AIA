@@ -398,6 +398,7 @@
       "view_ops": [
         "open_stage",
         "focus",
+        "inspect",
         "show_diff"
       ],
       "targets": [
