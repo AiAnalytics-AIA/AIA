@@ -102,7 +102,8 @@ names the targets through `aiaId` and reads them back (`analysisTarget`, `readAn
 `inspectable`): `module:<kind>`, `finding:<module>:<n>`, `claim:<module>:<claim_id>` (a claim id is unique
 only within its module; one outside the id grammar is left unnamed, never rewritten). No `rq:` here: the
 coordinator's ruling on #563 keeps it on the design row until WCE1. The screen carries them on the
-coverage table, the module view, each key finding and each cited number. Tests: `artifacts/analysis.test.ts`,
+coverage table, every module's entry in the module list (rendered whichever module is selected, so the
+Lead's focus finds any of them), each key finding and each cited number. Tests: `artifacts/analysis.test.ts`,
 `ExecutionSteps.test.tsx` "puts every module's key findings first …".
 
 **ANL2. Coverage.** Test: an RQ recorded as a gap at start reads "bez doložené odpovědi" with the

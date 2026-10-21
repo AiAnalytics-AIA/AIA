@@ -1735,7 +1735,8 @@ describe("Results", () => {
     // Each cited number and the module view carry the Lead's targets (ANL1).
     expect(keyFindings.querySelector('[data-aia="claim:executive:C1"]')).toBeTruthy();
     expect(keyFindings.querySelector('[data-aia="finding:executive:0"]')).toBeTruthy();
-    expect(document.querySelector('section[data-aia="module:executive"]')).toBeTruthy();
+    // Every module is a Lead target whichever is selected: its entry in the module list (Codex P1 on #605).
+    for (const m of ["executive", "objects", "audience", "hypotheses", "limitations"]) expect(document.querySelector(`button[data-aia="module:${m}"]`)).toBeTruthy();
     // The inspector reads this very analysis, published by the page (ANL3).
     const drawer = render(<AnalysisInspect target={{ kind: "finding", id: "executive:0" }} />);
     expect(within(drawer.container).getAllByRole("link")[0].getAttribute("href")).toBe("#measure-q2");

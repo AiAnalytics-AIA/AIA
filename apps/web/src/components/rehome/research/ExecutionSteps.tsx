@@ -1702,13 +1702,13 @@ function AnalysisResults({ run, spec, progressHref }: { run: ResearchRun; spec: 
               {ANALYSIS_ORDER.map((id) => {
                 const outcome = analysis.modules[id];
                 const label = outcome?.outcome === "COMPLETED" ? "Dokončeno" : outcome?.outcome === "BLOCKED" ? t("research.exec.stepStatus.ANALYSIS_BLOCKED") : "Čeká";
-                return <button key={id} type="button" onClick={() => setSelectedModule(id)} aria-current={selectedModule === id ? "true" : undefined}
+                return <button key={id} type="button" data-aia={analysisTarget({ kind: "module", module: id }) ?? undefined} onClick={() => setSelectedModule(id)} aria-current={selectedModule === id ? "true" : undefined}
                   className={`flex items-center justify-between gap-2 rounded-control px-3 py-2 text-left text-sm focus-visible:outline-2 focus-visible:outline-focus-ring ${selectedModule === id ? "bg-signal-wash font-semibold text-signal" : "hover:bg-surface-sunken"}`}>
                   <span>{stepLabel(`analysis_${id}`)}</span><span className="shrink-0 text-xs font-normal text-ink-muted">{label}</span>
                 </button>;
               })}
             </nav>
-            <section aria-label={stepLabel(`analysis_${selectedModule}`)} data-aia={analysisTarget({ kind: "module", module: selectedModule }) ?? undefined} className="min-w-0 rounded-md border border-border bg-surface-raised p-4">
+            <section aria-label={stepLabel(`analysis_${selectedModule}`)} className="min-w-0 rounded-md border border-border bg-surface-raised p-4">
               <h3 className="text-base font-semibold">{stepLabel(`analysis_${selectedModule}`)}</h3>
               {selected?.outcome === "BLOCKED" ? <>
                 <p className="mt-3 text-sm leading-6">Výstup této části neprošel kontrolou, proto se nesmí interpretovat ani použít ve zprávě.</p>
