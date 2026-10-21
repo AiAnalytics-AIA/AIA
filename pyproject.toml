@@ -49,6 +49,8 @@ ignore = ["N818"]
 "apps/api/tests/**" = ["SLF001", "PLR2004", "TID251"]
 "apps/worker/tests/**" = ["SLF001", "PLR2004", "TID251"]
 "apps/executors/tests/**" = ["SLF001", "PLR2004", "TID251"]
+# The acceptance tree talks to the stack it starts on 127.0.0.1 (stdlib urllib, a free port).
+"tests/acceptance/**" = ["SLF001", "PLR2004", "TID251"]
 # The egress fence's exits (TID251), each the one module that owns its wire.
 "packages/aia_core/src/aia_core/infrastructure/model_adapters/live_transport.py" = ["TID251"]  # urllib3: the model routes' HTTPS
 "packages/aia_core/src/aia_core/infrastructure/web_retrieval_live.py" = ["TID251"]  # urllib3 + socket.getaddrinfo: public web reads, resolved then pinned
@@ -139,6 +141,9 @@ ignore_imports = [
     "aia_executors.deep_research_live -> aia_core.infrastructure.model_adapters.**",
     "aia_executors.deep_research_runtime -> aia_core.infrastructure.model_adapters.**",
     "aia_executors.deep_research_runtime -> aia_core.infrastructure.model_adapters",
+    # The recorded wire (tests and the acceptance harness's worker only; layer_check keeps it
+    # out of production): it speaks the transport's request and response types, no adapter.
+    "aia_executors.recorded_models -> aia_core.infrastructure.model_adapters.transport",
 ]
 
 # Live network wires are imported by the compositions that build a route and by
@@ -285,4 +290,5 @@ markers = [
     "postgres: requires a live PostgreSQL instance via DATABASE_URL",
     "golden: compares production against a golden fixture from the reference repository (needs AIA_REFERENCE_REPO)",
     "oracle: reaches the running 18.6.6 unit over HTTP (needs AIA_LEGACY_REFERENCE_URL and its basic-auth credentials)",
+    "acceptance: MVP-ACCEPT-2 tier A over HTTP on the stack tests/acceptance starts (needs AIA_ACCEPTANCE_DATABASE_URL, a PostgreSQL database)",
 ]

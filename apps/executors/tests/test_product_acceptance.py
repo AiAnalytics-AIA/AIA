@@ -3,8 +3,8 @@
 Each test walks one product scenario (plan productization-coherence PC11) through the calls the
 browser makes -- the API app over the same database and artifact store as the worker -- and holds
 one invariant across every surface that shows it. Component suites prove each surface; these
-prove the surfaces agree. Fictional designs, fictional respondents and a scripted Bedrock
-(``scripted_bedrock``): nothing leaves the process and nothing is paid.
+prove the surfaces agree. Fictional designs, fictional respondents and recorded Bedrock answers
+(``aia_executors.recorded_models``): nothing leaves the process and nothing is paid.
 
 1-2. A research question the design measures and one it does not read the same at readiness, at
      the start, on the run, on Results and in the report.
@@ -44,18 +44,18 @@ from aia_core.infrastructure.storage import InMemoryArtifactStore
 from aia_core.infrastructure.workflow_repository import WorkQueue
 from aia_executors.ai_runtime import AIRuntimeSettings, build_ai_fieldwork, build_gateway
 from aia_executors.analysis import AnalysisConfig, analysis_registry
+from aia_executors.recorded_models import RecordedModels, RecordedSigner, runtime_env
 from aia_executors.registry import registry_for
 from aia_executors.workbench import workbench_registry_for
 from aia_worker.settings import WorkerSettings
 from aia_worker.worker import Worker
 from fastapi.testclient import TestClient
-from scripted_bedrock import ScriptedModels, Signer, runtime_env
 
 API = "/api/v1"
 RQ_MEASURED = "Jak často lidé ráno pijí kávu?"
 RQ_UNMEASURED = "Proč lidé ráno nepijí čaj?"
 REASON = "Fiktivní akceptační běh: otázku o čaji vědomě necháváme bez měření."
-#: One analysis call as ScriptedModels reports it, at runtime_env's test prices.
+#: One analysis call as RecordedModels reports it, at runtime_env's test prices.
 ANALYSIS_CALL_USD = (2400 * 3 + 380 * 15) / 1_000_000
 
 
@@ -150,7 +150,7 @@ def worker_for(
 ) -> Callable[..., Worker]:
     """A worker running the real executors, its model calls answered by ``models``."""
 
-    def make(models: ScriptedModels, *, ai_fieldwork: bool = False) -> Worker:
+    def make(models: RecordedModels, *, ai_fieldwork: bool = False) -> Worker:
         settings = AIRuntimeSettings.from_env(runtime_env(world.client_id, CLASSIFIED))
         assert settings is not None
         upstream = (
@@ -158,7 +158,7 @@ def worker_for(
                 store=store,
                 build=build,
                 ai_runtime=build_ai_fieldwork(
-                    settings, build=build, transport=models, signer=Signer()
+                    settings, build=build, transport=models, signer=RecordedSigner()
                 ),
             )
             if ai_fieldwork
@@ -171,7 +171,7 @@ def worker_for(
                 **analysis_registry(
                     store=store,
                     build=build,
-                    gateway=build_gateway(settings, transport=models, signer=Signer()),
+                    gateway=build_gateway(settings, transport=models, signer=RecordedSigner()),
                     config=AnalysisConfig.from_settings(
                         settings, max_output_tokens=4096, reservation_usd=1.0
                     ),
@@ -312,7 +312,7 @@ def test_a_measured_and_an_unmeasured_research_question_read_the_same_from_readi
     assert (recorded["digest"], recorded["gaps"]) == (answer["digest"], answer["gaps"])
     assert recorded["acknowledgement"]["reason"] == REASON
 
-    models = ScriptedModels()
+    models = RecordedModels()
     endings = _drain(worker_for(models, ai_fieldwork=True))
     assert endings and set(endings) == {"completed"}, endings
     finished = api.get(_run_url(world, run["run_id"])).json()
@@ -345,7 +345,7 @@ def test_a_runs_results_and_report_stay_its_revisions_when_the_design_changes(
 ) -> None:
     """A run is its revision's for good; a new revision is never answered with an old run."""
     _fieldwork(api, FieldworkSource.SYNTHETIC_FIXTURE)
-    worker = worker_for(ScriptedModels())
+    worker = worker_for(RecordedModels())
     first_revision = _submit(api, world, GAPPED)
     first = _start(api, world, first_revision)
     assert set(_drain(worker)) == {"completed"}
@@ -416,7 +416,7 @@ def test_a_throttled_module_waits_visibly_and_the_same_run_finishes_paying_each_
     """The run, its report and the actions offered agree while a provider wait clears itself."""
     _fieldwork(api, FieldworkSource.SYNTHETIC_FIXTURE)
     executive = analysis_node_key(AnalysisModuleId.EXECUTIVE)
-    models = ScriptedModels(failures={("executive", 1): _throttled()})
+    models = RecordedModels(failures={("executive", 1): _throttled()})
     worker = worker_for(models)
     run_id = _start(api, world, _submit(api, world, REVISED))["run_id"]
     _drain(worker)
@@ -483,9 +483,9 @@ def test_a_delivered_study_keeps_its_results_and_refuses_new_work_under_one_code
     # Before delivery: a run that finished with its report, and one whose analysis the model
     # could not ground, so it failed -- a run and modules a person could ask again while open.
     run_id = _start(api, world, _submit(api, world, REVISED))["run_id"]
-    assert set(_drain(worker_for(ScriptedModels()))) == {"completed"}
+    assert set(_drain(worker_for(RecordedModels()))) == {"completed"}
     failed_id = _start(api, world, _submit(api, world, REFUSED))["run_id"]
-    assert _drain(worker_for(ScriptedModels(invent={"objects"})))[-1] == "failed"
+    assert _drain(worker_for(RecordedModels(invent={"objects"})))[-1] == "failed"
     failed = api.get(_run_url(world, failed_id)).json()
     assert (failed["status"], failed["retryable"]) == ("FAILED", True)
     retryable = api.get(f"{_run_url(world, failed_id)}/analysis/retryable").json()
