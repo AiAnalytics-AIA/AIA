@@ -136,6 +136,12 @@ class Settings(BaseSettings):
     # conversation already stored stays readable. Off by default; on for develop by Compose.
     ai_research_lead_enabled: bool = False
 
+    # A study's wallet, Peněženka (ADR 0028 decision 2, lead-orchestration LO1,
+    # ``AIA_STUDY_WALLET_ENABLED``): off, GET /studies/{id}/wallet answers unavailable without
+    # reading a wallet row and PUT is 409 ``wallet_disabled``; no start consults the wallet. Off
+    # by default, off in test, absent from the develop Compose file.
+    study_wallet_enabled: bool = False
+
     # What a Deep Research run can cost at most (plan deep-research-web-search.md chunk 22),
     # from the same keys the worker composes it from. Each kind of model request reserves
     # what its own window and output limit can cost (domain/deep_research/request_limits.py),
