@@ -101,8 +101,9 @@ in the compact drawer.
 
 **LC3. The decision digest.** A pure projection over the ledger rows and turns of this conversation
 (`lead_edit`, `lead_job_request`, `lead_self_update`, plan and lookup rows when they exist), each line
-each at most 200 bytes: a decision line with its turn id and ledger row id, a pointer line (an
-undecided proposal) with its turn id and output index and no ledger id. It goes in layer 10, within its share, which scales from
+each at most 200 bytes: a decision line with its turn id and ledger row id, an event line (a lookup,
+a client note kept with its turn) with its source table and row id, a pointer line (an undecided
+proposal) with its turn id and output index and no ledger id. Feedback is not in the digest. It goes in layer 10, within its share, which scales from
 5 KB at the layer's 10 KB floor to 8 KB at 16 KB, in ADR 0041 decision 4's four capped groups (the
 caps below at 8 KB, scaled with the share, group 4 fixed):
 1. decisions on named items (4 KB; per item, the newest 3, newest first);
@@ -197,6 +198,11 @@ cost (burst, latency, USD per block). Tests:
 - a foreign number is refused;
 - a Class A turn makes a Class A summary, which a Class-C route refuses;
 - a roll-up keeps its children's references;
+- a block closes at eight turns or 2 KB of person text; a block summary over 1.5 KB or an episode
+  over 2 KB is repaired once, then refused with `summary_lag`; layer 10 at its floor still holds
+  the newest episode and a block;
+- with layer 10 full, a retrieved evicted summary is carried in layer 11 ahead of older covered
+  turns, never displacing the tail's floor;
 - past three levels the oldest episode leaves the context, counted with its range, and a message
   matching one of its sentences brings it back, then its children's turns;
 - a constraint stated in turn 5 and left out of the summary is in turn 5's uncovered terms, and a

@@ -92,7 +92,7 @@ its values are proposed here, to be set from LO14's measurement:
 | 8 | Pinned items (decision 6) | the accepted pins' bytes | 8 KB | refuse the pin when it is made; an accepted pin is reserved in the floor pass, never dropped at a turn |
 | 9 | View and the message(s) | as written | 12 KB | queued messages oldest first while they fit; the rest answered by a follow-on turn, named (decision 7) |
 | 10 | Conversation memory (M3): digest, kept facts, summaries | 10 KB | 16 KB | the digest within its share (5-8 KB, scaling with the layer's allocation) by decision 4's order, older decisions counted with their ledger range (decision 3); oldest blocks rolled up; oldest unpinned facts to retrieval; all named |
-| 11 | Conversation, verbatim (active path only, decision 7) | 8 KB | what is left | oldest first, **only turns a summary covers**, else decision 4's fallback |
+| 11 | Conversation: the verbatim tail and retrieved material (active path only, decision 7) | 8 KB | what is left | filled in decision 4's order (tail, retrieved, older covered turns); older covered turns go first, else decision 4's fallback |
 
 **The allocation is global, in two passes, so the total cannot exceed 96 KB.** The ceilings sum to
 more than 96 KB on purpose, because most layers are small most of the time. `freeze_context`
@@ -197,14 +197,19 @@ parts, from exact to approximate:
 
 1. **The decision digest, by code, always.** A deterministic projection of what was *decided* in
    this conversation, from the approval ledger and the turns: edits accepted or dismissed (by item),
-   cards approved or left, notes kept or forgotten, self-updates accepted or refused, lookups run,
-   feedback given, each with its turn id. No model, no cost, never summarised.
+   cards approved or left, notes kept or forgotten, self-updates accepted or refused, and lookups run,
+   each with its turn id. Feedback (decision 9) is not in the digest: it is an evaluation signal,
+   private to its researcher, and not a decision about the study. No model, no cost, never summarised.
    **It is bounded in context and complete in the ledger.**
    - **Its record is the ledger.** The digest is a view of the approval ledger rows, which are
      immutable, so no decision is ever lost. What is bounded is how much of it a turn carries.
-   - **Each line is exact and short:** at most 200 bytes, in one of two schemas.
+   - **Each line is exact and short:** at most 200 bytes, in one of three schemas.
      - A **decision line** (groups 1 and 3) carries the item, the decision, the turn id and the
        ledger row id.
+     - An **event line** (groups 1 and 3) is for a settled event recorded outside the approval
+       ledger, such as a lookup step or a client note kept with its turn. It carries the kind, the
+       item where there is one, the turn id, and the source table with its row id. Omitted event
+       lines page from that source's range, as decision lines page from the ledger's.
      - A **pointer line** (group 2) carries the item, the proposal's kind, the turn id and the
        proposal's index in that turn's output, and no ledger row id: an undecided proposal is in a
        turn's output and not yet in the ledger.
@@ -212,11 +217,16 @@ parts, from exact to approximate:
      - **Range:** from 5 KB at the layer's 10 KB floor to 8 KB at 16 KB, linearly.
      - **Group caps:** the caps below are the 8 KB values. They scale by the same factor (5/8 at the
        floor), except group 4's 256 bytes, which stay fixed.
-     - **The rest of the layer:** after the digest, the remaining bytes go to kept facts first, then
-       summaries.
+     - **The rest of the layer,** after the digest, is filled in this order:
+       1. the newest episode summary and the newest block summary, reserved (at most 3.5 KB);
+       2. kept facts, pinned first, then newest;
+       3. further block summaries, newest first.
+
+       Facts that do not fit go to retrieval, the oldest unpinned first. Blocks that do not fit roll
+       up or leave by the eviction rule. Both are named in the manifest.
 
      So a large design that takes the whole remainder still leaves memory a compliant allocation:
-     a 5 KB digest and 5 KB for facts and summaries.
+     a 5 KB digest, the two newest summaries and 1.5 KB of facts.
    - **The groups.** Each group has its own cap and a deterministic order inside it, so no group
      can starve the others:
 
@@ -245,10 +255,18 @@ parts, from exact to approximate:
    retire any (in place, decision 11). Bounded (40 facts, 300 characters each); over the bound the
    oldest unpinned facts move to retrieval, named in the manifest.
 3. **Hierarchical summaries, each line referenced.** Active turns (decision 7) older than the two
-   newest active exchanges are summarised in fixed blocks of eight
+   newest active exchanges are summarised in blocks. A block closes at eight turns, or earlier once
+   its person messages reach 2 KB of UTF-8. That keeps 60 % coverage within the summary bound
+   below
    *after* the reply, by a follow-on step `research_lead_compact`, so the person never waits.
    - A **block summary** covers one block. Every sentence ends with the turn ids it rests on
      (`[t12, t14]`), each within the block.
+   - **Every summary is bounded in serialized bytes:** a block summary to 1.5 KB, an episode to
+     2 KB. This is checked with the preservation check. One over its bound gets the one repair
+     turn, and is otherwise refused (`summary_lag`). So an accepted summary always fits:
+     - layer 10 at its floor, after the digest's 5 KB, holds the newest episode and at least one
+       block;
+     - the remaining blocks roll up or leave the context by the eviction rule below.
    - When block summaries exceed their share of layer 10, the oldest are rolled up into an **episode
      summary**, whose sentences reference the block summaries; episodes roll up the same way. Three
      levels at most.
@@ -257,8 +275,18 @@ parts, from exact to approximate:
      the manifest records their summary range (decision 3). Every summary at every level stays
      stored and stays in retrieval:
      - a message matching a sentence of an evicted top-level summary brings that summary back;
-     - following its references then brings back its children, and in turn their turns, as far as
-       layer 11's spare bytes allow (decision 5, step 1).
+     - following its references then brings back its children, and in turn their turns.
+
+     **Where retrieved material goes.** Retrieved material of every kind (an evicted summary, a
+     covered turn, a turn behind a summary sentence) is carried in layer 11. Layer 11 is filled in
+     this order:
+     1. the active verbatim tail, up to its 8 KB floor;
+     2. retrieved material, in decision 5's retrieval order, each piece whole or not at all: a
+        retrieved summary at most 2 KB, a retrieved turn at most its message bound;
+     3. older covered verbatim turns, with whatever is left.
+
+     Retrieved material displaces only step 3, never the floor or another layer. What does not fit
+     is named in the manifest (`retrieved_not_carried`) and pages from it.
 
      The hierarchy bounds what is in context, never what can be reached.
    - The context carries the newest episode, the newest blocks and the verbatim tail: a rolling
