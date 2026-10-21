@@ -4412,7 +4412,7 @@ the limit is refused.
 
 ---
 
-## OI-140 · Finding · A design job waiting for budget reads as a failure with "Zkusit znovu"
+## OI-140 · Finding, closed · A design job waiting for budget reads as a failure with "Zkusit znovu"
 
 **Claim.** When a stage's design job stops at the study's budget, the stage shows a fault card whose
 "Zkusit znovu" starts a new job, while the real budget lift sits out of sight.
@@ -4433,11 +4433,11 @@ counts `AWAITING_*`); `AiFailureCard` renders `AgentBudgetWaits` for it.
 
 **Test.** A job whose step is `AWAITING_BUDGET` shows the budget lift in place, never a retry.
 
-**Status.** Open. A fix is in review in #533 (`a68b806e`, not merged on 2026-10-21).
+**Status.** Closed by #533 (merged as `5116723`, 2026-10-21).
 
 ---
 
-## OI-141 · Finding · One budget lift releases one analysis step, so a run's eight steps need eight lifts
+## OI-141 · Finding, closed · One budget lift releases one analysis step, so a run's eight steps need eight lifts
 
 **Claim.** Progress draws a budget form under every waiting step, and the lift passes only that one
 step to `lift_study_budget_waits`, so a run whose eight analysis modules stopped at the cap needs
@@ -4458,7 +4458,7 @@ filters) and render one run-level lift.
 
 **Test.** One lift on a run with several waiting steps resumes them all, in one ledger row.
 
-**Status.** Open. A fix is in review in #533 (`44827609`, not merged on 2026-10-21).
+**Status.** Closed by #533 (merged as `5116723`, 2026-10-21).
 
 ---
 
@@ -4554,7 +4554,7 @@ problem.
 
 **Test.** A Vitest on `setScaleEnd`; a domain test that `[2.5, 10]` is `invalid_scale`.
 
-**Status.** Open.
+**Status.** Partly fixed: the domain refuses a non-integer end (`invalid_scale`) since #538 (merged as `45ffa12`, input-interactions 3b1); the editor's field check is `input-interactions#3b2`, open.
 
 ---
 
@@ -4659,7 +4659,7 @@ methodology owner's (`mvp-master-plan.md` § The scope baseline, Open).
 
 **Test.** A domain test that the question's prompt carries "1 = vůbec, 10 = zásadně".
 
-**Status.** Open.
+**Status.** Fixed behind a switch: #538 (merged as `45ffa12`, input-interactions 3b1) compiles the labels and sends them to respondents under `AIA_AI_SCALE_LABELS_IN_PROMPT`, off by default; switching it on moves the respondent-system fingerprint and waits on the methodology owner's wording rule. Open until it is on.
 
 ---
 
