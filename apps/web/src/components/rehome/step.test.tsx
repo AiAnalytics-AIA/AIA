@@ -45,6 +45,25 @@ describe("Studio v3 step pieces", () => {
     expect(seg).toHaveBeenCalledWith("preview");
   });
 
+  it("Segmented is one Tab stop whose arrows move and choose (input-interactions I11)", () => {
+    const seg = vi.fn();
+    render(
+      <Segmented
+        label="Řadit"
+        value="new"
+        options={[{ key: "new", label: "Nejnovější" }, { key: "name", label: "Podle názvu" }, { key: "state", label: "Podle stavu" }]}
+        onChange={seg}
+      />,
+    );
+    const radios = screen.getAllByRole("radio");
+    expect(radios.map((r) => r.tabIndex)).toEqual([0, -1, -1]);
+    fireEvent.keyDown(radios[0], { key: "ArrowLeft" });
+    expect(seg).toHaveBeenLastCalledWith("state");
+    expect(document.activeElement).toBe(radios[2]);
+    fireEvent.keyDown(radios[0], { key: "End" });
+    expect(seg).toHaveBeenLastCalledWith("state");
+  });
+
   it("ChipInput adds a trimmed value on Enter, removes one by ×, and the last by Backspace when asked", () => {
     const add = vi.fn();
     const remove = vi.fn();

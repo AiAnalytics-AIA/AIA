@@ -1,7 +1,7 @@
 ---
-status: planned
+status: in-progress
 chunks:
-  - "[ ] 0. Audit, standard and this plan (docs only; .planning/evidence/input-interactions-audit.md)"
+  - "[x] 0. Audit, standard and this plan (docs only; .planning/evidence/input-interactions-audit.md)"
   - "[ ] 1. Shared primitives with tests: InlineText, Stepper, ChoiceChips (+ Segmented and Switch adopted everywhere), InlineCreateRow, SwatchPicker, MenuButton, UndoToast, SpendDialog; retire AskDialog's prompt form"
   - "[ ] 2. Knowledge library: folders and labels created in the list, renamed in place, recoloured by swatch; bulk and item filing by menu; search debounced (audit D1-D13)"
   - "[ ] 3. Questionnaire: questions, options, blocks and sets created and edited in place; comparisons as segmented; deletes with undo (audit A1-A8, A11-A21)"
@@ -202,6 +202,35 @@ Planning should fold these together rather than build twice:
 - The Settings prototype and the design-system artifact sessions received this standard on
   2026-10-20 and apply it to their prototypes.
 
+## Progress
+
+**Chunk 0** landed with #528 (the audit, the standard and this plan).
+
+**Chunk 1, primitives delivered (2026-10-20, `feature/input-primitives`); left open.** In
+`apps/web/src/components/ui/` beside `rehome/`, each with its Vitest file, their pure part in
+`apps/web/src/lib/` with its own:
+
+| Primitive | Pure part | What it keeps of the standard |
+|---|---|---|
+| `InlineText` | `lib/inline-edit.ts` | I1: click, Enter or F2 opens in place; Enter (Ctrl/Cmd+Enter multi-line) and blur save, Esc restores; pencil on hover and focus; Ukládám… / Uloženo / Neuloženo – Zkusit znovu, the failed text kept; I9 refusal at the field, live once said |
+| `Stepper` | `lib/number-input.ts` | I2: typeable, Czech decimal comma and thousands spaces, bounds stated and in the field's description, ↑/↓ and − / + by a step, Shift ×10, buttons disabled at the bound; a typed value out of range, empty or too precise is said and **not saved** (no clamp: IA-1, IA-2's web half); `onProblem` tells an action beside it the field holds a refused value |
+| `ChoiceChips` | `lib/roving.ts` | I3, I11: single (radio group, arrows choose) or multiple (toggles, arrows only move), one Tab stop, wraps, 44 px below 640 px |
+| `InlineCreateRow` | `lib/name-input.ts` | I5: a row where the thing appears, focused; Enter creates and opens the next; Esc or an empty blur cancels and gives focus back; empty / too long / taken checked at the row by the server's `organizer_name` / `organizer_key` rules; the server's refusal said at the row, the name kept |
+| `SwatchPicker` | `lib/roving.ts` | I3, I5: named swatches on `hue-*`; inline (arrows choose) or `popover` for a recolour (arrows only move, a click chooses once and closes: IA-6) |
+| `MenuButton` | `lib/roving.ts` | I3: an action is a menu, never a select on change; arrows move without acting (IA-6), Enter/click acts once and returns focus; Esc / outside closes |
+| `UndoToast` + `useUndo` | — | I6: "Vrátit" for 8 s, one at a time, on `z-toast`; the time stops under the pointer or focus (WCAG 2.2.1) |
+| `SpendDialog` | `lib/spend.ts` | I7a, screen 14 of the design artifact: four kinds (Potvrzení útraty, Zvýšení rozpočtu studie / klienta, Navýšení peněženky), four names (Rozpočet klienta, Rozpočet studie, Peněženka, Práh potvrzení), the ceiling "horní mez, ne odhad", an unknown sum "neznámé" and never 0, what is left at the highest price, a lift's amount by a money stepper, the act and price on the button, focus on the safe choice, Esc cancels |
+
+Also in it: `Segmented` (`rehome/step.tsx`) got roving tabindex (IA-8 below); three icons
+(`pencil`, `minus`, `chevron`); the proof call site: KnowledgeArea's "Nová složka" is an
+`InlineCreateRow` in the folder list (audit D1, P1), with `KnowledgeLibrary.test.tsx` and
+`tools/ui_workbench/client_journey.mjs` changed to type in the row instead of a dialog.
+
+**Left in chunk 1:** adopting `Segmented` and `Switch` wherever the audit found a hand-rolled copy
+(~20 `aria-pressed` groups, 3 `role=switch`), and retiring AskDialog's prompt form, which keeps 10
+callers (P2–P9) until the area chunks 2, 3 and 7 replace them (the Approach: it is deleted with its
+last caller). No other call site moved in this PR.
+
 ## What this does not do
 
 No visual redesign beyond the controls; no soft delete (C9 owns it). The server's rules change in
@@ -212,3 +241,77 @@ named.
 ## Findings
 
 IA-1 … IA-6, with all six parts, in the audit's §6. For the docs PR to number in `open-items.md`.
+
+- **IA-8 (found and fixed in chunk 1). `Segmented` had no arrow keys.**
+  `apps/web/src/components/rehome/step.tsx:139 @ e09a6c99`: every option was its own Tab stop and
+  ←/→ did nothing, against I11 (roving tabindex). Repro and test:
+  `step.test.tsx › Segmented is one Tab stop whose arrows move and choose (input-interactions I11)`
+  fails on `e09a6c99`. Consequence: a keyboard user tabs through every option of every segmented
+  control. Fix: `lib/roving.ts` (`rovingIndex`, `tabStop`) in `Segmented`, the same as ChoiceChips.
+
+### WT-1: the web suite timed out on a loaded machine (fixed on `fix/web-test-timeouts-under-load`)
+
+1. **Claim.** `npm test` (Vitest) failed 3 to 24 jsdom component tests whenever the host was
+   busy, because two time budgets were sized for an idle machine: vitest's 5 s per test and
+   testing-library's 1 s per `findBy*` / `waitFor`. No test shared or leaked state: the pool
+   isolates each file, every fake-timer user restores real timers, and every failing file
+   passes alone.
+2. **Anchor.** `apps/web/vitest.config.mts` @ e09a6c99 (no `testTimeout`, no setup file);
+   `apps/web/src/components/rehome/research/steps.tsx:16-22` @ e09a6c99 (the step screens
+   behind `next/dynamic`: a file's first lookup includes the module's transform and import).
+3. **Reproduction.** `cd apps/web && npx vitest run` on a 4-core host already running other
+   work. At load average ~7: 3 failed (MethodologyVersions 2, QuestionnaireStep 1). At ~13:
+   24 failed in 9 files (MethodologyVersions 14, ResearchScreen 3, QuestionnaireStep 2,
+   MethodologyPanel, SystemPromptsPanel, AudienceStep, BriefStep, ExecutionSteps 1 each).
+   Two shapes only: "Test timed out in 5000ms", and a `findBy*` that found nothing after
+   ~1.1-1.8 s. Evidence it is CPU, not the code: MethodologyVersions' heaviest test takes
+   2.9 s alone and 9.1 s inside the suite; a CPU profile of that file is jsdom, its selector
+   engine and React (~70 %) and garbage collection (14 %); Temml is under 1 %.
+4. **Consequence.** `make test-web` was red on a developer's or agent's machine whenever the
+   host was busy, so it had stopped being a signal there. CI (ubuntu-latest, 4 vCPU, nothing
+   else running) was green at e09a6c99: the Frontend job runs the same `npm test`, 82 s.
+5. **Fix.** One budget each, set once: `testTimeout: 30_000` in `vitest.config.mts` (the size
+   `test-native-agents.ts` already gave the research steps) and
+   `configure({ asyncUtilTimeout: 10_000 })` in the new `vitest.setup.ts`. The 4-6 s
+   per-lookup overrides that had accumulated one at a time are removed: under the new default
+   each would have been tighter than it. A first try at 4 s still failed one Metodika test at
+   load 18 (the panel's first render had not appeared after 4 s), hence 10 s. Vitest's own
+   `vi.waitFor` keeps its 1 s default, so ResearchScreen's four save waits name 10 s where
+   they are written. Worker count left at vitest's default (cores - 1, 3 on CI's 4 vCPU): the
+   contention came from outside the suite, and fewer workers would not remove it. No
+   assertion changed; a lookup that never matches still fails, later.
+6. **Test.** The suite itself, three consecutive full runs on the same loaded host (load
+   average 17.2 -> 10.1 across them): 2448 of 2448 passed each time, in 290 s, 272 s and
+   207 s. The slowest test of each run took 15.8 s (MethodologyVersions, "switches areas…"),
+   8.3 s and 7.3 s (PersonaStep), inside the 30 s budget.
+
+**Doc follow-up (CLAUDE.md §7 Known flakes), in §7's shape:**
+
+```
+- `apps/web` jsdom component tests (MethodologyVersions, MethodologyPanel, QuestionnaireStep,
+  ResearchScreen, IntakeSheet, AudienceStep, BriefStep, ExecutionSteps, FieldOriginPanel,
+  ObjectMapView, SystemPromptsPanel) — symptom: "Test timed out in 5000ms", or a findBy*
+  that finds nothing after ~1 s, only while the host is loaded.
+  Confirmation: passes when run alone. Cause: CPU starvation against idle-sized budgets
+  (vitest 5 s per test, testing-library 1 s per lookup); no shared state. Fix or waiver:
+  testTimeout 30 s (apps/web/vitest.config.mts), asyncUtilTimeout 10 s
+  (apps/web/vitest.setup.ts); vi.waitFor keeps 1 s and names its size where it needs more.
+```
+
+### Doc follow-up (for the docs PR)
+
+- **CLAUDE.md § 2, the map**, under `apps/web/src/components/`: add
+  `ui/  The input standard's shared controls (input-interactions I1-I11): InlineText, Stepper,
+  ChoiceChips, InlineCreateRow, SwatchPicker, MenuButton, UndoToast (useUndo), SpendDialog (the one
+  modal for money: four kinds, four sums by name, the ceiling "horní mez, ne odhad", unknown never
+  zero); parts.tsx: their shared classes, SaveNote, useDismiss`; and under `src/lib/`:
+  `number-input.ts (a bounded number read, never clamped), name-input.ts (organizer_name /
+  organizer_key at the row), roving.ts (arrow keys in a group), inline-edit.ts, spend.ts`.
+- **AGENTS.md, a Testing Library entry** (Czech text):
+  ```ts
+  // WRONG -- never matches: the default normalizer turns U+00A0 into a space before it compares
+  screen.getByText(/50–5 000/);
+  // RIGHT -- read the element and compare its textContent, or pass { normalizer: (s) => s }
+  expect(el.textContent).toBe("50–5 000 · ↑ ↓ o krok, Shift ×10");
+  ```
+- **open-items.md**: number IA-8 (closed by this PR) beside IA-1 … IA-7.

@@ -26,6 +26,7 @@ import { locatorWords, takesFile } from "@/lib/client-sources";
 import { relative } from "@/lib/format";
 import { LABEL_DOT, type LibraryView, type StaleEdit, folderOf, folderView, staleEdit } from "@/lib/knowledge-library";
 import { type Ask, AskDialog, Button, Chip, Field, Select, TextArea, TextInput } from "../../rehome/ui";
+import { InlineCreateRow } from "../../ui/InlineCreateRow";
 import { CARD, EYEBROW, Empty, Loaded } from "../states";
 import { useResource } from "../useResource";
 import { ClientPage, IntakeButton, useClient } from "./ClientContext";
@@ -316,15 +317,16 @@ export function KnowledgeArea() {
     if (v === "review") setLabel(null);
   };
 
-  const newFolder = () =>
-    setAsk({
-      kind: "prompt",
-      message: t("aia.library.newFolderAsk"),
-      initial: "",
-      resolve: (name) => {
-        if (name?.trim()) void attempt(workspace.createFolder(clientId, name));
+  // "+ Nová složka" is a row in the folder list (input-interactions I5, audit D1): a refusal is
+  // said at the row, the name kept; a created folder is listed and the next row opens.
+  const newFolder = (name: string) =>
+    workspace.createFolder(clientId, name).then(
+      () => {
+        setError(null);
+        changed();
       },
-    });
+      (e: unknown) => said(e),
+    );
   const renameFolder = (f: KnowledgeFolder) =>
     setAsk({
       kind: "prompt",
@@ -432,9 +434,9 @@ export function KnowledgeArea() {
                 }
               </Loaded>
               {mayPropose ? (
-                <Button small variant="quiet" icon="plus" onClick={newFolder}>
-                  {t("aia.library.newFolder")}
-                </Button>
+                <div className="px-1 pt-1">
+                  <InlineCreateRow label={t("aia.library.newFolder")} icon="projects" existing={folderList.map((f) => f.name)} onCreate={newFolder} />
+                </div>
               ) : null}
 
               <p className={SECTION_HEAD}>{t("aia.library.labelsTitle")}</p>

@@ -2189,6 +2189,23 @@ class WorkflowRepository:
     ) -> None:
         """Let a step that stopped at the budget cap go on, after a person lifts the cap.
 
+        :meth:`resume_budget_waits` for one step.
+        """
+        self.resume_budget_waits(
+            [step_id], note=note, budget_before=budget_before, budget_after=budget_after
+        )
+
+    def resume_budget_waits(
+        self,
+        step_ids: Sequence[str],
+        *,
+        note: str = "",
+        budget_before: float,
+        budget_after: float,
+    ) -> None:
+        """Let every step of one run that stopped at the budget cap go on, after a person
+        lifts the cap: one decision, one approval in the ledger.
+
         A reservation that would pass the study's budget parks the step in
         ``AWAITING_BUDGET`` without spending an attempt, and nothing resumed it: the
         provider sweep never touches an ``AWAITING_*`` step, and raising the budget
@@ -2196,15 +2213,24 @@ class WorkflowRepository:
         ``APPROVE_BUDGET``, which the worker's scope does not hold (ADR 0019 decision
         6), and writes the decision to the append-only approval ledger like a gate.
 
+        A run's analysis modules each hold their own reservation, so eight of them can stop
+        at the same cap; the person decides once for the run (CR-3), so the ledger has one
+        row for the lift and each step its own ``STEP_RESUMED`` event. The row's
+        ``subject_id`` is always the run (the subject of a budget lift is the run's wait);
+        ``step_id`` names the step when one was lifted, and is null for several. Each event's
+        payload carries the row's ``decision_id`` and every lifted ``step_ids``, so the ledger
+        and the events join by id, never by time or guess.
+
         The caller raises the budget first (``ScopeRepository.set_study_budget``, which
-        audits it) and passes both figures so the event shows what was lifted. The step
-        becomes runnable again; if the budget is still too small it parks again at the
-        next reservation. Refused when the step is not waiting for budget, which also
-        makes a second lift a no-op, and when the run is being cancelled.
+        audits it) and passes both figures so the event shows what was lifted. The steps
+        become runnable again; if the budget is still too small a step parks again at its
+        next reservation. Refused whole, before anything is written, when any step is not
+        waiting for budget (which also makes a second lift a no-op), when the steps are not
+        all of one run, and when the run is being cancelled.
         """
         self.scope.require(Permission.APPROVE_BUDGET)
-        self._resume_budget_wait(
-            step_id,
+        self._resume_budget_waits(
+            step_ids,
             note=note,
             budget_before=budget_before,
             budget_after=budget_after,
@@ -2236,8 +2262,8 @@ class WorkflowRepository:
         ) != (scope.organization_id, scope.client_id):
             raise ScopeDenied("not found", reason="scope_mismatch")
         approver.require(ClientPermission.MANAGE_CLIENT_BUDGET)
-        self._resume_budget_wait(
-            step_id,
+        self._resume_budget_waits(
+            [step_id],
             note=note,
             budget_before=budget_before,
             budget_after=budget_after,
@@ -2247,9 +2273,9 @@ class WorkflowRepository:
             request_id=approver.request_id,
         )
 
-    def _resume_budget_wait(
+    def _resume_budget_waits(
         self,
-        step_id: str,
+        step_ids: Sequence[str],
         *,
         note: str,
         budget_before: float,
@@ -2260,13 +2286,20 @@ class WorkflowRepository:
         request_id: str | None,
     ) -> None:
         """The lift itself, once the caller has established who may lift and for whom."""
-        step = self._step(step_id)
-        self._lock_run_for(step)
-        run = self._run(step.run_id)
-        self._session.refresh(run)
-        if StepRunStatus(step.status) is not StepRunStatus.AWAITING_BUDGET:
+        if not step_ids:
             raise BudgetWaitNotLiftable("only a step waiting for budget can be lifted")
-        if run.cancel_requested or step.cancel_requested:
+        steps = [self._step(step_id) for step_id in dict.fromkeys(step_ids)]
+        run_ids = {step.run_id for step in steps}
+        if len(run_ids) != 1:
+            raise BudgetWaitNotLiftable("one lift is one run's decision")
+        self._lock_run_for(steps[0])
+        for step in steps[1:]:
+            self._session.refresh(step)
+        run = self._run(steps[0].run_id)
+        self._session.refresh(run)
+        if any(StepRunStatus(s.status) is not StepRunStatus.AWAITING_BUDGET for s in steps):
+            raise BudgetWaitNotLiftable("only a step waiting for budget can be lifted")
+        if run.cancel_requested or any(s.cancel_requested for s in steps):
             raise BudgetWaitNotLiftable("a run that is being cancelled is not resumed")
 
         independence = observe_approval_independence(
@@ -2274,45 +2307,50 @@ class WorkflowRepository:
             approving_user_id=actor_id,
             policy=policy,
         )
-        self._session.add(
-            ApprovalDecisionRow(
-                organization_id=run.organization_id,
-                client_id=run.client_id,
-                study_id=study_id,
-                subject_type="budget",
-                subject_id=step_id,
-                run_id=step.run_id,
-                step_id=step_id,
-                gate_type="budget",
-                decision="lift",
-                comment=note,
-                request_id=request_id,
-                **independence.audit_fields(),
+        decision = ApprovalDecisionRow(
+            organization_id=run.organization_id,
+            client_id=run.client_id,
+            study_id=study_id,
+            subject_type="budget",
+            subject_id=run.run_id,
+            run_id=run.run_id,
+            step_id=steps[0].step_id if len(steps) == 1 else None,
+            gate_type="budget",
+            decision="lift",
+            comment=note,
+            request_id=request_id,
+            **independence.audit_fields(),
+        )
+        self._session.add(decision)
+        self._session.flush()  # the decision's id, named by every step's event below
+        lifted = [step.step_id for step in steps]
+        now = utcnow()
+        for step in steps:
+            step.status = StepRunStatus.RUNNABLE.value
+            step.waiting_reason = None
+            step.runnable_after = None
+            step.updated_at = now
+            self._event(
+                step.run_id,
+                event_type="STEP_RESUMED",
+                message=(
+                    f"{step.node_key}: budget lifted from {budget_before:.2f} to {budget_after:.2f}"
+                ),
+                payload={
+                    "from": StepRunStatus.AWAITING_BUDGET.value,
+                    "actor_id": actor_id,
+                    "budget_before_usd": budget_before,
+                    "budget_after_usd": budget_after,
+                    "note": note,
+                    "decision_id": decision.decision_id,
+                    "step_ids": lifted,
+                    **independence.audit_fields(),
+                },
+                step_id=step.step_id,
+                level="WARN" if independence.self_approved else "INFO",
             )
-        )
-        step.status = StepRunStatus.RUNNABLE.value
-        step.waiting_reason = None
-        step.runnable_after = None
-        step.updated_at = utcnow()
-        self._event(
-            step.run_id,
-            event_type="STEP_RESUMED",
-            message=(
-                f"{step.node_key}: budget lifted from {budget_before:.2f} to {budget_after:.2f}"
-            ),
-            payload={
-                "from": StepRunStatus.AWAITING_BUDGET.value,
-                "actor_id": actor_id,
-                "budget_before_usd": budget_before,
-                "budget_after_usd": budget_after,
-                "note": note,
-                **independence.audit_fields(),
-            },
-            step_id=step_id,
-            level="WARN" if independence.self_approved else "INFO",
-        )
         self._session.flush()
-        self._refresh_run(step.run_id)
+        self._refresh_run(run.run_id)
         self._session.flush()
 
     def record_spend_confirmation(

@@ -131,3 +131,14 @@ unless stated.
   is labelled modelled, against the rule that every label reads the origin. Smallest fix: pass the
   run's origin kinds into `reportParts` and word the part by them (fictional, modelled, unknown or
   mixed). Test: a SIMULATED run's report card never shows "Modelovaná data".
+  **Fixed in `04ed258f`** (branch `fix/report-card-origin-label`): `reportParts` takes the run's
+  origin kinds (`runOriginKinds`, plus the stored report's `resultOriginKind`) and words the part by
+  them through `originWords`: "Fiktivní data", "Modelovaná data", "Neznámý původ dat" (an unknown
+  origin, or none stated yet), a mixed run every kind. Tests: `CompleteReport.test.tsx` "the report
+  card's origin (CR-5)".
+
+## Doc follow-up
+
+- `open-items.md`: CR-5 is closed by `04ed258f` (number it closed, or not at all).
+- `CLAUDE.md` § The map, `CompleteReport` entry: the report card's origin part reads the run's
+  origin kinds (fictional, modelled, unknown, mixed), never a fixed "Modelovaná data".

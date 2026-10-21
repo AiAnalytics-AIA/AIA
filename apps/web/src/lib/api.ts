@@ -1267,9 +1267,12 @@ export const research = {
       `${studyPath(studyId)}/research/runs/${enc(runId)}/analysis/retry`,
       confirmCostUsd === undefined ? undefined : { confirm_cost_usd: confirmCostUsd },
     ),
-  /** Raise the Study's budget to `budgetUsd` (never below the current one) and let the waiting step go on. */
-  liftBudget: (studyId: string, runId: string, nodeKey: string, budgetUsd: number, note: string) =>
-    request<ResearchRun>("POST", `${studyPath(studyId)}/research/runs/${enc(runId)}/steps/${enc(nodeKey)}/budget`, {
+  /**
+   * Raise the Study's budget to `budgetUsd` (never below the current one) and let every step of the
+   * run waiting for it go on: the run's lift, one decision (CR-3), never one per step.
+   */
+  liftBudget: (studyId: string, runId: string, budgetUsd: number, note: string) =>
+    request<ResearchRun>("POST", `${studyPath(studyId)}/research/runs/${enc(runId)}/budget`, {
       budget_usd: budgetUsd,
       note,
     }),

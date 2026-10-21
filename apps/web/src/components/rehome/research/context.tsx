@@ -25,6 +25,13 @@ export type ResearchContextValue = {
   /** The research template: what a new study starts from, and what a stored one is completed with. */
   template: Template;
   runJob: RunJob;
+  /** Go on with the same job once a person lifted the study's budget for it (CR-2): never a new job. */
+  continueJob: (jobId: string) => Promise<unknown>;
+  /**
+   * A stage's own budget wait shown in place claims its job, so the screen's list of waiting jobs
+   * does not offer a second lift for it; the returned function releases the claim.
+   */
+  claimWait: (jobId: string) => () => void;
   job: JobUpdate | null;
   toast: (message: string) => void;
   /** confirm() and prompt(), with the classic words, as the rebuilt interface's dialog. */

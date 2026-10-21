@@ -797,7 +797,7 @@ def test_a_budget_wait_can_be_lifted_and_the_step_runs_again(
         select(ApprovalDecisionRow).where(ApprovalDecisionRow.subject_type == "budget")
     ).all()
     assert (row.decision, row.comment) == ("lift", "Klient souhlasil")
-    assert row.step_id == parked.step_id and row.subject_id == parked.step_id
+    assert row.step_id == parked.step_id and row.subject_id == run  # the run is the subject
     assert row.approver_user_id == scoped.users["researcher"]
     events = [e["event_type"] for e in engine_repo.events(run)]
     assert "STEP_RESUMED" in events
