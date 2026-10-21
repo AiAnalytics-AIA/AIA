@@ -132,3 +132,29 @@ def test_a_recorded_item_neither_design_has_is_refused_not_dropped(
         _accept(session, scope, design, proposed, touched=[ItemKey("content", "question", "#7#7")])
     assert refused.value.why == "unknown_baseline"
     assert StudyWorkspaceRepository(session).content(scope).revision == working
+
+
+def test_a_place_two_designs_fill_with_different_sections_is_refused(
+    session: Any, scoped: Any
+) -> None:
+    """Re-review of #543: ``#0`` is "Úvod" in the baseline and "Nový" in the proposal. Read by the
+    baseline alone, "Nový" was dropped from the merge; the accept is refused instead."""
+    scope, design = _study(session, scoped, LEGACY)
+    proposed = copy.deepcopy(LEGACY)
+    new = {"type": "questions", "title": "Nový", "questions": [{"text": "n?", "typ": "otevrena"}]}
+    proposed["sections"].insert(0, new)
+    recorded = [
+        ItemKey("content", "section", "#0"),
+        ItemKey("content", "section", "#1"),
+        ItemKey("content", "question", "#0#0"),
+        ItemKey("content", "question", "#1#0"),
+    ]
+    working = StudyWorkspaceRepository(session).content(scope).revision
+    with pytest.raises(StaleProposal) as refused:
+        _accept(session, scope, design, proposed, touched=recorded)
+    assert refused.value.why == "unknown_baseline"
+    assert StudyWorkspaceRepository(session).content(scope).revision == working
+    # Computed now, by ids, the same proposal applies whole (in the person's order).
+    # Order is no item.
+    accepted = _accept(session, scope, design, proposed)
+    assert sorted(s["title"] for s in accepted.merged.content["sections"]) == ["Nový", "Úvod"]

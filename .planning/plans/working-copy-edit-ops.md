@@ -316,7 +316,8 @@ prefers it), so a reworded or removed item is never named by its hash
 (`test_a_refusal_names_a_reworded_research_question_by_its_wording`, `proposal-items.test.ts`).
 Keys recorded before ids for sections and questions without one (`#i`, `#i#j`) are translated to
 the compiler's ids, and a recorded key that names nothing in either design is refused
-`unknown_baseline`, never accepted and dropped (`test_proposal_accept_ids.py`). Identity folds
+`unknown_baseline`, never accepted and dropped, as is a place (`#0`) the baseline and the proposal
+fill with different sections (`ambiguous_legacy_keys`, from the re-review; `test_proposal_accept_ids.py`). Identity folds
 exactly as the old text keys did (`" ".join(split()).casefold()`, one function; the web adds the
 297 code points where case folding is not lower-casing, `apps/web/src/research/case-folds.ts`), so
 `ß` and final sigma map one to one (`test_a_respelling_the_old_keys_called_one_item_is_still_one`).

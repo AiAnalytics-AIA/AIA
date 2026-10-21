@@ -56,6 +56,7 @@ from .item_ids import ID_LISTS, SIDECAR_KEYS, Entry, bound_of, fold, list_ids, w
 __all__ = [
     "Documents",
     "ItemKey",
+    "ambiguous_legacy_keys",
     "brief_signature",
     "design_items",
     "from_legacy_keys",
@@ -450,6 +451,25 @@ def from_legacy_keys(
     for source in (in_after, in_before):  # the baseline's reading wins
         by_old.update({old: new for new, old in source.items()})
     return frozenset(k if k in ids else by_old.get(k, k) for k in keys)
+
+
+def ambiguous_legacy_keys(
+    keys: Iterable[ItemKey],
+    before: Documents | Mapping[str, Any],
+    after: Documents | Mapping[str, Any],
+) -> frozenset[ItemKey]:
+    """The keys recorded before WCE1 that name one item in ``before`` and another in ``after``: a
+    place (``#0``) held by one section in the baseline and by a different one in the proposal. Read
+    by either side alone, the other's change would be dropped; the caller refuses them."""
+    in_before, in_after = _key_maps(before, after)
+    ids = in_before.keys() | in_after.keys()
+    old_before = {old: new for new, old in in_before.items()}
+    old_after = {old: new for new, old in in_after.items()}
+    return frozenset(
+        k
+        for k in keys
+        if k not in ids and k in old_before and k in old_after and old_before[k] != old_after[k]
+    )
 
 
 def named_items(

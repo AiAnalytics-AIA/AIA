@@ -31,6 +31,7 @@ from ..domain.design import DesignRejected, DesignRevision
 from ..domain.design_items import (
     Documents,
     ItemKey,
+    ambiguous_legacy_keys,
     design_items,
     from_legacy_keys,
     merge_items,
@@ -152,9 +153,17 @@ def accept_into_working_copy(
             current_revision=now.revision,
         )
     current = Documents(content=dict(now.content or {}), analysis=now.analysis)
+    recorded = list(touched) if touched is not None else None
+    if recorded is not None and ambiguous_legacy_keys(recorded, baseline, proposed):
+        # A place recorded before ids that holds different sections in the baseline and the
+        # proposal: either reading drops the other's change. Refused, never accepted and dropped.
+        raise StaleProposal(
+            "the proposal names a place its baseline and it fill with different items",
+            why="unknown_baseline",
+        )
     touched_set = (
-        from_legacy_keys(touched, baseline, proposed)
-        if touched is not None
+        from_legacy_keys(recorded, baseline, proposed)
+        if recorded is not None
         else design_items(baseline, proposed)
     )
     if touched_set - named_items(baseline, proposed):
