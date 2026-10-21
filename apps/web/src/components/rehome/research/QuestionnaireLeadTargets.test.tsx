@@ -54,9 +54,10 @@ describe("Dotazník's Lead targets", () => {
     // The Lead's pointing reads the mark from anywhere inside the card.
     const field = container.querySelector('[data-aia="question:Q1"] textarea');
     expect(targetOfElement(field)?.id).toBe("question:Q1");
-    // Named by what the person reads: the question's wording, never the first legend in the card.
+    // Named by what the person reads: a question's wording, a block's or set's title, never a legend.
     expect(targetOfElement(field)?.label).toBe("Otázka Q1: Jak často?");
-    expect(targetOfElement(container.querySelector('[data-aia="section:sec_a"] input'))?.label).not.toContain("Odpovídá na výzkumné otázky");
+    expect(targetOfElement(container.querySelector('[data-aia="section:sec_a"] input'))?.label).toBe("Oddíl: Hlavní otázky");
+    expect(targetOfElement(container.querySelector('[data-aia="section:sec_b"] input'))?.label).toBe("Oddíl: Média");
     expect(targetOfElement(container.querySelector('[data-aia="section:sec_b"] input'))?.id).toBe("section:sec_b");
   });
 });
