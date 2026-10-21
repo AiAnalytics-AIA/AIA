@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import type { Readiness } from "./api";
-import { outlookSummary, personaSourcesOf, supportForecastOf } from "./sample-view";
+import { outlookSummary, personaSourcesOf, sourceChosenOnRun, supportForecastOf } from "./sample-view";
 
 const readiness = (over: Partial<Readiness>): Readiness => ({
   design_revision_id: "r1", rules: "aia-readiness-1", ready: true, checks: [], questions: 3, batteries: 0, objects: 0, n: 200,
@@ -49,5 +49,15 @@ describe("personaSourcesOf", () => {
   it("is null when the API sent none, never a default", () => {
     expect(personaSourcesOf(readiness({}))).toBeNull();
     expect(personaSourcesOf(readiness({ persona_sources: [] }))).toBeNull();
+  });
+});
+
+describe("sourceChosenOnRun", () => {
+  const sources = [{ source: "fictional_roster", offered: true, reason: null, default: true }];
+
+  it("is true only for an AI-answered run with sources, as Spuštění offers the choice", () => {
+    expect(sourceChosenOnRun(readiness({ persona_sources: sources }))).toBe(true);
+    expect(sourceChosenOnRun(readiness({ fieldwork_source: "synthetic_fixture", persona_sources: sources }))).toBe(false);
+    expect(sourceChosenOnRun(readiness({}))).toBe(false);
   });
 });

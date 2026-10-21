@@ -12,7 +12,7 @@ import { t } from "@/i18n/t";
 import type { OutlookVerdict } from "@/lib/api";
 import { codeWords } from "@/lib/reason-words";
 import { VERDICT_ORDER } from "@/lib/research-execution";
-import { outlookSummary, personaSourcesOf, supportForecastOf } from "@/lib/sample-view";
+import { outlookSummary, personaSourcesOf, sourceChosenOnRun, supportForecastOf } from "@/lib/sample-view";
 import type { WorkbenchStage } from "@/lib/workbench-stages";
 import { audienceReady } from "@/research/audience";
 import type { ResearchProject } from "@/research/model";
@@ -128,10 +128,13 @@ const R = "research.exec.respondents";
 // source is chosen on Spuštění, beside the start that pins it, so nothing here sets it.
 function Respondents({ readiness, onOpen }: { readiness: SampleReadiness; onOpen: Open }) {
   const sources = readiness.kind === "ready" ? personaSourcesOf(readiness.readiness) : null;
+  // Spuštění offers the choice only for a run AI respondents answer; elsewhere there is none to send the person to.
+  const chosen = readiness.kind === "ready" && sourceChosenOnRun(readiness.readiness);
   return (
     <>
       {readiness.kind === "loading" ? <p className="text-sm text-ink-muted" role="status">Načítám nabídku ze serveru…</p>
         : readiness.kind === "failed" ? <p className="text-sm text-status-fault">Nabídku se nepodařilo načíst.</p>
+        : readiness.kind === "ready" && readiness.readiness.fieldwork_source !== "ai_runtime" ? <p className="text-sm">Toto nasazení nesbírá data přes AI respondenty, takže se zdroj respondentů nevolí.</p>
         : !sources ? <p className="text-sm text-ink-muted">Server zdroje respondentů nevrátil: neznámé.</p>
         : (
           <ul className="flex flex-col gap-2" aria-label="Zdroje respondentů">
@@ -150,10 +153,12 @@ function Respondents({ readiness, onOpen }: { readiness: SampleReadiness; onOpen
             ))}
           </ul>
         )}
-      <p className="text-sm text-ink-muted">
-        Zdroj se volí ve Spuštění, u startu běhu, který ho zapíše.{" "}
-        <button type="button" className="text-signal underline" onClick={() => onOpen("fieldwork")}>Změnit ve Spuštění</button>
-      </p>
+      {chosen ? (
+        <p className="text-sm text-ink-muted">
+          Zdroj se volí ve Spuštění, u startu běhu, který ho zapíše.{" "}
+          <button type="button" className="text-signal underline" onClick={() => onOpen("fieldwork")}>Změnit ve Spuštění</button>
+        </p>
+      ) : null}
     </>
   );
 }

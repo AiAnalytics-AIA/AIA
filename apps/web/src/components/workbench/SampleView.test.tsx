@@ -101,6 +101,13 @@ describe("Kdo bude odpovídat", () => {
     expect(panel?.textContent).toContain("Toto nasazení odpovědi z populace zatím nenabízí.");
   });
 
+  it("sends no one to Spuštění for a choice it does not offer: a run not answered by AI respondents", () => {
+    render(<SampleArtifact project={project({ n: 200 })} onOpen={vi.fn()} readiness={ready({ fieldwork_source: "synthetic_fixture", persona_sources: sources })} />);
+    const section = screen.getByRole("region", { name: "Kdo bude odpovídat" });
+    expect(section.textContent).toContain("nesbírá data přes AI respondenty");
+    expect(screen.queryByRole("button", { name: "Změnit ve Spuštění" })).toBeNull();
+  });
+
   it("says unknown when the server sent no sources, never a default", () => {
     render(<SampleArtifact project={project({ n: 200 })} onOpen={vi.fn()} readiness={ready({})} />);
     expect(screen.getByText(/zdroje respondentů nevrátil: neznámé/)).toBeTruthy();

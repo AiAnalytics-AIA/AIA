@@ -47,3 +47,13 @@ export function personaSourcesOf(readiness: Readiness): PersonaSourceOption[] | 
   const sources = readiness.persona_sources;
   return sources && sources.length ? sources : null;
 }
+
+/**
+ * Whether Spuštění offers the persona source choice for this readiness: only for a run answered
+ * by AI respondents (`fieldwork_source: "ai_runtime"`) with sources listed, as Spuštění renders
+ * its choice (ExecutionSteps.tsx RunStep). Anything else answers from a fixture: there is no
+ * source to choose, and Vzorek must not send the person to a choice that is not there.
+ */
+export function sourceChosenOnRun(readiness: Readiness): boolean {
+  return readiness.fieldwork_source === "ai_runtime" && personaSourcesOf(readiness) !== null;
+}
