@@ -906,6 +906,8 @@ export const cs = {
           noRevision: "Tato studie nemá žádnou revizi návrhu.",
           start: "Zadat zkušební úlohu",
           starting: "Zadávám…",
+          costConfirm: "Spustit",
+          costDecline: "Nespouštět",
           close: "Zavřít",
           ranWith: "Prompt {version}",
           parked: "Úloha čeká na povolenou trasu, licenci nebo na zařazení textu promptu operátorem; nic se modelu neodeslalo.",

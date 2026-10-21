@@ -269,7 +269,9 @@ function Ready({ store, template, origin, memory, step, frame, reload }: {
     return () => clearTimeout(id);
   }, [toast]);
 
-  const agents = useResearchAgents(frame.studyId, store, setJob, true, true);
+  const confirm = useCallback((m: string) => new Promise<boolean>((resolve) => setAsk({ kind: "confirm", message: m, resolve })), []);
+  // A job reaching the study's confirmation threshold asks here first (LO15).
+  const agents = useResearchAgents(frame.studyId, store, setJob, true, true, confirm);
   const nativeRun = agents.run;
 
   // Design actions remain research agent jobs; Deep Research uses its own durable panel.
@@ -321,7 +323,6 @@ function Ready({ store, template, origin, memory, step, frame, reload }: {
       },
     });
 
-  const confirm = useCallback((m: string) => new Promise<boolean>((resolve) => setAsk({ kind: "confirm", message: m, resolve })), []);
   const prompt = useCallback(
     (m: string, initial = "") => new Promise<string | null>((resolve) => setAsk({ kind: "prompt", message: m, initial, resolve })),
     [],

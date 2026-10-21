@@ -1,11 +1,11 @@
 ---
-status: planned
+status: in-progress
 chunks:
   - "[ ] 1. Terraform: an application inference profile, tagged Environment=develop, for every live model the acceptance run uses (main, the Lead's, the light model)"
   - "[ ] 2. IAM and the model policy follow the profiles; the cost-allocation tag is activated (a billing action)"
   - "[ ] 3. A reconciliation: AIA's usage ledger against the AWS cost record for the tag over a window"
   - "[ ] 4. The runbook states the check, its lag and its tolerance"
-  - "[ ] 5a. The worker accepts what the plan creates (W0): a tagged profile ARN or an `eu.` id, decided as a model identity versus an invocation target; and the statement "no Environment tag" corrected"
+  - "[x] 5a. The worker accepts what the plan creates (W0): a tagged profile ARN or an `eu.` id, decided as a model identity versus an invocation target; and the statement "no Environment tag" corrected"
   - "[ ] 5b. The reconciliation's lines (W3): model usage, tool and search spend, open reservations and uncertain calls, each separate, after `deep-research` 4; billing lag recorded, never zero"
   - "[ ] 6. An organization's monthly spend, read-only for OWNER and ADMIN in Settings: model, Brave and other tool spend across clients, from the content-free rows MVPQ-07 keeps (D-47)"
 ---
@@ -28,8 +28,15 @@ cost record.
   Lead's own (`infra/develop/main.tf:34, 39 @ 085abe0`, `var.bedrock_lead_model_id`,
   `var.bedrock_model_id`); the operator procedure is in `infra/develop/README.md:65-66` and
   `deploy/develop/README.md:502` (`aws bedrock get-inference-profile`).
-- The only tags in `infra/develop/main.tf` are `Name` and `Snapshot` on compute and volumes: no
-  `Environment` tag, so no AWS cost can be filtered to develop today (grep, `main.tf:443-527`).
+- ~~The only tags in `infra/develop/main.tf` are `Name` and `Snapshot` on compute and volumes: no
+  `Environment` tag, so no AWS cost can be filtered to develop today (grep, `main.tf:443-527`).~~
+  **Corrected (5a, 2026-10-21):** every resource the provider creates carries `Environment =
+  "develop"` through its `default_tags` (`infra/develop/versions.tf:33-42 @ 9bbc5019`), and the
+  monthly budget already filters on it (`TagKeyValue` `user:Environment$develop`,
+  `infra/develop/main.tf:600-610 @ 9bbc5019`). What is missing is a *Bedrock* resource the tag can
+  sit on: model calls through a system inference profile carry no resource tag, which chunk 1's
+  application inference profiles supply. Whether the tag is activated for cost allocation is
+  chunk 2's billing action and is not visible in Terraform.
 - AIA's append-only usage ledger (`infrastructure/ai_usage_repository.py`) records every call's
   cost as priced from the model catalogue, not as AWS billed it.
 
@@ -102,3 +109,50 @@ removed from the lane in the same PR. Gap G43.
 Source: the owner's answers of 2026-10-20 (`.planning/evidence/scope-freeze/answers-2026-10-20.md`, decision ids from `decision-list.md`), applied by freeze step 4; the proposals they settle are in `proposed-edits.md`.
 
 **New chunk.** 6 (W3), D-47 in. **5b** gains the infrastructure-charges line.
+
+## 5a delivered (2026-10-21, E03)
+
+**Decision: a model's identity and its invocation target are two values** (`domain/model_invocation.py`).
+The identity is the `eu.` profile id each `…MODEL_ID` key carries today: the catalogue prices it, the
+policy binds a capability to it, the request profile is declared for it, the licence determination's
+route carries it and every usage-ledger row records it. Its validation is unchanged and not loosened
+(an ARN given as `AIA_BEDROCK_MODEL_ID` is still refused, `test_a_wrong_target_stops_the_worker_by_name`).
+The invocation target is what the Converse URL names: unset, the identity itself (today's
+behaviour, byte for byte); set, an application inference profile ARN
+(`arn:aws:bedrock:<region>:<account>:application-inference-profile/<id>`) in the route's own EU region.
+Keys: `AIA_BEDROCK_INVOCATION_TARGET` (the route model), `AIA_AI_RESEARCH_LEAD_INVOCATION_TARGET`
+(the Lead's own model), and `LightModelSettings.invocation_target` (the light model, which has no
+keys yet). Each is checked at worker start by name; two models may not share one target; the
+adapter (`BedrockConverseAdapter(invocation_target=)`) puts it in the URL as one percent-encoded
+segment, which is exactly the URL botocore serialises for the same ARN
+(`test_the_url_is_the_one_botocore_serialises_for_the_same_arn`, offline). Compose passes both keys to
+the worker alone, empty by default; `env.example` names them.
+
+Why this shape: chunk 1's ARNs carry no model name, so an ARN as the identity would break pricing,
+the policy and the ledger at once; a second value leaves all of them on the id they already use. The
+pair is asserted by configuration: whether a profile really copies the identity's system profile is a
+fact in AWS (`aws bedrock get-inference-profile`), which the operator checks when setting it (chunk
+2's runbook); the worker makes no AWS call to find out. A kill switch is the unset key.
+
+**Lane M9 is not needed** (`ai_usage_events.inference_profile_arn`): the model fields carry the
+identity, which is what a row is priced by, and chunk 3's reconciliation compares the ledger's total
+with the AWS cost record filtered by the `Environment` tag over the same window, so it needs no
+per-row ARN. The target in force is configuration, which the worker's composition record
+(`lead-orchestration` LO12b, the digest on each run in LO12c) is the place to record. If chunk 3 finds
+it must attribute per profile, M9 comes back with that evidence.
+
+Tests: `packages/aia_core/tests/test_model_invocation.py`,
+`apps/executors/tests/test_ai_runtime_invocation_target.py`,
+`test_an_invocation_target_reaches_the_worker_alone_and_unset_changes_nothing`
+(`test_develop_host_configuration.py`). Production PE7 reuses the same contract before PE1.
+
+### Doc follow-up (5a)
+
+- `mvp-development-plan.md` lane table: remove row M9 (5a found the model fields carry the
+  identity; no `inference_profile_arn` column), or mark it "not needed, 5a".
+- `CLAUDE.md` map, `ai_runtime.py`: "each `…MODEL_ID` is the model's identity; the optional
+  `AIA_BEDROCK_INVOCATION_TARGET` / `AIA_AI_RESEARCH_LEAD_INVOCATION_TARGET` is the application
+  inference profile ARN its calls go through (`domain/model_invocation.py`)"; and the domain list:
+  "`model_invocation.py` A model's identity versus its invocation target (5a)".
+- `deploy/develop/README.md` § The Research Lead's own model and the AI runtime section: the two
+  optional keys, set in SSM once chunk 1's profiles exist.

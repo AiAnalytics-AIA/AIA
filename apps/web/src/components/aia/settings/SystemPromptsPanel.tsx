@@ -34,6 +34,7 @@ import {
 } from "@/lib/api";
 import { relative } from "@/lib/format";
 import { diffLines, differs, summarise } from "@/lib/text-diff";
+import { withJobCostConfirmation } from "@/lib/research-agent-jobs";
 import { Button, Chip, Field, Select, TextArea, TextInput } from "../../rehome/ui";
 import { Technical } from "./technical";
 import { EYEBROW, Empty, Loaded } from "../states";
@@ -704,6 +705,10 @@ function TestRun({ detail, version, studies, clients, onClose }: {
   const [result, setResult] = useState<ResearchAgentResult | null>(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  // The study's confirmation threshold asks before a job that reaches it (LO15): answered here.
+  const [costAsk, setCostAsk] = useState<{ message: string; resolve: (yes: boolean) => void } | null>(null);
+  const confirmCost = (message: string) => new Promise<boolean>((resolve) => setCostAsk({ message, resolve }));
+  const answerCost = (yes: boolean) => { costAsk?.resolve(yes); setCostAsk(null); };
   const resultFor = useRef<string | null>(null);
   const [resultRetry, setResultRetry] = useState(0);
   const [resultFailed, setResultFailed] = useState(false);
@@ -773,7 +778,10 @@ function TestRun({ detail, version, studies, clients, onClose }: {
     setResult(null);
     resultFor.current = null;
     try {
-      const queued = await researchAgents.start(studyId, revisionId, action, "", version);
+      const queued = await withJobCostConfirmation(
+        (usd) => researchAgents.start(studyId, revisionId, action, "", version, usd),
+        confirmCost,
+      );
       if (generation.current === operation) setJob(queued);
     } catch (e) {
       if (generation.current === operation) fail(e);
@@ -808,6 +816,15 @@ function TestRun({ detail, version, studies, clients, onClose }: {
         </div>
       )}
       {revisions && !revisions.length && studyId ? <p className="text-xs text-ink-muted">{t(`${P}.test.noRevision`)}</p> : null}
+      {costAsk ? (
+        <div role="alertdialog" aria-labelledby="pt-cost" data-cost-ask className="flex flex-col gap-2 rounded-sm border border-border p-3 text-sm">
+          <p id="pt-cost">{costAsk.message}</p>
+          <div className="flex gap-2">
+            <Button variant="primary" onClick={() => answerCost(true)}>{t(`${P}.test.costConfirm`)}</Button>
+            <Button onClick={() => answerCost(false)}>{t(`${P}.test.costDecline`)}</Button>
+          </div>
+        </div>
+      ) : null}
       {error ? <p role="alert" data-refusal className="text-sm text-status-fault">{error}</p> : null}
       {resultFailed ? <Button onClick={() => { resultFor.current = null; setResultFailed(false); setError(null); setResultRetry((n) => n + 1); }}>{t(`${P}.retryResult`)}</Button> : null}
       {job ? (

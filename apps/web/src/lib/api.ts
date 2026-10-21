@@ -1470,10 +1470,14 @@ export const researcherLead = {
 
 export const researchAgents = {
   design: (studyId: string, revisionId: string) => request<DesignRevision & { content: Record<string, unknown> }>("GET", `${studyPath(studyId)}/design/revisions/${enc(revisionId)}`),
-  /** `promptVersion` runs a stored prompt version instead of the active one (organization administrators; ADR 0020). */
-  start: (studyId: string, revisionId: string, action: ResearchAgentAction, instruction = "", promptVersion?: number) =>
+  /**
+   * `promptVersion` runs a stored prompt version instead of the active one (organization administrators; ADR 0020).
+   * `confirmCostUsd`: the ceiling a person confirmed when the study's threshold asked (409 cost_confirmation_required; LO15).
+   */
+  start: (studyId: string, revisionId: string, action: ResearchAgentAction, instruction = "", promptVersion?: number, confirmCostUsd?: number) =>
     request<ResearchAgentJob>("POST", agentsPath(studyId), {
       design_revision_id: revisionId, action, instruction, ...(promptVersion === undefined ? {} : { prompt_version: promptVersion }),
+      ...(confirmCostUsd === undefined ? {} : { confirm_cost_usd: confirmCostUsd }),
     }),
   jobs: async (studyId: string) => {
     const jobs = await request<unknown>("GET", agentsPath(studyId));
@@ -1501,8 +1505,10 @@ export const researchAgents = {
   /** Set a proposal aside: a ledger row, nothing written to the design (ADR 0026 decision 8). */
   dismiss: (studyId: string, jobId: string) => request<ResearchAgentJob>("POST", `${agentsPath(studyId)}/${enc(jobId)}/dismiss`),
   /** Ask the same again on the Study's newest Design Revision (`revisionId`, just submitted): a new job that supersedes this one. */
-  rebuild: (studyId: string, jobId: string, revisionId: string) =>
-    request<ResearchAgentJob>("POST", `${agentsPath(studyId)}/${enc(jobId)}/rebuild`, { design_revision_id: revisionId }),
+  rebuild: (studyId: string, jobId: string, revisionId: string, confirmCostUsd?: number) =>
+    request<ResearchAgentJob>("POST", `${agentsPath(studyId)}/${enc(jobId)}/rebuild`, {
+      design_revision_id: revisionId, ...(confirmCostUsd === undefined ? {} : { confirm_cost_usd: confirmCostUsd }),
+    }),
 };
 
 // ---- the settings page: every control and how it is set -------------------
