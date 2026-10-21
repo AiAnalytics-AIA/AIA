@@ -1133,6 +1133,12 @@ class RetrievalGate:
                 if host_allowed is not None and not host_allowed(final_host):
                     reason = REDIRECT_OUT_OF_SCOPE
                 else:
+                    # A page served from the cache was admitted by the same class gate as a
+                    # dispatched one: a refusal advisory gates lifted is on this event too.
+                    advisory = self._advisory_note(
+                        route, data_class=cls, class_a="class_a_url", c_only=None
+                    )
+                    cached = f"run_snapshot_cache {hit.snapshot.snapshot_id}"
                     self._meter.outcome(
                         self._event(
                             route,
@@ -1141,7 +1147,7 @@ class RetrievalGate:
                             data_class=cls,
                             track_id=track_id,
                             sent=url,
-                            note=f"run_snapshot_cache {hit.snapshot.snapshot_id}",
+                            note=f"{cached} {advisory}" if advisory else cached,
                         )
                     )
                     return FetchOutcome(

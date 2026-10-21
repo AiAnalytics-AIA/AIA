@@ -9,27 +9,26 @@ would have refused, and EU residency, licences, budgets and scope refuse in both
 from __future__ import annotations
 
 import asyncio
+from datetime import UTC, datetime
 from typing import Any
 
 import pytest
-from test_model_gateway import (  # type: ignore[import-not-found]
-    LICENCE,
-    ScriptedAdapter,
-    _ok,
-    _request,
-)
-from test_web_retrieval import (  # type: ignore[import-not-found]
-    HITS,
-    NOW,
-    PAGE,
-    _fetcher,
-)
+from pydantic import BaseModel, ConfigDict
 
 from aia_core.application.model_gateway import GovernedModelGateway
-from aia_core.application.web_retrieval import RetrievalGate, WebRetrieval
-from aia_core.domain.ai_contracts import ModelCallFailed
+from aia_core.application.web_retrieval import RetrievalGate, RunSnapshotCache, WebRetrieval
+from aia_core.domain.ai_contracts import (
+    AdapterRequest,
+    AdapterResponse,
+    AgentDefinition,
+    FinishReason,
+    Message,
+    ModelCallFailed,
+    ModelRequest,
+    ModelUsage,
+)
 from aia_core.domain.ai_execution import ExecutionContext, ReservationView
-from aia_core.domain.ai_models import ModelRegistry
+from aia_core.domain.ai_models import ModelCapability, ModelRegistry
 from aia_core.domain.deep_research.contracts import ClientTerm, QueryDecision, RetrievalMode
 from aia_core.domain.deep_research.tooling import (
     InMemoryToolLedger,
@@ -44,6 +43,7 @@ from aia_core.domain.deployment import (
     parse_data_class_gates,
 )
 from aia_core.domain.licence import DataLineage
+from aia_core.domain.licence_determinations import recorded_policy
 from aia_core.domain.providers import Provider
 from aia_core.domain.residency import (
     ClassAdvisory,
@@ -55,7 +55,109 @@ from aia_core.domain.residency import (
     evaluate_egress,
 )
 from aia_core.infrastructure.ai_call_journal import InMemoryCallJournal
-from aia_core.infrastructure.web_retrieval import RecordedSearch
+from aia_core.infrastructure.web_retrieval import (
+    FetchedResponse,
+    RecordedFetchTransport,
+    RecordedResolver,
+    RecordedSearch,
+    WebFetcher,
+)
+
+# --------------------------------------------------------------------------- helpers
+#
+# Kept here rather than imported from another test module: both test directories are called
+# ``tests`` and are not packages, so an import between test modules resolves by whichever root
+# pytest picks (AGENTS.md § pytest). Shaped as test_model_gateway.py's and test_web_retrieval.py's.
+
+POLICY = "policy-test-v1"
+LICENCE = recorded_policy()
+NOW = datetime(2026, 9, 27, 12, 0, tzinfo=UTC)
+PUBLIC = "93.184.215.14"
+PAGE = """<!doctype html><html><head><title>Spotřeba nápojů 2025</title></head>
+<body><h1>Trh</h1><p>Spotřeba rostlinných nápojů vzrostla o 12,5 %.</p></body></html>"""
+HITS: dict[str, Any] = {
+    "spotřeba rostlinných nápojů česko": {
+        "hits": [{"url": "https://stats.example/a"}],
+        "credits": 1,
+    }
+}
+
+
+class Answer(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    verdict: str
+    score: int
+
+
+class ScriptedAdapter:
+    """Answers from a script; records what it was sent."""
+
+    def __init__(self, provider: Provider, script: list[AdapterResponse]) -> None:
+        self._provider = provider
+        self._script = list(script)
+        self.requests: list[AdapterRequest] = []
+
+    @property
+    def provider(self) -> Provider:
+        return self._provider
+
+    async def send(self, request: AdapterRequest) -> AdapterResponse:
+        self.requests.append(request)
+        return self._script.pop(0)
+
+
+def _ok() -> AdapterResponse:
+    return AdapterResponse(
+        text='{"verdict": "fine", "score": 7}',
+        finish_reason=FinishReason.COMPLETED,
+        usage=ModelUsage(input_tokens=1000, output_tokens=200),
+        provider_request_id="req_ok",
+        served_model="served-id",
+    )
+
+
+def _request(**overrides: Any) -> ModelRequest:
+    base: dict[str, Any] = {
+        "agent": AgentDefinition(
+            agent_id="critic-agent",
+            version="3",
+            capability=ModelCapability.CRITIC,
+            prompt_id="critic",
+            prompt_version="2",
+            output_contract=Answer,
+            max_output_tokens=1000,
+        ),
+        "policy_version": POLICY,
+        "data_classification": DataClass.CLASS_C_INTERNAL,
+        "data_lineage": DataLineage.none(),
+        "system": "Review the argument.",
+        "messages": (Message(role="user", content="The argument."),),
+    }
+    return ModelRequest(**{**base, **overrides})
+
+
+def _fetcher(pages: dict[str, dict[str, Any]]) -> tuple[WebFetcher, RecordedFetchTransport]:
+    transport = RecordedFetchTransport(pages=pages)
+    resolver = RecordedResolver(hosts={"stats.example": [PUBLIC]})
+    return (
+        WebFetcher(
+            transport=transport,
+            resolver=resolver,
+            adapter_id="recorded-fetch-v1",
+            clock=lambda: NOW,
+        ),
+        transport,
+    )
+
+
+class _LiveTransport:
+    """A fetch transport presented as live, never asked: a live route's shape."""
+
+    retrieval_mode = RetrievalMode.LIVE
+
+    def get(self, url: str, *, address: str, max_bytes: int) -> FetchedResponse:
+        raise AssertionError("nothing is fetched in this test")
+
 
 ADVISORY = DataClassGates.ADVISORY
 ENFORCE = DataClassGates.ENFORCE
@@ -298,7 +400,7 @@ def test_the_gateway_under_enforce_refuses_and_sends_nothing(
 def test_the_gateway_under_advisory_sends_unclassified_material_and_writes_it_on_every_row(
     model_registry: ModelRegistry, context: ExecutionContext, journal: InMemoryCallJournal
 ) -> None:
-    adapter = ScriptedAdapter(Provider.OPENAI, [_ok()], journal)
+    adapter = ScriptedAdapter(Provider.OPENAI, [_ok()])
     gateway = _gateway(model_registry, adapter, gates=ADVISORY, route=EU_C_ONLY)
     request = _request(data_classification=None)
     gateway.preflight(request, context)  # the preflight passes as invoke will
@@ -631,12 +733,62 @@ class _LiveSearch:
 
 
 def _live_fetcher() -> Any:
-    from test_web_retrieval import _PricedTransport  # type: ignore[import-not-found]
-
-    from aia_core.infrastructure.web_retrieval import RecordedResolver, WebFetcher
-
     return WebFetcher(
-        transport=_PricedTransport(pages={}),
-        resolver=RecordedResolver(hosts={}),
-        adapter_id="live-fetch-v1",
+        transport=_LiveTransport(), resolver=RecordedResolver(hosts={}), adapter_id="live-fetch-v1"
     )
+
+
+def _cached_gate(scope: Any, gates: DataClassGates) -> tuple[RetrievalGate, Any, Any]:
+    fetcher, transport = _fetcher({"https://stats.example/acme-corp-results": {"body": PAGE}})
+    ledger = InMemoryToolLedger(budget_usd=1.0)
+    gate = RetrievalGate(
+        retrieval=WebRetrieval(
+            search_route=_tool_route(ToolKind.WEB_SEARCH),
+            fetch_route=_tool_route(ToolKind.WEB_FETCH),
+            search=RecordedSearch(adapter_id="recorded-search-v1", exchanges={}),
+            fetcher=fetcher,
+        ),
+        scope=scope,
+        meter=ledger,
+        client_terms=(ClientTerm(term="Acme Corp", source="client.name"),),
+        class_a_texts=(),
+        clock=lambda: NOW,
+        cache=RunSnapshotCache(),
+        class_gates=gates,
+    )
+    return gate, ledger, transport
+
+
+def test_a_url_enforce_refuses_is_never_fetched_nor_answered_from_the_cache(scope: Any) -> None:
+    gate, ledger, transport = _cached_gate(scope, ENFORCE)
+    for _ in range(2):
+        refused = gate.fetch("https://stats.example/acme-corp-results", track_id="T")
+        assert refused.reason == "egress_route_not_approved_for_class"
+    assert transport.calls == []
+    assert [e.outcome for e in ledger.events()] == [ToolOutcome.REFUSED, ToolOutcome.REFUSED]
+
+
+def test_a_page_served_from_the_cache_under_advisory_records_the_refusal_it_lifted(
+    scope: Any,
+) -> None:
+    """Codex P2 on #594: the cached answer passed the same class gate as the dispatch, so it
+    carries the same advisory; nothing advisory lets through goes unrecorded."""
+    gate, ledger, transport = _cached_gate(scope, ADVISORY)
+    url = "https://stats.example/acme-corp-results"
+    first = gate.fetch(url, track_id="T")
+    again = gate.fetch(url, track_id="T")
+    assert first.page is not None and not first.cached
+    assert again.page is not None and again.cached
+    assert transport.calls == [url]  # the second was answered from the run's cache
+    advisory = ClassAdvisory(
+        "retrieval", "egress_route_not_approved_for_class", DataClass.CLASS_B_DERIVED_CLIENT
+    ).note()
+    events = ledger.events()
+    assert [e.outcome for e in events] == [
+        ToolOutcome.DISPATCHED,
+        ToolOutcome.SUCCEEDED,
+        ToolOutcome.CACHED,
+    ]
+    assert events[0].note == advisory
+    assert events[2].note.startswith("run_snapshot_cache SNP-")
+    assert events[2].note.endswith(advisory)
