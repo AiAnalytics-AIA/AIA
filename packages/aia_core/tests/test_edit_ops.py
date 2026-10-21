@@ -14,7 +14,7 @@ from pathlib import Path
 from typing import Any, get_args
 
 import pytest
-from pydantic import TypeAdapter
+from pydantic import BaseModel, TypeAdapter
 
 from aia_core.domain import edit_ops as e
 from aia_core.domain.analysis.native import research_questions_of
@@ -94,6 +94,31 @@ def test_a_declared_operation_is_refused_by_name_until_its_chunk() -> None:
         assert e.op_refusal(name.value) == expected
     assert e.op_refusal("question_teleport") == "unknown_edit"
     assert e.spec_of("question_teleport") is None
+
+
+class _Declared(BaseModel):
+    """An operation as its chunk will send it, before this module has its payload."""
+
+    op: str
+
+
+@pytest.mark.parametrize(
+    "op",
+    [n.value for n, s in e.CATALOGUE.items() if s.availability is e.Availability.DECLARED]
+    + ["question_teleport"],
+)
+def test_every_entry_point_refuses_an_operation_it_cannot_apply_with_one_word(op: str) -> None:
+    """refusal, apply_edit and lock_refusal agree: op_not_available for a declared operation,
+    unknown_edit for one the vocabulary does not have; none raises, even over a locked copy."""
+    expected = e.op_refusal(op)
+    assert expected in {"op_not_available", "unknown_edit"}
+    edit = _Declared(op=op)
+    locked = CASES["contents"]["locked"]
+    assert e.refusal(edit, locked) == expected
+    applied = e.apply_edit(locked, None, edit)
+    assert isinstance(applied, e.Refused) and applied.reason == expected
+    assert e.lock_refusal(edit, locked) == expected
+    assert e.lock_refusal(edit, locked, unlocked=True) == expected
 
 
 def test_the_sociomap_unlock_is_no_operation() -> None:

@@ -161,6 +161,9 @@ re-exports them (its output schema and prompt hash unchanged, checked before and
 - **Text only**: `is_text_edit` / `TEXT_EDIT_OPS` unchanged; a test holds that only a `BY_PAYLOAD`
   operation can be one and a declared operation never is, so the default automatic accept stays
   text-only.
+- **One refusal for what cannot apply**: `refusal`, `apply_edit` and `lock_refusal` ask `op_refusal`
+  first, so a declared operation is `op_not_available` and an unknown one `unknown_edit` at all
+  three, none raising (`test_every_entry_point_refuses_an_operation_it_cannot_apply_with_one_word`).
 - **One case file**: `packages/aia_core/tests/fixtures/edit_ops/cases.json` (25 apply cases, the
   text marker, touches, lock, whole-copy lock, the trace's link key and `research_questions_of`),
   read by `packages/aia_core/tests/test_edit_ops.py` and `apps/web/src/lib/edit-ops.cases.test.ts`.
@@ -190,10 +193,23 @@ re-exports them (its output schema and prompt hash unchanged, checked before and
   the server and not by the screen; rare in Czech content, and gone once WCE1 keys items by id.
   Smallest fix: key by id (WCE1); no case in the file until then. Test: a case-file case with `ß`.
 
+- **F-WCE0-3. `touches()` keys a question and a section by its raw id; `locked_items()` by
+  `design_items`' occurrence key.** Anchor: `domain/edit_ops.py` `touches` against `locked_items`
+  (`item_values`, `occurrence_keys`) at #534's head. Reproduction: a working copy with two questions
+  both `id: "Q1"`, the second marked `sociomap_rating`: `locked_items` holds `content:question:Q1#2`;
+  a `question_edit` of `Q1` touches `content:question:Q1` (the first, which `apply_edit` edits) and
+  is let through, which is right for the first and says nothing of the second; a section with no id
+  is `#<i>` in `design_items` and `""` in `touches`. Consequence: none on well-formed content (ids
+  unique, the first occurrence's key is the plain id); on a malformed copy the two keyings disagree.
+  Smallest fix: WCE1's stable, unique ids, after which both read one key; mapping occurrence keys
+  back to positions here is more code than the case is worth. Test: a case-file case with a
+  repeated id once WCE1 refuses or renames them.
+
 ## Doc follow-up (WCE0)
 
 - `CLAUDE.md` § 2, under `domain/`: `edit_ops.py` (the working copy's edit vocabulary: the closed
   set, ids, validation, touches, the Sociomap lock, the text-only marker; ADR 0029 decision 1);
   under `research_lead.py`: "its edits are `edit_ops`'s". Under `src/lib/lead.ts`: `applyLeadEdit`
   mirrors the server's `apply_edit`, held to it by `tests/fixtures/edit_ops/cases.json`.
+- `open-items.md`: number F-WCE0-3 (open, WCE1).
 

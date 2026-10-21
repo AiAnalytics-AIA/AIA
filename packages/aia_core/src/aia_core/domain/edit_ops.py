@@ -459,6 +459,9 @@ def apply_edit(
     ``content.research_plan`` and the analysis (started from the plan when there is none),
     and marks ``ui_state.plan_manual_changed``.
     """
+    named = _named_refusal(edit)
+    if named is not None:
+        return Refused(reason=named)
     body: dict[str, Any] = deepcopy(dict(content))
     working: dict[str, Any] | None = deepcopy(dict(analysis)) if analysis is not None else None
     if isinstance(edit, SetText):
@@ -809,6 +812,13 @@ def op_refusal(name: str) -> str | None:
     return "op_not_available" if spec.availability is Availability.DECLARED else None
 
 
+def _named_refusal(edit: object) -> str | None:
+    """:func:`op_refusal` of whatever ``edit`` names as its ``op``: the first question every
+    entry point asks, so a declared operation is ``op_not_available`` everywhere."""
+    op = getattr(edit, "op", None)
+    return op_refusal(op) if isinstance(op, str) else "unknown_edit"
+
+
 def refusal(
     edit: BaseModel, content: Mapping[str, Any], analysis: Mapping[str, Any] | None = None
 ) -> str | None:
@@ -820,6 +830,9 @@ def refusal(
     question must be one its type can carry; options replace only a selection question's. This is
     the grounding the Lead's edits pass (``research_lead.ground_edits``), and :func:`apply_edit`
     refuses with the same words. The lock is asked separately (:func:`lock_refusal`)."""
+    named = _named_refusal(edit)
+    if named is not None:
+        return named
     sections, questions = _question_ids(content)
     if isinstance(edit, QuestionEdit | QuestionRemove):
         if edit.question_id not in questions:
@@ -967,8 +980,13 @@ def lock_refusal(
     edit: BaseModel, content: Mapping[str, Any], *, unlocked: bool = False
 ) -> str | None:
     """``sociomap_input_locked`` when ``edit`` writes a locked item of ``content`` and its batch
-    carries no unlock; else ``None``. ``unlocked`` is a person's recorded ``sociomap_unlock`` for
+    carries no unlock; else ``None``. An operation the vocabulary cannot apply is refused first,
+    with :func:`op_refusal`'s word, as :func:`refusal` and :func:`apply_edit` refuse it.
+    ``unlocked`` is a person's recorded ``sociomap_unlock`` for
     this working revision (WCE8): the Lead can never supply one."""
+    named = _named_refusal(edit)
+    if named is not None:
+        return named
     if unlocked:
         return None
     locked = locked_items(content)
