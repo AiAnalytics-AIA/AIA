@@ -1195,3 +1195,21 @@ Recommended with LO12b, whose record makes the disagreement visible instead.
 - `deploy/develop/README.md` (the switches): the same rule; develop states `true` by Compose.
 - `docs/architecture/adr/0026-…` *Accepted with*: Q42's refusal and the switch stated per
   deployment.
+
+## Targets grounded in the working copy (2026-10-21, artifact-audience AUD1)
+
+`FOCUS_ID` held a focus to the grammar alone, so `audience:filter:<anything>` passed.
+`domain/research_lead.py` now checks targets against what the working copy stores:
+
+- `target_refusal(target, content)` says why a target names nothing on screen:
+  - `audience_filter_not_stored`: a filter the copy does not store;
+  - `audience_subpanel_unknown`: a subpanel that is not a built-in one;
+  - `unknown_target`: an id outside the grammar.
+
+  No catalogue is read.
+- `ground_view` drops such a focus from the Lead's output and names it, as `ground_edits` does
+  for edits, against the copy the turn froze.
+- `ResearchLead._focus_shown` refuses a person's focus against the current copy, at post time
+  (`invalid_lead_turn`).
+
+Other kinds stay at the grammar until their stage asks for the same.

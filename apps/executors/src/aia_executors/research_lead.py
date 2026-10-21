@@ -45,6 +45,7 @@ from aia_core.domain.research_lead import (
     frozen_sample_size,
     ground_edits,
     ground_self_update,
+    ground_view,
     layer,
     lead_request,
     self_update_base,
@@ -289,6 +290,10 @@ class ResearchLeadExecutor:
             design.get("analysis") or None,
             sample_size=frozen_sample_size(design),
         )
+        # A focus naming nothing the frozen copy shows (an audience filter it does not store)
+        # is left out and named, as an edit it cannot take is (artifact-audience AUD1).
+        grounded, dropped_view = ground_view(grounded, design.get("content") or {})
+        dropped = [*dropped, *dropped_view]
         notes = list(layer(frozen, "lead").get("notes") or ())
         shown = [str(n["memory_id"]) for n in notes]
         update, dropped_forgets = ground_self_update(grounded.self_update, shown)

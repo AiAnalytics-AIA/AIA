@@ -58,6 +58,7 @@ from ..domain.research_lead import (
     notes_layer,
     readiness_layer,
     stale_files,
+    target_refusal,
 )
 from ..domain.research_template import research_template
 from ..domain.scope import OrganizationContext, Permission, Study, StudyContext
@@ -554,6 +555,7 @@ class ResearchLead:
         if lead is None:
             raise LeadNotHatched("hatch your Research Lead first")
         message, focus_ = self._checked(kind=kind, stage=stage, text=text, focus=focus)
+        self._focus_shown(focus_)
 
         turns = self._turns()
         latest = turns.latest_lead_turn()
@@ -676,6 +678,7 @@ class ResearchLead:
         self.scope.require(Permission.RUN_WORKFLOW)
         self.scope.require_open_study()
         message, focus_ = self._checked(kind="message", stage=stage, text=text, focus=focus)
+        self._focus_shown(focus_)
         _content, _analysis, workspace_revision = self._working_content()
         turn = self._turns().append(
             actor="person",
@@ -1021,6 +1024,19 @@ class ResearchLead:
                     reason="invalid_lead_turn",
                 )
         return message, focus_
+
+    def _focus_shown(self, focus: Mapping[str, str] | None) -> None:
+        """A person's focus names what the working copy shows (artifact-audience AUD1): an
+        audience filter it does not store is refused by name, never sent to the model."""
+        if focus is None:
+            return
+        content, _analysis, _revision = self._working_content()
+        reason = target_refusal(focus["id"], content)
+        if reason is not None:
+            raise LeadRejected(
+                f"the focus {focus['id']!r} names nothing the working copy shows ({reason})",
+                reason="invalid_lead_turn",
+            )
 
     def _working_content(self) -> tuple[dict[str, Any], dict[str, Any] | None, int | None]:
         working = StudyWorkspaceRepository(self.session).content(self.scope)
