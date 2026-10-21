@@ -160,12 +160,38 @@ PRODUCTION_OK: dict[str, Any] = {
     "storage_backend": "s3",
     "storage_bucket": "aia-develop-artifacts",
     "storage_region": "eu-central-1",
+    "ai_research_lead_enabled": False,
 }
 
 
 def test_valid_production_config_passes() -> None:
     """A correct production configuration validates cleanly."""
     Settings(**PRODUCTION_OK).validate_for_production()
+
+
+@pytest.mark.parametrize("env", [Environment.DEVELOP, Environment.STAGING, Environment.PRODUCTION])
+def test_a_deployment_states_the_research_lead_switch(env: Environment) -> None:
+    """Q43 (research-lead-workbench 27a): unset, the Lead would be off by omission, so a
+    deployed environment refuses to start until it says true or false; either is accepted, and
+    an empty value (a Compose variable passed through blank) is unset, not false."""
+    for stated in (True, False):
+        Settings(
+            **{**PRODUCTION_OK, "env": env, "ai_research_lead_enabled": stated}
+        ).validate_for_production()
+    for unset in (None, "", "  "):
+        settings = Settings(**{**PRODUCTION_OK, "env": env, "ai_research_lead_enabled": unset})
+        assert settings.research_lead_on is False
+        with pytest.raises(RuntimeError, match="AIA_AI_RESEARCH_LEAD_ENABLED must be stated"):
+            settings.validate_for_production()
+
+
+def test_locally_the_research_lead_is_off_unless_switched_on() -> None:
+    """Outside a deployment unset is simply off: only an explicit true switches it on."""
+    local = Settings(env=Environment.LOCAL, ai_research_lead_enabled=None)
+    assert local.research_lead_on is False
+    local.validate_for_production()
+    assert Settings(env=Environment.LOCAL, ai_research_lead_enabled=True).research_lead_on
+    assert not Settings(env=Environment.LOCAL, ai_research_lead_enabled=False).research_lead_on
 
 
 @pytest.mark.parametrize("env", [Environment.DEVELOP, Environment.STAGING])

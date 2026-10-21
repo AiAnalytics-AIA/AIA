@@ -12,6 +12,7 @@ import { useRouter } from "next/navigation";
 import { type ReactNode, useCallback, useContext, useEffect, useRef, useState } from "react";
 
 import { t, tv } from "@/i18n/t";
+import { findingAnchor, findingId } from "@/lib/analysis-coverage";
 import {
   ApiError,
   api,
@@ -40,7 +41,7 @@ import {
 import { clientChildren, outcomeValue, targetVerdict } from "@/lib/population";
 import { latestDesignRun, questionEvidence } from "@/lib/design-evidence";
 import { citedSnapshot } from "@/lib/verified-source";
-import { researchStepOrb } from "@/lib/activity-orb";
+import { researchStepOrb, researchStepWork } from "@/lib/activity-orb";
 import { activityOf } from "@/lib/step-activity";
 import { type BatteryWithMaps, mapApproval, readObjectMap, type RecordedMethod, type RegisterEntry } from "@/lib/object-map-view";
 import {
@@ -89,6 +90,7 @@ import { codedText, codeWords } from "@/lib/reason-words";
 import { withBudget } from "@/lib/budget-line";
 import { reportStatus, reportStatusWords } from "@/lib/report-status";
 import type { Tone } from "@/lib/tone";
+import { AnalysisCoverage, AnalysisMilestones } from "./AnalysisCoverage";
 import { CodedWords } from "./CodedWords";
 import { CONFLICT_MESSAGE, submitWorkingDesign } from "@/research/store";
 import { projectVariants, selectedVariant } from "@/research/plan";
@@ -1277,10 +1279,14 @@ export function ProgressStep() {
       <Card title={t("aia.stages.progress")}>
         <ol className="flex flex-col gap-3" aria-label={t("aia.stages.progress")}>
           {listed.map((s) => (
-            <li key={s.node_key} data-step={s.node_key} data-status={s.status} className="flex flex-col gap-0.5 text-sm">
+            // Pointable by the Lead (the coordinator's registry: fieldwork targets step:<node_key>).
+            <li key={s.node_key} data-aia={`step:${s.node_key}`} data-step={s.node_key} data-status={s.status} className="flex flex-col gap-0.5 text-sm">
               <div className="flex flex-wrap items-center gap-2">
                 <Chip tone={stepTone(s, run.is_terminal)}>{stepStatusLabel(s, run.is_terminal)}</Chip>
                 <span className="font-medium">{stepLabel(s.node_key)}</span>
+                {researchStepWork(run, s.node_key) ? (
+                  <span data-step-work={researchStepWork(run, s.node_key)} className="text-xs text-ink-muted">{t(`research.exec.stepWork.${researchStepWork(run, s.node_key)}`)}</span>
+                ) : null}
                 {stepOriginKind(s) ? (
                   <span title={s.data_origin ?? undefined} data-origin-kind={stepOriginKind(s)}>
                     <Chip tone={stepOriginKind(s) === "MODELLED" ? "neutral" : "fault"}>{t(`research.exec.originKind.${stepOriginKind(s)}`)}</Chip>
@@ -1652,6 +1658,8 @@ function AnalysisResults({ run, spec, progressHref }: { run: ResearchRun; spec: 
       ) : null}
       {analysis ? (
         <div className="flex flex-col gap-4">
+          <AnalysisMilestones run={run} analysis={analysis} />
+          <AnalysisCoverage run={run} analysis={analysis} />
           <section data-analysis-overview className={`rounded-md border p-4 ${blocked ? "border-status-fault/40 bg-status-fault-wash" : "border-border bg-surface-sunken"}`}>
             <p className="text-sm font-semibold">{complete} z {ANALYSIS_ORDER.length} částí analýzy dokončeno{blocked ? ` · k opravě: ${blocked}` : ""}</p>
             <p className="mt-1 text-sm leading-6 text-ink-muted">{blocked
@@ -1668,7 +1676,7 @@ function AnalysisResults({ run, spec, progressHref }: { run: ResearchRun; spec: 
                 <h4 className="text-xs font-semibold uppercase tracking-wide text-ink-muted">{stepLabel(`analysis_${id}`)}</h4>
                 <ul className="mt-2 flex flex-col gap-3">
                   {outcome.key_findings.map((finding, index) => (
-                    <li key={index} className="border-l-2 border-signal pl-3">
+                    <li key={index} id={findingAnchor({ module: id, index })} data-aia={`finding:${findingId({ module: id, index })}`} className="scroll-mt-4 border-l-2 border-signal pl-3">
                       <FormattedText text={finding.text} />
                       <CitedNumbers ids={finding.claim_ids} outcome={outcome} spec={spec} />
                     </li>

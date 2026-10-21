@@ -1,0 +1,82 @@
+{
+ "recorded_at": "2026-10-21T09:00:00+00:00",
+ "source_classes": {
+  "stat.example": "OFFICIAL_STATISTICS",
+  "trh.example": "INDUSTRY_RESEARCH",
+  "zpravy.example": "MEDIA"
+ },
+ "hosts": {
+  "stat.example": [
+   "93.184.215.14"
+  ],
+  "trh.example": [
+   "93.184.215.14"
+  ],
+  "zpravy.example": [
+   "93.184.215.14"
+  ]
+ },
+ "search": {
+  "trh ranních nápojů česko": {
+   "hits": [
+    {
+     "url": "https://stat.example/ranni-napoje-2025",
+     "title": "Ranní nápoje v Česku 2025"
+    },
+    {
+     "url": "https://trh.example/zprava-napoje",
+     "title": "Zpráva o trhu nápojů na cestu"
+    }
+   ],
+   "credits": 1,
+   "request_id": "wb-search-1"
+  },
+  "důvody nákupu kofeinových nápojů na cestě": {
+   "hits": [
+    {
+     "url": "https://zpravy.example/dojizdeni-napoje",
+     "title": "Proč si dojíždějící kupují kofein"
+    }
+   ],
+   "credits": 1,
+   "request_id": "wb-search-2"
+  },
+  "ranní nápoje dojíždějící": {
+   "hits": [
+    {
+     "url": "https://trh.example/zprava-napoje",
+     "title": "Zpráva o trhu nápojů na cestu"
+    },
+    {
+     "url": "https://zpravy.example/dojizdeni-napoje",
+     "title": "Proč si dojíždějící kupují kofein"
+    }
+   ],
+   "credits": 1,
+   "request_id": "wb-search-3"
+  }
+ },
+ "pages": {
+  "https://stat.example/ranni-napoje-2025": {
+   "status": 200,
+   "headers": {
+    "content-type": "text/html; charset=utf-8"
+   },
+   "body": "<!doctype html><html><head><title>Ranní nápoje v Česku 2025</title><meta property=\"article:published_time\" content=\"2025-05-20T08:00:00Z\"></head><body><h1>Ranní nápoje v Česku 2025</h1><p>Fiktivní stránka pro AIA workbench; nic z ní není skutečné.</p><p>Prodej nápojů s kofeinem v plechovce vzrostl v Česku v roce 2025 o 9 %.</p><p>Dvě třetiny prodejů připadají na dny pracovního týdne.</p></body></html>"
+  },
+  "https://trh.example/zprava-napoje": {
+   "status": 200,
+   "headers": {
+    "content-type": "text/html; charset=utf-8"
+   },
+   "body": "<!doctype html><html><head><title>Zpráva o trhu nápojů na cestu</title><meta property=\"article:published_time\" content=\"2025-03-14T08:00:00Z\"></head><body><h1>Zpráva o trhu nápojů na cestu</h1><p>Fiktivní stránka pro AIA workbench; nic z ní není skutečné.</p><p>Lidé, kteří denně dojíždějí, kupují nápoj na cestu v průměru třikrát týdně.</p><p>Nejčastějším místem nákupu je nádraží nebo zastávka.</p></body></html>"
+  },
+  "https://zpravy.example/dojizdeni-napoje": {
+   "status": 200,
+   "headers": {
+    "content-type": "text/html; charset=utf-8"
+   },
+   "body": "<!doctype html><html><head><title>Proč si dojíždějící kupují kofein</title><meta property=\"article:published_time\" content=\"2025-09-02T08:00:00Z\"></head><body><h1>Proč si dojíždějící kupují kofein</h1><p>Fiktivní stránka pro AIA workbench; nic z ní není skutečné.</p><p>Dojíždějící uvádějí jako hlavní důvod nákupu potřebu se probrat před prací.</p><p>Mírnější chuť upřednostňuje většina dotázaných nad 35 let.</p></body></html>"
+  }
+ }
+}

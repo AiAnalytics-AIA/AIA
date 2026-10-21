@@ -111,6 +111,13 @@ for (const step of ["compile", "preflight", "run", "aggregate", "sociomap"]) {
   if (status !== "SUCCEEDED") fail(`step ${step} is ${status ?? "missing"}, not SUCCEEDED`);
 }
 ok("Progress: the run completed");
+// Each step says whether a model or code did it (artifact-fieldwork FLD2) and is pointable by the
+// Lead as step:<node_key>. The workbench's fieldwork is fictional code, never AI.
+for (const step of ["compile", "preflight", "run", "aggregate", "sociomap"]) {
+  const work = await page.locator(`[data-aia="step:${step}"] [data-step-work]`).first().getAttribute("data-step-work", { timeout: 5000 }).catch(() => null);
+  if (work !== "running") fail(`step ${step} is tagged ${work ?? "nothing"}, not deterministic`);
+}
+ok("Progress: every step tagged deterministic and pointable");
 await shot("2-progress");
 
 // 3. Results: labelled fictional, an aggregate table, the Sociomap labelled by method.

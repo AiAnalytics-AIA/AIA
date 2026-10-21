@@ -57,13 +57,12 @@ import {
   respondentPreview,
   sections,
   setObjectFamily,
-  setObjectLabel,
   setPriceBands,
   setQuestionOptions,
   setQuestionText,
   setQuestionnairePath,
-  setScaleEnd,
-  setScaleLabel,
+  setQuestionScale,
+  setSetScaleLabels,
   setSectionField,
   toAudience,
   updateObjects,
@@ -83,6 +82,7 @@ import { AskLead, useLeadOwnsAiStarts } from "./AskLead";
 import { AiFailureCard, useAiStep } from "./useAiStep";
 import { AnalysisFailureCard, useAnalysis } from "./useAnalysis";
 import { DeepResearchPanel } from "./DeepResearchPanel";
+import { ScaleEditor, ScaleUndoProvider } from "./ScaleEditor";
 
 const FOCUS = "focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus-ring";
 const INPUT = `min-h-9 w-full rounded-control border border-border-strong bg-surface-raised px-2.5 text-sm text-ink placeholder:text-ink-faint ${FOCUS}`;
@@ -127,7 +127,7 @@ export function QuestionnaireStep() {
       const s = store.get();
       const result = await runJob("researchBuildQuestionnaire", buildPayload(s.project, s.analysis), { title: BUILD_TITLE, warnMs: BUILD_WARN_MS });
       if (isNativeResult(result)) return;
-      store.update(() => ({ project: applyBuilt(result, template) }), { reason: "questionnaire_ai_1776" });
+      store.update(({ project: before }) => ({ project: applyBuilt(result, template, before) }), { reason: "questionnaire_ai_1776" });
     }, (m) => m + BUILD_FAILED_SUFFIX);
   const build = async () => {
     step.setFailure(null);
@@ -150,7 +150,7 @@ export function QuestionnaireStep() {
       const s = store.get();
       const result = await runJob("questionnaireOptimize", optimizePayload(s.project), { title: OPTIMIZE_TITLE });
       if (isNativeResult(result)) return;
-      store.update(({ analysis: a }) => applyOptimized(result, a, template), { reason: "questionnaire_optimized" });
+      store.update(({ project: before, analysis: a }) => applyOptimized(result, a, template, before), { reason: "questionnaire_optimized" });
       toast(OPTIMIZE_DONE);
     });
 
@@ -265,7 +265,11 @@ export function QuestionnaireStep() {
           <div className="flex flex-wrap items-start gap-4">
             <Outline update={update} />
             <div className="flex min-w-0 flex-[999_1_560px] flex-col gap-4">
-              {tab === "edit" ? <Editor update={update} /> : <Preview items={respondentPreview(p)} />}
+              {tab === "edit" ? (
+                <ScaleUndoProvider>
+                  <Editor update={update} />
+                </ScaleUndoProvider>
+              ) : <Preview items={respondentPreview(p)} />}
             </div>
           </div>
           <section className={CARD} aria-labelledby="q-final">
@@ -773,33 +777,13 @@ function QuestionCard({ n, q, si, qi, update }: { n: number; q: Question; si: nu
         <OptionRows key={(q.kategorie || []).join("\n")} multi={typ === "multi"} options={q.kategorie || []} onCommit={(raw) => update((p) => setQuestionOptions(p, si, qi, raw))} />
       ) : null}
       {typ === "skala" ? (
-        <div className="mt-3 flex flex-col gap-3">
-          <div className="flex flex-wrap items-center gap-2">
-            <input
-              key={`lo-${labels[0]}`}
-              aria-label={t("research.questionnaire.scaleLow")}
-              defaultValue={labels[0]}
-              onBlur={(e) => update((p) => setScaleLabel(p, si, qi, 0, e.target.value))}
-              className={`${INPUT} !w-32`}
-            />
-            <div className="min-w-40 flex-1">
-              <ScaleBoxes low="" high="" from={Number(skala[0])} to={Number(skala[1])} />
-            </div>
-            <input
-              key={`hi-${labels[1]}`}
-              aria-label={t("research.questionnaire.scaleHigh")}
-              defaultValue={labels[1]}
-              onBlur={(e) => update((p) => setScaleLabel(p, si, qi, 1, e.target.value))}
-              className={`${INPUT} !w-32`}
-            />
-          </div>
-          <div className="flex flex-wrap items-center gap-2 text-xs text-ink-muted">
-            <span>{t("research.questionnaire.range")}</span>
-            <input key={`min-${skala[0]}`} type="number" min={0} max={11} aria-label={t("research.questionnaire.scaleMin")} defaultValue={String(skala[0])} onBlur={(e) => update((p) => setScaleEnd(p, si, qi, 0, e.target.value))} className={`${INPUT} !w-20`} />
-            <span aria-hidden="true">–</span>
-            <input key={`max-${skala[1]}`} type="number" min={0} max={11} aria-label={t("research.questionnaire.scaleMax")} defaultValue={String(skala[1])} onBlur={(e) => update((p) => setScaleEnd(p, si, qi, 1, e.target.value))} className={`${INPUT} !w-20`} />
-          </div>
-        </div>
+        <ScaleEditor
+          className="mt-3"
+          name={`Q${n}`}
+          scale={skala}
+          labels={labels}
+          onChange={(v) => update((p) => setQuestionScale(p, si, qi, v.scale, v.labels), "scale")}
+        />
       ) : null}
       {typ === "otevrena" ? (
         <p className="mt-3 rounded-control border border-dashed border-border-strong px-3 py-2 text-xs text-ink-muted">{t("research.questionnaire.openNote")}</p>
@@ -988,16 +972,14 @@ function TrackedSet({ n, sec, si, update }: { n: number; sec: Section; si: numbe
         />
         {note || (objects.length && bad) ? <span className="text-xs text-status-you-ink">{note || SET_TOO_SMALL}</span> : null}
       </div>
-      <div className="grid gap-3 md:grid-cols-2">
-        <label className="flex flex-col gap-1">
-          <span className={LABEL}>{t("research.questionnaire.setLow")}</span>
-          <input key={`lo-${labels[0]}`} className={INPUT} defaultValue={labels[0]} onBlur={(e) => update((p) => setObjectLabel(p, si, 0, e.target.value))} />
-        </label>
-        <label className="flex flex-col gap-1">
-          <span className={LABEL}>{t("research.questionnaire.setHigh")}</span>
-          <input key={`hi-${labels[1]}`} className={INPUT} defaultValue={labels[1]} onBlur={(e) => update((p) => setObjectLabel(p, si, 1, e.target.value))} />
-        </label>
-      </div>
+      <ScaleEditor
+        name={`sada ${n}`}
+        scale={sec.scale || [1, 10]}
+        labels={labels}
+        rangeFixed
+        perPoint={false}
+        onChange={(v) => update((p) => setSetScaleLabels(p, si, v.labels), "scale")}
+      />
       <div className="flex flex-col gap-1">
         <Switch checked={Boolean(sec.familiarity_required)} onChange={(on) => update((p) => setSectionField(p, si, "familiarity_required", on))} label={<b className="font-semibold">{t("research.questionnaire.familiarity")}</b>} />
         <p className="pl-[44px] text-xs text-ink-muted">{t("research.questionnaire.familiarityHelp")}</p>
