@@ -66,6 +66,12 @@ def build(
         # The Research Lead (ADR 0026): the workbench's worker answers each turn by a script,
         # without a model (aia_executors.workbench), and every reply says so.
         ai_research_lead_enabled=True,
+        # The eight analysis modules and the internal draft report (plan
+        # artifact-chain-to-draft-report CHN7): the worker answers them from recordings behind
+        # the real gateway, priced at zero (aia_executors.workbench.recorded_analysis).
+        ai_analysis_enabled=True,
+        # Priced at zero, so a nominal hold: eight modules stay inside a fixture study's budget.
+        ai_analysis_reservation_usd=0.01,
     )
     app = create_app(settings)
     return app, Base, seed_develop, Session

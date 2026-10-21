@@ -143,4 +143,17 @@ describe("InlineCreateRow (I5): created in the list, no dialog", () => {
     fireEvent.blur(row());
     expect(row().value).toBe("Rozepsané");
   });
+
+  it("carries an adornment chosen with the name; moving to it is not leaving the row (chunk 2: a label's swatch)", () => {
+    render(<InlineCreateRow label="Nová složka" onCreate={vi.fn()} adornment={<button type="button">Barva</button>} />);
+    openRow();
+    const swatch = screen.getByRole("button", { name: "Barva" });
+    // Empty, but focus went to the swatch inside the row: it stays open.
+    fireEvent.blur(row(), { relatedTarget: swatch });
+    expect(row()).toBeTruthy();
+    // Leaving the row as a whole, still empty, closes it.
+    fireEvent.blur(swatch, { relatedTarget: document.body });
+    expect(screen.queryByRole("textbox")).toBeNull();
+    expect(screen.getByRole("button", { name: "Nová složka" })).toBeTruthy();
+  });
 });

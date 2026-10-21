@@ -9,14 +9,13 @@ chunks:
   - "[x] 6. Lead pane: conversation, composer, greeting, view tools, edits as change blocks, decision cards"
   - "[x] 6b. Personal Leads: researcher_leads and memories, hatching, the Můj Vedoucí page, per-researcher sessions"
   - "[ ] 7. Agent proposals inline in the artifact, with research-question coverage gained, lost and kept"
-  - "[ ] 7b. Review a Design Research proposal inside the artifact (DRL-6, F-DRL-1): its EVIDENCE items with their findings' quotes and sources, ticked and accepted through POST …/design-proposal/accept with both expected revisions, then the working copy reloaded; a GAP item has no checkbox"
+  - "[x] 7b. Review a Design Research proposal inside the artifact (DRL-6, F-DRL-1): its EVIDENCE items with their findings' quotes and sources, ticked and accepted through POST …/design-proposal/accept with both expected revisions, then the working copy reloaded; a GAP item has no checkbox"
   - "[x] 8. design_items, the working revision on every Design Revision writer (web submit, reuse, accepts), the item-level stale rule"
   - "[x] 9. Accept in one transaction: merged Design Revision, working copy, ledger; the web reloads"
   - "[x] 10. Dismiss and rebuild through the ledger and rebuild_of; the pending-proposals projection"
   - "[ ] 11. The command registry: the workers the Lead may call, each with its prompt and price, behind approve_request (ledger and spend limit already built); the route-class refusal says who fixes it (lead-orchestration LO12a, then LO12b); first deliverable: the worker row (lead-orchestration LO9a)"
   - "[ ] 12. Workbench journey: four widths, keyboard, focus modes, a Lead turn on recorded answers, zero unintended paid jobs"
-  - "[ ] 12a. The UI workbench runs Deep Research on recorded web with no paid calls (DRL-1, F-DRL-6): the six steps and the track kind over deep_research_recorded with a scripted model transport, one fictional design and one interpretation exchange; local and test only"
-  - "[x] 13. Design V3 in the repository (prototypes/research-lead-v3, its text) and its chunks in this plan"
+  - "[x] 12a. The UI workbench runs Deep Research on recorded web with no paid calls (DRL-1, F-DRL-6): the six steps and the track kind over deep_research_recorded with a scripted model transport, one fictional design exchange and deep_research_journey.mjs; local and test only"  - "[x] 13. Design V3 in the repository (prototypes/research-lead-v3, its text) and its chunks in this plan"
   - "[ ] 14. The Lead's view vocabulary: a closed, per-artifact set of display operations the Lead may run on the artifact pane"
   - "[ ] 15. The artifact frame: title, state pill, one version line and at most one state bar; inputs, feeds, workers and provenance in the inspector (the canonical V2 prototype's D5, owner confirmed in MVPQ-01 on 2026-10-20), Pracovní kopie / Historie / Původ, the revision stepper"
   - "[ ] 16. Pointing at the artifact: the Vidí chip, the target button and @ over every artifact's elements"
@@ -428,6 +427,7 @@ appear in the lead researches chat too"). Built on `feature/lead-worker-cards`:
     (`test_research_lead_application.py`);
     `test_setting_the_study_budget_sends_the_message_that_waited_for_it`
     (`apps/api/tests/test_research_lead_api.py`); `leadReasonWords` in `lib/lead.test.ts`.
+- F-DRL-1: closed by #554, see the entry under 7b (anchors, fix and tests).
 - **F-STORE-1. Two flushes waiting behind one save sent the same base revision** *(recorded in
   #554; fixed on `fix/store-flush-serialise`)*.
   1. Claim: `ResearchStore.flush` let every caller waiting behind an in-flight save resume
@@ -452,6 +452,8 @@ appear in the lead researches chat too"). Built on `feature/lead-worker-cards`:
      behind one: each names the revision the one before returned`, `saves an edit made during the
      flight in the same flush, which resolves only once it is saved`, `says when the copy kept
      changing through every round, and keeps the change waiting for its save`.
+  - #554's `DesignResearchReview.tsx` flushes until saved on its own; with the serialised `flush`
+    that loop ends after one flush, and it stays as a guard.
 
 ## Doc follow-up (for the docs PR, not this branch)
 
@@ -470,6 +472,12 @@ appear in the lead researches chat too"). Built on `feature/lead-worker-cards`:
   saved (`edited_from_current`).
 - **`CLAUDE.md` § 2**, beside `src/components/workbench/`: `prototypes/research-lead-v2/` is the
   canonical workspace and artifact reference (MVPQ-01, 2026-10-20); V3 is supporting reference.
+- **`CLAUDE.md` § 2**, beside `DeepResearchPanel` in `components/rehome/research/`:
+  `DesignResearchReview.tsx`, a completed Design Research run's proposal reviewed on Dotazník, its
+  ticked items accepted through `POST …/design-proposal/accept`, then the working copy reloaded;
+  `lib/design-research-review.ts`, its pure part (readProposal, acceptBody, refusalWords); `lib/api.ts`
+  `deepResearch.acceptDesignProposal`. `.planning/open-items.md`: F-DRL-1, closed by chunk 7b;
+  F-STORE-1 (two `flush` waiters save from the same base), closed by #556.
 - **ADR 0026**, under *Accepted with*: the Lead steers the artifact pane through a closed set of
   display operations (D10); its gates are unchanged.
 
@@ -901,6 +909,57 @@ research-run cards); 26f.1 refines #551's 26f by name.
   ledger's paid rows are unchanged, and every snapshot is `RECORDED_FIXTURE`. `lead_journey.mjs` runs
   on `workbench.py up --fresh` (OI-133).
 
+**12a as built (2026-10-21).**
+- `apps/executors/src/aia_executors/workbench.py`: with `AIA_WORKBENCH_DEEP_RESEARCH_FIXTURES`
+  naming a directory, `workbench_registry_for(…, deep_research=<dir>)` adds
+  `deep_research_registry` over `deep_research_recorded.recorded_runtime` (its `web.json`) and the
+  real gateway and Bedrock adapter over `ScriptedDeepResearchModel` (its `agents.json`): planner,
+  web and internal investigators, verifier, synthesizer. Every response says
+  `x-aia-scripted: workbench-deep-research-1` and `workbench-scripted-<role>-<n>`; the route is
+  `workbench-scripted`, model `eu.workbench-scripted-deep-research-v1:0`. Unset, nothing changes:
+  the steps park at plan as before.
+- **Wrong and right, side by side (for `AGENTS.md`).** Zero prices look like "no paid calls", but
+  `StepModelCaller` refuses a zero hold ("a metered request needs a positive reservation"), so the
+  plan step raises. Right: a nominal price (USD 0.01 / MTok) sizes each hold, and the script reports
+  `inputTokens: 0, outputTokens: 0`, so every call settles at exactly 0 (`cost_usd = 0` on every
+  ledger row). The study needs a budget for the holds: a new study's is 0, so the run waits
+  `AWAITING_BUDGET` at plan; `fixture_project.py` sets USD 1 on the fixture study.
+- A design's class: Deep Research takes it from an operator's exact-bytes classification, never a
+  rule (OI-129), so a design the browser submits has none and the run fails
+  `egress_unclassified_material`. `WorkbenchDesignClassifier` (the plan step in this composition
+  only) classifies the run's frozen design Class C, synthetic, then runs the real plan step over
+  that classification: on this machine the workbench is the operator.
+- `tools/layer_check.sh`: "among the executors, only the recorded and workbench compositions build
+  recorded web retrieval" (`workbench.py` exempt for naming `deep_research_recorded`), and a new
+  rule that `workbench.py` names no recorded double itself. "No deployment runs the workbench
+  composition" and "no deployment runs the recorded Deep Research composition" are unchanged.
+  `pyproject.toml`'s model-adapter contract ignores `aia_executors.workbench ->
+  …model_adapters.transport` (request and response types only), as for `recorded_models`.
+- Fixtures: `tools/ui_workbench/fixtures/deep_research/{web,agents}.json`, three fictional
+  `.example` pages; `fixture_project.py`'s `deep_research` study (two research questions, the
+  questionnaire, budget USD 1) and its Design Research run, started as the panel starts it (QUICK,
+  WEB). It completes: 6 accepted findings, 3 recorded snapshots, 16 set aside (the four tracked
+  objects' copies are off topic), `quality_status` GROUNDED.
+- Tests: `apps/executors/tests/test_workbench_deep_research.py` (a file of its own rather than
+  `test_research_lead_workbench.py`, which is the scripted Lead's): the six kinds and the track kind
+  registered, the plan step the classifier only here; the routes recorded and fee-free; refused
+  outside local and test; a run on the fixture completes with a verified bundle whose origins are
+  `RECORDED_FIXTURE` alone, every snapshot RECORDED, every ledger row `cost_usd = 0` on
+  `workbench-scripted` with a scripted request id.
+- Journey: `tools/ui_workbench/deep_research_journey.mjs`: the fixture's run completes; "Spustit
+  veřejný výzkum" on Dotazník starts one; it is followed to completion; the panel shows every
+  accepted finding of the sealed bundle; "Zkontrolovat návrh", where the build has it (#554), ticks
+  one EVIDENCE item, accepts it and finds its `design_research` ledger row; without it, the proposal
+  it would review is read. It asserts no priced ledger row, no spend, no other model route, no
+  research run or agent job started, and no browser request to a host but the workbench.
+- **Not built: the interpretation exchange.** An Interpretation Research start targets a stored
+  analysis module (`ANALYSIS_MODULE`, `apps/web/src/lib/api.ts` `deepResearch.interpret`), and the
+  workbench stores none: its analysis steps park `analysis_unconfigured` (no AI runtime there). The
+  scripted agents answer any subject (the planner falls back to `default_queries`), so an
+  interpretation run needs only that analysis artifact; it is left to 23c's journey, which needs it
+  anyway. It is not a chunk line here, because a new open chunk needs a wave in
+  `mvp-execution-contracts.md` (`tools/master_check.py`); this PR's Doc follow-up proposes one.
+
 **23b (DRL-4). Deep Research request and running cards in the conversation.** Every Deep Research run
 of the study is a card, however it was started, as #550 does for jobs and runs (`lib/lead-cards.ts`,
 `components/workbench/LeadCards.tsx @ cd7af699`). A run started from a turn's card stands with that
@@ -993,7 +1052,7 @@ turn (`request_decision.run_id`); any other run stands at its creation time.
 
 ### Findings
 
-- **F-DRL-1. No web path turns a Design Research proposal into a Design Revision.**
+- **F-DRL-1. No web path turns a Design Research proposal into a Design Revision** *(closed by 7b, #554)*.
   - Anchor: `apps/api/src/aia_api/routers/deep_research.py:768-796` and
     `application/design_research.py:90-157` exist. The only web reference to the proposal is the GET
     at `apps/web/src/lib/api.ts:1412 @ 095a3e68`.
@@ -1004,6 +1063,37 @@ turn (`request_decision.run_id`); any other run stands at its creation time.
   - Smallest fix: 7b.
   - Test: 7b's Vitest that the review posts the ticked `item_ids` with both expected revisions, and
     its journey step.
+  - Anchors at the branch point: the route `routers/deep_research.py:768-796 @ 722dd75c`; the
+    service `application/design_research.py:90-157 @ 722dd75c` (one transaction through
+    `accept_into_working_copy`, the `design_research` ledger row); the only web caller, the GET at
+    `apps/web/src/lib/api.ts:1412 @ 722dd75c`.
+  - Fix (#554): `DesignResearchReview.tsx` in the Deep Research panel on Dotazník, over
+    `lib/design-research-review.ts` (pure: `readProposal`, `acceptBody`, `refusalWords`) and
+    `deepResearch.acceptDesignProposal`.
+    - A completed `DESIGN_RESEARCH` run's items: each EVIDENCE item with its findings' quotes and
+      sources and a checkbox, each GAP item without one.
+    - "Přijmout vybrané" flushes until the copy is saved (never posting on an unsaved copy), then
+      sends exactly the ticked items on the run's Design Revision and the working revision the
+      person has. The working copy is reloaded with `since`, so a change typed meanwhile is kept in
+      conflict.
+    - A `stale_proposal` is said through `research/proposal-items.ts` (which now names the
+      `design_research` field), and the proposal is never applied.
+    - Items the working copy already took from the run are marked "V návrhu", and the run offers no
+      further accept: its accept wrote a revision the run did not research, which the server
+      refuses (`design_moved`).
+    - The panel keys the review by its run, and a proposal renders only under its own run.
+  - Tests: `lib/design-research-review.test.ts` (the body has exactly the ticked items and both
+    revisions; a GAP or a taken item is never sent; the refusals in Czech) and
+    `DesignResearchReview.test.tsx` (nothing written before the accept; the post, then the reload;
+    a stale proposal said by name and not applied; read-only without the right; `offers a loaded
+    proposal only under the run it belongs to`, `saves an edit typed during the save before it
+    accepts, so the accept keeps it` and `never posts while the copy still has an unsaved edit`,
+    each failing on 054cf007). The journey step waits for F-DRL-6: the workbench composes no Deep
+    Research. The route's contract is unchanged; its success path stays tested by
+    `apps/executors/tests/test_design_research_proposals.py`.
+  - Not done: a ledger row for a dismissed item. Leaving an item unticked writes nothing, and the
+    proposal stays in its run; ADR 0021 asks only that nothing is written without an accept. DRL-7
+    links the Lead's finished card here.
 - **F-DRL-6. The UI workbench cannot run Deep Research at all.**
   - Anchor: `apps/executors/src/aia_executors/workbench.py:158-173 @ 095a3e68` composes no Deep
     Research runtime, so a run parks at plan.
@@ -1018,3 +1108,90 @@ turn (`request_decision.run_id`); any other run stands at its creation time.
 - `open-items.md`: number F-DRL-1 (owner 7b) and F-DRL-6 (owner 12a).
 - `CLAUDE.md` map, `src/components/rehome/research/`: `DesignResearchReview.tsx` (7b), once built.
 - The register rows for 7b, 12a, 23b, 23c and 26f.1, in this PR's description.
+
+## 27a's inventory and 27b's server half (2026-10-21)
+
+Sprint 5 part 3 (Q49, the owner's "approve all seven parts", 2026-10-21). Anchors are
+`file:line @ 25f26232` (`origin/develop` when written) unless they say otherwise. 27a's pure reader
+(`lib/lead-availability.ts`) is already on develop; its launcher and stage line wait for 26c and 26f,
+so 27a stays open. 27b's typed-command half is `lead-orchestration#LO5` (the next PR), so 27b stays
+open until it lands.
+
+### Every path that turns the Lead off or stops it answering (27a.1, Q43)
+
+Who: **D** = whoever edits the deployment's environment (the develop host's `.env` / Compose, an
+operator); **S** = the researcher or anyone with the study's permissions; **O** = an organization
+OWNER or ADMIN. "Now" is what this PR changed; nothing here loosens a kill switch.
+
+| # | Path | Anchor | Effect | Who | Accident before | Now |
+|---|---|---|---|---|---|---|
+| 1 | API `AIA_AI_RESEARCH_LEAD_ENABLED` unset | `apps/api/src/aia_api/config.py:137` (was `bool = False`); read at `routers/lead.py:354, 356, 391` | `GET /lead` `available: false`; a post 409 `research_lead_unavailable` (`application/research_lead.py:480`) | D | **Off by omission**: a deployment that forgot the key had no Lead | **Closed.** `bool \| None = None`; `validate_for_production` refuses to start any deployed `AIA_ENV` (develop, staging, production) without `true` or `false`; an empty value is unset, not false. Local/test: unset stays off. `test_a_deployment_states_the_research_lead_switch` |
+| 2 | API `AIA_AI_RESEARCH_LEAD_ENABLED=false` | same | as 1, and now a model-prepared card's approval is 409 `research_lead_disabled` (27b) | D | A deliberate switch-off | **Kept** as the kill switch; it is a stated decision now (1) |
+| 3 | Worker `AIA_AI_RESEARCH_LEAD_ENABLED` unset or false | `apps/executors/src/aia_executors/ai_runtime.py:696`; executor composed only when `study_lead_configured` (`registry.py:205`), else the default parks (`registry.py:107`, `research_lead.py:133-142`, `LEAD_UNCONFIGURED` `:79`) | every turn parks `research_lead_unconfigured` | D | The API and the worker read separate copies (`deploy/develop/docker-compose.yml:156` api, `:237` worker) and can disagree; the API said available | **Named.** `GET /lead` answers `worker_ready: false`, `worker_reason`, `worker_ready_source: "newest_turn"` once the newest turn parks for it. A start-time cross-check is impossible (two processes); LO12b's composition record is the fix |
+| 4 | Worker switch on, `…_MAX_OUTPUT_TOKENS` or `…_RESERVATION_USD` unset | `ai_runtime.py:862-863` (`_with_study_lead` returns the switch alone) | every turn parks `research_lead_unconfigured` | D | Silent until a turn is asked | **Named** as 3 |
+| 5 | A wrong Lead key (out of range, a reservation below two calls, the Lead's model equal to the route's) | `ai_runtime.py:692-695, 879-893`; `LeadModelSettings.__post_init__` `:328-360` | the **worker stops at start**, every step kind with it | D | One typo stops all AI work, not only the Lead | **Named, kept**: fail-loud at start is the existing rule (ARCHITECTURE A5); narrowing it to "park the Lead only" would hide a misconfiguration. Owner-visible in the deploy's health check |
+| 6 | `AIA_AI_RUNTIME_ENABLED` unset | `ai_runtime.py:571` | no runtime; the turn parks (`ai_runtime_unavailable` or `research_lead_unconfigured`) | D | Off by default (the worker's rule for every AI step) | **Named** as 3 (`worker_reason` either code) |
+| 7 | Egress and licence refusals | `application/model_gateway.py:349, 359, 368, 374`; the executor parks them `research_lead.py:189-197` (`RUNTIME_UNAVAILABLE`, the gate's reason) | a turn parks for one study's class or route | D (route classes in SSM), O (licence determinations are code) | A route or classification change elsewhere | **Named**: per-study, said in words (`lib/lead.ts` `LEAD_REASON_WORDS`); LO12a/LO12b own who fixes it |
+| 8 | The study's budget spent | `application/research_lead.py:227-237` (`_holds`), `:318` (`release_lead_budget_waits`) | the turn waits `budget_exceeded`; sent when the budget is set or raised | S | A spent study budget | By design (Q39) |
+| 9 | Not hatched | `application/research_lead.py:487` | a post 409 `lead_not_hatched` | S | Per researcher | By design |
+| 10 | Busy | `application/research_lead.py:502` | a post 409 `lead_busy` until the turn ends | S | Per researcher | By design; a worker that never claims leaves it busy (11) |
+| 11 | No worker running (or none claims `research_lead_turn`) | `_holds` `:227-237` | the turn stays QUEUED, the conversation busy | D | Silent | **Named**: LO12b (a heartbeat in the composition record); `worker_ready` stays null, never true |
+| 12 | Context too large | `domain/research_lead.py:675` | a post 422 `lead_context_too_large` | S | Per study | By design |
+| 13 | A closed study, or a role without `EDIT_STUDY` / `RUN_WORKFLOW` | `application/research_lead.py:482-484`; `domain/scope.py:740` | a post 403 | O / S | By design | By design |
+| 14 | The web's workbench switch `AIA_WEB_RESEARCH_WORKBENCH` off | `deploy/develop/docker-compose.yml:116`; `apps/web/src/app/config/route.ts:31`; `ResearchScreen.tsx:236, 336` | the classic frame: **no Lead on screen at all** | D | Off by default (D5) | **Owned by 27c** (Q41): the switch is removed and the workbench serves every width |
+| 15 | Width under 1100 px | `apps/web/src/components/workbench/Workbench.tsx:62` | the classic frame, no Lead | the browser | Any narrow window | **Owned by 26b/26c** (D21: the drawer) |
+| 16 | The web's own copy of `AIA_AI_RESEARCH_LEAD_ENABLED` | `deploy/develop/docker-compose.yml:100`; `lib/public-config.ts` | display only, never availability | D | Can differ from the API's | **Kept out**: `lib/lead-availability.ts` reads `GET /lead` alone |
+| 17 | `GET /lead` unreadable (an older API's 404, a network error) | `LeadPane.tsx:98, 110` | the pane says the Lead is not in this version | — | — | `UNKNOWN` in the reader, never on |
+
+### 27b, server half (this PR)
+
+- **The kill switch holds on a model-prepared card (Q42).** `ResearchLead.approve_request` reads
+  whether the card is the Lead model's output from the stored turn (`_model_prepared`: a Lead turn,
+  `actor = "lead"`), never from the body, and with the switch off raises `LeadDisabled`
+  (`research_lead_disabled`, a `LeadUnavailable`) before any design is submitted, job created,
+  ledger row written or budget held. The router answers 409. The card waits: approved again once the
+  Lead is on. LO5's server-matched `chat_start` card is a person's turn, not a Lead turn, so this
+  guard leaves it approvable (the next PR).
+- **Stored edits still decide** (`decide_edits` reads no switch, unchanged).
+- **`GET /lead` reports the worker's readiness**: `worker_ready`, `worker_ready_source`,
+  `worker_reason`. There is no composition record yet (LO12b), so the smallest honest source is
+  the caller's own newest Lead turn a worker decided: parked or failed `research_lead_unconfigured`
+  or `ai_runtime_unavailable` reads `false` with that reason and source `newest_turn`; anything
+  else is `null`. **Nothing reads `true`**: a turn answered yesterday says nothing about the worker
+  today, and 27a's reader treats `null` as unknown, never on (`worker_readiness`,
+  `application/research_lead.py`). The field names are the ones `lib/lead-availability.ts` already
+  reads (`worker_ready`, `worker_reason`).
+- **The API's switch is hard to leave off by accident** (inventory row 1). Chosen: refuse to start
+  a deployed environment that does not state it, over reporting it on `/config` and Settings,
+  because a report is read only by someone who already suspects the switch, and every other
+  "this deployment is unsafe or half-configured" rule in `validate_for_production` already fails
+  the health check rather than serving. Develop's value is unchanged (Compose states
+  `${AIA_AI_RESEARCH_LEAD_ENABLED:-true}`); `test_the_api_starts_with_the_develop_hosts_configuration`
+  now asserts the Lead is stated and on there.
+
+Tests: `apps/api/tests/test_research_lead_api.py` (`test_a_card_the_lead_prepared_waits_while_the_lead_is_switched_off`:
+409, no run, no ledger row, no hold, then approvable once on;
+`test_the_refusal_is_read_from_the_stored_turn_never_the_body`;
+`test_stored_edits_are_still_decided_while_the_lead_is_switched_off`;
+`test_the_worker_is_never_reported_ready_without_a_source`;
+`test_a_worker_that_cannot_answer_is_reported_not_ready[…]`),
+`packages/aia_core/tests/test_research_lead_application.py::test_the_worker_is_never_read_as_ready`,
+`apps/api/tests/test_config_and_security.py::test_a_deployment_states_the_research_lead_switch`,
+`::test_locally_the_research_lead_is_off_unless_switched_on`.
+
+**Not done here, named.** The worker's own copy of the switch (row 3) is still off by omission in
+the worker; making the worker refuse a deployed start without it is the same rule and a separate
+change, because a worker refusing to start stops every AI step, not only the Lead (row 5's cost).
+Recommended with LO12b, whose record makes the disagreement visible instead.
+
+### Doc follow-up (27a inventory, 27b server half)
+
+- `CLAUDE.md` map, `routers/lead.py` line: "`GET /studies/{id}/lead` answers `worker_ready`
+  (null unknown, false with `worker_reason` from the newest parked turn, never true until LO12b),
+  `worker_ready_source`; `POST …/turns/{turn_id}/request` is 409 `research_lead_disabled` for a
+  card the Lead's model prepared while the Lead is off (Q42)".
+- `CLAUDE.md` map, `config.py`: "`AIA_AI_RESEARCH_LEAD_ENABLED` must be stated in a deployed
+  environment (unset: refused at start)".
+- `deploy/develop/README.md` (the switches): the same rule; develop states `true` by Compose.
+- `docs/architecture/adr/0026-…` *Accepted with*: Q42's refusal and the switch stated per
+  deployment.
