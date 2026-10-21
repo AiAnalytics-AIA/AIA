@@ -24,12 +24,13 @@ It does not:
 
 ## PRs (2026-10-21)
 
-- #548 (register: lead-conversation, input-interactions, sociomap-5-web core; #551/#553 rows; 3b3) and
-  #549 (docs follow-ups, OI-139..153, CLAUDE.md §5 hook note) MERGED 13:38. develop @ 25f2623:
-  master_check ok, 322 assigned, 0 unscheduled. No open PR of this session.
-- Next docs PR (needs Nigel's word to commit): follow-ups of #510, #532-#547, #551 (CLAUDE.md lines
-  when 26a/27a/27c land), #553 (F-DRL-1..7 numbered, overview Q44-Q48, deep-research.md line,
-  ADR 0026 Accepted-with), #552.
+- #548, #549 MERGED 13:38.
+- **#558** chore/docs-followups-2026-10-21b @ 9c2463f (worktree /home/user/AIA-docs): the running Sprint 5
+  docs PR. Follow-ups of #510, #532-#547, #551-#553; OI-154..181; runbook switch entries. Ready; full
+  suites run (touches docs/architecture and deploy/).
+- **Permission:** Nigel typed "you can commit" here (docs PR), and signed off Sprint 5 (Q49, 13:53,
+  relayed): commit and push docs follow-ups within the sprint without asking per PR. Fold in #537,
+  #550, #554-#557 and Sprint 5 PRs as they merge.
 
 ## Earlier PRs: #516, #522 and #523 all MERGED 2026-10-20 (23:13, 23:13, 23:30). MP16 signed 23:10. No open PR of this session.
 
