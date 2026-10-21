@@ -67,6 +67,7 @@ from aia_core.domain.population.errors import PopulationError
 from aia_core.domain.population.runtime import RuntimePopulation
 from aia_core.domain.population.sampling import PanelSample, SamplingRefused, draw_panel_sample
 from aia_core.domain.research_design import ResearchSpecification
+from aia_core.domain.residency import ClassAdvisory, DataClass
 from aia_core.domain.respondent_behavior import AIA_RESPONSE_V1
 from aia_core.domain.workflow import FailureClass
 from aia_core.infrastructure.build_identity import BuildIdentity
@@ -263,12 +264,27 @@ class ArmExecutor(_ValidationStep):
             [p.persona for p in plans], client_declared_fictional=False
         )
         decision = self._ai.material(spec.model_dump(mode="json"))
-        data_class = most_restrictive_material([persona_class, decision.data_class])
-        if data_class is None:
-            return _parked(
-                "egress_unclassified_material",
-                "Dotazník validace nemá klasifikaci vstupních dat. Nic nebylo odesláno.",
+        classified = most_restrictive_material([persona_class, decision.data_class])
+        advisory: dict[str, Any] = {}
+        if classified is None:
+            if not self._ai.class_gates.advisory:
+                return _parked(
+                    "egress_unclassified_material",
+                    "Dotazník validace nemá klasifikaci vstupních dat. Nic nebylo odesláno.",
+                )
+            # Advisory class gates (develop only): the unclassified specification is sent
+            # judged as Class A -- what the gateway judges unknown material as, never the
+            # permissive answer -- and the step's event and the arm's artifact say so before
+            # and after anything is sent.
+            advisory = {
+                "class_advisory": ClassAdvisory(
+                    "validation_material", "egress_unclassified_material", None
+                ).record()
+            }
+            context.progress(
+                "Dotazník validace nemá klasifikaci; třída dat je jen doporučující", **advisory
             )
+        data_class = classified or DataClass.CLASS_A_CLIENT_CONFIDENTIAL
         answered = self._ai.answer_plans(
             plans,
             spec,
@@ -307,6 +323,7 @@ class ArmExecutor(_ValidationStep):
                 "seed": payload["seed"],
                 "model_binding": payload["model_binding"],
                 "data_class": data_class.value,
+                **advisory,
                 "lineage": sorted(lineage.datasets),
                 **record,
                 "calls": answered.calls,

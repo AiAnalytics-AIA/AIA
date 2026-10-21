@@ -63,6 +63,7 @@ from ..domain.spend_attribution import (
     START_APPROVALS,
     charged_to,
 )
+from ..domain.wallet import CHARGE_DECISION
 from ..domain.workflow import (
     DEFAULT_CAPACITY_BACKOFF_SECONDS,
     DEFAULT_LEASE_SECONDS,
@@ -2818,6 +2819,55 @@ class WorkflowRepository:
         )
         self._session.flush()
         return True
+
+    def record_chat_start(
+        self,
+        run_id: str,
+        *,
+        turn_id: str,
+        start: str,
+        ceiling_usd: float | None,
+        design_revision_id: str,
+    ) -> int:
+        """Write a person's approval of their own typed start (lead-orchestration LO5, ADR 0028
+        decision 3): a ``chat_start`` row naming the run it created, decision ``start``, and
+        return its id -- the authority a wallet charge of that run names (``CHARGE_AUTHORITIES``).
+        The row records the person's turn, the start's name (``agent_job:<action>``,
+        ``research_run``), its ceiling and the Design Revision. Needs ``APPROVE_GATE``, which the
+        worker's scope does not hold: a step cannot authorise a charge of its own."""
+        self.scope.require(Permission.APPROVE_GATE)
+        run = self._run(run_id)
+        independence = observe_approval_independence(
+            producer_user_id=run.triggered_by,
+            approving_user_id=self.scope.actor_id,
+            policy=self.scope.self_approval,
+        )
+        row = ApprovalDecisionRow(
+            organization_id=self.scope.organization_id,
+            client_id=self.scope.client_id,
+            study_id=self.scope.study_id,
+            subject_type=ApprovalSubject.CHAT_START,
+            subject_id=run_id,
+            run_id=run_id,
+            project_id=run.project_id,
+            project_revision=run.project_revision,
+            gate_type="chat_start",
+            decision=CHARGE_DECISION,
+            comment=json.dumps(
+                {
+                    "turn_id": turn_id,
+                    "start": start,
+                    "ceiling_usd": ceiling_usd,
+                    "design_revision_id": design_revision_id,
+                },
+                sort_keys=True,
+            ),
+            request_id=self.scope.request_id,
+            **independence.audit_fields(),
+        )
+        self._session.add(row)
+        self._session.flush()
+        return int(row.decision_id)
 
     def record_lead_self_update_decision(
         self,

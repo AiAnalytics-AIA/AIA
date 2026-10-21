@@ -537,11 +537,25 @@ function verdictWords(v: { reason?: string | null; reasons?: string[] | null }):
 const cs = (n: number) => n.toLocaleString("cs-CZ");
 
 /** The preview's answer in words: what the filters select, and whether a run could draw n. */
-export function liveVerdict(r: AudiencePreview): { ok: boolean; lines: string[] } {
+/**
+ * Each filter alone (AUD3, the API's `per_filter`), in the order the filters were applied, named
+ * by the catalogue's label: which filter narrows the audience. Said only for two filters or more;
+ * one filter alone selects what all of them select.
+ */
+export function filterCountLines(r: AudiencePreview, cat: Catalog | null): string[] {
+  const counts = r.per_filter ?? {};
+  const ids = Object.keys(r.filters_applied ?? {}).filter((id) => counts[id] != null);
+  if (ids.length < 2) return [];
+  const label = new Map((cat?.factors || []).map((f) => [f.id, String(f.label || f.id)]));
+  return ids.map((id) => `Samotný filtr ${label.get(id) ?? id}: ${cs(counts[id]!)} lidí.`);
+}
+
+export function liveVerdict(r: AudiencePreview, cat: Catalog | null = null): { ok: boolean; lines: string[] } {
   if (!r.audience.ok) return { ok: false, lines: [verdictWords(r.audience)] };
   const lines = [
     `Filtry vyberou ${cs(r.selected_rows ?? 0)} z ${cs(r.population_rows)} lidí populace ${r.version_label}` +
       (r.selected_donors != null ? ` (${cs(r.selected_donors)} různých dárců).` : "."),
+    ...filterCountLines(r, cat),
   ];
   if (!r.sample) return { ok: true, lines };
   if (!r.sample.ok) return { ok: false, lines: [...lines, verdictWords(r.sample)] };

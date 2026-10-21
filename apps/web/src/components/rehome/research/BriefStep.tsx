@@ -9,12 +9,14 @@
 // draws it. The sentence starters and "Navrhnout z cíle" write the same fields a
 // person types into; nothing here calls a model but the analysis.
 
+import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { type DragEvent, type ReactNode, useRef, useState } from "react";
+import { type DragEvent, type ReactNode, useEffect, useRef, useState } from "react";
 
 import { t, tv } from "@/i18n/t";
 import { workspace } from "@/lib/api";
 import { saveBlob } from "@/lib/download";
+import { type BriefMaterials, classLabel, classOf } from "@/lib/material-class";
 import {
   type BriefingField,
   MAX_FILES_PER_PICK,
@@ -36,6 +38,7 @@ import { StepSection } from "../step";
 import { InspectorSlot } from "./Inspector";
 import { AiButton, Button, TextInput } from "../ui";
 import { useResearch } from "./context";
+import { AskLead, useLeadOwnsAiStarts } from "./AskLead";
 import { AnalysisFailureCard, useAnalysis } from "./useAnalysis";
 
 const message = (e: unknown) => (e instanceof Error ? e.message : String(e));
@@ -81,6 +84,7 @@ export function BriefStep() {
   const router = useRouter();
   const p = state.project;
   const { analyse: runAnalysis, resume, failure, busy } = useAnalysis();
+  const leadOwnsAiStarts = useLeadOwnsAiStarts();
 
   const edit = (field: TopField | BriefingField, value: string) =>
     store.update(({ project, analysis }) => editBrief(project, analysis, field, value));
@@ -132,10 +136,20 @@ export function BriefStep() {
           ]}
         >
           <p aria-live="polite" className={`text-[13px] leading-5 ${ready ? "text-ink-muted" : "text-status-you-ink"}`}>{note}</p>
-          <AiButton variant="primary" className="w-full justify-center !min-h-11" onClick={analyse} disabled={busy || !ready}>
-            {t("research.brief.next")}
-            <Icon name="next" size={14} />
-          </AiButton>
+          {!leadOwnsAiStarts ? (
+            <AiButton variant="primary" className="w-full justify-center !min-h-11" onClick={analyse} disabled={busy || !ready}>
+              {t("research.brief.next")}
+              <Icon name="next" size={14} />
+            </AiButton>
+          ) : (
+            <>
+              <Link href={stepHref("plan")} className="inline-flex w-full items-center justify-center gap-1 rounded-control border border-border-strong px-3 !min-h-11 text-sm no-underline">
+                Pokračovat na Návrh
+                <Icon name="next" size={14} />
+              </Link>
+              <AskLead className="mt-2" what="Analýzu zadání" />
+            </>
+          )}
         </Readiness>
       </InspectorSlot>
 
@@ -359,6 +373,27 @@ function badge(x: Attachment): { label: string; look: string } {
   return { label: ext.slice(0, 4) || "—", look: "bg-signal-wash text-signal" };
 }
 
+/**
+ * The class of each material, as the server answers it for the saved revision (artifact-brief
+ * BRF3); read again after every save. Null until an answer comes: no chip is shown rather than a
+ * guessed one, and a failed read leaves it so.
+ */
+function useMaterialClasses(studyId: string, revision: number | null): BriefMaterials | null {
+  const [answer, setAnswer] = useState<BriefMaterials | null>(null);
+  useEffect(() => {
+    if (revision === null) return;
+    let live = true;
+    workspace.materials(studyId).then(
+      (r) => live && setAnswer(r),
+      () => undefined,
+    );
+    return () => {
+      live = false;
+    };
+  }, [studyId, revision]);
+  return answer;
+}
+
 type Pending = { name: string; state: "waiting" | "uploading" | "done" | "failed"; message?: string };
 
 /**
@@ -427,6 +462,7 @@ function Attachments({ uploads }: { uploads: Uploads }) {
   const [url, setUrl] = useState("");
   const list: Attachment[] = state.project.briefing.attachments || [];
   const { upload, pending, busy, error, setError } = uploads;
+  const classes = useMaterialClasses(frame.studyId, state.revision);
 
   const download = async (x: Attachment, attachmentId: string) => {
     setError(null);
@@ -452,7 +488,13 @@ function Attachments({ uploads }: { uploads: Uploads }) {
       optional
       title={t("research.brief.filesTitle")}
       hint={t("research.brief.attachHelpAnywhere")}
-      aside={list.length ? <span className="font-mono text-xs text-ink-muted">{tv("research.brief.readyFilesN", { n: list.length })}</span> : null}
+      aside={
+        list.length ? (
+          <span className="font-mono text-xs text-ink-muted">
+            {tv("research.brief.readyFilesN", { n: list.length })} · {t("research.brief.dataClassAside")}
+          </span>
+        ) : null
+      }
     >
       <input
         ref={files}
@@ -506,6 +548,7 @@ function Attachments({ uploads }: { uploads: Uploads }) {
             const stored = storedAttachmentId(x);
             const missing = x.kind !== "url" && !stored;
             const b = badge(x);
+            const cls = classOf(classes, state.revision, x, i);
             return (
               <li key={`${i}-${x.sha256 || x.url || x.filename}`} className="flex items-center gap-3 border-b border-border px-2.5 py-2 last:border-b-0">
                 <span aria-hidden="true" className={`inline-flex h-7 min-w-10 items-center justify-center rounded-md px-1 font-mono text-[10px] font-semibold ${b.look}`}>{b.label}</span>
@@ -516,6 +559,15 @@ function Attachments({ uploads }: { uploads: Uploads }) {
                     {missing ? ` · ${t("research.brief.notInAia")}` : ""}
                   </div>
                 </div>
+                {cls ? (
+                  <span
+                    data-data-class={cls.data_class ?? "unknown"}
+                    title={cls.class_source ? tv("research.brief.dataClassRule", { rule: cls.class_source }) : undefined}
+                    className={`shrink-0 rounded-full border px-2 py-0.5 font-mono text-[11px] ${cls.data_class ? "border-border-strong text-ink-muted" : "border-status-you-ink text-status-you-ink"}`}
+                  >
+                    {classLabel(cls.data_class)}
+                  </span>
+                ) : null}
                 {stored ? (
                   <Button small variant="quiet" aria-label={tv("research.brief.downloadAria", { name: line.name })} onClick={() => void download(x, stored)}>
                     {t("research.brief.download")}

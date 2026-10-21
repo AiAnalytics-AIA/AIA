@@ -98,7 +98,19 @@ def _rated_items(n: int) -> str:
 
 
 def _audience_sentence(spec: ResearchSpecification) -> str:
-    """The audience as the design stated it: the strategy and, when it narrowed, by what."""
+    """The audience as the design stated it: its description and built-in subpanel when the
+    design gave them, then the strategy and, when it narrowed, by what."""
+    stated = ""
+    if description := spec.audience.get("description"):
+        stated += f"Cílová skupina podle návrhu: {description}. "
+    population = spec.audience.get("source_mode") == "population"
+    if population and (subpanel := spec.audience.get("builtin_subpanel")):
+        stated += f"Vycházela z vestavěného podpanelu {subpanel}. "
+    return stated + _audience_rule(spec)
+
+
+def _audience_rule(spec: ResearchSpecification) -> str:
+    """The strategy and, when it narrowed, by what."""
     strategy = str(spec.audience.get("strategy") or "population")
     if spec.audience.get("source_mode") != "population":
         return "Návrh počítal s vlastním souborem respondentů mimo populaci AIA."

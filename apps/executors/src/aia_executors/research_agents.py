@@ -50,7 +50,7 @@ from aia_worker.executor import Failed, StepContext, StepInput, StepOutcome, Suc
 from pydantic import ValidationError
 from sqlalchemy.orm import Session
 
-from .ai_step import StepModelCaller
+from .ai_step import StepModelCaller, class_advisory_fields
 
 ARTIFACT_TYPE = "research_agent_proposal"
 
@@ -253,10 +253,10 @@ class ResearchAgentExecutor:
             proposal = proposal_result(action, baseline, result.output, snapshot)
         except ValueError as exc:
             return Failed(FailureClass.SCHEMA_VIOLATION, error={"message": str(exc)})
-        assert request.data_classification is not None
-        # A request exists only if its prompt was classified: an unknown class refused above.
+        # The class the gateway sent it as: the request's or, when a part's class is unknown
+        # and the class gates are advisory (develop only), the class it was judged as, with the
+        # advisory recorded. Under enforce an unknown class was refused at the preflight above.
         prompt_class = prompt_data_class(pin, cfg.material_approvals)
-        assert prompt_class is not None
         instruction_rule = instruction_classification(
             str(step.payload.get("instruction", "")), cfg.material_approvals
         )
@@ -284,7 +284,8 @@ class ResearchAgentExecutor:
             "policy_version": result.provenance.policy_version,
             "cost_usd": result.total_cost_usd,
             "status": "PROPOSED",
-            "data_class": request.data_classification.value,
+            "data_class": result.provenance.data_class.value,
+            **class_advisory_fields(result.provenance.class_advisories),
             "material_classification": {
                 # The design and a nonempty instruction: Class B by the owner's rule
                 # (``rule:design``, ``rule:job_instruction``), or an operator's stricter class
@@ -301,7 +302,7 @@ class ResearchAgentExecutor:
                 # stricter one wins).
                 "prompt": {
                     "origin": pin.origin,
-                    "data_class": prompt_class.value,
+                    "data_class": None if prompt_class is None else prompt_class.value,
                     "source": prompt_class_source(pin, cfg.material_approvals),
                     "text_sha256": pin.text_sha256,
                     "material_sha256": None

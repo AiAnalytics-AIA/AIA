@@ -300,7 +300,7 @@ def _as_stored_on_develop(spec: Any) -> dict[str, Any]:
 def test_a_specification_stored_before_the_labels_reads_back_as_stored() -> None:
     spec, _ = compile_design(DESIGN)
     assert spec is not None and spec.compiler_version == COMPILER_VERSION
-    assert COMPILER_VERSION == "aia-research-compile-2"
+    assert COMPILER_VERSION == "aia-research-compile-3"
     stored = ResearchSpecification.model_validate(_as_stored_on_develop(spec))
     assert all(q.scale_labels == () for q in stored.questions)
     assert stored.fingerprint() == _FINGERPRINT_BEFORE_LABELS

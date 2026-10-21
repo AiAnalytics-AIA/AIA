@@ -80,13 +80,13 @@ describe("describeEdit / editStage", () => {
 describe("focusSelector", () => {
   it("names the element the stage screens already render for a target", async () => {
     const { focusSelector } = await import("./lead");
-    expect(focusSelector("question:Q_1")).toBe('[id="qedit_Q_1"]');
+    expect(focusSelector("question:Q_1")).toBe('[data-aia="question:Q_1"], [id="qedit_Q_1"]');
     expect(focusSelector("brief:goal")).toBe('[id="brief-goal"]');
     expect(focusSelector("plan:research_questions")).toBe('[id="plan-understanding"]');
     expect(focusSelector("plan:sets")).toBe('[id="plan-sets"]');
     expect(focusSelector("plan:variants")).toBe('[id="plan-variants"]');
     expect(focusSelector("plan:questions")).toBe('[id="plan-questions"]');
-    expect(focusSelector("section:sec_1")).toBe('[id="qblock_sec_1"]');
+    expect(focusSelector("section:sec_1")).toBe('[data-aia="section:sec_1"], [id="qblock_sec_1"]');
     expect(focusSelector('odd"one')).toBe('[data-aia="odd\\"one"], [id="odd\\"one"]');
   });
 });
@@ -100,6 +100,47 @@ describe("targetOfElement", () => {
     expect(targetOfElement(document.getElementById("hit"))).toEqual({ id: "question:Q_1", label: "Otázka Q_1: Jak jste spokojeni?" });
     expect(targetOfElement(document.getElementById("g"))).toEqual({ id: "brief:goal", label: "Zadání: Co potřebujete zjistit" });
     expect(targetOfElement(document.getElementById("n"))).toBeNull();
+  });
+
+  it("names any element a screen marked with data-aia, nearest first, and ignores other marks", async () => {
+    const { targetOfElement } = await import("./lead");
+    const { JSDOM } = await import("jsdom");
+    const { document } = new JSDOM(`<fieldset data-aia="audience:filter:kraj"><legend>Kraj</legend><input id="k"></fieldset>
+      <div data-aia="finding:executive:2"><p id="f">text</p></div><div data-aia="lead-edit.x"><i id="o">-</i></div>`).window;
+    expect(targetOfElement(document.getElementById("k"))).toEqual({ id: "audience:filter:kraj", label: "Filtr: kraj: Kraj" });
+    expect(targetOfElement(document.getElementById("f"))).toEqual({ id: "finding:executive:2", label: "Zjištění executive:2" });
+    expect(targetOfElement(document.getElementById("o"))).toBeNull();
+  });
+
+  it("keeps a marked question's wording and a marked section's title as their labels, whatever heading they hold", async () => {
+    // Dotazník marks its cards with data-aia; a card's first legend is a part of it (the research
+    // questions it answers), never what the person pointed at.
+    const { focusSelector, targetOfElement } = await import("./lead");
+    const { JSDOM } = await import("jsdom");
+    const { document } = new JSDOM(`<div data-aia="question:Q1" id="qedit_Q1"><textarea id="t">Jak často?</textarea>
+        <fieldset><legend>Odpovídá na výzkumné otázky</legend><input id="rq" type="checkbox"></fieldset></div>
+      <div data-aia="section:S1" id="qset_S1"><fieldset><legend>Odpovídá na výzkumné otázky</legend></fieldset><h3>Nápoje</h3><i id="s">-</i></div>`).window;
+    expect(targetOfElement(document.getElementById("t"))).toEqual({ id: "question:Q1", label: "Otázka Q1: Jak často?" });
+    expect(targetOfElement(document.getElementById("rq"))?.label).toBe("Otázka Q1: Jak často?");
+    expect(targetOfElement(document.getElementById("s"))).toEqual({ id: "section:S1", label: "Oddíl: Nápoje" });
+    // Dotazník edits a block's or set's title in place: an input, not a heading (Codex on #599).
+    const edited = new JSDOM(`<article data-aia="section:S2" id="qset_S2"><fieldset><legend>Odpovídá na výzkumné otázky</legend><input type="checkbox" checked></fieldset>
+        <input aria-label="Název sady" value="Snídaně"><i id="e">-</i></article>
+      <article id="qblock_B1"><input aria-label="Název bloku" value="Úvod"><i id="b">-</i></article>`).window.document;
+    expect(targetOfElement(edited.getElementById("e"))).toEqual({ id: "section:S2", label: "Oddíl: Snídaně" });
+    expect(targetOfElement(edited.getElementById("b"))).toEqual({ id: "section:B1", label: "Oddíl: Úvod" });
+    // A tracked set's card is found by its mark: it has no qblock_ id.
+    expect(document.querySelector(focusSelector("section:S1"))?.id).toBe("qset_S1");
+  });
+});
+
+describe("targetLabel for every artifact's kinds", () => {
+  it("says each kind in words, and the audience's parts as the Cílová skupina screen names them", () => {
+    expect(targetLabel("audience:definition")).toBe("Cílová skupina: popis");
+    expect(targetLabel("audience:subpanel:young_18_29")).toBe("Podpanel: young_18_29");
+    expect(targetLabel("pair:set1/fio~air")).toBe("Dvojice set1/fio~air");
+    expect(targetLabel("measure:q3")).toBe("Měření q3");
+    expect(targetLabel("nonsense:q3")).toBe("nonsense:q3");
   });
 });
 

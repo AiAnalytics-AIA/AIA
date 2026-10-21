@@ -1032,3 +1032,36 @@ def test_the_client_says_whether_a_proposer_may_accept_their_own_proposal(
     owner.put(f"{API}/self-approval", json={"allowed": False, "client_id": world.client_id()})
     after = researcher.get(url).json()
     assert after["self_approval_allowed"] is False and after["self_approval_source"] == "client"
+
+
+def test_the_brief_materials_answer_each_entrys_class_by_rule(
+    lead: TestClient, viewer: TestClient, world: Any
+) -> None:
+    url = f"{API}/studies/{world.study_id()}/workspace"
+    assert viewer.get(f"{url}/materials").json() == {"revision": None, "materials": []}
+
+    lead.put(f"{url}/content", json={"content": BRIEF})
+    body = {"filename": "zadani.txt", "data_b64": base64.b64encode(b"Fiktivni zadani").decode()}
+    record = lead.post(f"{url}/attachments", json=body).json()
+    current = lead.get(f"{url}/content").json()
+    content = dict(current["content"])
+    content["briefing"] = {
+        **content.get("briefing", {}),
+        "attachments": [record, {"kind": "url", "url": "https://example.org/a"}, "x"],
+    }
+    saved = lead.put(f"{url}/content", json={"content": content, "base_revision": 1})
+    assert saved.status_code == 200, saved.text
+
+    answer = viewer.get(f"{url}/materials")
+    assert answer.status_code == 200
+    design = {"data_class": "CLASS_B_DERIVED_CLIENT", "class_source": "rule:design"}
+    assert answer.json() == {
+        "revision": 2,
+        "materials": [
+            {"index": 0, "kind": "file", "ref": record["attachment_id"], **design},
+            {"index": 1, "kind": "url", "ref": "https://example.org/a", **design},
+            {"index": 2, "kind": None, "ref": None, "data_class": None, "class_source": None},
+        ],
+    }
+    sibling = f"{API}/studies/{world.study_id('sibling')}/workspace"
+    assert lead.get(f"{sibling}/materials").json()["materials"] == []

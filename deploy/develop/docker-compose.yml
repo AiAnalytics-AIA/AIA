@@ -28,6 +28,12 @@ x-app-env: &app-env
   # develop: a deployed environment (every guard: Cognito, S3, build SHA) that always hosts
   # fictional data, which staging and production refuse (aia_core.domain.deployment).
   AIA_ENV: develop
+  # The product owner, 2026-10-21 (plan develop-class-advisory): on develop a refusal made solely
+  # because of a data class is recorded and passed (ledger note, provenance, tool and step
+  # events), and Brave's search takes a query of any class. EU residency for model calls,
+  # licences, budgets and scope still hold. Fixed here, not from Parameter Store; the API and
+  # the worker refuse it under staging and production.
+  AIA_DATA_CLASS_GATES: advisory
   AIA_LOG_FORMAT: json
   AIA_LOG_LEVEL: ${AIA_LOG_LEVEL:-INFO}
   AIA_AI_ANALYSIS_ENABLED: ${AIA_AI_ANALYSIS_ENABLED:-false}
@@ -179,6 +185,9 @@ services:
       AIA_DEEP_RESEARCH_CONNECTORS: ${AIA_DEEP_RESEARCH_CONNECTORS:-}
       AIA_DEEP_RESEARCH_AGENT_DIRECTED: ${AIA_DEEP_RESEARCH_AGENT_DIRECTED:-false}
       AIA_DEEP_RESEARCH_LEAD: ${AIA_DEEP_RESEARCH_LEAD:-false}
+      # The worker's switch, read only so a Deep Research quote can say a run would park
+      # (deep-research-web-search 55); the API composes and sends nothing with it.
+      AIA_DEEP_RESEARCH_ENABLED: ${AIA_DEEP_RESEARCH_ENABLED:-false}
       # The audience step's preview (panel-grounded-respondents 6c): the API loads LIVE from the
       # same read-only directory the worker reads, once per version, and answers with counts.
       # AIA_API_POPULATION_ASSET_ROOT= (empty) in .env turns the preview off; the step says so.

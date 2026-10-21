@@ -32,6 +32,7 @@ from aia_core.application.research_lead import (
     NotAPaidRequest,
     ResearchLead,
     set_study_budget,
+    worker_readiness,
 )
 from aia_core.domain.research_lead import RememberNote, SelfUpdate, layer, self_update_base
 from aia_core.domain.scope import (
@@ -860,3 +861,46 @@ def test_two_tabs_opening_the_study_start_one_greeting(
         workflow_type=RESEARCH_LEAD,
     )
     assert len(runs) == 1
+
+
+def _t(actor: str, status: str, reason: str | None = None) -> dict[str, Any]:
+    return {"actor": actor, "status": status, "reason": reason}
+
+
+NOT_READY_UNCONFIGURED = (False, "newest_turn", "research_lead_unconfigured")
+NOT_READY_RUNTIME = (False, "newest_turn", "ai_runtime_unavailable")
+
+
+@pytest.mark.parametrize(
+    "turns,expected",
+    [
+        ([], (None, None, None)),
+        ([_t("person", "COMPLETED")], (None, None, None)),
+        ([_t("lead", "COMPLETED")], (None, None, None)),
+        ([_t("lead", "WAITING", "research_lead_unconfigured")], NOT_READY_UNCONFIGURED),
+        ([_t("lead", "FAILED", "ai_runtime_unavailable")], NOT_READY_RUNTIME),
+        # A park that does not name the worker's composition says nothing about it.
+        ([_t("lead", "WAITING", "budget_exceeded")], (None, None, None)),
+        ([_t("lead", "WAITING", "egress_no_approved_route")], (None, None, None)),
+        # The newest decided turn speaks; one still queued or cancelled is skipped.
+        (
+            [_t("lead", "WAITING", "research_lead_unconfigured"), _t("lead", "QUEUED")],
+            NOT_READY_UNCONFIGURED,
+        ),
+        (
+            [_t("lead", "WAITING", "research_lead_unconfigured"), _t("lead", "COMPLETED")],
+            (None, None, None),
+        ),
+        (
+            [_t("lead", "WAITING", "ai_runtime_unavailable"), _t("lead", "CANCELLED")],
+            NOT_READY_RUNTIME,
+        ),
+    ],
+)
+def test_the_worker_is_never_read_as_ready(
+    turns: list[dict[str, Any]], expected: tuple[bool | None, str | None, str | None]
+) -> None:
+    """27b without LO12b's record: only a park naming the worker's composition says anything
+    (not ready); nothing says ready."""
+    assert worker_readiness(turns) == expected
+    assert worker_readiness(turns)[0] is not True
