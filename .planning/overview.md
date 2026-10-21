@@ -659,7 +659,13 @@ Deep Research end to end: every Interpretation target kind from a code-built lis
 questions (Q45); QUICK and STANDARD offered, STANDARD the default (Q46); a plan may chain fieldwork,
 then interpretation, parking if its module is BLOCKED (Q47); the Deep Research half of the narrow
 Lead waits for typed starts (Q48). The record is
-[`lead-orchestration.md` § Deep Research under the Lead](plans/lead-orchestration.md) (#553).
+[`lead-orchestration.md` § Deep Research under the Lead](plans/lead-orchestration.md) (#553). The artifact plans' answers (#560):
+the `-5` drawing fixes only its two state issues, the rest goes to the methodology owner (Q50);
+Výsledky shows up to five raw open answers per question, internal only (Q52); the persona source is
+chosen on Spuštění (Q54); code writes the report narrative's first draft and the Lead proposes
+tracked changes (Q56); the literature is woven into the one report, labelled external, and the
+separate report with literature is retired for new reports (Q58;
+[`mvp-owner-decisions.md`](mvp-owner-decisions.md)). Q51, Q53 and Q55 are open.
 
 **Working model (owner, 2026-10-19).** This section is the roadmap. Each track has one owner,
 named here when its work starts; no two agents edit the same plan. An agent marks its own PR ready
