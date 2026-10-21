@@ -81,7 +81,7 @@ V2: `SampleArt` (`SampleStages.tsx:232-273`).
   - the persona source chosen, a start argument (`research.start`, `ExecutionSteps.tsx:715`);
   - at start, the run's metadata records the gaps, answerability and the forecast. The report prints
     them in "Respondenti a výpočet" (`report_method.py:176`, `:449`). The research trace is recorded
-    at start for the research-questions chapter (`artifact-chain-to-draft-report#CHN3`).
+    at start for the research-questions chapter (`ch-2`; `artifact-chain-to-draft-report#CHN3`).
 
 ## 6. Input interactions
 

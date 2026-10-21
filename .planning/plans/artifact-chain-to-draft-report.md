@@ -2,14 +2,14 @@
 status: planned
 chunks:
   - "[ ] CHN1. The section-source manifest: every section of a stored report names its sources (artifact id with SHA-256, specification field, ledger refs, or fixed text), and the artifact outputs no section read, stored with the document model"
-  - "[ ] CHN2. The brief in the draft: goal, decision_use, objectives and the briefing compiled into the specification as typed text, printed in the introduction and given to the analysis with the hypotheses"
-  - "[ ] CHN3. Research questions traced into the report: each question's measures and tables, the findings answering it and its recorded gap, in the research-questions chapter"
-  - "[ ] CHN4. The Design Research a design was built on, in the design chapter: accepted items by bundle id and SHA-256, labelled external context"
-  - "[ ] CHN5. The audience in full: the specification keeps the stated description and filters, and the design chapter prints them"
+  - "[ ] CHN2. The brief in the draft: goal, decision_use, objectives and the briefing compiled into the specification as typed text, printed in `intro` and given to the analysis with the hypotheses"
+  - "[ ] CHN3. Research questions traced into the report: each question's measures and tables, the findings answering it and its recorded gap, in `ch-2`"
+  - "[ ] CHN4. The Design Research a design was built on, in `ch-design`: accepted items by bundle id and SHA-256, labelled external context"
+  - "[ ] CHN5. The audience in full: the specification keeps the stated description and filters, and `ch-design` prints them"
   - "[ ] CHN6. The report's audit names every artifact it stands on: the aggregate, the map, the specification, the dataset, and the experimental Sociomapping draft when the run made one"
   - "[ ] CHN7. The UI workbench composes analysis and the internal report on recorded models, and runs the stage workers on recordings: local and test only"
   - "[ ] CHN8. Interpretation Research woven into the body (CQ4 = Q58 b): when literature is chosen, each accepted finding in the body section it bears on, labelled external (L class), never respondent evidence; one document, the separate with-research DOCX retired for new reports"
-  - "[ ] CHN9. Metodika a způsob interpretace from the run's pins: aggregation methodology, support rule, Sociomap method and QC warnings, the reading guidance kept and labelled"
+  - "[ ] CHN9. Metodika a způsob interpretace (`methodology`) from the run's pins: aggregation methodology, support rule, Sociomap method and QC warnings, the reading guidance kept and labelled"
   - "[ ] CHN10. A module with no supported finding blocks the draft (MVPQ-04): composition, approval and export refuse; the module's diagnostic shown on Analýza and Výsledky and in the refusal's own words"
   - "[ ] CHN11a. The number census: a new scan of the stored document model's text, every numeric token classed as an admitted ledger ref, a value of the stored Sociomap artifact, or a design or document-control number with typed provenance; an unclassed token fails"
   - "[ ] CHN11. The chain over HTTP: a fictional study from brief to internal DOCX on recorded answers, every hand-off chunk's output (CHN1-CHN6, CHN8-CHN10, RD5a) asserted in the draft, every number in an accepted provenance class"
@@ -35,27 +35,36 @@ Anchors are `file:line @ 25f26232` (origin/develop) unless stated.
 | From | Hands on | Form | Read by |
 |---|---|---|---|
 | Zadání | `title`, `goal`, `decision_use`, `briefing.*`, attachments | typed fields of the working copy, frozen in the Design Revision | `analyze_brief`'s context; **no report section** (G1) |
-| Návrh | `plan.research_questions` | typed list, by text (`domain/analysis/native.py:141`) | every module (`analysis_results.py:575`); report introduction and design chapter |
+| Návrh | `plan.research_questions` | typed list, by text (`domain/analysis/native.py:141`) | every module (`analysis_results.py:575`); `intro` and `ch-design` |
 | Návrh | `plan.hypotheses`, `plan.objectives` | typed lists with stable ids (WCE1) | **nothing**: the analysis does not receive them (AOC3) |
 | Návrh | Design Research accepted items | ledger ref (`design_research` row) + the Design Revision it made | **nothing in the report** (CHN4) |
-| Návrh, Dotazník | sets, questions, links, scales | typed design items → `spec.batteries`, `spec.questions` (`research_design.py:408-418`) | design chapter, questionnaire appendix, question tables |
-| Cílová skupina | `audience` (description, filters) | typed fields → `spec.audience`, only three flags kept (`research_design.py:910-914`) | design chapter's audience sentence (`report_design.py:100`) (G4) |
-| Dimenze | `selection.dimensions`, `n`, a materialized child | typed fields; `population_version_id` pinned on the run | method chapter (`report_method.py:398`) |
-| Vzorek | readiness, gaps, answerability, forecast | the run's metadata at start | method chapter (`report_method.py:176`); the introduction's gap marks (`report_method.py:151`) |
-| Sběr dat | the dataset; population binding, `persona_source`, receipt, pinned methods | artifact id + SHA-256; the run's metadata | the analysis evidence; the method chapter |
+| Návrh, Dotazník | sets, questions, links, scales | typed design items → `spec.batteries`, `spec.questions` (`research_design.py:408-418`) | `ch-design`, `app-questionnaire`, `ch-questions` |
+| Cílová skupina | `audience` (description, filters) | typed fields → `spec.audience`, only three flags kept (`research_design.py:910-914`) | `ch-design`'s audience sentence (`report_design.py:100`) (G4) |
+| Dimenze | `selection.dimensions`, `n`, a materialized child | typed fields; `population_version_id` pinned on the run | `ch-method` (`report_method.py:398`) |
+| Vzorek | readiness, gaps, answerability, forecast | the run's metadata at start | `ch-method` (`report_method.py:176`); `intro`'s gap marks (`report_method.py:151`) |
+| Sběr dat | the dataset; population binding, `persona_source`, receipt, pinned methods | artifact id + SHA-256; the run's metadata | the analysis evidence; `ch-method` |
 | Sběr dat | QC flags, spend | (to come: RQC4; the ledger) | **nothing** (CHN9) |
 | Výsledky | the aggregate | artifact id + SHA-256 | the analysis evidence table; **not cited by the report** (G5, CHN6) |
-| Sociomapa | the Sociomap | artifact id + SHA-256, verified against dataset and specification (`report_chapters.py:70-107`) | map chapters, their figures, the audit |
+| Sociomapa | the Sociomap | artifact id + SHA-256, verified against dataset and specification (`report_chapters.py:70-107`) | `ch-native-map-<n>`, their figures, `app-audit` |
 | Sociomapa | the experimental Sociomapping | its own DOCX (`sociomapping_report.py`) | **not the internal report** (G6, CHN6) |
-| Analýza | eight module results | artifact id + SHA-256 each; claims as ledger refs | eight chapters; the evidence appendix; the audit |
-| Interpretation Research | the sealed bundle | bundle id + seal | today a literature chapter, **only in the with-literature variant** (G2); woven into the draft's body by CHN8 (Q58) |
+| Analýza | eight module results | artifact id + SHA-256 each; claims as ledger refs | `ch-1`..`ch-8`; `app-evidence`; `app-audit` |
+| Interpretation Research | the sealed bundle | bundle id + seal | today `literature`, **only in the with-literature variant** (G2); from CHN8 fed from Interpretation Research and woven into the body sections (Q58) |
 | The Lead | edits to the working copy | working revisions, ledger rows (`lead_edit`) | the report only through a new Design Revision and a new run (ADR 0016) |
 | The Lead | edits to the report | (to come: RD5a, RD6) | **no path today** |
 
 ## 2. The draft's sections and their sources
 
 `compose_internal_report`, in the order it writes them (`report.py:170-292`, lines counted from
-`:129`):
+`:129`). Every section is named by the composer's own id, here and in every plan that points at a
+section (CHN1's manifest, Zpráva's `report:section:<id>`): `intro`, `ch-design`, `ch-1`..`ch-8`, `literature`, `methodology`, `ch-method`, `ch-questions`,
+`ch-native-map-<n>` (`ch-native-map-none` when no set is mapped), `app-questionnaire`,
+`app-evidence`, `app-audit`
+(`report.py:229, 294, 407, 418, 420`; `report_design.py:170, 205`; `report_method.py:522`;
+`report_tables.py:228`; `report_maps.py:383, 396`; `contextual_report.py:701`). A module's id is
+`ch-<ordinal>` from its `AnalysisModuleSpec` (`domain/analysis/modules.py:56-122`: EXECUTIVE 1,
+RESEARCH_QUESTIONS 2, OBJECTS 3, AUDIENCE 4, SEGMENTS 5, HYPOTHESES 6, IMPLICATIONS 7, LIMITATIONS 8;
+`report.py:407`), while the print order puts AUDIENCE before OBJECTS (`report.py:237-244`): `ch-4`
+prints before `ch-3`, and the map chapters follow `ch-3` (`report.py:408-409`).
 
 | Section (id) | Source | Gap |
 |---|---|---|
@@ -67,9 +76,9 @@ Anchors are `file:line @ 25f26232` (origin/develop) unless stated.
 | Metodika a způsob interpretace (`methodology`) | **fixed text** (`report.py:252-293`), plus the deviation | no source (G3, CHN9) |
 | Respondenti a výpočet (`ch-method`) | the run's metadata (`report_method.py:449`) | QC warnings absent (CHN9) |
 | Výsledky jednotlivých otázek (`ch-questions`) | the analysis evidence table, admitted per question (`report_tables.py:228`) | the aggregate artifact not cited (G5, CHN6) |
-| Cílová skupina (`ch-3`) | AUDIENCE module | — |
-| Srovnání sledovaných objektů (`ch-4`) | OBJECTS module | — |
-| Sociomapy · <set> (`ch-native-map-n`) | the verified Sociomap (`report_maps.py:383`) | respondent and segment figures wait (`signed-off-sociomap-method#9`, `segment-maps-and-drilldown#9`) |
+| Cílová skupina (`ch-4`) | AUDIENCE module | — |
+| Srovnání sledovaných objektů (`ch-3`) | OBJECTS module | — |
+| Sociomapy · <set> (`ch-native-map-<n>`) | the verified Sociomap (`report_maps.py:383`) | respondent and segment figures wait (`signed-off-sociomap-method#9`, `segment-maps-and-drilldown#9`) |
 | Segmenty (`ch-5`) | SEGMENTS module | **no admitted segment producer** (`segment-maps-and-drilldown#10`), and a module with no supported finding blocks the draft once `evidence-integrity#9b` lands (MVPQ-04, CHN10) |
 | Hypotézy (`ch-6`) | HYPOTHESES module | **no hypotheses input** (`assumptions-and-open-answer-coding#AOC3`) |
 | Implikace pro rozhodnutí (`ch-7`) | IMPLICATIONS module | **no `decision_use` input** (AOC3, CHN2) |
@@ -85,7 +94,7 @@ in the client report (`#RD11`).
 - the brief's goal, decision_use, briefing and objectives;
 - hypotheses;
 - Design Research findings;
-- the audience description and filters as stated (the method chapter prints them as applied);
+- the audience description and filters as stated (`ch-method` prints them as applied);
 - QC flags;
 - the experimental Sociomapping;
 - the Lead's study notes (`lead-orchestration#LO19`).
@@ -118,7 +127,10 @@ G12-G17 are added by this plan.
 ## 4. Chunks
 
 **CHN1. The section-source manifest.**
-- `domain/report/model.py`: `Section.sources`, a tuple of `SectionSource`:
+- `domain/report/model.py`: `Section.sources`, a tuple of `SectionSource`, keyed by the section's
+  composer id (§2: `intro`, `ch-design`, `ch-1`..`ch-8`, `literature`, `methodology`, `ch-method`, `ch-questions`,
+  `ch-native-map-<n>` (`ch-native-map-none` when no set is mapped), `app-questionnaire`,
+  `app-evidence`, `app-audit`):
   - `artifact(type, id, sha256)`;
   - `spec(field path)`;
   - `ledger(refs)`;
@@ -126,7 +138,7 @@ G12-G17 are added by this plan.
 
   The composers fill them, and `report_sources(document)` returns them with the outputs no section
   read, from the run's artifacts.
-- Stored with RD5a's document model and printed in the audit appendix. The Report artifact's
+- Stored with RD5a's document model and printed in `app-audit`. The Report artifact's
   "Záznam pokrytí" reads it (`artifact-report#RPT4`).
 - Tests: every section of the four sample reports names at least one source; `fixed` is allowed only
   for `methodology`'s guidance; the manifest of `make report-preview`'s internal sample matches a
@@ -137,22 +149,22 @@ G12-G17 are added by this plan.
 - `ResearchSpecification` gains `brief: SpecBrief | None` (goal, decision_use, objectives,
   briefing), absent from the fingerprint when empty (the spec's rule for a declaration not made).
   This is a compiler version bump, so older runs are not reinterpreted.
-- The introduction prints it as typed blocks (no numbers, RD0's design facts). `AnalysisInputs`
+- `intro` prints it as typed blocks (no numbers, RD0's design facts). `AnalysisInputs`
   carries goal, decision_use and objectives with AOC3's hypotheses, by `material_rules` (a design is
   Class B).
-- Tests: a compiled spec keeps the goal; the introduction prints it; a changed goal changes the
+- Tests: a compiled spec keeps the goal; `intro` prints it; a changed goal changes the
   modules' input fingerprint; an empty brief leaves the fingerprint unchanged.
 - Depends on `assumptions-and-open-answer-coding#AOC3`, and on CQ1.
 
 **CHN3. Research questions traced.**
 - The run records its `research_trace` at start (with the gaps it already records). The
-  RESEARCH_QUESTIONS chapter prints per RQ its measures by wording and the question-table anchors
+  RESEARCH_QUESTIONS chapter (`ch-2`) prints per RQ its measures by wording and the question-table anchors
   that hold them; an RQ no finding answers says so.
 - Tests: the measured and unmeasured RQs of `test_product_acceptance.py:271` read the same in the
   chapter; a dangling link is named.
 - Depends on CHN1.
 
-**CHN4. Design Research in the design chapter.**
+**CHN4. Design Research in the design chapter (`ch-design`).**
 - Accepted items from the `design_research` ledger rows of the run's Design Revision lineage: subject,
   finding, source and bundle SHA. They are labelled "Externí kontext k návrhu", never respondent
   evidence (ADR 0021).
@@ -162,11 +174,11 @@ G12-G17 are added by this plan.
 
 **CHN5. The audience in full.**
 - `spec.audience` keeps the description and the filters as stated (bounds as typed design facts);
-  `_audience_sentence` prints them beside the method chapter's "applied".
+  `_audience_sentence` prints them in `ch-design`, beside `ch-method`'s "applied".
 - Test: filters stated and applied are printed apart. A compiler bump.
 
 **CHN6. The audit names every artifact.**
-- The audit appendix lists the aggregate, specification, dataset and map (id + SHA-256), and the
+- `app-audit` lists the aggregate, specification, dataset and map (id + SHA-256), and the
   Sociomapping draft when the run made one. The coverage record names that draft as a separate
   document.
 - Test: the audit of a run with Sociomapping lists its artifact id.
@@ -186,8 +198,9 @@ G12-G17 are added by this plan.
 /pmstatus Q58: "The literature should be woven into the body of the report").
 - One document. When an Interpretation Research run is marked "Použít ve zprávě", the internal draft
   is composed with its sealed bundle: each accepted finding is placed in the body section its target
-  bears on (the research question, set, object or module the run was over: RESEARCH_QUESTIONS,
-  OBJECTS, a map chapter, IMPLICATIONS), beside the respondent findings, never merged into them.
+  bears on (the research question, set, object or module the run was over: `ch-2`, `ch-3`, a
+  `ch-native-map-<n>`, `ch-7`), beside the respondent findings, never merged into them. What fits no
+  body section stays in `literature`, the one section fed from Interpretation Research alone.
 - Every woven statement is labelled external context (the L class), cites its finding and source
   from the bundle, and is never respondent evidence: it carries no ledger ref, enters no admitted
   claim and no module's input (ADR 0021). Its section's manifest (CHN1) names the bundle by id and
@@ -199,7 +212,7 @@ G12-G17 are added by this plan.
   stored for a new report; a stored one still downloads by its artifact id; the census (CHN11a)
   refuses a number in a woven statement that is not the bundle's own quote.
 
-**CHN9. The methodology chapter from the run's pins.**
+**CHN9. The methodology chapter (`methodology`) from the run's pins.**
 - It prints the aggregation's `RoundingSpec` and methodology version, the support rule (Kish n
   floor), the pinned Sociomap methods with their register status, and the run's QC warnings
   (`evidence-integrity#3`). The fixed reading guidance stays, marked `fixed`.
@@ -265,14 +278,14 @@ G12-G17 are added by this plan.
 - It reads the stored document model (RD5a) and asserts:
   - every section is present with the source CHN1 names;
   - each hand-off chunk's output reaches the draft:
-    - CHN2: the brief's goal, decision_use and objectives in the introduction;
-    - CHN3: each research question's measures and table anchors in the research-questions chapter;
-    - CHN4: the accepted Design Research item, labelled external context, with its bundle seal;
-    - CHN5: the audience's stated description and filters beside those applied;
-    - CHN6: the aggregate, specification, dataset and map ids in the audit;
+    - CHN2: the brief's goal, decision_use and objectives in `intro`;
+    - CHN3: each research question's measures and table anchors in `ch-2`;
+    - CHN4: the accepted Design Research item in `ch-design`, labelled external context, with its bundle seal;
+    - CHN5: the audience's stated description and filters in `ch-design`, beside those applied in `ch-method`;
+    - CHN6: the aggregate, specification, dataset and map ids in `app-audit`;
     - CHN8: with an Interpretation Research run marked, its accepted findings in their body sections,
       labelled external (L), and no separate with-research document stored;
-    - CHN9: the run's pinned methods and support rule in the methodology chapter;
+    - CHN9: the run's pinned methods and support rule in `methodology`;
     - CHN10: the same walk with one module BLOCKED stores no draft, and the refusal carries the
       module's diagnostic;
     - RD5a: the stored document model renders to the downloaded DOCX's bytes;

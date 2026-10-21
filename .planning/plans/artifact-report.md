@@ -66,7 +66,9 @@ V2: `ReportArt` (`InterpretStages.tsx:103-162`).
   `show_variant(internal|client)` (display; which stored document is shown). Literature is woven
   into the internal draft (CQ4 = Q58, `artifact-chain-to-draft-report#CHN8`); a stored
   with-literature document stays downloadable.
-- **Pointing:** `report:section:<id>`, `report:para:<id>` (RD5a's stable ids), `report:figure:<id>` and
+- **Pointing:** `report:section:<id>`, `<id>` the composer's own section id (`intro`, `ch-design`,
+  `ch-1`..`ch-8`, `literature`, `methodology`, `ch-method`, `ch-questions`, `ch-native-map-<n>`,
+  `app-questionnaire`, `app-evidence`, `app-audit`; `artifact-chain-to-draft-report` §2), `report:para:<id>` (RD5a's stable ids), `report:figure:<id>` and
   `claim:<ref>`. `data-aia` is `report.<section>` (`InterpretStages.tsx:126`).
 - **Edit operations** (RD6, after its ADR; every number stays a ledger ref):
   - Text: a paragraph rewrite whose ref set is unchanged.

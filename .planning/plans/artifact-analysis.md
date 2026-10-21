@@ -81,8 +81,10 @@ V2: `AnalysisArt` (`InterpretStages.tsx:37-101`).
   of the frozen design, the run's metadata and, after `evidence-integrity#7`, the sealed bundle by
   reference.
 - **Hands on:** eight module artifacts (each an artifact id + SHA-256, with its `input_fingerprint`),
-  read by `compose_internal_report` (`application/report.py:129`) as the executive, RQ, audience,
-  objects, segments, hypotheses, implications and limitations chapters, and their claims as ledger
+  read by `compose_internal_report` (`application/report.py:129`) as `ch-1`..`ch-8` by module
+  ordinal (`domain/analysis/modules.py:56-122`, `report.py:407`: EXECUTIVE `ch-1`, RESEARCH_QUESTIONS
+  `ch-2`, OBJECTS `ch-3`, AUDIENCE `ch-4`, SEGMENTS `ch-5`, HYPOTHESES `ch-6`, IMPLICATIONS `ch-7`,
+  LIMITATIONS `ch-8`; AUDIENCE prints before OBJECTS), and their claims as ledger
   refs. All eight must be complete, or no draft is composed (`report.py:156-157`).
 
 ## 6. Input interactions

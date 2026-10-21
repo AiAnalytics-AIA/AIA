@@ -85,12 +85,13 @@ V2: `QuestionnaireArt` (`DesignStages.tsx:95-142`).
   - fieldwork (respondent items);
   - the aggregate;
   - the Sociomap (`rating_universe`);
-  - the report's design chapter and questionnaire appendix (`report_design.py:114`);
+  - the report's design chapter (`ch-design`) and questionnaire appendix (`app-questionnaire`)
+    (`report_design.py:114`);
   - per-question tables (`report_tables.py:130`).
 
   - Routing has no reader in fieldwork yet (RQC11); `evidence-integrity#10` is the filtered base.
   - In the draft, the chain plan's manifest (`artifact-chain-to-draft-report#CHN1`) names
-    `spec.questions` and `spec.batteries` as the sources of the design chapter, the appendix and the
+    `spec.questions` and `spec.batteries` as the sources of `ch-design`, `app-questionnaire` and the
     question tables.
 
 ## 6. Input interactions

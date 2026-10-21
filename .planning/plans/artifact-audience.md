@@ -77,7 +77,7 @@ V2: `AudienceArt` (`prototypes/research-lead-v2/src/artifacts/SampleStages.tsx:1
 - **Hands on:** `audience` (description, filters, source mode) as typed design fields.
   - The run's selection (`SpecSelection`, `selection_receipt`) receives the filters and fieldwork
     applies them (panel path).
-  - The report receives three flags only (A-8); its method chapter prints the filters applied as the
+  - The report receives three flags only (A-8); its method chapter (`ch-method`) prints the filters applied as the
     run recorded them (`report_method.py:398`).
   - Assumptions go to the report's assumptions chapter (`report-delivery#RD9`).
 

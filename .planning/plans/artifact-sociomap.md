@@ -84,7 +84,7 @@ V2: `SociomapArt` (`EvidenceStages.tsx`, the Sociomap section).
 - **Reads:** the run's Sociomap artifact (id + SHA-256, verified against the dataset and the
   specification, `report_chapters.py:70-107`); the register; the pinned methods.
 - **Hands on:**
-  - the verified map body, to the report's map chapters (`report_maps.py:125`) and to their figures
+  - the verified map body, to the report's map chapters (`ch-native-map-<n>`, `report_maps.py:125`) and to their figures
     (`object_map_snapshots`);
   - the map's id and SHA, to the report's audit (`map_sha256`).
   - The experimental Sociomapping DOCX is its own document and reaches no internal report section

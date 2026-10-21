@@ -73,7 +73,7 @@ V2: `DimensionsArt` (`SampleStages.tsx:206-230`).
   - `n`, to the sampler and the cost ceiling;
   - a materialized child, by `population_version_id`, pinned on the run.
 
-  The report's method chapter prints each dimension applied or not (`report_method.py:398`); the
+  The report's method chapter (`ch-method`) prints each dimension applied or not (`report_method.py:398`); the
   chain plan's manifest names it as that chapter's source (`artifact-chain-to-draft-report#CHN1`).
 
 ## 6. Input interactions

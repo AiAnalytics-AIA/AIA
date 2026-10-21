@@ -91,8 +91,8 @@ když are not built. What stays is code-derived: measures, items, comparison, an
   (`research_questions` on questions and sets), plus the newest finished Design Research run.
 - **Hands on:**
   - `plan.research_questions`, a typed list by text, read by `research_questions_of`
-    (`domain/analysis/native.py:141`), by every analysis module and by the report's introduction and
-    design chapter;
+    (`domain/analysis/native.py:141`), by every analysis module and by the report's `intro` and
+    `ch-design`;
   - `plan.hypotheses`, which the analysis does not receive today (AOC3, a Q12 gap);
   - `research_question_comparisons`, read by readiness;
   - sets, compiled into `spec.batteries`;
@@ -127,7 +127,8 @@ když are not built. What stays is code-derived: measures, items, comparison, an
 - Depends on `input-interactions#4` and `working-copy-edit-ops#WCE3a`.
 
 **DSN4. Ve zprávě.**
-- From the newest completed run's stored report model: the chapter id and title answering each RQ.
+- From the newest completed run's stored report model: the section id (`ch-2`, and any
+  `ch-questions` table holding its measures) and title answering each RQ.
 - Test: an RQ the report marks "bez doložené odpovědi" shows it.
 - Depends on `report-delivery#RD5a` and `artifact-chain-to-draft-report#CHN3`.
 
