@@ -102,7 +102,7 @@ class RequestApproval(BaseModel):
     ceiling they confirm when the study's spend limit asks."""
 
     model_config = ConfigDict(extra="forbid")
-    confirm_cost_usd: float | None = Field(default=None, ge=0)
+    confirm_cost_usd: float | None = Field(default=None, ge=0, le=1_000_000, allow_inf_nan=False)
 
 
 class EditStatus(BaseModel):

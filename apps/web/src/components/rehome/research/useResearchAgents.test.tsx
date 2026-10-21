@@ -119,7 +119,7 @@ it("a no to the threshold starts nothing and says why", async () => {
   await act(async () => { await running; });
   expect(asked).toHaveLength(1);
   expect(researchAgents.start).toHaveBeenCalledOnce(); expect(researchAgents.job).not.toHaveBeenCalled();
-  expect(screen.getByText("confirm")).toBeTruthy();
+  expect(screen.getByText(/AI krok se nespustil/)).toBeTruthy();
 });
 
 it("freezes a Study revision naming its working revision, follows the job, and writes nothing until review", async () => {

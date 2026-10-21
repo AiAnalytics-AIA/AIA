@@ -748,7 +748,9 @@ class ResearchLead:
             agent_run_id=started.run_id,
             design_revision_id=revision.revision_id,
             action=request.action.value,
-            spend=spend,
+            # A job that already existed was confirmed (or not) when it was created; this
+            # approval confirmed no new spend, so its row records none.
+            spend=spend if started.created else None,
         )
         return {
             "run_id": started.run_id,

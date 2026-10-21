@@ -65,3 +65,20 @@ def test_a_target_in_a_non_eu_region_is_refused_even_where_the_region_matches() 
 def test_a_target_needs_its_identity() -> None:
     with pytest.raises(InvocationTargetRefused, match="model identity"):
         invocation_target("  ", PROFILE, region="eu-central-1")
+
+
+@pytest.mark.parametrize(
+    "target",
+    [
+        PROFILE.replace("eu-central-1", "us-east-1"),
+        PROFILE.replace("application-inference-profile", "inference-profile"),
+        PROFILE + "/extra",
+    ],
+)
+def test_a_refusal_never_prints_the_account_id(target: str) -> None:
+    """A start-up refusal names the rule broken; the account id in the ARN is masked."""
+    with pytest.raises(InvocationTargetRefused) as refused:
+        invocation_target(MODEL, target, region="eu-central-1")
+    assert "123456789012" not in str(refused.value)
+    assert "************" in str(refused.value)
+    assert MODEL not in str(refused.value)

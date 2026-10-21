@@ -90,6 +90,40 @@ def test_each_design_worker_s_row_is_what_its_job_runs(action: ResearchAction) -
     )
 
 
+def test_the_request_s_class_comes_from_exactly_the_row_s_rules() -> None:
+    """The row's ``material_rules`` and the rules ``agent_request`` classes its material by
+    cannot drift: the rules the request code names are the row's, and the request's class with
+    every part present is the row's derived class."""
+    import inspect
+
+    from aia_core.domain import research_agents
+    from aia_core.domain.knowledge import KnowledgeItem, KnowledgeKind
+    from aia_core.domain.material_rules import MaterialRule
+
+    source = "".join(
+        inspect.getsource(f)
+        for f in (
+            research_agents.agent_request,
+            research_agents.design_classification,
+            research_agents.instruction_classification,
+        )
+    )
+    named = {r for r in MaterialRule if f"MaterialRule.{r.name}" in source}
+    item = KnowledgeItem(
+        item_id="K1", client_id="C1", kind=KnowledgeKind.FINDING, title="t", summary="s", revision=1
+    )
+    for row in WORKERS.values():
+        assert named == set(row.material_rules), row.worker_id
+        request = agent_request(
+            ResearchAction(row.task),
+            context_snapshot({"title": "Fictional"}, [item]),
+            instruction="Zkrať to.",
+            policy_version="test",
+            max_output_tokens=4096,
+        )
+        assert request.data_classification is row.data_class
+
+
 def test_the_worker_reads_the_switch_and_reservation_its_rows_name() -> None:
     source = (REPO / "apps/executors/src/aia_executors/ai_runtime.py").read_text(encoding="utf-8")
     for row in WORKERS.values():

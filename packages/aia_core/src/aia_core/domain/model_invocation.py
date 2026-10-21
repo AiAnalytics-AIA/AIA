@@ -37,6 +37,7 @@ __all__ = [
     "InvocationTargetRefused",
     "ModelInvocation",
     "invocation_target",
+    "masked",
 ]
 
 #: An application inference profile's ARN, as Bedrock issues it: its region, the account, the id.
@@ -48,6 +49,17 @@ APPLICATION_PROFILE_ARN: Final = re.compile(
 
 class InvocationTargetRefused(ValueError):
     """A configured invocation target is not one AIA sends a model's calls through."""
+
+
+_DIGITS: Final = re.compile(r"\d{6,}")
+
+
+def masked(raw: str) -> str:
+    """A configured value as a refusal may print it: every run of six or more digits (an AWS
+    account id) masked, the rest cut at 96 characters. A start-up log is read by more people
+    than the parameter store is."""
+    shown = _DIGITS.sub(lambda m: "*" * len(m.group()), raw)
+    return shown if len(shown) <= 96 else shown[:95] + "…"
 
 
 @dataclass(frozen=True, slots=True)
@@ -79,13 +91,13 @@ def invocation_target(identity: str, target: str | None, *, region: str) -> Mode
     found = APPLICATION_PROFILE_ARN.match(raw)
     if found is None:
         raise InvocationTargetRefused(
-            f"{raw!r} is not an application inference profile ARN "
+            f"{masked(raw)!r} is not an application inference profile ARN "
             "(arn:aws:bedrock:<region>:<account>:application-inference-profile/<id>); the model "
-            f"identity {identity!r} is set on its own key and is never replaced by an ARN"
+            "identity is set on its own key and is never replaced by an ARN"
         )
     if found["region"] != region.strip() or not region.strip().startswith("eu-"):
         raise InvocationTargetRefused(
-            f"the application inference profile {raw!r} is in {found['region']}, not the "
-            f"route's EU region {region!r} (ADR 0010)"
+            f"the application inference profile {masked(raw)!r} is in {found['region']}, not "
+            f"the route's EU region {region!r} (ADR 0010)"
         )
     return ModelInvocation(identity=identity, target=raw)

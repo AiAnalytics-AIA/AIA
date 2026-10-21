@@ -138,3 +138,10 @@ def test_the_request_cannot_name_the_ceiling(researcher: TestClient, world: Any)
             _jobs(world), json={"design_revision_id": rid, "action": "analyze_brief", **extra}
         )
         assert r.status_code == 422, extra
+    # Not finite: Infinity would cover any ceiling. Sent raw, as JSON's extension spells it.
+    for bad in ("Infinity", "NaN", "1000001"):
+        raw = f'{{"design_revision_id": "{rid}", "action": "analyze_brief", ' + (
+            f'"confirm_cost_usd": {bad}}}'
+        )
+        r = researcher.post(_jobs(world), content=raw, headers={"content-type": "application/json"})
+        assert r.status_code == 422, bad

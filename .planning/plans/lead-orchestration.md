@@ -431,3 +431,20 @@ registry) and Settings' `ai_runtime` document read it in E26; nothing here chang
   (LO9a): `LeadWorkerSpec`, one row per worker the Lead may call, every field required and checked
   at registration (`WorkerRegistry`); the eight design workers are `research_agents.WORKERS`, held to
   `tests/fixtures/lead_workers/workers.json`".
+
+### Review of #541 (2026-10-21), applied
+
+The prompt-test panel's start asks at the threshold too (`SystemPromptsPanel` TestRun, through
+`withJobCostConfirmation`); a "no" is `JobCostDeclined`, in Czech; a sub-cent ceiling prints its
+digits, never "0 USD" (`jobCostUsd`); an approval whose job already existed records `spend: null` on
+its `lead_job_request` row; `RequestApproval.confirm_cost_usd` takes the run's bound (0 to
+1,000,000) and no non-finite number; `test_the_request_s_class_comes_from_exactly_the_row_s_rules`
+holds `agent_request`'s rules to the worker row; an invocation-target refusal masks the account id.
+
+**Finding F-E03-1.** A non-finite number in any request body (`Infinity`, `NaN`, which Python's JSON
+parser accepts) was refused by validation, and then the 422 itself failed to serialise its echo of
+the input: a 500. Anchor: `apps/api/src/aia_api/observability.py:206-213 @ 8e3f55dd`. Reproduction:
+`test_a_confirmation_outside_its_bound_or_not_finite_is_refused[Infinity]` against that line.
+Consequence: a malformed client got a 500 and an error report instead of a 422. Fix (here): the echo
+keeps non-finite constants as text (`parse_constant=str`). Doc follow-up: number it in
+`open-items.md`, closed by #541.

@@ -593,6 +593,26 @@ def test_a_prepared_job_is_approved_under_the_spend_limit_once(
     assert lead["request_decision"] == {"status": "approved", "run_id": body["run_id"]}
 
 
+@pytest.mark.parametrize("bad", [-1.0, 1_000_001.0, "Infinity", "NaN", "-Infinity"])
+def test_a_confirmation_outside_its_bound_or_not_finite_is_refused(
+    researcher: TestClient, world: Any, app: FastAPI, bad: Any
+) -> None:
+    """The same bound the run and job confirmations take (0 to 1,000,000 USD), and no
+    non-finite number: ``Infinity`` would otherwise cover any ceiling."""
+    job = {
+        "reply": "Připraveno.",
+        "request": {"kind": "agent_job", "action": "analyze_brief", "why": WHY},
+    }
+    turn_id = _turn(researcher, world, app, job)
+    raw = f'{{"confirm_cost_usd": {bad}}}'
+    refused = researcher.post(
+        f"{lead_url(world)}/turns/{turn_id}/request",
+        content=raw,
+        headers={"content-type": "application/json"},
+    )
+    assert refused.status_code == 422, refused.text
+
+
 def test_a_request_that_only_opens_a_stage_is_not_a_paid_request(
     researcher: TestClient, world: Any, app: FastAPI
 ) -> None:

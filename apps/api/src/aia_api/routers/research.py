@@ -2633,7 +2633,7 @@ class AgentJobStart(BaseModel):
     #: The ceiling a person confirmed when the study's confirmation threshold asked (409
     #: ``cost_confirmation_required``, lead-orchestration LO15). Never the ceiling itself: the
     #: server works that out from the design job's reservation.
-    confirm_cost_usd: float | None = Field(default=None, ge=0, le=1_000_000)
+    confirm_cost_usd: float | None = Field(default=None, ge=0, le=1_000_000, allow_inf_nan=False)
 
 
 class AgentProposalAccept(BaseModel):
@@ -2687,7 +2687,7 @@ class AgentProposalRebuild(BaseModel):
     model_config = ConfigDict(extra="forbid")
     design_revision_id: str = Field(max_length=64, pattern=r"^REV-[0-9a-f]{1,32}$")
     #: As a start's: the new job is paid work and meets the threshold (LO15).
-    confirm_cost_usd: float | None = Field(default=None, ge=0, le=1_000_000)
+    confirm_cost_usd: float | None = Field(default=None, ge=0, le=1_000_000, allow_inf_nan=False)
 
 
 def _agent_response(

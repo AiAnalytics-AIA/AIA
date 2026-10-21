@@ -52,22 +52,40 @@ export function jobCostAsked(e: unknown): { ceiling: number; limit: number } | n
     ? { ceiling: ceiling_usd, limit: limit_usd } : null;
 }
 
-const usd = (n: number) => n.toLocaleString("cs-CZ", { maximumFractionDigits: 2 });
+/**
+ * An amount in USD as a person reads it: two decimals, and below a cent its real digits
+ * (0,0042), never rounded to a "0" that would read as free.
+ */
+export const jobCostUsd = (n: number) =>
+  n > 0 && n < 0.01
+    ? n.toLocaleString("cs-CZ", { maximumSignificantDigits: 2 })
+    : n.toLocaleString("cs-CZ", { maximumFractionDigits: 2 });
 /** The question a person answers before a job that reaches the threshold starts. */
 export const jobCostQuestion = (asked: { ceiling: number; limit: number }) =>
-  `AI krok může stát až ${usd(asked.ceiling)} USD, což dosahuje hodnoty „${money.confirmThreshold}“ studie (${usd(asked.limit)} USD). Spustit?`;
+  `AI krok může stát až ${jobCostUsd(asked.ceiling)} USD, což dosahuje hodnoty „${money.confirmThreshold}“ studie (${jobCostUsd(asked.limit)} USD). Spustit?`;
+
+/** The person answered no to the threshold's question: nothing was started, said in Czech. */
+export class JobCostDeclined extends Error {
+  readonly code = "cost_confirmation_declined";
+  constructor(readonly ceiling: number, readonly limit: number) {
+    super(`AI krok se nespustil: může stát až ${jobCostUsd(ceiling)} USD, což dosahuje hodnoty „${money.confirmThreshold}“ studie (${jobCostUsd(limit)} USD), a spuštění jste nepotvrdili.`);
+    this.name = "JobCostDeclined";
+  }
+}
 
 /**
  * Create a job, asking the person once when the server's threshold asks: `create(undefined)` first,
- * then, on a yes, `create(ceiling)` with exactly the ceiling the server named. A no, or a second
- * refusal, is thrown as it came; nothing is started without the server's own figure confirmed.
+ * then, on a yes, `create(ceiling)` with exactly the ceiling the server named. A no is
+ * {@link JobCostDeclined}, in Czech; any other refusal, or a second one, is thrown as it came.
+ * Nothing is started without the server's own figure confirmed.
  */
 export async function withJobCostConfirmation<T>(create: (confirmCostUsd?: number) => Promise<T>, confirm: (message: string) => Promise<boolean>): Promise<T> {
   try {
     return await create(undefined);
   } catch (e) {
     const asked = jobCostAsked(e);
-    if (!asked || !(await confirm(jobCostQuestion(asked)))) throw e;
+    if (!asked) throw e;
+    if (!(await confirm(jobCostQuestion(asked)))) throw new JobCostDeclined(asked.ceiling, asked.limit);
     return create(asked.ceiling);
   }
 }
