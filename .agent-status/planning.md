@@ -25,7 +25,8 @@ It does not:
 ## PRs (2026-10-21)
 
 - #548, #549 MERGED 13:38.
-- **#558** chore/docs-followups-2026-10-21b @ 9c2463f (worktree /home/user/AIA-docs): the running Sprint 5
+- #558 MERGED a3e1b6e (15:43), #588 MERGED c98836c (20:21), both on Nigel's word. No open PR.
+- (old) #558 chore/docs-followups-2026-10-21b @ 9c2463f (worktree /home/user/AIA-docs): the running Sprint 5
   docs PR. Follow-ups of #510, #532-#547, #551-#553; OI-154..181; runbook switch entries. Ready; full
   suites run (touches docs/architecture and deploy/).
 - **#558 merge:** Nigel told me to merge it (14:41); waiting on Backend CI @ b92c639, then merge commit
