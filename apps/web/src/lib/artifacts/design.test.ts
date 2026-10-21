@@ -2,7 +2,7 @@
 import { describe, expect, it } from "vitest";
 
 import { ARTIFACTS, parseAiaId } from "@/lib/workbench-artifacts";
-import { DESIGN_LABELS, PLAN_PARTS, type DesignKind, type PlanPart, designAllows, designLabel, designTarget, planTarget, sectionElement, sectionTargetOf } from "./design";
+import { DESIGN_LABELS, PLAN_PARTS, type DesignKind, type PlanPart, designAllows, designLabel, designTarget, objectiveTarget, planTarget, sectionElement, sectionTargetOf } from "./design";
 
 const KINDS = Object.keys(DESIGN_LABELS) as DesignKind[];
 
@@ -17,6 +17,11 @@ describe("Návrh's targets", () => {
       expect(id).toBe(`${kind}:abc-1`);
       expect(parseAiaId(id)).toEqual({ kind, id: "abc-1", stage: "design" });
     }
+  });
+
+  it("names an objective by the Brief's own target, one id on both screens", () => {
+    expect(objectiveTarget("obj_a1")).toBe("objective:obj_a1");
+    expect(parseAiaId(objectiveTarget("obj_a1"))).toEqual({ kind: "objective", id: "obj_a1", stage: "brief" });
   });
 
   it("refuses a kind the row does not list, a section Návrh does not draw and an id outside the grammar", () => {

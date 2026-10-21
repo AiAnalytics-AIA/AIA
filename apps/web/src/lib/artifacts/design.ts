@@ -33,6 +33,12 @@ export function designTarget(kind: DesignKind, id: string): string {
   return aiaId(kind, id);
 }
 
+/**
+ * An objective shown on Návrh: the Brief's `objective:<id>` (the brief row owns the kind), so the
+ * Lead names one objective by one target on both screens. `id` is the objective's stable item id.
+ */
+export const objectiveTarget = (id: string): string => aiaId("objective", id);
+
 /** A section anchor's `data-aia` id. */
 export const planTarget = (part: PlanPart): string => designTarget("plan", part);
 
