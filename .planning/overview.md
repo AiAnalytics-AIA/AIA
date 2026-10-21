@@ -672,7 +672,7 @@ left out (plan [`lead-client-knowledge.md`](plans/lead-client-knowledge.md), #56
 knowledge of unknown lineage licensed for `bedrock-eu-primary` only (Q60); no folder or label name
 reaches a model (Q61); a dataset read as its preview only (Q62); #574's nine typed commands (Q63);
 Claude reviews in for Codex until its credits reset (Q64); brief attachments Class B with no
-classification gate stopping work (Q65; its reach, Q66, open)
+classification gate stopping work (Q65); on develop only, classes shown and recorded but never blocking, EU residency and licences kept, and Brave open to search queries of any class (Q66, `feature/develop-class-advisory`); Q67, who pays after a budget lift, open
 ([`mvp-owner-decisions.md`](mvp-owner-decisions.md)).
 
 **Working model (owner, 2026-10-19).** This section is the roadmap. Each track has one owner,

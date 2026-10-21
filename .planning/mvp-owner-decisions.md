@@ -294,10 +294,15 @@ the Lead opens is read as its preview only, personal columns masked, never its r
 15:15: the nine typed start commands in #574 stay as proposed. Q64 (a), 15:17: Claude reviews stand
 in for Codex until its credits reset (17:42 Prague time). Q65 (a), 15:18: brief attachments stay
 Class B, shown for awareness; "i dont want any gates stopping based on the classification, we are
-going for full functionality right now." Q66 is open: whether Q65 holds on develop only,
-everywhere, or for the brief file only. The read round inside a Lead turn (ADR 0042, Proposed) is
+going for full functionality right now." Q66 (a), 15:20 UTC: **on develop only**, data classes are
+shown and recorded but never block; EU residency and the licence determinations still hold. The
+owner's note, "dont limit the brave search capabilities either": on develop, Brave may receive search
+queries of any class, the one stated exception to EU residency, and for search queries only. In the
+coordinator's session at about 15:22 UTC he said "build the develop-only class-advisory switch,
+including Brave for any class"; the PR is `feature/develop-class-advisory`. Production keeps the
+class rules (ADR 0008, ADR 0032 §4). Q67, who pays after a budget lift, is open. The read round inside a Lead turn (ADR 0042, Proposed) is
 the coordinator's decision within Q59; the experimental Sociomapping draft is named only in CHN1's
-section manifest (the coordinator, #579). Q51, Q53 and Q55 are open.
+section manifest (the coordinator, #579). Q51, Q53, Q55 and Q67 are open.
 
 ## MVPQ-12 — Canonical Sociomap questions still requiring sign-off
 
