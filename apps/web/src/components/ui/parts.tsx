@@ -9,8 +9,12 @@ import { type RefObject, useEffect } from "react";
 import { t } from "@/i18n/t";
 import type { SaveState } from "@/lib/inline-edit";
 
-/** A popover on z-overlay (a menu, the swatches), anchored under its trigger. */
-export const POPOVER = "absolute left-0 top-full z-[var(--z-overlay)] mt-1 rounded-md border border-border bg-surface-overlay p-1 shadow-[var(--shadow-overlay)]";
+/** A popover on z-overlay (a menu, the swatches), anchored under its trigger: no side yet. */
+const POPOVER_AT = "absolute top-full z-[var(--z-overlay)] mt-1 rounded-md border border-border bg-surface-overlay p-1 shadow-[var(--shadow-overlay)]";
+/** A popover under its trigger, opening rightwards from its left edge. */
+export const POPOVER = `${POPOVER_AT} left-0`;
+/** A popover under its trigger, opening leftwards from its right edge (a trigger at a row's end). */
+export const POPOVER_END = `${POPOVER_AT} right-0`;
 
 /**
  * Closes an open popover on a press outside `box` or on Esc, and gives focus back to its trigger

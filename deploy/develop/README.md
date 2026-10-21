@@ -483,6 +483,31 @@ reads it: after creating or changing the parameter, run `bin/write-env.sh` and
 prints `true`. Requests made before the restart are not in the feed. On develop since
 2026-10-13.
 
+### Switches that stay off on develop (2026-10-21)
+
+Each is off when unset and absent from the develop Compose file; turning one on is a parameter, then
+`bin/write-env.sh` and a restart of the service that reads it.
+
+- **`AIA_AI_SCALE_LABELS_IN_PROMPT`** (worker): AI respondents are told a scale question's labels
+  (both ends, or one per point) as its design states them, not only the numbers (input-interactions
+  3b1, #538). Turning it on changes what respondents read, so the respondent-system fingerprint moves
+  and a run started afterwards is not comparable with one before; a run keeps what it started with.
+  **Who:** the operator, only after the methodology owner (A. Bahbouh) has approved the wording rule,
+  as `input-interactions#3b3`, with a develop run whose respondents read the labels as evidence.
+- **`AIA_BEDROCK_INVOCATION_TARGET`** and **`AIA_AI_RESEARCH_LEAD_INVOCATION_TARGET`** (worker): the
+  application inference profile ARN a model's calls are sent through, for the route's model and the
+  Lead's own model respectively (`domain/model_invocation.py`, develop-spend-attribution 5a, #541).
+  The model identity, its prices and its route do not change; only the request's `modelId` does, so
+  the cost carries the profile's `Environment=develop` tag. A target in any other shape (not an
+  application inference profile ARN in the route's own EU region) stops the worker at start, by name.
+  **Who:** the operator who created the profile (develop-spend-attribution 1), after checking with
+  `aws bedrock get-inference-profile` that it copies the identity's system profile.
+- **`AIA_STUDY_WALLET_ENABLED`** (API): the study wallet, Peněženka (`application/wallet.py`, ADR 0028
+  decision 2, `lead-orchestration#LO1`, #544). Off, nothing reads or writes a wallet row and
+  `/studies/{id}/wallet` answers 409 `wallet_disabled`; a person's start on the Run stage never
+  consults the wallet either way. **Who:** the owner's call, when the Lead's typed starts (LO5) and
+  plan steps (LO3/LO4) that charge it are on develop.
+
 ### The Research Lead's own model
 
 The study's Research Lead (ADR 0026) can run on a model of its own while every other

@@ -163,10 +163,35 @@ describe("Dotazník", () => {
     fireEvent.change(within(options).getByLabelText("Možnost 3"), { target: { value: "Nikdy " } });
     fireEvent.blur(within(options).getByLabelText("Možnost 3"), { relatedTarget: null });
     fireEvent.click(within(within(card).getByRole("radiogroup", { name: "Typ" })).getByRole("radio", { name: "Škála" }));
-    expect(await within(card).findByLabelText("Minimum")).toBeTruthy();
+    expect(await within(card).findByRole("radiogroup", { name: "Rozsah škály Q1" })).toBeTruthy();
     await saved();
     const q1 = lastSave().content.sections[0].questions![0];
     expect(q1).toMatchObject({ typ: "skala", kategorie: ["Denně", "Týdně", "Nikdy"] });
+  });
+
+  it("saves a scale's preset and a label on every point through the working copy (input-interactions 3b2)", async () => {
+    unitStub({ ...BRIEF, sections: SECTIONS, ui_state: { questionnaire_path: "manual" } });
+    render(<ResearchScreen step="questionnaire" frame={TEST_FRAME} />);
+    await screen.findByRole("heading", { name: "2 otázek · 1 sledovaných sad" });
+    const card = document.getElementById("qedit_Q2") as HTMLElement;
+    fireEvent.click(within(within(card).getByRole("radiogroup", { name: "Rozsah škály Q2" })).getByRole("radio", { name: "1–5" }));
+    fireEvent.click(within(within(card).getByRole("radiogroup", { name: "Popisky škály Q2" })).getByRole("radio", { name: "Každý bod" }));
+    for (const [n, label] of [[2, "spíše ne"], [3, "nevím"], [4, "spíše ano"]] as const) {
+      fireEvent.click(within(card).getByRole("button", { name: new RegExp(`^Upravit: Popisek bodu ${n}`) }));
+      const field = within(card).getByRole("textbox", { name: `Popisek bodu ${n}` });
+      fireEvent.change(field, { target: { value: label } });
+      fireEvent.keyDown(field, { key: "Enter" });
+    }
+    await saved();
+    await waitFor(() => {
+      const q2 = (lastSave().content.sections[0].questions as unknown as { skala: number[]; popisky_skaly: string[] }[])[1];
+      expect(q2.skala).toEqual([1, 5]);
+      expect(q2.popisky_skaly).toEqual(["vůbec", "spíše ne", "nevím", "spíše ano", "zcela"]);
+    }, { timeout: 10_000 });
+    // A set's scale shows its range and offers its two ends only.
+    const set = document.getElementById("qset_sec_b") as HTMLElement;
+    expect(within(set).getByText("Škála 1–10")).toBeTruthy();
+    expect(within(set).queryByRole("radiogroup", { name: "Popisky škály sada 1" })).toBeNull();
   });
 
   it("says which research question a question and a set measure, and drops a link the plan no longer states", async () => {

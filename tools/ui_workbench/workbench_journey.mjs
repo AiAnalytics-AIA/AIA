@@ -6,7 +6,8 @@
  *   node tools/ui_workbench/workbench_journey.mjs [--facade http://127.0.0.1:8780] [--out DIR]
  * Local fictional identity only. It checks the workbench at 1440, 1280 and 1100 px wide and the
  * classic layout at 1024: no page overflow, the eleven stages in six phases, the separator by
- * keyboard, the focus modes, the stage navigation (Výsledky's views by hash), and that nothing
+ * keyboard, the focus modes, the stage navigation (Výsledky's views by hash), Návrh's research
+ * questions with their coverage at 1440, 1100, 768 and 390 px, and that nothing
  * paid starts: no research run, agent job, Deep Research run or Lead request approval.
  */
 import assert from "node:assert/strict";
@@ -165,6 +166,19 @@ try {
   await noOverflow("questionnaire @1024");
   await shot("1024-classic");
   check("1280 and 1100 workbench, 1024 classic, no overflow");
+
+  // Návrh: each research question with its coverage (artifact-design DSN2), at every width; the
+  // workbench at 1440 and 1100, the classic layout below. Reading it is a GET.
+  for (const width of [1440, 1100, 768, 390]) {
+    await page.setViewportSize({ width, height: 900 });
+    await page.goto(base + stagePath("plan"));
+    const coverage = page.getByRole("region", { name: "Výzkumné otázky a jejich pokrytí" });
+    await coverage.waitFor({ timeout: 30000 });
+    await coverage.getByText(/Podle revize návrhu|Návrh zatím nemá revizi|nedá sestavit/).first().waitFor({ timeout: 30000 });
+    await noOverflow(`plan @${width}`);
+    await coverage.screenshot({ path: join(out, `${width}-plan-coverage.png`) });
+  }
+  check("Návrh shows its research questions' coverage at 1440, 1100, 768 and 390, no overflow");
 
   const paid = writes.filter((w) => /\/research\/runs$|\/agent-jobs$|\/deep-research\/runs|\/lead\/turns\/[^/]+\/request$/.test(w.path));
   assert.deepEqual(paid, [], "nothing paid started");

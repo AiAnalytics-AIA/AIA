@@ -781,6 +781,8 @@ export type AudiencePreview = {
   selected_rows: number | null;
   selected_donors: number | null;
   filters_applied: Record<string, unknown> | null;
+  /** Each applied filter alone over the same population: the rows it selects (AUD3). */
+  per_filter: Record<string, number> | null;
   audience: AudiencePreviewVerdict;
   n: number | null;
   sample: AudiencePreviewVerdict | null;
@@ -1374,6 +1376,9 @@ export type DesignFinding = { evidence_id: string; claim: string; quote: string;
 /** A Design Research run's proposal: per subject its findings (EVIDENCE) or none (GAP). */
 export type DesignProposal = {
   run_id: string;
+  /** The Design Revision the run was frozen on: the only baseline an accept may land on. */
+  design_revision_id: string;
+  design_revision: number;
   admissible: boolean;
   refusal: string | null;
   items: { item_id: string; kind: "EVIDENCE" | "GAP"; subject_key: string; subject_kind: string; subject_text: string; subject_origin: string; findings: DesignFinding[] }[];
@@ -1413,6 +1418,13 @@ export const deepResearch = {
   bundle: (studyId: string, runId: string) => request<DeepResearchBundle>("GET", `${deepPath(studyId)}/${enc(runId)}/bundle`),
   coverage: (studyId: string, runId: string) => request<DeepResearchCoverage>("GET", `${deepPath(studyId)}/${enc(runId)}/coverage`),
   designProposal: (studyId: string, runId: string) => request<DesignProposal>("GET", `${deepPath(studyId)}/${enc(runId)}/design-proposal`),
+  /** A person takes the ticked items into a new Design Revision and the working copy, in one transaction
+   *  (ADR 0021 checkpoint 1, ADR 0019 gate 1): on the revision the run researched and the working revision
+   *  the person has. 409 stale_proposal names why (research/proposal-items.ts). */
+  acceptDesignProposal: (studyId: string, runId: string, itemIds: string[], expectedRevisionId: string, expectedWorkspaceRevision: number) =>
+    request<DesignRevision>("POST", `${deepPath(studyId)}/${enc(runId)}/design-proposal/accept`, {
+      item_ids: itemIds, expected_revision_id: expectedRevisionId, expected_workspace_revision: expectedWorkspaceRevision,
+    }),
   /** "Ověřeno, přidat zdroj": the person checked a captured source; the server writes it to the client's
    *  knowledge from the run's sealed bundle (the URL, title and quote are the bundle's), once per URL. */
   addSourceToKnowledge: (studyId: string, runId: string, snapshotId: string, evidenceId: string) =>

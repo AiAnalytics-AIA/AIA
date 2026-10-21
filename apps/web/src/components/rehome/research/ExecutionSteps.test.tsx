@@ -1117,6 +1117,33 @@ describe("Progress", () => {
     expect(within(card).getByText(t(`${R}.unrecorded`))).toBeTruthy();
   });
 
+  it("tags each step AI or deterministic and makes it pointable by the Lead (artifact-fieldwork FLD2)", async () => {
+    api(listed(PARKED));
+    render(<ResearchScreen step="progress" frame={TEST_FRAME} />);
+    const list = await screen.findByRole("list", { name: t("aia.stages.progress") });
+    const work = (key: string) => list.querySelector(`[data-aia="step:${key}"] [data-step-work]`)?.textContent;
+    // AI respondents answer this run's fieldwork: a model step.
+    expect(work("run")).toBe(t("research.exec.stepWork.ai"));
+    expect(work("compile")).toBe(t("research.exec.stepWork.running"));
+    expect(work("aggregate")).toBe(t("research.exec.stepWork.running"));
+  });
+
+  it("tags fictional fixture fieldwork as code, never as AI", async () => {
+    api(listed(COMPLETED));
+    render(<ResearchScreen step="progress" frame={TEST_FRAME} />);
+    const list = await screen.findByRole("list", { name: t("aia.stages.progress") });
+    expect(list.querySelector('[data-aia="step:run"] [data-step-work]')?.textContent).toBe(t("research.exec.stepWork.running"));
+  });
+
+  it("tags no fieldwork step when the run recorded no source: unknown is never stamped as code", async () => {
+    api(listed(run({ ...COMPLETED, fieldwork_source: "" })));
+    render(<ResearchScreen step="progress" frame={TEST_FRAME} />);
+    const list = await screen.findByRole("list", { name: t("aia.stages.progress") });
+    expect(list.querySelector('[data-aia="step:run"]')).toBeTruthy();
+    expect(list.querySelector('[data-aia="step:run"] [data-step-work]')).toBeNull();
+    expect(list.querySelector('[data-aia="step:aggregate"] [data-step-work]')?.textContent).toBe(t("research.exec.stepWork.running"));
+  });
+
   it("explains a run waiting for the AI runtime, step by step, without offering a retry", async () => {
     api(listed(PARKED));
     render(<ResearchScreen step="progress" frame={TEST_FRAME} />);
@@ -1618,6 +1645,58 @@ describe("Results", () => {
     expect(document.querySelectorAll("[data-answer-gap]")).toHaveLength(1);
   });
 
+  it("covers every research question of the frozen design: its answer, the findings on the same measures, what is missing (ANL2)", async () => {
+    const analysed = run({ ...COMPLETED, steps: [...COMPLETED.steps,
+      step("analysis_research_questions", "SUCCEEDED", { kind: "research_analysis", artifact_id: "ART-7", analysis_outcome: "COMPLETED" }),
+    ], answerability: { ready: true, gaps: [{ kind: "not_answerable", research_question: "Proč  měníte banku?", verdict: "UNANSWERABLE", reasons: [], measures: [] }] } as unknown as ResearchRun["answerability"] });
+    api({ ...listed(analysed),
+      "GET /api/v1/studies/STU-1/research/runs/RUN-1/artifacts/ART-4": () => AGGREGATE,
+      "GET /api/v1/studies/STU-1/design/revisions/REV-a1": () => ({ revision_id: "REV-a1", content: { research_plan: { research_questions: ["Co lidé pijí?", "Proč měníte banku?", "Kdo pije čaj?"] } } }),
+      "GET /api/v1/studies/STU-1/research/runs/RUN-1/analysis": () => ({ complete: false, synthetic: true, pending: {}, modules: {
+        research_questions: { outcome: "COMPLETED", summary: null, violations: [],
+          research_question_answers: [{ question: "Co lidé pijí?", answer: "Čaj.", claim_ids: ["C1"] }, { question: "Proč měníte banku?", answer: "Nevíme.", claim_ids: [] }, { question: "Kdo pije čaj?", answer: "Mnozí.", claim_ids: [] }],
+          key_findings: [{ text: "Čaj vede.", claim_ids: ["C1"] }],
+          claims: [{ claim_id: "C1", evidence_ref: "q2.pct.2", value: 38.4, indicative: false, data_origin: null }] },
+      } }),
+    });
+    render(<ResearchScreen step="results" frame={TEST_FRAME} />);
+    fireEvent.click(await screen.findByRole("tab", { name: "AI analýza" }));
+    const table = await screen.findByRole("region", { name: "Pokrytí výzkumných otázek" });
+    await waitFor(() => expect(table.querySelectorAll("tr[data-rq]")).toHaveLength(3));
+    const rows = [...table.querySelectorAll("tr[data-rq]")];
+    expect(rows.map((r) => [r.getAttribute("data-rq"), r.getAttribute("data-state")])).toEqual([["0", "answered"], ["1", "gap"], ["2", "unsupported"]]);
+    // The Lead points at the module (rq:<id> waits for stable research-question ids, WCE1).
+    expect(table.getAttribute("data-aia")).toBe("module:research_questions");
+    // The recorded gap reads "bez doložené odpovědi", with what the run recorded; never "ano".
+    expect(rows[1].textContent).toContain("bez doložené odpovědi");
+    expect(rows[1].textContent).toContain("Při spuštění běh zaznamenal");
+    // A finding on the same measure is linked to where it is shown, and carries its Lead target.
+    const link = within(rows[0] as HTMLElement).getByRole("link");
+    expect(link.getAttribute("href")).toBe("#analysis-finding-research_questions-0");
+    expect(document.getElementById("analysis-finding-research_questions-0")?.getAttribute("data-aia")).toBe("finding:research_questions:0");
+    expect(rows[2].textContent).toContain("Odpověď necituje žádné připuštěné číslo.");
+  });
+
+  it("says the research questions are unknown when the frozen design cannot be read, never that it has none (ANL2)", async () => {
+    const analysed = run({ ...COMPLETED, steps: [...COMPLETED.steps,
+      step("analysis_research_questions", "SUCCEEDED", { kind: "research_analysis", artifact_id: "ART-7", analysis_outcome: "BLOCKED" }),
+    ] });
+    api({ ...listed(analysed),
+      "GET /api/v1/studies/STU-1/research/runs/RUN-1/artifacts/ART-4": () => AGGREGATE,
+      "GET /api/v1/studies/STU-1/design/revisions/REV-a1": () => { throw new Error("neznámá revize"); },
+      "GET /api/v1/studies/STU-1/research/runs/RUN-1/analysis": () => ({ complete: false, synthetic: true, pending: {}, modules: {
+        research_questions: { outcome: "BLOCKED", summary: null, violations: [{ code: "x", subject: "y", detail: "z" }], research_question_answers: [], key_findings: [], claims: [] },
+      } }),
+    });
+    render(<ResearchScreen step="results" frame={TEST_FRAME} />);
+    fireEvent.click(await screen.findByRole("tab", { name: "AI analýza" }));
+    const section = await screen.findByRole("region", { name: "Pokrytí výzkumných otázek" });
+    await waitFor(() => expect(section.querySelector("[data-coverage-read]")?.getAttribute("data-coverage-read")).toBe("failed"));
+    expect(section.textContent).toContain("Výzkumné otázky běhu jsou neznámé");
+    expect(section.textContent).not.toContain("neuvádí výzkumné otázky");
+    expect(section.querySelectorAll("tr[data-rq]")).toHaveLength(0);
+  });
+
   it("puts every module's key findings first, each with the numbers it cites, and keeps every word formatted", async () => {
     const analysed = run({ ...COMPLETED, steps: [...COMPLETED.steps,
       step("analysis_executive", "SUCCEEDED", { kind: "research_analysis", artifact_id: "ART-6" }),
@@ -1863,13 +1942,22 @@ describe("Results", () => {
     render(<ResearchScreen step="results" frame={TEST_FRAME} />);
     fireEvent.click(await screen.findByRole("tab", { name: "Data" }));
     const comparison = await screen.findByRole("region", { name: "Srovnání: Nápoje" });
-    expect(within(comparison).getByText("Průměr na škále 1–5 · 95% interval")).toBeTruthy();
-    expect(within(comparison).getByText("Spolehlivě nejvýše hodnocený: Káva.")).toBeTruthy();
-    expect(within(comparison).getByText("Nejníže hodnocené: Čaj a Voda; pořadí mezi nimi nelze potvrdit.")).toBeTruthy();
-    expect(within(comparison).getAllByRole("link").map((a) => a.textContent)).toEqual(["Káva", "Čaj", "Voda"]);
-    // A suppressed object is not drawn and has no number, but is named.
-    expect(within(comparison).getByText("Bez čísla (potlačeno nebo bez průměru): Mléko.")).toBeTruthy();
+    expect(within(comparison).getByText("Průměr na škále 1–5 · 95% interval · Kish n")).toBeTruthy();
+    expect(within(comparison).getByText(/Spolehlivě nejvýše hodnocený: Káva\. Nejníže hodnocené: Čaj a Voda; pořadí mezi nimi nelze potvrdit\./)).toBeTruthy();
+    expect(within(comparison).getByText("Pořadí platí jen tam, kde se intervaly rozcházejí.")).toBeTruthy();
+    // Highest mean first, then the suppressed object in a row of its own.
+    expect(within(comparison).getAllByRole("link").map((a) => a.textContent)).toEqual(["Káva", "Čaj", "Voda", "Mléko"]);
+    const kava = comparison.querySelector('[data-aia="object:napoje.kava"]') as HTMLElement;
+    expect(within(kava).getByText("[4,00; 4,40]")).toBeTruthy();
+    expect(kava.textContent).toMatch(/z 5/);
+    // A suppressed object keeps its row and says why; its mean and interval are not shown.
+    const mleko = comparison.querySelector('[data-aia="object:napoje.mleko"]') as HTMLElement;
+    expect(mleko.getAttribute("data-withheld")).toBe("suppressed");
+    expect(mleko.textContent).toMatch(/^MlékoPotlačeno · podpora dat nestačí \(\d+ unikátních dárců\)/);
     expect(within(comparison).queryByText("3,50")).toBeNull();
+    expect(comparison.textContent).not.toMatch(/2,00|5,00/);
+    // The Lead points at the set, an object's row and each measure's card (artifact-results §4).
+    expect(comparison.getAttribute("data-aia")).toBe("set:napoje");
     // No rounding block: 18.6.6's two places, as each card prints them.
     expect(within(comparison).getByText("4,20")).toBeTruthy();
     // A link to a card clears the filters that hide it and opens its detail.
@@ -1880,9 +1968,38 @@ describe("Results", () => {
     fireEvent(window, new HashChangeEvent("hashchange"));
     const card = await within(explorer).findByRole("region", { name: "Čaj" });
     expect(card.getAttribute("data-focused")).toBe("true");
+    expect(card.getAttribute("data-aia")).toBe("measure:napoje:caj");
     expect((card.querySelector("details") as HTMLDetailsElement).open).toBe(true);
     expect((within(explorer).getByRole("searchbox", { name: "Najít otázku nebo objekt" }) as HTMLInputElement).value).toBe("");
     window.location.hash = "";
+  });
+
+  it("shows at most five raw answers to an open question, outside the details, labelled as data", async () => {
+    const answers = ["Lepší aplikace", "Nižší poplatky", "Doporučení", "Pobočka blízko", "Rychlá podpora", "Šesté", "Sedmé"];
+    const aggregate = { ...AGGREGATE, payload: { aggregate: { ...AGGREGATE.payload.aggregate, questions: {
+      q9: { typ: "otevrena", ...support("REPORTABLE", 140), verbatimy: answers },
+      q10: { typ: "otevrena", ...support("SUPPRESS", 12), verbatimy: ["Skryté"] },
+    } } } };
+    const specification = { ...AGGREGATE, artifact_id: "ART-1", artifact_type: "research_specification",
+      payload: { specification: { n: 200, questions: [{ id: "q9", text: "Proč zvažujete změnu?", typ: "otevrena" }, { id: "q10", text: "Co dalšího?", typ: "otevrena" }] } } };
+    api({ ...listed(COMPLETED),
+      "GET /api/v1/studies/STU-1/research/runs/RUN-1/artifacts/ART-1": () => specification,
+      "GET /api/v1/studies/STU-1/research/runs/RUN-1/artifacts/ART-4": () => aggregate,
+      "GET /api/v1/studies/STU-1/research/runs/RUN-1/artifacts/ART-5": () => SOCIOMAP,
+    });
+    render(<ResearchScreen step="results" frame={TEST_FRAME} />);
+    fireEvent.click(await screen.findByRole("tab", { name: "Data" }));
+    const card = await screen.findByRole("region", { name: "Proč zvažujete změnu?" });
+    expect(within(card).getByText("Otevřená otázka: 120 odpovědí, nekódováno.")).toBeTruthy();
+    const list = within(card).getByRole("list", { name: "Ukázky odpovědí" });
+    expect(within(list).getAllByRole("listitem").map((li) => li.textContent)).toEqual(answers.slice(0, 5).map((a) => `„${a}“`));
+    expect(list.closest("details")).toBeNull();
+    expect(card.textContent).not.toMatch(/Šesté|Sedmé/);
+    expect(within(card).getByText(/^Otevřené odpovědi jsou data, ne připuštěná evidence; nejsou kódované\./)).toBeTruthy();
+    // A suppressed open question shows no answer.
+    const hidden = screen.getByRole("region", { name: "Co dalšího?" });
+    expect(within(hidden).queryByRole("list", { name: "Ukázky odpovědí" })).toBeNull();
+    expect(hidden.textContent).not.toMatch(/Skryté/);
   });
 
   it("ranks a set's means at the places the run stored them, as its cards print them", async () => {

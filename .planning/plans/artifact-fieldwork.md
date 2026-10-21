@@ -1,8 +1,8 @@
 ---
-status: planned
+status: in-progress
 chunks:
   - "[ ] FLD1. Sběr dat's contract as data: view operations, pointable ids (run, step, cost line, quality flag) and V2's interaction contract"
-  - "[ ] FLD2. The run head and its steps as V2 draws them: done over target, status in words, each step marked deterministic or worker, from the run's steps"
+  - "[x] FLD2. The run head and its steps as V2 draws them: done over target, status in words, each step marked deterministic or worker, from the run's steps"
   - "[ ] FLD3. Progress from the fieldwork event contract and the per-respondent checkpoint: answered respondents, blocks in flight, waits and parks in words"
   - "[ ] FLD4. Náklady: spent, reserved, the run's ceiling and the study's remainder, and who spent it"
   - "[ ] FLD5. Kvalita a zásah: the run's QC warnings and straight-liner flags, keep or flag; replacement shown unavailable until its method is set"
