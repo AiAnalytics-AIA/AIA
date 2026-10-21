@@ -33,6 +33,14 @@ export function useUndo(): { current: UndoOffer | null; offer: (o: UndoOffer) =>
 export function UndoToast({ offer, onDone, ms = UNDO_MS }: { offer: UndoOffer | null; onDone: () => void; ms?: number }) {
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [held, setHeld] = useState(false);
+  // A hold ends with the toast. Activating "Vrátit" or "Zavřít" removes it with focus inside, and
+  // no blur follows: without this the next offer would never expire. (An offer that replaces
+  // another while focus stays on the toast keeps the hold: the person is still on it.)
+  if (!offer && held) setHeld(false);
+  const finish = () => {
+    setHeld(false);
+    onDone();
+  };
 
   useEffect(() => {
     if (!offer || held) return;
@@ -60,7 +68,7 @@ export function UndoToast({ offer, onDone, ms = UNDO_MS }: { offer: UndoOffer | 
             type="button"
             onClick={() => {
               const o = offer;
-              onDone();
+              finish();
               o.undo();
             }}
             className={`min-h-11 shrink-0 rounded-sm px-2 font-semibold text-ink-inverse underline underline-offset-2 sm:min-h-8 ${FOCUS}`}
@@ -70,7 +78,7 @@ export function UndoToast({ offer, onDone, ms = UNDO_MS }: { offer: UndoOffer | 
           <button
             type="button"
             aria-label={t("input.undoClose")}
-            onClick={onDone}
+            onClick={finish}
             className={`inline-flex size-11 shrink-0 items-center justify-center rounded-sm text-ink-inverse/70 hover:text-ink-inverse sm:size-8 ${FOCUS}`}
           >
             <Icon name="fault" size={12} />

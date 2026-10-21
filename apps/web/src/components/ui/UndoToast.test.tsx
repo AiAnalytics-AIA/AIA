@@ -79,6 +79,28 @@ describe("UndoToast (I6): Vrátit for 8 s, one at a time", () => {
     expect(screen.queryByRole("status")).toBeNull();
   });
 
+  it("a hold made by focus ends with its offer: the next offer still expires (Codex #532)", () => {
+    render(<Host />);
+    act(() => offerIt({ message: "První", undo: () => {} }));
+    const undo = screen.getByRole("button", { name: "Vrátit" });
+    act(() => undo.focus());
+    // Activating removes the toast with focus inside it; no blur event follows.
+    fireEvent.click(undo);
+    expect(screen.queryByRole("status")).toBeNull();
+    act(() => offerIt({ message: "Druhá", undo: () => {} }));
+    act(() => vi.advanceTimersByTime(UNDO_MS));
+    expect(screen.queryByRole("status")).toBeNull();
+
+    // The same through "Zavřít".
+    act(() => offerIt({ message: "Třetí", undo: () => {} }));
+    const close = screen.getByRole("button", { name: "Zavřít" });
+    act(() => close.focus());
+    fireEvent.click(close);
+    act(() => offerIt({ message: "Čtvrtá", undo: () => {} }));
+    act(() => vi.advanceTimersByTime(UNDO_MS));
+    expect(screen.queryByRole("status")).toBeNull();
+  });
+
   it("can be closed without undoing", () => {
     const undo = vi.fn();
     render(<Host />);
