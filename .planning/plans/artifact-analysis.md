@@ -103,7 +103,8 @@ names the targets through `aiaId` and reads them back (`analysisTarget`, `readAn
 only within its module; one outside the id grammar is left unnamed, never rewritten). No `rq:` here: the
 coordinator's ruling on #563 keeps it on the design row until WCE1. The screen carries them on the
 coverage table, every module's entry in the module list (rendered whichever module is selected, so the
-Lead's focus finds any of them), each key finding and each cited number. Tests: `artifacts/analysis.test.ts`,
+Lead's focus finds any of them; research_questions is the coverage table alone), each key finding and
+each cited number's first chip in the page (`claimMarks`), so every target names exactly one element. Tests: `artifacts/analysis.test.ts`,
 `ExecutionSteps.test.tsx` "puts every module's key findings first …".
 
 **ANL2. Coverage.** Test: an RQ recorded as a gap at start reads "bez doložené odpovědi" with the

@@ -13,7 +13,7 @@ import { type ReactNode, useCallback, useContext, useEffect, useRef, useState } 
 
 import { t, tv } from "@/i18n/t";
 import { findingAnchor } from "@/lib/analysis-coverage";
-import { analysisTarget, type AnalysisModuleKind } from "@/lib/artifacts/analysis";
+import { analysisTarget, chipKey, claimMarks, type AnalysisModuleKind, type ChipPlace } from "@/lib/artifacts/analysis";
 import {
   ApiError,
   api,
@@ -1564,7 +1564,8 @@ type AnalysisModule = ResearchAnalysis["modules"][string];
 
 /** The numbers a sentence of the analysis rests on: each claim it names, resolved to its Data
  *  card (result-reading.ts citedMeasure); an unknown reference shows as written. */
-function CitedNumbers({ ids, module, outcome, spec }: { ids: readonly string[]; module: AnalysisModuleKind; outcome: AnalysisModule; spec: CompiledSpecification | null }) {
+/** `place` and `marks`: the chip that carries its claim's Lead target is the first in the page (claimMarks), so a target names one element. */
+function CitedNumbers({ ids, place, marks, outcome, spec }: { ids: readonly string[]; place: ChipPlace; marks: ReadonlySet<string>; outcome: AnalysisModule; spec: CompiledSpecification | null }) {
   const cited = ids.map((id) => outcome.claims.find((claim) => claim.claim_id === id)).filter((claim): claim is AnalysisModule["claims"][number] => Boolean(claim));
   if (!cited.length) return null;
   return (
@@ -1572,7 +1573,7 @@ function CitedNumbers({ ids, module, outcome, spec }: { ids: readonly string[]; 
       {cited.map((claim) => {
         const measure = citedMeasure(claim.evidence_ref, spec);
         return (
-          <li key={claim.claim_id} data-cited-number data-aia={analysisTarget({ kind: "claim", module, claimId: claim.claim_id }) ?? undefined} className="max-w-full rounded-control border border-border bg-surface-sunken px-2.5 py-1 text-xs leading-5">
+          <li key={claim.claim_id} data-cited-number data-aia={marks.has(chipKey(place, claim.claim_id)) ? analysisTarget({ kind: "claim", module: place.module as AnalysisModuleKind, claimId: claim.claim_id }) ?? undefined : undefined} className="max-w-full rounded-control border border-border bg-surface-sunken px-2.5 py-1 text-xs leading-5">
             {measure
               ? <a href={`#${measureAnchor(measure.measureId)}`} className="no-underline hover:underline"><span className="font-semibold tabular-nums">{measure.format(claim.value, claim.decimals)}</span> {measure.what} · {measure.title}</a>
               : <span><span className="font-semibold tabular-nums">{claim.value.toLocaleString("cs-CZ")}</span> <CodedWords inline coded={{ words: t("research.exec.untitled.cited"), code: claim.evidence_ref }} /></span>}
@@ -1642,6 +1643,7 @@ function AnalysisResults({ run, spec, progressHref }: { run: ResearchRun; spec: 
   const complete = ANALYSIS_ORDER.filter((id) => analysis?.modules[id]?.outcome === "COMPLETED").length;
   const blocked = ANALYSIS_ORDER.filter((id) => analysis?.modules[id]?.outcome === "BLOCKED").length;
   const selected = analysis?.modules[selectedModule];
+  const marks = analysis ? claimMarks(analysis.modules, selectedModule) : new Set<string>();
   const selectedStep = run.steps.find((step) => step.node_key === `analysis_${selectedModule}`);
   const selectedPending = analysis?.pending[selectedModule];
   const findings = ANALYSIS_ORDER.flatMap((id) => {
@@ -1688,7 +1690,7 @@ function AnalysisResults({ run, spec, progressHref }: { run: ResearchRun; spec: 
                   {outcome.key_findings.map((finding, index) => (
                     <li key={index} id={findingAnchor({ module: id, index })} data-aia={analysisTarget({ kind: "finding", module: id, index }) ?? undefined} className="scroll-mt-4 border-l-2 border-signal pl-3">
                       <FormattedText text={finding.text} />
-                      <CitedNumbers ids={finding.claim_ids} module={id} outcome={outcome} spec={spec} />
+                      <CitedNumbers ids={finding.claim_ids} place={{ list: "key", module: id, index }} marks={marks} outcome={outcome} spec={spec} />
                     </li>
                   ))}
                 </ul>
@@ -1702,7 +1704,7 @@ function AnalysisResults({ run, spec, progressHref }: { run: ResearchRun; spec: 
               {ANALYSIS_ORDER.map((id) => {
                 const outcome = analysis.modules[id];
                 const label = outcome?.outcome === "COMPLETED" ? "Dokončeno" : outcome?.outcome === "BLOCKED" ? t("research.exec.stepStatus.ANALYSIS_BLOCKED") : "Čeká";
-                return <button key={id} type="button" data-aia={analysisTarget({ kind: "module", module: id }) ?? undefined} onClick={() => setSelectedModule(id)} aria-current={selectedModule === id ? "true" : undefined}
+                return <button key={id} type="button" data-aia={id === "research_questions" ? undefined : analysisTarget({ kind: "module", module: id }) ?? undefined} onClick={() => setSelectedModule(id)} aria-current={selectedModule === id ? "true" : undefined}
                   className={`flex items-center justify-between gap-2 rounded-control px-3 py-2 text-left text-sm focus-visible:outline-2 focus-visible:outline-focus-ring ${selectedModule === id ? "bg-signal-wash font-semibold text-signal" : "hover:bg-surface-sunken"}`}>
                   <span>{stepLabel(`analysis_${id}`)}</span><span className="shrink-0 text-xs font-normal text-ink-muted">{label}</span>
                 </button>;
@@ -1718,9 +1720,9 @@ function AnalysisResults({ run, spec, progressHref }: { run: ResearchRun; spec: 
               </> : selected?.outcome === "COMPLETED" ? <>
                 {selected.summary ? <FormattedText text={selected.summary} className="mt-3" /> : null}
                 {selected.research_question_answers.length ? <div className="mt-5 space-y-4"><h4 className="text-sm font-semibold">Odpovědi na výzkumné otázky</h4>
-                  {selected.research_question_answers.map((answer, index) => <div key={index} className="rounded-md bg-surface-sunken p-3"><h5 className="text-sm font-medium">{answer.question}</h5>{answer.gap ? <p role="note" data-answer-gap className="mt-1 rounded-sm border border-status-you-ink/40 bg-status-you-wash p-2 text-sm">{tv("research.exec.results.answerGap", { words: answer.gap })}</p> : null}<FormattedText text={answer.answer} className="mt-1" /><CitedNumbers ids={answer.claim_ids} module={selectedModule} outcome={selected} spec={spec} /></div>)}
+                  {selected.research_question_answers.map((answer, index) => <div key={index} className="rounded-md bg-surface-sunken p-3"><h5 className="text-sm font-medium">{answer.question}</h5>{answer.gap ? <p role="note" data-answer-gap className="mt-1 rounded-sm border border-status-you-ink/40 bg-status-you-wash p-2 text-sm">{tv("research.exec.results.answerGap", { words: answer.gap })}</p> : null}<FormattedText text={answer.answer} className="mt-1" /><CitedNumbers ids={answer.claim_ids} place={{ list: "answer", module: selectedModule, index }} marks={marks} outcome={selected} spec={spec} /></div>)}
                 </div> : null}
-                {selected.key_findings.length ? <div className="mt-5"><h4 className="text-sm font-semibold">Hlavní zjištění</h4><ul className="mt-2 flex flex-col gap-3">{selected.key_findings.map((finding, index) => <li key={index} className="border-l-2 border-signal pl-3"><FormattedText text={finding.text} /><CitedNumbers ids={finding.claim_ids} module={selectedModule} outcome={selected} spec={spec} /></li>)}</ul></div> : null}
+                {selected.key_findings.length ? <div className="mt-5"><h4 className="text-sm font-semibold">Hlavní zjištění</h4><ul className="mt-2 flex flex-col gap-3">{selected.key_findings.map((finding, index) => <li key={index} className="border-l-2 border-signal pl-3"><FormattedText text={finding.text} /><CitedNumbers ids={finding.claim_ids} place={{ list: "finding", module: selectedModule, index }} marks={marks} outcome={selected} spec={spec} /></li>)}</ul></div> : null}
                 {!selected.summary && !selected.research_question_answers.length && !selected.key_findings.length ? <p className="mt-3 text-sm text-ink-muted">Tato část nemá textový souhrn.</p> : null}
                 {selected.claims.length ? <details className="mt-5 border-t border-border pt-3 text-xs text-ink-muted"><summary className="cursor-pointer">{t("research.exec.results.analysisEvidence")} a technický původ tvrzení</summary><p className="mt-2 break-words">{selected.claims.map((claim) => `${claim.claim_id} → ${claim.evidence_ref}`).join(", ")}</p></details> : null}
               </> : <div className="mt-3 text-sm text-ink-muted"><p>{selectedStep ? `Stav kroku: ${stepStatusLabel(selectedStep, run.is_terminal)}` : "Tato část zatím nemá uložený výstup."}</p>{selectedPending && !selectedStep ? <p className="mt-1">{t("research.exec.results.analysisPending")}: <CodedWords inline coded={codeWords("research.exec.stepStatus", selectedPending)} /></p> : null}{selectedStep && waitingDetail(selectedStep) ? <p className="mt-1">{waitingDetail(selectedStep)}</p> : null}</div>}
