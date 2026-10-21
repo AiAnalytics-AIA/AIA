@@ -33,6 +33,10 @@ const ANALYSIS = {
   _brief_signature: briefFingerprint(defaultsMerge(PROJECT, TEMPLATE)),
 };
 
+/** The readiness limits in force (RQC9): what a variant's n is held to. */
+const LIMITS_PATH = "/api/v1/studies/STU-1/research/limits";
+const LIMITS = { methodology_version: "aia-readiness-1", version: null, sample_size: { min: 20, max: 10000 } };
+
 type Call = { url: string; body: Record<string, unknown> | null };
 let calls: Call[] = [];
 function unitStub(analysis: unknown = ANALYSIS, over: Record<string, (b: unknown) => unknown> = {}, project: Record<string, unknown> = PROJECT) {
@@ -45,7 +49,8 @@ function unitStub(analysis: unknown = ANALYSIS, over: Record<string, (b: unknown
       const u = String(url);
       const body = init?.body ? JSON.parse(String(init.body)) : null;
       calls.push({ url: u, body });
-      const answer = native(u.split("?")[0], init?.method ?? "GET", body) ?? ws.answer(u.split("?")[0], init?.method ?? "GET", body) ?? over[u.split("?")[0]]?.(body);
+      const answers: Record<string, (b: unknown) => unknown> = { [LIMITS_PATH]: () => LIMITS, ...over };
+      const answer = native(u.split("?")[0], init?.method ?? "GET", body) ?? ws.answer(u.split("?")[0], init?.method ?? "GET", body) ?? answers[u.split("?")[0]]?.(body);
       if (answer === undefined) return new Response(JSON.stringify({ code: "not_found", message: "No such resource." }), { status: 404 });
       return answer instanceof Response ? answer : new Response(JSON.stringify(answer), { status: 200 });
     }),
@@ -127,9 +132,25 @@ describe("Návrh", () => {
   it("applies a design variant to the project", async () => {
     unitStub();
     render(<ResearchScreen step="plan" frame={TEST_FRAME} />);
-    fireEvent.click(await screen.findByRole("radio", { name: /Jen varianty/ }));
+    const radio = await screen.findByRole("radio", { name: /Jen varianty/ });
+    await waitFor(() => {
+      fireEvent.click(radio); // applied once the valid range is read (RQC9)
+      expect(screen.getByText("Použit návrh: Jen varianty")).toBeTruthy();
+    });
     expect(screen.getByRole("radio", { name: /Jen varianty/ }).getAttribute("aria-checked")).toBe("true");
     expect(screen.getByText("Použit návrh: Jen varianty")).toBeTruthy();
+    expect(screen.getByText("Porovnat varianty")).toBeTruthy();
+  });
+
+  it("applies a variant whose n the valid range refuses without its n, and says so", async () => {
+    unitStub(ANALYSIS, { [LIMITS_PATH]: () => ({ ...LIMITS, version: 3, sample_size: { min: 400, max: 500 } }) }, { ...PROJECT, n: 450 });
+    render(<ResearchScreen step="plan" frame={TEST_FRAME} />);
+    // Until the range is read, nothing is applied; the click is repeated until it is.
+    const radio = await screen.findByRole("radio", { name: /Jen varianty/ });
+    await waitFor(() => {
+      fireEvent.click(radio);
+      expect(screen.getByText(/Použit návrh: Jen varianty\. Velikost vzorku z návrhu nebyla uložena: Počet respondentů musí být od 400 do 500/)).toBeTruthy();
+    });
     expect(screen.getByText("Porovnat varianty")).toBeTruthy();
   });
 

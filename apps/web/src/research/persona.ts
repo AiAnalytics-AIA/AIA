@@ -201,13 +201,20 @@ export function sampleRefusalMessage(refused: SampleRefusal["refused"], limits: 
  * Unknown limits refuse too: an unread range is never presumed to admit the value.
  */
 export function setSampleSize(p: ResearchProject, raw: string, limits: SampleLimits | null): Change | SampleRefusal {
-  const refuse = (refused: SampleRefusal["refused"]): SampleRefusal => ({ refused, message: sampleRefusalMessage(refused, limits) });
-  if (limits === null) return refuse("limits_unknown");
   const text = raw.trim();
-  if (!/^\d+$/.test(text)) return refuse("not_a_number");
-  const n = Number(text);
-  if (!Number.isSafeInteger(n) || n < limits.min || n > limits.max) return refuse("out_of_range");
-  return { project: { ...withChosen(p), n }, reason: "sample_n_1789" };
+  const refused = /^\d+$/.test(text) ? sampleRefusal(Number(text), limits) : refusal(limits === null ? "limits_unknown" : "not_a_number", limits);
+  if (refused) return refused;
+  return { project: { ...withChosen(p), n: Number(text) }, reason: "sample_n_1789" };
+}
+
+const refusal = (refused: SampleRefusal["refused"], limits: SampleLimits | null): SampleRefusal => ({ refused, message: sampleRefusalMessage(refused, limits) });
+
+/** Why `n` is not a valid sample size under `limits`, or null when it is (the server's rule, RQC9). */
+export function sampleRefusal(n: number, limits: SampleLimits | null): SampleRefusal | null {
+  if (limits === null) return refusal("limits_unknown", limits);
+  if (!Number.isSafeInteger(n)) return refusal("not_a_number", limits);
+  if (n < limits.min || n > limits.max) return refusal("out_of_range", limits);
+  return null;
 }
 
 /** useRecommendedSample1789 */

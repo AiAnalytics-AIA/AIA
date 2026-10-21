@@ -4,6 +4,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { AGENTS_PATH, NATIVE_JOB_WAIT, NATIVE_TEST_TIMEOUT_MS, PARK_MESSAGE, approveProposal, nativeAgentFixture } from "./test-native-agents";
 import { PROPOSAL_AI_DONE, PROPOSAL_DONE, REQUEST_EMPTY } from "@/research/persona";
+import { sliderRange } from "./PersonaStep";
 import { ResearchScreen } from "./ResearchScreen";
 import { type SavedBody, workspaceFixture } from "./test-workspace";
 import { TEST_FRAME, stagePath } from "./test-frame";
@@ -257,6 +258,18 @@ describe("Dimenze", () => {
     expect((await screen.findByRole("alert")).textContent).toContain("od 500 do 1000");
     expect(saves).toEqual([]);
   }, 20_000);
+
+  it("the sample: the slider's ends sit inside the valid n, a maximum under 250 included", () => {
+    expect(sliderRange({ min: 20, max: 10000 })).toEqual({ lo: 200, hi: 2000, step: 50 });
+    expect(sliderRange({ min: 500, max: 1000 })).toEqual({ lo: 500, hi: 1000, step: 50 });
+    expect(sliderRange({ min: 20, max: 100 })).toEqual({ lo: 20, hi: 100, step: 1 });
+    expect(sliderRange({ min: 20, max: 240 })).toEqual({ lo: 20, hi: 240, step: 1 });
+    expect(sliderRange({ min: 3000, max: 3010 })).toEqual({ lo: 3000, hi: 3010, step: 1 });
+    for (const l of [{ min: 20, max: 100 }, { min: 2500, max: 9000 }, { min: 30, max: 30 }]) {
+      const r = sliderRange(l);
+      expect(r.lo >= l.min && r.hi <= l.max && r.lo <= r.hi).toBe(true);
+    }
+  });
 
   it("the sample: with the range unread nothing is stored, and the screen says why", async () => {
     aiaStub(PLANNED, { [LIMITS_PATH]: () => new Response("{}", { status: 500 }) });

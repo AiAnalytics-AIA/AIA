@@ -204,6 +204,39 @@ worker composition's refusals and its equality with the production registry's st
 (`mvp-acceptance-harness#4`) and the harness itself (`#3`); this chunk supplies only the
 population. A live AC-05 run on develop reads the Czech LIVE, never this.
 
+## Review of #539 (2026-10-21), fixed on the branch
+
+- **P2-2, RQC10: establishing raced on a fresh database.** The audience step reads its catalogue and
+  its preview at once (`AudienceStep.tsx:100`, `:425`), so two first requests both found nothing and
+  both imported: a unique-constraint 500. `PopulationDouble.establish` now writes in a savepoint and,
+  when another transaction got there first (`IntegrityError`, or the registry's `PromotionRefused`),
+  reads back what it wrote. The API establishes it inside the asking request's own transaction
+  (`dependencies.ensure_population_double`, through `SessionDep`), so it commits with that request.
+  Tests:
+  `test_population_double.py::test_two_concurrent_first_establishes_both_get_the_one_live` (two
+  threads, both read before either writes; PostgreSQL, skipped on SQLite, which admits one writer),
+  `::test_an_establish_that_read_before_another_committed_reads_back_what_it_wrote`,
+  `test_population_double_api.py::test_concurrent_first_requests_establish_the_double_once` (two
+  request transactions at once; PostgreSQL). Both core tests fail with the savepoint's handler
+  removed (measured).
+- **P3-3, RQC10: an unset `AIA_ENV` composed the API's double.** The settings read an unset
+  `AIA_ENV` as local (`config.py:37`); the API now passes the environment to the double only when
+  it was named (`Settings.model_fields_set`), so unset refuses as it does in the worker
+  (`test_population_double_api.py::test_an_unset_aia_env_refuses_the_double`).
+- **P3-4, RQC9: a design variant stored its n unchecked** (`research/plan.ts` `applyVariant`). It now
+  takes the server's limits: an n outside them (or unread limits) is not stored, the plan still is,
+  and the toast says why; while the limits load nothing is applied. `persona.ts` `sampleRefusal` is
+  the one web check both screens use. Tests: `plan.parity.test.ts` "a variant's n is held to the
+  server's valid n (RQC9)", `PlanStep.test.tsx` "applies a variant whose n the valid range refuses
+  without its n, and says so".
+- **P3-5, RQC9: the slider left the valid n** when its maximum is under 250. `PersonaStep.tsx`
+  `sliderRange`: 200-2,000 in steps of 50 cut to the range, else the whole range in steps of 1; its
+  ends are always inside (`PersonaStep.test.tsx` "the slider's ends sit inside the valid n").
+- **P3-6, RQC9: refusals showed as codes.** `lib/lead.ts` `editRefusalWords` / `droppedLines`: a
+  refused or dropped edit in Czech, the sample-size reasons included; the Workbench says why a
+  clicked edit was refused, and the Lead pane names a dropped sample size on its own line
+  (`lead.test.ts` "a refused or dropped edit says why in words (RQC9)").
+
 ## Doc follow-up (RQC9, RQC10)
 
 - `CLAUDE.md` §2: under `routers/` research, `GET …/research/limits` (the readiness limits in force,

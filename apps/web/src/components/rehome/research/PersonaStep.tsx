@@ -18,7 +18,7 @@
 import { useRouter } from "next/navigation";
 import { type ReactNode, useEffect, useState } from "react";
 
-import { research, workspace } from "@/lib/api";
+import { workspace } from "@/lib/api";
 import { isNativeResult } from "@/lib/research-agent-jobs";
 import { t, tv } from "@/i18n/t";
 import {
@@ -64,6 +64,7 @@ import { AiButton, Button, Field, TextInput } from "../ui";
 import { useResearch, useSessionState } from "./context";
 import { InspectorSlot } from "./Inspector";
 import { AiFailureCard, useAiStep } from "./useAiStep";
+import { readyLimits, useSampleLimits } from "./useSampleLimits";
 
 
 const message = (e: unknown) => (e instanceof Error ? e.message : String(e));
@@ -85,31 +86,13 @@ function useClientDimensions(studyId: string): ActiveDimensions {
   return active;
 }
 
-/** The study's valid n, read from the server once per visit (RQC9): the one range there is. */
-type Limits = { state: "loading" } | { state: "ready"; limits: SampleLimits } | { state: "failed" };
-function useSampleLimits(studyId: string): Limits {
-  const [limits, setLimits] = useState<Limits>({ state: "loading" });
-  useEffect(() => {
-    let live = true;
-    research.limits(studyId).then(
-      (l) => live && setLimits({ state: "ready", limits: l.sample_size }),
-      // Unread, nothing is stored: a range never seen is not presumed to admit a value.
-      () => live && setLimits({ state: "failed" }),
-    );
-    return () => {
-      live = false;
-    };
-  }, [studyId]);
-  return limits;
-}
-
 export function PersonaStep() {
   const { store, state, runJob, toast, stepHref, frame } = useResearch();
   const router = useRouter();
   const step = useAiStep();
   const active = useClientDimensions(frame.studyId);
   const sampleLimits = useSampleLimits(frame.studyId);
-  const limits = sampleLimits.state === "ready" ? sampleLimits.limits : null;
+  const limits = readyLimits(sampleLimits);
   const [sampleError, setSampleError] = useState<string | null>(null);
   const [suggestion, setSuggestion] = useSessionState<Suggestion | null>("persona.suggestion", null);
   const [query, setQuery] = useState("");
@@ -409,22 +392,32 @@ function DimensionGroup({ title, action, rows, chosen, suggested, onToggle }: {
 }
 
 /**
+ * Where the slider's thumb may go: 200–2 000 in steps of 50, cut to the valid n; when the valid n
+ * leaves less than one step of that (a maximum under 250, say), the whole valid range in steps of 1.
+ * Its ends are always inside the valid n, so every value it commits is one the server takes.
+ */
+export function sliderRange(limits: SampleLimits): { lo: number; hi: number; step: number } {
+  const lo = Math.min(Math.max(200, limits.min), limits.max);
+  const hi = Math.max(Math.min(2000, limits.max), limits.min);
+  return hi - lo >= 50 ? { lo, hi, step: 50 } : { lo: limits.min, hi: limits.max, step: 1 };
+}
+
+/**
  * The sample as a slider (200–2 000, step 50, within the study's valid n) with the recommendation
  * marked; it commits on release. Its ends are where the thumb is drawn, never a stored value: what
  * it commits goes through the same refusal as the typed field.
  */
 function SampleSlider({ value, recommended, limits, onCommit }: { value: number; recommended: number; limits: SampleLimits; onCommit: (v: number) => void }) {
-  const lo = Math.max(200, limits.min);
-  const hi = Math.max(lo + 50, Math.min(2000, limits.max));
+  const { lo, hi, step } = sliderRange(limits);
   const [v, setV] = useState(Math.max(lo, Math.min(hi, value)));
-  const pos = (x: number) => `${((Math.max(lo, Math.min(hi, x)) - lo) / (hi - lo)) * 100}%`;
+  const pos = (x: number) => `${hi === lo ? 0 : ((Math.max(lo, Math.min(hi, x)) - lo) / (hi - lo)) * 100}%`;
   return (
     <div className="mt-3">
       <input
         type="range"
         min={lo}
         max={hi}
-        step={50}
+        step={step}
         value={v}
         aria-label={t("research.persona.sampleSlider")}
         onChange={(e) => setV(Number(e.target.value))}

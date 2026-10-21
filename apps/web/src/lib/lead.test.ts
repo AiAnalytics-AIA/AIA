@@ -3,7 +3,7 @@
 import { describe, expect, it } from "vitest";
 
 import {
-  applyLeadEdit, autoAcceptIndices, autoAcceptPlan, describeEdit, editStage, isTextEdit, pendingSelfUpdate, revertTextEdit, targetLabel, textEditInverse,
+  applyLeadEdit, autoAcceptIndices, autoAcceptPlan, describeEdit, droppedLines, editRefusalWords, editStage, isTextEdit, pendingSelfUpdate, revertTextEdit, targetLabel, textEditInverse,
   type LeadEdit, type LeadTurn,
 } from "./lead";
 import type { ResearchProject } from "@/research/model";
@@ -179,5 +179,24 @@ describe("automatic text edits (inline-decisions 2)", () => {
     const inverse = textEditInverse(before, e)!;
     const edited = ok(applyLeadEdit(before, { op: "question_edit", question_id: "Q_1", text: "Přepsáno výzkumníkem", options: null, why: "" }));
     expect(revertTextEdit(edited, e, inverse)).toHaveProperty("refused");
+  });
+});
+
+describe("a refused or dropped edit says why in words (RQC9)", () => {
+  it("names a sample size outside the valid range and unknown limits, never the code", () => {
+    expect(editRefusalWords("sample_size_out_of_range")).toContain("mimo platný rozsah");
+    expect(editRefusalWords("sample_size_limits_unknown")).toContain("nepodařilo zjistit");
+    expect(editRefusalWords("unknown_question")).toBe("Otázka, kterou úprava mění, už v dotazníku není.");
+    expect(editRefusalWords(null)).toBe("Úpravu už nelze použít.");
+    expect(editRefusalWords("something_new")).toBe("something_new"); // kept, never guessed
+  });
+  it("a dropped sample size is its own line; the rest are counted as before", () => {
+    expect(droppedLines([{ reason: "sample_size_out_of_range" }, { reason: "unknown_question" }])).toEqual([
+      editRefusalWords("sample_size_out_of_range"),
+      "1 navržená změna se netýkala ničeho v pracovní kopii a byla vynechána.",
+    ]);
+    expect(droppedLines([{ reason: "unknown_item" }, { reason: "unknown_question" }])).toEqual([
+      "2 navržené změny se netýkaly ničeho v pracovní kopii a byly vynechány.",
+    ]);
   });
 });
