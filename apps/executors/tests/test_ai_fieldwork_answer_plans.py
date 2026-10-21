@@ -72,8 +72,10 @@ class _Context:
         self.progressed.append(counts)
 
 
-def _setup(caller: _Caller) -> tuple[AIFieldwork, Any, list[Any]]:
-    spec, problems = compile_design(DESIGN)
+def _setup(
+    caller: _Caller, *, design: dict[str, Any] = DESIGN, scale_labels_in_prompt: bool = False
+) -> tuple[AIFieldwork, Any, list[Any]]:
+    spec, problems = compile_design(design)
     assert spec is not None, problems
     personas = fictional_roster(6, seed=1)
     plans = [plan_respondent(spec, p) for p in personas]
@@ -97,6 +99,7 @@ def _setup(caller: _Caller) -> tuple[AIFieldwork, Any, list[Any]]:
             reservation_usd=0.01,
             max_output_tokens=1000,
             fictional_client_ids=frozenset(),
+            scale_labels_in_prompt=scale_labels_in_prompt,
         ),
         build=BuildIdentity(sha="abc"),
         caller_factory=lambda **_: caller,
@@ -174,3 +177,45 @@ def test_answers_from_another_binding_than_required_fail_before_any_request() ->
         **kwargs,
     )
     assert isinstance(same, Answered) and caller.requests
+
+
+_LABELLED: dict[str, Any] = {
+    **DESIGN,
+    "sections": [
+        {
+            "type": "questions",
+            "questions": [
+                {**DESIGN["sections"][0]["questions"][0], "popisky_skaly": ["nikdy", "denně"]},
+                DESIGN["sections"][0]["questions"][1],
+            ],
+        }
+    ],
+}
+
+
+def _asked(*, scale_labels_in_prompt: bool, override: bool | None = None) -> str:
+    caller = _Caller()
+    fieldwork, spec, plans = _setup(
+        caller, design=_LABELLED, scale_labels_in_prompt=scale_labels_in_prompt
+    )
+    answered = fieldwork.answer_plans(
+        plans,
+        spec,
+        _Context(),  # type: ignore[arg-type]
+        seed=7,
+        response=AIA_RESPONSE_V1,
+        data_class=DataClass.CLASS_C_INTERNAL,
+        lineage=DataLineage(datasets=frozenset({"synthetic"})),
+        scale_labels_in_prompt=override,
+    )
+    assert isinstance(answered, Answered)
+    return "\n".join(r.messages[0].content for r in caller.requests)
+
+
+def test_a_scale_questions_labels_are_sent_only_with_the_switch_on() -> None:
+    """input-interactions 3b: AIA_AI_SCALE_LABELS_IN_PROMPT decides; a validation's arms ask the
+    system they preregistered, so they override it."""
+    assert "Škála 1 až 4 (1 = nikdy, 4 = denně)." in _asked(scale_labels_in_prompt=True)
+    off = _asked(scale_labels_in_prompt=False)
+    assert "Škála 1 až 4. " in off and "nikdy" not in off
+    assert "nikdy" not in _asked(scale_labels_in_prompt=True, override=False)

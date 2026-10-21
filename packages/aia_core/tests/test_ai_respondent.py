@@ -6,6 +6,7 @@ by validating JSON through the same deterministic validator the gateway uses.
 
 from __future__ import annotations
 
+import hashlib
 import json
 from typing import Any
 
@@ -22,6 +23,7 @@ from aia_core.domain.ai_respondent import (
     AGENT_ID,
     MAX_BLOCK_ITEMS,
     PROMPT_SHA256,
+    SCALE_LABEL_WORDING,
     RespondentOutputInvalid,
     UnsupportedFact,
     assemble_dataset,
@@ -33,6 +35,8 @@ from aia_core.domain.ai_respondent import (
     plan_items,
     plan_respondent,
     respondent_agent,
+    respondent_prompt_sha256,
+    scale_label_wording,
 )
 from aia_core.domain.fieldwork import DataOrigin, FieldworkSource, validate_dataset
 from aia_core.domain.licence_determinations import SYNTHETIC_FIXTURE_DATASET
@@ -310,3 +314,83 @@ def test_a_panel_dataset_says_it_is_modelled_and_not_synthetic() -> None:
     assert dataset.origin is DataOrigin.MODELLED_AI_PANEL
     assert not dataset.is_synthetic
     assert [r.donor_id for r in dataset.respondents] == [p.donor_id for p in personas]
+
+
+# --------------------------------------------------------------------------- #
+# A scale question's labels in the prompt (input-interactions 3b, IA-7)
+# --------------------------------------------------------------------------- #
+
+#: SHA-256 over every request ``_requests(_spec())`` builds, on develop before scale labels were
+#: compiled (@ 45e87184): with the switch off nothing a respondent is sent may move.
+_REQUESTS_BEFORE_LABELS = "64ff8b4bf45f3359be260aad9ddca6d17ac1c7af26efe72f11cac1d56d3cb3df"
+
+
+def _labelled(labels: list[str]) -> Any:
+    design = json.loads(json.dumps(DESIGN))
+    design["sections"][0]["questions"][1]["popisky_skaly"] = labels
+    spec, problems = compile_design(design)
+    assert spec is not None, problems
+    return spec
+
+
+def _requests(spec: Any, *, scale_labels_in_prompt: bool = False) -> list[str]:
+    personas = fictional_roster(2, seed=3)
+    klass, lineage = classify_material(personas, client_declared_fictional=True)
+    items = {i.item_id: i for i in plan_items(spec)}
+    out = []
+    for persona in personas:
+        plan = plan_respondent(spec, persona)
+        for block in plan.blocks:
+            request = build_request(
+                plan,
+                block,
+                {},
+                items_by_id=items,
+                policy_version="p1",
+                data_class=klass,
+                lineage=lineage,
+                max_output_tokens=900,
+                scale_labels_in_prompt=scale_labels_in_prompt,
+            )
+            out.append(request.system + "\x00" + request.messages[0].content)
+    return out
+
+
+def _digest(requests: list[str]) -> str:
+    return hashlib.sha256("\x01".join(requests).encode()).hexdigest()
+
+
+def test_off_the_requests_are_byte_identical_whatever_labels_a_question_declares() -> None:
+    assert _digest(_requests(_spec())) == _REQUESTS_BEFORE_LABELS
+    labelled = _labelled(["nikdy", "denně"])
+    assert labelled.questions[1].scale_labels == ("nikdy", "denně")
+    assert _digest(_requests(labelled)) == _REQUESTS_BEFORE_LABELS
+    every = _labelled(["nikdy", "výjimečně", "občas", "často", "denně"])
+    assert _digest(_requests(every)) == _REQUESTS_BEFORE_LABELS
+    assert respondent_prompt_sha256(scale_labels_in_prompt=False) == PROMPT_SHA256
+
+
+def test_on_a_scale_questions_labels_reach_the_respondent() -> None:
+    ends = "\n".join(_requests(_labelled(["nikdy", "denně"]), scale_labels_in_prompt=True))
+    assert "Škála 1 až 5 (1 = nikdy, 5 = denně)." in ends
+    every = "\n".join(
+        _requests(
+            _labelled(["nikdy", "výjimečně", "občas", "často", "denně"]),
+            scale_labels_in_prompt=True,
+        )
+    )
+    assert "Škála 1 až 5 (1 = nikdy, 2 = výjimečně, 3 = občas, 4 = často, 5 = denně)." in every
+    # A tracked set's two ends are written as they always were, switch or not.
+    assert "Škála 1 až 10 (1 = vůbec, 10 = velmi)." in every
+    # Without labels, a question's scale is the bare numbers, on or off.
+    bare = _requests(_spec(), scale_labels_in_prompt=True)
+    assert _digest(bare) == _REQUESTS_BEFORE_LABELS
+    on = respondent_prompt_sha256(scale_labels_in_prompt=True)
+    assert len(on) == 64 and on != PROMPT_SHA256
+
+
+def test_the_provisional_wording_lives_in_one_function() -> None:
+    assert scale_label_wording((1, 10), ("vůbec", "zcela")) == " (1 = vůbec, 10 = zcela)"
+    assert scale_label_wording((0, 2), ("ne", "možná", "ano")) == " (0 = ne, 1 = možná, 2 = ano)"
+    assert scale_label_wording((1, 10), ()) == ""
+    assert SCALE_LABEL_WORDING.startswith("aia-scale-labels-provisional")

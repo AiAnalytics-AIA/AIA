@@ -256,6 +256,9 @@ services:
       AIA_AI_CLIENT_SOURCE_RESERVATION_USD: ${AIA_AI_CLIENT_SOURCE_RESERVATION_USD:-}
       # A model request's "sent" and "answered" in its run's feed (step-activity plan, chunk 5).
       AIA_AI_STEP_EVENTS: ${AIA_AI_STEP_EVENTS:-false}
+      # A scale question's verbal labels in the AI respondent's item (input-interactions 3b).
+      # Off until the methodology owner signs the provisional wording.
+      AIA_AI_SCALE_LABELS_IN_PROMPT: ${AIA_AI_SCALE_LABELS_IN_PROMPT:-false}
       # The report's PDF beside its DOCX (complete-study-report B3). The develop worker image
       # is built with LibreOffice (AIA_WORKER_PDF=true in deploy-develop.yml), so it is on.
       AIA_REPORT_PDF_ENABLED: ${AIA_REPORT_PDF_ENABLED:-true}

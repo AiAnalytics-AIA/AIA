@@ -48,7 +48,7 @@ from .fieldwork import (
 )
 from .licence import DataLineage
 from .licence_determinations import PANEL_DERIVED_DATASETS, SYNTHETIC_FIXTURE_DATASET
-from .research_design import ResearchSpecification, SpecQuestion
+from .research_design import ResearchSpecification, SpecQuestion, labelled_points
 from .residency import DataClass
 from .respondent_behavior import (
     AIA_RESPONSE_V1,
@@ -78,6 +78,7 @@ __all__ = [
     "PROMPT_SHA256",
     "PROMPT_VERSION",
     "ROSTER_VERSION",
+    "SCALE_LABEL_WORDING",
     "SYSTEM_PROMPT",
     "Block",
     "Item",
@@ -96,6 +97,8 @@ __all__ = [
     "plan_items",
     "plan_respondent",
     "respondent_agent",
+    "respondent_prompt_sha256",
+    "scale_label_wording",
 ]
 
 AGENT_ID: Final = "aia.research.respondent"
@@ -151,6 +154,37 @@ Styl odpovídání aplikuje také runtime; nepřekládej styl do stereotypního 
 Výsledek odešli pouze přes nástroj pro odeslání odpovědi."""
 
 PROMPT_SHA256: Final = hashlib.sha256(SYSTEM_PROMPT.encode("utf-8")).hexdigest()
+
+#: PROVISIONAL -- not yet signed by the methodology owner (A. Bahbouh), who signs the wording
+#: rule before ``AIA_AI_SCALE_LABELS_IN_PROMPT`` is switched on (input-interactions 3b). The
+#: identity of :func:`scale_label_wording`: a change to that function's words is a new value
+#: here, and so a new respondent prompt (:func:`respondent_prompt_sha256`).
+SCALE_LABEL_WORDING: Final = "aia-scale-labels-provisional-1"
+
+
+def scale_label_wording(scale: tuple[int, int], labels: Sequence[str]) -> str:
+    """How a labelled scale's points are written into a respondent's item: PROVISIONAL.
+
+    The one place the wording lives, so the methodology owner changes it here and nowhere
+    else. ``labels`` are the two ends or one per point, low to high (``research_design``
+    refuses any other length). Two ends read as a tracked set's always did,
+    `` (1 = vůbec, 10 = velmi)``; one per point lists every point in order."""
+    points = labelled_points(scale, labels)
+    if not points:
+        return ""
+    return " (" + ", ".join(f"{value} = {label}" for value, label in points) + ")"
+
+
+def respondent_prompt_sha256(*, scale_labels_in_prompt: bool) -> str:
+    """The respondent prompt's identity, as a respondent system names it (ADR 0024 §4).
+
+    Off, it is the system prompt's SHA-256, exactly as before. On, a scale question's items
+    carry its labels in :func:`scale_label_wording`'s words, which changes what respondents
+    are told: the SHA-256 is then over the system prompt and that wording's identity, so a
+    validation earned without the labels says nothing about a system with them."""
+    if not scale_labels_in_prompt:
+        return PROMPT_SHA256
+    return hashlib.sha256(f"{SYSTEM_PROMPT}\n\n{SCALE_LABEL_WORDING}".encode()).hexdigest()
 
 
 class UnsupportedFact(ValueError):
@@ -385,6 +419,7 @@ def plan_items(spec: ResearchSpecification) -> tuple[Item, ...]:
                     q.text,
                     scale=q.scale,
                     allow_dont_know=q.allow_dont_know,
+                    scale_labels=q.scale_labels or None,
                     question=q,
                 )
             )
@@ -557,7 +592,7 @@ def respondent_agent(block: Block, *, max_output_tokens: int) -> AgentDefinition
 # --------------------------------------------------------------------------- #
 
 
-def _instruction(item: Item) -> str:
+def _instruction(item: Item, *, scale_labels_in_prompt: bool = False) -> str:
     if item.kind == "choice":
         options = "\n".join(f"  {i + 1}. {label}" for i, label in enumerate(item.labels))
         return (
@@ -567,11 +602,14 @@ def _instruction(item: Item) -> str:
     if item.kind == "scale":
         assert item.scale is not None
         low, high = item.scale
-        ends = (
-            f" ({low} = {item.scale_labels[0]}, {high} = {item.scale_labels[-1]})"
-            if item.scale_labels
-            else ""
-        )
+        if scale_labels_in_prompt:
+            ends = scale_label_wording(item.scale, item.scale_labels or ())
+        elif item.scale_labels and item.question is None:
+            # Off: a tracked set's two ends, as they were always written; a question's labels
+            # are not shown (input-interactions 3b keeps them behind the switch).
+            ends = f" ({low} = {item.scale_labels[0]}, {high} = {item.scale_labels[-1]})"
+        else:
+            ends = ""
         tail = " a poslední pro „nevím“" if item.allow_dont_know else ""
         return (
             f"Škála {low} až {high}{ends}. Vrať pravděpodobnosti pro hodnoty {low} až {high}"
@@ -609,11 +647,17 @@ def build_request(
     lineage: DataLineage,
     max_output_tokens: int,
     response: ResponseProcessSpec = AIA_RESPONSE_V1,
+    scale_labels_in_prompt: bool = False,
 ) -> ModelRequest:
     """One respondent's request for one block. Scope is never in it; class and lineage are.
-    A style is put into the profile's words from ``response``'s threshold."""
+    A style is put into the profile's words from ``response``'s threshold.
+
+    ``scale_labels_in_prompt`` (``AIA_AI_SCALE_LABELS_IN_PROMPT``, off by default): a scale's
+    labels, a question's as a set's, in :func:`scale_label_wording`'s provisional words. Off,
+    the request is byte for byte what it was before the labels were compiled."""
     sections = [
-        f"OTÁZKA {pos}/{len(block.items)} (ID {item.item_id})\n{item.text}\n{_instruction(item)}"
+        f"OTÁZKA {pos}/{len(block.items)} (ID {item.item_id})\n{item.text}\n"
+        + _instruction(item, scale_labels_in_prompt=scale_labels_in_prompt)
         for pos, item in enumerate(block.items, 1)
     ]
     content = (
