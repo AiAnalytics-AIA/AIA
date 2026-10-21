@@ -1,7 +1,8 @@
 # audience-screen
 
-**STATUS: STOPPED** (the product owner paused development, relayed by PM coordinator 3 at
-2026-10-21 21:20 UTC). Screen owner for the research stage Cílová skupina (`audience`), Sprint 5.
+**STATUS: ACTIVE, nothing pushed since the stop.** Development resumed 2026-10-21 23:27 UTC, relayed
+by PM coordinator 3. Commit permission for the branches below still needs the product owner's own
+words in this session (CLAUDE.md §5). Screen owner for the research stage Cílová skupina (`audience`), Sprint 5.
 Cloud session `session_01UNFwAuLksKkUDbej3R6XUA`. Work list: `.planning/plans/artifact-audience.md`.
 
 ## Merged
@@ -54,6 +55,26 @@ Both live only in this cloud container and are lost when it is reclaimed. Rebuil
   (blocked on lead-orchestration LO5a and 27c).
 - Observed locally: `make lint`, `typecheck`, `layer_check`, `web_design` 0; `make test-web`
   3096/3096.
+
+### Audit fixes: local branch `fix/audience-copy-and-tap-targets` (worktree, from develop `bfe6d15b`)
+Browser audit of Cílová skupina at 1440/1100/768/390 on the workbench, zero paid jobs. Findings are
+in `artifact-audience.md` under Findings, on that branch.
+- F1 copy: `cs.ts` research.audience `ownText` (now says AIA lacks the upload), `analyticsText` (no
+  "NPC Panelu"), `comingSoon` "PŘIPRAVUJEME", `czComingTitle`, `special` "Speciální skupiny",
+  `czIntroBold`, `strategyDiscoverText` in Czech. Journeys and `AudienceStep.test.tsx` select
+  "Speciální skupiny". New `apps/web/src/i18n/audience-copy.test.ts`.
+- F2 tap target: the chip's remove button `size-6` (was 15x16 px). `workbench_journey.mjs` asserts
+  each "Odebrat filtr" is at least 24x24 at all four widths, and that the fixture shows a chip.
+- F3 stored values the population lacks: `filterProblems(p, catalog)` plus `CATALOGUE_TOP_VALUES = 60`
+  in `research/audience.ts`. It names a factor the catalogue does not offer and values a complete
+  (<60) value list lacks (`noneKnown`: all of them); it says nothing for a cut list, a range, a
+  boolean or no catalogue. On the chip: `data-filter-problem` and the attention style. Below the
+  chips: a `role="note"` with cs keys `problemTitle`, `problemFactor`, `problemValues` and
+  `problemValuesAll`. Tests: `audience.live.test.ts` (2 cases) and `AudienceStep.test.tsx` (1 case).
+- Observed: lint, layer_check and web_design 0; typecheck 0 after one fix; test-web 3212/3213. The one
+  failure is develop's own (`lib/artifacts/sample.test.ts:42`, sample:ready no longer pending,
+  reproduces untouched; reported to the PM and the coordinator). `workbench_journey` and
+  `ui-audience` both pass.
 
 ## Blocked (as of the stop)
 
