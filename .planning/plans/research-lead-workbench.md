@@ -20,12 +20,12 @@ chunks:
   - "[ ] 14. The Lead's view vocabulary: a closed, per-artifact set of display operations the Lead may run on the artifact pane"
   - "[ ] 15. The artifact frame: title, state pill, one version line and at most one state bar; inputs, feeds, workers and provenance in the inspector (the canonical V2 prototype's D5, owner confirmed in MVPQ-01 on 2026-10-20), Pracovní kopie / Historie / Původ, the revision stepper"
   - "[ ] 16. Pointing at the artifact: the Vidí chip, the target button and @ over every artifact's elements"
-  - "[ ] 17. Questionnaire artifact, its proposal shown in it (where chunk 7 lands)"
-  - "[ ] 18. Brief and Research design artifacts"
-  - "[ ] 19. Sample and Fieldwork artifacts"
-  - "[ ] 20. Results and Sociomap artifacts, drawing aia-sociomap-5 in full: credibility, uncertainty circles, the respondent map, taste segments, unplaced objects, in Results and project memory alike (D-13)"
-  - "[ ] 21. Analysis and Report artifacts"
-  - "[ ] 22. Audience and Dimensions artifacts"
+  - "[ ] 17. Questionnaire artifact (umbrella): artifact-questionnaire QST1-QST9; chunk 7 lands in QST5"
+  - "[ ] 18. Brief and Research design artifacts (umbrella): artifact-brief BRF1-BRF6, artifact-design DSN1-DSN8"
+  - "[ ] 19. Sample and Fieldwork artifacts (umbrella): artifact-sample SMP1-SMP6, artifact-fieldwork FLD1-FLD8"
+  - "[ ] 20. Results and Sociomap artifacts (umbrella): artifact-results RES1-RES7, artifact-sociomap SOC1-SOC8; the aia-sociomap-5 drawing in full (credibility, uncertainty circles, the respondent map, taste segments, unplaced objects, in Results and project memory alike, D-13) is sociomap-5-web, hosted by SOC2"
+  - "[ ] 21. Analysis and Report artifacts (umbrella): artifact-analysis ANL1-ANL8, artifact-report RPT1-RPT7"
+  - "[ ] 22. Audience and Dimensions artifacts (umbrella): artifact-audience AUD1-AUD6, artifact-dimensions DIM1-DIM6"
   - "[ ] 23. Worker and Deep Research cards in the conversation, each opening the artifact it changes"
   - "[ ] 24. A standing 'continue until you need me' beyond an approved plan's steps, over chunk 11's command registry, stopping at every gate (after the MVP: the plan-scoped part is lead-orchestration LO3-LO5)"
   - "[ ] 23b. Deep Research request and running cards in the conversation (DRL-4, after #550's chunk 23 half): the quote (ceiling by kind, priced routes, missing live settings, threshold), 'Spustit rešerši' through approve_request, the orb, six steps and fan-out tracks, waits with resume and budget lift, Zrušit"
@@ -367,6 +367,30 @@ The backend each chunk needs is in `.planning/mvp-consolidation.md` §6.
   canonical workspace and artifact reference (MVPQ-01, 2026-10-20); V3 is supporting reference.
 - **ADR 0026**, under *Accepted with*: the Lead steers the artifact pane through a closed set of
   display operations (D10); its gates are unchanged.
+
+## Artifact plans (2026-10-21)
+
+The product owner, 2026-10-21: "we need to have a plan for each artifact of each research stage",
+and "ensure they all work together to produce a draft research document".
+- Chunks 17-22 are now umbrellas. Each is ticked when its artifact plans are done, and the work is
+  built from those files:
+
+  | Chunk | Artifact plans |
+  |---|---|
+  | 17 | [`artifact-questionnaire`](artifact-questionnaire.md) (chunk 7's questionnaire half is QST5) |
+  | 18 | [`artifact-brief`](artifact-brief.md), [`artifact-design`](artifact-design.md) |
+  | 19 | [`artifact-sample`](artifact-sample.md) (Kontrola's readiness), [`artifact-fieldwork`](artifact-fieldwork.md) (Spuštění and Průběh) |
+  | 20 | [`artifact-results`](artifact-results.md), [`artifact-sociomap`](artifact-sociomap.md) |
+  | 21 | [`artifact-analysis`](artifact-analysis.md), [`artifact-report`](artifact-report.md) |
+  | 22 | [`artifact-audience`](artifact-audience.md), [`artifact-dimensions`](artifact-dimensions.md) |
+
+- [`artifact-chain-to-draft-report`](artifact-chain-to-draft-report.md) composes the hand-offs into
+  one internal draft and holds the chain's acceptance test (CHN11, CHN12).
+- Each artifact plan's first chunk declares its part of chunk 14's view vocabulary and chunk 16's
+  targets. 14 and 16 keep the frame and the grammar; the artifacts fill them in.
+- The stage list was checked against `apps/web/src/lib/workbench-stages.ts:16-19` and
+  `prototypes/research-lead-v2/src/model/terms.ts:6`. There are eleven stages: Kontrola is part of
+  Vzorek, and Spuštění with Průběh is Sběr dat.
 
 ## Child plans (added by the master plan, 2026-10-19)
 
