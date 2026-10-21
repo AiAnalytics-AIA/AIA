@@ -29,6 +29,9 @@ describe("editing a value where it is shown (I1)", () => {
     expect(readDraft("   ", false)).toEqual({ value: "", problem: "Vyplňte text; neuloženo." });
     expect(readDraft("   ", false, { required: false })).toEqual({ value: "", problem: null });
     expect(readDraft("abcdef", false, { maxLength: 5 }).problem).toBe("Nejvýš 5 znaků; neuloženo.");
+    // Counted in code points, as the server counts (Codex #532 sweep): five emoji are five.
+    expect(readDraft("\u{1F4C1}".repeat(5), false, { maxLength: 5 }).problem).toBeNull();
+    expect(readDraft("\u{1F4C1}".repeat(6), false, { maxLength: 5 }).problem).toBe("Nejvýš 5 znaků; neuloženo.");
     expect(readDraft("abc", false, { validate: (v) => (v === "abc" ? "Ne." : null) }).problem).toBe("Ne.");
   });
 });

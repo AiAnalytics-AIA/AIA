@@ -12,6 +12,14 @@ export const NAME_MAX = 80;
 
 export type NameProblem = { kind: "empty" } | { kind: "tooLong"; max: number } | { kind: "taken"; name: string };
 
+/**
+ * A text's length as the server's Python len() counts it: in code points, not UTF-16 units, so
+ * an emoji is one character here as it is there (Codex on #532: "x".length counts it twice).
+ */
+export function textLength(text: string): number {
+  return [...text].length;
+}
+
 /** A name as the server stores it: trimmed, inner whitespace collapsed to one space. */
 export function cleanName(raw: string): string {
   return raw.split(/\s+/).filter(Boolean).join(" ");
@@ -30,7 +38,7 @@ export function nameKey(raw: string): string {
 export function nameProblem(raw: string, existing: readonly string[], max = NAME_MAX, except?: string): NameProblem | null {
   const name = cleanName(raw);
   if (!name) return { kind: "empty" };
-  if (name.length > max) return { kind: "tooLong", max };
+  if (textLength(name) > max) return { kind: "tooLong", max };
   const key = nameKey(name);
   const own = except === undefined ? null : nameKey(except);
   const clash = existing.find((e) => nameKey(e) === key && nameKey(e) !== own);

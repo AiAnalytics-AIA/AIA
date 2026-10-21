@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { NAME_MAX, cleanName, nameKey, nameProblem, nameProblemWords } from "./name-input";
+import { NAME_MAX, cleanName, nameKey, nameProblem, nameProblemWords, textLength } from "./name-input";
 
 describe("a name typed in the list follows the server's organizer rules (domain/knowledge.py)", () => {
   it("is trimmed and its inner spaces collapsed, as organizer_name stores it", () => {
@@ -20,6 +20,15 @@ describe("a name typed in the list follows the server's organizer rules (domain/
     expect(nameProblem("x".repeat(NAME_MAX), existing)).toBeNull();
     expect(nameProblem("SMLOUVY ", existing)).toEqual({ kind: "taken", name: "Smlouvy" });
     expect(nameProblem("Smlouvy 2026", existing)).toBeNull();
+  });
+
+  it("counts its length in code points, as the server's Python len() does (Codex #532)", () => {
+    const emoji = "\u{1F4C1}".repeat(41);
+    expect(emoji.length).toBe(82);
+    expect(textLength(emoji)).toBe(41);
+    expect(nameProblem(emoji, [])).toBeNull();
+    expect(nameProblem("\u{1F4C1}".repeat(81), [])).toEqual({ kind: "tooLong", max: 80 });
+    expect(textLength("Řízení")).toBe(6);
   });
 
   it("may keep its own name when renamed", () => {

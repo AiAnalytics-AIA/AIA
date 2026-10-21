@@ -2,6 +2,7 @@
 // InlineText. Which key saves, which restores, and what a draft becomes before it is saved.
 
 import { t, tv } from "@/i18n/t";
+import { textLength } from "./name-input";
 
 export type EditKey = { key: string; ctrlKey?: boolean; metaKey?: boolean; shiftKey?: boolean };
 
@@ -33,7 +34,7 @@ export type TextRules = {
 export function readDraft(draft: string, multiline: boolean, rules: TextRules = {}): { value: string; problem: string | null } {
   const value = multiline ? draft.trim() : draft.split(/\s+/).filter(Boolean).join(" ");
   if (!value && rules.required !== false) return { value, problem: t("input.required") };
-  if (rules.maxLength !== undefined && value.length > rules.maxLength) return { value, problem: tv("input.tooLong", { max: rules.maxLength }) };
+  if (rules.maxLength !== undefined && textLength(value) > rules.maxLength) return { value, problem: tv("input.tooLong", { max: rules.maxLength }) };
   return { value, problem: rules.validate?.(value) ?? null };
 }
 
