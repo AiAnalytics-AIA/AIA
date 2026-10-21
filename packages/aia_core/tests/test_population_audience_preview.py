@@ -41,6 +41,24 @@ def test_a_filter_and_an_n_the_sampler_can_draw(population: Any) -> None:
     assert answer["seed"] == PREVIEW_SEED
 
 
+def test_each_filter_is_counted_alone_over_the_same_population(population: Any) -> None:
+    """AUD3: per_filter is select_audience over each filter alone; the combined is their AND."""
+    filters = {"vek": {"min": 30, "max": 59}, "kraj": ["Zlínský kraj", "Hlavní město Praha"]}
+    answer = audience_preview(population, filters, None)
+    alone = {k: len(select_audience(population, {k: v}).rows) for k, v in filters.items()}
+    assert answer["per_filter"] == alone
+    assert set(answer["per_filter"]) == set(answer["filters_applied"])
+    assert all(answer["selected_rows"] <= count < population.row_count for count in alone.values())
+    assert answer["selected_rows"] < min(alone.values())
+
+
+def test_no_filter_counts_nothing_alone_and_a_refusal_counts_none(population: Any) -> None:
+    assert audience_preview(population, {}, None)["per_filter"] == {}
+    assert audience_preview(population, {"vek": "abc"}, None)["per_filter"] is None
+    empty = audience_preview(population, {"vek": {"min": 101, "max": 120}}, None)
+    assert empty["per_filter"] is None
+
+
 def test_without_an_n_only_the_audience_is_counted(population: Any) -> None:
     answer = audience_preview(population, {}, None)
     assert answer["selected_rows"] == population.row_count and answer["sample"] is None

@@ -1863,13 +1863,22 @@ describe("Results", () => {
     render(<ResearchScreen step="results" frame={TEST_FRAME} />);
     fireEvent.click(await screen.findByRole("tab", { name: "Data" }));
     const comparison = await screen.findByRole("region", { name: "Srovnání: Nápoje" });
-    expect(within(comparison).getByText("Průměr na škále 1–5 · 95% interval")).toBeTruthy();
-    expect(within(comparison).getByText("Spolehlivě nejvýše hodnocený: Káva.")).toBeTruthy();
-    expect(within(comparison).getByText("Nejníže hodnocené: Čaj a Voda; pořadí mezi nimi nelze potvrdit.")).toBeTruthy();
-    expect(within(comparison).getAllByRole("link").map((a) => a.textContent)).toEqual(["Káva", "Čaj", "Voda"]);
-    // A suppressed object is not drawn and has no number, but is named.
-    expect(within(comparison).getByText("Bez čísla (potlačeno nebo bez průměru): Mléko.")).toBeTruthy();
+    expect(within(comparison).getByText("Průměr na škále 1–5 · 95% interval · Kish n")).toBeTruthy();
+    expect(within(comparison).getByText(/Spolehlivě nejvýše hodnocený: Káva\. Nejníže hodnocené: Čaj a Voda; pořadí mezi nimi nelze potvrdit\./)).toBeTruthy();
+    expect(within(comparison).getByText("Pořadí platí jen tam, kde se intervaly rozcházejí.")).toBeTruthy();
+    // Highest mean first, then the suppressed object in a row of its own.
+    expect(within(comparison).getAllByRole("link").map((a) => a.textContent)).toEqual(["Káva", "Čaj", "Voda", "Mléko"]);
+    const kava = comparison.querySelector('[data-aia="object:napoje.kava"]') as HTMLElement;
+    expect(within(kava).getByText("[4,00; 4,40]")).toBeTruthy();
+    expect(kava.textContent).toMatch(/z 5/);
+    // A suppressed object keeps its row and says why; its mean and interval are not shown.
+    const mleko = comparison.querySelector('[data-aia="object:napoje.mleko"]') as HTMLElement;
+    expect(mleko.getAttribute("data-withheld")).toBe("suppressed");
+    expect(mleko.textContent).toMatch(/^MlékoPotlačeno · podpora dat nestačí \(\d+ unikátních dárců\)/);
     expect(within(comparison).queryByText("3,50")).toBeNull();
+    expect(comparison.textContent).not.toMatch(/2,00|5,00/);
+    // The Lead points at the set, an object's row and each measure's card (artifact-results §4).
+    expect(comparison.getAttribute("data-aia")).toBe("set:napoje");
     // No rounding block: 18.6.6's two places, as each card prints them.
     expect(within(comparison).getByText("4,20")).toBeTruthy();
     // A link to a card clears the filters that hide it and opens its detail.
@@ -1880,9 +1889,38 @@ describe("Results", () => {
     fireEvent(window, new HashChangeEvent("hashchange"));
     const card = await within(explorer).findByRole("region", { name: "Čaj" });
     expect(card.getAttribute("data-focused")).toBe("true");
+    expect(card.getAttribute("data-aia")).toBe("measure:napoje:caj");
     expect((card.querySelector("details") as HTMLDetailsElement).open).toBe(true);
     expect((within(explorer).getByRole("searchbox", { name: "Najít otázku nebo objekt" }) as HTMLInputElement).value).toBe("");
     window.location.hash = "";
+  });
+
+  it("shows at most five raw answers to an open question, outside the details, labelled as data", async () => {
+    const answers = ["Lepší aplikace", "Nižší poplatky", "Doporučení", "Pobočka blízko", "Rychlá podpora", "Šesté", "Sedmé"];
+    const aggregate = { ...AGGREGATE, payload: { aggregate: { ...AGGREGATE.payload.aggregate, questions: {
+      q9: { typ: "otevrena", ...support("REPORTABLE", 140), verbatimy: answers },
+      q10: { typ: "otevrena", ...support("SUPPRESS", 12), verbatimy: ["Skryté"] },
+    } } } };
+    const specification = { ...AGGREGATE, artifact_id: "ART-1", artifact_type: "research_specification",
+      payload: { specification: { n: 200, questions: [{ id: "q9", text: "Proč zvažujete změnu?", typ: "otevrena" }, { id: "q10", text: "Co dalšího?", typ: "otevrena" }] } } };
+    api({ ...listed(COMPLETED),
+      "GET /api/v1/studies/STU-1/research/runs/RUN-1/artifacts/ART-1": () => specification,
+      "GET /api/v1/studies/STU-1/research/runs/RUN-1/artifacts/ART-4": () => aggregate,
+      "GET /api/v1/studies/STU-1/research/runs/RUN-1/artifacts/ART-5": () => SOCIOMAP,
+    });
+    render(<ResearchScreen step="results" frame={TEST_FRAME} />);
+    fireEvent.click(await screen.findByRole("tab", { name: "Data" }));
+    const card = await screen.findByRole("region", { name: "Proč zvažujete změnu?" });
+    expect(within(card).getByText("Otevřená otázka: 120 odpovědí, nekódováno.")).toBeTruthy();
+    const list = within(card).getByRole("list", { name: "Ukázky odpovědí" });
+    expect(within(list).getAllByRole("listitem").map((li) => li.textContent)).toEqual(answers.slice(0, 5).map((a) => `„${a}“`));
+    expect(list.closest("details")).toBeNull();
+    expect(card.textContent).not.toMatch(/Šesté|Sedmé/);
+    expect(within(card).getByText(/^Otevřené odpovědi jsou data, ne připuštěná evidence; nejsou kódované\./)).toBeTruthy();
+    // A suppressed open question shows no answer.
+    const hidden = screen.getByRole("region", { name: "Co dalšího?" });
+    expect(within(hidden).queryByRole("list", { name: "Ukázky odpovědí" })).toBeNull();
+    expect(hidden.textContent).not.toMatch(/Skryté/);
   });
 
   it("ranks a set's means at the places the run stored them, as its cards print them", async () => {

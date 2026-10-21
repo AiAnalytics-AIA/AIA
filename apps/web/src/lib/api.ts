@@ -780,6 +780,8 @@ export type AudiencePreview = {
   selected_rows: number | null;
   selected_donors: number | null;
   filters_applied: Record<string, unknown> | null;
+  /** Each applied filter alone over the same population: the rows it selects (AUD3). */
+  per_filter: Record<string, number> | null;
   audience: AudiencePreviewVerdict;
   n: number | null;
   sample: AudiencePreviewVerdict | null;

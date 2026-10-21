@@ -18,9 +18,11 @@ from aia_core.application.research_lead import ResearchLead
 from aia_core.application.scope import AuthenticatedPrincipal, ScopeResolver
 from aia_core.domain.ai_material import MaterialApproval, material_sha256
 from aia_core.domain.ai_models import ModelCapability
+from aia_core.domain.knowledge import KnowledgeKind
 from aia_core.domain.research_lead import LEAD_PROMPT_ID, RememberNote, SelfUpdate, lead_prompt
 from aia_core.domain.residency import DataClass
 from aia_core.infrastructure.ai_usage_repository import AIUsageRepository
+from aia_core.infrastructure.client_knowledge_repository import ClientKnowledgeRepository
 from aia_core.infrastructure.model_adapters.transport import HttpRequest, HttpResponse
 from aia_core.infrastructure.prompt_repository import PromptRepository
 from aia_core.infrastructure.researcher_lead_repository import ResearcherLeadRepository
@@ -476,6 +478,56 @@ def test_a_client_note_makes_the_turn_class_a_and_a_route_without_a_refuses_it(
     assert worker(ready, database_url, store, build, transport).run_once()
     assert transport.requests == []  # the route is approved for Classes B and C only
     assert lead_turn(ready, turn_id)["status"] == "WAITING"
+
+
+#: Every class: what a turn over the client's approved knowledge (Class A by rule) needs.
+EVERY_CLASS = "CLASS_A_CLIENT_CONFIDENTIAL,CLASS_B_DERIVED_CLIENT,CLASS_C_INTERNAL"
+
+
+def add_dataset_knowledge(world: Any) -> None:
+    """An approved DATASET item: a person's write in the client workspace takes effect now."""
+    with world.sessions() as session:
+        ctx = ScopeResolver(session).client_context(
+            AuthenticatedPrincipal(user_id=world.lead_id, organization_id=world.organization_id),
+            client_id=world.client_id,
+        )
+        ClientKnowledgeRepository(session).add(
+            ctx, kind=KnowledgeKind.DATASET, title="Vlastní data", summary="Fiktivní, n = 300"
+        )
+        session.commit()
+
+
+def test_a_dataset_in_the_client_knowledge_reaches_the_eu_bedrock_route(
+    ready: Any, database_url: str, store: Any, build: Any
+) -> None:
+    """PR #564 Finding 1: once a client had an approved DATASET, ARTIFACT or FINDING item, its
+    turns declared the lineage ``unclassified-client-knowledge``, which no determination named,
+    and every one parked ``licence_dataset_unknown``. The data owner approved that lineage for
+    the EU Bedrock route alone (2026-10-21, /pmstatus Q60)."""
+    add_dataset_knowledge(ready)
+    turn_id = post(ready)
+    transport = RecordedBedrock([REPLY])
+    w = worker(ready, database_url, store, build, transport, route_approved_for=EVERY_CLASS)
+    assert w.run_once()
+    assert len(transport.requests) == 1
+    turn = lead_turn(ready, turn_id)
+    assert (turn["status"], turn["reason"]) == ("COMPLETED", None), turn
+    assert turn["data_class"] == "CLASS_A_CLIENT_CONFIDENTIAL"
+
+
+def test_a_dataset_in_the_client_knowledge_is_refused_on_any_other_route(
+    ready: Any, database_url: str, store: Any, build: Any, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """The determination names one route: the same turn over another is refused, unsent."""
+    add_dataset_knowledge(ready)
+    turn_id = post(ready)
+    monkeypatch.setitem(ENV, "AIA_AI_ROUTE_ID", "bedrock-eu-secondary")
+    transport = RecordedBedrock([REPLY])
+    w = worker(ready, database_url, store, build, transport, route_approved_for=EVERY_CLASS)
+    assert w.run_once()
+    assert transport.requests == []
+    turn = lead_turn(ready, turn_id)
+    assert (turn["status"], turn["reason"]) == ("WAITING", "licence_not_approved_for_route"), turn
 
 
 def test_the_turn_applies_only_what_stays_in_its_client_and_the_rest_waits(

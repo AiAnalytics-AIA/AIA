@@ -81,6 +81,7 @@ import {
   type AggregateDeviation,
   type QuestionResult as AggregateResult,
   type ResultTable,
+  OPEN_ANSWER_EXAMPLES,
   verdictTone,
 } from "@/lib/research-execution";
 import { runDestination, runState } from "@/lib/run-state";
@@ -107,7 +108,7 @@ import { useStepActivity } from "./useStepActivity";
 import { ObjectMapView } from "./ObjectMapView";
 import { InterpretationResearch } from "./InterpretationResearch";
 import { ResultsWorkspace } from "./ResultsWorkspace";
-import { citedMeasure, untitled, compareObjects, type CompiledSpecification, measureAnchor, readMeasure, type ReadingTone } from "@/lib/result-reading";
+import { citedMeasure, untitled, compareObjects, type CompiledSpecification, measureAnchor, measureTarget, objectTarget, readMeasure, type ReadingTone, setTarget } from "@/lib/result-reading";
 import { FormattedText } from "./FormattedText";
 import { CompleteReport } from "./CompleteReport";
 import { AnswerabilityGate } from "./AnswerabilityGate";
@@ -1373,11 +1374,23 @@ function Table({ table, showSupportNote = true }: { table: ResultTable; showSupp
           </tbody>
         </table>
       ) : null}
-      {table.verbatims.length ? (
-        <ul className="list-disc pl-5 text-sm text-ink-muted" aria-label={t("research.exec.results.verbatims")}>
-          {table.verbatims.map((v) => <li key={v}>{v}</li>)}
-        </ul>
-      ) : null}
+    </div>
+  );
+}
+
+/**
+ * An open question's raw answers as V2 shows them (artifact-results RES5, Q52 a): up to five,
+ * quoted, labelled as data rather than admitted evidence. Inside AIA only: nothing exports them
+ * and no report reads them (the aggregate's verbatimy reach no report composer).
+ */
+function OpenAnswers({ answers }: { answers: readonly string[] }) {
+  if (!answers.length) return null;
+  return (
+    <div data-open-answers className="mt-3">
+      <ul className="flex flex-col gap-1.5 text-sm" aria-label={t("research.exec.results.verbatims")}>
+        {answers.map((v, i) => <li key={i} className="border-l-2 border-border pl-3">„{v}“</li>)}
+      </ul>
+      <p className="mt-2 text-xs text-ink-muted">Otevřené odpovědi jsou data, ne připuštěná evidence; nejsou kódované. Zobrazeno nejvýše {OPEN_ANSWER_EXAMPLES}, jen v AIA: do exportu ani ke klientovi nejdou.</p>
     </div>
   );
 }
@@ -1759,33 +1772,66 @@ const READING_TONE: Record<ReadingTone, string> = {
   plain: "text-ink", indicative: "text-status-you-ink", suppressed: "text-ink-muted", empty: "text-ink-muted",
 };
 
-/** One set's objects side by side: each mean with its 95 % interval on the set's scale. */
+/** Kish n as a reader sees it: whole respondents, rounded down (report numbers.ts); "—" when not stored. */
+const kish = (n: number | null) => (n === null ? "—" : Math.floor(n).toLocaleString("cs-CZ"));
+
+/**
+ * One set's objects as V2 draws them (artifact-results RES3): each mean with its 95 % interval,
+ * the interval on the set's scale and Kish n; a suppressed object keeps its row and says why,
+ * with no number. The reading line orders objects only where intervals part (audit F9).
+ */
 // `places`: the decimals the run stored its means at (its aggregation's rounding), so the ranking
 // prints each mean as the measure's card does.
-function ObjectComparison({ title, comparison, scale, places }: { title: string; comparison: ReturnType<typeof compareObjects>; scale: readonly [number, number] | null; places: number }) {
+function ObjectComparison({ setId, title, comparison, scale, places }: { setId: string; title: string; comparison: ReturnType<typeof compareObjects>; scale: readonly [number, number] | null; places: number }) {
   const [lo, hi] = comparison.domain;
   const at = (x: number) => `${hi > lo ? Math.min(100, Math.max(0, ((x - lo) / (hi - lo)) * 100)) : 50}%`;
+  const mean = (x: number) => x.toLocaleString("cs-CZ", { minimumFractionDigits: places, maximumFractionDigits: places });
+  const objectOf = (id: string) => id.slice(setId.length + 1);
   return (
-    <section aria-label={`Srovnání: ${title}`} data-object-comparison className="rounded-md border border-border bg-surface-raised p-4">
+    <section aria-label={`Srovnání: ${title}`} data-object-comparison data-aia={setTarget(setId)} className="rounded-md border border-border bg-surface-raised p-4">
       <div className="flex flex-wrap items-baseline justify-between gap-2">
         <h4 className="text-sm font-semibold">{title}</h4>
-        <span className="text-xs text-ink-muted">{scale ? `Průměr na škále ${scale[0]}–${scale[1]}` : "Průměr; škála běhu není uvedena"} · 95% interval</span>
+        <span className="text-xs text-ink-muted">{scale ? `Průměr na škále ${scale[0]}–${scale[1]}` : "Průměr; škála běhu není uvedena"} · 95% interval · Kish n</span>
       </div>
-      {comparison.top ? <p className="mt-2 text-sm leading-6">{comparison.top}</p> : null}
-      {comparison.bottom ? <p className="text-sm leading-6">{comparison.bottom}</p> : null}
-      <ol className="mt-3 flex flex-col gap-2">
-        {comparison.ranked.map((o) => (
-          <li key={o.id} className="grid grid-cols-[minmax(6rem,12rem)_1fr_3.5rem] items-center gap-3 text-sm">
-            <a href={`#${measureAnchor(`${o.id}`)}`} className="truncate no-underline hover:underline" title={o.label}>{o.label}{o.support === "INDICATIVE" ? <span className="ml-1 text-xs text-status-you-ink">(orientační)</span> : null}</a>
-            <span aria-hidden="true" className="relative h-4 rounded-full bg-surface-sunken">
-              {o.low !== null && o.high !== null ? <span className="absolute top-1 h-2 rounded-full bg-signal/25" style={{ left: at(o.low), width: `calc(${at(o.high)} - ${at(o.low)})` }} /> : null}
-              <span className="absolute top-0.5 size-3 -translate-x-1/2 rounded-full bg-signal" style={{ left: at(o.value) }} />
-            </span>
-            <span className="text-right tabular-nums">{o.value.toLocaleString("cs-CZ", { minimumFractionDigits: places, maximumFractionDigits: places })}</span>
-          </li>
-        ))}
-      </ol>
-      {comparison.omitted.length ? <p className="mt-2 text-xs text-ink-muted">Bez čísla (potlačeno nebo bez průměru): {comparison.omitted.join(", ")}.</p> : null}
+      <div className="mt-3 overflow-x-auto">
+        <table className="w-full min-w-[30rem] text-sm">
+          <thead>
+            <tr className="text-left text-xs text-ink-muted">
+              <th className="py-1 pr-3 font-medium">Objekt</th>
+              <th className="py-1 pr-3 text-right font-medium">Průměr</th>
+              <th className="py-1 pr-3 text-right font-medium">Interval</th>
+              <th className="py-1 pr-3 font-medium">{scale ? `${scale[0]} · · · ${scale[1]}` : <span className="sr-only">Interval na škále</span>}</th>
+              <th className="py-1 text-right font-medium">Kish n</th>
+            </tr>
+          </thead>
+          <tbody>
+            {comparison.ranked.map((o) => (
+              <tr key={o.id} data-aia={objectTarget(setId, objectOf(o.id))} className="border-t border-border">
+                <td className="max-w-48 truncate py-1.5 pr-3"><a href={`#${measureAnchor(o.id)}`} className="no-underline hover:underline" title={o.label}>{o.label}</a>{o.support === "INDICATIVE" ? <span className="ml-1 text-xs text-status-you-ink">(orientační)</span> : null}</td>
+                <td className="whitespace-nowrap py-1.5 pr-3 text-right tabular-nums"><b>{mean(o.value)}</b>{scale ? <span className="text-ink-muted"> z {scale[1]}</span> : null}</td>
+                <td className="whitespace-nowrap py-1.5 pr-3 text-right tabular-nums text-ink-muted">{o.low !== null && o.high !== null ? `[${mean(o.low)}; ${mean(o.high)}]` : "interval chybí"}</td>
+                <td className="w-[30%] min-w-24 py-1.5 pr-3">
+                  <span aria-hidden="true" className="relative block h-4 rounded-full bg-surface-sunken">
+                    {o.low !== null && o.high !== null ? <span className="absolute top-1 h-2 rounded-full bg-signal/25" style={{ left: at(o.low), width: `calc(${at(o.high)} - ${at(o.low)})` }} /> : null}
+                    <span className="absolute top-0.5 size-3 -translate-x-1/2 rounded-full bg-signal" style={{ left: at(o.value) }} />
+                  </span>
+                </td>
+                <td className="whitespace-nowrap py-1.5 text-right tabular-nums text-ink-muted">{kish(o.effectiveN)}</td>
+              </tr>
+            ))}
+            {comparison.withheld.map((o) => (
+              <tr key={o.id} data-aia={objectTarget(setId, objectOf(o.id))} data-withheld={o.reason} className="border-t border-border">
+                <td className="max-w-48 truncate py-1.5 pr-3"><a href={`#${measureAnchor(o.id)}`} className="no-underline hover:underline" title={o.label}>{o.label}</a></td>
+                <td colSpan={3} className="py-1.5 pr-3 text-ink-muted">{o.reason === "suppressed"
+                  ? `Potlačeno · ${o.donors === null ? "podpora dat nestačí" : `podpora dat nestačí (${o.donors.toLocaleString("cs-CZ")} unikátních dárců)`}`
+                  : "Bez průměru"}</td>
+                <td className="whitespace-nowrap py-1.5 text-right tabular-nums text-ink-muted">{kish(o.effectiveN)}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+      {comparison.top || comparison.bottom ? <p data-reading-line className="mt-3 text-sm leading-6">{[comparison.top, comparison.bottom].filter(Boolean).join(" ")} <span className="text-ink-muted">Pořadí platí jen tam, kde se intervaly rozcházejí.</span></p> : null}
     </section>
   );
 }
@@ -1845,7 +1891,7 @@ function AggregateView({ artifact, run, specification }: { artifact: Artifact; r
       </section>
       {sets.length ? <section aria-label="Srovnání hodnocených objektů" className="flex flex-col gap-3">
         <h3 className="text-base font-semibold">Srovnání hodnocených objektů</h3>
-        {sets.map((set) => <ObjectComparison key={set.id} title={set.title} comparison={set.comparison} scale={set.scale} places={at.mean} />)}
+        {sets.map((set) => <ObjectComparison key={set.id} setId={set.id} title={set.title} comparison={set.comparison} scale={set.scale} places={at.mean} />)}
       </section> : null}
       <div className="flex flex-wrap items-end gap-3">
         <label className="min-w-56 flex-1 text-sm font-medium">Najít otázku nebo objekt
@@ -1864,7 +1910,7 @@ function AggregateView({ artifact, run, specification }: { artifact: Artifact; r
         {matching.length ? matching.map((measure) => {
           const anchor = measureAnchor(measure.id);
           const reading = readMeasure(measure.result, measure.scale, box, at);
-          return <section key={measure.id} id={anchor} aria-label={measure.title} data-focused={focused === anchor ? "true" : undefined}
+          return <section key={measure.id} id={anchor} aria-label={measure.title} data-aia={measureTarget(measure.id)} data-focused={focused === anchor ? "true" : undefined}
             className={`scroll-mt-24 rounded-md border bg-surface-raised p-4 ${focused === anchor ? "border-signal shadow-[0_0_0_1px_var(--color-signal)]" : "border-border"}`}>
             <div className="flex flex-wrap items-start justify-between gap-3">
               <div className="min-w-0 flex-1">
@@ -1876,6 +1922,7 @@ function AggregateView({ artifact, run, specification }: { artifact: Artifact; r
             </div>
             <p className="mt-2 text-xs text-ink-muted">{supportNote(measure.table)}</p>
             <FidelityRefusal reason={fidelityRefusal(measure.result)} />
+            <OpenAnswers answers={measure.table.verbatims} />
             <details className="mt-3 border-t border-border pt-3 text-sm" open={focused === anchor ? true : undefined}>
               <summary className="cursor-pointer font-medium">Odpovědi, intervaly a původ otázky</summary>
               <div className="mt-3"><Table table={measure.table} showSupportNote={false} /></div>

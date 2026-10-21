@@ -77,8 +77,10 @@ def scripted_lead_output(frozen: Mapping[str, Any]) -> LeadOutput:
 
     A greeting says where the study stands in three lines. A message proposes one edit (the
     first question's text, else the title), focuses it and prepares the questionnaire's
-    optimisation as a decision card; a message with "pamatuj" also asks the Lead to remember
-    it as a personal note. Every reply starts with :data:`SCRIPTED_PREFIX`.
+    optimisation as a decision card (a message with "spusť": the research run instead; with
+    "aktualizuj návrh": the brief's analysis, which reads Návrh's saved answers and comments); a
+    message with "pamatuj" also asks the Lead to remember it as a personal note. Every reply
+    starts with :data:`SCRIPTED_PREFIX`.
     """
     view = layer(frozen, "view")
     study = layer(frozen, "study")
@@ -121,6 +123,17 @@ def scripted_lead_output(frozen: Mapping[str, Any]) -> LeadOutput:
             "why": "Ukázka rozhodnutí",
         },
     }
+    if "spusť" in message.casefold():
+        # A prepared research run instead (plan research-lead-workbench chunk 23): its card starts
+        # the run through Spuštění's route, on the workbench's fictional fieldwork.
+        body["request"] = {"kind": "research_run", "why": "Ukázka spuštění výzkumu"}
+    elif "aktualizuj návrh" in message.casefold():
+        # Návrh's saved answers or comments, read from the working copy by the brief's analysis.
+        body["request"] = {
+            "kind": "agent_job",
+            "action": "analyze_brief",
+            "why": "Aktualizace návrhu podle uložených odpovědí a komentářů",
+        }
     if "pamatuj" in message.casefold():
         body["self_update"] = {"remember": [{"scope": "personal", "text": message[:300]}]}
     return LeadOutput.model_validate(body)

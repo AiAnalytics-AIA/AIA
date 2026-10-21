@@ -422,6 +422,14 @@ The product owner's decisions of 2026-10-19 on accepting:
      spend limit) does not apply to Lead-prepared work.
    - **The other three** start nothing from the card. It opens the stage whose own start carries
      that start's gates: readiness, answerability and the spend limit.
+   - *Decided 2026-10-21 (the product owner, Q44-Q47; not built yet):* a Lead card starts Design and
+     Interpretation Research on the server through `approve_request` (`lead-orchestration#LO5a.2`).
+     The Lead may offer every result target kind from a code-built candidate list, the
+     `research_questions` module the default (Q44); a Design Research run may focus on named
+     research questions, the whole design the default (Q45); QUICK and STANDARD are offered,
+     STANDARD the default (Q46); a plan may chain fieldwork, then interpretation, the step parking
+     if its module is BLOCKED (Q47). The record is `lead-orchestration.md` § *Deep Research under
+     the Lead (2026-10-21)*.
 5. **Live calls on develop, at a small cap.** The per-turn reservation is the smallest the gateway
    accepts. The route's approved data classes still decide which studies can be sent.
 6. **Each researcher has their own Lead** (the product owner, later the same day). The Lead is
