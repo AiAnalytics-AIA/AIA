@@ -15,7 +15,9 @@ With ``AIA_AI_ANALYSIS_ENABLED=true`` the eight analysis modules are answered to
 ledger, at a price of zero, so a fictional run reaches its internal draft report on this machine
 (plan ``artifact-chain-to-draft-report`` CHN7). No other key of the AI runtime is read here: the
 route, model and prices are this composition's own (:data:`RECORDED_RUNTIME`), so nothing a
-developer's environment holds can point it at a provider.
+developer's environment holds can point it at a provider. With
+``AIA_AI_RESEARCH_AGENTS_ENABLED=true`` the eight design workers answer the same way, one
+recorded proposal each, so a job's card, its proposal and its stale refusal can be met here.
 
 Deep Research runs here end to end with nothing paid and nothing leaving the process
 (research-lead-workbench 12a, F-DRL-6) when ``AIA_WORKBENCH_DEEP_RESEARCH_FIXTURES`` names a
@@ -76,6 +78,7 @@ from .deep_research_recorded import recorded_runtime
 from .recorded_models import RecordedModels, RecordedSigner
 from .registry import registry_for
 from .research import research_registry
+from .research_agents import ResearchAgentConfig, ResearchAgentExecutor
 from .research_lead import KIND as RESEARCH_LEAD_KIND
 from .research_lead import LeadAnswer, ResearchLeadExecutor
 
@@ -91,6 +94,7 @@ __all__ = [
     "WorkbenchDesignClassifier",
     "build_registry",
     "recorded_analysis",
+    "recorded_research_agent",
     "scripted_deep_research_runtime",
     "scripted_lead_output",
     "workbench_registry_for",
@@ -238,6 +242,9 @@ RECORDED_RUNTIME: Final[Mapping[str, str]] = {
     "AIA_AI_ANALYSIS_ENABLED": "true",
     "AIA_AI_ANALYSIS_MAX_OUTPUT_TOKENS": "4096",
     "AIA_AI_ANALYSIS_RESERVATION_USD": "0.01",
+    "AIA_AI_RESEARCH_AGENTS_ENABLED": "true",
+    "AIA_AI_RESEARCH_MAX_OUTPUT_TOKENS": "8192",
+    "AIA_AI_RESEARCH_RESERVATION_USD": "0.01",
 }
 
 
@@ -509,20 +516,55 @@ def _deep_research(
     }
 
 
+#: The classes the recorded design workers' route takes: a study's design (B), its client's
+#: approved knowledge (A) and internal material (C).
+_DESIGN_CLASSES: Final = "CLASS_A_CLIENT_CONFIDENTIAL,CLASS_B_DERIVED_CLIENT,CLASS_C_INTERNAL"
+
+
+def recorded_research_agent(
+    *, store: ArtifactStore, build: BuildIdentity, models: RecordedModels | None = None
+) -> StepExecutor:
+    """The eight design workers over recorded answers behind the real gateway, at zero price
+    (:data:`~aia_executors.recorded_models.DESIGN_ANSWERS`, one fixed answer per worker): a
+    job's proposal, its card in the Lead's conversation and its accept, on this machine. A job
+    carries its client's approved knowledge, which makes its request Class A by rule, so this
+    route takes Class A as the EU route does; nothing it is sent leaves the process."""
+    settings = AIRuntimeSettings.from_env(
+        {"AIA_ENV": "test", **RECORDED_RUNTIME, "AIA_AI_ROUTE_APPROVED_FOR": _DESIGN_CLASSES}
+    )
+    assert settings is not None
+    return ResearchAgentExecutor(
+        store=store,
+        build=build,
+        gateway=build_gateway(
+            settings, transport=models or RecordedModels(), signer=RecordedSigner()
+        ),
+        config=ResearchAgentConfig(
+            policy_version=settings.policy_version,
+            max_output_tokens=settings.research_max_output_tokens,
+            context_window_tokens=settings.context_window_tokens,
+            reservation_usd=settings.research_reservation_usd,
+            fictional_client_ids=frozenset(),
+        ),
+    )
+
+
 def workbench_registry_for(
     *,
     store: ArtifactStore,
     build: BuildIdentity,
     analysis: StepExecutor | None = None,
+    research_agent: StepExecutor | None = None,
     deep_research: Path | None = None,
 ) -> dict[str, StepExecutor]:
     """Production's registry with the fictional fieldwork source added, the Research Lead's
     turns answered by a script (no model); ``analysis`` replaces the analysis step
-    (:func:`recorded_analysis`; without it the step parks, as production's does) and, with
+    (:func:`recorded_analysis`; without it the step parks, as production's does), as
+    ``research_agent`` replaces the design workers (:func:`recorded_research_agent`) and, with
     ``deep_research`` (a fixtures directory), Deep Research runs on recorded web and scripted
     agents. Tests use this."""
     return {
-        **registry_for(store=store, build=build, analysis=analysis),
+        **registry_for(store=store, build=build, analysis=analysis, research_agent=research_agent),
         **_deep_research(store=store, build=build, fixtures=deep_research),
         RESEARCH_LEAD_KIND: ScriptedLeadExecutor(store=store, build=build),
         **research_registry(
@@ -547,10 +589,16 @@ def build_registry() -> dict[str, StepExecutor]:
         )
     store = build_artifact_store(StorageSettings.from_env())
     build = BuildIdentity.from_env()
+
+    def switched(key: str) -> bool:
+        return os.environ.get(key, "").strip().lower() in {"1", "true", "yes", "on"}
+
     analysis = (
-        recorded_analysis(store=store, build=build)
-        if os.environ.get("AIA_AI_ANALYSIS_ENABLED", "").strip().lower()
-        in {"1", "true", "yes", "on"}
+        recorded_analysis(store=store, build=build) if switched("AIA_AI_ANALYSIS_ENABLED") else None
+    )
+    agent = (
+        recorded_research_agent(store=store, build=build)
+        if switched("AIA_AI_RESEARCH_AGENTS_ENABLED")
         else None
     )
     fixtures = (os.environ.get(DEEP_RESEARCH_FIXTURES_KEY) or "").strip()
@@ -558,5 +606,6 @@ def build_registry() -> dict[str, StepExecutor]:
         store=store,
         build=build,
         analysis=analysis,
+        research_agent=agent,
         deep_research=Path(fixtures) if fixtures else None,
     )
