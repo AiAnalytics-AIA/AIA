@@ -242,6 +242,8 @@ class CompileExecutor(_Step):
 
     def execute(self, step: StepInput, context: StepContext) -> StepOutcome:
         context.checkpoint()
+        if "frozen_specification" in step.payload:
+            return self._frozen(step, context, step.payload["frozen_specification"])
         revision_id = str(step.payload.get("design_revision_id") or "")
         # The limits the run pinned (plan methodology-tab V1a); a run started before the pin
         # has none here and compiles under aia-readiness-1, as it always did.
@@ -279,6 +281,74 @@ class CompileExecutor(_Step):
         context.progress("specifikace sestavena", artifact_id=artifact.artifact_id)
         return _produced(
             step, artifact, created, SPECIFICATION, specification_fingerprint=spec.fingerprint()
+        )
+
+    def _frozen(self, step: StepInput, context: StepContext, frozen: object) -> StepOutcome:
+        """An analysis retry: the specification the original run compiled, never compiled
+        again. Named by artifact id *and* SHA-256 at the retry's start, as its dataset is: a
+        later compiler (``aia-research-compile-2`` reads scale labels) would store another
+        specification, and every completed module's reuse key -- the specification's bytes --
+        would miss and be paid for again. One that is not this project's, not a
+        specification, has other bytes or is not of the retry's Design Revision is refused,
+        never substituted."""
+        named = frozen if isinstance(frozen, Mapping) else {}
+        artifact_id, sha256 = named.get("artifact_id"), named.get("sha256")
+        if not isinstance(artifact_id, str) or not isinstance(sha256, str):
+            return Failed(
+                FailureClass.MISSING_CONFIGURATION,
+                error={
+                    "reason": "frozen_specification_unnamed",
+                    "message": "the retry does not name the specification it reuses",
+                },
+            )
+        mismatch = Failed(
+            FailureClass.SCHEMA_VIOLATION,
+            error={
+                "reason": "frozen_specification_mismatch",
+                "message": f"specification {artifact_id} is not the one the retry was started over",
+                "artifact_id": artifact_id,
+            },
+        )
+        revision_id = str(step.payload.get("design_revision_id") or "")
+        with context.transaction() as (session, _workflow):
+            repo = _artifacts(session, context, self._store)
+            try:
+                artifact = repo.get(artifact_id)
+            except ArtifactNotFound:
+                return mismatch
+            if (
+                artifact.artifact_type != SPECIFICATION
+                or artifact.project_id != step.project_id
+                or artifact.sha256 != sha256
+            ):
+                return mismatch
+            try:
+                payload = repo.read_json(artifact_id)
+                spec = ResearchSpecification.model_validate(payload["specification"])
+            except (IntegrityError, ObjectNotFound):
+                # Returned, not raised: the CORRUPT mark the read made must commit (OI-77).
+                return Failed(
+                    FailureClass.SCHEMA_VIOLATION,
+                    error={"reason": "frozen_specification_corrupt", "artifact_id": artifact_id},
+                )
+            compiled_from = str(payload.get("design_revision_id") or "")
+            if compiled_from != revision_id:
+                designs = StudyDesignRepository(session, context.scope)
+                if fingerprint(designs.content(compiled_from)) != fingerprint(
+                    designs.content(revision_id)
+                ):
+                    return mismatch
+        context.progress(
+            "specifikace z původního běhu převzata, nic se znovu nesestavuje",
+            artifact_id=artifact_id,
+        )
+        return _produced(
+            step,
+            artifact,
+            False,
+            SPECIFICATION,
+            specification_fingerprint=spec.fingerprint(),
+            frozen_from_run=named.get("run_id"),
         )
 
 

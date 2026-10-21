@@ -316,6 +316,11 @@ def _record(world: Any, store: InMemoryArtifactStore, artifact_id: str) -> Any:
         return parse_module_artifact(repo.read_json(artifact_id))
 
 
+def _payload(world: Any, store: InMemoryArtifactStore, artifact_id: str) -> Any:
+    with world.sessions() as session:
+        return research_artifacts(session, world.lead_scope(session), store).read_json(artifact_id)
+
+
 def _ledger(world: Any, run_id: str) -> list[Any]:
     with world.sessions() as session:
         return AIUsageRepository(session, world.lead_scope(session)).events(run_id=run_id)
@@ -1260,6 +1265,93 @@ def test_retrying_failed_modules_asks_only_them_over_the_same_data(
     with pytest.raises(AnalysisNotRetryable) as nothing:
         _retry_analysis(world, store, retry.run_id)
     assert nothing.value.reason == "nothing_to_retry"
+
+
+def test_a_retry_of_a_run_an_earlier_compiler_compiled_reuses_its_specification(
+    world: Any,
+    store: InMemoryArtifactStore,
+    run_with: Callable[..., Worker],
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """input-interactions 3b, review of #538: a run compiled before compile-2 is retried over
+    its own stored specification, by id and SHA-256, never compiled again. Compiled again, its
+    specification's bytes would move every completed module's reuse key: each would be asked
+    (paid) again while the ceiling counted it reused."""
+    from aia_core.application import research as research_app
+    from aia_core.domain import research_design
+
+    models = ScriptedModels(invent={"objects"})
+    worker = run_with(models)
+    monkeypatch.setattr(research_design, "COMPILER_VERSION", "aia-research-compile-1")
+    first = _started_with_analysis(world)
+    _drain(worker)
+    monkeypatch.undo()
+    assert research_design.COMPILER_VERSION == "aia-research-compile-2"
+    original = _run(world, first)
+    compiled = next(s for s in original["steps"] if s["node_key"] == "compile")["output"]
+    spec_payload = _payload(world, store, compiled["artifact_id"])
+    assert spec_payload["specification"]["compiler_version"] == "aia-research-compile-1"
+    asked_before = list(models.asked)
+
+    ceilings: list[int] = []
+    real = research_app.ResearchRuns.retry_analysis
+
+    def spy(self: Any, run_id: str, *, frozen_dataset: FrozenDataset, **kw: Any) -> Any:
+        ceilings.append(frozen_dataset.modules_asked)
+        return real(self, run_id, frozen_dataset=frozen_dataset, **kw)
+
+    monkeypatch.setattr(research_app.ResearchRuns, "retry_analysis", spy)
+    models.invent.clear()
+    retry = _retry_analysis(world, store, first)
+    _drain(worker)
+
+    second = _run(world, retry.run_id)
+    assert second["status"] is WorkflowRunStatus.COMPLETED, _unfinished(world, retry.run_id)
+    steps = {s["node_key"]: s for s in second["steps"]}
+    assert steps["compile"]["output"]["artifact_id"] == compiled["artifact_id"]
+    assert steps["compile"]["output"]["sha256"] == compiled["sha256"]
+    assert steps["compile"]["output"]["frozen_from_run"] == first
+    # Zero new calls for the completed modules; the ceiling counted exactly what was asked.
+    new = models.asked[len(asked_before) :]
+    assert new == [("objects", 4)]
+    assert ceilings == [len({m for m, _ in new})] == [1]
+    reused = [m for m, step in _analysis(second).items() if step["output"]["reused"]]
+    assert sorted(reused) == sorted(m for m in MODULES if m != "objects")
+
+
+def test_a_retry_naming_another_specification_is_refused_never_compiled_again(
+    world: Any, store: InMemoryArtifactStore, run_with: Callable[..., Worker]
+) -> None:
+    models = ScriptedModels(invent={"objects"})
+    worker = run_with(models)
+    first = _started_with_analysis(world)
+    _drain(worker)
+    original = _run(world, first)
+    dataset = next(s for s in original["steps"] if s["node_key"] == "run")["output"]
+    compiled = next(s for s in original["steps"] if s["node_key"] == "compile")["output"]
+    with world.sessions() as session:
+        started = ResearchRuns(session, world.lead_scope(session)).start(
+            design_revision_id=original["metadata"]["design_revision_id"],
+            fieldwork_source=FieldworkSource.SYNTHETIC_FIXTURE,
+            analysis_enabled=True,
+            retry_of=first,
+            frozen_dataset=FrozenDataset(
+                run_id=first,
+                artifact_id=dataset["artifact_id"],
+                sha256=dataset["sha256"],
+                analysis_round=1,
+                retried=("objects",),
+                modules_asked=1,
+                specification_artifact_id=compiled["artifact_id"],
+                specification_sha256="0" * 64,
+            ),
+        )
+        session.commit()
+    _drain(worker)
+    steps = {s["node_key"]: s for s in _run(world, started.run_id)["steps"]}
+    assert steps["compile"]["status"] is StepRunStatus.FAILED
+    assert steps["compile"]["attempts"][-1]["error"]["reason"] == "frozen_specification_mismatch"
+    assert not any(s["attempts"] for s in _analysis(_run(world, started.run_id)).values())
 
 
 def test_a_retry_round_asks_again_what_the_model_refused_and_replays_nothing_old(
