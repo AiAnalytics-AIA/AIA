@@ -18,7 +18,7 @@ const project = (over: Partial<ResearchProject> = {}): ResearchProject => ({
   ...over,
 });
 const content = (p = project()) => ({ project: p, analysis: null });
-const ok = (r: ReturnType<typeof applyLeadEdit>) => {
+const ok = (r: ReturnType<typeof applyLeadEdit> | ReturnType<typeof revertTextEdit>) => {
   if ("refused" in r) throw new Error(r.refused);
   return r.content;
 };
