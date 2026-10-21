@@ -71,7 +71,7 @@ hit.
 | P11 | The method chapter, "Respondenti a výpočet" | `application/report_method.py:120` (item counts), `:228-235` (the trace table's counts), `:296`, `:352`, `:432-438` (selection sentences) | counts and ids from the run's record | a locked region tagged `run:<run_id>` |
 | P12 | Refused-question counts | `application/report_tables.py:195` ("Výsledky {len(refused)} otázek zpráva neuvádí") | a count the admission computed | a locked callout tagged `run:<run_id>` |
 | P13 | Suppressed-row and omitted-point counts | computed at `infrastructure/report_docx/tables.py:209-210` (rows with a suppressed ref removed) and in `charts.py:85-104` (`points`: suppressed refs counted as `omitted`); written by `source_line` at `tables.py:116-117`, which `table_notes()` (`tables.py:131-143`) puts into the table's **notes row**, and which `figures.py:66` puts **below the figure** | the number of rows or points suppression removed | **in no other control**: P2's controls are per cell, and P5's covers the image paragraph only. It needs an inline locked control of its own around the count, tagged `count:suppressed:<table or figure id>`. The census recomputes it from the stored model's refs for that block and the ledger's suppression, and refuses a mismatch |
-| P14 | The literature report's bundle figures | `application/contextual_report.py:312` (labels L1, L2, …), `:392-394` (snapshot, accepted, cited and rejected counts), `:428`, `:439` | counts and labels from the sealed bundle | a locked region tagged `bundle:<run_id>`; L-labels as locked inline controls, because prose cites them |
+| P14 | The literature report's bundle figures | `application/contextual_report.py:312` (labels L1, L2, …), `:392-394` (snapshot, accepted, cited and rejected counts), `:428`, `:439`; added from review (ED-R2): `:400` (rejection-reason counts, "({count}krát)"), `:456-460` (the legacy-rule total, "nejméně {failed}"), `:580-581` (each source's date and finding count, as `TextCell`s), `:629-631` and `:655-659` (withheld-item counts in `_withheld`) | counts and labels from the sealed bundle | a locked region tagged `bundle:<run_id>`; L-labels as locked inline controls, because prose cites them |
 | P15 | The audit and provenance rows | `application/report.py:102-112` (the methodology deviation: each changed parameter "18.6.6: {unit}, zde {used}", the replaced formula ids), `:232-234` (run id, evidence fingerprint, methodology version) | parameter values and version strings | the document-control table, a locked region |
 | P16 | The experimental Sociomapping DOCX | `application/sociomapping_report.py:139` (`_n`), `:142-147` (`_fit_caption`), `:161`, `:193`, `:282`, `:288`, `:416-431` | accuracy, counts and versions from the Sociomapping result | out of RD6's scope: an internal draft no editor flow opens. If it is ever opened, it is locked whole |
 | — | Document furniture | `infrastructure/report_docx/layout.py:255-262` (cover rows: date, design revision), `:318-341` (document control: date, revision, revision history), `outline.py` and the SEQ, PAGE and TOC fields (`ooxml.py`), `numbering.py` | dates, revision numbers, chapter, figure, table and page numbers | Word fields or front matter. They stay fields, and the front matter is a locked region; the census ignores field results |
@@ -181,6 +181,33 @@ says they must be.**
   - edit only its prose part ("Poznámky ke studii") in the editor, as a small DOCX that AIA converts;
   - keep a plain editor for the context file, which LO19 already plans until the choice is made
     (`research-lead-workbench.md`, chunk 33's paragraph).
+
+## Open design items for RD6 (from review, not settled here)
+
+These came from the fourth review round. They refine the design RD6 will build, and they do not
+change this spike's recommendation. RD6 settles each one.
+
+- **ED-R1. Whole-block locks stop the edits RD6 allows.**
+  - **Issue:** locking P10, P11 and P14 as whole blocks would prevent the copy-edits and section
+    moves that RD6 allows.
+  - **Anchor:** `.planning/plans/report-delivery.md:105-110 @ e09a6c99`; P10, P11 and P14 above.
+  - **Direction:** put an inline locked control on each generated numeric span and leave the prose
+    around it editable. Use a block lock only where a span cannot be isolated.
+- **ED-R2. P14 missed some of the bundle's digits.**
+  - **Issue:** the literature report writes more counts and dates from the bundle than P14 listed.
+  - **Anchor:** `application/contextual_report.py:400`, `:456-460`, `:580-581`, `:629-631` and
+    `:655-659 @ e09a6c99`. Each was checked in the code: rejection-reason counts, the legacy-rule
+    total, each source's date and finding count, and withheld-item counts.
+  - **Direction:** these anchors are now in P14's coverage list. RD6 tags each `bundle:<run_id>` and
+    re-sweeps the composer when it builds the controls.
+- **ED-R3. Structural suggestions break the per-paragraph comparison.**
+  - **Issue:** accepting a suggestion that splits or merges paragraphs breaks the per-paragraph
+    numeric-token comparison, because the stored paragraph no longer matches one-to-one.
+  - **Anchor:** F-ED1's numeric-token rule and the census in "The shape that makes the choice
+    reversible" above.
+  - **Direction:** compare against the proposed post-edit model that the suggestion carries. Map
+    tokens and paragraphs by stable ids that survive structural edits: RD5a's stable paragraph ids,
+    with ids for the numeric tokens.
 
 ## Candidates and the comparison
 
