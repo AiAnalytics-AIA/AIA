@@ -33,6 +33,9 @@ function useLengthRule(studyId: string): RuleRead {
   return read;
 }
 
+/** Minutes in Czech print: a decimal comma, at most one place. */
+const minutesWords = (m: number): string => String(Math.round(m * 10) / 10).replace(".", ",");
+
 function LengthWords({ read }: { read: RuleRead }) {
   const { state } = useResearch();
   if (read.state === "loading") return null;
@@ -41,9 +44,14 @@ function LengthWords({ read }: { read: RuleRead }) {
   if (length.kind === "unset") return <span className="text-ink-muted">{t("research.questionnaire.strip.length.unset")}</span>;
   if (length.kind === "unknown") return <span className="text-ink-muted">{tv("research.questionnaire.strip.length.unknown", { n: length.unpriced })}</span>;
   const rule = tv("research.questionnaire.strip.length.rule", { version: length.rule.version, ...length.rule.seconds });
+  const max = length.rule.max_seconds === null ? "" : minutesWords(length.rule.max_seconds / 60);
+  const limit =
+    length.limit === "unset" ? t("research.questionnaire.strip.length.noLimit") : tv(`research.questionnaire.strip.length.${length.limit}`, { max });
   return (
     <span title={rule}>
-      {tv("research.questionnaire.strip.length.estimate", { minutes: String(length.minutes).replace(".", ",") })}
+      {tv("research.questionnaire.strip.length.estimate", { minutes: minutesWords(length.minutes) })}
+      {" · "}
+      <span className={length.limit === "over" ? "font-medium text-status-you-ink" : "text-ink-muted"}>{limit}</span>
       <span className="sr-only"> ({rule})</span>
     </span>
   );

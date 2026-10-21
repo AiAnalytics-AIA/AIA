@@ -11,13 +11,20 @@ import { sections } from "./questionnaire";
 export const PRICED = ["vyber", "multi", "skala", "otevrena", "set_object"] as const;
 export type Priced = (typeof PRICED)[number];
 
-/** The rule as Metodika states it: seconds per answer, and the methodology version it is from. */
-export type LengthRule = { seconds: Record<Priced, number>; version: string };
+/**
+ * The rule as Metodika states it: seconds per answer, the most a questionnaire of this study's type
+ * may take (`max_seconds`, per study type; null while the methodology owner has set none), and the
+ * methodology version it is from.
+ */
+export type LengthRule = { seconds: Record<Priced, number>; max_seconds: number | null; version: string };
+
+/** An estimate against the study type's limit: within it, over it, or no limit set. */
+export type LimitVerdict = "within" | "over" | "unset";
 
 export type Length =
   | { kind: "unset" }
   | { kind: "unknown"; unpriced: number }
-  | { kind: "estimate"; seconds: number; minutes: number; rule: LengthRule };
+  | { kind: "estimate"; seconds: number; minutes: number; limit: LimitVerdict; rule: LengthRule };
 
 const texts = (raw: unknown): string[] =>
   Array.isArray(raw) ? raw.filter((x): x is string => typeof x === "string" && x.trim() !== "").map((x) => x.trim()) : [];
@@ -32,10 +39,13 @@ function typeOf(raw: unknown): Exclude<Priced, "set_object"> | null {
   return typ === "vyber" || typ === "multi" || typ === "skala" || typ === "otevrena" ? typ : null;
 }
 
-/** A rule read from the server, kept only when every price is a finite number of seconds, 0 or more. */
+/**
+ * A rule read from the server, kept only when every price is a finite number of seconds, 0 or more,
+ * and its maximum is one too, or absent (no limit set); anything else is not a rule.
+ */
 export function readRule(raw: unknown): LengthRule | null {
   if (!raw || typeof raw !== "object") return null;
-  const r = raw as { seconds?: unknown; version?: unknown };
+  const r = raw as { seconds?: unknown; max_seconds?: unknown; version?: unknown };
   if (typeof r.version !== "string" || !r.seconds || typeof r.seconds !== "object") return null;
   const s = r.seconds as Record<string, unknown>;
   const seconds = {} as Record<Priced, number>;
@@ -44,7 +54,9 @@ export function readRule(raw: unknown): LengthRule | null {
     if (typeof v !== "number" || !Number.isFinite(v) || v < 0) return null;
     seconds[k] = v;
   }
-  return { seconds, version: r.version };
+  const max = r.max_seconds;
+  if (max !== undefined && max !== null && (typeof max !== "number" || !Number.isFinite(max) || max < 0)) return null;
+  return { seconds, max_seconds: max ?? null, version: r.version };
 }
 
 /**
@@ -67,5 +79,6 @@ export function questionnaireLength(p: ResearchProject, rule: LengthRule | null)
       }
   }
   if (unpriced) return { kind: "unknown", unpriced };
-  return { kind: "estimate", seconds, minutes: Math.round(seconds / 30) / 2, rule };
+  const limit: LimitVerdict = rule.max_seconds === null ? "unset" : seconds <= rule.max_seconds ? "within" : "over";
+  return { kind: "estimate", seconds, minutes: Math.round(seconds / 30) / 2, limit, rule };
 }

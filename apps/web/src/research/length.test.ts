@@ -4,7 +4,7 @@ import { describe, expect, it } from "vitest";
 import { questionnaireLength, readRule } from "./length";
 import type { ResearchProject } from "./model";
 
-const RULE = { version: "readiness-1+e2", seconds: { vyber: 10, multi: 15, skala: 8, otevrena: 40, set_object: 6 } };
+const RULE = { version: "readiness-1+e2", seconds: { vyber: 10, multi: 15, skala: 8, otevrena: 40, set_object: 6 }, max_seconds: null };
 const project = (sections: unknown[]): ResearchProject => ({ sections }) as unknown as ResearchProject;
 const SECTIONS = [
   { type: "questions", questions: [{ text: "A?", typ: "vyber" }, { text: "B?", typ: "multi" }, { text: "C?", typ: "otevrena" }] },
@@ -19,7 +19,15 @@ describe("the questionnaire's length", () => {
 
   it("prices each question by its type and each distinct set object, to the half minute", () => {
     // 10 + 15 + 40 + 3 objects x 6 = 83 s, 1.5 min.
-    expect(questionnaireLength(project(SECTIONS), readRule(RULE))).toEqual({ kind: "estimate", seconds: 83, minutes: 1.5, rule: RULE });
+    expect(questionnaireLength(project(SECTIONS), readRule(RULE))).toEqual({ kind: "estimate", seconds: 83, minutes: 1.5, limit: "unset", rule: RULE });
+  });
+
+  it("measures the estimate against the study type's limit: within, over, or none set", () => {
+    const at = (max: number | null) => questionnaireLength(project(SECTIONS), readRule({ ...RULE, max_seconds: max }));
+    expect(at(83)).toMatchObject({ limit: "within" });
+    expect(at(82)).toMatchObject({ limit: "over" });
+    expect(at(null)).toMatchObject({ limit: "unset" });
+    expect(questionnaireLength(project(SECTIONS), readRule({ version: RULE.version, seconds: RULE.seconds }))).toMatchObject({ limit: "unset" });
   });
 
   it("leaves the length unknown, never zero, when an item's type has no price", () => {
@@ -40,5 +48,8 @@ describe("the questionnaire's length", () => {
     expect(readRule({ ...RULE, seconds: { ...RULE.seconds, skala: -1 } })).toBeNull();
     expect(readRule({ ...RULE, seconds: { ...RULE.seconds, skala: Number.NaN } })).toBeNull();
     expect(readRule({ ...RULE, seconds: { ...RULE.seconds, skala: 0 } })?.seconds.skala).toBe(0);
+    expect(readRule({ ...RULE, max_seconds: -1 })).toBeNull();
+    expect(readRule({ ...RULE, max_seconds: "600" })).toBeNull();
+    expect(readRule({ ...RULE, max_seconds: 600 })?.max_seconds).toBe(600);
   });
 });

@@ -20,7 +20,7 @@ const sections = (links: boolean) => [
 ];
 
 const LIMITS = { methodology_version: "readiness-1", version: null, sample_size: { min: 50, max: 5000 } };
-const RULE = { version: "readiness-1+e2", seconds: { vyber: 10, multi: 15, skala: 8, otevrena: 40, set_object: 6 } };
+const RULE = { version: "readiness-1+e2", seconds: { vyber: 10, multi: 15, skala: 8, otevrena: 40, set_object: 6 }, max_seconds: 600 };
 
 /** `limits`: what GET …/research/limits answers; null, the route is not found. */
 function stub(project: Record<string, unknown>, limits: Record<string, unknown> | null = LIMITS) {
@@ -68,7 +68,8 @@ describe("Dotazník's strip", () => {
     render(<ResearchScreen step="questionnaire" frame={TEST_FRAME} />);
     const strip = await screen.findByRole("region", { name: "Dotazník v číslech" });
     // One single-choice question (10 s) and four set objects (4 x 6 s): 34 s, 0.5 min.
-    const length = await within(strip).findByText("≈ 0,5 min");
+    const length = await within(strip).findByText(/≈ 0,5 min/);
+    expect(within(length).getByText("limit 10 min")).toBeTruthy();
     expect(length.closest("span[title]")?.getAttribute("title")).toBe("Odhad podle Metodiky readiness-1+e2: výběr 10 s, více odpovědí 15 s, škála 8 s, otevřená 40 s, položka sady 6 s");
   });
 
@@ -78,5 +79,16 @@ describe("Dotazník's strip", () => {
     const strip = await screen.findByRole("region", { name: "Dotazník v číslech" });
     expect(await within(strip).findByText("Délka: pravidlo z Metodiky se nepodařilo načíst")).toBeTruthy();
     expect(within(strip).queryByText(/min$/)).toBeNull();
+  });
+
+  it("says an estimate over the study type's limit, and a limit not set", async () => {
+    stub({ goal: "G", ...plan, sections: sections(true), ui_state: { questionnaire_path: "manual" } }, { ...LIMITS, questionnaire_length: { ...RULE, max_seconds: 30 } });
+    const { unmount } = render(<ResearchScreen step="questionnaire" frame={TEST_FRAME} />);
+    expect(await screen.findByText("nad limitem 0,5 min")).toBeTruthy();
+    unmount();
+    vi.unstubAllGlobals();
+    stub({ goal: "G", ...plan, sections: sections(true), ui_state: { questionnaire_path: "manual" } }, { ...LIMITS, questionnaire_length: { ...RULE, max_seconds: null } });
+    render(<ResearchScreen step="questionnaire" frame={TEST_FRAME} />);
+    expect(await screen.findByText("limit nenastaven")).toBeTruthy();
   });
 });
