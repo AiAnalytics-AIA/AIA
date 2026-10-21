@@ -141,3 +141,38 @@ export function proposedTrace(p: ResearchProject): ProposedLink[] {
     return { researchQuestion: rq, measures, comparison: comparisonOf(p, rq) };
   });
 }
+
+/** One stated research question on Dotazník's strip: how many items say they measure it. */
+export type RqCoverage = { researchQuestion: string; measures: number };
+
+/**
+ * Dotazník's strip (artifact-questionnaire QST2; V2 DesignStages.tsx:103-107): the items a
+ * respondent answers (each question, each distinct object of a tracked set) and, per stated
+ * research question, how many items declare they measure it. Read as the server's trace reads
+ * it (domain/research_trace.py:242-259): until some item declares a link, coverage is unknown
+ * (`linked` false), never a gap; once one does, a research question nothing names is a gap.
+ * The working copy, before compile: Kontrola decides what a run will answer.
+ */
+export function coverageOf(p: ResearchProject): { items: number; linked: boolean; questions: RqCoverage[] } {
+  let items = 0;
+  let linked = false;
+  const counts = new Map<string, number>();
+  const count = (item: Question | Section) => {
+    const keys = new Set(linksOf(item).map(linkKey));
+    if (keys.size) linked = true;
+    for (const k of keys) counts.set(k, (counts.get(k) ?? 0) + 1);
+  };
+  for (const s of sectionsOf(p)) {
+    const kind = s.type || "questions";
+    if (kind === "object_battery") {
+      items += new Set(texts(s.objects)).size;
+      count(s);
+    } else if (kind === "questions") {
+      for (const q of s.questions || []) {
+        items += 1;
+        count(q);
+      }
+    }
+  }
+  return { items, linked, questions: researchQuestionsOf(p).map((rq) => ({ researchQuestion: rq, measures: counts.get(linkKey(rq)) ?? 0 })) };
+}

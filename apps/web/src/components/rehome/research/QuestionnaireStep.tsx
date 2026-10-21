@@ -77,6 +77,7 @@ import { AiButton, Button } from "../ui";
 import { isNativeResult } from "@/lib/research-agent-jobs";
 import { openPlace, scrollBehavior, scrollToPlace } from "@/lib/open-place";
 import { useResearch } from "./context";
+import { QuestionnaireStrip } from "./QuestionnaireStrip";
 import { InspectorSlot } from "./Inspector";
 import { questionnaireIssues } from "@/research/lane";
 import { AiFailureCard, useAiStep } from "./useAiStep";
@@ -584,6 +585,7 @@ function Editor({ update }: { update: Update }) {
   let sets = 0;
   return (
     <div className="flex flex-col gap-4">
+      <QuestionnaireStrip />
       <p className="text-[13px] leading-5 text-ink-muted">{t("research.questionnaire.editorIntro")}</p>
       <ResearchQuestionComparisons update={update} />
       {xs.length ? (
