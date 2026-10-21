@@ -482,11 +482,17 @@ forbid "executors never touch the approval ledger" \
 # LO16): a writer or a reader naming a subject as a string of its own drifts from the CHECK the
 # table holds (ARCHITECTURE.md A6).
 forbid "approval-ledger subjects are named only through ApprovalSubject" \
-  "subject_type(=|[[:space:]]==[[:space:]])[\"']" \
+  "subject_type[[:space:]]*(=|==|!=)[[:space:]]*[\"']|subject_type\\.in_\\([([]?[[:space:]]*[\"']" \
   "$CORE"
-forbid "the apps never name an approval-ledger subject as a string" \
-  "subject_type(=|[[:space:]]==[[:space:]])[\"']" \
+forbid "the apps never name an approval-ledger subject as a string (API)" \
+  "subject_type[[:space:]]*(=|==|!=)[[:space:]]*[\"']|subject_type\\.in_\\([([]?[[:space:]]*[\"']" \
   apps/api/src
+forbid "the apps never name an approval-ledger subject as a string (worker)" \
+  "subject_type[[:space:]]*(=|==|!=)[[:space:]]*[\"']|subject_type\\.in_\\([([]?[[:space:]]*[\"']" \
+  apps/worker/src
+forbid "the apps never name an approval-ledger subject as a string (executors)" \
+  "subject_type[[:space:]]*(=|==|!=)[[:space:]]*[\"']|subject_type\\.in_\\([([]?[[:space:]]*[\"']" \
+  apps/executors/src
 # A Study's design project is owned (projects.owner): a repository that does not
 # name the owner cannot see it. Naming it anywhere else would reopen the path by
 # which content that skipped validate_design became a Design Revision (ADR 0016).

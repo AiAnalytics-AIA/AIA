@@ -2494,7 +2494,7 @@ class WorkflowRepository:
         """Write a person's dismissal of what an agent job proposed, in the approval ledger.
 
         ADR 0026 decision 8: dismissing AI output is a decision about it, recorded where its
-        accept would be (``subject_type = "ai_proposal"``, ``decision = "dismiss"``). Needs
+        accept would be (``ApprovalSubject.AI_PROPOSAL``, ``decision = "dismiss"``). Needs
         ``APPROVE_GATE``. Returns ``False`` and writes nothing when the job already has a
         decision -- dismissed before, or accepted (an accepted proposal is in the design; there
         is nothing left to dismiss, and the caller says so).
