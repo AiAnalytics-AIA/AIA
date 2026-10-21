@@ -142,10 +142,16 @@ try {
     await closeConversation(compact);
     const bar = page.getByRole("region", { name: "Návrhy Vedoucího" });
     await bar.waitFor({ timeout: 30000 });
-    await Promise.all([
+    const [decided] = await Promise.all([
       page.waitForResponse((r) => /\/lead\/turns\/[^/]+\/edits$/.test(new URL(r.url()).pathname) && r.request().method() === "POST", { timeout: 30000 }),
       bar.getByRole("button", { name: "Přijmout", exact: true }).first().click(),
     ]);
+    const written = (await decided.json()).workspace_revision;
+    assert(Number.isInteger(written), `${width}: the accepted edit wrote a working revision (${written})`);
+    // The page reads that revision back before the person goes on: an accept sent from the copy
+    // it held before would be refused as the page's own stale copy (stale_revision), not as a
+    // stale proposal.
+    await page.locator(".arthead__sub", { hasText: `revize ${written}` }).waitFor({ timeout: 30000 });
     check(`${width} px: the working copy moves under the proposal (the Lead's edit accepted)`);
 
     // The stale card: its accept is the server's to refuse, and the refusal is said in words.
@@ -156,7 +162,10 @@ try {
     await apply.waitFor({ timeout: 30000 });
     const refused = page.waitForResponse((r) => /\/agent-jobs\/[^/]+\/accept$/.test(new URL(r.url()).pathname), { timeout: 30000 });
     await apply.click();
-    assert.equal((await refused).status(), 409, `${width}: a stale proposal's accept is refused by the server`);
+    const refusal = await refused;
+    const said = await refusal.json().catch(() => null);
+    assert.equal(refusal.status(), 409, `${width}: a stale proposal's accept is refused by the server`);
+    assert.equal(said?.code, "stale_proposal", `${width}: refused as stale: ${JSON.stringify(said)}`);
     const notice = page.locator("[data-proposal-stale]");
     await notice.waitFor({ timeout: 30000 });
     assert((await notice.innerText()).trim().length > 20, `${width}: the refusal is said in words`);
@@ -197,11 +206,24 @@ try {
     await call("PUT", `/studies/${study}/spend-confirm`, { limit_usd: null });
   }
 
-  // Nothing paid: every job this journey started answered from a recording at zero price.
-  await page.waitForTimeout(3000);
-  const spent = (await jobs()).map((j) => Number(j.actual_cost_usd ?? 0));
-  assert(spent.every((usd) => usd === 0), `every job cost $0: ${spent.join(", ")}`);
-  check("every job cost $0 (recorded answers)");
+  // Nothing paid: every job this journey started answered from a recording at zero price. A job
+  // still queued or running has no cost yet (null), which is unknown, never $0: wait for every
+  // job to end, then hold each cost to a number that is zero.
+  const deadline = Date.now() + 180000;
+  let listed = await jobs();
+  while (listed.some((j) => !j.is_terminal) && Date.now() < deadline) {
+    await page.waitForTimeout(1000);
+    listed = await jobs();
+  }
+  const open = listed.filter((j) => !j.is_terminal).map((j) => `${j.run_id} ${j.status}`);
+  assert.deepEqual(open, [], `every job ended within 180 s: ${open.join(", ")}`);
+  const unpaid = listed.filter((j) => typeof j.actual_cost_usd !== "number" || j.actual_cost_usd !== 0);
+  assert.deepEqual(
+    unpaid.map((j) => `${j.run_id} ${j.action}: ${j.actual_cost_usd}`),
+    [],
+    "every job's cost is a number and zero (null is unknown, never $0)",
+  );
+  check("every job ended and cost $0 (recorded answers; an unknown cost fails)");
   assert.deepEqual(errors, [], `page errors: ${errors.join("\n")}`);
 } finally {
   writeFileSync(join(out, "report.json"), JSON.stringify({ checks, errors }, null, 2));
