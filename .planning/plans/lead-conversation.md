@@ -80,7 +80,9 @@ threads; the study is the thread, with pinned items (LC11) instead, and branchin
 (LC16). The
 amendments to ADR 0026 decisions 2 and 8 are recorded in the docs PR. Test: none (a decision).
 
-**LC1. The layer table and the manifest.** `domain/research_lead.py`: a `LeadLayer` table and
+**LC1. The layer table and the manifest.** Hatching and self-update gain byte bounds on the Lead's
+files (SOUL and USER 2,800 bytes, name 160, refused as `lead_file_too_large`); an older file over
+them is shortened at a paragraph boundary, named `lead_file_shortened`. `domain/research_lead.py`: a `LeadLayer` table and
 `freeze_context` as a pipeline over it, carrying today's bounds unchanged (12 turns, 20 KB knowledge,
 40 / 16 KB notes, 5 runs); a `ContextManifest` (per layer bytes, floor, ceiling, included ids,
 omitted ids with reason (at most 50 each per layer, beyond that counts and a source range), allocation, class and class source; totals; context file version and summary id when
@@ -153,6 +155,8 @@ Tests:
 - a withdrawn message inside an answered range is not shown as answered;
 - an early queued message edited after two more were queued keeps its place; when its edit alone
   fills layer 9, the two later messages stay queued and unanswered;
+- one Lead turn answers two queued messages, then the newer is edited and resent: the shared turn
+  goes inactive, the other message is queued again, and the replacement turn answers both;
 - a greeting still waits.
 
 **LC6. Cost, model and class per turn.** The turn's usage rows (model, tokens, USD) and class in

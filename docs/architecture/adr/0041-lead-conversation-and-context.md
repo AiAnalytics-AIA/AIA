@@ -75,14 +75,15 @@ Two rules hold across tiers:
 
 `freeze_context` becomes a pipeline over a declared table of layers. Each layer has an order, a
 **floor** (bytes it always gets when it has content), a **ceiling**, a **policy when over**, and a
-class rule. The sum of floors fits `CONTEXT_MAX_BYTES` (96 KB, unchanged); unused bytes go, in
-order, to the verbatim conversation, then to retrieved items. The table is code in `domain/`, and
+class rule. The sum of floors fits `CONTEXT_MAX_BYTES` (96 KB, unchanged). Bytes above the floors
+are allocated by the second pass below, in its one declared order, with the verbatim conversation
+last. The table is code in `domain/`, and
 its values are proposed here, to be set from LO14's measurement:
 
 | # | Layer | Floor | Ceiling | Over the ceiling |
 |---|---|---|---|---|
 | 1 | Prompt pin | as pinned | 12 KB | refuse the turn (a prompt never truncates) |
-| 2 | Lead files (name, SOUL, USER) | 6 KB | 6 KB | cannot happen: the files' own bounds |
+| 2 | Lead files (name, SOUL, USER) | 6 KB | 6 KB | cannot happen for a file admitted under the byte bounds below; an older file over them is shortened at its last whole paragraph within the bound, named (`lead_file_shortened`), and the researcher is told |
 | 3 | Lead notes | 4 KB | 12 KB | relevance-ranked (decision 5), then newest; omitted ids named |
 | 4 | Study context file (ADR 0039) | 8 KB | 16 KB | ADR 0039 decision 4: oldest history lines, then oldest notes, named |
 | 5 | Client Knowledge | 6 KB | 16 KB | titles of all, bodies of the retrieved (decision 5); omitted ids named |
@@ -118,6 +119,16 @@ lookup's captured texts (ADR 0040) are verbatim in the turn that answers them; l
 them as references (snapshot, artifact or run id) with the answer's citations, the lightest form of
 compaction, as context editing clears old tool results elsewhere. Retrieval (decision 5) may bring
 one back.
+
+**The Lead's files are bounded in bytes, not only characters.** Today's limits are 2,000 characters
+for SOUL and USER and 40 for the name (`domain/research_lead.py:123-126 @ 237fd0a`), which in
+four-byte characters could exceed the layer. Hatching and every self-update therefore also refuse
+the following, by name (`lead_file_too_large`), never truncating:
+- SOUL over 2,800 bytes of UTF-8;
+- USER over 2,800 bytes;
+- a name over 160 bytes.
+
+With the JSON framing, layer 2 then fits its 6 KB.
 
 Layer 11 drops only turns already covered by a summary. When compaction has not caught up (switched
 off, failed or behind), it drops the oldest uncovered turns as today, and the manifest says
@@ -314,7 +325,7 @@ pinned item keeps its own class; a pin never copies text between clients.
 ### 7. Message operations are new turns; history is never rewritten
 
 `study_lead_turns` stays append-only, and its rows stay immutable (the `before_update` guard,
-`infrastructure/tables.py:815-818 @ 237fd0a`). It gains three nullable columns, written when the
+`infrastructure/tables.py:815-818 @ 237fd0a`). It gains two nullable columns, written when the
 row is inserted and never after:
 - `parent_turn_id`: the turn this one answers or follows;
 - `replaces_turn_id`: the turn it supersedes.
@@ -330,9 +341,12 @@ A message's state is derived, never stored:
 - **queued:** a person message that no `study_lead_turn_answers` row names, that no later row
   names by `replaces_turn_id` (an edited message is replaced by its edit, which takes its place in
   the queue) and that no `withdrawal` names;
-- **answered:** a message that a `study_lead_turn_answers` row names: exactly the messages the
-  turn was sent, so a deferred message is never answered by position. A replaced or withdrawn
-  message is never sent and never named;
+- **answered:** a message that a `study_lead_turn_answers` row of an **active** Lead turn names:
+  exactly the messages that turn was sent, so a deferred message is never answered by position. A
+  replaced or withdrawn message is never sent and never named. When a Lead turn becomes inactive
+  (below), every still-active message it answered is queued again, in its queue position. So an
+  edit-and-resend of one of two co-answered messages requeues the other, and the replacement turn
+  answers both;
 - **withdrawn:** a person message named by a later row of kind `withdrawal` (`parent_turn_id` = the
   message).
 
