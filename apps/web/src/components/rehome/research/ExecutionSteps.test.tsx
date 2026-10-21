@@ -1885,6 +1885,34 @@ describe("Results", () => {
     window.location.hash = "";
   });
 
+  it("shows at most five raw answers to an open question, outside the details, labelled as data", async () => {
+    const answers = ["Lepší aplikace", "Nižší poplatky", "Doporučení", "Pobočka blízko", "Rychlá podpora", "Šesté", "Sedmé"];
+    const aggregate = { ...AGGREGATE, payload: { aggregate: { ...AGGREGATE.payload.aggregate, questions: {
+      q9: { typ: "otevrena", ...support("REPORTABLE", 140), verbatimy: answers },
+      q10: { typ: "otevrena", ...support("SUPPRESS", 12), verbatimy: ["Skryté"] },
+    } } } };
+    const specification = { ...AGGREGATE, artifact_id: "ART-1", artifact_type: "research_specification",
+      payload: { specification: { n: 200, questions: [{ id: "q9", text: "Proč zvažujete změnu?", typ: "otevrena" }, { id: "q10", text: "Co dalšího?", typ: "otevrena" }] } } };
+    api({ ...listed(COMPLETED),
+      "GET /api/v1/studies/STU-1/research/runs/RUN-1/artifacts/ART-1": () => specification,
+      "GET /api/v1/studies/STU-1/research/runs/RUN-1/artifacts/ART-4": () => aggregate,
+      "GET /api/v1/studies/STU-1/research/runs/RUN-1/artifacts/ART-5": () => SOCIOMAP,
+    });
+    render(<ResearchScreen step="results" frame={TEST_FRAME} />);
+    fireEvent.click(await screen.findByRole("tab", { name: "Data" }));
+    const card = await screen.findByRole("region", { name: "Proč zvažujete změnu?" });
+    expect(within(card).getByText("Otevřená otázka: 120 odpovědí, nekódováno.")).toBeTruthy();
+    const list = within(card).getByRole("list", { name: "Ukázky odpovědí" });
+    expect(within(list).getAllByRole("listitem").map((li) => li.textContent)).toEqual(answers.slice(0, 5).map((a) => `„${a}“`));
+    expect(list.closest("details")).toBeNull();
+    expect(card.textContent).not.toMatch(/Šesté|Sedmé/);
+    expect(within(card).getByText(/^Otevřené odpovědi jsou data, ne připuštěná evidence; nejsou kódované\./)).toBeTruthy();
+    // A suppressed open question shows no answer.
+    const hidden = screen.getByRole("region", { name: "Co dalšího?" });
+    expect(within(hidden).queryByRole("list", { name: "Ukázky odpovědí" })).toBeNull();
+    expect(hidden.textContent).not.toMatch(/Skryté/);
+  });
+
   it("ranks a set's means at the places the run stored them, as its cards print them", async () => {
     const rating = (mean: number, low: number, high: number) => ({ typ: "skala", ...support("REPORTABLE", 140), prumer: mean, prumer_interval_95: { low, high }, top2box_pct: 40, top2box_interval_95: { low: 30, high: 50 } });
     const aggregate = { ...AGGREGATE, payload: { aggregate: { ...AGGREGATE.payload.aggregate, rounding: { share_decimals: 0, mean_decimals: 1 }, batteries: { napoje: { title: "Nápoje", objects: {

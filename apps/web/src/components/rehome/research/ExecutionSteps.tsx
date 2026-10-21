@@ -81,6 +81,7 @@ import {
   type AggregateDeviation,
   type QuestionResult as AggregateResult,
   type ResultTable,
+  OPEN_ANSWER_EXAMPLES,
   verdictTone,
 } from "@/lib/research-execution";
 import { runDestination, runState } from "@/lib/run-state";
@@ -1373,11 +1374,23 @@ function Table({ table, showSupportNote = true }: { table: ResultTable; showSupp
           </tbody>
         </table>
       ) : null}
-      {table.verbatims.length ? (
-        <ul className="list-disc pl-5 text-sm text-ink-muted" aria-label={t("research.exec.results.verbatims")}>
-          {table.verbatims.map((v) => <li key={v}>{v}</li>)}
-        </ul>
-      ) : null}
+    </div>
+  );
+}
+
+/**
+ * An open question's raw answers as V2 shows them (artifact-results RES5, Q52 a): up to five,
+ * quoted, labelled as data rather than admitted evidence. Inside AIA only: nothing exports them
+ * and no report reads them (the aggregate's verbatimy reach no report composer).
+ */
+function OpenAnswers({ answers }: { answers: readonly string[] }) {
+  if (!answers.length) return null;
+  return (
+    <div data-open-answers className="mt-3">
+      <ul className="flex flex-col gap-1.5 text-sm" aria-label={t("research.exec.results.verbatims")}>
+        {answers.map((v, i) => <li key={i} className="border-l-2 border-border pl-3">„{v}“</li>)}
+      </ul>
+      <p className="mt-2 text-xs text-ink-muted">Otevřené odpovědi jsou data, ne připuštěná evidence; nejsou kódované. Zobrazeno nejvýše {OPEN_ANSWER_EXAMPLES}, jen v AIA: do exportu ani ke klientovi nejdou.</p>
     </div>
   );
 }
@@ -1876,6 +1889,7 @@ function AggregateView({ artifact, run, specification }: { artifact: Artifact; r
             </div>
             <p className="mt-2 text-xs text-ink-muted">{supportNote(measure.table)}</p>
             <FidelityRefusal reason={fidelityRefusal(measure.result)} />
+            <OpenAnswers answers={measure.table.verbatims} />
             <details className="mt-3 border-t border-border pt-3 text-sm" open={focused === anchor ? true : undefined}>
               <summary className="cursor-pointer font-medium">Odpovědi, intervaly a původ otázky</summary>
               <div className="mt-3"><Table table={measure.table} showSupportNote={false} /></div>
