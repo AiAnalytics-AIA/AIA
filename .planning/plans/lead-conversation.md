@@ -5,7 +5,7 @@ chunks:
   - "[ ] LC1. The layer table and the manifest: freeze_context as a pipeline over declared layers (order, floor, ceiling, over-policy, class rule), today's values first, a manifest stored per turn"
   - "[ ] LC2. Co Vedoucí vidí: the Vidí chip opens the last turn's manifest in words, layer by layer, with what was left out and why"
   - "[ ] LC3. The decision digest: a code-built record of what this conversation decided (edits, cards, notes, self-updates, lookups) in the conversation-memory layer, never dropped"
-  - "[ ] LC4. Budgets enforced: ADR 0041's floors, ceilings and two-pass global allocation, the design layer's outline fallback, spare bytes to the verbatim conversation, every omission named"
+  - "[ ] LC4. Budgets enforced: ADR 0041's floors, ceilings and two-pass global allocation, the design layer's five-step shortening ladder, spare bytes to the verbatim conversation, every omission named"
   - "[ ] LC5. Queued messages stored on the server: immutable rows, queued / answered / withdrawn derived (an exact study_lead_turn_answers relation, a withdrawal row, queue position kept through an edit), bounded in bytes and count, a follow-on turn for what layer 9 cannot hold, LeadBusy retired for messages, visible in every tab"
   - "[ ] LC6. Cost, model and class on every Lead turn, from the usage ledger and the composition digest"
   - "[ ] LC7. Grounded hierarchical compaction: research_lead_compact after the reply, block summaries of eight turns with a turn reference on every sentence, episode roll-ups (three levels at most), the preservation check, the coverage floor and the uncovered-terms index, STUDY_LEAD_SUMMARY, AIA_AI_RESEARCH_LEAD_COMPACTION_ENABLED and its two keys, summary_lag"
@@ -123,10 +123,12 @@ Tests:
 
 **LC4. Budgets enforced.** ADR 0041 decision 2's floors, ceilings and two-pass allocation (floors,
 then the remainder in the declared priority order, each layer's over-policy applied to its
-allocation); the design layer's outline
-fallback (focused stage verbatim, others as ids and titles); spare bytes to the verbatim
-conversation. Tests: a 60 KB questionnaire leaves the conversation its floor; the outline names the
-sections it shortened; floors sum within 96 KB; every layer at 90 % of its ceiling at once still
+allocation); the design layer's
+five-step shortening ladder (ADR 0041 decision 2: all verbatim; focused stage verbatim; focused
+item and section verbatim; focused item only; `item_over_budget` with a pin offered), each step
+named; spare bytes to the verbatim conversation. Tests: a 60 KB questionnaire at a 12 KB
+allocation lands on step 3 or 4 and leaves the conversation its floor; the manifest names every
+item it outlined; a single item over the allocation is carried as `item_over_budget`; floors sum within 96 KB; every layer at 90 % of its ceiling at once still
 freezes within 96 KB, with the conversation at its floor and each shortened layer named.
 
 **LC5. Queued messages on the server.** The migration adds `parent_turn_id` (nullable, set on
@@ -214,6 +216,8 @@ corrects, pins or retires a summary or a fact. The person's revision is kept as 
 audited, and later roll-ups build on it. Tests:
 - a corrected summary is in the next turn's context verbatim;
 - a correction that leaves a sentence without a reference is refused;
+- deleting the only sentence about a turn is accepted (not refused by the every-turn rule) and the
+  turn is listed as `unreferenced_by_person`;
 - deleting the only sentence about turn 9 puts turn 9's words in the uncovered-terms index;
 - a retired fact is not in it;
 - numbers in a correction follow the same rule.

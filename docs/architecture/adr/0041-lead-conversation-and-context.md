@@ -87,7 +87,7 @@ its values are proposed here, to be set from LO14's measurement:
 | 3 | Lead notes | 4 KB | 12 KB | relevance-ranked (decision 5), then newest; omitted ids named |
 | 4 | Study context file (ADR 0039) | 8 KB | 16 KB | ADR 0039 decision 4: oldest history lines, then oldest notes, named |
 | 5 | Client Knowledge | 6 KB | 16 KB | titles of all, bodies of the retrieved (decision 5); omitted ids named |
-| 6 | Design and stage state (LO7) | 12 KB | 32 KB | the focused stage verbatim, the others as an outline of item ids and titles, named |
+| 6 | Design and stage state (LO7) | 12 KB | 32 KB | the shortening ladder below, each step named |
 | 7 | Runs and results (LO8 `ResultsContext`) | 4 KB | 16 KB | LO8's own bound |
 | 8 | Pinned items (decision 6) | the accepted pins' bytes | 8 KB | refuse the pin when it is made; an accepted pin is reserved in the floor pass, never dropped at a turn |
 | 9 | View and the message(s) | as written | 12 KB | queued messages oldest first while they fit; the rest answered by a follow-on turn, named (decision 7) |
@@ -119,6 +119,22 @@ lookup's captured texts (ADR 0040) are verbatim in the turn that answers them; l
 them as references (snapshot, artifact or run id) with the answer's citations, the lightest form of
 compaction, as context editing clears old tool results elsewhere. Retrieval (decision 5) may bring
 one back.
+
+**The design layer shortens down a ladder, never by cutting text.** At each step the manifest names
+what moved to an outline (`design_outlined`, with the item ids), and the layer stops at the first
+step that fits its allocation. Each step keeps the one before it whole:
+
+1. Every stage verbatim.
+2. The focused stage verbatim; the other stages as an outline of item ids and titles.
+3. The focused item and its section verbatim; the rest of the focused stage as an outline of item
+   ids and titles; the other stages as counts per section.
+4. The focused item verbatim, everything else as counts.
+5. If even the focused item exceeds the allocation, it is carried as its id, title and size,
+   named `item_over_budget`. The Lead is told it cannot see that item whole, and the researcher
+   is offered to pin it, since pins (decision 6) are reserved in the floor pass.
+
+No step takes bytes from another layer, so the conversation keeps its floor. A 60 KB questionnaire
+at a 12 KB allocation lands on step 3 or 4.
 
 **The Lead's prompt is bounded in bytes when it is stored, never at a turn.**
 - **The gap.** `validate_prompt_text` admits 12,000 characters (`domain/prompts.py:44,93 @
@@ -275,12 +291,17 @@ exactly that the first thing retrieval looks for:
   knowledge or a report.
 - **Correctable in place, references kept.** The researcher rewrites a summary or a fact inline in
   "Co Vedoucí vidí". A person's revision (`created_by = person`) passes the same preservation
-  check as a model's, except the coverage floor:
+  check as a model's, with two exceptions, both stated here:
+  - the coverage floor does not apply;
+  - the every-turn-referenced rule does not refuse a person's edit. A person may delete the only
+    sentence about a turn; that turn then follows the rule for deleted sentences below.
+
+  The other rules apply as for a model's summary:
   - **Each sentence keeps its references.** They show as fixed chips the person can move or remove
     but cannot type. A sentence left without any is refused in place, with the reason.
-  - **Deleted sentences.** A turn that loses its last referencing sentence must still be referenced
-    by another sentence or a digest line. Otherwise its words go back into the uncovered-terms
-    index, which is recomputed for the revision, and retrieval still finds it.
+  - **Deleted sentences.** A turn that loses its last referencing sentence and has no digest line
+    is accepted, not refused. Its words go back into the uncovered-terms index, which is recomputed
+    for the revision, and retrieval still finds it. The manifest lists it as `unreferenced_by_person`.
   - **Numbers.** The number rule applies.
   - **Later roll-ups build on the revision,** so every summary sentence stays expandable to its
     turns.
