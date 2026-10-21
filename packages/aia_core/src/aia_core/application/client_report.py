@@ -40,6 +40,11 @@ from aia_core.domain.evidence.report_lift import MODELLED_CLIENT_REPORT_LIFT
 from aia_core.domain.evidence.validation import method_status
 from aia_core.domain.fieldwork import MODELLED_DISCLOSURE, OriginKind, origin_kind
 from aia_core.domain.pipeline import fingerprint
+from aia_core.domain.report.document_model import (
+    DOCUMENT_MODEL_CONTRACT,
+    DOCUMENT_MODEL_MEDIA_TYPE,
+    document_bytes,
+)
 from aia_core.domain.report.evidence import EvidenceLedger
 from aia_core.domain.report.model import (
     Callout,
@@ -60,6 +65,9 @@ from aia_core.infrastructure.scope_repository import ScopeRepository
 from aia_core.infrastructure.storage import ArtifactStore
 
 CLIENT_REPORT_ARTIFACT_TYPE = "research_client_docx"
+# The client report's document model beside its DOCX, under the same fingerprint
+# (report-delivery RD5a, part 2).
+CLIENT_REPORT_DOCUMENT_ARTIFACT_TYPE = "research_client_document"
 CLIENT_REPORT_CONTRACT = "aia-client-report-4"
 CLIENT_REPORT_STAGE = "REPORT"
 
@@ -310,6 +318,9 @@ def stored_client_report(
         input_fingerprint=key,
     )
     if found is not None:
+        # A draft stored before RD5a gets its document now: the same sources compose the same
+        # document (the fingerprint holds them and the contract).
+        _store_document(artifacts, run, run_id, found, composed.document, key, build)
         return found, artifacts.read(found.artifact_id)
     data = DocxRenderer().render(composed.document)
     artifact, _created = artifacts.put(
@@ -332,4 +343,76 @@ def stored_client_report(
         },
         depends_on=list(composed.depends_on),
     )
+    _store_document(artifacts, run, run_id, artifact, composed.document, key, build)
     return artifact, data
+
+
+def _store_document(
+    artifacts: ArtifactRepository,
+    run: Mapping[str, Any],
+    run_id: str,
+    docx: Artifact,
+    document: ReportDocument,
+    key: str,
+    build: str,
+) -> Artifact:
+    """The document ``docx`` was rendered from, beside it under the same fingerprint
+    (report-delivery RD5a); the one already stored when there is one."""
+    model, _created = artifacts.put(
+        project_id=run["project_id"],
+        revision=int(run["project_revision"]),
+        stage_type=CLIENT_REPORT_STAGE,
+        artifact_type=CLIENT_REPORT_DOCUMENT_ARTIFACT_TYPE,
+        data=document_bytes(document),
+        content_type=DOCUMENT_MODEL_MEDIA_TYPE,
+        input_fingerprint=key,
+        runtime_version=build,
+        metadata={
+            "run_id": run_id,
+            "report_kind": ReportKind.CLIENT.value,
+            "docx_artifact_id": docx.artifact_id,
+            "docx_sha256": docx.sha256,
+            "document_contract": DOCUMENT_MODEL_CONTRACT,
+            "report_contract": CLIENT_REPORT_CONTRACT,
+        },
+        depends_on=[docx.artifact_id],
+    )
+    return model
+
+
+def client_report_document(
+    session: Session, scope: StudyContext, store: ArtifactStore, *, run_id: str
+) -> tuple[Artifact, Artifact | None] | None:
+    """The run's client report as stored, and the document model beside it, composing
+    nothing: the approved version when a person approved one, else the newest stored draft.
+    ``None`` while no client report was stored; the model ``None`` for a version stored before
+    RD5a (an approved one keeps its bytes and gets none)."""
+    scope.require(Permission.VIEW_RESULTS)
+    run = ResearchRuns(session, scope).get(run_id)
+    artifacts = research_artifacts(session, scope, store)
+    stored = artifacts.list_for_stage(
+        project_id=str(run["project_id"]),
+        revision=int(run["project_revision"]),
+        stage_type=CLIENT_REPORT_STAGE,
+    )
+    drafts = [
+        a
+        for a in stored
+        if a.artifact_type == CLIENT_REPORT_ARTIFACT_TYPE
+        and a.status is ArtifactStatus.VALID
+        and a.metadata.get("run_id") == run_id
+    ]
+    if not drafts:
+        return None
+    approved = [a for a in drafts if a.is_approved]
+    docx = approved[-1] if approved else drafts[-1]
+    models = [
+        a
+        for a in stored
+        if a.artifact_type == CLIENT_REPORT_DOCUMENT_ARTIFACT_TYPE
+        and a.status is ArtifactStatus.VALID
+        and a.metadata.get("run_id") == run_id
+        and a.metadata.get("docx_artifact_id") == docx.artifact_id
+        and a.metadata.get("docx_sha256") == docx.sha256
+    ]
+    return docx, (models[-1] if models else None)

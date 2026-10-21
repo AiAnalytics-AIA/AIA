@@ -8,6 +8,7 @@ import time
 from aia_core.application.analysis_results import ReconstructionRefused, reconstruct_run
 from aia_core.application.report import (
     INTERNAL_REPORT_ARTIFACT_TYPE,
+    INTERNAL_REPORT_DOCUMENT_ARTIFACT_TYPE,
     INTERNAL_REPORT_PDF_ARTIFACT_TYPE,
     RESEARCH_SUBTITLE,
     ReportCompositionRefused,
@@ -26,6 +27,11 @@ from aia_core.application.research import research_artifacts
 from aia_core.domain.analysis import ANALYSIS_MODULES
 from aia_core.domain.fieldwork import origin_kind
 from aia_core.domain.pipeline import fingerprint
+from aia_core.domain.report.document_model import (
+    DOCUMENT_MODEL_CONTRACT,
+    DOCUMENT_MODEL_MEDIA_TYPE,
+    document_bytes,
+)
 from aia_core.domain.report.model import Classification, ReportKind, ReportMeta
 from aia_core.domain.report.review import REVIEW_STAMP_CONTRACT, ReviewState
 from aia_core.domain.report.validation import ReportInvalid
@@ -49,6 +55,7 @@ from .research import upstream_artifact
 REPORT_ARTIFACT_TYPE = INTERNAL_REPORT_ARTIFACT_TYPE
 REPORT_CONTRACT_VERSION = "aia-internal-report-10"
 REPORT_PDF_ARTIFACT_TYPE = INTERNAL_REPORT_PDF_ARTIFACT_TYPE
+REPORT_DOCUMENT_ARTIFACT_TYPE = INTERNAL_REPORT_DOCUMENT_ARTIFACT_TYPE
 
 
 class ReportExecutor:
@@ -165,6 +172,30 @@ class ReportExecutor:
                 # the report; rendering again may have given other bytes under the same
                 # fingerprint, which holds the inputs, never the renderer. Its PDF renders it.
                 data = repo.read(artifact.artifact_id)
+            # The document the DOCX was rendered from, beside it under the same fingerprint
+            # (report-delivery RD5a). The fingerprint holds the inputs and the contract, so a
+            # DOCX found again finds its document again; one stored before RD5a gets its own now.
+            model, _ = repo.put(
+                project_id=step.project_id,
+                revision=step.project_revision,
+                stage_type=step.stage_type,
+                artifact_type=REPORT_DOCUMENT_ARTIFACT_TYPE,
+                data=document_bytes(document),
+                content_type=DOCUMENT_MODEL_MEDIA_TYPE,
+                input_fingerprint=input_fingerprint,
+                runtime_version=self._build.sha or "",
+                produced_by_job_id=step.attempt_id,
+                metadata={
+                    "run_id": step.run_id,
+                    "step_id": step.step_id,
+                    "report_kind": ReportKind.INTERNAL.value,
+                    "docx_artifact_id": artifact.artifact_id,
+                    "docx_sha256": artifact.sha256,
+                    "document_contract": DOCUMENT_MODEL_CONTRACT,
+                    "report_contract": REPORT_CONTRACT_VERSION,
+                },
+                depends_on=[artifact.artifact_id],
+            )
         output: dict[str, object] = {
             "artifact_id": artifact.artifact_id,
             "artifact_type": REPORT_ARTIFACT_TYPE,
@@ -172,6 +203,7 @@ class ReportExecutor:
             "size_bytes": artifact.size_bytes,
             "reused": not created,
             "review_state": "DRAFT_UNAPPROVED",
+            "document": {"artifact_id": model.artifact_id, "sha256": model.sha256},
         }
         if self._pdf is not None:
             output["pdf"] = self._store_pdf(

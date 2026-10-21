@@ -11,6 +11,7 @@ from __future__ import annotations
 
 import hashlib
 import io
+import json
 import zipfile
 from datetime import date, datetime
 from pathlib import Path
@@ -19,9 +20,13 @@ from zoneinfo import ZoneInfo
 
 import pytest
 from aia_core.application import client_report
-from aia_core.application.client_report import CLIENT_REPORT_ARTIFACT_TYPE
+from aia_core.application.client_report import (
+    CLIENT_REPORT_ARTIFACT_TYPE,
+    CLIENT_REPORT_DOCUMENT_ARTIFACT_TYPE,
+)
 from aia_core.application.report import (
     INTERNAL_REPORT_ARTIFACT_TYPE,
+    INTERNAL_REPORT_DOCUMENT_ARTIFACT_TYPE,
     INTERNAL_REPORT_MEDIA_TYPE,
     INTERNAL_REPORT_PDF_ARTIFACT_TYPE,
 )
@@ -32,6 +37,7 @@ from aia_core.application.sociomapping_report import SOCIOMAPPING_REPORT_ARTIFAC
 from aia_core.domain.evidence import ClaimSurface
 from aia_core.domain.evidence.validation import METHOD_STATUS_PENDING
 from aia_core.domain.fieldwork import FieldworkSource
+from aia_core.domain.report.document_model import DOCUMENT_MODEL_CONTRACT, document_bytes
 from aia_core.domain.report.evidence import EvidenceLedger
 from aia_core.domain.report.model import (
     Callout,
@@ -392,10 +398,13 @@ def _store_internal_report(
     pdf: bytes | None = None,
     pdf_of: str | None = None,
     metadata: dict[str, Any] | None = None,
+    model: bytes | None = None,
+    model_metadata: dict[str, Any] | None = None,
 ) -> str:
     """Drive the run's steps to the end, the report step storing ``document`` as the
-    researcher's internal report (and ``pdf`` as its rendering, of ``pdf_of`` when given),
-    with ``metadata`` beside what it records; return its artifact id."""
+    researcher's internal report (and ``pdf`` as its rendering, of ``pdf_of`` when given;
+    ``model`` as its document model, with ``model_metadata`` over what it records), with
+    ``metadata`` beside what it records; return its artifact id."""
     factory = create_session_factory(app.state.engine)
     with factory() as session:
         principal = AuthenticatedPrincipal(
@@ -441,6 +450,28 @@ def _store_internal_report(
                         depends_on=[report_id],
                     )
                     output["pdf"] = {"state": "READY", "artifact_id": rendering.artifact_id}
+                if model is not None:
+                    stored, _ = research_artifacts(session, scope, app.state.artifact_store).put(
+                        project_id=work.project_id,
+                        revision=work.project_revision,
+                        stage_type="REPORT",
+                        artifact_type=INTERNAL_REPORT_DOCUMENT_ARTIFACT_TYPE,
+                        data=model,
+                        content_type="application/json",
+                        input_fingerprint=f"report-route-test-{run_id}",
+                        metadata={
+                            "run_id": run_id,
+                            "report_kind": "internal",
+                            "docx_artifact_id": report_id,
+                            "docx_sha256": artifact.sha256,
+                            **(model_metadata or {}),
+                        },
+                        depends_on=[report_id],
+                    )
+                    output["document"] = {
+                        "artifact_id": stored.artifact_id,
+                        "sha256": stored.sha256,
+                    }
             workflow.complete_attempt(work.attempt_id, worker_id="report-fixture", output=output)
         session.commit()
     assert report_id is not None
@@ -498,6 +529,124 @@ def test_internal_report_is_listed_and_downloaded_only_through_its_study_run(
     damaged = researcher.get(f"{url}/download")
     assert damaged.status_code == 409 and damaged.json()["code"] == "artifact_corrupt"
     assert artifact_status(report_id) == "CORRUPT"
+
+
+def _document_model(title: str = "Úvod a rámec studie") -> bytes:
+    """A stored document model of the current contract, fictional."""
+    return json.dumps(
+        {
+            "contract": DOCUMENT_MODEL_CONTRACT,
+            "meta": {"kind": "internal", "title": "Interní analytická zpráva"},
+            "sections": [
+                {
+                    "id": "intro",
+                    "title": title,
+                    "appendix": False,
+                    "blocks": [
+                        {
+                            "id": "intro.1",
+                            "type": "paragraph",
+                            "role": "body",
+                            "content": [{"type": "text", "text": "Fiktivní.", "emphasis": "none"}],
+                            "marks": [],
+                            "refs": [],
+                        }
+                    ],
+                    "refs": [],
+                }
+            ],
+            "ledger": {"surface": "internal", "refs": {}},
+        },
+        sort_keys=True,
+        separators=(",", ":"),
+    ).encode()
+
+
+def test_the_internal_draft_is_read_as_its_document_beside_its_docx(
+    app: FastAPI,
+    researcher: TestClient,
+    other_client_lead: TestClient,
+    world: Any,
+    damage_artifact: Any,
+) -> None:
+    app.state.settings = app.state.settings.model_copy(update={"ai_analysis_enabled": True})
+    revision = submit(researcher, world).json()["revision_id"]
+    run_id = start(researcher, world, revision).json()["run_id"]
+    url = f"{_runs(world)}/{run_id}/report/document"
+    assert researcher.get(url).status_code == 404  # no report yet
+
+    model = _document_model()
+    report_id = _store_internal_report(app, world, run_id, b"PK\x03\x04draft", model=model)
+    read = researcher.get(url)
+    assert read.status_code == 200, read.text
+    body = read.json()
+    assert body["report_artifact_id"] == report_id
+    assert body["sha256"] == hashlib.sha256(model).hexdigest()
+    assert body["review_state"] == "DRAFT_UNAPPROVED" and body["approved_on"] is None
+    assert body["document"] == json.loads(model)
+    assert [b["id"] for b in body["document"]["sections"][0]["blocks"]] == ["intro.1"]
+    other_url = f"{_runs(world, 'other_client')}/{run_id}/report/document"
+    assert other_client_lead.get(other_url).status_code == 404
+
+    damage_artifact(body["artifact_id"], "tampered")
+    damaged = researcher.get(url)
+    assert damaged.status_code == 409 and damaged.json()["code"] == "artifact_corrupt"
+
+
+def test_a_report_without_its_document_or_beside_another_docx_says_so(
+    app: FastAPI, researcher: TestClient, world: Any
+) -> None:
+    app.state.settings = app.state.settings.model_copy(update={"ai_analysis_enabled": True})
+    revision = submit(researcher, world).json()["revision_id"]
+
+    before = start(researcher, world, revision).json()["run_id"]
+    _store_internal_report(app, world, before, b"PK\x03\x04before-rd5a")
+    refused = researcher.get(f"{_runs(world)}/{before}/report/document")
+    assert refused.status_code == 409
+    assert refused.json()["code"] == "report_document_not_stored"
+    # Its DOCX still downloads.
+    assert researcher.get(f"{_runs(world)}/{before}/report/download").status_code == 200
+
+
+@pytest.mark.parametrize(
+    "model_metadata",
+    [
+        pytest.param({"docx_artifact_id": "ART-0000000000000000"}, id="another-docx"),
+        pytest.param({"docx_sha256": "0" * 64}, id="another-docx-bytes"),
+        pytest.param({"run_id": "RUN-another"}, id="another-run"),
+    ],
+)
+def test_a_document_not_beside_this_runs_docx_is_refused(
+    app: FastAPI, researcher: TestClient, world: Any, model_metadata: dict[str, Any]
+) -> None:
+    app.state.settings = app.state.settings.model_copy(update={"ai_analysis_enabled": True})
+    revision = submit(researcher, world).json()["revision_id"]
+    run_id = start(researcher, world, revision).json()["run_id"]
+    _store_internal_report(
+        app,
+        world,
+        run_id,
+        b"PK\x03\x04draft",
+        model=_document_model(),
+        model_metadata=model_metadata,
+    )
+    refused = researcher.get(f"{_runs(world)}/{run_id}/report/document")
+    assert refused.status_code == 409
+    assert refused.json()["code"] == "report_artifact_invalid"
+
+
+def test_a_stored_document_of_another_contract_is_refused(
+    app: FastAPI, researcher: TestClient, world: Any
+) -> None:
+    app.state.settings = app.state.settings.model_copy(update={"ai_analysis_enabled": True})
+    revision = submit(researcher, world).json()["revision_id"]
+    run_id = start(researcher, world, revision).json()["run_id"]
+    _store_internal_report(
+        app, world, run_id, b"PK\x03\x04draft", model=b'{"contract":"aia-report-document-0"}'
+    )
+    refused = researcher.get(f"{_runs(world)}/{run_id}/report/document")
+    assert refused.status_code == 409
+    assert refused.json()["code"] == "report_artifact_invalid"
 
 
 def test_the_reports_pdf_is_read_only_as_the_rendering_of_its_stored_docx(
@@ -1123,6 +1272,95 @@ def test_an_approved_client_report_stays_the_client_report_after_its_contract_ch
             )
         ).all()
     assert stored == [version]
+
+
+def test_the_client_report_is_read_as_its_document_beside_its_docx(
+    app: FastAPI,
+    researcher: TestClient,
+    outsider: TestClient,
+    world: Any,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """RD5a part 2: the client report's download stores the document it renders beside the DOCX
+    and the document route reads it, composing nothing; an approved version keeps its
+    document. Composing is stubbed as in the contract test above (a real composition needs a
+    population-grounded run, test_ai_fieldwork)."""
+    app.state.settings = app.state.settings.model_copy(update={"ai_analysis_enabled": True})
+    revision = submit(researcher, world).json()["revision_id"]
+    run_id = start(researcher, world, revision).json()["run_id"]
+    composed: list[str] = []
+
+    def compose(session: Any, scope: Any, store: Any, *, run_id: str) -> Any:
+        composed.append(run_id)
+        return client_report.ComposedClientReport(
+            document=_client_report_document(),
+            sources={"contract": client_report.CLIENT_REPORT_CONTRACT, "run_id": run_id},
+            depends_on=(),
+        )
+
+    monkeypatch.setattr(client_report, "compose_client_report", compose)
+    url = f"{_runs(world)}/{run_id}/report/client"
+    assert researcher.get(f"{url}/document").status_code == 404  # none stored yet
+    assert composed == []  # reading the document never composes
+
+    draft = researcher.get(f"{url}/download")
+    assert draft.status_code == 200, draft.text
+    version = draft.headers["X-AIA-Artifact-Id"]
+    read = researcher.get(f"{url}/document")
+    assert read.status_code == 200, read.text
+    body = read.json()
+    assert body["report_artifact_id"] == version
+    assert body["report_sha256"] == draft.headers["X-AIA-Artifact-Sha256"]
+    assert body["review_state"] == "DRAFT_UNAPPROVED"
+    assert body["document"] == json.loads(document_bytes(_client_report_document()))
+    assert body["document"]["meta"]["kind"] == "client"
+    assert body["document"]["meta"]["identifiers"] == []
+
+    # Downloaded again: the same draft, the same document, nothing stored twice.
+    assert researcher.get(f"{url}/download").headers["X-AIA-Artifact-Id"] == version
+    assert researcher.get(f"{url}/document").json()["artifact_id"] == body["artifact_id"]
+    approved = outsider.post(
+        f"{_runs(world)}/{run_id}/report/approve", json={"artifact_id": version}
+    )
+    assert approved.status_code == 200, approved.text
+    after = researcher.get(f"{url}/document").json()
+    assert after["artifact_id"] == body["artifact_id"]
+    assert after["review_state"] == "APPROVED_INTERNAL"
+    with create_session_factory(app.state.engine)() as session:
+        models = session.scalars(
+            select(ProjectArtifactRow.artifact_id).where(
+                ProjectArtifactRow.artifact_type == CLIENT_REPORT_DOCUMENT_ARTIFACT_TYPE
+            )
+        ).all()
+    assert models == [body["artifact_id"]]
+
+
+def test_a_client_report_stored_before_its_document_says_so(
+    app: FastAPI, researcher: TestClient, world: Any
+) -> None:
+    app.state.settings = app.state.settings.model_copy(update={"ai_analysis_enabled": True})
+    revision = submit(researcher, world).json()["revision_id"]
+    run_id = start(researcher, world, revision).json()["run_id"]
+    principal = AuthenticatedPrincipal(
+        user_id=world.users["researcher"], organization_id=world.organization_id
+    )
+    with create_session_factory(app.state.engine)() as session:
+        scope = ScopeResolver(session).study_context(principal, study_id=world.study_id())
+        run = ResearchRuns(session, scope).get(run_id)
+        research_artifacts(session, scope, app.state.artifact_store).put(
+            project_id=run["project_id"],
+            revision=int(run["project_revision"]),
+            stage_type="REPORT",
+            artifact_type=CLIENT_REPORT_ARTIFACT_TYPE,
+            data=b"PK\x03\x04client-before-rd5a",
+            content_type=INTERNAL_REPORT_MEDIA_TYPE,
+            input_fingerprint="client-before-rd5a",
+            metadata={"run_id": run_id, "report_kind": "client"},
+        )
+        session.commit()
+    refused = researcher.get(f"{_runs(world)}/{run_id}/report/client/document")
+    assert refused.status_code == 409
+    assert refused.json()["code"] == "report_document_not_stored"
 
 
 def test_a_client_report_the_stamp_refuses_says_so_in_its_status_and_name(

@@ -1,5 +1,5 @@
 ---
-status: planned
+status: in-progress
 chunks:
   - "[ ] RD0. Build the client deliverable's gate the owner set (MVPQ-09): no \"Interní dokument\" source, no drill-down content, no number without an admitted claim"
   - "[ ] RD1. The client report PDF: extend `RENDERABLE_REPORTS`, the PDF is approved with its DOCX"
@@ -7,7 +7,7 @@ chunks:
   - "[ ] RD3. The Approve and Export panel: what is approved and by whom; exports after approval; the slot in the Report artifact"
   - "[ ] RD4. The map snapshot: an approvable object rendered server-side from the stored map and camera parameters, never browser bytes; one ledger shape"
   - "[ ] RD5. Report draft revisions: a separate draft counter, tracked changes per paragraph; a report edit never reopens fieldwork"
-  - "[ ] RD5a. The report's document model stored and served (W2, before RD5 and RD7): the ReportDocument as JSON beside each DOCX under the same fingerprint, with stable paragraph ids and claim refs, read by a VIEW_RESULTS route"
+  - "[x] RD5a. The report's document model stored and served (W2, before RD5 and RD7): the ReportDocument as JSON beside each DOCX under the same fingerprint, with stable paragraph ids and claim refs, read by a VIEW_RESULTS route"
   - "[ ] RD6. The accept destinations for the report writer, the map interpreter and the straight-liner flags: an artifact type, the composer input and its fingerprint; and, before any semantic report edit exists, the ADR with its deterministic admission rule that ADR 0026 decision 4 requires"
   - "[ ] RD7. A sentence-level claim check: a sentence that claims a comparison with no admitted claim blocks approval, the refusal naming it"
   - "[ ] RD8. The producer of a client report is the run that composed it, not whoever first downloaded it"
@@ -87,6 +87,32 @@ not a choice to approve after download. Do not introduce an unapproved internal-
 From the independent cross-check of the master plan against the code (`mvp-master-plan.md` §6.1, G47-G57). Anchors are `@ 085abe0`.
 
 **RD5a. The report's document model stored and served (G50, X4).** The report steps store DOCX bytes only and discard the `ReportDocument` (`apps/executors/src/aia_executors/report.py:140-157`; `application/report.py:422`, likewise `client_report.py` and `contextual_report.py`), and `Paragraph.id` is optional (`domain/report/model.py:87`). RD5 (tracked changes per paragraph), RD7 (the sentence-level claim check), LO8's report-text context and the V2 document-first draft with claim chips have nothing to read. This chunk stores the `ReportDocument` as JSON (outline, stable paragraph ids, claim refs, ledger summary) beside each DOCX under the same fingerprint, for the internal, client and with-literature variants, and a `VIEW_RESULTS` route reads it. Test: the stored document renders to the same DOCX bytes, and paragraph ids are stable across a rerun with the same fingerprint.
+
+*RD5a, done (Zpráva screen owner, `feature/report-document-model`):* the internal draft and the client report.
+- `domain/report/document_model.py`: `document_payload` / `document_bytes` / `read_document_payload`, contract
+  `aia-report-document-1`. Every section keeps the composer's id (`section-<n>` by position when it gave none);
+  every block is `<section id>.<n>`, fixed once stored. The ledger carries each cited ref's printed text from
+  `domain/report/numbers.py` (the functions `report_docx/blocks.py` prints with), its grade, support and origin;
+  a suppressed ref carries only its reasons; an image only its SHA-256; run identifiers only in an internal kind.
+  Tests: `packages/aia_core/tests/test_report_document_model.py`.
+- The REPORT step stores it as `research_internal_document` beside the DOCX under the same input fingerprint,
+  naming the DOCX by id and SHA-256 (`apps/executors/src/aia_executors/report.py`); a step that runs again finds
+  the same document (`test_the_steps_pdf_renders_the_stored_docx_when_the_step_reuses_it`).
+- `GET /studies/{id}/research/runs/{run_id}/report/document` (VIEW_RESULTS + EDIT_STUDY, as the internal draft's
+  other routes): the document, the DOCX it is beside and the DOCX's review; 409 `report_document_not_stored` for
+  a report composed before RD5a (its DOCX still downloads), 409 `report_artifact_invalid` for a document not
+  beside this run's DOCX or of another contract (`apps/api/tests/test_research_api.py`).
+- **Deviation from the test above, deliberately:** the stored form holds no image bytes (the DOCX holds them),
+  so it cannot be re-rendered to the same DOCX bytes. What holds instead: it is serialized from the same
+  in-memory `ReportDocument` the DOCX is rendered from, in the same step, and names that DOCX by SHA-256.
+- The client report: its download (`stored_client_report`) stores the document beside the DOCX it stores or finds
+  (`research_client_document`, same fingerprint); `GET …/report/client/document` (VIEW_RESULTS) reads the approved
+  version's, else the newest stored draft's, and composes nothing; 409 `report_document_not_stored` for a version
+  stored before RD5a (an approved one keeps its bytes and gets none). Tests:
+  `test_the_client_report_is_read_as_its_document_beside_its_docx`,
+  `test_a_client_report_stored_before_its_document_says_so`.
+- The with-literature variant gets none: it is retired for new reports by Q58
+  (`artifact-chain-to-draft-report#CHN8`); its stored DOCX stay downloadable.
 
 ## Scope freeze (2026-10-20)
 
