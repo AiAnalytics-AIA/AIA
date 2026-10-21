@@ -28,6 +28,7 @@ from aia_core.infrastructure.study_workspace_repository import StudyWorkspaceRep
 from aia_core.infrastructure.tables import PromptVersionRow
 from aia_core.infrastructure.workflow_repository import WorkflowRepository
 from aia_executors.ai_runtime import AIRuntimeConfigError, AIRuntimeSettings, build_gateway
+from aia_executors.recorded_models import LEAD_REPLY, RecordedModels
 from aia_executors.registry import registry_for
 from aia_executors.research_lead import ResearchLeadConfig, ResearchLeadExecutor
 from aia_worker.settings import WorkerSettings
@@ -265,6 +266,26 @@ def test_a_turn_is_answered_once_and_its_reply_is_read_from_the_step(
     with ready.sessions() as session:
         events = AIUsageRepository(session, ready.lead_scope(session)).events(run_id=turn["run_id"])
     assert {e.capability for e in events} == {ModelCapability.STUDY_LEAD.value}
+
+
+def test_the_shared_recorded_wire_answers_a_lead_turn_as_a_recording(
+    ready: Any, database_url: str, store: Any, build: Any
+) -> None:
+    """The acceptance harness's recorded models (mvp-acceptance-harness chunk 4) answer a Lead
+    turn through the real gateway: one request, the recorded reply, and a ledger row whose
+    provider request id says it was a recording."""
+    turn_id = post(ready)
+    models = RecordedModels()
+    assert worker(ready, database_url, store, build, models).run_once()  # type: ignore[arg-type]
+    assert len(models.requests) == 1
+    turn = lead_turn(ready, turn_id)
+    assert turn["status"] == "COMPLETED", turn
+    assert turn["output"]["reply"] == LEAD_REPLY and turn["output"]["edits"] == []
+    with ready.sessions() as session:
+        events = AIUsageRepository(session, ready.lead_scope(session)).events(run_id=turn["run_id"])
+    # The dispatch row precedes the answer and names no provider request; the answer's does.
+    answered = [e.provider_request_id for e in events if e.provider_request_id is not None]
+    assert answered == ["recorded-lead-00001"], answered
 
 
 def test_a_reply_with_a_number_outside_the_context_gets_its_one_repair(

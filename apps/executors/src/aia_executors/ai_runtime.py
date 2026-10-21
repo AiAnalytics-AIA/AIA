@@ -133,6 +133,9 @@ from .ai_fieldwork import AIFieldwork, AIFieldworkConfig, PopulationLoader, popu
 __all__ = [
     "AIRuntimeConfigError",
     "AIRuntimeSettings",
+    # The model wire a composition may pass to build_gateway (registry.compose_registry).
+    "BedrockSigner",
+    "HttpTransport",
     "LeadModelSettings",
     "LightModelSettings",
     "build_ai_fieldwork",
