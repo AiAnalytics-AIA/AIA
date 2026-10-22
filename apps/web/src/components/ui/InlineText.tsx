@@ -92,6 +92,9 @@ export function InlineText({
   }, [editing, pending, failed, save]);
 
   const open = () => {
+    // A click's pending open (a selectable value) would open again over what is typed now.
+    if (clickTimer.current) clearTimeout(clickTimer.current);
+    clickTimer.current = null;
     if (disabled) return;
     opened.current = true;
     settled.current = false;

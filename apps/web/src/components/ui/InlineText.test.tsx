@@ -299,6 +299,15 @@ describe("InlineText selectable (Q68): its words can be selected and still edite
     expect(screen.queryByRole("textbox")).toBeNull();
   });
 
+  it("opened by a key right after a click, keeps what is typed when the click's wait runs out", async () => {
+    render(<InlineText selectable label="Název studie" value="A" onCommit={() => {}} />);
+    fireEvent.click(shown(), { detail: 1 });
+    fireEvent.keyDown(shown(), { key: "Enter" });
+    fireEvent.change(field(), { target: { value: "Rozepsáno" } });
+    await settle();
+    expect((field() as HTMLTextAreaElement | HTMLInputElement).value).toBe("Rozepsáno");
+  });
+
   it("opens on Enter, F2 and Space at once; disabled, it is its words alone, taking no focus", () => {
     const { unmount } = render(<InlineText selectable label="Název studie" value="A" onCommit={() => {}} />);
     for (const key of ["Enter", "F2", " "]) {
