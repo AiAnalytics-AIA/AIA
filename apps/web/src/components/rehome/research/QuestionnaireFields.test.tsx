@@ -160,6 +160,14 @@ describe("Dotazník's block and set fields", () => {
     await waitFor(() => expect(sectionsSaved()?.[1].objects?.at(-1)).toBe("Objekt 41"));
   });
 
+  it("says a set stored above forty is more than a run takes, and counts it as one to fix", async () => {
+    stub([SECTIONS[0], { ...SECTIONS[1], objects: Array.from({ length: 42 }, (_, i) => `Objekt ${i + 1}`) }]);
+    render(<ResearchScreen step="questionnaire" frame={TEST_FRAME} />);
+    expect(await screen.findByText("Sada má 42 objektů, běh jich přijme nejvýše 40.")).toBeTruthy();
+    expect(screen.queryByText("Sledovaná sada potřebuje 4–15 položek.")).toBeNull();
+    expect(screen.getAllByText(/Sady mimo 4–40 položek: 1/).length).toBeGreaterThan(0);
+  });
+
   it("keeps a set stored above fifteen whole when one object is removed", async () => {
     // The server takes up to 40 (an import, an older copy); the screen shows them all and cuts none.
     stub([SECTIONS[0], { ...SECTIONS[1], objects: Array.from({ length: 17 }, (_, i) => `Objekt ${i + 1}`) }]);

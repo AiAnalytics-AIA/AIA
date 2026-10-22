@@ -1145,7 +1145,9 @@ function TrackedSet({ n, sec, si, update }: { n: number; sec: Section; si: numbe
           onAdd={(v) => setObjects([...objects, v])}
           onRemove={(i) => setObjects(objects.filter((_, j) => j !== i))}
         />
-        {note || (objects.length && bad) ? (
+        {objects.length > SET_HARD_MAX ? (
+          <span className="text-xs text-status-you-ink">{tv("research.questionnaire.setAboveHard", { n: objects.length, hard: SET_HARD_MAX })}</span>
+        ) : note || (objects.length && bad) ? (
           <span className="text-xs text-status-you-ink">{note || SET_TOO_SMALL}</span>
         ) : setAboveRecommended(objects.length) ? (
           <span className="text-xs text-status-you-ink">{tv("research.questionnaire.setAboveRecommended", { max: SET_MAX, hard: SET_HARD_MAX })}</span>

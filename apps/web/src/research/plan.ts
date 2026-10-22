@@ -72,8 +72,9 @@ export function objectQuestionRows(set: TrackedSet): { question: string; low: st
   return (set.objects || []).slice(0, 6).map((x) => ({ question: tmpl.replace("{object}", x), low: String(lb[0]), high: String(lb[1]) }));
 }
 
-/** At most this many objects in one set (addPlanObject, addPlanSet): the server's hard maximum,
- * where the classic stopped at 15 (Q75 (a); SET_HARD_MAX). */
+/** At most this many objects in one set (addPlanObject): the server's hard maximum, where the
+ * classic stopped at 15 (Q75 (a); SET_HARD_MAX). addPlanSet cuts nothing: a longer list is kept
+ * and the set says it is over. */
 export const MAX_OBJECTS = SET_HARD_MAX;
 export const SET_FULL = `Sledovaná sada má maximálně ${SET_HARD_MAX} položek.`;
 export const PROMPT_SET_TITLE = "Název porovnatelné sady, např. Značky, Regiony, Argumenty nebo Varianty nabídky:";
@@ -87,7 +88,7 @@ const withSets = (a: Analysis, sets: TrackedSet[]): Analysis => ({ ...a, tracked
 /** addPlanSet: a new set from a title and a comma list; an analysis is started from the goal if there is none. */
 export function addSet(s: PlanState, title: string | null, raw: string | null): Analysis | null {
   if (!title?.trim()) return null;
-  const objects = String(raw || "").split(",").map((x) => x.trim()).filter(Boolean).slice(0, MAX_OBJECTS);
+  const objects = String(raw || "").split(",").map((x) => x.trim()).filter(Boolean);
   const goal = s.project.goal as Json;
   const a: Analysis = s.analysis || { problem_summary: goal, objectives: [goal], tracked_sets: [] };
   const t = title.trim();
