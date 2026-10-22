@@ -3,8 +3,8 @@ status: in-progress
 chunks:
   - "[x] RPT1. Zpráva's contract as data: view operations, pointable ids (section, paragraph, figure, claim) and V2's interaction contract"
   - "[x] RPT2. The document first: the draft rendered in the pane from its stored document model, paragraphs with claim chips opening the inspector, figures in place"
-  - "[ ] RPT3. The doc bar and the Approve and Export slot: which document, its draft number and state, approval as a modal naming it, exports after approval (split 2026-10-22: RPT3a, RPT3b)"
-  - "[ ] RPT3a. Approval on the document being read: Schválit in the pane's doc bar for the version shown, internal or client, one owner of the version approved; the report card keeps downloads only"
+  - "[x] RPT3. The doc bar and the Approve and Export slot: which document, its draft number and state, approval as a modal naming it, exports after approval (split 2026-10-22: RPT3a, RPT3b)"
+  - "[x] RPT3a. Approval on the document being read: Schválit in the pane's doc bar for the version shown, internal or client, one owner of the version approved; the report card keeps downloads only"
   - "[x] RPT3b. Exports after approval: decided 2026-10-22, not built: the owner answered Q73 (c), downloads stay free before approval"
   - "[x] RPT4. Záznam pokrytí, outside the text: what the report does not hold and why, from the chain manifest"
   - "[ ] RPT5. Draft revisions: the draft counter and the editor's version history, a report edit never reopening fieldwork (changed 2026-10-22: on the editor, RPT8)"
@@ -199,9 +199,21 @@ reads the report again, so it follows the approved PDF being made (`ReportDocume
 the internal draft it shows, naming the PDF the approval renders as the run states it at the ask…", "asks
 nothing while the run's report names another version, and says why…", "approves an internal draft it cannot
 show on the version its run names…"; `ExecutionSteps.test.tsx` "says the internal draft approved in the doc
-bar once the pane answers…"; `report_journey.mjs` "approval in the doc bar, none on the card"). Left open: the
-report with literature (Interpretation Research) is still approved on the card, because the pane does not
-read that document; it moves when the pane reads it, and RPT3a closes then.
+bar once the pane answers…"; `report_journey.mjs` "approval in the doc bar, none on the card"). 
+
+*RPT3a, third part (`feature/report-with-literature-in-pane`), closing it:* the report with a completed
+literature review is a document of the pane too ("Zpráva s rešerší", one per completed Interpretation
+Research of the run, read for a reader who may review). Its document model is stored beside its DOCX when it
+is prepared (`contextual_report.py` `CONTEXT_REPORT_DOCUMENT_ARTIFACT_TYPE`, `contextual_report_document`,
+RD5a's `store_document_beside`; a draft stored before gets it on its next preparation) and read by
+`GET …/runs/{id}/report/context/document?deep_research_run_id=` (409 `context_report_not_prepared`,
+`report_document_not_stored`). It is prepared, read and approved in the doc bar, its question naming the
+review and the PDF as the variant's status states it at the ask. The card approves nothing: it keeps the
+downloads and says where each report is approved; a version approved elsewhere is told to it too
+(`test_analysis_executor.py` `test_native_ai_study_connects_a_populated_map_to_admitted_report_inputs`;
+`test_report_variant_api.py` `test_the_document_is_the_prepared_drafts_and_says_when_none_was_stored`;
+`ReportDocumentView.test.tsx` "reads, prepares and approves the report with a completed literature
+review…"; `ExecutionSteps.test.tsx` "…and leaves its approval to the doc bar").
 
 **RPT3b. Exports after approval.** Decided 2026-10-22, not built: the owner answered Q73 (c), keep
 today's free downloads. A draft's DOCX and PDF stay downloadable before approval, each file stamped

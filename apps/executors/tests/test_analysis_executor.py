@@ -40,7 +40,11 @@ from aia_core.application.analysis_results import (
     retry_failed_modules,
     stored_analysis,
 )
-from aia_core.application.contextual_report import contextual_report, stored_contextual_report
+from aia_core.application.contextual_report import (
+    contextual_report,
+    contextual_report_document,
+    stored_contextual_report,
+)
 from aia_core.application.deep_research import DeepResearchRuns, run_settings
 from aia_core.application.report import ReportCompositionRefused
 from aia_core.application.report_variants import prepared_context_report
@@ -804,6 +808,25 @@ def test_native_ai_study_connects_a_populated_map_to_admitted_report_inputs(
                     deep_research_run_id=interpreted.run_id,
                 )
                 assert data.startswith(b"PK") and same == data
+                # The document it was rendered from, beside it once (RPT3a: the pane reads and
+                # approves exactly this version): the same sections as composed.
+                beside_it = contextual_report_document(
+                    research_artifacts(session, world.lead_scope(session), store), stored
+                )
+                assert beside_it is not None
+                assert beside_it.metadata["deep_research_run_id"] == interpreted.run_id
+                model = json.loads(
+                    research_artifacts(session, world.lead_scope(session), store).read(
+                        beside_it.artifact_id
+                    )
+                )
+                assert [x["id"] for x in model["sections"]] == [x.id for x in combined.sections]
+                assert (
+                    contextual_report_document(
+                        research_artifacts(session, world.lead_scope(session), store), again
+                    ).artifact_id
+                    == beside_it.artifact_id
+                )
                 # The front matter and the literature chapter name one seal, the one the bundle
                 # verifies (research-integrity-report 4: they printed two different hashes).
                 printed = zipfile.ZipFile(io.BytesIO(data)).read("word/document.xml").decode()

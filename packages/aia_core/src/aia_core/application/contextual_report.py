@@ -26,6 +26,7 @@ from aia_core.application.report import (
     sourced,
 )
 from aia_core.application.report_chapters import report_chapters
+from aia_core.application.report_document import beside, store_document_beside
 from aia_core.application.report_export import review_stamp_record
 from aia_core.application.research import ResearchRuns, research_artifacts
 from aia_core.domain.analysis import ANALYSIS_MODULES, AnalysisModuleId
@@ -61,6 +62,7 @@ from aia_core.domain.deep_research.triangulation import publisher_identity
 from aia_core.domain.deep_research.workflow import ARTIFACT_TYPES
 from aia_core.domain.fieldwork import OriginKind, origin_kind
 from aia_core.domain.pipeline import fingerprint
+from aia_core.domain.report.document_model import DOCUMENT_MODEL_MEDIA_TYPE
 from aia_core.domain.report.model import (
     ArtifactSource,
     Block,
@@ -100,6 +102,9 @@ CONTEXT_REPORT_CONTRACT = "aia-contextual-report-9"
 BUNDLE_ARTIFACT = ARTIFACT_TYPES["bundle"]
 # Stored beside the run's own report, on the Study's design project (ADR 0016).
 CONTEXT_REPORT_ARTIFACT_TYPE = "research_internal_docx_with_research"
+#: The document model a report with literature was rendered from, beside its DOCX (RD5a's pattern;
+#: artifact-report RPT3a: the pane reads and approves exactly that version).
+CONTEXT_REPORT_DOCUMENT_ARTIFACT_TYPE = "research_internal_document_with_research"
 CONTEXT_REPORT_STAGE = "REPORT"
 #: The Deep Research setting that signs off the source table (domain.deep_research.settings).
 SOURCE_TIERS_SETTING: Final = "sources.tiers"
@@ -900,6 +905,8 @@ def stored_contextual_report(
         artifacts, composed.run, run_id=run_id, deep_research_run_id=deep_research_run_id
     )
     if found is not None and drafts and drafts[-1].artifact_id == found.artifact_id:
+        # A draft stored before its document was: the same sources compose the same document.
+        _store_document(artifacts, run_id, deep_research_run_id, found, composed.document, build)
         return found, artifacts.read(found.artifact_id)
     # Not stored, or stored but no longer the newest draft of this contract (its composed sources
     # changed and changed back; defensive, no known path reaches it): stored again, so the draft
@@ -926,7 +933,48 @@ def stored_contextual_report(
         depends_on=list(composed.depends_on),
         reuse=False,
     )
+    _store_document(artifacts, run_id, deep_research_run_id, artifact, composed.document, build)
     return artifact, data
+
+
+def _store_document(
+    artifacts: ArtifactRepository,
+    run_id: str,
+    deep_research_run_id: str,
+    docx: Artifact,
+    document: ReportDocument,
+    build: str,
+) -> Artifact:
+    """The document ``docx`` was rendered from, beside it (report-delivery RD5a)."""
+    return store_document_beside(
+        artifacts,
+        docx,
+        document,
+        artifact_type=CONTEXT_REPORT_DOCUMENT_ARTIFACT_TYPE,
+        metadata={
+            "run_id": run_id,
+            "deep_research_run_id": deep_research_run_id,
+            "report_kind": ReportKind.INTERNAL.value,
+            "report_contract": docx.metadata.get("report_contract"),
+        },
+        runtime_version=build,
+    )
+
+
+def contextual_report_document(artifacts: ArtifactRepository, docx: Artifact) -> Artifact | None:
+    """The newest document model stored beside exactly ``docx``, a stored report with literature;
+    ``None`` for a version stored before its document was (it still downloads). Composes nothing."""
+    models = [
+        a
+        for a in artifacts.list_for_stage(
+            project_id=docx.project_id, revision=docx.revision, stage_type=docx.stage_type
+        )
+        if a.artifact_type == CONTEXT_REPORT_DOCUMENT_ARTIFACT_TYPE
+        and a.content_type == DOCUMENT_MODEL_MEDIA_TYPE
+        and a.status is ArtifactStatus.VALID
+        and beside(a, docx)
+    ]
+    return models[-1] if models else None
 
 
 def prepared_drafts(
