@@ -322,7 +322,7 @@ try {
   await page.locator(".nav__stage.is-current", { hasText: "Sběr dat" }).waitFor();
   check("Vzorek: size and the server's forecast on the working copy at 1440, 1100, 768 and 390, nothing submitted, read only, no overflow; Spuštění one click away");
 
-  // Spuštění (artifact-fieldwork F-FLD-3, F-FLD-4): every link back to a stage is the input
+  // Spuštění (artifact-fieldwork F-FLD-3, F-FLD-4, F-FLD-5): every link of the stage is the input
   // standard's touch target (44 px at a phone's width, 32 px from 640 px; I11), and "Co spustíte"
   // puts each value under its label on a narrow card, never a sliver beside it.
   for (const width of [1440, 1100, 768, 390]) {
@@ -332,9 +332,14 @@ try {
     await edit.first().waitFor({ timeout: 60000 });
     assert((await edit.count()) > 0, `Co spustíte names its stages @${width}`);
     const floor = width < 640 ? 44 : 32;
-    const heights = await page.getByRole("link", { name: /^(Opravit →|Upravit)$/ })
-      .evaluateAll((els) => els.map((el) => el.getBoundingClientRect().height));
-    assert(heights.every((h) => h >= floor), `Spuštění's stage links are ${floor} px targets @${width}: ${heights.join(", ")}`);
+    // Every shown link of the stage's own but one inside a sentence, which WCAG 2.5.8 exempts: a link
+    // with text of its parent's beside it.
+    const links = await page.locator("#artbody a").evaluateAll((els) => els
+      .filter((el) => el.getClientRects().length)
+      .filter((el) => ![...el.parentElement.childNodes].some((n) => n.nodeType === Node.TEXT_NODE && n.textContent.trim()))
+      .map((el) => ({ text: el.textContent.trim(), height: el.getBoundingClientRect().height })));
+    const small = links.filter((l) => l.height < floor);
+    assert(links.length && !small.length, `Spuštění's links are ${floor} px targets @${width}: ${small.map((l) => `${l.text} ${l.height}`).join(", ")}`);
     if (width === 390) {
       const share = await page.locator("dl:has(a) dd:not(:has(a))").evaluateAll((dds) =>
         dds.map((dd) => dd.getBoundingClientRect().width / dd.closest("dl").getBoundingClientRect().width));
@@ -344,7 +349,7 @@ try {
     await noOverflow(`run @${width}`);
     await shot(`${width}-run`);
   }
-  check("Spuštění's links back to a stage are touch targets, Co spustíte stacks on a phone, at 1440, 1100, 768 and 390, no overflow");
+  check("Spuštění's links are touch targets, Co spustíte stacks on a phone, at 1440, 1100, 768 and 390, no overflow");
 
   const paid = writes.filter((w) => /\/research\/runs$|\/agent-jobs$|\/deep-research\/runs|\/lead\/turns\/[^/]+\/request$/.test(w.path));
   assert.deepEqual(paid, [], "nothing paid started");

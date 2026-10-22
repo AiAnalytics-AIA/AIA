@@ -46,7 +46,7 @@ import { latestDesignRun, questionEvidence } from "@/lib/design-evidence";
 import { citedSnapshot } from "@/lib/verified-source";
 import { researchStepOrb, researchStepWork } from "@/lib/activity-orb";
 import { RECEIPT_TARGET, stepTarget } from "@/lib/artifacts/fieldwork";
-import { FOCUS, TOUCH } from "@/components/ui/parts";
+import { FOCUS, TOUCH, TOUCH_LINK } from "@/components/ui/parts";
 import { activityOf } from "@/lib/step-activity";
 import { type BatteryWithMaps, mapApproval, readObjectMap, type RecordedMethod, type RegisterEntry } from "@/lib/object-map-view";
 import {
@@ -137,7 +137,9 @@ const when = (iso: string | null) => (iso ? new Date(iso).toLocaleString("cs-CZ"
 
 /** A link back to the stage where something is set: the input standard's touch target (I11) and
  *  focus ring, its text on the first line of the row it sits in. */
-const STAGE_LINK = `inline-flex items-start whitespace-nowrap text-xs text-signal no-underline hover:underline ${TOUCH} ${FOCUS}`;
+const STAGE_LINK = `whitespace-nowrap text-xs ${TOUCH_LINK}`;
+/** A link to a run's page, beside its facts: the same touch target. */
+const RUN_LINK = `inline-flex items-center ${TOUCH} ${FOCUS}`;
 
 function Card({ id, title, children, tone, region }: { id?: string; title?: string; children: ReactNode; tone?: "notice" | "fault"; region?: boolean }) {
   const frame =
@@ -983,7 +985,7 @@ function RunList({ runs }: { runs: ResearchRunSummary[] }) {
               {isSynthetic(r) ? <Chip tone="fault">{t("research.exec.fictional")}</Chip> : null}
               {isModelled(r) ? <Chip tone="neutral">{t("research.exec.modelled")}</Chip> : null}
               {hasUnknownOrigin(r) ? <Chip tone="fault">{t("research.exec.unknownOrigin")}</Chip> : null}
-              <a className="underline" href={`${stepHref(runDestination(r))}?run=${encodeURIComponent(r.run_id)}`}>
+              <a className={`underline ${RUN_LINK}`} href={`${stepHref(runDestination(r))}?run=${encodeURIComponent(r.run_id)}`}>
                 {runDestination(r) === "results" ? t("research.exec.toResults") : t("research.exec.toProgress")}
               </a>
             </li>
@@ -1177,7 +1179,7 @@ function ProgressActions({ run, act, busy, refresh, actionError, repairable }: {
       </dl>
       <div className="flex flex-wrap items-center gap-2">
         {run.phase === "COMPLETED" ? (
-          <a className="text-sm underline" href={`${stepHref("results")}?run=${encodeURIComponent(run.run_id)}`}>{t("research.exec.toResults")}</a>
+          <a className={`text-sm underline ${RUN_LINK}`} href={`${stepHref("results")}?run=${encodeURIComponent(run.run_id)}`}>{t("research.exec.toResults")}</a>
         ) : null}
         {/* Stopping what runs is allowed on a closed study too: it starts nothing. */}
         {canReview(frame) && !run.is_terminal ? (
