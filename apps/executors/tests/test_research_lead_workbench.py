@@ -231,6 +231,22 @@ def test_a_scripted_message_about_the_goal_points_at_the_first_objective() -> No
     assert not without.view[0].model_dump()["target"].startswith("objective:")
 
 
+def test_a_scripted_message_asking_for_the_changes_shows_this_stage_s_waiting_ones() -> None:
+    """research-lead-workbench 14: the journey needs the scripted Lead to run show_diff."""
+    from aia_executors.workbench import scripted_lead_output
+
+    frozen = _frozen("Ukaž mi změny", CONTENT)
+    frozen["layers"][0]["stage"] = "questionnaire"
+    assert [v.model_dump() for v in scripted_lead_output(frozen).view][1:] == [
+        {"op": "show_diff", "stage": "questionnaire"}
+    ]
+    # Zadání shows no changes of its own; without the word, none either.
+    frozen["layers"][0]["stage"] = "brief"
+    assert len(scripted_lead_output(frozen).view) == 1
+    frozen["layers"][0].update(stage="questionnaire", message="Kde jsme?")
+    assert len(scripted_lead_output(frozen).view) == 1
+
+
 def test_a_scripted_message_asking_for_a_detail_opens_the_first_research_question() -> None:
     """research-lead-workbench 14: the journey needs the scripted Lead to run ``inspect``."""
     from aia_core.domain.item_ids import list_ids, with_item_ids
