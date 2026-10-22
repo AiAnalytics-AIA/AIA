@@ -1147,6 +1147,19 @@ the conversation. A person types **"Zopakuj analýzu"** (no instruction), matche
   `lead.test.ts` `commandRequest`; `LeadPane.test.tsx` "shows a typed analysis retry as the stage's
   retry…".
 - **Not here:** removing the stage's own retry buttons is ANL6's (Analýza, behind 26f).
+- **Follow-up (the PM's optional points on #744, `feature/lead-analysis-retry-pin`).**
+  - *The card names its run.* GET /lead answers `analysis_retry_run` (the newest analysed run, by
+    `newest_analysed_run`'s rule) and the card shows "Který běh"; approval sends `retry_run_id`, and a
+    newer analysed run since is 409 `analysis_retry_target_moved` (`current_run_id`), nothing written,
+    asked as LO10 asks a moved design (`ANALYSIS_RETRY_MOVED_QUESTION`), then retried on the newer
+    run only on the person's yes. No migration: the run is bound at approval, as the revision is.
+  - *The Peněženka only with the wallet on.* GET /lead answers `wallet_enabled`; the retry's "nestrhává
+    se z Peněženky" and the typed run's "… a Peněženka se kontrolují" show only when it is on.
+  - Tests: `test_lead_chat_start_api.py` "a typed analysis retry names its run and never retries a newer
+    one unasked", "the conversation says whether the wallet is on"; `LeadPane.test.tsx` "… names the run
+    it retries and starts it on that run", "says a typed start is not charged to the Peněženka only with
+    the wallet on"; `Workbench.layout.test.tsx` "is approved on the run its card named, and on a newer one
+    only after the person's yes". The web tests fail without the change.
 
 ### Doc follow-up (typed analysis retry)
 

@@ -34,7 +34,7 @@ export type LeadRequest =
   | { kind: "agent_job"; action: string; why: string }
   | { kind: "research_run"; why: string }
   /** A person's typed "Zopakuj analýzu" (LO5): the stage's analysis retry, never a model's card. */
-  | { kind: "analysis_retry"; why: string }
+  | { kind: "analysis_retry"; why: string; run_id?: string }
   | { kind: "design_research"; why: string }
   | { kind: "interpretation_research"; why: string };
 
@@ -145,7 +145,14 @@ export function pendingSelfUpdate(w: SelfUpdateWaiting | null | undefined): { no
 export type EditDecisionResult = { workspace_revision: number | null; results: { index: number; status: "accepted" | "dismissed" | "refused"; reason: string | null }[] };
 export type RequestApproval = { run_id: string; design_revision_id: string; status: string };
 
-export type LeadState = { available: boolean; unavailable_reason: string | null; busy: boolean; turns: LeadTurn[] };
+export type LeadState = {
+  available: boolean; unavailable_reason: string | null; busy: boolean; turns: LeadTurn[];
+  /** AIA_STUDY_WALLET_ENABLED: whether a typed start's card speaks of the Peněženka (absent: off). */
+  wallet_enabled?: boolean;
+  /** The run a typed "Zopakuj analýzu" retries: the study's newest that ran analysis. */
+  analysis_retry_run?: RetryRun | null;
+};
+export type RetryRun = { run_id: string; created_at: string | null; phase: string };
 
 export type LeadMemory = { memory_id: string; scope: "personal" | "client"; client_id: string | null; client_name?: string | null; text: string; created_at: string; source_turn_id: string | null };
 export type ResearcherLead = {
@@ -698,6 +705,8 @@ export const LEAD_REASON_WORDS: Readonly<Record<string, string>> = {
 
 /** Asked when a card is approved after the design moved past what its turn read (LO10). */
 export const STALE_CARD_QUESTION = "Od chvíle, kdy Vedoucí kartu připravil, se studie změnila. Spustit úlohu nad studií, jak je teď?";
+/** A typed analysis retry whose run is no longer the newest analysed one (409 analysis_retry_target_moved). */
+export const ANALYSIS_RETRY_MOVED_QUESTION = "Od chvíle, kdy jste kartu viděli, doběhl novější běh s AI analýzou. Zopakovat analýzu tohoto novějšího běhu?";
 
 export function leadReasonWords(code: string | null | undefined): string {
   return code ? withFixer(LEAD_REASON_WORDS[code] ?? `Vedoucí se zastavil (${code}).`, code) : "Vedoucí se zastavil.";

@@ -66,10 +66,12 @@ from .wallet import StudyWallets
 from .workflows import StartedRun
 
 __all__ = [
+    "AnalysisRetryTargetMoved",
     "ChatStartRefused",
     "RunStartSettings",
     "approve_chat_start",
     "chat_start_decisions",
+    "newest_analysed_run",
 ]
 
 
@@ -84,6 +86,18 @@ class ChatStartRefused(Exception):
         self.reason = reason
         self.ceiling_usd = ceiling_usd
         self.remaining_usd = remaining_usd
+
+
+class AnalysisRetryTargetMoved(Exception):
+    """The card named the run it would retry (the newest that ran analysis when the person read
+    it), and a newer one has run analysis since: nothing starts until they confirm the newer one
+    (``current_run_id``), as a card whose design moved waits for a yes (LO10)."""
+
+    reason = "analysis_retry_target_moved"
+
+    def __init__(self, *, current_run_id: str) -> None:
+        super().__init__(self.reason)
+        self.current_run_id = current_run_id
 
 
 @dataclass(frozen=True, slots=True)
@@ -138,8 +152,12 @@ def approve_chat_start(
     reservation_usd: float | None,
     run_start: RunStartSettings | None,
     wallet_enabled: bool,
+    retry_run_id: str | None = None,
 ) -> dict[str, Any]:
     """Start the work the person's typed command named (``turn.command``), once.
+
+    ``retry_run_id``: for an analysis retry, the run the card showed. Another newest analysed run
+    is :class:`AnalysisRetryTargetMoved`, never retried in its place.
 
     ``submit_design(source_stage)`` submits the working content as a Design Revision, as the
     Lead's approval does. ``run_start`` is the deployment's run settings; without them a typed
@@ -195,9 +213,12 @@ def approve_chat_start(
     if command.start == ANALYSIS_RETRY:
         if run_start is None or run_start.store is None:
             raise ChatStartRefused("run_start_unavailable")
-        target = _newest_analysed_run(ResearchRuns(session, scope))
-        if target is None:
+        newest = newest_analysed_run(ResearchRuns(session, scope))
+        if newest is None:
             raise AnalysisNotRetryable("no_analysed_run", "no run of this study ran analysis")
+        target = str(newest["run_id"])
+        if retry_run_id is not None and retry_run_id != target:
+            raise AnalysisRetryTargetMoved(current_run_id=target)
         # The stage route's own start: threshold, frozen dataset, idempotency, refusals by name.
         started = retry_failed_modules(
             session,
@@ -311,12 +332,13 @@ def approve_chat_start(
     }
 
 
-def _newest_analysed_run(runs: ResearchRuns) -> str | None:
+def newest_analysed_run(runs: ResearchRuns) -> dict[str, Any] | None:
     """The study's newest research run that ran analysis, finished or not (one still running is
-    refused by the retry itself, ``run_not_finished``, never passed over for an older one)."""
+    refused by the retry itself, ``run_not_finished``, never passed over for an older one): the
+    run a typed "Zopakuj analýzu" retries, which its card names."""
     for run in runs.runs(limit=50):
         if run["metadata"].get("analysis_enabled"):
-            return str(run["run_id"])
+            return run
     return None
 
 
