@@ -91,10 +91,32 @@ try {
     await set.getByRole("link", { name: /^Sada 1 / }).click();
     await page.waitForFunction(() => location.hash === "#qset_sec_wb_set");
     // The set's name stays readable beside its badge, count and Smazat (the browser audit, QF-3).
-    const name = await page.locator("#qset_sec_wb_set").getByRole("textbox", { name: "Název sady" }).boundingBox();
-    assert(name && name.width >= 160, `the set's name at ${width}: ${Math.round(name?.width ?? 0)} px wide`);
+    const name = page.locator("#qset_sec_wb_set").getByRole("button", { name: /^Upravit: Název sady/ });
+    const room = await name.evaluate((el) => ({ column: el.closest("div")?.getBoundingClientRect().width ?? 0, clipped: el.scrollWidth > el.clientWidth + 1 }));
+    assert(room.column >= 160 && !room.clipped, `the set's name at ${width}: ${Math.round(room.column)} px, clipped ${room.clipped}`);
     check(`${width}: Závislosti lists the set's readers, the open question apart, no overflow`);
   }
+
+  // A block renamed in place (input-interactions chunk 3e, I1): Enter saves, the name reads back after a reload.
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await page.goto(base + stagePath("questionnaire"));
+  const blockName = page.getByRole("button", { name: /^Upravit: Název bloku / }).first();
+  await blockName.waitFor({ timeout: 30000 });
+  const was = (await blockName.innerText()).trim();
+  await blockName.click();
+  const nameField = page.getByRole("textbox", { name: "Název bloku" });
+  await nameField.fill(`${was} (přejmenováno)`);
+  await nameField.press("Enter");
+  await page.getByRole("button", { name: `Upravit: Název bloku ${was} (přejmenováno)` }).waitFor();
+  await page.waitForFunction(() => !document.body.innerText.includes("Ukládám"));
+  await page.reload();
+  const renamed = page.getByRole("button", { name: `Upravit: Název bloku ${was} (přejmenováno)` });
+  await renamed.waitFor({ timeout: 30000 });
+  await renamed.click();
+  await page.getByRole("textbox", { name: "Název bloku" }).fill(was);
+  await page.getByRole("textbox", { name: "Název bloku" }).press("Enter");
+  await page.getByRole("button", { name: `Upravit: Název bloku ${was}` }).waitFor();
+  check("1440: a block renamed in place, saved and read back after a reload, then restored");
 
   // A question deleted at once and put back with Vrátit (input-interactions chunk 3, I6), at 1440.
   await page.setViewportSize({ width: 1440, height: 900 });

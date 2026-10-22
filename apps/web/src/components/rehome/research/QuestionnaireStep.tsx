@@ -75,6 +75,7 @@ import { Icon, type IconName } from "../icons";
 import { ActionDock, ChipInput, InlineConfirm, Segmented, Switch } from "../step";
 import { ChoiceChips } from "@/components/ui/ChoiceChips";
 import { InlineCreateRow } from "@/components/ui/InlineCreateRow";
+import { InlineText } from "@/components/ui/InlineText";
 import { AiButton, Button } from "../ui";
 import { isNativeResult } from "@/lib/research-agent-jobs";
 import { openPlace, scrollBehavior, scrollToPlace } from "@/lib/open-place";
@@ -737,21 +738,34 @@ function ResearchQuestionComparisons({ update }: { update: Update }) {
 }
 
 /** A field edited in place: a quiet input that shows its border on hover and focus. */
-function InlineField({ label, value, placeholder, onChange, strong = false }: {
+/**
+ * A block's or set's short text, edited in place (input-interactions I1, audit A4, A13): Enter or
+ * blur saves, Esc restores, and the field says its own save, the change saved at once rather than
+ * after the editor's quiet period. A name is required; a purpose may be left empty.
+ */
+function InlineField({ label, value, onChange, strong = false, required = true }: {
   label: string;
   value: string;
-  placeholder?: string;
   onChange: (v: string) => void;
   strong?: boolean;
+  required?: boolean;
 }) {
+  const { store } = useResearch();
+  // A line of its own: the purpose under the name, as the inputs stood before.
   return (
-    <input
-      aria-label={label}
-      placeholder={placeholder ?? label}
+    <div className="min-w-0">
+    <InlineText
+      label={label}
       value={value}
-      onChange={(e) => onChange(e.target.value)}
-      className={`-ml-1.5 w-full rounded-control border border-transparent bg-transparent px-1.5 py-0.5 text-ink placeholder:text-ink-faint hover:border-border focus:border-signal focus:bg-surface-raised ${FOCUS} ${strong ? "text-[15px] font-semibold" : "text-[13px] text-ink-muted"}`}
+      placeholder={label}
+      rules={{ required }}
+      onCommit={(v) => {
+        onChange(v);
+        return store.flush();
+      }}
+      className={strong ? "text-[15px] font-semibold text-ink" : "text-[13px] text-ink-muted"}
     />
+    </div>
   );
 }
 
@@ -765,8 +779,10 @@ function QuestionBlock({ n, firstQ, sec, si, update }: { n: number; firstQ: numb
       <div className="flex items-start gap-3">
         <div className="min-w-0 flex-1">
           <div className="font-mono text-[11px] uppercase tracking-[0.08em] text-ink-faint">{tv("research.questionnaire.blockHead", { n, q: countWords("questions", qs.length) })}</div>
+          {/* The block as a heading: navigable by a screen reader, and the title the Lead names it by (lead.ts titleOf). */}
+          <h3 className="sr-only">{sec.title?.trim() || tv("research.questionnaire.untitledBlock", { n })}</h3>
           <InlineField strong label={t("research.questionnaire.blockTitle")} value={sec.title || ""} onChange={(v) => update((p) => setSectionField(p, si, "title", v))} />
-          <InlineField label={t("research.questionnaire.blockPurpose")} value={sec.purpose || ""} onChange={(v) => update((p) => setSectionField(p, si, "purpose", v))} />
+          <InlineField required={false} label={t("research.questionnaire.blockPurpose")} value={sec.purpose || ""} onChange={(v) => update((p) => setSectionField(p, si, "purpose", v))} />
         </div>
         {confirming ? (
           <InlineConfirm message={t("research.questionnaire.removeBlockConfirm")} action={t("research.questionnaire.remove")} onConfirm={() => removeWithUndo(update, undo, si, sec, "blockRemoved")} onCancel={() => setConfirming(false)} />
@@ -1013,6 +1029,7 @@ function TrackedSet({ n, sec, si, update }: { n: number; sec: Section; si: numbe
       <div className="flex flex-wrap items-start gap-3">
         <span className="mt-1 whitespace-nowrap rounded-md bg-hue-violet/12 px-1.5 py-0.5 font-mono text-[11px] font-semibold text-hue-violet">{tv("research.questionnaire.setBadge", { n })}</span>
         <div className="min-w-[12rem] flex-1">
+          <h3 className="sr-only">{sec.title?.trim() || tv("research.questionnaire.untitledSet", { n })}</h3>
           <InlineField strong label={t("research.questionnaire.setTitle")} value={sec.title || ""} onChange={(v) => update((p) => setSectionField(p, si, "title", v))} />
         </div>
         <span className={`whitespace-nowrap rounded-md px-1.5 py-0.5 font-mono text-xs ${bad ? "bg-status-you-wash text-status-you-ink" : "bg-surface-sunken text-ink-muted"}`}>

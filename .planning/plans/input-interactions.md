@@ -575,12 +575,15 @@ IA-1 … IA-6, with all six parts, in the audit's §6. For the docs PR to number
   - The restore helpers are `research/questionnaire.ts` `restoreQuestion` and `restoreSection`. A question goes back by its section's id, never into another section, and nothing is restored twice.
   - The toast is ScaleEditor's provider, shared through `useEditorUndo`.
   - Tests: `questionnaire-undo.test.ts`, `QuestionnaireUndo.test.tsx`, and the journey step in `questionnaire_journey.mjs` (1440 px).
+  - Merged as #640; Vrátit outlives the preview tab and the last block's delete on the upload or AI path (the provider wraps the stage).
+- **3b. Segmented and chips (A2, A11, A12), #645.** A question's type, its research questions and a comparison are `ChoiceChips`; a dangling research-question link keeps its ×. Test: `QuestionnaireChoices.test.tsx`.
+- **3c. Quick adds inline (A5-A8, A21), #651.** A question, a block and a tracked set are added in their own `InlineCreateRow`s (the outline's quick add with "Typ nové otázky", "Nový blok", "Sledovaná sada", each block's "Otázka do tohoto bloku"); the AskDialog prompts are retired. Tests: `questionnaire-adds.test.ts`, `QuestionnaireStep.test.tsx`.
+- **3d. Prices as chips (A16), #652.** A concept test's price bands entered one at a time, each checked as an amount; `ChipInput` takes `refuse`, keeping the draft with its reason. Tests: `questionnaire-prices.test.ts`, `QuestionnairePrices.test.tsx`.
+- **3e. A block's name and purpose and a set's name in place (A4, part of A13), feature/questionnaire-fields-in-place.** `InlineText` on each: Enter or blur saves, Esc restores, the field's own save state (the change flushed at once); a name is required, a purpose may be emptied. Each block and set is also a heading (visually hidden), which `lead.ts` `titleOf` names it by. Tests: `QuestionnaireFields.test.tsx`; the journey renames a block and reads it back after a reload.
 - **Still open in chunk 3:**
-  - A1, A3, A4, A13: fields in place with a save state and Esc;
-  - A2, A11, A12: Segmented and chips;
-  - A5-A8, A21: quick adds inline, retiring the AskDialog prompts;
-  - A14: the n / 15 counter;
-  - A16: prices as chips.
+  - A1, A3: a question's wording and its options in place;
+  - A13: a set's object type, goal and common question (with its `{object}` rule said at the field);
+  - A14: the n / 15 counter beside the objects (the set's header shows "n / 4–15" today).
 
 ### Chunk 3b3, added by planning (2026-10-21)
 
