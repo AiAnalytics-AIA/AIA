@@ -4,7 +4,7 @@ chunks:
   - "[ ] LC0. ADR 0041 accepted by the product owner (Proposed in this plan's PR): the relayed answers Q25-Q30 confirmed"
   - "[x] LC1. The layer table and the manifest: freeze_context as a pipeline over declared layers (order, floor, ceiling, over-policy, class rule), today's values first, a manifest stored per turn"
   - "[ ] LC2. Co Vedoucí vidí: the Vidí chip opens the last turn's manifest in words, layer by layer, with what was left out and why"
-  - "[ ] LC3. The decision digest: a code-built record of what this conversation decided (edits, cards, notes, self-updates, lookups) in the conversation-memory layer, never dropped"
+  - "[x] LC3. The decision digest: a code-built record of what this conversation decided (edits, cards, notes, self-updates, lookups) in the conversation-memory layer, never dropped"
   - "[ ] LC4. Budgets enforced: ADR 0041's floors, ceilings and two-pass global allocation, the design layer's five-step shortening ladder, spare bytes to the verbatim conversation, every omission named"
   - "[ ] LC5. Queued messages stored on the server: immutable rows, queued / answered / withdrawn derived (an exact study_lead_turn_answers relation, a withdrawal row, queue position kept through an edit), bounded in bytes and count, a follow-on turn for what layer 9 cannot hold, LeadBusy retired for messages, visible in every tab"
   - "[ ] LC6. Cost, model and class on every Lead turn, from the usage ledger and the composition digest"
@@ -155,6 +155,42 @@ Tests:
 - 500 decisions stay within the digest's share (8 KB, or 5 KB at the layer floor), the stored manifest stays bounded (counts and a range), and every
   omitted decision pages from that range;
 - no line is rewritten.
+
+*As built (LC3):*
+- `domain/lead_digest.py` is pure:
+  - `decision_digest(decided, undecided, named=, share_bytes=)`;
+  - `edit_item`, which names an edit's item in the focus's words, so `brief:title`,
+    `question:q1` and `sample:n` find their decisions (test: the web's own focus ids). A list
+    entry (`plan:plan.hypotheses:<text>`) is named by its text, which no focus id carries: the
+    web names an objective, research question or hypothesis by its id. Its decisions reach the
+    latest group, never the named one, until LC7 maps list ids to their text.
+- The four groups keep their caps: 4 and 2 KB at the full 8 KB share, scaled at a smaller one.
+  The latest decisions give way, line by line, until the whole digest, its counts and ranges
+  included, fits the share.
+- `freeze_context(memory=)` adds the `memory` layer before the conversation.
+  `context_classification` classes it as the design (Class B: a list entry's item names its
+  text), raised to the class of every turn whose text a line carries
+  (`freeze_context(memory_classes=)`, stored as the layer's `turn_classes`); one turn of
+  unknown class refuses (ADR 0041 M3: the class of what it names). `LEAD_LAYERS` declares it
+  with its 8 KB ceiling.
+- A request waits in the digest only when it is a prepared agent job: a run or Deep Research
+  card is started from its own screen, never decided through the ledger (test).
+- `left_out.by_named_item` counts, per named item, the decisions its three lines left out.
+- The application builds it from the ledger's `lead_edit`, `lead_job_request` and
+  `lead_self_update` rows on the researcher's own Lead turns, which
+  `StudyLeadRepository.lead_turn_ids` reads (ids only, the researcher's own). Another
+  researcher's decisions in the same study never enter it (test).
+- An edit decided on a turn outside the 50-turn history window has no item. Its output is not
+  loaded, so it is a decision line with `item: null`, still exact by ledger row and turn.
+- Cost, not measured: each turn reads every Lead ledger row of the study and the researcher's
+  turn ids, filtering in Python; both grow with the study. A query joining the ledger to
+  `study_lead_turns` on the researcher bounds it; LC4 takes it with the allocation.
+  Naming those needs the turns' outputs; LC9's retrieval reads them.
+- Group 2's pointers cover the proposals in that window. No ledger range covers older undecided
+  proposals, so they are not counted. LC5 brings ids to every turn.
+- Event lines (a lookup, a client note kept with its turn) wait for their events. There is no
+  lookup yet (LO20), and a kept client note is not a ledger row today.
+- The share is the full 8 KB until LC4 allocates layer 10.
 
 **LC4. Budgets enforced.** ADR 0041 decision 2's floors, ceilings and two-pass allocation (floors,
 then the remainder in the declared priority order, each layer's over-policy applied to its
