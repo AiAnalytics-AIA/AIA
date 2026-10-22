@@ -289,9 +289,29 @@ gate", half English and naming no rule a person can check (`cs.ts:2230 @ 54c4427
 položek, když sada projde Kontrolou a odpovědí na mapu bude dost" (Kontrola refuses a set by its
 size or familiarity; the map needs enough answers per pair, readiness's sociomap_support). Test: `QuestionnaireFields.test.tsx`.
 
+*Finding QF-11 (browser audit 2, 2026-10-22):* at 390 px a question's right scale label wraps to a
+row of its own under the left one, away from the end it names: the ends and the boxes are one wrapping
+flex row (`ScaleEditor.tsx:231-249 @ 9607ee09`). Fix (fix/questionnaire-audit-2): on a phone the
+boxes take the first row and each label sits under its end. Test: the journey asserts at 390 px the boxes
+above both labels, the labels on one row, each at its end (36 px apart vertically before the fix).
+
+*Finding QF-12 (browser audit 2, 2026-10-22):* the topic and market research card on Dotazník is
+half English ("hluboký research", "price/value", "Outcome benchmarky", "Existing research") and
+promises a model choice and an explicit update the panel does not offer (`cs.ts:2236-2241 @ 9607ee09`).
+Fix: the card is "Před uzavřením dotazníku", its intro in Czech, saying only what holds: AIA itself
+never shows respondents a finding's outcome numbers (the leakage rule); the line promising a model
+choice and an update is gone, with the four unused half-English keys beside it. Test: `QuestionnaireStep.test.tsx`.
+
+*Question QF-13 (browser audit 2, 2026-10-22), for the PM:* in the workbench Dotazník shows its own
+"Spustit veřejný výzkum" (`QuestionnaireStep.tsx:351-359 @ 9607ee09`, `DeepResearchPanel`), although
+a stage in the workbench shows no AI start of its own (#550) and the Lead's contract lists
+`design_research` among Dotazník's starts (`lead_artifacts.py:280-285 @ 9607ee09`). No typed command
+or Lead card starts Design Research yet, so hiding the button would leave no way to run it. Left as is.
+
 ## Doc follow-up
 
 - open-items.md: number QF-7 (the question's × named by its stored id), closed by fix/questionnaire-remove-label.
 - open-items.md: number QF-8 (Závislosti held sets the compiler takes), closed by feature/questionnaire-set-hard-max.
 - open-items.md: number QF-9 (a question's × on a row of its own at 390 px) and QF-10 ("validačním gate"), closed by fix/questionnaire-audit-390.
+- open-items.md: number QF-11 (a scale's right label apart from its end at 390 px) and QF-12 (the research card half English), closed by fix/questionnaire-audit-2; QF-13 (Dotazník's own Design Research start in the workbench) open, for the PM.
 - Register this plan and its chunks. `research-lead-workbench#7`'s questionnaire half is QST5.

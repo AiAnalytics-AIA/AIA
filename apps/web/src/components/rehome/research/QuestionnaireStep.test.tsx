@@ -247,6 +247,15 @@ describe("Dotazník", () => {
     expect(within(stored).getByRole("button", { name: "Odebrat podmínku" })).toBeTruthy();
   });
 
+  it("introduces the topic and market research in Czech, promising nothing the panel lacks", async () => {
+    unitStub({ ...BRIEF, sections: SECTIONS, ui_state: { questionnaire_path: "manual" } });
+    render(<ResearchScreen step="questionnaire" frame={TEST_FRAME} />);
+    const section = await screen.findByRole("region", { name: "Před uzavřením dotazníku" });
+    expect(within(section).getByText(/^Volitelně si nechte udělat hlubokou rešerši tématu a trhu: .* AIA respondentům sama nikdy neukáže\.$/)).toBeTruthy();
+    // The browser audit: half English, and a model choice and an update the panel does not offer.
+    expect(section.textContent).not.toMatch(/research tématu|price\/value|Outcome|Existing|zvolený model|aktualizovat/);
+  });
+
   it("edits a question as the classic editor does: type, options and a scale", async () => {
     unitStub({ ...BRIEF, sections: SECTIONS, ui_state: { questionnaire_path: "manual" } });
     render(<ResearchScreen step="questionnaire" frame={TEST_FRAME} />);

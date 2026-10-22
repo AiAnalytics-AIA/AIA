@@ -352,7 +352,6 @@ export function QuestionnaireStep() {
           <section className={CARD} aria-labelledby="q-final">
             <h2 id="q-final" className="text-base font-semibold">{t("research.questionnaire.finalTitle")}</h2>
             <p className="mt-1 text-[13px] leading-5 text-ink-muted">{t("research.questionnaire.finalIntro")}</p>
-            <p className="mt-1 text-xs text-ink-muted">{t("research.questionnaire.optimizeHelp")}</p>
             <details className="mt-3 rounded-control border border-border bg-surface px-3 py-2" open>
               <summary className="cursor-pointer text-[13px] font-medium">{t("research.questionnaire.deepTitle")}</summary>
               <div className="mt-2"><DeepResearchPanel /></div>
