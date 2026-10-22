@@ -1738,11 +1738,13 @@ recordings at zero price, and fieldwork uses fictional respondents. At 1440 px i
    (compile through fieldwork, the eight analysis modules, report, Sociomapping and its report);
 5. on Výsledky, downloads the internal draft as DOCX from the report card. The file must be a Word
    file carrying the accepted design's research questions and saying it is internal;
-6. checks that nothing was paid: every job ended at a cost that is a number and zero, the usage
-   ledger has no row for the study with a cost or an unknown cost, the study spent $0, there is no
-   page error and no Deep Research start.
+6. checks that nothing was paid: every job ended at a cost that is a number and zero; the usage
+   ledger has no row for the study with a cost, no call whose billing is unknown (an `UNCERTAIN`
+   outcome no `RESOLVED_*` row has settled, because `cost_usd` is never null) and no dispatched
+   call without an outcome; the study spent $0; there is no page error and no Deep Research start.
 
-Measured on a fresh workbench at e508e483: 2 jobs and 20 usage rows, all at $0. The run took about
+Measured on a fresh workbench at e508e483: 2 jobs and 10 model calls (20 ledger rows), all settled
+at $0. The run took about
 8 s and the DOCX was 1.5 MB. It passes once per fresh workbench; a second pass finds the jobs
 already done for the design.
 

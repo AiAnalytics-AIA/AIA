@@ -14,8 +14,9 @@
  *   4. "Spusť výzkum": the run started from the person's card, followed to its end;
  *   5. Výsledky: the internal draft downloaded as DOCX from the report card, a real Word file that
  *      carries the accepted design's research questions and says it is internal;
- *   6. nothing paid: every job ended at $0, the usage ledger holds no row with a cost, the study
- *      spent nothing; no page error, no Deep Research start.
+ *   6. nothing paid: every job ended at $0, the usage ledger holds no row with a cost, no call
+ *      whose billing is unknown (an unsettled UNCERTAIN) and none still open, the study spent
+ *      nothing; no page error, no Deep Research start.
  * Run once per fresh workbench (a second pass finds the jobs already done for the design).
  */
 import assert from "node:assert/strict";
@@ -55,10 +56,13 @@ function ledger(study) {
     "c = sqlite3.connect(f'file:{sys.argv[1]}?mode=ro', uri=True)",
     "s = sys.argv[2]",
     "paid = c.execute('select count(*), coalesce(sum(cost_usd), 0) from ai_usage_events where study_id = ? and cost_usd > 0', (s,)).fetchone()",
-    "rows = c.execute('select count(*) from ai_usage_events where study_id = ?', (s,)).fetchone()[0]",
-    "unknown = c.execute('select count(*) from ai_usage_events where study_id = ? and cost_usd is null', (s,)).fetchone()[0]",
+    "calls = c.execute('select count(distinct call_id) from ai_usage_events where study_id = ?', (s,)).fetchone()[0]",
+    // A cost is never null here (cost_usd is NOT NULL): an unknown one is an UNCERTAIN outcome no
+    // RESOLVED_* row has settled, and a call still open is a dispatch with no outcome at all.
+    "unsettled = c.execute(\"select count(*) from ai_usage_events u where u.study_id = ? and u.outcome = 'UNCERTAIN' and not exists (select 1 from ai_usage_events r where r.call_id = u.call_id and r.outcome like 'RESOLVED_%')\", (s,)).fetchone()[0]",
+    "open_calls = c.execute(\"select count(*) from ai_usage_events d where d.study_id = ? and d.outcome = 'DISPATCHED' and not exists (select 1 from ai_usage_events t where t.call_id = d.call_id and t.outcome in ('SUCCEEDED', 'FAILED', 'UNCERTAIN'))\", (s,)).fetchone()[0]",
     "spent = c.execute('select spent_usd from studies where study_id = ?', (s,)).fetchone()[0]",
-    "print(json.dumps({'paid_rows': paid[0], 'paid_usd': paid[1], 'rows': rows, 'unknown_cost_rows': unknown, 'spent_usd': spent}))",
+    "print(json.dumps({'paid_rows': paid[0], 'paid_usd': paid[1], 'calls': calls, 'unsettled_uncertain': unsettled, 'open_calls': open_calls, 'spent_usd': spent}))",
   ].join("\n");
   return JSON.parse(execFileSync("python3", ["-I", "-c", script, db, study], { encoding: "utf8" }));
 }
@@ -258,11 +262,13 @@ try {
   const spend = ledger(study);
   notes.push(`ledger: ${JSON.stringify(spend)}`);
   assert.equal(spend.paid_rows, 0, `no usage row with a cost (${spend.paid_usd} USD)`);
-  assert.equal(spend.unknown_cost_rows, 0, "no usage row with an unknown cost");
+  assert.ok(spend.calls > 0, "the study's model calls are in the ledger");
+  assert.equal(spend.unsettled_uncertain, 0, "no call whose billing is unknown (an UNCERTAIN outcome no RESOLVED_* row settled)");
+  assert.equal(spend.open_calls, 0, "every dispatched call has an outcome");
   assert.equal(Number(spend.spent_usd ?? 0), 0, "the study spent nothing");
   assert.deepEqual(writes.filter((w) => /\/deep-research\/runs/.test(w.path)), [], "no Deep Research started");
   assert.deepEqual(errors, [], `page errors: ${errors.join("\n")}`);
-  check(`nothing paid: ${listed.length} jobs at $0, ${spend.rows} usage rows with no cost, the study spent $0; no page error`);
+  check(`nothing paid: ${listed.length} jobs at $0, ${spend.calls} model calls, each settled with no cost, the study spent $0; no page error`);
 } finally {
   writeFileSync(join(out, "report.json"), JSON.stringify({ checks, notes, errors, writes }, null, 2));
   await browser.close();
