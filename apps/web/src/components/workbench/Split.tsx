@@ -5,7 +5,7 @@
 // lib/workbench-split.ts: 28-62 %, 2 % per arrow, Home / Enter / double-click back to 40 %, and
 // focus modes that never change the width the person chose.
 
-import { type ReactNode, useEffect, useRef, useState } from "react";
+import { type ReactNode, type RefObject, useEffect, useRef, useState } from "react";
 
 import type { WorkbenchLayout } from "@/lib/workbench-layout";
 import { type FocusMode, SPLIT_DEFAULT, SPLIT_MAX, SPLIT_MIN, leftWidth, splitFromKey, splitFromPointer } from "@/lib/workbench-split";
@@ -36,6 +36,46 @@ export function trapTab(container: HTMLElement, e: KeyboardEvent) {
   }
 }
 
+/** Where focus goes back to inside the open drawer or sheet when the control that held it is gone:
+ *  the composer while it takes text, else the conversation's log, else the dialog itself. */
+export function recoveryTarget(container: HTMLElement): HTMLElement {
+  const composer = container.querySelector<HTMLTextAreaElement>("textarea:not([disabled])");
+  if (composer && !composer.closest("[hidden]")) return composer;
+  return container.querySelector<HTMLElement>('[role="log"]') ?? container;
+}
+
+/** While the drawer or sheet is open, a focused card control that unmounts (an approve button
+ *  replaced by its result, "Na nejnovější" scrolled away) leaves focus on the body, outside the
+ *  modal and behind an inert page: it is brought back inside (recoveryTarget). Watched by mutation,
+ *  because a browser need not fire focusout for a removed element. */
+function useFocusRecovery(dialog: RefObject<HTMLDivElement | null>, modal: boolean) {
+  useEffect(() => {
+    const el = dialog.current;
+    if (!modal || !el) return;
+    let held: HTMLElement | null = null;
+    const onIn = (e: FocusEvent) => {
+      held = e.target instanceof HTMLElement ? e.target : null;
+    };
+    const recover = () => {
+      const active = document.activeElement;
+      const lost = !active || active === document.body || !active.isConnected;
+      if (held && !held.isConnected && lost) {
+        held = null;
+        recoveryTarget(el).focus();
+      }
+    };
+    const watch = new MutationObserver(recover);
+    el.addEventListener("focusin", onIn);
+    el.addEventListener("focusout", recover);
+    watch.observe(el, { childList: true, subtree: true });
+    return () => {
+      watch.disconnect();
+      el.removeEventListener("focusin", onIn);
+      el.removeEventListener("focusout", recover);
+    };
+  }, [dialog, modal]);
+}
+
 export function Split({ split, mode, layout = "split", shown = true, leftLabel, onSplit, onCommit, left, right, rail }: {
   split: number;
   mode: FocusMode;
@@ -59,6 +99,7 @@ export function Split({ split, mode, layout = "split", shown = true, leftLabel, 
   const compact = layout !== "split";
   const dialog = useRef<HTMLDivElement>(null);
   const modal = compact && shown;
+  useFocusRecovery(dialog, modal);
   useEffect(() => {
     if (!modal) return;
     const onKey = (e: KeyboardEvent) => dialog.current && trapTab(dialog.current, e);

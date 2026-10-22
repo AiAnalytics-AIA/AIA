@@ -1481,3 +1481,49 @@ Other kinds stay at the grammar until their stage asks for the same.
    The workbench's own controls keep the ring.
 6. Test: the workbench journey's "one focus ring on a field, the ring on the workbench's
    controls".
+
+### F16. The frame's controls were 26-32 px at a phone's width *(fixed, `fix/workbench-frame-a11y`)*
+
+Found in Sběr dat's keyboard audit, then swept over every frame control at 390 px.
+
+1. **Claim.** At 390 px every control the workbench frame owns was under 44 px, against
+   input-interactions I11 and the shared controls' `TOUCH`. That covers the header's menu, the
+   step button and its stage list, the artifact header's "Připravenost a pomoc" (26 px) and
+   "Soustředit se na artefakt" (28 px), the launcher (40 px), and in the open conversation "Můj
+   Vedoucí", "Zavřít", "@", the suggestions and Odeslat.
+2. **Anchor.** `workbench.css:42 @ fe85aa54` (`.btn--sm` 26 px), `:49` (`.iconbtn` 28 px), `:94`
+   (`.nav__stage` 30 px), `:135` (`.nav__current` 32 px), `:255` (`.composer__send` 32 px), and
+   `Workbench.tsx:892` (the launcher's inline 40 × 40).
+3. **Reproduction.** `workbench_journey.mjs` "every control the frame owns is a 44 px target at
+   390"; on develop it lists the controls above.
+4. **Consequence.** Small, close targets on a phone: "Zavřít" and "Můj Vedoucí" are 28 px side by
+   side in the conversation's header.
+5. **Fix.** Below 640 px the frame's `.iconbtn` and `.composer__send` are 44 × 44, and `.btn--sm`,
+   `.nav__current`, `.nav__stage`, `.shead__home` and `.skip` are at least 44 px high. The
+   launcher's size moves from an inline style to `.rail__launch`, so the rule reaches it. From 640 px
+   the prototype's density stands, above WCAG 2.2's 24 px.
+6. **Test.** The journey check above, at 390 with the frame closed, with the stage list open, and
+   with the conversation open.
+
+The separator "Změnit poměr konverzace a artefaktu" was reported as taking focus with no outline.
+It does show focus: a 2 px signal line down its full height (`.split__handle:focus-visible::after`,
+`workbench.css:111`). It is kept as it is.
+
+### F17. A focused card control that unmounted dropped focus out of the open conversation *(fixed, `fix/workbench-frame-a11y`)*
+
+1. **Claim.** In the drawer and the sheet, a focused control that unmounts leaves focus on the
+   body, outside the modal dialog and behind an inert page. Examples: an approve button replaced by
+   its result, or "Na nejnovější" scrolled away (Sociomapa, F-BRF-2).
+2. **Anchor.** `Split.tsx:61-66 @ fe85aa54` traps Tab only. Nothing brings focus back when its
+   holder is removed.
+3. **Reproduction.** `Split.test.tsx` "brings the focus to the composer when the focused card
+   control unmounts" times out without the fix.
+4. **Consequence.** A keyboard or screen-reader user loses their place. The next Tab is pulled back
+   in by the trap, but Escape and arrow keys act on the body until then.
+5. **Fix.** `useFocusRecovery`: while the dialog is open, it watches the conversation by mutation
+   (a browser need not fire focusout for a removed element) and by focusout. When the element that
+   held focus is gone and focus is on the body, it focuses `recoveryTarget`: the composer while it
+   takes text, else the log, else the dialog.
+6. **Test.** `Split.test.tsx` (four cases): to the composer; to the log when the composer is shut;
+   untouched when the conversation is closed or the person blurred it themselves; and
+   `recoveryTarget`'s order.
