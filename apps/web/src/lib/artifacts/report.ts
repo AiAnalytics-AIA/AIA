@@ -10,7 +10,8 @@ import { aiaId } from "@/lib/workbench-artifacts";
 /**
  * The contracts this reader knows; a document of any other is refused, never read in part. -2
  * (artifact-chain-to-draft-report CHN1) only adds each section's `sources` and the document's `unread`,
- * -3 (report-delivery RD0) each ledger entry's `level`: neither is needed to draw the draft.
+ * -3 (report-delivery RD0) each ledger entry's `level`: the draft is drawn without them, and
+ * Záznam pokrytí reads `unread` (RPT4).
  */
 export const DOCUMENT_CONTRACTS = ["aia-report-document-1", "aia-report-document-2", "aia-report-document-3"] as const;
 
@@ -74,6 +75,12 @@ export type LedgerEntry =
       modelled_panel: boolean; basis: string; support: string; question_id: string | null; data_origin: string | null;
     };
 
+/** One of the run's outputs, as the manifest names it (`source_payload`): a stored artifact (its id and
+ *  SHA-256 dropped in a client deliverable), or a step that runs beside the report. */
+export type RunOutput =
+  | { kind: "artifact"; artifact_type: string; artifact_id?: string; sha256?: string }
+  | { kind: "beside"; node_key: string; step_kind: string };
+
 export type ReportDocumentModel = {
   contract: (typeof DOCUMENT_CONTRACTS)[number];
   meta: {
@@ -83,6 +90,8 @@ export type ReportDocumentModel = {
   };
   sections: Section[];
   ledger: { surface: string; refs: Record<string, LedgerEntry> };
+  /** The run's outputs no section read (CHN1); absent from a -1 document. */
+  unread?: RunOutput[];
 };
 
 /** What the document route answers: the document and the DOCX it is beside, with that DOCX's review. */

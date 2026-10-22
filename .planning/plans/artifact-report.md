@@ -4,7 +4,7 @@ chunks:
   - "[x] RPT1. Zpráva's contract as data: view operations, pointable ids (section, paragraph, figure, claim) and V2's interaction contract"
   - "[x] RPT2. The document first: the draft rendered in the pane from its stored document model, paragraphs with claim chips opening the inspector, figures in place"
   - "[ ] RPT3. The doc bar and the Approve and Export slot: which document, its draft number and state, approval as a modal naming it, exports after approval"
-  - "[ ] RPT4. Záznam pokrytí, outside the text: what the report does not hold and why, from the chain manifest"
+  - "[x] RPT4. Záznam pokrytí, outside the text: what the report does not hold and why, from the chain manifest"
   - "[ ] RPT5. Draft revisions: the draft counter and tracked changes per paragraph, a report edit never reopening fieldwork"
   - "[ ] RPT6. The Lead and the report writer on the draft: paragraph rewrites, merges, splits and moves as proposals, every number a ledger ref, the sentence check's refusals at the sentence"
   - "[ ] RPT7. Journey: Zpráva at 1440, 1100, 768 and 390 px, a fictional run's internal draft, zero paid jobs"
@@ -139,6 +139,16 @@ confirms the dialog naming its version, the client's included; the context varia
 
 **RPT4. Záznam pokrytí.** Test: a design that asks for a segment comparison lists "Segmenty:
 neprovedeno". Depends on `artifact-chain-to-draft-report#CHN1`.
+
+*RPT4 (`feature/report-coverage`):* "Záznam pokrytí (mimo text zprávy)" under the stored draft in
+`ReportDocumentView`, outside the article, from `lib/artifacts/report-coverage.ts` (`coverageRecord`, pure): the
+run's recorded answerability (`ResearchRun.answerability`: each gap by its question, verdict and why, a segment
+comparison as "Segmenty: neprovedeno", pending questions as not verified) and the stored manifest's `unread` (CHN1:
+each output no section read, in words by step or type). Neither recorded (a run from before answerability, a -1
+document) reads "nezaznamenáno", never covered. Tests: `report-coverage.test.ts`, `ReportDocumentView.test.tsx`
+("Záznam pokrytí, outside the text"); `report_journey.mjs` at 1440, 1100, 768 and 390. V2's other lines join with
+the chunks that make them: the coding state with `report-delivery#RD10`, the client report's refusal and the
+export note with `#RD3`; the Lead's quick asks with RPT6.
 
 **RPT5. Draft revisions.** Depends on `report-delivery#RD5`.
 
