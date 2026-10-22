@@ -3465,13 +3465,14 @@ describe("Náklady on Průběh (artifact-fieldwork FLD4b)", () => {
   };
 
   it("reads the run's spent, held and unpriced calls beside the study's remainder", async () => {
-    const spent = { ...COMPLETED, spend: { spent_usd: 0.4, reserved_usd: 0, uncertain_calls: 1 } };
+    const spent = { ...COMPLETED, spend: { spent_usd: 0.4, reserved_usd: 0, uncertain_calls: 1 }, cost_ceiling: { usd: 2.5, unknown: null } };
     api({ ...listed(spent), "GET /api/v1/studies/STU-1": () => STUDY });
     render(<ResearchScreen step="progress" frame={TEST_FRAME} />);
     await waitFor(async () =>
       expect(await rowsOf()).toEqual([
         ["spent", "0,40 USD"],
         ["held", "0,00 USD"],
+        ["ceiling", `2,50 USD · ${t("research.exec.spend.ceilingNote")}`],
         ["unpriced", `${tv("research.exec.spend.unpricedCalls", { count: 1 })} · ${t("research.exec.spend.unpricedEnded")}`],
         ["remaining", `40,00 USD · ${t("research.exec.spend.remainingNote")}`],
       ]),

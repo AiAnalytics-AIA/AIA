@@ -200,3 +200,13 @@ def test_the_request_cannot_name_the_ceiling(researcher: TestClient, world: Any)
     _limit(researcher, world, 100.0)
     forged = _start(researcher, world, revision, ceiling_usd=1.0)
     assert forged.status_code == 422  # extra fields are refused, so there is nothing to forge
+
+
+def test_a_started_run_records_the_ceiling_it_started_under(
+    researcher: TestClient, world: Any
+) -> None:
+    """artifact-fieldwork FLD4d: with no limit to check it against, the start still records it."""
+    started = _start(researcher, world, _revision(researcher, world))
+    assert started.status_code == 201, started.text
+    run = researcher.get(f"{_study(world)}/research/runs/{started.json()['run_id']}").json()
+    assert run["cost_ceiling"] == {"usd": CEILING, "unknown": None}

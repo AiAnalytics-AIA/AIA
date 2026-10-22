@@ -1344,7 +1344,7 @@ function SpendCard({ run }: { run: ResearchRun }) {
       live = false;
     };
   }, [frame.studyId, known, spend?.spent_usd, spend?.reserved_usd]);
-  const rows = spendRows(spend, run.is_terminal, remaining);
+  const rows = spendRows(spend, run.is_terminal, remaining, run.cost_ceiling);
   return (
     <Card title={t("research.exec.spend.title")}>
       {rows ? (
