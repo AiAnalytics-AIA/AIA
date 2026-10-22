@@ -17,7 +17,7 @@ BIN := $(shell [ -d $(VENV)/bin ] && echo $(VENV)/bin/ || echo "")
 # errors that 3.12 and CI do not, with the same pydantic and mypy (2026-10-15).
 PYTHON_VERSION := $(shell cat .python-version)
 
-.PHONY: ui-audience ui-intake ui-methodology help setup deps services migrate migration dev dev-api dev-web dev-worker \
+.PHONY: ui-audience ui-results ui-intake ui-methodology help setup deps services migrate migration dev dev-api dev-web dev-worker \
         test test-core test-api test-worker test-executors test-acceptance test-parity test-golden test-oracle parity-status test-web report-preview web_design ui-workbench ui-workbench-reference ui-workbench-status ui-workbench-down ui-capture ui-fixtures ui-research ui-sociomapping ui-workspace ui-coherence report-journey \
         lint format typecheck python-version \
         layer_check exposure_check check verify openapi clean
@@ -126,6 +126,9 @@ ui-fixtures: ## Write the workbench's fictional research projects (the screens t
 
 ui-research: ## One research run end to end in a browser on the workbench: Run -> Progress -> Results (fictional fieldwork)
 	@node tools/ui_workbench/research_journey.mjs
+
+ui-results: ## Výsledky at 1440/1100/768/390 on the completed run (after ui-research; artifact-results RES7)
+	@node tools/ui_workbench/results_journey.mjs
 
 ui-coherence: ## The product walked as one researcher, every screen kept as image + text, checks in report.json (needs ui-workbench + ui-fixtures)
 	@node tools/ui_workbench/coherence_journey.mjs

@@ -231,3 +231,19 @@ Browser audit, 2026-10-21, on the local workbench (`AIA_WEB_RESEARCH_WORKBENCH=t
   native `disabled` (Codex, #639): a disabled button takes no focus and fires no click, so the Lead's `focus` on an
   `object:` target and the "@" pick would break on the respondent map. Test: `ObjectMapPanel.test.tsx` › "the object
   list on the respondent map".
+- **Fixed: the map's side column was a landmark of its own.** axe (`landmark-complementary-is-top-level`, moderate) on
+  the `-5` panel's Objekty and Respondenti at 1440 and 390 px: the side column was an unnamed `<aside>` inside the
+  page's main landmark (`ObjectMapPanel.tsx:77 @ 03989975`), and the older methods' view had the same
+  (`ObjectMapView.tsx:342 @ 03989975`). Both are layout, so `<div>`; the panel's component is `SideColumn`. Test:
+  `ObjectMapPanel.test.tsx` › "adds no landmark of its own beside the map, on the signed-off map and an older method's"
+  (fails on either view's `<aside>`). axe on the `-5` panel now reports nothing at either width; the older view was not
+  scanned in a browser (no `-3` run was prepared), only by the test.
+- **Open, for the methodology owner: a respondent's detail is reached only by a click on the canvas.**
+  1. On Respondenti the "Respondent" card fills only from a canvas hit; no control opens it from the keyboard.
+  2. `ObjectMapPanel.tsx:262 @ 03989975` (`setPerson` only in `onUp`'s hit test); the canvas takes no keyboard.
+  3. On a `-5` run, Respondenti, Tab through the panel: no stop opens a respondent's card (checked on the local
+     workbench, 2026-10-22).
+  4. A keyboard or screen-reader user reads the counts and the segments but no single respondent's placement.
+  5. A way to reach a respondent without the pointer, e.g. a list or a "next respondent" control beside the map: a
+     layout decision inside the panel (Aram's rule), so recorded here, not built.
+  6. A test that Tabs on Respondenti and expects a control naming a respondent.

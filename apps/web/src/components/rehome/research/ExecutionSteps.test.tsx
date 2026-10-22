@@ -2689,6 +2689,10 @@ describe("Results", () => {
     expect(await screen.findByText(t("research.exec.results.reportDraft"))).toBeTruthy();
     expect(screen.getByText(t("research.exec.results.reportSynthetic"))).toBeTruthy();
     expect(screen.getByText(/Artefakt ART-report/)).toBeTruthy();
+    // The card lives on Přehled and Rešerše a zpráva; on Data it is hidden, kept mounted.
+    expect(screen.queryByRole("heading", { name: "Kompletní zpráva studie" })).toBeNull();
+    expect((document.querySelector("[data-results-lead]") as HTMLElement).hidden).toBe(true);
+    fireEvent.click(screen.getByRole("tab", { name: "Rešerše a zpráva" }));
     const report = await card();
     expect(report.getByText("Stav: Koncept čeká na schválení.")).toBeTruthy();
     fireEvent.click(report.getByRole("button", { name: /Stáhnout zprávu/ }));

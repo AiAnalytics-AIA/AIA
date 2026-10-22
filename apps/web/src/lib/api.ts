@@ -9,6 +9,7 @@ import type { BriefMaterials } from "@/lib/material-class";
 import type { Approval, StoredReportDocument } from "@/lib/artifacts/report";
 import { currentIdToken, loadConfig } from "@/lib/auth";
 import type { EditDecisionResult, LeadPreferences, LeadState, LeadTurn, RequestApproval, ResearcherLead, SelfUpdateDecision } from "@/lib/lead";
+import type { OmittedPage, TurnManifest } from "@/lib/lead-manifest";
 export type { ResearcherLead as ResearcherLeadView } from "@/lib/lead";
 
 export class ApiError extends Error {
@@ -1592,6 +1593,12 @@ export const lead = {
   /** Keep or drop what a turn wants to remember for all of the researcher's work (once, in the ledger). */
   decideSelfUpdate: (studyId: string, turnId: string, decision: "accept" | "dismiss") =>
     request<SelfUpdateDecision>("POST", `${studyPath(studyId)}/lead/turns/${enc(turnId)}/self-update`, { decision }),
+  /** What a turn could see, layer by layer, read from the context it froze (lead-conversation LC2). */
+  manifest: (studyId: string, turnId: string) =>
+    request<TurnManifest>("GET", `${studyPath(studyId)}/lead/turns/${enc(turnId)}/manifest`),
+  /** A layer's left-out ids past the manifest's first fifty, from `after`. */
+  omitted: (studyId: string, turnId: string, layer: string, after: number) =>
+    request<OmittedPage>("GET", `${studyPath(studyId)}/lead/turns/${enc(turnId)}/manifest/omitted?layer=${enc(layer)}&after=${after}`),
 };
 
 /** The signed-in researcher's own Lead: its files, read only; hatched once (ADR 0026, Accepted with 6). */
