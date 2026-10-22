@@ -29,7 +29,7 @@ function stub(sections: unknown[] = SECTIONS) {
     return answer instanceof Response ? answer : new Response(JSON.stringify(answer), { status: 200 });
   }));
 }
-const sectionsSaved = () => (saves.at(-1) as unknown as { content: { sections: { title?: string; purpose?: string; object_type?: string; object_family?: string; object_question?: string }[] } } | undefined)?.content.sections;
+const sectionsSaved = () => (saves.at(-1) as unknown as { content: { sections: { title?: string; purpose?: string; object_type?: string; object_family?: string; object_question?: string; questions?: { text?: string; kategorie?: string[] }[] }[] } } | undefined)?.content.sections;
 const open = async (name: string) => {
   fireEvent.click(await screen.findByRole("button", { name }));
 };
@@ -123,5 +123,31 @@ describe("Dotazník's block and set fields", () => {
     fireEvent.change(goal, { target: { value: "Který kanál oslovuje nejvíc" } });
     fireEvent.keyDown(goal, { key: "Enter" });
     await waitFor(() => expect(sectionsSaved()?.[1].purpose).toBe("Který kanál oslovuje nejvíc"));
+  });
+
+  it("puts a question's wording back on Esc, as it stood when the field took focus", async () => {
+    render(<ResearchScreen step="questionnaire" frame={TEST_FRAME} />);
+    const wording = (await screen.findAllByRole("textbox", { name: "Znění otázky" }))[0] as HTMLTextAreaElement;
+    fireEvent.focus(wording);
+    fireEvent.change(wording, { target: { value: "Jak často během týdne?" } });
+    // The edit is saved first, so the Esc that follows has to save the wording back.
+    await waitFor(() => expect(sectionsSaved()?.[0].questions?.[0].text).toBe("Jak často během týdne?"));
+    fireEvent.keyDown(wording, { key: "Escape" });
+    await waitFor(() => expect(wording.value).toBe("Jak často?"));
+    await waitFor(() => expect(sectionsSaved()?.[0].questions?.[0].text).toBe("Jak často?"));
+  });
+
+  it("removes an option at once and puts it back in its place with Vrátit", async () => {
+    render(<ResearchScreen step="questionnaire" frame={TEST_FRAME} />);
+    fireEvent.click(await screen.findByRole("button", { name: "Odebrat možnost 1" }));
+    await waitFor(() => expect(sectionsSaved()?.[0].questions?.[0].kategorie).toEqual(["Týdně"]));
+    const toast = await screen.findByText("Možnost „Denně“ odebrána");
+    // An option renamed meanwhile stays renamed: Vrátit puts back the removed one alone.
+    const other = screen.getByRole("textbox", { name: "Možnost 1" });
+    fireEvent.change(other, { target: { value: "Každý týden" } });
+    fireEvent.blur(other);
+    await waitFor(() => expect(sectionsSaved()?.[0].questions?.[0].kategorie).toEqual(["Každý týden"]));
+    fireEvent.click(within(toast.closest("[role=status]") as HTMLElement).getByRole("button", { name: "Vrátit" }));
+    await waitFor(() => expect(sectionsSaved()?.[0].questions?.[0].kategorie).toEqual(["Denně", "Každý týden"]));
   });
 });
