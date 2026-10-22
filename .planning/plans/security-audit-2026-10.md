@@ -60,7 +60,9 @@ Each claim below carries `file:line @ bfe6d15`, and a test name where one pins i
   connection goes to the checked IP with SNI and `assert_hostname`, so DNS rebinding is closed
   (`infrastructure/web_retrieval_live.py:115-118,137-140`;
   `test_a_host_that_resolves_to_a_private_address_is_refused_before_any_request`). No proxy is
-  read from the environment, and bodies are capped while they stream.
+  read from the environment, and bodies are capped while they stream: the response is read
+  unpreloaded and stops past `max_bytes` (`infrastructure/web_retrieval_live.py:153,165`; the
+  contract, `infrastructure/web_retrieval.py:175`).
 - **Storage keys** are built by the server from ids and SHA-256, never from a filename, and
   checked before use (`infrastructure/storage.py:79`, `_validate_key`; `:313`, the filesystem
   root check). Download headers are sanitised and served as `application/octet-stream`
