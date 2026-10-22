@@ -178,17 +178,16 @@ try {
     const runs = (await get(`/api/v1/studies/${studies.persona.study}/research/runs`)).items;
     const latest = runs.reduce((a, b) => (new Date(a.created_at) > new Date(b.created_at) ? a : b));
     for (const [moduleId, name] of Object.entries(stored)) {
-      // Readiness decides whether a run may start, never what it computes (domain/methodology/
-      // readiness.py): it is not in a run's methodology, so what a start checks is read instead.
-      if (moduleId === "readiness") {
-        const limits = await get(`/api/v1/studies/${studies.persona.study}/research/limits`);
-        assert.equal(limits.sample_size.min, EDITS.readiness.value, `a start checks n >= ${limits.sample_size.min}, not the stored ${name}`);
-        continue;
-      }
+      // A start pins readiness (application/research.py, readiness_methodology), but the run's
+      // methodology receipt (pins.run_methods) does not report it, so the run's pin cannot be read
+      // here; it is checked as stored and in force (storeAndActivate), and named apart below.
+      if (moduleId === "readiness") continue;
       const method = latest.methodology[moduleId];
       assert(method?.stored && method.name === name, `the run pinned ${moduleId} as ${JSON.stringify(method)}, not ${name}`);
     }
-    ok(`one research run pinned every stored version by name: ${Object.values(stored).join(", ")}`);
+    const pinned = Object.entries(stored).filter(([m]) => m !== "readiness").map(([, n]) => n);
+    ok(`one research run pinned every stored version it reports by name: ${pinned.join(", ")}` +
+      (stored.readiness ? `; readiness ${stored.readiness} in force at its start, its pin not reported by the run` : ""));
   }
 
   assert.equal(writes.filter((r) => /agent-jobs|deep-research\/runs/.test(r.path)).length, 0, "a paid job was started");

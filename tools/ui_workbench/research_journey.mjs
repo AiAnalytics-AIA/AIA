@@ -141,21 +141,30 @@ await page.getByText(TEXT.fictional).first().waitFor({ timeout: 60000 }).catch((
 ok("Progress: the fictional-data notice is shown");
 // The steps themselves, never only the words: with the research workbench on, the Lead pane's
 // card for an earlier run of the study says "Zpráva je hotová" while this run is still going.
+// The wait ends when every step succeeded or any step ended otherwise, and a timeout is said.
 const CHAIN = ["compile", "preflight", "run", "aggregate", "sociomap"];
-await page.waitForFunction(
-  (steps) => steps.every((step) => document.querySelector(`[data-step="${step}"]`)?.getAttribute("data-status") === "SUCCEEDED"),
+const settled = await page.waitForFunction(
+  (steps) => {
+    const status = steps.map((step) => document.querySelector(`[data-step="${step}"]`)?.getAttribute("data-status"));
+    return status.every((s) => s === "SUCCEEDED") || status.some((s) => s === "FAILED" || s === "CANCELLED");
+  },
   CHAIN, { timeout: 180000 },
-).catch(() => {});
-await page.getByText(TEXT.completed).first().waitFor({ timeout: 180000 })
-  .catch(async () => { await shot("2-progress-timeout"); fail("the run did not complete within 180 s (see tmp/ui-workbench/logs/worker.log)"); });
+).then(() => true, () => false);
+if (!settled) { await shot("2-progress-timeout"); fail("the run's steps did not settle within 180 s (see tmp/ui-workbench/logs/worker.log)"); }
 for (const step of CHAIN) {
   const status = await page.locator(`[data-step="${step}"]`).first().getAttribute("data-status", { timeout: 5000 }).catch(() => null);
   if (status !== "SUCCEEDED") fail(`step ${step} is ${status ?? "missing"}, not SUCCEEDED`);
 }
+// This run's own state, never the Lead pane's card for another run (.conv).
+const completed = await page.waitForFunction(
+  (source) => [...document.querySelectorAll("body *")].some((e) => !e.closest(".conv") && new RegExp(source).test(e.textContent?.trim() ?? "")),
+  TEXT.completed.source, { timeout: 180000 },
+).then(() => true, () => false);
+if (!completed) { await shot("2-progress-timeout"); fail("the run's steps succeeded but its state never read complete within 180 s"); }
 ok("Progress: the run completed");
 // Each step says whether a model or code did it (artifact-fieldwork FLD2) and is pointable by the
 // Lead as step:<node_key>. The workbench's fieldwork is fictional code, never AI.
-for (const step of ["compile", "preflight", "run", "aggregate", "sociomap"]) {
+for (const step of CHAIN) {
   const work = await page.locator(`[data-aia="step:${step}"] [data-step-work]`).first().getAttribute("data-step-work", { timeout: 5000 }).catch(() => null);
   if (work !== "running") fail(`step ${step} is tagged ${work ?? "nothing"}, not deterministic`);
 }
