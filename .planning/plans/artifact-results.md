@@ -4,7 +4,8 @@ chunks:
   - "[ ] RES1. Výsledky's contract as data: view operations, pointable ids (measure, set, object row, open question) and V2's interaction contract"
   - "[ ] RES2. Results read admitted rows from the server: suppression and support decided there, no raw aggregate read by the screen"
   - "[ ] RES3. The body as V2 draws it: each set's means with intervals and Kish n, suppressed rows with their reason, the reading line (an order only where intervals part), shares with bases"
-  - "[ ] RES4. Původ a kvalita and the reopened note: run, revision, origin, suppression rule, QC count; 'Výsledky běhu z revize N; studie je na revizi M' when the design moved"
+  - "[x] RES4a. The reopened note: 'Výsledky běhu z revize N; studie je na revizi M' when the study holds a newer Design Revision than the run's"
+  - "[ ] RES4b. Původ a kvalita: run, revision, origin, suppression rule, QC count (QC after evidence-integrity#3)"
   - "[x] RES5a. Open answers on Results: up to five raw answers per open question, internal only and labelled as data (RQ1 = Q52 a)"
   - "[ ] RES5b. Their coded counts once coding exists (after assumptions-and-open-answer-coding#AOC8)"
   - "[ ] RES6. The Lead on Výsledky: Interpretation Research on a question or a set as a Lead card, the stage's own client-knowledge ask removed"
@@ -104,6 +105,12 @@ missing interval reads unknown.
 
 **RES4. Původ a kvalita and the reopened note.** Test: a run on revision 3 with the study on 4 shows
 the note. Depends on `productization-coherence#PC5`, and `evidence-integrity#3` for QC.
+
+RES4a, as built: `revisionNote` (`result-reading.ts`) over the study's Design Revisions
+(`GET …/design/revisions`) and the run's `design_revision`; the note sits above the numbers. An unread
+list says nothing (never "the design moved" on unknown). Compared with Design Revisions, not working
+revisions: a run executes a Design Revision, and an edit not yet submitted has not moved its design.
+The stage track's half is `productization-coherence#PC5`'s.
 
 **RES5. Open answers.** RQ1 = Q52 (a): up to five raw answers per open question, labelled "data, ne
 připuštěná evidence; nejsou kódované", internal only: never exported, never in a client deliverable

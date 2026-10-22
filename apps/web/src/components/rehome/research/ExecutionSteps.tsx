@@ -111,6 +111,7 @@ import { BudgetLift } from "./BudgetLift";
 import { canReview, type StudyFrame } from "./frame";
 import { VerifiedSourceButton } from "./VerifiedSourceButton";
 import { useFrame } from "./frame-hook";
+import { useResource } from "@/components/aia/useResource";
 import { InspectorSlot } from "./Inspector";
 import { ResearchContext, useResearch } from "./context";
 import { SociomappingView } from "./SociomappingView";
@@ -120,7 +121,7 @@ import { ObjectMapView } from "./ObjectMapView";
 import { InterpretationResearch } from "./InterpretationResearch";
 import { ReportDocumentView } from "./ReportDocumentView";
 import { ResultsWorkspace } from "./ResultsWorkspace";
-import { citedMeasure, untitled, compareObjects, type CompiledSpecification, measureAnchor, measureTarget, readMeasure, type ReadingTone } from "@/lib/result-reading";
+import { citedMeasure, untitled, compareObjects, type CompiledSpecification, measureAnchor, measureTarget, readMeasure, type ReadingTone, revisionNote, type RevisionNote } from "@/lib/result-reading";
 import { FormattedText } from "./FormattedText";
 import { CompleteReport } from "./CompleteReport";
 import { AnswerabilityGate } from "./AnswerabilityGate";
@@ -1579,6 +1580,9 @@ export function RunResults({ run, progressHref }: { run: ResearchRun | null; pro
   const specification = useArtifact(run && stepOf(run, "aggregate")?.artifact_id ? run : null, "compile");
   const aggregate = useArtifact(run, "aggregate");
   const sociomap = useArtifact(run, "sociomap");
+  // Read only for a run with results to show; none read is no note.
+  const shows = Boolean(run && stepOf(run, "aggregate")?.artifact_id);
+  const [revisions] = useResource(() => (shows ? research.revisions(frame.studyId) : Promise.resolve([])), [frame.studyId, shows]);
   const sociomapping = useArtifact(run, "sociomapping");
   // The literature review the report variant adds (research-integrity-report 3): chosen once,
   // read by the report card above and the literature panel below, never two selections.
@@ -1607,7 +1611,7 @@ export function RunResults({ run, progressHref }: { run: ResearchRun | null; pro
     <div><h4 className="text-sm font-semibold">Literární rešerše</h4><p className="mt-1 text-xs leading-5 text-ink-muted">Externí kontext a citované zdroje patří do samostatné rešerše. Vyberte ji v oddílu Rešerše a zpráva; odpověď AI z klientských znalostí ji nenahrazuje.</p></div></div>
   </section>;
   return <ResultsWorkspace run={run} progressHref={progressHref}
-    notice={<><OriginBanners run={run} /><RespondentsReceipt run={run} /></>}
+    notice={<><RevisionMoved note={revisionNote(run.design_revision, revisions.state === "ready" ? revisions.data.map((r) => r.revision) : null)} /><OriginBanners run={run} /><RespondentsReceipt run={run} /></>}
     lead={session ? <CompleteReport run={run} review={review} onReview={setReview} /> : null}
     panels={[
       { id: "data", label: "Data", description: "Odpovědi a srovnání hodnocených objektů. U každého výsledku zůstává uvedena podpora dat a nejistota.", content: <>
@@ -1653,6 +1657,17 @@ export function RunResults({ run, progressHref }: { run: ResearchRun | null; pro
         <details><summary className="cursor-pointer text-sm font-medium">Klientské znalosti a kontextová AI pomoc</summary><div className="mt-3">{knowledgeContext}</div></details>
       </> },
     ]} />;
+}
+
+/** The run's design is older than the study's (artifact-results RES4a): said above its numbers. */
+function RevisionMoved({ note }: { note: RevisionNote | null }) {
+  if (!note) return null;
+  return (
+    <section role="note" data-revision-moved className="rounded-md border border-status-you-ink/40 bg-status-you-wash p-4">
+      <p className="text-sm font-semibold">{note.title}</p>
+      <p className="mt-1 text-sm">{note.body}</p>
+    </section>
+  );
 }
 
 function InternalReport({ run, progressHref }: { run: ResearchRun; progressHref: string | null }) {
