@@ -4,7 +4,7 @@ chunks:
   - "[x] 1. ONLYOFFICE Docs on the develop host: a Compose project of its own (deploy/develop/docs), the upstream image pinned by digest, bin/docs.sh, off unless aia_onlyoffice_enabled"
   - "[x] 2. docs.<hostname>: its own origin in the Caddyfile, every request through AIA's docs gate, the server-only paths refused; tools/caddy_routes.py holds it"
   - "[x] 3. The docs gate in the API: a docs-only session cookie on docs.<hostname> from a one-time ticket, refused without it"
-  - "[ ] 4. Activation on develop (operations, the owner's word): the host resized, docs.<hostname> in Route 53, the JWT secret in SSM, the flag on, the editor's own checks"
+  - "[ ] 4. Activation on develop (operations, the owner's word; precondition: F1 fixed, __Host-aia_session in deployed environments): the host resized, docs.<hostname> in Route 53, the JWT secret in SSM, the flag on, the editor's own checks"
 ---
 # Report editor hosting: ONLYOFFICE Docs beside the develop stack
 
@@ -247,9 +247,18 @@ built in the Zpráva session against chunks 1-3.
 
 ### 4. Activation on develop (operations)
 
+**Precondition: finding F1 is fixed.** AIA's session cookie must be `__Host-aia_session` in deployed
+environments before `aia_onlyoffice_enabled` or `aia_onlyoffice_url` is set. Until then, one script defect
+in the Document Server could plant `aia_session; Domain=<hostname>; Path=/app`, which AIA's gate would read
+ahead of the host-only cookie. That is a login CSRF, and a lockout `DELETE /session` cannot clear, since it
+deletes only the host-only cookie (review of #785, 2026-10-22). Nothing is served while the editor is off,
+so this PR does not wait on it; activation does.
+
 Each step needs the owner's word and the coordinator's approval:
 
 1. Resize to `t3a.large`: `instance_type` in the SSM tfvars, `terraform apply`, about 2 minutes down.
+   Done 2026-10-22, 14:05-14:06 UTC: one in-place change, status checks ok at 14:08; the SSM tfvars
+   change is Nigel's.
 2. `aws_route53_record.docs` in `infra/develop/main.tf` (like `errors`), then apply. This is the only
    Terraform code change, in this plan's PR.
 3. SSM `aia_onlyoffice_jwt_secret`: `openssl rand -hex 32`, SecureString, by hand, like the GlitchTip secrets.
