@@ -14,6 +14,7 @@ import type { ResearchProject } from "@/research/model";
 import { ResearchStore } from "@/research/store";
 import { TEST_FRAME } from "../rehome/research/test-frame";
 import { EMPTY_PROJECT } from "../rehome/research/test-workspace";
+import { useItemInspector } from "./item-inspector-context";
 import { Workbench } from "./Workbench";
 
 vi.mock("next/navigation", () => ({ useRouter: () => ({ push: vi.fn(), replace: vi.fn() }), usePathname: () => "/app" }));
@@ -93,12 +94,25 @@ afterEach(() => {
   sessionStorage.clear();
 });
 
-function bench() {
+let opened: boolean[] = [];
+function Opener() {
+  const inspector = useItemInspector();
+  return (
+    <div>
+      <div data-aia="question:q1" id="qedit_q1">Jak často pijete čaj?</div>
+      <button type="button" onClick={() => opened.push(inspector?.open({ id: "question:q1", title: "Otázka q1", sub: "Dotazník" }) ?? false)}>open q1</button>
+      <button type="button" onClick={() => opened.push(inspector?.open({ id: "measure:q1", title: "Měření q1" }) ?? false)}>open m1</button>
+      <button type="button" onClick={() => opened.push(inspector?.open({ id: "question:Q 2", title: "Bad" }) ?? false)}>open bad</button>
+    </div>
+  );
+}
+
+function bench(child = <Stage />) {
   const store = new ResearchStore({ revision: 3, project: EMPTY_PROJECT as unknown as ResearchProject, analysis: null, save: { kind: "saved" }, checkEpoch: 0 }, "STU-1");
   return render(
     <Workbench frame={TEST_FRAME} step="questionnaire" store={store} memory={new Map()} save={null} inspector={null} reload={vi.fn()} confirm={vi.fn(async () => true)}
       onAgentStarted={vi.fn()} jobs={[]} onOpenJob={vi.fn()} onRefreshJobs={vi.fn(async () => [])}>
-      <Stage />
+      {child}
     </Workbench>,
   );
 }
@@ -306,6 +320,106 @@ describe("the compact header and stage navigator (26d)", () => {
     expect(document.querySelector(".shead__state")).toBeNull();
     fireEvent.click(screen.getByRole("button", { name: "Nabídka" }));
     expect(screen.getByRole("menu").textContent).toMatch(/Rozpočet nenastaven/);
+  });
+});
+
+describe("the item inspector", () => {
+  beforeEach(() => {
+    opened = [];
+  });
+
+  it("opens what a screen clicks over the artifact, its back stack the stage's, and closes on Escape", async () => {
+    bench(<Opener />);
+    expect(document.querySelector("[data-item-inspector]")).toBeNull();
+    fireEvent.click(screen.getByRole("button", { name: "open q1" }));
+    const drawer = document.querySelector("[data-item-inspector]")!;
+    expect(drawer.getAttribute("data-item-inspector")).toBe("question:q1");
+    expect(drawer.closest(".artstage")).toBeTruthy();
+    expect(drawer.closest("#artbody")).toBeNull();
+    expect(drawer.textContent).toMatch(/Otázka q1/);
+    // A kind with no body of its own shows what was opened and a way to it on the page.
+    Element.prototype.scrollIntoView = vi.fn();
+    fireEvent.click(screen.getByRole("button", { name: "Ukázat na stránce" }));
+    expect(document.activeElement?.id).toBe("qedit_q1");
+    fireEvent.click(screen.getByRole("button", { name: "open m1" }));
+    expect(document.querySelector("[data-item-inspector]")!.getAttribute("data-item-inspector")).toBe("measure:q1");
+    fireEvent.click(screen.getByRole("button", { name: "Zpět" }));
+    expect(document.querySelector("[data-item-inspector]")!.getAttribute("data-item-inspector")).toBe("question:q1");
+    fireEvent.keyDown(window, { key: "Escape" });
+    await waitFor(() => expect(document.querySelector("[data-item-inspector]")).toBeNull());
+    expect(opened).toEqual([true, true]);
+  });
+
+  it("gives the focus back to what opened it when it closes (Codex on #623)", async () => {
+    bench(<Opener />);
+    const opener = screen.getByRole("button", { name: "open q1" });
+    opener.focus();
+    fireEvent.click(opener);
+    await waitFor(() => expect(document.activeElement?.getAttribute("data-item-inspector")).toBe("question:q1"));
+    const drawer = document.querySelector("[data-item-inspector]")!;
+    fireEvent.click([...drawer.querySelectorAll("header button")].at(-1)!);
+    await waitFor(() => expect(document.activeElement).toBe(opener));
+  });
+
+  it("starts empty on another stage and stays empty when the first stage is reached again", () => {
+    const view = bench(<Opener />);
+    fireEvent.click(screen.getByRole("button", { name: "open q1" }));
+    expect(document.querySelector("[data-item-inspector]")).toBeTruthy();
+    const store = new ResearchStore({ revision: 3, project: EMPTY_PROJECT as unknown as ResearchProject, analysis: null, save: { kind: "saved" }, checkEpoch: 0 }, "STU-1");
+    const at = (step: "questionnaire" | "audience") => (
+      <Workbench frame={TEST_FRAME} step={step} store={store} memory={new Map()} save={null} inspector={null} reload={vi.fn()} confirm={vi.fn(async () => true)}
+        onAgentStarted={vi.fn()} jobs={[]} onOpenJob={vi.fn()} onRefreshJobs={vi.fn(async () => [])}>
+        <Opener />
+      </Workbench>
+    );
+    view.rerender(at("audience"));
+    expect(document.querySelector("[data-item-inspector]")).toBeNull();
+    view.rerender(at("questionnaire"));
+    expect(document.querySelector("[data-item-inspector]")).toBeNull();
+  });
+
+  it("behind the Lead's modal drawer, Escape closes the drawer the person is in, not the item behind it (review of #623)", async () => {
+    bench(<Opener />);
+    setWidth(900);
+    fireEvent.click(screen.getByRole("button", { name: "open q1" }));
+    expect(document.querySelector("[data-item-inspector]")).toBeTruthy();
+    fireEvent.click(screen.getByRole("button", { name: /Otevřít konverzaci/ }));
+    expect(screen.getByRole("dialog")).toBeTruthy();
+    fireEvent.keyDown(window, { key: "Escape" });
+    await waitFor(() => expect(screen.queryByRole("dialog")).toBeNull());
+    expect(document.querySelector("[data-item-inspector]")).toBeTruthy();
+    // Back in the item, Escape is its own again.
+    (document.querySelector("[data-item-inspector]") as HTMLElement).focus();
+    fireEvent.keyDown(window, { key: "Escape" });
+    await waitFor(() => expect(document.querySelector("[data-item-inspector]")).toBeNull());
+  });
+
+  it("while '@' is armed, Escape disarms it first and leaves the item open (D21's order)", async () => {
+    bench(<Opener />);
+    setWidth(800);
+    fireEvent.click(screen.getByRole("button", { name: "open q1" }));
+    fireEvent.click(screen.getByRole("button", { name: /Otevřít konverzaci/ }));
+    const pick = screen.getByRole("button", { name: "Ukázat na prvek artefaktu (@)" });
+    await waitFor(() => expect((pick as HTMLButtonElement).disabled).toBe(false));
+    fireEvent.click(pick);
+    expect(screen.queryByRole("dialog")).toBeNull();
+    (document.querySelector("[data-item-inspector]") as HTMLElement).focus();
+    fireEvent.keyDown(window, { key: "Escape" });
+    expect(screen.getByRole("dialog")).toBeTruthy();
+    expect(document.querySelector("[data-item-inspector]")).toBeTruthy();
+  });
+
+  it("refuses an id outside the contract's grammar and opens nothing", () => {
+    bench(<Opener />);
+    fireEvent.click(screen.getByRole("button", { name: "open bad" }));
+    expect(opened).toEqual([false]);
+    expect(document.querySelector("[data-item-inspector]")).toBeNull();
+  });
+
+  it("answers null outside the workbench, so a screen keeps its own behaviour", () => {
+    render(<Opener />);
+    fireEvent.click(screen.getByRole("button", { name: "open q1" }));
+    expect(opened).toEqual([false]);
   });
 });
 

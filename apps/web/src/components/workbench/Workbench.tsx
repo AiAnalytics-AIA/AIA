@@ -15,6 +15,7 @@ import { type ReactNode, type Ref, useCallback, useEffect, useMemo, useRef, useS
 
 import { ApiError, api, lead as leadApi, research, type Readiness, type ResearchAgentJob, type ResearchRun, type Study } from "@/lib/api";
 import { withBudget } from "@/lib/budget-line";
+import { backEntry, closeStack, emptyStack, type InspectorStack, onStage, openEntry, topEntry } from "@/lib/inspector-stack";
 import { availabilityWords, leadAvailability, type LeadAvailability, type LeadStateWithWorker } from "@/lib/lead-availability";
 import { JOB_STAGE, jobMovesByItself } from "@/lib/lead-cards";
 import { unanswerableAsked } from "@/lib/answerability";
@@ -29,6 +30,7 @@ import {
   CLOSED, DRAWER_LAYOUT_MIN_PX, SPLIT_LAYOUT_MIN_PX, conversationShown, drawerForLayout, isCompact, isModal, nextDrawer, onEscape,
   type DrawerEvent, type DrawerState, type FocusTarget, type WorkbenchLayout,
 } from "@/lib/workbench-layout";
+import { parseAiaId } from "@/lib/workbench-artifacts";
 import { type FocusMode, readSplit, writeSplit } from "@/lib/workbench-split";
 import { PHASES, STAGES, STAGE_ORDER, stageHref, stageOf, stageState, type WorkbenchStage } from "@/lib/workbench-stages";
 import { impactBase, impactMarks, type ImpactMark } from "@/lib/working-impact";
@@ -39,8 +41,11 @@ import type { StudyFrame } from "../rehome/research/frame";
 import { useRuns } from "../rehome/research/StageTrack";
 import { LeadAskContext } from "../rehome/research/AskLead";
 import { FrameNavigation } from "@/components/rehome/step";
+import { ItemInspector } from "../rehome/research/ItemInspector";
 import { Glyph, type GlyphTone } from "./Glyph";
 import { Icon, Mark } from "./Icons";
+import { ItemInspectBody } from "./ItemInspectBody";
+import { ItemInspectorContext, type ItemInspectorApi } from "./item-inspector-context";
 import { LeadPane, type LeadCardsContext } from "./LeadPane";
 import { SampleView } from "./SampleView";
 import { Split } from "./Split";
@@ -232,19 +237,42 @@ export function Workbench({ frame, step, store, memory, save, inspector, reload,
   useEffect(() => {
     if (inspectorOpen) inspectorPanel.current?.focus();
   }, [inspectorOpen]);
-  // One Escape handler for the drawer and the readiness panel: onEscape gives the one order, after
-  // anything a handler already took (lib/workbench-layout.ts). Pointing ("@") keeps its own.
+  // The item inspector (chunk 2): an item a screen opens (a finding, a cited number) over the
+  // artifact, its back stack the stage's own; another stage starts it empty.
+  const [items, setItems] = useState<InspectorStack>(() => emptyStack(stage));
+  // Another stage starts it empty, stored so (reset while rendering, React's pattern for state
+  // that follows a prop): a stage reached again (Výsledky's views by hash keep this workbench
+  // mounted) never brings back the drawer it had.
+  if (items.stage !== stage) setItems(emptyStack(stage));
+  const shownItems = onStage(items, stage);
+  const itemInspector = useMemo<ItemInspectorApi>(() => ({
+    open: (entry) => {
+      if (!parseAiaId(entry.id)) return false;
+      setItems((s) => openEntry(onStage(s, stage), entry));
+      return true;
+    },
+  }), [stage]);
+  const itemDrawer = useRef<HTMLDivElement>(null);
+  // One Escape handler for the drawer, the readiness panel and the item drawer: onEscape gives the
+  // one order, after anything a handler already took (lib/workbench-layout.ts). Pointing ("@")
+  // keeps its own. The item drawer never takes Escape from behind a modal (review of #623).
+  const itemOpen = topEntry(shownItems) !== null;
   useEffect(() => {
     const modal = isModal(layout, drawer);
-    if (!modal && !inspectorOpen) return;
+    if (!modal && !inspectorOpen && !itemOpen) return;
     const onKey = (e: KeyboardEvent) => {
       if (e.key !== "Escape") return;
       // The panel counts while it is the layer in use: not behind a modal drawer, and the focus in
       // it or on nothing (the body), never pulled out of the composer or a field.
       const active = document.activeElement;
       const inPanel = !modal && inspectorOpen && (active === document.body || !!inspectorPanel.current?.contains(active) || active === inspectorToggle.current);
-      const step = onEscape(drawer, { handled: e.defaultPrevented, askDialogOpen: !!document.querySelector("[data-ask-dialog][open], dialog[open]"), inspectorOpen: inPanel }, layout);
-      if (step.action === "inspector") {
+      // The item drawer by the same rule; it lies over the panel, so it goes first.
+      const inItem = !modal && itemOpen && (active === document.body || !!itemDrawer.current?.contains(active));
+      const step = onEscape(drawer, { handled: e.defaultPrevented, askDialogOpen: !!document.querySelector("[data-ask-dialog][open], dialog[open]"), inspectorOpen: inItem || inPanel }, layout);
+      if (step.action === "inspector" && inItem) {
+        e.preventDefault();
+        setItems((s) => closeStack(onStage(s, stage)));
+      } else if (step.action === "inspector") {
         e.preventDefault();
         setInspectorOpen(false);
         inspectorToggle.current?.focus();
@@ -256,7 +284,7 @@ export function Workbench({ frame, step, store, memory, save, inspector, reload,
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [drawer, layout, moveFocus, inspectorOpen]);
+  }, [drawer, layout, moveFocus, inspectorOpen, itemOpen, stage]);
   const [turns, setTurns] = useState<LeadTurn[]>([]);
   const [leadEpoch, setLeadEpoch] = useState(0);
   // Automatic text edits (inline-decisions 2): the researcher's choice, the turns already finished
@@ -673,8 +701,14 @@ export function Workbench({ frame, step, store, memory, save, inspector, reload,
                 <div className="artbody" id="artbody"><div className="wb-stage">
                   {stage === "sample" ? <SampleView project={state.project} onOpen={go} /> : null}
                   {/* Sample shows Dimenze's screen hidden, so its readiness still reaches the inspector. */}
-                  <div hidden={stage === "sample"}><LeadAskContext.Provider value={askLead}><FrameNavigation.Provider value>{children}</FrameNavigation.Provider></LeadAskContext.Provider></div>
+                  <div hidden={stage === "sample"}><LeadAskContext.Provider value={askLead}><ItemInspectorContext.Provider value={itemInspector}><FrameNavigation.Provider value>{children}</FrameNavigation.Provider></ItemInspectorContext.Provider></LeadAskContext.Provider></div>
                 </div></div>
+                {/* Mounted while empty, so closing it gives the focus back to what opened it. */}
+                <div ref={itemDrawer} className="itemdrawer" hidden={!itemOpen}>
+                  <ItemInspector ownEscape={false} stack={shownItems} onBack={() => setItems((s) => backEntry(onStage(s, stage)))} onClose={() => setItems((s) => closeStack(onStage(s, stage)))}>
+                    {(entry) => <ItemInspectBody entry={entry} />}
+                  </ItemInspector>
+                </div>
                 <aside ref={inspectorPanel} tabIndex={-1} className="insp" aria-label="Připravenost a pomoc" hidden={!inspectorOpen}>
                   <div className="insp__head">
                     <div style={{ minWidth: 0, flex: 1 }}><div className="insp__title">Připravenost a pomoc</div><div className="insp__sub">{STAGES[stage].label}</div></div>

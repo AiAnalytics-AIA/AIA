@@ -3,6 +3,7 @@ status: in-progress
 chunks:
   - "[x] 1. Split layout: pure width, keyboard and focus-mode rules with the prototype's bounds"
   - "[x] 2. Inspector back stack: pure state and the item drawer, beside InspectorSlot"
+  - "[x] 2a. The item drawer mounted in the workbench and opened from a screen's click (useItemInspector); bodies by kind (ItemInspectBody BODIES); the Lead's inspect op still to come"
   - "[x] 3. Port the prototype's workbench frame: stylesheet, icons, study header, phase navigator over lane.ts, split, rail"
   - "[x] 4. Mount the workbench as the study screen behind AIA_WEB_RESEARCH_WORKBENCH (on for develop): artifact header and state bars over the existing stage screens"
   - "[x] 5. Lead backend: study_lead_turns, StudyLeadRepository, ResearchLead, /lead routes, research_lead template and executor, settings"
@@ -1466,6 +1467,33 @@ behaviour beyond `FOCUS_KINDS` gaining one kind.
   Those are now refused, while a stored id stays pickable whether #607's marks have landed yet or
   not (review of #618). Test: `lead.test.ts` "names an unmarked card by its DOM id only when the
   id is a stored one the contract can send".
+
+## 2a. The item drawer, opened from a click (2026-10-21)
+
+Chunk 2 built `ItemInspector` and its stack, but nothing mounted it. Analýza asked for a way to
+open a finding or a cited number in it from a click (ANL3).
+
+- **The workbench owns the stack.** It holds `lib/inspector-stack.ts` state and draws
+  `ItemInspector` over the artifact pane (`.itemdrawer`, inside `.artstage`, outside `#artbody`),
+  so `@`'s picking never lands on it.
+- **Moving to another stage starts it empty** (`onStage`).
+- **A screen opens an entry with `useItemInspector()?.open({ id, title, sub })`**
+  (`components/workbench/item-inspector-context.tsx`).
+  - An id outside `parseAiaId`'s grammar opens nothing and answers false.
+  - Outside the workbench the hook is null, and the screen keeps its own behaviour.
+- **Bodies are by kind** (`ItemInspectBody.tsx` `BODIES`), each written by the stage that owns the
+  kind. Analýza adds `finding` and `claim` (`AnalysisInspect`, #610); `module` stays on the page.
+- **A kind with no body** shows what was opened and "Ukázat na stránce", never a detail it does not
+  have.
+- **Not yet:** the Lead's own `inspect` view op stays non-live until the server's `LeadView` carries
+  it.
+- **Escape is the frame's** (review of #623): inside the workbench the drawer takes Escape only
+  through the one handler (`ItemInspector ownEscape={false}`), by the readiness panel's rule: the
+  layer in use, never from behind the Lead's modal drawer. Its own listener had run first and
+  closed the item behind an open dialog, pulling the focus out of it.
+- Tests: `Workbench.layout.test.tsx` "the item inspector", with "behind the Lead's modal drawer,
+  Escape closes the drawer the person is in, not the item behind it", and "while '@' is armed, Escape
+  disarms it first and leaves the item open".
 
 ## Targets grounded in the working copy (2026-10-21, artifact-audience AUD1)
 
