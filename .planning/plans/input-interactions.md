@@ -585,7 +585,7 @@ IA-1 … IA-6, with all six parts, in the audit's §6. For the docs PR to number
   - A1, A3: a question's wording and its options in place;
   - A14: the n / 15 counter beside the objects (the set's header shows "n / 4–15" today).
 
-**3h. The objects' count beside their list (A14), feature/questionnaire-set-object-count.** The header's "n / 4–15" was not enough: at 390 px it scrolls out of view while objects are added, and a sixteenth object was dropped without a word (`updateObjects` slices at 15). The list now carries "n / 15" beside its label (polite live region), and `ChipInput` refuses a sixteenth in words, keeping the draft. Test: `QuestionnaireFields.test.tsx` (A14); checked in a browser at 390 px. Chunk 3 is ticked once 3g (#691) and 3h are both merged.
+**3h. The objects' count beside their list (A14), feature/questionnaire-set-object-count.** The header's "n / 4–15" was not enough: at 390 px it scrolls out of view while objects are added, and a sixteenth object was dropped without a word (`updateObjects` slices at 15). The count moves from the card's header to beside the list's label ("n / 4–15", one count per card), and `ChipInput` refuses a sixteenth in words, keeping the draft. Test: `QuestionnaireFields.test.tsx` (A14); checked in a browser at 390 px. Chunk 3 is ticked once 3g (#691) and 3h are both merged.
 
 ### Chunk 3b3, added by planning (2026-10-21)
 

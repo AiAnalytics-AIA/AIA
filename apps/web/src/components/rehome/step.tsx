@@ -207,6 +207,9 @@ export function ChipInput({ values, onAdd, onRemove, label, placeholder, backspa
 }) {
   const [draft, setDraft] = useState("");
   const [refusal, setRefusal] = useState<string | null>(null);
+  // A reason shown only while it still holds: a refusal that depends on the list (a full set)
+  // goes when the list changes, not only when the text does.
+  const shown = refusal !== null && refuse?.(draft.trim()) ? refusal : null;
   const errorId = useId();
   const key = (e: KeyboardEvent<HTMLInputElement>) => {
     if (e.key === "Enter") {
@@ -217,13 +220,14 @@ export function ChipInput({ values, onAdd, onRemove, label, placeholder, backspa
       if (why) return setRefusal(why);
       onAdd(v);
       setDraft("");
+      setRefusal(null);
     } else if (e.key === "Backspace" && backspaceRemoves && !draft && values.length) {
       onRemove(values.length - 1);
     }
   };
   return (
     <div className="flex flex-col gap-1">
-    <div className={`flex min-h-9 flex-wrap items-center gap-1.5 rounded-control border bg-surface-raised px-2 py-1 focus-within:outline-2 focus-within:outline-offset-2 focus-within:outline-focus-ring ${refusal ? "border-status-fault" : "border-border-strong"}`}>
+    <div className={`flex min-h-9 flex-wrap items-center gap-1.5 rounded-control border bg-surface-raised px-2 py-1 focus-within:outline-2 focus-within:outline-offset-2 focus-within:outline-focus-ring ${shown ? "border-status-fault" : "border-border-strong"}`}>
       {values.map((v, i) => (
         <span key={`${i}-${v}`} className="inline-flex max-w-full items-center gap-1 rounded-md border border-border bg-surface px-2 py-0.5 text-[13px] leading-5">
           <span className="min-w-0 break-words">{v}</span>
@@ -236,8 +240,8 @@ export function ChipInput({ values, onAdd, onRemove, label, placeholder, backspa
         aria-label={label} disabled={disabled}
         placeholder={placeholder}
         value={draft}
-        aria-invalid={refusal ? true : undefined}
-        aria-describedby={refusal ? errorId : undefined}
+        aria-invalid={shown ? true : undefined}
+        aria-describedby={shown ? errorId : undefined}
         onChange={(e) => {
           setDraft(e.target.value);
           setRefusal(null);
@@ -246,7 +250,7 @@ export function ChipInput({ values, onAdd, onRemove, label, placeholder, backspa
         className="min-h-7 min-w-32 flex-1 border-0 bg-transparent text-sm text-ink outline-none placeholder:text-ink-faint"
       />
     </div>
-    {refusal ? <span id={errorId} role="alert" className="text-xs text-status-fault">{refusal}</span> : null}
+    {shown ? <span id={errorId} role="alert" className="text-xs text-status-fault">{shown}</span> : null}
     </div>
   );
 }

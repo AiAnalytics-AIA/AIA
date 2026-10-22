@@ -317,7 +317,7 @@ export function addTrackedSet(
 ): { project: ResearchProject } | { error: string } | null {
   if (!typ || !raw) return null;
   const objs = raw.split(",").map((x) => x.trim()).filter(Boolean);
-  if (objs.length < 4 || objs.length > 15) return { error: SET_SIZE };
+  if (objs.length < 4 || objs.length > SET_MAX) return { error: SET_SIZE };
   return { project: withSections(p, [...sections(p), trackedSet(typ, objs, ids)]) };
 }
 
@@ -433,11 +433,14 @@ export function setObjectFamily(p: ResearchProject, si: number, v: string): Rese
   });
 }
 
+/** The most objects a tracked set takes (SET_SIZE); updateObjects keeps no more. */
+export const SET_MAX = 15;
+
 export const SET_TOO_SMALL = "Sledovaná sada potřebuje 4–15 položek.";
 
 /** updateObjects: one per line, trimmed, fifteen at most; a note (not a refusal) under four. */
 export function updateObjects(p: ResearchProject, si: number, v: string): { project: ResearchProject; note: string | null } {
-  const a = v.split(/\n/).map((x) => x.trim()).filter(Boolean).slice(0, 15);
+  const a = v.split(/\n/).map((x) => x.trim()).filter(Boolean).slice(0, SET_MAX);
   return {
     project: edit(p, (xs) => {
       xs[si].objects = a;
