@@ -71,6 +71,7 @@ from .edit_ops import (
 from .item_ids import SIDECAR_KEYS
 from .licence import DataLineage
 from .material_rules import MaterialRule, classify_by_rule, rule_class
+from .population.subpanels import BUILTIN_SUBPANELS
 from .prompts import PromptPin
 from .research_agents import (
     FIXED_PREFIX,
@@ -132,6 +133,7 @@ __all__ = [
     "frozen_sample_size",
     "ground_edits",
     "ground_self_update",
+    "ground_view",
     "is_text_edit",
     "layer",
     "lead_contract",
@@ -144,6 +146,7 @@ __all__ = [
     "self_update_base",
     "split_self_update",
     "stale_files",
+    "target_refusal",
     "unreadable_numbers",
     "waiting_self_update",
 ]
@@ -536,6 +539,53 @@ def ground_edits(
         else:
             dropped.append(Dropped(index=i, op=edit.op, reason=reason))
     return output.model_copy(update={"edits": kept}), dropped
+
+
+#: The audience's parts a target may name besides a filter or a subpanel (the Cílová skupina
+#: screen's marks, artifact-audience AUD1).
+_AUDIENCE_PARTS: Final = frozenset({"definition", "filters", "preview"})
+_SUBPANEL_KEYS: Final = frozenset(s.key for s in BUILTIN_SUBPANELS)
+
+
+def target_refusal(target: str, content: Mapping[str, Any]) -> str | None:
+    """Why ``target`` names nothing a stage screen shows, or None when it may.
+
+    The grammar first (:data:`FOCUS_ID`, ``unknown_target``). Then the audience, by what the
+    working copy stores (artifact-audience AUD1): ``audience:filter:<factor>`` names a filter
+    stored in ``content["audience"]["filters"]`` (``audience_filter_not_stored``),
+    ``audience:subpanel:<key>`` one of the built-in subpanels (``audience_subpanel_unknown``),
+    and any other audience id one of its parts. No catalogue is read: a filter the copy does
+    not hold is not on the screen to point at. Other kinds are held to their grammar alone.
+    """
+    if not FOCUS_ID.fullmatch(target):
+        return "unknown_target"
+    kind, _, id_ = target.partition(":")
+    if kind != "audience" or id_ in _AUDIENCE_PARTS:
+        return None
+    part, _, name = id_.partition(":")
+    raw = content.get("audience")
+    audience: Mapping[str, Any] = raw if isinstance(raw, Mapping) else {}
+    if part == "filter" and name:
+        filters = audience.get("filters")
+        stored = isinstance(filters, Mapping) and name in filters
+        return None if stored else "audience_filter_not_stored"
+    if part == "subpanel" and name:
+        return None if name in _SUBPANEL_KEYS else "audience_subpanel_unknown"
+    return "unknown_target"
+
+
+def ground_view(output: LeadOutput, content: Mapping[str, Any]) -> tuple[LeadOutput, list[Dropped]]:
+    """``output`` with only the focus targets the working content can show, and the rest named
+    (:func:`target_refusal`). Opening a stage is always kept."""
+    kept: list[Any] = []
+    dropped: list[Dropped] = []
+    for i, op in enumerate(output.view):
+        reason = target_refusal(op.target, content) if isinstance(op, FocusItem) else None
+        if reason is None:
+            kept.append(op)
+        else:
+            dropped.append(Dropped(index=i, op=op.op, reason=reason))
+    return output.model_copy(update={"view": kept}), dropped
 
 
 def readiness_layer(sample_size: SampleSizeLimits, methodology_version: str) -> dict[str, Any]:

@@ -10,6 +10,7 @@
 import { t, tv } from "@/i18n/t";
 import type { OutlookVerdict, QuestionOutlook, ResearchPhase, ResearchQuestionTrace, ResearchRun, ResearchRunSummary, ResearchStep } from "@/lib/api";
 import type { Tone } from "@/lib/tone";
+import { withFixer } from "@/lib/route-refusal";
 
 export const RUNTIME_UNAVAILABLE = "ai_runtime_unavailable";
 export const SYNTHETIC_SOURCE = "synthetic_fixture";
@@ -127,12 +128,13 @@ const WAITING_STATUS = /^(WAITING|AWAITING)_|^RECOVERY_REQUIRED$/;
  * -- budget, provider quota, a decision owed -- is told from its machine reason. It says only
  * what is known: that the step waits, and why. It promises no action the page cannot take.
  */
-export function waitingDetail(step: Pick<ResearchStep, "status" | "waiting_reason" | "error_message" | "recovery_reason">): string | null {
+export function waitingDetail(step: Pick<ResearchStep, "status" | "waiting_reason" | "error_message" | "error_reason" | "recovery_reason">): string | null {
   if (!WAITING_STATUS.test(step.status)) return null;
   // A paid call whose outcome is unknown outranks whatever error came with it: it is why nothing
   // repeats the step, and what a person decides on (PC14).
   if (step.status === "RECOVERY_REQUIRED" && step.recovery_reason === "paid_call_uncertain") return t("research.exec.wait.paid_call_uncertain");
-  if (step.error_message) return step.error_message;
+  // A refusal the AI route's settings decide says who fixes it (lead-orchestration LO12a).
+  if (step.error_message) return withFixer(step.error_message, step.error_reason);
   if (step.status === "RECOVERY_REQUIRED") {
     return t(step.recovery_reason === "attempts_exhausted" ? "research.exec.wait.attempts_exhausted" : "research.exec.wait.recovery_required");
   }

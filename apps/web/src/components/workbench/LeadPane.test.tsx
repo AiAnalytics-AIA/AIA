@@ -78,7 +78,12 @@ describe("LeadPane", () => {
   it("offers hatching to a researcher without a Lead, and hatches it on their click", async () => {
     me = { hatched: false, lead: null };
     render(pane());
-    fireEvent.click(await screen.findByRole("button", { name: "Vylíhnout mého Vedoucího" }));
+    const hatch = await screen.findByRole("button", { name: "Vylíhnout mého Vedoucího" });
+    // The shut composer says why in its own field, not "Napište Vedoucímu výzkumu…" (audit).
+    const composer = screen.getByLabelText("Napište Vedoucímu výzkumu") as HTMLTextAreaElement;
+    expect(composer.disabled).toBe(true);
+    expect(composer.placeholder).toMatch(/vylíhněte/);
+    fireEvent.click(hatch);
     expect(await screen.findByText("Bára")).toBeTruthy();
   });
 
@@ -118,6 +123,21 @@ describe("LeadPane", () => {
     fireEvent.click(screen.getByRole("button", { name: "Spustit úlohu" }));
     await waitFor(() => expect(onRequest).toHaveBeenCalledWith(expect.objectContaining({ turn_id: "LDT-1" }), expect.objectContaining({ kind: "agent_job" })));
     expect(await screen.findByText("Rozhodnuto")).toBeTruthy();
+  });
+
+  it("follows a person's typed start with their own card, which starts it on their approval (LO5)", async () => {
+    state.turns = [
+      turn({ turn_id: "LDT-7", actor: "person", text: "Navrhni dotazník: krátce", command: "agent_job:build_questionnaire", run_id: null, output: null }),
+      turn({ turn_id: "LDT-8", actor: "person", text: "Spusť výzkum", command: "research_run", run_id: null, output: null }),
+    ];
+    const onRequest = vi.fn(async () => {});
+    render(pane({ onRequest, cards: cards() }));
+    expect(await screen.findAllByText("Váš příkaz")).toHaveLength(2);
+    fireEvent.click(screen.getByRole("button", { name: "Spustit úlohu" }));
+    await waitFor(() => expect(onRequest).toHaveBeenCalledWith(expect.objectContaining({ turn_id: "LDT-7" }), { kind: "agent_job", action: "build_questionnaire", why: "krátce" }));
+    // The typed run starts from its card, not by opening Spuštění.
+    fireEvent.click(screen.getByRole("button", { name: "Spustit výzkum" }));
+    await waitFor(() => expect(onRequest).toHaveBeenCalledWith(expect.objectContaining({ turn_id: "LDT-8" }), expect.objectContaining({ kind: "research_run" })));
   });
 
   it("keeps what the Lead wants for all of the researcher's work only on their yes", async () => {

@@ -191,7 +191,7 @@ export function Segmented<K extends string>({ value, options, onChange, label }:
  * A list of short values typed in: Enter adds the trimmed value, × removes one.
  * `backspaceRemoves` lets Backspace in an empty field take the last one back.
  */
-export function ChipInput({ values, onAdd, onRemove, label, placeholder, backspaceRemoves = false, disabled = false }: {
+export function ChipInput({ values, onAdd, onRemove, label, placeholder, backspaceRemoves = false, disabled = false, refuse }: {
   values: readonly string[];
   onAdd: (value: string) => void;
   onRemove: (index: number) => void;
@@ -199,20 +199,32 @@ export function ChipInput({ values, onAdd, onRemove, label, placeholder, backspa
   placeholder?: string;
   backspaceRemoves?: boolean;
   disabled?: boolean;
+  /**
+   * Why a typed value is not one, or null (input-interactions I9): a refused value stays in the
+   * field with the reason beside it, never added and never cleared; the reason goes once the
+   * text changes.
+   */
+  refuse?: (value: string) => string | null;
 }) {
   const [draft, setDraft] = useState("");
+  const [refusal, setRefusal] = useState<string | null>(null);
+  const errorId = useId();
   const key = (e: KeyboardEvent<HTMLInputElement>) => {
     if (e.key === "Enter") {
       e.preventDefault();
       const v = draft.trim();
-      if (v) onAdd(v);
+      if (!v) return setDraft("");
+      const why = refuse?.(v) ?? null;
+      if (why) return setRefusal(why);
+      onAdd(v);
       setDraft("");
     } else if (e.key === "Backspace" && backspaceRemoves && !draft && values.length) {
       onRemove(values.length - 1);
     }
   };
   return (
-    <div className="flex min-h-9 flex-wrap items-center gap-1.5 rounded-control border border-border-strong bg-surface-raised px-2 py-1 focus-within:outline-2 focus-within:outline-offset-2 focus-within:outline-focus-ring">
+    <div className="flex flex-col gap-1">
+    <div className={`flex min-h-9 flex-wrap items-center gap-1.5 rounded-control border bg-surface-raised px-2 py-1 focus-within:outline-2 focus-within:outline-offset-2 focus-within:outline-focus-ring ${refusal ? "border-status-fault" : "border-border-strong"}`}>
       {values.map((v, i) => (
         <span key={`${i}-${v}`} className="inline-flex max-w-full items-center gap-1 rounded-md border border-border bg-surface px-2 py-0.5 text-[13px] leading-5">
           <span className="min-w-0 break-words">{v}</span>
@@ -225,10 +237,17 @@ export function ChipInput({ values, onAdd, onRemove, label, placeholder, backspa
         aria-label={label} disabled={disabled}
         placeholder={placeholder}
         value={draft}
-        onChange={(e) => setDraft(e.target.value)}
+        aria-invalid={refusal ? true : undefined}
+        aria-describedby={refusal ? errorId : undefined}
+        onChange={(e) => {
+          setDraft(e.target.value);
+          setRefusal(null);
+        }}
         onKeyDown={key}
         className="min-h-7 min-w-32 flex-1 border-0 bg-transparent text-sm text-ink outline-none placeholder:text-ink-faint"
       />
+    </div>
+    {refusal ? <span id={errorId} role="alert" className="text-xs text-status-fault">{refusal}</span> : null}
     </div>
   );
 }

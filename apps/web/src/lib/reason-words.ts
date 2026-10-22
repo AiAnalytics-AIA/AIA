@@ -7,6 +7,7 @@
 import { t } from "@/i18n/t";
 import type { ResearchStep } from "@/lib/api";
 import { waitingDetail } from "@/lib/research-execution";
+import { withFixer } from "@/lib/route-refusal";
 
 /** Words for a code; `code` is set only when the client has no words for it. */
 export type Coded = { words: string; code: string | null };
@@ -47,10 +48,10 @@ export function deepStepLabel(nodeKey: string): string {
  * the wait's own detail first (`waitingDetail`: a recorded message, then a known reason), then a
  * failed attempt's message, then the bare waiting reason, worded where this client can.
  */
-export function stepProblem(step: Pick<ResearchStep, "status" | "waiting_reason" | "error_message">): Coded | null {
+export function stepProblem(step: Pick<ResearchStep, "status" | "waiting_reason" | "error_message" | "error_reason">): Coded | null {
   const waiting = waitingDetail(step);
   if (waiting !== null) return { words: waiting, code: null };
-  if (step.error_message) return { words: step.error_message, code: null };
+  if (step.error_message) return { words: withFixer(step.error_message, step.error_reason), code: null };
   if (step.waiting_reason) return codeWords("research.exec.wait", step.waiting_reason);
   return null;
 }

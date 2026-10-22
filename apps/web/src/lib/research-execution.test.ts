@@ -127,6 +127,13 @@ describe("waitingDetail", () => {
     expect(waitingDetail({ ...base, waiting_reason: "budget_exceeded", error_message: "Přesný důvod." })).toBe("Přesný důvod.");
   });
 
+  it("says who fixes a refusal of the AI route on Progress, after what the step recorded (LO12a)", () => {
+    const parked = waitingDetail({ ...base, waiting_reason: "ai_runtime_unavailable", error_message: "Běh čeká u sběru dat.", error_reason: "egress_residency_violation" });
+    expect(parked).toMatch(/^Běh čeká u sběru dat\. Opraví to provozovatel AIA/);
+    expect(parked).toContain("aia_ai_route_eu_processing_approved");
+    expect(waitingDetail({ ...base, error_message: "Běh čeká u sběru dat.", error_reason: "licence_undetermined" })).toBe("Běh čeká u sběru dat.");
+  });
+
   it("tells budget, quota and decisions apart", () => {
     expect(waitingDetail({ ...base, status: "AWAITING_BUDGET", waiting_reason: "budget_exceeded" })).toMatch(/rozpočet/);
     expect(waitingDetail({ ...base, waiting_reason: "provider_quota_exhausted" })).toMatch(/kvótu/);

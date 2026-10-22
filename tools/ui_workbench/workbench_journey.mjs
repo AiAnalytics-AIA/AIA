@@ -91,6 +91,18 @@ try {
   assert.equal(await page.locator('[id="brief-situation"]').count(), 0, "brief:situation is not a target");
   check("every Brief target the contract names is one element");
 
+  // One focus ring per field: a field that sets outline-none inside a wrapper drawing the ring on
+  // focus-within keeps it, and the workbench's own controls still get theirs.
+  const linkField = page.getByRole("textbox", { name: "Odkaz", exact: true });
+  await linkField.focus();
+  assert.equal(await linkField.evaluate((e) => getComputedStyle(e).outlineStyle), "none", "a focused outline-none field draws no ring of its own");
+  const phase = page.locator(".wb button").first();
+  await phase.focus();
+  await page.keyboard.press("Shift+Tab");
+  await page.keyboard.press("Tab");
+  assert.equal(await page.evaluate(() => getComputedStyle(document.activeElement).outlineStyle), "solid", "a workbench control focused by keyboard draws the ring");
+  check("one focus ring on a field, the ring on the workbench's controls");
+
   // The separator: keyboard moves it 2 % within 28-62 %; Home goes back to 40 %.
   const sep = page.getByRole("separator", { name: "Změnit poměr konverzace a artefaktu" });
   await sep.focus();
@@ -222,6 +234,20 @@ try {
   await page.locator(".nav__list").waitFor({ state: "detached" });
   await shot("390-header");
   check("every stage reachable by keyboard at 768 (scrolling) and 390 (the stage list), no overflow");
+
+  // Zadání: V2's sections in order -- Cíle, Rozhodnutí, Kontext -- at every width (artifact-brief
+  // BRF2). Reading it is a GET; nothing is edited here (the workspace journey edits a fresh study).
+  for (const width of [1440, 1100, 768, 390]) {
+    await page.setViewportSize({ width, height: 900 });
+    await page.goto(base + stagePath("brief"));
+    const sections = page.locator('[id="brief-objectives"], [id="brief-decision_use"], [id="brief-context"]');
+    await sections.first().waitFor({ timeout: 30000 });
+    assert.equal(await sections.count(), 3, `Cíle, Rozhodnutí, Kontext @${width}`);
+    assert.equal(await page.getByRole("button", { name: /^Upravit: Situace \/ trh/ }).count(), 1, `Kontext edited in place @${width}`);
+    await noOverflow(`brief @${width}`);
+    await page.screenshot({ path: join(out, `${width}-brief.png`), fullPage: true });
+  }
+  check("Zadání shows Cíle, Rozhodnutí and Kontext, edited in place, at 1440, 1100, 768 and 390, no overflow");
 
   // Návrh: each research question with its coverage (artifact-design DSN2), at every width, in the
   // workbench at each. Reading it is a GET.
