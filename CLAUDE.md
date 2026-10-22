@@ -405,8 +405,9 @@ apps/
                             no analysis, the one Návrh reads is stored), each with item_ids' id; none stated reads
                             "Zatím prázdné", never the goal; length.ts: the questionnaire's length by Metodika's rule
                             (QQ1 (a)), seconds per answer by type and per set object, and the study type's limit
-                            (max_seconds), read from …/research/limits questionnaire_length; unset, unread or
-                            unpriced is said, never a number; plan-narrative.ts: PlanNarrative's pure part
+                            (max_seconds), to be read from …/research/limits questionnaire_length, which the API does not
+                            serve yet (the Metodika entry is the methodology owner's); until then unset is
+                            said, never a number; plan-narrative.ts: PlanNarrative's pure part
     src/testing/legacy.ts   Parity harness: a function's effective binding, run in a Node vm (reads
                             the vendored ui_app.html: reference only, never product code)
     src/lib/app-routes.ts   Every /app URL, built in one place (stage slugs: `persona` is `dimensions`;
@@ -983,8 +984,8 @@ packages/aia_core/src/aia_core/
                             whole number within the limits, never clamped (RQC9)
     run_cost.py             The most a run can cost: its model requests x the reservation per request
                             (fieldwork, analysis with its repairs); an upper bound; unknown, never zero
-    spend_attribution.py    Who a charge is booked to (Q40; charged_to): the run's latest budget lift (Q67 (a)),
-                            else the one person whose approval started it (two different: nobody), else the
+    spend_attribution.py    Who a charge is booked to (Q40; charged_to): the latest lift of the run's budget before
+                            the hold (Q67 (a)), else the one person whose approval started it (two different: nobody), else the
                             starter when a member, else null ("Nepřiřazeno"), never a guess; and the per-person
                             fold (researcher_spend, period_bounds, activity_of)
     fieldwork.py            FieldworkSource, FieldworkDataset, validate_dataset; DataOrigin (two
