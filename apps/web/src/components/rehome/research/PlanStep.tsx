@@ -66,6 +66,13 @@ const outOfRange = (set: TrackedSet) => {
 };
 
 const jumpTo = (id: string) => scrollToPlace(id, "start");
+/**
+ * Whether a field inside `el` holds a draft refused at the field (I9), which a remount or a way out
+ * would drop. `remount: "items"`: only a chip being reworded, which an item's removal remounts
+ * (a chip of ChipInput's data-chips list; its add field, a sibling of the chips, keeps its draft).
+ */
+const holdsRefused = (el: Element | null, remount?: "items") =>
+  !!el?.querySelector(remount ? '[data-chips] > span [aria-invalid="true"]' : '[aria-invalid="true"]');
 
 /**
  * The follow-up answers, one per question, as the one block of text the classic
@@ -94,7 +101,7 @@ export function PlanStep() {
   // Every field saves itself, so nothing is unsaved but a draft refused at its field, which stays
   // there (I9). Leaving the stage would drop it: the person is asked first, on any way out.
   const root = useRef<HTMLDivElement>(null);
-  const held = () => !!root.current?.querySelector('[aria-invalid="true"]');
+  const held = () => holdsRefused(root.current);
   useEffect(() => {
     const beforeUnload = (e: BeforeUnloadEvent) => { if (held()) e.preventDefault(); };
     const leave = (e: MouseEvent) => {
@@ -392,8 +399,17 @@ function Understanding({ n, changed, blocked, onQuote }: { n: number; changed: b
 
 /** Porovnatelné sady: each set edited where it is drawn, one field at a time (audit A33). */
 function Sets({ n, analysis, blocked }: { n: number; analysis: Analysis; blocked: boolean }) {
-  const { store, toast } = useResearch();
+  const { store, toast, confirm } = useResearch();
   const sets = trackedSets(analysis);
+  // Cards and chips are keyed by place (sets and their items carry no id): adding or removing a set
+  // remounts every other card, and removing an item that set's chips, so a draft refused in one of
+  // them is asked about first. `remounts` names the cards whose drafts the change would drop.
+  const cards = useRef<HTMLDivElement>(null);
+  const keepDrafts = async (go: () => void, remounts: (i: number) => boolean = () => true, remount?: "items") => {
+    const held = [...(cards.current?.children ?? [])].some((card, i) => remounts(i) && holdsRefused(card, remount));
+    if (held && !(await confirm(t("research.plan.setField.leave")))) return;
+    go();
+  };
   const [adding, setAdding] = useState<string | null>(null);
   const put = (next: Analysis | null, reason: string) => {
     if (next) store.update((s) => applyPlanSets(s, trackedSets(next)), { reason });
@@ -421,7 +437,7 @@ function Sets({ n, analysis, blocked }: { n: number; analysis: Analysis; blocked
           className="mb-3 flex flex-wrap gap-2"
           onSubmit={(e) => {
             e.preventDefault();
-            create();
+            void keepDrafts(create);
           }}
         >
           <input
@@ -438,7 +454,7 @@ function Sets({ n, analysis, blocked }: { n: number; analysis: Analysis; blocked
         </form>
       ) : null}
       {sets.length ? (
-        <div className="grid gap-4 xl:grid-cols-2">
+        <div ref={cards} className="grid gap-4 xl:grid-cols-2">
           {sets.map((set, si) => (
             <SetCard
               // Keyed by place, as every edit names it: a rename keeps the card and its save note, and a
@@ -452,15 +468,15 @@ function Sets({ n, analysis, blocked }: { n: number; analysis: Analysis; blocked
                 put({ ...a, tracked_sets: fresh.map((s, i) => (i === si ? edit(s) : s)) }, "plan_measurement_edited");
               }}
               onAddObject={(value) => {
-                // The chip refuses a repeat or a sixteenth first (objectProblem); addObject's own
+                // The chip refuses a repeat or one past the full set first (objectProblem); addObject's own
                 // refusal is said here should the copy have moved meanwhile.
                 const r = addObject(current(), si, value);
                 if (r && "error" in r) return toast(r.error);
                 put(r?.analysis ?? null, "plan_objects");
               }}
               onRename={(value) => put(renameSet(current(), si, value), "plan_set_renamed")}
-              onRemove={() => put(removeSet(current(), si), "plan_set_removed")}
-              onRemoveObject={(oi) => put(removeObject(current(), si, oi), "plan_objects")}
+              onRemove={() => void keepDrafts(() => put(removeSet(current(), si), "plan_set_removed"), (i) => i !== si)}
+              onRemoveObject={(oi) => void keepDrafts(() => put(removeObject(current(), si, oi), "plan_objects"), (i) => i === si, "items")}
             />
           ))}
         </div>

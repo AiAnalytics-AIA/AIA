@@ -236,7 +236,7 @@ export function ChipInput({ values, onAdd, onRemove, rename, label, placeholder,
   };
   return (
     <div className="flex flex-col gap-1">
-    <div className={`flex min-h-9 flex-wrap items-center gap-1.5 rounded-control border bg-surface-raised px-2 py-1 focus-within:outline-2 focus-within:outline-offset-2 focus-within:outline-focus-ring ${shown ? "border-status-fault" : "border-border-strong"}`}>
+    <div data-chips className={`flex min-h-9 flex-wrap items-center gap-1.5 rounded-control border bg-surface-raised px-2 py-1 focus-within:outline-2 focus-within:outline-offset-2 focus-within:outline-focus-ring ${shown ? "border-status-fault" : "border-border-strong"}`}>
       {values.map((v, i) => (
         <span key={`${i}-${v}`} className="inline-flex max-w-full items-center gap-1 rounded-md border border-border bg-surface px-2 py-0.5 text-[13px] leading-5">
           {rename ? (

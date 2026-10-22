@@ -58,7 +58,8 @@ export function withSetField(set: TrackedSet, field: SetField, value: string): T
 
 /**
  * Why `value` cannot be one of the set's items: a repeat of another (case aside), or, added
- * (`except` unset), a sixteenth; else null. A rename names its own place in `except`.
+ * (`except` unset), one past addObject's limit (MAX_OBJECTS); else null. A rename names its own
+ * place in `except`.
  */
 export function objectProblem(set: TrackedSet, value: string, except?: number): string | null {
   const objects = set.objects ?? [];

@@ -428,6 +428,20 @@ describe("direct proposal editing", () => {
     fireEvent.click(screen.getByRole("button", { name: "Zrušit" }));
     await waitFor(() => expect(screen.queryByText(/nejdou uložit a zůstaly v poli/)).toBeNull());
     expect(push).not.toHaveBeenCalled();
+    // Removing an item remounts the chips after it, so a chip's refused rewording is asked about
+    // first; the refused question, which no removal remounts, is not.
+    fireEvent.click(screen.getByRole("button", { name: "Upravit: Položka · 3 C" }));
+    const third = screen.getByRole("textbox", { name: "Položka · 3" });
+    fireEvent.change(third, { target: { value: "a" } });
+    fireEvent.keyDown(third, { key: "Enter" });
+    expect(await screen.findByText("Tato položka už v sadě je.")).toBeTruthy();
+    fireEvent.click(screen.getByRole("button", { name: "Odebrat A" }));
+    expect(await screen.findByText(/nejdou uložit a zůstaly v poli/)).toBeTruthy();
+    fireEvent.click(screen.getByRole("button", { name: "Zrušit" }));
+    await waitFor(() => expect(screen.queryByText(/nejdou uložit a zůstaly v poli/)).toBeNull());
+    expect(screen.getByRole("button", { name: "Odebrat A" })).toBeTruthy();
+    fireEvent.keyDown(screen.getByRole("textbox", { name: "Položka · 3" }), { key: "Escape" });
+    expect(ws.saves).toEqual([]);
     fireEvent.change(question, { target: { value: "Zvolili byste {object}?" } });
     fireEvent.keyDown(question, { key: "Enter", ctrlKey: true });
     // The preview follows each field as it is saved.

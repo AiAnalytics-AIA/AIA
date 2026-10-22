@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { defaultsMerge } from "./model";
+import { MAX_OBJECTS, SET_FULL } from "./plan";
 import { applyNarrative, applyPlanSets, objectProblem, proposalAnalysis, setFieldProblem, withObject, withSetField } from "./plan-edit";
 
 describe("working proposal edits", () => {
@@ -30,15 +31,18 @@ describe("working proposal edits", () => {
     // Stated ends stay as stored, as the preview shows them; a default fills only a set with none.
     expect(withSetField({ ...set, scale_labels: ["", "vždy"] }, "scale_high", "často").scale_labels).toEqual(["", "často"]);
   });
-  it("refuses a repeated item (case aside) and a sixteenth", () => {
+  it("refuses a repeated item (case aside) and one past the full set", () => {
     const set = { objects: ["Alfa", "Beta"] };
     expect(objectProblem(set, " ALFA ")).toBe("Tato položka už v sadě je.");
     expect(objectProblem(set, "Gama")).toBeNull();
-    expect(objectProblem({ objects: Array.from({ length: 15 }, (_, i) => String(i)) }, "x")).toBe("Sledovaná sada má maximálně 15 položek.");
+    // The full set is addObject's own limit (MAX_OBJECTS, the server's hard maximum under Q75 (a)).
+    const full = { objects: Array.from({ length: MAX_OBJECTS }, (_, i) => String(i)) };
+    expect(objectProblem(full, "x")).toBe(SET_FULL);
+    expect(objectProblem({ objects: full.objects.slice(1) }, "x")).toBeNull();
     // A rename is checked against the others only: its own wording, or a full set, is no refusal.
     expect(objectProblem(set, "alfa", 0)).toBeNull();
     expect(objectProblem(set, "alfa", 1)).toBe("Tato položka už v sadě je.");
-    expect(objectProblem({ objects: Array.from({ length: 15 }, (_, i) => String(i)) }, "x", 3)).toBeNull();
+    expect(objectProblem(full, "x", 3)).toBeNull();
   });
   it("rewords an item in its place, keeping the order", () => {
     expect(withObject({ objects: ["A", "B", "C"], extra: 1 }, 1, " Beta ")).toEqual({ objects: ["A", "Beta", "C"], extra: 1 });
