@@ -4,7 +4,7 @@ chunks:
   - "[x] 1. The methodology journey has an edit for the readiness limits, and the research journey waits for the steps"
   - "[x] 2. Nový klient: an empty name is said, not silently dropped"
   - "[x] 3. Znalosti at 390 px: the library table's clipped columns"
-  - "[ ] 4. The API refuses a client or study name of spaces"
+  - "[x] 4. The API refuses a client or study name of spaces"
   - "[ ] 5. A run's methodology receipt reports its readiness pin"
   - "[x] 6. A slow rename's answer leaves focus where the person went"
   - "[x] 7. InlineText's refocus after Enter waits for nothing the person moved"
@@ -73,16 +73,22 @@ sheet), Projektová paměť, Společenská inteligence, Nastavení (eight tabs, 
    minor columns and show them in the opened item.
 6. Test: a journey assertion at 390 px that every column header's right edge is within the frame.
 
-### F4. The API accepts a client or study name made of spaces
+### F4. The API accepted a client or study name made of spaces (fixed on this branch)
 
 1. Claim: `name: str = Field(min_length=1, …)` does not strip, so a name of spaces is accepted.
 2. Anchor: `apps/api/src/aia_api/routers/workspace.py:290 @ 4568badd` (a client),
    `apps/api/src/aia_api/routers/workspace.py:470 @ 4568badd` (a study).
 3. Repro: `POST /api/v1/workspace/clients` with `{"name": "   "}` answers 201.
 4. Consequence: a client or study named by blanks, listed with no readable name. The dialogs refuse
-   it since #720, so only a caller other than the web can do this.
-5. Smallest fix: strip before the length check (a validator, or `StringConstraints(strip_whitespace=True)`).
-6. Test: an API test that posts a name of spaces and expects 422.
+   it since #720, so only a caller other than the web can do this. Reuse's `new_study_name` of
+   blanks was worse: the route stripped it to nothing and `reuse_design` raised, a 500
+   (`apps/api/src/aia_api/routers/workspace.py:1069 @ ba596c71`).
+5. Fix: `aia_api/schemas/names.py` `EntityName`, `StringConstraints(strip_whitespace=True,
+   min_length=1, max_length=255)`, on every field that names a client or a study (the two
+   workspace routes, the two administration routes, reuse); the domain models are unchanged, so a
+   stored name still reads as stored.
+6. Test: `test_client_api.py` › "a client or study named by blanks is refused and a name is kept
+   without them" (201, 201, 201, 201 and a 500 before; 422 for each now).
 
 ### F5. A run's methodology receipt does not report its readiness pin
 

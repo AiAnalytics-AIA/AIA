@@ -95,6 +95,7 @@ from ..dependencies import (
     SessionDep,
     StudyScopeDep,
 )
+from ..schemas.names import EntityName
 from ..schemas.projects import ErrorResponse
 from .research import (
     DesignRevisionResponse,
@@ -467,7 +468,7 @@ class StudyCreate(BaseModel):
 
     model_config = ConfigDict(extra="forbid")
 
-    name: str = Field(min_length=1, max_length=255)
+    name: EntityName
     kind: Literal["RESEARCH", "SIMULATION"]
 
 
@@ -831,7 +832,7 @@ class ClientStart(BaseModel):
 
     model_config = ConfigDict(extra="forbid")
 
-    name: str = Field(min_length=1, max_length=255)
+    name: EntityName
 
 
 @router.get("/workspace/me", response_model=Me, summary="Who you are here")
@@ -1020,7 +1021,7 @@ class MemoryReuse(BaseModel):
     source_revision_id: str = Field(min_length=1, max_length=64)
     #: An existing, empty research study of the client; or ``new_study_name`` for a new one.
     target_study_id: str | None = Field(default=None, min_length=1, max_length=64)
-    new_study_name: str | None = Field(default=None, min_length=1, max_length=255)
+    new_study_name: EntityName | None = None
 
 
 class MemoryReuseResponse(BaseModel):
@@ -1067,7 +1068,7 @@ def client_memory_reuse(
             },
         )
     _client_scope(principal, resolver, client_id)  # 404 before anything is read
-    name = body.new_study_name.strip() if body.new_study_name else None
+    name = body.new_study_name
     try:
         reused = reuse_design(
             session,
