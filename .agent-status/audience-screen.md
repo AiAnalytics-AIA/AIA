@@ -76,6 +76,27 @@ in `artifact-audience.md` under Findings, on that branch.
   reproduces untouched; reported to the PM and the coordinator). `workbench_journey` and
   `ui-audience` both pass.
 
+## Self-review (PM's quality bar, 2026-10-21/22)
+
+`/code-review high` was run on all three local branches and every finding was fixed or answered.
+- **Audit fixes:** `filterProblems` now has reasons (factor, policy, empty, values) and treats a
+  scalar as one value. It compares text values only, so a number never gets a false flag. The notes
+  say "výběr" (the preview, or a run drawing from the population) refuses the whole audience. The
+  chip names the problem in words. The copy no longer promises segment finding.
+  `/security-review` could not run (no origin/HEAD); a manual sweep found no HTML injection, request,
+  storage or secret in the diff. Observed: lint, typecheck, layer_check, web_design 0; test-web
+  3214/3215 (the one failure is develop's sample.test, fixed by #627); workbench, audience and
+  workspace journeys pass on a fresh workbench.
+- **AUD1:** `storedFilterFactors` reads through `filterChips` (one reader). `audienceTargets(project,
+  {preview, subpanels})` follows what the screen draws. The grammar check is a predicate over
+  ID_SOURCE (no throw/catch). Tests cover the no-catalogue and subpanel views. Observed: all checks 0,
+  test-web 3097/3097. Answered rather than changed: an out-of-grammar chip stays unmarked (catalogue
+  ids all fit the grammar); lead.ts's duplicate parsing was sent to the coordinator.
+- **AUD5:** the job's `action` is threaded through `askReview` and `ProposalReview(action=)`. Criteria
+  are trimmed via proposal-diff's exported `strings`. Keys are by index. The section is hidden when
+  empty, the duplicate filters note is gone, and the headings are "Koho zahrnout" / "Koho vyloučit".
+  Observed: all checks 0, test-web 3095/3095; 90 non-test lines.
+
 ## Blocked (as of the stop)
 
 - AUD2 (V2 table): `input-interactions#5`.
