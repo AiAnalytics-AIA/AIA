@@ -130,6 +130,9 @@ ok("Zadání: the attachment shows the class the server's rule gives it (BRF3)")
 const OBJECTIVE = "Zjistit, kdo kampaň zaznamenal (fiktivní).";
 const objectiveSave = saved(OBJECTIVE);
 await page.getByRole("button", { name: "Přidat cíl" }).click();
+// An empty new objective is said as a goal to write, not a name (audit, F-BRF-3).
+await page.getByRole("textbox", { name: "Přidat cíl" }).press("Enter");
+await text("Napište cíl.", "the empty objective's words");
 await page.getByRole("textbox", { name: "Přidat cíl" }).fill(OBJECTIVE);
 await page.getByRole("textbox", { name: "Přidat cíl" }).press("Enter");
 await objectiveSave;

@@ -1845,6 +1845,7 @@ export const cs = {
       objectivesUnreadable: "Cíle v pracovní kopii nelze přečíst; upravte je v Návrhu.",
       objectiveLabel: "Cíl {n}",
       objectiveAdd: "Přidat cíl",
+      objectiveEmpty: "Napište cíl.",
       objectiveRemoveAria: "Odebrat cíl {n}",
       objectiveRemoved: "Cíl „{text}“ odebrán",
       attachmentRemoved: "Podklad „{name}“ odebrán",

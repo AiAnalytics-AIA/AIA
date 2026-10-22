@@ -238,6 +238,16 @@ Every item is an `Item` (`src/components/ui.tsx:52`): edit in place, remove, mov
     composer to be enabled after the dialog opens, then for focus. Owner: the workbench journey's owner,
     routed by the PM.
   - Test: the journey passes 5 of 5 fresh runs at 1099 px.
+- F-BRF-3 (UX, audit 2026-10-22, fixed): an empty new objective is refused with "Napište název."
+  ("write a name"), the folder-and-label wording of the shared create row.
+  - Anchor: `apps/web/src/components/ui/InlineCreateRow.tsx:54 @ 248729cc` (`nameProblemWords` for
+    every caller).
+  - Repro: on Zadání, "Přidat cíl", then Enter on the empty row.
+  - Consequence: the Brief asks for a name where it wants a goal.
+  - Fix: `InlineCreateRow`'s optional `emptyWords`, which the Brief passes as "Napište cíl."; other
+    callers are unchanged.
+  - Test: `InlineCreateRow.test.tsx` ("in the caller's words") and `BriefStep.test.tsx` ("an empty new
+    objective"), both failing before the fix; a `workspace_journey.mjs` step.
 
 ## 8. Owner questions
 
@@ -249,4 +259,5 @@ None. Where assumptions are shown (B-6) and the absence of a decision list (B-2,
   PR body).
 - `open-items.md`: F-BRF-1, the objective chip reads its raw id (§ 7a).
 - `open-items.md`: F-BRF-2, `lead_journey.mjs:198` composer-focus timeout at 1099 px (§ 7a).
+- `open-items.md`: F-BRF-3, an empty new objective said as a name (§ 7a), fixed.
 - `CLAUDE.md` § 2, when BRF1 lands: `apps/web/src/lib/artifacts/` (one contract per artifact).
