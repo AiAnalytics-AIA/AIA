@@ -488,6 +488,11 @@ prints `true`. Requests made before the restart are not in the feed. On develop 
 Each is off when unset and absent from the develop Compose file; turning one on is a parameter, then
 `bin/write-env.sh` and a restart of the service that reads it.
 
+- **`AIA_AI_FIELDWORK_CHECKPOINT`** (worker): fieldwork keeps each answered respondent block the
+  moment it returns (`fieldwork_journal`), so an interrupted attempt or a retry of the run replays it
+  and pays only for the blocks never answered (run-qc-and-checkpoint RQC0). An uncertain call still
+  stops the step for recovery; nothing is replayed that was not answered. Two short lease-fenced
+  database round trips per block. **Who:** the operator, after `make migrate`.
 - **`AIA_AI_SCALE_LABELS_IN_PROMPT`** (worker): AI respondents are told a scale question's labels
   (both ends, or one per point) as its design states them, not only the numbers (input-interactions
   3b1, #538). Turning it on changes what respondents read, so the respondent-system fingerprint moves
