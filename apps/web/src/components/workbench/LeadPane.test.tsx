@@ -78,7 +78,12 @@ describe("LeadPane", () => {
   it("offers hatching to a researcher without a Lead, and hatches it on their click", async () => {
     me = { hatched: false, lead: null };
     render(pane());
-    fireEvent.click(await screen.findByRole("button", { name: "Vylíhnout mého Vedoucího" }));
+    const hatch = await screen.findByRole("button", { name: "Vylíhnout mého Vedoucího" });
+    // The shut composer says why in its own field, not "Napište Vedoucímu výzkumu…" (audit).
+    const composer = screen.getByLabelText("Napište Vedoucímu výzkumu") as HTMLTextAreaElement;
+    expect(composer.disabled).toBe(true);
+    expect(composer.placeholder).toMatch(/vylíhněte/);
+    fireEvent.click(hatch);
     expect(await screen.findByText("Bára")).toBeTruthy();
   });
 

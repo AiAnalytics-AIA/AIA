@@ -3440,6 +3440,15 @@ class WorkflowRepository:
 
     # -------------------------------------------------------------------- reads --
 
+    def retry_root(self, run_id: str) -> str:
+        """The run a retry chain began with (each retry names its original as ``retry_of``),
+        read from the run rows alone; a run that is no retry is its own root."""
+        seen = {run_id}
+        while (parent := self._run(run_id).metadata_json.get("retry_of")) and parent not in seen:
+            seen.add(parent)
+            run_id = str(parent)
+        return run_id
+
     def get_run(self, run_id: str) -> dict[str, Any]:
         """Return a run with its steps and each step's attempt history."""
         run = self._run(run_id)

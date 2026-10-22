@@ -26,8 +26,8 @@ import { useSampleReadiness, type SampleReadiness } from "./useSampleReadiness";
 type Open = (stage: WorkbenchStage) => void;
 
 export function SampleView({ project, onOpen }: { project: ResearchProject; onOpen: Open }) {
-  const { store, frame } = useResearch();
-  const readiness = useSampleReadiness(store, frame.studyId, frame.canEdit);
+  const { store, frame, state } = useResearch();
+  const readiness = useSampleReadiness(store, frame.studyId, frame.canEdit, state.revision);
   return <SampleArtifact project={project} readiness={readiness} onOpen={onOpen} />;
 }
 
@@ -93,12 +93,12 @@ export function SampleArtifact({ project, readiness, onOpen }: { project: Resear
 function Forecast({ readiness }: { readiness: SampleReadiness }) {
   if (readiness.kind === "loading") return <p className="text-sm text-ink-muted" role="status">Načítám odhad ze serveru…</p>;
   if (readiness.kind === "failed") return <p className="text-sm text-status-fault" role="alert">Odhad se nepodařilo načíst: {readiness.message}</p>;
-  if (readiness.kind === "none") return <p className="text-sm text-ink-muted">Návrh zatím nikdo neodeslal ke kontrole, takže odhad není. Odhad je neznámý.</p>;
+  if (readiness.kind === "none") return <p className="text-sm text-ink-muted">Obsah studie zatím není uložený, takže odhad není. Odhad je neznámý.</p>;
   const support = supportForecastOf(readiness.readiness);
   const outlook = outlookSummary(readiness.readiness);
   return (
     <>
-      <p className="text-xs text-ink-muted">Podle revize návrhu {readiness.revision}</p>
+      <p className="text-xs text-ink-muted">Podle pracovní kopie, revize {readiness.revision}</p>
       <div className="flex items-start gap-2" data-aia={sampleAia.forecast("support")}>
         <span className="mt-1"><Glyph tone={support.known ? (STATUS_TONE[support.status] ?? "inert") : "inert"} size={12} title={support.known ? support.status : "neznámé"} /></span>
         <div className="min-w-0">

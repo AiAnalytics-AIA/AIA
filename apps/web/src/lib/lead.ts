@@ -9,6 +9,7 @@ import type { Json, ResearchProject } from "@/research/model";
 import { proposalAnalysis, type Narrative } from "@/research/plan-edit";
 import { qId, sections, type Question, type Section } from "@/research/questionnaire";
 import type { Analysis } from "@/research/store";
+import { withFixer } from "./route-refusal";
 import type { WorkbenchStage } from "./workbench-stages";
 import { parseAiaId, type TargetKind } from "./workbench-artifacts";
 
@@ -461,6 +462,18 @@ const PLAN_LABELS: Record<string, string> = {
   narrative: "Návrh: porozumění zadání",
 };
 
+/** An item row's words as a person sees them: without its numbering and icons (aria-hidden), what
+ * only a screen reader reads, a save note, or an icon button's name (the row's ×); an inline field's
+ * text button keeps its words. */
+function visibleWords(row: Element): string {
+  const copy = row.cloneNode(true) as Element;
+  copy.querySelectorAll("[aria-hidden='true'], .sr-only, [role='status'], button[aria-label]").forEach((n) => n.remove());
+  return (copy.textContent ?? "").replace(/\s+/g, " ").trim();
+}
+
+/** The kinds whose element is one item of a list, named by an opaque id: labelled by its words. */
+const ITEM_KINDS: ReadonlySet<TargetKind> = new Set<TargetKind>(["objective", "rq", "hypothesis", "set", "assumption", "material", "measure", "finding", "claim"]);
+
 /** Each target kind in words (lib/workbench-artifacts.ts TargetKind). */
 const KIND_WORDS: Readonly<Record<TargetKind, string>> = {
   brief: "Zadání", objective: "Cíl", material: "Podklad", plan: "Návrh", rq: "Výzkumná otázka",
@@ -531,16 +544,27 @@ export function targetOfElement(el: Element | null): { id: string; label: string
     }
     if (aia && parsed) {
       const heading = at.querySelector("h2, h3, h4, label, legend")?.textContent?.trim();
-      return { id: aia, label: `${targetLabel(aia)}${heading ? `: ${label(heading)}` : ""}` };
+      if (heading) return { id: aia, label: `${targetLabel(aia)}: ${label(heading)}` };
+      // An item row (an objective, a hypothesis, a finding) has no heading: its own words name it,
+      // never its opaque id (Zadání and Návrh, workbench audit 2026-10-22).
+      const words = ITEM_KINDS.has(parsed.kind) ? visibleWords(at) : "";
+      if (words) return { id: aia, label: `${KIND_WORDS[parsed.kind]}: ${label(words)}` };
+      return { id: aia, label: targetLabel(aia) };
     }
     let m: RegExpMatchArray | null;
     // A questionnaire card before its screen marks it (#607): named by its DOM id, but only an id
     // the contract can send. The ids the screen invents for a card without one are never a
     // target: questionElementId's placeholder `Q`, a block's index, an id outside the grammar.
+    // A card whose id another card already carries as its mark is a duplicate (#607 marks the
+    // first only): it names nothing, never the first card's target with its own wording.
+    // The ids are the contract's (parseAiaId: no quote), so they sit in the selector as they are.
+    const marked = (target: string) => !!at.ownerDocument.querySelector(`[data-aia="${target}"]`);
     if ((m = id.match(/^qedit_(.+)$/)) && m[1] !== "Q" && parseAiaId(`question:${m[1]}`)) {
+      if (marked(`question:${m[1]}`)) return null;
       return { id: `question:${m[1]}`, label: `Otázka ${m[1]}: ${label(wordingOf(at, text))}` };
     }
     if ((m = id.match(/^qblock_(.+)$/)) && !/^\d+$/.test(m[1]!) && parseAiaId(`section:${m[1]}`)) {
+      if (marked(`section:${m[1]}`)) return null;
       return { id: `section:${m[1]}`, label: `Oddíl: ${label(titleOf(at, m[1]!))}` };
     }
     if ((m = id.match(/^brief-(.+)$/))) return { id: `brief:${m[1]}`, label: `Zadání: ${label(at.querySelector("h2, h3, label")?.textContent?.trim() || m[1]!)}` };
@@ -656,10 +680,27 @@ export const LEAD_REASON_WORDS: Readonly<Record<string, string>> = {
   lead_context_too_large: "Studie je pro jednu odpověď příliš velká. Zkuste se zeptat na konkrétní část.",
   lead_busy: "Vedoucí ještě odpovídá na předchozí zprávu.",
   lead_not_hatched: "Nejdřív si vylíhněte vlastního Vedoucího výzkumu.",
+  stale_card: "Studie se od přípravy této karty změnila; úloha se nespustila.",
+  agent_context_too_large: "Studie je pro návrhovou úlohu příliš rozsáhlá (úloha přečte nejvýš 64 KB); nic se nespustilo. Zkraťte přílohy nebo design.",
   budget_exceeded: "Na odpověď nezbývá rozpočet studie. Nastavte ho v Nastavení → Studie a zpráva se odešle sama.",
+  reservation_exhausted: "Na odpověď nezbývá rozpočet studie. Nastavte ho v Nastavení → Studie a zpráva se odešle sama.",
   CANCELLED: "Na tuto zprávu Vedoucí neodpověděl zvlášť: přečetl ji s vaší další zprávou.",
 };
 
+/** Asked when a card is approved after the design moved past what its turn read (LO10). */
+export const STALE_CARD_QUESTION = "Od chvíle, kdy Vedoucí kartu připravil, se studie změnila. Spustit úlohu nad studií, jak je teď?";
+
 export function leadReasonWords(code: string | null | undefined): string {
-  return code ? LEAD_REASON_WORDS[code] ?? `Vedoucí se zastavil (${code}).` : "Vedoucí se zastavil.";
+  return code ? withFixer(LEAD_REASON_WORDS[code] ?? `Vedoucí se zastavil (${code}).`, code) : "Vedoucí se zastavil.";
+}
+
+/** Why the Lead's composer is shut, said in its own field, or null while it is open. A disabled
+ * field that still reads "Napište Vedoucímu výzkumu…" invites typing it refuses (workbench
+ * audit, 2026-10-22). Unknown is said as loading, or as failed after a refused read; never as open. */
+export function composerHint(s: { canEdit: boolean; hatched: boolean | undefined; available: boolean | undefined; failed: boolean }): string | null {
+  if (!s.canEdit) return "Jen ke čtení: Vedoucímu v této studii psát nemůžete.";
+  if (s.hatched === false) return "Nejdřív si vylíhněte svého Vedoucího (výše).";
+  if (s.available === false) return "Vedoucí teď neodpovídá: důvod je výše.";
+  if (s.hatched === undefined || s.available === undefined) return s.failed ? "Vedoucího se nepodařilo načíst: důvod je výše." : "Načítám Vedoucího…";
+  return null;
 }
