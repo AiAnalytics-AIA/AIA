@@ -8,8 +8,10 @@ question answers and the key findings must appear in numeric_claims*
 (methodology-ledger M17). The reference's validator never read the prose: it
 checked declared claims within 0.051 and passed when 95 % of the findings cited
 evidence. This one requires every number in the prose to be a cited claim's, copied
-exactly; a finding that states no number cites nothing, which the reference would
-have counted against its coverage (decision ANL-4, ``test_analysis_gate_parity.py``).
+exactly, and every key finding to cite at least one claim (MVP-23, stricter than the
+reference's 95 %; ``test_analysis_gate_parity.py``). A finding that cannot cite admitted
+evidence is not a finding: the repair turn names it, and a module whose drafts keep it is
+stored BLOCKED.
 
 A number in prose is covered when it is
 
@@ -270,6 +272,14 @@ def _coverage(
     for i, answer in enumerate(draft.research_question_answers):
         check(f"research_question_answers[{i}]", answer.answer, answer.claim_ids, [answer.question])
     for i, finding in enumerate(draft.key_findings):
+        if not finding.claim_ids:
+            decisions.append(
+                block(
+                    ViolationCode.FINDING_UNCITED,
+                    f"key_findings[{i}]",
+                    "a key finding must cite at least one numeric claim; cite one or drop it",
+                )
+            )
         check(f"key_findings[{i}]", finding.text, finding.claim_ids, [])
     # The summary cites nothing itself, so it may use any claim the draft makes.
     check("summary", draft.summary, list(claims), list(research_questions))

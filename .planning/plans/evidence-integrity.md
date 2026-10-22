@@ -1,7 +1,7 @@
 ---
-status: planned
+status: in-progress
 chunks:
-  - "[ ] 1. Every key finding cites an admitted claim (MVP-23): a new rule, not a tightening, since AIA has no 95 % threshold (that is the unit's)"
+  - "[x] 1. Every key finding cites an admitted claim (MVP-23): a new rule, not a tightening, since AIA has no 95 % threshold (that is the unit's)"
   - "[ ] 2. Run QC as a pure function over a run's stored dataset, EXACT against the unit's qc.kontrola (MVP-24)"
   - "[ ] 3. A run's QC stored beside it and shown as warnings on Fieldwork and Results, never a gate"
   - "[ ] 4. The straight-liner check: flags by code, no pause, the worker proposes keep or flag; replace is a new linked run (F18, settled); the one definition is run-qc-and-checkpoint RQC1"
@@ -19,7 +19,7 @@ chunks:
 Track E of the MVP roadmap (`overview.md` § MVP roadmap, #493). Written 2026-10-19 from
 `mvp-cohesion.md` F7 (#496): three decisions had no plan, and all three change the same two
 places, the analysis gate and the evidence layer, so they share one plan. **Owner: a chat session,
-named when chunk 1 starts.**
+named when chunk 1 starts.** Chunks 1, 7 and 9a: the Analýza screen session (2026-10-22, the PM's assignment).
 
 ## Decisions this plan carries
 
@@ -55,6 +55,24 @@ named when chunk 1 starts.**
    with one uncited finding is refused; a draft with all cited passes; `test_analysis_executor.py`
    stays green. Decide here whether "shown as an unsupported hypothesis" is built or only refusal
    (refusal is the smaller change and the default).
+   *Landed.* `check_analysis_draft` refuses a key finding with no `claim_ids` as
+   `ViolationCode.FINDING_UNCITED`, subject `key_findings[<i>]` (`domain/analysis/draft.py` `_coverage`). A
+   finding that names only an unknown claim stays `DANGLING_CLAIM_REF`, and one whose claims fail admission
+   fails the draft as before, so "names at least one claim" is "cites at least one admitted claim".
+   - The hypothesis is settled: a refused finding reaches the repair turn like any violation. `repair_prompt`
+     lists each, and the test asserts the finding's path is named. A draft still failing is stored BLOCKED
+     by the existing harness.
+   - Refusal only, no "unsupported hypothesis" register: the default. A finding that cannot cite evidence is
+     not a finding.
+   - The system prompt is unchanged. Its text is in `prompt_template_sha256`, and so in every module's
+     fingerprint and the recorded analysis wire; the repair turn carries the rule. The harness version is
+     unchanged too, because the gate is not part of `harness_sha256`. A stored outcome re-judged today
+     refuses an uncited finding, which is the rule.
+   - Parity: "finding-without-evidence" is now EXACT (both refuse). "no-finding-at-all" stays owed, waiting
+     on 9a's diagnostic (MVPQ-04), not on a gate refusal.
+   - Tests: `test_analysis_draft.py` (one uncited finding refused and named, also in the repair prompt; a
+     finding citing only an unknown claim; a draft without findings left to 9a), `test_analysis_gate_parity.py`;
+     `test_analysis_executor.py`, the recorded-analysis and acceptance suites green.
 2. **QC function.** `domain/` pure: straight-lining first, over a run's stored dataset, thresholds
    as declared parameters (the unit's, recorded as such). EXACT fixture captured from the unit's
    own `qc.py` with `tools/` capture (the pattern of `respondent_capture.py`), pinned by SHA-256.

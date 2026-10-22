@@ -14,6 +14,7 @@ from aia_core.domain.analysis import (
     check_analysis_draft,
     module_spec,
     numbers_in,
+    repair_prompt,
     result_from_check,
     uncovered_numbers,
 )
@@ -242,6 +243,32 @@ def test_uncited_number_in_a_finding_is_refused(check: Any) -> None:
     result = check(raw)
     assert result.decision.codes == {ViolationCode.UNCITED_NUMBER}
     assert result.decision.violations[0].subject == "key_findings[0]"
+
+
+def test_a_key_finding_that_cites_no_claim_is_refused_and_named(check: Any) -> None:
+    """MVP-23: every key finding cites admitted evidence, even one that states no number."""
+    raw = draft(
+        key_findings=[
+            {"text": "Mladší skupina je nad průměrem: 51 %.", "claim_ids": ["c2"]},
+            {"text": "Mladší lidé o nápoj stojí víc.", "claim_ids": []},
+        ]
+    )
+    result = check(raw)
+    assert result.decision.codes == {ViolationCode.FINDING_UNCITED}
+    (violation,) = result.decision.violations
+    assert violation.subject == "key_findings[1]"
+    # The repair turn names the finding, so the model knows which one to cite or drop.
+    assert "key_findings[1]" in repair_prompt(result.decision.violations)
+
+
+def test_a_finding_citing_only_an_unknown_claim_is_refused_as_dangling(check: Any) -> None:
+    raw = draft(key_findings=[{"text": "Mladší lidé o nápoj stojí víc.", "claim_ids": ["c9"]}])
+    assert check(raw).decision.codes == {ViolationCode.DANGLING_CLAIM_REF}
+
+
+def test_a_draft_with_no_key_finding_is_left_to_the_diagnostic(check: Any) -> None:
+    """A module of its summary alone is not refused here: evidence-integrity 9a diagnoses it."""
+    assert check(draft(key_findings=[])).decision.allowed
 
 
 def test_a_number_must_be_cited_by_the_item_that_uses_it(check: Any) -> None:
