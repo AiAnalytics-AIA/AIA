@@ -81,6 +81,28 @@ scripted Lead prepare an interpretation card. Detail in *Deep Research under the
 **LO7. The Lead's context layers per ADR 0026 decision 2: readiness, question outlook, what changed since its last turn, other people's changes, and the execution state (status, park code, spend, selection receipt, QC)**  
 `freeze_context` has none of these (`domain/research_lead.py:803-819`). The Lead's answer to "Kde jsme?" is built from them.
 
+- **Delivered beside LO7: external context, never evidence** (evidence-integrity 7, the Lead's half;
+  `feature/lead-external-context`, after #669).
+  - **The switch:** `AIA_AI_ANALYSIS_EXTERNAL_CONTEXT`, the analysis's own, off by default. With it
+    on, `POST …/lead/turns` gives the turn the artifact store (`ResearchLead.external_store`).
+  - **The layer:** `_freeze` reads the Study's newest finished Design Research bundle through the
+    analysis's reader (`ResearchRuns.design_research_pin`, then
+    `analysis_results._external_context`: pinned, seal-verified, Class C findings only). It
+    freezes them as the layer `external_context_not_evidence` after the runs, with its note and
+    pin.
+  - **When it cannot be read:** a bundle that does not read is said in the layer (`unavailable`),
+    never read as no context and never stopping the turn.
+  - **Numbers:** `citable_context` leaves the layer out, so `lead_contract` refuses a figure taken
+    from it like any number the study's context does not hold.
+  - **Classification:** `context_classification` counts it as Class C (`bundle:public_findings`).
+  - **Off:** the context is byte-identical to before.
+  - **Tests:**
+    - `test_research_lead.py` "external context …" (the layer, the refused figure, the class);
+    - `test_research_lead_application.py`
+      `test_external_context_is_frozen_only_when_switched_on_and_pinned`;
+    - `test_research_lead_api.py`
+      `test_a_turn_reads_external_context_only_with_the_analysis_switch_on`.
+
 **LO8. `ResultsContext`: type, class (`MaterialRule` for results, module text, maps, report text), lineage, bound, an external-evidence slot labelled L; and the decision on a read tool against ADR 0026 decision 3**  
 Written in **W1**, not W2. S2 and S3 write providers against it. Test: a result with Class A lineage is refused by a Class-C-only route. Interfaces I1.
 **Deep Research's provider and the one door for external numbers (DRL-11, 2026-10-21):** the L slot's

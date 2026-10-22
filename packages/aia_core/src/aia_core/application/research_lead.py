@@ -75,6 +75,7 @@ from ..infrastructure.researcher_lead_repository import (
     ResearcherLeadRepository,
 )
 from ..infrastructure.scope_repository import ScopeRepository
+from ..infrastructure.storage import ArtifactStore
 from ..infrastructure.study_design_repository import StudyDesignRepository
 from ..infrastructure.study_lead_repository import StudyLeadRepository
 from ..infrastructure.study_workspace_repository import (
@@ -82,8 +83,9 @@ from ..infrastructure.study_workspace_repository import (
     WorkspaceConflict,
 )
 from ..infrastructure.workflow_repository import BudgetWaitNotLiftable, WorkflowRepository
+from .analysis_results import SourcesRefused, _external_context
 from .lead_chat_start import RunStartSettings, approve_chat_start, chat_start_decisions
-from .research import ResearchAgentJobs, readiness_in_force
+from .research import ResearchAgentJobs, ResearchRuns, readiness_in_force
 from .workflows import start_workflow
 
 __all__ = [
@@ -465,6 +467,9 @@ class ResearchLead:
     scope: StudyContext
     #: The API's ``ai_research_lead_enabled``: off, a message is refused, never queued.
     enabled: bool = False
+    #: With the API's ``ai_analysis_external_context`` on, the store a turn reads the Study's
+    #: newest Design Research bundle from (evidence-integrity 7); ``None``: no external context.
+    external_store: ArtifactStore | None = None
     clock: Callable[[], datetime] = field(default=lambda: datetime.now(UTC))
 
     def _turns(self) -> StudyLeadRepository:
@@ -1183,7 +1188,23 @@ class ResearchLead:
             ],
             view={"kind": kind, "stage": stage, "focus": focus, "message": message},
             conversation=_conversation(history),
+            external=self._external(),
         )
+
+    def _external(self) -> dict[str, Any] | None:
+        """The newest Design Research bundle's public findings, pinned and seal-verified as the
+        analysis reads them; ``None`` when switched off or the Study has none. A bundle that does
+        not read is said so in the layer, never read as no context and never stopping the turn."""
+        if self.external_store is None:
+            return None
+        pin = ResearchRuns(self.session, self.scope).design_research_pin()
+        if pin is None:
+            return None
+        try:
+            lines = _external_context(self.session, self.scope, self.external_store, pin)
+        except SourcesRefused as refused:
+            return {"pin": pin, "lines": [], "unavailable": refused.reason}
+        return {"pin": pin, "lines": list(lines)}
 
 
 def _model_prepared(turn: LeadTurn) -> bool:

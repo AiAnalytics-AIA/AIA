@@ -53,6 +53,7 @@ from fastapi import APIRouter, HTTPException, Path, Request, Response, status
 from pydantic import BaseModel, ConfigDict, Field, StrictBool
 
 from ..dependencies import (
+    ArtifactStoreDep,
     OrganizationDep,
     RunPopulationDep,
     SessionDep,
@@ -471,12 +472,18 @@ def post_turn(
     scope: StudyScopeDep,
     session: SessionDep,
     settings: SettingsDep,
+    store: ArtifactStoreDep,
     response: Response,
 ) -> LeadTurns:
     """Store the message and queue the Lead's turn: 201 with the turns stored, or 200 with
-    none for a greeting the Lead has already given in the last eight hours."""
+    none for a greeting the Lead has already given in the last eight hours. With
+    ``AIA_AI_ANALYSIS_EXTERNAL_CONTEXT`` on, the turn's context carries the Study's newest
+    Design Research findings as external context, never evidence (evidence-integrity 7)."""
+    external = store if settings.ai_analysis_external_context else None
     with _lead_errors():
-        turns = ResearchLead(session, scope, enabled=settings.research_lead_on).post(
+        turns = ResearchLead(
+            session, scope, enabled=settings.research_lead_on, external_store=external
+        ).post(
             kind=body.kind,
             stage=body.stage,
             text=body.text,
