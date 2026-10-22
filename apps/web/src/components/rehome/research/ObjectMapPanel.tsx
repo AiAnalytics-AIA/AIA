@@ -24,7 +24,7 @@
 import { type PointerEvent, type ReactNode, useEffect, useId, useMemo, useRef, useState } from "react";
 import { t, tv } from "@/i18n/t";
 import { objectTarget, pairTarget } from "@/lib/artifacts/sociomap";
-import { type DisplayChange, MAP_REGISTERS, type MapRegister, displayChanges } from "@/lib/sociomap-display";
+import { type DisplayChange, MAP_REGISTERS, type MapRegister, displayChanges, stageHeight } from "@/lib/sociomap-display";
 import { num } from "@/lib/sociomapping-view";
 import { type BatteryWithMaps, type ObjectMapArtifact, originalRating } from "@/lib/object-map-view";
 import {
@@ -47,6 +47,8 @@ const RELATION_MODES: { mode: RelationMode; label: string; help?: string }[] = [
 ];
 
 const PRESSED = "aria-pressed:!border-signal aria-pressed:!bg-signal-wash aria-pressed:font-semibold aria-pressed:text-signal";
+/** The stage's height before it is measured (stageHeight then follows the pane it is read in). */
+const FIRST_HEIGHT = "min(700px, max(120px, calc(100dvh - 260px)), max(360px, 110vw))";
 const SWITCH = `inline-flex min-h-7 items-center disabled:cursor-not-allowed disabled:opacity-50 rounded-sm border border-border-strong bg-surface-raised px-2 text-xs text-ink hover:border-signal focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus-ring ${PRESSED}`;
 
 export function ObjectMapPanel({ battery, map, facts }: { battery: BatteryWithMaps; map: ObjectMapArtifact; facts: ReactNode }) {
@@ -302,6 +304,24 @@ function PanelView({ battery, map, facts }: { battery: BatteryWithMaps; map: Obj
   const toolbar = useRef<HTMLDivElement>(null);
   const [resets, setResets] = useState(0);
   useEffect(() => { if (resets) toolbar.current?.focus(); }, [resets]);
+  // The stage fits the pane it is read in (stageHeight): the workbench's artifact pane, else the
+  // window less the page's sticky header; measured again whenever the pane or what sits over the
+  // stage moves (a resize, a wrapped toolbar, the filter bar, a strip opening over the pane).
+  const status = useRef<HTMLDivElement>(null);
+  const [fit, setFit] = useState<number | null>(null);
+  useEffect(() => {
+    const bar = toolbar.current;
+    if (!stage || !bar || typeof ResizeObserver === "undefined") return;
+    const pane = stage.closest<HTMLElement>(".artbody");
+    const measure = () => {
+      const visible = pane ? Math.min(pane.clientHeight, window.innerHeight) : window.innerHeight - stickyTop();
+      setFit(stageHeight(visible, stage.getBoundingClientRect().top - bar.getBoundingClientRect().top, stage.clientWidth));
+    };
+    const observer = new ResizeObserver(measure);
+    for (const node of [stage, bar, status.current, pane]) if (node) observer.observe(node);
+    window.addEventListener("resize", measure);
+    return () => { observer.disconnect(); window.removeEventListener("resize", measure); };
+  }, [stage]);
   const resetDisplay = () => { showMap("objects"); setNorm("range"); setMode("top"); setResets((n) => n + 1); };
   const detail = people
     ? <PersonCard detail={person >= 0 ? respondentDetail(map, dots[person].id) : null} />
@@ -337,11 +357,12 @@ function PanelView({ battery, map, facts }: { battery: BatteryWithMaps; map: Obj
         <button type="button" className={SWITCH} title={t("research.exec.objectMap.panel.exportHelp")} onClick={exportPng}>{t("research.exec.objectMap.panel.export")}</button>
       </div>
       {/* One live region, always there, so the bar's first appearance is announced too. */}
-      <div role="status" data-testid="object-map-filter-status">
+      <div ref={status} role="status" data-testid="object-map-filter-status">
         {changes.length ? <FilterBar changes={changes} onReset={resetDisplay} /> : null}
       </div>
       <div className="flex flex-wrap items-start gap-4">
-        <div ref={setStage} className="relative h-[700px] min-w-0 flex-[999_1_560px] overflow-hidden rounded-[10px] bg-[#07090c] [min-width:min(100%,560px)] [&:fullscreen]:h-screen [&:fullscreen]:w-screen [&:fullscreen]:rounded-none" data-testid="object-map-stage">
+        <div ref={setStage} className="relative min-w-0 flex-[999_1_560px] overflow-hidden rounded-[10px] bg-[#07090c] [min-width:min(100%,560px)] [&:fullscreen]:h-screen [&:fullscreen]:w-screen [&:fullscreen]:rounded-none" data-testid="object-map-stage"
+          style={full ? undefined : { height: fit ?? FIRST_HEIGHT }}>
           <canvas ref={canvas} className="block h-full w-full cursor-grab touch-none" role="img" data-testid="object-map-canvas"
             data-camera={JSON.stringify(camera)} data-norm={norm} data-map={people ? "respondents" : "objects"} data-person={people && person >= 0 ? dots[person].id : ""}
             data-relations={people ? "" : pairs.map((p) => `${nodes[p.i].id}|${nodes[p.j].id}`).join(" ")} data-selected={selected >= 0 ? nodes[selected].id : ""} data-relation={relation ? `${nodes[relation[0]].id}|${nodes[relation[1]].id}` : ""}
@@ -753,4 +774,13 @@ function Registers() {
       </dl>
     </div>
   );
+}
+
+/** What the page's sticky headers cover at the window's top (the shell's header from lg up). */
+function stickyTop(): number {
+  let top = 0;
+  for (const h of document.querySelectorAll("header")) {
+    if (getComputedStyle(h).position === "sticky") top = Math.max(top, h.getBoundingClientRect().height);
+  }
+  return top;
 }
