@@ -179,11 +179,24 @@ None new (replacement is MVPQ-10, already open).
   - Fix: label above value on a narrow card, by a container query on the card's own width, so the
     workbench's narrow artifact pane is covered too.
   - Tests: that journey step and the workbench journey's step at 390 px.
+- **F-FLD-5. Spuštění's other links are still too small to tap.** After F-FLD-3 the gap card's fix links
+  render 18-20 px tall, its "Propojit otázky…" link 20 px, the dock's way back ("5. Dimenze") 20 px and a
+  previous run's "Zobrazit výsledky" 20 px (`AnswerabilityGate.tsx:70, 87`, `step.tsx:77`,
+  `ExecutionSteps.tsx:986, 1180 @ 135e1e84`). The dock is every stage's, so the way back was small everywhere.
+  - Reproduction: `tools/ui_workbench/workbench_journey.mjs`, step "Spuštění's links are touch targets",
+    now over every link of the stage outside a sentence (WCAG 2.5.8's inline exception): 18.6, 20, 20 at 1440;
+    `research_journey.mjs`, Progress's "Zobrazit výsledky" in the run's inspector at 390 px: 20.
+  - Fix: one `TOUCH_LINK` in `components/ui/parts.tsx` (touch target, focus ring, text on the box's first
+    line), which `STAGE_LINK` now builds on; `TOUCH` and `FOCUS` on the run links and the dock's way back,
+    the dock importing them instead of its own copy of the focus ring.
+  - Tests: those two journey steps.
+  - Left: Výsledky's own standalone links (`ExecutionSteps.tsx:1644, 1719 @ 135e1e84`), its owner's.
 
 ## Doc follow-up
 
 - `open-items.md`: F-FLD-1 (fixed by this PR, with Vzorek's F-SMP-1) and F-FLD-2 (open), from Findings above.
 - `open-items.md`: F-FLD-3 and F-FLD-4, fixed by the PR that carries them (stage link targets).
+- `open-items.md`: F-FLD-5, fixed by the PR that carries it (Spuštění's remaining links).
 
 - Register this plan and its chunks.
 - `CLAUDE.md` § 2, `routers/research.py`: a run's `spent_usd` / `reserved_usd` (FLD4).

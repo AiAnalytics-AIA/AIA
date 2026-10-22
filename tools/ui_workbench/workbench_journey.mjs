@@ -245,6 +245,22 @@ try {
   await shot("390-header");
   check("every stage reachable by keyboard at 768 (scrolling) and 390 (the stage list), no overflow");
 
+  // At a phone's width every control the frame owns is a 44 px target (input-interactions I11): the
+  // header, the navigator and its list, the artifact header, the launcher and the open conversation.
+  const frameTargets = (where) => page.evaluate(() => [...document.querySelectorAll("[data-workbench] button, [data-workbench] a[href]")]
+    .filter((e) => !e.closest("#artbody") && !e.classList.contains("skip") && e.getClientRects().length && getComputedStyle(e).visibility !== "hidden")
+    .map((e) => ({ name: (e.getAttribute("aria-label") || e.textContent || "").trim().slice(0, 40), h: Math.round(e.getBoundingClientRect().height), w: Math.round(e.getBoundingClientRect().width) }))
+    .filter((x) => x.h < 44 || x.w < 44)).then((small) => assert.deepEqual(small, [], `frame targets under 44 px @390 (${where})`));
+  await frameTargets("closed");
+  await page.locator(".nav__current").click();
+  await frameTargets("stage list");
+  await page.keyboard.press("Escape");
+  await page.locator("[data-lead-launcher]").click();
+  await page.getByRole("dialog", { name: "Vedoucí výzkumu" }).waitFor();
+  await frameTargets("conversation");
+  await page.keyboard.press("Escape");
+  check("every control the frame owns is a 44 px target at 390: header, stage list, artifact header, conversation");
+
   // Zadání: V2's sections in order -- Cíle, Rozhodnutí, Kontext -- at every width (artifact-brief
   // BRF2). Reading it is a GET; nothing is edited here (the workspace journey edits a fresh study).
   for (const width of [1440, 1100, 768, 390]) {
@@ -330,7 +346,7 @@ try {
   await page.locator(".nav__stage.is-current", { hasText: "Sběr dat" }).waitFor();
   check("Vzorek: size, the server's forecast and readiness on the working copy at 1440, 1100, 768 and 390, nothing submitted, read only, no overflow; Sběr dat one click away");
 
-  // Spuštění (artifact-fieldwork F-FLD-3, F-FLD-4): every link back to a stage is the input
+  // Spuštění (artifact-fieldwork F-FLD-3, F-FLD-4, F-FLD-5): every link of the stage is the input
   // standard's touch target (44 px at a phone's width, 32 px from 640 px; I11), and "Co spustíte"
   // puts each value under its label on a narrow card, never a sliver beside it.
   for (const width of [1440, 1100, 768, 390]) {
@@ -340,9 +356,14 @@ try {
     await edit.first().waitFor({ timeout: 60000 });
     assert((await edit.count()) > 0, `Co spustíte names its stages @${width}`);
     const floor = width < 640 ? 44 : 32;
-    const heights = await page.getByRole("link", { name: /^(Opravit →|Upravit)$/ })
-      .evaluateAll((els) => els.map((el) => el.getBoundingClientRect().height));
-    assert(heights.every((h) => h >= floor), `Spuštění's stage links are ${floor} px targets @${width}: ${heights.join(", ")}`);
+    // Every shown link of the stage's own but one inside a sentence, which WCAG 2.5.8 exempts: a link
+    // with text of its parent's beside it.
+    const links = await page.locator("#artbody a").evaluateAll((els) => els
+      .filter((el) => el.getClientRects().length)
+      .filter((el) => ![...el.parentElement.childNodes].some((n) => n.nodeType === Node.TEXT_NODE && n.textContent.trim()))
+      .map((el) => ({ text: el.textContent.trim(), height: el.getBoundingClientRect().height })));
+    const small = links.filter((l) => l.height < floor);
+    assert(links.length && !small.length, `Spuštění's links are ${floor} px targets @${width}: ${small.map((l) => `${l.text} ${l.height}`).join(", ")}`);
     if (width === 390) {
       const share = await page.locator("dl:has(a) dd:not(:has(a))").evaluateAll((dds) =>
         dds.map((dd) => dd.getBoundingClientRect().width / dd.closest("dl").getBoundingClientRect().width));
@@ -352,7 +373,7 @@ try {
     await noOverflow(`run @${width}`);
     await shot(`${width}-run`);
   }
-  check("Spuštění's links back to a stage are touch targets, Co spustíte stacks on a phone, at 1440, 1100, 768 and 390, no overflow");
+  check("Spuštění's links are touch targets, Co spustíte stacks on a phone, at 1440, 1100, 768 and 390, no overflow");
 
   // The stages' docks name no classic step: the navigator names the neighbours (DIM-F4). Last,
   // because a visit to Návrh submits a Design Revision that Vzorek's forecast then reads (WCE7b).

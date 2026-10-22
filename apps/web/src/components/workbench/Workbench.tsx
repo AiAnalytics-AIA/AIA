@@ -961,7 +961,7 @@ function Rail({ ref, pending, availability, open = false, onOpen }: { ref?: Ref<
   const name = `Otevřít konverzaci s Vedoucím výzkumu${pending > 0 ? `, čeká na vás ${pending}` : ""}. ${availabilityWords(availability)}`;
   return (
     <div className="rail">
-      <button ref={ref} type="button" className="iconbtn rail__launch" style={{ width: 40, height: 40 }} aria-label={name} title={name} aria-expanded={open} aria-haspopup="dialog" onClick={onOpen} data-lead-launcher data-availability={availability.kind}>
+      <button ref={ref} type="button" className="iconbtn rail__launch" aria-label={name} title={name} aria-expanded={open} aria-haspopup="dialog" onClick={onOpen} data-lead-launcher data-availability={availability.kind}>
         <Mark size={20} /><span className="rail__dot"><Glyph tone={AVAILABILITY_TONE[availability.kind]} size={10} /></span>
       </button>
       {pending > 0 ? <span className="rail__badge" title={`Čeká na vás: ${pending}`}>{pending}</span> : null}

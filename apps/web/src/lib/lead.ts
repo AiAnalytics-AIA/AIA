@@ -42,8 +42,11 @@ export type LeadRequest =
  * command, so nothing here reads the message for intent. The instruction after a colon, when the
  * person gave one, is the card's why. A command this client does not know shows no card.
  */
+/** A typed start's why when the person gave no instruction: true only until the card is decided. */
+export const TYPED_UNDECIDED_WHY = "Spustí se až vaším potvrzením.";
+
 export function commandRequest(t: Pick<LeadTurn, "command" | "text">): LeadRequest | null {
-  const said = t.text?.split(":").slice(1).join(":").trim() || "Spustí se až vaším potvrzením.";
+  const said = t.text?.split(":").slice(1).join(":").trim() || TYPED_UNDECIDED_WHY;
   if (t.command === "research_run") return { kind: "research_run", why: said };
   const action = t.command?.startsWith("agent_job:") ? t.command.slice("agent_job:".length) : "";
   return action ? { kind: "agent_job", action, why: said } : null;
@@ -87,7 +90,9 @@ export type LeadTurn = {
   /** What the person decided on each of this turn's edits, from the approval ledger (by index). */
   edit_decisions?: Record<string, { status: "accepted" | "dismissed" | "refused"; reason: string | null; auto?: boolean }>;
   /** The person's approval of this turn's paid request, when given. */
-  request_decision?: { status: "approved"; run_id: string } | null;
+  /** `reused`: a typed start approved on the job an earlier approval had already started for this
+   *  design; nothing started (LO5). */
+  request_decision?: { status: "approved"; run_id: string; reused?: boolean } | null;
   /**
    * The researcher's decision on what the turn wanted to keep for all of their work (a personal
    * note, a SOUL, USER or name change), from the approval ledger. Only what stays inside the

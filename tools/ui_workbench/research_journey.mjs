@@ -127,8 +127,13 @@ await page.setViewportSize({ width: 390, height: 900 });
 const widths = await page.locator("dl:has([data-origin-code]) dd").evaluateAll((dds) =>
   dds.map((dd) => dd.getBoundingClientRect().width / dd.closest("dl").getBoundingClientRect().width));
 if (!widths.length || widths.some((w) => w < 0.8)) fail(`Kdo odpovídal squeezes its values beside their labels at 390 px: ${widths.map((w) => w.toFixed(2))}`);
+// The way on to Results is the input standard's touch target at a phone's width (F-FLD-5).
+// It is in the run's inspector, which a phone opens from the artifact's header.
+await page.getByRole("button", { name: "Připravenost a pomoc" }).click();
+const toResults = await page.getByRole("link", { name: "Zobrazit výsledky", exact: true }).first().boundingBox({ timeout: 5000 }).catch(() => null);
+if (!toResults || toResults.height < 44) fail(`Progress's "Zobrazit výsledky" is ${toResults?.height ?? "missing"} px tall at 390 px, not 44`);
 await page.setViewportSize({ width: 1440, height: 1100 });
-ok("Progress: Kdo odpovídal stacks its values under their labels at 390 px");
+ok("Progress: Kdo odpovídal stacks its values under their labels, Zobrazit výsledky a 44 px target, at 390 px");
 await shot("2-progress");
 
 // 3. Results: labelled fictional, an aggregate table, the Sociomap labelled by method.
