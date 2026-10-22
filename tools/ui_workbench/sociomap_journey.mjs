@@ -15,6 +15,8 @@
  *   * the -5 panel at 1440 and 1100 (the workbench's split) and 768 and 390 px, no page overflow;
  *   * every object listed in Správa objektů (Nastavení mapy) carries its Lead name
  *     `object:<battery>/<object>` (SOC1/SOC2), once, and the Lead's focus selector finds that button;
+ *   * on the workbench's Sociomapa stage (1440): no results tabs, the map before what explains it, no
+ *     run or method id outside Technické údaje (artifact-sociomap SOC9-SOC11);
  *   * Objekty / Respondenti opens each map with nothing selected (#562); a pick's detail opens in the
  *     side sheet beside the map, the canvas ending where the sheet begins (SOC13);
  *   * full screen draws Top vztahy as the page does: the selected object's five, else the map's;
@@ -26,7 +28,7 @@
  *   * an older method's run says so, "Mapa ze starší metody; spusťte nový běh", and draws no map, at
  *     1440, 1100, 768 and 390 px (signed-off-sociomap-method#8, #598). No new run can pin an older
  *     method, so on a workbench without one from before, the -5 run is read as one: its Sociomap
- *     artifact answered in the browser with no map in it;;
+ *     artifact answered in the browser with no map in it; on the Sociomapa stage, no map hint above it;
  *   * no page error, and no write but the stage opened (PUT …/workspace/stage); zero paid jobs.
  *
  * Screenshots and journey.json go to --out (default tmp/ui-workbench/sociomap-journey).
@@ -229,6 +231,30 @@ try {
   }
   check("every listed object carries its Lead name once, on its button");
 
+  // The workbench's Sociomapa stage is the map (SOC9-SOC11): no results tabs, the map first, what explains
+  // it under it, no id outside Technické údaje.
+  const stageView = page.locator('[data-testid="sociomap-stage"]');
+  if (await stageView.count()) {
+    assert.equal(await page.getByRole("tablist", { name: "Oddíly výsledků" }).count(), 0, "no results tabs on the Sociomapa stage");
+    const order = await stageView.evaluate((s) => {
+      const map = s.querySelector('[data-testid="object-map-stage"]'), explained = s.querySelector('[data-testid="map-explained"]');
+      return Boolean(map && explained && map.compareDocumentPosition(explained) & Node.DOCUMENT_POSITION_FOLLOWING);
+    });
+    assert(order, "the map comes before what explains it");
+    const plain = await stageView.evaluate((s, ids) => {
+      const copy = s.cloneNode(true);
+      copy.querySelector('[data-testid="map-tech"]')?.remove();
+      return ids.filter((id) => copy.textContent.includes(id));
+    }, [fiveRun.run_id, fiveRun.methodology.sociomap.name]);
+    assert.deepEqual(plain, [], "no run or method id outside Technické údaje");
+    await page.locator('[data-testid="map-explained"]').scrollIntoViewIfNeeded();
+    await shot("1440-map-explained");
+    await panel.scrollIntoViewIfNeeded();
+    check("the Sociomapa stage is the map: no results tabs, the map before what explains it, no id outside Technické údaje");
+  } else {
+    check("the Sociomapa stage at 1440 is Výsledky's Sociomapy tab here (the workbench is off)");
+  }
+
   await list.first().click();
   const chosen = await attr("data-selected");
   assert(chosen, "an object is selected");
@@ -328,6 +354,10 @@ try {
     await notice.waitFor({ timeout: 120000 });
     assert.equal(await notice.innerText(), "Mapa ze starší metody; spusťte nový běh");
     assert.equal(await page.locator('[data-testid="object-map-stage"]').count(), 0, `@${width}: an older method's run draws no map`);
+    // On the workbench's Sociomapa stage nothing tells how to use the map that is not drawn.
+    if (await page.locator('[data-testid="sociomap-stage"]').count()) {
+      assert.equal(await page.getByText("Mapu můžete prohlížet shora").count(), 0, `@${width}: no map hint above the notice`);
+    }
     await noOverflow(`older method @${width}`);
     await notice.scrollIntoViewIfNeeded();
     await shot(`${width}-older-method`);

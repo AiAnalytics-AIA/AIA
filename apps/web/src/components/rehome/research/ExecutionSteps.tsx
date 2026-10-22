@@ -119,6 +119,8 @@ import { SociomappingView } from "./SociomappingView";
 import { StepActivityPanel } from "./StepActivityPanel";
 import { useStepActivity } from "./useStepActivity";
 import { ObjectMapView } from "./ObjectMapView";
+import { SociomapStage, useOnSociomapStage } from "./SociomapStage";
+import { useLeadOwnsAiStarts } from "./AskLead";
 import { InterpretationResearch } from "./InterpretationResearch";
 import { ReportDocumentView } from "./ReportDocumentView";
 import { ResultsWorkspace } from "./ResultsWorkspace";
@@ -1618,6 +1620,8 @@ export function RunResults({ run, progressHref }: { run: ResearchRun | null; pro
   const shows = Boolean(run && stepOf(run, "aggregate")?.artifact_id);
   const [revisions] = useResource(() => (shows ? research.revisions(frame.studyId) : Promise.resolve([])), [frame.studyId, shows]);
   const sociomapping = useArtifact(run, "sociomapping");
+  const onSociomapStage = useOnSociomapStage();
+  const leadOwns = useLeadOwnsAiStarts();
   // The literature review the report variant adds (research-integrity-report 3): chosen once,
   // read by the report card above and the literature panel below, never two selections.
   const [review, setReview] = useState<string | null>(null);
@@ -1642,6 +1646,13 @@ export function RunResults({ run, progressHref }: { run: ResearchRun | null; pro
   }
   const showMap = Boolean(sociomap && sociomap.state !== "hidden");
   const showMapping = Boolean(sociomapping && sociomapping.state !== "hidden");
+  // The workbench's Sociomapa stage is the map (artifact-sociomap SOC9): the map first, what explains it
+  // under it, no results tabs. The classic layout keeps Sociomapy as a tab of Výsledky.
+  if (onSociomapStage && leadOwns && showMap && sociomap) {
+    return <SociomapStage run={run} artifact={sociomap.state === "ready" ? sociomap.value : null} loading={sociomap.state === "loading"}
+      error={sociomap.state === "failed" ? sociomap.message : null}
+      notice={<><RevisionMoved note={revisionNote(run.design_revision, revisions.state === "ready" ? revisions.data.map((r) => r.revision) : null)} /><OriginBanners run={run} /></>} />;
+  }
   const showAnalysis = run.steps.some((step) => step.kind === "research_analysis");
   const knowledgeContext = <section aria-label="Kontext klienta a literatura" className="rounded-md border border-border bg-surface-raised p-4">
     <h3 className="text-sm font-semibold">Doplňte souvislosti k interpretaci</h3>
