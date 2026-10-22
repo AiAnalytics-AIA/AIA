@@ -6,7 +6,7 @@ chunks:
   - "[x] SMP3. Odhad podpory před během: the support forecast and the question outlook, labelled a forecast, never a result"
   - "[x] SMP4. Připravenost ke spuštění: every readiness check with its stage link, on the working revision"
   - "[x] SMP5. Kdo bude odpovídat: the persona source offered, its default and why an unoffered one is not, read only here with a link to Spuštění, where it is chosen (SQ1 = Q54 b)"
-  - "[ ] SMP6. Journey: Vzorek at 1440, 1100, 768 and 390 px, zero paid jobs"
+  - "[x] SMP6. Journey: Vzorek at 1440, 1100, 768 and 390 px, zero paid jobs"
 ---
 # Artifact: Vzorek (Sample)
 
@@ -153,6 +153,12 @@ field. (a) if the owner wants V2's layout exactly.
   390 px: the size and the server's forecast, read only, every `sample:` id present, no overflow,
   Spuštění one click away, nothing paid. The readiness list and a check opening its stage join it
   with SMP4; the chunk stays open until then.
+
+- **SMP6, done (2026-10-22, with RQC6d):** `sample_panel_journey.mjs`, on
+  `workbench.py up --fresh --population-double`: at 1440, 1100, 768 and 390 px "Složení podle kvót"
+  shows every cell readiness drew as its `sample:quota:<key>` with the server's n (largest ten, the
+  rest folded), the forecast known, nothing editable, no overflow; then a readiness check opens its
+  stage; zero paid jobs.
 
 - **SMP4 (2026-10-22).** Vzorek §3 lists every check the server ran on the working copy, worst
   first (an unknown status first, never counted as passed), each with the stage that fixes it
