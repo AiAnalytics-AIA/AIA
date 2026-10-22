@@ -101,11 +101,21 @@ try {
     assert.equal(await forecast.getByRole("heading", { name: "Opora výsledků: neznámé" }).count(), 0, `the panel's forecast is known @${width}`);
     const editable = "input, select, textarea, [contenteditable]:not([contenteditable='false']), [role=slider], [role=spinbutton], [role=textbox], [role=checkbox], [role=radio], [role=switch], [role=combobox]";
     assert.equal(await sample.locator(editable).count(), 0, `Vzorek has no editable control @${width}`);
+    // The input standard's touch target (I11, WCAG 2.5.8): 44 px at a phone's width, 32 px from
+    // 640 px, for every control that stands on its own (one inside a sentence is exempt).
+    const floor = width < 640 ? 44 : 32;
+    const small = await sample.locator("button, summary").evaluateAll((els, min) => els
+      .filter((el) => el.checkVisibility())
+      .filter((el) => ![...el.parentElement.childNodes].some((n) => n.nodeType === Node.TEXT_NODE && n.textContent.trim()))
+      .map((el) => ({ text: el.textContent.trim(), height: Math.round(el.getBoundingClientRect().height) }))
+      .filter((c) => c.height < min), floor);
+    assert.deepEqual(small, [], `Vzorek's controls are ${floor} px targets @${width}`);
     await noOverflow(`sample @${width}`);
     await sample.screenshot({ path: join(out, `${width}-sample-panel.png`) });
   }
   check("Složení podle kvót: every drawn cell a sample:quota target with the server's n, the largest ten shown, the rest folded, at 1440, 1100, 768 and 390, no overflow");
   check("the support forecast reads the drawn sample: known, at every width");
+  check("every control that stands on its own is a touch target: 44 px on a phone, 32 px from 640 px");
 
   // A readiness check opens the stage that fixes it (SMP4, SMP6), at 1440 (the page is there).
   await page.setViewportSize({ width: 1440, height: 900 });

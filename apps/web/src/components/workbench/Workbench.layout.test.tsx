@@ -18,7 +18,8 @@ import { FrameNavigation } from "@/components/rehome/step";
 import { useItemInspector } from "./item-inspector-context";
 import { Workbench } from "./Workbench";
 
-vi.mock("next/navigation", () => ({ useRouter: () => ({ push: vi.fn(), replace: vi.fn() }), usePathname: () => "/app" }));
+const { push } = vi.hoisted(() => ({ push: vi.fn() }));
+vi.mock("next/navigation", () => ({ useRouter: () => ({ push, replace: vi.fn() }), usePathname: () => "/app" }));
 
 let width = 1440;
 const lists: { query: string; listeners: Set<() => void> }[] = [];
@@ -110,10 +111,10 @@ function Opener() {
   );
 }
 
-function bench(child = <Stage />) {
+function bench(child = <Stage />, step: "questionnaire" | "plan" = "questionnaire") {
   const store = new ResearchStore({ revision: 3, project: EMPTY_PROJECT as unknown as ResearchProject, analysis: null, save: { kind: "saved" }, checkEpoch: 0 }, "STU-1");
   return render(
-    <Workbench frame={TEST_FRAME} step="questionnaire" store={store} memory={new Map()} save={null} inspector={null} reload={vi.fn()} confirm={vi.fn(async () => true)}
+    <Workbench frame={TEST_FRAME} step={step} store={store} memory={new Map()} save={null} inspector={null} reload={vi.fn()} confirm={vi.fn(async () => true)}
       onAgentStarted={vi.fn()} jobs={[]} onOpenJob={vi.fn()} onRefreshJobs={vi.fn(async () => [])}>
       {child}
     </Workbench>,
@@ -372,6 +373,53 @@ describe("the item inspector", () => {
     await waitFor(() => expect(document.querySelector("[data-item-inspector]")).toBeNull());
     fireEvent.click(screen.getByRole("button", { name: "open claim" }));
     fireEvent.click(screen.getByRole("button", { name: "close claims" }));
+    expect(document.querySelector("[data-item-inspector]")).toBeNull();
+  });
+
+  it("opens what the Lead's inspect names on this stage, as a click would (research-lead-workbench 14)", async () => {
+    leadReads = [leadState({ busy: true, turns: [leadTurn("T1", 1)] }), leadState({ turns: [leadTurn("T1", 1), leadTurn("T2", 2, [{ op: "inspect", target: "question:q1" }])] })];
+    bench();
+    await waitFor(() => expect(document.querySelector("[data-item-inspector]")?.getAttribute("data-item-inspector")).toBe("question:q1"), { timeout: 4000 });
+    expect(push).not.toHaveBeenCalled();
+    // Named by its words on the page, not by its id.
+    await waitFor(() => expect(document.querySelector("[data-item-inspector]")!.textContent).toContain("Jak často pijete čaj?"));
+    // The turn names it in words, and its chip opens it again.
+    expect(screen.getByRole("button", { name: /^Detail: / })).toBeTruthy();
+  });
+
+  it("opens the Lead's inspect on another stage once that stage is shown, through the stage's leave guard", async () => {
+    push.mockClear();
+    leadReads = [leadState({ busy: true, turns: [leadTurn("T1", 1)] }), leadState({ turns: [leadTurn("T1", 1), leadTurn("T2", 2, [{ op: "inspect", target: "rq:rq_1" }])] })];
+    bench();
+    await waitFor(() => expect(push).toHaveBeenCalledTimes(1), { timeout: 4000 });
+    expect(push.mock.calls[0][0]).toMatch(/\/plan$/);
+    expect(document.querySelector("[data-item-inspector]")).toBeNull();
+    // A route change remounts the workbench on Návrh: the drawer opens there.
+    cleanup();
+    leadReads = [leadState()];
+    bench(<div><div data-aia="rq:rq_1">Kdo pije čaj ráno?</div></div>, "plan");
+    await waitFor(() => expect(document.querySelector("[data-item-inspector]")?.getAttribute("data-item-inspector")).toBe("rq:rq_1"));
+    await waitFor(() => expect(document.querySelector("[data-item-inspector]")!.textContent).toContain("Kdo pije čaj ráno?"));
+    // Nowhere by its opaque id: neither the heading nor the body of a kind without a detail.
+    expect(document.querySelector("[data-item-inspector]")!.textContent).not.toContain("rq_1");
+  });
+
+  it("leaves nothing pending when a leave guard stops the Lead's move to the inspected stage", async () => {
+    push.mockClear();
+    const guard = (e: MouseEvent) => e.preventDefault();
+    document.addEventListener("click", guard, true);
+    try {
+      leadReads = [leadState({ busy: true, turns: [leadTurn("T1", 1)] }), leadState({ turns: [leadTurn("T1", 1), leadTurn("T2", 2, [{ op: "inspect", target: "rq:rq_1" }])] })];
+      bench();
+      await screen.findByRole("button", { name: /^Detail: / }, { timeout: 4000 });
+    } finally {
+      document.removeEventListener("click", guard, true);
+    }
+    expect(push).not.toHaveBeenCalled();
+    cleanup();
+    leadReads = [leadState()];
+    bench(<Stage />, "plan");
+    await new Promise((r) => setTimeout(r, 50));
     expect(document.querySelector("[data-item-inspector]")).toBeNull();
   });
 

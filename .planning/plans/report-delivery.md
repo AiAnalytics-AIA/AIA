@@ -77,6 +77,11 @@ ledger shape; the with-literature variant's status does not carry it (retired by
 **RD3. The Approve and Export panel: what is approved and by whom; exports after approval; the slot in the Report artifact**  
 S1 hosts the slot (`research-lead-workbench` 21), same wave. Tests: approvals name the exact artifact fingerprint; a stale-version download is refused; both self-approval settings; an unauthorised download is refused. Today drafts download freely and approval follows the download (`research.py:2395-2449`); the panel makes the client export follow approval. Interfaces I12.
 
+*Q73 (c), the owner, 2026-10-22:* downloads stay free before approval; a draft's files say KONCEPT until their
+version is approved. "Exports after approval" is not built (`artifact-report#RPT3b`, closed as decided), and line
+28's "DOCX and PDF become available only after approval" is superseded for downloads. Approval moves to the
+document being read, in Zpráva's doc bar (`artifact-report#RPT3a`).
+
 *RD3, G66 (`feature/report-export-panel`):* `POST …/report/approve` answers `report_kind` (`internal`,
 `with_review` or `client`, `application/report_approval.py` `REPORT_KINDS`), and `internal_only` is false for the
 client report, which said `true` before. Test: `test_the_approved_client_report_downloads_stamped_and_is_read_once`

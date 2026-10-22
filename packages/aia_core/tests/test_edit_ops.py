@@ -86,7 +86,7 @@ def test_the_lead_output_carries_exactly_the_operations_marked_so() -> None:
         for definition in schema["$defs"].values()
         if "op" in definition.get("properties", {})
         and definition["properties"]["op"].get("const")
-        not in ("open_stage", "focus")  # the view's commands, not edits
+        not in ("open_stage", "focus", "inspect")  # the view's commands, not edits
     }
     marked = {n.value for n, s in e.CATALOGUE.items() if s.in_lead_output}
     assert in_schema == marked == _payload_ops()

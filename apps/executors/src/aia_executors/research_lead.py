@@ -294,7 +294,9 @@ class ResearchLeadExecutor:
         )
         # A focus naming nothing the frozen copy shows (an audience filter it does not store)
         # is left out and named, as an edit it cannot take is (artifact-audience AUD1).
-        grounded, dropped_view = ground_view(grounded, design.get("content") or {})
+        grounded, dropped_view = ground_view(
+            grounded, design.get("content") or {}, design.get("analysis") or None
+        )
         dropped = [*dropped, *dropped_view]
         notes = list(layer(frozen, "lead").get("notes") or ())
         shown = [str(n["memory_id"]) for n in notes]
@@ -372,7 +374,9 @@ def _regrounded(result: dict[str, Any], design: Mapping[str, Any]) -> dict[str, 
         output = LeadOutput.model_validate(result.get("lead_output"))
     except ValidationError:
         return result
-    grounded, dropped = ground_view(output, design.get("content") or {})
+    grounded, dropped = ground_view(
+        output, design.get("content") or {}, design.get("analysis") or None
+    )
     if not dropped:
         return result
     return {
