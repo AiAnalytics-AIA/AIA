@@ -168,6 +168,14 @@ field. (a) if the owner wants V2's layout exactly.
   - Consequence: "Opravit →" on those checks opens the questionnaire, where neither is fixed.
   - Smallest fix: map both to `persona`, as Vzorek's `checkStage` does.
   - Test: `fixStep` for each check id the domain emits. Reported to the Sběr dat session (its file).
+- **F-SMP-2. The readiness messages Vzorek shows disagree with their numbers in Czech** (found by the
+  Vzorek browser audit, 2026-10-22, at 1440/1100/768/390 px on every workbench fixture).
+  - Anchor: `packages/aia_core/src/aia_core/domain/research_design.py:1205 and :1242 @ fe85aa54`.
+  - Reproduction: a design with 1 question and 1 tracked set reads "1 otázek, 1 sledovaných sad (6
+    položek k zodpovězení)." and "1 sad pro Sociomapu.".
+  - Consequence: every Vzorek, Spuštění and Kontrola readiness list shows broken Czech.
+  - Fix: `report.numbers.counted` for each count, on this PR.
+  - Test: `test_research_design.py::test_readiness_counts_agree_with_their_number_in_czech`.
 
 ## Doc follow-up
 

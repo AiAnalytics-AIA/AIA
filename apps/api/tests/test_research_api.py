@@ -1460,6 +1460,46 @@ def test_a_client_report_carrying_drill_down_content_cannot_be_approved(
     assert after["review_state"] == "DRAFT_UNAPPROVED"
 
 
+def test_the_client_report_is_prepared_to_be_read_without_a_download(
+    app: FastAPI,
+    researcher: TestClient,
+    outsider: TestClient,
+    world: Any,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """RD3: a person reads the client draft in AIA, then approves it; no file leaves to do so.
+    Prepare stores it as the download would, once; a run with no client report is refused by
+    name, and nothing is stored."""
+    app.state.settings = app.state.settings.model_copy(update={"ai_analysis_enabled": True})
+    revision = submit(researcher, world).json()["revision_id"]
+    run_id = start(researcher, world, revision).json()["run_id"]
+    url = f"{_runs(world)}/{run_id}/report"
+    refused = researcher.post(f"{url}/client/prepare")
+    assert refused.status_code == 409 and refused.json()["code"] == "client_report_refused"
+    assert researcher.get(f"{url}/client/document").status_code == 404
+
+    monkeypatch.setattr(
+        client_report, "compose_client_report", _composing(_client_report_document())
+    )
+    assert researcher.get(f"{url}/client/document").status_code == 404
+    prepared = researcher.post(f"{url}/client/prepare")
+    assert prepared.status_code == 200, prepared.text
+    body = prepared.json()
+    assert body["review_state"] == "DRAFT_UNAPPROVED" and body["approval"] is None
+    assert body["document"]["meta"]["kind"] == "client"
+    assert researcher.get(f"{url}/client/document").json() == body
+    again = researcher.post(f"{url}/client/prepare").json()
+    assert again["report_artifact_id"] == body["report_artifact_id"]  # stored once
+    # The version read is the version the download hands over and the approval names.
+    handed = researcher.get(f"{url}/client/download").headers["X-AIA-Artifact-Id"]
+    assert handed == body["report_artifact_id"]
+    version = body["report_artifact_id"]
+    approved = outsider.post(f"{url}/approve", json={"artifact_id": version})
+    assert approved.status_code == 200, approved.text
+    after = researcher.post(f"{url}/client/prepare").json()
+    assert after["report_artifact_id"] == version and after["review_state"] == "APPROVED_INTERNAL"
+
+
 def test_a_client_document_of_an_older_contract_is_stored_again_on_download(
     app: FastAPI,
     researcher: TestClient,

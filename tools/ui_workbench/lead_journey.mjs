@@ -129,12 +129,22 @@ try {
   const keep = page.locator(".conv").getByRole("button", { name: "Pamatovat si" }).last();
   await keep.waitFor({ timeout: 30000 });
   await shot("1440-self-update-waiting");
+  // Decided in the 390 px sheet by keyboard: the button unmounts while it has the focus, and the
+  // focus stays inside the open conversation (research-lead-workbench F17), in a real browser.
+  await page.setViewportSize({ width: 390, height: 900 });
+  await page.locator("[data-lead-launcher]").click();
+  await page.getByRole("dialog", { name: "Vedoucí výzkumu" }).waitFor();
+  await keep.focus();
   await Promise.all([
     page.waitForResponse((r) => /\/lead\/turns\/[^/]+\/self-update$/.test(new URL(r.url()).pathname) && r.request().method() === "POST", { timeout: 30000 }),
-    keep.click(),
+    keep.press("Enter"),
   ]);
   await page.locator(".conv").getByText("Zapamatováno pro všechnu vaši práci").last().waitFor({ timeout: 30000 });
-  check("the researcher keeps it with Pamatovat si, and the decision is shown");
+  await page.waitForFunction(() => document.activeElement !== document.body && !!document.activeElement?.closest("[role=dialog]"), null, { timeout: 5000 })
+    .catch(async () => assert.fail(`focus left the open conversation when Pamatovat si unmounted: ${await page.evaluate(() => document.activeElement?.tagName)}`));
+  await page.keyboard.press("Escape");
+  await page.setViewportSize({ width: 1440, height: 900 });
+  check("the researcher keeps it with Pamatovat si, and the decision is shown; in the 390 px sheet the focus stays in the conversation when the button unmounts");
 
   // Můj Vedoucí: the note the Lead was asked to remember, read only.
   await page.goto(base + "/app/lead");
@@ -234,6 +244,9 @@ try {
   await page.locator("[id^=qedit_]").first().click();
   await page.getByRole("dialog", { name: "Vedoucí výzkumu" }).waitFor();
   await page.locator(".refchip").waitFor();
+  // Its clear button is a 44 px target at a phone's width, as every frame control is (I11).
+  const clear = await page.getByRole("button", { name: "Zrušit odkaz" }).boundingBox();
+  assert(clear && clear.width >= 44 && clear.height >= 44, `Zrušit odkaz is a 44 px target @390: ${JSON.stringify(clear)}`);
   await shot("390-picked");
   await page.getByRole("button", { name: "Zrušit odkaz" }).click();
   await page.keyboard.press("Escape");

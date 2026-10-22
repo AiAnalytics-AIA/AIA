@@ -1529,11 +1529,90 @@ Other kinds stay at the grammar until their stage asks for the same.
 6. Test: the workbench journey's "one focus ring on a field, the ring on the workbench's
    controls".
 
+### F16. The frame's controls were 26-32 px at a phone's width *(fixed, `fix/workbench-frame-a11y`)*
+
+Found in Sběr dat's keyboard audit, then swept over every frame control at 390 px.
+
+1. **Claim.** At 390 px every control the workbench frame owns was under 44 px, against
+   input-interactions I11 and the shared controls' `TOUCH`. That covers the header's menu, the
+   step button and its stage list, the artifact header's "Připravenost a pomoc" (26 px) and
+   "Soustředit se na artefakt" (28 px), the launcher (40 px), and in the open conversation "Můj
+   Vedoucí", "Zavřít", "@", the suggestions and Odeslat.
+2. **Anchor.** `workbench.css:42 @ fe85aa54` (`.btn--sm` 26 px), `:49` (`.iconbtn` 28 px), `:94`
+   (`.nav__stage` 30 px), `:135` (`.nav__current` 32 px), `:255` (`.composer__send` 32 px), and
+   `Workbench.tsx:892` (the launcher's inline 40 × 40).
+3. **Reproduction.** `workbench_journey.mjs` "every control the frame owns is a 44 px target at
+   390"; on develop it lists the controls above.
+4. **Consequence.** Small, close targets on a phone: "Zavřít" and "Můj Vedoucí" are 28 px side by
+   side in the conversation's header.
+5. **Fix.** Below 640 px the frame's `.iconbtn` and `.composer__send` are 44 × 44, and `.btn--sm`,
+   `.nav__current`, `.nav__stage`, `.shead__home` and `.skip` are at least 44 px high. The
+   launcher's size moves from an inline style to `.rail__launch`, so the rule reaches it. From 640 px
+   the prototype's density stands, above WCAG 2.2's 24 px.
+6. **Test.** The journey check above, at 390 with the frame closed, with the stage list open, and
+   with the conversation open. `lead_journey.mjs` measures "Zrušit odkaz" on the pointed element's
+   chip at 390 (review of #683: an inline 20 × 20 had beaten the rule, the launcher's pattern; it is
+   now `.refchip__clear`). `.btn` and `button.chip` (the held message's "Zkusit znovu") joined the
+   rule; no journey shows a held message, so that one is held by the CSS alone.
+
+The separator "Změnit poměr konverzace a artefaktu" was reported as taking focus with no outline.
+It does show focus: a 2 px signal line down its full height (`.split__handle:focus-visible::after`,
+`workbench.css:111`). It is kept as it is.
+
+### F17. A focused card control that unmounted dropped focus out of the open conversation *(fixed, `fix/workbench-frame-a11y`)*
+
+1. **Claim.** In the drawer and the sheet, a focused control that unmounts leaves focus on the
+   body, outside the modal dialog and behind an inert page. Examples: an approve button replaced by
+   its result, or "Na nejnovější" scrolled away (Sociomapa, F-BRF-2).
+2. **Anchor.** `Split.tsx:61-66 @ fe85aa54` traps Tab only. Nothing brings focus back when its
+   holder is removed.
+3. **Reproduction.** `Split.test.tsx` "brings the focus to the composer when the focused card
+   control unmounts" times out without the fix.
+4. **Consequence.** A keyboard or screen-reader user loses their place. The next Tab is pulled back
+   in by the trap, but Escape and arrow keys act on the body until then.
+5. **Fix.** `useFocusRecovery`: while the dialog is open, it watches the conversation by mutation
+   (a browser need not fire focusout for a removed element) and by focusout. When the element that
+   held focus is gone and focus is on the body, it focuses `recoveryTarget`: the composer while it
+   takes text, else the log, else the dialog.
+6. **Test.** `Split.test.tsx` (four cases): to the composer; to the log when the composer is shut;
+   untouched when the conversation is closed or the person blurred it themselves, also when that
+   control unmounts later (review of #683: a real blur now drops what was held); recovery when the
+   browser fires focusout during the removal (Chromium does, the element still connected: the
+   check waits a microtask, measured in headless Chromium); recovery when the focused control is
+   disabled while its decision is sent (Chromium blurs it, still connected, to the body: measured,
+   and `lead_journey.mjs` caught it on "Pamatovat si" at 390, which it now decides by keyboard and
+   asserts the focus stays in the conversation); and
+   `recoveryTarget`'s order.
+
+### FrameNavigation names the next stage (2026-10-22, `feature/frame-next-stage`, asked by Dimenze)
+
+#668 made `FrameNavigation` a boolean, so a stage's forward action ("Další → Vzorek") had to copy
+the workbench's `go`.
+- **Why that was wrong.** Dimenze's draft set `location.hash = "sample"` itself, which:
+  - lost the focus, because the pressed button is hidden with Dimenze's screen;
+  - hard-coded that Vzorek shares Dimenze's route, bypassing the leave guard if the next stage ever
+    lived on another route;
+  - named `STAGES.sample` instead of the stage after it in `STAGE_ORDER` (DIM-F4's drift).
+- **The context value.** It is now `{ next: { label, go } | null } | null`: null outside a frame,
+  `next` null on the last stage.
+- **What the workbench provides.** `next` is the stage after the current one in `STAGE_ORDER`.
+  `go` opens it as the navigator does (`go`: hash on the same route, `guardedNavigate` otherwise),
+  then focuses the new stage's heading (`.arthead__title`, `tabIndex={-1}`). The pending focus is
+  kept at module scope so a route change, which remounts the workbench, keeps it.
+- **ActionDock** reads `framed = value !== null`.
+- **Review of #686.** A pending heading focus no longer outlives a move that a leave guard
+  stopped. `guardedNavigate` returns whether it navigated, `go` passes that on, and `next.go` asks
+  for the focus only for a move that went through. The pending value names its study and is
+  consumed on every stage change, matched or not.
+- **Tests.** `Workbench.layout.test.tsx` "a stage's forward action through the frame": Výsledky →
+  Sociomapa by hash with the focus on Sociomapa's heading (it fails without the focus move), and
+  Dotazník → Cílová skupina named. `step.test.tsx` passes `{ next: null }`.
+
 ### The report's claims open in the workbench's one item drawer (2026-10-22, `feature/report-items-in-drawer`)
 
 Zpráva's document (`ReportDocumentView`) kept a drawer of its own inside the workbench. Its Escape
 ran outside the frame's one order (D21), and a second drawer could open beside the workbench's.
-- **Inside the workbench** a claim chip opens `report:ref:<ref>` in the workbench's item drawer
+- **Inside the workbench** a claim chip opens `report:ref:<kind>:<ref>` (the document's kind, internal or client, since a ref is one ledger's) in the workbench's item drawer
   (`useItemInspector`), with the claim's evidence as the entry's body.
 - **The drawer API.** `ItemInspectorApi.open(entry, body?)` takes the body the opening screen
   already holds. The workbench keeps it by entry id and draws it instead of `ItemInspectBody`.

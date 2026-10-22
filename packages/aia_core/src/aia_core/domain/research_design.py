@@ -1180,6 +1180,9 @@ def assess_readiness(
     (``research_sociomap.side_tables_for``; plan ``methodology-tab`` S2c). It has no
     default: a warning that read the code's value would contradict the methodology in force.
     """
+    # Here, not at the top: report.numbers reaches evidence, which reaches this module.
+    from .report.numbers import counted
+
     checks: list[ReadinessCheck] = []
 
     def check(check_id: str, status: CheckStatus, message: str) -> None:
@@ -1202,8 +1205,9 @@ def assess_readiness(
     check(
         "questionnaire",
         CheckStatus.PASS,
-        f"{len(spec.questions)} otázek, {len(spec.batteries)} sledovaných sad "
-        f"({asked} položek k zodpovězení).",
+        f"{counted(len(spec.questions), 'otázka', 'otázky', 'otázek')}, "
+        f"{counted(len(spec.batteries), 'sledovaná sada', 'sledované sady', 'sledovaných sad')} "
+        f"({counted(asked, 'položka', 'položky', 'položek')} k zodpovězení).",
     )
 
     filtered = [q.id for q in spec.questions if q.has_filter]
@@ -1239,7 +1243,7 @@ def assess_readiness(
             CheckStatus.PASS,
             # Whether a map may reach a client is the Sociomap register's, for the method that
             # computed it, read when the map is read (domain/sociomap_register.py), never here.
-            f"{len(spec.batteries)} sad pro Sociomapu.",
+            f"{counted(len(spec.batteries), 'sada', 'sady', 'sad')} pro Sociomapu.",
         )
         # Structural readiness to collect answers is not support for a map: a pair needs
         # n_min respondents who rated both (audit F3), counted after missing answers and
