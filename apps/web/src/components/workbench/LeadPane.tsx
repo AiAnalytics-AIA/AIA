@@ -22,6 +22,7 @@ import type { StepKey } from "@/research/steps";
 import { Glyph } from "./Glyph";
 import { Icon, Mark } from "./Icons";
 import { Facts, Pill, RunCardView, RunRequestCard, WorkerCardView } from "./LeadCards";
+import { LeadSees } from "./LeadSees";
 
 const POLL_MS = 1500;
 
@@ -102,6 +103,7 @@ export function LeadPane({ studyId, stage, canEdit, focus, picking, onPick, onCl
   const [me, setMe] = useState<ResearcherLead | null>(null);
   const [session, setSession] = useState<LeadState | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [seesOpen, setSeesOpen] = useState(false);
   const [draft, setDraft] = useState(() => kept.get(studyId)?.draft ?? "");
   // A message written while the Lead works keeps the stage and the element it was written about.
   const [queued, setQueued] = useState<Queued[]>(() => kept.get(studyId)?.queued ?? []);
@@ -244,13 +246,21 @@ export function LeadPane({ studyId, stage, canEdit, focus, picking, onPick, onCl
   }, [studyId, read]);
 
   const name = me?.lead?.name || "Vedoucí výzkumu";
+  // The Vidí chip opens what the newest Lead turn could see (LC2): only a turn that froze one.
+  const seenTurn = [...(session?.turns ?? [])].reverse().find((t) => t.actor === "lead" && t.run_id);
   return (
     <div className="conv">
       <div className="conv__head">
         <div className="conv__avatar"><Mark size={18} onDark /></div>
         <div style={{ minWidth: 0, flex: 1 }}>
           <div className="conv__who">{name}</div>
-          <div className="conv__sees">Vidí: {STAGES[stage].label} · pracovní kopie studie{focus ? ` · ${focus.label}` : ""}</div>
+          {seenTurn ? (
+            <button type="button" className="conv__sees conv__sees--chip" aria-expanded={seesOpen} aria-controls="lead-sees" title="Co Vedoucí viděl v poslední odpovědi" onClick={() => setSeesOpen((o) => !o)} data-lead-sees-chip>
+              Vidí: {STAGES[stage].label} · pracovní kopie studie{focus ? ` · ${focus.label}` : ""}
+            </button>
+          ) : (
+            <div className="conv__sees">Vidí: {STAGES[stage].label} · pracovní kopie studie{focus ? ` · ${focus.label}` : ""}</div>
+          )}
         </div>
         <Link className="iconbtn" href={appRoutes.lead()} title="Můj Vedoucí: jeho soubory a paměť" aria-label="Můj Vedoucí"><Icon name="user" size={16} /></Link>
         {onClose ? (
@@ -263,6 +273,7 @@ export function LeadPane({ studyId, stage, canEdit, focus, picking, onPick, onCl
           </button>
         )}
       </div>
+      {seenTurn && seesOpen ? <LeadSees key={seenTurn.turn_id} studyId={studyId} turnId={seenTurn.turn_id} id="lead-sees" /> : null}
       <Conversation turns={session?.turns ?? []} jobs={jobs} cards={cards} studyId={studyId} onOpenJob={onOpenJob} busy={!!session?.busy || sending} name={name} onFollow={send} onView={onView} onRequest={onRequest} onSelfUpdate={decideSelfUpdate} canEdit={canEdit}>
         {error ? <div className="msg"><div className="notice"><Glyph tone="fault" size={11} />{error}</div></div> : null}
         {held ? (

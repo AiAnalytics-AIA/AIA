@@ -49,7 +49,7 @@ from aia_core.domain.research_agents import AgentContextTooLarge
 from aia_core.domain.scope import ScopeDenied
 from aia_core.domain.wallet import WalletChargeRefused
 from aia_core.domain.workspace import WorkspaceRejected
-from fastapi import APIRouter, HTTPException, Path, Request, Response, status
+from fastapi import APIRouter, HTTPException, Path, Query, Request, Response, status
 from pydantic import BaseModel, ConfigDict, Field, StrictBool
 
 from ..dependencies import (
@@ -281,6 +281,53 @@ class ApprovedRequest(BaseModel):
     status: str
 
 
+class OmittedId(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    id: str
+    reason: str
+
+
+class ManifestLayer(BaseModel):
+    """One declared layer of a turn's context. Not ``recorded``: the turn's context does not
+    hold it, and its counts are unknown (``None``), never zero."""
+
+    model_config = ConfigDict(extra="forbid")
+    layer: str
+    recorded: bool
+    bytes: int | None = None
+    ceiling_bytes: int | None
+    bounded_bytes: int | None = None
+    bound: str | None
+    over_policy: str | None
+    included: list[str] = Field(default_factory=list)
+    included_count: int | None = None
+    omitted: list[OmittedId] = Field(default_factory=list)
+    omitted_count: int | None = None
+
+
+class ContextManifest(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    manifest_version: int
+    total_bytes: int
+    ceiling_bytes: int
+    layers: list[ManifestLayer]
+
+
+class TurnManifest(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    turn_id: str
+    recorded: bool
+    manifest: ContextManifest | None
+
+
+class OmittedPage(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    layer: str
+    after: int
+    total: int
+    omitted: list[OmittedId]
+
+
 class LeadFiles(BaseModel):
     model_config = ConfigDict(extra="forbid")
     soul: str
@@ -496,6 +543,43 @@ def post_turn(
     if not turns:
         response.status_code = status.HTTP_200_OK
     return LeadTurns(turns=[LeadTurn.model_validate(t) for t in _public(turns)])
+
+
+@router.get(
+    "/lead/turns/{turn_id}/manifest",
+    response_model=TurnManifest,
+    responses={404: {"model": ErrorResponse, "description": "Not the caller's own Lead turn"}},
+)
+def read_manifest(turn_id: TurnIdPath, scope: StudyScopeDep, session: SessionDep) -> TurnManifest:
+    """What the caller's own Lead turn could see, layer by layer, and what it left out: read
+    from the context the turn froze, never rebuilt (Co Vedoucí vidí)."""
+    with _lead_errors():
+        manifest = ResearchLead(session, scope).manifest(turn_id)
+    return TurnManifest.model_validate(manifest)
+
+
+@router.get(
+    "/lead/turns/{turn_id}/manifest/omitted",
+    response_model=OmittedPage,
+    responses={404: {"model": ErrorResponse, "description": "Not the caller's own Lead turn"}},
+)
+def read_omitted(
+    turn_id: TurnIdPath,
+    scope: StudyScopeDep,
+    session: SessionDep,
+    layer: Annotated[str, Query(max_length=40, pattern=r"^[a-z_]+$")],
+    after: Annotated[int, Query(ge=0, le=100_000)] = 0,
+) -> OmittedPage:
+    """The ids a layer of the caller's own Lead turn left out, fifty at a time from ``after``:
+    the rest of what the manifest lists the first fifty of."""
+    with _lead_errors():
+        omitted, total = ResearchLead(session, scope).omitted(turn_id, layer, after=after)
+    return OmittedPage(
+        layer=layer,
+        after=after,
+        total=total,
+        omitted=[OmittedId.model_validate(o) for o in omitted],
+    )
 
 
 @router.post(

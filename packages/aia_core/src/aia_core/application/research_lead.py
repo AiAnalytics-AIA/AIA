@@ -37,6 +37,7 @@ from sqlalchemy.orm import Session
 from ..domain.approval_ledger import ApprovalSubject
 from ..domain.design import DESIGN_PROJECT_OWNER
 from ..domain.lead_commands import MatchedCommand, match_command
+from ..domain.lead_context import manifest_view, omitted_page
 from ..domain.lead_digest import DigestEntry, decision_digest, edit_item
 from ..domain.research_agents import ResearchAction, design_material, knowledge_entries
 from ..domain.research_lead import (
@@ -532,6 +533,33 @@ class ResearchLead:
         turns = self._annotated(self._turns().turns(limit=limit))
         busy = any(_holds(t) for t in turns)
         return {"busy": busy, "turns": turns}
+
+    def _frozen(self, turn_id: str) -> Mapping[str, Any] | None:
+        """The context the caller's own Lead turn froze at enqueue, as its step holds it;
+        ``None`` when the step holds none. Another researcher's turn, or a person's, is not
+        found."""
+        turn = self._turns().get(turn_id)
+        if turn is None or turn.actor != "lead" or turn.run_id is None:
+            raise LeadTurnNotFound(turn_id)
+        frozen = (self._workflows().step_input(turn.run_id, "turn") or {}).get("context")
+        return frozen if isinstance(frozen, Mapping) else None
+
+    def manifest(self, turn_id: str) -> dict[str, Any]:
+        """What the caller's own Lead turn could see (Co Vedoucí vidí, plan lead-conversation
+        LC2): read from the context it froze, never rebuilt from today's study.
+        ``recorded: False`` when the turn's step holds no context."""
+        frozen = self._frozen(turn_id)
+        if frozen is None:
+            return {"turn_id": turn_id, "recorded": False, "manifest": None}
+        return {"turn_id": turn_id, "recorded": True, "manifest": manifest_view(frozen)}
+
+    def omitted(
+        self, turn_id: str, layer_name: str, *, after: int = 0
+    ) -> tuple[list[dict[str, str]], int]:
+        """The ids a layer of the caller's own Lead turn left out, from ``after``: the rest of
+        what its manifest lists the first fifty of."""
+        frozen = self._frozen(turn_id)
+        return omitted_page(frozen, layer_name, after=after) if frozen is not None else ([], 0)
 
     def _completed(self, turn_id: str) -> tuple[LeadTurn, LeadOutput]:
         """The caller's own completed Lead turn and its output, or why not."""

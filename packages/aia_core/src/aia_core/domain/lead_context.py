@@ -45,6 +45,8 @@ __all__ = [
     "PART_LAYERS",
     "LeadLayer",
     "context_manifest",
+    "manifest_view",
+    "omitted_page",
 ]
 
 MANIFEST_VERSION: Final = 1
@@ -226,3 +228,42 @@ def context_manifest(
         "ceiling_bytes": CONTEXT_MAX_BYTES,
         "layers": layers,
     }
+
+
+def manifest_view(context: Mapping[str, Any]) -> dict[str, Any]:
+    """The manifest as the researcher reads it (Co Vedoucí vidí, LC2): every declared layer in
+    :data:`LEAD_LAYERS`' order, read from the context the turn froze.
+
+    A layer the context does not hold (a turn frozen before the layer existed, or a layer that
+    was off for it) is ``recorded: False`` with its declared bound, never an empty layer: an
+    empty layer would say the turn saw nothing there, which nobody recorded. Without classes:
+    the class a turn was sent as is not the browser's (LC6 shows it).
+    """
+    manifest = context_manifest(context)
+    rows = {row["layer"]: row for row in manifest["layers"]}
+    layers = [
+        {**rows[spec.name], "recorded": True}
+        if spec.name in rows
+        else {
+            "layer": spec.name,
+            "recorded": False,
+            "ceiling_bytes": spec.ceiling_bytes,
+            "bound": spec.bound,
+            "over_policy": spec.over_policy,
+        }
+        for spec in LEAD_LAYERS
+    ]
+    return {**manifest, "layers": layers}
+
+
+def omitted_page(
+    context: Mapping[str, Any], layer_name: str, *, after: int = 0, limit: int = MANIFEST_IDS_MAX
+) -> tuple[list[dict[str, str]], int]:
+    """The ids ``layer_name`` left out, from position ``after``, at most ``limit`` of them, and
+    how many it left out by id in all: the rest of what the manifest lists the first
+    :data:`MANIFEST_IDS_MAX` of. A layer the context does not hold left nothing out by id."""
+    for entry in context["layers"]:
+        if entry["layer"] == layer_name:
+            _, omitted, _ = _ids(entry)
+            return omitted[after : after + limit], len(omitted)
+    return [], 0
