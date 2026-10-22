@@ -2,7 +2,7 @@
 import { act, cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
-import { InlineText } from "./InlineText";
+import { InlineText, SELECT_SETTLE_MS } from "./InlineText";
 
 afterEach(() => {
   cleanup();
@@ -259,5 +259,56 @@ describe("InlineText opened from elsewhere (input-interactions chunk 2: a row's 
     render(<InlineText autoOpen disabled label="Jiný název" value="B" onCommit={() => {}} onSettled={settled} />);
     expect(screen.queryByRole("textbox")).toBeNull();
     expect(settled).not.toHaveBeenCalled();
+  });
+});
+
+describe("InlineText selectable (Q68): its words can be selected and still edited in place", () => {
+  const select = (node: Node, from: number, to: number) => {
+    const range = document.createRange();
+    range.setStart(node, from);
+    range.setEnd(node, to);
+    window.getSelection()!.removeAllRanges();
+    window.getSelection()!.addRange(range);
+  };
+  afterEach(() => window.getSelection()?.removeAllRanges());
+
+  it("is a focusable role=button span, not a <button>, so a browser lets its words be selected", () => {
+    render(<InlineText selectable label="Název studie" value="Ranní pečivo" onCommit={() => {}} />);
+    expect(shown().tagName).toBe("SPAN");
+    expect(shown().getAttribute("tabindex")).toBe("0");
+  });
+
+  const settle = () => act(() => new Promise((r) => setTimeout(r, SELECT_SETTLE_MS + 50)));
+
+  it("does not open on the click that ends a selection of its words, and opens on a plain click once it settles", async () => {
+    render(<InlineText selectable label="Název studie" value="Ranní pečivo" onCommit={() => {}} />);
+    select(screen.getByText("Ranní pečivo").firstChild!, 0, 5);
+    fireEvent.click(shown(), { detail: 1 });
+    await settle();
+    expect(screen.queryByRole("textbox")).toBeNull();
+    window.getSelection()!.removeAllRanges();
+    fireEvent.click(shown(), { detail: 1 });
+    expect(await screen.findByRole("textbox", { name: "Název studie" })).toBeTruthy();
+  });
+
+  it("does not open on a double-click, which selects a word instead", async () => {
+    render(<InlineText selectable label="Název studie" value="Ranní pečivo" onCommit={() => {}} />);
+    fireEvent.click(shown(), { detail: 1 });
+    fireEvent.click(shown(), { detail: 2 });
+    await settle();
+    expect(screen.queryByRole("textbox")).toBeNull();
+  });
+
+  it("opens on Enter, F2 and Space at once; disabled, it is its words alone, taking no focus", () => {
+    const { unmount } = render(<InlineText selectable label="Název studie" value="A" onCommit={() => {}} />);
+    for (const key of ["Enter", "F2", " "]) {
+      fireEvent.keyDown(shown(), { key });
+      expect(field()).toBeTruthy();
+      fireEvent.keyDown(field(), { key: "Escape" });
+    }
+    unmount();
+    render(<InlineText selectable disabled label="Název studie" value="Slova" onCommit={() => {}} />);
+    expect(screen.queryByRole("button")).toBeNull();
+    expect(screen.getByText("Slova").closest("[tabindex]")).toBeNull();
   });
 });
