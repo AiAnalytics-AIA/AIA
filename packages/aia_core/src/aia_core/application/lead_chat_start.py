@@ -43,7 +43,7 @@ from ..domain.research_lead import LeadTurn
 from ..domain.scope import StudyContext
 from ..domain.wallet import ChargeKind
 from ..infrastructure.scope_repository import ScopeRepository
-from ..infrastructure.workflow_repository import WorkflowRepository
+from ..infrastructure.workflow_repository import CHAT_START_REUSE, WorkflowRepository
 from .research import (
     CostConfirmationRequired,
     ResearchAgentJobs,
@@ -95,7 +95,8 @@ class RunStartSettings:
 def chat_start_decisions(
     workflows: WorkflowRepository, turn_ids: list[str]
 ) -> dict[str, dict[str, Any]]:
-    """The ``chat_start`` rows naming these person turns, by turn id: the run each started."""
+    """The ``chat_start`` rows naming these person turns, by turn id: the run each started, or
+    for a ``reuse`` row the run it found already started (``reused``)."""
     if not turn_ids:
         return {}
     wanted = set(turn_ids)
@@ -104,7 +105,9 @@ def chat_start_decisions(
         comment = json.loads(entry.comment or "{}")
         turn_id = comment.get("turn_id")
         if turn_id in wanted and turn_id not in found:
-            found[turn_id] = {"run_id": entry.run_id, "comment": comment}
+            reused = entry.decision == CHAT_START_REUSE
+            run_id = comment.get("run_id") if reused else entry.run_id
+            found[turn_id] = {"run_id": run_id, "comment": comment, "reused": reused}
     return found
 
 
@@ -216,7 +219,18 @@ def approve_chat_start(
         ceiling = reservation_usd
         kind = ChargeKind.AGENT_JOB
 
-    if started.created:
+    if not started.created:
+        # The same job on the same design, started by an earlier approval: nothing starts and
+        # nothing is charged, but this card is decided, so it never asks again.
+        workflows.record_chat_start(
+            started.run_id,
+            turn_id=turn.turn_id,
+            start=command.start,
+            ceiling_usd=ceiling,
+            design_revision_id=revision.revision_id,
+            reused=True,
+        )
+    else:
         decision_id = workflows.record_chat_start(
             started.run_id,
             turn_id=turn.turn_id,

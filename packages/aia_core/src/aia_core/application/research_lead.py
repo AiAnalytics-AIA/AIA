@@ -347,6 +347,8 @@ def _view(
             base["request_decision"] = {
                 "status": "approved",
                 "run_id": decisions["request"].get("run_id"),
+                # The job was already started for this design by an earlier approval (LO5).
+                "reused": bool(decisions["request"].get("reused")),
             }
         return base
     if decisions:
@@ -500,7 +502,7 @@ class ResearchLead:
             self._workflows(), [t.turn_id for t in turns if t.command is not None]
         )
         for turn_id, done in started.items():
-            decisions[turn_id] = {"request": {"run_id": done["run_id"]}}
+            decisions[turn_id] = {"request": {"run_id": done["run_id"], "reused": done["reused"]}}
         views = []
         for turn in turns:
             run = runs.get(turn.run_id) if turn.run_id else None

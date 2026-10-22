@@ -248,7 +248,47 @@ def test_a_typed_design_job_starts_with_the_lead_off_and_writes_chat_start_once(
     assert again.status_code == 200 and again.json()["run_id"] == run_id
     assert _written(app)["chat_start"] == 1
     turn = researcher.get(_lead(world)).json()["turns"][-1]
-    assert turn["request_decision"] == {"status": "approved", "run_id": run_id}
+    assert turn["request_decision"] == {"status": "approved", "run_id": run_id, "reused": False}
+
+
+@pytest.mark.parametrize("wallet", [False, True])
+def test_a_typed_start_approved_on_a_job_already_started_decides_its_card_and_starts_nothing(
+    researcher: TestClient, world: Any, app: FastAPI, wallet: bool
+) -> None:
+    """The same command typed again on the same design finds the job the first approval started.
+    Its card is decided (it never asks again after a reload) and says the job was found; nothing
+    starts or is charged, and its row names the run in its comment only, so the second approval
+    is neither a start approval of that run (spend attribution) nor a charge authority."""
+    if wallet:
+        _wallet_on(app, researcher, world, cap=5.0)
+    _save(app, world)
+    first = _type(researcher, world, "Zkontroluj návrh").json()["turns"][0]["turn_id"]
+    run_id = _approve(researcher, world, first).json()["run_id"]
+    second = _type(researcher, world, "Zkontroluj návrh").json()["turns"][0]["turn_id"]
+    again = _approve(researcher, world, second)
+    assert again.status_code == 200, again.text
+    assert again.json()["run_id"] == run_id
+
+    turns = {t["turn_id"]: t for t in researcher.get(_lead(world)).json()["turns"]}
+    assert turns[first]["request_decision"] == {
+        "status": "approved",
+        "run_id": run_id,
+        "reused": False,
+    }
+    assert turns[second]["request_decision"] == {
+        "status": "approved",
+        "run_id": run_id,
+        "reused": True,
+    }
+    started, reused = _chat_starts(app)
+    assert (started.run_id, started.decision) == (run_id, "start")
+    assert (reused.subject_id, reused.run_id, reused.decision) == (run_id, None, "reuse")
+    assert json.loads(reused.comment)["turn_id"] == second
+    assert json.loads(reused.comment)["run_id"] == run_id
+    assert _written(app) == {"runs": 1, "chat_start": 2, "charges": 1 if wallet else 0}
+    # Asked once more, the card answers as decided and writes nothing further.
+    assert _approve(researcher, world, second).json()["run_id"] == run_id
+    assert _written(app)["chat_start"] == 2
 
 
 def test_in_one_switched_off_state_the_typed_card_starts_and_the_models_card_waits(
@@ -330,11 +370,17 @@ def test_a_typed_research_run_starts_on_the_deployments_run_settings(
     comment = json.loads(row.comment)
     assert (row.run_id, comment["start"]) == (run_id, "research_run")
     assert comment["ceiling_usd"] == pytest.approx(450 * 0.5)
-    # The run's own start: the same revision asked again returns it and writes nothing.
+    # The run's own start: the same revision asked again returns it and starts nothing. The
+    # second card is decided by a reuse row, which names the run in its comment only: the run
+    # still has one start approval.
     again = _type(researcher, world, "Spusť výzkum").json()["turns"][0]["turn_id"]
     second = _approve(researcher, world, again)
     assert second.status_code == 200 and second.json()["run_id"] == run_id
-    assert _written(app)["chat_start"] == 1
+    assert [(r.run_id, r.decision) for r in _chat_starts(app)] == [
+        (run_id, "start"),
+        (None, "reuse"),
+    ]
+    assert _written(app)["runs"] == 1
 
 
 def test_a_typed_run_on_a_design_that_is_not_ready_is_refused_by_the_runs_own_rule(

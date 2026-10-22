@@ -1046,3 +1046,39 @@ head`, `alembic check`, `downgrade base`, `upgrade head` on PostgreSQL 16.
   `infrastructure/`: "`workflow_repository.record_chat_start`".
 - ADR 0028 *What enforces it*: the `chat_start` writer and its order.
 - ADR 0026 *Accepted with*: typed start commands bypass the model and the Lead's switch (Q43).
+
+### Finding: a typed start approved again on the same design was never decided (2026-10-22, `fix/typed-start-reuse`)
+
+1. **Claim.** A typed start approved on a job that an earlier approval had already started for the
+   same design writes nothing for its own turn. Its card stays undecided, no job card follows it,
+   and after a reload it asks again.
+2. **Anchor.** `application/lead_chat_start.py:219 @ fe85aa54` writes the `chat_start` row only
+   when `started.created`. `chat_start_decisions` reads a card's decision from that row alone.
+3. **Reproduction.**
+   - `apps/api/tests/test_lead_chat_start_api.py::test_a_typed_start_approved_on_a_job_already_started_decides_its_card_and_starts_nothing`
+   - In a browser: type "Zkontroluj návrh" twice on the UI workbench and approve both. The second
+     answers 200 with the first job, and `GET /lead` gives that turn `request_decision: null`.
+4. **Consequence.** The person clicks "Spustit úlohu" and nothing appears. The card read
+   "Rozhodnuto" beside "Spustí se až vaším potvrzením."; after a reload it is open again, and
+   every click returns the same job. `lead_cards_journey` failed on a second run on one workbench
+   (:145) for this reason.
+5. **Fix.** The found job decides the card with a `chat_start` row of decision `reuse`, which names
+   the run in its comment only and leaves `run_id` null.
+   - `run_id` is null because spend attribution counts every `chat_start` row whose `run_id` names
+     the run as a start approval (`workflow_repository.py:194 @ fe85aa54`). The second approver
+     started nothing and paid for nothing.
+   - It is no charge authority, which needs decision `start`.
+   - `request_decision.reused` tells the web, and the card reads "Už proběhlo / Tato úloha pro
+     tento návrh už proběhla". The job is shown once, where it started.
+   - A decided card no longer says "Spustí se až vaším potvrzením.".
+6. **Test.** The API test above, plus the typed research run's second approval in
+   `test_a_typed_research_run_starts_on_the_deployments_run_settings` and `LeadPane.test.tsx`
+   "says a typed start approved again found the job already done, and shows that job once".
+   `lead_cards_journey` accepts either outcome at its typed start, so it runs again on one
+   workbench.
+
+### Doc follow-up (typed start reuse)
+
+- ADR 0028 *What enforces it*: "a typed start approved on a run another approval already started
+  writes a `chat_start` row of decision `reuse` naming the run in its comment only, never in
+  `run_id`: neither a start approval for attribution nor a charge authority".
