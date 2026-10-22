@@ -1485,7 +1485,7 @@ open a finding or a cited number in it from a click (ANL3).
   kind. Analýza adds `finding` and `claim` (`AnalysisInspect`, #610); `module` stays on the page.
 - **A kind with no body** shows what was opened and "Ukázat na stránce", never a detail it does not
   have.
-- **Not yet:** the Lead's own `inspect` view op stays non-live until the server's `LeadView` carries
+- **Since `feature/lead-inspect-view`:** the Lead's own `inspect` view op is live (below). Before it, it stayed non-live until the server's `LeadView` carried
   it.
 - **Escape is the frame's** (review of #623): inside the workbench the drawer takes Escape only
   through the one handler (`ItemInspector ownEscape={false}`), by the readiness panel's rule: the
@@ -1631,6 +1631,28 @@ ran outside the frame's one order (D21), and a second drawer could open beside t
   closes the old document's claims…" and `Workbench.layout.test.tsx` "drops the entries a screen
   says stopped being true…"; both fail without the change.
 
+### The stages' forward actions go through the frame (2026-10-22, `fix/stages-forward-through-frame`)
+
+Dimenze's review of #698 found the same DIM-F4-class defect in four other stages. Inside the
+workbench, their forward buttons called `router.push(stepHref(...))`, which skipped
+`guardedNavigate` (a stage's leave guard) and the heading focus #686 added. The four are Zadání
+(`BriefStep.tsx`, after the analysis is accepted, both paths), Návrh (`PlanStep.tsx` `next`), Dotazník
+(`QuestionnaireStep.tsx` `toAudienceStep`) and Cílová skupina (`AudienceStep.tsx`, "Další · dimenze").
+- **Fix.** Each reads `useContext(FrameNavigation)` and calls `next.go()` inside the frame;
+  outside it, `router.push` as before. No other change in those files (Zadání and Dotazník have open
+  work there).
+- **Tests.** One per stage file, "inside the workbench goes on … through the frame's next stage";
+  all four fail without the change. On Návrh the test also opens a set for editing: the forward
+  action stays disabled and the frame is not asked. That held before too (`next` returns on
+  `editing`).
+- **Zadání's workbench button** (the stand-in review of #714). With the Lead owning the AI starts,
+  Zadání shows "Pokračovat na Návrh", a bare `Link` that skipped the frame; inside the frame it is
+  now a button calling `next.go()`. Test: `ResearchScreen.workbench.test.tsx` "goes on from Zadání
+  to Návrh through the frame…", which renders the real workbench and fails without the change.
+- **Not repeated here.** The heading focus and the leave guard are the frame's `go`, tested by
+  #686 (`Workbench.layout.test.tsx` "a stage's forward action through the frame", "asks nothing of
+  a forward move a stage's leave guard stopped").
+
 ### The Lead's audience labels read Cílová skupina's parser (2026-10-22, `chore/target-label-parse-audience`)
 
 `targetLabel` (`lib/lead.ts`) parsed `audience:` ids with a second, looser rule of its own: an
@@ -1638,3 +1660,49 @@ ran outside the frame's one order (D21), and a second drawer could open beside t
 `parseAudienceId` (`lib/artifacts/audience.ts`, #700), as that stage asked; a filter or subpanel
 with no name is no filter. Test: `lead.test.ts` "says each kind in words…" (fails without it).
 
+### The Lead's `inspect` is live (2026-10-22, `feature/lead-inspect-view`; chunk 14, its first op beyond 2a)
+
+2a's drawer opened only from a person's click; the Lead's `inspect` was declared in the contract
+(`lead_artifacts.ViewOpKind.INSPECT`) but not in `LeadOutput`. Now it is:
+- **The output.** `research_lead.InspectItem` (`op: "inspect"`, a target of the focus grammar) joins
+  `ViewOp`. Harness `aia-research-lead-4`; a turn queued under 3 is refused by the executor's
+  harness check and asks for the message again, as 3 did.
+- **The gate.** `ground_view` drops an `inspect` that `inspect_refusal` refuses: `target_refusal`
+  first, then `not_inspectable` for an element of a stage whose contract has no `inspect`
+  (`lead_artifacts.stage_of` + `allows_view`: a questionnaire question, the brief's goal, a report
+  section), then the id against the frozen context (the stand-in review of #738: an invented id
+  opened a drawer titled by that id): a research question or hypothesis by the working copy's and
+  the analysis's stable ids, a Návrh section by its name, else `unknown_item`; every other kind
+  (a finding, a measure, a run step) `not_in_context` until the context carries their ids (D19's
+  results layer).
+- **The web.** `LeadView` carries `inspect`; `LIVE_VIEW_OPS` (both sides, and the contract
+  fixture's `live`) gains it. `Workbench.onView` opens the entry in the item drawer over the
+  target's own stage (`parseAiaId(target).stage`). On another stage the move goes through the leave
+  guard; the entry waits in module scope (`leadInspect`, a route change remounts) and the opening
+  stack reads it (`openingStack`); a move the guard stopped leaves nothing pending. The turn's chip
+  reads "Detail: <label>".
+- **Named by its words.** The entry is titled by the id (`targetLabel`) until the stage shows the
+  element, then by the words a person's pointing gives it (`targetOfElement`), looked for briefly
+  while the content loads; the drawer's fallback body no longer repeats the id under the heading.
+- **The scripted Lead** (UI workbench): a message with "detail" adds an `inspect` of the first
+  research question, else the first hypothesis, so a browser can run it.
+- **In a browser** (UI workbench, the planned fixture, scripted Lead, zero paid): from Zadání at
+  1440 and 390 px, "Ukaž mi detail…" moves to Návrh and opens the drawer on the first hypothesis,
+  titled "Hypotéza: Mírnější varianta osloví širší publikum než nejsilnější."; Escape closes it,
+  the turn's "Detail" chip opens it again; no page error, no overflow, no agent job posted.
+- **Tests.** `test_research_lead.py` "the Lead opens a detail only of what the context holds"
+  (an invented id per kind), "an inspect reads the analysis's ids too", "an inspect the contract or
+  the copy refuses is dropped and named", "an inspect target is held to the focus grammar"; `test_lead_artifacts.py` "each kind has the stage that names it";
+  `test_research_lead_workbench.py` "a scripted message asking for a detail…";
+  `Workbench.layout.test.tsx` "opens what the Lead's inspect names on this stage…", "opens the
+  Lead's inspect on another stage once that stage is shown…", "leaves nothing pending when a leave
+  guard stops…". The web tests fail without the change.
+- **Still to build in chunk 14:** `select`, `filter` and `show_diff`, each with the artifact that
+  declares it.
+- **F18. A view chip names its element by id** *(open)*. A turn's
+  chips read "Ukázat: Zadání: title" and "Detail: Hypotéza hyp_37d84435f2" (`LeadPane.tsx:393 @ 1fd345a0`
+  `VIEW_LABEL`, which has only `targetLabel`; seen in the browser run above). The element is often on
+  another stage, so the conversation cannot read its words from the page. Smallest fix: the server
+  sends the label it grounded the target against (the frozen copy holds the words) beside each view
+  op, or the web keeps the words it saw when the element was last shown. Test: a chip for a
+  hypothesis reads its words.

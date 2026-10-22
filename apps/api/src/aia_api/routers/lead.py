@@ -22,8 +22,16 @@ from contextlib import contextmanager
 from datetime import datetime
 from typing import Annotated, Any, Literal
 
-from aia_core.application.lead_chat_start import ChatStartRefused
-from aia_core.application.research import CostCeilingUnknown, CostConfirmationRequired
+from aia_core.application.lead_chat_start import (
+    AnalysisRetryTargetMoved,
+    ChatStartRefused,
+    newest_analysed_run,
+)
+from aia_core.application.research import (
+    CostCeilingUnknown,
+    CostConfirmationRequired,
+    ResearchRuns,
+)
 from aia_core.application.research_lead import (
     LeadAlreadyHatched,
     LeadBusy,
@@ -121,6 +129,9 @@ class RequestApproval(BaseModel):
     #: The working revision the person approves the job on, sent only after a ``stale_card``
     #: refusal and their yes: the card then runs on the design as it is now (LO10).
     workspace_revision: int | None = Field(default=None, ge=1)
+    #: A typed analysis retry's run, as its card showed it (``analysis_retry_run``); another
+    #: newest analysed run since is 409 ``analysis_retry_target_moved``.
+    retry_run_id: str | None = Field(default=None, max_length=64, pattern=r"^RUN-[0-9a-f]{1,32}$")
 
 
 class EditStatus(BaseModel):
@@ -233,6 +244,15 @@ class TypedCommand(BaseModel):
     takes_instruction: bool
 
 
+class RetryTarget(BaseModel):
+    """The run a typed "Zopakuj analýzu" would retry: the study's newest run that ran analysis."""
+
+    model_config = ConfigDict(extra="forbid")
+    run_id: str
+    created_at: datetime | None
+    phase: str
+
+
 class LeadState(BaseModel):
     """The conversation and whether it is offered. ``available`` is the API's switch alone;
     ``worker_ready`` is whether a worker can answer a turn, ``null`` when that is unknown and
@@ -252,6 +272,10 @@ class LeadState(BaseModel):
     worker_reason: str | None
     #: The typed start commands the composer takes, with the Lead on or off (Q43).
     commands: list[TypedCommand]
+    #: AIA_STUDY_WALLET_ENABLED: whether a typed start's card speaks of the Peněženka.
+    wallet_enabled: bool
+    #: The run a typed analysis retry's card names; ``null`` when no run ran analysis.
+    analysis_retry_run: RetryTarget | None
     busy: bool
     turns: list[LeadTurn]
 
@@ -396,6 +420,13 @@ def _lead_errors() -> Iterator[None]:
             reason=exc.reason.value,
             limit_usd=exc.limit_usd,
         ) from exc
+    except AnalysisRetryTargetMoved as exc:
+        raise _error(
+            409,
+            exc.reason,
+            "A newer run has run analysis since this card was shown; confirm it to retry that one.",
+            current_run_id=exc.current_run_id,
+        ) from exc
     except ChatStartRefused as exc:
         raise _error(
             409,
@@ -433,6 +464,7 @@ def read_lead(scope: StudyScopeDep, session: SessionDep, settings: SettingsDep) 
     with _lead_errors():
         lead = ResearchLead(session, scope, enabled=settings.research_lead_on)
         state = lead.state()
+        retry_run = newest_analysed_run(ResearchRuns(session, scope))
     on = settings.research_lead_on
     ready, source, reason = worker_readiness(state["turns"])
     return LeadState(
@@ -450,6 +482,14 @@ def read_lead(scope: StudyScopeDep, session: SessionDep, settings: SettingsDep) 
             )
             for c in COMMANDS
         ],
+        wallet_enabled=settings.study_wallet_enabled,
+        analysis_retry_run=None
+        if retry_run is None
+        else RetryTarget(
+            run_id=retry_run["run_id"],
+            created_at=retry_run.get("created_at"),
+            phase=str(retry_run["phase"]),
+        ),
         busy=state["busy"],
         turns=[LeadTurn.model_validate(t) for t in _public(state["turns"])],
     )
@@ -560,6 +600,7 @@ def approve_request(
     settings: SettingsDep,
     population: RunPopulationDep,
     sampler: PanelSamplerDep,
+    store: ArtifactStoreDep,
 ) -> ApprovedRequest:
     """Approve the design job the caller's own Lead turn prepared: held to the study's spend
     limit, started and recorded in the approval ledger, once. With the Lead switched off, a
@@ -575,9 +616,10 @@ def approve_request(
             turn_id,
             confirm_cost_usd=body.confirm_cost_usd,
             reservation_usd=settings.ai_research_reservation_usd,
-            run_start=run_start_settings(request, population, sampler),
+            run_start=run_start_settings(request, population, sampler, store),
             wallet_enabled=settings.study_wallet_enabled,
             workspace_revision=body.workspace_revision,
+            retry_run_id=body.retry_run_id,
         )
     return ApprovedRequest.model_validate(started)
 

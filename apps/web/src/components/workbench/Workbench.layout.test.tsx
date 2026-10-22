@@ -18,7 +18,8 @@ import { FrameNavigation } from "@/components/rehome/step";
 import { useItemInspector } from "./item-inspector-context";
 import { Workbench } from "./Workbench";
 
-vi.mock("next/navigation", () => ({ useRouter: () => ({ push: vi.fn(), replace: vi.fn() }), usePathname: () => "/app" }));
+const { push } = vi.hoisted(() => ({ push: vi.fn() }));
+vi.mock("next/navigation", () => ({ useRouter: () => ({ push, replace: vi.fn() }), usePathname: () => "/app" }));
 
 let width = 1440;
 const lists: { query: string; listeners: Set<() => void> }[] = [];
@@ -110,10 +111,10 @@ function Opener() {
   );
 }
 
-function bench(child = <Stage />) {
+function bench(child = <Stage />, step: "questionnaire" | "plan" = "questionnaire") {
   const store = new ResearchStore({ revision: 3, project: EMPTY_PROJECT as unknown as ResearchProject, analysis: null, save: { kind: "saved" }, checkEpoch: 0 }, "STU-1");
   return render(
-    <Workbench frame={TEST_FRAME} step="questionnaire" store={store} memory={new Map()} save={null} inspector={null} reload={vi.fn()} confirm={vi.fn(async () => true)}
+    <Workbench frame={TEST_FRAME} step={step} store={store} memory={new Map()} save={null} inspector={null} reload={vi.fn()} confirm={vi.fn(async () => true)}
       onAgentStarted={vi.fn()} jobs={[]} onOpenJob={vi.fn()} onRefreshJobs={vi.fn(async () => [])}>
       {child}
     </Workbench>,
@@ -375,6 +376,53 @@ describe("the item inspector", () => {
     expect(document.querySelector("[data-item-inspector]")).toBeNull();
   });
 
+  it("opens what the Lead's inspect names on this stage, as a click would (research-lead-workbench 14)", async () => {
+    leadReads = [leadState({ busy: true, turns: [leadTurn("T1", 1)] }), leadState({ turns: [leadTurn("T1", 1), leadTurn("T2", 2, [{ op: "inspect", target: "question:q1" }])] })];
+    bench();
+    await waitFor(() => expect(document.querySelector("[data-item-inspector]")?.getAttribute("data-item-inspector")).toBe("question:q1"), { timeout: 4000 });
+    expect(push).not.toHaveBeenCalled();
+    // Named by its words on the page, not by its id.
+    await waitFor(() => expect(document.querySelector("[data-item-inspector]")!.textContent).toContain("Jak často pijete čaj?"));
+    // The turn names it in words, and its chip opens it again.
+    expect(screen.getByRole("button", { name: /^Detail: / })).toBeTruthy();
+  });
+
+  it("opens the Lead's inspect on another stage once that stage is shown, through the stage's leave guard", async () => {
+    push.mockClear();
+    leadReads = [leadState({ busy: true, turns: [leadTurn("T1", 1)] }), leadState({ turns: [leadTurn("T1", 1), leadTurn("T2", 2, [{ op: "inspect", target: "rq:rq_1" }])] })];
+    bench();
+    await waitFor(() => expect(push).toHaveBeenCalledTimes(1), { timeout: 4000 });
+    expect(push.mock.calls[0][0]).toMatch(/\/plan$/);
+    expect(document.querySelector("[data-item-inspector]")).toBeNull();
+    // A route change remounts the workbench on Návrh: the drawer opens there.
+    cleanup();
+    leadReads = [leadState()];
+    bench(<div><div data-aia="rq:rq_1">Kdo pije čaj ráno?</div></div>, "plan");
+    await waitFor(() => expect(document.querySelector("[data-item-inspector]")?.getAttribute("data-item-inspector")).toBe("rq:rq_1"));
+    await waitFor(() => expect(document.querySelector("[data-item-inspector]")!.textContent).toContain("Kdo pije čaj ráno?"));
+    // Nowhere by its opaque id: neither the heading nor the body of a kind without a detail.
+    expect(document.querySelector("[data-item-inspector]")!.textContent).not.toContain("rq_1");
+  });
+
+  it("leaves nothing pending when a leave guard stops the Lead's move to the inspected stage", async () => {
+    push.mockClear();
+    const guard = (e: MouseEvent) => e.preventDefault();
+    document.addEventListener("click", guard, true);
+    try {
+      leadReads = [leadState({ busy: true, turns: [leadTurn("T1", 1)] }), leadState({ turns: [leadTurn("T1", 1), leadTurn("T2", 2, [{ op: "inspect", target: "rq:rq_1" }])] })];
+      bench();
+      await screen.findByRole("button", { name: /^Detail: / }, { timeout: 4000 });
+    } finally {
+      document.removeEventListener("click", guard, true);
+    }
+    expect(push).not.toHaveBeenCalled();
+    cleanup();
+    leadReads = [leadState()];
+    bench(<Stage />, "plan");
+    await new Promise((r) => setTimeout(r, 50));
+    expect(document.querySelector("[data-item-inspector]")).toBeNull();
+  });
+
   it("gives the focus back to what opened it when it closes (Codex on #623)", async () => {
     bench(<Opener />);
     const opener = screen.getByRole("button", { name: "open q1" });
@@ -572,5 +620,36 @@ describe("a stage's forward action through the frame (FrameNavigation's next)", 
   it("names Cílová skupina after Dotazník", () => {
     benchOn("questionnaire");
     expect(screen.getByRole("button", { name: "Další → Cílová skupina" })).toBeTruthy();
+  });
+});
+
+describe("a typed analysis retry (the PM on #744)", () => {
+  it("is approved on the run its card named, and on a newer one only after the person's yes", async () => {
+    const typed = { ...leadTurn("T1", 1), actor: "person", kind: "message", text: "Zopakuj analýzu", command: "analysis_retry", output: null };
+    leadReads = [leadState({ turns: [typed], analysis_retry_run: { run_id: "RUN-a1", created_at: null, phase: "succeeded" } })];
+    const base = vi.mocked(fetch);
+    const sent: Record<string, unknown>[] = [];
+    vi.stubGlobal("fetch", vi.fn(async (url: RequestInfo | URL, init?: RequestInit) => {
+      if (String(url).endsWith("/lead/turns/T1/request")) {
+        const body = JSON.parse(String(init?.body ?? "{}")) as Record<string, unknown>;
+        sent.push(body);
+        return body.retry_run_id === "RUN-b2"
+          ? new Response(JSON.stringify({ run_id: "RUN-r3", design_revision_id: "REV-1", status: "QUEUED" }))
+          : new Response(JSON.stringify({ code: "analysis_retry_target_moved", message: "moved", details: { current_run_id: "RUN-b2" } }), { status: 409 });
+      }
+      return base(url, init);
+    }));
+    const confirm = vi.fn(async () => true);
+    const store = new ResearchStore({ revision: 3, project: EMPTY_PROJECT as unknown as ResearchProject, analysis: null, save: { kind: "saved" }, checkEpoch: 0 }, "STU-1");
+    render(
+      <Workbench frame={TEST_FRAME} step="questionnaire" store={store} memory={new Map()} save={null} inspector={null} reload={vi.fn()} confirm={confirm}
+        onAgentStarted={vi.fn()} jobs={[]} onOpenJob={vi.fn()} onRefreshJobs={vi.fn(async () => [])}>
+        <Stage />
+      </Workbench>,
+    );
+    fireEvent.click(await screen.findByRole("button", { name: "Zopakovat analýzu" }, { timeout: 4000 }));
+    await waitFor(() => expect(sent).toHaveLength(2));
+    expect(sent.map((b) => b.retry_run_id)).toEqual(["RUN-a1", "RUN-b2"]);
+    expect(confirm).toHaveBeenCalledWith(expect.stringMatching(/novější běh s AI analýzou/));
   });
 });

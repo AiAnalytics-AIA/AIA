@@ -115,9 +115,18 @@ a `key`, donors); the audience preview's `sample` gains its `quota_fields` and `
 `refused: population_unavailable`, never a 500).
 
 Open from RQC6b's review, each a hypothesis until reproduced over HTTP:
-- A refused panel draw (`sampling_n_exceeds_support`, `sampling_field_refused`) is named in
-  `sample_composition.refused` but is no readiness check, so a start goes ahead and fieldwork fails
-  on the same refusal; a FAIL (or WARN) check from the refusal is a readiness rule of its own.
+- **F-RQC6-1 (reproduced and fixed 2026-10-22).** A refused panel draw was named in
+  `sample_composition.refused` but was no readiness check: readiness read ready, and a start
+  created the run, which fieldwork then failed on the same refusal.
+  - Anchor: `packages/aia_core/src/aia_core/application/research.py:696-758 @ 4568badd` (start's
+    `prepare` never saw the draw; the draw came after the `DesignNotReady` check).
+  - Reproduction: a panel design whose filter the population cannot apply (`fiktivni_pole`) read
+    `ready: true` and `POST …/research/runs` answered 201.
+  - Fix: `domain/panel_source.py` `with_panel_refusal`, a FAIL `panel_sample` check naming what was
+    refused, added by readiness and by start from the one draw (`PanelDraw.sampler_refused`); a
+    population that will not load stays unknown, never a FAIL. Vzorek sends the check to Cílová
+    skupina (`checkStage`).
+  - Test: `test_population_double_api.py::test_a_sample_the_sampler_refuses_fails_readiness_and_refuses_the_start`.
 - (Fixed on #694 after review: readiness takes the run's `population_version_id` and draws nothing
   over a selected child, as its start; Spuštění forwards its chosen child.)
 

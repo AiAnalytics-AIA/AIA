@@ -42,7 +42,6 @@ import {
   clientDimensions,
   dimensionLabels,
   dimensionProposal,
-  dimensionTarget,
   dimensionTopic,
   dimensionTopicWords,
   isSampleRefusal,
@@ -65,7 +64,8 @@ import { ActionDock, FrameNavigation, StepSection } from "../step";
 import { AiButton, Button, Field, TextInput } from "../ui";
 import { Stepper } from "@/components/ui/Stepper";
 import { rangeWords } from "@/lib/number-input";
-import { aiaId } from "@/lib/workbench-artifacts";
+import { dimensionAia } from "@/lib/artifacts/dimensions";
+import { sampleAia } from "@/lib/artifacts/sample";
 import { useResearch, useSessionState } from "./context";
 import { InspectorSlot } from "./Inspector";
 import { OwnDimensions } from "./OwnDimensions";
@@ -251,7 +251,7 @@ export function PersonaStep() {
               {approved.map((id) => {
                 const topic = dimensionTopic(topics === "failed" ? null : topics, id);
                 return (
-                  <li key={id} data-aia={dimensionTarget(id) ?? undefined} className="flex flex-wrap items-center gap-x-3 gap-y-1 py-2">
+                  <li key={id} data-aia={dimensionAia(id) ?? undefined} className="flex flex-wrap items-center gap-x-3 gap-y-1 py-2">
                     <span className="min-w-0 flex-1 basis-48 text-sm font-semibold">{labels[id] || id}</span>
                     <span className="text-xs text-ink-muted">{entries.find((d) => d.id === id)?.source ?? "Systém"}</span>
                     <span className={`rounded-pill border px-2 text-xs leading-5 ${topic.state === "matched" ? "border-status-done/40 text-ink" : topic.state === "unmatched" ? "border-status-you-ink/50 text-status-you-ink" : "border-border text-ink-muted"}`}>
@@ -326,7 +326,7 @@ export function PersonaStep() {
 
         <section aria-labelledby="per-sample" className="rounded-card border border-border bg-surface-raised p-4">
           <h2 id="per-sample" className="text-sm font-semibold">{t("research.persona.sampleTitle")}</h2>
-          <div className="mt-3" data-aia={aiaId("sample", "n")}>
+          <div className="mt-3" data-aia={sampleAia.n()}>
             {limits ? (
               <Stepper
                 key={n}

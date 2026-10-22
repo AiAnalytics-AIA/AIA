@@ -9,14 +9,16 @@
     {"phrase": "Zkontroluj návrh", "start": "agent_job:critique_design", "label": "Kontrola návrhu", "takes_instruction": true},
     {"phrase": "Pomoz s návrhem", "start": "agent_job:design_copilot", "label": "Pomoc s návrhem", "takes_instruction": true},
     {"phrase": "Zeptej se na klientské znalosti", "start": "agent_job:answer_memory", "label": "Klientské znalosti", "takes_instruction": true},
-    {"phrase": "Spusť výzkum", "start": "research_run", "label": "Spuštění výzkumu", "takes_instruction": false}
+    {"phrase": "Spusť výzkum", "start": "research_run", "label": "Spuštění výzkumu", "takes_instruction": false},
+    {"phrase": "Zopakuj analýzu", "start": "analysis_retry", "label": "Opakování analýzy", "takes_instruction": false}
   ],
   "matches": [
     {"text": "Spusť výzkum", "start": "research_run", "instruction": ""},
     {"text": "  spusť   VÝZKUM!  ", "start": "research_run", "instruction": ""},
     {"text": "/Spusť výzkum.", "start": "research_run", "instruction": ""},
     {"text": "Navrhni dotazník: krátce,  do 10 otázek", "start": "agent_job:build_questionnaire", "instruction": "krátce, do 10 otázek"},
-    {"text": "zkontroluj návrh", "start": "agent_job:critique_design", "instruction": ""}
+    {"text": "zkontroluj návrh", "start": "agent_job:critique_design", "instruction": ""},
+    {"text": "Zopakuj analýzu.", "start": "analysis_retry", "instruction": ""}
   ],
   "not_matches": [
     "spust vyzkum",
@@ -27,6 +29,8 @@
     "Navrhni dotazník:   ",
     "Co myslíš, mám spustit výzkum?",
     "Spusť rešerši k návrhu",
+    "Zopakuj analýzu: jen shrnutí",
+    "zopakuj analyzu",
     ""
   ]
 }

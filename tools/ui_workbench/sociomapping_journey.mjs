@@ -16,7 +16,8 @@
  *   * the fit diagnostics and the limitations are shown;
  *   * the internal draft downloads as a DOCX, saved beside the screenshots.
  *
- * It fails on a page error, a console error, a failed request, any 4xx/5xx response other
+ * It fails on a page error, a console error, a failed request (but the two navigation aborts
+ * named below), any 4xx/5xx response other
  * than the 404s the study screens expect for absent optional content, or a request to a
  * path the 18.6.6 unit served. Screenshots go to --out (default
  * tmp/ui-workbench/shots/sociomapping-<time>).
@@ -93,11 +94,18 @@ page.on("console", (m) => {
 });
 // The study frame records the stage a person is on with a fire-and-forget PUT whose errors it
 // ignores (components/aia/ResearchStudy.tsx); a navigation aborts it in the browser after the
-// API has answered (the facade log shows 204). Listed, not failed; any other failure fails.
+// API has answered (the facade log shows 204). Progress rewrites ?run= to the run it follows,
+// which cancels the server-component fetch (GET …/progress?_rsc=) already under way for the old
+// URL. Both are listed, not failed; any other failure fails.
 const stageMarkers = [];
+const progressRsc = [];
 page.on("requestfailed", (r) => {
   const line = `${r.method()} ${r.url()} ${r.failure()?.errorText ?? ""}`;
-  if (r.method() === "PUT" && /\/workspace\/stage$/.test(new URL(r.url()).pathname) && /ERR_ABORTED/.test(line)) stageMarkers.push(line);
+  let path = "", rsc = false;
+  try { const u = new URL(r.url()); path = u.pathname; rsc = u.searchParams.has("_rsc"); } catch { /* not a URL: a failure */ }
+  if (!/ERR_ABORTED/.test(line)) failed.push(line);
+  else if (r.method() === "PUT" && /\/workspace\/stage$/.test(path)) stageMarkers.push(line);
+  else if (r.method() === "GET" && rsc && /\/progress$/.test(path)) progressRsc.push(line);
   else failed.push(line);
 });
 page.on("request", (r) => { try { if (UNIT_PATH.test(new URL(r.url()).pathname)) toUnit.push(`${r.method()} ${r.url()}`); } catch { /* not a URL */ } });
@@ -188,11 +196,11 @@ ok(`Report: downloaded ${file.suggestedFilename()}`);
 
 await browser.close();
 const unexpected = bad.filter((b) => !(b.startsWith("404 GET ") && NOTHING_HERE.test(b)));
-writeFileSync(join(OUT, "journey.json"), JSON.stringify({ result: unexpected.length || errors.length || consoleErrors.length || failed.length || toUnit.length ? "FAIL" : "PASS", log, http_errors: bad, console_errors: consoleErrors, failed_requests: failed, aborted_stage_markers: stageMarkers, page_errors: errors, unit_requests: toUnit, report: saved }, null, 1));
+writeFileSync(join(OUT, "journey.json"), JSON.stringify({ result: unexpected.length || errors.length || consoleErrors.length || failed.length || toUnit.length ? "FAIL" : "PASS", log, http_errors: bad, console_errors: consoleErrors, failed_requests: failed, aborted_stage_markers: stageMarkers, aborted_progress_rsc: progressRsc, page_errors: errors, unit_requests: toUnit, report: saved }, null, 1));
 if (toUnit.length) fail(`requests to the unit's paths: ${toUnit.join(" | ")}`);
 if (errors.length) fail(`page errors: ${errors.join(" | ")}`);
 if (failed.length) fail(`failed requests: ${failed.join(" | ")}`);
 if (unexpected.length) fail(`unexpected HTTP errors: ${unexpected.join(" | ")}`);
 if (consoleErrors.length) fail(`console errors: ${consoleErrors.join(" | ")}`);
-ok(`no page error, console error, failed request or unexpected HTTP error (${bad.length} expected 404s; ${stageMarkers.length} stage markers aborted by navigation)`);
+ok(`no page error, console error, failed request or unexpected HTTP error (${bad.length} expected 404s; ${stageMarkers.length} stage markers and ${progressRsc.length} Progress fetches aborted by navigation)`);
 console.log(`sociomapping journey: PASS (screenshots, report and journey.json in ${OUT})`);

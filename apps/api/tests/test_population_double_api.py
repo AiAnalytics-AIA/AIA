@@ -231,6 +231,8 @@ def test_a_population_that_will_not_load_reads_unknown_never_fails_readiness(
     body = read.json()
     assert body["sample_composition"]["refused"] == "population_unavailable"
     assert body["sample_composition"]["cells"] == []
+    # A population that will not load says nothing of the design: no failed check.
+    assert all(c["id"] != "panel_sample" for c in body["checks"])
     check = next(c for c in body["checks"] if c["id"] == "support_forecast")
     assert check["status"] == "WARN" and "se ukáže až při výběru" in check["message"]
 
@@ -291,3 +293,36 @@ def test_a_drawn_sample_whose_forecast_is_unknown_says_it_was_not_counted(
     composition = read.json()["sample_composition"]
     assert composition["refused"] is None and composition["cells"]
     assert composition["support_counted"] is False
+
+
+def test_a_sample_the_sampler_refuses_fails_readiness_and_refuses_the_start(
+    researcher: TestClient, world: Any
+) -> None:
+    """Fieldwork draws the sample readiness drew and would refuse it, so the refusal is a FAIL
+    by name and a start is refused before any run (RQC6); the roster run of the same design is
+    not held to a sample it never draws."""
+    design = {**DESIGN, "audience": {"filters": {"fiktivni_pole": "ano"}}}
+    revision = world.design(researcher, design).json()["revision_id"]
+    study = f"{API}/studies/{world.study_id()}/research"
+    read = researcher.get(
+        f"{study}/readiness", params={"design_revision_id": revision, "persona_source": "panel"}
+    )
+    assert read.status_code == 200, read.text
+    body = read.json()
+    assert body["ready"] is False
+    check = next(c for c in body["checks"] if c["id"] == "panel_sample")
+    assert check["status"] == "FAIL" and "fiktivni_pole" in check["message"]
+
+    started = researcher.post(
+        f"{study}/runs", json={"design_revision_id": revision, "persona_source": "panel"}
+    )
+    assert started.status_code == 409, started.text
+    assert started.json()["code"] == "design_not_ready"
+    assert [c["id"] for c in started.json()["details"]["failed"]] == ["panel_sample"]
+    assert researcher.get(f"{study}/runs").json()["items"] == []
+
+    roster = researcher.get(
+        f"{study}/readiness",
+        params={"design_revision_id": revision, "persona_source": "fictional_roster"},
+    ).json()
+    assert all(c["id"] != "panel_sample" for c in roster["checks"])

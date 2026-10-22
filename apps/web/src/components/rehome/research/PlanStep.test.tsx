@@ -6,6 +6,7 @@ import { afterEach, beforeEach, describe, expect, it, onTestFinished, vi } from 
 
 import { AGENTS_PATH, DESIGN_PATH, NATIVE_JOB_WAIT, NATIVE_TEST_TIMEOUT_MS, approveProposal, nativeAgentFixture } from "./test-native-agents";
 import { briefFingerprint, defaultsMerge } from "@/research/model";
+import { FrameNavigation } from "../step";
 import { ResearchScreen } from "./ResearchScreen";
 import { workspaceFixture } from "./test-workspace";
 import { TEST_FRAME, stagePath } from "./test-frame";
@@ -91,6 +92,26 @@ describe("Návrh", () => {
     expect(push).toHaveBeenCalledWith(stagePath("questionnaire"));
   });
 
+  it("warns in words above the recommended fifteen objects and still lets the plan go on (Q75 (a))", async () => {
+    const sixteen = Array.from({ length: 16 }, (_, i) => `Varianta ${i + 1}`);
+    unitStub({ ...ANALYSIS, tracked_sets: [{ ...ANALYSIS.tracked_sets[0], objects: sixteen }] });
+    render(<ResearchScreen step="plan" frame={TEST_FRAME} />);
+    expect(await screen.findByText("16 / doporučeno 4–15")).toBeTruthy();
+    expect(screen.getByText("Víc než doporučených 15 objektů. Sada jich může mít až 40; Kontrola na to upozorní.")).toBeTruthy();
+    expect(screen.queryByText(/potřebuje 4–40/)).toBeNull();
+    expect(screen.getByText("Návrh je připravený")).toBeTruthy();
+  });
+
+  it("holds a set to the methodology in force: 31 objects stop the plan where the maximum is 30", async () => {
+    const objects = Array.from({ length: 31 }, (_, i) => `Varianta ${i + 1}`);
+    const tracked_set = { min: 3, max: 30, recommended_min: 5, recommended_max: 12 };
+    unitStub({ ...ANALYSIS, tracked_sets: [{ ...ANALYSIS.tracked_sets[0], objects }] }, { [LIMITS_PATH]: () => ({ ...LIMITS, tracked_set }) });
+    render(<ResearchScreen step="plan" frame={TEST_FRAME} />);
+    expect(await screen.findByText("31 / doporučeno 5–12")).toBeTruthy();
+    expect(screen.getByText(/má 31 položek, potřebuje 5–30/)).toBeTruthy();
+    expect(screen.queryByText("Návrh je připravený")).toBeNull();
+  });
+
   it("draws the analysis, its sets with the question preview, the follow-ups and the comments", async () => {
     unitStub();
     render(<ResearchScreen step="plan" frame={TEST_FRAME} />);
@@ -98,9 +119,9 @@ describe("Návrh", () => {
     expect(screen.getByText("Jde o test nového konceptu.")).toBeTruthy();
     expect(screen.getByText("Mírnější varianta vyhraje")).toBeTruthy();
     expect(screen.getByText("Jak vás oslovuje Jemná?")).toBeTruthy();
-    // Two items: under the 4–15 a set is measured with, and the dock says so.
-    expect(screen.getByText("2 / 4–15")).toBeTruthy();
-    expect(screen.getByText(/má 2 položek, potřebuje 4–15/)).toBeTruthy();
+    // Two items: under the four a set needs, and the dock says so.
+    expect(screen.getByText("2 / doporučeno 4–15")).toBeTruthy();
+    expect(screen.getByText(/má 2 položek, potřebuje 4–40/)).toBeTruthy();
     expect(screen.getByText("Jen MHD?")).toBeTruthy();
     const process = screen.getByRole("button", { name: "Zpracovat komentáře" }) as HTMLButtonElement;
     expect(process.disabled).toBe(true);
@@ -355,6 +376,21 @@ describe("Návrh", () => {
     fireEvent.click(await screen.findByRole("button", { name: /Další · dotazník/ }));
     expect(push).toHaveBeenCalledWith(stagePath("questionnaire"));
   });
+
+  it("inside the workbench goes on through the frame's next stage, and not while a set is open for editing", async () => {
+    unitStub();
+    const go = vi.fn();
+    render(<FrameNavigation.Provider value={{ next: { label: "Dotazník", go } }}><ResearchScreen step="plan" frame={TEST_FRAME} /></FrameNavigation.Provider>);
+    // A set open for editing: the move is refused before the frame is asked.
+    fireEvent.click((await screen.findAllByRole("button", { name: "Upravit měření a položky" }))[0]!);
+    expect((screen.getByRole("button", { name: /Další · dotazník/ }) as HTMLButtonElement).disabled).toBe(true);
+    expect(go).not.toHaveBeenCalled();
+    fireEvent.click(screen.getByRole("button", { name: "Zrušit úpravy" }));
+    // The frame's go opens Dotazník through guardedNavigate and focuses its heading (Workbench's).
+    fireEvent.click(screen.getByRole("button", { name: /Další · dotazník/ }));
+    expect(go).toHaveBeenCalledTimes(1);
+    expect(push).not.toHaveBeenCalled();
+  });
 });
 
 
@@ -398,6 +434,20 @@ describe("direct proposal editing", () => {
     expect(posted(DESIGN_PATH)).toEqual([]); // manual editing never pays for an AI task
   });
 
+  it("says an empty new narrative item as the thing to write, never a name", async () => {
+    unitStub();
+    render(<ResearchScreen step="plan" frame={TEST_FRAME} />);
+    await screen.findByText("Mírnější varianta vyhraje");
+    for (const [add, words] of [["Přidat výzkumnou otázku", "Napište výzkumnou otázku."], ["Přidat cíl", "Napište cíl."], ["Přidat hypotézu", "Napište hypotézu."]]) {
+      fireEvent.click(screen.getByRole("button", { name: add }));
+      const row = screen.getByRole("textbox", { name: add });
+      fireEvent.keyDown(row, { key: "Enter" });
+      // The row's own message: the one its field is described by.
+      expect(document.getElementById(row.getAttribute("aria-describedby") ?? "")?.textContent).toBe(words);
+      fireEvent.keyDown(row, { key: "Escape" });
+    }
+  });
+
   it("refuses a repeat at the field, keeps the last objective, and takes a removal back with Vrátit", async () => {
     const ws = unitStub();
     render(<ResearchScreen step="plan" frame={TEST_FRAME} />);
@@ -416,7 +466,7 @@ describe("direct proposal editing", () => {
     expect(screen.queryByText(/už existuje/)).toBeNull();
     fireEvent.change(row, { target: { value: "  " } });
     fireEvent.keyDown(row, { key: "Enter" });
-    expect(await screen.findByText("Prázdnou položku nelze uložit.")).toBeTruthy();
+    expect(await screen.findByText("Napište hypotézu.")).toBeTruthy();
     expect(ws.saves).toEqual([]);
     fireEvent.keyDown(row, { key: "Escape" });
     // A removal happens at once and Vrátit puts it back where it was.
@@ -511,7 +561,7 @@ describe("Návrh: Výzkumné otázky a jejich pokrytí", () => {
     const ws = stub(null);
     render(<ResearchScreen step="plan" frame={TEST_FRAME} />);
     await within(await section()).findByText(/Podle pracovní kopie, revize 3/);
-    // A narrative value opens its field once the click has settled (InlineText selectable, #727).
+    // A narrative item is selectable (#727): a click opens it once SELECT_SETTLE_MS has passed.
     const edit = async (label: string, value: string) => {
       fireEvent.click(screen.getByRole("button", { name: new RegExp(`^Upravit: ${label}`) }));
       const field = await screen.findByRole("textbox", { name: label });

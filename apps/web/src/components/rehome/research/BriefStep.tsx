@@ -11,7 +11,7 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { type DragEvent, type ReactNode, useEffect, useRef, useState } from "react";
+import { type DragEvent, type ReactNode, useContext, useEffect, useRef, useState } from "react";
 
 import { t, tv } from "@/i18n/t";
 import { workspace } from "@/lib/api";
@@ -43,7 +43,7 @@ import {
 } from "@/research/brief";
 import { type Attachment, PROBLEM_TYPES, type ResearchProject, selectedProblemTypes } from "@/research/model";
 import { Icon, type IconName } from "../icons";
-import { StepSection } from "../step";
+import { FrameNavigation, StepSection } from "../step";
 import { InspectorSlot } from "./Inspector";
 import { AiButton, Button, TextInput } from "../ui";
 import { useResearch } from "./context";
@@ -93,6 +93,8 @@ const jumpTo = (id: string) => document.getElementById(id)?.scrollIntoView?.({ b
 export function BriefStep() {
   const { store, state, stepHref } = useResearch();
   const router = useRouter();
+  // Inside the workbench the frame opens the next stage (its leave guard, its heading's focus); outside it, the route.
+  const frameNav = useContext(FrameNavigation);
   const p = state.project;
   const { analyse: runAnalysis, resume, failure, busy } = useAnalysis();
   const leadOwnsAiStarts = useLeadOwnsAiStarts();
@@ -103,13 +105,13 @@ export function BriefStep() {
   // analyzeBrief -> ensureAnalysis1776 -> go('plan').
   const analyse = async () => {
     if (!(await runAnalysis({ force: true }))) return;
-    router.push(stepHref("plan"));
+    if (frameNav?.next) frameNav.next.go(); else router.push(stepHref("plan"));
   };
   // The same analysis job, after a budget lift: on its accept the person goes on to Návrh, as
   // `analyse` does, so "Další krok" is never pressed again for an analysis already made (CR-2).
   const continueAnalysis = async (jobId: string) => {
     if (!(await resume(jobId))) return;
-    router.push(stepHref("plan"));
+    if (frameNav?.next) frameNav.next.go(); else router.push(stepHref("plan"));
   };
 
   const selected = new Set(selectedProblemTypes(p));
@@ -157,10 +159,17 @@ export function BriefStep() {
             </AiButton>
           ) : (
             <>
-              <Link href={stepHref("plan")} className="inline-flex w-full items-center justify-center gap-1 rounded-control border border-border-strong px-3 !min-h-11 text-sm no-underline">
-                Pokračovat na Návrh
-                <Icon name="next" size={14} />
-              </Link>
+              {frameNav?.next ? (
+                <Button className="w-full justify-center !rounded-control !min-h-11" onClick={() => frameNav.next?.go()}>
+                  Pokračovat na Návrh
+                  <Icon name="next" size={14} />
+                </Button>
+              ) : (
+                <Link href={stepHref("plan")} className="inline-flex w-full items-center justify-center gap-1 rounded-control border border-border-strong px-3 !min-h-11 text-sm no-underline">
+                  Pokračovat na Návrh
+                  <Icon name="next" size={14} />
+                </Link>
+              )}
               <AskLead className="mt-2" what="Analýzu zadání" />
             </>
           )}

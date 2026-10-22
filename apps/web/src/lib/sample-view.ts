@@ -77,6 +77,7 @@ const CHECK_STAGE: Readonly<Record<string, WorkbenchStage>> = {
   sociomap_support: "dimensions",
   dimensions: "dimensions",
   audience: "audience",
+  panel_sample: "audience",
   questionnaire: "questionnaire",
   conditional_questions: "questionnaire",
   battery_familiarity: "questionnaire",
