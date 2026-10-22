@@ -2,8 +2,8 @@
 status: in-progress
 chunks:
   - "[x] 1. Fix the web suite's red test: Vzorek's pending ids are in the contract now (taken by #627; fix/sample-pending-ids dropped)"
-  - "[x] 2. Remove web code nothing references (branch chore/web-dead-code)"
-  - "[ ] 3. Remove Python code nothing references (branch chore/python-dead-code)"
+  - "[x] 2. Remove web code nothing references (#701)"
+  - "[x] 3. Remove Python code nothing references (#715, merged as 292dbaf2)"
   - "[ ] 4. Stop exporting what only its own module uses (knip's list below)"
   - "[ ] 5. Review the remaining `# type: ignore` sites (list below)"
 ---
