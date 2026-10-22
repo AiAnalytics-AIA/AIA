@@ -1128,7 +1128,8 @@ the conversation. A person types **"Zopakuj analýzu"** (no instruction), matche
   analysis (`_newest_analysed_run`; one still running is refused, never passed over for an older
   one) and calls the stage route's own `retry_failed_modules`: the same threshold (LO15), frozen
   dataset, idempotency and refusals by name (`analysis_not_retryable` with `run_not_finished`,
-  `analysis_not_in_run`, `dataset_missing`, `specification_missing`, `nothing_to_retry`), mapped
+  `analysis_not_in_run`, `dataset_missing`, `specification_missing`, `nothing_to_retry`, and
+  `no_analysed_run` when the study has no run that ran analysis at all), mapped
   once in `run_start_errors` for both routes. It writes `chat_start` naming the retry run (`reuse`
   when the retry was already there).
 - **No wallet charge** (the product manager's decision (b), 2026-10-22): the stage route charges

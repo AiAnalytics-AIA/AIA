@@ -1927,6 +1927,8 @@ _NOT_RETRYABLE_MESSAGES: Final = {
     "analysis_not_in_run": "Tento běh neobsahoval AI analýzu.",
     "dataset_missing": "Běh nemá sebraná data, nad kterými by šlo analýzu zopakovat.",
     "nothing_to_retry": "Žádný modul analýzy v tomto běhu neselhal.",
+    # The Lead's typed retry, which names no run: the study has none that ran analysis.
+    "no_analysed_run": "Studie zatím nemá žádný běh s AI analýzou, který by šlo zopakovat.",
 }
 
 

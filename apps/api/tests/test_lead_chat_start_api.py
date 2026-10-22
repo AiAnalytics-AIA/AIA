@@ -501,7 +501,9 @@ def test_a_typed_analysis_retry_with_no_analysed_run_is_refused_by_name(
     refused = _approve(researcher, world, turn["turn_id"])
     assert refused.status_code == 409, refused.text
     assert refused.json()["code"] == "analysis_not_retryable"
-    assert refused.json()["details"]["reason"] == "analysis_not_in_run"
+    # Named as the study's, not a run's: there is no run to speak of.
+    assert refused.json()["details"]["reason"] == "no_analysed_run"
+    assert "Studie zatím nemá" in refused.json()["message"]
     assert _written(app) == {"runs": 0, "chat_start": 0, "charges": 0}
 
 

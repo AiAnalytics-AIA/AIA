@@ -197,7 +197,7 @@ def approve_chat_start(
             raise ChatStartRefused("run_start_unavailable")
         target = _newest_analysed_run(ResearchRuns(session, scope))
         if target is None:
-            raise AnalysisNotRetryable("analysis_not_in_run", "no run of this study ran analysis")
+            raise AnalysisNotRetryable("no_analysed_run", "no run of this study ran analysis")
         # The stage route's own start: threshold, frozen dataset, idempotency, refusals by name.
         started = retry_failed_modules(
             session,
