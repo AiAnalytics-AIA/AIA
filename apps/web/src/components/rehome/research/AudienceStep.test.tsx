@@ -336,7 +336,8 @@ describe("Audience", () => {
       expect(screen.getByText("Hledání odpovídá 1 z 2 subpanelů; zvolený zůstává vidět.")).toBeTruthy();
       fireEvent.change(screen.getByLabelText("Hledat subpanel"), { target: { value: "nikdo" } });
       expect(names()).toEqual(["Studenti"]);
-      expect(screen.getByText("Hledání odpovídá 0 z 2 subpanelů; zvolený zůstává vidět.")).toBeTruthy();
+      // Announced as the person types: the search's only feedback.
+      expect(screen.getByText("Hledání odpovídá 0 z 2 subpanelů; zvolený zůstává vidět.").getAttribute("role")).toBe("status");
       noUnitCalls();
     });
 

@@ -563,7 +563,8 @@ function Subpanels({ live }: { live: Extract<Live, { state: "ready" }> }) {
         <Field label={t("research.audience.searchSubpanels")} className="mt-2">
           <TextInput value={query} onChange={(e) => setQuery(e.target.value)} />
         </Field>
-        <p className="mt-1 text-xs text-ink-muted">{tv("research.audience.subpanelsShown", { shown: matched.length, total: all.length })}</p>
+        {/* The search's only feedback, so it is announced as the person types. */}
+        <p role="status" className="mt-1 text-xs text-ink-muted">{tv("research.audience.subpanelsShown", { shown: matched.length, total: all.length })}</p>
         <div role="radiogroup" aria-label={t("research.audience.subpanelsTitle")} className="mt-2 grid gap-2 [grid-template-columns:repeat(auto-fit,minmax(240px,1fr))]">
           {shown.map((sp) => (
             <div key={sp.key} data-aia={audienceSubpanelAia(sp.key) ?? undefined} className="grid">
