@@ -368,6 +368,18 @@ class ResearchStepResponse(BaseModel):
     recovery_reason: Literal["paid_call_uncertain", "attempts_exhausted"] | None = None
 
 
+class ResearchRunSpend(BaseModel):
+    """What one run has cost, by the rules Settings reads a person's spend (Q40), whoever each
+    charge is booked to (``artifact-fieldwork`` FLD4)."""
+
+    #: Settled: the usage ledger's rows and the holds no ledger row names.
+    spent_usd: float
+    #: Holds open now: not spent yet, and not in the study's remainder.
+    reserved_usd: float
+    #: Calls whose cost is not known: with any, ``spent_usd`` is not known to the cent.
+    uncertain_calls: int
+
+
 class ResearchRunPopulation(BaseModel):
     """The population a run recorded (population-operations P3), and whether anything read it.
 
@@ -493,6 +505,9 @@ class ResearchRunResponse(BaseModel):
     artifact_ids: list[str] = Field(default_factory=list)
     #: Only with ``VIEW_COSTS``; ``None`` otherwise, never zero.
     actual_cost_usd: float | None = None
+    #: Only on ``GET …/research/runs/{run_id}``, with ``VIEW_COSTS``; ``None`` on a listed run
+    #: and on an action's answer (start, cancel, retry, budget), which is not a cost read.
+    spend: ResearchRunSpend | None = None
     #: The population the run recorded; ``None``: it recorded none (no LIVE when it started).
     population: ResearchRunPopulation | None = None
     #: The Sociomap, support and aggregation methods the run pinned when it started.
@@ -1630,10 +1645,20 @@ def list_runs(
     "/research/runs/{run_id}", response_model=ResearchRunResponse, summary="One research run"
 )
 def get_run(run_id: RunIdPath, scope: StudyScopeDep, session: SessionDep) -> ResearchRunResponse:
+    runs = ResearchRuns(session, scope)
     try:
-        return _run(ResearchRuns(session, scope).get(run_id), scope)
+        run = runs.get(run_id)
+        response = _run(run, scope)
+        if scope.has(Permission.VIEW_COSTS):
+            spent = runs.spend(run)
+            response.spend = ResearchRunSpend(
+                spent_usd=spent.total_usd,
+                reserved_usd=spent.reserved_usd,
+                uncertain_calls=spent.uncertain_calls,
+            )
     except ResearchRunNotFound as exc:
         raise _not_found("run") from exc
+    return response
 
 
 @router.get(
