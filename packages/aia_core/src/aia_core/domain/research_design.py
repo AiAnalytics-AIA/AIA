@@ -72,6 +72,7 @@ __all__ = [
     "TrackedSetLimits",
     "assess_readiness",
     "compile_design",
+    "condition_refusal",
     "keep_point_labels",
     "labelled_points",
     "prepare",
@@ -879,6 +880,49 @@ def _condition(
     return SpecCondition(question_id=target.compiled_id, options=options)
 
 
+def _categories(raw: Mapping[str, Any]) -> tuple[str, ...]:
+    """A selection question's categories as the compiler reads them: whitespace collapsed, the
+    first of each, at most 24 (``research_project.py:139-143``)."""
+    cats = [_text(x) for x in (raw.get("kategorie") or raw.get("volby") or []) if _text(x)]
+    return tuple(dict.fromkeys(cats))[:24]
+
+
+def condition_refusal(content: Mapping[str, Any], question_id: str, condition: Any) -> str | None:
+    """Why ``condition`` cannot stand on the question stored as ``question_id`` in ``content``,
+    as the compiler's word (``condition_*``), or ``None`` when it can: the one rule
+    (:func:`_condition`) an edit is held to before it is written (``edit_ops`` ``route_set``).
+    ``unknown_question`` when no question is stored under that id. Earlier questions are read
+    as the compiler reads them; one the compiler would refuse for its own reasons is still
+    named here, and compile says what is wrong with it."""
+    earlier: list[_Earlier] = []
+    order: list[str] = []
+    at: int | None = None
+    for sec in content.get("sections") or []:
+        if not isinstance(sec, dict) or _text(sec.get("type") or "questions") != "questions":
+            continue
+        for raw in sec.get("questions") or []:
+            stored = _text(raw.get("id")) if isinstance(raw, dict) else ""
+            order.append(stored)
+            if at is None and stored == question_id:
+                at = len(order) - 1
+            elif at is None and isinstance(raw, dict) and stored:
+                typ = _text(raw.get("typ") or "vyber")
+                options = _categories(raw) if typ in ("vyber", "multi") else ()
+                if options and raw.get("povolit_nevim", False):
+                    options = (*options, DONT_KNOW)
+                earlier.append(_Earlier(stored, stored, typ, options))
+    if at is None:
+        return "unknown_question"
+    checked = _condition(
+        condition,
+        question_id,
+        earlier=earlier,
+        refused=frozenset(),
+        later=frozenset(order[at:]) - {""},
+    )
+    return checked.code if isinstance(checked, CompileProblem) else None
+
+
 def _question(
     raw: Any,
     *,
@@ -919,8 +963,7 @@ def _question(
     scale: tuple[int, int] | None = None
     scale_labels: tuple[str, ...] = ()
     if typ in ("vyber", "multi"):
-        cats = [_text(x) for x in (raw.get("kategorie") or raw.get("volby") or []) if _text(x)]
-        cats = list(dict.fromkeys(cats))[:24]  # research_project.py:139-143
+        cats = list(_categories(raw))
         if len(cats) < 2:
             problems.append(
                 CompileProblem(

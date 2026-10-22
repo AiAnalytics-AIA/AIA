@@ -229,6 +229,60 @@ export function questionCondition(q: Question): string | null {
   return text ? text : null;
 }
 
+/** A display condition in the design's form (WCE13): those whose answer to the earlier choice
+ * question stored as `question_id` is one of `options` (research_design.py SpecCondition). */
+export type ConditionValue = { question_id: string; options: string[] };
+/** The words a condition is refused with, the server's (`condition_refusal`, edit_ops REFUSALS). */
+export type ConditionRefusal =
+  | "unknown_question"
+  | "condition_unstructured"
+  | "condition_unknown_question"
+  | "condition_forward_reference"
+  | "condition_ambiguous_question"
+  | "condition_not_choice"
+  | "condition_unknown_option";
+
+const DONT_KNOW = "Nevím / neodpovím";
+const collapsed = (x: unknown) => String(x ?? "").replace(/\s+/g, " ").trim();
+
+/**
+ * Why `condition` cannot stand on the question stored as `questionId`, as the server's word, or
+ * null when it can: research_design.py `condition_refusal`, rule for rule, held to it by the shared
+ * edit case file. Earlier questions are read as the compiler reads them: in questionnaire order,
+ * a selection question's categories whitespace-collapsed, the first of each, at most 24, with
+ * "Nevím / neodpovím" when it is allowed. A null condition (none) stands on any stored question.
+ */
+export function conditionRefusal(p: ResearchProject, questionId: string, condition: ConditionValue | null): ConditionRefusal | null {
+  const order: string[] = [];
+  const earlier: { id: string; typ: string; options: string[] }[] = [];
+  let at = -1;
+  for (const sec of sections(p)) {
+    if (collapsed(sec.type || "questions") !== "questions") continue;
+    for (const q of sec.questions || []) {
+      const stored = q && typeof q === "object" ? collapsed(q.id) : "";
+      order.push(stored);
+      if (at < 0 && stored === questionId) at = order.length - 1;
+      else if (at < 0 && stored) {
+        const typ = collapsed(q.typ || "vyber");
+        let options = typ === "vyber" || typ === "multi" ? [...new Set((q.kategorie || q.volby || []).map(collapsed).filter(Boolean))].slice(0, 24) : [];
+        if (options.length && q.povolit_nevim) options = [...options, DONT_KNOW];
+        earlier.push({ id: stored, typ, options });
+      }
+    }
+  }
+  if (at < 0) return "unknown_question";
+  if (condition === null) return null;
+  const ref = typeof condition.question_id === "string" ? collapsed(condition.question_id) : "";
+  const wanted = Array.isArray(condition.options) ? condition.options : [];
+  if (!ref || !wanted.length || !wanted.every((o) => typeof o === "string" && collapsed(o))) return "condition_unstructured";
+  const named = earlier.filter((e) => e.id === ref);
+  if (!named.length) return order.slice(at).includes(ref) ? "condition_forward_reference" : "condition_unknown_question";
+  if (named.length > 1) return "condition_ambiguous_question";
+  const target = named[0]!;
+  if (target.typ !== "vyber" && target.typ !== "multi") return "condition_not_choice";
+  return wanted.every((o) => target.options.includes(collapsed(o))) ? null : "condition_unknown_option";
+}
+
 /** The question asked of everyone: its condition removed, nothing else changed (PC15). */
 export function removeCondition(p: ResearchProject, si: number, qi: number): ResearchProject {
   return edit(p, (xs) => {

@@ -186,6 +186,16 @@ conditional question fails readiness exactly as today.
   when none), and readiness fails it by name as `condition:<question id>`. `has_filter` is held
   equal to a declared condition, read or refused. A valid condition still fails
   `conditional_questions`. Test: `test_research_conditions.py`.
+- *(b) Progress (feature/wce13-route-set):* `route_set` is applied (`edit_ops.RouteSet`: a question's
+  `condition` set, changed, or `null` removed), a person's alone: `WorkingOp` is every applied
+  payload, `EditOp` stays the Lead's eight (`in_lead_output` false). It is held to the compiler's
+  own rule before it is written (`research_design.condition_refusal`, the same `_condition`), and
+  refused with its words (`condition_*`, now in `REFUSALS`); it writes the question's `filtr`
+  (the catalogue's field), so the lock (`sociomap_input_locked`) and `touches` follow from it.
+  The web's mirror: `research/questionnaire.ts` `conditionRefusal`, `lib/lead.ts` `applyEdit` (the
+  Lead's `applyLeadEdit` beside it, `WorkingEdit`), held to the server by the shared case file's
+  route_set cases. Tests: `test_edit_ops.py`, `test_research_conditions.py`,
+  `edit-ops.cases.test.ts`.
 
 **WCE11, amended (G56, X11).** The chunk states who performs a structural auto-apply (the researcher's browser session, or a named server path under the person's standing authority, coordinated with G42), where the per-stage choice lives (Můj Vedoucí or the artifact header), and the rule once fieldwork exists (a structural auto-apply is refused or announced in the conversation, never applied silently). Today an automatic accept is an act of the signed-in browser after it sees a turn finish, and `decide_edits` needs the caller's `APPROVE_GATE` and own completed turn, so a continuation turn (LO6) finishing with no browser open applies nothing. Test: with a stage on and no browser open, a continuation turn's structural edit stays pending; after fieldwork exists it is not applied silently.
 
