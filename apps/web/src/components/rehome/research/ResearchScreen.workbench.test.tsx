@@ -17,8 +17,10 @@ vi.mock("next/navigation", () => ({ usePathname: () => "/app/clients/CLI-1/resea
 const urls: string[] = [];
 const bodies: { url: string; body: Record<string, unknown> }[] = [];
 let stored: Record<string, unknown> = {};
-function api(content: Record<string, unknown> = { title: "Alfa", goal: "Zjistit, co lidé chtějí od nové služby." }, analysis: Record<string, unknown> | null = null) {
+let runs: Record<string, unknown>[] = [];
+function api(content: Record<string, unknown> = { title: "Alfa", goal: "Zjistit, co lidé chtějí od nové služby." }, analysis: Record<string, unknown> | null = null, designRuns: Record<string, unknown>[] = []) {
   urls.length = 0;
+  runs = designRuns;
   bodies.length = 0;
   stored = content;
   vi.stubGlobal("matchMedia", (q: string) => ({ matches: q.includes("min-width: 1100px"), media: q, addEventListener: () => {}, removeEventListener: () => {} }));
@@ -35,6 +37,7 @@ function api(content: Record<string, unknown> = { title: "Alfa", goal: "Zjistit,
       : u.endsWith("/research/runs") ? { items: [] }
       : u.endsWith("/design/revisions") && method === "POST" ? { revision_id: "REV-3", revision: 3 }
       : u.endsWith("/research/agent-jobs") ? []
+      : u.endsWith("/deep-research/runs") ? runs
       : u === "/api/v1/lead" ? { hatched: true, lead: { lead_id: "L", name: "Bára", hatched_at: "", updated_at: "", files: { soul: "", user: "" }, memories: [] } }
       : u.endsWith("/lead/turns") && method === "POST" ? { turns: [] }
       : u.endsWith("/lead") ? { available: true, unavailable_reason: null, busy: false, turns: [] }
@@ -103,6 +106,18 @@ describe("the workbench: the Lead owns the AI starts", () => {
     await waitFor(() => expect(bodies.some((b) => b.url.endsWith("/lead/turns") && b.body.text === "Aktualizuj návrh podle mých komentářů.")).toBe(true));
     // The Lead answers with its card; nothing paid starts from the stage.
     expect(urls.some((u) => u.startsWith("POST") && (u.includes("/agent-jobs") || u.endsWith("/request")))).toBe(false);
+  });
+
+  it("leaves Design Research to the Lead on Dotazník: no start or retry of its own, the runs still read (QF-13)", async () => {
+    const failed = { run_id: "DR-1", purpose: "DESIGN_RESEARCH", phase: "FAILED", status: "FAILED", is_terminal: true, retryable: true, steps: [], created_at: null };
+    api({ title: "Alfa", sections: [{ id: "s", type: "questions", title: "Blok", questions: [{ id: "Q1", text: "Jak často?", typ: "vyber", kategorie: ["Denně", "Týdně"] }] }], ui_state: { questionnaire_path: "manual" } }, null, [failed]);
+    render(<ResearchScreen step="questionnaire" frame={TEST_FRAME} />);
+    await screen.findByText(/^Rešerši připraví Vedoucí výzkumu/);
+    // The run is read, with its state: only its start and retry are the Lead's.
+    await screen.findByRole("button", { name: "Nový běh" });
+    expect(screen.getByText(/^Stav: /)).toBeTruthy();
+    expect(screen.queryByRole("button", { name: "Spustit veřejný výzkum" })).toBeNull();
+    expect(screen.queryByRole("button", { name: "Opakovat běh" })).toBeNull();
   });
 
   it("keeps Spuštění's own Start: a research run is not a worker start", async () => {

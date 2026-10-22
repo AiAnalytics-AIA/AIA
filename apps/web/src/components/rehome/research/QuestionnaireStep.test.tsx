@@ -502,6 +502,16 @@ describe("Dotazník", () => {
     expect(screen.queryByText(/budget_exceeded|investigate\/web-1/)).toBeNull();
   });
 
+  it("keeps the classic layout's own Design Research start and retry (QF-13: only the workbench leaves them to the Lead)", async () => {
+    const path = "/api/v1/studies/STU-1/deep-research/runs";
+    const failed = { run_id: "RUN-f", purpose: "DESIGN_RESEARCH", status: "FAILED", phase: "FAILED", is_terminal: true, needs_attention: false, retryable: true, created_at: null, steps: [], actual_cost_usd: null };
+    unitStub({ ...BRIEF, sections: SECTIONS, ui_state: { questionnaire_path: "manual" } }, null, { [path]: () => [failed] });
+    render(<ResearchScreen step="questionnaire" frame={TEST_FRAME} />);
+    expect(await screen.findByRole("button", { name: "Opakovat běh" })).toBeTruthy();
+    expect(screen.getByRole("button", { name: "Spustit veřejný výzkum" })).toBeTruthy();
+    expect(screen.queryByText(/^Rešerši připraví Vedoucí výzkumu/)).toBeNull();
+  });
+
   it("asks before a Deep Research start the study's limit holds, with what remains of its budget, and sends the yes (6d)", async () => {
     const path = "/api/v1/studies/STU-1/deep-research/runs";
     const job = { run_id: "RUN-a1", design_revision_id: "REV-A", preset: "QUICK", channels: ["WEB"], status: "QUEUED", phase: "QUEUED", is_terminal: false, needs_attention: false, retryable: false, created_at: null, steps: [], actual_cost_usd: null };

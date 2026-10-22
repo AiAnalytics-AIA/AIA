@@ -5,6 +5,8 @@
  * (aia_executors.workbench ScriptedDeepResearchModel), so no model or search is paid and no
  * request leaves the machine. Start the workbench, write the fixtures, then run:
  *   python3 tools/ui_workbench/workbench.py up
+ * (the classic layout: in the workbench, AIA_WEB_RESEARCH_WORKBENCH=true, Dotazník has no start of its
+ * own and the Lead starts Design Research, artifact-questionnaire QF-13)
  *   python3 tools/ui_workbench/fixture_project.py
  *   node tools/ui_workbench/deep_research_journey.mjs [--facade http://127.0.0.1:8780] [--out DIR]
  * It opens the deep_research fixture's Dotazník, starts a Design Research run from the panel
