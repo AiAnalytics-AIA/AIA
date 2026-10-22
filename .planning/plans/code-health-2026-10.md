@@ -5,7 +5,7 @@ chunks:
   - "[x] 2. Remove web code nothing references (#701)"
   - "[x] 3. Remove Python code nothing references (#715, merged as 292dbaf2)"
   - "[ ] 4. Stop exporting what only its own module uses (knip's list below)"
-  - "[ ] 5. Review the remaining `# type: ignore` sites (list below)"
+  - "[x] 5. Replace the source trees' `# type: ignore` sites with real type fixes, outside the frozen engine and open PRs"
 ---
 # Code health, October 2026
 
@@ -70,18 +70,59 @@ The fix retires the pending set and holds every id to the grammar alone.
   file is the port of `domain/item_ids.py`, which uses it.
 - **Kept on purpose.** `ProviderEventRow` (`infrastructure/tables.py:378`) has no reader, but its
   table is in the migrations. Removing it needs a migration decision.
-- **Chunk 5.** Twelve `# type: ignore` sites remain:
-  - `domain/holdout/leakage.py` 105, 178, 207, 208
-  - `domain/deep_research/settings.py` 226, 301, 885
-  - `report_docx/charts.py` (4)
-  - `signed_off_map_figure.py` (2)
-  - `persona_signals.py:217`, `research_sociomapping.py:192`, `storage_settings.py:80`
-
-  Each wants a narrowing helper instead of the ignore. These are hypotheses until a typed
-  version passes `make typecheck`.
 - `domain/deep_research/legacy.py:176`'s `except Exception: continue` is the 18.6.6 rule kept
   EXACT, so it is not a finding.
 - No `any` and no empty `catch {}` in `apps/web/src` outside tests.
+
+## Chunk 5. The `# type: ignore` sites in the source trees
+
+These figures are from develop `03989975`. The four source trees (`packages/aia_core/src` and
+`apps/*/src`) had 25 sites. This chunk replaced 19 of them with a type fix that mypy checks: no
+cast, no `Any`, no new runtime behaviour.
+
+- **A predicate that narrows.**
+  - `holdout/leakage.py` and `holdout/eligibility.py` replace `_missing` with
+    `_present(cell) -> TypeGuard[str]`: the same test, negated.
+  - `_number`, `_age`, `ParsedColumns.get` and the donor check read `not _present(...)`.
+  - `eligibility.py`'s option check is one loop that collects the answered rows and checks their
+    codes.
+- **A `None` the code already excluded, now excluded where mypy sees it.**
+  - `leakage.py` `association`: the Pearson inputs are built in one pass that stops at the first
+    missing number, then the Cramér inputs in another. Both lists come from the same rows, so
+    they stay aligned.
+  - `holdout/run.py`'s cell key: the parts filtered of `None`, with a length check.
+  - `persona_signals.py` `_safe_num`: `None` returns `None` before `float()`. This is the same
+    result the `TypeError` gave before.
+  - `holdout/scoring.py`: each criterion's detail is built in a plain loop.
+  - `charts.py`'s diverging neutral: bound once with `:=`.
+  - `research_sociomapping.py`: the usable answer computed once.
+- **A narrower type that was always true.**
+  - `storage_settings.py`: a `TypeGuard` over `get_args(StorageBackend)`. It is the same check
+    that raised before.
+  - `methodology/expressions.py`: the series holds `Value`, not `object`.
+  - `styles.py`: `_set_face` takes `CharacterStyle`; both callers pass one.
+  - `ai_step.py`: `_execution_context` takes `CallJournal`. `StepCallJournal` and `_NoJournal`
+    now declare that protocol, so if it grows, mypy errors on the class.
+- **`holdout/arms.py`.** The seed check moved inside the `Arm.S` branch that uses it. It still
+  raises before any plan is built.
+- **`charts.py`'s three `barh` calls.** `_bar_style` returns a `_BarStyle` `TypedDict` instead of
+  `dict[str, object]`.
+
+**Left as they are:**
+
+- **`domain/deep_research/settings.py:226, 301, 885 @ 03989975`.** This is Deep Research, which
+  CLAUDE.md keeps frozen except for a defect.
+- **`infrastructure/report_docx/signed_off_map_figure.py:432, 446 @ 03989975`.** An open PR
+  (aia-sociomap-5) touches this file.
+- **`infrastructure/source_reading.py:485 @ 03989975`.** xlrd ships no stubs
+  (`pyproject.toml`, `ignore_missing_imports`), so any annotation of the sheet would be `Any`. The
+  ignore says more honestly what is unchecked.
+- **Ten sites in `tools/`.** These are outside chunk 5's scope, which was the four source trees:
+  - `ui_workbench/api_standin.py` (5)
+  - `deep_research_capture.py` (2)
+  - `caddy_routes.py:126`
+  - `somecs_estimation_experiment.py:72`
+  - `ui_workbench/unit_standin.py:78`
 
 ## The A4 sweep (`or 0` / `.get(…, 0)`)
 

@@ -188,9 +188,9 @@ def battery_sociomapping(
         row: list[int | None] = []
         for oid, q in zip(object_ids, qids, strict=True):
             value = respondent.answers.get(q)
-            usable = isinstance(value, int) and not isinstance(value, bool)
-            row.append(value if usable else None)  # type: ignore[arg-type]
-            if not usable:
+            answer = value if isinstance(value, int) and not isinstance(value, bool) else None
+            row.append(answer)
+            if answer is None:
                 missing_by_object[oid] += 1
         if all(v is not None for v in row):
             complete_ids.append(respondent.respondent_id)

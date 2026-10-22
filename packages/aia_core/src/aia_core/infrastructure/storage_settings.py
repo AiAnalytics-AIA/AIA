@@ -26,7 +26,7 @@ from __future__ import annotations
 import os
 from collections.abc import Mapping
 from dataclasses import dataclass
-from typing import Final, Literal, get_args
+from typing import Final, Literal, TypeGuard, get_args
 
 from .storage import (
     ArtifactStore,
@@ -39,6 +39,10 @@ __all__ = ["StorageBackend", "StorageSettings", "build_artifact_store"]
 
 StorageBackend = Literal["s3", "filesystem", "memory"]
 _BACKENDS: Final[tuple[str, ...]] = get_args(StorageBackend)
+
+
+def _is_backend(value: str) -> TypeGuard[StorageBackend]:
+    return value in _BACKENDS
 
 
 @dataclass(frozen=True, slots=True)
@@ -72,12 +76,12 @@ class StorageSettings:
             return (source.get(name) or "").strip() or default
 
         backend = get("AIA_STORAGE_BACKEND", "memory").lower()
-        if backend not in _BACKENDS:
+        if not _is_backend(backend):
             raise ValueError(
                 f"AIA_STORAGE_BACKEND must be one of {', '.join(_BACKENDS)}, got {backend!r}"
             )
         return cls(
-            backend=backend,  # type: ignore[arg-type]  # validated against _BACKENDS above
+            backend=backend,
             bucket=get("AIA_STORAGE_BUCKET"),
             region=get("AIA_STORAGE_REGION"),
             prefix=get("AIA_STORAGE_PREFIX"),
