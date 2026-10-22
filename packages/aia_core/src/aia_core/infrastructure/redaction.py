@@ -54,6 +54,11 @@ def _redact_string(value: str) -> str:
     return out
 
 
+def _is_count(value: Any) -> bool:
+    """A number (or nothing) is never a secret: ``needed_tokens: 5`` is kept as it is."""
+    return value is None or isinstance(value, (int, float))
+
+
 def redact(value: Any, *, capped: bool = False, _depth: int = 0) -> Any:
     """Return ``value`` with anything secret-looking replaced.
 
@@ -68,7 +73,7 @@ def redact(value: Any, *, capped: bool = False, _depth: int = 0) -> Any:
         return {
             key: (
                 REDACTED
-                if _SECRET_KEY_PATTERN.search(str(key))
+                if _SECRET_KEY_PATTERN.search(str(key)) and not _is_count(val)
                 else redact(val, capped=capped, _depth=_depth + 1)
             )
             for key, val in value.items()

@@ -279,6 +279,9 @@ def test_a_failure_an_executor_returns_is_redacted_too_at_any_depth(
                     "authorization": "Basic dXNlcjpwYXNzd29yZA==",
                 },
                 "password": "hunter2hunter2",
+                # analysis.py's context-window refusal: counts an operator sizes by.
+                "needed_tokens": 5,
+                "context_window_tokens": 9,
             },
         }
     )
@@ -292,6 +295,8 @@ def test_a_failure_an_executor_returns_is_redacted_too_at_any_depth(
     # A secret under a secret-named key is redacted by its key, whatever its shape.
     assert error["details"]["authorization"] == "[redacted]"
     assert error["password"] == "[redacted]"
+    # A number is never a secret: a counter under a token-named key is kept.
+    assert (error["needed_tokens"], error["context_window_tokens"]) == (5, 9)
     assert error["attempt"] == 1, "what is not a secret is kept as it was"
 
 
