@@ -61,6 +61,7 @@ export const cs = {
       new: "Nový klient",
       newTitle: "Nový klient",
       newName: "Název klienta",
+      create: "Založit klienta",
       empty: "V organizaci zatím není žádný klient. Založte prvního; uvidí ho každý člen organizace.",
       yourRole: "Vaše role: {role}",
       noActive: "Žádná rozpracovaná práce",
@@ -82,6 +83,8 @@ export const cs = {
       studyName: "Název",
       researchPlaceholder: "Např. Vnímání značky 2026",
       simulationPlaceholder: "Např. Cenové scénáře 2027",
+      createResearch: "Založit výzkum",
+      createSimulation: "Založit simulaci",
       cannotStart: "Vaše role u tohoto klienta nedovoluje zakládat novou práci.",
     },
     profile: {
@@ -3546,6 +3549,7 @@ export const cs = {
   dialog: {
     ok: "OK",
     cancel: "Zrušit",
+    required: "Pole nesmí zůstat prázdné. Bez něj nic nevznikne.",
   },
   // The input standard's shared controls (input-interactions chunk 1, I1-I11).
   input: {
