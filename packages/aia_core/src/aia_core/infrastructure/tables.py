@@ -1708,6 +1708,8 @@ class BudgetReservationRow(Base):
         Index("ix_reservations_attempt", "attempt_id"),
         # Per-researcher spend (develop-spend-attribution 7).
         Index("ix_reservations_charged_to", "charged_to_user_id", "status"),
+        # One run's spend, read on every poll of its Progress (artifact-fieldwork FLD4).
+        Index("ix_reservations_run", "run_id"),
     )
 
 
@@ -2077,6 +2079,7 @@ class AIUsageEventRow(Base):
         Index("ix_usage_study_time", "study_id", "occurred_at"),
         Index("ix_usage_call", "call_id"),
         Index("ix_usage_attempt", "attempt_id"),
+        Index("ix_usage_run", "run_id"),
         Index("ix_usage_provider_request", "provider_request_id"),
         # Per-researcher spend: by person over time, and "which holds the ledger names".
         Index("ix_usage_charged_to", "organization_id", "charged_to_user_id", "occurred_at"),
