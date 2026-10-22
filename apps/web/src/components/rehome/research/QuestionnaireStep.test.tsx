@@ -6,7 +6,6 @@ import { afterEach, beforeEach, describe, expect, it, onTestFinished, vi } from 
 
 import { AGENTS_PATH, NATIVE_JOB_WAIT, NATIVE_TEST_TIMEOUT_MS, PARK_MESSAGE, approveProposal, nativeAgentFixture } from "./test-native-agents";
 import { briefFingerprint, defaultsMerge } from "@/research/model";
-import { SET_TOO_SMALL } from "@/research/questionnaire";
 import { FrameNavigation } from "../step";
 import { ResearchScreen } from "./ResearchScreen";
 import { type SavedBody, workspaceFixture } from "./test-workspace";
@@ -294,7 +293,7 @@ describe("Dotazník", () => {
     fireEvent.change(set, { target: { value: "značky" } });
     fireEvent.keyDown(set, { key: "Enter" });
     await screen.findByRole("heading", { name: "3 otázky · 2 sledované sady" });
-    expect(screen.getByText("0 / 4–15")).toBeTruthy();
+    expect(screen.getByText("0 / doporučeno 4–15")).toBeTruthy();
     expect(screen.queryByRole("dialog")).toBeNull();
     expect(screen.queryByRole("alertdialog")).toBeNull();
   });
@@ -318,13 +317,30 @@ describe("Dotazník", () => {
     expect((lastSave().content.sections as { title?: string }[]).at(-1)?.title).toBe("Úvod");
   });
 
+  it("says an empty new question as its wording to write, never a name", async () => {
+    unitStub({ ...BRIEF, sections: SECTIONS, ui_state: { questionnaire_path: "manual" } });
+    render(<ResearchScreen step="questionnaire" frame={TEST_FRAME} />);
+    await screen.findByRole("heading", { name: "2 otázky · 1 sledovaná sada" });
+    const block = document.getElementById("qblock_sec_a") as HTMLElement;
+    fireEvent.click(within(block).getByRole("button", { name: "Otázka do tohoto bloku" }));
+    // Each row's own message: the one its field is described by.
+    const said = (row: HTMLElement) => document.getElementById(row.getAttribute("aria-describedby") ?? "")?.textContent;
+    const inBlock = within(block).getByRole("textbox", { name: "Otázka do tohoto bloku" });
+    fireEvent.keyDown(inBlock, { key: "Enter" });
+    expect(said(inBlock)).toBe("Napište znění.");
+    fireEvent.click(screen.getByRole("button", { name: "Nová otázka" }));
+    const outline = screen.getByRole("textbox", { name: "Nová otázka" });
+    fireEvent.keyDown(outline, { key: "Enter" });
+    expect(said(outline)).toBe("Napište znění.");
+  });
+
   it("notes a set under four objects, and removes a block only when confirmed", async () => {
     unitStub({ ...BRIEF, sections: SECTIONS, ui_state: { questionnaire_path: "manual" } });
     render(<ResearchScreen step="questionnaire" frame={TEST_FRAME} />);
     // Objects are chips; updateObjects notes a set under four.
     fireEvent.click(await screen.findByRole("button", { name: "Odebrat Tisk" }));
-    expect(await screen.findByText(SET_TOO_SMALL)).toBeTruthy();
-    expect(screen.getByText("3 / 4–15")).toBeTruthy();
+    expect(await screen.findByText("Nejmenší počet objektů v sadě: 4.")).toBeTruthy();
+    expect(screen.getByText("3 / doporučeno 4–15")).toBeTruthy();
     // Removal is confirmed on the card.
     fireEvent.click(screen.getAllByRole("button", { name: "Smazat" })[1]);
     expect(screen.getByRole("alertdialog").textContent).toContain("Odstranit tuto sadu?");

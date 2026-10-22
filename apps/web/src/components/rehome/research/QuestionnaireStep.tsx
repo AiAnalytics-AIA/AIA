@@ -28,9 +28,6 @@ import {
   type PreviewItem,
   type Question,
   type QuestionnairePath,
-  SET_MAX,
-  SET_MIN,
-  SET_TOO_SMALL,
   type Section,
   TEMPLATE_FILENAME,
   UPLOAD_NO_FILE,
@@ -74,7 +71,10 @@ import {
   setSectionField,
   toAudience,
   updateObjects,
-  SET_SIZE,
+  setAboveRecommended,
+  setSizeRefused,
+  setWords,
+  type SetLimits,
 } from "@/research/questionnaire";
 import type { ResearchProject } from "@/research/model";
 import { COMPARISONS, CONCEPT_TEST, comparisonOf, danglingLinks, linkKey, linksOf, researchQuestionsOf, setComparison, setConceptTest, toggleQuestionLink, toggleSectionLink, togglesConceptTest } from "@/research/trace";
@@ -89,6 +89,7 @@ import { isNativeResult } from "@/lib/research-agent-jobs";
 import { openPlace, scrollBehavior, scrollToPlace } from "@/lib/open-place";
 import { useResearch } from "./context";
 import { useFrame } from "./frame-hook";
+import { SetLimitsContext, readySetLimits, useSampleLimits } from "./useSampleLimits";
 import { ID_SOURCE, type TargetKind, aiaId } from "@/lib/workbench-artifacts";
 import { QuestionnaireDependencies } from "./QuestionnaireDependencies";
 import { QuestionnaireStrip } from "./QuestionnaireStrip";
@@ -154,11 +155,8 @@ function removeWithUndo(update: Update, undo: EditorUndo, si: number, sec: Secti
   offerRestore(undo, what, sec.title, () => update((p) => restoreSection(p, si, sec)));
 }
 
-/** A tracked set is measured on 4–15 objects (SET_SIZE). */
-const setInvalid = (sec: Section) => {
-  const n = (sec.objects || []).length;
-  return n < SET_MIN || n > SET_MAX;
-};
+/** A tracked set the editor stops: under four objects or over the server's forty (Q75 (a)). */
+const setInvalid = (sec: Section, l: SetLimits) => setSizeRefused((sec.objects || []).length, l);
 const OBJECT = "{object}";
 
 const jumpTo = (id: string) => scrollToPlace(id, "center");
@@ -179,6 +177,7 @@ export function QuestionnaireStep() {
   const p = state.project;
   const view = questionnaireView(p);
   const [tab, setTab] = useState<"edit" | "preview">("edit");
+  const setLimits = readySetLimits(useSampleLimits(useFrame().studyId));
 
   const update = (next: (p: ResearchProject) => ResearchProject, reason?: string) =>
     store.update(({ project }) => ({ project: next(project) }), reason ? { reason } : {});
@@ -251,7 +250,7 @@ export function QuestionnaireStep() {
   // and "Dotazník mám → Koho se ptát" whenever the editor was open. The dock keeps both.
   const canGo = has || editor;
   const emptyQuestions = xs.reduce((n, s) => n + (s.type === "questions" ? (s.questions || []).filter((q) => !String(q.text || "").trim()).length : 0), 0);
-  const badSets = xs.filter((s) => s.type === "object_battery" && setInvalid(s)).length;
+  const badSets = xs.filter((s) => s.type === "object_battery" && setInvalid(s, setLimits)).length;
   const dock = (
     <ActionDock
       back={{ href: stepHref("plan"), label: `2. ${t("aia.stages.plan")}` }}
@@ -262,7 +261,7 @@ export function QuestionnaireStep() {
           : emptyQuestions
             ? tv("research.questionnaire.dockEmpty", { n: emptyQuestions })
             : badSets
-              ? tv("research.questionnaire.dockSets", { n: badSets })
+              ? tv("research.questionnaire.dockSets", { n: badSets, ...setWords(setLimits) })
               : t("research.questionnaire.dockReady")
       }
     >
@@ -285,6 +284,7 @@ export function QuestionnaireStep() {
   // the last block goes on the upload or AI path.
   return (
     <OpenPlace.Provider value={open}>
+    <SetLimitsContext.Provider value={setLimits}>
     <ScaleUndoProvider>
     <div className="flex max-w-[82.5rem] flex-col gap-4">
       {editor ? (
@@ -363,6 +363,7 @@ export function QuestionnaireStep() {
       {dock}
     </div>
     </ScaleUndoProvider>
+    </SetLimitsContext.Provider>
     </OpenPlace.Provider>
   );
 }
@@ -371,12 +372,13 @@ export function QuestionnaireStep() {
 function QuestionnaireReadiness() {
   const { state } = useResearch();
   const counts = questionnaireCounts(state.project);
-  const issues = questionnaireIssues(state.project);
+  const setLimits = useContext(SetLimitsContext);
+  const issues = questionnaireIssues(state.project, setLimits);
   const firstUnworded = () => document.querySelector<HTMLElement>("[data-unworded]")?.scrollIntoView?.({ behavior: scrollBehavior(), block: "center" });
   const rows: { label: string; detail: string; ok: boolean; go?: () => void }[] = [
     { label: countsWords(counts), detail: t("research.questionnaire.readyCountsDetail"), ok: counts.questions > 0 },
     ...(issues.empty ? [{ label: tv("research.questionnaire.dockEmpty", { n: issues.empty }), detail: t("research.questionnaire.unworded"), ok: false, go: firstUnworded }] : []),
-    ...(issues.badSets ? [{ label: tv("research.questionnaire.dockSets", { n: issues.badSets }), detail: SET_SIZE, ok: false }] : []),
+    ...(issues.badSets ? [{ label: tv("research.questionnaire.dockSets", { n: issues.badSets, ...setWords(setLimits) }), detail: tv("research.questionnaire.setSizeDetail", setWords(setLimits)), ok: false }] : []),
   ];
   return (
     <section aria-labelledby="q-ready" className="flex flex-col gap-2 rounded-card border border-border bg-surface-raised p-3.5">
@@ -610,6 +612,7 @@ function Outline() {
   const { store, state } = useResearch();
   const { canEdit } = useFrame();
   const open = useContext(OpenPlace);
+  const setLimits = useContext(SetLimitsContext);
   const xs = sections(state.project);
   const counts = questionnaireCounts(state.project);
 
@@ -673,7 +676,7 @@ function Outline() {
                     row(`qblock_${sec.id || si}`, `B${++b}`, String(sec.title || ""), !(sec.questions || []).length),
                     ...(sec.questions || []).map((x) => row(questionElementId(x), `Q${++q}`, String(x.text || ""), !String(x.text || "").trim(), 1)),
                   ]
-                : [row(setElementId(sec, si), `S${++s}`, String(sec.title || ""), setInvalid(sec))],
+                : [row(setElementId(sec, si), `S${++s}`, String(sec.title || ""), setInvalid(sec, setLimits))],
             )}
           </ul>
         ) : null}
@@ -685,7 +688,7 @@ function Outline() {
             options={([["choice", "addChoice"], ["scale", "addScale"], ["open", "addOpen"]] as const).map(([key, label]) => ({ key, label: t(`research.questionnaire.${label}`) }))}
             onChange={setKind}
           />
-          <InlineCreateRow disabled={!canEdit} label={t("research.questionnaire.inlineAdd.question")} maxLength={WORDING_MAX} onCreate={quickAdd} />
+          <InlineCreateRow disabled={!canEdit} label={t("research.questionnaire.inlineAdd.question")} emptyWords={t("research.questionnaire.inlineAdd.empty")} maxLength={WORDING_MAX} onCreate={quickAdd} />
           <p className="text-xs text-ink-muted">{t("research.questionnaire.quickHelp")}</p>
         </div>
         <div className="flex flex-col gap-1">
@@ -700,6 +703,7 @@ function Outline() {
 /** questionnaireEditorHtml: one panel per block, one card per tracked set. */
 function Editor({ update }: { update: Update }) {
   const { state } = useResearch();
+  const setLimits = useContext(SetLimitsContext);
   const xs = sections(state.project);
   let blocks = 0;
   let qn = 0;
@@ -707,7 +711,7 @@ function Editor({ update }: { update: Update }) {
   return (
     <div className="flex flex-col gap-4">
       <QuestionnaireStrip />
-      <p className="text-[13px] leading-5 text-ink-muted">{t("research.questionnaire.editorIntro")}</p>
+      <p className="text-[13px] leading-5 text-ink-muted">{tv("research.questionnaire.editorIntro", setWords(setLimits))}</p>
       <ResearchQuestionComparisons update={update} />
       {xs.length ? (
         xs.map((sec, si) => {
@@ -826,6 +830,7 @@ function QuestionBlock({ n, firstQ, sec, si, update }: { n: number; firstQ: numb
         <div>
           <InlineCreateRow
             label={t("research.questionnaire.addQuestionV3")}
+            emptyWords={t("research.questionnaire.inlineAdd.empty")}
             maxLength={WORDING_MAX}
             disabled={!canEdit}
             onCreate={(text) => {
@@ -1059,23 +1064,23 @@ function OptionRows({ options, multi, onCommit, onRestore }: {
   );
 }
 
-/** objectSection: a tracked set of 4–15 comparable objects on one question and scale. */
+/** objectSection: a tracked set of comparable objects on one question and scale, sized by the limits in force. */
 function TrackedSet({ n, sec, si, update }: { n: number; sec: Section; si: number; update: Update }) {
   const { store } = useResearch();
   const marks = useLeadMarks();
   const undo = useEditorUndo();
   const [confirming, setConfirming] = useState(false);
-  const [note, setNote] = useState<string | null>(null);
+  const l = useContext(SetLimitsContext);
   const labels = sec.scale_labels || ["vůbec", "velmi"];
   const objects = sec.objects || [];
   const question = sec.object_question || "Jak hodnotíte {object}?";
   const objectMissing = tv("research.questionnaire.setQuestionMissing", { object: OBJECT });
-  const bad = setInvalid(sec);
-  // updateObjects takes the objects one per line, as the classic textarea gave them.
+  const bad = setInvalid(sec, l);
+  // updateObjects takes the objects one per line, as the classic textarea gave them; its note is
+  // the classic's preset wording, so the card words a size by the limits in force instead.
   const setObjects = (next: string[]) => {
     const r = updateObjects(store.get().project, si, next.join("\n"));
     store.update(() => ({ project: r.project }));
-    setNote(r.note);
   };
   return (
     <article id={setElementId(sec, si)} data-aia={marks.sections[si]} className={`scroll-mt-40 flex flex-col gap-3 rounded-card border border-border border-t-[3px] border-t-hue-violet bg-surface-raised p-4 ${FOCUS}`}>
@@ -1139,18 +1144,24 @@ function TrackedSet({ n, sec, si, update }: { n: number; sec: Section; si: numbe
         <div className="flex items-baseline justify-between gap-2">
           <span className={LABEL}>{t("research.questionnaire.setObjectsV3")}</span>
           <span className={`whitespace-nowrap rounded-md px-1.5 py-0.5 font-mono text-xs ${bad ? "bg-status-you-wash text-status-you-ink" : "bg-surface-sunken text-ink-muted"}`}>
-            {tv("research.questionnaire.setCount", { n: objects.length })}
+            {tv("research.questionnaire.setCount", { n: objects.length, ...setWords(l) })}
           </span>
         </div>
         <ChipInput
           label={t("research.questionnaire.setObjectAdd")}
           placeholder={t("research.questionnaire.setObjectAdd")}
           values={objects}
-          refuse={() => (objects.length >= SET_MAX ? tv("research.questionnaire.setObjectsFull", { max: SET_MAX }) : null)}
+          refuse={() => (objects.length >= l.max ? tv("research.questionnaire.setObjectsFull", { max: l.max }) : null)}
           onAdd={(v) => setObjects([...objects, v])}
           onRemove={(i) => setObjects(objects.filter((_, j) => j !== i))}
         />
-        {note || (objects.length && bad) ? <span className="text-xs text-status-you-ink">{note || SET_TOO_SMALL}</span> : null}
+        {objects.length > l.max ? (
+          <span className="text-xs text-status-you-ink">{tv("research.questionnaire.setAboveHard", { n: objects.length, hard: l.max })}</span>
+        ) : objects.length && bad ? (
+          <span className="text-xs text-status-you-ink">{tv("research.questionnaire.setBelow", { min: l.recommended_min })}</span>
+        ) : setAboveRecommended(objects.length, l) ? (
+          <span className="text-xs text-status-you-ink">{tv("research.questionnaire.setAboveRecommended", { max: l.recommended_max, hard: l.max })}</span>
+        ) : null}
       </div>
       <ScaleEditor
         name={`sada ${n}`}

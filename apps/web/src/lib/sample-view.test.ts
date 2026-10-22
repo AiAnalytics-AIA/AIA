@@ -80,6 +80,8 @@ describe("checkStage", () => {
     expect(checkStage("sociomap_support")).toBe("dimensions");
     expect(checkStage("dimensions")).toBe("dimensions");
     expect(checkStage("audience")).toBe("audience");
+    // A panel sample the sampler refuses: its filters are set on Cílová skupina (RQC6).
+    expect(checkStage("panel_sample")).toBe("audience");
     expect(checkStage("conditional_questions")).toBe("questionnaire");
   });
 

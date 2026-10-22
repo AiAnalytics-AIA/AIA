@@ -277,13 +277,15 @@ try {
 
   // Návrh: each research question with its coverage (artifact-design DSN2), at every width, in the
   // workbench at each. Reading it is a GET.
+  const planSubmitsBefore = writes.filter((w) => w.path.endsWith("/design/revisions")).length;
   for (const width of [1440, 1100, 768, 390]) {
     await page.setViewportSize({ width, height: 900 });
     await page.goto(base + stagePath("plan"));
     const coverage = page.getByRole("region", { name: "Výzkumné otázky a jejich pokrytí" });
     await coverage.waitFor({ timeout: 30000 });
-    await coverage.getByText(/Podle revize návrhu|Návrh zatím nemá revizi|nedá sestavit/).first().waitFor({ timeout: 30000 });
+    await coverage.getByText(/Podle pracovní kopie, revize \d+|Návrh zatím není uložený|nedá sestavit/).first().waitFor({ timeout: 30000 });
     await noOverflow(`plan @${width}`);
+    assert.equal(writes.filter((w) => w.path.endsWith("/design/revisions")).length, planSubmitsBefore, `plan @${width}: Návrh's coverage submitted a design`);
     // WCAG 2.5.8: a remove control on Návrh is at least 24 × 24 px (a set item's × was 12 × 20).
     const small = await page.evaluate(() => [...document.querySelectorAll('button[aria-label^="Odebrat "]')]
       .map((e) => [e.getAttribute("aria-label"), e.getBoundingClientRect()])

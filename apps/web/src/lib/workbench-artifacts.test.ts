@@ -6,7 +6,7 @@ import { describe, expect, it } from "vitest";
 import { ACTION_LABELS } from "./research-agent-jobs";
 import { STAGE_ORDER } from "./workbench-stages";
 import {
-  ARTIFACTS, LIVE_TARGETS, LIVE_VIEW_OPS, TARGET_STAGE, VIEW_FILTERS, aiaId, allowsView, parseAiaId,
+  ARTIFACTS, LIVE_TARGETS, LIVE_VIEW_OPS, TARGET_STAGE, VIEW_FILTERS, aiaId, allowsView, parseAiaId, tryAiaId,
 } from "./workbench-artifacts";
 
 const FILE = JSON.parse(readFileSync(join(process.cwd(), "../../packages/aia_core/tests/fixtures/lead_artifacts/contract.json"), "utf8")) as {
@@ -65,5 +65,17 @@ describe("aiaId / parseAiaId", () => {
     expect(parseAiaId("nonsense:q3")).toBeNull();
     expect(parseAiaId("question:")).toBeNull();
     expect(parseAiaId("q3")).toBeNull();
+  });
+
+  it("tryAiaId marks an identifier and leaves anything else unmarked, never throwing", () => {
+    expect(tryAiaId("dimension", "eko")).toBe("dimension:eko");
+    expect(tryAiaId("dimension", "eko a zdraví")).toBeNull();
+    expect(tryAiaId("dimension", "")).toBeNull();
+    expect(tryAiaId("finding", "executive:2")).toBe(aiaId("finding", "executive:2"));
+  });
+
+  it("lets the Lead show its changes on Dimenze, where its edits land", () => {
+    expect(allowsView("dimensions", "show_diff")).toBe(true);
+    expect(ARTIFACTS.dimensions.edits).toBe(true);
   });
 });
