@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 // The Research Lead's pane (ADR 0026): the researcher hatches their own Lead, reads the session,
 // writes to it, and approves a prepared job only through the card; nothing is done for them.
-import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { act, cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import type { LeadState, LeadTurn, ResearcherLead } from "@/lib/lead";
@@ -63,6 +63,7 @@ beforeEach(() => {
 afterEach(() => {
   cleanup();
   vi.unstubAllGlobals();
+  vi.restoreAllMocks();
   sessionStorage.clear();
 });
 
@@ -308,5 +309,31 @@ describe("LeadPane", () => {
     expect(posts).toHaveLength(1);
     fireEvent.click(screen.getByRole("button", { name: "Zkusit znovu" }));
     await waitFor(() => expect(posts[1]).toEqual({ kind: "message", text: "Je cíl dost konkrétní?", stage: "brief", focus: null }));
+  });
+
+  // F-BRF-2 (lead_journey.mjs, "Tab stays inside the open conversation"): Tab onto "Na nejnovější" just
+  // as the log's scroll from the previous Tab reaches the bottom unmounted the button under the
+  // keyboard, and the focus fell to the page.
+  it("keeps Na nejnovější while it has the focus, and gives the focus to the log once it has jumped", async () => {
+    state = { ...state, turns: [turn({ output: { reply: "Dobrý den." } })] };
+    vi.spyOn(document, "hasFocus").mockReturnValue(true); // jsdom's window never has the focus
+    render(pane());
+    const log = await screen.findByRole("log");
+    let top = 0;
+    Object.defineProperty(log, "scrollHeight", { configurable: true, get: () => 1000 });
+    Object.defineProperty(log, "clientHeight", { configurable: true, get: () => 200 });
+    Object.defineProperty(log, "scrollTop", { configurable: true, get: () => top, set: (v: number) => { top = v; } });
+    top = 100;
+    fireEvent.scroll(log);
+    const latest = await screen.findByRole("button", { name: "Na nejnovější" });
+    act(() => latest.focus());
+    top = 790; // the previous Tab's scroll lands at the bottom after the button took the focus
+    fireEvent.scroll(log);
+    expect(screen.getByRole("button", { name: "Na nejnovější" })).toBe(latest);
+    expect(document.activeElement).toBe(latest);
+    fireEvent.click(latest);
+    expect(screen.queryByRole("button", { name: "Na nejnovější" })).toBeNull();
+    expect(document.activeElement).toBe(log);
+    expect(top).toBe(1000);
   });
 });

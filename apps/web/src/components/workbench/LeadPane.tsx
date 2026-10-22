@@ -307,11 +307,18 @@ function Conversation({ turns, jobs, cards, studyId, onOpenJob, busy, name, onFo
     const el = box.current;
     if (el && atBottom.current) el.scrollTop = el.scrollHeight;
   }, [sig]);
+  // "Na nejnovější" never leaves under the keyboard: the previous Tab's scroll can reach the bottom
+  // and be committed just after the next Tab focused the button, so it stays while it has the focus
+  // (F-BRF-2, lead_journey.mjs "Tab stays inside the open conversation"). A focus it lost without a
+  // blur (the pane hidden) is let go at the next scroll.
+  const latest = useRef<HTMLButtonElement>(null);
+  const [onLatest, setOnLatest] = useState(false);
   const onScroll = () => {
     const el = box.current!;
     const b = el.scrollHeight - el.scrollTop - el.clientHeight <= 24;
     atBottom.current = b;
     setAway(!b);
+    if (document.activeElement !== latest.current) setOnLatest(false);
   };
   const lastLead = [...turns].reverse().find((t) => t.actor === "lead");
   return (
@@ -331,9 +338,18 @@ function Conversation({ turns, jobs, cards, studyId, onOpenJob, busy, name, onFo
           <div style={{ height: 8 }} />
         </div>
       </div>
-      {away ? (
+      {away || onLatest ? (
         <div className="conv__latestwrap">
-          <button type="button" className="btn btn--sm conv__latest" onClick={() => { const el = box.current!; el.scrollTop = el.scrollHeight; atBottom.current = true; setAway(false); }}><Icon name="down" size={13} />Na nejnovější</button>
+          {/* Another window taking the focus is not the keyboard leaving: the button is kept for its return. */}
+          <button ref={latest} type="button" className="btn btn--sm conv__latest" onFocus={() => setOnLatest(true)} onBlur={() => { if (document.hasFocus()) setOnLatest(false); }}
+            onClick={(e) => {
+              const el = box.current!;
+              el.scrollTop = el.scrollHeight;
+              atBottom.current = true;
+              // The keyboard's focus goes to the newest message; a pointer's stays where it was (the composer).
+              if (document.activeElement === e.currentTarget) el.focus({ preventScroll: true });
+              setAway(false);
+            }}><Icon name="down" size={13} />Na nejnovější</button>
         </div>
       ) : null}
     </>
