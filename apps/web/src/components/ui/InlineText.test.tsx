@@ -25,6 +25,28 @@ describe("InlineText (I1): edit where it is shown", () => {
     expect(screen.queryByRole("textbox")).toBeNull();
   });
 
+  it("gives focus back to the value only if the person has not moved it before the next frame", async () => {
+    render(
+      <>
+        <InlineText label="Název studie" value="A" onCommit={() => {}} />
+        <button type="button">Jinde</button>
+      </>,
+    );
+    fireEvent.click(shown());
+    fireEvent.keyDown(field(), { key: "Enter" });
+    // The person moves on within the same frame, before the field's refocus runs.
+    const elsewhere = screen.getByRole("button", { name: "Jinde" });
+    elsewhere.focus();
+    await new Promise((resolve) => requestAnimationFrame(() => resolve(null)));
+    await new Promise((resolve) => setTimeout(resolve, 20));
+    expect(document.activeElement).toBe(elsewhere);
+
+    // Left alone, focus still comes back to the value (I11).
+    fireEvent.click(shown());
+    fireEvent.keyDown(field(), { key: "Enter" });
+    await waitFor(() => expect(document.activeElement).toBe(shown()));
+  });
+
   it("opens on F2 and on Enter from the keyboard", () => {
     render(<InlineText label="Název studie" value="A" onCommit={() => {}} />);
     fireEvent.keyDown(shown(), { key: "F2" });

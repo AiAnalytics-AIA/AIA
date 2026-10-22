@@ -107,7 +107,14 @@ export function InlineText({
     setDraft(null);
     setProblem(null);
     setChecked(false);
-    if (refocus) requestAnimationFrame(() => shown.current?.focus());
+    // Back to the value, unless the person moved focus before the frame ran: the closed field
+    // leaves it on the page, and anywhere else is where they went (F7, ux-audit-2026-10).
+    if (refocus)
+      requestAnimationFrame(() => {
+        const now = document.activeElement;
+        if (now && now !== document.body) return;
+        shown.current?.focus();
+      });
   };
 
   // Each save is numbered; only the newest one's answer may set the state. An older save that
