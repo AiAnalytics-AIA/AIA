@@ -237,6 +237,22 @@ reads it.
 > z pěti cen, vrátí `null`. Jiný typ otázky se necení: Dotazník pak délku označí za neznámou
 > a s limitem ji neporovná.
 
+## Browser-audit findings, AI mode
+
+*Finding QF-4 (2026-10-22):* "Sestavit s AI" on a questionnaire that already has items answers
+the click with nothing. The view stays the editor (`questionnaire.ts:79 @ b6ac25c5`), and in the
+workbench the toolbar's optimize button is hidden too, so only the segment and a save move.
+Reproduction: the fixture study's Dotazník, click "Sestavit s AI". Fix (fix/questionnaire-ai-mode):
+a note says the AI will not build it anew and what it does instead; in the workbench, "Požádat
+Vedoucího" sends the Lead "Navrhni úpravy dotazníku." in words, and nothing starts from the stage.
+Tests: `QuestionnaireAiMode.workbench.test.tsx`, `QuestionnaireStep.test.tsx` (QF-4, QF-5).
+
+*Finding QF-5 (2026-10-22):* two sentences say what is not true. The AI card says "Provider/model
+můžete změnit přímo zde." (`QuestionnaireStep.tsx:257 @ b6ac25c5`), but AIA offers no provider choice.
+The preview says "technický editor je pod ní" (`QuestionnaireStep.tsx:453 @ b6ac25c5`), but the preview
+replaces the editor. Fix: the first is dropped; the second says the preview is the respondent's
+view, and that editing happens under Upravit. Test: `QuestionnaireStep.test.tsx`.
+
 ## Doc follow-up
 
 - Register this plan and its chunks. `research-lead-workbench#7`'s questionnaire half is QST5.

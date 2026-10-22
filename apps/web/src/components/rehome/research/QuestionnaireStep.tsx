@@ -56,6 +56,8 @@ import {
   removeCondition,
   removeQuestion,
   removeSection,
+  restoreQuestion,
+  restoreSection,
   respondentPreview,
   sections,
   setObjectFamily,
@@ -83,11 +85,11 @@ import { QuestionnaireDependencies } from "./QuestionnaireDependencies";
 import { QuestionnaireStrip } from "./QuestionnaireStrip";
 import { InspectorSlot } from "./Inspector";
 import { questionnaireIssues } from "@/research/lane";
-import { AskLead, useLeadOwnsAiStarts } from "./AskLead";
+import { AskLead, useAskLead, useLeadOwnsAiStarts } from "./AskLead";
 import { AiFailureCard, useAiStep } from "./useAiStep";
 import { AnalysisFailureCard, useAnalysis } from "./useAnalysis";
 import { DeepResearchPanel } from "./DeepResearchPanel";
-import { ScaleEditor, ScaleUndoProvider } from "./ScaleEditor";
+import { ScaleEditor, ScaleUndoProvider, useEditorUndo } from "./ScaleEditor";
 
 const FOCUS = "focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus-ring";
 const INPUT = `min-h-9 w-full rounded-control border border-border-strong bg-surface-raised px-2.5 text-sm text-ink placeholder:text-ink-faint ${FOCUS}`;
@@ -121,6 +123,24 @@ function leadMarks(xs: Section[]): LeadMarks {
   return { sections, questions };
 }
 const useLeadMarks = (): LeadMarks => leadMarks(sections(useResearch().state.project));
+
+/**
+ * A block or a tracked set removed at once, with "Vrátit" on the editor's toast (input-interactions
+ * I6, audit A18): the undo puts the same section back where it was.
+ */
+type EditorUndo = ReturnType<typeof useEditorUndo>;
+
+/** Offer Vrátit for a delete, naming the item by at most 60 characters of its wording or title. */
+function offerRestore(undo: EditorUndo, what: "questionRemoved" | "blockRemoved" | "setRemoved", name: unknown, restore: () => void) {
+  const text = String(name || "").trim();
+  const clipped = text.length > 60 ? `${text.slice(0, 59)}…` : text;
+  undo?.offer({ message: clipped ? tv(`research.questionnaire.undo.${what}`, { name: clipped }) : t(`research.questionnaire.undo.${what}Bare`), undo: restore });
+}
+
+function removeWithUndo(update: Update, undo: EditorUndo, si: number, sec: Section, what: "blockRemoved" | "setRemoved") {
+  update((p) => removeSection(p, si));
+  offerRestore(undo, what, sec.title, () => update((p) => restoreSection(p, si, sec)));
+}
 
 /** A tracked set is measured on 4–15 objects (SET_SIZE). */
 const setInvalid = (sec: Section) => {
@@ -237,7 +257,10 @@ export function QuestionnaireStep() {
   if (view === "choose") return <Choose onPick={path}>{dock}</Choose>;
 
   const current = String(p.ui_state?.questionnaire_path || "manual") as QuestionnairePath;
+  // Around the whole stage: a delete's Vrátit outlives the preview tab, and the editor itself when
+  // the last block goes on the upload or AI path.
   return (
+    <ScaleUndoProvider>
     <div className="flex max-w-[82.5rem] flex-col gap-4">
       {editor ? (
         <InspectorSlot>
@@ -278,6 +301,7 @@ export function QuestionnaireStep() {
           </>
         ) : null}
       </div>
+      {editor && current === "ai" ? <AiOnExisting /> : null}
       {analysis.failure ? <AnalysisFailureCard failure={analysis.failure} onRetry={() => void build()} onContinue={(id) => void continueBuild(id)} /> : null}
       {step.failure ? <AiFailureCard failure={step.failure} title={t("research.questionnaire.failedTitle")} onRetry={() => step.setFailure(null)} onContinue={(id) => void step.resume(id)} /> : null}
       {view === "upload" ? <Upload /> : null}
@@ -285,7 +309,6 @@ export function QuestionnaireStep() {
         <section className={CARD} aria-labelledby="q-ai">
           <h2 id="q-ai" className="text-lg font-semibold">{t("research.questionnaire.aiTitle")}</h2>
           <p className="mt-1 text-sm text-ink-muted">{t("research.questionnaire.aiIntro")}</p>
-          <p className="mt-1 text-xs text-ink-muted">{t("research.questionnaire.aiBuildHelp")}</p>
           {!leadOwnsAiStarts ? (
             <AiButton variant="primary" className="mt-4" disabled={step.busy || analysis.busy} onClick={() => void build()}>
               {t("research.questionnaire.aiBuild")}
@@ -298,11 +321,7 @@ export function QuestionnaireStep() {
           <div className="flex flex-wrap items-start gap-4">
             <Outline update={update} />
             <div className="flex min-w-0 flex-[999_1_560px] flex-col gap-4">
-              {tab === "edit" ? (
-                <ScaleUndoProvider>
-                  <Editor update={update} />
-                </ScaleUndoProvider>
-              ) : <Preview items={respondentPreview(p)} />}
+              {tab === "edit" ? <Editor update={update} /> : <Preview items={respondentPreview(p)} />}
             </div>
           </div>
           <section className={CARD} aria-labelledby="q-final">
@@ -318,6 +337,7 @@ export function QuestionnaireStep() {
       ) : null}
       {dock}
     </div>
+    </ScaleUndoProvider>
   );
 }
 
@@ -474,6 +494,22 @@ function Upload() {
         {status?.kind === "error" ? <p role="alert" className="mt-3 text-sm text-status-fault">{status.message}</p> : null}
       </div>
     </section>
+  );
+}
+
+/**
+ * "Sestavit s AI" on a questionnaire that already has items (QF-4): the AI does not build it anew
+ * (questionnaireView keeps the editor), so the choice says what AI does here instead and, in the
+ * workbench, asks the Lead in one click; elsewhere the toolbar's optimize button is the way.
+ */
+function AiOnExisting() {
+  const leadOwns = useLeadOwnsAiStarts();
+  const ask = useAskLead();
+  return (
+    <div role="status" className="flex flex-wrap items-center gap-3 rounded-card border border-border bg-surface-raised px-4 py-3 text-sm">
+      <span className="min-w-0 flex-1">{t(leadOwns ? "research.questionnaire.aiExisting.lead" : "research.questionnaire.aiExisting.optimize")}</span>
+      {leadOwns && ask ? <Button small onClick={() => ask(t("research.questionnaire.aiExisting.message"))}>{t("research.questionnaire.aiExisting.ask")}</Button> : null}
+    </div>
   );
 }
 
@@ -713,6 +749,7 @@ function QuestionBlock({ n, firstQ, sec, si, update }: { n: number; firstQ: numb
   const qs = sec.questions || [];
   const [confirming, setConfirming] = useState(false);
   const marks = useLeadMarks();
+  const undo = useEditorUndo();
   return (
     <article id={`qblock_${sec.id || si}`} data-aia={marks.sections[si]} className="scroll-mt-40 rounded-panel bg-surface-sunken p-4">
       <div className="flex items-start gap-3">
@@ -722,14 +759,14 @@ function QuestionBlock({ n, firstQ, sec, si, update }: { n: number; firstQ: numb
           <InlineField label={t("research.questionnaire.blockPurpose")} value={sec.purpose || ""} onChange={(v) => update((p) => setSectionField(p, si, "purpose", v))} />
         </div>
         {confirming ? (
-          <InlineConfirm message={t("research.questionnaire.removeBlockConfirm")} action={t("research.questionnaire.remove")} onConfirm={() => update((p) => removeSection(p, si))} onCancel={() => setConfirming(false)} />
+          <InlineConfirm message={t("research.questionnaire.removeBlockConfirm")} action={t("research.questionnaire.remove")} onConfirm={() => removeWithUndo(update, undo, si, sec, "blockRemoved")} onCancel={() => setConfirming(false)} />
         ) : (
           <Button small variant="quiet" icon="trash" className="!rounded-control" onClick={() => setConfirming(true)}>{t("research.questionnaire.remove")}</Button>
         )}
       </div>
       <div className="mt-3 flex flex-col gap-3">
         {qs.length ? (
-          qs.map((q, qi) => <QuestionCard key={q.id || qi} n={firstQ + qi + 1} q={q} si={si} qi={qi} update={update} />)
+          qs.map((q, qi) => <QuestionCard key={q.id || qi} n={firstQ + qi + 1} q={q} si={si} sectionId={sec.id} qi={qi} update={update} />)
         ) : (
           <p className="rounded-control border border-signal-edge bg-signal-wash p-3 text-sm">{t("research.questionnaire.blockEmpty")}</p>
         )}
@@ -749,8 +786,9 @@ const TYPES = [
 ] as const;
 
 /** questionCard: the type as pills, the text, and below it what the type needs. */
-function QuestionCard({ n, q, si, qi, update }: { n: number; q: Question; si: number; qi: number; update: Update }) {
+function QuestionCard({ n, q, si, sectionId, qi, update }: { n: number; q: Question; si: number; sectionId: string | undefined; qi: number; update: Update }) {
   const marks = useLeadMarks();
+  const undo = useEditorUndo();
   const typ = String(q.typ || "");
   const skala = q.skala || [1, 10];
   const labels = q.popisky_skaly || ["vůbec", "zcela"];
@@ -784,7 +822,10 @@ function QuestionCard({ n, q, si, qi, update }: { n: number; q: Question; si: nu
           variant="quiet"
           className="ml-auto"
           aria-label={tv("research.questionnaire.removeQuestion", { id: String(q.id || "Q") })}
-          onClick={() => update((p) => removeQuestion(p, si, qi))}
+          onClick={() => {
+            update((p) => removeQuestion(p, si, qi));
+            offerRestore(undo, "questionRemoved", q.text, () => update((p) => restoreQuestion(p, si, sectionId, qi, q)));
+          }}
         >
           ×
         </Button>
@@ -939,6 +980,7 @@ function OptionRows({ options, multi, onCommit }: { options: string[]; multi: bo
 function TrackedSet({ n, sec, si, update }: { n: number; sec: Section; si: number; update: Update }) {
   const { store } = useResearch();
   const marks = useLeadMarks();
+  const undo = useEditorUndo();
   const [confirming, setConfirming] = useState(false);
   const [note, setNote] = useState<string | null>(null);
   const labels = sec.scale_labels || ["vůbec", "velmi"];
@@ -963,7 +1005,7 @@ function TrackedSet({ n, sec, si, update }: { n: number; sec: Section; si: numbe
           {tv("research.questionnaire.setCount", { n: objects.length })}
         </span>
         {confirming ? (
-          <InlineConfirm message={t("research.questionnaire.removeSetConfirm")} action={t("research.questionnaire.remove")} onConfirm={() => update((p) => removeSection(p, si))} onCancel={() => setConfirming(false)} />
+          <InlineConfirm message={t("research.questionnaire.removeSetConfirm")} action={t("research.questionnaire.remove")} onConfirm={() => removeWithUndo(update, undo, si, sec, "setRemoved")} onCancel={() => setConfirming(false)} />
         ) : (
           <Button small variant="quiet" icon="trash" className="!rounded-control" onClick={() => setConfirming(true)}>{t("research.questionnaire.remove")}</Button>
         )}

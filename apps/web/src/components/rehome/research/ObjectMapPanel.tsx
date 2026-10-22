@@ -296,7 +296,8 @@ function PanelView({ battery, map, facts }: { battery: BatteryWithMaps; map: Obj
   const choose = (k: number) => { setSelected((s) => (s === k ? -1 : k)); setRelation(null); };
   const detail = people
     ? <PersonCard detail={person >= 0 ? respondentDetail(map, dots[person].id) : null} />
-    : <ObjectCard battery={battery} map={map} selected={selected} relation={relation} />;
+    : <ObjectCard battery={battery} map={map} selected={selected} relation={relation}
+      onRelation={(j) => setRelation((r) => (isPair(r, selected, j) ? null : [selected, j]))} />;
 
   return (
     <div className="flex flex-col gap-3" data-testid="object-map-panel">
@@ -599,10 +600,12 @@ function DetailCard({ title, children }: { title: string; children: ReactNode })
 
 const DETAIL_HEAD = "mt-1 text-xs font-semibold";
 const signed = (v: number) => (v >= 0 ? "+" : "") + num(v, 2);
+/** Whether a relation is the pair of i and j, whichever end it names first (the canvas names the line's own). */
+const isPair = (r: [number, number] | null, i: number, j: number) => !!r && ((r[0] === i && r[1] === j) || (r[0] === j && r[1] === i));
 
 /** The panel's object detail (`objectDetail66`): the selected relation, then the object's numbers
  *  and its strongest reliable relations, all as the map stores them. */
-function ObjectCard({ battery, map, selected, relation }: { battery: BatteryWithMaps; map: ObjectMapArtifact; selected: number; relation: [number, number] | null }) {
+function ObjectCard({ battery, map, selected, relation, onRelation }: { battery: BatteryWithMaps; map: ObjectMapArtifact; selected: number; relation: [number, number] | null; onRelation: (j: number) => void }) {
   const p = "research.exec.objectMap.panel";
   if (selected < 0) {
     return <DetailCard title={t(`${p}.objectDetailTitle`)}><p className="py-4 text-center text-ink-muted">{t(`${p}.objectDetailEmpty`)}</p></DetailCard>;
@@ -612,7 +615,10 @@ function ObjectCard({ battery, map, selected, relation }: { battery: BatteryWith
   const pair = relation ? pairTarget(battery.battery_id, map.object_ids[relation[0]], map.object_ids[relation[1]]) : null;
   return (
     <DetailCard title={t(`${p}.objectDetailTitle`)}>
-      {relation ? <div data-aia={pair ?? undefined}><RelationBlock detail={relationDetail(battery, map, relation[0], relation[1])} /></div> : null}
+      {/* Announced when a relation opens from the list below: it appears above the button pressed. */}
+      <div aria-live="polite">
+        {relation ? <div data-aia={pair ?? undefined}><RelationBlock detail={relationDetail(battery, map, relation[0], relation[1])} /></div> : null}
+      </div>
       <b className="text-sm" data-testid="object-map-detail-label">{o.label}</b>
       {o.primary ? null : <p className="text-[10.5px] text-ink-muted">{t(`${p}.detailSecondary`)}</p>}
       <div className="grid grid-cols-2 gap-1.5">
@@ -623,8 +629,13 @@ function ObjectCard({ battery, map, selected, relation }: { battery: BatteryWith
       <h5 className={DETAIL_HEAD}><Tip label={t(`${p}.detailRelations`)} help={t(`${p}.detailRelationsHelp`)} /></h5>
       {o.relations.length ? (
         <div className="grid gap-[3px]" data-testid="object-map-detail-relations">
+          {/* Each relation opens the pair's detail, as a click on its line does: the canvas is no keyboard's. */}
           {o.relations.map((x) => (
-            <div key={x.id} className="flex justify-between gap-2.5 border-b border-border py-[5px] text-[10.5px]"><span className="min-w-0 text-ink-muted">{x.label}</span><b className="tabular-nums">{signed(x.r)}</b></div>
+            <button key={x.id} type="button" aria-pressed={isPair(relation, selected, x.j)} onClick={() => onRelation(x.j)}
+              className="flex w-full justify-between gap-2.5 border-b border-border py-[5px] text-left text-[10.5px] hover:bg-surface focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus-ring aria-pressed:font-semibold">
+              <span className="min-w-0 text-ink-muted">{x.label}</span>{" "}<b className="tabular-nums">{signed(x.r)}</b>
+              <span className="sr-only">{tv(`${p}.relationShow`, { a: o.label, b: x.label })}</span>
+            </button>
           ))}
         </div>
       ) : <p className="text-[10.5px] text-ink-muted">{t(`${p}.detailNoRelation`)}</p>}
