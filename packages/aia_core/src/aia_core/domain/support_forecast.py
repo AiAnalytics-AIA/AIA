@@ -15,9 +15,12 @@ under its ``analysis`` rule): the status every question will carry, before the r
 the code that will decide it after. Every question is asked of every respondent (a
 conditional question is refused at readiness), so the forecast is one status for all.
 
-What it cannot know it says so, and never scores as good: a run whose respondents come
-from the population draws its donors at fieldwork (the audience preview counts them),
-so its forecast is unknown. The aggregation formulas a start
+A run whose respondents come from the population draws them at fieldwork with the same
+seed, under the design's filters (:func:`~.panel_source.panel_plans`), so the sample a
+start would draw over the population it would record is that run's sample: given it, the
+forecast reads its donors and analysis weights through the same two gates. What it cannot
+know it says so, and never scores as good: a panel run with no sample given (no population
+to draw from, a refused draw) is unknown. The aggregation formulas a start
 would pin are applied as the aggregate applies them (``slots``). An answer a respondent
 leaves empty lowers a question's donors below the forecast, so the forecast is an upper
 bound on support, never a promise of more.
@@ -35,6 +38,7 @@ from .analysis.native import reassess_support
 from .evidence import SupportStatus
 from .evidence.support import SupportSpec
 from .fieldwork import PersonaSource
+from .population.sampling import PanelSample
 from .research_aggregate import donor_support
 from .research_design import (
     SAMPLE_SIZE_BOUNDS,
@@ -92,12 +96,14 @@ def _statuses(
 ) -> tuple[int, SupportStatus, SupportStatus]:
     assert spec.n is not None
     roster = fictional_roster(spec.n, seed=fieldwork_seed(spec))
-    cell = donor_support(
-        [p.donor_id for p in roster],
-        [p.weight for p in roster],
-        rule=support.results,
-        slots=slots,
-    )
+    return _judged([p.donor_id for p in roster], [p.weight for p in roster], support, slots)
+
+
+def _judged(
+    donors: list[str], weights: list[float], support: SupportSpec, slots: Slots
+) -> tuple[int, SupportStatus, SupportStatus]:
+    """The status every question will carry, from the respondents' donors and weights."""
+    cell = donor_support(donors, weights, rule=support.results, slots=slots)
     results = SupportStatus(str(cell["support_status"]))
     # The question result as the aggregate writes it (research_aggregate: n_platnych,
     # effective_n from the combined estimate), read by the analysis gate as it reads one.
@@ -138,17 +144,44 @@ def forecast_support(
     support: SupportSpec,
     persona_source: PersonaSource,
     slots: Slots = NO_SLOTS,
+    sample: PanelSample | None = None,
 ) -> SupportForecast:
     """The support a run of ``spec`` will have, under the support rules it will pin and the
     aggregation formulas it will pin (``slots``: the in-force version's replacements, as
-    ``read_aggregation_pin`` compiles them; none, the code's formulas)."""
-    if persona_source is not PersonaSource.FICTIONAL_ROSTER or spec.n is None or spec.n < 1:
+    ``read_aggregation_pin`` compiles them; none, the code's formulas).
+
+    ``sample``: for a panel run, the sample a start would draw (``draw_panel_sample`` over the
+    population the run would record, the design's filters, ``fieldwork_seed(spec)``). Without
+    one, or with one of another size or with a respondent without a donor (which fieldwork
+    refuses), the forecast is unknown."""
+    unknown = SupportForecast(
+        persona_source=persona_source,
+        respondents=spec.n,
+        donors=None,
+        results=None,
+        analysis=None,
+    )
+    if spec.n is None or spec.n < 1:
+        return unknown
+    if persona_source is PersonaSource.PANEL:
+        if sample is None or len(sample.respondents) != spec.n:
+            return unknown
+        drawn = [r.donor for r in sample.respondents if r.donor is not None]
+        if len(drawn) != spec.n:
+            return unknown
+        known, results, analysis = _judged(
+            drawn,
+            [r.analysis_weight for r in sample.respondents],
+            support,
+            slots,
+        )
+        # No sufficient n is searched: each candidate would draw the population again.
         return SupportForecast(
             persona_source=persona_source,
             respondents=spec.n,
-            donors=None,
-            results=None,
-            analysis=None,
+            donors=known,
+            results=results,
+            analysis=analysis,
         )
     donors, results, analysis = _statuses(spec, support, slots)
     return SupportForecast(

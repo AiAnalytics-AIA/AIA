@@ -227,7 +227,7 @@ _STEPS: Final[tuple[MethodStep, ...]] = (
             r"\textstyle\sum_{i \in A} w_i = 0 \;\Rightarrow\; \text{odmítnuto}"
         ),
         implements=f"{_S}:draw_panel_sample",
-        source_sha256="ef9cbd3be56f9929a65bde5b0be214d42e5133bfd75bb6dc6d52e10ed363bc20",
+        source_sha256="219eb3ea61b39facd62d6e02d85feef1377aac0b83b4deb704c418638e896290",
         symbols=(
             Symbol("A", "publikum běhu: řádky panelu po filtru"),
             Symbol("w_i", "váha řádku ze sloupce schématu (analytická váha populace)"),
@@ -419,7 +419,7 @@ _STEPS: Final[tuple[MethodStep, ...]] = (
         title_cs="Kishovo n vzorku",
         formula_latex=r"n_{\mathrm{Kish}} = \frac{\left(\sum_i w_i\right)^2}{\sum_i w_i^2}",
         implements=f"{_S}:draw_panel_sample",
-        source_sha256="ef9cbd3be56f9929a65bde5b0be214d42e5133bfd75bb6dc6d52e10ed363bc20",
+        source_sha256="219eb3ea61b39facd62d6e02d85feef1377aac0b83b4deb704c418638e896290",
         evidence=(_SAMPLER,),
         tests=(f"{_PS}::test_the_verdict_is_the_units",),
         note_cs=(

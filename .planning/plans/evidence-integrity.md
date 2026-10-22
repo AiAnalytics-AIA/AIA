@@ -94,6 +94,29 @@ name: this plan owns the edit, they review it (`mvp-cohesion.md` F8).
   `PrintGrade` or the evidence table (T3 A4). Gap G31. Test: a suppressed object's number is absent from
   the response, not hidden in the page.
 - **7, corrected at 0d525bc8.** `AnalysisInputs.external_context` already exists (`application/analysis.py:101`) and reaches its fingerprint (:138) and prompt (:176). The missing connection is the production constructor in `application/analysis_results.py:570-579`, which supplies no external context. Trace the sealed-bundle provider into that constructor and the Lead, then test stored source lineage and payload. Reuse the existing field; do not build a second context type or claim its absence. External context remains context, never respondent evidence. Retiring it would change the integrated MVP scope and needs an explicit override.
+  - *Module preparation, landed on `feature/analysis-external-context` (2026-10-22); the Lead is still to come.*
+    - A run with analysis pins the Study's newest finished Design Research run's sealed bundle when it starts:
+      `metadata.analysis_context` holds the run, the published artifact and its SHA-256
+      (`ResearchRuns.design_research_pin`, `application/research.py`, among the newest 200 Deep Research runs).
+    - It is behind the API's `AIA_AI_ANALYSIS_EXTERNAL_CONTEXT`, off by default. A retry keeps the original's pin
+      (`kept`). The pin is metadata only, never the run's key.
+    - `native_sources` reads the pin again through `DeepResearchRuns.bundle` and holds it to the same artifact and
+      bytes, its seal verified. Any other answer is refused by name (`context_pin`, `context_not_found`,
+      `context_unverified`, `context_moved`), never read as no context. The client report reads the data alone
+      (`with_context=False`), so a broken pin refuses only what the context is part of.
+    - `prepare_module` passes `external_context_lines(public_context(bundle))` (`domain/analysis/external.py`)
+      into the existing payload field and fingerprint: the public (Class C) findings only, since a module's
+      request is classed from its dataset and design, never from this context; 24 findings at most, each claim
+      cut at 400 characters.
+    - The gate is unchanged: a figure copied from the context cites no row and is refused.
+    - Tests:
+      - `test_analysis_executor.py` "a run pins its design research and every module is shown it as context"
+        (fails without the wiring; a Class A finding left out; each broken pin refused by name) and "without the
+        switch a run pins no context";
+      - `test_analysis_external.py`;
+      - `test_analysis_draft.py` "a figure from external context is refused like any uncited number".
+    - The Lead's half (LO9d's "newest sealed bundle's findings by reference") reads the same provider. It is
+      `research_lead.py`'s, the integration coordinator's, and was requested there.
 - **8a, 8b.** `AnalysisInputs` holds one origin; client-reported numbers (`client-data-in-analysis`) need a
   second table and a fingerprint that names it. Interfaces I21.
 - **1, settled and open.** MVP-23 flips the parity cases `finding-without-evidence` and
@@ -126,3 +149,10 @@ Source: the owner's answers of 2026-10-20 (`.planning/evidence/scope-freeze/answ
 
 **Existing chunks, changed.** 5 (G61): its test reads "one authority per evidence source", and AC-08's
 row names it. 1 moves from E20 to E32 (G62), before its W1 consumer 9a.
+
+### Ordering (the coordinator's census, 2026-10-21, OI-192)
+
+`segment-maps-and-drilldown#10` (segment evidence) lands before `evidence-integrity#9b` (the
+refusal while a module has no supported finding) and `artifact-chain-to-draft-report#CHN10`. Once
+9b lands, the Segments chapter (ch-5) has no admitted producer without 10, so no run could reach a
+draft report.

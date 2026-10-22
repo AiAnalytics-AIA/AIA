@@ -44,6 +44,17 @@ describe("agentJobState", () => {
   });
 });
 
+describe("a job the AI route refused", () => {
+  const refused = (status: string) =>
+    job(status, status, { steps: [{ step_id: "S", node_key: "agent", status, waiting_reason: "ai_runtime_unavailable", error_message: "Trasa odmítla požadavek.", error_reason: "egress_route_not_approved_for_class" }] } as Partial<ResearchAgentJob>);
+
+  it("says in the job panel who fixes it (LO12a)", () => {
+    const paused = agentJobUpdate(refused("WAITING_PROVIDER"), "Návrh dotazníku").paused;
+    expect(paused).toMatch(/^Trasa odmítla požadavek\. Opraví to provozovatel AIA/);
+    expect(paused).toContain("aia_ai_route_approved_for");
+  });
+});
+
 describe("followAgentJob", () => {
   const serve = (answer: ResearchAgentJob) =>
     vi.stubGlobal("fetch", vi.fn(async (url: RequestInfo | URL) => {

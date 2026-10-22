@@ -126,6 +126,88 @@ def test_seed_gives_two_fictional_clients_their_own_work_and_knowledge(
         assert not a & b
 
 
+def test_a_design_job_over_the_seeded_client_declares_its_recorded_datasets(
+    sessions: sessionmaker[Session],
+) -> None:
+    # CR-4: Horizont Mobility's DATASET and FINDING knowledge carried the placeholder lineage
+    # "unclassified-client-knowledge", so every AI design job for it was refused
+    # licence_dataset_unknown. The seed records the fictional fixture dataset; an item nobody
+    # recorded a dataset for is still refused, by name.
+    from aia_core.domain.knowledge import KnowledgeKind
+    from aia_core.domain.licence import LicenceDenied
+    from aia_core.domain.licence_determinations import (
+        PANEL_APPROVED_ROUTE,
+        SYNTHETIC_FIXTURE_DATASET,
+        recorded_policy,
+    )
+    from aia_core.domain.research_agents import (
+        UNRECORDED_KNOWLEDGE_LINEAGE,
+        ResearchAction,
+        agent_request,
+        context_snapshot,
+    )
+    from aia_core.domain.residency import DataClass, ProviderRoute, ResidencyZone
+    from aia_core.infrastructure.client_knowledge_repository import ClientKnowledgeRepository
+
+    route = ProviderRoute(
+        route_id=PANEL_APPROVED_ROUTE,
+        provider="bedrock",
+        zone=ResidencyZone.EU,
+        eu_processing_approved=True,
+        excluded_from_training=True,
+        retention_days=0,
+        approved_for=frozenset(DataClass),
+    )
+
+    def request(knowledge: ClientKnowledgeRepository, study: Any) -> Any:
+        snapshot = context_snapshot({"title": "Fiktivní studie"}, knowledge.for_study(study))
+        return agent_request(
+            ResearchAction.ANALYZE,
+            snapshot,
+            instruction="",
+            policy_version="test",
+            max_output_tokens=1024,
+        )
+
+    with sessions() as session:
+        result = seed_develop(session, owner_email=OWNER)
+        session.commit()
+    with sessions() as session:
+        resolver = ScopeResolver(session)
+        knowledge = ClientKnowledgeRepository(session)
+        owner = AuthenticatedPrincipal(
+            user_id=result.owner_user_id, organization_id=result.organization_id
+        )
+        client_id = result.workspaces["horizont-mobility"]
+        ctx = resolver.client_context(owner, client_id=client_id)
+        study_id = ScopeRepository(session).studies_in_client(ctx)[0].study_id
+        study = resolver.study_context(owner, study_id=study_id)
+        inherited = knowledge.for_study(study)
+        assert {KnowledgeKind.DATASET, KnowledgeKind.FINDING} <= {i.kind for i in inherited}
+
+        seeded = request(knowledge, study)
+        assert seeded.data_lineage is not None
+        assert seeded.data_lineage.datasets == {SYNTHETIC_FIXTURE_DATASET}
+        recorded_policy().authorise(lineage=seeded.data_lineage, route=route)
+
+        # A person adds a dataset of their own: nobody recorded what it derives from.
+        knowledge.add(ctx, kind=KnowledgeKind.DATASET, title="Vlastní data", summary="n = 300")
+        session.flush()
+        unrecorded = request(knowledge, resolver.study_context(owner, study_id=study_id))
+        assert unrecorded.data_lineage is not None
+        assert unrecorded.data_lineage.datasets == {
+            SYNTHETIC_FIXTURE_DATASET,
+            UNRECORDED_KNOWLEDGE_LINEAGE,
+        }
+        # The data owner cleared the placeholder for the EU Bedrock route alone (Q60): it passes
+        # there, and any other route refuses it by name.
+        recorded_policy().authorise(lineage=unrecorded.data_lineage, route=route)
+        other = ProviderRoute(route_id="bedrock-eu-secondary", provider="bedrock")
+        with pytest.raises(LicenceDenied, match=UNRECORDED_KNOWLEDGE_LINEAGE) as refused:
+            recorded_policy().authorise(lineage=unrecorded.data_lineage, route=other)
+        assert refused.value.reason == "not_approved_for_route"
+
+
 def test_seed_admits_a_new_operator_to_an_existing_world(
     sessions: sessionmaker[Session],
 ) -> None:
