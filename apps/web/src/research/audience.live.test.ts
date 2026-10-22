@@ -94,7 +94,16 @@ describe("stored filters the population cannot honour (Findings F3)", () => {
     expect(problems({ kraj: [null] })[0]).toMatchObject({ reason: "empty" });
   });
 
-  it("says nothing it cannot prove: a cut value list, a number, a boolean, a range, no catalogue", () => {
+  it("holds a numeric filter to the server's interval rule (_interval)", () => {
+    for (const vek of [{ min: null, max: 59 }, "abc", [18], [18, "x"], { min: "", max: 59 }, { min: {} }]) {
+      expect(problems({ vek }), JSON.stringify(vek)).toEqual([{ id: "vek", label: "Věk", reason: "range", unknownValues: [], noneKnown: false }]);
+    }
+    for (const vek of [{ min: 30 }, { min: 30, max: 59 }, [18, 29], 40, { min: "30", max: " 59 " }, { min: "1_000" }, { max: "inf" }, true]) {
+      expect(problems({ vek }), JSON.stringify(vek)).toEqual([]);
+    }
+  });
+
+  it("says nothing it cannot prove: a cut value list, a number, a boolean, no catalogue", () => {
     const cut = CATALOGUE.factors.map((f) => (f.id === "kraj" ? { ...f, values: Array.from({ length: CATALOGUE_TOP_VALUES }, (_, i) => ({ value: `K${i}`, count: 1 })) } : f));
     expect(problems({ kraj: ["Fiktivní kraj A"] }, cut)).toEqual([]);
     expect(problems({ kraj: [1] })).toEqual([]); // text the population keys may differ from JavaScript's (1.0)

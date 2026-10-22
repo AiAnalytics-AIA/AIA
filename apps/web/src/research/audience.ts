@@ -362,13 +362,34 @@ export const CATALOGUE_TOP_VALUES = 60;
  * `policy` and `empty` refuse the whole audience (select_audience); `values` drops the values the
  * population lacks, or refuses the audience when none is left (`noneKnown`).
  */
-export type FilterProblem = { id: string; label: string; reason: "factor" | "policy" | "empty" | "values"; unknownValues: string[]; noneKnown: boolean };
+export type FilterProblem = { id: string; label: string; reason: "factor" | "policy" | "empty" | "range" | "values"; unknownValues: string[]; noneKnown: boolean };
+
+/** Whether Python's float() takes `x` (a bound _interval reads): a number, a boolean, numeric text. */
+const takesFloat = (x: unknown): boolean => {
+  if (typeof x === "number" || typeof x === "boolean") return true;
+  if (typeof x !== "string") return false;
+  const s = x.trim().replace(/(\d)_(?=\d)/g, "$1");
+  return s !== "" && (!Number.isNaN(Number(s)) || /^[+-]?(inf|infinity|nan)$/i.test(s));
+};
+
+/** domain/population/audience.py _interval's verdict on a numeric filter's stored value: a {min, max}
+ * whose present bounds are numbers, a pair of numbers, or one number. A bound left out takes the
+ * catalogue's, so it is never the problem. */
+function rangeHolds(v: unknown): boolean {
+  if (v && typeof v === "object" && !Array.isArray(v) && ("min" in v || "max" in v)) {
+    const r = v as Record<string, unknown>;
+    return (!("min" in r) || takesFloat(r.min)) && (!("max" in r) || takesFloat(r.max));
+  }
+  if (Array.isArray(v)) return v.length === 2 && v.every(takesFloat);
+  return typeof v === "number" || typeof v === "boolean";
+}
 
 /**
  * The stored filters the catalogue shows cannot apply as stored (artifact-audience, Findings F3).
- * Only what the catalogue proves is named: a value is compared as text, the way the population keys
- * it, only when the factor's value list is complete (shorter than CATALOGUE_TOP_VALUES); a number,
- * a boolean, a range and a cut list say nothing.
+ * A numeric filter is held to _interval's rule (`range`). Only what the catalogue proves is named
+ * otherwise: a value is compared as text, the way the population keys it, only when the factor's
+ * value list is complete (shorter than CATALOGUE_TOP_VALUES); a number, a boolean and a cut list
+ * say nothing.
  */
 export function filterProblems(p: ResearchProject, cat: Catalog | null): FilterProblem[] {
   if (!cat) return [];
@@ -381,7 +402,7 @@ export function filterProblems(p: ResearchProject, cat: Catalog | null): FilterP
     const label = String(f?.label || id);
     if (!f) { problem(id, label, "factor"); continue; }
     if (f.policy_allowed === false) { problem(id, label, "policy"); continue; }
-    if (f.kind === "numeric") continue;
+    if (f.kind === "numeric") { if (!rangeHolds(val)) problem(id, label, "range"); continue; }
     const asked = (Array.isArray(val) ? val : [val]).filter((v) => v != null);
     if (!asked.length) { problem(id, label, "empty"); continue; }
     if (!Array.isArray(f.values) || f.values.length >= CATALOGUE_TOP_VALUES || !asked.every((v) => typeof v === "string")) continue;

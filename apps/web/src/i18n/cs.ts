@@ -2360,6 +2360,8 @@ export const cs = {
       problemValues: "{label} – v populaci chybí: {values}. Výběr je vynechá a použije ostatní uložené hodnoty.",
       problemValuesAll: "{label} – v populaci chybí: {values}. Žádná uložená hodnota nezbývá, výběr odmítne celou cílovou skupinu.",
       problemChip: "nelze použít",
+      problemChipPartial: "některé hodnoty chybí",
+      problemRange: "{label} – uložený rozsah není číselný interval. Výběr odmítne celou cílovou skupinu.",
       discoverTitle: "Nejdřív popište produkt a co znamená „ideální“",
       discoverProduct: "Produkt / služba / myšlenka",
       discoverProductPlaceholder: "Co nabízíte, pro koho, v jaké situaci, přibližná cena…",

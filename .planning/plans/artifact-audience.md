@@ -150,9 +150,12 @@ From the browser audit of 2026-10-21 (workbench on develop `bfe6d15b`, the `audi
     - `factor`: the catalogue does not offer the factor;
     - `policy`: the factor's `policy_allowed` is false;
     - `empty`: no value is stored;
+    - `range`: a numeric filter `_interval` refuses (a null or non-numeric bound, a list that is not
+      a pair, text), held to the server's rule case by case;
     - `values`: text values a complete value list (shorter than its 60 listed values) lacks.
-    The chip says "nelze použít" in words and takes the attention style; a note says what the
-    selection does. A cut list, a number, a boolean and a range say nothing.
+    The chip says "nelze použít", or "některé hodnoty chybí" when the filter still applies with the
+    rest, and takes the attention style; a note says what the selection does. A cut list, a number
+    and a boolean value say nothing.
   - Test: `audience.live.test.ts` "stored filters the population cannot honour";
     `AudienceStep.test.tsx` "says at once which stored filter…".
 

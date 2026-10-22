@@ -195,13 +195,14 @@ describe("Audience", () => {
       expect(note.textContent).toContain("Kraj – v populaci chybí: Fiktivní kraj A. Výběr je vynechá a použije ostatní uložené hodnoty.");
       const chip = container.querySelector('[data-aia="audience:filter:kraj"]')!;
       expect(chip.hasAttribute("data-filter-problem")).toBe(true);
-      expect(chip.textContent).toContain("nelze použít"); // said in words, not by colour alone
+      expect(chip.textContent).toContain("některé hodnoty chybí"); // said in words; the filter still applies with the rest
       expect(container.querySelector('[data-aia="audience:filter:vek"]')!.hasAttribute("data-filter-problem")).toBe(false);
       // Unticking the value it has leaves only the one it lacks: a run refuses the filter.
       fireEvent.click(screen.getByRole("checkbox", { name: /Zlínský kraj/ }));
       await saved();
       expect(lastSave().content.audience.filters).toEqual({ kraj: ["Fiktivní kraj A"], vek: { min: 30 } });
       expect((await screen.findByRole("note")).textContent).toContain("Žádná uložená hodnota nezbývá, výběr odmítne celou cílovou skupinu.");
+      expect(container.querySelector('[data-aia="audience:filter:kraj"]')!.textContent).toContain("nelze použít");
       noUnitCalls();
     });
 
