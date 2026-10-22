@@ -95,7 +95,9 @@ function useRenaming(edit: OrganizerEdit | undefined) {
   // the render that brings the row back has committed: a frame scheduled at `stop` can run
   // before that render, find no row, and leave focus on the page (seen on a loaded CI runner).
   // Only focus left with the closed field, on the page, comes back: a slow save's answer must not
-  // take it from wherever the person went meanwhile (another label's colours, a CI flake).
+  // take it from wherever the person went meanwhile (another label's colours; once the flake in
+  // "renames a label on F2 and recolours it by its swatch"). A click that focuses nothing (Safari's
+  // buttons, empty space) also leaves the page focused, so there the row still takes it back.
   const refocus = useRef(false);
   useEffect(() => {
     if (renaming || !refocus.current) return;
