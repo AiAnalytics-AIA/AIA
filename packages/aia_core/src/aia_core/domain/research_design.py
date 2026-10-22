@@ -781,6 +781,9 @@ def read_condition(raw: Any) -> tuple[str, tuple[str, ...], bool] | None:
         isinstance(tree, ast.Compare) and len(tree.ops) == 1 and isinstance(tree.left, ast.Name)
     ):
         return None
+    # The parser folds a name to NFKC (a full-width Q1 reads as Q1); a name is read only as written.
+    if ast.get_source_segment(raw.strip(), tree.left) != tree.left.id:
+        return None
     op, right = tree.ops[0], tree.comparators[0]
     if isinstance(op, ast.Eq):
         values = [right]
@@ -860,7 +863,10 @@ def _condition(
             "condition_unknown_question",
             f"podmínka stojí na otázce {ref}, která v dotazníku není.",
         )
-    if len(named) > 1:
+    # A name the question itself or a later one also carries is no earlier question's alone.
+    folded = ref.casefold()
+    also_later = ref in later or (expression and any(x.casefold() == folded for x in later))
+    if len(named) > 1 or also_later:
         return refuse(
             "condition_ambiguous_question",
             f"podmínka stojí na {ref}, ale toto označení má v dotazníku víc otázek.",
