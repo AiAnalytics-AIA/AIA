@@ -496,6 +496,7 @@ function SelfUpdate({ t, o, canEdit, onDecide }: { t: LeadTurn; o: LeadOutput; c
 const REQUEST_WORDS: Record<LeadRequest["kind"], { title: string; action: string }> = {
   agent_job: { title: "Návrhová úloha AI", action: "Spustit úlohu" },
   research_run: { title: "Spuštění výzkumu", action: "Otevřít Kontrolu a spuštění" },
+  analysis_retry: { title: "Opakování analýzy", action: "Zopakovat analýzu" },
   design_research: { title: "Hloubkový výzkum k návrhu", action: "Otevřít hloubkový výzkum" },
   interpretation_research: { title: "Hloubkový výzkum k výkladu", action: "Otevřít výklad výsledků" },
 };
@@ -522,7 +523,11 @@ function RequestCard({ r, approved, onApprove, canEdit, typed = false }: { r: Le
           <div className="card__titlerow"><p className="dec__title">{w.title}</p><Pill word={pill.word} tone={pill.tone} /></div>
           {decided && r.why === TYPED_UNDECIDED_WHY ? null : <p className="dec__reason">{r.why}</p>}
           <Facts facts={reused
-            ? [{ label: "Výsledek", value: r.kind === "research_run" ? "Tento návrh už běží nebo doběhl" : "Tato úloha pro tento návrh už proběhla", sub: "Nic nového se nespustilo ani nezaplatilo; její karta je výše v konverzaci." }]
+            ? [{ label: "Výsledek", value: r.kind === "research_run" ? "Tento návrh už běží nebo doběhl" : r.kind === "analysis_retry" ? "Analýza tohoto běhu se už opakuje" : "Tato úloha pro tento návrh už proběhla", sub: "Nic nového se nespustilo ani nezaplatilo; její karta je výše v konverzaci." }]
+            : r.kind === "analysis_retry"
+            // The stage's own retry (decision (b), 2026-10-22): no wallet charge, said in words.
+            ? [{ label: "Co se stane", value: "Znovu se zeptá jen modulů analýzy, které v posledním běhu selhaly", sub: "Nad daty, která běh už sebral; nová data se nesbírají. Práh potvrzení se kontroluje jako na Výsledcích." },
+              { label: "Platba", value: "z rozpočtu studie", sub: "Opakování analýzy se nestrhává z Peněženky." }]
             : typed && r.kind === "research_run"
             ? [{ label: "Co se stane", value: "Spustí se výzkum s výchozím nastavením", sub: "Připravenost, práh potvrzení a peněženka se kontrolují jako na Spuštění." }]
             : paid
