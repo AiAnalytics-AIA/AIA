@@ -128,10 +128,10 @@ V2: `DimensionsArt` (`SampleStages.tsx:206-230`).
   `px-4` inside `StepSection`'s body, which already pads by `px-4` (`PersonaStep.tsx:244 @ bfe6d15`,
   `step.tsx:57 @ bfe6d15`). Seen at 390 px in `dimensions_journey.mjs`'s screenshot; fixed by dropping
   the inner padding. No unit test can see padding; the journey's screenshots are the evidence.
-- **DIM-F2 (reported to the integration coordinator, who owns `AskLead`).** Under 1100 px the note
+- **DIM-F2 (fixed in #647, F11; open at the time of writing).** Under 1100 px the note
   says to ask the Lead "v konverzaci vlevo", but there is no conversation on the left: the Lead opens
-  as a drawer or sheet (`AskLead.tsx:28 @ bfe6d15`; seen at 390 px on Dimenze). Smallest fix: words
-  that hold at every width ("v konverzaci s Vedoucím").
+  as a drawer or sheet (`AskLead.tsx:28 @ bfe6d15`; seen at 390 px on Dimenze). #647 makes it "v
+  konverzaci s ním (na užší obrazovce ji otevře tlačítko Vedoucího)".
 
 ## 8. Owner questions
 
