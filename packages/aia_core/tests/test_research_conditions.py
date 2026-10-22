@@ -20,6 +20,7 @@ from aia_core.domain.research_design import (
     SpecCondition,
     assess_readiness,
     compile_design,
+    condition_refusal,
 )
 from aia_core.domain.sociomap.relations import AUDIT_PROVISIONAL_N_MIN
 
@@ -229,3 +230,28 @@ def test_a_condition_is_in_the_fingerprint_only_when_declared(
     assert unread is not None
     prints = {p.fingerprint() for p in (never, weekly, unconditional, unread)}
     assert len(prints) == 4
+
+
+@pytest.mark.parametrize(
+    ("condition", "code"),
+    [
+        ({"question_id": "Q1", "options": ["Nikdy"]}, None),
+        ({"question_id": "Q9", "options": ["Nikdy"]}, "condition_unknown_question"),
+        ({"question_id": "Q3", "options": ["Nikdy"]}, "condition_forward_reference"),
+        ({"question_id": "Q2", "options": ["5"]}, "condition_not_choice"),
+        ({"question_id": "Q1", "options": ["Někdy"]}, "condition_unknown_option"),
+        ({"q": "Q1"}, "condition_unstructured"),
+    ],
+)
+def test_an_edit_is_held_to_the_compilers_own_rule(
+    condition: dict[str, Any], code: str | None
+) -> None:
+    """``condition_refusal`` (what ``route_set`` asks before writing) says what compile says."""
+    content = _design(_q3(None))
+    assert condition_refusal(content, "Q3", condition) == code
+    compiled = _codes(_design(_q3(condition)))
+    assert compiled == ([] if code is None else [code])
+
+
+def test_an_edit_on_no_stored_question_is_refused() -> None:
+    assert condition_refusal(_design(), "Q9", None) == "unknown_question"
