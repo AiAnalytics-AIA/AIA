@@ -505,17 +505,18 @@ describe("Návrh: Výzkumné otázky a jejich pokrytí", () => {
     const ws = stub(null);
     render(<ResearchScreen step="plan" frame={TEST_FRAME} />);
     await within(await section()).findByText(/Podle pracovní kopie, revize 3/);
-    const edit = (label: string, value: string) => {
+    // A narrative item is selectable (#727): a click opens it once SELECT_SETTLE_MS has passed.
+    const edit = async (label: string, value: string) => {
       fireEvent.click(screen.getByRole("button", { name: new RegExp(`^Upravit: ${label}`) }));
-      const field = screen.getByRole("textbox", { name: label });
+      const field = await screen.findByRole("textbox", { name: label });
       fireEvent.change(field, { target: { value } });
       fireEvent.keyDown(field, { key: "Enter", ctrlKey: true });
     };
     // A hypothesis is not what the coverage reads: it is saved, and the coverage is not recomputed.
-    edit("Hypotéza 1", "Silnější varianta prohraje.");
+    await edit("Hypotéza 1", "Silnější varianta prohraje.");
     await waitFor(() => expect(ws.saves.length).toBe(1));
     // A research question is: once its save lands, the coverage is read on that revision.
-    edit("Výzkumná otázka 3", "Kdo nápoj doporučí?");
+    await edit("Výzkumná otázka 3", "Kdo nápoj doporučí?");
     await within(await section()).findByText(/Otázky nebo dotazník se od ní změnily/);
     await waitFor(() => expect(ws.saves.length).toBe(2));
     await within(await section()).findByText(/Podle pracovní kopie, revize 5\. /);
