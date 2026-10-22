@@ -15,7 +15,7 @@
   --glassCard66: rgba(255, 255, 255, .38);
   --glassBlur66: blur(16px) saturate(150%);
   /* Labels on the light glass: 4.5:1 over the glass where it lies on the map's dark ground. */
-  --omwMuted: #435056;
+  --omwMuted: #3d494f;
   --omwAnswer: #54666f;
 }
 :root[data-theme="dark"] .omw {
