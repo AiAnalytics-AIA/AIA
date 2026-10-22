@@ -589,6 +589,31 @@ IA-1 … IA-6, with all six parts, in the audit's §6. For the docs PR to number
 
 Chunk 3 is complete: 3a–3h are merged (#640, #645, #651, #652, #681, #687, #691, #693). Every questionnaire A-item in the audit's fix list is addressed; A15 and A20 were "keep", and A19's path cards are the toolbar's `Segmented`.
 
+### Chunk 5, as delivered (the Cílová skupina screen owner, in small PRs)
+
+Split by owner (PM, 2026-10-22): B1–B4 sit on Dimenze (`PersonaStep.tsx`), B5–B11 on Cílová skupina
+(`AudienceStep.tsx`). Chunk 5 is ticked once B5–B11 are in and B1–B4 name Dimenze's PRs.
+
+- **B1. n as one stepper:** Dimenze's `artifact-dimensions#DIM3` (`PersonaStep.tsx`, `data-aia="sample:n"`):
+  bounded by `…/research/limits`, steps of 50, the recommendation beside it, no slider or presets, no clamp.
+- **B2–B4:** Dimenze's, not yet scheduled here.
+- **B5, B10:** kept, as the audit says (`RadioCard`; a prompt to AI is not a value).
+- **B6. A numeric factor's range as two bounded steppers, feature/audience-range-steppers.**
+  - Od and Do are `Stepper`s bounded by the catalogue's range (`research/audience.ts` `rangeBounds`):
+    whole numbers when both ends are, else two decimals, the ends rounded outward. A scale whose ends
+    the catalogue states (`scale_hint`) takes two decimals.
+  - Each end is also bounded by the other, so a crossed range is refused at the field. The population
+    would swap it (`_interval`).
+  - An unset end reads "Bez omezení", and a set one clears by its own button. `setRange` takes numbers
+    and leaves an unset end out.
+  - A stored end the population cannot read (`boundOf`, `endUnreadable`) is said at the field, never
+    shown as no end.
+  - Tests: `AudienceStep.test.tsx` "a numeric factor's range is two steppers…" and "says a stored end
+    the population cannot read…"; `audience.live.test.ts` "a numeric factor's range bounds".
+  - `audience_journey.mjs` checks the range at 1440/1100/768/390: no overflow, the clear button at
+    least 24 px, and 999 refused and not saved.
+- **B7+B8, B9, B11:** to come, one PR each.
+
 ### Chunk 3b3, added by planning (2026-10-21)
 
 3b1 built the label path behind `AIA_AI_SCALE_LABELS_IN_PROMPT`, off, and 3b2 is the editor; no

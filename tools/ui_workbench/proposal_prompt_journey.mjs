@@ -57,7 +57,12 @@ try {
   await editInPlace("Cíl 1", "Porovnat čtyři nabídky");
   await page.getByRole("button", { name: "Přidat cíl", exact: true }).click();
   const row = page.getByRole("textbox", { name: "Přidat cíl", exact: true });
-  await row.fill("Ověřit bariéry dostupnosti"); await row.press("Enter"); await row.press("Escape");
+  await row.fill("Ověřit bariéry dostupnosti"); await row.press("Enter");
+  // A repeat is refused at the row in the words an edit in place says, never as a taken name.
+  await row.fill("ověřit  bariéry dostupnosti"); await row.press("Enter");
+  await page.getByText("Tato položka už v seznamu je.", { exact: true }).waitFor();
+  assert.equal(await page.getByText(/už existuje/).count(), 0, "a narrative repeat is not said as a taken name");
+  await row.press("Escape");
   const questions = shown.research_questions?.length ?? 0;
   await page.getByRole("button", { name: "Přidat výzkumnou otázku", exact: true }).click();
   const rq = page.getByRole("textbox", { name: "Přidat výzkumnou otázku", exact: true });

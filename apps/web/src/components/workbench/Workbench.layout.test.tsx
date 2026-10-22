@@ -623,6 +623,35 @@ describe("a stage's forward action through the frame (FrameNavigation's next)", 
   });
 });
 
+describe("the study header's Nabídka menu (the UX audit, #753)", () => {
+  it("opens from the keyboard on its first item, moves with the arrows, and Escape closes it back to its button", async () => {
+    bench();
+    const toggle = screen.getByRole("button", { name: "Nabídka" });
+    expect(toggle.getAttribute("aria-haspopup")).toBe("menu");
+    toggle.focus();
+    fireEvent.keyDown(toggle, { key: "ArrowDown" });
+    const menu = await screen.findByRole("menu", { name: "Nabídka" });
+    const items = Array.from(menu.querySelectorAll<HTMLElement>('[role="menuitem"]'));
+    await waitFor(() => expect(document.activeElement).toBe(items[0]));
+    fireEvent.keyDown(items[0]!, { key: "ArrowDown" });
+    expect(document.activeElement).toBe(items[1]);
+    fireEvent.keyDown(items[1]!, { key: "End" });
+    expect(document.activeElement).toBe(items[items.length - 1]);
+    fireEvent.keyDown(document.activeElement!, { key: "Escape" });
+    expect(screen.queryByRole("menu", { name: "Nabídka" })).toBeNull();
+    expect(document.activeElement).toBe(toggle);
+  });
+
+  it("closes on a press outside without a scrim swallowing it", async () => {
+    bench();
+    fireEvent.click(screen.getByRole("button", { name: "Nabídka" }));
+    await screen.findByRole("menu", { name: "Nabídka" });
+    expect(document.querySelector(".shead .scrim")).toBeNull();
+    fireEvent.pointerDown(document.body);
+    expect(screen.queryByRole("menu", { name: "Nabídka" })).toBeNull();
+  });
+});
+
 describe("a typed analysis retry (the PM on #744)", () => {
   it("is approved on the run its card named, and on a newer one only after the person's yes", async () => {
     const typed = { ...leadTurn("T1", 1), actor: "person", kind: "message", text: "Zopakuj analýzu", command: "analysis_retry", output: null };

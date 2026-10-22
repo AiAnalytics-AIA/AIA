@@ -59,6 +59,7 @@ __all__ = [
     "NO_CLEAR_SEGMENTS",
     "SEGMENTS",
     "SHUFFLE_BATCH",
+    "TOO_FEW_OBJECTS",
     "TOO_FEW_RESPONDENTS",
     "MapDecision",
     "Profiles",
@@ -83,6 +84,7 @@ NONE: Final = "NONE"
 BORDERLINE: Final = "BORDERLINE"
 #: Why there are no segments.
 TOO_FEW_RESPONDENTS: Final = "TOO_FEW_RESPONDENTS"
+TOO_FEW_OBJECTS: Final = "TOO_FEW_OBJECTS"
 NO_CLEAR_SEGMENTS: Final = "NO_CLEAR_SEGMENTS"
 NOT_ABOVE_SHUFFLED: Final = "NOT_ABOVE_SHUFFLED"
 NOT_STABLE: Final = "NOT_STABLE"
@@ -394,7 +396,9 @@ def map_decision(points: Floats, ratings: Floats, rules: TasteSegmentsSpec) -> M
     """The methodology's ``find_segments`` decision on one map."""
     fitted = _seg_fit(points, ratings, rules)
     if fitted is None:
-        return MapDecision(0, TOO_FEW_RESPONDENTS, 0.0, None, np.nan, None, None)
+        # With fewer objects than a slope's ratings nobody qualifies, however many respondents.
+        few = TOO_FEW_OBJECTS if ratings.shape[1] < rules.min_ratings else TOO_FEW_RESPONDENTS
+        return MapDecision(0, few, 0.0, None, np.nan, None, None)
     crit, fits = fitted.criterion, fitted.fits
     k = int(np.argmin(crit)) + 1
     gain = float(crit[0] - min(crit))
@@ -624,8 +628,8 @@ def taste_segments(
             hint=None,
             **info,
         )
-    if main.fitted is None:
-        return shown(main, **info)
+    # Borderline needs a finite mean margin, so the shown map had enough respondents for a fit.
+    assert main.fitted is not None
     k_hint = _mode(yes_ks) if yes_ks else int(np.argmin(main.fitted.criterion[1:])) + 2
     return Segments(
         decision=BORDERLINE,

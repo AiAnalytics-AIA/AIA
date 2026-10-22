@@ -2,9 +2,9 @@
 
 ADR 0023; plan ``methodology-tab.md`` S1. The audit *NPC Sociomapa: faulty formulas in the
 code* (A. Bahbouh, 2026-10-06) is the canonical methodology (the owner's rule of
-2026-10-07). This catalogue shows how AIA computes each of its sixteen points today, under
-``aia-sociomap-3`` (the preset every new run pins beside the reference map) and its
-predecessor ``aia-sociomap-2``. A point the code does not compute yet (F5 for this map,
+2026-10-07). This catalogue shows how AIA computes each of its sixteen points, under
+``aia-sociomap-5`` (the signed-off methodology, what every new run pins) and its predecessors
+``aia-sociomap-4`` to ``-2``. A point the code does not compute yet (F5 for this map,
 F10's placement, F14, F15, F16) is shown with the audit's proposed formula and says so.
 
 Every formula is written from the function it names; each function is pinned by the SHA256
@@ -349,12 +349,15 @@ _CATALOGUE: Final[tuple[MethodStep, ...]] = (
             Symbol(r"\tilde r_{ij}", "vztah objektů i a j očištěný o tuto úroveň"),
             Symbol(r"p_{ij}", "Fisherovo p proti úrovni nesouvisejících objektů"),
         ),
+        parameters=(ParameterRef("relation.clear_effect", "Zřetelný vztah od |r̃|"),),
         evidence=(_SIGNED_OFF,),
         tests=(*_SIGNED_OFF_TESTS, _SIGNED_OFF_MAP_TEST),
         note_cs=(
             "Jen aia-sociomap-5 (odhad baseline_corrected_pearson). Pár je známý, když jej "
             "hodnotilo aspoň n_min respondentů (práh stavu, krok Stav páru) a oba sloupce mají "
-            "rozptyl nad 10^-12; jinak je neznámý a nemá žádnou hodnotu."
+            "rozptyl nad 10^-12; jinak je neznámý a nemá žádnou hodnotu. Od |r̃| „Zřetelný vztah "
+            "od“ nazývá detail vztahu na mapě vztah zřetelným, pod ním slabým; jen slovo, "
+            "výpočet nemění (bez hodnoty 0,3)."
         ),
     ),
     MethodStep(
@@ -475,7 +478,7 @@ _CATALOGUE: Final[tuple[MethodStep, ...]] = (
         title_cs="Síla vztahu a jeho směr",
         formula_latex=r"s_{ij} = |r_{ij}|,\qquad \operatorname{sgn} r_{ij} \text{ jako barva}",
         implements=f"{_S}.engine_v2:compute_object_map",
-        source_sha256="24f5be1e1825142153d4222107fdc23c23083f1a2bfc51e74b35fae10ecf492a",
+        source_sha256="486f2898a3ec104c14acfa87c3e54f2d5e28179b6ec78d0515583e9bcfb876e2",
         evidence=(_rule("AUDIT-F4"),),
         tests=(
             f"{_T}/test_sociomap_object_map.py::test_every_number_is_the_landed_functions_on_the_same_input",
@@ -1258,7 +1261,7 @@ _CATALOGUE: Final[tuple[MethodStep, ...]] = (
             r"\ \text{pak dokud } \min_{g \ne h} S_{gh} < S_{\min}"
         ),
         implements=f"{_S}.signed_off_segments:map_decision",
-        source_sha256="71428b8a7d0fa53ce7f4e025c97ac57bc03823d00523edf3a41a80b41467a95e",
+        source_sha256="5cdceae3c1d9850a564e864c37ae639ad24cb11f00ac4b60fcc40a098a037cb0",
         symbols=(
             Symbol(
                 r"S_{gh}",
@@ -1291,7 +1294,7 @@ _CATALOGUE: Final[tuple[MethodStep, ...]] = (
             r"\quad \text{jinak hraniční}"
         ),
         implements=f"{_S}.signed_off_segments:taste_segments",
-        source_sha256="008928364d5d1ebe29c6b7c61cae18a67b81ef547e61b1304ab9548d55252794",
+        source_sha256="27e4761647db0e0f3d0b2b35dae06c24a9e957de262a0856bed6a9387813a444",
         symbols=(
             Symbol(
                 r"m",
@@ -2005,25 +2008,23 @@ SOCIOMAP: Final = MethodModule(
     title_cs="Sociomapa: objektová mapa",
     steps=_STEPS,
     presets=(
+        # First: the preset in force, where an edit starts (the page offers the first preset).
+        Preset("aia-sociomap-5", AIA_SOCIOMAP_V5, _validate),
         Preset("aia-sociomap-4", AIA_SOCIOMAP_V4, _validate),
         Preset("aia-sociomap-3", AIA_SOCIOMAP_V3, _validate),
         Preset("aia-sociomap-2", AIA_SOCIOMAP_V2, _validate),
-        # Last, so an edit still starts from aia-sociomap-4 (the page offers the first preset).
-        Preset("aia-sociomap-5", AIA_SOCIOMAP_V5, _validate),
     ),
-    in_force="aia-sociomap-3",
+    in_force="aia-sociomap-5",
     groups=_GROUPS,
     formulas=SOCIOMAP_FORMULAS,
     editable=True,
     note_cs=(
-        "Mapa auditu NPC Sociomapa (kanonická metodika). Každý nový běh si připne "
-        "aia-sociomap-3 vedle referenční mapy aia-sociomap-1. Mapu aia-sociomap-3 schválil "
-        "vlastník produktu pro zprávy (2026-10-13, registr Sociomap); upravená verze v platnosti "
-        "je interní, dokud ji registr neschválí. aia-sociomap-4 počítá totéž, jen má v metodice "
-        "i hodnoty, které -3 drží v kódu (minimum objektů, pásma Stress, kvantily K100); úprava "
-        "z něj vychází. aia-sociomap-5 počítá vstupy, vztahy, polohy objektů, jejich výšky, "
-        "terén, věrohodnost mapy, mapu respondentů a segmenty vkusu podle schválené metodiky "
-        "AIA Sociomapa "
-        "(kroky označené „Jen aia-sociomap-5“)."
+        "Každý nový běh si připne jen aia-sociomap-5: vstupy, vztahy, polohy objektů, jejich "
+        "výšky, terén, věrohodnost mapy, mapu respondentů a segmenty vkusu počítá podle "
+        "schválené metodiky AIA Sociomapa (kroky označené „Jen aia-sociomap-5“); úprava "
+        "vychází z ní. Mapu aia-sociomap-5 schválil metodik AIA pro zprávy (2026-10-21, registr "
+        "Sociomap); upravená verze v platnosti je interní, dokud ji registr neschválí. "
+        "Referenční mapa aia-sociomap-1 se pro nové běhy nepočítá; uložené běhy si své mapy "
+        "ponechávají. aia-sociomap-2 až -4 zůstávají v nabídce jako starší výchozí body úprav."
     ),
 )

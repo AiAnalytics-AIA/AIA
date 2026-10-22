@@ -28,6 +28,7 @@ from aia_core.domain.sociomap.specification import (
     AIA_SOCIOMAP_V4,
     AIA_SOCIOMAP_V5,
     NoiseRuleSpec,
+    SociomapSpecV3,
     UnsupportedMethodology,
     require_supported,
     spec_payload,
@@ -202,7 +203,7 @@ def test_a_pair_whose_two_halves_differ_in_the_last_bit_is_recorded_once(
 
 def test_the_baseline_corrected_relation_is_declared_whole_and_only_by_itself() -> None:
     require_supported(AIA_SOCIOMAP_V5)
-    assert "aia-sociomap-5" not in [m.method_id for m in default_methods()]
+    assert [m.method_id for m in default_methods()] == ["aia-sociomap-5"]
     half = AIA_SOCIOMAP_V5.model_copy(
         update={"ratings": AIA_SOCIOMAP_V4.ratings, "layout": AIA_SOCIOMAP_V4.layout}
     )
@@ -230,6 +231,25 @@ def test_the_baseline_corrected_relation_is_declared_whole_and_only_by_itself() 
     with pytest.raises(UnsupportedMethodology) as refused:
         require_supported(negative_seed)
     assert set(refused.value.unsupported) == {"relation.noise_rule.seed"}
+
+    # The clear relation's wording: declared under the signed-off method only, strictly in (0, 1);
+    # a version saved before it (no value) still reads, the map's detail then says 0.3.
+    def clear(spec: SociomapSpecV3, value: float | None) -> SociomapSpecV3:
+        return spec.model_copy(
+            update={"relation": spec.relation.model_copy(update={"clear_effect": value})}
+        )
+
+    assert AIA_SOCIOMAP_V5.relation.clear_effect == 0.3
+    require_supported(clear(AIA_SOCIOMAP_V5, None))
+    require_supported(clear(AIA_SOCIOMAP_V5, 0.45))
+    for wrong in (0.0, 1.0, float("nan")):
+        with pytest.raises(UnsupportedMethodology) as refused:
+            require_supported(clear(AIA_SOCIOMAP_V5, wrong))
+        assert set(refused.value.unsupported) == {"relation.clear_effect"}
+    with pytest.raises(UnsupportedMethodology) as refused:
+        require_supported(clear(AIA_SOCIOMAP_V4, 0.3))
+    assert "relation.clear_effect" in refused.value.unsupported
+    assert "clear_effect" not in spec_payload(AIA_SOCIOMAP_V4)["spec"]["relation"]
     # A formula the method never reads is refused, not stored to do nothing.
     with pytest.raises(UnsupportedMethodology) as refused:
         compute_object_map(
