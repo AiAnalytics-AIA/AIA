@@ -232,7 +232,10 @@ path with five bodies.
 - `StudyWalletRepository` is the only writer of the wallet tables (`layer_check`, four rules; built
   by LO1, migration `60ccc9ff42cf`, #544). The wallet is behind `AIA_STUDY_WALLET_ENABLED` (off by
   default, off in test, absent from the develop Compose file), apart from `AIA_LEAD_PLANS_ENABLED`;
-  off, nothing reads or writes a wallet row, and no start path calls the wallet yet.
+  off, nothing reads or writes a wallet row; on, the typed start (LO5, #574) is the one start path that charges it so far.
+- `WorkflowRepository.record_chat_start` (under `APPROVE_GATE`) is the one writer of a `chat_start`
+  ledger row, and `application/lead_chat_start.approve_chat_start` keeps LO1's order: quote,
+  create, the `chat_start` row, then the charge (LO5, #574).
 - Tests: concurrent starts never exceed the cap; an unknown ceiling is refused; a step whose
   ceiling the card showed starts above the threshold without asking again, and one whose ceiling
   grew parks; a raise above the client's ceiling is refused by name; a design move lets a step tied

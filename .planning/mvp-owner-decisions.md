@@ -274,7 +274,7 @@ report narrative's first draft is written by code, then the Lead proposes tracke
 labelled as external sources (L), never respondent evidence (ADR 0021 unchanged in substance), and
 the separate report with literature is retired for new reports; stored ones stay downloadable. This
 may need a note in ADR 0021 and `contextual_report.py`'s description. Q57 was MVPQ-04 already (no new
-decision). Q51, Q53 and Q55 are open.
+decision). Q51, Q53 and Q55 were answered later (below).
 
 **2026-10-21 14:40 UTC, the owner's answer Q59 (a)** (relayed by the coordinator): "The lead
 researcher can see all the files in a client's knowledge base." Every Lead turn carries an index of
@@ -302,7 +302,19 @@ coordinator's session at about 15:22 UTC he said "build the develop-only class-a
 including Brave for any class"; the PR is `feature/develop-class-advisory`. Production keeps the
 class rules (ADR 0008, ADR 0032 §4). Q67, who pays after a budget lift, is open. The read round inside a Lead turn (ADR 0042, Proposed) is
 the coordinator's decision within Q59; the experimental Sociomapping draft is named only in CHN1's
-section manifest (the coordinator, #579). Q51, Q53, Q55 and Q67 are open.
+section manifest (the coordinator, #579). Q51, Q53, Q55 and Q67 are answered below.
+
+**2026-10-21, the owner's answers Q51, Q53, Q55 and Q67** (on the PM status page, relayed by the
+coordinator with their stored wording). Q51 "Tracked sets: allow a word on every scale point?", (b),
+14:32: "Keep sets to two end words until 3b3 (Aram's wording rule)"; #559 gives a single scale
+question a word on every point, and a set stays two-ended because the server reads a set's first two
+labels as its ends (`SpecBattery.told_ends`, OI-184). Q53 "Dotazník: who sets the questionnaire
+length limit?", (a), 20:16: "A declared rule per study type, set by Aram on Metodika". Q55 "What
+sections does the MVP draft report have?", (b), 14:33: "Today's report with gaps closed, plus
+RD9/RD10, plus literature when chosen, in today's order", with his note "ensure we are not missing
+anything". Q67 "Per-researcher spend: who pays after a budget lift?", (a), 20:12: "Whoever lifts the
+budget pays for what runs after the lift" (built in #583). No question from the PM status page is
+open after these.
 
 ## MVPQ-12 — Canonical Sociomap questions still requiring sign-off
 

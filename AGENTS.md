@@ -847,6 +847,20 @@ sys.modules[spec.name] = module          # dataclasses resolve their module by n
 spec.loader.exec_module(module)
 ```
 
+**A scripted model route still needs a price.** A "free" scripted route with zero prices is refused
+by `StepModelCaller`: "a metered request needs a positive reservation". Give the route a nominal
+price that sizes the hold, and have the double report 0 tokens, so the call settles at 0. The study
+also needs a budget above the hold, or the step waits `AWAITING_BUDGET` (`aia_executors/workbench.py`,
+research-lead-workbench 12a, #578).
+
+```python
+# WRONG: no reservation can be taken, so every request is refused before it is sent
+_HOLD_USD_PER_MTOK = "0"
+# RIGHT (workbench.py): a nominal price sizes the hold; the scripted wire reports 0 tokens,
+# so every call settles at exactly zero -- and the study's budget is above the hold
+_HOLD_USD_PER_MTOK: Final = "0.01"
+```
+
 ## FastAPI
 
 **A passing unit test does not prove the process boots.** `TestClient` does not
@@ -1802,6 +1816,49 @@ over a `[hi, lo]` pair of 32-bit halves (#543).
 const MASK = (1n << 64n) - 1n;
 // RIGHT -- 64-bit arithmetic in limbs
 [hi, lo] = mul64(hi, lo, 0x00000100, 0x000001b3);
+```
+
+**Callers waiting behind one in-flight promise all resume on the same resolution.** The research
+store's `flush` let every waiter go at once, each building its save from the same `state.revision`,
+so the second was refused `stale_revision` (#556, OI-182; `apps/web/src/research/store.ts`). Loop
+until nothing is in flight, read the state again, and set `inflight` synchronously before the first
+`await` of the new save, so the next waiter sees it and waits.
+
+```ts
+// WRONG: every waiter resumes together and sends the same base
+if (this.inflight) await this.inflight;
+const body = { base_revision: this.state.revision, ... };
+// RIGHT: wait out every save, re-read, and claim the slot before awaiting
+while (this.inflight) await this.inflight;
+const body = { base_revision: this.state.revision, ... };   // read after the wait
+this.inflight = this.save(body);                             // set before the first await
+```
+
+**Focus an element after the render that mounts it, never on a frame guess.** `KnowledgeOrganizers`'
+rename called `setRenaming(false)` and then `requestAnimationFrame(() => row.current?.focus())`;
+under jsdom (and with no guarantee in a browser) the frame can run before React commits, find
+`row.current === null` and never try again (#596, OI-189). Mark that a refocus is owed and focus in
+an effect keyed on the state that mounts the element. A test that runs every
+`requestAnimationFrame` callback at once pins the losing order.
+
+```tsx
+// WRONG: the frame may run before the row exists
+setRenaming(false); requestAnimationFrame(() => row.current?.focus());
+// RIGHT: focus after the commit that mounted it
+owed.current = true; setRenaming(false);
+useEffect(() => { if (!renaming && owed.current) { owed.current = false; row.current?.focus(); } }, [renaming]);
+```
+
+**Under Tailwind 4, an unlayered element rule beats every utility class, whatever the specificity.**
+Utilities live in `@layer utilities`, and any unlayered rule outranks every layer, so
+`.wb button { color: inherit }` overrode a screen's `text-…` utility on its buttons (#591). Put base
+element rules in `@layer base`.
+
+```css
+/* WRONG: unlayered, so it beats text-accent on every button inside .wb */
+.wb button { color: inherit; }
+/* RIGHT */
+@layer base { .wb button { color: inherit; } }
 ```
 
 ## The 18.6.6 unit, run outside its container

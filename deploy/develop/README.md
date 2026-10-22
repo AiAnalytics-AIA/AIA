@@ -508,6 +508,22 @@ Each is off when unset and absent from the develop Compose file; turning one on 
   consults the wallet either way. **Who:** the owner's call, when the Lead's typed starts (LO5) and
   plan steps (LO3/LO4) that charge it are on develop.
 
+### Switches develop states (2026-10-21)
+
+- **`AIA_AI_RESEARCH_LEAD_ENABLED`** (API and worker): must be stated in a deployed environment;
+  unset, the API refuses to start (#561). Develop states `true` through Compose
+  (`${AIA_AI_RESEARCH_LEAD_ENABLED:-true}`). With it `false`, a card the Lead's model prepared is
+  refused 409 `research_lead_disabled` (Q42); stored edits stay decidable.
+- **`AIA_DATA_CLASS_GATES`** (API, worker and executors): `advisory` on develop, fixed in Compose's
+  shared environment and checked by `.github/workflows/deploy-develop.yml` (#594; ADR 0008,
+  Amendment 2026-10-21). Every refusal made solely because of a data class becomes a pass recorded
+  on the ledger row's note, the call's provenance, the tool event or a step event; unclassified
+  material is judged as Class A; Brave's search takes a query of any class. EU residency, licences,
+  budgets, scope and ADR 0022's sign-off still hold. Staging, production and an unknown `AIA_ENV`
+  refuse to start with it.
+- **`AIA_DEEP_RESEARCH_ENABLED`** is also given to the API, which reads it only to say, in
+  `POST …/deep-research/quote`, whether a run would park (#555); the worker's reading is unchanged.
+
 ### The Research Lead's own model
 
 The study's Research Lead (ADR 0026) can run on a model of its own while every other

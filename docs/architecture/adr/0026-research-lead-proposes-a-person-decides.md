@@ -458,6 +458,22 @@ The product owner's decisions of 2026-10-19 on accepting:
    components are ported into the web client and wired to AIA's working content, runs and routes.
    The existing stage screens stay as the artifact bodies wherever they already do the work.
 
+Later decisions of the product owner, 2026-10-21:
+
+8. **A research run the Lead prepares is an approval card that starts the run** through Spuštění's
+   own route, `POST …/research/runs`, with that start's gates (#550; amends *Accepted with* 4 for
+   that kind). **Návrh's answers and comments go through the Lead**: in the workbench the stages
+   show no AI start of their own, and "Požádat Vedoucího" asks the Lead (#550).
+9. **A card the Lead's model prepared is refused while the Lead is off** (Q42): `POST
+   …/turns/{turn_id}/request` answers 409 `research_lead_disabled`; stored edits stay decidable.
+   `AIA_AI_RESEARCH_LEAD_ENABLED` is stated in every deployed environment, unset refused at start,
+   and `GET …/lead` says whether a worker can answer (`worker_ready`, null when unknown) (#561).
+10. **A typed start command bypasses the model and the Lead's switch** (Q43): a message that is
+    exactly a command of `domain/lead_commands.py`'s vocabulary is stored as the person's command,
+    Lead on or off, with no model turn, and started through `POST …/turns/{turn_id}/request`
+    (ledger `chat_start`, the wallet when on); `GET /lead` lists the commands (#574; ADR 0028
+    decision 3).
+
 ## Consequences
 
 - **Gains.** One conversation per researcher per study, stored in AIA (*Accepted with* 6; corrected
