@@ -6,7 +6,7 @@ chunks:
   - "[ ] BRF3. Podklady with their data class: the attachments and picked client sources served with the class material_rules gives them, shown as chips; links and removal with undo"
   - "[ ] BRF4. The Lead on the Brief: analyze_brief as a Lead card, its proposal inline, the stage's own AI start removed"
   - "[ ] BRF5. What the Brief hands on, in its inspector (Vstupy, závislosti a původ): the readers of each field, from the chain manifest"
-  - "[ ] BRF6. Journey: the Brief at 1440, 1100, 768 and 390 px with the scripted Lead and zero paid jobs"
+  - "[x] BRF6. Journey: the Brief at 1440, 1100, 768 and 390 px with the scripted Lead and zero paid jobs"
 ---
 # Artifact: Zadání (Brief)
 
@@ -199,11 +199,19 @@ Every item is an `Item` (`src/components/ui.tsx:52`): edit in place, remove, mov
 - Depends on CHN1 and `research-lead-workbench#15`.
 
 **BRF6. Journey.**
-- *Landed in part* (`workspace_journey.mjs`, `lead_journey.mjs`): an objective added in the list,
-  read back after a reload as one `objective:<id>` target and reworded in place; "@" then a tap on
-  an objective sets the chip at 1440 (split), 768 (drawer) and 390 (sheet), no overflow, nothing
-  paid. Still to come: the scripted Lead focusing `objective:<id>` with the drawer closing to peek
-  (asked of the coordinator: `scripted_lead_output` focuses questions or `brief:title` only).
+- *Landed* (`workspace_journey.mjs`, `lead_journey.mjs`):
+  - an objective added in the list, read back after a reload as one `objective:<id>` target and
+    reworded in place;
+  - "@" then a tap on an objective sets the chip, naming that objective and no other, at 1440
+    (split), 768 (drawer) and 390 (sheet);
+  - a message about the goal makes the scripted Lead focus the first objective
+    (`aia_executors/workbench.py:179 @ 36e18caa`): at 1440 and 1100 it is marked and scrolled into
+    view beside the conversation; at 768 and 390 the conversation steps aside to `peek` and focus
+    follows;
+  - no overflow at any of them, and nothing paid.
+
+  These steps live in `lead_journey.mjs` rather than `workbench_journey.mjs`: they need a hatched
+  Lead, so they pass once per workbench (OI-133).
 - Steps in `tools/ui_workbench/workbench_journey.mjs`, at 1440, 1100, 768 and 390 px:
   - an objective is edited in place and read back after a reload;
   - the scripted Lead focuses `objective:<id>`, and the drawer closes to `peek` at 768 and 390 px;

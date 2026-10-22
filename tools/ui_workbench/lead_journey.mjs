@@ -14,7 +14,9 @@
  * with Vrátit, and turns the choice off again. At 1099, 768 and 390 px it opens the conversation from
  * the launcher as a dialog, sends a message, keeps Tab inside and closes it with Escape back to the
  * launcher, and at 390 points at a question with "@". On Zadání at 1440, 768 and 390 it points at
- * the last objective with "@", and the chip names that objective and no other (artifact-brief BRF6).
+ * the last objective with "@", and the chip names that objective and no other; a message about the
+ * goal ("cíl") makes the scripted Lead focus the first objective at 1440, 1100, 768 and 390, the
+ * conversation stepping aside to it below 1100 px (artifact-brief BRF6).
  * Nothing paid starts.
  */
 import assert from "node:assert/strict";
@@ -281,6 +283,50 @@ try {
   }
   await page.setViewportSize({ width: 1440, height: 900 });
   check("Zadání at 1440, 768 and 390: '@' then a tap on an objective sets the chip to that objective (BRF6)");
+
+  // Zadání (artifact-brief BRF6): a message about the goal ("cíl") is answered by the scripted Lead
+  // with a focus on the design's first objective. At 1440 and 1100 (the split) the objective is
+  // pointed at beside the conversation; at 768 and 390 the conversation steps aside to it and focus
+  // follows.
+  for (const width of [1440, 1100, 768, 390]) {
+    await page.setViewportSize({ width, height: 900 });
+    await page.goto(base + stagePath("brief"));
+    await page.locator("[data-workbench]").waitFor({ timeout: 30000 });
+    const first = await page.locator("[data-aia^='objective:']").first().getAttribute("data-aia", { timeout: 30000 });
+    const dialog = page.getByRole("dialog", { name: "Vedoucí výzkumu" });
+    if (width < 1100) {
+      await page.getByLabel("Napište Vedoucímu výzkumu").and(page.locator(":enabled")).waitFor({ state: "attached", timeout: 30000 });
+      await page.locator("[data-lead-launcher]").press("Enter");
+      await dialog.waitFor();
+    }
+    const box = page.getByLabel("Napište Vedoucímu výzkumu");
+    await page.getByLabel("Napište Vedoucímu výzkumu").and(page.locator(":enabled")).waitFor({ state: "attached", timeout: 30000 });
+    await box.fill(`Je první cíl dost konkrétní? (${width} px)`);
+    await box.press("Enter");
+    if (width < 1100) {
+      await page.locator("[data-peek]").waitFor({ timeout: 60000 });
+      await dialog.waitFor({ state: "hidden" });
+      await page.waitForFunction((aia) => !!document.activeElement?.closest(`[data-aia="${aia}"]`), first, { timeout: 10000 });
+    } else {
+      // The pointed-at element is marked for 2.3 s; poll for the mark on that objective alone.
+      await page.waitForFunction((aia) => !!document.querySelector(`[data-aia="${aia}"].just`), first, { timeout: 60000, polling: 100 });
+      const inView = await page.locator(`[data-aia="${first}"]`).evaluate((el) => {
+        const r = el.getBoundingClientRect();
+        return r.bottom > 0 && r.top < innerHeight;
+      });
+      assert(inView, `${width}: ${first} is scrolled into view`);
+    }
+    await shot(`${width}-brief-focus`);
+    const r = await page.evaluate(() => ({ w: innerWidth, d: document.documentElement.scrollWidth }));
+    assert(r.d <= r.w + 2, `${width}: overflow with the objective focused ${r.d} > ${r.w}`);
+    if (width < 1100) {
+      await page.getByRole("button", { name: "Zpět k Vedoucímu" }).click();
+      await dialog.waitFor();
+      await page.keyboard.press("Escape");
+    }
+  }
+  await page.setViewportSize({ width: 1440, height: 900 });
+  check("Zadání at 1440, 1100, 768 and 390: a message about the goal focuses the first objective; below 1100 px the conversation steps aside to it and focus follows (BRF6)");
 
   const paid = writes.filter((w) => /\/research\/runs$|\/agent-jobs$|\/deep-research\/runs|\/lead\/turns\/[^/]+\/request$/.test(w.path));
   assert.deepEqual(paid, [], "nothing paid started");
