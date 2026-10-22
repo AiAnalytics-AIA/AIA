@@ -15,6 +15,7 @@ function Conversation({ composer = true }: { composer?: boolean }) {
   return (
     <div>
       <div role="log" tabIndex={0} aria-label="Konverzace">
+        <button type="button">Teď ne</button>
         {done ? <p>Rozhodnuto</p> : <button type="button" onClick={() => setDone(true)}>Spustit úlohu</button>}
       </div>
       {composer ? <textarea aria-label="Napište Vedoucímu výzkumu" /> : <textarea aria-label="Napište Vedoucímu výzkumu" disabled />}
@@ -60,6 +61,21 @@ describe("focus recovery in the open drawer or sheet", () => {
       button.setAttribute("disabled", "");
       button.dispatchEvent(new FocusEvent("focusout", { bubbles: true }));
     });
+    await waitFor(() => expect(document.activeElement).toBe(screen.getByLabelText("Napište Vedoucímu výzkumu")));
+  });
+
+  it("still recovers after the focus moved from one card control to another that then unmounts (review of #683)", async () => {
+    bench(true);
+    const first = screen.getByRole("button", { name: "Teď ne" });
+    const second = screen.getByRole("button", { name: "Spustit úlohu" });
+    first.focus();
+    // A to B in one task, as a browser fires it: focusout(A), then focusin(B).
+    act(() => {
+      first.dispatchEvent(new FocusEvent("focusout", { bubbles: true }));
+      second.focus();
+    });
+    await new Promise((r) => setTimeout(r, 0));
+    act(() => second.click());
     await waitFor(() => expect(document.activeElement).toBe(screen.getByLabelText("Napište Vedoucímu výzkumu")));
   });
 
