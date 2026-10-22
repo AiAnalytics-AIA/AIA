@@ -178,8 +178,9 @@ export function KnowledgeLibrary({ clientId, view, label, section, folders, labe
                           ) : null}
                           <th scope="col" className="px-3 py-2">{t("aia.library.columns.item")}</th>
                           <th scope="col" className="px-3 py-2">{t("aia.library.columns.kind")}</th>
-                          <th scope="col" className="px-3 py-2">{t("aia.library.columns.filed")}</th>
-                          <th scope="col" className="px-3 py-2 text-right">{t("aia.library.columns.revision")}</th>
+                          {/* Below sm the filing and the revision stay in the opened item, so the row fits a phone. */}
+                          <th scope="col" className="hidden px-3 py-2 sm:table-cell">{t("aia.library.columns.filed")}</th>
+                          <th scope="col" className="hidden px-3 py-2 text-right sm:table-cell">{t("aia.library.columns.revision")}</th>
                           <th scope="col" className="px-3 py-2 text-right">{t("aia.library.columns.changed")}</th>
                         </tr>
                       </thead>
@@ -211,7 +212,7 @@ export function KnowledgeLibrary({ clientId, view, label, section, folders, labe
                             <td className="px-3 py-2.5 align-top">
                               <Tag>{t(`aia.knowledge.kinds.${i.kind}`)}</Tag>
                             </td>
-                            <td className="px-3 py-2.5 align-top">
+                            <td className="hidden px-3 py-2.5 align-top sm:table-cell">
                               <span className="flex flex-wrap items-center gap-1">
                                 <span className="mr-1 text-xs text-ink-muted">{i.folder_id ? (folderName.get(i.folder_id) ?? "") : t("aia.library.noFolder")}</span>
                                 {(i.label_ids ?? []).map((id) => {
@@ -220,7 +221,7 @@ export function KnowledgeLibrary({ clientId, view, label, section, folders, labe
                                 })}
                               </span>
                             </td>
-                            <td className="px-3 py-2.5 text-right align-top font-mono text-xs">{i.revision}</td>
+                            <td className="hidden px-3 py-2.5 text-right align-top font-mono text-xs sm:table-cell">{i.revision}</td>
                             <td className="whitespace-nowrap px-3 py-2.5 text-right align-top text-xs text-ink-faint">{relative(i.modified_at)}</td>
                           </tr>
                         ))}

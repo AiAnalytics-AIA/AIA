@@ -83,10 +83,19 @@ try {
     for (const width of [1440, 1024, 768, 390]) {
       await page.setViewportSize({ width, height: 1000 });
       await measure(clientPath + area);
+      if (area === "/knowledge") {
+        // The library's table fits its own frame: no column is cut off behind a sideways scroll.
+        const table = await page.evaluate(() => {
+          const t = document.querySelector("main table");
+          return t ? { table: t.scrollWidth, frame: t.parentElement.clientWidth } : null;
+        });
+        assert(table, "Znalosti: no library table");
+        assert(table.table <= table.frame + 1, `Znalosti @${width}: the table is ${table.table} px in a ${table.frame} px frame`);
+      }
     }
     await page.setViewportSize({ width: 1440, height: 1000 });
   }
-  checks.push("Six client areas × four widths: no page overflow");
+  checks.push("Six client areas × four widths: no page overflow; the knowledge table fits its frame");
 
   // Přehled: what waits on a person comes first.
   await visit(clientPath);
