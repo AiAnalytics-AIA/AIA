@@ -100,7 +100,7 @@ async function loadRuntimeConfig(): Promise<RuntimeConfig> {
   return { switches: ai.switches, region: ai.region ?? null, model: ai.model ?? null, approvedClasses: ai.approvedClasses };
 }
 
-export async function loadPanel(): Promise<Panel> {
+async function loadPanel(): Promise<Panel> {
   const doc = await admin.settings();
   // A document without its groups is not a settings document; say so rather than
   // render an empty page that looks like "no settings".
@@ -133,7 +133,7 @@ const CONTROL_ICON: Record<SettingControl, IconName> = {
 };
 
 /** How a setting is changed. Icon and word, so it reads in greyscale too. */
-export function ControlBadge({ control }: { control: SettingControl }) {
+function ControlBadge({ control }: { control: SettingControl }) {
   return (
     <span title={t(`${P}.controlHelp.${control}`)} data-control={control} className="inline-flex shrink-0">
       <Tag icon={CONTROL_ICON[control]}>{t(`${P}.control.${control}`)}</Tag>
@@ -142,7 +142,7 @@ export function ControlBadge({ control }: { control: SettingControl }) {
 }
 
 /** A value. Null is "not configured" and looks like it: never blank, never zero. */
-export function Value({ value, unit }: { value: SettingValue; unit?: string | null }) {
+function Value({ value, unit }: { value: SettingValue; unit?: string | null }) {
   if (value === null) {
     return (
       <span data-value="null" className="rounded-sm border border-dashed border-border-strong px-1.5 text-xs text-ink-muted">
@@ -184,7 +184,7 @@ function ApiHint({ item }: { item: SettingItem }) {
   return <span className="text-xs text-ink-muted">{t(where === "projectApi" ? `${P}.onProjectApi` : `${P}.inPanel`)}</span>;
 }
 
-export function SettingRow({ item }: { item: SettingItem }) {
+function SettingRow({ item }: { item: SettingItem }) {
   return (
     <div data-setting={item.key} className="grid grid-cols-1 gap-1 border-t border-border py-2 first:border-t-0 md:grid-cols-[minmax(0,2fr)_minmax(0,2fr)_auto] md:items-center md:gap-4">
       <div className="min-w-0">
@@ -812,7 +812,7 @@ function tabFromHash(): TabId | null {
   return (TABS as readonly string[]).includes(id) ? (id as TabId) : null;
 }
 
-export function PanelView({ panel, reload }: { panel: Panel; reload: () => void }) {
+function PanelView({ panel, reload }: { panel: Panel; reload: () => void }) {
   const { doc, runtime, members, clients, studies, levels, audit } = panel;
   const vocab = doc.vocabularies;
   const byKey = new Map(doc.groups.map((g) => [g.key, g]));

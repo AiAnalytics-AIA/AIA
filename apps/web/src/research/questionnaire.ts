@@ -14,7 +14,6 @@ import { keepPointLabels } from "./scale-labels";
 import type { Analysis } from "./store";
 
 type Obj = { [k: string]: Json };
-export type QType = "vyber" | "multi" | "skala" | "otevrena";
 export type Question = Obj & {
   id?: string;
   text?: string;
@@ -100,28 +99,36 @@ export function setQuestionnairePath(p: ResearchProject, x: QuestionnairePath): 
 
 // ---- the respondent preview ------------------------------------------------
 
+/** `index` is 18.6.6's running count over both kinds (parity); `number` is the item's number as
+ * Dotazník's editor numbers it (Q1…, Sada 1…): questions, and every section that is not questions,
+ * each counted on its own. */
 export type PreviewItem =
-  | { kind: "question"; index: number; text: string; typ: string; options: string[]; scale: [string, string] | null }
-  | { kind: "battery"; index: number; title: string; rows: string[]; low: string; high: string };
+  | { kind: "question"; index: number; number: number; text: string; typ: string; options: string[]; scale: [string, string] | null }
+  | { kind: "battery"; index: number; number: number; title: string; rows: string[]; low: string; high: string };
 
 /** questionnaireRespondentPreview1780: the first fourteen items as a respondent sees them. */
 export function respondentPreview(p: ResearchProject): PreviewItem[] {
   const parts: PreviewItem[] = [];
   let i = 1;
+  let questions = 0;
+  let sets = 0;
   for (const sec of sections(p)) {
     if (sec.type === "questions") {
       for (const q of sec.questions || []) {
-        parts.push(previewQuestion(q, i++));
+        parts.push({ ...previewQuestion(q, i++), number: ++questions });
         if (parts.length >= 14) break;
       }
-    } else if (sec.type === "object_battery") parts.push(previewBattery(sec, i++));
+    } else {
+      sets++;
+      if (sec.type === "object_battery") parts.push({ ...previewBattery(sec, i++), number: sets });
+    }
     if (parts.length >= 14) break;
   }
   return parts;
 }
 
 /** previewQuestion1780 */
-export function previewQuestion(q: Question, index: number): PreviewItem {
+export function previewQuestion(q: Question, index: number): Omit<Extract<PreviewItem, { kind: "question" }>, "number"> {
   const typ = String(q?.typ || "vyber");
   let options: string[] = [];
   let scale: [string, string] | null = null;
@@ -138,7 +145,7 @@ export function previewQuestion(q: Question, index: number): PreviewItem {
 }
 
 /** previewObjectBattery1780: eight object rows, the first {object} filled. */
-export function previewBattery(sec: Section, index: number): PreviewItem {
+export function previewBattery(sec: Section, index: number): Omit<Extract<PreviewItem, { kind: "battery" }>, "number"> {
   const tmpl = String(sec.object_question || "Jak hodnotíte {object}?");
   const lb = sec.scale_labels || ["vůbec", "velmi"];
   // A set labelled on every point shows its first and last label as its ends (#559).
@@ -158,7 +165,7 @@ export function previewBattery(sec: Section, index: number): PreviewItem {
 export type IdSource = { now: () => number; random: () => number };
 const SYSTEM: IdSource = { now: Date.now, random: Math.random };
 /** secId */
-export const secId = (s: IdSource = SYSTEM) => `sec_${s.now().toString(36)}${s.random().toString(36).slice(2, 5)}`;
+const secId = (s: IdSource = SYSTEM) => `sec_${s.now().toString(36)}${s.random().toString(36).slice(2, 5)}`;
 /** qId */
 export const qId = (s: IdSource = SYSTEM) => `Q_${s.now().toString(36)}${s.random().toString(36).slice(2, 4)}`;
 
@@ -171,7 +178,7 @@ export const GUIDED_PROMPT: Record<GuidedKind, string> = {
   choice: "Jak zní otázka?",
 };
 export const PROMPT_CHOICES = "Odpovědi oddělte čárkou. Pokud necháte prázdné, použije se Ano / Ne.";
-export const PROMPT_CHOICES_DEFAULT = "Ano, Ne";
+const PROMPT_CHOICES_DEFAULT = "Ano, Ne";
 
 /**
  * addGuidedQuestion: the question the kind asks for, into the first question

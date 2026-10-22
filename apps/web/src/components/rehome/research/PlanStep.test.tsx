@@ -88,8 +88,25 @@ describe("Návrh", () => {
     fireEvent.click(screen.getByRole("button", { name: "Otevřít zadání" }));
     expect(push).toHaveBeenCalledWith(stagePath("brief"));
     expect(screen.queryByRole("region", { name: /Označte text a přidejte komentář/ })).toBeNull();
-    fireEvent.click(screen.getByRole("button", { name: "Přeskočit na dotazník" }));
+    // One way on to Dotazník, the dock's, not a second one in the empty state.
+    expect(screen.queryByRole("button", { name: "Přeskočit na dotazník" })).toBeNull();
+    fireEvent.click(screen.getByRole("button", { name: /Další · dotazník/ }));
     expect(push).toHaveBeenCalledWith(stagePath("questionnaire"));
+  });
+
+  it("asks for the problem summary in a plan started by hand, and keeps the set principle beside the sets", async () => {
+    // A study with no goal yet: the summary starts empty and says what to write.
+    unitStub(null, {}, { ...PROJECT, goal: "" });
+    render(<ResearchScreen step="plan" frame={TEST_FRAME} />);
+    fireEvent.click(await screen.findByRole("button", { name: "Začít vlastní návrh" }));
+    const sets = await screen.findByRole("region", { name: /Porovnatelné sady/ });
+    expect(screen.getByRole("button", { name: /^Upravit: Shrnutí výzkumného problému Doplňte shrnutí výzkumného problému\./ })).toBeTruthy();
+    // The field, opened, keeps the prompt as its placeholder.
+    fireEvent.keyDown(screen.getByRole("button", { name: /^Upravit: Shrnutí výzkumného problému/ }), { key: "Enter" });
+    expect(screen.getByRole("textbox", { name: "Shrnutí výzkumného problému" }).getAttribute("placeholder")).toBe("Doplňte shrnutí výzkumného problému.");
+    fireEvent.keyDown(screen.getByRole("textbox", { name: "Shrnutí výzkumného problému" }), { key: "Escape" });
+    expect(within(sets).getByText("Princip objektů · co patří do jedné sady")).toBeTruthy();
+    expect(within(screen.getByRole("region", { name: /Zkontrolujte, jak AI pochopila zadání/ })).queryByText("Princip objektů · co patří do jedné sady")).toBeNull();
   });
 
   it("warns in words above the recommended fifteen objects and still lets the plan go on (Q75 (a))", async () => {
@@ -155,7 +172,7 @@ describe("Návrh", () => {
     expect(screen.getByText("Jak vás oslovuje Jemná?")).toBeTruthy();
     // Two items: under the four a set needs, and the dock says so.
     expect(screen.getByText("2 / doporučeno 4–15")).toBeTruthy();
-    expect(screen.getByText(/má 2 položek, potřebuje 4–40/)).toBeTruthy();
+    expect(screen.getByText(/má 2 položky, potřebuje 4–40/)).toBeTruthy();
     expect(screen.getByText("Jen MHD?")).toBeTruthy();
     const process = screen.getByRole("button", { name: "Zpracovat komentáře" }) as HTMLButtonElement;
     expect(process.disabled).toBe(true);

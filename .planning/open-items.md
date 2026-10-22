@@ -2262,6 +2262,15 @@ trigger it include a quota or capacity park resuming, a retryable failure, and a
 with no call in flight. An uncertain call still goes to `RECOVERY_REQUIRED` and is never
 retried. Owner: Job 6, inside the existing executor and recovery contract. Until it is fixed,
 no acceptance claims to be retry-safe (`docs/architecture/research-journey.md` §7, line 6).
+*Fixed behind a switch by #654 (merged as `d3f9df40`, 2026-10-22; `run-qc-and-checkpoint` RQC0):*
+with `AIA_AI_FIELDWORK_CHECKPOINT` on, each answered respondent block is kept in
+`fieldwork_journal` under the lease and replayed on a resumed attempt or a retry of the run
+(`apps/executors/src/aia_executors/ai_fieldwork.py:166`, `ai_runtime.py:681 @ 6bfe3760`;
+`infrastructure/fieldwork_journal.py`, migration `d1f3a5c7e9b2`;
+`apps/executors/tests/test_ai_fieldwork.py::test_a_retry_of_interrupted_fieldwork_pays_only_for_the_blocks_never_answered`).
+The switch is off by default and off on develop (`deploy/develop/docker-compose.yml:282 @ 6bfe3760`,
+`${AIA_AI_FIELDWORK_CHECKPOINT:-false}`), so this stays open until it is on where runs are paid
+for.
 
 ---
 
@@ -4481,7 +4490,7 @@ filters) and render one run-level lift.
 
 ---
 
-## OI-142 · Finding · A client with DATASET, ARTIFACT or FINDING knowledge cannot run any AI design job
+## OI-142 · Finding, closed · A client with DATASET, ARTIFACT or FINDING knowledge cannot run any AI design job
 
 **Claim.** A design job over a client whose knowledge holds a DATASET, ARTIFACT or FINDING item carries the
 placeholder lineage `unclassified-client-knowledge`, which the licence gate refuses, so that client
@@ -4505,9 +4514,19 @@ the placeholder only when one is unrecorded; the seed records `aia_synthetic_fix
 dataset, passes the licence gate; one over an item of any of the three kinds with no recorded dataset
 is still refused by name.
 
-**Status.** Open. The EU Bedrock route is unblocked by #582's determination (merged as `7cd7acd`,
-2026-10-21; `CLIENT_KNOWLEDGE_DATASET` APPROVED for `bedrock-eu-primary` alone, OI-187); per-item
-recorded lineage remains #537 (`fix/knowledge-dataset-lineage`), still open on 2026-10-21.
+**Status.** Closed by #537 (merged as `fe85aa54`, 2026-10-22; the fix is `40df02ab`): the lineage
+is the union of the items' recorded `provenance.datasets` (`research_agents.knowledge_lineage`,
+`packages/aia_core/src/aia_core/domain/research_agents.py:577-580 @ 6bfe3760`;
+`domain/knowledge.py:410-420`), the placeholder `UNRECORDED_KNOWLEDGE_LINEAGE` only for a
+DATASET/ARTIFACT/FINDING item recording none, for the design jobs and the Lead's turn alike; the
+develop seed records `aia_synthetic_fixture`. Tests:
+`test_a_design_job_over_the_seeded_client_declares_its_recorded_datasets`,
+`test_knowledge_lineage_is_the_recorded_datasets_else_the_placeholder`,
+`test_a_turn_declares_recorded_datasets_and_the_placeholder_for_an_unrecorded_one`. Earlier: the EU
+Bedrock route was unblocked by #582's determination (merged as `7cd7acd`, 2026-10-21;
+`CLIENT_KNOWLEDGE_DATASET` APPROVED for `bedrock-eu-primary` alone, OI-187), so an unrecorded item
+still refuses on any other route (`not_approved_for_route`). Develop's already-seeded items show the
+fix only on a fresh seed.
 
 ---
 
@@ -4710,7 +4729,11 @@ no summary.
 
 **Test.** LC3's "turn 3 in turn 40" test.
 
-**Status.** Open.
+**Status.** Open, partly addressed. #731 (merged as `1cc87e25`, 2026-10-22; `lead-conversation` LC3)
+carries what the conversation decided into every next turn: the decision digest
+(`packages/aia_core/src/aia_core/domain/lead_digest.py:163 @ 6bfe3760`, `decision_digest`), the
+context's `memory` layer (`domain/research_lead.py`, `freeze_context(… memory=)`). The rolling summary
+of older turns' words is still not built; it is LC7's.
 
 ---
 
@@ -5024,7 +5047,7 @@ that line.
 
 ---
 
-## OI-165 · Finding · A reword accepted on the server does not carry its research-question links
+## OI-165 · Finding, closed · A reword accepted on the server does not carry its research-question links
 
 **Claim.** Until WCE2, a Lead `list_replace` of a linked research question accepted by click leaves
 its questionnaire links dangling, while the same edit accepted automatically in the browser (with
@@ -5043,7 +5066,11 @@ dangling link; accepted with `auto` it does not.
 
 **Test.** A WCE2 test of the accept route asserting no dangling link.
 
-**Status.** Open (`working-copy-edit-ops` WCE2).
+**Status.** Closed by #801 (merged as `1ab6a012`, 2026-10-22; `working-copy-edit-ops` WCE2d):
+`decide_edits` applies a turn's accepted edits through `application/working_copy.py`
+`apply_edit_ops` (`:53 @ 6bfe3760`; called from `application/research_lead.py:846`), which settles
+the copy's ids on every write.
+`packages/aia_core/tests/test_lead_edits_logged.py::test_a_reworded_research_question_keeps_its_links_in_a_copy_that_keeps_ids`.
 
 ---
 
@@ -5159,7 +5186,11 @@ decided with the release question in ADR 0028.
 
 **Test.** A retried plan step's wallet holds one ceiling, not two.
 
-**Status.** Open (`lead-orchestration` LO3).
+**Status.** Open (`lead-orchestration` LO3). *Linked (2026-10-22):* the stage's analysis retry
+(`POST …/analysis/retry`) and the typed "Zopakuj analýzu" (#744, merged as `ec6c6bc8`) charge the
+wallet nothing today, by the product manager's decision (b)
+(`packages/aia_core/src/aia_core/application/lead_chat_start.py:28-31 @ 6bfe3760`). When this item
+is decided, both change together, in one PR.
 
 ---
 
@@ -5764,3 +5795,870 @@ the starter, the change was rule 1's removal and its test.
 **Test.** The reproduction above.
 
 **Status.** Closed: decided by the owner (Q67 (a)) and built in #583.
+
+---
+
+## OI-195 · Finding · The internal draft's cover, and the client report, still do not say what the person asked for
+
+**Claim.** The brief's title does not reach the internal draft's cover or introduction, and the client
+report's design chapter carries neither the brief's goal nor its decision use; only the internal draft's
+design chapter (and the report with literature's) now opens with them.
+
+**Anchor.** `apps/executors/src/aia_executors/report.py:89 @ 6bfe3760` (`study_name=study.name`),
+printed at `packages/aia_core/src/aia_core/application/report.py:208`; the client report calls
+`compose_design_sections(sources.specification, sources.research_questions)` with no `brief`
+(`application/client_report.py:178 @ 6bfe3760`; `report_design.py:143-151` takes one). Plan
+`research-lead-workbench.md` F19 (from #778's `acceptance_journey.mjs`), with `artifact-report.md`
+§ Findings F19 (first recorded @ `e508e483`).
+
+**Reproduction.** `node tools/ui_workbench/acceptance_journey.mjs` on a fresh workbench: the draft's
+cover reads "Workbench · empty" although the brief's title is "Akceptace · ranní nápoj pro
+dojíždějící (fiktivní)".
+
+**Consequence.** A person reads a report named by the study record; a client reads no statement of the
+decision the study serves.
+
+**Smallest fix.** A product call, not a code gap: #792's review kept the cover on the study record
+(a brief's title is the template's "Nový výzkum" until edited, and a reused design carries the earlier
+study's) and left the client report unchanged (its internal-marker scan would refuse a person's own
+brief words). Either decide both stay, and close this, or take the design's title when it was edited
+and pass the client report a brief its marker scan reads.
+
+**Test.** A report composed from a revision with an edited title prints it on the cover; a client
+report from a revision with a goal prints it under the design chapter.
+
+**Status.** Open, partly closed by #792 (merged as `f188646a`, 2026-10-22): the design chapter opens
+with "Cíl studie" and "Rozhodnutí, které má výzkum podpořit", an empty one "V zadání neuvedeno."
+(`application/report_design.py:4-10,131 @ 6bfe3760`;
+`test_report_design.py::test_the_chapter_opens_with_what_the_brief_asked_for_before_how_it_was_measured`).
+The plan entry at `research-lead-workbench.md:1761 @ 6bfe3760` still reads "open" whole.
+
+---
+
+## OI-196 · Finding, closed · Five workbench tests waited 4 s for a Lead turn the pane polls every 1.5 s
+
+**Claim.** `Workbench.layout.test.tsx` overrode the suite's 10 s wait (OI-134) with `{ timeout: 4000 }`
+in five places, each waiting for a turn that arrives only after LeadPane's 1.5 s poll.
+
+**Anchor.** `apps/web/src/components/workbench/Workbench.layout.test.tsx:258, 382, 394, 420, 686 @ eb0c7d47`;
+`LeadPane.tsx:27` (`POLL_MS`). Plan `research-lead-workbench.md` F20.
+
+**Reproduction.** With three busy loops on CPU 0, `taskset -c 0 npx vitest run
+src/components/workbench/Workbench.layout.test.tsx -t "leaves nothing pending"` failed after 5.5 s.
+
+**Consequence.** A red web suite on a loaded runner, unrelated to the change under test.
+
+**Smallest fix.** Done: the five overrides removed.
+
+**Test.** The reproduction above passes; the file passes (38).
+
+**Status.** Closed by #793 (merged as `111b3e01`, 2026-10-22).
+
+---
+
+## OI-197 · Finding, closed · "leaves nothing pending" took its guard off before the Lead's move was tried
+
+**Claim.** The test removed its leave guard as soon as the turn's chip appeared; when the passive
+effect that runs the turn's view had not run yet, `cleanup()` flushed it after the guard was gone.
+
+**Anchor.** `apps/web/src/components/workbench/Workbench.layout.test.tsx:407-424 @ eb0c7d47`;
+`LeadPane.tsx:166`. Plan `research-lead-workbench.md` F21.
+
+**Reproduction.** About one run in ten of the file on the earlier version failed at `:424`
+("expected <aside …> to be null") after 2.2 s, with no load.
+
+**Consequence.** A red web suite now and then.
+
+**Smallest fix.** Done: the test waits until its guard has stopped the move (`stopped === 1`).
+
+**Test.** The same file, run repeatedly, never fails at `:424`.
+
+**Status.** Closed by #793 (merged as `111b3e01`, 2026-10-22).
+
+---
+
+## OI-198 · Finding, closed · Every fresh page mounted the classic layout and then the workbench
+
+**Claim.** `useWorkbenchSwitch` read `false` until `/config` answered, so a stage rendered the classic
+layout first, then the workbench, which read everything again.
+
+**Anchor.** `apps/web/src/components/rehome/research/ResearchScreen.tsx:237-238 @ 9607ee09`. Plan
+`research-lead-workbench.md` F22.
+
+**Reproduction.** `ResearchScreen.workbench.test.tsx` "mounts a stage once on a fresh page, not the
+classic layout first and then the workbench" (two `/design/source` reads before the fix); one Dimenze
+visit on the UI workbench made 44 API requests.
+
+**Consequence.** Twice the reads on every stage a person opens fresh, and both layouts' effects.
+
+**Smallest fix.** Done: the switch is `null` until read, and the stage shows its chrome with the
+loading line meanwhile.
+
+**Test.** The test above; the same visit now makes 36 requests.
+
+**Status.** Closed by #807 (merged as `a201e951`, 2026-10-22).
+
+---
+
+## OI-199 · Finding · Návrh's follow-up answers saved twice put the same block in the brief twice
+
+**Claim.** `answerFollowUps` appends a "Doplnění k analýze" block to `briefing.what_is_known` on every
+save, and the form clears afterwards, so the same answers can be saved again.
+
+**Anchor.** `apps/web/src/research/plan.ts:189-194 @ 6bfe3760` (first recorded `:189 @ 491024f1`).
+Plan `artifact-design.md` F-DSN-3 (#796).
+
+**Reproduction.** Answer a follow-up, "Uložit odpovědi", type the same answer, save again:
+`what_is_known` holds the block twice.
+
+**Consequence.** A duplicated block in the brief the Lead and the analysis read; a reworded answer sits
+beside the old one.
+
+**Smallest fix.** `answerFollowUps` replaces its own earlier block instead of appending, recorded as a
+parity deviation (a product call; parity kept for now, the coordinator 2026-10-22).
+
+**Test.** `plan.test.ts`: the same answers applied twice leave one block.
+
+**Status.** Open (`artifact-design`).
+
+---
+
+## OI-200 · Hypothesis · A script on docs.<hostname> could plant a session cookie AIA's pages read
+
+**Claim.** `docs.<hostname>` is a subdomain of the product hostname, so script running there can set
+`aia_session` with `Domain=<product hostname>`; AIA's own cookie is host-only but has no `__Host-`
+prefix to refuse such a planted twin.
+
+**Anchor.** `apps/api/src/aia_api/routers/session.py:68 @ 6bfe3760` (`SESSION_COOKIE = "aia_session"`),
+set at `:171`; recorded `@ 8b51875b`. Plan `report-editor-hosting.md` F1 (#785).
+
+**Reproduction.** A hypothesis until shown: it needs script execution on `docs.<hostname>`, i.e. a
+defect in ONLYOFFICE.
+
+**Consequence.** A person could be working in AIA as somebody else (login CSRF); never another
+organization's data read unseen.
+
+**Smallest fix.** The session cookie as `__Host-aia_session` in deployed environments (Secure, Path=/,
+no Domain), read by the gate and the session routes.
+
+**Test.** The gate refuses a request whose only session cookie is the unprefixed name, in production
+settings.
+
+**Status.** Open. It gates `report-editor-hosting` chunk 4 (activation on develop), whose precondition
+is this fix.
+
+---
+
+## OI-201 · Question · Dotazník in the workbench shows its own "Spustit veřejný výzkum"
+
+**Claim.** In the workbench, a stage shows no AI start of its own (#550) and the Lead's contract lists
+`design_research` among Dotazník's starts, yet Dotazník renders `DeepResearchPanel` with its own start.
+
+**Anchor.** `apps/web/src/components/rehome/research/QuestionnaireStep.tsx:352-359 @ 6bfe3760`
+(`<DeepResearchPanel />`, no `leadOwnsAiStarts` guard); `packages/aia_core/src/aia_core/domain/lead_artifacts.py:284`.
+Plan `artifact-questionnaire.md` QF-13 (#797).
+
+**Reproduction.** Open Dotazník in the workbench (`AIA_WEB_RESEARCH_WORKBENCH=true`): "Před uzavřením
+dotazníku" offers the start.
+
+**Consequence.** The one AI start a workbench stage still owns; hiding it today leaves no way to run
+Design Research, since no typed command or Lead card starts it yet.
+
+**Smallest fix.** #808 ("Leave Design Research to the Lead on Dotazník in the workbench"), once the
+Lead can start Design Research.
+
+**Test.** A `QuestionnaireStep` workbench test that finds no start of its own.
+
+**Status.** Open: #797's Doc follow-up said "closed by #808", but #808 is not merged @ `6bfe3760`.
+
+---
+
+## OI-202 · Finding, closed · Two owners of "the client version" could approve a version nobody read
+
+**Claim.** With the report card and the Zpráva pane each holding a client version, synced by events,
+the card could approve a version the person had not read (a stale pinned draft after a toggle, a
+missed one-shot event, a version leaking across runs, a pane never showing an approval).
+
+**Anchor.** Branch `fix/report-client-pinned-read` (`df1fb276`, `0bb8ebbe`, pushed, never merged).
+Plan `artifact-report.md` F-RPT-1.
+
+**Reproduction.** Two `/code-review high` passes on that branch.
+
+**Consequence.** None on develop: the design was dropped before merge.
+
+**Smallest fix.** Done: RPT3a, one owner of the version approved, the approval on the document being
+read.
+
+**Test.** RPT3a's "the version approved is the version shown" at every width.
+
+**Status.** Closed by RPT3a: the client report in #741 (merged as `5e19ad00`), the internal draft in
+#758 (`03989975`), the report with literature in #775 (`359dfd22`), all 2026-10-22.
+
+---
+
+## OI-203 · Finding · A PDF's table extraction inflates without a bound
+
+**Claim.** `_pdf_tables` relies on pypdf's inflate bound, but pypdf truncates at 75 MB rather than
+raising; pdfminer then inflates the same stream with no limit, and the 20 s deadline is checked only
+between pages.
+
+**Anchor.** `packages/aia_core/src/aia_core/infrastructure/document_text.py:306-330 @ 6bfe3760`
+(the docstring's claim at `:311-312`, the deadline at `:328`); recorded at `:272-324 @ bfe6d15`. Plan
+`security-audit-2026-10.md` S9.
+
+**Reproduction.** A one-page PDF whose content stream is FlateDecode of 3 MB of `0 0 m\n` takes 8.8 s
+in `read_pdf`; a 291 KB file inflating to 200 MB was still running at 300 s and 1.5 GB in the audit. A
+test still has to be written.
+
+**Consequence.** One small source upload ties up the API's CPU and memory; the same for a Deep
+Research web PDF in the worker.
+
+**Smallest fix.** Table extraction in a subprocess with a memory rlimit and a wall-clock kill; or bound
+pdfminer's `zlib.decompress` and skip tables on any page whose stream reached pypdf's limit.
+
+**Test.** `read_pdf` on such a file returns within a fixed bound, with no tables and
+`tables_truncated`.
+
+**Status.** Open (`security-audit-2026-10` chunk 9).
+
+---
+
+## OI-204 · Hypothesis · DOCX table cells repeat by gridSpan and vMerge without a bound
+
+**Claim.** python-docx's `row.cells` yields a cell once per spanned grid column, and a
+`vMerge="continue"` cell yields the text of the cell above, so text multiplies by span × rows.
+
+**Anchor.** `packages/aia_core/src/aia_core/infrastructure/source_reading.py:132-142 @ 6bfe3760`
+(`for cell in row.cells` at `:139`); recorded at `:122-126 @ bfe6d15`. Plan
+`security-audit-2026-10.md` S10.
+
+**Reproduction.** Hypothesis-strength until a test exists: in the audit a 36 KB DOCX with
+`gridSpan w:val="30000000"` ran for more than 2 minutes and used 300 MB.
+
+**Consequence.** API memory or CPU exhaustion from one upload.
+
+**Smallest fix.** Read `tr.tc_lst` directly, one segment cell per `w:tc`, with a text budget per
+document, as a new reader name, since merged cells then read differently.
+
+**Test.** A DOCX with `gridSpan=30000000` is refused or read within the bound in under a second.
+
+**Status.** Open (`security-audit-2026-10` chunk 10).
+
+---
+
+## OI-205 · Finding · AIA_MAX_REQUEST_BYTES is shown as the request ceiling, and nothing enforces it
+
+**Claim.** `max_request_bytes` is read only by the settings document.
+
+**Anchor.** `apps/api/src/aia_api/config.py:234 @ 6bfe3760` and `routers/settings.py:171-172`; no
+other reader in `apps/api/src`. Plan `security-audit-2026-10.md` S12.
+
+**Reproduction.** `grep -rn max_request_bytes apps/api/src`; POST a 3 MB JSON body to any JSON route:
+it is parsed, not refused with 413.
+
+**Consequence.** An operator reads a guard that does not exist; Caddy's 40 MiB body bound (S7, #706)
+is the only one.
+
+**Smallest fix.** An ASGI middleware refusing on Content-Length and on the streamed count, at
+`max_request_bytes` by default and at each upload route's own ceiling, after measuring the largest
+working-content save; or remove the setting from Settings.
+
+**Test.** A 3 MB body to a JSON route is 413, and a 25 MiB source upload still passes.
+
+**Status.** Open (`security-audit-2026-10` chunk 12).
+
+---
+
+## OI-206 · Hypothesis · A web fetch has no overall deadline
+
+**Claim.** `UrllibWire.get` sets only a connect (8 s) and a per-read (20 s) timeout, and its read loop
+has no deadline of its own.
+
+**Anchor.** `packages/aia_core/src/aia_core/infrastructure/web_retrieval_live.py:128-170 @ 6bfe3760`
+(the timeout at `:150`, the loop at `:163-167`). Plan `security-audit-2026-10.md` S13.
+
+**Reproduction.** Hypothesis: a server that sends one byte every 19 s would hold the fetch, and its
+host's pacing turn, up to the 20 MB cap.
+
+**Consequence.** One hostile site in the search results stalls a Deep Research step.
+
+**Smallest fix.** An overall deadline in the read loop, after which the fetch raises
+`ToolCallFailed(reason="timeout")`.
+
+**Test.** A stub wire that trickles bytes is cut at the deadline.
+
+**Status.** Open (`security-audit-2026-10` chunk 13).
+
+---
+
+## OI-207 · Finding · deactivate_user deactivates an account of another organization
+
+**Claim.** `deactivate_user` finds the user by id across every organization; a user with no membership
+in the admin's organization passes the owner guard and has the global `is_active` flag cleared. Latent:
+no route calls it.
+
+**Anchor.** `packages/aia_core/src/aia_core/infrastructure/scope_repository.py:376-403 @ 6bfe3760`
+(`select(UserRow).where(UserRow.user_id == user_id)`, then `_guard_owner(…, previous=None, …)`, which
+returns at `:349-350`). Plan `security-audit-2026-10.md` S15.
+
+**Reproduction.** A repository test as organization A's admin deactivating organization B's member
+succeeds.
+
+**Consequence.** None until a route exposes it; then any admin could lock out any account in every
+organization.
+
+**Smallest fix.** Require a membership in `admin.organization_id`, and decide whether deactivation is
+per membership or per account.
+
+**Test.** Organization A's admin deactivating organization B's member is `ScopeDenied`.
+
+**Status.** Open (`security-audit-2026-10` chunk 15).
+
+---
+
+## OI-208 · Question · Cognito verify does not require email_verified
+
+**Claim.** The Cognito provider takes the token's `email` claim without checking `email_verified`, and
+a sign-in binds to a pre-provisioned user by e-mail.
+
+**Anchor.** `apps/api/src/aia_api/identity/cognito.py:280 @ 6bfe3760` (`email=(claims.get("email") or
+None)`); `verify` at `:222`. Plan `security-audit-2026-10.md` S16 (chunk 16, hardening, low).
+
+**Reproduction.** `grep -n email_verified apps/api/src/aia_api/identity/cognito.py` finds nothing.
+
+**Consequence.** Low: whether an unverified address can reach the pool depends on the federated pool's
+attribute mapping, which is to be checked first.
+
+**Smallest fix.** Check that the Google Workspace federation maps `email_verified`; then require it.
+
+**Test.** A token with `email_verified: false` is refused.
+
+**Status.** Open (`security-audit-2026-10` chunk 16).
+
+---
+
+## OI-209 · Finding · The product hostname sends no Content-Security-Policy
+
+**Claim.** The product site's header block sets HSTS, nosniff, frame and referrer policies but no
+Content-Security-Policy, while the id and refresh tokens sit in sessionStorage.
+
+**Anchor.** `deploy/develop/Caddyfile:39-46 @ 6bfe3760` (only `docs.` sets a CSP, `frame-ancestors`, at
+`:147`); `apps/web/src/lib/auth.ts:96,118`. Plan `security-audit-2026-10.md` S17.
+
+**Reproduction.** `curl -sI https://aia-develop.art-chain.io/app/clients | grep -i content-security`
+prints nothing.
+
+**Consequence.** Low: any script injection would read the tokens with nothing limiting where it sends
+them.
+
+**Smallest fix.** A CSP on the product hostname (`script-src 'self'` with Next.js's needs measured,
+`connect-src` to the API and the error reporter).
+
+**Test.** `tools/caddy_routes.py` asserts the header on the product hostname.
+
+**Status.** Open (`security-audit-2026-10` chunk 16).
+
+---
+
+## OI-210 · Finding · The worker's log fields are written unredacted
+
+**Claim.** The worker's JSON formatter redacts the message and the exception but merges a record's
+`fields` as given; the API's formatter redacts them.
+
+**Anchor.** `apps/worker/src/aia_worker/observability.py:45-47 @ 6bfe3760`. Plan
+`security-audit-2026-10.md` S18.
+
+**Reproduction.** A record logged with `extra={"fields": {"api_key": "sk-ant-api03-…"}}` through
+`_JsonFormatter` prints the key as given (a unit test to write; the code path is the three lines
+above).
+
+**Consequence.** Low: a secret passed as a structured field reaches the worker's log.
+
+**Smallest fix.** Pass `fields` through the shared `redact` (`infrastructure/redaction.py`).
+
+**Test.** That record's line holds `[redacted]`.
+
+**Status.** Open (`security-audit-2026-10` chunk 16).
+
+---
+
+## OI-211 · Finding · Redaction misses credentials in a URL and AWS access key ids
+
+**Claim.** The value patterns redact provider keys, bearer tokens, JWTs and `token=` assignments, but
+not a URL's userinfo (`scheme://u:p@host`) or an AWS `AKIA…`/`ASIA…` key id, in the backend or the
+browser.
+
+**Anchor.** `packages/aia_core/src/aia_core/infrastructure/redaction.py:33-45 @ 6bfe3760`;
+`apps/web/src/lib/error-tracking.ts:23-28`. Plan `security-audit-2026-10.md` S19.
+
+**Reproduction.** Applying `_SECRET_VALUE_PATTERNS` to
+`https://user:hunter2secret@example.com/x AKIAIOSFODNN7EXAMPLE` leaves it unchanged (checked
+2026-10-22 with the patterns extracted from the file @ `6bfe3760`).
+
+**Consequence.** Low: such a value in a message or error report is kept.
+
+**Smallest fix.** Two patterns in both places: userinfo before `@` in a URL, and `(AKIA|ASIA)[A-Z0-9]{16}`.
+
+**Test.** The string above redacts to `https://[redacted]@example.com/x [redacted]` in both suites.
+
+**Status.** Open (`security-audit-2026-10` chunk 16).
+
+---
+
+## OI-212 · Finding · Workflow inputs are interpolated into run steps, and images and actions float
+
+**Claim.** `${{ inputs.sha }}` and `${{ inputs.migrate }}` are interpolated into `run:` scripts;
+third-party actions are pinned by tag, not SHA; `caddy:2-alpine` and `postgres:16-alpine` float.
+
+**Anchor.** `.github/workflows/deploy-develop.yml:48-49 @ 6bfe3760`, `reference-unit.yml:44`;
+`.github/workflows/ci.yml:51` (`actions/checkout@v4`) and the rest; `deploy/develop/docker-compose.yml:60,348`,
+`deploy/develop/errors/docker-compose.yml:74`. Plan `security-audit-2026-10.md` S20.
+
+**Reproduction.** `grep -n 'inputs\.' .github/workflows/deploy-develop.yml .github/workflows/reference-unit.yml`.
+
+**Consequence.** Low: a dispatch input is shell text; a moved tag changes what runs.
+
+**Smallest fix.** Pass inputs through `env:`; pin actions and images by digest.
+
+**Test.** A CI-contract test that no `run:` block contains `${{ inputs.`.
+
+**Status.** Open (`security-audit-2026-10` chunk 16).
+
+---
+
+## OI-213 · Finding · GlitchTip shares the product's internal network
+
+**Claim.** GlitchTip joins `aia-develop_internal`, so it can reach PostgreSQL and the API directly.
+
+**Anchor.** `deploy/develop/errors/docker-compose.yml:59 @ 6bfe3760` (`networks: [aia, errors]`),
+`:94-98` (`aia` is `aia-develop_internal`). Plan `security-audit-2026-10.md` S21.
+
+**Reproduction.** Read the compose file above.
+
+**Consequence.** Low: a defect in GlitchTip reaches AIA's database network.
+
+**Smallest fix.** A network GlitchTip shares only with Caddy, the API and the worker.
+
+**Test.** `deploy/develop` config check that GlitchTip's networks exclude the database's.
+
+**Status.** Open (`security-audit-2026-10` chunk 16).
+
+---
+
+## OI-214 · Follow-up · clear_subject has no route, and its route must settle two things
+
+**Claim.** `ScopeRepository.clear_subject` (#704) has no route; the subject lives on the shared user
+record, so clearing it in one organization changes the person's sign-in in every organization, and a
+mismatched bearer token commits one `AIA_SESSION_DENIED` row per request.
+
+**Anchor.** `packages/aia_core/src/aia_core/infrastructure/scope_repository.py:228 @ 6bfe3760`
+(`clear_subject`); the audit row per request at `apps/api/src/aia_api/dependencies.py:345-346`. Plan
+`security-audit-2026-10.md` S22.
+
+**Reproduction.** A design follow-up: there is no defect to reproduce.
+
+**Consequence.** A genuinely changed subject can be cleared only from code; repeated refused sign-ins
+fill the audit.
+
+**Smallest fix.** Decide whether clearing needs every organization's admin or an operator; deduplicate
+or rate-limit the refused-sign-in rows; then the route.
+
+**Test.** The route's tests for both decisions.
+
+**Status.** Open (`security-audit-2026-10` chunk 17).
+
+---
+
+## OI-215 · Finding · Dependabot alerts describe a branch that does not deploy
+
+**Claim.** GitHub's open Dependabot alerts (113 at the audit: 2 critical, 67 high) come from `main`'s
+two npm lockfiles; `main` is far behind develop and nothing deploys it.
+
+**Anchor.** `origin/main` @ `9cf1f585`, 3,455 commits behind `6bfe3760` and none ahead
+(`gh api repos/AiAnalytics-AIA/AIA/compare/main...6bfe3760`, 2026-10-22; a shallow clone's
+`git rev-list --count` undercounts); `ci.yml:1095-1098 @ 6bfe3760` (`dispatch-develop` only for
+`refs/heads/develop`). Plan `security-audit-2026-10.md` S23.
+
+**Reproduction.** `npm audit --package-lock-only` over `git show origin/main:apps/web/package-lock.json`
+and `:package-lock.json`: 81 + 32 advisories at the audit.
+
+**Consequence.** The alert count is noise for what ships, and an advisory against develop's own
+lockfiles would sit among the stale ones. `prototypes/research-lead-v2`'s lockfile is not audited.
+
+**Smallest fix.** The product owner's call: develop as the default branch, or a release to `main`; the
+prototype's lockfile audited by the gate or excluded by name.
+
+**Test.** The audit gate run over every lockfile in the repository, or a named exclusion list.
+
+**Status.** Open (`security-audit-2026-10` chunk 18).
+
+---
+
+## OI-216 · Finding · The Lead's notes past the newest 40 or 16 KB leave its context uncounted
+
+**Claim.** `notes_layer` stops silently at 40 notes or 16 KB, and the context records no omitted count,
+so neither the turn nor its manifest says how many notes were left out.
+
+**Anchor.** `packages/aia_core/src/aia_core/domain/research_lead.py:887-900 @ 6bfe3760`
+(`NOTES_IN_CONTEXT`, `NOTES_MAX_BYTES` at `:196-197`); recorded at `:733-746 @ bfe6d15`. Plan
+`lead-conversation.md` F4 (#699).
+
+**Reproduction.** `notes_layer` over 41 notes returns 40 and nothing else.
+
+**Consequence.** A researcher with many notes has some silently missing from the Lead's context; LC1's
+manifest names the bound in words but cannot count what was left.
+
+**Smallest fix.** LC4: the layer carries its omitted count once its bytes may change.
+
+**Test.** A context over 41 notes records one omitted note.
+
+**Status.** Open (`lead-conversation` LC4).
+
+---
+
+## OI-217 · Finding · Some warnings fixed on Spuštění itself send "Opravit →" away from it
+
+**Claim.** A `dimensions` warning when fictional respondents will not use the dimensions, an
+`audience` warning when no filters apply, and an unknown `support_forecast` on a panel run are fixed by
+"Kdo bude odpovídat" on Spuštění, but share their ids with checks fixed elsewhere, so the fix link
+leaves the page.
+
+**Anchor.** `apps/web/src/components/rehome/research/ExecutionSteps.tsx:414-427 @ 6bfe3760` (`FIX_STEP`),
+`apps/web/src/lib/sample-view.ts:91-95` (`checkStage`); the checks at
+`packages/aia_core/src/aia_core/domain/research_design.py:1540-1585` and `domain/support_forecast.py`.
+Plan `artifact-fieldwork.md` F-FLD-2 (#662).
+
+**Reproduction.** Readiness without `filters_applied` and with dimensions selected: "Opravit →" opens
+Dimenze.
+
+**Consequence.** The real fix is on the page the person just left.
+
+**Smallest fix.** The domain's `ReadinessCheck` names the stage that fixes it, and the web reads it,
+replacing `FIX_STEP` and `checkStage`.
+
+**Test.** One shared case file of check, status and stage, read by both suites.
+
+**Status.** Open (`artifact-fieldwork`).
+
+---
+
+## OI-218 · Finding · An older method's run is told how to use a map it does not draw
+
+**Claim.** The Sociomapa card prints `mapToolNotInAia` ("Mapu můžete prohlížet shora nebo jako 3D
+terén, otáčet…") above every battery, also when every battery is an older method's with no `-5` map.
+
+**Anchor.** `apps/web/src/components/rehome/research/ExecutionSteps.tsx:1672 @ 6bfe3760` (the hint),
+`:2260` (`olderMethodOnly`); recorded at `:1666 @ 9607ee09`. Plan `artifact-sociomap.md` § Findings
+(SOC2, #803).
+
+**Reproduction.** `node tools/ui_workbench/sociomap_journey.mjs` (after `--prepare`), then
+`tmp/ui-workbench/sociomap-journey/390-older-method.png`.
+
+**Consequence.** A person on such a run reads how to turn a map that is not there.
+
+**Smallest fix.** Print the hint only when some battery draws a map (`!olderMethodOnly(b)` for one).
+
+**Test.** The `ExecutionSteps.test.tsx` older-method case expects no `mapToolNotInAia`.
+
+**Status.** Open (`artifact-sociomap` SOC2; `ExecutionSteps` is Výsledky's).
+
+---
+
+## OI-219 · Finding · A respondent's detail on the map is reached only by a click on the canvas
+
+**Claim.** On Respondenti the "Respondent" card fills only from a canvas hit; no control opens it from
+the keyboard.
+
+**Anchor.** `apps/web/src/components/rehome/research/ObjectMapPanel.tsx:262 @ 6bfe3760` (`setPerson`
+only in `onUp`'s hit test); recorded `@ 03989975`. Plan `artifact-sociomap.md` § Findings (#770).
+
+**Reproduction.** On a `-5` run, Respondenti, Tab through the panel: no stop opens a respondent's card.
+
+**Consequence.** A keyboard or screen-reader user reads the counts and segments but no single
+respondent's placement.
+
+**Smallest fix.** A way to reach a respondent without the pointer (a list or a "next respondent"
+control): a layout decision inside the panel, the methodology owner's.
+
+**Test.** A test that Tabs on Respondenti and expects a control naming a respondent.
+
+**Status.** Open, for the methodology owner.
+
+---
+
+## OI-220 · Question · The map's legend and tool column cover the map on a phone
+
+**Claim.** At 390 px the `-5` panel's legend card (260 px, bottom-left) covers the lower third of the
+map, and the tool column (top-right) covers object labels near the right edge.
+
+**Anchor.** `apps/web/src/components/rehome/research/ObjectMapPanel.tsx` (the panel's layout, header
+comment at `:5 @ 6bfe3760`). Plan `artifact-sociomap.md` § Findings ("For the methodology owner").
+
+**Reproduction.** `node tools/ui_workbench/sociomap_journey.mjs` at 390 px (the browser audit of
+2026-10-21; "Borealis" covered).
+
+**Consequence.** Part of the map and its labels are unreadable on a phone.
+
+**Smallest fix.** The methodology owner's: the panel's layout is theirs (Q50).
+
+**Test.** A journey check that no object label sits under the legend or tool column at 390 px.
+
+**Status.** Open, for the methodology owner.
+
+---
+
+## OI-221 · Question · The Lead's labels and hide_weak map filters have no control on the -5 panel
+
+**Claim.** The registry's `labels` and `hide_weak` Sociomap filters have no control on the `-5` panel,
+and `view: top|relief` is the panel's camera, not a toggle, so a Lead `filter` on them has nothing to
+set.
+
+**Anchor.** `apps/web/src/lib/workbench-artifacts.ts:166 @ 6bfe3760`
+(`sociomap: ["view", "labels", "hide_weak", "mode", "battery"]`); `lib/artifacts/sociomap.ts:85`. Plan
+`artifact-sociomap.md` SOC3 (#625).
+
+**Reproduction.** A Lead turn with `filter` `hide_weak` on the `-5` map is refused by name (SOC2's
+wiring), never applied.
+
+**Consequence.** Two filters the Lead's contract names cannot act on the map people read.
+
+**Smallest fix.** The methodology owner decides whether the panel offers them; otherwise drop them
+from `VIEW_FILTERS.sociomap` and the server's contract together.
+
+**Test.** `lead_artifacts` contract fixture and the panel agree on the filters offered.
+
+**Status.** Open, for the methodology owner.
+
+---
+
+## OI-222 · Question · AiaMark is rendered by no page
+
+**Claim.** `apps/web/src/components/brand/AiaMark.tsx` is rendered by no page; only `AiaMark.test.tsx`,
+which pins its geometry to `public/skin/brand/aia-mark.svg`, holds it.
+
+**Anchor.** `apps/web/src/components/brand/AiaMark.tsx @ 6bfe3760`; `login-handoff.md:89 @ 9607ee09`.
+Plan `code-health-2026-10.md` § Findings (#805).
+
+**Reproduction.** `grep -rln AiaMark apps/web/src` lists only the component and its test.
+
+**Consequence.** Dead code the knip check allows only because a test names it.
+
+**Smallest fix.** Remove both (one file plus its test), on the PM's word.
+
+**Test.** `make web_unused` stays green after the removal.
+
+**Status.** Open, for the PM.
+
+---
+
+## OI-223 · Hypothesis · Remove buttons under 24 px at a phone's width on Zadání and Návrh
+
+**Claim.** The browser audit of 2026-10-22 measured remove buttons under WCAG 2.5.8's 24 px at 390 px:
+Zadání "Odebrat pole …" 16×20, Návrh "Odebrat …" 12×20 (also Dotazník's option × 20×20 and the audience
+filter's 15×16, since fixed by #703 and #717).
+
+**Anchor.** Recorded `@ bfe6d15b`; each lives in its stage's own component. Plan
+`research-lead-workbench.md` § The workbench frame audit, H1 (#647).
+
+**Reproduction.** Hypothesis: the audit script was not committed; not re-measured @ `6bfe3760`.
+
+**Consequence.** Small targets on a phone.
+
+**Smallest fix.** `size-6` (or `TOUCH`) on each remaining remove button.
+
+**Test.** A journey assertion that every "Odebrat" control is at least 24 × 24 at four widths, as
+`workbench_journey.mjs` does for the audience filter.
+
+**Status.** Open, for the stages' owners.
+
+---
+
+## OI-224 · Hypothesis · GET …/design/source is read again on every stage mount
+
+**Claim.** `DesignSourceNote` reads the study's design source on every mount, and a 404 ("not reused")
+is logged by the browser each time; a per-study cache would read it once.
+
+**Anchor.** `apps/web/src/components/rehome/research/DesignSourceNote.tsx:21-26 @ 6bfe3760`. Plan
+`research-lead-workbench.md` H3 (#647).
+
+**Reproduction.** Measured by #807 (OI-198): one Dimenze visit on `next dev` reads `/design/source`
+twice after that fix (four before).
+
+**Consequence.** Repeated requests and console 404s; no wrong state.
+
+**Smallest fix.** Cache the answer per study for the page's life.
+
+**Test.** One `/design/source` read across two stage mounts of one study.
+
+**Status.** Open.
+
+---
+
+## OI-225 · Hypothesis · Výsledky's standalone links are not touch targets
+
+**Claim.** After F-FLD-5 (#677), Výsledky's own standalone links still carry no `TOUCH` class: the
+report's "see progress" and the stale analysis's repair link, and the blocked claims' link.
+
+**Anchor.** `apps/web/src/components/rehome/research/ExecutionSteps.tsx:1821, 1897 @ 6bfe3760`
+(`inline-block underline`), `:1635`; `AnalysisBlocked.tsx:67`. Plan `artifact-fieldwork.md` F-FLD-5
+("Left: Výsledky's own standalone links").
+
+**Reproduction.** Hypothesis: not measured; F-FLD-5 measured the same class of link at 18-20 px.
+
+**Consequence.** Small targets on a phone.
+
+**Smallest fix.** `TOUCH_LINK` (`components/ui/parts.tsx:58`) on each.
+
+**Test.** `results_journey.mjs` asserting every standalone link is a touch target at four widths.
+
+**Status.** Open, for Výsledky's owner.
+
+---
+
+## OI-226 · Finding · A develop CI run takes an hour and a half, so most merges are never verified on their own
+
+**Claim.** Develop's push runs are serialised (OI-191: a running one is never cancelled, GitHub keeps one
+pending and supersedes the rest), and one run now takes about 1 h 30 min, so on a busy merge day develop
+is verified and deployed at most about once per 1.5 h and most merges' own runs are cancelled while
+pending.
+
+**Anchor.** `.github/workflows/ci.yml:17-23 @ 6bfe3760` (`concurrency`, `cancel-in-progress` only for a
+pull request); `:266-275` ("Domain tests on SQLite", push only, re-running the whole suite after the
+PostgreSQL steps in the same Backend job; its comment still says "about 3.7 of this job's 11.6
+minutes").
+
+**Reproduction.** `gh api repos/AiAnalytics-AIA/AIA/actions/runs/39825786647/jobs` (#793's merge,
+`111b3e01`, success): created 17:47:44, done 19:17:44 UTC; Backend 17:50:05-19:16:04 (1 h 26 min);
+"Domain and repository tests (PostgreSQL)" 12.5 min, "API tests (PostgreSQL)" 19 min, executors 15 min,
+"Domain tests on SQLite" 18:40:29-19:15:59 (35.5 min, the largest step); Frontend 4 min. Runs 39808787084
+(#787) and 39795265033 (#776) took 1 h 58 and 1 h 44 including queue.
+`gh api "repos/AiAnalytics-AIA/AIA/actions/workflows/ci.yml/runs?branch=develop&event=push&created=2026-10-22&per_page=100"`:
+182 develop push runs that day; of the newest 100, 92 cancelled, 5 succeeded, 2 failed, 1 in progress.
+
+**Consequence.** A defect only develop's merged state shows is reported up to an hour and a half
+later, against a batch of merges rather than one; the deployed site lags every merge by as much.
+
+**Smallest fix.** A proposal, not decided: run the SQLite domain suite in its own job, parallel to the
+Backend job (the deploy dispatch still needing both), or only on a schedule.
+
+**Test.** The same listing on a busy day shows develop runs completing within the Backend job's
+PostgreSQL time (about 50 min).
+
+**Status.** Open.
+
+---
+
+## OI-227 · Finding, closed · A control character a person typed failed the whole draft
+
+**Claim.** A research question, a question's wording or a study's name holding a character XML 1.0
+cannot hold reached python-docx as written, and lxml refused the run: no draft at all.
+
+**Anchor.** `packages/aia_core/src/aia_core/infrastructure/report_docx/renderer.py:53 @ 09571504`.
+Plan `artifact-report.md` F-RPT-2 (found by #792's stand-in review).
+
+**Reproduction.** `packages/aia_core/tests/test_report_design.py::test_a_control_character_a_person_typed_never_fails_the_render`
+(fails before the fix).
+
+**Consequence.** One pasted vertical tab or bell character stopped the report.
+
+**Smallest fix.** Done: `domain/report/printable.py` (`xml_text`, `printable`), applied by
+`DocxRenderer.render` and by the document model before it is stored.
+
+**Test.** The reproduction above; `test_report_printable.py`.
+
+**Status.** Closed by #810 (merged as `6bfe3760`, 2026-10-22).
+
+---
+
+## OI-228 · Finding, closed · A deploy of a SHA older than #785 failed before reaching the host
+
+**Claim.** `deploy-develop.yml` runs from develop's head but checks out the SHA it deploys, and its
+bundle step named `deploy/develop/docs` unconditionally, which a SHA before #785 lacks.
+
+**Anchor.** `.github/workflows/deploy-develop.yml:165-170 @ 07b2fa31`. Plan `report-editor-hosting.md` F2.
+
+**Reproduction.** Deploy run 39811181434 (`inputs.sha` `013f2e11`) failed with
+`cp: cannot stat 'deploy/develop/docs'`.
+
+**Consequence.** A rollback or re-dispatch of an older SHA could not deploy; the site stayed on the SHA
+it ran.
+
+**Smallest fix.** Done: the bundle carries `errors/` and `docs/` only where they exist
+(`deploy-develop.yml:162-170 @ 6bfe3760`).
+
+**Test.** CI's "The deploy bundle of an older SHA" step (`ci.yml:963 @ 6bfe3760`), run on `013f2e11` and
+on the current tree.
+
+**Status.** Closed by #794 (merged as `1838330a`, 2026-10-22).
+
+---
+
+## OI-229 · Finding, closed · An ADMIN could promote anyone to OWNER and demote every OWNER
+
+**Claim.** `add_member` overwrote an existing membership's role after `require_administer()` alone,
+with no "only an OWNER sets OWNER" rule and no last-owner guard.
+
+**Anchor.** `apps/api/src/aia_api/routers/scope.py:598-626` and
+`infrastructure/scope_repository.py:208-250 @ bfe6d15`. Plan `security-audit-2026-10.md` S14.
+
+**Reproduction.** `POST /api/v1/members {"email": "<owner>", "role": "MEMBER"}` as an ADMIN demoted the
+owner.
+
+**Consequence.** An admin could lock the owner out, with one audit row as the record.
+
+**Smallest fix.** Done, on the product owner's option (b) of 2026-10-22: only an OWNER grants or
+removes OWNER, and the last active OWNER is never demoted or deactivated, the organization row locked
+while it counts (`scope_repository.py:343-375 @ 6bfe3760`, `_guard_owner`); a refusal is audited
+`MEMBER_ROLE_DENIED`.
+
+**Test.** `packages/aia_core/tests/test_scope_isolation.py::test_an_admin_neither_grants_nor_removes_owner`,
+`test_owner_role_race.py::test_two_owners_demoting_each_other_at_once_leave_one`.
+
+**Status.** Closed by #782 (merged as `b6cd4d9e`, 2026-10-22); the plan's S14 entry and chunk 14 are marked
+fixed in the same docs PR.
+
+---
+
+## OI-230 · Finding, closed · XLSX entities expanded through openpyxl
+
+**Claim.** defusedxml is not a dependency, so openpyxl's parser expanded internal entities in a
+workbook's parts.
+
+**Anchor.** `packages/aia_core/src/aia_core/infrastructure/document_text.py:107,409 @ bfe6d15`
+(`load_workbook`). Plan `security-audit-2026-10.md` S11.
+
+**Reproduction.** In the audit, a sheet with `&a0;` × 200,000 produced a 70 MB cell value from about
+1 MB of XML.
+
+**Consequence.** Memory exhaustion in the API (sources, attachments) and in the worker (web XLSX).
+
+**Smallest fix.** Done: every workbook member passes `refuse_dtd` before `load_workbook`
+(`document_text.py:124-143, 469-472 @ 6bfe3760`), so no entity reaches openpyxl.
+
+**Test.** `packages/aia_core/tests/test_source_readers.py::test_a_workbook_part_declaring_a_dtd_is_refused_before_openpyxl_parses_it`,
+`test_questionnaire_import.py::test_a_workbook_part_declaring_a_dtd_is_not_parsed`.
+
+**Status.** Closed by #709 (merged as `dc6da479`, 2026-10-22).
+
+---
+
+## OI-231 · Finding, closed · A panel run whose sample the sampler refuses read ready and started
+
+**Claim.** A refused panel draw was named in `sample_composition.refused` but was no readiness check:
+readiness read ready, and a start created the run, which fieldwork then failed on the same refusal.
+
+**Anchor.** `packages/aia_core/src/aia_core/application/research.py:696-758 @ 4568badd` (the draw came
+after the `DesignNotReady` check). Plan `run-qc-and-checkpoint.md` F-RQC6-1.
+
+**Reproduction.** A panel design whose filter the population cannot apply (`fiktivni_pole`) read
+`ready: true` and `POST …/research/runs` answered 201.
+
+**Consequence.** A run created only to fail in fieldwork.
+
+**Smallest fix.** Done: `domain/panel_source.py:110 @ 6bfe3760` `with_panel_refusal`, a FAIL
+`panel_sample` check from the one draw, added by readiness and by start (`application/research.py:759-760`);
+a population that will not load stays unknown.
+
+**Test.** `apps/api/tests/test_population_double_api.py::test_a_sample_the_sampler_refuses_fails_readiness_and_refuses_the_start`.
+
+**Status.** Closed by #745 (merged as `c7fbd15a`, 2026-10-22).
