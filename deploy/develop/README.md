@@ -539,6 +539,10 @@ Each is off when unset and absent from the develop Compose file; turning one on 
   and pays only for the blocks never answered (run-qc-and-checkpoint RQC0). An uncertain call still
   stops the step for recovery; nothing is replayed that was not answered. Two short lease-fenced
   database round trips per block. **Who:** the operator, after `make migrate`.
+- **`AIA_AI_FIELDWORK_HEARTBEAT`** (worker): fieldwork writes its `fieldwork_progress` between a
+  respondent's blocks once 30 s pass without one, so slow answering never reads as a stalled step on
+  Průběh (run-qc-and-checkpoint RQC7a). At most two lease-fenced feed writes a minute per step. **Who:**
+  the operator.
 - **`AIA_AI_SCALE_LABELS_IN_PROMPT`** (worker): AI respondents are told a scale question's labels
   (both ends, or one per point) as its design states them, not only the numbers (input-interactions
   3b1, #538). Turning it on changes what respondents read, so the respondent-system fingerprint moves
