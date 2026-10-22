@@ -321,6 +321,7 @@ function Objectives({ undo }: { undo: Undo }) {
         <InlineCreateRow
           className="mt-2"
           label={t("research.brief.objectiveAdd")}
+          emptyWords={t("research.brief.objectiveEmpty")}
           maxLength={OBJECTIVE_MAX}
           existing={items.map((o) => o.text)}
           onCreate={(text) => store.update((d) => addObjective(d, text), { reason: "brief_objective_add" })}

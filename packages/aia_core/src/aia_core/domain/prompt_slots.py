@@ -17,6 +17,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import Final
 
+from .ai_contracts import canonical_json
 from .ai_respondent import PROMPT_ID as RESPONDENT_PROMPT_ID
 from .ai_respondent import PROMPT_VERSION as RESPONDENT_PROMPT_VERSION
 from .ai_respondent import SYSTEM_PROMPT as RESPONDENT_SYSTEM_PROMPT
@@ -26,7 +27,7 @@ from .deep_research.agents import AGENT_IDS as DEEP_RESEARCH_AGENT_IDS
 from .deep_research.agents import AgentRole
 from .deep_research.agents import prompt_for as deep_research_prompt_for
 from .deep_research.agents import prompt_version_for as deep_research_prompt_version
-from .prompts import PromptPin, validate_prompt_text
+from .prompts import PromptPin, PromptRejected, validate_prompt_text
 from .research_agents import (
     FIXED_PREFIX as RESEARCH_FIXED_PREFIX,
 )
@@ -35,7 +36,7 @@ from .research_agents import (
     baseline_task,
     prompt_version_for,
 )
-from .research_lead import LEAD_PROMPT_ID, LEAD_PROMPT_VERSION
+from .research_lead import LEAD_PROMPT_ID, LEAD_PROMPT_MAX_PIN_BYTES, LEAD_PROMPT_VERSION
 from .research_lead import baseline_task as lead_baseline_task
 
 __all__ = [
@@ -67,6 +68,10 @@ class PromptSlot:
     required_literals: tuple[str, ...] = ()
     #: ``None`` when wired; otherwise the stable reason no edit can take effect yet.
     unwired_reason: str | None = None
+    #: The most bytes the prompt's pin may take in a context, as canonical JSON with its
+    #: largest framing (ADR 0041: the Lead's prompt layer is 12 KB). ``None``: no bound
+    #: beyond the text's characters.
+    max_pin_bytes: int | None = None
 
     @property
     def wired(self) -> bool:
@@ -78,7 +83,36 @@ class PromptSlot:
 
     def check(self, text: str) -> str:
         """``text`` as it would be stored, or :class:`PromptRejected`. Wired slots only."""
-        return validate_prompt_text(text, required_literals=self.required_literals)
+        cleaned = validate_prompt_text(text, required_literals=self.required_literals)
+        self.check_pin_size(cleaned)
+        return cleaned
+
+    def pin_bytes(self, text: str) -> int:
+        """The bytes ``text``'s pin takes in a context, with the largest framing a stored
+        version can carry: a long version label, a declared class and a full-length author."""
+        pin = PromptPin.of(
+            prompt_id=self.prompt_id,
+            version="stored-999999",
+            origin="stored",
+            text=text,
+            declared_class="CLASS_C_INTERNAL",
+            declared_by="x" * 64,
+        )
+        return len(canonical_json({"layer": "prompt", "pin": pin.model_dump(mode="json")}).encode())
+
+    def check_pin_size(self, text: str) -> None:
+        """:class:`PromptRejected` (``too_large_for_context``) when ``text``'s pin is over
+        :attr:`max_pin_bytes`: refused where it is saved or activated, never at a turn. Text
+        that fits in characters can be over in bytes (Czech, escaping)."""
+        if self.max_pin_bytes is None:
+            return
+        size = self.pin_bytes(text)
+        if size > self.max_pin_bytes:
+            raise PromptRejected(
+                f"the prompt takes {size} bytes in the Lead's context; "
+                f"the limit is {self.max_pin_bytes}",
+                reason="too_large_for_context",
+            )
 
     def baseline_pin(self) -> PromptPin:
         return PromptPin.of(
@@ -109,6 +143,7 @@ def _research_slots() -> list[PromptSlot]:
             baseline_version=LEAD_PROMPT_VERSION,
             baseline_text=lead_baseline_task(),
             fixed_prefix=RESEARCH_FIXED_PREFIX,
+            max_pin_bytes=LEAD_PROMPT_MAX_PIN_BYTES,
         )
     ]
 

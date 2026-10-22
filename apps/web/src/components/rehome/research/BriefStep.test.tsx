@@ -322,6 +322,15 @@ describe("Zadání", () => {
     expect(document.querySelectorAll("[data-aia^='objective:']")).toHaveLength(0);
   });
 
+  it("says an empty new objective as a goal to write, not a name (audit)", async () => {
+    unitStub({ title: "Studie", goal: "Chceme zjistit, jak lidé vnímají značku." });
+    render(<ResearchScreen step="brief" frame={TEST_FRAME} />);
+    const section = within(await screen.findByRole("region", { name: "Cíle" }));
+    fireEvent.click(section.getByRole("button", { name: "Přidat cíl" }));
+    fireEvent.keyDown(section.getByRole("textbox", { name: "Přidat cíl" }), { key: "Enter" });
+    expect(section.getByRole("alert").textContent).toBe("Napište cíl.");
+  });
+
   it("prints each material's class as the server answers it, and unknown when it names none (BRF3)", async () => {
     const B = { data_class: "CLASS_B_DERIVED_CLIENT", class_source: "rule:design" };
     unitStub(

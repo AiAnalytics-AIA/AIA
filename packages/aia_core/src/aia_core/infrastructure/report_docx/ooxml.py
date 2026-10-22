@@ -136,24 +136,6 @@ def add_field(
     end.append(el("w:fldChar", fldCharType="end"))
 
 
-def begin_field(paragraph: Paragraph, instruction: str) -> None:
-    """Open a field whose result spans the following paragraphs (the TOC)."""
-    begin = _run(paragraph)
-    begin.append(el("w:fldChar", fldCharType="begin"))
-    instr = _run(paragraph)
-    t = OxmlElement("w:instrText")
-    t.set(qn("xml:space"), "preserve")
-    t.text = f" {instruction} "
-    instr.append(t)
-    sep = _run(paragraph)
-    sep.append(el("w:fldChar", fldCharType="separate"))
-
-
-def end_field(paragraph: Paragraph) -> None:
-    end = _run(paragraph)
-    end.append(el("w:fldChar", fldCharType="end"))
-
-
 class Bookmarks:
     """Allocates bookmark ids; names are the report's own ids, made Word-safe."""
 

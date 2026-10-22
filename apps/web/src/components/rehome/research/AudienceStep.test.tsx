@@ -9,6 +9,8 @@ import { type SavedBody, workspaceFixture } from "./test-workspace";
 import { TEST_FRAME } from "./test-frame";
 import { CATALOGUE } from "@/research/audience.live.test";
 import { focusSelector } from "@/lib/lead";
+import { audienceTargets } from "@/lib/artifacts/audience";
+import type { ResearchProject } from "@/research/model";
 
 // Native jobs need more than vitest's 5 s under CI load (test-native-agents.ts).
 vi.setConfig({ testTimeout: NATIVE_TEST_TIMEOUT_MS });
@@ -190,6 +192,9 @@ describe("Audience", () => {
       }
       expect(container.querySelector(focusSelector("audience:filter:kraj"))!.textContent).toContain("Zlínský kraj");
       expect(container.querySelector(focusSelector("audience:filter:prijem"))!.textContent).toContain("Příjem domácnosti");
+      // The screen marks exactly what the contract names (subpanels are drawn on their own path).
+      const marks = [...container.querySelectorAll("[data-aia^='audience:']")].map((e) => e.getAttribute("data-aia"));
+      expect(marks.sort()).toEqual(audienceTargets({ audience: { filters } } as unknown as ResearchProject, { preview: true, subpanels: [] }).sort());
       expect(container.querySelector(focusSelector("audience:preview"))!.textContent).toContain("Ověřit proveditelnost");
     });
 
@@ -198,6 +203,8 @@ describe("Audience", () => {
       const { container } = render(<ResearchScreen step="audience" frame={TEST_FRAME} />);
       await waitFor(() => expect(container.querySelector(focusSelector("audience:filters"))?.textContent).toContain("V AIA zatím není"));
       expect(container.querySelector(focusSelector("audience:preview"))).toBeNull();
+      const marks = [...container.querySelectorAll("[data-aia^='audience:']")].map((e) => e.getAttribute("data-aia"));
+      expect(marks.sort()).toEqual(audienceTargets({ audience: {} } as unknown as ResearchProject, { preview: false, subpanels: [] }).sort());
     });
 
     it("the preview counts the audience in AIA and says whether n can be drawn", async () => {
@@ -247,6 +254,10 @@ describe("Audience", () => {
       expect(screen.getByText(/Nelze použít: audit_only/)).toBeTruthy();
       expect(screen.getByText(/speciální panely a vlastní publikum stavěla 18.6.6/i)).toBeTruthy();
       expect(container.querySelector(focusSelector("audience:subpanel:young_18_29"))!.textContent).toContain("Mladí 18–29");
+      // In the Speciální skupiny view the screen marks exactly the contract's targets, subpanels included.
+      const marks = [...container.querySelectorAll("[data-aia^='audience:']")].map((e) => e.getAttribute("data-aia"));
+      const keys = CATALOGUE.subpanels.map((sp) => sp.key);
+      expect(marks.sort()).toEqual(audienceTargets({ audience: {} } as unknown as ResearchProject, { preview: false, subpanels: keys }).filter((x) => x.startsWith("audience:subpanel:")).sort());
       fireEvent.click(young);
       await saved();
       expect(lastSave()).toMatchObject({ reason: "population_subpanel", content: { audience: { builtin_subpanel: "young_18_29", source_mode: "population", filters: { vek: [18, 29] } } } });

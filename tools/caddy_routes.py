@@ -29,6 +29,11 @@ line must never go missing:
   ``/files/*``, ``/health``, ...) are the web client's 404 like any other unknown
   path.
 * ``/api/v1/*`` is the API, and the last route is the web client for any other path.
+* ``/api/v1/*`` bounds a request body before it reaches the API: FastAPI reads a
+  whole JSON body before a route's dependencies run, authentication among them, so
+  without a bound anyone could make it hold gigabytes before it answers 401. The bound
+  sits above the largest upload (a 25 MiB source or attachment, base64 in JSON) and
+  well below what one process should hold.
 """
 
 from __future__ import annotations
@@ -50,6 +55,9 @@ APP_GATE = "/api/v1/session/gate"
 # that a route asking it is reported as the gate it is, and refused.
 PANEL_GATE = "/api/v1/panel/gate"
 GATES = (APP_GATE, PANEL_GATE)
+# The largest body a route takes: a 25 MiB file as base64 (4/3) in its JSON envelope.
+BODY_MIN = 36 * 1024 * 1024
+BODY_MAX = 64 * 1024 * 1024
 
 
 def walk(node: Any) -> Iterator[dict[str, Any]]:
@@ -166,8 +174,17 @@ def check(config: dict[str, Any]) -> list[str]:
                 )
             if not cookie_dropped(r):
                 problems.append(f"{path}: the session cookie reaches the web client")
-    if (r := only("/api/v1/*")) is not None and dials(r) != [API]:
-        problems.append(f"/api/v1/* must be the API; got {dials(r)}")
+    if (r := only("/api/v1/*")) is not None:
+        if dials(r) != [API]:
+            problems.append(f"/api/v1/* must be the API; got {dials(r)}")
+        bounds = [n.get("max_size") for n in walk(r) if n.get("handler") == "request_body"]
+        if not bounds or not all(bounds):
+            problems.append("/api/v1/* takes a body of any size: the API reads it all first")
+        elif not all(BODY_MIN <= int(b) <= BODY_MAX for b in bounds):
+            problems.append(
+                f"/api/v1/* bounds a body at {bounds}: between {BODY_MIN} (the largest "
+                f"upload) and {BODY_MAX} bytes"
+            )
 
     for r in routes:
         where = paths_of(r) or ["any path"]

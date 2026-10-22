@@ -11,8 +11,9 @@
 import { useLayoutEffect, useRef } from "react";
 
 import { t, tv } from "@/i18n/t";
-import type { ResearchAgentResult } from "@/lib/api";
+import type { ResearchAgentAction, ResearchAgentResult } from "@/lib/api";
 import type { ResearchProject } from "@/research/model";
+import { audienceProposalDiff } from "@/research/audience-proposal";
 import { proposalDiff, questionnaireReplacement } from "@/research/proposal-diff";
 import { proposedTrace } from "@/research/trace";
 import { proposalAnalysis } from "@/research/plan-edit";
@@ -36,8 +37,10 @@ function Item({ kind, children }: { kind: "add" | "del"; children: string }) {
   );
 }
 
-export function ProposalReview({ result, state, onDecision, canApply = true, stale = null }: {
+export function ProposalReview({ result, action, state, onDecision, canApply = true, stale = null }: {
   result: ResearchAgentResult;
+  /** The job's action: which of its own fields a proposal changes beyond the plan (AUD5: the audience). */
+  action?: ResearchAgentAction;
   state: Pick<ResearchState, "project" | "analysis">;
   /** `true` applies, `false` keeps the current design; "dismiss" and "rebuild" as ProposalDecision says. */
   onDecision: (decision: boolean | ProposalDecision) => void;
@@ -60,12 +63,15 @@ export function ProposalReview({ result, state, onDecision, canApply = true, sta
   const dropped = Array.isArray(result.result.dropped_links) ? result.result.dropped_links.length : 0;
   // What accepting does to the questionnaire there is now (PC6): own blocks are replaced.
   const replacement = questionnaire ? questionnaireReplacement(state.project, result.result.project as { sections?: unknown }) : null;
+  // An audience proposal (AUD5): its description and criteria against the audience there is now.
+  const audience = action === "propose_audience" ? audienceProposalDiff(state.project, result.result.proposal) : null;
+  const changes = diff.changes + (audience?.changes ?? 0);
   return (
     <section aria-labelledby="proposal-review-title" data-proposal-review className="scroll-mt-40 overflow-hidden rounded-card border border-ai-edge bg-surface-raised">
       <div className="flex flex-wrap items-center gap-2 border-b border-ai-edge bg-ai-wash px-4 py-2.5">
         <Sparkle size={14} />
         <h2 ref={heading} tabIndex={-1} id="proposal-review-title" className="flex-1 text-sm font-semibold text-ai-ink focus:outline-none">
-          {diff.changes ? `Zkontrolujte návrh AI · ${diff.changes} ${diff.changes === 1 ? "změna" : diff.changes < 5 ? "změny" : "změn"}` : "Zkontrolujte návrh AI"}
+          {changes ? `Zkontrolujte návrh AI · ${changes} ${changes === 1 ? "změna" : changes < 5 ? "změny" : "změn"}` : "Zkontrolujte návrh AI"}
         </h2>
         <span className="text-xs text-ink-muted">Nic se nezmění, dokud návrh nepoužijete.</span>
       </div>
@@ -120,6 +126,38 @@ export function ProposalReview({ result, state, onDecision, canApply = true, sta
             </ul>
           </div>
         ) : null}
+        {audience && (audience.changes || audience.notes.length) ? (
+          <div data-audience-proposal className="flex flex-col gap-4">
+            {audience.description ? (
+              <div>
+                <h3 className="text-xs font-medium text-ink-muted">Popis cílové skupiny</h3>
+                <ul className="mt-1 flex flex-col gap-1">
+                  {audience.description.before ? <Item kind="del">{audience.description.before}</Item> : null}
+                  <Item kind="add">{audience.description.after}</Item>
+                </ul>
+              </div>
+            ) : null}
+            {([["Koho zahrnout", audience.inclusion], ["Koho vyloučit", audience.exclusion]] as const)
+              .filter(([, l]) => l.added.length || l.removed.length)
+              .map(([label, l]) => (
+                <div key={label}>
+                  <h3 className="text-xs font-medium text-ink-muted">{label}{l.kept ? ` · ${l.kept} beze změny` : ""}</h3>
+                  <ul className="mt-1 flex flex-col gap-1">
+                    {l.removed.map((x, i) => <Item key={`d-${i}`} kind="del">{x}</Item>)}
+                    {l.added.map((x, i) => <Item key={`a-${i}`} kind="add">{x}</Item>)}
+                  </ul>
+                </div>
+              ))}
+            {audience.notes.length ? (
+              <div>
+                <h3 className="text-xs font-medium text-ink-muted">Co návrh nepokrývá</h3>
+                <ul className="mt-1 flex list-disc flex-col gap-1 pl-5 text-[13px] leading-5">
+                  {audience.notes.map((x, i) => <li key={i}>{x}</li>)}
+                </ul>
+              </div>
+            ) : null}
+          </div>
+        ) : null}
         {traced.length ? (
           <div>
             <h3 className="text-xs font-medium text-ink-muted">{t("research.questionnaire.proposed.title")}</h3>
@@ -138,7 +176,7 @@ export function ProposalReview({ result, state, onDecision, canApply = true, sta
           </div>
         ) : null}
         <details className="text-sm">
-          <summary className="cursor-pointer text-[13px] font-medium text-ink-muted">{diff.changes ? "Celý návrh" : "Návrh"}</summary>
+          <summary className="cursor-pointer text-[13px] font-medium text-ink-muted">{changes ? "Celý návrh" : "Návrh"}</summary>
           <div className="mt-3"><AgentProposalContent result={result} /></div>
         </details>
       </div>
