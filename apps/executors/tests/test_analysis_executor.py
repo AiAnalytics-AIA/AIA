@@ -71,7 +71,7 @@ from aia_core.domain.deep_research.workflow import deep_research_steps
 from aia_core.domain.evidence import AdmittedClaim, ClaimSurface, ViolationCode
 from aia_core.domain.fieldwork import FieldworkSource
 from aia_core.domain.pipeline import ProjectType
-from aia_core.domain.report.document_model import read_document_payload
+from aia_core.domain.report.document_model import DOCUMENT_MODEL_CONTRACT, read_document_payload
 from aia_core.domain.report.model import Callout
 from aia_core.domain.report.review import REVIEW_STAMP_CONTRACT, ReviewMark, ReviewState
 from aia_core.domain.residency import DataClass
@@ -446,7 +446,7 @@ def test_native_research_start_and_worker_complete_the_composed_analysis_graph(
     assert cited and cited == set(payload["ledger"]["refs"])
     # Every section names its sources, stored with the document (artifact-chain CHN1): the map
     # chapters the run's Sociomap, the questions the aggregate, who answered the dataset.
-    assert payload["contract"] == "aia-report-document-3"
+    assert payload["contract"] == DOCUMENT_MODEL_CONTRACT
     sources = {s["id"]: s["sources"] for s in payload["sections"]}
     assert all(sources.values()), [k for k, v in sources.items() if not v]
     named = {k: {x.get("artifact_type") for x in v} for k, v in sources.items()}
