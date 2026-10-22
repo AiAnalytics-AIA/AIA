@@ -4,6 +4,7 @@ chunks:
   - "[x] 1. ONLYOFFICE Docs on the develop host: a Compose project of its own (deploy/develop/docs), the upstream image pinned by digest, bin/docs.sh, off unless aia_onlyoffice_enabled"
   - "[x] 2. docs.<hostname>: its own origin in the Caddyfile, every request through AIA's docs gate, the server-only paths refused; tools/caddy_routes.py holds it"
   - "[x] 3. The docs gate in the API: a docs-only session cookie on docs.<hostname> from a one-time ticket, refused without it"
+  - "[x] 3b. A timed force-save every 5 minutes while a document is open (RPT8: every autosave a stored version), through one read-only configuration file"
   - "[ ] 4. Activation on develop (operations, the owner's word; precondition: F1 fixed, __Host-aia_session in deployed environments): the host resized, docs.<hostname> in Route 53, the JWT secret in SSM, the flag on, the editor's own checks"
 ---
 # Report editor hosting: ONLYOFFICE Docs beside the develop stack
@@ -395,6 +396,34 @@ it is refused.
 Accepted, said here: the ticket travels in the query of `/__aia/session`, so Caddy's access log on
 `docs.<hostname>` records it. It is good once and for 60 seconds, and spent on that very request, so the
 logged value opens nothing.
+
+## Timed force-save (chunk 3b, 2026-10-22, evening)
+
+Asked by the Zpráva session (PR #824, artifact-report "Revision of 2026-10-22, evening"): the owner
+decided that every autosave becomes a stored report version, so the Document Server must force-save
+every 5 minutes while a document is open; AIA's callback then gets status 6 with forcesavetype 2.
+
+- The setting is `services.CoAuthoring.autoAssembly` (`default.json` of 9.4.0.1: `enable: false,
+  interval: "5m", step: "1m"`). No environment variable reaches it.
+- **Not `local.json`.** The image's start script (`/app/ds/run-document-server.sh`, `ONLYOFFICE_DEFAULT_CONFIG`)
+  writes `local.json` at every start, the JWT secrets among it, and the image ships one with a fixed
+  secret. A read-only `local.json` would stop that write: at best the start fails, at worst the server
+  runs on the image's published secret.
+- **`local-production-linux.json` instead**: the services run with `NODE_ENV=production-linux` and
+  `NODE_CONFIG_DIR=/etc/onlyoffice/documentserver` (`/etc/supervisor/conf.d/ds-docservice.conf`), and
+  their configuration loader reads `local-<NODE_ENV>.json` after `local.json`. Proved on the pinned image,
+  2026-10-22 23:40 UTC: the same mount carrying `server.port: 8001` moved the document service to 8001,
+  and `local.json` still held the JWT secret given in the environment. With the real file
+  (`autoAssembly: {enable: true, interval: "5m"}`) `/healthcheck` answered `true`.
+- `deploy/develop/docs/local-production-linux.json`, mounted read-only; nothing else in it.
+- CI's "Validate the report editor's Compose project" now holds the one bind mount (that path, read-only)
+  and the file's exact content. Run on the previous Compose file, it fails (`AssertionError: []`).
+- `NOTICE`: the program is still unmodified. A configuration file its own loader reads is configuration,
+  not a change to the program's code, so AGPL section 13's offer of modified source does not arise; the
+  notice now names the file.
+- Not measured here (a hypothesis, from upstream's documentation of forcesavetype 2): the timer saves
+  only a document that changed since its last save, so an open document nobody edits sends no callback.
+  RPT8's end-to-end test (an edit, then a callback within the interval plus `step`) is what proves it.
 
 ## Review (2026-10-22, before the push)
 
