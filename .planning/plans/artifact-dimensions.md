@@ -123,9 +123,11 @@ V2: `DimensionsArt` (`SampleStages.tsx:206-230`).
   field and not saved. This is also the n half of `input-interactions#5`, which stays that plan's to tick.
 - DIM1, part: `lib/artifacts/dimensions.ts` builds Dimenze's ids (`dimensionAia`, `ownDimensionAia`), an id
   outside the grammar left unmarked (the own-dimension rows used to call `aiaId`, which throws). The
-  stepper's `sample:n` comes from Vzorek's `sampleAia.n()`. Still open, in the registry's row (the
-  integration coordinator's): `show_changes`, and whether `sample:n` points at Dimenze's stepper or
-  Vzorek's (the same id is on both screens).
+  stepper's `sample:n` comes from Vzorek's `sampleAia.n()`. The integration coordinator answered
+  (2026-10-22): the row gains `show_diff` (the plan's `show_changes`; Lead edits land on Dimenze), non-live
+  until the op is built, in the coordinator's next registry PR, with `tryAiaId` beside `aiaId`; `sample:n`
+  stays on the stepper, one value whose kind's stage is Vzorek (focus opens it there), no second target.
+  DIM1 is ticked once that registry PR lands and Dimenze's ids move to `tryAiaId`.
 - DIM4, read half (#667): "Vlastní dimenze klienta" on Dimenze (`OwnDimensions.tsx`,
   `lib/own-dimensions.ts`) lists the study's materializations, each with its state, its reason and the
   target beside what was achieved (unknown never met), pointable as `own_dimension:<run id>`, and links
