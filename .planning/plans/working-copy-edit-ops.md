@@ -114,6 +114,13 @@ the agent-job and Design Research accepts; **2f** the 18.6.6 migration, then `sa
   join projects p on p.project_id = w.project_id join project_revisions r on r.project_id =
   p.project_id and r.revision = p.current_revision where r.content::text like '%"sociomap_rating"%'
   or r.content::text like '%"context_objects"%';`
+- **WCE2e (2026-10-22).** The proposal accepts are logged: `accept_into_working_copy` takes `by`
+  (required) and its merged write is logged as a whole-copy write made by the person who accepts,
+  citing the run (`proposal_accept` for an agent job, `ResearchAgentJobs.accept`;
+  `design_research_accept` for a Design Research proposal, `DesignResearchProposals.accept`). The
+  lock already held for them through `save` (WCE2c). Tests: the accept tests in
+  `test_research_agent_executor.py` and `test_design_research_proposals.py` assert the rows (both
+  failed before the change).
 
 **WCE3a. The web store on the server vocabulary, Brief and Design stages**  
 33 `store.update` sites in 9 files and about 1,900 lines of TypeScript with 18.6.6 parity tests are moved stage by stage; the parity tests stay green at every step.
