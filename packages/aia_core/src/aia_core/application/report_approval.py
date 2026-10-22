@@ -21,6 +21,10 @@ offered: ``report_variants.variant_pdf``).
 
 from __future__ import annotations
 
+from collections.abc import Mapping
+from types import MappingProxyType
+from typing import Final
+
 from sqlalchemy.orm import Session
 
 from aia_core.application.client_report import CLIENT_REPORT_ARTIFACT_TYPE, require_client_gate
@@ -32,9 +36,18 @@ from aia_core.domain.scope import Permission, StudyContext
 from aia_core.infrastructure.artifact_repository import Artifact, ArtifactStatus
 from aia_core.infrastructure.storage import ArtifactStore
 
-REPORT_ARTIFACT_TYPES = frozenset(
-    {INTERNAL_REPORT_ARTIFACT_TYPE, CONTEXT_REPORT_ARTIFACT_TYPE, CLIENT_REPORT_ARTIFACT_TYPE}
+#: Each approvable report by its stored type, as the approval names it (report-delivery RD3, G66):
+#: the client report is the one deliverable that leaves the organization.
+REPORT_KINDS: Final[Mapping[str, str]] = MappingProxyType(
+    {
+        INTERNAL_REPORT_ARTIFACT_TYPE: "internal",
+        CONTEXT_REPORT_ARTIFACT_TYPE: "with_review",
+        CLIENT_REPORT_ARTIFACT_TYPE: "client",
+    }
 )
+#: The kinds a client receives: never internal_only.
+CLIENT_REPORT_KINDS: Final = frozenset({"client"})
+REPORT_ARTIFACT_TYPES = frozenset(REPORT_KINDS)
 
 
 class ReportNotApprovable(Exception):
