@@ -101,10 +101,26 @@ V2: `QuestionnaireArt` (`DesignStages.tsx:95-142`).
 - Primitives: `InlineText`, `Segmented`, `InlineCreateRow`, `ChipInput`, `UndoToast`,
   `InlineConfirm`, `Stepper` (scale) and `ChoiceChips`.
 
+*Finding QF-6 (browser audit, 2026-10-22):* the outline's rows only scroll. Focus stays on the
+outline, so a keyboard user Tabs through every earlier question to reach the one they picked. From
+the respondent preview, which draws no editor, a row does nothing at all
+(`QuestionnaireStep.tsx:562 @ b6ac25c5`, `jumpTo` = `scrollToPlace`). Reproduction: focus Q3 in the
+outline, press Enter, press Tab. Fix (fix/questionnaire-outline-focus): a row opens Upravit if
+needed, then scrolls to the card or set and focuses it (`openPlace`), so Tab goes on from there.
+Test: `QuestionnaireStep.test.tsx` (QF-6); seen in a browser at 1440 and 390 px.
+
 ## 7. Chunks
 
 **QST1. Contract.** `lib/artifacts/questionnaire.ts`. Depends on `research-lead-workbench#14`,
 `#16`.
+
+- *Progress (feature/questionnaire-lead-targets):* the pointable ids alone, on the contract the
+  integration coordinator landed in `lib/workbench-artifacts.ts` (#563): each block and tracked set
+  carries `data-aia="section:<id>"`, each question `question:<id>`, through `aiaId` by the item's
+  stored id; an item without a valid id carries none. `lib/lead.ts`'s focus and pointing read the
+  mark (#599). `set:<id>` and `option:<question>.<n>` are not marked: the contract names only
+  section and question for Dotazník. Test: `QuestionnaireLeadTargets.test.tsx`. The view operations
+  as data (`show_changes`, `show_coverage`) stay with QST1, behind `#14` and `#16`; QST1 stays unticked.
 
 **QST2. Body.**
 - The strip and the item rows over today's data; `AskDialog` prompts retired (A6-A8).
@@ -169,6 +185,19 @@ px, Závislosti included. Reproduction: the journey's `390-dependencies-section.
 while it sits beside the editor (a container query). Test: a journey assertion that the section is
 not covered at 390 px.
 
+*Finding QF-2 (browser audit, 2026-10-22):* Dotazník writes every count in the genitive plural
+whatever the number, and the outline's kicker is English: "4 otázek · 1 sledovaných sad", "Blok 1 ·
+4 otázek", "GUIDED EDITOR", "měří jeden outcome" (`QuestionnaireStep.tsx:562,688 @ bfe6d15b`, the
+strings in `cs.ts`). The import's note prints "Načteno: undefined otázek" when the answer carries no
+summary (`questionnaire.ts:404 @ bfe6d15b`). Reproduction: the fixture study's Dotazník. Fix
+(fix/questionnaire-czech-counts): `countWords` / `countsWords`, the word by its number, and the
+import's note counted from the sections kept. Test: `questionnaire-counts.test.ts`.
+
+*Finding QF-3 (browser audit, 2026-10-22):* at 390 px the tracked set's name shrinks to 80 px
+("Sledovan…") beside its badge, count and Smazat, one row that never wraps
+(`QuestionnaireStep.tsx:922 @ bfe6d15b`). Fix: the row wraps and the name keeps 12rem. Test: the
+journey asserts the name is at least 160 px wide at every width (failed at 390 before the fix).
+
 **QST9. Journey** at 1440, 1100, 768 and 390 px:
 - an item edited in place;
 - the Lead focusing `question:<id>`;
@@ -216,6 +245,53 @@ reads it.
 > z pěti cen, vrátí `null`. Jiný typ otázky se necení: Dotazník pak délku označí za neznámou
 > a s limitem ji neporovná.
 
+## Browser-audit findings
+
+QF-1 to QF-3 sit under QST8 and QF-6 under §6 (Input interactions).
+
+*Finding QF-4 (2026-10-22):* "Sestavit s AI" on a questionnaire that already has items answers
+the click with nothing. The view stays the editor (`questionnaire.ts:79 @ b6ac25c5`), and in the
+workbench the toolbar's optimize button is hidden too, so only the segment and a save move.
+Reproduction: the fixture study's Dotazník, click "Sestavit s AI". Fix (fix/questionnaire-ai-mode):
+a note says the AI will not build it anew and what it does instead; in the workbench, "Požádat
+Vedoucího" sends the Lead "Navrhni úpravy dotazníku." in words, and nothing starts from the stage.
+Tests: `QuestionnaireAiMode.workbench.test.tsx`, `QuestionnaireStep.test.tsx` (QF-4, QF-5).
+
+*Finding QF-5 (2026-10-22):* two sentences say what is not true. The AI card says "Provider/model
+můžete změnit přímo zde." (`QuestionnaireStep.tsx:257 @ b6ac25c5`), but AIA offers no provider choice.
+The preview says "technický editor je pod ní" (`QuestionnaireStep.tsx:453 @ b6ac25c5`), but the preview
+replaces the editor. Fix: the first is dropped; the second says the preview is the respondent's
+view, and that editing happens under Upravit. Test: `QuestionnaireStep.test.tsx`.
+
+*Finding QF-7 (2026-10-22):* the question's × is named by the stored id, "Odebrat otázku Q_wb1",
+and a screen reader hears the id again after the card's number ("Q1 Q_wb1";
+`QuestionnaireStep.tsx:772,783 @ eaf9eeaa`). Fix (fix/questionnaire-remove-label): the × is named by
+the number on the card, "Odebrat otázku Q1", and the hidden id is gone (the badge's title keeps it).
+Test: `QuestionnaireUndo.test.tsx` (QF-7).
+
+*Finding QF-8 (2026-10-22):* Závislosti says a set reaches no stage when the compiler would take it.
+It holds a set outside 4-15 distinct objects (`readers.ts:69 @ af91be23`). The compiler refuses only
+outside the hard 3-40 (`research_design.py:830 @ af91be23`, battery_size); 4-15 is a readiness
+warning. So a set of 3, or of 16-40, was listed as feeding nothing. Fix (Q75 (a), the product owner,
+2026-10-22): the readers use the hard range; the editors allow 16-40 with a warning in words, refuse
+only the 41st, and keep refusing under four. Tests: `readers.test.ts`, `questionnaire-set-limits.test.ts`
+(the four limits held to TRACKED_SET_LIMITS), `QuestionnaireFields.test.tsx`, `PlanStep.test.tsx`.
+
+*Finding QF-9 (browser audit, 2026-10-22):* at 390 px a question's × falls to a row of its own,
+130 px below its number: the type chips wrap and `ml-auto` takes the × with them
+(`QuestionnaireStep.tsx:869-880 @ 54c44279`). Fix (fix/questionnaire-audit-390): the card's top row
+is a grid, the number and the × at its ends, each a chip's height (TOUCH), and the chips wrapping
+between them. Test: the journey
+asserts the × overlaps its number's row at 1440, 1100, 768 and 390 px (130 px apart before the fix).
+
+*Finding QF-10 (browser audit, 2026-10-22):* a set's output note ends "pokud projde validačním
+gate", half English and naming no rule a person can check (`cs.ts:2230 @ 54c44279`). Fix: "mapa
+položek, když sada projde Kontrolou a odpovědí na mapu bude dost" (Kontrola refuses a set by its
+size or familiarity; the map needs enough answers per pair, readiness's sociomap_support). Test: `QuestionnaireFields.test.tsx`.
+
 ## Doc follow-up
 
+- open-items.md: number QF-7 (the question's × named by its stored id), closed by fix/questionnaire-remove-label.
+- open-items.md: number QF-8 (Závislosti held sets the compiler takes), closed by feature/questionnaire-set-hard-max.
+- open-items.md: number QF-9 (a question's × on a row of its own at 390 px) and QF-10 ("validačním gate"), closed by fix/questionnaire-audit-390.
 - Register this plan and its chunks. `research-lead-workbench#7`'s questionnaire half is QST5.

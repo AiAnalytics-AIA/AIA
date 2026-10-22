@@ -2,20 +2,19 @@
 
 // Návrh: "Výzkumné otázky a jejich pokrytí" (artifact-design DSN2; V2 DesignArt § 1). Each of the
 // working copy's research questions with what measures it, whether the run will answer it and its
-// gaps, from readiness's research_trace (the server's rule, lib/design-coverage.ts reads it). Until
-// coverage is computed on the working revision (working-copy-edit-ops#WCE7), it is the study's
-// newest Design Revision's, and the section says which revision and whether the copy moved since.
-// Reading readiness is a GET: nothing is submitted, started or paid here.
+// gaps, from readiness's research_trace on the working revision (the server's rule; WCE7,
+// lib/design-coverage.ts reads it). Reading it saves an edit still waiting and submits nothing.
 
 import Link from "next/link";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 
 import { t, tv } from "@/i18n/t";
-import { type DesignRevision, type Readiness, research } from "@/lib/api";
-import { type CoverageStatus, type RqCoverage, coverageStatus, newestRevision, revisionIsCurrent, rqCoverage } from "@/lib/design-coverage";
+import { type CoverageAt, type CoverageStatus, type RqCoverage, coverageInputs, coverageInputsChanged, coverageStatus, nextCoverageAt, rqCoverage, seedCoverageAt } from "@/lib/design-coverage";
 import { codeWords } from "@/lib/reason-words";
 import type { Tone } from "@/lib/tone";
+import type { ResearchState } from "@/research/store";
 import { researchQuestionsOf } from "@/research/trace";
+import { useSampleReadiness } from "../../workbench/useSampleReadiness";
 import { StepSection } from "../step";
 import { Chip } from "../ui";
 import { CodedWords } from "./CodedWords";
@@ -24,29 +23,14 @@ import { useResearch } from "./context";
 const C = "research.plan.coverage";
 const TONE: Record<CoverageStatus, Tone> = { covered: "done", partial: "you", gap: "fault", unknown: "neutral" };
 
-type Read =
-  | { kind: "loading" }
-  | { kind: "failed"; message: string }
-  | { kind: "none" }
-  | { kind: "ready"; revision: DesignRevision; readiness: Readiness };
-
 export function DesignCoverage({ id = "plan-coverage" }: { id?: string }) {
-  const { state, frame, stepHref } = useResearch();
-  const [read, setRead] = useState<Read>({ kind: "loading" });
-  useEffect(() => {
-    let live = true;
-    (async () => {
-      const newest = newestRevision(await research.revisions(frame.studyId));
-      if (!newest) return { kind: "none" } as const;
-      return { kind: "ready", revision: newest, readiness: await research.readiness(frame.studyId, newest.revision_id) } as const;
-    })().then(
-      (r) => live && setRead(r),
-      (e: unknown) => live && setRead({ kind: "failed", message: e instanceof Error ? e.message : String(e) }),
-    );
-    return () => {
-      live = false;
-    };
-  }, [frame.studyId]);
+  const { store, state, frame, stepHref } = useResearch();
+  const at = useCoverageRevision(state);
+  // The working copy's readiness (WCE7b), nothing submitted. Návrh's own autosave keeps saving on its
+  // debounce: this section never flushes (canEdit false), it reads a revision once it is saved.
+  const read = useSampleReadiness(store, frame.studyId, false, at.revision);
+  // A change it is computed from, not read yet (typed, saving, or read again now): said, never shown as current.
+  const behind = read.kind === "ready" && (read.revision !== at.revision || coverageInputsChanged(at.inputs, coverageInputs(state.project)));
 
   const working = researchQuestionsOf(state.project);
   const body = (() => {
@@ -55,27 +39,20 @@ export function DesignCoverage({ id = "plan-coverage" }: { id?: string }) {
     if (read.kind === "none") return <p className="text-[13px] text-ink-muted">{t(`${C}.none`)}</p>;
     const { revision, readiness } = read;
     const trace = readiness.research_trace ?? null;
-    if (!trace) return <p className="text-[13px] text-ink-muted">{tv(`${C}.noTrace`, { revision: revision.revision })}</p>;
-    const current = revisionIsCurrent(revision, state.revision);
-    const source = current === true ? "fromCurrent" : current === false ? "fromOlder" : "fromUnknown";
+    if (!trace) return <p className="text-[13px] text-ink-muted">{tv(`${C}.noTrace`, { revision })}</p>;
     const rows = rqCoverage(working, trace, readiness.question_outlook ?? []);
     return (
       <>
-        <p className="text-[13px] text-ink-muted">{tv(`${C}.${source}`, { revision: revision.revision })}</p>
+        <p className="text-[13px] text-ink-muted">{tv(`${C}.${behind ? "recomputing" : "fromWorking"}`, { revision })}</p>
         {rows.length ? (
           <ol className="mt-3 flex flex-col gap-3">
             {rows.map((row, i) => (
-              <RqRow key={`${i}-${row.text}`} row={row} revision={revision.revision} questionnaire={stepHref("questionnaire")} />
+              <RqRow key={`${i}-${row.text}`} row={row} revision={revision} questionnaire={stepHref("questionnaire")} />
             ))}
           </ol>
         ) : (
           <p className="mt-2 text-sm">{t(`${C}.noQuestions`)}</p>
         )}
-        {current !== true ? (
-          <p className="mt-3 text-[13px]">
-            <Link href={stepHref("run")} className="text-signal no-underline hover:underline">{t(`${C}.check`)}</Link>
-          </p>
-        ) : null}
       </>
     );
   })();
@@ -85,6 +62,18 @@ export function DesignCoverage({ id = "plan-coverage" }: { id?: string }) {
       <div className="p-4">{body}</div>
     </StepSection>
   );
+}
+
+/**
+ * The working revision the coverage is read on: the saved revision at which something the coverage is
+ * computed from last changed. A save that touched nothing it reads (a comment, a set's name) does not
+ * move it, so the whole readiness is not recomputed for it.
+ */
+function useCoverageRevision(state: ResearchState): CoverageAt {
+  const [at, setAt] = useState<CoverageAt>(() => seedCoverageAt(state));
+  const next = nextCoverageAt(at, state);
+  if (next !== at) setAt(next);
+  return next;
 }
 
 function RqRow({ row, revision, questionnaire }: { row: RqCoverage; revision: number; questionnaire: string }) {

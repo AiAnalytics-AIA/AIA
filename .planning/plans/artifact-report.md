@@ -3,11 +3,16 @@ status: in-progress
 chunks:
   - "[x] RPT1. Zpráva's contract as data: view operations, pointable ids (section, paragraph, figure, claim) and V2's interaction contract"
   - "[x] RPT2. The document first: the draft rendered in the pane from its stored document model, paragraphs with claim chips opening the inspector, figures in place"
-  - "[ ] RPT3. The doc bar and the Approve and Export slot: which document, its draft number and state, approval as a modal naming it, exports after approval"
-  - "[ ] RPT4. Záznam pokrytí, outside the text: what the report does not hold and why, from the chain manifest"
-  - "[ ] RPT5. Draft revisions: the draft counter and tracked changes per paragraph, a report edit never reopening fieldwork"
-  - "[ ] RPT6. The Lead and the report writer on the draft: paragraph rewrites, merges, splits and moves as proposals, every number a ledger ref, the sentence check's refusals at the sentence"
-  - "[ ] RPT7. Journey: Zpráva at 1440, 1100, 768 and 390 px, a fictional run's internal draft, zero paid jobs"
+  - "[ ] RPT3. The doc bar and the Approve and Export slot: which document, its draft number and state, approval as a modal naming it, exports after approval (split 2026-10-22: RPT3a, RPT3b)"
+  - "[ ] RPT3a. Approval on the document being read: Schválit in the pane's doc bar for the version shown, internal or client, one owner of the version approved; the report card keeps downloads only"
+  - "[x] RPT3b. Exports after approval: decided 2026-10-22, not built: the owner answered Q73 (c), downloads stay free before approval"
+  - "[x] RPT4. Záznam pokrytí, outside the text: what the report does not hold and why, from the chain manifest"
+  - "[ ] RPT5. Draft revisions: the draft counter and the editor's version history, a report edit never reopening fieldwork (changed 2026-10-22: on the editor, RPT8)"
+  - "[ ] RPT6. The Lead and the report writer on the draft (replaced 2026-10-22 by RPT9 and RPT10)"
+  - "[ ] RPT7. Journey: Zpráva at 1440, 1100, 768 and 390 px, a fictional run's internal draft, zero paid jobs (extended by RPT9's suggestion step)"
+  - "[ ] RPT8. The editor is Zpráva's main surface: the stored draft opened in ONLYOFFICE Docs (Q35), the researcher editing directly, every number a locked, tagged ledger ref checked on save (RD6, ADR 0035)"
+  - "[ ] RPT9. The Lead edits the same document: inline suggestions as tracked changes under the Lead's own name, with why, accepted or rejected one by one or all; direct edits per the researcher's setting (Q13) still attributed; every edit through the edit ops, every number a ledger ref passing the sentence check before accept"
+  - "[ ] RPT10. Literature by the Lead: Interpretation Research proposed on a plan card (target, QUICK or STANDARD depth, STANDARD by default, cost), approved by the researcher, findings woven into the text with their sources (Q58); the panel's own start, depth and refresh removed once typed starts exist (Q48, LO5a.3), its findings readable beside the text"
 ---
 # Artifact: Zpráva (Report)
 
@@ -125,11 +130,143 @@ V2: `ReportArt` (`InterpretStages.tsx:103-162`).
 - Not yet: the draft is first in the report view, but the stage still opens with the complete-report card and
   the run's notices above it; RPT3's doc bar replaces that card's place.
 
+### Revision of 2026-10-22: Zpráva becomes the editor
+
+The owner, relayed by the coordinator (2026-10-22): "in the last step Zprava, we need to rethink this,
+this is where the document editor should live"; the literature panel "should be in the hands of the
+lead researcher and the smarter model"; and, on Q56, "i want the suggestions to be in the text, sort of
+like google docs has the suggestions feature". This revision reconciles that with what is decided:
+
+| Decision | What it fixes here |
+|---|---|
+| Q35 | ONLYOFFICE Docs is the report editor (`research-lead-workbench#33`) |
+| Q13 | per researcher, the Lead's edits arrive as suggestions or as direct edits |
+| Q56 | code writes the first draft; the Lead proposes tracked changes |
+| Q58 | literature is woven into the body (`artifact-chain-to-draft-report#CHN8`) |
+| Q69 (a) | the Lead's study notes stay out of the draft (`report-delivery`, Q69) |
+| ADR 0035 | every number stays an admitted ledger ref, enforced at the sentence (RD7) |
+| Q44, Q46, Q47 | the Lead offers Interpretation Research targets; QUICK and STANDARD, STANDARD by default; it may chain fieldwork then IR |
+| Q48 / rlw 26f.1 | the Deep Research start buttons go once typed starts exist (`lead-orchestration#LO5a.3`, DRL-8); their panels stay as readers |
+
+What changes:
+- **RPT3** splits. RPT3a (approval on the document being read) comes first, ahead of the editor; RPT3b
+  (exports after approval) is closed as decided: Q73 (c), downloads stay free (2026-10-22).
+- **RPT5** keeps the draft counter, now over the editor's saved versions (RPT8), still never reopening
+  fieldwork.
+- **RPT6 is replaced** by RPT9 (the Lead in the document) and RPT10 (literature by the Lead). Its tests
+  move with them: a merge's refs are the union, a typed digit is refused, a sentence refused by RD7 is
+  marked at the sentence.
+- **RPT7** gains RPT9's suggestion step.
+
+Order: RPT3a → RPT8 → RPT9 → RPT10 → RPT5 → RPT7 (RPT3b decided, not built: Q73 (c)).
+
+Dependencies:
+- RPT8: the ONLYOFFICE Docs integration (`research-lead-workbench#33`'s go; a self-hosted Document Server
+  beside the develop stack, which is an operations change the coordinator schedules); `report-delivery#RD5a`
+  (done) and `#RD6` (every number a locked, tagged content control, finding F-ED1); OQ-ED1 for the map's values.
+- RPT9: RPT8; the edit operations (ADR 0029); `report-delivery#RD6`, `#RD7`; `lead-orchestration#LO9b`.
+- RPT10: `lead-orchestration#LO5a.3` (typed Deep Research starts); `artifact-chain-to-draft-report#CHN8`.
+- RPT3a: nothing new; it lands on today's pane.
+
+**RPT3a. Approval on the document being read.** "Schválit" moves into the pane's doc bar, on the version
+the pane shows (internal or client), through the same confirmation dialog (`approvalQuestion`); the
+report card keeps the downloads. One component owns "the version approved", so the version read is the
+version approved by construction. Tests: the doc bar approves the version shown and reads it again; the
+card offers no approval; a client version is approved with no download; journey at the four widths.
+Why (Findings, 2026-10-22, below): syncing a card and a pane that each held a client version failed four
+ways.
+
+*RPT3a, first part (`feature/report-docbar-approval`):* the pane's doc bar offers "Schválit k předání
+klientovi" on the client version it shows, to a reader who may review and only while that version is not
+approved; the dialog names that version (`approvalQuestion`) and what its file carries (`reviewLine`),
+`POST …/report/approve` sends its id once (the button held while in flight), and the server's answer
+updates the document in place, never reloading it. A question, a flight and a refusal belong to the
+version they named: another document on screen shows none of them. The pane then fires
+`aia:report-approved` with the server's answer, and the report card says what was approved without
+approving: the card no longer approves the client report at all
+(`ReportDocumentView.test.tsx` "approved on the document being read, in the doc bar (RPT3a)";
+`ExecutionSteps.test.tsx` "offers the client report only for modelled data, says why when refused, and
+leaves its approval to the doc bar", "hears an approval of another run as nothing (RPT3a)").
+
+*RPT3a, second part (`feature/report-docbar-internal-approval`):* the internal draft is approved in the doc
+bar too ("Schválit pro interní použití"). Approving it also approves its PDF, so the run's report is read when
+the person asks, never remembered: the question names the PDF as that report states it now
+(`pdfStatesReview`); a report naming another version than the one shown, or none, or a failed read is said
+in words and nothing is asked. An internal draft the pane cannot show (stored before its document, or
+refused) is approved on its notice as the version the run names, as the card approved it before. The card
+approves neither the internal nor the client report: it says where they are approved, hears the pane and
+reads the report again, so it follows the approved PDF being made (`ReportDocumentView.test.tsx` "approves
+the internal draft it shows, naming the PDF the approval renders as the run states it at the ask…", "asks
+nothing while the run's report names another version, and says why…", "approves an internal draft it cannot
+show on the version its run names…"; `ExecutionSteps.test.tsx` "says the internal draft approved in the doc
+bar once the pane answers…"; `report_journey.mjs` "approval in the doc bar, none on the card"). Left open: the
+report with literature (Interpretation Research) is still approved on the card, because the pane does not
+read that document; it moves when the pane reads it, and RPT3a closes then.
+
+**RPT3b. Exports after approval.** Decided 2026-10-22, not built: the owner answered Q73 (c), keep
+today's free downloads. A draft's DOCX and PDF stay downloadable before approval, each file stamped
+KONCEPT until its version is approved (RD2). F17's "available only after approval" is superseded for
+downloads; approval still names the exact version (RPT3a).
+
+**RPT8. The editor is the surface.** The stored draft opens in ONLYOFFICE Docs (Q35) inside Zpráva's pane;
+the researcher edits it directly. Every number is a locked, tagged content control naming its ledger ref,
+checked on every save (the spike's save check: whole numeric tokens per paragraph); a save that changes
+one is refused at the sentence (ADR 0035, RD7). A save is a new draft (RPT5), never a new run. The read-only
+pane of RPT2 stays as the fallback where the editor is not configured. Test: a save that edits a number is
+refused; a save that edits prose stores a new draft with every ref intact; the DOCX round trip keeps every
+ref (the spike's count before and after).
+
+**RPT9. The Lead in the document.** The Lead, on its own model (STUDY_LEAD), edits the same document
+through the edit operations:
+- **Suggestions (default, Q56, Q13):** each edit lands in the text as a tracked change under the Lead's
+  own author name, with when, and a short note saying why. Insertions and deletions are marked in place.
+  The person accepts or rejects one suggestion, or all. There is never a separate list or panel to
+  compare against the text.
+- **Direct edits (the researcher's Q13 setting):** applied at once, still shown afterwards as the Lead's
+  change in the history.
+- A suggestion touching a number passes the ledger and sentence check (ADR 0035) before it can be accepted;
+  a typed digit is refused; a merge's refs are the union; a split divides them.
+- The Lead's study notes never reach the draft (Q69 (a)). When the Lead edits the report document, keep
+  that path in `domain/edit_ops` and the report modules' own apply step, so the import contract "no
+  report path reads the Lead's notes (Q69)" (#719) still holds. If RPT9 ever needs something from
+  `research_lead`, move that piece into `edit_ops` rather than loosening the contract.
+
+Acceptance (journey step): the Lead proposes two edits; both show in the text as its suggestions; one is
+accepted and one rejected; the version then approved (RPT3a) holds exactly the accepted one. Open: how
+ONLYOFFICE's track-changes mode carries an edit written by AIA under the Lead's author name (the spike's
+OOXML revisions, `w:ins` / `w:del` with `w:author`), proved on a fictional draft before RPT9 starts.
+
+**RPT10. Literature by the Lead.** The Lead offers an Interpretation Research target (Q44) on a plan card:
+the target, the depth (QUICK or STANDARD, STANDARD by default, Q46), the cost; it may chain fieldwork then
+IR (Q47). The researcher approves the card; the accepted findings come back woven into the text with
+their sources, labelled external (Q58, CHN8), as the Lead's suggestions (RPT9). The panel's own start,
+depth and refresh controls go once typed starts exist (Q48, LO5a.3); what a run found stays readable
+beside the text (Záznam pokrytí or the inspector), never a second start path.
+
 **RPT3. Doc bar and approval.** Tests: approval sends the artifact id shown; a stale version is
 refused. Depends on `report-delivery#RD2`, `#RD3`, `input-interactions#6`.
 
+*RPT3, the approval modal (`feature/report-approval-modal`; input-interactions#6, B22, Q33):* "Schválit pro interní
+použití" and "Schválit klientskou zprávu" on `CompleteReport` ask first, in the shared `AskDialog`: the document and
+its variant (the review it carries), the stored version and its format (`approvalQuestion`, `lib/report-variant.ts`),
+that approval cannot be undone, then the card's own line on what the file will carry (never promised by the
+question). The focus starts on Zrušit (I7), Esc answers the dialog alone (D21), and "Schválit" sends exactly the id the
+question named. Tests: `report-variant.test.ts` (`approvalQuestion`), `ExecutionSteps.test.tsx` (every approval
+confirms the dialog naming its version, the client's included; the context variant's focus, Esc and Zrušit);
+`report_journey.mjs` at 1440 and 390. Still open: the doc bar and the export panel (RD2's approval line, RD3).
+
 **RPT4. Záznam pokrytí.** Test: a design that asks for a segment comparison lists "Segmenty:
 neprovedeno". Depends on `artifact-chain-to-draft-report#CHN1`.
+
+*RPT4 (`feature/report-coverage`):* "Záznam pokrytí (mimo text zprávy)" under the stored draft in
+`ReportDocumentView`, outside the article, from `lib/artifacts/report-coverage.ts` (`coverageRecord`, pure): the
+run's recorded answerability (`ResearchRun.answerability`: each gap by its question, verdict and why, a segment
+comparison as "Segmenty: neprovedeno", pending questions as not verified) and the stored manifest's `unread` (CHN1:
+each output no section read, in words by step or type). Neither recorded (a run from before answerability, a -1
+document) reads "nezaznamenáno", never covered. Tests: `report-coverage.test.ts`, `ReportDocumentView.test.tsx`
+("Záznam pokrytí, outside the text"); `report_journey.mjs` at 1440, 1100, 768 and 390. V2's other lines join with
+the chunks that make them: the coding state with `report-delivery#RD10`, the client report's refusal and the
+export note with `#RD3`; the Lead's quick asks with RPT6.
 
 **RPT5. Draft revisions.** Depends on `report-delivery#RD5`.
 
@@ -144,10 +281,28 @@ sentence refused by RD7 is marked at the sentence. Depends on `report-delivery#R
   - approval through the modal, by a second fictional member where self-approval is off.
 - Zero paid jobs. 768 and 390 px depend on `research-lead-workbench#26b`-`#26d`.
 
+## Findings
+
+- **F-RPT-1 (2026-10-22): two owners of "the client version" cannot be kept in step.** On
+  `fix/report-client-pinned-read` (`df1fb276`, `0bb8ebbe`, pushed, no PR), the report card and the pane
+  each held a client version and were synced by events; two `/code-review high` passes found that the
+  card could approve a version the person had not read:
+  1. a toggle after a download put the card back on an older pinned draft;
+  2. the card missed the pane's one-shot event when it mounted after the read, and could not approve;
+  3. a version from another run leaked across a change of run;
+  4. the pane, pinned to the first version it read, never showed a version approved through the card.
+  Cause: two components owning one decision. Fix: RPT3a (one owner, approval on the document read).
+  Test that would have caught it: RPT3a's "the version approved is the version shown" at every width.
+
 ## 8. Owner questions
 
-The draft's sections (the chain plan's CQ1, Q55) and the editor choice (Q19) stay open. Settled
-2026-10-21 via /pmstatus: CQ2 = Q56 (b), code drafts and the Lead proposes tracked changes (RPT6);
+- Q73 (decided 2026-10-22, (c)): downloads stay free before approval; RPT3b is closed, not built.
+- Hosting ONLYOFFICE Document Server beside develop (RPT8): an operations change, for the coordinator to
+  schedule with the owner (AGPL obligations named in the spike).
+
+
+The editor choice (Q19) stays open. Settled 2026-10-21 via /pmstatus: CQ1 = Q55 (b), today's
+report with its gaps closed, plus RD9/RD10, plus literature when chosen, in today's order; CQ2 = Q56 (b), code drafts and the Lead proposes tracked changes (RPT6);
 CQ4 = Q58 (b), one document with the literature woven into its body (CHN8). A module with no supported finding is settled: MVPQ-04 blocks composition, approval and export
 (`artifact-chain-to-draft-report#CHN10`).
 

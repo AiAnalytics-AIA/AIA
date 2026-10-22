@@ -608,3 +608,111 @@ def test_a_zero_weight_row_keeps_the_units_floor_when_it_is_drawn(
     assert set(drawn) == set(audience)  # every row: the audience is the sample
     assert drawn[zero].base_weight == 1e-12
     assert sample.audit.weighted is not None and sample.audit.weighted.max_abs_pp == 0.0
+
+
+# --------------------------------------------------------------------------- #
+# A sample's quota cells, and the support a start would see (run-qc-and-checkpoint RQC6a)
+# --------------------------------------------------------------------------- #
+
+
+#: The cases where the unit drew a sample and AIA's own draw passes too. D11's five respondents
+#: are drawn by AIA's generator, not the unit's, and refused as unrepresentative; its quotas are
+#: held by test_quotas_are_the_units_largest_remainder.
+DRAWN_CASES = [c for c in QUOTA_CASES if "verdict" in BY_ID[c] and c != "D11_n5"]
+
+
+@pytest.mark.parametrize("case_id", DRAWN_CASES)
+def test_a_samples_quota_cells_are_the_units_largest_remainder(
+    case_id: str, session: Session, population_kit: Any
+) -> None:
+    from aia_core.domain.population.sampling import draw_panel_sample
+
+    expected, case = BY_ID[case_id], CASES[case_id]
+    population = _population(session, population_kit)
+    sample = draw_panel_sample(population, case["filters"], case["n"], case["seed"])
+    assert sample.audit.quota_fields == tuple(expected["quota_fields"])
+    assert {"¦".join(c.values): c.n for c in sample.quota_cells} == expected["quotas"]
+    assert sum(c.n for c in sample.quota_cells) == case["n"]
+    # Each cell holds exactly the respondents drawn into it.
+    drawn: dict[tuple[str, ...], int] = {}
+    for r in sample.respondents:
+        cell = tuple(category_keys(f, [COLUMNS[f][r.row]])[0] for f in sample.audit.quota_fields)
+        drawn[cell] = drawn.get(cell, 0) + 1
+    assert {c.values: c.n for c in sample.quota_cells if c.n} == drawn
+    # What a run records is unchanged.
+    assert "quota_cells" not in sample.provenance()
+
+
+def test_a_panel_forecast_reads_the_sample_a_start_would_draw(
+    session: Session, population_kit: Any
+) -> None:
+    from dataclasses import replace as replaced
+
+    from aia_core.domain.ai_respondent import fieldwork_seed
+    from aia_core.domain.evidence import SupportStatus
+    from aia_core.domain.evidence.support import AIA_SUPPORT_V1
+    from aia_core.domain.fieldwork import PersonaSource
+    from aia_core.domain.population.sampling import draw_panel_sample
+    from aia_core.domain.research_aggregate import donor_support
+    from aia_core.domain.research_design import compile_design
+    from aia_core.domain.support_forecast import forecast_support
+
+    spec, problems = compile_design(
+        {
+            "title": "Fiktivní nápoj",
+            "n": 150,
+            "sections": [
+                {
+                    "type": "questions",
+                    "questions": [{"id": "q1", "text": "Jak?", "typ": "skala", "skala": [1, 5]}],
+                }
+            ],
+        }
+    )
+    assert spec is not None, problems
+    population = _population(session, population_kit)
+    sample = draw_panel_sample(
+        population, {"vek": {"min": 60, "max": 89}}, 150, fieldwork_seed(spec)
+    )
+    panel = PersonaSource.PANEL
+    forecast = forecast_support(spec, support=AIA_SUPPORT_V1, persona_source=panel, sample=sample)
+    cell = donor_support(
+        [str(r.donor) for r in sample.respondents],
+        [r.analysis_weight for r in sample.respondents],
+        rule=AIA_SUPPORT_V1.results,
+    )
+    assert forecast.known and forecast.respondents == 150
+    assert forecast.donors == cell["n_unique_layer_donors"] == sample.audit.sample_donors
+    assert forecast.results is SupportStatus(str(cell["support_status"]))
+    assert forecast.reportable_n is None
+
+    # Unknown, never good: no sample, a sample of another size, a respondent without a donor.
+    no_donor = replaced(
+        sample,
+        respondents=(replaced(sample.respondents[0], donor=None), *sample.respondents[1:]),
+    )
+    # The audience preview draws at its own seed: not the run's sample.
+    elsewhere = replaced(sample, seed=sample.seed + 1)
+    for other in (
+        None,
+        replaced(sample, respondents=sample.respondents[:149]),
+        no_donor,
+        elsewhere,
+    ):
+        missing = forecast_support(spec, support=AIA_SUPPORT_V1, persona_source=panel, sample=other)
+        assert not missing.known and missing.results is None and missing.analysis is None
+
+
+def test_a_quota_cells_key_is_an_identifier_of_its_values() -> None:
+    from aia_core.domain.population.sampling import QuotaCell
+
+    cell = QuotaCell(("žena", "18-29", "Hlavní město Praha"), 3)
+    assert cell.key == "zena/18-29/hlavni-mesto-praha"
+    assert QuotaCell(("<missing>", "65+"), 1).key == "missing/65"
+
+
+def test_a_samples_quota_keys_are_unique_where_values_fold_alike() -> None:
+    from aia_core.domain.population.sampling import QuotaCell, quota_keys
+
+    cells = [QuotaCell(("65",), 1), QuotaCell(("65+",), 2), QuotaCell(("65 ",), 0)]
+    assert quota_keys(cells) == ("65", "65~2", "65~3")

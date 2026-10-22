@@ -4,11 +4,14 @@ chunks:
   - "[ ] FLD1. Sběr dat's contract as data: view operations, pointable ids (run, step, cost line, quality flag) and V2's interaction contract"
   - "[x] FLD2. The run head and its steps as V2 draws them: done over target, status in words, each step marked deterministic or worker, from the run's steps"
   - "[ ] FLD3. Progress from the fieldwork event contract and the per-respondent checkpoint: answered respondents, blocks in flight, waits and parks in words"
-  - "[ ] FLD4. Náklady: spent, reserved, the run's ceiling and the study's remainder, and who spent it"
+  - "[ ] FLD4. Náklady: spent, reserved, the run's ceiling and the study's remainder (no names on a run, Q76 (c))"
+  - "[x] FLD4a. The run's spend over HTTP: GET …/research/runs/{id} answers spent, held and uncertain calls by the per-person fold's rules, whoever each charge is booked to"
+  - "[ ] FLD4b. Náklady on Průběh: spent and held beside the run's ceiling and the study's remainder; an uncertain call shown apart, never as zero"
+  - "[x] FLD4c. Who spent it: decided, no names on a run (Q76 (c), the product owner, 2026-10-22); per-person spend stays in Settings (Q40)"
   - "[ ] FLD5. Kvalita a zásah: the run's QC warnings and straight-liner flags, keep or flag; replacement shown unavailable until its method is set"
   - "[ ] FLD6. Spuštění: the Start stays with its gates and one spend dialog; the run also a Lead card; retries, resume and budget lift through the Lead's cards or a person's own gate"
   - "[x] FLD7. Kdo odpovídal: the receipt, source, population recorded and read, dimensions passed, the data's origin"
-  - "[ ] FLD8. Journey: Sběr dat at 1440, 1100, 768 and 390 px on fictional fieldwork, zero paid jobs"
+  - "[x] FLD8. Journey: Sběr dat at 1440, 1100, 768 and 390 px on fictional fieldwork, zero paid jobs"
 ---
 # Artifact: Sběr dat (Fieldwork: Spuštění and Průběh)
 
@@ -114,6 +117,13 @@ reads "deterministické"; an unknown state reads UNKNOWN (`run-state.ts`).
 - Test: a run with an uncertain call shows it apart.
 - Depends on `lead-orchestration#LO1`.
 
+- FLD4a: `ResearchRuns.spend` folds the run's ledger rows and holds through `spend_attribution.run_spend`
+  (the per-person fold over the run's whole life), read by `researcher_spend_repository.run_spend_facts`
+  in the study and organization; only a run read alone answers it, only with `VIEW_COSTS`.
+- FLD4c, decided (/pmstatus Q76 (c), the product owner, 2026-10-22): a run's Náklady names nobody. It
+  shows totals only (spent, held, uncertain); who each charge is booked to is read per person in Settings
+  → Studie a rozpočty (Q40), never on a run. Nothing to build.
+
 **FLD5. Kvalita a zásah.** Test: a straight-liner flag is a warning, never a gate. Depends on
 `evidence-integrity#3`, `run-qc-and-checkpoint#RQC4`, and MVPQ-10 for replacement.
 
@@ -138,7 +148,66 @@ never resolved.
 
 None new (replacement is MVPQ-10, already open).
 
+## Findings
+
+- **F-FLD-1. "Opravit →" sends a failing dimensions or Sociomap-support check to Dotazník.**
+  `fixStep` (`apps/web/src/components/rehome/research/ExecutionSteps.tsx:381-385 @ bfe6d15b`) routed by
+  regex, which matched neither `dimensions` nor `sociomap_support`
+  (`packages/aia_core/src/aia_core/domain/research_design.py:1250, 1272 @ bfe6d15b`).
+  - Reproduction: `fixStep("dimensions")` returns `"questionnaire"`.
+  - Consequence: the person lands on a stage where neither can be fixed.
+  - Fix: an explicit table of the domain's check ids, both to Dimenze.
+  - Test: `ExecutionSteps.test.tsx > fixStep`, over every id readiness emits.
+  - Reported by the Vzorek session, which logs it as F-SMP-1 in its open SMP4 PR's
+    `artifact-sample.md`; this fix closes both.
+- **F-FLD-2. Some warnings are fixed on Spuštění itself, yet "Opravit →" leaves it.**
+  - Which warnings: `dimensions` when fictional respondents will not use the dimensions, `audience` when no
+    filters apply, and an unknown `support_forecast` on a panel run. Sources:
+    `research_design.py:1286-1293, 1299-1308 @ bfe6d15b` and `support_forecast.py:172-184 @ bfe6d15b`.
+  - Why it happens: they share their id with checks fixed elsewhere, so `fixStep` cannot tell them apart.
+  - Reproduction: readiness without `filters_applied` and with dimensions selected; "Opravit →" opens Dimenze.
+  - Consequence: the real fix, "Kdo bude odpovídat", is on the page the person just left.
+  - Smallest fix: the domain's `ReadinessCheck` names the stage that fixes it, and the web reads it,
+    replacing `FIX_STEP` and Vzorek's `checkStage`.
+  - Test: one shared case file of check, status and stage, read by both suites.
+
+
+- **F-FLD-3. Spuštění's links back to a stage are too small to tap.** "Opravit →" and "Upravit"
+  render 15-16 px tall at every width (`ExecutionSteps.tsx:413, 523, 565, 790 @ b6ac25c5`).
+  - The standard: the input standard's touch target, 44 px at a phone's width and 32 px from 640 px
+    (`components/ui/parts.tsx` `TOUCH`, I11; WCAG 2.5.8).
+  - Reproduction: `tools/ui_workbench/workbench_journey.mjs`, step "Spuštění's links back to a stage"
+    (heights 16, 15).
+  - Fix: one `STAGE_LINK` class with `TOUCH` and `FOCUS`, at all four.
+  - Test: the same journey step at 1440, 1100, 768 and 390 px.
+- **F-FLD-4. "Kdo odpovídal" and "Co spustíte" squeeze their values beside an 8 rem label column on a
+  narrow card.** At 390 px each value of "Kdo odpovídal" gets 46 % of the card, and the dimensions line wraps
+  over six lines. "Co spustíte" is worse, with its link column too.
+  - Anchors: `ExecutionSteps.tsx:216, 411 @ b6ac25c5`.
+  - Reproduction: `tools/ui_workbench/research_journey.mjs`, step "Kdo odpovídal stacks its values",
+    which reports 0.46 for each row.
+  - Fix: label above value on a narrow card, by a container query on the card's own width, so the
+    workbench's narrow artifact pane is covered too.
+  - Tests: that journey step and the workbench journey's step at 390 px.
+- **F-FLD-5. Spuštění's other links are still too small to tap.** After F-FLD-3 the gap card's fix links
+  render 18-20 px tall, its "Propojit otázky…" link 20 px, the dock's way back ("5. Dimenze") 20 px and a
+  previous run's "Zobrazit výsledky" 20 px (`AnswerabilityGate.tsx:70, 87`, `step.tsx:77`,
+  `ExecutionSteps.tsx:986, 1180 @ 135e1e84`). The dock is every stage's, so the way back was small everywhere.
+  - Reproduction: `tools/ui_workbench/workbench_journey.mjs`, step "Spuštění's links are touch targets",
+    now over every link of the stage outside a sentence (WCAG 2.5.8's inline exception): 18.6, 20, 20 at 1440;
+    `research_journey.mjs`, Progress's "Zobrazit výsledky" in the run's inspector at 390 px: 20.
+  - Fix: one `TOUCH_LINK` in `components/ui/parts.tsx` (touch target, focus ring, text on the box's first
+    line), which `STAGE_LINK` now builds on; `TOUCH` and `FOCUS` on the run links and the dock's way back,
+    the dock importing them instead of its own copy of the focus ring.
+  - Tests: those two journey steps.
+  - Left: Výsledky's own standalone links (`ExecutionSteps.tsx:1644, 1719 @ 135e1e84`), its owner's.
+
 ## Doc follow-up
 
+- `open-items.md`: F-FLD-1 (fixed by this PR, with Vzorek's F-SMP-1) and F-FLD-2 (open), from Findings above.
+- `open-items.md`: F-FLD-3 and F-FLD-4, fixed by the PR that carries them (stage link targets).
+- `open-items.md`: F-FLD-5, fixed by the PR that carries it (Spuštění's remaining links).
+- `CLAUDE.md` § 2, `routers/`: research's `GET …/research/runs/{id}` answers `spend` (`spent_usd`, `reserved_usd`, `uncertain_calls`; only on that read, with `VIEW_COSTS`; null on a listed run and on an action's answer), from `domain/spend_attribution.py` `run_spend` and `researcher_spend_repository.py` `run_spend_facts` (FLD4a); `tables.py`: `ix_usage_run`, `ix_reservations_run` (migration e2a4c6b8d0f1).
+- `CLAUDE.md` § 3, "A research run, end to end": `research_journey.mjs` also checks Start reachable and Progress at 1100, 768 and 390 px (steps, Kdo odpovídal, no overflow) and zero paid jobs (one fictional run at 0.00 USD); with `AIA_WEB_RESEARCH_WORKBENCH=true` also the run's card in the Lead's conversation (in the Lead's drawer below 1100 px), which the classic layout skips and says so (FLD8).
+
 - Register this plan and its chunks.
-- `CLAUDE.md` § 2, `routers/research.py`: a run's `spent_usd` / `reserved_usd` (FLD4).

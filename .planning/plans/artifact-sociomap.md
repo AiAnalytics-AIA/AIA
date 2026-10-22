@@ -3,7 +3,7 @@ status: in-progress
 chunks:
   - "[x] SOC1. Sociomapa's contract as data: the closed display operations (view, labels, weak links, mode, battery, selection), pointable ids (object, pair, respondent, segment) and V2's interaction contract; any operation that would write is refused"
   - "[ ] SOC2. The artifact hosts sociomap-5-web's panel in the frame, in Results and project memory alike, with the old-method text for a -1/-3 run"
-  - "[ ] SOC3. The four-way legend and the display filter bar: frozen result, display, labelled interpretation, external context"
+  - "[x] SOC3. The four-way legend and the display filter bar: frozen result, display, labelled interpretation, external context"
   - "[ ] SOC4. Object, pair and respondent detail in the item inspector, from the stored map only"
   - "[ ] SOC5. Interpretation on the map: the map interpreter's labelled output and a pair's Interpretation Research as Lead cards, never an input to the map"
   - "[ ] SOC6. Segment maps, filters and the respondent drill-down hosted here"
@@ -128,11 +128,29 @@ Depends on `research-lead-workbench#14`, `#16`.
   frame itself waits for `research-lead-workbench#15`.
 
 **SOC3. Legend and filter bar.** Test: with weak links hidden the bar says what did not change.
+- Delivered on the `-5` panel: the filter bar (`lib/sociomap-display.ts` `displayChanges`: what the
+  toolbar changed against the opening -- the respondent map, Absolutní, Vybraný / Vše -- in words, then
+  "Výpočet, polohy objektů, výšky, vztahy a věrohodnost mapy beze změny.", and "Zrušit filtr" back to
+  the opening), and "Co je co", the four registers, beside the map. Tests: `sociomap-display.test.ts`,
+  `ObjectMapPanel.test.tsx` › "the filter bar and the four registers".
+- The plan's test names hidden weak links, which the `-5` panel does not offer (the panel's rule:
+  its relation display is Top / Vybraný / Vše); the same test runs on the panel's own display
+  choices. Finding for SOC1's live filters: the registry's `labels` and `hide_weak` filters
+  (`VIEW_FILTERS.sociomap`) have no control on the `-5` panel, and `view: top|relief` is the
+  panel's 2D / 3D camera, not a toggle. Until the panel offers them (the methodology owner's call,
+  as every visual decision inside the panel), a Lead `filter` on `labels` or `hide_weak` has
+  nothing to set; SOC2's wiring refuses it by name rather than ignore it.
 
 **SOC4. Detail in the inspector.**
 - `ItemInspector` (mounted by chunk 15) shows the object, pair and respondent detail of
   `ObjectMapPanel`'s cards.
 - Test: a pair with an undefined r reads UNKNOWN, not 0.
+- Done ahead of the inspector, on the panel's own card (browser audit, 2026-10-22): a pair's detail opened only by a
+  click on its line on the canvas, which takes no keyboard. The object card's listed relations are now buttons that
+  open the pair as that click does, and close it again (`ObjectMapPanel.tsx` `ObjectCard`). Test:
+  `ObjectMapPanel.test.tsx` › "opens a relation from the object's card, a focusable button named by what it shows, and
+  closes it again". The card lists the object's 5 strongest reliable relations, as the panel does; a drawn link beyond
+  those still opens only on the canvas.
 
 **SOC5. Interpretation.** Test: an interpretation is labelled "Výklad · od Vedoucího" and absent from
 the map's numbers. Depends on `lead-orchestration#LO9b`, `report-delivery#RD6`,
@@ -149,6 +167,20 @@ method owner).
   - relief on and off with the filter bar;
   - the inspector's pair detail.
 - Zero paid jobs. 768 and 390 px depend on `research-lead-workbench#26b`-`#26d`.
+- Delivered so far: `tools/ui_workbench/sociomap_journey.mjs`, a journey of its own:
+  `sociomapping_journey.mjs` covers the experimental Sociomapping document, not this stage.
+  `--prepare` puts a version of the `aia-sociomap-5` preset in force in the local workbench only, and
+  runs one fictional run, after an older method's run when there is none. The journey checks:
+  - the `-5` map at 1440, 1100, 768 and 390 px with no page overflow;
+  - each listed object's Lead name, once, on its button;
+  - the selection reset between Objekty and Respondenti, and full screen's five strongest (#562);
+  - the filter bar, "Zrušit filtr" and the four registers (SOC3);
+  - every pressed control's colour apart from its background, on the `-5` map and on an older
+    method's run. It fails on the stylesheet from before #591, on the `-3` map's pressed "Shora".
+    Once #598 lands, the older run's check is its old-method notice instead;
+  - no page error, no write but the stage opened, zero paid jobs.
+- Still to come: `select_pair` by the scripted Lead (once `select` is live, research-lead-workbench
+  14b) and the inspector's pair detail (SOC4).
 
 ## 8. Owner questions
 
@@ -159,3 +191,43 @@ owner and A. Bahbouh.
 
 - Register this plan and its chunks. `research-lead-workbench#20`'s D-13 text is met by
   `sociomap-5-web` and SOC2.
+
+## Findings
+
+Browser audit, 2026-10-21, on the local workbench (`AIA_WEB_RESEARCH_WORKBENCH=true`, a fictional eight-brand run on
+`aia-sociomap-5` and one on `-3`), 1440 / 1100 / 768 / 390 px:
+
+- **Fixed (this PR): the map did not fit where it is read.** `ObjectMapPanel.tsx:330 @ bfe6d15b` gave the stage a fixed
+  700 px height.
+  - At 1440 px in the workbench, the toolbar plus the canvas took 788 px of a 755 px pane, so the toolbar left the view
+    while the map was read, and the detail card sat below it.
+  - At 390 px the canvas was 308 × 700 px. The map is drawn at the scale of its shorter side, so the top 230 px were
+    empty, and the list and detail were a screen further down.
+  - Now measured: `stageHeight(pane, above, width)` in `lib/sociomap-display.ts`, the least of 700 px, what the pane
+    leaves under the toolbar and filter bar, and max(360, 1.1 × the stage's width), floored at 120 px. The pane is the
+    workbench's `.artbody`, else the window less the shell's sticky header; full screen still takes the screen.
+  - A first fix, a CSS guess of the chrome (`min(700px, max(320px, 100dvh − 260px), max(360px, 110vw))`), still
+    overflowed a short screen (Codex, #637): 408 px in a 245 px pane at 844 × 390, 500 in 406 at 390 × 600.
+  - Test: `sociomap_journey.mjs` checks the fit at 1440, 1100, 768 and 390 px wide, at 844 × 390 and 390 × 600, and in
+    project memory's classic layout at 1366 × 768 (under the sticky header), and that a canvas is no taller than
+    1.5 × its width. Each short screen failed on the CSS guess; the memory case fails without the header subtracted
+    (752 > 640 px). `sociomap-display.test.ts` holds `stageHeight`.
+- **Open, SOC2 (blocked on research-lead-workbench#15): the Sociomapa stage opens on Výsledky's other cards.** The
+  stage is Výsledky's maps view (`workbench-stages.ts`, view `maps`), and `ResultsWorkspace` puts "Kdo odpovídal",
+  "Kompletní zpráva studie" and the results tabs above the maps panel. The map starts 2,174 px into a 755 px pane at
+  1440 px. SOC2's frame shows the map alone; until then a person scrolls three screens to the map. The Výsledky screen
+  owns `ResultsWorkspace`, so this is not patched here.
+- **For the methodology owner (inside the panel's drawing, not changed):**
+  - at 390 px the legend card (260 px wide, bottom-left) covers the lower third of the map;
+  - the tool column (top-right) covers object labels near the right edge ("Borealis").
+  Both follow the AIA panel's layout.
+- **Known, already with the methodology owner:** Iris's label is dropped beside Halo (`placeLabels`, Q50 (b)),
+  still seen in every width.
+- **Fixed: the object list on the respondent map offered a selection it could not show.** Browser audit,
+  2026-10-21. On Respondenti, a click on a listed object set the selection (`aria-pressed`, `data-selected`), but
+  nothing a person could see changed: the respondent card stayed, and the markers do not react
+  (`ObjectMapPanel.tsx:349 @ bfe6d15b`, `onChoose={choose}` on both maps). Selection is the object map's, so on the
+  respondent map the list is read-only: `aria-disabled`, no `aria-pressed`, no "Vybrat" label, no hover. Not the
+  native `disabled` (Codex, #639): a disabled button takes no focus and fires no click, so the Lead's `focus` on an
+  `object:` target and the "@" pick would break on the respondent map. Test: `ObjectMapPanel.test.tsx` › "the object
+  list on the respondent map".

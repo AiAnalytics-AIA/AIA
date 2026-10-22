@@ -14,7 +14,7 @@ describe("sampleAia", () => {
     ...FORECAST_ITEMS.map(sampleAia.forecast),
     sampleAia.ready("support_forecast"),
     sampleAia.respondents("fictional_roster"),
-  ];
+  ].map((id) => id!);
 
   // The contract's id grammar for Vzorek (packages/aia_core/tests/fixtures/lead_artifacts/contract.json),
   // e.g. "n|size|quota:<cell>|…": a literal alternative, or a prefix with a placeholder after it.
@@ -26,20 +26,12 @@ describe("sampleAia", () => {
     const id = aia.slice("sample:".length);
     return grammar.some((alt) => (alt.includes("<") ? id.startsWith(alt.slice(0, alt.indexOf("<"))) && id.length > alt.indexOf("<") : id === alt));
   };
-  // Built here, asked of the coordinator for the contract row (artifact-sample SMP1): until it
-  // carries them, they are named so, never claimed as the contract's.
-  const PENDING = new Set(["sample:ready", "sample:respondents", "sample:respondents:fictional_roster"]);
-
   it("names only ids the contract's grammar for Vzorek has, each read back to its stage", () => {
     expect(ARTIFACTS.sample.targets).toContain("sample");
     for (const id of every) {
       expect(parseAiaId(id)).toMatchObject({ kind: "sample", stage: "sample" });
-      expect([id, inContract(id) || PENDING.has(id)]).toEqual([id, true]);
+      expect([id, inContract(id)]).toEqual([id, true]);
     }
-  });
-
-  it("keeps the pending ids pending only while the contract lacks them", () => {
-    for (const id of PENDING) expect([id, inContract(id)]).toEqual([id, false]);
     expect(inContract("sample:anything")).toBe(false);
   });
 
@@ -54,7 +46,12 @@ describe("sampleAia", () => {
     expect(sampleAia.ready("sample_size")).toBe("sample:ready:sample_size");
   });
 
-  it("refuses an id outside the grammar rather than send it", () => {
-    expect(() => sampleAia.ready("a b")).toThrow();
+  it("names no element for a server's name outside the grammar, never throwing during a render", () => {
+    // domain/research_design.py names a question's compile problem `compile:<code>:<section>#<n>`.
+    expect(sampleAia.ready("compile:question_without_text:S1#1")).toBeNull();
+    expect(sampleAia.ready("compile:empty_questionnaire:sections")).toBe("sample:ready:compile:empty_questionnaire:sections");
+    expect(sampleAia.ready("x".repeat(80))).toBeNull();
+    expect(sampleAia.respondents("a b")).toBeNull();
+    expect(sampleAia.quota("a b")).toBeNull();
   });
 });

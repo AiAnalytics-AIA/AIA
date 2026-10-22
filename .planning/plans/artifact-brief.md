@@ -6,7 +6,7 @@ chunks:
   - "[ ] BRF3. Podklady with their data class: the attachments and picked client sources served with the class material_rules gives them, shown as chips; links and removal with undo"
   - "[ ] BRF4. The Lead on the Brief: analyze_brief as a Lead card, its proposal inline, the stage's own AI start removed"
   - "[ ] BRF5. What the Brief hands on, in its inspector (Vstupy, závislosti a původ): the readers of each field, from the chain manifest"
-  - "[ ] BRF6. Journey: the Brief at 1440, 1100, 768 and 390 px with the scripted Lead and zero paid jobs"
+  - "[x] BRF6. Journey: the Brief at 1440, 1100, 768 and 390 px with the scripted Lead and zero paid jobs"
 ---
 # Artifact: Zadání (Brief)
 
@@ -154,8 +154,19 @@ Every item is an `Item` (`src/components/ui.tsx:52`): edit in place, remove, mov
   objectives as items on the Brief, read and written where Návrh keeps them (`research_plan` and
   the analysis together, as `plan-edit.ts` does), each `objective:<item id>`, edited in place
   (InlineText), added in the list (InlineCreateRow), removed with Vrátit (UndoToast); none reads
-  "Zatím prázdné". On today's whole-copy store; WCE3a moves it onto the edit vocabulary. Still to
-  come in BRF2: Rozhodnutí and Kontext as items, Předpoklady as a link.
+  "Zatím prázdné". On today's whole-copy store; WCE3a moves it onto the edit vocabulary.
+- *Landed, Rozhodnutí and Kontext* (BriefStep `Decision`, `Context`): `decision_use` as one item
+  (D-44) and the four `briefing.*` fields as items, each edited in place (InlineText; Esc restores,
+  clearing saves empty), every field always shown with its example; the open/close chips are gone.
+  The screen's order is V2's: Cíl, Cíle, Rozhodnutí, Kontext, then Typ problému and Podklady (V2 has
+  no problem types; AIA keeps them). Deviation from B-3: the goal stays the stage's first field, a
+  textarea with its sentence starters and count, not a Kontext item -- it is what a new study is
+  written from. Still to come in BRF2: Předpoklady as a link (B-6, after AOC1).
+
+- *Landed, Typ problému as toggle chips* (audit A24): the shared ChoiceChips (I3): one Tab stop,
+  arrows move, a press toggles one type through `toggleProblemType` (an empty goal still filled
+  with its default); each chip's description kept as its title and in its accessible name. At
+  390 px the section is about 260 px tall instead of about 600.
 
 **BRF3. Podklady with their class.**
 - API: the attachments listing and the brief's picked sources answer each item's `data_class` and
@@ -166,6 +177,11 @@ Every item is an `Item` (`src/components/ui.tsx:52`): edit in place, remove, mov
   - API: an attachment is Class B by rule and a client source Class A; a source marked internal is C.
   - Vitest: an unknown class prints "třída neznámá".
 - Depends on `client-data-in-analysis#8` for picked datasets.
+
+- *Landed, removal with undo* (audit A28): a file or link removed from Podklady goes at once,
+  with Vrátit for 8 s putting its record back in place (`research/brief.ts` restoreAttachment); the
+  stored file was never deleted, only its record. Still to come in BRF3: picked client sources
+  (client-data-in-analysis#8).
 
 **BRF4. The Lead on the Brief.**
 - `analyze_brief` is reachable only through a Lead card or a typed start (`lead-orchestration#LO5`).
@@ -183,12 +199,67 @@ Every item is an `Item` (`src/components/ui.tsx:52`): edit in place, remove, mov
 - Depends on CHN1 and `research-lead-workbench#15`.
 
 **BRF6. Journey.**
-- Steps in `tools/ui_workbench/workbench_journey.mjs`, at 1440, 1100, 768 and 390 px:
-  - an objective is edited in place and read back after a reload;
-  - the scripted Lead focuses `objective:<id>`, and the drawer closes to `peek` at 768 and 390 px;
-  - "@" then a click sets the Vidí chip.
-- The usage ledger's paid rows are unchanged.
-- 768 and 390 px depend on `research-lead-workbench#26b`-`#26d`.
+- *Landed* (`workspace_journey.mjs`, `lead_journey.mjs`; zero paid jobs):
+  - an objective added in the list, read back after a reload as one `objective:<id>` target and
+    reworded in place;
+  - "@" then a tap on an objective sets the chip, naming that objective and no other, at 1440 and
+    1100 (split), 768 (drawer) and 390 (sheet);
+  - a message about the goal makes the scripted Lead focus the first objective
+    (`aia_executors/workbench.py:179 @ 36e18caa`). At 1440 and 1100 the objective is marked and scrolled
+    into view while the conversation stays beside it. At 768 and 390 the conversation steps aside to
+    `peek` and focus follows;
+  - no overflow at any of them.
+- Deviations from the plan as written:
+  - The steps live in `lead_journey.mjs`, not `workbench_journey.mjs`: they need a hatched Lead, so they
+    pass once per workbench (OI-133).
+  - "Paid rows unchanged" is checked as the journey's existing check: no request to a path that starts
+    paid work (`/research/runs`, `/agent-jobs`, `/deep-research/runs`, a turn's `/request`). The usage
+    ledger itself is not read.
+- These steps run after the 1099 px drawer loop, so F-BRF-2 can stop a run before them (§ 7a). The final
+  version passed on 2 of 2 fresh workbenches; with the expected objective swapped for the last one it
+  fails: "1440: expected the Lead to point at objective:… ; it pointed at objective:…".
+
+## 7a. Findings
+
+- F-BRF-1 (UX, asked of the coordinator 2026-10-21, #647): a picked objective's chip reads its raw id
+  ("Cíl obj_6393c6bada"), not its words.
+  - Anchor: `apps/web/src/lib/lead.ts:516 @ b1a73536`. `targetOfElement` appends only a heading or
+    label inside a `data-aia` element, and an item row has none.
+  - Repro: `node tools/ui_workbench/lead_journey.mjs`, then `tmp/ui-workbench/lead-journey/390-brief-picked.png`.
+  - Consequence: the person sees an id where the objective's words belong.
+  - Fix: read the row's InlineText value. Not the row's whole text, which carries the number, the
+    screen-reader "Upravit: Cíl N" and the "×".
+  - Test: a `lead.test.ts` case over an objective row.
+- F-BRF-2 (journey flake, reported to the coordinator 2026-10-22): the drawer step's wait for the
+  composer's focus times out intermittently at 1099 px.
+  - Anchor: `tools/ui_workbench/lead_journey.mjs:198 @ b1a73536`, the wait
+    `waitForFunction(() => document.activeElement?.id === "composer", …, { timeout: 10000 })` after the
+    launcher opens the dialog.
+  - Repro: `python tools/ui_workbench/workbench.py up --fresh` (with `AIA_WEB_RESEARCH_WORKBENCH=true`),
+    `make ui-fixtures`, `node tools/ui_workbench/lead_journey.mjs`. It failed in 2 of 3 fresh runs with
+    "page.waitForFunction: Timeout 10000ms exceeded", before any Zadání step. A fourth fresh run
+    passed that wait but failed the next one at 1099 px, at `lead_journey.mjs:220 @ be85b470`: "Tab stays
+    inside the open conversation", with focus on the page's body.
+  - Consequence: the journey fails on a sound build, so a real regression after line 198 (the BRF6 step
+    included) goes unseen in that run.
+  - Fix (hypothesis, unmeasured): the dialog takes focus before the composer is enabled. Wait for the
+    composer to be enabled after the dialog opens, then for focus. Owner: the workbench journey's owner,
+    routed by the PM.
+  - Test: the journey passes 5 of 5 fresh runs at 1099 px.
+  - *Not reproduced since* (2026-10-22): `lead_journey.mjs` passed 5 of 5 fresh runs on develop @
+    248729cc, the `:198` wait and the Tab trap every time. The cause is not confirmed. The wait for an
+    enabled composer existed before; #678 (8e7347b2) rewrote it as a locator wait and changed the
+    drawer's focus recovery. The pass may be timing, so if it returns, it is this finding, not a new one.
+- F-BRF-3 (UX, audit 2026-10-22, fixed): an empty new objective is refused with "Napište název."
+  ("write a name"), the folder-and-label wording of the shared create row.
+  - Anchor: `apps/web/src/components/ui/InlineCreateRow.tsx:54 @ 248729cc` (`nameProblemWords` for
+    every caller).
+  - Repro: on Zadání, "Přidat cíl", then Enter on the empty row.
+  - Consequence: the Brief asks for a name where it wants a goal.
+  - Fix: `InlineCreateRow`'s optional `emptyWords`, which the Brief passes as "Napište cíl."; other
+    callers are unchanged.
+  - Test: `InlineCreateRow.test.tsx` ("in the caller's words") and `BriefStep.test.tsx` ("an empty new
+    objective"), both failing before the fix; a `workspace_journey.mjs` step.
 
 ## 8. Owner questions
 
@@ -198,4 +269,7 @@ None. Where assumptions are shown (B-6) and the absence of a decision list (B-2,
 
 - `mvp-master-plan.md` §3 and `mvp-execution-contracts.md`: register this plan and its chunks (see the
   PR body).
+- `open-items.md`: F-BRF-1, the objective chip reads its raw id (§ 7a).
+- `open-items.md`: F-BRF-2, `lead_journey.mjs:198` composer-focus timeout at 1099 px (§ 7a), not reproduced in 5 fresh runs after #678; cause unconfirmed.
+- `open-items.md`: F-BRF-3, an empty new objective said as a name (§ 7a), fixed.
 - `CLAUDE.md` § 2, when BRF1 lands: `apps/web/src/lib/artifacts/` (one contract per artifact).

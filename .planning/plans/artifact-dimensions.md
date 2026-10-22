@@ -1,9 +1,9 @@
 ---
-status: planned
+status: in-progress
 chunks:
-  - "[ ] DIM1. Dimenze's contract as data: view operations, pointable ids (dimension, sample size, own dimension) and V2's interaction contract"
+  - "[x] DIM1. Dimenze's contract as data: view operations, pointable ids (dimension, sample size, own dimension) and V2's interaction contract"
   - "[ ] DIM2. Selected dimensions as V2 draws them: name, definition, source in the population, use, and the persona topic or 'bez tématu persony', from the server's mapping"
-  - "[ ] DIM3. The sample size as one bounded stepper with its recommendation, never silently clamped"
+  - "[x] DIM3. The sample size as one bounded stepper with its recommendation, never silently clamped"
   - "[ ] DIM4. Vlastní dimenze klienta: a requested dimension materialized as the client's owned child, its outcome, and the run it feeds"
   - "[ ] DIM5. The Lead on Dimenze: suggest_dimensions as a card, its proposal inline, the stage's AI start removed"
   - "[ ] DIM6. Journey: Dimenze at 1440, 1100, 768 and 390 px, zero paid jobs"
@@ -111,6 +111,52 @@ V2: `DimensionsArt` (`SampleStages.tsx:206-230`).
 
 **DIM6. Journey** at 1440, 1100, 768 and 390 px: a dimension chosen, n stepped, the Lead focusing
 `dimension:<id>`; zero paid jobs. 768 and 390 px depend on `research-lead-workbench#26b`-`#26d`.
+
+## Progress
+
+- DIM2, part 1 (#612, merged): `GET …/research/persona-topics` answers each dimension's persona topic
+  from `dimension_topic`; the "Vybrané dimenze" rows carry the chip and `data-aia="dimension:<id>"`.
+  Still open in DIM2: each dimension's definition, its source in the population and its use (M-2).
+- DIM3: one `Stepper` for n (`PersonaStep.tsx`, `data-aia="sample:n"`), bounded by the server's
+  readiness limits in steps of 50, the recommendation stated beside it and one button to apply it; the
+  slider and the 400/800/1200 presets are gone (audit B1). A value outside the limits is refused at the
+  field and not saved. This is also the n half of `input-interactions#5`, which stays that plan's to tick.
+- DIM1 (#729): `lib/artifacts/dimensions.ts` builds Dimenze's ids (`dimensionAia`, `ownDimensionAia`), an id
+  outside the grammar left unmarked (the own-dimension rows used to call `aiaId`, which throws). The
+  stepper's `sample:n` comes from Vzorek's `sampleAia.n()`. The integration coordinator answered
+  (2026-10-22): the row gains `show_diff` (the plan's `show_changes`; Lead edits land on Dimenze), non-live
+  until the op is built, in the coordinator's next registry PR, with `tryAiaId` beside `aiaId`; `sample:n`
+  stays on the stepper, one value whose kind's stage is Vzorek (focus opens it there), no second target.
+  That PR (#739) landed; Dimenze's ids are built with `tryAiaId`.
+- DIM4, read half (#667): "Vlastní dimenze klienta" on Dimenze (`OwnDimensions.tsx`,
+  `lib/own-dimensions.ts`) lists the study's materializations, each with its state, its reason and the
+  target beside what was achieved (unknown never met), pointable as `own_dimension:<run id>`, and links
+  to "Populace běhu". The list route answers `kind`. Still open in DIM4: the request, which waits on
+  `client-knowledge-lifecycle#K5` (how a person writes a definition) and MVPQ-03 (descriptors).
+
+## Findings
+
+- **DIM-F1 (fixed in the DIM3 PR).** The "Vybrané dimenze" rows were indented twice: the list carried
+  `px-4` inside `StepSection`'s body, which already pads by `px-4` (`PersonaStep.tsx:244 @ bfe6d15`,
+  `step.tsx:57 @ bfe6d15`). Seen at 390 px in `dimensions_journey.mjs`'s screenshot; fixed by dropping
+  the inner padding. No unit test can see padding; the journey's screenshots are the evidence.
+- **DIM-F2 (fixed in #647, F11; open at the time of writing).** Under 1100 px the note
+  says to ask the Lead "v konverzaci vlevo", but there is no conversation on the left: the Lead opens
+  as a drawer or sheet (`AskLead.tsx:28 @ bfe6d15`; seen at 390 px on Dimenze). #647 makes it "v
+  konverzaci s ním (na užší obrazovce ji otevře tlačítko Vedoucího)".
+
+- **DIM-F3 (fixed in the DIM3 PR).** The Vzorek card's heading showed "N=300", which is the
+  recommendation, beside a stepper holding the stored n (600 in the audit at 1440 px), so it read as
+  the current n (`PersonaStep.tsx:323 @ b6ac25c`). The chip is gone, and the recommendation is named
+  only on its button. Test: "the heading names no n but the stored one".
+
+- **DIM-F4 (fixed: the frame's part in #668, Dimenze's "Další" → Vzorek in its own PR).** Inside the workbench the dock still speaks the classic flow: its
+  back link reads "4. Audience" (`PersonaStep.tsx:379 @ b6ac25c`, `cs.ts:222`) where the navigator says
+  "Cílová skupina" (`workbench-stages.ts:25`), and "Další · kontrola" skips Vzorek, the workbench's next
+  stage. Seen at 390 px. #668 drops the dock's back link inside the workbench (`FrameNavigation`);
+  #686 gives the stage the frame's next stage (`FrameNavigation`'s `next`, focus on its heading), and
+  Dimenze's "Další · Vzorek" opens it (test "inside the workbench goes on to the frame's next stage",
+  `dimensions_journey.mjs`); the classic layout keeps "Další · kontrola" to Spuštění.
 
 ## 8. Owner questions
 

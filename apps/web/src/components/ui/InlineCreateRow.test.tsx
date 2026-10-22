@@ -55,6 +55,13 @@ describe("InlineCreateRow (I5): created in the list, no dialog", () => {
     expect(screen.getByRole("alert").textContent).toBe("Napište název.");
   });
 
+  it("says an empty row in the caller's words when it names what the row makes", () => {
+    render(<InlineCreateRow label="Nová složka" emptyWords="Napište cíl." onCreate={vi.fn()} />);
+    openRow();
+    fireEvent.keyDown(row(), { key: "Enter" });
+    expect(screen.getByRole("alert").textContent).toBe("Napište cíl.");
+  });
+
   it("says the server's refusal at the row and keeps the name", async () => {
     render(<InlineCreateRow label="Nová složka" onCreate={async () => "Takový název už u tohoto klienta je."} />);
     openRow();

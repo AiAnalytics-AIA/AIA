@@ -42,6 +42,8 @@ from __future__ import annotations
 
 import math
 import random
+import re
+import unicodedata
 from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
 from typing import Any, Final
@@ -59,6 +61,7 @@ __all__ = [
     "Composition",
     "Draw",
     "PanelSample",
+    "QuotaCell",
     "SampleAudit",
     "SampledRespondent",
     "SamplingRefused",
@@ -67,6 +70,7 @@ __all__ = [
     "draw_panel_sample",
     "joint_fields",
     "quantile",
+    "quota_keys",
     "quotas",
     "rake",
     "representative_draw",
@@ -468,6 +472,38 @@ def judge(draw: Draw, n: int) -> tuple[str, bool]:
 
 
 @dataclass(frozen=True, slots=True)
+class QuotaCell:
+    """One cell of the sample's quota: its value in each of the audit's ``quota_fields``, and
+    the respondents the largest-remainder allotment gave it (``Draw.quotas``). How ``n`` is
+    spread, never a promise of support for anything measured in the cell."""
+
+    values: tuple[str, ...]
+    n: int
+
+    @property
+    def key(self) -> str:
+        """The cell's values folded to ASCII letters and digits, joined by ``/``
+        ("žena/18-29/Hlavní město Praha" is ``zena/18-29/hlavni-mesto-praha``). Two cells may
+        fold alike ("65" and "65+"); :func:`quota_keys` makes a sample's keys unique."""
+        return "/".join(_slug(v) for v in self.values)
+
+
+def quota_keys(cells: Sequence[QuotaCell]) -> tuple[str, ...]:
+    """Each cell's :attr:`QuotaCell.key`, in order, a repeated one suffixed ``~2``, ``~3``."""
+    seen: dict[str, int] = {}
+    keys = []
+    for cell in cells:
+        count = seen[cell.key] = seen.get(cell.key, 0) + 1
+        keys.append(cell.key if count == 1 else f"{cell.key}~{count}")
+    return tuple(keys)
+
+
+def _slug(value: str) -> str:
+    folded = unicodedata.normalize("NFKD", value).encode("ascii", "ignore").decode().lower()
+    return re.sub(r"[^a-z0-9]+", "-", folded).strip("-") or "-"
+
+
+@dataclass(frozen=True, slots=True)
 class PanelSample:
     """The respondents a run's fieldwork draws, and how they were drawn. Frozen, recorded."""
 
@@ -479,6 +515,9 @@ class PanelSample:
     content_sha256: str
     sampler_version: str = SAMPLER_VERSION
     audience_filter_version: str = AUDIENCE_FILTER_VERSION
+    #: The allotment over ``audit.quota_fields``, in the sampler's order; out of
+    #: :meth:`provenance`, so what a run records is unchanged.
+    quota_cells: tuple[QuotaCell, ...] = ()
 
     def provenance(self) -> dict[str, Any]:
         """What the run's fieldwork provenance records about its sample."""
@@ -595,4 +634,8 @@ def draw_panel_sample(
         seed=seed,
         version_id=population.binding.version_id,
         content_sha256=population.binding.content_sha256,
+        quota_cells=tuple(
+            QuotaCell(tuple(cell.split(_CELL_SEPARATOR)), count)
+            for cell, count in draw.quotas.items()
+        ),
     )

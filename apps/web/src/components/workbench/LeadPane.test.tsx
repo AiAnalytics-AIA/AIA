@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 // The Research Lead's pane (ADR 0026): the researcher hatches their own Lead, reads the session,
 // writes to it, and approves a prepared job only through the card; nothing is done for them.
-import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { act, cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import type { LeadState, LeadTurn, ResearcherLead } from "@/lib/lead";
@@ -63,6 +63,7 @@ beforeEach(() => {
 afterEach(() => {
   cleanup();
   vi.unstubAllGlobals();
+  vi.restoreAllMocks();
   sessionStorage.clear();
 });
 
@@ -75,10 +76,39 @@ const cards = (over: Partial<LeadCardsContext> = {}): LeadCardsContext => ({
 });
 
 describe("LeadPane", () => {
+  it("heads each local day of the conversation with its divider, before its first message", async () => {
+    vi.useFakeTimers({ toFake: ["Date"] });
+    vi.setSystemTime(new Date(2026, 9, 21, 10, 0));
+    try {
+      const at = (d: Date) => d.toISOString();
+      state.turns = [
+        turn({ turn_id: "LDT-0", actor: "person", text: "Včerejší otázka", run_id: null, created_at: at(new Date(2026, 9, 20, 23, 50)) }),
+        turn({ turn_id: "LDT-1", output: { reply: "Půlnoční odpověď" }, created_at: at(new Date(2026, 9, 21, 0, 5)) }),
+        turn({ turn_id: "LDT-2", actor: "person", text: "Ranní otázka", run_id: null, created_at: at(new Date(2026, 9, 21, 9, 0)) }),
+      ];
+      render(pane());
+      expect(await screen.findByText("Ranní otázka")).toBeTruthy();
+      const days = screen.getAllByRole("heading", { level: 3 }).filter((h) => h.classList.contains("conv__day"));
+      expect(days.map((h) => h.textContent)).toEqual(["Včera", "Dnes"]);
+      // Each divider stands before its day's first message, in the document's order.
+      const before = (a: Node, b: Node) => Boolean(a.compareDocumentPosition(b) & Node.DOCUMENT_POSITION_FOLLOWING);
+      expect(before(days[0], screen.getByText("Včerejší otázka"))).toBe(true);
+      expect(before(screen.getByText("Včerejší otázka"), days[1])).toBe(true);
+      expect(before(days[1], screen.getByText("Půlnoční odpověď"))).toBe(true);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
   it("offers hatching to a researcher without a Lead, and hatches it on their click", async () => {
     me = { hatched: false, lead: null };
     render(pane());
-    fireEvent.click(await screen.findByRole("button", { name: "Vylíhnout mého Vedoucího" }));
+    const hatch = await screen.findByRole("button", { name: "Vylíhnout mého Vedoucího" });
+    // The shut composer says why in its own field, not "Napište Vedoucímu výzkumu…" (audit).
+    const composer = screen.getByLabelText("Napište Vedoucímu výzkumu") as HTMLTextAreaElement;
+    expect(composer.disabled).toBe(true);
+    expect(composer.placeholder).toMatch(/vylíhněte/);
+    fireEvent.click(hatch);
     expect(await screen.findByText("Bára")).toBeTruthy();
   });
 
@@ -118,6 +148,63 @@ describe("LeadPane", () => {
     fireEvent.click(screen.getByRole("button", { name: "Spustit úlohu" }));
     await waitFor(() => expect(onRequest).toHaveBeenCalledWith(expect.objectContaining({ turn_id: "LDT-1" }), expect.objectContaining({ kind: "agent_job" })));
     expect(await screen.findByText("Rozhodnuto")).toBeTruthy();
+  });
+
+  it("follows a person's typed start with their own card, which starts it on their approval (LO5)", async () => {
+    state.turns = [
+      turn({ turn_id: "LDT-7", actor: "person", text: "Navrhni dotazník: krátce", command: "agent_job:build_questionnaire", run_id: null, output: null }),
+      turn({ turn_id: "LDT-8", actor: "person", text: "Spusť výzkum", command: "research_run", run_id: null, output: null }),
+    ];
+    const onRequest = vi.fn(async () => {});
+    render(pane({ onRequest, cards: cards() }));
+    expect(await screen.findAllByText("Váš příkaz")).toHaveLength(2);
+    fireEvent.click(screen.getByRole("button", { name: "Spustit úlohu" }));
+    await waitFor(() => expect(onRequest).toHaveBeenCalledWith(expect.objectContaining({ turn_id: "LDT-7" }), { kind: "agent_job", action: "build_questionnaire", why: "krátce" }));
+    // The typed run starts from its card, not by opening Spuštění.
+    fireEvent.click(screen.getByRole("button", { name: "Spustit výzkum" }));
+    await waitFor(() => expect(onRequest).toHaveBeenCalledWith(expect.objectContaining({ turn_id: "LDT-8" }), expect.objectContaining({ kind: "research_run" })));
+  });
+
+  it("shows a typed analysis retry as the stage's retry, names the run it retries and starts it on that run", async () => {
+    state = { ...state, wallet_enabled: false, analysis_retry_run: { run_id: "RUN-a1", created_at: "2026-10-22T09:30:00Z", phase: "succeeded" },
+      turns: [turn({ turn_id: "LDT-10", actor: "person", text: "Zopakuj analýzu", command: "analysis_retry", run_id: null, output: null })] };
+    const onRequest = vi.fn(async () => {});
+    const { container } = render(pane({ onRequest, cards: cards() }));
+    expect(await screen.findByText("Opakování analýzy")).toBeTruthy();
+    const card = container.querySelector('[data-card="request"][data-typed]')!;
+    expect(card.textContent).toContain("nová data se nesbírají");
+    expect(card.textContent).toMatch(/Který běh.*Běh z /);
+    // With the wallet off the card does not speak of it (the PM on #744).
+    expect(card.textContent).not.toContain("Peněženk");
+    fireEvent.click(screen.getByRole("button", { name: "Zopakovat analýzu" }));
+    await waitFor(() => expect(onRequest).toHaveBeenCalledWith(expect.objectContaining({ turn_id: "LDT-10" }), { kind: "analysis_retry", why: "Spustí se až vaším potvrzením.", run_id: "RUN-a1" }));
+  });
+
+  it("says a typed start is not charged to the Peněženka only with the wallet on", async () => {
+    state = { ...state, wallet_enabled: true, analysis_retry_run: null,
+      turns: [turn({ turn_id: "LDT-11", actor: "person", text: "Zopakuj analýzu", command: "analysis_retry", run_id: null, output: null }),
+        turn({ turn_id: "LDT-12", actor: "person", text: "Spusť výzkum", command: "research_run", run_id: null, output: null })] };
+    const { container } = render(pane({ cards: cards() }));
+    await screen.findByText("Opakování analýzy");
+    const [retry, run] = Array.from(container.querySelectorAll('[data-card="request"][data-typed]'));
+    expect(retry!.textContent).toContain("Opakování analýzy se nestrhává z Peněženky.");
+    expect(retry!.textContent).toContain("Studie zatím nemá běh s AI analýzou");
+    expect(run!.textContent).toContain("práh potvrzení a Peněženka se kontrolují");
+  });
+
+  it("says a typed start approved again found the job already done, and shows that job once", async () => {
+    const job = { run_id: "RUN-J", design_revision_id: "REV-1", action: "critique_design" as const, status: "COMPLETED", is_terminal: true, needs_attention: false, context_sha256: "x", harness_version: "3", created_at: "2026-10-19T08:01:00Z", steps: [], actual_cost_usd: 0.012 };
+    state.turns = [
+      turn({ turn_id: "LDT-7", actor: "person", text: "Zkontroluj návrh", command: "agent_job:critique_design", run_id: null, output: null, request_decision: { status: "approved", run_id: "RUN-J", reused: false } }),
+      turn({ turn_id: "LDT-9", actor: "person", text: "Zkontroluj návrh", command: "agent_job:critique_design", run_id: null, output: null, request_decision: { status: "approved", run_id: "RUN-J", reused: true } }),
+    ];
+    const { container } = render(pane({ jobs: [job], onOpenJob: vi.fn(), cards: cards() }));
+    expect(await screen.findByText("Už proběhlo")).toBeTruthy();
+    expect(screen.getByText("Tato úloha pro tento návrh už proběhla")).toBeTruthy();
+    expect(container.querySelectorAll('[data-card="worker"]')).toHaveLength(1);
+    expect(screen.queryByRole("button", { name: "Spustit úlohu" })).toBeNull();
+    // A decided card no longer says it starts on the person's confirmation.
+    expect(screen.queryByText("Spustí se až vaším potvrzením.")).toBeNull();
   });
 
   it("keeps what the Lead wants for all of the researcher's work only on their yes", async () => {
@@ -303,5 +390,57 @@ describe("LeadPane", () => {
     expect(posts).toHaveLength(1);
     fireEvent.click(screen.getByRole("button", { name: "Zkusit znovu" }));
     await waitFor(() => expect(posts[1]).toEqual({ kind: "message", text: "Je cíl dost konkrétní?", stage: "brief", focus: null }));
+  });
+
+  // F-BRF-2 (lead_journey.mjs, "Tab stays inside the open conversation"): Tab onto "Na nejnovější" just
+  // as the log's scroll from the previous Tab reaches the bottom unmounted the button under the
+  // keyboard, and the focus fell to the page.
+  describe("Na nejnovější under the keyboard", () => {
+    // The log scrolled away from the bottom, its button shown and focused; jsdom's window never has
+    // the focus, so the window's focus is the test's to set.
+    const focusedLatest = async () => {
+      state = { ...state, turns: [turn({ output: { reply: "Dobrý den." } })] };
+      const windowFocus = vi.spyOn(document, "hasFocus").mockReturnValue(true);
+      render(pane());
+      const log = await screen.findByRole("log");
+      let top = 100;
+      Object.defineProperty(log, "scrollHeight", { configurable: true, get: () => 1000 });
+      Object.defineProperty(log, "clientHeight", { configurable: true, get: () => 200 });
+      Object.defineProperty(log, "scrollTop", { configurable: true, get: () => top, set: (v: number) => { top = v; } });
+      fireEvent.scroll(log);
+      const latest = await screen.findByRole("button", { name: "Na nejnovější" });
+      act(() => latest.focus());
+      const toBottom = () => { top = 790; fireEvent.scroll(log); };
+      return { log, latest, windowFocus, toBottom, top: () => top };
+    };
+    const shown = () => screen.queryByRole("button", { name: "Na nejnovější" });
+
+    it("stays while it has the focus, and gives the focus to the log once it has jumped", async () => {
+      const { log, latest, toBottom, top } = await focusedLatest();
+      toBottom(); // the previous Tab's scroll lands at the bottom after the button took the focus
+      expect(shown()).toBe(latest);
+      expect(document.activeElement).toBe(latest);
+      fireEvent.click(latest);
+      expect(shown()).toBeNull();
+      expect(document.activeElement).toBe(log);
+      expect(top()).toBe(1000);
+    });
+
+    it("stays when another window takes the focus, for the keyboard's return", async () => {
+      const { latest, windowFocus, toBottom } = await focusedLatest();
+      windowFocus.mockReturnValue(false);
+      fireEvent.blur(latest);
+      toBottom();
+      expect(shown()).toBe(latest);
+    });
+
+    it("goes at the next scroll once the focus left it without the keyboard (the pane hidden)", async () => {
+      const { log, windowFocus, toBottom } = await focusedLatest();
+      windowFocus.mockReturnValue(false); // the blur is not counted, as when the pane is hidden
+      act(() => log.focus());
+      windowFocus.mockReturnValue(true);
+      toBottom();
+      expect(shown()).toBeNull();
+    });
   });
 });

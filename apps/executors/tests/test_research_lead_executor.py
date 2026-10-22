@@ -270,6 +270,13 @@ def test_a_turn_is_answered_once_and_its_reply_is_read_from_the_step(
     assert ("message", "CLASS_B_DERIVED_CLIENT", "rule:lead_message") in sources
     assert ("prompt", "CLASS_C_INTERNAL", "code") in sources
     assert ("lead_soul", "CLASS_C_INTERNAL", "rule:lead_files") in sources
+    # What the turn could see, with each layer's class (ADR 0041 decision 3, LC1).
+    manifest = stored["provenance"]["context_manifest"]
+    classes = {r["layer"]: r.get("data_class") for r in manifest["layers"]}
+    assert classes["design"] == "CLASS_B_DERIVED_CLIENT"
+    assert classes["view"] == "CLASS_B_DERIVED_CLIENT"
+    assert classes["lead"] == "CLASS_C_INTERNAL"
+    assert manifest["total_bytes"] <= manifest["ceiling_bytes"]
 
     with ready.sessions() as session:
         events = AIUsageRepository(session, ready.lead_scope(session)).events(run_id=turn["run_id"])
@@ -714,3 +721,28 @@ def test_the_registry_parks_turns_without_a_runtime(store: Any, build: Any) -> N
     executor = registry_for(store=store, build=build)["research_lead_turn"]
     assert isinstance(executor, ResearchLeadExecutor)
     assert dataclasses.is_dataclass(ResearchLeadConfig)
+
+
+def test_a_reused_turn_is_grounded_as_a_fresh_one() -> None:
+    """Codex on #624: a turn stored by a worker from before the focus grounding, reused on a
+    retry, never carries a focus the frozen copy does not show."""
+    from aia_executors.research_lead import _regrounded
+
+    stored = {
+        "lead_output": {
+            "reply": "Podívejte se.",
+            "view": [
+                {"op": "focus", "target": "audience:filter:vzdelani"},
+                {"op": "focus", "target": "audience:filter:kraj"},
+            ],
+        },
+        "dropped": [],
+    }
+    design = {"content": {"audience": {"filters": {"kraj": ["Praha"]}}}}
+    result = _regrounded(stored, design)
+    assert result["lead_output"]["view"] == [{"op": "focus", "target": "audience:filter:kraj"}]
+    assert result["dropped"] == [
+        {"index": 0, "op": "focus", "reason": "audience_filter_not_stored"}
+    ]
+    # Idempotent: a result already grounded comes back unchanged.
+    assert _regrounded(result, design) == result

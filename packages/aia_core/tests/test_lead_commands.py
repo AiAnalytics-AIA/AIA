@@ -14,6 +14,7 @@ from typing import Any
 import pytest
 
 from aia_core.domain.lead_commands import (
+    ANALYSIS_RETRY,
     COMMANDS,
     INSTRUCTION_MAX_CHARS,
     RESEARCH_RUN,
@@ -39,17 +40,17 @@ def test_the_vocabulary_is_the_fixtures() -> None:
     ] == FIXTURE["commands"]
 
 
-def test_every_design_worker_and_the_run_has_exactly_one_command() -> None:
+def test_every_design_worker_the_run_and_the_analysis_retry_has_exactly_one_command() -> None:
     starts = [c.start for c in COMMANDS]
     assert len(starts) == len(set(starts))
     assert sorted(starts) == sorted(
-        [f"agent_job:{a.value}" for a in ResearchAction] + [RESEARCH_RUN]
+        [f"agent_job:{a.value}" for a in ResearchAction] + [RESEARCH_RUN, ANALYSIS_RETRY]
     )
     phrases = [c.phrase.casefold() for c in COMMANDS]
     assert len(phrases) == len(set(phrases))
     for command in COMMANDS:
         assert command_for(command.start) is command
-        assert (command.action is None) == (command.start == RESEARCH_RUN)
+        assert (command.action is None) == (command.start in {RESEARCH_RUN, ANALYSIS_RETRY})
     assert command_for("design_research") is None
 
 

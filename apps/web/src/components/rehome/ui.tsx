@@ -8,7 +8,7 @@
 
 import {
   type ButtonHTMLAttributes, type ComponentProps, type ReactNode, type SelectHTMLAttributes,
-  useLayoutEffect, useRef, useState,
+  useId, useLayoutEffect, useRef, useState,
 } from "react";
 
 import type { Tone } from "@/lib/tone";
@@ -130,8 +130,26 @@ export function TextArea(props: ComponentProps<"textarea">) {
 }
 
 export type Ask =
-  | { kind: "confirm"; message: string; resolve: (ok: boolean) => void }
-  | { kind: "prompt"; message: string; initial: string; resolve: (value: string | null) => void };
+  | {
+      kind: "confirm";
+      message: string;
+      resolve: (ok: boolean) => void;
+      /** A consequential yes, named by its action: the focus starts on Zrušit, the safe choice (I7). */
+      yes?: string;
+    }
+  | {
+      kind: "prompt";
+      message: string;
+      initial: string;
+      resolve: (value: string | null) => void;
+      /** The dialog's heading, above the field's label (`message`). */
+      title?: string;
+      placeholder?: string;
+      /** What OK does, in words ("Založit klienta"); "OK" when unset. */
+      yes?: string;
+      /** A blank answer is refused in the dialog, said under the field, never closed silently. */
+      required?: boolean;
+    };
 
 /**
  * confirm() and prompt(), as a modal <dialog>: the classic screen's questions,
@@ -164,6 +182,11 @@ export function AskDialog({ ask, onDone }: { ask: Ask | null; onDone: () => void
         e.preventDefault();
         finish(false, "");
       }}
+      // Esc answers this question alone: a drawer or inspector beneath never sees it (D21).
+      onKeyDown={(e) => {
+        if (e.key === "Escape") e.stopPropagation();
+      }}
+      aria-labelledby={ask?.kind === "prompt" && ask.title ? `ask-${askKey(ask)}-title` : undefined}
       className="m-auto w-[min(32rem,calc(100vw-2rem))] rounded-md border border-border-strong bg-surface-overlay p-0 text-ink shadow-[var(--shadow-overlay)] backdrop:bg-surface-inverse/40"
     >
       {/* Mounted per question (keyed by it), so a prompt starts from its own initial value
@@ -183,25 +206,61 @@ function askKey(ask: Ask): number {
 
 function AskForm({ ask, finish }: { ask: Ask; finish: (ok: boolean, value: string) => void }) {
   const [value, setValue] = useState(ask.kind === "prompt" ? ask.initial : "");
+  // Each refused attempt remounts the alert, so a second blank submit is announced again.
+  const [tried, setTried] = useState(0);
+  const blank = ask.kind === "prompt" && !!ask.required && !value.trim();
+  const fieldId = useId();
+  const hintId = useId();
+  const field = useRef<HTMLInputElement>(null);
   return (
     <form
       method="dialog"
       className="flex flex-col gap-4 p-5"
       onSubmit={(e) => {
         e.preventDefault();
+        if (blank) {
+          setTried((n) => n + 1);
+          field.current?.focus();
+          return;
+        }
         finish(true, value);
       }}
     >
-      <p className="text-sm leading-6">{ask.message}</p>
+      {ask.kind === "prompt" && ask.title ? (
+        <h2 id={`ask-${askKey(ask)}-title`} className="text-base font-semibold">
+          {ask.title}
+        </h2>
+      ) : null}
       {ask.kind === "prompt" ? (
-        <TextInput autoFocus value={value} onChange={(e) => setValue(e.target.value)} aria-label={ask.message} />
+        <label htmlFor={fieldId} className="text-sm leading-6">
+          {ask.message}
+        </label>
+      ) : (
+        <p className="text-sm leading-6">{ask.message}</p>
+      )}
+      {ask.kind === "prompt" ? (
+        <TextInput
+          id={fieldId}
+          ref={field}
+          autoFocus
+          value={value}
+          onChange={(e) => setValue(e.target.value)}
+          placeholder={ask.placeholder}
+          aria-invalid={tried > 0 && blank ? true : undefined}
+          aria-describedby={tried > 0 && blank ? hintId : undefined}
+        />
+      ) : null}
+      {tried > 0 && blank ? (
+        <p key={tried} id={hintId} role="alert" className="-mt-2 text-sm text-status-fault">
+          {t("dialog.required")}
+        </p>
       ) : null}
       <div className="flex justify-end gap-2">
-        <Button variant="quiet" onClick={() => finish(false, value)}>
+        <Button variant="quiet" autoFocus={ask.kind === "confirm" && !!ask.yes} onClick={() => finish(false, value)}>
           {t("dialog.cancel")}
         </Button>
-        <Button variant="primary" type="submit" autoFocus={ask.kind === "confirm"}>
-          {t("dialog.ok")}
+        <Button variant="primary" type="submit" autoFocus={ask.kind === "confirm" && !ask.yes}>
+          {ask.yes || t("dialog.ok")}
         </Button>
       </div>
     </form>

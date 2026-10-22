@@ -172,6 +172,31 @@ def test_a_message_stores_the_persons_turn_and_queues_the_leads(scoped: Any, ses
         _message(_lead(scope, session), "A ještě?")
 
 
+def test_a_focus_on_an_audience_filter_the_copy_does_not_store_is_refused(
+    scoped: Any, session: Any
+) -> None:
+    """artifact-audience AUD1: refused by name before anything is stored or queued."""
+    scope = scoped.scope()
+    _hatch(scoped, session)
+    _save(scope, session, {**CONTENT, "audience": {"filters": {"kraj": ["Praha"]}}})
+    lead = _lead(scope, session)
+    with pytest.raises(LeadRejected, match="audience_filter_not_stored"):
+        lead.post(
+            kind="message",
+            stage="audience",
+            text="Proč tenhle filtr?",
+            focus={"id": "audience:filter:vzdelani", "label": "Filtr: vzdelani"},
+        )
+    assert lead.state()["turns"] == []
+    person, _lead_turn = lead.post(
+        kind="message",
+        stage="audience",
+        text="Proč tenhle filtr?",
+        focus={"id": "audience:filter:kraj", "label": "Filtr: kraj"},
+    )
+    assert person["focus"]["id"] == "audience:filter:kraj"
+
+
 def test_a_greeting_stores_no_persons_turn_and_is_said_once_in_eight_hours(
     scoped: Any, session: Any
 ) -> None:
@@ -505,6 +530,70 @@ def test_a_client_note_reaches_only_its_own_clients_turns(scoped: Any, session: 
     (turn,) = _lead(acme, session).post(kind="greeting", stage="brief")
     notes = layer(_step_input(session, acme, turn["run_id"])["context"], "lead")["notes"]
     assert {n["text"] for n in notes} == {"Acme chce čísla v tabulce.", "Má rád stručnost."}
+
+
+def test_the_next_turn_carries_what_the_conversation_decided(scoped: Any, session: Any) -> None:
+    """ADR 0041 decision 4: the decision digest, from the ledger, in the next turn's context."""
+    scope, turn_id = _ready(scoped, session, EDITS)
+    base = StudyWorkspaceRepository(session).content(scope).revision
+    lead = _lead(scope, session)
+    lead.decide_edits(turn_id, decision="accept", indices=[0], base_revision=base)
+    lead.decide_edits(turn_id, decision="dismiss", indices=[3], base_revision=None)
+    (_, nxt) = _lead(scope, session).post(
+        kind="message",
+        stage="brief",
+        text="A název?",
+        focus={"id": "brief:title", "label": "Název"},
+    )
+    digest = layer(_step_input(session, scope, nxt["run_id"])["context"], "memory")["digest"]
+    rows = {r.subject_id: r.decision_id for r in _ledger(session, "lead_edit")}
+    assert digest["named"] == [
+        {"kind": "edit", "item": "brief:title", "turn": turn_id, "decision": "accept",
+         "ledger": rows[f"{turn_id}:0"]}
+    ]  # fmt: skip
+    assert digest["latest"] == [
+        {"kind": "edit", "item": "sample:n", "turn": turn_id, "decision": "dismiss",
+         "ledger": rows[f"{turn_id}:3"]}
+    ]  # fmt: skip
+    assert [(p["item"], p["index"]) for p in digest["undecided"]] == [
+        ("question:q9", 2),
+        ("plan:plan.objectives:Ověřit cenu", 1),
+    ]
+
+
+def test_another_researchers_decisions_are_not_in_my_digest(scoped: Any, session: Any) -> None:
+    scope, turn_id = _ready(scoped, session, EDITS)
+    base = StudyWorkspaceRepository(session).content(scope).revision
+    _lead(scope, session).decide_edits(turn_id, decision="accept", indices=[0], base_revision=base)
+    other = scoped.scope(user="researcher")
+    _hatch(scoped, session, "researcher")
+    (_, theirs) = _message(_lead(other, session))
+    digest = layer(_step_input(session, other, theirs["run_id"])["context"], "memory")["digest"]
+    assert digest["named"] == digest["latest"] == digest["undecided"] == []
+
+
+@pytest.mark.parametrize(
+    ("output", "waiting"),
+    [
+        ({"reply": "Můžeme spustit.", "request": {"kind": "research_run", "why": WHY}}, []),
+        (
+            {
+                "reply": "Připravil.",
+                "request": {"kind": "agent_job", "action": "analyze_brief", "why": WHY},
+            },
+            ["job"],
+        ),
+    ],
+)
+def test_only_a_prepared_job_waits_in_the_digest(
+    scoped: Any, session: Any, output: dict[str, Any], waiting: list[str]
+) -> None:
+    # A run card is started from its own screen and is never decided through the ledger, so
+    # it is no waiting proposal; a prepared agent job is one until a person decides it.
+    scope, _ = _ready(scoped, session, output)
+    (_, nxt) = _message(_lead(scope, session))
+    digest = layer(_step_input(session, scope, nxt["run_id"])["context"], "memory")["digest"]
+    assert [p["kind"] for p in digest["undecided"]] == waiting
 
 
 # --------------------------------------------------------------------------- deciding on edits
@@ -904,3 +993,56 @@ def test_the_worker_is_never_read_as_ready(
     (not ready); nothing says ready."""
     assert worker_readiness(turns) == expected
     assert worker_readiness(turns)[0] is not True
+
+
+PIN = {"deep_research_run_id": "RUN-dr1", "artifact_id": "ART-b1", "sha256": "ab" * 32}
+
+
+def test_external_context_is_frozen_only_when_switched_on_and_pinned(
+    scoped: Any, session: Any, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """evidence-integrity 7: the Study's newest Design Research findings reach the Lead's turn as
+    external context, read through the same pinned, seal-verified reader as the analysis."""
+    from aia_core.application import research_lead as module
+    from aia_core.application.research import ResearchRuns
+    from aia_core.domain.research_lead import EXTERNAL_LAYER
+    from aia_core.infrastructure.storage import InMemoryArtifactStore
+
+    scope = scoped.scope()
+    _hatch(scoped, session)
+    _save(scope, session)
+    store = InMemoryArtifactStore()
+    read: list[object] = []
+
+    def reader(_session: Any, _scope: Any, given: Any, pin: Any) -> tuple[str, ...]:
+        read.append((given, pin))
+        return ("[EV-1] Trh roste. (cs.wikipedia.org)",)
+
+    monkeypatch.setattr(module, "_external_context", reader)
+    monkeypatch.setattr(ResearchRuns, "design_research_pin", lambda self: PIN)
+
+    def frozen(lead: ResearchLead, text: str) -> dict[str, Any]:
+        turns = _message(lead, text)
+        context = _step_input(session, scope, turns[-1]["run_id"])["context"]
+        _complete(session, scope, {"reply": "Ano."})
+        return context
+
+    off = frozen(_lead(scope, session), "Bez rešerše?")
+    assert EXTERNAL_LAYER not in [e["layer"] for e in off["layers"]] and read == []
+    on = frozen(_lead(scope, session, external_store=store), "S rešerší?")
+    assert layer(on, EXTERNAL_LAYER)["lines"] == ["[EV-1] Trh roste. (cs.wikipedia.org)"]
+    assert layer(on, EXTERNAL_LAYER)["pin"] == PIN and read == [(store, PIN)]
+
+    # No finished Design Research: no layer. A bundle that does not read: said, never a stop.
+    monkeypatch.setattr(ResearchRuns, "design_research_pin", lambda self: None)
+    none = frozen(_lead(scope, session, external_store=store), "Bez běhu?")
+    assert EXTERNAL_LAYER not in [e["layer"] for e in none["layers"]]
+
+    def refused(*_: Any) -> tuple[str, ...]:
+        raise module.SourcesRefused("context_unverified", "the pinned bundle does not read")
+
+    monkeypatch.setattr(ResearchRuns, "design_research_pin", lambda self: PIN)
+    monkeypatch.setattr(module, "_external_context", refused)
+    broken = frozen(_lead(scope, session, external_store=store), "Rozbitá?")
+    assert layer(broken, EXTERNAL_LAYER)["lines"] == []
+    assert layer(broken, EXTERNAL_LAYER)["unavailable"] == "context_unverified"

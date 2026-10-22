@@ -4,9 +4,10 @@
  *   AIA_WEB_RESEARCH_WORKBENCH=true python3 tools/ui_workbench/workbench.py up
  *   python3 tools/ui_workbench/fixture_project.py
  *   node tools/ui_workbench/questionnaire_journey.mjs [--facade http://127.0.0.1:8780] [--out DIR]
- * Local fictional identity only. At 1440 and 1100 px (the workbench) and 768 and 390 px (the
- * classic layout): Dotazník's Závislosti lists the tracked set's readers with Sociomapa, keeps the
- * open question out of Analýza, jumps to the set's card, and the page does not overflow; nothing
+ * Local fictional identity only. At 1440, 1100, 768 and 390 px (the workbench at every width):
+ * Dotazník's Závislosti lists the tracked set's readers with Sociomapa, keeps the
+ * open question out of Analýza, jumps to the set's card, and the page does not overflow; a question
+ * removed is put back in its place by Vrátit (input-interactions chunk 3); nothing
  * paid starts: no research run, agent job, Deep Research run or Lead request approval.
  */
 import assert from "node:assert/strict";
@@ -66,7 +67,9 @@ const noOverflow = async (label) => {
 };
 
 try {
-  for (const [width, workbench] of [[1440, true], [1100, true], [768, false], [390, false]]) {
+  // The workbench serves every width since research-lead-workbench 26b: a split from 1100 px, the
+  // Lead in a drawer or a sheet below it.
+  for (const [width, workbench] of [[1440, true], [1100, true], [768, true], [390, true]]) {
     await page.setViewportSize({ width, height: 900 });
     await page.goto(base + stagePath("questionnaire"));
     const deps = page.getByRole("region", { name: "Závislosti" });
@@ -87,8 +90,99 @@ try {
 
     await set.getByRole("link", { name: /^Sada 1 / }).click();
     await page.waitForFunction(() => location.hash === "#qset_sec_wb_set");
+    // An option's × is a 24 px target (WCAG 2.5.8; the browser audit measured 20 x 20).
+    const remove = await page.getByRole("button", { name: "Odebrat možnost 1" }).first().boundingBox();
+    assert(remove && remove.width >= 24 && remove.height >= 24, `an option's × at ${width}: ${remove?.width} x ${remove?.height}`);
+    // The set's name stays readable beside its badge, count and Smazat (the browser audit, QF-3).
+    const name = page.locator("#qset_sec_wb_set").getByRole("button", { name: /^Upravit: Název sady/ });
+    const room = await name.evaluate((el) => ({ column: el.closest("div")?.getBoundingClientRect().width ?? 0, clipped: el.scrollWidth > el.clientWidth + 1 }));
+    assert(room.column >= 160 && !room.clipped, `the set's name at ${width}: ${Math.round(room.column)} px, clipped ${room.clipped}`);
     check(`${width}: Závislosti lists the set's readers, the open question apart, no overflow`);
+
+    // A question's × stays beside its number at every width, never on a row of its own (the
+    // browser audit's QF-9: at 390 px the type chips wrapped and pushed it 130 px down).
+    const card = page.locator("#qedit_Q_wb1");
+    await card.scrollIntoViewIfNeeded();
+    const [num, x] = await card.evaluate((el) => {
+      const box = (n) => { const r = n.getBoundingClientRect(); return { y: r.top, height: r.height }; };
+      const badge = [...el.querySelectorAll("span")].find((n) => n.textContent === "Q1");
+      const remove = el.querySelector('button[aria-label^="Odebrat otázku Q1"]');
+      return badge && remove ? [box(badge), box(remove)] : [null, null];
+    });
+    assert(num && x, `Q1's number and its × are on the card at ${width}`);
+    // Measured together, so a scroll between the two reads cannot part them.
+    assert(x.y < num.y + num.height && x.y + x.height > num.y, `the question's × at ${width}: ${Math.round(x.y - num.y)} px from its number`);
+    check(`${width}: a question's × beside its number`);
   }
+
+  // A block renamed in place (input-interactions chunk 3e, I1): Enter saves, the name reads back after a reload.
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await page.goto(base + stagePath("questionnaire"));
+  const blockName = page.getByRole("button", { name: /^Upravit: Název bloku / }).first();
+  await blockName.waitFor({ timeout: 30000 });
+  const was = (await blockName.innerText()).trim();
+  await blockName.click();
+  const nameField = page.getByRole("textbox", { name: "Název bloku" });
+  await nameField.fill(`${was} (přejmenováno)`);
+  await nameField.press("Enter");
+  // The copy saved: the artifact header says "Uloženo" once the working copy holds the change.
+  const saved = () => page.getByText("Uloženo", { exact: true }).first().waitFor({ timeout: 15000 });
+  await page.getByRole("button", { name: `Upravit: Název bloku ${was} (přejmenováno)`, exact: true }).waitFor();
+  await saved();
+  await page.reload();
+  const renamed = page.getByRole("button", { name: `Upravit: Název bloku ${was} (přejmenováno)`, exact: true });
+  await renamed.waitFor({ timeout: 30000 });
+  await renamed.click();
+  await page.getByRole("textbox", { name: "Název bloku" }).fill(was);
+  await page.getByRole("textbox", { name: "Název bloku" }).press("Enter");
+  await page.getByRole("button", { name: `Upravit: Název bloku ${was}`, exact: true }).waitFor();
+  await saved();
+  check("1440: a block renamed in place, saved and read back after a reload, then restored");
+
+  // A question deleted at once and put back with Vrátit (input-interactions chunk 3, I6), at 1440.
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await page.goto(base + stagePath("questionnaire"));
+  const q4 = page.locator("#qedit_Q_wb4");
+  await q4.waitFor({ timeout: 30000 });
+  const order = () => page.locator('[id^="qedit_"]').evaluateAll((els) => els.map((el) => el.id));
+  const before = await order();
+  await q4.getByRole("button", { name: /^Odebrat otázku/ }).click();
+  // The toast's own Vrátit: the Lead's pane can show another for an automatic text edit.
+  const toast = page.getByRole("status").filter({ hasText: "Otázka „Co by vás přesvědčilo nápoj koupit znovu?“ odebrána" });
+  await toast.waitFor();
+  assert.equal(await q4.count(), 0, "the question is gone at once");
+  await toast.getByRole("button", { name: "Vrátit" }).click();
+  await q4.waitFor();
+  assert.deepEqual(await order(), before, "Vrátit puts the question back in its place");
+  await shot("1440-undo-restored");
+  check("1440: a question removed at once, Vrátit puts it back in its place");
+
+  // Above the recommended fifteen a set is allowed and warned (Q75 (a)), at 390 px: the count beside
+  // the list and the warning stay in view while objects are added, then the added ones are removed.
+  await page.setViewportSize({ width: 390, height: 900 });
+  await page.goto(base + stagePath("questionnaire") + "#qset_sec_wb_set");
+  const card = page.locator("#qset_sec_wb_set");
+  const addObject = card.getByRole("textbox", { name: "Přidat objekt a Enter" });
+  await addObject.waitFor({ timeout: 30000 });
+  const countBadge = card.getByText(/^\d+ \/ doporučeno 4–15$/);
+  const objectCount = async () => Number((await countBadge.innerText()).split(" ")[0]);
+  const start = await objectCount();
+  const added = [];
+  for (let i = start; i < 16; i++) {
+    const name = `Navíc ${i + 1}`;
+    await addObject.fill(name);
+    await addObject.press("Enter");
+    added.push(name);
+    await page.waitForFunction(([n]) => document.querySelector("#qset_sec_wb_set")?.textContent?.includes(`${n} / doporučeno 4–15`), [i + 1]);
+  }
+  const warning = card.getByText("Víc než doporučených 15 objektů. Sada jich může mít až 40; Kontrola na to upozorní.");
+  await warning.waitFor();
+  for (const el of [countBadge, warning, addObject]) assert(await el.isVisible() && (await el.evaluate((n) => { const r = n.getBoundingClientRect(); return r.top >= 0 && r.bottom <= innerHeight; })), "the count, the warning and the field in view at 390");
+  await noOverflow("a set above fifteen @390");
+  await shot("390-set-above-recommended");
+  for (const name of added) await card.getByRole("button", { name: new RegExp(`${name}$`) }).click();
+  await page.waitForFunction(([n]) => document.querySelector("#qset_sec_wb_set")?.textContent?.includes(`${n} / doporučeno 4–15`), [start]);
+  check("390: a sixteenth object taken, counted beside the list and warned in words; the added ones removed");
 
   const paid = writes.filter((w) => /\/research\/runs$|\/agent-jobs$|\/deep-research\/runs|\/lead\/turns\/[^/]+\/request$/.test(w.path));
   assert.deepEqual(paid, [], "nothing paid started");

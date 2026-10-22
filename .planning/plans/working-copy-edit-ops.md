@@ -11,8 +11,10 @@ chunks:
   - "[ ] WCE5. Field-level merge, per (item_key, field) (D-06), and a stale rule that a later Design Revision does not defeat"
   - "[ ] WCE6. Per-change accept (M6): `proposal_change_decisions`, one change identity across the three accept routes, a dependency rule for coupled changes, `touched_items` returned to the web; any member with the accept permission may accept a proposal another member's Lead prepared (Q16), the chat text staying private"
   - "[x] WCE7a. Readiness on a working revision: `GET …/research/readiness/working?working_revision=n`, the readiness a submit of that revision reads, nothing written"
-  - "[ ] WCE7b. The stages read it: Vzorek and Návrh on the working revision they show, no submit on a visit (Spuštění in artifact-fieldwork#FLD6)"
-  - "[ ] WCE7c. Impact per stage: "current / changed / re-check" against the run's Design Revision, and accepting a working copy as a revision"
+  - "[x] WCE7b. Vzorek reads it on the working revision it shows, no submit on a visit (Návrh's coverage in artifact-design, Spuštění in artifact-fieldwork#FLD6)"
+  - "[x] WCE7c. Impact per stage: `GET …/research/impact`, every pipeline stage CURRENT, CHANGED or RECHECK going from a Design Revision to the working copy"
+  - "[x] WCE7d1. The stage track reads it: a stage the working copy reopened says so, measured against the newest run's design, so a run whose design is older than the copy says so on every stage it reopened"
+  - "[ ] WCE7d2. The working copy accepted as a revision, explicitly, from the workbench"
   - "[ ] WCE8. Sociomap declarations: an editor for `sociomap_rating` and `context_objects`, the hard lock and `sociomap_unlock`"
   - "[ ] WCE8b. The questionnaire proposal keeps protected inputs and item identity (W2, with WCE8, before research-lead-workbench 7 and 17): declared batteries, tracked sets and rating questions copied from the baseline under their ids, never from model output; proposed items keep a baseline id"
   - "[ ] WCE9. Undo and restore of a person's edit, and a route that reads an old working revision"
@@ -49,6 +51,30 @@ Today those items are keyed by normalised text (`design_items.py:120-172`), so a
 **WCE2. `workspace_edit_ops` (M1) and `apply_edit_ops`: the one writer of the working copy; every other writer becomes a recorded whole-copy operation**  
 The PUT, questionnaire import, reuse, the 18.6.6 migration, Design Research accept and the web autosave are the six other writers; none may change a locked item or skip the log. Test: a whole-copy write leaves an op and cannot change a locked item. Interfaces I8.
 
+WCE2 split (scoped 2026-10-22, approved by the PM): **2a** the log as values
+(`domain/edit_log.py`); **2b** M1, the table and `WorkspaceEditRepository`; **2c**
+`apply_edit_ops` for whole-copy writes, the PUT, `submit_as_working_copy` and reuse through it, the
+lock enforced; **2d** the Lead's `decide_edits` as vocabulary operations (closes F-WCE1-1); **2e**
+the agent-job and Design Research accepts; **2f** the 18.6.6 migration, then `save` and
+`import_migrated` reachable from `apply_edit_ops` alone (layer_check). The eight callers, at
+`3a544cb3`: `routers/workspace.py:2164` (PUT: autosave, every stage, questionnaire import),
+`application/research_lead.py:822` (Lead edits), `study_design_repository.py:226`
+(`submit_as_working_copy`, the template behind OI-173), `application/design_reuse.py:186`,
+`proposal_accept.py:185` from `research.py:1981` and `design_research.py:135`,
+`workspace_migration.py:151, :238`.
+
+- **WCE2a (2026-10-22).** `domain/edit_log.py`: a row per `(item, field)` a write touched
+  (`design_fields.changed_fields`), a whole-copy write's `op` `{"op": "whole_copy", "reason"}`;
+  a write no field counts (a re-spaced list entry, an id list) logs one `content:copy:` row, so no
+  write skips the log; `WriteBy` refuses a write without its author unless it is a migrated
+  revision, and only a person's (18.6.6 had no Lead); which code may name the `migration` source
+  is held by `layer_check` ("only the 18.6.6 migration logs a write as migrated":
+  `domain/edit_log.py` and `application/workspace_migration.py` alone), so the exemption is not a
+  label any writer can pick (review of #762); a key or field past its column is a prefix and a
+  digest, deterministic. Measured: a
+  40-question import into the template is 44 rows in 5.6 ms (median of 20), one wording edit on it
+  1 row in 7.3 ms. Tests: `test_edit_log.py`.
+
 **WCE3a. The web store on the server vocabulary, Brief and Design stages**  
 33 `store.update` sites in 9 files and about 1,900 lines of TypeScript with 18.6.6 parity tests are moved stage by stage; the parity tests stay green at every step.
 
@@ -79,10 +105,45 @@ Split 2026-10-21 (owner: the Vzorek session, assigned by the PM) into three PRs:
   (`WorkingReadinessResponse`: the readiness fields and `working_revision`); a revision the Study
   never saved is 404 `working_revision_not_found`. Test:
   `test_readiness_reads_a_working_revision_without_submitting_a_design`.
-- **WCE7b.** Vzorek (`useSampleReadiness`) and Návrh's coverage read it, and a visit stops
-  submitting a Design Revision. Spuštění reads it while open and submits only at start, with that
-  revision's readiness checked again: the Sběr dat session's, in `artifact-fieldwork#FLD6`.
-- **WCE7c.** The impact rule and "accepting a working copy as a revision", the AC-07 test above.
+- **WCE7b, delivered.** Vzorek (`useSampleReadiness.ts`) reads `research.workingReadiness` on the
+  store's working revision: an editor's waiting change is saved first (a save, never a Design
+  Revision), a refused save is never read, and a new working revision reads it again with the
+  previous answer kept on screen. Test: `SampleView.test.tsx` "loadSampleReadiness"; journey:
+  `workbench_journey.mjs` asserts no `POST …/design/revisions` during the Vzorek block.
+  Návrh's coverage card (`DesignCoverage.tsx`) reads the latest Design Revision and submits
+  nothing; moving it to the working revision is `artifact-design`'s. Spuštění reads it while open
+  and submits only at start, with that revision's readiness checked again: the Sběr dat session's,
+  in `artifact-fieldwork#FLD6`.
+- **WCE7c, delivered.** `domain.pipeline.stage_impacts(before, after)`: a stage whose own input
+  fingerprint differs is CHANGED; the invalidated range starts at the earlier of `impact_preview`'s
+  root and the first CHANGED stage, so a field `IMPACT_ROOTS` does not map (title,
+  aggregation_policy) still reopens what follows (review on #638); in the range and unchanged is
+  RECHECK; the rest CURRENT. `ResearchRuns.impact(working_revision, design_revision_id=None)` (the
+  newest Design Revision when none is named) and `GET /studies/{id}/research/impact`. Tests:
+  `test_pipeline_parity.py::test_a_questionnaire_edit_changes_its_stage_and_reopens_every_stage_after_it`
+  (AC-07 in the domain) and `test_research_api.py::test_impact_reads_each_stage_of_a_design_against_the_working_copy`.
+- **WCE7d.** The workbench reads it: the stage track's "reopened", the run's "design older than
+  the head" and the explicit accept of a working copy as a revision. The stage track and lane are
+  the integration coordinator's; this chunk is a request to them, with the route and the pipeline
+  → workbench stage map (BRIEF brief, RESEARCH_DESIGN design, QUESTIONNAIRE questionnaire, AUDIENCE
+  audience, DIMENSIONS dimensions, SAMPLE_PLAN sample, FIELDWORK fieldwork, AGGREGATION results and
+  sociomap, ANALYSIS analysis, REPORT report).
+- **WCE7d1, delivered (`feature/stage-track-impact`).** Built on Vzorek's #638 (`GET
+  …/research/impact`) and #673 (`lib/working-impact.ts` `stageImpacts`, `research.workingImpact`).
+  - The workbench reads the impact each time the copy's saved revision moves
+    (`components/workbench/useWorkingImpact.ts`). The last answer stays while the next is read, so
+    the marks do not flicker on every save.
+  - It reads against the newest run's Design Revision; before any run, against the newest Design
+    Revision (`impactBase`). A run whose design is older than the copy therefore shows on every stage
+    the copy reopened, the result stages included.
+  - The stage navigator marks a CHANGED stage with a filled dot and a RECHECK stage with a ring
+    (`.nav__impact`). Each mark has words in its title and for a screen reader (`impactWords`), for
+    example "změněno od běhu (revize 2)".
+  - It shows nothing for a 404 (no Design Revision), a failure, an answer about another revision than
+    the base asked for, or a stage not fully answered (`impactMarks`).
+  - Tests: `working-impact.test.ts` "impactBase", "impactWords", "impactMarks";
+    `Workbench.layout.test.tsx` "the stage track reads the working copy's impact".
+- **WCE7d2.** Accepting the working copy as a revision from the workbench is still to do.
 
 **WCE8. Sociomap declarations: an editor for `sociomap_rating` and `context_objects`, the hard lock and `sociomap_unlock`**  
 Nobody can set the declarations (zero web hits), so the lock has no subject. The unlock is a ledger row (`sociomap_unlock`, M3), warns, and cannot be called by the Lead. Test: the whole-copy route cannot change a locked item. Interfaces I11.

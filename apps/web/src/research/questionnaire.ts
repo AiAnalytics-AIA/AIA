@@ -7,6 +7,8 @@
 // save reason. questionnaire.parity.test.ts compares each with the original
 // under Node. Survey: .planning/plans/research-flow-rehome.md (PR B).
 
+import { tv } from "@/i18n/t";
+
 import { type Template, type Json, PROVIDER_FORCED, type ResearchProject, defaultsMerge } from "./model";
 import { keepPointLabels } from "./scale-labels";
 import type { Analysis } from "./store";
@@ -66,6 +68,17 @@ export function questionnaireCounts(p: ResearchProject): { questions: number; se
     questions: xs.reduce((n, x) => n + (x.type === "questions" ? (x.questions || []).length : 0), 0),
     sets: xs.filter((x) => x.type === "object_battery").length,
   };
+}
+
+/** A Czech count of `kind`, the word by its number: 1 otázka, 2–4 otázky, 0 and 5+ otázek. */
+export function countWords(kind: "questions" | "sets", n: number): string {
+  const form = n === 1 ? "one" : n >= 2 && n <= 4 ? "few" : "many";
+  return tv(`research.questionnaire.countWords.${kind}.${form}`, { n });
+}
+
+/** The questionnaire's counts in words: "4 otázky · 1 sledovaná sada". */
+export function countsWords(c: { questions: number; sets: number }): string {
+  return tv("research.questionnaire.editorCounts", { questions: countWords("questions", c.questions), sets: countWords("sets", c.sets) });
 }
 
 export type QuestionnairePath = "choose" | "upload" | "manual" | "ai";
@@ -304,15 +317,20 @@ export function addTrackedSet(
 ): { project: ResearchProject } | { error: string } | null {
   if (!typ || !raw) return null;
   const objs = raw.split(",").map((x) => x.trim()).filter(Boolean);
-  if (objs.length < 4 || objs.length > 15) return { error: SET_SIZE };
-  const set: Section = {
+  if (objs.length < SET_MIN || objs.length > SET_MAX) return { error: SET_SIZE };
+  return { project: withSections(p, [...sections(p), trackedSet(typ, objs, ids)]) };
+}
+
+/** The tracked set addTrackedSet makes: the classic's defaults, its family and objects. */
+function trackedSet(typ: string, objects: string[], ids: IdSource): Section {
+  return {
     id: secId(ids),
     type: "object_battery",
     title: `Sledovaná sada — ${typ}`,
     purpose: "",
     object_family: typ,
     object_type: typ,
-    objects: objs,
+    objects,
     object_question: "Jak hodnotíte {object}?",
     scale: [1, 10],
     scale_labels: ["vůbec", "velmi"],
@@ -321,7 +339,55 @@ export function addTrackedSet(
     visualize: true,
     metadata: { tracked_set: true },
   };
-  return { project: withSections(p, [...sections(p), set]) };
+}
+
+/**
+ * A new block named as the person typed it in its row (input-interactions I5, audit A21), instead
+ * of "Nový blok" to be renamed afterwards. Null for an empty name.
+ */
+export function addNamedSection(p: ResearchProject, title: string, ids: IdSource = SYSTEM): { project: ResearchProject; sectionId: string } | null {
+  const name = title.trim();
+  if (!name) return null;
+  const id = secId(ids);
+  return { project: withSections(p, [...sections(p), { id, type: "questions", title: name, purpose: "", questions: [] }]), sectionId: id };
+}
+
+/**
+ * Where a section a screen drew stands in the copy now: found by its id, or, for an older section
+ * without one, at its index while that place still holds an id-less section; -1 when it is gone (a
+ * remove, or the copy reloaded under the screen).
+ */
+function sectionNow(xs: Section[], si: number, sectionId: string | undefined): number {
+  return sectionId ? xs.findIndex((x) => x.id === sectionId) : si < xs.length && !xs[si].id ? si : -1;
+}
+
+/**
+ * A question with its wording typed in the block's own row (audit A5): a single choice with the
+ * options Ano / Ne, as addQuestion and the quick add give it. Null for an empty wording or a block
+ * that is gone or no longer a question block; a block with an id never takes another's question.
+ */
+export function addQuestionTo(p: ResearchProject, si: number, sectionId: string | undefined, text: string, ids: IdSource = SYSTEM): { project: ResearchProject; questionId: string } | null {
+  const wording = text.trim();
+  const xs = sections(p);
+  const at = sectionNow(xs, si, sectionId);
+  if (!wording || at < 0 || xs[at].type !== "questions") return null;
+  const id = qId(ids);
+  const project = edit(p, (ys) => {
+    ys[at].questions = [...(ys[at].questions || []), { id, text: wording, typ: "vyber", kategorie: ["Ano", "Ne"], povolit_nevim: false }];
+  });
+  return { project, questionId: id };
+}
+
+/**
+ * A tracked set named in its row (audit A8): the same set addTrackedSet makes, with no objects yet.
+ * Its 4–15 objects are then added on its card, the count beside them; readiness holds a set
+ * outside 4–15, as it holds one made any other way. Null for an empty name.
+ */
+export function addNamedTrackedSet(p: ResearchProject, typ: string, ids: IdSource = SYSTEM): { project: ResearchProject; sectionId: string } | null {
+  const family = typ.trim();
+  if (!family) return null;
+  const set = trackedSet(family, [], ids);
+  return { project: withSections(p, [...sections(p), set]), sectionId: String(set.id) };
 }
 
 export const CONFIRM_REMOVE_SECTION = "Smazat celý blok?";
@@ -329,6 +395,74 @@ export const CONFIRM_REMOVE_SECTION = "Smazat celý blok?";
 /** removeSection (after its confirm) */
 export function removeSection(p: ResearchProject, si: number): ResearchProject {
   return withSections(p, sections(p).filter((_, i) => i !== si));
+}
+
+/**
+ * An undo of removeSection (input-interactions I6): `sec` put back at `si`, or last when fewer
+ * sections remain. Nothing when a section with its id is already there (the undo ran twice).
+ */
+export function restoreSection(p: ResearchProject, si: number, sec: Section): ResearchProject {
+  const xs = sections(p);
+  if (sec.id && xs.some((x) => x.id === sec.id)) return p;
+  const at = Math.min(Math.max(si, 0), xs.length);
+  return withSections(p, [...xs.slice(0, at), clone(sec), ...xs.slice(at)]);
+}
+
+/**
+ * An undo of removeQuestion: `q` put back at `qi` of its section, found by the section's id (a
+ * section without one: by its index while it is still `si`). Nothing when the section is gone, or
+ * when a question with its id is already there.
+ */
+export function restoreQuestion(p: ResearchProject, si: number, sectionId: string | undefined, qi: number, q: Question): ResearchProject {
+  const xs = sections(p);
+  const at = sectionNow(xs, si, sectionId);
+  if (at < 0 || xs[at].type !== "questions") return p;
+  const qs = xs[at].questions || [];
+  if (q.id && qs.some((x) => x.id === q.id)) return p;
+  return edit(p, (ys) => {
+    const list = ys[at].questions || [];
+    const i = Math.min(Math.max(qi, 0), list.length);
+    ys[at].questions = [...list.slice(0, i), clone(q), ...list.slice(i)];
+  });
+}
+
+/**
+ * An undo of an option's removal (input-interactions I6, audit A3): `value` put back at `index` of
+ * its question's options, the question found by its section's id and its own (by index only while
+ * neither has one). Only on a choice question (no type reads as one, as the compiler reads it);
+ * nothing when the question is gone or another type, or the option is already there. Other
+ * options edited since are kept as they are.
+ */
+export function restoreOption(p: ResearchProject, si: number, sectionId: string | undefined, qi: number, questionId: string | undefined, index: number, value: string): ResearchProject {
+  const xs = sections(p);
+  const at = sectionNow(xs, si, sectionId);
+  if (at < 0 || xs[at].type !== "questions") return p;
+  const qs = xs[at].questions || [];
+  const qat = questionId ? qs.findIndex((x) => x.id === questionId) : qi < qs.length && !qs[qi].id ? qi : -1;
+  if (qat < 0 || !["", "vyber", "multi"].includes(String(qs[qat].typ || ""))) return p;
+  if ((qs[qat].kategorie || []).includes(value)) return p;
+  return edit(p, (ys) => {
+    const q = (ys[at].questions || [])[qat];
+    const list = q.kategorie || [];
+    const i = Math.min(Math.max(index, 0), list.length);
+    q.kategorie = [...list.slice(0, i), value, ...list.slice(i)];
+  });
+}
+
+/**
+ * Esc on a question's wording (input-interactions I1, audit A1): what it puts back. `base` is the
+ * wording this field's typing started from, `typed` the last value it wrote. A wording changed under
+ * the field (a Lead edit, a reload) becomes the new base before the next keystroke, so Esc never
+ * puts back anything older than a change accepted from elsewhere.
+ */
+export type WordingEdit = { base: string; typed: string };
+export const wordingFocused = (value: string): WordingEdit => ({ base: value, typed: value });
+export function wordingTyped(w: WordingEdit, current: string, next: string): WordingEdit {
+  return { base: w.typed === current ? w.base : current, typed: next };
+}
+/** The wording Esc writes back, or null: nothing typed here, or the copy moved since. */
+export function wordingEscape(w: WordingEdit, current: string): string | null {
+  return w.typed === current && w.base !== current ? w.base : null;
 }
 
 export type SectionField = "title" | "purpose" | "object_question" | "familiarity_required";
@@ -348,16 +482,40 @@ export function setObjectFamily(p: ResearchProject, si: number, v: string): Rese
   });
 }
 
+/**
+ * A tracked set's sizes as the readiness methodology in force states them (GET …/research/limits
+ * tracked_set): the compiler refuses a set outside min-max (battery_size); readiness only warns
+ * outside recommended_min-recommended_max. Above the recommendation a set is allowed and warned (the
+ * product owner, Q75 (a), 2026-10-22); the editors still refuse one under the recommended minimum.
+ */
+export type SetLimits = { min: number; max: number; recommended_min: number; recommended_max: number };
+
+/** The code's preset, research_design.py TRACKED_SET_LIMITS (held to it by questionnaire-set-limits.test.ts):
+ * what a study runs by while nothing is stored, and what the screens use until the limits are read. */
+export const SET_HARD_MIN = 3;
+export const SET_HARD_MAX = 40;
+export const SET_MIN = 4;
+export const SET_MAX = 15;
+export const SET_PRESET: SetLimits = { min: SET_HARD_MIN, max: SET_HARD_MAX, recommended_min: SET_MIN, recommended_max: SET_MAX };
+
+/** A set the editors stop: under the recommended minimum, or over the hard maximum. */
+export const setSizeRefused = (n: number, l: SetLimits = SET_PRESET) => n < l.recommended_min || n > l.max;
+/** Above the recommendation, within the hard range: allowed, warned at the field. */
+export const setAboveRecommended = (n: number, l: SetLimits = SET_PRESET) => n > l.recommended_max && n <= l.max;
+/** The limits as the copy names them: the editors' range ({min}–{max}) and the recommendation ({rmin}–{rmax}). */
+export const setWords = (l: SetLimits) => ({ min: l.recommended_min, max: l.max, rmin: l.recommended_min, rmax: l.recommended_max });
+
 export const SET_TOO_SMALL = "Sledovaná sada potřebuje 4–15 položek.";
 
-/** updateObjects: one per line, trimmed, fifteen at most; a note (not a refusal) under four. */
+/** updateObjects: one per line, trimmed; a note (not a refusal) under four. Unlike the classic's,
+ * nothing past the fifteenth is cut: a set may hold up to SET_HARD_MAX. */
 export function updateObjects(p: ResearchProject, si: number, v: string): { project: ResearchProject; note: string | null } {
-  const a = v.split(/\n/).map((x) => x.trim()).filter(Boolean).slice(0, 15);
+  const a = v.split(/\n/).map((x) => x.trim()).filter(Boolean);
   return {
     project: edit(p, (xs) => {
       xs[si].objects = a;
     }),
-    note: a.length && a.length < 4 ? SET_TOO_SMALL : null,
+    note: a.length && a.length < SET_MIN ? SET_TOO_SMALL : null,
   };
 }
 
@@ -367,6 +525,33 @@ export function setObjectLabel(p: ResearchProject, si: number, i: 0 | 1, v: stri
     const s = xs[si];
     s.scale_labels = [...(s.scale_labels || ["vůbec", "velmi"])];
     s.scale_labels[i] = v;
+  });
+}
+
+/** A concept-test set's price bands, as stored (metadata.price_bands): the person's own words. */
+export function priceBandsOf(sec: Section): string[] {
+  const raw = sec.metadata?.price_bands;
+  return Array.isArray(raw) ? raw.filter((x): x is string => typeof x === "string" && x.trim() !== "").map((x) => x.trim()) : [];
+}
+
+/**
+ * Why a typed price is not one (input-interactions I9, audit A16), or null: a positive amount with
+ * at most two decimals, a space or a non-breaking space between thousands, a decimal comma or dot,
+ * and Kč (or CZK, ",-") after it or nothing. Kept as typed when it is one: no prices are invented
+ * or rewritten here, only refused at the field.
+ */
+export function priceProblem(raw: string): string | null {
+  const text = raw.trim().replace(/\s*(Kč|Kc|CZK|,-)$/i, "");
+  if (!/^\d{1,3}(?:[ \u00a0]?\d{3})*(?:[.,]\d{1,2})?$/.test(text)) return PRICE_REFUSED;
+  return Number(text.replace(/[ \u00a0]/g, "").replace(",", ".")) > 0 ? null : PRICE_REFUSED;
+}
+export const PRICE_REFUSED = "Cena musí být kladná částka, např. 199 Kč nebo 1 299,90 Kč.";
+
+/** The price bands as chips give them, one string each (the setter the screen uses). */
+export function setPriceBandList(p: ResearchProject, si: number, bands: readonly string[]): ResearchProject {
+  return edit(p, (xs) => {
+    const s = xs[si];
+    s.metadata = { ...(s.metadata || {}), price_bands: bands.map((x) => x.trim()).filter(Boolean) };
   });
 }
 
@@ -401,7 +586,10 @@ export function applyImport(
     template,
   );
   project.ui_state.questionnaire_path = "manual";
-  return { project, toast: `Načteno: ${r.summary?.question_count} otázek · ${r.summary?.tracked_sets} sledovaných sad` };
+  // What was loaded, counted from the sections kept: a summary missing from the answer never prints
+  // "undefined". The unit wrote "otázek · sledovaných sad" whatever the number; the words here
+  // follow it (countWords), so the two read the same from 5 and at 0 and differ only where it erred.
+  return { project, toast: tv("research.questionnaire.imported", { counts: countsWords(questionnaireCounts(project)) }) };
 }
 
 export const BUILD_TITLE = "AI tvoří dotazník";
@@ -470,12 +658,6 @@ export function applyDeep(p: ResearchProject, result: unknown): { project: Resea
     project: { ...p, pre_research: r.research || {} },
     toast: `Research uložen · ${r.accepted_count || 0} evidencí · ${r.quarantined_count || 0} v karanténě`,
   };
-}
-
-/** The evidence the project's research accepted (pre_research.accepted). */
-export function researchCount(p: ResearchProject): number {
-  const r = p.pre_research as { accepted?: unknown[] } | undefined;
-  return (r?.accepted || []).length;
 }
 
 /** continueQuestionnaireToAudience: the audience starts at its first choice unless already chosen. */

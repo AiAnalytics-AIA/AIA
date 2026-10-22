@@ -12,7 +12,7 @@ afterEach(() => {
 describe("guardedNavigate", () => {
   it("navigates with the router when no guard objects, leaving no link behind", () => {
     const push = vi.fn();
-    guardedNavigate("/app/clients/C/research/S/plan", push);
+    expect(guardedNavigate("/app/clients/C/research/S/plan", push)).toBe(true);
     expect(push).toHaveBeenCalledWith("/app/clients/C/research/S/plan");
     expect(document.querySelectorAll("a").length).toBe(0);
   });
@@ -24,7 +24,8 @@ describe("guardedNavigate", () => {
     };
     listeners.push(guard);
     document.addEventListener("click", guard, true);
-    guardedNavigate("/app/clients/C/research/S/questionnaire", push);
+    // It says so, so a caller asks nothing more of a move that did not happen (review of #686).
+    expect(guardedNavigate("/app/clients/C/research/S/questionnaire", push)).toBe(false);
     expect(push).not.toHaveBeenCalled();
   });
 });

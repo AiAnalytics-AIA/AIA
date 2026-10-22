@@ -184,6 +184,13 @@ def test_metric_label_wording_does_not_license_an_uncited_count(check: Any) -> N
     assert check(raw).decision.codes == {ViolationCode.UNCITED_NUMBER}
 
 
+def test_a_figure_from_external_context_is_refused_like_any_uncited_number(check: Any) -> None:
+    """evidence-integrity 7: a module is shown Deep Research findings as context; a figure it
+    copies from them into a draft cites no row of the run's evidence, so the gate refuses it."""
+    raw = draft(summary="Podle zdroje trh vzrostl o 12,5 %; zájem projevuje 42,5 % populace.")
+    assert check(raw).decision.codes == {ViolationCode.UNCITED_NUMBER}
+
+
 @pytest.mark.parametrize(
     "raw",
     [

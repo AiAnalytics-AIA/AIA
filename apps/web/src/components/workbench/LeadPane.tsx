@@ -8,14 +8,15 @@
 // artifact pane; its request is a decision card that starts nothing until the person approves.
 
 import Link from "next/link";
-import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
+import { createContext, useCallback, useContext, useEffect, useLayoutEffect, useRef, useState } from "react";
 
 import { lead as leadApi, researcherLead, ApiError, type Readiness, type ResearchAgentJob, type ResearchRun } from "@/lib/api";
 import { ACTION_LABELS } from "@/lib/research-agent-jobs";
 import { appRoutes } from "@/lib/app-routes";
-import type { LeadOutput, LeadRequest, LeadState, LeadTurn, LeadView, ResearcherLead, SelfUpdateDecision } from "@/lib/lead";
-import { droppedLines, leadReasonWords as reasonWords, pendingSelfUpdate, targetLabel } from "@/lib/lead";
+import type { LeadOutput, LeadRequest, LeadState, LeadTurn, LeadView, ResearcherLead, RetryRun, SelfUpdateDecision } from "@/lib/lead";
+import { commandRequest, composerHint, droppedLines, leadReasonWords as reasonWords, pendingSelfUpdate, targetLabel, TYPED_UNDECIDED_WHY } from "@/lib/lead";
 import { conversationTimeline } from "@/lib/lead-cards";
+import { isDayBreak, withDayBreaks } from "@/lib/day-label";
 import { STAGES, isWorkbenchStage, type WorkbenchStage } from "@/lib/workbench-stages";
 import type { StepKey } from "@/research/steps";
 import { Glyph } from "./Glyph";
@@ -262,6 +263,7 @@ export function LeadPane({ studyId, stage, canEdit, focus, picking, onPick, onCl
           </button>
         )}
       </div>
+      <TypedCardFacts.Provider value={{ walletOn: session?.wallet_enabled === true, retryRun: session?.analysis_retry_run ?? null }}>
       <Conversation turns={session?.turns ?? []} jobs={jobs} cards={cards} studyId={studyId} onOpenJob={onOpenJob} busy={!!session?.busy || sending} name={name} onFollow={send} onView={onView} onRequest={onRequest} onSelfUpdate={decideSelfUpdate} canEdit={canEdit}>
         {error ? <div className="msg"><div className="notice"><Glyph tone="fault" size={11} />{error}</div></div> : null}
         {held ? (
@@ -271,8 +273,9 @@ export function LeadPane({ studyId, stage, canEdit, focus, picking, onPick, onCl
         {me && !me.hatched ? <HatchCard onHatch={hatch} /> : null}
         {session && !session.available ? <div className="msg"><div className="notice"><Glyph tone="inert" size={11} />{reasonWords(session.unavailable_reason ?? "research_lead_unavailable")}</div></div> : null}
       </Conversation>
+      </TypedCardFacts.Provider>
       <Composer draft={draft} setDraft={setDraft} onSend={send} busy={!!session?.busy || sending} queued={queued.map((q) => q.text)} onUnqueue={(i) => setQueued((q) => q.filter((_, j) => j !== i))}
-        disabled={!canEdit || !me?.hatched || !session?.available} focus={focus} picking={picking} onPick={onPick} onClearFocus={onClearFocus} />
+        disabled={!canEdit || !me?.hatched || !session?.available} hint={composerHint({ canEdit, hatched: me?.hatched, available: session?.available, failed: error !== null })} focus={focus} picking={picking} onPick={onPick} onClearFocus={onClearFocus} />
     </div>
   );
 }
@@ -307,11 +310,18 @@ function Conversation({ turns, jobs, cards, studyId, onOpenJob, busy, name, onFo
     const el = box.current;
     if (el && atBottom.current) el.scrollTop = el.scrollHeight;
   }, [sig]);
+  // "Na nejnovější" never leaves under the keyboard: the previous Tab's scroll can reach the bottom
+  // and be committed just after the next Tab focused the button, so it stays while it has the focus
+  // (F-BRF-2, lead_journey.mjs "Tab stays inside the open conversation"). A focus it lost without a
+  // blur (the pane hidden) is let go at the next scroll.
+  const latest = useRef<HTMLButtonElement>(null);
+  const [onLatest, setOnLatest] = useState(false);
   const onScroll = () => {
     const el = box.current!;
     const b = el.scrollHeight - el.scrollTop - el.clientHeight <= 24;
     atBottom.current = b;
     setAway(!b);
+    if (document.activeElement !== latest.current) setOnLatest(false);
   };
   const lastLead = [...turns].reverse().find((t) => t.actor === "lead");
   return (
@@ -319,34 +329,70 @@ function Conversation({ turns, jobs, cards, studyId, onOpenJob, busy, name, onFo
       <div className="conv__scroll" ref={box} onScroll={onScroll} tabIndex={0} role="log" aria-label={`Konverzace: ${name}`} aria-live="polite" aria-relevant="additions">
         <div>
           {children}
-          {conversationTimeline(turns, jobs, runs, cards?.runOfTurn).map((x) => x.kind === "job"
+          {withDayBreaks(conversationTimeline(turns, jobs, runs, cards?.runOfTurn), (x) => x.at || null).map((x) => isDayBreak(x)
+            ? <h3 key={`day:${x.key}`} className="conv__day">{x.label}</h3>
+            : x.kind === "job"
             ? <WorkerCardView key={x.job.run_id} job={x.job} studyId={studyId} onOpen={onOpenJob} onStage={cards?.onStage} onChanged={cards?.onJobsChanged} />
             : x.kind === "run"
               ? (cards ? <RunCardView key={x.run.run_id} run={x.run} studyId={studyId} stepHref={cards.stepHref} /> : null)
               : x.turn.actor === "person"
-                ? <PersonTurn key={x.turn.turn_id} t={x.turn} />
+                ? <PersonTurn key={x.turn.turn_id} t={x.turn} canEdit={canEdit} onRequest={onRequest} studyId={studyId} cards={cards} onOpenJob={onOpenJob}
+                    job={jobs.find((j) => j.run_id === x.turn.request_decision?.run_id) ?? null}
+                    run={runs.find((r) => r.run_id === x.turn.request_decision?.run_id) ?? null} />
                 : <LeadTurnView key={x.turn.turn_id} t={x.turn} name={name} last={x.turn.turn_id === lastLead?.turn_id} busy={busy} onFollow={onFollow} onView={onView} onRequest={onRequest} onSelfUpdate={onSelfUpdate} canEdit={canEdit}
                     job={jobs.find((j) => j.run_id === x.turn.request_decision?.run_id) ?? null} onOpenJob={onOpenJob} studyId={studyId} cards={cards}
                     run={runs.find((r) => r.run_id === cards?.runOfTurn.get(x.turn.turn_id)) ?? null} />)}
           <div style={{ height: 8 }} />
         </div>
       </div>
-      {away ? (
+      {away || onLatest ? (
         <div className="conv__latestwrap">
-          <button type="button" className="btn btn--sm conv__latest" onClick={() => { const el = box.current!; el.scrollTop = el.scrollHeight; atBottom.current = true; setAway(false); }}><Icon name="down" size={13} />Na nejnovější</button>
+          {/* Another window taking the focus is not the keyboard leaving: the button is kept for its return. */}
+          <button ref={latest} type="button" className="btn btn--sm conv__latest" onFocus={() => setOnLatest(true)} onBlur={() => { if (document.hasFocus()) setOnLatest(false); }}
+            onClick={(e) => {
+              const el = box.current!;
+              el.scrollTop = el.scrollHeight;
+              atBottom.current = true;
+              // A focus on the button goes to the newest message; where a click does not focus a button
+              // (Safari), the focus stays where it was, the composer.
+              if (document.activeElement === e.currentTarget) el.focus({ preventScroll: true });
+              setAway(false);
+            }}><Icon name="down" size={13} />Na nejnovější</button>
         </div>
       ) : null}
     </>
   );
 }
 
-function PersonTurn({ t }: { t: LeadTurn }) {
+/** What a typed start's card says beside the request (GET /lead): whether the wallet is on, and the
+ *  run a typed analysis retry would retry (the PM on #744). */
+const TypedCardFacts = createContext<{ walletOn: boolean; retryRun: RetryRun | null }>({ walletOn: false, retryRun: null });
+
+const retryRunWords = (run: RetryRun) =>
+  run.created_at ? `Běh z ${new Date(run.created_at).toLocaleString("cs-CZ", { day: "numeric", month: "numeric", hour: "2-digit", minute: "2-digit" })}` : "Poslední běh s AI analýzou";
+
+/** A person's message; a typed start (LO5) is followed by its card, theirs to approve, and then by
+ *  the job or run it started. */
+function PersonTurn({ t, canEdit, onRequest, studyId, cards, onOpenJob, job, run }: {
+  t: LeadTurn; canEdit: boolean; onRequest: (turn: LeadTurn, r: LeadRequest) => Promise<void>; studyId: string;
+  cards?: LeadCardsContext; onOpenJob?: (job: ResearchAgentJob) => void; job: ResearchAgentJob | null; run: ResearchRun | null;
+}) {
+  const facts = useContext(TypedCardFacts);
+  const command = t.command ? commandRequest(t) : null;
+  // A typed analysis retry is approved on the run its card names, never on a newer one unasked.
+  const typed = command?.kind === "analysis_retry" ? { ...command, run_id: facts.retryRun?.run_id } : command;
   return (
-    <div className="msg msg--user" data-msg={t.turn_id}>
-      {t.focus ? <div className="bubble__ref"><Icon name="at" size={12} />{t.focus.label}</div> : null}
-      <div className="bubble">{t.text}</div>
-      <div className="msgacts" role="group" aria-label="Akce zprávy"><span className="msgmeta">{time(t.created_at)}</span></div>
-    </div>
+    <>
+      <div className="msg msg--user" data-msg={t.turn_id}>
+        {t.focus ? <div className="bubble__ref"><Icon name="at" size={12} />{t.focus.label}</div> : null}
+        <div className="bubble">{t.text}</div>
+        <div className="msgacts" role="group" aria-label="Akce zprávy"><span className="msgmeta">{time(t.created_at)}</span></div>
+      </div>
+      {typed ? <RequestCard r={typed} typed approved={t.request_decision ?? null} onApprove={() => onRequest(t, typed)} canEdit={canEdit} /> : null}
+      {/* A job found already started is shown where it started, once; this card points to it. */}
+      {job && !t.request_decision?.reused ? <WorkerCardView job={job} studyId={studyId} onOpen={onOpenJob} onStage={cards?.onStage} onChanged={cards?.onJobsChanged} /> : null}
+      {run && cards && !t.request_decision?.reused ? <RunCardView run={run} studyId={studyId} stepHref={cards.stepHref} /> : null}
+    </>
   );
 }
 
@@ -359,7 +405,7 @@ function Prose({ text }: { text: string }) {
   })}</>;
 }
 
-const VIEW_LABEL = (v: LeadView) => (v.op === "open_stage" ? `Otevřít ${isWorkbenchStage(v.stage) ? STAGES[v.stage].label : v.stage}` : `Ukázat: ${targetLabel(v.target)}`);
+const VIEW_LABEL = (v: LeadView) => (v.op === "open_stage" ? `Otevřít ${isWorkbenchStage(v.stage) ? STAGES[v.stage].label : v.stage}` : `${v.op === "inspect" ? "Detail" : "Ukázat"}: ${targetLabel(v.target)}`);
 
 function LeadTurnView({ t, name, last, busy, onFollow, onView, onRequest, onSelfUpdate, canEdit, job, onOpenJob, studyId, cards, run }: {
   t: LeadTurn; name: string; last: boolean; busy: boolean; canEdit: boolean; job: ResearchAgentJob | null; onOpenJob?: (job: ResearchAgentJob) => void;
@@ -462,26 +508,44 @@ function SelfUpdate({ t, o, canEdit, onDecide }: { t: LeadTurn; o: LeadOutput; c
 const REQUEST_WORDS: Record<LeadRequest["kind"], { title: string; action: string }> = {
   agent_job: { title: "Návrhová úloha AI", action: "Spustit úlohu" },
   research_run: { title: "Spuštění výzkumu", action: "Otevřít Kontrolu a spuštění" },
+  analysis_retry: { title: "Opakování analýzy", action: "Zopakovat analýzu" },
   design_research: { title: "Hloubkový výzkum k návrhu", action: "Otevřít hloubkový výzkum" },
   interpretation_research: { title: "Hloubkový výzkum k výkladu", action: "Otevřít výklad výsledků" },
 };
 
-function RequestCard({ r, approved, onApprove, canEdit }: { r: LeadRequest; approved: { run_id: string } | null; onApprove: () => Promise<void>; canEdit: boolean }) {
+/** `typed`: the person's own typed start (LO5), started by its approval whatever its kind: a run
+ *  starts here on the deployment's run settings, under the same checks as Spuštění's. */
+const TYPED_RUN_WORDS = { title: "Spuštění výzkumu", action: "Spustit výzkum" };
+
+function RequestCard({ r, approved, onApprove, canEdit, typed = false }: { r: LeadRequest; approved: { run_id: string; reused?: boolean } | null; onApprove: () => Promise<void>; canEdit: boolean; typed?: boolean }) {
+  const { walletOn, retryRun } = useContext(TypedCardFacts);
   const [state, setState] = useState<"open" | "busy" | "done" | "kept">(approved ? "done" : "open");
-  const w = REQUEST_WORDS[r.kind];
-  const paid = r.kind === "agent_job";
+  const w = typed && r.kind === "research_run" ? TYPED_RUN_WORDS : REQUEST_WORDS[r.kind];
+  const paid = r.kind === "agent_job" || typed;
+  const decided = state === "done" || !!approved;
+  // Approved on what an earlier approval had already started for this design: nothing started.
+  const reused = !!approved?.reused;
   // As every card in the conversation reads (chunk 23): eyebrow, title with its state pill, the
   // Lead's why, the key facts as label/value rows, the actions on the right.
-  const pill = state === "done" ? { word: "Rozhodnuto", tone: "done" as const } : state === "kept" ? { word: "Ponecháno", tone: "inert" as const } : { word: paid ? "Čeká na schválení" : "Otevře krok", tone: "you" as const };
+  const pill = reused ? { word: "Už proběhlo", tone: "done" as const } : state === "done" ? { word: "Rozhodnuto", tone: "done" as const } : state === "kept" ? { word: "Ponecháno", tone: "inert" as const } : { word: paid ? "Čeká na schválení" : "Otevře krok", tone: "you" as const };
   return (
-    <div className="msg" data-card="request">
+    <div className="msg" data-card="request" data-typed={typed || undefined}>
       <div className={`dec${state === "done" || state === "kept" ? " is-decided" : ""}`}>
         <div className="dec__body">
-          {state === "done" || state === "kept" ? null : <p className="card__eyebrow">Rozhodnutí patří vám</p>}
+          {state === "done" || state === "kept" ? null : <p className="card__eyebrow">{typed ? "Váš příkaz" : "Rozhodnutí patří vám"}</p>}
           <div className="card__titlerow"><p className="dec__title">{w.title}</p><Pill word={pill.word} tone={pill.tone} /></div>
-          <p className="dec__reason">{r.why}</p>
-          <Facts facts={paid
-            ? [{ label: "Úloha", value: ACTION_LABELS[(r as { action: string }).action as keyof typeof ACTION_LABELS] ?? (r as { action: string }).action }, { label: "Platba", value: "z rozpočtu studie", sub: "Spustí se až vaším potvrzením." }]
+          {decided && r.why === TYPED_UNDECIDED_WHY ? null : <p className="dec__reason">{r.why}</p>}
+          <Facts facts={reused
+            ? [{ label: "Výsledek", value: r.kind === "research_run" ? "Tento návrh už běží nebo doběhl" : r.kind === "analysis_retry" ? "Analýza tohoto běhu se už opakuje" : "Tato úloha pro tento návrh už proběhla", sub: "Nic nového se nespustilo ani nezaplatilo; její karta je výše v konverzaci." }]
+            : r.kind === "analysis_retry"
+            // The stage's own retry (decision (b), 2026-10-22): no wallet charge, said in words.
+            ? [{ label: "Co se stane", value: "Znovu se zeptá jen modulů analýzy, které v posledním běhu selhaly", sub: "Nad daty, která běh už sebral; nová data se nesbírají. Práh potvrzení se kontroluje jako na Výsledcích." },
+              ...(decided ? [] : [{ label: "Který běh", value: retryRun ? retryRunWords(retryRun) : "Studie zatím nemá běh s AI analýzou" }]),
+              { label: "Platba", value: "z rozpočtu studie", ...(walletOn ? { sub: "Opakování analýzy se nestrhává z Peněženky." } : {}) }]
+            : typed && r.kind === "research_run"
+            ? [{ label: "Co se stane", value: "Spustí se výzkum s výchozím nastavením", sub: walletOn ? "Připravenost, práh potvrzení a Peněženka se kontrolují jako na Spuštění." : "Připravenost a práh potvrzení se kontrolují jako na Spuštění." }]
+            : paid
+            ? [{ label: "Úloha", value: ACTION_LABELS[(r as { action: string }).action as keyof typeof ACTION_LABELS] ?? (r as { action: string }).action }, { label: "Platba", value: "z rozpočtu studie", ...(decided ? {} : { sub: TYPED_UNDECIDED_WHY }) }]
             : [{ label: "Co se stane", value: "Otevře se krok, kde spuštění potvrdíte", sub: "Se všemi jeho kontrolami: připravenost, zodpověditelnost, limit útraty." }]} />
           {state === "open" ? (
             <div className="card__actions"><button type="button" className="btn btn--sm btn--quiet" onClick={() => setState("kept")}>Teď ne</button>
@@ -493,9 +557,12 @@ function RequestCard({ r, approved, onApprove, canEdit }: { r: LeadRequest; appr
   );
 }
 
-function Composer({ draft, setDraft, onSend, busy, queued, onUnqueue, disabled, focus, picking, onPick, onClearFocus }: {
+function Composer({ draft, setDraft, onSend, busy, queued, onUnqueue, disabled, hint, focus, picking, onPick, onClearFocus }: {
   draft: string; setDraft: (v: string) => void; onSend: (t: string) => void; busy: boolean;
-  queued: string[]; onUnqueue: (i: number) => void; disabled: boolean; focus: { id: string; label: string } | null;
+  queued: string[]; onUnqueue: (i: number) => void; disabled: boolean;
+  /** Why the composer is shut, in its own field (composerHint); null while it is open. */
+  hint: string | null;
+  focus: { id: string; label: string } | null;
   picking: boolean; onPick: () => void; onClearFocus: () => void;
 }) {
   const ta = useRef<HTMLTextAreaElement>(null);
@@ -510,10 +577,10 @@ function Composer({ draft, setDraft, onSend, busy, queued, onUnqueue, disabled, 
           ))}
         </div>
       ) : null}
-      {focus ? <div className="refchip"><Icon name="at" size={12} /><b>{focus.label}</b><button type="button" className="iconbtn" style={{ width: 20, height: 20 }} aria-label="Zrušit odkaz" onClick={onClearFocus}><Icon name="close" size={11} /></button></div> : null}
+      {focus ? <div className="refchip"><Icon name="at" size={12} /><b>{focus.label}</b><button type="button" className="iconbtn refchip__clear" aria-label="Zrušit odkaz" onClick={onClearFocus}><Icon name="close" size={11} /></button></div> : null}
       <div className="composer">
         <label className="sr-only" htmlFor="composer">Napište Vedoucímu výzkumu</label>
-        <textarea id="composer" ref={ta} rows={1} value={draft} disabled={disabled} placeholder={focus ? "Co se má změnit? Např. „kratší“, „přejmenovat na …“" : "Napište Vedoucímu výzkumu…"}
+        <textarea id="composer" ref={ta} rows={1} value={draft} disabled={disabled} placeholder={disabled && hint ? hint : focus ? "Co se má změnit? Např. „kratší“, „přejmenovat na …“" : "Napište Vedoucímu výzkumu…"}
           onChange={(e) => { setDraft(e.target.value); e.target.style.height = "auto"; e.target.style.height = `${Math.min(180, e.target.scrollHeight)}px`; }}
           onKeyDown={(e) => {
             if (e.nativeEvent.isComposing) return;

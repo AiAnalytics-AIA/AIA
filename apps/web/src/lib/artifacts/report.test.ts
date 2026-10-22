@@ -9,7 +9,7 @@ import { describe, expect, it } from "vitest";
 import { parseAiaId } from "@/lib/workbench-artifacts";
 
 import {
-  blockTarget, claimLines, claimTarget, gradeWords, readDocument, reviewWords, sectionTarget,
+  approvalWords, blockTarget, claimLines, claimTarget, gradeWords, readDocument, reviewWords, sectionTarget,
   supportWords, unresolvedRefs, valueWords, type LedgerEntry, type ReportDocumentModel,
 } from "./report";
 
@@ -26,13 +26,14 @@ describe("readDocument", () => {
     expect(doc.sections.at(-1)?.id).toBe("ch-shared");
   });
 
-  it("reads -2, which only adds sources and unread (CHN1)", () => {
+  it("reads -2 and -3, which only add sources and unread (CHN1) and each entry's level (RD0)", () => {
     expect(readDocument({ ...(FIXTURE as object), contract: "aia-report-document-2", unread: [] })).not.toBeNull();
+    expect(readDocument({ ...(FIXTURE as object), contract: "aia-report-document-3", unread: [] })).not.toBeNull();
   });
 
   it("refuses another contract, never reading it in part", () => {
     expect(readDocument({ ...(FIXTURE as object), contract: "aia-report-document-0" })).toBeNull();
-    expect(readDocument({ ...(FIXTURE as object), contract: "aia-report-document-3" })).toBeNull();
+    expect(readDocument({ ...(FIXTURE as object), contract: "aia-report-document-4" })).toBeNull();
     expect(readDocument({ ...(FIXTURE as object), sections: undefined })).toBeNull();
     expect(readDocument(null)).toBeNull();
     expect(readDocument("text")).toBeNull();
@@ -109,4 +110,31 @@ describe("the document's refs", () => {
 it("names the DOCX's review", () => {
   expect(reviewWords({ review_state: "DRAFT_UNAPPROVED" })).toBe("neschváleno");
   expect(reviewWords({ review_state: "APPROVED_INTERNAL" })).toBe("interně schváleno");
+  // One stored state, the client's words for the client report (RPT3a).
+  expect(reviewWords({ review_state: "APPROVED_INTERNAL" }, "client")).toBe("schváleno k předání klientovi");
+  expect(reviewWords({ review_state: "DRAFT_UNAPPROVED" }, "client")).toBe("neschváleno");
+});
+
+describe("who approved, in words (RD2)", () => {
+  const base = {
+    approved_at: "2026-10-21T23:30:00+00:00", approver_name: "Fiktivní Recenzentka", by_you: false,
+    self_approved: false, self_approval_allowed: true, self_approval_source: "default", note: "",
+  };
+
+  it("names the approver and the server's day, never one the browser works out", () => {
+    // 23:30 UTC is 22. 10. in Prague; the server's approved_on says so, and it is the one used.
+    expect(approvalWords(base, "2026-10-22")).toBe("schválil(a) Fiktivní Recenzentka 22. 10. 2026");
+    expect(approvalWords(base, null)).toBe("schválil(a) Fiktivní Recenzentka neznámého dne");
+  });
+
+  it("speaks to the asker, names no one without a name, and says one's own work", () => {
+    expect(approvalWords({ ...base, by_you: true }, "2026-10-22")).toBe("schválili jste 22. 10. 2026");
+    expect(approvalWords({ ...base, approver_name: null }, "2026-10-22")).toBe("schválil(a) člen bez jména 22. 10. 2026");
+    expect(approvalWords({ ...base, self_approved: true }, "2026-10-22")).toBe("schválil(a) Fiktivní Recenzentka 22. 10. 2026 · vlastní práce");
+  });
+
+  it("says nothing for a draft", () => {
+    expect(approvalWords(null, null)).toBeNull();
+    expect(approvalWords(undefined, "2026-10-22")).toBeNull();
+  });
 });

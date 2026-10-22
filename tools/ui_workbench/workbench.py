@@ -6,6 +6,9 @@
     python tools/ui_workbench/workbench.py up --fresh  # also reset the API's (and the unit's) state
     python tools/ui_workbench/workbench.py up --with-unit  # and the 18.6.6 unit beside it, as
                                                        # the reference (ADR 0018)
+    python tools/ui_workbench/workbench.py up --population-double  # the API over the fictional
+                                                       # population double, the panel offered:
+                                                       # Vzorek's sample by quota cell; runs park
 
 Four processes, all under tmp/ui-workbench/ (git-ignored), and a fifth on request:
 
@@ -16,6 +19,7 @@ Four processes, all under tmp/ui-workbench/ (git-ignored), and a fifth on reques
              fieldwork source, ADR 0016), so a research run finishes here, and
              Deep Research on fixtures/deep_research/ (recorded web, scripted agents)
     web      `next dev` for apps/web                            127.0.0.1:13000
+             (with --production: `next build`, then its standalone server, for timing)
     facade   routes like the develop Caddyfile, minus the gates 127.0.0.1:8780
     unit     with --with-unit only: the vendored ui_server.py on a scratch copy of
              app/, fictional panel (unit_standin.py)             127.0.0.1:8767
@@ -60,6 +64,10 @@ STATE = HOME / "state.json"
 
 UNIT_PORT, API_PORT, WEB_PORT, FACADE_PORT = 8767, 8766, 13000, 8780
 WITH_UNIT = HOME / "with-unit"
+POPULATION_DOUBLE = HOME / "population-double"
+# The web client as a production build: what a journey's latency budget is measured on. `next dev`
+# compiles on demand and runs dev-only checks, so a timed interaction there measures the dev server.
+PRODUCTION = HOME / "production"
 NAMES = ("unit", "api", "worker", "web", "facade")
 DB = HOME / "aia.sqlite"
 ARTIFACTS = HOME / "artifacts"
@@ -175,12 +183,49 @@ def _wait(url: str, what: str, seconds: int) -> tuple[int, dict[str, str]]:
     raise SystemExit(f"workbench: {what} did not answer at {url} within {seconds}s; see {LOGS}")
 
 
-def up(fresh: bool, with_unit: bool = False) -> int:
+def _production_web() -> list[str]:
+    """Build apps/web and return the argv of its standalone server (output: "standalone"), with
+    the static files and public/ beside it as `next start` would serve them."""
+    LOGS.mkdir(parents=True, exist_ok=True)
+    with (LOGS / "web-build.log").open("ab") as log:
+        subprocess.run(
+            [str(WEB / "node_modules" / ".bin" / "next"), "build"],
+            cwd=WEB,
+            env={**os.environ, "NEXT_TELEMETRY_DISABLED": "1"},
+            stdout=log,
+            stderr=subprocess.STDOUT,
+            check=True,
+        )
+    standalone = WEB / ".next" / "standalone"
+    # This build's files only: a previous build's hashed chunks are not left servable beside them.
+    shutil.rmtree(standalone / ".next" / "static", ignore_errors=True)
+    shutil.rmtree(standalone / "public", ignore_errors=True)
+    shutil.copytree(WEB / ".next" / "static", standalone / ".next" / "static")
+    shutil.copytree(WEB / "public", standalone / "public")
+    return ["node", str(standalone / "server.js")]
+
+
+def up(
+    fresh: bool, with_unit: bool = False, population_double: bool = False, production: bool = False
+) -> int:
     HOME.mkdir(parents=True, exist_ok=True)
     state = {k: v for k, v in _read_state().items() if _alive(v)}
-    if with_unit != WITH_UNIT.exists() and state:
+    mode = (with_unit, population_double, production)
+    if mode != (WITH_UNIT.exists(), POPULATION_DOUBLE.exists(), PRODUCTION.exists()) and state:
         print("workbench: running in the other mode; `down` first", file=sys.stderr)
         return 1
+    if population_double:
+        POPULATION_DOUBLE.write_text("the API composes the fictional population double\n")
+    else:
+        POPULATION_DOUBLE.unlink(missing_ok=True)
+    # Built before anything is started, so a failed build leaves no process behind, and marked only
+    # once it succeeded. A web client already running is kept as it is: `down` to rebuild.
+    PRODUCTION.unlink(missing_ok=True)
+    production_web = _production_web() if production and "web" not in state else None
+    if production:
+        if production_web is None:
+            print("workbench: the web client is already running; `down` first to rebuild it")
+        PRODUCTION.write_text("the web client is a production build (next build, standalone)\n")
     if fresh:
         for name in ("unit", "api", "worker"):
             if name in state:
@@ -208,10 +253,21 @@ def up(fresh: bool, with_unit: bool = False) -> int:
                 "--artifacts",
                 str(ARTIFACTS),
                 "--fieldwork",
-                "synthetic_fixture",
             ]
+            + (
+                ["ai_runtime", "--population-double"]
+                if population_double
+                else ["synthetic_fixture"]
+            )
             + (["--fresh"] if fresh else []),
             REPO,
+        )
+    if "web" not in state and production_web is not None:
+        state["web"] = _spawn(
+            "web",
+            production_web,
+            WEB / ".next" / "standalone",
+            {"NEXT_TELEMETRY_DISABLED": "1", "PORT": str(WEB_PORT), "HOSTNAME": "127.0.0.1"},
         )
     if "web" not in state:
         state["web"] = _spawn(
@@ -302,6 +358,8 @@ def down() -> int:
             _stop(name, pid)
     STATE.unlink(missing_ok=True)
     WITH_UNIT.unlink(missing_ok=True)
+    POPULATION_DOUBLE.unlink(missing_ok=True)
+    PRODUCTION.unlink(missing_ok=True)
     return 0
 
 
@@ -336,11 +394,21 @@ def main(argv: list[str]) -> int:
         action="store_true",
         help="also start the 18.6.6 unit on its own port, as the reference (ADR 0018)",
     )
+    p_up.add_argument(
+        "--population-double",
+        action="store_true",
+        help="the API over the fictional population double, the panel offered (runs park)",
+    )
+    p_up.add_argument(
+        "--production",
+        action="store_true",
+        help="the web client as a production build (next build + standalone), for timed journeys",
+    )
     sub.add_parser("down")
     sub.add_parser("status")
     args = ap.parse_args(argv)
     if args.cmd == "up":
-        return up(args.fresh, args.with_unit)
+        return up(args.fresh, args.with_unit, args.population_double, args.production)
     if args.cmd == "down":
         return down()
     return status()

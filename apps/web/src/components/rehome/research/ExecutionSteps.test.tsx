@@ -4,19 +4,35 @@
 // say, start one run over that revision, explain a run waiting for the AI
 // runtime, hide a suppressed cell's numbers, label fictional data every time, and
 // keep the internal Sociomap internal.
-import { cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
+import { act, cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, onTestFinished, vi } from "vitest";
 
 import { t, tv } from "@/i18n/t";
 import type { ResearchRun } from "@/lib/api";
 import { AnalysisInspect } from "./AnalysisInspect";
+import { ItemInspectorContext } from "@/components/workbench/item-inspector-context";
 import { measureAnchor } from "@/lib/result-reading";
+import { parseAiaId } from "@/lib/workbench-artifacts";
 import { CONFLICT_MESSAGE } from "@/research/store";
-import { RunResults } from "./ExecutionSteps";
+import { RunResults, fixStep } from "./ExecutionSteps";
+import { REPORT_APPROVED, type ReportApproved } from "./ReportDocumentView";
 import { StudyFrameProvider } from "./frame";
 import { ResearchScreen, ResearchSession } from "./ResearchScreen";
 import { CONTENT_PATH, workspaceFixture } from "./test-workspace";
 import { TEST_FRAME, stagePath } from "./test-frame";
+
+/** Approval asks first, naming the version (input-interactions B22); answer yes. */
+async function confirmApproval(version?: string): Promise<void> {
+  const dialog = await screen.findByRole("dialog");
+  if (version) expect(dialog.textContent).toContain(`uloženou verzi ${version} (`);
+  fireEvent.click(within(dialog).getByRole("button", { name: t("research.exec.report.approveAsk.yes") }));
+}
+
+/** An approval made in the document pane's doc bar (RPT3a), as the pane announces it. */
+function approvedInPane(d: Partial<ReportApproved> & Pick<ReportApproved, "kind" | "artifactId">): void {
+  const detail: ReportApproved = { runId: "RUN-1", reviewState: "APPROVED_INTERNAL", approvedOn: null, stamped: null, ...d };
+  window.dispatchEvent(new CustomEvent(REPORT_APPROVED, { detail }));
+}
 
 const push = vi.fn();
 const replace = vi.fn();
@@ -160,6 +176,23 @@ afterEach(() => {
   // Every test here also proves the screen reached nothing of the 18.6.6 unit (ADR 0018).
   expect(calls.filter((c) => !c.url.startsWith("/api/v1/") && c.url !== "/config").map((c) => c.url)).toEqual([]);
   sessionStorage.clear();
+});
+
+describe("fixStep", () => {
+  it("sends each readiness check to the stage where it is fixed", () => {
+    // The ids the domain's readiness emits (research_design.assess_readiness, support_forecast,
+    // research_trace), a prefixed one standing for its kind; n and its support live on Dimenze,
+    // the audience on its own stage.
+    const where = {
+      sample_size: "persona", support_forecast: "persona", sociomap_support: "persona", dimensions: "persona",
+      audience: "audience",
+      questionnaire: "questionnaire", conditional_questions: "questionnaire", battery_familiarity: "questionnaire",
+      sociomap_input: "questionnaire", research_question_coverage: "questionnaire", "compile:invalid_scale:q1": "questionnaire", "battery_size:b1": "questionnaire",
+    };
+    for (const [id, step] of Object.entries(where)) expect([id, fixStep(id)]).toEqual([id, step]);
+    // An id that names an Object.prototype member is an unknown check, never a function.
+    expect(fixStep("constructor")).toBe("questionnaire");
+  });
 });
 
 describe("Run", () => {
@@ -881,7 +914,10 @@ describe("Run: what a run can cost (5b.2)", () => {
     expect((within(choice).getByRole("radio", { name: t("research.exec.population.live") }) as HTMLInputElement).checked).toBe(true);
 
     fireEvent.click(within(choice).getAllByRole("radio")[1]);
-    fireEvent.click(await screen.findByRole("button", { name: t("research.exec.start") }));
+    // The checks are read again over the child, so readiness and the start forecast one population.
+    await waitFor(() => expect(called("GET", "/api/v1/studies/STU-1/research/readiness").at(-1)!.url).toContain("population_version_id=ochota"));
+    await waitFor(() => expect((screen.getByRole("button", { name: t("research.exec.start") }) as HTMLButtonElement).disabled).toBe(false));
+    fireEvent.click(screen.getByRole("button", { name: t("research.exec.start") }));
     await waitFor(() => expect(called("POST", RUNS)).toHaveLength(1));
     expect(called("POST", RUNS)[0].body).toEqual({ design_revision_id: "REV-a1", population_version_id: "ochota" });
   });
@@ -1118,7 +1154,7 @@ describe("Progress", () => {
     expect(within(card).getByText(t(`${R}.unrecorded`))).toBeTruthy();
   });
 
-  it("keeps both sides of a mismatch in view, the stored origin code beside the pinned source (artifact-fieldwork FLD7)", async () => {
+  it("keeps both sides of a mismatch in view, the stored origin code beside the pinned source, pointable by the Lead (artifact-fieldwork FLD7)", async () => {
     api(listed(run({ ...COMPLETED, persona_source: "panel" })));
     render(<ResearchScreen step="progress" frame={TEST_FRAME} />);
     const R = "research.exec.respondents.receipt";
@@ -1127,6 +1163,10 @@ describe("Progress", () => {
     // Named, never resolved: the pinned panel, what the data say, and the code as stored.
     expect(value(t(`${R}.source`))).toBe(`${t("research.exec.respondents.panel")} · ${t(`${R}.observed.SIMULATED`)}`);
     expect(value(t(`${R}.origin`))).toBe("SYNTHETIC_FIXTURE");
+    // Pointable by the Lead: the mark parses as the fieldwork stage's receipt (#618).
+    const mark = card.closest("[data-aia]")?.getAttribute("data-aia");
+    expect(mark).toBe("receipt:respondents");
+    expect(parseAiaId(mark!)).toEqual({ kind: "receipt", id: "respondents", stage: "fieldwork" });
   });
 
   it("says the data's origin is not yet stored while fieldwork has not stored it", async () => {
@@ -1261,7 +1301,11 @@ describe("Progress", () => {
     expect(panel.dataset.stepActivity).toBe("open");
     expect(panel.querySelector<HTMLElement>("[data-orb]")?.style.width).toBe("64px");
     const log = await within(panel).findByRole("log");
-    expect(within(log).getAllByRole("listitem").map((l) => l.textContent?.replace(/^[\d:]+/, ""))).toEqual([
+    // The log's times are the time alone, so its first entry of a day is headed by that day.
+    const items = within(log).getAllByRole("listitem");
+    expect(items[0].hasAttribute("data-day")).toBe(true);
+    expect(items[0].textContent).toBe("25. září 2026");
+    expect(items.filter((l) => !l.hasAttribute("data-day")).map((l) => l.textContent?.replace(/^[\d:]+/, ""))).toEqual([
       "Worker krok převzal",
       "AI respondenti odpověděli · 40 z 300 respondentů",
       "Model odpověděl · 1200 → 380 tokenů · $0.004 · 3.2 s",
@@ -1517,6 +1561,17 @@ describe("Progress", () => {
 });
 
 describe("Results", () => {
+  it("shows who answered without the receipt's Lead mark: Výsledky's row names measures alone (#618)", async () => {
+    api({ ...listed(COMPLETED),
+      "GET /api/v1/studies/STU-1/research/runs/RUN-1/artifacts/ART-4": () => AGGREGATE,
+      "GET /api/v1/studies/STU-1/research/runs/RUN-1/artifacts/ART-5": () => SOCIOMAP,
+    });
+    render(<ResearchScreen step="results" frame={TEST_FRAME} />);
+    const card = (await screen.findByRole("heading", { name: t("research.exec.respondents.receipt.title") })).closest("section") as HTMLElement;
+    expect(card.closest("[data-aia]")).toBeNull();
+    expect(document.querySelector('[data-aia^="receipt:"]')).toBeNull();
+  });
+
   it("explains a failed run load and retries instead of leaving Results loading forever", async () => {
     let failed = true;
     api({ ...listed(COMPLETED),
@@ -1547,6 +1602,8 @@ describe("Results", () => {
     fireEvent.click(screen.getByRole("button", { name: t("research.retry") }));
     expect(await screen.findByText(t("research.exec.noResults"))).toBeTruthy();
     expect(screen.queryByText("Výsledky se nepodařilo načíst.")).toBeNull();
+    // No run, so no word about "this run's" report (workbench audit, 2026-10-22).
+    expect(screen.queryByText(t("research.exec.results.reportNotInAia"))).toBeNull();
   });
 
   it("keeps the neutral analysis note while no module has stored an outcome, never 'unknown origin'", async () => {
@@ -1622,9 +1679,13 @@ describe("Results", () => {
     const blocked = screen.getByRole("button", { name: /Výzkumné otázky.*Potřebuje opravu/ });
     fireEvent.click(blocked);
     expect(screen.getByText(/Výstup této části neprošel kontrolou/)).toBeTruthy();
-    const diagnostic = screen.getByText("Technické důvody odmítnutí").closest("details");
+    // The refusal in words on the surface; its code, subject and detail only in a closed fold.
+    const pane = screen.getByRole("region", { name: "Výzkumné otázky" });
+    expect(within(pane).getByText(/odpověď modelu neodpovídala předepsanému tvaru/)).toBeTruthy();
+    const diagnostic = within(pane).getByText("Technické podrobnosti").closest("details");
     expect(diagnostic?.open).toBe(false);
-    expect(within(diagnostic!).getByText(/SCHEMA_INVALID: Input should be a valid array/)).toBeTruthy();
+    expect(diagnostic?.textContent).toContain("research_question_answers: Input should be a valid array");
+    expect(pane.textContent?.replace(diagnostic?.textContent ?? "", "")).not.toContain("SCHEMA_INVALID");
   });
 
   it("says an analysis an earlier version of AIA built cannot be shown, and where it is repaired, not 'try again' (PC3)", async () => {
@@ -1692,10 +1753,87 @@ describe("Results", () => {
     expect(rows[1].textContent).toContain("bez doložené odpovědi");
     expect(rows[1].textContent).toContain("Při spuštění běh zaznamenal");
     // A finding on the same measure is linked to where it is shown, and carries its Lead target.
-    const link = within(rows[0] as HTMLElement).getByRole("link");
-    expect(link.getAttribute("href")).toBe("#analysis-finding-research_questions-0");
+    expect(rows[0].querySelector("[data-finding-chip]")?.getAttribute("data-finding-chip")).toBe("research_questions:0");
     expect(document.getElementById("analysis-finding-research_questions-0")?.getAttribute("data-aia")).toBe("finding:research_questions:0");
     expect(rows[2].textContent).toContain("Odpověď necituje žádné připuštěné číslo.");
+    // The run's fieldwork step ("run") succeeded: Sběr dokončen, never "čeká" (ANL8 audit, F1).
+    const milestones = [...document.querySelectorAll("[data-analysis-milestones] li")];
+    expect(milestones[0].textContent).toContain("Sběr dokončen");
+    expect(milestones[0].getAttribute("data-done")).toBe("true");
+    // A finding chip brings the finding into view without a hash: a hash naming no view sends the
+    // workspace back to Přehled (ANL8 audit, F4).
+    const before = window.location.hash;
+    const finding = document.getElementById("analysis-finding-research_questions-0") as HTMLElement;
+    finding.scrollIntoView = () => {};
+    fireEvent.click(within(rows[0] as HTMLElement).getByRole("button", { name: /1$/ }));
+    expect(window.location.hash).toBe(before);
+    expect(document.activeElement).toBe(finding);
+  });
+
+  it("opens a finding and a cited number in the workbench's inspector, from the coverage, the finding and its chip (ANL3)", async () => {
+    const analysed = run({ ...COMPLETED, steps: [...COMPLETED.steps,
+      step("analysis_research_questions", "SUCCEEDED", { kind: "research_analysis", artifact_id: "ART-7", analysis_outcome: "COMPLETED" }),
+    ] });
+    api({ ...listed(analysed),
+      "GET /api/v1/studies/STU-1/research/runs/RUN-1/artifacts/ART-4": () => AGGREGATE,
+      "GET /api/v1/studies/STU-1/design/revisions/REV-a1": () => ({ revision_id: "REV-a1", content: { research_plan: { research_questions: ["Co lidé pijí?"] } } }),
+      "GET /api/v1/studies/STU-1/research/runs/RUN-1/analysis": () => ({ complete: false, synthetic: true, pending: {}, modules: {
+        research_questions: { outcome: "COMPLETED", summary: null, violations: [],
+          research_question_answers: [{ question: "Co lidé pijí?", answer: "Čaj.", claim_ids: ["C1"] }],
+          key_findings: [{ text: "Čaj vede.", claim_ids: ["C1"] }],
+          claims: [{ claim_id: "C1", evidence_ref: "q2.pct.2", value: 38.4, indicative: false, data_origin: null }] },
+      } }),
+    });
+    const opened: string[] = [];
+    const inspector = { open: (entry: { id: string }) => { opened.push(entry.id); return true; }, closeWhere: () => {} };
+    render(<ItemInspectorContext.Provider value={inspector}><ResearchScreen step="results" frame={TEST_FRAME} /></ItemInspectorContext.Provider>);
+    fireEvent.click(await screen.findByRole("tab", { name: "AI analýza" }));
+    const table = await screen.findByRole("region", { name: "Pokrytí výzkumných otázek" });
+    const chip = await within(table).findByRole("button", { name: /1$/ });
+    const before = document.activeElement;
+    fireEvent.click(chip);
+    // The drawer takes it: the page neither scrolls nor moves focus to the finding.
+    expect(document.activeElement).toBe(before);
+    const keyFindings = screen.getByRole("region", { name: "Hlavní zjištění" });
+    fireEvent.click(within(keyFindings).getByRole("button", { name: /^Otevřít .*zjištění 1 v inspektoru$/ }));
+    const number = keyFindings.querySelector("[data-inspect-claim]") as HTMLElement;
+    expect(number.tagName).toBe("BUTTON");
+    fireEvent.click(number);
+    expect(opened).toEqual(["finding:research_questions:0", "finding:research_questions:0", "claim:research_questions:C1"]);
+    // The Lead's targets stay where they were: one element each.
+    expect(document.querySelectorAll('[data-aia="claim:research_questions:C1"]')).toHaveLength(1);
+    expect(document.querySelectorAll('[data-aia="finding:research_questions:0"]')).toHaveLength(1);
+    // A run that pinned no Design Research shows no register (ANL5).
+    expect(screen.queryByRole("region", { name: "Externí kontext" })).toBeNull();
+  });
+
+  it("lists the Design Research the modules were shown as Externí kontext, with its sources and no claim chip (ANL5)", async () => {
+    const analysed = run({ ...COMPLETED, steps: [...COMPLETED.steps,
+      step("analysis_executive", "SUCCEEDED", { kind: "research_analysis", artifact_id: "ART-6", analysis_outcome: "COMPLETED" }),
+    ] });
+    api({ ...listed(analysed),
+      "GET /api/v1/studies/STU-1/research/runs/RUN-1/artifacts/ART-4": () => AGGREGATE,
+      "GET /api/v1/studies/STU-1/research/runs/RUN-1/analysis": () => ({ complete: false, synthetic: true, pending: {},
+        external_context: { deep_research_run_id: "DR-1", items: [
+          { evidence_id: "EV-1", claim: "Spotřeba rostlinných nápojů vzrostla o 12,5 %.", source: "https://www.stat.example/napoje" },
+          { evidence_id: "EV-2", claim: "Ze znalostí klienta.", source: "javascript:alert(1)" },
+        ] },
+        modules: { executive: { outcome: "COMPLETED", summary: null, violations: [], research_question_answers: [], key_findings: [{ text: "Čaj vede.", claim_ids: [] }], claims: [] } } }),
+    });
+    render(<ResearchScreen step="results" frame={TEST_FRAME} />);
+    fireEvent.click(await screen.findByRole("tab", { name: "AI analýza" }));
+    const register = await screen.findByRole("region", { name: "Externí kontext" });
+    const items = register.querySelectorAll("[data-external-item]");
+    expect(items).toHaveLength(2);
+    expect(items[0].textContent).toContain("Spotřeba rostlinných nápojů vzrostla o 12,5 %.");
+    expect(within(items[0] as HTMLElement).getByText("Externí kontext")).toBeTruthy();
+    // A source links only as an http(s) address; anything else stays text.
+    const link = within(items[0] as HTMLElement).getByRole("link", { name: "stat.example" });
+    expect(link.getAttribute("href")).toBe("https://www.stat.example/napoje");
+    expect(link.getAttribute("rel")).toBe("noopener noreferrer");
+    expect(within(items[1] as HTMLElement).queryByRole("link")).toBeNull();
+    // Context is never evidence: no claim chip and no Lead target in the register.
+    expect(register.querySelector("[data-cited-number], [data-aia]")).toBeNull();
   });
 
   it("says the research questions are unknown when the frozen design cannot be read, never that it has none (ANL2)", async () => {
@@ -1718,6 +1856,88 @@ describe("Results", () => {
     expect(section.querySelectorAll("tr[data-rq]")).toHaveLength(0);
   });
 
+  it("reads a failed retryable read as unknown, and words a suppression by every cause it has (ANL4)", async () => {
+    const analysed = run({ ...COMPLETED, steps: [...COMPLETED.steps,
+      step("analysis_audience", "SUCCEEDED", { kind: "research_analysis", artifact_id: "ART-8", analysis_outcome: "BLOCKED" }),
+    ] });
+    api({ ...listed(analysed),
+      "GET /api/v1/studies/STU-1/research/runs/RUN-1/artifacts/ART-4": () => AGGREGATE,
+      "GET /api/v1/studies/STU-1/research/runs/RUN-1/analysis": () => ({ complete: false, synthetic: true, pending: {}, modules: {
+        // Every row removed because its question was refused for fidelity, not for thin support.
+        audience: { outcome: "BLOCKED", summary: null, research_question_answers: [], key_findings: [], claims: [], violations: [
+          { code: "SUPPORT_SUPPRESSED", subject: "preflight", detail: "no citable evidence: all 4 rows were removed (thin support, a refused question, or an estimate without its interval)" },
+        ] },
+      } }),
+      "GET /api/v1/studies/STU-1/research/runs/RUN-1/analysis/retryable": () => { throw new Error("409 conflict"); },
+    });
+    render(<ResearchScreen step="results" frame={TEST_FRAME} />);
+    fireEvent.click(await screen.findByRole("tab", { name: "AI analýza" }));
+    const blocked = await screen.findByRole("region", { name: "Blokované nároky" });
+    const audience = blocked.querySelector('[data-blocked-module="audience"]') as HTMLElement;
+    // A list that could not be read promises nothing: never "the same data would refuse it again".
+    await waitFor(() => expect(audience.getAttribute("data-way-out")).toBe("unknown"));
+    expect(audience.textContent).not.toContain("neopraví");
+    // The words name every cause the preflight groups under one code, not "too few respondents" alone.
+    expect(audience.textContent).toContain("odmítnutá otázka");
+    expect(audience.textContent).not.toContain("příliš málo respondentů");
+  });
+
+  it("names each blocked module's refusals in words with the way out the server gives, and never reads it as done (ANL4)", async () => {
+    const analysed = run({ ...COMPLETED, steps: [...COMPLETED.steps,
+      step("analysis_executive", "SUCCEEDED", { kind: "research_analysis", artifact_id: "ART-6", analysis_outcome: "COMPLETED" }),
+      step("analysis_audience", "SUCCEEDED", { kind: "research_analysis", artifact_id: "ART-8", analysis_outcome: "BLOCKED" }),
+      step("analysis_hypotheses", "SUCCEEDED", { kind: "research_analysis", artifact_id: "ART-9", analysis_outcome: "BLOCKED" }),
+    ] });
+    const blockedAnalysis = () => ({ complete: false, synthetic: true, pending: {}, modules: {
+      executive: { outcome: "COMPLETED", summary: null, research_question_answers: [], key_findings: [], claims: [], violations: [] },
+      // Refused by the preflight before any model turn: the server does not list it as retryable.
+      audience: { outcome: "BLOCKED", summary: null, research_question_answers: [], key_findings: [], claims: [], violations: [
+        { code: "JOINT_CERTIFICATE_DEGRADED", subject: "core", detail: "certificate degraded" },
+      ] },
+      hypotheses: { outcome: "BLOCKED", summary: null, research_question_answers: [], key_findings: [], claims: [], violations: [
+        { code: "EVIDENCE_REF_UNKNOWN", subject: "c1", detail: "q9.mean" },
+        { code: "EVIDENCE_REF_UNKNOWN", subject: "c2", detail: "q7.mean" },
+        { code: "NOT_A_KNOWN_CODE", subject: "summary", detail: "x" },
+      ] },
+    } });
+    api({ ...listed(analysed),
+      "GET /api/v1/studies/STU-1/research/runs/RUN-1/artifacts/ART-4": () => AGGREGATE,
+      "GET /api/v1/studies/STU-1/research/runs/RUN-1/analysis": blockedAnalysis,
+      "GET /api/v1/studies/STU-1/research/runs/RUN-1/analysis/retryable": () => ({ run_id: "RUN-1", modules: ["hypotheses"] }),
+    });
+    render(<ResearchScreen step="results" frame={TEST_FRAME} />);
+    fireEvent.click(await screen.findByRole("tab", { name: "AI analýza" }));
+    const blocked = await screen.findByRole("region", { name: "Blokované nároky" });
+    const hypotheses = blocked.querySelector('[data-blocked-module="hypotheses"]') as HTMLElement;
+    expect(hypotheses.textContent).toContain("Potřebuje opravu");
+    // Each reason once, in words, counted; each subject beside its own detail; a code without words keeps its code.
+    expect(hypotheses.querySelectorAll("[data-violation]")).toHaveLength(2);
+    expect(within(hypotheses).getByText(/cituje číslo, které v datech běhu není/)).toBeTruthy();
+    expect(hypotheses.textContent).toContain("(2×)");
+    expect([...hypotheses.querySelectorAll('[data-violation="EVIDENCE_REF_UNKNOWN"] details li')].map((li) => li.textContent)).toEqual(["c1: q9.mean", "c2: q7.mean"]);
+    expect(hypotheses.textContent).toContain("NOT_A_KNOWN_CODE");
+    expect(blocked.querySelector('[data-blocked-module="executive"]')).toBeNull();
+    // The way out is the server's: a retry only for what it lists; the preflight's refusal is said not to pass again.
+    await waitFor(() => expect(hypotheses.getAttribute("data-way-out")).toBe("retry"));
+    expect(blocked.querySelector('[data-blocked-module="audience"]')?.getAttribute("data-way-out")).toBe("same_data_fails");
+    expect(within(blocked).getByRole("link", { name: "Zobrazit průběh běhu" })).toBeTruthy();
+    // The module list never says it is done, and its pane words the refusals the same way.
+    const entry = screen.getByRole("button", { name: /Hypotézy/ });
+    expect(entry.textContent).toContain("Potřebuje opravu");
+    expect(entry.textContent).not.toMatch(/Dokončeno|Hotovo/);
+    fireEvent.click(entry);
+    const pane = screen.getByRole("region", { name: "Hypotézy" });
+    expect(within(pane).getByText(/cituje číslo, které v datech běhu není/)).toBeTruthy();
+    expect(pane.textContent).not.toMatch(/EVIDENCE_REF_UNKNOWN:/);
+    cleanup();
+    // On a frame that may not edit, nothing offers a round the reader cannot ask for.
+    render(<ResearchScreen step="results" frame={{ ...TEST_FRAME, canEdit: false }} />);
+    fireEvent.click(await screen.findByRole("tab", { name: "AI analýza" }));
+    const readOnly = await screen.findByRole("region", { name: "Blokované nároky" });
+    expect(readOnly.querySelector("[data-way-out]")).toBeNull();
+    expect(within(readOnly).queryByRole("link")).toBeNull();
+  });
+
   it("puts every module's key findings first, each with the numbers it cites, and keeps every word formatted", async () => {
     const analysed = run({ ...COMPLETED, steps: [...COMPLETED.steps,
       step("analysis_executive", "SUCCEEDED", { kind: "research_analysis", artifact_id: "ART-6" }),
@@ -1734,7 +1954,7 @@ describe("Results", () => {
         executive: { outcome: "COMPLETED", summary: "Úvodní odstavec.\n\n- první bod\n- druhý bod", research_question_answers: [{ question: "Co lidé pijí?", answer: "Hlavně čaj a kávu.", claim_ids: ["C2"] }],
           key_findings: [{ text: "Čaj a káva jsou **vyrovnané**.", claim_ids: ["C1", "C2", "C9", "C3"] }],
           claims: [{ claim_id: "C1", evidence_ref: "q2.pct.2", value: 38.4, indicative: false, data_origin: null }, { claim_id: "C2", evidence_ref: "q2.pct.1", value: 34.8, indicative: true, data_origin: null }, { claim_id: "C3", evidence_ref: "x9.median", value: 4, indicative: false, data_origin: null }], violations: [] },
-        objects: { outcome: "COMPLETED", summary: null, research_question_answers: [], key_findings: [{ text: "Bez čísel.", claim_ids: [] }], claims: [], violations: [] },
+        objects: { outcome: "COMPLETED", summary: null, research_question_answers: [], key_findings: [{ text: "Bez čísel.", claim_ids: [] }, { text: "Jen neuložená čísla.", claim_ids: ["C7"] }], claims: [], violations: [] },
       } }),
     });
     render(<ResearchScreen step="results" frame={TEST_FRAME} />);
@@ -1769,6 +1989,14 @@ describe("Results", () => {
     expect(drawer.container.querySelector("[data-aia]")).toBeNull();
     for (const c of ["C1", "C2", "C3"]) expect(document.querySelectorAll(`[data-aia="claim:executive:${c}"]`)).toHaveLength(1);
     drawer.unmount();
+    // A finding that cites no admitted number is never said to rest on one (review of #692).
+    // Neither does one that cites only ids the module did not store.
+    for (const id of ["objects:0", "objects:1"]) {
+      const bare = render(<AnalysisInspect target={{ kind: "finding", id }} />);
+      expect(bare.container.textContent).not.toContain("z připuštěných čísel");
+      expect(bare.container.textContent).toContain("neopírá se o žádné připuštěné číslo");
+      bare.unmount();
+    }
     // A number whose question AIA cannot find says so in words; its reference stays as a code (6c).
     expect(within(keyFindings).getByText(/číslo, k němuž AIA nedohledala otázku/)).toBeTruthy();
     expect(within(keyFindings).getByText("x9.median").tagName).toBe("CODE");
@@ -2167,6 +2395,23 @@ describe("Results", () => {
     expect(called("GET", "/api/v1/studies/STU-1/research/runs/RUN-1/report/pdf/download")).toHaveLength(0); // never the base PDF
     expect(createObjectURL).toHaveBeenCalledTimes(2);
     fireEvent.click(report.getByRole("button", { name: t("research.exec.results.reportApprove") }));
+    // Nothing is approved on the click: the person is asked about this version first, and "Zrušit"
+    // approves nothing (B22).
+    const asked = await screen.findByRole("dialog");
+    expect(asked.textContent).toContain("Schválit interní zprávu s rešerší RUN-deep, uloženou verzi ART-context (");
+    // The safe choice holds the focus, and Esc answers the dialog alone: nothing beneath it (an
+    // open inspector) sees it (I7, D21).
+    expect(document.activeElement).toBe(within(asked).getByRole("button", { name: t("dialog.cancel") }));
+    const beneath = vi.fn();
+    window.addEventListener("keydown", beneath);
+    onTestFinished(() => window.removeEventListener("keydown", beneath));
+    fireEvent.keyDown(asked, { key: "Escape" });
+    expect(beneath).not.toHaveBeenCalled();
+    fireEvent.click(within(asked).getByRole("button", { name: t("dialog.cancel") }));
+    await waitFor(() => expect(screen.queryByRole("dialog")).toBeNull());
+    expect(called("POST", "/api/v1/studies/STU-1/research/runs/RUN-1/report/approve")).toHaveLength(0);
+    fireEvent.click(report.getByRole("button", { name: t("research.exec.results.reportApprove") }));
+    await confirmApproval("ART-context");
     await waitFor(() => expect(called("POST", "/api/v1/studies/STU-1/research/runs/RUN-1/report/approve")).toHaveLength(1));
     expect(called("POST", "/api/v1/studies/STU-1/research/runs/RUN-1/report/approve")[0].body).toEqual({ artifact_id: "ART-context", note: "" });
     // The version is named before and after; what it is now is read again, never patched here
@@ -2315,7 +2560,7 @@ describe("Results", () => {
     expect(report.getByText(/Klientská zpráva vzniká jen z běhu s AI respondenty z populace/)).toBeTruthy();
   });
 
-  it("still downloads and approves the report of a delivered study, which starts no new work", async () => {
+  it("still downloads the report of a delivered study, which starts no new work, and leaves its approval to the doc bar", async () => {
     // productization-coherence PC1: one flag gated both editing and the report, so closing a
     // study for edits would have taken its deliverable away with them.
     const createObjectURL = stubDownloads();
@@ -2334,7 +2579,8 @@ describe("Results", () => {
     expect(await report.findByText("Stav: Koncept čeká na schválení.")).toBeTruthy();
     fireEvent.click(report.getByRole("button", { name: /Stáhnout zprávu/ }));
     await waitFor(() => expect(createObjectURL).toHaveBeenCalledOnce());
-    expect(report.getByRole("button", { name: /Schválit/ })).toBeTruthy();
+    // Approved on the document being read, in the pane's doc bar (RPT3a), never here.
+    expect(report.queryByRole("button", { name: /Schválit/ })).toBeNull();
     // Nothing on the page starts work: no analysis, retry or literature run is offered.
     expect(screen.queryByRole("button", { name: /Spustit rešerši výsledků/ })?.hasAttribute("disabled") ?? true).toBe(true);
   });
@@ -2411,7 +2657,7 @@ describe("Results", () => {
     expect(createObjectURL).not.toHaveBeenCalled();
   });
 
-  it("offers the client report only for modelled data, approves the draft it downloaded, and says why when refused", async () => {
+  it("offers the client report only for modelled data, says why when refused, and leaves its approval to the doc bar", async () => {
     stubDownloads();
     let refuse = true;
     api({
@@ -2424,7 +2670,7 @@ describe("Results", () => {
         ? new Response('{"code":"client_report_refused","message":"Žádné číslo tohoto běhu nesplnilo pravidla pro klienta."}', { status: 409 })
         : new Response(new Blob(["client docx"]), { status: 200, headers: { "X-AIA-Artifact-Id": "ART-client", "X-AIA-Review-State": "DRAFT_UNAPPROVED" } }),
       "POST /api/v1/studies/STU-1/research/runs/RUN-1/report/approve": () =>
-        ({ run_id: "RUN-1", artifact_id: "ART-client", review_state: "APPROVED_INTERNAL", internal_only: true }),
+        ({ run_id: "RUN-1", artifact_id: "ART-client", review_state: "APPROVED_INTERNAL", report_kind: "client", internal_only: false }),
     });
     render(<ResearchScreen step="results" frame={TEST_FRAME} />);
     const report = await card();
@@ -2441,21 +2687,21 @@ describe("Results", () => {
     expect(await report.findByText(/nesplnilo pravidla pro klienta/)).toBeTruthy();
     refuse = false;
     fireEvent.click(report.getByRole("button", { name: t("research.exec.results.reportDownloadClient") }));
-    // Approving the client report signs it off for the client, and its file then says SCHVÁLENO
-    // (D2): never worded as an approval "for internal use" (was, review 4 of D2).
-    const approve = await report.findByRole("button", { name: t("research.exec.results.reportApproveClient") });
+    // The client report is approved on the document being read (RPT3a): the card offers no approval,
+    // neither as "for the client" nor as "for internal use".
+    await report.findByText(new RegExp(t("research.exec.results.reportClientHintDraft")));
+    expect(report.queryByRole("button", { name: t("research.exec.results.reportApproveClient") })).toBeNull();
     expect(report.queryByRole("button", { name: t("research.exec.results.reportApprove") })).toBeNull();
     // The downloaded draft is said to be one, and to need approving before it is handed over.
     expect(report.getByText(new RegExp(t("research.exec.results.reportClientHintDraft")))).toBeTruthy();
-    fireEvent.click(approve);
-    // The approval's answer does not say whether the file states it: the card says the review alone.
+    // Approved in the pane's doc bar: the card says the review alone, as the server answered it.
+    act(() => approvedInPane({ kind: "client", artifactId: "ART-client", stamped: null }));
     expect(await report.findByText(`Stav: ${t("research.exec.report.review.clientApproved")}`)).toBeTruthy();
     expect(report.queryByText(/interní použití/)).toBeNull();
     // Approved: never "Je to koncept" two lines from "Schváleno" (cross-review web#4).
     expect(report.queryByText(new RegExp(t("research.exec.results.reportClientHintDraft")))).toBeNull();
-    const posted = called("POST", "/api/v1/studies/STU-1/research/runs/RUN-1/report/approve");
-    expect(posted).toHaveLength(1);
-    expect(posted[0].body).toEqual({ artifact_id: "ART-client", note: "" });
+    // The card itself approved nothing.
+    expect(called("POST", "/api/v1/studies/STU-1/research/runs/RUN-1/report/approve")).toHaveLength(0);
   });
 
   it("says what approving the client report does to the file the client receives", async () => {
@@ -2477,10 +2723,27 @@ describe("Results", () => {
     fireEvent.click(report.getByRole("radio", { name: "Pro klienta" }));
     fireEvent.click(report.getByRole("button", { name: t("research.exec.results.reportDownloadClient") }));
     expect(await report.findByText(`Stav: ${t("research.exec.report.review.clientDraft")}`)).toBeTruthy();
-    fireEvent.click(await report.findByRole("button", { name: t("research.exec.results.reportApproveClient") }));
+    act(() => approvedInPane({ kind: "client", artifactId: "ART-client", approvedOn: "2026-10-18", stamped: true }));
     // Its DOCX, the one the client receives, says SCHVÁLENO with the date and the version.
     expect(await report.findByText("Stav: Schváleno 18. 10. 2026 · verze ART-client — DOCX této verze to nese v zápatí")).toBeTruthy();
     expect(report.queryByText(/interní použití/)).toBeNull();
+  });
+
+  it("hears an approval of another run as nothing (RPT3a)", async () => {
+    api({
+      ...listed(reportRun()),
+      "GET /api/v1/studies/STU-1/research/runs/RUN-1/artifacts/ART-4": () => AGGREGATE,
+      "GET /api/v1/studies/STU-1/research/runs/RUN-1/artifacts/ART-5": () => SOCIOMAP,
+      "GET /api/v1/studies/STU-1/research/runs/RUN-1/report": () =>
+        reportStatus({ synthetic: false, modelled: true, data_origin_kind: "MODELLED" }),
+    });
+    render(<ResearchScreen step="results" frame={TEST_FRAME} />);
+    const report = await card();
+    await waitFor(() => expect(report.getByRole("radio", { name: "Pro klienta" }).getAttribute("aria-disabled")).not.toBe("true"));
+    fireEvent.click(report.getByRole("radio", { name: "Pro klienta" }));
+    act(() => approvedInPane({ runId: "RUN-other", kind: "client", artifactId: "ART-elsewhere" }));
+    expect(report.queryByText(`Stav: ${t("research.exec.report.review.clientApproved")}`)).toBeNull();
+    expect(report.queryByText(/ART-elsewhere/)).toBeNull();
   });
 
   it("offers the report's PDF when the run stored one, and says why when it could not", async () => {
@@ -2509,34 +2772,29 @@ describe("Results", () => {
     expect(option.getAttribute("aria-disabled")).toBe("true");
   });
 
-  it("approves the stored internal draft, and says so when its producer may not", async () => {
-    let refuse = true;
+  it("says the internal draft approved in the doc bar once the pane answers, approving nothing itself (RPT3a)", async () => {
     let approvedNow = false;
     api({
       ...listed(reportRun()),
       "GET /api/v1/studies/STU-1/research/runs/RUN-1/artifacts/ART-4": () => AGGREGATE,
       "GET /api/v1/studies/STU-1/research/runs/RUN-1/artifacts/ART-5": () => SOCIOMAP,
-      // The card reads the report again after approving (D2): the server's state, not a patch.
+      // The card reads the report again on the pane's word (D2): the server's state, not a patch.
       "GET /api/v1/studies/STU-1/research/runs/RUN-1/report": () => reportStatus(approvedNow ? { review_state: "APPROVED_INTERNAL" } : {}),
-      "POST /api/v1/studies/STU-1/research/runs/RUN-1/report/approve": () => {
-        if (refuse) return new Response('{"code":"separation_of_duties","message":"independent review required"}', { status: 403 });
-        approvedNow = true;
-        return { run_id: "RUN-1", artifact_id: "ART-report", review_state: "APPROVED_INTERNAL", internal_only: true };
-      },
     });
     render(<ResearchScreen step="results" frame={TEST_FRAME} />);
     const report = await card();
-    fireEvent.click(await report.findByRole("button", { name: t("research.exec.results.reportApprove") }));
-    expect(await report.findByText(t("research.exec.results.reportApproveIndependent"))).toBeTruthy();
-    refuse = false;
-    fireEvent.click(report.getByRole("button", { name: t("research.exec.results.reportApprove") }));
-    expect(await report.findByText("Stav: Schváleno pouze pro interní použití.")).toBeTruthy();
+    expect(await report.findByText("Stav: Koncept čeká na schválení.")).toBeTruthy();
     expect(report.queryByRole("button", { name: t("research.exec.results.reportApprove") })).toBeNull();
-    expect(called("POST", "/api/v1/studies/STU-1/research/runs/RUN-1/report/approve")[1].body)
-      .toEqual({ artifact_id: "ART-report", note: "" });
+    // It says where the draft is approved, so it never looks unapprovable.
+    expect(report.getByText(t("research.exec.results.reportApproveWhere"))).toBeTruthy();
+    approvedNow = true;
+    act(() => approvedInPane({ kind: "internal", artifactId: "ART-report" }));
+    expect(await report.findByText("Stav: Schváleno pouze pro interní použití.")).toBeTruthy();
+    expect(called("POST", "/api/v1/studies/STU-1/research/runs/RUN-1/report/approve")).toHaveLength(0);
+    expect(report.queryByText(t("research.exec.results.reportApproveWhere"))).toBeNull();
   });
 
-  it("reads the report again after approval and waits for the approved version's PDF", async () => {
+  it("reads the report again after an approval in the doc bar and waits for the approved version's PDF", async () => {
     // D2: approving freezes the version and asks for its approved PDF. The approval's answer has
     // no date; the line below has one only because the card read the report again.
     const createObjectURL = stubDownloads();
@@ -2549,10 +2807,6 @@ describe("Results", () => {
       "GET /api/v1/studies/STU-1/research/runs/RUN-1/report": () => approvedNow
         ? reportStatus({ review_state: "APPROVED_INTERNAL", approved_on: "2026-10-18", stamped: true, approval_renders_pdf: false, pdf: { state: "RENDERING", askable: false } })
         : reportStatus({ approved_on: null, stamped: true, approval_renders_pdf: true, pdf: { state: "READY", artifact_id: "ART-pdf", size_bytes: 9 } }),
-      "POST /api/v1/studies/STU-1/research/runs/RUN-1/report/approve": () => {
-        approvedNow = true;
-        return { run_id: "RUN-1", artifact_id: "ART-report", review_state: "APPROVED_INTERNAL", internal_only: true };
-      },
       "GET /api/v1/studies/STU-1/research/runs/RUN-1/report/download": () =>
         new Response(new Blob(["stamped docx"]), { headers: {
           "X-AIA-Artifact-Id": "ART-report", "X-AIA-Review-State": "APPROVED_INTERNAL", "Content-Disposition": named,
@@ -2562,7 +2816,9 @@ describe("Results", () => {
     const report = await card();
     expect(await report.findByText(tv("research.exec.report.review.draft", { version: "ART-report" }))).toBeTruthy();
     const reads = called("GET", "/api/v1/studies/STU-1/research/runs/RUN-1/report").filter((c) => c.url.endsWith("/report")).length;
-    fireEvent.click(report.getByRole("button", { name: t("research.exec.results.reportApprove") }));
+    // Approved in the pane's doc bar (RPT3a): the card hears it and reads the report again.
+    approvedNow = true;
+    act(() => approvedInPane({ kind: "internal", artifactId: "ART-report" }));
     // The approved PDF is not made yet: the DOCX alone is said to carry it (review 4).
     expect(await report.findByText("Stav: Schváleno 18. 10. 2026 · verze ART-report — DOCX této verze to nese v zápatí")).toBeTruthy();
     // The state line is a live region: the approval a screen reader user made is announced

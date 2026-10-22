@@ -70,7 +70,7 @@ def test_a_chat_start_row_names_its_run_and_authorises_its_charge(
     )
     assert charge.approval_decision_id == decision_id
     assert chat_start_decisions(workflows, ["LDT-1", "LDT-2"]) == {
-        "LDT-1": {"run_id": run_id, "comment": json.loads(entry.comment)}
+        "LDT-1": {"run_id": run_id, "comment": json.loads(entry.comment), "reused": False}
     }
     assert chat_start_decisions(workflows, []) == {}
 

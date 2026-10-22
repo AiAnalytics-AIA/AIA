@@ -585,6 +585,8 @@ jobs:
               "/api/v1/studies/{study_id}/research/readiness",
               # Readiness on a working revision, nothing submitted (working-copy-edit-ops WCE7a).
               "/api/v1/studies/{study_id}/research/readiness/working",
+              # Each stage against the working copy, nothing submitted (working-copy-edit-ops WCE7c).
+              "/api/v1/studies/{study_id}/research/impact",
               # Dimenze's persona-topic chip before any run (artifact-dimensions DIM2).
               "/api/v1/studies/{study_id}/research/persona-topics",
               "/api/v1/studies/{study_id}/research/runs",
@@ -680,7 +682,8 @@ jobs:
           cache: npm
           cache-dependency-path: apps/web/package-lock.json
 
-      - run: npm ci
+      # The security job's gate is the audit; this install's own would only wait on the same endpoint.
+      - run: npm ci --no-audit
       - run: npm run lint
       - run: npx tsc --noEmit
       # tokens.json is the one source: the generated CSS/TS must match it, and
@@ -983,7 +986,7 @@ jobs:
       # every installed third-party distribution, frozen, instead.
       - name: Audit Python dependencies
         run: |
-          pip install -e "packages/aia_core[postgres,s3,report,bedrock,documents]" -e "apps/worker" -e "apps/executors" -e "apps/api"
+          pip install -e "packages/aia_core[postgres,s3,report,bedrock,documents,errors]" -e "apps/worker" -e "apps/executors" -e "apps/api"
           pip freeze --all --exclude-editable > "$RUNNER_TEMP/third-party.txt"
           pip-audit --strict --no-deps --disable-pip -r "$RUNNER_TEMP/third-party.txt"
 
@@ -995,10 +998,11 @@ jobs:
 
       # Blocking on every high or critical advisory, production and dev, except one
       # audit-allowlist.json names by GHSA id until its recheck date (ARCHITECTURE.md §8).
+      # npm ci's own audit is skipped: it judges nothing and asks the same endpoint the gate does.
       - name: Audit npm dependencies
         working-directory: apps/web
         run: |
-          npm ci
+          npm ci --no-audit
           node scripts/audit-gate.mjs
 
       - name: No secrets committed

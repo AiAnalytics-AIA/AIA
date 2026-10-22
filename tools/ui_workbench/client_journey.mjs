@@ -83,10 +83,19 @@ try {
     for (const width of [1440, 1024, 768, 390]) {
       await page.setViewportSize({ width, height: 1000 });
       await measure(clientPath + area);
+      if (["/research", "/simulations", "/knowledge"].includes(area)) {
+        // The area's table fits its own frame: no column is cut off behind a sideways scroll.
+        const table = await page.evaluate(() => {
+          const t = document.querySelector("main table");
+          return t ? { table: t.scrollWidth, frame: t.parentElement.clientWidth } : null;
+        });
+        // An area showing its empty state has no table to fit.
+        if (table) assert(table.table <= table.frame + 1, `${area} @${width}: the table is ${table.table} px in a ${table.frame} px frame`);
+      }
     }
     await page.setViewportSize({ width: 1440, height: 1000 });
   }
-  checks.push("Six client areas × four widths: no page overflow");
+  checks.push("Six client areas × four widths: no page overflow; the studies' and the knowledge's tables fit their frames");
 
   // Přehled: what waits on a person comes first.
   await visit(clientPath);
@@ -204,7 +213,9 @@ try {
   const panel = page.getByRole("complementary", { name: "Otevřená znalost" });
   await panel.getByRole("textbox", { name: "Shrnutí" }).fill("Upraveno cestou v prohlížeči.");
   await panel.getByRole("button", { name: "Uložit jako revizi 2" }).click();
-  await panel.getByText("r2").waitFor();
+  // The history's own row, exactly: the run's stamp names the item, folder and label, and a stamp
+  // holding "r2" made a substring match find four elements.
+  await panel.getByRole("listitem").getByText("r2", { exact: true }).waitFor();
   checks.push("The open item is edited into revision 2 and its history shows it");
 
   // A delete happens at once with Vrátit (I6): the folder goes, Vrátit makes it again with the item

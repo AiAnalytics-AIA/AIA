@@ -14,7 +14,7 @@ import type { ResearchProject } from "./model";
 import { trackedSets } from "./plan";
 import { proposalAnalysis } from "./plan-edit";
 import { chosenDimensions } from "./persona";
-import { questionnaireHasQuestions, sections } from "./questionnaire";
+import { SET_PRESET, type SetLimits, questionnaireHasQuestions, sections, setSizeRefused } from "./questionnaire";
 import type { ResearchState } from "./store";
 import type { StepKey } from "./steps";
 import type { ResearchRunSummary } from "@/lib/api";
@@ -25,9 +25,9 @@ export type LaneStage = { tone: LaneTone; line: string };
 /** Something that stops the design from running, with the stage that fixes it. */
 export type Blocker = { step: StepKey; label: string; detail: string };
 
-export const SET_MIN = 4;
-export const SET_MAX = 15;
-const setSizeOk = (n: number) => n >= SET_MIN && n <= SET_MAX;
+// A tracked set's size by the limits in force (GET …/research/limits tracked_set); a caller that has
+// not read them passes nothing and is held to the code's preset.
+const setRange = (l: SetLimits) => `${l.recommended_min}–${l.max}`;
 
 const plural = (n: number, one: string, few: string, many: string) => (n === 1 ? one : n >= 2 && n <= 4 ? few : many);
 
@@ -35,16 +35,16 @@ export function briefStage(p: ResearchProject): LaneStage {
   return canAnalyse(p) ? { tone: "done", line: "Hotovo" } : { tone: "you", line: "Chybí cíl" };
 }
 
-export function planStage(state: Pick<ResearchState, "project" | "analysis">): LaneStage {
+export function planStage(state: Pick<ResearchState, "project" | "analysis">, l: SetLimits = SET_PRESET): LaneStage {
   const a = proposalAnalysis(state);
   if (!a) return { tone: "idle", line: "Bez návrhu" };
-  const bad = trackedSets(a).filter((s) => !setSizeOk((s.objects || []).length)).length;
-  if (bad) return { tone: "you", line: `${bad} ${plural(bad, "sada mimo 4–15", "sady mimo 4–15", "sad mimo 4–15")}` };
+  const bad = trackedSets(a).filter((s) => setSizeRefused((s.objects || []).length, l)).length;
+  if (bad) return { tone: "you", line: `${bad} ${plural(bad, "sada", "sady", "sad")} mimo ${setRange(l)}` };
   return { tone: "done", line: "Hotovo" };
 }
 
-/** Questions without wording, sets outside 4-15, and the total, as the questionnaire's dock counts them. */
-export function questionnaireIssues(p: ResearchProject): { questions: number; sets: number; empty: number; badSets: number } {
+/** Questions without wording, sets the editors stop (setSizeRefused), and the total, as the questionnaire's dock counts them. */
+export function questionnaireIssues(p: ResearchProject, l: SetLimits = SET_PRESET): { questions: number; sets: number; empty: number; badSets: number } {
   let questions = 0, sets = 0, empty = 0, badSets = 0;
   for (const s of sections(p)) {
     if (s.type === "questions") {
@@ -54,18 +54,18 @@ export function questionnaireIssues(p: ResearchProject): { questions: number; se
       }
     } else if (s.type === "object_battery") {
       sets += 1;
-      if (!setSizeOk((s.objects || []).length)) badSets += 1;
+      if (setSizeRefused((s.objects || []).length, l)) badSets += 1;
     }
   }
   return { questions, sets, empty, badSets };
 }
 
-export function questionnaireStage(p: ResearchProject): LaneStage {
-  const { questions, sets, empty, badSets } = questionnaireIssues(p);
+export function questionnaireStage(p: ResearchProject, l: SetLimits = SET_PRESET): LaneStage {
+  const { questions, sets, empty, badSets } = questionnaireIssues(p, l);
   if (!questions && !sets) return { tone: "idle", line: "Zatím prázdný" };
   const count = [questions ? `${questions} ${plural(questions, "otázka", "otázky", "otázek")}` : "", sets ? `${sets} ${plural(sets, "sada", "sady", "sad")}` : ""].filter(Boolean).join(" · ");
   if (empty) return { tone: "you", line: `${count} · ${empty} bez znění` };
-  if (badSets) return { tone: "you", line: `${count} · ${badSets} ${plural(badSets, "sada", "sady", "sad")} mimo 4–15` };
+  if (badSets) return { tone: "you", line: `${count} · ${badSets} ${plural(badSets, "sada", "sady", "sad")} mimo ${setRange(l)}` };
   return { tone: "done", line: count };
 }
 
@@ -81,12 +81,12 @@ export function personaStage(p: ResearchProject): LaneStage {
 }
 
 /** Each design stage's state; the run stages are the caller's (they come from the runs). */
-export function designLane(state: Pick<ResearchState, "project" | "analysis">): Record<"brief" | "plan" | "questionnaire" | "audience" | "persona", LaneStage> {
+export function designLane(state: Pick<ResearchState, "project" | "analysis">, l: SetLimits = SET_PRESET): Record<"brief" | "plan" | "questionnaire" | "audience" | "persona", LaneStage> {
   const p = state.project;
   return {
     brief: briefStage(p),
-    plan: planStage(state),
-    questionnaire: questionnaireStage(p),
+    plan: planStage(state, l),
+    questionnaire: questionnaireStage(p, l),
     audience: audienceStage(p),
     persona: personaStage(p),
   };
@@ -97,19 +97,19 @@ export function designLane(state: Pick<ResearchState, "project" | "analysis">): 
  * conditions the stages themselves enforce; the server's readiness on Kontrola
  * stays the authority and may find more.
  */
-export function blockers(state: Pick<ResearchState, "project" | "analysis">): Blocker[] {
+export function blockers(state: Pick<ResearchState, "project" | "analysis">, l: SetLimits = SET_PRESET): Blocker[] {
   const p = state.project;
   const out: Blocker[] = [];
   if (!canAnalyse(p)) out.push({ step: "brief", label: "Zadání", detail: "Chybí cíl vlastními slovy" });
   const a = proposalAnalysis(state);
   for (const s of trackedSets(a)) {
     const n = (s.objects || []).length;
-    if (!setSizeOk(n)) out.push({ step: "plan", label: `Návrh · sada „${s.title || "bez názvu"}“`, detail: `${n} položek, potřebuje 4–15` });
+    if (setSizeRefused(n, l)) out.push({ step: "plan", label: `Návrh · sada „${s.title || "bez názvu"}“`, detail: `${n} položek, potřebuje ${setRange(l)}` });
   }
-  const q = questionnaireIssues(p);
+  const q = questionnaireIssues(p, l);
   if (!questionnaireHasQuestions(p)) out.push({ step: "questionnaire", label: "Dotazník", detail: "Zatím nemá žádnou běžnou otázku" });
   if (q.empty) out.push({ step: "questionnaire", label: "Dotazník", detail: `${q.empty} ${plural(q.empty, "otázka nemá", "otázky nemají", "otázek nemá")} znění` });
-  if (q.badSets) out.push({ step: "questionnaire", label: "Dotazník", detail: `${q.badSets} ${plural(q.badSets, "sledovaná sada je", "sledované sady jsou", "sledovaných sad je")} mimo 4–15 položek` });
+  if (q.badSets) out.push({ step: "questionnaire", label: "Dotazník", detail: `${q.badSets} ${plural(q.badSets, "sledovaná sada je", "sledované sady jsou", "sledovaných sad je")} mimo ${setRange(l)} položek` });
   if (!audienceReady(p)) out.push({ step: "audience", label: "Cílová skupina", detail: "Vyberte zdroj respondentů" });
   return out;
 }

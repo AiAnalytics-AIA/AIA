@@ -23,6 +23,14 @@ transaction and in LO1's order:
 
 A start that finds its work already there (the same job on the same design, the revision's run)
 returns it and writes nothing: it was authorised, and paid for, when it was created.
+
+**The analysis retry** ("Zopakuj analýzu") is the stage's own retry
+(:func:`~aia_core.application.analysis_results.retry_failed_modules`, ``POST …/analysis/retry``)
+on the study's newest run that ran analysis: the same threshold, frozen dataset, idempotency and
+refusals by name (:class:`~aia_core.application.analysis_results.AnalysisNotRetryable`), so the
+two cannot drift. It quotes and charges no wallet, as the stage route does not (the product
+manager's decision (b), 2026-10-22); what a retry costs the wallet is F-LO1-1's to decide, for
+both starts at once.
 """
 
 from __future__ import annotations
@@ -36,28 +44,34 @@ from sqlalchemy.orm import Session
 
 from ..domain.approval_ledger import ApprovalSubject
 from ..domain.fieldwork import FieldworkSource, PersonaSource
-from ..domain.lead_commands import RESEARCH_RUN, command_for, match_command
+from ..domain.lead_commands import ANALYSIS_RETRY, RESEARCH_RUN, command_for, match_command
 from ..domain.money import StartPath, StartVerdictKind, start_verdict
 from ..domain.population import PopulationImportContract
 from ..domain.research_lead import LeadTurn
 from ..domain.scope import StudyContext
 from ..domain.wallet import ChargeKind
 from ..infrastructure.scope_repository import ScopeRepository
-from ..infrastructure.workflow_repository import WorkflowRepository
+from ..infrastructure.storage import ArtifactStore
+from ..infrastructure.workflow_repository import CHAT_START_REUSE, WorkflowRepository
+from .analysis_results import AnalysisNotRetryable, retry_failed_modules
+from .audience_preview import PanelSampler
 from .research import (
     CostConfirmationRequired,
     ResearchAgentJobs,
     ResearchRuns,
     RunReservations,
+    existing_start,
 )
 from .wallet import StudyWallets
 from .workflows import StartedRun
 
 __all__ = [
+    "AnalysisRetryTargetMoved",
     "ChatStartRefused",
     "RunStartSettings",
     "approve_chat_start",
     "chat_start_decisions",
+    "newest_analysed_run",
 ]
 
 
@@ -74,6 +88,18 @@ class ChatStartRefused(Exception):
         self.remaining_usd = remaining_usd
 
 
+class AnalysisRetryTargetMoved(Exception):
+    """The card named the run it would retry (the newest that ran analysis when the person read
+    it), and a newer one has run analysis since: nothing starts until they confirm the newer one
+    (``current_run_id``), as a card whose design moved waits for a yes (LO10)."""
+
+    reason = "analysis_retry_target_moved"
+
+    def __init__(self, *, current_run_id: str) -> None:
+        super().__init__(self.reason)
+        self.current_run_id = current_run_id
+
+
 @dataclass(frozen=True, slots=True)
 class RunStartSettings:
     """What a research run's start takes from the deployment, never from the request: the same
@@ -87,12 +113,21 @@ class RunStartSettings:
     require_answerability: bool
     population_contract: PopulationImportContract
     population_id: str
+    #: AIA_AI_ANALYSIS_EXTERNAL_CONTEXT: the run pins its Design Research context
+    #: (evidence-integrity 7)
+    external_context: bool = False
+    #: Draws a panel run's sample, as readiness does (RQC6b); ``None``: unknown, as before.
+    panel_sampler: PanelSampler | None = None
+    #: The artifact store an analysis retry reads the run's stored outcomes from; without it a
+    #: typed analysis retry is refused (``run_start_unavailable``).
+    store: ArtifactStore | None = None
 
 
 def chat_start_decisions(
     workflows: WorkflowRepository, turn_ids: list[str]
 ) -> dict[str, dict[str, Any]]:
-    """The ``chat_start`` rows naming these person turns, by turn id: the run each started."""
+    """The ``chat_start`` rows naming these person turns, by turn id: the run each started, or
+    for a ``reuse`` row the run it found already started (``reused``)."""
     if not turn_ids:
         return {}
     wanted = set(turn_ids)
@@ -101,7 +136,9 @@ def chat_start_decisions(
         comment = json.loads(entry.comment or "{}")
         turn_id = comment.get("turn_id")
         if turn_id in wanted and turn_id not in found:
-            found[turn_id] = {"run_id": entry.run_id, "comment": comment}
+            reused = entry.decision == CHAT_START_REUSE
+            run_id = comment.get("run_id") if reused else entry.run_id
+            found[turn_id] = {"run_id": run_id, "comment": comment, "reused": reused}
     return found
 
 
@@ -115,8 +152,12 @@ def approve_chat_start(
     reservation_usd: float | None,
     run_start: RunStartSettings | None,
     wallet_enabled: bool,
+    retry_run_id: str | None = None,
 ) -> dict[str, Any]:
     """Start the work the person's typed command named (``turn.command``), once.
+
+    ``retry_run_id``: for an analysis retry, the run the card showed. Another newest analysed run
+    is :class:`AnalysisRetryTargetMoved`, never retried in its place.
 
     ``submit_design(source_stage)`` submits the working content as a Design Revision, as the
     Lead's approval does. ``run_start`` is the deployment's run settings; without them a typed
@@ -163,7 +204,34 @@ def approve_chat_start(
             assert ceiling is not None and threshold is not None
             raise CostConfirmationRequired(ceiling_usd=ceiling, limit_usd=threshold)
 
-    if command.start == RESEARCH_RUN:
+    # A start that would find its run already there (the same job or run on the same design,
+    # started by an earlier approval or on its stage) is not held to the wallet or the threshold
+    # again: nothing is created or charged, and the card is decided by a reuse row below.
+    kind: ChargeKind | None
+    ceiling: float | None
+    started: StartedRun
+    if command.start == ANALYSIS_RETRY:
+        if run_start is None or run_start.store is None:
+            raise ChatStartRefused("run_start_unavailable")
+        newest = newest_analysed_run(ResearchRuns(session, scope))
+        if newest is None:
+            raise AnalysisNotRetryable("no_analysed_run", "no run of this study ran analysis")
+        target = str(newest["run_id"])
+        if retry_run_id is not None and retry_run_id != target:
+            raise AnalysisRetryTargetMoved(current_run_id=target)
+        # The stage route's own start: threshold, frozen dataset, idempotency, refusals by name.
+        started = retry_failed_modules(
+            session,
+            scope,
+            run_start.store,
+            run_id=target,
+            reservations=run_start.reservations,
+            confirm_cost_usd=confirm_cost_usd,
+        )
+        revision_id = str(started.run["metadata"]["design_revision_id"])
+        ceiling = None
+        kind = None  # not charged to the wallet, as the stage route is not (decision (b))
+    elif command.start == RESEARCH_RUN:
         if run_start is None:
             raise ChatStartRefused("run_start_unavailable")
         revision = submit_design("run")
@@ -172,13 +240,25 @@ def approve_chat_start(
             scope,
             population_contract=run_start.population_contract,
             population_id=run_start.population_id,
+            panel_sampler=run_start.panel_sampler,
         )
         outlook = runs.outlook(
             revision.revision_id,
             persona_source=run_start.persona_source,
             fieldwork_source=run_start.fieldwork_source,
         )
-        ceiling: float | None = None
+        run_kwargs: dict[str, Any] = {
+            "design_revision_id": revision.revision_id,
+            "fieldwork_source": run_start.fieldwork_source,
+            "analysis_enabled": run_start.analysis_enabled,
+            "external_context": run_start.external_context,
+            "sociomapping_enabled": run_start.sociomapping_enabled,
+            "reservations": run_start.reservations,
+            "persona_source": run_start.persona_source,
+            "require_answerability": run_start.require_answerability,
+        }
+        found = existing_start(session, scope, lambda: runs.start(**run_kwargs, _probe=True))
+        ceiling = None
         if outlook.spec is not None:
             # A design that does not compile is refused by the start itself, by name.
             ceiling = runs.cost_ceiling(
@@ -187,40 +267,58 @@ def approve_chat_start(
                 analysis_enabled=run_start.analysis_enabled,
                 reservations=run_start.reservations,
             ).total_usd
-            quote(ceiling)
-        started: StartedRun = runs.start(
-            design_revision_id=revision.revision_id,
-            fieldwork_source=run_start.fieldwork_source,
-            analysis_enabled=run_start.analysis_enabled,
-            sociomapping_enabled=run_start.sociomapping_enabled,
-            reservations=run_start.reservations,
-            confirm_cost_usd=confirm_cost_usd,
-            persona_source=run_start.persona_source,
-            require_answerability=run_start.require_answerability,
-        )
+            if found is None:
+                quote(ceiling)
+        started = runs.start(**run_kwargs, confirm_cost_usd=confirm_cost_usd)
+        revision_id = revision.revision_id
         kind = ChargeKind.RESEARCH_RUN
     else:
         assert command.action is not None
-        quote(reservation_usd)
-        revision = submit_design(_SOURCE_STAGE.get(command.action.value, "questionnaire"))
-        started = ResearchAgentJobs(session, scope, reservation_usd=reservation_usd).start(
+        action = command.action
+        revision = submit_design(_SOURCE_STAGE.get(action.value, "questionnaire"))
+        jobs = ResearchAgentJobs(session, scope, reservation_usd=reservation_usd)
+        found = existing_start(
+            session,
+            scope,
+            lambda: jobs.start(
+                design_revision_id=revision.revision_id,
+                action=action,
+                instruction=matched.instruction,
+                _probe=True,
+            ),
+        )
+        if found is None:
+            quote(reservation_usd)
+        started = jobs.start(
             design_revision_id=revision.revision_id,
-            action=command.action,
+            action=action,
             instruction=matched.instruction,
             confirm_cost_usd=confirm_cost_usd,
         )
         ceiling = reservation_usd
+        revision_id = revision.revision_id
         kind = ChargeKind.AGENT_JOB
 
-    if started.created:
+    if not started.created:
+        # The same job on the same design, started by an earlier approval: nothing starts and
+        # nothing is charged, but this card is decided, so it never asks again.
+        workflows.record_chat_start(
+            started.run_id,
+            turn_id=turn.turn_id,
+            start=command.start,
+            ceiling_usd=ceiling,
+            design_revision_id=revision_id,
+            reused=True,
+        )
+    else:
         decision_id = workflows.record_chat_start(
             started.run_id,
             turn_id=turn.turn_id,
             start=command.start,
             ceiling_usd=ceiling,
-            design_revision_id=revision.revision_id,
+            design_revision_id=revision_id,
         )
-        if wallet_enabled:
+        if wallet_enabled and kind is not None:
             wallets.charge(
                 run_id=started.run_id,
                 kind=kind,
@@ -229,9 +327,19 @@ def approve_chat_start(
             )
     return {
         "run_id": started.run_id,
-        "design_revision_id": revision.revision_id,
+        "design_revision_id": revision_id,
         "status": started.run["status"].value,
     }
+
+
+def newest_analysed_run(runs: ResearchRuns) -> dict[str, Any] | None:
+    """The study's newest research run that ran analysis, finished or not (one still running is
+    refused by the retry itself, ``run_not_finished``, never passed over for an older one): the
+    run a typed "Zopakuj analýzu" retries, which its card names."""
+    for run in runs.runs(limit=50):
+        if run["metadata"].get("analysis_enabled"):
+            return run
+    return None
 
 
 #: The stage a Design Revision is submitted from for a typed design job, as the Lead's approval

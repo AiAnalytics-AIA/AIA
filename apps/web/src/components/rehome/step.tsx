@@ -6,13 +6,12 @@
 // step and src/research. Token utilities only, as in ui.tsx.
 
 import Link from "next/link";
-import { type KeyboardEvent, type ReactNode, useId, useRef, useState } from "react";
+import { createContext, type KeyboardEvent, type ReactNode, useContext, useId, useRef, useState } from "react";
 
+import { FOCUS, TOUCH } from "@/components/ui/parts";
 import { t } from "@/i18n/t";
 import { rovingIndex, tabStop } from "@/lib/roving";
 import { Icon } from "./icons";
-
-const FOCUS = "focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus-ring";
 
 /**
  * One section of a step: a card whose header carries the title, its help under it,
@@ -64,6 +63,19 @@ export function StepSection({
  * ready in the middle, the one primary action on the right. It replaces each
  * step's bottom row; the action keeps the conditions it had there.
  */
+/** The frame's next stage, as a stage's forward action names and opens it. */
+export type FrameNext = { label: string; go: () => void };
+
+/**
+ * Set inside a frame whose own navigator names the neighbouring stages (the research workbench,
+ * whose stages and their order are lib/workbench-stages.ts); null outside. A dock there leaves its
+ * back link out: the classic flow's "4. Audience" names a step the workbench calls otherwise, in
+ * another order. A stage's forward action reads `next`: the stage after it in the frame's order,
+ * with its label, opened by the frame (its route or hash, its leave guard, the focus moved to the
+ * new stage's heading), never by the stage itself. `next` is null on the last stage.
+ */
+export const FrameNavigation = createContext<{ next: FrameNext | null } | null>(null);
+
 export function ActionDock({ back, note, ready = true, children }: {
   back?: { href: string; label: string };
   note?: ReactNode;
@@ -71,10 +83,11 @@ export function ActionDock({ back, note, ready = true, children }: {
   ready?: boolean;
   children: ReactNode;
 }) {
+  const framed = useContext(FrameNavigation) !== null;
   return (
     <div className="flex flex-wrap items-center gap-3 rounded-card border border-border bg-surface-raised px-3 py-2.5">
-      {back ? (
-        <Link href={back.href} className={`inline-flex items-center gap-1.5 whitespace-nowrap rounded-sm text-sm text-ink-muted no-underline hover:text-ink ${FOCUS}`}>
+      {back && !framed ? (
+        <Link href={back.href} className={`inline-flex items-center gap-1.5 whitespace-nowrap rounded-sm text-sm text-ink-muted no-underline hover:text-ink ${TOUCH} ${FOCUS}`}>
           <Icon name="back" size={14} />
           {back.label}
         </Link>
@@ -182,7 +195,7 @@ export function Segmented<K extends string>({ value, options, onChange, label }:
  * A list of short values typed in: Enter adds the trimmed value, × removes one.
  * `backspaceRemoves` lets Backspace in an empty field take the last one back.
  */
-export function ChipInput({ values, onAdd, onRemove, label, placeholder, backspaceRemoves = false, disabled = false }: {
+export function ChipInput({ values, onAdd, onRemove, label, placeholder, backspaceRemoves = false, disabled = false, refuse }: {
   values: readonly string[];
   onAdd: (value: string) => void;
   onRemove: (index: number) => void;
@@ -190,24 +203,40 @@ export function ChipInput({ values, onAdd, onRemove, label, placeholder, backspa
   placeholder?: string;
   backspaceRemoves?: boolean;
   disabled?: boolean;
+  /**
+   * Why a typed value is not one, or null (input-interactions I9): a refused value stays in the
+   * field with the reason beside it, never added and never cleared; the reason goes once the
+   * text changes.
+   */
+  refuse?: (value: string) => string | null;
 }) {
   const [draft, setDraft] = useState("");
+  const [refusal, setRefusal] = useState<string | null>(null);
+  // A reason shown only while it still holds: a refusal that depends on the list (a full set)
+  // goes when the list changes, not only when the text does.
+  const shown = refusal !== null && refuse?.(draft.trim()) ? refusal : null;
+  const errorId = useId();
   const key = (e: KeyboardEvent<HTMLInputElement>) => {
     if (e.key === "Enter") {
       e.preventDefault();
       const v = draft.trim();
-      if (v) onAdd(v);
+      if (!v) return setDraft("");
+      const why = refuse?.(v) ?? null;
+      if (why) return setRefusal(why);
+      onAdd(v);
       setDraft("");
+      setRefusal(null);
     } else if (e.key === "Backspace" && backspaceRemoves && !draft && values.length) {
       onRemove(values.length - 1);
     }
   };
   return (
-    <div className="flex min-h-9 flex-wrap items-center gap-1.5 rounded-control border border-border-strong bg-surface-raised px-2 py-1 focus-within:outline-2 focus-within:outline-offset-2 focus-within:outline-focus-ring">
+    <div className="flex flex-col gap-1">
+    <div className={`flex min-h-9 flex-wrap items-center gap-1.5 rounded-control border bg-surface-raised px-2 py-1 focus-within:outline-2 focus-within:outline-offset-2 focus-within:outline-focus-ring ${shown ? "border-status-fault" : "border-border-strong"}`}>
       {values.map((v, i) => (
         <span key={`${i}-${v}`} className="inline-flex max-w-full items-center gap-1 rounded-md border border-border bg-surface px-2 py-0.5 text-[13px] leading-5">
           <span className="min-w-0 break-words">{v}</span>
-          <button disabled={disabled} type="button" aria-label={`${t("research.step.remove")} ${v}`} onClick={() => onRemove(i)} className={`rounded-sm px-0.5 text-ink-faint hover:text-ink ${FOCUS}`}>
+          <button disabled={disabled} type="button" aria-label={`${t("research.step.remove")} ${v}`} onClick={() => onRemove(i)} className={`-my-1 -mr-1.5 inline-flex size-6 shrink-0 items-center justify-center rounded-sm text-ink-faint hover:text-ink ${FOCUS}`}>
             ×
           </button>
         </span>
@@ -216,10 +245,17 @@ export function ChipInput({ values, onAdd, onRemove, label, placeholder, backspa
         aria-label={label} disabled={disabled}
         placeholder={placeholder}
         value={draft}
-        onChange={(e) => setDraft(e.target.value)}
+        aria-invalid={shown ? true : undefined}
+        aria-describedby={shown ? errorId : undefined}
+        onChange={(e) => {
+          setDraft(e.target.value);
+          setRefusal(null);
+        }}
         onKeyDown={key}
         className="min-h-7 min-w-32 flex-1 border-0 bg-transparent text-sm text-ink outline-none placeholder:text-ink-faint"
       />
+    </div>
+    {shown ? <span id={errorId} role="alert" className="text-xs text-status-fault">{shown}</span> : null}
     </div>
   );
 }

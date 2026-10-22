@@ -9,7 +9,8 @@ project id: the browser supplies content, never authority.
 
 from __future__ import annotations
 
-from collections.abc import Iterator, Mapping
+import re
+from collections.abc import Callable, Iterator, Mapping
 from contextlib import contextmanager
 from datetime import date, datetime
 from typing import Annotated, Any, Final, Literal
@@ -21,10 +22,13 @@ from aia_core.application.analysis_results import (
     retry_failed_modules,
     stored_analysis,
 )
+from aia_core.application.audience_preview import PanelDraw, PanelSampler
 from aia_core.application.client_report import (
     CLIENT_REPORT_DOCUMENT_ARTIFACT_TYPE,
+    ClientGateRefused,
     ClientReportRefused,
     client_report_document,
+    prepare_client_report,
     stored_client_report,
 )
 from aia_core.application.contextual_report import stored_contextual_report
@@ -44,7 +48,12 @@ from aia_core.application.report import (
     INTERNAL_REPORT_MEDIA_TYPE,
     ReportCompositionRefused,
 )
-from aia_core.application.report_approval import ReportNotApprovable, approve_report
+from aia_core.application.report_approval import (
+    CLIENT_REPORT_KINDS,
+    REPORT_KINDS,
+    ReportNotApprovable,
+    approve_report,
+)
 from aia_core.application.report_export import (
     Export,
     ReviewUnrecorded,
@@ -108,6 +117,7 @@ from aia_core.domain.fieldwork import (
 from aia_core.domain.methodology.pins import response_deviates, run_methods
 from aia_core.domain.persona_topics import dimension_topic
 from aia_core.domain.population import PopulationError, UnknownDatasetVersion
+from aia_core.domain.population.sampling import quota_keys
 from aia_core.domain.report.document_model import (
     DOCUMENT_MODEL_MEDIA_TYPE,
     DocumentModelInvalid,
@@ -133,7 +143,7 @@ from aia_core.infrastructure.artifact_repository import (
     ArtifactStatus,
 )
 from aia_core.infrastructure.report_pdf import PDF_MEDIA_TYPE
-from aia_core.infrastructure.storage import IntegrityError, ObjectNotFound
+from aia_core.infrastructure.storage import ArtifactStore, IntegrityError, ObjectNotFound
 from aia_core.infrastructure.study_design_repository import (
     DesignRevisionNotFound,
     StudyDesignRepository,
@@ -148,6 +158,7 @@ from pydantic import BaseModel, ConfigDict, Field, StringConstraints
 from ..dependencies import (
     ArtifactStoreDep,
     AudiencePopulation,
+    PanelSamplerDep,
     RunPopulationDep,
     SessionDep,
     SettingsDep,
@@ -167,6 +178,9 @@ router = APIRouter(
     },
 )
 
+#: The run's selected child population (P4d), as its start would name it: readiness then draws no
+#: panel sample, since the sampler reads only the population a new run records (RQC6b).
+PopulationChoiceQuery = Annotated[str | None, Query(min_length=1, max_length=255)]
 RevisionIdPath = Annotated[str, Path(max_length=64, pattern=r"^REV-[0-9a-f]{1,32}$")]
 RunIdPath = Annotated[str, Path(max_length=64, pattern=r"^RUN-[0-9a-f]{1,32}$")]
 ArtifactIdPath = Annotated[str, Path(max_length=64, pattern=r"^ART-[0-9a-f]{1,32}$")]
@@ -333,6 +347,10 @@ class ResearchStepResponse(BaseModel):
     finished_at: datetime | None
     failure_class: str | None
     error_message: str | None
+    #: The code the last attempt's error recorded beside its message (a gate's refusal, such as
+    #: ``egress_route_not_approved_for_class``); ``None`` when it recorded none, or anything that
+    #: is not a code.
+    error_reason: str | None = None
     artifact_id: str | None
     #: ``SYNTHETIC_FIXTURE`` when the step's output came from fictional fieldwork.
     data_origin: str | None = None
@@ -348,6 +366,18 @@ class ResearchStepResponse(BaseModel):
     #: repeats it) or ``attempts_exhausted``; ``None`` for any other step, or when its attempts
     #: were not read (a listing) -- unknown, never guessed.
     recovery_reason: Literal["paid_call_uncertain", "attempts_exhausted"] | None = None
+
+
+class ResearchRunSpend(BaseModel):
+    """What one run has cost, by the rules Settings reads a person's spend (Q40), whoever each
+    charge is booked to (``artifact-fieldwork`` FLD4)."""
+
+    #: Settled: the usage ledger's rows and the holds no ledger row names.
+    spent_usd: float
+    #: Holds open now: not spent yet, and not in the study's remainder.
+    reserved_usd: float
+    #: Calls whose cost is not known: with any, ``spent_usd`` is not known to the cent.
+    uncertain_calls: int
 
 
 class ResearchRunPopulation(BaseModel):
@@ -475,6 +505,9 @@ class ResearchRunResponse(BaseModel):
     artifact_ids: list[str] = Field(default_factory=list)
     #: Only with ``VIEW_COSTS``; ``None`` otherwise, never zero.
     actual_cost_usd: float | None = None
+    #: Only on ``GET …/research/runs/{run_id}``, with ``VIEW_COSTS``; ``None`` on a listed run
+    #: and on an action's answer (start, cancel, retry, budget), which is not a cost read.
+    spend: ResearchRunSpend | None = None
     #: The population the run recorded; ``None``: it recorded none (no LIVE when it started).
     population: ResearchRunPopulation | None = None
     #: The Sociomap, support and aggregation methods the run pinned when it started.
@@ -564,6 +597,18 @@ class SampleSizeRange(BaseModel):
     max: int
 
 
+class TrackedSetRange(BaseModel):
+    """How many objects one tracked set may hold: outside ``min``-``max`` the design does not
+    compile (battery_size); outside the recommended range readiness warns."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    min: int
+    max: int
+    recommended_min: int
+    recommended_max: int
+
+
 class ResearchLimitsResponse(BaseModel):
     """The readiness limits in force for the Study (plan ``run-qc-and-checkpoint`` RQC9).
 
@@ -577,6 +622,42 @@ class ResearchLimitsResponse(BaseModel):
     methodology_version: str
     version: int | None
     sample_size: SampleSizeRange
+    tracked_set: TrackedSetRange
+
+
+class QuotaCellResponse(BaseModel):
+    """One cell of the sample's quota (``domain.population.sampling.QuotaCell``)."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    #: The cell as an identifier: its values folded to ASCII, joined by ``/``.
+    key: str
+    #: Its value in each of the composition's ``quota_fields``.
+    values: list[str]
+    #: The respondents the sampler's largest-remainder allotment gave it.
+    n: int
+
+
+class SampleCompositionResponse(BaseModel):
+    """The sample a panel run of this design would draw: ``draw_panel_sample`` over the
+    population a new run records, at the design's filters, its n and the run's own seed. How n
+    is spread over the quota cells, never support for anything measured in a cell."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    #: Why the sampler refused (its reason code); ``None`` when it drew.
+    refused: str | None
+    #: What the refusal names, the audience preview's ``reasons``; empty when it names nothing.
+    refused_reasons: list[str] = []
+    version_id: str | None
+    seed: int | None
+    quota_fields: list[str]
+    cells: list[QuotaCellResponse]
+    #: Distinct donors behind the sample; ``None`` when refused or without a donor column.
+    sample_donors: int | None
+    #: Whether the support forecast was counted from this sample (a respondent without a donor
+    #: leaves it unknown, as fieldwork refuses such a sample).
+    support_counted: bool = False
 
 
 class _ReadinessBody(BaseModel):
@@ -615,6 +696,9 @@ class _ReadinessBody(BaseModel):
     persona_sources: list[PersonaSourceOption] = []
     #: ``None`` when the design does not compile.
     answerability: AnswerabilityResponse | None = None
+    #: The sample a panel run would draw (RQC6b); ``None`` when none was drawn (another persona
+    #: source, no population to draw from, a fieldwork source that is not ``ai_runtime``).
+    sample_composition: SampleCompositionResponse | None = None
 
 
 class ReadinessResponse(_ReadinessBody):
@@ -629,6 +713,30 @@ class WorkingReadinessResponse(_ReadinessBody):
     Design Revision, so it never stands for a start's acknowledgement."""
 
     working_revision: int
+
+
+class StageImpactResponse(BaseModel):
+    """One pipeline stage and what the working copy means for it."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    stage: str
+    #: CURRENT, CHANGED (its own inputs differ) or RECHECK (an earlier change reaches it).
+    impact: Literal["CURRENT", "CHANGED", "RECHECK"]
+
+
+class WorkingImpactResponse(BaseModel):
+    """A working revision beside a Design Revision (working-copy-edit-ops WCE7)."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    working_revision: int
+    design_revision_id: str
+    design_revision: int
+    #: The top-level fields of the design that differ.
+    changed: list[str]
+    #: Every pipeline stage, in pipeline order.
+    stages: list[StageImpactResponse]
 
 
 class PersonaSourceOption(BaseModel):
@@ -956,6 +1064,14 @@ def _recovery_reason(
     return None
 
 
+_CODE = re.compile(r"[a-z][a-z0-9_:.-]{0,79}")
+
+
+def _code(value: object) -> str | None:
+    """A stored reason when it is a code; free text is never passed on as one."""
+    return value if isinstance(value, str) and _CODE.fullmatch(value) else None
+
+
 def _step(s: dict[str, Any]) -> ResearchStepResponse:
     attempts = s.get("attempts") or []
     last = attempts[-1] if attempts else None
@@ -974,6 +1090,7 @@ def _step(s: dict[str, Any]) -> ResearchStepResponse:
         finished_at=s.get("finished_at"),
         failure_class=last["failure_class"].value if last and last["failure_class"] else None,
         error_message=str(error.get("message")) if error.get("message") else None,
+        error_reason=_code(error.get("reason")),
         artifact_id=str(output["artifact_id"]) if output.get("artifact_id") else None,
         data_origin=str(output["data_origin"]) if output.get("data_origin") else None,
         data_origin_kind=origin_kind(output["data_origin"]) if output.get("data_origin") else None,
@@ -1144,7 +1261,7 @@ def _started(runs: ResearchRuns, started: StartedRun, response: Response) -> Res
 @router.get(
     "/research/limits",
     response_model=ResearchLimitsResponse,
-    summary="The readiness limits in force: the valid sample size",
+    summary="The readiness limits in force: the valid sample size and a tracked set's size",
 )
 def research_limits(scope: StudyScopeDep, session: SessionDep) -> ResearchLimitsResponse:
     """The limits a run start of this Study checks today, read from the organization's
@@ -1154,6 +1271,7 @@ def research_limits(scope: StudyScopeDep, session: SessionDep) -> ResearchLimits
         methodology_version=limits.methodology_version,
         version=None if stored is None else int(stored["version"]),
         sample_size=SampleSizeRange(min=limits.sample_size.min, max=limits.sample_size.max),
+        tracked_set=TrackedSetRange(**limits.tracked_set.model_dump()),
     )
 
 
@@ -1166,8 +1284,10 @@ def readiness(
     request: Request,
     scope: StudyScopeDep,
     session: SessionDep,
+    sampler: PanelSamplerDep,
     design_revision_id: Annotated[str, Query(max_length=64, pattern=r"^REV-[0-9a-f]{1,32}$")],
     persona_source: Annotated[PersonaSource | None, Query()] = None,
+    population_version_id: PopulationChoiceQuery = None,
 ) -> ReadinessResponse:
     """Compile the revision and run AIA's structural checks, without starting anything.
 
@@ -1176,12 +1296,13 @@ def readiness(
     The 18.6.6 technical preflight is not these checks and is not claimed.
     """
     chosen = _chosen_persona_source(request, persona_source)
-    runs = ResearchRuns(session, scope)
+    runs = ResearchRuns(session, scope, panel_sampler=sampler)
     try:
         outlook = runs.outlook(
             design_revision_id,
             persona_source=chosen,
             fieldwork_source=_fieldwork_source(request),
+            population_version_id=population_version_id,
         )
     except DesignRevisionNotFound as exc:
         raise _not_found("design_revision") from exc
@@ -1200,26 +1321,63 @@ def working_readiness(
     request: Request,
     scope: StudyScopeDep,
     session: SessionDep,
+    sampler: PanelSamplerDep,
     working_revision: Annotated[int, Query(ge=1)],
     persona_source: Annotated[PersonaSource | None, Query()] = None,
+    population_version_id: PopulationChoiceQuery = None,
 ) -> WorkingReadinessResponse:
     """The readiness of a revision of the Study's working content, read as a submit of it
     would read it, with no Design Revision written (working-copy-edit-ops WCE7). A stage
     reads it on the revision it shows; a start still runs a submitted Design Revision.
     A revision the Study never saved is 404 ``working_revision``."""
     chosen = _chosen_persona_source(request, persona_source)
-    runs = ResearchRuns(session, scope)
+    runs = ResearchRuns(session, scope, panel_sampler=sampler)
     try:
         outlook = runs.outlook_working(
             working_revision,
             persona_source=chosen,
             fieldwork_source=_fieldwork_source(request),
+            population_version_id=population_version_id,
         )
     except WorkingRevisionNotFound as exc:
         raise _not_found("working_revision") from exc
     return WorkingReadinessResponse(
         working_revision=working_revision,
         **_readiness_body(request, runs, outlook, chosen),
+    )
+
+
+@router.get(
+    "/research/impact",
+    response_model=WorkingImpactResponse,
+    summary="What a working revision changes against a Design Revision, stage by stage",
+)
+def working_impact(
+    scope: StudyScopeDep,
+    session: SessionDep,
+    working_revision: Annotated[int, Query(ge=1)],
+    design_revision_id: Annotated[
+        str | None, Query(max_length=64, pattern=r"^REV-[0-9a-f]{1,32}$")
+    ] = None,
+) -> WorkingImpactResponse:
+    """Each pipeline stage CURRENT, CHANGED or RECHECK going from the Design Revision (the newest
+    when none is named; a run's own to ask about that run) to the working revision, and the
+    top-level fields that differ (working-copy-edit-ops WCE7). Reads both; writes nothing. A
+    working revision the Study never saved is 404 ``working_revision``; a Design Revision not of
+    this Study, or a Study with none, 404 ``design_revision``."""
+    runs = ResearchRuns(session, scope)
+    try:
+        found = runs.impact(working_revision, design_revision_id)
+    except WorkingRevisionNotFound as exc:
+        raise _not_found("working_revision") from exc
+    except DesignRevisionNotFound as exc:
+        raise _not_found("design_revision") from exc
+    return WorkingImpactResponse(
+        working_revision=found.working_revision,
+        design_revision_id=found.design_revision_id,
+        design_revision=found.design_revision,
+        changed=list(found.changed),
+        stages=[StageImpactResponse(stage=k, impact=v.value) for k, v in found.stages.items()],
     )
 
 
@@ -1284,7 +1442,38 @@ def _readiness_body(
         )
         if outlook.answerability is not None
         else None,
+        "sample_composition": _composition(
+            outlook.panel, counted=outlook.forecast is not None and outlook.forecast.known
+        )
+        if outlook.panel is not None
+        else None,
     }
+
+
+def _composition(panel: PanelDraw, *, counted: bool) -> SampleCompositionResponse:
+    sample = panel.sample
+    if sample is None:
+        return SampleCompositionResponse(
+            refused=panel.refused,
+            refused_reasons=list(panel.reasons),
+            version_id=panel.version_id,
+            seed=panel.seed,
+            quota_fields=[],
+            cells=[],
+            sample_donors=None,
+        )
+    return SampleCompositionResponse(
+        refused=None,
+        version_id=sample.version_id,
+        seed=sample.seed,
+        quota_fields=list(sample.audit.quota_fields),
+        cells=[
+            QuotaCellResponse(key=key, values=list(c.values), n=c.n)
+            for c, key in zip(sample.quota_cells, quota_keys(sample.quota_cells), strict=True)
+        ],
+        sample_donors=sample.audit.sample_donors,
+        support_counted=counted,
+    )
 
 
 def _trace(trace: ResearchTrace) -> ResearchTraceResponse:
@@ -1321,6 +1510,7 @@ def start_run(
     session: SessionDep,
     response: Response,
     population: RunPopulationDep,
+    sampler: PanelSamplerDep,
 ) -> ResearchRunResponse:
     """Idempotent per Design Revision: a double submission gets the existing run.
 
@@ -1335,12 +1525,14 @@ def start_run(
         scope,
         population_contract=population.contract,
         population_id=population.population_id,
+        panel_sampler=sampler,
     )
     with run_start_errors():
         started = runs.start(
             design_revision_id=body.design_revision_id,
             fieldwork_source=_fieldwork_source(request),
             analysis_enabled=request.app.state.settings.ai_analysis_enabled,
+            external_context=request.app.state.settings.ai_analysis_external_context,
             sociomapping_enabled=request.app.state.settings.sociomapping_experimental_enabled,
             reservations=_reservations(request),
             confirm_cost_usd=body.confirm_cost_usd,
@@ -1375,24 +1567,42 @@ def run_start_errors() -> Iterator[None]:
         raise _not_found("population_version") from exc
     except PopulationError as exc:
         raise _population_refused(exc) from exc
+    except AnalysisNotRetryable as exc:
+        # The Lead's typed analysis retry ("Zopakuj analýzu"), refused as the stage's retry is.
+        raise _not_retryable(exc) from exc
+    except ReconstructionRefused as exc:
+        if exc.reason == "run_not_found":
+            raise _not_found("run") from exc
+        raise HTTPException(
+            status_code=409, detail={"code": exc.reason, "message": str(exc)}
+        ) from exc
 
 
-def run_start_settings(request: Request, population: AudiencePopulation) -> RunStartSettings:
+def run_start_settings(
+    request: Request,
+    population: AudiencePopulation,
+    sampler: PanelSampler | None,
+    store: ArtifactStore | None = None,
+) -> RunStartSettings:
     """What a research run's start takes from the deployment, as ``start_run`` passes it: the
     fieldwork source, analysis and Sociomapping switches, reservations, the default persona
     source, the answerability gate and the population a new run records. A typed start (LO5)
     names no persona source, population child or acknowledgement, so it starts on the
-    deployment's defaults, as a start naming none does here."""
+    deployment's defaults, as a start naming none does here. ``store``: what a typed analysis
+    retry reads the run's stored outcomes from."""
     settings = request.app.state.settings
     return RunStartSettings(
         fieldwork_source=_fieldwork_source(request),
         analysis_enabled=settings.ai_analysis_enabled,
+        external_context=settings.ai_analysis_external_context,
         sociomapping_enabled=settings.sociomapping_experimental_enabled,
         reservations=_reservations(request),
         persona_source=_persona_source(request),
         require_answerability=settings.research_answerability_gate,
         population_contract=population.contract,
         population_id=population.population_id,
+        panel_sampler=sampler,
+        store=store,
     )
 
 
@@ -1463,10 +1673,20 @@ def list_runs(
     "/research/runs/{run_id}", response_model=ResearchRunResponse, summary="One research run"
 )
 def get_run(run_id: RunIdPath, scope: StudyScopeDep, session: SessionDep) -> ResearchRunResponse:
+    runs = ResearchRuns(session, scope)
     try:
-        return _run(ResearchRuns(session, scope).get(run_id), scope)
+        run = runs.get(run_id)
+        response = _run(run, scope)
+        if scope.has(Permission.VIEW_COSTS):
+            spent = runs.spend(run)
+            response.spend = ResearchRunSpend(
+                spent_usd=spent.total_usd,
+                reserved_usd=spent.reserved_usd,
+                uncertain_calls=spent.uncertain_calls,
+            )
     except ResearchRunNotFound as exc:
         raise _not_found("run") from exc
+    return response
 
 
 @router.get(
@@ -1757,6 +1977,8 @@ _NOT_RETRYABLE_MESSAGES: Final = {
     "analysis_not_in_run": "Tento běh neobsahoval AI analýzu.",
     "dataset_missing": "Běh nemá sebraná data, nad kterými by šlo analýzu zopakovat.",
     "nothing_to_retry": "Žádný modul analýzy v tomto běhu neselhal.",
+    # The Lead's typed retry, which names no run: the study has none that ran analysis.
+    "no_analysed_run": "Studie zatím nemá žádný běh s AI analýzou, který by šlo zopakovat.",
 }
 
 
@@ -1811,15 +2033,20 @@ def retry_analysis(
     except (CostConfirmationRequired, CostCeilingUnknown) as exc:
         raise _cost_refused(exc) from exc
     except AnalysisNotRetryable as exc:
-        raise HTTPException(
-            status_code=status.HTTP_409_CONFLICT,
-            detail={
-                "code": "analysis_not_retryable",
-                "message": _NOT_RETRYABLE_MESSAGES.get(exc.reason, str(exc)),
-                "details": {"reason": exc.reason},
-            },
-        ) from exc
+        raise _not_retryable(exc) from exc
     return _started(ResearchRuns(session, scope), started, response)
+
+
+def _not_retryable(exc: AnalysisNotRetryable) -> HTTPException:
+    """An analysis retry refused, by its reason: this route's and the Lead's typed retry's."""
+    return HTTPException(
+        status_code=status.HTTP_409_CONFLICT,
+        detail={
+            "code": "analysis_not_retryable",
+            "message": _NOT_RETRYABLE_MESSAGES.get(exc.reason, str(exc)),
+            "details": {"reason": exc.reason},
+        },
+    )
 
 
 @router.get(
@@ -1885,7 +2112,10 @@ def run_analysis(
 
     Each answer to a research question carries ``gap``: what the run recorded at start about that
     question when it recorded it as a gap (its verdict and why), else ``None`` -- the same words
-    the internal report prints beside it, so Results never reads such an answer as measured."""
+    the internal report prints beside it, so Results never reads such an answer as measured.
+    ``external_context``: the pinned Design Research findings the modules were shown as context,
+    as shown, from the same verified read as the modules' sources; ``None`` without a pin or
+    before any module has an outcome."""
     try:
         scope.require(Permission.EDIT_STUDY)
         analysis = reconstruct_run(session, scope, store, run_id=run_id)
@@ -1913,6 +2143,17 @@ def run_analysis(
             else None
         ),
         "pending": {module.value: state for module, state in analysis.pending.items()},
+        # The Design Research findings every module was shown as context, never as evidence
+        # (evidence-integrity 7, artifact-analysis ANL5): exactly those, or None without a pin.
+        "external_context": {
+            "deep_research_run_id": analysis.external.deep_research_run_id,
+            "items": [
+                {"evidence_id": f.evidence_id, "claim": f.claim, "source": f.source}
+                for f in analysis.external.findings
+            ],
+        }
+        if analysis.external is not None
+        else None,
         "modules": {
             module.value: {
                 "outcome": outcome.outcome.value,
@@ -2049,6 +2290,7 @@ def run_report(
         "state": "READY",
         "internal_only": True,
         **_review_fields(artifact, mark),
+        **_approval_fields(artifact, scope, session, store),
         "artifact_id": artifact.artifact_id,
         "sha256": artifact.sha256,
         "size_bytes": artifact.size_bytes,
@@ -2167,6 +2409,30 @@ def _review_fields(artifact: Artifact, mark: ReviewMark) -> dict[str, Any]:
         "review_state": mark.state.value,
         "approved_on": mark.approved_on.isoformat() if mark.approved_on else None,
         "stamped": stampable(artifact),
+    }
+
+
+def _approval_fields(
+    artifact: Artifact, scope: StudyContext, session: SessionDep, store: ArtifactStoreDep
+) -> dict[str, Any]:
+    """Who approved a version and when, from its ledger row (report-delivery RD2): ``approval``
+    is null for a draft. ``by_you``: the asker is the approver. An approval without its row is
+    409, never a draft (``report_export.review_mark``)."""
+    if not artifact.is_approved:
+        return {"approval": None}
+    record = research_artifacts(session, scope, store).approval_record(artifact.artifact_id)
+    if record is None:
+        raise _unrecorded(ReviewUnrecorded(artifact.artifact_id))
+    return {
+        "approval": {
+            "approved_at": record.decided_at.isoformat(),
+            "approver_name": record.approver_name,
+            "by_you": record.approver_user_id == scope.actor_id,
+            "self_approved": record.self_approved,
+            "self_approval_allowed": record.self_approval_allowed,
+            "self_approval_source": record.self_approval_source,
+            "note": record.note,
+        }
     }
 
 
@@ -2346,6 +2612,7 @@ def run_report_document(
         "report_artifact_id": report.artifact_id,
         "report_sha256": report.sha256,
         **_review_fields(report, mark),
+        **_approval_fields(report, scope, session, store),
         "document": document,
     }
 
@@ -2676,25 +2943,18 @@ def download_contextual_report_pdf(
     )
 
 
-@router.get(
-    "/research/runs/{run_id}/report/client/download",
-    response_class=Response,
-    summary="The run's client report (modelled data, labelled): its approved version, else a draft",
-    responses={409: {"model": ErrorResponse}},
-)
-def download_client_report(
-    run_id: RunIdPath,
-    scope: StudyScopeDep,
+def _stored_client[T](
+    run_id: str,
+    scope: StudyContext,
     session: SessionDep,
     store: ArtifactStoreDep,
-    settings: SettingsDep,
-) -> Response:
-    """Complete-study-report B5c: only a run whose respondents were modelled from the
-    population has one; any other is refused by name (409 ``client_report_refused``)."""
+    read: Callable[[], T],
+) -> T:
+    """``read`` of the run's client report as stored (composed and stored as a draft first when
+    none is), its refusals in the API's words: 409 ``client_report_refused`` for a run that has
+    none."""
     try:
-        artifact, data = stored_client_report(
-            session, scope, store, run_id=run_id, build=settings.build.sha or ""
-        )
+        return read()
     except ScopeDenied as exc:
         raise _refused(exc) from exc
     except ResearchRunNotFound as exc:
@@ -2719,6 +2979,32 @@ def download_client_report(
                 "details": {"reason": "composition_refused"},
             },
         ) from exc
+
+
+@router.get(
+    "/research/runs/{run_id}/report/client/download",
+    response_class=Response,
+    summary="The run's client report (modelled data, labelled): its approved version, else a draft",
+    responses={409: {"model": ErrorResponse}},
+)
+def download_client_report(
+    run_id: RunIdPath,
+    scope: StudyScopeDep,
+    session: SessionDep,
+    store: ArtifactStoreDep,
+    settings: SettingsDep,
+) -> Response:
+    """Complete-study-report B5c: only a run whose respondents were modelled from the
+    population has one; any other is refused by name (409 ``client_report_refused``)."""
+    artifact, data = _stored_client(
+        run_id,
+        scope,
+        session,
+        store,
+        lambda: stored_client_report(
+            session, scope, store, run_id=run_id, build=settings.build.sha or ""
+        ),
+    )
     # The bytes it just read (or stored) are the version's: never read twice per download.
     exported = _export(artifact, scope, session, store, data=data)
     return Response(
@@ -2731,6 +3017,34 @@ def download_client_report(
             ),
         ),
     )
+
+
+@router.post(
+    "/research/runs/{run_id}/report/client/prepare",
+    response_model=dict[str, Any],
+    summary="Prepare the run's client report to be read in AIA, without a download",
+    responses={409: {"model": ErrorResponse}},
+)
+def prepare_client_report_route(
+    run_id: RunIdPath,
+    scope: StudyScopeDep,
+    session: SessionDep,
+    store: ArtifactStoreDep,
+    settings: SettingsDep,
+) -> dict[str, Any]:
+    """The client report composed and stored as its download would store it, answered as its
+    document model (report-delivery RD3): a person reads the draft in AIA before approving it,
+    and no file leaves. The approved version once there is one; nothing is composed then."""
+    report, model = _stored_client(
+        run_id,
+        scope,
+        session,
+        store,
+        lambda: prepare_client_report(
+            session, scope, store, run_id=run_id, build=settings.build.sha or ""
+        ),
+    )
+    return _client_document_body(run_id, report, model, scope, session, store)
 
 
 class ReportApprovalRequest(BaseModel):
@@ -2752,7 +3066,8 @@ def client_report_document_route(
 ) -> dict[str, Any]:
     """The document the run's stored client report was rendered from (report-delivery RD5a):
     the approved version's when a person approved one, else the newest stored draft's. It
-    composes nothing; a client report is prepared by its download. 404 while none is stored;
+    composes nothing; a client report is prepared by ``…/client/prepare`` or its download. 404
+    while none is stored;
     409 ``report_document_not_stored`` for a version stored before RD5a."""
     try:
         found = client_report_document(session, scope, store, run_id=run_id)
@@ -2762,7 +3077,18 @@ def client_report_document_route(
         raise _not_found("run") from exc
     if found is None:
         raise _not_found("report")
-    report, model = found
+    return _client_document_body(run_id, *found, scope, session, store)
+
+
+def _client_document_body(
+    run_id: str,
+    report: Artifact,
+    model: Artifact | None,
+    scope: StudyContext,
+    session: SessionDep,
+    store: ArtifactStoreDep,
+) -> dict[str, Any]:
+    """A stored client report's document model as the document route answers it."""
     if model is None:
         raise HTTPException(409, detail={"code": "report_document_not_stored"})
     if model.content_type != DOCUMENT_MODEL_MEDIA_TYPE or (
@@ -2784,6 +3110,7 @@ def client_report_document_route(
         "report_artifact_id": report.artifact_id,
         "report_sha256": report.sha256,
         **_review_fields(report, mark),
+        **_approval_fields(report, scope, session, store),
         "document": document,
     }
 
@@ -2791,7 +3118,7 @@ def client_report_document_route(
 @router.post(
     "/research/runs/{run_id}/report/approve",
     response_model=dict[str, Any],
-    summary="Approve a stored report of the run (internal approval, recorded)",
+    summary="Approve a stored report of the run (internal, with literature or client; recorded)",
     responses={403: {"model": ErrorResponse}, 409: {"model": ErrorResponse}},
 )
 def approve_run_report(
@@ -2819,6 +3146,19 @@ def approve_run_report(
         raise _not_found("run") from exc
     except ArtifactNotFound as exc:
         raise _not_found("report") from exc
+    except ClientGateRefused as exc:
+        raise HTTPException(
+            409,
+            detail={
+                "code": "client_gate_refused",
+                "message": "Klientskou zprávu nelze schválit: " + str(exc),
+                "details": {"refusals": [r.to_json() for r in exc.refusals]},
+            },
+        ) from exc
+    except (IntegrityError, ObjectNotFound) as exc:
+        raise artifact_corrupt(session) from exc
+    except DocumentModelInvalid as exc:
+        raise HTTPException(409, detail={"code": "report_artifact_invalid"}) from exc
     except ReportNotApprovable as exc:
         raise HTTPException(
             409,
@@ -2827,12 +3167,16 @@ def approve_run_report(
                 "message": "The artifact is not a valid stored report of this run.",
             },
         ) from exc
+    # Which report was approved, by kind: the client report is no internal document (G66).
+    kind = REPORT_KINDS[artifact.artifact_type]
     return {
         "run_id": run_id,
         "artifact_id": artifact.artifact_id,
         "artifact_type": artifact.artifact_type,
         **_review_fields(artifact, _mark(artifact, scope, session, store)),
-        "internal_only": True,
+        **_approval_fields(artifact, scope, session, store),
+        "report_kind": kind,
+        "internal_only": kind not in CLIENT_REPORT_KINDS,
     }
 
 

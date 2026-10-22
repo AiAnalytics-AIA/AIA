@@ -1,12 +1,12 @@
 ---
-status: in-progress
+status: done
 chunks:
   - "[x] SMP1. Vzorek's contract as data: view operations, pointable ids (size, quota cell, forecast item, readiness check) and V2's interaction contract"
-  - "[ ] SMP2. Velikost a složení: n, the dimensions and the audience summarized; the panel's quota cells before a run, and for the fictional roster the words that it has none"
+  - "[x] SMP2. Velikost a složení: n, the dimensions and the audience summarized; the panel's quota cells before a run, and for the fictional roster the words that it has none"
   - "[x] SMP3. Odhad podpory před během: the support forecast and the question outlook, labelled a forecast, never a result"
-  - "[ ] SMP4. Připravenost ke spuštění: every readiness check with its stage link, on the working revision"
+  - "[x] SMP4. Připravenost ke spuštění: every readiness check with its stage link, on the working revision"
   - "[x] SMP5. Kdo bude odpovídat: the persona source offered, its default and why an unoffered one is not, read only here with a link to Spuštění, where it is chosen (SQ1 = Q54 b)"
-  - "[ ] SMP6. Journey: Vzorek at 1440, 1100, 768 and 390 px, zero paid jobs"
+  - "[x] SMP6. Journey: Vzorek at 1440, 1100, 768 and 390 px, zero paid jobs"
 ---
 # Artifact: Vzorek (Sample)
 
@@ -96,6 +96,13 @@ V2: `SampleArt` (`SampleStages.tsx:232-273`).
 - Tests: `SampleView.test.tsx`: the roster reads "fiktivní soupis nemá kvóty"; a panel run's cells
   come from the API.
 - Depends on `run-qc-and-checkpoint#RQC6` for panel cells.
+- Delivered with RQC6c: `lib/sample-view.ts` `compositionOf` (roster, drawn, refused, unknown);
+  §1's "Složení podle kvót" lists the cells with respondents, largest first, each `sample:quota:<key>`,
+  ten shown and the rest under a `details` element; the roster reads "Fiktivní respondenti se
+  nevybírají podle kvót."; a refusal in the audience step's words (`PREVIEW_REASONS`). SMP3's
+  forecast now reads a panel run known when the server drew its sample. Tests
+  `sample-view.test.ts` (`compositionOf`, the panel forecast) and `SampleView.test.tsx`
+  ("Složení podle kvót").
 
 **SMP3. Forecast.** Test: an unknown forecast for a panel run reads "neznámé", never good.
 
@@ -128,6 +135,8 @@ field. (a) if the owner wants V2's layout exactly.
 
 ## Decisions taken while building
 
+- **WCE7b (2026-10-22): readiness is read on the working revision.** The decision below held until
+  `GET …/research/readiness/working` (#616); Vzorek now reads that and submits nothing.
 - **SMP3 (2026-10-21): readiness is read on a Design Revision until WCE7.** Vzorek reads
   `GET /research/readiness` as Spuštění does (`ExecutionSteps.tsx:650-669 @ 871c62c5`): an editor's
   working copy is saved and submitted (source stage `persona`; an unchanged copy answers its existing
@@ -145,6 +154,48 @@ field. (a) if the owner wants V2's layout exactly.
   Spuštění one click away, nothing paid. The readiness list and a check opening its stage join it
   with SMP4; the chunk stays open until then.
 
+- **SMP6, done (2026-10-22, with RQC6d):** `sample_panel_journey.mjs`, on
+  `workbench.py up --fresh --population-double`: at 1440, 1100, 768 and 390 px "Složení podle kvót"
+  shows every cell readiness drew as its `sample:quota:<key>` with the server's n (largest ten, the
+  rest folded), the forecast known, nothing editable, no overflow; then a readiness check opens its
+  stage; zero paid jobs.
+
+- **SMP4 (2026-10-22).** Vzorek §3 lists every check the server ran on the working copy, worst
+  first (an unknown status first, never counted as passed), each with the stage that fixes it
+  (`sample-view.ts` `checkStage`, by id or, for `compile:<code>:<where>` and `battery_size:<set>`, by
+  prefix; a check this client does not know names none) and its own target
+  `sample:ready:<id>`; the aside follows the server's `ready` (false stops the run whatever the
+  counts) and counts what blocks and what warns; "Pokračovat na Sběr dat" goes on,
+  "Lze pokračovat s omezeními" when only warnings. The support forecast is shown in §2 alone, counted
+  here and named when it warns. Kontrola's cards stay on Spuštění until `artifact-fieldwork#FLD6`
+  decides; "Kdo bude odpovídat" is now §4, as V2 numbers it.
+
+## Findings
+
+- **F-SMP-1. Spuštění sends a failing `dimensions` or `sociomap_support` check to Dotazník.**
+  - Anchor: `apps/web/src/components/rehome/research/ExecutionSteps.tsx:381-385 @ bfe6d15b` (`fixStep`:
+    `/sample|^n$|^support_forecast$/` → persona, `/audience/` → audience, the rest → questionnaire).
+  - Reproduction: `fixStep("dimensions")` and `fixStep("sociomap_support")` return `"questionnaire"`;
+    the checks are `research_design.py:1250-1276 @ bfe6d15b` (n below the pair minimum; the selected
+    dimensions).
+  - Consequence: "Opravit →" on those checks opens the questionnaire, where neither is fixed.
+  - Smallest fix: map both to `persona`, as Vzorek's `checkStage` does.
+  - Test: `fixStep` for each check id the domain emits. Reported to the Sběr dat session (its file).
+- **F-SMP-2. The readiness messages Vzorek shows disagree with their numbers in Czech** (found by the
+  Vzorek browser audit, 2026-10-22, at 1440/1100/768/390 px on every workbench fixture).
+  - Anchor: `packages/aia_core/src/aia_core/domain/research_design.py:1205 and :1242 @ fe85aa54`.
+  - Reproduction: a design with 1 question and 1 tracked set reads "1 otázek, 1 sledovaných sad (6
+    položek k zodpovězení)." and "1 sad pro Sociomapu.".
+  - Consequence: every Vzorek, Spuštění and Kontrola readiness list shows broken Czech.
+  - Fix: `report.numbers.counted` for each count, on this PR.
+  - Test: `test_research_design.py::test_readiness_counts_agree_with_their_number_in_czech`.
+
 ## Doc follow-up
 
 - Register this plan and its chunks.
+- CLAUDE.md §2, `SampleView`: "Vzorek, read only: §1 size and composition with links to where they
+  are set, §2 the server's forecast and question outlook, §3 every readiness check on the working
+  copy with the stage that fixes it (`lib/sample-view.ts` `checkStage`), §4 who will answer; read
+  through useSampleReadiness on the working revision".
+- open-items: F-SMP-1 (Spuštění's `fixStep` misroutes `dimensions` and `sociomap_support`; the Sběr
+  dat session is fixing it in artifact-fieldwork).

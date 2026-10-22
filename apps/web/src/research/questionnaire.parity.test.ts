@@ -46,6 +46,7 @@ import {
   setQuestionText,
   setScaleEnd,
   setScaleLabel,
+  sections,
   setSectionField,
   toAudience,
   updateObjects,
@@ -279,7 +280,20 @@ describe("the guided editor is the classic editor", () => {
     expect(classic("removeSection(0)", { confirm: false }).p).toEqual(FULL);
   });
 
-  for (const [name, v] of [["twenty lines, cut at fifteen", Array.from({ length: 20 }, (_, i) => ` o${i} `).join("\n")], ["two lines, noted", "A\n\nB"], ["empty", ""]] as const) {
+  // A deliberate deviation: the classic cut a set at its fifteenth object; AIA keeps what is stored,
+  // since the server takes up to 40 (research_design.py TRACKED_SET_LIMITS) and a cut would lose
+  // objects without a word. Only adding past 15 is refused, on the screen.
+  it("updateObjects: twenty lines, kept where the classic cut at fifteen", () => {
+    const v = Array.from({ length: 20 }, (_, i) => ` o${i} `).join("\n");
+    const ran = classic(`updateObjects(1,${JSON.stringify(v)})`);
+    const got = updateObjects(FULL, 1, v);
+    const objects = (pr: ResearchProject) => sections(pr)[1].objects;
+    expect(objects(ran.p)).toEqual(Array.from({ length: 15 }, (_, i) => `o${i}`));
+    expect(objects(got.project)).toEqual(Array.from({ length: 20 }, (_, i) => `o${i}`));
+    expect(got.note).toBeNull();
+  });
+
+  for (const [name, v] of [["fifteen lines", Array.from({ length: 15 }, (_, i) => ` o${i} `).join("\n")], ["two lines, noted", "A\n\nB"], ["empty", ""]] as const) {
     it(`updateObjects: ${name}`, () => {
       const ran = classic(`updateObjects(1,${JSON.stringify(v)})`);
       const got = updateObjects(FULL, 1, v);

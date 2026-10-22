@@ -51,6 +51,7 @@ from aia_core.domain.ai_material import MaterialApproval, material_sha256
 from aia_core.domain.deep_research.contracts import DeepResearchRequest
 from aia_core.domain.deep_research.workflow import DEEP_RESEARCH_KINDS
 from aia_core.domain.fieldwork import FieldworkSource
+from aia_core.domain.item_ids import list_ids, with_item_ids
 from aia_core.domain.prompts import PromptPin
 from aia_core.domain.research_lead import LeadOutput, layer
 from aia_core.domain.residency import DataClass
@@ -125,6 +126,20 @@ def _questions(content: Mapping[str, Any]) -> list[Mapping[str, Any]]:
     ]
 
 
+def _first_plan_id(design: Mapping[str, Any], list_key: str, ids_key: str) -> str | None:
+    """The first item id of one of the plan's lists, as the web reads it (the analysis's list,
+    else the plan's); None when the design states none or its id is not one the contract names."""
+    content, analysis = with_item_ids(design.get("content") or {}, design.get("analysis") or None)
+    holder = analysis if analysis is not None else content.get("research_plan") or {}
+    ids = list_ids(holder, list_key, ids_key)
+    return ids[0] if ids and _FOCUS_ID.match(ids[0]) else None
+
+
+def _first_objective_id(design: Mapping[str, Any]) -> str | None:
+    """The first objective's item id, as the web's objectivesOf reads it."""
+    return _first_plan_id(design, "objectives", "objective_ids")
+
+
 def scripted_lead_output(frozen: Mapping[str, Any]) -> LeadOutput:
     """A Lead turn's answer without any model, from the frozen context alone, deterministic.
 
@@ -132,7 +147,9 @@ def scripted_lead_output(frozen: Mapping[str, Any]) -> LeadOutput:
     first question's text, else the title), focuses it and prepares the questionnaire's
     optimisation as a decision card (a message with "spusť": the research run instead; with
     "aktualizuj návrh": the brief's analysis, which reads Návrh's saved answers and comments); a
-    message with "pamatuj" also asks the Lead to remember it as a personal note. Every reply
+    message with "pamatuj" also asks the Lead to remember it as a personal note, and one with
+    "detail" opens the first research question's detail, else the first hypothesis's
+    (``inspect``). Every reply
     starts with :data:`SCRIPTED_PREFIX`.
     """
     view = layer(frozen, "view")
@@ -166,9 +183,25 @@ def scripted_lead_output(frozen: Mapping[str, Any]) -> LeadOutput:
             "value": f"{content.get('title') or 'Studie'} (upřesněno)",
             "why": _SCRIPTED_WHY,
         }
+    # A message about the goal ("cíl") points at the design's first objective, by the id the
+    # Brief and Návrh mark it with (artifact-brief BRF6); the edit stays the same.
+    objective = _first_objective_id(layer(frozen, "design")) if "cíl" in message.lower() else None
+    if objective is not None:
+        target = f"objective:{objective}"
+    views: list[dict[str, Any]] = [{"op": "focus", "target": target}]
+    # A message asking for a detail opens the first research question's (else hypothesis's) in
+    # the item drawer over Návrh (research-lead-workbench 14), the one view op a focus cannot show.
+    if "detail" in message.casefold():
+        design = layer(frozen, "design")
+        rq = _first_plan_id(design, "research_questions", "research_question_ids")
+        hypothesis = None if rq else _first_plan_id(design, "hypotheses", "hypothesis_ids")
+        if rq is not None:
+            views.append({"op": "inspect", "target": f"rq:{rq}"})
+        elif hypothesis is not None:
+            views.append({"op": "inspect", "target": f"hypothesis:{hypothesis}"})
     body: dict[str, Any] = {
         "reply": f"{SCRIPTED_PREFIX} Připravil jsem ukázkovou úpravu a jedno rozhodnutí.",
-        "view": [{"op": "focus", "target": target}],
+        "view": views,
         "edits": [edit],
         "request": {
             "kind": "agent_job",

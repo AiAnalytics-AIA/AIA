@@ -19,9 +19,10 @@
 // filters is the run's pin, and readiness says it ("audience").
 
 import { useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useContext, useEffect, useState } from "react";
 
 import { ApiError, type AudienceCatalogue, population } from "@/lib/api";
+import { audienceFilterAia, audiencePartAia, audienceSubpanelAia } from "@/lib/artifacts/audience";
 import { isNativeResult } from "@/lib/research-agent-jobs";
 import { t, tv } from "@/i18n/t";
 import {
@@ -45,6 +46,7 @@ import {
   factorRefusal,
   filterCategories,
   filterChips,
+  filterProblems,
   filterableFactors,
   humanFilters,
   humanSummary,
@@ -65,27 +67,15 @@ import {
 } from "@/research/audience";
 import type { ResearchProject } from "@/research/model";
 import { Icon } from "../icons";
-import { ActionDock, RadioCard, StepSection } from "../step";
+import { ActionDock, FrameNavigation, RadioCard, StepSection } from "../step";
 import { AiButton, Button, Chip, Field, Tag, TextArea, TextInput } from "../ui";
 import { useResearch } from "./context";
 import { InspectorSlot } from "./Inspector";
 import { AskLead, useLeadOwnsAiStarts } from "./AskLead";
 import { AiFailureCard, useAiStep } from "./useAiStep";
 
-/**
- * What the Research Lead can name on this screen (artifact-audience § 4): the description, the
- * filters, one factor by its catalogue id, one built-in subpanel, the preview. The workbench
- * focuses them through lib/lead.ts focusSelector's `data-aia` fall-through.
- */
-export const AUDIENCE_TARGET = { definition: "audience:definition", filters: "audience:filters", preview: "audience:preview" } as const;
-/**
- * One stored filter's target, by its factor's catalogue id (`audience:filter:kraj`). It sits on the
- * filter's chip under "Vybrané filtry", which every stored filter has whatever category, search or
- * 80-factor cut the editor shows; a factor's editor may be off screen.
- */
-export const audienceFactorTarget = (factorId: string) => `audience:filter:${factorId}`;
-/** One built-in subpanel's target, by its key (`audience:subpanel:young_18_29`). */
-export const audienceSubpanelTarget = (key: string) => `audience:subpanel:${key}`;
+/** A filter refused whole, in words (filterProblems' reasons other than `values`). */
+const PROBLEM_WORDS = { factor: "research.audience.problemFactor", policy: "research.audience.problemPolicy", empty: "research.audience.problemEmpty", range: "research.audience.problemRange" } as const;
 
 const NOT_IN_AIA = "rounded-control border border-status-you-ink/40 bg-status-you-wash p-4";
 const EYEBROW = "font-mono text-[11px] uppercase tracking-[0.08em] text-ink-faint";
@@ -132,6 +122,8 @@ function useLiveAudience(): Live {
 export function AudienceStep() {
   const { store, state, stepHref } = useResearch();
   const router = useRouter();
+  // Inside the workbench the frame opens the next stage (its leave guard, its heading's focus); outside it, the route.
+  const frameNav = useContext(FrameNavigation);
   const p = state.project;
   const view = audienceView(p);
   const ready = audienceReady(p);
@@ -247,7 +239,7 @@ export function AudienceStep() {
           ready={ready}
           note={ready ? (isLive ? t("research.audience.liveCheck") : t("research.audience.checkNotInAia")) : t("research.audience.nextHint")}
         >
-          <Button variant="primary" className="!rounded-control" disabled={!ready} onClick={() => router.push(stepHref("persona"))}>
+          <Button variant="primary" className="!rounded-control" disabled={!ready} onClick={() => (frameNav?.next ? frameNav.next.go() : router.push(stepHref("persona")))}>
             {t("research.audience.next")}
             <Icon name="next" size={14} />
           </Button>
@@ -284,6 +276,10 @@ function FilterEditor({ live }: { live: Live }) {
   const leadOwnsAiStarts = useLeadOwnsAiStarts();
   const [text, setText] = useState(String(state.project.audience.description || ""));
   const chips = filterChips(state.project, live.state === "ready" ? live.catalog : null);
+  // What the population cannot honour as stored, said now rather than at the preview or the run.
+  const version = live.state === "ready" ? live.api.version_label : null;
+  const problems = live.state === "ready" ? filterProblems(state.project, live.catalog) : [];
+  const problemOf = new Map(problems.map((x) => [x.id, x]));
   const change = (c: Change) => store.update(() => ({ project: c.project }), { reason: c.reason, invalidateCheck: c.invalidateCheck });
 
   // proposeAudience: the job; the model proposes a description, never filters (research_agents).
@@ -302,13 +298,13 @@ function FilterEditor({ live }: { live: Live }) {
   return (
     <div className="mt-4 flex flex-col gap-3">
       {live.state === "loading" ? null : (
-        <div data-aia={AUDIENCE_TARGET.filters}>
+        <div data-aia={audiencePartAia("filters")}>
           {live.state === "ready" ? <LiveFilters live={live} /> : (
             <NotInAia title={t("research.audience.filterTitle")}>{`${live.text} ${t("research.audience.filtersNotInAia")}`}</NotInAia>
           )}
         </div>
       )}
-      <section data-aia={AUDIENCE_TARGET.definition} className="rounded-control border border-border bg-surface p-4" aria-labelledby="aud-filters">
+      <section data-aia={audiencePartAia("definition")} className="rounded-control border border-border bg-surface p-4" aria-labelledby="aud-filters">
         {step.failure ? (
           <div className="mb-4">
             <AiFailureCard failure={step.failure} title={t("research.audience.failedTitle")} onRetry={() => step.setFailure(null)} onContinue={(id) => void step.resume(id, () => toast(PROPOSE_SAVED))} />
@@ -327,20 +323,38 @@ function FilterEditor({ live }: { live: Live }) {
           <>
             <p className="mt-3 text-xs text-ink-muted">{live.state === "ready" ? t("research.audience.selectedFilters") : t("research.audience.storedFilters")}</p>
             <ul className="mt-1 flex flex-wrap gap-1.5">
-              {chips.map((c) => (
-                <li key={c.id} data-aia={audienceFactorTarget(c.id)} className="inline-flex items-center gap-1 rounded-sm border border-signal-edge bg-signal-wash py-0.5 pl-2 pr-0.5 text-xs">
+              {chips.map((c) => {
+                const problem = problemOf.get(c.id);
+                return (
+                <li key={c.id} data-aia={audienceFilterAia(c.id) ?? undefined} data-filter-problem={problem ? true : undefined} className={`inline-flex items-center gap-1 rounded-sm border pl-2 text-xs ${problem ? "border-status-you-ink/40 bg-status-you-wash" : "border-signal-edge bg-signal-wash"}`}>
                   <b>{c.label}</b>: {c.text}
+                  {problem ? <span className="font-medium text-status-you-ink"> · {t(problem.reason === "values" && !problem.noneKnown ? "research.audience.problemChipPartial" : "research.audience.problemChip")}</span> : null}
                   <button
                     type="button"
                     aria-label={tv("research.audience.removeFilter", { label: c.label })}
                     onClick={() => change(removeAudienceFactor(store.get().project, c.id))}
-                    className="rounded-sm px-1 text-ink-muted hover:text-ink focus-visible:outline-2 focus-visible:outline-focus-ring"
+                    className="inline-flex size-6 shrink-0 items-center justify-center rounded-sm text-ink-muted hover:text-ink focus-visible:outline-2 focus-visible:outline-focus-ring"
                   >
                     ×
                   </button>
                 </li>
-              ))}
+                );
+              })}
             </ul>
+            {problems.length ? (
+              <div role="note" data-filter-problems className="mt-2 rounded-control border border-status-you-ink/40 bg-status-you-wash p-3 text-xs leading-5">
+                <p className="font-medium">{tv("research.audience.problemTitle", { version: String(version) })}</p>
+                <ul className="mt-1 list-disc pl-5">
+                  {problems.map((x) => (
+                    <li key={x.id}>
+                      {x.reason === "values"
+                        ? tv(x.noneKnown ? "research.audience.problemValuesAll" : "research.audience.problemValues", { label: x.label, values: x.unknownValues.join(", ") })
+                        : tv(PROBLEM_WORDS[x.reason], { label: x.label })}
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            ) : null}
           </>
         ) : null}
       </section>
@@ -456,7 +470,7 @@ function Preview({ catalog }: { catalog: Catalog }) {
     }
   };
   return (
-    <div data-aia={AUDIENCE_TARGET.preview} className="mt-4 border-t border-border pt-3">
+    <div data-aia={audiencePartAia("preview")} className="mt-4 border-t border-border pt-3">
       <Button disabled={busy} onClick={() => void check()}>
         {busy ? t("research.audience.previewRunning") : t("research.audience.previewButton")}
       </Button>
@@ -485,7 +499,7 @@ function Subpanels({ live }: { live: Extract<Live, { state: "ready" }> }) {
         <p className="mt-1 text-xs text-ink-muted">{tv("research.audience.subpanelsIntro", { measured: live.api.subpanels_measured_on })}</p>
         <div role="radiogroup" aria-label={t("research.audience.subpanelsTitle")} className="mt-2 grid gap-2 [grid-template-columns:repeat(auto-fit,minmax(240px,1fr))]">
           {live.api.subpanels.map((sp) => (
-            <div key={sp.key} data-aia={audienceSubpanelTarget(sp.key)} className="grid">
+            <div key={sp.key} data-aia={audienceSubpanelAia(sp.key) ?? undefined} className="grid">
               <RadioCard checked={current === sp.key} disabled={sp.usable !== true} onSelect={() => current !== sp.key && pick(sp.key)} title={sp.name}>
                 {tv("research.audience.subpanelRows", { rows: sp.measured_by_18_6_6.rows.toLocaleString("cs-CZ"), donors: sp.measured_by_18_6_6.unique_core_donors.toLocaleString("cs-CZ") })}
                 {sp.usable === false ? <> · {tv("research.audience.subpanelUnusable", { reason: sp.reason || "?" })}</> : null}

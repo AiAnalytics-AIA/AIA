@@ -5,7 +5,7 @@ import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 
 import {
-  applyLeadEdit, autoAcceptIndices, autoAcceptPlan, describeEdit, droppedLines, editRefusalWords, editStage, isTextEdit, leadReasonWords, pendingSelfUpdate, revertTextEdit, targetLabel, textEditInverse,
+  applyLeadEdit, autoAcceptIndices, commandRequest, autoAcceptPlan, describeEdit, droppedLines, editRefusalWords, editStage, isTextEdit, leadReasonWords, pendingSelfUpdate, revertTextEdit, targetLabel, textEditInverse,
   type LeadEdit, type LeadTurn,
 } from "./lead";
 import type { ResearchProject } from "@/research/model";
@@ -108,7 +108,7 @@ describe("targetOfElement", () => {
     const { document } = new JSDOM(`<fieldset data-aia="audience:filter:kraj"><legend>Kraj</legend><input id="k"></fieldset>
       <div data-aia="finding:executive:2"><p id="f">text</p></div><div data-aia="lead-edit.x"><i id="o">-</i></div>`).window;
     expect(targetOfElement(document.getElementById("k"))).toEqual({ id: "audience:filter:kraj", label: "Filtr: kraj: Kraj" });
-    expect(targetOfElement(document.getElementById("f"))).toEqual({ id: "finding:executive:2", label: "Zjištění executive:2" });
+    expect(targetOfElement(document.getElementById("f"))).toEqual({ id: "finding:executive:2", label: "Zjištění: text" });
     expect(targetOfElement(document.getElementById("o"))).toBeNull();
   });
 
@@ -133,6 +133,30 @@ describe("targetOfElement", () => {
     expect(document.querySelector(focusSelector("section:S1"))?.id).toBe("qset_S1");
   });
 
+  it("names an item row without a heading by its own words, never its opaque id", async () => {
+    const { targetOfElement } = await import("./lead");
+    const { JSDOM } = await import("jsdom");
+    // The Brief's objective row as it renders: its number, InlineText (the action read by a screen
+    // reader, the words in a text button, a pencil icon) and the row's remove button.
+    const { document } = new JSDOM(`<ul><li data-aia="objective:obj_6393c6bada"><span aria-hidden="true">1.</span>
+      <span><span class="sr-only">Upravit: Cíl 1</span><button aria-labelledby="a t"><span id="o">Změřit   zájem o koncept</span><span aria-hidden="true">✎</span></button></span>
+      <button aria-label="Odebrat cíl 1">×</button></li>
+      <li data-aia="rq:rq_x" id="r">Kdo nakupuje?</li><div data-aia="audience:preview"><i id="p">1 234</i></div></ul>`).window;
+    expect(targetOfElement(document.getElementById("o"))).toEqual({ id: "objective:obj_6393c6bada", label: "Cíl: Změřit zájem o koncept" });
+    expect(targetOfElement(document.getElementById("r"))?.label).toBe("Výzkumná otázka: Kdo nakupuje?");
+    // A part of a screen keeps its own words (targetLabel), not whatever text it holds.
+    expect(targetOfElement(document.getElementById("p"))?.label).toBe("Cílová skupina: náhled");
+  });
+
+  it("names nothing for an unmarked duplicate of a marked card (#607 marks the first only)", async () => {
+    const { targetOfElement } = await import("./lead");
+    const { JSDOM } = await import("jsdom");
+    const { document } = new JSDOM(`<div data-aia="question:Q1" id="qedit_Q1"><i id="a">Jak často?</i></div>
+      <div id="qedit_Q1"><i id="b">Jak často znovu?</i></div>`).window;
+    expect(targetOfElement(document.getElementById("a"))?.id).toBe("question:Q1");
+    expect(targetOfElement(document.getElementById("b"))).toBeNull();
+  });
+
   it("names an unmarked card by its DOM id only when the id is a stored one the contract can send", async () => {
     // Before Dotazník marks its cards (#607) a card is named by its DOM id. The ids the screen
     // invents name nothing: a question without an id is qedit_Q (questionElementId's placeholder),
@@ -152,10 +176,28 @@ describe("targetOfElement", () => {
   });
 });
 
+describe("composerHint", () => {
+  it("says why the composer is shut, the person's own reason first, unknown as loading", async () => {
+    const { composerHint } = await import("./lead");
+    const at = (over: Partial<Parameters<typeof composerHint>[0]>) => composerHint({ canEdit: true, hatched: true, available: true, failed: false, ...over });
+    expect(at({})).toBeNull();
+    expect(at({ canEdit: false, hatched: false, available: false })).toMatch(/Jen ke čtení/);
+    expect(at({ hatched: false })).toMatch(/vylíhněte/);
+    expect(at({ available: false })).toMatch(/neodpovídá/);
+    expect(at({ hatched: undefined, available: undefined })).toMatch(/Načítám/);
+    // A refused read never reads as loading for ever (review of the audit branch).
+    expect(at({ available: undefined, failed: true })).toMatch(/nepodařilo načíst/);
+  });
+});
+
 describe("targetLabel for every artifact's kinds", () => {
   it("says each kind in words, and the audience's parts as the Cílová skupina screen names them", () => {
     expect(targetLabel("audience:definition")).toBe("Cílová skupina: popis");
     expect(targetLabel("audience:subpanel:young_18_29")).toBe("Podpanel: young_18_29");
+    expect(targetLabel("audience:filter:kraj")).toBe("Filtr: kraj");
+    // Read by Cílová skupina's own parser: a filter or subpanel with no name is no filter.
+    expect(targetLabel("audience:filter:")).toBe("Cílová skupina: filter:");
+    expect(targetLabel("audience:subpanel:")).toBe("Cílová skupina: subpanel:");
     expect(targetLabel("pair:set1/fio~air")).toBe("Dvojice set1/fio~air");
     expect(targetLabel("measure:q3")).toBe("Měření q3");
     expect(targetLabel("receipt:respondents")).toBe("Kdo odpovídal");
@@ -267,7 +309,21 @@ describe("a refused or dropped edit says why in words (RQC9)", () => {
   });
 });
 
+describe("commandRequest", () => {
+  it("reads the start the server matched, the instruction after a colon as its why, and nothing it does not know", () => {
+    expect(commandRequest({ command: "agent_job:build_questionnaire", text: "Navrhni dotazník: krátce, 10 otázek" })).toEqual({ kind: "agent_job", action: "build_questionnaire", why: "krátce, 10 otázek" });
+    expect(commandRequest({ command: "research_run", text: "Spusť výzkum" })).toEqual({ kind: "research_run", why: "Spustí se až vaším potvrzením." });
+    expect(commandRequest({ command: "analysis_retry", text: "Zopakuj analýzu" })).toEqual({ kind: "analysis_retry", why: "Spustí se až vaším potvrzením." });
+    for (const command of [null, undefined, "", "agent_job:", "deep_research"]) expect(commandRequest({ command, text: "x" })).toBeNull();
+  });
+});
+
 describe("leadReasonWords", () => {
+  it("says who fixes a refusal of the AI route, which a researcher cannot (LO12a)", () => {
+    expect(leadReasonWords("egress_route_not_approved_for_class")).toMatch(/^Tuto studii nelze poslat modelu: .* Opraví to provozovatel AIA, ne výzkumník: nastaví parametr aia_ai_route_approved_for/);
+    expect(leadReasonWords("budget_exceeded")).not.toContain("provozovatel");
+  });
+
   it("says what to do about a turn parked on the study's budget, by the code the server sends", () => {
     // The server's waiting reason is budget_exceeded; AWAITING_BUDGET is a step status it never sends.
     expect(leadReasonWords("budget_exceeded")).toContain("Nastavení → Studie");
