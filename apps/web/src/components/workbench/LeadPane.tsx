@@ -555,7 +555,7 @@ function Composer({ draft, setDraft, onSend, busy, queued, onUnqueue, disabled, 
           ))}
         </div>
       ) : null}
-      {focus ? <div className="refchip"><Icon name="at" size={12} /><b>{focus.label}</b><button type="button" className="iconbtn" style={{ width: 20, height: 20 }} aria-label="Zrušit odkaz" onClick={onClearFocus}><Icon name="close" size={11} /></button></div> : null}
+      {focus ? <div className="refchip"><Icon name="at" size={12} /><b>{focus.label}</b><button type="button" className="iconbtn refchip__clear" aria-label="Zrušit odkaz" onClick={onClearFocus}><Icon name="close" size={11} /></button></div> : null}
       <div className="composer">
         <label className="sr-only" htmlFor="composer">Napište Vedoucímu výzkumu</label>
         <textarea id="composer" ref={ta} rows={1} value={draft} disabled={disabled} placeholder={disabled && hint ? hint : focus ? "Co se má změnit? Např. „kratší“, „přejmenovat na …“" : "Napište Vedoucímu výzkumu…"}
