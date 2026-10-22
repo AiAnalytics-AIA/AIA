@@ -620,13 +620,13 @@ function Outline() {
   // A block and a set named in their rows (audit A21, A8), then opened where they are.
   const newBlock = (name: string) => {
     const r = addNamedSection(store.get().project, name);
-    if (!r) return t("research.questionnaire.inlineAdd.empty");
+    if (!r) return t("input.name.empty");
     store.update(() => ({ project: r.project }), { reason: "questionnaire_block" });
     setTimeout(() => jumpTo(`qblock_${r.sectionId}`), 50);
   };
   const newSet = (name: string) => {
     const r = addNamedTrackedSet(store.get().project, name);
-    if (!r) return t("research.questionnaire.inlineAdd.empty");
+    if (!r) return t("input.name.empty");
     store.update(() => ({ project: r.project }), { reason: "questionnaire_set" });
     setTimeout(() => {
       jumpTo(setElementId({ id: r.sectionId }, 0));
@@ -823,11 +823,12 @@ function QuestionBlock({ n, firstQ, sec, si, update }: { n: number; firstQ: numb
             onCreate={(text) => {
               let made = false;
               update((p) => {
-                const r = addQuestionTo(p, si, text);
+                const r = addQuestionTo(p, si, sec.id, text);
                 made = r !== null;
                 return r?.project ?? p;
               }, "questionnaire_question");
-              return made ? undefined : t("research.questionnaire.inlineAdd.empty");
+              // The row refuses an empty wording itself; null here means the block is gone.
+              return made ? undefined : t("research.questionnaire.inlineAdd.blockGone");
             }}
           />
         </div>
