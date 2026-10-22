@@ -77,4 +77,31 @@ describe("useStepActivity", () => {
     expect(read).not.toHaveBeenCalled();
     expect(result.current.cursor).toBe(0);
   });
+
+  it("reads a stopped feed to its end, and once more when the steps change (FLD3)", async () => {
+    const feed = Array.from({ length: 4_600 }, (_, i) => ev(i + 1, `#${i + 1}`));
+    const read = vi.fn(async (since: number) => feed.filter((e) => e.event_id > since).slice(0, 500));
+    const { result, rerender } = renderHook(({ revision }) => useStepActivity("RUN-1", read, false, revision), {
+      initialProps: { revision: "run:WAITING_PROVIDER:1" },
+    });
+    await flush();
+    // Past the eight pages a live feed reads at once: a stopped feed has no next tick.
+    expect(result.current.cursor).toBe(4_600);
+
+    feed.push(ev(4_601, "zase stojí"));
+    await flush(ACTIVITY_POLL_MS * 3);
+    expect(result.current.cursor).toBe(4_600);
+    rerender({ revision: "run:AWAITING_BUDGET:2" });
+    await flush();
+    expect(result.current.cursor).toBe(4_601);
+    expect(result.current.steps["STEP-a"].lines.at(-1)?.text).toBe("zase stojí");
+  });
+
+  it("stops a page that moves its cursor nowhere instead of reading it forever", async () => {
+    const page = Array.from({ length: 500 }, (_, i) => ev(i + 1, `#${i + 1}`));
+    const read = vi.fn(async () => page);
+    renderHook(() => useStepActivity("RUN-1", read, false));
+    await flush();
+    expect(read).toHaveBeenCalledTimes(2);
+  });
 });

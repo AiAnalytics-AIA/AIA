@@ -2774,6 +2774,8 @@ export const cs = {
         // run-qc-and-checkpoint RQC7a: fieldwork's progress event, by its code.
         fieldworkProgress: "Odpovědělo {done} z {of} respondentů",
         fieldworkReplayed: "{replayed} bloků z uložených odpovědí, bez nového placení",
+        // artifact-fieldwork FLD3: a stopped step's count, as it last reported it.
+        lastReported: "Naposledy hlášeno: odpovědělo {done} z {of} respondentů",
         aiAnswered: "Model odpověděl · {tokensIn} → {tokensOut} tokenů · {cost} · {seconds} s",
         aiAnsweredNoTokens: "Model odpověděl · tokeny neuvedeny · {cost} · {seconds} s",
         tokensUnknown: "?",

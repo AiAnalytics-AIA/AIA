@@ -47,7 +47,7 @@ import { citedSnapshot } from "@/lib/verified-source";
 import { researchStepOrb, researchStepWork } from "@/lib/activity-orb";
 import { RECEIPT_TARGET, stepTarget } from "@/lib/artifacts/fieldwork";
 import { FOCUS, TOUCH, TOUCH_LINK } from "@/components/ui/parts";
-import { activityOf } from "@/lib/step-activity";
+import { activityOf, lastReported } from "@/lib/step-activity";
 import { type BatteryWithMaps, mapApproval, olderMethodOnly, readObjectMap, type RecordedMethod, type RegisterEntry } from "@/lib/object-map-view";
 import {
   STEP_ORDER,
@@ -1369,7 +1369,9 @@ export function ProgressStep() {
   const repairable = useRetryableModules(run);
   // The run's feed, read live while one of its steps runs (lib/step-activity.ts).
   const running = !!run && !run.is_terminal && run.steps.some((s) => s.status === "RUNNING");
-  const activity = useStepActivity(run?.run_id ?? null, (since) => research.events(frame.studyId, run!.run_id, since), running);
+  // A step that ran and stopped between two polls changes the steps' states: its events are read too.
+  const stepStates = run ? run.steps.map((s) => `${s.step_id}:${s.status}:${s.attempts_recorded ?? ""}`).join(",") : "";
+  const activity = useStepActivity(run?.run_id ?? null, (since) => research.events(frame.studyId, run!.run_id, since), running, stepStates);
 
   const act = useCallback(
     async (fn: () => Promise<ResearchRun>) => {
@@ -1456,7 +1458,10 @@ export function ProgressStep() {
       {repairable ? <AnalysisRepair run={run} modules={repairable} act={act} busy={busy} /> : null}
       <Card title={t("aia.stages.progress")}>
         <ol className="flex flex-col gap-3" aria-label={t("aia.stages.progress")}>
-          {listed.map((s) => (
+          {listed.map((s) => {
+            const stepActivity = activityOf(activity, s.step_id);
+            const last = lastReported(stepActivity, s.status, run.is_terminal);
+            return (
             // Pointable by the Lead (the coordinator's registry: fieldwork targets step:<node_key>).
             <li key={s.node_key} data-aia={stepTarget(s.node_key) ?? undefined} data-step={s.node_key} data-status={s.status} className="flex flex-col gap-0.5 text-sm">
               <div className="flex flex-wrap items-center gap-2">
@@ -1477,9 +1482,11 @@ export function ProgressStep() {
                 {s.attempts_recorded ? ` · ${tv("research.exec.attempts", { n: s.attempts_recorded, max: s.max_attempts })}` : null}
               </span>
               {waitingDetail(s) ? <span className="text-xs text-ink">{waitingDetail(s)}</span> : null}
-              <StepActivityPanel orb={researchStepOrb(run, s)} activity={activityOf(activity, s.step_id)} startedAt={s.started_at} label={stepLabel(s.node_key)} />
+              {last ? <span data-last-reported className="font-mono text-xs tabular-nums text-ink-muted">{last}</span> : null}
+              <StepActivityPanel orb={researchStepOrb(run, s)} activity={stepActivity} startedAt={s.started_at} label={stepLabel(s.node_key)} />
             </li>
-          ))}
+            );
+          })}
         </ol>
       </Card>
     </div>
