@@ -2248,6 +2248,31 @@ describe("Results", () => {
     window.location.hash = "";
   });
 
+  it("says above the numbers when the study's design moved past the run's revision", async () => {
+    api({ ...listed(COMPLETED),
+      "GET /api/v1/studies/STU-1/research/runs/RUN-1/artifacts/ART-4": () => AGGREGATE,
+      "GET /api/v1/studies/STU-1/research/runs/RUN-1/artifacts/ART-5": () => SOCIOMAP,
+      "GET /api/v1/studies/STU-1/design/revisions": () => ({ items: [{ revision_id: "REV-b", revision: 4 }, { revision_id: "REV-a1", revision: 3 }] }),
+    });
+    render(<ResearchScreen step="results" frame={TEST_FRAME} />);
+    await waitFor(() => expect(document.querySelector("[data-revision-moved]")?.textContent).toBe(
+      "Výsledky běhu z revize 3; studie je na revizi 4Čísla platí pro revizi 3; změny z revize 4 v nich nejsou."));
+  });
+
+  it("says nothing of revisions while the run is on the study's newest", async () => {
+    api({ ...listed(COMPLETED),
+      "GET /api/v1/studies/STU-1/research/runs/RUN-1/artifacts/ART-4": () => AGGREGATE,
+      "GET /api/v1/studies/STU-1/research/runs/RUN-1/artifacts/ART-5": () => SOCIOMAP,
+      "GET /api/v1/studies/STU-1/design/revisions": () => ({ items: [{ revision_id: "REV-a1", revision: 3 }] }),
+    });
+    render(<ResearchScreen step="results" frame={TEST_FRAME} />);
+    fireEvent.click(await screen.findByRole("tab", { name: "Data" }));
+    await waitFor(() => expect(called("GET", "/api/v1/studies/STU-1/design/revisions").length).toBeGreaterThan(0));
+    // Let the answer render before saying nothing showed.
+    await act(async () => { await new Promise((r) => setTimeout(r, 50)); });
+    expect(document.querySelector("[data-revision-moved]")).toBeNull();
+  });
+
   it("shows at most five raw answers to an open question, outside the details, labelled as data", async () => {
     const answers = ["Lepší aplikace", "Nižší poplatky", "Doporučení", "Pobočka blízko", "Rychlá podpora", "Šesté", "Sedmé"];
     const aggregate = { ...AGGREGATE, payload: { aggregate: { ...AGGREGATE.payload.aggregate, questions: {

@@ -2,7 +2,7 @@
 import { describe, expect, it } from "vitest";
 
 import type { QuestionResult } from "./research-execution";
-import { citedMeasure, compareObjects, czechList, inlineRuns, measureAnchor, measureTarget, readMeasure, separation, textBlocks } from "./result-reading";
+import { citedMeasure, compareObjects, czechList, inlineRuns, measureAnchor, measureTarget, readMeasure, revisionNote, separation, textBlocks } from "./result-reading";
 import { parseAiaId } from "./workbench-artifacts";
 
 const support = (status: "REPORTABLE" | "INDICATIVE" | "SUPPRESS") => ({ support_status: status, n_platnych: 140, n_unique_layer_donors: 120, effective_n: 110 });
@@ -220,5 +220,20 @@ describe("the Lead's targets on Výsledky", () => {
   it("gives an id outside the grammar no target, rather than throwing", () => {
     expect(measureTarget("Q 9")).toBeNull();
     expect(measureTarget("napoje", "čaj")).toBeNull();
+  });
+});
+
+describe("revisionNote", () => {
+  it("says the study's design moved past the run's revision", () => {
+    expect(revisionNote(3, [1, 2, 3, 4])).toEqual({
+      title: "Výsledky běhu z revize 3; studie je na revizi 4",
+      body: "Čísla platí pro revizi 3; změny z revize 4 v nich nejsou.",
+    });
+  });
+
+  it("says nothing when the run is on the newest revision, or the revisions are not known", () => {
+    expect(revisionNote(4, [4, 2, 3])).toBeNull();
+    expect(revisionNote(4, null)).toBeNull();
+    expect(revisionNote(4, [])).toBeNull();
   });
 });
