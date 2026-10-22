@@ -117,6 +117,9 @@ export function BriefStep() {
   const score = [goalLength >= GOAL_SENTENCE, selected.size > 0, attachments.length > 0, filled > 0].filter(Boolean).length * 25;
 
   const uploads = useUploads();
+  // One undo offer for the whole stage (I6): a removal anywhere replaces the last offer, never sits
+  // beside it (Codex on #641).
+  const undo = useUndo();
   const note = ready ? (goalLength < GOAL_SENTENCE && !selected.size ? t("research.brief.dockShort") : t("research.brief.dockReady")) : t("research.brief.dockMissing");
 
   return (
@@ -202,7 +205,7 @@ export function BriefStep() {
         </div>
       </StepSection>
 
-      <Objectives />
+      <Objectives undo={undo} />
 
       <StepSection
         id="brief-type"
@@ -235,9 +238,11 @@ export function BriefStep() {
         </div>
       </StepSection>
 
-      <Attachments uploads={uploads} />
+      <Attachments uploads={uploads} undo={undo} />
 
       <ContextFields edit={edit} p={p} />
+
+      <UndoToast offer={undo.current} onDone={undo.clear} />
 
       {uploads.over ? (
         <div aria-hidden="true" className="pointer-events-none absolute inset-0 z-10 flex items-start justify-center rounded-card border-2 border-dashed border-signal bg-signal-wash/90 pt-40">
@@ -257,9 +262,8 @@ export function BriefStep() {
  * in the list and removed with "Vrátit". The same list Návrh shows (brief-objectives.ts); each item
  * is a Lead target, objective:<id>. None yet reads "Zatím prázdné", never the goal in their place.
  */
-function Objectives() {
+function Objectives({ undo }: { undo: Undo }) {
   const { store, state } = useResearch();
-  const undo = useUndo();
   const design = { project: state.project, analysis: state.analysis };
   const items = objectivesOf(design);
   const editable = objectivesEditable(design);
@@ -307,7 +311,6 @@ function Objectives() {
           onCreate={(text) => store.update((d) => addObjective(d, text), { reason: "brief_objective_add" })}
         />
       ) : null}
-      <UndoToast offer={undo.current} onDone={undo.clear} />
     </StepSection>
   );
 }
@@ -464,6 +467,8 @@ function useMaterialClasses(studyId: string, revision: number | null): BriefMate
   return answer;
 }
 
+type Undo = ReturnType<typeof useUndo>;
+
 type Pending = { name: string; state: "waiting" | "uploading" | "done" | "failed"; message?: string };
 
 /**
@@ -526,7 +531,7 @@ function useUploads() {
 type Uploads = ReturnType<typeof useUploads>;
 
 /** Podklady: the stored files and links, the files on their way, and how to add more. */
-function Attachments({ uploads }: { uploads: Uploads }) {
+function Attachments({ uploads, undo }: { uploads: Uploads; undo: Undo }) {
   const { store, state, frame } = useResearch();
   const files = useRef<HTMLInputElement>(null);
   const [url, setUrl] = useState("");
@@ -535,7 +540,6 @@ function Attachments({ uploads }: { uploads: Uploads }) {
   const classes = useMaterialClasses(frame.studyId, state.revision);
   // A removal happens at once, with Vrátit (I6, audit A28). The stored file stays in AIA's storage
   // until then and after: removing it from the brief only drops its record, which the undo puts back.
-  const undo = useUndo();
 
   const download = async (x: Attachment, attachmentId: string) => {
     setError(null);
@@ -679,7 +683,6 @@ function Attachments({ uploads }: { uploads: Uploads }) {
           ))}
         </ul>
       ) : null}
-      <UndoToast offer={undo.current} onDone={undo.clear} />
     </StepSection>
   );
 }
