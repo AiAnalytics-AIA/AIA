@@ -265,6 +265,10 @@ Every item is an `Item` (`src/components/ui.tsx:52`): edit in place, remove, mov
 
 None. Where assumptions are shown (B-6) and the absence of a decision list (B-2, D-44) are settled.
 
+Settled 2026-10-22 (the product owner, through the PM): the Brief may hold no objective while it is
+drafted, so removing the last one stays allowed there; only Návrh requires an objective
+(`research.plan.requiredObjectives`). A repeated objective is refused on both, in Návrh's words (#795).
+
 ## Doc follow-up
 
 - `mvp-master-plan.md` §3 and `mvp-execution-contracts.md`: register this plan and its chunks (see the

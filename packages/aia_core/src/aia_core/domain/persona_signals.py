@@ -213,8 +213,10 @@ def signal_budget(topics: Iterable[str]) -> int:
 
 
 def _safe_num(value: Typed) -> float | None:
+    if value is None:  # float(None) raises TypeError: the same None as below
+        return None
     try:
-        x = float(value)  # type: ignore[arg-type]
+        x = float(value)
     except (TypeError, ValueError):
         return None
     return x if math.isfinite(x) else None

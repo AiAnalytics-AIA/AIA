@@ -1111,6 +1111,9 @@ export type ResearchStep = {
 /** A research run's spend, by the rules Settings reads a person's spend (Q40); it names nobody (Q76 (c)). */
 export type RunSpend = { spent_usd: number; reserved_usd: number; uncertain_calls: number };
 
+/** The most a run could cost when it started (FLD4d): usd null when it could not be worked out, `unknown` the reason. */
+export type RunCeiling = { usd: number | null; unknown: string | null };
+
 export type ResearchRun = {
   run_id: string;
   study_id: string;
@@ -1134,6 +1137,9 @@ export type ResearchRun = {
   /** What the run has spent, holds and could not price (artifact-fieldwork FLD4a): only on the run read
    *  alone (GET …/research/runs/{id}) with VIEW_COSTS; null on a listed run and on an action's answer. */
   spend?: RunSpend | null;
+  /** The most the run could cost when it started (FLD4d): usd null with the reason when it could not be
+   *  worked out; null without VIEW_COSTS, or for a run started before runs recorded one. */
+  cost_ceiling?: RunCeiling | null;
   /** The population the run recorded (population-operations P3); absent or null: none. */
   population?: ResearchRunPopulation | null;
   /** The methods the run pinned when it started (methodology-tab Z1); absent from an older API. */

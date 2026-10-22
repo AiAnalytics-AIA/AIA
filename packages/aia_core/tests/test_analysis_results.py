@@ -1600,3 +1600,12 @@ def test_an_answer_to_a_research_question_the_run_could_not_answer_says_so_where
         for s in plain.sections
         for b in s.blocks
     )
+
+
+def test_a_brief_field_counts_as_stated_only_with_words_in_it() -> None:
+    """F19: an empty, blank or non-text field is not stated: the draft prints no heading for it."""
+    from aia_core.application.analysis_results import _stated
+
+    assert _stated("  Zjistit, co lidé pijí. ") == "Zjistit, co lidé pijí."
+    assert _stated("") is None and _stated(" \n ") is None
+    assert _stated(None) is None and _stated(["cíl"]) is None

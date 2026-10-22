@@ -363,7 +363,8 @@ def scoring_inputs(
 
     def cell_of(row: int) -> str | None:
         parts = [_value(cells[name][row]) if name in cells else None for name in _CELL_FIELDS]
-        return None if any(p is None for p in parts) else "|".join(parts)  # type: ignore[arg-type]
+        known = [p for p in parts if p is not None]
+        return "|".join(known) if len(known) == len(parts) else None
 
     respondents = tuple(
         Respondent(
