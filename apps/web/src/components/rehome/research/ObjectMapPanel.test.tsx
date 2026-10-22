@@ -306,15 +306,16 @@ describe("accessibility", () => {
     expect(screen.getByTestId("object-map-legend-info").textContent).toContain("relativní · nejnižší objekt = 15 % výšky nejvyššího");
   });
 
-  it("sizes the nodes by the whole set, objects nobody rated included", async () => {
+  it("sizes the nodes by the mapped objects, not by those nobody rated", async () => {
     const big = structuredClone(hudba);
     const stored = big.maps!["aia-sociomap-5"].artifact;
-    // 12 mapped + 38 nobody rated = 50 objects: nodes at sqrt(30 / 50) of their size.
+    // 12 mapped + 38 nobody rated: the 38 are left out of the map, so the nodes keep their full size
+    // (up to 30 objects); with 50 mapped they would shrink to sqrt(30 / 50).
     stored.objects_not_placed = Array.from({ length: 38 }, (_, k) => `extra-${k}`);
     stored.credibility = undefined; // no uncertainty circle among the measured discs
     render(<ObjectMapView battery={big} dataOrigin={null} />);
     await nextFrame(0);
-    const scale = Math.sqrt(30 / 50);
+    const scale = 1;
     expect(Math.max(...radii)).toBeCloseTo(5.7 * scale + 2.5, 9); // the white ring is 2.5 px wider, unscaled
     expect(Math.min(...radii)).toBeCloseTo(5.7 * scale, 9);
   });
@@ -626,7 +627,7 @@ describe("what a click shows beside the map", () => {
     expect(screen.getByTestId("object-map-detail-relation").textContent).toContain("95 % -0,05 až +0,41");
   });
 
-  it("words a relation under |r| 0,3 as slabý, at or over it as zřetelný", async () => {
+  it("words a relation slabý below the declared |r| and zřetelný from it (0,3 on a map stored before it)", async () => {
     // A drawn pair's midpoint on the opening frame (it does not depend on r), clear of every object.
     const nodes = map.object_ids.map((_, k) => nodeAt(k));
     const index = (id: string) => map.object_ids.indexOf(id);
@@ -636,10 +637,11 @@ describe("what a click shows beside the map", () => {
       return [a, b, mid.x, mid.y];
     }).find(([, , mx, my]) => nodes.every((q) => Math.hypot(q.x - mx, q.y - my) > 14))!;
     // Set the pair to 0,25 and 0,30 and click it on "Vše".
-    const verdict = async (v: number) => {
+    const verdict = async (v: number, clear?: number) => {
       const r = map.relations.r.map((row, a) => row.map((x0, b) => ((a === i && b === j) || (a === j && b === i) ? v : x0)));
       const stored = hudba.maps!["aia-sociomap-5"];
-      render(<ObjectMapView battery={{ ...hudba, maps: { "aia-sociomap-5": { ...stored, artifact: { ...map, relations: { ...map.relations, r } } } } }} dataOrigin={null} />);
+      const spec = clear === undefined ? map.spec : { ...map.spec, relation: { ...map.spec.relation, clear_effect: clear } };
+      render(<ObjectMapView battery={{ ...hudba, maps: { "aia-sociomap-5": { ...stored, artifact: { ...map, spec, relations: { ...map.relations, r } } } } }} dataOrigin={null} />);
       fireEvent.click(screen.getByRole("button", { name: "Vše" }));
       await nextFrame(0);
       fireEvent.pointerDown(canvas(), { clientX: x, clientY: y, pointerId: 1 });
@@ -649,8 +651,12 @@ describe("what a click shows beside the map", () => {
       frames = 0;
       return text;
     };
+    expect(map.spec.relation.clear_effect).toBeUndefined();
     expect(await verdict(0.25)).toBe("Spolehlivý slabý kladný vztah: silnější, než jaký vytvoří náhoda.");
     expect(await verdict(0.3)).toBe("Spolehlivý zřetelný kladný vztah: silnější, než jaký vytvoří náhoda.");
+    // An edited version's threshold (Metodika) moves the word.
+    expect(await verdict(0.25, 0.2)).toBe("Spolehlivý zřetelný kladný vztah: silnější, než jaký vytvoří náhoda.");
+    expect(await verdict(0.3, 0.4)).toBe("Spolehlivý slabý kladný vztah: silnější, než jaký vytvoří náhoda.");
   });
 
   it("shows a clicked respondent's profile on the respondent map, and asks for a click without one", async () => {

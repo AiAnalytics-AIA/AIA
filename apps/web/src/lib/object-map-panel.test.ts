@@ -297,7 +297,7 @@ describe("a whole frame", () => {
       const pairs = relationPairs(map, scene.relMode as RelationMode, scene.selected).map((p) => ({ ...p, k: relationStrength(p.v, norm, strongest) }));
       const { ctx, ops } = recorder();
       const grid = norm === "absolute" ? absoluteGrid(map)! : storedGrid(map)!;
-      const result = drawObjectMap(ctx, { width: W, height: H, camera, grid, nodes, tones: nodeTones(nodes, norm), pairs, selected: scene.selected, hovered: scene.hovered, nodeScale: nodeScale(13) });
+      const result = drawObjectMap(ctx, { width: W, height: H, camera, grid, nodes, tones: nodeTones(nodes, norm), pairs, selected: scene.selected, hovered: scene.hovered, nodeScale: nodeScale(map.object_ids.length) });
       close(summarise(ops), scene.summary);
       // Every hit in the panel's order: the drawn relation lines at their midpoints, then the objects.
       close(result.hits.map((h) => [h.kind, h.index, h.j ?? null, h.x, h.y, h.r]), scene.hits);
@@ -376,7 +376,7 @@ describe("what the map says about itself", () => {
       const grid = norm === "absolute" ? absoluteGrid(m)! : storedGrid(m)!;
       const result = drawObjectMap(ctx, {
         width: W, height: H, camera, grid, nodes: ns, tones: nodeTones(ns, norm), pairs, selected: scene.selected, hovered: scene.hovered,
-        nodeScale: nodeScale(m.object_ids.length + (m.objects_not_placed?.length ?? 0)), statements: mapStatements(m, TEXTS),
+        nodeScale: nodeScale(m.object_ids.length), statements: mapStatements(m, TEXTS),
       });
       close(summarise(ops), scene.summary);
       close({ ...result.labels, objects: ns.length }, scene.labelCount);

@@ -48,7 +48,7 @@ import { researchStepOrb, researchStepWork } from "@/lib/activity-orb";
 import { RECEIPT_TARGET, stepTarget } from "@/lib/artifacts/fieldwork";
 import { FOCUS, TOUCH, TOUCH_LINK } from "@/components/ui/parts";
 import { activityOf } from "@/lib/step-activity";
-import { type BatteryWithMaps, mapApproval, readObjectMap, type RecordedMethod, type RegisterEntry } from "@/lib/object-map-view";
+import { type BatteryWithMaps, mapApproval, olderMethodOnly, readObjectMap, type RecordedMethod, type RegisterEntry } from "@/lib/object-map-view";
 import {
   STEP_ORDER,
   ANALYSIS_ORDER,
@@ -132,6 +132,22 @@ function confirmationAsked(e: unknown): { ceiling: number; limit: number } | nul
   if (!(e instanceof ApiError) || e.code !== "cost_confirmation_required") return null;
   const { ceiling_usd, limit_usd } = e.details as { ceiling_usd?: unknown; limit_usd?: unknown };
   return typeof ceiling_usd === "number" && typeof limit_usd === "number" ? { ceiling: ceiling_usd, limit: limit_usd } : null;
+}
+/** The start a refusal of an older-method run offers: the same Design Revision, respondents, population
+ *  and research-question decision as the refused run (`details.new_run.body`). */
+export type NewRunStart = {
+  design_revision_id: string;
+  persona_source?: string;
+  population_version_id?: string;
+  acknowledge_research_questions?: AnswerabilityAcknowledgement;
+};
+
+/** The server refused a retry because the run's Sociomap method is an older one: the start of a new run
+ *  (on aia-sociomap-5) the refusal names, or null for any other error. */
+export function retiredMethodRefusal(e: unknown): NewRunStart | null {
+  if (!(e instanceof ApiError) || e.code !== "run_on_retired_method") return null;
+  const body = (e.details as { new_run?: { body?: Partial<NewRunStart> } }).new_run?.body;
+  return body && typeof body.design_revision_id === "string" ? (body as NewRunStart) : null;
 }
 const message = (e: unknown) => (e instanceof Error ? e.message : String(e));
 const when = (iso: string | null) => (iso ? new Date(iso).toLocaleString("cs-CZ") : "—");
@@ -1102,11 +1118,85 @@ function useRetryableRead(run: ResearchRun | null | undefined): Repairable | nul
   return possible && modules?.runId === runId ? modules.list : null;
 }
 
+/**
+ * A retry the server refused because the run's Sociomap method is an older one: the note, shown only for
+ * the refused run, and a start of a new run as the refusal names it (aia-sociomap-5, the same revision,
+ * respondents, population and research-question decision). The limit asks as for any start; gaps the
+ * server asks about are answered here, as a start's are.
+ */
+function useNewRunOffer(run: ResearchRun, act: (fn: () => Promise<ResearchRun>) => Promise<void>, busy: boolean) {
+  const { confirm, stepHref } = useResearch();
+  const frame = useFrame();
+  const [offer, setOffer] = useState<{ runId: string; body: NewRunStart } | null>(null);
+  const [asked, setAsked] = useState<{ runId: string; answer: Answerability } | null>(null);
+  const [ack, setAck] = useState<AcknowledgementState>(NO_ACKNOWLEDGEMENT);
+  const shown = offer && offer.runId === run.run_id && frame.canEdit ? offer : null;
+  const gate = shown && asked && asked.runId === run.run_id ? asked.answer : null;
+  const start = (body: NewRunStart, acknowledge?: AnswerabilityAcknowledgement) =>
+    act(async () => {
+      const decision = acknowledge ?? body.acknowledge_research_questions;
+      const send = (ceiling?: number) =>
+        research.start(frame.studyId, body.design_revision_id, ceiling, body.population_version_id, body.persona_source, decision);
+      let next: ResearchRun;
+      try {
+        try {
+          next = await send();
+        } catch (e) {
+          const cost = confirmationAsked(e);
+          if (!cost) throw e;
+          const yes = await confirm(await withBudget(frame.studyId, tv("research.exec.cost.confirm", { ceiling: cost.ceiling.toFixed(2), limit: cost.limit.toFixed(2) }), cost.ceiling));
+          if (!yes) return run;
+          next = await send(cost.ceiling);
+        }
+      } catch (e) {
+        const answer = unanswerableAsked(e);
+        if (!answer) throw e;
+        setAsked({ runId: run.run_id, answer });
+        return run;
+      }
+      setOffer(null);
+      setAsked(null);
+      setAck(NO_ACKNOWLEDGEMENT);
+      return next;
+    });
+  /** Whether `e` was that refusal: the offer is then shown for this run. */
+  const caught = (e: unknown): boolean => {
+    const body = retiredMethodRefusal(e);
+    if (!body) return false;
+    setOffer({ runId: run.run_id, body });
+    return true;
+  };
+  const acknowledged = acknowledgementOf(gate, ack);
+  const node = shown ? (
+    <div role="note" data-retired-method className="flex flex-col gap-2 text-sm">
+      <p>{t("research.exec.retiredMethod.text")}</p>
+      {gate ? (
+        <>
+          <AnswerabilityGate answer={gate} value={ack} onChange={setAck} outlook={null} stepHref={stepHref} disabled={busy} retry />
+          <div>
+            <Button variant="primary" disabled={busy || !acknowledged} onClick={() => acknowledged && void start(shown.body, acknowledged)}>
+              {t("research.exec.retiredMethod.action")}
+            </Button>
+          </div>
+        </>
+      ) : (
+        <div>
+          <Button variant="primary" disabled={busy} onClick={() => void start(shown.body)}>
+            {t("research.exec.retiredMethod.action")}
+          </Button>
+        </div>
+      )}
+    </div>
+  ) : null;
+  return { caught, node };
+}
+
 /** A finished run whose analysis a model could not complete: the data stands, the modules are asked again. */
 function AnalysisRepair({ run, modules: { modules, stale }, act, busy }: { run: ResearchRun; modules: Repairable; act: (fn: () => Promise<ResearchRun>) => Promise<void>; busy: boolean }) {
   const { confirm } = useResearch();
   const frame = useFrame();
   const failed = modules.length - stale.filter((m) => modules.includes(m)).length;
+  const newRun = useNewRunOffer(run, act, busy);
   return (
     <Card title={t("research.exec.analysisRetry.title")} tone="notice" region>
       {failed ? <p className="text-sm">{tv("research.exec.analysisRetry.body", { n: failed })}</p> : null}
@@ -1121,14 +1211,19 @@ function AnalysisRepair({ run, modules: { modules, stale }, act, busy }: { run: 
           onClick={() =>
             act(async () => {
               try {
-                return await research.retryAnalysis(frame.studyId, run.run_id);
+                try {
+                  return await research.retryAnalysis(frame.studyId, run.run_id);
+                } catch (e) {
+                  // The retry asks a model again, so the study's limit asks again over what it may cost.
+                  const asked = confirmationAsked(e);
+                  if (!asked) throw e;
+                  const yes = await confirm(await withBudget(frame.studyId, tv("research.exec.cost.confirm", { ceiling: asked.ceiling.toFixed(2), limit: asked.limit.toFixed(2) }), asked.ceiling));
+                  if (!yes) return run;
+                  return await research.retryAnalysis(frame.studyId, run.run_id, asked.ceiling);
+                }
               } catch (e) {
-                // The retry asks a model again, so the study's limit asks again over what it may cost.
-                const asked = confirmationAsked(e);
-                if (!asked) throw e;
-                const yes = await confirm(await withBudget(frame.studyId, tv("research.exec.cost.confirm", { ceiling: asked.ceiling.toFixed(2), limit: asked.limit.toFixed(2) }), asked.ceiling));
-                if (!yes) return run;
-                return research.retryAnalysis(frame.studyId, run.run_id, asked.ceiling);
+                if (newRun.caught(e)) return run;
+                throw e;
               }
             })
           }
@@ -1136,6 +1231,7 @@ function AnalysisRepair({ run, modules: { modules, stale }, act, busy }: { run: 
           {t("research.exec.analysisRetry.action")}
         </Button>
       ) : null}
+      {newRun.node}
     </Card>
   );
 }
@@ -1153,6 +1249,7 @@ function ProgressActions({ run, act, busy, refresh, actionError, repairable }: {
   const [refusal, setGate] = useState<{ runId: string; answer: Answerability } | null>(null);
   const gate = refusalFor(refusal, run, frame.canEdit);
   const [ack, setAck] = useState<AcknowledgementState>(NO_ACKNOWLEDGEMENT);
+  const newRun = useNewRunOffer(run, act, busy);
   const retry = (acknowledge?: AnswerabilityAcknowledgement) =>
     act(async () => {
       try {
@@ -1172,6 +1269,7 @@ function ProgressActions({ run, act, busy, refresh, actionError, repairable }: {
         setAck(NO_ACKNOWLEDGEMENT);
         return next;
       } catch (e) {
+        if (newRun.caught(e)) return run;
         const gaps = unanswerableAsked(e);
         if (!gaps) throw e;
         setGate({ runId: run.run_id, answer: gaps });
@@ -1211,6 +1309,7 @@ function ProgressActions({ run, act, busy, refresh, actionError, repairable }: {
         ) : null}
         <Button variant="quiet" onClick={refresh}>{t("research.exec.refresh")}</Button>
       </div>
+      {newRun.node}
       {gate ? (
         <>
           <p role="note" className="text-sm">{t("research.exec.answerability.retry")}</p>
@@ -2084,7 +2183,8 @@ function SociomapView({ artifact, run }: { artifact: Artifact; run: ResearchRun 
     sociomap: {
       data_origin?: string | null;
       methods?: RecordedMethod[];
-      batteries: (Parameters<typeof sociomapObjects>[0] & BatteryWithMaps)[];
+      // `sociomap` and `relation`: the reference map, only on a run stored before aia-sociomap-5.
+      batteries: (Partial<Parameters<typeof sociomapObjects>[0]> & BatteryWithMaps)[];
     };
   } | null;
   if (!payload) return null;
@@ -2092,7 +2192,16 @@ function SociomapView({ artifact, run }: { artifact: Artifact; run: ResearchRun 
   return (
     <div className="flex flex-col gap-4">
       {payload.sociomap.batteries.map((b) => {
-        const objects = sociomapObjects(b);
+        if (olderMethodOnly(b)) {
+          // An older method's map is not drawn (ADR 0038): the run keeps its data, the panel says why.
+          return (
+            <section key={b.battery_id} aria-label={b.title} className="flex flex-col gap-2">
+              <h3 className="text-sm font-semibold">{b.title}</h3>
+              <p role="note" data-older-method className="text-sm">{t("research.exec.results.olderMethod")}</p>
+            </section>
+          );
+        }
+        const objects = b.sociomap && b.relation ? sociomapObjects(b as Parameters<typeof sociomapObjects>[0]) : [];
         const objectMap = readObjectMap(b);
         const table = (
             <table className="mt-1 w-full text-sm">
@@ -2121,10 +2230,13 @@ function SociomapView({ artifact, run }: { artifact: Artifact; run: ResearchRun 
             {objectMap.ok || objectMap.reason === "contract" ? (
               <>
                 <ObjectMapView battery={b} dataOrigin={payload.sociomap.data_origin ?? null} approvalOf={approvalOf} />
-                <details className="text-sm">
-                  <summary className="cursor-pointer font-semibold">{t("research.exec.objectMap.comparison")}</summary>
-                  {table}
-                </details>
+                {/* The reference map beside it, only where the run computed one (a new run has none). */}
+                {objects.length ? (
+                  <details className="text-sm">
+                    <summary className="cursor-pointer font-semibold">{t("research.exec.objectMap.comparison")}</summary>
+                    {table}
+                  </details>
+                ) : null}
               </>
             ) : (
               <>

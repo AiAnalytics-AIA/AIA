@@ -136,8 +136,8 @@ function PanelView({ battery, map, facts }: { battery: BatteryWithMaps; map: Obj
   // map's five strongest whatever is selected; on the page, the selection's five, as the panel's.
   const topOf = mode === "top" && full ? -1 : selected;
   const pairs = useMemo(() => relationPairs(map, mode, topOf).map((p) => ({ ...p, k: relationStrength(p.v, norm, strongest) })), [map, mode, topOf, norm, strongest]);
-  // The node size follows the whole set, an object nobody rated included, as the panel's backend counts it.
-  const scale = nodeScale(map.object_ids.length + (map.objects_not_placed?.length ?? 0));
+  // The node size follows the mapped objects; an object nobody rated is left out of the map, as the panel counts it.
+  const scale = nodeScale(map.object_ids.length);
   const statements = useMemo(() => mapStatements(map, {
     caption: t("research.exec.objectMap.panel.uncertaintyCaption"),
     weakTitle: t("research.exec.objectMap.panel.weakTitle"),
@@ -538,7 +538,8 @@ export function segmentLines(legend: SegmentLegend): SegmentLines {
       foot: t("research.exec.objectMap.panel.hintNote"),
     };
   }
-  // The panel singles out too few respondents; every other reason reads as no clear segments.
+  // The panel singles out too few respondents and too few objects; every other reason reads as no clear segments.
+  if (legend.reason === "TOO_FEW_OBJECTS") return { title: null, rows: [], foot: tv("research.exec.objectMap.panel.segmentsTooFewObjects", { n: legend.minRatings }) };
   return { title: null, rows: [], foot: t(`research.exec.objectMap.panel.${legend.reason === "TOO_FEW_RESPONDENTS" ? "segmentsTooFew" : "segmentsNone"}`) };
 }
 
@@ -568,6 +569,9 @@ export function segmentsRow(legend: SegmentLegend, map: ObjectMapArtifact): { va
       value: `${legend.segments.length} · ${shares}${legend.distinct ? "" : ` · ${t("research.exec.objectMap.panel.segmentsOverlap")}`}`,
       help: tv("research.exec.objectMap.panel.countSegmentsHelp", { membership: Math.round(100 * (rules.colour_membership ?? 0.8)) }),
     };
+  }
+  if (legend.reason === "TOO_FEW_OBJECTS") {
+    return { value: tv("research.exec.objectMap.panel.countTooFewObjects", { n: legend.minRatings }), help: tv("research.exec.objectMap.panel.countTooFewObjectsHelp", { n: legend.minRatings }) };
   }
   return legend.reason === "TOO_FEW_RESPONDENTS"
     ? { value: t("research.exec.objectMap.panel.countTooFew"), help: tv("research.exec.objectMap.panel.countTooFewHelp", { people: rules.min_respondents ?? 30, ratings: rules.min_ratings ?? 5 }) }
@@ -686,13 +690,13 @@ function ObjectCard({ battery, map, selected, relation, onRelation }: { battery:
 
 /** The panel's "Vybraný vztah" (`relationHtml66`) without the p-value and the noise level, which
  *  the map does not store (nor, under this estimator, an interval: "95 % —" as the panel prints a
- *  missing one); the verdict reads the stored status. "zřetelný" from |r| 0,3, as the panel words it. */
+ *  missing one); the verdict reads the stored status. "zřetelný" from the declared |r| (Metodika; 0,3 as the panel). */
 function RelationBlock({ detail: d }: { detail: ReturnType<typeof relationDetail> }) {
   const p = "research.exec.objectMap.panel";
   let verdict: ReactNode;
   if (d.r === null) verdict = tv(`${p}.${d.verdict === "noSpread" ? "relationNoSpread" : "relationFewRatings"}`, { n: d.n ?? 0 });
   else {
-    const word = t(`${p}.${Math.abs(d.r) >= 0.3 ? "relationClear" : "relationSlight"}`), sign = t(`${p}.${d.r >= 0 ? "relationPositive" : "relationNegative"}`);
+    const word = t(`${p}.${Math.abs(d.r) >= d.clearFrom ? "relationClear" : "relationSlight"}`), sign = t(`${p}.${d.r >= 0 ? "relationPositive" : "relationNegative"}`);
     verdict = d.verdict === "reliable"
       ? (d.noiseRule ? <><b>{tv(`${p}.relationReliableNoise`, { word, sign })}</b> {t(`${p}.relationReliableNoiseText`)}</> : <><b>{t(`${p}.relationReliable`)}</b> ({word} {sign}).</>)
       : <><b>{t(`${p}.relationWeak`)}</b> {t(`${p}.${d.noiseRule ? "relationWeakNoiseText" : "relationWeakText"}`)}</>;

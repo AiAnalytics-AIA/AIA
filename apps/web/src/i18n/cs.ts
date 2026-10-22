@@ -3079,6 +3079,10 @@ export const cs = {
       cancelConfirm: "Opravdu zrušit tento běh? Hotové kroky zůstanou uložené.",
       retry: "Spustit znovu",
       retryWhole: "Spustit celý běh znovu (znovu sebere data)",
+      retiredMethod: {
+        text: "Tento běh spočetl Sociomapu starší metodou, proto se znovu nespouští. Nový běh ze stejné revize návrhu ji spočte metodou aia-sociomap-5. Nic nebylo spuštěno.",
+        action: "Spustit nový běh (aia-sociomap-5)",
+      },
       analysisRetry: {
         title: "Analýza potřebuje opravu",
         body: "Sebraná data jsou v pořádku. {n} z 8 modulů analýzy model nedokázal sestavit tak, aby každé číslo mělo oporu v datech, a interní report proto nevznikne.",
@@ -3095,6 +3099,7 @@ export const cs = {
       noResultsParked: "Výsledky nevzniknou, dokud běh čeká u sběru dat.",
       results: {
         noMaps: "Tento běh žádnou Sociomapu nespočetl.",
+        olderMethod: "Mapa ze starší metody; spusťte nový běh",
         answerGap: "Při spuštění běh zaznamenal: {words}. Odpověď proto čtěte jako nedoloženou, stejně jako ve zprávě.",
         fidelityRefused: "Analýza ani zpráva toto číslo necitují: {reason}",
         fidelityRefusedBare: "Analýza ani zpráva toto číslo necitují.",
@@ -3402,6 +3407,7 @@ export const cs = {
           hintTitle: "Náznak {k} skupin · nejisté",
           hintNote: "Body nejsou obarvené: rozdělení není jisté.",
           segmentsTooFew: "Chuťové segmenty se nehledají (málo dat)",
+          segmentsTooFewObjects: "Chuťové segmenty se nehledají (méně než {n} objektů)",
           segmentsNone: "Žádné zřetelné chuťové segmenty",
           countSegments: "Segmenty",
           countSegmentsHelp: "Barevné body = jasně umístění s jistou příslušností (≥ {membership} %); šedé = mezi segmenty nebo slabý směr.",
@@ -3409,6 +3415,8 @@ export const cs = {
           countHintHelp: "Na téměř shodných variantách mapy vychází rozdělení jednou ano, jednou ne; skupiny se proto neobarvují.",
           countTooFew: "nehledají se (málo dat)",
           countTooFewHelp: "Segmenty potřebují alespoň {people} lidí s alespoň {ratings} hodnocenými objekty.",
+          countTooFewObjects: "nehledají se (méně než {n} objektů)",
+          countTooFewObjectsHelp: "Chuť člověka se určuje z alespoň {n} hodnocení; z méně hodnocení ji nelze odlišit od náhody.",
           countNone: "žádné zřetelné",
           countNoneHelp: "Data žádné skupiny chutí silnější než náhoda neukazují.",
           export: "Export PNG",

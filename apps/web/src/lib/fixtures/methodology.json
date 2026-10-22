@@ -2260,14 +2260,14 @@
      }
     ],
     "id": "sociomap",
-    "in_force": "aia-sociomap-3",
-    "note_cs": "Mapa auditu NPC Sociomapa (kanonická metodika). Každý nový běh si připne aia-sociomap-3 vedle referenční mapy aia-sociomap-1. Mapu aia-sociomap-3 schválil vlastník produktu pro zprávy (2026-10-13, registr Sociomap); upravená verze v platnosti je interní, dokud ji registr neschválí. aia-sociomap-4 počítá totéž, jen má v metodice i hodnoty, které -3 drží v kódu (minimum objektů, pásma Stress, kvantily K100); úprava z něj vychází. aia-sociomap-5 počítá vstupy, vztahy, polohy objektů, jejich výšky, terén, věrohodnost mapy, mapu respondentů a segmenty vkusu podle schválené metodiky AIA Sociomapa (kroky označené „Jen aia-sociomap-5“).",
+    "in_force": "aia-sociomap-5",
+    "note_cs": "Každý nový běh si připne jen aia-sociomap-5: vstupy, vztahy, polohy objektů, jejich výšky, terén, věrohodnost mapy, mapu respondentů a segmenty vkusu počítá podle schválené metodiky AIA Sociomapa (kroky označené „Jen aia-sociomap-5“); úprava vychází z ní. Mapu aia-sociomap-5 schválil metodik AIA pro zprávy (2026-10-21, registr Sociomap); upravená verze v platnosti je interní, dokud ji registr neschválí. Referenční mapa aia-sociomap-1 se pro nové běhy nepočítá; uložené běhy si své mapy ponechávají. aia-sociomap-2 až -4 zůstávají v nabídce jako starší výchozí body úprav.",
     "preset": "aia-sociomap-2",
     "presets": [
+     "aia-sociomap-5",
      "aia-sociomap-4",
      "aia-sociomap-3",
-     "aia-sociomap-2",
-     "aia-sociomap-5"
+     "aia-sociomap-2"
     ],
     "preview_title_cs": "",
     "step_details": [
@@ -3100,7 +3100,7 @@
        "person_centring"
       ],
       "keeps_cs": [],
-      "note_cs": "Jen aia-sociomap-5 (odhad baseline_corrected_pearson). Pár je známý, když jej hodnotilo aspoň n_min respondentů (práh stavu, krok Stav páru) a oba sloupce mají rozptyl nad 10^-12; jinak je neznámý a nemá žádnou hodnotu.",
+      "note_cs": "Jen aia-sociomap-5 (odhad baseline_corrected_pearson). Pár je známý, když jej hodnotilo aspoň n_min respondentů (práh stavu, krok Stav páru) a oba sloupce mají rozptyl nad 10^-12; jinak je neznámý a nemá žádnou hodnotu. Od |r̃| „Zřetelný vztah od“ nazývá detail vztahu na mapě vztah zřetelným, pod ním slabým; jen slovo, výpočet nemění (bez hodnoty 0,3).",
       "reading_cs": "",
       "role_cs": "Jádro mapy podle schválené metodiky: jak podobně lidé hodnotí dva objekty, očištěno o zápornou korelaci, kterou vytvoří samo centrování.",
       "source_cs": "",
@@ -3137,7 +3137,17 @@
        "packages/aia_core/tests/test_sociomap_signed_off_inputs.py::test_the_object_map_records_the_baseline_corrected_relations_under_aia_sociomap_5"
       ],
       "title_cs": "Korelace očištěná o úroveň nesouvisejících objektů",
-      "values": []
+      "values": [
+       {
+        "absent": true,
+        "effect": "",
+        "label_cs": "Zřetelný vztah od |r̃|",
+        "origin": "specification",
+        "reference": "relation.clear_effect",
+        "unit": "",
+        "value": null
+       }
+      ]
      },
      {
       "audit": "AIA",
@@ -3433,7 +3443,7 @@
       "reading_cs": "",
       "role_cs": "Síla a směr vztahu pro výklad mapy; rozložení ani skóre nemění.",
       "source_cs": "",
-      "source_sha256": "24f5be1e1825142153d4222107fdc23c23083f1a2bfc51e74b35fae10ecf492a",
+      "source_sha256": "486f2898a3ec104c14acfa87c3e54f2d5e28179b6ec78d0515583e9bcfb876e2",
       "symbols": [],
       "tests": [
        "packages/aia_core/tests/test_sociomap_object_map.py::test_every_number_is_the_landed_functions_on_the_same_input"
@@ -5250,7 +5260,7 @@
       "reading_cs": "",
       "role_cs": "Ubere segmenty, které jen dělí jeden skutečný segment nebo odštěpí střípek.",
       "source_cs": "",
-      "source_sha256": "71428b8a7d0fa53ce7f4e025c97ac57bc03823d00523edf3a41a80b41467a95e",
+      "source_sha256": "5cdceae3c1d9850a564e864c37ae639ad24cb11f00ac4b60fcc40a098a037cb0",
       "symbols": [
        {
         "latex": "S_{gh}",
@@ -5298,7 +5308,7 @@
       "reading_cs": "",
       "role_cs": "Rozhodne o segmentech na nakreslené mapě i jejích téměř stejných variantách; těsný případ označí za hraniční.",
       "source_cs": "",
-      "source_sha256": "008928364d5d1ebe29c6b7c61cae18a67b81ef547e61b1304ab9548d55252794",
+      "source_sha256": "27e4761647db0e0f3d0b2b35dae06c24a9e957de262a0856bed6a9387813a444",
       "symbols": [
        {
         "latex": "m",
@@ -6207,14 +6217,14 @@
      }
     ],
     "id": "sociomap",
-    "in_force": "aia-sociomap-3",
-    "note_cs": "Mapa auditu NPC Sociomapa (kanonická metodika). Každý nový běh si připne aia-sociomap-3 vedle referenční mapy aia-sociomap-1. Mapu aia-sociomap-3 schválil vlastník produktu pro zprávy (2026-10-13, registr Sociomap); upravená verze v platnosti je interní, dokud ji registr neschválí. aia-sociomap-4 počítá totéž, jen má v metodice i hodnoty, které -3 drží v kódu (minimum objektů, pásma Stress, kvantily K100); úprava z něj vychází. aia-sociomap-5 počítá vstupy, vztahy, polohy objektů, jejich výšky, terén, věrohodnost mapy, mapu respondentů a segmenty vkusu podle schválené metodiky AIA Sociomapa (kroky označené „Jen aia-sociomap-5“).",
+    "in_force": "aia-sociomap-5",
+    "note_cs": "Každý nový běh si připne jen aia-sociomap-5: vstupy, vztahy, polohy objektů, jejich výšky, terén, věrohodnost mapy, mapu respondentů a segmenty vkusu počítá podle schválené metodiky AIA Sociomapa (kroky označené „Jen aia-sociomap-5“); úprava vychází z ní. Mapu aia-sociomap-5 schválil metodik AIA pro zprávy (2026-10-21, registr Sociomap); upravená verze v platnosti je interní, dokud ji registr neschválí. Referenční mapa aia-sociomap-1 se pro nové běhy nepočítá; uložené běhy si své mapy ponechávají. aia-sociomap-2 až -4 zůstávají v nabídce jako starší výchozí body úprav.",
     "preset": "aia-sociomap-3",
     "presets": [
+     "aia-sociomap-5",
      "aia-sociomap-4",
      "aia-sociomap-3",
-     "aia-sociomap-2",
-     "aia-sociomap-5"
+     "aia-sociomap-2"
     ],
     "preview_title_cs": "",
     "step_details": [
@@ -7047,7 +7057,7 @@
        "person_centring"
       ],
       "keeps_cs": [],
-      "note_cs": "Jen aia-sociomap-5 (odhad baseline_corrected_pearson). Pár je známý, když jej hodnotilo aspoň n_min respondentů (práh stavu, krok Stav páru) a oba sloupce mají rozptyl nad 10^-12; jinak je neznámý a nemá žádnou hodnotu.",
+      "note_cs": "Jen aia-sociomap-5 (odhad baseline_corrected_pearson). Pár je známý, když jej hodnotilo aspoň n_min respondentů (práh stavu, krok Stav páru) a oba sloupce mají rozptyl nad 10^-12; jinak je neznámý a nemá žádnou hodnotu. Od |r̃| „Zřetelný vztah od“ nazývá detail vztahu na mapě vztah zřetelným, pod ním slabým; jen slovo, výpočet nemění (bez hodnoty 0,3).",
       "reading_cs": "",
       "role_cs": "Jádro mapy podle schválené metodiky: jak podobně lidé hodnotí dva objekty, očištěno o zápornou korelaci, kterou vytvoří samo centrování.",
       "source_cs": "",
@@ -7084,7 +7094,17 @@
        "packages/aia_core/tests/test_sociomap_signed_off_inputs.py::test_the_object_map_records_the_baseline_corrected_relations_under_aia_sociomap_5"
       ],
       "title_cs": "Korelace očištěná o úroveň nesouvisejících objektů",
-      "values": []
+      "values": [
+       {
+        "absent": true,
+        "effect": "",
+        "label_cs": "Zřetelný vztah od |r̃|",
+        "origin": "specification",
+        "reference": "relation.clear_effect",
+        "unit": "",
+        "value": null
+       }
+      ]
      },
      {
       "audit": "AIA",
@@ -7380,7 +7400,7 @@
       "reading_cs": "",
       "role_cs": "Síla a směr vztahu pro výklad mapy; rozložení ani skóre nemění.",
       "source_cs": "",
-      "source_sha256": "24f5be1e1825142153d4222107fdc23c23083f1a2bfc51e74b35fae10ecf492a",
+      "source_sha256": "486f2898a3ec104c14acfa87c3e54f2d5e28179b6ec78d0515583e9bcfb876e2",
       "symbols": [],
       "tests": [
        "packages/aia_core/tests/test_sociomap_object_map.py::test_every_number_is_the_landed_functions_on_the_same_input"
@@ -9197,7 +9217,7 @@
       "reading_cs": "",
       "role_cs": "Ubere segmenty, které jen dělí jeden skutečný segment nebo odštěpí střípek.",
       "source_cs": "",
-      "source_sha256": "71428b8a7d0fa53ce7f4e025c97ac57bc03823d00523edf3a41a80b41467a95e",
+      "source_sha256": "5cdceae3c1d9850a564e864c37ae639ad24cb11f00ac4b60fcc40a098a037cb0",
       "symbols": [
        {
         "latex": "S_{gh}",
@@ -9245,7 +9265,7 @@
       "reading_cs": "",
       "role_cs": "Rozhodne o segmentech na nakreslené mapě i jejích téměř stejných variantách; těsný případ označí za hraniční.",
       "source_cs": "",
-      "source_sha256": "008928364d5d1ebe29c6b7c61cae18a67b81ef547e61b1304ab9548d55252794",
+      "source_sha256": "27e4761647db0e0f3d0b2b35dae06c24a9e957de262a0856bed6a9387813a444",
       "symbols": [
        {
         "latex": "m",
@@ -10154,14 +10174,14 @@
      }
     ],
     "id": "sociomap",
-    "in_force": "aia-sociomap-3",
-    "note_cs": "Mapa auditu NPC Sociomapa (kanonická metodika). Každý nový běh si připne aia-sociomap-3 vedle referenční mapy aia-sociomap-1. Mapu aia-sociomap-3 schválil vlastník produktu pro zprávy (2026-10-13, registr Sociomap); upravená verze v platnosti je interní, dokud ji registr neschválí. aia-sociomap-4 počítá totéž, jen má v metodice i hodnoty, které -3 drží v kódu (minimum objektů, pásma Stress, kvantily K100); úprava z něj vychází. aia-sociomap-5 počítá vstupy, vztahy, polohy objektů, jejich výšky, terén, věrohodnost mapy, mapu respondentů a segmenty vkusu podle schválené metodiky AIA Sociomapa (kroky označené „Jen aia-sociomap-5“).",
+    "in_force": "aia-sociomap-5",
+    "note_cs": "Každý nový běh si připne jen aia-sociomap-5: vstupy, vztahy, polohy objektů, jejich výšky, terén, věrohodnost mapy, mapu respondentů a segmenty vkusu počítá podle schválené metodiky AIA Sociomapa (kroky označené „Jen aia-sociomap-5“); úprava vychází z ní. Mapu aia-sociomap-5 schválil metodik AIA pro zprávy (2026-10-21, registr Sociomap); upravená verze v platnosti je interní, dokud ji registr neschválí. Referenční mapa aia-sociomap-1 se pro nové běhy nepočítá; uložené běhy si své mapy ponechávají. aia-sociomap-2 až -4 zůstávají v nabídce jako starší výchozí body úprav.",
     "preset": "aia-sociomap-4",
     "presets": [
+     "aia-sociomap-5",
      "aia-sociomap-4",
      "aia-sociomap-3",
-     "aia-sociomap-2",
-     "aia-sociomap-5"
+     "aia-sociomap-2"
     ],
     "preview_title_cs": "",
     "step_details": [
@@ -10994,7 +11014,7 @@
        "person_centring"
       ],
       "keeps_cs": [],
-      "note_cs": "Jen aia-sociomap-5 (odhad baseline_corrected_pearson). Pár je známý, když jej hodnotilo aspoň n_min respondentů (práh stavu, krok Stav páru) a oba sloupce mají rozptyl nad 10^-12; jinak je neznámý a nemá žádnou hodnotu.",
+      "note_cs": "Jen aia-sociomap-5 (odhad baseline_corrected_pearson). Pár je známý, když jej hodnotilo aspoň n_min respondentů (práh stavu, krok Stav páru) a oba sloupce mají rozptyl nad 10^-12; jinak je neznámý a nemá žádnou hodnotu. Od |r̃| „Zřetelný vztah od“ nazývá detail vztahu na mapě vztah zřetelným, pod ním slabým; jen slovo, výpočet nemění (bez hodnoty 0,3).",
       "reading_cs": "",
       "role_cs": "Jádro mapy podle schválené metodiky: jak podobně lidé hodnotí dva objekty, očištěno o zápornou korelaci, kterou vytvoří samo centrování.",
       "source_cs": "",
@@ -11031,7 +11051,17 @@
        "packages/aia_core/tests/test_sociomap_signed_off_inputs.py::test_the_object_map_records_the_baseline_corrected_relations_under_aia_sociomap_5"
       ],
       "title_cs": "Korelace očištěná o úroveň nesouvisejících objektů",
-      "values": []
+      "values": [
+       {
+        "absent": true,
+        "effect": "",
+        "label_cs": "Zřetelný vztah od |r̃|",
+        "origin": "specification",
+        "reference": "relation.clear_effect",
+        "unit": "",
+        "value": null
+       }
+      ]
      },
      {
       "audit": "AIA",
@@ -11327,7 +11357,7 @@
       "reading_cs": "",
       "role_cs": "Síla a směr vztahu pro výklad mapy; rozložení ani skóre nemění.",
       "source_cs": "",
-      "source_sha256": "24f5be1e1825142153d4222107fdc23c23083f1a2bfc51e74b35fae10ecf492a",
+      "source_sha256": "486f2898a3ec104c14acfa87c3e54f2d5e28179b6ec78d0515583e9bcfb876e2",
       "symbols": [],
       "tests": [
        "packages/aia_core/tests/test_sociomap_object_map.py::test_every_number_is_the_landed_functions_on_the_same_input"
@@ -13151,7 +13181,7 @@
       "reading_cs": "",
       "role_cs": "Ubere segmenty, které jen dělí jeden skutečný segment nebo odštěpí střípek.",
       "source_cs": "",
-      "source_sha256": "71428b8a7d0fa53ce7f4e025c97ac57bc03823d00523edf3a41a80b41467a95e",
+      "source_sha256": "5cdceae3c1d9850a564e864c37ae639ad24cb11f00ac4b60fcc40a098a037cb0",
       "symbols": [
        {
         "latex": "S_{gh}",
@@ -13199,7 +13229,7 @@
       "reading_cs": "",
       "role_cs": "Rozhodne o segmentech na nakreslené mapě i jejích téměř stejných variantách; těsný případ označí za hraniční.",
       "source_cs": "",
-      "source_sha256": "008928364d5d1ebe29c6b7c61cae18a67b81ef547e61b1304ab9548d55252794",
+      "source_sha256": "27e4761647db0e0f3d0b2b35dae06c24a9e957de262a0856bed6a9387813a444",
       "symbols": [
        {
         "latex": "m",
@@ -14108,14 +14138,14 @@
      }
     ],
     "id": "sociomap",
-    "in_force": "aia-sociomap-3",
-    "note_cs": "Mapa auditu NPC Sociomapa (kanonická metodika). Každý nový běh si připne aia-sociomap-3 vedle referenční mapy aia-sociomap-1. Mapu aia-sociomap-3 schválil vlastník produktu pro zprávy (2026-10-13, registr Sociomap); upravená verze v platnosti je interní, dokud ji registr neschválí. aia-sociomap-4 počítá totéž, jen má v metodice i hodnoty, které -3 drží v kódu (minimum objektů, pásma Stress, kvantily K100); úprava z něj vychází. aia-sociomap-5 počítá vstupy, vztahy, polohy objektů, jejich výšky, terén, věrohodnost mapy, mapu respondentů a segmenty vkusu podle schválené metodiky AIA Sociomapa (kroky označené „Jen aia-sociomap-5“).",
+    "in_force": "aia-sociomap-5",
+    "note_cs": "Každý nový běh si připne jen aia-sociomap-5: vstupy, vztahy, polohy objektů, jejich výšky, terén, věrohodnost mapy, mapu respondentů a segmenty vkusu počítá podle schválené metodiky AIA Sociomapa (kroky označené „Jen aia-sociomap-5“); úprava vychází z ní. Mapu aia-sociomap-5 schválil metodik AIA pro zprávy (2026-10-21, registr Sociomap); upravená verze v platnosti je interní, dokud ji registr neschválí. Referenční mapa aia-sociomap-1 se pro nové běhy nepočítá; uložené běhy si své mapy ponechávají. aia-sociomap-2 až -4 zůstávají v nabídce jako starší výchozí body úprav.",
     "preset": "aia-sociomap-5",
     "presets": [
+     "aia-sociomap-5",
      "aia-sociomap-4",
      "aia-sociomap-3",
-     "aia-sociomap-2",
-     "aia-sociomap-5"
+     "aia-sociomap-2"
     ],
     "preview_title_cs": "",
     "step_details": [
@@ -14948,7 +14978,7 @@
        "person_centring"
       ],
       "keeps_cs": [],
-      "note_cs": "Jen aia-sociomap-5 (odhad baseline_corrected_pearson). Pár je známý, když jej hodnotilo aspoň n_min respondentů (práh stavu, krok Stav páru) a oba sloupce mají rozptyl nad 10^-12; jinak je neznámý a nemá žádnou hodnotu.",
+      "note_cs": "Jen aia-sociomap-5 (odhad baseline_corrected_pearson). Pár je známý, když jej hodnotilo aspoň n_min respondentů (práh stavu, krok Stav páru) a oba sloupce mají rozptyl nad 10^-12; jinak je neznámý a nemá žádnou hodnotu. Od |r̃| „Zřetelný vztah od“ nazývá detail vztahu na mapě vztah zřetelným, pod ním slabým; jen slovo, výpočet nemění (bez hodnoty 0,3).",
       "reading_cs": "",
       "role_cs": "Jádro mapy podle schválené metodiky: jak podobně lidé hodnotí dva objekty, očištěno o zápornou korelaci, kterou vytvoří samo centrování.",
       "source_cs": "",
@@ -14985,7 +15015,17 @@
        "packages/aia_core/tests/test_sociomap_signed_off_inputs.py::test_the_object_map_records_the_baseline_corrected_relations_under_aia_sociomap_5"
       ],
       "title_cs": "Korelace očištěná o úroveň nesouvisejících objektů",
-      "values": []
+      "values": [
+       {
+        "absent": false,
+        "effect": "",
+        "label_cs": "Zřetelný vztah od |r̃|",
+        "origin": "specification",
+        "reference": "relation.clear_effect",
+        "unit": "",
+        "value": 0.3
+       }
+      ]
      },
      {
       "audit": "AIA",
@@ -15281,7 +15321,7 @@
       "reading_cs": "",
       "role_cs": "Síla a směr vztahu pro výklad mapy; rozložení ani skóre nemění.",
       "source_cs": "",
-      "source_sha256": "24f5be1e1825142153d4222107fdc23c23083f1a2bfc51e74b35fae10ecf492a",
+      "source_sha256": "486f2898a3ec104c14acfa87c3e54f2d5e28179b6ec78d0515583e9bcfb876e2",
       "symbols": [],
       "tests": [
        "packages/aia_core/tests/test_sociomap_object_map.py::test_every_number_is_the_landed_functions_on_the_same_input"
@@ -17101,7 +17141,7 @@
       "reading_cs": "",
       "role_cs": "Ubere segmenty, které jen dělí jeden skutečný segment nebo odštěpí střípek.",
       "source_cs": "",
-      "source_sha256": "71428b8a7d0fa53ce7f4e025c97ac57bc03823d00523edf3a41a80b41467a95e",
+      "source_sha256": "5cdceae3c1d9850a564e864c37ae639ad24cb11f00ac4b60fcc40a098a037cb0",
       "symbols": [
        {
         "latex": "S_{gh}",
@@ -17149,7 +17189,7 @@
       "reading_cs": "",
       "role_cs": "Rozhodne o segmentech na nakreslené mapě i jejích téměř stejných variantách; těsný případ označí za hraniční.",
       "source_cs": "",
-      "source_sha256": "008928364d5d1ebe29c6b7c61cae18a67b81ef547e61b1304ab9548d55252794",
+      "source_sha256": "27e4761647db0e0f3d0b2b35dae06c24a9e957de262a0856bed6a9387813a444",
       "symbols": [
        {
         "latex": "m",
@@ -17993,7 +18033,7 @@
     ],
     "id": "sociomap_reference",
     "in_force": "aia-sociomap-1",
-    "note_cs": "Výpočet 18.6.6 zachovaný přesně (fixtury F1-F9), aby šel porovnat s objektovou mapou. Audit u několika kroků uvádí vadu; náprava je objektová mapa. Referenční mapa se needituje, aby zůstala referencí.",
+    "note_cs": "Výpočet 18.6.6 zachovaný přesně (fixtury F1-F9), aby šel porovnat s objektovou mapou. Audit u několika kroků uvádí vadu; náprava je objektová mapa. Referenční mapa se needituje, aby zůstala referencí. Nové běhy ji nepočítají; čtou ji jen uložené běhy.",
     "preset": "aia-sociomap-1",
     "presets": [
      "aia-sociomap-1"
@@ -18065,7 +18105,7 @@
       "reading_cs": "",
       "role_cs": "",
       "source_cs": "",
-      "source_sha256": "da40e7aa1a961d47d191e425dbb923f20af780e718e7fae597138a5d57ccc3db",
+      "source_sha256": "d23fd10d6521a6c8736e9241dc2a6ad21f90970f5221d9e269feff79192a2722",
       "symbols": [
        {
         "latex": "N",
@@ -21340,13 +21380,13 @@
     }
    ],
    "id": "sociomap",
-   "in_force": "aia-sociomap-3",
-   "note_cs": "Mapa auditu NPC Sociomapa (kanonická metodika). Každý nový běh si připne aia-sociomap-3 vedle referenční mapy aia-sociomap-1. Mapu aia-sociomap-3 schválil vlastník produktu pro zprávy (2026-10-13, registr Sociomap); upravená verze v platnosti je interní, dokud ji registr neschválí. aia-sociomap-4 počítá totéž, jen má v metodice i hodnoty, které -3 drží v kódu (minimum objektů, pásma Stress, kvantily K100); úprava z něj vychází. aia-sociomap-5 počítá vstupy, vztahy, polohy objektů, jejich výšky, terén, věrohodnost mapy, mapu respondentů a segmenty vkusu podle schválené metodiky AIA Sociomapa (kroky označené „Jen aia-sociomap-5“).",
+   "in_force": "aia-sociomap-5",
+   "note_cs": "Každý nový běh si připne jen aia-sociomap-5: vstupy, vztahy, polohy objektů, jejich výšky, terén, věrohodnost mapy, mapu respondentů a segmenty vkusu počítá podle schválené metodiky AIA Sociomapa (kroky označené „Jen aia-sociomap-5“); úprava vychází z ní. Mapu aia-sociomap-5 schválil metodik AIA pro zprávy (2026-10-21, registr Sociomap); upravená verze v platnosti je interní, dokud ji registr neschválí. Referenční mapa aia-sociomap-1 se pro nové běhy nepočítá; uložené běhy si své mapy ponechávají. aia-sociomap-2 až -4 zůstávají v nabídce jako starší výchozí body úprav.",
    "presets": [
+    "aia-sociomap-5",
     "aia-sociomap-4",
     "aia-sociomap-3",
-    "aia-sociomap-2",
-    "aia-sociomap-5"
+    "aia-sociomap-2"
    ],
    "preview_title_cs": "",
    "steps": 48,
@@ -21418,7 +21458,7 @@
    ],
    "id": "sociomap_reference",
    "in_force": "aia-sociomap-1",
-   "note_cs": "Výpočet 18.6.6 zachovaný přesně (fixtury F1-F9), aby šel porovnat s objektovou mapou. Audit u několika kroků uvádí vadu; náprava je objektová mapa. Referenční mapa se needituje, aby zůstala referencí.",
+   "note_cs": "Výpočet 18.6.6 zachovaný přesně (fixtury F1-F9), aby šel porovnat s objektovou mapou. Audit u několika kroků uvádí vadu; náprava je objektová mapa. Referenční mapa se needituje, aby zůstala referencí. Nové běhy ji nepočítají; čtou ji jen uložené běhy.",
    "presets": [
     "aia-sociomap-1"
    ],
@@ -22044,6 +22084,7 @@
     },
     "relation": {
      "basis": "respondent_count",
+     "clear_effect": 0.3,
      "confidence": 0.95,
      "estimator": "baseline_corrected_pearson",
      "false_discovery_rate": 0.05,

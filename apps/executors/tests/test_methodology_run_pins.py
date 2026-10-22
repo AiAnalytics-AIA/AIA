@@ -23,6 +23,7 @@ from aia_core.domain.research_sociomap import default_methods
 from aia_core.domain.respondent_behavior import AIA_RESPONSE_V1
 from aia_core.domain.sociomap import AIA_SOCIOMAP_V3
 from aia_core.domain.sociomap.models_v3 import SociomapArtifactV3, read_artifact
+from aia_core.domain.sociomap.specification import AIA_SOCIOMAP_V5
 from aia_core.domain.workflow import StepRunStatus, WorkflowRunStatus
 from aia_core.infrastructure.build_identity import BuildIdentity
 from aia_core.infrastructure.methodology_repository import MethodologyRepository
@@ -156,10 +157,8 @@ def test_a_run_computes_the_edited_methodology_in_force_when_it_started(
     after = _start(world)
     assert after != before  # the same revision under an edited methodology is another run
     metadata = _run(world, after)["metadata"]
-    assert [m["method_id"] for m in metadata["sociomap_methods"]] == [
-        "aia-sociomap-1",
-        f"aia-sociomap-3+e{number}",
-    ]
+    # The edited version alone: no reference map is pinned beside it.
+    assert [m["method_id"] for m in metadata["sociomap_methods"]] == [f"aia-sociomap-3+e{number}"]
     assert metadata["methodology"]["name"] == f"aia-sociomap-3+e{number}"
     assert _start(world) == after  # and that run is idempotent
     _drain(worker)
@@ -168,10 +167,10 @@ def test_a_run_computes_the_edited_methodology_in_force_when_it_started(
     assert edited.spec.methodology_version == f"aia-sociomap-3+e{number}"
     assert (edited.spec.terrain is not None and edited.spec.terrain.sigma) == 0.3
     assert edited.spec.relation.n_min == 12
-    original = read_artifact(_maps(world, store, before)["aia-sociomap-3"])
+    original = read_artifact(_maps(world, store, before)["aia-sociomap-5"])
     assert isinstance(original, SociomapArtifactV3)
-    assert original.spec.terrain is not None
-    assert original.spec.terrain.sigma == 0.25  # the earlier run kept its pin
+    # The earlier run kept its pin: the code's aia-sociomap-5, exactly.
+    assert original.spec.fingerprint() == AIA_SOCIOMAP_V5.fingerprint()
 
 
 def test_a_retry_keeps_the_methodology_its_run_pinned(world: Any) -> None:
@@ -184,7 +183,7 @@ def test_a_retry_keeps_the_methodology_its_run_pinned(world: Any) -> None:
         retried = runs.retry(run_id, fieldwork_source=FieldworkSource.SYNTHETIC_FIXTURE)
         session.commit()
     pinned = _run(world, retried.run_id)["metadata"]["sociomap_methods"]
-    assert pinned[1]["method_id"] == f"aia-sociomap-3+e{number}"
+    assert [m["method_id"] for m in pinned] == [f"aia-sociomap-3+e{number}"]
 
 
 def test_back_to_the_preset_a_new_run_pins_the_codes_methods_again(world: Any) -> None:
@@ -208,18 +207,20 @@ def test_a_run_computes_the_formula_its_methodology_replaced(
     edited = _edit(world, sigma=0.25, n_min=30, formulas={"f12.kernel": kernel})
     run_edited = _start(world)
     assert run_edited != run_plain
-    pinned = _run(world, run_edited)["metadata"]["sociomap_methods"][1]
+    (pinned,) = _run(world, run_edited)["metadata"]["sociomap_methods"]
     assert pinned["formulas"] == {"f12.kernel": kernel}
     _drain(worker)
 
     body = _body(world, store, run_edited)
-    assert body["methods"][1] == {
+    assert body["methods"][0] == {
         "method_id": f"aia-sociomap-3+e{edited}",
         "spec_fingerprint": pinned["spec_fingerprint"],
         "formulas": {"f12.kernel": kernel},
     }
     with_kernel = read_artifact(_maps(world, store, run_edited)[f"aia-sociomap-3+e{edited}"])
-    without = read_artifact(_maps(world, store, run_plain)[f"aia-sociomap-3+e{plain}"])
+    # The plain version changes nothing of aia-sociomap-3, so it is pinned as the preset itself.
+    assert plain >= 1
+    without = read_artifact(_maps(world, store, run_plain)["aia-sociomap-3"])
     assert isinstance(with_kernel, SociomapArtifactV3) and isinstance(without, SociomapArtifactV3)
     assert with_kernel.layout == without.layout  # the kernel moves the terrain, nothing else
     assert with_kernel.terrain != without.terrain
@@ -282,8 +283,11 @@ def test_the_preflight_step_reads_the_runs_pin_not_what_is_in_force_later(
     assert edited["status"] == "WARN" and "45" in edited["message"]
     assert _support(_preflight(world, store, before_edit))["status"] == "PASS"
     # The tables beside the map read the same n_min as the warning did (S2b).
-    (battery,) = _body(world, store, under_edit)["batteries"]
-    assert battery["side_tables"]["n_min"] == battery["relation"]["n_min"] == 45
+    # The map's own pairs read the same n_min as the warning did.
+    maps = _maps(world, store, under_edit)
+    (edited_map,) = maps.values()
+    art = read_artifact(edited_map)
+    assert isinstance(art, SociomapArtifactV3) and art.relations.n_min == 45
 
 
 # ------------------------------------------------ G1c: the support rules a run pins --
@@ -733,3 +737,60 @@ def test_a_run_stores_its_numbers_at_the_places_its_aggregation_pinned(
         if cell["prumer"] is not None:
             assert cell["prumer"] == round(cell["prumer"], 3), oid
             assert cell["top2box_pct"] == round(cell["top2box_pct"]), oid
+
+
+def _put_in_force(world: Any, spec: dict[str, Any], base: str = "aia-sociomap-5") -> str:
+    """Propose and put in force a version of ``base`` with ``spec``; its name."""
+    with world.sessions() as session:
+        repo = MethodologyRepository(session, world.admin_context(session))
+        version = repo.propose("sociomap", base_preset=base, spec=spec, formulas={}, note="test")
+        repo.activate("sociomap", version.version_number, reason="test")
+        session.commit()
+        return version.name
+
+
+def test_the_preset_put_in_force_unchanged_is_pinned_under_its_own_name(
+    world: Any, store: InMemoryArtifactStore, worker: Worker
+) -> None:
+    # Nothing changed: the run pins aia-sociomap-5 itself, so the register's entry holds.
+    name = _put_in_force(world, AIA_SOCIOMAP_V5.model_dump(mode="json"))
+    run_id = _start(world)
+    metadata = _run(world, run_id)["metadata"]
+    assert metadata["sociomap_methods"] == [m.model_dump(mode="json") for m in default_methods()]
+    assert metadata["methodology"]["name"] == name  # the version in force, as recorded
+    _drain(worker)
+    assert _body(world, store, run_id)["methodology_status"] == "CLIENT_FACING"
+
+
+def test_a_run_under_an_unchanged_retired_preset_in_force_is_retried_not_refused(
+    world: Any,
+) -> None:
+    # An unchanged aia-sociomap-3 in force pins the preset's own name; the organization chose it,
+    # so its run is retried as it pinned it, not refused as the code's old default.
+    _put_in_force(world, AIA_SOCIOMAP_V3.model_dump(mode="json"), base="aia-sociomap-3")
+    run_id = _start(world)
+    assert [m["method_id"] for m in _run(world, run_id)["metadata"]["sociomap_methods"]] == [
+        "aia-sociomap-3"
+    ]
+    with world.sessions() as session:
+        runs = ResearchRuns(session, world.lead_scope(session))
+        runs.cancel(run_id)
+        retried = runs.retry(run_id, fieldwork_source=FieldworkSource.SYNTHETIC_FIXTURE)
+        session.commit()
+    assert retried.run_id != run_id
+    pinned = _run(world, retried.run_id)["metadata"]["sociomap_methods"]
+    assert [m["method_id"] for m in pinned] == ["aia-sociomap-3"]
+
+
+def test_a_changed_version_in_force_is_pinned_under_its_own_name_and_stays_internal(
+    world: Any, store: InMemoryArtifactStore, worker: Worker
+) -> None:
+    spec = AIA_SOCIOMAP_V5.model_dump(mode="json")
+    spec["relation"]["n_min"] = 12
+    name = _put_in_force(world, spec)
+    assert name.startswith("aia-sociomap-5+e")
+    run_id = _start(world)
+    pinned = _run(world, run_id)["metadata"]["sociomap_methods"]
+    assert [m["method_id"] for m in pinned] == [name]
+    _drain(worker)
+    assert _body(world, store, run_id)["methodology_status"] == "INTERNAL_ONLY"
