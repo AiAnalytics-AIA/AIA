@@ -11,7 +11,7 @@
 // gate, recorded as automatic -- shown as "Přijato automaticky" with Vrátit; structure still waits.
 
 import { useRouter } from "next/navigation";
-import { type ReactNode, type Ref, useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
+import { type KeyboardEvent as ReactKeyboardEvent, type ReactNode, type Ref, useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
 
 import { ApiError, api, lead as leadApi, research, type Readiness, type ResearchAgentJob, type ResearchRun, type Study } from "@/lib/api";
 import { withBudget } from "@/lib/budget-line";
@@ -22,6 +22,8 @@ import { unanswerableAsked } from "@/lib/answerability";
 import { jobCostAsked } from "@/lib/research-agent-jobs";
 import { appRoutes } from "@/lib/app-routes";
 import { guardedNavigate } from "@/lib/guarded-navigation";
+import { rovingIndex } from "@/lib/roving";
+import { useDismiss } from "../ui/parts";
 import {
   LEAD_REASON_WORDS, STALE_CARD_QUESTION, applyLeadEdit, autoAcceptPlan, describeEdit, editRefusalWords, editStage, focusSelector, revertTextEdit, targetLabel, targetOfElement, textEditInverse,
   type LeadEdit, type LeadRequest, type LeadTurn, type LeadView, type ResearcherLead,
@@ -843,6 +845,36 @@ function StudyHeader({ frame, study, pending, blocked, onPending, layout = "spli
   const narrow = layout === "sheet";
   const router = useRouter();
   const [menu, setMenu] = useState(false);
+  // A menu by the keyboard too (the UX audit, #753): opened on its first item, ↑ ↓ Home End move,
+  // Esc or a press outside closes it and gives the focus back to its button. No scrim: a press
+  // outside reaches what it was meant for. The items are read from the open menu, so the rows that
+  // only inform (under 768 px) are never stopped on.
+  const menuBox = useRef<HTMLDivElement>(null);
+  const menuToggle = useRef<HTMLButtonElement>(null);
+  const closeMenu = useCallback(() => setMenu(false), []);
+  useDismiss(menu, closeMenu, menuBox, menuToggle);
+  const menuItems = () => Array.from(menuBox.current?.querySelectorAll<HTMLElement>('[role="menuitem"]') ?? []);
+  // Which item takes the focus once the menu has rendered (an effect: after the commit).
+  const focusOnOpen = useRef<"first" | "last" | null>(null);
+  const openMenu = (where: "first" | "last") => {
+    focusOnOpen.current = where;
+    setMenu(true);
+  };
+  useEffect(() => {
+    const where = focusOnOpen.current;
+    focusOnOpen.current = null;
+    if (!menu || !where) return;
+    const items = Array.from(menuBox.current?.querySelectorAll<HTMLElement>('[role="menuitem"]') ?? []);
+    (where === "first" ? items[0] : items[items.length - 1])?.focus();
+  }, [menu]);
+  const onMenuKey = (e: ReactKeyboardEvent<HTMLElement>) => {
+    if (e.key === "Tab") return setMenu(false);
+    const items = menuItems();
+    const next = rovingIndex(items.indexOf(e.target as HTMLElement), e.key, items.length, () => false, "vertical");
+    if (next === null) return;
+    e.preventDefault();
+    items[next]?.focus();
+  };
   // Leaving the study goes through a link's click too, so Návrh's leave guard can stop it.
   const leave = (url: string) => {
     setMenu(false);
@@ -868,12 +900,13 @@ function StudyHeader({ frame, study, pending, blocked, onPending, layout = "spli
           <span className="num">{budget === null ? "Rozpočet nenastaven" : `${usd(spent)} / ${usd(budget)} USD`}</span>
         </span>
       )}
-      <div style={{ position: "relative" }}>
-        <button type="button" className="iconbtn" aria-label="Nabídka" title="Nabídka" aria-expanded={menu} onClick={() => setMenu((v) => !v)}><Icon name="menu" size={16} /></button>
+      <div ref={menuBox} style={{ position: "relative" }}>
+        <button ref={menuToggle} type="button" className="iconbtn" aria-label="Nabídka" title="Nabídka" aria-haspopup="menu" aria-expanded={menu}
+          onClick={() => (menu ? setMenu(false) : openMenu("first"))}
+          onKeyDown={(e) => { if (e.key === "ArrowDown" || e.key === "ArrowUp") { e.preventDefault(); openMenu(e.key === "ArrowDown" ? "first" : "last"); } }}><Icon name="menu" size={16} /></button>
         {menu ? (
           <>
-            <div className="scrim" onClick={() => setMenu(false)} />
-            <div className="pop menu" style={{ right: 0, top: 34, width: 280 }} role="menu">
+            <div className="pop menu" style={{ right: 0, top: 34, width: 280 }} role="menu" aria-label="Nabídka" onKeyDown={onMenuKey}>
               {narrow ? (
                 <>
                   <div className="menu__info" role="none"><Glyph tone={blocked ? "you" : "done"} size={11} />{blocked ? `Do spuštění zbývá ${blocked}` : "Návrh splňuje podmínky kroků"}</div>
