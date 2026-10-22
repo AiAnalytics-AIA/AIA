@@ -54,11 +54,17 @@ def _redact_string(value: str) -> str:
     return out
 
 
-def redact(value: Any, *, _depth: int = 0) -> Any:
+def _is_count(value: Any) -> bool:
+    """A number (or nothing) is never a secret: ``needed_tokens: 5`` is kept as it is."""
+    return value is None or isinstance(value, (int, float))
+
+
+def redact(value: Any, *, capped: bool = False, _depth: int = 0) -> Any:
     """Return ``value`` with anything secret-looking replaced.
 
     Recursion is depth-limited so a cyclic or pathologically nested payload cannot
-    hang the caller.
+    hang the caller. ``capped`` also cuts every string as ``redact_text`` does: for a
+    payload that is recorded (an attempt's ``error_json``), not only logged.
     """
     if _depth > 8:
         return "[truncated]"
@@ -66,14 +72,16 @@ def redact(value: Any, *, _depth: int = 0) -> Any:
     if isinstance(value, dict):
         return {
             key: (
-                REDACTED if _SECRET_KEY_PATTERN.search(str(key)) else redact(val, _depth=_depth + 1)
+                REDACTED
+                if _SECRET_KEY_PATTERN.search(str(key)) and not _is_count(val)
+                else redact(val, capped=capped, _depth=_depth + 1)
             )
             for key, val in value.items()
         }
     if isinstance(value, (list, tuple)):
-        return [redact(item, _depth=_depth + 1) for item in value]
+        return [redact(item, capped=capped, _depth=_depth + 1) for item in value]
     if isinstance(value, str):
-        return _redact_string(value)
+        return redact_text(value) if capped else _redact_string(value)
     return value
 
 
