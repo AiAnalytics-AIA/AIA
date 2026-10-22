@@ -16,6 +16,7 @@ import { type DragEvent, type ReactNode, useEffect, useRef, useState } from "rea
 import { t, tv } from "@/i18n/t";
 import { workspace } from "@/lib/api";
 import { saveBlob } from "@/lib/download";
+import { fileProblem, uploadProblem } from "@/research/brief-upload";
 import { type BriefMaterials, classLabel, classOf } from "@/lib/material-class";
 import { briefElementId, contextField, materialAia } from "@/lib/artifacts/brief";
 import { aiaId } from "@/lib/workbench-artifacts";
@@ -492,14 +493,23 @@ function useUploads() {
     try {
       if (!store.saved) await store.flush("brief_attachments");
       for (const [i, f] of batch.entries()) {
+        // An empty or too large file is refused here, said in Czech, before its bytes are sent; the
+        // rest of the pick goes on. What the server refuses is said by its code (brief-upload.ts).
+        const refused = fileProblem(f.size);
+        if (refused) {
+          failed = true;
+          mark(i, { state: "failed", message: uploadProblem(refused) });
+          setError(`${f.name}: ${uploadProblem(refused)}`);
+          continue;
+        }
         mark(i, { state: "uploading" });
         try {
           records.push(await workspace.attach(frame.studyId, { filename: f.name, data_b64: await fileToBase64(f) }));
           mark(i, { state: "done" });
         } catch (e) {
           failed = true;
-          mark(i, { state: "failed", message: message(e) });
-          setError(message(e));
+          mark(i, { state: "failed", message: uploadProblem(e) });
+          setError(`${f.name}: ${uploadProblem(e)}`);
           break;
         }
       }

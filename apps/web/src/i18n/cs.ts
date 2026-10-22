@@ -1826,6 +1826,8 @@ export const cs = {
       readyFiles: "Podklady",
       readyFilesEmpty: "Briefy, data, weby",
       readyFilesN: "{n} v kontextu",
+      uploadRefused: "AIA soubor nepřijala (kód {code})",
+      uploadUnreachable: "Spojení s AIA se nepodařilo; zkuste to znovu",
       // artifact-brief BRF3: each material's data class, as the server answers it.
       dataClass: {
         CLASS_A_CLIENT_CONFIDENTIAL: "A · důvěrné klienta",

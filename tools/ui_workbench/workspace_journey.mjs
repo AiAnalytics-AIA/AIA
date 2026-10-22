@@ -124,6 +124,13 @@ const [download] = await Promise.all([page.waitForEvent("download", { timeout: 6
 const fileBack = readFileSync(await download.path(), "utf8");
 if (fileBack !== FILE.body) fail(`the downloaded file differs: ${JSON.stringify(fileBack)}`);
 ok("Zadání: the file downloads through the study, byte for byte");
+
+// An empty file is refused before it is sent, in Czech, never the API's English (audit).
+const attachesBefore = requests.filter((r) => r.url.endsWith("/workspace/attachments") && r.method === "POST").length;
+await page.locator('input[type="file"][aria-label="Soubory k zadání"]').setInputFiles({ name: "prazdny.txt", mimeType: "text/plain", buffer: Buffer.alloc(0) });
+await text("Nepodařilo se uložit · soubor je prázdný", "the empty file's refusal in Czech");
+if (requests.filter((r) => r.url.endsWith("/workspace/attachments") && r.method === "POST").length !== attachesBefore) fail("an empty file was sent");
+ok("Zadání: an empty file refused before it is sent, said in Czech");
 await shot("1-brief");
 
 // 2. Dotazník: AIA's template, imported back.
