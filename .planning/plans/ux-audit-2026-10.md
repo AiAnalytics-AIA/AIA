@@ -122,3 +122,17 @@ person had opened meanwhile. #735 refocuses only when focus is on the page.
 - The workbench keeps every methodology version the journeys stored (`aia-sociomap-4+e1…e6`), so
   Metodika at 390 px is a very long page of versions. That comes from running the journeys again
   and again, not from the product; `workbench.py up --fresh` resets it.
+
+### F9. At 390 px a study's Upravit sat out of view on Studie a rozpočty (fixed on this branch)
+
+1. Claim: the studies table kept all seven columns on a phone, so the row's one action needed a
+   sideways scroll inside the table to be found.
+2. Anchor: `apps/web/src/components/aia/settings/ControlPanel.tsx:371 @ c7fbd15a`.
+3. Repro: `settings_journey.mjs` (every visible study's Upravit inside 390 px) failed with all 13
+   fixture studies out of view; `ControlPanel.test.tsx` › "keeps a study's Upravit in view on a
+   phone" failed with 7 cells where 3 are shown.
+4. Consequence: Upravit, Utraceno and Zbývá past the right edge at 390 px (table 367 px in 316).
+5. Fix: below `sm` the client and status show under the study's name; client, status, spent and
+   remaining are columns from `sm`, as #722 did for Výzkumy; a row whose costs are hidden spans
+   no hidden column.
+6. Test: the two above.
