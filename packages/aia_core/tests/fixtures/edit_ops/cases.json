@@ -5708,6 +5708,116 @@
    }
   },
   {
+   "name": "a condition on an id a later question also carries refused",
+   "note": "Q1 is also stored after Q2: never bound to the earlier one by a guess.",
+   "before": {
+    "content": {
+     "title": "Cenový test",
+     "goal": "Zjistit vliv ceny",
+     "decision_use": "Nastavení ceny",
+     "briefing": {
+      "product_description": "Káva",
+      "situation": "Trh roste",
+      "what_is_known": "",
+      "constraints": ""
+     },
+     "research_plan": {
+      "problem_summary": "Cena a zájem",
+      "objectives": [
+       "Zjistit cenovou citlivost"
+      ],
+      "research_questions": [
+       "Jak cena mění zájem?",
+       "Kdo kupuje?"
+      ],
+      "hypotheses": [
+       "Sleva zvýší nákup"
+      ]
+     },
+     "sections": [
+      {
+       "id": "sec_a",
+       "type": "questions",
+       "title": "Úvod",
+       "purpose": "",
+       "questions": [
+        {
+         "id": "Q1",
+         "text": "Pijete kávu?",
+         "typ": "vyber",
+         "kategorie": [
+          "Ano",
+          "Ne"
+         ],
+         "povolit_nevim": false
+        },
+        {
+         "id": "Q2",
+         "text": "Jak moc vám káva chutná?",
+         "typ": "skala",
+         "skala": [
+          1,
+          10
+         ],
+         "popisky_skaly": [
+          "vůbec",
+          "velmi"
+         ],
+         "povolit_nevim": false
+        },
+        {
+         "id": "Q1",
+         "text": "Pijete čaj?",
+         "typ": "vyber",
+         "kategorie": [
+          "Ano",
+          "Ne"
+         ],
+         "povolit_nevim": false
+        }
+       ]
+      },
+      {
+       "id": "bat_1",
+       "type": "object_battery",
+       "title": "Značky kávy",
+       "objects": [
+        "Tchibo",
+        "Jacobs",
+        "Nescafé",
+        "Lavazza"
+       ],
+       "scale": [
+        1,
+        10
+       ],
+       "scale_labels": [
+        "vůbec",
+        "velmi"
+       ]
+      }
+     ],
+     "ui_state": {},
+     "n": 300
+    },
+    "analysis": null
+   },
+   "edit": {
+    "op": "route_set",
+    "question_id": "Q2",
+    "condition": {
+     "question_id": "Q1",
+     "options": [
+      "Ano"
+     ]
+    },
+    "why": "Návrh Vedoucího."
+   },
+   "expect": {
+    "refused": "condition_ambiguous_question"
+   }
+  },
+  {
    "name": "a condition on the don't-know answer set",
    "note": "A question that allows it has the answer Nevím / neodpovím, as the compiler reads it.",
    "before": {

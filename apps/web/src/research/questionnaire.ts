@@ -282,7 +282,7 @@ export function conditionRefusal(p: ResearchProject, questionId: string, conditi
   if (!ref || !wanted.length || !wanted.every((o) => typeof o === "string" && collapsed(o))) return "condition_unstructured";
   const named = earlier.filter((e) => e.id === ref);
   if (!named.length) return order.slice(at).includes(ref) ? "condition_forward_reference" : "condition_unknown_question";
-  if (named.length > 1) return "condition_ambiguous_question";
+  if (named.length > 1 || order.slice(at).includes(ref)) return "condition_ambiguous_question";
   const target = named[0]!;
   if (target.typ !== "vyber" && target.typ !== "multi") return "condition_not_choice";
   return wanted.every((o) => target.options.includes(collapsed(o))) ? null : "condition_unknown_option";
