@@ -17,8 +17,8 @@ const SECTIONS = [
 ];
 
 let saves: SavedBody[] = [];
-function stub() {
-  const ws = workspaceFixture({ goal: "G", sections: SECTIONS, ui_state: { questionnaire_path: "manual" } }, { analysis: null });
+function stub(sections: unknown[] = SECTIONS) {
+  const ws = workspaceFixture({ goal: "G", sections, ui_state: { questionnaire_path: "manual" } }, { analysis: null });
   saves = ws.saves;
   const native = nativeAgentFixture(() => ({ project: {}, proposal: {} }), {}, ws.write);
   vi.stubGlobal("fetch", vi.fn(async (url: RequestInfo | URL, init?: RequestInit) => {
@@ -107,12 +107,21 @@ describe("Dotazník's block and set fields", () => {
     await waitFor(() => expect(sectionsSaved()?.[1].object_question).toBe("Jak často používáte {object}?"));
   });
 
-  it("adds {object} to a stored question that lacks it with + {object}", async () => {
+  it("offers + {object} only for a stored question that lacks it, and adds it once", async () => {
+    stub([SECTIONS[0], { ...SECTIONS[1], object_question: "Jak často je používáte?" }]);
     render(<ResearchScreen step="questionnaire" frame={TEST_FRAME} />);
-    await open("Upravit: Společná otázka Jak hodnotíte {object}?");
-    const question = screen.getByRole("textbox", { name: "Společná otázka" });
-    fireEvent.keyDown(question, { key: "Escape" });
-    fireEvent.click(screen.getByRole("button", { name: "+ {object}" }));
-    await waitFor(() => expect(sectionsSaved()?.[1].object_question).toBe("Jak hodnotíte {object}? {object}"));
+    fireEvent.click(await screen.findByRole("button", { name: "+ {object}" }));
+    await waitFor(() => expect(sectionsSaved()?.[1].object_question).toBe("Jak často je používáte? {object}"));
+    await waitFor(() => expect(screen.queryByRole("button", { name: "+ {object}" })).toBeNull());
+  });
+
+  it("edits a set's goal in place and lets it be cleared", async () => {
+    render(<ResearchScreen step="questionnaire" frame={TEST_FRAME} />);
+    const set = document.getElementById("qset_sec_b") ?? (await screen.findByText("SADA 1")).closest("article")!;
+    fireEvent.click(await within(set as HTMLElement).findByRole("button", { name: /^Upravit: Co chceme z porovnání zjistit\?/ }));
+    const goal = screen.getByRole("textbox", { name: "Co chceme z porovnání zjistit?" });
+    fireEvent.change(goal, { target: { value: "Který kanál oslovuje nejvíc" } });
+    fireEvent.keyDown(goal, { key: "Enter" });
+    await waitFor(() => expect(sectionsSaved()?.[1].purpose).toBe("Který kanál oslovuje nejvíc"));
   });
 });

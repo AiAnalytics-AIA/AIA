@@ -1030,6 +1030,7 @@ function TrackedSet({ n, sec, si, update }: { n: number; sec: Section; si: numbe
   const labels = sec.scale_labels || ["vůbec", "velmi"];
   const objects = sec.objects || [];
   const question = sec.object_question || "Jak hodnotíte {object}?";
+  const objectMissing = tv("research.questionnaire.setQuestionMissing", { object: OBJECT });
   const bad = setInvalid(sec);
   // updateObjects takes the objects one per line, as the classic textarea gave them.
   const setObjects = (next: string[]) => {
@@ -1063,7 +1064,7 @@ function TrackedSet({ n, sec, si, update }: { n: number; sec: Section; si: numbe
         </div>
         <div className="flex flex-col gap-1">
           <span className={LABEL}>{t("research.questionnaire.setPurpose")}</span>
-          <InlineField required={false} label={t("research.questionnaire.setPurpose")} value={sec.purpose || ""} onChange={(v) => update((p) => setSectionField(p, si, "purpose", v))} />
+          <InlineField required={false} label={t("research.questionnaire.setPurpose")} placeholder="" value={sec.purpose || ""} onChange={(v) => update((p) => setSectionField(p, si, "purpose", v))} />
         </div>
       </div>
       <div className="flex flex-col gap-1">
@@ -1073,20 +1074,27 @@ function TrackedSet({ n, sec, si, update }: { n: number; sec: Section; si: numbe
             <InlineField
               label={t("research.questionnaire.setQuestion")}
               value={question}
-              validate={(v) => (v.includes(OBJECT) ? null : tv("research.questionnaire.setQuestionMissing", { object: OBJECT }))}
+              validate={(v) => (v.includes(OBJECT) ? null : objectMissing)}
               onChange={(v) => update((p) => setSectionField(p, si, "object_question", v))}
             />
           </div>
-          <Button small className="!min-h-9 shrink-0 !rounded-control font-mono" onClick={() => update((p) => setSectionField(p, si, "object_question", `${question.trimEnd()} ${OBJECT}`))}>
-            + {OBJECT}
-          </Button>
+          {/* Only for a stored question without {object} (an older copy): the field refuses a new one. */}
+          {question.includes(OBJECT) ? null : (
+            <Button
+              small
+              className="!min-h-9 shrink-0 !rounded-control font-mono"
+              onClick={() => update((p) => setSectionField(p, si, "object_question", `${String(sections(p)[si]?.object_question || "").trimEnd()} ${OBJECT}`.trim()))}
+            >
+              + {OBJECT}
+            </Button>
+          )}
         </div>
         {question.includes(OBJECT) ? (
           <span className="text-xs text-ink-muted">
             {t("research.questionnaire.setQuestionHelp")} <code className="font-mono">{OBJECT}</code>.
           </span>
         ) : (
-          <span className="text-xs text-status-you-ink">{tv("research.questionnaire.setQuestionMissing", { object: OBJECT })}</span>
+          <span className="text-xs text-status-you-ink">{objectMissing}</span>
         )}
       </div>
       <div className="flex flex-col gap-1">
