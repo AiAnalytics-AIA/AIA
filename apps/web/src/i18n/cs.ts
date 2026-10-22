@@ -2245,6 +2245,8 @@ export const cs = {
       addBlockV3: "Nový blok",
       addQuestionV3: "Otázka do tohoto bloku",
       blockHead: "Blok {n} · {q}",
+      untitledBlock: "Blok {n}",
+      untitledSet: "Sada {n}",
       removeBlockConfirm: "Smazat blok i otázky?",
       removeSetConfirm: "Odstranit tuto sadu?",
       range: "Rozsah",

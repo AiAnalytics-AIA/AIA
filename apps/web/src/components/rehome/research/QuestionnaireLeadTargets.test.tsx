@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 // Dotazník's Lead targets (the contract, lib/workbench-artifacts.ts): every block, tracked set and
 // question carries data-aia "<kind>:<id>" by its stored id, and an item without a valid id none.
-import { cleanup, render, screen } from "@testing-library/react";
+import { cleanup, render, screen, within } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { targetOfElement } from "@/lib/lead";
@@ -56,9 +56,10 @@ describe("Dotazník's Lead targets", () => {
     expect(targetOfElement(field)?.id).toBe("question:Q1");
     // Named by what the person reads: a question's wording, a block's or set's title, never a legend.
     expect(targetOfElement(field)?.label).toBe("Otázka Q1: Jak často?");
-    expect(targetOfElement(container.querySelector('[data-aia="section:sec_a"] input'))?.label).toBe("Oddíl: Hlavní otázky");
-    expect(targetOfElement(container.querySelector('[data-aia="section:sec_b"] input'))?.label).toBe("Oddíl: Média");
-    expect(targetOfElement(container.querySelector('[data-aia="section:sec_b"] input'))?.id).toBe("section:sec_b");
+    const title = (aia: string, name: RegExp) => within(container.querySelector(`[data-aia="${aia}"]`) as HTMLElement).getAllByRole("button", { name })[0];
+    expect(targetOfElement(title("section:sec_a", /Název bloku/))?.label).toBe("Oddíl: Hlavní otázky");
+    expect(targetOfElement(title("section:sec_b", /Název sady/))?.label).toBe("Oddíl: Média");
+    expect(targetOfElement(title("section:sec_b", /Název sady/))?.id).toBe("section:sec_b");
   });
 
   it("gives a repeated id's mark to its first occurrence only, so each mark names one element", async () => {
