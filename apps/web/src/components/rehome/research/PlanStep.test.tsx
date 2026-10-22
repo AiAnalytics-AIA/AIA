@@ -6,6 +6,7 @@ import { afterEach, beforeEach, describe, expect, it, onTestFinished, vi } from 
 
 import { AGENTS_PATH, DESIGN_PATH, NATIVE_JOB_WAIT, NATIVE_TEST_TIMEOUT_MS, approveProposal, nativeAgentFixture } from "./test-native-agents";
 import { briefFingerprint, defaultsMerge } from "@/research/model";
+import { FrameNavigation } from "../step";
 import { ResearchScreen } from "./ResearchScreen";
 import { workspaceFixture } from "./test-workspace";
 import { TEST_FRAME, stagePath } from "./test-frame";
@@ -374,6 +375,21 @@ describe("Návrh", () => {
     render(<ResearchScreen step="plan" frame={TEST_FRAME} />);
     fireEvent.click(await screen.findByRole("button", { name: /Další · dotazník/ }));
     expect(push).toHaveBeenCalledWith(stagePath("questionnaire"));
+  });
+
+  it("inside the workbench goes on through the frame's next stage, and not while a set is open for editing", async () => {
+    unitStub();
+    const go = vi.fn();
+    render(<FrameNavigation.Provider value={{ next: { label: "Dotazník", go } }}><ResearchScreen step="plan" frame={TEST_FRAME} /></FrameNavigation.Provider>);
+    // A set open for editing: the move is refused before the frame is asked.
+    fireEvent.click((await screen.findAllByRole("button", { name: "Upravit měření a položky" }))[0]!);
+    expect((screen.getByRole("button", { name: /Další · dotazník/ }) as HTMLButtonElement).disabled).toBe(true);
+    expect(go).not.toHaveBeenCalled();
+    fireEvent.click(screen.getByRole("button", { name: "Zrušit úpravy" }));
+    // The frame's go opens Dotazník through guardedNavigate and focuses its heading (Workbench's).
+    fireEvent.click(screen.getByRole("button", { name: /Další · dotazník/ }));
+    expect(go).toHaveBeenCalledTimes(1);
+    expect(push).not.toHaveBeenCalled();
   });
 });
 

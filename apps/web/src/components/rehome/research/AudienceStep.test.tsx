@@ -3,6 +3,7 @@ import { cleanup, fireEvent, render, screen, waitFor, within } from "@testing-li
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { AGENTS_PATH, NATIVE_TEST_TIMEOUT_MS, approveProposal, findProposalDialog, nativeAgentFixture } from "./test-native-agents";
+import { FrameNavigation } from "../step";
 import { ResearchScreen } from "./ResearchScreen";
 import { type SavedBody, workspaceFixture } from "./test-workspace";
 import { TEST_FRAME } from "./test-frame";
@@ -89,6 +90,18 @@ describe("Audience", () => {
     noUnitCalls();
   });
 
+  it("inside the workbench goes on to Dimenze through the frame's next stage", async () => {
+    aiaStub({ ui_state: { audience_entry: "analytics" } });
+    const go = vi.fn();
+    render(<FrameNavigation.Provider value={{ next: { label: "Dimenze", go } }}><ResearchScreen step="audience" frame={TEST_FRAME} /></FrameNavigation.Provider>);
+    fireEvent.click(await screen.findByRole("radio", { name: /Česká populace \(\+18\)/ }));
+    const next = await screen.findByRole("button", { name: /Další · dimenze/ });
+    await waitFor(() => expect((next as HTMLButtonElement).disabled).toBe(false));
+    fireEvent.click(next);
+    expect(go).toHaveBeenCalledTimes(1);
+    expect(push).not.toHaveBeenCalled();
+  });
+
   it("AI Analytics: ČR 18+ is ready at once; Speciální skupiny say they are not in AIA", async () => {
     aiaStub({ ui_state: { audience_entry: "analytics" } });
     render(<ResearchScreen step="audience" frame={TEST_FRAME} />);
@@ -153,7 +166,7 @@ describe("Audience", () => {
       fireEvent.click(screen.getByRole("button", { name: /Zlínský kraj/ }));
       await saved();
       expect(lastSave().content.audience.filters).toEqual({ kraj: ["Zlínský kraj"] });
-      const from = screen.getAllByLabelText("Od")[0] as HTMLInputElement;
+      const from = screen.getByRole("spinbutton", { name: "Věk od" });
       fireEvent.change(from, { target: { value: "30" } });
       fireEvent.blur(from);
       await waitFor(() => expect(lastSave().content.audience.filters).toEqual({ kraj: ["Zlínský kraj"], vek: { min: 30 } }));
@@ -161,6 +174,65 @@ describe("Audience", () => {
       expect((screen.getByRole("button", { name: /Rodič/ }) as HTMLButtonElement).disabled).toBe(true);
       expect(screen.getByText(/unclassified_derived_field/)).toBeTruthy();
       expect(screen.getByText("Vybrané filtry:")).toBeTruthy();
+      noUnitCalls();
+    });
+
+    it("a numeric factor's range is two steppers within the population's range: nothing out of it saved, no end crossed, an end cleared by its own button (audit B6)", async () => {
+      aiaStub({ ui_state: ANALYTICS, n: 500, audience: { strategy: "filters", source_mode: "population", filters: { vek: { min: 30, max: 59 } } } }, live());
+      render(<ResearchScreen step="audience" frame={TEST_FRAME} />);
+      const from = await screen.findByRole("spinbutton", { name: "Věk od" });
+      const to = screen.getByRole("spinbutton", { name: "Věk do" });
+      expect([from.getAttribute("aria-valuemin"), from.getAttribute("aria-valuemax")]).toEqual(["18", "59"]);
+      expect([to.getAttribute("aria-valuemin"), to.getAttribute("aria-valuemax")]).toEqual(["30", "89"]);
+      expect(screen.getByText("Rozsah v populaci 18–89. Od nesmí být víc než Do.")).toBeTruthy();
+      // Above the population's range: said at the field, nothing saved, never clamped to 89.
+      fireEvent.change(to, { target: { value: "200" } });
+      fireEvent.blur(to);
+      expect(to.getAttribute("aria-invalid")).toBe("true");
+      // Below the other end: refused, never swapped as the server would.
+      fireEvent.change(from, { target: { value: "70" } });
+      fireEvent.blur(from);
+      expect(from.getAttribute("aria-invalid")).toBe("true");
+      await new Promise((r) => setTimeout(r, 50));
+      expect(saves).toHaveLength(0);
+      // An end set back to the population's own: left out of the stored filter.
+      fireEvent.click(screen.getByRole("button", { name: "Bez omezení: zrušit mez Věk do" }));
+      await saved();
+      expect(lastSave().content.audience.filters).toEqual({ vek: { min: 30 } });
+      // The cleared end is empty and says so; the refused 200 is gone with it.
+      await waitFor(() => expect((screen.getByRole("spinbutton", { name: "Věk do" }) as HTMLInputElement).value).toBe(""));
+      expect(screen.queryByRole("button", { name: "Bez omezení: zrušit mez Věk do" })).toBeNull();
+      expect(screen.getByRole("spinbutton", { name: "Věk do" }).getAttribute("aria-invalid")).toBeNull();
+      expect(screen.getAllByText("Bez omezení").map((e) => e.tagName)).toEqual(["BUTTON", "SPAN"]);
+      // The other end's refused 70 went with the bound it was refused against: Od may now reach 89.
+      const fromNow = screen.getByRole("spinbutton", { name: "Věk od" });
+      expect(fromNow.getAttribute("aria-invalid")).toBeNull();
+      expect((fromNow as HTMLInputElement).value).toBe("30");
+      expect(fromNow.getAttribute("aria-valuemax")).toBe("89");
+      noUnitCalls();
+    });
+
+    it("shows a stored bare number as both ends, as the population reads it, and keeps it when one end moves", async () => {
+      aiaStub({ ui_state: ANALYTICS, n: 500, audience: { strategy: "filters", source_mode: "population", filters: { vek: 40 } } }, live());
+      render(<ResearchScreen step="audience" frame={TEST_FRAME} />);
+      const from = await screen.findByRole("spinbutton", { name: "Věk od" });
+      const to = screen.getByRole("spinbutton", { name: "Věk do" });
+      expect([(from as HTMLInputElement).value, (to as HTMLInputElement).value]).toEqual(["40", "40"]);
+      fireEvent.change(from, { target: { value: "30" } });
+      fireEvent.blur(from);
+      await saved();
+      expect(lastSave().content.audience.filters).toEqual({ vek: { min: 30, max: 40 } });
+      noUnitCalls();
+    });
+
+    it("says a stored end the population cannot read, and keeps a stored end beyond the population inside it", async () => {
+      aiaStub({ ui_state: ANALYTICS, n: 500, audience: { strategy: "filters", source_mode: "population", filters: { vek: { min: "abc", max: 99 } } } }, live());
+      render(<ResearchScreen step="audience" frame={TEST_FRAME} />);
+      const from = await screen.findByRole("spinbutton", { name: "Věk od" });
+      expect((from as HTMLInputElement).value).toBe("");
+      expect(screen.getByText("Uložená mez není číslo a populace ji nepřečte; nastavte ji znovu.")).toBeTruthy();
+      // 99 is stored; Od is still bounded by the population's 89, never by 99.
+      expect(from.getAttribute("aria-valuemax")).toBe("89");
       noUnitCalls();
     });
 

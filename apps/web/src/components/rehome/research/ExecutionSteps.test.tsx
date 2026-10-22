@@ -2556,7 +2556,7 @@ describe("Results", () => {
     expect(report.getByText(/Klientská zpráva vzniká jen z běhu s AI respondenty z populace/)).toBeTruthy();
   });
 
-  it("still downloads and approves the report of a delivered study, which starts no new work", async () => {
+  it("still downloads the report of a delivered study, which starts no new work, and leaves its approval to the doc bar", async () => {
     // productization-coherence PC1: one flag gated both editing and the report, so closing a
     // study for edits would have taken its deliverable away with them.
     const createObjectURL = stubDownloads();
@@ -2575,7 +2575,8 @@ describe("Results", () => {
     expect(await report.findByText("Stav: Koncept čeká na schválení.")).toBeTruthy();
     fireEvent.click(report.getByRole("button", { name: /Stáhnout zprávu/ }));
     await waitFor(() => expect(createObjectURL).toHaveBeenCalledOnce());
-    expect(report.getByRole("button", { name: /Schválit/ })).toBeTruthy();
+    // Approved on the document being read, in the pane's doc bar (RPT3a), never here.
+    expect(report.queryByRole("button", { name: /Schválit/ })).toBeNull();
     // Nothing on the page starts work: no analysis, retry or literature run is offered.
     expect(screen.queryByRole("button", { name: /Spustit rešerši výsledků/ })?.hasAttribute("disabled") ?? true).toBe(true);
   });
@@ -2767,36 +2768,29 @@ describe("Results", () => {
     expect(option.getAttribute("aria-disabled")).toBe("true");
   });
 
-  it("approves the stored internal draft, and says so when its producer may not", async () => {
-    let refuse = true;
+  it("says the internal draft approved in the doc bar once the pane answers, approving nothing itself (RPT3a)", async () => {
     let approvedNow = false;
     api({
       ...listed(reportRun()),
       "GET /api/v1/studies/STU-1/research/runs/RUN-1/artifacts/ART-4": () => AGGREGATE,
       "GET /api/v1/studies/STU-1/research/runs/RUN-1/artifacts/ART-5": () => SOCIOMAP,
-      // The card reads the report again after approving (D2): the server's state, not a patch.
+      // The card reads the report again on the pane's word (D2): the server's state, not a patch.
       "GET /api/v1/studies/STU-1/research/runs/RUN-1/report": () => reportStatus(approvedNow ? { review_state: "APPROVED_INTERNAL" } : {}),
-      "POST /api/v1/studies/STU-1/research/runs/RUN-1/report/approve": () => {
-        if (refuse) return new Response('{"code":"separation_of_duties","message":"independent review required"}', { status: 403 });
-        approvedNow = true;
-        return { run_id: "RUN-1", artifact_id: "ART-report", review_state: "APPROVED_INTERNAL", internal_only: true };
-      },
     });
     render(<ResearchScreen step="results" frame={TEST_FRAME} />);
     const report = await card();
-    fireEvent.click(await report.findByRole("button", { name: t("research.exec.results.reportApprove") }));
-    await confirmApproval("ART-report");
-    expect(await report.findByText(t("research.exec.results.reportApproveIndependent"))).toBeTruthy();
-    refuse = false;
-    fireEvent.click(report.getByRole("button", { name: t("research.exec.results.reportApprove") }));
-    await confirmApproval("ART-report");
-    expect(await report.findByText("Stav: Schváleno pouze pro interní použití.")).toBeTruthy();
+    expect(await report.findByText("Stav: Koncept čeká na schválení.")).toBeTruthy();
     expect(report.queryByRole("button", { name: t("research.exec.results.reportApprove") })).toBeNull();
-    expect(called("POST", "/api/v1/studies/STU-1/research/runs/RUN-1/report/approve")[1].body)
-      .toEqual({ artifact_id: "ART-report", note: "" });
+    // It says where the draft is approved, so it never looks unapprovable.
+    expect(report.getByText(t("research.exec.results.reportApproveWhere"))).toBeTruthy();
+    approvedNow = true;
+    act(() => approvedInPane({ kind: "internal", artifactId: "ART-report" }));
+    expect(await report.findByText("Stav: Schváleno pouze pro interní použití.")).toBeTruthy();
+    expect(called("POST", "/api/v1/studies/STU-1/research/runs/RUN-1/report/approve")).toHaveLength(0);
+    expect(report.queryByText(t("research.exec.results.reportApproveWhere"))).toBeNull();
   });
 
-  it("reads the report again after approval and waits for the approved version's PDF", async () => {
+  it("reads the report again after an approval in the doc bar and waits for the approved version's PDF", async () => {
     // D2: approving freezes the version and asks for its approved PDF. The approval's answer has
     // no date; the line below has one only because the card read the report again.
     const createObjectURL = stubDownloads();
@@ -2809,10 +2803,6 @@ describe("Results", () => {
       "GET /api/v1/studies/STU-1/research/runs/RUN-1/report": () => approvedNow
         ? reportStatus({ review_state: "APPROVED_INTERNAL", approved_on: "2026-10-18", stamped: true, approval_renders_pdf: false, pdf: { state: "RENDERING", askable: false } })
         : reportStatus({ approved_on: null, stamped: true, approval_renders_pdf: true, pdf: { state: "READY", artifact_id: "ART-pdf", size_bytes: 9 } }),
-      "POST /api/v1/studies/STU-1/research/runs/RUN-1/report/approve": () => {
-        approvedNow = true;
-        return { run_id: "RUN-1", artifact_id: "ART-report", review_state: "APPROVED_INTERNAL", internal_only: true };
-      },
       "GET /api/v1/studies/STU-1/research/runs/RUN-1/report/download": () =>
         new Response(new Blob(["stamped docx"]), { headers: {
           "X-AIA-Artifact-Id": "ART-report", "X-AIA-Review-State": "APPROVED_INTERNAL", "Content-Disposition": named,
@@ -2822,8 +2812,9 @@ describe("Results", () => {
     const report = await card();
     expect(await report.findByText(tv("research.exec.report.review.draft", { version: "ART-report" }))).toBeTruthy();
     const reads = called("GET", "/api/v1/studies/STU-1/research/runs/RUN-1/report").filter((c) => c.url.endsWith("/report")).length;
-    fireEvent.click(report.getByRole("button", { name: t("research.exec.results.reportApprove") }));
-    await confirmApproval("ART-report");
+    // Approved in the pane's doc bar (RPT3a): the card hears it and reads the report again.
+    approvedNow = true;
+    act(() => approvedInPane({ kind: "internal", artifactId: "ART-report" }));
     // The approved PDF is not made yet: the DOCX alone is said to carry it (review 4).
     expect(await report.findByText("Stav: Schváleno 18. 10. 2026 · verze ART-report — DOCX této verze to nese v zápatí")).toBeTruthy();
     // The state line is a live region: the approval a screen reader user made is announced

@@ -598,6 +598,20 @@ Split by owner (PM, 2026-10-22): B1–B4 sit on Dimenze (`PersonaStep.tsx`), B5�
   bounded by `…/research/limits`, steps of 50, the recommendation beside it, no slider or presets, no clamp.
 - **B2–B4:** Dimenze's, not yet scheduled here.
 - **B5, B10:** kept, as the audit says (`RadioCard`; a prompt to AI is not a value).
+- **B6. A numeric factor's range as two bounded steppers, feature/audience-range-steppers.**
+  - Od and Do are `Stepper`s bounded by the catalogue's range (`research/audience.ts` `rangeBounds`):
+    whole numbers when both ends are, else two decimals, the ends rounded outward. A scale whose ends
+    the catalogue states (`scale_hint`) takes two decimals.
+  - Each end is also bounded by the other, so a crossed range is refused at the field. The population
+    would swap it (`_interval`).
+  - An unset end reads "Bez omezení", and a set one clears by its own button. `setRange` takes numbers
+    and leaves an unset end out.
+  - A stored end the population cannot read (`boundOf`, `endUnreadable`) is said at the field, never
+    shown as no end.
+  - Tests: `AudienceStep.test.tsx` "a numeric factor's range is two steppers…" and "says a stored end
+    the population cannot read…"; `audience.live.test.ts` "a numeric factor's range bounds".
+  - `audience_journey.mjs` checks the range at 1440/1100/768/390: no overflow, the clear button at
+    least 24 px, and 999 refused and not saved.
 - **B7+B8. Factor groups and values chosen as chips, feature/audience-value-chips.**
   - A factor's group (Vše, Demografie…) is one `ChoiceChips` radio group, "Skupina faktorů".
   - A categorical factor's values are `ChoiceChips` toggles, each with how many people hold it. Past 15
@@ -612,7 +626,7 @@ Split by owner (PM, 2026-10-22): B1–B4 sit on Dimenze (`PersonaStep.tsx`), B5�
     "picking a factor's values".
   - `audience_journey.mjs` checks the chips at 1440/1100/768/390: no overflow, and a value chip 44 px
     tall below 640 px.
-- **B6, B9, B11:** one PR each.
+- **B9, B11:** to come, one PR each.
 
 ### Chunk 3b3, added by planning (2026-10-21)
 

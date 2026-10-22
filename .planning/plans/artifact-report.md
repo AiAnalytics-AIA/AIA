@@ -186,9 +186,22 @@ version they named: another document on screen shows none of them. The pane then
 approving: the card no longer approves the client report at all
 (`ReportDocumentView.test.tsx` "approved on the document being read, in the doc bar (RPT3a)";
 `ExecutionSteps.test.tsx` "offers the client report only for modelled data, says why when refused, and
-leaves its approval to the doc bar", "hears an approval of another run as nothing (RPT3a)"). Left for the
-next part: the internal draft's approval, which also approves its PDF; the card names that PDF and the pane
-does not read it yet, so it moves with the PDF's state, and the card then keeps downloads only.
+leaves its approval to the doc bar", "hears an approval of another run as nothing (RPT3a)").
+
+*RPT3a, second part (`feature/report-docbar-internal-approval`):* the internal draft is approved in the doc
+bar too ("Schválit pro interní použití"). Approving it also approves its PDF, so the run's report is read when
+the person asks, never remembered: the question names the PDF as that report states it now
+(`pdfStatesReview`); a report naming another version than the one shown, or none, or a failed read is said
+in words and nothing is asked. An internal draft the pane cannot show (stored before its document, or
+refused) is approved on its notice as the version the run names, as the card approved it before. The card
+approves neither the internal nor the client report: it says where they are approved, hears the pane and
+reads the report again, so it follows the approved PDF being made (`ReportDocumentView.test.tsx` "approves
+the internal draft it shows, naming the PDF the approval renders as the run states it at the ask…", "asks
+nothing while the run's report names another version, and says why…", "approves an internal draft it cannot
+show on the version its run names…"; `ExecutionSteps.test.tsx` "says the internal draft approved in the doc
+bar once the pane answers…"; `report_journey.mjs` "approval in the doc bar, none on the card"). Left open: the
+report with literature (Interpretation Research) is still approved on the card, because the pane does not
+read that document; it moves when the pane reads it, and RPT3a closes then.
 
 **RPT3b. Exports after approval.** Decided 2026-10-22, not built: the owner answered Q73 (c), keep
 today's free downloads. A draft's DOCX and PDF stay downloadable before approval, each file stamped

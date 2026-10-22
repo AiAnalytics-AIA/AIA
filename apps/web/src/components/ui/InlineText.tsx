@@ -7,7 +7,7 @@
 // A refused draft is said at the field and stays in it (I9). Reference: `Item`,
 // prototypes/research-lead-v2/src/components/ui.tsx:52.
 
-import { type KeyboardEvent, type MouseEvent, type RefObject, useEffect, useId, useRef, useState } from "react";
+import { type KeyboardEvent, type MouseEvent, type RefObject, useEffect, useId, useLayoutEffect, useRef, useState } from "react";
 
 import { t, tv } from "@/i18n/t";
 import { type SaveState, type TextRules, editKeyAction, isThenable, opensEdit, readDraft } from "@/lib/inline-edit";
@@ -102,12 +102,25 @@ export function InlineText({
     setProblem(null);
     setChecked(false);
   };
+  // Back to the value once the render that closes the field has committed (I11), and only if the
+  // closed field left focus on the page: anywhere else is where the person, or a container's own
+  // focus handling, sent it. A frame scheduled at close could run before that render, see the field
+  // still focused, and leave focus nowhere (F7, ux-audit-2026-10). A layout effect runs before a
+  // MutationObserver's microtask, so a drawer's focus recovery does not take it first.
+  const refocusing = useRef(false);
+  useLayoutEffect(() => {
+    if (editing || !refocusing.current) return;
+    refocusing.current = false;
+    const now = document.activeElement;
+    if (now && now !== document.body) return;
+    shown.current?.focus();
+  }, [editing]);
   const close = (refocus: boolean) => {
     settled.current = true;
     setDraft(null);
     setProblem(null);
     setChecked(false);
-    if (refocus) requestAnimationFrame(() => shown.current?.focus());
+    refocusing.current = refocus;
   };
 
   // Each save is numbered; only the newest one's answer may set the state. An older save that
