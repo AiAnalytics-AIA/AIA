@@ -180,6 +180,65 @@ def test_a_zip_that_inflates_far_past_its_size_is_refused() -> None:
         assert (reading.outcome, reading.reason) == (ReadingOutcome.REFUSED, "document_zip_bounds")
 
 
+_ODF_NS = (
+    b'xmlns:office="urn:oasis:names:tc:opendocument:xmlns:office:1.0" '
+    b'xmlns:text="urn:oasis:names:tc:opendocument:xmlns:text:1.0" '
+    b'xmlns:table="urn:oasis:names:tc:opendocument:xmlns:table:1.0"'
+)
+
+
+def _odf(body: bytes) -> bytes:
+    return (
+        b"<office:document-content "
+        + _ODF_NS
+        + b"><office:body>"
+        + body
+        + b"</office:body></office:document-content>"
+    )
+
+
+@pytest.mark.parametrize(
+    ("name", "body"),
+    [
+        ("a.odt", b"<office:text><text:p>{runs}</text:p></office:text>"),
+        (
+            "a.ods",
+            b"<office:spreadsheet><table:table><table:table-row><table:table-cell>"
+            b"<text:p>{runs}</text:p></table:table-cell></table:table-row></table:table>"
+            b"</office:spreadsheet>",
+        ),
+    ],
+)
+def test_a_run_of_spaces_never_expands_past_the_bounds(name: str, body: bytes) -> None:
+    # Two elements of 40 bytes asking for 60 million spaces each: a few hundred bytes
+    # that would be 120 MB of text, and 2 GB with c="1000000000".
+    runs = b'<text:s text:c="60000000"/>' * 2
+    reading = read_source(zip_of({"content.xml": _odf(body.replace(b"{runs}", runs))}), name)
+    assert (reading.outcome, reading.reason) == (ReadingOutcome.REFUSED, "document_zip_bounds")
+
+
+@pytest.mark.parametrize("rows", [1, 3])
+def test_a_repeated_ods_cell_is_charged_for_every_copy_it_reads_as(rows: int) -> None:
+    # One cell of 300,000 spaces repeated across 500 columns is charged 300,000 once
+    # but read as 150 million characters, joined into one row's text: a few hundred
+    # bytes that reach gigabytes at c="49000000", still within the space budget.
+    sheet = (
+        b"<office:spreadsheet><table:table>"
+        b'<table:table-row table:number-rows-repeated="%d">'
+        b'<table:table-cell table:number-columns-repeated="500">'
+        b'<text:p>a<text:s text:c="300000"/>b</text:p>'
+        b"</table:table-cell></table:table-row></table:table></office:spreadsheet>" % rows
+    )
+    reading = read_source(zip_of({"content.xml": _odf(sheet)}), "a.ods")
+    assert (reading.outcome, reading.reason) == (ReadingOutcome.REFUSED, "document_zip_bounds")
+
+
+def test_a_run_of_spaces_within_the_bounds_reads_as_written() -> None:
+    para = b'<office:text><text:p>a<text:s text:c="3"/>b<text:s/>c</text:p></office:text>'
+    reading = read_source(zip_of({"content.xml": _odf(para)}), "a.odt")
+    assert [s.text for s in reading.segments] == ["a   b c"]
+
+
 def test_a_presentation_without_its_parts_is_refused() -> None:
     reading = read_source(zip_of({"ppt/other.xml": b"<x/>"}), "a.pptx")
     assert (reading.outcome, reading.reason) == (ReadingOutcome.REFUSED, "document_malformed")

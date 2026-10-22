@@ -1774,7 +1774,7 @@ describe("Results", () => {
       } }),
     });
     const opened: string[] = [];
-    const inspector = { open: (entry: { id: string }) => { opened.push(entry.id); return true; } };
+    const inspector = { open: (entry: { id: string }) => { opened.push(entry.id); return true; }, closeWhere: () => {} };
     render(<ItemInspectorContext.Provider value={inspector}><ResearchScreen step="results" frame={TEST_FRAME} /></ItemInspectorContext.Provider>);
     fireEvent.click(await screen.findByRole("tab", { name: "AI analýza" }));
     const table = await screen.findByRole("region", { name: "Pokrytí výzkumných otázek" });
@@ -1792,6 +1792,37 @@ describe("Results", () => {
     // The Lead's targets stay where they were: one element each.
     expect(document.querySelectorAll('[data-aia="claim:research_questions:C1"]')).toHaveLength(1);
     expect(document.querySelectorAll('[data-aia="finding:research_questions:0"]')).toHaveLength(1);
+    // A run that pinned no Design Research shows no register (ANL5).
+    expect(screen.queryByRole("region", { name: "Externí kontext" })).toBeNull();
+  });
+
+  it("lists the Design Research the modules were shown as Externí kontext, with its sources and no claim chip (ANL5)", async () => {
+    const analysed = run({ ...COMPLETED, steps: [...COMPLETED.steps,
+      step("analysis_executive", "SUCCEEDED", { kind: "research_analysis", artifact_id: "ART-6", analysis_outcome: "COMPLETED" }),
+    ] });
+    api({ ...listed(analysed),
+      "GET /api/v1/studies/STU-1/research/runs/RUN-1/artifacts/ART-4": () => AGGREGATE,
+      "GET /api/v1/studies/STU-1/research/runs/RUN-1/analysis": () => ({ complete: false, synthetic: true, pending: {},
+        external_context: { deep_research_run_id: "DR-1", items: [
+          { evidence_id: "EV-1", claim: "Spotřeba rostlinných nápojů vzrostla o 12,5 %.", source: "https://www.stat.example/napoje" },
+          { evidence_id: "EV-2", claim: "Ze znalostí klienta.", source: "javascript:alert(1)" },
+        ] },
+        modules: { executive: { outcome: "COMPLETED", summary: null, violations: [], research_question_answers: [], key_findings: [{ text: "Čaj vede.", claim_ids: [] }], claims: [] } } }),
+    });
+    render(<ResearchScreen step="results" frame={TEST_FRAME} />);
+    fireEvent.click(await screen.findByRole("tab", { name: "AI analýza" }));
+    const register = await screen.findByRole("region", { name: "Externí kontext" });
+    const items = register.querySelectorAll("[data-external-item]");
+    expect(items).toHaveLength(2);
+    expect(items[0].textContent).toContain("Spotřeba rostlinných nápojů vzrostla o 12,5 %.");
+    expect(within(items[0] as HTMLElement).getByText("Externí kontext")).toBeTruthy();
+    // A source links only as an http(s) address; anything else stays text.
+    const link = within(items[0] as HTMLElement).getByRole("link", { name: "stat.example" });
+    expect(link.getAttribute("href")).toBe("https://www.stat.example/napoje");
+    expect(link.getAttribute("rel")).toBe("noopener noreferrer");
+    expect(within(items[1] as HTMLElement).queryByRole("link")).toBeNull();
+    // Context is never evidence: no claim chip and no Lead target in the register.
+    expect(register.querySelector("[data-cited-number], [data-aia]")).toBeNull();
   });
 
   it("says the research questions are unknown when the frozen design cannot be read, never that it has none (ANL2)", async () => {

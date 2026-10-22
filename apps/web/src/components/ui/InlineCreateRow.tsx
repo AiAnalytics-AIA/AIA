@@ -14,7 +14,7 @@ import { Icon, type IconName } from "../rehome/icons";
 import { FIELD_ERROR, FOCUS } from "./parts";
 
 export function InlineCreateRow({
-  label, onCreate, existing = [], maxLength = NAME_MAX, icon = "plus", placeholder, next = true, disabled = false, adornment, className = "",
+  label, onCreate, existing = [], maxLength = NAME_MAX, icon = "plus", placeholder, next = true, disabled = false, adornment, emptyWords, className = "",
 }: {
   /** The action and the field's name ("Nová složka"). */
   label: string;
@@ -37,6 +37,8 @@ export function InlineCreateRow({
    * is not leaving the row: an empty row closes only when focus leaves the row as a whole.
    */
   adornment?: ReactNode;
+  /** What an empty row says when the thing it makes is not a name ("Napište cíl."); else "Napište název.". */
+  emptyWords?: string;
   className?: string;
 }) {
   const [open, setOpen] = useState(false);
@@ -51,7 +53,8 @@ export function InlineCreateRow({
 
   const problem = nameProblem(draft, existing, maxLength);
   // An empty row is said only once the person tried to create it; a taken or too long name at once.
-  const shown: string | null = refusal ?? (problem && (problem.kind !== "empty" || submitted) ? nameProblemWords(problem) : null);
+  const words = (p: NonNullable<typeof problem>) => (p.kind === "empty" && emptyWords !== undefined ? emptyWords : nameProblemWords(p));
+  const shown: string | null = refusal ?? (problem && (problem.kind !== "empty" || submitted) ? words(problem) : null);
 
   // Each creation is numbered, and closing the row ends the current one: an answer that comes
   // back for a row already left (Esc while it was creating) sets nothing on the row reopened

@@ -386,7 +386,7 @@ function Ready({ store, template, origin, memory, step, frame, reload }: {
             <div className="flex min-w-0 flex-col gap-4">
               {/* An advice answer opened from its card in the conversation: read here, never in a closed inspector. */}
               {panel}
-              {agents.proposalReview ? <ProposalReview result={agents.proposalReview.result} state={state} onDecision={agents.proposalReview.decide} canApply={frame.canEdit} stale={agents.proposalReview.stale} /> : null}
+              {agents.proposalReview ? <ProposalReview result={agents.proposalReview.result} action={agents.proposalReview.action} state={state} onDecision={agents.proposalReview.decide} canApply={frame.canEdit} stale={agents.proposalReview.stale} /> : null}
               <ReadOnly when={!frame.canEdit && DESIGN_STEPS.has(step)}>
                 {Screen ? <Screen /> : <StepPlaceholder step={step} />}
               </ReadOnly>
@@ -402,7 +402,7 @@ function Ready({ store, template, origin, memory, step, frame, reload }: {
               <div className="flex min-w-0 flex-col gap-4">
                 {/* An AI proposal can be opened from the saved list on any stage: on a closed study it is
                     read and closed, never applied, whichever stage shows it. */}
-                {agents.proposalReview ? <ProposalReview result={agents.proposalReview.result} state={state} onDecision={agents.proposalReview.decide} canApply={frame.canEdit} stale={agents.proposalReview.stale} /> : null}
+                {agents.proposalReview ? <ProposalReview result={agents.proposalReview.result} action={agents.proposalReview.action} state={state} onDecision={agents.proposalReview.decide} canApply={frame.canEdit} stale={agents.proposalReview.stale} /> : null}
                 {/* A design that may not change is read, never edited: every control of a design stage
                     is disabled as one (the run stages decide their own actions). */}
                 <ReadOnly when={!frame.canEdit && DESIGN_STEPS.has(step)}>

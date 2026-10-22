@@ -317,7 +317,7 @@ export function addTrackedSet(
 ): { project: ResearchProject } | { error: string } | null {
   if (!typ || !raw) return null;
   const objs = raw.split(",").map((x) => x.trim()).filter(Boolean);
-  if (objs.length < 4 || objs.length > 15) return { error: SET_SIZE };
+  if (objs.length < SET_MIN || objs.length > SET_MAX) return { error: SET_SIZE };
   return { project: withSections(p, [...sections(p), trackedSet(typ, objs, ids)]) };
 }
 
@@ -472,16 +472,25 @@ export function setObjectFamily(p: ResearchProject, si: number, v: string): Rese
   });
 }
 
+/**
+ * AIA's recommended size of a tracked set (SET_SIZE): 4-15 objects. The server's hard range is wider
+ * (research_design.py TRACKED_SET_LIMITS; readiness only warns outside the recommended one), so a
+ * set stored with more is shown as it is and never cut; only adding past 15 is refused.
+ */
+export const SET_MIN = 4;
+export const SET_MAX = 15;
+
 export const SET_TOO_SMALL = "Sledovaná sada potřebuje 4–15 položek.";
 
-/** updateObjects: one per line, trimmed, fifteen at most; a note (not a refusal) under four. */
+/** updateObjects: one per line, trimmed; a note (not a refusal) under four. Unlike the classic's,
+ * nothing past the fifteenth is cut: a stored set may hold up to 40 (see SET_MIN). */
 export function updateObjects(p: ResearchProject, si: number, v: string): { project: ResearchProject; note: string | null } {
-  const a = v.split(/\n/).map((x) => x.trim()).filter(Boolean).slice(0, 15);
+  const a = v.split(/\n/).map((x) => x.trim()).filter(Boolean);
   return {
     project: edit(p, (xs) => {
       xs[si].objects = a;
     }),
-    note: a.length && a.length < 4 ? SET_TOO_SMALL : null,
+    note: a.length && a.length < SET_MIN ? SET_TOO_SMALL : null,
   };
 }
 
@@ -624,12 +633,6 @@ export function applyDeep(p: ResearchProject, result: unknown): { project: Resea
     project: { ...p, pre_research: r.research || {} },
     toast: `Research uložen · ${r.accepted_count || 0} evidencí · ${r.quarantined_count || 0} v karanténě`,
   };
-}
-
-/** The evidence the project's research accepted (pre_research.accepted). */
-export function researchCount(p: ResearchProject): number {
-  const r = p.pre_research as { accepted?: unknown[] } | undefined;
-  return (r?.accepted || []).length;
 }
 
 /** continueQuestionnaireToAudience: the audience starts at its first choice unless already chosen. */
