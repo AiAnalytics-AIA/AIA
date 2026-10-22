@@ -90,4 +90,20 @@ describe("where the person may be sent", () => {
       expect(localPath(bad)).toBe("/");
     }
   });
+
+  it("stays on this origin when the browser follows it, dot segments included", () => {
+    // Normalising "/.//evil.example" gives the pathname "//evil.example": handed back
+    // as a path, the browser reads it as protocol-relative and leaves the site.
+    const origin = "https://aia.example";
+    for (const next of [
+      "/.//evil.example/",
+      "/..//evil.example",
+      "/%2e//evil.example",
+      "/x/..//evil.example",
+      "/\t/evil.example/",
+      "/app/clients?tab=x#a",
+    ]) {
+      expect(new URL(localPath(next), origin).origin).toBe(origin);
+    }
+  });
 });

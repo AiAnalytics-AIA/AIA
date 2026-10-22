@@ -15,7 +15,9 @@ export type SessionOutcome =
 
 // A fixed origin to resolve `next` against: what the browser will do with it, read the
 // browser's way. Comparing strings misses what its URL parser rewrites -- it drops tab, CR
-// and LF, so "/\t/evil.example" is //evil.example, another host.
+// and LF, so "/\t/evil.example" is //evil.example, another host. What passes is `next` as
+// given, never the parsed path: normalising "/.//evil.example" yields "//evil.example",
+// which the browser would read as another host.
 const HERE = "https://aia.invalid";
 
 /** `next` if it is a path on this origin, else `/`: /login must not be an open redirect. */
@@ -27,8 +29,7 @@ export function localPath(next: string | null): string {
   } catch {
     return "/";
   }
-  if (url.origin !== HERE) return "/";
-  return url.pathname + url.search + url.hash;
+  return url.origin === HERE ? next : "/";
 }
 
 /** Turn this tab's id token into AIA's session cookie. */
