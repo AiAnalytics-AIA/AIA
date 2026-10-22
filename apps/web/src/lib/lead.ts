@@ -8,7 +8,7 @@ import type { BriefingField, TopField } from "@/research/brief";
 import { wordingOf as itemWording } from "@/research/item-ids";
 import type { Json, ResearchProject } from "@/research/model";
 import { proposalAnalysis, type Narrative } from "@/research/plan-edit";
-import { qId, sections, type Question, type Section } from "@/research/questionnaire";
+import { type ConditionRefusal, type ConditionValue, conditionRefusal, qId, sections, type Question, type Section } from "@/research/questionnaire";
 import type { Analysis } from "@/research/store";
 import { parseAudienceId } from "./artifacts/audience";
 import { withFixer } from "./route-refusal";
@@ -28,6 +28,11 @@ export type LeadEdit =
   | { op: "question_edit"; question_id: string; text: string | null; options: string[] | null; why: string }
   | { op: "question_remove"; question_id: string; why: string }
   | { op: "set_n"; value: number; why: string };
+/** A question's display condition set or (null) removed: the vocabulary's `route_set` (WCE13), a
+ * person's alone, outside the Lead's output. */
+export type RouteSetEdit = { op: "route_set"; question_id: string; condition: ConditionValue | null; why: string };
+/** Every edit the working copy takes: the Lead's, and those a person makes alone. */
+export type WorkingEdit = LeadEdit | RouteSetEdit;
 
 /** The Lead's view operations (research-lead-workbench 14): open a stage, point at an element,
  *  open an element's detail in the item drawer over its stage. */
@@ -228,7 +233,8 @@ export type EditRefusal =
   | "unknown_question_type"
   | "plan_not_an_object"
   | "briefing_not_an_object"
-  | "sections_not_a_list";
+  | "sections_not_a_list"
+  | ConditionRefusal;
 const REFUSED: Record<EditRefusal, string> = {
   already_present: "Položka už v seznamu je.",
   unknown_item: "Položka, kterou návrh mění, už v seznamu není.",
@@ -242,6 +248,12 @@ const REFUSED: Record<EditRefusal, string> = {
   plan_not_an_object: "Plán výzkumu v pracovní kopii nelze přečíst.",
   briefing_not_an_object: "Zadání v pracovní kopii nelze přečíst.",
   sections_not_a_list: "Dotazník v pracovní kopii nelze přečíst.",
+  condition_unstructured: "Podmínka musí určit dřívější výběrovou otázku a aspoň jednu její odpověď.",
+  condition_unknown_question: "Podmínka stojí na otázce, která v dotazníku není.",
+  condition_forward_reference: "Podmínka smí stavět jen na otázce, která je v dotazníku dřív.",
+  condition_ambiguous_question: "Podmínka stojí na označení, které má v dotazníku víc otázek.",
+  condition_not_choice: "Podmínka smí stavět jen na výběrové otázce.",
+  condition_unknown_option: "Otázka, na které podmínka stojí, takovou odpověď nemá.",
 };
 const refuse = (reason: EditRefusal) => ({ refused: REFUSED[reason], reason });
 
@@ -357,6 +369,24 @@ export function applyLeadEdit(c: Content, e: LeadEdit, newId: () => string = () 
     case "set_n":
       return { content: { project: { ...c.project, n: e.value }, analysis: c.analysis } };
   }
+}
+
+/**
+ * Any edit the working copy takes, applied as the server's `apply_edit` applies it: the Lead's
+ * through `applyLeadEdit`; a `route_set` writes the question's `filtr` in the design's form, or
+ * removes it, once `conditionRefusal` (the compiler's own rule) takes it.
+ */
+export function applyEdit(c: Content, e: WorkingEdit, newId?: () => string): { content: Content } | { refused: string; reason: EditRefusal } {
+  if (e.op !== "route_set") return applyLeadEdit(c, e, newId);
+  const problem = conditionRefusal(c.project, e.question_id, e.condition);
+  if (problem) return refuse(problem);
+  const at = findQuestion(c.project, e.question_id);
+  if (!at) return refuse("unknown_question");
+  const xs = clone(sections(c.project));
+  const q = xs[at.si]!.questions![at.qi]!;
+  if (e.condition === null) delete q.filtr;
+  else q.filtr = { question_id: e.condition.question_id, options: [...e.condition.options] };
+  return { content: { project: withSections(c.project, xs), analysis: c.analysis } };
 }
 
 const FIELD_LABEL: Record<TextField, string> = {
