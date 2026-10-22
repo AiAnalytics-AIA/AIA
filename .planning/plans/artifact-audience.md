@@ -165,6 +165,10 @@ From the browser audit of 2026-10-21 (workbench on develop `bfe6d15b`, the `audi
     and a boolean value say nothing.
   - Test: `audience.live.test.ts` "stored filters the population cannot honour";
     `AudienceStep.test.tsx` "says at once which stored filter…".
+- **Note on history (not a defect in the code).** The develop merge `91e06c1f` lacks #694's readiness
+  and start-button waits in `ExecutionSteps.test.tsx`. The cause: an unstage, made to split out
+  #728's port, took this branch's copy. The next commit, `816fb230`, restores them; from there the
+  file differs from develop `db44f5f3` only in `closeWhere`. No head this PR ships loses the test.
 
 ## 8. Owner questions
 
@@ -174,7 +178,3 @@ None.
 
 - Register this plan and its chunks.
 - `CLAUDE.md` § 2, `routers/population.py`: the preview's `per_filter` (AUD3).
-- **Note on history (not a defect in the code).** The develop merge `91e06c1f` lacks #694's readiness
-  and start-button waits in `ExecutionSteps.test.tsx`. The cause: an unstage, made to split out
-  #728's port, took this branch's copy. The next commit, `816fb230`, restores them; from there the
-  file differs from develop `db44f5f3` only in `closeWhere`. No head this PR ships loses the test.
