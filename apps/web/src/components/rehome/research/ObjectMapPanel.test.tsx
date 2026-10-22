@@ -576,6 +576,29 @@ describe("what a click shows in the detail window", () => {
   // The canvas takes no keyboard: the object's listed relations open a pair as a click on its line does
   // (artifact-sociomap audit, 2026-10-22).
   // Enter and Space on a button are the browser's: the workbench check presses them (jsdom has no activation).
+  it("lists all of the object's relations under the strongest, each with its status and N, each opening its pair", () => {
+    render(<ObjectMapView battery={hudba} dataOrigin={null} />);
+    fireEvent.click(openList().getByRole("button", { name: "Vybrat objekt Rock" }));
+    const i = map.object_ids.indexOf(canvas().getAttribute("data-selected")!);
+    const all = screen.getByTestId("object-map-detail-all-relations");
+    expect(all.tagName).toBe("DETAILS");
+    expect(all.querySelector("summary")!.textContent).toBe(`Všechny vztahy (${map.object_ids.length - 1})`);
+    const rows = within(all).getAllByRole("button");
+    expect(rows).toHaveLength(map.object_ids.length - 1);
+    for (const row of rows) {
+      const j = map.object_ids.findIndex((id, k) => k !== i && row.textContent!.endsWith(`– ${label(id)}`));
+      const status = map.relations.status[i][j], n = map.relations.n[i][j] ?? 0;
+      const verdict = map.relations.r[i][j] === null ? (n < map.relations.n_min ? "fewRatings" : "noSpread") : status === "reliable" ? "reliable" : "weak";
+      expect(row.getAttribute("data-verdict")).toBe(verdict);
+      expect(row.textContent).toContain(`N ${map.relations.n[i][j]}`);
+    }
+    const last = rows[rows.length - 1];
+    fireEvent.click(last);
+    const j = map.object_ids.findIndex((id, k) => k !== i && last.textContent!.endsWith(`– ${label(id)}`));
+    expect(canvas().getAttribute("data-relation")).toBe(`${map.object_ids[i]}|${map.object_ids[j]}`);
+    expect(last.getAttribute("aria-pressed")).toBe("true");
+  });
+
   it("opens a relation from the object's card, a focusable button named by what it shows, and closes it again", () => {
     render(<ObjectMapView battery={hudba} dataOrigin={null} />);
     fireEvent.click(openList().getByRole("button", { name: "Vybrat objekt Rock" }));

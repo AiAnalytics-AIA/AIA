@@ -78,6 +78,13 @@ display filter bar is a glass chip in the dock's row and the ⓘ the dock's last
 the dock wraps; „Co je co“ goes into the ⓘ box; a Lead focus on an object while Správa objektů is closed opens it
 (`LEAD_REVEAL`); `tools/ui_workbench/sociomap_journey.mjs` walks the windows.
 
+## The object detail's „Všechny vztahy“ (the owner, 2026-10-22)
+
+The experimental Sociomapping's panel listed every relation of an object; the signed-off map showed only the five
+strongest reliable ones (as the AIA panel does). Under them the detail now lists every other mapped object, collapsed:
+its stored relation, its status (spolehlivý, slabý, or why unknown) and how many rated both, each line opening the pair.
+Display only, from the stored relations. The experimental map itself stays in the code, off by default.
+
 ## Open questions
 
 - Making `-5` the study default is outside this plan (register approval; until then an OWNER/ADMIN activates a version
