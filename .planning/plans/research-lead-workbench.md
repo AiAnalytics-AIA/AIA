@@ -1648,8 +1648,15 @@ ran outside the frame's one order (D21), and a second drawer could open beside t
   guard; the entry waits in module scope (`leadInspect`, a route change remounts) and the opening
   stack reads it (`openingStack`); a move the guard stopped leaves nothing pending. The turn's chip
   reads "Detail: <label>".
+- **Named by its words.** The entry is titled by the id (`targetLabel`) until the stage shows the
+  element, then by the words a person's pointing gives it (`targetOfElement`), looked for briefly
+  while the content loads; the drawer's fallback body no longer repeats the id under the heading.
 - **The scripted Lead** (UI workbench): a message with "detail" adds an `inspect` of the first
-  research question, so a browser can run it.
+  research question, else the first hypothesis, so a browser can run it.
+- **In a browser** (UI workbench, the planned fixture, scripted Lead, zero paid): from Zadání at
+  1440 and 390 px, "Ukaž mi detail…" moves to Návrh and opens the drawer on the first hypothesis,
+  titled "Hypotéza: Mírnější varianta osloví širší publikum než nejsilnější."; Escape closes it,
+  the turn's "Detail" chip opens it again; no page error, no overflow, no agent job posted.
 - **Tests.** `test_research_lead.py` "the Lead opens a detail only where the stage has one", "an
   inspect the contract refuses is dropped and named", "an inspect target is held to the focus
   grammar"; `test_lead_artifacts.py` "each kind has the stage that names it";
@@ -1659,3 +1666,10 @@ ran outside the frame's one order (D21), and a second drawer could open beside t
   guard stops…". The web tests fail without the change.
 - **Still to build in chunk 14:** `select`, `filter` and `show_diff`, each with the artifact that
   declares it.
+- **F18. A view chip names its element by id** *(open)*. A turn's
+  chips read "Ukázat: Zadání: title" and "Detail: Hypotéza hyp_37d84435f2" (`LeadPane.tsx:393 @ 1fd345a0`
+  `VIEW_LABEL`, which has only `targetLabel`; seen in the browser run above). The element is often on
+  another stage, so the conversation cannot read its words from the page. Smallest fix: the server
+  sends the label it grounded the target against (the frozen copy holds the words) beside each view
+  op, or the web keeps the words it saw when the element was last shown. Test: a chip for a
+  hypothesis reads its words.
