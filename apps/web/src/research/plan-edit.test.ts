@@ -35,14 +35,18 @@ describe("working proposal edits", () => {
     const set = { objects: ["Alfa", "Beta"] };
     expect(objectProblem(set, " ALFA ")).toBe("Tato položka už v sadě je.");
     expect(objectProblem(set, "Gama")).toBeNull();
-    // The full set is addObject's own limit (MAX_OBJECTS, the server's hard maximum under Q75 (a)).
-    const full = { objects: Array.from({ length: MAX_OBJECTS }, (_, i) => String(i)) };
-    expect(objectProblem(full, "x")).toBe(SET_FULL);
-    expect(objectProblem({ objects: full.objects.slice(1) }, "x")).toBeNull();
+    // The full set is the limits in force (a stored max of 30 refuses the 31st), else the preset's
+    // 40 (Q75 (a)); above the recommended 15 is allowed.
+    const thirty = { min: 3, max: 30, recommended_min: 4, recommended_max: 15 };
+    const full = { objects: Array.from({ length: 30 }, (_, i) => String(i)) };
+    expect(objectProblem(full, "x", undefined, thirty)).toBe("Sledovaná sada má maximálně 30 položek.");
+    expect(objectProblem({ objects: full.objects.slice(1) }, "x", undefined, thirty)).toBeNull();
+    expect(objectProblem(full, "x")).toBeNull();
+    expect(objectProblem({ objects: Array.from({ length: MAX_OBJECTS }, (_, i) => String(i)) }, "x")).toBe(SET_FULL);
     // A rename is checked against the others only: its own wording, or a full set, is no refusal.
     expect(objectProblem(set, "alfa", 0)).toBeNull();
     expect(objectProblem(set, "alfa", 1)).toBe("Tato položka už v sadě je.");
-    expect(objectProblem(full, "x", 3)).toBeNull();
+    expect(objectProblem(full, "x", 3, thirty)).toBeNull();
   });
   it("rewords an item in its place, keeping the order", () => {
     expect(withObject({ objects: ["A", "B", "C"], extra: 1 }, 1, " Beta ")).toEqual({ objects: ["A", "Beta", "C"], extra: 1 });

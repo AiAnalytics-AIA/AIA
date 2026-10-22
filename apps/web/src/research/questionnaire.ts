@@ -483,17 +483,32 @@ export function setObjectFamily(p: ResearchProject, si: number, v: string): Rese
 }
 
 /**
- * AIA's recommended size of a tracked set (SET_SIZE): 4-15 objects. The server's hard range is wider
- * (research_design.py TRACKED_SET_LIMITS; readiness only warns outside the recommended one), so a
- * set stored with more is shown as it is and never cut; only adding past 15 is refused.
+ * A tracked set's sizes as the readiness methodology in force states them (GET …/research/limits
+ * tracked_set): the compiler refuses a set outside min-max (battery_size); readiness only warns
+ * outside recommended_min-recommended_max. Above the recommendation a set is allowed and warned (the
+ * product owner, Q75 (a), 2026-10-22); the editors still refuse one under the recommended minimum.
  */
+export type SetLimits = { min: number; max: number; recommended_min: number; recommended_max: number };
+
+/** The code's preset, research_design.py TRACKED_SET_LIMITS (held to it by questionnaire-set-limits.test.ts):
+ * what a study runs by while nothing is stored, and what the screens use until the limits are read. */
+export const SET_HARD_MIN = 3;
+export const SET_HARD_MAX = 40;
 export const SET_MIN = 4;
 export const SET_MAX = 15;
+export const SET_PRESET: SetLimits = { min: SET_HARD_MIN, max: SET_HARD_MAX, recommended_min: SET_MIN, recommended_max: SET_MAX };
+
+/** A set the editors stop: under the recommended minimum, or over the hard maximum. */
+export const setSizeRefused = (n: number, l: SetLimits = SET_PRESET) => n < l.recommended_min || n > l.max;
+/** Above the recommendation, within the hard range: allowed, warned at the field. */
+export const setAboveRecommended = (n: number, l: SetLimits = SET_PRESET) => n > l.recommended_max && n <= l.max;
+/** The limits as the copy names them: the editors' range ({min}–{max}) and the recommendation ({rmin}–{rmax}). */
+export const setWords = (l: SetLimits) => ({ min: l.recommended_min, max: l.max, rmin: l.recommended_min, rmax: l.recommended_max });
 
 export const SET_TOO_SMALL = "Sledovaná sada potřebuje 4–15 položek.";
 
 /** updateObjects: one per line, trimmed; a note (not a refusal) under four. Unlike the classic's,
- * nothing past the fifteenth is cut: a stored set may hold up to 40 (see SET_MIN). */
+ * nothing past the fifteenth is cut: a set may hold up to SET_HARD_MAX. */
 export function updateObjects(p: ResearchProject, si: number, v: string): { project: ResearchProject; note: string | null } {
   const a = v.split(/\n/).map((x) => x.trim()).filter(Boolean);
   return {

@@ -160,8 +160,8 @@ když are not built. What stays is code-derived: measures, items, comparison, an
   title, purpose, question and scale ends are edited on its card (`InlineText`), one field per
   store update. A question without `{object}` or an empty field is refused at the field
   (`plan-edit.ts` `setFieldProblem`), and a repeated item or one past the full set at the chip
-  (`objectProblem`, `ChipInput` `refuse`; the full set is `addObject`'s `MAX_OBJECTS`, which #736
-  makes the server's 40 under Q75 (a), with its warning from 16). Each item is reworded in its place, its order kept
+  (`objectProblem`, `ChipInput` `refuse`; the full set is the limits in force, `readySetLimits`'s
+  `max`, which `addObject` refuses at too; above the recommendation only #736's warning, Q75 (a)). Each item is reworded in its place, its order kept
   (`ChipInput` `rename`, `withObject`), as the retired editor's textarea allowed. A scale end
   written on a set that states no ends keeps the other end the person saw (`withSetField`). A field
   opened and left unchanged sends nothing. Since every field saves itself, only a draft refused at

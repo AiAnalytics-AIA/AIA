@@ -9,6 +9,7 @@
 
 import type { Json, ResearchProject } from "./model";
 import { type SampleLimits, sampleRefusal } from "./persona";
+import { SET_HARD_MAX } from "./questionnaire";
 import type { Analysis } from "./store";
 
 type Obj = { [k: string]: Json };
@@ -76,9 +77,13 @@ export function objectQuestionRows(set: TrackedSet): { question: string; low: st
   return (set.objects || []).slice(0, 6).map((x) => ({ question: tmpl.replace("{object}", x), low: String(lb[0]), high: String(lb[1]) }));
 }
 
-/** At most this many objects in one set (addPlanObject, addPlanSet). */
-export const MAX_OBJECTS = 15;
-export const SET_FULL = "Sledovaná sada má maximálně 15 položek.";
+/** At most this many objects in one set (addPlanObject): the server's hard maximum, where the
+ * classic stopped at 15 (Q75 (a); SET_HARD_MAX). addPlanSet cuts nothing: a longer list is kept
+ * and the set says it is over. */
+export const MAX_OBJECTS = SET_HARD_MAX;
+/** The refusal past a set's maximum: the preset's (SET_FULL) or the limits in force. */
+export const setFull = (max: number) => `Sledovaná sada má maximálně ${max} položek.`;
+export const SET_FULL = setFull(MAX_OBJECTS);
 export const PROMPT_SET_TITLE = "Název porovnatelné sady, např. Značky, Regiony, Argumenty nebo Varianty nabídky:";
 export const PROMPT_SET_OBJECTS = "Položky oddělte čárkou. Všechny musí jít porovnat na stejné otázce/škále:";
 export const PROMPT_OBJECT = "Přidat srovnatelný objekt do této sady:";
@@ -90,19 +95,19 @@ const withSets = (a: Analysis, sets: TrackedSet[]): Analysis => ({ ...a, tracked
 /** addPlanSet: a new set from a title and a comma list; an analysis is started from the goal if there is none. */
 export function addSet(s: PlanState, title: string | null, raw: string | null): Analysis | null {
   if (!title?.trim()) return null;
-  const objects = String(raw || "").split(",").map((x) => x.trim()).filter(Boolean).slice(0, MAX_OBJECTS);
+  const objects = String(raw || "").split(",").map((x) => x.trim()).filter(Boolean);
   const goal = s.project.goal as Json;
   const a: Analysis = s.analysis || { problem_summary: goal, objectives: [goal], tracked_sets: [] };
   const t = title.trim();
   return withSets(a, [...trackedSets(a), { title: t, object_type: t, purpose: "Porovnat tyto položky mezi sebou na stejné metrice.", objects }]);
 }
 
-/** addPlanObject: one more object, refused past fifteen. */
-export function addObject(a: Analysis, si: number, value: string | null): { analysis: Analysis } | { error: string } | null {
+/** addPlanObject: one more object, refused past `max` (the limits in force; the preset's by default). */
+export function addObject(a: Analysis, si: number, value: string | null, max: number = MAX_OBJECTS): { analysis: Analysis } | { error: string } | null {
   if (!value?.trim()) return null;
   const sets = clone(trackedSets(a));
   const objects = sets[si].objects || [];
-  if (objects.length >= MAX_OBJECTS) return { error: SET_FULL };
+  if (objects.length >= max) return { error: setFull(max) };
   sets[si] = { ...sets[si], objects: [...objects, value.trim()] };
   return { analysis: withSets(a, sets) };
 }

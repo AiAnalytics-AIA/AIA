@@ -42,7 +42,7 @@ import {
   SCALE_DEFAULT,
   SET_PURPOSE_DEFAULT,
 } from "@/research/plan";
-import { SET_MAX, SET_MIN } from "@/research/questionnaire";
+import { type SetLimits, setAboveRecommended, setSizeRefused, setWords } from "@/research/questionnaire";
 import type { Analysis } from "@/research/store";
 import { type SetField, applyPlanSets, objectProblem, proposalAnalysis, setFieldProblem, withObject, withSetField } from "@/research/plan-edit";
 import { DesignCoverage } from "./DesignCoverage";
@@ -54,16 +54,14 @@ import { InlineText } from "../../ui/InlineText";
 import { useResearch } from "./context";
 import { SavedForLead, useLeadOwnsAiStarts } from "./AskLead";
 import { AnalysisFailureCard, modeOf, useAnalysis } from "./useAnalysis";
-import { readyLimits, useSampleLimits } from "./useSampleLimits";
+import { readyLimits, readySetLimits, useSampleLimits } from "./useSampleLimits";
 
 const FOCUS = "focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus-ring";
 const INPUT = `min-h-9 w-full rounded-control border border-border-strong bg-surface-raised px-2.5 text-sm text-ink placeholder:text-ink-faint ${FOCUS}`;
 const LABEL = "text-xs font-medium text-ink-muted";
 
-const outOfRange = (set: TrackedSet) => {
-  const n = (set.objects || []).length;
-  return n < SET_MIN || n > SET_MAX;
-};
+/** A set that stops the plan by the limits in force; above the recommendation it only warns (Q75 (a)). */
+const outOfRange = (set: TrackedSet, l: SetLimits) => setSizeRefused((set.objects || []).length, l);
 
 const jumpTo = (id: string) => scrollToPlace(id, "start");
 /**
@@ -89,6 +87,7 @@ export function followUpAnswers(questions: string[], answers: string[]): string 
 export function PlanStep() {
   const { store, state, toast, stepHref, confirm, frame } = useResearch();
   const sampleLimits = useSampleLimits(frame.studyId);
+  const setLimits = readySetLimits(sampleLimits);
   const router = useRouter();
   const { analyse, resume, failure, busy } = useAnalysis();
   const a = proposalAnalysis(state);
@@ -144,14 +143,14 @@ export function PlanStep() {
     store.update(({ project }) => ({ project: toQuestionnaire(project) }), { reason: "questionnaire_path", invalidateCheck: false });
     router.push(stepHref("questionnaire"));
   };
-  const short = sets.find(outOfRange);
+  const short = sets.find((s) => outOfRange(s, setLimits));
   const dock = (
     <ActionDock
       back={{ href: stepHref("brief"), label: `1. ${t("aia.stages.brief")}` }}
       ready={!short}
       note={
         short
-          ? tv("research.plan.dockSetSize", { name: setTitle(short) || t("research.plan.untitledSet"), n: (short.objects || []).length })
+          ? tv("research.plan.dockSetSize", { name: setTitle(short) || t("research.plan.untitledSet"), n: (short.objects || []).length, ...setWords(setLimits) })
           : comments.length
             ? tv("research.plan.dockComments", { n: comments.length })
             : a
@@ -239,7 +238,7 @@ export function PlanStep() {
       <Commentable onQuote={(quote) => setDrafts((d) => [...d, { key: ++seq.current, quote, text: "" }])}>
         <div className="flex flex-col gap-4">
           <Understanding n={++n} changed={Boolean(p.ui_state.plan_changed26)} blocked={busy} onQuote={(quote) => { setDrafts((d) => [...d, { key: ++seq.current, quote, text: "" }]); jumpTo("plan-comments"); }} />
-          <Sets n={++n} analysis={a} blocked={busy} />
+          <Sets n={++n} analysis={a} blocked={busy} limits={setLimits} />
         </div>
       </Commentable>
       {questions.length ? (
@@ -398,7 +397,7 @@ function Understanding({ n, changed, blocked, onQuote }: { n: number; changed: b
 }
 
 /** Porovnatelné sady: each set edited where it is drawn, one field at a time (audit A33). */
-function Sets({ n, analysis, blocked }: { n: number; analysis: Analysis; blocked: boolean }) {
+function Sets({ n, analysis, blocked, limits }: { n: number; analysis: Analysis; blocked: boolean; limits: SetLimits }) {
   const { store, toast, confirm } = useResearch();
   const sets = trackedSets(analysis);
   // Cards and chips are keyed by place (sets and their items carry no id): adding or removing a set
@@ -425,7 +424,7 @@ function Sets({ n, analysis, blocked }: { n: number; analysis: Analysis; blocked
       id="plan-sets"
       n={n}
       title={t("research.plan.setsTitle")}
-      hint={t("research.plan.setsHint")}
+      hint={tv("research.plan.setsHint", setWords(limits))}
       aside={
         <Button small icon="plus" className="!rounded-control" disabled={blocked} onClick={() => setAdding("")}>
           {t("research.plan.addSet")}
@@ -460,7 +459,7 @@ function Sets({ n, analysis, blocked }: { n: number; analysis: Analysis; blocked
               // Keyed by place, as every edit names it: a rename keeps the card and its save note, and a
               // set added or removed remounts every card, so no field's state moves to another set.
               key={`${si}/${sets.length}`}
-              set={set} blocked={blocked}
+              set={set} limits={limits} blocked={blocked}
               onSet={(edit) => {
                 const a = current();
                 const fresh = trackedSets(a);
@@ -470,7 +469,7 @@ function Sets({ n, analysis, blocked }: { n: number; analysis: Analysis; blocked
               onAddObject={(value) => {
                 // The chip refuses a repeat or one past the full set first (objectProblem); addObject's own
                 // refusal is said here should the copy have moved meanwhile.
-                const r = addObject(current(), si, value);
+                const r = addObject(current(), si, value, limits.max);
                 if (r && "error" in r) return toast(r.error);
                 put(r?.analysis ?? null, "plan_objects");
               }}
@@ -490,8 +489,9 @@ function Sets({ n, analysis, blocked }: { n: number; analysis: Analysis; blocked
 /** A set's question and the ends of its scale are short; its purpose a sentence or two. */
 const SET_FIELD_MAX = 500;
 
-function SetCard({ set, onAddObject, onRename, onRemove, onRemoveObject, onSet, blocked }: {
+function SetCard({ set, limits, onAddObject, onRename, onRemove, onRemoveObject, onSet, blocked }: {
   blocked: boolean;
+  limits: SetLimits;
   set: TrackedSet;
   /** The set rewritten by `edit`, from the copy as it stands now. */
   onSet: (edit: (set: TrackedSet) => TrackedSet) => void;
@@ -503,7 +503,7 @@ function SetCard({ set, onAddObject, onRename, onRemove, onRemoveObject, onSet, 
   const objects = set.objects || [];
   const [confirming, setConfirming] = useState(false);
   const first = objectQuestionRows(set)[0];
-  const bad = outOfRange(set);
+  const bad = outOfRange(set, limits);
   const title = setTitle(set);
   // Each field is checked at the field (I9) and written alone; the store saves it.
   const field = (name: SetField, label: string, value: string, placeholder: string, multiline = false) => (
@@ -535,7 +535,7 @@ function SetCard({ set, onAddObject, onRename, onRemove, onRemoveObject, onSet, 
           />
         </div>
         <span className={`whitespace-nowrap rounded-md px-1.5 py-0.5 font-mono text-xs ${bad ? "bg-status-you-wash text-status-you-ink" : "bg-surface-sunken text-ink-muted"}`}>
-          {tv("research.plan.setCount", { n: objects.length })}
+          {tv("research.plan.setCount", { n: objects.length, ...setWords(limits) })}
         </span>
       </div>
       <div className="flex flex-col gap-1 rounded-control bg-signal-wash px-3 py-2">
@@ -548,12 +548,15 @@ function SetCard({ set, onAddObject, onRename, onRemove, onRemoveObject, onSet, 
           disabled={blocked} label={t("research.plan.setItemAdd")}
           placeholder={t("research.plan.setItemAdd")}
           values={objects}
-          refuse={(v, i) => objectProblem(set, v, i)}
+          refuse={(v, i) => objectProblem(set, v, i, limits)}
           rename={{ label: t("research.plan.setField.item"), onRename: (i, v) => onSet((s) => withObject(s, i, v)) }}
           onAdd={onAddObject}
           onRemove={onRemoveObject}
           backspaceRemoves
         />
+        {setAboveRecommended(objects.length, limits) ? (
+          <span className="text-xs text-status-you-ink">{tv("research.questionnaire.setAboveRecommended", { max: limits.recommended_max, hard: limits.max })}</span>
+        ) : null}
       </div>
       <div className="flex flex-col gap-1">
         <span className={LABEL}>{t("research.plan.setQuestion")}</span>
