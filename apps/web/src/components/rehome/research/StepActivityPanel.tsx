@@ -8,6 +8,7 @@
 // welcome; the feed is a polite live log, the orb is decoration.
 
 import { useEffect, useState } from "react";
+import { isDayBreak, withDayBreaks } from "@/lib/day-label";
 
 import { ActivityOrb } from "@/components/brand/ActivityOrb";
 import { t, tv } from "@/i18n/t";
@@ -109,7 +110,9 @@ export function StepActivityPanel({
 export function ActivityLog({ activity, label }: { activity: StepActivity; label: string }) {
   return (
     <ol role="log" aria-live="polite" aria-label={`${label}: ${t("research.exec.activity.title")}`} className="mt-3 flex flex-col gap-0.5 border-t border-signal-edge pt-2">
-      {activity.lines.map((line) => (
+      {withDayBreaks(activity.lines, (line) => line.at).map((line) => isDayBreak(line) ? (
+        <li key={`day:${line.key}`} data-day className="mt-1 text-xs font-semibold text-ink-muted">{line.label}</li>
+      ) : (
         <li key={line.id} data-level={line.level} className={`flex gap-2 text-xs ${line.level === "warn" ? "text-status-you-ink" : "text-ink-muted"}`}>
           <span className="shrink-0 font-mono tabular-nums text-ink-faint">{clock(line.at)}</span>
           <span className="min-w-0">{line.text}</span>
