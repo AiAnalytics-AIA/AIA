@@ -125,14 +125,6 @@ export type Subpanel = { key: string; name?: string; description?: string; filte
 type SpecialPanel = { key: string; name?: string; support?: string };
 export type Catalogues = { population_subpanels?: Subpanel[]; special_panels?: SpecialPanel[] };
 
-/** The bootstrap's subpanels and special panels, as the presets read them. */
-export function catalogues(raw: Record<string, unknown>): Catalogues {
-  return {
-    population_subpanels: Array.isArray(raw.population_subpanels) ? (raw.population_subpanels as Subpanel[]) : [],
-    special_panels: Array.isArray(raw.special_panels) ? (raw.special_panels as SpecialPanel[]) : [],
-  };
-}
-
 /** usePopulationSubpanel (the classic name): the subpanel's own filters and support; unchanged if it is unknown. */
 export function applyPopulationSubpanel(p: ResearchProject, key: string, c: Catalogues): ResearchProject {
   const sp = (c.population_subpanels || []).find((x) => x.key === key);
@@ -215,7 +207,6 @@ export function selectAudienceDataset(p: ResearchProject, id: string, list: Save
 
 export const UPLOAD_NO_FILE = "Vyberte .xlsx nebo .csv soubor.";
 export const UPLOAD_DONE = "Audience je uložená a vybraná";
-export const UPLOAD_TIMEOUT_MS = 180_000;
 
 /** uploadAudience's body: the name defaults to the file's, the type to the project's source. */
 export function uploadBody(p: ResearchProject, file: { name: string; b64: string }, name: string, description: string): Record<string, unknown> {

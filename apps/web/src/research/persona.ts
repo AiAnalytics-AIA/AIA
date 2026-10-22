@@ -42,13 +42,6 @@ export const PERSONA_DIM_LABELS: Readonly<Record<string, string>> = {
 
 export type ActiveDimensions = Record<string, { label?: string } | null | undefined>;
 
-/** The Data Library's active dimensions: the refreshed library's, else the bootstrap's (the classic's sources). */
-export function activeDimensions(library: unknown, bootRaw: Record<string, unknown>): ActiveDimensions {
-  const fromLibrary = (library as { summary?: { active_dimensions?: ActiveDimensions } } | null)?.summary?.active_dimensions;
-  const fromBoot = (bootRaw.data_library as { active_dimensions?: ActiveDimensions } | undefined)?.active_dimensions;
-  return fromLibrary || fromBoot || {};
-}
-
 /**
  * In AIA the library is the client's own knowledge (ADR 0015, 0018): the study's
  * inherited context, of which the approved DIMENSION items are this catalogue's
@@ -263,7 +256,6 @@ export function applySuggestion(p: ResearchProject, r: Suggestion): Change {
 export const REQUEST_EMPTY = "Napište název dimenze.";
 export const REQUEST_DONE = "Požadavek uložen. Přidejte dokument nebo spusťte Deep Research.";
 export const REQUEST_AI_DONE = "AI návrh uložen do Data Library jako evidence-gated dimenze.";
-export const REQUEST_TIMEOUT_MS = 30_000;
 
 /** requestDimension1793 trims the label; an empty one is refused with REQUEST_EMPTY. */
 export function requestLabel(raw: unknown): string {

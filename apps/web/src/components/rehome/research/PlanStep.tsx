@@ -42,6 +42,7 @@ import {
   SCALE_DEFAULT,
   SET_PURPOSE_DEFAULT,
 } from "@/research/plan";
+import { SET_MAX, SET_MIN } from "@/research/questionnaire";
 import type { Analysis } from "@/research/store";
 import { type SetField, applyPlanSets, objectProblem, proposalAnalysis, setFieldProblem, withObject, withSetField } from "@/research/plan-edit";
 import { DesignCoverage } from "./DesignCoverage";
@@ -59,9 +60,6 @@ const FOCUS = "focus-visible:outline-2 focus-visible:outline-offset-2 focus-visi
 const INPUT = `min-h-9 w-full rounded-control border border-border-strong bg-surface-raised px-2.5 text-sm text-ink placeholder:text-ink-faint ${FOCUS}`;
 const LABEL = "text-xs font-medium text-ink-muted";
 
-/** A comparable set is measured with 4–15 items (the questionnaire's SET_SIZE). */
-export const SET_MIN = 4;
-export const SET_MAX = 15;
 const outOfRange = (set: TrackedSet) => {
   const n = (set.objects || []).length;
   return n < SET_MIN || n > SET_MAX;

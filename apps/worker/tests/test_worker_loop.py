@@ -264,6 +264,42 @@ def test_an_unclassified_exception_is_permanent_and_its_message_redacted(
     assert "[redacted]" in attempt["error"]["message"]
 
 
+def test_a_failure_an_executor_returns_is_redacted_too_at_any_depth(
+    study: Any, make_worker: MakeWorker
+) -> None:
+    """Many executors return ``Failed(..., {"message": str(exc)})``: the same scrub as a raise."""
+    key = "sk-ant-api03-abcdefghijklmnopqrstuvwxyz"
+    run_id = study.create_run(
+        {
+            "fail": FailureClass.AUTHENTICATION.value,
+            "fail_error": {
+                "message": f"refused {key}",
+                "details": {
+                    "cause": [f"Bearer {key}"],
+                    "authorization": "Basic dXNlcjpwYXNzd29yZA==",
+                },
+                "password": "hunter2hunter2",
+                # analysis.py's context-window refusal: counts an operator sizes by.
+                "needed_tokens": 5,
+                "context_window_tokens": 9,
+            },
+        }
+    )
+
+    make_worker().run_once()
+
+    error = _step(study, run_id)["attempts"][0]["error"]
+    assert "sk-ant" not in json.dumps(error)
+    assert "[redacted]" in error["message"]
+    assert "[redacted]" in error["details"]["cause"][0]
+    # A secret under a secret-named key is redacted by its key, whatever its shape.
+    assert error["details"]["authorization"] == "[redacted]"
+    assert error["password"] == "[redacted]"
+    # A number is never a secret: a counter under a token-named key is kept.
+    assert (error["needed_tokens"], error["context_window_tokens"]) == (5, 9)
+    assert error["attempt"] == 1, "what is not a secret is kept as it was"
+
+
 def test_a_possibly_billed_failure_is_recovery_required_and_never_retried(
     study: Any, make_worker: MakeWorker
 ) -> None:

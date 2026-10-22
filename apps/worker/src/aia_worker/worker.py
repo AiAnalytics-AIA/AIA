@@ -54,6 +54,7 @@ from aia_core.domain.scope import ScopeDenied, StudyContext, WorkScope
 from aia_core.domain.workflow import FailureClass, InteractionMode, StepDefinition, StepRunStatus
 from aia_core.infrastructure import error_tracking
 from aia_core.infrastructure.db import shares_one_connection
+from aia_core.infrastructure.redaction import redact
 from aia_core.infrastructure.workflow_repository import (
     BudgetExceeded,
     ClaimedWork,
@@ -400,7 +401,7 @@ class Worker:
         except StepFailed as failed:
             return self._record_failure(
                 claim,
-                Failed(failed.failure, _redacted(failed.error), failed.quota_reset_at),
+                Failed(failed.failure, failed.error, failed.quota_reset_at),
             )
         except Exception as error:
             # An error event with its stack (the logging integration), even when a retry
@@ -479,6 +480,9 @@ class Worker:
     def _record_failure(
         self, claim: _Claim, failed: Failed, *, reported: bool = False
     ) -> AttemptResult:
+        # Every failure is scrubbed here, whichever way it came: a raised StepFailed, an
+        # unclassified exception, or a Failed an executor returned with str(exc) in it.
+        failed = Failed(failed.failure, _redacted(failed.error), failed.quota_reset_at)
         result = self._record(
             claim,
             "failed",
@@ -543,5 +547,6 @@ def _report_step_failed(claim: _Claim, failed: Failed) -> None:
 
 
 def _redacted(error: dict[str, Any]) -> dict[str, Any]:
-    """Redact string values an executor put in an error payload."""
-    return {k: redact_text(v) if isinstance(v, str) else v for k, v in error.items()}
+    """Redact an error payload with the one shared rule (keys and values, at any depth)."""
+    scrubbed: dict[str, Any] = redact(error, capped=True)
+    return scrubbed

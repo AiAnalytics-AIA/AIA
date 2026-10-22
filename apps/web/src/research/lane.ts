@@ -14,7 +14,7 @@ import type { ResearchProject } from "./model";
 import { trackedSets } from "./plan";
 import { proposalAnalysis } from "./plan-edit";
 import { chosenDimensions } from "./persona";
-import { questionnaireHasQuestions, sections } from "./questionnaire";
+import { SET_MAX, SET_MIN, questionnaireHasQuestions, sections } from "./questionnaire";
 import type { ResearchState } from "./store";
 import type { StepKey } from "./steps";
 import type { ResearchRunSummary } from "@/lib/api";
@@ -25,8 +25,6 @@ export type LaneStage = { tone: LaneTone; line: string };
 /** Something that stops the design from running, with the stage that fixes it. */
 export type Blocker = { step: StepKey; label: string; detail: string };
 
-export const SET_MIN = 4;
-export const SET_MAX = 15;
 const setSizeOk = (n: number) => n >= SET_MIN && n <= SET_MAX;
 
 const plural = (n: number, one: string, few: string, many: string) => (n === 1 ? one : n >= 2 && n <= 4 ? few : many);
