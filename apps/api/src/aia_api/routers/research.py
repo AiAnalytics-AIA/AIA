@@ -178,6 +178,9 @@ router = APIRouter(
     },
 )
 
+#: The run's selected child population (P4d), as its start would name it: readiness then draws no
+#: panel sample, since the sampler reads only the population a new run records (RQC6b).
+PopulationChoiceQuery = Annotated[str | None, Query(min_length=1, max_length=255)]
 RevisionIdPath = Annotated[str, Path(max_length=64, pattern=r"^REV-[0-9a-f]{1,32}$")]
 RunIdPath = Annotated[str, Path(max_length=64, pattern=r"^RUN-[0-9a-f]{1,32}$")]
 ArtifactIdPath = Annotated[str, Path(max_length=64, pattern=r"^ART-[0-9a-f]{1,32}$")]
@@ -1250,6 +1253,7 @@ def readiness(
     sampler: PanelSamplerDep,
     design_revision_id: Annotated[str, Query(max_length=64, pattern=r"^REV-[0-9a-f]{1,32}$")],
     persona_source: Annotated[PersonaSource | None, Query()] = None,
+    population_version_id: PopulationChoiceQuery = None,
 ) -> ReadinessResponse:
     """Compile the revision and run AIA's structural checks, without starting anything.
 
@@ -1264,6 +1268,7 @@ def readiness(
             design_revision_id,
             persona_source=chosen,
             fieldwork_source=_fieldwork_source(request),
+            population_version_id=population_version_id,
         )
     except DesignRevisionNotFound as exc:
         raise _not_found("design_revision") from exc
@@ -1285,6 +1290,7 @@ def working_readiness(
     sampler: PanelSamplerDep,
     working_revision: Annotated[int, Query(ge=1)],
     persona_source: Annotated[PersonaSource | None, Query()] = None,
+    population_version_id: PopulationChoiceQuery = None,
 ) -> WorkingReadinessResponse:
     """The readiness of a revision of the Study's working content, read as a submit of it
     would read it, with no Design Revision written (working-copy-edit-ops WCE7). A stage
@@ -1297,6 +1303,7 @@ def working_readiness(
             working_revision,
             persona_source=chosen,
             fieldwork_source=_fieldwork_source(request),
+            population_version_id=population_version_id,
         )
     except WorkingRevisionNotFound as exc:
         raise _not_found("working_revision") from exc

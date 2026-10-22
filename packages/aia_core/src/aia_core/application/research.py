@@ -1248,6 +1248,7 @@ class ResearchRuns:
         *,
         persona_source: PersonaSource = PersonaSource.FICTIONAL_ROSTER,
         fieldwork_source: FieldworkSource | None = None,
+        population_version_id: str | None = None,
     ) -> RunOutlook:
         """Compile a revision of this Study and assess it, without starting anything, under
         the methodology a start would pin now (the one in force) and the persona source it
@@ -1266,6 +1267,7 @@ class ResearchRuns:
             design_revision_id=revision.revision_id,
             persona_source=persona_source,
             fieldwork_source=fieldwork_source,
+            population_version_id=population_version_id,
         )
 
     def outlook_working(
@@ -1274,6 +1276,7 @@ class ResearchRuns:
         *,
         persona_source: PersonaSource = PersonaSource.FICTIONAL_ROSTER,
         fieldwork_source: FieldworkSource | None = None,
+        population_version_id: str | None = None,
     ) -> RunOutlook:
         """:meth:`outlook` on a revision of the Study's working content, with no Design
         Revision submitted (plan working-copy-edit-ops WCE7).
@@ -1292,6 +1295,7 @@ class ResearchRuns:
             design_revision_id=None,
             persona_source=persona_source,
             fieldwork_source=fieldwork_source,
+            population_version_id=population_version_id,
         )
 
     def impact(self, working_revision: int, design_revision_id: str | None = None) -> WorkingImpact:
@@ -1326,6 +1330,7 @@ class ResearchRuns:
         design_revision_id: str | None,
         persona_source: PersonaSource,
         fieldwork_source: FieldworkSource | None,
+        population_version_id: str | None = None,
     ) -> RunOutlook:
         methods, _ = self._methods(None)
         limits, _ = self._readiness(None)
@@ -1345,7 +1350,9 @@ class ResearchRuns:
             # that replaces Kish's formula changes every cell's effective n.
             pin, _ = self._aggregation(None)
             _, slots = read_aggregation_pin(pin)
-            if persona_source is PersonaSource.PANEL:
+            # A run over a selected child draws from the child, which the sampler does not
+            # read: unknown, as its start reads it.
+            if persona_source is PersonaSource.PANEL and population_version_id is None:
                 panel = self._panel_draw(spec)
             forecast = forecast_support(
                 spec,

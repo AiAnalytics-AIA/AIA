@@ -118,8 +118,8 @@ Open from RQC6b's review, each a hypothesis until reproduced over HTTP:
 - A refused panel draw (`sampling_n_exceeds_support`, `sampling_field_refused`) is named in
   `sample_composition.refused` but is no readiness check, so a start goes ahead and fieldwork fails
   on the same refusal; a FAIL (or WARN) check from the refusal is a readiness rule of its own.
-- Readiness takes no selected child population, so it forecasts over LIVE while a start over a
-  child reads unknown; the composition then describes a population the run does not draw from.
+- (Fixed on #694 after review: readiness takes the run's `population_version_id` and draws nothing
+  over a selected child, as its start; Spuštění forwards its chosen child.)
 
 **RQC6c. Web (SMP2).** Vzorek's §1 composition from `sample_composition`; `sample:quota:<cell>`
 on each cell; the panel forecast's words in §2; unknown said with its reason.

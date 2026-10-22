@@ -233,3 +233,21 @@ def test_a_population_that_will_not_load_reads_unknown_never_fails_readiness(
     assert body["sample_composition"]["cells"] == []
     check = next(c for c in body["checks"] if c["id"] == "support_forecast")
     assert check["status"] == "WARN" and "se ukáže až při výběru" in check["message"]
+
+
+def test_readiness_for_a_run_over_a_selected_child_draws_nothing(
+    researcher: TestClient, world: Any
+) -> None:
+    """A run over a selected child draws from the child, which the sampler does not read: its
+    readiness reads unknown, as its start does, so the two agree (review on #694)."""
+    revision = world.design(researcher, DESIGN).json()["revision_id"]
+    url = f"{API}/studies/{world.study_id()}/research/readiness"
+    params = {"design_revision_id": revision, "persona_source": "panel"}
+    over_child = researcher.get(url, params={**params, "population_version_id": "PV-CHILD"})
+    assert over_child.status_code == 200, over_child.text
+    body = over_child.json()
+    assert body["sample_composition"] is None
+    check = next(c for c in body["checks"] if c["id"] == "support_forecast")
+    assert "se ukáže až při výběru" in check["message"]
+    over_live = researcher.get(url, params=params).json()
+    assert over_live["sample_composition"] is not None
