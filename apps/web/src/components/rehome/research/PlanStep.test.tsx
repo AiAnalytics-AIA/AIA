@@ -374,7 +374,8 @@ describe("direct proposal editing", () => {
       fireEvent.click(screen.getByRole("button", { name: add }));
       const row = screen.getByRole("textbox", { name: add });
       fireEvent.keyDown(row, { key: "Enter" });
-      expect(screen.getByRole("alert").textContent).toBe(words);
+      // The row's own message: the one its field is described by.
+      expect(document.getElementById(row.getAttribute("aria-describedby") ?? "")?.textContent).toBe(words);
       fireEvent.keyDown(row, { key: "Escape" });
     }
   });

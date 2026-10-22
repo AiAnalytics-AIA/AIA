@@ -323,11 +323,15 @@ describe("Dotazník", () => {
     await screen.findByRole("heading", { name: "2 otázky · 1 sledovaná sada" });
     const block = document.getElementById("qblock_sec_a") as HTMLElement;
     fireEvent.click(within(block).getByRole("button", { name: "Otázka do tohoto bloku" }));
-    fireEvent.keyDown(within(block).getByRole("textbox", { name: "Otázka do tohoto bloku" }), { key: "Enter" });
-    expect(within(block).getByRole("alert").textContent).toBe("Napište znění.");
+    // Each row's own message: the one its field is described by.
+    const said = (row: HTMLElement) => document.getElementById(row.getAttribute("aria-describedby") ?? "")?.textContent;
+    const inBlock = within(block).getByRole("textbox", { name: "Otázka do tohoto bloku" });
+    fireEvent.keyDown(inBlock, { key: "Enter" });
+    expect(said(inBlock)).toBe("Napište znění.");
     fireEvent.click(screen.getByRole("button", { name: "Nová otázka" }));
-    fireEvent.keyDown(screen.getByRole("textbox", { name: "Nová otázka" }), { key: "Enter" });
-    expect(screen.getAllByRole("alert").map((a) => a.textContent)).not.toContain("Napište název.");
+    const outline = screen.getByRole("textbox", { name: "Nová otázka" });
+    fireEvent.keyDown(outline, { key: "Enter" });
+    expect(said(outline)).toBe("Napište znění.");
   });
 
   it("notes a set under four objects, and removes a block only when confirmed", async () => {
