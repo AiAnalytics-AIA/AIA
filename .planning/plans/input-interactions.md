@@ -589,6 +589,30 @@ IA-1 … IA-6, with all six parts, in the audit's §6. For the docs PR to number
 
 Chunk 3 is complete: 3a–3h are merged (#640, #645, #651, #652, #681, #687, #691, #693). Every questionnaire A-item in the audit's fix list is addressed; A15 and A20 were "keep", and A19's path cards are the toolbar's `Segmented`.
 
+### Chunk 5, as delivered (the Cílová skupina screen owner, in small PRs)
+
+Split by owner (PM, 2026-10-22): B1–B4 sit on Dimenze (`PersonaStep.tsx`), B5–B11 on Cílová skupina
+(`AudienceStep.tsx`). Chunk 5 is ticked once B5–B11 are in and B1–B4 name Dimenze's PRs.
+
+- **B1. n as one stepper:** Dimenze's `artifact-dimensions#DIM3` (`PersonaStep.tsx`, `data-aia="sample:n"`):
+  bounded by `…/research/limits`, steps of 50, the recommendation beside it, no slider or presets, no clamp.
+- **B2–B4:** Dimenze's, not yet scheduled here.
+- **B5, B10:** kept, as the audit says (`RadioCard`; a prompt to AI is not a value).
+- **B9. The built-in subpanels under a search, feature/audience-subpanel-list.**
+  - A search over the 18 subpanels' names and descriptions (`matchingSubpanels`, the factor search's
+    rule, trimmed) sits above them, and a line says how many matched. The chosen subpanel stays shown
+    whatever the search.
+  - The subpanels stay `RadioCard`s, chosen by a click. A choice rewrites the audience's filters and
+    description, so a radio group that selects on arrow keys would save a different subpanel at each
+    press. Each card keeps its people, donors and, for one the population cannot use, its reason.
+  - Not done: a subpanel the search hides has no element, so the Lead cannot point at it until the
+    search is cleared, as with a factor editor hidden by its group.
+  - Tests: `AudienceStep.test.tsx` "the subpanels sit under a search…"; `audience.live.test.ts` "the
+    built-in subpanels a search matches".
+  - `audience_journey.mjs` checks the search at 1440/1100/768/390 without overflow, and that a search
+    matching nothing leaves the chosen one and says 0.
+- **B6, B7+B8, B11:** one PR each.
+
 ### Chunk 3b3, added by planning (2026-10-21)
 
 3b1 built the label path behind `AIA_AI_SCALE_LABELS_IN_PROMPT`, off, and 3b2 is the editor; no

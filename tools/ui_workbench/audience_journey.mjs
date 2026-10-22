@@ -134,15 +134,34 @@ await page.getByRole("radio", { name: /Speciální skupiny/ }).click();
 const usable = catalogue.subpanels.find((s) => s.usable === true);
 const refused = catalogue.subpanels.find((s) => s.usable === false);
 if (!usable || !refused) fail("the fictional population should make one subpanel usable and one not");
-if (!(await page.getByRole("radio", { name: new RegExp(refused.name) }).isDisabled())) fail(`${refused.name} is offered though the policy refuses it`);
+const nameOf = (name) => new RegExp(`^${name.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}(\\s|$)`);
+if (!(await page.getByRole("radio", { name: nameOf(refused.name) }).isDisabled())) fail(`${refused.name} is offered though the policy refuses it`);
 const subpanelSave = saved();
-await page.getByRole("radio", { name: new RegExp(usable.name) }).click();
+await page.getByRole("radio", { name: nameOf(usable.name) }).click();
 await subpanelSave;
 const audience = (await content()).content.audience;
 if (audience.builtin_subpanel !== usable.key || JSON.stringify(audience.filters) !== JSON.stringify(usable.filters)) fail(`the subpanel saved ${JSON.stringify(audience)}`);
 await text("speciální panely a vlastní publikum", "special panels not in AIA");
 ok(`Speciální skupiny: ${usable.name} saved as its filter ${JSON.stringify(usable.filters)}; ${refused.name} refused by policy`);
 await shot("3-subpanels");
+
+// 3b. The subpanels under a search (input-interactions I3, audit B9), at four widths.
+const subpanels = page.getByRole("radiogroup", { name: "Vestavěné subpanely" });
+const search = page.getByLabel("Hledat subpanel");
+for (const width of [1440, 1100, 768, 390]) {
+  await page.setViewportSize({ width, height: 1000 });
+  await search.waitFor({ timeout: 30000 });
+  const overflow = await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth);
+  if (overflow > 0) fail(`${width} px: the page overflows by ${overflow} px`);
+}
+await page.setViewportSize({ width: 1440, height: 1100 });
+await search.fill("žádný takový subpanel");
+const left = await subpanels.getByRole("radio").count();
+const chosenLeft = await subpanels.getByRole("radio", { checked: true }).count();
+if (left !== 1 || chosenLeft !== 1) fail(`a search that matches nothing should leave only the chosen ${usable.name}: ${left} shown`);
+await text("Hledání odpovídá 0 z", "the search's count");
+await search.fill("");
+ok(`Speciální skupiny: ${catalogue.subpanels.length} subpanels under a search at 1440/1100/768/390 without overflow; a search that matches nothing keeps the chosen one and says 0`);
 
 await browser.close();
 const toUnit = requests.filter((r) => { try { return UNIT_PATH.test(new URL(r.url).pathname); } catch { return false; } });

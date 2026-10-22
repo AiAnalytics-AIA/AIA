@@ -16,7 +16,7 @@
 // panels and the customer audience upload were the unit's audience store, and the
 // step still says they are not in AIA.
 
-import type { AudienceCatalogue, AudiencePreview } from "@/lib/api";
+import type { AudienceCatalogue, AudienceCatalogueSubpanel, AudiencePreview } from "@/lib/api";
 
 import { type Json, PROVIDER_FORCED, type ResearchProject } from "./model";
 
@@ -290,6 +290,16 @@ export function rangeOf(p: ResearchProject, id: string): { lo: Json; hi: Json } 
     lo: isRange ? ((cur as Obj).min ?? null) : Array.isArray(cur) ? (cur[0] ?? null) : null,
     hi: isRange ? ((cur as Obj).max ?? null) : Array.isArray(cur) ? (cur[1] ?? null) : null,
   };
+}
+
+/**
+ * The built-in subpanels a search matches (input-interactions I3, audit B9: 18 is past a plain
+ * list): by name or description, compared as the factor search compares (searchKey), the query
+ * trimmed. The screen shows the chosen one beside them whatever they are.
+ */
+export function matchingSubpanels(list: readonly AudienceCatalogueSubpanel[], query: string): AudienceCatalogueSubpanel[] {
+  const key = searchKey(query.trim());
+  return key ? list.filter((sp) => searchKey(`${sp.name} ${sp.description}`).includes(key)) : [...list];
 }
 
 /** factorEditor1793's selected values of a categorical factor. */

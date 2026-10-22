@@ -52,6 +52,7 @@ import {
   humanSummary,
   liveCatalog,
   liveSubpanels,
+  matchingSubpanels,
   liveVerdict,
   proposePayload,
   proposeText,
@@ -486,19 +487,32 @@ function Preview({ catalog }: { catalog: Catalog }) {
   );
 }
 
-/** The 18 built-in subpanels: each a filter on one factor, chosen like any audience (usePopulationSubpanel). */
+/**
+ * The 18 built-in subpanels: each a filter on one factor, chosen like any audience
+ * (usePopulationSubpanel), by a click on its card, never by moving through them (a choice rewrites
+ * the audience). A search above them (input-interactions I3, audit B9); the chosen one stays shown
+ * whatever the search, and the count says what matched.
+ */
 function Subpanels({ live }: { live: Extract<Live, { state: "ready" }> }) {
   const { store, state } = useResearch();
+  const [query, setQuery] = useState("");
   const current = String(state.project.audience.builtin_subpanel || "");
   const pick = (key: string) =>
     store.update(({ project }) => ({ project: applyPopulationSubpanel(project, key, live.subpanels) }), { reason: "population_subpanel", invalidateCheck: true });
+  const all = live.api.subpanels;
+  const matched = matchingSubpanels(all, query);
+  const shown = all.filter((sp) => sp.key === current || matched.includes(sp));
   return (
     <div className="mt-3 flex flex-col gap-3">
       <section aria-labelledby="aud-subpanels">
         <h3 id="aud-subpanels" className="text-sm font-semibold">{t("research.audience.subpanelsTitle")}</h3>
         <p className="mt-1 text-xs text-ink-muted">{tv("research.audience.subpanelsIntro", { measured: live.api.subpanels_measured_on })}</p>
+        <Field label={t("research.audience.searchSubpanels")} className="mt-2">
+          <TextInput value={query} onChange={(e) => setQuery(e.target.value)} />
+        </Field>
+        <p className="mt-1 text-xs text-ink-muted">{tv("research.audience.subpanelsShown", { shown: matched.length, total: all.length })}</p>
         <div role="radiogroup" aria-label={t("research.audience.subpanelsTitle")} className="mt-2 grid gap-2 [grid-template-columns:repeat(auto-fit,minmax(240px,1fr))]">
-          {live.api.subpanels.map((sp) => (
+          {shown.map((sp) => (
             <div key={sp.key} data-aia={audienceSubpanelAia(sp.key) ?? undefined} className="grid">
               <RadioCard checked={current === sp.key} disabled={sp.usable !== true} onSelect={() => current !== sp.key && pick(sp.key)} title={sp.name}>
                 {tv("research.audience.subpanelRows", { rows: sp.measured_by_18_6_6.rows.toLocaleString("cs-CZ"), donors: sp.measured_by_18_6_6.unique_core_donors.toLocaleString("cs-CZ") })}

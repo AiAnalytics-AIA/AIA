@@ -1,5 +1,5 @@
 // @vitest-environment jsdom
-import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { AGENTS_PATH, NATIVE_TEST_TIMEOUT_MS, approveProposal, findProposalDialog, nativeAgentFixture } from "./test-native-agents";
@@ -263,6 +263,22 @@ describe("Audience", () => {
       render(<ResearchScreen step="audience" frame={TEST_FRAME} />);
       fireEvent.click(await screen.findByRole("button", { name: "Ověřit proveditelnost" }));
       expect((await screen.findByRole("status")).textContent).toContain("populace k ní není připojená");
+    });
+
+    it("the subpanels sit under a search that says what matched and never hides the chosen one (audit B9)", async () => {
+      aiaStub({ ui_state: { audience_entry: "analytics", analytics_choice: "special" }, audience: { builtin_subpanel: "students" } }, live());
+      render(<ResearchScreen step="audience" frame={TEST_FRAME} />);
+      const group = await screen.findByRole("radiogroup", { name: "Vestavěné subpanely" });
+      const names = () => within(group).getAllByRole("radio").map((r) => r.querySelector(".font-semibold")!.textContent);
+      expect(names()).toEqual(["Mladí 18–29", "Studenti"]);
+      expect(screen.getByText("Hledání odpovídá 2 z 2 subpanelů; zvolený zůstává vidět.")).toBeTruthy();
+      fireEvent.change(screen.getByLabelText("Hledat subpanel"), { target: { value: "mladí" } });
+      expect(names()).toEqual(["Mladí 18–29", "Studenti"]); // Studenti is the chosen one
+      expect(screen.getByText("Hledání odpovídá 1 z 2 subpanelů; zvolený zůstává vidět.")).toBeTruthy();
+      fireEvent.change(screen.getByLabelText("Hledat subpanel"), { target: { value: "nikdo" } });
+      expect(names()).toEqual(["Studenti"]);
+      expect(screen.getByText("Hledání odpovídá 0 z 2 subpanelů; zvolený zůstává vidět.")).toBeTruthy();
+      noUnitCalls();
     });
 
     it("a built-in subpanel is chosen as its filter; one the policy refuses cannot be", async () => {

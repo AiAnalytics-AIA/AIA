@@ -6,7 +6,7 @@ import { describe, expect, it } from "vitest";
 
 import type { AudienceCatalogue, AudiencePreview } from "@/lib/api";
 
-import { applyPopulationSubpanel, factorRefusal, filterableFactors, liveCatalog, liveSubpanels, liveVerdict, setAudienceRange, setRange, filterCountLines, type Catalog, filterProblems, CATALOGUE_TOP_VALUES } from "./audience";
+import { applyPopulationSubpanel, factorRefusal, filterableFactors, liveCatalog, liveSubpanels, liveVerdict, setAudienceRange, setRange, filterCountLines, type Catalog, filterProblems, CATALOGUE_TOP_VALUES, matchingSubpanels } from "./audience";
 import type { ResearchProject } from "./model";
 
 const project = (audience: Record<string, unknown> = {}) => ({ audience, briefing: {}, ui_state: {} }) as unknown as ResearchProject;
@@ -143,5 +143,16 @@ describe("the preview in words", () => {
     const bad = liveVerdict({ ...PREVIEW, selected_rows: null, audience: { ok: false, reason: "sampling_filter_invalid", reasons: ["vek: očekáván interval min/max"] }, sample: null });
     expect(bad).toEqual({ ok: false, lines: ["Některý filtr nelze použít: vek: očekáván interval min/max."] });
     expect(liveVerdict({ ...PREVIEW, audience: { ok: false, reason: "something_new" }, sample: null }).lines[0]).toContain("something_new");
+  });
+});
+
+describe("the built-in subpanels a search matches (audit B9)", () => {
+  it("by name or description, as the factor search does, the query trimmed", () => {
+    const all = CATALOGUE.subpanels;
+    expect(matchingSubpanels(all, "").map((s) => s.key)).toEqual(["young_18_29", "students"]);
+    expect(matchingSubpanels(all, "  ").map((s) => s.key)).toEqual(["young_18_29", "students"]);
+    expect(matchingSubpanels(all, " MLADÍ ").map((s) => s.key)).toEqual(["young_18_29"]);
+    expect(matchingSubpanels(all, "vestavěný").map((s) => s.key)).toEqual(["young_18_29"]);
+    expect(matchingSubpanels(all, "nikdo")).toEqual([]);
   });
 });

@@ -2421,6 +2421,8 @@ export const cs = {
       subpanelsTitle: "Vestavěné subpanely",
       subpanelsIntro: "Subpanel je filtr na jeden faktor populace. Počty u něj spočítala 18.6.6 na verzi {measured}, AIA je nepřepočítává.",
       subpanelRows: "{rows} lidí · {donors} dárců (18.6.6)",
+      searchSubpanels: "Hledat subpanel",
+      subpanelsShown: "Hledání odpovídá {shown} z {total} subpanelů; zvolený zůstává vidět.",
       subpanelUnusable: "Nelze použít: {reason}",
       subpanelUnknown: "Nevíme, zda jde použít: slovník této verze není uložený.",
       specialPanelsNotInAia: "Profesní speciální panely a vlastní publikum stavěla 18.6.6 ze svého úložiště audience; AIA je zatím nemá.",
