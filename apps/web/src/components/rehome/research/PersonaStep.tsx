@@ -184,11 +184,12 @@ export function PersonaStep() {
     void request(q.label, q.sourceStrategy, q.extra, PROPOSAL_AI_DONE);
   };
 
-  // Inside the workbench the next stage is the frame's (its navigator's order and focus).
-  const next = useContext(FrameNavigation)?.next ?? null;
+  // Inside the workbench the next stage is the frame's (its navigator's order and focus); a frame
+  // with none leaves the dock without a forward action, never the classic run step.
+  const nav = useContext(FrameNavigation);
   const toNext = () => {
     apply(personaDone(store.get().project));
-    if (next) next.go();
+    if (nav) nav.next?.go();
     else router.push(stepHref("run"));
   };
 
@@ -385,10 +386,12 @@ export function PersonaStep() {
           back={{ href: stepHref("audience"), label: `4. ${t("aia.stages.audience")}` }}
           note={tv("research.persona.dockNote", { d: approved.length, n })}
         >
-          <Button variant="primary" className="!rounded-control" onClick={toNext}>
-            {next ? tv("research.persona.nextStage", { stage: next.label }) : t("research.persona.next")}
-            <Icon name="next" size={14} />
-          </Button>
+          {!nav || nav.next ? (
+            <Button variant="primary" className="!rounded-control" onClick={toNext}>
+              {nav?.next ? tv("research.persona.nextStage", { stage: nav.next.label }) : t("research.persona.next")}
+              <Icon name="next" size={14} />
+            </Button>
+          ) : null}
         </ActionDock>
       </div>
     </div>

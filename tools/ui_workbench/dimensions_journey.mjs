@@ -6,7 +6,8 @@
  * The client's own dimensions (DIM4) are read and lead to "Populace běhu". Inside the workbench
  * "Další" goes on to Vzorek, the navigator's next stage (DIM-F4).
  * At 1440, 1100, 768 and 390 px, no page overflow. Zero paid starts: the only writes are saves of
- * the working copy and of the stage the person is on. The fixture's n is put back at the end.
+ * the working copy and of the stage the person is on. The fixture's n is put back at the end; "Další"
+ * leaves its Dimenze marked done (persona_mode calibrated): `make ui-fixtures` writes it afresh.
  *
  * After `make ui-workbench` (AIA_WEB_RESEARCH_WORKBENCH=true) and `make ui-fixtures`.
  * `--facade` and `--out` as for the other journeys; `AIA_CHROMIUM` selects the browser.
@@ -106,11 +107,13 @@ try {
   await n().press("Enter");
   await back;
   restore = null;
+  const done = saved();
   await page.getByRole("button", { name: "Další · Vzorek" }).click();
   await page.waitForFunction(() => location.hash === "#sample");
   await page.locator("[data-sample-view]").waitFor();
   await page.waitForFunction(() => document.activeElement?.matches("h1.arthead__title") && /Vzorek/.test(document.activeElement.textContent ?? ""));
   assert.equal(new URL(page.url()).pathname, `/app/clients/${client}/research/${study}/dimensions`);
+  await done; // the persona_done save the click started, before the writes are judged
   check("inside the workbench, Další goes on to Vzorek, its heading focused");
 
   const paid = writes.filter((x) => !/\/workspace\/(content|stage)$/.test(x.path));

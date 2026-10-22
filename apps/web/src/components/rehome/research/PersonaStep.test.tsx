@@ -390,6 +390,14 @@ describe("Dimenze", () => {
     fireEvent.click(await screen.findByRole("button", { name: "Další · Vzorek" }));
     expect(go).toHaveBeenCalledOnce();
     expect(push).not.toHaveBeenCalled();
+    expect(screen.queryByRole("button", { name: "Další · kontrola" })).toBeNull();
     await savedWith("persona_done_1789");
+  }, 20_000);
+
+  it("inside a frame with no next stage offers no forward action rather than the classic run step", async () => {
+    aiaStub(PLANNED);
+    render(<FrameNavigation.Provider value={{ next: null }}><ResearchScreen step="persona" frame={TEST_FRAME} /></FrameNavigation.Provider>);
+    await screen.findByRole("spinbutton", { name: "Počet respondentů" });
+    expect(screen.queryByRole("button", { name: /^Další/ })).toBeNull();
   }, 20_000);
 });
