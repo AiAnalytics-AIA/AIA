@@ -105,6 +105,8 @@ describe("Dotazník's deletes", () => {
     render(<ResearchScreen step="questionnaire" frame={TEST_FRAME} />);
     await screen.findAllByDisplayValue("Jak často?");
     expect(screen.getByRole("button", { name: "Odebrat otázku Q1" })).toBeTruthy();
-    expect(screen.queryByText("Q_wb7")).toBeNull();
+    // Neither the page's text nor any control's name carries the stored id.
+    expect(document.body.textContent).not.toContain("Q_wb7");
+    expect([...document.querySelectorAll("[aria-label]")].map((el) => el.getAttribute("aria-label")).filter((l) => l?.includes("Q_wb7"))).toEqual([]);
   });
 });

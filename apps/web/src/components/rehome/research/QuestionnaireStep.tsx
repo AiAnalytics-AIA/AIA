@@ -779,7 +779,7 @@ function QuestionCard({ n, q, si, sectionId, qi, update }: { n: number; q: Quest
           small
           variant="quiet"
           className="ml-auto"
-          aria-label={tv("research.questionnaire.removeQuestion", { id: `Q${n}` })}
+          aria-label={tv("research.questionnaire.removeQuestion", { number: `Q${n}` })}
           onClick={() => {
             update((p) => removeQuestion(p, si, qi));
             offerRestore(undo, "questionRemoved", q.text, () => update((p) => restoreQuestion(p, si, sectionId, qi, q)));

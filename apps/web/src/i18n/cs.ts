@@ -2180,7 +2180,7 @@ export const cs = {
         invalidStored: "Uložený rozsah {raw} nelze použít: škála má dvě celá čísla od {min} do {max}, od menšího k většímu. Vyberte rozsah.",
         wide: "{range} ({n} bodů)",
       },
-      removeQuestion: "Odebrat otázku {id}",
+      removeQuestion: "Odebrat otázku {number}",
       // A delete taken back with Vrátit (input-interactions chunk 3, I6).
       undo: {
         questionRemoved: "Otázka „{name}“ odebrána",

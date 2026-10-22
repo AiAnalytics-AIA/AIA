@@ -229,7 +229,9 @@ reads it.
 > z pěti cen, vrátí `null`. Jiný typ otázky se necení: Dotazník pak délku označí za neznámou
 > a s limitem ji neporovná.
 
-## Browser-audit findings, AI mode
+## Browser-audit findings
+
+QF-1 to QF-3 sit under QST8 and QF-6 under §6 (Input interactions).
 
 *Finding QF-4 (2026-10-22):* "Sestavit s AI" on a questionnaire that already has items answers
 the click with nothing. The view stays the editor (`questionnaire.ts:79 @ b6ac25c5`), and in the
@@ -253,4 +255,5 @@ Test: `QuestionnaireUndo.test.tsx` (QF-7).
 
 ## Doc follow-up
 
+- open-items.md: number QF-7 (the question's × named by its stored id), closed by fix/questionnaire-remove-label.
 - Register this plan and its chunks. `research-lead-workbench#7`'s questionnaire half is QST5.
