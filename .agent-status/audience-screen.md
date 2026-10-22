@@ -1,9 +1,19 @@
 # audience-screen
 
-**STATUS: ACTIVE, nothing pushed since the stop.** Development resumed 2026-10-21 23:27 UTC, relayed
+**STATUS: ACTIVE, three PRs open.** Development resumed 2026-10-21 23:27 UTC, relayed
 by PM coordinator 3. Commit permission for the branches below still needs the product owner's own
 words in this session (CLAUDE.md §5). Screen owner for the research stage Cílová skupina (`audience`), Sprint 5.
 Cloud session `session_01UNFwAuLksKkUDbej3R6XUA`. Work list: `.planning/plans/artifact-audience.md`.
+
+## Open (2026-10-22, the product owner's commit word in this session)
+
+| PR | Branch | What | Observed before push |
+|---|---|---|---|
+| #700 | feature/audience-contract | AUD1 web half + parseAudienceId; AUD1 ticked (#624 server half on develop) | merged with develop e7482660; lint/typecheck/layer/web_design 0; test-web 3382/3382 |
+| #713 | feature/audience-proposal-review | AUD5 review diff for propose_audience (AUD5 unticked: 26f) | merged with develop 44ae2ec9; all 0; test-web 3380/3380 |
+| #717 | fix/audience-copy-and-tap-targets | audit F1 copy, F2 24 px target, F3 filters the population cannot honour | merged with develop 375396a9; all 0; test-web 3385/3385; workbench/audience/workspace journeys pass, zero paid |
+
+The sections below describe these branches as they were before the push; the PRs are now the record.
 
 ## Merged
 
