@@ -210,6 +210,33 @@ describe("LeadPane", () => {
     await waitFor(() => expect(onRequest).toHaveBeenCalledWith(expect.objectContaining({ turn_id: "LDT-8" }), expect.objectContaining({ kind: "research_run" })));
   });
 
+  it("shows a typed analysis retry as the stage's retry, names the run it retries and starts it on that run", async () => {
+    state = { ...state, wallet_enabled: false, analysis_retry_run: { run_id: "RUN-a1", created_at: "2026-10-22T09:30:00Z", phase: "succeeded" },
+      turns: [turn({ turn_id: "LDT-10", actor: "person", text: "Zopakuj analýzu", command: "analysis_retry", run_id: null, output: null })] };
+    const onRequest = vi.fn(async () => {});
+    const { container } = render(pane({ onRequest, cards: cards() }));
+    expect(await screen.findByText("Opakování analýzy")).toBeTruthy();
+    const card = container.querySelector('[data-card="request"][data-typed]')!;
+    expect(card.textContent).toContain("nová data se nesbírají");
+    expect(card.textContent).toMatch(/Který běh.*Běh z /);
+    // With the wallet off the card does not speak of it (the PM on #744).
+    expect(card.textContent).not.toContain("Peněženk");
+    fireEvent.click(screen.getByRole("button", { name: "Zopakovat analýzu" }));
+    await waitFor(() => expect(onRequest).toHaveBeenCalledWith(expect.objectContaining({ turn_id: "LDT-10" }), { kind: "analysis_retry", why: "Spustí se až vaším potvrzením.", run_id: "RUN-a1" }));
+  });
+
+  it("says a typed start is not charged to the Peněženka only with the wallet on", async () => {
+    state = { ...state, wallet_enabled: true, analysis_retry_run: null,
+      turns: [turn({ turn_id: "LDT-11", actor: "person", text: "Zopakuj analýzu", command: "analysis_retry", run_id: null, output: null }),
+        turn({ turn_id: "LDT-12", actor: "person", text: "Spusť výzkum", command: "research_run", run_id: null, output: null })] };
+    const { container } = render(pane({ cards: cards() }));
+    await screen.findByText("Opakování analýzy");
+    const [retry, run] = Array.from(container.querySelectorAll('[data-card="request"][data-typed]'));
+    expect(retry!.textContent).toContain("Opakování analýzy se nestrhává z Peněženky.");
+    expect(retry!.textContent).toContain("Studie zatím nemá běh s AI analýzou");
+    expect(run!.textContent).toContain("práh potvrzení a Peněženka se kontrolují");
+  });
+
   it("says a typed start approved again found the job already done, and shows that job once", async () => {
     const job = { run_id: "RUN-J", design_revision_id: "REV-1", action: "critique_design" as const, status: "COMPLETED", is_terminal: true, needs_attention: false, context_sha256: "x", harness_version: "3", created_at: "2026-10-19T08:01:00Z", steps: [], actual_cost_usd: 0.012 };
     state.turns = [

@@ -19,7 +19,7 @@
 // filters is the run's pin, and readiness says it ("audience").
 
 import { useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useContext, useEffect, useState } from "react";
 
 import { ApiError, type AudienceCatalogue, population } from "@/lib/api";
 import { audienceFilterAia, audiencePartAia, audienceSubpanelAia } from "@/lib/artifacts/audience";
@@ -67,7 +67,7 @@ import {
 } from "@/research/audience";
 import type { ResearchProject } from "@/research/model";
 import { Icon } from "../icons";
-import { ActionDock, RadioCard, StepSection } from "../step";
+import { ActionDock, FrameNavigation, RadioCard, StepSection } from "../step";
 import { AiButton, Button, Chip, Field, Tag, TextArea, TextInput } from "../ui";
 import { useResearch } from "./context";
 import { InspectorSlot } from "./Inspector";
@@ -122,6 +122,8 @@ function useLiveAudience(): Live {
 export function AudienceStep() {
   const { store, state, stepHref } = useResearch();
   const router = useRouter();
+  // Inside the workbench the frame opens the next stage (its leave guard, its heading's focus); outside it, the route.
+  const frameNav = useContext(FrameNavigation);
   const p = state.project;
   const view = audienceView(p);
   const ready = audienceReady(p);
@@ -237,7 +239,7 @@ export function AudienceStep() {
           ready={ready}
           note={ready ? (isLive ? t("research.audience.liveCheck") : t("research.audience.checkNotInAia")) : t("research.audience.nextHint")}
         >
-          <Button variant="primary" className="!rounded-control" disabled={!ready} onClick={() => router.push(stepHref("persona"))}>
+          <Button variant="primary" className="!rounded-control" disabled={!ready} onClick={() => (frameNav?.next ? frameNav.next.go() : router.push(stepHref("persona")))}>
             {t("research.audience.next")}
             <Icon name="next" size={14} />
           </Button>

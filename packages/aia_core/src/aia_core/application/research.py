@@ -54,7 +54,7 @@ from ..domain.methodology.pins import (
 )
 from ..domain.money import ThresholdVerdict, threshold_verdict
 from ..domain.panel_persona import persona_allowlist
-from ..domain.panel_source import panel_filters
+from ..domain.panel_source import panel_filters, with_panel_refusal
 from ..domain.pipeline import StageImpact, changed_fields, fingerprint, stage_impacts
 from ..domain.population import (
     CZ_LIVE,
@@ -700,6 +700,21 @@ class ResearchRuns:
             pair_n_min=side_tables_of(methods).n_min,
             limits=limits,
         )
+        panel = persona_source is PersonaSource.PANEL
+        # As readiness drew it: a new panel run over LIVE (a run over a selected child, or a
+        # retry, which keeps the original's population, draws from one the sampler does not
+        # read). A sample the sampler refuses is a failed check, never a run fieldwork refuses.
+        drawn = (
+            self._panel_draw(_spec)
+            if panel
+            and _spec is not None
+            and fieldwork_source is FieldworkSource.AI_RUNTIME
+            and population_version_id is None
+            and retry_of is None
+            else None
+        )
+        if drawn is not None and drawn.sampler_refused is not None:
+            checked = with_panel_refusal(checked, drawn.sampler_refused, drawn.reasons)
         # A retry keeps the original's population and never re-chooses it.
         selected = self._selected(population_version_id if retry_of is None else None)
         project_id = designs.project_id()
@@ -735,7 +750,6 @@ class ResearchRuns:
         if population_version_id is not None and retry_of is None:
             # A retry keeps the original's population; its key carries the original's id.
             key += f":population:{fingerprint(population_version_id)[:16]}"
-        panel = persona_source is PersonaSource.PANEL
         if panel and fieldwork_source is not FieldworkSource.AI_RUNTIME:
             raise ValueError("panel personas answer only through the ai_runtime source")
         if panel:
@@ -794,11 +808,8 @@ class ResearchRuns:
             forecast: SupportForecast | None = None
             if fieldwork_source is FieldworkSource.AI_RUNTIME:
                 _, slots = read_aggregation_pin(aggregation_pin)
-                # As readiness forecast it, so the gaps a person acknowledged there are these. A
-                # run over a selected child (or a retry, which keeps the original's population)
-                # draws from a population the sampler does not read: unknown, as before.
-                fresh_live = population_version_id is None and retry_of is None
-                drawn = self._panel_draw(_spec) if panel and fresh_live else None
+                # As readiness forecast it, from the sample drawn above, so the gaps a person
+                # acknowledged there are these; none drawn reads unknown, as before.
                 forecast = forecast_support(
                     _spec,
                     support=support_spec,
@@ -1358,6 +1369,8 @@ class ResearchRuns:
             # read: unknown, as its start reads it.
             if persona_source is PersonaSource.PANEL and population_version_id is None:
                 panel = self._panel_draw(spec)
+                if panel is not None and panel.sampler_refused is not None:
+                    readiness = with_panel_refusal(readiness, panel.sampler_refused, panel.reasons)
             forecast = forecast_support(
                 spec,
                 support=support,

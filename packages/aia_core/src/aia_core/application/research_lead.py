@@ -940,6 +940,7 @@ class ResearchLead:
         run_start: RunStartSettings | None = None,
         wallet_enabled: bool = False,
         workspace_revision: int | None = None,
+        retry_run_id: str | None = None,
     ) -> dict[str, Any]:
         """A person approves the paid job a Lead turn prepared, and it starts (ADR 0026
         decision 7).
@@ -948,7 +949,8 @@ class ResearchLead:
         here too, by :func:`~aia_core.application.lead_chat_start.approve_chat_start`: not Lead
         output, so not refused while the Lead is off (D22), under the same threshold, the
         wallet when ``wallet_enabled`` and the ledger row ``chat_start``. ``run_start`` is the
-        deployment's run settings a typed research run starts under.
+        deployment's run settings a typed research run starts under; ``retry_run_id`` the run a
+        typed analysis retry's card named (another is refused, ``AnalysisRetryTargetMoved``).
 
         Needs ``EDIT_STUDY``, ``RUN_WORKFLOW`` and ``APPROVE_GATE`` on an open Study, and the
         caller's own completed Lead turn whose request is an ``agent_job``; any other request
@@ -990,6 +992,7 @@ class ResearchLead:
                 reservation_usd=reservation_usd,
                 run_start=run_start,
                 wallet_enabled=wallet_enabled,
+                retry_run_id=retry_run_id,
             )
         turn, output = self._completed(turn_id)
         assert turn.run_id is not None

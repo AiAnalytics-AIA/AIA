@@ -985,6 +985,9 @@ export type ResearchLimits = {
   methodology_version: string;
   version: number | null;
   sample_size: { min: number; max: number };
+  /** A tracked set's size: outside min-max a design does not compile, outside the recommended
+   * range readiness warns (research/questionnaire.ts SetLimits). Absent from an older server. */
+  tracked_set?: { min: number; max: number; recommended_min: number; recommended_max: number };
   /** The questionnaire's length rule from Metodika (artifact-questionnaire QST7): seconds per
    * answer by question type and per tracked-set object, with the methodology version. Absent, or
    * null, while the methodology owner has set none; read through research/length.ts readRule. */
@@ -1581,10 +1584,11 @@ export const lead = {
   /** Approve a turn's prepared design job: spend limit, ledger and start in one transaction. */
   /** `workspaceRevision`: the current working revision, sent only after a 409 stale_card and the
    *  person's yes to running the card on the design as it is now (lead-orchestration LO10). */
-  approveRequest: (studyId: string, turnId: string, confirmCostUsd?: number, workspaceRevision?: number) =>
+  approveRequest: (studyId: string, turnId: string, confirmCostUsd?: number, workspaceRevision?: number, retryRunId?: string) =>
     request<RequestApproval>("POST", `${studyPath(studyId)}/lead/turns/${enc(turnId)}/request`, {
       ...(confirmCostUsd === undefined ? {} : { confirm_cost_usd: confirmCostUsd }),
       ...(workspaceRevision === undefined ? {} : { workspace_revision: workspaceRevision }),
+      ...(retryRunId === undefined ? {} : { retry_run_id: retryRunId }),
     }),
   /** Keep or drop what a turn wants to remember for all of the researcher's work (once, in the ledger). */
   decideSelfUpdate: (studyId: string, turnId: string, decision: "accept" | "dismiss") =>

@@ -35,7 +35,7 @@ import { type Ask, AskDialog, Button, Select } from "../ui";
 import { Icon } from "../icons";
 import { canReview } from "./frame";
 import { useFrame } from "./frame-hook";
-import { CLIENT_PREPARED } from "./ReportDocumentView";
+import { CLIENT_PREPARED, REPORT_APPROVED, type ReportApproved } from "./ReportDocumentView";
 
 type Part = { label: string; detail: string; state: "in" | "pending" | "later" | "excluded" };
 type Version = "internal" | "client";
@@ -166,15 +166,38 @@ export function CompleteReport({ run, review = null, onReview }: { run: Research
     research.clientReportDocument(frame.studyId, run.run_id).then(
       (stored) => {
         if (!live || typeof stored?.report_artifact_id !== "string") return;
-        setClient({ artifactId: stored.report_artifact_id, reviewState: stored.review_state, approvedOn: stored.approved_on, stamped: stored.stamped });
+        // A read sent before the pane's approval answered never takes that approval back.
+        setClient((was) => (was?.artifactId === stored.report_artifact_id && reviewStatus(was.reviewState) === "APPROVED" ? was
+          : { artifactId: stored.report_artifact_id, reviewState: stored.review_state, approvedOn: stored.approved_on, stamped: stored.stamped }));
       },
       () => undefined,
     );
     return () => { live = false; };
   }, [version, prepared, frame.studyId, run.run_id]);
+  const [error, setError] = useState<string | null>(null);
+  // A report approved in the document pane's doc bar (RPT3a), as the server answered it: the card
+  // says it, approving nothing itself.
+  useEffect(() => {
+    let live = true;
+    const on = (e: Event) => {
+      const got = (e as CustomEvent<ReportApproved>).detail;
+      if (got?.runId !== run.run_id) return;
+      if (got.kind === "client") {
+        setClient({ artifactId: got.artifactId, reviewState: got.reviewState, approvedOn: got.approvedOn, stamped: got.stamped });
+      } else {
+        // The approved PDF is rendered after approval: read again, the card follows it (D2); a
+        // read that fails is said, never left showing the draft as if nothing happened.
+        research.report(frame.studyId, run.run_id).then(
+          (value) => { if (live) { setStatus(value); setError(null); } },
+          (error: unknown) => { if (live) setError(message(error)); },
+        );
+      }
+    };
+    window.addEventListener(REPORT_APPROVED, on);
+    return () => { live = false; window.removeEventListener(REPORT_APPROVED, on); };
+  }, [frame.studyId, run.run_id]);
   const [busy, setBusy] = useState(false);
   const [ask, setAsk] = useState<Ask | null>(null);
-  const [error, setError] = useState<string | null>(null);
   const reportStep = run.steps.find((s) => s.kind === "research_report");
   // The run's own report, read again while a PDF a person asked for is being made.
   const basePending = status !== null && status !== "hidden" && reportPdfPending(status.pdf);
@@ -320,30 +343,27 @@ export function CompleteReport({ run, review = null, onReview }: { run: Research
     if (withReview && review !== null) setVariant(await deepResearch.askContextReportPdf(frame.studyId, run.run_id, review));
     else setStatus(await research.askReportPdf(frame.studyId, run.run_id));
   });
-  // Approving freezes the version and asks for its approved PDF (D2): the card reads the report
+  // The report with literature is approved here, since the pane does not read it; the internal
+  // and client reports are approved on the document being read, in its doc bar (RPT3a).
+  // Approving freezes the version and asks for its approved PDF (D2): the card reads the variant
   // again rather than patch what it showed, so the approved PDF's rendering is what it says.
-  // The client report has no status of its own: the approval's answer is the server's.
-  const approve = (target: string) => run_(async () => {
-    const done = await research.approveReport(frame.studyId, run.run_id, target);
-    if (version === "client") {
-      setClient({ artifactId: done.artifact_id, reviewState: done.review_state, approvedOn: done.approved_on ?? null, stamped: done.stamped ?? null });
-      return;
-    }
-    if (withReview && review !== null) setVariant(await deepResearch.contextReport(frame.studyId, run.run_id, review));
-    else setStatus(await research.report(frame.studyId, run.run_id));
+  const approve = (target: string, asked: string) => run_(async () => {
+    await research.approveReport(frame.studyId, run.run_id, target);
+    setVariant(await deepResearch.contextReport(frame.studyId, run.run_id, asked));
   });
 
   // Approval is a decision about one stored version: the person is asked about exactly that one
   // first, by name (B22), never approved on a single click; the id named is the id sent.
   const askApproval = () => {
-    const target = version === "client" ? client?.artifactId : shown;
-    if (!target) return;
-    const question = approvalQuestion(version === "client" ? "client" : withReview ? "with_review" : "internal", target, { review, pdf: pdfToo });
+    const target = shown;
+    if (!target || review === null) return;
+    const asked = review;
+    const question = approvalQuestion("with_review", target, { review, pdf: pdfToo });
     setAsk({
       kind: "confirm",
       message: fileLine ? `${question} ${fileLine}` : question,
       yes: t("research.exec.report.approveAsk.yes"),
-      resolve: (ok) => { if (ok) void approve(target); },
+      resolve: (ok) => { if (ok) void approve(target, asked); },
     });
   };
 
@@ -363,7 +383,7 @@ export function CompleteReport({ run, review = null, onReview }: { run: Research
         : version === "client"
           ? !client
             // An approved client report is the one downloaded, whatever composing would give today.
-            ? "Stav: schválená klientská zpráva se stáhne taková, jaká byla schválena; dokud žádná schválená není, složí se při stažení a schvalujete právě tu, kterou stáhnete"
+            ? "Stav: schválená klientská zpráva se stáhne taková, jaká byla schválena; dokud žádná schválená není, složí se při stažení; schvaluje se v panelu Zpráva, na verzi, kterou tam čtete"
             // The file the client receives: approving signs it off for them, never "for internal use".
             : fileLine ?? `Stav: ${t(`research.exec.report.review.${approved ? "clientApproved" : "clientDraft"}`)}`
           : fileLine ?? `Stav: ${reportStatusWords(approved ? "APPROVED" : "DRAFT")}`;
@@ -490,9 +510,15 @@ export function CompleteReport({ run, review = null, onReview }: { run: Research
               {(withReview ? current?.pdf : report?.pdf)?.state === "NOT_REQUESTED" ? "Vytvořit PDF" : "Vytvořit PDF znovu"}
             </Button>
           ) : null}
-          {approvable && !approved && mayReview ? (
+          {/* The internal and client reports are approved on the document being read, in the pane's
+              doc bar (RPT3a); the report with literature, which the pane does not read, here. */}
+          {/* Where a draft without its own button here is approved: said, so it never looks unapprovable. */}
+          {version === "internal" && !withReview && approvable && !approved && mayReview ? (
+            <p data-approve-where className="text-xs leading-4 text-ink-muted">{t("research.exec.results.reportApproveWhere")}</p>
+          ) : null}
+          {withReview && approvable && !approved && mayReview ? (
             <Button className="!min-h-11 justify-center" disabled={busy} onClick={askApproval}>
-              {t(version === "client" ? "research.exec.results.reportApproveClient" : "research.exec.results.reportApprove")}
+              {t("research.exec.results.reportApprove")}
             </Button>
           ) : null}
           {/* What the downloaded file is, visible before it is downloaded: the same lines it prints. */}

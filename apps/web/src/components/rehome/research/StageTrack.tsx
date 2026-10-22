@@ -14,6 +14,7 @@ import { t } from "@/i18n/t";
 import { research, type ResearchRun } from "@/lib/api";
 import { pollMs, shouldPoll } from "@/lib/research-execution";
 import { type LaneStage, type LaneTone, designLane, runLane } from "@/research/lane";
+import { readySetLimits, useSampleLimits } from "./useSampleLimits";
 import type { ResearchState } from "@/research/store";
 import type { StepKey } from "@/research/steps";
 import { Icon } from "../icons";
@@ -92,7 +93,8 @@ export function StageTrack({ studyId, state, current, stepHref }: {
   stepHref: (step: StepKey) => string;
 }) {
   const runs = useRuns(studyId, current);
-  const lane: Partial<Record<StepKey, LaneStage>> = { ...(state ? designLane(state) : {}), ...runLane(runs) };
+  const setLimits = readySetLimits(useSampleLimits(studyId));
+  const lane: Partial<Record<StepKey, LaneStage>> = { ...(state ? designLane(state, setLimits) : {}), ...runLane(runs) };
   const list = useRef<HTMLOListElement>(null);
   useEffect(() => {
     const track = list.current;
