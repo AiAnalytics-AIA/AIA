@@ -128,5 +128,6 @@ def test_an_attached_workbook_declaring_a_dtd_has_no_text(monkeypatch: pytest.Mo
 
     opened: list[object] = []
     monkeypatch.setattr(openpyxl, "load_workbook", lambda *a, **k: opened.append(a))
-    assert extract_text(_xlsx_with_entity(), "brief.xlsx") == ""
+    for sheet in ("xl/worksheets/sheet1.xml", "xl/s.bin"):
+        assert extract_text(_xlsx_with_entity(sheet), "brief.xlsx") == ""
     assert opened == []

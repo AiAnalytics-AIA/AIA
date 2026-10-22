@@ -107,15 +107,17 @@ def _docx(data: bytes) -> str:
 
 
 def _refuse_dtd_in_parts(data: bytes) -> None:
-    """``refuse_dtd`` over every XML part of an Office ZIP, before openpyxl parses any.
+    """``refuse_dtd`` over every member of an Office ZIP, before openpyxl parses any.
 
     Without defusedxml (not installed) openpyxl parses with expat, which expands a
-    part's internal entities. The parts are bounded already (the ZIP checks).
+    part's internal entities. Every member, whatever its name: openpyxl finds a part by
+    its content type and relationship, so a worksheet can be stored as ``xl/s.bin``. A
+    member that is not XML fails expat at its first bytes and passes through. The
+    members are bounded already (the ZIP checks).
     """
     with zipfile.ZipFile(io.BytesIO(data)) as archive:
         for info in archive.infolist():
-            if info.filename.endswith((".xml", ".rels")):
-                refuse_dtd(archive.read(info))
+            refuse_dtd(archive.read(info))
 
 
 def _xlsx(data: bytes) -> str:

@@ -194,8 +194,12 @@ def test_a_dtd_is_refused_in_whatever_encoding_the_part_declares(encoding: str) 
     assert not reading.segments
 
 
-def _xlsx_with_entity() -> bytes:
-    """A workbook whose one cell is an entity its sheet's own DTD declares."""
+def _xlsx_with_entity(sheet: str = "xl/worksheets/sheet1.xml") -> bytes:
+    """A workbook whose one cell is an entity its sheet's own DTD declares.
+
+    ``sheet`` renames the worksheet part (its content type and relationship follow): a
+    part can be named anything, and openpyxl finds it by those, not by its extension.
+    """
     from openpyxl import Workbook
 
     book = Workbook()
@@ -213,7 +217,13 @@ def _xlsx_with_entity() -> bytes:
                 data = b'<!DOCTYPE w [<!ENTITY a "AAAA"><!ENTITY b "&a;&a;&a;&a;">]>' + (
                     data.replace(b"PLACEHOLDER", b"&b;")
                 )
-            target.writestr(info, data)
+            name = info.filename
+            if name == "xl/worksheets/sheet1.xml":
+                name = sheet
+            elif name in ("[Content_Types].xml", "xl/_rels/workbook.xml.rels"):
+                data = data.replace(b"/xl/worksheets/sheet1.xml", ("/" + sheet).encode())
+                data = data.replace(b"worksheets/sheet1.xml", sheet.removeprefix("xl/").encode())
+            target.writestr(name, data)
     return out.getvalue()
 
 
@@ -227,9 +237,10 @@ def test_a_workbook_part_declaring_a_dtd_is_refused_before_openpyxl_parses_it(
 
     opened: list[object] = []
     monkeypatch.setattr(openpyxl, "load_workbook", lambda *a, **k: opened.append(a))
-    reading = read_source(_xlsx_with_entity(), "a.xlsx")
-    assert (reading.outcome, reading.reason) == (ReadingOutcome.REFUSED, "document_malformed")
-    assert not reading.segments
+    for sheet in ("xl/worksheets/sheet1.xml", "xl/s.bin", "xl/worksheets/sheet1"):
+        reading = read_source(_xlsx_with_entity(sheet), "a.xlsx")
+        assert (reading.outcome, reading.reason) == (ReadingOutcome.REFUSED, "document_malformed")
+        assert not reading.segments
     assert opened == []
 
 
