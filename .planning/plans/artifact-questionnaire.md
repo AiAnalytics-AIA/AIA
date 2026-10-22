@@ -298,9 +298,12 @@ above both labels, the labels on one row, each at its end (36 px apart verticall
 *Finding QF-12 (browser audit 2, 2026-10-22):* the topic and market research card on Dotazník is
 half English ("hluboký research", "price/value", "Outcome benchmarky", "Existing research") and
 promises a model choice and an explicit update the panel does not offer (`cs.ts:2236-2241 @ 9607ee09`).
-Fix: the card is "Před uzavřením dotazníku", its intro in Czech, saying only what holds: AIA itself
-never shows respondents a finding's outcome numbers (the leakage rule); the line promising a model
-choice and an update is gone, with the four unused half-English keys beside it. Test: `QuestionnaireStep.test.tsx`.
+Its intro also kept 18.6.6's topic list (motivations, barriers, competition, price, segments, foreign
+markets), which no Design Research track researches. Fix: the card is "Před uzavřením dotazníku", its
+intro in Czech, saying only what holds: the research looks into the study's research questions and
+tracked objects, in approved client knowledge and on the web (`deep_research/contracts.py` `SubjectKind`,
+`Channel`), and AIA itself never shows respondents a finding's outcome numbers (the leakage rule); the
+line promising a model choice and an update is gone, with the four unused half-English keys beside it. Test: `QuestionnaireStep.test.tsx`.
 
 *Finding QF-14 (browser audit 2, 2026-10-22):* the respondent preview numbers its items with
 18.6.6's running count over questions and sets, so after four questions the set reads "Sledovaná sada 5"

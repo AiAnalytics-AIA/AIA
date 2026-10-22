@@ -251,9 +251,12 @@ describe("Dotazník", () => {
     unitStub({ ...BRIEF, sections: SECTIONS, ui_state: { questionnaire_path: "manual" } });
     render(<ResearchScreen step="questionnaire" frame={TEST_FRAME} />);
     const section = await screen.findByRole("region", { name: "Před uzavřením dotazníku" });
-    expect(within(section).getByText(/^Volitelně si nechte udělat hlubokou rešerši tématu a trhu: .* AIA respondentům sama nikdy neukáže\.$/)).toBeTruthy();
-    // The browser audit: half English, and a model choice and an update the panel does not offer.
-    expect(section.textContent).not.toMatch(/research tématu|price\/value|Outcome|Existing|zvolený model|aktualizovat/);
+    // What Design Research looks into: the study's research questions and tracked objects, in approved
+    // client knowledge and on the web (deep_research/contracts.py SubjectKind, Channel).
+    expect(within(section).getByText("Volitelně si nechte udělat rešerši výzkumných otázek a sledovaných objektů studie ve schválených znalostech klienta a na webu. Čísla o výsledcích, která rešerše najde, AIA respondentům sama nikdy neukáže.")).toBeTruthy();
+    // The browser audit: half English, a model choice and an update the panel does not offer, and
+    // 18.6.6's topic list, which no track researches.
+    expect(section.textContent).not.toMatch(/research tématu|price\/value|Outcome|Existing|zvolený model|aktualizovat|motivace|konkurence/);
   });
 
   it("numbers the respondent's preview as the editor does, questions and sets each on their own", async () => {

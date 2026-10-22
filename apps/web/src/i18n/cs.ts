@@ -2234,7 +2234,7 @@ export const cs = {
       outputLabel: "Výstup:",
       outputText: "společný dataset + samostatná analýza této sady + mapa položek, když sada projde Kontrolou a odpovědí na mapu bude dost.",
       finalTitle: "Před uzavřením dotazníku",
-      finalIntro: "Volitelně si nechte udělat hlubokou rešerši tématu a trhu: ČR, srovnatelné zahraniční trhy, odborné a akademické studie, motivace, bariéry, konkurence, cena a hodnota, segmenty a mezery v dostupných datech. Čísla o výsledcích, která rešerše najde, AIA respondentům sama nikdy neukáže.",
+      finalIntro: "Volitelně si nechte udělat rešerši výzkumných otázek a sledovaných objektů studie ve schválených znalostech klienta a na webu. Čísla o výsledcích, která rešerše najde, AIA respondentům sama nikdy neukáže.",
       done: "Dotazník mám → Koho se ptát",
       failedTitle: "AI krok se nedokončil",
       next: "Další · cílová skupina",
