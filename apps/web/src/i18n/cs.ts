@@ -2393,7 +2393,6 @@ export const cs = {
       waiting: "{label} · čeká na schválení",
       sampleTag: "DOPORUČENÁ VELIKOST",
       sampleTitle: "Vzorek",
-      sampleChip: "N={n}",
       sampleLabel: "Počet respondentů",
       sampleUse: "Použít doporučené N={n}",
       factorsTag: "FAKTORY SPOLEČNOSTI",

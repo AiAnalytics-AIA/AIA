@@ -308,6 +308,15 @@ describe("Dimenze", () => {
     expect((screen.getByRole("button", { name: "Použít doporučené N=300" }) as HTMLButtonElement).disabled).toBe(true);
   }, 20_000);
 
+  it("the sample: the heading names no n but the stored one, so the recommendation is never read as it", async () => {
+    aiaStub({ ...PLANNED, n: 600 });
+    render(<ResearchScreen step="persona" frame={TEST_FRAME} />);
+    const card = (await screen.findByRole("heading", { name: "Vzorek" })).closest("section") as HTMLElement;
+    await waitFor(() => expect(within(card).getByRole("spinbutton", { name: "Počet respondentů" }).getAttribute("aria-valuenow")).toBe("600"));
+    expect(within(card).queryByText("N=300")).toBeNull();
+    expect(within(card).getByRole("button", { name: "Použít doporučené N=300" })).toBeTruthy();
+  }, 20_000);
+
   it("the sample: a stored n the limits in force no longer admit is said, not shown as fine", async () => {
     aiaStub({ ...PLANNED, n: 300 }, { [LIMITS_PATH]: () => ({ ...LIMITS, version: 2, sample_size: { min: 500, max: 1000 } }) });
     render(<ResearchScreen step="persona" frame={TEST_FRAME} />);

@@ -133,6 +133,11 @@ V2: `DimensionsArt` (`SampleStages.tsx:206-230`).
   as a drawer or sheet (`AskLead.tsx:28 @ bfe6d15`; seen at 390 px on Dimenze). #647 makes it "v
   konverzaci s ním (na užší obrazovce ji otevře tlačítko Vedoucího)".
 
+- **DIM-F3 (fixed in the DIM3 PR).** The Vzorek card's heading showed "N=300", which is the
+  recommendation, beside a stepper holding the stored n (600 in the audit at 1440 px), so it read as
+  the current n (`PersonaStep.tsx:323 @ b6ac25c`). The chip is gone, and the recommendation is named
+  only on its button. Test: "the heading names no n but the stored one".
+
 ## 8. Owner questions
 
 None new. MVPQ-03 (what a segment or descriptor is) stays open in `mvp-owner-decisions.md`.

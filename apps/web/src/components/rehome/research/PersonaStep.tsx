@@ -318,10 +318,7 @@ export function PersonaStep() {
         ) : null}
 
         <section aria-labelledby="per-sample" className="rounded-card border border-border bg-surface-raised p-4">
-          <div className="flex items-center justify-between gap-2">
-            <h2 id="per-sample" className="text-sm font-semibold">{t("research.persona.sampleTitle")}</h2>
-            <span className="font-mono text-xs text-ink-muted">{tv("research.persona.sampleChip", { n: r.n })}</span>
-          </div>
+          <h2 id="per-sample" className="text-sm font-semibold">{t("research.persona.sampleTitle")}</h2>
           <div className="mt-3" data-aia={aiaId("sample", "n")}>
             {limits ? (
               <Stepper
