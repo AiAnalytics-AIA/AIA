@@ -69,13 +69,13 @@ from .edit_ops import (
     refusal,
 )
 from .item_ids import SIDECAR_KEYS
-from .licence import DataLineage
 from .material_rules import MaterialRule, classify_by_rule, rule_class
 from .population.subpanels import BUILTIN_SUBPANELS
 from .prompts import PromptPin
 from .research_agents import (
     FIXED_PREFIX,
     ResearchAction,
+    knowledge_lineage,
     prompt_class_source,
     prompt_data_class,
 )
@@ -998,9 +998,7 @@ def lead_request(
     system = lead_prompt(prompt.text)
     message = model_message(context)
     knowledge = layer(context, "knowledge")["items"]
-    lineage = DataLineage.none()
-    if any(k.get("kind") in {"DATASET", "ARTIFACT", "FINDING"} for k in knowledge):
-        lineage = DataLineage.of("unclassified-client-knowledge")
+    lineage = knowledge_lineage(knowledge)
     return ModelRequest(
         agent=AgentDefinition(
             agent_id=LEAD_AGENT_ID,

@@ -182,6 +182,7 @@ try {
   }
   check("the workbench at 1280 and 1100 (split), 1099 and 768 (drawer), 390 (sheet), no overflow, one h1, room for the save state");
 
+
   // A resize across 1100 px remounts nothing: the stage's and the conversation's own DOM nodes,
   // tagged before, are the same nodes after crossing both ways (a remount makes new ones).
   await page.setViewportSize({ width: 1440, height: 900 });
@@ -213,7 +214,9 @@ try {
     await shot(`${width}-lead-open`);
     await page.keyboard.press("Escape");
     await dialog.waitFor({ state: "hidden" });
-    assert.equal(await page.evaluate(() => document.activeElement?.hasAttribute("data-lead-launcher")), true, `focus back on the launcher @${width}`);
+    // The launcher takes the focus a frame after the drawer hides (moveFocus): waited for, not raced.
+    await page.waitForFunction(() => document.activeElement?.hasAttribute("data-lead-launcher"), null, { timeout: 5000 })
+      .catch(() => assert.fail(`focus back on the launcher @${width}`));
   }
   check("the launcher opens the Lead at 1024 and 390; Escape closes it to the launcher");
 
@@ -305,12 +308,17 @@ try {
     // Read only: no editable surface of any kind, and every button one of its navigation links.
     const editable = "input, select, textarea, [contenteditable]:not([contenteditable='false']), [role=slider], [role=spinbutton], [role=textbox], [role=checkbox], [role=radio], [role=switch], [role=combobox]";
     assert.equal(await sample.locator(editable).count(), 0, `Vzorek has no editable control @${width}`);
-    const NAVIGATION = new Set(["Upravit v Dimenzích", "Upravit cílovou skupinu", "Sociomapa", "Změnit ve Spuštění", "Ověřit v Kontrole a spuštění"]);
+    // The section links, the stage each readiness check is fixed on, and the way on to Sběr dat.
+    const NAVIGATION = new Set(["Upravit v Dimenzích", "Upravit cílovou skupinu", "Sociomapa", "Změnit ve Spuštění", "Pokračovat na Sběr dat", "Dimenze", "Cílová skupina", "Dotazník"]);
     const buttons = (await sample.locator("button, [role=button]").allInnerTexts()).map((b) => b.trim());
     assert.deepEqual(buttons.filter((b) => !NAVIGATION.has(b)), [], `Vzorek's buttons only navigate @${width}`);
     for (const id of ["sample:size", "sample:n", "sample:forecast", "sample:forecast:support", "sample:forecast:outlook"]) {
       assert.equal(await sample.locator(`[data-aia="${id}"]`).count(), 1, `${id} @${width}`);
     }
+    // Připravenost ke spuštění (SMP4): the server's checks on the working copy, each its own target.
+    const ready = page.getByRole("region", { name: "Připravenost ke spuštění" });
+    await ready.locator('[data-aia^="sample:ready:"]').first().waitFor({ timeout: 30000 });
+    assert.equal(await ready.getByText("nepodařilo načíst").count(), 0, `Vzorek's readiness read @${width}`);
     await noOverflow(`sample @${width}`);
     await sample.screenshot({ path: join(out, `${width}-sample.png`) });
   }
@@ -318,9 +326,9 @@ try {
   assert.equal(writes.filter((w) => /\/design\/revisions$/.test(w.path)).length, submitsBefore, "a Vzorek visit submits no design");
   // Its links open the stages where things are set.
   await page.setViewportSize({ width: 1440, height: 900 });
-  await page.getByRole("button", { name: "Ověřit v Kontrole a spuštění" }).click();
+  await page.getByRole("button", { name: "Pokračovat na Sběr dat" }).click();
   await page.locator(".nav__stage.is-current", { hasText: "Sběr dat" }).waitFor();
-  check("Vzorek: size and the server's forecast on the working copy at 1440, 1100, 768 and 390, nothing submitted, read only, no overflow; Spuštění one click away");
+  check("Vzorek: size, the server's forecast and readiness on the working copy at 1440, 1100, 768 and 390, nothing submitted, read only, no overflow; Sběr dat one click away");
 
   // Spuštění (artifact-fieldwork F-FLD-3, F-FLD-4, F-FLD-5): every link of the stage is the input
   // standard's touch target (44 px at a phone's width, 32 px from 640 px; I11), and "Co spustíte"
@@ -350,6 +358,17 @@ try {
     await shot(`${width}-run`);
   }
   check("Spuštění's links are touch targets, Co spustíte stacks on a phone, at 1440, 1100, 768 and 390, no overflow");
+
+  // The stages' docks name no classic step: the navigator names the neighbours (DIM-F4). Last,
+  // because a visit to Návrh submits a Design Revision that Vzorek's forecast then reads (WCE7b).
+  for (const slug of ["plan", "questionnaire", "audience", "dimensions"]) {
+    await page.goto(base + stagePath(slug));
+    await page.locator("[data-workbench]").waitFor();
+    await page.locator("#artbody").getByRole("button").first().waitFor({ timeout: 60000 });
+    const classic = await page.locator("#artbody a").evaluateAll((as) => as.map((a) => a.textContent?.trim() ?? "").filter((t) => /^\d\. /.test(t)));
+    assert.deepEqual(classic, [], `${slug}: no classic "N. stage" link in the artifact`);
+  }
+  check("no stage's dock names a classic step inside the workbench");
 
   const paid = writes.filter((w) => /\/research\/runs$|\/agent-jobs$|\/deep-research\/runs|\/lead\/turns\/[^/]+\/request$/.test(w.path));
   assert.deepEqual(paid, [], "nothing paid started");

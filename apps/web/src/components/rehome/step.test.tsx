@@ -2,7 +2,7 @@
 import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
-import { ActionDock, ChipInput, InlineConfirm, RadioCard, Segmented, StepSection, Switch } from "./step";
+import { ActionDock, ChipInput, FrameNavigation, InlineConfirm, RadioCard, Segmented, StepSection, Switch } from "./step";
 
 afterEach(cleanup);
 
@@ -20,6 +20,14 @@ describe("Studio v3 step pieces", () => {
     render(<ActionDock back={{ href: "/zpet", label: "Zpět" }} ready={false} note="Chybí cíl"><button>Další</button></ActionDock>);
     expect(screen.getByRole("link", { name: "Zpět" }).getAttribute("href")).toBe("/zpet");
     expect(screen.getByText("Chybí cíl").className).toContain("text-status-you-ink");
+    expect(screen.getByRole("button", { name: "Další" })).toBeTruthy();
+  });
+
+  it("ActionDock leaves its back link to a frame that names the neighbouring stages itself", () => {
+    // The workbench's navigator calls the stages otherwise and orders them otherwise (DIM-F4).
+    render(<FrameNavigation.Provider value><ActionDock back={{ href: "/audience", label: "4. Audience" }} note="Připraveno"><button>Další</button></ActionDock></FrameNavigation.Provider>);
+    expect(screen.queryByRole("link", { name: "4. Audience" })).toBeNull();
+    expect(screen.getByText("Připraveno")).toBeTruthy();
     expect(screen.getByRole("button", { name: "Další" })).toBeTruthy();
   });
 

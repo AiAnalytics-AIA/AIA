@@ -6,7 +6,7 @@
 // step and src/research. Token utilities only, as in ui.tsx.
 
 import Link from "next/link";
-import { type KeyboardEvent, type ReactNode, useId, useRef, useState } from "react";
+import { createContext, type KeyboardEvent, type ReactNode, useContext, useId, useRef, useState } from "react";
 
 import { FOCUS, TOUCH } from "@/components/ui/parts";
 import { t } from "@/i18n/t";
@@ -63,6 +63,14 @@ export function StepSection({
  * ready in the middle, the one primary action on the right. It replaces each
  * step's bottom row; the action keeps the conditions it had there.
  */
+/**
+ * True inside a frame whose own navigator names the neighbouring stages (the research workbench,
+ * whose stages and their order are lib/workbench-stages.ts). A dock there leaves its back link out:
+ * the classic flow's "4. Audience" names a step the workbench calls otherwise, in another order.
+ * A stage reads it too, to send its forward action to the workbench's next stage.
+ */
+export const FrameNavigation = createContext(false);
+
 export function ActionDock({ back, note, ready = true, children }: {
   back?: { href: string; label: string };
   note?: ReactNode;
@@ -70,9 +78,10 @@ export function ActionDock({ back, note, ready = true, children }: {
   ready?: boolean;
   children: ReactNode;
 }) {
+  const framed = useContext(FrameNavigation);
   return (
     <div className="flex flex-wrap items-center gap-3 rounded-card border border-border bg-surface-raised px-3 py-2.5">
-      {back ? (
+      {back && !framed ? (
         <Link href={back.href} className={`inline-flex items-center gap-1.5 whitespace-nowrap rounded-sm text-sm text-ink-muted no-underline hover:text-ink ${TOUCH} ${FOCUS}`}>
           <Icon name="back" size={14} />
           {back.label}

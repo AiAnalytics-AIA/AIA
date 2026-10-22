@@ -6,7 +6,7 @@ import { afterEach, beforeEach, describe, expect, it, onTestFinished, vi } from 
 
 import { AGENTS_PATH, NATIVE_JOB_WAIT, NATIVE_TEST_TIMEOUT_MS, PARK_MESSAGE, approveProposal, nativeAgentFixture } from "./test-native-agents";
 import { briefFingerprint, defaultsMerge } from "@/research/model";
-import { GUIDED_PROMPT, PROMPT_SET_ITEMS, PROMPT_SET_TYPE, SET_SIZE, SET_TOO_SMALL } from "@/research/questionnaire";
+import { SET_TOO_SMALL } from "@/research/questionnaire";
 import { ResearchScreen } from "./ResearchScreen";
 import { type SavedBody, workspaceFixture } from "./test-workspace";
 import { TEST_FRAME, stagePath } from "./test-frame";
@@ -55,13 +55,6 @@ const posted = (path: string) => calls.filter((c) => c.url.split("?")[0] === pat
 const unitCalls = () => calls.filter((c) => !c.url.startsWith("/api/v1/") && c.url !== "/config").map((c) => c.url);
 const lastSave = () => saves.at(-1) as unknown as { content: { sections: { questions?: { typ: string; kategorie?: string[] }[]; objects?: string[] }[]; ui_state: Record<string, unknown> }; reason: string };
 
-async function answerDialog(question: string, value: string | null) {
-  const form = (await screen.findByText(question)).closest("form") as HTMLFormElement;
-  if (value === null) return fireEvent.click(within(form).getByRole("button", { name: "Zrušit" }));
-  const input = within(form).queryByRole("textbox");
-  if (input) fireEvent.change(input, { target: { value } });
-  fireEvent.submit(form);
-}
 async function saved() {
   // The store saves 1.8 s after the last change; the test waits for that body.
   await waitFor(() => expect(saves.length).toBeGreaterThan(0));
@@ -280,17 +273,48 @@ describe("Dotazník", () => {
     await waitFor(() => expect((lastSave().content as unknown as { sections: { output_type?: string }[] }).sections[1].output_type).toBe("pozicni_mapa"));
   });
 
-  it("adds a guided question through the classic prompt, and refuses a set of three", async () => {
+  it("adds a question, a block and a set in their own rows, without a prompt (input-interactions I5)", async () => {
     unitStub({ ...BRIEF, sections: SECTIONS, ui_state: { questionnaire_path: "manual" } });
     render(<ResearchScreen step="questionnaire" frame={TEST_FRAME} />);
-    fireEvent.click(await screen.findByRole("button", { name: "Škála 1–10" }));
-    await answerDialog(GUIDED_PROMPT.scale, "Jak moc vám chutná?");
-    expect((await screen.findAllByText("Jak moc vám chutná?")).length).toBeGreaterThan(0);
-    expect(screen.getByRole("heading", { name: "3 otázky · 1 sledovaná sada" })).toBeTruthy();
+    await screen.findByRole("heading", { name: "2 otázky · 1 sledovaná sada" });
+    // Quick add: the kind as chips, the wording in the row; Enter adds it and opens the next row.
+    fireEvent.click(within(screen.getByRole("radiogroup", { name: "Typ nové otázky" })).getByRole("radio", { name: "Škála 1–10" }));
+    fireEvent.click(screen.getByRole("button", { name: "Nová otázka" }));
+    const row = screen.getByRole("textbox", { name: "Nová otázka" });
+    fireEvent.change(row, { target: { value: "Jak moc vám chutná?" } });
+    fireEvent.keyDown(row, { key: "Enter" });
+    await screen.findByRole("heading", { name: "3 otázky · 1 sledovaná sada" });
+    expect(screen.getByRole("textbox", { name: "Nová otázka" })).toBeTruthy();
+    await saved();
+    await waitFor(() => expect(lastSave().content.sections[0].questions!.at(-1)).toMatchObject({ typ: "skala" }));
+    // A set named in its row opens with its objects still to add, the count beside them.
     fireEvent.click(screen.getByRole("button", { name: "Sledovaná sada" }));
-    await answerDialog(PROMPT_SET_TYPE, "značky");
-    await answerDialog(PROMPT_SET_ITEMS, "A, B, C");
-    expect(await screen.findByText(SET_SIZE)).toBeTruthy();
+    const set = screen.getByRole("textbox", { name: "Sledovaná sada" });
+    fireEvent.change(set, { target: { value: "značky" } });
+    fireEvent.keyDown(set, { key: "Enter" });
+    await screen.findByRole("heading", { name: "3 otázky · 2 sledované sady" });
+    expect(screen.getByText("0 / 4–15")).toBeTruthy();
+    expect(screen.queryByRole("dialog")).toBeNull();
+    expect(screen.queryByRole("alertdialog")).toBeNull();
+  });
+
+  it("names a new block in its row, and adds a question into a block from the block's own row", async () => {
+    unitStub({ ...BRIEF, sections: SECTIONS, ui_state: { questionnaire_path: "manual" } });
+    render(<ResearchScreen step="questionnaire" frame={TEST_FRAME} />);
+    await screen.findByRole("heading", { name: "2 otázky · 1 sledovaná sada" });
+    fireEvent.click(screen.getByRole("button", { name: "Nový blok" }));
+    const name = screen.getByRole("textbox", { name: "Nový blok" });
+    fireEvent.change(name, { target: { value: "Úvod" } });
+    fireEvent.keyDown(name, { key: "Enter" });
+    await waitFor(() => expect(screen.getAllByDisplayValue("Úvod").length).toBeGreaterThan(0));
+    const block = document.getElementById("qblock_sec_a") as HTMLElement;
+    fireEvent.click(within(block).getByRole("button", { name: "Otázka do tohoto bloku" }));
+    const wording = within(block).getByRole("textbox", { name: "Otázka do tohoto bloku" });
+    fireEvent.change(wording, { target: { value: "Kolik šálků denně?" } });
+    fireEvent.keyDown(wording, { key: "Enter" });
+    await saved();
+    await waitFor(() => expect(lastSave().content.sections[0].questions!.map((q) => (q as { text?: string }).text)).toEqual(["Jak často?", "Jak moc?", "Kolik šálků denně?"]));
+    expect((lastSave().content.sections as { title?: string }[]).at(-1)?.title).toBe("Úvod");
   });
 
   it("notes a set under four objects, and removes a block only when confirmed", async () => {
