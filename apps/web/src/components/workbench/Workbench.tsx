@@ -38,6 +38,7 @@ import { blockers, designLane, runLane } from "@/research/lane";
 import { submitWorkingDesign, type ResearchState, type ResearchStore } from "@/research/store";
 import type { StepKey } from "@/research/steps";
 import type { StudyFrame } from "../rehome/research/frame";
+import { readySetLimits, useSampleLimits } from "../rehome/research/useSampleLimits";
 import { useRuns } from "../rehome/research/StageTrack";
 import { LeadAskContext } from "../rehome/research/AskLead";
 import { FrameNavigation } from "@/components/rehome/step";
@@ -193,7 +194,9 @@ export function Workbench({ frame, step, store, memory, save, inspector, reload,
   // Read again when the conversation starts a run, so its card follows it at once.
   const [runEpoch, setRunEpoch] = useState(0);
   const runs = useRuns(frame.studyId, step, runEpoch);
-  const lane = useMemo(() => ({ ...designLane(state), ...runLane(runs) }), [state, runs]);
+  // A tracked set judged by the readiness methodology in force, as compile judges it (#736).
+  const setLimits = readySetLimits(useSampleLimits(frame.studyId));
+  const lane = useMemo(() => ({ ...designLane(state, setLimits), ...runLane(runs) }), [state, runs, setLimits]);
   // What the working copy reopened since the newest run's design (before any run, the newest Design
   // Revision): the server's answer, unknown shown as nothing (working-copy-edit-ops WCE7d).
   const base = useMemo(() => impactBase(runs), [runs]);
@@ -632,7 +635,7 @@ export function Workbench({ frame, step, store, memory, save, inspector, reload,
     if (changed) reload();
   };
 
-  const blocked = blockers(state).length;
+  const blocked = blockers(state, setLimits).length;
   const flushBeforeMessage = useCallback(() => store.flush(), [store]);
   // A stage may send the Lead a message as the person would type it (Návrh's "Požádat Vedoucího").
   const leadSend = useRef<((text: string) => void) | null>(null);
