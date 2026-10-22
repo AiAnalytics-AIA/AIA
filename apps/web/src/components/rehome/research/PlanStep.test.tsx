@@ -408,9 +408,9 @@ describe("direct proposal editing", () => {
     fireEvent.click(screen.getByRole("button", { name: "Přidat hypotézu" }));
     const row = screen.getByRole("textbox", { name: "Přidat hypotézu" });
     fireEvent.change(row, { target: { value: "mírnější  varianta vyhraje" } });
-    fireEvent.keyDown(row, { key: "Enter" });
-    // In the words an edit in place says, never the row's name rules.
+    // As it is typed, in the words an edit in place says, never the row's name rules.
     expect(await screen.findByText("Tato položka už v seznamu je.")).toBeTruthy();
+    fireEvent.keyDown(row, { key: "Enter" });
     expect(screen.queryByText(/už existuje/)).toBeNull();
     fireEvent.change(row, { target: { value: "  " } });
     fireEvent.keyDown(row, { key: "Enter" });
