@@ -256,27 +256,12 @@ const collapsed = (x: unknown) => String(x ?? "").replace(PY_SPACE, " ").replace
  * "Nevím / neodpovím" when it is allowed. A null condition (none) stands on any stored question.
  */
 export function conditionRefusal(p: ResearchProject, questionId: string, condition: ConditionValue | null): ConditionRefusal | null {
-  const order: string[] = [];
-  const earlier: { id: string; typ: string; options: string[] }[] = [];
-  let at = -1;
-  const isObj = (x: unknown): x is Record<string, unknown> => !!x && typeof x === "object" && !Array.isArray(x);
-  for (const sec of (Array.isArray(p.sections) ? p.sections : []) as unknown[]) {
-    if (!isObj(sec) || collapsed(sec.type || "questions") !== "questions") continue;
-    for (const q of Array.isArray(sec.questions) ? sec.questions : []) {
-      const stored = isObj(q) ? collapsed(q.id) : "";
-      order.push(stored);
-      if (at < 0 && stored === questionId) at = order.length - 1;
-      else if (at < 0 && isObj(q) && stored) {
-        const typ = collapsed(q.typ || "vyber");
-        const cats = q.kategorie || q.volby;
-        let options = typ === "vyber" || typ === "multi" ? [...new Set((Array.isArray(cats) ? cats : []).map(collapsed).filter(Boolean))].slice(0, 24) : [];
-        if (options.length && q.povolit_nevim) options = [...options, DONT_KNOW];
-        earlier.push({ id: stored, typ, options });
-      }
-    }
-  }
+  const asked = askedInOrder(p);
+  const order = asked.map((a) => a.id);
+  const at = order.indexOf(questionId);
   if (at < 0) return "unknown_question";
   if (condition === null) return null;
+  const earlier = asked.slice(0, at).filter((a) => a.id);
   const ref = typeof condition.question_id === "string" ? collapsed(condition.question_id) : "";
   const wanted = Array.isArray(condition.options) ? condition.options : [];
   if (!ref || !wanted.length || !wanted.every((o) => typeof o === "string" && collapsed(o))) return "condition_unstructured";
@@ -286,6 +271,141 @@ export function conditionRefusal(p: ResearchProject, questionId: string, conditi
   const target = named[0]!;
   if (target.typ !== "vyber" && target.typ !== "multi") return "condition_not_choice";
   return wanted.every((o) => target.options.includes(collapsed(o))) ? null : "condition_unknown_option";
+}
+
+type Asked = { id: string; text: string; typ: string; options: string[]; at: [number, number]; number: number | null };
+const isObj = (x: unknown): x is Record<string, unknown> => !!x && typeof x === "object" && !Array.isArray(x);
+/** Python's truthiness, as the compiler reads `x or default`: an empty list or object is false too. */
+const pyTrue = (x: unknown) => !(x == null || x === false || x === 0 || x === "" || (Array.isArray(x) && !x.length) || (isObj(x) && !Object.keys(x).length));
+const isChoice = (a: Asked) => (a.typ === "vyber" || a.typ === "multi") && a.options.length > 0;
+
+/** Every entry of the questions sections, in order, as the compiler reads a question for a
+ * condition (id "" for what is no question): research_design.py `condition_refusal`. Each keeps its
+ * place and the number Dotazník gives it (null in a section Dotazník does not draw as questions). */
+function askedInOrder(p: ResearchProject): Asked[] {
+  const asked: Asked[] = [];
+  let shown = 0;
+  const xs = (Array.isArray(p.sections) ? p.sections : []) as unknown[];
+  xs.forEach((sec, si) => {
+    if (!isObj(sec) || collapsed(pyTrue(sec.type) ? sec.type : "questions") !== "questions") return;
+    const numbered = sec.type === "questions";
+    (Array.isArray(sec.questions) ? sec.questions : []).forEach((q: unknown, qi: number) => {
+      const number = numbered ? ++shown : null;
+      if (!isObj(q)) {
+        asked.push({ id: "", text: "", typ: "", options: [], at: [si, qi], number });
+        return;
+      }
+      const typ = collapsed(pyTrue(q.typ) ? q.typ : "vyber");
+      const cats = pyTrue(q.kategorie) ? q.kategorie : q.volby;
+      let options = typ === "vyber" || typ === "multi" ? [...new Set((Array.isArray(cats) ? cats : []).map(collapsed).filter(Boolean))].slice(0, 24) : [];
+      if (options.length && pyTrue(q.povolit_nevim)) options = [...options, DONT_KNOW];
+      asked.push({ id: collapsed(q.id), text: collapsed(q.text), typ, options, at: [si, qi], number });
+    });
+  });
+  return asked;
+}
+
+/** An earlier question a condition may stand on: its stored id, Dotazník's number, wording, answers. */
+export type ConditionSource = { id: string; number: number | null; text: string; options: string[] };
+/** A question's display condition as Dotazník shows it. */
+export type ConditionState =
+  | { kind: "none" }
+  | { kind: "set"; source: ConditionSource; options: string[] }
+  | { kind: "refused"; reason: ConditionRefusal }
+  | { kind: "unread"; stored: string };
+
+/**
+ * The condition of the question at `si`/`qi`, and the questions a new one may stand on (`sources`):
+ * earlier selection questions with answers, each the only question under its id and numbered on
+ * Dotazník, so nothing else is offered (any other is refused by `conditionRefusal`). None are
+ * offered when the question's own id is not its alone: `route_set` names a question by id. A
+ * condition in the design's form is held to `conditionRefusal`; any other shape (an 18.6.6
+ * expression) is shown as stored, never read here.
+ */
+export function conditionOf(p: ResearchProject, si: number, qi: number): { state: ConditionState; sources: ConditionSource[] } {
+  const asked = askedInOrder(p);
+  const at = asked.findIndex((a) => a.at[0] === si && a.at[1] === qi);
+  const counts = new Map<string, number>();
+  for (const a of asked) counts.set(a.id, (counts.get(a.id) ?? 0) + 1);
+  const self = at < 0 ? null : asked[at]!;
+  const source = (a: Asked): ConditionSource => ({ id: a.id, number: a.number, text: a.text, options: a.options });
+  const sources = self?.id && counts.get(self.id) === 1 ? asked.slice(0, at).filter((a) => a.id && a.number !== null && isChoice(a) && counts.get(a.id) === 1).map(source) : [];
+  const q = self ? (sections(p)[si]?.questions || [])[qi] : undefined;
+  const stored = q ? questionCondition(q) : null;
+  if (!q || stored === null) return { state: { kind: "none" }, sources };
+  const raw: unknown = q.filtr;
+  if (typeof raw === "string") return { state: expressionState(asked, at, raw) ?? { kind: "unread", stored }, sources };
+  const options = isObj(raw) && Object.keys(raw).length === 2 && Array.isArray(raw.options) ? raw.options : null;
+  // read_condition refuses any other shape (not exactly these two keys, an answer not text).
+  if (!isObj(raw) || typeof raw.question_id !== "string" || !options?.every((o) => typeof o === "string")) return { state: { kind: "refused", reason: "condition_unstructured" }, sources };
+  const reason = self!.id ? conditionRefusal(p, self!.id, { question_id: raw.question_id, options }) : "unknown_question";
+  const target = asked.slice(0, at).find((a) => a.id === collapsed(raw.question_id));
+  if (reason || !target) return { state: { kind: "refused", reason: reason ?? "condition_unknown_question" }, sources };
+  return { state: { kind: "set", source: source(target), options: [...new Set(options.map(collapsed))] }, sources };
+}
+
+// research_design.py read_condition's two 18.6.6 forms, each answer one plain quoted literal:
+// Q1 == 'x' and Q1 in ['x', 'y'] (or a tuple). Stricter than Python's parser: what this does not
+// match is shown as written, never refused here.
+const GAP = String.raw`[ \t\f]*`;
+const LIT = String.raw`(?:'[^'\\\r\n]*'|"[^"\\\r\n]*")`;
+const LITS = String.raw`${LIT}(?:${GAP},${GAP}${LIT})*`;
+const EQ = new RegExp(String.raw`^([A-Za-z_]\w*)${GAP}==${GAP}(${LIT})$`);
+const IN = new RegExp(
+  String.raw`^([A-Za-z_]\w*)[ \t\f]+in${GAP}(\[${GAP}${LITS}${GAP},?${GAP}\]|\(${GAP}${LIT}${GAP},${GAP}\)|\(${GAP}${LIT}(?:${GAP},${GAP}${LIT})+${GAP},?${GAP}\))$`,
+);
+const PY_KEYWORDS = new Set(
+  "False None True and as assert async await break class continue def del elif else except finally for from global if import in is lambda nonlocal not or pass raise return try while with yield".split(" "),
+);
+const QUESTION_TYPES = new Set(["vyber", "multi", "skala", "otevrena"]);
+const PY_EDGE = new RegExp(`^(?:${PY_SPACE.source})|(?:${PY_SPACE.source})$`, "g");
+
+/** An 18.6.6 expression as research_design.py `read_condition` reads one, or null. */
+function readExpression(raw: string): { ref: string; options: string[] } | null {
+  // Python's parser refuses a NUL byte anywhere.
+  if (raw.length > 2000 || raw.includes("\0")) return null;
+  const text = raw.replace(PY_EDGE, "");
+  const m = EQ.exec(text) ?? IN.exec(text);
+  if (!m || PY_KEYWORDS.has(m[1]!)) return null;
+  const options = [...m[2]!.matchAll(/'([^']*)'|"([^"]*)"/g)].map((x) => collapsed(x[1] ?? x[2]));
+  return options.every(Boolean) ? { ref: m[1]!, options: [...new Set(options)] } : null;
+}
+
+/** research_design.py `_slug`: a stored id as the compiler names the question. */
+function slug(id: string): string {
+  const s = id.normalize("NFKD").replace(/[^\x00-\x7f]/g, "").toLowerCase().replace(/[^a-z0-9]+/g, "_").replace(/^_+|_+$/g, "");
+  return !s ? "q" : /^\d/.test(s) ? `q_${s}` : s;
+}
+
+/**
+ * An expression condition judged as compile judges it (`_condition` with `_named`'s expression
+ * rule: the stored id exactly, else case-insensitively, else the compiled id), or null where the
+ * web cannot know the server's answer: an expression it does not read, a non-ASCII id (Python
+ * folds case otherwise), or a name only a compiled id could match.
+ */
+function expressionState(asked: Asked[], at: number, raw: string): ConditionState | null {
+  const read = readExpression(raw);
+  if (!read || at < 0 || asked.some((a) => /[^\x00-\x7f]/.test(a.id))) return null;
+  const fold = read.ref.toLowerCase();
+  const earlier = asked.slice(0, at).filter((a) => a.id);
+  const later = asked.slice(at).map((a) => a.id).filter(Boolean);
+  const exact = earlier.filter((a) => a.id === read.ref);
+  const named = exact.length ? exact : earlier.filter((a) => a.id.toLowerCase() === fold);
+  // The compiler names only questions it compiled; one it refuses (no text, an unknown type, a
+  // choice of fewer than two) stops the compile, and the condition gets no verdict there.
+  const compiles = (a: Asked) => a.text && QUESTION_TYPES.has(a.typ) && (!["vyber", "multi"].includes(a.typ) || a.options.filter((o) => o !== DONT_KNOW).length >= 2);
+  if (earlier.some((a) => a.id.toLowerCase() === fold && !compiles(a))) return null;
+  const refused = (reason: ConditionRefusal): ConditionState => ({ kind: "refused", reason });
+  if (!named.length) {
+    const compiled = asked.slice(0, at).some((a) => !a.id || slug(a.id) === fold || fold.startsWith(`${slug(a.id)}_`));
+    if (compiled) return null;
+    return refused(later.includes(read.ref) ? "condition_forward_reference" : "condition_unknown_question");
+  }
+  if (named.length > 1 || later.some((id) => id.toLowerCase() === fold)) return refused("condition_ambiguous_question");
+  const target = named[0]!;
+  if (target.typ !== "vyber" && target.typ !== "multi") return refused("condition_not_choice");
+  if (!read.options.every((o) => target.options.includes(o))) return refused("condition_unknown_option");
+  return { kind: "set", source: { id: target.id, number: target.number, text: target.text, options: target.options }, options: read.options };
 }
 
 /** The question asked of everyone: its condition removed, nothing else changed (PC15). */

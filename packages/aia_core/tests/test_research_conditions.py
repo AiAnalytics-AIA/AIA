@@ -10,6 +10,8 @@ valid one too (conditional_questions).
 from __future__ import annotations
 
 import copy
+import json
+from pathlib import Path
 from typing import Any
 
 import pytest
@@ -255,3 +257,31 @@ def test_an_edit_is_held_to_the_compilers_own_rule(
 
 def test_an_edit_on_no_stored_question_is_refused() -> None:
     assert condition_refusal(_design(), "Q9", None) == "unknown_question"
+
+
+EXPRESSIONS = json.loads(
+    (Path(__file__).parent / "fixtures" / "conditions" / "expressions.json").read_text("utf-8")
+)["cases"]
+
+
+@pytest.mark.parametrize("case", EXPRESSIONS, ids=[c["name"] for c in EXPRESSIONS])
+def test_an_expression_reads_as_dotaznik_shows_it(case: dict[str, Any]) -> None:
+    """The shared case file Dotazník is held to (questionnaire-conditions.test.ts): where it
+    decides, its verdict is the compiler's; where it shows a condition as written, the case says
+    what the compiler makes of it, so the file cannot go stale."""
+    content = {"title": "Fiktivní", "n": 300, "sections": [
+        {"id": "uvod", "type": "questions", "questions": case["questions"]}]}  # fmt: skip
+    expect = case["expect"].get("server", case["expect"])
+    spec, problems = compile_design(content)
+    if expect["kind"] == "no_compile":
+        assert spec is None and problems
+        return
+    assert problems == () and spec is not None
+    q2 = spec.questions[[q["id"] for q in case["questions"]].index("Q2")]
+    if expect["kind"] == "set":
+        assert q2.condition == SpecCondition(
+            question_id=expect["question_id"].lower(), options=tuple(expect["options"])
+        )
+    else:
+        assert expect["kind"] == "refused"
+        assert q2.condition_problem is not None and q2.condition_problem.code == expect["reason"]

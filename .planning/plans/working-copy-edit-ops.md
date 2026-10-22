@@ -229,6 +229,25 @@ conditional question fails readiness exactly as today.
   Lead's `applyLeadEdit` beside it, `WorkingEdit`), held to the server by the shared case file's
   route_set cases. Tests: `test_edit_ops.py`, `test_research_conditions.py`,
   `edit-ops.cases.test.ts`.
+- *(c) Progress (feature/wce13-condition-editor):* the condition is edited at its question on
+  Dotazník (`components/rehome/research/QuestionCondition.tsx`), read by the question's place
+  (`research/questionnaire.ts` `conditionOf`). "Podmínka zobrazení" opens a form offering only what
+  a condition may stand on: earlier choice questions with answers, each the only question under its
+  id and numbered as Dotazník numbers them; nothing when the question's own id is shared, as
+  `route_set` names it by id. Their answers are chips; "Uložit podmínku" writes through `applyEdit`'s
+  `route_set`, and a refusal (the copy moved under the form) is said in the form, which stays open.
+  A condition in the design's form reads as a sentence (who is asked, after which answers) with
+  why the run still refuses it; one the rule refuses says why in the server's words
+  (`EDIT_REFUSAL_WORDS`) and can be set again; an 18.6.6 expression is shown as stored. "Odebrat
+  podmínku" removes it by the question's place. An 18.6.6 expression in the two forms the compiler
+  reads (`Q1 == 'x'`, `Q1 in [...]`) is judged as compile judges it (`readExpression`,
+  `expressionState`), held to the compiler by `tests/fixtures/conditions/expressions.json`; where
+  the web cannot know the server's answer (another form, a name only a compiled id matches) it is
+  shown as written, with no claim either way. Setting or editing one is behind the switch (d)
+  reads, `AIA_ROUTING_ENABLED`, through /config's `routing` (off: a stored condition is shown and
+  can be removed). Tests: `QuestionnaireStep.test.tsx`,
+  `questionnaire-conditions.test.ts`; `questionnaire_journey.mjs` sets, reads back and removes one
+  at 1440, 1100, 768 and 390 px, the sentence at a reading width (390 px squeezed it to 50 px).
 
 **WCE11, amended (G56, X11).** The chunk states who performs a structural auto-apply (the researcher's browser session, or a named server path under the person's standing authority, coordinated with G42), where the per-stage choice lives (Můj Vedoucí or the artifact header), and the rule once fieldwork exists (a structural auto-apply is refused or announced in the conversation, never applied silently). Today an automatic accept is an act of the signed-in browser after it sees a turn finish, and `decide_edits` needs the caller's `APPROVE_GATE` and own completed turn, so a continuation turn (LO6) finishing with no browser open applies nothing. Test: with a stage on and no browser open, a continuation turn's structural edit stays pending; after fieldwork exists it is not applied silently.
 

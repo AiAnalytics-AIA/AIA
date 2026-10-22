@@ -136,3 +136,14 @@ describe("the stable item ids switch", () => {
     expect((await GET().json()).stableItemIds).toBe(false);
   });
 });
+
+describe("the routing switch", () => {
+  it("is off unless AIA_ROUTING_ENABLED reads true, the key the API reads too (WCE13)", async () => {
+    vi.stubEnv("AIA_ROUTING_ENABLED", undefined);
+    expect((await GET().json()).routing).toBe(false);
+    vi.stubEnv("AIA_ROUTING_ENABLED", "true");
+    expect((await GET().json()).routing).toBe(true);
+    vi.stubEnv("AIA_ROUTING_ENABLED", "maybe");
+    expect((await GET().json()).routing).toBe(false);
+  });
+});
