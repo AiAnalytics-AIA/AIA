@@ -244,22 +244,31 @@ try {
     await page.setViewportSize({ width, height: 900 });
     await page.goto(base + stagePath("brief"));
     await page.locator("[data-workbench]").waitFor({ timeout: 30000 });
-    const objective = page.locator("[data-aia^='objective:']").first();
-    await objective.waitFor({ timeout: 30000 });
-    const target = await objective.getAttribute("data-aia");
+    const objectives = page.locator("[data-aia^='objective:']");
+    await objectives.first().waitFor({ timeout: 30000 });
+    // The last objective, not the first, so a pick that always lands on the first one fails.
+    const all = await objectives.evaluateAll((els) => els.map((el) => ({ aia: el.getAttribute("data-aia") ?? "", words: (el.querySelector("button")?.textContent ?? "").replace(/^Upravit:\s*/, "").trim().slice(0, 20) })));
+    assert(all.length >= 2, `${width}: the fixture has at least two objectives`);
+    const picked = all[all.length - 1];
+    const others = all.slice(0, -1);
     if (width < 1100) await page.locator("[data-lead-launcher]").click();
     await page.waitForFunction(() => !document.querySelector("button[aria-label='Ukázat na prvek artefaktu (@)']")?.disabled, null, { timeout: 30000 });
     await page.getByRole("button", { name: "Ukázat na prvek artefaktu (@)" }).click();
     if (width < 1100) await page.getByRole("dialog", { name: "Vedoucí výzkumu" }).waitFor({ state: "hidden" });
-    await objective.locator("span").first().click();
+    await objectives.last().locator("span").first().click();
     const chip = page.locator(".refchip");
     await chip.waitFor({ timeout: 10000 });
-    assert.match(await chip.innerText(), /Cíl/, `${width}: the chip names the objective (${target})`);
+    // The chip names this objective, by its id or its words, and no other.
+    const said = await chip.innerText();
+    const names = (o) => said.includes(o.aia.slice("objective:".length)) || (o.words && said.includes(o.words));
+    assert(said.includes("Cíl") && names(picked), `${width}: the chip names ${picked.aia}: ${said}`);
+    for (const o of others) assert(!names(o), `${width}: the chip names ${o.aia}, not the picked ${picked.aia}: ${said}`);
+    // Measured with the conversation and the chip open: the state this step is about.
+    const r = await page.evaluate(() => ({ w: innerWidth, d: document.documentElement.scrollWidth }));
+    assert(r.d <= r.w + 2, `${width}: overflow with the chip open ${r.d} > ${r.w}`);
     await shot(`${width}-brief-picked`);
     await page.getByRole("button", { name: "Zrušit odkaz" }).click();
     if (width < 1100) await page.keyboard.press("Escape");
-    const r = await page.evaluate(() => ({ w: innerWidth, d: document.documentElement.scrollWidth }));
-    assert(r.d <= r.w + 2, `${width}: brief overflow ${r.d} > ${r.w}`);
   }
   await page.setViewportSize({ width: 1440, height: 900 });
   check("Zadání at 1440, 768 and 390: '@' then a tap on an objective sets the chip to that objective (BRF6)");
