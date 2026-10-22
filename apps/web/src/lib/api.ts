@@ -1583,10 +1583,11 @@ export const lead = {
   /** Approve a turn's prepared design job: spend limit, ledger and start in one transaction. */
   /** `workspaceRevision`: the current working revision, sent only after a 409 stale_card and the
    *  person's yes to running the card on the design as it is now (lead-orchestration LO10). */
-  approveRequest: (studyId: string, turnId: string, confirmCostUsd?: number, workspaceRevision?: number) =>
+  approveRequest: (studyId: string, turnId: string, confirmCostUsd?: number, workspaceRevision?: number, retryRunId?: string) =>
     request<RequestApproval>("POST", `${studyPath(studyId)}/lead/turns/${enc(turnId)}/request`, {
       ...(confirmCostUsd === undefined ? {} : { confirm_cost_usd: confirmCostUsd }),
       ...(workspaceRevision === undefined ? {} : { workspace_revision: workspaceRevision }),
+      ...(retryRunId === undefined ? {} : { retry_run_id: retryRunId }),
     }),
   /** Keep or drop what a turn wants to remember for all of the researcher's work (once, in the ledger). */
   decideSelfUpdate: (studyId: string, turnId: string, decision: "accept" | "dismiss") =>

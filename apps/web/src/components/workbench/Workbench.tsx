@@ -15,7 +15,7 @@ import { type ReactNode, type Ref, useCallback, useEffect, useMemo, useRef, useS
 
 import { ApiError, api, lead as leadApi, research, type Readiness, type ResearchAgentJob, type ResearchRun, type Study } from "@/lib/api";
 import { withBudget } from "@/lib/budget-line";
-import { backEntry, closeStack, emptyStack, type InspectorStack, onStage, openEntry, topEntry } from "@/lib/inspector-stack";
+import { backEntry, closeStack, emptyStack, type InspectorEntry, type InspectorStack, onStage, openEntry, topEntry } from "@/lib/inspector-stack";
 import { availabilityWords, leadAvailability, type LeadAvailability, type LeadStateWithWorker } from "@/lib/lead-availability";
 import { JOB_STAGE, jobMovesByItself } from "@/lib/lead-cards";
 import { unanswerableAsked } from "@/lib/answerability";
@@ -23,7 +23,7 @@ import { jobCostAsked } from "@/lib/research-agent-jobs";
 import { appRoutes } from "@/lib/app-routes";
 import { guardedNavigate } from "@/lib/guarded-navigation";
 import {
-  LEAD_REASON_WORDS, STALE_CARD_QUESTION, applyLeadEdit, autoAcceptPlan, describeEdit, editRefusalWords, editStage, focusSelector, revertTextEdit, targetLabel, targetOfElement, textEditInverse,
+  LEAD_REASON_WORDS, ANALYSIS_RETRY_MOVED_QUESTION, STALE_CARD_QUESTION, applyLeadEdit, autoAcceptPlan, describeEdit, editRefusalWords, editStage, focusSelector, revertTextEdit, targetLabel, targetOfElement, textEditInverse,
   type LeadEdit, type LeadRequest, type LeadTurn, type LeadView, type ResearcherLead,
 } from "@/lib/lead";
 import {
@@ -163,6 +163,16 @@ function autoList(memory: Map<string, unknown>): AutoList {
  *  scope, because a move to another route remounts the workbench. */
 const headingFocus: { pending: { studyId: string; stage: WorkbenchStage } | null } = { pending: null };
 
+/** An item the Lead's `inspect` opens on another stage: opened once that stage is shown, module
+ *  scope for the same reason. A move a leave guard stopped leaves nothing pending. */
+const leadInspect: { pending: { studyId: string; stage: WorkbenchStage; entry: InspectorEntry } | null } = { pending: null };
+/** A stage's item stack as it opens: empty, or holding the Lead's pending `inspect` for it. Reads
+ *  the pending entry without taking it (a render may run twice); the stage's effect takes it. */
+const openingStack = (studyId: string, stage: WorkbenchStage): InspectorStack => {
+  const want = leadInspect.pending;
+  return want?.stage === stage && want.studyId === studyId ? openEntry(emptyStack(stage), want.entry) : emptyStack(stage);
+};
+
 export function Workbench({ frame, step, store, memory, save, inspector, reload, confirm, onAgentStarted, jobs, onOpenJob, onRefreshJobs, children }: {
   frame: StudyFrame;
   step: StepKey;
@@ -246,11 +256,11 @@ export function Workbench({ frame, step, store, memory, save, inspector, reload,
   }, [inspectorOpen]);
   // The item inspector (chunk 2): an item a screen opens (a finding, a cited number) over the
   // artifact, its back stack the stage's own; another stage starts it empty.
-  const [items, setItems] = useState<InspectorStack>(() => emptyStack(stage));
+  const [items, setItems] = useState<InspectorStack>(() => openingStack(frame.studyId, stage));
   // Another stage starts it empty, stored so (reset while rendering, React's pattern for state
   // that follows a prop): a stage reached again (Výsledky's views by hash keep this workbench
   // mounted) never brings back the drawer it had.
-  if (items.stage !== stage) setItems(emptyStack(stage));
+  if (items.stage !== stage) setItems(openingStack(frame.studyId, stage));
   const shownItems = onStage(items, stage);
   // The bodies the opening screens gave, by entry id; another stage's are never shown (its stack is empty).
   const [itemBodies, setItemBodies] = useState<ReadonlyMap<string, () => ReactNode>>(() => new Map());
@@ -413,14 +423,45 @@ export function Workbench({ frame, step, store, memory, save, inspector, reload,
     if (want?.stage !== stage || want.studyId !== frame.studyId) return;
     requestAnimationFrame(() => document.querySelector<HTMLElement>("[data-workbench] .arthead__title")?.focus());
   }, [stage, frame.studyId]);
+  // A Lead-opened item is titled by its id until its stage shows it: then by its own words on the
+  // page (targetOfElement: an item row's words, a question's wording), never its opaque id (the
+  // workbench audit's rule). Looked for briefly while the stage's content loads.
+  const nameFromPage = useCallback((id: string) => {
+    let tries = 0;
+    const look = () => {
+      const label = targetOfElement(document.querySelector(focusSelector(id)))?.label;
+      if (label && label !== targetLabel(id)) setItems((s) => ({ ...s, entries: s.entries.map((e) => (e.id === id ? { ...e, title: label } : e)) }));
+      else if (tries++ < 10) setTimeout(look, 150);
+    };
+    setTimeout(look, 0);
+  }, []);
+  useEffect(() => {
+    // The Lead's `inspect` on another stage, opened by openingStack: taken on every stage change.
+    const want = leadInspect.pending;
+    leadInspect.pending = null;
+    if (want?.stage === stage && want.studyId === frame.studyId) nameFromPage(want.entry.id);
+  }, [stage, frame.studyId, nameFromPage]);
 
   const onView = useCallback((ops: LeadView[]) => {
     // In the drawer or the sheet the conversation steps aside so the person sees what the Lead pointed at.
     const last = ops[ops.length - 1];
-    if (compact && last) setDrawerState(nextDrawer(drawer, { type: "view", target: last.op === "focus" ? last.target : last.stage }, layout).state);
+    if (compact && last) setDrawerState(nextDrawer(drawer, { type: "view", target: last.op === "open_stage" ? last.stage : last.target }, layout).state);
     for (const v of ops) {
       if (v.op === "open_stage") go(v.stage);
-      else {
+      else if (v.op === "inspect") {
+        // The item drawer over the target's own stage, the one a person's click opens; on another
+        // stage it opens once that stage is shown (the move remounts on a route change).
+        const t = parseAiaId(v.target);
+        if (!t) continue;
+        const entry = { id: v.target, title: targetLabel(v.target) };
+        if (t.stage === stage) {
+          setItems((s) => openEntry(onStage(s, stage), entry));
+          nameFromPage(v.target);
+        } else {
+          leadInspect.pending = { studyId: frame.studyId, stage: t.stage, entry };
+          if (!go(t.stage)) leadInspect.pending = null;
+        }
+      } else {
         // After a stage change the element appears on the next render: look again briefly.
         let tries = 0;
         const find = () => {
@@ -445,21 +486,24 @@ export function Workbench({ frame, step, store, memory, save, inspector, reload,
         find();
       }
     }
-  }, [go, compact, drawer, layout]);
+  }, [go, compact, drawer, layout, stage, frame.studyId, nameFromPage]);
 
   // A design job is approved on the server: the spend limit, the ledger row and the start together.
   const onRequest = useCallback(async (turn: LeadTurn, r: LeadRequest) => {
     // A person's typed start (LO5) is started by its approval, a run too; the Lead's other cards open their stage.
     if (r.kind !== "agent_job" && !turn.command) {
-      go(r.kind === "research_run" ? "fieldwork" : r.kind === "design_research" ? "design" : "report");
+      go(r.kind === "research_run" ? "fieldwork" : r.kind === "design_research" ? "design" : r.kind === "analysis_retry" ? "analysis" : "report");
       return;
     }
     await store.flush();
     let confirmUsd: number | undefined;
     let onRevision: number | undefined;
+    // A typed analysis retry runs on the run its card named; a newer one only on the person's yes.
+    let retryRunId = r.kind === "analysis_retry" ? r.run_id : undefined;
+    let retryConfirmed = false;
     for (;;) {
       try {
-        const started = await leadApi.approveRequest(frame.studyId, turn.turn_id, confirmUsd, onRevision);
+        const started = await leadApi.approveRequest(frame.studyId, turn.turn_id, confirmUsd, onRevision, retryRunId);
         if (r.kind === "agent_job") onAgentStarted(started.run_id);
         else setRunEpoch((n) => n + 1);
         setLeadEpoch((n) => n + 1);
@@ -470,6 +514,12 @@ export function Workbench({ frame, step, store, memory, save, inspector, reload,
           const limit = Number(e.details.limit_usd);
           if (!(await confirm(`Úloha může stát až ${usd(ceiling)} USD, což dosahuje prahu potvrzení studie ${usd(limit)} USD. Spustit?`))) throw e;
           confirmUsd = ceiling;
+          continue;
+        }
+        if (e instanceof ApiError && e.code === "analysis_retry_target_moved" && !retryConfirmed && typeof e.details.current_run_id === "string") {
+          if (!(await confirm(ANALYSIS_RETRY_MOVED_QUESTION))) throw e;
+          retryRunId = e.details.current_run_id;
+          retryConfirmed = true;
           continue;
         }
         // The design moved since the card was prepared (LO10): it runs on the current one only on a yes.
