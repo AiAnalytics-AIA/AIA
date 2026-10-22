@@ -2809,3 +2809,26 @@ class WorkspaceEditOpRow(Base):
 def _edit_ops_are_never_updated(_mapper: Any, _connection: Any, row: WorkspaceEditOpRow) -> None:
     """A logged change is what was written; the log is insert-once (ADR 0029 decision 3)."""
     raise RuntimeError(f"edit op {row.op_id} is immutable; log a new one")
+
+
+class DocsTicketSpendRow(Base):
+    """A spent ticket to the report editor's origin (plan report-editor-hosting, chunk 3).
+
+    The ticket is signed and carries its own expiry (``aia_api.docs_pass``); this row is
+    what makes it single use across processes, by its primary key. Written only by
+    ``DocsTicketRepository``, which deletes a row a day after its ticket expired.
+    """
+
+    __tablename__ = "docs_ticket_spends"
+
+    ticket_id: Mapped[str] = mapped_column(String(64), primary_key=True)
+    user_id: Mapped[str] = mapped_column(String(64), nullable=False)
+    expires_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+    spent_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), nullable=False, default=utcnow
+    )
+
+    __table_args__ = (
+        ForeignKeyConstraint(["user_id"], ["users.user_id"], ondelete="CASCADE"),
+        Index("ix_docs_ticket_spends_expires", "expires_at"),
+    )
