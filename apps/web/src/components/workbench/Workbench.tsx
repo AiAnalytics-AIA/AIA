@@ -39,6 +39,7 @@ import type { StepKey } from "@/research/steps";
 import type { StudyFrame } from "../rehome/research/frame";
 import { useRuns } from "../rehome/research/StageTrack";
 import { LeadAskContext } from "../rehome/research/AskLead";
+import { FrameNavigation } from "@/components/rehome/step";
 import { ItemInspector } from "../rehome/research/ItemInspector";
 import { Glyph, type GlyphTone } from "./Glyph";
 import { Icon, Mark } from "./Icons";
@@ -693,7 +694,7 @@ export function Workbench({ frame, step, store, memory, save, inspector, reload,
                 <div className="artbody" id="artbody"><div className="wb-stage">
                   {stage === "sample" ? <SampleView project={state.project} onOpen={go} /> : null}
                   {/* Sample shows Dimenze's screen hidden, so its readiness still reaches the inspector. */}
-                  <div hidden={stage === "sample"}><LeadAskContext.Provider value={askLead}><ItemInspectorContext.Provider value={itemInspector}>{children}</ItemInspectorContext.Provider></LeadAskContext.Provider></div>
+                  <div hidden={stage === "sample"}><LeadAskContext.Provider value={askLead}><ItemInspectorContext.Provider value={itemInspector}><FrameNavigation.Provider value>{children}</FrameNavigation.Provider></ItemInspectorContext.Provider></LeadAskContext.Provider></div>
                 </div></div>
                 {/* Mounted while empty, so closing it gives the focus back to what opened it. */}
                 <div ref={itemDrawer} className="itemdrawer" hidden={!itemOpen}>

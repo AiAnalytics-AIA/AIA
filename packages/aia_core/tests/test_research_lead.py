@@ -1271,6 +1271,21 @@ def test_a_dataset_in_the_knowledge_declares_its_lineage() -> None:
     assert request.data_lineage is not None and request.data_lineage.datasets
 
 
+def test_a_turn_declares_recorded_datasets_and_the_placeholder_for_an_unrecorded_one() -> None:
+    # CR-4: the same rule as the design jobs (research_agents.knowledge_lineage).
+    from aia_core.domain.licence_determinations import SYNTHETIC_FIXTURE_DATASET
+    from aia_core.domain.research_agents import UNRECORDED_KNOWLEDGE_LINEAGE
+
+    seeded = {"item_id": "K1", "revision": 1, "kind": "DATASET", "title": "t", "summary": "s"}
+    seeded["datasets"] = [SYNTHETIC_FIXTURE_DATASET]
+    recorded = _request(_context(knowledge=[seeded]), IDENTITY, DESIGN_OK).data_lineage
+    assert recorded is not None and recorded.datasets == {SYNTHETIC_FIXTURE_DATASET}
+    finding = {"item_id": "K2", "revision": 1, "kind": "FINDING", "title": "t", "summary": "s"}
+    mixed = _request(_context(knowledge=[seeded, finding]), IDENTITY, DESIGN_OK).data_lineage
+    assert mixed is not None
+    assert mixed.datasets == {SYNTHETIC_FIXTURE_DATASET, UNRECORDED_KNOWLEDGE_LINEAGE}
+
+
 @pytest.mark.parametrize("kind", ["DATASET", "ARTIFACT", "FINDING"])
 def test_a_turn_over_dataset_derived_knowledge_passes_the_licence_gate_on_eu_bedrock_only(
     kind: str,

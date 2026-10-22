@@ -65,6 +65,7 @@ from pydantic import BaseModel, ConfigDict, Field
 __all__ = [
     "KNOWLEDGE_SECTIONS",
     "ORGANIZER_NAME_MAX",
+    "PROVENANCE_DATASETS",
     "SOURCE_BACKED_KINDS",
     "SOURCE_REF",
     "STALE_AFTER",
@@ -95,6 +96,7 @@ __all__ = [
     "new_knowledge_proposal_id",
     "organizer_key",
     "organizer_name",
+    "recorded_datasets",
     "reviewed_decision",
     "revision_sha256",
     "source_ref",
@@ -402,6 +404,27 @@ SOURCE_BACKED_KINDS: Final = frozenset(
 _SOURCE_ID: Final = re.compile(r"^SRC-[0-9a-f]{16}$")
 
 
+#: The key under which a revision's provenance records the datasets its material derives
+#: from (CR-4): the item's licence lineage. Written by code only (the develop seed today);
+#: no route takes provenance from a request. Read by :func:`recorded_datasets`.
+PROVENANCE_DATASETS: Final = "datasets"
+
+
+def recorded_datasets(provenance: dict[str, Any]) -> tuple[str, ...] | None:
+    """The datasets a revision's provenance records, sorted; ``None`` when it records none.
+
+    ``None`` is "nobody recorded which datasets this came from", never "derived from no
+    dataset": an empty list, a value that is not a list of nonempty strings, or no key at all
+    is unrecorded, so the licence gate goes on refusing it by name (never a guess, §8).
+    """
+    value = provenance.get(PROVENANCE_DATASETS)
+    if not isinstance(value, list) or not value:
+        return None
+    if any(not isinstance(d, str) or not d.strip() for d in value):
+        return None
+    return tuple(sorted(set(value)))
+
+
 def source_ref(kind: KnowledgeKind, content: dict[str, Any]) -> str | None:
     """The source an item's content names, or ``None``; ``ValueError`` for a wrong shape.
 
@@ -448,6 +471,9 @@ class KnowledgeItem(BaseModel):
     #: Organization, not knowledge: where people filed it. Changing these writes no revision.
     folder_id: str | None = None
     label_ids: tuple[str, ...] = ()
+    #: The datasets its current revision's provenance records (:func:`recorded_datasets`);
+    #: ``None``: unrecorded. Read only for what a study inherits (``for_study``).
+    datasets: tuple[str, ...] | None = None
 
 
 class KnowledgeFolder(BaseModel):

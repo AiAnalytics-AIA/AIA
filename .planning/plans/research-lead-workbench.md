@@ -1425,6 +1425,25 @@ Recommended with LO12b, whose record makes the disagreement visible instead.
   5. Fix: `&.wb--sheet …` and `&.wb-picking …`.
   6. Test: the workbench journey's "the sheet's header rules apply".
 
+## The stages' docks inside the workbench (2026-10-22, `fix/workbench-stage-dock`)
+
+- **F15 (DIM-F4, reported by Dimenze). A stage's dock named the classic flow** *(frame part fixed)*.
+  1. Claim: inside the workbench each stage's ActionDock still linked back with the classic step's
+     number and name ("4. Audience", "2. Návrh"). The workbench navigator calls those stages
+     otherwise ("Cílová skupina") and orders them otherwise (Vzorek sits between Dimenze and
+     Spuštění).
+  2. Anchor: `apps/web/src/components/rehome/step.tsx:76 @ b6ac25c5`, and the callers:
+     `PersonaStep.tsx:381`, `AudienceStep.tsx:246`, `QuestionnaireStep.tsx:187`, `PlanStep.tsx:141`,
+     `ExecutionSteps.tsx:846`.
+  3. Reproduction: in the workbench, open Dimenze; the dock reads "4. Audience".
+  4. Consequence: two names and two orders for the same stages on one screen.
+  5. Fix, the rule: the frame provides `FrameNavigation` (`rehome/step.tsx`). Inside it, a dock
+     leaves its back link out, because the navigator names the neighbours. A stage's forward
+     action is the stage's own, and it reads the same context to go to the workbench's next stage
+     (`lib/workbench-stages.ts`). Dimenze's "Další" to Vzorek is Dimenze's change.
+  6. Test: `step.test.tsx` "ActionDock leaves its back link to a frame…", and the workbench
+     journey's "no stage's dock names a classic step inside the workbench".
+
 ## Contract follow-ups from the stage owners (2026-10-21)
 
 Three changes to chunk 16's contract rows, each one a stage owner asked for. They change no server
