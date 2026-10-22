@@ -11,6 +11,9 @@
  * with no dialog, starts a job by a typed command from the person's own card (LO5), then has the
  * Lead prepare a research run, starts it from the card through
  * Spuštění's route, and follows its card: the orb while a step runs, Průběh and Výsledky once done.
+ * Run it on `workbench.py up --fresh`: a study runs once per design revision, so on a workbench it
+ * already ran on, the Lead's prepared run says "Už běží" and the journey stops there by name (the
+ * typed start before it reads "Už proběhlo" and passes).
  */
 import assert from "node:assert/strict";
 import { execSync } from "node:child_process";
@@ -142,9 +145,16 @@ try {
     typed.getByRole("button", { name: "Spustit úlohu" }).click(),
   ]);
   assert.ok(typedStart.ok(), `the typed start answered ${typedStart.status()}`);
-  await page.waitForFunction((n) => document.querySelectorAll('.conv [data-card="worker"]').length > n, jobsBefore, { timeout: 30000 });
+  // A fresh workbench starts the job and shows its card; a run again on the same workbench finds
+  // the job already done for this design, and the person's card says so instead.
+  await page.waitForFunction((n) => {
+    const cards = document.querySelectorAll(".conv [data-typed]");
+    return document.querySelectorAll('.conv [data-card="worker"]').length > n || /Už proběhlo/.test(cards[cards.length - 1]?.textContent ?? "");
+  }, jobsBefore, { timeout: 30000 });
+  const reused = /Už proběhlo/.test(await typed.innerText());
+  if (reused) assert.match(await typed.innerText(), /Tato úloha pro tento návrh už proběhla/, "a job found already done says so on the card");
   await cardShot(typed, "1440-typed-start");
-  check("a typed start shows the person's own card, and its approval starts the job through …/request");
+  check(`a typed start shows the person's own card, and its approval starts the job through …/request${reused ? " (found already done on this workbench, said on the card)" : ""}`);
 
   // The research run: prepared by the Lead, started from its card through Spuštění's route. Not the
   // bare command: "Prosím, spusť výzkum." is a message, so the Lead answers it.

@@ -696,7 +696,11 @@ def test_a_prepared_job_is_approved_under_the_spend_limit_once(
     assert body["run_id"].startswith("RUN-") and body["design_revision_id"].startswith("REV-")
     assert researcher.post(url, json={"confirm_cost_usd": 2.0}).json()["run_id"] == body["run_id"]
     lead = researcher.get(lead_url(world)).json()["turns"][-1]
-    assert lead["request_decision"] == {"status": "approved", "run_id": body["run_id"]}
+    assert lead["request_decision"] == {
+        "status": "approved",
+        "run_id": body["run_id"],
+        "reused": False,
+    }
 
 
 JOB_WITH_EDIT = {
