@@ -352,7 +352,8 @@ export function Workbench({ frame, step, store, memory, save, inspector, reload,
 
   // A design job is approved on the server: the spend limit, the ledger row and the start together.
   const onRequest = useCallback(async (turn: LeadTurn, r: LeadRequest) => {
-    if (r.kind !== "agent_job") {
+    // A person's typed start (LO5) is started by its approval, a run too; the Lead's other cards open their stage.
+    if (r.kind !== "agent_job" && !turn.command) {
       go(r.kind === "research_run" ? "fieldwork" : r.kind === "design_research" ? "design" : "report");
       return;
     }
@@ -361,7 +362,8 @@ export function Workbench({ frame, step, store, memory, save, inspector, reload,
     for (;;) {
       try {
         const started = await leadApi.approveRequest(frame.studyId, turn.turn_id, confirmUsd);
-        onAgentStarted(started.run_id);
+        if (r.kind === "agent_job") onAgentStarted(started.run_id);
+        else setRunEpoch((n) => n + 1);
         setLeadEpoch((n) => n + 1);
         return;
       } catch (e) {

@@ -120,6 +120,21 @@ describe("LeadPane", () => {
     expect(await screen.findByText("Rozhodnuto")).toBeTruthy();
   });
 
+  it("follows a person's typed start with their own card, which starts it on their approval (LO5)", async () => {
+    state.turns = [
+      turn({ turn_id: "LDT-7", actor: "person", text: "Navrhni dotazník: krátce", command: "agent_job:build_questionnaire", run_id: null, output: null }),
+      turn({ turn_id: "LDT-8", actor: "person", text: "Spusť výzkum", command: "research_run", run_id: null, output: null }),
+    ];
+    const onRequest = vi.fn(async () => {});
+    render(pane({ onRequest, cards: cards() }));
+    expect(await screen.findAllByText("Váš příkaz")).toHaveLength(2);
+    fireEvent.click(screen.getByRole("button", { name: "Spustit úlohu" }));
+    await waitFor(() => expect(onRequest).toHaveBeenCalledWith(expect.objectContaining({ turn_id: "LDT-7" }), { kind: "agent_job", action: "build_questionnaire", why: "krátce" }));
+    // The typed run starts from its card, not by opening Spuštění.
+    fireEvent.click(screen.getByRole("button", { name: "Spustit výzkum" }));
+    await waitFor(() => expect(onRequest).toHaveBeenCalledWith(expect.objectContaining({ turn_id: "LDT-8" }), expect.objectContaining({ kind: "research_run" })));
+  });
+
   it("keeps what the Lead wants for all of the researcher's work only on their yes", async () => {
     // Codex P1 on #484: a personal note or a file change reaches every client's studies.
     state.turns = [turn({

@@ -36,6 +36,18 @@ export type LeadRequest =
   | { kind: "design_research"; why: string }
   | { kind: "interpretation_research"; why: string };
 
+/**
+ * The card a person's typed start shows (LO5), as the request it starts: the server matched the
+ * command, so nothing here reads the message for intent. The instruction after a colon, when the
+ * person gave one, is the card's why. A command this client does not know shows no card.
+ */
+export function commandRequest(t: Pick<LeadTurn, "command" | "text">): LeadRequest | null {
+  const said = t.text?.split(":").slice(1).join(":").trim() || "Spustí se až vaším potvrzením.";
+  if (t.command === "research_run") return { kind: "research_run", why: said };
+  const action = t.command?.startsWith("agent_job:") ? t.command.slice("agent_job:".length) : "";
+  return action ? { kind: "agent_job", action, why: said } : null;
+}
+
 export type LeadSelfUpdate = {
   name?: string | null;
   soul?: string | null;
@@ -85,6 +97,10 @@ export type LeadTurn = {
   self_update_pending?: boolean;
   /** What waits (or waited) for that decision, as the server split it; null when nothing did. */
   self_update_waiting?: SelfUpdateWaiting | null;
+  /** The typed start the server matched in this person's message (lead-orchestration LO5:
+   *  `agent_job:<action>` or `research_run`); its card is the person's own, approved through
+   *  …/request. Absent or null on every other turn, and from an older API. */
+  command?: string | null;
   /** What the turn applied at once to the Lead's own files and notes (a client note, forgetting one). */
   changes?: { name?: boolean; soul?: boolean; user?: boolean; remembered?: string[]; forgotten?: string[] } | null;
 };

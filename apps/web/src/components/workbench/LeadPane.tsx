@@ -14,7 +14,7 @@ import { lead as leadApi, researcherLead, ApiError, type Readiness, type Researc
 import { ACTION_LABELS } from "@/lib/research-agent-jobs";
 import { appRoutes } from "@/lib/app-routes";
 import type { LeadOutput, LeadRequest, LeadState, LeadTurn, LeadView, ResearcherLead, SelfUpdateDecision } from "@/lib/lead";
-import { droppedLines, leadReasonWords as reasonWords, pendingSelfUpdate, targetLabel } from "@/lib/lead";
+import { commandRequest, droppedLines, leadReasonWords as reasonWords, pendingSelfUpdate, targetLabel } from "@/lib/lead";
 import { conversationTimeline } from "@/lib/lead-cards";
 import { STAGES, isWorkbenchStage, type WorkbenchStage } from "@/lib/workbench-stages";
 import type { StepKey } from "@/research/steps";
@@ -324,7 +324,9 @@ function Conversation({ turns, jobs, cards, studyId, onOpenJob, busy, name, onFo
             : x.kind === "run"
               ? (cards ? <RunCardView key={x.run.run_id} run={x.run} studyId={studyId} stepHref={cards.stepHref} /> : null)
               : x.turn.actor === "person"
-                ? <PersonTurn key={x.turn.turn_id} t={x.turn} />
+                ? <PersonTurn key={x.turn.turn_id} t={x.turn} canEdit={canEdit} onRequest={onRequest} studyId={studyId} cards={cards} onOpenJob={onOpenJob}
+                    job={jobs.find((j) => j.run_id === x.turn.request_decision?.run_id) ?? null}
+                    run={runs.find((r) => r.run_id === x.turn.request_decision?.run_id) ?? null} />
                 : <LeadTurnView key={x.turn.turn_id} t={x.turn} name={name} last={x.turn.turn_id === lastLead?.turn_id} busy={busy} onFollow={onFollow} onView={onView} onRequest={onRequest} onSelfUpdate={onSelfUpdate} canEdit={canEdit}
                     job={jobs.find((j) => j.run_id === x.turn.request_decision?.run_id) ?? null} onOpenJob={onOpenJob} studyId={studyId} cards={cards}
                     run={runs.find((r) => r.run_id === cards?.runOfTurn.get(x.turn.turn_id)) ?? null} />)}
@@ -340,13 +342,24 @@ function Conversation({ turns, jobs, cards, studyId, onOpenJob, busy, name, onFo
   );
 }
 
-function PersonTurn({ t }: { t: LeadTurn }) {
+/** A person's message; a typed start (LO5) is followed by its card, theirs to approve, and then by
+ *  the job or run it started. */
+function PersonTurn({ t, canEdit, onRequest, studyId, cards, onOpenJob, job, run }: {
+  t: LeadTurn; canEdit: boolean; onRequest: (turn: LeadTurn, r: LeadRequest) => Promise<void>; studyId: string;
+  cards?: LeadCardsContext; onOpenJob?: (job: ResearchAgentJob) => void; job: ResearchAgentJob | null; run: ResearchRun | null;
+}) {
+  const typed = t.command ? commandRequest(t) : null;
   return (
-    <div className="msg msg--user" data-msg={t.turn_id}>
-      {t.focus ? <div className="bubble__ref"><Icon name="at" size={12} />{t.focus.label}</div> : null}
-      <div className="bubble">{t.text}</div>
-      <div className="msgacts" role="group" aria-label="Akce zprávy"><span className="msgmeta">{time(t.created_at)}</span></div>
-    </div>
+    <>
+      <div className="msg msg--user" data-msg={t.turn_id}>
+        {t.focus ? <div className="bubble__ref"><Icon name="at" size={12} />{t.focus.label}</div> : null}
+        <div className="bubble">{t.text}</div>
+        <div className="msgacts" role="group" aria-label="Akce zprávy"><span className="msgmeta">{time(t.created_at)}</span></div>
+      </div>
+      {typed ? <RequestCard r={typed} typed approved={t.request_decision ?? null} onApprove={() => onRequest(t, typed)} canEdit={canEdit} /> : null}
+      {job ? <WorkerCardView job={job} studyId={studyId} onOpen={onOpenJob} onStage={cards?.onStage} onChanged={cards?.onJobsChanged} /> : null}
+      {run && cards ? <RunCardView run={run} studyId={studyId} stepHref={cards.stepHref} /> : null}
+    </>
   );
 }
 
@@ -466,21 +479,27 @@ const REQUEST_WORDS: Record<LeadRequest["kind"], { title: string; action: string
   interpretation_research: { title: "Hloubkový výzkum k výkladu", action: "Otevřít výklad výsledků" },
 };
 
-function RequestCard({ r, approved, onApprove, canEdit }: { r: LeadRequest; approved: { run_id: string } | null; onApprove: () => Promise<void>; canEdit: boolean }) {
+/** `typed`: the person's own typed start (LO5), started by its approval whatever its kind: a run
+ *  starts here on the deployment's run settings, under the same checks as Spuštění's. */
+const TYPED_RUN_WORDS = { title: "Spuštění výzkumu", action: "Spustit výzkum" };
+
+function RequestCard({ r, approved, onApprove, canEdit, typed = false }: { r: LeadRequest; approved: { run_id: string } | null; onApprove: () => Promise<void>; canEdit: boolean; typed?: boolean }) {
   const [state, setState] = useState<"open" | "busy" | "done" | "kept">(approved ? "done" : "open");
-  const w = REQUEST_WORDS[r.kind];
-  const paid = r.kind === "agent_job";
+  const w = typed && r.kind === "research_run" ? TYPED_RUN_WORDS : REQUEST_WORDS[r.kind];
+  const paid = r.kind === "agent_job" || typed;
   // As every card in the conversation reads (chunk 23): eyebrow, title with its state pill, the
   // Lead's why, the key facts as label/value rows, the actions on the right.
   const pill = state === "done" ? { word: "Rozhodnuto", tone: "done" as const } : state === "kept" ? { word: "Ponecháno", tone: "inert" as const } : { word: paid ? "Čeká na schválení" : "Otevře krok", tone: "you" as const };
   return (
-    <div className="msg" data-card="request">
+    <div className="msg" data-card="request" data-typed={typed || undefined}>
       <div className={`dec${state === "done" || state === "kept" ? " is-decided" : ""}`}>
         <div className="dec__body">
-          {state === "done" || state === "kept" ? null : <p className="card__eyebrow">Rozhodnutí patří vám</p>}
+          {state === "done" || state === "kept" ? null : <p className="card__eyebrow">{typed ? "Váš příkaz" : "Rozhodnutí patří vám"}</p>}
           <div className="card__titlerow"><p className="dec__title">{w.title}</p><Pill word={pill.word} tone={pill.tone} /></div>
           <p className="dec__reason">{r.why}</p>
-          <Facts facts={paid
+          <Facts facts={typed && r.kind === "research_run"
+            ? [{ label: "Co se stane", value: "Spustí se výzkum s výchozím nastavením", sub: "Připravenost, práh potvrzení a peněženka se kontrolují jako na Spuštění." }]
+            : paid
             ? [{ label: "Úloha", value: ACTION_LABELS[(r as { action: string }).action as keyof typeof ACTION_LABELS] ?? (r as { action: string }).action }, { label: "Platba", value: "z rozpočtu studie", sub: "Spustí se až vaším potvrzením." }]
             : [{ label: "Co se stane", value: "Otevře se krok, kde spuštění potvrdíte", sub: "Se všemi jeho kontrolami: připravenost, zodpověditelnost, limit útraty." }]} />
           {state === "open" ? (
