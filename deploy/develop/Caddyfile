@@ -20,6 +20,17 @@
 	servers {
 		metrics
 	}
+	# The default logger: Caddy's own entries, an upstream error among them, which records the
+	# request's URI. docs.<hostname>'s ticket (/__aia/session?ticket=…) is left unspent when the
+	# API is down, so it is never written here either (its access log filters it the same way).
+	log {
+		format filter {
+			request>uri query {
+				delete ticket
+			}
+			wrap json
+		}
+	}
 }
 
 {$AIA_PUBLIC_HOSTNAME} {

@@ -413,6 +413,13 @@ logged value opens nothing.
 | 8 | The docs gate checks membership in the database for every asset | **Kept, said**: the same check AIA's own gate makes per page request; it is what shuts a removed member out at once, and it runs only while the editor is on |
 | 9 | `claims.ticket_id is None` duplicates what `read(kind="ticket")` guarantees | **Kept**: it narrows the type for `open_docs_session(ticket_id: str)` under mypy --strict |
 
+The coordinator's stand-in review of #785 (2026-10-22) found two P2s, both fixed in `e0f767a8`: the runbook's
+stale cookie lifetime, and F1 named as chunk 4's precondition. Its optional note was checked on the real
+Caddy with the API down. Caddy's error logger (`http.log.error.log2`, written by the default logger) did
+record the URI with the unspent ticket. The default logger now deletes `ticket` from `request>uri` too:
+the same request then logged `"/__aia/session?next=%2Fx"` in both its access and error lines, and
+`tools/caddy_routes.py` requires both filters.
+
 ## Findings
 
 - **F1. A script on `docs.<hostname>` can plant a cookie AIA's pages read.**

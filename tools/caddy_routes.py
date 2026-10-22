@@ -21,7 +21,8 @@ line must never go missing:
   reaches the Document Server, without the cookie; the API is reached there only
   to exchange a ticket for the docs cookie (``/__aia/session``); the Document
   Server's server-to-server and admin paths answer 404; only AIA's own pages
-  may frame it; and its access log never writes the ticket a URI carries. The
+  may frame it; and neither its access log nor Caddy's error log writes the
+  ticket a URI carries. The
   product hostname never reaches the Document Server.
 * ``/`` is a redirect to ``/app/clients`` and nothing else: the product's front
   door is AIA, never the 18.6.6 document (ADR 0015).
@@ -322,12 +323,15 @@ def check_docs(config: dict[str, Any]) -> list[str]:
     if framers != {f"frame-ancestors https://{PRODUCT}"}:
         problems.append(f"{DOCS} must be framed by https://{PRODUCT} alone; got {sorted(framers)}")
     if not logs_drop_ticket(config):
-        problems.append(f"{DOCS}'s access log writes the ticket in a URI's query")
+        problems.append(
+            f"{DOCS}'s access log writes the ticket in a URI's query, or Caddy's error log"
+        )
     return problems
 
 
 def logs_drop_ticket(config: dict[str, Any]) -> bool:
-    """Whether every access log of docs.<hostname> deletes ``ticket`` from the logged URI."""
+    """Whether docs.<hostname>'s access logs and the default logger, which records an upstream
+    error with its request's URI, both delete ``ticket`` from it."""
     names = [
         name
         for server in config["apps"]["http"]["servers"].values()
@@ -347,7 +351,7 @@ def logs_drop_ticket(config: dict[str, Any]) -> bool:
             )
         )
 
-    return bool(names) and all(drops(n) for n in names)
+    return bool(names) and all(drops(n) for n in [*names, "default"])
 
 
 def main(argv: list[str]) -> int:

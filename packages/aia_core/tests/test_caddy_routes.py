@@ -331,12 +331,21 @@ DROPS_TICKET = {
 
 
 def _with_docs_site(
-    config: dict[str, Any], docs: list[dict[str, Any]], *, encoder: dict[str, Any] | None = None
+    config: dict[str, Any],
+    docs: list[dict[str, Any]],
+    *,
+    encoder: dict[str, Any] | None = None,
+    default: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
     server = config["apps"]["http"]["servers"]["srv0"]
     server["routes"].append(site("docs.aia.example.test", docs))
     server["logs"] = {"logger_names": {"docs.aia.example.test": ["log2"]}}
-    config["logging"] = {"logs": {"log2": {"encoder": encoder or DROPS_TICKET}}}
+    config["logging"] = {
+        "logs": {
+            "log2": {"encoder": encoder or DROPS_TICKET},
+            "default": {"encoder": default or DROPS_TICKET},
+        }
+    }
     return config
 
 
@@ -422,3 +431,11 @@ def test_aias_pages_behind_the_docs_gate_are_refused(routes: Any) -> None:
     product(config)[-1] = sub(None, DOCS_GATE, proxy("web:3000"))
     problems = routes.check(config)
     assert any("asks the docs gate" in p for p in problems)
+
+
+def test_an_error_log_that_writes_the_ticket_is_refused(routes: Any) -> None:
+    # An upstream error (the API down) is logged by the default logger with its request's URI,
+    # and the ticket in it was never spent.
+    config = _with_docs_site(good(), docs_routes(), default={"format": "json"})
+    problems = routes.check(config)
+    assert any("access log writes the ticket" in p for p in problems)
