@@ -101,6 +101,17 @@ describe("Připravenost ke spuštění", () => {
     expect(section.textContent).not.toContain("Lze pokračovat s omezeními");
   });
 
+  it("shows a check the server names outside the id grammar, nameable by no one, without failing the render", () => {
+    // A question with no text yet: domain/research_design.py names it `compile:<code>:<section>#<n>`.
+    const { container } = render(<SampleArtifact project={project({ n: 200 })} onOpen={vi.fn()} readiness={ready({
+      ready: false, checks: [{ id: "compile:question_without_text:S1#1", status: "FAIL", message: "Otázka nemá text." }],
+    })} />);
+    const row = screen.getByText("Otázka nemá text.").closest("li")!;
+    expect(row.hasAttribute("data-aia")).toBe(false);
+    fireEvent.click(row.querySelector("button")!);
+    expect(container.querySelector('[data-aia^="sample:ready:compile"]')).toBeNull();
+  });
+
   it("shows the support forecast in section 2 only, counted and named here when it warns", () => {
     render(<SampleArtifact project={project({ n: 50 })} onOpen={vi.fn()} readiness={ready({ checks: [{ id: "support_forecast", status: "WARN", message: "Čísla budou potlačená." }] })} />);
     const section = screen.getByRole("region", { name: "Připravenost ke spuštění" });
