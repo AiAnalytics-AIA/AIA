@@ -2761,8 +2761,8 @@ def test_a_run_says_which_population_it_recorded_and_that_fieldwork_did_not_read
 def test_a_run_names_the_methods_it_computed_under(
     app: FastAPI, researcher: TestClient, world: Any
 ) -> None:
-    """Methodology-tab Z1, R1d: Results say which Sociomap, support, aggregation and response
-    process a run pinned, and whether its response process is 18.6.6's."""
+    """Methodology-tab Z1, R1d, V1a: Results say which Sociomap, support, aggregation, response
+    process and readiness limits a run pinned, and whether its response process is 18.6.6's."""
     revision_id = submit(researcher, world).json()["revision_id"]
     run = start(researcher, world, revision_id).json()
     assert run["methodology"] == {
@@ -2770,6 +2770,7 @@ def test_a_run_names_the_methods_it_computed_under(
         "support": {"name": "aia-support-1", "stored": False},
         "aggregation": {"name": "aia-aggregate-1", "stored": False},
         "response": {"name": "aia-response-1", "stored": False},
+        "readiness": {"name": "aia-readiness-1", "stored": False},
         "response_deviates": False,
     }
 
@@ -2790,6 +2791,7 @@ def test_a_run_names_the_methods_it_computed_under(
                 "extremity": 0.5,
             },
             "response_methodology": version("response", "aia-response-1+e1"),
+            "readiness_methodology": version("readiness", "aia-readiness-1+e2"),
         }
         session.commit()
     read = researcher.get(f"{_runs(world)}/{run['run_id']}").json()
@@ -2798,6 +2800,7 @@ def test_a_run_names_the_methods_it_computed_under(
         "support": {"name": "aia-support-1+e2", "stored": True},
         "aggregation": {"name": "aia-aggregate-1+e1", "stored": True},
         "response": {"name": "aia-response-1+e1", "stored": True},
+        "readiness": {"name": "aia-readiness-1+e2", "stored": True},
         "response_deviates": True,
     }
     listed = researcher.get(_runs(world)).json()["items"]
@@ -2812,6 +2815,7 @@ def test_a_run_from_before_the_pins_reads_as_the_presets_it_was_computed_under()
         "support": {"name": "aia-support-1", "stored": False},
         "aggregation": {"name": "aia-aggregate-1", "stored": False},
         "response": {"name": "aia-response-1", "stored": False},
+        "readiness": {"name": "aia-readiness-1", "stored": False},
         "response_deviates": False,
     }
     unreadable = _methodology({"response": {"extremity": "much"}}).model_dump()

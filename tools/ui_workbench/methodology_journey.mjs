@@ -178,16 +178,10 @@ try {
     const runs = (await get(`/api/v1/studies/${studies.persona.study}/research/runs`)).items;
     const latest = runs.reduce((a, b) => (new Date(a.created_at) > new Date(b.created_at) ? a : b));
     for (const [moduleId, name] of Object.entries(stored)) {
-      // A start pins readiness (application/research.py, readiness_methodology), but the run's
-      // methodology receipt (pins.run_methods) does not report it, so the run's pin cannot be read
-      // here; it is checked as stored and in force (storeAndActivate), and named apart below.
-      if (moduleId === "readiness") continue;
       const method = latest.methodology[moduleId];
       assert(method?.stored && method.name === name, `the run pinned ${moduleId} as ${JSON.stringify(method)}, not ${name}`);
     }
-    const pinned = Object.entries(stored).filter(([m]) => m !== "readiness").map(([, n]) => n);
-    ok(`one research run pinned every stored version it reports by name: ${pinned.join(", ")}` +
-      (stored.readiness ? `; readiness ${stored.readiness} in force at its start, its pin not reported by the run` : ""));
+    ok(`one research run pinned every stored version by name: ${Object.values(stored).join(", ")}`);
   }
 
   assert.equal(writes.filter((r) => /agent-jobs|deep-research\/runs/.test(r.path)).length, 0, "a paid job was started");
