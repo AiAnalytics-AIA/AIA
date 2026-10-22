@@ -155,6 +155,14 @@ describe("Dimenze", () => {
     noUnitCalls();
   });
 
+  it("a materialization whose run id the Lead's grammar refuses is shown, unmarked, never crashing the section", async () => {
+    const run = { run_id: "RUN 1", status: "RUNNING", created_at: "2026-10-22T00:00:00Z", finished_at: null, kind: "binary", dimension_id: "jezdi_vlakem", step_status: "RUNNING", waiting_reason: null, refusal_reason: null, child: null };
+    aiaStub(PLANNED, { [OWN_PATH]: () => ({ items: [run] }) });
+    const { container } = render(<ResearchScreen step="persona" frame={TEST_FRAME} />);
+    expect(await screen.findByText("jezdi_vlakem")).toBeTruthy();
+    expect(container.querySelector("[data-aia^='own_dimension:']")).toBeNull();
+  });
+
   it("without any materialization from this study the section says so, and still leads to the run's population", async () => {
     aiaStub(PLANNED, { [OWN_PATH]: () => ({ items: [] }) });
     render(<ResearchScreen step="persona" frame={TEST_FRAME} />);
