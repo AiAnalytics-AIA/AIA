@@ -22,7 +22,7 @@ import { ItemInspector } from "./ItemInspector";
 import { canReview } from "./frame";
 import { type Ask, AskDialog, Button } from "../ui";
 import { t } from "@/i18n/t";
-import { approvalQuestion, reviewLine } from "@/lib/report-variant";
+import { approvalQuestion, pdfStatesReview, reviewLine, type VersionReview } from "@/lib/report-variant";
 import { approvalRefusal, reviewStatus } from "@/lib/report-status";
 import { coverageRecord, type CoverageLine } from "@/lib/artifacts/report-coverage";
 
@@ -128,36 +128,99 @@ export function ReportDocumentView({ run }: { run: ResearchRun }) {
   const kind: Kind = offersClient ? chosen : "internal";
   const { loaded, prepare, approved } = useReportDocument(frame.studyId, run, kind);
   // Approval on the document being read (RPT3a): the version shown is the version approved, asked
-  // first by name (B22). Its question, its flight and its refusal belong to that version: another
-  // document on screen shows none of them, so a question never outlives the version it named.
-  const [act, setAct] = useState<{ version: string; ask: Ask | null; busy: boolean; refused: string | null } | null>(null);
-  const askApproval = (stored: StoredReportDocument) => {
-    const version = stored.report_artifact_id;
-    const question = approvalQuestion(kind, version);
-    // What the client's file carries, as the card used to say it (D2): known only when stamped.
-    const file = reviewLine({ version, reviewState: stored.review_state, approvedOn: stored.approved_on, stamped: stored.stamped }, false);
+  // first by name (B22). Its question, its flight and its refusal belong to that slot (the document
+  // and version shown): another document on screen shows none of them, so a question never outlives
+  // the version it named. `done`: approved here where no document is shown to say so.
+  const [act, setAct] = useState<{ slot: string; ask: Ask | null; busy: boolean; refused: string | null; done?: boolean } | null>(null);
+  // A slot names the run, its report step's artifact and the document: an unshown draft's slot is
+  // never another run's or another version's.
+  const slotOf = (shown: StoredReportDocument | null) =>
+    `${run.run_id}:${stepOf(run, "report")?.artifact_id ?? ""}:${kind}:${shown?.report_artifact_id ?? "notice"}`;
+  // The slot on screen now: a read that answers after it moved is dropped, never asked about.
+  const slotNow = useRef("");
+  const unshownInternal = kind === "internal" && (loaded.state === "not_stored" || loaded.state === "refused" || loaded.state === "failed");
+  const currentSlot = loaded.state === "ready" ? slotOf(loaded.stored) : unshownInternal ? slotOf(null) : "";
+  useEffect(() => { slotNow.current = currentSlot; }, [currentSlot]);
+  const confirm = (slot: string, version: string, file: VersionReview, pdf: boolean, shown: StoredReportDocument | null) => {
+    const question = approvalQuestion(kind, version, { pdf });
+    // What the file carries, as the card says it (D2): known only when stamped.
+    const carries = reviewLine(file, pdf);
     const ask: Ask = {
       kind: "confirm",
-      message: file ? `${question} ${file}` : question,
+      message: carries ? `${question} ${carries}` : question,
       yes: t("research.exec.report.approveAsk.yes"),
       resolve: (ok) => {
         if (!ok) return;
-        setAct({ version, ask: null, busy: true, refused: null });
+        setAct({ slot, ask: null, busy: true, refused: null });
         research.approveReport(frame.studyId, run.run_id, version).then(
           (done) => {
-            setAct(null);
-            approved(version, done);
+            setAct(shown ? null : { slot, ask: null, busy: false, refused: null, done: true });
+            if (shown) approved(version, done);
             const detail: ReportApproved = {
               runId: run.run_id, kind, artifactId: done.artifact_id, reviewState: done.review_state,
               approvedOn: done.approved_on ?? null, stamped: done.stamped ?? null,
             };
             window.dispatchEvent(new CustomEvent<ReportApproved>(REPORT_APPROVED, { detail }));
           },
-          (error: unknown) => setAct({ version, ask: null, busy: false, refused: approvalRefusal(error) }),
+          (error: unknown) => setAct({ slot, ask: null, busy: false, refused: approvalRefusal(error) }),
         );
       },
     };
-    setAct({ version, ask, busy: false, refused: null });
+    setAct({ slot, ask, busy: false, refused: null });
+  };
+  // `shown`: the document on screen, or null for an internal draft the pane cannot show (stored
+  // before its document, or refused), approved as the version the run's report names: the DOCX its
+  // download hands over, as the card approved it before.
+  const askApproval = (shown: StoredReportDocument | null) => {
+    const slot = slotOf(shown);
+    if (kind === "client") {
+      if (shown) confirm(slot, shown.report_artifact_id, { version: shown.report_artifact_id, reviewState: shown.review_state, approvedOn: shown.approved_on, stamped: shown.stamped }, false, shown);
+      return;
+    }
+    // The internal draft's approval also approves its PDF, so the question says so only as the
+    // run's report states it now, for exactly this version (D2): read on the ask, never remembered.
+    setAct({ slot, ask: null, busy: true, refused: null });
+    research.report(frame.studyId, run.run_id).then(
+      (report) => {
+        if (slotNow.current !== slot) return;
+        const version = report.artifact_id;
+        const refuse = (refused: string) => setAct({ slot, ask: null, busy: false, refused });
+        if (!version) return refuse("Běh zatím neuvádí žádnou verzi zprávy ke schválení.");
+        if (shown && version !== shown.report_artifact_id) {
+          return refuse(`Běh nyní uvádí jinou verzi zprávy (${version}), než je zde zobrazena; načtěte stránku znovu.`);
+        }
+        // Approved meanwhile, by someone else: said as such, the document shown updated in place.
+        if (reviewStatus(report.review_state) === "APPROVED") {
+          if (shown) {
+            setAct(null);
+            approved(version, { run_id: run.run_id, artifact_id: version, review_state: "APPROVED_INTERNAL", approved_on: report.approved_on ?? null, stamped: report.stamped ?? null, approval: null, internal_only: true });
+          } else setAct({ slot, ask: null, busy: false, refused: null, done: true });
+          return;
+        }
+        confirm(slot, version, { version, reviewState: report.review_state, approvedOn: report.approved_on, stamped: report.stamped },
+          pdfStatesReview(report.review_state, report.pdf, report.approval_renders_pdf), shown);
+      },
+      (error: unknown) => { if (slotNow.current === slot) setAct({ slot, ask: null, busy: false, refused: `Stav zprávy se nepodařilo načíst: ${message(error)}` }); },
+    );
+  };
+  // The approval controls for one slot: the button while it is not approved, its refusal, its question.
+  const approval = (shown: StoredReportDocument | null) => {
+    const mine = act?.slot === slotOf(shown) ? act : null;
+    const approvedAlready = mine?.done || (shown !== null && reviewStatus(shown.review_state) === "APPROVED");
+    return {
+      button: canReview(frame) && !approvedAlready ? (
+        <Button className="!min-h-11 ml-auto" disabled={mine?.busy} onClick={() => askApproval(shown)}>
+          {t(kind === "client" ? "research.exec.results.reportApproveClient" : "research.exec.results.reportApprove")}
+        </Button>
+      ) : null,
+      after: (
+        <>
+          {mine?.done ? <p role="status" className="mb-2 text-sm text-ink-muted">{t("research.exec.results.reportApprovedInternal")}</p> : null}
+          {mine?.refused ? <p role="alert" className="mb-2 text-sm text-status-fault">{mine.refused}</p> : null}
+          <AskDialog ask={mine?.ask ?? null} onDone={() => setAct((was) => (was ? { ...was, ask: null } : was))} />
+        </>
+      ),
+    };
   };
   const [stack, setStack] = useState<InspectorStack>(() => emptyStack("report"));
   // Inside the workbench a claim opens in its one item drawer, under the frame's Escape order;
@@ -187,11 +250,14 @@ export function ReportDocumentView({ run }: { run: ResearchRun }) {
   ) : null;
   const notice = noticeOf(loaded, kind, prepare, canReview(frame));
   if (notice === undefined) return null;
-  if (notice !== null || loaded.state !== "ready") return <div>{choose}{notice}</div>;
+  if (notice !== null || loaded.state !== "ready") {
+    // An internal draft the pane cannot show is still approved here, on the version its run names.
+    const unshown = unshownInternal ? approval(null) : null;
+    return <div>{choose}{notice}{unshown ? <div className="mt-2 flex flex-wrap items-center gap-2">{unshown.button}</div> : null}{unshown?.after}</div>;
+  }
 
   const { stored, doc } = loaded;
-  // The approval in hand is this version's, or nothing here.
-  const mine = kind === "client" && act?.version === stored.report_artifact_id ? act : null;
+  const controls = approval(stored);
   const missing = unresolvedRefs(doc);
   const entry = (ref: string): LedgerEntry | undefined => doc.ledger.refs[ref];
   const claim = (ref: string) => <ul className="flex flex-col gap-1">{claimLines(entry(ref)).map((line) => <li key={line}>{line}</li>)}</ul>;
@@ -210,16 +276,9 @@ export function ReportDocumentView({ run }: { run: ResearchRun }) {
           <span>· {reviewWords(stored, kind)}</span>
           {stored.approval ? <span data-approval>· {approvalWords(stored.approval, stored.approved_on)}</span> : null}
           <span className={`font-mono ${WRAPS}`}>· {stored.report_artifact_id}</span>
-          {/* The client report only, for now: the internal draft's approval also approves its PDF,
-              which the card names and this pane does not read yet (RPT3a's next part). */}
-          {kind === "client" && canReview(frame) && reviewStatus(stored.review_state) !== "APPROVED" ? (
-            <Button className="!min-h-11 ml-auto" disabled={mine?.busy} onClick={() => askApproval(stored)}>
-              {t("research.exec.results.reportApproveClient")}
-            </Button>
-          ) : null}
+          {controls.button}
         </div>
-        {mine?.refused ? <p role="alert" className="mb-2 text-sm text-status-fault">{mine.refused}</p> : null}
-        <AskDialog ask={mine?.ask ?? null} onDone={() => setAct((was) => (was ? { ...was, ask: null } : was))} />
+        {controls.after}
         {missing.length ? (
           <p role="alert" className="mb-2 text-sm text-status-fault">Dokument cituje čísla, která jeho evidence nemá ({missing.join(", ")}); zobrazují se jako „?“.</p>
         ) : null}
