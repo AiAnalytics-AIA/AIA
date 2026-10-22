@@ -94,10 +94,14 @@ function useRenaming(edit: OrganizerEdit | undefined) {
   // Back to the row, and focus with it (I11: focus returns where the person was). Focused once
   // the render that brings the row back has committed: a frame scheduled at `stop` can run
   // before that render, find no row, and leave focus on the page (seen on a loaded CI runner).
+  // Only focus left with the closed field, on the page, comes back: a slow save's answer must not
+  // take it from wherever the person went meanwhile (another label's colours, a CI flake).
   const refocus = useRef(false);
   useEffect(() => {
     if (renaming || !refocus.current) return;
     refocus.current = false;
+    const now = document.activeElement;
+    if (now && now !== document.body) return;
     row.current?.focus();
   }, [renaming]);
   return {

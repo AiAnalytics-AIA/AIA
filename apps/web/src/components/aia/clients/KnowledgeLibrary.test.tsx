@@ -69,7 +69,8 @@ function api(overrides: Record<string, (body: unknown, url: string) => unknown> 
         "GET /api/v1/clients/CLI-a": () => CLIENT,
         ...overrides,
       };
-      const answer = routes[`${method} ${u.split("?")[0]}`]?.(body, u) ?? {};
+      // A route may answer later (a promise), as a slow server does.
+      const answer = (await routes[`${method} ${u.split("?")[0]}`]?.(body, u)) ?? {};
       return answer instanceof Response ? answer : new Response(JSON.stringify(answer), { status: 200 });
     }),
   );
@@ -427,6 +428,28 @@ describe("folders and labels, organized where they are listed", () => {
     fireEvent.click(within(list).getByRole("option", { name: "Modrá" }));
     await waitFor(() => expect(sent("PUT", "/labels/KNL-2")[0].body).toEqual({ colour: "BLUE" }));
     expect(nav().queryByRole("listbox")).toBeNull();
+  });
+
+  it("leaves focus where the person moved it while a rename was still saving", async () => {
+    // A slow save: the field closes and the row would take focus back when the answer comes, after
+    // the person has already opened another label's colours (seen as a CI flake on :424).
+    let answer!: () => void;
+    const saved = new Promise<void>((resolve) => { answer = resolve; });
+    api({ "PUT /api/v1/clients/CLI-a/knowledge/labels/KNL-1": async (b) => { await saved; return { ...LABELS[0], ...(b as object) }; } });
+    open();
+    const retail = await nav().findByRole("button", { name: "retail 1" });
+    fireEvent.keyDown(retail, { key: "F2" });
+    const field = nav().getByRole("textbox", { name: "Název štítku" });
+    fireEvent.change(field, { target: { value: "maloobchod" } });
+    fireEvent.keyDown(field, { key: "Enter" });
+    await waitFor(() => expect(sent("PUT", "/labels/KNL-1")).toHaveLength(1));
+
+    fireEvent.click(await nav().findByRole("button", { name: "Barva štítku ověřit: Oranžová" }));
+    const orange = within(nav().getByRole("listbox", { name: "Barva štítku ověřit" })).getByRole("option", { name: "Oranžová" });
+    await waitFor(() => expect(document.activeElement).toBe(orange));
+    answer();
+    await nav().findByRole("button", { name: /^maloobchod/ });
+    expect(document.activeElement).toBe(orange);
   });
 
   it("creates a label in the list in the colour its swatch shows, the first one unused by default (audit D4)", async () => {
