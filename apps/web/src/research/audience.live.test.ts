@@ -1,5 +1,7 @@
 // The live audience functions (panel-grounded-respondents 6e): AIA's catalogue, subpanels and
 // preview as the step reads them, and the range filter that no longer stores OI-50's 0.
+import { readFileSync } from "node:fs";
+import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 
 import type { AudienceCatalogue, AudiencePreview } from "@/lib/api";
@@ -94,12 +96,12 @@ describe("stored filters the population cannot honour (Findings F3)", () => {
     expect(problems({ kraj: [null] })[0]).toMatchObject({ reason: "empty" });
   });
 
-  it("holds a numeric filter to the server's interval rule (_interval)", () => {
-    for (const vek of [{ min: null, max: 59 }, "abc", [18], [18, "x"], { min: "", max: 59 }, { min: {} }]) {
-      expect(problems({ vek }), JSON.stringify(vek)).toEqual([{ id: "vek", label: "Věk", reason: "range", unknownValues: [], noneKnown: false }]);
-    }
-    for (const vek of [{ min: 30 }, { min: 30, max: 59 }, [18, 29], 40, { min: "30", max: " 59 " }, { min: "1_000" }, { max: "inf" }, true]) {
-      expect(problems({ vek }), JSON.stringify(vek)).toEqual([]);
+  it("holds a numeric filter to the server's interval rule, case by shared case (_interval)", () => {
+    // packages/aia_core/tests/test_audience_interval_cases.py holds _interval to the same file.
+    const { cases } = JSON.parse(readFileSync(join(process.cwd(), "../../packages/aia_core/tests/fixtures/audience_interval/cases.json"), "utf8")) as { cases: { value: unknown; refused: boolean }[] };
+    expect(cases.length).toBeGreaterThan(10);
+    for (const { value, refused } of cases) {
+      expect(problems({ vek: value }), JSON.stringify(value)).toEqual(refused ? [{ id: "vek", label: "Věk", reason: "range", unknownValues: [], noneKnown: false }] : []);
     }
   });
 
