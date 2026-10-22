@@ -61,7 +61,9 @@ from ..domain.analysis.artifact import (
     ProducedBy,
     SourceRef,
     ViolationRecord,
+    finding_expected,
     module_reuse_fingerprint,
+    no_supported_finding,
     parse_module_artifact,
 )
 from ..domain.analysis.external import external_context_lines, public_context
@@ -86,6 +88,7 @@ from ..domain.analysis.native import (
 from ..domain.analysis.steps import analysis_node_key, module_of_node
 from ..domain.answerability import Acknowledgement
 from ..domain.evidence import (
+    ClaimLevel,
     ClaimSurface,
     InstrumentPolicyRefused,
     Violation,
@@ -711,6 +714,13 @@ def module_artifact(
         labels=ModuleLabels.model_validate(harness_labels(origin=evidence.origin, surface=surface)),
         produced_by=produced_by,
         runtime_version=runtime_version,
+        finding_expected=finding_expected(
+            prepared.module_id,
+            tracked_sets=bool(prepared.sources.specification.batteries),
+            hypotheses=bool(prepared.sources.hypotheses),
+            segment_rows=any(r.level is ClaimLevel.SEGMENT for r in evidence.table.rows.values()),
+            research_questions=bool(prepared.sources.research_questions),
+        ),
     )
 
 
@@ -775,6 +785,8 @@ def _retryable(
     ``FAILED`` or ``CANCELLED`` without an outcome, and a module completed under an earlier
     harness (:func:`_stale`): today's harness refuses to re-admit it, so the run's analysis,
     its literature report and its Interpretation Research stay dark until it is asked again.
+    A module a model completed without one key finding (:func:`no_supported_finding`): a
+    same-data retry is one way out (MVPQ-04, evidence-integrity 9a).
     Never a module the preflight blocked before any turn: code refused it, and the same data
     would refuse it again.
     """
@@ -783,6 +795,7 @@ def _retryable(
         for m in AnalysisModuleId
         if (m in records and records[m].outcome == "BLOCKED" and records[m].attempts > 0)
         or (m in records and _stale(records[m]))
+        or (m in records and no_supported_finding(records[m]))
         or pending.get(m) in _RETRYABLE_STEP_STATES
     )
 
@@ -1151,7 +1164,8 @@ def retry_failed_modules(
     if not retried:
         raise AnalysisNotRetryable(
             "nothing_to_retry",
-            f"run {run_id} has no analysis module a model failed or an earlier harness stored",
+            f"run {run_id} has no analysis module a model failed, left without a finding or an "
+            "earlier harness stored",
         )
     asked = sum(
         1

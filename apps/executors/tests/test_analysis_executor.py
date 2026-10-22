@@ -51,6 +51,8 @@ from aia_core.domain.analysis import AnalysisModuleId
 from aia_core.domain.analysis.artifact import (
     ANALYSIS_MODULE_ARTIFACT,
     ANALYSIS_TURN_ARTIFACT,
+    finding_diagnostic,
+    no_supported_finding,
     parse_module_artifact,
 )
 from aia_core.domain.analysis.external import external_context_lines, public_context
@@ -1609,6 +1611,90 @@ def test_the_hypotheses_module_is_given_the_design_s_stated_hypotheses(
     _drain(worker)
     assert json.loads(models.messages("hypotheses", 1)[0])["stated_hypotheses"] == stated
     assert "stated_hypotheses" not in json.loads(models.messages("executive", 1)[0])
+
+
+def test_a_module_completed_without_a_finding_is_asked_again_over_the_same_data(
+    world: Any, store: InMemoryArtifactStore, run_with: Callable[..., Worker]
+) -> None:
+    """MVPQ-04, evidence-integrity 9a: the executive summary, always expected to find, completed
+    with no key finding carries a diagnostic, never a finding, and a same-data retry asks it
+    again in a new round instead of reusing the empty answer; every other module is reused."""
+    models = RecordedModels(no_findings={"executive"})
+    worker = run_with(models)
+    first = _started_with_analysis(world)
+    _drain(worker)
+    with world.sessions() as session:
+        stored = stored_analysis(session, world.lead_scope(session), store, run_id=first)
+    record = stored.records[AnalysisModuleId.EXECUTIVE]
+    assert record.outcome == "COMPLETED" and record.finding_expected is True
+    assert no_supported_finding(record)
+    assert stored.retryable == (AnalysisModuleId.EXECUTIVE,)
+    # Results reads it beside the module, never as a finding (the analysis route).
+    from aia_api.routers.research import run_analysis
+
+    with world.sessions() as session:
+        shown = run_analysis(first, world.lead_scope(session), session, store)
+    executive = shown["modules"]["executive"]
+    assert executive["key_findings"] == []
+    assert executive["diagnostic"] == finding_diagnostic(record)
+    assert executive["diagnostic"]["reason"] == "no_supported_finding"
+    asked_before = len(models.asked)
+
+    models.no_findings.clear()
+    retry = _retry_analysis(world, store, first)
+    _drain(worker)
+    assert models.asked[asked_before:] == [("executive", 2)], "only the empty module, once"
+    reused = [
+        m for m, step in _analysis(_run(world, retry.run_id)).items() if step["output"]["reused"]
+    ]
+    assert sorted(reused) == sorted(m for m in MODULES if m != "executive")
+    with world.sessions() as session:
+        again = stored_analysis(session, world.lead_scope(session), store, run_id=retry.run_id)
+    assert not no_supported_finding(again.records[AnalysisModuleId.EXECUTIVE])
+    assert again.retryable == ()
+
+
+@pytest.mark.parametrize(("stated", "held"), [(True, True), (False, False)])
+def test_no_context_from_the_hypotheses_module_holds_only_when_the_design_states_some(
+    world: Any,
+    store: InMemoryArtifactStore,
+    run_with: Callable[..., Worker],
+    stated: bool,
+    held: bool,
+) -> None:
+    """Q72 (A), the guard: whether the hypotheses' context exists is decided by code from the
+    design, never from the model's "no context". With hypotheses stated, an empty answer holds
+    and is offered a same-data round; with none, it is context_missing and holds nothing."""
+    plan = {
+        **DESIGN["research_plan"],
+        **({"hypotheses": ["Mladší pijí víc čaje."]} if stated else {}),
+    }
+    models = RecordedModels(no_findings={"hypotheses"})
+    worker = run_with(models)
+    with world.sessions() as session:
+        scope = world.lead_scope(session)
+        revision, _ = StudyDesignRepository(session, scope).submit_as_working_copy(
+            content={**DESIGN, "research_plan": plan}, source_stage="run"
+        )
+        run_id = (
+            ResearchRuns(session, scope)
+            .start(
+                design_revision_id=revision.revision_id,
+                fieldwork_source=FieldworkSource.SYNTHETIC_FIXTURE,
+                analysis_enabled=True,
+            )
+            .run_id
+        )
+        session.commit()
+    _drain(worker)
+    with world.sessions() as session:
+        stored = stored_analysis(session, world.lead_scope(session), store, run_id=run_id)
+    record = stored.records[AnalysisModuleId.HYPOTHESES]
+    assert no_supported_finding(record) is held
+    assert (stored.retryable == (AnalysisModuleId.HYPOTHESES,)) is held
+    diagnostic = finding_diagnostic(record)
+    assert diagnostic is not None
+    assert diagnostic["reason"] == ("no_supported_finding" if held else "context_missing")
 
 
 def test_a_retry_round_asks_again_what_the_model_refused_and_replays_nothing_old(

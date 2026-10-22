@@ -93,6 +93,7 @@ from aia_core.application.research import (
 )
 from aia_core.application.sociomapping_report import SOCIOMAPPING_REPORT_ARTIFACT_TYPE
 from aia_core.application.workflows import StartedRun
+from aia_core.domain.analysis.artifact import finding_diagnostic
 from aia_core.domain.analysis.steps import ANALYSIS_STEP_KIND
 from aia_core.domain.answerability import (
     ANSWERABILITY_RULES,
@@ -1966,7 +1967,10 @@ def run_analysis(
 
     Each answer to a research question carries ``gap``: what the run recorded at start about that
     question when it recorded it as a gap (its verdict and why), else ``None`` -- the same words
-    the internal report prints beside it, so Results never reads such an answer as measured."""
+    the internal report prints beside it, so Results never reads such an answer as measured.
+    Each module carries ``diagnostic``: ``{reason, resolutions}`` when it states nothing --
+    ``no_supported_finding`` where the run held its context (it holds the report, MVPQ-04, Q72)
+    or ``context_missing`` where the run lacks it -- else ``None``."""
     try:
         scope.require(Permission.EDIT_STUDY)
         analysis = reconstruct_run(session, scope, store, run_id=run_id)
@@ -2040,6 +2044,9 @@ def run_analysis(
                     }
                     for violation in outcome.violations
                 ],
+                # A module a model completed without one key finding: never a finding
+                # (MVPQ-04, evidence-integrity 9a).
+                "diagnostic": finding_diagnostic(outcome.record),
             }
             for module, outcome in analysis.modules.items()
         },
