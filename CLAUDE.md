@@ -2058,8 +2058,10 @@ decision 5): its old paths are the web client's 404, the panel's gate is gone wi
 it, and `tools/caddy_routes.py` fails a Caddyfile that routes anywhere but the API
 and the web client. Two other names: `errors.<hostname>` is GlitchTip's, and reaches
 GlitchTip alone (`deploy/develop/README.md` § Error tracking); `docs.<hostname>` is the report
-editor's, ONLYOFFICE Docs, and reaches the Document Server alone, behind AIA's docs gate
-(`deploy/develop/README.md` § Report editor).
+editor's, ONLYOFFICE Docs, and reaches the Document Server alone, behind AIA's docs gate. It
+is off on develop until it is switched on (`report-editor-hosting` chunk 4, after OI-200; the
+`AIA_ONLYOFFICE_*` keys default empty, `deploy/develop/docker-compose.yml:198-199`;
+`deploy/develop/README.md` § Report editor).
 
 **A research study's working content lives in AIA** (ADR 0018, OI-58). The stages load
 and save it through `/api/v1/studies/{study_id}/workspace/content`; it is the Study's
@@ -2215,7 +2217,7 @@ ungated fixture.
 | Seed the synthetic develop world | `make seed-develop` (needs `DATABASE_URL`, `AIA_SEED_OWNER_EMAIL`; idempotent) |
 | Operate the population | `python -m aia_executors.population_ops <import\|attach\|establish\|promote> --as <email> …` (needs `DATABASE_URL`, `AIA_POPULATION_ASSET_ROOT`, `AIA_POPULATION_OPERATORS`); `status`, `record-dictionary` and `record-catalogue [--version]` act as no one and take no `--as` (no `AIA_POPULATION_OPERATORS`) |
 | **Error tracking on develop** | `bin/errors.sh up \| down \| status \| admin <email>`; GlitchTip at `https://errors.<hostname>`; turning it on: `deploy/develop/README.md` § Error tracking |
-| **Report editor on develop** | `bin/docs.sh up \| down \| status \| logs`; ONLYOFFICE Docs at `https://docs.<hostname>`; turning it on: `deploy/develop/README.md` § Report editor |
+| **Report editor on develop** | `bin/docs.sh up \| down \| status \| logs`; ONLYOFFICE Docs at `https://docs.<hostname>`, off until switched on; turning it on: `deploy/develop/README.md` § Report editor |
 | **The population on develop** | `bin/sync-population.sh`, then `bin/population.sh import … --all-companions` / `establish` (`deploy/develop/README.md` § The population) |
 | **Migrate 18.6.6 content** | `python -m aia_executors.legacy_workspace --store <copy> --attachments <copy> --as <email> [--apply] [--recover-missing]` (needs `DATABASE_URL`, `AIA_STORAGE_*`; dry run by default; runbook `deploy/develop/README.md` § Migrating 18.6.6 content) |
 | Tests | `make test` (core + API + worker + executors) |
