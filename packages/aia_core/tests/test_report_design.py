@@ -3,11 +3,10 @@
 from __future__ import annotations
 
 import io
-from dataclasses import replace
 from typing import Any
 
 from docx import Document
-from test_report_docx_render import _doc, _meta
+from test_report_docx_render import _meta
 
 from aia_core.application.analysis_results import Brief
 from aia_core.application.report_design import NOT_STATED, compose_design_sections
@@ -269,7 +268,7 @@ def test_a_control_character_in_the_brief_never_fails_the_report(report_ledger: 
     assert lint_docx(DocxRenderer().render(doc)) == []
 
 
-def test_a_control_character_a_person_typed_never_fails_the_render(report_ledger: Any) -> None:
+def test_a_control_character_a_person_typed_never_fails_the_render(report_doc: Any) -> None:
     """A research question or a question's wording carrying a character XML 1.0 cannot hold
     (a vertical tab pasted from Word, a bell, a lone surrogate) failed the whole draft in
     python-docx. Word's breaks print as a space, the rest are dropped, and the stored document
@@ -282,8 +281,9 @@ def test_a_control_character_a_person_typed_never_fails_the_render(report_ledger
     spec, problems = compile_design(design)
     assert spec is not None, problems
     composed = compose_design_sections(spec, ("Co lidé\x0bráno pijí?\x1f\ud800",))
-    doc = _doc(report_ledger(), title="Důvěra\x0c v banky")
-    doc = replace(doc, sections=(*doc.sections, composed.chapter, composed.appendix))
+    doc = report_doc(
+        *composed.chapter.blocks, *composed.appendix.blocks, title="Důvěra\x0c v banky"
+    )
 
     out = DocxRenderer().render(doc)
 
