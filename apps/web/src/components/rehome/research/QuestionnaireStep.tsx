@@ -279,16 +279,15 @@ export function QuestionnaireStep() {
       ) : null}
       {editor ? (
         <>
-          <div className="flex flex-wrap items-start gap-4">
-            <Outline update={update} />
-            <div className="flex min-w-0 flex-[999_1_560px] flex-col gap-4">
-              {tab === "edit" ? (
-                <ScaleUndoProvider>
-                  <Editor update={update} />
-                </ScaleUndoProvider>
-              ) : <Preview items={respondentPreview(p)} />}
+          {/* Above the tab switch: a delete's Vrátit outlives a look at the preview. */}
+          <ScaleUndoProvider>
+            <div className="flex flex-wrap items-start gap-4">
+              <Outline update={update} />
+              <div className="flex min-w-0 flex-[999_1_560px] flex-col gap-4">
+                {tab === "edit" ? <Editor update={update} /> : <Preview items={respondentPreview(p)} />}
+              </div>
             </div>
-          </div>
+          </ScaleUndoProvider>
           <section className={CARD} aria-labelledby="q-final">
             <h2 id="q-final" className="text-base font-semibold">{t("research.questionnaire.finalTitle")}</h2>
             <p className="mt-1 text-[13px] leading-5 text-ink-muted">{t("research.questionnaire.finalIntro")}</p>

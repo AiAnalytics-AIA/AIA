@@ -66,4 +66,16 @@ describe("Dotazník's deletes", () => {
     fireEvent.click(screen.getByRole("button", { name: "Vrátit" }));
     await waitFor(() => expect(cards(container)).toEqual(["qedit_Q1", "qedit_Q2"]));
   });
+
+  it("keeps Vrátit across a look at the respondent preview", async () => {
+    stub({ goal: "G", sections: SECTIONS, ui_state: { questionnaire_path: "manual" } });
+    const { container } = render(<ResearchScreen step="questionnaire" frame={TEST_FRAME} />);
+    await screen.findAllByDisplayValue("Jak často?");
+    fireEvent.click(screen.getByRole("button", { name: "Odebrat otázku Q1" }));
+    await screen.findByText("Otázka „Jak často?“ odebrána");
+    fireEvent.click(screen.getByRole("radio", { name: "Náhled respondenta" }));
+    fireEvent.click(screen.getByRole("radio", { name: "Upravit" }));
+    fireEvent.click(await screen.findByRole("button", { name: "Vrátit" }));
+    await waitFor(() => expect(cards(container)).toEqual(["qedit_Q1", "qedit_Q2"]));
+  });
 });
