@@ -55,6 +55,7 @@ from pydantic import BaseModel, ConfigDict, Field, StrictBool
 from ..dependencies import (
     ArtifactStoreDep,
     OrganizationDep,
+    PanelSamplerDep,
     RunPopulationDep,
     SessionDep,
     SettingsDep,
@@ -558,6 +559,7 @@ def approve_request(
     session: SessionDep,
     settings: SettingsDep,
     population: RunPopulationDep,
+    sampler: PanelSamplerDep,
 ) -> ApprovedRequest:
     """Approve the design job the caller's own Lead turn prepared: held to the study's spend
     limit, started and recorded in the approval ledger, once. With the Lead switched off, a
@@ -573,7 +575,7 @@ def approve_request(
             turn_id,
             confirm_cost_usd=body.confirm_cost_usd,
             reservation_usd=settings.ai_research_reservation_usd,
-            run_start=run_start_settings(request, population),
+            run_start=run_start_settings(request, population, sampler),
             wallet_enabled=settings.study_wallet_enabled,
             workspace_revision=body.workspace_revision,
         )
