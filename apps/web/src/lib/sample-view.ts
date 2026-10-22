@@ -2,7 +2,7 @@
 // outlook as the server worked them out before the run. Pure. Nothing here decides: the server's
 // readiness is the authority, and what it could not forecast reads as unknown, never as good.
 
-import type { CheckStatus, OutlookVerdict, PersonaSourceOption, Readiness } from "./api";
+import type { CheckStatus, OutlookVerdict, PersonaSourceOption, ReadinessBody } from "./api";
 import { outlookCounts } from "./research-execution";
 
 /** The readiness check the server adds with its support forecast (domain/support_forecast.py). */
@@ -20,7 +20,7 @@ export type SupportForecastLine =
   | { known: true; status: CheckStatus; message: string }
   | { known: false; message: string | null };
 
-export function supportForecastOf(readiness: Readiness): SupportForecastLine {
+export function supportForecastOf(readiness: ReadinessBody): SupportForecastLine {
   const check = readiness.checks.find((c) => c.id === SUPPORT_FORECAST_CHECK);
   if (!check) return { known: false, message: null };
   if (readiness.persona_source === "panel") return { known: false, message: check.message };
@@ -31,7 +31,7 @@ export function supportForecastOf(readiness: Readiness): SupportForecastLine {
  * The question outlook in counts, every verdict present; `null` when the API sent none (an
  * older API, or a design that does not compile), which reads as unknown, never as "all answered".
  */
-export function outlookSummary(readiness: Readiness): Record<OutlookVerdict, number> | null {
+export function outlookSummary(readiness: ReadinessBody): Record<OutlookVerdict, number> | null {
   const items = readiness.question_outlook;
   if (!items || !items.length) return null;
   return outlookCounts(items);
@@ -43,7 +43,7 @@ export function outlookSummary(readiness: Readiness): Record<OutlookVerdict, num
  * source is chosen on Spuštění, beside the start that pins it (SQ1 = Q54 b). `null` when the API
  * sent no sources (an older API), which reads as unknown, never as a default.
  */
-export function personaSourcesOf(readiness: Readiness): PersonaSourceOption[] | null {
+export function personaSourcesOf(readiness: ReadinessBody): PersonaSourceOption[] | null {
   const sources = readiness.persona_sources;
   return sources && sources.length ? sources : null;
 }
@@ -54,6 +54,6 @@ export function personaSourcesOf(readiness: Readiness): PersonaSourceOption[] | 
  * its choice (ExecutionSteps.tsx RunStep). Anything else answers from a fixture: there is no
  * source to choose, and Vzorek must not send the person to a choice that is not there.
  */
-export function sourceChosenOnRun(readiness: Readiness): boolean {
+export function sourceChosenOnRun(readiness: ReadinessBody): boolean {
   return readiness.fieldwork_source === "ai_runtime" && personaSourcesOf(readiness) !== null;
 }

@@ -256,6 +256,7 @@ try {
 
   // Vzorek (artifact-sample SMP6): read only, at every width. Its forecast is the server's, labelled
   // a forecast, on the revision it was read on; nothing on it sets n or starts anything.
+  const submitsBefore = writes.filter((w) => /\/design\/revisions$/.test(w.path)).length;
   for (const width of [1440, 1100, 768, 390]) {
     await page.setViewportSize({ width, height: 900 });
     await page.goto(base + stagePath("dimensions") + "#sample");
@@ -265,8 +266,8 @@ try {
     await forecast.getByText("odhad, ne výsledek").waitFor();
     // The journey's identity edits, so Vzorek reads readiness on the revision its copy submits to:
     // the empty state ("odhad není") or a failed read is a failure here, never a pass.
-    await forecast.getByText(/Podle revize návrhu|odhad není|nepodařilo načíst/).first().waitFor({ timeout: 30000 });
-    assert.equal(await forecast.getByText(/Podle revize návrhu \d+/).count(), 1, `Vzorek's forecast read on a revision @${width}`);
+    await forecast.getByText(/Podle pracovní kopie|odhad není|nepodařilo načíst/).first().waitFor({ timeout: 30000 });
+    assert.equal(await forecast.getByText(/Podle pracovní kopie, revize \d+/).count(), 1, `Vzorek's forecast read on the working revision @${width}`);
     // Read only: no editable surface of any kind, and every button one of its navigation links.
     const editable = "input, select, textarea, [contenteditable]:not([contenteditable='false']), [role=slider], [role=spinbutton], [role=textbox], [role=checkbox], [role=radio], [role=switch], [role=combobox]";
     assert.equal(await sample.locator(editable).count(), 0, `Vzorek has no editable control @${width}`);
@@ -279,11 +280,13 @@ try {
     await noOverflow(`sample @${width}`);
     await sample.screenshot({ path: join(out, `${width}-sample.png`) });
   }
+  // Reading readiness on the working copy submits no Design Revision (working-copy-edit-ops WCE7b).
+  assert.equal(writes.filter((w) => /\/design\/revisions$/.test(w.path)).length, submitsBefore, "a Vzorek visit submits no design");
   // Its links open the stages where things are set.
   await page.setViewportSize({ width: 1440, height: 900 });
   await page.getByRole("button", { name: "Ověřit v Kontrole a spuštění" }).click();
   await page.locator(".nav__stage.is-current", { hasText: "Sběr dat" }).waitFor();
-  check("Vzorek: size and the server's forecast at 1440, 1100, 768 and 390, read only, no overflow; Spuštění one click away");
+  check("Vzorek: size and the server's forecast on the working copy at 1440, 1100, 768 and 390, nothing submitted, read only, no overflow; Spuštění one click away");
 
   const paid = writes.filter((w) => /\/research\/runs$|\/agent-jobs$|\/deep-research\/runs|\/lead\/turns\/[^/]+\/request$/.test(w.path));
   assert.deepEqual(paid, [], "nothing paid started");
