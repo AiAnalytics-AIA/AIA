@@ -68,9 +68,11 @@ export function PlanNarrative({ disabled = false, onQuote }: { disabled?: boolea
         type="button"
         aria-label={tv("research.plan.narrative.comment", { text })}
         onClick={() => onQuote(text)}
-        className={`mt-1 shrink-0 whitespace-nowrap rounded-control px-1.5 text-xs leading-6 text-ink-faint hover:bg-surface-sunken hover:text-ink ${FOCUS}`}
+        className={`mt-1 inline-flex min-h-7 min-w-7 shrink-0 items-center justify-center gap-1 whitespace-nowrap rounded-control px-1.5 text-xs leading-6 text-ink-faint hover:bg-surface-sunken hover:text-ink ${FOCUS}`}
       >
-        {t("research.plan.narrative.commentShort")}
+        {/* A phone keeps the item's words their width: the action as its glyph, named by aria-label. */}
+        <Icon name="assistant" size={14} className="sm:hidden" />
+        <span className="max-sm:hidden">{t("research.plan.narrative.commentShort")}</span>
       </button>
     ) : null;
 

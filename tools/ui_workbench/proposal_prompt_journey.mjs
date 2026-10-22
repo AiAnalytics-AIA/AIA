@@ -48,7 +48,13 @@ const measure = async (label) => {
 try {
   await visit(path + "/plan"); await page.getByRole("button", { name: /^Upravit: Shrnutí výzkumného problému/ }).waitFor();
   const original = await get(contentPath);
-  for (const width of [1440, 1024, 768, 390]) { await page.setViewportSize({ width, height: 1000 }); await measure("proposal"); }
+  for (const width of [1440, 1024, 768, 390]) {
+    await page.setViewportSize({ width, height: 1000 }); await measure("proposal");
+    // A narrative item's "Komentovat" is its glyph on a phone, so the item keeps its width; its words above.
+    const box = await page.getByRole("button", { name: /^Komentovat: / }).first().boundingBox();
+    assert(box && box.width >= 24 && box.height >= 24, `${width}: Komentovat under 24 px`);
+    assert(width < 640 ? box.width <= 32 : box.width > 40, `${width}: Komentovat is ${Math.round(box.width)} px wide`);
+  }
   await page.setViewportSize({ width: 1440, height: 1000 });
   // The stage shows (and writes back to both) the analysis's narrative when one is stored.
   const shown = original.analysis ?? original.content.research_plan;

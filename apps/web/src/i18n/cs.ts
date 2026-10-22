@@ -2007,7 +2007,7 @@ export const cs = {
       followHint: "Odpovězte jen na to, co víte. Nezodpovězené otázky AI vyřeší předpokladem.",
       followAnswered: "{a} z {b} zodpovězeno",
       followAnswer: "Odpověď na otázku {n}",
-      commentsHint: "Označte text v oddílu 2 nebo 3 jako ve Wordu. Všechny komentáře AI zapracuje najednou.",
+      commentsHint: "Označte text v oddílu {a} nebo {b} jako ve Wordu. Všechny komentáře AI zapracuje najednou.",
       commentDraft: "Co změnit? Enter uloží komentář",
       dockSetSize: "Sada „{name}“ má {n} položek, potřebuje {min}–{max}",
       dockComments: "Komentáře čekající na zpracování: {n}",

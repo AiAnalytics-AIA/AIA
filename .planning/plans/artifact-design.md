@@ -234,6 +234,13 @@ untested. Depends on `assumptions-and-open-answer-coding#AOC1`.
      one is started from the goal" holds.
   6. *Test:* the regression test above.
 
+- **F-DSN-2.** Komentáře's hint named the sections a comment quotes as "oddílu 2 nebo 3"
+  (`cs.ts:2010 @ 9eb78f6c`). Without design variants those sections are numbered 1 and 2, so the
+  hint pointed at the wrong ones (a manual plan, for one). Fixed on `fix/design-comments-hint`: the
+  hint takes the numbers Porozumění and Sady carry (`PlanStep.test.tsx` "names the sections a
+  comment quotes…"). The same audit made "Komentovat" its glyph below 640 px, so an item keeps its
+  width (`proposal_prompt_journey.mjs`).
+
 ## 8. Owner questions
 
 None: D-44 settled the chain's reduction; MVPQ-02 the assumptions.
