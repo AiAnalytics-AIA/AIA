@@ -88,7 +88,10 @@ export function AnalysisInspect({ target }: { target: { kind: "module" | "findin
     return (
       <div data-inspect="finding" className="flex flex-col gap-3 text-sm">
         <FormattedText text={view.text} />
-        <p className="text-xs text-ink-muted">Zjištění napsala AI analýza z připuštěných čísel tohoto běhu; čeká na posouzení výzkumníkem.</p>
+        {/* Only a finding that cites an admitted number is said to rest on one (review of #692). */}
+        <p className="text-xs text-ink-muted">{view.numbers.length
+          ? "Zjištění napsala AI analýza z připuštěných čísel tohoto běhu; čeká na posouzení výzkumníkem."
+          : "Zjištění napsala AI analýza a neopírá se o žádné připuštěné číslo tohoto běhu; čeká na posouzení výzkumníkem."}</p>
         <h4 className="text-xs font-semibold uppercase tracking-wide text-ink-muted">Čísla, o která se opírá</h4>
         {view.numbers.length ? <ul className="flex flex-col gap-2">{view.numbers.map((n) => <CitedLine key={n.claim.claim_id} n={n} />)}</ul> : <p className="text-ink-muted">Necituje žádné připuštěné číslo.</p>}
         {view.unresolved.length ? <p className="text-xs text-ink-muted">Odkazuje i na čísla, která modul neuložil: {view.unresolved.map((id) => <code key={id} className="mr-1">{id}</code>)}</p> : null}

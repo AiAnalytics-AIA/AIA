@@ -1944,6 +1944,11 @@ describe("Results", () => {
     expect(drawer.container.querySelector("[data-aia]")).toBeNull();
     for (const c of ["C1", "C2", "C3"]) expect(document.querySelectorAll(`[data-aia="claim:executive:${c}"]`)).toHaveLength(1);
     drawer.unmount();
+    // A finding that cites no admitted number is never said to rest on one (review of #692).
+    const bare = render(<AnalysisInspect target={{ kind: "finding", id: "objects:0" }} />);
+    expect(bare.container.textContent).not.toContain("z připuštěných čísel");
+    expect(bare.container.textContent).toContain("neopírá se o žádné připuštěné číslo");
+    bare.unmount();
     // A number whose question AIA cannot find says so in words; its reference stays as a code (6c).
     expect(within(keyFindings).getByText(/číslo, k němuž AIA nedohledala otázku/)).toBeTruthy();
     expect(within(keyFindings).getByText("x9.median").tagName).toBe("CODE");
