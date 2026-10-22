@@ -35,6 +35,19 @@ describe("focus recovery in the open drawer or sheet", () => {
     await waitFor(() => expect(document.activeElement).toBe(screen.getByLabelText("Napište Vedoucímu výzkumu")));
   });
 
+  it("still recovers when the browser fires focusout during the removal, as Chromium does (review of #683)", async () => {
+    bench(true);
+    const button = screen.getByRole("button", { name: "Spustit úlohu" });
+    button.focus();
+    // Chromium fires focusout from inside removeChild, the element still connected; jsdom fires
+    // none, so the event is sent here just before the click removes the button.
+    act(() => {
+      button.dispatchEvent(new FocusEvent("focusout", { bubbles: true }));
+      button.click();
+    });
+    await waitFor(() => expect(document.activeElement).toBe(screen.getByLabelText("Napište Vedoucímu výzkumu")));
+  });
+
   it("brings it to the log when the composer takes no text", async () => {
     bench(true, false);
     const button = screen.getByRole("button", { name: "Spustit úlohu" });

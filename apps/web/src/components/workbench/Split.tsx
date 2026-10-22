@@ -65,10 +65,15 @@ function useFocusRecovery(dialog: RefObject<HTMLDivElement | null>, modal: boole
       }
     };
     // A focusout from an element still in the page is the person moving focus away: nothing is
-    // held any more, so a later re-render that removes that element takes nothing back.
+    // held any more, so a later re-render that removes that element takes nothing back. Read
+    // after the event: Chromium fires focusout during removeChild, while the element is still
+    // connected, so the check waits a microtask, which runs before the mutation callback.
     const onOut = (e: FocusEvent) => {
-      if (e.target instanceof Node && e.target.isConnected) held = null;
-      else recover();
+      const target = e.target;
+      queueMicrotask(() => {
+        if (target instanceof Node && target.isConnected) held = null;
+        else recover();
+      });
     };
     const watch = new MutationObserver(recover);
     el.addEventListener("focusin", onIn);

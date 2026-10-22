@@ -1529,5 +1529,7 @@ It does show focus: a 2 px signal line down its full height (`.split__handle:foc
    takes text, else the log, else the dialog.
 6. **Test.** `Split.test.tsx` (four cases): to the composer; to the log when the composer is shut;
    untouched when the conversation is closed or the person blurred it themselves, also when that
-   control unmounts later (review of #683: a real blur now drops what was held); and
+   control unmounts later (review of #683: a real blur now drops what was held); recovery when the
+   browser fires focusout during the removal (Chromium does, the element still connected: the
+   check waits a microtask, measured in headless Chromium); and
    `recoveryTarget`'s order.
