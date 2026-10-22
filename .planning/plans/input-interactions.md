@@ -567,6 +567,21 @@ IA-1 … IA-6, with all six parts, in the audit's §6. For the docs PR to number
   with a label on every point and reads it back after a reload.
 - **open-items.md**: number the 3b2 finding above (a per-point set's ends as develop read them).
 
+### Chunk 3, in progress (the Dotazník screen owner, in small PRs)
+
+- **3a. Deletes with undo (audit A17, A18), feature/questionnaire-undo-deletes.**
+  - A question is removed at once, and "Vrátit" on the editor's one toast puts it back in its place.
+  - A block or a tracked set keeps its InlineConfirm and is then removed, also with "Vrátit".
+  - The restore helpers are `research/questionnaire.ts` `restoreQuestion` and `restoreSection`. A question goes back by its section's id, never into another section, and nothing is restored twice.
+  - The toast is ScaleEditor's provider, shared through `useEditorUndo`.
+  - Tests: `questionnaire-undo.test.ts`, `QuestionnaireUndo.test.tsx`, and the journey step in `questionnaire_journey.mjs` (1440 px).
+- **Still open in chunk 3:**
+  - A1, A3, A4, A13: fields in place with a save state and Esc;
+  - A2, A11, A12: Segmented and chips;
+  - A5-A8, A21: quick adds inline, retiring the AskDialog prompts;
+  - A14: the n / 15 counter;
+  - A16: prices as chips.
+
 ### Chunk 3b3, added by planning (2026-10-21)
 
 3b1 built the label path behind `AIA_AI_SCALE_LABELS_IN_PROMPT`, off, and 3b2 is the editor; no

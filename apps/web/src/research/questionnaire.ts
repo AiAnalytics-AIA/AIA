@@ -387,6 +387,35 @@ export function removeSection(p: ResearchProject, si: number): ResearchProject {
   return withSections(p, sections(p).filter((_, i) => i !== si));
 }
 
+/**
+ * An undo of removeSection (input-interactions I6): `sec` put back at `si`, or last when fewer
+ * sections remain. Nothing when a section with its id is already there (the undo ran twice).
+ */
+export function restoreSection(p: ResearchProject, si: number, sec: Section): ResearchProject {
+  const xs = sections(p);
+  if (sec.id && xs.some((x) => x.id === sec.id)) return p;
+  const at = Math.min(Math.max(si, 0), xs.length);
+  return withSections(p, [...xs.slice(0, at), clone(sec), ...xs.slice(at)]);
+}
+
+/**
+ * An undo of removeQuestion: `q` put back at `qi` of its section, found by the section's id (a
+ * section without one: by its index while it is still `si`). Nothing when the section is gone, or
+ * when a question with its id is already there.
+ */
+export function restoreQuestion(p: ResearchProject, si: number, sectionId: string | undefined, qi: number, q: Question): ResearchProject {
+  const xs = sections(p);
+  const at = sectionId ? xs.findIndex((x) => x.id === sectionId) : si < xs.length && !xs[si].id ? si : -1;
+  if (at < 0 || xs[at].type !== "questions") return p;
+  const qs = xs[at].questions || [];
+  if (q.id && qs.some((x) => x.id === q.id)) return p;
+  return edit(p, (ys) => {
+    const list = ys[at].questions || [];
+    const i = Math.min(Math.max(qi, 0), list.length);
+    ys[at].questions = [...list.slice(0, i), clone(q), ...list.slice(i)];
+  });
+}
+
 export type SectionField = "title" | "purpose" | "object_question" | "familiarity_required";
 
 /** The section card's inline edits. */
