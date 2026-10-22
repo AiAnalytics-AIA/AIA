@@ -15,6 +15,7 @@ from __future__ import annotations
 import hashlib
 import io
 import json
+import time
 import zipfile
 from pathlib import Path
 from typing import Any
@@ -189,6 +190,16 @@ def test_a_sheet_naming_cells_far_past_its_content_is_refused(sheet_data: str) -
     with pytest.raises(QuestionnaireImportRejected) as refused:
         import_questionnaire(_sheet_of(sheet_data), "dotaznik.xlsx")
     assert refused.value.reason == "unreadable"
+
+
+def test_a_cell_reference_of_endless_letters_is_refused_before_it_is_counted() -> None:
+    # Turning 300,000 letters into a column number is quadratic bigint arithmetic:
+    # 12 s from a 1 KB file before the column bound ever saw it.
+    started = time.monotonic()
+    with pytest.raises(QuestionnaireImportRejected) as refused:
+        import_questionnaire(_sheet_of(f'<row r="1"><c r="{"A" * 300_000}1"/></row>'), "q.xlsx")
+    assert refused.value.reason == "unreadable"
+    assert time.monotonic() - started < 2.0
 
 
 def test_the_units_text_and_id_rules() -> None:

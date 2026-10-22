@@ -101,6 +101,10 @@ def _xlsx_rows(raw: bytes) -> list[list[str]]:
                 letters = re.match(r"[A-Z]+", ref)
                 if letters is None:
                     raise ValueError(f"not a cell reference: {ref}")
+                # XFD is three letters; a longer run is refused before it is counted,
+                # since counting it is quadratic in its length.
+                if len(letters.group(0)) > 3:
+                    raise ValueError("a cell past the last column")
                 ci = 0
                 for ch in letters.group(0):
                     ci = ci * 26 + (ord(ch) - 64)
