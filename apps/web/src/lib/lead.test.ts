@@ -306,6 +306,11 @@ describe("a refused or dropped edit says why in words (RQC9)", () => {
 });
 
 describe("leadReasonWords", () => {
+  it("says who fixes a refusal of the AI route, which a researcher cannot (LO12a)", () => {
+    expect(leadReasonWords("egress_route_not_approved_for_class")).toMatch(/^Tuto studii nelze poslat modelu: .* Opraví to provozovatel AIA, ne výzkumník: nastaví parametr aia_ai_route_approved_for/);
+    expect(leadReasonWords("budget_exceeded")).not.toContain("provozovatel");
+  });
+
   it("says what to do about a turn parked on the study's budget, by the code the server sends", () => {
     // The server's waiting reason is budget_exceeded; AWAITING_BUDGET is a step status it never sends.
     expect(leadReasonWords("budget_exceeded")).toContain("Nastavení → Studie");
