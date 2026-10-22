@@ -2637,6 +2637,30 @@ describe("Results", () => {
     expect(report.queryByText(/interní použití/)).toBeNull();
   });
 
+  it("approves the client report a person prepared and read in AIA, with no download first (RD3)", async () => {
+    api({
+      ...listed(reportRun()),
+      "GET /api/v1/studies/STU-1/research/runs/RUN-1/artifacts/ART-4": () => AGGREGATE,
+      "GET /api/v1/studies/STU-1/research/runs/RUN-1/artifacts/ART-5": () => SOCIOMAP,
+      "GET /api/v1/studies/STU-1/research/runs/RUN-1/report": () =>
+        reportStatus({ synthetic: false, modelled: true, data_origin_kind: "MODELLED" }),
+      "GET /api/v1/studies/STU-1/research/runs/RUN-1/report/client/document": () =>
+        ({ run_id: "RUN-1", report_artifact_id: "ART-client", review_state: "DRAFT_UNAPPROVED", approved_on: null, stamped: true }),
+      "POST /api/v1/studies/STU-1/research/runs/RUN-1/report/approve": () =>
+        ({ run_id: "RUN-1", artifact_id: "ART-client", review_state: "APPROVED_INTERNAL", approved_on: "2026-10-18", stamped: true, report_kind: "client", internal_only: false }),
+    });
+    render(<ResearchScreen step="results" frame={TEST_FRAME} />);
+    const report = await card();
+    await waitFor(() => expect(report.getByRole("radio", { name: "Pro klienta" }).getAttribute("aria-disabled")).not.toBe("true"));
+    fireEvent.click(report.getByRole("radio", { name: "Pro klienta" }));
+    fireEvent.click(await report.findByRole("button", { name: t("research.exec.results.reportApproveClient") }));
+    await confirmApproval("ART-client");
+    await waitFor(() => expect(called("POST", "/api/v1/studies/STU-1/research/runs/RUN-1/report/approve")).toHaveLength(1));
+    expect(called("POST", "/api/v1/studies/STU-1/research/runs/RUN-1/report/approve")[0].body).toEqual({ artifact_id: "ART-client", note: "" });
+    // Nothing left AIA to be approved.
+    expect(called("GET", "/api/v1/studies/STU-1/research/runs/RUN-1/report/client/download")).toHaveLength(0);
+  });
+
   it("offers the report's PDF when the run stored one, and says why when it could not", async () => {
     stubDownloads();
     let pdf: unknown = { state: "READY", artifact_id: "ART-pdf", size_bytes: 9 };

@@ -10,7 +10,7 @@ project id: the browser supplies content, never authority.
 from __future__ import annotations
 
 import re
-from collections.abc import Iterator, Mapping
+from collections.abc import Callable, Iterator, Mapping
 from contextlib import contextmanager
 from datetime import date, datetime
 from typing import Annotated, Any, Final, Literal
@@ -27,6 +27,7 @@ from aia_core.application.client_report import (
     ClientGateRefused,
     ClientReportRefused,
     client_report_document,
+    prepare_client_report,
     stored_client_report,
 )
 from aia_core.application.contextual_report import stored_contextual_report
@@ -2777,13 +2778,18 @@ def download_contextual_report_pdf(
     )
 
 
-def _stored_client(
-    run_id: str, scope: StudyContext, session: SessionDep, store: ArtifactStoreDep, build: str
-) -> tuple[Artifact, bytes]:
-    """The run's client report as stored (composed and stored as a draft first when none is),
-    with its refusals in the API's words: 409 ``client_report_refused`` for a run that has none."""
+def _stored_client[T](
+    run_id: str,
+    scope: StudyContext,
+    session: SessionDep,
+    store: ArtifactStoreDep,
+    read: Callable[[], T],
+) -> T:
+    """``read`` of the run's client report as stored (composed and stored as a draft first when
+    none is), its refusals in the API's words: 409 ``client_report_refused`` for a run that has
+    none."""
     try:
-        return stored_client_report(session, scope, store, run_id=run_id, build=build)
+        return read()
     except ScopeDenied as exc:
         raise _refused(exc) from exc
     except ResearchRunNotFound as exc:
@@ -2825,7 +2831,15 @@ def download_client_report(
 ) -> Response:
     """Complete-study-report B5c: only a run whose respondents were modelled from the
     population has one; any other is refused by name (409 ``client_report_refused``)."""
-    artifact, data = _stored_client(run_id, scope, session, store, settings.build.sha or "")
+    artifact, data = _stored_client(
+        run_id,
+        scope,
+        session,
+        store,
+        lambda: stored_client_report(
+            session, scope, store, run_id=run_id, build=settings.build.sha or ""
+        ),
+    )
     # The bytes it just read (or stored) are the version's: never read twice per download.
     exported = _export(artifact, scope, session, store, data=data)
     return Response(
@@ -2846,7 +2860,7 @@ def download_client_report(
     summary="Prepare the run's client report to be read in AIA, without a download",
     responses={409: {"model": ErrorResponse}},
 )
-def prepare_client_report(
+def prepare_client_report_route(
     run_id: RunIdPath,
     scope: StudyScopeDep,
     session: SessionDep,
@@ -2856,8 +2870,16 @@ def prepare_client_report(
     """The client report composed and stored as its download would store it, answered as its
     document model (report-delivery RD3): a person reads the draft in AIA before approving it,
     and no file leaves. The approved version once there is one; nothing is composed then."""
-    _stored_client(run_id, scope, session, store, settings.build.sha or "")
-    return client_report_document_route(run_id, scope, session, store)
+    report, model = _stored_client(
+        run_id,
+        scope,
+        session,
+        store,
+        lambda: prepare_client_report(
+            session, scope, store, run_id=run_id, build=settings.build.sha or ""
+        ),
+    )
+    return _client_document_body(run_id, report, model, scope, session, store)
 
 
 class ReportApprovalRequest(BaseModel):
@@ -2879,7 +2901,8 @@ def client_report_document_route(
 ) -> dict[str, Any]:
     """The document the run's stored client report was rendered from (report-delivery RD5a):
     the approved version's when a person approved one, else the newest stored draft's. It
-    composes nothing; a client report is prepared by its download. 404 while none is stored;
+    composes nothing; a client report is prepared by ``…/client/prepare`` or its download. 404
+    while none is stored;
     409 ``report_document_not_stored`` for a version stored before RD5a."""
     try:
         found = client_report_document(session, scope, store, run_id=run_id)
@@ -2889,7 +2912,18 @@ def client_report_document_route(
         raise _not_found("run") from exc
     if found is None:
         raise _not_found("report")
-    report, model = found
+    return _client_document_body(run_id, *found, scope, session, store)
+
+
+def _client_document_body(
+    run_id: str,
+    report: Artifact,
+    model: Artifact | None,
+    scope: StudyContext,
+    session: SessionDep,
+    store: ArtifactStoreDep,
+) -> dict[str, Any]:
+    """A stored client report's document model as the document route answers it."""
     if model is None:
         raise HTTPException(409, detail={"code": "report_document_not_stored"})
     if model.content_type != DOCUMENT_MODEL_MEDIA_TYPE or (

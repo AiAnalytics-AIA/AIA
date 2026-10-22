@@ -80,9 +80,12 @@ S1 hosts the slot (`research-lead-workbench` 21), same wave. Tests: approvals na
 *RD3, the client draft read in AIA (`feature/report-client-pane`):* `POST …/report/client/prepare` composes and
 stores the client report as its download would, once, and answers its document model; nothing leaves. Zpráva's
 pane offers "Interní zpráva" / "Klientská zpráva" for a modelled run only, one document at a time, and
-"Připravit klientskou zprávu" while none is prepared. Tests:
+"Připravit klientskou zprávu" while none is prepared; prepare answers the document of exactly the version the
+download hands over (`application/client_report.py` `prepare_client_report`, no bytes read). The report card reads
+that version (GET …/client/document) and approves it with no download first. Tests:
 `test_the_client_report_is_prepared_to_be_read_without_a_download`; `ReportDocumentView.test.tsx` ("the client
-report, read here before it is approved"); `report_journey.mjs`. Next: deliverable downloads refused until
+report, read here before it is approved"); `ExecutionSteps.test.tsx` ("approves the client report a person
+prepared and read in AIA, with no download first"); `report_journey.mjs`. Next: deliverable downloads refused until
 approval (F17, "no unapproved internal-draft exception").
 
 **RD4. The map snapshot: an approvable object rendered server-side from the stored map and camera parameters, never browser bytes; one ledger shape**  

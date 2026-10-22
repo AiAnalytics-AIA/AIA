@@ -1486,6 +1486,9 @@ def test_the_client_report_is_prepared_to_be_read_without_a_download(
     assert researcher.get(f"{url}/client/document").json() == body
     again = researcher.post(f"{url}/client/prepare").json()
     assert again["report_artifact_id"] == body["report_artifact_id"]  # stored once
+    # The version read is the version the download hands over and the approval names.
+    handed = researcher.get(f"{url}/client/download").headers["X-AIA-Artifact-Id"]
+    assert handed == body["report_artifact_id"]
     version = body["report_artifact_id"]
     approved = outsider.post(f"{url}/approve", json={"artifact_id": version})
     assert approved.status_code == 200, approved.text

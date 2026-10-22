@@ -173,6 +173,36 @@ describe("the client report, read here before it is approved (RD3)", () => {
     await waitFor(() => expect(container.querySelector("[data-report-docbar]")!.textContent).toContain("ART-docx"));
   });
 
+  it("drops a preparation that answers after the person switched back, and closes an open claim on a switch", async () => {
+    vi.mocked(research.reportDocument).mockResolvedValue(STORED);
+    vi.mocked(research.clientReportDocument).mockRejectedValue(new ApiError(404, "not_found", "Nenalezeno.", null));
+    let answer: (v: StoredReportDocument) => void = () => undefined;
+    vi.mocked(research.prepareClientReport).mockReturnValue(new Promise((ok) => { answer = ok; }));
+    const { container } = show(modelled());
+    await screen.findByRole("article", { name: "Koncept zprávy" });
+    fireEvent.click(container.querySelector("[data-claim]")!);
+    expect(container.querySelector("[data-item-inspector]")).not.toBeNull();
+    fireEvent.click(screen.getByRole("button", { name: "Klientská zpráva" }));
+    expect(container.querySelector("[data-item-inspector]")).toBeNull();
+    fireEvent.click(await screen.findByRole("button", { name: "Připravit klientskou zprávu" }));
+    fireEvent.click(screen.getByRole("button", { name: "Interní zpráva" }));
+    await waitFor(() => expect(container.querySelector("[data-report-docbar]")?.textContent).toContain("ART-docx"));
+    answer(CLIENT);
+    await new Promise((r) => setTimeout(r, 0));
+    expect(container.querySelector("[data-report-docbar]")!.textContent).toContain("ART-docx");
+    expect(container.querySelector("[data-report-document]")!.getAttribute("data-report-document")).toBe("ready");
+  });
+
+  it("keeps the switch when the client report may not be read", async () => {
+    vi.mocked(research.reportDocument).mockResolvedValue(STORED);
+    vi.mocked(research.clientReportDocument).mockRejectedValue(new ApiError(403, "forbidden", "Zakázáno.", null));
+    show(modelled());
+    await screen.findByRole("article", { name: "Koncept zprávy" });
+    fireEvent.click(screen.getByRole("button", { name: "Klientská zpráva" }));
+    expect((await screen.findByRole("alert")).textContent).toContain("Klientskou zprávu číst nemůžete.");
+    expect(screen.getByRole("button", { name: "Interní zpráva" })).toBeTruthy();
+  });
+
   it("offers no client report for a run that has none", async () => {
     vi.mocked(research.reportDocument).mockResolvedValue(STORED);
     show();

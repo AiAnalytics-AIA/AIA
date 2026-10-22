@@ -6,7 +6,7 @@
 // The DOCX stays the deliverable; this reads the document beside it and prints only what it holds:
 // a number is the text the DOCX prints, a suppressed one is never shown, an unknown ref is "?".
 
-import { type ReactNode, useCallback, useEffect, useState } from "react";
+import { type ReactNode, useCallback, useEffect, useRef, useState } from "react";
 
 import { ApiError, research, type ResearchRun } from "@/lib/api";
 import {
@@ -15,7 +15,7 @@ import {
   type StoredReportDocument, unresolvedRefs, valueWords,
 } from "@/lib/artifacts/report";
 import { backEntry, closeStack, emptyStack, openEntry, type InspectorStack } from "@/lib/inspector-stack";
-import { runOriginKinds, stepOf } from "@/lib/research-execution";
+import { isModelled, stepOf } from "@/lib/research-execution";
 import { useFrame } from "./frame-hook";
 import { ItemInspector } from "./ItemInspector";
 import { canReview } from "./frame";
@@ -33,6 +33,9 @@ type Loaded =
   | { state: "failed"; message: string }
   | { state: "ready"; stored: StoredReportDocument; doc: ReportDocumentModel };
 
+/** Fired with the run id when the pane prepares a client report, so the report card reads it. */
+export const CLIENT_PREPARED = "aia:client-report-prepared";
+
 /** Which document the pane reads: the internal draft, or the client report (RD3). */
 type Kind = "internal" | "client";
 
@@ -43,6 +46,9 @@ function useReportDocument(studyId: string, run: ResearchRun, kind: Kind): { loa
   const ready = step?.status === "SUCCEEDED";
   const key = `${studyId}:${run.run_id}:${step?.status ?? ""}:${step?.artifact_id ?? ""}:${kind}`;
   const [answer, setAnswer] = useState<{ key: string; loaded: Loaded } | null>(null);
+  // The document asked for now: an answer for another (a prepare that returns after a switch) is dropped.
+  const current = useRef(key);
+  useEffect(() => { current.current = key; }, [key]);
   const settle = useCallback((read: Promise<StoredReportDocument>, at: string, live: () => boolean) => {
     read.then(
       (stored) => {
@@ -57,7 +63,8 @@ function useReportDocument(studyId: string, run: ResearchRun, kind: Kind): { loa
           // 404: none stored yet, which for the client report means not prepared; 403: a reader
           // who may not see this draft sees nothing of it.
           status === 404 ? (kind === "client" ? { state: "unprepared" } : { state: "none" })
-            : status === 403 ? { state: "none" }
+            // The switch stays when the client report is refused: the internal draft is one click back.
+            : status === 403 ? (kind === "client" ? { state: "failed", message: "Klientskou zprávu číst nemůžete." } : { state: "none" })
               : code === "report_document_not_stored" ? { state: "not_stored" }
                 : code === "report_artifact_invalid" ? { state: "refused" }
                   : { state: "failed", message: message(error) };
@@ -74,7 +81,11 @@ function useReportDocument(studyId: string, run: ResearchRun, kind: Kind): { loa
   }, [studyId, run.run_id, key, ready, kind, settle]);
   const prepare = useCallback(() => {
     setAnswer({ key, loaded: { state: "loading" } });
-    settle(research.prepareClientReport(studyId, run.run_id), key, () => true);
+    settle(research.prepareClientReport(studyId, run.run_id).then((stored) => {
+      // The report card approves the version read here, never one it would have to download first.
+      window.dispatchEvent(new CustomEvent(CLIENT_PREPARED, { detail: run.run_id }));
+      return stored;
+    }), key, () => current.current === key);
   }, [key, settle, studyId, run.run_id]);
   if (!ready) return { loaded: { state: "none" }, prepare };
   return { loaded: answer?.key === key ? answer.loaded : { state: "loading" }, prepare };
@@ -84,10 +95,13 @@ export function ReportDocumentView({ run }: { run: ResearchRun }) {
   const frame = useFrame();
   // The client report exists only for a run whose respondents were modelled from the population;
   // the pane shows one document at a time, so the Lead's report: ids name exactly one.
-  const offersClient = runOriginKinds(run).has("MODELLED");
-  const [kind, setKind] = useState<Kind>("internal");
-  const { loaded, prepare } = useReportDocument(frame.studyId, run, offersClient ? kind : "internal");
+  const offersClient = isModelled(run);
+  const [chosen, setChosen] = useState<Kind>("internal");
+  const kind: Kind = offersClient ? chosen : "internal";
+  const { loaded, prepare } = useReportDocument(frame.studyId, run, kind);
   const [stack, setStack] = useState<InspectorStack>(() => emptyStack("report"));
+  // A claim belongs to one document's ledger: switching closes it.
+  const setKind = (k: Kind) => { setChosen(k); setStack(closeStack); };
   const open = useCallback((ref: string) => setStack((s) => openEntry(s, { id: ref, title: `Tvrzení ${ref}`, sub: "Číslo ve zprávě a jeho evidence" })), []);
   const back = useCallback(() => setStack(backEntry), []);
   const close = useCallback(() => setStack(closeStack), []);
@@ -117,7 +131,7 @@ export function ReportDocumentView({ run }: { run: ResearchRun }) {
       <div className="min-w-0 flex-1">
         {choose}
         <div className="mb-2.5 flex flex-wrap items-center gap-2 text-xs text-ink-muted" data-report-docbar>
-          <span className="font-semibold text-ink">{kind === "client" && offersClient ? "Klientská zpráva" : "Interní zpráva"}</span>
+          <span className="font-semibold text-ink">{kind === "client" ? "Klientská zpráva" : "Interní zpráva"}</span>
           <span>· {reviewWords(stored)}</span>
           {stored.approval ? <span data-approval>· {approvalWords(stored.approval, stored.approved_on)}</span> : null}
           <span className="font-mono">· {stored.report_artifact_id}</span>
@@ -189,7 +203,7 @@ function noticeOf(loaded: Loaded, kind: Kind, prepare: () => void, mayPrepare: b
     );
     case "refused": return (
       <p role="alert" className="text-sm text-status-fault" data-report-document="refused">
-        Uložený dokument zprávy neodpovídá jejímu souboru DOCX nebo je v jiném formátu; AIA ho nezobrazí.
+        Uložený dokument zprávy neodpovídá jejímu souboru DOCX nebo je v jiném formátu; AIA ho nezobrazí.{kind === "internal" ? " Koncept DOCX stáhnete níže." : ""}
       </p>
     );
   }
