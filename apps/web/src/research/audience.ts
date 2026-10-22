@@ -350,6 +350,48 @@ export function filterChips(p: ResearchProject, cat: Catalog | null): { id: stri
   });
 }
 
+/**
+ * How many of a factor's values the catalogue lists: its 60 most frequent
+ * (domain/population/audience_catalogue.py _TOP_VALUES). A list this long may be cut, so a value
+ * missing from it is unknown, never "not in the population".
+ */
+export const CATALOGUE_TOP_VALUES = 60;
+
+/**
+ * A stored filter the population cannot honour as stored, said before a preview or a run. `factor`,
+ * `policy` and `empty` refuse the whole audience (select_audience); `values` drops the values the
+ * population lacks, or refuses the audience when none is left (`noneKnown`).
+ */
+export type FilterProblem = { id: string; label: string; reason: "factor" | "policy" | "empty" | "values"; unknownValues: string[]; noneKnown: boolean };
+
+/**
+ * The stored filters the catalogue shows cannot apply as stored (artifact-audience, Findings F3).
+ * Only what the catalogue proves is named: a value is compared as text, the way the population keys
+ * it, only when the factor's value list is complete (shorter than CATALOGUE_TOP_VALUES); a number,
+ * a boolean, a range and a cut list say nothing.
+ */
+export function filterProblems(p: ResearchProject, cat: Catalog | null): FilterProblem[] {
+  if (!cat) return [];
+  const map = new Map((cat.factors || []).map((x) => [x.id, x]));
+  const out: FilterProblem[] = [];
+  const problem = (id: string, label: string, reason: FilterProblem["reason"], unknownValues: string[] = [], noneKnown = false) =>
+    out.push({ id, label, reason, unknownValues, noneKnown });
+  for (const [id, val] of Object.entries(filters(p))) {
+    const f = map.get(id);
+    const label = String(f?.label || id);
+    if (!f) { problem(id, label, "factor"); continue; }
+    if (f.policy_allowed === false) { problem(id, label, "policy"); continue; }
+    if (f.kind === "numeric") continue;
+    const asked = (Array.isArray(val) ? val : [val]).filter((v) => v != null);
+    if (!asked.length) { problem(id, label, "empty"); continue; }
+    if (!Array.isArray(f.values) || f.values.length >= CATALOGUE_TOP_VALUES || !asked.every((v) => typeof v === "string")) continue;
+    const known = new Set(f.values.map((v) => String(v.value)));
+    const unknownValues = (asked as string[]).filter((v) => !known.has(v));
+    if (unknownValues.length) problem(id, label, "values", unknownValues, unknownValues.length === asked.length);
+  }
+  return out;
+}
+
 // ---- the readable summary (1795) --------------------------------------------
 
 /** audienceHumanSummary1795: population, planned N (the audience's own `n`), source. */

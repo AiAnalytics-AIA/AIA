@@ -4,7 +4,7 @@ import { describe, expect, it } from "vitest";
 
 import type { AudienceCatalogue, AudiencePreview } from "@/lib/api";
 
-import { applyPopulationSubpanel, factorRefusal, filterableFactors, liveCatalog, liveSubpanels, liveVerdict, setAudienceRange, setRange, filterCountLines, type Catalog } from "./audience";
+import { applyPopulationSubpanel, factorRefusal, filterableFactors, liveCatalog, liveSubpanels, liveVerdict, setAudienceRange, setRange, filterCountLines, type Catalog, filterProblems, CATALOGUE_TOP_VALUES } from "./audience";
 import type { ResearchProject } from "./model";
 
 const project = (audience: Record<string, unknown> = {}) => ({ audience, briefing: {}, ui_state: {} }) as unknown as ResearchProject;
@@ -75,6 +75,35 @@ const PREVIEW: AudiencePreview = {
   sample: { ok: true, status: "PASS", sample_donors: 380, effective_n: 470.2 },
   seed: 20261012,
 };
+
+describe("stored filters the population cannot honour (Findings F3)", () => {
+  const cat = (factors = CATALOGUE.factors) => liveCatalog({ ...CATALOGUE, factors });
+  const problems = (filters: Record<string, unknown>, factors = CATALOGUE.factors) => filterProblems(project({ filters }), cat(factors));
+
+  it("names values a complete value list lacks, and whether any is left", () => {
+    expect(problems({ kraj: ["Zlínský kraj", "Fiktivní kraj A"], vek: { min: 30 } })).toEqual([
+      { id: "kraj", label: "Kraj", reason: "values", unknownValues: ["Fiktivní kraj A"], noneKnown: false },
+    ]);
+    expect(problems({ kraj: "Fiktivní kraj A" })[0]).toMatchObject({ reason: "values", noneKnown: true }); // a scalar is one value, as on the server
+  });
+
+  it("names a filter refused whole: a factor not offered, one the policy refuses, one with no value", () => {
+    expect(problems({ prijem: ["Nad 60 000 Kč"] })).toEqual([{ id: "prijem", label: "prijem", reason: "factor", unknownValues: [], noneKnown: false }]);
+    expect(problems({ life_stage_derived: ["Rodič"] })[0]).toMatchObject({ reason: "policy" }); // policy_allowed false
+    expect(problems({ kraj: [] })[0]).toMatchObject({ reason: "empty" });
+    expect(problems({ kraj: [null] })[0]).toMatchObject({ reason: "empty" });
+  });
+
+  it("says nothing it cannot prove: a cut value list, a number, a boolean, a range, no catalogue", () => {
+    const cut = CATALOGUE.factors.map((f) => (f.id === "kraj" ? { ...f, values: Array.from({ length: CATALOGUE_TOP_VALUES }, (_, i) => ({ value: `K${i}`, count: 1 })) } : f));
+    expect(problems({ kraj: ["Fiktivní kraj A"] }, cut)).toEqual([]);
+    expect(problems({ kraj: [1] })).toEqual([]); // text the population keys may differ from JavaScript's (1.0)
+    expect(problems({ kraj: [true] })).toEqual([]);
+    expect(problems({ vek: { min: 200 } })).toEqual([]);
+    expect(problems({ kraj: ["Zlínský kraj"] })).toEqual([]);
+    expect(filterProblems(project({ filters: { kraj: ["Fiktivní kraj A"] } }), null)).toEqual([]);
+  });
+});
 
 describe("the preview in words", () => {
   it("names each filter's own count beside the combined one, by the catalogue's label (AUD3)", () => {
