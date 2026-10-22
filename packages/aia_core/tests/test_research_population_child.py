@@ -288,3 +288,49 @@ def test_materializing_and_selecting_a_child_leaves_live_where_it_was(
     assert after is not None
     assert (after.current_version_id, registry.promotions(dataset)) == before
     assert after.current_version_id == world["base"].version_id != child
+
+
+def test_readiness_and_a_start_over_the_child_draw_nothing_and_agree(
+    session: Any, scoped: Any, world: dict[str, Any]
+) -> None:
+    """A panel run over a selected child draws from the child, which the sampler does not read:
+    readiness over the child and its start both read the forecast unknown, so the gaps a person
+    acknowledges on readiness are the ones the start requires (RQC6b, review on #694)."""
+    from aia_core.domain.answerability import Acknowledgement
+    from aia_core.domain.fieldwork import PersonaSource
+
+    def never(*_: Any) -> Any:
+        raise AssertionError("a run over a selected child draws no panel sample")
+
+    scope = scoped.scope()
+    child = world["child_of"](scope)
+    created, _ = StudyDesignRepository(session, scope).submit_as_working_copy(
+        content={**DESIGN, "research_plan": {"research_questions": ["Kolik lidí pije čaj?"]}},
+        source_stage="run",
+    )
+    runs = ResearchRuns(
+        session,
+        scope,
+        population_contract=world["pop"].contract,
+        population_id=LIVE,
+        panel_sampler=never,
+    )
+    panel = PersonaSource.PANEL
+    outlook = runs.outlook(
+        created.revision_id,
+        persona_source=panel,
+        fieldwork_source=AI,
+        population_version_id=child,
+    )
+    assert outlook.panel is None
+    answer = outlook.answerability
+    assert answer is not None and not answer.capable
+    started = runs.start(
+        design_revision_id=created.revision_id,
+        fieldwork_source=AI,
+        persona_source=panel,
+        population_version_id=child,
+        require_answerability=True,
+        acknowledge=Acknowledgement(answer.digest, "Fiktivní běh: otázku na čaj vědomě vynecháme."),
+    )
+    assert started.created

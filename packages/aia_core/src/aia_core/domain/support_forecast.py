@@ -152,8 +152,8 @@ def forecast_support(
 
     ``sample``: for a panel run, the sample a start would draw (``draw_panel_sample`` over the
     population the run would record, the design's filters, ``fieldwork_seed(spec)``). Without
-    one, or with one of another size or with a respondent without a donor (which fieldwork
-    refuses), the forecast is unknown."""
+    one, or with one drawn at another seed, of another size or with a respondent without a
+    donor (which fieldwork refuses), the forecast is unknown."""
     unknown = SupportForecast(
         persona_source=persona_source,
         respondents=spec.n,
@@ -164,7 +164,12 @@ def forecast_support(
     if spec.n is None or spec.n < 1:
         return unknown
     if persona_source is PersonaSource.PANEL:
-        if sample is None or len(sample.respondents) != spec.n:
+        # A sample drawn at any other seed (the audience preview's) is not the run's.
+        if (
+            sample is None
+            or sample.seed != fieldwork_seed(spec)
+            or len(sample.respondents) != spec.n
+        ):
             return unknown
         drawn = [r.donor for r in sample.respondents if r.donor is not None]
         if len(drawn) != spec.n:
