@@ -544,7 +544,7 @@ function PanelView({ battery, map, facts }: { battery: BatteryWithMaps; map: Obj
 }
 
 /** A number as the panel's `fmt66` prints it (two decimals below 10, one below 100), in Czech. */
-export function panelNumber(v: number | null): string {
+function panelNumber(v: number | null): string {
   if (v === null || !Number.isFinite(v)) return "—";
   return Math.abs(v) >= 100 ? num(v, 0) : num(v, Math.abs(v) < 10 ? 2 : 1);
 }
@@ -669,7 +669,7 @@ export function sharePercent(x: number): string {
   return `${Math.round(100 * Number(x.toFixed(4)))} %`;
 }
 
-export function segmentLines(legend: SegmentLegend): SegmentLines {
+function segmentLines(legend: SegmentLegend): SegmentLines {
   const pct = sharePercent;
   const named = (g: SegmentLegend["segments"][number]) =>
     (g.likes.length ? ` · ${tv("research.exec.objectMap.panel.segmentLikes", { labels: g.likes.join(", ") })}` : "")
@@ -710,7 +710,7 @@ function SegmentNote({ lines }: { lines: SegmentLines }) {
 
 /** The map info's „Segmenty“ row: how many, their shares and overlap; the borderline hint; or why none.
  *  The thresholds it quotes are the declared ones. */
-export function segmentsRow(legend: SegmentLegend, map: ObjectMapArtifact): { value: string; help: string } {
+function segmentsRow(legend: SegmentLegend, map: ObjectMapArtifact): { value: string; help: string } {
   const rules = map.spec.segments ?? {};
   const pct = sharePercent;
   const shares = legend.segments.map((g) => pct(g.share)).join(" / ");

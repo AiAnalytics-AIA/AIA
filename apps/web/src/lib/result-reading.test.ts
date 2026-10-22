@@ -1,7 +1,7 @@
 // How a run's results read in words (plan research-results-clarity, chunk 2).
 import { describe, expect, it } from "vitest";
 
-import type { QuestionResult } from "./research-execution";
+import { type QuestionResult, UNIT_PLACES } from "./research-execution";
 import { citedMeasure, compareObjects, czechList, inlineRuns, measureAnchor, measureTarget, readMeasure, revisionNote, separation, textBlocks } from "./result-reading";
 import { parseAiaId } from "./workbench-artifacts";
 
@@ -72,6 +72,14 @@ describe("readMeasure", () => {
   it("says when a question has no numeric summary", () => {
     expect(readMeasure({ typ: "otevrena", ...support("REPORTABLE"), verbatimy: ["dobré"] }).text).toMatch(/^Otevřená otázka: \d+ odpovědí, nekódováno\.$/);
     expect(readMeasure({ typ: "otevrena", ...support("REPORTABLE") }).tone).toBe("empty");
+  });
+});
+
+describe("readMeasure's ties", () => {
+  it("names equal shares in the order the question asked them, as its table lists them", () => {
+    const result = { typ: "vyber", support_status: "REPORTABLE" as const, n_platnych: 100, effective_n: 100, n_unique_layer_donors: 100,
+      celkem_pct: { "Jeden až dva dny": 25, "Každý den": 25 }, intervaly_95: { "Jeden až dva dny": { low: 20, high: 30 }, "Každý den": { low: 20, high: 30 } } };
+    expect(readMeasure(result, null, 2, UNIT_PLACES, ["Každý den", "Jeden až dva dny"]).text).toMatch(/^Nejvíce odpovědí: Každý den \(25,0 %\) a Jeden až dva dny/);
   });
 });
 

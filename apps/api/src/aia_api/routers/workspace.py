@@ -32,6 +32,7 @@ from aia_core.domain.attachments import ATTACHMENT_MAX_BYTES, AttachmentRejected
 from aia_core.domain.brief_material_classes import brief_material_classes
 from aia_core.domain.client_profile import ClientContact, ClientProfile, ContactDraft
 from aia_core.domain.design import DesignRejected
+from aia_core.domain.edit_log import ActorKind, OpSource, WriteBy
 from aia_core.domain.knowledge import (
     KNOWLEDGE_SECTIONS,
     KnowledgeFolder,
@@ -2168,6 +2169,7 @@ def save_study_working_content(
             analysis=body.analysis,
             base_revision=body.base_revision,
             reason=body.reason,
+            by=WriteBy(ActorKind.PERSON, scope.actor_id, OpSource.UI),
         )
     except ScopeDenied as exc:
         raise _forbidden(exc.reason, "Your role on this study does not permit that.") from exc
@@ -2209,6 +2211,9 @@ def _workspace_conflict(exc: WorkspaceConflict) -> HTTPException:
     messages = {
         "awaiting_migration": "The working content awaits migration from 18.6.6.",
         "not_saved": "Save the study's working content before attaching files to it.",
+        "sociomap_input_locked": (
+            "The save changes a declared Sociomap input, which is locked; nothing was saved."
+        ),
     }
     return HTTPException(
         status_code=409,

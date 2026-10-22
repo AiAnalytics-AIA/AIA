@@ -240,12 +240,13 @@ def _sociomap_name(value: Any) -> str | None:
 
 
 def run_methods(meta: Mapping[str, Any]) -> dict[str, RunMethod]:
-    """The Sociomap, support, aggregation and response methods a run's metadata records, by
-    name.
+    """The Sociomap, support, aggregation, response and readiness methods a run's metadata
+    records, by name.
 
     A stored version is named as stored. Otherwise the name is the pin's own: the last pinned
     Sociomap method beside the reference map, the support and aggregation specifications'
-    ``methodology_version``. A run started before a module was pinned (no pin) was computed
+    ``methodology_version``, the response and readiness specifications' too. A run started
+    before a module was pinned (no pin) was computed
     under that module's code preset, which is what the pins' own readers read it as
     (``read_methods``, :func:`read_support_pin`, :func:`read_aggregation_pin`). A pin that is
     there but cannot be read gives ``None``, never a preset's name: the engine would refuse
@@ -254,6 +255,7 @@ def run_methods(meta: Mapping[str, Any]) -> dict[str, RunMethod]:
     support_pin = meta.get("support")
     aggregation_pin = meta.get("aggregation")
     response_pin = meta.get("response")
+    readiness_pin = meta.get("readiness")
     pinned = {
         "sociomap": _sociomap_name(meta.get("sociomap_methods")),
         "support": (
@@ -269,12 +271,18 @@ def run_methods(meta: Mapping[str, Any]) -> dict[str, RunMethod]:
         "response": (
             AIA_RESPONSE_V1.methodology_version if response_pin is None else _version(response_pin)
         ),
+        "readiness": (
+            AIA_READINESS_V1.methodology_version
+            if readiness_pin is None
+            else _version(readiness_pin)
+        ),
     }
     keys = {
         "sociomap": "methodology",
         "support": "support_methodology",
         "aggregation": "aggregation_methodology",
         "response": "response_methodology",
+        "readiness": "readiness_methodology",
     }
     methods = {}
     for module, key in keys.items():

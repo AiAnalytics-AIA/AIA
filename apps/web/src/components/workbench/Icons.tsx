@@ -54,8 +54,6 @@ const P: Record<string, ReactNode> = {
   grip: <><circle cx="9" cy="7" r=".8" fill="currentColor" /><circle cx="15" cy="7" r=".8" fill="currentColor" /><circle cx="9" cy="12" r=".8" fill="currentColor" /><circle cx="15" cy="12" r=".8" fill="currentColor" /><circle cx="9" cy="17" r=".8" fill="currentColor" /><circle cx="15" cy="17" r=".8" fill="currentColor" /></>,
 };
 
-export type IconName = keyof typeof P;
-
 export function Icon({ name, size = 16, label }: { name: string; size?: number; label?: string }) {
   return (
     <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.5} strokeLinecap="square" strokeLinejoin="miter"

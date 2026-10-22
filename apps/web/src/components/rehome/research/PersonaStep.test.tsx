@@ -203,10 +203,23 @@ describe("Dimenze", () => {
     expect(lastSave().content.persona_dimensions.approved).toEqual(["zdravi", "media"]);
   }, 20_000);
 
+  it("removes a chosen dimension where it is listed and shows a waiting request beside it, not only in the inspector (DIM-F5)", async () => {
+    aiaStub({ ...PLANNED, persona_dimensions: { approved: ["cena"] }, requested_dimensions: [{ label: "Vztah k tramvajím" }] });
+    render(<ResearchScreen step="persona" frame={TEST_FRAME} />);
+    const chosen = await screen.findByRole("list", { name: "Vybrané dimenze" });
+    expect(within(screen.getByRole("list", { name: "Požadované dimenze" })).getByText("Vztah k tramvajím · čeká na schválení")).toBeTruthy();
+    expect(within(chosen).queryByText(/čeká na schválení/)).toBeNull();
+    expect(screen.getAllByText("Vztah k tramvajím · čeká na schválení")).toHaveLength(1);
+    fireEvent.click(within(chosen).getByRole("button", { name: "Odebrat dimenzi Cena / value for money" }));
+    await savedWith("dimension_catalog_remove");
+    expect(lastSave().content.persona_dimensions.approved).toEqual([]);
+    expect(within(chosen).getByText("Zatím není vybraná žádná volitelná dimenze.")).toBeTruthy();
+  }, 20_000);
+
   it("reviews new dimensions and proposes one to the client's knowledge, never approving it", async () => {
     aiaStub({ ...PLANNED, persona_dimensions: { approved: ["cena"] } });
     render(<ResearchScreen step="persona" frame={TEST_FRAME} />);
-    await screen.findByRole("heading", { name: "Faktory panelu v AIA zatím nejsou" });
+    await screen.findByRole("heading", { name: "Faktory společnosti v AIA zatím nejsou" });
     fireEvent.click(screen.getByRole("button", { name: "AI doporučí" }));
     await approveProposal();
     expect(await screen.findByRole("heading", { name: "AI navrhuje doplnit nové dimenze" }, NATIVE_JOB_WAIT)).toBeTruthy();
@@ -378,11 +391,13 @@ describe("Dimenze", () => {
     expect(saves).toEqual([]);
   }, 20_000);
 
-  it("goes on calibrated to the run step; the panel's factors say they are not in AIA", async () => {
+  it("goes on calibrated to the run step; the society factors say they are not in AIA and where respondents are chosen", async () => {
     aiaStub(PLANNED);
     render(<ResearchScreen step="persona" frame={TEST_FRAME} />);
-    const card = (await screen.findByRole("heading", { name: "Faktory panelu v AIA zatím nejsou" })).closest("section") as HTMLElement;
-    expect(within(card).getByText(/licencovaného panelu, který AIA zatím nemá nahraný/)).toBeTruthy();
+    const card = (await screen.findByRole("heading", { name: "Faktory společnosti v AIA zatím nejsou" })).closest("section") as HTMLElement;
+    expect(within(card).getByText(/licencovaného panelu AIA nemá\. Kdo na dotazník odpoví, volíte před spuštěním běhu v části „Kdo bude odpovídat“/)).toBeTruthy();
+    // Neither the old product's name nor a claim the run uses the whole population (DIM-F6).
+    expect(card.textContent).not.toMatch(/18\.6\.6|celou populací/);
     expect(screen.queryByRole("button", { name: "Použít faktory pro cílovou populaci" })).toBeNull();
     fireEvent.click(screen.getByRole("button", { name: "Další · kontrola" }));
     expect(push).toHaveBeenLastCalledWith(stagePath("run"));

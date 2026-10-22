@@ -21,9 +21,11 @@
  *     says the computation is unchanged, and "Zrušit filtr" goes back to the opening (SOC3); the
  *     listed numbers do not move;
  *   * "Co je co" in the ⓘ box names the four registers (SOC3);
- *   * every pressed control reads in a colour apart from its background, on the -5 map and on an
- *     older method's run (workbench.css base layer, #591); once #598 lands, that run says it is an
- *     older method's and draws no map;
+ *   * every pressed control on the -5 map reads in a colour apart from its background (#591);
+ *   * an older method's run says so, "Mapa ze starší metody; spusťte nový běh", and draws no map, at
+ *     1440, 1100, 768 and 390 px (signed-off-sociomap-method#8, #598). No new run can pin an older
+ *     method, so on a workbench without one from before, the -5 run is read as one: its Sociomap
+ *     artifact answered in the browser with no map in it;
  *   * no page error, and no write but the stage opened (PUT …/workspace/stage); zero paid jobs.
  *
  * Screenshots and journey.json go to --out (default tmp/ui-workbench/sociomap-journey).
@@ -276,31 +278,45 @@ try {
   for (const p of pressed) assert.notEqual(p.color, p.background, `pressed "${p.text}" reads apart from its background`);
   check("every pressed control reads apart from its background");
 
-  // An older method's run: its map is drawn as before (its pressed pills read apart from their
-  // background, the workbench base layer, #591) or, once signed-off-sociomap-method#8 (#598) lands, it
-  // says so and draws nothing. Without such a run there is nothing to look at, and the journey says so.
+  // An older method's run says so and draws no map (#598). A run from before -5 when the workbench
+  // has one; else the -5 run, its Sociomap artifact answered in the browser with no map of the
+  // signed-off method (no new run can pin an older method).
   const older = await olderRun();
-  if (!older) check("no older method's run on this workbench: the older-method check not made (--prepare makes one)");
-  else {
-    await page.goto(`${base}/app/clients/${client}/research/${study}/results?run=${older.run_id}#maps`);
-    const notice = page.locator("[data-older-method]").first();
-    const stage = page.locator('[data-testid="object-map-stage"]').first();
-    await Promise.race([notice.waitFor({ timeout: 120000 }), stage.waitFor({ timeout: 120000 })]);
-    if (await notice.count()) {
-      assert((await notice.innerText()).includes("Mapa ze starší metody"));
-      check(`older method's run (${older.methodology.sociomap.name}): it says so and draws no map`);
-    } else {
-      await stage.scrollIntoViewIfNeeded();
-      const pills = await stage.locator('button[aria-pressed="true"]').evaluateAll((bs) => bs.map((b) => {
-        const s = getComputedStyle(b);
-        return { text: b.textContent, color: s.color, background: s.backgroundColor };
-      }));
-      assert(pills.length > 0, "the older map has a pressed control");
-      for (const p of pills) assert.notEqual(p.color, p.background, `older map: pressed "${p.text}" reads apart from its background`);
-      await stage.screenshot({ path: join(out, "1440-older-method.png") });
-      check(`older method's run (${older.methodology.sociomap.name}): every pressed pill reads apart from its background`);
-    }
+  const read = older ?? fiveRun;
+  if (!older) {
+    await page.route(`**/research/runs/${fiveRun.run_id}/artifacts/*`, async (route) => {
+      try {
+        const response = await route.fetch();
+        const body = await response.json();
+        for (const b of body?.payload?.sociomap?.batteries ?? []) b.maps = {};
+        // The body is decoded and shorter now: the stored length and encoding no longer describe it.
+        const headers = { ...response.headers() };
+        delete headers["content-length"];
+        delete headers["content-encoding"];
+        await route.fulfill({ status: response.status(), headers, json: body });
+      } catch {
+        // Not rewritten (an answer that is not JSON, or the page moved on): passed on as it is.
+        await route.continue().catch(() => {});
+      }
+    });
   }
+  const label = older ? older.methodology.sociomap.name : `${fiveRun.methodology.sociomap.name} read without its maps`;
+  for (const width of [1440, 1100, 768, 390]) {
+    await page.setViewportSize({ width, height: 900 });
+    // On the -5 run this is the URL already open, which a goto would not load again.
+    const target = `${base}/app/clients/${client}/research/${study}/results?run=${read.run_id}#maps`;
+    if (page.url() === target) await page.reload();
+    else await page.goto(target);
+    const notice = page.locator("[data-older-method]").first();
+    await notice.waitFor({ timeout: 120000 });
+    assert.equal(await notice.innerText(), "Mapa ze starší metody; spusťte nový běh");
+    assert.equal(await page.locator('[data-testid="object-map-stage"]').count(), 0, `@${width}: an older method's run draws no map`);
+    await noOverflow(`older method @${width}`);
+    await notice.scrollIntoViewIfNeeded();
+    await shot(`${width}-older-method`);
+  }
+  await page.unroute(`**/research/runs/${fiveRun.run_id}/artifacts/*`);
+  check(`older method's run (${label}): it says so and draws no map, at 1440, 1100, 768 and 390 px`);
 
   assert.deepEqual(errors, [], "no page error");
   // Opening a stage records it (PUT …/workspace/stage, the study's last stage); nothing else is written.

@@ -19,7 +19,7 @@ export type TurnManifest = { turn_id: string; recorded: boolean; manifest: Conte
 export type OmittedPage = { layer: string; after: number; total: number; omitted: OmittedId[] };
 
 /** Each declared layer's name, in the order the Lead reads them (domain/lead_context.py). */
-export const LAYER_WORDS: Readonly<Record<string, string>> = {
+const LAYER_WORDS: Readonly<Record<string, string>> = {
   prompt: "Pokyny Vedoucího",
   lead: "Jeho soubory a poznámky",
   knowledge: "Znalosti klienta",

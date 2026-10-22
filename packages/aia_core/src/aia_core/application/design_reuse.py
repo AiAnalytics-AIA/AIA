@@ -31,6 +31,7 @@ from ..domain.design_reuse import (
     SourceRun,
     derive_source_labels,
 )
+from ..domain.edit_log import ActorKind, OpSource, WriteBy
 from ..domain.pipeline import fingerprint
 from ..domain.scope import ScopeDenied, Study, StudyContext, StudyKind
 from ..domain.workflow import StepRunStatus
@@ -183,7 +184,13 @@ def reuse_design(
             "the study already has a design or working content", reason="target_not_empty"
         )
 
-    saved = workspaces.save(target, content=content, base_revision=None, reason=REUSE_SAVE_REASON)
+    saved = workspaces.save(
+        target,
+        content=content,
+        base_revision=None,
+        reason=REUSE_SAVE_REASON,
+        by=WriteBy(ActorKind.PERSON, target.actor_id, OpSource.REUSE, revision.revision_id),
+    )
     # The Design Revision names the working revision just written (ADR 0026 decision 5), and is
     # its content exactly, as the first save stored it.
     stored = workspaces.at_revision(target, saved.revision)

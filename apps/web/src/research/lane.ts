@@ -6,6 +6,7 @@
 // the study's runs, which the caller passes when it has them; without them they say
 // nothing rather than guess (CLAUDE.md § 8: never stamp a guess).
 
+import { plural } from "@/lib/format";
 import { runState, type RunLike } from "@/lib/run-state";
 
 import { canAnalyse } from "./brief";
@@ -29,7 +30,6 @@ export type Blocker = { step: StepKey; label: string; detail: string };
 // not read them passes nothing and is held to the code's preset.
 const setRange = (l: SetLimits) => `${l.recommended_min}–${l.max}`;
 
-const plural = (n: number, one: string, few: string, many: string) => (n === 1 ? one : n >= 2 && n <= 4 ? few : many);
 
 function briefStage(p: ResearchProject): LaneStage {
   return canAnalyse(p) ? { tone: "done", line: "Hotovo" } : { tone: "you", line: "Chybí cíl" };
@@ -39,7 +39,7 @@ function planStage(state: Pick<ResearchState, "project" | "analysis">, l: SetLim
   const a = proposalAnalysis(state);
   if (!a) return { tone: "idle", line: "Bez návrhu" };
   const bad = trackedSets(a).filter((s) => setSizeRefused((s.objects || []).length, l)).length;
-  if (bad) return { tone: "you", line: `${bad} ${plural(bad, "sada", "sady", "sad")} mimo ${setRange(l)}` };
+  if (bad) return { tone: "you", line: `${plural(bad, "sada", "sady", "sad")} mimo ${setRange(l)}` };
   return { tone: "done", line: "Hotovo" };
 }
 
@@ -63,9 +63,9 @@ export function questionnaireIssues(p: ResearchProject, l: SetLimits = SET_PRESE
 function questionnaireStage(p: ResearchProject, l: SetLimits = SET_PRESET): LaneStage {
   const { questions, sets, empty, badSets } = questionnaireIssues(p, l);
   if (!questions && !sets) return { tone: "idle", line: "Zatím prázdný" };
-  const count = [questions ? `${questions} ${plural(questions, "otázka", "otázky", "otázek")}` : "", sets ? `${sets} ${plural(sets, "sada", "sady", "sad")}` : ""].filter(Boolean).join(" · ");
+  const count = [questions ? plural(questions, "otázka", "otázky", "otázek") : "", sets ? plural(sets, "sada", "sady", "sad") : ""].filter(Boolean).join(" · ");
   if (empty) return { tone: "you", line: `${count} · ${empty} bez znění` };
-  if (badSets) return { tone: "you", line: `${count} · ${badSets} ${plural(badSets, "sada", "sady", "sad")} mimo ${setRange(l)}` };
+  if (badSets) return { tone: "you", line: `${count} · ${plural(badSets, "sada", "sady", "sad")} mimo ${setRange(l)}` };
   return { tone: "done", line: count };
 }
 
@@ -76,7 +76,7 @@ function audienceStage(p: ResearchProject): LaneStage {
 function personaStage(p: ResearchProject): LaneStage {
   const approved = chosenDimensions(p);
   const n = Number(p.n) || 0;
-  const d = approved.length ? `${approved.length} ${plural(approved.length, "dimenze", "dimenze", "dimenzí")}` : "Bez dimenzí";
+  const d = approved.length ? plural(approved.length, "dimenze", "dimenze", "dimenzí") : "Bez dimenzí";
   return n ? { tone: "done", line: `${d} · N=${n}` } : { tone: "idle", line: d };
 }
 
@@ -104,12 +104,12 @@ export function blockers(state: Pick<ResearchState, "project" | "analysis">, l: 
   const a = proposalAnalysis(state);
   for (const s of trackedSets(a)) {
     const n = (s.objects || []).length;
-    if (setSizeRefused(n, l)) out.push({ step: "plan", label: `Návrh · sada „${s.title || "bez názvu"}“`, detail: `${n} položek, potřebuje ${setRange(l)}` });
+    if (setSizeRefused(n, l)) out.push({ step: "plan", label: `Návrh · sada „${s.title || "bez názvu"}“`, detail: `${plural(n, "položka", "položky", "položek")}, potřebuje ${setRange(l)}` });
   }
   const q = questionnaireIssues(p, l);
   if (!questionnaireHasQuestions(p)) out.push({ step: "questionnaire", label: "Dotazník", detail: "Zatím nemá žádnou běžnou otázku" });
-  if (q.empty) out.push({ step: "questionnaire", label: "Dotazník", detail: `${q.empty} ${plural(q.empty, "otázka nemá", "otázky nemají", "otázek nemá")} znění` });
-  if (q.badSets) out.push({ step: "questionnaire", label: "Dotazník", detail: `${q.badSets} ${plural(q.badSets, "sledovaná sada je", "sledované sady jsou", "sledovaných sad je")} mimo ${setRange(l)} položek` });
+  if (q.empty) out.push({ step: "questionnaire", label: "Dotazník", detail: `${plural(q.empty, "otázka nemá", "otázky nemají", "otázek nemá")} znění` });
+  if (q.badSets) out.push({ step: "questionnaire", label: "Dotazník", detail: `${plural(q.badSets, "sledovaná sada je", "sledované sady jsou", "sledovaných sad je")} mimo ${setRange(l)} položek` });
   if (!audienceReady(p)) out.push({ step: "audience", label: "Cílová skupina", detail: "Vyberte zdroj respondentů" });
   return out;
 }
