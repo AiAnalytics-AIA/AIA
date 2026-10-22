@@ -106,8 +106,22 @@ def _docx(data: bytes) -> str:
     return "\n".join(p.text for p in Document(io.BytesIO(data)).paragraphs)
 
 
+def _refuse_dtd_in_parts(data: bytes) -> None:
+    """``refuse_dtd`` over every XML part of an Office ZIP, before openpyxl parses any.
+
+    Without defusedxml (not installed) openpyxl parses with expat, which expands a
+    part's internal entities. The parts are bounded already (the ZIP checks).
+    """
+    with zipfile.ZipFile(io.BytesIO(data)) as archive:
+        for info in archive.infolist():
+            if info.filename.endswith((".xml", ".rels")):
+                refuse_dtd(archive.read(info))
+
+
 def _xlsx(data: bytes) -> str:
     from openpyxl import load_workbook
+
+    _refuse_dtd_in_parts(data)
 
     workbook = load_workbook(io.BytesIO(data), read_only=True, data_only=True)
     try:
@@ -437,6 +451,12 @@ def read_xlsx(data: bytes) -> tuple[str, tuple[GridContent, ...], bool]:
     check_zip_bounds(data)
     from openpyxl import load_workbook
 
+    try:
+        _refuse_dtd_in_parts(data)
+    except DtdDeclared as exc:
+        raise DocumentRefused(
+            "the XLSX declares a DTD in one of its parts", reason="document_malformed"
+        ) from exc
     try:
         workbook = load_workbook(io.BytesIO(data), read_only=True, data_only=True)
     except Exception as exc:

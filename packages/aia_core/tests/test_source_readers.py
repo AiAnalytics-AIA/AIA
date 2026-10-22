@@ -194,6 +194,45 @@ def test_a_dtd_is_refused_in_whatever_encoding_the_part_declares(encoding: str) 
     assert not reading.segments
 
 
+def _xlsx_with_entity() -> bytes:
+    """A workbook whose one cell is an entity its sheet's own DTD declares."""
+    from openpyxl import Workbook
+
+    book = Workbook()
+    book.active["A1"] = "PLACEHOLDER"
+    plain = io.BytesIO()
+    book.save(plain)
+    out = io.BytesIO()
+    with (
+        zipfile.ZipFile(io.BytesIO(plain.getvalue())) as source,
+        zipfile.ZipFile(out, "w", zipfile.ZIP_DEFLATED) as target,
+    ):
+        for info in source.infolist():
+            data = source.read(info)
+            if info.filename == "xl/worksheets/sheet1.xml":
+                data = b'<!DOCTYPE w [<!ENTITY a "AAAA"><!ENTITY b "&a;&a;&a;&a;">]>' + (
+                    data.replace(b"PLACEHOLDER", b"&b;")
+                )
+            target.writestr(info, data)
+    return out.getvalue()
+
+
+def test_a_workbook_part_declaring_a_dtd_is_refused_before_openpyxl_parses_it(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    # Without defusedxml (the images do not install it), openpyxl parses with expat and
+    # expands internal entities. Whether it is installed here or not, the workbook must
+    # never reach it: refused as an ODS part is.
+    import openpyxl
+
+    opened: list[object] = []
+    monkeypatch.setattr(openpyxl, "load_workbook", lambda *a, **k: opened.append(a))
+    reading = read_source(_xlsx_with_entity(), "a.xlsx")
+    assert (reading.outcome, reading.reason) == (ReadingOutcome.REFUSED, "document_malformed")
+    assert not reading.segments
+    assert opened == []
+
+
 def test_a_zip_that_inflates_far_past_its_size_is_refused() -> None:
     bomb = zip_of({"content.xml": b"\0" * (20 * 1024 * 1024)})
     for name in ("a.odt", "a.pptx"):

@@ -118,3 +118,15 @@ def test_a_missing_reader_library_is_a_defect_not_an_unreadable_file(
     monkeypatch.setitem(sys.modules, "pypdf", None)
     with pytest.raises(ImportError):
         extract_text((FIXTURES / "inputs" / "prezentace.pdf").read_bytes(), "prezentace.pdf")
+
+
+def test_an_attached_workbook_declaring_a_dtd_has_no_text(monkeypatch: pytest.MonkeyPatch) -> None:
+    # The attachment reader (extract_text's _xlsx) refuses it as the source reader does:
+    # kept, with no text, never handed to openpyxl to expand.
+    import openpyxl
+    from test_source_readers import _xlsx_with_entity
+
+    opened: list[object] = []
+    monkeypatch.setattr(openpyxl, "load_workbook", lambda *a, **k: opened.append(a))
+    assert extract_text(_xlsx_with_entity(), "brief.xlsx") == ""
+    assert opened == []
