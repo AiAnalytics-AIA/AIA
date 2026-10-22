@@ -101,6 +101,7 @@ from ..schemas.projects import ErrorResponse
 from ..schemas.runs import RunEventResponse
 from .research import (
     DesignRevisionResponse,
+    _code,
     _cost_refused,
     _revision,
     stale_proposal,
@@ -308,6 +309,8 @@ class DeepResearchStep(BaseModel):
     started_at: datetime | None = None
     artifact_id: str | None
     error_message: str | None
+    #: The code the last attempt recorded beside its message, as on a research step.
+    error_reason: str | None = None
 
 
 class DeepResearchRun(BaseModel):
@@ -489,6 +492,9 @@ def _response(
                 artifact_id=(step.get("output") or {}).get("artifact_id"),
                 error_message=str((step["attempts"][-1].get("error") or {}).get("message"))
                 if step.get("attempts") and (step["attempts"][-1].get("error") or {}).get("message")
+                else None,
+                error_reason=_code((step["attempts"][-1].get("error") or {}).get("reason"))
+                if step.get("attempts")
                 else None,
             )
             for step in steps

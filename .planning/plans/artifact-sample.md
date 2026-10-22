@@ -128,6 +128,8 @@ field. (a) if the owner wants V2's layout exactly.
 
 ## Decisions taken while building
 
+- **WCE7b (2026-10-22): readiness is read on the working revision.** The decision below held until
+  `GET …/research/readiness/working` (#616); Vzorek now reads that and submits nothing.
 - **SMP3 (2026-10-21): readiness is read on a Design Revision until WCE7.** Vzorek reads
   `GET /research/readiness` as Spuštění does (`ExecutionSteps.tsx:650-669 @ 871c62c5`): an editor's
   working copy is saved and submitted (source stage `persona`; an unchanged copy answers its existing

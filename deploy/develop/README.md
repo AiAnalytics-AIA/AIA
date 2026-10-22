@@ -488,6 +488,11 @@ prints `true`. Requests made before the restart are not in the feed. On develop 
 Each is off when unset and absent from the develop Compose file; turning one on is a parameter, then
 `bin/write-env.sh` and a restart of the service that reads it.
 
+- **`AIA_AI_FIELDWORK_CHECKPOINT`** (worker): fieldwork keeps each answered respondent block the
+  moment it returns (`fieldwork_journal`), so an interrupted attempt or a retry of the run replays it
+  and pays only for the blocks never answered (run-qc-and-checkpoint RQC0). An uncertain call still
+  stops the step for recovery; nothing is replayed that was not answered. Two short lease-fenced
+  database round trips per block. **Who:** the operator, after `make migrate`.
 - **`AIA_AI_SCALE_LABELS_IN_PROMPT`** (worker): AI respondents are told a scale question's labels
   (both ends, or one per point) as its design states them, not only the numbers (input-interactions
   3b1, #538). Turning it on changes what respondents read, so the respondent-system fingerprint moves
@@ -507,6 +512,22 @@ Each is off when unset and absent from the develop Compose file; turning one on 
   `/studies/{id}/wallet` answers 409 `wallet_disabled`; a person's start on the Run stage never
   consults the wallet either way. **Who:** the owner's call, when the Lead's typed starts (LO5) and
   plan steps (LO3/LO4) that charge it are on develop.
+
+### Switches develop states (2026-10-21)
+
+- **`AIA_AI_RESEARCH_LEAD_ENABLED`** (API and worker): must be stated in a deployed environment;
+  unset, the API refuses to start (#561). Develop states `true` through Compose
+  (`${AIA_AI_RESEARCH_LEAD_ENABLED:-true}`). With it `false`, a card the Lead's model prepared is
+  refused 409 `research_lead_disabled` (Q42); stored edits stay decidable.
+- **`AIA_DATA_CLASS_GATES`** (API, worker and executors): `advisory` on develop, fixed in Compose's
+  shared environment and checked by `.github/workflows/deploy-develop.yml` (#594; ADR 0008,
+  Amendment 2026-10-21). Every refusal made solely because of a data class becomes a pass recorded
+  on the ledger row's note, the call's provenance, the tool event or a step event; unclassified
+  material is judged as Class A; Brave's search takes a query of any class. EU residency, licences,
+  budgets, scope and ADR 0022's sign-off still hold. Staging, production and an unknown `AIA_ENV`
+  refuse to start with it.
+- **`AIA_DEEP_RESEARCH_ENABLED`** is also given to the API, which reads it only to say, in
+  `POST …/deep-research/quote`, whether a run would park (#555); the worker's reading is unchanged.
 
 ### The Research Lead's own model
 

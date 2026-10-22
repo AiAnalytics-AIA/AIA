@@ -2050,7 +2050,6 @@ export const cs = {
     questionnaire: {
       unworded: "Doplňte znění. Bez něj návrh nejde spustit.",
       readyTitle: "Dotazník",
-      readyCounts: "{questions} otázek · {sets} sledovaných sad",
       readyCountsDetail: "Běžné otázky a sady k porovnání",
       // The strip (artifact-questionnaire QST2): items and coverage per research question.
       strip: {
@@ -2099,8 +2098,14 @@ export const cs = {
       previewQuestion: "Otázka {n}",
       previewSet: "Sledovaná sada {n} · {title}",
       scale: "1–10",
-      editorTag: "GUIDED EDITOR",
-      editorCounts: "{questions} otázek · {sets} sledovaných sad",
+      editorTag: "Osnova dotazníku",
+      editorCounts: "{questions} · {sets}",
+      // A count in Czech, the word by its number (countsWords): 1, 2–4, the rest and 0.
+      countWords: {
+        questions: { one: "1 otázka", few: "{n} otázky", many: "{n} otázek" },
+        sets: { one: "1 sledovaná sada", few: "{n} sledované sady", many: "{n} sledovaných sad" },
+      },
+      imported: "Načteno: {counts}",
       // Závislosti (artifact-questionnaire QST8): what reads each item downstream.
       dependencies: {
         title: "Závislosti",
@@ -2117,7 +2122,7 @@ export const cs = {
         },
         rule: "Co položka napájí, až projde kontrolou před spuštěním; zda projde, rozhodne Kontrola.",
       },
-      editorIntro: "Běžná otázka měří jeden outcome. Sledovaná sada porovnává 4–15 položek stejného typu na stejné škále. Interní technické klasifikace nemusíte řešit.",
+      editorIntro: "Běžná otázka měří jednu věc. Sledovaná sada porovnává 4–15 položek stejného typu na stejné škále. Interní technické klasifikace nemusíte řešit.",
       quickAdd: "Rychle přidat",
       addChoice: "Jedna odpověď",
       addScale: "Škála 1–10",
@@ -2212,7 +2217,7 @@ export const cs = {
       deepTitle: "Veřejný hloubkový výzkum",
       addBlockV3: "Nový blok",
       addQuestionV3: "Otázka do tohoto bloku",
-      blockHead: "Blok {n} · {q} otázek",
+      blockHead: "Blok {n} · {q}",
       removeBlockConfirm: "Smazat blok i otázky?",
       removeSetConfirm: "Odstranit tuto sadu?",
       range: "Rozsah",

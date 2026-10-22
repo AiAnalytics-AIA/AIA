@@ -11,7 +11,7 @@ chunks:
   - "[ ] WCE5. Field-level merge, per (item_key, field) (D-06), and a stale rule that a later Design Revision does not defeat"
   - "[ ] WCE6. Per-change accept (M6): `proposal_change_decisions`, one change identity across the three accept routes, a dependency rule for coupled changes, `touched_items` returned to the web; any member with the accept permission may accept a proposal another member's Lead prepared (Q16), the chat text staying private"
   - "[x] WCE7a. Readiness on a working revision: `GET …/research/readiness/working?working_revision=n`, the readiness a submit of that revision reads, nothing written"
-  - "[ ] WCE7b. The stages read it: Vzorek and Návrh on the working revision they show, no submit on a visit (Spuštění in artifact-fieldwork#FLD6)"
+  - "[x] WCE7b. Vzorek reads it on the working revision it shows, no submit on a visit (Návrh's coverage in artifact-design, Spuštění in artifact-fieldwork#FLD6)"
   - "[ ] WCE7c. Impact per stage: "current / changed / re-check" against the run's Design Revision, and accepting a working copy as a revision"
   - "[ ] WCE8. Sociomap declarations: an editor for `sociomap_rating` and `context_objects`, the hard lock and `sociomap_unlock`"
   - "[ ] WCE8b. The questionnaire proposal keeps protected inputs and item identity (W2, with WCE8, before research-lead-workbench 7 and 17): declared batteries, tracked sets and rating questions copied from the baseline under their ids, never from model output; proposed items keep a baseline id"
@@ -79,9 +79,15 @@ Split 2026-10-21 (owner: the Vzorek session, assigned by the PM) into three PRs:
   (`WorkingReadinessResponse`: the readiness fields and `working_revision`); a revision the Study
   never saved is 404 `working_revision_not_found`. Test:
   `test_readiness_reads_a_working_revision_without_submitting_a_design`.
-- **WCE7b.** Vzorek (`useSampleReadiness`) and Návrh's coverage read it, and a visit stops
-  submitting a Design Revision. Spuštění reads it while open and submits only at start, with that
-  revision's readiness checked again: the Sběr dat session's, in `artifact-fieldwork#FLD6`.
+- **WCE7b, delivered.** Vzorek (`useSampleReadiness.ts`) reads `research.workingReadiness` on the
+  store's working revision: an editor's waiting change is saved first (a save, never a Design
+  Revision), a refused save is never read, and a new working revision reads it again with the
+  previous answer kept on screen. Test: `SampleView.test.tsx` "loadSampleReadiness"; journey:
+  `workbench_journey.mjs` asserts no `POST …/design/revisions` during the Vzorek block.
+  Návrh's coverage card (`DesignCoverage.tsx`) reads the latest Design Revision and submits
+  nothing; moving it to the working revision is `artifact-design`'s. Spuštění reads it while open
+  and submits only at start, with that revision's readiness checked again: the Sběr dat session's,
+  in `artifact-fieldwork#FLD6`.
 - **WCE7c.** The impact rule and "accepting a working copy as a revision", the AC-07 test above.
 
 **WCE8. Sociomap declarations: an editor for `sociomap_rating` and `context_objects`, the hard lock and `sociomap_unlock`**  

@@ -113,10 +113,18 @@ describe("Zadání", () => {
     unitStub({});
     render(<ResearchScreen step="brief" frame={TEST_FRAME} />);
     const url = await screen.findByLabelText("Odkaz");
+    // An empty field adds nothing and says nothing.
+    fireEvent.click(screen.getByRole("button", { name: "Přidat webový odkaz" }));
+    expect(url.getAttribute("aria-invalid")).toBeNull();
+    // A link that is not http(s) is said at its field (I9, audit A26), not in the stage's alert...
     fireEvent.change(url, { target: { value: "example.test" } });
     fireEvent.click(screen.getByRole("button", { name: "Přidat webový odkaz" }));
-    expect(screen.getByRole("alert").textContent).toBe(LINK_INVALID);
+    expect(url.getAttribute("aria-invalid")).toBe("true");
+    expect(document.getElementById(url.getAttribute("aria-describedby")!)?.textContent).toBe(LINK_INVALID);
+    expect(screen.queryByRole("alert")).toBeNull();
+    // ...and, once said, checked again as it is typed.
     fireEvent.change(url, { target: { value: "https://example.test/a" } });
+    expect(url.getAttribute("aria-invalid")).toBeNull();
     fireEvent.click(screen.getByRole("button", { name: "Přidat webový odkaz" }));
     expect(screen.getAllByText("https://example.test/a").length).toBe(2);
     fireEvent.click(screen.getByRole("button", { name: "Odebrat https://example.test/a" }));

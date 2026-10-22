@@ -66,7 +66,9 @@ const noOverflow = async (label) => {
 };
 
 try {
-  for (const [width, workbench] of [[1440, true], [1100, true], [768, false], [390, false]]) {
+  // The workbench serves every width since research-lead-workbench 26b: a split from 1100 px, the
+  // Lead in a drawer or a sheet below it.
+  for (const [width, workbench] of [[1440, true], [1100, true], [768, true], [390, true]]) {
     await page.setViewportSize({ width, height: 900 });
     await page.goto(base + stagePath("questionnaire"));
     const deps = page.getByRole("region", { name: "Závislosti" });
@@ -87,6 +89,9 @@ try {
 
     await set.getByRole("link", { name: /^Sada 1 / }).click();
     await page.waitForFunction(() => location.hash === "#qset_sec_wb_set");
+    // The set's name stays readable beside its badge, count and Smazat (the browser audit, QF-3).
+    const name = await page.locator("#qset_sec_wb_set").getByRole("textbox", { name: "Název sady" }).boundingBox();
+    assert(name && name.width >= 160, `the set's name at ${width}: ${Math.round(name?.width ?? 0)} px wide`);
     check(`${width}: Závislosti lists the set's readers, the open question apart, no overflow`);
   }
 
