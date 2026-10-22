@@ -1909,7 +1909,7 @@ describe("Results", () => {
         executive: { outcome: "COMPLETED", summary: "Úvodní odstavec.\n\n- první bod\n- druhý bod", research_question_answers: [{ question: "Co lidé pijí?", answer: "Hlavně čaj a kávu.", claim_ids: ["C2"] }],
           key_findings: [{ text: "Čaj a káva jsou **vyrovnané**.", claim_ids: ["C1", "C2", "C9", "C3"] }],
           claims: [{ claim_id: "C1", evidence_ref: "q2.pct.2", value: 38.4, indicative: false, data_origin: null }, { claim_id: "C2", evidence_ref: "q2.pct.1", value: 34.8, indicative: true, data_origin: null }, { claim_id: "C3", evidence_ref: "x9.median", value: 4, indicative: false, data_origin: null }], violations: [] },
-        objects: { outcome: "COMPLETED", summary: null, research_question_answers: [], key_findings: [{ text: "Bez čísel.", claim_ids: [] }], claims: [], violations: [] },
+        objects: { outcome: "COMPLETED", summary: null, research_question_answers: [], key_findings: [{ text: "Bez čísel.", claim_ids: [] }, { text: "Jen neuložená čísla.", claim_ids: ["C7"] }], claims: [], violations: [] },
       } }),
     });
     render(<ResearchScreen step="results" frame={TEST_FRAME} />);
@@ -1945,10 +1945,13 @@ describe("Results", () => {
     for (const c of ["C1", "C2", "C3"]) expect(document.querySelectorAll(`[data-aia="claim:executive:${c}"]`)).toHaveLength(1);
     drawer.unmount();
     // A finding that cites no admitted number is never said to rest on one (review of #692).
-    const bare = render(<AnalysisInspect target={{ kind: "finding", id: "objects:0" }} />);
-    expect(bare.container.textContent).not.toContain("z připuštěných čísel");
-    expect(bare.container.textContent).toContain("neopírá se o žádné připuštěné číslo");
-    bare.unmount();
+    // Neither does one that cites only ids the module did not store.
+    for (const id of ["objects:0", "objects:1"]) {
+      const bare = render(<AnalysisInspect target={{ kind: "finding", id }} />);
+      expect(bare.container.textContent).not.toContain("z připuštěných čísel");
+      expect(bare.container.textContent).toContain("neopírá se o žádné připuštěné číslo");
+      bare.unmount();
+    }
     // A number whose question AIA cannot find says so in words; its reference stays as a code (6c).
     expect(within(keyFindings).getByText(/číslo, k němuž AIA nedohledala otázku/)).toBeTruthy();
     expect(within(keyFindings).getByText("x9.median").tagName).toBe("CODE");
