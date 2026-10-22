@@ -929,3 +929,56 @@ def test_the_worker_is_never_read_as_ready(
     (not ready); nothing says ready."""
     assert worker_readiness(turns) == expected
     assert worker_readiness(turns)[0] is not True
+
+
+PIN = {"deep_research_run_id": "RUN-dr1", "artifact_id": "ART-b1", "sha256": "ab" * 32}
+
+
+def test_external_context_is_frozen_only_when_switched_on_and_pinned(
+    scoped: Any, session: Any, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """evidence-integrity 7: the Study's newest Design Research findings reach the Lead's turn as
+    external context, read through the same pinned, seal-verified reader as the analysis."""
+    from aia_core.application import research_lead as module
+    from aia_core.application.research import ResearchRuns
+    from aia_core.domain.research_lead import EXTERNAL_LAYER
+    from aia_core.infrastructure.storage import InMemoryArtifactStore
+
+    scope = scoped.scope()
+    _hatch(scoped, session)
+    _save(scope, session)
+    store = InMemoryArtifactStore()
+    read: list[object] = []
+
+    def reader(_session: Any, _scope: Any, given: Any, pin: Any) -> tuple[str, ...]:
+        read.append((given, pin))
+        return ("[EV-1] Trh roste. (cs.wikipedia.org)",)
+
+    monkeypatch.setattr(module, "_external_context", reader)
+    monkeypatch.setattr(ResearchRuns, "design_research_pin", lambda self: PIN)
+
+    def frozen(lead: ResearchLead, text: str) -> dict[str, Any]:
+        turns = _message(lead, text)
+        context = _step_input(session, scope, turns[-1]["run_id"])["context"]
+        _complete(session, scope, {"reply": "Ano."})
+        return context
+
+    off = frozen(_lead(scope, session), "Bez rešerše?")
+    assert EXTERNAL_LAYER not in [e["layer"] for e in off["layers"]] and read == []
+    on = frozen(_lead(scope, session, external_store=store), "S rešerší?")
+    assert layer(on, EXTERNAL_LAYER)["lines"] == ["[EV-1] Trh roste. (cs.wikipedia.org)"]
+    assert layer(on, EXTERNAL_LAYER)["pin"] == PIN and read == [(store, PIN)]
+
+    # No finished Design Research: no layer. A bundle that does not read: said, never a stop.
+    monkeypatch.setattr(ResearchRuns, "design_research_pin", lambda self: None)
+    none = frozen(_lead(scope, session, external_store=store), "Bez běhu?")
+    assert EXTERNAL_LAYER not in [e["layer"] for e in none["layers"]]
+
+    def refused(*_: Any) -> tuple[str, ...]:
+        raise module.SourcesRefused("context_unverified", "the pinned bundle does not read")
+
+    monkeypatch.setattr(ResearchRuns, "design_research_pin", lambda self: PIN)
+    monkeypatch.setattr(module, "_external_context", refused)
+    broken = frozen(_lead(scope, session, external_store=store), "Rozbitá?")
+    assert layer(broken, EXTERNAL_LAYER)["lines"] == []
+    assert layer(broken, EXTERNAL_LAYER)["unavailable"] == "context_unverified"

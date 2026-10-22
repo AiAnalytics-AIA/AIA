@@ -9,11 +9,13 @@
 import type { ReactNode } from "react";
 
 import { t } from "@/i18n/t";
+import { plural } from "@/lib/format";
 import { sampleAia } from "@/lib/artifacts/sample";
 import type { OutlookVerdict } from "@/lib/api";
 import { codeWords } from "@/lib/reason-words";
 import { VERDICT_ORDER } from "@/lib/research-execution";
-import { outlookSummary, personaSourcesOf, sourceChosenOnRun, supportForecastOf } from "@/lib/sample-view";
+import { SUPPORT_FORECAST_CHECK, checkStage, outlookSummary, personaSourcesOf, readinessSummary, sourceChosenOnRun, supportForecastOf } from "@/lib/sample-view";
+import { STAGES } from "@/lib/workbench-stages";
 import type { WorkbenchStage } from "@/lib/workbench-stages";
 import { audienceReady } from "@/research/audience";
 import type { ResearchProject } from "@/research/model";
@@ -56,7 +58,7 @@ export function SampleArtifact({ project, readiness, onOpen }: { project: Resear
   const filters = audience.filters && typeof audience.filters === "object" ? Object.keys(audience.filters).length : 0;
   return (
     <div className="flex max-w-3xl flex-col gap-4" aria-label="Vzorek" data-sample-view>
-      <p className="text-sm text-ink-muted">Přehled vzorku jen ke čtení. Velikost a dimenze se nastavují v Dimenzích, cílová skupina ve svém kroku; zda vzorek stačí, ověří Kontrola a spuštění na serveru.</p>
+      <p className="text-sm text-ink-muted">Přehled vzorku jen ke čtení. Velikost a dimenze se nastavují v Dimenzích, cílová skupina ve svém kroku; zda vzorek stačí, říká server níže. Běh se spouští ve Sběru dat.</p>
       <Sec n={1} title="Velikost a složení" aside={n ? `n ${n}` : undefined} aia={sampleAia.section("size")}>
         <div data-aia={sampleAia.n()}>
           <div className="flex items-center gap-2"><Glyph tone={n ? "done" : "inert"} size={12} /><h3 className="text-sm font-semibold">Velikost vzorku</h3></div>
@@ -82,11 +84,53 @@ export function SampleArtifact({ project, readiness, onOpen }: { project: Resear
           ). Kvóta ji nezaručuje.
         </p>
       </Sec>
-      <Sec n={3} title="Kdo bude odpovídat" aia="sample:respondents">
+      <Ready readiness={readiness} onOpen={onOpen} />
+      <Sec n={4} title="Kdo bude odpovídat" aia={sampleAia.section("respondents")}>
         <Respondents readiness={readiness} onOpen={onOpen} />
       </Sec>
-      <button type="button" className="self-start rounded-control border border-border-strong px-3 py-1.5 text-sm font-medium" onClick={() => onOpen("fieldwork")}>Ověřit v Kontrole a spuštění</button>
     </div>
+  );
+}
+
+// Připravenost ke spuštění (SMP4): every check the server ran on the working copy, worst first, each
+// with the stage that fixes it. Read only: whether to start is the person's, on Sběr dat.
+function Ready({ readiness, onOpen }: { readiness: SampleReadiness; onOpen: Open }) {
+  const summary = readiness.kind === "ready" ? readinessSummary(readiness.readiness) : null;
+  const forecast = readiness.kind === "ready" ? supportForecastOf(readiness.readiness) : null;
+  // The server's `ready` decides; the counts only say why.
+  const aside = !summary ? undefined
+    : !summary.ready ? (summary.blocking ? `${plural(summary.blocking, "kontrola", "kontroly", "kontrol")} brání spuštění` : "server spuštění nepovolí")
+    : summary.unknown ? "stav některých kontrol neznámý"
+    : summary.warnings ? `${summary.warnings} varování, nic nebrání`
+    : "nic nebrání";
+  return (
+    <Sec n={3} title="Připravenost ke spuštění" aside={aside} aia={sampleAia.section("ready")}>
+      {readiness.kind === "loading" ? <p className="text-sm text-ink-muted" role="status">Načítám kontroly ze serveru…</p>
+        : readiness.kind === "failed" ? <p className="text-sm text-status-fault" role="alert">Kontroly se nepodařilo načíst: {readiness.message}</p>
+        : readiness.kind === "none" || !summary ? <p className="text-sm text-ink-muted">Obsah studie zatím není uložený, takže kontroly neproběhly.</p>
+        : (
+          <ul className="flex flex-col" aria-label="Kontroly připravenosti">
+            {summary.checks.filter((c) => c.id !== SUPPORT_FORECAST_CHECK).map((c) => {
+              const stage = checkStage(c.id);
+              return (
+                <li key={c.id} className="flex items-start gap-2 border-t border-border py-1.5 text-sm first:border-t-0" data-aia={sampleAia.ready(c.id) ?? undefined}>
+                  <span className="mt-1"><Glyph tone={STATUS_TONE[c.status] ?? "inert"} size={12} title={c.status} /></span>
+                  <span className="min-w-0 flex-1">{c.message}</span>
+                  {stage ? <button type="button" className="shrink-0 text-xs text-signal underline" onClick={() => onOpen(stage)}>{STAGES[stage].label}</button> : null}
+                </li>
+              );
+            })}
+          </ul>
+        )}
+      {/* The forecast is shown in section 2; here it is counted, and named when it warns. */}
+      {forecast && (!forecast.known || forecast.status !== "PASS") && summary?.checks.some((c) => c.id === SUPPORT_FORECAST_CHECK) ? (
+        <p className="text-sm text-ink-muted">{forecast.known ? "Odhad opory výsledků varuje" : "Opora výsledků je předem neznámá"}: viz oddíl 2.</p>
+      ) : null}
+      <div className="flex flex-wrap items-center gap-3">
+        <button type="button" className="rounded-control border border-border-strong px-3 py-1.5 text-sm font-medium" onClick={() => onOpen("fieldwork")}>Pokračovat na Sběr dat</button>
+        {summary?.ready && !summary.unknown && summary.warnings ? <span className="text-xs text-ink-muted">Lze pokračovat s omezeními.</span> : null}
+      </div>
+    </Sec>
   );
 }
 
@@ -140,7 +184,7 @@ function Respondents({ readiness, onOpen }: { readiness: SampleReadiness; onOpen
         : (
           <ul className="flex flex-col gap-2" aria-label="Zdroje respondentů">
             {sources.map((o) => (
-              <li key={o.source} className={`flex items-start gap-2 text-sm ${o.offered ? "" : "text-ink-muted"}`} data-aia={`sample:respondents:${o.source}`}>
+              <li key={o.source} className={`flex items-start gap-2 text-sm ${o.offered ? "" : "text-ink-muted"}`} data-aia={sampleAia.respondents(o.source) ?? undefined}>
                 <span className="mt-1"><Glyph tone={o.offered ? (o.default ? "done" : "ready") : "inert"} size={12} title={o.offered ? "nabízeno" : "nenabízeno"} /></span>
                 <span className="flex min-w-0 flex-col">
                   <span>

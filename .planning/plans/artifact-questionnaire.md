@@ -101,6 +101,14 @@ V2: `QuestionnaireArt` (`DesignStages.tsx:95-142`).
 - Primitives: `InlineText`, `Segmented`, `InlineCreateRow`, `ChipInput`, `UndoToast`,
   `InlineConfirm`, `Stepper` (scale) and `ChoiceChips`.
 
+*Finding QF-6 (browser audit, 2026-10-22):* the outline's rows only scroll. Focus stays on the
+outline, so a keyboard user Tabs through every earlier question to reach the one they picked. From
+the respondent preview, which draws no editor, a row does nothing at all
+(`QuestionnaireStep.tsx:562 @ b6ac25c5`, `jumpTo` = `scrollToPlace`). Reproduction: focus Q3 in the
+outline, press Enter, press Tab. Fix (fix/questionnaire-outline-focus): a row opens Upravit if
+needed, then scrolls to the card or set and focuses it (`openPlace`), so Tab goes on from there.
+Test: `QuestionnaireStep.test.tsx` (QF-6); seen in a browser at 1440 and 390 px.
+
 ## 7. Chunks
 
 **QST1. Contract.** `lib/artifacts/questionnaire.ts`. Depends on `research-lead-workbench#14`,
@@ -237,7 +245,9 @@ reads it.
 > z pěti cen, vrátí `null`. Jiný typ otázky se necení: Dotazník pak délku označí za neznámou
 > a s limitem ji neporovná.
 
-## Browser-audit findings, AI mode
+## Browser-audit findings
+
+QF-1 to QF-3 sit under QST8 and QF-6 under §6 (Input interactions).
 
 *Finding QF-4 (2026-10-22):* "Sestavit s AI" on a questionnaire that already has items answers
 the click with nothing. The view stays the editor (`questionnaire.ts:79 @ b6ac25c5`), and in the
@@ -253,6 +263,13 @@ The preview says "technický editor je pod ní" (`QuestionnaireStep.tsx:453 @ b6
 replaces the editor. Fix: the first is dropped; the second says the preview is the respondent's
 view, and that editing happens under Upravit. Test: `QuestionnaireStep.test.tsx`.
 
+*Finding QF-7 (2026-10-22):* the question's × is named by the stored id, "Odebrat otázku Q_wb1",
+and a screen reader hears the id again after the card's number ("Q1 Q_wb1";
+`QuestionnaireStep.tsx:772,783 @ eaf9eeaa`). Fix (fix/questionnaire-remove-label): the × is named by
+the number on the card, "Odebrat otázku Q1", and the hidden id is gone (the badge's title keeps it).
+Test: `QuestionnaireUndo.test.tsx` (QF-7).
+
 ## Doc follow-up
 
+- open-items.md: number QF-7 (the question's × named by its stored id), closed by fix/questionnaire-remove-label.
 - Register this plan and its chunks. `research-lead-workbench#7`'s questionnaire half is QST5.

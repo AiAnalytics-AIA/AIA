@@ -69,13 +69,13 @@ from .edit_ops import (
     refusal,
 )
 from .item_ids import SIDECAR_KEYS
-from .licence import DataLineage
 from .material_rules import MaterialRule, classify_by_rule, rule_class
 from .population.subpanels import BUILTIN_SUBPANELS
 from .prompts import PromptPin
 from .research_agents import (
     FIXED_PREFIX,
     ResearchAction,
+    knowledge_lineage,
     prompt_class_source,
     prompt_data_class,
 )
@@ -87,6 +87,8 @@ __all__ = [
     "CONTEXT_MAX_BYTES",
     "DEFAULT_LEAD_NAME",
     "DEFAULT_SOUL",
+    "EXTERNAL_LAYER",
+    "EXTERNAL_NOTE",
     "FOCUS_ID",
     "FOCUS_KINDS",
     "ID_PATTERN",
@@ -414,7 +416,9 @@ def _is_identity_key(key: str) -> bool:
 def citable_context(context: Mapping[str, Any]) -> list[Any]:
     """The layers the model is sent (:func:`model_message`) with their identity metadata left
     out: every key :func:`_is_identity_key` names, with all it holds, and every string that is
-    a focus target (:data:`FOCUS_ID`). The numbers a reply may write are this text's."""
+    a focus target (:data:`FOCUS_ID`). The numbers a reply may write are this text's. The
+    external context (:data:`EXTERNAL_LAYER`) is not citable: a figure from a source is
+    refused like any number the study's own context does not hold (evidence-integrity 7)."""
 
     def strip(value: Any) -> Any:
         if isinstance(value, Mapping):
@@ -425,7 +429,11 @@ def citable_context(context: Mapping[str, Any]) -> list[Any]:
             return ""
         return value
 
-    return [strip(entry) for entry in context["layers"] if entry["layer"] != "prompt"]
+    return [
+        strip(entry)
+        for entry in context["layers"]
+        if entry["layer"] not in ("prompt", EXTERNAL_LAYER)
+    ]
 
 
 def context_identifiers(context: Mapping[str, Any]) -> frozenset[str]:
@@ -796,6 +804,15 @@ def notes_layer(notes: Sequence[Mapping[str, Any]]) -> list[dict[str, Any]]:
     return kept
 
 
+#: The layer of a sealed Design Research bundle's public findings: external context for
+#: interpreting the study, never respondent evidence, and never a source of a number.
+EXTERNAL_LAYER: Final = "external_context_not_evidence"
+EXTERNAL_NOTE: Final = (
+    "Externí kontext z poslední rešerše k návrhu: k výkladu, nikdy jako zjištění respondentů. "
+    "Čísla z něj nepište."
+)
+
+
 def freeze_context(
     *,
     prompt: PromptPin,
@@ -807,8 +824,12 @@ def freeze_context(
     runs: Sequence[Mapping[str, Any]],
     view: Mapping[str, Any],
     conversation: Sequence[Mapping[str, Any]],
+    external: Mapping[str, Any] | None = None,
 ) -> dict[str, Any]:
     """The turn's context, its layers in ADR 0026's order, within :data:`CONTEXT_MAX_BYTES`.
+
+    ``external``: the bundle's pin and lines (``analysis_results._external_context``), as the
+    :data:`EXTERNAL_LAYER` after the runs; absent, the context is what it was without it.
 
     ``conversation`` is the turns before this one, oldest first; only the newest
     :data:`HISTORY_TURNS` are kept, and the oldest of those go first when the whole is over
@@ -830,6 +851,11 @@ def freeze_context(
                 {"layer": "study", **dict(study)},
                 {"layer": "design", **dict(design)},
                 {"layer": "runs", "runs": [dict(r) for r in runs]},
+                *(
+                    [{"layer": EXTERNAL_LAYER, "note": EXTERNAL_NOTE, **dict(external)}]
+                    if external is not None
+                    else []
+                ),
                 {"layer": "view", **dict(view)},
                 {"layer": "conversation", "turns": turns, "omitted_turns": dropped},
             ],
@@ -953,6 +979,15 @@ def context_classification(
                     "source": "turn",
                 }
             )
+    if any(entry["layer"] == EXTERNAL_LAYER for entry in context["layers"]):
+        # Public web material: the bundle's findings it classed Class C, the only ones kept.
+        parts.append(
+            {
+                "part": "external_context",
+                "data_class": DataClass.CLASS_C_INTERNAL.value,
+                "source": "bundle:public_findings",
+            }
+        )
     knowledge = layer(context, "knowledge")["items"]
     parts.extend(
         {
@@ -998,9 +1033,7 @@ def lead_request(
     system = lead_prompt(prompt.text)
     message = model_message(context)
     knowledge = layer(context, "knowledge")["items"]
-    lineage = DataLineage.none()
-    if any(k.get("kind") in {"DATASET", "ARTIFACT", "FINDING"} for k in knowledge):
-        lineage = DataLineage.of("unclassified-client-knowledge")
+    lineage = knowledge_lineage(knowledge)
     return ModelRequest(
         agent=AgentDefinition(
             agent_id=LEAD_AGENT_ID,

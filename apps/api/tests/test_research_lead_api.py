@@ -1180,3 +1180,31 @@ def test_a_worker_that_cannot_answer_is_reported_not_ready(
         None,
         None,
     )
+
+
+def test_a_turn_reads_external_context_only_with_the_analysis_switch_on(
+    researcher: TestClient, world: Any, app: FastAPI, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """evidence-integrity 7: AIA_AI_ANALYSIS_EXTERNAL_CONTEXT gives the Lead's turn the store it
+    reads the newest Design Research bundle from; off, no store and no external layer."""
+    from aia_core.application.research_lead import ResearchLead
+
+    given: list[object] = []
+
+    def external(self: ResearchLead) -> None:
+        given.append(self.external_store)
+
+    monkeypatch.setattr(ResearchLead, "_external", external)
+    _hatched(researcher)
+    _save_content(app, world)
+    url = f"{lead_url(world)}/turns"
+    turn = {"kind": "message", "stage": "brief", "text": "Co říká rešerše?"}
+    assert researcher.post(url, json=turn).status_code == 201
+    _complete(app, world, {"reply": "Nic."})
+    monkeypatch.setattr(
+        app.state,
+        "settings",
+        app.state.settings.model_copy(update={"ai_analysis_external_context": True}),
+    )
+    assert researcher.post(url, json=turn).status_code == 201
+    assert given[0] is None and given[1] is not None

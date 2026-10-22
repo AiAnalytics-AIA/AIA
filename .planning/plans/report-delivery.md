@@ -77,6 +77,11 @@ ledger shape; the with-literature variant's status does not carry it (retired by
 **RD3. The Approve and Export panel: what is approved and by whom; exports after approval; the slot in the Report artifact**  
 S1 hosts the slot (`research-lead-workbench` 21), same wave. Tests: approvals name the exact artifact fingerprint; a stale-version download is refused; both self-approval settings; an unauthorised download is refused. Today drafts download freely and approval follows the download (`research.py:2395-2449`); the panel makes the client export follow approval. Interfaces I12.
 
+*RD3, G66 (`feature/report-export-panel`):* `POST …/report/approve` answers `report_kind` (`internal`,
+`with_review` or `client`, `application/report_approval.py` `REPORT_KINDS`), and `internal_only` is false for the
+client report, which said `true` before. Test: `test_the_approved_client_report_downloads_stamped_and_is_read_once`
+(and the internal approval test). The panel and the client export after approval stay open.
+
 *RD3, the client draft read in AIA (`feature/report-client-pane`):* `POST …/report/client/prepare` composes and
 stores the client report as its download would, once, and answers its document model; nothing leaves. Zpráva's
 pane offers "Interní zpráva" / "Klientská zpráva" for a modelled run only, one document at a time, and

@@ -1032,6 +1032,20 @@ export type ReadinessBody = Omit<Readiness, "design_revision_id">;
  */
 export type WorkingReadiness = ReadinessBody & { working_revision: number };
 
+/** CURRENT: as the Design Revision has it; CHANGED: its own inputs differ; RECHECK: an earlier change reaches it. */
+export type StageImpact = "CURRENT" | "CHANGED" | "RECHECK";
+
+/** A working revision beside a Design Revision, each pipeline stage's impact (WCE7c, GET …/research/impact). */
+export type WorkingImpact = {
+  working_revision: number;
+  design_revision_id: string;
+  design_revision: number;
+  /** The design's top-level fields that differ. */
+  changed: string[];
+  /** Every pipeline stage in pipeline order. Typed as sent: a word this client does not know is read as no answer. */
+  stages: { stage: string; impact: StageImpact | (string & {}) }[];
+};
+
 export type PersonaSourceOption = { source: string; offered: boolean; reason: string | null; default: boolean };
 
 export type ResearchPhase = "QUEUED" | "RUNNING" | "WAITING" | "COMPLETED" | "FAILED" | "CANCELLED";
@@ -1269,6 +1283,9 @@ export const research = {
   /** Readiness on a working revision, as a submit of it would read it; nothing is written (WCE7a). */
   workingReadiness: (studyId: string, workingRevision: number, personaSource?: string) =>
     request<WorkingReadiness>("GET", `${studyPath(studyId)}/research/readiness/working${query({ working_revision: String(workingRevision), persona_source: personaSource })}`),
+  /** What a working revision changes against a Design Revision (the newest when none is named), stage by stage; nothing is written (WCE7c). */
+  workingImpact: (studyId: string, workingRevision: number, designRevisionId?: string) =>
+    request<WorkingImpact>("GET", `${studyPath(studyId)}/research/impact${query({ working_revision: String(workingRevision), design_revision_id: designRevisionId })}`),
   /**
    * `confirmCostUsd` is the person's yes to the ceiling the server showed, when the study's limit asks for one.
    * `populationVersionId` runs over one of the study's client's materialized children instead of LIVE (P4d4c).
@@ -1372,7 +1389,7 @@ export const research = {
     request<ResearchReport>("POST", `${studyPath(studyId)}/research/runs/${enc(runId)}/report/pdf`),
   downloadReportPdf: (studyId: string, runId: string) =>
     requestStored(`${studyPath(studyId)}/research/runs/${enc(runId)}/report/pdf/download`),
-  /** A person approves a stored report of the run (internal only; recorded in the ledger). */
+  /** A person approves a stored report of the run: internal, with literature or the client report (recorded in the ledger). */
   approveReport: (studyId: string, runId: string, artifactId: string, note = "") =>
     request<{
       run_id: string;
@@ -1381,7 +1398,10 @@ export const research = {
       approved_on?: string | null;
       stamped?: boolean | null;
       approval?: Approval | null;
-      internal_only: true;
+      /** Which report was approved (RD3, G66): the client report is the one that leaves; absent
+       * from an API before it. */
+      report_kind?: "internal" | "with_review" | "client";
+      internal_only: boolean;
     }>(
       "POST", `${studyPath(studyId)}/research/runs/${enc(runId)}/report/approve`, { artifact_id: artifactId, note },
     ),

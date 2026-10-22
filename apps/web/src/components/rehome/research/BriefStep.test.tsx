@@ -207,6 +207,28 @@ describe("Zadání", () => {
     expect((ws.saves.at(-1)?.content.briefing as { attachments: unknown[] }).attachments).toEqual([record({ filename: "zadani.txt" })]);
   });
 
+  it("refuses an empty file before sending it, in Czech, and keeps the rest of the pick (audit)", async () => {
+    unitStub({}, { [ATTACH_PATH]: (b) => record(b) });
+    render(<ResearchScreen step="brief" frame={TEST_FRAME} />);
+    const input = await screen.findByLabelText("Soubory k zadání");
+    fireEvent.change(input, { target: { files: [new File([], "prazdny.txt", { type: "text/plain" }), new File(["ahoj"], "zadani.txt", { type: "text/plain" })] } });
+    expect(await screen.findByText("Nepodařilo se uložit · soubor je prázdný")).toBeTruthy();
+    expect(screen.getByRole("alert").textContent).toBe("prazdny.txt: soubor je prázdný");
+    // Only the good file was sent; the empty one never left the browser.
+    await waitFor(() => expect(posted(ATTACH_PATH).map((c) => (c.body as { filename: string }).filename)).toEqual(["zadani.txt"]));
+    await waitFor(() => expect(ws.saves.at(-1)?.reason).toBe("brief_attachments"));
+  });
+
+  it("says a file the server refuses in Czech, by its code, never the API's English (audit)", async () => {
+    unitStub({}, {
+      [ATTACH_PATH]: () => new Response(JSON.stringify({ code: "validation_error", message: "The request body or parameters are invalid." }), { status: 422 }),
+    });
+    render(<ResearchScreen step="brief" frame={TEST_FRAME} />);
+    fireEvent.change(await screen.findByLabelText("Soubory k zadání"), { target: { files: [new File(["ahoj"], "zadani.txt", { type: "text/plain" })] } });
+    expect(await screen.findByText("Nepodařilo se uložit · AIA soubor nepřijala (kód validation_error)")).toBeTruthy();
+    expect(screen.queryByText(/request body/)).toBeNull();
+  });
+
   it("saves a study that was never saved before its first file, so the file has somewhere to be", async () => {
     unitStub(null, { [ATTACH_PATH]: (b) => record(b) });
     render(<ResearchScreen step="brief" frame={TEST_FRAME} />);

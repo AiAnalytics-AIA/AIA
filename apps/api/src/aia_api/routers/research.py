@@ -47,7 +47,12 @@ from aia_core.application.report import (
     INTERNAL_REPORT_MEDIA_TYPE,
     ReportCompositionRefused,
 )
-from aia_core.application.report_approval import ReportNotApprovable, approve_report
+from aia_core.application.report_approval import (
+    CLIENT_REPORT_KINDS,
+    REPORT_KINDS,
+    ReportNotApprovable,
+    approve_report,
+)
 from aia_core.application.report_export import (
     Export,
     ReviewUnrecorded,
@@ -2953,7 +2958,7 @@ def _client_document_body(
 @router.post(
     "/research/runs/{run_id}/report/approve",
     response_model=dict[str, Any],
-    summary="Approve a stored report of the run (internal approval, recorded)",
+    summary="Approve a stored report of the run (internal, with literature or client; recorded)",
     responses={403: {"model": ErrorResponse}, 409: {"model": ErrorResponse}},
 )
 def approve_run_report(
@@ -3002,13 +3007,16 @@ def approve_run_report(
                 "message": "The artifact is not a valid stored report of this run.",
             },
         ) from exc
+    # Which report was approved, by kind: the client report is no internal document (G66).
+    kind = REPORT_KINDS[artifact.artifact_type]
     return {
         "run_id": run_id,
         "artifact_id": artifact.artifact_id,
         "artifact_type": artifact.artifact_type,
         **_review_fields(artifact, _mark(artifact, scope, session, store)),
         **_approval_fields(artifact, scope, session, store),
-        "internal_only": True,
+        "report_kind": kind,
+        "internal_only": kind not in CLIENT_REPORT_KINDS,
     }
 
 

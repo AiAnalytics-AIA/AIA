@@ -97,6 +97,10 @@
 .nav__stage.is-inert { color: var(--ink-faint); }
 .nav__stage.is-you { box-shadow: inset 0 2px 0 var(--status-you); }
 .nav__stage.is-current.is-you { box-shadow: inset 0 -2px 0 var(--signal), inset 0 2px 0 var(--status-you); }
+/* The working copy reopened this stage (WCE7d): filled when its own input changed, a ring to re-check. */
+.nav__impact { flex: none; width: 6px; height: 6px; border-radius: 50%; }
+.nav__impact--changed { background: var(--status-you); }
+.nav__impact--recheck { box-shadow: inset 0 0 0 1.5px var(--status-you); }
 .nav__more { margin-left: auto; display: flex; align-items: center; gap: 6px; }
 
 /* main workspace */

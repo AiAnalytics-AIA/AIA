@@ -854,6 +854,7 @@ def test_a_person_approves_a_runs_stored_report_once_and_only_that(
     assert approved.status_code == 200, approved.text
     assert approved.json()["review_state"] == "APPROVED_INTERNAL"
     assert approved.json()["internal_only"] is True
+    assert approved.json()["report_kind"] == "internal"  # RD3, G66
     status_ = researcher.get(url).json()
     assert status_["review_state"] == "APPROVED_INTERNAL"
     assert status_["approved_on"] in {before, _prague_today()}
@@ -1204,6 +1205,9 @@ def test_the_approved_client_report_downloads_stamped_and_is_read_once(
     approved = outsider.post(f"{url}/approve", json={"artifact_id": stored.artifact_id})
     assert approved.status_code == 200, approved.text
     assert approved.json()["stamped"] is True
+    # The client report is the deliverable that leaves: never said to be internal (RD3, G66).
+    assert approved.json()["report_kind"] == "client"
+    assert approved.json()["internal_only"] is False
     reads.clear()
     downloaded = researcher.get(f"{url}/client/download")
     assert downloaded.status_code == 200 and len(reads) == 1

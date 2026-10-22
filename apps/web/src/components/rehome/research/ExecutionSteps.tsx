@@ -46,6 +46,7 @@ import { latestDesignRun, questionEvidence } from "@/lib/design-evidence";
 import { citedSnapshot } from "@/lib/verified-source";
 import { researchStepOrb, researchStepWork } from "@/lib/activity-orb";
 import { RECEIPT_TARGET, stepTarget } from "@/lib/artifacts/fieldwork";
+import { FOCUS, TOUCH } from "@/components/ui/parts";
 import { activityOf } from "@/lib/step-activity";
 import { type BatteryWithMaps, mapApproval, readObjectMap, type RecordedMethod, type RegisterEntry } from "@/lib/object-map-view";
 import {
@@ -134,6 +135,10 @@ function confirmationAsked(e: unknown): { ceiling: number; limit: number } | nul
 const message = (e: unknown) => (e instanceof Error ? e.message : String(e));
 const when = (iso: string | null) => (iso ? new Date(iso).toLocaleString("cs-CZ") : "—");
 
+/** A link back to the stage where something is set: the input standard's touch target (I11) and
+ *  focus ring, its text on the first line of the row it sits in. */
+const STAGE_LINK = `inline-flex items-start whitespace-nowrap text-xs text-signal no-underline hover:underline ${TOUCH} ${FOCUS}`;
+
 function Card({ id, title, children, tone, region }: { id?: string; title?: string; children: ReactNode; tone?: "notice" | "fault"; region?: boolean }) {
   const frame =
     tone === "fault"
@@ -217,9 +222,10 @@ function RespondentsReceipt({ run, pointable = false }: { run: ResearchRun; poin
     <div data-aia={pointable ? RECEIPT_TARGET : undefined}>
     <Card title={t(`${R}.title`)}>
       {who.mismatch ? <p role="alert" className="mb-2 text-sm font-semibold text-status-fault">{t(`${R}.mismatch`)}</p> : null}
-      <dl data-population={run.population?.version_label} className="divide-y divide-border rounded-control border border-border">
+      {/* Label beside value only where the card itself is wide enough; above it on a narrow card. */}
+      <dl data-population={run.population?.version_label} className="@container divide-y divide-border rounded-control border border-border">
         {[...rows, origin].map(([k, v]) => (
-          <div key={k} className="grid grid-cols-[8rem_1fr] items-baseline gap-3 px-3 py-2 text-sm">
+          <div key={k} className="grid gap-1 px-3 py-2 text-sm @sm:grid-cols-[8rem_1fr] @sm:items-baseline @sm:gap-3">
             <dt className="text-ink-muted">{k}</dt>
             <dd className="min-w-0">{v}</dd>
           </div>
@@ -419,13 +425,14 @@ function Receipt({ revision, readiness }: { revision: number; readiness: Readine
     <Card title={tv("research.exec.revision", { revision })}>
       <p className="text-[13px] text-ink-muted">{t("research.exec.revisionHelp")}</p>
       <h3 className="mt-3 text-[13px] font-semibold">{t("research.exec.receiptTitle")}</h3>
-      <dl className="mt-1.5 divide-y divide-border rounded-control border border-border">
+      <dl className="@container mt-1.5 divide-y divide-border rounded-control border border-border">
         {rows.map(([k, v]) => (
-          <div key={k} className="grid grid-cols-[8rem_1fr_auto] items-baseline gap-3 px-3 py-2 text-sm">
+          // On a narrow card: the stage above what it holds, the link beside both.
+          <div key={k} className="grid grid-cols-[1fr_auto] gap-x-3 px-3 py-2 text-sm @sm:grid-cols-[8rem_1fr_auto] @sm:items-baseline">
             <dt className="text-ink-muted">{t(`aia.stages.${k}`)}</dt>
-            <dd className="min-w-0">{v}</dd>
-            <dd>
-              <Link href={stepHref(k)} className="text-xs text-signal no-underline hover:underline">{t("research.exec.edit")}</Link>
+            <dd className="row-start-2 min-w-0 @sm:row-start-auto">{v}</dd>
+            <dd className="col-start-2 row-span-2 row-start-1 self-center @sm:col-start-auto @sm:row-span-1 @sm:row-start-auto @sm:self-auto">
+              <Link href={stepHref(k)} className={STAGE_LINK}>{t("research.exec.edit")}</Link>
             </dd>
           </div>
         ))}
@@ -535,7 +542,7 @@ function ResearchTraceCard({ trace, outlook, answer, design }: {
                 ) : null}
               </div>
               {q.verdict !== "ANSWERABLE" ? (
-                <Link href={fixOf(q.text)} className="whitespace-nowrap text-xs text-signal no-underline hover:underline">
+                <Link href={fixOf(q.text)} className={STAGE_LINK}>
                   {t("research.exec.fix")}
                 </Link>
               ) : null}
@@ -577,7 +584,7 @@ function QuestionOutlookCard({ items }: { items: readonly QuestionOutlook[] }) {
           ) : null}
         </div>
         {fix && item.verdict !== "ANSWERABLE" ? (
-          <Link href={stepHref(fix)} className="whitespace-nowrap text-xs text-signal no-underline hover:underline">
+          <Link href={stepHref(fix)} className={STAGE_LINK}>
             {t("research.exec.fix")}
           </Link>
         ) : null}
@@ -802,7 +809,7 @@ export function RunStep() {
                   <Chip tone={checkTone(c.status)}><CodedWords inline coded={codeWords("research.exec.checkStatus", c.status)} /></Chip>
                   <span className="flex-1">{c.message}</span>
                   {c.status !== "PASS" ? (
-                    <Link href={stepHref(fixStep(c.id))} className="whitespace-nowrap text-xs text-signal no-underline hover:underline">
+                    <Link href={stepHref(fixStep(c.id))} className={STAGE_LINK}>
                       {t("research.exec.fix")}
                     </Link>
                   ) : null}

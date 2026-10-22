@@ -749,6 +749,60 @@ describe("the Lead's names on the map", () => {
   });
 });
 
+// Around the map (artifact-sociomap SOC3): the filter bar names what the toolbar changed and that the
+// computation did not; the legend names the four kinds of content.
+describe("the filter bar and the four registers", () => {
+  const bar = () => screen.queryByTestId("object-map-filter-bar");
+
+  it("shows no bar at the map's opening, and the four registers beside it", () => {
+    render(<ObjectMapView battery={hudba} dataOrigin={null} />);
+    expect(bar()).toBeNull();
+    const registers = screen.getByTestId("object-map-registers");
+    expect([...registers.querySelectorAll("[data-register]")].map((r) => r.getAttribute("data-register"))).toEqual(["computed", "display", "interpretation", "external"]);
+    expect(registers.textContent).toContain("Deterministický výsledek");
+    expect(registers.textContent).toContain("do výpočtu nevstupují");
+  });
+
+  it("names a display change and says what did not change, leaving the map's numbers as they were", () => {
+    render(<ObjectMapView battery={hudba} dataOrigin={null} />);
+    const list = () => within(screen.getByTestId("object-map-panel-list")).getAllByRole("button").map((b) => b.textContent);
+    const before = list();
+    fireEvent.click(screen.getByRole("button", { name: "Vše" }));
+    fireEvent.click(screen.getByRole("button", { name: "Absolutní" }));
+    expect(bar()!.textContent).toContain("Filtr zobrazení: absolutní výšky, všechny vztahy.");
+    expect(bar()!.textContent).toContain("Výpočet, polohy objektů, výšky, vztahy a věrohodnost mapy beze změny.");
+    expect(bar()!.getAttribute("data-aia-filters")).toBe("norm:absolute relations:all");
+    expect(list()).toEqual(before);
+  });
+
+  it("goes back to how the map opens on Zrušit filtr", () => {
+    render(<ObjectMapView battery={hudba} dataOrigin={null} />);
+    fireEvent.click(screen.getByRole("button", { name: "Respondenti" }));
+    expect(bar()!.textContent).toContain("mapa respondentů");
+    fireEvent.click(within(bar()!).getByRole("button", { name: "Zrušit filtr" }));
+    expect(bar()).toBeNull();
+    expect(canvas().getAttribute("data-map")).toBe("objects");
+    expect(canvas().getAttribute("data-norm")).toBe("range");
+    expect(screen.getByRole("button", { name: "Top vztahy" }).getAttribute("aria-pressed")).toBe("true");
+  });
+
+  it("keeps the keyboard in the toolbar when Zrušit filtr removes its own bar, and announces the bar from a live region already there", async () => {
+    render(<ObjectMapView battery={hudba} dataOrigin={null} />);
+    const live = screen.getByTestId("object-map-filter-status");
+    expect(live.getAttribute("role")).toBe("status");
+    expect(live.textContent).toBe("");
+    fireEvent.click(screen.getByRole("button", { name: "Absolutní" }));
+    expect(screen.getByTestId("object-map-filter-status")).toBe(live);
+    expect(live.textContent).toContain("absolutní výšky");
+    const reset = within(bar()!).getByRole("button", { name: "Zrušit filtr" });
+    reset.focus();
+    fireEvent.click(reset);
+    expect(bar()).toBeNull();
+    await waitFor(() => expect(document.activeElement).not.toBe(document.body));
+    expect(screen.getByRole("toolbar", { name: "Ovládání mapy" }).contains(document.activeElement)).toBe(true);
+  });
+});
+
 // The object list on the respondent map (artifact-sociomap audit, 2026-10-21): a click there marked an
 // object pressed and changed nothing a person could see, the respondent card staying where the object's
 // detail would be. Selection is the object map's; on the respondent map the list only lists.
