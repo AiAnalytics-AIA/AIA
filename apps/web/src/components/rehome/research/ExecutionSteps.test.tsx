@@ -147,7 +147,8 @@ function api(overrides: Record<string, (body: unknown) => unknown> = {}) {
         "POST /api/v1/studies/STU-1/research/runs": () => run({ created: true, phase: "QUEUED" }),
         ...overrides,
       };
-      const answer = routes[`${method} ${u.split("?")[0]}`]?.(body) ?? {};
+      // A route may answer later (a promise), to hold a read while the test looks at the screen.
+      const answer = (await routes[`${method} ${u.split("?")[0]}`]?.(body)) ?? {};
       return answer instanceof Response ? answer : new Response(JSON.stringify(answer), { status: 200 });
     }),
   );
@@ -3428,5 +3429,66 @@ describe("Interpretation research", () => {
     expect(called("POST", "/api/v1/studies/STU-1/research/runs")).toHaveLength(0);
     expect(createUrl).not.toHaveBeenCalled();
     expect(revokeUrl).not.toHaveBeenCalled();
+  });
+});
+
+describe("Náklady on Průběh (artifact-fieldwork FLD4b)", () => {
+  const STUDY = { study_id: "STU-1", name: "Starbucks", budget_usd: 50, spent_usd: 10, remaining_usd: 40, spend_confirm_usd: null };
+  const rowsOf = async () => {
+    const card = await screen.findByText(t("research.exec.spend.title"));
+    const dl = await waitFor(() => {
+      const found = card.closest("section, div")!.parentElement!.querySelector("[data-run-spend]");
+      if (!found) throw new Error("no spend yet");
+      return found;
+    });
+    return [...dl.querySelectorAll("[data-spend]")].map((r) => [r.getAttribute("data-spend"), r.querySelector("dd")!.textContent]);
+  };
+
+  it("reads the run's spent, held and unpriced calls beside the study's remainder", async () => {
+    const spent = { ...COMPLETED, spend: { spent_usd: 0.4, reserved_usd: 0, uncertain_calls: 1 } };
+    api({ ...listed(spent), "GET /api/v1/studies/STU-1": () => STUDY });
+    render(<ResearchScreen step="progress" frame={TEST_FRAME} />);
+    await waitFor(async () =>
+      expect(await rowsOf()).toEqual([
+        ["spent", "0,40 USD"],
+        ["held", "0,00 USD"],
+        ["unpriced", `${tv("research.exec.spend.unpricedCalls", { count: 1 })} · ${t("research.exec.spend.unpricedEnded")}`],
+        ["remaining", `40,00 USD · ${t("research.exec.spend.remainingNote")}`],
+      ]),
+    );
+  });
+
+  it("says the spend is unknown when the API gave none, never 0,00 USD", async () => {
+    api({ ...listed(COMPLETED), "GET /api/v1/studies/STU-1": () => STUDY });
+    render(<ResearchScreen step="progress" frame={TEST_FRAME} />);
+    expect(await screen.findByText(t("research.exec.spend.unknown"))).toBeTruthy();
+    expect(document.querySelector("[data-run-spend]")).toBeNull();
+  });
+
+  it("carries the run's spend over an action's answer, which has none, until the next read replaces it", async () => {
+    const parked = { ...PARKED, spend: { spent_usd: 1.5, reserved_usd: 0.25, uncertain_calls: 0 } };
+    // The action's answer: no spend. The read after it: the run's spend as it now is.
+    const answer = run({ steps: [step("compile", "SUCCEEDED"), step("preflight", "SUCCEEDED"), step("run", "RUNNABLE")] });
+    const reread = { ...answer, spend: { spent_usd: 1.75, reserved_usd: 0.25, uncertain_calls: 0 } };
+    let going = false;
+    let held: (() => void) | null = null;
+    const RESUME = "/api/v1/studies/STU-1/research/runs/RUN-1/resume";
+    api({
+      ...listed(parked),
+      // The read after the answer waits, so what the answer alone leaves on screen can be seen.
+      "GET /api/v1/studies/STU-1/research/runs/RUN-1": () => (going ? new Promise((resolve) => { held = () => resolve(reread); }) : parked),
+      [`POST ${RESUME}`]: () => { going = true; return answer; },
+      "GET /api/v1/studies/STU-1": () => STUDY,
+    });
+    render(<ResearchScreen step="progress" frame={TEST_FRAME} />);
+    await waitFor(async () => expect((await rowsOf())[0]).toEqual(["spent", "1,50 USD"]));
+    fireEvent.click(await screen.findByRole("button", { name: t("research.exec.resume") }));
+    await waitFor(() => expect(called("POST", RESUME)).toHaveLength(1));
+    await waitFor(() => expect(screen.queryByText(t("research.exec.parkedResume"))).toBeNull());
+    expect((await rowsOf())[0]).toEqual(["spent", "1,50 USD"]);
+    expect(screen.queryByText(t("research.exec.spend.unknown"))).toBeNull();
+    await waitFor(() => expect(held).not.toBeNull());
+    act(() => held!());
+    await waitFor(async () => expect((await rowsOf())[0]).toEqual(["spent", "1,75 USD"]));
   });
 });

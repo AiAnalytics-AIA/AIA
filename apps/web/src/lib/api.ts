@@ -1108,6 +1108,9 @@ export type ResearchStep = {
   /** How the API reads `data_origin`: SIMULATED, MODELLED or UNKNOWN; absent from an older API. */
   data_origin_kind?: string | null;
 };
+/** A research run's spend, by the rules Settings reads a person's spend (Q40); it names nobody (Q76 (c)). */
+export type RunSpend = { spent_usd: number; reserved_usd: number; uncertain_calls: number };
+
 export type ResearchRun = {
   run_id: string;
   study_id: string;
@@ -1128,6 +1131,9 @@ export type ResearchRun = {
   steps: ResearchStep[];
   artifact_ids: string[];
   actual_cost_usd: number | null;
+  /** What the run has spent, holds and could not price (artifact-fieldwork FLD4a): only on the run read
+   *  alone (GET …/research/runs/{id}) with VIEW_COSTS; null on a listed run and on an action's answer. */
+  spend?: RunSpend | null;
   /** The population the run recorded (population-operations P3); absent or null: none. */
   population?: ResearchRunPopulation | null;
   /** The methods the run pinned when it started (methodology-tab Z1); absent from an older API. */
