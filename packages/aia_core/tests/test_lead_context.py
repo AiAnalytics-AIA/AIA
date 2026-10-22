@@ -10,6 +10,8 @@ from aia_core.domain.lead_context import (
     MANIFEST_IDS_MAX,
     PART_LAYERS,
     context_manifest,
+    manifest_view,
+    omitted_page,
 )
 from aia_core.domain.lead_digest import DigestEntry, decision_digest
 from aia_core.domain.prompt_slots import get_slot
@@ -337,3 +339,44 @@ def test_the_digest_takes_the_class_of_the_turns_whose_text_it_carries() -> None
     )
     # A turn whose class is not known refuses, as an earlier reply's does.
     assert memory_class([None]) is None
+
+
+def test_the_view_lists_every_declared_layer_and_says_which_the_turn_did_not_record() -> None:
+    # A turn frozen without Design Research or a digest: those layers are not recorded, never
+    # an empty layer, and their counts are unknown.
+    view = manifest_view(_context())
+    assert [row["layer"] for row in view["layers"]] == [spec.name for spec in LEAD_LAYERS]
+    unrecorded = {row["layer"] for row in view["layers"] if not row["recorded"]}
+    assert unrecorded == {EXTERNAL_LAYER, "memory"}
+    row = _row(view, "memory")
+    assert "included_count" not in row and "omitted_count" not in row
+    assert all("data_class" not in r for r in view["layers"])
+
+
+def test_omitted_ids_page_past_the_manifests_fifty() -> None:
+    omitted_ids = [f"K-{i:03d}" for i in range(MANIFEST_IDS_MAX + 7)]
+    context = _context(omitted_knowledge_ids=omitted_ids)
+    assert len(_row(context_manifest(context), "knowledge")["omitted"]) == MANIFEST_IDS_MAX
+    page, total = omitted_page(context, "knowledge", after=MANIFEST_IDS_MAX)
+    assert total == MANIFEST_IDS_MAX + 7
+    assert [o["id"] for o in page] == omitted_ids[MANIFEST_IDS_MAX:]
+    assert {o["reason"] for o in page} == {"over_budget"}
+    assert omitted_page(context, "memory") == ([], 0)
+
+
+def test_a_layer_counts_only_what_it_counted() -> None:
+    # The digest froze what it left out: the manifest says that number. Runs and notes past
+    # their bound are dropped without a count: unknown, never a 0 nobody counted.
+    decided = [
+        DigestEntry("edit", f"question:q{i}", "accept", f"T-{i}", ledger_id=i)
+        for i in range(1, 400)
+    ]
+    digest = decision_digest(decided, [])
+    assert digest["left_out"]["decisions"] > 0
+    view = manifest_view(_context(memory=digest))
+    memory = _row(view, "memory")
+    assert memory["omitted_count"] == digest["left_out"]["decisions"]
+    assert memory["included_count"] == len(digest["latest"])
+    assert _row(view, "runs")["omitted_count"] is None
+    assert _row(view, "lead")["omitted_count"] is None
+    assert _row(view, "knowledge")["omitted_count"] == 0

@@ -81,7 +81,7 @@ describe("the Metodika tab", () => {
     await screen.findByRole("heading", { name: "Vstupní hodnocení" });
     const groups = [...document.querySelectorAll("h3[id^=mg-]")].map((h) => h.textContent);
     expect(groups.slice(0, 8)).toEqual(["Metoda", "Vstupní hodnocení", "Vztahy mezi objekty", "Rozložení na mapě", "Věrohodnost mapy", "Skóre a výška objektů", "Terén", "Respondenti a podpora mapy"]);
-    expect(screen.getByRole("radio", { name: /aia-sociomap-3 · výchozí v kódu/ }).getAttribute("aria-checked")).toBe("true");
+    expect(screen.getByRole("radio", { name: /aia-sociomap-5 · výchozí v kódu/ }).getAttribute("aria-checked")).toBe("true");
   });
 
   it("says where each step sits: what it is for, what it reads, what reads it, and its audit point", async () => {
@@ -109,7 +109,7 @@ describe("the Metodika tab", () => {
     render(<MethodologyPanel />);
     const status = await card("Stav páru: neznámý, slabý, spolehlivý");
     const n = within(status).getByRole("rowheader", { name: /Nejmenší n páru/ }).closest("tr") as HTMLElement;
-    expect(within(n).getByText("30 respondenti")).toBeTruthy();
+    expect(within(n).getByText("10 respondenti")).toBeTruthy(); // aia-sociomap-5, in force
     expect(within(n).getByText("metodika")).toBeTruthy();
     const floor = within(status).getByRole("rowheader", { name: /Nejnižší přípustné n_min/ }).closest("tr") as HTMLElement;
     expect(within(floor).getByText("kód")).toBeTruthy();

@@ -48,7 +48,7 @@ import { researchStepOrb, researchStepWork } from "@/lib/activity-orb";
 import { RECEIPT_TARGET, stepTarget } from "@/lib/artifacts/fieldwork";
 import { FOCUS, TOUCH, TOUCH_LINK } from "@/components/ui/parts";
 import { activityOf } from "@/lib/step-activity";
-import { type BatteryWithMaps, mapApproval, readObjectMap, type RecordedMethod, type RegisterEntry } from "@/lib/object-map-view";
+import { type BatteryWithMaps, mapApproval, olderMethodOnly, readObjectMap, type RecordedMethod, type RegisterEntry } from "@/lib/object-map-view";
 import {
   STEP_ORDER,
   ANALYSIS_ORDER,
@@ -91,6 +91,7 @@ import {
   verdictTone,
 } from "@/lib/research-execution";
 import { runDestination, runState } from "@/lib/run-state";
+import { usd } from "@/lib/researcher-spend";
 import { codedText, codeWords } from "@/lib/reason-words";
 import { withBudget } from "@/lib/budget-line";
 import { reportStatus, reportStatusWords } from "@/lib/report-status";
@@ -132,6 +133,22 @@ function confirmationAsked(e: unknown): { ceiling: number; limit: number } | nul
   if (!(e instanceof ApiError) || e.code !== "cost_confirmation_required") return null;
   const { ceiling_usd, limit_usd } = e.details as { ceiling_usd?: unknown; limit_usd?: unknown };
   return typeof ceiling_usd === "number" && typeof limit_usd === "number" ? { ceiling: ceiling_usd, limit: limit_usd } : null;
+}
+/** The start a refusal of an older-method run offers: the same Design Revision, respondents, population
+ *  and research-question decision as the refused run (`details.new_run.body`). */
+export type NewRunStart = {
+  design_revision_id: string;
+  persona_source?: string;
+  population_version_id?: string;
+  acknowledge_research_questions?: AnswerabilityAcknowledgement;
+};
+
+/** The server refused a retry because the run's Sociomap method is an older one: the start of a new run
+ *  (on aia-sociomap-5) the refusal names, or null for any other error. */
+export function retiredMethodRefusal(e: unknown): NewRunStart | null {
+  if (!(e instanceof ApiError) || e.code !== "run_on_retired_method") return null;
+  const body = (e.details as { new_run?: { body?: Partial<NewRunStart> } }).new_run?.body;
+  return body && typeof body.design_revision_id === "string" ? (body as NewRunStart) : null;
 }
 const message = (e: unknown) => (e instanceof Error ? e.message : String(e));
 const when = (iso: string | null) => (iso ? new Date(iso).toLocaleString("cs-CZ") : "—");
@@ -1102,11 +1119,85 @@ function useRetryableRead(run: ResearchRun | null | undefined): Repairable | nul
   return possible && modules?.runId === runId ? modules.list : null;
 }
 
+/**
+ * A retry the server refused because the run's Sociomap method is an older one: the note, shown only for
+ * the refused run, and a start of a new run as the refusal names it (aia-sociomap-5, the same revision,
+ * respondents, population and research-question decision). The limit asks as for any start; gaps the
+ * server asks about are answered here, as a start's are.
+ */
+function useNewRunOffer(run: ResearchRun, act: (fn: () => Promise<ResearchRun>) => Promise<void>, busy: boolean) {
+  const { confirm, stepHref } = useResearch();
+  const frame = useFrame();
+  const [offer, setOffer] = useState<{ runId: string; body: NewRunStart } | null>(null);
+  const [asked, setAsked] = useState<{ runId: string; answer: Answerability } | null>(null);
+  const [ack, setAck] = useState<AcknowledgementState>(NO_ACKNOWLEDGEMENT);
+  const shown = offer && offer.runId === run.run_id && frame.canEdit ? offer : null;
+  const gate = shown && asked && asked.runId === run.run_id ? asked.answer : null;
+  const start = (body: NewRunStart, acknowledge?: AnswerabilityAcknowledgement) =>
+    act(async () => {
+      const decision = acknowledge ?? body.acknowledge_research_questions;
+      const send = (ceiling?: number) =>
+        research.start(frame.studyId, body.design_revision_id, ceiling, body.population_version_id, body.persona_source, decision);
+      let next: ResearchRun;
+      try {
+        try {
+          next = await send();
+        } catch (e) {
+          const cost = confirmationAsked(e);
+          if (!cost) throw e;
+          const yes = await confirm(await withBudget(frame.studyId, tv("research.exec.cost.confirm", { ceiling: cost.ceiling.toFixed(2), limit: cost.limit.toFixed(2) }), cost.ceiling));
+          if (!yes) return run;
+          next = await send(cost.ceiling);
+        }
+      } catch (e) {
+        const answer = unanswerableAsked(e);
+        if (!answer) throw e;
+        setAsked({ runId: run.run_id, answer });
+        return run;
+      }
+      setOffer(null);
+      setAsked(null);
+      setAck(NO_ACKNOWLEDGEMENT);
+      return next;
+    });
+  /** Whether `e` was that refusal: the offer is then shown for this run. */
+  const caught = (e: unknown): boolean => {
+    const body = retiredMethodRefusal(e);
+    if (!body) return false;
+    setOffer({ runId: run.run_id, body });
+    return true;
+  };
+  const acknowledged = acknowledgementOf(gate, ack);
+  const node = shown ? (
+    <div role="note" data-retired-method className="flex flex-col gap-2 text-sm">
+      <p>{t("research.exec.retiredMethod.text")}</p>
+      {gate ? (
+        <>
+          <AnswerabilityGate answer={gate} value={ack} onChange={setAck} outlook={null} stepHref={stepHref} disabled={busy} retry />
+          <div>
+            <Button variant="primary" disabled={busy || !acknowledged} onClick={() => acknowledged && void start(shown.body, acknowledged)}>
+              {t("research.exec.retiredMethod.action")}
+            </Button>
+          </div>
+        </>
+      ) : (
+        <div>
+          <Button variant="primary" disabled={busy} onClick={() => void start(shown.body)}>
+            {t("research.exec.retiredMethod.action")}
+          </Button>
+        </div>
+      )}
+    </div>
+  ) : null;
+  return { caught, node };
+}
+
 /** A finished run whose analysis a model could not complete: the data stands, the modules are asked again. */
 function AnalysisRepair({ run, modules: { modules, stale }, act, busy }: { run: ResearchRun; modules: Repairable; act: (fn: () => Promise<ResearchRun>) => Promise<void>; busy: boolean }) {
   const { confirm } = useResearch();
   const frame = useFrame();
   const failed = modules.length - stale.filter((m) => modules.includes(m)).length;
+  const newRun = useNewRunOffer(run, act, busy);
   return (
     <Card title={t("research.exec.analysisRetry.title")} tone="notice" region>
       {failed ? <p className="text-sm">{tv("research.exec.analysisRetry.body", { n: failed })}</p> : null}
@@ -1121,14 +1212,19 @@ function AnalysisRepair({ run, modules: { modules, stale }, act, busy }: { run: 
           onClick={() =>
             act(async () => {
               try {
-                return await research.retryAnalysis(frame.studyId, run.run_id);
+                try {
+                  return await research.retryAnalysis(frame.studyId, run.run_id);
+                } catch (e) {
+                  // The retry asks a model again, so the study's limit asks again over what it may cost.
+                  const asked = confirmationAsked(e);
+                  if (!asked) throw e;
+                  const yes = await confirm(await withBudget(frame.studyId, tv("research.exec.cost.confirm", { ceiling: asked.ceiling.toFixed(2), limit: asked.limit.toFixed(2) }), asked.ceiling));
+                  if (!yes) return run;
+                  return await research.retryAnalysis(frame.studyId, run.run_id, asked.ceiling);
+                }
               } catch (e) {
-                // The retry asks a model again, so the study's limit asks again over what it may cost.
-                const asked = confirmationAsked(e);
-                if (!asked) throw e;
-                const yes = await confirm(await withBudget(frame.studyId, tv("research.exec.cost.confirm", { ceiling: asked.ceiling.toFixed(2), limit: asked.limit.toFixed(2) }), asked.ceiling));
-                if (!yes) return run;
-                return research.retryAnalysis(frame.studyId, run.run_id, asked.ceiling);
+                if (newRun.caught(e)) return run;
+                throw e;
               }
             })
           }
@@ -1136,6 +1232,7 @@ function AnalysisRepair({ run, modules: { modules, stale }, act, busy }: { run: 
           {t("research.exec.analysisRetry.action")}
         </Button>
       ) : null}
+      {newRun.node}
     </Card>
   );
 }
@@ -1153,6 +1250,7 @@ function ProgressActions({ run, act, busy, refresh, actionError, repairable }: {
   const [refusal, setGate] = useState<{ runId: string; answer: Answerability } | null>(null);
   const gate = refusalFor(refusal, run, frame.canEdit);
   const [ack, setAck] = useState<AcknowledgementState>(NO_ACKNOWLEDGEMENT);
+  const newRun = useNewRunOffer(run, act, busy);
   const retry = (acknowledge?: AnswerabilityAcknowledgement) =>
     act(async () => {
       try {
@@ -1172,6 +1270,7 @@ function ProgressActions({ run, act, busy, refresh, actionError, repairable }: {
         setAck(NO_ACKNOWLEDGEMENT);
         return next;
       } catch (e) {
+        if (newRun.caught(e)) return run;
         const gaps = unanswerableAsked(e);
         if (!gaps) throw e;
         setGate({ runId: run.run_id, answer: gaps });
@@ -1183,7 +1282,7 @@ function ProgressActions({ run, act, busy, refresh, actionError, repairable }: {
     <section aria-labelledby="run-actions" className="flex flex-col gap-3 rounded-card border border-border bg-surface-raised p-3.5">
       <h2 id="run-actions" className="text-sm font-semibold">{tv("research.exec.revision", { revision: run.design_revision })}</h2>
       <dl className="grid grid-cols-[auto_1fr] gap-x-3 gap-y-1.5 text-[13px]">
-        <dt className="text-ink-muted">{t("research.exec.runCost")}</dt><dd className="font-mono">{run.actual_cost_usd == null ? t("research.exec.runCostUnknown") : `${run.actual_cost_usd.toFixed(2)} USD`}</dd>
+        <dt className="text-ink-muted">{t("research.exec.runCost")}</dt><dd className="font-mono">{run.actual_cost_usd == null ? t("research.exec.runCostUnknown") : usd(run.actual_cost_usd)}</dd>
       </dl>
       <div className="flex flex-wrap items-center gap-2">
         {run.phase === "COMPLETED" ? (
@@ -1211,6 +1310,7 @@ function ProgressActions({ run, act, busy, refresh, actionError, repairable }: {
         ) : null}
         <Button variant="quiet" onClick={refresh}>{t("research.exec.refresh")}</Button>
       </div>
+      {newRun.node}
       {gate ? (
         <>
           <p role="note" className="text-sm">{t("research.exec.answerability.retry")}</p>
@@ -1890,13 +1990,13 @@ function ObjectComparison({ setId, title, comparison, scale, places }: { setId: 
         <span className="text-xs text-ink-muted">{scale ? `Průměr na škále ${scale[0]}–${scale[1]}` : "Průměr; škála běhu není uvedena"} · 95% interval · Kish n</span>
       </div>
       <div className="mt-3 overflow-x-auto">
-        <table className="w-full min-w-[30rem] text-sm">
+        <table className="w-full text-sm sm:min-w-[30rem]">
           <thead>
             <tr className="text-left text-xs text-ink-muted">
               <th className="py-1 pr-3 font-medium">Objekt</th>
               <th className="py-1 pr-3 text-right font-medium">Průměr</th>
               <th className="py-1 pr-3 text-right font-medium">Interval</th>
-              <th className="py-1 pr-3 font-medium">{scale ? `${scale[0]} · · · ${scale[1]}` : <span className="sr-only">Interval na škále</span>}</th>
+              <th className="hidden py-1 pr-3 font-medium sm:table-cell">{scale ? `${scale[0]} · · · ${scale[1]}` : <span className="sr-only">Interval na škále</span>}</th>
               <th className="py-1 text-right font-medium">Kish n</th>
             </tr>
           </thead>
@@ -1906,7 +2006,7 @@ function ObjectComparison({ setId, title, comparison, scale, places }: { setId: 
                 <td className="max-w-48 truncate py-1.5 pr-3"><a href={`#${measureAnchor(o.id)}`} className="no-underline hover:underline" title={o.label}>{o.label}</a>{o.support === "INDICATIVE" ? <span className="ml-1 text-xs text-status-you-ink">(orientační)</span> : null}</td>
                 <td className="whitespace-nowrap py-1.5 pr-3 text-right tabular-nums"><b>{mean(o.value)}</b>{scale ? <span className="text-ink-muted"> z {scale[1]}</span> : null}</td>
                 <td className="whitespace-nowrap py-1.5 pr-3 text-right tabular-nums text-ink-muted">{o.low !== null && o.high !== null ? `[${mean(o.low)}; ${mean(o.high)}]` : "interval chybí"}</td>
-                <td className="w-[30%] min-w-24 py-1.5 pr-3">
+                <td className="hidden w-[30%] min-w-24 py-1.5 pr-3 sm:table-cell">
                   <span aria-hidden="true" className="relative block h-4 rounded-full bg-surface-sunken">
                     {o.low !== null && o.high !== null ? <span className="absolute top-1 h-2 rounded-full bg-signal/25" style={{ left: at(o.low), width: `calc(${at(o.high)} - ${at(o.low)})` }} /> : null}
                     <span className="absolute top-0.5 size-3 -translate-x-1/2 rounded-full bg-signal" style={{ left: at(o.value) }} />
@@ -1918,9 +2018,10 @@ function ObjectComparison({ setId, title, comparison, scale, places }: { setId: 
             {comparison.withheld.map((o) => (
               <tr key={o.id} data-object={objectOf(o.id)} data-withheld={o.reason} className="border-t border-border">
                 <td className="max-w-48 truncate py-1.5 pr-3"><a href={`#${measureAnchor(o.id)}`} className="no-underline hover:underline" title={o.label}>{o.label}</a></td>
-                <td colSpan={3} className="py-1.5 pr-3 text-ink-muted">{o.reason === "suppressed"
+                <td colSpan={2} className="py-1.5 pr-3 text-ink-muted">{o.reason === "suppressed"
                   ? `Potlačeno · ${o.donors === null ? "podpora dat nestačí" : `podpora dat nestačí (${o.donors.toLocaleString("cs-CZ")} unikátních dárců)`}`
                   : "Bez průměru"}</td>
+                <td aria-hidden="true" className="hidden sm:table-cell" />
                 <td className="whitespace-nowrap py-1.5 text-right tabular-nums text-ink-muted">{kish(o.kishN)}</td>
               </tr>
             ))}
@@ -2008,14 +2109,17 @@ function AggregateView({ artifact, run, specification }: { artifact: Artifact; r
           const reading = readMeasure(measure.result, measure.scale, box, at);
           return <section key={measure.id} id={anchor} aria-label={measure.title} data-aia={measure.target ?? undefined} data-focused={focused === anchor ? "true" : undefined}
             className={`scroll-mt-24 rounded-md border bg-surface-raised p-4 ${focused === anchor ? "border-signal shadow-[0_0_0_1px_var(--color-signal)]" : "border-border"}`}>
-            <div className="flex flex-wrap items-start justify-between gap-3">
-              <div className="min-w-0 flex-1">
+            {/* The reading runs the card's full width under the title and its chip: beside the chip it
+                was squeezed to half a phone's width (artifact-results, Findings). The title keeps
+                14rem, below which the chip wraps under it. */}
+            <div className="flex flex-wrap items-start justify-between gap-x-3 gap-y-1">
+              <div className="min-w-0 flex-1 basis-56">
                 {measure.group ? <p className="text-xs font-medium uppercase tracking-wide text-ink-muted">{measure.group}</p> : null}
                 <h3 className="mt-1 text-sm font-semibold leading-6">{measure.title}</h3>
-                <p data-measure-reading className={`mt-1 text-sm leading-6 ${READING_TONE[reading.tone]}`}>{reading.text}</p>
               </div>
               <span className={`rounded-full px-2.5 py-1 text-xs font-semibold ${measure.table.suppressed ? "bg-status-fault-wash text-status-fault" : measure.table.support === "INDICATIVE" ? "bg-status-you-wash text-status-you-ink" : "bg-signal-wash text-signal"}`}>{supportLabel(measure.table.support)}</span>
             </div>
+            <p data-measure-reading className={`mt-1 text-sm leading-6 ${READING_TONE[reading.tone]}`}>{reading.text}</p>
             <p className="mt-2 text-xs text-ink-muted">{supportNote(measure.table)}</p>
             <FidelityRefusal reason={fidelityRefusal(measure.result)} />
             <OpenAnswers answers={measure.table.verbatims} />
@@ -2084,7 +2188,8 @@ function SociomapView({ artifact, run }: { artifact: Artifact; run: ResearchRun 
     sociomap: {
       data_origin?: string | null;
       methods?: RecordedMethod[];
-      batteries: (Parameters<typeof sociomapObjects>[0] & BatteryWithMaps)[];
+      // `sociomap` and `relation`: the reference map, only on a run stored before aia-sociomap-5.
+      batteries: (Partial<Parameters<typeof sociomapObjects>[0]> & BatteryWithMaps)[];
     };
   } | null;
   if (!payload) return null;
@@ -2092,7 +2197,16 @@ function SociomapView({ artifact, run }: { artifact: Artifact; run: ResearchRun 
   return (
     <div className="flex flex-col gap-4">
       {payload.sociomap.batteries.map((b) => {
-        const objects = sociomapObjects(b);
+        if (olderMethodOnly(b)) {
+          // An older method's map is not drawn (ADR 0038): the run keeps its data, the panel says why.
+          return (
+            <section key={b.battery_id} aria-label={b.title} className="flex flex-col gap-2">
+              <h3 className="text-sm font-semibold">{b.title}</h3>
+              <p role="note" data-older-method className="text-sm">{t("research.exec.results.olderMethod")}</p>
+            </section>
+          );
+        }
+        const objects = b.sociomap && b.relation ? sociomapObjects(b as Parameters<typeof sociomapObjects>[0]) : [];
         const objectMap = readObjectMap(b);
         const table = (
             <table className="mt-1 w-full text-sm">
@@ -2121,10 +2235,13 @@ function SociomapView({ artifact, run }: { artifact: Artifact; run: ResearchRun 
             {objectMap.ok || objectMap.reason === "contract" ? (
               <>
                 <ObjectMapView battery={b} dataOrigin={payload.sociomap.data_origin ?? null} approvalOf={approvalOf} />
-                <details className="text-sm">
-                  <summary className="cursor-pointer font-semibold">{t("research.exec.objectMap.comparison")}</summary>
-                  {table}
-                </details>
+                {/* The reference map beside it, only where the run computed one (a new run has none). */}
+                {objects.length ? (
+                  <details className="text-sm">
+                    <summary className="cursor-pointer font-semibold">{t("research.exec.objectMap.comparison")}</summary>
+                    {table}
+                  </details>
+                ) : null}
               </>
             ) : (
               <>

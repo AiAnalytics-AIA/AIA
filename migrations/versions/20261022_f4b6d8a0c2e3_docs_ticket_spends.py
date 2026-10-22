@@ -6,7 +6,7 @@ ticket expires on its own; this table is what makes it single use across API pro
 its primary key. A person's rows are deleted a day after their tickets expired.
 
 Revision ID: f4b6d8a0c2e3
-Revises: e2a4c6b8d0f1
+Revises: 90dc672445b1
 Created: 2026-10-22 00:00:00.000000+00:00
 """
 
@@ -16,7 +16,7 @@ import sqlalchemy as sa
 from alembic import op
 
 revision: str = "f4b6d8a0c2e3"
-down_revision: str | None = "e2a4c6b8d0f1"
+down_revision: str | None = "90dc672445b1"
 branch_labels = None
 depends_on = None
 

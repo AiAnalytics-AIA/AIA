@@ -5,6 +5,7 @@
 // Nothing here calls a model or the API.
 
 import type { BriefingField, TopField } from "@/research/brief";
+import { wordingOf as itemWording } from "@/research/item-ids";
 import type { Json, ResearchProject } from "@/research/model";
 import { proposalAnalysis, type Narrative } from "@/research/plan-edit";
 import { qId, sections, type Question, type Section } from "@/research/questionnaire";
@@ -503,14 +504,30 @@ const AUDIENCE_PARTS: Readonly<Record<string, string>> = {
   definition: "Cílová skupina: popis", filters: "Cílová skupina: filtry", preview: "Cílová skupina: náhled",
 };
 
-/** A Lead target in words, for a link that shows it: never the raw code when its kind is known. */
-export function targetLabel(target: string): string {
+/** Zadání's sections that are not a text field (lib/artifacts/brief.ts BRIEF_FIELDS), in its words. */
+const BRIEF_PARTS: Readonly<Record<string, string>> = { objectives: "Cíle", context: "Kontext", type: "Typ problému", files: "Podklady" };
+
+/** The plan lists whose items the working copy holds by stable id (item-ids' kinds). */
+const WORDED: Partial<Record<TargetKind, string>> = { rq: "research_question", hypothesis: "hypothesis" };
+
+/** Text cut to a link's length. */
+const clip = (s: string) => (s.length > 60 ? `${s.slice(0, 57)}…` : s);
+
+/** What a target's words are read from: the working copy and its analysis, as the store holds them. */
+export type TargetWords = { project: unknown; analysis: unknown };
+
+/**
+ * A Lead target in words, for a link that shows it: never the raw code when its kind is known. With
+ * the working copy, a research question or a hypothesis is named by its own words, as pointing at it
+ * names it (F18); by its id only when the copy does not hold it.
+ */
+export function targetLabel(target: string, design?: TargetWords | null): string {
   const [kind, ...rest] = target.split(":");
   const id = rest.join(":");
   if (!id) return target;
   if (kind === "question") return `Otázka ${id}`;
   if (kind === "section") return `Oddíl ${id}`;
-  if (kind === "brief") return `Zadání: ${id}`;
+  if (kind === "brief") return `Zadání: ${(FIELD_LABEL as Record<string, string>)[id] ?? BRIEF_PARTS[id] ?? id}`;
   if (kind === "plan") return PLAN_LABELS[id] ?? "Návrh";
   const parsed = parseAiaId(target);
   if (!parsed) return target;
@@ -522,6 +539,9 @@ export function targetLabel(target: string): string {
     return t ? AUDIENCE_PARTS[t.part] : `Cílová skupina: ${id}`;
   }
   if (parsed.kind === "receipt" && id === "respondents") return "Kdo odpovídal";
+  const list = WORDED[parsed.kind];
+  const words = list && design ? itemWording(design.project as Record<string, unknown>, design.analysis as Record<string, unknown> | null, list, parsed.id) : null;
+  if (words?.trim()) return `${KIND_WORDS[parsed.kind]}: ${clip(words.trim())}`;
   return `${KIND_WORDS[parsed.kind]} ${id}`;
 }
 
@@ -550,23 +570,22 @@ export function targetOfElement(el: Element | null): { id: string; label: string
   for (let at: Element | null = el; at; at = at.parentElement) {
     const id = at.getAttribute("id") ?? "";
     const text = (at.textContent ?? "").replace(/\s+/g, " ").trim();
-    const label = (s: string) => (s.length > 60 ? `${s.slice(0, 57)}…` : s);
     // An element a screen marked for the Lead (data-aia="<kind>:<id>", aiaId) names itself.
     const aia = at.getAttribute("data-aia");
     const parsed = aia ? parseAiaId(aia) : null;
     // A question keeps its wording as its label, a section its title: a card's first heading can
     // be a part of it (the research-question legend), never what the person pointed at.
-    if (aia && parsed?.kind === "question") return { id: aia, label: `Otázka ${parsed.id}: ${label(wordingOf(at, text))}` };
+    if (aia && parsed?.kind === "question") return { id: aia, label: `Otázka ${parsed.id}: ${clip(wordingOf(at, text))}` };
     if (aia && parsed?.kind === "section") {
-      return { id: aia, label: `Oddíl: ${label(titleOf(at, parsed.id))}` };
+      return { id: aia, label: `Oddíl: ${clip(titleOf(at, parsed.id))}` };
     }
     if (aia && parsed) {
       const heading = at.querySelector("h2, h3, h4, label, legend")?.textContent?.trim();
-      if (heading) return { id: aia, label: `${targetLabel(aia)}: ${label(heading)}` };
+      if (heading) return { id: aia, label: `${targetLabel(aia)}: ${clip(heading)}` };
       // An item row (an objective, a hypothesis, a finding) has no heading: its own words name it,
       // never its opaque id (Zadání and Návrh, workbench audit 2026-10-22).
       const words = ITEM_KINDS.has(parsed.kind) ? visibleWords(at) : "";
-      if (words) return { id: aia, label: `${KIND_WORDS[parsed.kind]}: ${label(words)}` };
+      if (words) return { id: aia, label: `${KIND_WORDS[parsed.kind]}: ${clip(words)}` };
       return { id: aia, label: targetLabel(aia) };
     }
     let m: RegExpMatchArray | null;
@@ -579,13 +598,13 @@ export function targetOfElement(el: Element | null): { id: string; label: string
     const marked = (target: string) => !!at.ownerDocument.querySelector(`[data-aia="${target}"]`);
     if ((m = id.match(/^qedit_(.+)$/)) && m[1] !== "Q" && parseAiaId(`question:${m[1]}`)) {
       if (marked(`question:${m[1]}`)) return null;
-      return { id: `question:${m[1]}`, label: `Otázka ${m[1]}: ${label(wordingOf(at, text))}` };
+      return { id: `question:${m[1]}`, label: `Otázka ${m[1]}: ${clip(wordingOf(at, text))}` };
     }
     if ((m = id.match(/^qblock_(.+)$/)) && !/^\d+$/.test(m[1]!) && parseAiaId(`section:${m[1]}`)) {
       if (marked(`section:${m[1]}`)) return null;
-      return { id: `section:${m[1]}`, label: `Oddíl: ${label(titleOf(at, m[1]!))}` };
+      return { id: `section:${m[1]}`, label: `Oddíl: ${clip(titleOf(at, m[1]!))}` };
     }
-    if ((m = id.match(/^brief-(.+)$/))) return { id: `brief:${m[1]}`, label: `Zadání: ${label(at.querySelector("h2, h3, label")?.textContent?.trim() || m[1]!)}` };
+    if ((m = id.match(/^brief-(.+)$/))) return { id: `brief:${m[1]}`, label: `Zadání: ${clip(at.querySelector("h2, h3, label")?.textContent?.trim() || m[1]!)}` };
     const plan: Record<string, { id: string; label: string }> = {
       "plan-sets": { id: "plan:sets", label: "Návrh: sledované sady" },
       "plan-comments": { id: "plan:comments", label: "Návrh: komentáře" },

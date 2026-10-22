@@ -13,6 +13,8 @@ import {
   labelWidth,
   mapLinks,
   mapObjects,
+  OBJECT_MAP_METHODS,
+  olderMethodOnly,
   originalRating,
   pairDetail,
   placeLabels,
@@ -58,6 +60,21 @@ describe("reading the stored map", () => {
     expect(readObjectMap({ ...battery, maps: edited })).toMatchObject({ ok: true, methodId: "aia-sociomap-3+e2" });
     const otherContract = { "aia-sociomap-3+e2": { ...stored, artifact: { ...map, contract_version: "2" } } };
     expect(readObjectMap({ ...battery, maps: otherContract as never })).toEqual({ ok: false, reason: "contract" });
+  });
+});
+
+describe("a run stored under an older method", () => {
+  it("is known by holding no signed-off map, whatever its maps are named", () => {
+    const stored = battery.maps!["aia-sociomap-3"];
+    const signedOff = { ...stored, artifact: { ...map, spec: { ...map.spec, methodology_version: "aia-sociomap-5", relation: { ...map.spec.relation, estimator: "baseline_corrected_pearson" } } } };
+    // An old run: aia-sociomap-3 (beside the reference map) or no object map at all.
+    expect(olderMethodOnly(battery)).toBe(true);
+    expect(olderMethodOnly({ ...battery, maps: undefined })).toBe(true);
+    // A new run's aia-sociomap-5 map, or one edited from it, is drawn.
+    expect(olderMethodOnly({ ...battery, maps: { "aia-sociomap-5": signedOff } })).toBe(false);
+    expect(olderMethodOnly({ ...battery, maps: { "aia-sociomap-5+e1": signedOff } })).toBe(false);
+    expect(OBJECT_MAP_METHODS[0]).toBe("aia-sociomap-5");
+    expect(readObjectMap({ ...battery, maps: { "aia-sociomap-5": signedOff } })).toMatchObject({ ok: true, methodId: "aia-sociomap-5" });
   });
 });
 

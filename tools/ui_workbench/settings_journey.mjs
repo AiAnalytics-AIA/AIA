@@ -81,6 +81,10 @@ try {
   await widths("access member editing"); checks.push("New member defaults to researcher; existing name/role edits persist through the audited API");
   await tab("studies");
   const studies = await get("/api/v1/studies"); const study = studies[0]; const original = await get(`/api/v1/studies/${study.study_id}`);
+  await page.setViewportSize({ width: 390, height: 1000 });
+  const offscreen = await page.locator("[data-study]:not([hidden])").evaluateAll((rows) => rows.filter((row) => { const b = row.querySelector("button")?.getBoundingClientRect(); return !b || b.right > Math.min(innerWidth, row.closest(".overflow-x-auto").getBoundingClientRect().right); }).map((row) => row.dataset.study));
+  assert.deepEqual(offscreen, [], "390: a study's Upravit is out of view");
+  await page.setViewportSize({ width: 1440, height: 1000 });
   await page.locator(`[data-study="${study.study_id}"]`).getByRole("button", { name: "Upravit", exact: true }).click();
   const card = page.locator(`[data-study-edit="${study.study_id}"]`);
   const budget = card.getByLabel("Rozpočet studie", { exact: true }); await budget.fill("20");

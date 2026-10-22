@@ -77,11 +77,10 @@ function Body({ summary, data, people, reload, onEditing, onDirty }: { summary: 
   const presetStart = (name: string): Start => ({ base: name, spec: data.presets[name] ?? {}, formulas: {}, from: name });
   const versionStart = (v: MethodVersion): Start => ({ base: v.base_preset, spec: v.spec, formulas: v.formulas, from: v.name });
   // An edit starts from what is in force (product owner, 2026-10-13): the stored version in force,
-  // else the code's newest preset, which computes what the code's preset in force computes byte for
-  // byte and declares the constants that preset keeps in code, so an edit can move them (f588045c).
+  // else the code's preset in force (not merely the first one listed).
   const editStart = (): Start => {
     const stored = data.in_force.origin === "stored" ? data.versions.find((v) => v.version_number === data.in_force.version_number) : undefined;
-    const from = stored ? versionStart(stored) : presetStart(summary.presets[0] ?? summary.in_force ?? "");
+    const from = stored ? versionStart(stored) : presetStart(summary.in_force ?? summary.presets[0] ?? "");
     return { ...from, inForce: data.in_force.name };
   };
   // The methodologists who may edit open on the editor (product owner, 2026-10-13).

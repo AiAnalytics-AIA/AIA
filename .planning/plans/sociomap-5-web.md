@@ -7,8 +7,8 @@ chunks:
   - "[x] 3. Map credibility on the map: the weakly-determined banner, the uncertainty circle, the sparse and label notes, objects not placed"
   - "[x] 4. The respondent map: Objekty | Respondenti, dots, faint dots, the density terrain, object markers, the notes below six and three objects"
   - "[x] 5. Taste segments on the respondent map: colours, legend, borderline hint"
-  - "[ ] 6. Detail on click: an object's and a respondent's detail, in the panel's content"
-  - "[ ] 7. The Word report's -5 map figure in the panel's look; the web map's PNG snapshot, with its legend"
+  - "[x] 6. Detail on click: an object's and a respondent's detail, in the panel's content"
+  - "[x] 7. The Word report's -5 map figure in the panel's look; the web map's PNG snapshot, with its legend"
 ---
 # aia-sociomap-5 in the web — the map drawn as the AIA panel draws it
 

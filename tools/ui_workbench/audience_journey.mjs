@@ -107,7 +107,7 @@ if (!region) fail("the catalogue has no region values");
 const regionSave = saved();
 await page.getByRole("checkbox", { name: new RegExp(region) }).first().check();
 await regionSave;
-const ageFrom = page.locator("fieldset", { hasText: "Věk" }).getByLabel("Od");
+const ageFrom = page.getByRole("spinbutton", { name: "Věk od" });
 await ageFrom.fill("30");
 const ageSave = saved();
 await ageFrom.blur();
@@ -119,6 +119,29 @@ await page.reload({ waitUntil: "load" });
 await text("Vybrané filtry:", "the chips after a reload");
 ok("Cílová skupina: the filters read back after a reload");
 await shot("1-filters");
+
+// 1b. The age range as two bounded steppers (input-interactions I2, audit B6), at four widths.
+const ageTo = page.getByRole("spinbutton", { name: "Věk do" });
+for (const width of [1440, 1100, 768, 390]) {
+  await page.setViewportSize({ width, height: 1000 });
+  await ageFrom.waitFor({ timeout: 30000 });
+  if (!(await ageTo.isVisible())) fail(`${width} px: the range's upper stepper is not shown`);
+  const overflow = await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth);
+  if (overflow > 0) fail(`${width} px: the page overflows by ${overflow} px`);
+  const clear = await page.getByRole("button", { name: "Bez omezení: zrušit mez Věk od" }).boundingBox();
+  if (!clear || clear.width < 24 || clear.height < 24) fail(`${width} px: "Bez omezení" is a ${clear?.width}x${clear?.height} target`);
+}
+const putsBefore = requests.filter((r) => r.method === "PUT" && r.url.endsWith("/workspace/content")).length;
+await ageTo.fill("999");
+await ageTo.blur();
+if ((await ageTo.getAttribute("aria-invalid")) !== "true") fail("an age above the population's range was not refused at the field");
+await page.waitForTimeout(2500); // the study store saves 1.8 s after a change
+if (requests.filter((r) => r.method === "PUT" && r.url.endsWith("/workspace/content")).length !== putsBefore) fail("a refused age was saved");
+if (JSON.stringify((await content()).content.audience.filters.vek) !== JSON.stringify({ min: 30 })) fail("the stored age range moved");
+await ageTo.press("Escape");
+ok("Cílová skupina: the age range is two steppers at 1440/1100/768/390 without overflow; 999 is refused at the field and not saved");
+await shot("1b-range-390");
+await page.setViewportSize({ width: 1440, height: 1100 });
 
 // 2. The preview: counted by the API, through the run's own sampler.
 const previewed = page.waitForResponse((r) => r.url().endsWith("/population/audience-preview") && r.ok(), { timeout: 120000 });
