@@ -504,6 +504,9 @@ class AIRuntimeSettings:
     #: verbal labels into its item (input-interactions 3b). The wording is provisional until
     #: the methodology owner signs it; on, the respondent prompt's identity changes.
     scale_labels_in_prompt: bool = False
+    #: ``AIA_AI_FIELDWORK_CHECKPOINT`` (off by default, RQC0): fieldwork keeps each answered
+    #: respondent block and replays it on a resumed attempt or a retried run.
+    fieldwork_checkpoint: bool = False
     #: ``AIA_AI_POPULATION_PERSONAS_ENABLED`` (off by default): fieldwork can serve a run that
     #: pinned respondents drawn from its population (plan panel-grounded-respondents 5d). On,
     #: ``AIA_POPULATION_ASSET_ROOT`` is required: the directory the population is read from.
@@ -672,6 +675,7 @@ class AIRuntimeSettings:
             else 0,
             step_events=_flag(env, "AIA_AI_STEP_EVENTS", required=False),
             scale_labels_in_prompt=_flag(env, "AIA_AI_SCALE_LABELS_IN_PROMPT", required=False),
+            fieldwork_checkpoint=_flag(env, "AIA_AI_FIELDWORK_CHECKPOINT", required=False),
             population_personas_enabled=_flag(
                 env, "AIA_AI_POPULATION_PERSONAS_ENABLED", required=False
             ),
@@ -1027,6 +1031,7 @@ def build_ai_fieldwork(
             material_approvals=settings.material_approvals,
             scale_labels_in_prompt=settings.scale_labels_in_prompt,
             class_gates=settings.data_class_gates,
+            checkpoint=settings.fieldwork_checkpoint,
         ),
         build=build,
     )

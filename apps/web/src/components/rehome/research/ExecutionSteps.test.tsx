@@ -11,8 +11,9 @@ import { t, tv } from "@/i18n/t";
 import type { ResearchRun } from "@/lib/api";
 import { AnalysisInspect } from "./AnalysisInspect";
 import { measureAnchor } from "@/lib/result-reading";
+import { parseAiaId } from "@/lib/workbench-artifacts";
 import { CONFLICT_MESSAGE } from "@/research/store";
-import { RunResults } from "./ExecutionSteps";
+import { RunResults, fixStep } from "./ExecutionSteps";
 import { StudyFrameProvider } from "./frame";
 import { ResearchScreen, ResearchSession } from "./ResearchScreen";
 import { CONTENT_PATH, workspaceFixture } from "./test-workspace";
@@ -160,6 +161,23 @@ afterEach(() => {
   // Every test here also proves the screen reached nothing of the 18.6.6 unit (ADR 0018).
   expect(calls.filter((c) => !c.url.startsWith("/api/v1/") && c.url !== "/config").map((c) => c.url)).toEqual([]);
   sessionStorage.clear();
+});
+
+describe("fixStep", () => {
+  it("sends each readiness check to the stage where it is fixed", () => {
+    // The ids the domain's readiness emits (research_design.assess_readiness, support_forecast,
+    // research_trace), a prefixed one standing for its kind; n and its support live on Dimenze,
+    // the audience on its own stage.
+    const where = {
+      sample_size: "persona", support_forecast: "persona", sociomap_support: "persona", dimensions: "persona",
+      audience: "audience",
+      questionnaire: "questionnaire", conditional_questions: "questionnaire", battery_familiarity: "questionnaire",
+      sociomap_input: "questionnaire", research_question_coverage: "questionnaire", "compile:invalid_scale:q1": "questionnaire", "battery_size:b1": "questionnaire",
+    };
+    for (const [id, step] of Object.entries(where)) expect([id, fixStep(id)]).toEqual([id, step]);
+    // An id that names an Object.prototype member is an unknown check, never a function.
+    expect(fixStep("constructor")).toBe("questionnaire");
+  });
 });
 
 describe("Run", () => {
@@ -1118,7 +1136,7 @@ describe("Progress", () => {
     expect(within(card).getByText(t(`${R}.unrecorded`))).toBeTruthy();
   });
 
-  it("keeps both sides of a mismatch in view, the stored origin code beside the pinned source (artifact-fieldwork FLD7)", async () => {
+  it("keeps both sides of a mismatch in view, the stored origin code beside the pinned source, pointable by the Lead (artifact-fieldwork FLD7)", async () => {
     api(listed(run({ ...COMPLETED, persona_source: "panel" })));
     render(<ResearchScreen step="progress" frame={TEST_FRAME} />);
     const R = "research.exec.respondents.receipt";
@@ -1127,6 +1145,10 @@ describe("Progress", () => {
     // Named, never resolved: the pinned panel, what the data say, and the code as stored.
     expect(value(t(`${R}.source`))).toBe(`${t("research.exec.respondents.panel")} · ${t(`${R}.observed.SIMULATED`)}`);
     expect(value(t(`${R}.origin`))).toBe("SYNTHETIC_FIXTURE");
+    // Pointable by the Lead: the mark parses as the fieldwork stage's receipt (#618).
+    const mark = card.closest("[data-aia]")?.getAttribute("data-aia");
+    expect(mark).toBe("receipt:respondents");
+    expect(parseAiaId(mark!)).toEqual({ kind: "receipt", id: "respondents", stage: "fieldwork" });
   });
 
   it("says the data's origin is not yet stored while fieldwork has not stored it", async () => {
@@ -1517,6 +1539,17 @@ describe("Progress", () => {
 });
 
 describe("Results", () => {
+  it("shows who answered without the receipt's Lead mark: Výsledky's row names measures alone (#618)", async () => {
+    api({ ...listed(COMPLETED),
+      "GET /api/v1/studies/STU-1/research/runs/RUN-1/artifacts/ART-4": () => AGGREGATE,
+      "GET /api/v1/studies/STU-1/research/runs/RUN-1/artifacts/ART-5": () => SOCIOMAP,
+    });
+    render(<ResearchScreen step="results" frame={TEST_FRAME} />);
+    const card = (await screen.findByRole("heading", { name: t("research.exec.respondents.receipt.title") })).closest("section") as HTMLElement;
+    expect(card.closest("[data-aia]")).toBeNull();
+    expect(document.querySelector('[data-aia^="receipt:"]')).toBeNull();
+  });
+
   it("explains a failed run load and retries instead of leaving Results loading forever", async () => {
     let failed = true;
     api({ ...listed(COMPLETED),
@@ -1547,6 +1580,8 @@ describe("Results", () => {
     fireEvent.click(screen.getByRole("button", { name: t("research.retry") }));
     expect(await screen.findByText(t("research.exec.noResults"))).toBeTruthy();
     expect(screen.queryByText("Výsledky se nepodařilo načíst.")).toBeNull();
+    // No run, so no word about "this run's" report (workbench audit, 2026-10-22).
+    expect(screen.queryByText(t("research.exec.results.reportNotInAia"))).toBeNull();
   });
 
   it("keeps the neutral analysis note while no module has stored an outcome, never 'unknown origin'", async () => {

@@ -127,3 +127,10 @@ they are, and how they relate to descriptor segments, is the methodology owner's
 3 waits on it. 10 does not wait: without SEGMENT-level evidence the Segments module has no supported
 finding, and MVPQ-04 then blocks **every** report, not only a study with segments. 9 names `-5`'s
 fields; its figures are `signed-off-sociomap-method#9`'s.
+
+### Ordering (the coordinator's census, 2026-10-21, OI-192)
+
+`segment-maps-and-drilldown#10` (segment evidence) lands before `evidence-integrity#9b` (the
+refusal while a module has no supported finding) and `artifact-chain-to-draft-report#CHN10`. Once
+9b lands, the Segments chapter (ch-5) has no admitted producer without 10, so no run could reach a
+draft report.
