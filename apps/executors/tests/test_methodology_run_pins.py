@@ -563,6 +563,7 @@ def test_a_retry_keeps_the_stored_versions_its_pins_came_from(world: Any) -> Non
             version = repo.propose(module, base_preset=base, spec=spec, formulas={}, note="test")
             repo.activate(module, version.version_number, reason="test")
         session.commit()
+    _limits(world, sample_size__min=10)
     run_id = _start(world)
     with world.sessions() as session:
         runs = ResearchRuns(session, world.lead_scope(session))
@@ -575,6 +576,7 @@ def test_a_retry_keeps_the_stored_versions_its_pins_came_from(world: Any) -> Non
         "support_methodology",
         "aggregation_methodology",
         "response_methodology",
+        "readiness_methodology",
     ):
         assert retry[key] == original[key], key
     assert run_methods(retry) == {
@@ -582,6 +584,7 @@ def test_a_retry_keeps_the_stored_versions_its_pins_came_from(world: Any) -> Non
         "support": RunMethod("aia-support-1+e1", stored=True),
         "aggregation": RunMethod("aia-aggregate-1+e1", stored=True),
         "response": RunMethod("aia-response-1+e1", stored=True),
+        "readiness": RunMethod("aia-readiness-1+e1", stored=True),
     }
 
 

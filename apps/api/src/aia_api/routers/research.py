@@ -384,6 +384,15 @@ class ResearchRunSpend(BaseModel):
     uncertain_calls: int
 
 
+class ResearchRunCeiling(BaseModel):
+    """The most a run could cost when it started, as its start worked it out (artifact-fieldwork
+    FLD4d): an upper bound, never a forecast."""
+
+    #: ``None``: it could not be worked out, and ``unknown`` says why.
+    usd: float | None
+    unknown: str | None = None
+
+
 class ResearchRunPopulation(BaseModel):
     """The population a run recorded (population-operations P3), and whether anything read it.
 
@@ -440,6 +449,8 @@ class ResearchRunMethodology(BaseModel):
     aggregation: ResearchRunMethod
     #: How AI respondents' answers were drawn (plan ``methodology-tab`` R1d).
     response: ResearchRunMethod
+    #: The readiness limits the run was started under (plan ``methodology-tab`` V1a).
+    readiness: ResearchRunMethod
     #: ``True``: the response process is not 18.6.6's; ``None``: its pin cannot be read.
     response_deviates: bool | None
 
@@ -512,6 +523,8 @@ class ResearchRunResponse(BaseModel):
     #: Only on ``GET …/research/runs/{run_id}``, with ``VIEW_COSTS``; ``None`` on a listed run
     #: and on an action's answer (start, cancel, retry, budget), which is not a cost read.
     spend: ResearchRunSpend | None = None
+    #: With ``VIEW_COSTS``; ``None`` without it, or for a run started before runs recorded one.
+    cost_ceiling: ResearchRunCeiling | None = None
     #: The population the run recorded; ``None``: it recorded none (no LIVE when it started).
     population: ResearchRunPopulation | None = None
     #: The Sociomap, support and aggregation methods the run pinned when it started.
@@ -1152,6 +1165,11 @@ def _run(
         steps=steps,
         artifact_ids=[s.artifact_id for s in steps if s.artifact_id],
         actual_cost_usd=cost,
+        cost_ceiling=(
+            ResearchRunCeiling.model_validate(meta["cost_ceiling"])
+            if scope.has(Permission.VIEW_COSTS) and isinstance(meta.get("cost_ceiling"), dict)
+            else None
+        ),
         population=(
             ResearchRunPopulation.model_validate(meta["population"])
             if isinstance(meta.get("population"), dict)

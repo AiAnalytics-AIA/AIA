@@ -713,8 +713,9 @@ class ResearchRuns:
         :class:`~aia_core.infrastructure.study_design_repository.DesignRevisionNotFound`
         for a revision that is not this Study's.
 
-        When the study has a spend limit (``Study.spend_confirm_usd``) and this would create
-        a run, its cost ceiling is worked out here, never taken from the request. A ceiling
+        When this would create a run, its cost ceiling is worked out here, never taken from the
+        request, and recorded in the run's metadata as ``cost_ceiling`` (artifact-fieldwork
+        FLD4d). When the study has a spend limit (``Study.spend_confirm_usd``), a ceiling
         at or above the limit needs ``confirm_cost_usd`` to cover it
         (:class:`CostConfirmationRequired` otherwise) and the yes is recorded in the approval
         ledger with the run. A ceiling that cannot be worked out is not let by
@@ -893,8 +894,11 @@ class ResearchRuns:
             else:
                 answer_note = {**answerability_note(trace, answer), "enforced": False}
         confirmation: tuple[float, float] | None = None
+        # A run this start would create records the ceiling it started under (artifact-fieldwork
+        # FLD4d); a run it finds keeps what it recorded.
+        ceiling: RunCostCeiling | None = None
         limit = self.spend_limit()
-        if limit is not None and self._workflows().find_run_by_idempotency_key(key) is None:
+        if not exists:
             assert _spec is not None  # a ready design compiles
             ceiling = self.cost_ceiling(
                 _spec,
@@ -904,6 +908,7 @@ class ResearchRuns:
                 fieldwork_frozen=frozen_dataset is not None,
                 analysis_modules=frozen_dataset.modules_asked if frozen_dataset else None,
             )
+        if limit is not None and ceiling is not None:
             # The confirmation threshold's one rule (domain/money.py; ADR 0019 gate 2).
             verdict = threshold_verdict(ceiling.total_usd, limit, confirm_cost_usd)
             if verdict is ThresholdVerdict.CEILING_UNKNOWN:
@@ -942,6 +947,18 @@ class ResearchRuns:
                 **({"retry_of": retry_of} if retry_of else {}),
                 **({"analysis_retry": frozen_dataset.note()} if frozen_dataset else {}),
                 "persona_source": persona_source.value,
+                **(
+                    {
+                        "cost_ceiling": {
+                            "usd": ceiling.total_usd,
+                            "unknown": (
+                                ceiling.unknown.value if ceiling.unknown is not None else None
+                            ),
+                        }
+                    }
+                    if ceiling is not None
+                    else {}
+                ),
                 **(
                     {"population": _population_note(population, read_by_fieldwork=panel)}
                     if population
