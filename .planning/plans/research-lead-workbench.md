@@ -1623,3 +1623,10 @@ ran outside the frame's one order (D21), and a second drawer could open beside t
     drawer…".
   - `Workbench.layout.test.tsx` "draws the body the opening screen gave…".
   - Both fail without the change.
+- **Review of #689: switching documents closes the old one's claims** (`fix/report-kind-closes-drawer`).
+  The view's switch between the internal and client documents closed only its own stack, so the
+  workbench's drawer kept showing the other document's claim. `ItemInspectorApi.closeWhere(prefix)`
+  drops the entries whose id starts with it, shutting the drawer when none is left, and `setKind`
+  calls it with `report:ref:<old kind>:`. Tests: `ReportDocumentView.test.tsx` "inside the workbench
+  closes the old document's claims…" and `Workbench.layout.test.tsx` "drops the entries a screen
+  says stopped being true…"; both fail without the change.

@@ -706,10 +706,11 @@ export function RunStep() {
     };
   }, [frame.studyId, frame.canEdit, store]);
 
-  const rereadReadiness = async (personaSource = prepared.kind === "ready" ? prepared.readiness.persona_source : undefined) => {
+  const rereadReadiness = async (personaSource = prepared.kind === "ready" ? prepared.readiness.persona_source : undefined, child = childId) => {
     if (prepared.kind !== "ready") return;
     try {
-      const readiness = await research.readiness(frame.studyId, prepared.readiness.design_revision_id, personaSource);
+      // The child the run starts over too: readiness forecasts the population the start draws from.
+      const readiness = await research.readiness(frame.studyId, prepared.readiness.design_revision_id, personaSource, child ?? undefined);
       setPrepared({ ...prepared, readiness });
     } catch (e) {
       setStartError(message(e));
@@ -719,6 +720,12 @@ export function RunStep() {
   const chooseSource = async (source: string) => {
     setChoosing(true);
     await rereadReadiness(source);
+    setChoosing(false);
+  };
+  const chooseChild = async (child: string | null) => {
+    setChildId(child);
+    setChoosing(true);
+    await rereadReadiness(undefined, child);
     setChoosing(false);
   };
 
@@ -856,7 +863,7 @@ export function RunStep() {
               disabled={!frame.canEdit || starting || choosing}
             />
           ) : null}
-          {children.length ? <PopulationChoice choices={children} value={childId} onChange={setChildId} disabled={!frame.canEdit || starting} /> : null}
+          {children.length ? <PopulationChoice choices={children} value={childId} onChange={chooseChild} disabled={!frame.canEdit || starting} /> : null}
           {prepared.readiness.fieldwork_source === "ai_runtime" ? (
             <p role="note" className="rounded-sm border border-status-you-ink/40 bg-status-you-wash p-3 text-sm">{t("research.exec.aiRuntimeNotice")}</p>
           ) : (

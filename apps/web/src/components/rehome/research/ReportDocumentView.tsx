@@ -101,11 +101,16 @@ export function ReportDocumentView({ run }: { run: ResearchRun }) {
   const kind: Kind = offersClient ? chosen : "internal";
   const { loaded, prepare } = useReportDocument(frame.studyId, run, kind);
   const [stack, setStack] = useState<InspectorStack>(() => emptyStack("report"));
-  // A claim belongs to one document's ledger: switching closes it.
-  const setKind = (k: Kind) => { setChosen(k); setStack(closeStack); };
   // Inside the workbench a claim opens in its one item drawer, under the frame's Escape order;
   // outside it (and for a ref the target grammar refuses) in this view's own.
   const inspector = useItemInspector();
+  // A claim belongs to one document's ledger: switching closes it, in this view's drawer and in
+  // the workbench's (the old document's entries, review of #689).
+  const setKind = (k: Kind) => {
+    if (k !== kind) inspector?.closeWhere(`report:ref:${kind}:`);
+    setChosen(k);
+    setStack(closeStack);
+  };
   const openOwn = useCallback((ref: string) => setStack((s) => openEntry(s, { id: ref, title: `Tvrzení ${ref}`, sub: "Číslo ve zprávě a jeho evidence" })), []);
   const back = useCallback(() => setStack(backEntry), []);
   const close = useCallback(() => setStack(closeStack), []);

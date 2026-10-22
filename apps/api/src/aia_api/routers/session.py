@@ -66,6 +66,10 @@ def _local_path(uri: str | None) -> str:
     """The forwarded URI if it is a path on this origin, else ``/`` (no open redirect)."""
     if not uri or not uri.startswith("/") or uri.startswith("//") or "\\" in uri:
         return "/"
+    # A browser drops tab, CR and LF while it parses a URL ("/<tab>/evil.example" is
+    # //evil.example), and no control character belongs in a path the gate sends on.
+    if any(ord(c) < 0x20 or ord(c) == 0x7F for c in uri):
+        return "/"
     return uri
 
 

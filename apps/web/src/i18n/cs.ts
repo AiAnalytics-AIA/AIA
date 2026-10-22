@@ -1845,6 +1845,7 @@ export const cs = {
       objectivesUnreadable: "Cíle v pracovní kopii nelze přečíst; upravte je v Návrhu.",
       objectiveLabel: "Cíl {n}",
       objectiveAdd: "Přidat cíl",
+      objectiveEmpty: "Napište cíl.",
       objectiveRemoveAria: "Odebrat cíl {n}",
       objectiveRemoved: "Cíl „{text}“ odebrán",
       attachmentRemoved: "Podklad „{name}“ odebrán",
@@ -2446,6 +2447,7 @@ export const cs = {
       failedTitle: "AI krok se nedokončil",
       requestFailedTitle: "Požadavek se nepodařilo uložit",
       next: "Další · kontrola",
+      nextStage: "Další · {stage}",
       // Studio v3 (PersonaStep).
       asideLabel: "Výběr dimenzí a vzorek",
       chosenTitle: "Vybrané dimenze",

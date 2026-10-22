@@ -907,7 +907,10 @@ describe("Run: what a run can cost (5b.2)", () => {
     expect((within(choice).getByRole("radio", { name: t("research.exec.population.live") }) as HTMLInputElement).checked).toBe(true);
 
     fireEvent.click(within(choice).getAllByRole("radio")[1]);
-    fireEvent.click(await screen.findByRole("button", { name: t("research.exec.start") }));
+    // The checks are read again over the child, so readiness and the start forecast one population.
+    await waitFor(() => expect(called("GET", "/api/v1/studies/STU-1/research/readiness").at(-1)!.url).toContain("population_version_id=ochota"));
+    await waitFor(() => expect((screen.getByRole("button", { name: t("research.exec.start") }) as HTMLButtonElement).disabled).toBe(false));
+    fireEvent.click(screen.getByRole("button", { name: t("research.exec.start") }));
     await waitFor(() => expect(called("POST", RUNS)).toHaveLength(1));
     expect(called("POST", RUNS)[0].body).toEqual({ design_revision_id: "REV-a1", population_version_id: "ochota" });
   });
