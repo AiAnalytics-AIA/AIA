@@ -126,6 +126,7 @@ export function PlanNarrative({ disabled = false, onQuote }: { disabled?: boolea
           {disabled ? null : (
             <InlineCreateRow
               label={t(`research.plan.narrative.add.${list}`)}
+              emptyWords={t(`research.plan.narrative.addEmpty.${list}`)}
               existing={n[list]}
               maxLength={ITEM_MAX}
               disabled={addProblem(n, list) !== null}

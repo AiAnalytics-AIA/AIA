@@ -680,7 +680,7 @@ function Outline() {
             options={([["choice", "addChoice"], ["scale", "addScale"], ["open", "addOpen"]] as const).map(([key, label]) => ({ key, label: t(`research.questionnaire.${label}`) }))}
             onChange={setKind}
           />
-          <InlineCreateRow label={t("research.questionnaire.inlineAdd.question")} maxLength={WORDING_MAX} onCreate={quickAdd} />
+          <InlineCreateRow label={t("research.questionnaire.inlineAdd.question")} emptyWords={t("research.questionnaire.inlineAdd.empty")} maxLength={WORDING_MAX} onCreate={quickAdd} />
           <p className="text-xs text-ink-muted">{t("research.questionnaire.quickHelp")}</p>
         </div>
         <div className="flex flex-col gap-1">
@@ -819,6 +819,7 @@ function QuestionBlock({ n, firstQ, sec, si, update }: { n: number; firstQ: numb
         <div>
           <InlineCreateRow
             label={t("research.questionnaire.addQuestionV3")}
+            emptyWords={t("research.questionnaire.inlineAdd.empty")}
             maxLength={WORDING_MAX}
             onCreate={(text) => {
               let made = false;
