@@ -322,6 +322,16 @@ describe("Zadání", () => {
     expect(document.querySelectorAll("[data-aia^='objective:']")).toHaveLength(0);
   });
 
+  it("refuses a repeated objective in the words Návrh uses for the same list", async () => {
+    unitStub({ title: "Studie", goal: "Chceme zjistit, jak lidé vnímají značku.", research_plan: { objectives: ["Změřit zájem"] } });
+    render(<ResearchScreen step="brief" frame={TEST_FRAME} />);
+    const section = within(await screen.findByRole("region", { name: "Cíle" }));
+    fireEvent.click(section.getByRole("button", { name: "Přidat cíl" }));
+    const row = section.getByRole("textbox", { name: "Přidat cíl" });
+    fireEvent.change(row, { target: { value: "změřit  ZÁJEM" } });
+    expect(document.getElementById(row.getAttribute("aria-describedby") ?? "")?.textContent).toBe("Tato položka už v seznamu je.");
+  });
+
   it("says an empty new objective as a goal to write, not a name (audit)", async () => {
     unitStub({ title: "Studie", goal: "Chceme zjistit, jak lidé vnímají značku." });
     render(<ResearchScreen step="brief" frame={TEST_FRAME} />);

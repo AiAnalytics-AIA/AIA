@@ -18,6 +18,7 @@ import { workspace } from "@/lib/api";
 import { saveBlob } from "@/lib/download";
 import { fileProblem, uploadProblem } from "@/research/brief-upload";
 import { type BriefMaterials, classLabel, classOf } from "@/lib/material-class";
+import { nameKey } from "@/lib/name-input";
 import { briefElementId, contextField, materialAia } from "@/lib/artifacts/brief";
 import { aiaId } from "@/lib/workbench-artifacts";
 import { OBJECTIVE_MAX, addObjective, objectivesEditable, objectivesOf, removeObjective, restoreObjective, setObjective } from "@/research/brief-objectives";
@@ -323,7 +324,8 @@ function Objectives({ undo }: { undo: Undo }) {
           label={t("research.brief.objectiveAdd")}
           emptyWords={t("research.brief.objectiveEmpty")}
           maxLength={OBJECTIVE_MAX}
-          existing={items.map((o) => o.text)}
+          // Návrh's rule and words for the same list (plan-narrative itemProblem), not a name's.
+          validate={(v) => (items.some((o) => nameKey(o.text) === nameKey(v)) ? t("research.plan.narrative.duplicate") : null)}
           onCreate={(text) => store.update((d) => addObjective(d, text), { reason: "brief_objective_add" })}
         />
       ) : null}
