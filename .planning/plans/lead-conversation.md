@@ -141,6 +141,9 @@ in the compact drawer.
   frozen context does not hold (a turn before LC3's digest, Design Research off) is
   `recorded: false` with unknown counts (`null`), never an empty layer. A turn whose step holds no
   context is `recorded: false` as a whole.
+- **A count only where one was counted.** The digest's layer says what its `left_out` froze.
+  Runs and Lead notes keep the newest and drop the rest uncounted (F4), so their
+  `omitted_count` is `null`, read "Starší vynechané se nepočítají", never 0 (review on #772).
 - **No class in the response.** The class a turn was sent as is not the browser's (`_public`);
   LC6 shows it.
 - **Routes:**

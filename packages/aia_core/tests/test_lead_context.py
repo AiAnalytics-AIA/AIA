@@ -362,3 +362,21 @@ def test_omitted_ids_page_past_the_manifests_fifty() -> None:
     assert [o["id"] for o in page] == omitted_ids[MANIFEST_IDS_MAX:]
     assert {o["reason"] for o in page} == {"over_budget"}
     assert omitted_page(context, "memory") == ([], 0)
+
+
+def test_a_layer_counts_only_what_it_counted() -> None:
+    # The digest froze what it left out: the manifest says that number. Runs and notes past
+    # their bound are dropped without a count: unknown, never a 0 nobody counted.
+    decided = [
+        DigestEntry("edit", f"question:q{i}", "accept", f"T-{i}", ledger_id=i)
+        for i in range(1, 400)
+    ]
+    digest = decision_digest(decided, [])
+    assert digest["left_out"]["decisions"] > 0
+    view = manifest_view(_context(memory=digest))
+    memory = _row(view, "memory")
+    assert memory["omitted_count"] == digest["left_out"]["decisions"]
+    assert memory["included_count"] == len(digest["latest"])
+    assert _row(view, "runs")["omitted_count"] is None
+    assert _row(view, "lead")["omitted_count"] is None
+    assert _row(view, "knowledge")["omitted_count"] == 0

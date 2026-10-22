@@ -146,23 +146,35 @@ PART_LAYERS: Final[Mapping[str, str]] = {
 }
 
 
-def _ids(entry: Mapping[str, Any]) -> tuple[list[str], list[dict[str, str]], int]:
+def _ids(entry: Mapping[str, Any]) -> tuple[list[str], list[dict[str, str]], int | None]:
     """A layer's included ids, its omitted ids with their reason, and the count of what it
-    left out that it cannot name."""
+    left out that it cannot name: ``None`` where the layer drops without counting (the newest
+    runs and notes are kept, the rest never counted; finding F4), never a 0 nobody counted."""
     name = entry["layer"]
     if name == "lead":
-        return [str(n["memory_id"]) for n in entry.get("notes") or ()], [], 0
+        return [str(n["memory_id"]) for n in entry.get("notes") or ()], [], None
     if name == "knowledge":
         included = [str(k["item_id"]) for k in entry.get("items") or ()]
         omitted = [{"id": str(i), "reason": "over_budget"} for i in entry.get("omitted_ids") or ()]
         return included, omitted, 0
     if name == "runs":
-        return [str(r["run_id"]) for r in entry.get("runs") or ()], [], 0
+        return [str(r["run_id"]) for r in entry.get("runs") or ()], [], None
     if name == "view":
         focus = entry.get("focus")
         if isinstance(focus, Mapping) and focus.get("id"):
             return [str(focus["id"])], [], 0
         return [], [], 0
+    if name == "memory":
+        # The digest's lines by their ledger row, or a waiting proposal by its turn and index;
+        # what it left out is the count it froze (lead_digest's left_out).
+        digest = entry.get("digest") or {}
+        lines = [*digest.get("named", ()), *digest.get("undecided", ()), *digest.get("latest", ())]
+        left = digest.get("left_out") or {}
+        return (
+            [str(x["ledger"]) if "ledger" in x else f"{x['turn']}#{x.get('index')}" for x in lines],
+            [],
+            int(left.get("decisions") or 0) + int(left.get("proposals") or 0),
+        )
     if name == "conversation":
         # Earlier turns reach the context without their ids; their count is what is known.
         return [], [], int(entry.get("omitted_turns") or 0)
@@ -215,7 +227,7 @@ def context_manifest(
             "included": included[:MANIFEST_IDS_MAX],
             "included_count": len(included),
             "omitted": omitted[:MANIFEST_IDS_MAX],
-            "omitted_count": len(omitted) + unnamed,
+            "omitted_count": None if unnamed is None else len(omitted) + unnamed,
         }
         if name in classes:
             data_class, sources = classes[name]

@@ -37,6 +37,7 @@ const ITEMS: Readonly<Record<string, readonly [string, string, string]>> = {
   lead: ["poznámka", "poznámky", "poznámek"],
   knowledge: ["znalost", "znalosti", "znalostí"],
   runs: ["běh", "běhy", "běhů"],
+  memory: ["záznam", "záznamy", "záznamů"],
 };
 
 const REASON_WORDS: Readonly<Record<string, string>> = {
@@ -75,6 +76,9 @@ export function layerLines(l: ManifestLayer): string[] {
     lines.push(l.layer === "conversation"
       ? `Starší tahy vynechány: ${l.omitted_count}`
       : `Vynecháno: ${l.omitted_count}`);
+  } else if (l.omitted_count === null || l.omitted_count === undefined) {
+    // The layer keeps its newest and drops the rest uncounted: unknown, never "nothing left out".
+    lines.push("Starší vynechané se nepočítají");
   }
   return lines;
 }

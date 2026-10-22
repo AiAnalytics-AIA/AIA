@@ -14,8 +14,13 @@ describe("lead manifest in words", () => {
   it("reads a layer's bounded part against its bound and counts its items in Czech", () => {
     expect(layerLines(layer({ included_count: 3, omitted_count: 2 }))).toEqual(["2 kB z 20 kB", "Viděl 3 znalosti", "Vynecháno: 2"]);
     expect(layerLines(layer({ layer: "lead", included_count: 5 }))[1]).toBe("Viděl 5 poznámek");
+    expect(layerLines(layer({ layer: "memory", included_count: 2, omitted_count: 37 })).slice(1)).toEqual(["Viděl 2 záznamy", "Vynecháno: 37"]);
     expect(layerLines(layer({ layer: "conversation", bounded_bytes: null, ceiling_bytes: null, bytes: 1024, included_count: 0, omitted_count: 4 })))
       .toEqual(["1 kB", "Starší tahy vynechány: 4"]);
+  });
+
+  it("says a layer that drops without counting left out an unknown number, never none", () => {
+    expect(layerLines(layer({ layer: "runs", included_count: 5, omitted_count: null })).slice(1)).toEqual(["Viděl 5 běhů", "Starší vynechané se nepočítají"]);
   });
 
   it("pages left-out ids only where the layer named more than it lists", () => {
