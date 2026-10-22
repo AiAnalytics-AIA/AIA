@@ -101,7 +101,7 @@ describe("the stored draft in the pane", () => {
   it("inside the workbench opens a claim in the workbench's one item drawer, with its evidence, and draws none of its own", async () => {
     vi.mocked(research.reportDocument).mockResolvedValue(STORED);
     const opened: { id: string; body?: () => ReactNode }[] = [];
-    const inspector = { open: (entry: { id: string }, body?: () => ReactNode) => { opened.push({ id: entry.id, body }); return true; } };
+    const inspector = { open: (entry: { id: string }, body?: () => ReactNode) => { opened.push({ id: entry.id, body }); return true; }, closeWhere: vi.fn() };
     const { container } = render(
       <StudyFrameProvider frame={TEST_FRAME}><ItemInspectorContext.Provider value={inspector}><ReportDocumentView run={run("SUCCEEDED")} /></ItemInspectorContext.Provider></StudyFrameProvider>,
     );
@@ -212,6 +212,24 @@ describe("the client report, read here before it is approved (RD3)", () => {
     await new Promise((r) => setTimeout(r, 0));
     expect(container.querySelector("[data-report-docbar]")!.textContent).toContain("ART-docx");
     expect(container.querySelector("[data-report-document]")!.getAttribute("data-report-document")).toBe("ready");
+  });
+
+  it("inside the workbench closes the old document's claims in the frame's drawer when the person switches (review of #689)", async () => {
+    vi.mocked(research.reportDocument).mockResolvedValue(STORED);
+    vi.mocked(research.clientReportDocument).mockResolvedValue(CLIENT);
+    const inspector = { open: vi.fn(() => true), closeWhere: vi.fn() };
+    render(
+      <StudyFrameProvider frame={TEST_FRAME}><ItemInspectorContext.Provider value={inspector}><ReportDocumentView run={modelled()} /></ItemInspectorContext.Provider></StudyFrameProvider>,
+    );
+    await screen.findByRole("article", { name: "Koncept zprávy" });
+    fireEvent.click(screen.getByRole("button", { name: "Klientská zpráva" }));
+    expect(inspector.closeWhere).toHaveBeenCalledWith("report:ref:internal:");
+    await waitFor(() => expect(document.querySelector("[data-report-docbar]")?.textContent).toContain("ART-client"));
+    fireEvent.click(screen.getByRole("button", { name: "Interní zpráva" }));
+    expect(inspector.closeWhere).toHaveBeenLastCalledWith("report:ref:client:");
+    // The document already shown closes nothing.
+    fireEvent.click(screen.getByRole("button", { name: "Interní zpráva" }));
+    expect(inspector.closeWhere).toHaveBeenCalledTimes(2);
   });
 
   it("keeps the switch when the client report may not be read", async () => {
