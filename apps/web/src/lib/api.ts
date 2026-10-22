@@ -790,6 +790,21 @@ export type AudiencePreview = {
   seed: number;
 };
 
+/** A materialize run of a study (`GET …/population/materializations`, P4d4), as the API reads it. */
+export type Materialization = {
+  run_id: string;
+  status: string;
+  created_at: string;
+  finished_at: string | null;
+  dimension_id: string | null;
+  /** null when the run recorded none: its values then cannot be read as a share or a scale. */
+  kind: PopulationMaterialized["kind"] | null;
+  step_status: string | null;
+  waiting_reason: string | null;
+  refusal_reason: string | null;
+  child: { version_id: string; label: string; target: number; achieved: number; target_met: boolean } | null;
+};
+
 export const population = {
   registry: () => request<PopulationRegistry>("GET", "/api/v1/population"),
   characteristics: (versionId: string) =>
@@ -797,6 +812,9 @@ export const population = {
   audienceCatalogue: () => request<AudienceCatalogue>("GET", "/api/v1/population/audience-catalogue"),
   audiencePreview: (filters: Record<string, unknown>, n: number | null) =>
     request<AudiencePreview>("POST", "/api/v1/population/audience-preview", { filters, n }),
+  /** A study's materialize runs, newest first (the route's most, 100): the client's own dimensions made from it. */
+  materializations: (studyId: string) =>
+    request<{ items: Materialization[] }>("GET", `${studyPath(studyId)}/population/materializations?limit=100`),
 };
 
 export const workspace = {
