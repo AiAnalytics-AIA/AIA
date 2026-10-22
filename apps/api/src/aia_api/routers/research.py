@@ -582,6 +582,18 @@ class SampleSizeRange(BaseModel):
     max: int
 
 
+class TrackedSetRange(BaseModel):
+    """How many objects one tracked set may hold: outside ``min``-``max`` the design does not
+    compile (battery_size); outside the recommended range readiness warns."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    min: int
+    max: int
+    recommended_min: int
+    recommended_max: int
+
+
 class ResearchLimitsResponse(BaseModel):
     """The readiness limits in force for the Study (plan ``run-qc-and-checkpoint`` RQC9).
 
@@ -595,6 +607,7 @@ class ResearchLimitsResponse(BaseModel):
     methodology_version: str
     version: int | None
     sample_size: SampleSizeRange
+    tracked_set: TrackedSetRange
 
 
 class QuotaCellResponse(BaseModel):
@@ -1228,7 +1241,7 @@ def _started(runs: ResearchRuns, started: StartedRun, response: Response) -> Res
 @router.get(
     "/research/limits",
     response_model=ResearchLimitsResponse,
-    summary="The readiness limits in force: the valid sample size",
+    summary="The readiness limits in force: the valid sample size and a tracked set's size",
 )
 def research_limits(scope: StudyScopeDep, session: SessionDep) -> ResearchLimitsResponse:
     """The limits a run start of this Study checks today, read from the organization's
@@ -1238,6 +1251,7 @@ def research_limits(scope: StudyScopeDep, session: SessionDep) -> ResearchLimits
         methodology_version=limits.methodology_version,
         version=None if stored is None else int(stored["version"]),
         sample_size=SampleSizeRange(min=limits.sample_size.min, max=limits.sample_size.max),
+        tracked_set=TrackedSetRange(**limits.tracked_set.model_dump()),
     )
 
 

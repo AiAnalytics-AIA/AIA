@@ -17,14 +17,19 @@ const SECTIONS = [
 ];
 
 let saves: SavedBody[] = [];
-function stub(sections: unknown[] = SECTIONS) {
+/** GET …/research/limits as a stored methodology answers it; unset, the route is not found. */
+type TrackedSetLimits = { min: number; max: number; recommended_min: number; recommended_max: number };
+function stub(sections: unknown[] = SECTIONS, trackedSet?: TrackedSetLimits) {
   const ws = workspaceFixture({ goal: "G", sections, ui_state: { questionnaire_path: "manual" } }, { analysis: null });
   saves = ws.saves;
   const native = nativeAgentFixture(() => ({ project: {}, proposal: {} }), {}, ws.write);
   vi.stubGlobal("fetch", vi.fn(async (url: RequestInfo | URL, init?: RequestInit) => {
     const path = String(url).split("?")[0];
     const body = init?.body ? JSON.parse(String(init.body)) : null;
-    const answer = native(path, init?.method ?? "GET", body) ?? ws.answer(path, init?.method ?? "GET", body);
+    const limits = trackedSet && path === "/api/v1/studies/STU-1/research/limits"
+      ? { methodology_version: "aia-readiness-1+e1", version: 1, sample_size: { min: 20, max: 10000 }, tracked_set: trackedSet }
+      : undefined;
+    const answer = limits ?? native(path, init?.method ?? "GET", body) ?? ws.answer(path, init?.method ?? "GET", body);
     if (answer === undefined) return new Response(JSON.stringify({ code: "not_found", message: "No such resource." }), { status: 404 });
     return answer instanceof Response ? answer : new Response(JSON.stringify(answer), { status: 200 });
   }));
@@ -158,6 +163,18 @@ describe("Dotazník's block and set fields", () => {
     expect(screen.queryByText(full)).toBeNull();
     fireEvent.keyDown(add, { key: "Enter" });
     await waitFor(() => expect(sectionsSaved()?.[1].objects?.at(-1)).toBe("Objekt 41"));
+  });
+
+  it("holds a set to the methodology in force, not the preset: the 31st refused where the maximum is 30", async () => {
+    stub([SECTIONS[0], { ...SECTIONS[1], objects: Array.from({ length: 30 }, (_, i) => `Objekt ${i + 1}`) }], { min: 3, max: 30, recommended_min: 5, recommended_max: 12 });
+    render(<ResearchScreen step="questionnaire" frame={TEST_FRAME} />);
+    expect(await screen.findByText("30 / doporučeno 5–12")).toBeTruthy();
+    expect(screen.getByText("Víc než doporučených 12 objektů. Sada jich může mít až 30; Kontrola na to upozorní.")).toBeTruthy();
+    const add = screen.getByRole("textbox", { name: "Přidat objekt a Enter" });
+    fireEvent.change(add, { target: { value: "Objekt 31" } });
+    fireEvent.keyDown(add, { key: "Enter" });
+    expect(await screen.findByText("Sada může mít nejvýše 30 objektů. Další přidáte, až jeden odeberete.")).toBeTruthy();
+    expect(sectionsSaved()?.[1].objects).toBeUndefined();
   });
 
   it("says a set stored above forty is more than a run takes, and counts it as one to fix", async () => {

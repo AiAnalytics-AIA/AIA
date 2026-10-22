@@ -15,7 +15,13 @@ describe("a tracked set's size limits", () => {
   });
 
   it("allow 16 to 40 with a warning and stop only under four or past forty (Q75 (a))", () => {
-    expect([3, 4, 15, 16, 40, 41].map(setSizeRefused)).toEqual([true, false, false, false, false, true]);
-    expect([4, 15, 16, 40, 41].map(setAboveRecommended)).toEqual([false, false, true, true, false]);
+    expect([3, 4, 15, 16, 40, 41].map((n) => setSizeRefused(n))).toEqual([true, false, false, false, false, true]);
+    expect([4, 15, 16, 40, 41].map((n) => setAboveRecommended(n))).toEqual([false, false, true, true, false]);
+  });
+
+  it("follow a stored methodology's limits, not the preset's", () => {
+    const stored = { min: 3, max: 30, recommended_min: 5, recommended_max: 12 };
+    expect([4, 5, 30, 31].map((n) => setSizeRefused(n, stored))).toEqual([true, false, false, true]);
+    expect([12, 13, 30, 31].map((n) => setAboveRecommended(n, stored))).toEqual([false, true, true, false]);
   });
 });

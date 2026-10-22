@@ -76,7 +76,9 @@ export function objectQuestionRows(set: TrackedSet): { question: string; low: st
  * classic stopped at 15 (Q75 (a); SET_HARD_MAX). addPlanSet cuts nothing: a longer list is kept
  * and the set says it is over. */
 export const MAX_OBJECTS = SET_HARD_MAX;
-export const SET_FULL = `Sledovaná sada má maximálně ${SET_HARD_MAX} položek.`;
+/** The refusal past a set's maximum: the preset's (SET_FULL) or the limits in force. */
+export const setFull = (max: number) => `Sledovaná sada má maximálně ${max} položek.`;
+export const SET_FULL = setFull(MAX_OBJECTS);
 export const PROMPT_SET_TITLE = "Název porovnatelné sady, např. Značky, Regiony, Argumenty nebo Varianty nabídky:";
 export const PROMPT_SET_OBJECTS = "Položky oddělte čárkou. Všechny musí jít porovnat na stejné otázce/škále:";
 export const PROMPT_OBJECT = "Přidat srovnatelný objekt do této sady:";
@@ -95,12 +97,12 @@ export function addSet(s: PlanState, title: string | null, raw: string | null): 
   return withSets(a, [...trackedSets(a), { title: t, object_type: t, purpose: "Porovnat tyto položky mezi sebou na stejné metrice.", objects }]);
 }
 
-/** addPlanObject: one more object, refused past MAX_OBJECTS. */
-export function addObject(a: Analysis, si: number, value: string | null): { analysis: Analysis } | { error: string } | null {
+/** addPlanObject: one more object, refused past `max` (the limits in force; the preset's by default). */
+export function addObject(a: Analysis, si: number, value: string | null, max: number = MAX_OBJECTS): { analysis: Analysis } | { error: string } | null {
   if (!value?.trim()) return null;
   const sets = clone(trackedSets(a));
   const objects = sets[si].objects || [];
-  if (objects.length >= MAX_OBJECTS) return { error: SET_FULL };
+  if (objects.length >= max) return { error: setFull(max) };
   sets[si] = { ...sets[si], objects: [...objects, value.trim()] };
   return { analysis: withSets(a, sets) };
 }

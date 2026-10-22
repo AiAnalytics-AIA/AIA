@@ -53,6 +53,9 @@ describe("designLane", () => {
     expect(blockers({ project: project({ sections: [block(["Hlavní banka?"]), of(20)] as never }), analysis: { tracked_sets: [of(20)] } as never }).filter((b) => b.step !== "brief" && /sad|položek/.test(b.detail + b.label))).toEqual([]);
     expect(lane(40).questionnaire.line).not.toContain("mimo");
     expect(lane(41).plan).toEqual({ tone: "you", line: "1 sada mimo 4–40" });
+    // A stored methodology's limits, when the caller has read them, decide instead of the preset.
+    const stored = { min: 3, max: 30, recommended_min: 5, recommended_max: 12 };
+    expect(designLane({ project: project({ sections: [block(["Hlavní banka?"]), of(31)] as never }), analysis: { tracked_sets: [of(31)] } as never }, stored).plan).toEqual({ tone: "you", line: "1 sada mimo 5–30" });
   });
 
   it("says the audience is chosen only under the wizard's own condition", () => {

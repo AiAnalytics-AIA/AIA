@@ -473,21 +473,27 @@ export function setObjectFamily(p: ResearchProject, si: number, v: string): Rese
 }
 
 /**
- * A tracked set's sizes, research_design.py TRACKED_SET_LIMITS (held to it by
- * questionnaire-set-limits.test.ts): the compiler refuses a set outside SET_HARD_MIN-SET_HARD_MAX
- * (battery_size); readiness only warns outside AIA's recommended SET_MIN-SET_MAX. A set above 15 is
- * allowed and warned (the product owner, Q75 (a), 2026-10-22); the editors still refuse one under
- * four, and only the 41st object is refused.
+ * A tracked set's sizes as the readiness methodology in force states them (GET …/research/limits
+ * tracked_set): the compiler refuses a set outside min-max (battery_size); readiness only warns
+ * outside recommended_min-recommended_max. Above the recommendation a set is allowed and warned (the
+ * product owner, Q75 (a), 2026-10-22); the editors still refuse one under the recommended minimum.
  */
+export type SetLimits = { min: number; max: number; recommended_min: number; recommended_max: number };
+
+/** The code's preset, research_design.py TRACKED_SET_LIMITS (held to it by questionnaire-set-limits.test.ts):
+ * what a study runs by while nothing is stored, and what the screens use until the limits are read. */
 export const SET_HARD_MIN = 3;
 export const SET_HARD_MAX = 40;
 export const SET_MIN = 4;
 export const SET_MAX = 15;
+export const SET_PRESET: SetLimits = { min: SET_HARD_MIN, max: SET_HARD_MAX, recommended_min: SET_MIN, recommended_max: SET_MAX };
 
-/** A set the editors stop: under the recommended minimum, or over the server's hard maximum. */
-export const setSizeRefused = (n: number) => n < SET_MIN || n > SET_HARD_MAX;
-/** Above AIA's recommendation, within the server's range: allowed, warned at the field. */
-export const setAboveRecommended = (n: number) => n > SET_MAX && n <= SET_HARD_MAX;
+/** A set the editors stop: under the recommended minimum, or over the hard maximum. */
+export const setSizeRefused = (n: number, l: SetLimits = SET_PRESET) => n < l.recommended_min || n > l.max;
+/** Above the recommendation, within the hard range: allowed, warned at the field. */
+export const setAboveRecommended = (n: number, l: SetLimits = SET_PRESET) => n > l.recommended_max && n <= l.max;
+/** The limits as the copy names them: the editors' range ({min}–{max}) and the recommendation ({rmin}–{rmax}). */
+export const setWords = (l: SetLimits) => ({ min: l.recommended_min, max: l.max, rmin: l.recommended_min, rmax: l.recommended_max });
 
 export const SET_TOO_SMALL = "Sledovaná sada potřebuje 4–15 položek.";
 

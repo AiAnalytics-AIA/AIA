@@ -99,6 +99,16 @@ describe("Návrh", () => {
     expect(screen.getByText("Návrh je připravený")).toBeTruthy();
   });
 
+  it("holds a set to the methodology in force: 31 objects stop the plan where the maximum is 30", async () => {
+    const objects = Array.from({ length: 31 }, (_, i) => `Varianta ${i + 1}`);
+    const tracked_set = { min: 3, max: 30, recommended_min: 5, recommended_max: 12 };
+    unitStub({ ...ANALYSIS, tracked_sets: [{ ...ANALYSIS.tracked_sets[0], objects }] }, { [LIMITS_PATH]: () => ({ ...LIMITS, tracked_set }) });
+    render(<ResearchScreen step="plan" frame={TEST_FRAME} />);
+    expect(await screen.findByText("31 / doporučeno 5–12")).toBeTruthy();
+    expect(screen.getByText(/má 31 položek, potřebuje 5–30/)).toBeTruthy();
+    expect(screen.queryByText("Návrh je připravený")).toBeNull();
+  });
+
   it("draws the analysis, its sets with the question preview, the follow-ups and the comments", async () => {
     unitStub();
     render(<ResearchScreen step="plan" frame={TEST_FRAME} />);

@@ -22,6 +22,9 @@ describe("what reads each questionnaire item", () => {
     expect(sized(["Káva", "Káva", "Čaj", "Kakao"]).held).toBeNull();
     expect(sized(Array.from({ length: 40 }, (_, i) => `O${i}`)).held).toBeNull();
     expect(sized(Array.from({ length: 41 }, (_, i) => `O${i}`))).toMatchObject({ held: "set_size", readers: [] });
+    // The compiler checks the limits in force: a stored maximum of 30 holds a set of 31.
+    const stored = { min: 3, max: 30, recommended_min: 5, recommended_max: 12 };
+    expect(questionnaireReaders(project([{ ...SET, objects: Array.from({ length: 31 }, (_, i) => `O${i}`) }]), stored)[0].held).toBe("set_size");
   });
 
   it("holds a set with familiarity required, which the run refuses, and keeps it from the Sociomap", () => {

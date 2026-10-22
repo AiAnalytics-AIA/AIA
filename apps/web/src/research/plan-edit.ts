@@ -4,7 +4,7 @@
 import type { Json } from "./model";
 import type { Analysis } from "./store";
 import { trackedSets, type PlanState, type TrackedSet } from "./plan";
-import { setSizeRefused } from "./questionnaire";
+import { SET_PRESET, type SetLimits, setSizeRefused } from "./questionnaire";
 
 const narrativeKeys = ["problem_summary", "research_questions", "objectives", "hypotheses"] as const;
 export type Narrative = { problem_summary: string; research_questions: string[]; objectives: string[]; hypotheses: string[] };
@@ -35,9 +35,9 @@ export function applyPlanSets(state: PlanState, sets: TrackedSet[]): PlanState {
 }
 
 /** Form validation only: readiness and execution still validate their own contracts. */
-export function validMeasurement(set: TrackedSet): boolean {
+export function validMeasurement(set: TrackedSet, l: SetLimits = SET_PRESET): boolean {
   const objects = set.objects ?? [];
-  return !!set.title?.trim() && !!set.purpose?.trim() && !setSizeRefused(objects.length) &&
+  return !!set.title?.trim() && !!set.purpose?.trim() && !setSizeRefused(objects.length, l) &&
     objects.every((s) => !!s.trim()) && new Set(objects.map((s) => s.trim().toLocaleLowerCase("cs"))).size === objects.length &&
     !!set.object_question?.includes("{object}") && !!set.scale_labels?.[0]?.trim() && !!set.scale_labels?.[1]?.trim();
 }
