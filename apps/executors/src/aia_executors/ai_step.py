@@ -46,7 +46,7 @@ from __future__ import annotations
 import asyncio
 from collections.abc import Callable
 from contextlib import AbstractContextManager
-from typing import Protocol
+from typing import Any, Protocol
 
 from aia_core.application.model_gateway import GovernedModelGateway
 from aia_core.domain.ai_contracts import (
@@ -71,6 +71,7 @@ __all__ = [
     "ModelConcurrency",
     "StepCallJournal",
     "StepModelCaller",
+    "class_advisory_fields",
 ]
 
 #: Why a request failed before anything was reserved: no model slot came free.
@@ -78,6 +79,16 @@ MODEL_CONCURRENCY_WAIT = "model_concurrency_wait"
 #: The run feed's codes for one model request (``announce``); the web words them.
 AI_REQUEST_SENT = "ai_request_sent"
 AI_REQUEST_ANSWERED = "ai_request_answered"
+
+
+def class_advisory_fields(advisories: tuple[str, ...]) -> dict[str, Any]:
+    """What a step's provenance records of a call's class advisories (``CallProvenance``).
+
+    Nothing under enforce, so a record is exactly what it was before advisory gates existed;
+    ``{"class_advisory": [...]}`` when a class-only refusal was passed (develop only, plan
+    develop-class-advisory), each entry ``residency.ClassAdvisory.note()``.
+    """
+    return {"class_advisory": list(advisories)} if advisories else {}
 
 
 class ModelConcurrency(Protocol):

@@ -1,27 +1,31 @@
 ---
-status: planned
+status: in-progress
 chunks:
-  - "[ ] LO0. The contract ADR and the money vocabulary: wallet cap, `budget_usd`, `spend_confirm_usd`, the client ceiling, `clients.budget_usd`, OI-64, one precedence"
-  - "[ ] LO1. The wallet (M4): `study_wallets`, `_raises`, `_charges` and `clients.wallet_ceiling_usd`; charges for paid work including Deep Research"
+  - "[x] LO0. The contract ADR and the money vocabulary: wallet cap, `budget_usd`, `spend_confirm_usd`, the client ceiling, `clients.budget_usd`, OI-64, one precedence"
+  - "[x] LO1. The wallet (M4): `study_wallets`, `_raises`, `_charges` and `clients.wallet_ceiling_usd`; charges for paid work including Deep Research"
   - "[ ] LO2. A typed `start_run` with no `confirm_cost_usd`, and an import rule that a plan step cannot reach the confirming start"
   - "[ ] LO3. `lead_plans` and `lead_plan_steps` (M5), the plan authority capability issued by `ScopeResolver`, the `lead_plan` workflow type, behind `AIA_LEAD_PLANS_ENABLED`"
   - "[ ] LO4. The plan card: the steps (including "start fieldwork, ceiling X USD"), approved once, stopping at every gate it does not cover"
-  - "[ ] LO5. Direct human chat start: the typed command the server matches, ledger `chat_start`, the model not in the path"
+  - "[x] LO5. Direct human chat start: the typed command the server matches, ledger `chat_start`, the model not in the path"
   - "[ ] LO6. The continuation turn: a finished step enqueues a Lead turn with typed results; no polling"
   - "[ ] LO7. The Lead's context layers per ADR 0026 decision 2: readiness, question outlook, what changed since its last turn, other people's changes, and the execution state (status, park code, spend, selection receipt, QC)"
   - "[ ] LO8. `ResultsContext`: type, class (`MaterialRule` for results, module text, maps, report text), lineage, bound, an external-evidence slot labelled L; and the decision on a read tool against ADR 0026 decision 3"
-  - "[ ] LO9a. The worker contract, early (W0, the first deliverable of `research-lead-workbench` 11): `LeadWorkerSpec` as a type, one row per worker (id, closed task, context layer, data-class rule, capability, reservation, prompt id and pin, switch, card kind, result kind), with its fixture"
+  - "[x] LO9a. The worker contract, early (W0, the first deliverable of `research-lead-workbench` 11): `LeadWorkerSpec` as a type, one row per worker (id, closed task, context layer, data-class rule, capability, reservation, prompt id and pin, switch, card kind, result kind), with its fixture"
   - "[ ] LO9c. A results-worker job shape (W2, before LO9b): a workflow type and step kind keyed on (run_id, target), frozen inputs by artifact id and SHA-256, its own context builder and executor behind its own switch, sharing the worker row, prompt pin and usage ledger"
   - "[ ] LO9b. The three new workers as rows (W3): a `REPORT_WRITING` binding, result kinds and accept destinations, per-worker price and keys"
   - "[ ] LO10. `approve_request` bound to the revision shown on its card, and a clean error where the 96 KB Lead context meets the 64 KB agent limit"
   - "[ ] LO11. The Lead over time (M7): `researcher_lead_signals`, proposed updates the researcher approves each, a reader and rollback for Lead file revisions; no handover or admin read (D-32 to D-34); a departed member's Lead sealed, then deleted at the retention end (Q14)"
-  - "[ ] LO12a. The route-class refusal says who fixes it (W0): on the job error, the Lead pane, source proposals and Progress, from the refusal codes that exist today, with a link to the runbook; static copy, no read of the route"
+  - "[x] LO12a. The route-class refusal says who fixes it (W0): on the job error, the Lead pane, source proposals and Progress, from the refusal codes that exist today, with a link to the runbook; static copy, no read of the route"
   - "[ ] LO12b. A pre-flight read of the AI route (W1): the worker publishes a composition record the API, Settings and the Lead pane read (shared with `deep-research-web-search#52`), and the new refusal reasons"
   - "[ ] LO13. Client-level paid AI (source proposals, `clients.budget_usd`) recorded as an explicit exception to "every AI action goes through the Lead" in AC-02"
   - "[ ] LO14. The Lead's cost per turn measured, and an `AIA_LEAD_*` kill switch and budget line"
-  - "[ ] LO16. The approval ledger's subject types (lane migration M3, W0, the first migration): `approval_decisions.subject_type` extended with `wallet`, `lead_plan`, `plan_step`, `chat_start`, `data_contract`, `map_snapshot` and `sociomap_unlock`; S3 writes it"
-  - "[ ] LO15. Server spend enforcement (W0): `ResearchAgentJobs.start` and `rebuild` apply `spend_confirm_usd` as `ResearchRuns.start` does, and record the confirmation in the ledger; tested through direct HTTP start and rebuild and through the Lead's approve path"
-  - "[ ] LO5a. Deep Research from the Lead: a plan-step kind and a typed chat start, priced by deep-research-web-search 55's ceiling (D-12)"
+  - "[x] LO16. The approval ledger's subject types (lane migration M3, W0, the first migration): `approval_decisions.subject_type` extended with `wallet`, `lead_plan`, `plan_step`, `chat_start`, `data_contract`, `map_snapshot` and `sociomap_unlock`; S3 writes it"
+  - "[x] LO15. Server spend enforcement (W0): `ResearchAgentJobs.start` and `rebuild` apply `spend_confirm_usd` as `ResearchRuns.start` does, and record the confirmation in the ledger; tested through direct HTTP start and rebuild and through the Lead's approve path"
+  - "[ ] LO5a. Deep Research from the Lead: a plan-step kind and a typed chat start, priced by deep-research-web-search 55's ceiling (D-12); split into LO5a.1-LO5a.4 (2026-10-21), this line holds the acceptance and is ticked when they and research-lead-workbench 26f.1 have landed"
+  - "[ ] LO5a.1. The Lead's Deep Research requests and context (DRL-2): a preset (QUICK or STANDARD, STANDARD by default), a design focus on named research questions, an Interpretation target from a code-built candidate list over every result kind of ADR 0021, Q44 (the research-questions module by default), a retry request; the deep_research and targets layers"
+  - "[ ] LO5a.2. A Lead card starts Deep Research on the server (DRL-3): approve_request starts Design and Interpretation Research and their retry, priced by deep-research-web-search 55, with the threshold, live settings and ledger row; amends research-lead-workbench D7 for the two kinds"
+  - "[ ] LO5a.3. Typed Deep Research starts (DRL-8, on LO5): start, retry and stop matched by code with no model in the path, ledger chat_start, a wallet charge at the ceiling; works with the Lead off"
+  - "[ ] LO5a.4. Deep Research as plan-step kinds (DRL-9, on LO3/LO4): design_research and interpretation_research steps, a target fixed or relative to an earlier step resolved when the step starts, parked when its module ended BLOCKED"
   - "[ ] LO12c. The composition digest stored on each run and served over HTTP (D-09; the record #513 called MP6b)"
   - "[ ] LO17. Stopping the Lead: cancel a running turn, withdraw an approved plan (the current step finishes or is cancelled, nothing after it starts), with the workbench build line (D-18)"
   - "[ ] LO18. The Lead's turns stream, take a file from the composer, and comment unprompted after the researcher pauses editing, each such comment a paid turn inside the wallet (D-39)"
@@ -50,7 +54,7 @@ Every chunk below is **open**; a chunk is built from this file, not from the mas
 Supersedes MVP-13 in the ADR text. **The name (the product owner, 2026-10-20):** the study's spending cap that an approved plan runs inside is the **wallet** in code and plans (`study_wallets`, `study_wallet_raises`, `study_wallet_charges`, `clients.wallet_ceiling_usd`, "wallet cap") and **Peněženka** in the Czech UI; it was called the envelope until then. `budget_usd` and `spend_confirm_usd` keep their names. The other envelopes (the Sociomap terrain envelope, Deep Research's orchestration envelope, the error-tracking envelope, the investigator's output envelope) are different things and keep theirs. Corrects the architecture and cohesion statements that call the spend limit a hard stop. Test: a document check that the word "hard stop" is not applied to `spend_confirm_usd`. Interfaces I4.
 
 **LO1. The wallet (M4): `study_wallets`, `_raises`, `_charges` and `clients.wallet_ceiling_usd`; charges for paid work including Deep Research**  
-The data for the two meters: spent against `budget_usd`, and the wallet remaining on click, with Czech labels distinct from the confirmation threshold's. Server-computed ceilings, holds, settlement and concurrent accounting are preserved (a start never exceeds the cap; an unknown cost counts as its ceiling). Test: a raise needs the researcher inside the ceiling and an approver above it; a charge above the wallet parks, never fails.
+The data for the two meters: spent against `budget_usd`, and the wallet remaining on click, with Czech labels distinct from the confirmation threshold's. Server-computed ceilings, holds, settlement and concurrent accounting are preserved (a start never exceeds the cap; an unknown cost counts as its ceiling). Test: a raise inside the client's wallet ceiling is the researcher's; one above it is refused, naming who can raise the ceiling (an organization OWNER or ADMIN; D-03, no approver queue); a charge above the wallet parks, never fails.
 
 **LO2. A typed `start_run` with no `confirm_cost_usd`, and an import rule that a plan step cannot reach the confirming start**  
 `ResearchRuns.start` takes the confirmation as a function argument (`research.py:724-742`), so "a plan authority holds no `APPROVE_GATE`" does not protect it. The Run stage button, the plan card and the chat start all call the one start with their pins (persona source, child, acknowledgement). Interfaces I3.
@@ -66,12 +70,29 @@ The security condition: a start is authorised by a person's own typed command ma
 
 **LO6. The continuation turn: a finished step enqueues a Lead turn with typed results; no polling**  
 Turns are person-started only today (`research_lead.py:763-790`). A result reaches the Lead as an artifact reference plus fields code has validated, never a worker's free text (a summary derived from web text is an injection path). Test: a step finishing wakes one turn with its results; a failed step wakes one with the park reason.
+**Deep Research (DRL-10, 2026-10-21):** a Deep Research run that finishes, fails or parks wakes one
+turn with typed fields only (run id, purpose, status and park code, counts, `quality_status`, actual
+cost, the bundle's SHA-256 and its finding ids; no web text by this path), and a research run whose
+analysis completes wakes one whose context offers its Interpretation candidates (LO5a.1), so the
+scripted Lead can prepare an interpretation card. Tests: a completed Deep Research run's turn holds
+its counts and ids and no quote text; a park wakes one with the code; a completed analysis lets the
+scripted Lead prepare an interpretation card. Detail in *Deep Research under the Lead* below.
 
 **LO7. The Lead's context layers per ADR 0026 decision 2: readiness, question outlook, what changed since its last turn, other people's changes, and the execution state (status, park code, spend, selection receipt, QC)**  
 `freeze_context` has none of these (`domain/research_lead.py:803-819`). The Lead's answer to "Kde jsme?" is built from them.
 
 **LO8. `ResultsContext`: type, class (`MaterialRule` for results, module text, maps, report text), lineage, bound, an external-evidence slot labelled L; and the decision on a read tool against ADR 0026 decision 3**  
 Written in **W1**, not W2. S2 and S3 write providers against it. Test: a result with Class A lineage is refused by a Class-C-only route. Interfaces I1.
+**Deep Research's provider and the one door for external numbers (DRL-11, 2026-10-21):** the L slot's
+Deep Research provider carries the study's newest sealed bundle(s) by reference (each accepted
+finding's claim, quote, source title and URL, source class, verifier verdict and injection flag;
+gaps; rejected findings by reason code), bounded with omissions named, classed by `MaterialRule`;
+LO9d's stage workers read the same provider. `ground_edits` refuses an edit whose number appears in
+the context only in L: an external number enters a design only through
+`DesignResearchProposals.accept` (ADR 0021). The web renders an `evidence:<id>` citation's quote and
+source from the bundle, never from the model's text. Tests: a reply citing a finding renders the
+bundle's quote; an edit carrying a number found only in a finding is refused; a hostile page's text
+(`deep-research-web-search` chunk 45's set) in L changes no request or edit.
 
 **LO9a. The worker contract, early (W0, the first deliverable of `research-lead-workbench` 11): `LeadWorkerSpec` as a type, one row per worker, with its fixture**  
 One row defines a worker once: id, closed task, context layer, data-class rule, capability, reservation, prompt id and pin, switch, card kind, result kind (`mvp-cohesion.md` F5). Chunk 11's command registry and the W1 artifact chunks depend on this row; the three new workers are rows, not three designs. Test: a worker with a missing field is refused at registration.
@@ -93,6 +114,30 @@ File revisions have no reader today (`revisions()` has no caller). Turns stay pr
 
 **LO12a. The route-class refusal says who fixes it (W0): static copy on the four surfaces**  
 The refusal surfaces in the job error, the Lead pane, source proposals and Progress, and none says an operator fixes it (the AI route's classes are set in SSM, not on Settings, which is read-only). The copy is keyed by the refusal codes that exist today (`egress_route_not_approved_for_class` and its siblings) and names the operator step and the runbook; it reads nothing and needs no composition record. Test: each code on each surface renders its who-fixes-it line. Interfaces I24.
+
+- **Landed** (`feature/route-refusal-who-fixes`). `apps/web/src/lib/route-refusal.ts` maps the six
+  refusals the route's settings decide (`egress_` + `route_not_approved_for_class`,
+  `retention_unspecified`, `residency_violation`, `training_exclusion_missing`, `no_approved_route`,
+  `route_provider_mismatch`) to one line: the operator fixes it, by which SSM parameter, under
+  `deploy/develop/README.md`, and Settings cannot change it.
+  - Not on the list: `egress_unclassified_material` (an operator's classification, not the route),
+    `licence_undetermined` (the data owner) and the budget codes (the researcher).
+  - The four surfaces append it: the Lead pane (`leadReasonWords`), the job panel
+    (`agentJobUpdate`, `followAgentJob`), source proposals (`proposalsLine`) and Progress
+    (`waitingDetail`, and `stepProblem` for Deep Research).
+  - A run step had no code to key on: its message is free text, and the gate's code stayed in the
+    attempt's error. `ResearchStepResponse.error_reason` and Deep Research's `DeepResearchStep`
+    now carry that code, or null when it is not a code (`_code`).
+  - `lead-availability.ts` now re-exports the pane's `leadReasonWords` instead of keeping a copy,
+    closing its TODO(#547).
+  - Tests: `route-refusal.test.ts`; on each surface, `lead.test.ts`, `research-agent-jobs.test.ts`,
+    `source-proposals.test.ts`, `research-execution.test.ts`; the API test
+    `test_fieldwork_without_the_ai_runtime_waits_visibly_and_nothing_downstream_runs` and
+    `test_a_step_passes_on_a_stored_code_never_free_text`, and Deep Research's
+    `test_a_run_parked_for_the_runtime_goes_on_when_a_person_resumes_it`, with `reason-words.test.ts`.
+  - Not a browser journey: the workbench has no route to refuse (its fieldwork is fictional code),
+    and making one refuse would mean building a refusing gateway into the workbench for one line of
+    static copy.
 
 **LO12b. A pre-flight read of the AI route (W1)**  
 The API cannot evaluate class, so the worker publishes a composition record the API, Settings and the Lead pane read (shared with `deep-research-web-search#52`, whose Reach panel is the other consumer, and with `run-qc-and-checkpoint#RQC8`). It lands in the same row as 52 (E12). The Lead pane gains `retention_unspecified`, `residency_violation` and `training_exclusion_missing`. Settings is read-only and stays so. Interfaces I15.
@@ -140,7 +185,9 @@ Source: the owner's answers of 2026-10-20 (`.planning/evidence/scope-freeze/answ
   exits non-zero by name.
 - **LO17 (W1).** D-18: Esc during a turn stops it ("Zastaveno vámi. Nic nebylo přijato za vás.");
   "Zastavit plán" on a running plan's card. Tests: a cancelled turn applies nothing and its
-  reservation settles; a withdrawn plan starts no further step.
+  reservation settles; a withdrawn plan starts no further step. *Tightened 2026-10-21 (LO5a.4):* a
+  withdrawn plan whose current step is a Deep Research run cancels it, keeps what it captured, and
+  starts nothing after it.
 - **LO18 (W3).** D-39, IN: streaming text (ADR 0026 left streaming "not decided"; this answer decides
   it), a file from the composer kept as the client's source or the brief's attachment by the existing
   paths, and unprompted comments after a pause, **each a paid turn charged to the wallet, shown as
@@ -304,3 +351,651 @@ unless stated.
   revisions, `budget_lift` in `resume_budget_wait`'s ledger row) is decided in LO16's PR, by S3 and
   the owner; until then LO16's list is unchanged.
 
+## LO16 delivered (2026-10-21)
+
+Migration M3, `5054d4d610c2` (down revision `57eaa96a5538`), admits the seven subjects; the
+closed set is `domain/approval_ledger.py` `ApprovalSubject`, from which `tables.py` builds the
+CHECK; every writer names its subject through the enum; `WorkflowRepository.ledger` reads a
+study's rows under all three scope columns. Tests: `packages/aia_core/tests/test_approval_ledger.py`
+(round trip of every subject, isolation across study, client and a forged organization column,
+the upgrade and the refusing downgrade on PostgreSQL). Two `layer_check` rules: the ledger table
+is touched only by its two repositories, and a subject is never a string of its own. The design's
+proposed extra subjects (`qc_decision`, `study_note`, `report_edit`, `knowledge_revision`,
+`budget_lift`) are **not** admitted: LO16's list is unchanged until the owner and S3 decide, and
+admitting any of them later is a new migration on the same constraint, which M3 exists to avoid
+(`budget_lift` is already `budget`; `knowledge_revision` is the knowledge repository's revisions).
+
+## LO0 delivered (2026-10-21)
+
+The contract ADR is ADR 0028, accepted and merged with #512. The vocabulary is typed in
+`domain/money.py`: the five amounts (`MONEY`: column, Czech name, role, who sets it, what null
+means), `PRECEDENCE` (budget, then wallet, then threshold), and the rules LO1, LO3/LO4, LO5 and
+LO15 implement: `threshold_verdict` (today's rule; `ResearchRuns.start` now calls it),
+`wallet_remaining` and `wallet_verdict` (by ceiling, an unknown ceiling refused),
+`wallet_raise_verdict` (D-03: above the client ceiling refused, never above the budget) and
+`start_verdict` for the three paths (D-02: a plan step starts on the ceiling its card showed and
+parks when it grew; it never supplies a confirmation). OI-64 is written into the contract: a retry
+is judged by its own full ceiling, because until RQC0 it may pay its respondents again. The four
+names (D-01) are written once in the web copy module (`cs.money`); Settings' "Strop rozpočtu" is
+"Rozpočet studie", and the run's cost panel calls the threshold "Práh potvrzení" throughout. Both
+are held to `tests/fixtures/money/vocabulary.json` (`test_money.py`, `apps/web/src/i18n/money.test.ts`),
+and `test_nothing_calls_the_confirmation_threshold_a_hard_stop` reads the code and the governing
+documents. The wallet ceiling has no Czech label: the owner named none, so none is invented.
+
+## Findings (LO0, review of #534)
+
+- **F-LO0-1. The confirmation threshold's rule has three inline copies beside `money.threshold_verdict`.**
+  Anchor: `application/deep_research.py:648-651`, `application/research_lead.py:724-729`,
+  `application/validation.py:200-203 @ fd523a81`; `ResearchRuns.start` calls `threshold_verdict`
+  since #534. Reproduction: `grep -n "confirm_cost_usd <" packages/aia_core/src/aia_core/application/*.py`
+  lists the three. Consequence: none today (all four agree: `>=` asks, a confirmation covers at least
+  the ceiling); a change to the rule made in one place would leave the Deep Research start, the Lead's
+  approve path and a validation start on the old one. Smallest fix: each calls `threshold_verdict`,
+  with its own refusal for an unknown ceiling kept; LO15 (E03) touches two of them and is the natural
+  place. Test: each start's threshold tests, unchanged, plus one asserting it imports the domain rule.
+  Deliberately not adopted in #534 (the reviewer's call).
+
+### Doc follow-up (LO0)
+
+- `open-items.md`: number F-LO0-1, owner LO15.
+
+
+## LO15 delivered (2026-10-21, E03)
+
+Before (`@ b5b369ae`): `ResearchAgentJobs.start` (`application/research.py:1343-1439`) and
+`rebuild` (`:1546-1570`) read no `spend_confirm_usd`; the only check on a design job was the Lead's
+approve path (`application/research_lead.py:720-734`). The worker's scope holds `EDIT_STUDY` and
+`RUN_WORKFLOW` (`domain/scope.py:202-213`), so a step could have created a job past any threshold.
+
+Now:
+
+- `ResearchAgentJobs.spend_gate` is the job's one rule: `money.threshold_verdict` over the job's
+  ceiling (`reservation_usd`, the design job's reservation `AIA_AI_RESEARCH_RESERVATION_USD`, a
+  primary and one repair) and the study's threshold. Using a confirmation needs `APPROVE_BUDGET`,
+  which `WORKER_PERMISSIONS` withholds, so a step can neither evade the threshold nor supply the yes.
+  `start` applies it only when the job would be created (a found job asks nothing, as a run's start)
+  and writes the `spend` ledger row with the new job (`record_spend_confirmation`); `rebuild` passes
+  its `confirm_cost_usd` through to `start`.
+- The API's `POST …/research/agent-jobs` and `POST …/agent-jobs/{id}/rebuild` take
+  `confirm_cost_usd` and pass the deployment's reservation; refusals are the run start's 409
+  `cost_confirmation_required` (ceiling and threshold in `details`) and `cost_ceiling_unknown`
+  (`research_reservation_missing`). The request never names the ceiling.
+- The Lead's approve path asks through the same `spend_gate` before submitting the design, then the
+  job's own start applies it again and writes the job's `spend` row; the turn's `lead_job_request`
+  row keeps its `spend` figures as before. The browser's direct start and rebuild
+  (`useResearchAgents`) ask once with the server's ceiling (`withJobCostConfirmation`,
+  `lib/research-agent-jobs.ts`) and confirm exactly that figure.
+- **F-LO0-1 closed:** `deep_research.py` and `validation.py` call `threshold_verdict` in place of their
+  inline comparisons, each keeping its own refusal for an unknown ceiling; `research_lead.py` calls
+  `spend_gate`. Held by `test_every_start_path_applies_the_one_domain_rule`.
+
+No switch: with no threshold set (the default) nothing changes, and a switch off would reopen the
+path E03 closes. Tests: `packages/aia_core/tests/test_research_agent_spend.py` (below, at and above
+the threshold, an unknown reservation, a rebuild, the worker's scope asked and refused its
+confirmation, the four start paths on the one rule), `test_the_spend_limit_holds_a_prepared_job`
+(the Lead path writes the job's spend row), `apps/api/tests/test_research_agent_spend_api.py`
+(direct HTTP start and rebuild), `apps/web/src/lib/research-agent-jobs.test.ts`.
+
+### Doc follow-up (LO15)
+
+- `open-items.md`: F-LO0-1 closed by LO15 (E03).
+- `CLAUDE.md` map, `routers/research.py` line on agent jobs: "`POST …/agent-jobs` and
+  `…/rebuild` take `confirm_cost_usd`; a new job whose reservation reaches the study's threshold is
+  409 `cost_confirmation_required` (LO15)".
+- `docs/architecture/research-agents.md`: a job is held to `spend_confirm_usd` at start and
+  rebuild, its ceiling the design job's reservation.
+
+## LO9a delivered (2026-10-21, E03)
+
+`domain/lead_workers.py`: `LeadWorkerSpec`, one frozen row per worker with the ten fields of F5
+(`worker_id`, `task` with its closed `output_contract`, `context_layer`, `material_rules`,
+`capability`, `reservation_key` with `schema_repairs`, `prompt_id` with `prompt_version`, `switch`,
+`card_kind`, `result_kind`); no field has a default. `WorkerRegistry` refuses at registration a row
+with a field missing (named in `WorkerRefused.fields`), of the wrong shape (an unknown material
+rule or capability, a switch not `AIA_…_ENABLED`, a reservation key not `AIA_…_RESERVATION_USD`, an
+open contract, an advice card on a proposal result, an extra field), or reusing an id or a prompt.
+The eight design workers are rows (`domain/research_agents.py` `WORKERS`, `worker_for`) and
+`agent_request` takes its capability, prompt id and repair count from the row, so the row is the
+definition the job runs, not a description beside it. The fixture is
+`packages/aia_core/tests/fixtures/lead_workers/workers.json`; `test_lead_workers.py` holds the rows
+to it, to `CONTRACTS`, `prompt_version_for`, `DESIGN_ACTIONS` and the executor's keys.
+
+**Choices recorded.** (1) The type is its own module, not `research_agents.py` as F5 first wrote:
+LO9c's results workers share the row and are not `research_agent` actions (keyed on a run, not a
+Design Revision), so the type must not live in the design harness; the design harness holds its
+rows. (2) A row names the reservation's deployment key, never an amount: the amount is the
+deployment's (ADR 0028: unknown is not zero), and LO15 reads it there. (3) `ContextLayer` has one
+member, the design snapshot; LO8's results context adds its own when it exists, so nothing claims a
+layer no builder makes. (4) `data_class` is derived from the rules (their worst case, Class A here
+because a snapshot may carry approved knowledge); the request's own class stays `agent_request`'s.
+(5) The registry is not yet read by the API or Settings: `research-lead-workbench` 11 (the command
+registry) and Settings' `ai_runtime` document read it in E26; nothing here changes a runtime path but
+`agent_request`'s three values, which are byte-identical to before.
+
+### Doc follow-up (LO9a)
+
+- `CLAUDE.md` map, `packages/aia_core/src/aia_core/domain/`: "`lead_workers.py` The worker contract
+  (LO9a): `LeadWorkerSpec`, one row per worker the Lead may call, every field required and checked
+  at registration (`WorkerRegistry`); the eight design workers are `research_agents.WORKERS`, held to
+  `tests/fixtures/lead_workers/workers.json`".
+
+### Review of #541 (2026-10-21), applied
+
+The prompt-test panel's start asks at the threshold too (`SystemPromptsPanel` TestRun, through
+`withJobCostConfirmation`); a "no" is `JobCostDeclined`, in Czech; a sub-cent ceiling prints its
+digits, never "0 USD" (`jobCostUsd`); an approval whose job already existed records `spend: null` on
+its `lead_job_request` row; `RequestApproval.confirm_cost_usd` takes the run's bound (0 to
+1,000,000) and no non-finite number; `test_the_request_s_class_comes_from_exactly_the_row_s_rules`
+holds `agent_request`'s rules to the worker row; an invocation-target refusal masks the account id.
+
+**Finding F-E03-1.** A non-finite number in any request body (`Infinity`, `NaN`, which Python's JSON
+parser accepts) was refused by validation, and then the 422 itself failed to serialise its echo of
+the input: a 500. Anchor: `apps/api/src/aia_api/observability.py:206-213 @ 8e3f55dd`. Reproduction:
+`test_a_confirmation_outside_its_bound_or_not_finite_is_refused[Infinity]` against that line.
+Consequence: a malformed client got a 500 and an error report instead of a 422. Fix (here): the echo
+keeps non-finite constants as text (`parse_constant=str`). Doc follow-up: number it in
+`open-items.md`, closed by #541.
+
+## LO1 delivered (2026-10-21, E07, stacked on #541)
+
+Migration M4, `60ccc9ff42cf` (down revision `5054d4d610c2`, one head): `study_wallets` (one open
+wallet per study, `uq_study_wallets_open` partial on `closed_at IS NULL`), `study_wallet_raises`
+and `study_wallet_charges` (insert-once; a charge unique per `run_id`, its kind one of
+`domain/wallet.py` `ChargeKind`: research run, agent job, Deep Research, Interpretation Research),
+and `clients.wallet_ceiling_usd` (nullable, non-negative). The downgrade drops all four and refuses
+while a raise or a charge is stored. `infrastructure/study_wallet_repository.py`
+(`StudyWalletRepository`) is their only reader and writer (`make layer_check`, four rules: core,
+API, worker, executors). `application/wallet.py` (`StudyWallets`) is the switch: with
+`AIA_STUDY_WALLET_ENABLED` off (the default, off in test, absent from the develop Compose file)
+every call raises `WalletDisabled` before the repository is built. HTTP:
+`GET /studies/{id}/wallet` (off: `available: false`, no row read) and `PUT …/wallet {cap_usd}`
+(`APPROVE_BUDGET`; off: 409 `wallet_disabled`; 409 `above_client_ceiling` with
+`who_can_raise: ["OWNER","ADMIN"]` (D-03) or `above_study_budget`). A cap change writes one
+`wallet` ledger row (`WorkflowRepository.record_wallet_raise`, `APPROVE_BUDGET`, which
+`WORKER_PERMISSIONS` withholds) and one raise naming it.
+
+**Choices recorded.**
+
+1. **The lock is the study row, `SELECT … FOR UPDATE`, under READ COMMITTED**, taken first by every
+   write that compares an amount (`set_cap`, `quote`, `charge`, `close`). Rejected: a conditional
+   `UPDATE … SET charged = charged + x WHERE charged + x <= cap` on the wallet row (it needs a
+   denormalised running total beside the insert-once charges, two sources of one number, and the
+   cap's bounds live on two other rows), and `SERIALIZABLE` (aborts on conflict and needs a retry
+   loop at every caller; the blocking lock waits and re-reads instead). The study row is the lock
+   `workflow_repository._reserve` already takes for the budget. **Lock order: the run, then the
+   study that pays**, the existing invariant (`workflow_repository.py:773-779`,
+   `application/research.py:290-295`, `application/client_work.py:127-131 @ 30e078cc`). Nothing
+   here locks a run or a client row; a caller holding a run's lock may call `quote` or `charge`,
+   and must never lock an existing run after them in the same transaction (a run it just created
+   is invisible to others and takes no contested lock). The wallet row is not the lock because the
+   first raise creates it, and a lock on a row not yet there protects nothing. (The first version
+   of this PR said "the study row first, then the run"; that was the reverse of the invariant,
+   review P2-c.) Money is compared as decimals (`money._exact`, `repr`'s shortest round trip;
+   the charges summed in Python), so USD 0.30 less 0.10 fits a 0.20 start exactly (review P3-a);
+   the columns stay `Float`, as every budget column is.
+2. **A charge is a hold at its run's ceiling, never released or re-priced** (ADR 0028 decision 2):
+   remaining is the effective cap minus the charges' ceilings (`money.wallet_remaining`); settled
+   spend stays in the usage ledger, read for display. No `settled_usd` column: a second copy of
+   what the usage ledger holds would be a second source of one number. "Settled once" here means
+   the hold is written once (unique `run_id`) and a start that finds its run charged charges
+   nothing again.
+3. **The effective cap** is the smallest of the wallet's cap, the client's wallet ceiling and the
+   study's budget (`domain/wallet.py` `effective_cap`), computed at every read, so a ceiling
+   lowered or a budget cut after a raise bounds the wallet at once.
+4. **A charge needs this run's start decision** (review P2-b): a `chat_start` or `plan_step`
+   ledger row of the same study (`CHARGE_AUTHORITIES`) whose `run_id` is the charged run, whose
+   decision is `start` (`CHARGE_DECISION`), used by no other charge (`wallet_charge_decision_once`);
+   a `plan_step` row's subject is its step, which the charge names with its plan (`plan_step_id`,
+   `plan_id`, both or neither by CHECK); a `chat_start` charge names neither. Each refusal has its
+   reason (`not_a_start_decision`, `decision_names_another_run`, `decision_not_a_start`,
+   `plan_step_mismatch`, `chat_start_names_a_plan`, `decision_already_used`). LO3 adds the check
+   that the step belongs to an approved plan, once `lead_plans` exists. The charge needs
+   `RUN_WORKFLOW`, not an approval: the plan authority (LO3) holds none
+   and charges under the decision a person already made. A person's own start on the Run stage
+   does not consult the wallet (`money.start_verdict`, `StartPath.PERSON`) and writes no charge,
+   so no existing start path calls the repository: with the switch on or off, today's spend paths
+   are byte-for-byte unchanged. LO5 (the typed chat start) and LO3/LO4 (the plan step) are its
+   callers: `quote` under the study lock, create the run, `charge` it, one transaction.
+5. **A refusal is typed, never decided here**: `WalletChargeRefused` (`no_wallet`,
+   `ceiling_unknown`, `outside_wallet`); the plan step parks on it and the typed start refuses
+   (`money.start_verdict`). "A charge above the wallet parks, never fails" is LO3's test, on its
+   step; LO1 proves the refusal writes nothing.
+6. **A closed study refuses and closes its wallet** (review P2-a): `set_cap`, `quote` and `charge`
+   read the status from the locked study row and refuse `study_closed`; the API's status change
+   goes through `application/wallet.py` `set_study_status`, which closes the wallet in the same
+   transaction when the study becomes DELIVERED, ARCHIVED or CANCELLED and the switch is on (off:
+   the status alone, no wallet row read). A first cap of USD 0 writes its raise and ledger row like
+   any other (review P3-b); an unknown study is 404 (P3-e).
+7. **The switch is the wallet's own** (`AIA_STUDY_WALLET_ENABLED`), apart from ADR 0028 decision
+   6's `AIA_LEAD_PLANS_ENABLED`, so the wallet ships off before any caller exists.
+
+Tests: `packages/aia_core/tests/test_study_wallet.py` (the cap's two refusals, the ledger row once,
+a no-op cap, bounds that move, the worker refused, a charge once by ceiling, unknown refused, no
+wallet, the authority's subject and study, another study's run, close and reopen, the table's
+uniques and kind CHECK, the switch off reading nothing; on PostgreSQL: eight concurrent USD 3
+charges on a USD 10 wallet, exactly three charged; a charge waiting on a held cap change and
+refused against the new cap; the migration's downgrade and upgrade, and its refusal with a raise
+stored). Both concurrency tests fail when `charge` reads the study row without the lock (measured:
+mutation run, 2 failed). `apps/api/tests/test_wallet_api.py` (off by default, on: set and read,
+both refusals with their details, 422, 404).
+
+Further tests (the review of #544): an exact decimal fit, this run's decision (six refusals), one
+`chat_start` row refused for a second run, the decision's unique key, a plan step naming its step
+and plan, a closed study refusing all three writes, the status change closing the wallet (three
+statuses) and keeping it open (IN_REVIEW), off reading nothing, a first cap of 0 recorded;
+`test_migration_heads.py`: exactly one Alembic head (review P1-a: #542 adds `a3c5e7f9b1d4` on the
+same parent; whichever merges second re-points its `down_revision`).
+
+### Findings (review of #544, recorded, not fixed here)
+
+- **F-LO1-1 (P3-c). A retry drains the wallet.** A retry is a new run (`run_id`), so it takes its
+  own charge at its full ceiling while the original's hold is never released. Anchor:
+  `infrastructure/study_wallet_repository.py` `charge` (unique `run_id`, no release) @ this PR's
+  head. Reproduction: charge run A at USD 5, retry it as run B and charge B: USD 10 held for one
+  run's work. Consequence: a few retries exhaust the wallet. Smallest fix: LO3's step-retry rule
+  says whether a retry's charge replaces the original's (released when the original ended without
+  paying), decided with the release question below. Test: a retried plan step's wallet holds one
+  ceiling, not two.
+- **F-LO1-2 (P3-d). The wallet is not bounded by what the budget has left.** `effective_cap` takes
+  `budget_usd`, not its remainder (`spent_usd` and open reservations). Anchor: `domain/wallet.py`
+  `effective_cap` @ this PR's head. Reproduction: budget USD 10, wallet USD 10, a person-started run
+  spends USD 9; the wallet still shows USD 10 remaining. Consequence: display only, since the
+  budget's reservation still stops the spend; a plan step would start and then park
+  `AWAITING_BUDGET` rather than be stopped at start. Smallest fix: bound remaining by the budget's
+  remainder when LO4 shows the meters. Test: the wallet's remaining never exceeds the budget's.
+- **F-LO1-3 (P3-f). The downgrade drops `clients.wallet_ceiling_usd`.** It refuses while a raise
+  or a charge is stored, but drops a ceiling an OWNER or ADMIN set. Anchor:
+  `migrations/versions/20261021_60ccc9ff42cf_…py` `downgrade` @ this PR's head. Nothing sets the
+  column until K11. Smallest fix: refuse the downgrade too while any ceiling is non-null, when K11
+  ships its setter. Test: the downgrade refuses with a ceiling set.
+
+**Open for the owner (not a finding).** With charges never released, a wallet is drawn down by
+upper bounds: a run whose ceiling was USD 5 and that cost USD 0.40 keeps USD 5 of the wallet held
+until the researcher raises the cap. ADR 0028 rejects charging by settled spend for concurrency; a
+release of the unspent part *after* a run ends (the hold settled to its usage) keeps concurrency
+safe and is a different rule. Whether to adopt it is the owner's, in an ADR 0028 amendment; LO1
+builds the ADR as written.
+
+### Doc follow-up (LO1)
+
+- `CLAUDE.md` map, `infrastructure/`: "`study_wallet_repository.py` The ONLY reader/writer of
+  `study_wallets`, `study_wallet_raises`, `study_wallet_charges` (M4, LO1): every amount compared
+  under the study row's `FOR UPDATE`; a charge is a run's ceiling, once, authorised by a
+  `chat_start` or `plan_step` ledger row; `set_cap` writes the `wallet` ledger row"; `application/`:
+  "`wallet.py` StudyWallets behind `AIA_STUDY_WALLET_ENABLED` (off by default)"; `domain/`:
+  "`wallet.py` the wallet's values: `ChargeKind`, `CHARGE_AUTHORITIES`, `effective_cap`, the two
+  refusals"; `routers/`: "wallet (GET/PUT /studies/{id}/wallet, Peněženka; off: available false,
+  409 wallet_disabled; 409 above_client_ceiling naming OWNER/ADMIN, above_study_budget)".
+- `ARCHITECTURE.md` enforcement list: the four `layer_check` wallet rules.
+- `docs/architecture/adr/0028-…` What enforces it: "the wallet is behind
+  `AIA_STUDY_WALLET_ENABLED`, apart from `AIA_LEAD_PLANS_ENABLED`"; and the release question above.
+- `open-items.md`: number F-LO1-1 (owner LO3), F-LO1-2 (owner LO4), F-LO1-3 (owner K11).
+- `CLAUDE.md` map, `application/`: "`wallet.py` … `set_study_status`: a study's status change, which
+  closes its wallet when it closes"; the scope router's status route goes through it.
+- `deploy/develop/README.md` (the switches): `AIA_STUDY_WALLET_ENABLED`, off, not in Compose.
+
+
+## Deep Research under the Lead (2026-10-21)
+
+The owner, 2026-10-21, on #550's note that the Deep Research start buttons stay because the Lead
+cannot start Deep Research end to end: **"we need to plan this, the lead should be able to control
+the whole process".** This section is that plan's Lead half. Its UI half is
+`research-lead-workbench` § *Deep Research cards and starts*, and its pricing half is
+`deep-research-web-search` 55 (DRL-0). The ids DRL-0 to DRL-11 name the pieces across the three
+files. Anchors are `@ 095a3e68` (`origin/develop` when written) unless stated; `@ cd7af699` is #550.
+
+### Decisions (the product owner, Nigel, 2026-10-21; not re-asked)
+
+- **Earlier the same day:** "the lead should be able to control the whole process".
+- **Q44 (12:28 UTC). The Lead may offer all seven Interpretation target kinds** of ADR 0021
+  (`domain/deep_research/integration.py:172-260`), **from the code-built candidate list, with the
+  `research_questions` analysis module as the default** it proposes. The seven are `TargetKind`
+  (`integration.py:172-179`). Six are results (`RESULT_QUESTION`, `RESULT_BATTERY_OBJECT`,
+  `ANALYSIS_MODULE`, `SOCIOMAP`, `SOCIOMAP_OBJECT`, `SOCIOMAP_RELATIONSHIP`) and are offered as
+  Interpretation candidates. The seventh, `DESIGN_REVISION`, is Design Research's own target: the
+  Lead reaches it through a design request, and the interpretation freeze refuses it (422), as it
+  does today. His note: "the research lead
+  needs to be able to control the end to end process and ensure it has all the context and
+  connections to be informed". So each candidate carries its connections in words built by code:
+  the research run and its date, the module, question or map entity, and the research questions it
+  traces to (`domain/research_trace.py`). The model never writes an id of its own.
+- **Q45 (12:29 UTC). A Design Research run may focus on named research questions;** the whole design
+  stays the default. His note: "cool idea, needs to be well planned and properly connected". So the
+  focus is ids of the revision's research questions taken from the turn's context, filtered by code
+  into the engine's subjects before the request is frozen. The engine is unchanged: it receives fewer
+  subjects, and per-subject fingerprints keep reuse. The card names each focused question and the
+  questionnaire items that measure it (`research_trace`), so the person sees what is researched and
+  what is not.
+- **Q46 (12:31 UTC). The Lead offers QUICK and STANDARD, and STANDARD is the default.** His note,
+  which overrides the option's own default of QUICK: "standard by default". The request contract
+  refuses DEEP and EXHAUSTIVE. The card shows each preset's own ceiling (DRL-0's quote), because even
+  these are large: `deep-research-reports.md` records worst cases of USD 31.03 for QUICK and
+  USD 170.59 for STANDARD over a fresh executive target.
+- **Q47 (12:31 UTC). An approved plan may chain fieldwork, then Interpretation Research on its
+  results.** Code resolves the target when that step starts, and the plan card shows it as
+  "výsledek kroku N · <modul>", with its ceiling confirmed at plan approval (D-02). **The step parks
+  if its module ended BLOCKED** (or is stored BLOCKED, as `needsRepair` reads it). It never
+  substitutes another target.
+- **Q48 (12:32 UTC). DRL-5 (removing the Deep Research buttons) waits for DRL-8** (typed starts that
+  work without the model, LO5a.3). Q43's guarantee therefore holds before the buttons go: with the
+  Lead off, Deep Research stays startable by a typed command.
+
+Decided as engineering in the same plan, not asked:
+- No new kill switch for the Lead's Deep Research card. It holds the same server gates as the stage
+  start it replaces, and a switch turned off would bring back D-12's gap once the buttons are gone.
+  Rollback is `AIA_AI_RESEARCH_LEAD_ENABLED`, which leaves typed starts working (Q43).
+- The Lead never cancels, accepts a proposal, approves a report or a setting, or adds a source by
+  itself (ADR 0026, ADR 0019, ADR 0022, CLAUDE.md).
+- The run card's retry, resume and budget lift use the stage routes, as #550's run card does.
+
+### Settled before and carried here
+
+- D-12: Deep Research starts only through the Lead (LO5a).
+- D15 and AC-02: Deep Research is not an exception; source proposals are (LO13).
+- D7 as #550 amends it, amended again by LO5a.2 for the two Deep Research kinds.
+- LO4: a card is a one-item plan once LO3 and LO4 land.
+- D-05: a Deep Research run is charged at its ceiling until M11 (`ChargeKind.DEEP_RESEARCH` and
+  `INTERPRETATION_RESEARCH`, `domain/wallet.py:58-66`).
+- Q42 and Q43: `research-lead-workbench` 27b, on #551.
+- ADR 0021: Design Research only proposes. The engine is frozen, so nothing below changes
+  `domain/deep_research/*` or `aia_executors/deep_research/*` except as a caller.
+- ADR 0022: a priced live route is refused until every live setting is approved
+  (`application/deep_research.py:625-632`), and the Lead never approves one.
+
+### The chunks
+
+**LO5a.1 (DRL-2). The Lead's Deep Research requests and context.**
+- `domain/research_lead.py`. Today both requests carry only `why` (`domain/research_lead.py:250-258`).
+  - `DesignResearchRequest` gains `preset: Literal["QUICK","STANDARD"] = "STANDARD"` (Q46) and
+    `focus: list[<research-question id>]`, empty for the whole design (Q45).
+  - `InterpretationResearchRequest` gains `target: <candidate id>` (by default the run's
+    `research_questions` module candidate, Q44) and `preset`.
+  - A new `DeepResearchRetryRequest` (`kind: "deep_research_retry"`, a `run_id` from the layer).
+  - `lead_contract` grounds every id against the layers and refuses one that is not there, as it
+    refuses an unknown focus target today.
+  - The prompt (`_TASK`, `:545-580`) describes the two purposes, the presets and what a target is,
+    and says that a rešerše is external context, never respondent evidence. The prompt version is
+    bumped (ADR 0020 pin).
+- New `domain/lead_research_targets.py`, `interpretation_candidates` (pure). It lists the study's
+  targetable entities from its finished research runs, newest first and bounded. Each candidate has
+  a short id `t1…tn` that is stable within the turn, its `TargetKind`, its words and connections
+  (Q44), and the `ResearchTargetRef` behind it. A module stored BLOCKED is left out (the `needsRepair`
+  rule).
+- `application/research_lead.py` `_freeze` gains two layers, each in its own byte budget inside the
+  96 KB, with omissions named and classed by `material_rules`. This closes F-DRL-4.
+  - `deep_research`: the study's newest Deep Research runs (id, purpose, target in words, preset,
+    phase and park code, counts, actual cost, ceiling).
+  - `targets`: the candidates.
+- The scripted Lead (`aia_executors/workbench.py`): "rešerš" prepares `design_research`; "výklad" or
+  "výsledk" prepares `interpretation_research` over the default candidate.
+- Tests (`test_research_lead.py`):
+  - an unknown target, focus or run id is refused;
+  - DEEP is refused, and STANDARD is the default;
+  - the layers fit inside 96 KB;
+  - a Deep Research run appears in the context;
+  - the layers' class follows `material_rules`;
+  - a BLOCKED module is omitted;
+  - a candidate's connections name its research questions.
+
+  Fixture: the candidate list for the workbench's fixture run.
+- **The scoped freeze (Q45; Codex on #553).** Today `DeepResearchRuns.freeze_design` and `start`
+  take no focus and rebuild every subject from the whole revision (`extract_subjects`,
+  `application/deep_research.py:293, 319 @ 095a3e68`). A focused card would therefore quote and run
+  the whole design. The contract:
+  - `freeze_design(…, focus=<research-question ids>)` validates each id against the revision's
+    research questions (an unknown id is refused by name, `focus_unknown`, 422) and carries only the
+    selected research-question subjects into the frozen `DeepResearchRequest`. An empty focus is the
+    whole design.
+  - That one frozen spec is used for both the quote and the enqueue: LO5a.2 freezes once and passes
+    the same spec to `DeepResearchRuns.quote` (DRL-0's `_admit`) for the card's price and to the
+    start for the run. The start gains an entry that enqueues a given frozen spec (or `start` takes
+    `focus` and freezes identically), so the run never re-freezes the whole design.
+  - The focused subjects are in the engine request, so a focused run has its own request and spec
+    fingerprint and never reuses the whole design's run by idempotency; its per-subject track
+    fingerprints still reuse what was researched before.
+  - **Dependency on DRL-0 (#555):** `_admit` and `quote` take the frozen spec, so the focus reaches
+    them through it. The quote route's body gains `focus` here, and `_admit` gains a focus parameter
+    only if a caller cannot hand it the focused spec. #555 is not changed for this.
+- Tests (focus): a focused quote equals the focused start's ceiling, and both are smaller than the
+  whole design's; an unknown focus id is refused before anything is priced; the focused run's
+  request holds only the selected subjects.
+- Kill switch: the Lead's own (`AIA_AI_RESEARCH_LEAD_ENABLED`). The fields only prepare.
+
+**LO5a.2 (DRL-3). A Lead card starts Deep Research on the server; this amends D7 for the two kinds.**
+Today `approve_request` raises `NotAPaidRequest` for any request that is not an `AgentJobRequest`
+(`application/research_lead.py:711-712`), and the router answers 422 `not_a_paid_request`
+(`routers/lead.py:335-336`; `test_a_request_that_only_opens_a_stage_is_not_a_paid_request`). The
+web card only navigates (`Workbench.tsx:258-262`).
+- Design: the design must be the revision the card was quoted on (LO10's rule: the turn's working
+  revision, else `LeadTurnStale`, else submit it). The design is frozen once with the card's
+  focus (LO5a.1's scoped freeze), and that spec is the one priced and enqueued.
+- Interpretation: the target is resolved from the turn's frozen candidates, then
+  `start_interpretation` is called. Its freeze verifies every pin (`ResearchTargetNotFound` and
+  `ResearchTargetInvalid`, answered 404 and 422).
+- `deep_research_retry` calls `retry`.
+- Each is priced by DRL-0 and confirmed with `confirm_cost_usd` equal to the ceiling the card showed
+  (D-02). A ceiling that grew asks again with the server's figure (#550's pattern,
+  `Workbench.tsx:476-493 @ cd7af699`).
+- The `lead_job_request` ledger row carries the run id, purpose, target, preset, focus, ceiling and
+  `spend`.
+- **The wallet (Codex on #553).** `lead_job_request` is not a wallet authority: a charge accepts only a
+  `chat_start` or `plan_step` row naming the charged run with decision `start`
+  (`domain/wallet.py:72-78`, `infrastructure/study_wallet_repository.py` `charge` and its decision
+  check). Without more, a card-approved run would bypass the wallet cap with the wallet on. So, when
+  `AIA_STUDY_WALLET_ENABLED` is on, the approval writes a wallet-authorising decision and charges the
+  wallet in the same transaction as the start, in LO1's order: quote under the study lock, create
+  the run, write the `lead_card` row naming that run (decision `start`), charge it as
+  `DEEP_RESEARCH` or `INTERPRETATION_RESEARCH` at its ceiling. A refused charge (`outside_wallet`,
+  `ceiling_unknown`, `no_wallet`) rolls the whole transaction back: no run, no ledger row. A person
+  approving a card on the spot is judged by `start_verdict`'s `CHAT_START` rule (inside the wallet,
+  refused outside); whether `StartPath` gets its own member is decided in the PR, with no rule of
+  its own. With the wallet off, nothing is charged, as for every start today.
+- **The authority: a new subject `lead_card`, not a single-step plan.** It is the smaller of the two.
+  A single-step plan needs `lead_plans`, `lead_plan_steps`, the plan authority and the `lead_plan`
+  workflow type (LO3, "the riskiest piece") and the plan card (LO4) before any Deep Research card
+  could charge. A new subject is one value in `ApprovalSubject`, one in `CHARGE_AUTHORITIES`, and one
+  migration (named here **M3b**, `lead_card` added to `approval_decisions.subject_type`'s CHECK, with
+  its round-trip test in `test_approval_ledger.py`). The cost is the one LO16 wanted to avoid: a
+  second migration on the same constraint. It also serves agent-job cards, which are not charged
+  today either (`StartPath.PERSON`). Reusing `lead_job_request` as the authority was rejected: its
+  `run_id` names the Lead turn's run and its decision is `approve` (`workflow_repository.py:2681-2715
+  @ 095a3e68`), so it cannot name the charged run without changing what existing rows mean.
+- Approved once: a second approval returns the same run. `NotAPaidRequest` stays for `research_run`
+  only.
+- `routers/lead.py` maps `LiveNotApproved` to 409 `live_settings_unapproved` with `missing` and
+  `routes`, and maps the cost 409s. It answers `research_lead_disabled` (Q42) if 27b has not landed;
+  whichever of the two lands second keeps one check.
+- Tests:
+  - an approval creates one run with its ledger row, and a second approval returns it;
+  - a stale working revision is refused;
+  - another study's target is 404;
+  - a moved pin is refused;
+  - the threshold asks, and once confirmed the row records `spend`;
+  - on a priced composition without approved live settings: 409 with the keys, and nothing written;
+  - with the Lead off: 409, with no workflow row and no reservation;
+  - the run's spec and fingerprint equal those of a stage start with the same inputs;
+  - with the wallet on, an approved card's run is charged once under its `lead_card` row, and a card
+    whose ceiling is over the wallet's remainder is refused with no run, no ledger row and no charge;
+  - with the wallet off, nothing is charged and nothing changes.
+- Depends on DRL-0, LO5a.1, LO1 (done), the M3b migration (in this chunk, after LO16) and LO10 (or
+  this chunk's own revision check for its kinds); ideally 27b.
+
+**LO5a.3 (DRL-8, on LO5). Typed Deep Research starts.**
+- LO5's matcher gains:
+  - "Spusť rešerši k návrhu [rychlou|standardní]", STANDARD when neither is said;
+  - "Spusť rešerši výsledků", with the target picked from the composer's code-built list (LO5a.1's
+    candidates), never parsed from free text;
+  - "Zopakuj rešerši";
+  - "Zastav rešerši".
+- Each runs in one transaction, in LO1's order (choice 4): quote under the study lock
+  (`start_verdict(CHAT_START)`), create the run, write the `chat_start` row naming it, then charge
+  the wallet as `DEEP_RESEARCH` or `INTERPRETATION_RESEARCH` at the ceiling.
+  `StudyWalletRepository.charge` needs the run to exist (`unknown_run`, `study_wallet_repository.py`
+  `charge`), so the charge comes after the create, never before; a refused charge rolls back the run
+  and the row.
+- It works with the Lead off (Q43).
+- Tests:
+  - with the Lead off, a typed design start writes `chat_start`, a charge and one run, while free
+    text is 409;
+  - outside the wallet, it is refused and nothing is written;
+  - the order holds: the charge names the run created in the same transaction, and a charge refused
+    after the create leaves no run, no `chat_start` row and no charge;
+  - a typed stop cancels the run;
+  - a journey on recorded web.
+- Kill switch: `AIA_STUDY_WALLET_ENABLED`.
+- Depends on LO5, LO1, DRL-0, LO5a.1 and 27b. **DRL-5 waits for it (Q48).**
+
+**LO5a.4 (DRL-9, on LO3/LO4). Deep Research as plan-step kinds.**
+- `lead_plan_steps.kind` takes `design_research` and `interpretation_research`.
+  - A design step runs over the plan's immutable revision (D-04).
+  - An interpretation step names a fixed target or one relative to an earlier step (Q47). Code
+    resolves it when the step starts.
+- The worker-side step calls `DeepResearchRuns.start` or `start_interpretation` under the plan
+  authority, priced by DRL-0 from the worker's settings. It parks on any of:
+  - a ceiling that grew (D-02);
+  - the wallet;
+  - `LiveNotApproved`;
+  - a BLOCKED module (Q47).
+- LO4's card shows one line per step: "Rešerše k návrhu · strop X USD".
+- Tests:
+  - an approved plan "fieldwork, then interpretation of step 1's `research_questions` module" runs
+    both steps and charges two `plan_step` rows;
+  - a grown ceiling parks;
+  - a BLOCKED module parks the step and starts nothing;
+  - a withdrawn plan (LO17) cancels the running Deep Research step;
+  - the worker's ceiling equals the API's quote for the same spec.
+- Kill switch: `AIA_LEAD_PLANS_ENABLED`.
+- Depends on LO3, LO4, LO17 and DRL-0.
+
+**LO5a (the acceptance).**
+- At 1440 and 390 px, Deep Research can be started only through the Lead: an approved card, a typed
+  command or a plan step.
+- A direct `POST …/deep-research/runs` with the page's token meets the same gates.
+- It is ticked together with `research-lead-workbench` 26f.1 (DRL-5).
+
+**LO6 (DRL-10) and LO8 (DRL-11)** are tightened in their own paragraphs above, and **LO17**'s test in
+the scope freeze section.
+
+**Order.**
+1. DRL-0 and DRL-1, in parallel.
+2. LO5a.1.
+3. LO5a.2, after LO10 (ideally after 27b).
+4. DRL-6, which can go early.
+5. DRL-4, after #550.
+6. DRL-7.
+7. LO5a.3 (on LO5), **then DRL-5 (Q48)**.
+8. LO6's, LO5a.4's and LO8's parts, as their parents land.
+
+### Findings
+
+- **F-DRL-4. The Lead cannot see a Deep Research run.**
+  - Anchor: `application/research_lead.py:858-866 @ 095a3e68` lists runs with
+    `workflow_type=RESEARCH`, at most five.
+  - Reproduction: start a Design Research run, post a Lead turn, and read the turn's frozen context.
+    No Deep Research run is in it.
+  - Consequence: "Kde jsme?" omits a running or finished rešerše, and the Lead may prepare a
+    duplicate.
+  - Smallest fix: LO5a.1's `deep_research` layer.
+  - Test: LO5a.1's "a Deep Research run appears in the context".
+- **F-DRL-5. The Interpretation target is fixed in the browser.**
+  - Anchor: `apps/web/src/lib/api.ts:1380-1385 @ 095a3e68` always sends `ANALYSIS_MODULE`
+    `research_questions`.
+  - Reproduction: `git show 095a3e68:apps/web/src/lib/api.ts | sed -n 1380,1385p`.
+  - Consequence: six of ADR 0021's seven target kinds have no way in from the product, although
+    `POST …/runs/interpretation` accepts them.
+  - Smallest fix: LO5a.1's candidates, all seven kinds (Q44).
+  - Test: an LO5a.2 approval over a battery-object candidate starts a run whose target is that object.
+- F-DRL-1 and F-DRL-6 belong to `research-lead-workbench`. F-DRL-2, F-DRL-3 and F-DRL-7 belong to
+  `deep-research-web-search` (chunk 55).
+
+### Doc follow-up (Deep Research under the Lead)
+
+- `open-items.md`: number F-DRL-4 (owner LO5a.1) and F-DRL-5 (owner LO5a.1).
+- `mvp-master-plan.md` and `mvp-execution-contracts.md`: the register rows listed in this PR's
+  description.
+- ADR 0026 *Accepted with*: a Lead card starts Design and Interpretation Research on the server
+  through `approve_request` (LO5a.2), with the Q44-Q47 answers.
+- ADR 0028 (the wallet): a person's approval of a Lead card is a charge authority, `lead_card`
+  (migration M3b on the subject CHECK, LO5a.2); LO16's delivered note gains the same line.
+
+## LO5 delivered (2026-10-21, Sprint 5 part 3, stacked on research-lead-workbench 27b's #561)
+
+**The vocabulary** (`domain/lead_commands.py`, pinned in
+`packages/aia_core/tests/fixtures/lead_commands/commands.json`, served on `GET /lead` as
+`commands`). One Czech imperative per start, named as the card registry names it:
+
+| Typed | Start |
+|---|---|
+| Analyzuj zadání | `agent_job:analyze_brief` |
+| Navrhni dotazník | `agent_job:build_questionnaire` |
+| Uprav dotazník | `agent_job:optimize_questionnaire` |
+| Navrhni audienci | `agent_job:propose_audience` |
+| Navrhni dimenze | `agent_job:suggest_dimensions` |
+| Zkontroluj návrh | `agent_job:critique_design` |
+| Pomoz s návrhem | `agent_job:design_copilot` |
+| Zeptej se na klientské znalosti | `agent_job:answer_memory` |
+| Spusť výzkum | `research_run` |
+
+The whole message must be the command after a fixed normalisation (NFC, case folded, whitespace
+collapsed, an optional leading `/`, one trailing `.` or `!`); diacritics are kept exactly, so
+"spust vyzkum" is a message, and so is "Prosím spusť výzkum". A design job may carry the person's
+instruction after a colon ("Navrhni dotazník: krátce"); the run takes none. Nothing near a
+command is read as one: a guess at a start is the thing LO5 exists to prevent.
+
+**The path.** `ResearchLead.post` matches before anything else: a command is stored on the
+person's own turn (`study_lead_turns.command`, migration `c663617cf79b`, CHECK
+`command IS NULL OR actor = 'person'`), with no Lead turn and no run, Lead on or off, hatched or
+not (Q43). Free text with the Lead off is still 409 `research_lead_unavailable`.
+`approve_request` reads the stored turn: a person's turn naming a command goes to
+`application/lead_chat_start.py` `approve_chat_start`, never through the Lead switch (D22); a
+Lead turn keeps 27b's guard. The approval runs in LO1's order, in the request's one transaction:
+
+1. with `AIA_STUDY_WALLET_ENABLED`: `StudyWallets.quote` under the study lock and
+   `money.start_verdict(CHAT_START)`: outside the wallet or an unknown ceiling is 409
+   `outside_wallet` / `ceiling_unknown` (nothing written), the threshold asks
+   (`cost_confirmation_required`); with the wallet off, nothing is quoted or charged;
+2. the work's own start: `ResearchAgentJobs.start` (the job's reservation is its ceiling, LO15's
+   threshold and `spend` row) or `ResearchRuns.start` on the deployment's run settings
+   (`routers/research.py` `run_start_settings`, the same values `POST …/research/runs` passes;
+   its refusals through the shared `run_start_errors`);
+3. `WorkflowRepository.record_chat_start`: subject the run, decision `start`, the turn, the start,
+   the ceiling and the Design Revision; `APPROVE_GATE`, which the worker's scope withholds;
+4. `StudyWallets.charge` (`AGENT_JOB` or `RESEARCH_RUN`) under that row; a refusal rolls the run
+   and the row back with it.
+
+Approved once: a second approval returns the run its `chat_start` row names. A start that finds
+its work already there (the same job on the same design, the revision's run) returns it and
+writes nothing: that work was authorised when it was created.
+
+**Choices recorded.** (1) A typed research run starts on the deployment's defaults: the default
+persona source, LIVE, no answerability acknowledgement (a gap with the gate on is refused by the
+run's own rule and the person goes to Spuštění). (2) The command is a column, not a new turn
+kind: `kind` stays `message`, so every reader of the conversation is unchanged. (3) The matcher
+runs before the Lead's switch, its lock and its busy check: a typed start is the person's, not a
+conversation turn.
+
+**Not here.** Deep Research typed starts (LO5a.3) need DRL-0 (#555) and LO5a.1, neither on
+develop; `design_research` and `interpretation_research` are not matched yet. The composer's
+recognition and card in the web are the next PR, after #550 (Lead chat cards) merges.
+
+Tests: `packages/aia_core/tests/test_lead_commands.py` (the fixture, every worker and the run
+once, matches and near-misses), `test_lead_chat_start.py` (the row authorises its charge; the
+worker cannot write one), `apps/api/tests/test_lead_chat_start_api.py` (Lead off: a command taken,
+free text 409; Lead on: no model turn; in one switched-off state the model's card 409 and the typed
+card started; once only; the threshold; a typed run; a design not ready writes nothing; another
+researcher's card 404; with the wallet on: charged under its row, outside or unknown writes
+nothing, a charge refused after the create rolls back; the CHECK). Migration: `alembic upgrade
+head`, `alembic check`, `downgrade base`, `upgrade head` on PostgreSQL 16.
+
+### Doc follow-up (LO5)
+
+- `CLAUDE.md` map, `routers/lead.py`: "a message that is exactly a typed start command
+  (`domain/lead_commands.py`) is stored as the person's command, Lead on or off, with no model
+  turn; `POST …/turns/{turn_id}/request` starts it (ledger `chat_start`, the wallet when on);
+  `GET /lead` lists `commands`".
+- `CLAUDE.md` map, `domain/`: "`lead_commands.py` the composer's typed start commands, matched
+  by code (LO5), pinned in `tests/fixtures/lead_commands/commands.json`"; `application/`:
+  "`lead_chat_start.py` approve_chat_start: quote, create, `chat_start`, charge (LO1's order)";
+  `infrastructure/`: "`workflow_repository.record_chat_start`".
+- ADR 0028 *What enforces it*: the `chat_start` writer and its order.
+- ADR 0026 *Accepted with*: typed start commands bypass the model and the Lead's switch (Q43).

@@ -85,7 +85,7 @@ job's summary in CI.
 | `population.panel_loader` | population-data | PARTIAL | INTENTIONAL_DIFFERENCE | — | F10 | golden_fixture x1, production_contract x1 | R1, R4, R9 | yes |
 | `population.readiness` | population-data | NOT_STARTED | SEMANTIC | — | — | — | — | yes |
 | `population.weighting` | population-data | PARTIAL | INTENTIONAL_DIFFERENCE | — | F11 | golden_fixture x1, production_contract x1 | R3 | yes |
-| `project.memory` | project *(unconfirmed)* | NOT_STARTED | SEMANTIC | — | — | — | — | yes |
+| `project.memory` | project *(unconfirmed)* | PARTIAL | SEMANTIC | — | — | — | — | yes |
 | `project.migration` | project *(unconfirmed)* | RETIRED | NO_PARITY_REQUIRED | — | — | — | — | no |
 | `project.persistence` | project *(unconfirmed)* | IMPLEMENTED | SEMANTIC | — | — | production_contract x1 | — | yes |
 | `questionnaire.conditionals` | research *(unconfirmed)* | NOT_STARTED | NUMERICAL | `1e-09` | — | — | — | yes |
@@ -100,13 +100,13 @@ job's summary in CI.
 | `respondents.layers` | research *(unconfirmed)* | PARTIAL | NUMERICAL | `1e-09` | — | production_contract x1 | — | yes |
 | `results.dialogue` | results *(unconfirmed)* | NOT_STARTED | SEMANTIC | — | — | — | — | no |
 | `results.registry` | results *(unconfirmed)* | NOT_STARTED | SEMANTIC | — | — | — | — | yes |
-| `results.verification` | results *(unconfirmed)* | NOT_STARTED | SEMANTIC | — | — | — | — | yes |
+| `results.verification` | results *(unconfirmed)* | NOT_STARTED | SEMANTIC | — | — | — | — | no |
 | `runtime.desktop` | platform *(unconfirmed)* | RETIRED | NO_PARITY_REQUIRED | — | — | — | — | no |
 | `simulation.engine` | A7 simulation-engine | PARTIAL | NUMERICAL | `1e-09` | F13 | production_contract x1 | — | no |
 | `simulation.scenarios` | A7 simulation-engine | PARTIAL | EXACT | — | — | production_contract x1 | — | no |
 | `sociomapping.core` | A8 sociomapa-deterministic | PARTIAL | NUMERICAL | `1e-09` | F1, F2, F4, F5, F6, F7, F8, F9, F12, U01, U02, U03, U04, U05, U06, U07 | golden_fixture x9, production_contract x4 | R16 | yes |
 | `sociomapping.study_module` | A8 sociomapa-deterministic | PARTIAL | NUMERICAL | `1e-12` | F3 | golden_fixture x1 | — | yes |
-| `statistics.calibration` | analysis *(unconfirmed)* | NOT_STARTED | NUMERICAL | `1e-09` | — | — | R5 | yes |
+| `statistics.calibration` | analysis *(unconfirmed)* | NOT_STARTED | NUMERICAL | `1e-09` | — | — | R5 | no |
 | `statistics.diagnostics` | analysis *(unconfirmed)* | NOT_STARTED | NUMERICAL | `1e-09` | — | — | — | yes |
 | `statistics.uncertainty` | analysis *(unconfirmed)* | PARTIAL | NUMERICAL | `1e-09` | — | production_contract x2, reference_contract x1 | R5 | yes |
 | `tests` | verification *(unconfirmed)* | RETIRED | NO_PARITY_REQUIRED | — | — | — | — | no |

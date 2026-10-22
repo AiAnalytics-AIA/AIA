@@ -33,10 +33,12 @@ from .routers import (
     population,
     projects,
     research,
+    researcher_spend,
     runs,
     scope,
     session,
     system_prompts,
+    wallet,
     workspace,
 )
 from .routers import settings as settings_router
@@ -158,6 +160,8 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     app.include_router(methodology.router, prefix=API_PREFIX)
     app.include_router(population.router, prefix=API_PREFIX)
     app.include_router(materialize.router, prefix=API_PREFIX)
+    app.include_router(wallet.router, prefix=API_PREFIX)
+    app.include_router(researcher_spend.router, prefix=API_PREFIX)
     return app
 
 

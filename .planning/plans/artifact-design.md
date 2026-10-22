@@ -1,0 +1,179 @@
+---
+status: in-progress
+chunks:
+  - "[x] DSN1. Návrh's contract as data: view operations, pointable ids (rq, objective, hypothesis, set, assumption) and V2's interaction contract, in research-lead-workbench 14's and 16's tables"
+  - "[ ] DSN2. Research questions with their coverage on the working revision: measures, items, comparison and gaps from research_trace, pokryto / částečně / mezera by the trace's own verdict"
+  - "[ ] DSN3. The narrative as items: problem summary, objectives, hypotheses and comparable measurements edited in place and autosaved, ProposalEditor and MeasurementEditor retired"
+  - "[ ] DSN4. Ve zprávě: each research question's report chapter and the analysis module answering it, from the newest run's stored report model"
+  - "[ ] DSN5. Design Research in Návrh: findings per research question as external context, the review of its proposal (7b) mounted at the question, the panel moved here from Dotazník as a reader"
+  - "[ ] DSN6. Tracked assumptions in Návrh, from the one assumption item contract"
+  - "[ ] DSN7. The Lead on Návrh: analyze_brief, critique_design and design_copilot as cards, their proposals inline, PlanStep's AI starts removed"
+  - "[ ] DSN8. Journey: Návrh at 1440, 1100, 768 and 390 px, zero paid jobs"
+---
+# Artifact: Návrh (Research design)
+
+Umbrella: `research-lead-workbench#18` (with Zadání). Chain: [`artifact-chain-to-draft-report.md`](artifact-chain-to-draft-report.md).
+Anchors `@ 25f26232`; prototype `@ 9b50963f`.
+
+## 1. What it is, and its single job
+
+**Its job: say what the study must answer and how each answer will be measured.** It is the
+research questions with their measures, the hypotheses and objectives, and the comparisons each
+question needs.
+
+V2: `DesignArt` (`prototypes/research-lead-v2/src/artifacts/DesignStages.tsx:37-91`).
+- §1 "Výzkumné otázky a jejich pokrytí", with the aside "pokrytí počítá AIA (research_trace)". Each RQ
+  carries a status chip (pokryto / částečně / mezera, `:33-35`) and a coverage grid: Rozhodnutí,
+  Měření, Položky dotazníku with stage links, then, expanded, Analýza, Očekávaná odpověď, Hotovo,
+  když, Ve zprávě and Mezery (`:58-69`).
+- §2-3 Metody and Nevyřešené volby (`fixture.ts:88-93`).
+- §4 Hloubkový výzkum pro návrh: DESIGN_RESEARCH only proposes (`:86-88`).
+- Contract `CONTRACTS.design` (`fixture.ts:406`).
+
+**Settled reduction:** D-44 takes the question chain out (`working-copy-edit-ops.md`, "WCE1 gains
+no decision, expected-answer or done-when kinds"). So Rozhodnutí, Očekávaná odpověď and Hotovo,
+když are not built. What stays is code-derived: measures, items, comparison, analysis and report.
+
+## 2. What exists today
+
+- `PlanStep` (`apps/web/src/components/rehome/research/PlanStep.tsx:79`):
+  - `Understanding`, the narrative behind "Upravit text návrhu" (`:349`, `#plan-understanding`);
+  - `Sets` and `SetCard`, the comparable measurements (`:402`, `:473`, `#plan-sets`), with
+    `MeasurementEditor` (`:565`);
+  - `Variants` (`:292`) and `FollowUps` (`:595`, `#plan-questions`);
+  - `Comments` (`:697`).
+- Its AI starts: `PlanStep.tsx:636` (answer the follow-ups) and `:756` (process comments).
+- The trace: `research_trace` is computed in readiness (`apps/api/src/aia_api/routers/research.py:1131`;
+  `application/research.py:1203`) and shown on Spuštění only (`ResearchTraceCard`,
+  `ExecutionSteps.tsx:468`). The web reads links with `apps/web/src/research/trace.ts`. Design
+  Research evidence per RQ: `apps/web/src/lib/design-evidence.ts`.
+- Design Research's panel sits on Dotazník (`QuestionnaireStep.tsx:271`, `DeepResearchPanel.tsx:34`).
+
+## 3. Gaps
+
+| # | Gap | Kind |
+|---|---|---|
+| D-1 | Coverage per RQ in Návrh. Readiness needs a submitted Design Revision; coverage on the working revision is `working-copy-edit-ops#WCE7` | needs a new API (owned there) |
+| D-2 | Status pokryto / částečně / mezera from the trace's verdict (no new rule) | data exists |
+| D-3 | Comparison per RQ, "Metody" (`comparison_set`, `research_trace.comparisons_of`) | data exists |
+| D-4 | Ve zprávě: an RQ's report chapter. There is no stored report model (`report-delivery#RD5a`) | needs a new API |
+| D-5 | The analysis module answering an RQ (RESEARCH_QUESTIONS; gaps recorded at start, `report_method.py:151`) | data exists after a run |
+| D-6 | Nevyřešené volby = analyze_brief's follow-up questions and variants | data exists |
+| D-7 | Design Research proposal review inside the artifact (F-DRL-1, `research-lead-workbench#7b`) | data exists (route); web new |
+| D-8 | Assumptions (`assumptions-and-open-answer-coding#AOC1`, `#AOC3`) | needs a new API (owned there) |
+| D-9 | Narrative edited in place (audit A29-A36) on the server's vocabulary (`working-copy-edit-ops#WCE3a`) | needs a new API (owned there) |
+
+## 4. The Lead on this artifact
+
+- **View operations:**
+  - `open_stage(design)`;
+  - `focus(target)`;
+  - `expand_chain(rq id)`, V2's "Celý řetěz" (`DesignStages.tsx:71`), display only;
+  - `show_changes`, `show_tab`.
+- **Pointing:** `rq:<id>`, `objective:<id>`, `hypothesis:<id>`, `set:<id>`, `assumption:<id>` and
+  `plan:<part>` (today's form, `lib/lead.ts:428-431`). `data-aia` is `design.<section>.<id>`.
+- **Edit operations.**
+  - Text: `list_replace` on RQs, objectives and hypotheses; `set_text` on `plan.problem_summary`.
+  - Structure: `list_add` / `list_remove`; `set_add` / `set_edit` / `set_remove` and `comparison_set`
+    (WCE3a); `assumption_*` (AOC1). `set_edit` is ruled text only for its title (`edit_ops.py:775`,
+    by payload).
+- **Workers:**
+  - `analyze_brief` (a proposal);
+  - `critique_design`, `design_copilot` and `answer_memory` (advice);
+  - Design Research on named RQs (`lead-orchestration#LO5a.1`), with its request, running and finished
+    cards (`research-lead-workbench#23b`, `#23c`).
+- **Inline proposals:** analyze_brief's plan changes at their items, and a Design Research proposal's
+  EVIDENCE items at their RQ (7b). A GAP item has no checkbox.
+
+## 5. Inputs and outputs
+
+- **Reads:** the Brief (goal, objectives, decision_use) and Dotazník's links to RQs
+  (`research_questions` on questions and sets), plus the newest finished Design Research run.
+- **Hands on:**
+  - `plan.research_questions`, a typed list by text, read by `research_questions_of`
+    (`domain/analysis/native.py:141`), by every analysis module and by the report's `intro` and
+    `ch-design`;
+  - `plan.hypotheses`, which the analysis does not receive today (AOC3, a Q12 gap);
+  - `research_question_comparisons`, read by readiness;
+  - sets, compiled into `spec.batteries`;
+  - Design Research accepted items, as a ledger ref (`design_research` row) and a Design Revision.
+
+  The report prints none of the Design Research a design was built on
+  (`artifact-chain-to-draft-report#CHN4`).
+
+## 6. Input interactions
+
+- A29-A36 (variants, the narrative and its lists, sets, the measurement editor, follow-ups, comments,
+  the leave guard).
+- Primitives: `InlineText`, `InlineCreateRow`, `UndoToast`, `ChoiceChips` (comparison) and
+  `RadioCard` (variants).
+
+## 7. Chunks
+
+**DSN1. Contract.** `lib/artifacts/design.ts` with its Vitest (as BRF1). Depends on
+`research-lead-workbench#14`, `#16`.
+
+**DSN2. Research questions with their coverage.**
+- Each RQ shows its measures by wording (`traceMeasures`), the items linking to Dotazník, the
+  comparison and its gaps; the status comes from `research_trace`'s verdict.
+- Tests: Vitest with a trace fixture (an unmeasured RQ reads mezera; an unknown link reads
+  "neznámé", never pokryto, §8 of CLAUDE.md); the API test of WCE7's working-revision readiness.
+- Depends on `working-copy-edit-ops#WCE7`. Until then the coverage reads from the newest Design
+  Revision and says so.
+- Progress (2026-10-21, `feature/design-rq-coverage`): the interim form landed. `DesignCoverage`
+  reads the newest Design Revision's readiness `research_trace` (a GET), says which revision and
+  whether the working copy moved since (`revisionIsCurrent`), and reads a question the revision does
+  not hold as neznámé (`lib/design-coverage.ts`; `design-coverage.test.ts`, `PlanStep.test.tsx`
+  "Návrh: Výzkumné otázky a jejich pokrytí"). Stays open for WCE7's working-revision coverage, the
+  per-question `rq:<id>` target (WCE1's stable ids) and V2's "Celý řetěz" (needs `expand_chain` in
+  `ARTIFACTS.design`).
+
+**DSN3. The narrative as items.**
+- Replaces `ProposalEditor` and `MeasurementEditor`'s explicit save (A30, A33) with autosaved items.
+- Test: `PlanStep.test.tsx`: an RQ edited in place keeps its id; a set's items reach 15 and stop.
+- Depends on `input-interactions#4` and `working-copy-edit-ops#WCE3a`.
+- Progress (2026-10-21, `feature/design-narrative-items`): the narrative half landed on today's
+  store path. `PlanNarrative` edits the problem summary and each research question, objective and
+  hypothesis in place (`InlineText`), adds them in their list (`InlineCreateRow`) and takes a
+  removal back (`UndoToast`); `ProposalEditor` is retired (`research/plan-narrative.ts`,
+  `plan-narrative.test.ts`, `PlanStep.test.tsx`). A value edited in place is a button, in which a
+  browser selects no text, so a narrative item is commented on by its own "Komentovat" (quoting the
+  item whole); selection still comments elsewhere (A35). Stays open for `MeasurementEditor` folded
+  into the set card (A33) and the move onto WCE3a's vocabulary.
+
+**DSN4. Ve zprávě.**
+- From the newest completed run's stored report model: the section id (`ch-2`, and any
+  `ch-questions` table holding its measures) and title answering each RQ.
+- Test: an RQ the report marks "bez doložené odpovědi" shows it.
+- Depends on `report-delivery#RD5a` and `artifact-chain-to-draft-report#CHN3`.
+
+**DSN5. Design Research in Návrh.**
+- `DesignResearchReview` (7b) is mounted at each RQ; `DeepResearchPanel` moves here as a reader
+  (26f.1 removes its start).
+- Test: a finding is labelled "Externí kontext", never coverage.
+- Depends on `research-lead-workbench#7b`, `#26f.1`, `#12a` (journey).
+
+**DSN6. Assumptions.** One list with Cílová skupina, on the same contract. Test: UNTESTED shows as
+untested. Depends on `assumptions-and-open-answer-coding#AOC1`.
+
+**DSN7. The Lead on Návrh.**
+- Cards for the three workers (#550), proposals inline (chunk 7); `PlanStep.tsx:636, 756` removed
+  under `leadOwnsAiStarts`.
+- Tests: the 26f guard; a stale proposal is refused in words (`proposal-items.ts`).
+- Depends on #550 (`research-lead-workbench#23`), `#7`, `#26f` and `lead-orchestration#LO5`.
+
+**DSN8. Journey** at 1440, 1100, 768 and 390 px:
+- an RQ edited in place and reloaded;
+- `expand_chain` by the scripted Lead;
+- a Design Research card on 12a's recorded web, accepted at its RQ;
+- zero paid jobs.
+
+768 and 390 px depend on `research-lead-workbench#26b`-`#26d`.
+
+## 8. Owner questions
+
+None: D-44 settled the chain's reduction; MVPQ-02 the assumptions.
+
+## Doc follow-up
+
+- Register this plan and its chunks in `mvp-master-plan.md` §3 and `mvp-execution-contracts.md`.

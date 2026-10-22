@@ -593,6 +593,9 @@ class AudiencePreviewResponse(_Model):
     selected_rows: int | None
     selected_donors: int | None
     filters_applied: dict[str, Any] | None
+    #: Each applied filter alone over the same population: rows it selects (AUD3). ``None``
+    #: when the audience is refused; ``{}`` without filters.
+    per_filter: dict[str, int] | None
     audience: PreviewVerdict
     n: int | None
     sample: PreviewVerdict | None

@@ -1068,7 +1068,7 @@
       "reading_cs": "{sample_size.min} ≤ n ≤ {sample_size.max}",
       "role_cs": "Kolik respondentů smí studie mít. Mimo rozsah AIA běh nespustí: výzkumník musí vzorek upravit.",
       "source_cs": "n zadané v kroku Dimenze a vzorek",
-      "source_sha256": "39e3096864f8f3fbc59e93bac544ad4a763362ad24b85f9787b61c3dc12b4aaf",
+      "source_sha256": "abb20afcd8402a211b300f41dc91a7669882ddc5bca3e0b94ed6c81226d87e0d",
       "symbols": [
        {
         "latex": "n",
@@ -1078,6 +1078,7 @@
       ],
       "tests": [
        "packages/aia_core/tests/test_research_design.py::test_readiness_is_named_checks_and_a_fail_blocks",
+       "packages/aia_core/tests/test_research_design.py::test_the_one_rule_for_a_valid_n_refuses_and_never_clamps",
        "packages/aia_core/tests/test_methodology_readiness.py::test_the_limits_in_force_decide_the_checks"
       ],
       "title_cs": "Velikost vzorku",
@@ -1128,7 +1129,7 @@
       "reading_cs": "{tracked_set.min} ≤ počet ≤ {tracked_set.max}, doporučeno {tracked_set.recommended_min}–{tracked_set.recommended_max}",
       "role_cs": "Kolik srovnatelných položek (značek, médií, emocí) smí mít jedna sledovaná sada. Mimo pevné meze se návrh nesestaví; mimo doporučené kontrola jen upozorní.",
       "source_cs": "položky každé sledované sady v dotazníku",
-      "source_sha256": "4e0f062fc16ec99db8f57043bd32f5651d6eec1d68c978abcd366aa2e1b0bf92",
+      "source_sha256": "4f83d0bb95488d3997d74ddfd7021b5f320a5e645b1145b033514025fabebd49",
       "symbols": [
        {
         "latex": "k",
@@ -1315,7 +1316,7 @@
       "reading_cs": "",
       "role_cs": "",
       "source_cs": "",
-      "source_sha256": "df1695f68eabd76ef93d467fe9ad22e41f8131b0e07aab674d866de5a68a187b",
+      "source_sha256": "56d53a0992909f74f30137d293390724b674415e86a6a156114de4ce4523e7cd",
       "symbols": [
        {
         "latex": "K",
@@ -2540,7 +2541,7 @@
       ]
      },
      {
-      "audit": "— schválená metodika AIA Sociomapa",
+      "audit": "AIA",
       "effect_cs": "",
       "evidence": [
        {
@@ -3077,7 +3078,7 @@
       ]
      },
      {
-      "audit": "— schválená metodika AIA Sociomapa",
+      "audit": "AIA",
       "effect_cs": "",
       "evidence": [
        {
@@ -3139,7 +3140,7 @@
       "values": []
      },
      {
-      "audit": "— schválená metodika AIA Sociomapa",
+      "audit": "AIA",
       "effect_cs": "",
       "evidence": [
        {
@@ -3200,7 +3201,7 @@
       ]
      },
      {
-      "audit": "— schválená metodika AIA Sociomapa",
+      "audit": "AIA",
       "effect_cs": "",
       "evidence": [
        {
@@ -3273,7 +3274,7 @@
       ]
      },
      {
-      "audit": "— schválená metodika AIA Sociomapa",
+      "audit": "AIA",
       "effect_cs": "",
       "evidence": [
        {
@@ -3342,7 +3343,7 @@
       ]
      },
      {
-      "audit": "— schválená metodika AIA Sociomapa",
+      "audit": "AIA",
       "effect_cs": "",
       "evidence": [
        {
@@ -3714,7 +3715,7 @@
       ]
      },
      {
-      "audit": "— schválená metodika AIA Sociomapa",
+      "audit": "AIA",
       "effect_cs": "",
       "evidence": [
        {
@@ -3762,7 +3763,7 @@
       "values": []
      },
      {
-      "audit": "— schválená metodika AIA Sociomapa",
+      "audit": "AIA",
       "effect_cs": "",
       "evidence": [
        {
@@ -3908,7 +3909,7 @@
       ]
      },
      {
-      "audit": "— schválená metodika AIA Sociomapa",
+      "audit": "AIA",
       "effect_cs": "",
       "evidence": [
        {
@@ -4004,7 +4005,7 @@
       ]
      },
      {
-      "audit": "— schválená metodika AIA Sociomapa",
+      "audit": "AIA",
       "effect_cs": "",
       "evidence": [
        {
@@ -4204,7 +4205,7 @@
       ]
      },
      {
-      "audit": "— schválená metodika AIA Sociomapa",
+      "audit": "AIA",
       "effect_cs": "",
       "evidence": [
        {
@@ -4266,7 +4267,7 @@
       "values": []
      },
      {
-      "audit": "— schválená metodika AIA Sociomapa",
+      "audit": "AIA",
       "effect_cs": "",
       "evidence": [
        {
@@ -4338,7 +4339,7 @@
       "values": []
      },
      {
-      "audit": "— schválená metodika AIA Sociomapa",
+      "audit": "AIA",
       "effect_cs": "",
       "evidence": [
        {
@@ -4884,7 +4885,7 @@
       ]
      },
      {
-      "audit": "— schválená metodika AIA Sociomapa",
+      "audit": "AIA",
       "effect_cs": "",
       "evidence": [
        {
@@ -4969,7 +4970,7 @@
       "values": []
      },
      {
-      "audit": "— schválená metodika AIA Sociomapa",
+      "audit": "AIA",
       "effect_cs": "",
       "evidence": [
        {
@@ -5026,7 +5027,7 @@
       "values": []
      },
      {
-      "audit": "— schválená metodika AIA Sociomapa",
+      "audit": "AIA",
       "effect_cs": "",
       "evidence": [
        {
@@ -5110,7 +5111,7 @@
       ]
      },
      {
-      "audit": "— schválená metodika AIA Sociomapa",
+      "audit": "AIA",
       "effect_cs": "",
       "evidence": [
        {
@@ -5173,7 +5174,7 @@
       "values": []
      },
      {
-      "audit": "— schválená metodika AIA Sociomapa",
+      "audit": "AIA",
       "effect_cs": "",
       "evidence": [
        {
@@ -5224,7 +5225,7 @@
       "values": []
      },
      {
-      "audit": "— schválená metodika AIA Sociomapa",
+      "audit": "AIA",
       "effect_cs": "",
       "evidence": [
        {
@@ -5270,7 +5271,7 @@
       "values": []
      },
      {
-      "audit": "— schválená metodika AIA Sociomapa",
+      "audit": "AIA",
       "effect_cs": "",
       "evidence": [
        {
@@ -5325,7 +5326,7 @@
       "values": []
      },
      {
-      "audit": "— schválená metodika AIA Sociomapa",
+      "audit": "AIA",
       "effect_cs": "",
       "evidence": [
        {
@@ -5378,7 +5379,7 @@
       "values": []
      },
      {
-      "audit": "— schválená metodika AIA Sociomapa",
+      "audit": "AIA",
       "effect_cs": "",
       "evidence": [
        {
@@ -5429,7 +5430,7 @@
       "values": []
      },
      {
-      "audit": "— schválená metodika AIA Sociomapa",
+      "audit": "AIA",
       "effect_cs": "",
       "evidence": [
        {
@@ -5751,7 +5752,7 @@
       "values": []
      },
      {
-      "audit": "— schválená metodika AIA Sociomapa",
+      "audit": "AIA",
       "effect_cs": "",
       "evidence": [
        {
@@ -5816,7 +5817,7 @@
       ]
      },
      {
-      "audit": "— schválená metodika AIA Sociomapa",
+      "audit": "AIA",
       "effect_cs": "",
       "evidence": [
        {
@@ -6487,7 +6488,7 @@
       ]
      },
      {
-      "audit": "— schválená metodika AIA Sociomapa",
+      "audit": "AIA",
       "effect_cs": "",
       "evidence": [
        {
@@ -7024,7 +7025,7 @@
       ]
      },
      {
-      "audit": "— schválená metodika AIA Sociomapa",
+      "audit": "AIA",
       "effect_cs": "",
       "evidence": [
        {
@@ -7086,7 +7087,7 @@
       "values": []
      },
      {
-      "audit": "— schválená metodika AIA Sociomapa",
+      "audit": "AIA",
       "effect_cs": "",
       "evidence": [
        {
@@ -7147,7 +7148,7 @@
       ]
      },
      {
-      "audit": "— schválená metodika AIA Sociomapa",
+      "audit": "AIA",
       "effect_cs": "",
       "evidence": [
        {
@@ -7220,7 +7221,7 @@
       ]
      },
      {
-      "audit": "— schválená metodika AIA Sociomapa",
+      "audit": "AIA",
       "effect_cs": "",
       "evidence": [
        {
@@ -7289,7 +7290,7 @@
       ]
      },
      {
-      "audit": "— schválená metodika AIA Sociomapa",
+      "audit": "AIA",
       "effect_cs": "",
       "evidence": [
        {
@@ -7661,7 +7662,7 @@
       ]
      },
      {
-      "audit": "— schválená metodika AIA Sociomapa",
+      "audit": "AIA",
       "effect_cs": "",
       "evidence": [
        {
@@ -7709,7 +7710,7 @@
       "values": []
      },
      {
-      "audit": "— schválená metodika AIA Sociomapa",
+      "audit": "AIA",
       "effect_cs": "",
       "evidence": [
        {
@@ -7855,7 +7856,7 @@
       ]
      },
      {
-      "audit": "— schválená metodika AIA Sociomapa",
+      "audit": "AIA",
       "effect_cs": "",
       "evidence": [
        {
@@ -7951,7 +7952,7 @@
       ]
      },
      {
-      "audit": "— schválená metodika AIA Sociomapa",
+      "audit": "AIA",
       "effect_cs": "",
       "evidence": [
        {
@@ -8151,7 +8152,7 @@
       ]
      },
      {
-      "audit": "— schválená metodika AIA Sociomapa",
+      "audit": "AIA",
       "effect_cs": "",
       "evidence": [
        {
@@ -8213,7 +8214,7 @@
       "values": []
      },
      {
-      "audit": "— schválená metodika AIA Sociomapa",
+      "audit": "AIA",
       "effect_cs": "",
       "evidence": [
        {
@@ -8285,7 +8286,7 @@
       "values": []
      },
      {
-      "audit": "— schválená metodika AIA Sociomapa",
+      "audit": "AIA",
       "effect_cs": "",
       "evidence": [
        {
@@ -8831,7 +8832,7 @@
       ]
      },
      {
-      "audit": "— schválená metodika AIA Sociomapa",
+      "audit": "AIA",
       "effect_cs": "",
       "evidence": [
        {
@@ -8916,7 +8917,7 @@
       "values": []
      },
      {
-      "audit": "— schválená metodika AIA Sociomapa",
+      "audit": "AIA",
       "effect_cs": "",
       "evidence": [
        {
@@ -8973,7 +8974,7 @@
       "values": []
      },
      {
-      "audit": "— schválená metodika AIA Sociomapa",
+      "audit": "AIA",
       "effect_cs": "",
       "evidence": [
        {
@@ -9057,7 +9058,7 @@
       ]
      },
      {
-      "audit": "— schválená metodika AIA Sociomapa",
+      "audit": "AIA",
       "effect_cs": "",
       "evidence": [
        {
@@ -9120,7 +9121,7 @@
       "values": []
      },
      {
-      "audit": "— schválená metodika AIA Sociomapa",
+      "audit": "AIA",
       "effect_cs": "",
       "evidence": [
        {
@@ -9171,7 +9172,7 @@
       "values": []
      },
      {
-      "audit": "— schválená metodika AIA Sociomapa",
+      "audit": "AIA",
       "effect_cs": "",
       "evidence": [
        {
@@ -9217,7 +9218,7 @@
       "values": []
      },
      {
-      "audit": "— schválená metodika AIA Sociomapa",
+      "audit": "AIA",
       "effect_cs": "",
       "evidence": [
        {
@@ -9272,7 +9273,7 @@
       "values": []
      },
      {
-      "audit": "— schválená metodika AIA Sociomapa",
+      "audit": "AIA",
       "effect_cs": "",
       "evidence": [
        {
@@ -9325,7 +9326,7 @@
       "values": []
      },
      {
-      "audit": "— schválená metodika AIA Sociomapa",
+      "audit": "AIA",
       "effect_cs": "",
       "evidence": [
        {
@@ -9376,7 +9377,7 @@
       "values": []
      },
      {
-      "audit": "— schválená metodika AIA Sociomapa",
+      "audit": "AIA",
       "effect_cs": "",
       "evidence": [
        {
@@ -9698,7 +9699,7 @@
       "values": []
      },
      {
-      "audit": "— schválená metodika AIA Sociomapa",
+      "audit": "AIA",
       "effect_cs": "",
       "evidence": [
        {
@@ -9763,7 +9764,7 @@
       ]
      },
      {
-      "audit": "— schválená metodika AIA Sociomapa",
+      "audit": "AIA",
       "effect_cs": "",
       "evidence": [
        {
@@ -10434,7 +10435,7 @@
       ]
      },
      {
-      "audit": "— schválená metodika AIA Sociomapa",
+      "audit": "AIA",
       "effect_cs": "",
       "evidence": [
        {
@@ -10971,7 +10972,7 @@
       ]
      },
      {
-      "audit": "— schválená metodika AIA Sociomapa",
+      "audit": "AIA",
       "effect_cs": "",
       "evidence": [
        {
@@ -11033,7 +11034,7 @@
       "values": []
      },
      {
-      "audit": "— schválená metodika AIA Sociomapa",
+      "audit": "AIA",
       "effect_cs": "",
       "evidence": [
        {
@@ -11094,7 +11095,7 @@
       ]
      },
      {
-      "audit": "— schválená metodika AIA Sociomapa",
+      "audit": "AIA",
       "effect_cs": "",
       "evidence": [
        {
@@ -11167,7 +11168,7 @@
       ]
      },
      {
-      "audit": "— schválená metodika AIA Sociomapa",
+      "audit": "AIA",
       "effect_cs": "",
       "evidence": [
        {
@@ -11236,7 +11237,7 @@
       ]
      },
      {
-      "audit": "— schválená metodika AIA Sociomapa",
+      "audit": "AIA",
       "effect_cs": "",
       "evidence": [
        {
@@ -11608,7 +11609,7 @@
       ]
      },
      {
-      "audit": "— schválená metodika AIA Sociomapa",
+      "audit": "AIA",
       "effect_cs": "",
       "evidence": [
        {
@@ -11656,7 +11657,7 @@
       "values": []
      },
      {
-      "audit": "— schválená metodika AIA Sociomapa",
+      "audit": "AIA",
       "effect_cs": "",
       "evidence": [
        {
@@ -11802,7 +11803,7 @@
       ]
      },
      {
-      "audit": "— schválená metodika AIA Sociomapa",
+      "audit": "AIA",
       "effect_cs": "",
       "evidence": [
        {
@@ -11898,7 +11899,7 @@
       ]
      },
      {
-      "audit": "— schválená metodika AIA Sociomapa",
+      "audit": "AIA",
       "effect_cs": "",
       "evidence": [
        {
@@ -12102,7 +12103,7 @@
       ]
      },
      {
-      "audit": "— schválená metodika AIA Sociomapa",
+      "audit": "AIA",
       "effect_cs": "",
       "evidence": [
        {
@@ -12164,7 +12165,7 @@
       "values": []
      },
      {
-      "audit": "— schválená metodika AIA Sociomapa",
+      "audit": "AIA",
       "effect_cs": "",
       "evidence": [
        {
@@ -12236,7 +12237,7 @@
       "values": []
      },
      {
-      "audit": "— schválená metodika AIA Sociomapa",
+      "audit": "AIA",
       "effect_cs": "",
       "evidence": [
        {
@@ -12785,7 +12786,7 @@
       ]
      },
      {
-      "audit": "— schválená metodika AIA Sociomapa",
+      "audit": "AIA",
       "effect_cs": "",
       "evidence": [
        {
@@ -12870,7 +12871,7 @@
       "values": []
      },
      {
-      "audit": "— schválená metodika AIA Sociomapa",
+      "audit": "AIA",
       "effect_cs": "",
       "evidence": [
        {
@@ -12927,7 +12928,7 @@
       "values": []
      },
      {
-      "audit": "— schválená metodika AIA Sociomapa",
+      "audit": "AIA",
       "effect_cs": "",
       "evidence": [
        {
@@ -13011,7 +13012,7 @@
       ]
      },
      {
-      "audit": "— schválená metodika AIA Sociomapa",
+      "audit": "AIA",
       "effect_cs": "",
       "evidence": [
        {
@@ -13074,7 +13075,7 @@
       "values": []
      },
      {
-      "audit": "— schválená metodika AIA Sociomapa",
+      "audit": "AIA",
       "effect_cs": "",
       "evidence": [
        {
@@ -13125,7 +13126,7 @@
       "values": []
      },
      {
-      "audit": "— schválená metodika AIA Sociomapa",
+      "audit": "AIA",
       "effect_cs": "",
       "evidence": [
        {
@@ -13171,7 +13172,7 @@
       "values": []
      },
      {
-      "audit": "— schválená metodika AIA Sociomapa",
+      "audit": "AIA",
       "effect_cs": "",
       "evidence": [
        {
@@ -13226,7 +13227,7 @@
       "values": []
      },
      {
-      "audit": "— schválená metodika AIA Sociomapa",
+      "audit": "AIA",
       "effect_cs": "",
       "evidence": [
        {
@@ -13279,7 +13280,7 @@
       "values": []
      },
      {
-      "audit": "— schválená metodika AIA Sociomapa",
+      "audit": "AIA",
       "effect_cs": "",
       "evidence": [
        {
@@ -13330,7 +13331,7 @@
       "values": []
      },
      {
-      "audit": "— schválená metodika AIA Sociomapa",
+      "audit": "AIA",
       "effect_cs": "",
       "evidence": [
        {
@@ -13652,7 +13653,7 @@
       "values": []
      },
      {
-      "audit": "— schválená metodika AIA Sociomapa",
+      "audit": "AIA",
       "effect_cs": "",
       "evidence": [
        {
@@ -13717,7 +13718,7 @@
       ]
      },
      {
-      "audit": "— schválená metodika AIA Sociomapa",
+      "audit": "AIA",
       "effect_cs": "",
       "evidence": [
        {
@@ -14388,7 +14389,7 @@
       ]
      },
      {
-      "audit": "— schválená metodika AIA Sociomapa",
+      "audit": "AIA",
       "effect_cs": "",
       "evidence": [
        {
@@ -14925,7 +14926,7 @@
       ]
      },
      {
-      "audit": "— schválená metodika AIA Sociomapa",
+      "audit": "AIA",
       "effect_cs": "",
       "evidence": [
        {
@@ -14987,7 +14988,7 @@
       "values": []
      },
      {
-      "audit": "— schválená metodika AIA Sociomapa",
+      "audit": "AIA",
       "effect_cs": "",
       "evidence": [
        {
@@ -15048,7 +15049,7 @@
       ]
      },
      {
-      "audit": "— schválená metodika AIA Sociomapa",
+      "audit": "AIA",
       "effect_cs": "",
       "evidence": [
        {
@@ -15121,7 +15122,7 @@
       ]
      },
      {
-      "audit": "— schválená metodika AIA Sociomapa",
+      "audit": "AIA",
       "effect_cs": "",
       "evidence": [
        {
@@ -15190,7 +15191,7 @@
       ]
      },
      {
-      "audit": "— schválená metodika AIA Sociomapa",
+      "audit": "AIA",
       "effect_cs": "",
       "evidence": [
        {
@@ -15562,7 +15563,7 @@
       ]
      },
      {
-      "audit": "— schválená metodika AIA Sociomapa",
+      "audit": "AIA",
       "effect_cs": "",
       "evidence": [
        {
@@ -15610,7 +15611,7 @@
       "values": []
      },
      {
-      "audit": "— schválená metodika AIA Sociomapa",
+      "audit": "AIA",
       "effect_cs": "",
       "evidence": [
        {
@@ -15756,7 +15757,7 @@
       ]
      },
      {
-      "audit": "— schválená metodika AIA Sociomapa",
+      "audit": "AIA",
       "effect_cs": "",
       "evidence": [
        {
@@ -15852,7 +15853,7 @@
       ]
      },
      {
-      "audit": "— schválená metodika AIA Sociomapa",
+      "audit": "AIA",
       "effect_cs": "",
       "evidence": [
        {
@@ -16052,7 +16053,7 @@
       ]
      },
      {
-      "audit": "— schválená metodika AIA Sociomapa",
+      "audit": "AIA",
       "effect_cs": "",
       "evidence": [
        {
@@ -16114,7 +16115,7 @@
       "values": []
      },
      {
-      "audit": "— schválená metodika AIA Sociomapa",
+      "audit": "AIA",
       "effect_cs": "",
       "evidence": [
        {
@@ -16186,7 +16187,7 @@
       "values": []
      },
      {
-      "audit": "— schválená metodika AIA Sociomapa",
+      "audit": "AIA",
       "effect_cs": "",
       "evidence": [
        {
@@ -16735,7 +16736,7 @@
       ]
      },
      {
-      "audit": "— schválená metodika AIA Sociomapa",
+      "audit": "AIA",
       "effect_cs": "",
       "evidence": [
        {
@@ -16820,7 +16821,7 @@
       "values": []
      },
      {
-      "audit": "— schválená metodika AIA Sociomapa",
+      "audit": "AIA",
       "effect_cs": "",
       "evidence": [
        {
@@ -16877,7 +16878,7 @@
       "values": []
      },
      {
-      "audit": "— schválená metodika AIA Sociomapa",
+      "audit": "AIA",
       "effect_cs": "",
       "evidence": [
        {
@@ -16961,7 +16962,7 @@
       ]
      },
      {
-      "audit": "— schválená metodika AIA Sociomapa",
+      "audit": "AIA",
       "effect_cs": "",
       "evidence": [
        {
@@ -17024,7 +17025,7 @@
       "values": []
      },
      {
-      "audit": "— schválená metodika AIA Sociomapa",
+      "audit": "AIA",
       "effect_cs": "",
       "evidence": [
        {
@@ -17075,7 +17076,7 @@
       "values": []
      },
      {
-      "audit": "— schválená metodika AIA Sociomapa",
+      "audit": "AIA",
       "effect_cs": "",
       "evidence": [
        {
@@ -17121,7 +17122,7 @@
       "values": []
      },
      {
-      "audit": "— schválená metodika AIA Sociomapa",
+      "audit": "AIA",
       "effect_cs": "",
       "evidence": [
        {
@@ -17176,7 +17177,7 @@
       "values": []
      },
      {
-      "audit": "— schválená metodika AIA Sociomapa",
+      "audit": "AIA",
       "effect_cs": "",
       "evidence": [
        {
@@ -17229,7 +17230,7 @@
       "values": []
      },
      {
-      "audit": "— schválená metodika AIA Sociomapa",
+      "audit": "AIA",
       "effect_cs": "",
       "evidence": [
        {
@@ -17280,7 +17281,7 @@
       "values": []
      },
      {
-      "audit": "— schválená metodika AIA Sociomapa",
+      "audit": "AIA",
       "effect_cs": "",
       "evidence": [
        {
@@ -17602,7 +17603,7 @@
       "values": []
      },
      {
-      "audit": "— schválená metodika AIA Sociomapa",
+      "audit": "AIA",
       "effect_cs": "",
       "evidence": [
        {
@@ -17667,7 +17668,7 @@
       ]
      },
      {
-      "audit": "— schválená metodika AIA Sociomapa",
+      "audit": "AIA",
       "effect_cs": "",
       "evidence": [
        {
@@ -19066,7 +19067,7 @@
       "reading_cs": "",
       "role_cs": "",
       "source_cs": "",
-      "source_sha256": "405812d3899dfdccde38ea60ce950758d0f70520d6aa94b30412bf5dec01811e",
+      "source_sha256": "97051d17f4ebfb4d0a1d9dfad80a33567e24d53a3e4879cfa01fb69823b91a1a",
       "symbols": [
        {
         "latex": "K",

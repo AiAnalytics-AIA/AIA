@@ -149,7 +149,7 @@ const questionText = (s: ResearchStore) => (s.get().project as unknown as { sect
 describe("automatic text edits", () => {
   it("are off by default: every edit waits as a change block and nothing is accepted", async () => {
     bench();
-    const blocks = await screen.findByRole("region", { name: "Návrhy Vedoucího" }, { timeout: 4000 });
+    const blocks = await screen.findByRole("region", { name: "Návrhy Vedoucího" });
     expect(within(blocks).getAllByRole("button", { name: "Přijmout" })).toHaveLength(2);
     expect(decided).toEqual([]);
     expect(screen.queryByRole("region", { name: "Přijato automaticky" })).toBeNull();
@@ -158,7 +158,7 @@ describe("automatic text edits", () => {
   it("on, accept only the wording through the gate as automatic; structure stays a block, and Vrátit puts the wording back", async () => {
     auto = true;
     const { store, reload } = bench();
-    const applied = await screen.findByRole("region", { name: "Přijato automaticky" }, { timeout: 4000 });
+    const applied = await screen.findByRole("region", { name: "Přijato automaticky" });
     // Nothing was waiting to be saved: no save first, the accept names the copy's own revision.
     expect(decided).toEqual([{ decision: "accept", indices: [0], base_revision: 3, auto: true }]);
     expect(saves).toEqual([]);
@@ -176,7 +176,7 @@ describe("automatic text edits", () => {
     expect(questionText(store)).toBe("Znáte?");
     expect(screen.queryByRole("region", { name: "Přijato automaticky" })).toBeNull();
     // The revert is the person's own edit, saved through the normal revision-checked save.
-    await waitFor(() => expect(saves).toHaveLength(1), { timeout: 4000 });
+    await waitFor(() => expect(saves).toHaveLength(1));
     expect(saves[0]).toMatchObject({ base_revision: 4 });
   });
 
@@ -185,7 +185,7 @@ describe("automatic text edits", () => {
     const read = deferred();
     contentGate = read.promise;
     const { store } = bench();
-    const applied = await screen.findByRole("region", { name: "Přijato automaticky" }, { timeout: 4000 });
+    const applied = await screen.findByRole("region", { name: "Přijato automaticky" });
     await waitFor(() => expect(contentReads).toBe(1));
     // The server has written revision 4; this copy is still revision 3 with the old wording.
     const back = within(applied).getByRole("button", { name: "Vrátit" }) as HTMLButtonElement;
@@ -200,7 +200,7 @@ describe("automatic text edits", () => {
     fireEvent.click(back);
     expect(questionText(store)).toBe("Znáte?");
     expect(screen.queryByRole("region", { name: "Přijato automaticky" })).toBeNull();
-    await waitFor(() => expect(saves).toHaveLength(1), { timeout: 4000 });
+    await waitFor(() => expect(saves).toHaveLength(1));
   });
 
   it("keeps what the person typed while the gate answered: no reload over it, nothing saved on the old base, and says so", async () => {
@@ -209,9 +209,9 @@ describe("automatic text edits", () => {
     editsGate = gate.promise;
     const { store } = bench();
     duringEdits = () => store.update(() => ({ project: project("Píšu vlastní znění") }));
-    await waitFor(() => expect(decided).toHaveLength(1), { timeout: 4000 });
+    await waitFor(() => expect(decided).toHaveLength(1));
     gate.release();
-    await screen.findByText(/Vedoucí přijal textové úpravy, zatímco jste psali/, {}, { timeout: 4000 });
+    await screen.findByText(/Vedoucí přijal textové úpravy, zatímco jste psali/);
     expect(questionText(store)).toBe("Píšu vlastní znění");
     expect(store.get().save).toEqual({ kind: "conflict", current: 4 });
     // The copy is not the accepted revision: Vrátit waits, and no save went out over revision 4.
@@ -229,7 +229,7 @@ describe("automatic text edits", () => {
     });
     store.update(() => ({ project: project("Znáte to?") }));
     bench({ store });
-    const blocks = await screen.findByRole("region", { name: "Návrhy Vedoucího" }, { timeout: 4000 });
+    const blocks = await screen.findByRole("region", { name: "Návrhy Vedoucího" });
     expect(within(blocks).getAllByRole("button", { name: "Přijmout" })).toHaveLength(2);
     await screen.findByText(/čekají k přijetí: v pracovní kopii máte neuložené změny/);
     expect(decided).toEqual([]);
@@ -240,7 +240,7 @@ describe("automatic text edits", () => {
     auto = true;
     editsRefusal = { status: 409, code: "stale_turn", details: { current_revision: 4 } };
     const { store } = bench();
-    await screen.findByText(/textové úpravy Vedoucího proto čekají k přijetí/, {}, { timeout: 4000 });
+    await screen.findByText(/textové úpravy Vedoucího proto čekají k přijetí/);
     expect(decided).toEqual([{ decision: "accept", indices: [0], base_revision: 3, auto: true }]);
     const blocks = await screen.findByRole("region", { name: "Návrhy Vedoucího" });
     expect(within(blocks).getAllByRole("button", { name: "Přijmout" })).toHaveLength(2);
@@ -254,7 +254,7 @@ describe("automatic text edits", () => {
     const gate = deferred();
     editsGate = gate.promise;
     const first = bench();
-    await waitFor(() => expect(decided).toHaveLength(1), { timeout: 4000 });
+    await waitFor(() => expect(decided).toHaveLength(1));
     // The Lead's open_stage moves the person to Zadání: this screen goes, the study's memory stays.
     first.unmount();
     gate.release();
@@ -266,6 +266,6 @@ describe("automatic text edits", () => {
     const applied = await screen.findByRole("region", { name: "Přijato automaticky" });
     fireEvent.click(within(applied).getByRole("button", { name: "Vrátit" }));
     expect(questionText(first.store)).toBe("Znáte?");
-    await waitFor(() => expect(saves).toHaveLength(1), { timeout: 4000 });
+    await waitFor(() => expect(saves).toHaveLength(1));
   });
 });

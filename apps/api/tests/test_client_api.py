@@ -399,7 +399,12 @@ def test_an_edit_written_from_an_older_revision_is_a_409_until_the_reviewer_name
     assert refused.status_code == 409, refused.text
     error = refused.json()
     assert error["code"] == "knowledge_proposal_stale"
-    assert error["details"] == {"item_id": item_id, "base_revision": 1, "current_revision": 2}
+    assert error["details"] == {
+        "item_id": item_id,
+        "base_revision": 1,
+        "current_revision": 2,
+        "reviewed_revision": None,
+    }
     [item] = researcher.get(base, params={"section": "knowledge"}).json()
     assert (item["title"], item["revision"]) == ("Dealers: 134", 2)
 
@@ -407,6 +412,72 @@ def test_an_edit_written_from_an_older_revision_is_a_409_until_the_reviewer_name
     assert accepted.status_code == 200 and accepted.json()["revision"] == 3
     [item] = researcher.get(base, params={"section": "knowledge"}).json()
     assert item["title"] == "Dealers: 125"
+
+
+def test_decisions_and_revisions_read_back_typed(
+    researcher: TestClient, reviewer: TestClient, world: Any
+) -> None:
+    """Lifecycle K3: who wrote it, what was decided, against which revisions, and its hash."""
+    base = f"{API}/clients/{world.client_id()}/knowledge"
+    first = researcher.post(f"{base}/proposals", json={"kind": "FACT", "title": "Dealers: 120"})
+    assert (first.json()["author"], first.json()["decision"]) == ("PERSON", "AUTHORED")
+    item_id = first.json()["item_id"]
+    corrected = researcher.post(
+        f"{base}/proposals",
+        json={"kind": "FACT", "title": "Dealers: 134", "item_id": item_id, "base_revision": 1},
+    )
+    assert corrected.json()["revision"] == 2
+    edit = researcher.post(
+        f"{API}/studies/{world.study_id()}/knowledge-proposals",
+        json={"kind": "FACT", "title": "Dealers: 140", "item_id": item_id},
+    ).json()
+    assert (edit["author"], edit["decision"], edit["reviewed_revision"]) == ("STUDY", None, None)
+    assert edit["base_revision"] == 2
+    decision = f"{base}/proposals/{edit['proposal_id']}/decision"
+
+    # The edit is current, but the reviewer read revision 1: stale.
+    refused = reviewer.post(decision, json={"approve": True, "reviewed_revision": 1})
+    assert refused.status_code == 409, refused.text
+    assert refused.json()["details"] == {
+        "item_id": item_id,
+        "base_revision": 2,
+        "current_revision": 2,
+        "reviewed_revision": 1,
+    }
+    # A revision the item never had is not one anybody read: 422, on a rejection too.
+    for approve in (True, False):
+        never = reviewer.post(decision, json={"approve": approve, "reviewed_revision": 3})
+        assert never.status_code == 422, never.text
+        assert never.json()["code"] == "no_revision_to_review"
+    # Strict: JSON true, or "2", is not a revision; refused before anything is decided.
+    for odd in (True, "2", 2.0):
+        not_a_revision = reviewer.post(decision, json={"approve": True, "reviewed_revision": odd})
+        assert not_a_revision.status_code == 422, not_a_revision.text
+    accepted = reviewer.post(decision, json={"approve": True, "reviewed_revision": 2})
+    assert accepted.status_code == 200, accepted.text
+    assert (accepted.json()["decision"], accepted.json()["reviewed_revision"]) == ("ACCEPTED", 2)
+
+    history = researcher.get(f"{base}/items/{item_id}/revisions").json()
+    assert [(r["revision"], r["author"], r["decision"]) for r in history] == [
+        (1, "PERSON", "AUTHORED"),
+        (2, "PERSON", "AUTHORED"),
+        (3, "STUDY", "ACCEPTED"),
+    ]
+    assert (history[2]["base_revision"], history[2]["reviewed_revision"]) == (2, 2)
+    assert history[2]["evidence"] is None
+    assert all(len(r["sha256"]) == 64 for r in history)
+    assert len({r["sha256"] for r in history}) == 3
+
+    new = researcher.post(
+        f"{API}/studies/{world.study_id()}/knowledge-proposals",
+        json={"kind": "FINDING", "title": "Cena rozhoduje"},
+    ).json()
+    no_revision = reviewer.post(
+        f"{base}/proposals/{new['proposal_id']}/decision",
+        json={"approve": True, "reviewed_revision": 1},
+    )
+    assert no_revision.status_code == 422
+    assert no_revision.json()["code"] == "no_revision_to_review"
 
 
 def test_any_member_sees_the_whole_client_and_its_knowledge(
@@ -961,3 +1032,36 @@ def test_the_client_says_whether_a_proposer_may_accept_their_own_proposal(
     owner.put(f"{API}/self-approval", json={"allowed": False, "client_id": world.client_id()})
     after = researcher.get(url).json()
     assert after["self_approval_allowed"] is False and after["self_approval_source"] == "client"
+
+
+def test_the_brief_materials_answer_each_entrys_class_by_rule(
+    lead: TestClient, viewer: TestClient, world: Any
+) -> None:
+    url = f"{API}/studies/{world.study_id()}/workspace"
+    assert viewer.get(f"{url}/materials").json() == {"revision": None, "materials": []}
+
+    lead.put(f"{url}/content", json={"content": BRIEF})
+    body = {"filename": "zadani.txt", "data_b64": base64.b64encode(b"Fiktivni zadani").decode()}
+    record = lead.post(f"{url}/attachments", json=body).json()
+    current = lead.get(f"{url}/content").json()
+    content = dict(current["content"])
+    content["briefing"] = {
+        **content.get("briefing", {}),
+        "attachments": [record, {"kind": "url", "url": "https://example.org/a"}, "x"],
+    }
+    saved = lead.put(f"{url}/content", json={"content": content, "base_revision": 1})
+    assert saved.status_code == 200, saved.text
+
+    answer = viewer.get(f"{url}/materials")
+    assert answer.status_code == 200
+    design = {"data_class": "CLASS_B_DERIVED_CLIENT", "class_source": "rule:design"}
+    assert answer.json() == {
+        "revision": 2,
+        "materials": [
+            {"index": 0, "kind": "file", "ref": record["attachment_id"], **design},
+            {"index": 1, "kind": "url", "ref": "https://example.org/a", **design},
+            {"index": 2, "kind": None, "ref": None, "data_class": None, "class_source": None},
+        ],
+    }
+    sibling = f"{API}/studies/{world.study_id('sibling')}/workspace"
+    assert lead.get(f"{sibling}/materials").json()["materials"] == []

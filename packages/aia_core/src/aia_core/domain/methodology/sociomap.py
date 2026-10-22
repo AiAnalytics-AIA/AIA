@@ -1603,7 +1603,7 @@ class _Context:
 
 #: The new method's steps implement no point of the audit: they are the signed-off AIA
 #: Sociomapa methodology's.
-_SIGNED_OFF_POINT: Final = "— schválená metodika AIA Sociomapa"
+_SIGNED_OFF_POINT: Final = "AIA"
 
 _CONTEXT: Final[dict[str, _Context]] = {
     "method": _Context(

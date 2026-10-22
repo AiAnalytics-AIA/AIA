@@ -88,7 +88,8 @@ export function jobMetaLine(m: ReturnType<typeof jobMeta>): string {
 export class JobError extends Error {
   constructor(
     message: string,
-    readonly kind: "waiting_user" | "error" | "cancelled" | "busy",
+    /** `awaiting_budget`: the job stopped at the study's budget cap and waits for a person's lift (CR-2). */
+    readonly kind: "waiting_user" | "error" | "cancelled" | "busy" | "awaiting_budget",
     readonly jobId: string | null,
   ) {
     super(message);

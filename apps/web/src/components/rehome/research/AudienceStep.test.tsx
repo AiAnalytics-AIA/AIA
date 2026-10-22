@@ -7,6 +7,7 @@ import { ResearchScreen } from "./ResearchScreen";
 import { type SavedBody, workspaceFixture } from "./test-workspace";
 import { TEST_FRAME } from "./test-frame";
 import { CATALOGUE } from "@/research/audience.live.test";
+import { focusSelector } from "@/lib/lead";
 
 // Native jobs need more than vitest's 5 s under CI load (test-native-agents.ts).
 vi.setConfig({ testTimeout: NATIVE_TEST_TIMEOUT_MS });
@@ -43,7 +44,7 @@ function aiaStub(project: Record<string, unknown>, over: Record<string, (b: unkn
 }
 const posted = (path: string) => calls.filter((c) => c.url.split("?")[0] === path && (!path.startsWith("/api/v1/") || c.body !== null));
 const lastSave = () => saves.at(-1) as unknown as { content: { audience: Record<string, unknown>; ui_state: Record<string, unknown> }; reason: string };
-const saved = () => waitFor(() => expect(saves.length).toBeGreaterThan(0), { timeout: 4000 });
+const saved = () => waitFor(() => expect(saves.length).toBeGreaterThan(0));
 /** Nothing the audience step does reaches the 18.6.6 unit (ADR 0018). */
 const noUnitCalls = () => expect(calls.filter((c) => !c.url.startsWith("/api/v1/") && c.url !== "/config").map((c) => c.url)).toEqual([]);
 
@@ -153,12 +154,37 @@ describe("Audience", () => {
       const from = screen.getAllByLabelText("Od")[0] as HTMLInputElement;
       fireEvent.change(from, { target: { value: "30" } });
       fireEvent.blur(from);
-      await waitFor(() => expect(lastSave().content.audience.filters).toEqual({ kraj: ["Zlínský kraj"], vek: { min: 30 } }), { timeout: 4000 });
+      await waitFor(() => expect(lastSave().content.audience.filters).toEqual({ kraj: ["Zlínský kraj"], vek: { min: 30 } }));
       // A factor the version's policy refuses is listed, said, and cannot be chosen.
       expect((screen.getByRole("checkbox", { name: /Rodič/ }) as HTMLInputElement).disabled).toBe(true);
       expect(screen.getByText(/unclassified_derived_field/)).toBeTruthy();
       expect(screen.getByText("Vybrané filtry:")).toBeTruthy();
       noUnitCalls();
+    });
+
+    it("names the description, the filters, each stored filter and the preview for the Lead to focus", async () => {
+      // prijem is outside the category the editor opens on, so its editor is not drawn: its
+      // target is the chip every stored filter has.
+      const income = { ...CATALOGUE.factors[1]!, id: "prijem", column: "prijem", label: "Příjem domácnosti", category: "economy", category_label: "Ekonomika", values: [{ value: "Nad 60 000 Kč", count: 20 }] };
+      const catalogue = { ...CATALOGUE, categories: [...CATALOGUE.categories, { id: "economy", label: "Ekonomika", description: "", count: 1, filterable_count: 1 }], factors: [...CATALOGUE.factors, income] };
+      const filters = { kraj: ["Zlínský kraj"], vek: { min: 30, max: 59 }, prijem: ["Nad 60 000 Kč"] };
+      aiaStub({ ui_state: ANALYTICS, n: 500, audience: { strategy: "filters", source_mode: "population", filters } }, { [CAT]: () => catalogue });
+      const { container } = render(<ResearchScreen step="audience" frame={TEST_FRAME} />);
+      await screen.findByText(/z populace v17_4_0/);
+      expect(screen.queryByRole("checkbox", { name: /Nad 60 000 Kč/ })).toBeNull();
+      for (const target of ["audience:definition", "audience:filters", "audience:filter:kraj", "audience:filter:vek", "audience:filter:prijem", "audience:preview"]) {
+        expect(container.querySelectorAll(focusSelector(target)), target).toHaveLength(1);
+      }
+      expect(container.querySelector(focusSelector("audience:filter:kraj"))!.textContent).toContain("Zlínský kraj");
+      expect(container.querySelector(focusSelector("audience:filter:prijem"))!.textContent).toContain("Příjem domácnosti");
+      expect(container.querySelector(focusSelector("audience:preview"))!.textContent).toContain("Ověřit proveditelnost");
+    });
+
+    it("without a population, the filters target is the note that says why", async () => {
+      aiaStub({ ui_state: ANALYTICS, audience: { strategy: "filters", source_mode: "population", filters: {} } }, { [CAT]: () => new Response(JSON.stringify({ code: "population_not_established", message: "no" }), { status: 409 }) });
+      const { container } = render(<ResearchScreen step="audience" frame={TEST_FRAME} />);
+      await waitFor(() => expect(container.querySelector(focusSelector("audience:filters"))?.textContent).toContain("V AIA zatím není"));
+      expect(container.querySelector(focusSelector("audience:preview"))).toBeNull();
     });
 
     it("the preview counts the audience in AIA and says whether n can be drawn", async () => {
@@ -175,6 +201,21 @@ describe("Audience", () => {
       noUnitCalls();
     });
 
+    it("the preview names what each filter selects alone (AUD3)", async () => {
+      const filters = { vek: { min: 30, max: 59 }, kraj: ["Zlínský kraj"] };
+      aiaStub(
+        { ui_state: ANALYTICS, n: 500, audience: { strategy: "filters", source_mode: "population", filters } },
+        live({ [PREVIEW]: () => ({ version_id: "DSV-1", version_label: "v17_4_0", population_rows: 18766, selected_rows: 900, selected_donors: 400, filters_applied: { vek: { min: 30, max: 59 }, kraj: { values: ["Zlínský kraj"] } }, per_filter: { vek: 5120, kraj: 1200 }, audience: { ok: true }, n: null, sample: null, seed: 20261012 }) }),
+      );
+      render(<ResearchScreen step="audience" frame={TEST_FRAME} />);
+      fireEvent.click(await screen.findByRole("button", { name: "Ověřit proveditelnost" }));
+      const status = await screen.findByRole("status");
+      expect(status.textContent).toContain("Filtry vyberou 900 z 18\u00a0766");
+      expect(status.textContent).toMatch(/Samotný filtr .+: 5\u00a0120 lidí\./);
+      expect(status.textContent).toMatch(/Samotný filtr .+: 1\u00a0200 lidí\./);
+      noUnitCalls();
+    });
+
     it("a deployment without the population mounted says the preview is not here", async () => {
       aiaStub(
         { ui_state: ANALYTICS, audience: { strategy: "filters", source_mode: "population", filters: {} } },
@@ -187,11 +228,12 @@ describe("Audience", () => {
 
     it("a built-in subpanel is chosen as its filter; one the policy refuses cannot be", async () => {
       aiaStub({ ui_state: { audience_entry: "analytics", analytics_choice: "special" } }, live());
-      render(<ResearchScreen step="audience" frame={TEST_FRAME} />);
+      const { container } = render(<ResearchScreen step="audience" frame={TEST_FRAME} />);
       const young = await screen.findByRole("radio", { name: /Mladí 18–29/ });
       expect((screen.getByRole("radio", { name: /Studenti/ }) as HTMLButtonElement).disabled).toBe(true);
       expect(screen.getByText(/Nelze použít: audit_only/)).toBeTruthy();
       expect(screen.getByText(/speciální panely a vlastní publikum stavěla 18.6.6/i)).toBeTruthy();
+      expect(container.querySelector(focusSelector("audience:subpanel:young_18_29"))!.textContent).toContain("Mladí 18–29");
       fireEvent.click(young);
       await saved();
       expect(lastSave()).toMatchObject({ reason: "population_subpanel", content: { audience: { builtin_subpanel: "young_18_29", source_mode: "population", filters: { vek: [18, 29] } } } });

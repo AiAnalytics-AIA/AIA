@@ -1,0 +1,133 @@
+{
+  "id": "MVP-ACCEPT-2-tier-B-allocation-1",
+  "status": "APPROVED - option A, by the product owner",
+  "approved_by": "Nigel Blount (product owner), Q37: \"Approve as proposed\"",
+  "approved_at": "2026-10-21T07:56:00Z",
+  "option": "A",
+  "note": "Tier B's spend for the representative study (mvp-acceptance.md section 1, budget USD 25, MVP-20). A ceiling per category, proposed by the harness plan (mvp-acceptance-harness chunk 1). Approved as proposed (option A: n 300, both Deep Research runs shallower than Standard); the evaluations stay outside it. A paid probe or run names its line. The system enforces only the study's budget (per-request reservations) and the spend-limit confirmation per start; a line is held by the tier B runbook reading the usage ledger after each dispatch (chunk 7).",
+  "budget_usd": 25.0,
+  "prices": {
+    "route_model": "Sonnet 4.5 on bedrock-eu-primary, eu-central-1: USD 3.30 input / 16.50 output per million tokens (ADR 0010, verified 2026-09-26)",
+    "brave": "about USD 5 per 1,000 requests (deep-research-web-search plan, section 8); the deployment's price is AIA_DEEP_RESEARCH_BRAVE_USD_PER_1000, not in the repository"
+  },
+  "lines": [
+    {
+      "id": "A01",
+      "category": "fieldwork",
+      "ceiling_usd": 8.0,
+      "measured": true,
+      "basis": "n 300 x 2 blocks (at most 16 items; MAX_BLOCK_ITEMS 8, domain/ai_respondent.py:111) = 600 requests at USD 0.013: USD 0.0115 measured per call on develop (20 calls, USD 0.2303301, docs/architecture/bedrock-develop-activation-2026-09-26.md) plus about 400 input tokens of a panel persona's profile. The ceiling a start shows (run_cost.py, 600 x the reservation) is far higher and is not spend."
+    },
+    {
+      "id": "A02",
+      "category": "analysis_and_repairs",
+      "ceiling_usd": 1.8,
+      "measured": false,
+      "basis": "8 modules x (a draft and at most 2 repairs) = 24 calls at USD 0.075 (assumed: 12,000 input / 2,000 output tokens)."
+    },
+    {
+      "id": "A03",
+      "category": "lead_turns",
+      "ceiling_usd": 2.6,
+      "measured": false,
+      "basis": "20 Research Lead turns at USD 0.13 (assumed: 30,000 input / 1,500 output tokens at the route model's prices; a Lead model of its own replaces them). Each turn holds its reservation (Compose default USD 1.02) while it runs."
+    },
+    {
+      "id": "A04",
+      "category": "design_workers",
+      "ceiling_usd": 1.5,
+      "measured": false,
+      "basis": "10 design-worker jobs (each available worker once, two rebuilds) at USD 0.15 (assumed: 10,000 input / 4,000 output tokens and one repair in three)."
+    },
+    {
+      "id": "A05",
+      "category": "report_writer_and_map_interpreter",
+      "ceiling_usd": 0.6,
+      "measured": false,
+      "basis": "4 calls at USD 0.15. These workers are not built (lead-orchestration LO9b); the line is re-set when their contracts land."
+    },
+    {
+      "id": "A06",
+      "category": "deep_research_design_models",
+      "ceiling_usd": 2.7,
+      "measured": false,
+      "basis": "One Design Research run's model calls. The plan's estimate for a Standard run is USD 5-7 (deep-research-web-search section 9), so at USD 2.70 the run is shallower than Standard (fewer tracks), or the owner takes option B."
+    },
+    {
+      "id": "A07",
+      "category": "deep_research_interpretation_models",
+      "ceiling_usd": 2.7,
+      "measured": false,
+      "basis": "The second (Interpretation Research) run behind the report's cited context (contextual_report.py), its model calls; as A06."
+    },
+    {
+      "id": "A08",
+      "category": "deep_research_tools_and_search",
+      "ceiling_usd": 0.6,
+      "measured": false,
+      "basis": "At most 120 Brave queries across both runs at about USD 5 per 1,000; public fetch and Wikipedia are fee-free; Common Crawl's priced index is not composed for the first live run."
+    },
+    {
+      "id": "A09",
+      "category": "retry_round",
+      "ceiling_usd": 1.8,
+      "measured": false,
+      "basis": "One analysis-only retry round (24 calls as A02) over the frozen dataset. A fieldwork restart is not covered: until run-qc-and-checkpoint RQC0 lands a restart repays fieldwork (OI-64), so AC-06's kill is proven in tier A, not paid for here."
+    },
+    {
+      "id": "A10",
+      "category": "client_source_extraction",
+      "ceiling_usd": 0.25,
+      "measured": false,
+      "basis": "Knowledge proposals from the fictional annual summary: one batch (BATCH_MAX_BYTES 24,000, domain/source_proposals.py). Charged to the client's budget, not the study's: the client's budget must be at least this."
+    },
+    {
+      "id": "A11",
+      "category": "open_reservation_headroom",
+      "ceiling_usd": 1.0,
+      "measured": false,
+      "basis": "Never spent: the holds of requests in flight when the study's spend nears its budget (reservation x concurrency). Without it the last requests park AWAITING_BUDGET."
+    },
+    {
+      "id": "A12",
+      "category": "contingency",
+      "ceiling_usd": 1.45,
+      "measured": false,
+      "basis": "Unallocated. A line that overruns draws on it only by a person's entry in the tier B record."
+    }
+  ],
+  "options": [
+    "B: Deep Research at its Standard estimate (A06 and A07 USD 6.00 each): about USD 31.60 in all, so a USD 32 budget.",
+    "C: n 200 instead of 300 (A01 USD 5.20), freeing USD 2.80 for the Deep Research lines."
+  ],
+  "outside_budget": [
+    {
+      "id": "E25",
+      "category": "evaluation_accuracy",
+      "estimate_usd": [15.0, 65.0],
+      "measured": false,
+      "basis": "deep-research-web-search 25: 50 public Czech facts, a single-fact run each at Standard (about USD 0.30) and at Deep (about USD 1.00)."
+    },
+    {
+      "id": "E26",
+      "category": "evaluation_quality",
+      "estimate_usd": [1740.0, 2780.0],
+      "measured": false,
+      "basis": "deep-research-web-search 26: 20 questions x 3 arms at Standard (USD 300-420), then Deep against Exhaustive on the 20 (USD 1,440-2,360), from the plan's section 9 estimates; the judge model's cost is unknown and not in the range."
+    },
+    {
+      "id": "E39",
+      "category": "evaluation_extraction",
+      "estimate_usd": [48.0, 72.0],
+      "measured": false,
+      "basis": "deep-research-web-search 39: about 4 catalogue runs at Deep (USD 12-18 each)."
+    },
+    {
+      "id": "E50",
+      "category": "evaluation_commercial_arm",
+      "estimate_usd": null,
+      "measured": false,
+      "basis": "deep-research-web-search 50: a person runs Gemini Deep Research through Google's own interface; it spends nothing on AIA's ledger and its subscription cost is unknown."
+    }
+  ]
+}

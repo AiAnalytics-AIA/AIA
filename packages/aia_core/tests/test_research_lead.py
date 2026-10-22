@@ -5,6 +5,7 @@ ADR 0026 and the product owner's 2026-10-19 decisions. No database, no model.
 
 from __future__ import annotations
 
+import json
 from typing import Any
 
 import pytest
@@ -19,6 +20,7 @@ from aia_core.domain.ai_models import ModelCapability
 from aia_core.domain.prompt_slots import get_slot
 from aia_core.domain.prompts import PromptPin
 from aia_core.domain.research_agents import FIXED_PREFIX
+from aia_core.domain.research_design import AIA_READINESS_V1
 from aia_core.domain.research_lead import (
     CONTEXT_MAX_BYTES,
     DEFAULT_LEAD_NAME,
@@ -33,9 +35,12 @@ from aia_core.domain.research_lead import (
     Refused,
     SelfUpdate,
     apply_edit,
+    citable_context,
     context_bytes,
     context_classification,
+    context_identifiers,
     freeze_context,
+    frozen_sample_size,
     ground_edits,
     ground_self_update,
     is_text_edit,
@@ -47,6 +52,7 @@ from aia_core.domain.research_lead import (
     model_message,
     number_tokens,
     question_add_problem,
+    readiness_layer,
     split_self_update,
     unreadable_numbers,
     waiting_self_update,
@@ -54,6 +60,8 @@ from aia_core.domain.research_lead import (
 from aia_core.domain.residency import DataClass
 
 WHY = "Protože to zadání potřebuje."
+#: The readiness preset's valid n, 20-10,000: what a set_n is held to (RQC9).
+LIMITS = AIA_READINESS_V1.sample_size
 
 
 def _output(**fields: Any) -> dict[str, Any]:
@@ -83,8 +91,9 @@ VALID_EDITS = [
     {"op": "question_add", "text": "Proč?", "qtype": "otevrena", "why": WHY},
     {"op": "question_edit", "question_id": "q3", "text": "Jinak", "options": None, "why": WHY},
     {"op": "question_remove", "question_id": "q3", "why": WHY},
-    {"op": "set_n", "value": 30, "why": WHY},
-    {"op": "set_n", "value": 40000, "why": WHY},
+    # The shape asks only for a whole number; the range is readiness's (ground_edits).
+    {"op": "set_n", "value": 1, "why": WHY},
+    {"op": "set_n", "value": 40001, "why": WHY},
 ]
 
 INVALID_EDITS = [
@@ -95,8 +104,8 @@ INVALID_EDITS = [
     {"op": "question_add", "text": "Q", "qtype": "vyber", "options": ["Jen jedna"], "why": WHY},
     {"op": "question_add", "text": "Q", "qtype": "matice", "why": WHY},
     {"op": "question_edit", "question_id": "q3", "why": WHY},  # changes nothing
-    {"op": "set_n", "value": 29, "why": WHY},
-    {"op": "set_n", "value": 40001, "why": WHY},
+    {"op": "set_n", "value": 0, "why": WHY},  # a count is a whole number of at least one
+    {"op": "set_n", "value": -5, "why": WHY},
     {"op": "set_n", "value": True, "why": WHY},  # strict: a boolean is not a count
     {"op": "set_n", "value": "300", "why": WHY},
     {"op": "delete_study", "why": WHY},
@@ -363,6 +372,156 @@ def test_an_identifiers_digits_are_still_no_number() -> None:
     assert _valid({"reply": "Otázka Q1 a blok B2 platí."}, canonical_json({"ids": ["Q1"]})).ok
 
 
+#: A revision id as ``new_revision_id`` mints it: ``REV-`` and random hex, here one whose hex
+#: starts with a 7 (F-CLOCK-1: about one id in forty does).
+REV_7 = "REV-7a3f0c9e2b1d4e5f"
+
+
+def test_an_identifiers_digits_ground_no_number() -> None:
+    """F-CLOCK-1: ``REV-7a3f…`` read as 7, so a reply inventing 7 passed whenever the random
+    revision id began with one (CI on #554). An identifier is no number on either side."""
+    allowed = canonical_json({"design_revision_id": REV_7, "n": 20})
+    assert "7" in number_tokens(allowed)  # what the bare text reads: the hole
+    ids = frozenset({REV_7})
+    refused = validate_structured_output(
+        lead_contract(allowed, ids), structured={"reply": "Máme 7 otázek."}, text=""
+    )
+    assert not refused.ok and "7" in refused.violations[0]
+    # Quoting the id whole writes no number; its digit alone is held to the context.
+    for reply in (f"Revize {REV_7} má 20 otázek.", f"Běží na {REV_7}."):
+        assert validate_structured_output(
+            lead_contract(allowed, ids), structured={"reply": reply}, text=""
+        ).ok, reply
+    # A longer id or word containing it is not that id.
+    assert not validate_structured_output(
+        lead_contract(allowed, ids), structured={"reply": f"Viz {REV_7}b, 7."}, text=""
+    ).ok
+
+
+def test_the_context_names_its_identifiers() -> None:
+    context = {
+        "layers": [
+            {
+                "layer": "design",
+                "design_revision_id": REV_7,
+                "workspace_revision": 3,
+                "readiness": {"methodology_version": "aia-readiness-1"},
+                "content": {
+                    "sections": [{"id": "s7", "questions": [{"id": "7", "text": "7 dní"}]}]
+                },
+            },
+            {"layer": "runs", "runs": [{"run_id": "RUN-07b", "status": "SUCCEEDED"}]},
+            {
+                "layer": "knowledge",
+                "items": [{"item_id": "KN-9", "title": "Rok 2025"}],
+                "omitted_ids": ["KN-7x"],
+            },
+            {"layer": "view", "focus": {"target": "question:q7", "label": "Otázka 7"}},
+        ]
+    }
+    assert context_identifiers(context) == {
+        REV_7,
+        "aia-readiness-1",
+        "s7",
+        "RUN-07b",
+        "KN-9",
+        "KN-7x",
+        "question:q7",
+    }  # a counter, a text and a bare-number id ("7") are not identifiers to mask
+
+
+def test_a_request_holds_a_reply_to_the_context_without_its_identifiers() -> None:
+    design = {
+        "workspace_revision": 1,
+        "design_revision_id": REV_7,
+        "content": APPROVED_DESIGN,
+        "analysis": None,
+    }
+    contract = _request(_context(design=design), IDENTITY, DESIGN_OK).agent.output_contract
+    invented = {"reply": "Máme 7 otázek."}
+    assert not validate_structured_output(contract, structured=invented, text="").ok
+    quoted = {"reply": f"Návrh {REV_7} je uložený."}
+    assert validate_structured_output(contract, structured=quoted, text="").ok
+
+
+#: The identity metadata a frozen design carries today, each value leading with a 7 (Codex P1
+#: on #557): the stable-item sidecar's ``bound`` hash (``item_ids``, ten hex digits), a brief
+#: attachment's ``sha256``, a material's ``reading_sha256``, ``source_id`` and
+#: ``contract_version``, the analysis's ``_brief_signature`` (the brief again, with the
+#: attachment's hash) and a dimension proposal's ``created_at`` (``persona.ts``).
+SHA_7 = "7f" + "0" * 62
+IDENTITY_DESIGN: dict[str, Any] = {
+    "title": "Fiktivní",
+    "goal": "Test",
+    "research_plan": {
+        "objectives": ["Poznat trh"],
+        "objective_ids": [{"id": "obj_7a01b2c3d4", "bound": "7a01b2c3d4"}],
+    },
+    "briefing": {
+        "attachments": [{"attachment_id": "ATT-7c", "filename": "zadani.pdf", "sha256": SHA_7}],
+        "materials": [
+            {"source_id": "SRC-7d", "reading_sha256": SHA_7, "contract_version": 7},
+        ],
+    },
+    "dimension_proposals": [{"label": "Ekologie", "created_at": "2026-10-21T13:07:00.000Z"}],
+}
+IDENTITY_ANALYSIS: dict[str, Any] = {
+    "_brief_signature": json.dumps({"goal": "Test", "attachments": [SHA_7]}),
+    "summary": "Shrnutí",
+}
+
+
+def test_identity_metadata_grounds_no_number() -> None:
+    """Codex P1 on #557: a ``bound`` hash starting ``7a`` still grounded a 7. The allowed numbers
+    come from the context with its identity metadata left out, not masked afterwards.
+
+    The review of 4d434c4d: the working copy's save counter (``workspace_revision``, moved by
+    every 1.8 s autosave) and a knowledge item's ``revision`` count saves, not anything in the
+    design, so at 7 they grounded "Máme 7 otázek." They are identity metadata too."""
+    design = {
+        "workspace_revision": 7,
+        "design_revision_id": REV_7,
+        "content": IDENTITY_DESIGN,
+        "analysis": IDENTITY_ANALYSIS,
+    }
+    knowledge = [{"item_id": "K1", "revision": 7, "kind": "FACT", "title": "t", "summary": "s"}]
+    context = _context(design=design, knowledge=knowledge)
+    assert "7" in number_tokens(model_message(context))  # what the whole message reads
+    citable = canonical_json(citable_context(context))
+    assert "7" not in number_tokens(citable)
+    assert "workspace_revision" not in citable and '"revision"' not in citable
+    # Only identity is left out: the words stay.
+    assert "Poznat trh" in citable and "zadani.pdf" in citable
+    contract = _request(context, IDENTITY).agent.output_contract
+    for reply in ("Máme 7 cílů.", "Máme 7 otázek."):
+        assert not validate_structured_output(contract, structured={"reply": reply}, text="").ok
+    # A number the design's words hold is still citable.
+    worded = _context(
+        design={**design, "content": {**IDENTITY_DESIGN, "goal": "Test 7 cílů"}},
+        knowledge=knowledge,
+    )
+    contract = _request(worded, IDENTITY).agent.output_contract
+    assert validate_structured_output(contract, structured={"reply": "Máme 7 cílů."}, text="").ok
+
+
+def test_an_identifier_ends_only_where_no_identifier_character_follows() -> None:
+    """Codex P2 on #557: a dot is part of an ``ITEM_ID`` or a focus target, so ``X.REV-7a…`` and
+    ``REV-7a….b`` are other identifiers, never a whole quote of ``REV-7a…``; a sentence still
+    ends on one."""
+    allowed = canonical_json({"n": 20})
+    ids = frozenset({REV_7})
+
+    def ok(reply: str) -> bool:
+        return validate_structured_output(
+            lead_contract(allowed, ids), structured={"reply": reply}, text=""
+        ).ok
+
+    assert ok(f"Běží na {REV_7}.") and ok(f"Běží na {REV_7}, ne jinak.")
+    assert not ok(f"Viz X.{REV_7}.")
+    assert not ok(f"Viz {REV_7}.b.")
+    assert not ok(f"Viz {REV_7}-2.")
+
+
 def test_a_number_in_another_field_is_not_the_replys() -> None:
     """The rule reads the reply; an edit's value is a proposal a person accepts."""
     assert _valid(_output(edits=[{"op": "set_n", "value": 300, "why": WHY}]), "").ok
@@ -420,7 +579,7 @@ def test_ground_edits_drops_what_the_content_does_not_hold_and_names_it() -> Non
             ]
         )
     )
-    kept, dropped = ground_edits(output, CONTENT)
+    kept, dropped = ground_edits(output, CONTENT, sample_size=LIMITS)
     assert [e.op for e in kept.edits] == ["question_edit", "question_add", "list_remove", "set_n"]
     assert [(d.index, d.reason) for d in dropped] == [
         (1, "unknown_question"),
@@ -437,9 +596,9 @@ def test_plan_lists_are_read_from_the_analysis_first() -> None:
             edits=[{"op": "list_remove", "list": "plan.objectives", "old": "Z analýzy", "why": WHY}]
         )
     )
-    kept, dropped = ground_edits(output, CONTENT, {"objectives": ["Z analýzy"]})
+    kept, dropped = ground_edits(output, CONTENT, {"objectives": ["Z analýzy"]}, sample_size=LIMITS)
     assert len(kept.edits) == 1 and dropped == []
-    kept, dropped = ground_edits(output, CONTENT)
+    kept, dropped = ground_edits(output, CONTENT, sample_size=LIMITS)
     assert kept.edits == [] and dropped[0].reason == "unknown_item"
 
 
@@ -623,7 +782,7 @@ def test_a_new_question_carries_only_options_it_can_keep(
     output = LeadOutput.model_construct(
         reply="x", view=[], edits=[stored], request=None, follow=[], self_update=None
     )
-    kept, dropped = ground_edits(output, CONTENT)
+    kept, dropped = ground_edits(output, CONTENT, sample_size=LIMITS)
     assert kept.edits == [] and [d.reason for d in dropped] == [reason]
 
 
@@ -699,7 +858,7 @@ def test_options_on_a_question_that_has_none_are_refused_not_accepted_as_nothing
     ):
         assert apply_edit(content, None, edit) == Refused(reason="options_on_non_selection")
         output = LeadOutput.model_validate(_output(edits=[edit.model_dump()]))
-        kept, dropped = ground_edits(output, content)
+        kept, dropped = ground_edits(output, content, sample_size=LIMITS)
         assert kept.edits == [] and [d.reason for d in dropped] == ["options_on_non_selection"]
 
 
@@ -734,13 +893,61 @@ def test_a_selection_question_keeps_at_least_two_options() -> None:
             )
         ),
         content,
+        sample_size=LIMITS,
     )
     assert len(kept.edits) == 1 and dropped == []
 
 
 def test_set_n_sets_the_sample_size() -> None:
-    content, analysis = apply_edit(CONTENT, {"a": 1}, _edit(op="set_n", value=800))
+    content, analysis = apply_edit(
+        CONTENT, {"a": 1}, _edit(op="set_n", value=800), sample_size=LIMITS
+    )
     assert content["n"] == 800 and analysis == {"a": 1}
+
+
+@pytest.mark.parametrize(
+    ("value", "reason"),
+    [
+        (19, "sample_size_out_of_range"),
+        (10_001, "sample_size_out_of_range"),
+        (20, None),
+        (10_000, None),
+    ],
+)
+def test_a_set_n_is_held_to_the_readiness_limits_at_the_turn_and_at_the_accept(
+    value: int, reason: str | None
+) -> None:
+    # RQC9: one authority for a valid n. The Lead had its own range (30-40,000); it now
+    # reads readiness's, both bounds included, and never clamps.
+    output = LeadOutput.model_validate(_output(edits=[{"op": "set_n", "value": value, "why": WHY}]))
+    kept, dropped = ground_edits(output, CONTENT, sample_size=LIMITS)
+    applied = apply_edit(CONTENT, None, output.edits[0], sample_size=LIMITS)
+    if reason is None:
+        assert len(kept.edits) == 1 and dropped == []
+        assert not isinstance(applied, Refused) and applied[0]["n"] == value
+    else:
+        assert kept.edits == [] and [d.reason for d in dropped] == [reason]
+        assert applied == Refused(reason=reason)
+
+
+def test_a_set_n_with_no_limits_known_is_dropped_and_refused_never_presumed_valid() -> None:
+    output = LeadOutput.model_validate(_output(edits=[{"op": "set_n", "value": 300, "why": WHY}]))
+    kept, dropped = ground_edits(output, CONTENT, sample_size=None)
+    assert kept.edits == [] and [d.reason for d in dropped] == ["sample_size_limits_unknown"]
+    assert apply_edit(CONTENT, None, output.edits[0]) == Refused(
+        reason="sample_size_limits_unknown"
+    )
+
+
+def test_the_frozen_limits_are_read_back_and_an_unreadable_layer_is_none() -> None:
+    frozen = readiness_layer(LIMITS, "aia-readiness-1")
+    assert frozen == {
+        "methodology_version": "aia-readiness-1",
+        "sample_size": {"min": 20, "max": 10000},
+    }
+    assert frozen_sample_size({"readiness": frozen}) == LIMITS
+    assert frozen_sample_size({}) is None
+    assert frozen_sample_size({"readiness": {"sample_size": {"min": "x"}}}) is None
 
 
 # --------------------------------------------------------------------------- the context
@@ -1027,6 +1234,37 @@ def test_a_turn_declares_recorded_datasets_and_the_placeholder_for_an_unrecorded
     mixed = _request(_context(knowledge=[seeded, finding]), IDENTITY, DESIGN_OK).data_lineage
     assert mixed is not None
     assert mixed.datasets == {SYNTHETIC_FIXTURE_DATASET, UNRECORDED_KNOWLEDGE_LINEAGE}
+
+
+@pytest.mark.parametrize("kind", ["DATASET", "ARTIFACT", "FINDING"])
+def test_a_turn_over_dataset_derived_knowledge_passes_the_licence_gate_on_eu_bedrock_only(
+    kind: str,
+) -> None:
+    """PR #564 Finding 1: the lineage such a turn declares had no determination, so every turn
+    of the client was refused ``dataset_unknown``. The data owner approved it for the EU
+    Bedrock route alone (2026-10-21, /pmstatus Q60); any other route still refuses."""
+    from aia_core.domain.licence import LicenceDenied
+    from aia_core.domain.licence_determinations import PANEL_APPROVED_ROUTE, recorded_policy
+    from aia_core.domain.residency import ProviderRoute, ResidencyZone
+
+    knowledge = [{"item_id": "K1", "revision": 1, "kind": kind, "title": "t", "summary": "s"}]
+    lineage = _request(_context(knowledge=knowledge), IDENTITY, DESIGN_OK).data_lineage
+    eu = ProviderRoute(
+        route_id=PANEL_APPROVED_ROUTE,
+        provider="bedrock",
+        zone=ResidencyZone.EU,
+        eu_processing_approved=True,
+        excluded_from_training=True,
+        retention_days=0,
+        approved_for=frozenset(DataClass),
+    )
+    recorded_policy().authorise(lineage=lineage, route=eu)
+    for other in ("bedrock-eu-secondary", "anthropic-direct"):
+        with pytest.raises(LicenceDenied) as refused:
+            recorded_policy().authorise(
+                lineage=lineage, route=ProviderRoute(route_id=other, provider="bedrock")
+            )
+        assert refused.value.reason == "not_approved_for_route"
 
 
 def test_the_window_bounds_a_turn_and_its_repair() -> None:

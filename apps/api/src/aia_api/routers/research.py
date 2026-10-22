@@ -9,6 +9,7 @@ project id: the browser supplies content, never authority.
 
 from __future__ import annotations
 
+import re
 from collections.abc import Iterator, Mapping
 from contextlib import contextmanager
 from datetime import date, datetime
@@ -21,7 +22,13 @@ from aia_core.application.analysis_results import (
     retry_failed_modules,
     stored_analysis,
 )
-from aia_core.application.client_report import ClientReportRefused, stored_client_report
+from aia_core.application.client_report import (
+    CLIENT_REPORT_DOCUMENT_ARTIFACT_TYPE,
+    ClientGateRefused,
+    ClientReportRefused,
+    client_report_document,
+    stored_client_report,
+)
 from aia_core.application.contextual_report import stored_contextual_report
 from aia_core.application.deep_research import (
     BundleNotReady,
@@ -31,9 +38,11 @@ from aia_core.application.deep_research import (
     RunSpecCorrupt,
 )
 from aia_core.application.errors import WorkspaceConflict
+from aia_core.application.lead_chat_start import RunStartSettings
 from aia_core.application.proposal_accept import StaleProposal
 from aia_core.application.report import (
     INTERNAL_REPORT_ARTIFACT_TYPE,
+    INTERNAL_REPORT_DOCUMENT_ARTIFACT_TYPE,
     INTERNAL_REPORT_MEDIA_TYPE,
     ReportCompositionRefused,
 )
@@ -70,7 +79,10 @@ from aia_core.application.research import (
     ResearchRunNotRetryable,
     ResearchRuns,
     ResearchStepNotFound,
+    RunOutlook,
     RunReservations,
+    WorkingRevisionNotFound,
+    readiness_in_force,
     research_artifacts,
 )
 from aia_core.application.sociomapping_report import SOCIOMAPPING_REPORT_ARTIFACT_TYPE
@@ -96,7 +108,13 @@ from aia_core.domain.fieldwork import (
     persona_source_of,
 )
 from aia_core.domain.methodology.pins import response_deviates, run_methods
+from aia_core.domain.persona_topics import dimension_topic
 from aia_core.domain.population import PopulationError, UnknownDatasetVersion
+from aia_core.domain.report.document_model import (
+    DOCUMENT_MODEL_MEDIA_TYPE,
+    DocumentModelInvalid,
+    read_document_payload,
+)
 from aia_core.domain.report.review import ReviewMark, ReviewState
 from aia_core.domain.report.validation import ReportInvalid
 from aia_core.domain.research_agents import ResearchAction
@@ -127,9 +145,16 @@ from aia_core.infrastructure.workflow_repository import (
     RuntimeParkNotResumable,
 )
 from fastapi import APIRouter, HTTPException, Path, Query, Request, Response, status
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict, Field, StringConstraints
 
-from ..dependencies import ArtifactStoreDep, SessionDep, SettingsDep, StudyScopeDep
+from ..dependencies import (
+    ArtifactStoreDep,
+    AudiencePopulation,
+    RunPopulationDep,
+    SessionDep,
+    SettingsDep,
+    StudyScopeDep,
+)
 from ..schemas.projects import ErrorResponse
 from ..schemas.runs import ArtifactResponse, RunEventResponse
 from .runs import artifact_corrupt, artifact_response
@@ -165,6 +190,7 @@ _RESEARCHERS_ONLY = frozenset(
         "research_sociomap",
         "research_analysis_module",
         INTERNAL_REPORT_ARTIFACT_TYPE,
+        INTERNAL_REPORT_DOCUMENT_ARTIFACT_TYPE,
         "research_sociomapping",
         SOCIOMAPPING_REPORT_ARTIFACT_TYPE,
     }
@@ -309,6 +335,10 @@ class ResearchStepResponse(BaseModel):
     finished_at: datetime | None
     failure_class: str | None
     error_message: str | None
+    #: The code the last attempt's error recorded beside its message (a gate's refusal, such as
+    #: ``egress_route_not_approved_for_class``); ``None`` when it recorded none, or anything that
+    #: is not a code.
+    error_reason: str | None = None
     artifact_id: str | None
     #: ``SYNTHETIC_FIXTURE`` when the step's output came from fictional fieldwork.
     data_origin: str | None = None
@@ -531,12 +561,35 @@ class ResearchTraceResponse(BaseModel):
     linked: bool
 
 
-class ReadinessResponse(BaseModel):
-    """Whether a Design Revision can run in AIA: AIA's structural checks, by name."""
+class SampleSizeRange(BaseModel):
+    """A valid n: a whole number from ``min`` to ``max``, both included."""
 
     model_config = ConfigDict(extra="forbid")
 
-    design_revision_id: str
+    min: int
+    max: int
+
+
+class ResearchLimitsResponse(BaseModel):
+    """The readiness limits in force for the Study (plan ``run-qc-and-checkpoint`` RQC9).
+
+    The one authority for a valid n: what a run start checks and pins and what a Research Lead
+    edit is held to. The web reads it instead of a range of its own, and refuses a value
+    outside it -- never clamps it. ``version`` is the stored methodology version in force;
+    ``None``: nothing stored, the code's preset (``methodology_version``)."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    methodology_version: str
+    version: int | None
+    sample_size: SampleSizeRange
+
+
+class _ReadinessBody(BaseModel):
+    """What readiness says of a design, whichever revision it was read on."""
+
+    model_config = ConfigDict(extra="forbid")
+
     rules: str
     ready: bool
     checks: list[ReadinessCheckResponse]
@@ -568,6 +621,20 @@ class ReadinessResponse(BaseModel):
     persona_sources: list[PersonaSourceOption] = []
     #: ``None`` when the design does not compile.
     answerability: AnswerabilityResponse | None = None
+
+
+class ReadinessResponse(_ReadinessBody):
+    """Whether a Design Revision can run in AIA: AIA's structural checks, by name."""
+
+    design_revision_id: str
+
+
+class WorkingReadinessResponse(_ReadinessBody):
+    """The same readiness on a revision of the Study's working content, before any Design
+    Revision is submitted (working-copy-edit-ops WCE7). Its answerability's digest names no
+    Design Revision, so it never stands for a start's acknowledgement."""
+
+    working_revision: int
 
 
 class PersonaSourceOption(BaseModel):
@@ -895,6 +962,14 @@ def _recovery_reason(
     return None
 
 
+_CODE = re.compile(r"[a-z][a-z0-9_:.-]{0,79}")
+
+
+def _code(value: object) -> str | None:
+    """A stored reason when it is a code; free text is never passed on as one."""
+    return value if isinstance(value, str) and _CODE.fullmatch(value) else None
+
+
 def _step(s: dict[str, Any]) -> ResearchStepResponse:
     attempts = s.get("attempts") or []
     last = attempts[-1] if attempts else None
@@ -913,6 +988,7 @@ def _step(s: dict[str, Any]) -> ResearchStepResponse:
         finished_at=s.get("finished_at"),
         failure_class=last["failure_class"].value if last and last["failure_class"] else None,
         error_message=str(error.get("message")) if error.get("message") else None,
+        error_reason=_code(error.get("reason")),
         artifact_id=str(output["artifact_id"]) if output.get("artifact_id") else None,
         data_origin=str(output["data_origin"]) if output.get("data_origin") else None,
         data_origin_kind=origin_kind(output["data_origin"]) if output.get("data_origin") else None,
@@ -1081,6 +1157,22 @@ def _started(runs: ResearchRuns, started: StartedRun, response: Response) -> Res
 
 
 @router.get(
+    "/research/limits",
+    response_model=ResearchLimitsResponse,
+    summary="The readiness limits in force: the valid sample size",
+)
+def research_limits(scope: StudyScopeDep, session: SessionDep) -> ResearchLimitsResponse:
+    """The limits a run start of this Study checks today, read from the organization's
+    readiness methodology in force (the preset when nothing is stored). Starts nothing."""
+    limits, stored = readiness_in_force(session, scope)
+    return ResearchLimitsResponse(
+        methodology_version=limits.methodology_version,
+        version=None if stored is None else int(stored["version"]),
+        sample_size=SampleSizeRange(min=limits.sample_size.min, max=limits.sample_size.max),
+    )
+
+
+@router.get(
     "/research/readiness",
     response_model=ReadinessResponse,
     summary="Can this Design Revision run in AIA?",
@@ -1108,6 +1200,48 @@ def readiness(
         )
     except DesignRevisionNotFound as exc:
         raise _not_found("design_revision") from exc
+    return ReadinessResponse(
+        design_revision_id=design_revision_id,
+        **_readiness_body(request, runs, outlook, chosen),
+    )
+
+
+@router.get(
+    "/research/readiness/working",
+    response_model=WorkingReadinessResponse,
+    summary="Could this working revision run in AIA?",
+)
+def working_readiness(
+    request: Request,
+    scope: StudyScopeDep,
+    session: SessionDep,
+    working_revision: Annotated[int, Query(ge=1)],
+    persona_source: Annotated[PersonaSource | None, Query()] = None,
+) -> WorkingReadinessResponse:
+    """The readiness of a revision of the Study's working content, read as a submit of it
+    would read it, with no Design Revision written (working-copy-edit-ops WCE7). A stage
+    reads it on the revision it shows; a start still runs a submitted Design Revision.
+    A revision the Study never saved is 404 ``working_revision``."""
+    chosen = _chosen_persona_source(request, persona_source)
+    runs = ResearchRuns(session, scope)
+    try:
+        outlook = runs.outlook_working(
+            working_revision,
+            persona_source=chosen,
+            fieldwork_source=_fieldwork_source(request),
+        )
+    except WorkingRevisionNotFound as exc:
+        raise _not_found("working_revision") from exc
+    return WorkingReadinessResponse(
+        working_revision=working_revision,
+        **_readiness_body(request, runs, outlook, chosen),
+    )
+
+
+def _readiness_body(
+    request: Request, runs: ResearchRuns, outlook: RunOutlook, chosen: PersonaSource
+) -> dict[str, Any]:
+    """The readiness fields both routes answer, from one outlook."""
     spec, result = outlook.spec, outlook.readiness
     settings = request.app.state.settings
     ceiling = (
@@ -1121,32 +1255,31 @@ def readiness(
         else None
     )
     limit = runs.spend_limit()
-    return ReadinessResponse(
-        design_revision_id=design_revision_id,
-        rules=result.rules,
-        ready=result.ready,
-        checks=[
+    return {
+        "rules": result.rules,
+        "ready": result.ready,
+        "checks": [
             ReadinessCheckResponse(id=c.id, status=c.status.value, message=c.message)
             for c in result.checks
         ],
-        questions=len(spec.questions) if spec else 0,
-        batteries=len(spec.batteries) if spec else 0,
-        objects=sum(len(b.objects) for b in spec.batteries) if spec else 0,
-        n=spec.n if spec else None,
-        fieldwork_source=str(_fieldwork_source(request).value),
-        cost_ceiling_usd=ceiling.total_usd if ceiling else None,
-        cost_ceiling_unknown=ceiling.unknown.value if ceiling and ceiling.unknown else None,
-        fieldwork_requests=ceiling.fieldwork_requests if ceiling else 0,
-        analysis_calls=ceiling.analysis_calls if ceiling else 0,
-        spend_confirm_usd=limit,
+        "questions": len(spec.questions) if spec else 0,
+        "batteries": len(spec.batteries) if spec else 0,
+        "objects": sum(len(b.objects) for b in spec.batteries) if spec else 0,
+        "n": spec.n if spec else None,
+        "fieldwork_source": str(_fieldwork_source(request).value),
+        "cost_ceiling_usd": ceiling.total_usd if ceiling else None,
+        "cost_ceiling_unknown": ceiling.unknown.value if ceiling and ceiling.unknown else None,
+        "fieldwork_requests": ceiling.fieldwork_requests if ceiling else 0,
+        "analysis_calls": ceiling.analysis_calls if ceiling else 0,
+        "spend_confirm_usd": limit,
         # Unknown does not ask: it refuses at the start, so the page shows it differently.
-        confirmation_required=bool(
+        "confirmation_required": bool(
             limit is not None
             and ceiling
             and ceiling.total_usd is not None
             and ceiling.total_usd >= limit
         ),
-        question_outlook=[
+        "question_outlook": [
             QuestionOutlookResponse(
                 question_id=q.question_id,
                 text=q.text,
@@ -1157,16 +1290,16 @@ def readiness(
             )
             for q in outlook.questions
         ],
-        research_trace=_trace(outlook.trace) if outlook.trace is not None else None,
-        persona_source=chosen.value,
-        persona_sources=_persona_sources(request),
-        answerability=_answerability(
+        "research_trace": _trace(outlook.trace) if outlook.trace is not None else None,
+        "persona_source": chosen.value,
+        "persona_sources": _persona_sources(request),
+        "answerability": _answerability(
             outlook.answerability,
             required=request.app.state.settings.research_answerability_gate,
         )
         if outlook.answerability is not None
         else None,
-    )
+    }
 
 
 def _trace(trace: ResearchTrace) -> ResearchTraceResponse:
@@ -1202,16 +1335,23 @@ def start_run(
     scope: StudyScopeDep,
     session: SessionDep,
     response: Response,
+    population: RunPopulationDep,
 ) -> ResearchRunResponse:
     """Idempotent per Design Revision: a double submission gets the existing run.
 
     Needs ``RUN_WORKFLOW`` on an open Study. The fieldwork source is the
     deployment's, never the request's; who answers is the person's, among the sources the
-    deployment offers (409 ``persona_source_unavailable`` otherwise).
+    deployment offers (409 ``persona_source_unavailable`` otherwise). The population a new run
+    records is the deployment's (the Czech LIVE; the population double only in local and test).
     """
     persona_source = _chosen_persona_source(request, body.persona_source)
-    runs = ResearchRuns(session, scope)
-    try:
+    runs = ResearchRuns(
+        session,
+        scope,
+        population_contract=population.contract,
+        population_id=population.population_id,
+    )
+    with run_start_errors():
         started = runs.start(
             design_revision_id=body.design_revision_id,
             fieldwork_source=_fieldwork_source(request),
@@ -1224,6 +1364,15 @@ def start_run(
             acknowledge=_acknowledgement(body.acknowledge_research_questions),
             require_answerability=request.app.state.settings.research_answerability_gate,
         )
+    return _started(runs, started, response)
+
+
+@contextmanager
+def run_start_errors() -> Iterator[None]:
+    """A research run start's refusals as HTTP, one mapping for every way a run is started:
+    this router's ``POST …/research/runs`` and the Lead's typed start (``routers/lead.py``)."""
+    try:
+        yield
     except ScopeDenied as exc:
         raise _refused(exc) from exc
     except DesignRevisionNotFound as exc:
@@ -1241,7 +1390,25 @@ def start_run(
         raise _not_found("population_version") from exc
     except PopulationError as exc:
         raise _population_refused(exc) from exc
-    return _started(runs, started, response)
+
+
+def run_start_settings(request: Request, population: AudiencePopulation) -> RunStartSettings:
+    """What a research run's start takes from the deployment, as ``start_run`` passes it: the
+    fieldwork source, analysis and Sociomapping switches, reservations, the default persona
+    source, the answerability gate and the population a new run records. A typed start (LO5)
+    names no persona source, population child or acknowledgement, so it starts on the
+    deployment's defaults, as a start naming none does here."""
+    settings = request.app.state.settings
+    return RunStartSettings(
+        fieldwork_source=_fieldwork_source(request),
+        analysis_enabled=settings.ai_analysis_enabled,
+        sociomapping_enabled=settings.sociomapping_experimental_enabled,
+        reservations=_reservations(request),
+        persona_source=_persona_source(request),
+        require_answerability=settings.research_answerability_gate,
+        population_contract=population.contract,
+        population_id=population.population_id,
+    )
 
 
 @router.get(
@@ -1257,6 +1424,46 @@ def sociomap_register(scope: StudyScopeDep) -> dict[str, Any]:
     except ScopeDenied as exc:
         raise _refused(exc) from exc
     return {"entries": [entry.model_dump(mode="json") for entry in SOCIOMAP_REGISTER]}
+
+
+class DimensionTopic(BaseModel):
+    """A selected dimension and the persona topic it lets through (``dimension_topic``)."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    dimension: str
+    #: ``None``: it names no persona topic, so a run lists it in ``dimensions_unmatched`` and
+    #: no respondent's profile carries it.
+    topic: str | None
+
+
+class DimensionTopicList(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    items: list[DimensionTopic]
+
+
+@router.get(
+    "/research/persona-topics",
+    response_model=DimensionTopicList,
+    summary="The persona topic each dimension lets through",
+)
+def persona_topics(
+    scope: StudyScopeDep,
+    dimension: Annotated[
+        list[Annotated[str, StringConstraints(max_length=80)]], Query(max_length=64)
+    ] = [],  # noqa: B006
+) -> DimensionTopicList:
+    """Dimenze's chip before any run (artifact-dimensions DIM2): the same mapping a run's
+    ``selection_receipt`` reads, asked of the working copy's dimensions, in the order given.
+    It reads no design, so a dimension chosen a moment ago is answered without a revision."""
+    try:
+        scope.require(Permission.VIEW_STUDY)
+    except ScopeDenied as exc:
+        raise _refused(exc) from exc
+    return DimensionTopicList(
+        items=[DimensionTopic(dimension=d, topic=dimension_topic(d)) for d in dimension]
+    )
 
 
 @router.get("/research/runs", response_model=ResearchRunList, summary="The Study's research runs")
@@ -1339,9 +1546,45 @@ class BudgetLiftRequest(BaseModel):
 
 
 @router.post(
+    "/research/runs/{run_id}/budget",
+    response_model=ResearchRunResponse,
+    summary="Raise the study's budget and let every step of the run stopped at the cap go on",
+    responses={
+        409: {"model": ErrorResponse, "description": "Nothing in the run waits for budget"},
+        422: {"model": ErrorResponse, "description": "The budget offered is below the current one"},
+    },
+)
+def lift_run_budget_wait(
+    run_id: RunIdPath,
+    body: BudgetLiftRequest,
+    scope: StudyScopeDep,
+    session: SessionDep,
+) -> ResearchRunResponse:
+    """Needs ``APPROVE_BUDGET`` and ``MANAGE_STUDY_BUDGET`` on an open Study.
+
+    The run's lift (CR-3): a run's analysis modules each reserve their own call, so several
+    steps can stop at the study's budget at once. One lift raises the budget (equal to the
+    current one lifts the waits without changing it; lower is refused) and offers every
+    waiting step to a worker again, under one lock, as one decision in the approval ledger.
+    The cap stays hard: a step whose next reservation still passes the budget stops again.
+    """
+    runs = ResearchRuns(session, scope)
+    try:
+        return _run(
+            runs.lift_budget_wait(run_id, budget_usd=body.budget_usd, note=body.note), scope
+        )
+    except ScopeDenied as exc:
+        raise _refused(exc) from exc
+    except ResearchRunNotFound as exc:
+        raise _not_found("run") from exc
+    except (BudgetWaitNotLiftable, BudgetNotRaised) as exc:
+        raise _budget_lift_refused(exc) from exc
+
+
+@router.post(
     "/research/runs/{run_id}/steps/{node_key}/budget",
     response_model=ResearchRunResponse,
-    summary="Raise the study's budget and let a step that stopped at the cap go on",
+    summary="Raise the study's budget and let the run's steps that stopped at the cap go on",
     responses={
         409: {"model": ErrorResponse, "description": "The step is not waiting for budget"},
         422: {"model": ErrorResponse, "description": "The budget offered is below the current one"},
@@ -1359,8 +1602,9 @@ def lift_budget_wait(
     A step whose next paid call would pass the study's budget stops waiting for budget,
     and nothing else can resume it. The person names the budget the study is raised to
     (equal to the current one lifts the wait without changing it; lower is refused) and
-    the step is offered to a worker again. The decision is written to the approval
-    ledger and the change to the access audit. The cap stays hard: if the new budget is
+    the step, with every other step of the run waiting for budget, is offered to a worker
+    again (the run's lift, ``POST …/runs/{run_id}/budget``). The decision is written once to
+    the approval ledger and the change to the access audit. The cap stays hard: if the new budget is
     still too small the step stops again at its next reservation.
     """
     runs = ResearchRuns(session, scope)
@@ -2066,6 +2310,61 @@ def download_run_report(
     )
 
 
+@router.get(
+    "/research/runs/{run_id}/report/document",
+    response_model=dict[str, Any],
+    summary="The run's internal draft as its stored document model",
+)
+def run_report_document(
+    run_id: RunIdPath, scope: StudyScopeDep, session: SessionDep, store: ArtifactStoreDep
+) -> dict[str, Any]:
+    """The document the run's internal DOCX was rendered from (report-delivery RD5a): its
+    sections and blocks by their stored ids, and the ledger of every ref it cites with the text
+    the DOCX prints. Read only through the run, beside the DOCX it names; the review is the
+    DOCX's, because the DOCX is what a person approves.
+
+    409 ``report_document_not_stored`` for a report composed before the document was stored
+    (its DOCX still downloads); 409 ``report_artifact_invalid`` for a document that is not the
+    one beside this run's DOCX."""
+    step, report = _report_for_run(run_id, scope, session, store)
+    if step is None or report is None:
+        raise _not_found("report")
+    said = (step.get("output") or {}).get("document")
+    if not isinstance(said, dict) or not said.get("artifact_id"):
+        raise HTTPException(409, detail={"code": "report_document_not_stored"})
+    repo = research_artifacts(session, scope, store)
+    try:
+        model = repo.get(str(said["artifact_id"]))
+    except ArtifactNotFound as exc:
+        raise HTTPException(409, detail={"code": "report_artifact_missing"}) from exc
+    if (
+        model.artifact_type != INTERNAL_REPORT_DOCUMENT_ARTIFACT_TYPE
+        or model.content_type != DOCUMENT_MODEL_MEDIA_TYPE
+        or model.status is not ArtifactStatus.VALID
+        or model.sha256 != said.get("sha256")
+        or model.metadata.get("run_id") != run_id
+        or model.metadata.get("docx_artifact_id") != report.artifact_id
+        or model.metadata.get("docx_sha256") != report.sha256
+    ):
+        raise HTTPException(409, detail={"code": "report_artifact_invalid"})
+    try:
+        document = read_document_payload(repo.read(model.artifact_id))
+    except (IntegrityError, ObjectNotFound) as exc:
+        raise artifact_corrupt(session) from exc
+    except DocumentModelInvalid as exc:
+        raise HTTPException(409, detail={"code": "report_artifact_invalid"}) from exc
+    mark = _mark(report, scope, session, store)
+    return {
+        "run_id": run_id,
+        "artifact_id": model.artifact_id,
+        "sha256": model.sha256,
+        "report_artifact_id": report.artifact_id,
+        "report_sha256": report.sha256,
+        **_review_fields(report, mark),
+        "document": document,
+    }
+
+
 # The experimental Sociomapping's internal draft, read only through the run that produced it.
 
 
@@ -2458,6 +2757,52 @@ class ReportApprovalRequest(BaseModel):
     note: str = Field(default="", max_length=2000)
 
 
+@router.get(
+    "/research/runs/{run_id}/report/client/document",
+    response_model=dict[str, Any],
+    summary="The run's stored client report as its document model",
+)
+def client_report_document_route(
+    run_id: RunIdPath, scope: StudyScopeDep, session: SessionDep, store: ArtifactStoreDep
+) -> dict[str, Any]:
+    """The document the run's stored client report was rendered from (report-delivery RD5a):
+    the approved version's when a person approved one, else the newest stored draft's. It
+    composes nothing; a client report is prepared by its download. 404 while none is stored;
+    409 ``report_document_not_stored`` for a version stored before RD5a."""
+    try:
+        found = client_report_document(session, scope, store, run_id=run_id)
+    except ScopeDenied as exc:
+        raise _refused(exc) from exc
+    except ResearchRunNotFound as exc:
+        raise _not_found("run") from exc
+    if found is None:
+        raise _not_found("report")
+    report, model = found
+    if model is None:
+        raise HTTPException(409, detail={"code": "report_document_not_stored"})
+    if model.content_type != DOCUMENT_MODEL_MEDIA_TYPE or (
+        model.artifact_type != CLIENT_REPORT_DOCUMENT_ARTIFACT_TYPE
+    ):  # pragma: no cover - client_report_document selects by type
+        raise HTTPException(409, detail={"code": "report_artifact_invalid"})
+    repo = research_artifacts(session, scope, store)
+    try:
+        document = read_document_payload(repo.read(model.artifact_id))
+    except (IntegrityError, ObjectNotFound) as exc:
+        raise artifact_corrupt(session) from exc
+    except DocumentModelInvalid as exc:
+        raise HTTPException(409, detail={"code": "report_artifact_invalid"}) from exc
+    mark = _mark(report, scope, session, store)
+    return {
+        "run_id": run_id,
+        "artifact_id": model.artifact_id,
+        "sha256": model.sha256,
+        "report_artifact_id": report.artifact_id,
+        "report_sha256": report.sha256,
+        **_review_fields(report, mark),
+        "document": document,
+    }
+
+
 @router.post(
     "/research/runs/{run_id}/report/approve",
     response_model=dict[str, Any],
@@ -2489,6 +2834,19 @@ def approve_run_report(
         raise _not_found("run") from exc
     except ArtifactNotFound as exc:
         raise _not_found("report") from exc
+    except ClientGateRefused as exc:
+        raise HTTPException(
+            409,
+            detail={
+                "code": "client_gate_refused",
+                "message": "Klientskou zprávu nelze schválit: " + str(exc),
+                "details": {"refusals": [r.to_json() for r in exc.refusals]},
+            },
+        ) from exc
+    except (IntegrityError, ObjectNotFound) as exc:
+        raise artifact_corrupt(session) from exc
+    except DocumentModelInvalid as exc:
+        raise HTTPException(409, detail={"code": "report_artifact_invalid"}) from exc
     except ReportNotApprovable as exc:
         raise HTTPException(
             409,
@@ -2593,6 +2951,10 @@ class AgentJobStart(BaseModel):
     #: fictional (409 ``prompt_test_requires_fictional_client`` otherwise); the job records
     #: which prompt it ran.
     prompt_version: int | None = Field(default=None, ge=1)
+    #: The ceiling a person confirmed when the study's confirmation threshold asked (409
+    #: ``cost_confirmation_required``, lead-orchestration LO15). Never the ceiling itself: the
+    #: server works that out from the design job's reservation.
+    confirm_cost_usd: float | None = Field(default=None, ge=0, le=1_000_000, allow_inf_nan=False)
 
 
 class AgentProposalAccept(BaseModel):
@@ -2645,6 +3007,8 @@ class AgentProposalRebuild(BaseModel):
 
     model_config = ConfigDict(extra="forbid")
     design_revision_id: str = Field(max_length=64, pattern=r"^REV-[0-9a-f]{1,32}$")
+    #: As a start's: the new job is paid work and meets the threshold (LO15).
+    confirm_cost_usd: float | None = Field(default=None, ge=0, le=1_000_000, allow_inf_nan=False)
 
 
 def _agent_response(
@@ -2723,6 +3087,8 @@ def _agent_errors(session: SessionDep) -> Iterator[None]:
         raise _runtime_park_refused(exc) from exc
     except (BudgetWaitNotLiftable, BudgetNotRaised) as exc:
         raise _budget_lift_refused(exc) from exc
+    except (CostConfirmationRequired, CostCeilingUnknown) as exc:
+        raise _cost_refused(exc) from exc
     except (IntegrityError, ObjectNotFound) as exc:
         # The proposal's bytes failed verification on read: keep its CORRUPT mark.
         raise artifact_corrupt(session) from exc
@@ -2732,7 +3098,18 @@ def _agent_errors(session: SessionDep) -> Iterator[None]:
         ) from exc
 
 
-@router.post("/research/agent-jobs", response_model=AgentJobResponse, status_code=201)
+@router.post(
+    "/research/agent-jobs",
+    response_model=AgentJobResponse,
+    status_code=201,
+    responses={
+        409: {
+            "model": ErrorResponse,
+            "description": "The confirmation threshold asks (cost_confirmation_required), or "
+            "the job's ceiling is unknown (cost_ceiling_unknown)",
+        },
+    },
+)
 def start_agent_job(
     body: AgentJobStart,
     scope: StudyScopeDep,
@@ -2742,12 +3119,19 @@ def start_agent_job(
 ) -> AgentJobResponse:
     with _agent_errors(session):
         # The deployment's fictional-client list decides where a draft prompt may be tried.
-        jobs = ResearchAgentJobs(session, scope, draft_client_ids=settings.fictional_client_ids)
+        # What one job can cost at most, for the study's confirmation threshold (LO15).
+        jobs = ResearchAgentJobs(
+            session,
+            scope,
+            draft_client_ids=settings.fictional_client_ids,
+            reservation_usd=settings.ai_research_reservation_usd,
+        )
         started = jobs.start(
             design_revision_id=body.design_revision_id,
             action=body.action,
             instruction=body.instruction,
             prompt_version=body.prompt_version,
+            confirm_cost_usd=body.confirm_cost_usd,
         )
         if not started.created:
             response.status_code = 200
@@ -2865,21 +3249,34 @@ def dismiss_agent_result(
     "/research/agent-jobs/{run_id}/rebuild",
     response_model=AgentJobResponse,
     status_code=201,
-    responses={409: {"model": ErrorResponse, "description": "Advice, or not the newest design"}},
+    responses={
+        409: {
+            "model": ErrorResponse,
+            "description": "Advice, not the newest design, or the confirmation threshold asks",
+        }
+    },
 )
 def rebuild_agent_result(
     run_id: RunIdPath,
     body: AgentProposalRebuild,
     scope: StudyScopeDep,
     session: SessionDep,
+    settings: SettingsDep,
     response: Response,
 ) -> AgentJobResponse:
     """Ask the same action and instruction again on the Study's newest Design Revision: a new
     job, ``rebuild_of`` the old one, which it supersedes (ADR 0026 decision 5). Accepts
-    nothing; the old proposal stays readable."""
+    nothing; the old proposal stays readable. The new job meets the study's confirmation
+    threshold as a start does (LO15)."""
     with _agent_errors(session):
-        jobs = ResearchAgentJobs(session, scope)
-        started = jobs.rebuild(run_id, design_revision_id=body.design_revision_id)
+        jobs = ResearchAgentJobs(
+            session, scope, reservation_usd=settings.ai_research_reservation_usd
+        )
+        started = jobs.rebuild(
+            run_id,
+            design_revision_id=body.design_revision_id,
+            confirm_cost_usd=body.confirm_cost_usd,
+        )
         if not started.created:
             response.status_code = 200
         return _agent_with_state(jobs, started.run_id, scope)

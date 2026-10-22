@@ -19,7 +19,13 @@ import uuid
 from collections.abc import Mapping
 from dataclasses import dataclass, field
 
-from aia_core.domain.deployment import DeploymentEnvironment, parse_environment
+from aia_core.domain.deployment import (
+    DataClassGates,
+    DeploymentEnvironment,
+    data_class_gates_problem,
+    parse_data_class_gates,
+    parse_environment,
+)
 from aia_core.domain.workflow import (
     DEFAULT_CAPACITY_BACKOFF_SECONDS,
     DEFAULT_LEASE_SECONDS,
@@ -70,6 +76,10 @@ class WorkerSettings:
     #: only where ``AIA_ENV`` is local or test, for the suites' doubles. Unset or
     #: unknown counts as deployed.
     executors_from_any_package: bool = False
+    #: ``AIA_DATA_CLASS_GATES``: ``advisory`` only where ``AIA_ENV`` is local, test or develop
+    #: (``deployment.data_class_gates_problem``, the rule the API asks too). The executors
+    #: read the same variable for the gates themselves; this process logs it at start.
+    data_class_gates: DataClassGates = DataClassGates.ENFORCE
 
     def __post_init__(self) -> None:
         problems: list[str] = []
@@ -134,6 +144,15 @@ class WorkerSettings:
         except ValueError as error:
             problems.append(str(error))
             build_sha = None
+        environment = parse_environment(source.get("AIA_ENV"))
+        gates = DataClassGates.ENFORCE
+        try:
+            gates = parse_data_class_gates(source.get("AIA_DATA_CLASS_GATES"))
+        except ValueError as error:
+            problems.append(str(error))
+        gates_problem = data_class_gates_problem(environment, gates)
+        if gates_problem:
+            problems.append(gates_problem)
         if problems:
             raise ValueError("invalid worker configuration: " + "; ".join(problems))
 
@@ -141,8 +160,9 @@ class WorkerSettings:
             database_url=source.get("DATABASE_URL", "").strip(),
             build_sha=build_sha,
             executors=source.get("AIA_WORKER_EXECUTORS", "").strip(),
-            executors_from_any_package=parse_environment(source.get("AIA_ENV"))
+            executors_from_any_package=environment
             in (DeploymentEnvironment.LOCAL, DeploymentEnvironment.TEST),
+            data_class_gates=gates,
             worker_id=source.get("AIA_WORKER_ID", "").strip() or default_worker_id(),
             lease_seconds=lease,
             heartbeat_seconds=heartbeat,

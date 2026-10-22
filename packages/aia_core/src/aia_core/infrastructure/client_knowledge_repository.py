@@ -14,11 +14,13 @@ from dataclasses import dataclass
 from datetime import datetime
 from typing import Any, Final, Literal, cast
 
-from sqlalchemy import delete, func, or_, select
+from sqlalchemy import and_, delete, func, or_, select
 from sqlalchemy.orm import Session
 
 from ..domain.knowledge import (
     STALE_AFTER,
+    KnowledgeAuthor,
+    KnowledgeDecision,
     KnowledgeFolder,
     KnowledgeHealth,
     KnowledgeItem,
@@ -28,11 +30,14 @@ from ..domain.knowledge import (
     KnowledgeRevision,
     KnowledgeSummary,
     LabelColour,
+    NoRevisionToReview,
     OrganizerNameTaken,
     ProposalDraft,
     ProposalOrigin,
     ProposalStatus,
     StaleKnowledgeProposal,
+    author_of,
+    evidence_of,
     new_knowledge_folder_id,
     new_knowledge_item_id,
     new_knowledge_label_id,
@@ -40,7 +45,18 @@ from ..domain.knowledge import (
     organizer_key,
     organizer_name,
     recorded_datasets,
+    reviewed_decision,
+    revision_sha256,
     source_ref,
+)
+from ..domain.knowledge_context import (
+    ContextEntryState,
+    FrozenKnowledgeContext,
+    FrozenKnowledgeEntry,
+    KnowledgeSelection,
+    OmittedKnowledge,
+    OmittedReason,
+    StaleKnowledgeSelection,
 )
 from ..domain.scope import (
     ClientContext,
@@ -60,6 +76,7 @@ from .tables import (
     ClientKnowledgeLabelRow,
     ClientKnowledgeProposalRow,
     ClientKnowledgeRevisionRow,
+    ClientKnowledgeSelectionRow,
     ClientRow,
     as_utc,
     utcnow,
@@ -121,6 +138,7 @@ def _item(row: ClientKnowledgeItemRow) -> KnowledgeItem:
 
 
 def _proposal(row: ClientKnowledgeProposalRow) -> KnowledgeProposal:
+    provenance = dict(row.provenance or {})
     return KnowledgeProposal(
         proposal_id=row.proposal_id,
         client_id=row.client_id,
@@ -131,7 +149,7 @@ def _proposal(row: ClientKnowledgeProposalRow) -> KnowledgeProposal:
         title=row.title,
         summary=row.summary,
         content=dict(row.content or {}),
-        provenance=dict(row.provenance or {}),
+        provenance=provenance,
         status=ProposalStatus(row.status),
         proposed_by=row.proposed_by,
         proposed_at=as_utc(row.proposed_at),
@@ -140,21 +158,55 @@ def _proposal(row: ClientKnowledgeProposalRow) -> KnowledgeProposal:
         decision_note=row.decision_note,
         revision=row.revision,
         base_revision=row.base_revision,
+        author=author_of(row.author, provenance),
+        decision=KnowledgeDecision(row.decision) if row.decision else None,
+        reviewed_revision=row.reviewed_revision,
     )
 
 
-def _revision(row: ClientKnowledgeRevisionRow) -> KnowledgeRevision:
+def _selection(row: ClientKnowledgeSelectionRow) -> KnowledgeSelection:
+    return KnowledgeSelection(
+        study_id=row.study_id,
+        item_id=row.item_id,
+        revision=row.revision,
+        selected_by=row.selected_by,
+        selected_at=as_utc(row.selected_at),
+    )
+
+
+def _revision(
+    row: ClientKnowledgeRevisionRow, proposal: ClientKnowledgeProposalRow | None
+) -> KnowledgeRevision:
+    """A revision, typed (lifecycle K3) from the proposal it applied.
+
+    Without its proposal row the author is read from the revision's own provenance (which
+    copies the proposal's), and the decision and the revisions it was checked against are
+    unknown.
+    """
+    provenance = dict(row.provenance or {})
+    content = dict(row.content or {})
+    author = author_of(proposal.author if proposal is not None else None, provenance)
     return KnowledgeRevision(
         item_id=row.item_id,
         revision=row.revision,
         context_revision=row.context_revision,
         title=row.title,
         summary=row.summary,
-        content=dict(row.content or {}),
-        provenance=dict(row.provenance or {}),
+        content=content,
+        provenance=provenance,
         proposal_id=row.proposal_id,
         approved_by=row.approved_by,
         approved_at=as_utc(row.approved_at),
+        author=author,
+        decision=(
+            KnowledgeDecision(proposal.decision)
+            if proposal is not None and proposal.decision
+            else None
+        ),
+        base_revision=proposal.base_revision if proposal is not None else None,
+        reviewed_revision=proposal.reviewed_revision if proposal is not None else None,
+        evidence=evidence_of(author, provenance, content),
+        sha256=revision_sha256(row.title, row.summary, content),
     )
 
 
@@ -320,6 +372,211 @@ class ClientKnowledgeRepository:
         }
         return [i.model_copy(update={"datasets": datasets.get(i.item_id)}) for i in items]
 
+    # ------------------------------------------------- use in this study (lifecycle K4)
+
+    def select_for_study(
+        self, scope: StudyContext, *, item_id: str, revision: int
+    ) -> KnowledgeSelection:
+        """A person chooses one of the study's client's items, at its current revision.
+
+        ``revision`` is the revision the person was shown. One that is no longer current
+        raises :class:`StaleKnowledgeSelection` and selects nothing. An item of another
+        client, or one no longer active, is not found. Choosing an item again replaces the
+        earlier choice. Needs ``EDIT_STUDY`` on an open study; audited.
+        """
+        scope = _study(scope)
+        scope.require(Permission.EDIT_STUDY)
+        scope.require_open_study()
+        item = self._session.scalar(
+            select(ClientKnowledgeItemRow)
+            .where(
+                ClientKnowledgeItemRow.item_id == item_id,
+                ClientKnowledgeItemRow.organization_id == scope.organization_id,
+                ClientKnowledgeItemRow.client_id == scope.client_id,
+                ClientKnowledgeItemRow.status == "ACTIVE",
+            )
+            .with_for_update()
+        )
+        if item is None:
+            raise ScopeDenied("not found", reason="unknown_item")
+        if revision != item.current_revision:
+            raise StaleKnowledgeSelection(
+                item_id=item_id, revision=revision, current_revision=item.current_revision
+            )
+        row = self._session.get(ClientKnowledgeSelectionRow, (scope.study_id, item_id))
+        replaced = row.revision if row is not None else None
+        now = utcnow()
+        if row is None:
+            row = ClientKnowledgeSelectionRow(
+                study_id=scope.study_id,
+                item_id=item_id,
+                organization_id=scope.organization_id,
+                client_id=scope.client_id,
+                revision=revision,
+                selected_by=scope.actor_id,
+                selected_at=now,
+            )
+            self._session.add(row)
+        else:
+            row.revision = revision
+            row.selected_by = scope.actor_id
+            row.selected_at = now
+        self._study_audit(
+            scope,
+            "CLIENT_KNOWLEDGE_SELECTED",
+            {"item_id": item_id, "revision": revision, "replaced_revision": replaced},
+        )
+        self._session.flush()
+        return _selection(row)
+
+    def unselect_for_study(self, scope: StudyContext, *, item_id: str) -> bool:
+        """The person takes an item out of the study's context; ``False`` if it was not in."""
+        scope = _study(scope)
+        scope.require(Permission.EDIT_STUDY)
+        scope.require_open_study()
+        row = self._session.scalar(
+            select(ClientKnowledgeSelectionRow).where(
+                ClientKnowledgeSelectionRow.study_id == scope.study_id,
+                ClientKnowledgeSelectionRow.organization_id == scope.organization_id,
+                ClientKnowledgeSelectionRow.client_id == scope.client_id,
+                ClientKnowledgeSelectionRow.item_id == item_id,
+            )
+        )
+        if row is None:
+            return False
+        self._study_audit(
+            scope, "CLIENT_KNOWLEDGE_UNSELECTED", {"item_id": item_id, "revision": row.revision}
+        )
+        self._session.delete(row)
+        self._session.flush()
+        return True
+
+    def selections(self, scope: StudyContext) -> list[KnowledgeSelection]:
+        """What the study's people chose for it, by item id."""
+        scope = _study(scope)
+        scope.require(Permission.VIEW_STUDY)
+        return [_selection(r) for r in self._selection_rows(scope)]
+
+    def _selection_rows(self, scope: StudyContext) -> Sequence[ClientKnowledgeSelectionRow]:
+        return self._session.scalars(
+            select(ClientKnowledgeSelectionRow)
+            .where(
+                ClientKnowledgeSelectionRow.study_id == scope.study_id,
+                ClientKnowledgeSelectionRow.organization_id == scope.organization_id,
+                ClientKnowledgeSelectionRow.client_id == scope.client_id,
+            )
+            .order_by(ClientKnowledgeSelectionRow.item_id)
+        ).all()
+
+    def freeze_for_study(self, scope: StudyContext) -> FrozenKnowledgeContext:
+        """The study's selected knowledge, frozen: each item at the revision chosen.
+
+        An entry holds the chosen revision's words, never the item's newer ones, and says
+        whether the item has moved on since (``SUPERSEDED``). An item no longer active is
+        omitted by name (``RETIRED``); a selection whose item or revision cannot be read in
+        the study's scope is omitted by name too (``UNAVAILABLE``), never skipped. Reads only
+        the study's own client, from the study's scope, one revision row per selection. Two
+        freezes of unchanged selections are the same context, hash for hash: the hash covers
+        what is read (item, revision, the revision's SHA-256), not the item's state since.
+        """
+        scope = _study(scope)
+        scope.require(Permission.VIEW_STUDY)
+        # The choices, captured once as plain values: every later read is by these exact
+        # (item, revision) pairs, never by the live selection rows, which a person may change
+        # between this statement and the next under READ COMMITTED.
+        chosen = [(s.item_id, s.revision) for s in self._selection_rows(scope)]
+        if not chosen:
+            return FrozenKnowledgeContext.freeze(
+                study_id=scope.study_id, client_id=scope.client_id, entries=(), omitted=()
+            )
+        ids = [item_id for item_id, _ in chosen]
+        items = {
+            i.item_id: i
+            for i in self._session.scalars(
+                select(ClientKnowledgeItemRow).where(
+                    ClientKnowledgeItemRow.organization_id == scope.organization_id,
+                    ClientKnowledgeItemRow.client_id == scope.client_id,
+                    ClientKnowledgeItemRow.item_id.in_(ids),
+                )
+            ).all()
+        }
+        # Exactly the captured revisions: one row per choice, by its (item, revision) pair.
+        revision_rows = self._session.scalars(
+            select(ClientKnowledgeRevisionRow).where(
+                ClientKnowledgeRevisionRow.organization_id == scope.organization_id,
+                ClientKnowledgeRevisionRow.client_id == scope.client_id,
+                or_(
+                    *(
+                        and_(
+                            ClientKnowledgeRevisionRow.item_id == item_id,
+                            ClientKnowledgeRevisionRow.revision == revision,
+                        )
+                        for item_id, revision in chosen
+                    )
+                ),
+            )
+        ).all()
+        typed = {(r.item_id, r.revision): r for r in self._typed(scope, revision_rows)}
+        entries: list[FrozenKnowledgeEntry] = []
+        omitted: list[OmittedKnowledge] = []
+        for chosen_id, chosen_revision in chosen:
+            item = items.get(chosen_id)
+            revision = typed.get((chosen_id, chosen_revision))
+            # The foreign keys keep both, so this is a row outside the study's scope: named,
+            # never skipped.
+            if item is None or revision is None:
+                omitted.append(
+                    OmittedKnowledge(
+                        item_id=chosen_id,
+                        revision=chosen_revision,
+                        reason=OmittedReason.UNAVAILABLE,
+                    )
+                )
+                continue
+            if item.status != "ACTIVE":
+                omitted.append(
+                    OmittedKnowledge(
+                        item_id=chosen_id, revision=chosen_revision, reason=OmittedReason.RETIRED
+                    )
+                )
+                continue
+            entries.append(
+                FrozenKnowledgeEntry(
+                    item_id=chosen_id,
+                    revision=chosen_revision,
+                    kind=KnowledgeKind(item.kind),
+                    title=revision.title,
+                    summary=revision.summary,
+                    content=revision.content,
+                    author=revision.author,
+                    evidence=revision.evidence,
+                    sha256=revision.sha256,
+                    state=(
+                        ContextEntryState.CURRENT
+                        if item.current_revision == chosen_revision
+                        else ContextEntryState.SUPERSEDED
+                    ),
+                    current_revision=item.current_revision,
+                )
+            )
+        return FrozenKnowledgeContext.freeze(
+            study_id=scope.study_id, client_id=scope.client_id, entries=entries, omitted=omitted
+        )
+
+    def _study_audit(self, scope: StudyContext, action: str, payload: dict[str, Any]) -> None:
+        self._session.add(
+            AccessAuditRow(
+                organization_id=scope.organization_id,
+                client_id=scope.client_id,
+                study_id=scope.study_id,
+                actor_id=scope.actor_id,
+                action=action,
+                reason="",
+                payload=payload,
+                request_id=scope.request_id,
+            )
+        )
+
     def revisions(self, scope: ClientContext, *, item_id: str) -> list[KnowledgeRevision]:
         """An item's revision history, oldest first; empty when the item is not this client's."""
         scope = _client(scope)
@@ -333,7 +590,28 @@ class ClientKnowledgeRepository:
             )
             .order_by(ClientKnowledgeRevisionRow.revision)
         ).all()
-        return [_revision(r) for r in rows]
+        return self._typed(scope, rows)
+
+    def _typed(
+        self, scope: ClientContext | StudyContext, rows: Sequence[ClientKnowledgeRevisionRow]
+    ) -> list[KnowledgeRevision]:
+        """Revisions with the proposals they applied, read in one more query, in scope."""
+        ids = sorted({r.proposal_id for r in rows if r.proposal_id})
+        proposals = (
+            {
+                p.proposal_id: p
+                for p in self._session.scalars(
+                    select(ClientKnowledgeProposalRow).where(
+                        ClientKnowledgeProposalRow.organization_id == scope.organization_id,
+                        ClientKnowledgeProposalRow.client_id == scope.client_id,
+                        ClientKnowledgeProposalRow.proposal_id.in_(ids),
+                    )
+                ).all()
+            }
+            if ids
+            else {}
+        )
+        return [_revision(r, proposals.get(r.proposal_id) if r.proposal_id else None) for r in rows]
 
     def proposals(
         self, scope: ClientContext, *, status: ProposalStatus | None = None
@@ -803,7 +1081,7 @@ class ClientKnowledgeRepository:
             .order_by(ClientKnowledgeRevisionRow.context_revision.desc())
             .limit(max(1, min(limit, 50)))
         ).all()
-        return [_revision(r) for r in rows]
+        return self._typed(scope, rows)
 
     # -------------------------------------------------------------- proposals
 
@@ -814,6 +1092,7 @@ class ClientKnowledgeRepository:
         client_id: str,
         study_id: str | None,
         actor_id: str,
+        author: KnowledgeAuthor,
         kind: KnowledgeKind,
         title: str,
         summary: str,
@@ -827,6 +1106,8 @@ class ClientKnowledgeRepository:
             raise ValueError("a proposal needs a title")
         if item_id is None and base_revision is not None:
             raise ValueError("only a revision of an existing item has a base revision")
+        if author is KnowledgeAuthor.UNKNOWN:
+            raise ValueError("a proposal is filed with its author")
         # The shape of a file's reference; that it is this client's source is the caller's
         # check against the source store (C7a).
         source_ref(kind, content)
@@ -869,6 +1150,7 @@ class ClientKnowledgeRepository:
             proposed_at=utcnow(),
             base_revision=base_revision,
             run_id=run_id,
+            author=author.value,
         )
         self._session.add(row)
         self._session.flush()
@@ -899,6 +1181,7 @@ class ClientKnowledgeRepository:
             client_id=scope.client_id,
             study_id=scope.study_id,
             actor_id=scope.actor_id,
+            author=KnowledgeAuthor.STUDY,
             kind=kind,
             title=title,
             summary=summary,
@@ -928,6 +1211,7 @@ class ClientKnowledgeRepository:
             client_id=scope.client_id,
             study_id=None,
             actor_id=scope.actor_id,
+            author=KnowledgeAuthor.PERSON,
             kind=kind,
             title=title,
             summary=summary,
@@ -970,6 +1254,7 @@ class ClientKnowledgeRepository:
                 client_id=scope.client_id,
                 study_id=None,
                 actor_id=scope.actor_id,
+                author=KnowledgeAuthor.AI,
                 kind=draft.kind,
                 title=draft.title,
                 summary=draft.summary,
@@ -1002,7 +1287,11 @@ class ClientKnowledgeRepository:
         (F-K1). Where the item has moved on, the approval raises
         :class:`StaleKnowledgeProposal` and changes nothing, unless the reviewer names the
         item's current revision as ``reviewed_revision``: they read it and accept the edit
-        over it, which the new revision's provenance records. A rejection needs neither.
+        over it, which the new revision's provenance records. A named ``reviewed_revision``
+        that is not the item's current one is stale whatever the edit's base: the reviewer
+        read an older item (lifecycle K3, :func:`reviewed_decision`). A rejection is never
+        stale; the revision it names is recorded. Naming one for a new item raises
+        :class:`NoRevisionToReview`. The decision is recorded typed on the proposal.
         """
         scope = _client(scope)
         scope.require(ClientPermission.APPROVE_CLIENT_KNOWLEDGE)
@@ -1074,6 +1363,7 @@ class ClientKnowledgeRepository:
             client_id=scope.client_id,
             study_id=None,
             actor_id=scope.actor_id,
+            author=KnowledgeAuthor.PERSON,
             kind=kind,
             title=title,
             summary=summary,
@@ -1094,6 +1384,7 @@ class ClientKnowledgeRepository:
             approve=True,
             note="written by a person",
             action="CLIENT_KNOWLEDGE_AUTHORED",
+            authored=True,
         )
 
     def add_source_once(
@@ -1191,14 +1482,35 @@ class ClientKnowledgeRepository:
         note: str,
         action: str,
         reviewed_revision: int | None = None,
+        authored: bool = False,
     ) -> KnowledgeProposal:
-        """Record the decision on a proposal row and, if approved, apply it."""
-        if approve and row.item_id is not None:
-            self._require_current_base(scope, row, reviewed_revision)
+        """Record the decision on a proposal row and, if approved, apply it.
+
+        ``authored``: a person's own write (:meth:`add`), whose base :meth:`_add_proposal`
+        checked under the same lock a moment ago; it is recorded ``AUTHORED``.
+
+        A named ``reviewed_revision`` is stored only when it is one the item has had: a new
+        item has none, and an edit's item has had 1 to its current revision. Any other
+        raises :class:`NoRevisionToReview`, on an approval and a rejection alike -- a
+        rejection is never stale, but it does not record a revision nobody could have read.
+        """
+        # A bool is an int to Python: ``True`` would be stored as revision 1, which nobody named.
+        if reviewed_revision is not None and type(reviewed_revision) is not int:
+            raise NoRevisionToReview("a reviewed revision is a whole number")
+        if reviewed_revision is not None:
+            self._require_known_revision(scope, row, reviewed_revision)
+        if not approve:
+            decision = KnowledgeDecision.REJECTED
+        elif authored:
+            decision = KnowledgeDecision.AUTHORED
+        else:
+            decision = self._reviewed(scope, row, reviewed_revision)
         now = utcnow()
         row.decided_by = scope.actor_id
         row.decided_at = now
         row.decision_note = note
+        row.decision = decision.value
+        row.reviewed_revision = reviewed_revision
         if not approve:
             row.status = ProposalStatus.REJECTED.value
         else:
@@ -1216,6 +1528,9 @@ class ClientKnowledgeRepository:
                     "proposal_id": row.proposal_id,
                     "item_id": row.item_id,
                     "revision": row.revision,
+                    "decision": row.decision,
+                    "base_revision": row.base_revision,
+                    "reviewed_revision": row.reviewed_revision,
                 },
                 request_id=scope.request_id,
             )
@@ -1223,19 +1538,47 @@ class ClientKnowledgeRepository:
         self._session.flush()
         return _proposal(row)
 
-    def _require_current_base(
+    def _require_known_revision(
+        self, scope: ClientContext, row: ClientKnowledgeProposalRow, reviewed_revision: int
+    ) -> None:
+        """Refuse a named revision the item has never had (a new item has had none)."""
+        if row.item_id is None:
+            raise NoRevisionToReview("a new item has no revision to review")
+        current = self._session.scalar(
+            select(ClientKnowledgeItemRow.current_revision)
+            .where(
+                ClientKnowledgeItemRow.item_id == row.item_id,
+                ClientKnowledgeItemRow.client_id == scope.client_id,
+            )
+            .with_for_update()
+        )
+        if current is None:
+            raise ScopeDenied("not found", reason="unknown_item")
+        if not 1 <= reviewed_revision <= current:
+            raise NoRevisionToReview(
+                f"knowledge item {row.item_id} has had revisions 1 to {current}; "
+                f"revision {reviewed_revision} is none of them"
+            )
+
+    def _reviewed(
         self,
         scope: ClientContext,
         row: ClientKnowledgeProposalRow,
         reviewed_revision: int | None,
-    ) -> None:
-        """Refuse an edit whose base is not the item's current revision (F-K1).
+    ) -> KnowledgeDecision:
+        """The approval's decision under :func:`reviewed_decision`, or its refusal (F-K1, K3).
 
         The item is locked here, so nothing writes a revision between this check and
         :meth:`_apply`. An unknown base (``None``) is stale. A reviewer who names the
         current revision accepts over it; the proposal's provenance then says so.
         """
-        assert row.item_id is not None
+        if row.item_id is None:
+            return reviewed_decision(
+                item_id=None,
+                base_revision=None,
+                reviewed_revision=reviewed_revision,
+                current_revision=None,
+            )
         item = self._session.scalar(
             select(ClientKnowledgeItemRow)
             .where(
@@ -1247,17 +1590,19 @@ class ClientKnowledgeRepository:
         if item is None:
             raise ScopeDenied("not found", reason="unknown_item")
         current = item.current_revision
-        if row.base_revision == current:
-            return
-        if reviewed_revision != current:
-            raise StaleKnowledgeProposal(
-                item_id=row.item_id, base_revision=row.base_revision, current_revision=current
-            )
-        row.provenance = {
-            **(row.provenance or {}),
-            "base_revision": row.base_revision,
-            "accepted_over_revision": current,
-        }
+        decision = reviewed_decision(
+            item_id=row.item_id,
+            base_revision=row.base_revision,
+            reviewed_revision=reviewed_revision,
+            current_revision=current,
+        )
+        if decision is KnowledgeDecision.ACCEPTED_OVER:
+            row.provenance = {
+                **(row.provenance or {}),
+                "base_revision": row.base_revision,
+                "accepted_over_revision": current,
+            }
+        return decision
 
     def _apply(self, scope: ClientContext, proposal: ClientKnowledgeProposalRow, now: Any) -> int:
         context_revision = 1 + int(

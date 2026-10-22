@@ -8,6 +8,7 @@
 // with the original under Node.
 
 import type { Json, ResearchProject } from "./model";
+import { type SampleLimits, sampleRefusal } from "./persona";
 import type { Analysis } from "./store";
 
 type Obj = { [k: string]: Json };
@@ -139,17 +140,25 @@ export function selectedVariant(p: ResearchProject): string {
   return String(p.selected_design_variant || "recommended");
 }
 
-/** applyProjectVariant1793: the variant's scope becomes the project's plan and the analysis's. */
-export function applyVariant(s: PlanState, id: string): { state: PlanState; title: string } | null {
+/**
+ * applyProjectVariant1793: the variant's scope becomes the project's plan and the analysis's.
+ *
+ * The variant's n (or, as the classic, the project's, else 300) is stored only when it is a valid
+ * n under the server's `limits` (RQC9): otherwise the plan is applied, the project's n is left as it
+ * was, and `sampleRefused` says why -- never moved to a bound. Unknown limits refuse the n too.
+ */
+export function applyVariant(s: PlanState, id: string, limits: SampleLimits | null): { state: PlanState; title: string; sampleRefused: string | null } | null {
   const vars = projectVariants(s);
   const v = vars.find((x) => x.id === id);
   if (!v || !s.analysis) return null;
   const rq = strings(v.research_questions), ob = strings(v.objectives), hy = strings(v.hypotheses);
+  const n = Number(v.n || s.project.n || 300);
+  const refused = sampleRefusal(n, limits);
   const project: ResearchProject = {
     ...s.project,
     selected_design_variant: id,
     design_variants: clone(vars) as Json[],
-    n: Number(v.n || s.project.n || 300),
+    ...(refused ? {} : { n }),
     research_plan: { ...(s.project.research_plan || {}), research_questions: rq, objectives: ob, hypotheses: hy, complexity: v.complexity || "standard" },
     ui_state: { ...(s.project.ui_state || {}), deep_research_recommended: !!v.deep_research },
   };
@@ -161,7 +170,7 @@ export function applyVariant(s: PlanState, id: string): { state: PlanState; titl
     hypotheses: [...hy],
     ...(complexity === undefined ? {} : { complexity }),
   };
-  return { state: { project, analysis }, title: String(v.title) };
+  return { state: { project, analysis }, title: String(v.title), sampleRefused: refused ? refused.message : null };
 }
 
 export const ANSWERS_EMPTY = "Napište odpovědi.";

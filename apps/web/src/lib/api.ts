@@ -5,6 +5,8 @@
 // the server computed and decides nothing (ARCHITECTURE.md §2).
 
 import type { RegisterEntry } from "@/lib/object-map-view";
+import type { BriefMaterials } from "@/lib/material-class";
+import type { StoredReportDocument } from "@/lib/artifacts/report";
 import { currentIdToken, loadConfig } from "@/lib/auth";
 import type { EditDecisionResult, LeadPreferences, LeadState, LeadTurn, RequestApproval, ResearcherLead, SelfUpdateDecision } from "@/lib/lead";
 export type { ResearcherLead as ResearcherLeadView } from "@/lib/lead";
@@ -780,6 +782,8 @@ export type AudiencePreview = {
   selected_rows: number | null;
   selected_donors: number | null;
   filters_applied: Record<string, unknown> | null;
+  /** Each applied filter alone over the same population: the rows it selects (AUD3). */
+  per_filter: Record<string, number> | null;
   audience: AudiencePreviewVerdict;
   n: number | null;
   sample: AudiencePreviewVerdict | null;
@@ -893,6 +897,8 @@ export const workspace = {
     request<AttachmentRecord>("POST", `/api/v1/studies/${enc(studyId)}/workspace/attachments`, body),
   attachment: (studyId: string, attachmentId: string) =>
     requestBlob(`/api/v1/studies/${enc(studyId)}/workspace/attachments/${enc(attachmentId)}`),
+  /** Each of the brief's files and links, as saved, with the data class its rule gives it (artifact-brief BRF3). */
+  materials: (studyId: string) => request<BriefMaterials>("GET", `/api/v1/studies/${enc(studyId)}/workspace/materials`),
   importQuestionnaire: (studyId: string, body: { filename: string; data_b64: string }) =>
     request<QuestionnaireImport>("POST", `/api/v1/studies/${enc(studyId)}/workspace/questionnaire-import`, body),
   questionnaireTemplate: (studyId: string) => requestBlob(`/api/v1/studies/${enc(studyId)}/workspace/questionnaire-template`),
@@ -950,6 +956,21 @@ export type QuestionOutlook = {
   verdict: OutlookVerdict;
   reasons: string[];
 };
+/**
+ * The readiness limits in force for a study (RQC9): the one authority for a valid n. A run start
+ * checks the same limits and a Research Lead edit is held to them; the web keeps no range of its
+ * own and refuses a value outside this one, never clamps it. `version`: the stored methodology
+ * version in force, null for the code's preset.
+ */
+export type ResearchLimits = {
+  methodology_version: string;
+  version: number | null;
+  sample_size: { min: number; max: number };
+  /** The questionnaire's length rule from Metodika (artifact-questionnaire QST7): seconds per
+   * answer by question type and per tracked-set object, with the methodology version. Absent, or
+   * null, while the methodology owner has set none; read through research/length.ts readRule. */
+  questionnaire_length?: unknown;
+};
 export type Readiness = {
   design_revision_id: string;
   rules: string;
@@ -984,6 +1005,15 @@ export type Readiness = {
   answerability?: Answerability | null;
 };
 
+/** Readiness's fields, whichever revision it was read on. */
+export type ReadinessBody = Omit<Readiness, "design_revision_id">;
+/**
+ * Readiness on a revision of the study's working content, nothing submitted (working-copy-edit-ops
+ * WCE7a). Its answerability digest names no Design Revision: a start reads readiness again on the
+ * revision it runs and takes the acknowledgement from that.
+ */
+export type WorkingReadiness = ReadinessBody & { working_revision: number };
+
 export type PersonaSourceOption = { source: string; offered: boolean; reason: string | null; default: boolean };
 
 export type ResearchPhase = "QUEUED" | "RUNNING" | "WAITING" | "COMPLETED" | "FAILED" | "CANCELLED";
@@ -1013,6 +1043,8 @@ export type ResearchStep = {
   finished_at: string | null;
   failure_class: string | null;
   error_message: string | null;
+  /** The code the last attempt recorded beside its message (a gate's refusal); absent from an older API. */
+  error_reason?: string | null;
   artifact_id: string | null;
   data_origin: string | null;
   /** An analysis step's stored outcome: its step SUCCEEDED either way. `null` for other steps. */
@@ -1209,9 +1241,14 @@ export const research = {
   /** One Design Revision with its content (project memory M2c reads a past study's). */
   revision: (studyId: string, revisionId: string) =>
     request<DesignRevision & { content: Record<string, unknown> }>("GET", `${studyPath(studyId)}/design/revisions/${enc(revisionId)}`),
+  /** The readiness limits in force: the valid sample size the Dimenze stage refuses outside of. */
+  limits: (studyId: string) => request<ResearchLimits>("GET", `${studyPath(studyId)}/research/limits`),
   /** `personaSource` assesses the design under that source of respondents; omitted, the deployment's default. */
   readiness: (studyId: string, revisionId: string, personaSource?: string) =>
     request<Readiness>("GET", `${studyPath(studyId)}/research/readiness${query({ design_revision_id: revisionId, persona_source: personaSource })}`),
+  /** Readiness on a working revision, as a submit of it would read it; nothing is written (WCE7a). */
+  workingReadiness: (studyId: string, workingRevision: number, personaSource?: string) =>
+    request<WorkingReadiness>("GET", `${studyPath(studyId)}/research/readiness/working${query({ working_revision: String(workingRevision), persona_source: personaSource })}`),
   /**
    * `confirmCostUsd` is the person's yes to the ceiling the server showed, when the study's limit asks for one.
    * `populationVersionId` runs over one of the study's client's materialized children instead of LIVE (P4d4c).
@@ -1267,9 +1304,12 @@ export const research = {
       `${studyPath(studyId)}/research/runs/${enc(runId)}/analysis/retry`,
       confirmCostUsd === undefined ? undefined : { confirm_cost_usd: confirmCostUsd },
     ),
-  /** Raise the Study's budget to `budgetUsd` (never below the current one) and let the waiting step go on. */
-  liftBudget: (studyId: string, runId: string, nodeKey: string, budgetUsd: number, note: string) =>
-    request<ResearchRun>("POST", `${studyPath(studyId)}/research/runs/${enc(runId)}/steps/${enc(nodeKey)}/budget`, {
+  /**
+   * Raise the Study's budget to `budgetUsd` (never below the current one) and let every step of the
+   * run waiting for it go on: the run's lift, one decision (CR-3), never one per step.
+   */
+  liftBudget: (studyId: string, runId: string, budgetUsd: number, note: string) =>
+    request<ResearchRun>("POST", `${studyPath(studyId)}/research/runs/${enc(runId)}/budget`, {
       budget_usd: budgetUsd,
       note,
     }),
@@ -1282,9 +1322,18 @@ export const research = {
     request<ResearchAnalysis>("GET", `${studyPath(studyId)}/research/runs/${enc(runId)}/analysis`),
   report: (studyId: string, runId: string) =>
     request<ResearchReport>("GET", `${studyPath(studyId)}/research/runs/${enc(runId)}/report`),
+  /** The run's internal draft as its stored document model, beside the DOCX it names (report-delivery RD5a). */
+  reportDocument: (studyId: string, runId: string) =>
+    request<StoredReportDocument>("GET", `${studyPath(studyId)}/research/runs/${enc(runId)}/report/document`),
   /** The run's own report: its bytes and the stored draft they are, so the card approves that draft. */
   downloadReport: (studyId: string, runId: string) =>
     requestStored(`${studyPath(studyId)}/research/runs/${enc(runId)}/report/download`),
+  /** The persona topic each dimension lets through, the mapping a run's receipt reads (artifact-dimensions DIM2). */
+  personaTopics: (studyId: string, dimensions: readonly string[]) =>
+    request<{ items: { dimension: string; topic: string | null }[] }>(
+      "GET",
+      `${studyPath(studyId)}/research/persona-topics${dimensions.length ? `?${dimensions.map((d) => `dimension=${encodeURIComponent(d)}`).join("&")}` : ""}`,
+    ),
   /** Which Sociomap methods are approved, by exact spec (complete-study-report B4). */
   sociomapRegister: (studyId: string) =>
     request<{ entries: RegisterEntry[] }>("GET", `${studyPath(studyId)}/research/sociomap-register`),
@@ -1320,7 +1369,7 @@ export type DeepResearchRun = {
   run_id: string; design_revision_id: string; preset: string; channels: string[];
   status: string; phase: ResearchPhase; is_terminal: boolean; needs_attention: boolean;
   retryable: boolean; created_at: string | null;
-  steps: { step_id: string; node_key: string; status: string; waiting_reason: string | null; error_message: string | null; started_at?: string | null }[];
+  steps: { step_id: string; node_key: string; status: string; waiting_reason: string | null; error_message: string | null; error_reason?: string | null; started_at?: string | null }[];
   actual_cost_usd: number | null;
   purpose?: string | null;
   target?: { kind: string; research_run_id?: string } | null;
@@ -1355,6 +1404,9 @@ export type DesignFinding = { evidence_id: string; claim: string; quote: string;
 /** A Design Research run's proposal: per subject its findings (EVIDENCE) or none (GAP). */
 export type DesignProposal = {
   run_id: string;
+  /** The Design Revision the run was frozen on: the only baseline an accept may land on. */
+  design_revision_id: string;
+  design_revision: number;
   admissible: boolean;
   refusal: string | null;
   items: { item_id: string; kind: "EVIDENCE" | "GAP"; subject_key: string; subject_kind: string; subject_text: string; subject_origin: string; findings: DesignFinding[] }[];
@@ -1394,6 +1446,13 @@ export const deepResearch = {
   bundle: (studyId: string, runId: string) => request<DeepResearchBundle>("GET", `${deepPath(studyId)}/${enc(runId)}/bundle`),
   coverage: (studyId: string, runId: string) => request<DeepResearchCoverage>("GET", `${deepPath(studyId)}/${enc(runId)}/coverage`),
   designProposal: (studyId: string, runId: string) => request<DesignProposal>("GET", `${deepPath(studyId)}/${enc(runId)}/design-proposal`),
+  /** A person takes the ticked items into a new Design Revision and the working copy, in one transaction
+   *  (ADR 0021 checkpoint 1, ADR 0019 gate 1): on the revision the run researched and the working revision
+   *  the person has. 409 stale_proposal names why (research/proposal-items.ts). */
+  acceptDesignProposal: (studyId: string, runId: string, itemIds: string[], expectedRevisionId: string, expectedWorkspaceRevision: number) =>
+    request<DesignRevision>("POST", `${deepPath(studyId)}/${enc(runId)}/design-proposal/accept`, {
+      item_ids: itemIds, expected_revision_id: expectedRevisionId, expected_workspace_revision: expectedWorkspaceRevision,
+    }),
   /** "Ověřeno, přidat zdroj": the person checked a captured source; the server writes it to the client's
    *  knowledge from the run's sealed bundle (the URL, title and quote are the bundle's), once per URL. */
   addSourceToKnowledge: (studyId: string, runId: string, snapshotId: string, evidenceId: string) =>
@@ -1433,7 +1492,12 @@ export type AcceptedProposal = {
   workspace_revision_id: string;
 };
 /** The details of a 409 stale_proposal: why, and each item (`document:kind:key`) both changed. */
-export type StaleProposalDetails = { reason: "design_moved" | "unknown_baseline" | "items_changed" | "lineage_changed" | string; conflicting_items: string[] };
+export type StaleProposalDetails = {
+  reason: "design_moved" | "unknown_baseline" | "items_changed" | "lineage_changed" | string;
+  conflicting_items: string[];
+  /** The words each conflicting item names, from the server (it knows the baseline; WCE1). */
+  conflicting_wording?: Record<string, string>;
+};
 const agentsPath = (studyId: string) => `${studyPath(studyId)}/research/agent-jobs`;
 /** The Research Lead's conversation on a study: the caller's own session (ADR 0026). */
 export const lead = {
@@ -1462,10 +1526,14 @@ export const researcherLead = {
 
 export const researchAgents = {
   design: (studyId: string, revisionId: string) => request<DesignRevision & { content: Record<string, unknown> }>("GET", `${studyPath(studyId)}/design/revisions/${enc(revisionId)}`),
-  /** `promptVersion` runs a stored prompt version instead of the active one (organization administrators; ADR 0020). */
-  start: (studyId: string, revisionId: string, action: ResearchAgentAction, instruction = "", promptVersion?: number) =>
+  /**
+   * `promptVersion` runs a stored prompt version instead of the active one (organization administrators; ADR 0020).
+   * `confirmCostUsd`: the ceiling a person confirmed when the study's threshold asked (409 cost_confirmation_required; LO15).
+   */
+  start: (studyId: string, revisionId: string, action: ResearchAgentAction, instruction = "", promptVersion?: number, confirmCostUsd?: number) =>
     request<ResearchAgentJob>("POST", agentsPath(studyId), {
       design_revision_id: revisionId, action, instruction, ...(promptVersion === undefined ? {} : { prompt_version: promptVersion }),
+      ...(confirmCostUsd === undefined ? {} : { confirm_cost_usd: confirmCostUsd }),
     }),
   jobs: async (studyId: string) => {
     const jobs = await request<unknown>("GET", agentsPath(studyId));
@@ -1493,8 +1561,10 @@ export const researchAgents = {
   /** Set a proposal aside: a ledger row, nothing written to the design (ADR 0026 decision 8). */
   dismiss: (studyId: string, jobId: string) => request<ResearchAgentJob>("POST", `${agentsPath(studyId)}/${enc(jobId)}/dismiss`),
   /** Ask the same again on the Study's newest Design Revision (`revisionId`, just submitted): a new job that supersedes this one. */
-  rebuild: (studyId: string, jobId: string, revisionId: string) =>
-    request<ResearchAgentJob>("POST", `${agentsPath(studyId)}/${enc(jobId)}/rebuild`, { design_revision_id: revisionId }),
+  rebuild: (studyId: string, jobId: string, revisionId: string, confirmCostUsd?: number) =>
+    request<ResearchAgentJob>("POST", `${agentsPath(studyId)}/${enc(jobId)}/rebuild`, {
+      design_revision_id: revisionId, ...(confirmCostUsd === undefined ? {} : { confirm_cost_usd: confirmCostUsd }),
+    }),
 };
 
 // ---- the settings page: every control and how it is set -------------------
@@ -1640,6 +1710,51 @@ export const admin = {
   setSelfApproval: (body: { allowed: boolean | null; client_id?: string; study_id?: string }) =>
     request<SelfApprovalPolicy>("PUT", "/api/v1/self-approval", body),
   audit: (limit = 50) => request<AuditEntry[]>("GET", `/api/v1/access-audit?limit=${limit}`),
+  /** Each person's spend (Q40): everyone for an OWNER or ADMIN, the caller alone otherwise. */
+  researcherSpend: (period: SpendPeriod = "this_month") =>
+    request<ResearcherSpend>("GET", `/api/v1/settings/researcher-spend?period=${enc(period)}`),
+};
+
+// ---- Per-researcher spend (routers/researcher_spend.py, develop-spend-attribution 7) ----
+
+export type SpendPeriod = "this_month" | "last_month" | "year_to_date";
+export type SpendActivity = "lead" | "fieldwork" | "analysis_report" | "deep_research" | "other";
+
+/** Spend settled in the period (model from the usage ledger, the rest from holds outside it),
+ *  holds open now, and calls whose bill is not known (above zero: the total is not exact). */
+export type SpendFigures = {
+  model_usd: number;
+  outside_ledger_usd: number;
+  total_usd: number;
+  reserved_usd: number;
+  uncertain_calls: number;
+};
+export type ActivitySpend = SpendFigures & { activity: SpendActivity };
+export type StudySpend = SpendFigures & {
+  /** null: the client's own work, which is no study. */
+  study_id: string | null;
+  study_name: string | null;
+  client_id: string;
+  client_name: string | null;
+  by_activity: ActivitySpend[];
+};
+export type PersonSpend = SpendFigures & {
+  /** null: what is booked to nobody ("nepřiřazeno"), listed for OWNER and ADMIN only. */
+  user_id: string | null;
+  email: string | null;
+  display_name: string | null;
+  is_member: boolean | null;
+  study_count: number;
+  by_activity: ActivitySpend[];
+  studies: StudySpend[];
+};
+export type ResearcherSpend = {
+  period: SpendPeriod;
+  start: string;
+  end: string;
+  everyone: boolean;
+  currency: string;
+  people: PersonSpend[];
 };
 
 // ---- Deep Research settings (routers/deep_research_settings.py, ADR 0022) ---------------

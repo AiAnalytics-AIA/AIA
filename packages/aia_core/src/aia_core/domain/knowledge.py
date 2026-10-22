@@ -34,12 +34,26 @@ the file is and the source keeps what it holds. :func:`source_ref` is the shape'
 that the source is the item's own client's is the caller's check, against the source
 store.
 
+**Typed revisions and decisions** (lifecycle K3). Every proposal says who wrote it
+(:class:`KnowledgeAuthor`: a person, a study, the AI) and, once decided, what was decided
+(:class:`KnowledgeDecision`): a person's own write in effect at once, an accept at the
+revision the edit was written from, an accept over a newer revision the reviewer named, or a
+rejection. :func:`reviewed_decision` is the one rule an approval passes under the item's
+lock (F-K1): the reviewer's view and the edit's base are both checked against the item's
+current revision. A revision reads back typed: its author, its decision, the base and
+reviewed revisions, the evidence an AI proposal rested on (:class:`RevisionEvidence`) and the
+SHA-256 of what it says (:func:`revision_sha256`). A record from before these were kept reads
+``UNKNOWN`` or ``None``, never a guess.
+
 Pure: stdlib and Pydantic only.
 """
 
 from __future__ import annotations
 
+import hashlib
+import json
 import re
+from collections.abc import Mapping
 from dataclasses import dataclass
 from datetime import datetime, timedelta
 from enum import StrEnum
@@ -55,6 +69,8 @@ __all__ = [
     "SOURCE_BACKED_KINDS",
     "SOURCE_REF",
     "STALE_AFTER",
+    "KnowledgeAuthor",
+    "KnowledgeDecision",
     "KnowledgeFolder",
     "KnowledgeHealth",
     "KnowledgeItem",
@@ -65,11 +81,15 @@ __all__ = [
     "KnowledgeRevision",
     "KnowledgeSummary",
     "LabelColour",
+    "NoRevisionToReview",
     "OrganizerNameTaken",
     "ProposalDraft",
     "ProposalOrigin",
     "ProposalStatus",
+    "RevisionEvidence",
     "StaleKnowledgeProposal",
+    "author_of",
+    "evidence_of",
     "new_knowledge_folder_id",
     "new_knowledge_item_id",
     "new_knowledge_label_id",
@@ -77,6 +97,8 @@ __all__ = [
     "organizer_key",
     "organizer_name",
     "recorded_datasets",
+    "reviewed_decision",
+    "revision_sha256",
     "source_ref",
 ]
 
@@ -142,14 +164,182 @@ class StaleKnowledgeProposal(Exception):
 
     reason = "stale_proposal"
 
-    def __init__(self, *, item_id: str, base_revision: int | None, current_revision: int) -> None:
+    def __init__(
+        self,
+        *,
+        item_id: str,
+        base_revision: int | None,
+        current_revision: int,
+        reviewed_revision: int | None = None,
+    ) -> None:
         super().__init__(
             f"knowledge item {item_id} is at revision {current_revision}; "
             f"this edit was written from revision {base_revision}"
+            + (
+                f" and reviewed at revision {reviewed_revision}"
+                if reviewed_revision is not None
+                else ""
+            )
         )
         self.item_id = item_id
         self.base_revision = base_revision
         self.current_revision = current_revision
+        #: The revision the reviewer said they read, when they named one (K3).
+        self.reviewed_revision = reviewed_revision
+
+
+class NoRevisionToReview(ValueError):
+    """A reviewed revision was named for a proposal that adds a new item: there is none."""
+
+
+class KnowledgeAuthor(StrEnum):
+    """Who wrote a proposal (lifecycle K3). ``UNKNOWN``: a record that never said."""
+
+    PERSON = "PERSON"
+    STUDY = "STUDY"
+    AI = "AI"
+    UNKNOWN = "UNKNOWN"
+
+
+class KnowledgeDecision(StrEnum):
+    """What a person decided on a proposal (lifecycle K3).
+
+    ``AUTHORED``: a person's own write, in effect at once (ADR 0019 decision 3).
+    ``ACCEPTED``: accepted at the revision it was written from (or a new item accepted).
+    ``ACCEPTED_OVER``: an edit accepted over a newer revision the reviewer named (F-K1).
+    ``REJECTED``: nothing changed.
+    """
+
+    AUTHORED = "AUTHORED"
+    ACCEPTED = "ACCEPTED"
+    ACCEPTED_OVER = "ACCEPTED_OVER"
+    REJECTED = "REJECTED"
+
+
+def reviewed_decision(
+    *,
+    item_id: str | None,
+    base_revision: int | None,
+    reviewed_revision: int | None,
+    current_revision: int | None,
+) -> KnowledgeDecision:
+    """The decision an approval records, or the refusal it meets (lifecycle K3, F-K1).
+
+    A new item (``item_id`` ``None``) has no revision to review: naming one raises
+    :class:`NoRevisionToReview`. For an edit of an item now at ``current_revision``:
+
+    * a named ``reviewed_revision`` that is not the current one is stale -- the reviewer read
+      an older item than the one the accept would change, whatever the edit's base;
+    * an edit written from the current revision is ``ACCEPTED``;
+    * an edit written from another revision, or from an unknown one (``None``, never
+      current), is ``ACCEPTED_OVER`` when the reviewer named the current revision, and
+      stale otherwise.
+
+    The caller holds the item's lock across this check and the write.
+    """
+    if item_id is None:
+        if reviewed_revision is not None:
+            raise NoRevisionToReview("a new item has no revision to review")
+        return KnowledgeDecision.ACCEPTED
+    if current_revision is None:
+        raise ValueError("an edit is decided against the item's current revision")
+    if reviewed_revision is not None and reviewed_revision != current_revision:
+        raise StaleKnowledgeProposal(
+            item_id=item_id,
+            base_revision=base_revision,
+            current_revision=current_revision,
+            reviewed_revision=reviewed_revision,
+        )
+    if base_revision == current_revision:
+        return KnowledgeDecision.ACCEPTED
+    if reviewed_revision == current_revision:
+        return KnowledgeDecision.ACCEPTED_OVER
+    raise StaleKnowledgeProposal(
+        item_id=item_id, base_revision=base_revision, current_revision=current_revision
+    )
+
+
+def author_of(stored: str | None, provenance: Mapping[str, Any]) -> KnowledgeAuthor:
+    """A proposal's author: as stored, else what its provenance says outright, else unknown.
+
+    A record filed before the author was stored names it only by the markers the writers
+    kept: ``authored`` ``"ai"`` or ``"person"``, or the ``study_id`` a study's proposal
+    carries. Anything else is ``UNKNOWN`` -- never presumed a person's.
+    """
+    if stored is not None:
+        return KnowledgeAuthor(stored)
+    authored = provenance.get("authored")
+    if authored == "ai":
+        return KnowledgeAuthor.AI
+    if authored == "person":
+        return KnowledgeAuthor.PERSON
+    study_id = provenance.get("study_id")
+    if isinstance(study_id, str) and study_id:
+        return KnowledgeAuthor.STUDY
+    return KnowledgeAuthor.UNKNOWN
+
+
+class RevisionEvidence(BaseModel):
+    """What an AI proposal from a client's document rested on (lifecycle K2d, K3): the
+    document, the words, checked by code to be in it, and where they stand."""
+
+    model_config = ConfigDict(extra="forbid", frozen=True)
+
+    source_id: str
+    quote: str
+    #: Where the quote stands in the original, as the reader placed it (page, line ...).
+    locator: dict[str, Any]
+    source_sha256: str | None = None
+    reading_sha256: str | None = None
+    segment: int | None = None
+    run_id: str | None = None
+
+
+def _text_or_none(value: object) -> str | None:
+    return value if isinstance(value, str) and value else None
+
+
+def evidence_of(
+    author: KnowledgeAuthor, provenance: Mapping[str, Any], content: Mapping[str, Any]
+) -> RevisionEvidence | None:
+    """The evidence an AI-written record rests on, or ``None``.
+
+    Only an ``AI`` record whose provenance names its source and whose content holds the quote
+    and locator the extraction step writes has evidence; any other shape has none, rather
+    than a part of one.
+    """
+    if author is not KnowledgeAuthor.AI:
+        return None
+    source_id = _text_or_none(provenance.get("source_id"))
+    quote, locator = content.get("quote"), content.get("locator")
+    if source_id is None or not isinstance(quote, str) or not isinstance(locator, dict):
+        return None
+    segment = provenance.get("segment")
+    return RevisionEvidence(
+        source_id=source_id,
+        quote=quote,
+        locator=dict(locator),
+        source_sha256=_text_or_none(provenance.get("source_sha256")),
+        reading_sha256=_text_or_none(provenance.get("reading_sha256")),
+        segment=segment if isinstance(segment, int) and not isinstance(segment, bool) else None,
+        run_id=_text_or_none(provenance.get("run_id")),
+    )
+
+
+def revision_sha256(title: str, summary: str, content: Mapping[str, Any]) -> str:
+    """The SHA-256 of what a revision says: its title, summary and content, canonical JSON.
+
+    Keys sorted, no insignificant whitespace, UTF-8 as written. The same words give the same
+    hash on every store, so a frozen context (K4) can name the exact text it read.
+    """
+    payload = json.dumps(
+        {"title": title, "summary": summary, "content": content},
+        sort_keys=True,
+        separators=(",", ":"),
+        ensure_ascii=False,
+        allow_nan=False,
+    )
+    return hashlib.sha256(payload.encode("utf-8")).hexdigest()
 
 
 class LabelColour(StrEnum):
@@ -326,6 +516,15 @@ class KnowledgeRevision(BaseModel):
     proposal_id: str | None = None
     approved_by: str
     approved_at: datetime | None = None
+    #: Typed (lifecycle K3): who wrote it, what was decided, the revision it was written
+    #: from and the one the reviewer named, the evidence an AI proposal rested on, and the
+    #: SHA-256 of its title, summary and content. ``UNKNOWN`` / ``None`` where never recorded.
+    author: KnowledgeAuthor = KnowledgeAuthor.UNKNOWN
+    decision: KnowledgeDecision | None = None
+    base_revision: int | None = None
+    reviewed_revision: int | None = None
+    evidence: RevisionEvidence | None = None
+    sha256: str = ""
 
 
 @dataclass(frozen=True, slots=True)
@@ -365,6 +564,11 @@ class KnowledgeProposal(BaseModel):
     #: The item revision a revising proposal was written from; ``None`` for a new item, or
     #: for a revision filed before the base was recorded (unknown, never current).
     base_revision: int | None = None
+    #: Typed (lifecycle K3): who wrote it; once decided, what was decided and the item
+    #: revision the reviewer named (``None`` when they named none).
+    author: KnowledgeAuthor = KnowledgeAuthor.UNKNOWN
+    decision: KnowledgeDecision | None = None
+    reviewed_revision: int | None = None
 
 
 #: How long an item may go unchanged before Přehled asks a person to look at it again.

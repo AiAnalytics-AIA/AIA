@@ -18,7 +18,14 @@ A start or a retry on a Study with a spend limit asks first (ADR 0019 gate 2): t
 server works out the run's cost ceiling from the deployment's prices
 (:func:`deep_research_prices`) and answers 409 ``cost_confirmation_required`` with it,
 or 409 ``cost_ceiling_unknown`` when a price it needs is not configured, as a research
-run's start does.
+run's start does. Every new run stores its ceiling, threshold or not.
+
+``POST …/deep-research/quote`` answers what a start would cost and answer, read-only: the
+ceiling by kind for the purpose and preset asked, the priced routes and the live settings
+they still need (ADR 0022), the threshold, the budget and whether Deep Research is switched
+on in this deployment's keys (off: a run would park). It is priced by the same admission
+the start acts on (``DeepResearchRuns.quote``; plan ``deep-research-web-search.md`` 55), so
+the two cannot disagree. Nothing is reserved, recorded or started.
 """
 
 from __future__ import annotations
@@ -30,6 +37,7 @@ from typing import Annotated, Any, Literal
 
 from aia_core.application.deep_research import (
     BundleNotReady,
+    DeepResearchQuote,
     DeepResearchRunNotFound,
     DeepResearchRunNotRetryable,
     DeepResearchRuns,
@@ -57,33 +65,29 @@ from aia_core.application.research import (
 )
 from aia_core.application.verified_sources import SourceNotInRun, add_verified_source
 from aia_core.domain.deep_research.budgets import CallKind, ResearchMode
-from aia_core.domain.deep_research.common_crawl import MIN_SCAN_CUTOFF_BYTES, AthenaPricing
 from aia_core.domain.deep_research.contracts import Channel
 from aia_core.domain.deep_research.integration import (
     LEGACY_UNVERSIONED,
+    DeepResearchPurpose,
     PurposeSource,
     ResearchTargetRef,
 )
 from aia_core.domain.deep_research.planning import UnknownPreset
-from aia_core.domain.deep_research.request_limits import (
-    REQUEST_LIMITS,
-    RESEARCH_KINDS,
-    KindBudget,
-    ModelPrices,
-    RequestLimits,
-    kind_budgets,
-)
-from aia_core.domain.deep_research.settings import request_limits
+from aia_core.domain.deep_research.request_limits import REQUEST_LIMITS, RequestLimits
 from aia_core.domain.design import DesignRejected
-from aia_core.domain.run_cost import DeepResearchPrices, RoutePrice
+from aia_core.domain.run_cost import CeilingUnknown, DeepResearchPrices
 from aia_core.domain.scope import Permission, ScopeDenied, StudyContext
-from aia_core.infrastructure.deep_research_settings_repository import (
-    settings_in_force_for_study,
-)
 from aia_core.infrastructure.storage import IntegrityError, ObjectNotFound
 from aia_core.infrastructure.study_design_repository import DesignRevisionNotFound
 from fastapi import APIRouter, HTTPException, Path, Query, Request, Response
-from pydantic import BaseModel, ConfigDict, Field, ValidationError, field_validator
+from pydantic import (
+    BaseModel,
+    ConfigDict,
+    Field,
+    ValidationError,
+    field_validator,
+    model_validator,
+)
 
 from ..config import Settings
 from ..dependencies import (
@@ -97,6 +101,7 @@ from ..schemas.projects import ErrorResponse
 from ..schemas.runs import RunEventResponse
 from .research import (
     DesignRevisionResponse,
+    _code,
     _cost_refused,
     _revision,
     stale_proposal,
@@ -167,6 +172,97 @@ class DeepResearchRetry(BaseModel):
     confirm_cost_usd: float | None = Field(default=None, ge=0, le=1_000_000)
 
 
+class DeepResearchQuoteRequest(BaseModel):
+    """A start to price, without its confirmation: a design run over a revision, or an
+    Interpretation Research run over one result of this Study (plan chunk 55)."""
+
+    model_config = ConfigDict(extra="forbid")
+    purpose: Literal["DESIGN_RESEARCH", "INTERPRETATION_RESEARCH"]
+    #: Design Research: the revision it would research.
+    design_revision_id: str | None = Field(
+        default=None, max_length=64, pattern=r"^REV-[0-9a-f]{1,32}$"
+    )
+    #: Interpretation Research: the exact result it would interpret.
+    target: ResearchTargetRef | None = None
+    preset_name: Literal["QUICK", "STANDARD", "DEEP", "EXHAUSTIVE"]
+    channels: tuple[Channel, ...] = Field(default=(Channel.WEB,), min_length=1, max_length=2)
+
+    @field_validator("channels")
+    @classmethod
+    def _unique_channels(cls, value: tuple[Channel, ...]) -> tuple[Channel, ...]:
+        if len(set(value)) != len(value):
+            raise ValueError("channels must be distinct")
+        return value
+
+    @model_validator(mode="after")
+    def _one_subject(self) -> DeepResearchQuoteRequest:
+        if self.purpose == "DESIGN_RESEARCH":
+            if self.design_revision_id is None or self.target is not None:
+                raise ValueError("Design Research is quoted over a design_revision_id alone")
+        elif self.target is None or self.design_revision_id is not None:
+            raise ValueError("Interpretation Research is quoted over a target alone")
+        return self
+
+
+class DeepResearchRuntimeState(BaseModel):
+    """Whether Deep Research is switched on, as this deployment's keys say -- never whether a
+    worker composed it (that is the worker's record, ``lead-orchestration#LO12b``)."""
+
+    model_config = ConfigDict(extra="forbid")
+    switch: Literal["AIA_DEEP_RESEARCH_ENABLED"] = "AIA_DEEP_RESEARCH_ENABLED"
+    #: The key's value in the API's environment; ``null``: not given to the API, unknown.
+    enabled: bool | None
+    #: True when the key is off: a started run parks at its plan step
+    #: (``deep_research_unconfigured``) before anything is sent; ``null`` when unknown.
+    runs_would_park: bool | None
+    park_reason: Literal["deep_research_unconfigured"] | None
+
+
+class DeepResearchBudget(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    budget_usd: float
+    spent_usd: float
+    reserved_usd: float
+    #: Settled from calls whose outcome is uncertain (they may have been billed).
+    uncertain_usd: float
+    available_usd: float
+
+
+class DeepResearchQuoteResponse(BaseModel):
+    """What a start would cost and answer; nothing was reserved, recorded or started."""
+
+    model_config = ConfigDict(extra="forbid")
+    study_id: str
+    purpose: str
+    preset: str
+    #: The most the run can cost; ``null`` when a price it needs is not configured.
+    ceiling_usd: float | None
+    #: The mode the ceiling is priced in (planned, agent-directed or the engine's lead mode).
+    ceiling_mode: str | None
+    #: Why the ceiling is unknown, and the kinds of call whose price is missing.
+    ceiling_unknown: str | None
+    unknown_kinds: list[str]
+    #: Every kind of call: the most it can cost (``null``: unknown, never 0) and its bound.
+    usd_by_kind: dict[str, float | None]
+    calls_by_kind: dict[str, int]
+    #: The priced live routes the run would use (Brave's ``search``, Common Crawl's
+    #: ``url_index_query``) and the live settings they still need approved (ADR 0022).
+    paid_routes: list[str]
+    live_settings_missing: list[str]
+    #: The study's confirmation threshold (``spend_confirm_usd``); ``null``: never asks.
+    threshold_usd: float | None
+    #: The study's budget position; ``null`` without the permission to see costs.
+    budget: DeepResearchBudget | None
+    #: What ``POST …/runs`` (or ``…/runs/interpretation``) with no confirmation would answer:
+    #: ``start``, ``confirm`` (409 cost_confirmation_required), ``ceiling_unknown``,
+    #: ``live_settings_unapproved``, or ``exists`` (the same spec's run, returned as it is).
+    start_verdict: str
+    existing_run_id: str | None
+    #: The digest of the Deep Research settings in force, which a run would pin.
+    settings_digest: str
+    runtime: DeepResearchRuntimeState
+
+
 class DesignProposalAccept(BaseModel):
     """A person's accept of a Design Research proposal: the items taken, on which baseline."""
 
@@ -213,6 +309,8 @@ class DeepResearchStep(BaseModel):
     started_at: datetime | None = None
     artifact_id: str | None
     error_message: str | None
+    #: The code the last attempt recorded beside its message, as on a research step.
+    error_reason: str | None = None
 
 
 class DeepResearchRun(BaseModel):
@@ -258,132 +356,26 @@ def _refused(exc: ScopeDenied) -> HTTPException:
     )
 
 
-def deep_research_budgets(
-    settings: Settings, limits: Mapping[CallKind, RequestLimits] = REQUEST_LIMITS
-) -> dict[CallKind, KindBudget] | None:
-    """Each kind of model request's window, output limit and reservation, derived as the
-    worker derives them (``request_limits.kind_budgets``) from the same keys; ``None`` when a
-    key it needs is missing or not a valid value -- unknown, never a guess. ``limits`` are
-    the request limits in force (the study's Deep Research settings, chunk 43c)."""
-    if (
-        settings.bedrock_input_usd_per_mtok is None
-        or settings.bedrock_output_usd_per_mtok is None
-        or settings.bedrock_context_window_tokens is None
-        or settings.ai_research_max_output_tokens is None
-    ):
-        return None
-    try:
-        return kind_budgets(
-            ModelPrices(
-                input_usd_per_mtok=settings.bedrock_input_usd_per_mtok,
-                output_usd_per_mtok=settings.bedrock_output_usd_per_mtok,
-                cache_read_usd_per_mtok=settings.bedrock_cache_read_usd_per_mtok,
-                cache_write_usd_per_mtok=settings.bedrock_cache_write_usd_per_mtok,
-            ),
-            context_window_tokens=settings.bedrock_context_window_tokens,
-            max_output_tokens=settings.ai_research_max_output_tokens,
-            thinking_budget_tokens=settings.deep_research_thinking_budget_tokens,
-            limits=limits,
-        )
-    except ValueError:
-        return None
-
-
 def deep_research_prices(
     settings: Settings, limits: Mapping[CallKind, RequestLimits] = REQUEST_LIMITS
 ) -> DeepResearchPrices:
-    """What each kind of call a Deep Research run makes may cost, as this deployment says.
-
-    Each kind of research agent's request reserves its own kind's amount
-    (:func:`deep_research_budgets`, as ``aia_executors.deep_research_runtime`` composes
-    them); with a key missing, every model kind is unknown. The retrieval a deployment
-    composes (``aia_executors.deep_research_live``) is fee-free but Brave's search: the
-    public Wikipedia search, its pages or any public host's, and the listed public dataset
-    connectors cost nothing; Brave's search costs its dated price per request (unset:
-    unknown, never zero), and a paid route needs the organization's sign-off (chunk 44);
-    off, nothing is searched. Common Crawl's index query reserves its scan cutoff, billed
-    (unknown without every price key), and its archived pages are free. Triage and the
-    focused crawl are composed by no deployment yet, so nothing is sent on them.
-    """
-    budgets = deep_research_budgets(settings, limits)
-    model = {
-        kind: RoutePrice.unknown()
-        if budgets is None
-        else RoutePrice.per_call(budgets[kind].reservation_usd)
-        for kind in RESEARCH_KINDS
-    }
-    route = deep_research_search_route(settings)
-    free, off = RoutePrice.per_call(0.0), RoutePrice.off()
-    if route == "brave":
-        per_1000 = settings.deep_research_brave_usd_per_1000
-        search = RoutePrice.unknown() if per_1000 is None else RoutePrice.per_call(per_1000 / 1000)
-    else:
-        search = free if route == "wikipedia" else off
-    searching = route != "off"
-    # The worker composes Common Crawl only beside a search route and the public fetch.
-    crawling = searching and settings.deep_research_common_crawl
-    return DeepResearchPrices(
-        {
-            **model,
-            CallKind.SEARCH: search,
-            CallKind.FETCH: free if searching else off,
-            CallKind.TRIAGE: off,
-            CallKind.CRAWL_FETCH: off,
-            CallKind.CONNECTOR: (
-                free if searching and settings.deep_research_connectors.strip() else off
-            ),
-            CallKind.URL_INDEX_QUERY: _index_price(settings) if crawling else off,
-            CallKind.ARCHIVE_FETCH: free if crawling else off,
-        }
-    )
-
-
-def _index_price(settings: Settings) -> RoutePrice:
-    """A Common Crawl index query's reservation: its scan cutoff, billed; unknown without
-    every price key, and unknown for a value the worker would refuse."""
-    cutoff = settings.deep_research_common_crawl_max_scan_bytes
-    per_tb = settings.deep_research_common_crawl_usd_per_tb_scanned
-    minimum = settings.deep_research_common_crawl_min_billed_bytes
-    increment = settings.deep_research_common_crawl_billing_increment_bytes
-    if cutoff is None or per_tb is None or minimum is None or increment is None:
-        return RoutePrice.unknown()
-    if cutoff < MIN_SCAN_CUTOFF_BYTES:  # the worker refuses it: no route, no price
-        return RoutePrice.unknown()
-    try:
-        pricing = AthenaPricing(
-            usd_per_tb_scanned=per_tb,
-            minimum_billed_bytes=minimum,
-            billing_increment_bytes=increment,
-        )
-        return RoutePrice.athena(pricing, cutoff)
-    except ValueError:
-        return RoutePrice.unknown()
-
-
-def deep_research_search_route(settings: Settings) -> str:
-    """The search route the worker composes from the same keys: off, wikipedia or brave."""
-    if settings.deep_research_web_search:
-        return settings.deep_research_web_search
-    return "wikipedia" if settings.deep_research_wikipedia_enabled else "off"
+    """What each kind of call a Deep Research run makes may cost, as this deployment says
+    (:meth:`~aia_core.application.deep_research_pricing.DeepResearchPricingSettings.prices`,
+    plan chunk 55: the application layer prices it, the router only names the keys)."""
+    return settings.deep_research_pricing().prices(limits)
 
 
 def _study_prices(
     settings: Settings, session: SessionDep, scope: StudyContext
 ) -> DeepResearchPrices:
-    """:func:`deep_research_prices` under the request limits the study's run would pin: the
-    ceiling a start is asked about is priced as the worker will reserve (chunk 43c)."""
-    return deep_research_prices(
-        settings, request_limits(settings_in_force_for_study(session, scope))
-    )
+    """The prices under the request limits the study's run would pin (chunk 43c)."""
+    return settings.deep_research_pricing().study_prices(session, scope)
 
 
 def deep_research_mode(settings: Settings) -> ResearchMode:
-    """The mode the worker composes from the same switches (the lead needs agent-directed)."""
-    if settings.deep_research_lead:
-        return ResearchMode.LEAD
-    if settings.deep_research_agent_directed:
-        return ResearchMode.AGENT_DIRECTED
-    return ResearchMode.PLANNED
+    """The mode the worker composes from the same switches (the engine's lead mode needs
+    agent-directed)."""
+    return settings.deep_research_pricing().mode()
 
 
 @contextmanager
@@ -501,6 +493,9 @@ def _response(
                 error_message=str((step["attempts"][-1].get("error") or {}).get("message"))
                 if step.get("attempts") and (step["attempts"][-1].get("error") or {}).get("message")
                 else None,
+                error_reason=_code((step["attempts"][-1].get("error") or {}).get("reason"))
+                if step.get("attempts")
+                else None,
             )
             for step in steps
         ],
@@ -512,6 +507,105 @@ def _response(
         if scope.has(Permission.VIEW_COSTS)
         else None,
     )
+
+
+def _quote_response(
+    quote: DeepResearchQuote, scope: StudyContext, settings: Settings
+) -> DeepResearchQuoteResponse:
+    ceiling = quote.ceiling
+    unknown = set(ceiling.unknown_kinds) if ceiling is not None else set(CallKind)
+    enabled = settings.deep_research_pricing().enabled
+    return DeepResearchQuoteResponse(
+        study_id=scope.study_id,
+        purpose=quote.purpose.value,
+        preset=quote.preset,
+        ceiling_usd=None if ceiling is None else ceiling.total_usd,
+        ceiling_mode=None if ceiling is None else ceiling.mode.value,
+        ceiling_unknown=(
+            CeilingUnknown.DEEP_RESEARCH_PRICE_MISSING.value
+            if ceiling is None
+            else (ceiling.unknown.value if ceiling.unknown is not None else None)
+        ),
+        unknown_kinds=[] if ceiling is None else [k.value for k in ceiling.unknown_kinds],
+        usd_by_kind={
+            kind.value: None if kind in unknown or ceiling is None else ceiling.usd.get(kind, 0.0)
+            for kind in CallKind
+        },
+        calls_by_kind={} if ceiling is None else {k.value: n for k, n in ceiling.calls.items()},
+        paid_routes=[k.value for k in quote.paid_routes],
+        live_settings_missing=list(quote.live_missing),
+        threshold_usd=quote.threshold_usd,
+        budget=None if quote.budget is None else DeepResearchBudget(**quote.budget),
+        start_verdict=quote.verdict.value,
+        existing_run_id=quote.existing_run_id,
+        settings_digest=quote.settings_digest,
+        runtime=DeepResearchRuntimeState(
+            enabled=enabled,
+            runs_would_park=None if enabled is None else not enabled,
+            park_reason="deep_research_unconfigured" if enabled is False else None,
+        ),
+    )
+
+
+@router.post("/quote", response_model=DeepResearchQuoteResponse)
+def quote(
+    body: DeepResearchQuoteRequest,
+    request: Request,
+    scope: StudyScopeDep,
+    session: SessionDep,
+    store: ArtifactStoreDep,
+) -> DeepResearchQuoteResponse:
+    """What starting this Deep Research run would cost and answer, read-only (chunk 55).
+
+    The spec is frozen as the start freezes it and priced by the start's own admission, so
+    ``ceiling_usd`` is the figure the start asks to confirm. Nothing is reserved, recorded,
+    marked or started: the permission and an open study are checked before any freeze, and a
+    pinned artifact that fails verification is 409 ``artifact_corrupt`` with no CORRUPT mark.
+    It answers whatever ``AIA_DEEP_RESEARCH_ENABLED`` says, and says when a run would park.
+    404 for a revision or a target that is not this Study's; 422 as the start's.
+    """
+    settings = request.app.state.settings
+    with _errors(session):
+        runs = DeepResearchRuns(session, scope)
+        # The start's own order: its permission and an open study before anything is frozen
+        # or read, so a closed study is 403 study_closed and nothing is touched.
+        runs.require_start()
+        try:
+            if body.purpose == DeepResearchPurpose.DESIGN_RESEARCH.value:
+                assert body.design_revision_id is not None
+                spec = runs.freeze_design(
+                    design_revision_id=body.design_revision_id,
+                    preset_name=body.preset_name,
+                    channels=body.channels,
+                )
+            else:
+                assert body.target is not None
+                spec = runs.freeze_interpretation(
+                    target=body.target,
+                    preset_name=body.preset_name,
+                    store=store,
+                    channels=body.channels,
+                )
+        except (IntegrityError, ObjectNotFound) as exc:
+            # A quote is read-only: a pinned artifact that fails verification is reported,
+            # never marked. The CORRUPT mark the read flushed is rolled back here, not
+            # committed (``artifact_corrupt`` commits it); a start over it marks it.
+            session.rollback()
+            raise HTTPException(
+                status_code=409,
+                detail={
+                    "code": "artifact_corrupt",
+                    "message": "A result the run would rest on fails verification; "
+                    "the quote marked nothing.",
+                },
+            ) from exc
+        quoted = runs.quote(
+            spec,
+            prices=_study_prices(settings, session, scope),
+            modes=(deep_research_mode(settings),),
+        )
+        return _quote_response(quoted, scope, settings)
+    raise AssertionError("unreachable")
 
 
 @router.post("/runs", response_model=DeepResearchRun, status_code=201)

@@ -123,6 +123,7 @@ function api(overrides: Record<string, (body: unknown) => unknown> = {}, mayAdmi
         "GET /api/v1/self-approval": () => ({ organization: null, clients: [], studies: [] }),
         "GET /api/v1/access-audit": () => [{ event_id: 1, action: "CLIENT_GRANT", client_id: "CLI-a", study_id: null, subject_user_id: "USR-1", actor_id: "USR-1", role: "LEAD", reason: "self_grant", payload: {}, created_at: null }],
         "PUT /api/v1/self-approval": () => ({ allowed: true, source: "organization" }),
+        "GET /api/v1/settings/researcher-spend": () => ({ period: "this_month", start: "", end: "", everyone: mayAdminister, currency: "USD", people: [] }),
         ...overrides,
       };
       const answer = routes[`${method} ${u.split("?")[0]}`]?.(body) ?? {};
@@ -227,8 +228,8 @@ describe("the settings control panel", () => {
     const row = (await screen.findByText("Vnímání značky")).closest("[data-study]") as HTMLElement;
     fireEvent.click(within(row).getByRole("button", { name: "Upravit", hidden: true }));
     const study = document.querySelector('[data-study-edit="STU-1"]') as HTMLElement;
-    fireEvent.change(within(study).getByLabelText("Strop rozpočtu"), { target: { value: "900" } });
-    fireEvent.submit(within(study).getByLabelText("Strop rozpočtu").closest("form") as HTMLFormElement);
+    fireEvent.change(within(study).getByLabelText("Rozpočet studie"), { target: { value: "900" } });
+    fireEvent.submit(within(study).getByLabelText("Rozpočet studie").closest("form") as HTMLFormElement);
     expect(await within(study).findByText(/HTTP 403 · insufficient_role: Your role on this study/)).toBeTruthy();
     expect(called("PUT", "/api/v1/studies/STU-1/budget")[0].body).toEqual({ budget_usd: 900 });
   });
@@ -652,13 +653,22 @@ describe("usable settings controls", () => {
     expect(audit.textContent).not.toMatch(/METHODOLOGY_RESET|methodology reset/);
   });
 
+  it("puts the spend per researcher on Studie a rozpočty, read from its own route", async () => {
+    api(); render(<ControlPanel />);
+    fireEvent.click(await screen.findByRole("tab", { name: "Studie a rozpočty" }));
+    const panel = panelOf("Studie a rozpočty");
+    expect(within(panel).getByRole("heading", { name: "Útrata podle výzkumníka" })).toBeTruthy();
+    expect(await within(panel).findByText("Za toto období nikdo nic neutratil.")).toBeTruthy();
+    expect(called("GET", "/api/v1/settings/researcher-spend")).toHaveLength(1);
+  });
+
   it("filters studies without unmounting their budget drafts and searches the readable audit", async () => {
     api(); render(<ControlPanel />);
     fireEvent.click(await screen.findByRole("tab", { name: "Studie a rozpočty" }));
     const study = document.querySelector('[data-study="STU-1"]') as HTMLElement;
     fireEvent.click(within(study).getByRole("button", { name: "Upravit" }));
     const edit = document.querySelector('[data-study-edit="STU-1"]') as HTMLElement;
-    const budget = within(edit).getByLabelText("Strop rozpočtu") as HTMLInputElement;
+    const budget = within(edit).getByLabelText("Rozpočet studie") as HTMLInputElement;
     fireEvent.change(budget, { target: { value: "600" } });
     fireEvent.change(screen.getByRole("searchbox", { name: "Hledat studii nebo klienta" }), { target: { value: "Cizí" } });
     expect(study.hidden).toBe(true);

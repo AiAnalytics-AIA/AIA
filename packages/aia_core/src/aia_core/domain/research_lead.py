@@ -11,7 +11,9 @@ ADR 0026. A Lead turn is a durable worker step; this module is its pure half:
   refuses a reply naming any number absent from the frozen context and the prompt, so the
   gateway's one schema repair can correct it. The prompt states the rule; this enforces it.
 * **Edits are grounded in the working content** (:func:`ground_edits`): an edit naming a
-  question, section or list item the content does not hold is dropped and named.
+  question, section or list item the content does not hold is dropped and named. The edits
+  themselves, their rules and their apply are the working copy's one vocabulary
+  (``domain/edit_ops.py``, ADR 0029); this module re-exports the names it always offered.
 * **The context is frozen at enqueue, in a fixed order, and bounded**
   (:func:`freeze_context`): 96 KB of canonical JSON; the oldest turns go first, then the
   turn is refused (:class:`LeadContextTooLarge`), never cut silently.
@@ -34,7 +36,6 @@ from __future__ import annotations
 import hashlib
 import re
 from collections.abc import Mapping, Sequence
-from copy import deepcopy
 from datetime import datetime
 from decimal import Decimal, InvalidOperation
 from typing import Annotated, Any, Final, Literal, get_args
@@ -45,6 +46,29 @@ from pydantic import BaseModel, ConfigDict, Field, model_validator
 from .ai_contracts import AgentDefinition, Message, ModelRequest, canonical_json
 from .ai_material import MaterialApproval, most_restrictive_material
 from .ai_models import ModelCapability
+from .edit_ops import (
+    TEXT_EDIT_OPS,
+    TEXT_ONLY_FIELDS,
+    TEXT_ONLY_LISTS,
+    EditOp,
+    ListAdd,
+    ListRemove,
+    ListReplace,
+    PlanList,
+    QuestionAdd,
+    QuestionEdit,
+    QuestionRemove,
+    QuestionType,
+    Refused,
+    SetN,
+    SetText,
+    TextField,
+    apply_edit,
+    is_text_edit,
+    question_add_problem,
+    refusal,
+)
+from .item_ids import SIDECAR_KEYS
 from .material_rules import MaterialRule, classify_by_rule, rule_class
 from .prompts import PromptPin
 from .research_agents import (
@@ -54,6 +78,7 @@ from .research_agents import (
     prompt_class_source,
     prompt_data_class,
 )
+from .research_design import SampleSizeLimits
 from .residency import DataClass
 
 __all__ = [
@@ -62,6 +87,8 @@ __all__ = [
     "DEFAULT_LEAD_NAME",
     "DEFAULT_SOUL",
     "FOCUS_ID",
+    "FOCUS_KINDS",
+    "ID_PATTERN",
     "LEAD_AGENT_ID",
     "LEAD_HARNESS_VERSION",
     "LEAD_PROMPT_ID",
@@ -73,21 +100,36 @@ __all__ = [
     "TEXT_ONLY_FIELDS",
     "TEXT_ONLY_LISTS",
     "Dropped",
+    "EditOp",
     "LeadContextTooLarge",
     "LeadNote",
     "LeadOutput",
     "LeadTurn",
+    "ListAdd",
+    "ListRemove",
+    "ListReplace",
+    "PlanList",
+    "QuestionAdd",
+    "QuestionEdit",
+    "QuestionRemove",
+    "QuestionType",
     "Refused",
     "ResearcherLead",
     "SelfUpdate",
     "SelfUpdateApplied",
+    "SetN",
+    "SetText",
     "Stage",
+    "TextField",
     "apply_edit",
     "baseline_task",
+    "citable_context",
     "context_classification",
     "context_data_class",
+    "context_identifiers",
     "context_sha256",
     "freeze_context",
+    "frozen_sample_size",
     "ground_edits",
     "ground_self_update",
     "is_text_edit",
@@ -98,6 +140,7 @@ __all__ = [
     "lead_request_window_tokens",
     "number_tokens",
     "question_add_problem",
+    "readiness_layer",
     "self_update_base",
     "split_self_update",
     "stale_files",
@@ -108,7 +151,12 @@ __all__ = [
 LEAD_PROMPT_ID: Final = "aia.research.lead"
 LEAD_AGENT_ID: Final = LEAD_PROMPT_ID
 LEAD_PROMPT_VERSION: Final = "1"
-LEAD_HARNESS_VERSION: Final = "aia-research-lead-1"
+#: 2: the frozen design layer carries the readiness limits in force, and ``set_n`` is held to
+#: them rather than to a range of its own (plan ``run-qc-and-checkpoint`` RQC9). A turn queued
+#: under 1 has no limits to be grounded against, so the executor refuses it by name.
+#: 3: a focus may name any element in the per-artifact contract (FOCUS_KINDS) by an id of the one
+#: grammar the contract publishes (ID_PATTERN); the output's view schema widened with it.
+LEAD_HARNESS_VERSION: Final = "aia-research-lead-3"
 #: A turn's stored output. Served only by the Lead's own routes, never the generic ones.
 ARTIFACT_TYPE: Final = "research_lead_turn"
 
@@ -154,26 +202,24 @@ Stage = Literal[
 ]
 STAGES: Final[tuple[str, ...]] = get_args(Stage)
 
-TextField = Literal[
-    "title",
-    "goal",
-    "decision_use",
-    "briefing.product_description",
-    "briefing.situation",
-    "briefing.what_is_known",
-    "briefing.constraints",
-    "plan.problem_summary",
-]
-PlanList = Literal["plan.objectives", "plan.research_questions", "plan.hypotheses"]
-QuestionType = Literal["vyber", "multi", "skala", "otevrena"]
 
+#: The kinds of element a stage screen names (``domain/lead_artifacts.py`` ``TargetKind``, held
+#: equal to this by its test; the per-artifact contract, research-lead-workbench 16).
+FOCUS_KINDS: Final[tuple[str, ...]] = (
+    "brief", "objective", "material", "plan", "rq", "hypothesis", "set", "assumption",
+    "section", "question", "audience", "dimension", "own_dimension", "sample", "step",
+    "receipt", "measure", "object", "pair", "module", "finding", "claim", "report",
+)  # fmt: skip
+#: An element's id: an identifier, possibly of colon-separated parts (``finding:executive:2``),
+#: a battery-qualified object (``set1/fio``) or a pair (``set1/fio~air``).
+ID_PATTERN: Final = r"[A-Za-z0-9_.\-~/:]{1,80}"
 #: A ``data-aia`` id the interface focuses: ``question:q3``, ``brief:goal``.
-_TARGET = r"^[a-z_]+:[A-Za-z0-9_.\-]+$"
-#: What a person's message may say it is about: an element of a stage screen, in the forms the
-#: web's targetOfElement produces (``question:<id>``, ``section:<id>``, ``brief:<field>``,
-#: ``plan:<part>``). The id reaches the model unclassified, so it may be an identifier and
-#: nothing else; the free text beside it is the label, which is classified.
-FOCUS_ID: Final = re.compile(r"^(?:question|section|brief|plan):[A-Za-z0-9_.\-]{1,80}$")
+_TARGET = rf"^[a-z_]+:{ID_PATTERN}$"
+#: What a person's message may say it is about: an element of a stage screen, as the web's
+#: targetOfElement produces it (``<kind>:<id>``, ``data-aia`` on the element). The id reaches the
+#: model unclassified, so it may be an identifier and nothing else; the free text beside it is
+#: the label, which is classified.
+FOCUS_ID: Final = re.compile(rf"^(?:{'|'.join(FOCUS_KINDS)}):{ID_PATTERN}$")
 _MEMORY_ID = r"^LMM-[0-9a-f]{1,32}$"
 
 
@@ -200,150 +246,6 @@ class FocusItem(Closed):
 
 
 ViewOp = Annotated[OpenStage | FocusItem, Field(discriminator="op")]
-
-
-# --------------------------------------------------------------------------- edits
-
-
-class SetText(Closed):
-    op: Literal["set_text"]
-    field: TextField
-    value: str = Field(max_length=MESSAGE_MAX_CHARS)
-    why: Why
-
-
-class ListAdd(Closed):
-    op: Literal["list_add"]
-    list: PlanList
-    value: ItemText
-    why: Why
-
-
-class ListReplace(Closed):
-    op: Literal["list_replace"]
-    list: PlanList
-    old: ItemText
-    value: ItemText
-    why: Why
-
-
-class ListRemove(Closed):
-    op: Literal["list_remove"]
-    list: PlanList
-    old: ItemText
-    why: Why
-
-
-def question_add_problem(qtype: str, options: Sequence[str]) -> str | None:
-    """Why a new question of ``qtype`` cannot carry ``options``, as ``apply_edit`` builds it;
-    ``None`` when it can. A selection question needs at least two options; an open question
-    has none; a scale has none (the default end labels) or exactly two (its end labels).
-    Anything else would be shown to the researcher and silently dropped (Codex on #484)."""
-    if qtype in ("vyber", "multi"):
-        return "too_few_options" if len(options) < 2 else None
-    if qtype == "otevrena":
-        return "options_on_open_question" if options else None
-    if qtype == "skala":
-        return None if len(options) in (0, 2) else "scale_labels_not_two"
-    return "unknown_question_type"
-
-
-class QuestionAdd(Closed):
-    op: Literal["question_add"]
-    section_id: str | None = Field(default=None, min_length=1, max_length=120)
-    text: ItemText
-    qtype: QuestionType
-    options: list[Option] = Field(default_factory=list, max_length=40)
-    why: Why
-
-    @model_validator(mode="after")
-    def _coherent(self) -> QuestionAdd:
-        problem = question_add_problem(self.qtype, self.options)
-        if problem == "too_few_options":
-            raise ValueError("a selection question needs at least two options")
-        if problem == "options_on_open_question":
-            raise ValueError("an open question has no options")
-        if problem == "scale_labels_not_two":
-            raise ValueError("a scale's options are its two end labels, or none")
-        return self
-
-
-class QuestionEdit(Closed):
-    op: Literal["question_edit"]
-    question_id: str = Field(min_length=1, max_length=120)
-    text: ItemText | None = None
-    options: list[Option] | None = Field(default=None, max_length=40)
-    why: Why
-
-    @model_validator(mode="after")
-    def _changes_something(self) -> QuestionEdit:
-        if self.text is None and self.options is None:
-            raise ValueError("a question edit changes its text, its options or both")
-        if self.options is not None and len(self.options) < 2:
-            raise ValueError("a selection question's replacement options are at least two")
-        return self
-
-
-class QuestionRemove(Closed):
-    op: Literal["question_remove"]
-    question_id: str = Field(min_length=1, max_length=120)
-    why: Why
-
-
-class SetN(Closed):
-    op: Literal["set_n"]
-    value: int = Field(ge=30, le=40_000)
-    why: Why
-
-
-EditOp = Annotated[
-    SetText
-    | ListAdd
-    | ListReplace
-    | ListRemove
-    | QuestionAdd
-    | QuestionEdit
-    | QuestionRemove
-    | SetN,
-    Field(discriminator="op"),
-]
-
-#: The edits that change wording and never structure or the sample: what a researcher may let the
-#: Lead apply without a click (the preference ``auto_accept_text_edits``, plan inline-decisions
-#: chunk 2). A ``question_edit`` is one only when it changes the text alone (:func:`is_text_edit`).
-TEXT_EDIT_OPS: Final = frozenset({"set_text", "question_edit", "list_replace"})
-#: The ``set_text`` fields whose edit changes their wording and nothing else. The brief's fields
-#: (``goal``, ``decision_use``, ``briefing.*``) are not among them: ``apply_edit`` clears the
-#: analysis made of the brief when one changes.
-TEXT_ONLY_FIELDS: Final = frozenset({"title", "plan.problem_summary"})
-#: The plan lists whose items are wording alone. ``plan.research_questions`` is not among them:
-#: the questionnaire's items and the plan's comparisons name a research question by its text
-#: (``domain/research_trace.py``), so renaming one unlinks what measures it. Nor is
-#: ``plan.objectives``: where a plan states no research questions, its objectives are read as
-#: them (``analysis/native.py`` ``research_questions_of``), with the same links by text.
-TEXT_ONLY_LISTS: Final = frozenset({"plan.hypotheses"})
-
-
-def is_text_edit(edit: BaseModel) -> bool:
-    """Whether ``edit`` changes wording and nothing the design links to it: a ``set_text`` of the
-    title or the problem summary, a ``list_replace`` of a hypothesis, or a ``question_edit`` that
-    replaces the text and leaves the options as they are. Adding, removing, re-optioning or
-    re-typing anything, the sample size, a brief field (it clears the analysis), a research
-    question or an objective (items and comparisons name them by their text) are not.
-
-    A question's new wording still decides how it is read after it: whether code answers it as
-    a fact (``respondent_facts``) and which persona topics it draws (``persona_topics``). That is
-    true of a clicked accept too; readiness and the question outlook show it before a run."""
-    op = getattr(edit, "op", None)
-    if op not in TEXT_EDIT_OPS:
-        return False
-    if isinstance(edit, QuestionEdit):
-        return edit.text is not None and edit.options is None
-    if isinstance(edit, SetText):
-        return edit.field in TEXT_ONLY_FIELDS
-    if isinstance(edit, ListReplace):
-        return edit.list in TEXT_ONLY_LISTS
-    return False
 
 
 # --------------------------------------------------------------------------- requests
@@ -466,13 +368,111 @@ def unreadable_numbers(text: str) -> list[str]:
     return [m.group(0) for m in _EXPONENT.finditer(text)]
 
 
-def lead_contract(allowed_text: str) -> type[LeadOutput]:
+#: Identity metadata (F-CLOCK-1): keys whose values name, hash, version or date something,
+#: wherever they sit in a context. Their digits are no number: ``REV-7a3f…``, an item's
+#: ``bound`` hash ``7a01…`` or a ``created_at`` of ``…T13:07`` would otherwise ground a reply's
+#: invented 7. The stable-item sidecars (``item_ids.SIDECAR_KEYS``: the ids and their ``bound``
+#: wording hashes) end in ``_ids``; they are named too, so a rename there cannot reopen this.
+#: ``revision`` (a knowledge item's) and ``*_revision`` (the design layer's
+#: ``workspace_revision``) are save counters: the stage autosaves every 1.8 s, so the counter
+#: says how often the copy was saved, nothing about the design, and at 7 it grounded "Máme 7
+#: otázek." (the review of 4d434c4d).
+_IDENTITY_KEYS: Final = frozenset({"id", "bound", "revision"}) | SIDECAR_KEYS
+#: ``*_id`` / ``*_ids`` (``design_revision_id``, ``run_id``, ``item_id``, ``memory_id``,
+#: ``source_id``, ``omitted_ids``), ``*_revision`` (``workspace_revision``), ``*_version``
+#: (``methodology_version``,
+#: ``contract_version``), ``*_at`` (a dimension proposal's ``created_at``), ``*sha256`` (an
+#: attachment's ``sha256``, a material's ``reading_sha256``), ``*_signature`` (an analysis's
+#: ``_brief_signature``) and ``*fingerprint``.
+_IDENTITY_SUFFIXES: Final = (
+    "_id",
+    "_ids",
+    "_revision",
+    "_version",
+    "_at",
+    "sha256",
+    "_signature",
+    "fingerprint",
+)
+#: A value that is a number as written (``7``, ``-2,5``) is never masked as an identifier: a
+#: mask would hide that number in a reply, too.
+_BARE_NUMBER: Final = re.compile(r"[-\u2212]?\d+(?:[.,]\d+)?")
+#: The characters an identifier is made of (``ITEM_ID``, :data:`FOCUS_ID`): word characters, a
+#: hyphen and a dot. A dot ends an identifier only where no identifier character follows it, so
+#: a sentence may end on one.
+_ID_BEFORE: Final = r"(?<![\w.\-])"
+_ID_AFTER: Final = r"(?![\w\-]|\.[\w\-])"
+
+
+def _is_identity_key(key: str) -> bool:
+    return key in _IDENTITY_KEYS or key.endswith(_IDENTITY_SUFFIXES)
+
+
+def citable_context(context: Mapping[str, Any]) -> list[Any]:
+    """The layers the model is sent (:func:`model_message`) with their identity metadata left
+    out: every key :func:`_is_identity_key` names, with all it holds, and every string that is
+    a focus target (:data:`FOCUS_ID`). The numbers a reply may write are this text's."""
+
+    def strip(value: Any) -> Any:
+        if isinstance(value, Mapping):
+            return {k: strip(v) for k, v in value.items() if not _is_identity_key(str(k))}
+        if isinstance(value, (list, tuple)):
+            return [strip(v) for v in value]
+        if isinstance(value, str) and FOCUS_ID.fullmatch(value):
+            return ""
+        return value
+
+    return [strip(entry) for entry in context["layers"] if entry["layer"] != "prompt"]
+
+
+def context_identifiers(context: Mapping[str, Any]) -> frozenset[str]:
+    """Every identifier string a frozen context holds: the strings under an identity key
+    (:func:`_is_identity_key`) and every focus target. A bare number used as one is left out
+    (:data:`_BARE_NUMBER`). A reply quoting one whole writes no number by it, and a quote of one
+    in the context's prose (an earlier reply, a message) grounds none."""
+    found: set[str] = set()
+
+    def walk(value: Any, identity: bool) -> None:
+        if isinstance(value, Mapping):
+            for key, item in value.items():
+                walk(item, identity or _is_identity_key(str(key)))
+        elif isinstance(value, (list, tuple)):
+            for item in value:
+                walk(item, identity)
+        elif (
+            isinstance(value, str)
+            and (identity or FOCUS_ID.fullmatch(value))
+            and value
+            and not _BARE_NUMBER.fullmatch(value)
+        ):
+            found.add(value)
+
+    walk(context, False)
+    return frozenset(found)
+
+
+def _without_identifiers(text: str, identifiers: frozenset[str]) -> str:
+    """``text`` with every whole occurrence of an identifier blanked: not inside a longer word
+    or id, so ``REV-7a`` masks neither ``REV-7ab``, ``X.REV-7a`` nor ``REV-7a.b``."""
+    if not identifiers:
+        return text
+    # One pass, the longest first, so an id that begins another never masks a part of it.
+    alternatives = "|".join(re.escape(i) for i in sorted(identifiers, key=len, reverse=True))
+    return re.sub(rf"{_ID_BEFORE}(?:{alternatives}){_ID_AFTER}", " ", text)
+
+
+def lead_contract(allowed_text: str, identifiers: frozenset[str] = frozenset()) -> type[LeadOutput]:
     """The output contract a turn is validated against: :class:`LeadOutput`, refusing a
     reply that writes a number ``allowed_text`` (the frozen context and the prompt) does not.
 
+    ``allowed_text`` is the context without its identity metadata (:func:`citable_context`).
+    ``identifiers`` (:func:`context_identifiers`) are no numbers on either side: a quote of one
+    in ``allowed_text``'s prose grounds nothing, and a reply quoting one whole writes no number
+    by it. A digit of an identifier written on its own is a number, held to the context.
+
     A validation error, so the gateway's one schema repair tells the model which numbers.
     """
-    allowed = number_tokens(allowed_text)
+    allowed = number_tokens(_without_identifiers(allowed_text, identifiers))
 
     class CheckedLeadOutput(LeadOutput):
         model_config = ConfigDict(extra="forbid", frozen=True, title="LeadOutput")
@@ -486,7 +486,7 @@ def lead_contract(allowed_text: str) -> type[LeadOutput]:
                     + ", ".join(unreadable[:10])
                     + "; write a number out in digits as the context holds it, or none"
                 )
-            unknown = sorted(number_tokens(self.reply) - allowed)
+            unknown = sorted(number_tokens(_without_identifiers(self.reply, identifiers)) - allowed)
             if unknown:
                 raise ValueError(
                     "reply writes numbers that are not in the context: "
@@ -509,87 +509,54 @@ class Dropped(Closed):
     reason: str
 
 
-def _key(text: str) -> str:
-    """A list item as items compare: whitespace collapsed, casefolded."""
-    return " ".join(text.split()).casefold()
-
-
-def _plan_list(
-    content: Mapping[str, Any], analysis: Mapping[str, Any] | None, name: str
-) -> list[Any]:
-    key = name.split(".", 1)[1]
-    if isinstance(analysis, Mapping) and isinstance(analysis.get(key), list):
-        return list(analysis[key])
-    plan = content.get("research_plan")
-    if isinstance(plan, Mapping) and isinstance(plan.get(key), list):
-        return list(plan[key])
-    return []
-
-
-#: The question types whose options (``kategorie``) an edit may replace.
-_SELECTION: Final = frozenset({"vyber", "multi"})
-
-
-def _question_ids(content: Mapping[str, Any]) -> tuple[set[str], dict[str, Any]]:
-    """The questions sections' ids, and each question's id with its type."""
-    sections: set[str] = set()
-    questions: dict[str, Any] = {}
-    for section in content.get("sections") or ():
-        if not isinstance(section, Mapping) or section.get("type") != "questions":
-            continue
-        if section.get("id"):
-            sections.add(str(section["id"]))
-        for question in section.get("questions") or ():
-            if isinstance(question, Mapping) and question.get("id"):
-                questions[str(question["id"])] = question.get("typ")
-    return sections, questions
-
-
 def ground_edits(
     output: LeadOutput,
     content: Mapping[str, Any],
     analysis: Mapping[str, Any] | None = None,
+    *,
+    sample_size: SampleSizeLimits | None,
 ) -> tuple[LeadOutput, list[Dropped]]:
     """``output`` with only the edits the working content can take, and the rest named.
 
     A question or section id must be one of a questions section in ``content["sections"]``;
     a list item's ``old`` must be in its plan list (the working ``analysis`` first, else
     ``content["research_plan"]``), compared whitespace-collapsed and casefolded; a
-    ``list_add`` already present is dropped too. Nothing else is judged here: a person
-    accepts each edit that is left.
+    ``list_add`` already present is dropped too (``edit_ops.refusal``). A ``set_n`` must be a
+    valid n under ``sample_size``, the readiness limits the turn was frozen with; with no limits
+    known it is dropped (``sample_size_limits_unknown``), never presumed valid. Nothing else is
+    judged here: a person accepts each edit that is left.
     """
-    sections, questions = _question_ids(content)
     kept: list[Any] = []
     dropped: list[Dropped] = []
     for i, edit in enumerate(output.edits):
-        reason: str | None = None
-        if isinstance(edit, QuestionEdit | QuestionRemove):
-            if edit.question_id not in questions:
-                reason = "unknown_question"
-            elif (
-                isinstance(edit, QuestionEdit)
-                and edit.options is not None
-                and questions[edit.question_id] not in _SELECTION
-            ):
-                reason = "options_on_non_selection"
-        elif isinstance(edit, QuestionAdd):
-            if edit.section_id is not None and edit.section_id not in sections:
-                reason = "unknown_section"
-            else:
-                reason = question_add_problem(edit.qtype, edit.options)
-        elif isinstance(edit, ListReplace | ListRemove):
-            items = {_key(str(x)) for x in _plan_list(content, analysis, edit.list)}
-            if _key(edit.old) not in items:
-                reason = "unknown_item"
-        elif isinstance(edit, ListAdd):
-            items = {_key(str(x)) for x in _plan_list(content, analysis, edit.list)}
-            if _key(edit.value) in items:
-                reason = "already_present"
+        # The vocabulary's own rule, the one apply_edit refuses with (domain/edit_ops.py).
+        reason = refusal(edit, content, analysis, sample_size=sample_size)
         if reason is None:
             kept.append(edit)
         else:
             dropped.append(Dropped(index=i, op=edit.op, reason=reason))
     return output.model_copy(update={"edits": kept}), dropped
+
+
+def readiness_layer(sample_size: SampleSizeLimits, methodology_version: str) -> dict[str, Any]:
+    """The readiness limits in force as the design layer carries them (``design.readiness``):
+    what a turn's ``set_n`` is held to, and what the Lead may say n can be."""
+    return {
+        "methodology_version": methodology_version,
+        "sample_size": {"min": sample_size.min, "max": sample_size.max},
+    }
+
+
+def frozen_sample_size(design: Mapping[str, Any]) -> SampleSizeLimits | None:
+    """The sample-size limits a turn was frozen with (:func:`readiness_layer`), or ``None``
+    when the design layer holds none it can read."""
+    readiness = design.get("readiness")
+    if not isinstance(readiness, Mapping):
+        return None
+    try:
+        return SampleSizeLimits.model_validate(readiness.get("sample_size"))
+    except ValueError:
+        return None
 
 
 def ground_self_update(
@@ -989,7 +956,10 @@ def lead_request(
             capability=ModelCapability.STUDY_LEAD,
             prompt_id=LEAD_PROMPT_ID,
             prompt_version=prompt.version,
-            output_contract=lead_contract(system + "\n" + message),
+            output_contract=lead_contract(
+                system + "\n" + canonical_json(citable_context(context)),
+                context_identifiers(context),
+            ),
             max_output_tokens=max_output_tokens,
             schema_repair_attempts=1,
         ),
@@ -1066,6 +1036,10 @@ class LeadTurn(Closed):
     design_revision_id: str | None
     created_by: str
     created_at: datetime
+    #: The typed start the server matched in this person's message (lead-orchestration LO5,
+    #: ``domain/lead_commands.py``: ``agent_job:<action>`` or ``research_run``); ``None`` for
+    #: any other turn. Its card is the person's command, never Lead output (D22).
+    command: str | None = None
 
 
 class ResearcherLead(Closed):
@@ -1105,214 +1079,3 @@ class SelfUpdateApplied(Closed):
     user: bool = False
     remembered: list[str] = Field(default_factory=list)
     forgotten: list[str] = Field(default_factory=list)
-
-
-# --------------------------------------------------------------------------- applying an edit
-
-
-class Refused(Closed):
-    """An edit the working content cannot take, and why (a stable word)."""
-
-    reason: str
-
-
-#: Top-level text fields whose edit changes the brief the analysis was made of, so the
-#: analysis is cleared, as the web's ``editBrief`` does; a title edit keeps it.
-_BRIEF_FIELDS: Final = frozenset({"goal", "decision_use"})
-_NEW_SECTION_TITLE: Final = "Hlavní otázky"
-_DEFAULT_SCALE_LABELS: Final = ("vůbec", "zcela")
-_DEFAULT_CATEGORIES: Final = ("Ano", "Ne")
-
-
-def _short_hex() -> str:
-    return uuid4().hex[:10]
-
-
-def _narrative(
-    content: dict[str, Any], analysis: dict[str, Any] | None
-) -> tuple[dict[str, Any], dict[str, Any]] | Refused:
-    """The plan narrative's two homes, ready to write: ``content.research_plan`` and the
-    analysis, which starts from the plan when there is none."""
-    raw = content.get("research_plan")
-    if raw is None:
-        raw = {}
-    if not isinstance(raw, dict):
-        return Refused(reason="plan_not_an_object")
-    plan = dict(raw)
-    started = dict(analysis) if isinstance(analysis, dict) else dict(plan)
-    return plan, started
-
-
-def _write_narrative(
-    content: dict[str, Any], plan: dict[str, Any], analysis: dict[str, Any], key: str, value: Any
-) -> dict[str, Any]:
-    plan[key] = value
-    analysis[key] = value
-    content["research_plan"] = plan
-    ui = content.get("ui_state")
-    ui_state = dict(ui) if isinstance(ui, dict) else {}
-    ui_state["plan_manual_changed"] = True
-    content["ui_state"] = ui_state
-    return analysis
-
-
-def _question_sections(content: dict[str, Any]) -> list[dict[str, Any]]:
-    return [
-        s
-        for s in content.get("sections") or []
-        if isinstance(s, dict) and s.get("type") == "questions"
-    ]
-
-
-def _find_question(content: dict[str, Any], question_id: str) -> tuple[dict[str, Any], int] | None:
-    for section in _question_sections(content):
-        for i, q in enumerate(section.get("questions") or []):
-            if isinstance(q, dict) and q.get("id") == question_id:
-                return section, i
-    return None
-
-
-def _new_question(edit: QuestionAdd) -> dict[str, Any]:
-    qid = "Q_" + _short_hex()
-    if edit.qtype == "skala":
-        labels = list(edit.options) if len(edit.options) == 2 else list(_DEFAULT_SCALE_LABELS)
-        return {
-            "id": qid,
-            "text": edit.text,
-            "typ": "skala",
-            "skala": [1, 10],
-            "popisky_skaly": labels,
-            "povolit_nevim": False,
-        }
-    if edit.qtype == "otevrena":
-        return {"id": qid, "text": edit.text, "typ": "otevrena", "povolit_nevim": False}
-    return {
-        "id": qid,
-        "text": edit.text,
-        "typ": edit.qtype,
-        "kategorie": list(edit.options) or list(_DEFAULT_CATEGORIES),
-        "povolit_nevim": False,
-    }
-
-
-def apply_edit(
-    content: Mapping[str, Any], analysis: Mapping[str, Any] | None, edit: Any
-) -> tuple[dict[str, Any], dict[str, Any] | None] | Refused:
-    """One accepted Lead edit applied to the working content and analysis, by the web's rules.
-
-    Returns the new content and analysis (copies; the inputs are not changed), or why the edit
-    cannot be applied. A brief edit (``goal``, ``decision_use``, any ``briefing.*``) clears
-    the analysis, which was made of the brief as it was; a title edit keeps it. A question
-    edit's options replace only a selection question's categories, at least two of them;
-    options on any other question are refused, never accepted as a change of nothing. The plan
-    narrative (``plan.problem_summary`` and the plan lists) is written to both
-    ``content.research_plan`` and the analysis (started from the plan when there is none),
-    and marks ``ui_state.plan_manual_changed``.
-    """
-    body: dict[str, Any] = deepcopy(dict(content))
-    working: dict[str, Any] | None = deepcopy(dict(analysis)) if analysis is not None else None
-    if isinstance(edit, SetText):
-        if edit.field == "plan.problem_summary":
-            homes = _narrative(body, working)
-            if isinstance(homes, Refused):
-                return homes
-            plan, started = homes
-            return body, _write_narrative(body, plan, started, "problem_summary", edit.value)
-        if edit.field.startswith("briefing."):
-            raw = body.get("briefing")
-            if raw is not None and not isinstance(raw, dict):
-                return Refused(reason="briefing_not_an_object")
-            briefing = dict(raw or {})
-            briefing[edit.field.split(".", 1)[1]] = edit.value
-            body["briefing"] = briefing
-            return body, None
-        body[edit.field] = edit.value
-        return body, (None if edit.field in _BRIEF_FIELDS else working)
-    if isinstance(edit, ListAdd | ListReplace | ListRemove):
-        homes = _narrative(body, working)
-        if isinstance(homes, Refused):
-            return homes
-        plan, started = homes
-        key = edit.list.split(".", 1)[1]
-        current = started.get(key) if isinstance(started.get(key), list) else plan.get(key)
-        items = [str(x) for x in current] if isinstance(current, list) else []
-        keys = [_key(x) for x in items]
-        if isinstance(edit, ListAdd):
-            if _key(edit.value) in keys:
-                return Refused(reason="already_present")
-            items.append(edit.value)
-        else:
-            if _key(edit.old) not in keys:
-                return Refused(reason="unknown_item")
-            at = keys.index(_key(edit.old))
-            if isinstance(edit, ListReplace):
-                items[at] = edit.value
-            else:
-                del items[at]
-        return body, _write_narrative(body, plan, started, key, items)
-    if isinstance(edit, QuestionAdd):
-        problem = question_add_problem(edit.qtype, edit.options)
-        if problem is not None:
-            # Never a question other than the one the researcher was shown and accepted.
-            return Refused(reason=problem)
-        sections = body.get("sections")
-        if sections is not None and not isinstance(sections, list):
-            return Refused(reason="sections_not_a_list")
-        listed: list[Any] = [dict(s) if isinstance(s, dict) else s for s in sections or []]
-        body["sections"] = listed
-        target: dict[str, Any] | None = None
-        if edit.section_id is not None:
-            target = next(
-                (
-                    s
-                    for s in listed
-                    if isinstance(s, dict)
-                    and s.get("id") == edit.section_id
-                    and s.get("type") == "questions"
-                ),
-                None,
-            )
-            if target is None:
-                return Refused(reason="unknown_section")
-        else:
-            target = next(
-                (s for s in listed if isinstance(s, dict) and s.get("type") == "questions"), None
-            )
-            if target is None:
-                target = {
-                    "id": "sec_" + _short_hex(),
-                    "type": "questions",
-                    "title": _NEW_SECTION_TITLE,
-                    "purpose": "",
-                    "questions": [],
-                }
-                listed.append(target)
-        target["questions"] = [*list(target.get("questions") or []), _new_question(edit)]
-        return body, working
-    if isinstance(edit, QuestionEdit | QuestionRemove):
-        found = _find_question(body, edit.question_id)
-        if found is None:
-            return Refused(reason="unknown_question")
-        section, i = found
-        questions = list(section.get("questions") or [])
-        if isinstance(edit, QuestionRemove):
-            del questions[i]
-        else:
-            question = dict(questions[i])
-            if edit.options is not None:
-                # Options replace a selection question's categories, and only with a real
-                # choice; on any other question they would change nothing yet be accepted.
-                if question.get("typ") not in _SELECTION:
-                    return Refused(reason="options_on_non_selection")
-                if len(edit.options) < 2:
-                    return Refused(reason="too_few_options")
-                question["kategorie"] = list(edit.options)
-            if edit.text is not None:
-                question["text"] = edit.text
-            questions[i] = question
-        section["questions"] = questions
-        return body, working
-    if isinstance(edit, SetN):
-        body["n"] = edit.value
-        return body, working
-    return Refused(reason="unknown_edit")

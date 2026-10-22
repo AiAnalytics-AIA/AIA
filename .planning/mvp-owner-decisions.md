@@ -48,6 +48,7 @@ prototype panel or generated prose is not a coded result.
 **MVPQ-02b — OPEN coding-method prerequisite:** the codebook/rules, permitted labels
 and multi-label semantics, denominator/missing-answer treatment, review/acceptance
 and scientific admission. Approval of the feature does not choose those rules.
+Answer-ready form: [`mvp-methodology-packet.md`](mvp-methodology-packet.md) MQ-14.
 Name this methodology-owner prerequisite as MVPQ-02b in the coding chunk and gate;
 do not reopen the settled scope. Deterministic counts are computed from the same
 frozen reviewed per-answer assignment artifact and its version, dataset and codebook;
@@ -61,6 +62,8 @@ The researcher's private return summary remains existing LO7 work; it is not
 removed or made conditional on the new assumptions feature.
 
 ## MVPQ-03 — What defines a segment and what may drill-down expose?: PRODUCT PART ANSWERED, 2026-10-20
+
+Answer-ready form: [`mvp-methodology-packet.md`](mvp-methodology-packet.md) MQ-02, MQ-03 and MQ-11 – MQ-13.
 
 **Product owner answer:** defined segments start from the sampler's stored descriptors
 (the recommendation below); the internal drill-down shows **stored attributes and answers
@@ -100,6 +103,8 @@ coverage note. Preserve same-data analysis retry and frozen numeric outputs. No
 implementation checkbox is completed by this answer.
 
 ## MVPQ-05 — Client-data evidence policy: PRODUCT PART ANSWERED, 2026-10-20
+
+Answer-ready form: [`mvp-methodology-packet.md`](mvp-methodology-packet.md) MQ-16 – MQ-18.
 
 **Product owner answer:** the human-accepted data contract **alone** compiles into the
 dataset's evidence policy: a column the contract names used and not personal is admissible
@@ -187,6 +192,8 @@ wording and K8's paid-source entry semantics; it does not grant arbitrary study 
 
 ## MVPQ-09 — Exact report evidence and source-use checks: PRODUCT PART ANSWERED, 2026-10-20
 
+Answer-ready form: [`mvp-methodology-packet.md`](mvp-methodology-packet.md) MQ-19 and MQ-20.
+
 **Product owner answer:** a **minimal deterministic gate** before a client deliverable can be
 approved, not the full enumerated audit: no source marked "Interní dokument", no drill-down
 content, and no number without an admitted claim. There is **no separate legal-rights review
@@ -211,6 +218,8 @@ their exact version before download (F17). Those are settled. Client PDF stays i
 scope. Blocks RD0/RD1/RD3/RD7's final gate policy, not renderer/component preparation.
 
 ## MVPQ-10 — Replacement weights and support
+
+Answer-ready form: [`mvp-methodology-packet.md`](mvp-methodology-packet.md) MQ-15.
 
 **Methodology owner.** For the settled feature “replace as a new linked run,”
 specify redraw/exclusion, retained-respondent answer reuse, weight recalibration,
@@ -243,7 +252,77 @@ This settles the product behavior; the exact responsive composition is an
 engineering/design choice, not another owner question. The separately open
 client-level extraction exception is still MVPQ-08.
 
+**2026-10-21, the owner's answers Q40-Q43** (on the PM status page, relayed by the coordinator;
+plan `research-lead-workbench` D21, D22, #551). The narrow-screen Lead is a side drawer at
+768-1099 px and a full-screen sheet under 768 px, one element tree (chunks 26a-26f). Q41: the classic
+study frame and `AIA_WEB_RESEARCH_WORKBENCH` are retired (27c). Q42: a card approved after the Lead is
+switched off is refused, 409 `research_lead_disabled`; stored text edits can still be accepted or
+dismissed (27b). Q43: with the Lead off, LO5's typed start commands still work, matched by code
+(27a, 27b). The research run keeps Spuštění's own Start button and also appears as a card in the
+Lead's chat ("i want this to appear in the lead researches chat too"; D15, 26f). Q40: spend is shown
+per researcher (`develop-spend-attribution#7`), delivered by #583 (merged as `e78dfa8b`, 2026-10-21):
+Settings → Studie a rozpočty "Útrata podle výzkumníka", every member for OWNER/ADMIN, a researcher
+their own; a charge booked to the budget lifter, else the one start approver, else the starter,
+else nobody, never a guess (Q67 (a) below; OI-193, OI-194).
+
+**2026-10-21, the owner's answers Q50, Q52, Q54, Q56 and Q58** (on the PM status page, relayed by the
+coordinator; the artifact plans, #560). Q50 (b): in the `-5` drawing only the two state issues are
+fixed: a selection carries over between Objekty and Respondenti, and full screen with Top vztahy
+shows only the selected object's links. The camera snap (whether the 2D view keeps the 3D rotation)
+and the dropped or overlapping labels go to the methodology owner (A. Bahbouh). Q52 (a): Výsledky shows up to five example raw
+open answers per question, internal only, labelled as data and not admitted evidence, never
+exported. Q54 (b): the persona source is chosen on Spuštění and read-only on Vzorek. Q56 (b): the
+report narrative's first draft is written by code, then the Lead proposes tracked changes. Q58 (b):
+**one document**, "The literature should be woven into the body of the report": literature stays
+labelled as external sources (L), never respondent evidence (ADR 0021 unchanged in substance), and
+the separate report with literature is retired for new reports; stored ones stay downloadable. This
+may need a note in ADR 0021 and `contextual_report.py`'s description. Q57 was MVPQ-04 already (no new
+decision). Q51, Q53 and Q55 were answered later (below).
+
+**2026-10-21 14:40 UTC, the owner's answer Q59 (a)** (relayed by the coordinator): "The lead
+researcher can see all the files in a client's knowledge base." Every Lead turn carries an index of
+the study's client's knowledge: every item and source file, with its name, kind, status, folder and
+summary. The Lead opens any file's text by id on demand; code fetches it, scoped to that client, and
+the Lead cites it by locator. Pending proposals are marked unapproved, sources marked "Interní
+dokument" are included and marked, and rejected items are left out. The plan,
+`lead-client-knowledge.md`, comes in its own PR.
+
+**2026-10-21, the owner's answers Q60-Q65** (on the PM status page, relayed by the coordinator).
+Q60 (a), 14:51 UTC, as data owner: client knowledge in the lineage `unclassified-client-knowledge` is
+licensed for `bedrock-eu-primary` only, beside the panel's OI-61 rule (`lead-client-knowledge#LK0`,
+its own fix PR); it ends the refusal of every Lead turn for a client with an approved dataset,
+artifact or finding (OI-142). Q61 (b), against the coordinator's recommendation: folder and label
+names never reach a model; the Lead's index carries item names and kinds only. Q62 (a): a dataset
+the Lead opens is read as its preview only, personal columns masked, never its rows (LK5). Q63 (a),
+15:15: the nine typed start commands in #574 stay as proposed. Q64 (a), 15:17: Claude reviews stand
+in for Codex until its credits reset (17:42 Prague time). Q65 (a), 15:18: brief attachments stay
+Class B, shown for awareness; "i dont want any gates stopping based on the classification, we are
+going for full functionality right now." Q66 (a), 15:20 UTC: **on develop only**, data classes are
+shown and recorded but never block; EU residency and the licence determinations still hold. The
+owner's note, "dont limit the brave search capabilities either": on develop, Brave may receive search
+queries of any class, the one stated exception to EU residency, and for search queries only. In the
+coordinator's session at about 15:22 UTC he said "build the develop-only class-advisory switch,
+including Brave for any class"; the PR is `feature/develop-class-advisory`. Production keeps the
+class rules (ADR 0008, ADR 0032 §4). Q67, who pays after a budget lift, is open. The read round inside a Lead turn (ADR 0042, Proposed) is
+the coordinator's decision within Q59; the experimental Sociomapping draft is named only in CHN1's
+section manifest (the coordinator, #579). Q51, Q53, Q55 and Q67 are answered below.
+
+**2026-10-21, the owner's answers Q51, Q53, Q55 and Q67** (on the PM status page, relayed by the
+coordinator with their stored wording). Q51 "Tracked sets: allow a word on every scale point?", (b),
+14:32: "Keep sets to two end words until 3b3 (Aram's wording rule)"; #559 gives a single scale
+question a word on every point, and a set stays two-ended because the server reads a set's first two
+labels as its ends (`SpecBattery.told_ends`, OI-184). Q53 "Dotazník: who sets the questionnaire
+length limit?", (a), 20:16: "A declared rule per study type, set by Aram on Metodika". Q55 "What
+sections does the MVP draft report have?", (b), 14:33: "Today's report with gaps closed, plus
+RD9/RD10, plus literature when chosen, in today's order", with his note "ensure we are not missing
+anything". Q67 "Per-researcher spend: who pays after a budget lift?", (a), 20:12: "Whoever lifts the
+budget pays for what runs after the lift" (built in #583). Still open on the PM status page: Q68
+(comments on Návrh; the coordinator recommends (b)) and Q69 (the Lead's study notes in the draft
+report; the coordinator recommends (a), left out).
+
 ## MVPQ-12 — Canonical Sociomap questions still requiring sign-off
+
+Answer-ready form: [`mvp-methodology-packet.md`](mvp-methodology-packet.md) MQ-04 – MQ-10; under MVPQ-13 (below) `aia-sociomap-5` settles Q5-Q7, the kernel widths and respondent placement (the packet's MQ-05 record), and only what `-5` leaves open is asked.
 
 **Methodology owner/audit author, coordinated by product owner.** Use the existing
 `sociomap-formula-corrections` §4/§4a decision sheets; do not create competing formulas.
@@ -261,6 +340,19 @@ parameters explicitly. Completed code/fixtures do not close an unresolved method
 decision. Blocks 0b and the affected spec/map/report/client-approval behavior;
 unaffected infrastructure/contracts can proceed. Engineering chooses how to meet
 an approved R seam and measured tolerance, not a different scientific method.
+
+## MVPQ-13 — The MVP ships `aia-sociomap-5`: SETTLED, 2026-10-20
+
+**Product owner answer** (Nigel Blount, 2026-10-20, relayed by the coordinator): the MVP's Sociomap
+is the methodology owner's signed-off `aia-sociomap-5` (#504), not `aia-sociomap-3`. **One canonical
+source:** where `-5` decides a point, its answer is the MVP's; the formula audit written for `-3`
+(`sociomap-formula-corrections`) stands only where `-5` is silent, and the methodology owner is never
+asked to re-confirm his own method. **The hybrid is rejected** (`-3` object maps with `-5` respondent
+and segment maps): `-5` places respondents and finds segments against its own object positions, so
+`-5` respondents on a `-3` map would sit on a map they were not placed on. Runs that pinned `-3` keep
+it and its approval. What `-5` needs before a map reaches a client (the register entry, MQ-01) and
+everything else it leaves open are in [`mvp-methodology-packet.md`](mvp-methodology-packet.md)
+(#510); D-13 and ADR 0038 carry it as the only method of new runs.
 
 ## From the cross-check: X1, X8, X10: SETTLED, 2026-10-20
 

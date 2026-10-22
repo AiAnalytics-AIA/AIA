@@ -186,7 +186,22 @@ LIKE 'idle in%'` — its last query names the call that opened it.
 Markers are registered in the root `pyproject.toml` **and** in each package's
 own `pyproject.toml`, and `--strict-markers` is on, so a typo in a marker name is
 an error rather than a silently unfiltered run. Current markers: `parity`,
-`postgres`, `golden`, `oracle`.
+`postgres`, `golden`, `oracle`, `acceptance`.
+
+**Alembic does not migrate SQLite.** A harness that bootstraps through the migrations, as the
+acceptance tree does (`alembic upgrade head`, then the seed), needs PostgreSQL; the suites'
+`Base.metadata.create_all` is not the operator path (#535).
+
+```bash
+# WRONG -- NotImplementedError: No support for ALTER of constraints in SQLite dialect
+DATABASE_URL=sqlite+pysqlite:///x.db alembic upgrade head
+# RIGHT -- a PostgreSQL database the harness may migrate and seed
+AIA_ACCEPTANCE_DATABASE_URL=postgresql+psycopg://… make test-acceptance
+```
+
+**Two error answers differ by their `request_id`.** Every error envelope carries the request's
+id, so two refusals that are the same answer are never the same bytes. Compare the body without it
+(`tests/acceptance/test_mvp_acceptance.py` `_error`), never the raw response.
 
 **`skipif` is a static skip to `layer_check`.** The rule that rejects
 `@pytest.mark.skip` matches `@pytest.mark.skipif` too, on purpose: a condition
@@ -286,6 +301,18 @@ schema first:
 
 ```bash
 psql "$TEST_DB" -c 'DROP SCHEMA public CASCADE; CREATE SCHEMA public;'
+```
+
+**The `.env` that `make setup` writes fails part of the API suite locally.** `make setup` copies
+`.env.example` to `.env` (`Makefile:31`), and the API's settings read `.env`
+(`apps/api/src/aia_api/config.py:39 @ bfe6d15b`). With it in place about 23 tests in
+`apps/api/tests/test_research_api.py` fail, for example
+`test_research_artifacts_are_read_only_through_the_run_that_produced_them`
+(`assert None == 'SYNTHETIC_FIXTURE'`); the same tests pass on a clean `develop` worktree, which has
+no `.env`, and in CI (#612). Move `.env` aside to run the API suite:
+
+```bash
+mv .env .env.local-aside && make test; mv .env.local-aside .env
 ```
 
 ## Pydantic
@@ -524,6 +551,22 @@ table.** After a migration that adds columns, the workbench's API fails with
 `python tools/ui_workbench/workbench.py up --fresh`, then `make ui-fixtures` again
 (client-workspace C5, #380).
 
+**A `select` of more than ten columns types its rows as a variadic tuple.** SQLAlchemy's stubs
+type `Row` positionally only up to ten columns; past that, unpacking a row in the `for` fails
+`mypy --strict` with "Variadic tuple unpacking requires a star target". Read such rows by column
+instead (`researcher_spend_repository.py:150-165 @ bfe6d15b`, eleven columns, #583):
+
+```python
+# WRONG -- 11 columns: mypy --strict refuses the unpacking
+for (reservation_id, status, amount, settled, charged_to, ...) in rows: ...
+
+# RIGHT -- one typed read per column, through the row's mapping
+for row in rows:
+    m = row._mapping
+    status = str(m[BudgetReservationRow.status])
+    in_ledger = bool(m["in_ledger"])   # a labelled expression by its label
+```
+
 ## Alembic
 
 Three checks, and each catches something the others do not:
@@ -581,7 +624,27 @@ op.create_check_constraint(op.f(_NAME), "approval_decisions",
 
 A CHECK on an append-only table also needs a `downgrade` that refuses while a row of the new
 kind exists, rather than deleting from the ledger or re-adding a constraint those rows break.
-`alembic check` after the upgrade is the proof that model and migration agree.
+`alembic check` after the upgrade proves the columns agree, not the constraint (below).
+
+**Autogenerate does not see a CHECK constraint, and neither does `alembic check`.** After the
+ledger's `CheckConstraint` changed in `tables.py`, `make migration m="…"` generated an empty
+`upgrade()` with `pass`, and `alembic check` said "No new upgrade operations detected" both
+before and after the real migration (#534, migration `5054d4d610c2`). A CHECK change is a
+hand-written migration.
+
+```python
+# WRONG -- trust the generated revision, or alembic check, for a CHECK change
+def upgrade() -> None:
+    pass
+
+# RIGHT -- drop and create it by hand, the values listed literally as they are when it runs
+op.drop_constraint(op.f(_NAME), "approval_decisions", type_="check")
+op.create_check_constraint(op.f(_NAME), "approval_decisions", "subject_type in ('gate', …)")
+```
+
+Hold the migration's literal list to the model's in a test
+(`test_approval_ledger.py::test_the_migration_names_the_same_subjects_in_the_same_order`), and on
+PostgreSQL read `pg_get_constraintdef` after upgrading.
 
 **Two PRs that each add a revision on the same parent are green alone and red together.** A PR's
 CI runs on its merge with the base as it was then, so neither run sees the other's revision; the
@@ -812,6 +875,20 @@ sys.modules[spec.name] = module          # dataclasses resolve their module by n
 spec.loader.exec_module(module)
 ```
 
+**A scripted model route still needs a price.** A "free" scripted route with zero prices is refused
+by `StepModelCaller`: "a metered request needs a positive reservation". Give the route a nominal
+price that sizes the hold, and have the double report 0 tokens, so the call settles at 0. The study
+also needs a budget above the hold, or the step waits `AWAITING_BUDGET` (`aia_executors/workbench.py`,
+research-lead-workbench 12a, #578).
+
+```python
+# WRONG: no reservation can be taken, so every request is refused before it is sent
+_HOLD_USD_PER_MTOK = "0"
+# RIGHT (workbench.py): a nominal price sizes the hold; the scripted wire reports 0 tokens,
+# so every call settles at exactly zero -- and the study's budget is above the hold
+_HOLD_USD_PER_MTOK: Final = "0.01"
+```
+
 ## FastAPI
 
 **A passing unit test does not prove the process boots.** `TestClient` does not
@@ -849,6 +926,27 @@ SettingsDep = Annotated[Settings, Depends(get_settings)]
 # RIGHT -- the validated instance the application was built with
 SettingsDep = Annotated[Settings, Depends(get_app_settings)]   # request.app.state.settings
 ```
+
+**A `yield` dependency's exit runs after the response unless its scope is `"function"`.** Since
+FastAPI 0.118.0, the code after `yield` in a dependency with the default scope (`"request"`) runs
+after the response has been sent. `get_session` commits there, so a client got its 201 before the
+row was committed: the next request (`POST /session` after `POST /members`) inserted the user again
+and failed with UniqueViolation, and a commit that failed was rolled back after a 2xx (OI-162).
+`TestClient` hides this, because it returns only after the whole ASGI cycle; only a real server
+shows it (`apps/api/tests/test_commit_before_response.py`).
+
+```python
+# WRONG -- commits after the client already has its 201
+SessionDep = Annotated[Session, Depends(get_session)]
+
+# RIGHT -- commits when the endpoint returns, before the response; a failed commit is the response
+SessionDep = Annotated[Session, Depends(get_session, scope="function")]   # FastAPI >= 0.121.1
+```
+
+Take the session only through `SessionDep`. The dependency cache is keyed by scope, so a bare
+`Depends(get_session)` would be a second session in the same request;
+`test_every_route_takes_its_session_in_function_scope` fails one. Nothing may read the session from
+a streamed body or a background task, because it is closed by then: open a session of your own there.
 
 **An error raised after a write rolls the write back, audit rows included.**
 `get_session` is a `yield` dependency that commits on success and rolls back on
@@ -1478,6 +1576,19 @@ await findByText("Přečteno: 2 části, 1\u00a0200 znaků");
 await findByText("Přečteno: 2 části, 1 200 znaků");
 ```
 
+Where the U+00A0 itself is what the test checks (a Stepper's bounds, `50–5 000`), read the
+element's `textContent`, or pass `{ normalizer: (s) => s }` (#532):
+
+```ts
+// RIGHT -- the exact characters the page renders
+expect(el.textContent).toBe("50–5\u00a0000 · ↑ ↓ o krok, Shift ×10");
+```
+
+**React 19 runs a child's `autoFocus` before a parent's layout effect calls `showModal()`**, and
+`showModal()` then focuses the first focusable element, so the field marked `autoFocus` loses focus.
+Focus the intended element right after `showModal()` instead (#532, `SpendDialog`: the safe choice
+takes the focus after `showModal`).
+
 **jsdom has no `URL.createObjectURL`, and a clicked `<a download>` goes nowhere.**
 A download that needs the bearer token cannot be a plain link: the app fetches the
 bytes (`workspace.attachment` in `src/lib/api.ts`) and `saveBlob`
@@ -1722,6 +1833,60 @@ submitting it, so the design is a stored revision").
 await research.submitDesign(studyId, store.get().project, stage, store.get().revision!);
 // RIGHT: a completed (or unsaved) copy is saved first; the revision named is exactly what is sent
 await submitWorkingDesign(store, studyId, stage);
+```
+
+**The web's `tsconfig` targets ES2017, so a BigInt literal does not compile.** A 64-bit hash
+(FNV-1a 64 with MurmurHash3's finaliser, `src/research/item-ids.ts`, WCE1) is done in 16-bit limbs
+over a `[hi, lo]` pair of 32-bit halves (#543).
+
+```ts
+// WRONG -- "BigInt literals are not available when targeting lower than ES2020"
+const MASK = (1n << 64n) - 1n;
+// RIGHT -- 64-bit arithmetic in limbs
+[hi, lo] = mul64(hi, lo, 0x00000100, 0x000001b3);
+```
+
+**Callers waiting behind one in-flight promise all resume on the same resolution.** The research
+store's `flush` let every waiter go at once, each building its save from the same `state.revision`,
+so the second was refused `stale_revision` (#556, OI-182; `apps/web/src/research/store.ts`). Loop
+until nothing is in flight, read the state again, and set `inflight` synchronously before the first
+`await` of the new save, so the next waiter sees it and waits.
+
+```ts
+// WRONG: every waiter resumes together and sends the same base
+if (this.inflight) await this.inflight;
+const body = { base_revision: this.state.revision, ... };
+// RIGHT: wait out every save, re-read, and claim the slot before awaiting
+while (this.inflight) await this.inflight;
+const body = { base_revision: this.state.revision, ... };   // read after the wait
+this.inflight = this.save(body);                             // set before the first await
+```
+
+**Focus an element after the render that mounts it, never on a frame guess.** `KnowledgeOrganizers`'
+rename called `setRenaming(false)` and then `requestAnimationFrame(() => row.current?.focus())`;
+under jsdom (and with no guarantee in a browser) the frame can run before React commits, find
+`row.current === null` and never try again (#596, OI-189). Mark that a refocus is owed and focus in
+an effect keyed on the state that mounts the element. A test that runs every
+`requestAnimationFrame` callback at once pins the losing order.
+
+```tsx
+// WRONG: the frame may run before the row exists
+setRenaming(false); requestAnimationFrame(() => row.current?.focus());
+// RIGHT: focus after the commit that mounted it
+owed.current = true; setRenaming(false);
+useEffect(() => { if (!renaming && owed.current) { owed.current = false; row.current?.focus(); } }, [renaming]);
+```
+
+**Under Tailwind 4, an unlayered element rule beats every utility class, whatever the specificity.**
+Utilities live in `@layer utilities`, and any unlayered rule outranks every layer, so
+`.wb button { color: inherit }` overrode a screen's `text-…` utility on its buttons (#591). Put base
+element rules in `@layer base`.
+
+```css
+/* WRONG: unlayered, so it beats text-accent on every button inside .wb */
+.wb button { color: inherit; }
+/* RIGHT */
+@layer base { .wb button { color: inherit; } }
 ```
 
 ## The 18.6.6 unit, run outside its container

@@ -3,7 +3,7 @@
 A research run's eight analysis modules are drafted by a model and decided by the
 evidence gate. Everything is real except the network: the database, the lease and
 heartbeat, the reservations, the ledger, the artifact store, the scope, the gateway and
-its Bedrock adapter. ``ScriptedModels`` (``scripted_bedrock.py``) is an ``HttpTransport``
+its Bedrock adapter. ``RecordedModels`` (``aia_executors.recorded_models``) is an ``HttpTransport``
 standing in for Bedrock Converse: it answers each analysis turn with a draft built from the
 evidence the turn itself sends (or with the recorded failure a test asks for), and each
 respondent block as ``test_ai_fieldwork.py`` does.
@@ -71,6 +71,7 @@ from aia_core.domain.deep_research.workflow import deep_research_steps
 from aia_core.domain.evidence import AdmittedClaim, ClaimSurface, ViolationCode
 from aia_core.domain.fieldwork import FieldworkSource
 from aia_core.domain.pipeline import ProjectType
+from aia_core.domain.report.document_model import DOCUMENT_MODEL_CONTRACT, read_document_payload
 from aia_core.domain.report.model import Callout
 from aia_core.domain.report.review import REVIEW_STAMP_CONTRACT, ReviewMark, ReviewState
 from aia_core.domain.residency import DataClass
@@ -111,13 +112,17 @@ from aia_executors.analysis import (
     analysis_registry,
 )
 from aia_executors.deep_research import DeepResearchRuntime
+from aia_executors.recorded_models import PROFILE, RecordedModels, RecordedSigner, runtime_env
 from aia_executors.registry import registry_for
-from aia_executors.report import REPORT_ARTIFACT_TYPE, report_registry
+from aia_executors.report import (
+    REPORT_ARTIFACT_TYPE,
+    REPORT_DOCUMENT_ARTIFACT_TYPE,
+    report_registry,
+)
 from aia_executors.workbench import workbench_registry_for
 from aia_worker.executor import ShutdownRequested, StepExecutor
 from aia_worker.settings import WorkerSettings
 from aia_worker.worker import Worker
-from scripted_bedrock import PROFILE, ScriptedModels, Signer, runtime_env
 from sqlalchemy import select
 
 QUESTIONS = ("Co lidé ráno pijí?", "Jak často pijí kávu?")
@@ -164,7 +169,7 @@ def _settings(world: Any, **overrides: str) -> AIRuntimeSettings:
     return settings
 
 
-#: One analysis call as ScriptedModels reports it, at the test prices of ``runtime_env``.
+#: One analysis call as RecordedModels reports it, at the test prices of ``runtime_env``.
 ANALYSIS_CALL_USD = (2400 * 3 + 380 * 15) / 1_000_000
 
 
@@ -222,7 +227,7 @@ def run_with(
     world: Any, database_url: str, store: InMemoryArtifactStore, build: BuildIdentity
 ) -> Callable[..., Worker]:
     def make(
-        transport: ScriptedModels | None,
+        transport: RecordedModels | None,
         *,
         env: dict[str, str] | None = None,
         config: AnalysisConfig | None = None,
@@ -233,7 +238,7 @@ def run_with(
         settings = AIRuntimeSettings.from_env(env if env is not None else _env(world))
         assert settings is not None
         gateway = (
-            build_gateway(settings, transport=transport, signer=Signer())
+            build_gateway(settings, transport=transport, signer=RecordedSigner())
             if transport is not None
             else None
         )
@@ -246,7 +251,7 @@ def run_with(
                 store=store,
                 build=build,
                 ai_runtime=build_ai_fieldwork(
-                    settings, build=build, transport=transport, signer=Signer()
+                    settings, build=build, transport=transport, signer=RecordedSigner()
                 ),
                 deep_research=deep_research,
             )
@@ -316,6 +321,11 @@ def _record(world: Any, store: InMemoryArtifactStore, artifact_id: str) -> Any:
         return parse_module_artifact(repo.read_json(artifact_id))
 
 
+def _payload(world: Any, store: InMemoryArtifactStore, artifact_id: str) -> Any:
+    with world.sessions() as session:
+        return research_artifacts(session, world.lead_scope(session), store).read_json(artifact_id)
+
+
 def _ledger(world: Any, run_id: str) -> list[Any]:
     with world.sessions() as session:
         return AIUsageRepository(session, world.lead_scope(session)).events(run_id=run_id)
@@ -372,7 +382,7 @@ def test_native_research_start_and_worker_complete_the_composed_analysis_graph(
     run_id = started.run_id
     assert len(started.run["steps"]) == 14
     assert sum(step["kind"] == ANALYSIS_STEP_KIND for step in started.run["steps"]) == 8
-    models = ScriptedModels()
+    models = RecordedModels()
     assert _drain(run_with(models)) == ["completed"] * 14, _unfinished(world, run_id)
     assert _reconstruct(world, store, run_id).complete
     report_step = next(s for s in _run(world, run_id)["steps"] if s["node_key"] == "report")
@@ -409,7 +419,45 @@ def test_native_research_start_and_worker_complete_the_composed_analysis_graph(
         < body.index("Výsledky jednotlivých otázek")
     )
     assert "smyšlení respondenti" in body
-    assert report.metadata["report_contract"] == "aia-internal-report-10"
+    assert report.metadata["report_contract"] == "aia-internal-report-13"
+    # The methodology chapter states the rules the run pinned (artifact-chain CHN9).
+    assert "Pravidlo podpory aia-support-1" in body and "Agregace: metodika" in body
+    # The document the DOCX was rendered from, beside it (report-delivery RD5a).
+    stored = report_step["output"]["document"]
+    with world.sessions() as session:
+        repo = research_artifacts(session, world.lead_scope(session), store)
+        model = repo.get(stored["artifact_id"])
+        payload = read_document_payload(repo.read(stored["artifact_id"]))
+        model_dependencies = repo.dependencies(stored["artifact_id"])
+    assert model.artifact_type == REPORT_DOCUMENT_ARTIFACT_TYPE
+    assert model.sha256 == stored["sha256"]
+    assert model.input_fingerprint == report.input_fingerprint
+    assert model.metadata["docx_artifact_id"] == report_id
+    assert model.metadata["docx_sha256"] == report.sha256
+    assert [d.artifact_id for d in model_dependencies] == [report_id]
+    section_ids = [section["id"] for section in payload["sections"]]
+    assert (
+        section_ids[0] == "intro" and "methodology" in section_ids and "ch-questions" in section_ids
+    )
+    assert section_ids[-1] == "app-audit"
+    titles = [section["title"] for section in payload["sections"]]
+    assert "Výsledky jednotlivých otázek" in titles
+    cited = {ref for s in payload["sections"] for ref in s["refs"]}
+    assert cited and cited == set(payload["ledger"]["refs"])
+    # Every section names its sources, stored with the document (artifact-chain CHN1): the map
+    # chapters the run's Sociomap, the questions the aggregate, who answered the dataset.
+    assert payload["contract"] == DOCUMENT_MODEL_CONTRACT
+    sources = {s["id"]: s["sources"] for s in payload["sections"]}
+    assert all(sources.values()), [k for k, v in sources.items() if not v]
+    named = {k: {x.get("artifact_type") for x in v} for k, v in sources.items()}
+    assert "research_aggregate" in named["ch-questions"]
+    assert "research_fieldwork_dataset" in named["ch-method"]
+    assert all("research_sociomap" in v for k, v in named.items() if k.startswith("ch-native-map"))
+    assert [k for k, v in sources.items() if any(x["kind"] == "fixed" for x in v)] == [
+        "methodology"
+    ]
+    assert payload["unread"] == []
+    assert "Zdroje · Výsledky jednotlivých otázek" in body
 
 
 @pytest.mark.parametrize(
@@ -481,7 +529,7 @@ def test_native_ai_study_connects_a_populated_map_to_admitted_report_inputs(
     record_property("design_revision_id", revision.revision_id)
     record_property("design_content_sha256", revision.content_sha256)
     record_property("fixture_origin", "SYNTHETIC_AI_FICTIONAL_AND_RECORDED_WEB")
-    models = ScriptedModels()
+    models = RecordedModels()
     agents = deep_research_fixture.RecordedAgents(deep_research_fixture.ANSWERS)
     deep_runtime = (
         deep_research_fixture.recorded(
@@ -856,7 +904,7 @@ def test_the_report_step_stores_its_docx_rendered_as_pdf_beside_it(
     composition, and depends on it."""
     run_id = _start_report_run(world)
     pdf = _FakePdf()
-    assert _drain(run_with(ScriptedModels(), pdf=pdf)) == ["completed"] * 14
+    assert _drain(run_with(RecordedModels(), pdf=pdf)) == ["completed"] * 14
     output = next(s for s in _run(world, run_id)["steps"] if s["node_key"] == "report")["output"]
     assert output["pdf"]["state"] == "READY" and pdf.calls == 1
     with world.sessions() as session:
@@ -904,7 +952,7 @@ def test_the_steps_pdf_renders_the_stored_docx_when_the_step_reuses_it(
     monkeypatch.setattr(DocxRenderer, "render", renders_differently)
     run_id = _start_report_run(world)
     pdf = _ShutdownOnce()
-    assert "released" in _drain(run_with(ScriptedModels(), pdf=pdf))
+    assert "released" in _drain(run_with(RecordedModels(), pdf=pdf))
     report = next(s for s in _run(world, run_id)["steps"] if s["node_key"] == "report")
     output = report["output"]
     assert report["status"] is StepRunStatus.SUCCEEDED and output["reused"] is True
@@ -914,13 +962,29 @@ def test_the_steps_pdf_renders_the_stored_docx_when_the_step_reuses_it(
         stored_pdf = repo.read(output["pdf"]["artifact_id"])
     assert len(rendered) == 2 and docx == rendered[0] != rendered[1]
     assert stored_pdf == b"%PDF-1.7 rendering of " + hashlib.sha256(docx).hexdigest().encode()
+    # Its document model was stored once, beside the stored DOCX, and found again (RD5a): the
+    # ids every later edit names do not move when the step runs again.
+    with world.sessions() as session:
+        repo = research_artifacts(session, world.lead_scope(session), store)
+        stored_docx = repo.get(output["artifact_id"])
+        models = [
+            a
+            for a in repo.list_for_stage(
+                project_id=stored_docx.project_id,
+                revision=stored_docx.revision,
+                stage_type=stored_docx.stage_type,
+            )
+            if a.artifact_type == REPORT_DOCUMENT_ARTIFACT_TYPE
+        ]
+    assert [m.artifact_id for m in models] == [output["document"]["artifact_id"]]
+    assert models[0].metadata["docx_artifact_id"] == output["artifact_id"]
 
 
 def test_a_pdf_that_cannot_be_made_is_said_so_and_the_report_still_stands(
     world: Any, store: InMemoryArtifactStore, run_with: Callable[..., Worker]
 ) -> None:
     run_id = _start_report_run(world)
-    assert _drain(run_with(ScriptedModels(), pdf=_FakePdf(fail=True))) == ["completed"] * 14
+    assert _drain(run_with(RecordedModels(), pdf=_FakePdf(fail=True))) == ["completed"] * 14
     step = next(s for s in _run(world, run_id)["steps"] if s["node_key"] == "report")
     assert step["status"] is StepRunStatus.SUCCEEDED
     assert step["output"]["artifact_id"]
@@ -935,7 +999,7 @@ def test_without_the_switch_the_report_step_makes_no_pdf(
     world: Any, store: InMemoryArtifactStore, run_with: Callable[..., Worker]
 ) -> None:
     run_id = _start_report_run(world)
-    assert _drain(run_with(ScriptedModels())) == ["completed"] * 14
+    assert _drain(run_with(RecordedModels())) == ["completed"] * 14
     step = next(s for s in _run(world, run_id)["steps"] if s["node_key"] == "report")
     assert "pdf" not in step["output"]
 
@@ -954,7 +1018,7 @@ def test_report_step_finishes_with_a_reason_when_an_analysis_module_is_blocked(
             analysis_enabled=True,
         )
         session.commit()
-    endings = _drain(run_with(ScriptedModels(invent={"objects"})))
+    endings = _drain(run_with(RecordedModels(invent={"objects"})))
     assert endings[-1] == "failed"
     run = _run(world, started.run_id)
     assert run["status"] is WorkflowRunStatus.FAILED
@@ -980,7 +1044,7 @@ def test_cancellation_during_report_render_does_not_store_a_document(
             analysis_enabled=True,
         )
         session.commit()
-    worker = run_with(ScriptedModels())
+    worker = run_with(RecordedModels())
     assert [worker.run_once().ending for _ in range(13)] == ["completed"] * 13
     original_render = DocxRenderer.render
 
@@ -1004,7 +1068,7 @@ def test_cancellation_during_report_render_does_not_store_a_document(
 def test_a_completed_run_is_interpreted_module_by_module_and_reads_back_by_readmission(
     world: Any, store: InMemoryArtifactStore, run_with: Callable[..., Worker]
 ) -> None:
-    models = ScriptedModels()
+    models = RecordedModels()
     run_id = _start(world)
     assert _drain(run_with(models)) == ["completed"] * 13, _unfinished(world, run_id)
     run = _run(world, run_id)
@@ -1101,7 +1165,7 @@ def test_changed_research_questions_run_every_module_again_over_the_reused_aggre
     """Only the research questions change: the questionnaire compiles to the same
     specification, so fieldwork and the aggregate are reused -- and every module, whose
     fingerprint holds the questions, is asked again."""
-    models = ScriptedModels()
+    models = RecordedModels()
     first = _start(world)
     _drain(run_with(models))
     edited = {**DESIGN, "research_plan": {"research_questions": ["Proč lidé pijí čaj?"]}}
@@ -1128,7 +1192,7 @@ def test_changed_research_questions_run_every_module_again_over_the_reused_aggre
 def test_a_second_run_over_the_same_evidence_reuses_every_outcome_and_sends_nothing(
     world: Any, store: InMemoryArtifactStore, run_with: Callable[..., Worker]
 ) -> None:
-    models = ScriptedModels()
+    models = RecordedModels()
     first = _start(world)
     _drain(run_with(models))
     second = _start(world)  # the same Design Revision: every upstream artifact is reused
@@ -1147,7 +1211,7 @@ def test_a_design_edited_and_edited_back_reuses_its_outcomes_and_reads_them_back
 ) -> None:
     """The compile step reuses the first revision's specification for the third, which
     has the same content; the outcomes computed over it are the third run's too."""
-    models = ScriptedModels()
+    models = RecordedModels()
     first = _start(world)
     _drain(run_with(models))
     with world.sessions() as session:
@@ -1171,7 +1235,7 @@ def test_a_design_edited_and_edited_back_reuses_its_outcomes_and_reads_them_back
 def test_a_module_whose_drafts_cite_nothing_is_blocked_after_three_calls_and_strands_no_other(
     world: Any, store: InMemoryArtifactStore, run_with: Callable[..., Worker]
 ) -> None:
-    models = ScriptedModels(invent={"objects"})
+    models = RecordedModels(invent={"objects"})
     run_id = _start(world)
     assert _drain(run_with(models)) == ["completed"] * 13, _unfinished(world, run_id)
     assert _run(world, run_id)["status"] is WorkflowRunStatus.COMPLETED
@@ -1226,7 +1290,7 @@ def test_retrying_failed_modules_asks_only_them_over_the_same_data(
     """The live failure: data collected, a module blocked after three paid turns, the report
     refused. A retry collects nothing, reuses every completed module, asks the blocked one
     again in a new round, and the report composes once all eight complete."""
-    models = ScriptedModels(invent={"objects"})
+    models = RecordedModels(invent={"objects"})
     worker = run_with(models)
     first = _started_with_analysis(world)
     _drain(worker)
@@ -1262,10 +1326,145 @@ def test_retrying_failed_modules_asks_only_them_over_the_same_data(
     assert nothing.value.reason == "nothing_to_retry"
 
 
+def test_a_retry_of_a_run_an_earlier_compiler_compiled_reuses_its_specification(
+    world: Any,
+    store: InMemoryArtifactStore,
+    run_with: Callable[..., Worker],
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """input-interactions 3b, review of #538: a run compiled before compile-2 is retried over
+    its own stored specification, by id and SHA-256, never compiled again. Compiled again, its
+    specification's bytes would move every completed module's reuse key: each would be asked
+    (paid) again while the ceiling counted it reused."""
+    from aia_core.application import research as research_app
+    from aia_core.domain import research_design
+
+    models = RecordedModels(invent={"objects"})
+    worker = run_with(models)
+    monkeypatch.setattr(research_design, "COMPILER_VERSION", "aia-research-compile-1")
+    first = _started_with_analysis(world)
+    _drain(worker)
+    monkeypatch.undo()
+    assert research_design.COMPILER_VERSION == "aia-research-compile-3"
+    original = _run(world, first)
+    compiled = next(s for s in original["steps"] if s["node_key"] == "compile")["output"]
+    spec_payload = _payload(world, store, compiled["artifact_id"])
+    assert spec_payload["specification"]["compiler_version"] == "aia-research-compile-1"
+    asked_before = list(models.asked)
+
+    ceilings: list[int] = []
+    real = research_app.ResearchRuns.retry_analysis
+
+    def spy(self: Any, run_id: str, *, frozen_dataset: FrozenDataset, **kw: Any) -> Any:
+        ceilings.append(frozen_dataset.modules_asked)
+        return real(self, run_id, frozen_dataset=frozen_dataset, **kw)
+
+    monkeypatch.setattr(research_app.ResearchRuns, "retry_analysis", spy)
+    models.invent.clear()
+    retry = _retry_analysis(world, store, first)
+    _drain(worker)
+
+    second = _run(world, retry.run_id)
+    assert second["status"] is WorkflowRunStatus.COMPLETED, _unfinished(world, retry.run_id)
+    steps = {s["node_key"]: s for s in second["steps"]}
+    assert steps["compile"]["output"]["artifact_id"] == compiled["artifact_id"]
+    assert steps["compile"]["output"]["sha256"] == compiled["sha256"]
+    assert steps["compile"]["output"]["frozen_from_run"] == first
+    # Zero new calls for the completed modules; the ceiling counted exactly what was asked.
+    new = models.asked[len(asked_before) :]
+    assert new == [("objects", 4)]
+    assert ceilings == [len({m for m, _ in new})] == [1]
+    reused = [m for m, step in _analysis(second).items() if step["output"]["reused"]]
+    assert sorted(reused) == sorted(m for m in MODULES if m != "objects")
+
+
+def _stored_spec(world: Any, store: InMemoryArtifactStore, like: str, payload: Any) -> Any:
+    """``payload`` stored as a specification artifact of ``like``'s project and revision."""
+    with world.sessions() as session:
+        repo = research_artifacts(session, world.lead_scope(session), store)
+        model = repo.get(like)
+        artifact, _ = repo.put_json(
+            payload=payload,
+            project_id=model.project_id,
+            revision=model.revision,
+            stage_type=model.stage_type,
+            artifact_type=model.artifact_type,
+            input_fingerprint=f"test:{uuid.uuid4().hex}",
+            reuse=False,
+        )
+        session.commit()
+    return artifact
+
+
+@pytest.mark.parametrize(
+    ("shape", "reason"),
+    [
+        ("other_bytes", "frozen_specification_mismatch"),
+        ("no_specification", "frozen_specification_corrupt"),
+        ("not_a_specification", "frozen_specification_corrupt"),
+        ("unknown_revision", "frozen_specification_mismatch"),
+    ],
+)
+def test_a_retry_whose_specification_does_not_read_is_refused_by_name(
+    world: Any,
+    store: InMemoryArtifactStore,
+    run_with: Callable[..., Worker],
+    shape: str,
+    reason: str,
+) -> None:
+    """Never compiled again, never an unclassified crash: a named specification with other
+    bytes, without one, that does not validate, or of a revision that is not here, fails the
+    retry's compile step by name, before any module is asked."""
+    models = RecordedModels(invent={"objects"})
+    worker = run_with(models)
+    first = _started_with_analysis(world)
+    _drain(worker)
+    original = _run(world, first)
+    dataset = next(s for s in original["steps"] if s["node_key"] == "run")["output"]
+    compiled = next(s for s in original["steps"] if s["node_key"] == "compile")["output"]
+    named_id, named_sha = compiled["artifact_id"], compiled["sha256"]
+    stored = _payload(world, store, compiled["artifact_id"])
+    if shape == "other_bytes":
+        named_sha = "0" * 64
+    else:
+        payload = {
+            "no_specification": {k: v for k, v in stored.items() if k != "specification"},
+            "not_a_specification": {**stored, "specification": {"title": "jen název"}},
+            "unknown_revision": {**stored, "design_revision_id": "DRV-not-here"},
+        }[shape]
+        artifact = _stored_spec(world, store, compiled["artifact_id"], payload)
+        named_id, named_sha = artifact.artifact_id, artifact.sha256
+    with world.sessions() as session:
+        started = ResearchRuns(session, world.lead_scope(session)).start(
+            design_revision_id=original["metadata"]["design_revision_id"],
+            fieldwork_source=FieldworkSource.SYNTHETIC_FIXTURE,
+            analysis_enabled=True,
+            retry_of=first,
+            frozen_dataset=FrozenDataset(
+                run_id=first,
+                artifact_id=dataset["artifact_id"],
+                sha256=dataset["sha256"],
+                analysis_round=1,
+                retried=("objects",),
+                modules_asked=1,
+                specification_artifact_id=named_id,
+                specification_sha256=named_sha,
+            ),
+        )
+        session.commit()
+    _drain(worker)
+    steps = {s["node_key"]: s for s in _run(world, started.run_id)["steps"]}
+    assert steps["compile"]["status"] is StepRunStatus.FAILED
+    last = steps["compile"]["attempts"][-1]
+    assert last["error"]["reason"] == reason
+    assert last["failure_class"] is FailureClass.SCHEMA_VIOLATION
+    assert not any(s["attempts"] for s in _analysis(_run(world, started.run_id)).values())
+
+
 def test_a_retry_round_asks_again_what_the_model_refused_and_replays_nothing_old(
     world: Any, store: InMemoryArtifactStore, run_with: Callable[..., Worker]
 ) -> None:
-    models = ScriptedModels(invent={"objects"})
+    models = RecordedModels(invent={"objects"})
     worker = run_with(models)
     first = _started_with_analysis(world)
     _drain(worker)
@@ -1294,7 +1493,7 @@ def test_a_run_stored_under_the_previous_harness_can_still_be_repaired(
         return today(**kw).model_copy(update={"harness_version": "aia-analysis-harness-1"})
 
     monkeypatch.setattr(analysis_results, "harness_summary", earlier)
-    models = ScriptedModels(invent={"objects"})
+    models = RecordedModels(invent={"objects"})
     worker = run_with(models)
     first = _started_with_analysis(world)
     _drain(worker)
@@ -1337,7 +1536,7 @@ def test_a_run_whose_every_module_an_earlier_harness_completed_is_repaired_over_
         return today(**kw).model_copy(update={"harness_version": "aia-analysis-harness-1"})
 
     monkeypatch.setattr(analysis_results, "harness_summary", earlier)
-    models = ScriptedModels()
+    models = RecordedModels()
     worker = run_with(models)
     first = _started_with_analysis(world)
     _drain(worker)
@@ -1370,7 +1569,7 @@ def test_a_run_whose_every_module_an_earlier_harness_completed_is_repaired_over_
 def test_a_run_cancelled_after_fieldwork_has_its_cancelled_modules_asked_over_its_data(
     world: Any, store: InMemoryArtifactStore, run_with: Callable[..., Worker]
 ) -> None:
-    models = ScriptedModels()
+    models = RecordedModels()
     worker = run_with(models)
     first = _started_with_analysis(world)
     while not any(
@@ -1398,7 +1597,7 @@ def test_a_run_cancelled_after_fieldwork_has_its_cancelled_modules_asked_over_it
 def test_a_retry_whose_dataset_does_not_match_its_bytes_is_refused_not_collected_again(
     world: Any, store: InMemoryArtifactStore, run_with: Callable[..., Worker]
 ) -> None:
-    models = ScriptedModels(invent={"objects"})
+    models = RecordedModels(invent={"objects"})
     worker = run_with(models)
     first = _started_with_analysis(world)
     _drain(worker)
@@ -1435,7 +1634,7 @@ def test_a_retry_refuses_a_run_that_has_not_finished_or_ran_no_analysis(
         _retry_analysis(world, store, first)
     assert early.value.reason == "run_not_finished"
     plain = _start(world)
-    _drain(run_with(ScriptedModels()))
+    _drain(run_with(RecordedModels()))
     with pytest.raises(AnalysisNotRetryable) as none:
         _retry_analysis(world, store, plain)
     assert none.value.reason == "analysis_not_in_run"
@@ -1444,7 +1643,7 @@ def test_a_retry_refuses_a_run_that_has_not_finished_or_ran_no_analysis(
 def test_an_answer_off_the_output_contract_is_one_counted_turn_that_the_next_repairs(
     world: Any, store: InMemoryArtifactStore, run_with: Callable[..., Worker]
 ) -> None:
-    models = ScriptedModels(off_contract={("executive", 1)})
+    models = RecordedModels(off_contract={("executive", 1)})
     run_id = _start(world)
     assert _drain(run_with(models)) == ["completed"] * 13, _unfinished(world, run_id)
     assert models.calls("executive") == [1, 2], "no schema repair hidden inside the turn"
@@ -1465,7 +1664,7 @@ def test_an_answer_off_the_output_contract_is_one_counted_turn_that_the_next_rep
 def test_a_module_off_the_contract_every_turn_is_blocked_naming_the_field_and_replays_free(
     world: Any, store: InMemoryArtifactStore, run_with: Callable[..., Worker]
 ) -> None:
-    models = ScriptedModels(off_contract={("executive", n) for n in (1, 2, 3)})
+    models = RecordedModels(off_contract={("executive", n) for n in (1, 2, 3)})
     run_id = _start(world)
     assert _drain(run_with(models)) == ["completed"] * 13, _unfinished(world, run_id)
     assert models.calls("executive") == [1, 2, 3]
@@ -1486,7 +1685,7 @@ def test_a_module_off_the_contract_every_turn_is_blocked_naming_the_field_and_re
 def test_the_research_questions_module_without_a_question_is_blocked_while_the_rest_run(
     world: Any, store: InMemoryArtifactStore, run_with: Callable[..., Worker]
 ) -> None:
-    models = ScriptedModels()
+    models = RecordedModels()
     run_id = _start(world, {k: v for k, v in DESIGN.items() if k != "research_plan"})
     assert _drain(run_with(models)) == ["completed"] * 13, _unfinished(world, run_id)
     output = _analysis(_run(world, run_id))["research_questions"]["output"]
@@ -1544,7 +1743,7 @@ def test_a_real_clients_design_is_class_a_and_parks_before_any_reservation(
 ) -> None:
     """A content-bound Class A declaration raises the design above its rule's Class B, and a
     route approved for B and C refuses it; the park says who raised it."""
-    models = ScriptedModels()
+    models = RecordedModels()
     run_id = _start(world)
     _drain(
         run_with(
@@ -1582,7 +1781,7 @@ def test_a_dataset_that_recorded_no_lineage_is_refused_by_the_licence_gate(
         "dataset_material",
         lambda *a, **k: DatasetMaterial(lineage=None, respondents_fictional=True),
     )
-    models = ScriptedModels()
+    models = RecordedModels()
     run_id = _start(world)
     _drain(run_with(models))
     assert models.requests == []
@@ -1595,7 +1794,7 @@ def test_a_dataset_that_recorded_no_lineage_is_refused_by_the_licence_gate(
 def test_a_study_without_budget_parks_awaiting_budget_before_any_call(
     world: Any, run_with: Callable[..., Worker]
 ) -> None:
-    models = ScriptedModels()
+    models = RecordedModels()
     run_id = _start(world)
     config = AnalysisConfig.from_settings(
         _settings(world), max_output_tokens=4096, reservation_usd=30.0
@@ -1609,7 +1808,7 @@ def test_a_study_without_budget_parks_awaiting_budget_before_any_call(
 def test_a_turn_the_model_window_cannot_hold_fails_before_any_reservation(
     world: Any, run_with: Callable[..., Worker]
 ) -> None:
-    models = ScriptedModels()
+    models = RecordedModels()
     run_id = _start(world)
     small = AnalysisConfig(
         policy_version="aia-model-policy-test-1",
@@ -1642,7 +1841,7 @@ def _error(status: int, error_type: str, **headers: str) -> HttpResponse:
 def test_throttling_parks_the_module_for_quota_and_charges_nothing(
     world: Any, run_with: Callable[..., Worker]
 ) -> None:
-    models = ScriptedModels(
+    models = RecordedModels(
         failures={("executive", 1): _error(429, "ThrottlingException", **{"retry-after": "60"})}
     )
     run_id = _start(world)
@@ -1661,7 +1860,7 @@ def test_throttling_parks_the_module_for_quota_and_charges_nothing(
 def test_an_uncertain_turn_waits_for_a_person_and_recovery_replays_what_was_answered(
     world: Any, store: InMemoryArtifactStore, run_with: Callable[..., Worker]
 ) -> None:
-    models = ScriptedModels(
+    models = RecordedModels(
         invent_calls={("executive", 1)},
         failures={("executive", 2): TransportFailure("read timeout", delivery=Delivery.UNKNOWN)},
     )
@@ -1707,7 +1906,7 @@ def test_cancellation_between_turns_keeps_the_answered_turn_and_sends_no_other(
     world: Any, store: InMemoryArtifactStore, run_with: Callable[..., Worker]
 ) -> None:
     run_id = _start(world)
-    models = ScriptedModels(invent_calls={(m, 1) for m in MODULES})
+    models = RecordedModels(invent_calls={(m, 1) for m in MODULES})
 
     def cancel(module: str, n: int) -> None:
         if len(models.asked) == 1:
@@ -1770,7 +1969,7 @@ def test_the_configuration_refuses_what_would_fail_at_run_time(
             reservation_usd=1.0,
             fictional_client_ids=frozenset(),
         )
-    gateway = build_gateway(settings, transport=ScriptedModels(), signer=Signer())
+    gateway = build_gateway(settings, transport=RecordedModels(), signer=RecordedSigner())
     with pytest.raises(ValueError, match="come together"):
         analysis_registry(store=store, build=build, gateway=gateway)
 
@@ -1794,7 +1993,7 @@ def test_ai_respondents_answer_and_the_eight_modules_interpret_them_in_one_run(
 ) -> None:
     """One gateway, one route, Class C throughout: 150 fictional AI respondents answer,
     the aggregate is computed from their answers, and the modules interpret it."""
-    models = ScriptedModels()
+    models = RecordedModels()
     run_id = _start(world, {**DESIGN, "n": 150}, source=FieldworkSource.AI_RUNTIME)
     assert _drain(run_with(models, ai_fieldwork=True)) == ["completed"] * 13, _unfinished(
         world, run_id
@@ -1823,7 +2022,7 @@ def test_the_support_forecast_is_what_the_aggregate_then_computes(
     from aia_core.domain.research_design import ResearchSpecification
     from aia_core.domain.support_forecast import forecast_support
 
-    models = ScriptedModels()
+    models = RecordedModels()
     run_id = _start(world, {**DESIGN, "n": n}, source=FieldworkSource.AI_RUNTIME)
     worker = run_with(models, ai_fieldwork=True)
     while not {"compile", "aggregate"} <= {
@@ -1857,7 +2056,7 @@ def test_a_corrupt_ai_dataset_fails_the_module_and_stays_marked_corrupt(
     or an object that is gone, fail it by reason before any call, and the CORRUPT mark the
     read made is committed with the failure (OI-77): read from a session of its own, the
     dataset is CORRUPT, so no later step or run reuses it."""
-    models = ScriptedModels()
+    models = RecordedModels()
     run_id = _start(world, {**DESIGN, "n": 150}, source=FieldworkSource.AI_RUNTIME)
     worker = run_with(models, ai_fieldwork=True)
     research = {"compile", "preflight", "run", "aggregate", "sociomap"}
@@ -1896,7 +2095,7 @@ def test_a_corrupt_ai_dataset_fails_the_module_and_stays_marked_corrupt(
 def test_a_checkpoint_whose_bytes_changed_is_never_replayed_and_the_turn_is_asked_again(
     world: Any, store: InMemoryArtifactStore, run_with: Callable[..., Worker]
 ) -> None:
-    models = ScriptedModels(
+    models = RecordedModels(
         invent_calls={("executive", 1), ("executive", 3)},
         failures={("executive", 2): TransportFailure("read timeout", delivery=Delivery.UNKNOWN)},
     )
@@ -1935,7 +2134,7 @@ def test_a_checkpoint_whose_bytes_changed_is_never_replayed_and_the_turn_is_aske
 def test_a_step_that_does_not_name_its_surface_fails_and_nothing_is_guessed(
     world: Any, run_with: Callable[..., Worker]
 ) -> None:
-    models = ScriptedModels()
+    models = RecordedModels()
     run_id = _start(world, surface=None)
     _drain(run_with(models))
     assert models.requests == []
@@ -1953,7 +2152,7 @@ def test_sources_that_do_not_describe_one_computation_fail_the_step_before_any_c
         raise SourcesRefused("aggregate_lineage", "the aggregate records another dataset")
 
     monkeypatch.setattr(analysis, "native_sources", refused)
-    models = ScriptedModels()
+    models = RecordedModels()
     run_id = _start(world)
     _drain(run_with(models))
     assert models.requests == []

@@ -7,6 +7,7 @@ import { t, tv } from "@/i18n/t";
 import type { ClientSource, ProposalsRun } from "@/lib/api";
 import { plural } from "@/lib/format";
 import type { Tone } from "@/lib/tone";
+import { withFixer } from "@/lib/route-refusal";
 
 /** The run's one step (application.source_proposals.STEP). */
 export const PROPOSALS_STEP = "extract";
@@ -80,9 +81,9 @@ export function proposalsLine(p: ProposalsPhase): { tone: Tone; text: string } |
     case "budget":
       return { tone: "you", text: t("aia.sources.ai.budget") };
     case "waiting":
-      return { tone: "world", text: tv("aia.sources.ai.waiting", { reason: proposalsReason(p.reason) }) };
+      return { tone: "world", text: withFixer(tv("aia.sources.ai.waiting", { reason: proposalsReason(p.reason) }), p.reason) };
     case "failed":
-      return { tone: "fault", text: tv("aia.sources.ai.failed", { reason: proposalsReason(p.reason) }) };
+      return { tone: "fault", text: withFixer(tv("aia.sources.ai.failed", { reason: proposalsReason(p.reason) }), p.reason) };
     case "done":
       return p.proposed
         ? { tone: "done", text: tv("aia.sources.ai.done", { n: plural(p.proposed, "návrh", "návrhy", "návrhů") }) }

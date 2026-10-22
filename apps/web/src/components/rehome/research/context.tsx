@@ -25,11 +25,25 @@ export type ResearchContextValue = {
   /** The research template: what a new study starts from, and what a stored one is completed with. */
   template: Template;
   runJob: RunJob;
+  /** Go on with the same job once a person lifted the study's budget for it (CR-2): never a new job. */
+  continueJob: (jobId: string) => Promise<unknown>;
+  /**
+   * A stage's own budget wait shown in place claims its job, so the screen's list of waiting jobs
+   * does not offer a second lift for it; the returned function releases the claim.
+   */
+  claimWait: (jobId: string) => () => void;
   job: JobUpdate | null;
   toast: (message: string) => void;
   /** confirm() and prompt(), with the classic words, as the rebuilt interface's dialog. */
   confirm: (message: string) => Promise<boolean>;
   prompt: (message: string, initial?: string) => Promise<string | null>;
+  /**
+   * The one predicate every stage reads for its own AI starts ("Navrhnout", the brief's analysis):
+   * true where the Research Lead owns them (the workbench layout, plan research-lead-workbench D15),
+   * so no stage shows one. Absent or false: the stage keeps its own (the classic layout, which has
+   * no Lead until chunk 26; that chunk removes this predicate). Spuštění's Start shows either way.
+   */
+  leadOwnsAiStarts?: boolean;
   /** Contextual help opens an editor; prefilling a question never sends it. */
   askAssistance?: (action: AdviceAction, question?: string) => void;
   /** The project session's page memory: what the classic interface keeps in globals, never saved. */

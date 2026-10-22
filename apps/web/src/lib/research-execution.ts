@@ -10,6 +10,7 @@
 import { t, tv } from "@/i18n/t";
 import type { OutlookVerdict, QuestionOutlook, ResearchPhase, ResearchQuestionTrace, ResearchRun, ResearchRunSummary, ResearchStep } from "@/lib/api";
 import type { Tone } from "@/lib/tone";
+import { withFixer } from "@/lib/route-refusal";
 
 export const RUNTIME_UNAVAILABLE = "ai_runtime_unavailable";
 export const SYNTHETIC_SOURCE = "synthetic_fixture";
@@ -127,12 +128,13 @@ const WAITING_STATUS = /^(WAITING|AWAITING)_|^RECOVERY_REQUIRED$/;
  * -- budget, provider quota, a decision owed -- is told from its machine reason. It says only
  * what is known: that the step waits, and why. It promises no action the page cannot take.
  */
-export function waitingDetail(step: Pick<ResearchStep, "status" | "waiting_reason" | "error_message" | "recovery_reason">): string | null {
+export function waitingDetail(step: Pick<ResearchStep, "status" | "waiting_reason" | "error_message" | "error_reason" | "recovery_reason">): string | null {
   if (!WAITING_STATUS.test(step.status)) return null;
   // A paid call whose outcome is unknown outranks whatever error came with it: it is why nothing
   // repeats the step, and what a person decides on (PC14).
   if (step.status === "RECOVERY_REQUIRED" && step.recovery_reason === "paid_call_uncertain") return t("research.exec.wait.paid_call_uncertain");
-  if (step.error_message) return step.error_message;
+  // A refusal the AI route's settings decide says who fixes it (lead-orchestration LO12a).
+  if (step.error_message) return withFixer(step.error_message, step.error_reason);
   if (step.status === "RECOVERY_REQUIRED") {
     return t(step.recovery_reason === "attempts_exhausted" ? "research.exec.wait.attempts_exhausted" : "research.exec.wait.recovery_required");
   }
@@ -261,13 +263,15 @@ const EXPECTED_KIND: Record<string, OriginKind> = { fictional_roster: "SIMULATED
 export function respondentReceipt(run: Pick<ResearchRun, "persona_source" | "steps">): {
   pinned: string;
   observed: OriginKind | null;
+  /** The origin code fieldwork stored (DataOrigin, e.g. SYNTHETIC_AI_FICTIONAL), as stored; null until it has. */
+  origin: string | null;
   mismatch: boolean;
 } {
   const pinned = run.persona_source ?? "fictional_roster";
   const fieldwork = run.steps.find((s) => s.node_key === "run");
   const stored = fieldwork && (fieldwork.data_origin_kind || fieldwork.data_origin) ? statedKind(fieldwork.data_origin_kind, fieldwork.data_origin) : null;
   const expected = EXPECTED_KIND[pinned];
-  return { pinned, observed: stored, mismatch: stored !== null && (expected === undefined || stored !== expected) };
+  return { pinned, observed: stored, origin: fieldwork?.data_origin || null, mismatch: stored !== null && (expected === undefined || stored !== expected) };
 }
 
 export function stepOf(run: Pick<ResearchRun, "steps">, nodeKey: string): ResearchStep | null {
@@ -293,8 +297,13 @@ export type ResultTable = {
   donors: number;
   effectiveN: number;
   rows: ResultRow[];
+  /** Up to OPEN_ANSWER_EXAMPLES raw answers to an open question (Q52 a): data, not admitted
+   *  evidence; shown inside AIA only, never exported, never in a client deliverable. */
   verbatims: string[];
 };
+
+/** How many raw open answers Výsledky shows per question (the product owner, Q52 a, 2026-10-21). */
+export const OPEN_ANSWER_EXAMPLES = 5;
 
 type Interval = { low: number; high: number } | null | undefined;
 /** One question's (or one set object's) stored aggregate, as the aggregate step wrote it. */
@@ -410,7 +419,7 @@ export function resultTable(id: string, result: QuestionResult, topBox = 2, at: 
     donors: result.n_unique_layer_donors,
     effectiveN: result.effective_n,
     rows,
-    verbatims: suppressed ? [] : ((result.verbatimy as string[] | undefined) ?? []).slice(0, 5),
+    verbatims: suppressed ? [] : ((result.verbatimy as string[] | undefined) ?? []).slice(0, OPEN_ANSWER_EXAMPLES),
   };
 }
 

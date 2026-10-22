@@ -5,7 +5,7 @@ import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/re
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import type { LeadState, LeadTurn, ResearcherLead } from "@/lib/lead";
-import { LeadPane } from "./LeadPane";
+import { LeadPane, type LeadCardsContext } from "./LeadPane";
 
 const hatched: ResearcherLead = {
   hatched: true,
@@ -70,11 +70,20 @@ const pane = (over: Partial<Parameters<typeof LeadPane>[0]> = {}) => (
   <LeadPane studyId="STU-1" stage="brief" canEdit focus={null} picking={false} onPick={vi.fn()} onClearFocus={vi.fn()} onView={vi.fn()} onRequest={vi.fn(async () => {})} onTurns={vi.fn()} onFocusMode={vi.fn()} mode="split" epoch={0} {...over} />
 );
 
+const cards = (over: Partial<LeadCardsContext> = {}): LeadCardsContext => ({
+  runs: [], stepHref: (s) => `/s/${s}`, onStage: vi.fn(), prepareRun: vi.fn(), startRun: vi.fn(async () => null), runOfTurn: new Map(), onRunStarted: vi.fn(), ...over,
+});
+
 describe("LeadPane", () => {
   it("offers hatching to a researcher without a Lead, and hatches it on their click", async () => {
     me = { hatched: false, lead: null };
     render(pane());
-    fireEvent.click(await screen.findByRole("button", { name: "Vylíhnout mého Vedoucího" }));
+    const hatch = await screen.findByRole("button", { name: "Vylíhnout mého Vedoucího" });
+    // The shut composer says why in its own field, not "Napište Vedoucímu výzkumu…" (audit).
+    const composer = screen.getByLabelText("Napište Vedoucímu výzkumu") as HTMLTextAreaElement;
+    expect(composer.disabled).toBe(true);
+    expect(composer.placeholder).toMatch(/vylíhněte/);
+    fireEvent.click(hatch);
     expect(await screen.findByText("Bára")).toBeTruthy();
   });
 
@@ -182,9 +191,96 @@ describe("LeadPane", () => {
     expect(await screen.findByText("Navrhuji dotazník.")).toBeTruthy();
     expect(screen.getByText("Rozhodnuto")).toBeTruthy();
     expect(screen.getByText("Kontrola návrhu")).toBeTruthy();
-    expect(screen.getByText(/· běží/)).toBeTruthy();
-    fireEvent.click(screen.getByRole("button", { name: "Zkontrolovat" }));
+    expect(screen.getByText("běží")).toBeTruthy();
+    fireEvent.click(screen.getByRole("button", { name: "Zkontrolovat návrh" }));
     expect(onOpenJob).toHaveBeenCalledWith(expect.objectContaining({ run_id: "RUN-J" }));
+  });
+
+  it("shows a running job's card with its orb and live activity, then the way to what it changed", async () => {
+    const running = { run_id: "RUN-J", design_revision_id: "REV-1", action: "optimize_questionnaire" as const, status: "RUNNING", is_terminal: false, needs_attention: false, context_sha256: "x", harness_version: "3", created_at: "2026-10-19T08:01:00Z",
+      steps: [{ step_id: "STEP-J", node_key: "agent", kind: "research_agent", stage_type: "x", status: "RUNNING", waiting_reason: null, attempts_recorded: 1, max_attempts: 3, started_at: "2026-10-19T08:01:00Z", finished_at: null, failure_class: null, error_message: null, artifact_id: null, data_origin: null }],
+      actual_cost_usd: null };
+    const onStage = vi.fn();
+    const { rerender, container } = render(pane({ jobs: [running], onOpenJob: vi.fn(), cards: cards({ onStage }) }));
+    await screen.findByText("Úprava dotazníku");
+    const card = container.querySelector('[data-card="worker"]')!;
+    expect(card.getAttribute("data-card-state")).toBe("running");
+    expect(card.querySelector("[data-orb]")?.getAttribute("data-orb")).toBe("solving");
+    expect(card.querySelector("[data-step-activity]")).not.toBeNull();
+    expect(document.querySelector('[role="dialog"]')).toBeNull();
+    const done = { ...running, status: "COMPLETED", is_terminal: true, proposal_state: "pending" as const, actual_cost_usd: 0.02, steps: [{ ...running.steps[0]!, status: "SUCCEEDED" }] };
+    rerender(pane({ jobs: [done], onOpenJob: vi.fn(), cards: cards({ onStage }) }));
+    await waitFor(() => expect(container.querySelector('[data-card="worker"]')?.getAttribute("data-card-state")).toBe("completed"));
+    expect(container.querySelector('[data-card="worker"] [data-orb]')).toBeNull();
+    fireEvent.click(screen.getByRole("button", { name: "Otevřít Dotazník" }));
+    expect(onStage).toHaveBeenCalledWith("questionnaire");
+    expect(screen.getByRole("button", { name: "Zkontrolovat návrh" })).toBeTruthy();
+  });
+
+  it("shows every research run as a card with Průběh, and Výsledky once its data exists", async () => {
+    const run = { run_id: "RUN-R", study_id: "STU-1", design_revision_id: "REV-1", design_revision: 4, status: "COMPLETED", phase: "COMPLETED" as const, needs_attention: false, is_terminal: true, retryable: false, cancel_requested: false, fieldwork_source: "ai_runtime", retry_of: null, created: true, created_at: "2026-10-19T09:00:00Z", started_at: null, finished_at: null,
+      steps: [{ step_id: "S-a", node_key: "aggregate", kind: "research_aggregate", stage_type: "x", status: "SUCCEEDED", waiting_reason: null, attempts_recorded: 1, max_attempts: 3, started_at: null, finished_at: null, failure_class: null, error_message: null, artifact_id: "ART-1", data_origin: null }],
+      artifact_ids: [], actual_cost_usd: 1.5 };
+    render(pane({ cards: cards({ runs: [run] }) }));
+    expect(await screen.findByText("Výzkumný běh")).toBeTruthy();
+    expect(screen.getByRole("link", { name: "Průběh" }).getAttribute("href")).toBe("/s/progress?run=RUN-R");
+    expect(screen.getByRole("link", { name: "Výsledky" }).getAttribute("href")).toBe("/s/results?run=RUN-R#data");
+  });
+
+  it("starts the Lead's prepared research run only on the person's click, through Spuštění's route", async () => {
+    state.turns = [turn({ output: { reply: "Můžeme spustit.", request: { kind: "research_run", why: "Návrh je hotový." } } })];
+    const readiness = { design_revision_id: "REV-9", rules: "r", ready: true, checks: [], questions: 3, batteries: 0, objects: 0, n: 300, fieldwork_source: "ai_runtime", cost_ceiling_usd: 4.2, cost_ceiling_unknown: null, fieldwork_requests: 300, analysis_calls: 8, spend_confirm_usd: null, confirmation_required: false, persona_source: "fictional_roster" };
+    const started = { run_id: "RUN-N", design_revision_id: "REV-9" };
+    const prepareRun = vi.fn(async () => ({ readiness, runs: [] }));
+    const startRun = vi.fn(async () => started as never);
+    const onRunStarted = vi.fn();
+    render(pane({ cards: cards({ prepareRun, startRun, onRunStarted }) }));
+    fireEvent.click(await screen.findByRole("button", { name: "Zkontrolovat spuštění" }));
+    expect(prepareRun).toHaveBeenCalledTimes(1);
+    expect(startRun).not.toHaveBeenCalled();
+    // The ceiling is the card's key fact, labelled; the state pill says it is ready.
+    const key = await screen.findByText("4,2 USD");
+    expect(key.className).toContain("card__key");
+    expect(key.closest("dd")?.previousElementSibling?.textContent).toBe("Cena nejvýše");
+    expect(screen.getByText("Připraveno")).toBeTruthy();
+    expect(screen.getByText("Rozpočet studie")).toBeTruthy();
+    expect(screen.getByRole("link", { name: "Jiný zdroj nebo populaci zvolíte na Spuštění" }).getAttribute("href")).toBe("/s/run");
+    fireEvent.click(screen.getByRole("button", { name: "Spustit výzkum" }));
+    await waitFor(() => expect(startRun).toHaveBeenCalledWith(readiness, null));
+    // The working copy is checked again at the click, before anything starts.
+    expect(prepareRun).toHaveBeenCalledTimes(2);
+    await waitFor(() => expect(onRunStarted).toHaveBeenCalledWith("LDT-1", started));
+    expect(screen.getByText("Spuštěno")).toBeTruthy();
+  });
+
+  it("never starts a design that changed since the card checked it: it checks it again and shows it", async () => {
+    state.turns = [turn({ output: { reply: "Můžeme spustit.", request: { kind: "research_run", why: "Návrh je hotový." } } })];
+    const readiness = { design_revision_id: "REV-9", rules: "r", ready: true, checks: [], questions: 3, batteries: 0, objects: 0, n: 300, fieldwork_source: "ai_runtime", cost_ceiling_usd: 4.2, cost_ceiling_unknown: null, fieldwork_requests: 300, analysis_calls: 8, spend_confirm_usd: null, confirmation_required: false, persona_source: "fictional_roster" };
+    const edited = { ...readiness, design_revision_id: "REV-10", cost_ceiling_usd: 6.5 };
+    const prepareRun = vi.fn().mockResolvedValueOnce({ readiness, runs: [] }).mockResolvedValue({ readiness: edited, runs: [] });
+    const startRun = vi.fn(async () => null);
+    render(pane({ cards: cards({ prepareRun, startRun }) }));
+    fireEvent.click(await screen.findByRole("button", { name: "Zkontrolovat spuštění" }));
+    await screen.findByText("4,2 USD");
+    fireEvent.click(screen.getByRole("button", { name: "Spustit výzkum" }));
+    expect(await screen.findByText(/Návrh se od kontroly změnil/)).toBeTruthy();
+    expect(screen.getByText("6,5 USD")).toBeTruthy();
+    expect(startRun).not.toHaveBeenCalled();
+    // A second click starts the design now shown.
+    fireEvent.click(screen.getByRole("button", { name: "Spustit výzkum" }));
+    await waitFor(() => expect(startRun).toHaveBeenCalledWith(edited, null));
+  });
+
+  it("says a run's ceiling is unknown rather than zero, and sends the person to Spuštění", async () => {
+    state.turns = [turn({ output: { reply: "Můžeme spustit.", request: { kind: "research_run", why: "Návrh je hotový." } } })];
+    const readiness = { design_revision_id: "REV-9", rules: "r", ready: true, checks: [], questions: 3, batteries: 0, objects: 0, n: 300, fieldwork_source: "ai_runtime", cost_ceiling_usd: null, cost_ceiling_unknown: "no_reservation", fieldwork_requests: 300, analysis_calls: 8, spend_confirm_usd: 2, confirmation_required: true, persona_source: "fictional_roster" };
+    render(pane({ cards: cards({ prepareRun: vi.fn(async () => ({ readiness, runs: [] })) }) }));
+    fireEvent.click(await screen.findByRole("button", { name: "Zkontrolovat spuštění" }));
+    expect(await screen.findByText("Blokuje: neznámá cena")).toBeTruthy();
+    expect(screen.getByText(/Neznámá/)).toBeTruthy();
+    expect(screen.queryByText(/^0 USD/)).toBeNull();
+    expect(screen.queryByRole("button", { name: "Spustit výzkum" })).toBeNull();
+    expect(screen.getByRole("link", { name: "Otevřít Kontrolu a spuštění" })).toBeTruthy();
   });
 
   it("sends a message written while the Lead works with the stage and element it was written about", async () => {
@@ -197,7 +293,7 @@ describe("LeadPane", () => {
     expect(await screen.findByText("Zkrať ji")).toBeTruthy();
     rerender(pane({ focus: null, stage: "design" }));
     state = { ...state, busy: false, turns: [turn({ output: { reply: "Hotovo." } })] };
-    await waitFor(() => expect(posts.at(-1)).toEqual({ kind: "message", text: "Zkrať ji", stage: "brief", focus }), { timeout: 4000 });
+    await waitFor(() => expect(posts.at(-1)).toEqual({ kind: "message", text: "Zkrať ji", stage: "brief", focus }));
   });
 
   it("keeps a message the server did not take, held until the researcher tries again", async () => {

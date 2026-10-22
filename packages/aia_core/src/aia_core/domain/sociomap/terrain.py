@@ -454,7 +454,10 @@ class EnvelopeTerrain(BaseModel):
     is there, which is not a height of 0. ``governing`` is the index into ``source_ids``
     of the hill that sets each cell (the first of equals), ``None`` with the height.
     ``framed_relative_envelope`` (``aia-sociomap-5``) has no cutoff: with a hill, every cell
-    has a height.
+    has a height; ``absolute_height`` is the same envelope with each hill at its height on the
+    declared 0-1 scale instead of its relative height, the panel's Absolutní view, so a reader
+    draws it without evaluating a kernel. ``None`` (every other method) is left out of the
+    stored form.
     """
 
     model_config = ConfigDict(frozen=True, extra="forbid")
@@ -465,12 +468,22 @@ class EnvelopeTerrain(BaseModel):
     source_ids: tuple[str, ...]
     height: tuple[tuple[float | None, ...], ...]
     governing: tuple[tuple[int | None, ...], ...]
+    absolute_height: tuple[tuple[float | None, ...], ...] | None = None
+
+    @model_serializer(mode="wrap")
+    def _without_absent(self, handler: SerializerFunctionWrapHandler) -> dict[str, Any]:
+        body: dict[str, Any] = handler(self)
+        if body.get("absolute_height") is None:
+            body.pop("absolute_height", None)
+        return body
 
     @model_validator(mode="after")
     def _shape(self) -> Self:
         size = self.parameters.grid_resolution + 1
-        for name in ("height", "governing"):
+        for name in ("height", "governing", "absolute_height"):
             grid = getattr(self, name)
+            if grid is None:
+                continue
             if len(grid) != size or any(len(row) != size for row in grid):
                 raise ValueError(f"{name} must be a {size} x {size} grid")
         for hrow, grow in zip(self.height, self.governing, strict=True):

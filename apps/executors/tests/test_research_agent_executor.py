@@ -13,6 +13,7 @@ from aia_core.application.proposal_accept import StaleProposal
 from aia_core.application.research import ResearchAgentJobs
 from aia_core.domain.ai_material import MaterialApproval, material_sha256
 from aia_core.domain.design import DesignRejected
+from aia_core.domain.item_ids import derived_id
 from aia_core.domain.prompts import PromptPin
 from aia_core.domain.research_agents import (
     BASELINE_PROMPT_VERSION,
@@ -35,6 +36,7 @@ from aia_core.infrastructure.study_workspace_repository import StudyWorkspaceRep
 from aia_core.infrastructure.tables import ApprovalDecisionRow, PromptVersionRow
 from aia_core.infrastructure.workflow_repository import WorkflowRepository
 from aia_executors.ai_runtime import AIRuntimeConfigError, AIRuntimeSettings, build_gateway
+from aia_executors.recorded_models import DESIGN_ANSWERS, RecordedModels
 from aia_executors.registry import registry_for
 from aia_executors.research_agents import ResearchAgentConfig, ResearchAgentExecutor, _touched
 from aia_worker.settings import WorkerSettings
@@ -140,7 +142,13 @@ def settings(client_id: str, **overrides: str) -> AIRuntimeSettings:
     return result
 
 
-def start(world: Any, *, content: dict[str, Any] | None = None, instruction: str = "") -> str:
+def start(
+    world: Any,
+    *,
+    content: dict[str, Any] | None = None,
+    instruction: str = "",
+    action: ResearchAction = ResearchAction.ANALYZE,
+) -> str:
     with world.sessions() as session:
         scope = world.lead_scope(session)
         revision, _ = StudyDesignRepository(session, scope).submit_as_working_copy(
@@ -149,7 +157,7 @@ def start(world: Any, *, content: dict[str, Any] | None = None, instruction: str
         )
         job = ResearchAgentJobs(session, scope).start(
             design_revision_id=revision.revision_id,
-            action=ResearchAction.ANALYZE,
+            action=action,
             instruction=instruction,
         )
         session.commit()
@@ -168,8 +176,13 @@ def worker(
     approvals: tuple[MaterialApproval, ...] = (),
     step_events: bool = False,
     route: str = ROUTE,
+    class_gates: str = "",
 ) -> Worker:
-    cfg = settings(world.client_id if fictional else "", AIA_AI_ROUTE_APPROVED_FOR=route)
+    cfg = settings(
+        world.client_id if fictional else "",
+        AIA_AI_ROUTE_APPROVED_FOR=route,
+        AIA_DATA_CLASS_GATES=class_gates,
+    )
     executor = ResearchAgentExecutor(
         store=store,
         build=build,
@@ -229,8 +242,11 @@ def test_worker_stores_proposal_and_review_creates_a_new_revision(
         base = job["metadata"]["base_workspace_revision"]
         assert base == designs.get(baseline).workspace_revision is not None
         touched = job["steps"][0]["output"]["touched_items"]
-        assert "content:objective:test appeal" in touched
-        assert "analysis:objective:test appeal" in touched
+        # A plan item is named by its stable id (WCE1); content stored without ids has the id its
+        # wording derives, one per wording.
+        appeal = derived_id("obj_", "objective", "Test appeal", 1)
+        assert f"content:objective:{appeal}" in touched
+        assert f"analysis:objective:{appeal}" in touched
         assert "content:brief:goal" not in touched
         workspaces = StudyWorkspaceRepository(session)
         before = workspaces.content(scope)
@@ -277,6 +293,24 @@ def test_worker_stores_proposal_and_review_creates_a_new_revision(
             "workspace_revision": accepted.working.revision,
             "workspace_revision_id": accepted.working.revision_id,
         }
+
+
+@pytest.mark.parametrize("action", list(ResearchAction))
+def test_every_design_worker_runs_end_to_end_on_its_recording(
+    world: Any, database_url: str, store: Any, build: Any, action: ResearchAction
+) -> None:
+    """RecordedModels holds one answer per design worker (artifact-chain CHN7): the job runs
+    through the real worker, gateway, adapter and ledger, its answer keeps the closed contract,
+    and the stored proposal names a recording."""
+    assert f"aia_research_{action.value}" in DESIGN_ANSWERS
+    run_id = start(world, action=action)
+    w = worker(world, database_url, store, build, RecordedModels())  # type: ignore[arg-type]
+    assert w.run_once()
+    with world.sessions() as session:
+        jobs = ResearchAgentJobs(session, world.lead_scope(session))
+        assert jobs.get(run_id)["status"] is WorkflowRunStatus.COMPLETED
+        provenance = jobs.result(run_id, store=store)["provenance"]
+        assert provenance["provider_request_id"].startswith(f"recorded-{action.value}-")
 
 
 @pytest.mark.parametrize("step_events", [False, True])
@@ -716,6 +750,46 @@ def test_a_version_saved_before_declarations_existed_is_parked_and_nothing_is_se
     assert job["status"] is WorkflowRunStatus.WAITING_PROVIDER
 
 
+def test_under_advisory_class_gates_an_undeclared_version_is_sent_and_says_so(
+    world: Any, database_url: str, store: Any, build: Any
+) -> None:
+    """Develop only (plan develop-class-advisory): the job the test above parks is sent, judged
+    as Class A, the prompt's class still recorded as unknown, the advisory on its provenance
+    and on every ledger row of the call."""
+    put_live(world, "aia.research.analyze_brief", CUSTOM_TASK, declared=False)
+    run_id = start(world)
+    transport = RecordedBedrock()
+    assert worker(world, database_url, store, build, transport, class_gates="advisory").run_once()
+    assert system_sent(transport) == FIXED_PREFIX + CUSTOM_TASK
+    with world.sessions() as session:
+        scope = world.lead_scope(session)
+        jobs = ResearchAgentJobs(session, scope)
+        assert jobs.get(run_id)["status"] is WorkflowRunStatus.COMPLETED
+        provenance = jobs.result(run_id, store=store)["provenance"]
+        events = AIUsageRepository(session, scope).events(run_id=run_id)
+    advisory = (
+        "class_advisory gate=egress rule=unclassified_material class=unclassified advisory=true"
+    )
+    assert provenance["data_class"] == "CLASS_A_CLIENT_CONFIDENTIAL"
+    assert advisory in provenance["class_advisory"]
+    prompt = provenance["material_classification"]["prompt"]
+    assert (prompt["data_class"], prompt["source"]) == (None, "unknown")
+    assert events and all(advisory in e.note for e in events)
+
+
+def test_under_enforce_a_job_records_no_advisory(
+    world: Any, database_url: str, store: Any, build: Any
+) -> None:
+    run_id = start(world)
+    assert worker(world, database_url, store, build, RecordedBedrock()).run_once()
+    with world.sessions() as session:
+        scope = world.lead_scope(session)
+        provenance = ResearchAgentJobs(session, scope).result(run_id, store=store)["provenance"]
+        events = AIUsageRepository(session, scope).events(run_id=run_id)
+    assert "class_advisory" not in provenance
+    assert all("class_advisory" not in e.note for e in events)
+
+
 def test_an_operator_can_still_classify_a_version_that_has_no_declaration(
     world: Any, database_url: str, store: Any, build: Any
 ) -> None:
@@ -875,6 +949,7 @@ def test_a_job_started_after_an_edit_is_checked_against_its_designs_working_revi
         assert refused.value.details() == {
             "reason": "items_changed",
             "conflicting_items": ["content:plan:problem_summary"],
+            "conflicting_wording": {},  # a plan field, said by its name
         }
         # Nothing was written: the design and the working copy are as the person left them.
         scope = world.lead_scope(session)

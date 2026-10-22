@@ -136,7 +136,10 @@ under `AIA_ENV=local` or `test`; an unset or unknown `AIA_ENV` counts as deploye
 | the API never builds or invokes the model gateway or an adapter | A model call inside a request: no lease, no reservation, no heartbeat, no recovery |
 | only the AI runtime composition (`aia_executors/ai_runtime.py`) builds the Bedrock adapter | A route nobody configured, built from values nobody validated |
 | only the work queue may query across studies | An unscoped `WorkflowRepository` anywhere but `WorkQueue` -- a query over every client's studies |
-| Client Knowledge rows are reached only through `ClientKnowledgeRepository` (never by the API, the worker or the executors), its folders, labels and item filing included | Knowledge read from a global pool and filtered afterwards, or changed without a person's write or an accepted proposal, and a revision (ADR 0015, 0019) |
+| the approval ledger is touched only by its repositories (`workflow_repository.py`, `artifact_repository.py`), and never by the API, the worker or the executors | A decision row written where nobody checked the permission it needs |
+| approval-ledger subjects are named only through `ApprovalSubject` (`domain/approval_ledger.py`), never as a string of their own in an app | A subject written in one module and matched in another drifting from the CHECK (A6) |
+| the study wallet's tables are touched only by `StudyWalletRepository`, and never by the API, the worker or the executors (four rules) | A wallet charge or cap compared outside the study row's lock, so two starts overspend it |
+| Client Knowledge rows are reached only through `ClientKnowledgeRepository` (never by the API, the worker or the executors), its folders, labels, item filing and a study's selections (`client_knowledge_selections`) included | Knowledge read from a global pool and filtered afterwards, or changed without a person's write or an accepted proposal, and a revision (ADR 0015, 0019) |
 | a client's contacts are reached only through `ClientProfileRepository` (never by the API, the worker or the executors) | Personal data on the client record reaching a study context or a model request |
 | a client's sources are reached only through `ClientSourceRepository` (never by the API, the worker or the executors) | Stored material read outside its client, or taken for knowledge without a person accepting a proposal from it |
 | runtime populations are issued only by the canonical loader (and never by the API) | A second loader returning different population semantics from the same bytes (reference F10, R4) |
@@ -148,12 +151,17 @@ under `AIA_ENV=local` or `test`; an unset or unknown `AIA_ENV` counts as deploye
 | no statement updates a project revision (the ORM refuses an UPDATE; this forbids the bulk one) | A run's executed content changing under it |
 | licence determinations and policies are built only in their policy-data module, never by an app | An approval of panel-derived transmission nobody gave (ADR 0016 decision 5, OI-61) |
 | the fictional fieldwork generator is imported only by the workbench composition; nothing in the API or worker imports either, and no deployment names it | Fictional respondents reaching a deployed run, or a deployed worker configured with the test composition |
-| recorded web retrieval (Deep Research's search and fetch doubles) is defined only beside the web adapters and built only by the recorded composition (`aia_executors/deep_research_recorded.py`); application and domain code never name it, nothing in the API or worker imports it, and no deployment names it | A replayed page standing in for a live source: a recorded route selected as a production fallback, or a deployed worker composed with it |
+| among the executors only the acceptance composition (`aia_executors/acceptance_recorded.py`) imports or names the recorded models (`recorded_models.py`); the API, the worker and the core never do, every import form and quoted dotted name included | A recording answering a production request |
+| no deployment runs the recorded models | A deployed worker composed over the recorded wire |
+| the population double (`application/population_double.py`) is imported by nothing in the core and the worker; in the API only the composition root; among the executors only its composition (`aia_executors/population_double.py`); no deployment or infrastructure definition names it | A fictional population reaching a deployed run, or a deployed process composed with it |
+| recorded web retrieval (Deep Research's search and fetch doubles) is defined only beside the web adapters and built only by the recorded composition (`aia_executors/deep_research_recorded.py`), which the workbench composition alone composes (local and test); application and domain code never name it, nothing in the API or worker imports it, and no deployment names it | A replayed page standing in for a live source: a recorded route selected as a production fallback, or a deployed worker composed with it |
 | a validation's persona arms are built only by the validation executor (`aia_executors/validation.py`); nothing else in the core, and nothing in the API or worker, imports `holdout.arms` | A client research run showing a respondent another person's profile, or none, or carrying a validation's exclusions |
 | claims are admitted only by the evidence admission gate | A model's number reaching a result without passing field policy, joint structure, support and interval checks |
 | the API never admits its own claims | The same, at the edge where untrusted input arrives |
 | a joint status is issued only by its loader | A hand-built permissive `CORE_JOINT_STATUS` certificate reaching the claim gate |
 | no statically skipped or xfailed tests | Deleting the signal instead of fixing the defect |
+| the acceptance tree (`tests/acceptance`) imports nothing it drives (an AST test holds every import form) | A back door in the acceptance test: a test that passes by calling the code instead of the HTTP surface |
+| no statically skipped or xfailed acceptance tests | An acceptance criterion reported as met by a test that never ran |
 | the web client does not talk to a database | The presentation boundary crossed in the most expensive possible way |
 
 Two things make this survive contact with a busy week:
@@ -234,6 +242,12 @@ can grant approval or supply deployment prices.
   may name one of its client's sources by id (`content.source_id`, `knowledge.source_ref`;
   the API answers 422 `unknown_source` for any other client's); the item never holds the
   file, and a study's proposal cannot attach one (client-workspace C7a).
+  An approval is refused stale when the edit's base is not the current revision unless the
+  reviewer names the current one, and when the revision the reviewer names is not the current one,
+  whatever the base (F-K1, OI-111; `domain/knowledge.py` `reviewed_decision`, lifecycle K3). A
+  study's knowledge context is selected and frozen -- one exact revision per item a person chose
+  (`client_knowledge_selections`, `FrozenKnowledgeContext`) -- not "all active"; a study nobody
+  has chosen for has an empty context (K4; the consumers move to it in K4b behind a switch).
 - **A research study's working content is AIA's, found only through the Study**
   ([ADR 0018](docs/architecture/adr/0018-aia-runs-without-18-6-6.md), OI-58).
   `StudyWorkspaceRepository` keeps it in the Study's owned working project
@@ -252,7 +266,9 @@ can grant approval or supply deployment prices.
   `PopulationBinding` (version, content hash, weight scheme, view) it was loaded
   under, its `FieldPolicy` (what each field may be used for) and its `JointStatus`
   (what may be claimed jointly). A run records its binding once, at creation; a
-  step reads the population only through it. Establish and promote need a
+  step reads the population only through it. A new run records the deployment's LIVE; in local
+  and test, the population double's when `AIA_POPULATION_DOUBLE` composes it (RQC10), which no
+  deployment may do. Establish and promote need a
   `PopulationOperatorContext`, issued only by `PopulationAuthority`. See
   [population.md](docs/architecture/population.md).
 - **Evidence is a capability, not a flag.** A number enters an analysis result
@@ -319,8 +335,9 @@ can grant approval or supply deployment prices.
   `POST …/lead/turns/{turn_id}/request` starts the job a turn prepared, behind the study's spend
   limit (`'lead_job_request'`); `POST …/lead/turns/{turn_id}/self-update` applies, on the
   turn's own researcher's yes, what would reach every client (`'lead_self_update'`). The ledger's
-  `subject_type` check admits the three (`infrastructure/tables.py:1697-1701 @ c7327072`,
-  migration `7b3c32892aa9`). The generic run, events and artifact routes never serve a
+  `subject_type` check is built from `domain/approval_ledger.py` `ApprovalSubject`
+  (`infrastructure/tables.py:1887-1889 @ 25f2623`); migration `5054d4d610c2` (M3) last changed it,
+  admitting the MVP lane's seven subjects. The generic run, events and artifact routes never serve a
   `research_lead` run (`test_the_generic_run_routes_never_serve_a_lead_turn`). An accept may be
   automatic only by the researcher's own standing choice (`researcher_leads.auto_accept_text_edits`,
   off by default, `PUT /lead/preferences`): the same `…/edits` route with `auto: true`, refused
@@ -505,7 +522,8 @@ What are you building?
 ├─ A rule that could be decided on paper, with no I/O?
 │    → packages/aia_core/src/aia_core/domain/<context>.py
 │      + packages/aia_core/tests/test_<context>.py
-│      Pure function or frozen dataclass. No imports beyond stdlib + Pydantic.
+│      Pure function or frozen dataclass. No imports beyond stdlib + Pydantic
+│      (numpy, scipy and numba for numerical code only: §2, layer 1).
 │
 ├─ A use case that reads or writes, or needs authorization?
 │    → packages/aia_core/src/aia_core/application/<use_case>.py
@@ -675,11 +693,12 @@ front-matter, committed-key scan) instead of the suites; the path list is the `c
 | `make layer_check` | **blocking** |
 | `make exposure_check` | **blocking** |
 | `alembic upgrade head` / `alembic check` / downgrade-to-base | **blocking** |
-| `pytest` — core + API, on PostgreSQL on every pull request; the SQLite run only on a push to `develop`, where it blocks the deploy; a collect-only pass over all four test trees in one session on every pull request, so a cross-tree module-name collision fails before the SQLite run on `develop` | **blocking** |
+| `pytest` — core + API, on PostgreSQL on every pull request; the SQLite run only on a push to `develop`, where it blocks the deploy; a collect-only pass over all five test trees (with `tests/acceptance`) in one session on every pull request, so a cross-tree module-name collision fails before the SQLite run on `develop` | **blocking** |
 | Parity-matrix consistency (`test_parity_matrix.py`, inside the pytest steps) | **blocking**. Parity with 18.6.6 is information, never a release criterion (MVP-21): no capability is a release blocker, and a failing parity test still fails a pull request like any test (`mvp-cohesion.md` F9) |
 | Concurrency suite with `AIA_REQUIRE_POSTGRES=1` | **blocking** |
 | Worker suite, including real worker processes, with `AIA_REQUIRE_POSTGRES=1` | **blocking** |
 | Executor suite (the `develop_snapshot` step under the real loop, the develop seed, the smoke module) with `AIA_REQUIRE_POSTGRES=1` | **blocking** |
+| MVP acceptance, tier A (`tests/acceptance`, its own PostgreSQL database): the API and a worker as processes over HTTP, recorded models, `timeout-minutes: 15` | **blocking** |
 | API contract (OpenAPI paths + study-scoping assertion, now covering `/runs`, `/artifacts` and the research `agent-jobs` routes) | **blocking** |
 | Frontend `lint` / `tsc --noEmit` / `build` | **blocking** |
 | Startup smoke: migrate, boot, end-to-end lifecycle over HTTP; the worker boots **with the real executor registry** and stops on `SIGTERM` with no error logged | **blocking** |
@@ -693,7 +712,7 @@ front-matter, committed-key scan) instead of the suites; the path list is the `c
 | Unit-captured UI function fixtures `U<nn>` (`test_legacy_ui_functions.py`, inside the pytest steps) | **blocking** — the vendored unit's own JavaScript is the reference, so they need nothing |
 | Route and UI function ledgers (`test_legacy_route_ledger.py`, `test_legacy_route_claims.py`, `test_legacy_ui_functions.py`, inside the pytest steps) | **blocking**; the reference-pin halves run in the `golden-fixtures` job |
 | Parity against the running 18.6.6 unit (`oracle-parity` job, `-m oracle`) | **blocking when it runs**; skips without the `AIA_LEGACY_REFERENCE_*` secrets, reported `NOT_EXECUTED`; `AIA_REQUIRE_LEGACY_ORACLE=1` once they exist |
-| Parity status — one verdict per capability from every JUnit file | **blocking on `FAIL`**; `NOT_EXECUTED` / `NOT_RUNNABLE` reported in the step summary |
+| Parity status — one verdict per capability from every JUnit file, and one per acceptance criterion from the acceptance step's JUnit (path parity reported beside it) | **blocking on a capability's or an acceptance criterion's `FAIL`**, or a criterion's listed test that did not run; `NOT_EXECUTED` / `NOT_RUNNABLE` reported in the step summary |
 
 This deviates deliberately from the tiering in the development rules, which puts
 lint and types in the advisory tier. That tier exists for day one of adoption.

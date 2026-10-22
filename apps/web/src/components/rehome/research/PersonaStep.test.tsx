@@ -4,6 +4,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { AGENTS_PATH, NATIVE_JOB_WAIT, NATIVE_TEST_TIMEOUT_MS, PARK_MESSAGE, approveProposal, nativeAgentFixture } from "./test-native-agents";
 import { PROPOSAL_AI_DONE, PROPOSAL_DONE, REQUEST_EMPTY } from "@/research/persona";
+import { sliderRange } from "./PersonaStep";
 import { ResearchScreen } from "./ResearchScreen";
 import { type SavedBody, workspaceFixture } from "./test-workspace";
 import { TEST_FRAME, stagePath } from "./test-frame";
@@ -20,6 +21,12 @@ const SUGGESTION = {
 };
 const CONTEXT_PATH = "/api/v1/studies/STU-1/context";
 const PROPOSALS_PATH = "/api/v1/studies/STU-1/knowledge-proposals";
+const LIMITS_PATH = "/api/v1/studies/STU-1/research/limits";
+const TOPICS_PATH = "/api/v1/studies/STU-1/research/persona-topics";
+/** The server's mapping (persona_topics.dimension_topic), for the ids these tests choose. */
+const TOPICS: Record<string, string | null> = { media: "media", cena: "cena", zdravi: "zdravi", ekologie: "eko", "KNI-ai": null };
+/** The readiness limits in force, as the server answers them (RQC9): the preset's 20-10 000. */
+const LIMITS = { methodology_version: "aia-readiness-1", version: null, sample_size: { min: 20, max: 10000 } };
 /** The study's inherited context: the client's approved knowledge, a dimension among it. */
 const CONTEXT = {
   client_id: "CLI-1",
@@ -50,6 +57,8 @@ function aiaStub(project: Record<string, unknown>, over: Record<string, (b: unkn
       calls.push({ url: u, body });
       const answers: Record<string, (b: unknown) => unknown> = {
         [CONTEXT_PATH]: () => CONTEXT,
+        [LIMITS_PATH]: () => LIMITS,
+        [TOPICS_PATH]: () => ({ items: new URL(u, "http://x").searchParams.getAll("dimension").map((d) => ({ dimension: d, topic: d in TOPICS ? TOPICS[d] : null })) }),
         [PROPOSALS_PATH]: (b) => ({ proposal_id: "KNP-1", origin: "STUDY", status: "PROPOSED", title: (b as { title: string }).title }),
         ...over,
       };
@@ -62,7 +71,7 @@ function aiaStub(project: Record<string, unknown>, over: Record<string, (b: unkn
 const posted = (path: string) => calls.filter((c) => c.url.split("?")[0] === path && (!path.startsWith("/api/v1/") || c.body !== null));
 type Saved = { content: Record<string, unknown> & { persona_dimensions: { approved: string[] } }; reason: string };
 const lastSave = () => saves.at(-1) as unknown as Saved;
-const savedWith = (reason: string) => waitFor(() => expect(lastSave()?.reason).toBe(reason), { timeout: 4000 });
+const savedWith = (reason: string) => waitFor(() => expect(lastSave()?.reason).toBe(reason));
 const PLANNED = { research_plan: { recommended_topics: ["zdraví", "média"] } };
 /** Nothing the Dimenze step does reaches the 18.6.6 unit (ADR 0018). */
 const noUnitCalls = () => expect(calls.filter((c) => !c.url.startsWith("/api/v1/") && c.url !== "/config").map((c) => c.url)).toEqual([]);
@@ -102,6 +111,29 @@ describe("Dimenze", () => {
     expect(screen.getByRole("button", { name: /Vztah k AI/ })).toBeTruthy();
     expect(screen.getByRole("button", { name: "Další · kontrola" })).toBeTruthy();
     noUnitCalls();
+  });
+
+  it("names each chosen dimension's persona topic as the server maps it, an unmatched one said (DIM2)", async () => {
+    aiaStub({ ...PLANNED, persona_dimensions: { approved: ["ekologie", "KNI-ai"] } });
+    const { container } = render(<ResearchScreen step="persona" frame={TEST_FRAME} />);
+    const eco = await waitFor(() => {
+      const el = container.querySelector('[data-aia="dimension:ekologie"]');
+      expect(el?.textContent).toContain("téma persony: eko");
+      return el as HTMLElement;
+    });
+    expect(eco.textContent).toContain("Ekologie");
+    const own = container.querySelector('[data-aia="dimension:KNI-ai"]') as HTMLElement;
+    await waitFor(() => expect(own.textContent).toContain("bez tématu persony"));
+    expect(own.textContent).toContain("Znalosti klienta");
+    expect(calls.some((c) => c.url.startsWith(`${TOPICS_PATH}?dimension=ekologie&dimension=KNI-ai`))).toBe(true);
+    noUnitCalls();
+  });
+
+  it("a topic the server did not answer is never shown as matched", async () => {
+    aiaStub({ ...PLANNED, persona_dimensions: { approved: ["ekologie"] } }, { [TOPICS_PATH]: () => new Response("{}", { status: 500 }) });
+    const { container } = render(<ResearchScreen step="persona" frame={TEST_FRAME} />);
+    expect(await screen.findByText(/Témata persony se nepodařilo načíst/)).toBeTruthy();
+    expect(container.querySelector('[data-aia="dimension:ekologie"]')?.textContent).toContain("téma persony neověřeno");
   });
 
   it("without the client's knowledge the catalogue is the system's own", async () => {
@@ -201,7 +233,10 @@ describe("Dimenze", () => {
   it("the sample: a preset is the same change as typing it, and below the recommendation says so", async () => {
     aiaStub(PLANNED);
     render(<ResearchScreen step="persona" frame={TEST_FRAME} />);
-    fireEvent.click(await screen.findByRole("button", { name: "800" }));
+    const preset = (await screen.findByRole("button", { name: "800" })) as HTMLButtonElement;
+    // Offered once the server's valid n is read (RQC9).
+    await waitFor(() => expect(preset.disabled).toBe(false));
+    fireEvent.click(preset);
     await savedWith("sample_n_1789");
     expect(lastSave().content.n).toBe(800);
     expect(screen.getByText(/^\d+ dimenzí · N=800$/)).toBeTruthy(); // the dock's note
@@ -211,18 +246,67 @@ describe("Dimenze", () => {
     expect(await screen.findByText(/Pod doporučeným N=300/)).toBeTruthy();
   });
 
-  it("the sample: clamped when it is committed, and the recommendation", async () => {
+  it("the sample: a value outside the server's valid n is refused and said, never clamped (IA-1)", async () => {
     aiaStub(PLANNED);
     render(<ResearchScreen step="persona" frame={TEST_FRAME} />);
     const n = (await screen.findByLabelText("Počet respondentů")) as HTMLInputElement;
-    fireEvent.change(n, { target: { value: "10" } });
+    await waitFor(() => expect(n.disabled).toBe(false));
+    // The classic stored 50 for a typed 10 without a word; nothing is stored now.
+    for (const typed of ["19", "10001", "", "250.5"]) {
+      fireEvent.change(n, { target: { value: typed } });
+      fireEvent.blur(n);
+      expect((await screen.findByRole("alert")).textContent).toContain("20");
+      expect((screen.getByLabelText("Počet respondentů") as HTMLInputElement).value).toBe(typed);
+    }
+    expect(saves).toEqual([]);
+    expect(n.getAttribute("aria-invalid")).toBe("true");
+    // The bound itself is valid: both ends are included, as readiness reads them.
+    fireEvent.change(n, { target: { value: "20" } });
     fireEvent.blur(n);
     await savedWith("sample_n_1789");
-    expect(lastSave().content.n).toBe(50);
-    expect((screen.getByLabelText("Počet respondentů") as HTMLInputElement).value).toBe("50");
+    expect(lastSave().content.n).toBe(20);
+    expect(screen.queryByRole("alert")).toBeNull();
     fireEvent.click(screen.getByRole("button", { name: "Použít doporučené N=300" }));
     await savedWith("sample_recommended_1789");
     expect(lastSave().content.n).toBe(300);
+  }, 20_000);
+
+  it("the sample: a narrower range in force disables what it does not admit, the recommendation included", async () => {
+    aiaStub(PLANNED, { [LIMITS_PATH]: () => ({ ...LIMITS, version: 2, sample_size: { min: 500, max: 1000 } }) });
+    render(<ResearchScreen step="persona" frame={TEST_FRAME} />);
+    const recommended = await screen.findByRole("button", { name: "Použít doporučené N=300" });
+    await waitFor(() => expect((screen.getByRole("button", { name: "800" }) as HTMLButtonElement).disabled).toBe(false));
+    expect((recommended as HTMLButtonElement).disabled).toBe(true);
+    expect((screen.getByRole("button", { name: "400" }) as HTMLButtonElement).disabled).toBe(true);
+    expect((screen.getByRole("button", { name: "1200" }) as HTMLButtonElement).disabled).toBe(true);
+    const n = screen.getByLabelText("Počet respondentů") as HTMLInputElement;
+    fireEvent.change(n, { target: { value: "1500" } });
+    fireEvent.blur(n);
+    expect((await screen.findByRole("alert")).textContent).toContain("od 500 do 1000");
+    expect(saves).toEqual([]);
+  }, 20_000);
+
+  it("the sample: the slider's ends sit inside the valid n, a maximum under 250 included", () => {
+    expect(sliderRange({ min: 20, max: 10000 })).toEqual({ lo: 200, hi: 2000, step: 50 });
+    expect(sliderRange({ min: 500, max: 1000 })).toEqual({ lo: 500, hi: 1000, step: 50 });
+    expect(sliderRange({ min: 20, max: 100 })).toEqual({ lo: 20, hi: 100, step: 1 });
+    expect(sliderRange({ min: 20, max: 240 })).toEqual({ lo: 20, hi: 240, step: 1 });
+    expect(sliderRange({ min: 3000, max: 3010 })).toEqual({ lo: 3000, hi: 3010, step: 1 });
+    for (const l of [{ min: 20, max: 100 }, { min: 2500, max: 9000 }, { min: 30, max: 30 }]) {
+      const r = sliderRange(l);
+      expect(r.lo >= l.min && r.hi <= l.max && r.lo <= r.hi).toBe(true);
+    }
+  });
+
+  it("the sample: with the range unread nothing is stored, and the screen says why", async () => {
+    aiaStub(PLANNED, { [LIMITS_PATH]: () => new Response("{}", { status: 500 }) });
+    render(<ResearchScreen step="persona" frame={TEST_FRAME} />);
+    expect((await screen.findByRole("alert")).textContent).toContain("Rozsah vzorku se nepodařilo načíst");
+    const n = screen.getByLabelText("Počet respondentů") as HTMLInputElement;
+    fireEvent.change(n, { target: { value: "500" } });
+    fireEvent.blur(n);
+    expect((screen.getByRole("button", { name: "800" }) as HTMLButtonElement).disabled).toBe(true);
+    expect(saves).toEqual([]);
   }, 20_000);
 
   it("goes on calibrated to the run step; the panel's factors say they are not in AIA", async () => {

@@ -42,6 +42,7 @@ from aia_core.domain.research_lead import (
     LeadOutput,
     context_classification,
     context_sha256,
+    frozen_sample_size,
     ground_edits,
     ground_self_update,
     layer,
@@ -62,7 +63,7 @@ from aia_core.infrastructure.study_design_repository import StudyDesignRepositor
 from aia_worker.executor import Failed, StepContext, StepInput, StepOutcome, Succeeded
 from pydantic import ValidationError
 
-from .ai_step import StepModelCaller
+from .ai_step import StepModelCaller, class_advisory_fields
 
 __all__ = [
     "ARTIFACT_TYPE",
@@ -197,10 +198,12 @@ class ResearchLeadExecutor:
         context.progress("Vedoucí výzkumu odpovídá", turn=str(payload.get("turn_id")))
         result = caller.invoke(request)
         assert result.output is not None
-        assert request.data_classification is not None  # an unknown class refused above
+        # The class the gateway sent it as: the request's, or -- an unknown class passed under
+        # advisory class gates (develop only) -- the class it was judged as, with the advisory.
+        sent_class = result.provenance.data_class.value
         return LeadAnswer(
             output=LeadOutput.model_validate(result.output.model_dump(mode="json")),
-            data_class=request.data_classification.value,
+            data_class=sent_class,
             provenance={
                 "agent_id": request.agent.agent_id,
                 "agent_version": request.agent.version,
@@ -215,7 +218,8 @@ class ResearchLeadExecutor:
                 "route_id": result.provenance.route_id,
                 "policy_version": result.provenance.policy_version,
                 "cost_usd": result.total_cost_usd,
-                "data_class": request.data_classification.value,
+                "data_class": sent_class,
+                **class_advisory_fields(result.provenance.class_advisories),
                 # Each part's class and who answered for it: a rule of the owner's
                 # (``rule:<name>``), an operator who raised it, the prompt's declaration or the
                 # code, an earlier reply's turn (``context_classification``).
@@ -280,7 +284,10 @@ class ResearchLeadExecutor:
             return answer
         design = layer(frozen, "design")
         grounded, dropped = ground_edits(
-            answer.output, design.get("content") or {}, design.get("analysis") or None
+            answer.output,
+            design.get("content") or {},
+            design.get("analysis") or None,
+            sample_size=frozen_sample_size(design),
         )
         notes = list(layer(frozen, "lead").get("notes") or ())
         shown = [str(n["memory_id"]) for n in notes]

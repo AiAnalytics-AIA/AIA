@@ -1,7 +1,7 @@
 ---
-status: planned
+status: in-progress
 chunks:
-  - "[ ] RQC0. A per-respondent checkpoint (OI-64): each answered respondent and its paid-call identity are stored under the lease; a retry resumes; a possibly-billed uncertain call requires recovery and never triggers an automatic paid replay"
+  - "[x] RQC0. A per-respondent checkpoint (OI-64): each answered respondent and its paid-call identity are stored under the lease; a retry resumes; a possibly-billed uncertain call requires recovery and never triggers an automatic paid replay"
   - "[ ] RQC1. One straight-liner definition in `domain/`, called by the Sociomap engine, the run QC and the worker"
   - "[ ] RQC2. The QC node wired into the run: template node, step kind, registry, `AIA_RUN_QC_ENABLED`, the run-key identity"
   - "[ ] RQC3. A `MaterialRule` and lineage for run-derived material sent to a model (QC flags, the map interpreter)"
@@ -10,8 +10,8 @@ chunks:
   - "[ ] RQC6. Quotas before a run and a support forecast for the panel path"
   - "[ ] RQC7. The fieldwork event contract: heartbeat, quota-cell fill, a respondent grid, the park reason code"
   - "[ ] RQC8. Readiness reads the worker's egress: a run whose route cannot carry Class A is flagged before it parks"
-  - "[ ] RQC9. One authority for the valid n: the domain readiness limits, read by the web and the Lead"
-  - "[ ] RQC10. A population double composed in both the API and the worker over HTTP, for tier A's AC-05"
+  - "[x] RQC9. One authority for the valid n: the domain readiness limits, read by the web and the Lead"
+  - "[x] RQC10. A population double composed in both the API and the worker over HTTP, for tier A's AC-05"
   - "[ ] RQC11. Routing in fieldwork (W1, after working-copy-edit-ops WCE13): a conditional question is asked only of respondents whose earlier answer meets its condition, and the dataset records who was not asked"
   - "[ ] RQC4a. W1 flag contract: deterministic QC flags, ids, lineage and accept-target schema before the W3 model-worker proposal"
   - "[ ] RQC12. Weight identity over HTTP: weight_role and weight_column in the run's population note and in the report's method section (G78)"
@@ -102,3 +102,158 @@ respondent's input, so its prompt part is pinned with the run like the rest of t
 - **RQC9.** The valid-n authority is the organization's readiness methodology in force, not a code
   constant.
 - The attention check (D-43) is **out**.
+
+## RQC9, delivered (2026-10-20, branch `feature/w0-n-authority-population-double`)
+
+**The rule.** `sample_size_problem(n, limits)` in `domain/research_design.py` is the one judgement of
+a valid n: a whole number within the readiness limits in force, both bounds included; a boolean, a
+fraction or text is `sample_size_missing`, a whole number outside the range
+`sample_size_out_of_range`. Nothing clamps. Readiness's `sample_size` check calls it.
+
+**The authority.** `application/research.py` `readiness_in_force(session, scope)`: the
+organization's readiness methodology in force (a stored version, else the preset
+`aia-readiness-1`, 20-10,000), as the scope-freeze note on RQC9 requires. A run start pins it as
+before (`ResearchRuns._readiness` now calls it); the three readers below read the same function.
+
+- **The web** reads `GET /api/v1/studies/{study_id}/research/limits` (`ResearchLimitsResponse`:
+  `methodology_version`, `version`, `sample_size {min, max}`). Its own 50-5,000 copy is gone
+  (`research/persona.ts` `setSampleSize`, `PersonaStep.tsx` `SampleInput`). A value outside the
+  range, an empty field or anything but a whole number is **refused and said, never stored and never
+  clamped** (finding IA-1 closed): the field keeps what the person typed, `role="alert"` says the
+  range, the presets and the recommendation are disabled where the range does not admit them, the
+  slider's thumb range sits inside it. Limits not yet read disable the field; limits that cannot be
+  read refuse every value and say so (unknown is never presumed to admit a value).
+- **The Lead** is frozen with the limits (`design.readiness` in the turn's context,
+  `domain/research_lead.py` `readiness_layer`). `ground_edits(…, sample_size=)` drops a `set_n`
+  outside them by name at the turn; `apply_edit(…, sample_size=)` refuses it at the accept under the
+  limits in force *then* (`decide_edits`), so a version activated while the Lead worked is what is
+  enforced. The closed schema keeps only `ge=1`: its old 30-40,000 was the fourth range. The harness
+  moved to `aia-research-lead-2`, so a turn queued under 1 (no limits frozen) is refused by the
+  executor's existing harness check rather than grounded without limits.
+- **The sampler** is not a fourth authority: it draws the n the run was started with, and a start
+  is refused below or above the readiness limits before any draw.
+
+**Tests.** `test_research_design.py::test_the_one_rule_for_a_valid_n_refuses_and_never_clamps`,
+`::test_a_valid_n_is_judged_by_the_limits_given_not_the_preset`;
+`test_research_lead.py::test_a_set_n_is_held_to_the_readiness_limits_at_the_turn_and_at_the_accept`,
+`::test_a_set_n_with_no_limits_known_is_dropped_and_refused_never_presumed_valid`;
+`test_methodology_api.py::test_the_study_reads_the_valid_n_in_force_and_an_activation_moves_it`;
+`test_research_lead_api.py::test_a_sample_size_is_accepted_only_within_the_readiness_limits_in_force`;
+`test_research_lead_executor.py::test_a_sample_size_outside_the_frozen_readiness_limits_is_dropped_by_name`;
+`PersonaStep.test.tsx` "the sample: a value outside the server's valid n is refused and said, never
+clamped (IA-1)", "… a narrower range in force disables …", "… with the range unread nothing is
+stored …"; `persona.parity.test.ts` "the input: a value the classic stored as typed is stored the
+same; one it clamped is refused".
+
+**A deliberate departure from 18.6.6.** The classic input's clamp (`PROJECT.n=Math.max(50,
+Math.min(5000, …))`) is not ported: the parity test now pins what still matches (an in-range value
+is stored as the classic stored it) and asserts the refusal where the classic clamped.
+
+**Left for the input-interactions plan (not this chunk).** IA-3, one stepper replacing the field and
+the slider, is that plan's B1; the slider here only stays inside the range.
+
+## RQC10, delivered (2026-10-21, branch `feature/w0-n-authority-population-double`)
+
+**The double.** `packages/aia_core/src/aia_core/application/population_double.py`: one fictional
+population (the sampler's 3,000 fictional rows on 400 donors, the fictional signal catalog, the
+unit's value labels and a joint certificate naming the panel) under a contract of its own
+(`aia_population_double/v1`, LIVE `DOUBLE_FICTIONAL_LIVE`), built from deterministic bytes so two
+processes build the same contract and source independently, and established through
+`PopulationRuntime` as an operator would (`establish`, idempotent; LIVE's audience catalogue kept).
+Nothing bypasses the canonical loader, the field policy or the certificate gate.
+
+**Composed in both processes, by configuration.**
+
+- **API**: `AIA_POPULATION_DOUBLE=true` (`Settings.population_double`).
+  `dependencies.install_population_double` composes it at start without touching the database (the
+  schema may not exist yet); the first request that needs it establishes it in its own transaction
+  (`get_run_population`, `get_audience_population`, `get_audience_previewer`). A new research run
+  then records the double's LIVE (`RunPopulationDep` on `POST …/research/runs`), and the audience
+  catalogue and preview read it. Off, every deployment records the Czech LIVE exactly as before.
+- **Worker**: `AIA_WORKER_EXECUTORS=aia_executors.population_double:build_registry` is the production
+  registry (`registry.build_registry(population=…)`, a new keyword the factory is never called with
+  by name) with the panel path's loader replaced by the double's. Everything else, the AI runtime,
+  the gateway's gates and the Class A panel request, is production's.
+
+**Never in a deployment.** The double refuses any `AIA_ENV` but local and test before it reads a
+byte (`population_double_problem`; unset and unknown refuse); `Settings.validate_for_production`
+refuses the switch in develop, staging and production; `tools/layer_check.sh` allows only
+`apps/api/src/aia_api/dependencies.py` and `apps/executors/src/aia_executors/population_double.py`
+to import it, forbids it in the worker and the rest of the core, and forbids `deploy/` and `infra/`
+naming it -- the rules the workbench composition and recorded web retrieval are kept by.
+
+**One builder.** The executors' panel tests (`apps/executors/tests/grounded_world.py`) and the API's
+audience fixture (`apps/api/tests/conftest.py` `fictional_live`) carried two hand-copied builders
+of the same population; both are now the double under their own names, so the panel path those
+tests prove is the one tier A drives (the files that use them pass unchanged: 54 tests in
+`test_ai_fieldwork.py`, `test_validation_executors.py` and `test_deep_research_planned_recovery.py`,
+26 in `test_population_api.py`). `tools/ui_workbench/fictional_population.py` (a third
+copy, with its own `wb1_*` labels and no persona companions) is left for its own change: its labels
+are what the workbench journeys read.
+
+**Tests.** `packages/aia_core/tests/test_population_double.py` (refusals per environment, determinism
+across two builds, idempotent establishment, a load from a second build);
+`apps/api/tests/test_population_double_api.py` (every deployed environment refuses the switch; a
+panel run over HTTP records the double's LIVE; the audience step reads it);
+`apps/executors/tests/test_population_double_worker.py::test_a_panel_run_over_http_is_answered_from_the_double_the_worker_composed`
+(an API with the double, a worker with a double of its own, a scripted Bedrock: the run's fieldwork
+step is `MODELLED_AI_PANEL` from the recorded LIVE, one request per respondent per block), and the
+worker composition's refusals and its equality with the production registry's step kinds.
+
+**What tier A still needs from other plans.** The recorded model doubles behind the gateway
+(`mvp-acceptance-harness#4`) and the harness itself (`#3`); this chunk supplies only the
+population. A live AC-05 run on develop reads the Czech LIVE, never this.
+
+## Review of #539 (2026-10-21), fixed on the branch
+
+- **P2-2, RQC10: establishing raced on a fresh database.** The audience step reads its catalogue and
+  its preview at once (`AudienceStep.tsx:100`, `:425`), so two first requests both found nothing and
+  both imported: a unique-constraint 500. `PopulationDouble.establish` now writes in a savepoint and,
+  when another transaction got there first (`IntegrityError`, or the registry's `PromotionRefused`),
+  reads back what it wrote. The API establishes it inside the asking request's own transaction
+  (`dependencies.ensure_population_double`, through `SessionDep`), so it commits with that request.
+  Tests:
+  `test_population_double.py::test_two_concurrent_first_establishes_both_get_the_one_live` (two
+  threads, both read before either writes; PostgreSQL, skipped on SQLite, which admits one writer),
+  `::test_an_establish_that_read_before_another_committed_reads_back_what_it_wrote`,
+  `test_population_double_api.py::test_concurrent_first_requests_establish_the_double_once` (two
+  request transactions at once; PostgreSQL). Both core tests fail with the savepoint's handler
+  removed (measured).
+- **P3-3, RQC10: an unset `AIA_ENV` composed the API's double.** The settings read an unset
+  `AIA_ENV` as local (`config.py:37`); the API now passes the environment to the double only when
+  it was named (`Settings.model_fields_set`), so unset refuses as it does in the worker
+  (`test_population_double_api.py::test_an_unset_aia_env_refuses_the_double`).
+- **P3-4, RQC9: a design variant stored its n unchecked** (`research/plan.ts` `applyVariant`). It now
+  takes the server's limits: an n outside them (or unread limits) is not stored, the plan still is,
+  and the toast says why; while the limits load nothing is applied. `persona.ts` `sampleRefusal` is
+  the one web check both screens use. Tests: `plan.parity.test.ts` "a variant's n is held to the
+  server's valid n (RQC9)", `PlanStep.test.tsx` "applies a variant whose n the valid range refuses
+  without its n, and says so".
+- **P3-5, RQC9: the slider left the valid n** when its maximum is under 250. `PersonaStep.tsx`
+  `sliderRange`: 200-2,000 in steps of 50 cut to the range, else the whole range in steps of 1; its
+  ends are always inside (`PersonaStep.test.tsx` "the slider's ends sit inside the valid n").
+- **P3-6, RQC9: refusals showed as codes.** `lib/lead.ts` `editRefusalWords` / `droppedLines`: a
+  refused or dropped edit in Czech, the sample-size reasons included; the Workbench says why a
+  clicked edit was refused, and the Lead pane names a dropped sample size on its own line
+  (`lead.test.ts` "a refused or dropped edit says why in words (RQC9)").
+
+## Doc follow-up (RQC9, RQC10)
+
+- `CLAUDE.md` §2: under `routers/` research, `GET …/research/limits` (the readiness limits in force,
+  the valid n the web refuses outside of); under `application/`, `population_double.py` (LOCAL AND
+  TEST ONLY: the fictional population both processes compose for tier A, refused outside local and
+  test); under `aia_executors/`, `population_double.py` (the production registry with the panel
+  loader replaced by the double's; refuses outside local and test); `dependencies.py`: the population
+  a new run records (`RunPopulationDep`: the Czech LIVE; the double only under
+  `AIA_POPULATION_DOUBLE`); `research/persona.ts`: the sample input refuses outside the server's
+  range, never clamps (IA-1); `domain/research_lead.py`: `set_n` held to the readiness limits frozen
+  in `design.readiness` (harness `aia-research-lead-2`).
+- `ARCHITECTURE.md` §3, five rows: "nothing in the core / the worker imports the population double;
+  in the API only the composition root; among the executors only its composition; no deployment or
+  infrastructure definition names it" | prevents "a fictional population reaching a deployed run, or
+  a deployed process composed with it".
+- `ARCHITECTURE.md` §4 (population): a run records the deployment's LIVE; in local and test, the
+  population double's when `AIA_POPULATION_DOUBLE` composes it.
+- `.planning/open-items.md`: IA-1 closed by RQC9 (anchor `research/persona.ts` `setSampleSize`, test
+  `PersonaStep.test.tsx` "the sample: a value outside the server's valid n is refused and said, never
+  clamped (IA-1)").

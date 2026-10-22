@@ -69,7 +69,23 @@ import { ActionDock, RadioCard, StepSection } from "../step";
 import { AiButton, Button, Chip, Field, Tag, TextArea, TextInput } from "../ui";
 import { useResearch } from "./context";
 import { InspectorSlot } from "./Inspector";
+import { AskLead, useLeadOwnsAiStarts } from "./AskLead";
 import { AiFailureCard, useAiStep } from "./useAiStep";
+
+/**
+ * What the Research Lead can name on this screen (artifact-audience § 4): the description, the
+ * filters, one factor by its catalogue id, one built-in subpanel, the preview. The workbench
+ * focuses them through lib/lead.ts focusSelector's `data-aia` fall-through.
+ */
+export const AUDIENCE_TARGET = { definition: "audience:definition", filters: "audience:filters", preview: "audience:preview" } as const;
+/**
+ * One stored filter's target, by its factor's catalogue id (`audience:filter:kraj`). It sits on the
+ * filter's chip under "Vybrané filtry", which every stored filter has whatever category, search or
+ * 80-factor cut the editor shows; a factor's editor may be off screen.
+ */
+export const audienceFactorTarget = (factorId: string) => `audience:filter:${factorId}`;
+/** One built-in subpanel's target, by its key (`audience:subpanel:young_18_29`). */
+export const audienceSubpanelTarget = (key: string) => `audience:subpanel:${key}`;
 
 const NOT_IN_AIA = "rounded-control border border-status-you-ink/40 bg-status-you-wash p-4";
 const EYEBROW = "font-mono text-[11px] uppercase tracking-[0.08em] text-ink-faint";
@@ -259,9 +275,13 @@ const ui = (p: ResearchProject) => (p.ui_state || {}) as Record<string, unknown>
  * a study already stores (removable) -- and why the rest is missing. Either way the AI's
  * proposed description of the audience (a native job, ADR 0016/0018).
  */
+/** Said once a native audience proposal is reviewed, whether it ran at once or after a budget lift. */
+const PROPOSE_SAVED = "Návrh audience je uložený. Zkontrolujte popis a omezení.";
+
 function FilterEditor({ live }: { live: Live }) {
   const { store, state, runJob, toast } = useResearch();
   const step = useAiStep();
+  const leadOwnsAiStarts = useLeadOwnsAiStarts();
   const [text, setText] = useState(String(state.project.audience.description || ""));
   const chips = filterChips(state.project, live.state === "ready" ? live.catalog : null);
   const change = (c: Change) => store.update(() => ({ project: c.project }), { reason: c.reason, invalidateCheck: c.invalidateCheck });
@@ -273,7 +293,7 @@ function FilterEditor({ live }: { live: Live }) {
       if (!typed) throw new Error(PROPOSE_EMPTY);
       await step.saved();
       const r = (await runJob("audiencePropose", proposePayload(store.get().project, typed), { title: PROPOSE_TITLE, warnMs: PROPOSE_WARN_MS })) as Parameters<typeof applyProposal>[2];
-      if (isNativeResult(r)) { toast("Návrh audience je uložený. Zkontrolujte popis a omezení."); return; }
+      if (isNativeResult(r)) { toast(PROPOSE_SAVED); return; }
       const a = applyProposal(store.get().project, typed, r || {});
       change(a.change);
       if (a.uncovered) toast(PROPOSE_UNCOVERED);
@@ -281,14 +301,17 @@ function FilterEditor({ live }: { live: Live }) {
 
   return (
     <div className="mt-4 flex flex-col gap-3">
-      {live.state === "ready" ? <LiveFilters live={live} /> : null}
-      {live.state === "missing" ? (
-        <NotInAia title={t("research.audience.filterTitle")}>{`${live.text} ${t("research.audience.filtersNotInAia")}`}</NotInAia>
-      ) : null}
-      <section className="rounded-control border border-border bg-surface p-4" aria-labelledby="aud-filters">
+      {live.state === "loading" ? null : (
+        <div data-aia={AUDIENCE_TARGET.filters}>
+          {live.state === "ready" ? <LiveFilters live={live} /> : (
+            <NotInAia title={t("research.audience.filterTitle")}>{`${live.text} ${t("research.audience.filtersNotInAia")}`}</NotInAia>
+          )}
+        </div>
+      )}
+      <section data-aia={AUDIENCE_TARGET.definition} className="rounded-control border border-border bg-surface p-4" aria-labelledby="aud-filters">
         {step.failure ? (
           <div className="mb-4">
-            <AiFailureCard failure={step.failure} title={t("research.audience.failedTitle")} onRetry={() => step.setFailure(null)} />
+            <AiFailureCard failure={step.failure} title={t("research.audience.failedTitle")} onRetry={() => step.setFailure(null)} onContinue={(id) => void step.resume(id, () => toast(PROPOSE_SAVED))} />
           </div>
         ) : null}
         <div className={EYEBROW}>{t("research.audience.filterTag")}</div>
@@ -296,15 +319,16 @@ function FilterEditor({ live }: { live: Live }) {
         <Field label={t("research.audience.describe")} className="mt-3">
           <div className="flex flex-wrap gap-2">
             <TextInput className="min-w-64 flex-1" value={text} placeholder={t("research.audience.describePlaceholder")} onChange={(e) => setText(e.target.value)} />
-            <AiButton disabled={step.busy} onClick={() => void propose()}>{t("research.audience.propose")}</AiButton>
+            {!leadOwnsAiStarts ? <AiButton disabled={step.busy} onClick={() => void propose()}>{t("research.audience.propose")}</AiButton> : null}
           </div>
         </Field>
+        {leadOwnsAiStarts ? <AskLead className="mt-2" what="Návrh cílové skupiny z popisu" /> : null}
         {chips.length ? (
           <>
             <p className="mt-3 text-xs text-ink-muted">{live.state === "ready" ? t("research.audience.selectedFilters") : t("research.audience.storedFilters")}</p>
             <ul className="mt-1 flex flex-wrap gap-1.5">
               {chips.map((c) => (
-                <li key={c.id} className="inline-flex items-center gap-1 rounded-sm border border-signal-edge bg-signal-wash py-0.5 pl-2 pr-0.5 text-xs">
+                <li key={c.id} data-aia={audienceFactorTarget(c.id)} className="inline-flex items-center gap-1 rounded-sm border border-signal-edge bg-signal-wash py-0.5 pl-2 pr-0.5 text-xs">
                   <b>{c.label}</b>: {c.text}
                   <button
                     type="button"
@@ -358,7 +382,7 @@ function LiveFilters({ live }: { live: Extract<Live, { state: "ready" }> }) {
           </li>
         ))}
       </ul>
-      <Preview />
+      <Preview catalog={live.catalog} />
     </section>
   );
 }
@@ -413,7 +437,7 @@ function FactorEditor({ factor, project, onChange }: { factor: Factor; project: 
 }
 
 /** The feasibility preview: counted by the API over AIA's population, through the run's own functions. */
-function Preview() {
+function Preview({ catalog }: { catalog: Catalog }) {
   const { store } = useResearch();
   const [answer, setAnswer] = useState<{ ok: boolean; lines: string[]; seed?: number } | null>(null);
   const [busy, setBusy] = useState(false);
@@ -423,7 +447,7 @@ function Preview() {
     const n = Number(p.n);
     try {
       const r = await population.audiencePreview((p.audience.filters as Record<string, unknown>) || {}, Number.isFinite(n) && n >= 1 ? n : null);
-      setAnswer({ ...liveVerdict(r), seed: r.seed });
+      setAnswer({ ...liveVerdict(r, catalog), seed: r.seed });
     } catch (e: unknown) {
       if (e instanceof ApiError && e.code === "audience_preview_unavailable") setAnswer({ ok: false, lines: [t("research.audience.previewUnavailable")] });
       else setAnswer({ ok: false, lines: [tv("research.audience.previewFailed", { message: e instanceof Error ? e.message : String(e) })] });
@@ -432,7 +456,7 @@ function Preview() {
     }
   };
   return (
-    <div className="mt-4 border-t border-border pt-3">
+    <div data-aia={AUDIENCE_TARGET.preview} className="mt-4 border-t border-border pt-3">
       <Button disabled={busy} onClick={() => void check()}>
         {busy ? t("research.audience.previewRunning") : t("research.audience.previewButton")}
       </Button>
@@ -461,11 +485,13 @@ function Subpanels({ live }: { live: Extract<Live, { state: "ready" }> }) {
         <p className="mt-1 text-xs text-ink-muted">{tv("research.audience.subpanelsIntro", { measured: live.api.subpanels_measured_on })}</p>
         <div role="radiogroup" aria-label={t("research.audience.subpanelsTitle")} className="mt-2 grid gap-2 [grid-template-columns:repeat(auto-fit,minmax(240px,1fr))]">
           {live.api.subpanels.map((sp) => (
-            <RadioCard key={sp.key} checked={current === sp.key} disabled={sp.usable !== true} onSelect={() => current !== sp.key && pick(sp.key)} title={sp.name}>
-              {tv("research.audience.subpanelRows", { rows: sp.measured_by_18_6_6.rows.toLocaleString("cs-CZ"), donors: sp.measured_by_18_6_6.unique_core_donors.toLocaleString("cs-CZ") })}
-              {sp.usable === false ? <> · {tv("research.audience.subpanelUnusable", { reason: sp.reason || "?" })}</> : null}
-              {sp.usable == null ? <> · {t("research.audience.subpanelUnknown")}</> : null}
-            </RadioCard>
+            <div key={sp.key} data-aia={audienceSubpanelTarget(sp.key)} className="grid">
+              <RadioCard checked={current === sp.key} disabled={sp.usable !== true} onSelect={() => current !== sp.key && pick(sp.key)} title={sp.name}>
+                {tv("research.audience.subpanelRows", { rows: sp.measured_by_18_6_6.rows.toLocaleString("cs-CZ"), donors: sp.measured_by_18_6_6.unique_core_donors.toLocaleString("cs-CZ") })}
+                {sp.usable === false ? <> · {tv("research.audience.subpanelUnusable", { reason: sp.reason || "?" })}</> : null}
+                {sp.usable == null ? <> · {t("research.audience.subpanelUnknown")}</> : null}
+              </RadioCard>
+            </div>
           ))}
         </div>
       </section>

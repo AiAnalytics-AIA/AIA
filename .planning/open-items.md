@@ -3697,6 +3697,11 @@ raises `StaleKnowledgeProposal` (409 `knowledge_proposal_stale`, both revisions 
 reviewer names the current revision as `reviewed_revision`, which the new revision's provenance
 records. A pending edit filed before the column has an unknown base and is treated as stale. The
 API test is `test_client_api.py::test_an_edit_written_from_an_older_revision_is_a_409_until_the_reviewer_names_the_current`.
+Widened by #542 (merged as `8a71b83`, 2026-10-21, lifecycle K3): `domain/knowledge.py`
+`reviewed_decision` refuses a reviewer's named revision that is not the current one whatever the
+edit's base, and the decision is stored as AUTHORED, ACCEPTED, ACCEPTED_OVER or REJECTED with the
+`reviewed_revision` named (migration `a3c5e7f9b1d4`); naming a revision for a new item is 422
+`no_revision_to_review`.
 
 ## OI-112 · Finding, closed · A retry's run froze on Průběh
 
@@ -4151,7 +4156,12 @@ exact bytes. Recorded in ADR 0008, Amendment 2026-10-19, *Addendum*; it narrows 
 **Test.** What holds the decision: `test_deep_research_journey.py` runs on designs an operator
 classified; a design classified by rule there would be the test of any later change.
 
-**Status.** Decided. Nothing to build.
+**Status.** Decided. Nothing to build. On develop, decided again and implemented as advisory (the
+product owner, 2026-10-21, Q65/Q66; plan `develop-class-advisory` chunk 5; #594, merged as `fdd27c9`;
+ADR 0008, Amendment 2026-10-21): under `AIA_DATA_CLASS_GATES=advisory` an unclassified design takes
+the design rule's class (B), recorded on the plan step's event
+(`test_deep_research_class_advisory.py::test_under_advisory_an_unclassified_design_takes_the_design_rule_and_says_so`);
+an operator's classification is kept. Still open for staging and production, where enforce applies.
 
 ---
 
@@ -4282,7 +4292,13 @@ paths…" misses its heading within `findByRole`'s 1 s; each failed once in two 
 
 **Test.** The suite under load.
 
-**Status.** Hypothesis: reproduce or delete (CLAUDE.md §9).
+**Status.** Reproduced and closed by #536 (merged as `fd523a8`, 2026-10-21; plan `input-interactions`,
+Findings WT-1, which carries all six parts). At load average ~7 the suite failed 3 tests, at ~13 it
+failed 24 in 9 files, every file passing alone: CPU starvation against idle-sized budgets (vitest's
+5 s per test, testing-library's 1 s per lookup), no shared state. Fix: `testTimeout: 30_000`
+(`apps/web/vitest.config.mts`) and `asyncUtilTimeout: 10_000` (`apps/web/vitest.setup.ts`); three
+full runs on a loaded host passed 2448 of 2448. Recorded in CLAUDE.md §7, Known flakes. WT-1 takes
+no number of its own: it is this item.
 
 ---
 
@@ -4309,7 +4325,10 @@ reachable, so the limit binds a research run and not a design job.
 **Test.** A start whose reservation reaches the limit without a confirmation is refused, and with one
 it is recorded in the approval ledger.
 
-**Status.** Open.
+**Status.** Closed by #541 (merged as `b3984d4`, 2026-10-21, `lead-orchestration` LO15):
+`ResearchAgentJobs.spend_gate` applies `money.threshold_verdict` to the job's reservation at start and
+rebuild; the routes take `confirm_cost_usd` and answer 409 `cost_confirmation_required`. Tests:
+`packages/aia_core/tests/test_research_agent_spend.py`, `apps/api/tests/test_research_agent_spend_api.py`.
 
 ---
 
@@ -4383,3 +4402,1365 @@ on PostgreSQL (`ARCHITECTURE.md` §8); `AGENTS.md` § Alembic says to verify mig
 **Test.** CI's `alembic check` on PostgreSQL.
 
 **Status.** Open; accepted as a property of the test setup, not a defect.
+
+---
+
+## OI-139 · Finding · The Lead's request card shows no cost and starts the job on one click
+
+**Claim.** A Lead turn's request card starts a paid agent job on "Spustit úlohu" without showing its
+price; the only ceiling is the flat `AIA_AI_RESEARCH_RESERVATION_USD`, raised only as a 409 when it
+reaches the study's limit, and the turn returns no cost.
+
+**Anchor.** `apps/web/src/components/workbench/LeadPane.tsx:471-488`, `Workbench.tsx:258-279`,
+`apps/api/src/aia_api/routers/lead.py:458-462`, `application/research_lead.py:720-734 @ 242523e`.
+Plan `lead-orchestration`, Findings CR-1 (the coordinator's card review, 2026-10-20).
+
+**Reproduction.** `make ui-workbench` with in-process scripted model answers and
+`AIA_AI_ANALYSIS_ENABLED=true`, then `make ui-fixtures`; a Lead turn proposing an agent job, then
+"Spustit úlohu".
+
+**Consequence.** A person approves paid work without seeing its price.
+
+**Smallest fix.** The card path's price step (`lead-orchestration` LO4, LO10): the turn returns
+`ceiling_usd`, the card shows "až X USD" and sends `confirm_cost_usd`.
+
+**Test.** A request card renders its ceiling, and approving it without `confirm_cost_usd` at or above
+the limit is refused.
+
+**Status.** Open.
+
+---
+
+## OI-140 · Finding, closed · A design job waiting for budget reads as a failure with "Zkusit znovu"
+
+**Claim.** When a stage's design job stops at the study's budget, the stage shows a fault card whose
+"Zkusit znovu" starts a new job, while the real budget lift sits out of sight.
+
+**Anchor.** `apps/web/src/lib/research-agent-jobs.ts:28, 45-47`,
+`components/rehome/research/useAiStep.tsx:47, 58-80`; `AgentBudgetWaits` mounted only at
+`ResearchScreen.tsx:319, 363 @ 242523e`. Plan `two-roles-human-ai-gates`, Findings CR-2.
+
+**Reproduction.** `make ui-workbench` with in-process scripted model answers and
+`AIA_AI_ANALYSIS_ENABLED=true`, then `make ui-fixtures`; a study with no budget left, then any stage's
+AI job.
+
+**Consequence.** "Zkusit znovu" starts a new job instead of lifting the budget; the real lift is
+hidden in "Připravenost a pomoc".
+
+**Smallest fix.** `followAgentJob` reports an `AWAITING_BUDGET` step as its own kind (and `waiting`
+counts `AWAITING_*`); `AiFailureCard` renders `AgentBudgetWaits` for it.
+
+**Test.** A job whose step is `AWAITING_BUDGET` shows the budget lift in place, never a retry.
+
+**Status.** Closed by #533 (merged as `5116723`, 2026-10-21).
+
+---
+
+## OI-141 · Finding, closed · One budget lift releases one analysis step, so a run's eight steps need eight lifts
+
+**Claim.** Progress draws a budget form under every waiting step, and the lift passes only that one
+step to `lift_study_budget_waits`, so a run whose eight analysis modules stopped at the cap needs
+eight lifts.
+
+**Anchor.** `components/rehome/research/ExecutionSteps.tsx:1285-1287` (a `BudgetLift` per step),
+`application/research.py:1036-1049 @ 242523e` (line 1048 passes `[step]` to
+`lift_study_budget_waits`). Plan `two-roles-human-ai-gates`, Findings CR-3.
+
+**Reproduction.** `make ui-workbench` with in-process scripted model answers and
+`AIA_AI_ANALYSIS_ENABLED=true`, then `make ui-fixtures`; a run whose analysis steps stop at the
+study's cap, then one 20 USD lift on Progress.
+
+**Consequence.** Eight forms, eight clicks, the budget raised each time, eight ledger rows.
+
+**Smallest fix.** Lift every `AWAITING_BUDGET` step of the run (`run["steps"]`; the helper already
+filters) and render one run-level lift.
+
+**Test.** One lift on a run with several waiting steps resumes them all, in one ledger row.
+
+**Status.** Closed by #533 (merged as `5116723`, 2026-10-21).
+
+---
+
+## OI-142 · Finding · A client with DATASET, ARTIFACT or FINDING knowledge cannot run any AI design job
+
+**Claim.** A design job over a client whose knowledge holds a DATASET, ARTIFACT or FINDING item carries the
+placeholder lineage `unclassified-client-knowledge`, which the licence gate refuses, so that client
+gets no AI help although only titles and summaries reach the model.
+
+**Anchor.** `domain/research_agents.py:688-690` (the placeholder lineage
+`unclassified-client-knowledge`), `domain/licence.py:158-164`, no such entry in
+`domain/licence_determinations.py @ 242523e`; `knowledge_entries` (`research_agents.py:545-562`)
+carries no lineage. Plan `client-data-in-analysis`, Findings CR-4.
+
+**Reproduction.** `make seed-develop`, then any design job for Horizont Mobility: refused
+`licence_dataset_unknown`.
+
+**Consequence.** The seeded client, and any real client with a dataset, artifact or finding, gets no
+AI help.
+
+**Smallest fix.** The lineage is the union of the items' recorded datasets (`provenance.datasets`),
+the placeholder only when one is unrecorded; the seed records `aia_synthetic_fixture`.
+
+**Test.** A design job over a client with DATASET, ARTIFACT and FINDING knowledge, each recording its
+dataset, passes the licence gate; one over an item of any of the three kinds with no recorded dataset
+is still refused by name.
+
+**Status.** Open. The EU Bedrock route is unblocked by #582's determination (merged as `7cd7acd`,
+2026-10-21; `CLIENT_KNOWLEDGE_DATASET` APPROVED for `bedrock-eu-primary` alone, OI-187); per-item
+recorded lineage remains #537 (`fix/knowledge-dataset-lineage`), still open on 2026-10-21.
+
+---
+
+## OI-143 · Finding, closed · The report card said "Modelovaná data" for a run of fictional respondents
+
+**Claim.** The report card's "Omezení, původ dat a příloha evidence" part was a static string that
+never read the run's origin, so a fictional run was labelled modelled.
+
+**Anchor.** Before: `apps/web/src/components/rehome/research/CompleteReport.tsx:66 @ 242523e`, a
+static string in `reportParts` that never read `runOriginKinds` (`lib/research-execution.ts:186-205`).
+After: `04ed258f` (#530), `reportParts` takes the run's origin kinds and words them through
+`originWords`. Plan `report-delivery`, Findings CR-5.
+
+**Reproduction.** Before the fix: `make ui-research` (fictional fieldwork), then Výsledky's report
+card.
+
+**Consequence.** A fictional run was labelled modelled, against the rule that every label reads the
+origin.
+
+**Smallest fix.** Done: "Fiktivní data", "Modelovaná data", "Neznámý původ dat" (an unknown origin,
+or none stated yet), a mixed run every kind.
+
+**Test.** `CompleteReport.test.tsx` "the report card's origin (CR-5)".
+
+**Status.** Closed (`04ed258f`, #530).
+
+---
+
+## OI-144 · Finding · The sample size is silently clamped
+
+**Claim.** Typing 20 in "Počet respondentů" stores 50, and an empty field stores the recommendation,
+with no message.
+
+**Anchor.** `apps/web/src/research/persona.ts:180 @ 44b66ef`; the field at
+`apps/web/src/components/rehome/research/PersonaStep.tsx:407 @ 44b66ef`. Audit
+`.planning/evidence/input-interactions-audit.md` §6, IA-1.
+
+**Reproduction.** A Vitest on `setSampleSize(p, "20").project.n === 50`.
+
+**Consequence.** The researcher believes n is what they typed.
+
+**Smallest fix.** Refuse out-of-range at the field (input standard I2, I9; `input-interactions`
+chunk 5).
+
+**Test.** The stepper's unit test asserting 20 is shown as an error and not stored.
+
+**Status.** Closed by #539 (merged as `c7d2d65`, 2026-10-21, `run-qc-and-checkpoint` RQC9):
+`research/persona.ts` `setSampleSize` refuses a value outside the server's valid n
+(`GET …/research/limits`) and never clamps; test `PersonaStep.test.tsx` "the sample: a value outside
+the server's valid n is refused and said, never clamped (IA-1)".
+
+---
+
+## OI-145 · Finding · Scale ends accept nonsense, and the domain truncates 2.5 to 2
+
+**Claim.** A scale question's minimum and maximum save min 8 / max 3, 2.5 and an empty field (stored
+0) to the working copy; compile refuses min ≥ max only at readiness, turns 2.5 into 2 with `int()`,
+and makes an empty minimum a 0–10 scale.
+
+**Anchor.** `apps/web/src/components/rehome/research/QuestionnaireStep.tsx:777,779 @ 44b66ef`
+(`setScaleEnd` with `+raw`); `packages/aia_core/src/aia_core/domain/research_design.py:405 @ 44b66ef`
+(`_scale`). Audit `input-interactions-audit.md` §6, IA-2.
+
+**Reproduction.** A unit test compiling a scale question with `skala: [2.5, 10]` gets `(2, 10)` and no
+problem.
+
+**Consequence.** Fieldwork asks a scale the researcher did not set.
+
+**Smallest fix.** Bounded steppers (audit A9) and the domain refusing a non-integer end (audit §5.7).
+
+**Test.** A Vitest on `setScaleEnd`; a domain test that `[2.5, 10]` is `invalid_scale`.
+
+**Status.** Partly fixed: the domain refuses a non-integer end (`invalid_scale`) since #538 (merged as `45ffa12`, input-interactions 3b1); the editor's field check is `input-interactions#3b2`, open.
+
+---
+
+## OI-146 · Finding · The n slider cannot reach the field's range
+
+**Claim.** The sample-size slider runs 200–2000 while the field beside it runs 50–5000, so a stored n
+of 3000 puts the slider at its end.
+
+**Anchor.** `apps/web/src/components/rehome/research/PersonaStep.tsx:380` (200–2000) vs `:407`
+(50–5000) `@ 44b66ef`. Audit `input-interactions-audit.md` §6, IA-3.
+
+**Reproduction.** Type 3000 in the field; the slider shows 2000.
+
+**Consequence.** The slider misrepresents the value.
+
+**Smallest fix.** One stepper (audit B1).
+
+**Test.** As OI-144.
+
+**Status.** Open.
+
+---
+
+## OI-147 · Finding, closed · The knowledge search sends a request on every keystroke
+
+**Claim.** The client library's search sends one GET per keystroke.
+
+**Anchor.** `apps/web/src/components/aia/clients/KnowledgeLibrary.tsx:85-88 @ 44b66ef`. Audit
+`input-interactions-audit.md` §6, IA-4.
+
+**Reproduction.** Type "segmentace" with the network panel open: ten GETs.
+
+**Consequence.** Wasted requests; results flicker.
+
+**Smallest fix.** A 300 ms debounce, as `MemorySearch.tsx:43`.
+
+**Test.** A Vitest with fake timers counting requests.
+
+**Status.** Closed by #569 (merged as `ec75af1`, 2026-10-21): the library's search is debounced (300 ms).
+
+---
+
+## OI-148 · Finding · A contact is deleted with one click
+
+**Claim.** "Odebrat" on a client's contact sends the DELETE at once, with no confirmation and no undo.
+
+**Anchor.** `apps/web/src/components/aia/clients/ProfileArea.tsx:260 @ 44b66ef`. Audit
+`input-interactions-audit.md` §6, IA-5.
+
+**Reproduction.** `make ui-workbench` + `make ui-fixtures`; Profil, then "Odebrat" on a contact.
+
+**Consequence.** A slip loses a contact, with nothing to bring it back.
+
+**Smallest fix.** Undo (input standard I6).
+
+**Test.** The client journey removing and restoring a contact.
+
+**Status.** Open.
+
+---
+
+## OI-149 · Hypothesis · Selects that act on change
+
+**Claim.** Several selects fire their action on change, so a keyboard user moving through the options
+can fire it.
+
+**Anchor.** `apps/web/src/components/aia/clients/KnowledgeLibrary.tsx:241,259,268,382,406`,
+`apps/web/src/components/aia/clients/KnowledgeArea.tsx:494 @ 44b66ef`. Audit
+`input-interactions-audit.md` §6, IA-6.
+
+**Reproduction.** Not reproduced. Reproduce in Chrome on Windows, where a closed `<select>` changes on
+arrow keys, before budgeting.
+
+**Consequence.** An action fires that the person did not choose.
+
+**Smallest fix.** A menu button (audit D11).
+
+**Test.** A component test that arrow keys do not call the action.
+
+**Status.** Open; a hypothesis until reproduced. The replacement control exists since #532 (merged as
+`700eab5`: `apps/web/src/components/ui/MenuButton.tsx`, arrows move without acting); no call site above
+has moved to it yet. Since #569 (merged as `ec75af1`, 2026-10-21) the knowledge library's call sites
+file by menu, so the hypothesis is moot there; it stands for `apps/web/src/components/aia/clients/IntakeSheet.tsx:329, 347 @ c98836c` (the
+intake sheet's folder and label selects).
+
+---
+
+## OI-150 · Finding · A scale question's labels never reach respondents
+
+**Claim.** A scale question's labels (`popisky_skaly`) are never compiled, so AI respondents see bare
+numbers while a tracked set's ends are sent.
+
+**Anchor.** `packages/aia_core/src/aia_core/domain/ai_respondent.py:379-388 @ 44b66ef` builds a scale
+question's item without labels, and `research_design.py` never reads `popisky_skaly`. Audit
+`input-interactions-audit.md` §6, IA-7.
+
+**Reproduction.** Compile a question with `popisky_skaly: ["vůbec", "zásadně"]`: the `SpecQuestion`
+carries no labels and the respondent prompt shows the numbers alone.
+
+**Consequence.** AI respondents answer "1–10" without knowing which end is which; the researcher's
+labels look honoured on screen and are not.
+
+**Smallest fix.** Compile and send them (`input-interactions` chunk 3b, § Scales). It moves the
+respondent-system fingerprint the holdout validation binds to, and the wording rule is the
+methodology owner's (`mvp-master-plan.md` § The scope baseline, Open).
+
+**Test.** A domain test that the question's prompt carries "1 = vůbec, 10 = zásadně".
+
+**Status.** Fixed behind a switch: #538 (merged as `45ffa12`, input-interactions 3b1) compiles the labels and sends them to respondents under `AIA_AI_SCALE_LABELS_IN_PROMPT`, off by default; switching it on moves the respondent-system fingerprint and waits on the methodology owner's wording rule. Open until it is on.
+
+---
+
+## OI-151 · Finding · The Lead's rolling summary that ADR 0026 promised is not built
+
+**Claim.** ADR 0026 decision 2 promises "a rolling summary of older turns, stored as an artifact of
+the Lead's run"; none exists, and `freeze_context` keeps 12 turns and counts the rest.
+
+**Anchor.** `packages/aia_core/src/aia_core/domain/research_lead.py:121,796-827 @ 237fd0a`. Plan
+`lead-conversation`, Findings F1 (#529).
+
+**Reproduction.** Post 13 messages in one study; turn 14's stored context has `omitted_turns: 1` and
+no summary.
+
+**Consequence.** The Lead forgets the start of a long study's conversation.
+
+**Smallest fix.** `lead-conversation` LC3 (the decision digest), then LC7 (ADR 0041, Proposed).
+
+**Test.** LC3's "turn 3 in turn 40" test.
+
+**Status.** Open.
+
+---
+
+## OI-152 · Finding, closed · ADR 0026 said one conversation per study, shared by everyone
+
+**Claim.** ADR 0026's *Consequences* said "one conversation per study … shared by everyone who opens
+the study", contradicting its own *Accepted with* 6 and the code (one conversation per researcher).
+
+**Anchor.** `docs/architecture/adr/0026-research-lead-proposes-a-person-decides.md:455 @ 3d98e9e`;
+the code scopes a turn by `user_id` (ADR 0026 decision 8). Plan `lead-conversation`, Findings F2
+(#529).
+
+**Reproduction.** Read the two places side by side.
+
+**Consequence.** Docs only: a reader could build a shared conversation that the owner ruled out.
+
+**Smallest fix.** Done in this docs PR: the line reads "one conversation per researcher per study".
+
+**Test.** None; a documentation defect.
+
+**Status.** Closed (this docs PR).
+
+---
+
+## OI-153 · Finding · A rendered report's DOCX does not record which ledger ref a number came from
+
+**Claim.** On every render path that prints a number (prose values, table cells, KPI tiles, captions,
+charts, the map chapters), the DOCX writes plain text runs or an image; no element carries the ledger
+ref, apart from the evidence appendix's visible text.
+
+**Anchor.** `packages/aia_core/src/aia_core/infrastructure/report_docx/blocks.py:116-123 @ e09a6c99`
+(`write_value`), with the full path table P1-P15 in
+`.planning/evidence/editor-spike-2026-10-21.md` § F-ED1 (#531).
+
+**Reproduction.** Render any sample report (`make report-preview`), unzip `word/document.xml`, and
+search it for a ledger ref id: the only hits are the appendix's visible text.
+
+**Consequence.** Once a person edits the DOCX in any document editor, AIA cannot tell an evidenced or
+machine-written number from one someone typed; a report's numbers cannot be checked through a DOCX
+round trip.
+
+**Smallest fix.** For `report-delivery#RD6`: the renderer wraps every printed group in a locked content
+control (`w:sdt`, `sdtContentLocked`) tagged with its source, and a census on save refuses a lost or
+changed control and a changed numeric token outside one (the evidence file states the rule).
+
+**Test.** A renderer test over one `ReportDocument` holding every path P1-P15: every source has a tag,
+no tag lacks a source, and every numeric token outside a field result sits inside a tagged control.
+
+**Status.** Open.
+
+---
+
+## OI-154 · Finding, closed · A segmented control had no arrow keys
+
+**Claim.** `Segmented` made every option its own Tab stop and ←/→ did nothing, against the input
+standard's I11 (roving tabindex).
+
+**Anchor.** `apps/web/src/components/rehome/step.tsx:139 @ e09a6c99`. Plan `input-interactions`,
+Findings IA-8.
+
+**Reproduction.** `step.test.tsx` › "Segmented is one Tab stop whose arrows move and choose
+(input-interactions I11)" fails on `e09a6c99`.
+
+**Consequence.** A keyboard user tabs through every option of every segmented control.
+
+**Smallest fix.** Done: `lib/roving.ts` (`rovingIndex`, `tabStop`) in `Segmented`, as in ChoiceChips.
+
+**Test.** The `step.test.tsx` test above.
+
+**Status.** Closed by #532 (merged as `700eab5`, 2026-10-21).
+
+---
+
+## OI-155 · Finding, closed · The web's applyLeadEdit wrote a different working copy from the server's apply_edit
+
+**Claim.** An accepted Lead edit was applied in the browser by hand-copied rules that had drifted from
+the server's `apply_edit`, so the screen's copy after an automatic accept differed from the saved one.
+
+**Anchor.** `apps/web/src/lib/lead.ts:180-238 @ 6b76eef4` against
+`packages/aia_core/src/aia_core/domain/research_lead.py:1200-1320 @ 6b76eef4`. Plan
+`working-copy-edit-ops`, Findings F-WCE0-1.
+
+**Reproduction.** The shared case file's test against that `lead.ts` fails 10 of 25 apply cases: five
+on behaviour (both problem-summary cases, a research question added and one reworded, options on a
+scale dropped where the server refuses `options_on_non_selection`) and five because it gave no
+refusal word.
+
+**Consequence.** "Vrátit" read the wording to put back from a copy that was not the one saved, until
+the reload.
+
+**Smallest fix.** Done: `applyLeadEdit` mirrors `apply_edit` and returns the server's refusal word,
+held to `packages/aia_core/tests/fixtures/edit_ops/cases.json`.
+
+**Test.** `apps/web/src/lib/edit-ops.cases.test.ts`.
+
+**Status.** Closed by #534 (merged as `3a89dfe`, 2026-10-21, working-copy-edit-ops WCE0).
+
+---
+
+## OI-156 · Finding · The web and the server fold case differently when they match a list item
+
+**Claim.** The Lead's list edits match an item by its folded wording, and the browser folds with
+`toLocaleLowerCase("cs")` while the server uses `str.casefold`, so a wording `casefold` expands is
+found by one side and not the other.
+
+**Anchor.** `apps/web/src/lib/lead.ts:139 @ 25f2623` (`norm`, `toLocaleLowerCase("cs")`) against
+`packages/aia_core/src/aia_core/domain/edit_ops.py:337-339 @ 25f2623` (`_key`, `casefold`). Plan
+`working-copy-edit-ops`, Findings F-WCE0-2.
+
+**Reproduction.** `python -c "print('STRASSE'.casefold() == 'straße'.casefold())"` prints `True`;
+`"STRASSE".toLocaleLowerCase("cs") === "straße".toLocaleLowerCase("cs")` is `false` in Node.
+
+**Consequence.** A list item spelled with `ß` (or another character `casefold` expands) is found by the
+server and not by the screen; rare in Czech content.
+
+**Smallest fix.** One fold on both sides. WCE1 (#543) gave item identity the server's fold
+(`apps/web/src/research/item-ids.ts`, `case-folds.ts`), but `applyLeadEdit`'s `norm` still folds its
+own way; it takes `item-ids.ts`'s fold, or keys by id (WCE2).
+
+**Test.** A case in `tests/fixtures/edit_ops/cases.json` with `ß`.
+
+**Status.** Open (`working-copy-edit-ops` WCE2).
+
+---
+
+## OI-157 · Finding, closed · touches() and locked_items() keyed a repeated question differently
+
+**Claim.** `touches()` keyed a question and a section by its raw id while `locked_items()` used
+`design_items`' occurrence key, so on a copy with a repeated id the two disagreed.
+
+**Anchor.** `domain/edit_ops.py` `touches` against `locked_items` (`item_values`, `occurrence_keys`)
+at #534's head (`b5b369ae`). Plan `working-copy-edit-ops`, Findings F-WCE0-3.
+
+**Reproduction.** A copy with two questions `id: "Q1"`, the second `sociomap_rating`: `locked_items`
+holds `content:question:Q1#2`; a `question_edit` of `Q1` touches `content:question:Q1`; a section with
+no id is `#<i>` in `design_items` and `""` in `touches`.
+
+**Consequence.** None on well-formed content; on a malformed copy the lock and the touch set disagree.
+
+**Smallest fix.** Done: `touches` is the field diff of applying the edit (`domain/design_fields.py`),
+so both read one keying.
+
+**Test.** `test_two_people_adding_questions_to_one_section_touch_different_keys`,
+`test_a_section_move_is_an_item`.
+
+**Status.** Closed by #543 (merged as `ea2a6a5`, 2026-10-21, working-copy-edit-ops WCE1).
+
+---
+
+## OI-158 · Finding · An approved Deep Research run limit bounds nothing
+
+**Claim.** `budgets.run_limit.<preset>` ("Most a Standard run may cost") is an approved, pinned
+setting that no executor or enqueue reads.
+
+**Anchor.** `packages/aia_core/src/aia_core/domain/deep_research/settings.py:366-378 @ c88fd7fd`; its
+one reader checks a scoped test policy against its cap
+(`infrastructure/deep_research_settings_repository.py:284 @ c88fd7fd`). Plan
+`mvp-acceptance-harness`, Findings F-2.
+
+**Reproduction.** `grep -rn "run_limit" packages/aia_core/src apps/executors/src --include=*.py`: two
+hits, neither stops a run.
+
+**Consequence.** An organization's per-run ceiling is not held; a run is bounded only by the study's
+budget and the start's confirmation, so tier B's lines A06-A08 are held by the runbook alone.
+
+**Smallest fix.** The enqueue refuses, by name, a run whose `deep_research_cost_ceiling` exceeds the
+pinned run limit.
+
+**Test.** An enqueue whose ceiling exceeds an approved run limit answers 409 naming it.
+
+**Status.** Open.
+
+---
+
+## OI-159 · Finding · The acceptance study cannot use a scoped Deep Research test policy
+
+**Claim.** A study test policy requires the study's budget to be at most USD 20, and the representative
+acceptance study's is USD 25.
+
+**Anchor.** `infrastructure/deep_research_settings_repository.py:458-467 @ c88fd7fd`;
+`docs/migration/mvp-acceptance.md` §1. Plan `mvp-acceptance-harness`, Findings F-4.
+
+**Reproduction.** Propose a test policy for a study budgeted USD 25: refused, "test budget must cover
+this study and be at most USD 20".
+
+**Consequence.** Tier B's live Deep Research needs the organization's own live approvals (ADR 0022),
+not the sandbox.
+
+**Smallest fix.** An owner choice: the organization's approvals for the acceptance organization, or a
+USD 20 study.
+
+**Test.** The existing guard, `test_deep_research_sandbox_policy.py`.
+
+**Status.** Open; the owner's choice.
+
+---
+
+## OI-160 · Finding · A respondent's model calls are not readable over HTTP
+
+**Claim.** The fieldwork dataset is never inlined and an artifact's response carries no provenance,
+so AC-15's per-number walk has no HTTP read for fieldwork calls.
+
+**Anchor.** `apps/api/src/aia_api/routers/research.py:156` and `routers/runs.py:181-200 @ c88fd7fd`.
+Plan `mvp-acceptance-harness`, Findings F-5 (chunk 16, G65).
+
+**Reproduction.** `GET …/research/runs/{id}/artifacts/{fieldwork artifact}` answers `payload: null`
+and no `provenance`.
+
+**Consequence.** Tier A reconciles fieldwork calls only through the study's spend.
+
+**Smallest fix.** A run's usage lines over HTTP (call ids, request ids, model, cost), no respondent
+content.
+
+**Test.** Over HTTP, a run's usage lists each respondent call's provider request id.
+
+**Status.** Open (`mvp-acceptance-harness#16`).
+
+---
+
+## OI-161 · Finding · Most client routes check the request before the client's scope
+
+**Claim.** Another organization's user who sends `{}` to 26 of the 37 routes naming a client (and no
+study) gets 422, not 404, because each route validates its body and path before it resolves the
+client context.
+
+**Anchor.** For example `POST /clients/{client_id}/contacts`, `apps/api/src/aia_api/routers/workspace.py
+@ c170c921`. Plan `mvp-acceptance-harness`, Findings F-6.
+
+**Reproduction.** `test_mvp_acceptance.py::test_ac01_a_user_of_another_organization_cannot_tell_a_client_from_an_absent_one`
+asserts the weaker rule; tightening it to 404 fails on those 26 routes.
+
+**Consequence.** Nothing is disclosed (an absent client gets the same 422), but the client routes do
+not keep the study routes' rule that scope answers first.
+
+**Smallest fix.** Resolve the client context as a dependency, as `get_study_context` does for studies.
+
+**Test.** The client probe with the 404 rule.
+
+**Status.** Open.
+
+---
+
+## OI-162 · Finding, closed · A write's 2xx was sent before its transaction committed
+
+**Claim.** `get_session` commits after its `yield`, and under FastAPI's default scope for a `yield`
+dependency (since 0.118.0) that code runs after the response has been sent.
+
+**Anchor.** `apps/api/src/aia_api/dependencies.py:168-181 @ fd523a81`, taken as `Depends(get_session)`
+at `:323`, `:368`, `:441`, `:448` and `SessionDep` `:455`. Plan `mvp-acceptance-harness`, Findings
+F-AH1.
+
+**Reproduction.** `pytest apps/api/tests/test_commit_before_response.py` with the scope removed: under
+uvicorn `POST /members` answers 201 while the commit is still running, and a commit refused at
+`before_commit` still answers 201.
+
+**Consequence.** A client reading right after a write saw the state before it: the acceptance step's
+`POST /members` then `POST /session` inserted the user twice (UniqueViolation `uq_users_email`, a 500),
+about 1 run in 4; a failed commit was rolled back after a 201.
+
+**Smallest fix.** Done: `SessionDep = Annotated[Session, Depends(get_session, scope="function")]`, every
+user through that alias, `fastapi>=0.121.1`.
+
+**Test.** `test_a_write_is_committed_before_its_response_is_sent`,
+`test_a_commit_that_fails_is_the_response`, `test_every_route_takes_its_session_in_function_scope`.
+
+**Status.** Closed by #540 (merged as `fcf048a`, 2026-10-21).
+
+---
+
+## OI-163 · Finding, closed · The confirmation threshold's rule had three inline copies
+
+**Claim.** The Deep Research start, the Lead's approve path and a validation start each compared
+`confirm_cost_usd` inline beside `money.threshold_verdict`.
+
+**Anchor.** `application/deep_research.py:648-651`, `application/research_lead.py:724-729`,
+`application/validation.py:200-203 @ fd523a81`. Plan `lead-orchestration`, Findings F-LO0-1.
+
+**Reproduction.** `grep -n "confirm_cost_usd <" packages/aia_core/src/aia_core/application/*.py` at
+`fd523a81` lists the three.
+
+**Consequence.** None while all four agreed; a change to the rule made in one place would have left the
+others on the old one.
+
+**Smallest fix.** Done: each calls `threshold_verdict` (the Lead's path through `spend_gate`), keeping
+its own refusal for an unknown ceiling.
+
+**Test.** `test_every_start_path_applies_the_one_domain_rule` (`test_research_agent_spend.py`).
+
+**Status.** Closed by #541 (merged as `b3984d4`, 2026-10-21, `lead-orchestration` LO15).
+
+---
+
+## OI-164 · Finding, closed · A non-finite number in a request body answered 500
+
+**Claim.** `Infinity` or `NaN` in a JSON body (which Python's parser accepts) was refused by
+validation, and then the 422 failed to serialise its echo of the input.
+
+**Anchor.** `apps/api/src/aia_api/observability.py:206-213 @ 8e3f55dd`. Plan `lead-orchestration`,
+Review of #541, Finding F-E03-1.
+
+**Reproduction.** `test_a_confirmation_outside_its_bound_or_not_finite_is_refused[Infinity]` against
+that line.
+
+**Consequence.** A malformed client got a 500 and an error report instead of a 422.
+
+**Smallest fix.** Done: the echo keeps non-finite constants as text (`parse_constant=str`).
+
+**Test.** The test above.
+
+**Status.** Closed by #541 (merged as `b3984d4`, 2026-10-21).
+
+---
+
+## OI-165 · Finding · A reword accepted on the server does not carry its research-question links
+
+**Claim.** Until WCE2, a Lead `list_replace` of a linked research question accepted by click leaves
+its questionnaire links dangling, while the same edit accepted automatically in the browser (with
+`AIA_WEB_STABLE_ITEM_IDS` on) carries them.
+
+**Anchor.** `application/research_lead.py` `decide_edits` saves `edit_ops.apply_edit`'s result, which
+does not call `settle_item_ids`, at #543's head (`2931fa6c`). Plan `working-copy-edit-ops`, Findings
+F-WCE1-1.
+
+**Reproduction.** With `AIA_WEB_STABLE_ITEM_IDS` on, accept such an edit by click: the trace names a
+dangling link; accepted with `auto` it does not.
+
+**Consequence.** A dangling link, only with the switch on (off by default).
+
+**Smallest fix.** WCE2's one writer settles every write.
+
+**Test.** A WCE2 test of the accept route asserting no dangling link.
+
+**Status.** Open (`working-copy-edit-ops` WCE2).
+
+---
+
+## OI-166 · Finding · A whole-list replacement with a stale id list moves links onto another research question
+
+**Claim.** A writer that replaces a whole plan list and keeps its old id list is read as rewords, so
+with the switch on the web moves questionnaire links onto an unrelated research question.
+
+**Anchor.** `domain/item_ids.py` `reconcile` (the equal-count gap rule) with `follow_rewords`, reached
+by `apps/web/src/research/plan.ts` `applyVariant` and `plan-edit.ts` `applyNarrative` at #543's head
+(`2931fa6c`). Plan `working-copy-edit-ops`, Findings F-WCE1-2.
+
+**Reproduction.** `settle_item_ids` with before `["Kdo kupuje kávu?", "Jak často?", "Kde nakupují?"]`,
+Q1 linked to "Jak často?", after `["Proč nekupují?", "Které značky znají?", "Kde nakupují?"]`: Q1 now
+links "Které značky znají?".
+
+**Consequence.** A stamped guess: a measure moved onto an unrelated research question. With the switch
+off nothing stores id lists, so links never move. Blocks switching `AIA_WEB_STABLE_ITEM_IDS` on.
+
+**Smallest fix.** Writers that replace a whole list drop its id list, and `follow_rewords` follows
+only a reword the binding vouches for, never a gap match.
+
+**Test.** The reproduction, asserting the link dangles rather than moves.
+
+**Status.** Open (`working-copy-edit-ops` WCE8b with WCE2).
+
+---
+
+## OI-167 · Finding · touches and lock_refusal answer differently from before WCE1
+
+**Claim.** Since `touches` became the field diff of applying the edit, a `question_edit` that changes
+nothing on a locked rating question passes the lock, and an edit `apply_edit` refuses touches nothing
+and is refused with its own word, not the lock's.
+
+**Anchor.** `domain/edit_ops.py` `touches` at #543's head (`2931fa6c`). Plan `working-copy-edit-ops`,
+Findings F-WCE1-3.
+
+**Reproduction.** The independent review's probe over set_text, list ops, question add / edit /
+remove, set_n, malformed content and a locked question and battery: no refusal became an apply.
+
+**Consequence.** None today: `lock_refusal` is not wired.
+
+**Smallest fix.** WCE2 asks `refusal` before the lock.
+
+**Test.** WCE2's every-writer lock tests.
+
+**Status.** Open; a prerequisite of WCE2 and of switching `AIA_WEB_STABLE_ITEM_IDS` on.
+
+---
+
+## OI-168 · Hypothesis · Switching stable item ids on rewrites every loaded study's design bytes
+
+**Claim.** With `AIA_WEB_STABLE_ITEM_IDS` on, the store writes id lists into every study it loads and
+saves the copy before a submit, which moves each design's exact bytes.
+
+**Anchor.** The store's `completed` copy (`apps/web/src/research/store.ts`) and `research_agents.py`
+`proposal_result` spreading model output over a plan carrying `*_ids`, at #543's head (`2931fa6c`).
+Plan `working-copy-edit-ops`, Findings F-WCE1-4.
+
+**Reproduction.** Hypothesis-grade until the switch is turned on: load a study with the switch on and
+compare the saved design's SHA-256 with the one before.
+
+**Consequence.** Deep Research classifies a design by its exact bytes (OI-129), so those designs park
+until an operator classifies them again; a model can echo stale id entries back (OI-166's input).
+
+**Smallest fix.** Before switching on: a rollout note, the agents' context without id lists (or
+WCE8b), and the re-classification planned.
+
+**Test.** A switch-on test that a design job's context carries no `*_ids`.
+
+**Status.** Open; a hypothesis until reproduced (CLAUDE.md §9), and a switch-on prerequisite.
+
+---
+
+## OI-169 · Hypothesis · Turning stable item ids on and then off leaves stale id lists
+
+**Claim.** Stored id lists stay after the switch is turned off and go stale under writers that ignore
+them; the server keeps reading them by the gap rule.
+
+**Anchor.** `domain/item_ids.py` `reconcile` at #543's head (`2931fa6c`). Plan `working-copy-edit-ops`,
+Findings F-WCE1-5.
+
+**Reproduction.** Hypothesis-grade: switch on, load a study, switch off, edit its plan lists in a
+stage, and read the stored id lists.
+
+**Consequence.** Identity read from stale lists after a later switch-on (links never move on the
+server).
+
+**Smallest fix.** Strip the id lists when off, or record that turning off is one-way until WCE2.
+
+**Test.** An off-after-on test that no stale id list survives a save.
+
+**Status.** Open; a hypothesis until reproduced (CLAUDE.md §9), and a switch-on prerequisite.
+
+---
+
+## OI-170 · Finding · A retry drains the study's wallet
+
+**Claim.** A retry is a new run, so it takes its own wallet charge at its full ceiling while the
+original's hold is never released.
+
+**Anchor.** `infrastructure/study_wallet_repository.py` `charge` (unique `run_id`, no release) at #544's
+head (`253a0330`). Plan `lead-orchestration`, Findings F-LO1-1.
+
+**Reproduction.** Charge run A at USD 5, retry it as run B and charge B: USD 10 held for one run's
+work.
+
+**Consequence.** A few retries exhaust the wallet (once LO3/LO5 call it; the wallet is off by
+default, `AIA_STUDY_WALLET_ENABLED`).
+
+**Smallest fix.** LO3's step-retry rule says whether a retry's charge replaces the original's,
+decided with the release question in ADR 0028.
+
+**Test.** A retried plan step's wallet holds one ceiling, not two.
+
+**Status.** Open (`lead-orchestration` LO3).
+
+---
+
+## OI-171 · Finding · The wallet is not bounded by what the budget has left
+
+**Claim.** `effective_cap` takes `budget_usd`, not its remainder after spend and open reservations.
+
+**Anchor.** `domain/wallet.py` `effective_cap` at #544's head (`253a0330`). Plan `lead-orchestration`,
+Findings F-LO1-2.
+
+**Reproduction.** Budget USD 10, wallet USD 10, a person-started run spends USD 9: the wallet still
+shows USD 10 remaining.
+
+**Consequence.** Display only, since the budget's reservation still stops the spend; a plan step would
+start and then park `AWAITING_BUDGET` rather than be stopped at start.
+
+**Smallest fix.** Bound remaining by the budget's remainder when LO4 shows the meters.
+
+**Test.** The wallet's remaining never exceeds the budget's.
+
+**Status.** Open (`lead-orchestration` LO4).
+
+---
+
+## OI-172 · Finding · The wallet migration's downgrade drops a client's wallet ceiling
+
+**Claim.** The downgrade refuses while a raise or a charge is stored, but drops
+`clients.wallet_ceiling_usd` an OWNER or ADMIN set.
+
+**Anchor.** `migrations/versions/20261021_60ccc9ff42cf_the_study_wallet_its_raises_and_charges.py` `downgrade` at #544's head (`253a0330`).
+Plan `lead-orchestration`, Findings F-LO1-3.
+
+**Reproduction.** Set a ceiling on a client, then `alembic downgrade -1`: the column and its value are
+gone.
+
+**Consequence.** None yet: nothing sets the column until K11.
+
+**Smallest fix.** Refuse the downgrade while any ceiling is non-null, when K11 ships its setter.
+
+**Test.** The downgrade refuses with a ceiling set.
+
+**Status.** Open (`client-knowledge-lifecycle` K11).
+
+---
+
+## OI-173 · Finding, closed · The Lead's greeting made a new study's first save stale
+
+**Claim.** On a study with no working copy, the greeting's `post` saved the bare template as working
+revision 1 behind the browser, which had loaded the study EMPTY, so the person's first save (base
+`null`) was refused `stale_revision`.
+
+**Anchor.** `LeadPane.tsx:178`, `research_lead.py:427, 561, 811`, `store.ts:233`,
+`study_workspace_repository.py:268 @ 962652b1`. Plan `research-lead-workbench`, Findings F3.
+
+**Reproduction.** `pytest apps/api/tests/test_research_lead_api.py -k new_study` (both fail on
+`962652b1`); in a browser, the workbench with a hatched Lead, a new study, two sentences in Zadání:
+"Uloženo jinde · změny zde neuloženy".
+
+**Consequence.** The person's first words were not saved, and "Načíst znovu" would have dropped them;
+an automatic accept of the greeting's text edits was refused too.
+
+**Smallest fix.** Done: `domain/workspace.py` `edited_from_current` (a copy naming no revision was
+edited from the current one while that is still the bare template with no analysis), asked by the save
+and by the Lead's accept; `post` names the template revision it froze the turn from.
+
+**Test.** `test_a_greeting_on_a_new_study_does_not_make_the_persons_first_save_stale`,
+`test_a_first_save_is_not_stale_over_the_bare_template_a_server_writer_saved`,
+`test_edited_from_current_names_the_current_revision_or_the_bare_template`.
+
+**Status.** Closed by #546 (merged as `722dd75`, 2026-10-21).
+
+---
+
+## OI-174 · Finding, closed · A Lead turn parked on the study's budget held the conversation for ever
+
+**Claim.** A message sent with no study budget parked its turn in `AWAITING_BUDGET`, the parked turn
+counted as busy, and nothing ever released it, so every later message queued behind it.
+
+**Anchor.** `_holds` (`research_lead.py:224-232`), `lead_busy` (`:420-423`), `LeadPane.tsx:48, 193`,
+`workflow_repository.py:2211-2213 @ 095a3e68`. Plan `research-lead-workbench`, Findings F4.
+
+**Reproduction.** `test_setting_the_study_budget_sends_the_message_that_waited_for_it`
+(`apps/api/tests/test_research_lead_api.py`) against `095a3e68`.
+
+**Consequence.** The chat stayed stuck after the budget was set, and the pane said "Vedoucí se
+zastavil (budget_exceeded)."
+
+**Smallest fix.** Done, on the owner's Q39 (2026-10-21, 11:41 UTC: no "Pokračovat" button; "once the
+budget is set or raised, it should automatically resend the message the researcher attempted to send
+in the first place"): a parked turn holds nothing; `PUT /studies/{id}/budget` runs
+`release_lead_budget_waits`, lifting each parked turn whose recorded hold now fits through
+`resume_budget_waits`, one ledger row under the person who set the budget; a message written before
+then replaces the parked turn; `leadReasonWords` says what happens.
+
+**Test.** `test_setting_the_budget_sends_the_parked_message_and_records_the_person`,
+`test_a_budget_still_too_small_leaves_the_turn_parked`,
+`test_a_parked_turn_whose_hold_is_unknown_stays_parked`
+(`test_research_lead_application.py`).
+
+**Status.** Closed by #547 (merged as `a89e912`, 2026-10-21).
+
+---
+
+## OI-175 · Finding, closed · No web path turns a Design Research proposal into a Design Revision
+
+**Claim.** The API's Design Research proposal accept exists, but the web only reads the proposal.
+
+**Anchor.** `apps/api/src/aia_api/routers/deep_research.py:768-796`,
+`application/design_research.py:90-157`; the web's one reference is the GET at
+`apps/web/src/lib/api.ts:1412 @ 095a3e68`. Plan `research-lead-workbench`, Findings F-DRL-1.
+
+**Reproduction.** `git grep -n 'design-proposal' 095a3e68 -- apps/web/src` lists api.ts:1412 and a
+test's GET stub alone.
+
+**Consequence.** ADR 0021's checkpoint 1 (human-reviewed proposals → a new Design Revision) cannot be
+completed in the product.
+
+**Smallest fix.** `research-lead-workbench` 7b (Design Research proposal review).
+
+**Test.** 7b's Vitest that the review posts the ticked `item_ids` with both expected revisions, and its
+journey step.
+
+**Status.** Closed by #554 (merged as `bef820b`, 2026-10-21): `DesignResearchReview.tsx` on Dotazník posts the ticked items to `POST …/design-proposal/accept`, then reloads the working copy; tests `lib/design-research-review.test.ts`, `DesignResearchReview.test.tsx`.
+
+---
+
+## OI-176 · Finding, closed · A Deep Research ceiling is never computed unless the study has a threshold
+
+**Claim.** A Deep Research start computes its cost ceiling only when the study's confirmation
+threshold is set.
+
+**Anchor.** `packages/aia_core/src/aia_core/application/deep_research.py:635-655 @ 095a3e68`. Plan
+`deep-research-web-search`, chunk 55, Findings F-DRL-2.
+
+**Reproduction.** Start a run on a study with `spend_confirm_usd = null`: the run's metadata has no
+`cost_ceiling_usd`, and no route returns one.
+
+**Consequence.** OI-139 again, for Deep Research: a card cannot show "až X USD", and the wallet
+(charged at the ceiling) has nothing to charge.
+
+**Smallest fix.** Chunk 55: always computed, and a read-only quote.
+
+**Test.** A create with no threshold stores `cost_ceiling_usd`, and the quote equals it.
+
+**Status.** Closed by #555 (merged as `7275fcc`, 2026-10-21): every new run stores `cost_ceiling_usd`, threshold or not, and `POST …/deep-research/quote` reads the same admission (`DeepResearchRuns._admit`).
+
+---
+
+## OI-177 · Finding, closed · A Deep Research ceiling is priced from the API's own environment copy
+
+**Claim.** The prices a Deep Research ceiling is computed from are read in the API router alone.
+
+**Anchor.** `apps/api/src/aia_api/routers/deep_research.py:261-387 @ 095a3e68`. Plan
+`deep-research-web-search`, chunk 55, Findings F-DRL-3 (I22).
+
+**Reproduction.** `git grep -n "def deep_research_prices" 095a3e68` finds it only in the router.
+
+**Consequence.** A plan step in the worker cannot price a run the way the API does.
+
+**Smallest fix.** Chunk 55: one pricing function both processes call.
+
+**Test.** Chunk 55's key-combination fixture.
+
+**Status.** Closed by #555 (merged as `7275fcc`, 2026-10-21): `application/deep_research_pricing.py` `DeepResearchPricingSettings`, built by each composition root.
+
+---
+
+## OI-178 · Finding · The Lead cannot see a Deep Research run
+
+**Claim.** The Lead's frozen context lists only research runs, so a Design or Interpretation Research
+run never reaches it.
+
+**Anchor.** `application/research_lead.py:858-866 @ 095a3e68` (runs with `workflow_type=RESEARCH`, at
+most five). Plan `lead-orchestration`, Findings F-DRL-4.
+
+**Reproduction.** Start a Design Research run, post a Lead turn, read the turn's frozen context: no
+Deep Research run is in it.
+
+**Consequence.** "Kde jsme?" omits a running or finished rešerše, and the Lead may prepare a
+duplicate.
+
+**Smallest fix.** LO5a.1's `deep_research` context layer.
+
+**Test.** LO5a.1's "a Deep Research run appears in the context".
+
+**Status.** Open (`lead-orchestration` LO5a.1).
+
+---
+
+## OI-179 · Finding · The Interpretation Research target is fixed in the browser
+
+**Claim.** The web always sends `ANALYSIS_MODULE` `research_questions` as the Interpretation target.
+
+**Anchor.** `apps/web/src/lib/api.ts:1380-1385 @ 095a3e68`. Plan `lead-orchestration`, Findings
+F-DRL-5.
+
+**Reproduction.** `git show 095a3e68:apps/web/src/lib/api.ts | sed -n 1380,1385p`.
+
+**Consequence.** Six of ADR 0021's seven target kinds have no way in from the product, although
+`POST …/runs/interpretation` accepts them.
+
+**Smallest fix.** LO5a.1's code-built candidates, every result kind (Q44).
+
+**Test.** An LO5a.2 approval over a battery-object candidate starts a run whose target is that object.
+
+**Status.** Open (`lead-orchestration` LO5a.1).
+
+---
+
+## OI-180 · Finding, closed · The UI workbench cannot run Deep Research at all
+
+**Claim.** The workbench composition has no Deep Research runtime, so a run parks at plan.
+
+**Anchor.** `apps/executors/src/aia_executors/workbench.py:158-173 @ 095a3e68`. Plan
+`research-lead-workbench`, Findings F-DRL-6.
+
+**Reproduction.** `make ui-workbench`, `make ui-fixtures`, then start Design Research on a fixture
+study: the run waits at plan.
+
+**Consequence.** No browser journey can prove D-12's acceptance with zero paid calls.
+
+**Smallest fix.** `research-lead-workbench` 12a: recorded web retrieval in the workbench.
+
+**Test.** 12a's "a run on the fixture completes with a sealed bundle marked `RECORDED_FIXTURE`".
+
+**Status.** Closed by #578 (merged as `b7f6363`, 2026-10-21): `research-lead-workbench` 12a; `deep_research_journey.mjs` completes a Design Research run on recorded web, 20 ledger rows on `workbench-scripted`, 0 priced. The interpretation exchange on the workbench is not built (the PR's proposed `research-lead-workbench#12a.2`, not yet a chunk line).
+
+---
+
+## OI-181 · Finding, closed · AIA_DEEP_RESEARCH_LEAD reads as the Research Lead
+
+**Claim.** `AIA_DEEP_RESEARCH_LEAD` / `settings.deep_research_lead` is the Deep Research engine's lead
+researcher mode, not the Research Lead (Vedoucí výzkumu), and nothing said so.
+
+**Anchor.** `apps/api/src/aia_api/config.py:182 @ 095a3e68`. Plan `deep-research-web-search`,
+Findings F-DRL-7.
+
+**Reproduction.** `git grep -n deep_research_lead 095a3e68 -- apps/api`.
+
+**Consequence.** A reader or an agent can take one for the other.
+
+**Smallest fix.** Done in this docs PR: one line in `docs/architecture/deep-research.md`; the plans say
+"the engine's lead mode".
+
+**Test.** None; a wording defect.
+
+**Status.** Closed (this docs PR).
+
+---
+
+## OI-182 · Finding, closed · Two flushes waiting behind one save sent the same base revision
+
+**Claim.** `ResearchStore.flush` let every caller waiting behind an in-flight save resume together,
+each building its body from the same `state.revision`, so the second was refused `stale_revision`;
+and a flush saved only the snapshot it took, so an edit typed during the flight stayed pending after
+it resolved.
+
+**Anchor.** `apps/web/src/research/store.ts:225-233 @ 054cf007` (`if (this.inflight) await
+this.inflight;`, then `base_revision: s.revision` with no re-check). Plan `research-lead-workbench`,
+Findings F-STORE-1.
+
+**Reproduction.** The three store tests below fail on `722dd75c`; a scratch Vitest on `054cf007`
+sent bases `[3, 4, 4]`.
+
+**Consequence.** After a fast edit, a false "Uloženo jinde" conflict whose only way on is a reload
+that drops the edit; and a caller that took one flush to mean "saved" (an accept, a job start) acted
+on a revision without the person's last edit.
+
+**Smallest fix.** Done: saves serialised; `flush` waits for whichever save is in flight, reads the
+copy again and saves what is still owed from the revision the previous save returned, at most
+`MAX_FLUSH_ROUNDS` (4) saves, then `FlushIncomplete` with the change kept pending.
+
+**Test.** `store.test.ts`: "serialises the saves of callers waiting behind one: each names the
+revision the one before returned", "saves an edit made during the flight in the same flush, which
+resolves only once it is saved", "says when the copy kept changing through every round, and keeps
+the change waiting for its save".
+
+**Status.** Closed by #556 (merged as `b3b5581`, 2026-10-21).
+
+---
+
+## OI-183 · Finding, closed · An identifier's digits ground a number the Lead invents
+
+**Claim.** The Lead's number guard reads digits inside identifiers in its context as numbers, so a
+number the Lead made up passes unrepaired whenever an id in the context happens to start with its
+digits.
+
+**Anchor.** `packages/aia_core/src/aia_core/domain/project.py:80` (`"REV-" + uuid4().hex[:16]`),
+frozen into the Lead's design layer at `application/research_lead.py:1112`; `_NUMBER`
+(`domain/research_lead.py:334`) starts a number after a hyphen and ends it at the first non-digit,
+so `REV-7a…` reads as 7; `lead_contract` (`:368`) allows every number in the prompt and the message
+(`:860`) @ `c98836c`. Plan `research-lead-workbench`, Findings F-CLOCK-1 (on #557's branch).
+
+**Reproduction.** `apps/executors/tests/test_research_lead_executor.py::test_a_reply_that_stays_invented_after_its_repair_fails_the_turn`
+failed in CI on #554 (run 39604369392, `1 == 2` at line 338); #557's
+`test_a_number_only_an_identifier_holds_is_still_invented` pins every revision id to start `7a` and
+fails the same way on `c98836c`. About one revision id in forty starts with 7 then a letter.
+
+**Consequence.** A number the Lead invented reaches the researcher as if grounded; and the test above
+fails about 2.5 % of runs, which reads as a flake.
+
+**Smallest fix.** #557: `context_identifiers` (the values under `id`, `*_id`, `*_ids`, `*_version`
+and focus targets, a bare-number id skipped), blanked in the allowed text and the reply before
+numbers are read.
+
+**Test.** #557's `test_a_number_only_an_identifier_holds_is_still_invented`,
+`test_an_identifiers_digits_ground_no_number`, `test_the_context_names_its_identifiers`,
+`test_a_request_holds_a_reply_to_the_context_without_its_identifiers`.
+
+**Status.** Closed by #557 (merged as `bcb2911e`, 2026-10-21): `context_identifiers`
+(`domain/research_lead.py:428 @ bfe6d15b`) blanks every identifier before numbers are read, on the
+allowed side (`:963`) and in the reply alike.
+
+---
+
+## OI-184 · Finding · A tracked set labelled point by point is told the wrong ends
+
+**Claim.** `SpecBattery.told_ends`, from `_develop_ends`, returns a set's first two labels, so a set
+labelled on every point tells respondents and the map legend that its top end is the second point.
+
+**Anchor.** `packages/aia_core/src/aia_core/domain/research_design.py:535` (`_develop_ends`), read
+at `:363` (`told_ends`), sent at `domain/ai_respondent.py:611-614` and printed at
+`domain/research_sociomapping.py:206 @ c98836c` (first recorded `@ 25f26232`, #559).
+
+**Reproduction.** `pytest packages/aia_core/tests/test_ai_respondent.py::test_on_a_set_is_read_by_the_new_rule`:
+a set labelled `bod 1` … `bod 10` reads `told_ends == ("bod 1", "bod 2")`.
+
+**Consequence.** With the labels off the prompt, respondents read "1 = bod 1, 10 = bod 2" and the map
+legend prints the same, for any set labelled point by point. Today the editor keeps sets to two ends
+(input-interactions 3b2), so no screen writes such a set yet.
+
+**Smallest fix.** Read a valid per-point list as its first and last label in `_develop_ends`.
+
+**Test.** A compile of a set labelled on every point whose `told_ends` is `("bod 1", "bod 10")`, and a
+respondent request reading "10 = bod 10".
+
+**Status.** Open (for input-interactions 3b3 or a server fix).
+
+---
+
+## OI-185 · Finding, closed · The client journey's bulk filing check passed without filing anything
+
+**Claim.** The journey's "the ticked item is moved into the folder" check matched the item's own
+title, so it passed whether or not the item was filed.
+
+**Anchor.** `tools/ui_workbench/client_journey.mjs:136 @ 25f26232` (`row.getByText(names.folder)`,
+where the item's title `Cesta ${stamp}: pobočky` contains the folder's `Cesta ${stamp}` and
+`getByText` matches a substring). Plan `input-interactions`, Findings CJ-1.
+
+**Reproduction.** Remove the bulk "Přesunout do složky" step from the journey @ `25f26232` and run
+it: the check at line 136 resolves at once, on the title.
+
+**Consequence.** The browser evidence for bulk filing proved nothing; a broken bulk move would have
+shipped green.
+
+**Smallest fix.** Done: `{ exact: true }` on the folder and label checks.
+
+**Test.** The journey itself: a substring match now fails in strict mode (two elements).
+
+**Status.** Closed by #569 (merged as `ec75af1`, 2026-10-21).
+
+---
+
+## OI-186 · Finding · Dotazník's outline covers half the screen when it wraps under the editor
+
+**Claim.** The questionnaire outline is `sticky` at every width, so wrapped under the editor it covers
+about half the viewport at 390 px and in the workbench at 1100 px, Závislosti included.
+
+**Anchor.** `apps/web/src/components/rehome/research/QuestionnaireStep.tsx:560 @ c98836c`
+(`className="sticky top-[136px] …"`; recorded at `:545 @ 25f26232`). Plan `artifact-questionnaire`,
+Finding QF-1.
+
+**Reproduction.** `node tools/ui_workbench/questionnaire_journey.mjs` (#572): its
+`390-dependencies-section.png`.
+
+**Consequence.** On a phone, or the workbench at its narrowest split, half the questionnaire is
+hidden under the outline.
+
+**Smallest fix.** Sticky only while it sits beside the editor (a container query).
+
+**Test.** A journey assertion that the dependencies section is not covered at 390 px.
+
+**Status.** Open (`artifact-questionnaire`).
+
+---
+
+## OI-187 · Finding, closed · Every Lead turn of a client with DATASET, ARTIFACT or FINDING knowledge was refused
+
+**Claim.** A Lead turn over a client with any approved DATASET, ARTIFACT or FINDING knowledge item
+declares the lineage `unclassified-client-knowledge`, which no licence determination named, so every
+turn parked `licence_dataset_unknown`.
+
+**Anchor.** `packages/aia_core/src/aia_core/domain/research_lead.py:835-838 @ 871c62c5`, with no
+determination in `domain/licence_determinations.py @ 871c62c5`; the refusal at
+`domain/licence.py:158-164`. PR #564, Finding 1.
+
+**Reproduction.** `pytest apps/executors/tests/test_research_lead_executor.py::test_a_dataset_in_the_client_knowledge_reaches_the_eu_bedrock_route`
+on `871c62c5`: 0 requests sent.
+
+**Consequence.** No Lead for that client (and, OI-142, no AI design job).
+
+**Smallest fix.** Done: the product owner's determination as data owner (2026-10-21, /pmstatus Q60
+(a)): `CLIENT_KNOWLEDGE_DATASET` APPROVED for `bedrock-eu-primary` alone; every other route still
+refuses `not_approved_for_route`.
+
+**Test.** `test_a_dataset_in_the_client_knowledge_reaches_the_eu_bedrock_route`;
+`packages/aia_core/tests/test_research_lead.py::test_a_turn_over_dataset_derived_knowledge_passes_the_licence_gate_on_eu_bedrock_only`.
+
+**Status.** Closed by #582 (merged as `7cd7acd`, 2026-10-21). Per-item recorded lineage stays OI-142
+(#537).
+
+---
+
+## OI-188 · Finding, closed · No report kept its document model
+
+**Claim.** The worker composed every report as a `ReportDocument`, rendered it to DOCX and dropped
+the document, so only DOCX bytes said what a report held.
+
+**Anchor.** `apps/executors/src/aia_executors/report.py:121-167 @ e09a6c99` (`101-146 @ 25f26232`);
+`.planning/evidence/editor-spike-2026-10-21.md` § F-ED3.
+
+**Reproduction.** `git show 25f26232:apps/executors/src/aia_executors/report.py | sed -n 101,146p`:
+only the DOCX is stored.
+
+**Consequence.** The Zpráva pane's claim chips, tracked changes, the sentence-level claim check and
+the Lead's report edits had no paragraph to name and no ledger to resolve against (`report-delivery`
+RD5-RD7).
+
+**Smallest fix.** Done (`report-delivery` RD5a): `domain/report/document_model.py`
+(`aia-report-document-1`), stored as `research_internal_document` beside the internal DOCX and
+`research_client_document` beside the client report's, read by `GET …/report/document` and
+`GET …/report/client/document`.
+
+**Test.** `packages/aia_core/tests/test_report_document_model.py`
+(`test_every_section_and_block_has_a_unique_positional_id`, `test_every_cited_ref_resolves_in_the_ledger`,
+`test_the_ledger_prints_what_the_docx_prints`).
+
+**Status.** Closed by #584 (merged as `9f99c78`, 2026-10-21), for the internal draft and the client
+report; the report with literature is retired for new reports by Q58.
+
+---
+
+## OI-189 · Finding, closed · A renamed folder or label lost focus on a busy runner
+
+**Claim.** Renaming a folder or label scheduled the row's focus on the next animation frame, which
+could run before React mounted the row, so focus fell to the page and never came back.
+
+**Anchor.** `apps/web/src/components/aia/clients/KnowledgeOrganizers.tsx:98-101 @ a15c9917` (#569,
+merged as `ec75af1`): `setRenaming(false)` then `requestAnimationFrame(() => row.current?.focus())`.
+
+**Reproduction.** `apps/web/src/components/aia/clients/KnowledgeLibrary.test.tsx:366` ("The row is
+back, under its new name, and focus with it") failed in the Frontend job of #563 (job 119340985792),
+#586 (job 119341510278) and #585 with `document.activeElement` `<body>`; with every frame callback run
+at once it fails on the old hook every run.
+
+**Consequence.** After a rename, a keyboard user's focus jumps to the page; and an unrelated PR's CI
+went red.
+
+**Smallest fix.** Done: `stop` marks a refocus owed, and an effect keyed on `renaming` focuses the row
+after the render that mounted it (`KnowledgeOrganizers.tsx:91-110 @ c98836c`).
+
+**Test.** The same `KnowledgeLibrary.test.tsx` test, now running every `requestAnimationFrame`
+callback at once, so the losing order is pinned.
+
+**Status.** Closed by #596 (merged as `233881c`, 2026-10-21). Develop's own CI did not report it,
+because its runs were cancelled (OI-191).
+
+---
+
+## OI-190 · Finding, closed · Výsledky's "Kish n" column shows the donor-adjusted n
+
+**Claim.** The rated-set table's column labelled Kish n reads `result.effective_n`, the
+donor-adjusted combined support size, instead of Kish's effective n, which the aggregate stores as
+`effective_n_kish`.
+
+**Anchor.** `apps/web/src/lib/result-reading.ts:130 @ c98836c`
+(`const effectiveN = finite(result.effective_n) ? result.effective_n : null;`); Codex review on #566
+at the same line @ `72e3b27b`.
+
+**Reproduction.** A fixture aggregate where the two differ (125.0 against 401.8) shows 125 under
+"Kish n".
+
+**Consequence.** The evidence size printed beside each mean on Výsledky is the wrong one, smaller by
+up to a factor of three where respondents share donors.
+
+**Smallest fix.** Read `effective_n_kish`, and show "—" when it is not stored, never 0.
+
+**Test.** A `result-reading.test.ts` case with 401.8 against 125.0 that expects 401 in the column.
+
+**Status.** Closed by #611 (merged as `dffd36fc`, 2026-10-21): the column reads `kishN` from
+`effective_n_kish` (`apps/web/src/lib/result-reading.ts:135 @ bfe6d15b`), null when not stored;
+`result-reading.test.ts` expects 401.8 where `effective_n` is 125.0.
+
+---
+
+## OI-191 · Finding, closed · Back-to-back merges cancelled develop's CI for almost six hours
+
+**Claim.** `ci.yml` cancels an in-progress run when a newer one starts on the same ref, develop push
+runs included, so with merges every few minutes no develop run completed and nothing was deployed.
+
+**Anchor.** `.github/workflows/ci.yml:17-19 @ c98836c` (`concurrency: group: ci-${{ github.ref }}`,
+`cancel-in-progress: true`); deploy-develop is dispatched only after CI succeeds
+(`ci.yml:7-9`).
+
+**Reproduction.** `gh api "repos/AiAnalytics-AIA/AIA/actions/runs?branch=develop&event=push&created=2026-10-21&per_page=100"`:
+63 CI push runs on 2026-10-21 (to 20:22 UTC), 57 cancelled, 5 succeeded, 1 in progress. The last to
+complete was `25f26232` (finished 14:32 UTC); the next 37 (`871c62c5` at 14:41 to `13c36ea9` at 20:07)
+were all cancelled, about 5 h 40 min with no completed develop run.
+
+**Consequence.** Develop was neither verified nor deployed for that stretch, across 37 pushes (merges) to
+it; a failure that only develop's merged state shows (OI-189) went unreported there, and the
+deployed site lagged every merge of the afternoon.
+
+**Smallest fix.** Keep cancelling superseded pull-request runs, never develop's or main's push runs:
+`cancel-in-progress: ${{ github.event_name == 'pull_request' }}` in `ci.yml`'s `concurrency` block.
+GitHub then lets the running develop run finish and keeps only the newest pending one, so a develop
+run completes at least once per run time. Batching merges is the no-code alternative.
+
+**Test.** A CI-contract test that reads `ci.yml` and asserts `cancel-in-progress` is false for a push
+to `develop` and `main`; and, after the change, the same listing showing completed develop runs on a
+busy day.
+
+**Status.** Closed by #620 (merged as `9d1e7e04`, 2026-10-21): `cancel-in-progress` is true only for
+`pull_request` runs, so a develop or main push run is never cancelled by a newer one.
+
+---
+
+## OI-192 · Finding · The draft report's Segments chapter loses its only producer when the refusal lands first
+
+**Claim.** `evidence-integrity#9b` refuses report composition while any analysis module has no
+supported finding, and the Segments module (report chapter ch-5) has no admitted producer until
+`segment-maps-and-drilldown#10` (segment evidence) lands; built in the other order, no run reaches a
+draft. The same census found the coded open answers' chapter (`ch-coding`) belongs right after
+ch-questions, and the assumptions chapter (`ch-assumptions`) right before ch-6.
+
+**Anchor.** `.planning/plans/evidence-integrity.md` chunk 9b and
+`.planning/plans/segment-maps-and-drilldown.md` chunk 10 @ c98836c; the execution contracts had 10
+before 9b but not before `artifact-chain-to-draft-report#CHN10`.
+
+**Reproduction.** Hypothesis until 9b is built: a fictional run with a segment question, after 9b
+and before 10, is refused at composition with the Segments module named.
+
+**Consequence.** Every draft report would be refused.
+
+**Smallest fix.** The order recorded in the contracts and in both plans: 10 before 9b and CHN10.
+
+**Test.** The chain's acceptance (`artifact-chain-to-draft-report#CHN11`) on a run with segments.
+
+**Status.** Open: recorded as an ordering in this PR (the coordinator's census finding PM-2,
+2026-10-21); closes when 10 lands before 9b.
+
+---
+
+## OI-193 · Hypothesis · Per-researcher spend counts any settled hold without a ledger row as tool spend
+
+**Claim.** "Spend outside the ledger" on the per-researcher report is every settled hold that no
+usage-ledger row names; today that is exactly the priced tool calls, but a model hold settled
+without its ledger row would be counted there too, as tool spend.
+
+**Anchor.** `packages/aia_core/src/aia_core/infrastructure/researcher_spend_repository.py:121-123 @ bfe6d15b`
+(`in_ledger = exists().where(AIUsageEventRow.reservation_id == BudgetReservationRow.reservation_id)`),
+folded by `domain/spend_attribution.py` `researcher_spend` (`:254`). Plan `develop-spend-attribution`,
+Findings (chunk 7) F-SA7-1, #583 (merged as `e78dfa8b`).
+
+**Reproduction.** Hypothesis: no path today settles a model hold without writing its ledger row; a
+test would settle a `budget_reservations` model hold with no `ai_usage_events` row and read it under
+"mimo ledger". `test_the_fold_separates_model_tool_reserved_and_uncertain` covers only the intended
+split.
+
+**Consequence.** If it ever happens, a model call's cost is shown as tool spend, never lost: the
+person's total stays right, its parts do not.
+
+**Smallest fix.** `deep-research#4` gives tool calls their own ledger and
+`develop-spend-attribution#5b` reads tool spend from it, so "outside the ledger" is no longer
+inferred from an absence.
+
+**Test.** After #4, a hold with neither a usage row nor a tool-ledger row read as unknown, never as
+tool spend.
+
+**Status.** Open: closes with `deep-research#4` and `develop-spend-attribution#5b`.
+
+---
+
+## OI-194 · Question, closed · Who pays for the holds after a budget lift
+
+**Claim.** `charged_to` books every hold a run makes after a budget lift to the person who lifted
+it, not the run's starter; Q40 said only "whoever approves or starts", so the rule was a reading.
+
+**Anchor.** `packages/aia_core/src/aia_core/domain/spend_attribution.py:74-86 @ bfe6d15b` (rule 1,
+`if lift_approver: return lift_approver`); plan `develop-spend-attribution`, Findings (chunk 7)
+F-SA7-2, #583 (merged as `e78dfa8b`).
+
+**Reproduction.** `packages/aia_core/tests/test_spend_attribution.py::test_a_budget_lift_books_the_holds_after_it_to_the_lifter`.
+
+**Consequence.** A researcher who lifts a colleague's run's budget sees the rest of that run's spend
+under their own name on "Útrata podle výzkumníka".
+
+**Smallest fix.** None needed: the product owner answered Q67 (a) on 2026-10-21, 20:12, "Whoever
+lifts the budget pays for what runs after the lift" (`mvp-owner-decisions.md`). Had the answer been
+the starter, the change was rule 1's removal and its test.
+
+**Test.** The reproduction above.
+
+**Status.** Closed: decided by the owner (Q67 (a)) and built in #583.

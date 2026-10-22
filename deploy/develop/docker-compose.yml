@@ -28,6 +28,12 @@ x-app-env: &app-env
   # develop: a deployed environment (every guard: Cognito, S3, build SHA) that always hosts
   # fictional data, which staging and production refuse (aia_core.domain.deployment).
   AIA_ENV: develop
+  # The product owner, 2026-10-21 (plan develop-class-advisory): on develop a refusal made solely
+  # because of a data class is recorded and passed (ledger note, provenance, tool and step
+  # events), and Brave's search takes a query of any class. EU residency for model calls,
+  # licences, budgets and scope still hold. Fixed here, not from Parameter Store; the API and
+  # the worker refuse it under staging and production.
+  AIA_DATA_CLASS_GATES: advisory
   AIA_LOG_FORMAT: json
   AIA_LOG_LEVEL: ${AIA_LOG_LEVEL:-INFO}
   AIA_AI_ANALYSIS_ENABLED: ${AIA_AI_ANALYSIS_ENABLED:-false}
@@ -179,6 +185,9 @@ services:
       AIA_DEEP_RESEARCH_CONNECTORS: ${AIA_DEEP_RESEARCH_CONNECTORS:-}
       AIA_DEEP_RESEARCH_AGENT_DIRECTED: ${AIA_DEEP_RESEARCH_AGENT_DIRECTED:-false}
       AIA_DEEP_RESEARCH_LEAD: ${AIA_DEEP_RESEARCH_LEAD:-false}
+      # The worker's switch, read only so a Deep Research quote can say a run would park
+      # (deep-research-web-search 55); the API composes and sends nothing with it.
+      AIA_DEEP_RESEARCH_ENABLED: ${AIA_DEEP_RESEARCH_ENABLED:-false}
       # The audience step's preview (panel-grounded-respondents 6c): the API loads LIVE from the
       # same read-only directory the worker reads, once per version, and answers with counts.
       # AIA_API_POPULATION_ASSET_ROOT= (empty) in .env turns the preview off; the step says so.
@@ -221,6 +230,10 @@ services:
       AIA_BEDROCK_MAX_OUTPUT_TOKENS: ${AIA_BEDROCK_MAX_OUTPUT_TOKENS:-}
       AIA_BEDROCK_CONTEXT_WINDOW_TOKENS: ${AIA_BEDROCK_CONTEXT_WINDOW_TOKENS:-}
       AIA_BEDROCK_TIMEOUT_SECONDS: ${AIA_BEDROCK_TIMEOUT_SECONDS:-}
+      # What the route model's calls are sent through (develop-spend-attribution 5a): an
+      # application inference profile ARN over AIA_BEDROCK_MODEL_ID, tagged Environment=develop.
+      # Empty: the id itself, as before. The model id stays the eu. id either way.
+      AIA_BEDROCK_INVOCATION_TARGET: ${AIA_BEDROCK_INVOCATION_TARGET:-}
       AIA_AI_ROUTE_EU_PROCESSING_APPROVED: ${AIA_AI_ROUTE_EU_PROCESSING_APPROVED:-}
       AIA_AI_ROUTE_EXCLUDED_FROM_TRAINING: ${AIA_AI_ROUTE_EXCLUDED_FROM_TRAINING:-}
       AIA_AI_ROUTE_APPROVED_FOR: ${AIA_AI_ROUTE_APPROVED_FOR:-}
@@ -247,6 +260,7 @@ services:
       AIA_AI_RESEARCH_LEAD_STRUCTURED_OUTPUT: ${AIA_AI_RESEARCH_LEAD_STRUCTURED_OUTPUT:-}
       AIA_AI_RESEARCH_LEAD_THINKING: ${AIA_AI_RESEARCH_LEAD_THINKING:-}
       AIA_AI_RESEARCH_LEAD_EFFORT: ${AIA_AI_RESEARCH_LEAD_EFFORT:-}
+      AIA_AI_RESEARCH_LEAD_INVOCATION_TARGET: ${AIA_AI_RESEARCH_LEAD_INVOCATION_TARGET:-}
       AIA_AI_ANALYSIS_ENABLED: ${AIA_AI_ANALYSIS_ENABLED:-false}
       AIA_AI_ANALYSIS_MAX_OUTPUT_TOKENS: ${AIA_AI_ANALYSIS_MAX_OUTPUT_TOKENS:-}
       AIA_AI_ANALYSIS_RESERVATION_USD: ${AIA_AI_ANALYSIS_RESERVATION_USD:-}
@@ -256,6 +270,11 @@ services:
       AIA_AI_CLIENT_SOURCE_RESERVATION_USD: ${AIA_AI_CLIENT_SOURCE_RESERVATION_USD:-}
       # A model request's "sent" and "answered" in its run's feed (step-activity plan, chunk 5).
       AIA_AI_STEP_EVENTS: ${AIA_AI_STEP_EVENTS:-false}
+      # A scale question's verbal labels in the AI respondent's item (input-interactions 3b).
+      # Off until the methodology owner signs the provisional wording.
+      AIA_AI_SCALE_LABELS_IN_PROMPT: ${AIA_AI_SCALE_LABELS_IN_PROMPT:-false}
+      # Each answered respondent block kept and replayed on a resumed or retried run (RQC0).
+      AIA_AI_FIELDWORK_CHECKPOINT: ${AIA_AI_FIELDWORK_CHECKPOINT:-false}
       # The report's PDF beside its DOCX (complete-study-report B3). The develop worker image
       # is built with LibreOffice (AIA_WORKER_PDF=true in deploy-develop.yml), so it is on.
       AIA_REPORT_PDF_ENABLED: ${AIA_REPORT_PDF_ENABLED:-true}

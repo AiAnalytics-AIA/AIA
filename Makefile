@@ -18,7 +18,7 @@ BIN := $(shell [ -d $(VENV)/bin ] && echo $(VENV)/bin/ || echo "")
 PYTHON_VERSION := $(shell cat .python-version)
 
 .PHONY: ui-audience ui-intake ui-methodology help setup deps services migrate migration dev dev-api dev-web dev-worker \
-        test test-core test-api test-worker test-executors test-parity test-golden test-oracle parity-status test-web report-preview web_design ui-workbench ui-workbench-reference ui-workbench-status ui-workbench-down ui-capture ui-fixtures ui-research ui-sociomapping ui-workspace ui-coherence report-journey \
+        test test-core test-api test-worker test-executors test-acceptance test-parity test-golden test-oracle parity-status test-web report-preview web_design ui-workbench ui-workbench-reference ui-workbench-status ui-workbench-down ui-capture ui-fixtures ui-research ui-sociomapping ui-workspace ui-coherence report-journey \
         lint format typecheck python-version \
         layer_check exposure_check check verify openapi clean
 
@@ -85,6 +85,9 @@ test-worker: ## Worker tests (the multi-process suite needs a PostgreSQL DATABAS
 
 test-executors: ## Step executor, seed and smoke-module tests
 	@$(PY) -m pytest apps/executors -q
+
+test-acceptance: ## MVP-ACCEPT-2 tier A over HTTP (needs AIA_ACCEPTANCE_DATABASE_URL: a PostgreSQL database it may migrate and seed)
+	@$(PY) -m pytest tests/acceptance -q -m acceptance
 
 test-parity: ## Compare against the legacy prototype (needs AIA_LEGACY_REFERENCE)
 	@$(PY) -m pytest packages/aia_core -q -m parity
@@ -157,13 +160,13 @@ web_design: ## Design tokens: generated files current, contrast / palette / acce
 	@cd apps/web && npm run tokens:check && npm run check:design
 
 lint: ## Lint Python and the web client
-	@$(BIN)ruff check packages/aia_core apps/api apps/worker apps/executors migrations
-	@$(BIN)ruff format --check packages/aia_core apps/api apps/worker apps/executors migrations
+	@$(BIN)ruff check packages/aia_core apps/api apps/worker apps/executors migrations tests
+	@$(BIN)ruff format --check packages/aia_core apps/api apps/worker apps/executors migrations tests
 	@cd apps/web && npm run lint
 
 format: ## Auto-format Python and the web client
-	@$(BIN)ruff format packages/aia_core apps/api apps/worker apps/executors migrations
-	@$(BIN)ruff check --fix packages/aia_core apps/api apps/worker apps/executors migrations
+	@$(BIN)ruff format packages/aia_core apps/api apps/worker apps/executors migrations tests
+	@$(BIN)ruff check --fix packages/aia_core apps/api apps/worker apps/executors migrations tests
 
 python-version: ## Fail unless the Python in use is the one CI runs (.python-version)
 	@ci=$$(sed -n 's/^  PYTHON_VERSION: "\(.*\)"$$/\1/p' .github/workflows/ci.yml); \
@@ -200,8 +203,8 @@ verify: ## The pre-commit sequence from CLAUDE.md §10, in order
 	@$(MAKE) typecheck
 	@$(MAKE) layer_check
 	@$(MAKE) exposure_check
-	@$(BIN)ruff check packages/aia_core apps/api apps/worker apps/executors migrations
-	@$(BIN)ruff format --check packages/aia_core apps/api apps/worker apps/executors migrations
+	@$(BIN)ruff check packages/aia_core apps/api apps/worker apps/executors migrations tests
+	@$(BIN)ruff format --check packages/aia_core apps/api apps/worker apps/executors migrations tests
 	@$(MAKE) test
 	@$(MAKE) web_design
 	@$(MAKE) test-web

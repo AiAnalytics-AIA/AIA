@@ -1,9 +1,11 @@
 // The Lead's edit tools, applied only when a person accepts them (ADR 0026, Accepted with 2): each
 // edit goes through the stages' own helpers, and one that no longer fits is refused, never bent.
+import { readFileSync } from "node:fs";
+import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 
 import {
-  applyLeadEdit, autoAcceptIndices, autoAcceptPlan, describeEdit, editStage, isTextEdit, pendingSelfUpdate, revertTextEdit, targetLabel, textEditInverse,
+  applyLeadEdit, autoAcceptIndices, autoAcceptPlan, describeEdit, droppedLines, editRefusalWords, editStage, isTextEdit, leadReasonWords, pendingSelfUpdate, revertTextEdit, targetLabel, textEditInverse,
   type LeadEdit, type LeadTurn,
 } from "./lead";
 import type { ResearchProject } from "@/research/model";
@@ -18,7 +20,7 @@ const project = (over: Partial<ResearchProject> = {}): ResearchProject => ({
   ...over,
 });
 const content = (p = project()) => ({ project: p, analysis: null });
-const ok = (r: ReturnType<typeof applyLeadEdit>) => {
+const ok = (r: ReturnType<typeof applyLeadEdit> | ReturnType<typeof revertTextEdit>) => {
   if ("refused" in r) throw new Error(r.refused);
   return r.content;
 };
@@ -78,13 +80,13 @@ describe("describeEdit / editStage", () => {
 describe("focusSelector", () => {
   it("names the element the stage screens already render for a target", async () => {
     const { focusSelector } = await import("./lead");
-    expect(focusSelector("question:Q_1")).toBe('[id="qedit_Q_1"]');
+    expect(focusSelector("question:Q_1")).toBe('[data-aia="question:Q_1"], [id="qedit_Q_1"]');
     expect(focusSelector("brief:goal")).toBe('[id="brief-goal"]');
     expect(focusSelector("plan:research_questions")).toBe('[id="plan-understanding"]');
     expect(focusSelector("plan:sets")).toBe('[id="plan-sets"]');
     expect(focusSelector("plan:variants")).toBe('[id="plan-variants"]');
     expect(focusSelector("plan:questions")).toBe('[id="plan-questions"]');
-    expect(focusSelector("section:sec_1")).toBe('[id="qblock_sec_1"]');
+    expect(focusSelector("section:sec_1")).toBe('[data-aia="section:sec_1"], [id="qblock_sec_1"]');
     expect(focusSelector('odd"one')).toBe('[data-aia="odd\\"one"], [id="odd\\"one"]');
   });
 });
@@ -93,11 +95,109 @@ describe("targetOfElement", () => {
   it("names the nearest element the stage screens identify, from wherever the person clicked", async () => {
     const { targetOfElement } = await import("./lead");
     const { JSDOM } = await import("jsdom");
-    const { document } = new JSDOM(`<div id="qedit_Q_1"><span><b id="hit">x</b></span><textarea>Jak jste spokojeni?</textarea></div>
+    const { document } = new JSDOM(`<div data-aia="question:Q_1" id="qedit_Q_1"><span><b id="hit">x</b></span><textarea>Jak jste spokojeni?</textarea></div>
       <section id="brief-goal"><h2>Co potřebujete zjistit</h2><p id="g">text</p></section><div id="none"><i id="n">-</i></div>`).window;
     expect(targetOfElement(document.getElementById("hit"))).toEqual({ id: "question:Q_1", label: "Otázka Q_1: Jak jste spokojeni?" });
     expect(targetOfElement(document.getElementById("g"))).toEqual({ id: "brief:goal", label: "Zadání: Co potřebujete zjistit" });
     expect(targetOfElement(document.getElementById("n"))).toBeNull();
+  });
+
+  it("names any element a screen marked with data-aia, nearest first, and ignores other marks", async () => {
+    const { targetOfElement } = await import("./lead");
+    const { JSDOM } = await import("jsdom");
+    const { document } = new JSDOM(`<fieldset data-aia="audience:filter:kraj"><legend>Kraj</legend><input id="k"></fieldset>
+      <div data-aia="finding:executive:2"><p id="f">text</p></div><div data-aia="lead-edit.x"><i id="o">-</i></div>`).window;
+    expect(targetOfElement(document.getElementById("k"))).toEqual({ id: "audience:filter:kraj", label: "Filtr: kraj: Kraj" });
+    expect(targetOfElement(document.getElementById("f"))).toEqual({ id: "finding:executive:2", label: "Zjištění: text" });
+    expect(targetOfElement(document.getElementById("o"))).toBeNull();
+  });
+
+  it("keeps a marked question's wording and a marked section's title as their labels, whatever heading they hold", async () => {
+    // Dotazník marks its cards with data-aia; a card's first legend is a part of it (the research
+    // questions it answers), never what the person pointed at.
+    const { focusSelector, targetOfElement } = await import("./lead");
+    const { JSDOM } = await import("jsdom");
+    const { document } = new JSDOM(`<div data-aia="question:Q1" id="qedit_Q1"><textarea id="t">Jak často?</textarea>
+        <fieldset><legend>Odpovídá na výzkumné otázky</legend><input id="rq" type="checkbox"></fieldset></div>
+      <div data-aia="section:S1" id="qset_S1"><fieldset><legend>Odpovídá na výzkumné otázky</legend></fieldset><h3>Nápoje</h3><i id="s">-</i></div>`).window;
+    expect(targetOfElement(document.getElementById("t"))).toEqual({ id: "question:Q1", label: "Otázka Q1: Jak často?" });
+    expect(targetOfElement(document.getElementById("rq"))?.label).toBe("Otázka Q1: Jak často?");
+    expect(targetOfElement(document.getElementById("s"))).toEqual({ id: "section:S1", label: "Oddíl: Nápoje" });
+    // Dotazník edits a block's or set's title in place: an input, not a heading (Codex on #599).
+    const edited = new JSDOM(`<article data-aia="section:S2" id="qset_S2"><fieldset><legend>Odpovídá na výzkumné otázky</legend><input type="checkbox" checked></fieldset>
+        <input aria-label="Název sady" value="Snídaně"><i id="e">-</i></article>
+      <article data-aia="section:B1" id="qblock_B1"><input aria-label="Název bloku" value="Úvod"><i id="b">-</i></article>`).window.document;
+    expect(targetOfElement(edited.getElementById("e"))).toEqual({ id: "section:S2", label: "Oddíl: Snídaně" });
+    expect(targetOfElement(edited.getElementById("b"))).toEqual({ id: "section:B1", label: "Oddíl: Úvod" });
+    // A tracked set's card is found by its mark: it has no qblock_ id.
+    expect(document.querySelector(focusSelector("section:S1"))?.id).toBe("qset_S1");
+  });
+
+  it("names an item row without a heading by its own words, never its opaque id", async () => {
+    const { targetOfElement } = await import("./lead");
+    const { JSDOM } = await import("jsdom");
+    // The Brief's objective row as it renders: its number, InlineText (the action read by a screen
+    // reader, the words in a text button, a pencil icon) and the row's remove button.
+    const { document } = new JSDOM(`<ul><li data-aia="objective:obj_6393c6bada"><span aria-hidden="true">1.</span>
+      <span><span class="sr-only">Upravit: Cíl 1</span><button aria-labelledby="a t"><span id="o">Změřit   zájem o koncept</span><span aria-hidden="true">✎</span></button></span>
+      <button aria-label="Odebrat cíl 1">×</button></li>
+      <li data-aia="rq:rq_x" id="r">Kdo nakupuje?</li><div data-aia="audience:preview"><i id="p">1 234</i></div></ul>`).window;
+    expect(targetOfElement(document.getElementById("o"))).toEqual({ id: "objective:obj_6393c6bada", label: "Cíl: Změřit zájem o koncept" });
+    expect(targetOfElement(document.getElementById("r"))?.label).toBe("Výzkumná otázka: Kdo nakupuje?");
+    // A part of a screen keeps its own words (targetLabel), not whatever text it holds.
+    expect(targetOfElement(document.getElementById("p"))?.label).toBe("Cílová skupina: náhled");
+  });
+
+  it("names nothing for an unmarked duplicate of a marked card (#607 marks the first only)", async () => {
+    const { targetOfElement } = await import("./lead");
+    const { JSDOM } = await import("jsdom");
+    const { document } = new JSDOM(`<div data-aia="question:Q1" id="qedit_Q1"><i id="a">Jak často?</i></div>
+      <div id="qedit_Q1"><i id="b">Jak často znovu?</i></div>`).window;
+    expect(targetOfElement(document.getElementById("a"))?.id).toBe("question:Q1");
+    expect(targetOfElement(document.getElementById("b"))).toBeNull();
+  });
+
+  it("names an unmarked card by its DOM id only when the id is a stored one the contract can send", async () => {
+    // Before Dotazník marks its cards (#607) a card is named by its DOM id. The ids the screen
+    // invents name nothing: a question without an id is qedit_Q (questionElementId's placeholder),
+    // a block without one qblock_<index>, and an id like "Q 2" is one the server refuses (Codex on
+    // #607; review of #618: a stored id stays pickable whichever PR lands first).
+    const { targetOfElement } = await import("./lead");
+    const { JSDOM } = await import("jsdom");
+    const { document } = new JSDOM(`<div id="qedit_Q"><i id="q">-</i></div><article id="qblock_0"><i id="b">-</i></article>
+      <div id="qedit_Q 2"><i id="s">-</i></div>`).window;
+    expect(targetOfElement(document.getElementById("q"))).toBeNull();
+    expect(targetOfElement(document.getElementById("b"))).toBeNull();
+    expect(targetOfElement(document.getElementById("s"))).toBeNull();
+    const stored = new JSDOM(`<div id="qedit_q1"><textarea id="w">Jak často?</textarea></div>
+      <article id="qblock_B1"><h3>Úvod</h3><i id="x">-</i></article>`).window.document;
+    expect(targetOfElement(stored.getElementById("w"))).toEqual({ id: "question:q1", label: "Otázka q1: Jak často?" });
+    expect(targetOfElement(stored.getElementById("x"))).toEqual({ id: "section:B1", label: "Oddíl: Úvod" });
+  });
+});
+
+describe("composerHint", () => {
+  it("says why the composer is shut, the person's own reason first, unknown as loading", async () => {
+    const { composerHint } = await import("./lead");
+    const at = (over: Partial<Parameters<typeof composerHint>[0]>) => composerHint({ canEdit: true, hatched: true, available: true, failed: false, ...over });
+    expect(at({})).toBeNull();
+    expect(at({ canEdit: false, hatched: false, available: false })).toMatch(/Jen ke čtení/);
+    expect(at({ hatched: false })).toMatch(/vylíhněte/);
+    expect(at({ available: false })).toMatch(/neodpovídá/);
+    expect(at({ hatched: undefined, available: undefined })).toMatch(/Načítám/);
+    // A refused read never reads as loading for ever (review of the audit branch).
+    expect(at({ available: undefined, failed: true })).toMatch(/nepodařilo načíst/);
+  });
+});
+
+describe("targetLabel for every artifact's kinds", () => {
+  it("says each kind in words, and the audience's parts as the Cílová skupina screen names them", () => {
+    expect(targetLabel("audience:definition")).toBe("Cílová skupina: popis");
+    expect(targetLabel("audience:subpanel:young_18_29")).toBe("Podpanel: young_18_29");
+    expect(targetLabel("pair:set1/fio~air")).toBe("Dvojice set1/fio~air");
+    expect(targetLabel("measure:q3")).toBe("Měření q3");
+    expect(targetLabel("receipt:respondents")).toBe("Kdo odpovídal");
+    expect(targetLabel("nonsense:q3")).toBe("nonsense:q3");
   });
 });
 
@@ -179,5 +279,50 @@ describe("automatic text edits (inline-decisions 2)", () => {
     const inverse = textEditInverse(before, e)!;
     const edited = ok(applyLeadEdit(before, { op: "question_edit", question_id: "Q_1", text: "Přepsáno výzkumníkem", options: null, why: "" }));
     expect(revertTextEdit(edited, e, inverse)).toHaveProperty("refused");
+  });
+});
+
+describe("a refused or dropped edit says why in words (RQC9)", () => {
+  it("names a sample size outside the valid range and unknown limits, never the code", () => {
+    expect(editRefusalWords("sample_size_out_of_range")).toContain("mimo platný rozsah");
+    expect(editRefusalWords("sample_size_limits_unknown")).toContain("nepodařilo zjistit");
+    expect(editRefusalWords("unknown_question")).toBe("Otázka, kterou návrh mění, už v dotazníku není.");
+    expect(editRefusalWords(null)).toBe("Úpravu už nelze použít.");
+    expect(editRefusalWords("something_new")).toBe("something_new"); // kept, never guessed
+  });
+  it("has words for every refusal the server's vocabulary names", () => {
+    const file = JSON.parse(readFileSync(join(process.cwd(), "../../packages/aia_core/tests/fixtures/edit_ops/cases.json"), "utf8")) as { refusals: string[] };
+    for (const code of file.refusals) expect(editRefusalWords(code)).not.toBe(code);
+  });
+  it("a dropped sample size is its own line; the rest are counted as before", () => {
+    expect(droppedLines([{ reason: "sample_size_out_of_range" }, { reason: "unknown_question" }])).toEqual([
+      editRefusalWords("sample_size_out_of_range"),
+      "1 navržená změna se netýkala ničeho v pracovní kopii a byla vynechána.",
+    ]);
+    expect(droppedLines([{ reason: "unknown_item" }, { reason: "unknown_question" }])).toEqual([
+      "2 navržené změny se netýkaly ničeho v pracovní kopii a byly vynechány.",
+    ]);
+  });
+});
+
+describe("leadReasonWords", () => {
+  it("says who fixes a refusal of the AI route, which a researcher cannot (LO12a)", () => {
+    expect(leadReasonWords("egress_route_not_approved_for_class")).toMatch(/^Tuto studii nelze poslat modelu: .* Opraví to provozovatel AIA, ne výzkumník: nastaví parametr aia_ai_route_approved_for/);
+    expect(leadReasonWords("budget_exceeded")).not.toContain("provozovatel");
+  });
+
+  it("says what to do about a turn parked on the study's budget, by the code the server sends", () => {
+    // The server's waiting reason is budget_exceeded; AWAITING_BUDGET is a step status it never sends.
+    expect(leadReasonWords("budget_exceeded")).toContain("Nastavení → Studie");
+    // Setting the budget sends the message by itself (the product owner, 2026-10-21, Q39).
+    expect(leadReasonWords("budget_exceeded")).toContain("odešle sama");
+    expect(leadReasonWords("budget_exceeded")).not.toContain("budget_exceeded");
+  });
+  it("says a superseded turn's message was read with the next one", () => {
+    expect(leadReasonWords("CANCELLED")).toContain("další zprávou");
+  });
+  it("names an unknown code rather than guessing", () => {
+    expect(leadReasonWords("something_new")).toBe("Vedoucí se zastavil (something_new).");
+    expect(leadReasonWords(null)).toBe("Vedoucí se zastavil.");
   });
 });

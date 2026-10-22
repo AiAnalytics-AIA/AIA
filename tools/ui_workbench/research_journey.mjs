@@ -111,6 +111,17 @@ for (const step of ["compile", "preflight", "run", "aggregate", "sociomap"]) {
   if (status !== "SUCCEEDED") fail(`step ${step} is ${status ?? "missing"}, not SUCCEEDED`);
 }
 ok("Progress: the run completed");
+// Each step says whether a model or code did it (artifact-fieldwork FLD2) and is pointable by the
+// Lead as step:<node_key>. The workbench's fieldwork is fictional code, never AI.
+for (const step of ["compile", "preflight", "run", "aggregate", "sociomap"]) {
+  const work = await page.locator(`[data-aia="step:${step}"] [data-step-work]`).first().getAttribute("data-step-work", { timeout: 5000 }).catch(() => null);
+  if (work !== "running") fail(`step ${step} is tagged ${work ?? "nothing"}, not deterministic`);
+}
+ok("Progress: every step tagged deterministic and pointable");
+// Kdo odpovídal (artifact-fieldwork FLD7): pointable, with the data's origin code as fieldwork stored it.
+const originCode = await page.locator('[data-aia="receipt:respondents"] [data-origin-code]').first().textContent({ timeout: 5000 }).catch(() => null);
+if (!originCode?.startsWith("SYNTHETIC_")) fail(`Kdo odpovídal shows origin ${originCode ?? "nothing"}, not a fictional code`);
+ok(`Progress: Kdo odpovídal names the data's origin (${originCode})`);
 await shot("2-progress");
 
 // 3. Results: labelled fictional, an aggregate table, the Sociomap labelled by method.

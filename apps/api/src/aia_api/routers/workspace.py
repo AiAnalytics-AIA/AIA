@@ -29,6 +29,7 @@ from aia_core.application.project_memory import (
 )
 from aia_core.application.research import BudgetNotRaised, ResearchStepNotFound
 from aia_core.domain.attachments import ATTACHMENT_MAX_BYTES, AttachmentRejected
+from aia_core.domain.brief_material_classes import brief_material_classes
 from aia_core.domain.client_profile import ClientContact, ClientProfile, ContactDraft
 from aia_core.domain.design import DesignRejected
 from aia_core.domain.knowledge import (
@@ -39,6 +40,7 @@ from aia_core.domain.knowledge import (
     KnowledgeLabel,
     KnowledgeProposal,
     LabelColour,
+    NoRevisionToReview,
     OrganizerNameTaken,
     ProposalStatus,
     StaleKnowledgeProposal,
@@ -82,7 +84,7 @@ from aia_core.infrastructure.study_workspace_repository import (
 )
 from aia_core.infrastructure.workflow_repository import BudgetWaitNotLiftable, WorkflowNotFound
 from fastapi import APIRouter, HTTPException, Path, Query, Response, status
-from pydantic import BaseModel, ConfigDict, Field, ValidationError
+from pydantic import BaseModel, ConfigDict, Field, StrictInt, ValidationError
 
 from ..dependencies import (
     ArtifactStoreDep,
@@ -330,8 +332,22 @@ class Placement(BaseModel):
     )
 
 
+class RevisionEvidenceResponse(BaseModel):
+    """What an AI-written revision rests on (lifecycle K3): its document, quote and place."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    source_id: str
+    quote: str
+    locator: dict[str, Any]
+    source_sha256: str | None = None
+    reading_sha256: str | None = None
+    segment: int | None = None
+    run_id: str | None = None
+
+
 class KnowledgeRevisionResponse(BaseModel):
-    """One approved revision of an item."""
+    """One approved revision of an item, typed (lifecycle K3)."""
 
     model_config = ConfigDict(extra="forbid")
 
@@ -342,6 +358,17 @@ class KnowledgeRevisionResponse(BaseModel):
     provenance: dict[str, Any]
     approved_by: str
     approved_at: datetime | None = None
+    #: PERSON, STUDY or AI; UNKNOWN for a revision whose record never said.
+    author: str = "UNKNOWN"
+    #: AUTHORED, ACCEPTED or ACCEPTED_OVER; null for a decision made before it was recorded.
+    decision: str | None = None
+    #: The item revision the edit was written from, and the one the reviewer named.
+    base_revision: int | None = None
+    reviewed_revision: int | None = None
+    #: For an AI-written revision: the document, quote and locator it rests on.
+    evidence: RevisionEvidenceResponse | None = None
+    #: SHA-256 of the revision's title, summary and content (canonical JSON).
+    sha256: str
 
 
 class ProposalGroundingResponse(BaseModel):
@@ -378,6 +405,13 @@ class ProposalResponse(BaseModel):
     revision: int | None = None
     #: The item revision an edit was written from (null for a new item, or unknown).
     base_revision: int | None = None
+    #: PERSON, STUDY or AI; UNKNOWN for a proposal whose record never said (lifecycle K3).
+    author: str = "UNKNOWN"
+    #: Once decided: AUTHORED, ACCEPTED, ACCEPTED_OVER or REJECTED; null while pending or
+    #: for a decision made before it was recorded.
+    decision: str | None = None
+    #: The item revision the reviewer named when deciding; null when they named none.
+    reviewed_revision: int | None = None
     yours: bool = False
     #: The client's source the proposed item names (C7a), so a reviewer sees the file.
     source_id: str | None = None
@@ -604,8 +638,10 @@ class DecisionRequest(BaseModel):
     approve: bool
     note: str = Field(default="", max_length=2_000)
     #: The item's current revision, which the reviewer read: approves an edit written from
-    #: an older one over it. Without it such an approval is refused (409).
-    reviewed_revision: int | None = Field(default=None, ge=1)
+    #: an older one over it. Without it such an approval is refused (409). A revision that is
+    #: not the current one is refused too, whatever the edit's base (409); one the item never
+    #: had, or any for a new item, is 422 (lifecycle K3). Strict: ``true`` is not revision 1.
+    reviewed_revision: StrictInt | None = Field(default=None, ge=1)
 
 
 class StudyContextResponse(BaseModel):
@@ -716,6 +752,9 @@ def _proposal(p: KnowledgeProposal, *, actor: str, names: dict[str, str]) -> Pro
         decision_note=p.decision_note,
         revision=p.revision,
         base_revision=p.base_revision,
+        author=p.author.value,
+        decision=p.decision.value if p.decision else None,
+        reviewed_revision=p.reviewed_revision,
         yours=p.proposed_by == actor,
         source_id=_named_source(p),
         from_source=_grounding(p),
@@ -758,6 +797,7 @@ def _stale(exc: StaleKnowledgeProposal) -> HTTPException:
                 "item_id": exc.item_id,
                 "base_revision": exc.base_revision,
                 "current_revision": exc.current_revision,
+                "reviewed_revision": exc.reviewed_revision,
             },
         },
     )
@@ -1836,6 +1876,12 @@ def knowledge_revisions(
             provenance=r.provenance,
             approved_by=r.approved_by,
             approved_at=r.approved_at,
+            author=r.author.value,
+            decision=r.decision.value if r.decision else None,
+            base_revision=r.base_revision,
+            reviewed_revision=r.reviewed_revision,
+            evidence=(RevisionEvidenceResponse(**r.evidence.model_dump()) if r.evidence else None),
+            sha256=r.sha256,
         )
         for r in revisions
     ]
@@ -1957,6 +2003,10 @@ def decide_knowledge(
         )
     except StaleKnowledgeProposal as exc:
         raise _stale(exc) from exc
+    except NoRevisionToReview as exc:
+        raise HTTPException(
+            status_code=422, detail={"code": "no_revision_to_review", "message": str(exc)}
+        ) from exc
     except SeparationOfDutiesViolation as exc:
         raise _forbidden(
             exc.reason, "Someone other than the proposer must decide this update."
@@ -2038,6 +2088,56 @@ def study_working_content(scope: StudyScopeDep, session: SessionDep) -> WorkingC
     Each says so, with no content, rather than answering with an empty document.
     """
     return _content_response(scope, StudyWorkspaceRepository(session).content(scope))
+
+
+class BriefMaterialClassResponse(BaseModel):
+    """One entry of ``briefing.attachments`` and the class its rule gives it."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    index: int
+    kind: Literal["file", "url"] | None
+    ref: str | None
+    data_class: str | None
+    class_source: str | None
+
+
+class BriefMaterialsResponse(BaseModel):
+    """The Brief's materials at the working content's current revision, each with its class."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    revision: int | None
+    materials: list[BriefMaterialClassResponse]
+
+
+@router.get(
+    "/studies/{study_id}/workspace/materials",
+    response_model=BriefMaterialsResponse,
+    summary="The class of each material the research study's brief carries",
+)
+def study_brief_materials(scope: StudyScopeDep, session: SessionDep) -> BriefMaterialsResponse:
+    """Each file and link of the brief, as saved at the current revision, with its data class.
+
+    The class is the rule's (``aia_core.domain.material_rules``): a brief's file or link is the
+    study's design, Class B. An operator's classification may only raise it, when the design is
+    sent; this route does not hold those. An entry no rule names answers ``data_class: null``.
+    A study with nothing saved answers ``revision: null`` and no materials.
+    """
+    content = StudyWorkspaceRepository(session).content(scope)
+    return BriefMaterialsResponse(
+        revision=content.revision,
+        materials=[
+            BriefMaterialClassResponse(
+                index=m.index,
+                kind=m.kind,
+                ref=m.ref,
+                data_class=m.data_class.value if m.data_class else None,
+                class_source=m.class_source,
+            )
+            for m in brief_material_classes(content.content)
+        ],
+    )
 
 
 @router.put(

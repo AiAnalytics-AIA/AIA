@@ -42,12 +42,15 @@ import {
 } from "@/research/plan";
 import type { Analysis } from "@/research/store";
 import { applyPlanSets, lines, proposalAnalysis, validMeasurement } from "@/research/plan-edit";
-import { ProposalEditor } from "./ProposalEditor";
+import { DesignCoverage } from "./DesignCoverage";
+import { PlanNarrative } from "./PlanNarrative";
 import { Icon, type IconName } from "../icons";
 import { ActionDock, ChipInput, InlineConfirm, StepSection } from "../step";
 import { AiButton, Button, Field, TextArea, TextInput } from "../ui";
 import { useResearch } from "./context";
-import { AnalysisFailureCard, useAnalysis } from "./useAnalysis";
+import { SavedForLead, useLeadOwnsAiStarts } from "./AskLead";
+import { AnalysisFailureCard, modeOf, useAnalysis } from "./useAnalysis";
+import { readyLimits, useSampleLimits } from "./useSampleLimits";
 
 const FOCUS = "focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus-ring";
 const INPUT = `min-h-9 w-full rounded-control border border-border-strong bg-surface-raised px-2.5 text-sm text-ink placeholder:text-ink-faint ${FOCUS}`;
@@ -76,19 +79,19 @@ export function followUpAnswers(questions: string[], answers: string[]): string 
 }
 
 export function PlanStep() {
-  const { store, state, toast, stepHref, confirm } = useResearch();
+  const { store, state, toast, stepHref, confirm, frame } = useResearch();
+  const sampleLimits = useSampleLimits(frame.studyId);
   const router = useRouter();
-  const { analyse, failure, busy } = useAnalysis();
+  const { analyse, resume, failure, busy } = useAnalysis();
   const a = proposalAnalysis(state);
   const p = state.project;
   const variants = projectVariants(state);
   const sets = trackedSets(a);
   const questions = followUps(a);
   const comments = planComments(p);
-  const [editingNarrative, setEditingNarrative] = useState(false);
   const [editingSet, setEditingSet] = useState<string | null>(null);
   const [pendingVariant, setPendingVariant] = useState<string | null>(null);
-  const editing = editingNarrative || editingSet !== null;
+  const editing = editingSet !== null;
   useEffect(() => {
     if (!editing) return;
     const beforeUnload = (e: BeforeUnloadEvent) => e.preventDefault();
@@ -118,6 +121,10 @@ export function PlanStep() {
     return () => window.removeEventListener("hashchange", read);
   }, [drawn]);
   const [answers, setAnswers] = useState<string[]>([]);
+  // In the workbench the Lead updates the design from the person's answers and comments (the owner,
+  // 2026-10-21): these controls save them into the working copy only, with no paid call.
+  const leadOwnsAiStarts = useLeadOwnsAiStarts();
+  const [savedForLead, setSavedForLead] = useState<"answers" | "comments" | null>(null);
   // Comments still being typed: a quote and its text, kept on the page until they have text.
   const [drafts, setDrafts] = useState<Draft[]>([]);
   const seq = useRef(0);
@@ -151,13 +158,17 @@ export function PlanStep() {
   );
 
   const chooseVariant = (id: string) => {
+    // A variant carries an n; until the valid range is read nothing is applied (RQC9).
+    if (sampleLimits.state === "loading") return toast(t("research.plan.variantWaitLimits"));
     const snapshot = store.get();
     const analysis = proposalAnalysis(snapshot);
-    const r = applyVariant({ ...snapshot, analysis }, id);
+    const r = applyVariant({ ...snapshot, analysis }, id, readyLimits(sampleLimits));
     if (!r) return;
     store.update(() => ({ ...r.state, project: { ...r.state.project, ui_state: { ...r.state.project.ui_state, plan_manual_changed: false } } }), { reason: "project_variant_1793" });
     setPendingVariant(null);
-    toast(tv("research.plan.variantApplied", { title: r.title }));
+    const applied = tv("research.plan.variantApplied", { title: r.title });
+    // The variant's n outside the valid range is not stored, and the person is told (RQC9).
+    toast(r.sampleRefused ? `${applied}. ${tv("research.plan.variantSampleKept", { why: r.sampleRefused })}` : applied);
   };
   const variantSection = variants.length ? <>
     <Variants variants={variants} current={selectedVariant(p)} onApply={(id) => {
@@ -175,7 +186,7 @@ export function PlanStep() {
           <h2 className="text-lg font-semibold">{t("research.plan.emptyTitle")}</h2>
           <p className="mx-auto mt-1 max-w-xl text-sm text-ink-muted">{t("research.plan.manualEmptyText")}</p>
           <div className="mt-4 flex flex-wrap justify-center gap-2">
-            <Button variant="primary" onClick={() => { store.update((current) => ({ ...current, analysis: { problem_summary: current.project.goal || "", objectives: [], hypotheses: [], research_questions: [], tracked_sets: [] } }), { reason: "plan_manual_started" }); setEditingNarrative(true); }}>{t("research.plan.createManual")}</Button>
+            <Button variant="primary" onClick={() => { store.update((current) => ({ ...current, analysis: { problem_summary: current.project.goal || "", objectives: [], hypotheses: [], research_questions: [], tracked_sets: [] } }), { reason: "plan_manual_started" }); }}>{t("research.plan.createManual")}</Button>
             <Button icon="back" className="!rounded-control" onClick={() => router.push(stepHref("brief"))}>
               {t("research.plan.openBrief")}
             </Button>
@@ -210,12 +221,17 @@ export function PlanStep() {
         <p className="mt-3 text-xs leading-5 text-ink-muted">{t("research.plan.manualNote")}</p>
       </header>
       <JumpChips chips={chips} />
-      {failure ? <AnalysisFailureCard failure={failure} onRetry={() => void analyse()} /> : null}
+      {failure ? <AnalysisFailureCard failure={failure} onRetry={() => void analyse()} onContinue={(id) => {
+        // A wait from "process comments" ends as that action does, with its toast (CR-2).
+        const comments = modeOf(failure, id) === true;
+        void resume(id).then((ok) => { if (ok && comments) toast(t("research.plan.commentsDone")); });
+      }} /> : null}
       {variantSection}
+      <DesignCoverage />
       <Commentable onQuote={(quote) => setDrafts((d) => [...d, { key: ++seq.current, quote, text: "" }])}>
         <div className="flex flex-col gap-4">
-          <Understanding n={++n} analysis={a} goal={p.goal || ""} changed={Boolean(p.ui_state.plan_changed26)} editing={editingNarrative} setEditing={setEditingNarrative} blocked={editingSet !== null || busy} />
-          <Sets n={++n} analysis={a} editing={editingSet} onEditing={setEditingSet} blocked={editingNarrative || busy} />
+          <Understanding n={++n} changed={Boolean(p.ui_state.plan_changed26)} blocked={editingSet !== null || busy} onQuote={(quote) => { setDrafts((d) => [...d, { key: ++seq.current, quote, text: "" }]); jumpTo("plan-comments"); }} />
+          <Sets n={++n} analysis={a} editing={editingSet} onEditing={setEditingSet} blocked={busy} />
         </div>
       </Commentable>
       {questions.length ? (
@@ -226,28 +242,39 @@ export function PlanStep() {
           answered={answered}
           setAnswers={setAnswers}
           busy={busy || editing}
+          saveOnly={leadOwnsAiStarts}
           onSubmit={async () => {
             const r = answerFollowUps(store.get().project, followUpAnswers(questions, answers));
             if ("error" in r) return r.error;
             store.update(() => ({ project: r.project }));
             setAnswers([]);
-            await analyse();
+            if (leadOwnsAiStarts) setSavedForLead("answers");
+            else await analyse();
             return null;
           }}
         />
       ) : null}
+      {savedForLead === "answers" ? <SavedForLead saved="Odpovědi jsou uložené" message="Aktualizuj návrh podle mých odpovědí." /> : null}
       <Comments
         n={++n}
         busy={busy || editing}
         drafts={drafts}
         setDrafts={setDrafts}
+        saveOnly={leadOwnsAiStarts}
         onProcess={async () => {
           const reviewed = commentsToReview(store.get().project);
           if (!reviewed) return;
+          if (leadOwnsAiStarts) {
+            // The plan is marked as changed by comments, as the analysis by comments marks it.
+            store.update(() => ({ project: { ...reviewed, ui_state: { ...reviewed.ui_state, plan_changed26: true } } }), { reason: "plan_comments_applied26", invalidateCheck: false });
+            setSavedForLead("comments");
+            return;
+          }
           store.update(() => ({ project: reviewed }), { reason: "plan_comments_applied26", invalidateCheck: false });
           if (await analyse({ force: true, byComments: true })) toast(t("research.plan.commentsDone"));
         }}
       />
+      {savedForLead === "comments" ? <SavedForLead saved="Komentáře jsou uložené" message="Aktualizuj návrh podle mých komentářů." /> : null}
       {dock}
     </div>
   );
@@ -336,47 +363,21 @@ function Variants({ variants, current, onApply }: { variants: Variant[]; current
   );
 }
 
-function Understanding({ n, analysis, goal, changed, editing, setEditing, blocked }: { n: number; analysis: Analysis; goal: string; changed: boolean; editing: boolean; setEditing: (v: boolean) => void; blocked: boolean }) {
-  const objectives = Array.isArray(analysis.objectives) ? analysis.objectives.map(String) : [];
-  const hypotheses = Array.isArray(analysis.hypotheses) ? analysis.hypotheses.map(String) : [];
-  const list = (title: string, items: string[]) =>
-    items.length ? (
-      <div>
-        <h3 className="text-[13px] font-semibold">{title}</h3>
-        <ul className="mt-1 flex flex-col gap-1 text-sm leading-6">
-          {items.map((x, i) => (
-            <li key={i} className="flex gap-2">
-              <span aria-hidden="true" className="mt-2.5 block size-1.5 shrink-0 rounded-full bg-signal" />
-              <span>{x}</span>
-            </li>
-          ))}
-        </ul>
-      </div>
-    ) : null;
+function Understanding({ n, changed, blocked, onQuote }: { n: number; changed: boolean; blocked: boolean; onQuote: (quote: string) => void }) {
   return (
     <StepSection
       id="plan-understanding"
       n={n}
       title={t("research.plan.understoodTitle")}
       hint={t("research.plan.understoodHint")}
-      aside={<div className="flex flex-wrap gap-2">
-        <Button small disabled={blocked} onClick={() => setEditing(!editing)}>{t(`research.plan.${editing ? "cancelEdits" : "edit"}`)}</Button>
-        {changed ? (
-          <span className="inline-flex items-center gap-1 whitespace-nowrap rounded-pill bg-status-done/14 px-2 py-0.5 text-xs text-status-done">
-            <Icon name="done" size={12} />
-            {t("research.plan.changed")}
-          </span>
-        ) : null}
-      </div>}
+      aside={changed ? (
+        <span className="inline-flex items-center gap-1 whitespace-nowrap rounded-pill bg-status-done/14 px-2 py-0.5 text-xs text-status-done">
+          <Icon name="done" size={12} />
+          {t("research.plan.changed")}
+        </span>
+      ) : null}
     >
-      {editing ? <ProposalEditor analysis={analysis} onClose={() => setEditing(false)} /> : <>
-      <p className="text-[15px] leading-6">{String(analysis.problem_summary || goal)}</p>
-      {list(t("research.plan.questionsLabel"), Array.isArray(analysis.research_questions) ? analysis.research_questions.map(String) : [])}
-      <div className="mt-4 grid gap-4 md:grid-cols-2">
-        {list(t("research.plan.objectives"), objectives)}
-        {list(t("research.plan.hypotheses"), hypotheses)}
-      </div>
-      </>}
+      <PlanNarrative disabled={blocked} onQuote={onQuote} />
       <details className="group mt-4 rounded-control border border-signal-edge bg-signal-tint px-3 py-2">
         <summary className="cursor-pointer text-[13px] font-medium text-signal">{t("research.plan.principleSummary")}</summary>
         <p className="mt-2 text-[13px] leading-5">
@@ -582,7 +583,9 @@ function MeasurementEditor({ set, onSave, onCancel }: { set: TrackedSet; onSave:
   </form>;
 }
 
-function FollowUps({ n, questions, answers, answered, setAnswers, busy, onSubmit }: {
+function FollowUps({ n, questions, answers, answered, setAnswers, busy, onSubmit, saveOnly = false }: {
+  /** The workbench: the answers are saved for the Lead, with no AI call from here. */
+  saveOnly?: boolean;
   n: number;
   questions: string[];
   answers: string[];
@@ -623,15 +626,19 @@ function FollowUps({ n, questions, answers, answered, setAnswers, busy, onSubmit
         ))}
       </ol>
       {error ? <p role="alert" className="mt-2 text-sm text-status-fault">{error}</p> : null}
-      <AiButton
-        className="mt-4"
-        disabled={busy}
-        onClick={async () => {
-          setError(await onSubmit());
-        }}
-      >
-        {t("research.plan.followSubmit")}
-      </AiButton>
+      {saveOnly ? (
+        <Button className="mt-4" disabled={busy} onClick={async () => setError(await onSubmit())}>Uložit odpovědi</Button>
+      ) : (
+        <AiButton
+          className="mt-4"
+          disabled={busy}
+          onClick={async () => {
+            setError(await onSubmit());
+          }}
+        >
+          {t("research.plan.followSubmit")}
+        </AiButton>
+      )}
     </StepSection>
   );
 }
@@ -684,7 +691,9 @@ function Commentable({ onQuote, children }: { onQuote: (quote: string) => void; 
   );
 }
 
-function Comments({ n, busy, drafts, setDrafts, onProcess }: {
+function Comments({ n, busy, drafts, setDrafts, onProcess, saveOnly = false }: {
+  /** The workbench: the comments are saved for the Lead, with no AI call from here. */
+  saveOnly?: boolean;
   n: number;
   busy: boolean;
   drafts: Draft[];
@@ -743,9 +752,13 @@ function Comments({ n, busy, drafts, setDrafts, onProcess }: {
           ))}
         </ul>
       ) : null}
-      <AiButton className={cs.length || drafts.length ? "mt-4" : ""} disabled={!cs.length || busy} onClick={() => void onProcess()}>
-        {t("research.plan.commentsProcess")}
-      </AiButton>
+      {saveOnly ? (
+        <Button className={cs.length || drafts.length ? "mt-4" : ""} disabled={!cs.length || busy} onClick={() => void onProcess()}>Uložit komentáře</Button>
+      ) : (
+        <AiButton className={cs.length || drafts.length ? "mt-4" : ""} disabled={!cs.length || busy} onClick={() => void onProcess()}>
+          {t("research.plan.commentsProcess")}
+        </AiButton>
+      )}
     </StepSection>
   );
 }

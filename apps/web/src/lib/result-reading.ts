@@ -10,6 +10,7 @@
 
 import { t } from "@/i18n/t";
 import { type QuestionResult, type StoredPlaces, type SupportStatus, UNIT_PLACES } from "@/lib/research-execution";
+import { aiaId } from "@/lib/workbench-artifacts";
 
 /**
  * A measure's title when its specification gives it no wording (run-recovery-and-truth 6c): said
@@ -91,7 +92,7 @@ export function readMeasure(result: QuestionResult, scale?: readonly [number, nu
     : result.typ === "skala"
       ? scaleReading(result, scale, topBox, at)
       : Array.isArray(result.verbatimy) && result.verbatimy.length
-        ? "Otevřené odpovědi: ukázky jsou v detailu."
+        ? `Otevřená otázka: ${finite(result.n_platnych) ? `${result.n_platnych.toLocaleString("cs-CZ")} odpovědí, ` : ""}nekódováno.`
         : null;
   if (words === null) return { text: "Pro tuto otázku není k dispozici číselný souhrn.", tone: "empty" };
   return result.support_status === "INDICATIVE" ? { text: `Orientační: ${words}`, tone: "indicative" } : { text: words, tone: "plain" };
@@ -99,12 +100,21 @@ export function readMeasure(result: QuestionResult, scale?: readonly [number, nu
 
 // ---- a set's objects compared ------------------------------------------------------------
 
-export type RankedObject = Estimate & { id: string; label: string; support: SupportStatus };
+/**
+ * `kishN`: Kish's effective n as the aggregate stored it (`effective_n_kish`), null when it did
+ * not (never 0). Not `effective_n`, which is the support size after the donor adjustment
+ * (`effective_n_combined`) and can be far smaller.
+ */
+export type RankedObject = Estimate & { id: string; label: string; support: SupportStatus; kishN: number | null };
+/** An object the comparison shows without a number: suppressed (with its donors, the reason) or with no mean. */
+export type WithheldObject = { id: string; label: string; reason: "suppressed" | "no_mean"; donors: number | null; kishN: number | null };
 export type ObjectComparison = {
   /** Highest mean first; only objects with a number. */
   ranked: RankedObject[];
   /** Objects left out: suppressed, or with no mean. Named so the reader knows they exist. */
   omitted: string[];
+  /** The same objects as `omitted`, in the same order, with why each has no number. */
+  withheld: WithheldObject[];
   /** The axis the comparison is drawn on: the set's scale, else the intervals' span. */
   domain: [number, number];
   /** What may be said about the top and the bottom; null when nothing may. */
@@ -120,30 +130,34 @@ export type ObjectComparison = {
 export function compareObjects(objects: readonly { id: string; label: string; result: QuestionResult }[], scale?: readonly [number, number] | null): ObjectComparison {
   const ranked: RankedObject[] = [];
   const omitted: string[] = [];
+  const withheld: WithheldObject[] = [];
   for (const { id, label, result } of objects) {
-    if (result.support_status === "SUPPRESS" || !finite(result.prumer)) omitted.push(label);
-    else ranked.push({ id, label, support: result.support_status, value: result.prumer, ...interval(result.prumer_interval_95) });
+    const kishN = finite(result.effective_n_kish) ? result.effective_n_kish : null;
+    if (result.support_status === "SUPPRESS" || !finite(result.prumer)) {
+      omitted.push(label);
+      withheld.push({ id, label, reason: result.support_status === "SUPPRESS" ? "suppressed" : "no_mean", donors: finite(result.n_unique_layer_donors) ? result.n_unique_layer_donors : null, kishN });
+    } else ranked.push({ id, label, support: result.support_status, value: result.prumer, kishN, ...interval(result.prumer_interval_95) });
   }
   ranked.sort((a, b) => b.value - a.value);
   const lows = ranked.map((o) => o.low ?? o.value);
   const highs = ranked.map((o) => o.high ?? o.value);
   const domain: [number, number] = scale ? [scale[0], scale[1]] : ranked.length ? [Math.min(...lows), Math.max(...highs)] : [0, 1];
-  if (ranked.length < 2) return { ranked, omitted, domain, top: null, bottom: null };
+  if (ranked.length < 2) return { ranked, omitted, withheld, domain, top: null, bottom: null };
   if (ranked.some((o) => o.low === null)) {
-    return { ranked, omitted, domain, top: "Pořadí objektů nelze posoudit: u některých chybí interval.", bottom: null };
+    return { ranked, omitted, withheld, domain, top: "Pořadí objektů nelze posoudit: u některých chybí interval.", bottom: null };
   }
   const leader = ranked[0];
   const last = ranked[ranked.length - 1];
   const top = ranked.filter((o) => o === leader || separation(leader, o) !== "ABOVE");
   if (top.length === ranked.length) {
-    return { ranked, omitted, domain, top: "Objekty se od sebe spolehlivě neliší: 95% intervaly všech se překrývají s nejvýše hodnoceným.", bottom: null };
+    return { ranked, omitted, withheld, domain, top: "Objekty se od sebe spolehlivě neliší: 95% intervaly všech se překrývají s nejvýše hodnoceným.", bottom: null };
   }
   const bottom = ranked.filter((o) => o === last || separation(o, last) !== "ABOVE");
   const say = (group: RankedObject[], one: string, many: string) => group.length === 1
     ? `${one}: ${group[0].label}.`
     : `${many}: ${czechList(group.map((o) => o.label), 4, "dalších")}; pořadí mezi nimi nelze potvrdit.`;
   return {
-    ranked, omitted, domain,
+    ranked, omitted, withheld, domain,
     top: say(top, "Spolehlivě nejvýše hodnocený", "Nejvýše hodnocené"),
     bottom: say(bottom, "Spolehlivě nejníže hodnocený", "Nejníže hodnocené"),
   };
@@ -157,6 +171,25 @@ export type CompiledSpecification = {
   questions?: { id: string; text: string; typ?: string; options?: string[]; scale?: [number, number] | null }[];
   batteries?: { id: string; title: string; scale?: [number, number] | null; objects?: { id: string; label: string }[] }[];
 };
+
+// ---- what the Research Lead may point at on Výsledky (artifact-results §4) ---------------
+// The Lead's focus falls through to an element carrying its target as data-aia (lead.ts
+// focusSelector), so these are the ids the Data view's elements carry.
+
+/**
+ * The Lead's id for a measure's card, the one element on Výsledky the Lead can name
+ * (artifact-results §4): `measure:<question>`, or `measure:<set>/<object>` for an object of a rated
+ * set (the integration coordinator's ruling, 2026-10-21). Rows of a set's table carry none and link
+ * to the card, so each id names one element. Null when an id falls outside aiaId's grammar: the
+ * card then has no Lead id, rather than failing to render.
+ */
+export function measureTarget(questionOrSet: string, object?: string): string | null {
+  try {
+    return aiaId("measure", object === undefined ? questionOrSet : `${questionOrSet}/${object}`);
+  } catch {
+    return null;
+  }
+}
 
 /** The Data card a measure is shown on: a question's id, or `<set>:<object>`. */
 export function measureAnchor(measureId: string): string {

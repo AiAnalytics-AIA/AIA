@@ -509,18 +509,21 @@ def test_the_preview_counts_the_audience_and_asks_the_sampler(
     assert body["population_rows"] == counted.rows
     assert 0 < body["selected_rows"] < counted.rows and body["selected_donors"] > 0
     assert body["filters_applied"] == {"vek": {"min": 30.0, "max": 59.0}}
+    # One filter alone selects what the whole audience selects.
+    assert body["per_filter"] == {"vek": body["selected_rows"]}
     assert body["audience"]["ok"] is True and body["sample"]["ok"] is True
     assert body["version_label"] == "v1_4"
     # What the response holds is counts and verdicts: no row, no respondent value.
     assert set(body) == {
         "version_id", "version_label", "population_rows", "selected_rows", "selected_donors",
-        "filters_applied", "audience", "n", "sample", "seed",
+        "filters_applied", "per_filter", "audience", "n", "sample", "seed",
     }  # fmt: skip
 
     small = viewer.post(url, json={"filters": {}, "n": 8}).json()
     assert small["sample"]["reason"] == "sampling_unrepresentative"  # OI-99, said first
     refused = viewer.post(url, json={"filters": {"neexistuje": 1}}).json()
     assert refused["audience"]["reason"] == "sampling_filter_invalid"
+    assert refused["per_filter"] is None
     assert viewer.post(url, json={"n": 0}).status_code == 422
     # A boolean is not a sample size, whatever lax coercion would make of it (AGENTS.md).
     for flag in (True, False):
@@ -598,13 +601,13 @@ def test_the_audience_routes_read_the_population_the_composition_names(
 
     with create_session_factory(app.state.engine)() as session:
         rt = fictional_live.runtime(session)
-        live = PopulationRegistryRepository(session).population(fictional_live.live_id)
+        live = PopulationRegistryRepository(session).population(fictional_live.population_id)
         assert live is not None
         version_id = live.current_version_id
         rt.record_audience_catalogue(version_id, recorded_by="test")
         session.commit()
     app.state.audience_population = AudiencePopulation(
-        contract=fictional_live.contract, population_id=fictional_live.live_id
+        contract=fictional_live.contract, population_id=fictional_live.population_id
     )
     body = viewer.get(url).json()
     assert body["version_id"] == version_id and body["version_label"] == "v1_4"

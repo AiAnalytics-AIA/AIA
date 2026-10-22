@@ -32,9 +32,11 @@ from dataclasses import dataclass, field
 from enum import StrEnum
 from typing import Final
 
+from .deployment import DataClassGates
 from .scope import ClientWorkContext, ScopeGrant, StudyContext, WorkScope, payer_study_id
 
 __all__ = [
+    "ClassAdvisory",
     "DataClass",
     "EgressDecision",
     "EgressDenied",
@@ -124,6 +126,37 @@ class ProviderRoute:
 
 
 @dataclass(frozen=True, slots=True)
+class ClassAdvisory:
+    """A refusal made solely because of a data class, passed under advisory class gates.
+
+    ``AIA_DATA_CLASS_GATES=advisory`` (develop only).
+
+    Written where the refusal would have been (a ledger row's note, a call's provenance, a tool
+    event, a step event), so that nothing advisory mode lets through is silent. ``rule`` is the
+    reason enforce mode would have refused with; ``data_class`` the class as computed, ``None``
+    when the material had none.
+    """
+
+    gate: str
+    rule: str
+    data_class: DataClass | None
+
+    def note(self) -> str:
+        """The one-line form a ledger or tool event note carries."""
+        cls = self.data_class.value if self.data_class is not None else "unclassified"
+        return f"class_advisory gate={self.gate} rule={self.rule} class={cls} advisory=true"
+
+    def record(self) -> dict[str, str | bool | None]:
+        """The structured form a provenance record or a step event carries."""
+        return {
+            "gate": self.gate,
+            "rule": self.rule,
+            "data_class": self.data_class.value if self.data_class is not None else None,
+            "advisory": True,
+        }
+
+
+@dataclass(frozen=True, slots=True)
 class EgressDecision:
     """An allowed egress, with the facts that allowed it.
 
@@ -142,6 +175,8 @@ class EgressDecision:
     route_id: str
     provider: str
     zone: ResidencyZone
+    #: The class-only refusals this decision passed under advisory gates; empty under enforce.
+    advisories: tuple[ClassAdvisory, ...] = ()
 
     def audit_fields(self) -> dict[str, str | None]:
         """The fields an egress record must carry."""
@@ -181,6 +216,7 @@ def evaluate_egress(
     scope: WorkScope,
     data_class: DataClass | None,
     route: ProviderRoute | None,
+    class_gates: DataClassGates = DataClassGates.ENFORCE,
 ) -> EgressDecision:
     """Authorise one outbound call, or raise :class:`EgressDenied`.
 
@@ -212,7 +248,13 @@ def evaluate_egress(
     requires an approved route and still produces a decision record -- provenance
     and cost attribution are owed for every paid call regardless of what it
     carried.
+
+    ``class_gates`` advisory (develop only, ``deployment.data_class_gates_problem``) turns
+    checks 2 and 4 -- the two that refuse solely because of the class -- into recorded passes
+    (:attr:`EgressDecision.advisories`). Unclassified material is then judged as Class A by
+    checks 5-7, so unknown is never the permissive answer and EU residency still holds.
     """
+    advisories: list[ClassAdvisory] = []
     if not isinstance(scope, StudyContext | ClientWorkContext) or not isinstance(
         scope.grant, ScopeGrant
     ):
@@ -222,18 +264,30 @@ def evaluate_egress(
         )
 
     if data_class is None:
-        raise EgressDenied(
-            "material must be classified before it may leave AIA",
-            reason="unclassified_material",
-        )
+        if not class_gates.advisory:
+            raise EgressDenied(
+                "material must be classified before it may leave AIA",
+                reason="unclassified_material",
+            )
+        advisories.append(ClassAdvisory("egress", "unclassified_material", None))
+        # Judged as the most restrictive class: unknown is never the permissive answer.
+        data_class = DataClass.CLASS_A_CLIENT_CONFIDENTIAL
 
     if route is None:
         raise EgressDenied("no approved route for this request", reason="no_approved_route")
 
     if data_class not in route.approved_for:
-        raise EgressDenied(
-            f"route {route.route_id} is not approved for {data_class.value}",
-            reason="route_not_approved_for_class",
+        if not class_gates.advisory:
+            raise EgressDenied(
+                f"route {route.route_id} is not approved for {data_class.value}",
+                reason="route_not_approved_for_class",
+            )
+        advisories.append(
+            ClassAdvisory(
+                "egress",
+                "route_not_approved_for_class",
+                None if advisories else data_class,
+            )
         )
 
     if data_class in _EU_ONLY_CLASSES:
@@ -263,6 +317,7 @@ def evaluate_egress(
         route_id=route.route_id,
         provider=route.provider,
         zone=route.zone,
+        advisories=tuple(advisories),
     )
 
 
@@ -295,6 +350,7 @@ class EgressPolicy:
         scope: WorkScope,
         data_class: DataClass | None,
         route_id: str | None,
+        class_gates: DataClassGates = DataClassGates.ENFORCE,
     ) -> EgressDecision:
         """Resolve a route id and authorise the call, or raise.
 
@@ -306,4 +362,5 @@ class EgressPolicy:
             scope=scope,
             data_class=data_class,
             route=self.route(route_id) if route_id else None,
+            class_gates=class_gates,
         )

@@ -1,0 +1,551 @@
+# Editor spike: the study context file and the reports (research-lead-workbench#33)
+
+Written 2026-10-20 (23:00-23:59 UTC) for the owner's go/no-go (page Q19). Nothing is adopted here and
+nothing was installed into the product. The chunk is not ticked: the decision is the owner's.
+
+**What this spike is and is not.** It is a desk comparison from web sources plus a reading of AIA's
+own report renderer. The chunk also asks for a local run of each candidate on one fictional study
+context file and one sample report, with ledger refs counted before and after a round trip. **That
+run was not done.** This session's egress proxy refuses the vendors' hosts (for example
+`api.onlyoffice.com:443`: `connect_rejected`, checked 2026-10-20 23:3x UTC), so no image or package
+could be fetched. The run is the first step of every option below, and the recommendation depends
+on it.
+
+## How to read the citations
+
+- **[F]** marks a page this session fetched and read itself.
+- **[S]** marks a search-engine excerpt of a vendor or press page whose page could not be fetched
+  (the egress refusal above).
+- Every source was read on **2026-10-20**, except [35] and [36], which were read on 2026-10-21.
+- A sentence marked *Inference* is my reasoning, not a sourced fact. An [S] claim is weaker than an
+  [F] claim, and the local run should re-check each one it relies on.
+
+## The owner's requirements (pages Q13 and Q19)
+
+- **R1.** Researchers edit the study context file (`lead-orchestration#LO19`) and the reports
+  (`report-delivery#RD6`).
+- **R2.** A Lead's edits arrive in one of two modes, chosen per researcher:
+  - tracked-change suggestions, the default;
+  - direct rewrites that can be undone.
+- **R3.** Every number stays a ledger ref.
+- **R4.** The output exports to DOCX. The report pipeline is python-docx.
+- **R5.** The editor is "as close to Microsoft Word or LibreOffice as possible". The owner finds
+  Tiptap's UX poor.
+
+## A finding in AIA's own code that decides R3, whichever editor wins
+
+**F-ED1. A rendered report's DOCX does not record which ledger ref a number came from, on any of
+its render paths.**
+
+Every path that prints a number is listed below. Each was read in the code at `e09a6c99`; paths are
+relative to `packages/aia_core/src/aia_core/`. On every one, the number is written as plain text
+runs, or drawn into an image. No element carries the ref: no content control, no bookmark, no
+custom XML. (The one exception is the evidence appendix, which prints the ref id as visible text.)
+
+| # | Path | Anchor @ e09a6c99 | What it prints | What the fix must do |
+|---|---|---|---|---|
+| P1 | Inline value in prose: `Value(ref)` (`domain/report/model.py:40`) | `infrastructure/report_docx/blocks.py:116-123` (`write_value`, `value_text` :91-105) | the value, its interval when shown, the grade mark, the modelled disclosure, "orientační" | an inline locked control tagged with the ref, around the whole printed group |
+| P2 | Table number cell: `NumberCell(ref)` (`model.py:203`) | `infrastructure/report_docx/tables.py:182-198` (`_cell`) | the value with or without its unit, the indicative mark, the grade mark, and the interval in a **second paragraph** of the cell | a locked control per cell: block-level when the interval paragraph is shown, inline otherwise |
+| P3 | KPI tile: `Kpi.ref` in a `KpiRow` (`model.py:167-175`) | `infrastructure/report_docx/blocks.py:280-299` (`render_kpi_row`) | the value, grade mark and disclosure in one paragraph; the label; then the base n, interval and "orientační" in a **third paragraph** | a locked block-level control over the tile's cell, tagged with the ref |
+| P4 | Caption base n: `Table.base_ref`, `Figure.base_ref` | `infrastructure/report_docx/tables.py:87` (`caption` → `base_text`, `blocks.py:108-113`) | "n = 1 204" from the row's effective n | an inline locked control tagged `ref#n` |
+| P5 | Chart values: `Series.refs` in a `Figure` | `infrastructure/report_docx/charts.py:85-104` (`points`), labels drawn at `charts.py:176` | values and intervals drawn **into the SVG/PNG image**; no text in `document.xml` | the image paragraph (`figures.py:55-65`) in a locked block-level control, tagged with its refs; the image itself cannot be edited. The figure's caption is P4 and its source line is P13; neither is inside this control |
+| P6 | Evidence appendix: `cited_refs(report)` | `infrastructure/report_docx/blocks.py:346-375` | per ref: the ref id, value, interval, effective n, support, basis, grade, disclosures | the appendix table as one locked block-level region; it is regenerated, never edited |
+| P7 | Map pair table: not from the ledger | `application/report_maps.py:295-302` | the signed r, pair n and Kish n as **`TextCell` text**, from the stored map artifact | the whole table, from the header to its notes row, as one locked block-level region tagged `map:<artifact_id>` (provisional: OQ-ED1). Without it, the census reads these numbers as untagged tokens |
+| P8 | Map support and credibility prose: not from the ledger | `application/report_maps.py:186-201` (the "Slabě určená mapa" callout: split-half %); `:203-223` (object count, placed/total profiles, donors, Stress-1 and its quality); `_credibility_note` `:77-100` (split-half %, its threshold %, reliable pairs, the uncertainty radius); `pair_status_means` `:43-66` (the pair rule's `n_min`, written into the reading guide) | split-half agreement, thresholds, profile and donor counts, Stress-1 and uncertainty radii as **ordinary `Paragraph`/`Callout` text** | each paragraph or callout as a locked block-level region tagged `map:<artifact_id>` (provisional: OQ-ED1); regenerated from the artifact, never typed over |
+| P9 | Map figure caption: not from the ledger | `infrastructure/report_docx/figures.py:71-92` (`render_sociomap`: Stress-1 at `:79`, or `fit_caption` at `:76`); `stress_1` set at `application/report_maps.py:245` | "Stress-1 = 0,123" (or the fit caption) in the caption's `extra` | an inline locked control over the caption's fit text, tagged `map:<artifact_id>` (provisional: OQ-ED1) |
+
+Paths that print grade marks or disclosures from refs but no number need no control of their own
+(`blocks.py:181-185`, `:211`, `:264`, `:275`). A census must still count their refs, so that a deleted
+callout is noticed. The object-map and Sociomapping figures (`object_map_figure.py`,
+`sociomapping_figure.py`) are images drawn from stored artifacts, and are locked like P5.
+
+**The sweep: every other place that writes digits into a report** (at `e09a6c99`). Found by
+grepping the report composers (`application/report*.py`, `client_report.py`,
+`contextual_report.py`, `sociomapping_report.py`) and the renderer (`infrastructure/report_docx/*.py`)
+for `number(`, `numbers.`, `counted(`, `len(`, `round(` and `str(` in printed text, then reading each
+hit.
+
+| # | Path | Anchor @ e09a6c99 | Digits it writes | Disposition |
+|---|---|---|---|---|
+| P10 | The design chapter and questionnaire appendix | `application/report_design.py:49-51` (scale ends), `:69` (audience filter bounds), `:77`, `:122` (item counts), `:141` ("Návrh počítal s {spec.n} respondenty"), `:164` ("Blok {index}") | design facts from the Design Revision the run executed | a locked block-level region tagged `design:<revision_id>`; regenerated, never edited |
+| P11 | The method chapter, "Respondenti a výpočet" | `application/report_method.py:120` (item counts), `:228-235` (the trace table's counts), `:296`, `:352`, `:432-438` (selection sentences) | counts and ids from the run's record | a locked region tagged `run:<run_id>` |
+| P12 | Refused-question counts | `application/report_tables.py:195` ("Výsledky {len(refused)} otázek zpráva neuvádí") | a count the admission computed | a locked callout tagged `run:<run_id>` |
+| P13 | Suppressed-row and omitted-point counts | computed at `infrastructure/report_docx/tables.py:209-210` (rows with a suppressed ref removed) and in `charts.py:85-104` (`points`: suppressed refs counted as `omitted`); written by `source_line` at `tables.py:116-117`, which `table_notes()` (`tables.py:131-143`) puts into the table's **notes row**, and which `figures.py:66` puts **below the figure** | the number of rows or points suppression removed | **in no other control**: P2's controls are per cell, and P5's covers the image paragraph only. It needs an inline locked control of its own around the count, tagged `count:suppressed:<table or figure id>`. The census recomputes it from the stored model's refs for that block and the ledger's suppression, and refuses a mismatch |
+| P14 | The literature report's bundle figures | `application/contextual_report.py:312` (labels L1, L2, …), `:392-394` (snapshot, accepted, cited and rejected counts), `:428`, `:439`; added from review (ED-R2): `:400` (rejection-reason counts, "({count}krát)"), `:456-460` (the legacy-rule total, "nejméně {failed}"), `:580-581` (each source's date and finding count, as `TextCell`s), `:629-631` and `:655-659` (withheld-item counts in `_withheld`) | counts and labels from the sealed bundle | a locked region tagged `bundle:<run_id>`; L-labels as locked inline controls, because prose cites them |
+| P15 | The audit and provenance rows | `application/report.py:102-112` (the methodology deviation: each changed parameter "18.6.6: {unit}, zde {used}", the replaced formula ids), `:232-234` (run id, evidence fingerprint, methodology version) | parameter values and version strings | the document-control table, a locked region |
+| P16 | The experimental Sociomapping DOCX | `application/sociomapping_report.py:139` (`_n`), `:142-147` (`_fit_caption`), `:161`, `:193`, `:282`, `:288`, `:416-431` | accuracy, counts and versions from the Sociomapping result | out of RD6's scope: an internal draft no editor flow opens. If it is ever opened, it is locked whole |
+| — | Document furniture | `infrastructure/report_docx/layout.py:255-262` (cover rows: date, design revision), `:318-341` (document control: date, revision, revision history), `outline.py` and the SEQ, PAGE and TOC fields (`ooxml.py`), `numbering.py` | dates, revision numbers, chapter, figure, table and page numbers | Word fields or front matter. They stay fields, and the front matter is a locked region; the census ignores field results |
+| — | Ruled out: digits that never reach visible text | `cover.py:109` (EMU offsets), `tables.py:234` (column widths), `charts.py:110` (axis ticks, inside the image: P5), `review_stamp.py` (XML ids), `styles.py:397` (style values) | layout geometry | nothing to tag |
+| — | Ruled out: model prose | `Text` inlines (`model.py`, top docstring: prose "analysis already checked for uncited numbers") | a digit a model or person wrote, such as a year or a question number | editable. The census refuses a digit in edited prose that the stored model's paragraph did not already hold (below) |
+
+- **Reproduction:** render any sample report (`make report-preview`), unzip `word/document.xml`,
+  and search it for a ledger ref id. The only hits are the appendix's visible text (P6).
+- **Consequence:** once a person edits the DOCX in any document editor, AIA cannot tell an evidenced
+  or machine-written number from a number someone typed: in prose, a table, a KPI tile, a caption,
+  or the map, design and method chapters. R3 cannot be checked through a DOCX round trip today.
+- **Smallest fix (for RD6, not this spike):**
+  - The renderer wraps every printed group P1-P15 in a content control (`w:sdt`) with `w:lock` =
+    `sdtContentLocked`. Its `w:tag` names the source:
+    - the ledger ref;
+    - `map:<artifact_id>`, provisional until OQ-ED1 is answered;
+    - `design:<revision_id>`, `run:<run_id>` or `bundle:<run_id>`;
+    - `count:suppressed:<id>`.
+
+    A group that spans paragraphs is a block-level control.
+  - On a save, a census over the stored model (F-ED3) refuses a document that:
+    - lost a tagged control;
+    - changed a control's text;
+    - fails the numeric-token rule below.
+  - **The numeric-token rule.** The census does not compare digits; it compares whole numeric
+    tokens. A token is a maximal run of digits with its decimal comma and its digit-group spaces
+    (`1 204`, `42,5`, `Q19`'s `19`).
+    - For every editable paragraph, the sequence of numeric tokens outside controls must equal the
+      stored model's sequence for that paragraph: the same tokens, in the same order.
+    - The only other way a number appears is as a new ledger-ref control written by AIA's edit
+      operation.
+    - So `Q19` → `Q91`, `42,5` → `45,2` and `2026` → `2062` are refused, although each keeps the same
+      digits. Deleting a token is refused too: a sentence that loses its number changes meaning.
+  - A new number enters a report only as a ledger ref, through AIA's edit operation, never typed.
+- **Test that would have caught it:** a renderer test over one `ReportDocument` that holds every
+  path P1-P15. It collects the refs the model cites (`Value`, `NumberCell`, `Kpi` and `base_ref`
+  refs, series refs, `cited_refs`) and the map, design, run and bundle sources, then reads the
+  `w:sdt/w:sdtPr/w:tag` values and every `w:t` in the DOCX. It expects:
+  - every source to have a tag, and no tag without a source;
+  - every numeric token outside a field result to sit inside a tagged control, or to be the stored
+    model's token at the same place in its paragraph.
+
+**OQ-ED1 (open, for Nigel Blount and A. Bahbouh). Map result values are not ledger refs, and R3
+says they must be.**
+
+- **The conflict:**
+  - R3 says every number stays a ledger ref.
+  - `report-delivery#RD6` (`.planning/plans/report-delivery.md:105-109 @ e09a6c99`) says "Every
+    number stays an admitted ledger ref".
+  - RD0 (`report-delivery.md:99-101`) exempts only design and method facts fed from the
+    specification.
+  - The map's values (P7-P9) are none of these. They are the signed r, the pair n and Kish n, the
+    split-half agreement, Stress-1, the thresholds and the uncertainty radius. They are written from
+    the stored map artifact (`application/report_maps.py:186-223`, `:295-302`; `figures.py:79`),
+    and the analysis-number gate never admits them.
+  - Tagging them `map:<artifact_id>` gives them provenance, not admission.
+- **This spike does not settle it.** It is a product and methodology decision.
+- **Option (a): admit map outputs as ledger claims.** It would take:
+  - a metric for each map output (r, Kish n, split-half %, Stress-1, radius) in the closed metric
+    set, `domain/evidence/metrics.py:32-56 @ e09a6c99`, which today holds mean, top2box_pct, n,
+    effective_n and pct;
+  - an evidence row per value with its decimals and, where the method has one, its interval;
+  - admission through `admit_numeric_claims` (`domain/evidence/admission.py:298 @ e09a6c99`): field
+    policy, joint structure, support (the pair `n_min`, Kish n) and interval. Stress-1 and the
+    split-half figure have no interval, so they need a rule of their own;
+  - the tier taken from the Sociomap register's status for the map's method;
+  - then `EvidenceLedger` rows (`domain/report/evidence.py:74`), and P7-P9 render as P1/P2
+    controls.
+
+  The cost is a methodology change, signed off by the methodology owner, and work in evidence and
+  reporting before RD6.
+- **Option (b): an explicit, approved exemption.** Map-artifact values stay outside the ledger,
+  tagged `map:<artifact_id>`, locked, and checked by the census against the artifact (verified by
+  SHA-256).
+  - The owner and the methodology owner approve this as a named exception to R3 and RD6.
+  - It is recorded where RD0's design exemption is.
+
+  The cost is that R3 holds for analysis numbers only, and a map number reaches a report without the
+  admission gates.
+- **Until it is answered, P7-P9's tagging is provisional.** The proof still locks them, and still
+  checks that an edit to one is refused.
+
+**F-ED3. AIA does not keep the document model of a rendered report.**
+
+- **Anchor:** `apps/executors/src/aia_executors/report.py:121-167 @ e09a6c99`.
+  - `DocxRenderer().render(document)` produces DOCX bytes, and only those bytes are stored as the
+    artifact.
+  - The `ReportDocument` is discarded when the step ends.
+- **Already planned:** `report-delivery#RD5a`
+  (`.planning/plans/report-delivery.md:10`, `:89 @ e09a6c99`) stores the `ReportDocument` as JSON
+  beside each DOCX, with stable paragraph ids and claim refs.
+- **Consequence for the editor:** both of the owner's modes (R2) need the model.
+  - *Suggestions:* AIA writes the Lead's edits as OOXML revisions against a paragraph it can
+    identify. That needs the model's paragraph ids and refs, not a DOCX parsed back by guesswork.
+  - *Undoing a direct rewrite:* AIA restores the version before the rewrite and re-renders it. That
+    needs the stored model of each version, and its fingerprint.
+- **So RD5a is a hard prerequisite of the editor workflow.** Neither mode of RD6 starts before
+  RD5a lands. The one-day proof below can run on a sample report (`make report-preview`), whose
+  model is built in the process.
+
+**F-ED2. The study context file is Markdown.**
+
+- **Anchor:** `.planning/plans/lead-orchestration.md:28 @ e09a6c99`, LO19: "a Markdown file per
+  study, built by code".
+- A page-based word processor edits DOCX/ODT.
+- *Inference:* a Word-like editor fits the reports and fits the context file badly. Two ways out:
+  - edit only its prose part ("Poznámky ke studii") in the editor, as a small DOCX that AIA converts;
+  - keep a plain editor for the context file, which LO19 already plans until the choice is made
+    (`research-lead-workbench.md`, chunk 33's paragraph).
+
+## Open design items for RD6 (from review, not settled here)
+
+These came from the fourth review round. They refine the design RD6 will build, and they do not
+change this spike's recommendation. RD6 settles each one.
+
+- **ED-R1. Whole-block locks stop the edits RD6 allows.**
+  - **Issue:** locking P10, P11 and P14 as whole blocks would prevent the copy-edits and section
+    moves that RD6 allows.
+  - **Anchor:** `.planning/plans/report-delivery.md:105-110 @ e09a6c99`; P10, P11 and P14 above.
+  - **Direction:** put an inline locked control on each generated numeric span and leave the prose
+    around it editable. Use a block lock only where a span cannot be isolated.
+- **ED-R2. P14 missed some of the bundle's digits.**
+  - **Issue:** the literature report writes more counts and dates from the bundle than P14 listed.
+  - **Anchor:** `application/contextual_report.py:400`, `:456-460`, `:580-581`, `:629-631` and
+    `:655-659 @ e09a6c99`. Each was checked in the code: rejection-reason counts, the legacy-rule
+    total, each source's date and finding count, and withheld-item counts.
+  - **Direction:** these anchors are now in P14's coverage list. RD6 tags each `bundle:<run_id>` and
+    re-sweeps the composer when it builds the controls.
+- **ED-R3. Structural suggestions break the per-paragraph comparison.**
+  - **Issue:** accepting a suggestion that splits or merges paragraphs breaks the per-paragraph
+    numeric-token comparison, because the stored paragraph no longer matches one-to-one.
+  - **Anchor:** F-ED1's numeric-token rule and the census in "The shape that makes the choice
+    reversible" above.
+  - **Direction:** compare against the proposed post-edit model that the suggestion carries. Map
+    tokens and paragraphs by stable ids that survive structural edits: RD5a's stable paragraph ids,
+    with ids for the numeric tokens.
+
+## Candidates and the comparison
+
+The five candidates:
+
+- Wordcraft;
+- ONLYOFFICE Docs;
+- Collabora Online;
+- Tiptap, the baseline;
+- CKEditor 5, the extra strong candidate.
+
+Lexical was considered and dropped. A search found no tracked-changes or DOCX capability for it
+([S] search "Lexical editor track changes suggestions DOCX export", results only for other
+editors). Euro-Office is a 2026 fork of ONLYOFFICE, led by Nextcloud and IONOS. It is noted under
+ONLYOFFICE's risks rather than scored, because its first stable release is only months old.
+
+### Comparison table
+
+Legend: ✓ verified · ~ partly or with conditions · ✗ absent · ? unverified. Sources follow the table,
+numbered.
+
+| Criterion | Wordcraft | ONLYOFFICE Docs | Collabora Online | Tiptap (baseline) | CKEditor 5 |
+|---|---|---|---|---|---|
+| **Word-like UX (R5)** | ✓ "a clean-room reimplementation of Microsoft Word", with a ribbon [1] | ✓ an MS-Office-style page editor (*inference* from the product; no screenshot set yet) | ✓ LibreOffice's Writer in the browser, rendered as server-side tiles [14] | ✗ a web rich-text field; the owner rejected its UX | ~ a web editor; page layout needs a premium plugin (*inference*) |
+| **Licence for a SaaS** | ✓ MIT or Apache-2.0 [1] | ~ AGPL v3 [5], with a disputed §7 logo term [10][11] | ✓ MPL 2.0 [12]; a commercial subscription for production [13] | ✓ MIT core [18]; track changes and DOCX import are paid [16][17] | ~ GPL-2.0-or-later or commercial [21]; track changes is premium [22] |
+| **EU self-hosting on one Docker host** | ~ native and WASM builds [2]; no server, no embed API documented [2] | ✓ Docker; since 9.4 one process, with no RabbitMQ or database [6] | ✓ the `collabora/code` Docker image, WOPI [15] | ~ the editor runs in the browser; DOCX import needs Tiptap Cloud [17] | ~ the editor runs in the browser; the Word converters run on-prem in Docker with a licence key [23] |
+| **Tracked changes and suggestions (R2)** | ~ track changes, accept/reject, compare [2]; gaps in moves and table/section revisions [3] | ✓ review mode; review changes driven from the API [8] | ✓ LibreOffice "Record Changes"; toggled with `.uno:TrackChanges` [14b] | ~ a $249/month add-on, "under active development" [16] | ✓ premium track changes with a suggestion API [24] |
+| **Comments: creating them, and the DOCX round trip** | ~ "comments in margin balloons or a pane" [2]; the open gaps name RTF and ODT comments only [3]; DOCX comment round trip not documented (?) | ✓ comments in the editor; `ApiRange.AddComment(text, author, userId)` and `GetAllComments` in the builder/plugin API [30]; DOCX is its native format (*inference*) | ~ LibreOffice comments with Reply [31]; `.uno:InsertAnnotation` / `ModifyAnnotation` take an id over LibreOffice Kit [31]; PostMessage support for comment events doubtful [31]; DOCX round trip with replies or resolve not documented (?) | ~ threads exported as native Word comments, with replies, resolved state, author and date, and a documented round trip [32]; whether the Comments extension is paid is unverified | ~ premium comments; Import from Word keeps comments, flagged `@external` [33]; Export to Word "keep your comments and changes" [33] |
+| **An API for the Lead to propose edits** | ~ an MCP server over stdio, 422 commands, tracking toggled by command, headless or driving a running app [4] | ~ in-editor plugins (`callCommand`) are free; host-page control (Automation API) is Developer Edition only, at extra cost [7] | ~ the PostMessage `Send_UNO_Command` [14b] | ~ an editor-side JS API (*inference*) | ✓ `addSuggestion`, `markInsertion`, `markDeletion` [24] |
+| **Protected inline fields (R3)** | ? content controls are kept and edited; binding is absent [3]; locking is not documented | ✓ content controls with `SetLock("sdtContentLocked")` [9] | ? LibreOffice's content controls; DOCX `w:lock` handling not found [19] | ~ custom atomic nodes (*inference*) | ~ widgets and restricted editing (*inference*; not checked) |
+| **DOCX round trip (R4)** | ~ opens and saves .docx [1]; "DOCX never tested on real-world files" [3] | ✓ OOXML is its native model (*inference*) | ~ converted to and from LibreOffice's model; lossy at the edges (*inference*) | ~ export is client-side Pro; import is in the cloud and beta [17] | ~ import keeps comments and tracked changes, partly in tables [23] |
+| **Czech** | ✓ Czech UI and spelling [2] | ✓ cs-CZ, 87 % translated [20] | ✓ LibreOffice's Czech locale (*inference*) | ✓ (*inference*: the UI is ours) | ✓ `cs.ts` in core [25] |
+| **Accessibility** | ✗ canvas UI; "no NVDA, VoiceOver or Orca run yet" [3] | ~ screen-reader support in beta since 7.5 [26] | ~ ARIA client-side dialogs; screen reader opt-in by the administrator; the document itself is image tiles [14] | ✓ it is our DOM (*inference*) | ✓ WCAG 2.2 A/AA claimed, with a VPAT [27] |
+| **Maintenance and health** | ~ 15.1k stars, 1,020 commits, 35 commits on 18-20 Oct 2026, alpha at "about 60 %" [1][2] | ✓ 7.0k stars [5]; 10.0.0 released 12 Oct, 9.4.0 on 19 May [6b] | ✓ 3.4k stars; developed on Gerrit [12b] | ✓ 38.8k stars [18] | ✓ a mature commercial vendor (*inference*) |
+| **Cost** | free | free for Community since 9.4 [6]; Developer Edition is sold per connection tier [28] | CODE free but capped at "10 documents, and 20 connections" [13]; subscription about €3/user/month (third-party figure) [13b] | Cloud from $49/month, plus track changes at $249/month [16] | the commercial price is by quote [22] |
+| **Effort with Next.js 16 / React 19** | high: a WASM app with no embed API [2] | low-medium: the Apache-2.0 React wrapper renders the Document Server iframe [29] | medium: we write a WOPI host (CheckFileInfo/GetFile/PutFile) [14] | low | medium |
+
+### Sources
+
+Every source below was read on 2026-10-20 unless it says otherwise.
+
+1. [F] <https://github.com/storytold/wordcraft>: MIT/Apache-2.0, alpha, "clean-room reimplementation of
+   Microsoft Word in pure Rust", Review tab with track changes, 15.1k stars, 1,020 commits.
+2. [F] <https://raw.githubusercontent.com/storytold/wordcraft/main/README.md>: browser via
+   WebAssembly (`trunk serve`), no embedding API, MCP and JSON control channel, "about 60% ready for
+   real work", Čeština in the UI, Czech Hunspell spelling, "native egui on the GPU". Commit dates from
+   [F] <https://github.com/storytold/wordcraft/commits/main>: 3 on 20 Oct, 31 on 19 Oct, 1 on 18 Oct.
+3. [F] <https://raw.githubusercontent.com/storytold/wordcraft/main/docs/gaps.md>:
+   - "no real-time co-authoring" (#22);
+   - track changes still missing "drag-and-drop moves" and "tracked style-definition changes and
+     table/section changes" (#5);
+   - content controls kept, but "binding evaluation remains absent";
+   - "DOCX never tested on real-world files." (#1);
+   - "no NVDA, VoiceOver or Orca run yet" (#18).
+4. [F] <https://raw.githubusercontent.com/storytold/wordcraft/main/docs/mcp.md>:
+   - MCP over stdio;
+   - a headless session by default, or `--connect` to drive a running app;
+   - `review.trackChanges {"value": true}`;
+   - changes recorded under `--author`.
+5. [F] <https://github.com/ONLYOFFICE/DocumentServer>: "licensed under the GNU Affero Public
+   License, version 3.0"; 7.0k stars; Community "up to 20 recommended" users; no clustering.
+6. [F] <https://raw.githubusercontent.com/ONLYOFFICE/DocumentServer/master/CHANGELOG.md>: 9.4.0
+   "Removed the limitation of 20 simultaneously opened documents", "Consolidated components into a
+   single process", "Removed dependency on RabbitMQ"; 10.0.0 removed the deprecated `trackChanges`
+   customization parameters and added `customization.ai.disabled`. 6b. [F]
+   <https://github.com/ONLYOFFICE/DocumentServer/releases>: v10.0.0 on 12 Oct and v9.4.0 on 19 May.
+7. [S] <https://api.onlyoffice.com/editors/connector>: the connector (Automation API) "is
+   available only for ONLYOFFICE Docs Developer Edition" and is "available at extra cost". [S]
+   <https://community.onlyoffice.com/t/react-embed-jump-to-existing-bookmark-bookmark-goto-plugin-loads-but-host-command-doesn-t-trigger/18050>:
+   plugins run only inside the editor iframe.
+8. [S] <https://api.onlyoffice.com/docs/docs-api/samples/automation-api/working-with-review-changes/>:
+   `AcceptReviewChanges`, `RejectReviewChanges`, `GetReviewReport`. [S]
+   <https://community.onlyoffice.com/t/track-changes-behaviour-issues/18474/2>:
+   `SetTrackRevisions(true)` inside `callCommand`.
+9. [S] <https://api.onlyoffice.com/docs/office-api/usage-api/text-document-api/ApiInlineLvlSdt/Methods/SetLock>:
+   the lock values are unlocked, contentLocked, sdtContentLocked and sdtLocked; `sdtContentLocked`
+   means the content cannot be edited and the container cannot be deleted.
+10. [S] <https://ie-forum.nl/artikelen/the-logo-trap-onlyoffice-s-agplv3-gambit-and-what-it-means-for-free-and-open-source-compliance>:
+    the §7 logo-retention term, and the FSF's view that it is a "further restriction".
+11. [S] <https://alternativeto.net/news/2026/4/onlyoffice-ends-its-partnership-with-nextcloud-over-new-unauthorized-euro-office-fork>
+    and [S] <https://heise.de/-11228123>: the Euro-Office fork (Nextcloud and IONOS, March 2026), and
+    ONLYOFFICE ending its Nextcloud partnership over branding. [S] <https://heise.de/-11322160>: the
+    first stable Euro-Office release.
+12. [F] <https://raw.githubusercontent.com/CollaboraOnline/online/master/COPYING>: "subject to the terms
+    of the Mozilla Public License, v. 2.0". 12b. [F] <https://github.com/CollaboraOnline/online>:
+    3.4k stars; "Active development of Collabora Online has moved to our Gerrit instance".
+13. [S] <https://help.nextcloud.com/t/collabora-document-limitation-by-purpose-10docs-20connections/4425>:
+    the CODE banner says "This development build is limited to 10 documents, and 20 connections". 13b.
+    [S] <https://gappsy.com/tools/collabora-online/>: about €3 per user per month on-premise. This is a
+    third-party figure, not Collabora's price list.
+14. [S] <https://www.collaboraonline.com/blog/finding-a-secure-document-editor-for-your-organisation-part-3/>:
+    the document is rendered into "heavily compressed, unique image tiles". [S]
+    <https://forum.collaboraonline.com/t/screen-reader-support-in-collabora-online-featurefriday/4687>:
+    screen reader opt-in with `accessibility.enable=true`, ARIA client-side dialogs. 14b. [S]
+    <https://forum.collaboraonline.com/t/code-how-enable-track-change-on-code-by-default/3191>:
+    `Send_UNO_Command` with `uno:TrackChanges`. [S]
+    <https://www.collaboraonline.com/blog/how-to-track-and-manage-changes-in-collabora-online/>.
+15. [S] <https://sdk.collaboraonline.com/docs/installation/CODE_Docker_image.html>: the `collabora/code`
+    image; `aliasgroup1` restricts the WOPI hosts.
+16. [S] <https://tiptap.dev/docs/tracked-changes/getting-started/install> and
+    <https://tiptap.dev/pricing>: Tracked Changes is a paid add-on in no plan, at $249/month; the docs
+    say it is under active development; Cloud plans start at $49/month.
+17. [S] <https://tiptap.dev/docs/conversion/import/docx/editor-import>: DOCX import uses a JWT from
+    Tiptap Cloud Convert and is beta; export (`@tiptap-pro/extension-export-docx`) runs client-side.
+18. [F] <https://github.com/ueberdosis/tiptap>: MIT; Pro Extensions "need a valid subscription";
+    38.8k stars.
+19. [S] <https://www.libreoffice.org/bugzilla/show_bug.cgi?id=137466>: DOCX SDT support is "still far
+    beyond perfect". No source on `w:lock`.
+20. [S] <https://helpcenter.onlyoffice.com/docs/docs-available-languages.aspx>: "Czech | cs-CZ | 87%".
+21. [F] <https://raw.githubusercontent.com/ckeditor/ckeditor5/master/packages/ckeditor5/LICENSE.md>:
+    "GNU General Public License Version 2 or later", or commercial terms from CKSource.
+22. [S] <https://unpkg.com/@ckeditor/ckeditor5-track-changes@48.3.1/README.md>: track changes "is a
+    premium feature". [S] <https://docs.ckeditor.com/ckeditor5/latest/support/licensing/license-key-and-activation.html>:
+    for self-hosting, contact sales.
+23. [S] <https://docs.ckeditor.com/cs/latest/onpremises/docx-onpremises/overview.html>: on-prem Word
+    import/export on Docker, Kubernetes or Podman, with a licence key. [S]
+    <https://ckeditor.com/docs/ckeditor5/latest/features/import-word/features-comparison.html>: import
+    keeps comments and tracked changes; tables are partial.
+24. [S] <https://ckeditor.com/docs/ckeditor5/latest/features/collaboration/track-changes/track-changes-custom-features.html>
+    and the `TrackChangesEditing` API page: `addSuggestion`, `markInsertion`, `markDeletion`,
+    `enableCommand`.
+25. [F] <https://github.com/ckeditor/ckeditor5/tree/master/packages/ckeditor5-core/lang/translations>:
+    `cs.ts` is present.
+26. [S] <https://onlyoffice.com/blog/2023/10/screen-readers-in-onlyoffice>: screen readers in beta
+    from 7.5. [S] <https://www.onlyoffice.com/blog/2026/10/accessibility-conformance>: work on
+    screen-reader support continues.
+27. [S] <https://ckeditor.com/docs/ckeditor5/latest/features/accessibility.html>: WCAG 2.2 A and AA
+    and Section 508; VPAT v44.3.0.
+28. [S] <https://www.componentsource.com/product/onlyoffice-docs-developer/prices/buy/0cb8-135634>:
+    Developer Edition tiers of 250, 500 and 1,000 connections, annual. The prices were not shown.
+29. [F] <https://github.com/ONLYOFFICE/document-editor-react>: Apache-2.0; the component lets
+    ONLYOFFICE Docs replace a placeholder "with its own iframe"; needs Docs 9.0 or later.
+30. [S] <https://api.onlyoffice.com/docs/office-api/usage-api/document-api/ApiRange/Methods/AddComment/>
+    and <https://api.onlyoffice.com/docs/Office API/Usage API/Text Document API/ApiDocument/Methods/GetAllComments>:
+    `AddComment` takes the text (required), the author's name and a user id; `GetAllComments`
+    returns `ApiComment[]`. [S] <https://api.onlyoffice.com/docs/Docs API/Get Started/External access to the document editing/Working with comments>:
+    driving comments from outside the editor is the connector's, Developer Edition only.
+31. [S] <https://latam.conference.libreoffice.org/assets/Conference/Rome/Slides/native-comments.pdf>:
+    `.uno:InsertAnnotation`, `.uno:RemoveAnnotation` and `.uno:ModifyAnnotation` "return/accept a
+    'Id' parameter"; threads fetched with their parent-child links. [S]
+    <https://help.collaboraoffice.com/6.2/en-US/text/shared/01/04050000.html>: Reply inserts a comment
+    on the same anchor; no resolve is described. [S] <https://forum.collaboraonline.com/t/collabora-online/3164>:
+    PostMessage "may not be directly supported for annotation events" (a community answer).
+32. [S] <https://tiptap.dev/docs/conversion/content-types/structures-and-media/comments>: threads become
+    native Word comments, replies keep their order, resolved threads export as resolved, author and
+    date are kept; import, edit, export and re-import without duplicates.
+33. [S] <https://ckeditor.com/docs/ckeditor5/latest/features/import-word.html> and
+    <https://ckeditor.com/blog/ckeditor-5-v35.2.0-with-the-import-from-word-plugin-new-toolbar-functionality-and-annotations-performance-improvement/>:
+    imported comments and suggestions keep the Word author and carry `@external`; Export to Word
+    keeps "your comments and changes".
+34. [F] <https://raw.githubusercontent.com/python-openxml/python-docx/master/HISTORY.rst>: 1.2.0
+    (2025-06-16), "Add support for comments". AIA's `report` extra already pins `python-docx>=1.2,<2`
+    (`packages/aia_core/pyproject.toml:29 @ e09a6c99`).
+35. [F, read 2026-10-21] <https://raw.githubusercontent.com/python-openxml/python-docx/master/docs/dev/analysis/features/comments.rst>
+    (the source of <https://python-docx.readthedocs.io/en/latest/dev/analysis/features/comments.html>,
+    whose host the egress refused): `commentsExtended.xml` "contains completion (resolved) status
+    and parent-id for threading comment responses", keyed to `w15:paraId`; `commentsIds.xml` maps
+    `w16cid:paraId` to `w16cid:durableId`; "Neither of these features is supported by the initial
+    implementation of comments in python-docx".
+36. [S, read 2026-10-21] <https://msopenspecs.microsoft.com/files/MS-DOCX/%5bMS-DOCX%5d-250218.docx>:
+    [MS-DOCX] 21.2 lists the commentsExtended (2.1.2) and commentsExtensible (2.1.5) parts. [S]
+    <https://learn.microsoft.com/ja-jp/dotnet/api/documentformat.openxml.office2021.word.commentsext.commentextensible.durableid?view=openxml-3.0.1>:
+    `w16cex:durableId` (Office 2021 and later). The attribute names `paraIdParent`, `done` and
+    `dateUtc` are from my knowledge of the format, not from a page read here; the proof confirms
+    them on a file Word saved.
+
+## The shape that makes the choice reversible
+
+This part is *inference*, and it is the recommendation's core. Three choices make the editor a
+surface and not the store.
+
+**0. The report's document model is stored (F-ED3: `report-delivery#RD5a`, a prerequisite).**
+
+- Each rendered DOCX has its `ReportDocument` beside it, with stable paragraph ids and refs.
+- Every step below reads that stored model, and no step parses a DOCX back by guesswork.
+- Until RD5a lands, neither mode of RD6 is built.
+
+**1. The Lead's edits and comments are written by AIA, not by the editor's API.**
+
+- AIA renders the stored model with python-docx.
+- A Lead suggestion becomes OOXML revisions (`w:ins` / `w:del`, author "Vedoucí"), written into the
+  DOCX against the stored model's paragraph ids.
+- A Lead comment becomes a native Word comment written the same way. python-docx has supported
+  comments since 1.2 [34], but only `comments.xml`. Its own analysis page says replies and resolved
+  status are not supported [35]:
+  - Threading (each reply's parent) and resolved status live in `commentsExtended.xml`
+    (`w15:commentEx`: `w15:paraId`, `w15:paraIdParent`, `w15:done`).
+  - Durable ids live in `commentsIds.xml` (`w16cid:commentId`).
+  - UTC dates live in `commentsExtensible.xml` (`w16cex:commentExtensible`) [36].
+- **AIA writes top-level comments only.** A Lead's comment is a new thread written with
+  python-docx's `add_comment`. Replies and resolving are the person's, in the editor.
+- **If the Lead must ever reply in a thread, AIA's own OOXML code writes the reply.** That would be a
+  new module beside `infrastructure/report_docx/ooxml.py` (a hypothetical `comments.py`, not built),
+  with lxml as `ooxml.py` already uses. It writes:
+  - the reply in `comments.xml` (through python-docx);
+  - its `w15:commentEx` entry with `paraIdParent` set to the parent comment's paragraph, in
+    `commentsExtended.xml`;
+  - its `commentsIds.xml` and `commentsExtensible.xml` entries;
+  - each part's content type and relationship.
+
+  It is tested by reading the parts back. This is RD6's decision; nothing in this spike depends on
+  it.
+- The editor only shows suggestions and comments, and lets the person accept, reject or reply.
+- A direct rewrite is applied as a new model version. Undoing it re-renders the stored version before
+  it, so the undo needs RD5a's stored versions.
+- No editor API is needed for R2 or for the Lead's comments, and no paid Automation API.
+- Any DOCX editor that shows tracked changes and comments then serves both modes.
+
+**2. Numbers are locked, tagged content controls, and AIA checks every save (F-ED1's fix).**
+
+- This covers every digit-writing path, P1-P15 (P16 is out of scope).
+- The editor saves back to AIA (a callback or WOPI PutFile).
+- AIA runs a ref census against the stored model:
+  - every tagged control is present, with its text unchanged;
+  - each editable paragraph's numeric tokens outside controls equal its stored paragraph's, in
+    order (the numeric-token rule, F-ED1);
+  - each `count:suppressed` control equals the count recomputed from the stored model;
+  - every comment is read back with its author, anchor, replies and resolved state. Author, text
+    and anchor come through python-docx. Replies and resolved state come from parsing
+    `commentsExtended.xml`, `commentsIds.xml` and `commentsExtensible.xml` directly, because
+    python-docx does not read them [35].
+- If the census fails, AIA refuses the save by name.
+- R3 is then enforced by AIA, whatever the editor does.
+
+## Recommendation
+
+**Unchanged after the review: a conditional go for ONLYOFFICE Docs Community (9.4+/10.x),
+self-hosted and unmodified, for the reports, built in the shape above, after RD5a.**
+
+Why ONLYOFFICE:
+
+- It is the most Word-like of the candidates.
+- It edits OOXML natively, comments included.
+- It documents locked content controls [9] and a comment API [30].
+- Since 9.4 it runs as one process with no connection cap [6], which suits the one develop host.
+
+Adding comments to the criteria strengthens ONLYOFFICE against Collabora: Collabora's DOCX comment
+round trip with replies and resolve is not documented [31].
+
+**The one-day local proof, before any build work.** On a sample report from `make report-preview`
+whose renderer emits locked, tagged controls on all of P1-P15, the proof runs these steps:
+
+1. Count the refs in the model and the tags in the DOCX.
+2. Open the report in the editor with tracked changes on.
+3. Edit prose next to each path. Try to type into each control, and to delete one.
+4. Add a comment, reply to it, and resolve one thread.
+5. Accept one AIA-written Lead suggestion, and reject another.
+6. Save the document back to AIA.
+7. Re-count the tags, and diff each control's text.
+8. Read every comment back:
+   - author, text and anchor through python-docx (`comments.xml`);
+   - which comment replies to which, and which thread is resolved, by **parsing the OOXML
+     directly**, since python-docx does not read it [35]:
+     - `commentsExtended.xml`: each `w15:commentEx`'s `paraIdParent` and `done`, joined to
+       `comments.xml` by `w15:paraId`;
+     - `commentsIds.xml`: the durable ids, checked stable across the save;
+     - `commentsExtensible.xml`: the UTC dates.
+
+   Then open the saved file in Word or LibreOffice and confirm the same threads and states.
+9. Confirm the census refuses each of these bypasses, saved one at a time:
+   - a new number typed into editable prose;
+   - a number's digits reordered in place (`Q19` → `Q91`, `42,5` → `45,2`);
+   - a number deleted from a sentence;
+   - a suppressed-row count edited in a table's notes row (P13);
+   - an edited map value (P7-P9), whichever way OQ-ED1 is answered.
+
+The proof passes only if every tag survives with its text unchanged, no control could be edited or
+deleted, and every comment round-trips. If it fails, the fallback is Collabora Online (MPL 2.0) under
+the same proof, with its comment round trip as the step most at risk.
+
+Against the other candidates:
+
+- **No-go for Wordcraft now.** The reasons:
+  - it is alpha [1];
+  - its DOCX has not been tested on real files [3];
+  - it has no embedding API [2];
+  - it has no co-authoring [3];
+  - its canvas UI has not been run with a screen reader [3];
+  - its DOCX comment round trip is not documented [3].
+
+  Look again at its beta: its MCP server [4] and permissive licence fit the Lead well.
+- **No-go for Tiptap.** The owner rejected its UX, though its comment export is the best documented
+  [32]. Its track changes is a $249/month add-on still under active development [16]. Its DOCX
+  import needs an outside cloud [17].
+- **CKEditor 5 is the alternative** if accessibility and an in-browser suggestion API [24][27]
+  matter more than Word-likeness. It needs a commercial licence at an unknown price [22].
+- **The study context file** (F-ED2) keeps the plain editor LO19 already plans, unless the owner
+  wants its prose part in the same Word-like editor.
+
+**The trade-off.** We take on AGPL obligations, a disputed logo term [10] and a supplier in a
+licence dispute [11]. In return we get the closest thing to Word that is free to self-host, and we
+keep the Lead's rules in AIA, so the editor can be replaced.
+
+## Risks
+
+1. **AGPL.** *Inference, not legal advice:* running an unmodified Document Server as a separate
+   service that AIA talks to over HTTP does not put AIA's code under the AGPL. Modifying the server
+   obliges us to offer its source to its users (AGPL §13). Keep it unmodified and keep the logo. A
+   lawyer should confirm before production.
+2. **The §7 logo term and the Euro-Office dispute.** The supplier is in an open licence dispute with
+   Nextcloud [10][11]. *Inference:* Euro-Office could become an EU-governed drop-in, because it is
+   the same codebase. It is too young to choose today.
+3. **Supplier and data-flow review.** Documents stay on our host. The image's telemetry and update
+   checks must be confirmed off in the local proof (unverified).
+4. **Accessibility.** ONLYOFFICE's screen-reader support is beta [26]. Collabora's is opt-in and its
+   document is image tiles [14]. Neither is as accessible as a DOM editor. This matters if a
+   researcher relies on a screen reader.
+5. **F-ED1 and F-ED3 are real work, whichever editor wins.**
+   - RD5a must store the model of every rendered version.
+   - The renderer must emit tagged, locked controls on all of P1-P15, including P7-P15, which
+     do not come from the ledger.
+   - RD6 must read a saved DOCX back against the stored model into an accept result, with its
+     comments.
+   - The save census must exist.
+6. **Host load.** A document server on the one develop host adds memory and CPU (not measured). The
+   local proof should measure resident memory with one open report.
+7. **Unverified claims.** Every [S] claim and every *inference* above is to be re-checked in the
+   local proof, in particular content-control locks surviving an edit, and Czech in the review UI.
+
+## Go/no-go question for the owner
+
+> The editor for reports. Shall we adopt ONLYOFFICE Docs (free, self-hosted on our server; the
+> closest to Word; AGPL licence, with a supplier in a licence dispute) behind a one-day proof that
+> every number and comment survives an edit and a save, once the report's document model is stored
+> (RD5a)?
+
+| Option | What it means | Cost |
+|---|---|---|
+| **(a) Go: ONLYOFFICE Docs** *(recommended)* | The proof first; then RD6 builds on it, and the Lead writes suggestions as Word tracked changes | no licence fee; AGPL obligations; RD5a first; one-day proof (numbers and comments); F-ED1 work |
+| **(b) Go: Collabora Online** | LibreOffice in the browser, MPL licence; the same proof | Production needs a Collabora subscription (CODE is capped at 10 documents and 20 connections [13]); weaker DOCX fidelity (*inference*); its DOCX comment round trip is undocumented [31] |
+| **(c) Go: CKEditor 5 (commercial)** | A web editor, not Word, with the best accessibility and suggestion API | A commercial licence by quote; less Word-like |
+| **(d) Wait for Wordcraft's beta** | Keep the plain editor behind the edit operations until Wordcraft reaches beta, then re-run this spike | No Word-like editing for now |
+| **(e) No-go: keep the plain editor** | LO19 and RD6 ship with the plain editor they already plan | Not Word-like |
+
+Whichever option is chosen, the study context file keeps the plain editor unless the owner says
+otherwise (F-ED2).
+
+**A second open question, independent of the editor: OQ-ED1** (above, under F-ED1). Do map result
+values become admitted ledger claims (a), or does an exemption approved by the owner and the
+methodology owner cover them, tagged by artifact id (b)? Nigel Blount and A. Bahbouh decide. RD6's
+handling of P7-P9 waits on it.

@@ -1,15 +1,17 @@
 // The Research Lead as the web reads it (ADR 0026): its turns, its closed output, and the pure
-// part of its edit tools. An edit is applied only when the person accepts its change block, to
-// the working copy, through the same helpers the stages use (editBrief, applyNarrative, the
-// questionnaire's own edits), and saved as that person's edit (reason "lead_edit_accepted").
+// part of its edit tools. An edit is applied only when the person accepts its change block; the
+// server applies it to the working copy (domain/edit_ops.py apply_edit) and applyLeadEdit keeps
+// the screen's copy the same, held to the server by one case file (ADR 0029 decision 1, WCE0).
 // Nothing here calls a model or the API.
 
-import { editBrief, type BriefingField, type TopField } from "@/research/brief";
-import type { ResearchProject } from "@/research/model";
-import { applyNarrative, proposalAnalysis, type Narrative } from "@/research/plan-edit";
+import type { BriefingField, TopField } from "@/research/brief";
+import type { Json, ResearchProject } from "@/research/model";
+import { proposalAnalysis, type Narrative } from "@/research/plan-edit";
 import { qId, sections, type Question, type Section } from "@/research/questionnaire";
 import type { Analysis } from "@/research/store";
+import { withFixer } from "./route-refusal";
 import type { WorkbenchStage } from "./workbench-stages";
+import { parseAiaId, type TargetKind } from "./workbench-artifacts";
 
 export const LEAD_EDIT_REASON = "lead_edit_accepted";
 
@@ -154,17 +156,22 @@ function narrativeOf(c: Content): Narrative {
   };
 }
 
+const withSections = (p: ResearchProject, xs: Section[]): ResearchProject => ({ ...p, sections: xs as ResearchProject["sections"] });
+const clone = <T,>(x: T): T => JSON.parse(JSON.stringify(x)) as T;
+
 function findQuestion(p: ResearchProject, id: string): { si: number; qi: number } | null {
+  // Only a questions section's questions, as the server's vocabulary finds them.
   const xs = sections(p);
   for (let si = 0; si < xs.length; si++) {
+    if (xs[si]!.type !== "questions") continue;
     const qi = (xs[si]!.questions || []).findIndex((q) => q.id === id);
     if (qi >= 0) return { si, qi };
   }
   return null;
 }
 
-const withSections = (p: ResearchProject, xs: Section[]): ResearchProject => ({ ...p, sections: xs as ResearchProject["sections"] });
-const clone = <T,>(x: T): T => JSON.parse(JSON.stringify(x)) as T;
+type Doc = { [k: string]: Json };
+const isDoc = (x: unknown): x is Doc => !!x && typeof x === "object" && !Array.isArray(x);
 
 function questionFor(text: string, qtype: QType, options: string[], id: string): Question {
   if (qtype === "skala") return { id, text, typ: "skala", skala: [1, 10], popisky_skaly: options.length === 2 ? options : ["vůbec", "zcela"], povolit_nevim: false };
@@ -173,61 +180,143 @@ function questionFor(text: string, qtype: QType, options: string[], id: string):
 }
 
 /**
+ * The words the server's vocabulary refuses an edit with (domain/edit_ops.py `REFUSALS`), each with
+ * what the person is told. The shared case file holds the two sides to the same word.
+ */
+export type EditRefusal =
+  | "already_present"
+  | "unknown_item"
+  | "unknown_section"
+  | "unknown_question"
+  | "options_on_non_selection"
+  | "too_few_options"
+  | "options_on_open_question"
+  | "scale_labels_not_two"
+  | "unknown_question_type"
+  | "plan_not_an_object"
+  | "briefing_not_an_object"
+  | "sections_not_a_list";
+const REFUSED: Record<EditRefusal, string> = {
+  already_present: "Položka už v seznamu je.",
+  unknown_item: "Položka, kterou návrh mění, už v seznamu není.",
+  unknown_section: "Oddíl, do kterého návrh přidává, už v dotazníku není.",
+  unknown_question: "Otázka, kterou návrh mění, už v dotazníku není.",
+  options_on_non_selection: "Možnosti lze nahradit jen u výběrové otázky.",
+  too_few_options: "Výběrová otázka potřebuje aspoň dvě možnosti.",
+  options_on_open_question: "Otevřená otázka nemá možnosti.",
+  scale_labels_not_two: "Škála má popisky obou krajů, nebo žádné.",
+  unknown_question_type: "Takový typ otázky AIA nezná.",
+  plan_not_an_object: "Plán výzkumu v pracovní kopii nelze přečíst.",
+  briefing_not_an_object: "Zadání v pracovní kopii nelze přečíst.",
+  sections_not_a_list: "Dotazník v pracovní kopii nelze přečíst.",
+};
+const refuse = (reason: EditRefusal) => ({ refused: REFUSED[reason], reason });
+
+/** Why a new question of `qtype` cannot carry `options` (the server's `question_add_problem`). */
+export function questionAddProblem(qtype: string, options: readonly string[]): EditRefusal | null {
+  if (qtype === "vyber" || qtype === "multi") return options.length < 2 ? "too_few_options" : null;
+  if (qtype === "otevrena") return options.length ? "options_on_open_question" : null;
+  if (qtype === "skala") return options.length === 0 || options.length === 2 ? null : "scale_labels_not_two";
+  return "unknown_question_type";
+}
+
+/** The plan narrative's two homes, as the server writes them: the plan, and the analysis, which
+ * starts from the plan when there is none. */
+function narrativeHomes(c: Content): { plan: Doc; started: Doc } | EditRefusal {
+  const raw = (c.project as unknown as Doc).research_plan ?? {};
+  if (!isDoc(raw)) return "plan_not_an_object";
+  const plan = { ...raw };
+  return { plan, started: isDoc(c.analysis) ? { ...(c.analysis as unknown as Doc) } : { ...plan } };
+}
+
+/** One narrative key written to both homes, and the plan marked changed by hand; nothing else of
+ * the analysis is copied over the plan. */
+function writeNarrative(c: Content, plan: Doc, started: Doc, key: string, value: Json): Content {
+  plan[key] = value;
+  started[key] = value;
+  const ui = (c.project as unknown as Doc).ui_state;
+  const project = { ...c.project, research_plan: plan, ui_state: { ...(isDoc(ui) ? ui : {}), plan_manual_changed: true } } as ResearchProject;
+  return { project, analysis: started as unknown as Analysis };
+}
+
+/**
  * The working content with one edit applied, or the reason it no longer applies: the item it
  * names is gone or changed since the Lead read it. Never a guess: an edit that does not fit is
- * refused, not bent to fit.
+ * refused, not bent to fit. It is the server's `apply_edit` (domain/edit_ops.py), word for word:
+ * the server applies the accepted edit and this keeps the screen's copy the same, so the shared
+ * case file (packages/aia_core/tests/fixtures/edit_ops/cases.json) holds the two together.
  */
-export function applyLeadEdit(c: Content, e: LeadEdit, newId: () => string = () => qId()): { content: Content } | { refused: string } {
+export function applyLeadEdit(c: Content, e: LeadEdit, newId: () => string = () => qId()): { content: Content } | { refused: string; reason: EditRefusal } {
   switch (e.op) {
     case "set_text": {
       if (e.field === "plan.problem_summary") {
-        const s = applyNarrative(c, { ...narrativeOf(c), problem_summary: e.value });
-        return { content: { project: s.project, analysis: s.analysis } };
+        const homes = narrativeHomes(c);
+        if (typeof homes === "string") return refuse(homes);
+        return { content: writeNarrative(c, homes.plan, homes.started, "problem_summary", e.value) };
       }
-      const field = (e.field.startsWith("briefing.") ? e.field.slice("briefing.".length) : e.field) as TopField | BriefingField;
-      const r = editBrief(c.project, c.analysis, field, e.value);
-      return { content: { project: r.project, analysis: r.analysis } };
+      if (e.field.startsWith("briefing.")) {
+        const raw = (c.project as unknown as Doc).briefing;
+        if (raw !== undefined && raw !== null && !isDoc(raw)) return refuse("briefing_not_an_object");
+        const briefing = { ...(raw ?? {}), [e.field.slice("briefing.".length)]: e.value };
+        // A brief edit drops the analysis that was made of the brief as it was.
+        return { content: { project: { ...c.project, briefing } as ResearchProject, analysis: null } };
+      }
+      const project = { ...c.project, [e.field]: e.value } as ResearchProject;
+      return { content: { project, analysis: e.field === "title" ? c.analysis : null } };
     }
     case "list_add":
     case "list_replace":
     case "list_remove": {
-      const n = narrativeOf(c);
+      const homes = narrativeHomes(c);
+      if (typeof homes === "string") return refuse(homes);
       const key = LIST_KEY[e.list];
-      const items = [...n[key]];
+      const current = Array.isArray(homes.started[key]) ? homes.started[key] : homes.plan[key];
+      const items = Array.isArray(current) ? current.map(String) : [];
       if (e.op === "list_add") {
-        if (items.some((x) => norm(x) === norm(e.value))) return { refused: "Položka už v seznamu je." };
-        items.push(e.value.trim());
+        if (items.some((x) => norm(x) === norm(e.value))) return refuse("already_present");
+        items.push(e.value);
       } else {
         const i = items.findIndex((x) => norm(x) === norm(e.old));
-        if (i < 0) return { refused: "Položka, kterou návrh mění, už v seznamu není." };
-        if (e.op === "list_replace") items[i] = e.value.trim();
+        if (i < 0) return refuse("unknown_item");
+        if (e.op === "list_replace") items[i] = e.value;
         else items.splice(i, 1);
       }
-      const s = applyNarrative(c, { ...n, [key]: items });
-      return { content: { project: s.project, analysis: s.analysis } };
+      return { content: writeNarrative(c, homes.plan, homes.started, key, items) };
     }
     case "question_add": {
-      const xs = clone(sections(c.project));
-      let sec = e.section_id ? xs.find((s) => s.id === e.section_id && s.type === "questions") : xs.find((s) => s.type === "questions");
-      if (e.section_id && !sec) return { refused: "Oddíl, do kterého návrh přidává, už v dotazníku není." };
+      const problem = questionAddProblem(e.qtype, e.options);
+      if (problem) return refuse(problem); // never a question other than the one accepted
+      const raw = (c.project as unknown as Doc).sections;
+      if (raw !== undefined && raw !== null && !Array.isArray(raw)) return refuse("sections_not_a_list");
+      const xs = clone((raw ?? []) as Section[]);
+      let sec = e.section_id
+        ? xs.find((s) => isDoc(s) && s.id === e.section_id && s.type === "questions")
+        : xs.find((s) => isDoc(s) && s.type === "questions");
+      if (e.section_id && !sec) return refuse("unknown_section");
       if (!sec) {
         sec = { id: `sec_${newId().slice(2)}`, type: "questions", title: "Hlavní otázky", purpose: "", questions: [] };
         xs.push(sec);
       }
-      sec.questions = [...(sec.questions || []), questionFor(e.text.trim(), e.qtype, e.options, newId())];
+      sec.questions = [...(sec.questions || []), questionFor(e.text, e.qtype, e.options, newId())];
       return { content: { project: withSections(c.project, xs), analysis: c.analysis } };
     }
     case "question_edit":
     case "question_remove": {
       const at = findQuestion(c.project, e.question_id);
-      if (!at) return { refused: "Otázka, kterou návrh mění, už v dotazníku není." };
+      if (!at) return refuse("unknown_question");
       const xs = clone(sections(c.project));
       const qs = xs[at.si]!.questions || [];
       if (e.op === "question_remove") qs.splice(at.qi, 1);
       else {
         const q = qs[at.qi]!;
-        if (e.text !== null) q.text = e.text;
-        if (e.options !== null && (q.typ === "vyber" || q.typ === "multi")) q.kategorie = e.options;
+        if (e.options !== null && e.options !== undefined) {
+          // Options replace a selection question's categories, and only with a real choice; on
+          // any other question they would change nothing yet be accepted.
+          if (q.typ !== "vyber" && q.typ !== "multi") return refuse("options_on_non_selection");
+          if (e.options.length < 2) return refuse("too_few_options");
+          q.kategorie = e.options;
+        }
+        if (e.text !== null && e.text !== undefined) q.text = e.text;
       }
       xs[at.si]!.questions = qs;
       return { content: { project: withSections(c.project, xs), analysis: c.analysis } };
@@ -252,6 +341,40 @@ const LIST_LABEL: Record<PlanList, string> = {
   "plan.research_questions": "Výzkumné otázky",
   "plan.hypotheses": "Hypotézy",
 };
+
+/**
+ * A Lead edit's refusal, as the server names it (grounding's drop or the accept's refusal,
+ * domain/edit_ops.py `REFUSALS`), in Czech: the words `applyLeadEdit` refuses with, and the server's
+ * own beside them -- the sample-size reasons are RQC9's (the readiness limits in force decide a valid
+ * n, at the turn and again at the accept). A code with no words is kept as is, never guessed.
+ */
+export const EDIT_REFUSAL_WORDS: Readonly<Record<string, string>> = {
+  ...REFUSED,
+  sample_size_out_of_range: "Velikost vzorku je mimo platný rozsah metodiky v platnosti; úprava nebyla přijata.",
+  sample_size_limits_unknown: "Platný rozsah vzorku se nepodařilo zjistit, proto úprava velikosti vzorku nebyla přijata.",
+  op_not_available: "Takovou úpravu AIA zatím neumí použít.",
+  sociomap_input_locked: "Vstupy Sociomapy jsou zamčené; úprava je nezmění.",
+  not_a_text_edit: "Tuto úpravu nelze přijmout automaticky; čeká na vaše rozhodnutí.",
+  unknown_edit: "Úpravu už nelze použít.",
+};
+
+export function editRefusalWords(reason: string | null | undefined): string {
+  if (!reason) return "Úpravu už nelze použít.";
+  return EDIT_REFUSAL_WORDS[reason] ?? reason;
+}
+
+/**
+ * What a turn says of the edits grounding dropped: a sample size outside the valid range in its
+ * own words (it concerned the sample, not nothing), the rest counted as before.
+ */
+export function droppedLines(dropped: { reason: string }[]): string[] {
+  const sample = dropped.filter((d) => d.reason.startsWith("sample_size_"));
+  const other = dropped.length - sample.length;
+  const lines = [...new Set(sample.map((d) => editRefusalWords(d.reason)))];
+  if (other === 1) lines.push("1 navržená změna se netýkala ničeho v pracovní kopii a byla vynechána.");
+  else if (other > 1) lines.push(`${other} navržené změny se netýkaly ničeho v pracovní kopii a byly vynechány.`);
+  return lines;
+}
 
 /** The stage an edit belongs to: where its change block is shown. */
 export function editStage(e: LeadEdit): WorkbenchStage {
@@ -302,8 +425,10 @@ export function focusSelector(target: string): string {
   const [kind, ...rest] = target.split(":");
   const id = rest.join(":");
   const css = (s: string) => s.replace(/["\\]/g, "\\$&");
-  if (kind === "question" && id) return `[id="qedit_${css(id)}"]`;
-  if (kind === "section" && id) return `[id="qblock_${css(id)}"]`;
+  // A screen's data-aia mark first (a tracked set's card is qset_, not qblock_), then the ids
+  // the stages used before they marked themselves.
+  if (kind === "question" && id) return `[data-aia="${css(target)}"], [id="qedit_${css(id)}"]`;
+  if (kind === "section" && id) return `[data-aia="${css(target)}"], [id="qblock_${css(id)}"]`;
   if (kind === "brief" && id) return `[id="brief-${css(id)}"]`;
   if (kind === "plan" && id) {
     const section: Record<string, string> = { sets: "plan-sets", tracked_sets: "plan-sets", comments: "plan-comments", variants: "plan-variants", questions: "plan-questions" };
@@ -321,6 +446,31 @@ const PLAN_LABELS: Record<string, string> = {
   narrative: "Návrh: porozumění zadání",
 };
 
+/** An item row's words as a person sees them: without its numbering and icons (aria-hidden), what
+ * only a screen reader reads, a save note, or an icon button's name (the row's ×); an inline field's
+ * text button keeps its words. */
+function visibleWords(row: Element): string {
+  const copy = row.cloneNode(true) as Element;
+  copy.querySelectorAll("[aria-hidden='true'], .sr-only, [role='status'], button[aria-label]").forEach((n) => n.remove());
+  return (copy.textContent ?? "").replace(/\s+/g, " ").trim();
+}
+
+/** The kinds whose element is one item of a list, named by an opaque id: labelled by its words. */
+const ITEM_KINDS: ReadonlySet<TargetKind> = new Set<TargetKind>(["objective", "rq", "hypothesis", "set", "assumption", "material", "measure", "finding", "claim"]);
+
+/** Each target kind in words (lib/workbench-artifacts.ts TargetKind). */
+const KIND_WORDS: Readonly<Record<TargetKind, string>> = {
+  brief: "Zadání", objective: "Cíl", material: "Podklad", plan: "Návrh", rq: "Výzkumná otázka",
+  hypothesis: "Hypotéza", set: "Sada", assumption: "Předpoklad", section: "Oddíl", question: "Otázka",
+  audience: "Cílová skupina", dimension: "Dimenze", own_dimension: "Vlastní dimenze", sample: "Vzorek",
+  step: "Krok", receipt: "Kdo odpovídal", measure: "Měření", object: "Objekt", pair: "Dvojice", module: "Modul",
+  finding: "Zjištění", claim: "Tvrzení", report: "Zpráva",
+};
+
+const AUDIENCE_PARTS: Readonly<Record<string, string>> = {
+  definition: "Cílová skupina: popis", filters: "Cílová skupina: filtry", preview: "Cílová skupina: náhled",
+};
+
 /** A Lead target in words, for a link that shows it: never the raw code when its kind is known. */
 export function targetLabel(target: string): string {
   const [kind, ...rest] = target.split(":");
@@ -330,7 +480,31 @@ export function targetLabel(target: string): string {
   if (kind === "section") return `Oddíl ${id}`;
   if (kind === "brief") return `Zadání: ${id}`;
   if (kind === "plan") return PLAN_LABELS[id] ?? "Návrh";
-  return target;
+  const parsed = parseAiaId(target);
+  if (!parsed) return target;
+  if (parsed.kind === "audience") {
+    if (id.startsWith("filter:")) return `Filtr: ${id.slice(7)}`;
+    if (id.startsWith("subpanel:")) return `Podpanel: ${id.slice(9)}`;
+    return AUDIENCE_PARTS[id] ?? `Cílová skupina: ${id}`;
+  }
+  if (parsed.kind === "receipt" && id === "respondents") return "Kdo odpovídal";
+  return `${KIND_WORDS[parsed.kind]} ${id}`;
+}
+
+/** A section card's title: its heading, else its first field (Dotazník edits a block's or a set's
+ * title in place, as an input), else its id. */
+function titleOf(card: Element, id: string): string {
+  const heading = card.querySelector("h3, h2")?.textContent?.trim();
+  if (heading) return heading;
+  const field = card.querySelector('input:not([type="checkbox"]):not([type="radio"]), textarea');
+  const value = field && "value" in field && typeof field.value === "string" ? field.value.trim() : "";
+  return value || id;
+}
+
+/** A question card's wording: its first field's value, else the card's text. */
+function wordingOf(card: Element, text: string): string {
+  const field = card.querySelector("textarea, input");
+  return field && "value" in field && typeof field.value === "string" && field.value.trim() ? field.value : text;
 }
 
 /**
@@ -343,13 +517,40 @@ export function targetOfElement(el: Element | null): { id: string; label: string
     const id = at.getAttribute("id") ?? "";
     const text = (at.textContent ?? "").replace(/\s+/g, " ").trim();
     const label = (s: string) => (s.length > 60 ? `${s.slice(0, 57)}…` : s);
-    let m: RegExpMatchArray | null;
-    if ((m = id.match(/^qedit_(.+)$/))) {
-      const field = at.querySelector("textarea, input");
-      const wording = field && "value" in field && typeof field.value === "string" && field.value.trim() ? field.value : text;
-      return { id: `question:${m[1]}`, label: `Otázka ${m[1]}: ${label(wording)}` };
+    // An element a screen marked for the Lead (data-aia="<kind>:<id>", aiaId) names itself.
+    const aia = at.getAttribute("data-aia");
+    const parsed = aia ? parseAiaId(aia) : null;
+    // A question keeps its wording as its label, a section its title: a card's first heading can
+    // be a part of it (the research-question legend), never what the person pointed at.
+    if (aia && parsed?.kind === "question") return { id: aia, label: `Otázka ${parsed.id}: ${label(wordingOf(at, text))}` };
+    if (aia && parsed?.kind === "section") {
+      return { id: aia, label: `Oddíl: ${label(titleOf(at, parsed.id))}` };
     }
-    if ((m = id.match(/^qblock_(.+)$/))) return { id: `section:${m[1]}`, label: `Oddíl: ${label(at.querySelector("h3, h2")?.textContent?.trim() || m[1]!)}` };
+    if (aia && parsed) {
+      const heading = at.querySelector("h2, h3, h4, label, legend")?.textContent?.trim();
+      if (heading) return { id: aia, label: `${targetLabel(aia)}: ${label(heading)}` };
+      // An item row (an objective, a hypothesis, a finding) has no heading: its own words name it,
+      // never its opaque id (Zadání and Návrh, workbench audit 2026-10-22).
+      const words = ITEM_KINDS.has(parsed.kind) ? visibleWords(at) : "";
+      if (words) return { id: aia, label: `${KIND_WORDS[parsed.kind]}: ${label(words)}` };
+      return { id: aia, label: targetLabel(aia) };
+    }
+    let m: RegExpMatchArray | null;
+    // A questionnaire card before its screen marks it (#607): named by its DOM id, but only an id
+    // the contract can send. The ids the screen invents for a card without one are never a
+    // target: questionElementId's placeholder `Q`, a block's index, an id outside the grammar.
+    // A card whose id another card already carries as its mark is a duplicate (#607 marks the
+    // first only): it names nothing, never the first card's target with its own wording.
+    // The ids are the contract's (parseAiaId: no quote), so they sit in the selector as they are.
+    const marked = (target: string) => !!at.ownerDocument.querySelector(`[data-aia="${target}"]`);
+    if ((m = id.match(/^qedit_(.+)$/)) && m[1] !== "Q" && parseAiaId(`question:${m[1]}`)) {
+      if (marked(`question:${m[1]}`)) return null;
+      return { id: `question:${m[1]}`, label: `Otázka ${m[1]}: ${label(wordingOf(at, text))}` };
+    }
+    if ((m = id.match(/^qblock_(.+)$/)) && !/^\d+$/.test(m[1]!) && parseAiaId(`section:${m[1]}`)) {
+      if (marked(`section:${m[1]}`)) return null;
+      return { id: `section:${m[1]}`, label: `Oddíl: ${label(titleOf(at, m[1]!))}` };
+    }
     if ((m = id.match(/^brief-(.+)$/))) return { id: `brief:${m[1]}`, label: `Zadání: ${label(at.querySelector("h2, h3, label")?.textContent?.trim() || m[1]!)}` };
     const plan: Record<string, { id: string; label: string }> = {
       "plan-sets": { id: "plan:sets", label: "Návrh: sledované sady" },
@@ -444,4 +645,41 @@ export function revertTextEdit(now: Content, e: LeadEdit, inverse: LeadEdit): { 
     return { refused: "Text se mezitím změnil, proto ho nevracím. Upravte ho přímo." };
   }
   return applyLeadEdit(now, inverse);
+}
+
+/** A Lead turn's or a refused post's reason code in words, as the pane shows it. A turn parked on
+ * the study's budget comes back as `budget_exceeded` (the step's waiting reason, never the status
+ * AWAITING_BUDGET); it holds nothing, and it is sent by itself once a person sets or raises the
+ * budget (the product owner, 2026-10-21, Q39), so its words say where. A cancelled Lead turn is one
+ * a message written before the budget was set superseded: no other path cancels a Lead turn. */
+export const LEAD_REASON_WORDS: Readonly<Record<string, string>> = {
+  research_lead_unavailable: "Vedoucí výzkumu není v tomto prostředí zapnutý.",
+  research_lead_disabled: "Vedoucí výzkumu není v tomto prostředí zapnutý.",
+  egress_unclassified_material: "Tuto zprávu zatím nelze poslat modelu: materiál studie není klasifikovaný. Rozhoduje o tom správce AIA.",
+  egress_no_approved_route: "Vedoucí výzkumu čeká: pro model AI není schválená trasa.",
+  egress_route_not_approved_for_class: "Tuto studii nelze poslat modelu: trasa AI není schválena pro třídu jejích dat.",
+  research_lead_unconfigured: "Vedoucí výzkumu čeká: model AI není pro pracovníka nastavený.",
+  ai_runtime_unavailable: "Vedoucí výzkumu čeká: AI v tomto prostředí neběží.",
+  licence_undetermined: "Tuto studii nelze poslat modelu: licence dat panelu to neumožňuje.",
+  lead_context_too_large: "Studie je pro jednu odpověď příliš velká. Zkuste se zeptat na konkrétní část.",
+  lead_busy: "Vedoucí ještě odpovídá na předchozí zprávu.",
+  lead_not_hatched: "Nejdřív si vylíhněte vlastního Vedoucího výzkumu.",
+  budget_exceeded: "Na odpověď nezbývá rozpočet studie. Nastavte ho v Nastavení → Studie a zpráva se odešle sama.",
+  reservation_exhausted: "Na odpověď nezbývá rozpočet studie. Nastavte ho v Nastavení → Studie a zpráva se odešle sama.",
+  CANCELLED: "Na tuto zprávu Vedoucí neodpověděl zvlášť: přečetl ji s vaší další zprávou.",
+};
+
+export function leadReasonWords(code: string | null | undefined): string {
+  return code ? withFixer(LEAD_REASON_WORDS[code] ?? `Vedoucí se zastavil (${code}).`, code) : "Vedoucí se zastavil.";
+}
+
+/** Why the Lead's composer is shut, said in its own field, or null while it is open. A disabled
+ * field that still reads "Napište Vedoucímu výzkumu…" invites typing it refuses (workbench
+ * audit, 2026-10-22). Unknown is said as loading, or as failed after a refused read; never as open. */
+export function composerHint(s: { canEdit: boolean; hatched: boolean | undefined; available: boolean | undefined; failed: boolean }): string | null {
+  if (!s.canEdit) return "Jen ke čtení: Vedoucímu v této studii psát nemůžete.";
+  if (s.hatched === false) return "Nejdřív si vylíhněte svého Vedoucího (výše).";
+  if (s.available === false) return "Vedoucí teď neodpovídá: důvod je výše.";
+  if (s.hatched === undefined || s.available === undefined) return s.failed ? "Vedoucího se nepodařilo načíst: důvod je výše." : "Načítám Vedoucího…";
+  return null;
 }

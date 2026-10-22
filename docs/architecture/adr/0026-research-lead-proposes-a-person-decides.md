@@ -422,6 +422,14 @@ The product owner's decisions of 2026-10-19 on accepting:
      spend limit) does not apply to Lead-prepared work.
    - **The other three** start nothing from the card. It opens the stage whose own start carries
      that start's gates: readiness, answerability and the spend limit.
+   - *Decided 2026-10-21 (the product owner, Q44-Q47; not built yet):* a Lead card starts Design and
+     Interpretation Research on the server through `approve_request` (`lead-orchestration#LO5a.2`).
+     The Lead may offer every result target kind from a code-built candidate list, the
+     `research_questions` module the default (Q44); a Design Research run may focus on named
+     research questions, the whole design the default (Q45); QUICK and STANDARD are offered,
+     STANDARD the default (Q46); a plan may chain fieldwork, then interpretation, the step parking
+     if its module is BLOCKED (Q47). The record is `lead-orchestration.md` § *Deep Research under
+     the Lead (2026-10-21)*.
 5. **Live calls on develop, at a small cap.** The per-turn reservation is the smallest the gateway
    accepts. The route's approved data classes still decide which studies can be sent.
 6. **Each researcher has their own Lead** (the product owner, later the same day). The Lead is
@@ -450,9 +458,27 @@ The product owner's decisions of 2026-10-19 on accepting:
    components are ported into the web client and wired to AIA's working content, runs and routes.
    The existing stage screens stay as the artifact bodies wherever they already do the work.
 
+Later decisions of the product owner, 2026-10-21:
+
+8. **A research run the Lead prepares is an approval card that starts the run** through Spuštění's
+   own route, `POST …/research/runs`, with that start's gates (#550; amends *Accepted with* 4 for
+   that kind). **Návrh's answers and comments go through the Lead**: in the workbench the stages
+   show no AI start of their own, and "Požádat Vedoucího" asks the Lead (#550).
+9. **A card the Lead's model prepared is refused while the Lead is off** (Q42): `POST
+   …/turns/{turn_id}/request` answers 409 `research_lead_disabled`; stored edits stay decidable.
+   `AIA_AI_RESEARCH_LEAD_ENABLED` is stated in every deployed environment, unset refused at start,
+   and `GET …/lead` says whether a worker can answer (`worker_ready`, null when unknown) (#561).
+10. **A typed start command bypasses the model and the Lead's switch** (Q43): a message that is
+    exactly a command of `domain/lead_commands.py`'s vocabulary is stored as the person's command,
+    Lead on or off, with no model turn, and started through `POST …/turns/{turn_id}/request`
+    (ledger `chat_start`, the wallet when on); `GET /lead` lists the commands (#574; ADR 0028
+    decision 3).
+
 ## Consequences
 
-- **Gains.** One conversation per study, stored in AIA and shared by everyone who opens the study.
+- **Gains.** One conversation per researcher per study, stored in AIA (*Accepted with* 6; corrected
+  2026-10-21: this line said "shared by everyone who opens the study", which neither decision 6 nor
+  the code says, OI-152).
   A proposal can no longer be applied over an edit it would overwrite, while edits elsewhere do not
   block it. The Design Revision and the working copy cannot disagree after an accept. No AI action
   spends money or changes the design without a person's decision in the ledger.

@@ -194,7 +194,12 @@ def test_the_object_map_stores_the_framed_terrain_under_aia_sociomap_5() -> None
         heights.values, [True] * 7, TERRAIN.relative_height_floor
     )
     framing = _frame_objects(heights.values, _known(artifact.relations.status))
-    assert terrain == _framed(layout.points, heights.relative, framing, rated)
+    relative_only = terrain.model_copy(update={"absolute_height": None})
+    assert relative_only == _framed(layout.points, heights.relative, framing, rated)
+    # The panel's Absolutní view: the same envelope with each hill at its 0-1 height, stored.
+    absolute = _framed(layout.points, heights.values, framing, rated)
+    assert terrain.absolute_height == absolute.height
+    assert terrain.absolute_height != terrain.height
     assert terrain.source_ids == rated
     assert all(h is not None for row in terrain.height for h in row)
     # The map is the rated objects' own, as if the object were not in the set.
@@ -238,8 +243,11 @@ def test_the_object_map_frames_its_terrain_on_the_objects_with_a_known_pair() ->
     framing = _frame_objects(artifact.heights.values, _known(artifact.relations.status))
     assert framing == tuple(j != few for j in range(8))
     assert artifact.objects_not_placed == () and relative[few] is not None
-    assert artifact.terrain == _framed(layout.points, relative, framing)
-    assert artifact.terrain != _framed(layout.points, relative, [True] * 8)
+    relative_only = artifact.terrain.model_copy(update={"absolute_height": None})
+    assert relative_only == _framed(layout.points, relative, framing)
+    assert relative_only != _framed(layout.points, relative, [True] * 8)
+    absolute = _framed(layout.points, artifact.heights.values, framing)
+    assert artifact.terrain.absolute_height == absolute.height
     # Nine people: every pair below the status floor, all at the layout floor. The map is drawn,
     # but no object has a known pair, so nothing is fitted.
     rng = np.random.default_rng(9)

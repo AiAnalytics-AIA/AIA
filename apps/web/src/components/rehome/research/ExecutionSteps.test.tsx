@@ -9,9 +9,11 @@ import { afterEach, beforeEach, describe, expect, it, onTestFinished, vi } from 
 
 import { t, tv } from "@/i18n/t";
 import type { ResearchRun } from "@/lib/api";
+import { AnalysisInspect } from "./AnalysisInspect";
 import { measureAnchor } from "@/lib/result-reading";
+import { parseAiaId } from "@/lib/workbench-artifacts";
 import { CONFLICT_MESSAGE } from "@/research/store";
-import { RunResults } from "./ExecutionSteps";
+import { RunResults, fixStep } from "./ExecutionSteps";
 import { StudyFrameProvider } from "./frame";
 import { ResearchScreen, ResearchSession } from "./ResearchScreen";
 import { CONTENT_PATH, workspaceFixture } from "./test-workspace";
@@ -159,6 +161,23 @@ afterEach(() => {
   // Every test here also proves the screen reached nothing of the 18.6.6 unit (ADR 0018).
   expect(calls.filter((c) => !c.url.startsWith("/api/v1/") && c.url !== "/config").map((c) => c.url)).toEqual([]);
   sessionStorage.clear();
+});
+
+describe("fixStep", () => {
+  it("sends each readiness check to the stage where it is fixed", () => {
+    // The ids the domain's readiness emits (research_design.assess_readiness, support_forecast,
+    // research_trace), a prefixed one standing for its kind; n and its support live on Dimenze,
+    // the audience on its own stage.
+    const where = {
+      sample_size: "persona", support_forecast: "persona", sociomap_support: "persona", dimensions: "persona",
+      audience: "audience",
+      questionnaire: "questionnaire", conditional_questions: "questionnaire", battery_familiarity: "questionnaire",
+      sociomap_input: "questionnaire", research_question_coverage: "questionnaire", "compile:invalid_scale:q1": "questionnaire", "battery_size:b1": "questionnaire",
+    };
+    for (const [id, step] of Object.entries(where)) expect([id, fixStep(id)]).toEqual([id, step]);
+    // An id that names an Object.prototype member is an unknown check, never a function.
+    expect(fixStep("constructor")).toBe("questionnaire");
+  });
 });
 
 describe("Run", () => {
@@ -320,7 +339,7 @@ describe("Run", () => {
     const { rerender } = render(at("brief"));
     fireEvent.change(await screen.findByLabelText(t("research.brief.goalLabel")), { target: { value: "Změna, kterou AIA odmítla" } });
     // The debounced save meets the newer revision while the person is still on the brief.
-    expect(await screen.findByText(t("research.saveConflict"), {}, { timeout: 4000 })).toBeTruthy();
+    expect(await screen.findByText(t("research.saveConflict"))).toBeTruthy();
     rerender(at("run"));
     expect(await screen.findByText(t("research.exec.readinessFailed"))).toBeTruthy();
     expect(screen.getAllByText(CONFLICT_MESSAGE).length).toBeGreaterThan(0);
@@ -591,7 +610,7 @@ describe("Run: what a run can cost (5b.2)", () => {
     fireEvent.click(await screen.findByRole("button", { name: t("research.exec.start") }));
     const dialog = await screen.findByRole("dialog");
     // Beside the question, what remains of the study's budget, read as it asks (6d).
-    expect(within(dialog).getByText("Tento běh může stát až 225.00 USD (limit studie je 100.00 USD). Spustit? Z rozpočtu studie zbývá 400.00 USD. I při nejvyšší ceně by zbylo 175.00 USD, bez částek, které právě drží běžící kroky.")).toBeTruthy();
+    expect(within(dialog).getByText("Tento běh může stát až 225.00 USD (práh potvrzení studie je 100.00 USD). Spustit? Z rozpočtu studie zbývá 400.00 USD. I při nejvyšší ceně by zbylo 175.00 USD, bez částek, které právě drží běžící kroky.")).toBeTruthy();
     fireEvent.click(within(dialog).getByRole("button", { name: t("dialog.cancel") }));
     await waitFor(() => expect(screen.queryByRole("dialog")).toBeNull());
     expect(called("POST", RUNS)).toHaveLength(0); // no yes, no run
@@ -982,7 +1001,7 @@ describe("Run: what a run can cost (5b.2)", () => {
     fireEvent.click(await screen.findByRole("button", { name: t("research.exec.retry") }));
     const dialog = await screen.findByRole("dialog");
     // Beside the question, what remains of the study's budget, read as it asks (6d).
-    expect(within(dialog).getByText("Tento běh může stát až 225.00 USD (limit studie je 100.00 USD). Spustit? Z rozpočtu studie zbývá 400.00 USD. I při nejvyšší ceně by zbylo 175.00 USD, bez částek, které právě drží běžící kroky.")).toBeTruthy();
+    expect(within(dialog).getByText("Tento běh může stát až 225.00 USD (práh potvrzení studie je 100.00 USD). Spustit? Z rozpočtu studie zbývá 400.00 USD. I při nejvyšší ceně by zbylo 175.00 USD, bez částek, které právě drží běžící kroky.")).toBeTruthy();
     fireEvent.click(within(dialog).getByRole("button", { name: "OK" }));
     expect(await screen.findByText("Opakování běhu RUN-1")).toBeTruthy();
     expect(asked).toBe(1);
@@ -1115,6 +1134,57 @@ describe("Progress", () => {
     const card = (await screen.findByRole("heading", { name: t(`${R}.title`) })).closest("section") as HTMLElement;
     expect(within(card).getByRole("alert").textContent).toBe(t(`${R}.mismatch`));
     expect(within(card).getByText(t(`${R}.unrecorded`))).toBeTruthy();
+  });
+
+  it("keeps both sides of a mismatch in view, the stored origin code beside the pinned source, pointable by the Lead (artifact-fieldwork FLD7)", async () => {
+    api(listed(run({ ...COMPLETED, persona_source: "panel" })));
+    render(<ResearchScreen step="progress" frame={TEST_FRAME} />);
+    const R = "research.exec.respondents.receipt";
+    const card = (await screen.findByRole("heading", { name: t(`${R}.title`) })).closest("section") as HTMLElement;
+    const value = (label: string) => within(card).getByText(label).nextElementSibling?.textContent;
+    // Named, never resolved: the pinned panel, what the data say, and the code as stored.
+    expect(value(t(`${R}.source`))).toBe(`${t("research.exec.respondents.panel")} · ${t(`${R}.observed.SIMULATED`)}`);
+    expect(value(t(`${R}.origin`))).toBe("SYNTHETIC_FIXTURE");
+    // Pointable by the Lead: the mark parses as the fieldwork stage's receipt (#618).
+    const mark = card.closest("[data-aia]")?.getAttribute("data-aia");
+    expect(mark).toBe("receipt:respondents");
+    expect(parseAiaId(mark!)).toEqual({ kind: "receipt", id: "respondents", stage: "fieldwork" });
+  });
+
+  it("says the data's origin is not yet stored while fieldwork has not stored it", async () => {
+    api(listed(PARKED));
+    render(<ResearchScreen step="progress" frame={TEST_FRAME} />);
+    const R = "research.exec.respondents.receipt";
+    const card = (await screen.findByRole("heading", { name: t(`${R}.title`) })).closest("section") as HTMLElement;
+    expect(within(card).getByText(t(`${R}.origin`)).nextElementSibling?.textContent).toBe(t(`${R}.pending`));
+    expect(card.querySelector("[data-origin-code]")).toBeNull();
+  });
+
+  it("tags each step AI or deterministic and makes it pointable by the Lead (artifact-fieldwork FLD2)", async () => {
+    api(listed(PARKED));
+    render(<ResearchScreen step="progress" frame={TEST_FRAME} />);
+    const list = await screen.findByRole("list", { name: t("aia.stages.progress") });
+    const work = (key: string) => list.querySelector(`[data-aia="step:${key}"] [data-step-work]`)?.textContent;
+    // AI respondents answer this run's fieldwork: a model step.
+    expect(work("run")).toBe(t("research.exec.stepWork.ai"));
+    expect(work("compile")).toBe(t("research.exec.stepWork.running"));
+    expect(work("aggregate")).toBe(t("research.exec.stepWork.running"));
+  });
+
+  it("tags fictional fixture fieldwork as code, never as AI", async () => {
+    api(listed(COMPLETED));
+    render(<ResearchScreen step="progress" frame={TEST_FRAME} />);
+    const list = await screen.findByRole("list", { name: t("aia.stages.progress") });
+    expect(list.querySelector('[data-aia="step:run"] [data-step-work]')?.textContent).toBe(t("research.exec.stepWork.running"));
+  });
+
+  it("tags no fieldwork step when the run recorded no source: unknown is never stamped as code", async () => {
+    api(listed(run({ ...COMPLETED, fieldwork_source: "" })));
+    render(<ResearchScreen step="progress" frame={TEST_FRAME} />);
+    const list = await screen.findByRole("list", { name: t("aia.stages.progress") });
+    expect(list.querySelector('[data-aia="step:run"]')).toBeTruthy();
+    expect(list.querySelector('[data-aia="step:run"] [data-step-work]')).toBeNull();
+    expect(list.querySelector('[data-aia="step:aggregate"] [data-step-work]')?.textContent).toBe(t("research.exec.stepWork.running"));
   });
 
   it("explains a run waiting for the AI runtime, step by step, without offering a retry", async () => {
@@ -1312,13 +1382,45 @@ describe("Progress", () => {
 
   describe("a step waiting for budget", () => {
     const STUDY = { study_id: "STU-1", name: "Starbucks", budget_usd: 10, spent_usd: 9.5, remaining_usd: 0.5 };
-    const BUDGET_PATH = "/api/v1/studies/STU-1/research/runs/RUN-1/steps/analysis_executive/budget";
+    // The run's lift (CR-3): one path for the run, never one per step.
+    const BUDGET_PATH = "/api/v1/studies/STU-1/research/runs/RUN-1/budget";
     const waiting = () => parkedWith([
       step("compile", "SUCCEEDED", { artifact_id: "ART-1" }),
       step("analysis_executive", "AWAITING_BUDGET", { kind: "research_analysis", waiting_reason: "budget_exceeded" }),
     ]);
 
-    it("offers to raise the budget, showing what is spent, and posts the new total for that step", async () => {
+    it("offers one lift for the run when eight analysis steps wait, and one post releases them all (CR-3)", async () => {
+      const modules = ["executive", "segments", "drivers", "attitudes", "brand", "price", "risks", "recommendations"];
+      const many = parkedWith([
+        step("compile", "SUCCEEDED", { artifact_id: "ART-1" }),
+        ...modules.map((m) => step(`analysis_${m}`, "AWAITING_BUDGET", { kind: "research_analysis", waiting_reason: "budget_exceeded" })),
+      ]);
+      const resumed = run({ steps: [step("compile", "SUCCEEDED"), ...modules.map((m) => step(`analysis_${m}`, "RUNNABLE"))] });
+      let lifted = false;
+      api({
+        ...listed(many),
+        "GET /api/v1/studies/STU-1/research/runs/RUN-1": () => (lifted ? resumed : many),
+        "GET /api/v1/studies/STU-1": () => STUDY,
+        [`POST ${BUDGET_PATH}`]: () => { lifted = true; return resumed; },
+      });
+      render(<ResearchScreen step="progress" frame={TEST_FRAME} />);
+      const section = await screen.findByRole("status", { name: t("research.exec.budget.runTitle") });
+      expect(within(section).getByText(/Čekající kroky \(8\)/)).toBeTruthy();
+      // One form on the page, whatever the number of waiting steps.
+      await waitFor(() => expect(screen.getAllByRole("form", { name: t("research.exec.budget.title") })).toHaveLength(1));
+      const form = screen.getByRole("form", { name: t("research.exec.budget.title") });
+      await within(form).findByText(/10\.00/);
+      // The remainder leaves out open holds, and says so.
+      expect(within(form).getByText(t("research.exec.budgetLine.holdsNotCounted"))).toBeTruthy();
+      fireEvent.change(within(form).getByLabelText(t("research.exec.budget.amount")), { target: { value: "30" } });
+      fireEvent.click(within(form).getByRole("button", { name: t("research.exec.budget.lift") }));
+      await waitFor(() => expect(called("POST", BUDGET_PATH)).toHaveLength(1));
+      expect(called("POST", BUDGET_PATH)[0].body).toEqual({ budget_usd: 30, note: "" });
+      expect(calls.filter((c) => c.method === "POST" && /\/steps\/.+\/budget$/.test(c.url))).toEqual([]);
+      await waitFor(() => expect(screen.queryByRole("form", { name: t("research.exec.budget.title") })).toBeNull());
+    });
+
+    it("offers to raise the budget, showing what is spent, and posts the new total for the run", async () => {
       const resumed = run({ steps: [step("compile", "SUCCEEDED"), step("analysis_executive", "RUNNABLE")] });
       // As the API does: once lifted, the run reads resumed (the page reads it again after an action).
       let lifted = false;
@@ -1411,7 +1513,7 @@ describe("Progress", () => {
     // The page is now about the new run, a reload included.
     expect(window.location.search).toBe("?run=RUN-2");
     // And it keeps reading it: the first step finishes on screen without a reload.
-    await waitFor(() => expect(document.querySelector('[data-step="compile"]')?.getAttribute("data-status")).toBe("SUCCEEDED"), { timeout: 6000 });
+    await waitFor(() => expect(document.querySelector('[data-step="compile"]')?.getAttribute("data-status")).toBe("SUCCEEDED"));
     expect(reads).toBeGreaterThanOrEqual(2);
     expect(called("GET", "/api/v1/studies/STU-1/research/runs/RUN-1").filter((c) => !c.url.includes("/runs/RUN-1/"))).toHaveLength(1);
   }, 10000);
@@ -1437,6 +1539,17 @@ describe("Progress", () => {
 });
 
 describe("Results", () => {
+  it("shows who answered without the receipt's Lead mark: Výsledky's row names measures alone (#618)", async () => {
+    api({ ...listed(COMPLETED),
+      "GET /api/v1/studies/STU-1/research/runs/RUN-1/artifacts/ART-4": () => AGGREGATE,
+      "GET /api/v1/studies/STU-1/research/runs/RUN-1/artifacts/ART-5": () => SOCIOMAP,
+    });
+    render(<ResearchScreen step="results" frame={TEST_FRAME} />);
+    const card = (await screen.findByRole("heading", { name: t("research.exec.respondents.receipt.title") })).closest("section") as HTMLElement;
+    expect(card.closest("[data-aia]")).toBeNull();
+    expect(document.querySelector('[data-aia^="receipt:"]')).toBeNull();
+  });
+
   it("explains a failed run load and retries instead of leaving Results loading forever", async () => {
     let failed = true;
     api({ ...listed(COMPLETED),
@@ -1467,6 +1580,8 @@ describe("Results", () => {
     fireEvent.click(screen.getByRole("button", { name: t("research.retry") }));
     expect(await screen.findByText(t("research.exec.noResults"))).toBeTruthy();
     expect(screen.queryByText("Výsledky se nepodařilo načíst.")).toBeNull();
+    // No run, so no word about "this run's" report (workbench audit, 2026-10-22).
+    expect(screen.queryByText(t("research.exec.results.reportNotInAia"))).toBeNull();
   });
 
   it("keeps the neutral analysis note while no module has stored an outcome, never 'unknown origin'", async () => {
@@ -1542,9 +1657,13 @@ describe("Results", () => {
     const blocked = screen.getByRole("button", { name: /Výzkumné otázky.*Potřebuje opravu/ });
     fireEvent.click(blocked);
     expect(screen.getByText(/Výstup této části neprošel kontrolou/)).toBeTruthy();
-    const diagnostic = screen.getByText("Technické důvody odmítnutí").closest("details");
+    // The refusal in words on the surface; its code, subject and detail only in a closed fold.
+    const pane = screen.getByRole("region", { name: "Výzkumné otázky" });
+    expect(within(pane).getByText(/odpověď modelu neodpovídala předepsanému tvaru/)).toBeTruthy();
+    const diagnostic = within(pane).getByText("Technické podrobnosti").closest("details");
     expect(diagnostic?.open).toBe(false);
-    expect(within(diagnostic!).getByText(/SCHEMA_INVALID: Input should be a valid array/)).toBeTruthy();
+    expect(diagnostic?.textContent).toContain("research_question_answers: Input should be a valid array");
+    expect(pane.textContent?.replace(diagnostic?.textContent ?? "", "")).not.toContain("SCHEMA_INVALID");
   });
 
   it("says an analysis an earlier version of AIA built cannot be shown, and where it is repaired, not 'try again' (PC3)", async () => {
@@ -1586,6 +1705,140 @@ describe("Results", () => {
     expect(document.querySelectorAll("[data-answer-gap]")).toHaveLength(1);
   });
 
+  it("covers every research question of the frozen design: its answer, the findings on the same measures, what is missing (ANL2)", async () => {
+    const analysed = run({ ...COMPLETED, steps: [...COMPLETED.steps,
+      step("analysis_research_questions", "SUCCEEDED", { kind: "research_analysis", artifact_id: "ART-7", analysis_outcome: "COMPLETED" }),
+    ], answerability: { ready: true, gaps: [{ kind: "not_answerable", research_question: "Proč  měníte banku?", verdict: "UNANSWERABLE", reasons: [], measures: [] }] } as unknown as ResearchRun["answerability"] });
+    api({ ...listed(analysed),
+      "GET /api/v1/studies/STU-1/research/runs/RUN-1/artifacts/ART-4": () => AGGREGATE,
+      "GET /api/v1/studies/STU-1/design/revisions/REV-a1": () => ({ revision_id: "REV-a1", content: { research_plan: { research_questions: ["Co lidé pijí?", "Proč měníte banku?", "Kdo pije čaj?"] } } }),
+      "GET /api/v1/studies/STU-1/research/runs/RUN-1/analysis": () => ({ complete: false, synthetic: true, pending: {}, modules: {
+        research_questions: { outcome: "COMPLETED", summary: null, violations: [],
+          research_question_answers: [{ question: "Co lidé pijí?", answer: "Čaj.", claim_ids: ["C1"] }, { question: "Proč měníte banku?", answer: "Nevíme.", claim_ids: [] }, { question: "Kdo pije čaj?", answer: "Mnozí.", claim_ids: [] }],
+          key_findings: [{ text: "Čaj vede.", claim_ids: ["C1"] }],
+          claims: [{ claim_id: "C1", evidence_ref: "q2.pct.2", value: 38.4, indicative: false, data_origin: null }] },
+      } }),
+    });
+    render(<ResearchScreen step="results" frame={TEST_FRAME} />);
+    fireEvent.click(await screen.findByRole("tab", { name: "AI analýza" }));
+    const table = await screen.findByRole("region", { name: "Pokrytí výzkumných otázek" });
+    await waitFor(() => expect(table.querySelectorAll("tr[data-rq]")).toHaveLength(3));
+    const rows = [...table.querySelectorAll("tr[data-rq]")];
+    expect(rows.map((r) => [r.getAttribute("data-rq"), r.getAttribute("data-state")])).toEqual([["0", "answered"], ["1", "gap"], ["2", "unsupported"]]);
+    // The Lead points at the module (rq:<id> waits for stable research-question ids, WCE1).
+    expect(table.getAttribute("data-aia")).toBe("module:research_questions");
+    // The recorded gap reads "bez doložené odpovědi", with what the run recorded; never "ano".
+    expect(rows[1].textContent).toContain("bez doložené odpovědi");
+    expect(rows[1].textContent).toContain("Při spuštění běh zaznamenal");
+    // A finding on the same measure is linked to where it is shown, and carries its Lead target.
+    const link = within(rows[0] as HTMLElement).getByRole("link");
+    expect(link.getAttribute("href")).toBe("#analysis-finding-research_questions-0");
+    expect(document.getElementById("analysis-finding-research_questions-0")?.getAttribute("data-aia")).toBe("finding:research_questions:0");
+    expect(rows[2].textContent).toContain("Odpověď necituje žádné připuštěné číslo.");
+  });
+
+  it("says the research questions are unknown when the frozen design cannot be read, never that it has none (ANL2)", async () => {
+    const analysed = run({ ...COMPLETED, steps: [...COMPLETED.steps,
+      step("analysis_research_questions", "SUCCEEDED", { kind: "research_analysis", artifact_id: "ART-7", analysis_outcome: "BLOCKED" }),
+    ] });
+    api({ ...listed(analysed),
+      "GET /api/v1/studies/STU-1/research/runs/RUN-1/artifacts/ART-4": () => AGGREGATE,
+      "GET /api/v1/studies/STU-1/design/revisions/REV-a1": () => { throw new Error("neznámá revize"); },
+      "GET /api/v1/studies/STU-1/research/runs/RUN-1/analysis": () => ({ complete: false, synthetic: true, pending: {}, modules: {
+        research_questions: { outcome: "BLOCKED", summary: null, violations: [{ code: "x", subject: "y", detail: "z" }], research_question_answers: [], key_findings: [], claims: [] },
+      } }),
+    });
+    render(<ResearchScreen step="results" frame={TEST_FRAME} />);
+    fireEvent.click(await screen.findByRole("tab", { name: "AI analýza" }));
+    const section = await screen.findByRole("region", { name: "Pokrytí výzkumných otázek" });
+    await waitFor(() => expect(section.querySelector("[data-coverage-read]")?.getAttribute("data-coverage-read")).toBe("failed"));
+    expect(section.textContent).toContain("Výzkumné otázky běhu jsou neznámé");
+    expect(section.textContent).not.toContain("neuvádí výzkumné otázky");
+    expect(section.querySelectorAll("tr[data-rq]")).toHaveLength(0);
+  });
+
+  it("reads a failed retryable read as unknown, and words a suppression by every cause it has (ANL4)", async () => {
+    const analysed = run({ ...COMPLETED, steps: [...COMPLETED.steps,
+      step("analysis_audience", "SUCCEEDED", { kind: "research_analysis", artifact_id: "ART-8", analysis_outcome: "BLOCKED" }),
+    ] });
+    api({ ...listed(analysed),
+      "GET /api/v1/studies/STU-1/research/runs/RUN-1/artifacts/ART-4": () => AGGREGATE,
+      "GET /api/v1/studies/STU-1/research/runs/RUN-1/analysis": () => ({ complete: false, synthetic: true, pending: {}, modules: {
+        // Every row removed because its question was refused for fidelity, not for thin support.
+        audience: { outcome: "BLOCKED", summary: null, research_question_answers: [], key_findings: [], claims: [], violations: [
+          { code: "SUPPORT_SUPPRESSED", subject: "preflight", detail: "no citable evidence: all 4 rows were removed (thin support, a refused question, or an estimate without its interval)" },
+        ] },
+      } }),
+      "GET /api/v1/studies/STU-1/research/runs/RUN-1/analysis/retryable": () => { throw new Error("409 conflict"); },
+    });
+    render(<ResearchScreen step="results" frame={TEST_FRAME} />);
+    fireEvent.click(await screen.findByRole("tab", { name: "AI analýza" }));
+    const blocked = await screen.findByRole("region", { name: "Blokované nároky" });
+    const audience = blocked.querySelector('[data-blocked-module="audience"]') as HTMLElement;
+    // A list that could not be read promises nothing: never "the same data would refuse it again".
+    await waitFor(() => expect(audience.getAttribute("data-way-out")).toBe("unknown"));
+    expect(audience.textContent).not.toContain("neopraví");
+    // The words name every cause the preflight groups under one code, not "too few respondents" alone.
+    expect(audience.textContent).toContain("odmítnutá otázka");
+    expect(audience.textContent).not.toContain("příliš málo respondentů");
+  });
+
+  it("names each blocked module's refusals in words with the way out the server gives, and never reads it as done (ANL4)", async () => {
+    const analysed = run({ ...COMPLETED, steps: [...COMPLETED.steps,
+      step("analysis_executive", "SUCCEEDED", { kind: "research_analysis", artifact_id: "ART-6", analysis_outcome: "COMPLETED" }),
+      step("analysis_audience", "SUCCEEDED", { kind: "research_analysis", artifact_id: "ART-8", analysis_outcome: "BLOCKED" }),
+      step("analysis_hypotheses", "SUCCEEDED", { kind: "research_analysis", artifact_id: "ART-9", analysis_outcome: "BLOCKED" }),
+    ] });
+    const blockedAnalysis = () => ({ complete: false, synthetic: true, pending: {}, modules: {
+      executive: { outcome: "COMPLETED", summary: null, research_question_answers: [], key_findings: [], claims: [], violations: [] },
+      // Refused by the preflight before any model turn: the server does not list it as retryable.
+      audience: { outcome: "BLOCKED", summary: null, research_question_answers: [], key_findings: [], claims: [], violations: [
+        { code: "JOINT_CERTIFICATE_DEGRADED", subject: "core", detail: "certificate degraded" },
+      ] },
+      hypotheses: { outcome: "BLOCKED", summary: null, research_question_answers: [], key_findings: [], claims: [], violations: [
+        { code: "EVIDENCE_REF_UNKNOWN", subject: "c1", detail: "q9.mean" },
+        { code: "EVIDENCE_REF_UNKNOWN", subject: "c2", detail: "q7.mean" },
+        { code: "NOT_A_KNOWN_CODE", subject: "summary", detail: "x" },
+      ] },
+    } });
+    api({ ...listed(analysed),
+      "GET /api/v1/studies/STU-1/research/runs/RUN-1/artifacts/ART-4": () => AGGREGATE,
+      "GET /api/v1/studies/STU-1/research/runs/RUN-1/analysis": blockedAnalysis,
+      "GET /api/v1/studies/STU-1/research/runs/RUN-1/analysis/retryable": () => ({ run_id: "RUN-1", modules: ["hypotheses"] }),
+    });
+    render(<ResearchScreen step="results" frame={TEST_FRAME} />);
+    fireEvent.click(await screen.findByRole("tab", { name: "AI analýza" }));
+    const blocked = await screen.findByRole("region", { name: "Blokované nároky" });
+    const hypotheses = blocked.querySelector('[data-blocked-module="hypotheses"]') as HTMLElement;
+    expect(hypotheses.textContent).toContain("Potřebuje opravu");
+    // Each reason once, in words, counted; each subject beside its own detail; a code without words keeps its code.
+    expect(hypotheses.querySelectorAll("[data-violation]")).toHaveLength(2);
+    expect(within(hypotheses).getByText(/cituje číslo, které v datech běhu není/)).toBeTruthy();
+    expect(hypotheses.textContent).toContain("(2×)");
+    expect([...hypotheses.querySelectorAll('[data-violation="EVIDENCE_REF_UNKNOWN"] details li')].map((li) => li.textContent)).toEqual(["c1: q9.mean", "c2: q7.mean"]);
+    expect(hypotheses.textContent).toContain("NOT_A_KNOWN_CODE");
+    expect(blocked.querySelector('[data-blocked-module="executive"]')).toBeNull();
+    // The way out is the server's: a retry only for what it lists; the preflight's refusal is said not to pass again.
+    await waitFor(() => expect(hypotheses.getAttribute("data-way-out")).toBe("retry"));
+    expect(blocked.querySelector('[data-blocked-module="audience"]')?.getAttribute("data-way-out")).toBe("same_data_fails");
+    expect(within(blocked).getByRole("link", { name: "Zobrazit průběh běhu" })).toBeTruthy();
+    // The module list never says it is done, and its pane words the refusals the same way.
+    const entry = screen.getByRole("button", { name: /Hypotézy/ });
+    expect(entry.textContent).toContain("Potřebuje opravu");
+    expect(entry.textContent).not.toMatch(/Dokončeno|Hotovo/);
+    fireEvent.click(entry);
+    const pane = screen.getByRole("region", { name: "Hypotézy" });
+    expect(within(pane).getByText(/cituje číslo, které v datech běhu není/)).toBeTruthy();
+    expect(pane.textContent).not.toMatch(/EVIDENCE_REF_UNKNOWN:/);
+    cleanup();
+    // On a frame that may not edit, nothing offers a round the reader cannot ask for.
+    render(<ResearchScreen step="results" frame={{ ...TEST_FRAME, canEdit: false }} />);
+    fireEvent.click(await screen.findByRole("tab", { name: "AI analýza" }));
+    const readOnly = await screen.findByRole("region", { name: "Blokované nároky" });
+    expect(readOnly.querySelector("[data-way-out]")).toBeNull();
+    expect(within(readOnly).queryByRole("link")).toBeNull();
+  });
+
   it("puts every module's key findings first, each with the numbers it cites, and keeps every word formatted", async () => {
     const analysed = run({ ...COMPLETED, steps: [...COMPLETED.steps,
       step("analysis_executive", "SUCCEEDED", { kind: "research_analysis", artifact_id: "ART-6" }),
@@ -1620,6 +1873,23 @@ describe("Results", () => {
       "34,8 % podíl odpovědi „Kávu“ · Který nápoj byste si vybrali?",
     ]);
     expect(cited[0].getAttribute("href")).toBe("#measure-q2");
+    // Each cited number and the module view carry the Lead's targets (ANL1).
+    expect(keyFindings.querySelector('[data-aia="claim:executive:C1"]')).toBeTruthy();
+    expect(keyFindings.querySelector('[data-aia="finding:executive:0"]')).toBeTruthy();
+    // Every module is a Lead target whichever is selected (Codex P1 on #605), and every target names
+    // exactly one element: research_questions is the coverage table, each claim its first chip.
+    for (const m of ["executive", "research_questions", "objects", "audience", "segments", "hypotheses", "implications", "limitations"]) {
+      expect(document.querySelectorAll(`[data-aia="module:${m}"]`)).toHaveLength(1);
+    }
+    for (const c of ["C1", "C2", "C3"]) expect(document.querySelectorAll(`[data-aia="claim:executive:${c}"]`)).toHaveLength(1);
+    expect(keyFindings.querySelector('[data-aia="claim:executive:C2"]')).toBeTruthy();
+    // The inspector reads this very analysis, published by the page (ANL3), and adds no target of
+    // its own: with the drawer open, every target still names exactly one element.
+    const drawer = render(<AnalysisInspect target={{ kind: "finding", id: "executive:0" }} />);
+    expect(within(drawer.container).getAllByRole("link")[0].getAttribute("href")).toBe("#measure-q2");
+    expect(drawer.container.querySelector("[data-aia]")).toBeNull();
+    for (const c of ["C1", "C2", "C3"]) expect(document.querySelectorAll(`[data-aia="claim:executive:${c}"]`)).toHaveLength(1);
+    drawer.unmount();
     // A number whose question AIA cannot find says so in words; its reference stays as a code (6c).
     expect(within(keyFindings).getByText(/číslo, k němuž AIA nedohledala otázku/)).toBeTruthy();
     expect(within(keyFindings).getByText("x9.median").tagName).toBe("CODE");
@@ -1816,7 +2086,7 @@ describe("Results", () => {
   });
 
   it("compares a set's objects in words and on one scale, and opens a card from its link", async () => {
-    const rating = (mean: number, low: number, high: number, status = "REPORTABLE") => ({ typ: "skala", ...support(status as "REPORTABLE", 140), prumer: mean, prumer_interval_95: { low, high }, top2box_pct: 40, top2box_interval_95: { low: 30, high: 50 } });
+    const rating = (mean: number, low: number, high: number, status = "REPORTABLE") => ({ typ: "skala", ...support(status as "REPORTABLE", 140), effective_n_kish: 401.8, prumer: mean, prumer_interval_95: { low, high }, top2box_pct: 40, top2box_interval_95: { low: 30, high: 50 } });
     const aggregate = { ...AGGREGATE, payload: { aggregate: { ...AGGREGATE.payload.aggregate, batteries: { napoje: { title: "Nápoje", objects: {
       kava: { label: "Káva", ...rating(4.2, 4.0, 4.4) }, caj: { label: "Čaj", ...rating(3.0, 2.7, 3.3) }, voda: { label: "Voda", ...rating(2.9, 2.6, 3.2) },
       mleko: { label: "Mléko", ...rating(3.5, 2.0, 5.0, "SUPPRESS") },
@@ -1831,13 +2101,30 @@ describe("Results", () => {
     render(<ResearchScreen step="results" frame={TEST_FRAME} />);
     fireEvent.click(await screen.findByRole("tab", { name: "Data" }));
     const comparison = await screen.findByRole("region", { name: "Srovnání: Nápoje" });
-    expect(within(comparison).getByText("Průměr na škále 1–5 · 95% interval")).toBeTruthy();
-    expect(within(comparison).getByText("Spolehlivě nejvýše hodnocený: Káva.")).toBeTruthy();
-    expect(within(comparison).getByText("Nejníže hodnocené: Čaj a Voda; pořadí mezi nimi nelze potvrdit.")).toBeTruthy();
-    expect(within(comparison).getAllByRole("link").map((a) => a.textContent)).toEqual(["Káva", "Čaj", "Voda"]);
-    // A suppressed object is not drawn and has no number, but is named.
-    expect(within(comparison).getByText("Bez čísla (potlačeno nebo bez průměru): Mléko.")).toBeTruthy();
+    expect(within(comparison).getByText("Průměr na škále 1–5 · 95% interval · Kish n")).toBeTruthy();
+    expect(within(comparison).getByText(/Spolehlivě nejvýše hodnocený: Káva\. Nejníže hodnocené: Čaj a Voda; pořadí mezi nimi nelze potvrdit\./)).toBeTruthy();
+    expect(within(comparison).getByText("Pořadí platí jen tam, kde se intervaly rozcházejí.")).toBeTruthy();
+    // Highest mean first, then the suppressed object in a row of its own.
+    expect(within(comparison).getAllByRole("link").map((a) => a.textContent)).toEqual(["Káva", "Čaj", "Voda", "Mléko"]);
+    const kava = comparison.querySelector('[data-object="kava"]') as HTMLElement;
+    expect(within(kava).getByText("[4,00; 4,40]")).toBeTruthy();
+    expect(kava.textContent).toMatch(/z 5/);
+    // Kish n is the aggregate's effective_n_kish (401.8), not the donor-adjusted effective_n (30).
+    expect(kava.querySelector("td:last-child")?.textContent).toBe("401");
+    // A suppressed object keeps its row and says why; its mean and interval are not shown.
+    const mleko = comparison.querySelector('[data-object="mleko"]') as HTMLElement;
+    expect(mleko.getAttribute("data-withheld")).toBe("suppressed");
+    expect(mleko.textContent).toMatch(/^MlékoPotlačeno · podpora dat nestačí \(\d+ unikátních dárců\)/);
     expect(within(comparison).queryByText("3,50")).toBeNull();
+    expect(comparison.textContent).not.toMatch(/2,00|5,00/);
+    // The Lead names a measure's card and nothing else on Výsledky: no set: or object: (those
+    // kinds are the design's and the map's), and every id names exactly one element.
+    expect(comparison.hasAttribute("data-aia")).toBe(false);
+    expect(comparison.querySelector("[data-aia]")).toBeNull();
+    const marks = [...document.querySelectorAll("[data-aggregate-explorer] [data-aia]")].map((el) => el.getAttribute("data-aia")!);
+    expect(marks).toEqual(expect.arrayContaining(["measure:napoje/kava", "measure:napoje/caj", "measure:napoje/voda", "measure:napoje/mleko"]));
+    expect(marks.every((m) => m.startsWith("measure:"))).toBe(true);
+    for (const m of marks) expect(document.querySelectorAll(`[data-aia="${m}"]`)).toHaveLength(1);
     // No rounding block: 18.6.6's two places, as each card prints them.
     expect(within(comparison).getByText("4,20")).toBeTruthy();
     // A link to a card clears the filters that hide it and opens its detail.
@@ -1848,9 +2135,38 @@ describe("Results", () => {
     fireEvent(window, new HashChangeEvent("hashchange"));
     const card = await within(explorer).findByRole("region", { name: "Čaj" });
     expect(card.getAttribute("data-focused")).toBe("true");
+    expect(card.getAttribute("data-aia")).toBe("measure:napoje/caj");
     expect((card.querySelector("details") as HTMLDetailsElement).open).toBe(true);
     expect((within(explorer).getByRole("searchbox", { name: "Najít otázku nebo objekt" }) as HTMLInputElement).value).toBe("");
     window.location.hash = "";
+  });
+
+  it("shows at most five raw answers to an open question, outside the details, labelled as data", async () => {
+    const answers = ["Lepší aplikace", "Nižší poplatky", "Doporučení", "Pobočka blízko", "Rychlá podpora", "Šesté", "Sedmé"];
+    const aggregate = { ...AGGREGATE, payload: { aggregate: { ...AGGREGATE.payload.aggregate, questions: {
+      q9: { typ: "otevrena", ...support("REPORTABLE", 140), verbatimy: answers },
+      q10: { typ: "otevrena", ...support("SUPPRESS", 12), verbatimy: ["Skryté"] },
+    } } } };
+    const specification = { ...AGGREGATE, artifact_id: "ART-1", artifact_type: "research_specification",
+      payload: { specification: { n: 200, questions: [{ id: "q9", text: "Proč zvažujete změnu?", typ: "otevrena" }, { id: "q10", text: "Co dalšího?", typ: "otevrena" }] } } };
+    api({ ...listed(COMPLETED),
+      "GET /api/v1/studies/STU-1/research/runs/RUN-1/artifacts/ART-1": () => specification,
+      "GET /api/v1/studies/STU-1/research/runs/RUN-1/artifacts/ART-4": () => aggregate,
+      "GET /api/v1/studies/STU-1/research/runs/RUN-1/artifacts/ART-5": () => SOCIOMAP,
+    });
+    render(<ResearchScreen step="results" frame={TEST_FRAME} />);
+    fireEvent.click(await screen.findByRole("tab", { name: "Data" }));
+    const card = await screen.findByRole("region", { name: "Proč zvažujete změnu?" });
+    expect(within(card).getByText("Otevřená otázka: 120 odpovědí, nekódováno.")).toBeTruthy();
+    const list = within(card).getByRole("list", { name: "Ukázky odpovědí" });
+    expect(within(list).getAllByRole("listitem").map((li) => li.textContent)).toEqual(answers.slice(0, 5).map((a) => `„${a}“`));
+    expect(list.closest("details")).toBeNull();
+    expect(card.textContent).not.toMatch(/Šesté|Sedmé/);
+    expect(within(card).getByText(/^Otevřené odpovědi jsou data, ne připuštěná evidence; nejsou kódované\./)).toBeTruthy();
+    // A suppressed open question shows no answer.
+    const hidden = screen.getByRole("region", { name: "Co dalšího?" });
+    expect(within(hidden).queryByRole("list", { name: "Ukázky odpovědí" })).toBeNull();
+    expect(hidden.textContent).not.toMatch(/Skryté/);
   });
 
   it("ranks a set's means at the places the run stored them, as its cards print them", async () => {

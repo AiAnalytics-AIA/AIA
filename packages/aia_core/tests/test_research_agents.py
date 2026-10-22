@@ -77,9 +77,10 @@ def test_every_contract_is_closed_and_has_no_tools_or_fallback() -> None:
         BriefAnalysis.model_validate({**analysis().model_dump(), "approved": True})
 
 
-def test_knowledge_lineage_is_the_recorded_datasets_and_an_unrecorded_one_still_refuses() -> None:
+def test_knowledge_lineage_is_the_recorded_datasets_else_the_placeholder() -> None:
     # CR-4: the union of the items' recorded datasets; the placeholder for each
-    # dataset-derived item that records none, which the licence gate refuses by name.
+    # dataset-derived item that records none, which the data owner cleared for the EU Bedrock
+    # route alone (Q60, licence_determinations.CLIENT_KNOWLEDGE_DATASET): this route refuses it.
     from aia_core.domain.knowledge import recorded_datasets
     from aia_core.domain.licence import LicenceDenied
     from aia_core.domain.licence_determinations import (
@@ -121,7 +122,7 @@ def test_knowledge_lineage_is_the_recorded_datasets_and_an_unrecorded_one_still_
         assert UNRECORDED_KNOWLEDGE_LINEAGE in mixed.datasets
         with pytest.raises(LicenceDenied, match=UNRECORDED_KNOWLEDGE_LINEAGE) as refused:
             recorded_policy().authorise(lineage=mixed, route=route)
-        assert refused.value.reason == "dataset_unknown"
+        assert refused.value.reason == "not_approved_for_route"
 
     # A stored snapshot from before lineage was recorded reads exactly as it did.
     legacy = [{"item_id": "K1", "kind": "FINDING", "title": "t", "summary": "", "revision": 1}]
@@ -521,7 +522,11 @@ def test_a_proposal_on_a_design_with_no_working_revision_is_refused_as_unknown(
             expected_workspace_revision=working,
         )
     assert refused.value.reason == "stale_proposal"
-    assert refused.value.details() == {"reason": "unknown_baseline", "conflicting_items": []}
+    assert refused.value.details() == {
+        "reason": "unknown_baseline",
+        "conflicting_items": [],
+        "conflicting_wording": {},
+    }
     assert designs.latest() == legacy
     assert StudyWorkspaceRepository(session).content(scope).revision == working
 

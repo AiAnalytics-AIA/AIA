@@ -94,6 +94,11 @@ forbid() {
 # StepModelCaller's own .invoke( is not it). Their rules are below.
 GATEWAY_BUILT='^[^#]*\bGovernedModelGateway\('
 GATEWAY_INVOKED='^[^#]*[Gg]ateway[A-Za-z0-9_]*\.invoke\('
+# The recorded model wire and the composition over it, imported in any form: `import a.b`,
+# `from a import b`, `from . import b`, `from .b import c` (an import line naming either
+# module), or named as a quoted dotted string (importlib, AIA_WORKER_EXECUTORS, a config).
+RECORDED_MODELS_IMPORTED='^\s*(from|import)\s.*\b(recorded_models|acceptance_recorded)\b'
+RECORDED_MODELS_NAMED='['"'"'"]aia_executors\.(recorded_models|acceptance_recorded)'
 
 # Sourced (packages/aia_core/tests/test_layer_check_tool.py), the file defines
 # `forbid` and stops: the rule engine is tested on a scratch tree, apart from the
@@ -301,17 +306,17 @@ forbid "the worker never builds an unscoped repository" \
 # decision 7). A table used anywhere else is a query that could forget the
 # client: an unscoped pool filtered afterwards, which the ADR forbids.
 forbid "client knowledge tables are touched only by their repository" \
-  'ClientKnowledge(Item|Revision|Proposal|Folder|Label|ItemFolder|ItemLabel)Row' \
+  'ClientKnowledge(Item|Revision|Proposal|Selection|Folder|Label|ItemFolder|ItemLabel)Row' \
   "$CORE" \
   "$CORE/infrastructure/tables.py" "$CORE/infrastructure/client_knowledge_repository.py"
 forbid "the API never touches the client knowledge tables" \
-  'ClientKnowledge(Item|Revision|Proposal|Folder|Label|ItemFolder|ItemLabel)Row' \
+  'ClientKnowledge(Item|Revision|Proposal|Selection|Folder|Label|ItemFolder|ItemLabel)Row' \
   "$API"
 forbid "the worker never touches the client knowledge tables" \
-  'ClientKnowledge(Item|Revision|Proposal|Folder|Label|ItemFolder|ItemLabel)Row' \
+  'ClientKnowledge(Item|Revision|Proposal|Selection|Folder|Label|ItemFolder|ItemLabel)Row' \
   "$WORKER"
 forbid "executors never touch the client knowledge tables" \
-  'ClientKnowledge(Item|Revision|Proposal|Folder|Label|ItemFolder|ItemLabel)Row' \
+  'ClientKnowledge(Item|Revision|Proposal|Selection|Folder|Label|ItemFolder|ItemLabel)Row' \
   "$EXECUTORS"
 
 # A client's contacts are personal data on the client record (client-workspace C5). They
@@ -461,6 +466,55 @@ forbid "the researcher Lead tables are touched only by their repository" \
 forbid "the API, worker and executors never touch the researcher Lead tables" \
   'ResearcherLead(Memory|Revision)?Row|researcher_lead_(memories|revisions)|researcher_leads\b' \
   apps
+# The approval ledger is append-only and holds every decision between a person and the AI (ADR
+# 0019): its two repositories write it under the scope's three columns and the permission each
+# decision needs. A row written anywhere else is a decision nobody was checked for.
+forbid "the approval ledger is touched only by its repositories" \
+  'ApprovalDecisionRow|approval_decisions' \
+  "$CORE" \
+  "$CORE/infrastructure/tables.py" "$CORE/infrastructure/workflow_repository.py" \
+  "$CORE/infrastructure/artifact_repository.py"
+forbid "the API never touches the approval ledger" \
+  'ApprovalDecisionRow|approval_decisions' \
+  apps/api/src
+forbid "the worker never touches the approval ledger" \
+  'ApprovalDecisionRow|approval_decisions' \
+  apps/worker/src
+forbid "executors never touch the approval ledger" \
+  'ApprovalDecisionRow|approval_decisions' \
+  apps/executors/src
+# A study's wallet (ADR 0028 decision 2, lead-orchestration LO1): StudyWalletRepository is the
+# only reader and writer of its three tables, because every write that compares an amount takes
+# the study row's lock first; a charge written anywhere else is a hold nobody checked against the
+# cap, and could overspend it.
+forbid "the study wallet's tables are touched only by StudyWalletRepository" \
+  'StudyWallet(Raise|Charge)?Row|(FROM|INTO|UPDATE|JOIN)[[:space:]]+study_wallet' \
+  "$CORE" \
+  "$CORE/infrastructure/tables.py" "$CORE/infrastructure/study_wallet_repository.py"
+forbid "the API never touches the study wallet's tables" \
+  'StudyWallet(Raise|Charge)?Row|(FROM|INTO|UPDATE|JOIN)[[:space:]]+study_wallet' \
+  apps/api/src
+forbid "the worker never touches the study wallet's tables" \
+  'StudyWallet(Raise|Charge)?Row|(FROM|INTO|UPDATE|JOIN)[[:space:]]+study_wallet' \
+  apps/worker/src
+forbid "executors never touch the study wallet's tables" \
+  'StudyWallet(Raise|Charge)?Row|(FROM|INTO|UPDATE|JOIN)[[:space:]]+study_wallet' \
+  apps/executors/src
+# Its subjects are one closed set, domain/approval_ledger.py's ApprovalSubject (lead-orchestration
+# LO16): a writer or a reader naming a subject as a string of its own drifts from the CHECK the
+# table holds (ARCHITECTURE.md A6).
+forbid "approval-ledger subjects are named only through ApprovalSubject" \
+  "subject_type[[:space:]]*(=|==|!=)[[:space:]]*[\"']|subject_type\\.in_\\([([]?[[:space:]]*[\"']" \
+  "$CORE"
+forbid "the apps never name an approval-ledger subject as a string (API)" \
+  "subject_type[[:space:]]*(=|==|!=)[[:space:]]*[\"']|subject_type\\.in_\\([([]?[[:space:]]*[\"']" \
+  apps/api/src
+forbid "the apps never name an approval-ledger subject as a string (worker)" \
+  "subject_type[[:space:]]*(=|==|!=)[[:space:]]*[\"']|subject_type\\.in_\\([([]?[[:space:]]*[\"']" \
+  apps/worker/src
+forbid "the apps never name an approval-ledger subject as a string (executors)" \
+  "subject_type[[:space:]]*(=|==|!=)[[:space:]]*[\"']|subject_type\\.in_\\([([]?[[:space:]]*[\"']" \
+  apps/executors/src
 # A Study's design project is owned (projects.owner): a repository that does not
 # name the owner cannot see it. Naming it anywhere else would reopen the path by
 # which content that skipped validate_design became a Design Revision (ADR 0016).
@@ -504,6 +558,40 @@ forbid "among the executors, only the workbench composition builds fictional fie
 forbid "no deployment runs the workbench composition" \
   'aia_executors\.workbench|aia_executors/workbench' \
   deploy
+# Recorded model answers (plan mvp-acceptance-harness chunk 4) stand in for Bedrock behind the
+# gateway, in tests, in the acceptance harness's worker and in the UI workbench's (its analysis,
+# plan artifact-chain-to-draft-report CHN7; local and test only, named by no deployment above). No
+# production composition imports them, and no deployment names either module: a recording never
+# answers a deployed request.
+forbid "among the executors, only the acceptance and workbench compositions import the recorded models" \
+  "$RECORDED_MODELS_IMPORTED" \
+  "$EXECUTORS" \
+  "$EXECUTORS/acceptance_recorded.py" \
+  "$EXECUTORS/workbench.py"
+forbid "among the executors, only the acceptance and workbench compositions name the recorded models" \
+  "$RECORDED_MODELS_NAMED" \
+  "$EXECUTORS" \
+  "$EXECUTORS/acceptance_recorded.py" \
+  "$EXECUTORS/workbench.py"
+forbid "no API code imports or names the recorded models" \
+  "$RECORDED_MODELS_IMPORTED|$RECORDED_MODELS_NAMED" \
+  "$API"
+forbid "the worker never imports or names the recorded models" \
+  "$RECORDED_MODELS_IMPORTED|$RECORDED_MODELS_NAMED" \
+  "$WORKER"
+forbid "the core never imports or names the recorded models" \
+  "$RECORDED_MODELS_IMPORTED|$RECORDED_MODELS_NAMED" \
+  "$CORE"
+forbid "no deployment runs the recorded models" \
+  'recorded_models|acceptance_recorded' \
+  deploy
+# The acceptance tree (MVP-ACCEPT-2 tier A) drives the product over HTTP and through one
+# declared operator bootstrap, never by import (docs/migration/mvp-acceptance.md §2). Not a
+# package, so no import contract can see it; test_acceptance_harness.py reads every import
+# form from the syntax tree, this is the grep half.
+forbid "the acceptance tree imports nothing it drives" \
+  '^\s*(from|import)\s+(aia_core\.(application|infrastructure)|aia_api|aia_worker|aia_executors|sqlalchemy|psycopg|alembic)\b' \
+  tests/acceptance
 # A validation's persona arms (panel-grounded-respondents 7c, 7e4) show a respondent another
 # person's profile, or none at all. Only the validation's own executor builds them, so no
 # client research run can carry an arm or an exclusion.
@@ -544,13 +632,44 @@ forbid "no API code imports recorded web retrieval" \
 forbid "the worker never imports recorded web retrieval" \
   "$RECORDED_WEB|deep_research_recorded" \
   "$WORKER"
-forbid "among the executors, only the recorded composition builds recorded web retrieval" \
+# The workbench composition (local and test only; nothing imports it and no deployment names it,
+# above) composes Deep Research over the recorded composition for its browser journeys
+# (research-lead-workbench 12a); it names the composition and builds no recorded double itself.
+forbid "among the executors, only the recorded and workbench compositions build recorded web retrieval" \
   "$RECORDED_WEB|deep_research_recorded" \
   "$EXECUTORS" \
-  "$EXECUTORS/deep_research_recorded.py"
+  "$EXECUTORS/deep_research_recorded.py" "$EXECUTORS/workbench.py"
+forbid "the workbench composition builds no recorded web double of its own" \
+  "$RECORDED_WEB" \
+  "$EXECUTORS/workbench.py"
 forbid "no deployment runs the recorded Deep Research composition" \
   'deep_research_recorded|load_recorded_web' \
   deploy
+# The population double (plan run-qc-and-checkpoint RQC10) is a fictional population both
+# processes compose for tier A of the acceptance harness. It is kept out of every deployment
+# the way the workbench and recorded web retrieval are: it refuses any AIA_ENV but local and
+# test, only the two compositions import it (the API's composition root and the worker's
+# aia_executors.population_double), and no deployment names it.
+forbid "nothing in the core imports the population double" \
+  '^\s*(from|import)\s+\S*population_double' \
+  "$CORE"
+forbid "in the API, only the composition root imports the population double" \
+  '^\s*(from|import)\s+\S*population_double' \
+  "$API" \
+  "$API/dependencies.py"
+forbid "the worker never imports the population double" \
+  '^\s*(from|import)\s+\S*population_double' \
+  "$WORKER"
+forbid "among the executors, only its composition imports the population double" \
+  '^\s*(from|import)\s+\S*population_double' \
+  "$EXECUTORS" \
+  "$EXECUTORS/population_double.py"
+forbid "no deployment composes the population double" \
+  'AIA_POPULATION_DOUBLE|population_double' \
+  deploy
+forbid "no infrastructure definition composes the population double" \
+  'AIA_POPULATION_DOUBLE|population_double' \
+  infra
 # Deep Research has no authority over research truth (ADR 0021): it may propose a
 # design change for a person to accept and write its own evidence, never a Design
 # Revision, a Study's working content or a research run's deterministic artifacts.
@@ -924,6 +1043,9 @@ forbid "no statically skipped or xfailed worker tests" \
 forbid "no statically skipped or xfailed executor tests" \
   '\bmark\.(skip|xfail)' \
   apps/executors/tests
+forbid "no statically skipped or xfailed acceptance tests" \
+  '\bmark\.(skip|xfail)' \
+  tests/acceptance
 
 # --- Presentation: the client renders, it does not decide -------------------
 #

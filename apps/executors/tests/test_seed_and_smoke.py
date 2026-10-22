@@ -126,7 +126,7 @@ def test_seed_gives_two_fictional_clients_their_own_work_and_knowledge(
         assert not a & b
 
 
-def test_a_design_job_over_the_seeded_client_passes_the_licence_gate_and_an_unrecorded_item_refuses(
+def test_a_design_job_over_the_seeded_client_declares_its_recorded_datasets(
     sessions: sessionmaker[Session],
 ) -> None:
     # CR-4: Horizont Mobility's DATASET and FINDING knowledge carried the placeholder lineage
@@ -199,9 +199,13 @@ def test_a_design_job_over_the_seeded_client_passes_the_licence_gate_and_an_unre
             SYNTHETIC_FIXTURE_DATASET,
             UNRECORDED_KNOWLEDGE_LINEAGE,
         }
+        # The data owner cleared the placeholder for the EU Bedrock route alone (Q60): it passes
+        # there, and any other route refuses it by name.
+        recorded_policy().authorise(lineage=unrecorded.data_lineage, route=route)
+        other = ProviderRoute(route_id="bedrock-eu-secondary", provider="bedrock")
         with pytest.raises(LicenceDenied, match=UNRECORDED_KNOWLEDGE_LINEAGE) as refused:
-            recorded_policy().authorise(lineage=unrecorded.data_lineage, route=route)
-        assert refused.value.reason == "dataset_unknown"
+            recorded_policy().authorise(lineage=unrecorded.data_lineage, route=other)
+        assert refused.value.reason == "not_approved_for_route"
 
 
 def test_seed_admits_a_new_operator_to_an_existing_world(

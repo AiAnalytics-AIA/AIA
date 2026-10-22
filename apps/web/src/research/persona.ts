@@ -7,7 +7,9 @@
 // each with the original under Node. Two classic behaviours are kept and
 // characterised, not fixed: the model's dimensions are approved without the
 // catalogue check (OI-53), and an empty approval is refilled with the
-// recommended set (OI-54).
+// recommended set (OI-54). One is deliberately not kept: the sample input
+// clamped to 50–5 000; it now refuses a value outside the server's valid n
+// (setSampleSize; plan run-qc-and-checkpoint RQC9, audit IA-1).
 
 import { type Json, PROVIDER_FORCED, type ResearchProject } from "./model";
 
@@ -174,10 +176,45 @@ export function recommendedSample(p: ResearchProject): { n: number; why: string 
   };
 }
 
-/** The sample input's change: 50–5 000, and the recommendation when it is empty or 0. */
-export function setSampleSize(p: ResearchProject, raw: string): Change {
-  const r = recommendedSample(p);
-  return { project: { ...withChosen(p), n: Math.max(50, Math.min(5000, +raw || r.n)) }, reason: "sample_n_1789" };
+/** A valid n's range as the server reads it (`GET …/research/limits`, RQC9): both bounds included. */
+export type SampleLimits = { min: number; max: number };
+
+/** Why a typed sample size is not stored: nothing is saved, and the person is told. */
+export type SampleRefusal = { refused: "not_a_number" | "out_of_range" | "limits_unknown"; message: string };
+
+export const isSampleRefusal = (c: Change | SampleRefusal): c is SampleRefusal => "refused" in c;
+
+/** What a person is told when a sample size is refused (the server's limits, in Czech). */
+export function sampleRefusalMessage(refused: SampleRefusal["refused"], limits: SampleLimits | null): string {
+  if (refused === "limits_unknown" || limits === null) return "Rozsah vzorku se nepodařilo načíst, proto počet respondentů zatím nelze uložit. Zkuste to znovu.";
+  if (refused === "not_a_number") return `Zadejte celý počet respondentů od ${limits.min} do ${limits.max}.`;
+  return `Počet respondentů musí být od ${limits.min} do ${limits.max}. Nic nebylo uloženo.`;
+}
+
+/**
+ * The sample input's change, refused when it is not a valid n (RQC9; audit IA-1).
+ *
+ * The classic input clamped to 50–5 000 and stored the recommendation for an empty field, so a
+ * person who typed 20 got 50 without a word. The range is now the server's -- the readiness
+ * limits in force, which a run start and the Research Lead are held to -- and a value outside it,
+ * an empty field or anything but a whole number is refused and named, never moved to a bound.
+ * Unknown limits refuse too: an unread range is never presumed to admit the value.
+ */
+export function setSampleSize(p: ResearchProject, raw: string, limits: SampleLimits | null): Change | SampleRefusal {
+  const text = raw.trim();
+  const refused = /^\d+$/.test(text) ? sampleRefusal(Number(text), limits) : refusal(limits === null ? "limits_unknown" : "not_a_number", limits);
+  if (refused) return refused;
+  return { project: { ...withChosen(p), n: Number(text) }, reason: "sample_n_1789" };
+}
+
+const refusal = (refused: SampleRefusal["refused"], limits: SampleLimits | null): SampleRefusal => ({ refused, message: sampleRefusalMessage(refused, limits) });
+
+/** Why `n` is not a valid sample size under `limits`, or null when it is (the server's rule, RQC9). */
+export function sampleRefusal(n: number, limits: SampleLimits | null): SampleRefusal | null {
+  if (limits === null) return refusal("limits_unknown", limits);
+  if (!Number.isSafeInteger(n)) return refusal("not_a_number", limits);
+  if (n < limits.min || n > limits.max) return refusal("out_of_range", limits);
+  return null;
 }
 
 /** useRecommendedSample1789 */
@@ -300,4 +337,30 @@ export const PROPOSAL_AI_DONE = "Návrh AI je ve Znalostech klienta. Do katalogu
 /** openDimensionResearch1793's topic, prefilled in the classic Data Library's Deep Research. */
 export function dimensionResearchTopic(label: string): string {
   return `Nová dimenze: ${label}. Dohledej pro českou populaci kvantitativní prevalenci nebo průměr, přesnou definici/škálu a doložené vztahy k existujícím behaviorálním/demografickým predictorům. Bez kvantitativní populační kotvy dimenzi nedosimulovávej.`;
+}
+
+/**
+ * Whether a selected dimension reaches a respondent (artifact-dimensions DIM2): the persona
+ * topic the server's mapping answers (persona_topics.dimension_topic), "unmatched" when it
+ * answers none -- a run then lists it in dimensions_unmatched -- and "unknown" while the
+ * server has not answered, never read as matched.
+ */
+export type DimensionTopic = { state: "matched"; topic: string } | { state: "unmatched" } | { state: "unknown" };
+
+export function dimensionTopic(topics: Readonly<Record<string, string | null>> | null, id: string): DimensionTopic {
+  if (!topics || !(id in topics)) return { state: "unknown" };
+  const topic = topics[id];
+  return topic ? { state: "matched", topic } : { state: "unmatched" };
+}
+
+/** The chip's words: V2's "téma persony: …" or "bez tématu persony". */
+export function dimensionTopicWords(t: DimensionTopic): string {
+  if (t.state === "matched") return `téma persony: ${t.topic}`;
+  if (t.state === "unmatched") return "bez tématu persony";
+  return "téma persony neověřeno";
+}
+
+/** A dimension's pointable id for the Lead (the coordinator's grammar: [A-Za-z0-9_.~/-], at most 80). */
+export function dimensionTarget(id: string): string | null {
+  return /^[A-Za-z0-9_.~/-]{1,80}$/.test(id) ? `dimension:${id}` : null;
 }

@@ -3,9 +3,9 @@ import { join } from "node:path";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { ApiError, type WorkingContent, type WorkingSave } from "@/lib/api";
-import { type Template, defaultsMerge } from "./model";
+import { type ResearchProject, type Template, defaultsMerge } from "./model";
 import { t, tv } from "@/i18n/t";
-import { ResearchStore, SAVE_DEBOUNCE_MS, canonical, loadResearch, newResearch, originNotice, readWorkingContent, saveReason, submitWorkingDesign } from "./store";
+import { FlushIncomplete, MAX_FLUSH_ROUNDS, ResearchStore, SAVE_DEBOUNCE_MS, canonical, loadResearch, newResearch, originNotice, readWorkingContent, saveReason, submitWorkingDesign } from "./store";
 
 const EMPTY = JSON.parse(readFileSync(join(process.cwd(), "src/research/fixtures/empty-project.json"), "utf8"));
 const TEMPLATE: Template = { empty_project: EMPTY };
@@ -165,6 +165,77 @@ describe("ResearchStore", () => {
     expect(store.get()).toMatchObject({ revision: 2, save: { kind: "saved" } });
   });
 
+  // F-STORE-1: AIA as it answers a save: a base that is not its current revision is stale.
+  function server(start: number, during?: (n: number) => void) {
+    let current = start;
+    return aia((body, n) => {
+      if (body.base_revision !== current) return new ApiError(409, "stale_revision", "saved elsewhere", null, { current_revision: current });
+      current += 1;
+      const revision = current;
+      during?.(n);
+      return new Promise<WorkingSave>((r) => setTimeout(() => r(saved(revision)), 100));
+    });
+  }
+
+  it("serialises the saves of callers waiting behind one: each names the revision the one before returned", async () => {
+    let store: ResearchStore | null = null;
+    const edit = (goal: string) => store!.update(({ project }) => ({ project: { ...project, goal } }));
+    // An edit lands while the second save is in flight: one of the two waiters saves it.
+    const { bodies, save } = server(3, (n) => n === 2 && edit("c"));
+    store = new ResearchStore({ ...newResearch(TEMPLATE), revision: 3, save: { kind: "saved" } }, "STU-1", { save });
+    edit("a");
+    const first = store.flush();
+    edit("b");
+    const waiters = [store.flush(), store.flush()];
+    await vi.advanceTimersByTimeAsync(1000);
+    await Promise.all([first, ...waiters]);
+    expect(bodies.map((b) => [b.content.goal, b.base_revision])).toEqual([["a", 3], ["b", 4], ["c", 5]]);
+    expect(store.get()).toMatchObject({ revision: 6, save: { kind: "saved" } });
+    expect(store.get().project.goal).toBe("c");
+  });
+
+  it("saves an edit made during the flight in the same flush, which resolves only once it is saved", async () => {
+    const { bodies, save } = server(3);
+    const store = new ResearchStore({ ...newResearch(TEMPLATE), revision: 3, save: { kind: "saved" } }, "STU-1", { save });
+    store.update(({ project }) => ({ project: { ...project, goal: "first" } }));
+    let done = false;
+    const flushed = store.flush("run").then(() => (done = true));
+    await vi.advanceTimersByTimeAsync(50);
+    store.update(({ project }) => ({ project: { ...project, goal: "second" } }));
+    await vi.advanceTimersByTimeAsync(60);
+    // The first save has answered, the second is in flight: not saved yet, so not resolved.
+    expect(done).toBe(false);
+    expect(store.get().save.kind).toBe("saving");
+    await vi.advanceTimersByTimeAsync(100);
+    await flushed;
+    expect(bodies.map((b) => [b.content.goal, b.base_revision, b.reason])).toEqual([["first", 3, "run"], ["second", 4, "run"]]);
+    expect(store.get()).toMatchObject({ revision: 5, save: { kind: "saved" } });
+    // Nothing is sent again: the copy is saved.
+    await store.flush();
+    await vi.advanceTimersByTimeAsync(SAVE_DEBOUNCE_MS * 2);
+    expect(bodies).toHaveLength(2);
+  });
+
+  it("says when the copy kept changing through every round, and keeps the change waiting for its save", async () => {
+    let store: ResearchStore | null = null;
+    let editing = true;
+    const { bodies, save } = server(3, (n) => editing && store!.update(({ project }) => ({ project: { ...project, goal: `edit ${n}` } })));
+    store = new ResearchStore({ ...newResearch(TEMPLATE), revision: 3, save: { kind: "saved" } }, "STU-1", { save });
+    store.update(({ project }) => ({ project: { ...project, goal: "edit 0" } }));
+    const flushed = store.flush();
+    const outcome = expect(flushed).rejects.toBeInstanceOf(FlushIncomplete);
+    await vi.advanceTimersByTimeAsync(100 * MAX_FLUSH_ROUNDS);
+    await outcome;
+    expect(bodies.map((b) => b.base_revision)).toEqual(Array.from({ length: MAX_FLUSH_ROUNDS }, (_, i) => 3 + i));
+    expect(store.get().save.kind).toBe("pending");
+    expect(store.get().project.goal).toBe(`edit ${MAX_FLUSH_ROUNDS}`);
+    // The waiting change is not dropped: its debounced save sends it.
+    editing = false;
+    await vi.advanceTimersByTimeAsync(SAVE_DEBOUNCE_MS + 100);
+    expect(bodies.at(-1)).toMatchObject({ base_revision: 3 + MAX_FLUSH_ROUNDS, content: { goal: `edit ${MAX_FLUSH_ROUNDS}` } });
+    expect(store.get().save.kind).toBe("saved");
+  });
+
   it("saves a change still waiting for its debounce when the person leaves the study", async () => {
     const { bodies, save } = aia(() => saved(3));
     const store = new ResearchStore({ ...newResearch(TEMPLATE), revision: 2 }, "STU-1", { save });
@@ -301,5 +372,55 @@ describe("reload", () => {
     } finally {
       vi.useRealTimers();
     }
+  });
+});
+
+describe("stable item ids (working-copy-edit-ops WCE1, behind AIA_WEB_STABLE_ITEM_IDS)", () => {
+  beforeEach(() => vi.useFakeTimers());
+  afterEach(() => vi.useRealTimers());
+  type Plan = { research_plan: Record<string, unknown>; sections: { questions: Record<string, unknown>[] }[] };
+  const plan = { research_questions: ["Jak cena mění zájem?", "Kdo kupuje?"], objectives: ["Zjistit cenovou citlivost"] };
+  const sections = [{ id: "sec_a", type: "questions", title: "Úvod", questions: [{ id: "Q1", text: "Kupujete kávu?", typ: "vyber", kategorie: ["Ano", "Ne"], research_questions: ["Kdo kupuje?"] }] }];
+  const stored = () => defaultsMerge({ title: "Alfa", research_plan: plan, sections }, TEMPLATE) as unknown as Record<string, unknown>;
+  const rqIds = (p: unknown) => (((p as Plan).research_plan.research_question_ids ?? []) as { id: string }[]).map((e) => e.id);
+  const asking = (questions: string[]) => ({ project }: { project: ResearchProject }) => ({
+    project: { ...project, research_plan: { ...(project as unknown as Plan).research_plan, research_questions: questions } } as ResearchProject,
+  });
+
+  it("off, writes no id: what is loaded and saved is what AIA stores", async () => {
+    const loaded = readWorkingContent(content({ content: stored() }));
+    if (loaded.kind !== "research") throw new Error("not research");
+    expect(loaded.state.completed).toBe(false);
+    const { bodies, save } = aia(() => saved(8));
+    const store = new ResearchStore(loaded.state, "STU-1", { save });
+    store.update(asking(["Jak cena mění zájem?", "Kdo si kávu kupuje?"]));
+    await vi.advanceTimersByTimeAsync(SAVE_DEBOUNCE_MS);
+    expect(JSON.stringify(bodies[0].content)).not.toContain("_ids");
+    expect((bodies[0].content as unknown as Plan).sections[0].questions[0].research_questions).toEqual(["Kdo kupuje?"]);
+  });
+
+  it("on, gives stored content its ids on load, owed as a save before a submit", () => {
+    const loaded = readWorkingContent(content({ content: stored() }), { itemIds: true });
+    if (loaded.kind !== "research") throw new Error("not research");
+    expect(rqIds(loaded.state.project)).toHaveLength(2);
+    expect(loaded.state.completed).toBe(true);
+  });
+
+  it("on, keeps a reworded research question's id and carries its links to the new wording", async () => {
+    const loaded = readWorkingContent(content({ content: stored() }), { itemIds: true });
+    if (loaded.kind !== "research") throw new Error("not research");
+    const { bodies, save } = aia(() => saved(8));
+    const store = new ResearchStore(loaded.state, "STU-1", { save, itemIds: true });
+    const before = rqIds(store.get().project);
+    store.update(asking(["Jak cena mění zájem?", "Kdo si kávu kupuje?"]));
+    expect(rqIds(store.get().project)).toEqual(before);
+    expect((store.get().project as unknown as Plan).sections[0].questions[0].research_questions).toEqual(["Kdo si kávu kupuje?"]);
+    // An added question is a new item; the others keep theirs.
+    store.update(asking(["Nová?", "Jak cena mění zájem?", "Kdo si kávu kupuje?"]));
+    const after = rqIds(store.get().project);
+    expect(after.slice(1)).toEqual(before);
+    expect(before).not.toContain(after[0]);
+    await vi.advanceTimersByTimeAsync(SAVE_DEBOUNCE_MS);
+    expect(rqIds(bodies[0].content)).toEqual(after);
   });
 });

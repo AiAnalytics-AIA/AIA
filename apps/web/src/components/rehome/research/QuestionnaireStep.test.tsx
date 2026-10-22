@@ -64,7 +64,7 @@ async function answerDialog(question: string, value: string | null) {
 }
 async function saved() {
   // The store saves 1.8 s after the last change; the test waits for that body.
-  await waitFor(() => expect(saves.length).toBeGreaterThan(0), { timeout: 4000 });
+  await waitFor(() => expect(saves.length).toBeGreaterThan(0));
 }
 
 if (!Blob.prototype.arrayBuffer) {
@@ -110,7 +110,7 @@ describe("Dotazník", () => {
   it("draws the preview and the editor, and has no dead 'AI: zlepšit blok' (OI-49)", async () => {
     unitStub({ ...BRIEF, sections: SECTIONS, ui_state: { questionnaire_path: "manual" } });
     render(<ResearchScreen step="questionnaire" frame={TEST_FRAME} />);
-    expect(await screen.findByRole("heading", { name: "2 otázek · 1 sledovaných sad" })).toBeTruthy();
+    expect(await screen.findByRole("heading", { name: "2 otázky · 1 sledovaná sada" })).toBeTruthy();
     // The outline lists blocks, questions and sets; the preview is the editor's other tab.
     expect(screen.getAllByRole("button", { name: /^(B1|Q1|Q2|S1)/ }).map((b) => b.textContent)).toEqual(["B1Hlavní otázky", "Q1Jak často?", "Q2Jak moc?", "S1Sledovaná sada — média"]);
     fireEvent.click(screen.getByRole("radio", { name: "Náhled respondenta" }));
@@ -127,7 +127,7 @@ describe("Dotazník", () => {
     sections[0]!.questions![1]!.text = "";
     unitStub({ ...BRIEF, sections, ui_state: { questionnaire_path: "manual" } });
     render(<ResearchScreen step="questionnaire" frame={TEST_FRAME} />);
-    await screen.findByRole("heading", { name: "2 otázek · 1 sledovaných sad" });
+    await screen.findByRole("heading", { name: "2 otázky · 1 sledovaná sada" });
     const unworded = screen.getAllByRole("textbox", { name: "Znění otázky" }).find((x) => x.getAttribute("aria-invalid") === "true")!;
     expect(document.getElementById(unworded.getAttribute("aria-describedby")!)?.textContent).toBe("Doplňte znění. Bez něj návrh nejde spustit.");
     const ready = screen.getByRole("region", { name: "Dotazník" });
@@ -139,7 +139,7 @@ describe("Dotazník", () => {
     sections[0]!.questions![1]!.filtr = "Q1 == 'Denně'";
     unitStub({ ...BRIEF, sections, ui_state: { questionnaire_path: "manual" } });
     render(<ResearchScreen step="questionnaire" frame={TEST_FRAME} />);
-    await screen.findByRole("heading", { name: "2 otázek · 1 sledovaných sad" });
+    await screen.findByRole("heading", { name: "2 otázky · 1 sledovaná sada" });
     const card = document.getElementById("qedit_Q2") as HTMLElement;
     expect(within(card).getByText(/„Q1 == 'Denně'“/)).toBeTruthy();
     expect(document.getElementById("qedit_Q1")!.querySelector("[data-question-condition]")).toBeNull();
@@ -154,7 +154,7 @@ describe("Dotazník", () => {
   it("edits a question as the classic editor does: type, options and a scale", async () => {
     unitStub({ ...BRIEF, sections: SECTIONS, ui_state: { questionnaire_path: "manual" } });
     render(<ResearchScreen step="questionnaire" frame={TEST_FRAME} />);
-    await screen.findByRole("heading", { name: "2 otázek · 1 sledovaných sad" });
+    await screen.findByRole("heading", { name: "2 otázky · 1 sledovaná sada" });
     const card = document.getElementById("qedit_Q1") as HTMLElement;
     // Options are rows: Enter adds one below, and the list is applied when it is left.
     const options = within(card).getByRole("group", { name: "Možnosti — jedna na řádek" });
@@ -163,10 +163,35 @@ describe("Dotazník", () => {
     fireEvent.change(within(options).getByLabelText("Možnost 3"), { target: { value: "Nikdy " } });
     fireEvent.blur(within(options).getByLabelText("Možnost 3"), { relatedTarget: null });
     fireEvent.click(within(within(card).getByRole("radiogroup", { name: "Typ" })).getByRole("radio", { name: "Škála" }));
-    expect(await within(card).findByLabelText("Minimum")).toBeTruthy();
+    expect(await within(card).findByRole("radiogroup", { name: "Rozsah škály Q1" })).toBeTruthy();
     await saved();
     const q1 = lastSave().content.sections[0].questions![0];
     expect(q1).toMatchObject({ typ: "skala", kategorie: ["Denně", "Týdně", "Nikdy"] });
+  });
+
+  it("saves a scale's preset and a label on every point through the working copy (input-interactions 3b2)", async () => {
+    unitStub({ ...BRIEF, sections: SECTIONS, ui_state: { questionnaire_path: "manual" } });
+    render(<ResearchScreen step="questionnaire" frame={TEST_FRAME} />);
+    await screen.findByRole("heading", { name: "2 otázky · 1 sledovaná sada" });
+    const card = document.getElementById("qedit_Q2") as HTMLElement;
+    fireEvent.click(within(within(card).getByRole("radiogroup", { name: "Rozsah škály Q2" })).getByRole("radio", { name: "1–5" }));
+    fireEvent.click(within(within(card).getByRole("radiogroup", { name: "Popisky škály Q2" })).getByRole("radio", { name: "Každý bod" }));
+    for (const [n, label] of [[2, "spíše ne"], [3, "nevím"], [4, "spíše ano"]] as const) {
+      fireEvent.click(within(card).getByRole("button", { name: new RegExp(`^Upravit: Popisek bodu ${n}`) }));
+      const field = within(card).getByRole("textbox", { name: `Popisek bodu ${n}` });
+      fireEvent.change(field, { target: { value: label } });
+      fireEvent.keyDown(field, { key: "Enter" });
+    }
+    await saved();
+    await waitFor(() => {
+      const q2 = (lastSave().content.sections[0].questions as unknown as { skala: number[]; popisky_skaly: string[] }[])[1];
+      expect(q2.skala).toEqual([1, 5]);
+      expect(q2.popisky_skaly).toEqual(["vůbec", "spíše ne", "nevím", "spíše ano", "zcela"]);
+    }, { timeout: 10_000 });
+    // A set's scale shows its range and offers its two ends only.
+    const set = document.getElementById("qset_sec_b") as HTMLElement;
+    expect(within(set).getByText("Škála 1–10")).toBeTruthy();
+    expect(within(set).queryByRole("radiogroup", { name: "Popisky škály sada 1" })).toBeNull();
   });
 
   it("says which research question a question and a set measure, and drops a link the plan no longer states", async () => {
@@ -174,7 +199,7 @@ describe("Dotazník", () => {
     const sections = [{ ...SECTIONS[0], questions: [{ ...SECTIONS[0].questions![0], research_questions: ["Stará otázka?"] }, SECTIONS[0].questions![1]] }, SECTIONS[1]];
     unitStub({ ...BRIEF, research_plan: plan, sections, ui_state: { questionnaire_path: "manual" } });
     render(<ResearchScreen step="questionnaire" frame={TEST_FRAME} />);
-    await screen.findByRole("heading", { name: "2 otázek · 1 sledovaných sad" });
+    await screen.findByRole("heading", { name: "2 otázky · 1 sledovaná sada" });
     const card = document.getElementById("qedit_Q1") as HTMLElement;
     const links = within(card).getByRole("group", { name: "Odpovídá na výzkumné otázky" });
     fireEvent.click(within(links).getByRole("button", { name: "Odebrat odkaz na „Stará otázka?“" }));
@@ -240,7 +265,7 @@ describe("Dotazník", () => {
   it("turns a tracked set into a concept test an A/B comparison needs, and back (review, Codex on #426)", async () => {
     unitStub({ ...BRIEF, sections: SECTIONS, ui_state: { questionnaire_path: "manual" } });
     render(<ResearchScreen step="questionnaire" frame={TEST_FRAME} />);
-    await screen.findByRole("heading", { name: "2 otázek · 1 sledovaných sad" });
+    await screen.findByRole("heading", { name: "2 otázky · 1 sledovaná sada" });
     const set = document.getElementById("qset_sec_b") as HTMLElement;
     const toggle = within(set).getByRole("switch", { name: "Porovnat položky jako koncepty (A/B test)" });
     expect(toggle.getAttribute("aria-checked")).toBe("false");
@@ -251,7 +276,7 @@ describe("Dotazník", () => {
     expect((lastSave().content as unknown as { sections: { output_type?: string }[] }).sections[1].output_type).toBe("test_konceptu");
     expect(within(set).getByText("Cenová pásma pro test konceptu")).toBeTruthy();
     fireEvent.click(within(set).getByRole("switch", { name: "Porovnat položky jako koncepty (A/B test)" }));
-    await waitFor(() => expect((lastSave().content as unknown as { sections: { output_type?: string }[] }).sections[1].output_type).toBe("pozicni_mapa"), { timeout: 4000 });
+    await waitFor(() => expect((lastSave().content as unknown as { sections: { output_type?: string }[] }).sections[1].output_type).toBe("pozicni_mapa"));
   });
 
   it("adds a guided question through the classic prompt, and refuses a set of three", async () => {
@@ -260,7 +285,7 @@ describe("Dotazník", () => {
     fireEvent.click(await screen.findByRole("button", { name: "Škála 1–10" }));
     await answerDialog(GUIDED_PROMPT.scale, "Jak moc vám chutná?");
     expect((await screen.findAllByText("Jak moc vám chutná?")).length).toBeGreaterThan(0);
-    expect(screen.getByRole("heading", { name: "3 otázek · 1 sledovaných sad" })).toBeTruthy();
+    expect(screen.getByRole("heading", { name: "3 otázky · 1 sledovaná sada" })).toBeTruthy();
     fireEvent.click(screen.getByRole("button", { name: "Sledovaná sada" }));
     await answerDialog(PROMPT_SET_TYPE, "značky");
     await answerDialog(PROMPT_SET_ITEMS, "A, B, C");
@@ -278,7 +303,7 @@ describe("Dotazník", () => {
     fireEvent.click(screen.getAllByRole("button", { name: "Smazat" })[1]);
     expect(screen.getByRole("alertdialog").textContent).toContain("Odstranit tuto sadu?");
     fireEvent.click(within(screen.getByRole("alertdialog")).getByRole("button", { name: "Smazat" }));
-    await waitFor(() => expect(screen.getByRole("heading", { name: "2 otázek · 0 sledovaných sad" })).toBeTruthy());
+    await waitFor(() => expect(screen.getByRole("heading", { name: "2 otázky · 0 sledovaných sad" })).toBeTruthy());
   });
 
   it("starts durable public Deep Research from the saved design, without the legacy endpoint", async () => {
@@ -344,8 +369,8 @@ describe("Dotazník", () => {
     );
     render(<ResearchScreen step="questionnaire" frame={TEST_FRAME} />);
     fireEvent.change(await screen.findByLabelText("Vyplněný XLSX / CSV"), { target: { files: [new File(["x"], "dotaznik.xlsx")] } });
-    expect(await screen.findByText("Načteno: 2 otázek · 1 sledovaných sad")).toBeTruthy();
-    expect(screen.getByRole("heading", { name: "2 otázek · 1 sledovaných sad" })).toBeTruthy();
+    expect(await screen.findByText("Načteno: 2 otázky · 1 sledovaná sada")).toBeTruthy();
+    expect(screen.getByRole("heading", { name: "2 otázky · 1 sledovaná sada" })).toBeTruthy();
     // AIA is sent the file alone, never the project, and nothing reaches the unit.
     expect(posted(IMPORT_PATH).map((c) => c.body)).toEqual([{ filename: "dotaznik.xlsx", data_b64: btoa("x") }]);
     expect(calls.filter((c) => c.url.startsWith("/api/questionnaire"))).toEqual([]);
@@ -400,10 +425,34 @@ describe("Dotazník", () => {
     render(<ResearchScreen step="questionnaire" frame={TEST_FRAME} />);
     fireEvent.click(await screen.findByRole("button", { name: "Sestavit první verzi dotazníku" }));
     await approveProposal();
-    expect(await screen.findByRole("heading", { name: "2 otázek · 1 sledovaných sad" }, { timeout: 4000 })).toBeTruthy();
+    expect(await screen.findByRole("heading", { name: "2 otázky · 1 sledovaná sada" })).toBeTruthy();
     expect(posted("/api/research/analyze")).toEqual([]);
     expect(posted(AGENTS_PATH).map((c) => (c.body as { action: string }).action)).toEqual(["build_questionnaire"]);
     expect(posted("/api/research/build_questionnaire")).toEqual([]);
+  });
+
+  it("builds the questionnaire once its analysis, waiting for budget, is lifted and accepted: the analysis is not asked again (CR-2)", async () => {
+    let lifted = false;
+    const waiting = { run_id: "RUN-A", design_revision_id: "REV-A", action: "analyze_brief", status: "AWAITING_BUDGET", is_terminal: false, needs_attention: true,
+      steps: [{ step_id: "STEP-A", node_key: "agent", status: "AWAITING_BUDGET", waiting_reason: "budget_exceeded", error_message: null }],
+      created_at: null, context_sha256: "sha", harness_version: "v1", actual_cost_usd: null };
+    unitStub({ ...BRIEF, ui_state: { questionnaire_path: "ai" } }, null, {
+      "native/job": () => (lifted ? undefined : waiting),
+      [`${AGENTS_PATH}/RUN-A/budget`]: () => { lifted = true; return { ...waiting, status: "RUNNING", steps: [{ ...waiting.steps[0], status: "RUNNABLE" }] }; },
+      "/api/v1/studies/STU-1": () => ({ study_id: "STU-1", name: "Alfa", budget_usd: 5, spent_usd: 5, remaining_usd: 0 }),
+    });
+    render(<ResearchScreen step="questionnaire" frame={TEST_FRAME} />);
+    fireEvent.click(await screen.findByRole("button", { name: "Sestavit první verzi dotazníku" }, NATIVE_JOB_WAIT));
+    const form = await screen.findByRole("form", { name: "Zvýšit rozpočet studie" }, NATIVE_JOB_WAIT);
+    expect(screen.queryByRole("button", { name: "Zkusit znovu" })).toBeNull();
+    await within(form).findByText(/5\.00/);
+    fireEvent.change(within(form).getByLabelText("Nový rozpočet studie (USD)"), { target: { value: "9" } });
+    fireEvent.click(within(form).getByRole("button", { name: "Zvýšit rozpočet a pokračovat" }));
+    await approveProposal(); // the analysis
+    await waitFor(() => expect(posted(AGENTS_PATH)).toHaveLength(2), NATIVE_JOB_WAIT);
+    await approveProposal(); // the build that waited behind it
+    expect(await screen.findByRole("heading", { name: "2 otázky · 1 sledovaná sada" }, NATIVE_JOB_WAIT)).toBeTruthy();
+    expect(posted(AGENTS_PATH).map((c) => (c.body as { action: string }).action)).toEqual(["analyze_brief", "build_questionnaire"]);
   });
 
   it("parks the build at the native runtime boundary", async () => {
@@ -432,5 +481,21 @@ describe("Dotazník", () => {
     expect(push).toHaveBeenCalledWith(stagePath("audience"));
     await saved();
     expect(lastSave()).toMatchObject({ reason: "questionnaire_done", content: { ui_state: { audience_entry: "choose" } } });
+  });
+
+  it("says what Sestavit s AI does once the questionnaire has items, and claims no provider choice (QF-4, QF-5)", async () => {
+    unitStub({ ...BRIEF, sections: SECTIONS, ui_state: { questionnaire_path: "manual" } });
+    render(<ResearchScreen step="questionnaire" frame={TEST_FRAME} />);
+    fireEvent.click(await screen.findByRole("radio", { name: "Sestavit s AI" }));
+    expect(await screen.findByText("Dotazník už má otázky, takže ho AI znovu nesestaví: úpravy navrhne „Optimalizovat dotazník s AI“.")).toBeTruthy();
+    expect(screen.getByRole("button", { name: "Optimalizovat dotazník s AI" })).toBeTruthy();
+    fireEvent.click(screen.getByRole("radio", { name: "Náhled respondenta" }));
+    expect(screen.queryByText(/technický editor je pod ní/)).toBeNull();
+    expect(screen.getByText(/Upravíte je v režimu Upravit/)).toBeTruthy();
+    cleanup();
+    unitStub({ ...BRIEF, ui_state: { questionnaire_path: "ai" } });
+    render(<ResearchScreen step="questionnaire" frame={TEST_FRAME} />);
+    expect(await screen.findByRole("heading", { name: "Dotazník s AI" })).toBeTruthy();
+    expect(screen.queryByText(/Provider\/model/)).toBeNull();
   });
 });

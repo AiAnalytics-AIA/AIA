@@ -9,12 +9,20 @@
 // draws it. The sentence starters and "Navrhnout z cíle" write the same fields a
 // person types into; nothing here calls a model but the analysis.
 
+import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { type DragEvent, type ReactNode, useRef, useState } from "react";
+import { type DragEvent, type ReactNode, useEffect, useRef, useState } from "react";
 
 import { t, tv } from "@/i18n/t";
 import { workspace } from "@/lib/api";
 import { saveBlob } from "@/lib/download";
+import { type BriefMaterials, classLabel, classOf } from "@/lib/material-class";
+import { briefElementId, contextField, materialAia } from "@/lib/artifacts/brief";
+import { aiaId } from "@/lib/workbench-artifacts";
+import { OBJECTIVE_MAX, addObjective, objectivesEditable, objectivesOf, removeObjective, restoreObjective, setObjective } from "@/research/brief-objectives";
+import { InlineCreateRow } from "../../ui/InlineCreateRow";
+import { InlineText } from "../../ui/InlineText";
+import { UndoToast, useUndo } from "../../ui/UndoToast";
 import {
   type BriefingField,
   MAX_FILES_PER_PICK,
@@ -36,6 +44,7 @@ import { StepSection } from "../step";
 import { InspectorSlot } from "./Inspector";
 import { AiButton, Button, TextInput } from "../ui";
 import { useResearch } from "./context";
+import { AskLead, useLeadOwnsAiStarts } from "./AskLead";
 import { AnalysisFailureCard, useAnalysis } from "./useAnalysis";
 
 const message = (e: unknown) => (e instanceof Error ? e.message : String(e));
@@ -80,7 +89,8 @@ export function BriefStep() {
   const { store, state, stepHref } = useResearch();
   const router = useRouter();
   const p = state.project;
-  const { analyse: runAnalysis, failure, busy } = useAnalysis();
+  const { analyse: runAnalysis, resume, failure, busy } = useAnalysis();
+  const leadOwnsAiStarts = useLeadOwnsAiStarts();
 
   const edit = (field: TopField | BriefingField, value: string) =>
     store.update(({ project, analysis }) => editBrief(project, analysis, field, value));
@@ -88,6 +98,12 @@ export function BriefStep() {
   // analyzeBrief -> ensureAnalysis1776 -> go('plan').
   const analyse = async () => {
     if (!(await runAnalysis({ force: true }))) return;
+    router.push(stepHref("plan"));
+  };
+  // The same analysis job, after a budget lift: on its accept the person goes on to Návrh, as
+  // `analyse` does, so "Další krok" is never pressed again for an analysis already made (CR-2).
+  const continueAnalysis = async (jobId: string) => {
+    if (!(await resume(jobId))) return;
     router.push(stepHref("plan"));
   };
 
@@ -126,14 +142,24 @@ export function BriefStep() {
           ]}
         >
           <p aria-live="polite" className={`text-[13px] leading-5 ${ready ? "text-ink-muted" : "text-status-you-ink"}`}>{note}</p>
-          <AiButton variant="primary" className="w-full justify-center !min-h-11" onClick={analyse} disabled={busy || !ready}>
-            {t("research.brief.next")}
-            <Icon name="next" size={14} />
-          </AiButton>
+          {!leadOwnsAiStarts ? (
+            <AiButton variant="primary" className="w-full justify-center !min-h-11" onClick={analyse} disabled={busy || !ready}>
+              {t("research.brief.next")}
+              <Icon name="next" size={14} />
+            </AiButton>
+          ) : (
+            <>
+              <Link href={stepHref("plan")} className="inline-flex w-full items-center justify-center gap-1 rounded-control border border-border-strong px-3 !min-h-11 text-sm no-underline">
+                Pokračovat na Návrh
+                <Icon name="next" size={14} />
+              </Link>
+              <AskLead className="mt-2" what="Analýzu zadání" />
+            </>
+          )}
         </Readiness>
       </InspectorSlot>
 
-      {failure ? <AnalysisFailureCard failure={failure} onRetry={analyse} /> : null}
+      {failure ? <AnalysisFailureCard failure={failure} onRetry={analyse} onContinue={(id) => void continueAnalysis(id)} /> : null}
 
       <StepSection id="brief-goal" n={1} lead title={t("research.brief.goalTitle")} hint={t("research.brief.goalHint")}>
         <textarea
@@ -167,7 +193,7 @@ export function BriefStep() {
         <div className="mt-3 flex flex-wrap items-end gap-2">
           <label className="flex min-w-60 flex-1 flex-col gap-1">
             <span className="text-xs font-medium text-ink-muted">{t("research.brief.titleLabel")} · {t("research.brief.optional")}</span>
-            <TextInput className="w-full !rounded-control" value={titleValue(p)} placeholder={t("research.brief.titlePlaceholder")} onChange={(e) => edit("title", e.target.value)} />
+            <TextInput id={briefElementId("title")} className="w-full !rounded-control" value={titleValue(p)} placeholder={t("research.brief.titlePlaceholder")} onChange={(e) => edit("title", e.target.value)} />
           </label>
           <Button variant="quiet" className="!rounded-control" disabled={!goalLength} onClick={() => edit("title", titleFromGoal(goal))}>
             {t("research.brief.suggestTitle")}
@@ -175,9 +201,11 @@ export function BriefStep() {
         </div>
       </StepSection>
 
+      <Objectives />
+
       <StepSection
         id="brief-type"
-        n={2}
+        n={3}
         title={t("research.brief.typesTitle")}
         hint={t("research.brief.typesHelp")}
         aside={selected.size ? <span className="font-mono text-xs text-ink-muted">{tv("research.brief.readyTypesN", { n: selected.size })}</span> : null}
@@ -220,6 +248,66 @@ export function BriefStep() {
         </div>
       ) : null}
     </div>
+  );
+}
+
+/**
+ * Cíle (artifact-brief BRF2): the study's objectives as items, each edited where it is shown, added
+ * in the list and removed with "Vrátit". The same list Návrh shows (brief-objectives.ts); each item
+ * is a Lead target, objective:<id>. None yet reads "Zatím prázdné", never the goal in their place.
+ */
+function Objectives() {
+  const { store, state } = useResearch();
+  const undo = useUndo();
+  const design = { project: state.project, analysis: state.analysis };
+  const items = objectivesOf(design);
+  const editable = objectivesEditable(design);
+  const remove = (index: number) => {
+    const { removed } = removeObjective(store.get(), index);
+    if (removed === null) return;
+    store.update((d) => removeObjective(d, index).design, { reason: "brief_objective_remove" });
+    undo.offer({
+      message: tv("research.brief.objectiveRemoved", { text: removed.length > 60 ? `${removed.slice(0, 57)}…` : removed }),
+      undo: () => store.update((d) => restoreObjective(d, index, removed), { reason: "brief_objective_restore" }),
+    });
+  };
+  return (
+    <StepSection id={briefElementId("objectives")} n={2} title={t("research.brief.objectivesTitle")} hint={t("research.brief.objectivesHint")}>
+      {items.length ? (
+        <ol className="flex flex-col gap-1.5">
+          {items.map((o, i) => (
+            <li key={o.id} data-aia={aiaId("objective", o.id)} className="flex items-start gap-2">
+              <span aria-hidden="true" className="mt-1.5 w-5 shrink-0 text-right font-mono text-xs text-ink-faint">{i + 1}.</span>
+              <InlineText
+                className="min-w-0 flex-1"
+                multiline
+                value={o.text}
+                label={tv("research.brief.objectiveLabel", { n: i + 1 })}
+                rules={{ maxLength: OBJECTIVE_MAX }}
+                onCommit={(text) => store.update((d) => setObjective(d, i, text), { reason: "brief_objective" })}
+              />
+              <Button small variant="quiet" aria-label={tv("research.brief.objectiveRemoveAria", { n: i + 1 })} onClick={() => remove(i)}>
+                ×
+              </Button>
+            </li>
+          ))}
+        </ol>
+      ) : (
+        <p className="text-sm text-ink-muted">
+          {editable ? t("research.brief.objectivesEmpty") : t("research.brief.objectivesUnreadable")}
+        </p>
+      )}
+      {editable ? (
+        <InlineCreateRow
+          className="mt-2"
+          label={t("research.brief.objectiveAdd")}
+          maxLength={OBJECTIVE_MAX}
+          existing={items.map((o) => o.text)}
+          onCreate={(text) => store.update((d) => addObjective(d, text), { reason: "brief_objective_add" })}
+        />
+      ) : null}
+      <UndoToast offer={undo.current} onDone={undo.clear} />
+    </StepSection>
   );
 }
 
@@ -296,12 +384,12 @@ function ContextFields({ p, edit }: { p: ResearchProject; edit: (field: TopField
   const open = CONTEXT.filter((c) => opened.has(c.field) || contextValue(p, c.field));
   const closed = CONTEXT.filter((c) => !open.includes(c));
   return (
-    <StepSection id="brief-context" n={4} optional title={t("research.brief.contextTitle")} hint={t("research.brief.contextHint")}>
+    <StepSection id="brief-context" n={5} optional title={t("research.brief.contextTitle")} hint={t("research.brief.contextHint")}>
       <div className="flex flex-col gap-3">
         {open.map((c) => (
           <div key={c.field} className="flex flex-col gap-1">
             <span className="flex items-center justify-between gap-2 text-xs font-medium text-ink-muted">
-              <label htmlFor={`brief-${c.field}`}>{t(c.label)}</label>
+              <label htmlFor={briefElementId(contextField(c.field))}>{t(c.label)}</label>
               <button
                 type="button"
                 aria-label={tv("research.brief.contextRemoveAria", { label: t(c.label) })}
@@ -315,7 +403,7 @@ function ContextFields({ p, edit }: { p: ResearchProject; edit: (field: TopField
               </button>
             </span>
             <textarea
-              id={`brief-${c.field}`}
+              id={briefElementId(contextField(c.field))}
               rows={2}
               placeholder={t(`research.brief.examples.${c.field}`)}
               value={contextValue(p, c.field)}
@@ -329,6 +417,7 @@ function ContextFields({ p, edit }: { p: ResearchProject; edit: (field: TopField
             {closed.map((c) => (
               <button
                 key={c.field}
+                id={briefElementId(contextField(c.field))}
                 type="button"
                 onClick={() => setOpened((s) => new Set([...s, c.field]))}
                 className={`inline-flex items-center gap-1 rounded-pill border border-border bg-surface px-3 py-1 text-[13px] leading-5 text-ink hover:border-signal hover:text-signal ${FOCUS}`}
@@ -351,6 +440,27 @@ function badge(x: Attachment): { label: string; look: string } {
   if (ext === "PDF") return { label: ext, look: "bg-status-fault-wash text-status-fault" };
   if (["XLSX", "XLSM", "XLS", "CSV", "TSV"].includes(ext)) return { label: ext, look: "bg-status-done/14 text-status-done" };
   return { label: ext.slice(0, 4) || "—", look: "bg-signal-wash text-signal" };
+}
+
+/**
+ * The class of each material, as the server answers it for the saved revision (artifact-brief
+ * BRF3); read again after every save. Null until an answer comes: no chip is shown rather than a
+ * guessed one, and a failed read leaves it so.
+ */
+function useMaterialClasses(studyId: string, revision: number | null): BriefMaterials | null {
+  const [answer, setAnswer] = useState<BriefMaterials | null>(null);
+  useEffect(() => {
+    if (revision === null) return;
+    let live = true;
+    workspace.materials(studyId).then(
+      (r) => live && setAnswer(r),
+      () => undefined,
+    );
+    return () => {
+      live = false;
+    };
+  }, [studyId, revision]);
+  return answer;
 }
 
 type Pending = { name: string; state: "waiting" | "uploading" | "done" | "failed"; message?: string };
@@ -421,6 +531,7 @@ function Attachments({ uploads }: { uploads: Uploads }) {
   const [url, setUrl] = useState("");
   const list: Attachment[] = state.project.briefing.attachments || [];
   const { upload, pending, busy, error, setError } = uploads;
+  const classes = useMaterialClasses(frame.studyId, state.revision);
 
   const download = async (x: Attachment, attachmentId: string) => {
     setError(null);
@@ -431,10 +542,18 @@ function Attachments({ uploads }: { uploads: Uploads }) {
     }
   };
 
+  // I9: a link that is not http(s) is said at its field, not in the stage's alert, and once said it
+  // is checked again as it is typed. An empty field adds nothing and says nothing.
+  const [linkProblem, setLinkProblem] = useState<string | null>(null);
+  const problemOf = (raw: string) => {
+    const r = addLink(store.get().project, raw);
+    return "error" in r ? r.error : null;
+  };
   const link = () => {
+    if (!url.trim()) return setLinkProblem(null);
     const r = addLink(store.get().project, url);
-    if ("error" in r) return setError(r.error);
-    setError(null);
+    if ("error" in r) return setLinkProblem(r.error);
+    setLinkProblem(null);
     setUrl("");
     store.update(() => r, { reason: "brief_link" });
   };
@@ -442,11 +561,17 @@ function Attachments({ uploads }: { uploads: Uploads }) {
   return (
     <StepSection
       id="brief-files"
-      n={3}
+      n={4}
       optional
       title={t("research.brief.filesTitle")}
       hint={t("research.brief.attachHelpAnywhere")}
-      aside={list.length ? <span className="font-mono text-xs text-ink-muted">{tv("research.brief.readyFilesN", { n: list.length })}</span> : null}
+      aside={
+        list.length ? (
+          <span className="font-mono text-xs text-ink-muted">
+            {tv("research.brief.readyFilesN", { n: list.length })} · {t("research.brief.dataClassAside")}
+          </span>
+        ) : null
+      }
     >
       <input
         ref={files}
@@ -470,26 +595,34 @@ function Attachments({ uploads }: { uploads: Uploads }) {
           {t("research.brief.pickFiles")}
         </Button>
         <form
-          className="flex min-w-0 flex-[1_1_16rem] gap-1.5"
+          className="flex min-w-0 flex-[1_1_16rem] flex-col gap-1"
           onSubmit={(e) => {
             e.preventDefault();
             link();
           }}
         >
-          <span className="flex min-w-0 flex-1 items-center gap-2 rounded-control border border-border-strong bg-surface-raised px-2.5 focus-within:outline-2 focus-within:outline-offset-2 focus-within:outline-focus-ring">
-            <Icon name="link" size={14} className="text-ink-muted" />
-            <input
-              inputMode="url"
-              aria-label={t("research.brief.urlLabel")}
-              placeholder={t("research.brief.urlPlaceholder")}
-              value={url}
-              onChange={(e) => setUrl(e.target.value)}
-              className="min-h-[34px] min-w-0 flex-1 border-0 bg-transparent text-sm text-ink outline-none placeholder:text-ink-faint"
-            />
+          <span className="flex min-w-0 gap-1.5">
+            <span className={`flex min-w-0 flex-1 items-center gap-2 rounded-control border bg-surface-raised px-2.5 focus-within:outline-2 focus-within:outline-offset-2 focus-within:outline-focus-ring ${linkProblem ? "border-status-fault" : "border-border-strong"}`}>
+              <Icon name="link" size={14} className="text-ink-muted" />
+              <input
+                inputMode="url"
+                aria-label={t("research.brief.urlLabel")}
+                aria-invalid={linkProblem ? true : undefined}
+                aria-describedby={linkProblem ? "brief-link-problem" : undefined}
+                placeholder={t("research.brief.urlPlaceholder")}
+                value={url}
+                onChange={(e) => {
+                  setUrl(e.target.value);
+                  if (linkProblem) setLinkProblem(e.target.value.trim() ? problemOf(e.target.value) : null);
+                }}
+                className="min-h-[34px] min-w-0 flex-1 border-0 bg-transparent text-sm text-ink outline-none placeholder:text-ink-faint"
+              />
+            </span>
+            <Button type="submit" className="!rounded-control" aria-label={t("research.brief.addLinkAria")}>
+              {t("research.brief.addLink")}
+            </Button>
           </span>
-          <Button type="submit" className="!rounded-control" aria-label={t("research.brief.addLinkAria")}>
-            {t("research.brief.addLink")}
-          </Button>
+          {linkProblem ? <span id="brief-link-problem" className="text-xs leading-4 text-status-fault">{linkProblem}</span> : null}
         </form>
       </div>
       {error ? <p role="alert" className="mt-2 text-[13px] text-status-fault">{error}</p> : null}
@@ -500,8 +633,10 @@ function Attachments({ uploads }: { uploads: Uploads }) {
             const stored = storedAttachmentId(x);
             const missing = x.kind !== "url" && !stored;
             const b = badge(x);
+            const cls = classOf(classes, state.revision, x, i);
+            const first = stored !== null && list.findIndex((y) => storedAttachmentId(y) === stored) === i;
             return (
-              <li key={`${i}-${x.sha256 || x.url || x.filename}`} className="flex items-center gap-3 border-b border-border px-2.5 py-2 last:border-b-0">
+              <li key={`${i}-${x.sha256 || x.url || x.filename}`} data-aia={first ? materialAia(stored) : undefined} className="flex items-center gap-3 border-b border-border px-2.5 py-2 last:border-b-0">
                 <span aria-hidden="true" className={`inline-flex h-7 min-w-10 items-center justify-center rounded-md px-1 font-mono text-[10px] font-semibold ${b.look}`}>{b.label}</span>
                 <div className="min-w-0 flex-1">
                   <div className="truncate text-sm font-medium">{line.name}</div>
@@ -510,6 +645,15 @@ function Attachments({ uploads }: { uploads: Uploads }) {
                     {missing ? ` · ${t("research.brief.notInAia")}` : ""}
                   </div>
                 </div>
+                {cls ? (
+                  <span
+                    data-data-class={cls.data_class ?? "unknown"}
+                    title={cls.class_source ? tv("research.brief.dataClassRule", { rule: cls.class_source }) : undefined}
+                    className={`shrink-0 rounded-full border px-2 py-0.5 font-mono text-[11px] ${cls.data_class ? "border-border-strong text-ink-muted" : "border-status-you-ink text-status-you-ink"}`}
+                  >
+                    {classLabel(cls.data_class)}
+                  </span>
+                ) : null}
                 {stored ? (
                   <Button small variant="quiet" aria-label={tv("research.brief.downloadAria", { name: line.name })} onClick={() => void download(x, stored)}>
                     {t("research.brief.download")}

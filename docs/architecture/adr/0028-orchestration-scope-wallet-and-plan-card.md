@@ -229,7 +229,13 @@ path with five bodies.
   it elsewhere and the authority's permission set is asserted to exclude `APPROVE_GATE`.
 - An import contract (`[tool.importlinter]`): `aia_executors` and the `lead_plan_step` executor do
   not import the confirming start entry point; the API never starts a plan step.
-- `StudyWalletRepository` is the only writer of the wallet tables (`layer_check`).
+- `StudyWalletRepository` is the only writer of the wallet tables (`layer_check`, four rules; built
+  by LO1, migration `60ccc9ff42cf`, #544). The wallet is behind `AIA_STUDY_WALLET_ENABLED` (off by
+  default, off in test, absent from the develop Compose file), apart from `AIA_LEAD_PLANS_ENABLED`;
+  off, nothing reads or writes a wallet row; on, the typed start (LO5, #574) is the one start path that charges it so far.
+- `WorkflowRepository.record_chat_start` (under `APPROVE_GATE`) is the one writer of a `chat_start`
+  ledger row, and `application/lead_chat_start.approve_chat_start` keeps LO1's order: quote,
+  create, the `chat_start` row, then the charge (LO5, #574).
 - Tests: concurrent starts never exceed the cap; an unknown ceiling is refused; a step whose
   ceiling the card showed starts above the threshold without asking again, and one whose ceiling
   grew parks; a raise above the client's ceiling is refused by name; a design move lets a step tied
@@ -256,4 +262,10 @@ written into the decisions above:
    (D-05, a), as decision 2 and this item already said.
 5. ~~Amending ADR 0026, which is Accepted.~~ Yes, to each amendment as its ADR is accepted (D-08, a).
 
-Nothing remains open in this ADR.
+Nothing remains open in this ADR from that round. **Raised by LO1 (#544, 2026-10-21), for the
+owner:** with charges never released, a wallet is drawn down by upper bounds: a run whose ceiling
+was USD 5 and that cost USD 0.40 keeps USD 5 of the wallet held until the researcher raises the cap.
+Decision 2 rejects charging by settled spend for concurrency; releasing the unspent part *after* a
+run ends (the hold settled to its usage) keeps concurrency safe and is a different rule. Adopting it
+is an amendment to this ADR; LO1 builds the ADR as written (`lead-orchestration.md` § LO1
+delivered; the retry case is OI-170).

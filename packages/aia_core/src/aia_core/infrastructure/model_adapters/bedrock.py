@@ -11,6 +11,12 @@ and refuses, before anything is signed or sent, a request naming any other: the 
 grant names one profile, and an adapter that sent whatever it was asked would turn a
 policy mistake into a 403 from AWS instead of a refusal here.
 
+**Identity and invocation target** (``domain/model_invocation.py``, develop-spend-attribution
+5a). ``model_id`` is the model's identity: what a request names, what is priced and recorded.
+``invocation_target``, when given, is what the URL names instead -- an application inference
+profile ARN over that model, tagged for its deployment, percent-encoded as one segment like
+the id (``:`` and ``/`` encoded). Without it the URL names the identity, exactly as before.
+
 Structured output is a single forced tool (``toolChoice.tool``) whose ``inputSchema``
 is the output contract -- the same approach as the Messages adapter -- so the answer
 arrives as ``toolUse.input`` and still goes through AIA's deterministic validator.
@@ -171,6 +177,7 @@ class BedrockConverseAdapter:
         model_id: str,
         timeout_s: float = 300.0,
         clock: Callable[[], datetime] = _utcnow,
+        invocation_target: str | None = None,
     ) -> None:
         if not region.strip() or not model_id.strip():
             raise ValueError("a Bedrock adapter is bound to a region and one model id")
@@ -178,6 +185,9 @@ class BedrockConverseAdapter:
         self._signer = signer
         self._region = region
         self._model_id = model_id
+        # Checked by the caller's composition (model_invocation.invocation_target); here only
+        # never blank, so a URL names something.
+        self._target = (invocation_target or "").strip() or model_id
         self._timeout_s = timeout_s
         self._clock = clock
 
@@ -192,11 +202,16 @@ class BedrockConverseAdapter:
 
     # ------------------------------------------------------------ requests --
 
+    @property
+    def invocation_target(self) -> str:
+        """What the URL names: the application inference profile, else the model id itself."""
+        return self._target
+
     def url(self) -> str:
-        """The Converse URL for the bound model; the id is one encoded path segment."""
+        """The Converse URL for the bound model; the target is one encoded path segment."""
         return (
             f"https://{bedrock_runtime_host(self._region)}/model/"
-            f"{quote(self._model_id, safe='-._~')}/converse"
+            f"{quote(self._target, safe='-._~')}/converse"
         )
 
     def build_body(self, request: AdapterRequest) -> dict[str, Any]:

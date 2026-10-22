@@ -30,7 +30,9 @@ workflow (`deep_research`, `domain/deep_research/workflow.py`) whose engine requ
 from one Design Revision and filed under `DEEP_RESEARCH`. With `AIA_DEEP_RESEARCH_FAN_OUT` the
 `investigate` step hands each track to a step of its own and joins them
 ([deep-research-fan-out.md](deep-research-fan-out.md)); with `AIA_DEEP_RESEARCH_AGENT_DIRECTED`
-and `AIA_DEEP_RESEARCH_LEAD` investigators and a lead researcher direct the web tracks.
+and `AIA_DEEP_RESEARCH_LEAD` investigators and a lead researcher direct the web tracks. The
+engine's lead mode (`AIA_DEEP_RESEARCH_LEAD`, `settings.deep_research_lead`) is the engine's lead
+researcher, not the Research Lead (Vedoucí výzkumu) of ADR 0026 (OI-181).
 
 **Not a stage: two checkpoints** (ADR 0021). Every new run is started from a
 `DeepResearchRunSpec` (`integration.py`): its **purpose** (`DESIGN_RESEARCH` before the
@@ -407,7 +409,7 @@ and that its Design Revision is the held Study's (`design_not_in_scope`).
 |---|---|---|
 | none | `deep_research_registry(runtime=None)` | parks at plan (`RUNTIME_UNAVAILABLE`, `deep_research_unconfigured`); nothing read or sent |
 | production-shaped | `deep_research_runtime(settings)` (`deep_research_runtime.py`) | with no search route (`AIA_DEEP_RESEARCH_WEB_SEARCH=off`, or unset with the Wikipedia switch off), web tracks `web_retrieval_unavailable` without a planner call; `wikipedia` or `brave` sends Class C queries to that route only (`deep_research_live.py`), and `AIA_DEEP_RESEARCH_COMMON_CRAWL` adds the archive rung; internal tracks refused by the gateway on a Class C route; a completed bundle that says so |
-| recorded | `recorded_runtime(...)` (`deep_research_recorded.py`) | the whole path over a recorded exchange file; refuses unless `AIA_ENV` is `local` or `test`; `layer_check` keeps it out of the API, the worker, the other executors and deployments |
+| recorded | `recorded_runtime(...)` (`deep_research_recorded.py`) | the whole path over a recorded exchange file; refuses unless `AIA_ENV` is `local` or `test`; `layer_check` keeps it out of the API, the worker, the other executors (but the workbench composition) and deployments |
 
 Configuration: **`AIA_DEEP_RESEARCH_ENABLED`** (strict `true`/`false`, default off). On, it
 requires `AIA_AI_RUNTIME_ENABLED` and `AIA_AI_RESEARCH_AGENTS_ENABLED` -- the capabilities it

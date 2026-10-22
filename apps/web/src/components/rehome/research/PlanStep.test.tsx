@@ -4,7 +4,7 @@ import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { afterEach, beforeEach, describe, expect, it, onTestFinished, vi } from "vitest";
 
-import { DESIGN_PATH, NATIVE_JOB_WAIT, NATIVE_TEST_TIMEOUT_MS, approveProposal, nativeAgentFixture } from "./test-native-agents";
+import { AGENTS_PATH, DESIGN_PATH, NATIVE_JOB_WAIT, NATIVE_TEST_TIMEOUT_MS, approveProposal, nativeAgentFixture } from "./test-native-agents";
 import { briefFingerprint, defaultsMerge } from "@/research/model";
 import { ResearchScreen } from "./ResearchScreen";
 import { workspaceFixture } from "./test-workspace";
@@ -33,6 +33,10 @@ const ANALYSIS = {
   _brief_signature: briefFingerprint(defaultsMerge(PROJECT, TEMPLATE)),
 };
 
+/** The readiness limits in force (RQC9): what a variant's n is held to. */
+const LIMITS_PATH = "/api/v1/studies/STU-1/research/limits";
+const LIMITS = { methodology_version: "aia-readiness-1", version: null, sample_size: { min: 20, max: 10000 } };
+
 type Call = { url: string; body: Record<string, unknown> | null };
 let calls: Call[] = [];
 function unitStub(analysis: unknown = ANALYSIS, over: Record<string, (b: unknown) => unknown> = {}, project: Record<string, unknown> = PROJECT) {
@@ -45,7 +49,8 @@ function unitStub(analysis: unknown = ANALYSIS, over: Record<string, (b: unknown
       const u = String(url);
       const body = init?.body ? JSON.parse(String(init.body)) : null;
       calls.push({ url: u, body });
-      const answer = native(u.split("?")[0], init?.method ?? "GET", body) ?? ws.answer(u.split("?")[0], init?.method ?? "GET", body) ?? over[u.split("?")[0]]?.(body);
+      const answers: Record<string, (b: unknown) => unknown> = { [LIMITS_PATH]: () => LIMITS, ...over };
+      const answer = native(u.split("?")[0], init?.method ?? "GET", body) ?? ws.answer(u.split("?")[0], init?.method ?? "GET", body) ?? answers[u.split("?")[0]]?.(body);
       if (answer === undefined) return new Response(JSON.stringify({ code: "not_found", message: "No such resource." }), { status: 404 });
       return answer instanceof Response ? answer : new Response(JSON.stringify(answer), { status: 200 });
     }),
@@ -127,9 +132,25 @@ describe("Návrh", () => {
   it("applies a design variant to the project", async () => {
     unitStub();
     render(<ResearchScreen step="plan" frame={TEST_FRAME} />);
-    fireEvent.click(await screen.findByRole("radio", { name: /Jen varianty/ }));
+    const radio = await screen.findByRole("radio", { name: /Jen varianty/ });
+    await waitFor(() => {
+      fireEvent.click(radio); // applied once the valid range is read (RQC9)
+      expect(screen.getByText("Použit návrh: Jen varianty")).toBeTruthy();
+    });
     expect(screen.getByRole("radio", { name: /Jen varianty/ }).getAttribute("aria-checked")).toBe("true");
     expect(screen.getByText("Použit návrh: Jen varianty")).toBeTruthy();
+    expect(screen.getByText("Porovnat varianty")).toBeTruthy();
+  });
+
+  it("applies a variant whose n the valid range refuses without its n, and says so", async () => {
+    unitStub(ANALYSIS, { [LIMITS_PATH]: () => ({ ...LIMITS, version: 3, sample_size: { min: 400, max: 500 } }) }, { ...PROJECT, n: 450 });
+    render(<ResearchScreen step="plan" frame={TEST_FRAME} />);
+    // Until the range is read, nothing is applied; the click is repeated until it is.
+    const radio = await screen.findByRole("radio", { name: /Jen varianty/ });
+    await waitFor(() => {
+      fireEvent.click(radio);
+      expect(screen.getByText(/Použit návrh: Jen varianty\. Velikost vzorku z návrhu nebyla uložena: Počet respondentů musí být od 400 do 500/)).toBeTruthy();
+    });
     expect(screen.getByText("Porovnat varianty")).toBeTruthy();
   });
 
@@ -175,41 +196,101 @@ describe("Návrh", () => {
     expect(screen.getByText("1 z 1 zodpovězeno")).toBeTruthy();
     fireEvent.click(screen.getByRole("button", { name: "Doplnit a aktualizovat návrh" }));
     await approveProposal();
-    expect(await screen.findByText("Nové shrnutí.", {}, { timeout: 4000 })).toBeTruthy();
+    expect(await screen.findByText("Nové shrnutí.")).toBeTruthy();
     const [analyze] = posted(DESIGN_PATH);
     expect(((analyze.body?.content as { briefing: { what_is_known: string } }).briefing).what_is_known).toBe("Víme A.\n\nDoplnění k analýze:\nJen MHD?\nAno, jen MHD.");
     expect(push).not.toHaveBeenCalled();
   });
 
+  describe("an analysis that waited for the study's budget (CR-2, Codex on #533)", () => {
+    const waitingFor = () => {
+      let lifted = false;
+      const waiting = { run_id: "RUN-A", design_revision_id: "REV-A", action: "analyze_brief", status: "AWAITING_BUDGET", is_terminal: false, needs_attention: true,
+        steps: [{ step_id: "STEP-A", node_key: "agent", status: "AWAITING_BUDGET", waiting_reason: "budget_exceeded", error_message: null }],
+        created_at: null, context_sha256: "sha", harness_version: "v1", actual_cost_usd: null };
+      return {
+        "native/job": () => (lifted ? undefined : waiting),
+        [`${AGENTS_PATH}/RUN-A/budget`]: () => { lifted = true; return { ...waiting, status: "RUNNING", steps: [{ ...waiting.steps[0], status: "RUNNABLE" }] }; },
+        "/api/v1/studies/STU-1": () => ({ study_id: "STU-1", name: "Alfa", budget_usd: 5, spent_usd: 5, remaining_usd: 0 }),
+      };
+    };
+    const liftAndAccept = async () => {
+      const form = await screen.findByRole("form", { name: "Zvýšit rozpočet studie" }, NATIVE_JOB_WAIT);
+      await within(form).findByText(/5\.00/);
+      fireEvent.change(within(form).getByLabelText("Nový rozpočet studie (USD)"), { target: { value: "7" } });
+      fireEvent.click(within(form).getByRole("button", { name: "Zvýšit rozpočet a pokračovat" }));
+      await approveProposal();
+    };
+
+    it("keeps the comments' mode with the wait: the plan is marked as changed by them, and says so", async () => {
+      unitStub(ANALYSIS, waitingFor());
+      render(<ResearchScreen step="plan" frame={TEST_FRAME} />);
+      fireEvent.click(await screen.findByRole("button", { name: "Komentovat: Jde o test nového konceptu." }, NATIVE_JOB_WAIT));
+      const draft = await screen.findByLabelText("Co změnit? Enter uloží komentář");
+      fireEvent.change(draft, { target: { value: "Není to test." } });
+      fireEvent.keyDown(draft, { key: "Enter" });
+      fireEvent.click(screen.getByRole("button", { name: "Zpracovat komentáře" }));
+      await liftAndAccept();
+      expect(await screen.findByText("Upraveno podle vašich komentářů", {}, NATIVE_JOB_WAIT)).toBeTruthy();
+      expect(await screen.findByText("Komentáře zapracovány", {}, NATIVE_JOB_WAIT)).toBeTruthy();
+      expect(posted(AGENTS_PATH)).toHaveLength(1);
+    });
+
+    it("clears an earlier comments mark when a follow-up's analysis waited, as the follow-up itself does", async () => {
+      unitStub(ANALYSIS, waitingFor(), { ...PROJECT, ui_state: { plan_changed26: true } });
+      render(<ResearchScreen step="plan" frame={TEST_FRAME} />);
+      expect(await screen.findByText("Upraveno podle vašich komentářů", {}, NATIVE_JOB_WAIT)).toBeTruthy();
+      fireEvent.change(screen.getByLabelText("Odpověď na otázku 1"), { target: { value: "Ano, jen MHD." } });
+      fireEvent.click(screen.getByRole("button", { name: "Doplnit a aktualizovat návrh" }));
+      await liftAndAccept();
+      expect(await screen.findByText("Nové shrnutí.", {}, NATIVE_JOB_WAIT)).toBeTruthy();
+      await waitFor(() => expect(screen.queryByText("Upraveno podle vašich komentářů")).toBeNull(), NATIVE_JOB_WAIT);
+      expect(screen.queryByText("Komentáře zapracovány")).toBeNull();
+      expect(posted(AGENTS_PATH)).toHaveLength(1);
+    });
+  });
+
   it("comments on selected text, then works the comments in with a forced analysis", async () => {
     unitStub();
     render(<ResearchScreen step="plan" frame={TEST_FRAME} />);
-    const text = (await screen.findByText("Jde o test nového konceptu.")).firstChild as Text;
-    // jsdom lays nothing out: a selection has no box of its own.
-    Range.prototype.getBoundingClientRect = () => ({ left: 100, top: 200, width: 80, height: 16, right: 180, bottom: 216, x: 100, y: 200, toJSON: () => ({}) });
-    const range = document.createRange();
-    range.setStart(text, 0);
-    range.setEnd(text, 10);
-    window.getSelection()!.removeAllRanges();
-    window.getSelection()!.addRange(range);
-    fireEvent.mouseUp(text.parentElement!);
-    fireEvent.click(await screen.findByRole("button", { name: "Přidat komentář" }));
+    // An item edited in place is a button, which a browser selects no text in: the narrative's
+    // items are commented on by their own action, quoting the item whole (DSN3).
+    fireEvent.click(await screen.findByRole("button", { name: "Komentovat: Jde o test nového konceptu." }));
     // The comment is typed on its row, not in a prompt; Enter keeps it.
     const draft = await screen.findByLabelText("Co změnit? Enter uloží komentář");
     fireEvent.change(draft, { target: { value: "Není to test." } });
     fireEvent.keyDown(draft, { key: "Enter" });
     expect(await screen.findByText("Není to test.")).toBeTruthy();
-    expect(screen.getByText("„Jde o test“")).toBeTruthy();
+    expect(screen.getByText("„Jde o test nového konceptu.“")).toBeTruthy();
 
     fireEvent.click(screen.getByRole("button", { name: "Zpracovat komentáře" }));
     await approveProposal();
-    expect(await screen.findByText("Upraveno podle vašich komentářů", {}, { timeout: 4000 })).toBeTruthy();
+    expect(await screen.findByText("Upraveno podle vašich komentářů")).toBeTruthy();
     const [analyze] = posted(DESIGN_PATH);
     // The revised briefing is frozen in the native Design Revision.
-    expect(((analyze.body?.content as { briefing: { review_comments: string } }).briefing).review_comments).toBe("1. K textu „Jde o test“: Není to test.");
+    expect(((analyze.body?.content as { briefing: { review_comments: string } }).briefing).review_comments).toBe("1. K textu „Jde o test nového konceptu.“: Není to test.");
     expect(screen.queryByText("Není to test.")).toBeNull();
     // Set when the analysis resolves, after the plan above is drawn: waited for, never read at once.
     expect(await screen.findByText("Komentáře zapracovány", {}, NATIVE_JOB_WAIT)).toBeTruthy();
+  });
+
+  it("still comments on text selected outside the narrative's items, such as a set's question", async () => {
+    unitStub();
+    render(<ResearchScreen step="plan" frame={TEST_FRAME} />);
+    const text = (await screen.findByText("Jak vás oslovuje Jemná?")).firstChild as Text;
+    // jsdom lays nothing out: a selection has no box of its own.
+    Range.prototype.getBoundingClientRect = () => ({ left: 100, top: 200, width: 80, height: 16, right: 180, bottom: 216, x: 100, y: 200, toJSON: () => ({}) });
+    const range = document.createRange();
+    range.setStart(text, 0);
+    range.setEnd(text, 15);
+    window.getSelection()!.removeAllRanges();
+    window.getSelection()!.addRange(range);
+    fireEvent.mouseUp(text.parentElement!);
+    fireEvent.click(await screen.findByRole("button", { name: "Přidat komentář" }));
+    const draft = await screen.findByLabelText("Co změnit? Enter uloží komentář");
+    fireEvent.change(draft, { target: { value: "Zkrátit." } });
+    fireEvent.keyDown(draft, { key: "Enter" });
+    expect(await screen.findByText("„Jak vás oslovuj“")).toBeTruthy();
   });
 
   it("goes on to the questionnaire at its three paths", async () => {
@@ -230,43 +311,60 @@ describe("direct proposal editing", () => {
     const input = screen.getAllByLabelText("Název sady").find((e) => e.getAttribute("placeholder") !== "Název sady")!;
     fireEvent.change(input, { target: { value: "Nová sada" } });
     fireEvent.submit(input.closest("form")!);
-    await waitFor(() => expect(ws.saves.length).toBeGreaterThan(0), { timeout: 4000 });
+    await waitFor(() => expect(ws.saves.length).toBeGreaterThan(0));
     const sets = (ws.saves.at(-1)!.content.research_plan as { tracked_sets: unknown[] }).tracked_sets;
     expect(sets).toHaveLength(2);
     expect(sets[0]).toEqual(existing);
   });
 
-  it("shows a native saved plan without a legacy analysis and persists human narrative edits to both representations", async () => {
+  it("shows a native saved plan without a legacy analysis and saves each narrative item edited in place to both representations", async () => {
     const ws = unitStub(null, {}, { ...PROJECT, research_plan: { problem_summary: "Uložený problém", objectives: ["Uložený cíl"], research_questions: ["Uložená otázka?"], status: "approved" } });
     render(<ResearchScreen step="plan" frame={TEST_FRAME} />);
     expect(await screen.findByText("Uložený cíl")).toBeTruthy();
     expect(screen.queryByText("Zatím není návrh")).toBeNull();
-    fireEvent.click(screen.getByRole("button", { name: "Upravit text návrhu" }));
-    const form = screen.getByRole("form", { name: "Upravit text návrhu" });
-    fireEvent.change(within(form).getByLabelText("Shrnutí výzkumného problému"), { target: { value: "Upravený problém" } });
-    fireEvent.change(within(form).getByLabelText("Co má výzkum zjistit"), { target: { value: "První cíl\n\nDruhý cíl" } });
-    fireEvent.change(within(form).getByLabelText("Výzkumné otázky"), { target: { value: "Nová otázka?" } });
-    fireEvent.click(within(form).getByRole("button", { name: "Použít úpravy návrhu" }));
-    await waitFor(() => expect(ws.saves.length).toBeGreaterThan(0), { timeout: 4000 });
-    expect(ws.saves.at(-1)?.content.research_plan).toMatchObject({ problem_summary: "Upravený problém", objectives: ["První cíl", "Druhý cíl"], research_questions: ["Nová otázka?"], status: "approved" });
-    expect(ws.saves.at(-1)?.analysis).toMatchObject({ problem_summary: "Upravený problém", objectives: ["První cíl", "Druhý cíl"] });
+    // artifact-design DSN3: no separate editor; every item is edited where it is shown.
+    expect(screen.queryByRole("button", { name: "Upravit text návrhu" })).toBeNull();
+    const edit = (label: RegExp, name: string, value: string) => {
+      fireEvent.click(screen.getByRole("button", { name: label }));
+      const field = screen.getByRole("textbox", { name });
+      fireEvent.change(field, { target: { value } });
+      fireEvent.keyDown(field, { key: "Enter", ctrlKey: true });
+    };
+    edit(/^Upravit: Shrnutí výzkumného problému/, "Shrnutí výzkumného problému", "Upravený problém");
+    edit(/^Upravit: Výzkumná otázka 1/, "Výzkumná otázka 1", "Nová otázka?");
+    fireEvent.click(screen.getByRole("button", { name: "Přidat cíl" }));
+    const row = screen.getByRole("textbox", { name: "Přidat cíl" });
+    fireEvent.change(row, { target: { value: "Druhý cíl" } });
+    fireEvent.keyDown(row, { key: "Enter" });
+    await waitFor(() => expect(ws.saves.at(-1)?.content.research_plan).toMatchObject({ objectives: ["Uložený cíl", "Druhý cíl"] }));
+    expect(ws.saves.at(-1)?.content.research_plan).toMatchObject({ problem_summary: "Upravený problém", research_questions: ["Nová otázka?"], status: "approved" });
+    expect(ws.saves.at(-1)?.analysis).toMatchObject({ problem_summary: "Upravený problém", objectives: ["Uložený cíl", "Druhý cíl"] });
     expect(posted(DESIGN_PATH)).toEqual([]); // manual editing never pays for an AI task
   });
 
-  it("validates narrative edits, cancels without changes, and guards leaving an unfinished editor", async () => {
+  it("refuses a repeat at the field, keeps the last objective, and takes a removal back with Vrátit", async () => {
     const ws = unitStub();
     render(<ResearchScreen step="plan" frame={TEST_FRAME} />);
-    fireEvent.click(await screen.findByRole("button", { name: "Upravit text návrhu" }));
-    const form = screen.getByRole("form", { name: "Upravit text návrhu" });
-    fireEvent.change(within(form).getByLabelText("Co má výzkum zjistit"), { target: { value: "" } });
-    fireEvent.click(within(form).getByRole("button", { name: "Použít úpravy návrhu" }));
+    await screen.findByText("Mírnější varianta vyhraje");
+    // The last objective stays: removing it is refused and nothing is saved.
+    fireEvent.click(screen.getByRole("button", { name: "Odebrat: Změřit zájem" }));
     expect(await screen.findByText("Doplňte alespoň jeden cíl výzkumu.")).toBeTruthy();
-    expect((screen.getByRole("button", { name: /Další · dotazník/ }) as HTMLButtonElement).disabled).toBe(true);
-    const unload = new Event("beforeunload", { cancelable: true }); window.dispatchEvent(unload);
-    expect(unload.defaultPrevented).toBe(true);
-    fireEvent.click(within(form).getByRole("button", { name: "Zrušit úpravy" }));
     expect(screen.getByText("Změřit zájem")).toBeTruthy();
+    // A hypothesis added twice is refused at the row.
+    fireEvent.click(screen.getByRole("button", { name: "Přidat hypotézu" }));
+    const row = screen.getByRole("textbox", { name: "Přidat hypotézu" });
+    fireEvent.change(row, { target: { value: "mírnější  varianta vyhraje" } });
+    fireEvent.keyDown(row, { key: "Enter" });
     expect(ws.saves).toEqual([]);
+    fireEvent.keyDown(row, { key: "Escape" });
+    // A removal happens at once and Vrátit puts it back where it was.
+    fireEvent.click(screen.getByRole("button", { name: "Odebrat: Mírnější varianta vyhraje" }));
+    expect(screen.queryByText("Mírnější varianta vyhraje")).toBeNull();
+    fireEvent.click(await screen.findByRole("button", { name: "Vrátit" }));
+    expect(await screen.findByText("Mírnější varianta vyhraje")).toBeTruthy();
+    // No unfinished editor to guard: leaving is not held.
+    const unload = new Event("beforeunload", { cancelable: true }); window.dispatchEvent(unload);
+    expect(unload.defaultPrevented).toBe(false);
   });
 
   it("edits a complete measurement with a live preview, preserves its extra fields and the existing questionnaire, and confirms scope replacement", async () => {
@@ -283,7 +381,7 @@ describe("direct proposal editing", () => {
     fireEvent.change(within(form).getByLabelText("1 na škále"), { target: { value: "určitě ne" } });
     expect(within(form).getByText("Zvolili byste Nová A?")).toBeTruthy();
     fireEvent.click(within(form).getByRole("button", { name: "Použít změny sady" }));
-    await waitFor(() => expect(ws.saves.length).toBeGreaterThan(0), { timeout: 4000 });
+    await waitFor(() => expect(ws.saves.length).toBeGreaterThan(0));
     const body = ws.saves.at(-1)!;
     expect(body.content.sections).toEqual([{ title: "Existující dotazník" }]);
     expect((body.content.research_plan as { tracked_sets: unknown[] }).tracked_sets[0]).toMatchObject({ objects: ["Nová A", "B", "C", "D"], scale_labels: ["určitě ne", "velmi"], custom_method: "keep" });
@@ -292,5 +390,75 @@ describe("direct proposal editing", () => {
     expect(screen.getByRole("alertdialog")).toBeTruthy();
     fireEvent.click(screen.getByRole("button", { name: "Ponechat" }));
     expect(screen.getByText("Zvolili byste Nová A?")).toBeTruthy();
+  });
+});
+
+// artifact-design DSN2: each research question with its coverage, read from the newest Design
+// Revision's readiness (a GET; nothing is submitted, started or paid).
+describe("Návrh: Výzkumné otázky a jejich pokrytí", () => {
+  const REVISIONS = "/api/v1/studies/STU-1/design/revisions";
+  const READINESS = "/api/v1/studies/STU-1/research/readiness";
+  const RQS = ["Kolik lidí nápoj zkusí?", "Proč by ho nekoupili?", "Nová otázka?"];
+  const WITH_RQS = { ...PROJECT, research_plan: { ...ANALYSIS, research_questions: RQS } };
+  const rev = (n: number, workspace: number) => ({ revision_id: `DR-${n}`, study_id: "STU-1", revision: n, content_sha256: "x", parent_revision: null, source_stage: "run", created_by: "u", created_at: "2026-10-21T10:00:00Z", workspace_revision: workspace });
+  const readiness = {
+    design_revision_id: "DR-2",
+    question_outlook: [{ question_id: "q_try", text: "Zkusil byste nápoj?", section_id: "s1", battery_id: null, verdict: "ANSWERABLE", reasons: [] }],
+    research_trace: {
+      linked: true, dangling: [],
+      questions: [
+        { text: RQS[0], measures: ["q_try"], verdict: "ANSWERABLE", reasons: [], comparison: "describe" },
+        { text: RQS[1], measures: [], verdict: "UNANSWERABLE", reasons: ["unmeasured"] },
+      ],
+    },
+  };
+  const section = async () => screen.findByRole("region", { name: "Výzkumné otázky a jejich pokrytí" });
+  // The native fixture answers these GETs with nothing; these tests' answers go in front of it.
+  const stub = (routes: Record<string, () => unknown>) => {
+    unitStub(ANALYSIS, {}, WITH_RQS);
+    const inner = globalThis.fetch;
+    vi.stubGlobal("fetch", vi.fn(async (url: RequestInfo | URL, init?: RequestInit) => {
+      const answer = (init?.method ?? "GET") === "GET" ? routes[String(url).split("?")[0]] : undefined;
+      if (!answer) return inner(url, init);
+      calls.push({ url: String(url), body: null });
+      return new Response(JSON.stringify(answer()), { status: 200 });
+    }));
+  };
+
+  it("shows each research question with the trace's status, its items linked to Dotazník and its gaps", async () => {
+    stub({ [REVISIONS]: () => ({ items: [rev(1, 1), rev(2, 3)] }), [READINESS]: () => readiness });
+    render(<ResearchScreen step="plan" frame={TEST_FRAME} />);
+    const s = await section();
+    await within(s).findByText(/Podle revize návrhu 2, která odpovídá této pracovní verzi/);
+    // The newest revision's readiness is read, never another's.
+    expect(calls.some((c) => c.url.startsWith(READINESS) && c.url.includes("design_revision_id=DR-2"))).toBe(true);
+    const items = within(s).getAllByRole("listitem").filter((li) => li.parentElement?.tagName === "OL");
+    expect(items.map((li) => li.querySelector("p")?.textContent)).toEqual(RQS);
+    expect(within(items[0]).getAllByText("pokryto").length).toBeGreaterThan(0);
+    const link = within(items[0]).getByRole("link", { name: "Zkusil byste nápoj?" });
+    expect(link.getAttribute("href")).toMatch(/\/questionnaire#qedit_q_try$/);
+    expect(within(items[1]).getByText("mezera")).toBeTruthy();
+    expect(within(items[1]).getByText("Žádná položka dotazníku ji neměří.")).toBeTruthy();
+    // A question the revision does not hold is not checked: unknown, never pokryto.
+    expect(within(items[2]).getByText("neznámé")).toBeTruthy();
+    expect(within(items[2]).getByText(/v revizi 2 není/)).toBeTruthy();
+    // Nothing was submitted or started from here.
+    expect(calls.filter((c) => c.body !== null && (c.url.startsWith(REVISIONS) || c.url.includes("/research/runs")))).toEqual([]);
+  });
+
+  it("says the copy moved since the revision, and links to the check before a run", async () => {
+    stub({ [REVISIONS]: () => ({ items: [rev(2, 1)] }), [READINESS]: () => readiness });
+    render(<ResearchScreen step="plan" frame={TEST_FRAME} />);
+    const s = await section();
+    await within(s).findByText(/Návrh se od ní změnil/);
+    expect(within(s).getByRole("link", { name: "Zkontrolovat před spuštěním" }).getAttribute("href")).toMatch(/\/run$/);
+  });
+
+  it("says when no revision exists yet, and reads no readiness", async () => {
+    stub({ [REVISIONS]: () => ({ items: [] }) });
+    render(<ResearchScreen step="plan" frame={TEST_FRAME} />);
+    const s = await section();
+    await within(s).findByText(/Návrh zatím nemá revizi/);
+    expect(calls.some((c) => c.url.startsWith(READINESS))).toBe(false);
   });
 });

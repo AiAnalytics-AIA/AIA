@@ -483,6 +483,52 @@ reads it: after creating or changing the parameter, run `bin/write-env.sh` and
 prints `true`. Requests made before the restart are not in the feed. On develop since
 2026-10-13.
 
+### Switches that stay off on develop (2026-10-21)
+
+Each is off when unset and absent from the develop Compose file; turning one on is a parameter, then
+`bin/write-env.sh` and a restart of the service that reads it.
+
+- **`AIA_AI_FIELDWORK_CHECKPOINT`** (worker): fieldwork keeps each answered respondent block the
+  moment it returns (`fieldwork_journal`), so an interrupted attempt or a retry of the run replays it
+  and pays only for the blocks never answered (run-qc-and-checkpoint RQC0). An uncertain call still
+  stops the step for recovery; nothing is replayed that was not answered. Two short lease-fenced
+  database round trips per block. **Who:** the operator, after `make migrate`.
+- **`AIA_AI_SCALE_LABELS_IN_PROMPT`** (worker): AI respondents are told a scale question's labels
+  (both ends, or one per point) as its design states them, not only the numbers (input-interactions
+  3b1, #538). Turning it on changes what respondents read, so the respondent-system fingerprint moves
+  and a run started afterwards is not comparable with one before; a run keeps what it started with.
+  **Who:** the operator, only after the methodology owner (A. Bahbouh) has approved the wording rule,
+  as `input-interactions#3b3`, with a develop run whose respondents read the labels as evidence.
+- **`AIA_BEDROCK_INVOCATION_TARGET`** and **`AIA_AI_RESEARCH_LEAD_INVOCATION_TARGET`** (worker): the
+  application inference profile ARN a model's calls are sent through, for the route's model and the
+  Lead's own model respectively (`domain/model_invocation.py`, develop-spend-attribution 5a, #541).
+  The model identity, its prices and its route do not change; only the request's `modelId` does, so
+  the cost carries the profile's `Environment=develop` tag. A target in any other shape (not an
+  application inference profile ARN in the route's own EU region) stops the worker at start, by name.
+  **Who:** the operator who created the profile (develop-spend-attribution 1), after checking with
+  `aws bedrock get-inference-profile` that it copies the identity's system profile.
+- **`AIA_STUDY_WALLET_ENABLED`** (API): the study wallet, Peněženka (`application/wallet.py`, ADR 0028
+  decision 2, `lead-orchestration#LO1`, #544). Off, nothing reads or writes a wallet row and
+  `/studies/{id}/wallet` answers 409 `wallet_disabled`; a person's start on the Run stage never
+  consults the wallet either way. **Who:** the owner's call, when the Lead's typed starts (LO5) and
+  plan steps (LO3/LO4) that charge it are on develop.
+
+### Switches develop states (2026-10-21)
+
+- **`AIA_AI_RESEARCH_LEAD_ENABLED`** (API and worker): must be stated in a deployed environment;
+  unset, the API refuses to start (#561). Develop states `true` through Compose
+  (`${AIA_AI_RESEARCH_LEAD_ENABLED:-true}`). With it `false`, a card the Lead's model prepared is
+  refused 409 `research_lead_disabled` (Q42); stored edits stay decidable.
+- **`AIA_DATA_CLASS_GATES`** (API, worker and executors): `advisory` on develop, fixed in Compose's
+  shared environment and checked by `.github/workflows/deploy-develop.yml` (#594; ADR 0008,
+  Amendment 2026-10-21). Every refusal made solely because of a data class becomes a pass recorded
+  on the ledger row's note, the call's provenance, the tool event or a step event; unclassified
+  material is judged as Class A; Brave's search takes a query of any class. EU residency, licences,
+  budgets, scope and ADR 0022's sign-off still hold. Staging, production and an unknown `AIA_ENV`
+  refuse to start with it.
+- **`AIA_DEEP_RESEARCH_ENABLED`** is also given to the API, which reads it only to say, in
+  `POST …/deep-research/quote`, whether a run would park (#555); the worker's reading is unchanged.
+
 ### The Research Lead's own model
 
 The study's Research Lead (ADR 0026) can run on a model of its own while every other

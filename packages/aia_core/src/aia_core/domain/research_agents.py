@@ -20,9 +20,11 @@ from .ai_models import ModelCapability
 from .analysis.native import MAX_RESEARCH_QUESTIONS, research_questions_of
 from .design_items import Documents, ItemKey, brief_signature, design_items
 from .knowledge import KnowledgeItem
+from .lead_workers import CardKind, ContextLayer, LeadWorkerSpec, ResultKind, WorkerRegistry
 from .licence import DataLineage
 from .material_rules import MaterialRule, RuledMaterial, classify_by_rule, rule_class
 from .prompts import PromptPin
+from .research_design import keep_point_labels
 from .residency import DataClass
 
 HARNESS_VERSION: Final = "aia-research-harness-3"
@@ -719,12 +721,9 @@ def agent_request(
         + [rule_class(MaterialRule.KNOWLEDGE) for _ in snapshot["knowledge"]]
     )
     lineage = knowledge_lineage(snapshot["knowledge"])
-    capability = (
-        ModelCapability.CRITIC
-        if action is ResearchAction.CRITIQUE
-        else ModelCapability.RESEARCH_REASONING
-    )
-    prompt_id = f"aia.research.{action.value}"
+    worker = worker_for(action)
+    capability = worker.capability
+    prompt_id = worker.prompt_id
     if prompt is not None and prompt.prompt_id != prompt_id:
         raise ValueError(f"prompt pin {prompt.prompt_id} does not belong to {prompt_id}")
     return ModelRequest(
@@ -736,7 +735,7 @@ def agent_request(
             prompt_version=prompt_version_for(action) if prompt is None else prompt.version,
             output_contract=CONTRACTS[action],
             max_output_tokens=max_output_tokens,
-            schema_repair_attempts=1,
+            schema_repair_attempts=worker.schema_repairs,
         ),
         policy_version=policy_version,
         data_classification=data_class,
@@ -814,7 +813,9 @@ def proposal_result(
             for j, question in enumerate(section.get("questions", [])):
                 question["id"] = assign_id(f"ai_q_{i + 1}_{j + 1}")
                 _keep_links(question, question["id"], stated, dropped)
-        p["sections"] = preserved + sections
+        # ``Question.popisky_skaly`` is the two ends: a scale the baseline labelled on every
+        # point keeps those labels, never dropped by the proposal (#559).
+        p["sections"] = preserved + keep_point_labels(sections, baseline.get("sections"))
         answered = data["comparisons"]
         # A design may hold any JSON below its top level (``validate_design``): a plan that is
         # not an object is never overwritten, so its comparisons are dropped and named; a
@@ -870,6 +871,54 @@ DESIGN_ACTIONS: Final = frozenset(
         ResearchAction.DIMENSIONS,
     }
 )
+
+
+#: What each design worker returns, as its row names it.
+_RESULT_KINDS: Final[dict[ResearchAction, ResultKind]] = {
+    ResearchAction.ANALYZE: ResultKind.BRIEF_ANALYSIS,
+    ResearchAction.BUILD: ResultKind.QUESTIONNAIRE,
+    ResearchAction.OPTIMIZE: ResultKind.QUESTIONNAIRE,
+    ResearchAction.AUDIENCE: ResultKind.AUDIENCE,
+    ResearchAction.DIMENSIONS: ResultKind.DIMENSIONS,
+    ResearchAction.CRITIQUE: ResultKind.ADVICE,
+    ResearchAction.COPILOT: ResultKind.ADVICE,
+    ResearchAction.MEMORY: ResultKind.ADVICE,
+}
+
+
+def _worker(action: ResearchAction) -> LeadWorkerSpec:
+    design = action in DESIGN_ACTIONS
+    return LeadWorkerSpec(
+        worker_id=action.value,
+        task=action.value,
+        output_contract=CONTRACTS[action],
+        context_layer=ContextLayer.DESIGN_SNAPSHOT,
+        # What agent_request classes: the design and a nonempty instruction by rule, and the
+        # approved knowledge every snapshot may carry.
+        material_rules=(MaterialRule.DESIGN, MaterialRule.JOB_INSTRUCTION, MaterialRule.KNOWLEDGE),
+        capability=(
+            ModelCapability.CRITIC
+            if action is ResearchAction.CRITIQUE
+            else ModelCapability.RESEARCH_REASONING
+        ),
+        reservation_key="AIA_AI_RESEARCH_RESERVATION_USD",
+        schema_repairs=1,
+        prompt_id=f"aia.research.{action.value}",
+        prompt_version=prompt_version_for(action),
+        switch="AIA_AI_RESEARCH_AGENTS_ENABLED",
+        card_kind=CardKind.PROPOSAL if design else CardKind.ADVICE,
+        result_kind=_RESULT_KINDS[action],
+    )
+
+
+#: The eight design workers, one row each (lead-orchestration LO9a; ``domain/lead_workers.py``).
+#: Held to ``tests/fixtures/lead_workers/workers.json``.
+WORKERS: Final = WorkerRegistry(_worker(action) for action in ResearchAction)
+
+
+def worker_for(action: ResearchAction) -> LeadWorkerSpec:
+    """The row of the design worker that runs ``action``."""
+    return WORKERS[action.value]
 
 
 def proposal_documents(

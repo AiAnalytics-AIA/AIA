@@ -5,6 +5,7 @@ from __future__ import annotations
 from typing import Any
 
 from aia_core.application.report_design import compose_design_sections
+from aia_core.application.report_tables import scale_notes
 from aia_core.domain.report.model import BulletList, Paragraph, Text
 from aia_core.domain.research_design import compile_design
 
@@ -101,3 +102,86 @@ def test_a_sets_count_agrees_with_its_words() -> None:
     assert "Nápoje — 5 položek hodnocených otázkou" in _words(
         compose_design_sections(spec, ()).chapter.blocks
     )
+
+
+def test_a_scales_labels_are_printed_beside_its_values() -> None:
+    """input-interactions 3b: what respondents were told a point means is in the appendix and
+    under the point's table, the two ends or every point."""
+    every = [f"bod {i}" for i in range(1, 11)]
+    labelled = {
+        **DESIGN,
+        "sections": [
+            {
+                "type": "questions",
+                "questions": [
+                    {**DESIGN["sections"][0]["questions"][0], "popisky_skaly": ["nikdy", "denně"]},
+                    *DESIGN["sections"][0]["questions"][1:],
+                ],
+            },
+            {**DESIGN["sections"][1], "scale_labels": every},
+        ],
+    }
+    spec, problems = compile_design(labelled)
+    assert spec is not None, problems
+    words = _words(compose_design_sections(spec, ()).appendix.blocks)
+    assert "Jak často pijete kávu? — škála 1\u20135 (1 = nikdy, 5 = denně)" in words
+    assert "škála 1\u201310 (1 = bod 1, 2 = bod 2," in words and "10 = bod 10)" in words
+    chapter = _words(compose_design_sections(spec, ()).chapter.blocks)
+    assert "na škále 1 (bod 1) až 10 (bod 10)" in chapter
+    notes = scale_notes(spec)
+    assert notes["q1"] == "Škála: 1 = nikdy, 5 = denně."
+    assert notes["napoje_obj_kava"].startswith("Škála: 1 = bod 1, 2 = bod 2,")
+    assert "q2" not in notes
+    bare, _ = compile_design(DESIGN)
+    assert bare is not None and "q1" not in scale_notes(bare)
+    assert scale_notes(bare)["napoje_obj_kava"] == "Škála: 1 = vůbec, 10 = velmi."
+
+
+def test_the_audiences_description_and_subpanel_are_kept_and_printed_when_given() -> None:
+    """Compiler 3 keeps what a person said about the audience (artifact-chain CHN5): the
+    description and the built-in subpanel, each only when given, printed before the filters."""
+    stated = {
+        **DESIGN,
+        "audience": {
+            **DESIGN["audience"],
+            "description": "Pražané, kteří ráno pijí kávu",
+            "builtin_subpanel": "young_18_29",
+        },
+    }
+    spec, problems = compile_design(stated)
+    assert spec is not None, problems
+    assert spec.audience["description"] == "Pražané, kteří ráno pijí kávu"
+    assert spec.audience["builtin_subpanel"] == "young_18_29"
+    words = _words(compose_design_sections(spec, ()).chapter.blocks)
+    assert "Cílová skupina podle návrhu: Pražané, kteří ráno pijí kávu." in words
+    assert "vestavěného podpanelu young_18_29" in words
+    assert "kraj: Praha" in words
+
+    plain, _ = compile_design(DESIGN)
+    assert plain is not None
+    # Neither given: the body has neither key, so its fingerprint is what it was under this
+    # compiler, and the chapter says nothing it was not told.
+    assert set(plain.audience) == {"source_mode", "strategy", "has_filters"}
+    blank, _ = compile_design({**DESIGN, "audience": {**DESIGN["audience"], "description": "  "}})
+    assert blank is not None and blank.fingerprint() == plain.fingerprint()
+    assert "podle návrhu" not in _words(compose_design_sections(plain, ()).chapter.blocks)
+
+
+def test_a_subpanel_left_from_a_population_choice_is_not_an_external_audiences() -> None:
+    """The audience step keeps the last built-in subpanel when the source moves outside AIA's
+    population (OI-51); an external audience did not come from it, so it is neither compiled
+    nor printed (Codex on #587)."""
+    external = {
+        **DESIGN,
+        "audience": {
+            **DESIGN["audience"],
+            "source_mode": "customer",
+            "builtin_subpanel": "young_18_29",
+        },
+    }
+    spec, problems = compile_design(external)
+    assert spec is not None, problems
+    assert "builtin_subpanel" not in spec.audience
+    words = _words(compose_design_sections(spec, ()).chapter.blocks)
+    assert "podpanelu" not in words
+    assert "mimo populaci AIA" in words
