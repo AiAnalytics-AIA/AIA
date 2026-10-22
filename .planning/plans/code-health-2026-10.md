@@ -77,7 +77,7 @@ The fix retires the pending set and holds every id to the grammar alone.
 ## Chunk 5. The `# type: ignore` sites in the source trees
 
 These figures are from develop `03989975`. The four source trees (`packages/aia_core/src` and
-`apps/*/src`) had 25 sites. This chunk replaced 19 of them with a type fix that mypy checks: no
+`apps/*/src`) had 25 sites. This chunk replaced 18 of them with a type fix that mypy checks: no
 cast, no `Any`, no new runtime behaviour.
 
 - **A predicate that narrows.**
@@ -95,7 +95,6 @@ cast, no `Any`, no new runtime behaviour.
     result the `TypeError` gave before.
   - `holdout/scoring.py`: each criterion's detail is built in a plain loop.
   - `charts.py`'s diverging neutral: bound once with `:=`.
-  - `research_sociomapping.py`: the usable answer computed once.
 - **A narrower type that was always true.**
   - `storage_settings.py`: a `TypeGuard` over `get_args(StorageBackend)`. It is the same check
     that raised before.
@@ -114,6 +113,12 @@ cast, no `Any`, no new runtime behaviour.
   CLAUDE.md keeps frozen except for a defect.
 - **`infrastructure/report_docx/signed_off_map_figure.py:432, 446 @ 03989975`.** An open PR
   (aia-sociomap-5) touches this file.
+- **`domain/research_sociomapping.py:192 @ 03989975`.** Metodika pins
+  `battery_sociomapping` by its source's SHA-256 (step `sociomapping/complete_cases` in
+  `domain/methodology/sociomapping.py`). A typing-only rewrite would move that pin, and moving a pin
+  is the methodology's decision, not a code-health one. The first push tried the rewrite;
+  `test_methodology.py::test_every_step_pin_matches_the_function_it_describes` caught it in CI, and
+  the rewrite was reverted.
 - **`infrastructure/source_reading.py:485 @ 03989975`.** xlrd ships no stubs
   (`pyproject.toml`, `ignore_missing_imports`), so any annotation of the sheet would be `Any`. The
   ignore says more honestly what is unchecked.
