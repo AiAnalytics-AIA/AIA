@@ -64,14 +64,20 @@ function useFocusRecovery(dialog: RefObject<HTMLDivElement | null>, modal: boole
         recoveryTarget(el).focus();
       }
     };
+    // A focusout from an element still in the page is the person moving focus away: nothing is
+    // held any more, so a later re-render that removes that element takes nothing back.
+    const onOut = (e: FocusEvent) => {
+      if (e.target instanceof Node && e.target.isConnected) held = null;
+      else recover();
+    };
     const watch = new MutationObserver(recover);
     el.addEventListener("focusin", onIn);
-    el.addEventListener("focusout", recover);
+    el.addEventListener("focusout", onOut);
     watch.observe(el, { childList: true, subtree: true });
     return () => {
       watch.disconnect();
       el.removeEventListener("focusin", onIn);
-      el.removeEventListener("focusout", recover);
+      el.removeEventListener("focusout", onOut);
     };
   }, [dialog, modal]);
 }

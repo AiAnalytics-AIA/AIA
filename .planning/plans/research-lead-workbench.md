@@ -1503,7 +1503,10 @@ Found in Sběr dat's keyboard audit, then swept over every frame control at 390 
    launcher's size moves from an inline style to `.rail__launch`, so the rule reaches it. From 640 px
    the prototype's density stands, above WCAG 2.2's 24 px.
 6. **Test.** The journey check above, at 390 with the frame closed, with the stage list open, and
-   with the conversation open.
+   with the conversation open. `lead_journey.mjs` measures "Zrušit odkaz" on the pointed element's
+   chip at 390 (review of #683: an inline 20 × 20 had beaten the rule, the launcher's pattern; it is
+   now `.refchip__clear`). `.btn` and `button.chip` (the held message's "Zkusit znovu") joined the
+   rule; no journey shows a held message, so that one is held by the CSS alone.
 
 The separator "Změnit poměr konverzace a artefaktu" was reported as taking focus with no outline.
 It does show focus: a 2 px signal line down its full height (`.split__handle:focus-visible::after`,
@@ -1525,5 +1528,6 @@ It does show focus: a 2 px signal line down its full height (`.split__handle:foc
    held focus is gone and focus is on the body, it focuses `recoveryTarget`: the composer while it
    takes text, else the log, else the dialog.
 6. **Test.** `Split.test.tsx` (four cases): to the composer; to the log when the composer is shut;
-   untouched when the conversation is closed or the person blurred it themselves; and
+   untouched when the conversation is closed or the person blurred it themselves, also when that
+   control unmounts later (review of #683: a real blur now drops what was held); and
    `recoveryTarget`'s order.

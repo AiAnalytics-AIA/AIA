@@ -586,12 +586,14 @@
 .card__actions { display: flex; align-items: center; justify-content: flex-end; gap: 8px; flex-wrap: wrap; }
 .act__card { padding: 8px 12px 10px 12px; }
 .act__card .card__facts { margin: 6px 0 8px 0; }
+.refchip__clear { width: 20px; height: 20px; }
 /* At a phone's width every control the frame owns is a 44 px target, as the shared controls' TOUCH
    is (input-interactions I11); from 640 px the prototype's density stands, above WCAG 2.2's 24 px. */
 @media (max-width: 639.98px) {
   .iconbtn { width: 44px; height: 44px; }
   .composer__send { width: 44px; height: 44px; border-radius: 22px; }
-  .btn--sm, .nav__current, .nav__stage, .shead__home, .skip { min-height: 44px; }
+  .btn, .btn--sm, button.chip, .linkchip, .follow__btn, .listbtn, .shead__pending, .nav__current, .nav__stage, .shead__home, .skip { min-height: 44px; }
+  .refchip__clear { flex: none; }
   .nav--sheet { height: 48px; }
 }
 }

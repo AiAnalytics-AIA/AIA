@@ -52,8 +52,15 @@ describe("focus recovery in the open drawer or sheet", () => {
     expect(document.activeElement).toBe(document.body);
     cleanup();
     bench(true);
-    screen.getByRole("button", { name: "Spustit úlohu" }).focus();
-    act(() => (document.activeElement as HTMLElement).blur());
+    const held = screen.getByRole("button", { name: "Spustit úlohu" });
+    held.focus();
+    act(() => held.blur());
+    await new Promise((r) => setTimeout(r, 20));
+    expect(document.activeElement).toBe(document.body);
+    // The button the person left unmounts later (a poll re-renders its card): nothing is taken
+    // back, so a phone's keyboard never pops up on its own (review of #683).
+    act(() => held.click());
+    await waitFor(() => expect(screen.queryByRole("button", { name: "Spustit úlohu" })).toBeNull());
     await new Promise((r) => setTimeout(r, 20));
     expect(document.activeElement).toBe(document.body);
   });

@@ -234,6 +234,9 @@ try {
   await page.locator("[id^=qedit_]").first().click();
   await page.getByRole("dialog", { name: "Vedoucí výzkumu" }).waitFor();
   await page.locator(".refchip").waitFor();
+  // Its clear button is a 44 px target at a phone's width, as every frame control is (I11).
+  const clear = await page.getByRole("button", { name: "Zrušit odkaz" }).boundingBox();
+  assert(clear && clear.width >= 44 && clear.height >= 44, `Zrušit odkaz is a 44 px target @390: ${JSON.stringify(clear)}`);
   await shot("390-picked");
   await page.getByRole("button", { name: "Zrušit odkaz" }).click();
   await page.keyboard.press("Escape");
