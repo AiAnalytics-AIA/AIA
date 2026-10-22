@@ -46,6 +46,8 @@ from aia_core.domain.evidence.report_lift import MODELLED_CLIENT_REPORT_LIFT
 from aia_core.domain.evidence.validation import method_status
 from aia_core.domain.fieldwork import MODELLED_DISCLOSURE, OriginKind, origin_kind
 from aia_core.domain.pipeline import fingerprint
+from aia_core.domain.report.client_gate import GateCode, GateRefusal, client_gate
+from aia_core.domain.report.document_model import read_document_payload
 from aia_core.domain.report.evidence import EvidenceLedger
 from aia_core.domain.report.model import (
     ArtifactSource,
@@ -411,12 +413,51 @@ def client_report_document(
         return None
     approved = [a for a in drafts if a.is_approved]
     docx = approved[-1] if approved else drafts[-1]
+    return docx, _document_of(stored, docx)
+
+
+def _document_of(stored: list[Artifact], docx: Artifact) -> Artifact | None:
+    """Among ``stored``, the newest document model beside exactly ``docx``."""
     models = [
         a
         for a in stored
         if a.artifact_type == CLIENT_REPORT_DOCUMENT_ARTIFACT_TYPE
         and a.status is ArtifactStatus.VALID
-        and a.metadata.get("run_id") == run_id
+        and a.metadata.get("run_id") == docx.metadata.get("run_id")
         and beside(a, docx)
     ]
-    return docx, (models[-1] if models else None)
+    return models[-1] if models else None
+
+
+class ClientGateRefused(Exception):
+    """The client deliverable may not be approved (RD0): every refusal, each by its block."""
+
+    def __init__(self, refusals: tuple[GateRefusal, ...]) -> None:
+        super().__init__("; ".join(f"{r.message} ({r.where})" for r in refusals))
+        self.refusals = refusals
+
+
+def require_client_gate(artifacts: ArtifactRepository, docx: Artifact) -> None:
+    """Refuse ``docx``, a stored client report, unless the document it was rendered from passes
+    the client deliverable's gate (RD0). A version with no stored document (stored before RD5a)
+    is not judged, so not passed: its next download stores the document beside it. Raises the
+    store's errors for a document that does not verify, and :class:`ClientGateRefused`."""
+    model = _document_of(
+        artifacts.list_for_stage(
+            project_id=docx.project_id, revision=docx.revision, stage_type=docx.stage_type
+        ),
+        docx,
+    )
+    if model is None:
+        raise ClientGateRefused(
+            (
+                GateRefusal(
+                    GateCode.UNRECORDED,
+                    "report",
+                    "verze nemá uložený dokument, brána ji nemůže posoudit; stáhněte ji znovu",
+                ),
+            )
+        )
+    refusals = client_gate(read_document_payload(artifacts.read(model.artifact_id)))
+    if refusals:
+        raise ClientGateRefused(refusals)

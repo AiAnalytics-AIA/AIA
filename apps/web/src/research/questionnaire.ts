@@ -7,6 +7,8 @@
 // save reason. questionnaire.parity.test.ts compares each with the original
 // under Node. Survey: .planning/plans/research-flow-rehome.md (PR B).
 
+import { tv } from "@/i18n/t";
+
 import { type Template, type Json, PROVIDER_FORCED, type ResearchProject, defaultsMerge } from "./model";
 import { keepPointLabels } from "./scale-labels";
 import type { Analysis } from "./store";
@@ -66,6 +68,17 @@ export function questionnaireCounts(p: ResearchProject): { questions: number; se
     questions: xs.reduce((n, x) => n + (x.type === "questions" ? (x.questions || []).length : 0), 0),
     sets: xs.filter((x) => x.type === "object_battery").length,
   };
+}
+
+/** A Czech count of `kind`, the word by its number: 1 otázka, 2–4 otázky, 0 and 5+ otázek. */
+export function countWords(kind: "questions" | "sets", n: number): string {
+  const form = n === 1 ? "one" : n >= 2 && n <= 4 ? "few" : "many";
+  return tv(`research.questionnaire.countWords.${kind}.${form}`, { n });
+}
+
+/** The questionnaire's counts in words: "4 otázky · 1 sledovaná sada". */
+export function countsWords(c: { questions: number; sets: number }): string {
+  return tv("research.questionnaire.editorCounts", { questions: countWords("questions", c.questions), sets: countWords("sets", c.sets) });
 }
 
 export type QuestionnairePath = "choose" | "upload" | "manual" | "ai";
@@ -331,6 +344,35 @@ export function removeSection(p: ResearchProject, si: number): ResearchProject {
   return withSections(p, sections(p).filter((_, i) => i !== si));
 }
 
+/**
+ * An undo of removeSection (input-interactions I6): `sec` put back at `si`, or last when fewer
+ * sections remain. Nothing when a section with its id is already there (the undo ran twice).
+ */
+export function restoreSection(p: ResearchProject, si: number, sec: Section): ResearchProject {
+  const xs = sections(p);
+  if (sec.id && xs.some((x) => x.id === sec.id)) return p;
+  const at = Math.min(Math.max(si, 0), xs.length);
+  return withSections(p, [...xs.slice(0, at), clone(sec), ...xs.slice(at)]);
+}
+
+/**
+ * An undo of removeQuestion: `q` put back at `qi` of its section, found by the section's id (a
+ * section without one: by its index while it is still `si`). Nothing when the section is gone, or
+ * when a question with its id is already there.
+ */
+export function restoreQuestion(p: ResearchProject, si: number, sectionId: string | undefined, qi: number, q: Question): ResearchProject {
+  const xs = sections(p);
+  const at = sectionId ? xs.findIndex((x) => x.id === sectionId) : si < xs.length && !xs[si].id ? si : -1;
+  if (at < 0 || xs[at].type !== "questions") return p;
+  const qs = xs[at].questions || [];
+  if (q.id && qs.some((x) => x.id === q.id)) return p;
+  return edit(p, (ys) => {
+    const list = ys[at].questions || [];
+    const i = Math.min(Math.max(qi, 0), list.length);
+    ys[at].questions = [...list.slice(0, i), clone(q), ...list.slice(i)];
+  });
+}
+
 export type SectionField = "title" | "purpose" | "object_question" | "familiarity_required";
 
 /** The section card's inline edits. */
@@ -401,7 +443,10 @@ export function applyImport(
     template,
   );
   project.ui_state.questionnaire_path = "manual";
-  return { project, toast: `Načteno: ${r.summary?.question_count} otázek · ${r.summary?.tracked_sets} sledovaných sad` };
+  // What was loaded, counted from the sections kept: a summary missing from the answer never prints
+  // "undefined". The unit wrote "otázek · sledovaných sad" whatever the number; the words here
+  // follow it (countWords), so the two read the same from 5 and at 0 and differ only where it erred.
+  return { project, toast: tv("research.questionnaire.imported", { counts: countsWords(questionnaireCounts(project)) }) };
 }
 
 export const BUILD_TITLE = "AI tvoří dotazník";
