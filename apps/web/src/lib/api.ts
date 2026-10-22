@@ -1495,8 +1495,13 @@ export const lead = {
   decideEdits: (studyId: string, turnId: string, body: { decision: "accept" | "dismiss"; indices: number[]; base_revision: number | null; auto?: boolean }) =>
     request<EditDecisionResult>("POST", `${studyPath(studyId)}/lead/turns/${enc(turnId)}/edits`, body),
   /** Approve a turn's prepared design job: spend limit, ledger and start in one transaction. */
-  approveRequest: (studyId: string, turnId: string, confirmCostUsd?: number) =>
-    request<RequestApproval>("POST", `${studyPath(studyId)}/lead/turns/${enc(turnId)}/request`, confirmCostUsd === undefined ? {} : { confirm_cost_usd: confirmCostUsd }),
+  /** `workspaceRevision`: the current working revision, sent only after a 409 stale_card and the
+   *  person's yes to running the card on the design as it is now (lead-orchestration LO10). */
+  approveRequest: (studyId: string, turnId: string, confirmCostUsd?: number, workspaceRevision?: number) =>
+    request<RequestApproval>("POST", `${studyPath(studyId)}/lead/turns/${enc(turnId)}/request`, {
+      ...(confirmCostUsd === undefined ? {} : { confirm_cost_usd: confirmCostUsd }),
+      ...(workspaceRevision === undefined ? {} : { workspace_revision: workspaceRevision }),
+    }),
   /** Keep or drop what a turn wants to remember for all of the researcher's work (once, in the ledger). */
   decideSelfUpdate: (studyId: string, turnId: string, decision: "accept" | "dismiss") =>
     request<SelfUpdateDecision>("POST", `${studyPath(studyId)}/lead/turns/${enc(turnId)}/self-update`, { decision }),

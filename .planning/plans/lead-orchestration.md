@@ -13,7 +13,7 @@ chunks:
   - "[x] LO9a. The worker contract, early (W0, the first deliverable of `research-lead-workbench` 11): `LeadWorkerSpec` as a type, one row per worker (id, closed task, context layer, data-class rule, capability, reservation, prompt id and pin, switch, card kind, result kind), with its fixture"
   - "[ ] LO9c. A results-worker job shape (W2, before LO9b): a workflow type and step kind keyed on (run_id, target), frozen inputs by artifact id and SHA-256, its own context builder and executor behind its own switch, sharing the worker row, prompt pin and usage ledger"
   - "[ ] LO9b. The three new workers as rows (W3): a `REPORT_WRITING` binding, result kinds and accept destinations, per-worker price and keys"
-  - "[ ] LO10. `approve_request` bound to the revision shown on its card, and a clean error where the 96 KB Lead context meets the 64 KB agent limit"
+  - "[x] LO10. `approve_request` bound to the revision shown on its card, and a clean error where the 96 KB Lead context meets the 64 KB agent limit"
   - "[ ] LO11. The Lead over time (M7): `researcher_lead_signals`, proposed updates the researcher approves each, a reader and rollback for Lead file revisions; no handover or admin read (D-32 to D-34); a departed member's Lead sealed, then deleted at the retention end (Q14)"
   - "[ ] LO12a. The route-class refusal says who fixes it (W0): on the job error, the Lead pane, source proposals and Progress, from the refusal codes that exist today, with a link to the runbook; static copy, no read of the route"
   - "[ ] LO12b. A pre-flight read of the AI route (W1): the worker publishes a composition record the API, Settings and the Lead pane read (shared with `deep-research-web-search#52`), and the new refusal reasons"
@@ -108,6 +108,35 @@ The three workers (map interpreter, report writer, straight-liner check) have no
 
 **LO10. `approve_request` bound to the revision shown on its card, and a clean error where the 96 KB Lead context meets the 64 KB agent limit**  
 `approve_request` submits whatever the working copy is at approval time, unlike `decide_edits`, which needs `base_revision`. Test: approving a card whose revision moved is refused with a message, not a 500.
+
+- **Landed** (`feature/lead-card-revision`).
+  - **The card's revision.** `ResearchLead.approve_request` reads the working revision before it
+    submits anything. The card is stale (`LeadCardStale`, 409 `stale_card`, details
+    `current_revision` and `turn_revision`) when the working copy was saved past the revision the
+    turn was written from. Saves that are only accepts of this turn's own edits do not count
+    (`_only_own_accepts`, from the `lead_edit` ledger rows' `workspace_revision`).
+  - Accepting what the card came with is part of the card. A person's save, or another turn's
+    accept, is not.
+  - A stale card starts only when the request names the current revision (`workspace_revision`),
+    the person's yes. The web asks once (`STALE_CARD_QUESTION`) and approves again naming it.
+    This is the knowledge approval's rule (F-K1: a stale edit applies only when the reviewer
+    names the current revision).
+  - Refusing outright was the other choice. It was rejected because re-asking the Lead is a paid
+    turn, and the person's own small edit would cost one.
+  - The working copy is read once, before the check, and that revision is the one submitted
+    (review of LO10). A save landing between the check and the submit makes the submit refuse
+    (409 `stale_revision`, nothing started); the job never runs on a revision nobody checked.
+  - **The 64 KB bound.** `context_snapshot` raises `AgentContextTooLarge` (a `ValueError`, so
+    the agent-jobs route's `invalid_agent_input` 422 still holds). The card's route answers 422
+    `agent_context_too_large` instead of a 500, and the pane says it in words.
+  - Tests:
+    - `apps/api/tests/test_research_lead_api.py`:
+      `test_a_card_whose_design_moved_waits_for_the_persons_yes_on_the_current_one`,
+      `test_accepting_the_cards_own_edits_leaves_it_approvable`,
+      `test_a_save_landing_after_the_check_does_not_change_what_the_job_runs_on`,
+      `test_a_study_too_large_for_a_design_job_is_refused_by_name_not_a_500`.
+    - `tools/ui_workbench/lead_stale_journey.mjs`: "a card whose design moved asks before it
+      starts, and on a yes starts on the current revision".
 
 **LO11. The Lead over time (M7): `researcher_lead_signals`, proposed updates the researcher approves each, a reader and rollback for Lead file revisions; no handover or admin read (D-32 to D-34); a departed member's Lead sealed, then deleted at the retention end (Q14)**  
 File revisions have no reader today (`revisions()` has no caller). Turns stay private (Q26). A Lead is never handed over and no admin reads another researcher's Lead files (the owner, 2026-10-20, D-32 to D-34; the earlier "admin read and handover" is withdrawn). Another member's ability to accept a proposal is **not** a Lead-lifecycle matter and is not decided here: Q16 makes proposals shared, and `working-copy-edit-ops#WCE6` builds it (gap G42).
