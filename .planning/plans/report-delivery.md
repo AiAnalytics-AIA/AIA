@@ -119,12 +119,16 @@ The codebook version, each code's count as an admitted claim with its suppressio
 ## Q69 (a): the Lead's study notes stay out of the draft report (the owner, 2026-10-22)
 
 "Even though it's a draft it should be as client ready as possible." No path that composes, stores,
-renders or approves a report reads the Lead's turns, its files or its notes (`study_lead_turns`,
-`researcher_leads`, `researcher_lead_revisions`, `researcher_lead_memories`): checked 2026-10-22, none did.
-Held by the import contract "no report path reads the Lead's notes (Q69)" (root `pyproject.toml`,
-`make layer_check`) and `packages/aia_core/tests/test_report_reads_no_lead_notes.py`, which refuses the
-tables by name in every report module; both shown to fail on a planted read. The Lead may still propose
-edits to the draft (Q56, `artifact-report#RPT9`); its notes never become the draft's text.
+renders or approves a report reads the Lead's turns, its files or its notes: their tables
+(`study_lead_turns`, `researcher_leads`, `researcher_lead_revisions`, `researcher_lead_memories`), their
+repositories, or the Lead's turn artifact (`research_lead_turn`, stored on the design project by
+`apps/executors/src/aia_executors/research_lead.py:318-345 @ 05e475b5`, which every report module could list).
+Checked 2026-10-22 @ 05e475b5: none did. Held by the import contract "no report path reads the Lead's notes (Q69)"
+(root `pyproject.toml`, `make layer_check`) and by
+`test_report_reads_no_lead_notes.py::test_the_import_contract_covers_every_report_module` and
+`::test_no_report_module_names_the_leads_notes`; each was shown to fail on a planted read or a dropped module.
+The API router is not a source (it serves the Lead's routes too and composes no report). The Lead may still
+propose edits to the draft (Q56, `artifact-report#RPT9`); its notes never become the draft's text.
 
 ## Open: owner clarifications
 
