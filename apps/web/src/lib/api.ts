@@ -6,7 +6,7 @@
 
 import type { RegisterEntry } from "@/lib/object-map-view";
 import type { BriefMaterials } from "@/lib/material-class";
-import type { StoredReportDocument } from "@/lib/artifacts/report";
+import type { Approval, StoredReportDocument } from "@/lib/artifacts/report";
 import { currentIdToken, loadConfig } from "@/lib/auth";
 import type { EditDecisionResult, LeadPreferences, LeadState, LeadTurn, RequestApproval, ResearcherLead, SelfUpdateDecision } from "@/lib/lead";
 export type { ResearcherLead as ResearcherLeadView } from "@/lib/lead";
@@ -1005,6 +1005,15 @@ export type Readiness = {
   answerability?: Answerability | null;
 };
 
+/** Readiness's fields, whichever revision it was read on. */
+export type ReadinessBody = Omit<Readiness, "design_revision_id">;
+/**
+ * Readiness on a revision of the study's working content, nothing submitted (working-copy-edit-ops
+ * WCE7a). Its answerability digest names no Design Revision: a start reads readiness again on the
+ * revision it runs and takes the acknowledgement from that.
+ */
+export type WorkingReadiness = ReadinessBody & { working_revision: number };
+
 export type PersonaSourceOption = { source: string; offered: boolean; reason: string | null; default: boolean };
 
 export type ResearchPhase = "QUEUED" | "RUNNING" | "WAITING" | "COMPLETED" | "FAILED" | "CANCELLED";
@@ -1034,6 +1043,8 @@ export type ResearchStep = {
   finished_at: string | null;
   failure_class: string | null;
   error_message: string | null;
+  /** The code the last attempt recorded beside its message (a gate's refusal); absent from an older API. */
+  error_reason?: string | null;
   artifact_id: string | null;
   data_origin: string | null;
   /** An analysis step's stored outcome: its step SUCCEEDED either way. `null` for other steps. */
@@ -1200,6 +1211,8 @@ export type ResearchReport = {
   /** As ReportVariant's: the day it was approved, and whether its file states its review. */
   approved_on?: string | null;
   stamped?: boolean | null;
+  /** Who approved it and when, from the ledger (report-delivery RD2); null for a draft. */
+  approval?: Approval | null;
   artifact_id?: string;
   sha256?: string;
   size_bytes?: number;
@@ -1235,6 +1248,9 @@ export const research = {
   /** `personaSource` assesses the design under that source of respondents; omitted, the deployment's default. */
   readiness: (studyId: string, revisionId: string, personaSource?: string) =>
     request<Readiness>("GET", `${studyPath(studyId)}/research/readiness${query({ design_revision_id: revisionId, persona_source: personaSource })}`),
+  /** Readiness on a working revision, as a submit of it would read it; nothing is written (WCE7a). */
+  workingReadiness: (studyId: string, workingRevision: number, personaSource?: string) =>
+    request<WorkingReadiness>("GET", `${studyPath(studyId)}/research/readiness/working${query({ working_revision: String(workingRevision), persona_source: personaSource })}`),
   /**
    * `confirmCostUsd` is the person's yes to the ceiling the server showed, when the study's limit asks for one.
    * `populationVersionId` runs over one of the study's client's materialized children instead of LIVE (P4d4c).
@@ -1340,6 +1356,7 @@ export const research = {
       review_state: "DRAFT_UNAPPROVED" | "APPROVED_INTERNAL";
       approved_on?: string | null;
       stamped?: boolean | null;
+      approval?: Approval | null;
       internal_only: true;
     }>(
       "POST", `${studyPath(studyId)}/research/runs/${enc(runId)}/report/approve`, { artifact_id: artifactId, note },
@@ -1355,7 +1372,7 @@ export type DeepResearchRun = {
   run_id: string; design_revision_id: string; preset: string; channels: string[];
   status: string; phase: ResearchPhase; is_terminal: boolean; needs_attention: boolean;
   retryable: boolean; created_at: string | null;
-  steps: { step_id: string; node_key: string; status: string; waiting_reason: string | null; error_message: string | null; started_at?: string | null }[];
+  steps: { step_id: string; node_key: string; status: string; waiting_reason: string | null; error_message: string | null; error_reason?: string | null; started_at?: string | null }[];
   actual_cost_usd: number | null;
   purpose?: string | null;
   target?: { kind: string; research_run_id?: string } | null;

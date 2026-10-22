@@ -177,6 +177,19 @@ px, Závislosti included. Reproduction: the journey's `390-dependencies-section.
 while it sits beside the editor (a container query). Test: a journey assertion that the section is
 not covered at 390 px.
 
+*Finding QF-2 (browser audit, 2026-10-22):* Dotazník writes every count in the genitive plural
+whatever the number, and the outline's kicker is English: "4 otázek · 1 sledovaných sad", "Blok 1 ·
+4 otázek", "GUIDED EDITOR", "měří jeden outcome" (`QuestionnaireStep.tsx:562,688 @ bfe6d15b`, the
+strings in `cs.ts`). The import's note prints "Načteno: undefined otázek" when the answer carries no
+summary (`questionnaire.ts:404 @ bfe6d15b`). Reproduction: the fixture study's Dotazník. Fix
+(fix/questionnaire-czech-counts): `countWords` / `countsWords`, the word by its number, and the
+import's note counted from the sections kept. Test: `questionnaire-counts.test.ts`.
+
+*Finding QF-3 (browser audit, 2026-10-22):* at 390 px the tracked set's name shrinks to 80 px
+("Sledovan…") beside its badge, count and Smazat, one row that never wraps
+(`QuestionnaireStep.tsx:922 @ bfe6d15b`). Fix: the row wraps and the name keeps 12rem. Test: the
+journey asserts the name is at least 160 px wide at every width (failed at 390 before the fix).
+
 **QST9. Journey** at 1440, 1100, 768 and 390 px:
 - an item edited in place;
 - the Lead focusing `question:<id>`;
@@ -223,6 +236,22 @@ reads it.
 > `null`, dokud ho nenastavíte) a `version` verze metodiky v platnosti. Dokud chybí kterákoli
 > z pěti cen, vrátí `null`. Jiný typ otázky se necení: Dotazník pak délku označí za neznámou
 > a s limitem ji neporovná.
+
+## Browser-audit findings, AI mode
+
+*Finding QF-4 (2026-10-22):* "Sestavit s AI" on a questionnaire that already has items answers
+the click with nothing. The view stays the editor (`questionnaire.ts:79 @ b6ac25c5`), and in the
+workbench the toolbar's optimize button is hidden too, so only the segment and a save move.
+Reproduction: the fixture study's Dotazník, click "Sestavit s AI". Fix (fix/questionnaire-ai-mode):
+a note says the AI will not build it anew and what it does instead; in the workbench, "Požádat
+Vedoucího" sends the Lead "Navrhni úpravy dotazníku." in words, and nothing starts from the stage.
+Tests: `QuestionnaireAiMode.workbench.test.tsx`, `QuestionnaireStep.test.tsx` (QF-4, QF-5).
+
+*Finding QF-5 (2026-10-22):* two sentences say what is not true. The AI card says "Provider/model
+můžete změnit přímo zde." (`QuestionnaireStep.tsx:257 @ b6ac25c5`), but AIA offers no provider choice.
+The preview says "technický editor je pod ní" (`QuestionnaireStep.tsx:453 @ b6ac25c5`), but the preview
+replaces the editor. Fix: the first is dropped; the second says the preview is the respondent's
+view, and that editing happens under Upravit. Test: `QuestionnaireStep.test.tsx`.
 
 ## Doc follow-up
 
