@@ -1,7 +1,7 @@
 ---
 status: in-progress
 chunks:
-  - "[ ] AUD1. Cílová skupina's contract as data: view operations, pointable ids (definition, filters, filter, subpanel, preview; assumption arrives with AUD4) and V2's interaction contract; the first Lead targets this screen has"
+  - "[x] AUD1. Cílová skupina's contract as data: view operations, pointable ids (definition, filters, filter, subpanel, preview; assumption arrives with AUD4) and V2's interaction contract; the first Lead targets this screen has"
   - "[ ] AUD2. The body as V2 draws it: Definice, Filtry populace as a table of factor, value and count, the LIVE version named, counts only"
   - "[x] AUD3. Each filter's own count: the audience preview answers a per-filter count beside the combined one, still counts only"
   - "[ ] AUD4. Předpoklady o cílové skupině: the assumption list with attached evidence, external and client knowledge labelled apart"
@@ -93,7 +93,7 @@ V2: `AudienceArt` (`prototypes/research-lead-v2/src/artifacts/SampleStages.tsx:1
 **AUD1. Contract.** `lib/artifacts/audience.ts`, and the target kinds added to `FOCUS_ID`.
 - Web: the screen marks exactly `audienceTargets` (its parts, each stored filter on its chip, each
   offered subpanel), and `audienceTarget` refuses a part, a filter or a subpanel it does not name.
-- Server (the integration coordinator's, `domain/research_lead.py`): an `audience:filter:` focus must
+- Server (the integration coordinator's, `domain/research_lead.py`, merged in #624): an `audience:filter:` focus must
   name a filter stored in the working copy the turn froze, or the current copy for a person's message
   focus; an `audience:subpanel:` focus a built-in subpanel; no catalogue read in the domain (#624: `target_refusal`,
   `audience_filter_not_stored`, `audience_subpanel_unknown`). Test: the server refuses an
