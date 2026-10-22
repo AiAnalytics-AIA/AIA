@@ -29,6 +29,12 @@ from docx.table import _Cell
 
 from aia_core.domain.fieldwork import MODELLED_DISCLOSURE
 from aia_core.domain.report import numbers
+from aia_core.domain.report.control_tags import (
+    base_n_tag,
+    interval_tag,
+    suppressed_tag,
+    value_tag,
+)
 from aia_core.domain.report.copy import t
 from aia_core.domain.report.evidence import PrintGrade
 from aia_core.domain.report.model import (
@@ -96,7 +102,7 @@ def caption(
         p.add_run(" (", style=S.GRADE)
         if base_ref:
             # The base n is the ref's own number: locked and tagged ``<ref>#n`` (RPT8a, P4).
-            with locked_inline(p, f"{base_ref}#n"):
+            with locked_inline(p, base_n_tag(base_ref)):
                 p.add_run(base_text(ctx, base_ref), style=S.GRADE)
         rest = "; ".join(basis)
         p.add_run(f"{'; ' if base_ref and rest else ''}{rest})", style=S.GRADE)
@@ -109,9 +115,12 @@ def source_line(
     removed: int,
     notes: tuple[str, ...],
     *,
+    owner: str,
     indicative: bool = False,
 ) -> None:
-    """ "Zdroj: …", what was removed and why, the notes, then what the dagger means.
+    """ "Zdroj: …", what was removed and why, the notes, then what the dagger means. The count
+    removed is computed from the evidence, so it is locked, tagged ``count:suppressed:<owner>``
+    (the table's or figure's id; RPT8a, P13).
 
     One block: every line but the last keeps with the next, so under a figure, whose picture
     keeps with the first, no line of it opens a page apart from the rest
@@ -121,7 +130,10 @@ def source_line(
     p.add_run(f"{t('source')}: ", style=S.STRONG)
     p.add_run(source)
     if removed:
-        p.add_run(f"{t('separator')}{t('suppressed_rows')}: {removed}.")
+        p.add_run(f"{t('separator')}{t('suppressed_rows')}: ")
+        with locked_inline(p, suppressed_tag(owner)):
+            p.add_run(str(removed))
+        p.add_run(".")
     lines = [p]
     for note in notes:
         n = container.add_paragraph(style=S.SOURCE_KEPT)
@@ -141,12 +153,13 @@ def table_notes(
     removed: int,
     notes: tuple[str, ...],
     *,
+    owner: str,
     indicative: bool = False,
 ) -> None:
     """The table's source line and notes, in its notes row (``ooxml.notes_row``)."""
     cell = notes_row(table)
     empty = cell.paragraphs[0]
-    source_line(cell, source, removed, notes, indicative=indicative)
+    source_line(cell, source, removed, notes, indicative=indicative, owner=owner)
     cell._tc.remove(empty._p)
 
 
@@ -191,7 +204,7 @@ def _write_cell(
     # The cell's number with its marks, tagged with the ref, and its interval below, tagged
     # ``<ref>#interval``: each a locked control (RPT8a, P2), inline, so the cell's other text stays
     # editable.
-    with locked_inline(p, value.ref):
+    with locked_inline(p, value_tag(value.ref)):
         # The unit is in the header when the column names one; never twice.
         p.add_run(
             numbers.number(row.value, row.decimals)
@@ -206,7 +219,7 @@ def _write_cell(
             write_mark(ctx, p, value.ref)
     if row.interval is not None and shows_interval(ctx, value.ref, value.with_interval):
         under = cell.add_paragraph(style=kept_style(S.TABLE_NUMBER, keep))
-        with locked_inline(under, f"{value.ref}#interval"):
+        with locked_inline(under, interval_tag(value.ref)):
             under.add_run(numbers.interval(row.interval, row.decimals, row.unit), style=S.GRADE)
     return indicative
 
@@ -268,6 +281,8 @@ def render_table(ctx: RenderContext, container: Container, block: Table) -> None
                 ctx, cell, column, value, strong=trow.emphasis, marks=grade is None, keep=keep
             )
 
-    table_notes(table, block.source, removed, block.notes, indicative=any_indicative)
+    table_notes(
+        table, block.source, removed, block.notes, indicative=any_indicative, owner=block.id
+    )
     if block.landscape:
         layout.running(ctx, layout.end_section(ctx, layout.last_paragraph(ctx)))

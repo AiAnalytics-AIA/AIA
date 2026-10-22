@@ -18,6 +18,7 @@ from docx.shared import Mm
 from PIL import Image
 
 from aia_core.domain.report import numbers
+from aia_core.domain.report.control_tags import figure_tag
 from aia_core.domain.report.copy import t
 from aia_core.domain.report.model import Figure, SociomapFigure
 from aia_core.domain.research_sociomap import MethodologyStatus, require_client_facing
@@ -25,6 +26,7 @@ from aia_core.infrastructure.report_docx import layout
 from aia_core.infrastructure.report_docx.charts import TEXT_WIDTH_MM, draw_chart
 from aia_core.infrastructure.report_docx.context import Container, RenderContext
 from aia_core.infrastructure.report_docx.images import add_vector_image
+from aia_core.infrastructure.report_docx.ooxml import locked_inline
 from aia_core.infrastructure.report_docx.styles import S
 from aia_core.infrastructure.report_docx.tables import caption, source_line, uniform_grade
 
@@ -53,17 +55,20 @@ def render_figure(ctx: RenderContext, container: Container, block: Figure) -> No
     )
     drawn = draw_chart(ctx, block.chart, landscape=block.landscape)
     p = container.add_paragraph(style=S.FIGURE)
-    add_vector_image(
-        p,
-        ctx.svgs,
-        svg=drawn.svg,
-        png=drawn.png,
-        width_mm=drawn.width_mm,
-        height_mm=drawn.height_mm,
-        alt=block.alt,
-        name=f"{t('figure')} {number}",
-    )
-    source_line(container, block.source, drawn.omitted, block.notes)
+    # The chart draws its values into the image: the picture locked, tagged ``figure:<id>``; its
+    # refs are the stored figure's (RPT8a, P5).
+    with locked_inline(p, figure_tag(block.id)):
+        add_vector_image(
+            p,
+            ctx.svgs,
+            svg=drawn.svg,
+            png=drawn.png,
+            width_mm=drawn.width_mm,
+            height_mm=drawn.height_mm,
+            alt=block.alt,
+            name=f"{t('figure')} {number}",
+        )
+    source_line(container, block.source, drawn.omitted, block.notes, owner=block.id)
     if block.landscape:
         layout.running(ctx, layout.end_section(ctx, layout.last_paragraph(ctx)))
 
@@ -98,12 +103,13 @@ def render_sociomap(ctx: RenderContext, container: Container, block: SociomapFig
         px_w, px_h = im.size
     width = TEXT_WIDTH_MM
     p = container.add_paragraph(style=S.FIGURE)
-    shape = p.add_run().add_picture(
-        BytesIO(block.image_png), width=Mm(width), height=Mm(width * px_h / px_w)
-    )
+    with locked_inline(p, figure_tag(block.id)):
+        shape = p.add_run().add_picture(
+            BytesIO(block.image_png), width=Mm(width), height=Mm(width * px_h / px_w)
+        )
     doc_pr = shape._inline.docPr
     doc_pr.set("descr", block.alt)
     doc_pr.set("name", f"{t('figure')} {number}")
     for side in ("distT", "distB", "distL", "distR"):
         shape._inline.set(side, "0")
-    source_line(container, block.source, 0, ())
+    source_line(container, block.source, 0, (), owner=block.id)

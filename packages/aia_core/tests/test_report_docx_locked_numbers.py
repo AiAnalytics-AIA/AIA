@@ -8,24 +8,45 @@ intervals (P2) and a caption's base n (P4); the prose around them stays editable
 
 from __future__ import annotations
 
+import dataclasses
 import io
 import re
 import zipfile
 from typing import Any
 
+import pytest
+import report_samples
 from lxml import etree
 from test_report_docx_render import _meta
 from test_report_docx_tables import region_table
 
+from aia_core.domain.report.control_tags import (
+    APPENDIX_COLUMNS,
+    ControlTag,
+    appendix_tag,
+    base_n_tag,
+    figure_tag,
+    interval_tag,
+    parse_tag,
+    suppressed_tag,
+    value_tag,
+)
 from aia_core.domain.report.model import (
     Callout,
     CalloutKind,
+    EvidenceAppendix,
+    Figure,
+    Kpi,
+    NumberCell,
     Paragraph,
     ReportDocument,
     Section,
+    SociomapFigure,
+    Table,
     Text,
     Value,
 )
+from aia_core.domain.report.validation import cited_refs
 from aia_core.infrastructure.document_text import extract_text
 from aia_core.infrastructure.report_docx.lint import lint_docx
 from aia_core.infrastructure.report_docx.renderer import DocxRenderer
@@ -115,6 +136,8 @@ def test_every_printed_ledger_number_is_locked_and_tagged_with_its_ref(report_le
         "trust_brno#interval",
         "trust_ostrava#interval",
         "trust_total#n",
+        # The rows suppression removed, counted in the notes row (P13).
+        "count:suppressed:tab-regions",
     }
     # The suppressed cell's ref prints nowhere, so it is tagged nowhere.
     assert "trust_zlin" not in tags
@@ -161,3 +184,88 @@ def test_a_past_report_read_as_a_client_source_keeps_its_locked_numbers(report_l
     assert reading.reader == "docx/2"
     read = " ".join(segment.text for segment in reading.segments).replace("\u00a0", " ")
     assert "Bance důvěřuje 42,5" in read and "48,2" in read
+
+
+def _printed(doc: ReportDocument) -> tuple[set[str], set[str], set[str], set[str], bool]:
+    """What the stored document prints as a number: the refs of its values and number cells and
+    of its KPI tiles (not suppressed), its figures' and tables' ids, and whether it has an evidence
+    appendix."""
+    refs: set[str] = set()
+    kpis: set[str] = set()
+    figures: set[str] = set()
+    tables: set[str] = set()
+    appendix = False
+
+    def walk(obj: Any) -> None:
+        nonlocal appendix
+        if isinstance(obj, (Value, NumberCell, Kpi)):
+            if not doc.ledger.is_suppressed(obj.ref):
+                refs.add(obj.ref)
+                if isinstance(obj, Kpi):
+                    kpis.add(obj.ref)
+        elif isinstance(obj, (Figure, SociomapFigure)):
+            figures.add(obj.id)
+        elif isinstance(obj, Table):
+            tables.add(obj.id)
+        elif isinstance(obj, EvidenceAppendix):
+            appendix = True
+        if isinstance(obj, (tuple, list)):
+            for item in obj:
+                walk(item)
+        elif dataclasses.is_dataclass(obj) and not isinstance(obj, type):
+            for f in dataclasses.fields(obj):
+                if f.name != "ledger":
+                    walk(getattr(obj, f.name))
+
+    walk(doc.sections)
+    return refs, kpis, figures, tables, appendix
+
+
+@pytest.mark.parametrize("kind", report_samples.KINDS)
+def test_every_sample_kind_locks_every_ledger_number_it_prints(
+    kind: str, report_ledger: Any
+) -> None:
+    """Every kind of report (client, final, internal, documentation): each value, number cell
+    and KPI tile is a locked control tagged with its ref, a KPI tile's base line too; each
+    figure's picture is locked; with an evidence appendix, every cell of each cited ref's row;
+    a suppressed count names its table or figure; and every tag parses and names a source the
+    document holds. The map's own numbers (a Sociomap caption's fit) are part 3 (RPT8a)."""
+    doc = report_samples.build(kind, report_ledger)
+    data = DocxRenderer().render(doc)
+    assert lint_docx(data) == []
+    with zipfile.ZipFile(io.BytesIO(data)) as z:
+        body = etree.fromstring(z.read("word/document.xml"))
+    controls = _controls(body)
+    assert all(lock == "sdtContentLocked" for _tag, lock, _text in controls)
+    cited = set(cited_refs(doc))
+    printed, kpis, figures, tables, appendix = _printed(doc)
+    tags = {tag for tag, _l, _t in controls}
+    for tag in tags:
+        parsed = parse_tag(tag)
+        assert parsed is not None, tag
+        if parsed.kind in ("value", "interval", "base_n", "appendix"):
+            assert parsed.name in cited, tag
+        elif parsed.kind == "figure":
+            assert parsed.name in figures, tag
+        else:
+            assert parsed.name in tables | figures, tag
+    assert {value_tag(r) for r in printed} <= tags, printed - tags
+    assert {base_n_tag(r) for r in kpis} <= tags
+    assert {figure_tag(f) for f in figures} <= tags
+    if appendix:
+        assert {appendix_tag(r, c) for r in cited for c in APPENDIX_COLUMNS} <= tags
+
+
+def test_the_tag_grammar_reads_back_what_it_writes() -> None:
+    """One grammar for the renderer and the save census (RPT8b): every tag it writes parses to
+    what it names, and a tag outside it is refused, never guessed."""
+    assert parse_tag(value_tag("q2.pct.2")) == ControlTag("value", "q2.pct.2")
+    assert parse_tag(interval_tag("q2.pct.2")) == ControlTag("interval", "q2.pct.2")
+    assert parse_tag(base_n_tag("q2")) == ControlTag("base_n", "q2")
+    assert parse_tag(appendix_tag("q2", "value")) == ControlTag("appendix", "q2", "value")
+    assert parse_tag(figure_tag("fig-1")) == ControlTag("figure", "fig-1")
+    assert parse_tag(suppressed_tag("tab-regions")) == ControlTag("suppressed", "tab-regions")
+    for wrong in ("", "figure:", "count:suppressed:", "appendix:q2#nope", "q2#other", "x:y"):
+        assert parse_tag(wrong) is None, wrong
+    with pytest.raises(ValueError):
+        suppressed_tag("")
