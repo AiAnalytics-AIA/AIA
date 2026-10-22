@@ -500,6 +500,10 @@ export function focusSelector(target: string): string {
   return `[data-aia="${css(target)}"], [id="${css(target)}"]`;
 }
 
+/** Sent with the target when a Lead `focus` finds nothing on screen: a screen that keeps the target
+ *  in a closed window (the map's Správa objektů) opens it, and the next look finds it. */
+export const LEAD_REVEAL = "aia:lead-reveal";
+
 const PLAN_LABELS: Record<string, string> = {
   sets: "Návrh: sledované sady",
   tracked_sets: "Návrh: sledované sady",

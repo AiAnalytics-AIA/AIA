@@ -25,7 +25,7 @@ import { guardedNavigate } from "@/lib/guarded-navigation";
 import { rovingIndex } from "@/lib/roving";
 import { useDismiss } from "../ui/parts";
 import {
-  LEAD_REASON_WORDS, ANALYSIS_RETRY_MOVED_QUESTION, STALE_CARD_QUESTION, applyLeadEdit, autoAcceptPlan, describeEdit, editRefusalWords, editStage, focusSelector, revertTextEdit, targetLabel, targetOfElement, textEditInverse,
+  LEAD_REASON_WORDS, ANALYSIS_RETRY_MOVED_QUESTION, STALE_CARD_QUESTION, LEAD_REVEAL, applyLeadEdit, autoAcceptPlan, describeEdit, editRefusalWords, editStage, focusSelector, revertTextEdit, targetLabel, targetOfElement, textEditInverse,
   type LeadEdit, type LeadRequest, type LeadTurn, type LeadView, type ResearcherLead,
 } from "@/lib/lead";
 import {
@@ -483,7 +483,10 @@ export function Workbench({ frame, step, store, memory, save, inspector, reload,
             }
             el.classList.add("just");
             setTimeout(() => el.classList.remove("just"), 2300);
-          } else if (tries++ < 10) setTimeout(find, 150);
+          } else {
+            if (!tries) window.dispatchEvent(new CustomEvent(LEAD_REVEAL, { detail: v.target }));
+            if (tries++ < 10) setTimeout(find, 150);
+          }
         };
         find();
       }

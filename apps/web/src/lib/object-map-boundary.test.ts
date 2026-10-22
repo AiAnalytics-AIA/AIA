@@ -15,6 +15,7 @@ const FILES = [
   "components/rehome/research/ObjectMapTerrain.tsx",
   "components/rehome/research/ObjectMapMarks.tsx",
   "components/rehome/research/ObjectMapPanel.tsx",
+  "components/rehome/research/ObjectMapWindows.tsx",
 ];
 
 /** The source without comments, so a comment that names a formula does not trip the guard. */
