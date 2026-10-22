@@ -45,6 +45,8 @@ __all__ = [
     "PART_LAYERS",
     "LeadLayer",
     "context_manifest",
+    "manifest_view",
+    "omitted_page",
 ]
 
 MANIFEST_VERSION: Final = 1
@@ -144,23 +146,35 @@ PART_LAYERS: Final[Mapping[str, str]] = {
 }
 
 
-def _ids(entry: Mapping[str, Any]) -> tuple[list[str], list[dict[str, str]], int]:
+def _ids(entry: Mapping[str, Any]) -> tuple[list[str], list[dict[str, str]], int | None]:
     """A layer's included ids, its omitted ids with their reason, and the count of what it
-    left out that it cannot name."""
+    left out that it cannot name: ``None`` where the layer drops without counting (the newest
+    runs and notes are kept, the rest never counted; finding F4), never a 0 nobody counted."""
     name = entry["layer"]
     if name == "lead":
-        return [str(n["memory_id"]) for n in entry.get("notes") or ()], [], 0
+        return [str(n["memory_id"]) for n in entry.get("notes") or ()], [], None
     if name == "knowledge":
         included = [str(k["item_id"]) for k in entry.get("items") or ()]
         omitted = [{"id": str(i), "reason": "over_budget"} for i in entry.get("omitted_ids") or ()]
         return included, omitted, 0
     if name == "runs":
-        return [str(r["run_id"]) for r in entry.get("runs") or ()], [], 0
+        return [str(r["run_id"]) for r in entry.get("runs") or ()], [], None
     if name == "view":
         focus = entry.get("focus")
         if isinstance(focus, Mapping) and focus.get("id"):
             return [str(focus["id"])], [], 0
         return [], [], 0
+    if name == "memory":
+        # The digest's lines by their ledger row, or a waiting proposal by its turn and index;
+        # what it left out is the count it froze (lead_digest's left_out).
+        digest = entry.get("digest") or {}
+        lines = [*digest.get("named", ()), *digest.get("undecided", ()), *digest.get("latest", ())]
+        left = digest.get("left_out") or {}
+        return (
+            [str(x["ledger"]) if "ledger" in x else f"{x['turn']}#{x.get('index')}" for x in lines],
+            [],
+            int(left.get("decisions") or 0) + int(left.get("proposals") or 0),
+        )
     if name == "conversation":
         # Earlier turns reach the context without their ids; their count is what is known.
         return [], [], int(entry.get("omitted_turns") or 0)
@@ -213,7 +227,7 @@ def context_manifest(
             "included": included[:MANIFEST_IDS_MAX],
             "included_count": len(included),
             "omitted": omitted[:MANIFEST_IDS_MAX],
-            "omitted_count": len(omitted) + unnamed,
+            "omitted_count": None if unnamed is None else len(omitted) + unnamed,
         }
         if name in classes:
             data_class, sources = classes[name]
@@ -226,3 +240,42 @@ def context_manifest(
         "ceiling_bytes": CONTEXT_MAX_BYTES,
         "layers": layers,
     }
+
+
+def manifest_view(context: Mapping[str, Any]) -> dict[str, Any]:
+    """The manifest as the researcher reads it (Co Vedoucí vidí, LC2): every declared layer in
+    :data:`LEAD_LAYERS`' order, read from the context the turn froze.
+
+    A layer the context does not hold (a turn frozen before the layer existed, or a layer that
+    was off for it) is ``recorded: False`` with its declared bound, never an empty layer: an
+    empty layer would say the turn saw nothing there, which nobody recorded. Without classes:
+    the class a turn was sent as is not the browser's (LC6 shows it).
+    """
+    manifest = context_manifest(context)
+    rows = {row["layer"]: row for row in manifest["layers"]}
+    layers = [
+        {**rows[spec.name], "recorded": True}
+        if spec.name in rows
+        else {
+            "layer": spec.name,
+            "recorded": False,
+            "ceiling_bytes": spec.ceiling_bytes,
+            "bound": spec.bound,
+            "over_policy": spec.over_policy,
+        }
+        for spec in LEAD_LAYERS
+    ]
+    return {**manifest, "layers": layers}
+
+
+def omitted_page(
+    context: Mapping[str, Any], layer_name: str, *, after: int = 0, limit: int = MANIFEST_IDS_MAX
+) -> tuple[list[dict[str, str]], int]:
+    """The ids ``layer_name`` left out, from position ``after``, at most ``limit`` of them, and
+    how many it left out by id in all: the rest of what the manifest lists the first
+    :data:`MANIFEST_IDS_MAX` of. A layer the context does not hold left nothing out by id."""
+    for entry in context["layers"]:
+        if entry["layer"] == layer_name:
+            _, omitted, _ = _ids(entry)
+            return omitted[after : after + limit], len(omitted)
+    return [], 0
