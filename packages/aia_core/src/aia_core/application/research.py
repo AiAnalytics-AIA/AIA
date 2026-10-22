@@ -53,7 +53,7 @@ from ..domain.methodology.pins import (
 )
 from ..domain.money import ThresholdVerdict, threshold_verdict
 from ..domain.panel_persona import persona_allowlist
-from ..domain.pipeline import fingerprint
+from ..domain.pipeline import StageImpact, changed_fields, fingerprint, stage_impacts
 from ..domain.population import (
     CZ_LIVE,
     CZ_SYNTHETIC_V17,
@@ -109,7 +109,7 @@ from ..infrastructure.methodology_repository import methodology_in_force_for_stu
 from ..infrastructure.prompt_repository import PromptRefused, PromptResolver
 from ..infrastructure.scope_repository import ScopeRepository
 from ..infrastructure.storage import ArtifactStore
-from ..infrastructure.study_design_repository import StudyDesignRepository
+from ..infrastructure.study_design_repository import DesignRevisionNotFound, StudyDesignRepository
 from ..infrastructure.study_workspace_repository import StudyWorkspaceRepository
 from ..infrastructure.workflow_repository import (
     BudgetWaitNotLiftable,
@@ -143,6 +143,7 @@ __all__ = [
     "ResearchStepNotFound",
     "RunOutlook",
     "RunReservations",
+    "WorkingImpact",
     "WorkingRevisionNotFound",
     "readiness_in_force",
     "report_pdf_key",
@@ -381,6 +382,18 @@ class FrozenDataset:
 
 class WorkingRevisionNotFound(LookupError):
     """The Study's working project never wrote this revision, or it holds no content."""
+
+
+@dataclass(frozen=True, slots=True)
+class WorkingImpact:
+    """A working revision beside a Design Revision: the top-level fields that differ and every
+    pipeline stage's impact, in pipeline order (``domain.pipeline.stage_impacts``)."""
+
+    working_revision: int
+    design_revision_id: str
+    design_revision: int
+    changed: tuple[str, ...]
+    stages: dict[str, StageImpact]
 
 
 @dataclass(frozen=True, slots=True)
@@ -1252,6 +1265,31 @@ class ResearchRuns:
             design_revision_id=None,
             persona_source=persona_source,
             fieldwork_source=fieldwork_source,
+        )
+
+    def impact(self, working_revision: int, design_revision_id: str | None = None) -> WorkingImpact:
+        """What each stage of the design ``design_revision_id`` (the newest Design Revision when
+        omitted) would need going to working revision ``working_revision`` (plan
+        working-copy-edit-ops WCE7): ``domain.pipeline.stage_impacts``. Reads both, writes nothing.
+        A working revision the Study never saved is :class:`WorkingRevisionNotFound`; a Design
+        Revision not of this Study, or none at all, ``DesignRevisionNotFound``."""
+        working = StudyWorkspaceRepository(self.session).at_revision(self.scope, working_revision)
+        if working is None or working.content is None:
+            raise WorkingRevisionNotFound(working_revision)
+        designs = self._designs()
+        if design_revision_id is None:
+            latest = designs.latest()
+            if latest is None:
+                raise DesignRevisionNotFound("no design revision")
+            design_revision_id = latest.revision_id
+        revision = designs.get(design_revision_id)
+        before = designs.content(revision.revision_id)
+        return WorkingImpact(
+            working_revision=working_revision,
+            design_revision_id=revision.revision_id,
+            design_revision=revision.revision,
+            changed=tuple(changed_fields(before, working.content)),
+            stages=stage_impacts(before, working.content),
         )
 
     def _assess(
