@@ -318,3 +318,62 @@ def test_local_development_identity_opens_a_session_too(settings: Settings) -> N
         with factory() as session:
             assert session.scalar(select(func.count()).select_from(AccessAuditRow)) >= 1
         Base.metadata.drop_all(application.state.engine)
+
+
+# --------------------------------------------------------------------------- #
+# Deployed: the __Host- cookie alone (report-editor-hosting F1)
+# --------------------------------------------------------------------------- #
+
+
+@pytest.fixture
+def deployed(app: FastAPI, settings: Settings) -> Any:
+    """The session routes answering as in a deployed environment. The rest of the app keeps
+    the test settings, since a deployed configuration refuses SQLite and the test identity."""
+    from aia_api.dependencies import get_app_settings
+
+    app.dependency_overrides[get_app_settings] = lambda: settings.model_copy(
+        update={"env": Environment.DEVELOP}
+    )
+    yield
+    app.dependency_overrides.pop(get_app_settings)
+
+
+def test_a_deployed_session_cookie_is_host_prefixed(
+    anonymous: TestClient, world: Any, deployed: Any
+) -> None:
+    response = anonymous.post(SESSION, headers={"Authorization": f"Bearer {world.tokens['owner']}"})
+    assert response.status_code == 204
+    cookie = response.headers["set-cookie"]
+    assert cookie.startswith(f"__Host-aia_session={world.tokens['owner']};")
+    # What the prefix needs the browser to see, or it drops the cookie: Secure, Path=/, no Domain.
+    assert "Secure" in cookie and "Path=/" in cookie and "Domain" not in cookie
+    # Sign-out clears it, and the unprefixed cookie a browser kept from before the prefix.
+    cleared = [c.split("=", 1)[0] for c in anonymous.delete(SESSION).headers.get_list("set-cookie")]
+    assert cleared == ["__Host-aia_session", "aia_session"]
+
+
+def test_a_deployed_gate_reads_only_the_host_prefixed_cookie(
+    anonymous: TestClient, world: Any, deployed: Any
+) -> None:
+    """A script on docs.<hostname> can plant ``aia_session; Domain=<hostname>`` but never a
+    __Host- cookie: deployed, the planted name is no way in, the prefixed one is."""
+    token = world.tokens["owner"]
+    planted = {"X-Forwarded-Method": "GET", "Accept": HTML, "Cookie": f"aia_session={token}"}
+    refused = anonymous.get(GATE, headers=planted)
+    assert refused.status_code == 302 and refused.headers["location"].startswith("/login")
+    own = {"X-Forwarded-Method": "GET", "Cookie": f"__Host-aia_session={token}"}
+    assert anonymous.get(GATE, headers=own).status_code == 204
+    # Beside AIA's own, the planted name is ignored.
+    beside = {**own, "Cookie": f"aia_session={world.tokens['viewer']}; __Host-aia_session={token}"}
+    assert anonymous.get(GATE, headers=beside).status_code == 204
+
+
+def test_a_session_cookie_sent_twice_is_no_session(
+    anonymous: TestClient, world: Any, deployed: Any
+) -> None:
+    """A nameless cookie planted for the parent domain is sent as its value alone, so it can
+    arrive as a second __Host-aia_session; Starlette would keep the last. Neither counts."""
+    token, other = world.tokens["owner"], world.tokens["viewer"]
+    twice = f"__Host-aia_session={token}; __Host-aia_session={other}"
+    refused = anonymous.get(GATE, headers={"X-Forwarded-Method": "GET", "Cookie": twice})
+    assert refused.status_code == 401
