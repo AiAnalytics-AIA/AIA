@@ -8,6 +8,7 @@
 import { type ReactNode, createContext, useContext, useState } from "react";
 
 import { t } from "@/i18n/t";
+import { Switch } from "../../ui/Switch";
 
 const KEY = "aia.settings.technical";
 const TechnicalContext = createContext(false);
@@ -45,18 +46,5 @@ export function Technical({ children }: { children: ReactNode }) {
 
 /** The one switch, in the tab header. */
 export function TechnicalSwitch({ on, onChange }: { on: boolean; onChange: (on: boolean) => void }) {
-  return (
-    <button
-      type="button"
-      role="switch"
-      aria-checked={on}
-      onClick={() => onChange(!on)}
-      className="inline-flex shrink-0 items-center gap-2 rounded-sm px-1 text-sm text-ink-muted hover:text-ink focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus-ring"
-    >
-      <span aria-hidden="true" className={`relative inline-block h-5 w-[34px] shrink-0 rounded-pill transition-colors ${on ? "bg-signal" : "bg-border-strong"}`}>
-        <i className={`absolute top-0.5 block size-4 rounded-full bg-surface-raised transition-[left] ${on ? "left-4" : "left-0.5"}`} />
-      </span>
-      {t("aia.settings.panel.technicalSwitch")}
-    </button>
-  );
+  return <Switch on={on} onChange={onChange} label={t("aia.settings.panel.technicalSwitch")} showLabel />;
 }
