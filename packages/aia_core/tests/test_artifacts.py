@@ -970,6 +970,66 @@ def test_an_approval_is_read_back_from_the_ledger_when_it_was_recorded(
         other.approval_of(artifact.artifact_id)
 
 
+def test_an_approval_names_who_approved_and_under_which_rule(
+    session: Session, scoped: Any, store: InMemoryArtifactStore, project: Any
+) -> None:
+    """RD2: the ledger row says by whom and whether they approved their own work; a draft has
+    no record, and another study cannot read it."""
+    researcher = ArtifactRepository(
+        session, scoped.scope(user="researcher", study="primary"), store
+    )
+    artifact, _ = researcher.put_json(
+        project_id=project.project_id,
+        revision=1,
+        stage_type="REPORT",
+        artifact_type="CLIENT_REPORT",
+        payload={"draft": True},
+    )
+    reviewer = ArtifactRepository(session, scoped.scope(user="reviewer", study="primary"), store)
+    assert reviewer.approval_record(artifact.artifact_id) is None
+    reviewer.approve(artifact.artifact_id, note="Fiktivní poznámka")
+    record = reviewer.approval_record(artifact.artifact_id)
+    assert record is not None
+    assert record.approver_user_id == scoped.users["reviewer"]
+    assert record.producer_user_id == scoped.users["researcher"]
+    assert record.self_approved is False
+    assert record.note == "Fiktivní poznámka"
+    assert record.approver_name  # the store knows the person
+    assert record.decided_at == reviewer.approval_of(artifact.artifact_id)
+    other = ArtifactRepository(
+        session, scoped.scope(user="other_lead", study="other_client"), store
+    )
+    with pytest.raises(ArtifactNotFound):
+        other.approval_record(artifact.artifact_id)
+
+
+def test_an_approver_the_store_no_longer_knows_is_named_by_nothing(
+    session: Session, scoped: Any, store: InMemoryArtifactStore, project: Any
+) -> None:
+    reviewer = ArtifactRepository(session, scoped.scope(user="reviewer", study="primary"), store)
+    artifact, _ = reviewer.put_json(
+        project_id=project.project_id,
+        revision=1,
+        stage_type="REPORT",
+        artifact_type="CLIENT_REPORT",
+        payload={"draft": True},
+    )
+    reviewer.approve(artifact.artifact_id)
+    from sqlalchemy import update
+
+    from aia_core.infrastructure.tables import ApprovalDecisionRow
+
+    session.execute(
+        update(ApprovalDecisionRow)
+        .where(ApprovalDecisionRow.subject_id == artifact.artifact_id)
+        .values(approver_user_id="USR-gone")
+    )
+    record = reviewer.approval_record(artifact.artifact_id)
+    assert record is not None and record.approver_user_id == "USR-gone"
+    assert record.approver_name is None  # unknown, never a guess
+    assert record.self_approved is True  # the reviewer produced it
+
+
 def test_producer_is_taken_from_scope_not_from_an_argument(
     session: Session, scoped: Any, store: InMemoryArtifactStore, project: Any
 ) -> None:

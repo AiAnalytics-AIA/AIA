@@ -26,6 +26,7 @@ the caller's Lead; its files change only through chat, by the Lead's ``self_upda
 
 from __future__ import annotations
 
+import json
 from collections.abc import Callable, Mapping, Sequence
 from dataclasses import dataclass, field
 from datetime import UTC, datetime, timedelta
@@ -33,6 +34,7 @@ from typing import Any, Final
 
 from sqlalchemy.orm import Session
 
+from ..domain.approval_ledger import ApprovalSubject
 from ..domain.design import DESIGN_PROJECT_OWNER
 from ..domain.lead_commands import MatchedCommand, match_command
 from ..domain.research_agents import ResearchAction, design_material, knowledge_entries
@@ -58,6 +60,7 @@ from ..domain.research_lead import (
     notes_layer,
     readiness_layer,
     stale_files,
+    target_refusal,
 )
 from ..domain.research_template import research_template
 from ..domain.scope import OrganizationContext, Permission, Study, StudyContext
@@ -72,6 +75,7 @@ from ..infrastructure.researcher_lead_repository import (
     ResearcherLeadRepository,
 )
 from ..infrastructure.scope_repository import ScopeRepository
+from ..infrastructure.storage import ArtifactStore
 from ..infrastructure.study_design_repository import StudyDesignRepository
 from ..infrastructure.study_lead_repository import StudyLeadRepository
 from ..infrastructure.study_workspace_repository import (
@@ -79,14 +83,16 @@ from ..infrastructure.study_workspace_repository import (
     WorkspaceConflict,
 )
 from ..infrastructure.workflow_repository import BudgetWaitNotLiftable, WorkflowRepository
+from .analysis_results import SourcesRefused, _external_context
 from .lead_chat_start import RunStartSettings, approve_chat_start, chat_start_decisions
-from .research import ResearchAgentJobs, readiness_in_force
+from .research import ResearchAgentJobs, ResearchRuns, readiness_in_force
 from .workflows import start_workflow
 
 __all__ = [
     "GREETING_WINDOW",
     "LeadAlreadyHatched",
     "LeadBusy",
+    "LeadCardStale",
     "LeadContextTooLarge",
     "LeadDisabled",
     "LeadEditsStale",
@@ -226,6 +232,19 @@ class LeadTurnStale(LeadEditsStale):
         self.turn_revision = turn_revision
 
 
+class LeadCardStale(Exception):
+    """A card approved after the working copy moved past the revision its turn was written from
+    (lead-orchestration LO10): the job would run on a design the card was not prepared for.
+    Approved again naming the current revision, it starts on that one."""
+
+    reason = "stale_card"
+
+    def __init__(self, current_revision: int | None, turn_revision: int | None) -> None:
+        super().__init__("the working content changed since the Lead prepared this card")
+        self.current_revision = current_revision
+        self.turn_revision = turn_revision
+
+
 class LeadRejected(ValueError):
     """A turn that cannot be stored as asked. ``reason`` is a stable word."""
 
@@ -330,6 +349,8 @@ def _view(
             base["request_decision"] = {
                 "status": "approved",
                 "run_id": decisions["request"].get("run_id"),
+                # The job was already started for this design by an earlier approval (LO5).
+                "reused": bool(decisions["request"].get("reused")),
             }
         return base
     if decisions:
@@ -448,6 +469,9 @@ class ResearchLead:
     scope: StudyContext
     #: The API's ``ai_research_lead_enabled``: off, a message is refused, never queued.
     enabled: bool = False
+    #: With the API's ``ai_analysis_external_context`` on, the store a turn reads the Study's
+    #: newest Design Research bundle from (evidence-integrity 7); ``None``: no external context.
+    external_store: ArtifactStore | None = None
     clock: Callable[[], datetime] = field(default=lambda: datetime.now(UTC))
 
     def _turns(self) -> StudyLeadRepository:
@@ -483,7 +507,7 @@ class ResearchLead:
             self._workflows(), [t.turn_id for t in turns if t.command is not None]
         )
         for turn_id, done in started.items():
-            decisions[turn_id] = {"request": {"run_id": done["run_id"]}}
+            decisions[turn_id] = {"request": {"run_id": done["run_id"], "reused": done["reused"]}}
         views = []
         for turn in turns:
             run = runs.get(turn.run_id) if turn.run_id else None
@@ -587,6 +611,9 @@ class ResearchLead:
             # Revision: the turn is frozen from that revision, and names it, so an automatic
             # accept of its text edits is not refused as written from an older copy.
             content, analysis, workspace_revision = self._working_content()
+        # Against the copy this turn is frozen with, read once: a focus valid on an earlier read
+        # could name a filter another tab removed before the freeze (Codex on #624).
+        self._focus_shown(focus_, content)
         stored: list[LeadTurn] = []
         person: LeadTurn | None = None
         if kind == "message":
@@ -676,7 +703,8 @@ class ResearchLead:
         self.scope.require(Permission.RUN_WORKFLOW)
         self.scope.require_open_study()
         message, focus_ = self._checked(kind="message", stage=stage, text=text, focus=focus)
-        _content, _analysis, workspace_revision = self._working_content()
+        content, _analysis, workspace_revision = self._working_content()
+        self._focus_shown(focus_, content)
         turn = self._turns().append(
             actor="person",
             kind="message",
@@ -879,6 +907,7 @@ class ResearchLead:
         reservation_usd: float | None,
         run_start: RunStartSettings | None = None,
         wallet_enabled: bool = False,
+        workspace_revision: int | None = None,
     ) -> dict[str, Any]:
         """A person approves the paid job a Lead turn prepared, and it starts (ADR 0026
         decision 7).
@@ -895,7 +924,11 @@ class ResearchLead:
         the stored turn says (:func:`_model_prepared`), so with the Lead switched off it is
         refused (:class:`LeadDisabled`, Q42) before anything is written; it waits until the
         Lead is on again. A card approved before the switch-off answers with its job, as any
-        repeated approval does. Its ceiling is the design job's
+        repeated approval does. The card is bound to the working revision its turn was written
+        from (LO10): when anything but this turn's own accepted edits has saved the working copy
+        since, it is refused (:class:`LeadCardStale`) unless ``workspace_revision`` names the
+        current revision, the person's yes to running it on the design as it is now. Its
+        ceiling is the design job's
         reservation (``reservation_usd``: a primary and one repair). At or above the study's
         spend limit it needs ``confirm_cost_usd`` at least the ceiling
         (:class:`CostConfirmationRequired`); with a limit and no reservation configured it is
@@ -948,6 +981,11 @@ class ResearchLead:
         # is submitted, created, written or held.
         if _model_prepared(turn) and not self.enabled:
             raise LeadDisabled("the Research Lead is switched off; its card waits until it is on")
+        # Read once: the revision checked is the one submitted, so a save landing after the
+        # check leaves the next card stale and never runs this job on an unchecked design.
+        content, _analysis, current = self._working_content()
+        if workspace_revision != current and not self._only_own_accepts(turn, current):
+            raise LeadCardStale(current, turn.workspace_revision)
 
         # The confirmation threshold's one rule, the job start's own (lead-orchestration LO15):
         # asked here before the design is submitted, and again by the start, which records the
@@ -963,10 +1001,9 @@ class ResearchLead:
                 "confirmed_usd": confirm_cost_usd,
             }
 
-        content, _analysis, workspace_revision = self._working_content()
         revision = self._submit_design(
             content,
-            workspace_revision,
+            current,
             source_stage=_SOURCE_STAGE.get(request.action, "questionnaire"),
         )
         started = jobs.start(
@@ -992,6 +1029,20 @@ class ResearchLead:
         }
 
     # -- helpers ----------------------------------------------------------------
+
+    def _only_own_accepts(self, turn: LeadTurn, current: int | None) -> bool:
+        """Whether every save of the working copy since ``turn`` was written is an accept of
+        this turn's own edits: accepting what a card came with does not make it stale."""
+        since = turn.workspace_revision or 0
+        if current is None or current <= since:
+            return True
+        prefix = f"{turn.turn_id}:"
+        own = {
+            json.loads(entry.comment or "{}").get("workspace_revision")
+            for entry in self._workflows().ledger({ApprovalSubject.LEAD_EDIT})
+            if entry.subject_id.startswith(prefix) and entry.decision == "accept"
+        }
+        return all(r in own for r in range(since + 1, current + 1))
 
     @staticmethod
     def _checked(
@@ -1021,6 +1072,20 @@ class ResearchLead:
                     reason="invalid_lead_turn",
                 )
         return message, focus_
+
+    @staticmethod
+    def _focus_shown(focus: Mapping[str, str] | None, content: Mapping[str, Any]) -> None:
+        """A person's focus names what ``content``, the working copy the turn is stored with,
+        shows (artifact-audience AUD1): an audience filter it does not store is refused by
+        name, never sent to the model."""
+        if focus is None:
+            return
+        reason = target_refusal(focus["id"], content)
+        if reason is not None:
+            raise LeadRejected(
+                f"the focus {focus['id']!r} names nothing the working copy shows ({reason})",
+                reason="invalid_lead_turn",
+            )
 
     def _working_content(self) -> tuple[dict[str, Any], dict[str, Any] | None, int | None]:
         working = StudyWorkspaceRepository(self.session).content(self.scope)
@@ -1125,7 +1190,23 @@ class ResearchLead:
             ],
             view={"kind": kind, "stage": stage, "focus": focus, "message": message},
             conversation=_conversation(history),
+            external=self._external(),
         )
+
+    def _external(self) -> dict[str, Any] | None:
+        """The newest Design Research bundle's public findings, pinned and seal-verified as the
+        analysis reads them; ``None`` when switched off or the Study has none. A bundle that does
+        not read is said so in the layer, never read as no context and never stopping the turn."""
+        if self.external_store is None:
+            return None
+        pin = ResearchRuns(self.session, self.scope).design_research_pin()
+        if pin is None:
+            return None
+        try:
+            lines = _external_context(self.session, self.scope, self.external_store, pin)
+        except SourcesRefused as refused:
+            return {"pin": pin, "lines": [], "unavailable": refused.reason}
+        return {"pin": pin, "lines": list(lines)}
 
 
 def _model_prepared(turn: LeadTurn) -> bool:

@@ -33,7 +33,8 @@ from sqlalchemy.orm import Session
 
 from aia_core.application.scope import AuthenticatedPrincipal, ScopeResolver
 from aia_core.application.workflows import StartedRun, start_workflow
-from aia_core.domain.knowledge import KnowledgeKind
+from aia_core.domain.knowledge import PROVENANCE_DATASETS, KnowledgeKind
+from aia_core.domain.licence_determinations import SYNTHETIC_FIXTURE_DATASET
 from aia_core.domain.scope import (
     ClientStatus,
     OrganizationContext,
@@ -90,6 +91,21 @@ SEED_PROJECT_CONTENT: Final[dict[str, Any]] = {
 # real company, brand or person -- each with research, a simulation, approved
 # knowledge and one pending update, so every area of the client workspace has
 # something true to show on develop. Each tuple is (slug, name, kind, status).
+#: The kinds whose seeded material stands for data (CR-4): each records the fictional fixture
+#: dataset as its lineage, so a design job's licence gate reads what it came from. All the seed
+#: writes is invented by AIA from no source data, the fixture determination's own basis.
+_SEEDED_DATASET_KINDS: Final = frozenset(
+    {KnowledgeKind.DATASET, KnowledgeKind.ARTIFACT, KnowledgeKind.FINDING}
+)
+
+
+def _seed_provenance(kind: KnowledgeKind) -> dict[str, Any]:
+    provenance: dict[str, Any] = {"seed": True}
+    if kind in _SEEDED_DATASET_KINDS:
+        provenance[PROVENANCE_DATASETS] = [SYNTHETIC_FIXTURE_DATASET]
+    return provenance
+
+
 SEED_WORKSPACES: Final[dict[str, dict[str, Any]]] = {
     "horizont-mobility": {
         "name": "Horizont Mobility (fiktivní)",
@@ -434,7 +450,7 @@ def _seed_workspaces(
         for kind, title, summary in spec["knowledge"]:
             if title in have or title in proposed:
                 continue
-            provenance: dict[str, Any] = {"seed": True}
+            provenance = _seed_provenance(kind)
             if kind is KnowledgeKind.FINDING and delivered is not None:
                 provenance["study_id"] = delivered.study_id
             p = knowledge.propose(
@@ -455,7 +471,7 @@ def _seed_workspaces(
                 kind=pending[1],
                 title=pending[2],
                 summary=pending[3],
-                provenance={"seed": True},
+                provenance=_seed_provenance(pending[1]),
             )
             fresh = True
     return out, fresh

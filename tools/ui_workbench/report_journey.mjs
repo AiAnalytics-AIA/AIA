@@ -105,6 +105,17 @@ try {
     const ids = await article.locator("[data-aia]").evaluateAll((els) => els.map((e) => e.getAttribute("data-aia")));
     assert.equal(new Set(ids).size, ids.length, `@${width}: no two elements share a data-aia`);
     assert(ids.every((id) => id.startsWith("report:")), `@${width}: every target is the report's own kind`);
+    // Záznam pokrytí (RPT4): beside the article, never in it; one line per output the stored
+    // manifest says no section read, and a line on the research questions (recorded or not).
+    // The client report is a modelled run's alone (RD3): the workbench's fictional run offers none.
+    assert.equal(await page.locator("[data-report-kind]").count(), 0, `@${width}: no client report for a fictional run`);
+    const record = page.getByRole("region", { name: /Záznam pokrytí/ });
+    await record.waitFor({ timeout: 10000 });
+    assert.equal(await article.locator("[data-report-coverage]").count(), 0, `@${width}: the record is outside the text`);
+    const unread = doc.unread ?? [];
+    assert.equal(await record.locator('li[data-coverage="output"]').count(), Math.max(1, unread.length), `@${width}: one line per output the manifest says no section read`);
+    assert(await record.locator('li[data-coverage="question"]').count() > 0, `@${width}: the research questions have their line`);
+    await record.screenshot({ path: join(out, `${width}-report-coverage.png`) });
     await noOverflow(`report @${width}`);
     await page.screenshot({ path: join(out, `${width}-report.png`) });
 
@@ -118,7 +129,33 @@ try {
     await drawer.waitFor({ state: "detached", timeout: 10000 });
   }
   check("the stored draft in the pane at 1440, 1100, 768 and 390: sections in print order with their ids, every chip a held ref with its stored text, none suppressed, every data-aia unique and report:, no overflow");
+  check("no client report offered for the fictional run; Záznam pokrytí beside the draft at every width: the research questions, each output no section read, outside the text");
   check("a number chip opens its claim in the inspector and Escape closes it, at every width");
+
+  // Approval asks first, naming the stored version (input-interactions B22); "Zrušit" approves
+  // nothing. The draft stays a draft, so the journey can run again; a draft approved by someone
+  // else on this workbench is said by name, not waited out (run on `workbench.py up --fresh`).
+  for (const width of [1440, 390]) {
+    await page.setViewportSize({ width, height: 900 });
+    await page.goto("about:blank");
+    await page.goto(`${base}/app/clients/${client}/research/${study}/results#report`);
+    const approve = page.getByRole("button", { name: "Schválit pro interní použití" });
+    const approvedAlready = page.getByText(/^Stav: Schváleno/);
+    await approve.or(approvedAlready).first().waitFor({ timeout: 60000 });
+    if (await approvedAlready.count()) throw new Error("the fixture run's internal report is already approved: rerun on `python tools/ui_workbench/workbench.py up --fresh`");
+    const before = writes.filter((w) => w.path.endsWith("/report/approve")).length;
+    await approve.click();
+    const dialog = page.getByRole("dialog");
+    await dialog.waitFor({ timeout: 10000 });
+    assert.match(await dialog.innerText(), /Schválit interní zprávu, uloženou verzi ART-[0-9a-f]{16} \(DOCX[^)]*\)\?/, `@${width}: the question names the version and its format`);
+    assert.equal(await page.evaluate(() => document.activeElement?.textContent), "Zrušit", `@${width}: the safe choice holds the focus`);
+    await noOverflow(`approval dialog @${width}`);
+    await page.screenshot({ path: join(out, `${width}-approval-dialog.png`) });
+    await dialog.getByRole("button", { name: "Zrušit" }).click();
+    await dialog.waitFor({ state: "hidden", timeout: 10000 });
+    assert.equal(writes.filter((w) => w.path.endsWith("/report/approve")).length, before, `@${width}: Zrušit approves nothing`);
+  }
+  check("approval asks first, naming the stored version and its format, the focus on Zrušit, which approves nothing, at 1440 and 390");
 
   const paid = writes.filter((w) => /\/research\/runs$|\/agent-jobs$|\/deep-research\/runs|\/lead\/turns\/[^/]+\/request$/.test(w.path));
   assert.deepEqual(paid, [], "nothing paid started");
