@@ -2272,8 +2272,22 @@ export const cs = {
         },
       },
       condition:
-        "Otázka má podmínku zobrazení převzatou z 18.6.6 („{condition}“). AIA zatím neumí položit otázku jen těm, kdo na ni mají odpovídat, a běh s podmínkou nespustí: podmínku odeberte (otázku pak dostane každý), nebo otázku smažte.",
+        "Otázka má podmínku zobrazení převzatou z 18.6.6 („{condition}“), které AIA nerozumí, a běh s ní nespustí. Odebraná podmínka znamená, že otázku dostane každý.",
       removeCondition: "Odebrat podmínku",
+      // WCE13 (c): a question's display condition, edited at the question.
+      conditionEdit: {
+        add: "Podmínka zobrazení",
+        source: "Zobrazit podle odpovědi na otázku",
+        answers: "Zobrazit těm, kdo odpověděli",
+        save: "Uložit podmínku",
+        cancel: "Zrušit",
+        noAnswer: "Vyberte aspoň jednu odpověď.",
+        edit: "Upravit podmínku",
+        again: "Nastavit znovu",
+        shown: "Zobrazí se jen těm, kdo u {n} („{text}“) odpověděli {answers}.",
+        notRouted: "AIA zatím neumí otázku položit jen jim, proto Kontrola běh s podmínkou nespustí.",
+        refused: "Podmínka neplatí: {reason}",
+      },
       // productization PC6: what accepting a questionnaire proposal replaces.
       replacement: {
         title: "Co se stane s dotazníkem",
