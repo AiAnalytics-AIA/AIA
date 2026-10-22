@@ -2,7 +2,7 @@
 status: in-progress
 chunks:
   - "[x] DSN1. Návrh's contract as data: view operations, pointable ids (rq, objective, hypothesis, set, assumption) and V2's interaction contract, in research-lead-workbench 14's and 16's tables"
-  - "[ ] DSN2. Research questions with their coverage on the working revision: measures, items, comparison and gaps from research_trace, pokryto / částečně / mezera by the trace's own verdict"
+  - "[x] DSN2. Research questions with their coverage on the working revision: measures, items, comparison and gaps from research_trace, pokryto / částečně / mezera by the trace's own verdict"
   - "[ ] DSN3. The narrative as items: problem summary, objectives, hypotheses and comparable measurements edited in place and autosaved, ProposalEditor and MeasurementEditor retired"
   - "[x] DSN3b. Select-to-comment on part of a narrative item, beside its direct in-place editing through the store, with stable item ids and the Lead's edit ops kept (the product owner, Q68 (b), 2026-10-22)"
   - "[ ] DSN4. Ve zprávě: each research question's report chapter and the analysis module answering it, from the newest run's stored report model"
@@ -135,6 +135,14 @@ když are not built. What stays is code-derived: measures, items, comparison, an
   "Návrh: Výzkumné otázky a jejich pokrytí"). Stays open for WCE7's working-revision coverage, the
   per-question `rq:<id>` target (WCE1's stable ids) and V2's "Celý řetěz" (needs `expand_chain` in
   `ARTIFACTS.design`).
+- Done (2026-10-22, `feature/design-coverage-working`): `DesignCoverage` reads readiness on the
+  working revision (`GET …/research/readiness/working`, WCE7) through `useSampleReadiness`: a
+  waiting edit saved first, nothing submitted, read again when the revision moves
+  (`PlanStep.test.tsx` "reads the coverage again once a research question's edit is saved"). It
+  never flushes a save and re-reads only when the research questions, their comparisons or the
+  questionnaire changed (`design-coverage.ts` `coverageInputs`), so a comment's save costs no
+  readiness. The per-question `rq:<id>` target is on the narrative's items (#702); V2's "Celý
+  řetěz" is DSN4's.
 
 **DSN3. The narrative as items.**
 - Replaces `ProposalEditor` and `MeasurementEditor`'s explicit save (A30, A33) with autosaved items.

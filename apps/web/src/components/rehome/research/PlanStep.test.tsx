@@ -36,6 +36,8 @@ const ANALYSIS = {
 /** The readiness limits in force (RQC9): what a variant's n is held to. */
 const LIMITS_PATH = "/api/v1/studies/STU-1/research/limits";
 const LIMITS = { methodology_version: "aia-readiness-1", version: null, sample_size: { min: 20, max: 10000 } };
+/** Návrh's coverage reads readiness on the working revision (DSN2); every Návrh test answers it. */
+const WORKING_READINESS = "/api/v1/studies/STU-1/research/readiness/working";
 
 type Call = { url: string; body: Record<string, unknown> | null };
 let calls: Call[] = [];
@@ -49,7 +51,7 @@ function unitStub(analysis: unknown = ANALYSIS, over: Record<string, (b: unknown
       const u = String(url);
       const body = init?.body ? JSON.parse(String(init.body)) : null;
       calls.push({ url: u, body });
-      const answers: Record<string, (b: unknown) => unknown> = { [LIMITS_PATH]: () => LIMITS, ...over };
+      const answers: Record<string, (b: unknown) => unknown> = { [LIMITS_PATH]: () => LIMITS, [WORKING_READINESS]: () => ({ working_revision: 3, research_trace: null, question_outlook: [] }), ...over };
       const answer = native(u.split("?")[0], init?.method ?? "GET", body) ?? ws.answer(u.split("?")[0], init?.method ?? "GET", body) ?? answers[u.split("?")[0]]?.(body);
       if (answer === undefined) return new Response(JSON.stringify({ code: "not_found", message: "No such resource." }), { status: 404 });
       return answer instanceof Response ? answer : new Response(JSON.stringify(answer), { status: 200 });
@@ -447,16 +449,16 @@ describe("direct proposal editing", () => {
   });
 });
 
-// artifact-design DSN2: each research question with its coverage, read from the newest Design
-// Revision's readiness (a GET; nothing is submitted, started or paid).
+// artifact-design DSN2: each research question with its coverage, read on the working revision
+// (GET …/research/readiness/working, WCE7): nothing is submitted, started or paid, and nothing saved
+// outside Návrh's own autosave.
 describe("Návrh: Výzkumné otázky a jejich pokrytí", () => {
   const REVISIONS = "/api/v1/studies/STU-1/design/revisions";
-  const READINESS = "/api/v1/studies/STU-1/research/readiness";
+  const WORKING = "/api/v1/studies/STU-1/research/readiness/working";
   const RQS = ["Kolik lidí nápoj zkusí?", "Proč by ho nekoupili?", "Nová otázka?"];
   const WITH_RQS = { ...PROJECT, research_plan: { ...ANALYSIS, research_questions: RQS } };
-  const rev = (n: number, workspace: number) => ({ revision_id: `DR-${n}`, study_id: "STU-1", revision: n, content_sha256: "x", parent_revision: null, source_stage: "run", created_by: "u", created_at: "2026-10-21T10:00:00Z", workspace_revision: workspace });
-  const readiness = {
-    design_revision_id: "DR-2",
+  const readiness = (revision: number) => ({
+    working_revision: revision,
     question_outlook: [{ question_id: "q_try", text: "Zkusil byste nápoj?", section_id: "s1", battery_id: null, verdict: "ANSWERABLE", reasons: [] }],
     research_trace: {
       linked: true, dangling: [],
@@ -465,54 +467,66 @@ describe("Návrh: Výzkumné otázky a jejich pokrytí", () => {
         { text: RQS[1], measures: [], verdict: "UNANSWERABLE", reasons: ["unmeasured"] },
       ],
     },
-  };
+  });
   const section = async () => screen.findByRole("region", { name: "Výzkumné otázky a jejich pokrytí" });
-  // The native fixture answers these GETs with nothing; these tests' answers go in front of it.
-  const stub = (routes: Record<string, () => unknown>) => {
-    unitStub(ANALYSIS, {}, WITH_RQS);
+  const read = (revision: number) => calls.filter((c) => c.url.startsWith(WORKING) && c.url.includes(`working_revision=${revision}`));
+  // The native fixture answers no working readiness; this test's answer goes in front of it.
+  const stub = (analysis: unknown = ANALYSIS) => {
+    const ws = unitStub(analysis, {}, WITH_RQS);
     const inner = globalThis.fetch;
     vi.stubGlobal("fetch", vi.fn(async (url: RequestInfo | URL, init?: RequestInit) => {
-      const answer = (init?.method ?? "GET") === "GET" ? routes[String(url).split("?")[0]] : undefined;
-      if (!answer) return inner(url, init);
+      if ((init?.method ?? "GET") !== "GET" || String(url).split("?")[0] !== WORKING) return inner(url, init);
       calls.push({ url: String(url), body: null });
-      return new Response(JSON.stringify(answer()), { status: 200 });
+      return new Response(JSON.stringify(readiness(Number(new URL(String(url), "http://x").searchParams.get("working_revision"))), null), { status: 200 });
     }));
+    return ws;
   };
 
-  it("shows each research question with the trace's status, its items linked to Dotazník and its gaps", async () => {
-    stub({ [REVISIONS]: () => ({ items: [rev(1, 1), rev(2, 3)] }), [READINESS]: () => readiness });
+  it("shows each research question with the working copy's status, its items linked to Dotazník and its gaps", async () => {
+    stub();
     render(<ResearchScreen step="plan" frame={TEST_FRAME} />);
     const s = await section();
-    await within(s).findByText(/Podle revize návrhu 2, která odpovídá této pracovní verzi/);
-    // The newest revision's readiness is read, never another's.
-    expect(calls.some((c) => c.url.startsWith(READINESS) && c.url.includes("design_revision_id=DR-2"))).toBe(true);
+    await within(s).findByText(/Podle pracovní kopie, revize 3/);
+    // Read on the working revision on screen (WCE7b), never on a submitted Design Revision.
+    expect(read(3)).toHaveLength(1);
     const items = within(s).getAllByRole("listitem").filter((li) => li.parentElement?.tagName === "OL");
     expect(items.map((li) => li.querySelector("p")?.textContent)).toEqual(RQS);
     expect(within(items[0]).getAllByText("pokryto").length).toBeGreaterThan(0);
-    const link = within(items[0]).getByRole("link", { name: "Zkusil byste nápoj?" });
-    expect(link.getAttribute("href")).toMatch(/\/questionnaire#qedit_q_try$/);
+    expect(within(items[0]).getByRole("link", { name: "Zkusil byste nápoj?" }).getAttribute("href")).toMatch(/\/questionnaire#qedit_q_try$/);
     expect(within(items[1]).getByText("mezera")).toBeTruthy();
     expect(within(items[1]).getByText("Žádná položka dotazníku ji neměří.")).toBeTruthy();
-    // A question the revision does not hold is not checked: unknown, never pokryto.
+    // A question the trace does not hold is not checked: unknown, never pokryto.
     expect(within(items[2]).getByText("neznámé")).toBeTruthy();
-    expect(within(items[2]).getByText(/v revizi 2 není/)).toBeTruthy();
     // Nothing was submitted or started from here.
     expect(calls.filter((c) => c.body !== null && (c.url.startsWith(REVISIONS) || c.url.includes("/research/runs")))).toEqual([]);
   });
 
-  it("says the copy moved since the revision, and links to the check before a run", async () => {
-    stub({ [REVISIONS]: () => ({ items: [rev(2, 1)] }), [READINESS]: () => readiness });
+  it("reads the coverage again once a research question's edit is saved, not for an edit it does not read, and submits no design", async () => {
+    const ws = stub(null);
     render(<ResearchScreen step="plan" frame={TEST_FRAME} />);
-    const s = await section();
-    await within(s).findByText(/Návrh se od ní změnil/);
-    expect(within(s).getByRole("link", { name: "Zkontrolovat před spuštěním" }).getAttribute("href")).toMatch(/\/run$/);
+    await within(await section()).findByText(/Podle pracovní kopie, revize 3/);
+    const edit = (label: string, value: string) => {
+      fireEvent.click(screen.getByRole("button", { name: new RegExp(`^Upravit: ${label}`) }));
+      const field = screen.getByRole("textbox", { name: label });
+      fireEvent.change(field, { target: { value } });
+      fireEvent.keyDown(field, { key: "Enter", ctrlKey: true });
+    };
+    // A hypothesis is not what the coverage reads: it is saved, and the coverage is not recomputed.
+    edit("Hypotéza 1", "Silnější varianta prohraje.");
+    await waitFor(() => expect(ws.saves.length).toBe(1));
+    // A research question is: once its save lands, the coverage is read on that revision.
+    edit("Výzkumná otázka 3", "Kdo nápoj doporučí?");
+    await within(await section()).findByText(/Otázky nebo dotazník se od ní změnily/);
+    await waitFor(() => expect(ws.saves.length).toBe(2));
+    await within(await section()).findByText(/Podle pracovní kopie, revize 5\. /);
+    expect(read(4)).toEqual([]);
+    expect(read(5)).toHaveLength(1);
+    expect(calls.filter((c) => c.body !== null && c.url.startsWith(REVISIONS))).toEqual([]);
   });
 
-  it("says when no revision exists yet, and reads no readiness", async () => {
-    stub({ [REVISIONS]: () => ({ items: [] }) });
+  it("says when the working copy cannot be compiled into a run", async () => {
+    unitStub(ANALYSIS, { [WORKING]: () => ({ working_revision: 3, research_trace: null, question_outlook: [] }) }, WITH_RQS);
     render(<ResearchScreen step="plan" frame={TEST_FRAME} />);
-    const s = await section();
-    await within(s).findByText(/Návrh zatím nemá revizi/);
-    expect(calls.some((c) => c.url.startsWith(READINESS))).toBe(false);
+    expect(await within(await section()).findByText(/se nedá sestavit do běhu/)).toBeTruthy();
   });
 });
