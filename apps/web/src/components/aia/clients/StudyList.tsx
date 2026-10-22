@@ -93,8 +93,10 @@ function StudyTable({ clientId, studies, research }: { clientId: string; studies
               <tr className="border-b border-border bg-surface-sunken text-left text-[11px] font-semibold uppercase tracking-[0.04em] text-ink-muted">
                 <th scope="col" className="px-4 py-2">{t("aia.studies.columns.study")}</th>
                 <th scope="col" className="px-4 py-2">{t("aia.studies.columns.status")}</th>
-                {showKnowledge ? <th scope="col" className="px-4 py-2">{t("aia.studies.columns.brought")}</th> : null}
-                <th scope="col" className="px-4 py-2 text-right">{t("aia.studies.columns.modified")}</th>
+                {/* Below sm the row is the study and its status: what it brought waits on Přehled and the Znalosti tab's
+                    count, and the list is ordered by when it changed, so the row fits a phone. */}
+                {showKnowledge ? <th scope="col" className="hidden px-4 py-2 sm:table-cell">{t("aia.studies.columns.brought")}</th> : null}
+                <th scope="col" className="hidden px-4 py-2 text-right sm:table-cell">{t("aia.studies.columns.modified")}</th>
               </tr>
             </thead>
             <tbody>
@@ -112,8 +114,8 @@ function StudyTable({ clientId, studies, research }: { clientId: string; studies
                   <td className="px-4 py-3 align-top">
                     <Chip tone={TONE[s.status] ?? "neutral"}><CodedWords inline coded={codeWords("aia.status", s.status, "research.exec.phase.other")} /></Chip>
                   </td>
-                  {showKnowledge ? <td className="px-4 py-3 align-top text-[13px]">{broughtCell(s)}</td> : null}
-                  <td className="whitespace-nowrap px-4 py-3 text-right align-top text-xs text-ink-faint">{relative(s.modified_at)}</td>
+                  {showKnowledge ? <td className="hidden px-4 py-3 align-top text-[13px] sm:table-cell">{broughtCell(s)}</td> : null}
+                  <td className="hidden whitespace-nowrap px-4 py-3 text-right align-top text-xs text-ink-faint sm:table-cell">{relative(s.modified_at)}</td>
                 </tr>
               ))}
             </tbody>
