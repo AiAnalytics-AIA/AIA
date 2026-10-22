@@ -206,9 +206,16 @@ COMPLETED, or `no_supported_finding`. `RunAnalysis.complete` is `not holding`, s
 Analýza's "Povinná analýza" and the with-literature start read the same rule.
 - `compose_internal_report` refuses while any module holds, naming them ("waiting on: executive"). Every
   internal report goes through it: the worker's draft (and so its PDF) and the report with literature.
-- Approval and the stored exports need no second check: a stored internal draft could only be composed
-  through this gate, an outcome never changes once stored, and a record from before 9a (`finding_expected`
-  None) never holds. 9b ships on the same PR as 9a, so no draft exists from between them.
+- Approval and the stored exports read no analysis. An internal draft stored after 9a was composed through
+  this gate, and a stored outcome never changes. A draft stored before 9a was composed under the old rule
+  (all eight completed), over records with no expectation, which never hold. So approving it approves
+  what the old rule admitted, and 9b does not reopen it. 9b ships on 9a's branch, so no draft exists from
+  between the two.
+- The refusal carries `reason: analysis_holds_report` and `modules`. A direct `POST …/report/context`
+  answers them in `details` (`test_research_api.py` "a report a module holds is refused naming the
+  modules"), and `approvalRefusal` says them in Czech (`report-status.ts` `holdingWords`). So does the
+  with-literature card on Rešerše a zpráva (`InterpretationResearch.tsx`; `ExecutionSteps.test.tsx`
+  "names the module with no supported finding that holds the report with literature").
 - `GET …/runs/{id}/analysis` answers `holding`. Výsledky's analysis overview names a completed module that holds
   the report instead of saying the rest is still running (`ExecutionSteps.test.tsx` "names a completed
   module with no supported finding …"). Its ways out stay ANL4's.

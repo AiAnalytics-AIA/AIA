@@ -93,7 +93,7 @@ import {
 import { runDestination, runState } from "@/lib/run-state";
 import { codedText, codeWords } from "@/lib/reason-words";
 import { withBudget } from "@/lib/budget-line";
-import { reportStatus, reportStatusWords } from "@/lib/report-status";
+import { holdingWords, reportStatus, reportStatusWords } from "@/lib/report-status";
 import type { Tone } from "@/lib/tone";
 import { AnalysisBlocked, ViolationList } from "./AnalysisBlocked";
 import { AnalysisCoverage, AnalysisMilestones } from "./AnalysisCoverage";
@@ -1722,7 +1722,7 @@ function AnalysisResults({ run, spec, progressHref }: { run: ResearchRun; spec: 
     return outcome?.outcome === "COMPLETED" && outcome.key_findings.length ? [{ id, outcome }] : [];
   });
   // Completed, yet holding the report: no supported finding (evidence-integrity 9b).
-  const withoutSupport = ANALYSIS_ORDER.filter((id) => analysis?.holding?.includes(id) && analysis.modules[id]?.outcome === "COMPLETED").map((id) => stepLabel(`analysis_${id}`));
+  const withoutSupport = ANALYSIS_ORDER.filter((id) => analysis?.holding?.includes(id) && analysis.modules[id]?.outcome === "COMPLETED");
   const withoutFindings = ANALYSIS_ORDER.filter((id) => analysis?.modules[id]?.outcome === "BLOCKED").map((id) => stepLabel(`analysis_${id}`));
   return (
     <div ref={cardRef} data-analysis-card className="scroll-mt-2">
@@ -1753,7 +1753,7 @@ function AnalysisResults({ run, spec, progressHref }: { run: ResearchRun; spec: 
               : analysis.complete
                 ? "Všechny části jsou uložené. Interpretaci a vhodnost pro zprávu musí posoudit výzkumník."
                 : withoutSupport.length && !Object.keys(analysis.pending).length
-                  ? `Zpráva čeká, dokud tyto části neuvedou doložené zjištění: ${withoutSupport.join(", ")}.`
+                  ? holdingWords(withoutSupport)
                   : "Zbývající části ještě čekají na dokončení. Zpráva může vzniknout až z úplné analýzy."}</p>
           </section>
           <AnalysisBlocked analysis={analysis} run={run} retryable={retryable?.modules ?? null} progressHref={progressHref} />

@@ -45,6 +45,10 @@ describe("reportStatus", () => {
   it("says why an approval was refused, in words where a person can act on it", () => {
     expect(approvalRefusal(new ApiError(409, "separation_of_duties", "x", null))).toBe("Tuto zprávu musí schválit někdo jiný než ten, kdo ji vytvořil.");
     expect(approvalRefusal(new Error("Síť selhala."))).toBe("Síť selhala.");
+    // A module with no supported finding holds the report (evidence-integrity 9b): named, never the API's English.
+    const held = approvalRefusal(new ApiError(409, "context_report_refused", "all eight … waiting on: executive", null, { reason: "analysis_holds_report", modules: ["executive"] }));
+    expect(held).toMatch(/^Zpráva čeká, dokud tyto části analýzy neuvedou doložené zjištění: .+\.$/);
+    expect(held).not.toContain("executive");
   });
 });
 

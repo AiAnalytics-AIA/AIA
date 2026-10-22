@@ -810,8 +810,10 @@ def test_a_module_with_no_supported_finding_holds_the_report_and_nothing_else_do
     assert run.holding == (executive,) and not run.complete
     assert finding_diagnostic(run.modules[executive].record) is not None
     meta = report_meta(run.modules[executive].result.method_status)  # type: ignore[union-attr]
-    with pytest.raises(ReportCompositionRefused, match=r"waiting on: executive$"):
+    with pytest.raises(ReportCompositionRefused, match=r"waiting on: executive$") as refused:
         compose_internal_report(run, meta)
+    assert refused.value.reason == "analysis_holds_report"
+    assert refused.value.modules == ("executive",)
 
 
 def test_a_record_from_before_the_expectation_never_holds_the_report(world: World) -> None:

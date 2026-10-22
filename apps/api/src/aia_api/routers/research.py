@@ -2732,13 +2732,19 @@ def prepare_contextual_report(
     except _CONTEXT_REFUSALS as exc:
         # A refusal that names why carries it, so the screen can say it in words (PC17): the
         # analysis an earlier harness built (fingerprint_mismatch) is repaired on Průběh.
+        # A module that holds the report is named (9b), so the screen names it too.
         reason = getattr(exc, "reason", None)
+        modules = list(getattr(exc, "modules", ()))
         raise HTTPException(
             409,
             detail={
                 "code": "context_report_refused",
                 "message": str(exc),
-                "details": {"reason": reason} if isinstance(reason, str) else {},
+                "details": (
+                    {"reason": reason, **({"modules": modules} if modules else {})}
+                    if isinstance(reason, str)
+                    else {}
+                ),
             },
         ) from exc
     return _variant_response(
