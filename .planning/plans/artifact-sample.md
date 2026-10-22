@@ -149,8 +149,10 @@ field. (a) if the owner wants V2's layout exactly.
 
 - **SMP4 (2026-10-22).** Vzorek §3 lists every check the server ran on the working copy, worst
   first (an unknown status first, never counted as passed), each with the stage that fixes it
-  (`sample-view.ts` `checkStage`; a check this client does not know names none) and its own target
-  `sample:ready:<id>`; the aside counts what blocks and what warns; "Pokračovat na Sběr dat" goes on,
+  (`sample-view.ts` `checkStage`, by id or, for `compile:<code>:<where>` and `battery_size:<set>`, by
+  prefix; a check this client does not know names none) and its own target
+  `sample:ready:<id>`; the aside follows the server's `ready` (false stops the run whatever the
+  counts) and counts what blocks and what warns; "Pokračovat na Sběr dat" goes on,
   "Lze pokračovat s omezeními" when only warnings. The support forecast is shown in §2 alone, counted
   here and named when it warns. Kontrola's cards stay on Spuštění until `artifact-fieldwork#FLD6`
   decides; "Kdo bude odpovídat" is now §4, as V2 numbers it.
@@ -170,3 +172,9 @@ field. (a) if the owner wants V2's layout exactly.
 ## Doc follow-up
 
 - Register this plan and its chunks.
+- CLAUDE.md §2, `SampleView`: "Vzorek, read only: §1 size and composition with links to where they
+  are set, §2 the server's forecast and question outlook, §3 every readiness check on the working
+  copy with the stage that fixes it (`lib/sample-view.ts` `checkStage`), §4 who will answer; read
+  through useSampleReadiness on the working revision".
+- open-items: F-SMP-1 (Spuštění's `fixStep` misroutes `dimensions` and `sociomap_support`; the Sběr
+  dat session is fixing it in artifact-fieldwork).

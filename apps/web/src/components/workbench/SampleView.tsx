@@ -9,6 +9,7 @@
 import type { ReactNode } from "react";
 
 import { t } from "@/i18n/t";
+import { plural } from "@/lib/format";
 import { sampleAia } from "@/lib/artifacts/sample";
 import type { OutlookVerdict } from "@/lib/api";
 import { codeWords } from "@/lib/reason-words";
@@ -91,22 +92,21 @@ export function SampleArtifact({ project, readiness, onOpen }: { project: Resear
   );
 }
 
-/** "1 kontrola", "2 kontroly", "5 kontrol". */
-const checksWord = (n: number) => `${n} ${n === 1 ? "kontrola" : n >= 2 && n <= 4 ? "kontroly" : "kontrol"}`;
-
 // Připravenost ke spuštění (SMP4): every check the server ran on the working copy, worst first, each
 // with the stage that fixes it. Read only: whether to start is the person's, on Sběr dat.
 function Ready({ readiness, onOpen }: { readiness: SampleReadiness; onOpen: Open }) {
   const summary = readiness.kind === "ready" ? readinessSummary(readiness.readiness) : null;
+  const forecast = readiness.kind === "ready" ? supportForecastOf(readiness.readiness) : null;
+  // The server's `ready` decides; the counts only say why.
   const aside = !summary ? undefined
-    : summary.blocking ? `${checksWord(summary.blocking)} brání spuštění`
+    : !summary.ready ? (summary.blocking ? `${plural(summary.blocking, "kontrola", "kontroly", "kontrol")} brání spuštění` : "server spuštění nepovolí")
     : summary.unknown ? "stav některých kontrol neznámý"
     : summary.warnings ? `${summary.warnings} varování, nic nebrání`
     : "nic nebrání";
   return (
     <Sec n={3} title="Připravenost ke spuštění" aside={aside} aia={sampleAia.section("ready")}>
       {readiness.kind === "loading" ? <p className="text-sm text-ink-muted" role="status">Načítám kontroly ze serveru…</p>
-        : readiness.kind === "failed" ? <p className="text-sm text-status-fault">Kontroly se nepodařilo načíst.</p>
+        : readiness.kind === "failed" ? <p className="text-sm text-status-fault" role="alert">Kontroly se nepodařilo načíst: {readiness.message}</p>
         : readiness.kind === "none" || !summary ? <p className="text-sm text-ink-muted">Obsah studie zatím není uložený, takže kontroly neproběhly.</p>
         : (
           <ul className="flex flex-col" aria-label="Kontroly připravenosti">
@@ -123,10 +123,12 @@ function Ready({ readiness, onOpen }: { readiness: SampleReadiness; onOpen: Open
           </ul>
         )}
       {/* The forecast is shown in section 2; here it is counted, and named when it warns. */}
-      {summary?.checks.some((c) => c.id === SUPPORT_FORECAST_CHECK && c.status !== "PASS") ? <p className="text-sm text-ink-muted">Odhad opory výsledků varuje: viz oddíl 2.</p> : null}
+      {forecast && (!forecast.known || forecast.status !== "PASS") && summary?.checks.some((c) => c.id === SUPPORT_FORECAST_CHECK) ? (
+        <p className="text-sm text-ink-muted">{forecast.known ? "Odhad opory výsledků varuje" : "Opora výsledků je předem neznámá"}: viz oddíl 2.</p>
+      ) : null}
       <div className="flex flex-wrap items-center gap-3">
         <button type="button" className="rounded-control border border-border-strong px-3 py-1.5 text-sm font-medium" onClick={() => onOpen("fieldwork")}>Pokračovat na Sběr dat</button>
-        {summary && !summary.blocking && summary.warnings ? <span className="text-xs text-ink-muted">Lze pokračovat s omezeními.</span> : null}
+        {summary?.ready && !summary.unknown && summary.warnings ? <span className="text-xs text-ink-muted">Lze pokračovat s omezeními.</span> : null}
       </div>
     </Sec>
   );

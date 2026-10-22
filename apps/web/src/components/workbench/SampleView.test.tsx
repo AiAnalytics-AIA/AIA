@@ -73,7 +73,7 @@ describe("SampleArtifact", () => {
     expect(screen.getByText(/Odhad je neznámý/)).toBeTruthy();
     cleanup();
     render(<SampleArtifact project={project({})} onOpen={vi.fn()} readiness={{ kind: "failed", message: "500" }} />);
-    expect(screen.getByRole("alert").textContent).toContain("500");
+    expect(screen.getAllByRole("alert").every((a) => a.textContent?.includes("500"))).toBe(true);
   });
 });
 
@@ -87,7 +87,7 @@ describe("Připravenost ke spuštění", () => {
 
   it("lists every check worst first; a FAIL names its stage and opens it", () => {
     const onOpen = vi.fn();
-    const { container } = render(<SampleArtifact project={project({ n: 200 })} onOpen={onOpen} readiness={ready({ checks })} />);
+    const { container } = render(<SampleArtifact project={project({ n: 200 })} onOpen={onOpen} readiness={ready({ ready: false, checks })} />);
     const section = screen.getByRole("region", { name: "Připravenost ke spuštění" });
     expect(section.textContent).toContain("1 kontrola brání spuštění");
     const items = [...section.querySelectorAll("li")].map((li) => li.getAttribute("data-aia"));
@@ -115,6 +115,29 @@ describe("Připravenost ke spuštění", () => {
     const section = screen.getByRole("region", { name: "Připravenost ke spuštění" });
     expect(section.textContent).toContain("2 varování, nic nebrání");
     expect(section.textContent).toContain("Lze pokračovat s omezeními.");
+  });
+
+  it("takes the server's verdict: not ready with no FAIL still stops the run, and an unknown status allows no 'continue'", () => {
+    render(<SampleArtifact project={project({ n: 200 })} onOpen={vi.fn()} readiness={ready({ ready: false, checks: [checks[0]] })} />);
+    expect(screen.getByRole("region", { name: "Připravenost ke spuštění" }).textContent).toContain("server spuštění nepovolí");
+    cleanup();
+    render(<SampleArtifact project={project({ n: 200 })} onOpen={vi.fn()} readiness={ready({ checks: [checks[2], { id: "x", status: "SKIPPED" as never, message: "?" }] })} />);
+    const section = screen.getByRole("region", { name: "Připravenost ke spuštění" });
+    expect(section.textContent).toContain("stav některých kontrol neznámý");
+    expect(section.textContent).not.toContain("Lze pokračovat");
+  });
+
+  it("names a panel run's unknown forecast as unknown here too, never as a warning", () => {
+    render(<SampleArtifact project={project({ n: 200 })} onOpen={vi.fn()} readiness={ready({ persona_source: "panel", checks: [{ id: "support_forecast", status: "WARN", message: "Ukáže se až při výběru." }] })} />);
+    const section = screen.getByRole("region", { name: "Připravenost ke spuštění" });
+    expect(section.textContent).toContain("Opora výsledků je předem neznámá: viz oddíl 2.");
+    expect(section.textContent).not.toContain("varuje");
+  });
+
+  it("says why the checks could not be read, as an alert", () => {
+    render(<SampleArtifact project={project({})} onOpen={vi.fn()} readiness={{ kind: "failed", message: "Někdo uložil novější verzi." }} />);
+    const alerts = screen.getAllByRole("alert").map((a) => a.textContent);
+    expect(alerts).toContain("Kontroly se nepodařilo načíst: Někdo uložil novější verzi.");
   });
 
   it("says when nothing was checked, never that nothing stops the run", () => {

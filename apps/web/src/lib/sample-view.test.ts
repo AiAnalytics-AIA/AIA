@@ -71,6 +71,13 @@ describe("checkStage", () => {
     expect(checkStage("conditional_questions")).toBe("questionnaire");
   });
 
+  it("sends the server's per-item checks by their prefix: a design that does not compile, a tracked set's size", () => {
+    expect(checkStage("compile:empty_questionnaire:sections")).toBe("questionnaire");
+    expect(checkStage("battery_size:b1")).toBe("questionnaire");
+    expect(checkStage("compile")).toBeNull();
+    expect(checkStage("toString:x")).toBeNull();
+  });
+
   it("names no stage for a check it does not know, never a guess", () => {
     expect(checkStage("new_server_check")).toBeNull();
     expect(checkStage("toString")).toBeNull();
@@ -86,9 +93,13 @@ describe("readinessSummary", () => {
     expect(s).toMatchObject({ blocking: 1, warnings: 2, unknown: 0 });
   });
 
-  it("puts a status it does not know first and never counts it as passed", () => {
-    const s = readinessSummary(readiness({ checks: [check("a", "PASS"), check("x", "SKIPPED")] }));
-    expect(s.checks[0].id).toBe("x");
-    expect(s).toMatchObject({ blocking: 0, warnings: 0, unknown: 1 });
+  it("puts a status it does not know first and never counts it as passed, an inherited name included", () => {
+    const s = readinessSummary(readiness({ checks: [check("a", "PASS"), check("x", "SKIPPED"), check("y", "toString")] }));
+    expect(s.checks.map((c) => c.id)).toEqual(["x", "y", "a"]);
+    expect(s).toMatchObject({ blocking: 0, warnings: 0, unknown: 2 });
+  });
+
+  it("carries the server's verdict, which the counts never override", () => {
+    expect(readinessSummary(readiness({ ready: false, checks: [check("a", "PASS")] }))).toMatchObject({ ready: false, blocking: 0 });
   });
 });

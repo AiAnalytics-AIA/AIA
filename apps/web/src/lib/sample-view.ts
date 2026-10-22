@@ -79,14 +79,21 @@ const CHECK_STAGE: Readonly<Record<string, WorkbenchStage>> = {
   research_question_coverage: "questionnaire",
 };
 
+/** Checks the server names per item, `<prefix>:<…>`: a design that does not compile, a tracked set's size. */
+const CHECK_PREFIX_STAGE: Readonly<Record<string, WorkbenchStage>> = { compile: "questionnaire", battery_size: "questionnaire" };
+
 export function checkStage(checkId: string): WorkbenchStage | null {
-  return Object.hasOwn(CHECK_STAGE, checkId) ? CHECK_STAGE[checkId] : null;
+  if (Object.hasOwn(CHECK_STAGE, checkId)) return CHECK_STAGE[checkId];
+  const prefix = checkId.split(":", 1)[0];
+  return checkId.includes(":") && Object.hasOwn(CHECK_PREFIX_STAGE, prefix) ? CHECK_PREFIX_STAGE[prefix] : null;
 }
 
 /** Worst first: what stops a run, then what limits it, then what passed; the server's order within each. */
 const CHECK_RANK: Readonly<Record<string, number>> = { FAIL: 0, WARN: 1, PASS: 2 };
 
 export type ReadinessSummary = {
+  /** The server's verdict, the authority: false refuses a start whatever the counts say. */
+  ready: boolean;
   checks: ReadinessBody["checks"];
   /** FAILs: the run cannot start. */
   blocking: number;
@@ -97,8 +104,9 @@ export type ReadinessSummary = {
 };
 
 export function readinessSummary(readiness: ReadinessBody): ReadinessSummary {
-  const rank = (s: string) => CHECK_RANK[s] ?? -1;
+  const known = (s: string) => Object.hasOwn(CHECK_RANK, s);
+  const rank = (s: string) => (known(s) ? CHECK_RANK[s] : -1);
   const checks = readiness.checks.map((c, i) => [c, i] as const).sort((a, b) => rank(a[0].status) - rank(b[0].status) || a[1] - b[1]).map(([c]) => c);
   const count = (s: string) => checks.filter((c) => c.status === s).length;
-  return { checks, blocking: count("FAIL"), warnings: count("WARN"), unknown: checks.filter((c) => !(c.status in CHECK_RANK)).length };
+  return { ready: readiness.ready, checks, blocking: count("FAIL"), warnings: count("WARN"), unknown: checks.filter((c) => !known(c.status)).length };
 }
