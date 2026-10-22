@@ -148,7 +148,8 @@ def scripted_lead_output(frozen: Mapping[str, Any]) -> LeadOutput:
     optimisation as a decision card (a message with "spusť": the research run instead; with
     "aktualizuj návrh": the brief's analysis, which reads Návrh's saved answers and comments); a
     message with "pamatuj" also asks the Lead to remember it as a personal note, and one with
-    "detail" opens the first research question's detail (``inspect``). Every reply
+    "detail" opens the first research question's detail, else the first hypothesis's
+    (``inspect``). Every reply
     starts with :data:`SCRIPTED_PREFIX`.
     """
     view = layer(frozen, "view")
@@ -188,15 +189,16 @@ def scripted_lead_output(frozen: Mapping[str, Any]) -> LeadOutput:
     if objective is not None:
         target = f"objective:{objective}"
     views: list[dict[str, Any]] = [{"op": "focus", "target": target}]
-    # A message asking for a detail opens the first research question's in the item drawer
-    # over Návrh (research-lead-workbench 14), the one view op a focus cannot show.
-    rq = (
-        _first_plan_id(layer(frozen, "design"), "research_questions", "research_question_ids")
-        if "detail" in message.casefold()
-        else None
-    )
-    if rq is not None:
-        views.append({"op": "inspect", "target": f"rq:{rq}"})
+    # A message asking for a detail opens the first research question's (else hypothesis's) in
+    # the item drawer over Návrh (research-lead-workbench 14), the one view op a focus cannot show.
+    if "detail" in message.casefold():
+        design = layer(frozen, "design")
+        rq = _first_plan_id(design, "research_questions", "research_question_ids")
+        hypothesis = None if rq else _first_plan_id(design, "hypotheses", "hypothesis_ids")
+        if rq is not None:
+            views.append({"op": "inspect", "target": f"rq:{rq}"})
+        elif hypothesis is not None:
+            views.append({"op": "inspect", "target": f"hypothesis:{hypothesis}"})
     body: dict[str, Any] = {
         "reply": f"{SCRIPTED_PREFIX} Připravil jsem ukázkovou úpravu a jedno rozhodnutí.",
         "view": views,

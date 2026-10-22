@@ -244,6 +244,15 @@ def test_a_scripted_message_asking_for_a_detail_opens_the_first_research_questio
     assert [v.model_dump() for v in shown.view][1:] == [
         {"op": "inspect", "target": f"rq:{first[0]}"}
     ]
-    # Without the word, or without a research question: only the focus it always had.
+    # No research question: the first hypothesis, also on Návrh.
+    with_hypotheses = {**CONTENT, "research_plan": {"hypotheses": ["Čaj vede."]}}
+    content, _ = with_item_ids(with_hypotheses)
+    h = list_ids(content["research_plan"], "hypotheses", "hypothesis_ids")
+    assert h
+    shown = scripted_lead_output(_frozen("Ukaž mi detail", with_hypotheses))
+    assert [v.model_dump() for v in shown.view][1:] == [
+        {"op": "inspect", "target": f"hypothesis:{h[0]}"}
+    ]
+    # Without the word, or with neither: only the focus it always had.
     assert len(scripted_lead_output(_frozen("Kde jsme?", with_rqs)).view) == 1
     assert len(scripted_lead_output(_frozen("Ukaž mi detail otázky", CONTENT)).view) == 1
