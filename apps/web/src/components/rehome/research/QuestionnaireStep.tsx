@@ -42,6 +42,7 @@ import {
   changeQType,
   optimizePayload,
   questionnaireCounts,
+  hasQuestionnaire,
   countWords,
   countsWords,
   questionnaireHasQuestions,
@@ -443,8 +444,11 @@ function Choose({ onPick, children }: { onPick: (x: QuestionnairePath) => void; 
  * is the guide the classic interface's missing methodology link pointed at nothing for.
  */
 function Upload() {
-  const { store, template, toast, frame } = useResearch();
+  const { store, template, toast, frame, state } = useResearch();
+  const undo = useEditorUndo();
   const input = useRef<HTMLInputElement>(null);
+  // What a file would replace (the browser audit, QF-15): said before, and taken back with Vrátit after.
+  const replaces = hasQuestionnaire(state.project);
   const [status, setStatus] = useState<{ kind: "loading" } | { kind: "error"; message: string } | null>(null);
   const [over, setOver] = useState(false);
 
@@ -453,9 +457,30 @@ function Upload() {
     setStatus({ kind: "loading" });
     try {
       const r = await workspace.importQuestionnaire(frame.studyId, { filename: f.name, data_b64: await fileToBase64(f) });
-      const imported = applyImport(store.get().project, r, template);
+      const before = store.get().project;
+      const imported = applyImport(before, r, template);
       store.update(() => ({ project: imported.project }), { reason: "questionnaire_import" });
-      toast(imported.toast);
+      if (undo && hasQuestionnaire(before)) {
+        undo.offer({
+          message: imported.toast,
+          undo: () => {
+            // Only while the questionnaire is still the file's: never over an edit, a Lead's change or a
+            // reload made since. The plan keeps everything but the status the import set.
+            if (JSON.stringify(store.get().project.sections) !== JSON.stringify(imported.project.sections)) return toast(t("research.questionnaire.importUndoStale"));
+            store.update(
+              ({ project }) => {
+                const plan = { ...project.research_plan };
+                if (before.research_plan.status === undefined) delete plan.status;
+                else plan.status = before.research_plan.status;
+                return { project: { ...project, sections: before.sections, research_plan: plan, ui_state: { ...project.ui_state, questionnaire_path: "upload" } } };
+              },
+              { reason: "questionnaire_import_undone" },
+            );
+          },
+        });
+      } else {
+        toast(imported.toast);
+      }
       setStatus(null);
     } catch (e) {
       setStatus({ kind: "error", message: e instanceof Error ? e.message : String(e) });
@@ -477,6 +502,7 @@ function Upload() {
     <section className={CARD} aria-labelledby="q-upload">
       <h2 id="q-upload" className="text-lg font-semibold">{t("research.questionnaire.uploadTitle")}</h2>
       <p className="mt-1 text-sm text-ink-muted">{t("research.questionnaire.uploadIntro")}</p>
+      {replaces ? <p className="mt-2 text-sm text-status-you-ink">{t("research.questionnaire.uploadReplaces")}</p> : null}
       <ol className="mt-4 flex flex-col gap-4">
         <li className="flex gap-3">
           <span aria-hidden="true" className="inline-flex size-6 shrink-0 items-center justify-center rounded-full bg-signal-wash font-mono text-xs font-semibold text-signal">1</span>
