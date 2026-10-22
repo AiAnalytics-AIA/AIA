@@ -182,6 +182,7 @@ try {
   }
   check("the workbench at 1280 and 1100 (split), 1099 and 768 (drawer), 390 (sheet), no overflow, one h1, room for the save state");
 
+
   // A resize across 1100 px remounts nothing: the stage's and the conversation's own DOM nodes,
   // tagged before, are the same nodes after crossing both ways (a remount makes new ones).
   await page.setViewportSize({ width: 1440, height: 900 });
@@ -213,7 +214,9 @@ try {
     await shot(`${width}-lead-open`);
     await page.keyboard.press("Escape");
     await dialog.waitFor({ state: "hidden" });
-    assert.equal(await page.evaluate(() => document.activeElement?.hasAttribute("data-lead-launcher")), true, `focus back on the launcher @${width}`);
+    // The launcher takes the focus a frame after the drawer hides (moveFocus): waited for, not raced.
+    await page.waitForFunction(() => document.activeElement?.hasAttribute("data-lead-launcher"), null, { timeout: 5000 })
+      .catch(() => assert.fail(`focus back on the launcher @${width}`));
   }
   check("the launcher opens the Lead at 1024 and 390; Escape closes it to the launcher");
 
@@ -350,6 +353,17 @@ try {
     await shot(`${width}-run`);
   }
   check("Spuštění's links back to a stage are touch targets, Co spustíte stacks on a phone, at 1440, 1100, 768 and 390, no overflow");
+
+  // The stages' docks name no classic step: the navigator names the neighbours (DIM-F4). Last,
+  // because a visit to Návrh submits a Design Revision that Vzorek's forecast then reads (WCE7b).
+  for (const slug of ["plan", "questionnaire", "audience", "dimensions"]) {
+    await page.goto(base + stagePath(slug));
+    await page.locator("[data-workbench]").waitFor();
+    await page.locator("#artbody").getByRole("button").first().waitFor({ timeout: 60000 });
+    const classic = await page.locator("#artbody a").evaluateAll((as) => as.map((a) => a.textContent?.trim() ?? "").filter((t) => /^\d\. /.test(t)));
+    assert.deepEqual(classic, [], `${slug}: no classic "N. stage" link in the artifact`);
+  }
+  check("no stage's dock names a classic step inside the workbench");
 
   const paid = writes.filter((w) => /\/research\/runs$|\/agent-jobs$|\/deep-research\/runs|\/lead\/turns\/[^/]+\/request$/.test(w.path));
   assert.deepEqual(paid, [], "nothing paid started");
