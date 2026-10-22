@@ -88,6 +88,7 @@ V2: `AudienceArt` (`prototypes/research-lead-v2/src/artifacts/SampleStages.tsx:1
 - Primitives: `RadioCard`, `Stepper` (bounded ranges), `ChoiceChips` with counts, a combobox and
   `InlineText`.
 - Delivered: B6, a numeric factor's range as two bounded steppers (feature/audience-range-steppers);
+  the record of each row is input-interactions.md § Chunk 5, as delivered.
 - Delivered: B9, the built-in subpanels under a search (feature/audience-subpanel-list);
   the record of each row is input-interactions.md § Chunk 5, as delivered.
 

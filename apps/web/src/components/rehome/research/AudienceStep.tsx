@@ -394,7 +394,7 @@ function LiveFilters({ live }: { live: Extract<Live, { state: "ready" }> }) {
       <Field label={t("research.audience.searchFactors")} className="mt-3">
         <TextInput value={query} onChange={(e) => setQuery(e.target.value)} />
       </Field>
-      <p className="mt-2 text-xs text-ink-muted">{tv("research.audience.factorsShown", { shown: shown.length, total })}</p>
+      <p aria-live="polite" className="mt-2 text-xs text-ink-muted">{tv("research.audience.factorsShown", { shown: shown.length, total })}</p>
       <ul className="mt-2 flex flex-col gap-2">
         {shown.map((f) => (
           <li key={f.id}>
@@ -564,7 +564,7 @@ function Subpanels({ live }: { live: Extract<Live, { state: "ready" }> }) {
           <TextInput value={query} onChange={(e) => setQuery(e.target.value)} />
         </Field>
         {/* The search's only feedback, so it is announced as the person types. */}
-        <p role="status" className="mt-1 text-xs text-ink-muted">{tv("research.audience.subpanelsShown", { shown: matched.length, total: all.length })}</p>
+        <p aria-live="polite" className="mt-1 text-xs text-ink-muted">{tv("research.audience.subpanelsShown", { shown: matched.length, total: all.length })}</p>
         <div role="radiogroup" aria-label={t("research.audience.subpanelsTitle")} className="mt-2 grid gap-2 [grid-template-columns:repeat(auto-fit,minmax(240px,1fr))]">
           {shown.map((sp) => (
             <div key={sp.key} data-aia={audienceSubpanelAia(sp.key) ?? undefined} className="grid">

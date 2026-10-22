@@ -324,6 +324,14 @@ describe("Audience", () => {
       expect((await screen.findByRole("status")).textContent).toContain("populace k ní není připojená");
     });
 
+    it("announces how many factors the factor search shows, as the person types", async () => {
+      aiaStub({ ui_state: ANALYTICS, n: 500, audience: { strategy: "filters", source_mode: "population", filters: {} } }, live());
+      render(<ResearchScreen step="audience" frame={TEST_FRAME} />);
+      fireEvent.change(await screen.findByLabelText("Hledat faktor"), { target: { value: "kraj" } });
+      expect(screen.getByText(/^Zobrazeno 1 z \d+ faktorů\.$/).getAttribute("aria-live")).toBe("polite");
+      noUnitCalls();
+    });
+
     it("the subpanels sit under a search that says what matched and never hides the chosen one (audit B9)", async () => {
       aiaStub({ ui_state: { audience_entry: "analytics", analytics_choice: "special" }, audience: { builtin_subpanel: "students" } }, live());
       render(<ResearchScreen step="audience" frame={TEST_FRAME} />);
@@ -337,7 +345,7 @@ describe("Audience", () => {
       fireEvent.change(screen.getByLabelText("Hledat subpanel"), { target: { value: "nikdo" } });
       expect(names()).toEqual(["Studenti"]);
       // Announced as the person types: the search's only feedback.
-      expect(screen.getByText("Hledání odpovídá 0 z 2 subpanelů; zvolený zůstává vidět.").getAttribute("role")).toBe("status");
+      expect(screen.getByText("Hledání odpovídá 0 z 2 subpanelů; zvolený zůstává vidět.").getAttribute("aria-live")).toBe("polite");
       noUnitCalls();
     });
 
