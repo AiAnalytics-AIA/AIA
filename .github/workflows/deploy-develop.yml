@@ -158,18 +158,27 @@ jobs:
       - name: Ship the deploy bundle
         # The compose file, Caddyfile and scripts the host runs, at this SHA, so
         # the host's procedure is versioned with the code it deploys.
+        # This workflow runs from develop's head but checks out the SHA it deploys, which can be
+        # older (a rollback, a re-dispatch): the bundle carries what that SHA has. errors/ and
+        # docs/ are optional, a project a later SHA added; the rest every deployable SHA has.
+        # CI runs this step on a SHA from before docs/ ("The deploy bundle of an older SHA").
         run: |
           # population/: the list of the population's files (bin/sync-population.sh) and
           # the frozen unit's configuration files it names as "unit", from Git.
+          set -euo pipefail
+          items="docker-compose.yml Caddyfile bin population"
+          for optional in errors docs; do
+            if [ -d "deploy/develop/$optional" ]; then items="$items $optional"; fi
+          done
           stage="$(mktemp -d)"
-          cp -R deploy/develop/docker-compose.yml deploy/develop/Caddyfile deploy/develop/bin \
-            deploy/develop/population deploy/develop/errors deploy/develop/docs "$stage/"
+          for item in $items; do cp -R "deploy/develop/$item" "$stage/"; done
           awk '$3 == "unit" { print $4 }' deploy/develop/population/v17.files | while read -r name; do
             cp "legacy/npc-panel-18.6.6/app/$name" "$stage/population/$name"
           done
-          tar -czf deploy-bundle.tar.gz -C "$stage" docker-compose.yml Caddyfile bin population errors docs
+          # shellcheck disable=SC2086 -- items is a list of names without spaces
+          tar -czf deploy-bundle.tar.gz -C "$stage" $items
           aws s3 cp deploy-bundle.tar.gz "s3://$OPS_BUCKET/deploy/$SHA.tar.gz" --only-show-errors
-          echo "bundle s3://$OPS_BUCKET/deploy/$SHA.tar.gz" >> "$GITHUB_STEP_SUMMARY"
+          echo "bundle s3://$OPS_BUCKET/deploy/$SHA.tar.gz ($items)" >> "$GITHUB_STEP_SUMMARY"
 
       - name: Deploy on the host through SSM
         env:
