@@ -7,6 +7,7 @@
 // in words. Pure: no fetch.
 
 import { ApiError, type DesignFinding, type DesignProposal } from "@/lib/api";
+import { plural } from "@/lib/format";
 import { CONFLICT_MESSAGE } from "@/research/store";
 import { staleDetails, staleMessage } from "@/research/proposal-items";
 
@@ -138,5 +139,5 @@ export function refusalWords(e: unknown, project: Obj | null = null): string | n
 
 /** "1 položka", "2 položky", "5 položek". */
 export function itemsWord(n: number): string {
-  return `${n} ${n === 1 ? "položka" : n >= 2 && n <= 4 ? "položky" : "položek"}`;
+  return plural(n, "položka", "položky", "položek");
 }
