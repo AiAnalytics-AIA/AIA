@@ -196,8 +196,10 @@ method owner).
 <https://claude.ai/artifact/QWDidu8ztrcuiBNL5Sa4Vy> v4, "Návrh: zaměřeno na mapu" with "Překryvy: nové").
 - SOC9: on the workbench's Sociomapa stage (`#maps`, `useOnSociomapStage`) `RunResults` renders
   `SociomapStage` instead of `ResultsWorkspace`: the run's notices (origin, a moved design), then each set's
-  map at the pane's width, then `MapExplained`. Výsledky keeps its tabs, Sociomapping among them; the
-  classic layout keeps Sociomapy as a tab. An older method's set says "Mapa ze starší metody; spusťte nový
+  map at the pane's width, then `MapExplained`, then the run's experimental Sociomapping with its review
+  (`#res-sociomapping` opens the stage too). The stage follows navigation (hashchange, popstate), never a
+  tab of Výsledky that rewrites the hash in place. Výsledky keeps its tabs; the classic layout keeps
+  Sociomapy as a tab. An older method's set says "Mapa ze starší metody; spusťte nový
   běh" and draws nothing; a map that is not the signed-off method's is drawn as Výsledky draws it.
 - SOC10: `MapExplained` over `lib/map-explained.ts` (`explainMap`, pure): Co mapa ukazuje (sentence, approval
   badge, four tiles), Nejsilnější vztahy (six, signed bars), Objekty (rating and connectedness bars),

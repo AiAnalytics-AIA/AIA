@@ -1648,9 +1648,20 @@ export function RunResults({ run, progressHref }: { run: ResearchRun | null; pro
   const showMapping = Boolean(sociomapping && sociomapping.state !== "hidden");
   // The workbench's Sociomapa stage is the map (artifact-sociomap SOC9): the map first, what explains it
   // under it, no results tabs. The classic layout keeps Sociomapy as a tab of Výsledky.
-  if (onSociomapStage && leadOwns && showMap && sociomap) {
-    return <SociomapStage run={run} artifact={sociomap.state === "ready" ? sociomap.value : null} loading={sociomap.state === "loading"}
-      error={sociomap.state === "failed" ? sociomap.message : null}
+  // The experimental Sociomapping, with its draft's review: on Výsledky's Sociomapy tab, and on the
+  // Sociomapa stage under the map (with no amber frame there, SOC12).
+  const mappingCard = (tone?: "notice") => sociomapping && sociomapping.state !== "hidden" ? (
+    <Card id="res-sociomapping" title={t("research.exec.results.sociomapping")} tone={tone}>
+      {sociomapping.state === "ready" ? (
+        <SociomappingView artifact={sociomapping.value} run={run} studyId={frame.studyId} canEdit={canReview(frame)} />
+      ) : null}
+      {sociomapping.state === "loading" ? <p className="text-sm text-ink-muted">{t("research.loading")}</p> : null}
+      {sociomapping.state === "failed" ? <p role="alert" className="text-sm text-status-fault">{sociomapping.message}</p> : null}
+    </Card>
+  ) : null;
+  if (onSociomapStage && leadOwns && (showMap || showMapping)) {
+    return <SociomapStage run={run} artifact={sociomap?.state === "ready" ? sociomap.value : null} loading={sociomap?.state === "loading"}
+      error={sociomap?.state === "failed" ? sociomap.message : null} after={mappingCard()}
       notice={<><RevisionMoved note={revisionNote(run.design_revision, revisions.state === "ready" ? revisions.data.map((r) => r.revision) : null)} /><OriginBanners run={run} /></>} />;
   }
   const showAnalysis = run.steps.some((step) => step.kind === "research_analysis");
@@ -1688,15 +1699,7 @@ export function RunResults({ run, progressHref }: { run: ResearchRun | null; pro
           {sociomap.state === "failed" ? <p role="alert" className="text-sm text-status-fault">{sociomap.message}</p> : null}
         </Card>
       ) : null}
-      {sociomapping && sociomapping.state !== "hidden" ? (
-        <Card id="res-sociomapping" title={t("research.exec.results.sociomapping")} tone="notice">
-          {sociomapping.state === "ready" ? (
-            <SociomappingView artifact={sociomapping.value} run={run} studyId={frame.studyId} canEdit={canReview(frame)} />
-          ) : null}
-          {sociomapping.state === "loading" ? <p className="text-sm text-ink-muted">{t("research.loading")}</p> : null}
-          {sociomapping.state === "failed" ? <p role="alert" className="text-sm text-status-fault">{sociomapping.message}</p> : null}
-        </Card>
-      ) : null}
+      {mappingCard("notice")}
       </> }] : []),
       ...(showAnalysis ? [{ id: "analysis", label: "AI analýza", description: "Souhrn, odpovědi na výzkumné otázky a omezení. Interpretace vychází z podkladů tohoto běhu a čeká na posouzení výzkumníkem.", content: <div id="res-analysis"><AnalysisResults key={run.run_id} run={run} progressHref={progressHref} spec={pinnedSpecification(specification?.state === "ready" ? specification.value : null)} /></div> }] : []),
       { id: "report", label: "Rešerše a zpráva", description: "Zkontrolujte připravenost interní zprávy, přijaté externí podklady a omezení rešerše. Dostupnost stažení závisí na úplnosti analýzy.", content: <>

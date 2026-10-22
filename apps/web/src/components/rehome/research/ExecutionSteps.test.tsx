@@ -11,6 +11,7 @@ import { t, tv } from "@/i18n/t";
 import { runState } from "@/lib/run-state";
 import type { ResearchRun } from "@/lib/api";
 import signedOffFixture from "@/lib/fixtures/object-map-signed-off.json";
+import sociomappingFixture from "@/lib/fixtures/sociomapping.json";
 import { AnalysisInspect } from "./AnalysisInspect";
 import { ItemInspectorContext } from "@/components/workbench/item-inspector-context";
 import { measureAnchor } from "@/lib/result-reading";
@@ -2238,16 +2239,20 @@ describe("Results", () => {
       methods: [{ method_id: methodId, spec_fingerprint: (battery.maps as Record<string, { spec_fingerprint: string }>)[methodId].spec_fingerprint }],
       batteries: [battery],
     } } };
-    const open = (artifact: unknown, workbench: boolean) => {
+    // A run that also made the experimental Sociomapping (its own step and artifact).
+    const MAPPED = run({ ...COMPLETED, steps: [...(COMPLETED.steps as ReturnType<typeof step>[]), step("sociomapping", "SUCCEEDED", { artifact_id: "ART-6", data_origin: "SYNTHETIC_FIXTURE" })] });
+    const SOCIOMAPPING = { ...SOCIOMAP, artifact_id: "ART-6", artifact_type: "research_sociomapping", payload: sociomappingFixture };
+    const open = (artifact: unknown, workbench: boolean, hash = "#maps", runs = COMPLETED) => {
       layout.workbench = workbench;
-      window.history.replaceState(null, "", `${window.location.pathname}#maps`);
+      window.history.replaceState(null, "", `${window.location.pathname}${hash}`);
       onTestFinished(() => { layout.workbench = null; window.history.replaceState(null, "", window.location.pathname); });
       api({
-        ...listed(COMPLETED),
+        ...listed(runs),
         "GET /api/v1/studies/STU-1/research/runs/RUN-1/artifacts/ART-4": () => AGGREGATE,
         "GET /api/v1/studies/STU-1/research/runs/RUN-1/artifacts/ART-5": () => artifact,
+        "GET /api/v1/studies/STU-1/research/runs/RUN-1/artifacts/ART-6": () => SOCIOMAPPING,
       });
-      render(<ResearchScreen step="results" frame={TEST_FRAME} />);
+      return render(<ResearchScreen step="results" frame={TEST_FRAME} />);
     };
 
     it("is the map: no results tabs, no guide, no other card, the map before what explains it", async () => {
@@ -2297,6 +2302,32 @@ describe("Results", () => {
       expect(within(stage).queryByText(t("research.exec.objectMap.hint"))).toBeNull();
       expect(screen.queryByText(t("research.exec.results.mapToolNotInAia"))).toBeNull();
       expect(screen.queryByText("Jak používat mapu a AI pomoc")).toBeNull();
+    });
+
+    it("shows the run's experimental Sociomapping under the map, its old anchor opening the stage", async () => {
+      open(signedOff, true, "#res-sociomapping", MAPPED);
+      const stage = await screen.findByTestId("sociomap-stage");
+      await within(stage).findByText(t("research.exec.sociomapping.experimental"));
+      const card = document.getElementById("res-sociomapping")!;
+      expect(stage.contains(card)).toBe(true);
+      // Under the maps and what explains them, and with no amber frame on the stage (SOC12).
+      const explained = await within(stage).findByTestId("map-explained");
+      expect(explained.compareDocumentPosition(card) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+      expect(card.className).not.toContain("status-you");
+    });
+
+    it("keeps Výsledky when its Sociomapy tab is chosen, after any later render: a tab is not a stage", async () => {
+      const { rerender } = open(signedOff, true, "#data");
+      fireEvent.click(await screen.findByRole("tab", { name: "Sociomapy" }));
+      expect(window.location.hash).toBe("#maps");
+      rerender(<ResearchScreen step="results" frame={TEST_FRAME} />);
+      await act(async () => { await new Promise((r) => setTimeout(r, 50)); });
+      expect(screen.getByRole("tablist", { name: "Oddíly výsledků" })).toBeTruthy();
+      expect(screen.queryByTestId("sociomap-stage")).toBeNull();
+      // Navigation to the stage (the workbench sets the hash: hashchange) opens it.
+      act(() => { window.location.hash = "#data"; });
+      act(() => { window.location.hash = "#maps"; });
+      expect(await screen.findByTestId("sociomap-stage")).toBeTruthy();
     });
 
     it("keeps Sociomapy a tab of Výsledky in the classic layout", async () => {

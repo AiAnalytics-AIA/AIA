@@ -1,12 +1,12 @@
 "use client";
 
 // The Sociomapa stage of the workbench (artifact-sociomap SOC9): the map is the stage. No results tabs,
-// no guide, no other card: each mapped set's map first, at the pane's full width, and under it what
-// explains it (MapExplained). The run's notices stay above (its origin, a moved design). A set stored
-// under an older method says so and draws nothing; a map that is not the signed-off method's is drawn
-// as the Results page draws it. Výsledky keeps its tabs, Sociomapping included.
+// no guide: each mapped set's map first, at the pane's full width, and under it what explains it
+// (MapExplained). The run's notices stay above (its origin, a moved design), the experimental
+// Sociomapping and its review below. A set stored under an older method says so and draws nothing; a
+// map that is not the signed-off method's is drawn as the Results page draws it. Výsledky keeps its tabs.
 
-import { type ReactNode, useEffect, useState, useSyncExternalStore } from "react";
+import { type ReactNode, useEffect, useState } from "react";
 import { t } from "@/i18n/t";
 import { type Artifact, type ResearchRun, research } from "@/lib/api";
 import { explainMap } from "@/lib/map-explained";
@@ -18,27 +18,34 @@ import { MapExplained } from "./MapExplained";
 import { ObjectMapPanel } from "./ObjectMapPanel";
 import { ObjectMapView } from "./ObjectMapView";
 
-const subscribe = (change: () => void) => {
-  window.addEventListener("hashchange", change);
-  window.addEventListener("popstate", change);
-  return () => { window.removeEventListener("hashchange", change); window.removeEventListener("popstate", change); };
-};
-
-/** Whether the address names the Sociomapa stage (lib/workbench-stages.ts: #maps and its old anchors). */
+/**
+ * Whether the address names the Sociomapa stage (lib/workbench-stages.ts: #maps and its old anchors),
+ * as it was when the view opened and as navigation changes it (hashchange, popstate). A tab of
+ * Výsledky rewrites the hash in place (ResultsWorkspace's replaceState, no event): that is a view
+ * within Výsledky, so it never swaps the page for the Sociomapa stage under the person.
+ */
 export function useOnSociomapStage(): boolean {
-  const hash = useSyncExternalStore(subscribe, () => window.location.hash, () => "");
+  const [hash, setHash] = useState(() => (typeof window === "undefined" ? "" : window.location.hash));
+  useEffect(() => {
+    const on = () => setHash(window.location.hash);
+    window.addEventListener("hashchange", on);
+    window.addEventListener("popstate", on);
+    return () => { window.removeEventListener("hashchange", on); window.removeEventListener("popstate", on); };
+  }, []);
   return stageOf("results", hash) === "sociomap";
 }
 
 type Payload = { sociomap: { data_origin?: string | null; methods?: RecordedMethod[]; note?: string; batteries: BatteryWithMaps[] } } | null;
 
-export function SociomapStage({ run, artifact, loading, error, notice }: {
+export function SociomapStage({ run, artifact, loading, error, notice, after }: {
   run: ResearchRun;
   artifact: Artifact | null;
   loading: boolean;
   error: string | null;
   /** The run's notices: its data's origin, a design moved since it ran. */
   notice: ReactNode;
+  /** What else the run mapped, under the maps (the experimental Sociomapping and its review). */
+  after?: ReactNode;
 }) {
   const frame = useFrame();
   // The register a map's approval is read from (B4); not read, every map stays internal.
@@ -84,6 +91,7 @@ export function SociomapStage({ run, artifact, loading, error, notice }: {
           </section>
         );
       })}
+      {after}
     </div>
   );
 }
