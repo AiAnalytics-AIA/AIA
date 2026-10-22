@@ -27,6 +27,7 @@ from aia_core.application.research import CostCeilingUnknown, CostConfirmationRe
 from aia_core.application.research_lead import (
     LeadAlreadyHatched,
     LeadBusy,
+    LeadCardStale,
     LeadContextTooLarge,
     LeadEditsStale,
     LeadNotHatched,
@@ -44,6 +45,7 @@ from aia_core.application.research_lead import (
 )
 from aia_core.domain.design import DesignRejected
 from aia_core.domain.lead_commands import COMMANDS
+from aia_core.domain.research_agents import AgentContextTooLarge
 from aia_core.domain.scope import ScopeDenied
 from aia_core.domain.wallet import WalletChargeRefused
 from aia_core.domain.workspace import WorkspaceRejected
@@ -114,6 +116,9 @@ class RequestApproval(BaseModel):
 
     model_config = ConfigDict(extra="forbid")
     confirm_cost_usd: float | None = Field(default=None, ge=0, le=1_000_000, allow_inf_nan=False)
+    #: The working revision the person approves the job on, sent only after a ``stale_card``
+    #: refusal and their yes: the card then runs on the design as it is now (LO10).
+    workspace_revision: int | None = Field(default=None, ge=1)
 
 
 class EditStatus(BaseModel):
@@ -348,6 +353,18 @@ def _lead_errors() -> Iterator[None]:
         raise _error(409, exc.reason, "This turn's self-update is already decided.") from exc
     except LeadSelfUpdateNone as exc:
         raise _error(409, exc.reason, "This turn left nothing waiting for you.") from exc
+    except LeadCardStale as exc:
+        raise _error(
+            409,
+            exc.reason,
+            "The working content changed since the Lead prepared this card.",
+            current_revision=exc.current_revision,
+            turn_revision=exc.turn_revision,
+        ) from exc
+    except AgentContextTooLarge as exc:
+        raise _error(
+            422, exc.reason, "The study is too large for a design job to read; nothing started."
+        ) from exc
     except LeadEditsStale as exc:
         raise _error(
             409,
@@ -514,9 +531,13 @@ def decide_self_update(
     responses={
         409: {
             "model": ErrorResponse,
-            "description": "The spend limit asks, or it is unknown; or the Lead is switched off",
+            "description": "The spend limit asks, or it is unknown; the Lead is switched off; "
+            "or the working copy moved since the card was prepared (stale_card)",
         },
-        422: {"model": ErrorResponse, "description": "The turn prepared no paid job"},
+        422: {
+            "model": ErrorResponse,
+            "description": "The turn prepared no paid job, or the study is too large for it",
+        },
     },
 )
 def approve_request(
@@ -544,6 +565,7 @@ def approve_request(
             reservation_usd=settings.ai_research_reservation_usd,
             run_start=run_start_settings(request, population),
             wallet_enabled=settings.study_wallet_enabled,
+            workspace_revision=body.workspace_revision,
         )
     return ApprovedRequest.model_validate(started)
 

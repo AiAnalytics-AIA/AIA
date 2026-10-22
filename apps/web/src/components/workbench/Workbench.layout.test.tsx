@@ -297,3 +297,40 @@ describe("the compact header and stage navigator (26d)", () => {
     expect(screen.getByRole("menu").textContent).toMatch(/Rozpočet nenastaven/);
   });
 });
+
+describe("Připravenost a pomoc", () => {
+  it("takes the focus when it opens, closes on Escape before the drawer, and gives the focus back (audit)", async () => {
+    bench();
+    const toggle = screen.getByRole("button", { name: /Připravenost a pomoc/ });
+    toggle.focus();
+    fireEvent.click(toggle);
+    const panel = document.querySelector("aside.insp") as HTMLElement;
+    expect(panel.hidden).toBe(false);
+    await waitFor(() => expect(document.activeElement).toBe(panel));
+    fireEvent.keyDown(window, { key: "Escape" });
+    await waitFor(() => expect(panel.hidden).toBe(true));
+    expect(document.activeElement).toBe(toggle);
+  });
+
+  it("leaves the panel open when Escape is pressed in the composer: Escape is the layer in use's", async () => {
+    bench();
+    fireEvent.click(screen.getByRole("button", { name: /Připravenost a pomoc/ }));
+    const panel = document.querySelector("aside.insp") as HTMLElement;
+    const composer = document.getElementById("composer") as HTMLTextAreaElement;
+    composer.disabled = false;
+    composer.focus();
+    fireEvent.keyDown(window, { key: "Escape" });
+    expect(panel.hidden).toBe(false);
+  });
+
+  it("behind an open drawer, Escape closes the drawer the person is in, not the hidden panel", async () => {
+    bench();
+    setWidth(900);
+    fireEvent.click(screen.getByRole("button", { name: /Připravenost a pomoc/ }));
+    fireEvent.click(screen.getByRole("button", { name: /Otevřít konverzaci/ }));
+    expect(screen.getByRole("dialog")).toBeTruthy();
+    fireEvent.keyDown(window, { key: "Escape" });
+    await waitFor(() => expect(screen.queryByRole("dialog")).toBeNull());
+    expect((document.querySelector("aside.insp") as HTMLElement).hidden).toBe(false);
+  });
+});

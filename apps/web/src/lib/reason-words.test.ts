@@ -6,7 +6,7 @@ import type { ResearchPhase } from "@/lib/api";
 import { codedText, codeWords, coverageWords, deepStepLabel, known, stepProblem, searchedNothing } from "./reason-words";
 import { phaseLabel } from "./research-execution";
 
-const step = (extra: { status?: string; waiting_reason?: string | null; error_message?: string | null }) => ({
+const step = (extra: { status?: string; waiting_reason?: string | null; error_message?: string | null; error_reason?: string | null }) => ({
   status: "RUNNING",
   waiting_reason: null,
   error_message: null,
@@ -40,6 +40,12 @@ describe("reason words", () => {
     expect(stepProblem(step({ waiting_reason: "ai_runtime_unavailable" }))?.code).toBeNull();
     expect(stepProblem(step({ waiting_reason: "gate:licence" }))).toEqual({ words: "AIA k tomuto záznamu zatím nemá popis.", code: "gate:licence" });
     expect(stepProblem(step({}))).toBeNull();
+  });
+
+  it("says who fixes a failed Deep Research step the AI route refused (LO12a)", () => {
+    const words = stepProblem(step({ status: "FAILED", error_message: "Brána odmítla.", error_reason: "egress_training_exclusion_missing" }))?.words;
+    expect(words).toMatch(/^Brána odmítla\. Opraví to provozovatel AIA/);
+    expect(words).toContain("aia_ai_route_excluded_from_training");
   });
 
   it("never prints a phase or a coverage it does not know as a key or a code", () => {

@@ -25,7 +25,7 @@ export const useAskLead = () => useContext(LeadAskContext);
 export function AskLead({ what, className = "" }: { what: string; className?: string }) {
   return (
     <p data-ask-lead className={`text-xs leading-5 text-ink-muted ${className}`}>
-      {what} připraví Vedoucí výzkumu: požádejte ho v konverzaci vlevo. Spustí se až po vašem schválení na jeho kartě.
+      {what} připraví Vedoucí výzkumu: požádejte ho v konverzaci s ním (na užší obrazovce ji otevře tlačítko Vedoucího). Spustí se až po vašem schválení na jeho kartě.
     </p>
   );
 }

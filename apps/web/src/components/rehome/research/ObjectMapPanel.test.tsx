@@ -538,6 +538,32 @@ describe("what a click shows beside the map", () => {
     expect(text).not.toMatch(/Úroveň šumu|Rozložení hodnocení|První volba/);
   });
 
+  // The canvas takes no keyboard: the object's listed relations open a pair as a click on its line does
+  // (artifact-sociomap audit, 2026-10-22).
+  // Enter and Space on a button are the browser's: the workbench check presses them (jsdom has no activation).
+  it("opens a relation from the object's card, a focusable button named by what it shows, and closes it again", () => {
+    render(<ObjectMapView battery={hudba} dataOrigin={null} />);
+    fireEvent.click(within(screen.getByTestId("object-map-panel-list")).getByRole("button", { name: "Vybrat objekt Rock" }));
+    const i = map.object_ids.indexOf(canvas().getAttribute("data-selected")!);
+    const rows = within(screen.getByTestId("object-map-detail-relations")).getAllByRole("button");
+    expect(rows.length).toBeGreaterThan(0);
+    const row = rows[0];
+    // Its name starts with the text it shows (WCAG 2.5.3), then says what it does.
+    expect(row.textContent).toMatch(/^.+ [+−-]?\d,\d\d, ukázat vztah Rock – .+$/);
+    row.focus();
+    expect(document.activeElement).toBe(row);
+    fireEvent.click(row);
+    const j = map.object_ids.findIndex((id) => row.textContent!.endsWith(`– ${label(id)}`));
+    expect(canvas().getAttribute("data-relation")).toBe(`${map.object_ids[i]}|${map.object_ids[j]}`);
+    expect(canvas().getAttribute("data-selected")).toBe(map.object_ids[i]);
+    expect(screen.getByTestId("object-map-detail-relation").textContent).toContain(`${label(map.object_ids[i])} – ${label(map.object_ids[j])}`);
+    const pressed = within(screen.getByTestId("object-map-detail-relations")).getAllByRole("button")[0];
+    expect(pressed.getAttribute("aria-pressed")).toBe("true");
+    fireEvent.click(pressed);
+    expect(canvas().getAttribute("data-relation")).toBe("");
+    expect(screen.queryByTestId("object-map-detail-relation")).toBeNull();
+  });
+
   it("selects a relation by a click on its line: the pair's r, interval, N and verdict", async () => {
     render(<ObjectMapView battery={hudba} dataOrigin={null} />);
     await nextFrame(0);
@@ -774,5 +800,31 @@ describe("the filter bar and the four registers", () => {
     expect(bar()).toBeNull();
     await waitFor(() => expect(document.activeElement).not.toBe(document.body));
     expect(screen.getByRole("toolbar", { name: "Ovládání mapy" }).contains(document.activeElement)).toBe(true);
+  });
+});
+
+// The object list on the respondent map (artifact-sociomap audit, 2026-10-21): a click there marked an
+// object pressed and changed nothing a person could see, the respondent card staying where the object's
+// detail would be. Selection is the object map's; on the respondent map the list only lists.
+describe("the object list on the respondent map", () => {
+  it("lists the objects without offering a selection the respondent map cannot show", () => {
+    render(<ObjectMapView battery={hudba} dataOrigin={null} />);
+    fireEvent.click(screen.getByRole("button", { name: "Respondenti" }));
+    const buttons = within(screen.getByTestId("object-map-panel-list")).getAllByRole("button");
+    expect(buttons.length).toBe(map.object_ids.length);
+    for (const b of buttons) expect(b.getAttribute("aria-disabled")).toBe("true");
+    // Read only, yet still a target the Lead can focus (Codex, #639): a disabled button takes no focus.
+    buttons[2].focus();
+    expect(document.activeElement).toBe(buttons[2]);
+    fireEvent.click(buttons[2]);
+    expect(canvas().getAttribute("data-selected")).toBe("");
+    // It reads as the object and its value, not as a toggle that selects (no "Vybrat", nothing pressed).
+    expect(buttons[2].hasAttribute("aria-pressed")).toBe(false);
+    expect(buttons[2].hasAttribute("aria-label")).toBe(false);
+    fireEvent.click(screen.getByRole("button", { name: "Objekty" }));
+    const back = within(screen.getByTestId("object-map-panel-list")).getAllByRole("button");
+    expect(back[2].hasAttribute("aria-disabled")).toBe(false);
+    fireEvent.click(back[2]);
+    expect(canvas().getAttribute("data-selected")).toBe(map.object_ids[2]);
   });
 });
