@@ -542,10 +542,18 @@ function Attachments({ uploads }: { uploads: Uploads }) {
     }
   };
 
+  // I9: a link that is not http(s) is said at its field, not in the stage's alert, and once said it
+  // is checked again as it is typed. An empty field adds nothing and says nothing.
+  const [linkProblem, setLinkProblem] = useState<string | null>(null);
+  const problemOf = (raw: string) => {
+    const r = addLink(store.get().project, raw);
+    return "error" in r ? r.error : null;
+  };
   const link = () => {
+    if (!url.trim()) return setLinkProblem(null);
     const r = addLink(store.get().project, url);
-    if ("error" in r) return setError(r.error);
-    setError(null);
+    if ("error" in r) return setLinkProblem(r.error);
+    setLinkProblem(null);
     setUrl("");
     store.update(() => r, { reason: "brief_link" });
   };
@@ -587,26 +595,34 @@ function Attachments({ uploads }: { uploads: Uploads }) {
           {t("research.brief.pickFiles")}
         </Button>
         <form
-          className="flex min-w-0 flex-[1_1_16rem] gap-1.5"
+          className="flex min-w-0 flex-[1_1_16rem] flex-col gap-1"
           onSubmit={(e) => {
             e.preventDefault();
             link();
           }}
         >
-          <span className="flex min-w-0 flex-1 items-center gap-2 rounded-control border border-border-strong bg-surface-raised px-2.5 focus-within:outline-2 focus-within:outline-offset-2 focus-within:outline-focus-ring">
-            <Icon name="link" size={14} className="text-ink-muted" />
-            <input
-              inputMode="url"
-              aria-label={t("research.brief.urlLabel")}
-              placeholder={t("research.brief.urlPlaceholder")}
-              value={url}
-              onChange={(e) => setUrl(e.target.value)}
-              className="min-h-[34px] min-w-0 flex-1 border-0 bg-transparent text-sm text-ink outline-none placeholder:text-ink-faint"
-            />
+          <span className="flex min-w-0 gap-1.5">
+            <span className={`flex min-w-0 flex-1 items-center gap-2 rounded-control border bg-surface-raised px-2.5 focus-within:outline-2 focus-within:outline-offset-2 focus-within:outline-focus-ring ${linkProblem ? "border-status-fault" : "border-border-strong"}`}>
+              <Icon name="link" size={14} className="text-ink-muted" />
+              <input
+                inputMode="url"
+                aria-label={t("research.brief.urlLabel")}
+                aria-invalid={linkProblem ? true : undefined}
+                aria-describedby={linkProblem ? "brief-link-problem" : undefined}
+                placeholder={t("research.brief.urlPlaceholder")}
+                value={url}
+                onChange={(e) => {
+                  setUrl(e.target.value);
+                  if (linkProblem) setLinkProblem(e.target.value.trim() ? problemOf(e.target.value) : null);
+                }}
+                className="min-h-[34px] min-w-0 flex-1 border-0 bg-transparent text-sm text-ink outline-none placeholder:text-ink-faint"
+              />
+            </span>
+            <Button type="submit" className="!rounded-control" aria-label={t("research.brief.addLinkAria")}>
+              {t("research.brief.addLink")}
+            </Button>
           </span>
-          <Button type="submit" className="!rounded-control" aria-label={t("research.brief.addLinkAria")}>
-            {t("research.brief.addLink")}
-          </Button>
+          {linkProblem ? <span id="brief-link-problem" className="text-xs leading-4 text-status-fault">{linkProblem}</span> : null}
         </form>
       </div>
       {error ? <p role="alert" className="mt-2 text-[13px] text-status-fault">{error}</p> : null}
