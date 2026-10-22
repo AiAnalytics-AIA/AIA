@@ -1775,3 +1775,21 @@ pass finds the jobs already done for the design.
      (both are in the Design Revision), and the cover takes the design's title when it has one.
   6. Test: a report composed from a revision with a goal and a decision use prints both under
      "Návrh studie". The journey's DOCX assertion then also requires the title.
+
+### A Lead test's budget sized for an idle machine (2026-10-22, `fix/lead-inspect-guard-test-race`)
+
+- **F20. Five workbench tests waited 4 s for a Lead turn the pane polls every 1.5 s** *(fixed)*.
+  1. Claim: `Workbench.layout.test.tsx` overrode the suite's 10 s wait (#536, OI-134) with
+     `{ timeout: 4000 }` in five places. Each waits for a Lead turn that arrives only after
+     LeadPane's fixed 1.5 s poll (`LeadPane.tsx:27 @ eb0c7d47`, `POLL_MS`), leaving about 2.5 s for
+     two reads and their renders.
+  2. Anchor: `Workbench.layout.test.tsx:258, 382, 394, 420, 686 @ eb0c7d47`.
+  3. Reproduction: with three busy loops on CPU 0, `taskset -c 0 npx vitest run
+     src/components/workbench/Workbench.layout.test.tsx -t "leaves nothing pending"` fails with
+     "Unable to find role="button" and name `/^Detail: /`" after 5.5 s. Idle, it takes 2.2 s of its
+     4 s budget. Zpráva saw it fail once under load.
+  4. Consequence: a red web suite on a loaded runner, unrelated to the change under test.
+  5. Fix: the five overrides removed, so the suite's 10 s budget applies. "leaves nothing pending"
+     also now waits until the guard has stopped the move, so it no longer passes when no move is
+     tried at all.
+  6. Test: the reproduction above passes; the file passes (38).
