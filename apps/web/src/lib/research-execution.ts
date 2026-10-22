@@ -13,7 +13,7 @@ import type { Tone } from "@/lib/tone";
 import { withFixer } from "@/lib/route-refusal";
 
 export const RUNTIME_UNAVAILABLE = "ai_runtime_unavailable";
-export const SYNTHETIC_SOURCE = "synthetic_fixture";
+const SYNTHETIC_SOURCE = "synthetic_fixture";
 export const STEP_ORDER = ["compile", "preflight", "run", "aggregate", "sociomap", "sociomapping", "sociomapping_report"] as const;
 export const ANALYSIS_ORDER = ["executive", "research_questions", "objects", "audience", "segments", "hypotheses", "implications", "limitations"] as const;
 
@@ -171,7 +171,7 @@ export function reportHolds(run: ResearchRun): ReportHold[] {
 }
 
 /** Origins that are never evidence: the fictional fixture, and AI respondents on fictional personas. */
-export const SYNTHETIC_ORIGINS: ReadonlySet<string> = new Set(["SYNTHETIC_FIXTURE", "SYNTHETIC_AI_FICTIONAL"]);
+const SYNTHETIC_ORIGINS: ReadonlySet<string> = new Set(["SYNTHETIC_FIXTURE", "SYNTHETIC_AI_FICTIONAL"]);
 /** Origins of modelled evidence: AI respondents built from the run's own population (ADR 0024). */
 export const MODELLED_ORIGINS: ReadonlySet<string> = new Set(["MODELLED_AI_PANEL"]);
 /** What every modelled number says beside it (ADR 0024 §7); never "respondents said" or "measured". */

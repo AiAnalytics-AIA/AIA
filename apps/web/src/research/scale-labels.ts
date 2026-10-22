@@ -32,7 +32,7 @@ export function presetOf(scale: Scale): Scale | null {
 }
 
 /** Whether the labels describe every point (not just the two ends). */
-export function everyPointLabelled(labels: readonly string[], scale: Scale): boolean {
+function everyPointLabelled(labels: readonly string[], scale: Scale): boolean {
   return points(scale) > 2 && labels.length === points(scale);
 }
 

@@ -64,10 +64,15 @@ export function comparableFamily(set: TrackedSet): string {
 
 export const SET_PURPOSE_DEFAULT = "stejný typ položek na stejné otázce/škále";
 
+/** A set's question and scale ends when it states none (renderPlan's defaults). */
+export const QUESTION_DEFAULT = "Jak hodnotíte {object}?";
+export const SCALE_DEFAULT: readonly [string, string] = ["vůbec", "velmi"];
+
 /** renderObjectSet's preview: how the first six objects become the question, on its 1–10 scale. */
+
 export function objectQuestionRows(set: TrackedSet): { question: string; low: string; high: string }[] {
-  const tmpl = String(set.object_question || "Jak hodnotíte {object}?");
-  const lb = set.scale_labels || ["vůbec", "velmi"];
+  const tmpl = String(set.object_question || QUESTION_DEFAULT);
+  const lb = set.scale_labels || SCALE_DEFAULT;
   // String.replace with a string pattern replaces the first {object} only, as the classic does.
   return (set.objects || []).slice(0, 6).map((x) => ({ question: tmpl.replace("{object}", x), low: String(lb[0]), high: String(lb[1]) }));
 }
