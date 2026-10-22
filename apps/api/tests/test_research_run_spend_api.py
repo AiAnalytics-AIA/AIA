@@ -140,3 +140,14 @@ def test_a_runs_model_calls_are_spent_and_one_in_flight_is_uncertain(
     ]
     assert spend["spent_usd"] == pytest.approx(0.40)
     assert spend["uncertain_calls"] == 1
+
+
+def test_a_run_records_why_its_ceiling_was_unknown(researcher: TestClient, world: Any) -> None:
+    """FLD4d: a deployment that names no fieldwork reservation gives no ceiling; the run says why,
+    never a zero."""
+    run_id = _run(researcher, world)
+    body = researcher.get(f"{API}/studies/{world.study_id()}/research/runs/{run_id}").json()
+    assert body["cost_ceiling"] == {"usd": None, "unknown": "fieldwork_reservation_missing"}
+    # A listed run carries what it recorded too.
+    [listed] = researcher.get(f"{API}/studies/{world.study_id()}/research/runs").json()["items"]
+    assert listed["cost_ceiling"] == body["cost_ceiling"]
