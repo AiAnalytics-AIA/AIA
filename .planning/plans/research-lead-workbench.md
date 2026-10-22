@@ -1699,10 +1699,21 @@ with no name is no filter. Test: `lead.test.ts` "says each kind in words…" (fa
   guard stops…". The web tests fail without the change.
 - **Still to build in chunk 14:** `select`, `filter` and `show_diff`, each with the artifact that
   declares it.
-- **F18. A view chip names its element by id** *(open)*. A turn's
+- **F18. A view chip names its element by id** *(fixed, `fix/lead-view-chip-words`)*. A turn's
   chips read "Ukázat: Zadání: title" and "Detail: Hypotéza hyp_37d84435f2" (`LeadPane.tsx:393 @ 1fd345a0`
   `VIEW_LABEL`, which has only `targetLabel`; seen in the browser run above). The element is often on
   another stage, so the conversation cannot read its words from the page. Smallest fix: the server
   sends the label it grounded the target against (the frozen copy holds the words) beside each view
   op, or the web keeps the words it saw when the element was last shown. Test: a chip for a
   hypothesis reads its words.
+  - **Fix.** The web names it from the working copy it already holds, not the server: `targetLabel`
+    takes the store's `{project, analysis}` and reads a research question's or a hypothesis's words
+    by its stable id (`item-ids.ts` `wordingOf`, the port of the server's ids), "Hypotéza: <words>",
+    as pointing at it names it; an id the copy no longer holds keeps its id rather than borrowing
+    words. Zadání's sections read by its own field names ("Zadání: Název", `FIELD_LABEL`). LeadPane
+    reads the copy through a context (`ViewWords`), and the Workbench's drawer entry and "Vedoucí
+    ukazuje" bar use the same words. No server change: the copy the turn was frozen on can be older
+    than the one shown, and a chip is a link to what is on screen now.
+  - **Tests.** `lead.test.ts` "targetLabel with the working copy (F18)" and the Zadání lines of
+    "targetLabel"; `LeadPane.test.tsx` "names a view chip's research question or hypothesis by its
+    words in the working copy (F18)". Each fails without the change.

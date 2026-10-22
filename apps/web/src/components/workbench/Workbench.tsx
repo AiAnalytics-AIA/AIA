@@ -430,11 +430,11 @@ export function Workbench({ frame, step, store, memory, save, inspector, reload,
     let tries = 0;
     const look = () => {
       const label = targetOfElement(document.querySelector(focusSelector(id)))?.label;
-      if (label && label !== targetLabel(id)) setItems((s) => ({ ...s, entries: s.entries.map((e) => (e.id === id ? { ...e, title: label } : e)) }));
+      if (label && label !== targetLabel(id, store.get())) setItems((s) => ({ ...s, entries: s.entries.map((e) => (e.id === id ? { ...e, title: label } : e)) }));
       else if (tries++ < 10) setTimeout(look, 150);
     };
     setTimeout(look, 0);
-  }, []);
+  }, [store]);
   useEffect(() => {
     // The Lead's `inspect` on another stage, opened by openingStack: taken on every stage change.
     const want = leadInspect.pending;
@@ -453,7 +453,7 @@ export function Workbench({ frame, step, store, memory, save, inspector, reload,
         // stage it opens once that stage is shown (the move remounts on a route change).
         const t = parseAiaId(v.target);
         if (!t) continue;
-        const entry = { id: v.target, title: targetLabel(v.target) };
+        const entry = { id: v.target, title: targetLabel(v.target, store.get()) };
         if (t.stage === stage) {
           setItems((s) => openEntry(onStage(s, stage), entry));
           nameFromPage(v.target);
@@ -486,7 +486,7 @@ export function Workbench({ frame, step, store, memory, save, inspector, reload,
         find();
       }
     }
-  }, [go, compact, drawer, layout, stage, frame.studyId, nameFromPage]);
+  }, [go, compact, drawer, layout, stage, frame.studyId, nameFromPage, store]);
 
   // A design job is approved on the server: the spend limit, the ledger row and the start together.
   const onRequest = useCallback(async (turn: LeadTurn, r: LeadRequest) => {
@@ -746,7 +746,7 @@ export function Workbench({ frame, step, store, memory, save, inspector, reload,
   }), [runs, frame.stepHref, go, prepareRun, startRun, runOfTurn, onRefreshJobs]);
   const leadPane = (
     <LeadPane studyId={frame.studyId} stage={stage} canEdit={frame.canEdit} focus={focus} picking={picking}
-      onPick={() => drawerEvent({ type: picking ? "picked" : "pick" })} onSession={onSession} onClearFocus={() => setFocus(null)} jobs={[...jobs].reverse()} onOpenJob={openJob} cards={cards} onView={onView} onRequest={onRequest} onTurns={onTurns} onLead={onLead} beforeMessage={flushBeforeMessage} epoch={leadEpoch} registerSend={registerSend}
+      onPick={() => drawerEvent({ type: picking ? "picked" : "pick" })} onSession={onSession} onClearFocus={() => setFocus(null)} jobs={[...jobs].reverse()} onOpenJob={openJob} cards={cards} onView={onView} onRequest={onRequest} onTurns={onTurns} onLead={onLead} beforeMessage={flushBeforeMessage} epoch={leadEpoch} registerSend={registerSend} design={state}
       mode={mode} onFocusMode={() => setMode((m) => (m === "conversation" ? "split" : "conversation"))}
       onClose={compact ? () => drawerEvent({ type: "close" }) : undefined} />
   );
@@ -781,7 +781,7 @@ export function Workbench({ frame, step, store, memory, save, inspector, reload,
               {picking ? <div className="artbar artbar--op" role="status"><Icon name="at" size={13} /><div className="artbar__grow">Klikněte na otázku, oddíl nebo část zadání, o které chcete s Vedoucím mluvit. Esc zruší.</div></div> : null}
               {drawer.kind === "peek" ? (
                 <div className="artbar artbar--op" role="status" data-peek>
-                  <Mark size={13} /><div className="artbar__grow">Vedoucí ukazuje: {drawer.target.includes(":") ? targetLabel(drawer.target) : STAGES[drawer.target as WorkbenchStage]?.label ?? drawer.target}</div>
+                  <Mark size={13} /><div className="artbar__grow">Vedoucí ukazuje: {drawer.target.includes(":") ? targetLabel(drawer.target, state) : STAGES[drawer.target as WorkbenchStage]?.label ?? drawer.target}</div>
                   <button type="button" className="btn btn--sm btn--quiet" onClick={() => drawerEvent({ type: "back" })}>Zpět k Vedoucímu</button>
                 </div>
               ) : null}
