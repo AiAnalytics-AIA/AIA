@@ -225,6 +225,32 @@ class ScopeRepository:
             )
         self._session.flush()
 
+    def clear_subject(self, admin: OrganizationContext, *, user_id: str) -> None:
+        """Unbind a member's identity-provider subject, so their next sign-in binds by e-mail.
+
+        For a person whose subject genuinely changed (a Cognito user re-created, an
+        account re-federated), refused ``identity_mismatch`` until an administrator who
+        has confirmed it is the same person clears it. Only a member of the
+        administrator's own organization; audited.
+        """
+        admin.require_administer()
+        if admin.organization_id not in self.memberships_for_user(user_id):
+            raise ScopeDenied("not a member of this organization", reason="unknown_user")
+        row = self._session.scalar(select(UserRow).where(UserRow.user_id == user_id))
+        if row is None:  # pragma: no cover - a membership names an existing user
+            raise ScopeDenied("not found", reason="unknown_user")
+        row.external_subject = None
+        self._session.add(
+            AccessAuditRow(
+                organization_id=admin.organization_id,
+                subject_user_id=user_id,
+                actor_id=admin.actor_id,
+                action="IDENTITY_SUBJECT_CLEARED",
+                request_id=admin.request_id,
+            )
+        )
+        self._session.flush()
+
     def memberships_for_user(self, user_id: str) -> list[str]:
         """Return the organization ids a user belongs to.
 

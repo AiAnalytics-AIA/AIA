@@ -27,6 +27,7 @@ import dataclasses
 from typing import Any
 
 import pytest
+from sqlalchemy import select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
@@ -49,7 +50,7 @@ from aia_core.domain.scope import (
 )
 from aia_core.infrastructure.repositories import ProjectNotFound, ProjectRepository
 from aia_core.infrastructure.scope_repository import ScopeRepository, SubjectMismatch
-from aia_core.infrastructure.tables import ApprovalDecisionRow
+from aia_core.infrastructure.tables import AccessAuditRow, ApprovalDecisionRow
 
 
 @pytest.fixture
@@ -939,6 +940,41 @@ def test_an_email_never_hands_one_subjects_account_to_another(
     # Provisioning by e-mail alone (no subject) still finds the bound record.
     again = scope_repo.upsert_user(email="bound@art-chain.io")
     assert again["external_subject"] == "cognito-sub-1"
+
+
+def test_an_administrator_clears_a_changed_subject_and_the_next_sign_in_binds(
+    scope_repo: ScopeRepository, resolver: ScopeResolver, world: dict[str, Any]
+) -> None:
+    """A member whose subject genuinely changed is recoverable, by their own organization only."""
+    researcher = world["researcher"]
+    scope_repo.upsert_user(email="researcher@art-chain.io", external_subject="cognito-sub-old")
+    with pytest.raises(SubjectMismatch):
+        scope_repo.upsert_user(email="researcher@art-chain.io", external_subject="cognito-sub-new")
+
+    other, other_owner = scope_repo.create_organization(
+        slug="other", name="Other", owner_email="other@example.test", owner_name="Other"
+    )
+    stranger = resolver.organization_context(
+        AuthenticatedPrincipal(user_id=other_owner.user_id, organization_id=other.organization_id)
+    )
+    with pytest.raises(ScopeDenied):
+        scope_repo.clear_subject(stranger, user_id=researcher)
+    with pytest.raises(ScopeDenied):
+        scope_repo.clear_subject(
+            resolver.organization_context(world["principal"](researcher)), user_id=researcher
+        )
+
+    scope_repo.clear_subject(world["admin"], user_id=researcher)
+    bound = scope_repo.upsert_user(
+        email="researcher@art-chain.io", external_subject="cognito-sub-new"
+    )
+    assert (bound["user_id"], bound["external_subject"]) == (researcher, "cognito-sub-new")
+    actions = [
+        (r.action, r.subject_user_id, r.actor_id)
+        for r in scope_repo._session.scalars(select(AccessAuditRow))
+        if r.action == "IDENTITY_SUBJECT_CLEARED"
+    ]
+    assert actions == [("IDENTITY_SUBJECT_CLEARED", researcher, world["owner_id"])]
 
 
 @pytest.mark.parametrize(
