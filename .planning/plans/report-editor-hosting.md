@@ -5,6 +5,7 @@ chunks:
   - "[x] 2. docs.<hostname>: its own origin in the Caddyfile, every request through AIA's docs gate, the server-only paths refused; tools/caddy_routes.py holds it"
   - "[x] 3. The docs gate in the API: a docs-only session cookie on docs.<hostname> from a one-time ticket, refused without it"
   - "[x] 3b. A timed force-save every 5 minutes while a document is open (RPT8: every autosave a stored version), through one read-only configuration file"
+  - "[ ] 4a. Before activation, in a PR: smoke rows for docs.<hostname> (when aia_onlyoffice_enabled), and bin/deploy.sh stopping the Document Server when the switch is false"
   - "[ ] 4. Activation on develop (operations, the owner's word; precondition: F1 fixed, __Host-aia_session in deployed environments): the host resized, docs.<hostname> in Route 53, the JWT secret in SSM, the flag on, the editor's own checks"
 ---
 # Report editor hosting: ONLYOFFICE Docs beside the develop stack
@@ -424,6 +425,134 @@ every 5 minutes while a document is open; AIA's callback then gets status 6 with
 - Not measured here (a hypothesis, from upstream's documentation of forcesavetype 2): the timer saves
   only a document that changed since its last save, so an open document nobody edits sends no callback.
   RPT8's end-to-end test (an edit, then a callback within the interval plus `step`) is what proves it.
+
+## Activation on develop (chunk 4): the plan
+
+Written 2026-10-22, late, at the owner's request through the coordinator. Nothing below has been done
+yet. Each step names who does it, what exactly, and the check that it held. Step order matters: DNS
+goes first because Caddy cannot get the certificate for `docs.<hostname>` until the name resolves, and
+the switches go last.
+
+State at writing (read-only, 2026-10-22 ~23:50 UTC):
+- Develop runs `6bfe3760`, schema head `f4b6d8a0c2e3` (`docs_ticket_spends` is applied). The `docs.`
+  site in the Caddyfile and `deploy/develop/docs/` are on the host already, inert.
+- No `/aia/develop/aia_onlyoffice_*` parameter exists. `aia_errors_enabled` is true, so GlitchTip runs.
+- Route 53 zone `Z0491946PNRJDOXB1EWV` has `aia-develop` and `errors.aia-develop` (A, 3.64.35.250), and
+  no `docs.` record.
+
+### 0. Precondition: F1 fixed (owner: the Zpráva session)
+
+`__Host-aia_session` in deployed environments, so a page on `docs.<hostname>` cannot toss a cookie into
+AIA's session (Findings, F1).
+- **Check:** its PR is merged to `develop` and deployed; the deploy's smoke still passes its sign-in and
+  cookie rows. Nothing below starts before this.
+
+### 4a. The small PR before activation (owner: this session, on the owner's word)
+
+- `bin/smoke.sh`, when `AIA_ONLYOFFICE_ENABLED` is true:
+  - `https://docs.<hostname>/` answers 401 without the cookie;
+  - `/healthcheck` and `/9.4.0-1/coauthoring/CommandService.ashx` answer 404;
+  - `/__aia/session` without a ticket is refused, never 200;
+  - the `onlyoffice` container is healthy.
+
+  These rows report and do not fail the deploy: "the Document Server never fails a deploy" holds, as in
+  `bin/deploy.sh`.
+- `bin/deploy.sh`: with the switch false, `bin/docs.sh down` when the project is running. Today a false
+  switch only stops it starting, so turning it off also needs a hand on the host, and this session has
+  no `ssm:SendCommand`.
+- **Check:** CI's develop-host job; a deploy with the switch still false shows the rows as not run.
+
+### 1. DNS (owner: this session runs it, on the owner's word in this session)
+
+The resource is in `infra/develop/main.tf` since #785: `aws_route53_record.docs`, an A record
+`docs.${var.public_hostname}` to `aws_eip.host.public_ip`, TTL 300.
+1. Import the drift first, or the apply fails on it:
+   `terraform import 'aws_route53_record.errors[0]' Z0491946PNRJDOXB1EWV_errors.aia-develop.art-chain.io_A`
+2. Plan, then show it to the owner: `terraform plan -target='aws_route53_record.docs[0]'` from a clean
+   `develop` checkout, with the tfvars from SSM `/aia/terraform/develop/tfvars`. Expected: 1 to add, 0 to
+   change, 0 to destroy.
+3. Apply exactly that plan. The owner may instead apply it himself from CloudShell.
+- **Check:** `aws route53 list-resource-record-sets --hosted-zone-id Z0491946PNRJDOXB1EWV` shows
+  `docs.aia-develop.art-chain.io. A 3.64.35.250`; a full plan afterwards shows no change to either record.
+
+### 2. The secret (owner: the owner, from CloudShell)
+
+The value is never printed or pasted into a chat:
+```bash
+aws ssm put-parameter --region eu-central-1 --name /aia/develop/aia_onlyoffice_jwt_secret \
+  --type SecureString --value "$(openssl rand -hex 32)"
+```
+- 64 hex characters. `config.py` requires at least 32, and `write-env.sh` refuses a single quote.
+- `write-env.sh` turns it into `AIA_ONLYOFFICE_JWT_SECRET` in `.env`. From there:
+  - the API gets it (`docker-compose.yml`, `api.environment`);
+  - the Document Server gets it as `JWT_SECRET` (`bin/docs.sh` reads the same `.env`);
+  - the worker and the web client do not (CI holds that).
+- **Check:** `aws ssm describe-parameters --parameter-filters Key=Name,Values=/aia/develop/aia_onlyoffice_jwt_secret`
+  shows a SecureString; its value is not read.
+
+### 3. The switches (owner: this session, on the owner's word; or the owner)
+
+```bash
+aws ssm put-parameter --region eu-central-1 --name /aia/develop/aia_onlyoffice_url \
+  --type String --value https://docs.aia-develop.art-chain.io
+aws ssm put-parameter --region eu-central-1 --name /aia/develop/aia_onlyoffice_enabled \
+  --type String --value true
+```
+- Keys the code reads today:
+  - `AIA_ONLYOFFICE_URL` and `AIA_ONLYOFFICE_JWT_SECRET` (`apps/api/src/aia_api/config.py`; both set,
+    or the docs routes stay 404);
+  - `AIA_ONLYOFFICE_ENABLED` (`bin/deploy.sh`).
+- Any key RPT8 adds is named in its PR and added here.
+- Caddy's route needs no change: the `docs.` site has been deployed since #785, `tools/caddy_routes.py`
+  checks it in CI, and the smoke's "running the deployed Caddyfile" row confirms it on the host.
+- Then deploy: the next merge to `develop`, or "Deploy develop" dispatched for the head SHA.
+- **Check:** the deploy log shows `write-env.sh` naming the three keys, then "the Document Server is up
+  at https://docs.aia-develop.art-chain.io". Smoke passes.
+
+### 4. Verification
+
+- **The deploy:** "Confirm from outside" names the SHA, and the 4a rows are `ok`.
+- **From outside, in a browser or on the deploy runner:**
+  - the certificate for `docs.aia-develop.art-chain.io` is valid;
+  - `/` answers 401;
+  - `/healthcheck` and `/AI-PROXY/x` answer 404.
+- **The round trip (owner: the Zpráva session, RPT8)**, on a fictional study's run:
+  1. open its draft in Zpráva; the editor loads in the frame;
+  2. make an edit; within `interval` plus `step` (5 + 1 minutes) the callback receives status 6 with
+     forcesavetype 2 and AIA stores a new version;
+  3. close the document; status 2 stores the final one;
+  4. a ticket used twice is refused.
+- **The host:** CloudWatch `mem_used_percent` and `disk_used_percent` for the hour after start.
+
+### 5. Rollback
+
+- **Off:**
+  - `aia_onlyoffice_enabled` false, plus `bin/docs.sh down` on the host. Until 4a lands, `docs.sh down`
+    needs the owner, through SSM or CloudShell.
+  - Deleting `aia_onlyoffice_url` also turns the API's docs routes to 404, and Zpráva goes back to its
+    read-only pane. This session cannot delete parameters (`ssm:DeleteParameter` is denied), so the
+    owner does it.
+- **What stays:** every version the callback stored, which are AIA's artifacts; the
+  `docs_ticket_spends` rows; and the `aia-docs_*` volumes (editing caches, nothing authoritative).
+- **Abandoned for good:**
+  - `terraform destroy -target='aws_route53_record.docs[0]'`, or remove the resource in a PR;
+  - delete the three parameters;
+  - on the host, `docker compose -p aia-docs down -v` and `docker image rm` of the pinned image.
+
+### Headroom on the t3a.large (8 GiB, 80 GB)
+
+- **Memory:**
+  - In the last 6 hours, with GlitchTip running, `mem_used_percent` peaked at 18.4 % (about 1.5 GiB).
+  - The Document Server measured about 530 MiB once its fonts were generated, and is capped at 2 GiB
+    with swap.
+  - Worst case: about 3.5 GiB of 8 (about 44 %). Expected: about 2 GiB (about 25 %).
+- **Disk:**
+  - 27.7 GiB free (63.8 % used) after tonight's deploy.
+  - The image is 4.86 GB (4.5 GiB) unpacked (measured), so about 23 GiB remains (about 70 % used), before its
+    volumes, which hold caches.
+  - `bin/image_retention.py` touches only `aia-api|worker|web` release images, so it never removes this
+    one. A pull needs Docker Hub; anonymous pulls are rate-limited, and one pull per version is far
+    below the limit.
 
 ## Review (2026-10-22, before the push)
 
