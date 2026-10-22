@@ -446,6 +446,11 @@ class PromptRepository:
             row = self._row(prompt_id, version_number)
             if row is None:
                 raise PromptRefused("no such version", reason="unknown_version")
+            try:
+                # A version stored before its slot's byte bound cannot become what runs.
+                slot.check_pin_size(row.text)
+            except PromptRejected as exc:
+                raise PromptRefused(str(exc), reason=exc.reason) from exc
             self._require_independent_activation(row)
         self._session.add(
             PromptActivationRow(

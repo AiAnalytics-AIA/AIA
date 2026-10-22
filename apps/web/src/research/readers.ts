@@ -16,8 +16,7 @@
 // listed here is what the item feeds once it compiles, never a verdict that it will.
 
 import type { ResearchProject } from "./model";
-import { SET_MAX, SET_MIN } from "./lane";
-import { type Question, type Section, questionCondition, sections } from "./questionnaire";
+import { SET_MAX, SET_MIN, type Question, type Section, questionCondition, sections } from "./questionnaire";
 
 /** A downstream stage of the workbench that reads questionnaire items. */
 export type Reader = "fieldwork" | "results" | "sociomap" | "analysis" | "report";

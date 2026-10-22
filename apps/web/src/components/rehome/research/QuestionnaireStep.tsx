@@ -28,6 +28,8 @@ import {
   type PreviewItem,
   type Question,
   type QuestionnairePath,
+  SET_MAX,
+  SET_MIN,
   SET_TOO_SMALL,
   type Section,
   TEMPLATE_FILENAME,
@@ -155,7 +157,7 @@ function removeWithUndo(update: Update, undo: EditorUndo, si: number, sec: Secti
 /** A tracked set is measured on 4–15 objects (SET_SIZE). */
 const setInvalid = (sec: Section) => {
   const n = (sec.objects || []).length;
-  return n < 4 || n > 15;
+  return n < SET_MIN || n > SET_MAX;
 };
 const OBJECT = "{object}";
 
@@ -1081,9 +1083,6 @@ function TrackedSet({ n, sec, si, update }: { n: number; sec: Section; si: numbe
           <h3 className="sr-only">{sec.title?.trim() || tv("research.questionnaire.untitledSet", { n })}</h3>
           <InlineField strong label={t("research.questionnaire.setTitle")} value={sec.title || ""} onChange={(v) => update((p) => setSectionField(p, si, "title", v))} />
         </div>
-        <span className={`whitespace-nowrap rounded-md px-1.5 py-0.5 font-mono text-xs ${bad ? "bg-status-you-wash text-status-you-ink" : "bg-surface-sunken text-ink-muted"}`}>
-          {tv("research.questionnaire.setCount", { n: objects.length })}
-        </span>
         {confirming ? (
           <InlineConfirm message={t("research.questionnaire.removeSetConfirm")} action={t("research.questionnaire.remove")} onConfirm={() => removeWithUndo(update, undo, si, sec, "setRemoved")} onCancel={() => setConfirming(false)} />
         ) : (
@@ -1132,11 +1131,19 @@ function TrackedSet({ n, sec, si, update }: { n: number; sec: Section; si: numbe
         )}
       </div>
       <div className="flex flex-col gap-1">
-        <span className={LABEL}>{t("research.questionnaire.setObjectsV3")}</span>
+        {/* The count beside the list it counts (audit A14), moved from the card's header, which
+            scrolls away while objects are added on a phone. */}
+        <div className="flex items-baseline justify-between gap-2">
+          <span className={LABEL}>{t("research.questionnaire.setObjectsV3")}</span>
+          <span className={`whitespace-nowrap rounded-md px-1.5 py-0.5 font-mono text-xs ${bad ? "bg-status-you-wash text-status-you-ink" : "bg-surface-sunken text-ink-muted"}`}>
+            {tv("research.questionnaire.setCount", { n: objects.length })}
+          </span>
+        </div>
         <ChipInput
           label={t("research.questionnaire.setObjectAdd")}
           placeholder={t("research.questionnaire.setObjectAdd")}
           values={objects}
+          refuse={() => (objects.length >= SET_MAX ? tv("research.questionnaire.setObjectsFull", { max: SET_MAX }) : null)}
           onAdd={(v) => setObjects([...objects, v])}
           onRemove={(i) => setObjects(objects.filter((_, j) => j !== i))}
         />
