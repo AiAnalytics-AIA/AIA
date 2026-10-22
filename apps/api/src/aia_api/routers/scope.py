@@ -39,6 +39,7 @@ from ..dependencies import (
     StudyScopeDep,
     require_permission,
 )
+from ..schemas.names import EntityName
 from ..schemas.projects import ErrorResponse
 
 router = APIRouter(
@@ -62,7 +63,7 @@ class ClientCreateRequest(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
     slug: str = Field(max_length=64, description="URL-safe identifier, lowercased.")
-    name: str = Field(min_length=1, max_length=255)
+    name: EntityName
     reference: str = Field(default="", max_length=128, description="Internal reference.")
 
 
@@ -95,7 +96,7 @@ class StudyCreateRequest(BaseModel):
 
     client_id: str = Field(max_length=64)
     slug: str = Field(max_length=64)
-    name: str = Field(min_length=1, max_length=255)
+    name: EntityName
     budget_usd: float = Field(default=0.0, ge=0, le=1_000_000)
 
 
