@@ -11,10 +11,16 @@ import dataclasses
 import json
 import uuid
 from dataclasses import dataclass, field
+from datetime import UTC, datetime, timedelta
 from typing import Any
 
 import aia_core.domain.project as project_module
 import pytest
+from aia_core.application.membership import (
+    deactivate_member,
+    erase_sealed_leads,
+    reactivate_member,
+)
 from aia_core.application.research import research_artifacts
 from aia_core.application.research_lead import ResearchLead
 from aia_core.application.scope import AuthenticatedPrincipal, ScopeResolver
@@ -23,6 +29,7 @@ from aia_core.domain.ai_models import ModelCapability
 from aia_core.domain.knowledge import KnowledgeKind
 from aia_core.domain.research_lead import LEAD_PROMPT_ID, RememberNote, SelfUpdate, lead_prompt
 from aia_core.domain.residency import DataClass
+from aia_core.domain.scope import ScopeDenied
 from aia_core.infrastructure.ai_usage_repository import AIUsageRepository
 from aia_core.infrastructure.client_knowledge_repository import ClientKnowledgeRepository
 from aia_core.infrastructure.model_adapters.transport import HttpRequest, HttpResponse
@@ -746,3 +753,102 @@ def test_a_reused_turn_is_grounded_as_a_fresh_one() -> None:
     ]
     # Idempotent: a result already grounded comes back unchanged.
     assert _regrounded(result, design) == result
+
+
+# --------------------------------------------------------------------------- the sealed Lead
+
+
+def _deactivate(world: Any) -> None:
+    with world.sessions() as session:
+        deactivate_member(
+            session, world.admin_context(session), user_id=world.lead_id, now=datetime.now(UTC)
+        )
+        session.commit()
+
+
+def _step(world: Any, run_id: str) -> Any:
+    from aia_core.infrastructure.tables import StepAttemptRow, StepRunRow
+
+    with world.sessions() as session:
+        step = session.query(StepRunRow).filter(StepRunRow.run_id == run_id).one()
+        attempts = (
+            session.query(StepAttemptRow).filter(StepAttemptRow.step_id == step.step_id).all()
+        )
+        return step.status, dict(step.input_json), [dict(a.error_json) for a in attempts]
+
+
+def test_a_deactivated_members_queued_turn_never_runs_and_comes_back_with_them(
+    ready: Any, database_url: str, store: Any, build: Any
+) -> None:
+    """ADR 0030: the seal is set in the deactivation's own transaction; a turn queued before
+    it is refused by the worker before anything is sent, and the Lead returns, unsealed, when
+    the member is reactivated within the 30 days."""
+    turn_id = post(ready)
+    run_id = lead_turn(ready, turn_id)["run_id"]
+    _deactivate(ready)
+    with ready.sessions() as session, pytest.raises(ScopeDenied) as denied:
+        ready.lead_scope(session)
+    assert denied.value.reason == "user_deactivated"
+
+    transport = RecordedBedrock([REPLY])
+    assert worker(ready, database_url, store, build, transport).run_once()
+    assert transport.requests == []
+    status, _, errors = _step(ready, run_id)
+    assert status == "FAILED" and errors[-1]["reason"] == "lead_sealed"
+
+    with ready.sessions() as session:
+        back = reactivate_member(session, ready.admin_context(session), user_id=ready.lead_id)
+        session.commit()
+    assert back.lead_unsealed is True
+    with ready.sessions() as session:
+        org = ScopeResolver(session).organization_context(
+            AuthenticatedPrincipal(user_id=ready.lead_id, organization_id=ready.organization_id)
+        )
+        assert ResearcherLeadRepository(session, org).get() is not None
+
+
+def test_a_sealed_lead_past_its_date_is_erased_with_its_turns_and_what_they_sent(
+    ready: Any, database_url: str, store: Any, build: Any
+) -> None:
+    from aia_core.infrastructure.storage import ObjectNotFound
+    from aia_core.infrastructure.tables import (
+        ProjectArtifactRow,
+        ResearcherLeadRow,
+        StudyLeadTurnRow,
+        WorkflowRunRow,
+    )
+
+    turn_id = post(ready)
+    assert worker(ready, database_url, store, build, RecordedBedrock([REPLY])).run_once()
+    turn = lead_turn(ready, turn_id)
+    run_id = turn["run_id"]
+    with ready.sessions() as session:
+        from aia_core.infrastructure.tables import StepRunRow
+
+        step = session.query(StepRunRow).filter(StepRunRow.run_id == run_id).one()
+        artifact_id = step.output_json["artifact_id"]
+        key = session.get(ProjectArtifactRow, artifact_id).storage_key
+    store.get(key)  # stored
+
+    _deactivate(ready)
+    now = datetime.now(UTC)
+    assert erase_sealed_leads(ready.sessions, store, now=now) == []  # not yet due
+    with ready.sessions() as session:
+        session.execute(
+            update(ResearcherLeadRow)
+            .where(ResearcherLeadRow.user_id == ready.lead_id)
+            .values(erase_after=now - timedelta(seconds=1))
+        )
+        session.commit()
+    erased = erase_sealed_leads(ready.sessions, store, now=now)
+    assert [e.user_id for e in erased] == [ready.lead_id]
+
+    with ready.sessions() as session:
+        assert session.query(ResearcherLeadRow).filter_by(user_id=ready.lead_id).count() == 0
+        assert session.query(StudyLeadTurnRow).filter_by(user_id=ready.lead_id).count() == 0
+        assert session.get(ProjectArtifactRow, artifact_id) is None
+        assert session.get(WorkflowRunRow, run_id) is not None  # the ledgers still resolve
+    status, inputs, _ = _step(ready, run_id)
+    assert status == "SUCCEEDED" and inputs == {"erased": "lead_sealed"}
+    with pytest.raises(ObjectNotFound):
+        store.get(key)

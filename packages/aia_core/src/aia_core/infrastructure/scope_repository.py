@@ -9,6 +9,7 @@ decision having already been made.
 from __future__ import annotations
 
 from collections.abc import Sequence
+from datetime import datetime
 from typing import Any
 
 from sqlalchemy import func, select
@@ -367,6 +368,7 @@ class ScopeRepository:
                 .where(
                     OrganizationMemberRow.organization_id == admin.organization_id,
                     OrganizationMemberRow.role == owner,
+                    OrganizationMemberRow.deactivated_at.is_(None),
                     UserRow.is_active.is_(True),
                 )
             )
@@ -380,15 +382,19 @@ class ScopeRepository:
         immediately even while a valid token is still in circulation.
         """
         admin.require_administer()
-        row = self._session.scalar(select(UserRow).where(UserRow.user_id == user_id))
-        if row is None:
-            raise ScopeDenied("not found", reason="unknown_user")
+        # The target is resolved through the acting admin's own organization (S15): a user
+        # who is not a member here is not found, whatever other organization they are in.
         membership = self._session.scalar(
             select(OrganizationMemberRow.role).where(
                 OrganizationMemberRow.organization_id == admin.organization_id,
                 OrganizationMemberRow.user_id == user_id,
             )
         )
+        if membership is None:
+            raise ScopeDenied("not found", reason="not_a_member")
+        row = self._session.scalar(select(UserRow).where(UserRow.user_id == user_id))
+        if row is None:
+            raise ScopeDenied("not found", reason="unknown_user")
         self._guard_owner(admin, previous=membership, role=None)
         row.is_active = False
         self._session.add(
@@ -401,6 +407,73 @@ class ScopeRepository:
             )
         )
         self._session.flush()
+
+    def _member_row(self, admin: OrganizationContext, user_id: str) -> OrganizationMemberRow:
+        """A member of the admin's own organization, locked, or ``not_a_member`` (S15)."""
+        row = self._session.scalar(
+            select(OrganizationMemberRow)
+            .where(
+                OrganizationMemberRow.organization_id == admin.organization_id,
+                OrganizationMemberRow.user_id == user_id,
+            )
+            .with_for_update()
+        )
+        if row is None:
+            raise ScopeDenied("not found", reason="not_a_member")
+        return row
+
+    def deactivate_member(self, admin: OrganizationContext, *, user_id: str, now: datetime) -> bool:
+        """Deactivate a member in the admin's own organization (D-27).
+
+        Only this membership: the account and any other organization are untouched. The
+        member resolves no scope here from the next request, whatever token they hold. The
+        OWNER rule and the last active OWNER hold (security-audit S14). Returns whether it
+        changed anything; deactivating a deactivated member changes nothing.
+        """
+        admin.require_administer()
+        row = self._member_row(admin, user_id)
+        if row.deactivated_at is not None:
+            return False
+        self._guard_owner(admin, previous=row.role, role=None)
+        row.deactivated_at, row.deactivated_by = now, admin.actor_id
+        self._session.add(
+            AccessAuditRow(
+                organization_id=admin.organization_id,
+                subject_user_id=user_id,
+                actor_id=admin.actor_id,
+                action="MEMBER_DEACTIVATED",
+                role=row.role,
+                request_id=admin.request_id,
+            )
+        )
+        self._session.flush()
+        return True
+
+    def reactivate_member(self, admin: OrganizationContext, *, user_id: str) -> bool:
+        """Reactivate a member deactivated in the admin's own organization. Granting an OWNER
+        back is the OWNER rule's (only an OWNER restores an OWNER). Returns whether it changed
+        anything."""
+        admin.require_administer()
+        row = self._member_row(admin, user_id)
+        if row.deactivated_at is None:
+            return False
+        if row.role == OrganizationRole.OWNER.value and (
+            admin.organization_role is not OrganizationRole.OWNER
+        ):
+            raise ScopeDenied("only an OWNER grants or removes OWNER", reason="owner_only")
+        row.deactivated_at, row.deactivated_by = None, None
+        self._session.add(
+            AccessAuditRow(
+                organization_id=admin.organization_id,
+                subject_user_id=user_id,
+                actor_id=admin.actor_id,
+                action="MEMBER_REACTIVATED",
+                role=row.role,
+                request_id=admin.request_id,
+            )
+        )
+        self._session.flush()
+        return True
 
     # ------------------------------------------------------------------ clients
 
@@ -1012,8 +1085,9 @@ class ScopeRepository:
                 "user_id": user.user_id,
                 "email": user.email,
                 "display_name": user.display_name,
-                "is_active": user.is_active,
+                "is_active": user.is_active and member.deactivated_at is None,
                 "organization_role": member.role,
+                "deactivated_at": member.deactivated_at,
             }
             for member, user in rows
         ]
