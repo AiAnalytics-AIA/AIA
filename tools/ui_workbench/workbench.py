@@ -197,8 +197,11 @@ def _production_web() -> list[str]:
             check=True,
         )
     standalone = WEB / ".next" / "standalone"
-    shutil.copytree(WEB / ".next" / "static", standalone / ".next" / "static", dirs_exist_ok=True)
-    shutil.copytree(WEB / "public", standalone / "public", dirs_exist_ok=True)
+    # This build's files only: a previous build's hashed chunks are not left servable beside them.
+    shutil.rmtree(standalone / ".next" / "static", ignore_errors=True)
+    shutil.rmtree(standalone / "public", ignore_errors=True)
+    shutil.copytree(WEB / ".next" / "static", standalone / ".next" / "static")
+    shutil.copytree(WEB / "public", standalone / "public")
     return ["node", str(standalone / "server.js")]
 
 
@@ -215,10 +218,14 @@ def up(
         POPULATION_DOUBLE.write_text("the API composes the fictional population double\n")
     else:
         POPULATION_DOUBLE.unlink(missing_ok=True)
+    # Built before anything is started, so a failed build leaves no process behind, and marked only
+    # once it succeeded. A web client already running is kept as it is: `down` to rebuild.
+    PRODUCTION.unlink(missing_ok=True)
+    production_web = _production_web() if production and "web" not in state else None
     if production:
+        if production_web is None:
+            print("workbench: the web client is already running; `down` first to rebuild it")
         PRODUCTION.write_text("the web client is a production build (next build, standalone)\n")
-    else:
-        PRODUCTION.unlink(missing_ok=True)
     if fresh:
         for name in ("unit", "api", "worker"):
             if name in state:
@@ -255,10 +262,10 @@ def up(
             + (["--fresh"] if fresh else []),
             REPO,
         )
-    if "web" not in state and production:
+    if "web" not in state and production_web is not None:
         state["web"] = _spawn(
             "web",
-            _production_web(),
+            production_web,
             WEB / ".next" / "standalone",
             {"NEXT_TELEMETRY_DISABLED": "1", "PORT": str(WEB_PORT), "HOSTNAME": "127.0.0.1"},
         )

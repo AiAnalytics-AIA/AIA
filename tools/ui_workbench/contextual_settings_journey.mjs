@@ -2,9 +2,10 @@
 // Settings UX through the real fictional local API, with no paid model calls.
 import assert from "node:assert/strict";
 import { createRequire } from "node:module";
-import { mkdirSync, writeFileSync, existsSync } from "node:fs";
+import { mkdirSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
+import { requireProductionBuild } from "./production.mjs";
 
 const repo = join(dirname(fileURLToPath(import.meta.url)), "../..");
 const require = createRequire(import.meta.url);
@@ -13,12 +14,7 @@ const args = process.argv.slice(2);
 const arg = (key, fallback) => args.includes(`--${key}`) ? args[args.indexOf(`--${key}`) + 1] : fallback;
 const base = arg("facade", "http://127.0.0.1:8780");
 assert(["localhost", "127.0.0.1"].includes(new URL(base).hostname), "Fictional local identity only");
-// The 400 ms budgets are measured on a production build: `next dev` compiles on demand and runs
-// dev-only checks, so on it a timed interaction measures the dev server (contextual journeys, 2026-10-22).
-if (!existsSync(join(repo, "tmp/ui-workbench/production"))) {
-  console.error("This journey times interactions; run it on a production build: python3 tools/ui_workbench/workbench.py down && python3 tools/ui_workbench/workbench.py up --production");
-  process.exit(2);
-}
+requireProductionBuild(repo, base);
 const out = arg("out", join(repo, "tmp/ui-workbench/contextual-settings-timing"));
 mkdirSync(out, { recursive: true });
 const browser = await chromium.launch({ executablePath: process.env.AIA_CHROMIUM || undefined });
@@ -55,7 +51,7 @@ async function timed(name, control, selector, text = null) {
 async function layout(name) {
   const size = await page.evaluate(() => ({ width: innerWidth, documentWidth: document.documentElement.scrollWidth }));
   assert(size.documentWidth <= size.width + 2, `${name}: horizontal overflow ${JSON.stringify(size)}`);
-  const controls = await page.locator('[data-settings-workspace] button, [data-settings-workspace] select, [data-settings-workspace] input:not([type=checkbox]):not([type=radio])').evaluateAll((items) => items.filter((node) => node.getBoundingClientRect().width && !node.disabled).map((node) => ({ label: node.getAttribute("aria-label") ?? node.textContent?.trim().slice(0, 50) ?? "", dense: node.hasAttribute("data-dense"), width: node.getBoundingClientRect().width, height: node.getBoundingClientRect().height })));
+  const controls = await page.locator('[data-settings-workspace] button, [data-settings-workspace] select, [data-settings-workspace] input:not([type=checkbox]):not([type=radio])').evaluateAll((items) => items.filter((node) => node.getBoundingClientRect().width && !node.disabled).map((node) => ({ label: node.getAttribute("aria-label") ?? node.textContent?.trim().slice(0, 50) ?? "", dense: node.matches("[data-methodology-outline] [data-dense]"), width: node.getBoundingClientRect().width, height: node.getBoundingClientRect().height })));
   // 44 px everywhere but the editor's dense outline rows, which keep WCAG 2.5.8's 24 px minimum by
   // design (MethodologyVersions.tsx, data-dense).
   for (const item of controls) {
@@ -104,6 +100,7 @@ try {
   const versions = page.locator('#panel-methodology [data-methodology-versions="sociomap"]');
   let editor = page.locator("[data-methodology-editor]"); await editor.waitFor();
   assert(!(await editor.locator("h4").evaluate((node) => node === document.activeElement)), "Opening Metodika moves focus into the editor unasked");
+  // The editor's own Zrušit, in its header row before any step's content.
   await editor.getByRole("button", { name: "Zrušit", exact: true }).first().click();
   await versions.getByRole("button", { name: "Upravit metodiku" }).click();
   editor = page.locator("[data-methodology-editor]"); await editor.waitFor();
