@@ -1774,7 +1774,7 @@ describe("Results", () => {
       } }),
     });
     const opened: string[] = [];
-    const inspector = { open: (entry: { id: string }) => { opened.push(entry.id); return true; } };
+    const inspector = { open: (entry: { id: string }) => { opened.push(entry.id); return true; }, closeWhere: () => {} };
     render(<ItemInspectorContext.Provider value={inspector}><ResearchScreen step="results" frame={TEST_FRAME} /></ItemInspectorContext.Provider>);
     fireEvent.click(await screen.findByRole("tab", { name: "AI analýza" }));
     const table = await screen.findByRole("region", { name: "Pokrytí výzkumných otázek" });
