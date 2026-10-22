@@ -213,6 +213,7 @@ export const cs = {
       columns: { study: "Studie", status: "Stav", brought: "Přineslo do znalostí", modified: "Upraveno" },
       broughtAccepted: "přijato: {n}",
       broughtWaiting: "čeká: {n}",
+      waitingNarrow: "ke schválení: {n}",
       broughtNothing: "nic",
     },
     stages: {
