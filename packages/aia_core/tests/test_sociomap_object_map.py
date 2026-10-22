@@ -55,6 +55,7 @@ from aia_core.domain.sociomap.metrics import ObjectRole, connectedness_100, prim
 from aia_core.domain.sociomap.pairs import derive_pair_relations
 from aia_core.domain.sociomap.relations import PairStatus, person_minmax
 from aia_core.domain.sociomap.specification import (
+    AIA_SOCIOMAP_V5,
     DissimilarityTarget,
     MapFrameMethod,
 )
@@ -514,9 +515,8 @@ def _study(seed: int, n: int) -> tuple[SpecBattery, SpecBattery, _Dataset]:
     return a, b, _Dataset(people)
 
 
-def test_a_new_run_pins_both_methods() -> None:
-    ids = [m.method_id for m in default_methods()]
-    assert ids == ["aia-sociomap-1", "aia-sociomap-3"]
+def test_a_new_run_pins_the_signed_off_method_alone() -> None:
+    assert default_methods() == (SociomapMethod.of(AIA_SOCIOMAP_V5),)
 
 
 def test_the_research_body_stores_the_object_map_beside_the_v1_map() -> None:
@@ -571,7 +571,8 @@ def test_with_the_switch_on_the_bootstrap_is_the_maps_and_the_body_keeps_none() 
     assert "connectedness_100" not in on
 
 
-def test_research_sociomaps_names_both_pinned_methods() -> None:
+@pytest.mark.parametrize("pinned", ["new", "old"])
+def test_research_sociomaps_names_every_pinned_method(pinned: str) -> None:
     from aia_core.domain.research_design import compile_design
 
     spec, problems = compile_design(
@@ -599,18 +600,29 @@ def test_research_sociomaps_names_both_pinned_methods() -> None:
             for k in range(60)
         ]
     )
+    # A new run pins aia-sociomap-5 alone; a run stored under the old default (the reference
+    # map beside aia-sociomap-3) still computes exactly what it pinned.
+    old = (SociomapMethod.of(AIA_SOCIOMAP_V1), SociomapMethod.of(AIA_SOCIOMAP_V3))
+    methods = default_methods() if pinned == "new" else old
     body = research_sociomaps(
         spec,
         data,  # type: ignore[arg-type]
-        methods=default_methods(),
+        methods=methods,
         connectedness_interval=False,
     )
-    assert [m["method_id"] for m in body["methods"]] == ["aia-sociomap-1", "aia-sociomap-3"]
     (set_body,) = body["batteries"]
-    assert set(set_body["maps"]) == {"aia-sociomap-3"}
     assert body["sociomap_version"] == "aia-research-sociomap-10"
-    pins = {m.method_id: m for m in default_methods()}
-    assert pins["aia-sociomap-3"] == SociomapMethod.of(AIA_SOCIOMAP_V3)
+    if pinned == "new":
+        assert [m["method_id"] for m in body["methods"]] == ["aia-sociomap-5"]
+        assert set(set_body["maps"]) == {"aia-sociomap-5"}
+        # No reference picture, nor the unit's relation matrix kept for it, is computed.
+        assert not {"sociomap", "preset", "relation", "side_tables"} & set(set_body)
+        assert body["methodology_status"] == set_body["methodology_status"] == "CLIENT_FACING"
+    else:
+        assert [m["method_id"] for m in body["methods"]] == ["aia-sociomap-1", "aia-sociomap-3"]
+        assert set(set_body["maps"]) == {"aia-sociomap-3"}
+        assert set_body["sociomap"]["contract_version"] == "2"
+        assert set_body["preset"] == "aia-sociomap-1" and set_body["relation"]["matrix"]
 
 
 def test_the_map_says_what_it_rests_on_and_how_weights_entered_it() -> None:

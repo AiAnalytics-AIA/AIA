@@ -339,7 +339,7 @@ function MappedView({ battery, map, methodId, fingerprint, facts, approved }: { 
         {map.terrain.status === "not_computed" ? <p className="text-xs text-ink-muted">{tv("research.exec.objectMap.noTerrain", { reason: map.terrain.reason })}</p> : null}
       </div>
 
-      <aside className="grid min-w-0 flex-[1_1_300px] grid-cols-[repeat(auto-fit,minmax(min(100%,280px),1fr))] content-start gap-3.5">
+      <div className="grid min-w-0 flex-[1_1_300px] grid-cols-[repeat(auto-fit,minmax(min(100%,280px),1fr))] content-start gap-3.5">
         <div className="flex flex-col gap-2.5 rounded-[10px] border border-border bg-surface-raised p-4">
           <p className="text-xs text-ink-muted">{t("research.exec.objectMap.selectedTitle")}</p>
           {chosen ? <Selected o={chosen} relations={relations} partner={partner} rating={rating} onPair={(id) => pairWith(id === partner ? null : id)} /> : null}
@@ -352,7 +352,7 @@ function MappedView({ battery, map, methodId, fingerprint, facts, approved }: { 
           {facts}
           <button type="button" onClick={snapshot} className="mt-1 self-start rounded-full border border-border-strong bg-surface-raised px-3 py-1.5 text-xs text-ink">{t("research.exec.objectMap.snapshot")}</button>
         </div>
-      </aside>
+      </div>
     </div>
   );
 }

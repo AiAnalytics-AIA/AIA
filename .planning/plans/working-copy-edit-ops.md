@@ -74,6 +74,15 @@ the agent-job and Design Research accepts; **2f** the 18.6.6 migration, then `sa
   digest, deterministic. Measured: a
   40-question import into the template is 44 rows in 5.6 ms (median of 20), one wording edit on it
   1 row in 7.3 ms. Tests: `test_edit_log.py`.
+- **WCE2b (2026-10-22).** M1: `workspace_edit_ops` (`migrations/versions/20261022_90dc672445b1_the_working_copy_operation_log.py`), insert-once
+  (a `before_update` listener; the downgrade refuses while a row is stored), the three scope
+  columns cascading with the study, CHECKs on the actor and source sets and on an author for
+  everything but a migrated revision (`workspace_edit_op_author_unless_migrated`), indexes for the
+  feed `(study_id, result_revision)` and for conflicts `(study_id, item_key, field)`. No foreign
+  key on the author: the log keeps who wrote it. `infrastructure/workspace_edit_repository.py` is
+  its only reader and writer (`append` under `EDIT_STUDY`, `rows(after_revision=)`), held by two
+  `layer_check` rules. `alembic check` against PostgreSQL 16: no difference from the model.
+  Tests: `test_workspace_edit_repository.py`.
 
 **WCE3a. The web store on the server vocabulary, Brief and Design stages**  
 33 `store.update` sites in 9 files and about 1,900 lines of TypeScript with 18.6.6 parity tests are moved stage by stage; the parity tests stay green at every step.

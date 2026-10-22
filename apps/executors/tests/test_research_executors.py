@@ -212,17 +212,18 @@ def test_the_workbench_produces_a_fictional_dataset_that_says_so(
         "voda",
     }
 
-    # The Sociomap was computed, and is internal only while D6 is open.
+    # The Sociomap was computed under aia-sociomap-5, which the register approves for reports.
     sociomap_out = steps["sociomap"]["output"]
     assert sociomap_out["artifact_type"] == SOCIOMAP
-    assert sociomap_out["methodology_status"] == "INTERNAL_ONLY"
+    assert sociomap_out["methodology_status"] == "CLIENT_FACING"
     assert sociomap_out["data_origin"] == "SYNTHETIC_FIXTURE"
     with world.sessions() as session:
         research = research_artifacts(session, world.lead_scope(session), store)
         sociomap = research.read_json(sociomap_out["artifact_id"])["sociomap"]
     (battery,) = sociomap["batteries"]
-    assert battery["methodology_status"] == "INTERNAL_ONLY"
-    assert battery["sociomap"]["kind"] == "sociomap"
+    assert battery["methodology_status"] == "CLIENT_FACING"
+    # No reference picture beside it: the signed-off map alone.
+    assert "sociomap" not in battery and set(battery["maps"]) == {"aia-sociomap-5"}
 
 
 def test_a_worker_never_substitutes_a_source_it_does_not_provide(

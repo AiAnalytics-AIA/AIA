@@ -29,9 +29,9 @@ from aia_core.domain.research_sociomap import (
     PAIR_CONFIDENCE,
     MethodologyStatus,
     PairRelations,
+    SociomapMethod,
     SociomapNotApproved,
     battery_sociomap,
-    default_methods,
     derive_pair_relations,
     derive_relation_matrix,
     require_client_facing,
@@ -40,6 +40,7 @@ from aia_core.domain.research_sociomap import (
 from aia_core.domain.sociomap import (
     AIA_SOCIOMAP_V1,
     AIA_SOCIOMAP_V2,
+    AIA_SOCIOMAP_V3,
     SociomapArtifactV3,
     read_artifact,
 )
@@ -56,6 +57,11 @@ FIXTURES = Path(__file__).parent / "fixtures" / "research_sociomap"
 CASES = Path(__file__).parent / "fixtures" / "research_aggregate" / "cases"
 UNIT = Path(__file__).resolve().parents[3] / "legacy" / "npc-panel-18.6.6" / "app"
 INDEX = json.loads((FIXTURES / "index.json").read_text(encoding="utf-8"))
+
+
+#: What a run started before aia-sociomap-5 pinned: the reference map beside aia-sociomap-3.
+#: Such runs still read and compute exactly as they did.
+OLD_DEFAULT = (*LEGACY_METHODS, SociomapMethod.of(AIA_SOCIOMAP_V3))
 
 
 def _sha256(path: Path) -> str:
@@ -299,9 +305,7 @@ def test_the_body_keeps_one_copy_of_what_each_map_holds() -> None:
     # A3d: the rescaled relations (F2), the object scores (F8) and K100 (F9) are each pinned
     # map's; the body no longer stores a second copy, so nothing can read one by mistake.
     spec, dataset = _case("A01_full_questionnaire")
-    result = research_sociomaps(
-        spec, dataset, methods=default_methods(), connectedness_interval=False
-    )
+    result = research_sociomaps(spec, dataset, methods=OLD_DEFAULT, connectedness_interval=False)
     assert result["sociomap_version"] == "aia-research-sociomap-10"
     for body in result["batteries"]:
         assert not {"relation_rescaled", "object_scores", "connectedness_100"} & set(body)
@@ -441,9 +445,7 @@ def test_with_the_switch_off_no_bootstrap_runs_and_each_map_says_so(
 
     monkeypatch.setattr(engine, "connectedness_100", _refuse)
     spec, dataset = _case("A01_full_questionnaire")
-    result = research_sociomaps(
-        spec, dataset, methods=default_methods(), connectedness_interval=False
-    )
+    result = research_sociomaps(spec, dataset, methods=OLD_DEFAULT, connectedness_interval=False)
     for body in result["batteries"]:
         art = read_artifact(body["maps"]["aia-sociomap-3"])
         assert isinstance(art, SociomapArtifactV3)
@@ -467,7 +469,5 @@ def test_with_the_switch_on_a_set_pays_one_bootstrap_per_pinned_map(
 
     monkeypatch.setattr(engine, "connectedness_100", _count)
     spec, dataset = _case("A01_full_questionnaire")
-    result = research_sociomaps(
-        spec, dataset, methods=default_methods(), connectedness_interval=True
-    )
+    result = research_sociomaps(spec, dataset, methods=OLD_DEFAULT, connectedness_interval=True)
     assert len(calls) == len(result["batteries"]) == len(spec.batteries)

@@ -22,6 +22,7 @@ exists only in ``aia_executors.workbench``.
 from __future__ import annotations
 
 from collections.abc import Callable, Mapping
+from importlib import metadata
 from typing import Any, Final, Protocol
 
 from aia_core.application.research import research_artifacts
@@ -762,12 +763,32 @@ def _sociomap_fingerprint(
     )
 
 
+#: The numerical libraries a signed-off map is computed with: part of the map's provenance, as
+#: the worker image has them (its platform is the reference one).
+NUMERICAL_LIBRARIES: Final = ("numpy", "scipy", "numba", "llvmlite")
+
+
+def numerical_runtime() -> dict[str, str]:
+    """What this worker computes a signed-off map with: each numerical library's installed
+    version, as read here. A library that is not installed is left out rather than guessed."""
+    runtime: dict[str, str] = {}
+    for name in NUMERICAL_LIBRARIES:
+        try:
+            runtime[name] = metadata.version(name)
+        except metadata.PackageNotFoundError:
+            continue
+    return runtime
+
+
 class SociomapExecutor(_Step):
     """Each tracked set's relation matrix and Sociomap: stored, and INTERNAL_ONLY (chunk 6).
 
     The methods are the ones the run pinned when it was started (the step's input
     ``methods``, ``ResearchRuns.start``); a run started before methods were pinned has
-    none and is computed as ``aia-sociomap-1``, which computed every such run. A pin
+    none and is computed as ``aia-sociomap-1``, which computed every such run. Each
+    signed-off map records the worker's numerical libraries (:func:`numerical_runtime`). A step
+    told to reuse only (an analysis retry of a run on the earlier default) takes the map stored
+    under the same inputs and computes nothing; without one it fails by name. A pin
     that does not read, or names a method this engine cannot compute, fails the step
     by name: nothing substitutes the module's current preset.
 
@@ -801,11 +822,52 @@ class SociomapExecutor(_Step):
             return Failed(FailureClass.SCHEMA_VIOLATION, error={"message": str(exc)})
         try:
             methods = read_methods(step.payload.get("methods"))
+            for method in methods:
+                method.resolve()
+        except (SociomapMethodsInvalid, UnsupportedMethodology) as exc:
+            return Failed(
+                FailureClass.SCHEMA_VIOLATION,
+                error={"code": "sociomap_method_invalid", "message": str(exc)},
+            )
+        input_fingerprint = _sociomap_fingerprint(
+            dataset_sha,
+            spec,
+            methods=methods,
+            connectedness_interval=self._connectedness_interval,
+        )
+        if step.payload.get("reuse_only"):
+            # An analysis retry of a run on the earlier default: its stored map, or nothing.
+            with context.transaction() as (session, _workflow):
+                stored = _artifacts(session, context, self._store).find_reusable(
+                    project_id=step.project_id,
+                    stage_type=step.stage_type,
+                    artifact_type=SOCIOMAP,
+                    input_fingerprint=input_fingerprint,
+                )
+            if stored is None:
+                return Failed(
+                    FailureClass.SCHEMA_VIOLATION,
+                    error={
+                        "code": "sociomap_method_retired",
+                        "message": "no stored map of these inputs; the run's method is not "
+                        "computed again",
+                    },
+                )
+            return _produced(
+                step,
+                stored,
+                False,
+                SOCIOMAP,
+                data_origin=stored.metadata.get("data_origin"),
+                methodology_status=stored.metadata.get("methodology_status"),
+            )
+        try:
             result = research_sociomaps(
                 spec,
                 dataset,
                 methods=methods,
                 connectedness_interval=self._connectedness_interval,
+                runtime=numerical_runtime(),
             )
         except (SociomapMethodsInvalid, UnsupportedMethodology) as exc:
             return Failed(
@@ -820,12 +882,7 @@ class SociomapExecutor(_Step):
                 step,
                 payload={"kind": SOCIOMAP, "sociomap": result},
                 artifact_type=SOCIOMAP,
-                input_fingerprint=_sociomap_fingerprint(
-                    dataset_sha,
-                    spec,
-                    methods=methods,
-                    connectedness_interval=self._connectedness_interval,
-                ),
+                input_fingerprint=input_fingerprint,
                 depends_on=[spec_id, dataset_id],
                 metadata={
                     "data_origin": origin,

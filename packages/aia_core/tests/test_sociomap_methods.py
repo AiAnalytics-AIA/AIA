@@ -98,13 +98,24 @@ def test_a_run_without_a_pin_reads_as_aia_sociomap_1() -> None:
     assert legacy.resolve() == AIA_SOCIOMAP_V1
 
 
-def test_a_new_run_pins_aia_sociomap_1_and_the_audits_object_map_beside_it() -> None:
-    from aia_core.domain.sociomap import AIA_SOCIOMAP_V3
+def test_a_new_run_pins_aia_sociomap_5_alone_at_its_fingerprint() -> None:
+    from aia_core.domain.sociomap.specification import AIA_SOCIOMAP_V5
 
-    assert default_methods() == (*LEGACY_METHODS, SociomapMethod.of(AIA_SOCIOMAP_V3))
+    (pin,) = default_methods()
+    assert pin == SociomapMethod.of(AIA_SOCIOMAP_V5)
+    assert pin.method_id == "aia-sociomap-5" and not pin.formulas
+    assert pin.spec_fingerprint == AIA_SOCIOMAP_V5.fingerprint()
+    assert pin.spec_fingerprint.startswith("959a5877")
     assert read_methods([m.model_dump(mode="json") for m in default_methods()]) == (
         default_methods()
     )
+
+
+def test_a_run_stored_under_the_old_default_still_reads() -> None:
+    from aia_core.domain.sociomap import AIA_SOCIOMAP_V3
+
+    old = (*LEGACY_METHODS, SociomapMethod.of(AIA_SOCIOMAP_V3))
+    assert read_methods([m.model_dump(mode="json") for m in old]) == old
 
 
 @pytest.mark.parametrize(
@@ -124,11 +135,11 @@ def test_a_pinned_set_this_module_does_not_compute_is_refused(value: Any, match:
         read_methods(value)
 
 
-def test_a_set_with_no_contract_2_map_is_refused() -> None:
-    method = SociomapMethod.of(AIA_SOCIOMAP_V1).model_dump(mode="json")
-    method["spec"]["contract_version"] = "3"
-    with pytest.raises(SociomapMethodsInvalid, match="exactly one contract-2"):
-        read_methods([method])
+def test_a_set_with_two_contract_2_maps_is_refused() -> None:
+    other = AIA_SOCIOMAP_V1.model_copy(update={"methodology_version": "aia-sociomap-1b"})
+    pins = [SociomapMethod.of(s).model_dump(mode="json") for s in (AIA_SOCIOMAP_V1, other)]
+    with pytest.raises(SociomapMethodsInvalid, match="at most one contract-2"):
+        read_methods(pins)
 
 
 def test_the_set_fingerprint_follows_every_pinned_spec() -> None:

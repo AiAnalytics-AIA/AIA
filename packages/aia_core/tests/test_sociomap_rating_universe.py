@@ -272,7 +272,7 @@ def test_research_sociomaps_reads_the_specifications_declarations() -> None:
         connectedness_interval=False,
     )
     (battery,) = body["batteries"]
-    art = read_artifact(battery["maps"]["aia-sociomap-3"])
+    art = read_artifact(battery["maps"]["aia-sociomap-5"])  # a new run's map
     assert isinstance(art, SociomapArtifactV3)
     assert [i.item_id for i in art.items][-1] == "q1"
     assert battery["roles"]["by_object"]["voda"] == "secondary"
