@@ -8,7 +8,8 @@
  * Local fictional identity only. At 1440, 1100, 768 and 390 px: "Složení podle kvót" shows the
  * sample readiness drew, each cell its sample:quota:<key> target with the server's n, the largest
  * ten first and the rest folded; the support forecast is known; nothing is editable, nothing
- * overflows. Then a readiness check opens the stage that fixes it, and nothing paid started.
+ * overflows. Then a readiness check opens the stage that fixes it; nothing is written but the
+ * stage visit, so nothing paid starts.
  */
 import assert from "node:assert/strict";
 import { execSync } from "node:child_process";
@@ -116,9 +117,11 @@ try {
   assert.equal((await page.locator(".art .arthead__title").innerText()).trim(), stage, "the check opened its stage");
   check(`a readiness check opens its stage (${stage})`);
 
-  const paid = writes.filter((w) => /\/research\/runs$|\/agent-jobs$|\/deep-research\/runs|\/lead\/turns\/[^/]+\/request$/.test(w.path));
-  assert.deepEqual(paid, [], "nothing paid started");
-  check("nothing paid started");
+  // This journey only reads: the one write a stage visit makes is the frame recording the stage
+  // (PUT …/workspace/stage). Anything else, paid or not, fails it (an allow-list, as #697's).
+  const unexpected = writes.filter((w) => !(w.method === "PUT" && /^\/api\/v1\/studies\/[^/]+\/workspace\/stage$/.test(w.path)));
+  assert.deepEqual(unexpected, [], "no write but the stage visit");
+  check("nothing written but the stage visit: nothing paid started");
   assert.deepEqual(errors, [], `page errors: ${errors.join("\n")}`);
 } finally {
   writeFileSync(join(out, "report.json"), JSON.stringify({ checks, errors, writes }, null, 2));
