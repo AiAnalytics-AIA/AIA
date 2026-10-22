@@ -46,6 +46,7 @@ from aia_core.domain.research_lead import (
     ground_edits,
     ground_self_update,
     ground_view,
+    inspect_refusal,
     is_text_edit,
     layer,
     lead_contract,
@@ -275,6 +276,52 @@ def test_a_focus_on_nothing_the_frozen_copy_shows_is_dropped_and_named() -> None
     assert [d.model_dump() for d in dropped] == [
         {"index": 1, "op": "focus", "reason": "audience_filter_not_stored"}
     ]
+
+
+@pytest.mark.parametrize(
+    ("target", "reason"),
+    [
+        ("finding:executive:1", None),  # Analýza allows inspect
+        ("measure:q3", None),  # Výsledky
+        ("rq:rq_1", None),  # Návrh
+        ("step:fieldwork", None),  # Sběr dat
+        ("question:q3", "not_inspectable"),  # Dotazník focuses, has no detail to open
+        ("brief:goal", "not_inspectable"),
+        ("report:intro", "not_inspectable"),
+        ("audience:filter:vzdelani", "audience_filter_not_stored"),  # the focus rule first
+        ("nonsense:x", "unknown_target"),
+    ],
+)
+def test_the_lead_opens_a_detail_only_where_the_stage_has_one(
+    target: str, reason: str | None
+) -> None:
+    """research-lead-workbench 14: ``inspect`` only on a stage whose contract allows it."""
+    assert inspect_refusal(target, AUDIENCE_COPY) == reason
+
+
+def test_an_inspect_the_contract_refuses_is_dropped_and_named() -> None:
+    output = LeadOutput.model_validate(
+        _output(
+            view=[
+                {"op": "open_stage", "stage": "analysis"},
+                {"op": "inspect", "target": "finding:executive:1"},
+                {"op": "inspect", "target": "question:q3"},
+            ]
+        )
+    )
+    grounded, dropped = ground_view(output, AUDIENCE_COPY)
+    assert [op.model_dump() for op in grounded.view] == [
+        {"op": "open_stage", "stage": "analysis"},
+        {"op": "inspect", "target": "finding:executive:1"},
+    ]
+    assert [d.model_dump() for d in dropped] == [
+        {"index": 2, "op": "inspect", "reason": "not_inspectable"}
+    ]
+
+
+def test_an_inspect_target_is_held_to_the_focus_grammar() -> None:
+    assert not _valid(_output(view=[{"op": "inspect", "target": "finding executive"}])).ok
+    assert not _valid(_output(view=[{"op": "inspect"}])).ok
 
 
 def test_bounds_on_lists_reply_and_follow() -> None:

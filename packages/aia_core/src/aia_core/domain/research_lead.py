@@ -136,6 +136,7 @@ __all__ = [
     "ground_edits",
     "ground_self_update",
     "ground_view",
+    "inspect_refusal",
     "is_text_edit",
     "layer",
     "lead_contract",
@@ -161,7 +162,9 @@ LEAD_PROMPT_VERSION: Final = "1"
 #: under 1 has no limits to be grounded against, so the executor refuses it by name.
 #: 3: a focus may name any element in the per-artifact contract (FOCUS_KINDS) by an id of the one
 #: grammar the contract publishes (ID_PATTERN); the output's view schema widened with it.
-LEAD_HARNESS_VERSION: Final = "aia-research-lead-3"
+#: 4: ``inspect`` joins the view: the Lead opens an element's detail in the item drawer, on a stage
+#: whose contract allows it (``lead_artifacts.allows_view``; research-lead-workbench 14).
+LEAD_HARNESS_VERSION: Final = "aia-research-lead-4"
 #: A turn's stored output. Served only by the Lead's own routes, never the generic ones.
 ARTIFACT_TYPE: Final = "research_lead_turn"
 
@@ -250,7 +253,15 @@ class FocusItem(Closed):
     target: str = Field(min_length=3, max_length=200, pattern=_TARGET)
 
 
-ViewOp = Annotated[OpenStage | FocusItem, Field(discriminator="op")]
+class InspectItem(Closed):
+    """Open an element's detail in the item drawer over its own stage (the drawer a person's click
+    opens). Only an element of a stage whose contract allows ``inspect``: :func:`ground_view`."""
+
+    op: Literal["inspect"]
+    target: str = Field(min_length=3, max_length=200, pattern=_TARGET)
+
+
+ViewOp = Annotated[OpenStage | FocusItem | InspectItem, Field(discriminator="op")]
 
 
 # --------------------------------------------------------------------------- requests
@@ -582,13 +593,34 @@ def target_refusal(target: str, content: Mapping[str, Any]) -> str | None:
     return "unknown_target"
 
 
+def inspect_refusal(target: str, content: Mapping[str, Any]) -> str | None:
+    """Why the Lead may not open ``target``'s detail, or None when it may: what
+    :func:`target_refusal` refuses, then ``not_inspectable`` for an element of a stage whose
+    contract has no ``inspect`` (``lead_artifacts.allows_view``: Zadání's goal has no detail to
+    open, a finding does)."""
+    from .lead_artifacts import allows_view, stage_of  # lead_artifacts imports this module
+
+    reason = target_refusal(target, content)
+    if reason is not None:
+        return reason
+    stage = stage_of(target.partition(":")[0])
+    return None if stage is not None and allows_view(stage, "inspect") else "not_inspectable"
+
+
 def ground_view(output: LeadOutput, content: Mapping[str, Any]) -> tuple[LeadOutput, list[Dropped]]:
-    """``output`` with only the focus targets the working content can show, and the rest named
-    (:func:`target_refusal`). Opening a stage is always kept."""
+    """``output`` with only the targets the working content can show, and the rest named
+    (:func:`target_refusal`; an ``inspect`` also :func:`inspect_refusal`). Opening a stage is
+    always kept."""
     kept: list[Any] = []
     dropped: list[Dropped] = []
     for i, op in enumerate(output.view):
-        reason = target_refusal(op.target, content) if isinstance(op, FocusItem) else None
+        reason = (
+            target_refusal(op.target, content)
+            if isinstance(op, FocusItem)
+            else inspect_refusal(op.target, content)
+            if isinstance(op, InspectItem)
+            else None
+        )
         if reason is None:
             kept.append(op)
         else:
@@ -729,7 +761,8 @@ Co děláš:
 - Placenou práci (specialistu, běh výzkumu, rešerši) jen připravíš, nejvýše jednu, v poli
   request. Spustí ji až člověk; netvrď, že běží.
 - Pohled řídíš polem view: open_stage otevře fázi, focus zaměří položku jejím
-  identifikátorem (například question:q3, brief:goal, plan:research_questions).
+  identifikátorem (například question:q3, brief:goal, plan:research_questions), inspect
+  otevře detail položky (například finding:executive:1, measure:q3) v panelu nad artefaktem.
 - Do reply nepiš žádné číslo, které v kontextu není. Čísla neodhaduj, nepočítej ani
   nezaokrouhluj; aplikace odpověď s cizím číslem odmítne.
 - Odpovídej česky, stručně a prakticky: hlavní věc, její důsledek, další krok. V follow

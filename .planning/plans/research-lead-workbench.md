@@ -1485,7 +1485,7 @@ open a finding or a cited number in it from a click (ANL3).
   kind. Analýza adds `finding` and `claim` (`AnalysisInspect`, #610); `module` stays on the page.
 - **A kind with no body** shows what was opened and "Ukázat na stránce", never a detail it does not
   have.
-- **Not yet:** the Lead's own `inspect` view op stays non-live until the server's `LeadView` carries
+- **Since `feature/lead-inspect-view`:** the Lead's own `inspect` view op is live (below). Before it, it stayed non-live until the server's `LeadView` carried
   it.
 - **Escape is the frame's** (review of #623): inside the workbench the drawer takes Escape only
   through the one handler (`ItemInspector ownEscape={false}`), by the readiness panel's rule: the
@@ -1630,3 +1630,32 @@ ran outside the frame's one order (D21), and a second drawer could open beside t
   calls it with `report:ref:<old kind>:`. Tests: `ReportDocumentView.test.tsx` "inside the workbench
   closes the old document's claims…" and `Workbench.layout.test.tsx` "drops the entries a screen
   says stopped being true…"; both fail without the change.
+
+### The Lead's `inspect` is live (2026-10-22, `feature/lead-inspect-view`; chunk 14, its first op beyond 2a)
+
+2a's drawer opened only from a person's click; the Lead's `inspect` was declared in the contract
+(`lead_artifacts.ViewOpKind.INSPECT`) but not in `LeadOutput`. Now it is:
+- **The output.** `research_lead.InspectItem` (`op: "inspect"`, a target of the focus grammar) joins
+  `ViewOp`. Harness `aia-research-lead-4`; a turn queued under 3 is refused by the executor's
+  harness check and asks for the message again, as 3 did.
+- **The gate.** `ground_view` drops an `inspect` that `inspect_refusal` refuses: `target_refusal`
+  first, then `not_inspectable` for an element of a stage whose contract has no `inspect`
+  (`lead_artifacts.stage_of` + `allows_view`: a finding, a measure, a research question, a run step
+  yes; a questionnaire question, the brief's goal, a report section no).
+- **The web.** `LeadView` carries `inspect`; `LIVE_VIEW_OPS` (both sides, and the contract
+  fixture's `live`) gains it. `Workbench.onView` opens the entry in the item drawer over the
+  target's own stage (`parseAiaId(target).stage`). On another stage the move goes through the leave
+  guard; the entry waits in module scope (`leadInspect`, a route change remounts) and the opening
+  stack reads it (`openingStack`); a move the guard stopped leaves nothing pending. The turn's chip
+  reads "Detail: <label>".
+- **The scripted Lead** (UI workbench): a message with "detail" adds an `inspect` of the first
+  research question, so a browser can run it.
+- **Tests.** `test_research_lead.py` "the Lead opens a detail only where the stage has one", "an
+  inspect the contract refuses is dropped and named", "an inspect target is held to the focus
+  grammar"; `test_lead_artifacts.py` "each kind has the stage that names it";
+  `test_research_lead_workbench.py` "a scripted message asking for a detail…";
+  `Workbench.layout.test.tsx` "opens what the Lead's inspect names on this stage…", "opens the
+  Lead's inspect on another stage once that stage is shown…", "leaves nothing pending when a leave
+  guard stops…". The web tests fail without the change.
+- **Still to build in chunk 14:** `select`, `filter` and `show_diff`, each with the artifact that
+  declares it.
