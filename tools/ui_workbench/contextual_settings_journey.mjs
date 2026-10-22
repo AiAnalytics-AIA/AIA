@@ -2,7 +2,7 @@
 // Settings UX through the real fictional local API, with no paid model calls.
 import assert from "node:assert/strict";
 import { createRequire } from "node:module";
-import { mkdirSync, writeFileSync } from "node:fs";
+import { mkdirSync, writeFileSync, existsSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -13,6 +13,12 @@ const args = process.argv.slice(2);
 const arg = (key, fallback) => args.includes(`--${key}`) ? args[args.indexOf(`--${key}`) + 1] : fallback;
 const base = arg("facade", "http://127.0.0.1:8780");
 assert(["localhost", "127.0.0.1"].includes(new URL(base).hostname), "Fictional local identity only");
+// The 400 ms budgets are measured on a production build: `next dev` compiles on demand and runs
+// dev-only checks, so on it a timed interaction measures the dev server (contextual journeys, 2026-10-22).
+if (!existsSync(join(repo, "tmp/ui-workbench/production"))) {
+  console.error("This journey times interactions; run it on a production build: python3 tools/ui_workbench/workbench.py down && python3 tools/ui_workbench/workbench.py up --production");
+  process.exit(2);
+}
 const out = arg("out", join(repo, "tmp/ui-workbench/contextual-settings-timing"));
 mkdirSync(out, { recursive: true });
 const browser = await chromium.launch({ executablePath: process.env.AIA_CHROMIUM || undefined });
@@ -49,12 +55,18 @@ async function timed(name, control, selector, text = null) {
 async function layout(name) {
   const size = await page.evaluate(() => ({ width: innerWidth, documentWidth: document.documentElement.scrollWidth }));
   assert(size.documentWidth <= size.width + 2, `${name}: horizontal overflow ${JSON.stringify(size)}`);
-  const controls = await page.locator('[data-settings-workspace] button, [data-settings-workspace] select, [data-settings-workspace] input:not([type=checkbox]):not([type=radio])').evaluateAll((items) => items.filter((node) => node.getBoundingClientRect().width && !node.disabled).map((node) => ({ label: node.getAttribute("aria-label") ?? node.textContent?.trim().slice(0, 50) ?? "", width: node.getBoundingClientRect().width, height: node.getBoundingClientRect().height })));
-  for (const item of controls) assert(item.width >= 44 && item.height >= 44, `${name}: control below 44px ${JSON.stringify(item)}`);
+  const controls = await page.locator('[data-settings-workspace] button, [data-settings-workspace] select, [data-settings-workspace] input:not([type=checkbox]):not([type=radio])').evaluateAll((items) => items.filter((node) => node.getBoundingClientRect().width && !node.disabled).map((node) => ({ label: node.getAttribute("aria-label") ?? node.textContent?.trim().slice(0, 50) ?? "", dense: node.hasAttribute("data-dense"), width: node.getBoundingClientRect().width, height: node.getBoundingClientRect().height })));
+  // 44 px everywhere but the editor's dense outline rows, which keep WCAG 2.5.8's 24 px minimum by
+  // design (MethodologyVersions.tsx, data-dense).
+  for (const item of controls) {
+    const least = item.dense ? 24 : 44;
+    assert(item.width >= least && item.height >= least, `${name}: control below ${least}px ${JSON.stringify(item)}`);
+  }
   layouts.push({ name, ...size, controls: controls.length });
 }
 const targets = {
-  methodology: '#panel-methodology nav[aria-label="Oblasti metodiky"] button',
+  // Metodika opens on the area in force (its versions); the list of areas is behind "Změnit oblast".
+  methodology: '#panel-methodology [data-methodology-versions]',
   prompts: '#panel-prompts textarea[aria-label="Instrukce"]',
   deep_research: '#panel-deep_research [data-dr-setting]',
   ai: '#panel-ai [data-activity]',
@@ -73,27 +85,40 @@ try {
     if (id === "ai" && mode === "first") continue;
     await timed(`${mode} ${id} tab`, page.locator(`#tab-${id}`), targets[id]);
     assert.equal(await page.locator(`#tab-${id}`).getAttribute("aria-selected"), "true");
-    assert(await page.locator(`#panel-${id} header dl`).isVisible(), `${id} lacks scope/ownership facts`);
+    assert(await page.locator(`#panel-${id} [data-tab-facts]`).isVisible(), `${id} lacks scope/ownership facts`);
   }
   checks.push("All eight purpose-grouped tabs retain their hashes and show scope/ownership facts");
   await page.locator("#tab-methodology").click();
+  const choose = page.locator("#panel-methodology").getByRole("button", { name: "Změnit oblast", exact: true });
+  await choose.click();
   const nav = page.getByRole("navigation", { name: "Oblasti metodiky" });
   for (const name of ["Před spuštěním", "Mapy objektů", "Čísla ve výsledcích", "Respondenti a váhy", "Populace a tvrzení"]) assert(await nav.getByRole("group", { name }).isVisible());
-  // Eight method modules and the read-only field-origin area (methodology-tab V1c).
-  assert.equal(await nav.getByRole("button").count(), 9);
+  // Every method module from the real API, and the read-only field-origin area (methodology-tab V1c).
+  const modules = await (await page.request.get(`${base}/api/v1/methodology`, { headers: { Authorization: "Bearer workbench@example.invalid" } })).json();
+  assert.equal(await nav.getByRole("button").count(), modules.length + 1);
   await timed("Open editable support module", nav.getByRole("button", { name: "Podpora a potlačení: kdy se číslo smí ukázat" }), '[data-methodology-versions="support"]');
-  await page.getByRole("button", { name: "Změnit oblast" }).click();
+  await choose.click();
   await timed("Return to object map", nav.getByRole("button", { name: "Sociomapa: objektová mapa" }), '[data-methodology-versions="sociomap"]');
-  await page.locator('#panel-methodology [data-methodology-versions="sociomap"]').getByRole("button", { name: "Upravit metodiku" }).click();
-  const editor = page.locator("[data-methodology-editor]"); await editor.waitFor();
-  assert(await editor.locator("h4").evaluate((node) => node === document.activeElement), "Opening the editor does not focus its heading");
+  // An administrator opens straight on the editor, and the page stays where it was (no focus move);
+  // an edit the person asks for moves focus to the editor's heading (MethodologyVersions, byPerson).
+  const versions = page.locator('#panel-methodology [data-methodology-versions="sociomap"]');
+  let editor = page.locator("[data-methodology-editor]"); await editor.waitFor();
+  assert(!(await editor.locator("h4").evaluate((node) => node === document.activeElement)), "Opening Metodika moves focus into the editor unasked");
+  await editor.getByRole("button", { name: "Zrušit", exact: true }).first().click();
+  await versions.getByRole("button", { name: "Upravit metodiku" }).click();
+  editor = page.locator("[data-methodology-editor]"); await editor.waitFor();
+  assert(await editor.locator("h4").evaluate((node) => node === document.activeElement), "Asking for an edit does not focus the editor's heading");
   assert.equal(await nav.count(), 0, "Expanded chooser obscures the active editor");
-  const block = editor.getByRole("combobox", { name: "Část metodiky k úpravě" });
-  assert(await block.locator("optgroup").count() >= 3, "Calculation blocks lack parent groups");
-  await block.selectOption("f3_status");
+  // The calculation's blocks in their stages: an outline grouped by stage (was a select with optgroups).
+  const outline = editor.locator("[data-methodology-outline]");
+  assert(await outline.locator("[data-outline-stage]").count() >= 3, "Calculation blocks lack parent groups");
+  await outline.locator('[data-edit-step-link="f3_status"]').click();
   assert(await editor.locator('[data-edit-step="f3_status"]').isVisible());
-  assert(await editor.locator('[data-edit-step="f3_status"]').getByText("Výpočet").isVisible());
-  await timed("Move to next calculation block", editor.getByRole("button", { name: "Další blok" }), '[data-edit-step="f3_effect_floor"]:not([hidden])');
+  // The block says where it sits and shows its calculation: a reading, or the formula itself.
+  const block = editor.locator('[data-edit-step="f3_status"]');
+  assert(await block.locator("[data-step-stage]").isVisible(), "The block does not say its stage");
+  assert(await block.locator("[data-step-reading], math, .katex, [data-edit-slot]").first().isVisible(), "The block shows no calculation");
+  await timed("Move to next calculation block", outline.locator('[data-edit-step-link="f3_effect_floor"]'), '[data-edit-step="f3_effect_floor"]:not([hidden])');
   checks.push("Methodology groups real API modules, closes the chooser in edit mode, and moves among calculation blocks");
   await page.screenshot({ path: join(out, "methodology-desktop.png"), animations: "disabled" });
   for (const width of [1440, 768, 390]) {
