@@ -1,0 +1,6 @@
+{
+  "version": "aia-fieldwork-events-1",
+  "events": {
+    "fieldwork_progress": ["version", "respondents", "of", "sent", "replayed"]
+  }
+}
