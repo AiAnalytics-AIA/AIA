@@ -28,6 +28,7 @@ from collections.abc import Iterable, Mapping
 from dataclasses import dataclass
 from enum import StrEnum
 from typing import Any, Final
+from uuid import uuid4
 
 from .design_fields import Touch, changed_fields
 from .design_items import Documents, ItemKey
@@ -41,6 +42,7 @@ __all__ = [
     "EditLogRow",
     "OpSource",
     "WriteBy",
+    "new_batch_id",
     "op_rows",
     "whole_copy_op",
     "whole_copy_rows",
@@ -114,6 +116,11 @@ class EditLogRow:
     op: dict[str, Any]
     #: The operation that undoes this one, computed by code (WCE9); none yet.
     inverse: dict[str, Any] | None = None
+
+
+def new_batch_id() -> str:
+    """A fresh id for one write's rows, which share it."""
+    return "EOB-" + uuid4().hex
 
 
 def _bounded(text: str, limit: int) -> str:

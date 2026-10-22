@@ -123,6 +123,35 @@ describe("ResearchStore", () => {
     expect(bodies).toHaveLength(1);
   });
 
+  it("puts back a refused change to a locked Sociomap input and saves the person's other changes", async () => {
+    const declared = { ...newResearch(TEMPLATE).project, sections: [{ id: "set_a", type: "object_battery", objects: ["A"], context_objects: ["A"] }] } as ResearchProject;
+    const touchesSet = (b: Body) => JSON.stringify(b.content.sections) !== JSON.stringify(declared.sections);
+    const { bodies, save } = aia((b, n) => (touchesSet(b) ? new ApiError(409, "sociomap_input_locked", "locked", null, { current_revision: 2 }) : saved(2 + n)));
+    const store = new ResearchStore({ ...newResearch(TEMPLATE), project: declared, revision: 2, save: { kind: "saved" } }, "STU-1", { save });
+    store.update(({ project }) => ({ project: { ...project, goal: "mine", sections: [{ id: "set_a", type: "object_battery", objects: ["A", "B"], context_objects: ["A"] }] } }));
+    await vi.advanceTimersByTimeAsync(SAVE_DEBOUNCE_MS);
+    expect(store.get().save).toEqual({ kind: "locked", reverted: true });
+    expect(store.get().project).toMatchObject({ goal: "mine", sections: declared.sections });
+    // The rest saves on its own, with the locked set as AIA holds it: nothing waits on a click.
+    await vi.advanceTimersByTimeAsync(SAVE_DEBOUNCE_MS);
+    expect(bodies).toHaveLength(2);
+    expect(bodies[1].content).toMatchObject({ goal: "mine", sections: declared.sections });
+    expect(store.get().save).toEqual({ kind: "saved" });
+  });
+
+  it("sends nothing more when a refused locked change cannot be put back", async () => {
+    const { bodies, save } = aia(() => new ApiError(409, "sociomap_input_locked", "locked", null, { current_revision: 2 }));
+    // Nothing was saved from this copy, so there is nothing to put back.
+    const store = new ResearchStore(newResearch(TEMPLATE), "STU-1", { save });
+    store.update(({ project }) => ({ project: { ...project, goal: "mine" } }));
+    await vi.advanceTimersByTimeAsync(SAVE_DEBOUNCE_MS);
+    expect(store.get().save).toEqual({ kind: "locked", reverted: false });
+    store.update(({ project }) => ({ project: { ...project, goal: "again" } }));
+    await vi.advanceTimersByTimeAsync(SAVE_DEBOUNCE_MS * 2);
+    expect(bodies).toHaveLength(1);
+    await expect(store.flush()).rejects.toMatchObject({ code: "sociomap_input_locked" });
+  });
+
   it("never changes or saves content that may not change here, and says it is read-only", async () => {
     const { bodies, save } = aia(() => saved(9));
     const loaded = { ...newResearch(TEMPLATE), revision: 4 };
