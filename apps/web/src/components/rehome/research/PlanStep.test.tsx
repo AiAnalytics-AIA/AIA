@@ -157,7 +157,8 @@ describe("Návrh", () => {
   it("adds, renames and fills a set in place, removes an object, and removes a set only when confirmed", async () => {
     unitStub();
     render(<ResearchScreen step="plan" frame={TEST_FRAME} />);
-    const names = () => screen.getAllByLabelText("Název sady").map((x) => (x as HTMLInputElement).value);
+    // Each set's title is edited in place (I1): its button shows it.
+    const names = () => screen.queryAllByRole("button", { name: /^Upravit: Název sady/ }).map((b) => b.querySelector("span")!.textContent);
     fireEvent.click(await screen.findByRole("button", { name: "Přidat sadu" }));
     const title = screen.getByPlaceholderText("Např. Značky, Regiony, Argumenty…");
     fireEvent.change(title, { target: { value: "Kraje" } });
@@ -171,8 +172,14 @@ describe("Návrh", () => {
       fireEvent.keyDown(items, { key: "Enter" });
     }
     expect(await screen.findByRole("button", { name: "Odebrat Brno" })).toBeTruthy();
+    // A repeated item is refused at the chip and stays typed there (I9).
+    fireEvent.change(items, { target: { value: "praha" } });
+    fireEvent.keyDown(items, { key: "Enter" });
+    expect(await screen.findByText("Tato položka už v sadě je.")).toBeTruthy();
+    expect(screen.getAllByRole("button", { name: /^Odebrat Praha/ })).toHaveLength(1);
     // Renamed in place, through renamePlanSet, when the field is left.
-    const kraje = screen.getAllByLabelText("Název sady")[1];
+    fireEvent.click(screen.getByRole("button", { name: "Upravit: Název sady Kraje" }));
+    const kraje = screen.getByRole("textbox", { name: "Název sady" });
     fireEvent.change(kraje, { target: { value: "Regiony" } });
     fireEvent.blur(kraje);
     await waitFor(() => expect(names()).toContain("Regiony"));
@@ -391,29 +398,56 @@ describe("direct proposal editing", () => {
     expect(unload.defaultPrevented).toBe(false);
   });
 
-  it("edits a complete measurement with a live preview, preserves its extra fields and the existing questionnaire, and confirms scope replacement", async () => {
+  it("edits a set's measurement field by field on its card, preserving its extra fields and the existing questionnaire, and confirms scope replacement", async () => {
     const analysis = { ...ANALYSIS, tracked_sets: [{ ...ANALYSIS.tracked_sets[0], purpose: "Porovnat varianty", objects: ["A", "B", "C", "D"], custom_method: "keep" }] };
     const ws = unitStub(analysis, {}, { ...PROJECT, sections: [{ title: "Existující dotazník" }] });
     render(<ResearchScreen step="plan" frame={TEST_FRAME} />);
-    fireEvent.click(await screen.findByRole("button", { name: "Upravit měření a položky" }));
-    const form = screen.getByRole("form", { name: "Upravit měření a položky" });
-    fireEvent.change(within(form).getByLabelText("Otázka sady · položí se ke každé položce"), { target: { value: "Chybná otázka" } });
-    fireEvent.click(within(form).getByRole("button", { name: "Použít změny sady" }));
-    expect(await screen.findByText(/Vyplňte název, účel/)).toBeTruthy();
-    fireEvent.change(within(form).getByLabelText("Otázka sady · položí se ke každé položce"), { target: { value: "Zvolili byste {object}?" } });
-    fireEvent.change(within(form).getByLabelText("Položky sady (jedna na řádek)"), { target: { value: "Nová A\nB\nC\nD" } });
-    fireEvent.change(within(form).getByLabelText("1 na škále"), { target: { value: "určitě ne" } });
-    expect(within(form).getByText("Zvolili byste Nová A?")).toBeTruthy();
-    fireEvent.click(within(form).getByRole("button", { name: "Použít změny sady" }));
-    await waitFor(() => expect(ws.saves.length).toBeGreaterThan(0));
+    // audit A33: no separate editor and no form to apply; each field is the card's own.
+    await screen.findByText("Porovnat varianty");
+    expect(screen.queryByRole("form")).toBeNull();
+    const edit = (name: string, value: string, multiline = true) => {
+      fireEvent.click(screen.getByRole("button", { name: new RegExp(`^Upravit: ${name} · Varianty nápoje`) }));
+      const field = screen.getByRole("textbox", { name: `${name} · Varianty nápoje` });
+      fireEvent.change(field, { target: { value } });
+      fireEvent.keyDown(field, { key: "Enter", ctrlKey: multiline });
+      return field;
+    };
+    // A field stored empty (no scale ends: the default shows as its placeholder), opened and left
+    // as it was, closes and sends nothing.
+    fireEvent.click(screen.getByRole("button", { name: /^Upravit: 1 na škále · Varianty nápoje/ }));
+    fireEvent.blur(screen.getByRole("textbox", { name: "1 na škále · Varianty nápoje" }));
+    expect(screen.queryByRole("textbox", { name: "1 na škále · Varianty nápoje" })).toBeNull();
+    // A question without {object} is refused at the field and stays typed there; nothing is saved.
+    const question = edit("Otázka sady · položí se ke každé položce", "Chybná otázka");
+    expect(await screen.findByText("Otázka musí obsahovat {object}: tam se vloží název položky.")).toBeTruthy();
+    expect((question as HTMLTextAreaElement).value).toBe("Chybná otázka");
+    expect(ws.saves).toEqual([]);
+    // Going on would drop it: the person is asked first, and "Zrušit" stays.
+    fireEvent.click(screen.getByRole("button", { name: /Další · dotazník/ }));
+    expect(await screen.findByText("Některé úpravy návrhu nejdou uložit a zůstaly v poli. Zahodit je a pokračovat?")).toBeTruthy();
+    fireEvent.click(screen.getByRole("button", { name: "Zrušit" }));
+    await waitFor(() => expect(screen.queryByText(/nejdou uložit a zůstaly v poli/)).toBeNull());
+    expect(push).not.toHaveBeenCalled();
+    fireEvent.change(question, { target: { value: "Zvolili byste {object}?" } });
+    fireEvent.keyDown(question, { key: "Enter", ctrlKey: true });
+    // The preview follows each field as it is saved.
+    expect(await screen.findByText("Zvolili byste A?")).toBeTruthy();
+    edit("1 na škále", "určitě ne", false);
+    // An item is reworded in its place: the order the preview and the questionnaire take is kept.
+    fireEvent.click(screen.getByRole("button", { name: "Upravit: Položka · 2 B" }));
+    const item = screen.getByRole("textbox", { name: "Položka · 2" });
+    fireEvent.change(item, { target: { value: "Bé" } });
+    fireEvent.keyDown(item, { key: "Enter" });
+    await waitFor(() => expect((ws.saves.at(-1)?.content.research_plan as { tracked_sets?: unknown[] } | undefined)?.tracked_sets?.[0]).toMatchObject({ scale_labels: ["určitě ne", "velmi"], objects: ["A", "Bé", "C", "D"] }));
     const body = ws.saves.at(-1)!;
     expect(body.content.sections).toEqual([{ title: "Existující dotazník" }]);
-    expect((body.content.research_plan as { tracked_sets: unknown[] }).tracked_sets[0]).toMatchObject({ objects: ["Nová A", "B", "C", "D"], scale_labels: ["určitě ne", "velmi"], custom_method: "keep" });
+    expect((body.content.research_plan as { tracked_sets: unknown[] }).tracked_sets[0]).toMatchObject({ object_question: "Zvolili byste {object}?", objects: ["A", "Bé", "C", "D"], custom_method: "keep" });
     expect((body.analysis as { tracked_sets: unknown[] }).tracked_sets).toEqual((body.content.research_plan as { tracked_sets: unknown[] }).tracked_sets);
+    expect(posted(DESIGN_PATH)).toEqual([]);
     fireEvent.click(screen.getByRole("radio", { name: /Jen varianty/ }));
     expect(screen.getByRole("alertdialog")).toBeTruthy();
     fireEvent.click(screen.getByRole("button", { name: "Ponechat" }));
-    expect(screen.getByText("Zvolili byste Nová A?")).toBeTruthy();
+    expect(screen.getByText("Zvolili byste A?")).toBeTruthy();
   });
 });
 

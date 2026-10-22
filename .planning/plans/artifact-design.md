@@ -3,7 +3,7 @@ status: in-progress
 chunks:
   - "[x] DSN1. Návrh's contract as data: view operations, pointable ids (rq, objective, hypothesis, set, assumption) and V2's interaction contract, in research-lead-workbench 14's and 16's tables"
   - "[ ] DSN2. Research questions with their coverage on the working revision: measures, items, comparison and gaps from research_trace, pokryto / částečně / mezera by the trace's own verdict"
-  - "[ ] DSN3. The narrative as items: problem summary, objectives, hypotheses and comparable measurements edited in place and autosaved, ProposalEditor and MeasurementEditor retired"
+  - "[x] DSN3. The narrative as items: problem summary, objectives, hypotheses and comparable measurements edited in place and autosaved, ProposalEditor and MeasurementEditor retired"
   - "[ ] DSN4. Ve zprávě: each research question's report chapter and the analysis module answering it, from the newest run's stored report model"
   - "[ ] DSN5. Design Research in Návrh: findings per research question as external context, the review of its proposal (7b) mounted at the question, the panel moved here from Dotazník as a reader"
   - "[ ] DSN6. Tracked assumptions in Návrh, from the one assumption item contract"
@@ -147,6 +147,20 @@ když are not built. What stays is code-derived: measures, items, comparison, an
   browser selects no text, so a narrative item is commented on by its own "Komentovat" (quoting the
   item whole); selection still comments elsewhere (A35). Stays open for `MeasurementEditor` folded
   into the set card (A33) and the move onto WCE3a's vocabulary.
+- Progress (2026-10-22, `feature/design-set-card-in-place`): the measurement half. Each set's
+  title, purpose, question and scale ends are edited on its card (`InlineText`), one field per
+  store update. A question without `{object}` or an empty field is refused at the field
+  (`plan-edit.ts` `setFieldProblem`), and a repeated or sixteenth item at the chip
+  (`objectProblem`, `ChipInput` `refuse`). Each item is reworded in its place, its order kept
+  (`ChipInput` `rename`, `withObject`), as the retired editor's textarea allowed. A scale end
+  written on a set that states no ends keeps the other end the person saw (`withSetField`). A field
+  opened and left unchanged sends nothing. Since every field saves itself, only a draft refused at
+  its field is unsaved; while one is on the stage, every way out (a link, the workbench's
+  navigation, "Další · dotazník", a reload) asks first. `MeasurementEditor`, its leave guard and "Nejprve
+  použijte nebo zrušte rozepsané úpravy" are retired, and with them the form-only
+  `validMeasurement` and `lines` (`plan-edit.test.ts`, `PlanStep.test.tsx` "edits a set's
+  measurement field by field…", `proposal_prompt_journey.mjs`). Moving the store's writes onto the
+  server vocabulary is `working-copy-edit-ops#WCE3a`'s work, not this chunk's.
 
 **DSN4. Ve zprávě.**
 - From the newest completed run's stored report model: the section id (`ch-2`, and any
