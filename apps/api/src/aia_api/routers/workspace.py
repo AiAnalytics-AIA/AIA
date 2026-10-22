@@ -2210,6 +2210,9 @@ def _workspace_conflict(exc: WorkspaceConflict) -> HTTPException:
     messages = {
         "awaiting_migration": "The working content awaits migration from 18.6.6.",
         "not_saved": "Save the study's working content before attaching files to it.",
+        "sociomap_input_locked": (
+            "The save changes a declared Sociomap input, which is locked; nothing was saved."
+        ),
     }
     return HTTPException(
         status_code=409,

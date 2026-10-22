@@ -10,6 +10,7 @@
 import { t, tv } from "@/i18n/t";
 import { ApiError, type ContentState, type DesignRevision, type WorkingContent, research, workspace } from "@/lib/api";
 import { settleItemIds, withItemIds } from "./item-ids";
+import { restoreLocked } from "./sociomap-lock";
 import { type Json, type ResearchProject, type Template, defaultsMerge } from "./model";
 
 export const SAVE_DEBOUNCE_MS = 1800;
@@ -26,7 +27,13 @@ export type SaveState =
   /** Content that may not change here: a closed study, or a person who may only read. Nothing is saved. */
   | { kind: "readonly" }
   /** The study was closed after this copy was loaded: a change made here was refused, never saved. */
-  | { kind: "closed" };
+  | { kind: "closed" }
+  /**
+   * A save changed a locked Sociomap input and was refused (sociomap_input_locked, ADR 0029
+   * decision 8). `reverted`: the locked items were put back as saved and the rest waits to be saved;
+   * else they could not be found again, and nothing more is sent until the study is reloaded.
+   */
+  | { kind: "locked"; reverted: boolean };
 
 export type Analysis = { [k: string]: Json };
 
@@ -154,6 +161,8 @@ export class ResearchStore {
   private timer: ReturnType<typeof setTimeout> | null = null;
   private reason = "autosave";
   private inflight: Promise<void> | null = null;
+  /** The project as AIA last held it: what a refused change to a locked input is put back to. */
+  private lastSaved: ResearchProject | null;
 
   constructor(
     initial: ResearchState,
@@ -161,6 +170,7 @@ export class ResearchStore {
     private readonly opts: { onSaved?: (revision: number) => void; save?: SaveContent; readOnly?: boolean } & ItemIdsOption = {},
   ) {
     this.state = opts.readOnly ? { ...initial, save: { kind: "readonly" } } : initial;
+    this.lastSaved = initial.revision !== null ? initial.project : null;
   }
 
   get = (): ResearchState => this.state;
@@ -188,7 +198,7 @@ export class ResearchStore {
     // Content that may not change here is never changed, so nothing on screen reads as edited.
     if (this.opts.readOnly) return;
     const r = this.settled(change({ project: this.state.project, analysis: this.state.analysis }));
-    const blocked = this.state.save.kind === "conflict" || this.state.save.kind === "closed";
+    const blocked = this.blocked();
     this.set({
       ...this.state,
       project: r.project,
@@ -201,6 +211,12 @@ export class ResearchStore {
     if (blocked) return;
     if (this.timer) clearTimeout(this.timer);
     this.timer = setTimeout(() => this.autosave(), SAVE_DEBOUNCE_MS);
+  }
+
+  /** A copy that lost a conflict, or whose locked change could not be put back, saves nothing more. */
+  private blocked(): boolean {
+    const s = this.state.save;
+    return s.kind === "conflict" || s.kind === "closed" || (s.kind === "locked" && !s.reverted);
   }
 
   /** A change with its item ids settled against this copy, when the store keeps them (WCE1). */
@@ -259,6 +275,7 @@ export class ResearchStore {
       if (this.opts.readOnly) return true;
       if (this.state.save.kind === "conflict") throw new ApiError(409, "stale_revision", CONFLICT_MESSAGE, null);
       if (this.state.save.kind === "closed") throw new ApiError(403, "study_closed", CLOSED_MESSAGE, null);
+      if (this.blocked()) throw new ApiError(409, "sociomap_input_locked", LOCKED_MESSAGE, null);
       if (!this.owed()) return true;
       await this.saveOnce(reason);
     }
@@ -281,6 +298,7 @@ export class ResearchStore {
     const flight = (async () => {
       try {
         const r = await (this.opts.save ?? workspace.saveContent)(this.studyId, body);
+        this.lastSaved = s.project;
         this.set({
           ...this.state,
           revision: r.revision,
@@ -297,6 +315,10 @@ export class ResearchStore {
         if (e instanceof ApiError && e.status === 409 && e.code === "stale_revision") {
           const current = typeof e.details.current_revision === "number" ? e.details.current_revision : null;
           this.set({ ...this.state, save: { kind: "conflict", current } });
+        } else if (e instanceof ApiError && e.status === 409 && e.code === "sociomap_input_locked") {
+          // The locked items go back as AIA holds them; every other change stays and is saved on.
+          const project = this.lastSaved ? restoreLocked(this.lastSaved, this.state.project) : this.state.project;
+          this.set({ ...this.state, project, save: { kind: "locked", reverted: project !== this.state.project } });
         } else if (e instanceof ApiError && e.code === "study_closed") {
           // Closed by someone else while this copy was open: a retry can never succeed.
           this.set({ ...this.state, save: { kind: "closed" } });
@@ -370,6 +392,7 @@ export class ResearchStore {
       this.conflict(loaded.state.revision);
       return false;
     }
+    this.lastSaved = loaded.state.revision !== null ? loaded.state.project : null;
     this.set({
       ...loaded.state,
       save: this.opts.readOnly ? { kind: "readonly" } : loaded.state.save,
@@ -392,6 +415,7 @@ export class ResearchStore {
 
 export const CONFLICT_MESSAGE = "Obsah studie mezitím uložil někdo jiný. Načtěte ho znovu, než budete pokračovat.";
 export const CLOSED_MESSAGE = "Studie je uzavřená a změny nepřijímá. Načtěte ji znovu.";
+export const LOCKED_MESSAGE = "Změna mění zamčený vstup Sociomapy a nelze ji uložit. Načtěte studii znovu.";
 
 /** How many saves one `flush` makes while the copy keeps changing under them, before it says so. */
 export const MAX_FLUSH_ROUNDS = 4;

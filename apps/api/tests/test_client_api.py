@@ -1095,6 +1095,8 @@ def test_a_put_is_logged_as_the_persons_and_cannot_change_a_declared_sociomap_in
     }
     refused = lead.put(url, json={"content": moved, "base_revision": 1})
     assert refused.status_code == 409 and refused.json()["code"] == "sociomap_input_locked"
+    # Said as what happened, never as a save made elsewhere (stand-in review of #784).
+    assert "Sociomap input" in refused.json()["message"]
     renamed = lead.put(url, json={"content": {**declared, "title": "Jiný"}, "base_revision": 1})
     assert renamed.status_code == 200 and renamed.json()["revision"] == 2
 

@@ -104,6 +104,16 @@ the agent-job and Design Research accepts; **2f** the 18.6.6 migration, then `sa
   now refused (`sociomap_input_locked`), which the case asserts; the engine's answer to a changed
   rating input (a new specification, a new run, the map on the new scale, the first run untouched)
   is read in a sibling study, where nothing is locked, until WCE8's recorded unlock exists.
+  The web's store meets the refusal (stand-in review of #784): on `sociomap_input_locked` it puts the
+  locked items back as AIA last held them (`research/sociomap-lock.ts` `restoreLocked`, the web's
+  reading of `locked_items`: each tracked set and rating question by id) and keeps every other change
+  to save ("Zamčený vstup Sociomapy vrácen … · Uložit ostatní"); an item it cannot find again by id
+  leaves the copy blocked until a reload, so a refused change is never re-sent. The PUT says what
+  happened (`_workspace_conflict`). Pre-merge check for deployed develop (read-only; checked against
+  `tables.py` and run on a migrated PostgreSQL 16 schema): `select w.study_id from study_workspaces w
+  join projects p on p.project_id = w.project_id join project_revisions r on r.project_id =
+  p.project_id and r.revision = p.current_revision where r.content::text like '%"sociomap_rating"%'
+  or r.content::text like '%"context_objects"%';`
 
 **WCE3a. The web store on the server vocabulary, Brief and Design stages**  
 33 `store.update` sites in 9 files and about 1,900 lines of TypeScript with 18.6.6 parity tests are moved stage by stage; the parity tests stay green at every step.
