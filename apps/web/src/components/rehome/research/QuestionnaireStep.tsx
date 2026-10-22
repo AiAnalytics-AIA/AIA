@@ -73,9 +73,10 @@ import {
   SET_SIZE,
 } from "@/research/questionnaire";
 import type { ResearchProject } from "@/research/model";
-import { COMPARISONS, CONCEPT_TEST, type Comparison, comparisonOf, danglingLinks, linkKey, linksOf, researchQuestionsOf, setComparison, setConceptTest, toggleQuestionLink, toggleSectionLink, togglesConceptTest } from "@/research/trace";
+import { COMPARISONS, CONCEPT_TEST, comparisonOf, danglingLinks, linkKey, linksOf, researchQuestionsOf, setComparison, setConceptTest, toggleQuestionLink, toggleSectionLink, togglesConceptTest } from "@/research/trace";
 import { Icon, type IconName } from "../icons";
 import { ActionDock, ChipInput, InlineConfirm, Segmented, Switch } from "../step";
+import { ChoiceChips } from "@/components/ui/ChoiceChips";
 import { AiButton, Button } from "../ui";
 import { isNativeResult } from "@/lib/research-agent-jobs";
 import { openPlace, scrollBehavior, scrollToPlace } from "@/lib/open-place";
@@ -667,6 +668,9 @@ function Editor({ update }: { update: Update }) {
  * that answers it (run-recovery-and-truth 3c). Readiness checks that the questions linked
  * to it can carry that comparison; "neurčeno" declares nothing and checks nothing.
  */
+/** "Neurčeno": no comparison declared, so readiness checks none (setComparison(…, null)). */
+const NONE = "none";
+
 function ResearchQuestionComparisons({ update }: { update: Update }) {
   const { state } = useResearch();
   const stated = researchQuestionsOf(state.project);
@@ -677,19 +681,14 @@ function ResearchQuestionComparisons({ update }: { update: Update }) {
       <p className="mt-1 text-[13px] text-ink-muted">{t("research.questionnaire.comparisons.help")}</p>
       <ul className="mt-3 flex flex-col gap-2">
         {stated.map((rq) => (
-          <li key={rq} className="grid gap-2 text-sm md:grid-cols-[1fr_16rem] md:items-center">
+          <li key={rq} className="flex flex-col gap-1.5 text-sm">
             <span>{rq}</span>
-            <select
-              aria-label={tv("research.questionnaire.comparisons.choose", { rq })}
-              className={INPUT}
-              value={comparisonOf(state.project, rq) ?? ""}
-              onChange={(e) => update((p) => setComparison(p, rq, (e.target.value || null) as Comparison | null), "research_question_comparison")}
-            >
-              <option value="">{t("research.questionnaire.comparisons.none")}</option>
-              {COMPARISONS.map((kind) => (
-                <option key={kind} value={kind}>{t(`research.questionnaire.comparisons.kind.${kind}`)}</option>
-              ))}
-            </select>
+            <ChoiceChips
+              label={tv("research.questionnaire.comparisons.choose", { rq })}
+              value={comparisonOf(state.project, rq) ?? NONE}
+              options={[{ key: NONE, label: t("research.questionnaire.comparisons.none") }, ...COMPARISONS.map((kind) => ({ key: kind, label: t(`research.questionnaire.comparisons.kind.${kind}`) }))]}
+              onChange={(key) => update((p) => setComparison(p, rq, key === NONE ? null : key), "research_question_comparison")}
+            />
           </li>
         ))}
       </ul>
@@ -754,6 +753,8 @@ const TYPES = [
   ["skala", "typeScale"],
   ["otevrena", "typeOpen"],
 ] as const;
+type TypeKey = (typeof TYPES)[number][0];
+const typeKey = (typ: string): TypeKey | null => TYPES.find(([key]) => key === typ)?.[0] ?? null;
 
 /** questionCard: the type as pills, the text, and below it what the type needs. */
 function QuestionCard({ n, q, si, sectionId, qi, update }: { n: number; q: Question; si: number; sectionId: string | undefined; qi: number; update: Update }) {
@@ -769,23 +770,12 @@ function QuestionCard({ n, q, si, sectionId, qi, update }: { n: number; q: Quest
       <div className="flex flex-wrap items-center gap-2">
         <span className="rounded-md bg-signal-wash px-1.5 py-0.5 font-mono text-xs font-semibold text-signal" title={String(q.id || "")}>Q{n}</span>
         <span className="sr-only">{q.id || "Q"}</span>
-        <div role="radiogroup" aria-label={t("research.questionnaire.questionType")} className="flex flex-wrap gap-1">
-          {TYPES.map(([key, label]) => {
-            const on = typ === key;
-            return (
-              <button
-                key={key}
-                type="button"
-                role="radio"
-                aria-checked={on}
-                onClick={() => !on && update((p) => changeQType(p, si, qi, key))}
-                className={`whitespace-nowrap rounded-pill border px-2.5 text-xs leading-6 ${FOCUS} ${on ? "border-signal bg-signal-wash font-semibold text-signal" : "border-border bg-surface text-ink-muted hover:text-ink"}`}
-              >
-                {t(`research.questionnaire.${label}`)}
-              </button>
-            );
-          })}
-        </div>
+        <ChoiceChips
+          label={t("research.questionnaire.questionType")}
+          value={typeKey(typ)}
+          options={TYPES.map(([key, label]) => ({ key, label: t(`research.questionnaire.${label}`) }))}
+          onChange={(key) => key !== typ && update((p) => changeQType(p, si, qi, key))}
+        />
         <Button
           small
           variant="quiet"
@@ -855,18 +845,20 @@ function ResearchQuestionLinks({ item, onToggle }: { item: Question | Section; o
   return (
     <fieldset className="mt-3 flex flex-col gap-1">
       <legend className={LABEL}>{t("research.questionnaire.links.label")}</legend>
-      <div className="flex flex-wrap gap-1">
-        {stated.map((rq) => (
-          <button
-            key={rq}
-            type="button"
-            aria-pressed={on(rq)}
-            onClick={() => onToggle(rq)}
-            className={`max-w-full rounded-pill border px-2.5 text-left text-xs leading-6 ${FOCUS} ${on(rq) ? "border-signal bg-signal-wash font-semibold text-signal" : "border-border bg-surface text-ink-muted hover:text-ink"}`}
-          >
-            {rq}
-          </button>
-        ))}
+      <div className="flex flex-wrap items-start gap-1.5">
+        {stated.length ? (
+          <ChoiceChips
+            multiple
+            label={t("research.questionnaire.links.choices")}
+            value={stated.filter(on)}
+            options={stated.map((rq) => ({ key: rq, label: rq }))}
+            // One toggled at a time: the one whose state the new value changes.
+            onChange={(next) => {
+              const flipped = stated.find((rq) => next.includes(rq) !== on(rq));
+              if (flipped) onToggle(flipped);
+            }}
+          />
+        ) : null}
         {dangling.map((rq) => (
           <button
             key={`dangling-${rq}`}

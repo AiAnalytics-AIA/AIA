@@ -2275,6 +2275,7 @@ export const cs = {
         label: "Odpovídá na výzkumné otázky",
         none: "Plán zatím neuvádí výzkumné otázky, takže otázku není k čemu přiřadit.",
         dangling: "Tento odkaz míří na výzkumnou otázku, kterou plán už neuvádí: nic neměří. Odeberte ho, nebo otázku v plánu vraťte.",
+        choices: "Výzkumné otázky",
         removeDangling: "Odebrat odkaz na „{rq}“",
       },
       optionN: "Možnost {n}",
