@@ -811,20 +811,14 @@ def test_a_sealed_lead_past_its_date_is_erased_with_its_turns_and_what_they_sent
     ready: Any, database_url: str, store: Any, build: Any
 ) -> None:
     from aia_core.infrastructure.storage import ObjectNotFound
-    from aia_core.infrastructure.tables import (
-        ProjectArtifactRow,
-        ResearcherLeadRow,
-        StudyLeadTurnRow,
-        WorkflowRunRow,
-    )
+    from aia_core.infrastructure.study_lead_repository import StudyLeadRepository
+    from aia_core.infrastructure.tables import ProjectArtifactRow, StepRunRow, WorkflowRunRow
 
     turn_id = post(ready)
     assert worker(ready, database_url, store, build, RecordedBedrock([REPLY])).run_once()
     turn = lead_turn(ready, turn_id)
     run_id = turn["run_id"]
     with ready.sessions() as session:
-        from aia_core.infrastructure.tables import StepRunRow
-
         step = session.query(StepRunRow).filter(StepRunRow.run_id == run_id).one()
         artifact_id = step.output_json["artifact_id"]
         key = session.get(ProjectArtifactRow, artifact_id).storage_key
@@ -833,21 +827,22 @@ def test_a_sealed_lead_past_its_date_is_erased_with_its_turns_and_what_they_sent
     _deactivate(ready)
     now = datetime.now(UTC)
     assert erase_sealed_leads(ready.sessions, store, now=now) == []  # not yet due
-    with ready.sessions() as session:
-        session.execute(
-            update(ResearcherLeadRow)
-            .where(ResearcherLeadRow.user_id == ready.lead_id)
-            .values(erase_after=now - timedelta(seconds=1))
-        )
-        session.commit()
-    erased = erase_sealed_leads(ready.sessions, store, now=now)
+    erased = erase_sealed_leads(ready.sessions, store, now=now + timedelta(days=31))
     assert [e.user_id for e in erased] == [ready.lead_id]
+    assert erase_sealed_leads(ready.sessions, store, now=now + timedelta(days=31)) == []
 
     with ready.sessions() as session:
-        assert session.query(ResearcherLeadRow).filter_by(user_id=ready.lead_id).count() == 0
-        assert session.query(StudyLeadTurnRow).filter_by(user_id=ready.lead_id).count() == 0
         assert session.get(ProjectArtifactRow, artifact_id) is None
         assert session.get(WorkflowRunRow, run_id) is not None  # the ledgers still resolve
+    # Back after the 30 days, the member finds no Lead and no turn: they start a new one.
+    with ready.sessions() as session:
+        back = reactivate_member(session, ready.admin_context(session), user_id=ready.lead_id)
+        session.commit()
+    assert back.lead_unsealed is False
+    with ready.sessions() as session:
+        scope = ready.lead_scope(session)
+        assert ResearcherLeadRepository(session, scope).get() is None
+        assert StudyLeadRepository(session, scope).turns() == []
     status, inputs, _ = _step(ready, run_id)
     assert status == "SUCCEEDED" and inputs == {"erased": "lead_sealed"}
     with pytest.raises(ObjectNotFound):
