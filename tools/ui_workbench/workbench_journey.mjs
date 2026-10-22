@@ -322,6 +322,30 @@ try {
   await page.locator(".nav__stage.is-current", { hasText: "Sběr dat" }).waitFor();
   check("Vzorek: size and the server's forecast on the working copy at 1440, 1100, 768 and 390, nothing submitted, read only, no overflow; Spuštění one click away");
 
+  // Spuštění (artifact-fieldwork F-FLD-3, F-FLD-4): every link back to a stage is the input
+  // standard's touch target (44 px at a phone's width, 32 px from 640 px; I11), and "Co spustíte"
+  // puts each value under its label on a narrow card, never a sliver beside it.
+  for (const width of [1440, 1100, 768, 390]) {
+    await page.setViewportSize({ width, height: 900 });
+    await page.goto(base + stagePath("run"));
+    const edit = page.getByRole("link", { name: "Upravit", exact: true });
+    await edit.first().waitFor({ timeout: 60000 });
+    assert((await edit.count()) > 0, `Co spustíte names its stages @${width}`);
+    const floor = width < 640 ? 44 : 32;
+    const heights = await page.getByRole("link", { name: /^(Opravit →|Upravit)$/ })
+      .evaluateAll((els) => els.map((el) => el.getBoundingClientRect().height));
+    assert(heights.every((h) => h >= floor), `Spuštění's stage links are ${floor} px targets @${width}: ${heights.join(", ")}`);
+    if (width === 390) {
+      const share = await page.locator("dl:has(a) dd:not(:has(a))").evaluateAll((dds) =>
+        dds.map((dd) => dd.getBoundingClientRect().width / dd.closest("dl").getBoundingClientRect().width));
+      // The link keeps its column beside them; the label no longer does.
+      assert(share.length && share.every((w) => w >= 0.7), `Co spustíte's values take most of the card @390: ${share}`);
+    }
+    await noOverflow(`run @${width}`);
+    await shot(`${width}-run`);
+  }
+  check("Spuštění's links back to a stage are touch targets, Co spustíte stacks on a phone, at 1440, 1100, 768 and 390, no overflow");
+
   const paid = writes.filter((w) => /\/research\/runs$|\/agent-jobs$|\/deep-research\/runs|\/lead\/turns\/[^/]+\/request$/.test(w.path));
   assert.deepEqual(paid, [], "nothing paid started");
   check("nothing paid started");
