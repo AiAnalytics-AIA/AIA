@@ -1731,10 +1731,21 @@ describe("Results", () => {
     expect(rows[1].textContent).toContain("bez doložené odpovědi");
     expect(rows[1].textContent).toContain("Při spuštění běh zaznamenal");
     // A finding on the same measure is linked to where it is shown, and carries its Lead target.
-    const link = within(rows[0] as HTMLElement).getByRole("link");
-    expect(link.getAttribute("href")).toBe("#analysis-finding-research_questions-0");
+    expect(rows[0].querySelector("[data-finding-chip]")?.getAttribute("data-finding-chip")).toBe("research_questions:0");
     expect(document.getElementById("analysis-finding-research_questions-0")?.getAttribute("data-aia")).toBe("finding:research_questions:0");
     expect(rows[2].textContent).toContain("Odpověď necituje žádné připuštěné číslo.");
+    // The run's fieldwork step ("run") succeeded: Sběr dokončen, never "čeká" (ANL8 audit, F1).
+    const milestones = [...document.querySelectorAll("[data-analysis-milestones] li")];
+    expect(milestones[0].textContent).toContain("Sběr dokončen");
+    expect(milestones[0].getAttribute("data-done")).toBe("true");
+    // A finding chip brings the finding into view without a hash: a hash naming no view sends the
+    // workspace back to Přehled (ANL8 audit, F4).
+    const before = window.location.hash;
+    const finding = document.getElementById("analysis-finding-research_questions-0") as HTMLElement;
+    finding.scrollIntoView = () => {};
+    fireEvent.click(within(rows[0] as HTMLElement).getByRole("button", { name: /1$/ }));
+    expect(window.location.hash).toBe(before);
+    expect(document.activeElement).toBe(finding);
   });
 
   it("says the research questions are unknown when the frozen design cannot be read, never that it has none (ANL2)", async () => {
