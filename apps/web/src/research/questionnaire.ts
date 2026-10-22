@@ -305,14 +305,19 @@ export function addTrackedSet(
   if (!typ || !raw) return null;
   const objs = raw.split(",").map((x) => x.trim()).filter(Boolean);
   if (objs.length < 4 || objs.length > 15) return { error: SET_SIZE };
-  const set: Section = {
+  return { project: withSections(p, [...sections(p), trackedSet(typ, objs, ids)]) };
+}
+
+/** The tracked set addTrackedSet makes: the classic's defaults, its family and objects. */
+function trackedSet(typ: string, objects: string[], ids: IdSource): Section {
+  return {
     id: secId(ids),
     type: "object_battery",
     title: `Sledovaná sada — ${typ}`,
     purpose: "",
     object_family: typ,
     object_type: typ,
-    objects: objs,
+    objects,
     object_question: "Jak hodnotíte {object}?",
     scale: [1, 10],
     scale_labels: ["vůbec", "velmi"],
@@ -321,7 +326,45 @@ export function addTrackedSet(
     visualize: true,
     metadata: { tracked_set: true },
   };
-  return { project: withSections(p, [...sections(p), set]) };
+}
+
+/**
+ * A new block named as the person typed it in its row (input-interactions I5, audit A21), instead
+ * of "Nový blok" to be renamed afterwards. Null for an empty name.
+ */
+export function addNamedSection(p: ResearchProject, title: string, ids: IdSource = SYSTEM): { project: ResearchProject; sectionId: string } | null {
+  const name = title.trim();
+  if (!name) return null;
+  const id = secId(ids);
+  return { project: withSections(p, [...sections(p), { id, type: "questions", title: name, purpose: "", questions: [] }]), sectionId: id };
+}
+
+/**
+ * A question with its wording typed in the block's own row (audit A5): a single choice with the
+ * options Ano / Ne, as addQuestion and the quick add give it. Null for an empty wording or a
+ * section that is not a question block.
+ */
+export function addQuestionTo(p: ResearchProject, si: number, text: string, ids: IdSource = SYSTEM): { project: ResearchProject; questionId: string } | null {
+  const wording = text.trim();
+  const xs = sections(p);
+  if (!wording || xs[si]?.type !== "questions") return null;
+  const id = qId(ids);
+  const project = edit(p, (ys) => {
+    ys[si].questions = [...(ys[si].questions || []), { id, text: wording, typ: "vyber", kategorie: ["Ano", "Ne"], povolit_nevim: false }];
+  });
+  return { project, questionId: id };
+}
+
+/**
+ * A tracked set named in its row (audit A8): the same set addTrackedSet makes, with no objects yet.
+ * Its 4–15 objects are then added on its card, the count beside them; readiness holds a set
+ * outside 4–15, as it holds one made any other way. Null for an empty name.
+ */
+export function addNamedTrackedSet(p: ResearchProject, typ: string, ids: IdSource = SYSTEM): { project: ResearchProject; sectionId: string } | null {
+  const family = typ.trim();
+  if (!family) return null;
+  const set = trackedSet(family, [], ids);
+  return { project: withSections(p, [...sections(p), set]), sectionId: String(set.id) };
 }
 
 export const CONFIRM_REMOVE_SECTION = "Smazat celý blok?";
