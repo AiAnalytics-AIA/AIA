@@ -519,7 +519,8 @@
       "edits": true,
       "view_ops": [
         "open_stage",
-        "focus"
+        "focus",
+        "show_diff"
       ],
       "targets": [
         "dimension",
