@@ -6,7 +6,7 @@ chunks:
   - "[x] 3. Znalosti at 390 px: the library table's clipped columns"
   - "[ ] 4. The API refuses a client or study name of spaces"
   - "[ ] 5. A run's methodology receipt reports its readiness pin"
-  - "[x] 6. A slow rename's answer leaves focus where the person went"
+  - "[ ] 6. A slow rename's answer leaves focus where the person went"
   - "[ ] 7. InlineText's refocus after Enter waits for nothing the person moved"
 ---
 # UX audit, 2026-10: the areas outside the study stages
@@ -98,7 +98,7 @@ sheet), Projektová paměť, Společenská inteligence, Nastavení (eight tabs, 
 6. Test: a `pins.py` test over metadata with `readiness_methodology`, and the journey reading
    `latest.methodology.readiness`.
 
-### F6. A slow rename's answer took focus from where the person went (fixed by #735)
+### F6. A slow rename's answer took focus from where the person went (fix in #735)
 
 The CI flake in `KnowledgeLibrary.test.tsx` › "renames a label on F2 and recolours it by its
 swatch": `useRenaming`'s refocus ran when the save answered and took focus from the colour list the
