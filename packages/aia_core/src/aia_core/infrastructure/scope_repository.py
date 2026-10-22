@@ -329,6 +329,14 @@ class ScopeRepository:
         if admin.organization_role is not OrganizationRole.OWNER:
             raise ScopeDenied("only an OWNER grants or removes OWNER", reason="owner_only")
         if previous == owner:
+            # The organization row is locked first: two owners demoting each other under READ
+            # COMMITTED would otherwise each count the other and both commit, leaving none.
+            # The second waits here, then counts what the first committed.
+            self._session.execute(
+                select(OrganizationRow.organization_id)
+                .where(OrganizationRow.organization_id == admin.organization_id)
+                .with_for_update()
+            )
             # Active owners only: a deactivated OWNER cannot sign in to administer.
             owners = self._session.scalar(
                 select(func.count())
