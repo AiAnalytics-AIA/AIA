@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import type { Readiness } from "./api";
-import { checkStage, outlookSummary, personaSourcesOf, readinessSummary, sourceChosenOnRun, supportForecastOf } from "./sample-view";
+import { checkStage, compositionOf, outlookSummary, personaSourcesOf, readinessSummary, sourceChosenOnRun, supportForecastOf } from "./sample-view";
 
 const readiness = (over: Partial<Readiness>): Readiness => ({
   design_revision_id: "r1", rules: "aia-readiness-1", ready: true, checks: [], questions: 3, batteries: 0, objects: 0, n: 200,
@@ -18,6 +18,14 @@ describe("supportForecastOf", () => {
   it("reads a panel run's forecast as unknown, never good, keeping the server's words", () => {
     const r = readiness({ persona_source: "panel", checks: [{ id: "support_forecast", status: "WARN", message: "Kolik různých dárců běh bude mít, se ukáže až při výběru." }] });
     expect(supportForecastOf(r)).toEqual({ known: false, message: "Kolik různých dárců běh bude mít, se ukáže až při výběru." });
+  });
+
+  it("reads a panel run's forecast as known when the server drew the sample a start would draw", () => {
+    const composition = { refused: null, version_id: "DSV-1", seed: 7, quota_fields: ["pohlavi"], cells: [], sample_donors: 120 };
+    const check = { id: "support_forecast", status: "PASS" as const, message: "Běh bude mít 120 různých dárců na 200 respondentů: opora stačí." };
+    expect(supportForecastOf(readiness({ persona_source: "panel", checks: [check], sample_composition: composition }))).toEqual({ known: true, status: "PASS", message: check.message });
+    // A refused draw counted nothing.
+    expect(supportForecastOf(readiness({ persona_source: "panel", checks: [check], sample_composition: { ...composition, refused: "sampling_empty" } })).known).toBe(false);
   });
 
   it("reads a readiness without the check as unknown", () => {
@@ -101,5 +109,50 @@ describe("readinessSummary", () => {
 
   it("carries the server's verdict, which the counts never override", () => {
     expect(readinessSummary(readiness({ ready: false, checks: [check("a", "PASS")] }))).toMatchObject({ ready: false, blocking: 0 });
+  });
+});
+
+describe("compositionOf", () => {
+  const drawn = (over: Partial<NonNullable<Readiness["sample_composition"]>> = {}) => ({
+    refused: null, version_id: "DSV-1", seed: 7, quota_fields: ["pohlavi", "vek_skupina"], sample_donors: 9,
+    cells: [
+      { key: "muz/18-29", values: ["muž", "18-29"], n: 2 },
+      { key: "zena/18-29", values: ["žena", "18-29"], n: 5 },
+      { key: "zena/30-44", values: ["žena", "30-44"], n: 0 },
+      { key: "missing/65", values: ["<missing>", "65+"], n: 3 },
+    ],
+    ...over,
+  });
+
+  it("reads the sampler's allotment: cells with respondents, largest first, each with its share of n", () => {
+    const c = compositionOf(readiness({ persona_source: "panel", sample_composition: drawn() }));
+    expect(c).toEqual({
+      kind: "drawn",
+      fields: ["Pohlaví", "Věk"],
+      total: 10,
+      donors: 9,
+      rows: [
+        { key: "zena/18-29", label: "žena · 18-29", n: 5, share: 0.5 },
+        { key: "missing/65", label: "neuvedeno · 65+", n: 3, share: 0.3 },
+        { key: "muz/18-29", label: "muž · 18-29", n: 2, share: 0.2 },
+      ],
+    });
+  });
+
+  it("says why the sampler refused, in the audience step's words", () => {
+    expect(compositionOf(readiness({ persona_source: "panel", sample_composition: drawn({ refused: "sampling_empty", cells: [] }) }))).toEqual({
+      kind: "refused",
+      words: "Filtry nevyberou žádného člověka z populace.",
+    });
+    expect(compositionOf(readiness({ persona_source: "panel", sample_composition: drawn({ refused: "something_new", cells: [] }) }))).toEqual({
+      kind: "refused",
+      words: "Výběr odmítnut (something_new).",
+    });
+  });
+
+  it("is unknown for a panel run the server drew nothing for, and the roster's when respondents are fictional", () => {
+    expect(compositionOf(readiness({ persona_source: "panel", sample_composition: null }))).toEqual({ kind: "unknown" });
+    expect(compositionOf(readiness({ persona_source: "panel" }))).toEqual({ kind: "unknown" });
+    expect(compositionOf(readiness({ persona_source: "fictional_roster", sample_composition: drawn() }))).toEqual({ kind: "roster" });
   });
 });

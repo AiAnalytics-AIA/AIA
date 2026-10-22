@@ -235,3 +235,32 @@ describe("loadSampleReadiness", () => {
     expect(read).not.toHaveBeenCalled();
   });
 });
+
+describe("Složení podle kvót", () => {
+  const cells = Array.from({ length: 12 }, (_, i) => ({ key: `zena/k${i}`, values: ["žena", `kraj ${i}`], n: 12 - i }));
+  const composition = { refused: null, version_id: "DSV-1", seed: 7, quota_fields: ["pohlavi", "kraj"], cells, sample_donors: 40 };
+
+  it("lists a panel run's quota cells, largest first, each a target, the rest folded away", () => {
+    const { container } = render(<SampleArtifact project={project({ n: 78 })} onOpen={vi.fn()} readiness={ready({ persona_source: "panel", sample_composition: composition })} />);
+    const section = screen.getByRole("region", { name: "Velikost a složení" });
+    expect(section.textContent).toContain("Podle: Pohlaví × Kraj. 12 buněk s respondenty, 40 různých dárců.");
+    const rows = [...container.querySelectorAll('[data-aia^="sample:quota:"]')].map((r) => r.getAttribute("data-aia"));
+    expect(rows).toHaveLength(12);
+    expect(rows[0]).toBe("sample:quota:zena/k0");
+    expect(container.querySelector('[data-aia="sample:quota:zena/k0"]')!.textContent).toContain("15,4 %");
+    // Ten shown, two under "Dalších", nothing on the page to press but navigation.
+    expect(section.querySelector("details")!.textContent).toContain("Dalších 2 buňky");
+    expect(section.querySelectorAll("details tr[data-aia]")).toHaveLength(2);
+  });
+
+  it("says the sampler's refusal in words, unknown when nothing was drawn, and no quotas for the roster", () => {
+    render(<SampleArtifact project={project({ n: 78 })} onOpen={vi.fn()} readiness={ready({ persona_source: "panel", sample_composition: { ...composition, refused: "sampling_empty", cells: [] } })} />);
+    expect(screen.getByText(/Vzorek z populace teď nelze vybrat: Filtry nevyberou žádného člověka z populace\./)).toBeTruthy();
+    cleanup();
+    render(<SampleArtifact project={project({ n: 78 })} onOpen={vi.fn()} readiness={ready({ persona_source: "panel", sample_composition: null })} />);
+    expect(screen.getByText(/Složení vzorku z populace: neznámé/)).toBeTruthy();
+    cleanup();
+    render(<SampleArtifact project={project({ n: 78 })} onOpen={vi.fn()} readiness={ready({ persona_source: "fictional_roster" })} />);
+    expect(screen.getByText("Fiktivní respondenti se nevybírají podle kvót.")).toBeTruthy();
+  });
+});
