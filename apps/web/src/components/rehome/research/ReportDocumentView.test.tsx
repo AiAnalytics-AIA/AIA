@@ -120,6 +120,23 @@ describe("Záznam pokrytí, outside the text (RPT4)", () => {
   });
 });
 
+describe("who approved it (RD2)", () => {
+  it("names the approver on the doc bar, and nothing for a draft", async () => {
+    vi.mocked(research.reportDocument).mockResolvedValue({
+      ...STORED, review_state: "APPROVED_INTERNAL", approved_on: "2026-10-22",
+      approval: { approved_at: "2026-10-21T23:30:00+00:00", approver_name: "Fiktivní Recenzentka", by_you: false, self_approved: false, self_approval_allowed: true, self_approval_source: "default", note: "" },
+    });
+    const approved = show();
+    await screen.findByRole("article", { name: "Koncept zprávy" });
+    expect(approved.container.querySelector("[data-approval]")?.textContent).toBe("· schválil(a) Fiktivní Recenzentka 22. 10. 2026");
+    cleanup();
+    vi.mocked(research.reportDocument).mockResolvedValue(STORED);
+    const draft = show();
+    await screen.findByRole("article", { name: "Koncept zprávy" });
+    expect(draft.container.querySelector("[data-approval]")).toBeNull();
+  });
+});
+
 describe("what the route answers, in words", () => {
   it("shows nothing until the report step succeeded, and never asks", () => {
     const { container } = show(run("RUNNING"));

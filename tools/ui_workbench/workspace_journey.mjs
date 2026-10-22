@@ -120,6 +120,17 @@ if ((await page.getByRole("textbox", { name: "Cíl výzkumu", exact: true }).inp
 ok("Zadání: goal and attachment read back from AIA after a reload");
 await text("B · odvozené od klienta", "the attachment's data class");
 ok("Zadání: the attachment shows the class the server's rule gives it (BRF3)");
+
+// Rozhodnutí, edited where it is shown (artifact-brief BRF2): open, type, Ctrl+Enter, saved, read back.
+const DECISION = "Rozhodneme, zda změnit kampaň (fiktivní).";
+await page.getByRole("button", { name: /^Upravit: Jaké rozhodnutí uděláte/ }).click();
+const decisionSave = saved();
+await page.getByRole("textbox", { name: "Jaké rozhodnutí uděláte" }).fill(DECISION);
+await page.getByRole("textbox", { name: "Jaké rozhodnutí uděláte" }).press("Control+Enter");
+await decisionSave;
+await page.reload({ waitUntil: "load" });
+await text(DECISION, "the decision after a reload");
+ok("Zadání: Rozhodnutí edited in place and read back from AIA after a reload (BRF2)");
 const [download] = await Promise.all([page.waitForEvent("download", { timeout: 60000 }), page.getByRole("button", { name: `Stáhnout přílohu ${FILE.name}` }).click()]);
 const fileBack = readFileSync(await download.path(), "utf8");
 if (fileBack !== FILE.body) fail(`the downloaded file differs: ${JSON.stringify(fileBack)}`);

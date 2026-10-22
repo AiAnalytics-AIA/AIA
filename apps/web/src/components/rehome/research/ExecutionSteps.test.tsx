@@ -19,6 +19,13 @@ import { ResearchScreen, ResearchSession } from "./ResearchScreen";
 import { CONTENT_PATH, workspaceFixture } from "./test-workspace";
 import { TEST_FRAME, stagePath } from "./test-frame";
 
+/** Approval asks first, naming the version (input-interactions B22); answer yes. */
+async function confirmApproval(version?: string): Promise<void> {
+  const dialog = await screen.findByRole("dialog");
+  if (version) expect(dialog.textContent).toContain(`uloženou verzi ${version} (`);
+  fireEvent.click(within(dialog).getByRole("button", { name: t("research.exec.report.approveAsk.yes") }));
+}
+
 const push = vi.fn();
 const replace = vi.fn();
 vi.mock("next/navigation", () => ({ usePathname: () => "/app/clients/CLI-1/research/STU-1/run", useRouter: () => ({ push, replace }) }));
@@ -1731,10 +1738,21 @@ describe("Results", () => {
     expect(rows[1].textContent).toContain("bez doložené odpovědi");
     expect(rows[1].textContent).toContain("Při spuštění běh zaznamenal");
     // A finding on the same measure is linked to where it is shown, and carries its Lead target.
-    const link = within(rows[0] as HTMLElement).getByRole("link");
-    expect(link.getAttribute("href")).toBe("#analysis-finding-research_questions-0");
+    expect(rows[0].querySelector("[data-finding-chip]")?.getAttribute("data-finding-chip")).toBe("research_questions:0");
     expect(document.getElementById("analysis-finding-research_questions-0")?.getAttribute("data-aia")).toBe("finding:research_questions:0");
     expect(rows[2].textContent).toContain("Odpověď necituje žádné připuštěné číslo.");
+    // The run's fieldwork step ("run") succeeded: Sběr dokončen, never "čeká" (ANL8 audit, F1).
+    const milestones = [...document.querySelectorAll("[data-analysis-milestones] li")];
+    expect(milestones[0].textContent).toContain("Sběr dokončen");
+    expect(milestones[0].getAttribute("data-done")).toBe("true");
+    // A finding chip brings the finding into view without a hash: a hash naming no view sends the
+    // workspace back to Přehled (ANL8 audit, F4).
+    const before = window.location.hash;
+    const finding = document.getElementById("analysis-finding-research_questions-0") as HTMLElement;
+    finding.scrollIntoView = () => {};
+    fireEvent.click(within(rows[0] as HTMLElement).getByRole("button", { name: /1$/ }));
+    expect(window.location.hash).toBe(before);
+    expect(document.activeElement).toBe(finding);
   });
 
   it("says the research questions are unknown when the frozen design cannot be read, never that it has none (ANL2)", async () => {
@@ -2288,6 +2306,23 @@ describe("Results", () => {
     expect(called("GET", "/api/v1/studies/STU-1/research/runs/RUN-1/report/pdf/download")).toHaveLength(0); // never the base PDF
     expect(createObjectURL).toHaveBeenCalledTimes(2);
     fireEvent.click(report.getByRole("button", { name: t("research.exec.results.reportApprove") }));
+    // Nothing is approved on the click: the person is asked about this version first, and "Zrušit"
+    // approves nothing (B22).
+    const asked = await screen.findByRole("dialog");
+    expect(asked.textContent).toContain("Schválit interní zprávu s rešerší RUN-deep, uloženou verzi ART-context (");
+    // The safe choice holds the focus, and Esc answers the dialog alone: nothing beneath it (an
+    // open inspector) sees it (I7, D21).
+    expect(document.activeElement).toBe(within(asked).getByRole("button", { name: t("dialog.cancel") }));
+    const beneath = vi.fn();
+    window.addEventListener("keydown", beneath);
+    onTestFinished(() => window.removeEventListener("keydown", beneath));
+    fireEvent.keyDown(asked, { key: "Escape" });
+    expect(beneath).not.toHaveBeenCalled();
+    fireEvent.click(within(asked).getByRole("button", { name: t("dialog.cancel") }));
+    await waitFor(() => expect(screen.queryByRole("dialog")).toBeNull());
+    expect(called("POST", "/api/v1/studies/STU-1/research/runs/RUN-1/report/approve")).toHaveLength(0);
+    fireEvent.click(report.getByRole("button", { name: t("research.exec.results.reportApprove") }));
+    await confirmApproval("ART-context");
     await waitFor(() => expect(called("POST", "/api/v1/studies/STU-1/research/runs/RUN-1/report/approve")).toHaveLength(1));
     expect(called("POST", "/api/v1/studies/STU-1/research/runs/RUN-1/report/approve")[0].body).toEqual({ artifact_id: "ART-context", note: "" });
     // The version is named before and after; what it is now is read again, never patched here
@@ -2565,6 +2600,7 @@ describe("Results", () => {
     // The downloaded draft is said to be one, and to need approving before it is handed over.
     expect(report.getByText(new RegExp(t("research.exec.results.reportClientHintDraft")))).toBeTruthy();
     fireEvent.click(approve);
+    await confirmApproval("ART-client");
     // The approval's answer does not say whether the file states it: the card says the review alone.
     expect(await report.findByText(`Stav: ${t("research.exec.report.review.clientApproved")}`)).toBeTruthy();
     expect(report.queryByText(/interní použití/)).toBeNull();
@@ -2595,6 +2631,7 @@ describe("Results", () => {
     fireEvent.click(report.getByRole("button", { name: t("research.exec.results.reportDownloadClient") }));
     expect(await report.findByText(`Stav: ${t("research.exec.report.review.clientDraft")}`)).toBeTruthy();
     fireEvent.click(await report.findByRole("button", { name: t("research.exec.results.reportApproveClient") }));
+    await confirmApproval("ART-client");
     // Its DOCX, the one the client receives, says SCHVÁLENO with the date and the version.
     expect(await report.findByText("Stav: Schváleno 18. 10. 2026 · verze ART-client — DOCX této verze to nese v zápatí")).toBeTruthy();
     expect(report.queryByText(/interní použití/)).toBeNull();
@@ -2644,9 +2681,11 @@ describe("Results", () => {
     render(<ResearchScreen step="results" frame={TEST_FRAME} />);
     const report = await card();
     fireEvent.click(await report.findByRole("button", { name: t("research.exec.results.reportApprove") }));
+    await confirmApproval("ART-report");
     expect(await report.findByText(t("research.exec.results.reportApproveIndependent"))).toBeTruthy();
     refuse = false;
     fireEvent.click(report.getByRole("button", { name: t("research.exec.results.reportApprove") }));
+    await confirmApproval("ART-report");
     expect(await report.findByText("Stav: Schváleno pouze pro interní použití.")).toBeTruthy();
     expect(report.queryByRole("button", { name: t("research.exec.results.reportApprove") })).toBeNull();
     expect(called("POST", "/api/v1/studies/STU-1/research/runs/RUN-1/report/approve")[1].body)
@@ -2680,6 +2719,7 @@ describe("Results", () => {
     expect(await report.findByText(tv("research.exec.report.review.draft", { version: "ART-report" }))).toBeTruthy();
     const reads = called("GET", "/api/v1/studies/STU-1/research/runs/RUN-1/report").filter((c) => c.url.endsWith("/report")).length;
     fireEvent.click(report.getByRole("button", { name: t("research.exec.results.reportApprove") }));
+    await confirmApproval("ART-report");
     // The approved PDF is not made yet: the DOCX alone is said to carry it (review 4).
     expect(await report.findByText("Stav: Schváleno 18. 10. 2026 · verze ART-report — DOCX této verze to nese v zápatí")).toBeTruthy();
     // The state line is a live region: the approval a screen reader user made is announced
