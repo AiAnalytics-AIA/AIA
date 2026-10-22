@@ -364,12 +364,13 @@ function sectionNow(xs: Section[], si: number, sectionId: string | undefined): n
 /**
  * A question with its wording typed in the block's own row (audit A5): a single choice with the
  * options Ano / Ne, as addQuestion and the quick add give it. Null for an empty wording or a block
- * that is gone or no longer a question block; never another block at the same index.
+ * that is gone or no longer a question block; a block with an id never takes another's question.
  */
 export function addQuestionTo(p: ResearchProject, si: number, sectionId: string | undefined, text: string, ids: IdSource = SYSTEM): { project: ResearchProject; questionId: string } | null {
   const wording = text.trim();
-  const at = sectionNow(sections(p), si, sectionId);
-  if (!wording || at < 0 || sections(p)[at].type !== "questions") return null;
+  const xs = sections(p);
+  const at = sectionNow(xs, si, sectionId);
+  if (!wording || at < 0 || xs[at].type !== "questions") return null;
   const id = qId(ids);
   const project = edit(p, (ys) => {
     ys[at].questions = [...(ys[at].questions || []), { id, text: wording, typ: "vyber", kategorie: ["Ano", "Ne"], povolit_nevim: false }];

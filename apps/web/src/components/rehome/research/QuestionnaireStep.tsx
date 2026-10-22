@@ -604,6 +604,7 @@ type Update = (next: (p: ResearchProject) => ResearchProject, reason?: string) =
 /** The questionnaire at a glance: blocks and their questions, then the sets; quick add beneath. */
 function Outline() {
   const { store, state } = useResearch();
+  const { canEdit } = useFrame();
   const open = useContext(OpenPlace);
   const xs = sections(state.project);
   const counts = questionnaireCounts(state.project);
@@ -620,13 +621,13 @@ function Outline() {
   // A block and a set named in their rows (audit A21, A8), then opened where they are.
   const newBlock = (name: string) => {
     const r = addNamedSection(store.get().project, name);
-    if (!r) return t("input.name.empty");
+    if (!r) return t("research.questionnaire.inlineAdd.empty");
     store.update(() => ({ project: r.project }), { reason: "questionnaire_block" });
     setTimeout(() => jumpTo(`qblock_${r.sectionId}`), 50);
   };
   const newSet = (name: string) => {
     const r = addNamedTrackedSet(store.get().project, name);
-    if (!r) return t("input.name.empty");
+    if (!r) return t("research.questionnaire.inlineAdd.empty");
     store.update(() => ({ project: r.project }), { reason: "questionnaire_set" });
     setTimeout(() => {
       jumpTo(setElementId({ id: r.sectionId }, 0));
@@ -680,12 +681,12 @@ function Outline() {
             options={([["choice", "addChoice"], ["scale", "addScale"], ["open", "addOpen"]] as const).map(([key, label]) => ({ key, label: t(`research.questionnaire.${label}`) }))}
             onChange={setKind}
           />
-          <InlineCreateRow label={t("research.questionnaire.inlineAdd.question")} maxLength={WORDING_MAX} onCreate={quickAdd} />
+          <InlineCreateRow disabled={!canEdit} label={t("research.questionnaire.inlineAdd.question")} maxLength={WORDING_MAX} onCreate={quickAdd} />
           <p className="text-xs text-ink-muted">{t("research.questionnaire.quickHelp")}</p>
         </div>
         <div className="flex flex-col gap-1">
-          <InlineCreateRow label={t("research.questionnaire.addBlockV3")} next={false} onCreate={newBlock} />
-          <InlineCreateRow label={t("research.questionnaire.addSet")} next={false} placeholder={t("research.questionnaire.inlineAdd.setPlaceholder")} onCreate={newSet} />
+          <InlineCreateRow disabled={!canEdit} label={t("research.questionnaire.addBlockV3")} next={false} onCreate={newBlock} />
+          <InlineCreateRow disabled={!canEdit} label={t("research.questionnaire.addSet")} next={false} placeholder={t("research.questionnaire.inlineAdd.setPlaceholder")} onCreate={newSet} />
         </div>
       </aside>
     </div>
@@ -794,6 +795,8 @@ function QuestionBlock({ n, firstQ, sec, si, update }: { n: number; firstQ: numb
   const [confirming, setConfirming] = useState(false);
   const marks = useLeadMarks();
   const undo = useEditorUndo();
+  const { store } = useResearch();
+  const { canEdit } = useFrame();
   return (
     <article id={`qblock_${sec.id || si}`} data-aia={marks.sections[si]} className="scroll-mt-40 rounded-panel bg-surface-sunken p-4">
       <div className="flex items-start gap-3">
@@ -820,15 +823,12 @@ function QuestionBlock({ n, firstQ, sec, si, update }: { n: number; firstQ: numb
           <InlineCreateRow
             label={t("research.questionnaire.addQuestionV3")}
             maxLength={WORDING_MAX}
+            disabled={!canEdit}
             onCreate={(text) => {
-              let made = false;
-              update((p) => {
-                const r = addQuestionTo(p, si, sec.id, text);
-                made = r !== null;
-                return r?.project ?? p;
-              }, "questionnaire_question");
-              // The row refuses an empty wording itself; null here means the block is gone.
-              return made ? undefined : t("research.questionnaire.inlineAdd.blockGone");
+              // The row refuses an empty wording first; null here means the block is gone.
+              const r = addQuestionTo(store.get().project, si, sec.id, text);
+              if (!r) return t("research.questionnaire.inlineAdd.blockGone");
+              store.update(() => ({ project: r.project }), { reason: "questionnaire_question" });
             }}
           />
         </div>

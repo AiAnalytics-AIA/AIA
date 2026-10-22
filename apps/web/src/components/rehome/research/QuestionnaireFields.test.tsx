@@ -86,6 +86,10 @@ describe("Dotazník's block and set fields", () => {
   it("offers no edit on a design the person may not change", async () => {
     render(<ResearchScreen step="questionnaire" frame={{ ...TEST_FRAME, canEdit: false }} />);
     expect(((await screen.findByRole("button", { name: "Upravit: Název bloku Hlavní otázky" })) as HTMLButtonElement).disabled).toBe(true);
+    // No create row opens either: a save would be dropped, and the row would answer as if it failed.
+    for (const name of ["Otázka do tohoto bloku", "Nová otázka", "Nový blok", "Sledovaná sada"]) {
+      for (const row of screen.getAllByRole("button", { name: new RegExp(`^${name}`) })) expect((row as HTMLButtonElement).disabled).toBe(true);
+    }
   });
 
   it("edits a set's object type and common question in place, refusing a question without {object}", async () => {
