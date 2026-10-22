@@ -12,6 +12,7 @@ import { useRouter } from "next/navigation";
 import { type ReactNode, useCallback, useContext, useEffect, useRef, useState } from "react";
 
 import { t, tv } from "@/i18n/t";
+import { blockedModules } from "@/lib/analysis-blocked";
 import { findingAnchor } from "@/lib/analysis-coverage";
 import { analysisTarget, chipKey, claimMarks, type AnalysisModuleKind, type ChipPlace } from "@/lib/artifacts/analysis";
 import {
@@ -91,7 +92,7 @@ import { codedText, codeWords } from "@/lib/reason-words";
 import { withBudget } from "@/lib/budget-line";
 import { reportStatus, reportStatusWords } from "@/lib/report-status";
 import type { Tone } from "@/lib/tone";
-import { AnalysisBlocked } from "./AnalysisBlocked";
+import { AnalysisBlocked, ViolationList } from "./AnalysisBlocked";
 import { AnalysisCoverage, AnalysisMilestones } from "./AnalysisCoverage";
 import { setShownAnalysis } from "./AnalysisInspect";
 import { CodedWords } from "./CodedWords";
@@ -1046,6 +1047,12 @@ function useRun(): [ResearchRun | null | undefined, () => void, (r: ResearchRun)
 type Repairable = { modules: string[]; stale: string[] };
 
 function useRetryableModules(run: ResearchRun | null | undefined): Repairable | null {
+  const read = useRetryableRead(run);
+  return read && read.modules.length ? read : null;
+}
+
+/** The server's retryable list for a finished run as read, empty or not; `null` while unread or not askable. */
+function useRetryableRead(run: ResearchRun | null | undefined): Repairable | null {
   const frame = useFrame();
   const runId = run?.run_id ?? null;
   const possible = !!run && mayRetryAnalysis(run);
@@ -1061,7 +1068,7 @@ function useRetryableModules(run: ResearchRun | null | undefined): Repairable | 
       live = false;
     };
   }, [frame.studyId, runId, possible]);
-  return possible && modules && modules.runId === runId && modules.list.modules.length ? modules.list : null;
+  return possible && modules && modules.runId === runId ? modules.list : null;
 }
 
 /** A finished run whose analysis a model could not complete: the data stands, the modules are asked again. */
@@ -1643,6 +1650,7 @@ function AnalysisResults({ run, spec, progressHref }: { run: ResearchRun; spec: 
     setShownAnalysis(next);
     return () => setShownAnalysis(null);
   }, [run.run_id, shownValue, spec]);
+  const retryable = useRetryableRead(run);
   if (loaded.state === "hidden") return null;
   const analysis = shownValue;
   const complete = ANALYSIS_ORDER.filter((id) => analysis?.modules[id]?.outcome === "COMPLETED").length;
@@ -1677,15 +1685,15 @@ function AnalysisResults({ run, spec, progressHref }: { run: ResearchRun; spec: 
         <div className="flex flex-col gap-4">
           <AnalysisMilestones run={run} analysis={analysis} />
           <AnalysisCoverage run={run} analysis={analysis} />
-          <AnalysisBlocked analysis={analysis} progressHref={progressHref} />
           <section data-analysis-overview className={`rounded-md border p-4 ${blocked ? "border-status-fault/40 bg-status-fault-wash" : "border-border bg-surface-sunken"}`}>
             <p className="text-sm font-semibold">{complete} z {ANALYSIS_ORDER.length} částí analýzy dokončeno{blocked ? ` · k opravě: ${blocked}` : ""}</p>
             <p className="mt-1 text-sm leading-6 text-ink-muted">{blocked
-              ? "Některé výstupy neprošly kontrolou. AIA je nepoužije ve zprávě; dokončení pracovního kroku samo o sobě neznamená platný analytický výstup."
+              ? "Některé části neprošly kontrolou; které a proč, uvádí oddíl Blokované nároky níže. Dokončení pracovního kroku samo o sobě neznamená platný analytický výstup."
               : analysis.complete
                 ? "Všechny části jsou uložené. Interpretaci a vhodnost pro zprávu musí posoudit výzkumník."
                 : "Zbývající části ještě čekají na dokončení. Zpráva může vzniknout až z úplné analýzy."}</p>
           </section>
+          <AnalysisBlocked analysis={analysis} run={run} retryable={retryable?.modules ?? null} progressHref={progressHref} />
           <section aria-labelledby="key-findings-title" data-key-findings className="rounded-md border border-border bg-surface-raised p-4">
             <h3 id="key-findings-title" className="text-base font-semibold">Hlavní zjištění</h3>
             <p className="mt-1 text-sm leading-6 text-ink-muted">Ze všech dokončených částí analýzy, jak je analýza napsala. U každého zjištění jsou čísla, o která se opírá; kliknutím je otevřete v datech.</p>
@@ -1720,9 +1728,7 @@ function AnalysisResults({ run, spec, progressHref }: { run: ResearchRun; spec: 
               <h3 className="text-base font-semibold">{stepLabel(`analysis_${selectedModule}`)}</h3>
               {selected?.outcome === "BLOCKED" ? <>
                 <p className="mt-3 text-sm leading-6">Výstup této části neprošel kontrolou, proto se nesmí interpretovat ani použít ve zprávě.</p>
-                <details className="mt-3 text-xs text-ink-muted"><summary className="cursor-pointer">Technické důvody odmítnutí</summary>
-                  <ul className="mt-2 list-disc space-y-1 pl-5">{selected.violations.map((v, index) => <li key={index}>{v.code}: {v.detail}</li>)}</ul>
-                </details>
+                <div className="mt-3"><ViolationList reasons={blockedModules(analysis).find((b) => b.module === selectedModule)?.reasons ?? []} /></div>
               </> : selected?.outcome === "COMPLETED" ? <>
                 {selected.summary ? <FormattedText text={selected.summary} className="mt-3" /> : null}
                 {selected.research_question_answers.length ? <div className="mt-5 space-y-4"><h4 className="text-sm font-semibold">Odpovědi na výzkumné otázky</h4>

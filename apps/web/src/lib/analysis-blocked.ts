@@ -1,11 +1,12 @@
-// Analýza §3 "Blokované nároky" (artifact-analysis ANL4): every analysis module the evidence gate
-// stored BLOCKED, with what it refused grouped by reason, in module order. Pure: it reads the stored
-// outcomes and judges nothing again; a module not yet stored is pending, never blocked.
+// Analýza §3 "Blokované nároky" (artifact-analysis ANL4): every analysis module the evidence gate stored
+// BLOCKED, with what it refused grouped by reason, in module order, and the way out each one has. Pure: it
+// reads the stored outcomes and the server's retryable list, and judges nothing again; a module not yet
+// stored is pending, never blocked.
 import type { ResearchAnalysis } from "@/lib/api";
 import { ANALYSIS_ORDER } from "@/lib/research-execution";
 
-/** One reason the gate refused, with every subject it named (a field, a claim, a question) and its details. */
-export type BlockedReason = { code: string; subjects: string[]; details: string[] };
+/** One reason the gate refused, with each subject it named (a claim, a field, a question) beside its detail. */
+export type BlockedReason = { code: string; items: { subject: string; detail: string }[] };
 export type BlockedModule = { module: (typeof ANALYSIS_ORDER)[number]; reasons: BlockedReason[] };
 
 export function blockedModules(analysis: ResearchAnalysis | null): BlockedModule[] {
@@ -16,10 +17,24 @@ export function blockedModules(analysis: ResearchAnalysis | null): BlockedModule
     const reasons: BlockedReason[] = [];
     for (const v of outcome.violations) {
       let reason = reasons.find((r) => r.code === v.code);
-      if (!reason) reasons.push((reason = { code: v.code, subjects: [], details: [] }));
-      if (v.subject && !reason.subjects.includes(v.subject)) reason.subjects.push(v.subject);
-      if (v.detail && !reason.details.includes(v.detail)) reason.details.push(v.detail);
+      if (!reason) reasons.push((reason = { code: v.code, items: [] }));
+      if (!reason.items.some((i) => i.subject === v.subject && i.detail === v.detail)) reason.items.push({ subject: v.subject, detail: v.detail });
     }
     return [{ module, reasons }];
   });
+}
+
+/**
+ * What a blocked module's way out is, as the server decides it (`GET …/analysis/retryable`):
+ * - `retry`: a new round over the same data may pass (a model's drafts were refused);
+ * - `same_data_fails`: the preflight refused it before any model turn, so the same data would refuse it again;
+ * - `run_unfinished`: the run has not ended, so no round can be asked yet;
+ * - `unknown`: the retryable list has not been read (never a promise either way).
+ */
+export type WayOut = "retry" | "same_data_fails" | "run_unfinished" | "unknown";
+
+export function wayOut(module: string, runEnded: boolean, retryable: readonly string[] | null): WayOut {
+  if (!runEnded) return "run_unfinished";
+  if (retryable === null) return "unknown";
+  return retryable.includes(module) ? "retry" : "same_data_fails";
 }

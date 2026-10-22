@@ -1622,9 +1622,13 @@ describe("Results", () => {
     const blocked = screen.getByRole("button", { name: /Výzkumné otázky.*Potřebuje opravu/ });
     fireEvent.click(blocked);
     expect(screen.getByText(/Výstup této části neprošel kontrolou/)).toBeTruthy();
-    const diagnostic = screen.getByText("Technické důvody odmítnutí").closest("details");
+    // The refusal in words on the surface; its code, subject and detail only in a closed fold.
+    const pane = screen.getByRole("region", { name: "Výzkumné otázky" });
+    expect(within(pane).getByText(/odpověď modelu neodpovídala předepsanému tvaru/)).toBeTruthy();
+    const diagnostic = within(pane).getByText("Technické podrobnosti").closest("details");
     expect(diagnostic?.open).toBe(false);
-    expect(within(diagnostic!).getByText(/SCHEMA_INVALID: Input should be a valid array/)).toBeTruthy();
+    expect(diagnostic?.textContent).toContain("research_question_answers: Input should be a valid array");
+    expect(pane.textContent?.replace(diagnostic?.textContent ?? "", "")).not.toContain("SCHEMA_INVALID");
   });
 
   it("says an analysis an earlier version of AIA built cannot be shown, and where it is repaired, not 'try again' (PC3)", async () => {
@@ -1718,39 +1722,60 @@ describe("Results", () => {
     expect(section.querySelectorAll("tr[data-rq]")).toHaveLength(0);
   });
 
-  it("names each blocked module's refusals in words with the way out, and never reads it as done (ANL4)", async () => {
+  it("names each blocked module's refusals in words with the way out the server gives, and never reads it as done (ANL4)", async () => {
     const analysed = run({ ...COMPLETED, steps: [...COMPLETED.steps,
       step("analysis_executive", "SUCCEEDED", { kind: "research_analysis", artifact_id: "ART-6", analysis_outcome: "COMPLETED" }),
+      step("analysis_audience", "SUCCEEDED", { kind: "research_analysis", artifact_id: "ART-8", analysis_outcome: "BLOCKED" }),
       step("analysis_hypotheses", "SUCCEEDED", { kind: "research_analysis", artifact_id: "ART-9", analysis_outcome: "BLOCKED" }),
     ] });
+    const blockedAnalysis = () => ({ complete: false, synthetic: true, pending: {}, modules: {
+      executive: { outcome: "COMPLETED", summary: null, research_question_answers: [], key_findings: [], claims: [], violations: [] },
+      // Refused by the preflight before any model turn: the server does not list it as retryable.
+      audience: { outcome: "BLOCKED", summary: null, research_question_answers: [], key_findings: [], claims: [], violations: [
+        { code: "JOINT_CERTIFICATE_DEGRADED", subject: "core", detail: "certificate degraded" },
+      ] },
+      hypotheses: { outcome: "BLOCKED", summary: null, research_question_answers: [], key_findings: [], claims: [], violations: [
+        { code: "EVIDENCE_REF_UNKNOWN", subject: "c1", detail: "q9.mean" },
+        { code: "EVIDENCE_REF_UNKNOWN", subject: "c2", detail: "q7.mean" },
+        { code: "NOT_A_KNOWN_CODE", subject: "summary", detail: "x" },
+      ] },
+    } });
     api({ ...listed(analysed),
       "GET /api/v1/studies/STU-1/research/runs/RUN-1/artifacts/ART-4": () => AGGREGATE,
-      "GET /api/v1/studies/STU-1/research/runs/RUN-1/analysis": () => ({ complete: false, synthetic: true, pending: {}, modules: {
-        executive: { outcome: "COMPLETED", summary: null, research_question_answers: [], key_findings: [], claims: [], violations: [] },
-        hypotheses: { outcome: "BLOCKED", summary: null, research_question_answers: [], key_findings: [], claims: [], violations: [
-          { code: "EVIDENCE_REF_UNKNOWN", subject: "c1", detail: "q9.mean not in the run's table" },
-          { code: "EVIDENCE_REF_UNKNOWN", subject: "c2", detail: "q9.mean not in the run's table" },
-          { code: "NOT_A_KNOWN_CODE", subject: "summary", detail: "x" },
-        ] },
-      } }),
+      "GET /api/v1/studies/STU-1/research/runs/RUN-1/analysis": blockedAnalysis,
+      "GET /api/v1/studies/STU-1/research/runs/RUN-1/analysis/retryable": () => ({ run_id: "RUN-1", modules: ["hypotheses"] }),
     });
     render(<ResearchScreen step="results" frame={TEST_FRAME} />);
     fireEvent.click(await screen.findByRole("tab", { name: "AI analýza" }));
     const blocked = await screen.findByRole("region", { name: "Blokované nároky" });
-    const blockedEntry = blocked.querySelector('[data-blocked-module="hypotheses"]') as HTMLElement;
-    expect(blockedEntry.textContent).toContain("Potřebuje opravu");
-    // Each reason once, in words, with every subject it named; a code without words keeps its code.
-    expect(blockedEntry.querySelectorAll("[data-violation]")).toHaveLength(2);
-    expect(within(blockedEntry).getByText(/cituje číslo, které v datech běhu není/)).toBeTruthy();
-    expect(blockedEntry.textContent).toContain("c1");
-    expect(blockedEntry.textContent).toContain("c2");
-    expect(blockedEntry.textContent).toContain("NOT_A_KNOWN_CODE");
+    const hypotheses = blocked.querySelector('[data-blocked-module="hypotheses"]') as HTMLElement;
+    expect(hypotheses.textContent).toContain("Potřebuje opravu");
+    // Each reason once, in words, counted; each subject beside its own detail; a code without words keeps its code.
+    expect(hypotheses.querySelectorAll("[data-violation]")).toHaveLength(2);
+    expect(within(hypotheses).getByText(/cituje číslo, které v datech běhu není/)).toBeTruthy();
+    expect(hypotheses.textContent).toContain("(2×)");
+    expect([...hypotheses.querySelectorAll('[data-violation="EVIDENCE_REF_UNKNOWN"] details li')].map((li) => li.textContent)).toEqual(["c1: q9.mean", "c2: q7.mean"]);
+    expect(hypotheses.textContent).toContain("NOT_A_KNOWN_CODE");
     expect(blocked.querySelector('[data-blocked-module="executive"]')).toBeNull();
-    // The way out, and the blockedEntry list never says it is done.
+    // The way out is the server's: a retry only for what it lists; the preflight's refusal is said not to pass again.
+    await waitFor(() => expect(hypotheses.getAttribute("data-way-out")).toBe("retry"));
+    expect(blocked.querySelector('[data-blocked-module="audience"]')?.getAttribute("data-way-out")).toBe("same_data_fails");
     expect(within(blocked).getByRole("link", { name: "Zobrazit průběh běhu" })).toBeTruthy();
+    // The module list never says it is done, and its pane words the refusals the same way.
     const entry = screen.getByRole("button", { name: /Hypotézy/ });
     expect(entry.textContent).toContain("Potřebuje opravu");
     expect(entry.textContent).not.toMatch(/Dokončeno|Hotovo/);
+    fireEvent.click(entry);
+    const pane = screen.getByRole("region", { name: "Hypotézy" });
+    expect(within(pane).getByText(/cituje číslo, které v datech běhu není/)).toBeTruthy();
+    expect(pane.textContent).not.toMatch(/EVIDENCE_REF_UNKNOWN:/);
+    cleanup();
+    // On a frame that may not edit, nothing offers a round the reader cannot ask for.
+    render(<ResearchScreen step="results" frame={{ ...TEST_FRAME, canEdit: false }} />);
+    fireEvent.click(await screen.findByRole("tab", { name: "AI analýza" }));
+    const readOnly = await screen.findByRole("region", { name: "Blokované nároky" });
+    expect(readOnly.querySelector("[data-way-out]")).toBeNull();
+    expect(within(readOnly).queryByRole("link")).toBeNull();
   });
 
   it("puts every module's key findings first, each with the numbers it cites, and keeps every word formatted", async () => {

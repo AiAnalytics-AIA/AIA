@@ -139,12 +139,15 @@ open: the frame wiring `inspect` and a person's click to it (the integration coo
 never "Hotovo" (`needsRepair`). Depends on `evidence-integrity#9a`.
 
 The part that needs no new API has landed; the chunk stays open for evidence-integrity 9a's diagnostic.
-- `lib/analysis-blocked.ts` (`blockedModules`): every module stored BLOCKED, in module order, its stored
-  violations grouped by reason with every subject named.
-- `AnalysisBlocked.tsx`: "Blokované nároky" on the analysis, each reason in words (`research.exec.violation`,
-  every `ViolationCode` worded, held to `domain/evidence/gate.py` by `analysis-blocked.test.ts`; a code without
-  words keeps its code), the subjects, technical details folded. The way out: the Lead (`AskLead`) when the Lead
-  owns AI starts, else the run's Průběh, where the same-data retry is.
+- `lib/analysis-blocked.ts`: `blockedModules`, every module stored BLOCKED in module order, its stored violations
+  grouped by reason with each subject beside its own detail; `wayOut`, the way out the server gives (`GET
+  …/analysis/retryable`): a same-data round only for a module it lists, "the same data would refuse it again" for a
+  module the preflight refused before any model turn, nothing promised while the run runs or the list is unread.
+- `AnalysisBlocked.tsx`: "Blokované nároky" after the overview, each reason in words (`research.exec.violation`,
+  every `ViolationCode` worded, held to `domain/evidence/gate.py` by `analysis-blocked.test.ts`; a code without words
+  keeps its code), counted, subjects and details folded; the way out per module only where the person can act
+  (`canEdit` and a Průběh to go to). `ViolationList` words the selected module's pane the same way. The Lead is not
+  offered as a way out: it cannot ask a same-data round until ANL6.
 - Still open: N-3 (per-claim refusals as stored, a new API) and 9a's "no supported finding" diagnostic.
 
 **ANL5. Registers.** Test: an external finding is labelled "Externí kontext" and has no claim chip.
