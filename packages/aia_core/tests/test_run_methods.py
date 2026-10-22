@@ -30,7 +30,7 @@ def test_a_run_under_the_code_presets_names_the_pins() -> None:
         "response": AIA_RESPONSE_V1.model_dump(mode="json"),
     }
     methods = run_methods(meta)
-    assert methods["sociomap"] == RunMethod("aia-sociomap-3", stored=False)
+    assert methods["sociomap"] == RunMethod("aia-sociomap-5", stored=False)
     assert methods["support"] == RunMethod("aia-support-1", stored=False)
     assert methods["aggregation"] == RunMethod("aia-aggregate-1", stored=False)
     assert methods["response"] == RunMethod("aia-response-1", stored=False)

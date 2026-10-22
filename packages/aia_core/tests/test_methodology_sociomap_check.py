@@ -90,9 +90,36 @@ def test_a_draft_payload_is_checked_through_the_runs_own_pin() -> None:
         update={"methodology_version": "aia-sociomap-3+e1"}
     )
     payload = {"spec": spec.model_dump(mode="json"), "formulas": {"f9.k100": "50 * k"}}
-    panels = compare_with_in_force(None, payload)
+    in_force = {"spec": AIA_SOCIOMAP_V3.model_dump(mode="json"), "formulas": {}}
+    panels = compare_with_in_force(in_force, payload)
     assert [p.panel for p in panels] == [p.id for p in CHECK_PANELS]
     first = panels[0]
     assert first.terrain_max_change is not None and first.terrain_max_change > 0
     before, after = next(iter(first.k100.values()))
     assert before is not None and after is not None and math.isclose(after, before / 2)
+
+
+def test_with_nothing_stored_a_draft_is_compared_with_the_signed_off_map_over_what_both_place() -> (
+    None
+):
+    # The code's preset in force is aia-sociomap-5, which places the rated PRIMARY objects only:
+    # a draft of an earlier map is compared over exactly the objects both maps place.
+    from aia_core.domain.sociomap import compute_object_map
+    from aia_core.domain.sociomap.specification import AIA_SOCIOMAP_V5
+
+    spec = AIA_SOCIOMAP_V3.model_copy(update={"methodology_version": "aia-sociomap-3+e1"})
+    panels = compare_with_in_force(None, {"spec": spec.model_dump(mode="json"), "formulas": {}})
+    for panel, compared in zip(CHECK_PANELS, panels, strict=True):
+        inputs = panel.inputs()
+        placed_v5 = compute_object_map(inputs, AIA_SOCIOMAP_V5, connectedness_interval=False)
+        placed_v3 = compute_object_map(inputs, spec, connectedness_interval=False)
+        shared = [
+            o for o in inputs.object_ids if o in placed_v5.object_ids and o in placed_v3.object_ids
+        ]
+        assert list(compared.objects) == shared
+        assert set(compared.heights) == set(shared)
+        assert set(compared.shifts) <= set(shared)
+    weighted = next(c for c in panels if c.panel == "weighted")
+    roles = next(p for p in CHECK_PANELS if p.id == "weighted").inputs().roles
+    # The weighted panel's context object is the one the signed-off map leaves out.
+    assert ObjectRole.SECONDARY.value in {roles[o] for o in roles if o not in weighted.objects}

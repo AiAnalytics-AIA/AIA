@@ -17,7 +17,7 @@ from aia_core.domain.methodology import MODULES
 from aia_core.domain.research_aggregate import AIA_AGGREGATE_V1
 from aia_core.domain.research_design import AIA_READINESS_V1
 from aia_core.domain.respondent_behavior import AIA_RESPONSE_V1
-from aia_core.domain.sociomap.specification import AIA_SOCIOMAP_V3
+from aia_core.domain.sociomap.specification import AIA_SOCIOMAP_V3, AIA_SOCIOMAP_V5
 from aia_core.domain.sociomap.view import STRESS_QUALITY_BANDS
 from aia_core.infrastructure.db import create_session_factory
 from aia_core.infrastructure.tables import MethodologyVersionRow
@@ -49,13 +49,13 @@ def test_the_list_is_every_registered_module_in_order(owner: TestClient) -> None
     body = owner.get(METHODOLOGY).json()
     assert [m["id"] for m in body] == [m.id for m in MODULES]
     sociomap = body[0]
-    assert sociomap["in_force"] == "aia-sociomap-3"
-    # aia-sociomap-5 is listed last: an edit starts from the first preset, still -4.
+    assert sociomap["in_force"] == "aia-sociomap-5"
+    # aia-sociomap-5, what every new run pins, is listed first; the earlier ones stay offered.
     assert sociomap["presets"] == [
+        "aia-sociomap-5",
         "aia-sociomap-4",
         "aia-sociomap-3",
         "aia-sociomap-2",
-        "aia-sociomap-5",
     ]
     # The computation by its stages (product owner, 2026-10-14), no longer the audit's F1-F16.
     assert [g["id"] for g in sociomap["groups"]][:3] == ["M", "S1", "S2"]
@@ -63,11 +63,11 @@ def test_the_list_is_every_registered_module_in_order(owner: TestClient) -> None
 
 def test_a_module_reads_every_value_from_the_preset_in_force(owner: TestClient) -> None:
     body = owner.get(f"{METHODOLOGY}/sociomap").json()
-    assert body["preset"] == "aia-sociomap-3"
+    assert body["preset"] == "aia-sociomap-5"
     values = _values(body)
     n_min = values["relation.n_min"]
-    assert (n_min["value"], n_min["origin"], n_min["absent"]) == (30, "specification", False)
-    assert values["relation.basis"]["value"] == "kish_effective_n"  # an enum, as its value
+    assert (n_min["value"], n_min["origin"], n_min["absent"]) == (10, "specification", False)
+    assert values["relation.basis"]["value"] == "respondent_count"  # an enum, as its value
     sigma = values["terrain.sigma"]
     assert (sigma["value"], sigma["unit"]) == (0.25, "jednotky vzdálenosti")
 
@@ -201,9 +201,9 @@ def test_with_nothing_stored_the_codes_preset_is_in_force(owner: TestClient) -> 
     body = owner.get(f"{SOCIOMAP}/versions").json()
     assert body["in_force"] == {
         "origin": "code",
-        "preset": "aia-sociomap-3",
+        "preset": "aia-sociomap-5",
         "version_number": None,
-        "name": "aia-sociomap-3",
+        "name": "aia-sociomap-5",
     }
     assert (body["may_administer"], body["versions"], body["history"]) == (True, [], [])
 
@@ -306,8 +306,12 @@ def test_a_member_compares_an_edit_with_what_is_in_force_on_fictional_panels(
     as_user: Any,
 ) -> None:
     member: TestClient = as_user("researcher")
-    body = member.post(f"{SOCIOMAP}/compare", json=_edit(relation__n_min=34)).json()
-    assert (body["valid"], body["in_force"]) == (True, "aia-sociomap-3")
+    # An edit of what is in force, aia-sociomap-5, with a stricter pair n_min.
+    edit = {**_edit(), "base_preset": "aia-sociomap-5"}
+    edit["spec"] = AIA_SOCIOMAP_V5.model_dump(mode="json")
+    edit["spec"]["relation"]["n_min"] = 34
+    body = member.post(f"{SOCIOMAP}/compare", json=edit).json()
+    assert (body["valid"], body["in_force"]) == (True, "aia-sociomap-5")
     panels = {p["panel"]: p for p in body["panels"]}
     assert set(panels) == {"balanced", "weighted", "small"}
     small = panels["small"]

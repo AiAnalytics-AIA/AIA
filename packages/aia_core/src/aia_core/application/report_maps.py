@@ -20,7 +20,7 @@ from aia_core.domain.report.model import (
     text,
 )
 from aia_core.domain.report.numbers import counted, effective_n, number
-from aia_core.domain.sociomap import read_object_maps
+from aia_core.domain.sociomap import SociomapArtifactV3, read_object_maps
 from aia_core.domain.sociomap.models_v3 import MapCredibility, RespondentMap
 from aia_core.domain.sociomap.pairs import PairRelations
 from aia_core.domain.sociomap.relations import PairStatus
@@ -39,6 +39,86 @@ PAIR_STATUS: dict[PairStatus, str] = {
 #: not their count (``PairRelations.basis``; ``aia-sociomap-3``'s, AIA Q6 (c)).
 _EFFECTIVE_N_BASIS = "kish_effective_n"
 _ANSWERS = ("společná odpověď", "společné odpovědi", "společných odpovědí")
+
+
+def _height_sentence(maps: list[tuple[str, SociomapArtifactV3]]) -> str:
+    """What height and colour show on the printed ``maps``: the 0-1 means under the earlier
+    methods; under the signed-off one the means on the set's declared scale, relative to the
+    set's other objects."""
+    signed = [(m, a) for m, a in maps if _is_signed_off(a)]
+    earlier = "Výška a barva ukazují průměrné hodnocení převedené na škálu od nuly do jedné. "
+    if not signed:
+        return earlier
+    method, artifact = signed[0]
+    ends = {(i.scale_min, i.scale_max) for i in artifact.items}
+    scale = (
+        "na škále {}\u2013{}".format(
+            *(number(v, 0 if float(v).is_integer() else 1) for v in next(iter(ends)))
+        )
+        if len(ends) == 1
+        else "na deklarované škále každého objektu"
+    )
+    floor = artifact.spec.terrain.relative_height_floor if artifact.spec.terrain else None
+    relative = (
+        f"Výška a barva ukazují průměrné hodnocení {scale} vůči ostatním objektům sady: "
+        "nejvýše hodnocený objekt má plnou výšku"
+        + (
+            f", nejníže hodnocený {number(round(100 * floor), 0)} % výšky. "
+            if floor is not None
+            else ". "
+        )
+    )
+    if len(signed) == len(maps):
+        return relative
+    return earlier + f"U metody {method}: " + relative[:1].lower() + relative[1:]
+
+
+def _respondent_reading(artifact: SociomapArtifactV3, resp: RespondentMap) -> str:
+    """How to read the respondent figure: the dots, the faint ones, the height and the colours."""
+    rules = artifact.spec.segments
+    seg = resp.segments
+    out = (
+        "Mapa respondentů ukazuje každého umístěného respondenta jako bod: leží směrem "
+        "k objektům, které hodnotí nad svým průměrem, a čím jasnější je jeho směr, tím dál od "
+        "středu. Světlé body jsou umístěné slabě (jejich směr nelze odlišit od náhody) a do "
+        "výšky se nepočítají. Výška ukazuje hustotu jasně umístěných respondentů. "
+    )
+    if seg is not None and seg.decision == "SEGMENTS":
+        membership = round(100 * (rules.colour_membership if rules else 0.8))
+        out += (
+            "Barva bodu ukazuje chuťový segment, je-li respondent jasně umístěný a do segmentu "
+            f"patří s pravděpodobností alespoň {membership} %; šedé body nejsou jasně v jednom "
+            "segmentu."
+        )
+    elif seg is not None and seg.decision == "BORDERLINE":
+        out += "Body nejsou obarvené: rozdělení na chuťové segmenty není jisté."
+    elif seg is not None and seg.reason == "TOO_FEW_OBJECTS":
+        n = rules.min_ratings if rules else 5
+        out += (
+            f"Chuťové segmenty se nehledají: sada má méně než {n} objektů a chuť člověka se "
+            f"určuje z alespoň {n} hodnocení."
+        )
+    elif seg is not None and seg.reason == "TOO_FEW_RESPONDENTS":
+        out += "Chuťové segmenty se nehledají: na ně je v sadě příliš málo respondentů."
+    elif seg is not None:
+        out += "Data žádné skupiny chutí silnější než náhoda neukazují."
+    placing = artifact.spec.respondent_map
+    if placing is not None and len(artifact.object_ids) < placing.min_ratings:
+        # As the figure says it: nobody has the ratings a position needs.
+        out = (
+            "Sada má méně objektů, než kolik hodnocení potřebuje poloha respondenta "
+            f"({placing.min_ratings}): respondenty nelze umístit."
+        )
+    elif not resp.informative:
+        out += f" Sada má méně než {resp.min_objects} objektů: mapa respondentů je jen orientační."
+    return out
+
+
+def _is_signed_off(artifact: SociomapArtifactV3) -> bool:
+    return (
+        artifact.spec.relation.estimator == RelationEstimator.BASELINE_CORRECTED_PEARSON
+        and isinstance(artifact.terrain, EnvelopeTerrain)
+    )
 
 
 VIEW_TITLE: Final = {
@@ -159,9 +239,17 @@ def compose_map_sections(
                     "Vyšší korelace znamená menší cílovou vzdálenost; silný záporný vztah "
                     "znamená větší cílovou vzdálenost. Rozmístění v rovině tyto vzdálenosti "
                     "přibližuje; konkrétní dvojice proto ověřujte podle korelace "
-                    "a její podpory v tabulce pod mapami. Výška a barva "
-                    "ukazují průměrné hodnocení převedené na škálu od nuly do jedné. "
-                    "Směr os nemá věcný význam; pro čtení jsou podstatné vzájemné vzdálenosti."
+                    "a její podpory v tabulce pod mapami. "
+                    + _height_sentence(
+                        [
+                            (method, artifact)
+                            for method, artifact in read_object_maps(battery)
+                            if not client
+                            or getattr(approvals.get(method), "status", None)
+                            is MethodologyStatus.CLIENT_FACING
+                        ]
+                    )
+                    + "Směr os nemá věcný význam; pro čtení jsou podstatné vzájemné vzdálenosti."
                 )
             ),
         ]
@@ -210,7 +298,10 @@ def compose_map_sections(
                             )
                             + "Pozice na mapě nečtěte jako skupiny ani vzdálenosti."
                         ),
-                        title="Slabě určená mapa",
+                        # As the figure says it: no split-half score means no reliable pair.
+                        title="Žádná spolehlivá struktura"
+                        if credibility.split_half is None
+                        else "Slabě určená mapa",
                     )
                 )
             if not client:
@@ -244,15 +335,11 @@ def compose_map_sections(
             )
             # A signed-off map is drawn as the AIA panel draws it, labelled on the map, with its
             # respondent map where it is stored.
-            panel = (
-                artifact.spec.relation.estimator == RelationEstimator.BASELINE_CORRECTED_PEARSON
-                and isinstance(artifact.terrain, EnvelopeTerrain)
-            )
+            panel = _is_signed_off(artifact)
             views: tuple[str, ...] = (
                 ("top", "3d") if isinstance(artifact.terrain, EnvelopeTerrain) else ("top",)
             )
-            # The respondent map, a dot per respondent, stays in the internal report.
-            if panel and not client and isinstance(artifact.respondents, RespondentMap):
+            if panel and isinstance(artifact.respondents, RespondentMap):
                 views += ("respondents",)
             for view in views:
                 key = (battery["battery_id"], method, view)
@@ -313,6 +400,8 @@ def compose_map_sections(
                         )
                     )
                 )
+            if "respondents" in views and isinstance(artifact.respondents, RespondentMap):
+                blocks.append(Paragraph(text(_respondent_reading(artifact, artifact.respondents))))
             drawn += 1
             if client:
                 continue  # the pair table prints r and n outside the ledger: internal only

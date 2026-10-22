@@ -1660,6 +1660,23 @@ workbench, their forward buttons called `router.push(stepHref(...))`, which skip
 `parseAudienceId` (`lib/artifacts/audience.ts`, #700), as that stage asked; a filter or subpanel
 with no name is no filter. Test: `lead.test.ts` "says each kind in words…" (fails without it).
 
+
+### The study header's "Nabídka" is a menu by the keyboard (2026-10-22, `fix/workbench-offer-menu`; the UX audit, #753)
+
+The header's menu (`Workbench.tsx` `StudyHeader`) said `role="menu"` but ignored Escape, kept the
+focus on its button, did not move with the arrows, and laid a scrim that swallowed the press meant
+for what was under it.
+- **Fix.** Opened (click, ↓ or ↑) on its first or last item; ↑ ↓ Home End move (`rovingIndex`); Esc
+  or a press outside closes it and gives the focus back to its button (`useDismiss`); Tab closes it;
+  no scrim. The items are read from the open menu, so the informative rows under 768 px are never
+  stopped on.
+- **Why not `MenuButton`.** It draws its own popover and takes only actionable items; this menu keeps
+  the workbench's look and carries the sheet's information rows. The behaviour is the same shared
+  helpers `MenuButton` uses.
+- **Tests.** `Workbench.layout.test.tsx` "opens from the keyboard on its first item, moves with the
+  arrows, and Escape closes it back to its button" and "closes on a press outside without a scrim
+  swallowing it"; both fail without the change.
+
 ### The Lead's `inspect` is live (2026-10-22, `feature/lead-inspect-view`; chunk 14, its first op beyond 2a)
 
 2a's drawer opened only from a person's click; the Lead's `inspect` was declared in the contract
@@ -1699,10 +1716,21 @@ with no name is no filter. Test: `lead.test.ts` "says each kind in words…" (fa
   guard stops…". The web tests fail without the change.
 - **Still to build in chunk 14:** `select`, `filter` and `show_diff`, each with the artifact that
   declares it.
-- **F18. A view chip names its element by id** *(open)*. A turn's
+- **F18. A view chip names its element by id** *(fixed, `fix/lead-view-chip-words`)*. A turn's
   chips read "Ukázat: Zadání: title" and "Detail: Hypotéza hyp_37d84435f2" (`LeadPane.tsx:393 @ 1fd345a0`
   `VIEW_LABEL`, which has only `targetLabel`; seen in the browser run above). The element is often on
   another stage, so the conversation cannot read its words from the page. Smallest fix: the server
   sends the label it grounded the target against (the frozen copy holds the words) beside each view
   op, or the web keeps the words it saw when the element was last shown. Test: a chip for a
   hypothesis reads its words.
+  - **Fix.** The web names it from the working copy it already holds, not the server: `targetLabel`
+    takes the store's `{project, analysis}` and reads a research question's or a hypothesis's words
+    by its stable id (`item-ids.ts` `wordingOf`, the port of the server's ids), "Hypotéza: <words>",
+    as pointing at it names it; an id the copy no longer holds keeps its id rather than borrowing
+    words. Zadání's sections read by its own field names ("Zadání: Název", `FIELD_LABEL`). LeadPane
+    reads the copy through a context (`ViewWords`), and the Workbench's drawer entry and "Vedoucí
+    ukazuje" bar use the same words. No server change: the copy the turn was frozen on can be older
+    than the one shown, and a chip is a link to what is on screen now.
+  - **Tests.** `lead.test.ts` "targetLabel with the working copy (F18)" and the Zadání lines of
+    "targetLabel"; `LeadPane.test.tsx` "names a view chip's research question or hypothesis by its
+    words in the working copy (F18)". Each fails without the change.

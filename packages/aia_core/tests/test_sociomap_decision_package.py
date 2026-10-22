@@ -34,14 +34,15 @@ def test_every_preset_the_package_names_has_its_true_fingerprint() -> None:
     }
 
 
-def test_the_current_subject_is_the_preset_new_runs_pin() -> None:
+def test_the_subject_is_the_preset_the_register_approved() -> None:
     from aia_core.domain.research_sociomap import default_methods
 
     text = PACKAGE.read_text("utf-8")
     subject = re.search(r"D6 is now to approve \*\*`([a-z0-9-]+)`\*\*", text)
     assert subject is not None
-    assert subject.group(1) in {m.method_id for m in default_methods()}
     assert subject.group(1) == AIA_SOCIOMAP_V3.methodology_version
+    # The package is a record: new runs pin aia-sociomap-5 since, and no longer its subject.
+    assert subject.group(1) not in {m.method_id for m in default_methods()}
 
 
 def test_the_opening_and_the_effects_name_the_same_subject() -> None:
