@@ -1,5 +1,5 @@
 // @vitest-environment jsdom
-import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { AGENTS_PATH, NATIVE_TEST_TIMEOUT_MS, approveProposal, findProposalDialog, nativeAgentFixture } from "./test-native-agents";
@@ -150,7 +150,7 @@ describe("Audience", () => {
       expect(await screen.findByText(/z populace v17_4_0/)).toBeTruthy();
       expect(screen.queryByText("V AIA zatím není")).toBeNull();
       expect(screen.queryByText(/Katalog faktorů společnosti/)).toBeNull();
-      fireEvent.click(screen.getByRole("checkbox", { name: /Zlínský kraj/ }));
+      fireEvent.click(screen.getByRole("button", { name: /Zlínský kraj/ }));
       await saved();
       expect(lastSave().content.audience.filters).toEqual({ kraj: ["Zlínský kraj"] });
       const from = screen.getAllByLabelText("Od")[0] as HTMLInputElement;
@@ -158,9 +158,34 @@ describe("Audience", () => {
       fireEvent.blur(from);
       await waitFor(() => expect(lastSave().content.audience.filters).toEqual({ kraj: ["Zlínský kraj"], vek: { min: 30 } }));
       // A factor the version's policy refuses is listed, said, and cannot be chosen.
-      expect((screen.getByRole("checkbox", { name: /Rodič/ }) as HTMLInputElement).disabled).toBe(true);
+      expect((screen.getByRole("button", { name: /Rodič/ }) as HTMLButtonElement).disabled).toBe(true);
       expect(screen.getByText(/unclassified_derived_field/)).toBeTruthy();
       expect(screen.getByText("Vybrané filtry:")).toBeTruthy();
+      noUnitCalls();
+    });
+
+    it("a factor's group is chosen from chips, its values are toggle chips with counts, many of them under a filter (audit B7, B8)", async () => {
+      const many = { ...CATALOGUE.factors[1]!, id: "obec", column: "obec", label: "Obec", values: Array.from({ length: 20 }, (_, i) => ({ value: `Obec ${i + 1}`, count: 100 - i })) };
+      const catalogue = { ...CATALOGUE, factors: [...CATALOGUE.factors, many] };
+      aiaStub({ ui_state: ANALYTICS, n: 500, audience: { strategy: "filters", source_mode: "population", filters: { obec: ["Zaniklá obec"] } } }, { [CAT]: () => catalogue });
+      render(<ResearchScreen step="audience" frame={TEST_FRAME} />);
+      // B8: the groups are one radio group, the chosen one checked.
+      const groups = await screen.findByRole("radiogroup", { name: "Skupina faktorů" });
+      expect(within(groups).getByRole("radio", { name: "Demografie a životní fáze" }).getAttribute("aria-checked")).toBe("true");
+      // B7: Kraj's few values are toggles with how many people hold each.
+      const zlin = screen.getByRole("button", { name: /Zlínský kraj/ });
+      expect(zlin.getAttribute("aria-pressed")).toBe("false");
+      expect(zlin.textContent).toMatch(/\(\d[\d\s\u00a0]* lidí\)/);
+      // Twenty values: the same chips under a filter field; a stored value not on screen is kept.
+      const obec = screen.getByRole("group", { name: "Hodnoty: Obec" });
+      expect(within(obec).getAllByRole("button")).toHaveLength(20);
+      fireEvent.change(screen.getByLabelText("Hledat hodnotu: Obec"), { target: { value: "obec 2" } });
+      expect(within(obec).getAllByRole("button").map((b) => b.textContent!.split("(")[0])).toEqual(["Obec 2", "Obec 20"]);
+      expect(screen.getByText("Zobrazeno 2 z 20 hodnot.")).toBeTruthy();
+      expect(screen.queryAllByRole("checkbox")).toHaveLength(0);
+      fireEvent.click(within(obec).getByRole("button", { name: /Obec 20/ }));
+      await saved();
+      expect(lastSave().content.audience.filters).toEqual({ obec: ["Zaniklá obec", "Obec 20"] });
       noUnitCalls();
     });
 
@@ -173,7 +198,7 @@ describe("Audience", () => {
       aiaStub({ ui_state: ANALYTICS, n: 500, audience: { strategy: "filters", source_mode: "population", filters } }, { [CAT]: () => catalogue });
       const { container } = render(<ResearchScreen step="audience" frame={TEST_FRAME} />);
       await screen.findByText(/z populace v17_4_0/);
-      expect(screen.queryByRole("checkbox", { name: /Nad 60 000 Kč/ })).toBeNull();
+      expect(screen.queryByRole("button", { name: /Nad 60 000 Kč/ })).toBeNull();
       for (const target of ["audience:definition", "audience:filters", "audience:filter:kraj", "audience:filter:vek", "audience:filter:prijem", "audience:preview"]) {
         expect(container.querySelectorAll(focusSelector(target)), target).toHaveLength(1);
       }
@@ -205,7 +230,7 @@ describe("Audience", () => {
       expect(chip.textContent).toContain("některé hodnoty chybí"); // said in words; the filter still applies with the rest
       expect(container.querySelector('[data-aia="audience:filter:vek"]')!.hasAttribute("data-filter-problem")).toBe(false);
       // Unticking the value it has leaves only the one it lacks: a run refuses the filter.
-      fireEvent.click(screen.getByRole("checkbox", { name: /Zlínský kraj/ }));
+      fireEvent.click(screen.getByRole("button", { name: /Zlínský kraj/ }));
       await saved();
       expect(lastSave().content.audience.filters).toEqual({ kraj: ["Fiktivní kraj A"], vek: { min: 30 } });
       expect((await screen.findByRole("note")).textContent).toContain("Žádná uložená hodnota nezbývá, výběr odmítne celou cílovou skupinu.");

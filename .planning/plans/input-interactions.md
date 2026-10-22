@@ -589,6 +589,29 @@ IA-1 … IA-6, with all six parts, in the audit's §6. For the docs PR to number
 
 Chunk 3 is complete: 3a–3h are merged (#640, #645, #651, #652, #681, #687, #691, #693). Every questionnaire A-item in the audit's fix list is addressed; A15 and A20 were "keep", and A19's path cards are the toolbar's `Segmented`.
 
+### Chunk 5, as delivered (the Cílová skupina screen owner, in small PRs)
+
+Split by owner (PM, 2026-10-22): B1–B4 sit on Dimenze (`PersonaStep.tsx`), B5–B11 on Cílová skupina
+(`AudienceStep.tsx`). Chunk 5 is ticked once B5–B11 are in and B1–B4 name Dimenze's PRs.
+
+- **B1. n as one stepper:** Dimenze's `artifact-dimensions#DIM3` (`PersonaStep.tsx`, `data-aia="sample:n"`):
+  bounded by `…/research/limits`, steps of 50, the recommendation beside it, no slider or presets, no clamp.
+- **B2–B4:** Dimenze's, not yet scheduled here.
+- **B5, B10:** kept, as the audit says (`RadioCard`; a prompt to AI is not a value).
+- **B7+B8. Factor groups and values chosen as chips, feature/audience-value-chips.**
+  - A factor's group (Vše, Demografie…) is one `ChoiceChips` radio group, "Skupina faktorů".
+  - A categorical factor's values are `ChoiceChips` toggles, each with how many people hold it. Past 15
+    values (`VALUE_CHIPS_MAX`), the same chips sit under a filter field (`matchingValues`, the factor
+    search's rule). A list the catalogue cut at its 60 values says so.
+  - `pickValues` keeps the stored order and every stored value not on screen: a filtered-out value,
+    or one the population lacks (F3).
+  - The factor search stays the list's filter field, as the audit keeps B3's.
+  - Tests: `AudienceStep.test.tsx` "a factor's group is chosen from chips…"; `audience.live.test.ts`
+    "picking a factor's values".
+  - `audience_journey.mjs` checks the chips at 1440/1100/768/390: no overflow, and a value chip 44 px
+    tall below 640 px.
+- **B6, B9, B11:** one PR each.
+
 ### Chunk 3b3, added by planning (2026-10-21)
 
 3b1 built the label path behind `AIA_AI_SCALE_LABELS_IN_PROMPT`, off, and 3b2 is the editor; no

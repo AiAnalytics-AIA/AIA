@@ -105,7 +105,8 @@ ok("Cílová skupina: the filters come from AIA's population, not 'V AIA zatím 
 const region = catalogue.factors.find((f) => f.id === "kraj")?.values?.[0]?.value;
 if (!region) fail("the catalogue has no region values");
 const regionSave = saved();
-await page.getByRole("checkbox", { name: new RegExp(region) }).first().check();
+const regionName = new RegExp(region.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"));
+await page.getByRole("button", { name: regionName }).first().click();
 await regionSave;
 const ageFrom = page.locator("fieldset", { hasText: "Věk" }).getByLabel("Od");
 await ageFrom.fill("30");
@@ -128,6 +129,21 @@ await text("Filtry vyberou", "the preview's count");
 await text("Vzorek N=300", "the sampler's verdict");
 ok("Ověřit proveditelnost: the API counted the audience and the sampler can draw N=300");
 await shot("2-preview");
+
+// 2b. The factor groups and values chosen, never typed (input-interactions I3, audit B7, B8), at four widths.
+const regionChip = page.getByRole("button", { name: regionName }).first();
+if ((await regionChip.getAttribute("aria-pressed")) !== "true") fail(`${region} is not shown as chosen`);
+for (const width of [1440, 1100, 768, 390]) {
+  await page.setViewportSize({ width, height: 1000 });
+  await page.getByRole("radiogroup", { name: "Skupina faktorů" }).waitFor({ timeout: 30000 });
+  const overflow = await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth);
+  if (overflow > 0) fail(`${width} px: the page overflows by ${overflow} px`);
+  const box = await regionChip.boundingBox();
+  const least = width < 640 ? 44 : 24;
+  if (!box || box.height < least) fail(`${width} px: the value chip is ${box?.height} px tall, under ${least}`);
+}
+await page.setViewportSize({ width: 1440, height: 1100 });
+ok("Cílová skupina: factor groups and values are chips at 1440/1100/768/390, 44 px tall on a phone, without overflow");
 
 // 3. Speciální skupiny: the built-in subpanels.
 await page.getByRole("radio", { name: /Speciální skupiny/ }).click();

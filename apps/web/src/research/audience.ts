@@ -292,6 +292,27 @@ export function rangeOf(p: ResearchProject, id: string): { lo: Json; hi: Json } 
   };
 }
 
+/** Up to this many values, a factor's values are toggle chips alone (input-interactions I3: 6–15);
+ * more, the same chips under a filter field (audit B7). */
+export const VALUE_CHIPS_MAX = 15;
+
+/** A factor's listed values matching a search, compared as the factor search compares (searchKey). */
+export function matchingValues<V extends { value: string }>(values: readonly V[], query: string): V[] {
+  const key = searchKey(query);
+  return key ? values.filter((v) => searchKey(v.value).includes(key)) : [...values];
+}
+
+/**
+ * A factor's values after a person picked among the `listed` ones (the chips on screen): the stored
+ * values in their stored order, less the listed ones not picked, then the newly picked. A stored value
+ * not on screen (filtered out, or one the population lacks, F3) is kept as it was, never dropped or
+ * moved by a toggle of another.
+ */
+export function pickValues(stored: readonly string[], listed: readonly string[], picked: readonly string[]): string[] {
+  const kept = stored.filter((v) => !listed.includes(v) || picked.includes(v));
+  return [...kept, ...picked.filter((v) => !stored.includes(v))];
+}
+
 /** factorEditor1793's selected values of a categorical factor. */
 export function selectedValues(p: ResearchProject, id: string): Set<string> {
   const cur = filters(p)[id] as Json | undefined;

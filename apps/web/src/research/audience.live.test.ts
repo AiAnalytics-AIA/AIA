@@ -6,7 +6,7 @@ import { describe, expect, it } from "vitest";
 
 import type { AudienceCatalogue, AudiencePreview } from "@/lib/api";
 
-import { applyPopulationSubpanel, factorRefusal, filterableFactors, liveCatalog, liveSubpanels, liveVerdict, setAudienceRange, setRange, filterCountLines, type Catalog, filterProblems, CATALOGUE_TOP_VALUES } from "./audience";
+import { applyPopulationSubpanel, factorRefusal, filterableFactors, liveCatalog, liveSubpanels, liveVerdict, setAudienceRange, setRange, filterCountLines, type Catalog, filterProblems, CATALOGUE_TOP_VALUES, pickValues, matchingValues } from "./audience";
 import type { ResearchProject } from "./model";
 
 const project = (audience: Record<string, unknown> = {}) => ({ audience, briefing: {}, ui_state: {} }) as unknown as ResearchProject;
@@ -143,5 +143,22 @@ describe("the preview in words", () => {
     const bad = liveVerdict({ ...PREVIEW, selected_rows: null, audience: { ok: false, reason: "sampling_filter_invalid", reasons: ["vek: očekáván interval min/max"] }, sample: null });
     expect(bad).toEqual({ ok: false, lines: ["Některý filtr nelze použít: vek: očekáván interval min/max."] });
     expect(liveVerdict({ ...PREVIEW, audience: { ok: false, reason: "something_new" }, sample: null }).lines[0]).toContain("something_new");
+  });
+});
+
+describe("picking a factor's values (audit B7)", () => {
+  it("keeps the stored order and every stored value not on screen, and adds the new ones after", () => {
+    const stored = ["Zlínský kraj", "Fiktivní kraj A"];
+    const listed = ["Hlavní město Praha", "Zlínský kraj"];
+    expect(pickValues(stored, listed, [])).toEqual(["Fiktivní kraj A"]);
+    expect(pickValues(stored, listed, ["Hlavní město Praha", "Zlínský kraj"])).toEqual(["Zlínský kraj", "Fiktivní kraj A", "Hlavní město Praha"]);
+    expect(pickValues([], listed, ["Zlínský kraj"])).toEqual(["Zlínský kraj"]);
+  });
+
+  it("matches values as the factor search does", () => {
+    const values = [{ value: "Obec 2" }, { value: "Obec 20" }, { value: "Žďár" }];
+    expect(matchingValues(values, "obec 2").map((v) => v.value)).toEqual(["Obec 2", "Obec 20"]);
+    expect(matchingValues(values, "žď").map((v) => v.value)).toEqual(["Žďár"]);
+    expect(matchingValues(values, "")).toEqual(values);
   });
 });

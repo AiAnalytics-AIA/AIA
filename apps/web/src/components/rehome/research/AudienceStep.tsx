@@ -21,6 +21,7 @@
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 
+import { ChoiceChips } from "@/components/ui/ChoiceChips";
 import { ApiError, type AudienceCatalogue, population } from "@/lib/api";
 import { audienceFilterAia, audiencePartAia, audienceSubpanelAia } from "@/lib/artifacts/audience";
 import { isNativeResult } from "@/lib/research-agent-jobs";
@@ -64,6 +65,10 @@ import {
   setAudienceEntry,
   setDiscoverField,
   setRange,
+  CATALOGUE_TOP_VALUES,
+  VALUE_CHIPS_MAX,
+  matchingValues,
+  pickValues,
 } from "@/research/audience";
 import type { ResearchProject } from "@/research/model";
 import { Icon } from "../icons";
@@ -375,13 +380,13 @@ function LiveFilters({ live }: { live: Extract<Live, { state: "ready" }> }) {
       <p className="mt-1 text-xs text-ink-muted">
         {tv("research.audience.liveFiltersIntro", { version: live.api.version_label })} {t("research.audience.liveLogic")}
       </p>
-      <div role="group" aria-label={t("research.audience.filterTitle")} className="mt-3 flex flex-wrap gap-1.5">
-        {[{ id: "all", label: t("research.audience.categoryAll") }, ...categories].map((c) => (
-          <Button key={c.id} small variant={category === c.id ? "primary" : "secondary"} aria-pressed={category === c.id} onClick={() => setCategory(c.id)}>
-            {c.label || c.id}
-          </Button>
-        ))}
-      </div>
+      <ChoiceChips
+        className="mt-3"
+        label={t("research.audience.categoryLabel")}
+        options={[{ key: "all", label: t("research.audience.categoryAll") }, ...categories.map((c) => ({ key: c.id, label: c.label || c.id }))]}
+        value={category}
+        onChange={setCategory}
+      />
       {sensitive ? <p className="mt-2 text-xs text-ink-muted">{tv("research.audience.sensitiveCount", { n: sensitive })}</p> : null}
       <Field label={t("research.audience.searchFactors")} className="mt-3">
         <TextInput value={query} onChange={(e) => setQuery(e.target.value)} />
@@ -425,26 +430,55 @@ function FactorEditor({ factor, project, onChange }: { factor: Factor; project: 
     );
   }
   const chosen = selectedValues(project, factor.id);
-  const toggle = (value: string, on: boolean) => {
-    const next = new Set(chosen);
-    if (on) next.add(value);
-    else next.delete(value);
-    onChange(setAudienceCategory(project, factor.id, [...next]));
-  };
   return (
     <fieldset className="rounded-control border border-border p-3" disabled={!!refusal}>
       <legend className="px-1 text-sm font-medium">{legend}</legend>
       {refusal ? <p className="text-xs text-ink-muted">{refusal}</p> : null}
-      <div className="flex flex-wrap gap-x-4 gap-y-1">
-        {(factor.values || []).map((v) => (
-          <label key={v.value} className="inline-flex items-center gap-1.5 text-sm">
-            <input type="checkbox" disabled={!!refusal} checked={chosen.has(v.value)} onChange={(e) => toggle(v.value, e.target.checked)} />
-            {v.value}
-            {v.count != null ? <span className="text-xs text-ink-muted">({tv("research.audience.valueCount", { count: v.count.toLocaleString("cs-CZ") })})</span> : null}
-          </label>
-        ))}
-      </div>
+      <ValueChips legend={legend} values={factor.values || []} chosen={[...chosen]} disabled={!!refusal} onPick={(next) => onChange(setAudienceCategory(project, factor.id, next))} />
     </fieldset>
+  );
+}
+
+/**
+ * A categorical factor's values as toggle chips, each with how many people hold it (input-interactions
+ * I3, audit B7); past VALUE_CHIPS_MAX, under a filter field. A stored value not on screen is kept.
+ */
+function ValueChips({ legend, values, chosen, disabled, onPick }: { legend: string; values: { value: string; count?: number }[]; chosen: string[]; disabled: boolean; onPick: (values: string[]) => void }) {
+  const [query, setQuery] = useState("");
+  const long = values.length > VALUE_CHIPS_MAX;
+  const shown = long ? matchingValues(values, query) : values;
+  const listed = shown.map((v) => v.value);
+  return (
+    <>
+      {long ? (
+        <>
+          <Field label={tv("research.audience.searchValues", { factor: legend })}>
+            <TextInput value={query} disabled={disabled} onChange={(e) => setQuery(e.target.value)} />
+          </Field>
+          <p className="mt-1 text-xs text-ink-muted">
+            {tv("research.audience.valuesShown", { shown: shown.length, total: values.length })}
+            {values.length >= CATALOGUE_TOP_VALUES ? ` ${tv("research.audience.valuesCut", { n: CATALOGUE_TOP_VALUES })}` : ""}
+          </p>
+        </>
+      ) : null}
+      <ChoiceChips
+        multiple
+        className={long ? "mt-2" : undefined}
+        label={tv("research.audience.valuesOf", { factor: legend })}
+        disabled={disabled}
+        options={shown.map((v) => ({
+          key: v.value,
+          label: (
+            <>
+              {v.value}
+              {v.count != null ? <span className="text-xs font-normal text-ink-muted">({tv("research.audience.valueCount", { count: v.count.toLocaleString("cs-CZ") })})</span> : null}
+            </>
+          ),
+        }))}
+        value={listed.filter((v) => chosen.includes(v))}
+        onChange={(picked) => onPick(pickValues(chosen, listed, picked))}
+      />
+    </>
   );
 }
 
