@@ -386,7 +386,7 @@ function CostCard({ readiness, canEdit, onLimitSaved }: { readiness: Readiness; 
   );
 }
 
-/** The run's ceiling against the study's limit: amber when Start will ask first; the limit as a mark. */
+/** The run's ceiling against the study's limit: `status-you` (coral) when Start will ask first; the limit as a mark. */
 function CostBar({ ceiling, limit, asks }: { ceiling: number; limit: number | null; asks: boolean }) {
   const scale = Math.max(ceiling, limit ?? 0) * 1.4 || 1;
   const pct = (x: number) => `${Math.min(100, (x / scale) * 100)}%`;
