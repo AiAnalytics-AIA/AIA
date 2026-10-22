@@ -94,7 +94,7 @@ export const ARTIFACTS: Readonly<Record<WorkbenchStage, ArtifactContract>> = {
   },
   dimensions: {
     stage: "dimensions", artifact: "working", edits: true,
-    view_ops: ["open_stage", "focus"], targets: ["dimension", "own_dimension"],
+    view_ops: ["open_stage", "focus", "show_diff"], targets: ["dimension", "own_dimension"],
     starts: ["agent_job:suggest_dimensions", MEMORY],
     inputs: ["design", "audience"],
     hands_off: [{ to: "fieldwork", form: "SpecSelection dimensions (persona_dimensions.approved)" }],
@@ -187,6 +187,12 @@ export const ID_SOURCE = ID.source;
 export function aiaId(kind: TargetKind, id: string): string {
   if (!ID.test(id)) throw new Error(`aiaId: ${kind} id ${JSON.stringify(id)} is not an identifier`);
   return `${kind}:${id}`;
+}
+
+/** aiaId for an id that may not be an identifier (one a person typed, one from the server): the
+ *  element's `data-aia`, or null to leave it unmarked rather than throw. */
+export function tryAiaId(kind: TargetKind, id: string): string | null {
+  return ID.test(id) ? `${kind}:${id}` : null;
 }
 
 /** A `data-aia` id read back: its kind, id and stage; null for anything the contract does not name. */

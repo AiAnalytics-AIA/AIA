@@ -309,7 +309,7 @@ ARTIFACTS: Final[dict[str, ArtifactContract]] = {
             "dimensions",
             "working",
             edits=True,
-            view_ops=(),
+            view_ops=("show_diff",),
             targets=("dimension", "own_dimension"),
             starts=("agent_job:suggest_dimensions", _MEMORY),
             inputs=("design", "audience"),

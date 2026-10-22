@@ -16,6 +16,7 @@ import { appRoutes } from "@/lib/app-routes";
 import type { LeadOutput, LeadRequest, LeadState, LeadTurn, LeadView, ResearcherLead, SelfUpdateDecision } from "@/lib/lead";
 import { commandRequest, composerHint, droppedLines, leadReasonWords as reasonWords, pendingSelfUpdate, targetLabel, TYPED_UNDECIDED_WHY } from "@/lib/lead";
 import { conversationTimeline } from "@/lib/lead-cards";
+import { isDayBreak, withDayBreaks } from "@/lib/day-label";
 import { STAGES, isWorkbenchStage, type WorkbenchStage } from "@/lib/workbench-stages";
 import type { StepKey } from "@/research/steps";
 import { Glyph } from "./Glyph";
@@ -326,7 +327,9 @@ function Conversation({ turns, jobs, cards, studyId, onOpenJob, busy, name, onFo
       <div className="conv__scroll" ref={box} onScroll={onScroll} tabIndex={0} role="log" aria-label={`Konverzace: ${name}`} aria-live="polite" aria-relevant="additions">
         <div>
           {children}
-          {conversationTimeline(turns, jobs, runs, cards?.runOfTurn).map((x) => x.kind === "job"
+          {withDayBreaks(conversationTimeline(turns, jobs, runs, cards?.runOfTurn), (x) => x.at || null).map((x) => isDayBreak(x)
+            ? <h3 key={`day:${x.key}`} className="conv__day">{x.label}</h3>
+            : x.kind === "job"
             ? <WorkerCardView key={x.job.run_id} job={x.job} studyId={studyId} onOpen={onOpenJob} onStage={cards?.onStage} onChanged={cards?.onJobsChanged} />
             : x.kind === "run"
               ? (cards ? <RunCardView key={x.run.run_id} run={x.run} studyId={studyId} stepHref={cards.stepHref} /> : null)

@@ -9,6 +9,7 @@ import type { Json, ResearchProject } from "@/research/model";
 import { proposalAnalysis, type Narrative } from "@/research/plan-edit";
 import { qId, sections, type Question, type Section } from "@/research/questionnaire";
 import type { Analysis } from "@/research/store";
+import { parseAudienceId } from "./artifacts/audience";
 import { withFixer } from "./route-refusal";
 import type { WorkbenchStage } from "./workbench-stages";
 import { parseAiaId, type TargetKind } from "./workbench-artifacts";
@@ -504,9 +505,11 @@ export function targetLabel(target: string): string {
   const parsed = parseAiaId(target);
   if (!parsed) return target;
   if (parsed.kind === "audience") {
-    if (id.startsWith("filter:")) return `Filtr: ${id.slice(7)}`;
-    if (id.startsWith("subpanel:")) return `Podpanel: ${id.slice(9)}`;
-    return AUDIENCE_PARTS[id] ?? `Cílová skupina: ${id}`;
+    // Read by Cílová skupina's own contract (artifact-audience AUD1), never a second parser here.
+    const t = parseAudienceId(target);
+    if (t?.kind === "filter") return `Filtr: ${t.factor}`;
+    if (t?.kind === "subpanel") return `Podpanel: ${t.key}`;
+    return t ? AUDIENCE_PARTS[t.part] : `Cílová skupina: ${id}`;
   }
   if (parsed.kind === "receipt" && id === "respondents") return "Kdo odpovídal";
   return `${KIND_WORDS[parsed.kind]} ${id}`;

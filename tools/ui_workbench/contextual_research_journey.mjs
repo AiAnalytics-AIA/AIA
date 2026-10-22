@@ -21,7 +21,7 @@ await context.addInitScript(() => {
   sessionStorage.setItem("aia.session", JSON.stringify({ idToken: "workbench@example.invalid", refreshToken: "", expiresAt: 4102444800000, email: "workbench@example.invalid", subject: "workbench@example.invalid" }));
   window.uxFirstContent = null;
   const watch = new MutationObserver(() => {
-    if (!document.querySelector("[data-contextual-assistance]") || !document.querySelector("#plan-understanding button:not([disabled])")) return;
+    if (!document.querySelector("[data-contextual-assistance]") || !document.querySelector("#plan-understanding [role=button], #plan-understanding button:not([disabled])")) return;
     watch.disconnect(); requestAnimationFrame(() => requestAnimationFrame(() => { window.uxFirstContent = performance.now(); }));
   });
   watch.observe(document, { subtree: true, childList: true });

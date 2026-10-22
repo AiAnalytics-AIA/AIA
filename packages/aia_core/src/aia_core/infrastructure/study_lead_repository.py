@@ -73,6 +73,17 @@ class StudyLeadRepository:
         ).all()
         return [_to_domain(r) for r in reversed(rows)]
 
+    def lead_turn_ids(self) -> list[str]:
+        """Every Lead turn of this researcher's conversation in the Study, oldest first: the
+        turns whose ledger decisions the decision digest reads (ids only)."""
+        return list(
+            self._session.scalars(
+                select(StudyLeadTurnRow.turn_id)
+                .where(*self._mine(), StudyLeadTurnRow.actor == "lead")
+                .order_by(StudyLeadTurnRow.sequence_no)
+            )
+        )
+
     def get(self, turn_id: str) -> LeadTurn | None:
         """One turn of this researcher's conversation in the Study; ``None`` for any other,
         whoever's it is."""

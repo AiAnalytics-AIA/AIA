@@ -124,6 +124,52 @@ person's accept. Depends on `assumptions-and-open-answer-coding#AOC1`, `#AOC2`.
   its own count shown, the Lead focusing it.
 - Zero paid jobs. 768 and 390 px depend on `research-lead-workbench#26b`-`#26d`.
 
+## Findings
+
+From the browser audit of 2026-10-21 (workbench on develop `bfe6d15b`, the `audience` fixture,
+1440/1100/768/390 px, zero paid jobs). Each is fixed on `fix/audience-copy-and-tap-targets`.
+
+- **F1. The copy names the old product and promises what AIA lacks.**
+  - Anchor: `apps/web/src/i18n/cs.ts:2276-2300 @ bfe6d15b`. "Vlastní audience" says an uploaded
+    dataset will run like the panel, though choosing it shows "V AIA zatím není". "Audience AI
+    Analytics" says "databázi NPC Panelu". "COMING SOON", "Special Audience" and "Nejdřív široký run,
+    potom outcome-based segment" are untranslated.
+  - Reproduce: open Cílová skupina at any width.
+  - Fix: the copy states what AIA does, in Czech. The discover advice no longer says "systém najde
+    profil lidí, kteří over-indexují". "Audience AI Analytics" stays; renaming it is the owner's call.
+  - Test: `apps/web/src/i18n/audience-copy.test.ts`; the journeys select "Speciální skupiny".
+- **F2. A filter chip's remove button is a 15 x 16 px target.**
+  - Anchor: `apps/web/src/components/rehome/research/AudienceStep.tsx:337 @ bfe6d15b`, under WCAG
+    2.5.8's 24 px.
+  - Reproduce: the audit at 390 px measures the "×".
+  - Fix: `size-6`.
+  - Test: `workbench_journey.mjs` asserts every "Odebrat filtr" button is at least 24 x 24 at all four
+    widths.
+- **F3. A stored filter the population cannot honour looks like any other until a preview or a run.**
+  - Anchor: `apps/web/src/research/audience.ts:340 @ bfe6d15b` (filterChips, no check) with
+    `packages/aia_core/src/aia_core/domain/population/audience.py:433 @ bfe6d15b` (a value the panel
+    lacks is dropped silently when another remains; all lacking refuses the filter).
+  - Reproduce: the `audience` fixture stores `kraj: ["Fiktivní kraj A"]`, which the workbench's
+    population does not hold; its chip read as valid.
+  - Consequence: the preview, or a run that draws respondents from the population, narrows the
+    audience or refuses it whole without the screen saying so beforehand.
+  - Fix: `filterProblems` gives a reason for each filter it can prove cannot apply:
+    - `factor`: the catalogue does not offer the factor;
+    - `policy`: the factor's `policy_allowed` is false;
+    - `empty`: no value is stored;
+    - `range`: a numeric filter `_interval` refuses (a null or non-numeric bound, a list that is not
+      a pair, text), held to the server's rule case by case;
+    - `values`: text values a complete value list (shorter than its 60 listed values) lacks.
+    The chip says "nelze použít", or "některé hodnoty chybí" when the filter still applies with the
+    rest, and takes the attention style; a note says what the selection does. A cut list, a number
+    and a boolean value say nothing.
+  - Test: `audience.live.test.ts` "stored filters the population cannot honour";
+    `AudienceStep.test.tsx` "says at once which stored filter…".
+- **Note on history (not a defect in the code).** The develop merge `91e06c1f` lacks #694's readiness
+  and start-button waits in `ExecutionSteps.test.tsx`. The cause: an unstage, made to split out
+  #728's port, took this branch's copy. The next commit, `816fb230`, restores them; from there the
+  file differs from develop `db44f5f3` only in `closeWhere`. No head this PR ships loses the test.
+
 ## 8. Owner questions
 
 None.

@@ -76,6 +76,30 @@ const cards = (over: Partial<LeadCardsContext> = {}): LeadCardsContext => ({
 });
 
 describe("LeadPane", () => {
+  it("heads each local day of the conversation with its divider, before its first message", async () => {
+    vi.useFakeTimers({ toFake: ["Date"] });
+    vi.setSystemTime(new Date(2026, 9, 21, 10, 0));
+    try {
+      const at = (d: Date) => d.toISOString();
+      state.turns = [
+        turn({ turn_id: "LDT-0", actor: "person", text: "Včerejší otázka", run_id: null, created_at: at(new Date(2026, 9, 20, 23, 50)) }),
+        turn({ turn_id: "LDT-1", output: { reply: "Půlnoční odpověď" }, created_at: at(new Date(2026, 9, 21, 0, 5)) }),
+        turn({ turn_id: "LDT-2", actor: "person", text: "Ranní otázka", run_id: null, created_at: at(new Date(2026, 9, 21, 9, 0)) }),
+      ];
+      render(pane());
+      expect(await screen.findByText("Ranní otázka")).toBeTruthy();
+      const days = screen.getAllByRole("heading", { level: 3 }).filter((h) => h.classList.contains("conv__day"));
+      expect(days.map((h) => h.textContent)).toEqual(["Včera", "Dnes"]);
+      // Each divider stands before its day's first message, in the document's order.
+      const before = (a: Node, b: Node) => Boolean(a.compareDocumentPosition(b) & Node.DOCUMENT_POSITION_FOLLOWING);
+      expect(before(days[0], screen.getByText("Včerejší otázka"))).toBe(true);
+      expect(before(screen.getByText("Včerejší otázka"), days[1])).toBe(true);
+      expect(before(days[1], screen.getByText("Půlnoční odpověď"))).toBe(true);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
   it("offers hatching to a researcher without a Lead, and hatches it on their click", async () => {
     me = { hatched: false, lead: null };
     render(pane());

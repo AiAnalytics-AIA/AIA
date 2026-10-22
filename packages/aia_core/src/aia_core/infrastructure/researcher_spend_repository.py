@@ -36,7 +36,14 @@ from .tables import (
     as_utc,
 )
 
-__all__ = ["Person", "ResearcherSpendRepository", "StudyName"]
+__all__ = [
+    "Person",
+    "ResearcherSpendRepository",
+    "StudyName",
+    "hold_facts",
+    "run_spend_facts",
+    "usage_facts",
+]
 
 
 @dataclass(frozen=True, slots=True)
@@ -78,94 +85,24 @@ class ResearcherSpendRepository:
         """Every usage row of the organization that occurred at or after ``since``: the later
         rows of a call dispatched in a period too, so its uncertainty is judged on all of
         them."""
-        rows = self._session.execute(
-            select(
-                AIUsageEventRow.call_id,
-                AIUsageEventRow.outcome,
-                AIUsageEventRow.cost_usd,
-                AIUsageEventRow.charged_to_user_id,
-                AIUsageEventRow.client_id,
-                AIUsageEventRow.study_id,
-                AIUsageEventRow.occurred_at,
-                WorkflowRunRow.workflow_type,
-                StepRunRow.stage_type,
-            )
-            .outerjoin(WorkflowRunRow, WorkflowRunRow.run_id == AIUsageEventRow.run_id)
-            .outerjoin(StepRunRow, StepRunRow.step_id == AIUsageEventRow.step_id)
-            .where(
-                AIUsageEventRow.organization_id == self._scope.organization_id,
-                AIUsageEventRow.occurred_at >= since,
-                *self._booked(AIUsageEventRow.charged_to_user_id),
-            )
-        ).all()
-        facts: list[UsageFact] = []
-        for call, outcome, cost, person, client, study, at, workflow, stage in rows:
-            occurred = as_utc(at)
-            assert occurred is not None  # non-nullable column
-            facts.append(
-                UsageFact(
-                    call_id=str(call),
-                    outcome=str(outcome),
-                    cost_usd=float(cost),
-                    charged_to=person,
-                    client_id=str(client),
-                    study_id=study,
-                    activity=activity_of(workflow, stage),
-                    occurred_at=occurred,
-                )
-            )
-        return facts
+        return usage_facts(
+            self._session,
+            AIUsageEventRow.organization_id == self._scope.organization_id,
+            AIUsageEventRow.occurred_at >= since,
+            *self._booked(AIUsageEventRow.charged_to_user_id),
+        )
 
     def holds(self, *, since: datetime) -> list[HoldFact]:
         """The organization's holds open now, and those settled at or after ``since``."""
-        in_ledger = exists().where(
-            AIUsageEventRow.reservation_id == BudgetReservationRow.reservation_id
+        return hold_facts(
+            self._session,
+            ClientRow.organization_id == self._scope.organization_id,
+            or_(
+                BudgetReservationRow.status == ReservationStatus.RESERVED.value,
+                BudgetReservationRow.settled_at >= since,
+            ),
+            *self._booked(BudgetReservationRow.charged_to_user_id),
         )
-        rows = self._session.execute(
-            select(
-                BudgetReservationRow.reservation_id,
-                BudgetReservationRow.status,
-                BudgetReservationRow.amount_usd,
-                BudgetReservationRow.settled_amount_usd,
-                BudgetReservationRow.charged_to_user_id,
-                BudgetReservationRow.client_id,
-                BudgetReservationRow.study_id,
-                BudgetReservationRow.settled_at,
-                in_ledger.label("in_ledger"),
-                WorkflowRunRow.workflow_type,
-                StepRunRow.stage_type,
-            )
-            .join(ClientRow, ClientRow.client_id == BudgetReservationRow.client_id)
-            .outerjoin(WorkflowRunRow, WorkflowRunRow.run_id == BudgetReservationRow.run_id)
-            .outerjoin(StepRunRow, StepRunRow.step_id == BudgetReservationRow.step_id)
-            .where(
-                ClientRow.organization_id == self._scope.organization_id,
-                or_(
-                    BudgetReservationRow.status == ReservationStatus.RESERVED.value,
-                    BudgetReservationRow.settled_at >= since,
-                ),
-                *self._booked(BudgetReservationRow.charged_to_user_id),
-            )
-        ).all()
-        facts: list[HoldFact] = []
-        for row in rows:
-            m = row._mapping
-            settled_at = m[BudgetReservationRow.settled_at]
-            facts.append(
-                HoldFact(
-                    reservation_id=str(m[BudgetReservationRow.reservation_id]),
-                    status=str(m[BudgetReservationRow.status]),
-                    amount_usd=float(m[BudgetReservationRow.amount_usd]),
-                    settled_amount_usd=float(m[BudgetReservationRow.settled_amount_usd] or 0.0),
-                    charged_to=m[BudgetReservationRow.charged_to_user_id],
-                    client_id=str(m[BudgetReservationRow.client_id]),
-                    study_id=m[BudgetReservationRow.study_id],
-                    activity=activity_of(m[WorkflowRunRow.workflow_type], m[StepRunRow.stage_type]),
-                    in_ledger=bool(m["in_ledger"]),
-                    settled_at=as_utc(settled_at) if settled_at is not None else None,
-                )
-            )
-        return facts
 
     def people(self, booked: Collection[str]) -> list[Person]:
         """Who is listed: for an administrator every member of the organization and anyone
@@ -217,3 +154,108 @@ class ResearcherSpendRepository:
             )
         ).all()
         return {str(c): str(n) for c, n in rows}
+
+
+def usage_facts(session: Session, *where: ColumnElement[bool]) -> list[UsageFact]:
+    """The usage-ledger rows ``where`` selects, each with its run's activity."""
+    rows = session.execute(
+        select(
+            AIUsageEventRow.call_id,
+            AIUsageEventRow.outcome,
+            AIUsageEventRow.cost_usd,
+            AIUsageEventRow.charged_to_user_id,
+            AIUsageEventRow.client_id,
+            AIUsageEventRow.study_id,
+            AIUsageEventRow.occurred_at,
+            WorkflowRunRow.workflow_type,
+            StepRunRow.stage_type,
+        )
+        .outerjoin(WorkflowRunRow, WorkflowRunRow.run_id == AIUsageEventRow.run_id)
+        .outerjoin(StepRunRow, StepRunRow.step_id == AIUsageEventRow.step_id)
+        .where(*where)
+    ).all()
+    facts: list[UsageFact] = []
+    for call, outcome, cost, person, client, study, at, workflow, stage in rows:
+        occurred = as_utc(at)
+        assert occurred is not None  # non-nullable column
+        facts.append(
+            UsageFact(
+                call_id=str(call),
+                outcome=str(outcome),
+                cost_usd=float(cost),
+                charged_to=person,
+                client_id=str(client),
+                study_id=study,
+                activity=activity_of(workflow, stage),
+                occurred_at=occurred,
+            )
+        )
+    return facts
+
+
+def hold_facts(session: Session, *where: ColumnElement[bool]) -> list[HoldFact]:
+    """The budget holds ``where`` selects (their client joined), each with whether a ledger row
+    names it and its run's activity."""
+    in_ledger = exists().where(
+        AIUsageEventRow.reservation_id == BudgetReservationRow.reservation_id
+    )
+    rows = session.execute(
+        select(
+            BudgetReservationRow.reservation_id,
+            BudgetReservationRow.status,
+            BudgetReservationRow.amount_usd,
+            BudgetReservationRow.settled_amount_usd,
+            BudgetReservationRow.charged_to_user_id,
+            BudgetReservationRow.client_id,
+            BudgetReservationRow.study_id,
+            BudgetReservationRow.settled_at,
+            in_ledger.label("in_ledger"),
+            WorkflowRunRow.workflow_type,
+            StepRunRow.stage_type,
+        )
+        .join(ClientRow, ClientRow.client_id == BudgetReservationRow.client_id)
+        .outerjoin(WorkflowRunRow, WorkflowRunRow.run_id == BudgetReservationRow.run_id)
+        .outerjoin(StepRunRow, StepRunRow.step_id == BudgetReservationRow.step_id)
+        .where(*where)
+    ).all()
+    facts: list[HoldFact] = []
+    for row in rows:
+        m = row._mapping
+        settled_at = m[BudgetReservationRow.settled_at]
+        facts.append(
+            HoldFact(
+                reservation_id=str(m[BudgetReservationRow.reservation_id]),
+                status=str(m[BudgetReservationRow.status]),
+                amount_usd=float(m[BudgetReservationRow.amount_usd]),
+                settled_amount_usd=float(m[BudgetReservationRow.settled_amount_usd] or 0.0),
+                charged_to=m[BudgetReservationRow.charged_to_user_id],
+                client_id=str(m[BudgetReservationRow.client_id]),
+                study_id=m[BudgetReservationRow.study_id],
+                activity=activity_of(m[WorkflowRunRow.workflow_type], m[StepRunRow.stage_type]),
+                in_ledger=bool(m["in_ledger"]),
+                settled_at=as_utc(settled_at) if settled_at is not None else None,
+            )
+        )
+    return facts
+
+
+def run_spend_facts(
+    session: Session, *, organization_id: str, study_id: str, run_id: str
+) -> tuple[list[UsageFact], list[HoldFact]]:
+    """Every usage row and hold of one run, whoever it is booked to: a run's spend is the
+    study's, which every member who can open the study reads (ADR 0019). The caller has found
+    the run through the study; the organization and study are in the query as well."""
+    return (
+        usage_facts(
+            session,
+            AIUsageEventRow.organization_id == organization_id,
+            AIUsageEventRow.study_id == study_id,
+            AIUsageEventRow.run_id == run_id,
+        ),
+        hold_facts(
+            session,
+            ClientRow.organization_id == organization_id,
+            BudgetReservationRow.study_id == study_id,
+            BudgetReservationRow.run_id == run_id,
+        ),
+    )
