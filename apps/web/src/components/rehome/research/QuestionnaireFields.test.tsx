@@ -125,37 +125,49 @@ describe("Dotazník's block and set fields", () => {
     await waitFor(() => expect(sectionsSaved()?.[1].purpose).toBe("Který kanál oslovuje nejvíc"));
   });
 
-  it("counts a set's objects beside the list and refuses a sixteenth in words (A14)", async () => {
-    stub([SECTIONS[0], { ...SECTIONS[1], objects: Array.from({ length: 14 }, (_, i) => `Objekt ${i + 1}`) }]);
+  it("counts a set's objects beside the list and warns, in words, above the recommended fifteen (A14, Q75 (a))", async () => {
+    stub([SECTIONS[0], { ...SECTIONS[1], objects: Array.from({ length: 15 }, (_, i) => `Objekt ${i + 1}`) }]);
     render(<ResearchScreen step="questionnaire" frame={TEST_FRAME} />);
     const add = await screen.findByRole("textbox", { name: "Přidat objekt a Enter" });
     // The card's one count sits in the list's own label row.
-    const count = () => screen.getByText(/^\d+ \/ 4–15$/).textContent;
-    expect(count()).toBe("14 / 4–15");
-    fireEvent.change(add, { target: { value: "Objekt 15" } });
-    fireEvent.keyDown(add, { key: "Enter" });
-    await waitFor(() => expect(count()).toBe("15 / 4–15"));
+    const count = () => screen.getByText(/^\d+ \/ doporučeno 4–15$/).textContent;
+    const warning = "Víc než doporučených 15 objektů. Sada jich může mít až 40; Kontrola na to upozorní.";
+    expect(count()).toBe("15 / doporučeno 4–15");
+    expect(screen.queryByText(warning)).toBeNull();
     fireEvent.change(add, { target: { value: "Objekt 16" } });
     fireEvent.keyDown(add, { key: "Enter" });
-    expect(await screen.findByText("AIA doporučuje sadu nejvýše s 15 objekty. Další přidáte, až jeden odeberete.")).toBeTruthy();
-    expect((add as HTMLInputElement).value).toBe("Objekt 16");
+    await waitFor(() => expect(sectionsSaved()?.[1].objects).toHaveLength(16));
+    expect(count()).toBe("16 / doporučeno 4–15");
+    expect(screen.getByText(warning)).toBeTruthy();
+    // A sixteenth stops nothing: the dock does not count the set as one to fix.
+    expect(screen.queryByText(/Sady mimo 4–40 položek/)).toBeNull();
+  });
+
+  it("refuses the forty-first object in words and takes it once one is removed", async () => {
+    stub([SECTIONS[0], { ...SECTIONS[1], objects: Array.from({ length: 40 }, (_, i) => `Objekt ${i + 1}`) }]);
+    render(<ResearchScreen step="questionnaire" frame={TEST_FRAME} />);
+    const add = await screen.findByRole("textbox", { name: "Přidat objekt a Enter" });
+    const full = "Sada může mít nejvýše 40 objektů. Další přidáte, až jeden odeberete.";
+    fireEvent.change(add, { target: { value: "Objekt 41" } });
+    fireEvent.keyDown(add, { key: "Enter" });
+    expect(await screen.findByText(full)).toBeTruthy();
+    expect((add as HTMLInputElement).value).toBe("Objekt 41");
     // One removed: the reason no longer holds and goes; Enter then adds the kept name.
     fireEvent.click(screen.getByRole("button", { name: /Objekt 1$/ }));
-    await waitFor(() => expect(count()).toBe("14 / 4–15"));
-    expect(screen.queryByText("AIA doporučuje sadu nejvýše s 15 objekty. Další přidáte, až jeden odeberete.")).toBeNull();
+    await waitFor(() => expect(screen.getByText("39 / doporučeno 4–15")).toBeTruthy());
+    expect(screen.queryByText(full)).toBeNull();
     fireEvent.keyDown(add, { key: "Enter" });
-    await waitFor(() => expect(count()).toBe("15 / 4–15"));
+    await waitFor(() => expect(sectionsSaved()?.[1].objects?.at(-1)).toBe("Objekt 41"));
   });
 
   it("keeps a set stored above fifteen whole when one object is removed", async () => {
     // The server takes up to 40 (an import, an older copy); the screen shows them all and cuts none.
     stub([SECTIONS[0], { ...SECTIONS[1], objects: Array.from({ length: 17 }, (_, i) => `Objekt ${i + 1}`) }]);
     render(<ResearchScreen step="questionnaire" frame={TEST_FRAME} />);
-    expect(await screen.findByText("17 / 4–15")).toBeTruthy();
-    expect(screen.getByText("Sledovaná sada potřebuje 4–15 položek.")).toBeTruthy();
+    expect(await screen.findByText("17 / doporučeno 4–15")).toBeTruthy();
     fireEvent.click(screen.getByRole("button", { name: /Objekt 1$/ }));
     await waitFor(() => expect(sectionsSaved()?.[1].objects).toEqual(Array.from({ length: 16 }, (_, i) => `Objekt ${i + 2}`)));
-    expect(screen.getByText("16 / 4–15")).toBeTruthy();
+    expect(screen.getByText("16 / doporučeno 4–15")).toBeTruthy();
   });
 
   it("puts a question's wording back on Esc, as it stood when the field took focus", async () => {

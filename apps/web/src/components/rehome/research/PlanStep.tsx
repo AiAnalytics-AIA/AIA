@@ -40,7 +40,7 @@ import {
   trackedSets,
   SET_PURPOSE_DEFAULT,
 } from "@/research/plan";
-import { SET_MAX, SET_MIN } from "@/research/questionnaire";
+import { SET_HARD_MAX, SET_MAX, setAboveRecommended, setSizeRefused } from "@/research/questionnaire";
 import type { Analysis } from "@/research/store";
 import { applyPlanSets, lines, proposalAnalysis, validMeasurement } from "@/research/plan-edit";
 import { DesignCoverage } from "./DesignCoverage";
@@ -57,10 +57,8 @@ const FOCUS = "focus-visible:outline-2 focus-visible:outline-offset-2 focus-visi
 const INPUT = `min-h-9 w-full rounded-control border border-border-strong bg-surface-raised px-2.5 text-sm text-ink placeholder:text-ink-faint ${FOCUS}`;
 const LABEL = "text-xs font-medium text-ink-muted";
 
-const outOfRange = (set: TrackedSet) => {
-  const n = (set.objects || []).length;
-  return n < SET_MIN || n > SET_MAX;
-};
+/** A set that stops the plan: under four objects or over the server's forty; above 15 only warns (Q75 (a)). */
+const outOfRange = (set: TrackedSet) => setSizeRefused((set.objects || []).length);
 
 const jumpTo = (id: string) => scrollToPlace(id, "start");
 
@@ -514,6 +512,9 @@ function SetCard({ set, onAddObject, onRename, onRemove, onRemoveObject, onMeasu
           onRemove={onRemoveObject}
           backspaceRemoves
         />
+        {setAboveRecommended(objects.length) ? (
+          <span className="text-xs text-status-you-ink">{tv("research.questionnaire.setAboveRecommended", { max: SET_MAX, hard: SET_HARD_MAX })}</span>
+        ) : null}
       </div>
       {set.object_question ? (
         <div className="flex flex-col gap-1">

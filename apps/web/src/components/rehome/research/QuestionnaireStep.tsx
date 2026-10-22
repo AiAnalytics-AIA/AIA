@@ -28,8 +28,8 @@ import {
   type PreviewItem,
   type Question,
   type QuestionnairePath,
+  SET_HARD_MAX,
   SET_MAX,
-  SET_MIN,
   SET_TOO_SMALL,
   type Section,
   TEMPLATE_FILENAME,
@@ -74,7 +74,8 @@ import {
   setSectionField,
   toAudience,
   updateObjects,
-  SET_SIZE,
+  setAboveRecommended,
+  setSizeRefused,
 } from "@/research/questionnaire";
 import type { ResearchProject } from "@/research/model";
 import { COMPARISONS, CONCEPT_TEST, comparisonOf, danglingLinks, linkKey, linksOf, researchQuestionsOf, setComparison, setConceptTest, toggleQuestionLink, toggleSectionLink, togglesConceptTest } from "@/research/trace";
@@ -154,11 +155,8 @@ function removeWithUndo(update: Update, undo: EditorUndo, si: number, sec: Secti
   offerRestore(undo, what, sec.title, () => update((p) => restoreSection(p, si, sec)));
 }
 
-/** A tracked set is measured on 4–15 objects (SET_SIZE). */
-const setInvalid = (sec: Section) => {
-  const n = (sec.objects || []).length;
-  return n < SET_MIN || n > SET_MAX;
-};
+/** A tracked set the editor stops: under four objects or over the server's forty (Q75 (a)). */
+const setInvalid = (sec: Section) => setSizeRefused((sec.objects || []).length);
 const OBJECT = "{object}";
 
 const jumpTo = (id: string) => scrollToPlace(id, "center");
@@ -374,7 +372,7 @@ function QuestionnaireReadiness() {
   const rows: { label: string; detail: string; ok: boolean; go?: () => void }[] = [
     { label: countsWords(counts), detail: t("research.questionnaire.readyCountsDetail"), ok: counts.questions > 0 },
     ...(issues.empty ? [{ label: tv("research.questionnaire.dockEmpty", { n: issues.empty }), detail: t("research.questionnaire.unworded"), ok: false, go: firstUnworded }] : []),
-    ...(issues.badSets ? [{ label: tv("research.questionnaire.dockSets", { n: issues.badSets }), detail: SET_SIZE, ok: false }] : []),
+    ...(issues.badSets ? [{ label: tv("research.questionnaire.dockSets", { n: issues.badSets }), detail: t("research.questionnaire.setSizeDetail"), ok: false }] : []),
   ];
   return (
     <section aria-labelledby="q-ready" className="flex flex-col gap-2 rounded-card border border-border bg-surface-raised p-3.5">
@@ -1143,11 +1141,15 @@ function TrackedSet({ n, sec, si, update }: { n: number; sec: Section; si: numbe
           label={t("research.questionnaire.setObjectAdd")}
           placeholder={t("research.questionnaire.setObjectAdd")}
           values={objects}
-          refuse={() => (objects.length >= SET_MAX ? tv("research.questionnaire.setObjectsFull", { max: SET_MAX }) : null)}
+          refuse={() => (objects.length >= SET_HARD_MAX ? tv("research.questionnaire.setObjectsFull", { max: SET_HARD_MAX }) : null)}
           onAdd={(v) => setObjects([...objects, v])}
           onRemove={(i) => setObjects(objects.filter((_, j) => j !== i))}
         />
-        {note || (objects.length && bad) ? <span className="text-xs text-status-you-ink">{note || SET_TOO_SMALL}</span> : null}
+        {note || (objects.length && bad) ? (
+          <span className="text-xs text-status-you-ink">{note || SET_TOO_SMALL}</span>
+        ) : setAboveRecommended(objects.length) ? (
+          <span className="text-xs text-status-you-ink">{tv("research.questionnaire.setAboveRecommended", { max: SET_MAX, hard: SET_HARD_MAX })}</span>
+        ) : null}
       </div>
       <ScaleEditor
         name={`sada ${n}`}

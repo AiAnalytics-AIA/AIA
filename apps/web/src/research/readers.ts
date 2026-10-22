@@ -16,7 +16,7 @@
 // listed here is what the item feeds once it compiles, never a verdict that it will.
 
 import type { ResearchProject } from "./model";
-import { SET_MAX, SET_MIN, type Question, type Section, questionCondition, sections } from "./questionnaire";
+import { SET_HARD_MAX, SET_HARD_MIN, type Question, type Section, questionCondition, sections } from "./questionnaire";
 
 /** A downstream stage of the workbench that reads questionnaire items. */
 export type Reader = "fieldwork" | "results" | "sociomap" | "analysis" | "report";
@@ -65,7 +65,7 @@ function questionReaders(q: Question, si: number, n: number, hasSet: boolean): I
 function setReaders(sec: Section, si: number, n: number): ItemReaders {
   const objects = (sec.objects || []).map(str).filter(Boolean);
   const size = new Set(objects).size;
-  const held: Held | null = size < SET_MIN || size > SET_MAX ? "set_size" : pyTrue(sec.familiarity_required) ? "familiarity" : null;
+  const held: Held | null = size < SET_HARD_MIN || size > SET_HARD_MAX ? "set_size" : pyTrue(sec.familiarity_required) ? "familiarity" : null;
   const declared = Array.isArray(sec.context_objects) ? (sec.context_objects as unknown[]).map(str).filter(Boolean) : [];
   return {
     kind: "set",

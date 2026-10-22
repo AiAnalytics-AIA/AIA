@@ -293,7 +293,7 @@ describe("Dotazník", () => {
     fireEvent.change(set, { target: { value: "značky" } });
     fireEvent.keyDown(set, { key: "Enter" });
     await screen.findByRole("heading", { name: "3 otázky · 2 sledované sady" });
-    expect(screen.getByText("0 / 4–15")).toBeTruthy();
+    expect(screen.getByText("0 / doporučeno 4–15")).toBeTruthy();
     expect(screen.queryByRole("dialog")).toBeNull();
     expect(screen.queryByRole("alertdialog")).toBeNull();
   });
@@ -323,7 +323,7 @@ describe("Dotazník", () => {
     // Objects are chips; updateObjects notes a set under four.
     fireEvent.click(await screen.findByRole("button", { name: "Odebrat Tisk" }));
     expect(await screen.findByText(SET_TOO_SMALL)).toBeTruthy();
-    expect(screen.getByText("3 / 4–15")).toBeTruthy();
+    expect(screen.getByText("3 / doporučeno 4–15")).toBeTruthy();
     // Removal is confirmed on the card.
     fireEvent.click(screen.getAllByRole("button", { name: "Smazat" })[1]);
     expect(screen.getByRole("alertdialog").textContent).toContain("Odstranit tuto sadu?");

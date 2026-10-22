@@ -473,17 +473,26 @@ export function setObjectFamily(p: ResearchProject, si: number, v: string): Rese
 }
 
 /**
- * AIA's recommended size of a tracked set (SET_SIZE): 4-15 objects. The server's hard range is wider
- * (research_design.py TRACKED_SET_LIMITS; readiness only warns outside the recommended one), so a
- * set stored with more is shown as it is and never cut; only adding past 15 is refused.
+ * A tracked set's sizes, research_design.py TRACKED_SET_LIMITS (held to it by
+ * questionnaire-set-limits.test.ts): the compiler refuses a set outside SET_HARD_MIN-SET_HARD_MAX
+ * (battery_size); readiness only warns outside AIA's recommended SET_MIN-SET_MAX. A set above 15 is
+ * allowed and warned (the product owner, Q75 (a), 2026-10-22); the editors still refuse one under
+ * four, and only the 41st object is refused.
  */
+export const SET_HARD_MIN = 3;
+export const SET_HARD_MAX = 40;
 export const SET_MIN = 4;
 export const SET_MAX = 15;
+
+/** A set the editors stop: under the recommended minimum, or over the server's hard maximum. */
+export const setSizeRefused = (n: number) => n < SET_MIN || n > SET_HARD_MAX;
+/** Above AIA's recommendation, within the server's range: allowed, warned at the field. */
+export const setAboveRecommended = (n: number) => n > SET_MAX && n <= SET_HARD_MAX;
 
 export const SET_TOO_SMALL = "Sledovaná sada potřebuje 4–15 položek.";
 
 /** updateObjects: one per line, trimmed; a note (not a refusal) under four. Unlike the classic's,
- * nothing past the fifteenth is cut: a stored set may hold up to 40 (see SET_MIN). */
+ * nothing past the fifteenth is cut: a set may hold up to SET_HARD_MAX. */
 export function updateObjects(p: ResearchProject, si: number, v: string): { project: ResearchProject; note: string | null } {
   const a = v.split(/\n/).map((x) => x.trim()).filter(Boolean);
   return {

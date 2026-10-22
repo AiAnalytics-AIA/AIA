@@ -15,9 +15,13 @@ describe("what reads each questionnaire item", () => {
     expect(set.readers).toEqual(["fieldwork", "results", "sociomap", "analysis", "report"]);
   });
 
-  it("keeps a set outside 4-15 distinct objects from every stage, as the compiler does", () => {
-    const [small] = questionnaireReaders(project([{ ...SET, objects: ["Káva", "Káva", "Čaj", "Kakao"] }]));
-    expect(small).toMatchObject({ held: "set_size", readers: [] });
+  it("keeps a set outside 3-40 distinct objects from every stage, as the compiler does", () => {
+    // battery_size: the compiler's hard range, TRACKED_SET_LIMITS[0]; 4-15 is a readiness warning.
+    const sized = (objects: string[]) => questionnaireReaders(project([{ ...SET, objects }]))[0];
+    expect(sized(["Káva", "Káva", "Čaj"])).toMatchObject({ held: "set_size", readers: [] });
+    expect(sized(["Káva", "Káva", "Čaj", "Kakao"]).held).toBeNull();
+    expect(sized(Array.from({ length: 40 }, (_, i) => `O${i}`)).held).toBeNull();
+    expect(sized(Array.from({ length: 41 }, (_, i) => `O${i}`))).toMatchObject({ held: "set_size", readers: [] });
   });
 
   it("holds a set with familiarity required, which the run refuses, and keeps it from the Sociomap", () => {

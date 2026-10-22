@@ -14,7 +14,7 @@ import type { ResearchProject } from "./model";
 import { trackedSets } from "./plan";
 import { proposalAnalysis } from "./plan-edit";
 import { chosenDimensions } from "./persona";
-import { SET_MAX, SET_MIN, questionnaireHasQuestions, sections } from "./questionnaire";
+import { SET_HARD_MAX, SET_MIN, questionnaireHasQuestions, sections, setSizeRefused } from "./questionnaire";
 import type { ResearchState } from "./store";
 import type { StepKey } from "./steps";
 import type { ResearchRunSummary } from "@/lib/api";
@@ -25,7 +25,8 @@ export type LaneStage = { tone: LaneTone; line: string };
 /** Something that stops the design from running, with the stage that fixes it. */
 export type Blocker = { step: StepKey; label: string; detail: string };
 
-const setSizeOk = (n: number) => n >= SET_MIN && n <= SET_MAX;
+const setSizeOk = (n: number) => !setSizeRefused(n);
+const SET_RANGE = `${SET_MIN}–${SET_HARD_MAX}`;
 
 const plural = (n: number, one: string, few: string, many: string) => (n === 1 ? one : n >= 2 && n <= 4 ? few : many);
 
@@ -37,11 +38,11 @@ export function planStage(state: Pick<ResearchState, "project" | "analysis">): L
   const a = proposalAnalysis(state);
   if (!a) return { tone: "idle", line: "Bez návrhu" };
   const bad = trackedSets(a).filter((s) => !setSizeOk((s.objects || []).length)).length;
-  if (bad) return { tone: "you", line: `${bad} ${plural(bad, "sada mimo 4–15", "sady mimo 4–15", "sad mimo 4–15")}` };
+  if (bad) return { tone: "you", line: `${bad} ${plural(bad, "sada", "sady", "sad")} mimo ${SET_RANGE}` };
   return { tone: "done", line: "Hotovo" };
 }
 
-/** Questions without wording, sets outside 4-15, and the total, as the questionnaire's dock counts them. */
+/** Questions without wording, sets outside 4-40, and the total, as the questionnaire's dock counts them. */
 export function questionnaireIssues(p: ResearchProject): { questions: number; sets: number; empty: number; badSets: number } {
   let questions = 0, sets = 0, empty = 0, badSets = 0;
   for (const s of sections(p)) {
@@ -63,7 +64,7 @@ export function questionnaireStage(p: ResearchProject): LaneStage {
   if (!questions && !sets) return { tone: "idle", line: "Zatím prázdný" };
   const count = [questions ? `${questions} ${plural(questions, "otázka", "otázky", "otázek")}` : "", sets ? `${sets} ${plural(sets, "sada", "sady", "sad")}` : ""].filter(Boolean).join(" · ");
   if (empty) return { tone: "you", line: `${count} · ${empty} bez znění` };
-  if (badSets) return { tone: "you", line: `${count} · ${badSets} ${plural(badSets, "sada", "sady", "sad")} mimo 4–15` };
+  if (badSets) return { tone: "you", line: `${count} · ${badSets} ${plural(badSets, "sada", "sady", "sad")} mimo ${SET_RANGE}` };
   return { tone: "done", line: count };
 }
 
@@ -102,12 +103,12 @@ export function blockers(state: Pick<ResearchState, "project" | "analysis">): Bl
   const a = proposalAnalysis(state);
   for (const s of trackedSets(a)) {
     const n = (s.objects || []).length;
-    if (!setSizeOk(n)) out.push({ step: "plan", label: `Návrh · sada „${s.title || "bez názvu"}“`, detail: `${n} položek, potřebuje 4–15` });
+    if (!setSizeOk(n)) out.push({ step: "plan", label: `Návrh · sada „${s.title || "bez názvu"}“`, detail: `${n} položek, potřebuje ${SET_RANGE}` });
   }
   const q = questionnaireIssues(p);
   if (!questionnaireHasQuestions(p)) out.push({ step: "questionnaire", label: "Dotazník", detail: "Zatím nemá žádnou běžnou otázku" });
   if (q.empty) out.push({ step: "questionnaire", label: "Dotazník", detail: `${q.empty} ${plural(q.empty, "otázka nemá", "otázky nemají", "otázek nemá")} znění` });
-  if (q.badSets) out.push({ step: "questionnaire", label: "Dotazník", detail: `${q.badSets} ${plural(q.badSets, "sledovaná sada je", "sledované sady jsou", "sledovaných sad je")} mimo 4–15 položek` });
+  if (q.badSets) out.push({ step: "questionnaire", label: "Dotazník", detail: `${q.badSets} ${plural(q.badSets, "sledovaná sada je", "sledované sady jsou", "sledovaných sad je")} mimo ${SET_RANGE} položek` });
   if (!audienceReady(p)) out.push({ step: "audience", label: "Cílová skupina", detail: "Vyberte zdroj respondentů" });
   return out;
 }

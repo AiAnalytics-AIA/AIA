@@ -9,6 +9,7 @@
 
 import type { Json, ResearchProject } from "./model";
 import { type SampleLimits, sampleRefusal } from "./persona";
+import { SET_HARD_MAX } from "./questionnaire";
 import type { Analysis } from "./store";
 
 type Obj = { [k: string]: Json };
@@ -71,9 +72,10 @@ export function objectQuestionRows(set: TrackedSet): { question: string; low: st
   return (set.objects || []).slice(0, 6).map((x) => ({ question: tmpl.replace("{object}", x), low: String(lb[0]), high: String(lb[1]) }));
 }
 
-/** At most this many objects in one set (addPlanObject, addPlanSet). */
-export const MAX_OBJECTS = 15;
-export const SET_FULL = "Sledovaná sada má maximálně 15 položek.";
+/** At most this many objects in one set (addPlanObject, addPlanSet): the server's hard maximum,
+ * where the classic stopped at 15 (Q75 (a); SET_HARD_MAX). */
+export const MAX_OBJECTS = SET_HARD_MAX;
+export const SET_FULL = `Sledovaná sada má maximálně ${SET_HARD_MAX} položek.`;
 export const PROMPT_SET_TITLE = "Název porovnatelné sady, např. Značky, Regiony, Argumenty nebo Varianty nabídky:";
 export const PROMPT_SET_OBJECTS = "Položky oddělte čárkou. Všechny musí jít porovnat na stejné otázce/škále:";
 export const PROMPT_OBJECT = "Přidat srovnatelný objekt do této sady:";
@@ -92,7 +94,7 @@ export function addSet(s: PlanState, title: string | null, raw: string | null): 
   return withSets(a, [...trackedSets(a), { title: t, object_type: t, purpose: "Porovnat tyto položky mezi sebou na stejné metrice.", objects }]);
 }
 
-/** addPlanObject: one more object, refused past fifteen. */
+/** addPlanObject: one more object, refused past MAX_OBJECTS. */
 export function addObject(a: Analysis, si: number, value: string | null): { analysis: Analysis } | { error: string } | null {
   if (!value?.trim()) return null;
   const sets = clone(trackedSets(a));
