@@ -167,6 +167,20 @@ method owner).
   - relief on and off with the filter bar;
   - the inspector's pair detail.
 - Zero paid jobs. 768 and 390 px depend on `research-lead-workbench#26b`-`#26d`.
+- Delivered so far: `tools/ui_workbench/sociomap_journey.mjs`, a journey of its own:
+  `sociomapping_journey.mjs` covers the experimental Sociomapping document, not this stage.
+  `--prepare` puts a version of the `aia-sociomap-5` preset in force in the local workbench only, and
+  runs one fictional run, after an older method's run when there is none. The journey checks:
+  - the `-5` map at 1440, 1100, 768 and 390 px with no page overflow;
+  - each listed object's Lead name, once, on its button;
+  - the selection reset between Objekty and Respondenti, and full screen's five strongest (#562);
+  - the filter bar, "Zrušit filtr" and the four registers (SOC3);
+  - every pressed control's colour apart from its background, on the `-5` map and on an older
+    method's run. It fails on the stylesheet from before #591, on the `-3` map's pressed "Shora".
+    Once #598 lands, the older run's check is its old-method notice instead;
+  - no page error, no write but the stage opened, zero paid jobs.
+- Still to come: `select_pair` by the scripted Lead (once `select` is live, research-lead-workbench
+  14b) and the inspector's pair detail (SOC4).
 
 ## 8. Owner questions
 
