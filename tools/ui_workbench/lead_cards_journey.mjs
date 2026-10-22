@@ -11,6 +11,9 @@
  * with no dialog, starts a job by a typed command from the person's own card (LO5), then has the
  * Lead prepare a research run, starts it from the card through
  * Spuštění's route, and follows its card: the orb while a step runs, Průběh and Výsledky once done.
+ * Run it on `workbench.py up --fresh`: a study runs once per design revision, so on a workbench it
+ * already ran on, the Lead's prepared run says "Už běží" and the journey stops there by name (the
+ * typed start before it reads "Už proběhlo" and passes).
  */
 import assert from "node:assert/strict";
 import { execSync } from "node:child_process";
