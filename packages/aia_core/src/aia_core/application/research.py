@@ -903,6 +903,7 @@ class ResearchRuns:
                     analysis_step_inputs(
                         ClaimSurface.INTERNAL,
                         analysis_round=frozen_dataset.analysis_round if frozen_dataset else 0,
+                        retried=frozen_dataset.retried if frozen_dataset else (),
                     )
                     if analysis_enabled
                     else {}

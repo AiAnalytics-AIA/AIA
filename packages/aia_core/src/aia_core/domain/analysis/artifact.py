@@ -388,8 +388,9 @@ def finding_expected(
     find something that answers "no context" holds the report. The executive summary, the
     audience and the implications always; the objects when the run measured a tracked set; the
     hypotheses when the design states one; the segments when the evidence holds segment rows;
-    the research questions when the design states one. Never the limitations, kept apart from
-    findings by design."""
+    the research questions when one is not a gap the run recorded at start. Never the
+    limitations, kept apart from findings by design. "The run measured" reads the evidence the
+    module is given: a set whose every row was suppressed is not measured."""
     if module_id is AnalysisModuleId.OBJECTS:
         return tracked_sets
     if module_id is AnalysisModuleId.HYPOTHESES:
@@ -403,29 +404,39 @@ def finding_expected(
 
 def _states_nothing(record: ModuleArtifact) -> bool:
     """A completed module's draft states no supported finding: no key finding, or for the
-    research questions no answer that cites a number."""
+    research questions neither an answer nor a key finding that cites a number."""
     if record.outcome != "COMPLETED" or record.draft is None:
         return False
     if record.module_id is AnalysisModuleId.RESEARCH_QUESTIONS:
-        return not any(a.claim_ids for a in record.draft.research_question_answers)
+        draft = record.draft
+        return not any(a.claim_ids for a in draft.research_question_answers) and not any(
+            f.claim_ids for f in draft.key_findings
+        )
     return not record.draft.key_findings
 
 
 def no_supported_finding(record: ModuleArtifact) -> bool:
     """A module the run held the context for, completed without a supported finding
-    (evidence-integrity 9a): the report waits on it (9b), and a same-data round may resolve it.
+    (evidence-integrity 9a): the report's refusal (9b) reads it, and a same-data round may
+    resolve it.
 
     A record from before the expectation was stored (``finding_expected`` None) is never read as
     this: under its older harness it is stale, and a same-data round asks it again anyway."""
     return record.finding_expected is True and _states_nothing(record)
 
 
-def finding_diagnostic(record: ModuleArtifact) -> dict[str, object] | None:
+def finding_diagnostic(
+    record: ModuleArtifact, *, same_data_tried: bool = False
+) -> dict[str, object] | None:
     """What Analýza says beside a module that states nothing, never a finding or an admitted claim:
-    ``no_supported_finding`` (it holds the report) or ``context_missing`` (the run lacks what the
-    module needs; it holds nothing), each with its ways out; ``None`` otherwise."""
+    ``no_supported_finding`` (the report waits on it, 9b) or ``context_missing`` (the run lacks
+    what the module needs; it holds nothing), each with its ways out; ``None`` otherwise. A module
+    already asked again over the same data (``same_data_tried``) is not offered that round again."""
     if no_supported_finding(record):
-        return {"reason": "no_supported_finding", "resolutions": list(NO_FINDING_RESOLUTIONS)}
+        ways = [
+            r for r in NO_FINDING_RESOLUTIONS if not (same_data_tried and r == "same_data_retry")
+        ]
+        return {"reason": "no_supported_finding", "resolutions": ways}
     if (
         record.finding_expected is False
         and record.module_id is not AnalysisModuleId.LIMITATIONS

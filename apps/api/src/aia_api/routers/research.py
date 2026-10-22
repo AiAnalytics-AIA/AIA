@@ -1969,8 +1969,8 @@ def run_analysis(
     question when it recorded it as a gap (its verdict and why), else ``None`` -- the same words
     the internal report prints beside it, so Results never reads such an answer as measured.
     Each module carries ``diagnostic``: ``{reason, resolutions}`` when it states nothing --
-    ``no_supported_finding`` where the run held its context (it holds the report, MVPQ-04, Q72)
-    or ``context_missing`` where the run lacks it -- else ``None``."""
+    ``no_supported_finding`` where the run held its context (what the report's refusal, 9b, will
+    read; MVPQ-04, Q72) or ``context_missing`` where the run lacks it -- else ``None``."""
     try:
         scope.require(Permission.EDIT_STUDY)
         analysis = reconstruct_run(session, scope, store, run_id=run_id)
@@ -2046,7 +2046,9 @@ def run_analysis(
                 ],
                 # A module a model completed without one key finding: never a finding
                 # (MVPQ-04, evidence-integrity 9a).
-                "diagnostic": finding_diagnostic(outcome.record),
+                "diagnostic": finding_diagnostic(
+                    outcome.record, same_data_tried=module in analysis.retried
+                ),
             }
             for module, outcome in analysis.modules.items()
         },

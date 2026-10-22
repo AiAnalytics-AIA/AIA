@@ -174,21 +174,30 @@ MVPQ-04 is settled (block), so the diagnostic of chunk 9a is W1 and the composer
 - Which modules are expected is decided by code from the run's own data, never from a model's "no context"
   (`domain/analysis/artifact.py` `finding_expected`, stored on each outcome as `finding_expected`):
   - the executive summary, the audience and the implications always;
-  - the objects when the run measured a tracked set;
+  - the objects when the evidence the module is given holds a tracked set's rows (a set whose every row was
+    suppressed is not measured);
   - the hypotheses when the design states one (they reach the module since F1);
   - the segments when the evidence holds segment rows;
-  - the research questions when the design states one; a supported answer there cites a number;
+  - the research questions when one is not a gap the run recorded at start; an answer or a key finding there
+    must cite a number;
   - never the limitations.
-- `no_supported_finding(record)`: expected and states nothing. It holds the report (9b) and is offered a
-  same-data round: `_retryable` lists it, and the executor's `_reusable` does not reuse its empty answer.
-- `finding_diagnostic(record)`: `no_supported_finding` with `same_data_retry`, `changed_design`, `more_data`;
+- `no_supported_finding(record)`: expected and states nothing. The report's refusal (9b) reads it. It is
+  offered one same-data round: `_retryable` lists it unless this run already asked it again (its
+  `analysis_retry.modules`), and the executor does not reuse its empty answer only for a module the person
+  asked again (`analysis_retried` in its step input), so a round never pays for a module the ceiling left out.
+- `finding_diagnostic(record, same_data_tried=)`: `no_supported_finding` with `same_data_retry` (unless tried),
+  `changed_design`, `more_data`;
   `context_missing` with `changed_design`, `more_data` for a module the run lacks the context for (holds
   nothing); else `None`. `GET …/runs/{id}/analysis` answers it per module as `diagnostic`.
 - A record stored before the expectation (`None`) is never read as either: under its older harness it is stale.
 - Tests: `test_analysis_artifact.py` "a module expected to find that states nothing holds and says so" and
   "the expectation is decided by the run's own data"; `test_analysis_executor.py` "a module completed without
   a finding is asked again over the same data" and "no context from the hypotheses module holds only when the
-  design states some" (the guard the PM asked for).
+  design states some" (the guard the PM asked for), "a same-data round that still states nothing is not
+  offered again", "research questions the run recorded as gaps hold nothing".
+- Ships inside chunk 1's harness 3, never apart from it: a harness-3 record stored without the hypotheses or the
+  expectation would otherwise be neither stale nor retryable. A rollback to an image before it cannot parse a
+  record carrying `finding_expected` (a closed model).
 - Left for 9a's web part: Analýza shows the diagnostic and its ways out (ANL4). 9b: the report's refusal.
 
 ## Cross-check additions (2026-10-20)

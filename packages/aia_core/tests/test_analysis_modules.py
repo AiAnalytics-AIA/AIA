@@ -172,8 +172,10 @@ def test_only_the_hypotheses_module_is_given_the_stated_hypotheses(evidence_row:
         module_spec("hypotheses"), table, research_questions=[], hypotheses=stated
     )
     assert given["stated_hypotheses"] == stated
-    other = module_payload(module_spec("objects"), table, research_questions=[], hypotheses=stated)
-    assert "stated_hypotheses" not in other
+    # One gate: prepare_module gives them to the hypotheses module alone (the executor's test);
+    # the payload carries what it is given, and nothing when given none.
+    none = module_payload(module_spec("objects"), table, research_questions=[])
+    assert "stated_hypotheses" not in none
     # A module given none keeps the fingerprint it had: no stored outcome moves for nothing.
     assert _fp(hypotheses=[]) == _fp()
 

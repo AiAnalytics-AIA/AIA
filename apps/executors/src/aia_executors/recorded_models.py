@@ -315,7 +315,7 @@ class RecordedModels:
     invent: set[str] = field(default_factory=set)
     #: (module, n) whose draft cites a number no evidence row holds
     invent_calls: set[tuple[str, int]] = field(default_factory=set)
-    #: modules answered with a grounded draft that states no key finding (MVPQ-04)
+    #: modules answered "no context": a grounded summary, no key finding, no cited answer (MVPQ-04)
     no_findings: set[str] = field(default_factory=set)
     #: (module, n) answered with a draft that breaks the output contract
     off_contract: set[tuple[str, int]] = field(default_factory=set)
@@ -363,7 +363,15 @@ class RecordedModels:
             elif payload["module"] in self.invent or key in self.invent_calls:
                 answer = invented_draft(payload)
             elif payload["module"] in self.no_findings:
-                answer = {**grounded_draft(payload), "key_findings": []}
+                # "No context": no key finding, and no answer that cites a number.
+                answer = {
+                    **grounded_draft(payload),
+                    "key_findings": [],
+                    "research_question_answers": [
+                        {"question": q, "answer": "Nelze doložit.", "claim_ids": []}
+                        for q in payload["research_questions"]
+                    ],
+                }
             else:
                 answer = grounded_draft(payload)
         elif name == RESPONDENT_TOOL:

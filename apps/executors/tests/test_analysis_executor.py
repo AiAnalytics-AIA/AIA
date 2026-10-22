@@ -1654,6 +1654,53 @@ def test_a_module_completed_without_a_finding_is_asked_again_over_the_same_data(
     assert again.retryable == ()
 
 
+def test_a_same_data_round_that_still_states_nothing_is_not_offered_again(
+    world: Any, store: InMemoryArtifactStore, run_with: Callable[..., Worker]
+) -> None:
+    """9a: the same-data round is offered once. When the module asked again still states nothing,
+    the retry no longer lists it and its diagnostic names only a changed design or more data, so
+    nothing pays again for the same empty answer."""
+    models = RecordedModels(no_findings={"executive"})
+    worker = run_with(models)
+    first = _started_with_analysis(world)
+    _drain(worker)
+    retry = _retry_analysis(world, store, first)
+    _drain(worker)
+    assert models.calls("executive") == [1, 2], "asked again once, in the person's round"
+    with world.sessions() as session:
+        again = stored_analysis(session, world.lead_scope(session), store, run_id=retry.run_id)
+    assert no_supported_finding(again.records[AnalysisModuleId.EXECUTIVE])
+    assert again.retryable == ()
+    from aia_api.routers.research import run_analysis
+
+    with world.sessions() as session:
+        shown = run_analysis(retry.run_id, world.lead_scope(session), session, store)
+    assert shown["modules"]["executive"]["diagnostic"] == {
+        "reason": "no_supported_finding",
+        "resolutions": ["changed_design", "more_data"],
+    }
+    with pytest.raises(AnalysisNotRetryable) as nothing:
+        _retry_analysis(world, store, retry.run_id)
+    assert nothing.value.reason == "nothing_to_retry"
+
+
+def test_research_questions_the_run_recorded_as_gaps_hold_nothing(
+    world: Any, store: InMemoryArtifactStore, run_with: Callable[..., Worker]
+) -> None:
+    """9a: the fixture's design links no item to its research questions, so the run records each
+    as a gap at start; an answer that cites no number is then context_missing, never a hold."""
+    models = RecordedModels(no_findings={"research_questions"})
+    worker = run_with(models)
+    run_id = _started_with_analysis(world)
+    _drain(worker)
+    assert _run(world, run_id)["metadata"]["answerability"]["gaps"]
+    with world.sessions() as session:
+        stored = stored_analysis(session, world.lead_scope(session), store, run_id=run_id)
+    record = stored.records[AnalysisModuleId.RESEARCH_QUESTIONS]
+    assert record.finding_expected is False and not no_supported_finding(record)
+    assert stored.retryable == ()
+
+
 @pytest.mark.parametrize(("stated", "held"), [(True, True), (False, False)])
 def test_no_context_from_the_hypotheses_module_holds_only_when_the_design_states_some(
     world: Any,

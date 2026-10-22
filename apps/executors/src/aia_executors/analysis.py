@@ -753,12 +753,13 @@ class AnalysisModuleExecutor:
                 FailureClass.SCHEMA_VIOLATION,
                 error={"reason": "outcome_mismatch", "message": found.artifact_id},
             )
-        if analysis_round and (
-            (record.outcome == "BLOCKED" and record.attempts > 0) or no_supported_finding(record)
-        ):
-            # A person asked for this module again: a model's refusal is not reused, nor an
-            # answer with no key finding (MVPQ-04, evidence-integrity 9a).
+        if analysis_round and record.outcome == "BLOCKED" and record.attempts > 0:
+            # A person asked for this module again: a model's refusal is not reused.
             # The preflight's (no turn taken) is code's, and stays.
+            return None
+        if step.payload.get("analysis_retried") is True and no_supported_finding(record):
+            # Nor an answer with no supported finding, where the person asked this module
+            # again (MVPQ-04, evidence-integrity 9a); any other module keeps its outcome.
             return None
         return self._succeeded(found, record.outcome, prepared, reused=True, sent=0, replayed=0)
 
