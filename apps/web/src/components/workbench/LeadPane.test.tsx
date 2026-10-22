@@ -329,26 +329,52 @@ describe("LeadPane", () => {
   // F-BRF-2 (lead_journey.mjs, "Tab stays inside the open conversation"): Tab onto "Na nejnovější" just
   // as the log's scroll from the previous Tab reaches the bottom unmounted the button under the
   // keyboard, and the focus fell to the page.
-  it("keeps Na nejnovější while it has the focus, and gives the focus to the log once it has jumped", async () => {
-    state = { ...state, turns: [turn({ output: { reply: "Dobrý den." } })] };
-    vi.spyOn(document, "hasFocus").mockReturnValue(true); // jsdom's window never has the focus
-    render(pane());
-    const log = await screen.findByRole("log");
-    let top = 0;
-    Object.defineProperty(log, "scrollHeight", { configurable: true, get: () => 1000 });
-    Object.defineProperty(log, "clientHeight", { configurable: true, get: () => 200 });
-    Object.defineProperty(log, "scrollTop", { configurable: true, get: () => top, set: (v: number) => { top = v; } });
-    top = 100;
-    fireEvent.scroll(log);
-    const latest = await screen.findByRole("button", { name: "Na nejnovější" });
-    act(() => latest.focus());
-    top = 790; // the previous Tab's scroll lands at the bottom after the button took the focus
-    fireEvent.scroll(log);
-    expect(screen.getByRole("button", { name: "Na nejnovější" })).toBe(latest);
-    expect(document.activeElement).toBe(latest);
-    fireEvent.click(latest);
-    expect(screen.queryByRole("button", { name: "Na nejnovější" })).toBeNull();
-    expect(document.activeElement).toBe(log);
-    expect(top).toBe(1000);
+  describe("Na nejnovější under the keyboard", () => {
+    // The log scrolled away from the bottom, its button shown and focused; jsdom's window never has
+    // the focus, so the window's focus is the test's to set.
+    const focusedLatest = async () => {
+      state = { ...state, turns: [turn({ output: { reply: "Dobrý den." } })] };
+      const windowFocus = vi.spyOn(document, "hasFocus").mockReturnValue(true);
+      render(pane());
+      const log = await screen.findByRole("log");
+      let top = 100;
+      Object.defineProperty(log, "scrollHeight", { configurable: true, get: () => 1000 });
+      Object.defineProperty(log, "clientHeight", { configurable: true, get: () => 200 });
+      Object.defineProperty(log, "scrollTop", { configurable: true, get: () => top, set: (v: number) => { top = v; } });
+      fireEvent.scroll(log);
+      const latest = await screen.findByRole("button", { name: "Na nejnovější" });
+      act(() => latest.focus());
+      const toBottom = () => { top = 790; fireEvent.scroll(log); };
+      return { log, latest, windowFocus, toBottom, top: () => top };
+    };
+    const shown = () => screen.queryByRole("button", { name: "Na nejnovější" });
+
+    it("stays while it has the focus, and gives the focus to the log once it has jumped", async () => {
+      const { log, latest, toBottom, top } = await focusedLatest();
+      toBottom(); // the previous Tab's scroll lands at the bottom after the button took the focus
+      expect(shown()).toBe(latest);
+      expect(document.activeElement).toBe(latest);
+      fireEvent.click(latest);
+      expect(shown()).toBeNull();
+      expect(document.activeElement).toBe(log);
+      expect(top()).toBe(1000);
+    });
+
+    it("stays when another window takes the focus, for the keyboard's return", async () => {
+      const { latest, windowFocus, toBottom } = await focusedLatest();
+      windowFocus.mockReturnValue(false);
+      fireEvent.blur(latest);
+      toBottom();
+      expect(shown()).toBe(latest);
+    });
+
+    it("goes at the next scroll once the focus left it without the keyboard (the pane hidden)", async () => {
+      const { log, windowFocus, toBottom } = await focusedLatest();
+      windowFocus.mockReturnValue(false); // the blur is not counted, as when the pane is hidden
+      act(() => log.focus());
+      windowFocus.mockReturnValue(true);
+      toBottom();
+      expect(shown()).toBeNull();
+    });
   });
 });
