@@ -17,6 +17,7 @@ import {
 import { backEntry, closeStack, emptyStack, openEntry, type InspectorStack } from "@/lib/inspector-stack";
 import { isModelled, stepOf } from "@/lib/research-execution";
 import { useFrame } from "./frame-hook";
+import { useItemInspector } from "@/components/workbench/item-inspector-context";
 import { ItemInspector } from "./ItemInspector";
 import { canReview } from "./frame";
 import { Button } from "../ui";
@@ -102,7 +103,10 @@ export function ReportDocumentView({ run }: { run: ResearchRun }) {
   const [stack, setStack] = useState<InspectorStack>(() => emptyStack("report"));
   // A claim belongs to one document's ledger: switching closes it.
   const setKind = (k: Kind) => { setChosen(k); setStack(closeStack); };
-  const open = useCallback((ref: string) => setStack((s) => openEntry(s, { id: ref, title: `Tvrzení ${ref}`, sub: "Číslo ve zprávě a jeho evidence" })), []);
+  // Inside the workbench a claim opens in its one item drawer, under the frame's Escape order;
+  // outside it (and for a ref the target grammar refuses) in this view's own.
+  const inspector = useItemInspector();
+  const openOwn = useCallback((ref: string) => setStack((s) => openEntry(s, { id: ref, title: `Tvrzení ${ref}`, sub: "Číslo ve zprávě a jeho evidence" })), []);
   const back = useCallback(() => setStack(backEntry), []);
   const close = useCallback(() => setStack(closeStack), []);
 
@@ -124,6 +128,11 @@ export function ReportDocumentView({ run }: { run: ResearchRun }) {
   const { stored, doc } = loaded;
   const missing = unresolvedRefs(doc);
   const entry = (ref: string): LedgerEntry | undefined => doc.ledger.refs[ref];
+  const claim = (ref: string) => <ul className="flex flex-col gap-1">{claimLines(entry(ref)).map((line) => <li key={line}>{line}</li>)}</ul>;
+  const open = (ref: string) => {
+    const framed = inspector?.open({ id: `report:ref:${kind}:${ref}`, title: `Tvrzení ${ref}`, sub: "Číslo ve zprávě a jeho evidence" }, () => claim(ref));
+    if (!framed) openOwn(ref);
+  };
   return (
     // The pane's own width decides the layout, not the window's: the workbench's split can leave the
     // artifact narrow on a wide screen.
@@ -158,7 +167,7 @@ export function ReportDocumentView({ run }: { run: ResearchRun }) {
           over the page's foot, so the claim opens where it was asked. */}
       <div className={`fixed inset-x-3 bottom-3 z-30 flex max-h-[60vh] flex-col @3xl:sticky @3xl:top-3 @3xl:max-h-none @3xl:shrink-0 ${stack.entries.length ? "@3xl:w-80" : "@3xl:w-0"}`}>
         <ItemInspector stack={stack} onBack={back} onClose={close}>
-          {(top) => <ul className="flex flex-col gap-1">{claimLines(entry(top.id)).map((line) => <li key={line}>{line}</li>)}</ul>}
+          {(top) => claim(top.id)}
         </ItemInspector>
       </div>
     </div></div>

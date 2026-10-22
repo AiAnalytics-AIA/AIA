@@ -7,13 +7,14 @@ import { readFileSync } from "node:fs";
 import { join } from "node:path";
 
 import { act, cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
-import { useEffect } from "react";
+import { useContext, useEffect } from "react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import type { ResearchProject } from "@/research/model";
 import { ResearchStore } from "@/research/store";
 import { TEST_FRAME } from "../rehome/research/test-frame";
 import { EMPTY_PROJECT } from "../rehome/research/test-workspace";
+import { FrameNavigation } from "@/components/rehome/step";
 import { useItemInspector } from "./item-inspector-context";
 import { Workbench } from "./Workbench";
 
@@ -103,6 +104,7 @@ function Opener() {
       <button type="button" onClick={() => opened.push(inspector?.open({ id: "question:q1", title: "Otázka q1", sub: "Dotazník" }) ?? false)}>open q1</button>
       <button type="button" onClick={() => opened.push(inspector?.open({ id: "measure:q1", title: "Měření q1" }) ?? false)}>open m1</button>
       <button type="button" onClick={() => opened.push(inspector?.open({ id: "question:Q 2", title: "Bad" }) ?? false)}>open bad</button>
+      <button type="button" onClick={() => opened.push(inspector?.open({ id: "report:ref:r1", title: "Tvrzení r1" }, () => <p>Hodnota: 42 %</p>) ?? false)}>open claim</button>
     </div>
   );
 }
@@ -350,6 +352,15 @@ describe("the item inspector", () => {
     expect(opened).toEqual([true, true]);
   });
 
+  it("draws the body the opening screen gave (a report claim's evidence), not the kind's fallback", () => {
+    bench(<Opener />);
+    fireEvent.click(screen.getByRole("button", { name: "open claim" }));
+    const drawer = document.querySelector("[data-item-inspector]")!;
+    expect(drawer.getAttribute("data-item-inspector")).toBe("report:ref:r1");
+    expect(drawer.textContent).toContain("Hodnota: 42 %");
+    expect(drawer.querySelector("[data-inspect-fallback]")).toBeNull();
+  });
+
   it("gives the focus back to what opened it when it closes (Codex on #623)", async () => {
     bench(<Opener />);
     const opener = screen.getByRole("button", { name: "open q1" });
@@ -486,5 +497,66 @@ describe("the stage track reads the working copy's impact (working-copy-edit-ops
     await waitFor(() => expect(impactUrls.length).toBe(1));
     expect(impactUrls[0]).not.toContain("design_revision_id");
     expect(document.querySelectorAll("[data-impact]").length).toBe(0);
+  });
+});
+
+describe("a stage's forward action through the frame (FrameNavigation's next)", () => {
+  function Forward() {
+    const frame = useContext(FrameNavigation);
+    return frame?.next ? <button type="button" onClick={frame.next.go}>Další → {frame.next.label}</button> : <span>poslední</span>;
+  }
+  const benchOn = (step: "results" | "questionnaire") => {
+    const store = new ResearchStore({ revision: 3, project: EMPTY_PROJECT as unknown as ResearchProject, analysis: null, save: { kind: "saved" }, checkEpoch: 0 }, "STU-1");
+    return render(
+      <Workbench frame={TEST_FRAME} step={step} store={store} memory={new Map()} save={null} inspector={null} reload={vi.fn()} confirm={vi.fn(async () => true)}
+        onAgentStarted={vi.fn()} jobs={[]} onOpenJob={vi.fn()} onRefreshJobs={vi.fn(async () => [])}>
+        <Forward />
+      </Workbench>,
+    );
+  };
+  afterEach(() => {
+    window.location.hash = "";
+  });
+
+  it("names the stage after this one in the workbench's order, and opens it with the focus on its heading", async () => {
+    // Výsledky -> Sociomapa: one route, the stage its hash, as Dimenze -> Vzorek (whose screen
+    // needs the study's research context, which this frame-only test does not mount).
+    window.location.hash = "";
+    benchOn("results");
+    const forward = screen.getByRole("button", { name: "Další → Sociomapa" });
+    forward.focus();
+    act(() => forward.click());
+    await waitFor(() => expect(window.location.hash).toBe("#maps"));
+    await waitFor(() => expect(document.activeElement).toBe(screen.getByRole("heading", { level: 1, name: "Sociomapa" })));
+  });
+
+  it("asks nothing of a forward move a stage's leave guard stopped: a later visit keeps its own focus (review of #686)", async () => {
+    const guard = (e: MouseEvent) => {
+      if ((e.target as Element).closest("a[href]")) e.preventDefault();
+    };
+    document.addEventListener("click", guard, true);
+    try {
+      const view = benchOn("questionnaire");
+      act(() => screen.getByRole("button", { name: "Další → Cílová skupina" }).click());
+      // The person reaches Cílová skupina some other way later (the navigator): its heading does
+      // not take the focus from where that navigation put it.
+      const store = new ResearchStore({ revision: 3, project: EMPTY_PROJECT as unknown as ResearchProject, analysis: null, save: { kind: "saved" }, checkEpoch: 0 }, "STU-1");
+      view.rerender(
+        <Workbench frame={TEST_FRAME} step="audience" store={store} memory={new Map()} save={null} inspector={null} reload={vi.fn()} confirm={vi.fn(async () => true)}
+          onAgentStarted={vi.fn()} jobs={[]} onOpenJob={vi.fn()} onRefreshJobs={vi.fn(async () => [])}>
+          <Forward />
+        </Workbench>,
+      );
+      await screen.findByRole("heading", { level: 1, name: "Cílová skupina" });
+      await new Promise((r) => setTimeout(r, 30));
+      expect(document.activeElement).not.toBe(screen.getByRole("heading", { level: 1, name: "Cílová skupina" }));
+    } finally {
+      document.removeEventListener("click", guard, true);
+    }
+  });
+
+  it("names Cílová skupina after Dotazník", () => {
+    benchOn("questionnaire");
+    expect(screen.getByRole("button", { name: "Další → Cílová skupina" })).toBeTruthy();
   });
 });

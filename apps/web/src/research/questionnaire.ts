@@ -416,6 +416,45 @@ export function restoreQuestion(p: ResearchProject, si: number, sectionId: strin
   });
 }
 
+/**
+ * An undo of an option's removal (input-interactions I6, audit A3): `value` put back at `index` of
+ * its question's options, the question found by its section's id and its own (by index only while
+ * neither has one). Only on a choice question (no type reads as one, as the compiler reads it);
+ * nothing when the question is gone or another type, or the option is already there. Other
+ * options edited since are kept as they are.
+ */
+export function restoreOption(p: ResearchProject, si: number, sectionId: string | undefined, qi: number, questionId: string | undefined, index: number, value: string): ResearchProject {
+  const xs = sections(p);
+  const at = sectionId ? xs.findIndex((x) => x.id === sectionId) : si < xs.length && !xs[si].id ? si : -1;
+  if (at < 0 || xs[at].type !== "questions") return p;
+  const qs = xs[at].questions || [];
+  const qat = questionId ? qs.findIndex((x) => x.id === questionId) : qi < qs.length && !qs[qi].id ? qi : -1;
+  if (qat < 0 || !["", "vyber", "multi"].includes(String(qs[qat].typ || ""))) return p;
+  if ((qs[qat].kategorie || []).includes(value)) return p;
+  return edit(p, (ys) => {
+    const q = (ys[at].questions || [])[qat];
+    const list = q.kategorie || [];
+    const i = Math.min(Math.max(index, 0), list.length);
+    q.kategorie = [...list.slice(0, i), value, ...list.slice(i)];
+  });
+}
+
+/**
+ * Esc on a question's wording (input-interactions I1, audit A1): what it puts back. `base` is the
+ * wording this field's typing started from, `typed` the last value it wrote. A wording changed under
+ * the field (a Lead edit, a reload) becomes the new base before the next keystroke, so Esc never
+ * puts back anything older than a change accepted from elsewhere.
+ */
+export type WordingEdit = { base: string; typed: string };
+export const wordingFocused = (value: string): WordingEdit => ({ base: value, typed: value });
+export function wordingTyped(w: WordingEdit, current: string, next: string): WordingEdit {
+  return { base: w.typed === current ? w.base : current, typed: next };
+}
+/** The wording Esc writes back, or null: nothing typed here, or the copy moved since. */
+export function wordingEscape(w: WordingEdit, current: string): string | null {
+  return w.typed === current && w.base !== current ? w.base : null;
+}
+
 export type SectionField = "title" | "purpose" | "object_question" | "familiarity_required";
 
 /** The section card's inline edits. */

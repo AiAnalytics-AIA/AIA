@@ -2199,6 +2199,8 @@ export const cs = {
         blockRemovedBare: "Blok smazán i s otázkami",
         setRemoved: "Sada „{name}“ smazána",
         setRemovedBare: "Sada smazána",
+        optionRemoved: "Možnost „{name}“ odebrána",
+        optionRemovedBare: "Možnost odebrána",
       },
       setTag: "Sledovaná objektová sada · vlastní mapa",
       setTitle: "Název sady",

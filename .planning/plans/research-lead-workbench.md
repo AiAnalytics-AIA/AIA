@@ -1583,3 +1583,43 @@ It does show focus: a 2 px signal line down its full height (`.split__handle:foc
    and `lead_journey.mjs` caught it on "Pamatovat si" at 390, which it now decides by keyboard and
    asserts the focus stays in the conversation); and
    `recoveryTarget`'s order.
+
+### FrameNavigation names the next stage (2026-10-22, `feature/frame-next-stage`, asked by Dimenze)
+
+#668 made `FrameNavigation` a boolean, so a stage's forward action ("Další → Vzorek") had to copy
+the workbench's `go`.
+- **Why that was wrong.** Dimenze's draft set `location.hash = "sample"` itself, which:
+  - lost the focus, because the pressed button is hidden with Dimenze's screen;
+  - hard-coded that Vzorek shares Dimenze's route, bypassing the leave guard if the next stage ever
+    lived on another route;
+  - named `STAGES.sample` instead of the stage after it in `STAGE_ORDER` (DIM-F4's drift).
+- **The context value.** It is now `{ next: { label, go } | null } | null`: null outside a frame,
+  `next` null on the last stage.
+- **What the workbench provides.** `next` is the stage after the current one in `STAGE_ORDER`.
+  `go` opens it as the navigator does (`go`: hash on the same route, `guardedNavigate` otherwise),
+  then focuses the new stage's heading (`.arthead__title`, `tabIndex={-1}`). The pending focus is
+  kept at module scope so a route change, which remounts the workbench, keeps it.
+- **ActionDock** reads `framed = value !== null`.
+- **Review of #686.** A pending heading focus no longer outlives a move that a leave guard
+  stopped. `guardedNavigate` returns whether it navigated, `go` passes that on, and `next.go` asks
+  for the focus only for a move that went through. The pending value names its study and is
+  consumed on every stage change, matched or not.
+- **Tests.** `Workbench.layout.test.tsx` "a stage's forward action through the frame": Výsledky →
+  Sociomapa by hash with the focus on Sociomapa's heading (it fails without the focus move), and
+  Dotazník → Cílová skupina named. `step.test.tsx` passes `{ next: null }`.
+
+### The report's claims open in the workbench's one item drawer (2026-10-22, `feature/report-items-in-drawer`)
+
+Zpráva's document (`ReportDocumentView`) kept a drawer of its own inside the workbench. Its Escape
+ran outside the frame's one order (D21), and a second drawer could open beside the workbench's.
+- **Inside the workbench** a claim chip opens `report:ref:<kind>:<ref>` (the document's kind, internal or client, since a ref is one ledger's) in the workbench's item drawer
+  (`useItemInspector`), with the claim's evidence as the entry's body.
+- **The drawer API.** `ItemInspectorApi.open(entry, body?)` takes the body the opening screen
+  already holds. The workbench keeps it by entry id and draws it instead of `ItemInspectBody`.
+- **Outside the workbench**, and for a ref the target grammar refuses, the view keeps its own
+  drawer as before.
+- **Tests.**
+  - `ReportDocumentView.test.tsx` "inside the workbench opens a claim in the workbench's one item
+    drawer…".
+  - `Workbench.layout.test.tsx` "draws the body the opening screen gave…".
+  - Both fail without the change.

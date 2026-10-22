@@ -13,6 +13,8 @@ import { ApiError, research, type ResearchRun } from "@/lib/api";
 import { type ReportDocumentModel, type StoredReportDocument, valueWords } from "@/lib/artifacts/report";
 import { parseAiaId } from "@/lib/workbench-artifacts";
 
+import { ItemInspectorContext } from "@/components/workbench/item-inspector-context";
+import type { ReactNode } from "react";
 import { StudyFrameProvider } from "./frame";
 import { ReportDocumentView } from "./ReportDocumentView";
 import { TEST_FRAME } from "./test-frame";
@@ -94,6 +96,25 @@ describe("the stored draft in the pane", () => {
     expect(within(drawer).getByText(/^Hodnota: /)).toBeTruthy();
     fireEvent.click(within(drawer).getByRole("button", { name: /zavřít/i }));
     expect(screen.queryByRole("complementary")).toBeNull();
+  });
+
+  it("inside the workbench opens a claim in the workbench's one item drawer, with its evidence, and draws none of its own", async () => {
+    vi.mocked(research.reportDocument).mockResolvedValue(STORED);
+    const opened: { id: string; body?: () => ReactNode }[] = [];
+    const inspector = { open: (entry: { id: string }, body?: () => ReactNode) => { opened.push({ id: entry.id, body }); return true; } };
+    const { container } = render(
+      <StudyFrameProvider frame={TEST_FRAME}><ItemInspectorContext.Provider value={inspector}><ReportDocumentView run={run("SUCCEEDED")} /></ItemInspectorContext.Provider></StudyFrameProvider>,
+    );
+    await screen.findByRole("article", { name: "Koncept zprávy" });
+    const chip = container.querySelector<HTMLElement>("[data-claim]")!;
+    fireEvent.click(chip);
+    expect(opened.map((o) => o.id)).toEqual([`report:ref:internal:${chip.dataset.claim}`]);
+    expect(parseAiaId(opened[0]!.id)?.stage).toBe("report");
+    // The body it gives is the claim's evidence, as its own drawer drew it.
+    const body = render(<>{opened[0]!.body!()}</>);
+    expect(body.getByText(/^Hodnota: /)).toBeTruthy();
+    // Its own drawer stays shut: one drawer, under the frame's Escape order.
+    expect(within(container).queryByRole("complementary")).toBeNull();
   });
 
   it("names the DOCX it is beside and that draft's review", async () => {
