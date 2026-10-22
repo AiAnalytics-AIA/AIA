@@ -1029,6 +1029,22 @@ describe("the map's window: review follow-ups", () => {
     }
   });
 
+  it("opens the detail beside the zoom column, so its buttons stay free while an object is picked", () => {
+    const css = readFileSync(join(process.cwd(), "src/components/rehome/research/object-map-windows.css"), "utf8");
+    const px = (rule: string, prop: string) => Number(new RegExp(`${rule} \\{[^}]*?\\b${prop}: (\\d+)px`).exec(css)?.[1]);
+    // The column's width: its buttons, its padding on both sides and its 1 px border.
+    const column = px("\\.omw-tools", "right") + px("\\.omw-tools button", "width") + 2 * px("\\.omw-tools", "padding") + 2;
+    const gutter = Number(/--omw-zoom-gutter: (\d+)px/.exec(css)?.[1]);
+    expect(gutter).toBeGreaterThanOrEqual(column + 8);
+    expect(css).toMatch(/\.omw-win--detail \{[^}]*right: var\(--omw-zoom-gutter\)/);
+    expect(css).toMatch(/\.omw-win--detail \{[^}]*width: min\(430px, calc\(100% - var\(--omw-zoom-gutter\) - 14px\)\)/);
+    // Narrow, the work windows span the stage up to the column too.
+    const narrow = /@media \(max-width: 850px\) \{\n((?:  .*\n)*)\}/.exec(css)?.[1] ?? "";
+    expect(narrow).toMatch(/\.omw-win--work \{[^}]*right: var\(--omw-zoom-gutter\)/);
+    // A stage too narrow for 260 px beside the column narrows its windows rather than covering it.
+    expect(narrow).toMatch(/\.omw-win \{ min-width: min\(260px, calc\(100% - var\(--omw-zoom-gutter\) - 8px\)\)/);
+  });
+
   it("isolates the stage, so its windows stay under the page's header, toasts and dialogs", () => {
     render(<ObjectMapView battery={hudba} dataOrigin={null} />);
     expect(screen.getByTestId("object-map-stage").className.split(" ")).toContain("isolate");
