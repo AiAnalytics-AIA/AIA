@@ -162,9 +162,28 @@ None new (replacement is MVPQ-10, already open).
   - Test: one shared case file of check, status and stage, read by both suites.
 
 
+- **F-FLD-3. Spuštění's links back to a stage are too small to tap.** "Opravit →" and "Upravit"
+  render 15-16 px tall at every width (`ExecutionSteps.tsx:413, 523, 565, 790 @ b6ac25c5`).
+  - The standard: the input standard's touch target, 44 px at a phone's width and 32 px from 640 px
+    (`components/ui/parts.tsx` `TOUCH`, I11; WCAG 2.5.8).
+  - Reproduction: `tools/ui_workbench/workbench_journey.mjs`, step "Spuštění's links back to a stage"
+    (heights 16, 15).
+  - Fix: one `STAGE_LINK` class with `TOUCH` and `FOCUS`, at all four.
+  - Test: the same journey step at 1440, 1100, 768 and 390 px.
+- **F-FLD-4. "Kdo odpovídal" and "Co spustíte" squeeze their values beside an 8 rem label column on a
+  narrow card.** At 390 px each value of "Kdo odpovídal" gets 46 % of the card, and the dimensions line wraps
+  over six lines. "Co spustíte" is worse, with its link column too.
+  - Anchors: `ExecutionSteps.tsx:216, 411 @ b6ac25c5`.
+  - Reproduction: `tools/ui_workbench/research_journey.mjs`, step "Kdo odpovídal stacks its values",
+    which reports 0.46 for each row.
+  - Fix: label above value on a narrow card, by a container query on the card's own width, so the
+    workbench's narrow artifact pane is covered too.
+  - Tests: that journey step and the workbench journey's step at 390 px.
+
 ## Doc follow-up
 
 - `open-items.md`: F-FLD-1 (fixed by this PR, with Vzorek's F-SMP-1) and F-FLD-2 (open), from Findings above.
+- `open-items.md`: F-FLD-3 and F-FLD-4, fixed by the PR that carries them (stage link targets).
 
 - Register this plan and its chunks.
 - `CLAUDE.md` § 2, `routers/research.py`: a run's `spent_usd` / `reserved_usd` (FLD4).
