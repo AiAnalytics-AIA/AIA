@@ -256,3 +256,43 @@ def test_a_full_notes_layer_is_within_its_ceiling() -> None:
         if row["ceiling_bytes"] is not None:
             assert row["bounded_bytes"] <= row["ceiling_bytes"], row["layer"]
     assert _row(manifest, "lead")["bytes"] > _row(manifest, "lead")["bounded_bytes"]
+
+
+def test_every_part_the_classification_emits_maps_to_a_layer() -> None:
+    context = _context(
+        lead={
+            "name": DEFAULT_LEAD_NAME,
+            "soul": DEFAULT_SOUL,
+            "user": "",
+            "notes": [
+                {"memory_id": "LMM-1", "scope": "personal", "text": "stručně"},
+                {"memory_id": "LMM-2", "scope": "client", "text": "fiktivní klient"},
+            ],
+            "first_conversation": False,
+        },
+        knowledge=[{"item_id": "K-1", "revision": 1, "kind": "FACT", "title": "t", "summary": "s"}],
+        design={
+            "workspace_revision": 1,
+            "design_revision_id": "REV-1",
+            "content": {"title": "Fiktivní"},
+            "analysis": {"objectives": ["Ověřit"]},
+        },
+        view={
+            "kind": "message",
+            "stage": "brief",
+            "focus": {"id": "brief:goal", "label": "Cíl"},
+            "message": "Ahoj",
+        },
+        conversation=[
+            {"actor": "person", "stage": "brief", "text": "Dřív"},
+            {
+                "actor": "lead",
+                "stage": "brief",
+                "reply": "Ano",
+                "data_class": "CLASS_B_DERIVED_CLIENT",
+            },
+        ],
+        external={"pin": {"deep_research_run_id": "RUN-1"}, "lines": ["[EV-1] Fiktivní."]},
+    )
+    parts = {p["part"] for p in context_classification(context, (), _pin())}
+    assert parts <= set(PART_LAYERS), parts - set(PART_LAYERS)
