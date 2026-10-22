@@ -20,6 +20,7 @@ from typing import Any
 from sqlalchemy.orm import Session
 
 from ..domain.ai_contracts import canonical_json
+from ..domain.ai_respondent import fieldwork_seed
 from ..domain.analysis.native import research_questions_of
 from ..domain.analysis.steps import analysis_step_inputs
 from ..domain.answerability import (
@@ -53,6 +54,7 @@ from ..domain.methodology.pins import (
 )
 from ..domain.money import ThresholdVerdict, threshold_verdict
 from ..domain.panel_persona import persona_allowlist
+from ..domain.panel_source import panel_filters
 from ..domain.pipeline import StageImpact, changed_fields, fingerprint, stage_impacts
 from ..domain.population import (
     CZ_LIVE,
@@ -118,6 +120,7 @@ from ..infrastructure.workflow_repository import (
     WorkflowRepository,
 )
 from .analysis import MAX_REPAIRS
+from .audience_preview import PanelDraw, PanelSampler
 from .population import child_binding, live_binding
 from .proposal_accept import (
     AcceptedProposal,
@@ -410,6 +413,8 @@ class RunOutlook:
     #: Whether the run can answer every stated research question, and the gaps a start must
     #: have acknowledged when it cannot; ``None`` when it does not compile.
     answerability: Answerability | None = None
+    #: The sample a panel run would draw (or the sampler's refusal); ``None`` when none was drawn.
+    panel: PanelDraw | None = None
 
 
 @dataclass(frozen=True, slots=True)
@@ -470,6 +475,16 @@ class ResearchRuns:
     #: composition, another only in tests over a fictional contract.
     population_contract: PopulationImportContract = CZ_SYNTHETIC_V17
     population_id: str = CZ_LIVE
+    #: Draws a panel run's sample over the population above (run-qc-and-checkpoint RQC6b);
+    #: ``None``: none composed, so a panel run's support forecast reads unknown.
+    panel_sampler: PanelSampler | None = None
+
+    def _panel_draw(self, spec: ResearchSpecification) -> PanelDraw | None:
+        """The sample a panel run of ``spec`` would draw: the design's filters, its n and the
+        seed fieldwork draws with (``fieldwork_seed``), over the population a new run records."""
+        if self.panel_sampler is None or spec.n is None or spec.n < 1:
+            return None
+        return self.panel_sampler(panel_filters(spec), spec.n, fieldwork_seed(spec))
 
     def _designs(self) -> StudyDesignRepository:
         return StudyDesignRepository(self.session, self.scope)
@@ -775,8 +790,17 @@ class ResearchRuns:
             forecast: SupportForecast | None = None
             if fieldwork_source is FieldworkSource.AI_RUNTIME:
                 _, slots = read_aggregation_pin(aggregation_pin)
+                # As readiness forecast it, so the gaps a person acknowledged there are these. A
+                # run over a selected child (or a retry, which keeps the original's population)
+                # draws from a population the sampler does not read: unknown, as before.
+                fresh_live = population_version_id is None and retry_of is None
+                drawn = self._panel_draw(_spec) if panel and fresh_live else None
                 forecast = forecast_support(
-                    _spec, support=support_spec, persona_source=persona_source, slots=slots
+                    _spec,
+                    support=support_spec,
+                    persona_source=persona_source,
+                    slots=slots,
+                    sample=drawn.sample if drawn is not None else None,
                 )
             items = question_outlook(_spec, forecast)
             trace = trace_research(
@@ -1314,14 +1338,21 @@ class ResearchRuns:
         if spec is None:
             return RunOutlook(spec=None, readiness=readiness, questions=(), trace=None)
         forecast: SupportForecast | None = None
+        panel: PanelDraw | None = None
         if fieldwork_source is FieldworkSource.AI_RUNTIME:
             support, _ = self._support(None)
             # The aggregation a start would pin, compiled as the aggregate reads it: a version
             # that replaces Kish's formula changes every cell's effective n.
             pin, _ = self._aggregation(None)
             _, slots = read_aggregation_pin(pin)
+            if persona_source is PersonaSource.PANEL:
+                panel = self._panel_draw(spec)
             forecast = forecast_support(
-                spec, support=support, persona_source=persona_source, slots=slots
+                spec,
+                support=support,
+                persona_source=persona_source,
+                slots=slots,
+                sample=panel.sample if panel is not None else None,
             )
             readiness = with_support_forecast(readiness, forecast, support=support)
         questions = question_outlook(spec, forecast)
@@ -1338,6 +1369,7 @@ class ResearchRuns:
             questions=questions,
             trace=decided_trace(trace, answer),
             answerability=answer,
+            panel=panel,
         )
 
     def _support(self, support: SupportSpec | None) -> tuple[SupportSpec, dict[str, Any] | None]:

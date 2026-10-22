@@ -22,6 +22,7 @@ from aia_core.application.analysis_results import (
     retry_failed_modules,
     stored_analysis,
 )
+from aia_core.application.audience_preview import PanelDraw, PanelSampler
 from aia_core.application.client_report import (
     CLIENT_REPORT_DOCUMENT_ARTIFACT_TYPE,
     ClientGateRefused,
@@ -116,6 +117,7 @@ from aia_core.domain.fieldwork import (
 from aia_core.domain.methodology.pins import response_deviates, run_methods
 from aia_core.domain.persona_topics import dimension_topic
 from aia_core.domain.population import PopulationError, UnknownDatasetVersion
+from aia_core.domain.population.sampling import quota_keys
 from aia_core.domain.report.document_model import (
     DOCUMENT_MODEL_MEDIA_TYPE,
     DocumentModelInvalid,
@@ -156,6 +158,7 @@ from pydantic import BaseModel, ConfigDict, Field, StringConstraints
 from ..dependencies import (
     ArtifactStoreDep,
     AudiencePopulation,
+    PanelSamplerDep,
     RunPopulationDep,
     SessionDep,
     SettingsDep,
@@ -591,6 +594,36 @@ class ResearchLimitsResponse(BaseModel):
     sample_size: SampleSizeRange
 
 
+class QuotaCellResponse(BaseModel):
+    """One cell of the sample's quota (``domain.population.sampling.QuotaCell``)."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    #: The cell as an identifier: its values folded to ASCII, joined by ``/``.
+    key: str
+    #: Its value in each of the composition's ``quota_fields``.
+    values: list[str]
+    #: The respondents the sampler's largest-remainder allotment gave it.
+    n: int
+
+
+class SampleCompositionResponse(BaseModel):
+    """The sample a panel run of this design would draw: ``draw_panel_sample`` over the
+    population a new run records, at the design's filters, its n and the run's own seed. How n
+    is spread over the quota cells, never support for anything measured in a cell."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    #: Why the sampler refused (its reason code); ``None`` when it drew.
+    refused: str | None
+    version_id: str | None
+    seed: int | None
+    quota_fields: list[str]
+    cells: list[QuotaCellResponse]
+    #: Distinct donors behind the sample; ``None`` when refused or without a donor column.
+    sample_donors: int | None
+
+
 class _ReadinessBody(BaseModel):
     """What readiness says of a design, whichever revision it was read on."""
 
@@ -627,6 +660,9 @@ class _ReadinessBody(BaseModel):
     persona_sources: list[PersonaSourceOption] = []
     #: ``None`` when the design does not compile.
     answerability: AnswerabilityResponse | None = None
+    #: The sample a panel run would draw (RQC6b); ``None`` when none was drawn (another persona
+    #: source, no population to draw from, a fieldwork source that is not ``ai_runtime``).
+    sample_composition: SampleCompositionResponse | None = None
 
 
 class ReadinessResponse(_ReadinessBody):
@@ -1211,6 +1247,7 @@ def readiness(
     request: Request,
     scope: StudyScopeDep,
     session: SessionDep,
+    sampler: PanelSamplerDep,
     design_revision_id: Annotated[str, Query(max_length=64, pattern=r"^REV-[0-9a-f]{1,32}$")],
     persona_source: Annotated[PersonaSource | None, Query()] = None,
 ) -> ReadinessResponse:
@@ -1221,7 +1258,7 @@ def readiness(
     The 18.6.6 technical preflight is not these checks and is not claimed.
     """
     chosen = _chosen_persona_source(request, persona_source)
-    runs = ResearchRuns(session, scope)
+    runs = ResearchRuns(session, scope, panel_sampler=sampler)
     try:
         outlook = runs.outlook(
             design_revision_id,
@@ -1245,6 +1282,7 @@ def working_readiness(
     request: Request,
     scope: StudyScopeDep,
     session: SessionDep,
+    sampler: PanelSamplerDep,
     working_revision: Annotated[int, Query(ge=1)],
     persona_source: Annotated[PersonaSource | None, Query()] = None,
 ) -> WorkingReadinessResponse:
@@ -1253,7 +1291,7 @@ def working_readiness(
     reads it on the revision it shows; a start still runs a submitted Design Revision.
     A revision the Study never saved is 404 ``working_revision``."""
     chosen = _chosen_persona_source(request, persona_source)
-    runs = ResearchRuns(session, scope)
+    runs = ResearchRuns(session, scope, panel_sampler=sampler)
     try:
         outlook = runs.outlook_working(
             working_revision,
@@ -1363,7 +1401,32 @@ def _readiness_body(
         )
         if outlook.answerability is not None
         else None,
+        "sample_composition": _composition(outlook.panel) if outlook.panel is not None else None,
     }
+
+
+def _composition(panel: PanelDraw) -> SampleCompositionResponse:
+    sample = panel.sample
+    if sample is None:
+        return SampleCompositionResponse(
+            refused=panel.refused,
+            version_id=panel.version_id,
+            seed=panel.seed,
+            quota_fields=[],
+            cells=[],
+            sample_donors=None,
+        )
+    return SampleCompositionResponse(
+        refused=None,
+        version_id=sample.version_id,
+        seed=sample.seed,
+        quota_fields=list(sample.audit.quota_fields),
+        cells=[
+            QuotaCellResponse(key=key, values=list(c.values), n=c.n)
+            for c, key in zip(sample.quota_cells, quota_keys(sample.quota_cells), strict=True)
+        ],
+        sample_donors=sample.audit.sample_donors,
+    )
 
 
 def _trace(trace: ResearchTrace) -> ResearchTraceResponse:
@@ -1400,6 +1463,7 @@ def start_run(
     session: SessionDep,
     response: Response,
     population: RunPopulationDep,
+    sampler: PanelSamplerDep,
 ) -> ResearchRunResponse:
     """Idempotent per Design Revision: a double submission gets the existing run.
 
@@ -1414,6 +1478,7 @@ def start_run(
         scope,
         population_contract=population.contract,
         population_id=population.population_id,
+        panel_sampler=sampler,
     )
     with run_start_errors():
         started = runs.start(
@@ -1457,7 +1522,9 @@ def run_start_errors() -> Iterator[None]:
         raise _population_refused(exc) from exc
 
 
-def run_start_settings(request: Request, population: AudiencePopulation) -> RunStartSettings:
+def run_start_settings(
+    request: Request, population: AudiencePopulation, sampler: PanelSampler | None
+) -> RunStartSettings:
     """What a research run's start takes from the deployment, as ``start_run`` passes it: the
     fieldwork source, analysis and Sociomapping switches, reservations, the default persona
     source, the answerability gate and the population a new run records. A typed start (LO5)
@@ -1474,6 +1541,7 @@ def run_start_settings(request: Request, population: AudiencePopulation) -> RunS
         require_answerability=settings.research_answerability_gate,
         population_contract=population.contract,
         population_id=population.population_id,
+        panel_sampler=sampler,
     )
 
 

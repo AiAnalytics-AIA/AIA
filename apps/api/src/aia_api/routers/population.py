@@ -575,6 +575,14 @@ class AudiencePreviewRequest(_Model):
         return value
 
 
+class PreviewQuotaCell(_Model):
+    """One quota cell of the drawn sample: its identifier, its values and its respondents."""
+
+    key: str
+    values: list[str]
+    n: int
+
+
 class PreviewVerdict(_Model):
     ok: bool
     reason: str | None = None
@@ -584,6 +592,9 @@ class PreviewVerdict(_Model):
     status: str | None = None
     sample_donors: int | None = None
     effective_n: float | None = None
+    #: A drawable sample's quota fields and cells: how the sampler spreads n (RQC6b).
+    quota_fields: list[str] | None = None
+    cells: list[PreviewQuotaCell] | None = None
 
 
 class AudiencePreviewResponse(_Model):

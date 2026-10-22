@@ -8,8 +8,8 @@ chunks:
   - "[ ] RQC4. The flag artifact and the worker's keep-or-flag proposal; the accept destination"
   - "[ ] RQC5. Replace as a new linked run: a start path from a COMPLETED run with an exclusion pin that reuses the other respondents' paid answers; its ADR and deterministic admission rule (ADR 0026 decision 4) come first"
   - "[ ] RQC6. Quotas before a run and a support forecast for the panel path (split 2026-10-22 into RQC6a-RQC6d, owner: the Vzorek session)"
-  - "[ ] RQC6a. Domain: a panel sample's quota cells (the sampler's own largest-remainder allotment) and the support forecast from a drawn panel sample, through the roster path's donor_support and analysis gate"
-  - "[ ] RQC6b. Application and API: readiness draws the panel sample a start would draw (fieldwork_seed, the design's filters, the population the run would record) and carries its forecast and quota cells; the audience preview carries its quota cells at PREVIEW_SEED; unknown, said why, without the population"
+  - "[x] RQC6a. Domain: a panel sample's quota cells (the sampler's own largest-remainder allotment) and the support forecast from a drawn panel sample, through the roster path's donor_support and analysis gate"
+  - "[x] RQC6b. Application and API: readiness draws the panel sample a start would draw (fieldwork_seed, the design's filters, the population the run would record) and carries its forecast and quota cells; the audience preview carries its quota cells at PREVIEW_SEED; unknown, said why, without the population"
   - "[ ] RQC6c. Web (artifact-sample SMP2): Vzorek's composition as quota cells, each sample:quota:<cell>, and the panel run's forecast in words"
   - "[ ] RQC6d. Journey (artifact-sample SMP6): Vzorek's panel composition and forecast at 1440, 1100, 768 and 390 px over the population double, zero paid jobs"
   - "[ ] RQC7. The fieldwork event contract: heartbeat, quota-cell fill, a respondent grid, the park reason code"
@@ -91,6 +91,35 @@ gains `sample_composition` (quota fields, cells with a Lead-safe id, the seed, t
 `/population/audience-preview` gains its cells at `PREVIEW_SEED`. The draw's cost on the
 population is measured and stated in the PR. Tests: readiness on a panel design over the
 population double states the run's donors and cells; without the population root, unknown.
+
+RQC6a delivered in #690: `PanelSample.quota_cells` (`QuotaCell`, out of `provenance()`) and
+`forecast_support(…, sample=)`; tests `test_population_sampling.py::test_a_samples_quota_cells_are_the_units_largest_remainder`
+and `::test_a_panel_forecast_reads_the_sample_a_start_would_draw`. Metodika's `sample_base` and
+`kish_sample` pins moved with `draw_panel_sample`.
+
+RQC6b delivered: a sample drawn at any seed but `fieldwork_seed(spec)` reads unknown (the
+domain's one guard, review on #690). `AudiencePreviewer.panel_sample` keeps the last 32 draws per
+(version, filters, n, seed); `dependencies.get_panel_sampler` binds it to the request's session
+only when the previewer reads the population a new run records, so the workbench's stand-in
+audience reads unknown. Readiness (both routes), `POST …/research/runs` and the Lead's typed
+start (`RunStartSettings.panel_sampler`) draw the same sample, so the gaps a person acknowledged on
+readiness are the start's; a start over a selected child or a retry draws none (unknown, as
+before). Readiness answers `sample_composition` (refused, version, seed, quota fields, cells with
+a `key`, donors); the audience preview's `sample` gains its `quota_fields` and `cells` at
+`PREVIEW_SEED`. Measured: readiness over the double (3,000 rows) 102 ms with the population cold,
+45 ms warm with the draw cold, 28-36 ms cached; the draw alone over 18,766 rows (LIVE's size)
+41 / 62 / 127 ms at n 300 / 1,000 / 3,000. Test
+`test_population_double_api.py::test_readiness_draws_the_panel_sample_a_start_would_draw`,
+`::test_a_start_draws_the_sample_readiness_drew` and
+`::test_a_population_that_will_not_load_reads_unknown_never_fails_readiness` (a load failure is
+`refused: population_unavailable`, never a 500).
+
+Open from RQC6b's review, each a hypothesis until reproduced over HTTP:
+- A refused panel draw (`sampling_n_exceeds_support`, `sampling_field_refused`) is named in
+  `sample_composition.refused` but is no readiness check, so a start goes ahead and fieldwork fails
+  on the same refusal; a FAIL (or WARN) check from the refusal is a readiness rule of its own.
+- Readiness takes no selected child population, so it forecasts over LIVE while a start over a
+  child reads unknown; the composition then describes a population the run does not draw from.
 
 **RQC6c. Web (SMP2).** Vzorek's §1 composition from `sample_composition`; `sample:quota:<cell>`
 on each cell; the panel forecast's words in §2; unknown said with its reason.
