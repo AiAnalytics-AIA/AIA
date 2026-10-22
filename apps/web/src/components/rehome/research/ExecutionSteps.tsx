@@ -43,6 +43,7 @@ import { clientChildren, outcomeValue, targetVerdict } from "@/lib/population";
 import { latestDesignRun, questionEvidence } from "@/lib/design-evidence";
 import { citedSnapshot } from "@/lib/verified-source";
 import { researchStepOrb, researchStepWork } from "@/lib/activity-orb";
+import { RECEIPT_TARGET, stepTarget } from "@/lib/artifacts/fieldwork";
 import { activityOf } from "@/lib/step-activity";
 import { type BatteryWithMaps, mapApproval, readObjectMap, type RecordedMethod, type RegisterEntry } from "@/lib/object-map-view";
 import {
@@ -189,7 +190,7 @@ function OriginBanners({ run }: { run: ResearchRun }) {
  * the origin its data reports, a mismatch named -- the population it recorded and whether it was
  * read, and each selected dimension and filter, applied or not and why.
  */
-function RespondentsReceipt({ run }: { run: ResearchRun }) {
+function RespondentsReceipt({ run, pointable = false }: { run: ResearchRun; pointable?: boolean }) {
   const R = "research.exec.respondents.receipt";
   const who = respondentReceipt(run);
   const sel = run.selection;
@@ -209,6 +210,8 @@ function RespondentsReceipt({ run }: { run: ResearchRun }) {
     rows.push([t(`${R}.filters`), filters.length ? `${filters.join(", ")} · ${applied(sel.filters_applied, sel.filters_reason)}` : t(`${R}.none`)]);
   }
   return (
+    // Pointable only on Sběr dat, whose row names the receipt; Výsledky's names measures alone.
+    <div data-aia={pointable ? RECEIPT_TARGET : undefined}>
     <Card title={t(`${R}.title`)}>
       {who.mismatch ? <p role="alert" className="mb-2 text-sm font-semibold text-status-fault">{t(`${R}.mismatch`)}</p> : null}
       <dl data-population={run.population?.version_label} className="divide-y divide-border rounded-control border border-border">
@@ -221,6 +224,7 @@ function RespondentsReceipt({ run }: { run: ResearchRun }) {
       </dl>
       {sel === null || sel === undefined ? <p className="mt-2 text-xs text-ink-muted">{t(`${R}.unrecorded`)}</p> : null}
     </Card>
+    </div>
   );
 }
 
@@ -377,11 +381,19 @@ function CostBar({ ceiling, limit, asks }: { ceiling: number; limit: number | nu
   );
 }
 
-/** Where a failing readiness check is fixed: the sample (and the support it gives) on Dimenze, the audience on Audience, the rest on Dotazník. */
+/** Where each readiness check (domain research_design.assess_readiness, support_forecast) is
+ *  fixed. A check not named here -- the questionnaire's, a compile problem, research-question
+ *  coverage -- is fixed on Dotazník. */
+const FIX_STEP: Readonly<Record<string, StepKey>> = {
+  sample_size: "persona",
+  support_forecast: "persona",
+  sociomap_support: "persona",
+  dimensions: "persona",
+  audience: "audience",
+};
+
 export function fixStep(checkId: string): StepKey {
-  if (/sample|^n$|^support_forecast$/.test(checkId)) return "persona";
-  if (/audience/.test(checkId)) return "audience";
-  return "questionnaire";
+  return Object.hasOwn(FIX_STEP, checkId) ? FIX_STEP[checkId] : "questionnaire";
 }
 
 /** "Co spustíte": each step of the design in one line, as the revision carries it, with a way back to it. */
@@ -1233,7 +1245,7 @@ export function ProgressStep() {
       </InspectorSlot>
       {foundByStart ? <p role="status" data-found-by-start className="rounded-sm border border-status-you-ink/40 bg-status-you-wash p-3 text-sm">{t("research.exec.foundByStart")}</p> : null}
       <OriginBanners run={run} />
-      <RespondentsReceipt run={run} />
+      <RespondentsReceipt run={run} pointable />
       <Card>
         <div className="flex flex-wrap items-center gap-3">
           <Chip tone={state.tone}>{state.label}</Chip>
@@ -1285,7 +1297,7 @@ export function ProgressStep() {
         <ol className="flex flex-col gap-3" aria-label={t("aia.stages.progress")}>
           {listed.map((s) => (
             // Pointable by the Lead (the coordinator's registry: fieldwork targets step:<node_key>).
-            <li key={s.node_key} data-aia={`step:${s.node_key}`} data-step={s.node_key} data-status={s.status} className="flex flex-col gap-0.5 text-sm">
+            <li key={s.node_key} data-aia={stepTarget(s.node_key) ?? undefined} data-step={s.node_key} data-status={s.status} className="flex flex-col gap-0.5 text-sm">
               <div className="flex flex-wrap items-center gap-2">
                 <Chip tone={stepTone(s, run.is_terminal)}>{stepStatusLabel(s, run.is_terminal)}</Chip>
                 <span className="font-medium">{stepLabel(s.node_key)}</span>
@@ -1454,7 +1466,8 @@ export function RunResults({ run, progressHref }: { run: ResearchRun | null; pro
         <Card>
           <p className="text-sm">{run && parkedForRuntime(run) ? t("research.exec.noResultsParked") : t("research.exec.noResults")}</p>
         </Card>
-        {report}
+        {/* With no run there is no run to say a report about (workbench audit, 2026-10-22). */}
+        {run ? report : null}
       </div>
     );
   }
