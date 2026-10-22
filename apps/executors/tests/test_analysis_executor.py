@@ -1716,6 +1716,33 @@ def test_a_same_data_round_that_still_states_nothing_is_not_offered_again(
     assert nothing.value.reason == "nothing_to_retry"
 
 
+def test_the_same_data_round_is_offered_once_across_a_retry_chain(
+    world: Any, store: InMemoryArtifactStore, run_with: Callable[..., Worker]
+) -> None:
+    """Review of #657: an empty module asked again in R2 is not offered again in R3, which a
+    module still failing in R2 started; the chain carries what it has tried."""
+    models = RecordedModels(no_findings={"executive"}, invent={"objects"})
+    worker = run_with(models)
+    first = _started_with_analysis(world)
+    _drain(worker)
+    second = _retry_analysis(world, store, first)  # asks executive and objects again
+    _drain(worker)
+    with world.sessions() as session:
+        r2 = stored_analysis(session, world.lead_scope(session), store, run_id=second.run_id)
+    assert r2.retryable == (AnalysisModuleId.OBJECTS,)
+    third = _retry_analysis(world, store, second.run_id)  # objects alone
+    _drain(worker)
+    assert models.calls("executive") == [1, 2], "the empty module was not asked a third time"
+    with world.sessions() as session:
+        r3 = stored_analysis(session, world.lead_scope(session), store, run_id=third.run_id)
+    assert AnalysisModuleId.EXECUTIVE not in r3.retryable
+    from aia_api.routers.research import run_analysis
+
+    with world.sessions() as session:
+        shown = run_analysis(third.run_id, world.lead_scope(session), session, store)
+    assert "same_data_retry" not in shown["modules"]["executive"]["diagnostic"]["resolutions"]
+
+
 def test_research_questions_the_run_recorded_as_gaps_hold_nothing(
     world: Any, store: InMemoryArtifactStore, run_with: Callable[..., Worker]
 ) -> None:

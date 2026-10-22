@@ -361,6 +361,9 @@ class FrozenDataset:
     #: ``None`` only for a caller that names none; :func:`retry_failed_modules` always does.
     specification_artifact_id: str | None = None
     specification_sha256: str | None = None
+    #: Modules already asked again earlier in this retry chain (evidence-integrity 9a): with
+    #: :attr:`retried`, the chain's ``tried``, so a module still empty is offered no further round.
+    tried: tuple[str, ...] = ()
 
     def __post_init__(self) -> None:
         if self.analysis_round < 1:
@@ -370,7 +373,12 @@ class FrozenDataset:
         return {"run_id": self.run_id, "artifact_id": self.artifact_id, "sha256": self.sha256}
 
     def note(self) -> dict[str, Any]:
-        return {**self.step_input(), "round": self.analysis_round, "modules": list(self.retried)}
+        return {
+            **self.step_input(),
+            "round": self.analysis_round,
+            "modules": list(self.retried),
+            "tried": sorted({*self.tried, *self.retried}),
+        }
 
     def specification_input(self) -> dict[str, Any] | None:
         """The compile step's ``frozen_specification``; ``None`` when none is named."""

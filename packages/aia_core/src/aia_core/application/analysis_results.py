@@ -806,8 +806,8 @@ class RunAnalysis:
     #: names it was computed under (:class:`ModuleSources`), so what the run stands on is read
     #: here, never from a record; ``None`` when no outcome was stored yet.
     sources: ModuleSources | None = None
-    #: Modules this run asked again over the same data (an analysis retry's ``modules``): a
-    #: module among them that still states nothing is not offered that round again (9a).
+    #: Modules asked again over the same data anywhere in this run's retry chain: a module among
+    #: them that still states nothing is not offered another round (9a).
     retried: frozenset[AnalysisModuleId] = frozenset()
     #: The external context every module was shown, from the same verified read as its sources
     #: (evidence-integrity 7); ``None`` without a pin, or when no outcome was stored yet.
@@ -1051,9 +1051,10 @@ def _split(
 
 
 def _retried(run: Mapping[str, Any]) -> frozenset[AnalysisModuleId]:
-    """The modules an analysis retry asked again (its ``analysis_retry.modules``); none else."""
+    """The modules asked again anywhere in this run's retry chain (its ``analysis_retry.tried``,
+    which carries every earlier round's forward; ``modules`` for a retry recorded before it)."""
     note = (run.get("metadata") or {}).get("analysis_retry")
-    modules = note.get("modules") if isinstance(note, Mapping) else None
+    modules = (note.get("tried", note.get("modules"))) if isinstance(note, Mapping) else None
     if not isinstance(modules, list):
         return frozenset()
     return frozenset(m for m in AnalysisModuleId if m.value in modules)
@@ -1261,6 +1262,7 @@ def retry_failed_modules(
         modules_asked=asked,
         specification_artifact_id=compiled_output["artifact_id"],
         specification_sha256=compiled_output["sha256"],
+        tried=tuple(m.value for m in analysis.retried),
     )
     return runs.retry_analysis(
         run_id,
