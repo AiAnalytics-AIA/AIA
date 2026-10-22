@@ -15,9 +15,10 @@
  *   * the -5 panel at 1440 and 1100 (the workbench's split) and 768 and 390 px, no page overflow;
  *   * every object listed in Správa objektů (Nastavení mapy) carries its Lead name
  *     `object:<battery>/<object>` (SOC1/SOC2), once, and the Lead's focus selector finds that button;
- *   * Objekty / Respondenti opens each map with nothing selected (#562);
+ *   * Objekty / Respondenti opens each map with nothing selected (#562); a pick's detail opens in the
+ *     side sheet beside the map, the canvas ending where the sheet begins (SOC13);
  *   * full screen draws Top vztahy as the page does: the selected object's five, else the map's;
- *   * a display change (Vše in Nástroje, Absolutní in Nastavení mapy) raises the filter bar, which
+ *   * a display change (Vše in Nástroje, Absolutní in Nastavení mapy) raises the filter chip, which
  *     says the computation is unchanged, and "Zrušit filtr" goes back to the opening (SOC3); the
  *     listed numbers do not move;
  *   * "Co je co" in the ⓘ box names the four registers (SOC3);
@@ -25,7 +26,7 @@
  *   * an older method's run says so, "Mapa ze starší metody; spusťte nový běh", and draws no map, at
  *     1440, 1100, 768 and 390 px (signed-off-sociomap-method#8, #598). No new run can pin an older
  *     method, so on a workbench without one from before, the -5 run is read as one: its Sociomap
- *     artifact answered in the browser with no map in it;
+ *     artifact answered in the browser with no map in it;;
  *   * no page error, and no write but the stage opened (PUT …/workspace/stage); zero paid jobs.
  *
  * Screenshots and journey.json go to --out (default tmp/ui-workbench/sociomap-journey).
@@ -156,11 +157,13 @@ const panel = page.locator('[data-testid="object-map-panel"]').first();
 const canvas = page.locator('[data-testid="object-map-canvas"]').first();
 const bar = page.locator('[data-testid="object-map-filter-bar"]');
 const button = (name) => panel.getByRole("button", { name, exact: true }).first();
-// The map's controls live in its windows: the dock opens Nastavení mapy (Správa objektů from it) or Nástroje.
+// The map's controls: the bar opens Nastavení mapy (Správa objektů from it, a tab of the side sheet) or
+// Nástroje as popovers; the sheet's Objekty tab shows the list again after a pick opened its detail.
 const openWindow = async (name) => {
   if (name === "Správa objektů") await button("Nastavení mapy").click();
   await button(name).click();
 };
+const showList = () => panel.getByRole("tab", { name: "Objekty" }).click();
 const attr = (name) => canvas.getAttribute(name);
 // The newest run on -5, by its id: a later run on another method does not take its place.
 const fiveRun = (await finishedRuns()).find((r) => isFive(r.methodology.sociomap.name)) ?? null;
@@ -229,13 +232,25 @@ try {
   await list.first().click();
   const chosen = await attr("data-selected");
   assert(chosen, "an object is selected");
+  // The detail opens in the sheet beside the map, never over it: the canvas ends where the sheet begins,
+  // and the bar's controls stay free.
+  const beside = await page.evaluate(() => {
+    const c = document.querySelector('[data-testid="object-map-canvas"]').getBoundingClientRect();
+    const s = document.querySelector('[data-testid="object-map-sheet"]').getBoundingClientRect();
+    return { canvasRight: c.right, sheetLeft: s.left };
+  });
+  assert(beside.canvasRight <= beside.sheetLeft + 1, `the canvas (to ${beside.canvasRight}) ends where the sheet (from ${beside.sheetLeft}) begins`);
+  await button("Nástroje").click();
+  await button("Nástroje").click();
+  await shot("1440-detail-beside");
   await button("Respondenti").click();
   assert.equal(await attr("data-map"), "respondents");
   assert.equal(await attr("data-selected"), "", "the respondent map opens with nothing selected");
   await button("Objekty").click();
   assert.equal(await attr("data-selected"), "", "the object map comes back with nothing selected");
-  check("Objekty / Respondenti opens each map with nothing selected");
+  check("Objekty / Respondenti opens each map with nothing selected; a pick's detail opens beside the map");
 
+  await showList();
   await list.first().click();
   const onPage = (await attr("data-relations")).split(" ").sort().join(" ");
   await page.evaluate(() => document.querySelector('[data-testid="object-map-stage"]').requestFullscreen());
@@ -248,7 +263,9 @@ try {
   check("full screen: Top vztahy follows the selection, as on the page");
 
   const values = () => list.evaluateAll((bs) => bs.map((b) => b.textContent));
+  await showList();
   const before = await values();
+  assert(before.length > 0, "the list is read");
   assert.equal(await bar.count(), 0, "no filter bar at the opening");
   await openWindow("Nástroje");
   await button("Vše").click();
