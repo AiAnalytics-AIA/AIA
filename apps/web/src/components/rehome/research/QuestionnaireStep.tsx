@@ -921,9 +921,10 @@ function TrackedSet({ n, sec, si, update }: { n: number; sec: Section; si: numbe
   };
   return (
     <article id={setElementId(sec, si)} className={`scroll-mt-40 flex flex-col gap-3 rounded-card border border-border border-t-[3px] border-t-hue-violet bg-surface-raised p-4 ${FOCUS}`}>
-      <div className="flex items-start gap-3">
+      {/* The name keeps 12rem; on a phone the count and Smazat wrap below it rather than squeeze it. */}
+      <div className="flex flex-wrap items-start gap-3">
         <span className="mt-1 whitespace-nowrap rounded-md bg-hue-violet/12 px-1.5 py-0.5 font-mono text-[11px] font-semibold text-hue-violet">{tv("research.questionnaire.setBadge", { n })}</span>
-        <div className="min-w-0 flex-1">
+        <div className="min-w-[12rem] flex-1">
           <InlineField strong label={t("research.questionnaire.setTitle")} value={sec.title || ""} onChange={(v) => update((p) => setSectionField(p, si, "title", v))} />
         </div>
         <span className={`whitespace-nowrap rounded-md px-1.5 py-0.5 font-mono text-xs ${bad ? "bg-status-you-wash text-status-you-ink" : "bg-surface-sunken text-ink-muted"}`}>

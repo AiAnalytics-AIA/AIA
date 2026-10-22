@@ -177,6 +177,11 @@ summary (`questionnaire.ts:404 @ bfe6d15b`). Reproduction: the fixture study's D
 (fix/questionnaire-czech-counts): `countWords` / `countsWords`, the word by its number, and the
 import's note counted from the sections kept. Test: `questionnaire-counts.test.ts`.
 
+*Finding QF-3 (browser audit, 2026-10-22):* at 390 px the tracked set's name shrinks to 80 px
+("Sledovan…") beside its badge, count and Smazat, one row that never wraps
+(`QuestionnaireStep.tsx:922 @ bfe6d15b`). Fix: the row wraps and the name keeps 12rem. Test: the
+journey asserts the name is at least 160 px wide at every width (failed at 390 before the fix).
+
 **QST9. Journey** at 1440, 1100, 768 and 390 px:
 - an item edited in place;
 - the Lead focusing `question:<id>`;
