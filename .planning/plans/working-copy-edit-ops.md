@@ -107,13 +107,32 @@ the agent-job and Design Research accepts; **2f** the 18.6.6 migration, then `sa
   The web's store meets the refusal (stand-in review of #784): on `sociomap_input_locked` it puts the
   locked items back as AIA last held them (`research/sociomap-lock.ts` `restoreLocked`, the web's
   reading of `locked_items`: each tracked set and rating question by id) and keeps every other change
-  to save ("Zamčený vstup Sociomapy vrácen … · Uložit ostatní"); an item it cannot find again by id
+  to save on its own debounce ("Zamčený vstup Sociomapy vrácen … · ostatní změny se uloží"; a
+  section removed whole with a rating question goes back as saved); an item it cannot find again by id
   leaves the copy blocked until a reload, so a refused change is never re-sent. The PUT says what
   happened (`_workspace_conflict`). Pre-merge check for deployed develop (read-only; checked against
   `tables.py` and run on a migrated PostgreSQL 16 schema): `select w.study_id from study_workspaces w
   join projects p on p.project_id = w.project_id join project_revisions r on r.project_id =
   p.project_id and r.revision = p.current_revision where r.content::text like '%"sociomap_rating"%'
-  or r.content::text like '%"context_objects"%';`
+  or r.content::text like '%"context_objects"%';` Result: **0 studies affected on develop,
+  2026-10-22** (run read-only by the product owner, 16:35 UTC), so the lock changed no deployed study.
+- **WCE2d (2026-10-22).** The Lead's accepted edits are the vocabulary's operations:
+  `decide_edits` hands the edits it would apply to `application/working_copy.apply_edit_ops`,
+  which applies them in order to the copy as loaded, refuses alone an edit that writes a locked
+  Sociomap input (`lock_refusal`, `sociomap_input_locked`) or that the copy cannot take, and saves
+  once through `save`, which logs each edit under its own `op` (the edit without its `why`) for the
+  fields it touched (`edit_ops.touches`, keyed by the ids it was applied with) and the rest of the
+  write (the stages' `ui_state`, the analysis a plan or brief edit wrote, links followed) as a
+  `whole_copy` change (`edit_log.write_rows`). Made by `WriteBy(LEAD, researcher, lead_turn,
+  turn_id)`: the Lead wrote the change; the ledger row records the person's accept. A copy that
+  keeps the web's ids (`item_ids.stores_item_ids`) is settled (`settle_item_ids`), so a reworded
+  research question keeps its links: closes F-WCE1-1. A copy without ids is given none, so with
+  `AIA_WEB_STABLE_ITEM_IDS` off nothing writes an id. Tests: `test_lead_edits_logged.py` (three
+  failed before the change: the log, the lock refused alone, the links), `test_edit_log.py::
+  test_a_write_of_operations_…`, `test_item_ids.py::test_a_copy_keeps_ids_only_once_…`. One edge
+  left to WCE8: with ids kept and an input declared, a reword whose links follow onto a locked rating
+  question touches it, and `save` refuses the whole accept (409 `sociomap_input_locked`) rather than
+  half of it.
 
 **WCE3a. The web store on the server vocabulary, Brief and Design stages**  
 33 `store.update` sites in 9 files and about 1,900 lines of TypeScript with 18.6.6 parity tests are moved stage by stage; the parity tests stay green at every step.
@@ -463,7 +482,8 @@ Plan tests: `test_a_reword_keeps_its_research_question_links`,
   branch's head. Reproduction: with `AIA_WEB_STABLE_ITEM_IDS` on, a Lead `list_replace` of a linked
   research question accepted by click leaves the link dangling; accepted with auto it does not.
   Consequence: a dangling link the trace names, only with the switch on. Smallest fix: WCE2's one
-  writer settles every write. Test: a WCE2 test of the accept route asserting no dangling link.
+  writer settles every write. Test: a WCE2 test of the accept route asserting no dangling link. **Closed
+  by WCE2d**: `test_lead_edits_logged.py::test_a_reworded_research_question_keeps_its_links_…`.
 - **F-WCE1-2. A whole-list replacement that keeps a stale id list reads as rewords, and with the
   switch on the web then moves questionnaire links onto a different research question.** Blocks
   turning `AIA_WEB_STABLE_ITEM_IDS` on; owner WCE8b with WCE2. Anchor: `domain/item_ids.py`

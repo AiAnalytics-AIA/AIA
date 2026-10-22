@@ -17,6 +17,7 @@ from aia_core.domain.edit_log import (
     op_rows,
     whole_copy_rows,
     whole_copy_touches,
+    write_rows,
 )
 from aia_core.domain.research_template import research_template
 
@@ -128,3 +129,27 @@ def test_rows_name_a_resulting_revision() -> None:
             base_revision=None,
             result_revision=0,
         )
+
+
+def test_a_write_of_operations_logs_each_under_its_own_and_the_rest_as_the_copy() -> None:
+    before = _questionnaire()
+    after = copy.deepcopy(before)
+    after["title"] = "Nový název"
+    after["ui_state"] = {"plan_manual_changed": True}
+    title = (ItemKey("content", "brief", "title"), "text")
+    op = {"op": "set_text", "field": "title", "value": "Nový název"}
+    rows = write_rows(
+        Documents(content=before),
+        Documents(content=after),
+        ops=[(op, frozenset({title}))],
+        reason="lead_edit_accepted",
+        by=PERSON,
+        batch_id="B",
+        base_revision=1,
+        result_revision=2,
+    )
+    assert [(r.item_key, r.field, r.op["op"]) for r in rows] == [
+        ("content:brief:title", "text", "set_text"),
+        ("content:field:ui_state", "value", "whole_copy"),
+    ]
+    assert rows[1].op == {"op": "whole_copy", "reason": "lead_edit_accepted"}
