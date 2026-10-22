@@ -408,3 +408,36 @@ def test_a_sets_labels_follow_the_same_rule() -> None:
         assert ignored.status is CheckStatus.WARN and "„vůbec“ a „velmi“" in ignored.message
     _, problems = compile_design({**DESIGN, "sections": [{**battery, "scale": [1, 7.5]}]})
     assert [p.code for p in problems] == ["invalid_scale"]
+
+
+@pytest.mark.parametrize(
+    ("sets", "questionnaire", "sociomap"),
+    [
+        (1, "1 otázka, 1 sledovaná sada (6 položek k zodpovězení).", "1 sada pro Sociomapu."),
+        (2, "1 otázka, 2 sledované sady (11 položek k zodpovězení).", "2 sady pro Sociomapu."),
+        (5, "1 otázka, 5 sledovaných sad (26 položek k zodpovězení).", "5 sad pro Sociomapu."),
+    ],
+)
+def test_readiness_counts_agree_with_their_number_in_czech(
+    sets: int, questionnaire: str, sociomap: str
+) -> None:
+    battery = {
+        "type": "object_battery",
+        "object_type": "nápoje",
+        "objects": ["Káva", "Čaj", "Kakao", "Džus", "Voda"],
+        "object_question": "Jak hodnotíte",
+    }
+    design = {
+        **DESIGN,
+        "sections": [
+            {
+                "type": "questions",
+                "id": "S1",
+                "questions": [{"id": "q1", "text": "Jak?", "typ": "skala", "skala": [1, 5]}],
+            },
+            *({**battery, "title": f"Sada {i}"} for i in range(sets)),
+        ],
+    }
+    _, ready = prepare(design, pair_n_min=AUDIT_PROVISIONAL_N_MIN)
+    assert _check(ready, "questionnaire").message == questionnaire
+    assert _check(ready, "sociomap_input").message == sociomap

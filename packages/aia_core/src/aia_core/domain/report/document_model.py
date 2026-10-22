@@ -21,7 +21,9 @@ Three rules hold:
 Since ``aia-report-document-2`` every section carries its ``sources`` and the document the run's
 outputs no section read, ``unread`` (artifact-chain CHN1, :mod:`~aia_core.domain.report.sources`).
 A stored ``-1`` document is still read: it recorded no sources, and a reader says so rather than
-presuming any.
+presuming any. Since ``-3`` every ledger entry carries its claim's ``level`` (aggregate, segment
+or individual), which the client deliverable's gate reads (report-delivery RD0); an older entry
+has none, so the gate cannot judge it.
 """
 
 from __future__ import annotations
@@ -68,9 +70,12 @@ from aia_core.domain.report.sources import report_sources, source_payload
 from aia_core.domain.report.validation import CLIENT_KINDS
 
 #: The stored form's contract. A reader refuses any other (:func:`read_document_payload`).
-DOCUMENT_MODEL_CONTRACT: Final = "aia-report-document-2"
-#: Contracts still read: ``-1`` (RD5a) is ``-2`` without the manifest.
-READABLE_CONTRACTS: Final = frozenset({"aia-report-document-1", DOCUMENT_MODEL_CONTRACT})
+DOCUMENT_MODEL_CONTRACT: Final = "aia-report-document-3"
+#: Contracts still read: ``-1`` (RD5a) is ``-2`` without the manifest, ``-2`` is ``-3`` without
+#: each entry's level.
+READABLE_CONTRACTS: Final = frozenset(
+    {"aia-report-document-1", "aia-report-document-2", DOCUMENT_MODEL_CONTRACT}
+)
 DOCUMENT_MODEL_MEDIA_TYPE: Final = "application/json"
 
 
@@ -193,6 +198,7 @@ class _Writer:
                 "indicative": self._ledger.is_indicative(ref),
                 "modelled_panel": self._ledger.modelled_panel((ref,)),
                 "basis": row.basis.value,
+                "level": row.level.value,
                 "support": row.support.status.value,
                 "question_id": row.question_id,
                 "data_origin": row.data_origin.value if row.data_origin is not None else None,

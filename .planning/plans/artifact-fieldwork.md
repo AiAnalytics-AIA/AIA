@@ -138,7 +138,65 @@ never resolved.
 
 None new (replacement is MVPQ-10, already open).
 
+## Findings
+
+- **F-FLD-1. "Opravit →" sends a failing dimensions or Sociomap-support check to Dotazník.**
+  `fixStep` (`apps/web/src/components/rehome/research/ExecutionSteps.tsx:381-385 @ bfe6d15b`) routed by
+  regex, which matched neither `dimensions` nor `sociomap_support`
+  (`packages/aia_core/src/aia_core/domain/research_design.py:1250, 1272 @ bfe6d15b`).
+  - Reproduction: `fixStep("dimensions")` returns `"questionnaire"`.
+  - Consequence: the person lands on a stage where neither can be fixed.
+  - Fix: an explicit table of the domain's check ids, both to Dimenze.
+  - Test: `ExecutionSteps.test.tsx > fixStep`, over every id readiness emits.
+  - Reported by the Vzorek session, which logs it as F-SMP-1 in its open SMP4 PR's
+    `artifact-sample.md`; this fix closes both.
+- **F-FLD-2. Some warnings are fixed on Spuštění itself, yet "Opravit →" leaves it.**
+  - Which warnings: `dimensions` when fictional respondents will not use the dimensions, `audience` when no
+    filters apply, and an unknown `support_forecast` on a panel run. Sources:
+    `research_design.py:1286-1293, 1299-1308 @ bfe6d15b` and `support_forecast.py:172-184 @ bfe6d15b`.
+  - Why it happens: they share their id with checks fixed elsewhere, so `fixStep` cannot tell them apart.
+  - Reproduction: readiness without `filters_applied` and with dimensions selected; "Opravit →" opens Dimenze.
+  - Consequence: the real fix, "Kdo bude odpovídat", is on the page the person just left.
+  - Smallest fix: the domain's `ReadinessCheck` names the stage that fixes it, and the web reads it,
+    replacing `FIX_STEP` and Vzorek's `checkStage`.
+  - Test: one shared case file of check, status and stage, read by both suites.
+
+
+- **F-FLD-3. Spuštění's links back to a stage are too small to tap.** "Opravit →" and "Upravit"
+  render 15-16 px tall at every width (`ExecutionSteps.tsx:413, 523, 565, 790 @ b6ac25c5`).
+  - The standard: the input standard's touch target, 44 px at a phone's width and 32 px from 640 px
+    (`components/ui/parts.tsx` `TOUCH`, I11; WCAG 2.5.8).
+  - Reproduction: `tools/ui_workbench/workbench_journey.mjs`, step "Spuštění's links back to a stage"
+    (heights 16, 15).
+  - Fix: one `STAGE_LINK` class with `TOUCH` and `FOCUS`, at all four.
+  - Test: the same journey step at 1440, 1100, 768 and 390 px.
+- **F-FLD-4. "Kdo odpovídal" and "Co spustíte" squeeze their values beside an 8 rem label column on a
+  narrow card.** At 390 px each value of "Kdo odpovídal" gets 46 % of the card, and the dimensions line wraps
+  over six lines. "Co spustíte" is worse, with its link column too.
+  - Anchors: `ExecutionSteps.tsx:216, 411 @ b6ac25c5`.
+  - Reproduction: `tools/ui_workbench/research_journey.mjs`, step "Kdo odpovídal stacks its values",
+    which reports 0.46 for each row.
+  - Fix: label above value on a narrow card, by a container query on the card's own width, so the
+    workbench's narrow artifact pane is covered too.
+  - Tests: that journey step and the workbench journey's step at 390 px.
+- **F-FLD-5. Spuštění's other links are still too small to tap.** After F-FLD-3 the gap card's fix links
+  render 18-20 px tall, its "Propojit otázky…" link 20 px, the dock's way back ("5. Dimenze") 20 px and a
+  previous run's "Zobrazit výsledky" 20 px (`AnswerabilityGate.tsx:70, 87`, `step.tsx:77`,
+  `ExecutionSteps.tsx:986, 1180 @ 135e1e84`). The dock is every stage's, so the way back was small everywhere.
+  - Reproduction: `tools/ui_workbench/workbench_journey.mjs`, step "Spuštění's links are touch targets",
+    now over every link of the stage outside a sentence (WCAG 2.5.8's inline exception): 18.6, 20, 20 at 1440;
+    `research_journey.mjs`, Progress's "Zobrazit výsledky" in the run's inspector at 390 px: 20.
+  - Fix: one `TOUCH_LINK` in `components/ui/parts.tsx` (touch target, focus ring, text on the box's first
+    line), which `STAGE_LINK` now builds on; `TOUCH` and `FOCUS` on the run links and the dock's way back,
+    the dock importing them instead of its own copy of the focus ring.
+  - Tests: those two journey steps.
+  - Left: Výsledky's own standalone links (`ExecutionSteps.tsx:1644, 1719 @ 135e1e84`), its owner's.
+
 ## Doc follow-up
+
+- `open-items.md`: F-FLD-1 (fixed by this PR, with Vzorek's F-SMP-1) and F-FLD-2 (open), from Findings above.
+- `open-items.md`: F-FLD-3 and F-FLD-4, fixed by the PR that carries them (stage link targets).
+- `open-items.md`: F-FLD-5, fixed by the PR that carries it (Spuštění's remaining links).
 
 - Register this plan and its chunks.
 - `CLAUDE.md` § 2, `routers/research.py`: a run's `spent_usd` / `reserved_usd` (FLD4).

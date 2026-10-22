@@ -87,11 +87,18 @@ describe("in words", () => {
     expect(proposalsLine({ phase: "done", proposed: 3, dropped: 0 })).toEqual({ tone: "done", text: "AI navrhla 3 návrhy. Čekají v Ke schválení." });
     expect(proposalsLine({ phase: "done", proposed: 0, dropped: 2 })?.tone).toBe("neutral");
     expect(proposalsLine({ phase: "budget", runId: "RUN-1" })?.tone).toBe("you");
-    expect(proposalsLine({ phase: "waiting", reason: "egress_retention_unspecified" })).toEqual({
+    expect(proposalsLine({ phase: "waiting", reason: "reading_changed" })).toEqual({
       tone: "world",
-      text: "Čeká: u trasy k modelu není uvedena doba uchování dat.",
+      text: "Čeká: dokument byl mezitím přečten znovu.",
     });
     expect(proposalsLine({ phase: "failed", reason: "reading_changed" })?.text).toContain("přečten znovu");
+  });
+
+  it("says who fixes a refusal of the AI route, waiting or failed (LO12a)", () => {
+    const waiting = proposalsLine({ phase: "waiting", reason: "egress_retention_unspecified" })?.text;
+    expect(waiting).toMatch(/^Čeká: u trasy k modelu není uvedena doba uchování dat\. Opraví to provozovatel AIA/);
+    expect(waiting).toContain("aia_ai_route_retention_days");
+    expect(proposalsLine({ phase: "failed", reason: "egress_route_not_approved_for_class" })?.text).toContain("aia_ai_route_approved_for");
   });
 
   it("shows a reason it has no words for as its code, and a missing one as unknown", () => {

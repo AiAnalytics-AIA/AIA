@@ -1319,6 +1319,36 @@ class ClientKnowledgeSelectionRow(Base):
     )
 
 
+class FieldworkJournalRow(Base):
+    """One answered respondent block of a research run's fieldwork, kept the moment it returns.
+
+    Keyed by the study, the run's lineage (the run a retry chain began with) and a fingerprint
+    of exactly what was sent, so an interrupted attempt or a retry of the run replays what was
+    answered and pays only for what was not (run-qc-and-checkpoint RQC0, OI-64). Written once;
+    ``run_id`` names the run that paid for it.
+    """
+
+    __tablename__ = "fieldwork_journal"
+
+    journal_id: Mapped[str] = mapped_column(String(64), primary_key=True)
+    organization_id: Mapped[str] = mapped_column(String(64), nullable=False)
+    study_id: Mapped[str] = mapped_column(String(64), nullable=False)
+    lineage_run_id: Mapped[str] = mapped_column(String(64), nullable=False)
+    request_key: Mapped[str] = mapped_column(String(64), nullable=False)
+    run_id: Mapped[str] = mapped_column(String(64), nullable=False)
+    payload: Mapped[dict[str, Any]] = mapped_column(JSONType, nullable=False)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), nullable=False, default=utcnow
+    )
+
+    __table_args__ = (
+        ForeignKeyConstraint(["study_id"], ["studies.study_id"], ondelete="CASCADE"),
+        UniqueConstraint(
+            "study_id", "lineage_run_id", "request_key", name="fieldwork_journal_request"
+        ),
+    )
+
+
 class ClientWorkJournalRow(Base):
     """One answered model request of the client's own work, kept the moment it returns.
 
