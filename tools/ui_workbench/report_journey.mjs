@@ -105,6 +105,15 @@ try {
     const ids = await article.locator("[data-aia]").evaluateAll((els) => els.map((e) => e.getAttribute("data-aia")));
     assert.equal(new Set(ids).size, ids.length, `@${width}: no two elements share a data-aia`);
     assert(ids.every((id) => id.startsWith("report:")), `@${width}: every target is the report's own kind`);
+    // Záznam pokrytí (RPT4): beside the article, never in it; one line per output the stored
+    // manifest says no section read, and a line on the research questions (recorded or not).
+    const record = page.getByRole("region", { name: /Záznam pokrytí/ });
+    await record.waitFor({ timeout: 10000 });
+    assert.equal(await article.locator("[data-report-coverage]").count(), 0, `@${width}: the record is outside the text`);
+    const unread = doc.unread ?? [];
+    assert.equal(await record.locator('li[data-coverage="output"]').count(), Math.max(1, unread.length), `@${width}: one line per output the manifest says no section read`);
+    assert(await record.locator('li[data-coverage="question"]').count() > 0, `@${width}: the research questions have their line`);
+    await record.screenshot({ path: join(out, `${width}-report-coverage.png`) });
     await noOverflow(`report @${width}`);
     await page.screenshot({ path: join(out, `${width}-report.png`) });
 
@@ -118,6 +127,7 @@ try {
     await drawer.waitFor({ state: "detached", timeout: 10000 });
   }
   check("the stored draft in the pane at 1440, 1100, 768 and 390: sections in print order with their ids, every chip a held ref with its stored text, none suppressed, every data-aia unique and report:, no overflow");
+  check("Záznam pokrytí beside the draft at every width: the research questions, each output no section read, outside the text");
   check("a number chip opens its claim in the inspector and Escape closes it, at every width");
 
   const paid = writes.filter((w) => /\/research\/runs$|\/agent-jobs$|\/deep-research\/runs|\/lead\/turns\/[^/]+\/request$/.test(w.path));
