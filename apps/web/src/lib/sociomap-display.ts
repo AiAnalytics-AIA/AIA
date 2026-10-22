@@ -34,3 +34,17 @@ export function displayChanges(d: MapDisplay): DisplayChange[] {
 /** The four kinds of content around a map (the V2 prototype's legend), in the order they are read. */
 export const MAP_REGISTERS = ["computed", "display", "interpretation", "external"] as const;
 export type MapRegister = (typeof MAP_REGISTERS)[number];
+
+/** The least the map's stage is drawn at: below it a map says nothing, and full screen is the way to read it. */
+export const STAGE_MIN = 120;
+
+/**
+ * The map's stage height in px (artifact-sociomap, #637): the panel's 700 where there is room; never
+ * more than the pane leaves under the toolbar (`pane` the visible height of what scrolls the panel,
+ * `above` the toolbar and the filter bar over the stage), so the toolbar and the whole map are seen
+ * together; and on a narrow stage not much taller than wide, since the map is drawn at the scale of
+ * its shorter side. Whole pixels, rounded down so it still fits. Measured, never a guess of the chrome around it, which differs by layout.
+ */
+export function stageHeight(pane: number, above: number, width: number): number {
+  return Math.floor(Math.max(STAGE_MIN, Math.min(700, pane - above, Math.max(360, 1.1 * width))));
+}

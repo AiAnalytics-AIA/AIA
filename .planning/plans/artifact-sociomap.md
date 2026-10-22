@@ -197,9 +197,15 @@ Browser audit, 2026-10-21, on the local workbench (`AIA_WEB_RESEARCH_WORKBENCH=t
     while the map was read, and the detail card sat below it.
   - At 390 px the canvas was 308 × 700 px. The map is drawn at the scale of its shorter side, so the top 230 px were
     empty, and the list and detail were a screen further down.
-  - Now `STAGE_HEIGHT`: `min(700px, max(320px, 100dvh − 260px), max(360px, 110vw))`; full screen still takes the screen.
-  - Test: `sociomap_journey.mjs` checks at every width that the toolbar and the whole canvas fit the pane, and that a
-    canvas is no taller than 1.5 × its width. It failed at 1440 before the fix (788 > 755 px).
+  - Now measured: `stageHeight(pane, above, width)` in `lib/sociomap-display.ts`, the least of 700 px, what the pane
+    leaves under the toolbar and filter bar, and max(360, 1.1 × the stage's width), floored at 120 px. The pane is the
+    workbench's `.artbody`, else the window less the shell's sticky header; full screen still takes the screen.
+  - A first fix, a CSS guess of the chrome (`min(700px, max(320px, 100dvh − 260px), max(360px, 110vw))`), still
+    overflowed a short screen (Codex, #637): 408 px in a 245 px pane at 844 × 390, 500 in 406 at 390 × 600.
+  - Test: `sociomap_journey.mjs` checks the fit at 1440, 1100, 768 and 390 px wide, at 844 × 390 and 390 × 600, and in
+    project memory's classic layout at 1366 × 768 (under the sticky header), and that a canvas is no taller than
+    1.5 × its width. Each short screen failed on the CSS guess; the memory case fails without the header subtracted
+    (752 > 640 px). `sociomap-display.test.ts` holds `stageHeight`.
 - **Open, SOC2 (blocked on research-lead-workbench#15): the Sociomapa stage opens on Výsledky's other cards.** The
   stage is Výsledky's maps view (`workbench-stages.ts`, view `maps`), and `ResultsWorkspace` puts "Kdo odpovídal",
   "Kompletní zpráva studie" and the results tabs above the maps panel. The map starts 2,174 px into a 755 px pane at

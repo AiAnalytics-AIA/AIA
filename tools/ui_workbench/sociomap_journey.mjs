@@ -164,27 +164,46 @@ const openMap = async () => {
   });
 };
 
+// The map fits where it is read: its toolbar and the whole canvas in one view of the pane (the
+// workbench's artifact pane, else the window under the shell's sticky header), and a narrow canvas no
+// taller than its width calls for (the map is drawn at the scale of its shorter side).
+const fits = async (where) => {
+  await panel.evaluate((n) => n.scrollIntoView({ block: "start" }));
+  const fit = await page.evaluate(() => {
+    const box = (s) => document.querySelector(s)?.getBoundingClientRect();
+    const bar = box('[data-testid="object-map-panel"] [role=toolbar]'), stage = box('[data-testid="object-map-stage"]');
+    const sticky = [...document.querySelectorAll("header")].filter((h) => getComputedStyle(h).position === "sticky").map((h) => h.getBoundingClientRect().height);
+    const pane = document.querySelector(".artbody")?.getBoundingClientRect() ?? { top: Math.max(0, ...sticky), bottom: innerHeight };
+    return { top: bar.top, bottom: stage.bottom, paneTop: pane.top, paneBottom: pane.bottom, w: stage.width, h: stage.height };
+  });
+  assert(fit.bottom - fit.top <= fit.paneBottom - fit.paneTop + 1, `${where}: toolbar and canvas (${Math.round(fit.bottom - fit.top)} px) fit the pane (${Math.round(fit.paneBottom - fit.paneTop)} px)`);
+  assert(fit.h <= Math.max(360, 1.5 * fit.w) + 1, `${where}: the canvas (${Math.round(fit.w)} x ${Math.round(fit.h)}) is no taller than its width calls for`);
+};
+
 let result = "PASS", message = "";
 try {
-  for (const width of [1440, 1100, 768, 390]) {
-    await page.setViewportSize({ width, height: 900 });
+  // The four widths at 900 px, then two short screens (a phone held sideways, a short window): the
+  // stage has to fit what the pane leaves, not a floor of its own (Codex, #637).
+  for (const [width, height] of [[1440, 900], [1100, 900], [768, 900], [390, 900], [844, 390], [390, 600]]) {
+    await page.setViewportSize({ width, height });
     await openMap();
     await canvas.waitFor();
-    await noOverflow(`sociomap @${width}`);
-    // The map fits where it is read: its toolbar and the whole canvas in one view of the pane, and a
-    // narrow canvas no taller than its width calls for (the map is drawn at the scale of its shorter side).
-    await panel.evaluate((n) => n.scrollIntoView({ block: "start" }));
-    const fit = await page.evaluate(() => {
-      const box = (s) => document.querySelector(s)?.getBoundingClientRect();
-      const bar = box('[data-testid="object-map-panel"] [role=toolbar]'), stage = box('[data-testid="object-map-stage"]');
-      const pane = document.querySelector(".artbody")?.getBoundingClientRect() ?? { top: 0, bottom: innerHeight };
-      return { top: bar.top, bottom: stage.bottom, paneTop: pane.top, paneBottom: pane.bottom, w: stage.width, h: stage.height };
-    });
-    assert(fit.bottom - fit.top <= fit.paneBottom - fit.paneTop + 1, `@${width}: toolbar and canvas (${Math.round(fit.bottom - fit.top)} px) fit the pane (${Math.round(fit.paneBottom - fit.paneTop)} px)`);
-    assert(fit.h <= Math.max(360, 1.5 * fit.w) + 1, `@${width}: the canvas (${Math.round(fit.w)} x ${Math.round(fit.h)}) is no taller than its width calls for`);
-    await shot(`${width}-sociomap`);
+    await noOverflow(`sociomap @${width}x${height}`);
+    await fits(`@${width}x${height}`);
+    await shot(`${width}x${height}-sociomap`);
   }
-  check("the -5 map at 1440, 1100, 768 and 390 px, no page overflow, toolbar and canvas in one view");
+  check("the -5 map at 1440, 1100, 768 and 390 px and on two short screens, no page overflow, toolbar and canvas in one view");
+
+  // The classic layout: project memory reads the same run under the shell, where the window scrolls
+  // the panel and the shell's header stays over it from lg up.
+  await page.setViewportSize({ width: 1366, height: 768 });
+  await page.goto(`${base}/app/clients/${client}/memory/${study}#maps`);
+  await panel.waitFor({ timeout: 60000 });
+  await canvas.waitFor();
+  await noOverflow("sociomap in project memory @1366x768");
+  await fits("project memory @1366x768");
+  await shot("1366x768-memory-sociomap");
+  check("project memory's map at 1366 x 768: toolbar and canvas in one view under the sticky header");
 
   await page.setViewportSize({ width: 1440, height: 900 });
   await openMap();
