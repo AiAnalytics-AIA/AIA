@@ -1326,3 +1326,19 @@ open a finding or a cited number in it from a click (ANL3).
 - **Not yet:** the Lead's own `inspect` view op stays non-live until the server's `LeadView` carries
   it.
 - Tests: `Workbench.layout.test.tsx` "the item inspector".
+
+### F12. A field inside the workbench drew two focus rings *(fixed, `fix/workbench-field-focus-ring`)*
+
+1. Claim: a field that sets `outline-none` inside a wrapper that draws the ring on focus-within
+   (the Brief's link field) showed a second ring of its own inside the wrapper's (seen by Zadání).
+2. Anchor: `apps/web/src/components/workbench/workbench.css:26 @ bfe6d15b`. The workbench's
+   `:focus-visible` outline was unlayered, so it beat Tailwind's `outline-none` utility, which
+   sits in a layer. `BriefStep.tsx:604 @ bfe6d15b` is the field.
+3. Reproduction: `node tools/ui_workbench/workbench_journey.mjs`. Focusing "Odkaz" on Zadání
+   gives a computed `outline-style` of `solid`.
+4. Consequence: a double ring on the field, in every stage's `outline-none` inputs (Stepper,
+   InlineCreateRow, PersonaStep, step.tsx) and on the object map's points.
+5. Fix: the ring moves into `@layer base`, beside the element rules, so a stage's utility wins.
+   The workbench's own controls keep the ring.
+6. Test: the workbench journey's "one focus ring on a field, the ring on the workbench's
+   controls".
