@@ -245,6 +245,22 @@ try {
   await shot("390-header");
   check("every stage reachable by keyboard at 768 (scrolling) and 390 (the stage list), no overflow");
 
+  // At a phone's width every control the frame owns is a 44 px target (input-interactions I11): the
+  // header, the navigator and its list, the artifact header, the launcher and the open conversation.
+  const frameTargets = (where) => page.evaluate(() => [...document.querySelectorAll("[data-workbench] button, [data-workbench] a[href]")]
+    .filter((e) => !e.closest("#artbody") && !e.classList.contains("skip") && e.getClientRects().length && getComputedStyle(e).visibility !== "hidden")
+    .map((e) => ({ name: (e.getAttribute("aria-label") || e.textContent || "").trim().slice(0, 40), h: Math.round(e.getBoundingClientRect().height), w: Math.round(e.getBoundingClientRect().width) }))
+    .filter((x) => x.h < 44 || x.w < 44)).then((small) => assert.deepEqual(small, [], `frame targets under 44 px @390 (${where})`));
+  await frameTargets("closed");
+  await page.locator(".nav__current").click();
+  await frameTargets("stage list");
+  await page.keyboard.press("Escape");
+  await page.locator("[data-lead-launcher]").click();
+  await page.getByRole("dialog", { name: "Vedoucí výzkumu" }).waitFor();
+  await frameTargets("conversation");
+  await page.keyboard.press("Escape");
+  check("every control the frame owns is a 44 px target at 390: header, stage list, artifact header, conversation");
+
   // Zadání: V2's sections in order -- Cíle, Rozhodnutí, Kontext -- at every width (artifact-brief
   // BRF2). Reading it is a GET; nothing is edited here (the workspace journey edits a fresh study).
   for (const width of [1440, 1100, 768, 390]) {

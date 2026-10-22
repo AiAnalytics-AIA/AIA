@@ -134,6 +134,9 @@ class RequestDecision(BaseModel):
     model_config = ConfigDict(extra="forbid")
     status: Literal["approved"]
     run_id: str | None
+    #: A typed start approved on the job an earlier approval had already started for this
+    #: design: nothing started, the card is decided (LO5).
+    reused: bool = False
 
 
 class SelfUpdateDecision(BaseModel):

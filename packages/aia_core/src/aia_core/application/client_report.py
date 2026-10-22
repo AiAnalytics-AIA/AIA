@@ -320,6 +320,33 @@ def stored_client_report(
     valid artifact has exactly those sources, so the document a person approves is the
     document they downloaded.
     """
+    artifact, data = _client_report(session, scope, store, run_id=run_id, build=build)
+    if data is None:
+        data = research_artifacts(session, scope, store).read(artifact.artifact_id)
+    return artifact, data
+
+
+def prepare_client_report(
+    session: Session,
+    scope: StudyContext,
+    store: ArtifactStore,
+    *,
+    run_id: str,
+    build: str = "",
+) -> tuple[Artifact, Artifact | None]:
+    """The client report its download would hand over, stored as it would store it, and the
+    document model beside exactly that version, without reading its bytes (report-delivery RD3):
+    a person reads the version they will approve, in AIA, before any file leaves."""
+    artifact, _data = _client_report(session, scope, store, run_id=run_id, build=build)
+    found = client_report_document(session, scope, store, run_id=run_id, docx=artifact)
+    return artifact, found[1] if found else None
+
+
+def _client_report(
+    session: Session, scope: StudyContext, store: ArtifactStore, *, run_id: str, build: str
+) -> tuple[Artifact, bytes | None]:
+    """The client report as stored (see :func:`stored_client_report`), with its bytes only
+    when they were rendered here, so nothing reads a stored version twice."""
     from aia_core.infrastructure.report_docx.renderer import DocxRenderer
 
     scope.require(Permission.EXPORT_DELIVERABLE)
@@ -327,7 +354,7 @@ def stored_client_report(
     artifacts = research_artifacts(session, scope, store)
     approved = approved_client_report(artifacts, run, run_id=run_id)
     if approved is not None:
-        return approved, artifacts.read(approved.artifact_id)
+        return approved, None
     composed = compose_client_report(session, scope, store, run_id=run_id)
     key = fingerprint(composed.sources)
     found = artifacts.find_reusable(
@@ -340,7 +367,7 @@ def stored_client_report(
         # A draft stored before RD5a gets its document now: the same sources compose the same
         # document (the fingerprint holds them and the contract).
         _store_document(artifacts, run_id, found, composed.document, build)
-        return found, artifacts.read(found.artifact_id)
+        return found, None
     data = DocxRenderer().render(composed.document)
     artifact, _created = artifacts.put(
         project_id=run["project_id"],
@@ -389,12 +416,18 @@ def _store_document(
 
 
 def client_report_document(
-    session: Session, scope: StudyContext, store: ArtifactStore, *, run_id: str
+    session: Session,
+    scope: StudyContext,
+    store: ArtifactStore,
+    *,
+    run_id: str,
+    docx: Artifact | None = None,
 ) -> tuple[Artifact, Artifact | None] | None:
     """The run's client report as stored, and the document model beside it, composing
     nothing: the approved version when a person approved one, else the newest stored draft.
     ``None`` while no client report was stored; the model ``None`` for a version stored before
-    RD5a (an approved one keeps its bytes and gets none)."""
+    RD5a (an approved one keeps its bytes and gets none). ``docx``: that version's document
+    instead, the one its download hands over."""
     scope.require(Permission.VIEW_RESULTS)
     run = ResearchRuns(session, scope).get(run_id)
     artifacts = research_artifacts(session, scope, store)
@@ -412,8 +445,9 @@ def client_report_document(
     ]
     if not drafts:
         return None
-    approved = [a for a in drafts if a.is_approved]
-    docx = approved[-1] if approved else drafts[-1]
+    if docx is None:
+        approved = [a for a in drafts if a.is_approved]
+        docx = approved[-1] if approved else drafts[-1]
     return docx, _document_of(stored, docx)
 
 

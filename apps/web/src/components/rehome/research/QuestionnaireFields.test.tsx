@@ -17,8 +17,8 @@ const SECTIONS = [
 ];
 
 let saves: SavedBody[] = [];
-function stub() {
-  const ws = workspaceFixture({ goal: "G", sections: SECTIONS, ui_state: { questionnaire_path: "manual" } }, { analysis: null });
+function stub(sections: unknown[] = SECTIONS) {
+  const ws = workspaceFixture({ goal: "G", sections, ui_state: { questionnaire_path: "manual" } }, { analysis: null });
   saves = ws.saves;
   const native = nativeAgentFixture(() => ({ project: {}, proposal: {} }), {}, ws.write);
   vi.stubGlobal("fetch", vi.fn(async (url: RequestInfo | URL, init?: RequestInit) => {
@@ -29,7 +29,7 @@ function stub() {
     return answer instanceof Response ? answer : new Response(JSON.stringify(answer), { status: 200 });
   }));
 }
-const sectionsSaved = () => (saves.at(-1) as unknown as { content: { sections: { title?: string; purpose?: string }[] } } | undefined)?.content.sections;
+const sectionsSaved = () => (saves.at(-1) as unknown as { content: { sections: { title?: string; purpose?: string; object_type?: string; object_family?: string; object_question?: string }[] } } | undefined)?.content.sections;
 const open = async (name: string) => {
   fireEvent.click(await screen.findByRole("button", { name }));
 };
@@ -86,5 +86,42 @@ describe("Dotazník's block and set fields", () => {
   it("offers no edit on a design the person may not change", async () => {
     render(<ResearchScreen step="questionnaire" frame={{ ...TEST_FRAME, canEdit: false }} />);
     expect(((await screen.findByRole("button", { name: "Upravit: Název bloku Hlavní otázky" })) as HTMLButtonElement).disabled).toBe(true);
+  });
+
+  it("edits a set's object type and common question in place, refusing a question without {object}", async () => {
+    render(<ResearchScreen step="questionnaire" frame={TEST_FRAME} />);
+    await open("Upravit: Typ sledovaných objektů média");
+    const type = screen.getByRole("textbox", { name: "Typ sledovaných objektů" });
+    fireEvent.change(type, { target: { value: "kanály" } });
+    fireEvent.keyDown(type, { key: "Enter" });
+    await waitFor(() => expect(sectionsSaved()?.[1]).toMatchObject({ object_type: "kanály", object_family: "kanály" }));
+    await open("Upravit: Společná otázka Jak hodnotíte {object}?");
+    const question = screen.getByRole("textbox", { name: "Společná otázka" });
+    fireEvent.change(question, { target: { value: "Jak často je používáte?" } });
+    fireEvent.keyDown(question, { key: "Enter" });
+    // Said at the field and kept there; nothing saved.
+    expect(question.getAttribute("aria-invalid")).toBe("true");
+    expect(screen.getByText("Otázka musí obsahovat {object}, jinak se položky do otázky nepromítnou.")).toBeTruthy();
+    fireEvent.change(question, { target: { value: "Jak často používáte {object}?" } });
+    fireEvent.keyDown(question, { key: "Enter" });
+    await waitFor(() => expect(sectionsSaved()?.[1].object_question).toBe("Jak často používáte {object}?"));
+  });
+
+  it("offers + {object} only for a stored question that lacks it, and adds it once", async () => {
+    stub([SECTIONS[0], { ...SECTIONS[1], object_question: "Jak často je používáte?" }]);
+    render(<ResearchScreen step="questionnaire" frame={TEST_FRAME} />);
+    fireEvent.click(await screen.findByRole("button", { name: "+ {object}" }));
+    await waitFor(() => expect(sectionsSaved()?.[1].object_question).toBe("Jak často je používáte? {object}"));
+    await waitFor(() => expect(screen.queryByRole("button", { name: "+ {object}" })).toBeNull());
+  });
+
+  it("edits a set's goal in place and lets it be cleared", async () => {
+    render(<ResearchScreen step="questionnaire" frame={TEST_FRAME} />);
+    const set = document.getElementById("qset_sec_b") ?? (await screen.findByText("SADA 1")).closest("article")!;
+    fireEvent.click(await within(set as HTMLElement).findByRole("button", { name: /^Upravit: Co chceme z porovnání zjistit\?/ }));
+    const goal = screen.getByRole("textbox", { name: "Co chceme z porovnání zjistit?" });
+    fireEvent.change(goal, { target: { value: "Který kanál oslovuje nejvíc" } });
+    fireEvent.keyDown(goal, { key: "Enter" });
+    await waitFor(() => expect(sectionsSaved()?.[1].purpose).toBe("Který kanál oslovuje nejvíc"));
   });
 });

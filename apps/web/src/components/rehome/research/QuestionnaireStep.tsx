@@ -756,12 +756,15 @@ function ResearchQuestionComparisons({ update }: { update: Update }) {
  * blur saves, Esc restores. The change goes to the working copy at once and saves with it, the
  * header saying the save, as Návrh's narrative does. A name is required; a purpose may be left empty.
  */
-function InlineField({ label, value, onChange, strong = false, required = true }: {
+function InlineField({ label, value, onChange, strong = false, required = true, placeholder, validate }: {
   label: string;
   value: string;
   onChange: (v: string) => void;
   strong?: boolean;
   required?: boolean;
+  placeholder?: string;
+  /** A further rule, said at the field (I9); null when the draft passes. */
+  validate?: (v: string) => string | null;
 }) {
   const { canEdit } = useFrame();
   // A line of its own: the purpose under the name, as the inputs stood before.
@@ -770,9 +773,9 @@ function InlineField({ label, value, onChange, strong = false, required = true }
       <InlineText
         label={label}
         value={value}
-        placeholder={label}
+        placeholder={placeholder ?? label}
         disabled={!canEdit}
-        rules={{ required }}
+        rules={{ required, validate }}
         onCommit={onChange}
         className={strong ? "text-[15px] font-semibold text-ink" : "text-[13px] text-ink-muted"}
       />
@@ -1027,6 +1030,7 @@ function TrackedSet({ n, sec, si, update }: { n: number; sec: Section; si: numbe
   const labels = sec.scale_labels || ["vůbec", "velmi"];
   const objects = sec.objects || [];
   const question = sec.object_question || "Jak hodnotíte {object}?";
+  const objectMissing = tv("research.questionnaire.setQuestionMissing", { object: OBJECT });
   const bad = setInvalid(sec);
   // updateObjects takes the objects one per line, as the classic textarea gave them.
   const setObjects = (next: string[]) => {
@@ -1053,35 +1057,44 @@ function TrackedSet({ n, sec, si, update }: { n: number; sec: Section; si: numbe
         )}
       </div>
       <div className="grid gap-3 md:grid-cols-2">
-        <label className="flex flex-col gap-1">
+        <div className="flex flex-col gap-1">
           <span className={LABEL}>{t("research.questionnaire.setFamily")}</span>
-          <input className={INPUT} value={sec.object_family || sec.object_type || ""} placeholder={t("research.questionnaire.setFamilyPlaceholder")} onChange={(e) => update((p) => setObjectFamily(p, si, e.target.value))} />
+          <InlineField required={false} label={t("research.questionnaire.setFamily")} placeholder={t("research.questionnaire.setFamilyPlaceholder")} value={sec.object_family || sec.object_type || ""} onChange={(v) => update((p) => setObjectFamily(p, si, v))} />
           <span className="text-xs text-ink-muted">{t("research.questionnaire.setFamilyHelp")}</span>
-        </label>
-        <label className="flex flex-col gap-1">
+        </div>
+        <div className="flex flex-col gap-1">
           <span className={LABEL}>{t("research.questionnaire.setPurpose")}</span>
-          <input className={INPUT} value={sec.purpose || ""} onChange={(e) => update((p) => setSectionField(p, si, "purpose", e.target.value))} />
-        </label>
+          <InlineField required={false} label={t("research.questionnaire.setPurpose")} placeholder="" value={sec.purpose || ""} onChange={(v) => update((p) => setSectionField(p, si, "purpose", v))} />
+        </div>
       </div>
       <div className="flex flex-col gap-1">
         <span className={LABEL}>{t("research.questionnaire.setQuestion")}</span>
-        <div className="flex gap-2">
-          <input
-            aria-label={t("research.questionnaire.setQuestion")}
-            className={`${INPUT} ${question.includes(OBJECT) ? "" : "!border-status-you-ink"}`}
-            value={question}
-            onChange={(e) => update((p) => setSectionField(p, si, "object_question", e.target.value))}
-          />
-          <Button small className="!min-h-9 shrink-0 !rounded-control font-mono" onClick={() => update((p) => setSectionField(p, si, "object_question", `${question.trimEnd()} ${OBJECT}`))}>
-            + {OBJECT}
-          </Button>
+        <div className="flex items-start gap-2">
+          <div className="min-w-0 flex-1">
+            <InlineField
+              label={t("research.questionnaire.setQuestion")}
+              value={question}
+              validate={(v) => (v.includes(OBJECT) ? null : objectMissing)}
+              onChange={(v) => update((p) => setSectionField(p, si, "object_question", v))}
+            />
+          </div>
+          {/* Only for a stored question without {object} (an older copy): the field refuses a new one. */}
+          {question.includes(OBJECT) ? null : (
+            <Button
+              small
+              className="!min-h-9 shrink-0 !rounded-control font-mono"
+              onClick={() => update((p) => setSectionField(p, si, "object_question", `${String(sections(p)[si]?.object_question || "").trimEnd()} ${OBJECT}`.trim()))}
+            >
+              + {OBJECT}
+            </Button>
+          )}
         </div>
         {question.includes(OBJECT) ? (
           <span className="text-xs text-ink-muted">
             {t("research.questionnaire.setQuestionHelp")} <code className="font-mono">{OBJECT}</code>.
           </span>
         ) : (
-          <span className="text-xs text-status-you-ink">{tv("research.questionnaire.setQuestionMissing", { object: OBJECT })}</span>
+          <span className="text-xs text-status-you-ink">{objectMissing}</span>
         )}
       </div>
       <div className="flex flex-col gap-1">

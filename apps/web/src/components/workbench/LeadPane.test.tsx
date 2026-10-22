@@ -141,6 +141,21 @@ describe("LeadPane", () => {
     await waitFor(() => expect(onRequest).toHaveBeenCalledWith(expect.objectContaining({ turn_id: "LDT-8" }), expect.objectContaining({ kind: "research_run" })));
   });
 
+  it("says a typed start approved again found the job already done, and shows that job once", async () => {
+    const job = { run_id: "RUN-J", design_revision_id: "REV-1", action: "critique_design" as const, status: "COMPLETED", is_terminal: true, needs_attention: false, context_sha256: "x", harness_version: "3", created_at: "2026-10-19T08:01:00Z", steps: [], actual_cost_usd: 0.012 };
+    state.turns = [
+      turn({ turn_id: "LDT-7", actor: "person", text: "Zkontroluj návrh", command: "agent_job:critique_design", run_id: null, output: null, request_decision: { status: "approved", run_id: "RUN-J", reused: false } }),
+      turn({ turn_id: "LDT-9", actor: "person", text: "Zkontroluj návrh", command: "agent_job:critique_design", run_id: null, output: null, request_decision: { status: "approved", run_id: "RUN-J", reused: true } }),
+    ];
+    const { container } = render(pane({ jobs: [job], onOpenJob: vi.fn(), cards: cards() }));
+    expect(await screen.findByText("Už proběhlo")).toBeTruthy();
+    expect(screen.getByText("Tato úloha pro tento návrh už proběhla")).toBeTruthy();
+    expect(container.querySelectorAll('[data-card="worker"]')).toHaveLength(1);
+    expect(screen.queryByRole("button", { name: "Spustit úlohu" })).toBeNull();
+    // A decided card no longer says it starts on the person's confirmation.
+    expect(screen.queryByText("Spustí se až vaším potvrzením.")).toBeNull();
+  });
+
   it("keeps what the Lead wants for all of the researcher's work only on their yes", async () => {
     // Codex P1 on #484: a personal note or a file change reaches every client's studies.
     state.turns = [turn({
