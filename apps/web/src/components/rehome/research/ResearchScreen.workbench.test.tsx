@@ -80,6 +80,15 @@ describe("the workbench: the Lead owns the AI starts", () => {
     expect(push.mock.calls[0][0]).toMatch(/\/plan$/);
   });
 
+  it("mounts a stage once on a fresh page, not the classic layout first and then the workbench", async () => {
+    const { container } = render(<ResearchScreen step="persona" frame={TEST_FRAME} />);
+    await waitFor(() => expect(container.querySelector("[data-workbench]")).not.toBeNull());
+    await new Promise((r) => setTimeout(r, 1500));
+    // The stage's reads once: the classic layout, mounted while the switch was unknown, read them too.
+    expect(urls.filter((u) => u.endsWith("/design/source"))).toHaveLength(1);
+    expect(container.querySelector("[data-research-workspace]")).toBeNull();
+  });
+
   it("says on Dimenze where the dimensions' proposal is asked for now", async () => {
     render(<ResearchScreen step="persona" frame={TEST_FRAME} />);
     const hint = await screen.findByText(/Návrh dimenzí připraví Vedoucí výzkumu/);

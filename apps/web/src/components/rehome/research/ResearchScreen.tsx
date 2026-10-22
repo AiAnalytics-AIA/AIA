@@ -233,9 +233,10 @@ export function ResearchScreen({ step, frame: given }: { step: StepKey; frame?: 
 /** The workbench switch once read: later studies of the same page start with it, without a flash. */
 let workbenchKnown: boolean | null = null;
 
-/** The research workbench is on for this deployment (/config's workbench); off while unknown. */
-function useWorkbenchSwitch(): boolean {
-  const [on, setOn] = useState<boolean>(workbenchKnown ?? false);
+/** The research workbench is on for this deployment (/config's workbench); null until read, so
+ *  neither layout mounts and reads the study twice on a fresh page (the Dimenze audit, #798). */
+function useWorkbenchSwitch(): boolean | null {
+  const [on, setOn] = useState<boolean | null>(workbenchKnown);
   useEffect(() => {
     let live = true;
     loadConfig().then(
@@ -346,7 +347,7 @@ function Ready({ store, template, origin, memory, step, frame, reload }: {
   // "Navrhnout", no job dialog -- each job is a card in the conversation. The workbench serves at
   // every width, the Lead beside the artifact or in a drawer over it (research-lead-workbench 26b,
   // D20, D21); only with the switch off does the classic layout, and its buttons, serve.
-  const inWorkbench = workbench;
+  const inWorkbench = workbench === true;
   const leadOwns = leadOwnsAiStarts(inWorkbench ? "workbench" : "classic");
   const starts = !leadOwns;
   // A card on another stage asked for this job's review: opened here once the jobs are read.
@@ -360,6 +361,9 @@ function Ready({ store, template, origin, memory, step, frame, reload }: {
     void openAgent(job);
   }, [memory, agents.recent, agents.busy, openAgent]);
 
+  // The layout is the switch's: mounting the classic one while it is unread would read and record
+  // the stage twice, once for each layout.
+  if (workbench === null) return null;
   return (
     <ResearchAssistance step={step} studyName={frame.studyName} canEdit={frame.canEdit} memory={memory} actions={aiHelp} agents={agents} job={job} onCancel={onCancel} studyId={frame.studyId} starts={starts}>
     {({ card, panel, expanded, ask: askAssistance }) => <ResearchContext.Provider value={{ ...value, leadOwnsAiStarts: leadOwns, askAssistance: leadOwns ? undefined : askAssistance }}>
