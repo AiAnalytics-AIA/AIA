@@ -11,7 +11,7 @@ import { describe, expect, it } from "vitest";
 import type { ResearchProject } from "@/research/model";
 import { linkKey, researchQuestionsOf } from "@/research/trace";
 import type { Analysis } from "@/research/store";
-import { applyLeadEdit, isTextEdit, type LeadEdit } from "./lead";
+import { applyEdit, isTextEdit, type LeadEdit, type WorkingEdit } from "./lead";
 
 type Doc = Record<string, unknown>;
 type Spec = { op: string; availability: "applied" | "declared"; in_lead_output: boolean; text: "structural" | "by_payload" };
@@ -19,7 +19,7 @@ const FILE = JSON.parse(readFileSync(join(process.cwd(), "../../packages/aia_cor
   ids: string[];
   refusals: string[];
   catalogue: Spec[];
-  apply: { name: string; before: { content: Doc; analysis: Doc | null }; edit: LeadEdit; expect: { content: Doc; analysis: Doc | null } | { refused: string } }[];
+  apply: { name: string; before: { content: Doc; analysis: Doc | null }; edit: WorkingEdit; expect: { content: Doc; analysis: Doc | null } | { refused: string } }[];
   text_edits: { edit: LeadEdit; text: boolean }[];
   link_keys: { text: string; key: string }[];
   research_questions_of: { name: string; design: Doc; expect: string[] }[];
@@ -42,10 +42,14 @@ describe("the edit vocabulary", () => {
     const applied = FILE.catalogue.filter((s) => s.availability === "applied" && s.in_lead_output).map((s) => s.op);
     expect(Object.keys(WEB_OPS).sort()).toEqual(applied.sort());
     for (const op of Object.keys(WEB_OPS)) expect(FILE.apply.some((c) => c.edit.op === op)).toBe(true);
+    // Applied and a person's alone (WCE13): in the web's working edits, never in the Lead's type.
+    const alone = FILE.catalogue.filter((s) => s.availability === "applied" && !s.in_lead_output).map((s) => s.op);
+    expect(alone).toEqual(["route_set"]);
+    expect(FILE.apply.some((c) => c.edit.op === "route_set")).toBe(true);
   });
 
   it.each(FILE.apply.map((c) => [c.name, c] as const))("%s", (_name, c) => {
-    const got = applyLeadEdit({ project: c.before.content as unknown as ResearchProject, analysis: c.before.analysis as Analysis | null }, c.edit, ids());
+    const got = applyEdit({ project: c.before.content as unknown as ResearchProject, analysis: c.before.analysis as Analysis | null }, c.edit, ids());
     if ("refused" in c.expect) {
       expect("reason" in got ? got.reason : null).toBe(c.expect.refused);
       expect(FILE.refusals).toContain(c.expect.refused);
@@ -57,7 +61,7 @@ describe("the edit vocabulary", () => {
   it("changes nothing it was given", () => {
     const c = FILE.apply.find((x) => x.name === "a research question added")!;
     const before = JSON.parse(JSON.stringify(c.before)) as typeof c.before;
-    applyLeadEdit({ project: before.content as unknown as ResearchProject, analysis: before.analysis as Analysis | null }, c.edit, ids());
+    applyEdit({ project: before.content as unknown as ResearchProject, analysis: before.analysis as Analysis | null }, c.edit, ids());
     expect(before).toEqual(c.before);
   });
 

@@ -292,6 +292,18 @@ describe("the display state, where the web leaves the panel", () => {
 });
 
 describe("accessibility", () => {
+  // The page holds the landmarks: the side column is layout, not a complementary region of its own
+  // nested inside them (axe landmark-complementary-is-top-level, Sociomapa audit 2026-10-22).
+  it("adds no landmark of its own beside the map, on the signed-off map and an older method's", () => {
+    const { unmount } = render(<ObjectMapView battery={hudba} dataOrigin={null} />);
+    expect(screen.queryAllByRole("complementary")).toHaveLength(0);
+    fireEvent.click(screen.getByRole("button", { name: "Respondenti" }));
+    expect(screen.queryAllByRole("complementary")).toHaveLength(0);
+    unmount();
+    render(<ObjectMapView battery={legacyBattery} dataOrigin={null} />);
+    expect(screen.queryAllByRole("complementary")).toHaveLength(0);
+  });
+
   it("names the canvas, describes its lines, and lists every object as a button", () => {
     render(<ObjectMapView battery={hudba} dataOrigin={null} />);
     const img = screen.getByRole("img", { name: "Mapa objektů Hudební žánry: 12 objektů na terénu průměrného hodnocení" });

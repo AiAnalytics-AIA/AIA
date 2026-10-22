@@ -383,14 +383,14 @@ def verdict(
         ("P4_beats_no_persona", ("D_beats_A_tvd",)),
         ("P5_beats_wrong_person", ("D_beats_S_subgroup_tvd", "D_beats_S_brier")),
     ):
-        detail = {
-            n: (
-                {"mean_improvement": tests[n][0], "p": tests[n][1], "rejected": rejected[n]}  # type: ignore[index]
-                if tests[n] is not None
-                else {"unknown": True}
+        detail: dict[str, dict[str, object]] = {}
+        for n in names:
+            test = tests[n]
+            detail[n] = (
+                {"unknown": True}
+                if test is None
+                else {"mean_improvement": test[0], "p": test[1], "rejected": rejected[n]}
             )
-            for n in names
-        }
         passed = all(tests[n] is not None and rejected.get(n, False) for n in names)
         criteria.append(Criterion(criterion, passed, None, alpha, detail))
 

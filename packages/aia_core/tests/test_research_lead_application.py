@@ -34,7 +34,13 @@ from aia_core.application.research_lead import (
     set_study_budget,
     worker_readiness,
 )
-from aia_core.domain.research_lead import RememberNote, SelfUpdate, layer, self_update_base
+from aia_core.domain.research_lead import (
+    RememberNote,
+    SelfUpdate,
+    context_bytes,
+    layer,
+    self_update_base,
+)
 from aia_core.domain.scope import (
     WORKER_PERMISSIONS,
     Permission,
@@ -594,6 +600,30 @@ def test_only_a_prepared_job_waits_in_the_digest(
     (_, nxt) = _message(_lead(scope, session))
     digest = layer(_step_input(session, scope, nxt["run_id"])["context"], "memory")["digest"]
     assert [p["kind"] for p in digest["undecided"]] == waiting
+
+
+def test_a_turns_manifest_is_what_it_froze_and_only_its_researchers(
+    scoped: Any, session: Any
+) -> None:
+    """Co Vedoucí vidí (LC2): read from the turn's frozen context, never today's study."""
+    scope = scoped.scope()
+    _hatch(scoped, session)
+    _save(scope, session)
+    person, turn = _message(_lead(scope, session))
+    frozen = _step_input(session, scope, turn["run_id"])["context"]
+    read = _lead(scope, session).manifest(turn["turn_id"])
+    assert read["recorded"] is True
+    assert read["manifest"]["total_bytes"] == context_bytes(frozen)
+    view = next(r for r in read["manifest"]["layers"] if r["layer"] == "view")
+    assert view["included"] == ["brief:goal"]
+    with pytest.raises(LeadTurnNotFound):
+        _lead(scope, session).manifest(person["turn_id"])  # a person's turn saw nothing
+    other = scoped.scope(user="researcher")
+    with pytest.raises(LeadTurnNotFound):
+        _lead(other, session).manifest(turn["turn_id"])
+    with pytest.raises(LeadTurnNotFound):
+        _lead(other, session).omitted(turn["turn_id"], "knowledge")
+    assert _lead(scope, session).omitted(turn["turn_id"], "knowledge") == ([], 0)
 
 
 # --------------------------------------------------------------------------- deciding on edits

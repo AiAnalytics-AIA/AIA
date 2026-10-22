@@ -25,9 +25,13 @@ No I/O.
 
 from __future__ import annotations
 
+import ast
+import io
 import re
+import tokenize
 import unicodedata
 from collections.abc import Mapping, Sequence
+from dataclasses import dataclass
 from enum import StrEnum
 from typing import Any, Final, Literal
 
@@ -61,15 +65,18 @@ __all__ = [
     "SampleSizeLimits",
     "SampleSizeProblem",
     "SpecBattery",
+    "SpecCondition",
     "SpecObject",
     "SpecQuestion",
     "SpecSelection",
     "TrackedSetLimits",
     "assess_readiness",
     "compile_design",
+    "condition_refusal",
     "keep_point_labels",
     "labelled_points",
     "prepare",
+    "read_condition",
     "readiness_problems",
     "readiness_values",
     "sample_size_problem",
@@ -258,6 +265,23 @@ def _labels_fit(labels: tuple[str, ...], scale: tuple[int, int] | None, where: s
         )
 
 
+class CompileProblem(_Frozen):
+    """Why part of the design cannot be compiled. ``where`` names the section/question."""
+
+    code: str
+    where: str
+    message: str
+
+
+class SpecCondition(_Frozen):
+    """Who a question is for (working-copy-edit-ops WCE13): the respondents whose answer to an
+    earlier choice question is one of ``options``. ``question_id`` is that question's compiled
+    id. The design stores it as ``filtr: {"question_id": <its stored id>, "options": [...]}``."""
+
+    question_id: str
+    options: tuple[str, ...]
+
+
 class SpecQuestion(_Frozen):
     """One question a respondent answers. ``options`` already includes "don't know"."""
 
@@ -269,6 +293,13 @@ class SpecQuestion(_Frozen):
     scale: tuple[int, int] | None = None
     allow_dont_know: bool = False
     has_filter: bool = False
+    #: The question's display condition, read and checked by the compiler; ``None`` when it has
+    #: none, and then absent from the fingerprint. Fieldwork does not route by it yet (RQC11),
+    #: so a question with one still fails readiness (``conditional_questions``).
+    condition: SpecCondition | None = None
+    #: Why the declared condition was refused (``condition_*``), which readiness fails by name;
+    #: ``None`` when it was read or none was declared, and then absent from the fingerprint.
+    condition_problem: CompileProblem | None = None
     #: The design declared this scale question a Sociomap rating item (``sociomap_rating``):
     #: it enters every person's min-max (audit F2) beside the tracked sets' items. Never
     #: inferred from the type: a numeric question is a descriptor unless declared.
@@ -292,6 +323,11 @@ class SpecQuestion(_Frozen):
             raise ValueError(f"{self.id}: only a scale question can be a rating item")
         if self.scale_labels and self.typ != "skala":
             raise ValueError(f"{self.id}: only a scale question carries scale labels")
+        declared = self.condition is not None or self.condition_problem is not None
+        if self.has_filter != declared or (self.condition and self.condition_problem):
+            raise ValueError(
+                f"{self.id}: has_filter says whether a condition is declared, read or refused"
+            )
         _labels_fit(self.scale_labels, self.scale, self.id)
         return self
 
@@ -424,6 +460,10 @@ class ResearchSpecification(_Frozen):
         declarations existed keeps the fingerprint it always had."""
         body = self.model_dump(mode="json")
         for question in body["questions"]:
+            if question["condition"] is None:
+                del question["condition"]
+            if question["condition_problem"] is None:
+                del question["condition_problem"]
             if not question["rating_item"]:
                 del question["rating_item"]
             if not question["research_questions"]:
@@ -448,14 +488,6 @@ class ResearchSpecification(_Frozen):
 
     def battery_questions(self) -> tuple[str, ...]:
         return tuple(b.question_id(o) for b in self.batteries for o in b.objects)
-
-
-class CompileProblem(_Frozen):
-    """Why part of the design cannot be compiled. ``where`` names the section/question."""
-
-    code: str
-    where: str
-    message: str
 
 
 class CheckStatus(StrEnum):
@@ -711,6 +743,192 @@ def _links(
     return tuple(dict.fromkeys(t for t in (_text(x) for x in declared) if t))
 
 
+#: The longest condition expression read; a longer one is not a choice the 18.6.6 interface wrote.
+_CONDITION_MAX_CHARS: Final = 2000
+
+
+def read_condition(raw: Any) -> tuple[str, tuple[str, ...], bool] | None:
+    """A stored ``filtr`` as (the question it names, the answers that lead to the question,
+    whether it was written as an 18.6.6 expression), or ``None`` when it is not exactly that.
+
+    The design's form is ``{"question_id": str, "options": [str, ...]}``. A condition the
+    18.6.6 interface wrote as an expression reads only when it is exactly a choice:
+    ``Q1 == 'Nikdy'`` or ``Q1 in ['Týdně', 'Nikdy']``, each answer one quoted literal. Anything
+    else -- another operator, a compound, literals joined by juxtaposition, an unquoted answer
+    the unit would have quoted by a guess (``filter_syntax.py`` ``repair_filter``) -- is not
+    read, so it is refused by name, never coerced. Answers are compared as the compiler reads
+    a question's categories (``_text``: whitespace collapsed)."""
+    if isinstance(raw, dict):
+        qid, options = raw.get("question_id"), raw.get("options")
+        if set(raw) != {"question_id", "options"} or not isinstance(qid, str) or not _text(qid):
+            return None
+        if not isinstance(options, list) or not options:
+            return None
+        if not all(isinstance(o, str) and _text(o) for o in options):
+            return None
+        return _text(qid), tuple(dict.fromkeys(_text(o) for o in options)), False
+    if not isinstance(raw, str) or len(raw) > _CONDITION_MAX_CHARS:
+        return None
+    try:
+        tree = ast.parse(raw.strip(), mode="eval").body
+        literals = sum(
+            t.type == tokenize.STRING
+            for t in tokenize.generate_tokens(io.StringIO(raw.strip()).readline)
+        )
+    except (SyntaxError, tokenize.TokenError, RecursionError, MemoryError):
+        return None
+    if not (
+        isinstance(tree, ast.Compare) and len(tree.ops) == 1 and isinstance(tree.left, ast.Name)
+    ):
+        return None
+    # The parser folds a name to NFKC (a full-width Q1 reads as Q1); a name is read only as written.
+    if ast.get_source_segment(raw.strip(), tree.left) != tree.left.id:
+        return None
+    op, right = tree.ops[0], tree.comparators[0]
+    if isinstance(op, ast.Eq):
+        values = [right]
+    elif isinstance(op, ast.In) and isinstance(right, (ast.List, ast.Tuple)):
+        values = list(right.elts)
+    else:
+        return None
+    answers = [
+        _text(v.value) for v in values if isinstance(v, ast.Constant) and isinstance(v.value, str)
+    ]
+    # One quoted literal per answer: 'Ni' 'kdy' parses as one constant, written as two.
+    if not answers or len(answers) != len(values) or literals != len(values) or not all(answers):
+        return None
+    return tree.left.id, tuple(dict.fromkeys(answers)), True
+
+
+@dataclass(frozen=True)
+class _Earlier:
+    """A question before the one being compiled, as a condition may name it."""
+
+    stored_id: str
+    compiled_id: str
+    typ: str
+    options: tuple[str, ...]
+
+
+def _named(ref: str, earlier: Sequence[_Earlier], *, expression: bool) -> list[_Earlier]:
+    """The earlier questions ``ref`` names: by stored id exactly; an 18.6.6 expression also as
+    the unit resolved its names, case-insensitively by stored id, else by compiled id
+    (``filter_syntax.py`` ``_QuestionIdCaseNormalizer``)."""
+    exact = [e for e in earlier if e.stored_id == ref]
+    if exact or not expression:
+        return exact
+    folded = ref.casefold()
+    by_stored = [e for e in earlier if e.stored_id.casefold() == folded]
+    return by_stored or [e for e in earlier if e.compiled_id.casefold() == folded]
+
+
+def _condition(
+    raw: Any,
+    qid: str,
+    *,
+    earlier: Sequence[_Earlier],
+    refused: frozenset[str],
+    later: frozenset[str],
+) -> SpecCondition | CompileProblem | None:
+    """A question's condition checked against the questions before it: ``None`` for none, the
+    condition, or why it is refused, which readiness fails by name (the question still compiles,
+    so every other check is still read). ``refused`` are earlier questions the compiler refused:
+    their own problem stops the compile, so nothing is said of a condition on one. ``later`` the
+    stored ids from this question on."""
+    if raw is None or (isinstance(raw, str) and not raw.strip()):
+        return None
+
+    def refuse(code: str, message: str) -> CompileProblem:
+        return CompileProblem(code=code, where=qid, message=f"{qid}: {message}")
+
+    read = read_condition(raw)
+    if read is None:
+        return refuse(
+            "condition_unstructured",
+            "podmínce AIA nerozumí (musí určit dřívější výběrovou otázku a odpovědi). "
+            "V Dotazníku ji nastavte znovu, nebo ji odeberte.",
+        )
+    ref, options, expression = read
+    named = _named(ref, earlier, expression=expression)
+    if not named:
+        if ref in refused:
+            return None
+        if ref in later:
+            return refuse(
+                "condition_forward_reference",
+                f"podmínka smí stavět jen na otázce, která je v dotazníku dřív; {ref} je až "
+                "za ní, nebo je to tatáž otázka.",
+            )
+        return refuse(
+            "condition_unknown_question",
+            f"podmínka stojí na otázce {ref}, která v dotazníku není.",
+        )
+    # A name the question itself or a later one also carries is no earlier question's alone.
+    folded = ref.casefold()
+    also_later = ref in later or (expression and any(x.casefold() == folded for x in later))
+    if len(named) > 1 or also_later:
+        return refuse(
+            "condition_ambiguous_question",
+            f"podmínka stojí na {ref}, ale toto označení má v dotazníku víc otázek.",
+        )
+    (target,) = named
+    if target.typ not in ("vyber", "multi"):
+        return refuse(
+            "condition_not_choice",
+            f"podmínka smí stavět jen na výběrové otázce; {ref} jí není.",
+        )
+    unknown = [o for o in options if o not in target.options]
+    if unknown:
+        return refuse(
+            "condition_unknown_option",
+            f"otázka {ref} nemá odpověď " + ", ".join(f"„{o}“" for o in unknown) + ".",
+        )
+    return SpecCondition(question_id=target.compiled_id, options=options)
+
+
+def _categories(raw: Mapping[str, Any]) -> tuple[str, ...]:
+    """A selection question's categories as the compiler reads them: whitespace collapsed, the
+    first of each, at most 24 (``research_project.py:139-143``)."""
+    cats = [_text(x) for x in (raw.get("kategorie") or raw.get("volby") or []) if _text(x)]
+    return tuple(dict.fromkeys(cats))[:24]
+
+
+def condition_refusal(content: Mapping[str, Any], question_id: str, condition: Any) -> str | None:
+    """Why ``condition`` cannot stand on the question stored as ``question_id`` in ``content``,
+    as the compiler's word (``condition_*``), or ``None`` when it can: the one rule
+    (:func:`_condition`) an edit is held to before it is written (``edit_ops`` ``route_set``).
+    ``unknown_question`` when no question is stored under that id. Earlier questions are read
+    as the compiler reads them; one the compiler would refuse for its own reasons is still
+    named here, and compile says what is wrong with it."""
+    earlier: list[_Earlier] = []
+    order: list[str] = []
+    at: int | None = None
+    for sec in content.get("sections") or []:
+        if not isinstance(sec, dict) or _text(sec.get("type") or "questions") != "questions":
+            continue
+        for raw in sec.get("questions") or []:
+            stored = _text(raw.get("id")) if isinstance(raw, dict) else ""
+            order.append(stored)
+            if at is None and stored == question_id:
+                at = len(order) - 1
+            elif at is None and isinstance(raw, dict) and stored:
+                typ = _text(raw.get("typ") or "vyber")
+                options = _categories(raw) if typ in ("vyber", "multi") else ()
+                if options and raw.get("povolit_nevim", False):
+                    options = (*options, DONT_KNOW)
+                earlier.append(_Earlier(stored, stored, typ, options))
+    if at is None:
+        return "unknown_question"
+    checked = _condition(
+        condition,
+        question_id,
+        earlier=earlier,
+        refused=frozenset(),
+        later=frozenset(order[at:]) - {""},
+    )
+    return checked.code if isinstance(checked, CompileProblem) else None
+
+
 def _question(
     raw: Any,
     *,
@@ -719,6 +937,9 @@ def _question(
     used: set[str],
     problems: list[CompileProblem],
     notes: list[CompileProblem],
+    earlier: Sequence[_Earlier],
+    refused: frozenset[str],
+    later: frozenset[str],
 ) -> SpecQuestion | None:
     where = f"{section_id}#{ordinal}"
     if not isinstance(raw, dict):
@@ -748,8 +969,7 @@ def _question(
     scale: tuple[int, int] | None = None
     scale_labels: tuple[str, ...] = ()
     if typ in ("vyber", "multi"):
-        cats = [_text(x) for x in (raw.get("kategorie") or raw.get("volby") or []) if _text(x)]
-        cats = list(dict.fromkeys(cats))[:24]  # research_project.py:139-143
+        cats = list(_categories(raw))
         if len(cats) < 2:
             problems.append(
                 CompileProblem(
@@ -791,6 +1011,7 @@ def _question(
     links = _links(raw, qid, problems)
     if links is None:
         return None
+    condition = _condition(raw.get("filtr"), qid, earlier=earlier, refused=refused, later=later)
     return SpecQuestion(
         id=qid,
         section_id=section_id,
@@ -799,7 +1020,9 @@ def _question(
         options=options,
         scale=scale,
         allow_dont_know=allow_dont_know,
-        has_filter=bool(_text(raw.get("filtr"))),
+        has_filter=condition is not None,
+        condition=condition if isinstance(condition, SpecCondition) else None,
+        condition_problem=condition if isinstance(condition, CompileProblem) else None,
         rating_item=rating_item,
         research_questions=links,
         scale_labels=scale_labels,
@@ -936,6 +1159,16 @@ def compile_design(
     batteries: list[SpecBattery] = []
     section_ids: set[str] = set()
     question_ids: set[str] = set()
+    # A condition names a question by its stored id; one before it, in questionnaire order.
+    earlier: list[_Earlier] = []
+    refused: set[str] = set()
+    order = [
+        _text(q.get("id")) if isinstance(q, dict) else ""
+        for sec in content.get("sections") or []
+        if isinstance(sec, dict) and _text(sec.get("type") or "questions") == "questions"
+        for q in (sec.get("questions") or [])
+    ]
+    position = 0
     for i, sec in enumerate(content.get("sections") or [], start=1):
         if not isinstance(sec, dict):
             continue
@@ -957,9 +1190,17 @@ def compile_design(
                     used=question_ids,
                     problems=problems,
                     notes=notes,
+                    earlier=tuple(earlier),
+                    refused=frozenset(refused),
+                    later=frozenset(order[position:]) - {""},
                 )
-                if compiled is not None:
-                    questions.append(compiled)
+                stored = order[position]
+                position += 1
+                if compiled is None:
+                    refused.add(stored)
+                    continue
+                questions.append(compiled)
+                earlier.append(_Earlier(stored, compiled.id, compiled.typ, compiled.options))
         else:
             battery = _battery(
                 sec,
@@ -1162,14 +1403,26 @@ def selection_receipt(spec: ResearchSpecification, *, population_draw: bool) -> 
 READINESS_RULES: Final = "aia-structural-readiness-1"
 
 
+def routed_questions(spec: ResearchSpecification, *, routing: bool) -> tuple[str, ...]:
+    """The questions fieldwork asks only of those their condition names: under ``routing``
+    (a run's pin of ``AIA_ROUTING_ENABLED``, WCE13 (d)), each with a valid condition; none
+    without it. The one rule readiness, the outlook and a run's pin read."""
+    return tuple(q.id for q in spec.questions if routing and q.condition is not None)
+
+
 def assess_readiness(
     spec: ResearchSpecification,
     *,
     pair_n_min: int,
     filters_applied: bool = False,
     limits: ReadinessSpec = AIA_READINESS_V1,
+    routing: bool = False,
 ) -> Readiness:
     """AIA's structural readiness checks. Ready means no check FAILed.
+
+    ``routing`` (the run's pin of ``AIA_ROUTING_ENABLED``, off until fieldwork routes,
+    run-qc-and-checkpoint RQC11; working-copy-edit-ops WCE13 (d)): a valid display condition
+    passes; off, it fails as it always has. A condition compile refused fails either way.
 
     ``limits`` are the sample size and recommended set size the checks hold the design to
     (plan ``methodology-tab`` V1a): a run's pin, the version in force for a check now, the
@@ -1210,8 +1463,18 @@ def assess_readiness(
         f"({counted(asked, 'položka', 'položky', 'položek')} k zodpovězení).",
     )
 
-    filtered = [q.id for q in spec.questions if q.has_filter]
-    if filtered:
+    # A condition compile could not read or check, by name at its question (WCE13).
+    for q in spec.questions:
+        if q.condition_problem is not None:
+            check(f"condition:{q.id}", CheckStatus.FAIL, q.condition_problem.message)
+    filtered = [q.id for q in spec.questions if q.condition is not None]
+    if routed := routed_questions(spec, routing=routing):
+        check(
+            "conditional_questions",
+            CheckStatus.PASS,
+            "Podmíněné otázky dostane jen ten, kdo na ně má odpovídat: " + ", ".join(routed) + ".",
+        )
+    elif filtered:
         check(
             "conditional_questions",
             CheckStatus.FAIL,
@@ -1219,7 +1482,8 @@ def assess_readiness(
             + ", ".join(filtered)
             + ". V Dotazníku u nich podmínku odeberte (otázku pak dostane každý), nebo je smažte.",
         )
-    else:
+    elif not any(q.has_filter for q in spec.questions):
+        # A refused condition is still a condition: its own FAIL above says so.
         check("conditional_questions", CheckStatus.PASS, "Žádná podmíněná otázka.")
 
     familiarity = [b.id for b in spec.batteries if b.familiarity_required]
@@ -1338,10 +1602,11 @@ def prepare(
     pair_n_min: int,
     filters_applied: bool = False,
     limits: ReadinessSpec = AIA_READINESS_V1,
+    routing: bool = False,
 ) -> tuple[ResearchSpecification | None, Readiness]:
     """Compile and assess in one call. A design that does not compile is not ready.
-    ``pair_n_min``, ``filters_applied`` and ``limits`` as :func:`assess_readiness` takes
-    them; the design compiles under the same ``limits``. Labels compiled around are a WARN
+    ``pair_n_min``, ``filters_applied``, ``limits`` and ``routing`` as :func:`assess_readiness`
+    takes them; the design compiles under the same ``limits``. Labels compiled around are a WARN
     each, in words, never a FAIL."""
     notes: list[CompileProblem] = []
     spec, problems = compile_design(content, limits=limits, notes=notes)
@@ -1357,7 +1622,11 @@ def prepare(
             ),
         )
     readiness = assess_readiness(
-        spec, pair_n_min=pair_n_min, filters_applied=filters_applied, limits=limits
+        spec,
+        pair_n_min=pair_n_min,
+        filters_applied=filters_applied,
+        limits=limits,
+        routing=routing,
     )
     if not notes:
         return spec, readiness

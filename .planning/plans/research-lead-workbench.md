@@ -1631,12 +1631,51 @@ ran outside the frame's one order (D21), and a second drawer could open beside t
   closes the old document's claims…" and `Workbench.layout.test.tsx` "drops the entries a screen
   says stopped being true…"; both fail without the change.
 
+### The stages' forward actions go through the frame (2026-10-22, `fix/stages-forward-through-frame`)
+
+Dimenze's review of #698 found the same DIM-F4-class defect in four other stages. Inside the
+workbench, their forward buttons called `router.push(stepHref(...))`, which skipped
+`guardedNavigate` (a stage's leave guard) and the heading focus #686 added. The four are Zadání
+(`BriefStep.tsx`, after the analysis is accepted, both paths), Návrh (`PlanStep.tsx` `next`), Dotazník
+(`QuestionnaireStep.tsx` `toAudienceStep`) and Cílová skupina (`AudienceStep.tsx`, "Další · dimenze").
+- **Fix.** Each reads `useContext(FrameNavigation)` and calls `next.go()` inside the frame;
+  outside it, `router.push` as before. No other change in those files (Zadání and Dotazník have open
+  work there).
+- **Tests.** One per stage file, "inside the workbench goes on … through the frame's next stage";
+  all four fail without the change. On Návrh the test also opens a set for editing: the forward
+  action stays disabled and the frame is not asked. That held before too (`next` returns on
+  `editing`).
+- **Zadání's workbench button** (the stand-in review of #714). With the Lead owning the AI starts,
+  Zadání shows "Pokračovat na Návrh", a bare `Link` that skipped the frame; inside the frame it is
+  now a button calling `next.go()`. Test: `ResearchScreen.workbench.test.tsx` "goes on from Zadání
+  to Návrh through the frame…", which renders the real workbench and fails without the change.
+- **Not repeated here.** The heading focus and the leave guard are the frame's `go`, tested by
+  #686 (`Workbench.layout.test.tsx` "a stage's forward action through the frame", "asks nothing of
+  a forward move a stage's leave guard stopped").
+
 ### The Lead's audience labels read Cílová skupina's parser (2026-10-22, `chore/target-label-parse-audience`)
 
 `targetLabel` (`lib/lead.ts`) parsed `audience:` ids with a second, looser rule of its own: an
 `audience:filter:` with no factor read "Filtr: ". It now reads them with Cílová skupina's
 `parseAudienceId` (`lib/artifacts/audience.ts`, #700), as that stage asked; a filter or subpanel
 with no name is no filter. Test: `lead.test.ts` "says each kind in words…" (fails without it).
+
+
+### The study header's "Nabídka" is a menu by the keyboard (2026-10-22, `fix/workbench-offer-menu`; the UX audit, #753)
+
+The header's menu (`Workbench.tsx` `StudyHeader`) said `role="menu"` but ignored Escape, kept the
+focus on its button, did not move with the arrows, and laid a scrim that swallowed the press meant
+for what was under it.
+- **Fix.** Opened (click, ↓ or ↑) on its first or last item; ↑ ↓ Home End move (`rovingIndex`); Esc
+  or a press outside closes it and gives the focus back to its button (`useDismiss`); Tab closes it;
+  no scrim. The items are read from the open menu, so the informative rows under 768 px are never
+  stopped on.
+- **Why not `MenuButton`.** It draws its own popover and takes only actionable items; this menu keeps
+  the workbench's look and carries the sheet's information rows. The behaviour is the same shared
+  helpers `MenuButton` uses.
+- **Tests.** `Workbench.layout.test.tsx` "opens from the keyboard on its first item, moves with the
+  arrows, and Escape closes it back to its button" and "closes on a press outside without a scrim
+  swallowing it"; both fail without the change.
 
 ### The Lead's `inspect` is live (2026-10-22, `feature/lead-inspect-view`; chunk 14, its first op beyond 2a)
 
@@ -1677,10 +1716,62 @@ with no name is no filter. Test: `lead.test.ts` "says each kind in words…" (fa
   guard stops…". The web tests fail without the change.
 - **Still to build in chunk 14:** `select`, `filter` and `show_diff`, each with the artifact that
   declares it.
-- **F18. A view chip names its element by id** *(open)*. A turn's
+- **F18. A view chip names its element by id** *(fixed, `fix/lead-view-chip-words`)*. A turn's
   chips read "Ukázat: Zadání: title" and "Detail: Hypotéza hyp_37d84435f2" (`LeadPane.tsx:393 @ 1fd345a0`
   `VIEW_LABEL`, which has only `targetLabel`; seen in the browser run above). The element is often on
   another stage, so the conversation cannot read its words from the page. Smallest fix: the server
   sends the label it grounded the target against (the frozen copy holds the words) beside each view
   op, or the web keeps the words it saw when the element was last shown. Test: a chip for a
   hypothesis reads its words.
+  - **Fix.** The web names it from the working copy it already holds, not the server: `targetLabel`
+    takes the store's `{project, analysis}` and reads a research question's or a hypothesis's words
+    by its stable id (`item-ids.ts` `wordingOf`, the port of the server's ids), "Hypotéza: <words>",
+    as pointing at it names it; an id the copy no longer holds keeps its id rather than borrowing
+    words. Zadání's sections read by its own field names ("Zadání: Název", `FIELD_LABEL`). LeadPane
+    reads the copy through a context (`ViewWords`), and the Workbench's drawer entry and "Vedoucí
+    ukazuje" bar use the same words. No server change: the copy the turn was frozen on can be older
+    than the one shown, and a chip is a link to what is on screen now.
+  - **Tests.** `lead.test.ts` "targetLabel with the working copy (F18)" and the Zadání lines of
+    "targetLabel"; `LeadPane.test.tsx` "names a view chip's research question or hypothesis by its
+    words in the working copy (F18)". Each fails without the change.
+
+### From an empty brief to the internal draft, through the Lead (2026-10-22, `feature/brief-to-draft-journey`)
+
+`tools/ui_workbench/acceptance_journey.mjs` takes the `empty` fixture from its brief to the run's
+internal DOCX in a real browser. Every AI start goes through the Lead (typed commands, LO5), and
+nothing is paid: the workbench's Lead is scripted, its design jobs and analysis come from
+recordings at zero price, and fieldwork uses fictional respondents. At 1440 px it:
+1. types and saves Zadání's title, goal and decision use;
+2. "Analyzuj zadání": the person's card is approved, the job's card completes, and its proposal is
+   reviewed on the stage and accepted ("Použít návrh");
+3. "Navrhni dotazník": the same, for the questionnaire;
+4. "Spusť výzkum": the run starts from the person's card and is followed to its end, all 16 steps
+   (compile through fieldwork, the eight analysis modules, report, Sociomapping and its report);
+5. on Výsledky, downloads the internal draft as DOCX from the report card. The file must be a Word
+   file carrying the accepted design's research questions and saying it is internal;
+6. checks that nothing was paid: every job ended at a cost that is a number and zero; the usage
+   ledger has no row for the study with a cost, no call whose billing is unknown (an `UNCERTAIN`
+   outcome no `RESOLVED_*` row has settled, because `cost_usd` is never null) and no dispatched
+   call without an outcome; the study spent $0; there is no page error and no Deep Research start.
+
+Measured on a fresh workbench at e508e483: 2 jobs and 10 model calls (20 ledger rows), all settled
+at $0. The run took about 8 s and the DOCX was 1.5 MB. It passes once per fresh workbench; a second
+pass finds the jobs already done for the design.
+
+- **F19. The internal draft never says what the person asked for** *(open; the report's owner,
+  artifact-report)*.
+  1. Claim: the brief's title, goal and decision use do not reach the internal draft. Its cover and
+     introduction name the study record (`study.name`), and "Návrh studie" says it describes "co
+     měl výzkum zjistit" but prints only the research questions, sets and sample.
+  2. Anchors: `apps/executors/src/aia_executors/report.py:85 @ e508e483` (`study_name=study.name`),
+     `packages/aia_core/src/aia_core/application/report.py:208 @ e508e483`, and
+     `packages/aia_core/src/aia_core/application/report_design.py:126-142 @ e508e483`.
+  3. Reproduction: the journey above. The draft's cover reads "Workbench · empty" although the
+     brief's title is "Akceptace · ranní nápoj pro dojíždějící (fiktivní)", and neither the typed
+     goal nor the decision use appears anywhere in its `word/document.xml`.
+  4. Consequence: the person reads a report about a study named by its record, with no statement
+     of the decision it serves.
+  5. Smallest fix: `compose_design_sections` opens with the frozen design's goal and decision use
+     (both are in the Design Revision), and the cover takes the design's title when it has one.
+  6. Test: a report composed from a revision with a goal and a decision use prints both under
+     "Návrh studie". The journey's DOCX assertion then also requires the title.

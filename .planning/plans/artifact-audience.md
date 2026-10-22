@@ -87,6 +87,12 @@ V2: `AudienceArt` (`prototypes/research-lead-v2/src/artifacts/SampleStages.tsx:1
   search, the subpanel, the description to AI, discover.
 - Primitives: `RadioCard`, `Stepper` (bounded ranges), `ChoiceChips` with counts, a combobox and
   `InlineText`.
+- Delivered: B6, a numeric factor's range as two bounded steppers (feature/audience-range-steppers);
+  the record of each row is input-interactions.md § Chunk 5, as delivered.
+- Delivered: B7+B8, factor groups and values as chips (feature/audience-value-chips); the record of
+  each row is input-interactions.md § Chunk 5, as delivered.
+- Delivered: B9, the built-in subpanels under a search (feature/audience-subpanel-list);
+  the record of each row is input-interactions.md § Chunk 5, as delivered.
 
 ## 7. Chunks
 

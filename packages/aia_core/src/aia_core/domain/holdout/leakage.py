@@ -27,7 +27,7 @@ import math
 from collections.abc import Sequence
 from dataclasses import dataclass
 from enum import StrEnum
-from typing import Final
+from typing import Final, TypeGuard
 
 from ..evidence.joint_status import CORE_BLOCKS
 from ..population.runtime import Cell
@@ -94,15 +94,16 @@ class BlockExclusion:
         return frozenset(e.field for e in self.excluded) | frozenset(self.signals)
 
 
-def _missing(cell: Cell) -> bool:
-    return cell is None or cell.strip() in _NA_TOKENS
+def _present(cell: Cell) -> TypeGuard[str]:
+    """A cell that holds an answer: present and not a not-answered token."""
+    return cell is not None and cell.strip() not in _NA_TOKENS
 
 
 def _number(cell: Cell) -> float | None:
-    if _missing(cell):
+    if not _present(cell):
         return None
     try:
-        value = float(cell)  # type: ignore[arg-type]
+        value = float(cell)
     except ValueError:
         return None
     return value if math.isfinite(value) else None
@@ -175,7 +176,7 @@ class ParsedColumns:
         parsed = self._memo.get(name)
         if parsed is None:
             cells = self._population.column(name)
-            text = tuple(None if _missing(c) else c.strip() for c in cells)  # type: ignore[union-attr]
+            text = tuple(c.strip() if _present(c) else None for c in cells)
             parsed = _Parsed(text=text, number=tuple(_number(t) for t in text))
             self._memo[name] = parsed
         return parsed
@@ -201,11 +202,24 @@ def association(
         return None
     ws = [weights[i] for i in pairs]
     if item.ordinal:
-        xs = [a.number[i] for i in pairs]
-        ys = [b.number[i] for i in pairs]
-        if None not in xs and None not in ys:
-            return _pearson(xs, ys, ws)  # type: ignore[arg-type]
-    return _cramers_v([a.text[i] for i in pairs], [b.text[i] for i in pairs], ws)  # type: ignore[misc]
+        xs: list[float] = []
+        ys: list[float] = []
+        for i in pairs:
+            x, y = a.number[i], b.number[i]
+            if x is None or y is None:
+                break
+            xs.append(x)
+            ys.append(y)
+        else:
+            return _pearson(xs, ys, ws)
+    xt: list[str] = []
+    yt: list[str] = []
+    for i in pairs:
+        s, t = a.text[i], b.text[i]
+        if s is not None and t is not None:
+            xt.append(s)
+            yt.append(t)
+    return _cramers_v(xt, yt, ws)
 
 
 def block_exclusion(

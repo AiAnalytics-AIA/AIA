@@ -1,0 +1,522 @@
+{
+ "description": "WCE13: a question's 18.6.6 expression condition as the compiler reads it (research_design.py read_condition, _condition) and as Dotazník shows it (research/questionnaire.ts conditionOf). Q2 carries the condition. set and refused are the compiler's own verdicts; unread is where the web does not decide and shows the condition as written; server is then what the compiler makes of it (no_compile: the design does not compile).",
+ "cases": [
+  {
+   "name": "one answer",
+   "questions": [
+    {
+     "id": "Q1",
+     "text": "Pijete kávu?",
+     "typ": "vyber",
+     "kategorie": [
+      "Ano",
+      "Ne"
+     ]
+    },
+    {
+     "id": "Q2",
+     "text": "Proč?",
+     "typ": "otevrena",
+     "filtr": "Q1 == 'Ne'"
+    }
+   ],
+   "expect": {
+    "kind": "set",
+    "question_id": "Q1",
+    "options": [
+     "Ne"
+    ]
+   }
+  },
+  {
+   "name": "a list, double quotes",
+   "questions": [
+    {
+     "id": "Q1",
+     "text": "Pijete kávu?",
+     "typ": "vyber",
+     "kategorie": [
+      "Ano",
+      "Ne"
+     ]
+    },
+    {
+     "id": "Q2",
+     "text": "Proč?",
+     "typ": "otevrena",
+     "filtr": "Q1 in [\"Ano\", \"Ne\"]"
+    }
+   ],
+   "expect": {
+    "kind": "set",
+    "question_id": "Q1",
+    "options": [
+     "Ano",
+     "Ne"
+    ]
+   }
+  },
+  {
+   "name": "a one-answer tuple",
+   "questions": [
+    {
+     "id": "Q1",
+     "text": "Pijete kávu?",
+     "typ": "vyber",
+     "kategorie": [
+      "Ano",
+      "Ne"
+     ]
+    },
+    {
+     "id": "Q2",
+     "text": "Proč?",
+     "typ": "otevrena",
+     "filtr": "Q1 in ('Ne',)"
+    }
+   ],
+   "expect": {
+    "kind": "set",
+    "question_id": "Q1",
+    "options": [
+     "Ne"
+    ]
+   }
+  },
+  {
+   "name": "a name in another case, as the unit read it",
+   "questions": [
+    {
+     "id": "Q1",
+     "text": "Pijete kávu?",
+     "typ": "vyber",
+     "kategorie": [
+      "Ano",
+      "Ne"
+     ]
+    },
+    {
+     "id": "Q2",
+     "text": "Proč?",
+     "typ": "otevrena",
+     "filtr": "q1 == 'Ne'"
+    }
+   ],
+   "expect": {
+    "kind": "set",
+    "question_id": "Q1",
+    "options": [
+     "Ne"
+    ]
+   }
+  },
+  {
+   "name": "whitespace around it",
+   "questions": [
+    {
+     "id": "Q1",
+     "text": "Pijete kávu?",
+     "typ": "vyber",
+     "kategorie": [
+      "Ano",
+      "Ne"
+     ]
+    },
+    {
+     "id": "Q2",
+     "text": "Proč?",
+     "typ": "otevrena",
+     "filtr": "  Q1 == 'Ne'\n"
+    }
+   ],
+   "expect": {
+    "kind": "set",
+    "question_id": "Q1",
+    "options": [
+     "Ne"
+    ]
+   }
+  },
+  {
+   "name": "the don't-know answer",
+   "questions": [
+    {
+     "id": "Q1",
+     "text": "Pijete kávu?",
+     "typ": "vyber",
+     "kategorie": [
+      "Ano",
+      "Ne"
+     ],
+     "povolit_nevim": true
+    },
+    {
+     "id": "Q2",
+     "text": "Proč?",
+     "typ": "otevrena",
+     "filtr": "Q1 == 'Nevím / neodpovím'"
+    }
+   ],
+   "expect": {
+    "kind": "set",
+    "question_id": "Q1",
+    "options": [
+     "Nevím / neodpovím"
+    ]
+   }
+  },
+  {
+   "name": "an answer the question lacks",
+   "questions": [
+    {
+     "id": "Q1",
+     "text": "Pijete kávu?",
+     "typ": "vyber",
+     "kategorie": [
+      "Ano",
+      "Ne"
+     ]
+    },
+    {
+     "id": "Q2",
+     "text": "Proč?",
+     "typ": "otevrena",
+     "filtr": "Q1 == 'Možná'"
+    }
+   ],
+   "expect": {
+    "kind": "refused",
+    "reason": "condition_unknown_option"
+   }
+  },
+  {
+   "name": "a later question",
+   "questions": [
+    {
+     "id": "Q1",
+     "text": "Pijete kávu?",
+     "typ": "vyber",
+     "kategorie": [
+      "Ano",
+      "Ne"
+     ]
+    },
+    {
+     "id": "Q2",
+     "text": "Proč?",
+     "typ": "otevrena",
+     "filtr": "Q3 == 'Ano'"
+    },
+    {
+     "id": "Q3",
+     "text": "Pijete čaj?",
+     "typ": "vyber",
+     "kategorie": [
+      "Ano",
+      "Ne"
+     ]
+    }
+   ],
+   "expect": {
+    "kind": "refused",
+    "reason": "condition_forward_reference"
+   }
+  },
+  {
+   "name": "no such question",
+   "questions": [
+    {
+     "id": "Q1",
+     "text": "Pijete kávu?",
+     "typ": "vyber",
+     "kategorie": [
+      "Ano",
+      "Ne"
+     ]
+    },
+    {
+     "id": "Q2",
+     "text": "Proč?",
+     "typ": "otevrena",
+     "filtr": "Q9 == 'Ano'"
+    }
+   ],
+   "expect": {
+    "kind": "refused",
+    "reason": "condition_unknown_question"
+   }
+  },
+  {
+   "name": "a scale",
+   "questions": [
+    {
+     "id": "Q0",
+     "text": "Jak moc?",
+     "typ": "skala",
+     "skala": [
+      1,
+      5
+     ]
+    },
+    {
+     "id": "Q2",
+     "text": "Proč?",
+     "typ": "otevrena",
+     "filtr": "Q0 == '5'"
+    }
+   ],
+   "expect": {
+    "kind": "refused",
+    "reason": "condition_not_choice"
+   }
+  },
+  {
+   "name": "a name a later question also carries",
+   "questions": [
+    {
+     "id": "Q1",
+     "text": "Pijete kávu?",
+     "typ": "vyber",
+     "kategorie": [
+      "Ano",
+      "Ne"
+     ]
+    },
+    {
+     "id": "Q2",
+     "text": "Proč?",
+     "typ": "otevrena",
+     "filtr": "Q1 == 'Ne'"
+    },
+    {
+     "id": "q1",
+     "text": "Pijete čaj?",
+     "typ": "vyber",
+     "kategorie": [
+      "Ano",
+      "Ne"
+     ]
+    }
+   ],
+   "expect": {
+    "kind": "refused",
+    "reason": "condition_ambiguous_question"
+   }
+  },
+  {
+   "name": "a name only a compiled id matches",
+   "questions": [
+    {
+     "id": "Q 1",
+     "text": "Pijete kávu?",
+     "typ": "vyber",
+     "kategorie": [
+      "Ano",
+      "Ne"
+     ]
+    },
+    {
+     "id": "Q2",
+     "text": "Proč?",
+     "typ": "otevrena",
+     "filtr": "q_1 == 'Ne'"
+    }
+   ],
+   "expect": {
+    "kind": "unread",
+    "server": {
+     "kind": "set",
+     "question_id": "q_1",
+     "options": [
+      "Ne"
+     ]
+    }
+   }
+  },
+  {
+   "name": "two literals joined",
+   "questions": [
+    {
+     "id": "Q1",
+     "text": "Pijete kávu?",
+     "typ": "vyber",
+     "kategorie": [
+      "Ano",
+      "Ne"
+     ]
+    },
+    {
+     "id": "Q2",
+     "text": "Proč?",
+     "typ": "otevrena",
+     "filtr": "Q1 == 'N' 'e'"
+    }
+   ],
+   "expect": {
+    "kind": "unread",
+    "server": {
+     "kind": "refused",
+     "reason": "condition_unstructured"
+    }
+   }
+  },
+  {
+   "name": "another operator",
+   "questions": [
+    {
+     "id": "Q1",
+     "text": "Pijete kávu?",
+     "typ": "vyber",
+     "kategorie": [
+      "Ano",
+      "Ne"
+     ]
+    },
+    {
+     "id": "Q2",
+     "text": "Proč?",
+     "typ": "otevrena",
+     "filtr": "Q1 != 'Ne'"
+    }
+   ],
+   "expect": {
+    "kind": "unread",
+    "server": {
+     "kind": "refused",
+     "reason": "condition_unstructured"
+    }
+   }
+  },
+  {
+   "name": "a line break between its parts",
+   "questions": [
+    {
+     "id": "Q1",
+     "text": "Pijete kávu?",
+     "typ": "vyber",
+     "kategorie": [
+      "Ano",
+      "Ne"
+     ]
+    },
+    {
+     "id": "Q2",
+     "text": "Proč?",
+     "typ": "otevrena",
+     "filtr": "Q1 ==\n'Ne'"
+    }
+   ],
+   "expect": {
+    "kind": "unread",
+    "server": {
+     "kind": "refused",
+     "reason": "condition_unstructured"
+    }
+   }
+  },
+  {
+   "name": "a constant, not a name",
+   "questions": [
+    {
+     "id": "Q1",
+     "text": "Pijete kávu?",
+     "typ": "vyber",
+     "kategorie": [
+      "Ano",
+      "Ne"
+     ]
+    },
+    {
+     "id": "Q2",
+     "text": "Proč?",
+     "typ": "otevrena",
+     "filtr": "None == 'Ne'"
+    }
+   ],
+   "expect": {
+    "kind": "unread",
+    "server": {
+     "kind": "refused",
+     "reason": "condition_unstructured"
+    }
+   }
+  },
+  {
+   "name": "a don't-know answer an empty list does not allow",
+   "questions": [
+    {
+     "id": "Q1",
+     "text": "Pijete kávu?",
+     "typ": "vyber",
+     "kategorie": [
+      "Ano",
+      "Ne"
+     ],
+     "povolit_nevim": []
+    },
+    {
+     "id": "Q2",
+     "text": "Proč?",
+     "typ": "otevrena",
+     "filtr": "Q1 == 'Nevím / neodpovím'"
+    }
+   ],
+   "expect": {
+    "kind": "refused",
+    "reason": "condition_unknown_option"
+   }
+  },
+  {
+   "name": "a NUL byte",
+   "questions": [
+    {
+     "id": "Q1",
+     "text": "Pijete kávu?",
+     "typ": "vyber",
+     "kategorie": [
+      "Ano",
+      "N\u0000e"
+     ]
+    },
+    {
+     "id": "Q2",
+     "text": "Proč?",
+     "typ": "otevrena",
+     "filtr": "Q1 == 'N\u0000e'"
+    }
+   ],
+   "expect": {
+    "kind": "unread",
+    "server": {
+     "kind": "refused",
+     "reason": "condition_unstructured"
+    }
+   }
+  },
+  {
+   "name": "a question the compiler refuses",
+   "questions": [
+    {
+     "id": "Q1",
+     "text": "Pijete kávu?",
+     "typ": "vyber",
+     "kategorie": [
+      "Ano"
+     ]
+    },
+    {
+     "id": "Q2",
+     "text": "Proč?",
+     "typ": "otevrena",
+     "filtr": "Q1 == 'Ano'"
+    }
+   ],
+   "expect": {
+    "kind": "unread",
+    "server": {
+     "kind": "no_compile"
+    }
+   }
+  }
+ ]
+}

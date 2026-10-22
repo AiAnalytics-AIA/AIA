@@ -86,7 +86,7 @@ const CHECK_STAGE: Readonly<Record<string, WorkbenchStage>> = {
 };
 
 /** Checks the server names per item, `<prefix>:<…>`: a design that does not compile, a tracked set's size. */
-const CHECK_PREFIX_STAGE: Readonly<Record<string, WorkbenchStage>> = { compile: "questionnaire", battery_size: "questionnaire" };
+const CHECK_PREFIX_STAGE: Readonly<Record<string, WorkbenchStage>> = { compile: "questionnaire", battery_size: "questionnaire", condition: "questionnaire" };
 
 export function checkStage(checkId: string): WorkbenchStage | null {
   if (Object.hasOwn(CHECK_STAGE, checkId)) return CHECK_STAGE[checkId];

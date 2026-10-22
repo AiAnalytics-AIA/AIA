@@ -9,6 +9,7 @@ import { LINK_INVALID } from "@/research/brief";
 import { briefTarget, briefTargets } from "@/lib/artifacts/brief";
 import { focusSelector, targetOfElement } from "@/lib/lead";
 import { PROBLEM_TYPES, type ResearchProject, briefFingerprint, defaultsMerge } from "@/research/model";
+import { FrameNavigation } from "../step";
 import { ResearchScreen } from "./ResearchScreen";
 import { workspaceFixture } from "./test-workspace";
 import { TEST_FRAME, stagePath } from "./test-frame";
@@ -378,6 +379,16 @@ describe("Zadání", () => {
     // A record whose file never came into AIA offers no download, and says why.
     expect(screen.queryByRole("button", { name: "Stáhnout přílohu stare.pdf" })).toBeNull();
     expect(screen.getByText("1 KB · reference · soubor není uložen v AIA")).toBeTruthy();
+  });
+
+  it("inside the workbench goes on to Návrh through the frame's next stage once the analysis is accepted", async () => {
+    unitStub({ goal: "Zjistit zájem o nový nápoj" });
+    const go = vi.fn();
+    render(<FrameNavigation.Provider value={{ next: { label: "Návrh", go } }}><ResearchScreen step="brief" frame={TEST_FRAME} /></FrameNavigation.Provider>);
+    fireEvent.click(await screen.findByRole("button", { name: NEXT }));
+    await approveProposal();
+    await waitFor(() => expect(go).toHaveBeenCalledTimes(1));
+    expect(push).not.toHaveBeenCalled();
   });
 
   it("runs the analysis as a job, keeps the person's brief, and goes on to the plan", async () => {

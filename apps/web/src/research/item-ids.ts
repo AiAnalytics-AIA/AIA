@@ -385,7 +385,7 @@ function relink(links: unknown, renamed: Map<string, string>): unknown {
  * `after` (ids written in) with each reworded research question's links -- the questionnaire
  * items that measure it, the key of its comparison -- carried to its new wording.
  */
-export function followRewords<C extends Obj>(before: Obj, after: C): C {
+function followRewords<C extends Obj>(before: Obj, after: C): C {
   const out: Obj = { ...after };
   const list = stated(after);
   if (list === null) return out as C;

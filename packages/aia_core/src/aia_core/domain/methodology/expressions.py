@@ -561,13 +561,13 @@ def _counterexample(
     assert prop.variable is not None
     rising = kind is PropertyKind.NON_DECREASING_IN
     others = [v.name for v in formula.slot.variables if v.name != prop.variable]
-    series: dict[tuple[object, ...], list[tuple[object, float]]] = {}
+    series: dict[tuple[object, ...], list[tuple[Value, float]]] = {}
     order = list(formula.slot.variable(prop.variable).samples)
     for point, v in values:
         key = tuple(_key(point[n]) for n in others)
         series.setdefault(key, []).append((point[prop.variable], v))
     for line in series.values():
-        line.sort(key=lambda item: order.index(item[0]))  # type: ignore[arg-type]
+        line.sort(key=lambda item: order.index(item[0]))
         for (x0, v0), (x1, v1) in itertools.pairwise(line):
             if (v1 < v0) if rising else (v1 > v0):
                 way = "falls" if rising else "rises"

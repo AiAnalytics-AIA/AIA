@@ -39,7 +39,8 @@ export function nativeAgentFixture(
     needs_attention: false, steps: [], created_at: null, context_sha256: "sha", harness_version: "v1", actual_cost_usd: null,
   });
   return (path: string, method: string, body: Record<string, unknown> | null): unknown => {
-    if (path === "/config") return { apiBase: "", cognitoDomain: "", cognitoClientId: "", publicOrigin: "http://localhost" };
+    // A test's own /config fields (a switch it turns on) over the stub's.
+    if (path === "/config") return { apiBase: "", cognitoDomain: "", cognitoClientId: "", publicOrigin: "http://localhost", ...(overrides["/config"]?.(null) as object | undefined) };
     if (path === DESIGN_PATH && method === "POST") {
       baseline = structuredClone(body?.content as Record<string, unknown>); return { revision_id: "REV-A", revision: 1 };
     }

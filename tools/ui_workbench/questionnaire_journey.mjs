@@ -1,13 +1,14 @@
 #!/usr/bin/env node
 /** Dotazník in a real browser (plan artifact-questionnaire, QST8 and QST9's journey).
  * Start the workbench with the switch on, write the fixtures, then run:
- *   AIA_WEB_RESEARCH_WORKBENCH=true python3 tools/ui_workbench/workbench.py up
+ *   AIA_WEB_RESEARCH_WORKBENCH=true AIA_ROUTING_ENABLED=true python3 tools/ui_workbench/workbench.py up
  *   python3 tools/ui_workbench/fixture_project.py
  *   node tools/ui_workbench/questionnaire_journey.mjs [--facade http://127.0.0.1:8780] [--out DIR]
  * Local fictional identity only. At 1440, 1100, 768 and 390 px (the workbench at every width):
  * Dotazník's Závislosti lists the tracked set's readers with Sociomapa, keeps the
  * open question out of Analýza, jumps to the set's card, and the page does not overflow; a question
- * removed is put back in its place by Vrátit (input-interactions chunk 3); nothing
+ * removed is put back in its place by Vrátit (input-interactions chunk 3); a display condition is set
+ * on an earlier choice question's answer and removed at every width (WCE13 (c)); nothing
  * paid starts: no research run, agent job, Deep Research run or Lead request approval.
  */
 import assert from "node:assert/strict";
@@ -98,6 +99,21 @@ try {
     const room = await name.evaluate((el) => ({ column: el.closest("div")?.getBoundingClientRect().width ?? 0, clipped: el.scrollWidth > el.clientWidth + 1 }));
     assert(room.column >= 160 && !room.clipped, `the set's name at ${width}: ${Math.round(room.column)} px, clipped ${room.clipped}`);
     check(`${width}: Závislosti lists the set's readers, the open question apart, no overflow`);
+
+    // A question's × stays beside its number at every width, never on a row of its own (the
+    // browser audit's QF-9: at 390 px the type chips wrapped and pushed it 130 px down).
+    const card = page.locator("#qedit_Q_wb1");
+    await card.scrollIntoViewIfNeeded();
+    const [num, x] = await card.evaluate((el) => {
+      const box = (n) => { const r = n.getBoundingClientRect(); return { y: r.top, height: r.height }; };
+      const badge = [...el.querySelectorAll("span")].find((n) => n.textContent === "Q1");
+      const remove = el.querySelector('button[aria-label^="Odebrat otázku Q1"]');
+      return badge && remove ? [box(badge), box(remove)] : [null, null];
+    });
+    assert(num && x, `Q1's number and its × are on the card at ${width}`);
+    // Measured together, so a scroll between the two reads cannot part them.
+    assert(x.y < num.y + num.height && x.y + x.height > num.y, `the question's × at ${width}: ${Math.round(x.y - num.y)} px from its number`);
+    check(`${width}: a question's × beside its number`);
   }
 
   // A block renamed in place (input-interactions chunk 3e, I1): Enter saves, the name reads back after a reload.
@@ -123,6 +139,43 @@ try {
   await page.getByRole("button", { name: `Upravit: Název bloku ${was}`, exact: true }).waitFor();
   await saved();
   check("1440: a block renamed in place, saved and read back after a reload, then restored");
+
+  // A display condition set at the question (working-copy-edit-ops WCE13 (c)) at every width: Q4 asked
+  // only of those who answered Q1 "Méně často", read back after a reload at 1440, then removed. Set
+  // only behind the routing switch, which this workbench must run with.
+  const config = await (await page.request.get(base + "/config")).json();
+  assert.equal(config.routing, true, "start the workbench with AIA_ROUTING_ENABLED=true");
+  for (const width of [1440, 1100, 768, 390]) {
+    await page.setViewportSize({ width, height: 900 });
+    await page.goto(base + stagePath("questionnaire") + "#qedit_Q_wb4");
+    const q = page.locator("#qedit_Q_wb4");
+    await q.waitFor({ timeout: 30000 });
+    await q.getByRole("button", { name: "Podmínka zobrazení" }).click();
+    const sources = q.getByRole("radiogroup", { name: "Zobrazit podle odpovědi na otázku" });
+    // Q2 is a scale: only the choice questions before Q4 are offered.
+    assert.deepEqual((await sources.getByRole("radio").allInnerTexts()).map((x) => x.split(" · ")[0]), ["Q1", "Q3"]);
+    await sources.getByRole("radio", { name: /^Q1 · / }).click();
+    await q.getByRole("group", { name: "Zobrazit těm, kdo odpověděli" }).getByRole("button", { name: "Méně často" }).click();
+    await noOverflow(`the condition form @${width}`);
+    await shot(`${width}-condition-form`);
+    await q.getByRole("button", { name: "Uložit podmínku" }).click();
+    const sentence = q.getByText(/^Zobrazí se jen těm, kdo u Q1 \(„Jak často během pracovního týdne dojíždíte\?“\) odpověděli „Méně často“\./);
+    await sentence.waitFor();
+    await saved();
+    if (width === 1440) {
+      await page.reload();
+      await sentence.waitFor({ timeout: 30000 });
+    }
+    // The sentence keeps a reading width beside or above its buttons (390 px squeezed it to 50 px).
+    const words = await sentence.boundingBox();
+    assert(words && words.width >= Math.min(256, width - 140), `the condition's words at ${width}: ${words?.width} px wide`);
+    await noOverflow(`a question's condition @${width}`);
+    await shot(`${width}-condition`);
+    await q.getByRole("button", { name: "Odebrat podmínku" }).click();
+    await q.getByRole("button", { name: "Podmínka zobrazení" }).waitFor();
+    await saved();
+    check(`${width}: a condition set on an earlier choice question's answer, said in words, ${width === 1440 ? "read back after a reload, " : ""}then removed`);
+  }
 
   // A question deleted at once and put back with Vrátit (input-interactions chunk 3, I6), at 1440.
   await page.setViewportSize({ width: 1440, height: 900 });

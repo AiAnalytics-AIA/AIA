@@ -41,6 +41,7 @@ from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship
 
 from ..domain.approval_ledger import subject_check_sql
+from ..domain.edit_log import ActorKind, OpSource
 from ..domain.wallet import ChargeKind
 
 # Explicit naming convention so Alembic generates stable, reviewable constraint
@@ -2736,3 +2737,98 @@ class ModelConcurrencySlotRow(Base):
     acquired_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
 
     __table_args__ = (CheckConstraint("slot >= 0", name="model_slot_non_negative"),)
+
+
+class WorkspaceEditOpRow(Base):
+    """One logged change of a Study's working copy: an ``(item, field)`` one write touched (M1).
+    **Insert-once.**
+
+    ADR 0029 decision 3 (working-copy-edit-ops WCE2): every write of the working copy logs one
+    row per ``(item, field)`` it touched, sharing a ``batch_id`` and the working revision it
+    wrote (``domain/edit_log.py``). Read and written only by ``WorkspaceEditRepository``, under
+    an issued ``StudyContext``; kept with its study until the study is deleted (Q27).
+    """
+
+    __tablename__ = "workspace_edit_ops"
+
+    op_id: Mapped[str] = mapped_column(String(64), primary_key=True)
+    organization_id: Mapped[str] = mapped_column(String(64), nullable=False)
+    client_id: Mapped[str] = mapped_column(String(64), nullable=False)
+    study_id: Mapped[str] = mapped_column(String(64), nullable=False)
+    batch_id: Mapped[str] = mapped_column(String(64), nullable=False)
+    #: The working revision the write was made from; NULL: the study had no copy, or only the
+    #: bare template a server writer saved (``workspace.edited_from_current``).
+    base_revision: Mapped[int | None] = mapped_column(Integer)
+    result_revision: Mapped[int] = mapped_column(Integer, nullable=False)
+    actor_kind: Mapped[str] = mapped_column(String(16), nullable=False)
+    #: The person, or the researcher whose Lead made it; NULL only for a revision migrated from
+    #: 18.6.6, whose author the unit did not record. No foreign key: the log keeps who wrote it.
+    actor_user_id: Mapped[str | None] = mapped_column(String(64))
+    source: Mapped[str] = mapped_column(String(32), nullable=False)
+    source_ref: Mapped[str | None] = mapped_column(String(64))
+    item_key: Mapped[str] = mapped_column(String(160), nullable=False)
+    field: Mapped[str | None] = mapped_column(String(48))
+    op: Mapped[dict[str, Any]] = mapped_column(JSONType, nullable=False)
+    inverse: Mapped[dict[str, Any] | None] = mapped_column(JSONType)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), nullable=False, default=utcnow
+    )
+
+    __table_args__ = (
+        ForeignKeyConstraint(
+            ["organization_id"], ["organizations.organization_id"], ondelete="CASCADE"
+        ),
+        ForeignKeyConstraint(["client_id"], ["clients.client_id"], ondelete="CASCADE"),
+        ForeignKeyConstraint(["study_id"], ["studies.study_id"], ondelete="CASCADE"),
+        CheckConstraint(
+            "actor_kind in (" + ",".join(f"'{k.value}'" for k in ActorKind) + ")",
+            name="workspace_edit_op_actor_known",
+        ),
+        CheckConstraint(
+            "source in (" + ",".join(f"'{s.value}'" for s in OpSource) + ")",
+            name="workspace_edit_op_source_known",
+        ),
+        CheckConstraint(
+            # WriteBy's rule, held by the table too: an author always, and never empty, but for
+            # a person's revision migrated from 18.6.6 (the unit had no Lead).
+            "(actor_user_id IS NOT NULL AND actor_user_id <> '') OR "
+            f"(source = '{OpSource.MIGRATION.value}' AND actor_kind = '{ActorKind.PERSON.value}')",
+            name="workspace_edit_op_author_unless_migrated",
+        ),
+        CheckConstraint(
+            "base_revision IS NULL OR base_revision >= 1",
+            name="workspace_edit_op_base_positive",
+        ),
+        CheckConstraint("result_revision >= 1", name="workspace_edit_op_result_positive"),
+        Index("ix_workspace_edit_ops_feed", "study_id", "result_revision"),
+        Index("ix_workspace_edit_ops_field", "study_id", "item_key", "field"),
+    )
+
+
+@event.listens_for(WorkspaceEditOpRow, "before_update")
+def _edit_ops_are_never_updated(_mapper: Any, _connection: Any, row: WorkspaceEditOpRow) -> None:
+    """A logged change is what was written; the log is insert-once (ADR 0029 decision 3)."""
+    raise RuntimeError(f"edit op {row.op_id} is immutable; log a new one")
+
+
+class DocsTicketSpendRow(Base):
+    """A spent ticket to the report editor's origin (plan report-editor-hosting, chunk 3).
+
+    The ticket is signed and carries its own expiry (``aia_api.docs_pass``); this row is
+    what makes it single use across processes, by its primary key. Written only by
+    ``DocsTicketRepository``, which deletes a row a day after its ticket expired.
+    """
+
+    __tablename__ = "docs_ticket_spends"
+
+    ticket_id: Mapped[str] = mapped_column(String(64), primary_key=True)
+    user_id: Mapped[str] = mapped_column(String(64), nullable=False)
+    expires_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+    spent_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), nullable=False, default=utcnow
+    )
+
+    __table_args__ = (
+        ForeignKeyConstraint(["user_id"], ["users.user_id"], ondelete="CASCADE"),
+        Index("ix_docs_ticket_spends_expires", "expires_at"),
+    )

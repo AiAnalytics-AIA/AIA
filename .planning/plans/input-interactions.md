@@ -589,6 +589,58 @@ IA-1 … IA-6, with all six parts, in the audit's §6. For the docs PR to number
 
 Chunk 3 is complete: 3a–3h are merged (#640, #645, #651, #652, #681, #687, #691, #693). Every questionnaire A-item in the audit's fix list is addressed; A15 and A20 were "keep", and A19's path cards are the toolbar's `Segmented`.
 
+### Chunk 5, as delivered (the Cílová skupina screen owner, in small PRs)
+
+Split by owner (PM, 2026-10-22): B1–B4 sit on Dimenze (`PersonaStep.tsx`), B5–B11 on Cílová skupina
+(`AudienceStep.tsx`). Chunk 5 is ticked once B5–B11 are in and B1–B4 name Dimenze's PRs.
+
+- **B1. n as one stepper:** Dimenze's `artifact-dimensions#DIM3` (`PersonaStep.tsx`, `data-aia="sample:n"`):
+  bounded by `…/research/limits`, steps of 50, the recommendation beside it, no slider or presets, no clamp.
+- **B2–B4:** Dimenze's, not yet scheduled here.
+- **B5, B10:** kept, as the audit says (`RadioCard`; a prompt to AI is not a value).
+- **B6. A numeric factor's range as two bounded steppers, feature/audience-range-steppers.**
+  - Od and Do are `Stepper`s bounded by the catalogue's range (`research/audience.ts` `rangeBounds`):
+    whole numbers when both ends are, else two decimals, the ends rounded outward. A scale whose ends
+    the catalogue states (`scale_hint`) takes two decimals.
+  - Each end is also bounded by the other, so a crossed range is refused at the field. The population
+    would swap it (`_interval`).
+  - An unset end reads "Bez omezení", and a set one clears by its own button. `setRange` takes numbers
+    and leaves an unset end out.
+  - A stored end the population cannot read (`boundOf`, `endUnreadable`) is said at the field, never
+    shown as no end.
+  - Tests: `AudienceStep.test.tsx` "a numeric factor's range is two steppers…" and "says a stored end
+    the population cannot read…"; `audience.live.test.ts` "a numeric factor's range bounds".
+  - `audience_journey.mjs` checks the range at 1440/1100/768/390: no overflow, the clear button at
+    least 24 px, and 999 refused and not saved.
+- **B7+B8. Factor groups and values chosen as chips, feature/audience-value-chips.**
+  - A factor's group (Vše, Demografie…) is one `ChoiceChips` radio group, "Skupina faktorů".
+  - A categorical factor's values are `ChoiceChips` toggles, each with how many people hold it. Past 15
+    values (`VALUE_CHIPS_MAX`), the same chips sit under a filter field (`matchingValues`, the factor
+    search's rule). A list the catalogue cut at its 60 values says so.
+  - `pickValues` keeps the stored order and every stored value not on screen: a filtered-out value,
+    or one the population lacks (F3). A stored value that is not text stays as stored (`storedValues`):
+    `[true]` was saved back as `["true"]`, which the population keys as no value (stand-in review on
+    #761; `selectedValues` turned it into text before this change too).
+  - The factor search stays the list's filter field, as the audit keeps B3's.
+  - Tests: `AudienceStep.test.tsx` "a factor's group is chosen from chips…"; `audience.live.test.ts`
+    "picking a factor's values".
+  - `audience_journey.mjs` checks the chips at 1440/1100/768/390: no overflow, and a value chip 44 px
+    tall below 640 px.
+- **B9. The built-in subpanels under a search, feature/audience-subpanel-list.**
+  - A search over the 18 subpanels' names and descriptions (`matchingSubpanels`, the factor search's
+    rule, trimmed) sits above them, and a line says how many matched. The chosen subpanel stays shown
+    whatever the search.
+  - The subpanels stay `RadioCard`s, chosen by a click. A choice rewrites the audience's filters and
+    description, so a radio group that selects on arrow keys would save a different subpanel at each
+    press. Each card keeps its people, donors and, for one the population cannot use, its reason.
+  - Not done: a subpanel the search hides has no element, so the Lead cannot point at it until the
+    search is cleared, as with a factor editor hidden by its group.
+  - Tests: `AudienceStep.test.tsx` "the subpanels sit under a search…"; `audience.live.test.ts` "the
+    built-in subpanels a search matches".
+  - `audience_journey.mjs` checks the search at 1440/1100/768/390 without overflow, and that a search
+    matching nothing leaves the chosen one and says 0.
+- **B11:** to come.
+
 ### Chunk 3b3, added by planning (2026-10-21)
 
 3b1 built the label path behind `AIA_AI_SCALE_LABELS_IN_PROMPT`, off, and 3b2 is the editor; no

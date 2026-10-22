@@ -149,3 +149,12 @@ def test_a_blocks_exclusion_is_the_union_over_its_items_and_is_deterministic(wor
     )
     assert a == b
     assert {"q_item", "core_independent", "q_sibling", "core_tracks"} <= a.fields
+
+
+def test_an_ordinal_item_against_a_field_without_numbers_is_measured_by_cramers_v(
+    world: Any,
+) -> None:
+    rows = tuple(range(N))
+    ordinal = association(world, _item("q_item"), "core_nominal", rows)
+    nominal = association(world, _item("q_item", ordinal=False), "core_nominal", rows)
+    assert ordinal is not None and ordinal == nominal

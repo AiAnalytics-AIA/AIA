@@ -8,7 +8,7 @@
 
 export const SPLIT_MIN = 28;
 export const SPLIT_MAX = 62;
-export const SPLIT_STEP = 2;
+const SPLIT_STEP = 2;
 export const SPLIT_DEFAULT = 40;
 /** The conversation's width while it has the focus: wider than a person may set it. */
 export const CONVERSATION_FOCUS = 68;

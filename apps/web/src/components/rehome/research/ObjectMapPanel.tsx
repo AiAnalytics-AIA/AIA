@@ -71,7 +71,7 @@ export function ObjectMapPanel({ battery, map, facts }: { battery: BatteryWithMa
       <p className="min-w-0 flex-[999_1_560px] text-xs text-ink-muted" data-testid="object-map-no-terrain">
         {tv("research.exec.objectMap.noTerrain", { reason: map.terrain.status === "not_computed" ? map.terrain.reason : "—" })}
       </p>
-      <aside className="flex min-w-0 flex-[1_1_260px] flex-col gap-3">
+      <div className="flex min-w-0 flex-[1_1_260px] flex-col gap-3">
         <div className="flex flex-col gap-2 rounded-[10px] border border-border bg-surface-raised p-4 text-xs" data-testid="object-map-panel-list">
           <h4 className="text-xs font-semibold">{t("research.exec.objectMap.panel.listTitle")}</h4>
           <ul className="flex flex-col">
@@ -89,7 +89,7 @@ export function ObjectMapPanel({ battery, map, facts }: { battery: BatteryWithMa
           <NotPlaced labels={objectsNotPlaced(battery, map)} />
         </div>
         <div className="flex flex-col gap-2 rounded-[10px] border border-border bg-surface-raised p-4">{facts}</div>
-      </aside>
+      </div>
     </div>
   );
 }

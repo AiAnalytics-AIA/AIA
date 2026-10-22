@@ -163,11 +163,11 @@ jobs:
           # the frozen unit's configuration files it names as "unit", from Git.
           stage="$(mktemp -d)"
           cp -R deploy/develop/docker-compose.yml deploy/develop/Caddyfile deploy/develop/bin \
-            deploy/develop/population deploy/develop/errors "$stage/"
+            deploy/develop/population deploy/develop/errors deploy/develop/docs "$stage/"
           awk '$3 == "unit" { print $4 }' deploy/develop/population/v17.files | while read -r name; do
             cp "legacy/npc-panel-18.6.6/app/$name" "$stage/population/$name"
           done
-          tar -czf deploy-bundle.tar.gz -C "$stage" docker-compose.yml Caddyfile bin population errors
+          tar -czf deploy-bundle.tar.gz -C "$stage" docker-compose.yml Caddyfile bin population errors docs
           aws s3 cp deploy-bundle.tar.gz "s3://$OPS_BUCKET/deploy/$SHA.tar.gz" --only-show-errors
           echo "bundle s3://$OPS_BUCKET/deploy/$SHA.tar.gz" >> "$GITHUB_STEP_SUMMARY"
 

@@ -147,7 +147,8 @@ function api(overrides: Record<string, (body: unknown) => unknown> = {}) {
         "POST /api/v1/studies/STU-1/research/runs": () => run({ created: true, phase: "QUEUED" }),
         ...overrides,
       };
-      const answer = routes[`${method} ${u.split("?")[0]}`]?.(body) ?? {};
+      // A route may answer later (a promise), to hold a read while the test looks at the screen.
+      const answer = (await routes[`${method} ${u.split("?")[0]}`]?.(body)) ?? {};
       return answer instanceof Response ? answer : new Response(JSON.stringify(answer), { status: 200 });
     }),
   );
@@ -2391,6 +2392,31 @@ describe("Results", () => {
     window.location.hash = "";
   });
 
+  it("says above the numbers when the study's design moved past the run's revision", async () => {
+    api({ ...listed(COMPLETED),
+      "GET /api/v1/studies/STU-1/research/runs/RUN-1/artifacts/ART-4": () => AGGREGATE,
+      "GET /api/v1/studies/STU-1/research/runs/RUN-1/artifacts/ART-5": () => SOCIOMAP,
+      "GET /api/v1/studies/STU-1/design/revisions": () => ({ items: [{ revision_id: "REV-b", revision: 4 }, { revision_id: "REV-a1", revision: 3 }] }),
+    });
+    render(<ResearchScreen step="results" frame={TEST_FRAME} />);
+    await waitFor(() => expect(document.querySelector("[data-revision-moved]")?.textContent).toBe(
+      "Výsledky běhu z revize 3; studie je na revizi 4Čísla platí pro revizi 3; změny z revize 4 v nich nejsou."));
+  });
+
+  it("says nothing of revisions while the run is on the study's newest", async () => {
+    api({ ...listed(COMPLETED),
+      "GET /api/v1/studies/STU-1/research/runs/RUN-1/artifacts/ART-4": () => AGGREGATE,
+      "GET /api/v1/studies/STU-1/research/runs/RUN-1/artifacts/ART-5": () => SOCIOMAP,
+      "GET /api/v1/studies/STU-1/design/revisions": () => ({ items: [{ revision_id: "REV-a1", revision: 3 }] }),
+    });
+    render(<ResearchScreen step="results" frame={TEST_FRAME} />);
+    fireEvent.click(await screen.findByRole("tab", { name: "Data" }));
+    await waitFor(() => expect(called("GET", "/api/v1/studies/STU-1/design/revisions").length).toBeGreaterThan(0));
+    // Let the answer render before saying nothing showed.
+    await act(async () => { await new Promise((r) => setTimeout(r, 50)); });
+    expect(document.querySelector("[data-revision-moved]")).toBeNull();
+  });
+
   it("shows at most five raw answers to an open question, outside the details, labelled as data", async () => {
     const answers = ["Lepší aplikace", "Nižší poplatky", "Doporučení", "Pobočka blízko", "Rychlá podpora", "Šesté", "Sedmé"];
     const aggregate = { ...AGGREGATE, payload: { aggregate: { ...AGGREGATE.payload.aggregate, questions: {
@@ -2480,7 +2506,7 @@ describe("Results", () => {
     return option;
   };
 
-  it("downloads one variant with its chosen review as DOCX and PDF of the same stored draft", async () => {
+  it("downloads one variant with its chosen review as DOCX and PDF of the same stored draft, and leaves its approval to the doc bar", async () => {
     // research-integrity-report 3: the Fio split -- a 40-page DOCX with literature, a 33-page base PDF.
     const createObjectURL = stubDownloads();
     const review = { run_id: "RUN-deep", purpose: "INTERPRETATION_RESEARCH", target: { research_run_id: "RUN-1" },
@@ -2510,7 +2536,6 @@ describe("Results", () => {
       // The PDF names the DOCX draft it renders: the same document in both formats.
       "GET /api/v1/studies/STU-1/research/runs/RUN-1/report/context/pdf/download": () =>
         new Response(new Blob(["%PDF"]), { headers: { "X-AIA-Artifact-Id": "ART-context", "X-AIA-Review-State": "DRAFT_UNAPPROVED" } }),
-      "POST /api/v1/studies/STU-1/research/runs/RUN-1/report/approve": () => { approvedNow = true; return { artifact_id: "ART-context", review_state: "APPROVED_INTERNAL" }; },
     });
     render(<ResearchScreen step="results" frame={TEST_FRAME} />);
     const report = await card();
@@ -2537,26 +2562,16 @@ describe("Results", () => {
     expect(called("GET", "/api/v1/studies/STU-1/research/runs/RUN-1/report/context/pdf/download")[0].url).toContain("deep_research_run_id=RUN-deep");
     expect(called("GET", "/api/v1/studies/STU-1/research/runs/RUN-1/report/pdf/download")).toHaveLength(0); // never the base PDF
     expect(createObjectURL).toHaveBeenCalledTimes(2);
-    fireEvent.click(report.getByRole("button", { name: t("research.exec.results.reportApprove") }));
-    // Nothing is approved on the click: the person is asked about this version first, and "Zrušit"
-    // approves nothing (B22).
-    const asked = await screen.findByRole("dialog");
-    expect(asked.textContent).toContain("Schválit interní zprávu s rešerší RUN-deep, uloženou verzi ART-context (");
-    // The safe choice holds the focus, and Esc answers the dialog alone: nothing beneath it (an
-    // open inspector) sees it (I7, D21).
-    expect(document.activeElement).toBe(within(asked).getByRole("button", { name: t("dialog.cancel") }));
-    const beneath = vi.fn();
-    window.addEventListener("keydown", beneath);
-    onTestFinished(() => window.removeEventListener("keydown", beneath));
-    fireEvent.keyDown(asked, { key: "Escape" });
-    expect(beneath).not.toHaveBeenCalled();
-    fireEvent.click(within(asked).getByRole("button", { name: t("dialog.cancel") }));
-    await waitFor(() => expect(screen.queryByRole("dialog")).toBeNull());
+    // Approved on the document being read, in the pane's doc bar (RPT3a): the card offers no
+    // approval, says where it is, and follows the pane's answer by reading the variant again.
+    expect(report.queryByRole("button", { name: t("research.exec.results.reportApprove") })).toBeNull();
+    expect(report.getByText(t("research.exec.results.reportApproveWhere"))).toBeTruthy();
+    // Another review's approval is not this card's: nothing read for it, nothing changed here.
+    act(() => approvedInPane({ kind: "with_review", artifactId: "ART-elsewhere", review: "RUN-other" }));
+    expect(calls.filter((c) => c.url.includes("deep_research_run_id=RUN-other"))).toHaveLength(0);
+    approvedNow = true;
+    act(() => approvedInPane({ kind: "with_review", artifactId: "ART-context", review: "RUN-deep" }));
     expect(called("POST", "/api/v1/studies/STU-1/research/runs/RUN-1/report/approve")).toHaveLength(0);
-    fireEvent.click(report.getByRole("button", { name: t("research.exec.results.reportApprove") }));
-    await confirmApproval("ART-context");
-    await waitFor(() => expect(called("POST", "/api/v1/studies/STU-1/research/runs/RUN-1/report/approve")).toHaveLength(1));
-    expect(called("POST", "/api/v1/studies/STU-1/research/runs/RUN-1/report/approve")[0].body).toEqual({ artifact_id: "ART-context", note: "" });
     // The version is named before and after; what it is now is read again, never patched here
     // (was: the card patched review_state locally and kept the draft's PDF state).
     expect(report.getByText("ART-context")).toBeTruthy();
@@ -2689,6 +2704,10 @@ describe("Results", () => {
     expect(await screen.findByText(t("research.exec.results.reportDraft"))).toBeTruthy();
     expect(screen.getByText(t("research.exec.results.reportSynthetic"))).toBeTruthy();
     expect(screen.getByText(/Artefakt ART-report/)).toBeTruthy();
+    // The card lives on Přehled and Rešerše a zpráva; on Data it is hidden, kept mounted.
+    expect(screen.queryByRole("heading", { name: "Kompletní zpráva studie" })).toBeNull();
+    expect((document.querySelector("[data-results-lead]") as HTMLElement).hidden).toBe(true);
+    fireEvent.click(screen.getByRole("tab", { name: "Rešerše a zpráva" }));
     const report = await card();
     expect(report.getByText("Stav: Koncept čeká na schválení.")).toBeTruthy();
     fireEvent.click(report.getByRole("button", { name: /Stáhnout zprávu/ }));
@@ -2699,7 +2718,7 @@ describe("Results", () => {
     expect(report.getByText(/Klientská zpráva vzniká jen z běhu s AI respondenty z populace/)).toBeTruthy();
   });
 
-  it("still downloads and approves the report of a delivered study, which starts no new work", async () => {
+  it("still downloads the report of a delivered study, which starts no new work, and leaves its approval to the doc bar", async () => {
     // productization-coherence PC1: one flag gated both editing and the report, so closing a
     // study for edits would have taken its deliverable away with them.
     const createObjectURL = stubDownloads();
@@ -2718,7 +2737,8 @@ describe("Results", () => {
     expect(await report.findByText("Stav: Koncept čeká na schválení.")).toBeTruthy();
     fireEvent.click(report.getByRole("button", { name: /Stáhnout zprávu/ }));
     await waitFor(() => expect(createObjectURL).toHaveBeenCalledOnce());
-    expect(report.getByRole("button", { name: /Schválit/ })).toBeTruthy();
+    // Approved on the document being read, in the pane's doc bar (RPT3a), never here.
+    expect(report.queryByRole("button", { name: /Schválit/ })).toBeNull();
     // Nothing on the page starts work: no analysis, retry or literature run is offered.
     expect(screen.queryByRole("button", { name: /Spustit rešerši výsledků/ })?.hasAttribute("disabled") ?? true).toBe(true);
   });
@@ -2910,36 +2930,29 @@ describe("Results", () => {
     expect(option.getAttribute("aria-disabled")).toBe("true");
   });
 
-  it("approves the stored internal draft, and says so when its producer may not", async () => {
-    let refuse = true;
+  it("says the internal draft approved in the doc bar once the pane answers, approving nothing itself (RPT3a)", async () => {
     let approvedNow = false;
     api({
       ...listed(reportRun()),
       "GET /api/v1/studies/STU-1/research/runs/RUN-1/artifacts/ART-4": () => AGGREGATE,
       "GET /api/v1/studies/STU-1/research/runs/RUN-1/artifacts/ART-5": () => SOCIOMAP,
-      // The card reads the report again after approving (D2): the server's state, not a patch.
+      // The card reads the report again on the pane's word (D2): the server's state, not a patch.
       "GET /api/v1/studies/STU-1/research/runs/RUN-1/report": () => reportStatus(approvedNow ? { review_state: "APPROVED_INTERNAL" } : {}),
-      "POST /api/v1/studies/STU-1/research/runs/RUN-1/report/approve": () => {
-        if (refuse) return new Response('{"code":"separation_of_duties","message":"independent review required"}', { status: 403 });
-        approvedNow = true;
-        return { run_id: "RUN-1", artifact_id: "ART-report", review_state: "APPROVED_INTERNAL", internal_only: true };
-      },
     });
     render(<ResearchScreen step="results" frame={TEST_FRAME} />);
     const report = await card();
-    fireEvent.click(await report.findByRole("button", { name: t("research.exec.results.reportApprove") }));
-    await confirmApproval("ART-report");
-    expect(await report.findByText(t("research.exec.results.reportApproveIndependent"))).toBeTruthy();
-    refuse = false;
-    fireEvent.click(report.getByRole("button", { name: t("research.exec.results.reportApprove") }));
-    await confirmApproval("ART-report");
-    expect(await report.findByText("Stav: Schváleno pouze pro interní použití.")).toBeTruthy();
+    expect(await report.findByText("Stav: Koncept čeká na schválení.")).toBeTruthy();
     expect(report.queryByRole("button", { name: t("research.exec.results.reportApprove") })).toBeNull();
-    expect(called("POST", "/api/v1/studies/STU-1/research/runs/RUN-1/report/approve")[1].body)
-      .toEqual({ artifact_id: "ART-report", note: "" });
+    // It says where the draft is approved, so it never looks unapprovable.
+    expect(report.getByText(t("research.exec.results.reportApproveWhere"))).toBeTruthy();
+    approvedNow = true;
+    act(() => approvedInPane({ kind: "internal", artifactId: "ART-report" }));
+    expect(await report.findByText("Stav: Schváleno pouze pro interní použití.")).toBeTruthy();
+    expect(called("POST", "/api/v1/studies/STU-1/research/runs/RUN-1/report/approve")).toHaveLength(0);
+    expect(report.queryByText(t("research.exec.results.reportApproveWhere"))).toBeNull();
   });
 
-  it("reads the report again after approval and waits for the approved version's PDF", async () => {
+  it("reads the report again after an approval in the doc bar and waits for the approved version's PDF", async () => {
     // D2: approving freezes the version and asks for its approved PDF. The approval's answer has
     // no date; the line below has one only because the card read the report again.
     const createObjectURL = stubDownloads();
@@ -2952,10 +2965,6 @@ describe("Results", () => {
       "GET /api/v1/studies/STU-1/research/runs/RUN-1/report": () => approvedNow
         ? reportStatus({ review_state: "APPROVED_INTERNAL", approved_on: "2026-10-18", stamped: true, approval_renders_pdf: false, pdf: { state: "RENDERING", askable: false } })
         : reportStatus({ approved_on: null, stamped: true, approval_renders_pdf: true, pdf: { state: "READY", artifact_id: "ART-pdf", size_bytes: 9 } }),
-      "POST /api/v1/studies/STU-1/research/runs/RUN-1/report/approve": () => {
-        approvedNow = true;
-        return { run_id: "RUN-1", artifact_id: "ART-report", review_state: "APPROVED_INTERNAL", internal_only: true };
-      },
       "GET /api/v1/studies/STU-1/research/runs/RUN-1/report/download": () =>
         new Response(new Blob(["stamped docx"]), { headers: {
           "X-AIA-Artifact-Id": "ART-report", "X-AIA-Review-State": "APPROVED_INTERNAL", "Content-Disposition": named,
@@ -2965,8 +2974,9 @@ describe("Results", () => {
     const report = await card();
     expect(await report.findByText(tv("research.exec.report.review.draft", { version: "ART-report" }))).toBeTruthy();
     const reads = called("GET", "/api/v1/studies/STU-1/research/runs/RUN-1/report").filter((c) => c.url.endsWith("/report")).length;
-    fireEvent.click(report.getByRole("button", { name: t("research.exec.results.reportApprove") }));
-    await confirmApproval("ART-report");
+    // Approved in the pane's doc bar (RPT3a): the card hears it and reads the report again.
+    approvedNow = true;
+    act(() => approvedInPane({ kind: "internal", artifactId: "ART-report" }));
     // The approved PDF is not made yet: the DOCX alone is said to carry it (review 4).
     expect(await report.findByText("Stav: Schváleno 18. 10. 2026 · verze ART-report — DOCX této verze to nese v zápatí")).toBeTruthy();
     // The state line is a live region: the approval a screen reader user made is announced
@@ -3419,5 +3429,66 @@ describe("Interpretation research", () => {
     expect(called("POST", "/api/v1/studies/STU-1/research/runs")).toHaveLength(0);
     expect(createUrl).not.toHaveBeenCalled();
     expect(revokeUrl).not.toHaveBeenCalled();
+  });
+});
+
+describe("Náklady on Průběh (artifact-fieldwork FLD4b)", () => {
+  const STUDY = { study_id: "STU-1", name: "Starbucks", budget_usd: 50, spent_usd: 10, remaining_usd: 40, spend_confirm_usd: null };
+  const rowsOf = async () => {
+    const card = await screen.findByText(t("research.exec.spend.title"));
+    const dl = await waitFor(() => {
+      const found = card.closest("section, div")!.parentElement!.querySelector("[data-run-spend]");
+      if (!found) throw new Error("no spend yet");
+      return found;
+    });
+    return [...dl.querySelectorAll("[data-spend]")].map((r) => [r.getAttribute("data-spend"), r.querySelector("dd")!.textContent]);
+  };
+
+  it("reads the run's spent, held and unpriced calls beside the study's remainder", async () => {
+    const spent = { ...COMPLETED, spend: { spent_usd: 0.4, reserved_usd: 0, uncertain_calls: 1 } };
+    api({ ...listed(spent), "GET /api/v1/studies/STU-1": () => STUDY });
+    render(<ResearchScreen step="progress" frame={TEST_FRAME} />);
+    await waitFor(async () =>
+      expect(await rowsOf()).toEqual([
+        ["spent", "0,40 USD"],
+        ["held", "0,00 USD"],
+        ["unpriced", `${tv("research.exec.spend.unpricedCalls", { count: 1 })} · ${t("research.exec.spend.unpricedEnded")}`],
+        ["remaining", `40,00 USD · ${t("research.exec.spend.remainingNote")}`],
+      ]),
+    );
+  });
+
+  it("says the spend is unknown when the API gave none, never 0,00 USD", async () => {
+    api({ ...listed(COMPLETED), "GET /api/v1/studies/STU-1": () => STUDY });
+    render(<ResearchScreen step="progress" frame={TEST_FRAME} />);
+    expect(await screen.findByText(t("research.exec.spend.unknown"))).toBeTruthy();
+    expect(document.querySelector("[data-run-spend]")).toBeNull();
+  });
+
+  it("carries the run's spend over an action's answer, which has none, until the next read replaces it", async () => {
+    const parked = { ...PARKED, spend: { spent_usd: 1.5, reserved_usd: 0.25, uncertain_calls: 0 } };
+    // The action's answer: no spend. The read after it: the run's spend as it now is.
+    const answer = run({ steps: [step("compile", "SUCCEEDED"), step("preflight", "SUCCEEDED"), step("run", "RUNNABLE")] });
+    const reread = { ...answer, spend: { spent_usd: 1.75, reserved_usd: 0.25, uncertain_calls: 0 } };
+    let going = false;
+    let held: (() => void) | null = null;
+    const RESUME = "/api/v1/studies/STU-1/research/runs/RUN-1/resume";
+    api({
+      ...listed(parked),
+      // The read after the answer waits, so what the answer alone leaves on screen can be seen.
+      "GET /api/v1/studies/STU-1/research/runs/RUN-1": () => (going ? new Promise((resolve) => { held = () => resolve(reread); }) : parked),
+      [`POST ${RESUME}`]: () => { going = true; return answer; },
+      "GET /api/v1/studies/STU-1": () => STUDY,
+    });
+    render(<ResearchScreen step="progress" frame={TEST_FRAME} />);
+    await waitFor(async () => expect((await rowsOf())[0]).toEqual(["spent", "1,50 USD"]));
+    fireEvent.click(await screen.findByRole("button", { name: t("research.exec.resume") }));
+    await waitFor(() => expect(called("POST", RESUME)).toHaveLength(1));
+    await waitFor(() => expect(screen.queryByText(t("research.exec.parkedResume"))).toBeNull());
+    expect((await rowsOf())[0]).toEqual(["spent", "1,50 USD"]);
+    expect(screen.queryByText(t("research.exec.spend.unknown"))).toBeNull();
+    await waitFor(() => expect(held).not.toBeNull());
+    act(() => held!());
+    await waitFor(async () => expect((await rowsOf())[0]).toEqual(["spent", "1,75 USD"]));
   });
 });

@@ -11,7 +11,7 @@
 // gate, recorded as automatic -- shown as "Přijato automaticky" with Vrátit; structure still waits.
 
 import { useRouter } from "next/navigation";
-import { type ReactNode, type Ref, useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
+import { type KeyboardEvent as ReactKeyboardEvent, type ReactNode, type Ref, useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
 
 import { ApiError, api, lead as leadApi, research, type Readiness, type ResearchAgentJob, type ResearchRun, type Study } from "@/lib/api";
 import { withBudget } from "@/lib/budget-line";
@@ -22,6 +22,8 @@ import { unanswerableAsked } from "@/lib/answerability";
 import { jobCostAsked } from "@/lib/research-agent-jobs";
 import { appRoutes } from "@/lib/app-routes";
 import { guardedNavigate } from "@/lib/guarded-navigation";
+import { rovingIndex } from "@/lib/roving";
+import { useDismiss } from "../ui/parts";
 import {
   LEAD_REASON_WORDS, ANALYSIS_RETRY_MOVED_QUESTION, STALE_CARD_QUESTION, LEAD_REVEAL, applyLeadEdit, autoAcceptPlan, describeEdit, editRefusalWords, editStage, focusSelector, revertTextEdit, targetLabel, targetOfElement, textEditInverse,
   type LeadEdit, type LeadRequest, type LeadTurn, type LeadView, type ResearcherLead,
@@ -430,11 +432,11 @@ export function Workbench({ frame, step, store, memory, save, inspector, reload,
     let tries = 0;
     const look = () => {
       const label = targetOfElement(document.querySelector(focusSelector(id)))?.label;
-      if (label && label !== targetLabel(id)) setItems((s) => ({ ...s, entries: s.entries.map((e) => (e.id === id ? { ...e, title: label } : e)) }));
+      if (label && label !== targetLabel(id, store.get())) setItems((s) => ({ ...s, entries: s.entries.map((e) => (e.id === id ? { ...e, title: label } : e)) }));
       else if (tries++ < 10) setTimeout(look, 150);
     };
     setTimeout(look, 0);
-  }, []);
+  }, [store]);
   useEffect(() => {
     // The Lead's `inspect` on another stage, opened by openingStack: taken on every stage change.
     const want = leadInspect.pending;
@@ -453,7 +455,7 @@ export function Workbench({ frame, step, store, memory, save, inspector, reload,
         // stage it opens once that stage is shown (the move remounts on a route change).
         const t = parseAiaId(v.target);
         if (!t) continue;
-        const entry = { id: v.target, title: targetLabel(v.target) };
+        const entry = { id: v.target, title: targetLabel(v.target, store.get()) };
         if (t.stage === stage) {
           setItems((s) => openEntry(onStage(s, stage), entry));
           nameFromPage(v.target);
@@ -489,7 +491,7 @@ export function Workbench({ frame, step, store, memory, save, inspector, reload,
         find();
       }
     }
-  }, [go, compact, drawer, layout, stage, frame.studyId, nameFromPage]);
+  }, [go, compact, drawer, layout, stage, frame.studyId, nameFromPage, store]);
 
   // A design job is approved on the server: the spend limit, the ledger row and the start together.
   const onRequest = useCallback(async (turn: LeadTurn, r: LeadRequest) => {
@@ -749,7 +751,7 @@ export function Workbench({ frame, step, store, memory, save, inspector, reload,
   }), [runs, frame.stepHref, go, prepareRun, startRun, runOfTurn, onRefreshJobs]);
   const leadPane = (
     <LeadPane studyId={frame.studyId} stage={stage} canEdit={frame.canEdit} focus={focus} picking={picking}
-      onPick={() => drawerEvent({ type: picking ? "picked" : "pick" })} onSession={onSession} onClearFocus={() => setFocus(null)} jobs={[...jobs].reverse()} onOpenJob={openJob} cards={cards} onView={onView} onRequest={onRequest} onTurns={onTurns} onLead={onLead} beforeMessage={flushBeforeMessage} epoch={leadEpoch} registerSend={registerSend}
+      onPick={() => drawerEvent({ type: picking ? "picked" : "pick" })} onSession={onSession} onClearFocus={() => setFocus(null)} jobs={[...jobs].reverse()} onOpenJob={openJob} cards={cards} onView={onView} onRequest={onRequest} onTurns={onTurns} onLead={onLead} beforeMessage={flushBeforeMessage} epoch={leadEpoch} registerSend={registerSend} design={state}
       mode={mode} onFocusMode={() => setMode((m) => (m === "conversation" ? "split" : "conversation"))}
       onClose={compact ? () => drawerEvent({ type: "close" }) : undefined} />
   );
@@ -784,7 +786,7 @@ export function Workbench({ frame, step, store, memory, save, inspector, reload,
               {picking ? <div className="artbar artbar--op" role="status"><Icon name="at" size={13} /><div className="artbar__grow">Klikněte na otázku, oddíl nebo část zadání, o které chcete s Vedoucím mluvit. Esc zruší.</div></div> : null}
               {drawer.kind === "peek" ? (
                 <div className="artbar artbar--op" role="status" data-peek>
-                  <Mark size={13} /><div className="artbar__grow">Vedoucí ukazuje: {drawer.target.includes(":") ? targetLabel(drawer.target) : STAGES[drawer.target as WorkbenchStage]?.label ?? drawer.target}</div>
+                  <Mark size={13} /><div className="artbar__grow">Vedoucí ukazuje: {drawer.target.includes(":") ? targetLabel(drawer.target, state) : STAGES[drawer.target as WorkbenchStage]?.label ?? drawer.target}</div>
                   <button type="button" className="btn btn--sm btn--quiet" onClick={() => drawerEvent({ type: "back" })}>Zpět k Vedoucímu</button>
                 </div>
               ) : null}
@@ -896,6 +898,36 @@ function StudyHeader({ frame, study, pending, blocked, onPending, layout = "spli
   const narrow = layout === "sheet";
   const router = useRouter();
   const [menu, setMenu] = useState(false);
+  // A menu by the keyboard too (the UX audit, #753): opened on its first item, ↑ ↓ Home End move,
+  // Esc or a press outside closes it and gives the focus back to its button. No scrim: a press
+  // outside reaches what it was meant for. The items are read from the open menu, so the rows that
+  // only inform (under 768 px) are never stopped on.
+  const menuBox = useRef<HTMLDivElement>(null);
+  const menuToggle = useRef<HTMLButtonElement>(null);
+  const closeMenu = useCallback(() => setMenu(false), []);
+  useDismiss(menu, closeMenu, menuBox, menuToggle);
+  const menuItems = () => Array.from(menuBox.current?.querySelectorAll<HTMLElement>('[role="menuitem"]') ?? []);
+  // Which item takes the focus once the menu has rendered (an effect: after the commit).
+  const focusOnOpen = useRef<"first" | "last" | null>(null);
+  const openMenu = (where: "first" | "last") => {
+    focusOnOpen.current = where;
+    setMenu(true);
+  };
+  useEffect(() => {
+    const where = focusOnOpen.current;
+    focusOnOpen.current = null;
+    if (!menu || !where) return;
+    const items = Array.from(menuBox.current?.querySelectorAll<HTMLElement>('[role="menuitem"]') ?? []);
+    (where === "first" ? items[0] : items[items.length - 1])?.focus();
+  }, [menu]);
+  const onMenuKey = (e: ReactKeyboardEvent<HTMLElement>) => {
+    if (e.key === "Tab") return setMenu(false);
+    const items = menuItems();
+    const next = rovingIndex(items.indexOf(e.target as HTMLElement), e.key, items.length, () => false, "vertical");
+    if (next === null) return;
+    e.preventDefault();
+    items[next]?.focus();
+  };
   // Leaving the study goes through a link's click too, so Návrh's leave guard can stop it.
   const leave = (url: string) => {
     setMenu(false);
@@ -921,12 +953,13 @@ function StudyHeader({ frame, study, pending, blocked, onPending, layout = "spli
           <span className="num">{budget === null ? "Rozpočet nenastaven" : `${usd(spent)} / ${usd(budget)} USD`}</span>
         </span>
       )}
-      <div style={{ position: "relative" }}>
-        <button type="button" className="iconbtn" aria-label="Nabídka" title="Nabídka" aria-expanded={menu} onClick={() => setMenu((v) => !v)}><Icon name="menu" size={16} /></button>
+      <div ref={menuBox} style={{ position: "relative" }}>
+        <button ref={menuToggle} type="button" className="iconbtn" aria-label="Nabídka" title="Nabídka" aria-haspopup="menu" aria-expanded={menu}
+          onClick={() => (menu ? setMenu(false) : openMenu("first"))}
+          onKeyDown={(e) => { if (e.key === "ArrowDown" || e.key === "ArrowUp") { e.preventDefault(); openMenu(e.key === "ArrowDown" ? "first" : "last"); } }}><Icon name="menu" size={16} /></button>
         {menu ? (
           <>
-            <div className="scrim" onClick={() => setMenu(false)} />
-            <div className="pop menu" style={{ right: 0, top: 34, width: 280 }} role="menu">
+            <div className="pop menu" style={{ right: 0, top: 34, width: 280 }} role="menu" aria-label="Nabídka" onKeyDown={onMenuKey}>
               {narrow ? (
                 <>
                   <div className="menu__info" role="none"><Glyph tone={blocked ? "you" : "done"} size={11} />{blocked ? `Do spuštění zbývá ${blocked}` : "Návrh splňuje podmínky kroků"}</div>

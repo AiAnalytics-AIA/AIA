@@ -11,7 +11,8 @@ import { ResearchScreen } from "./ResearchScreen";
 import { TEST_FRAME } from "./test-frame";
 import { CONTENT_PATH, EMPTY_PROJECT, signedIn } from "./test-workspace";
 
-vi.mock("next/navigation", () => ({ usePathname: () => "/app/clients/CLI-1/research/STU-1/persona", useRouter: () => ({ replace: vi.fn(), push: vi.fn() }) }));
+const { push } = vi.hoisted(() => ({ push: vi.fn() }));
+vi.mock("next/navigation", () => ({ usePathname: () => "/app/clients/CLI-1/research/STU-1/persona", useRouter: () => ({ replace: vi.fn(), push }) }));
 
 const urls: string[] = [];
 const bodies: { url: string; body: Record<string, unknown> }[] = [];
@@ -67,6 +68,17 @@ describe("the workbench: the Lead owns the AI starts", () => {
       expect(urls.some((u) => u.startsWith("POST") && u.includes("/agent-jobs"))).toBe(false);
     });
   }
+
+  it("goes on from Zadání to Návrh through the frame, so Návrh's heading takes the focus (Codex stand-in on #714)", async () => {
+    push.mockClear();
+    render(<ResearchScreen step="brief" frame={TEST_FRAME} />);
+    await screen.findByText("Bára");
+    fireEvent.click(screen.getByRole("button", { name: /Připravenost a pomoc/ }));
+    // A button the frame answers, not a bare link: a link would skip the frame's heading focus.
+    fireEvent.click(await screen.findByRole("button", { name: "Pokračovat na Návrh" }));
+    await waitFor(() => expect(push).toHaveBeenCalledTimes(1));
+    expect(push.mock.calls[0][0]).toMatch(/\/plan$/);
+  });
 
   it("says on Dimenze where the dimensions' proposal is asked for now", async () => {
     render(<ResearchScreen step="persona" frame={TEST_FRAME} />);

@@ -68,14 +68,18 @@ export function PlanNarrative({ disabled = false, onQuote }: { disabled?: boolea
         type="button"
         aria-label={tv("research.plan.narrative.comment", { text })}
         onClick={() => onQuote(text)}
-        className={`mt-1 shrink-0 whitespace-nowrap rounded-control px-1.5 text-xs leading-6 text-ink-faint hover:bg-surface-sunken hover:text-ink ${FOCUS}`}
+        title={t("research.plan.narrative.commentShort")}
+        className={`-mt-1.5 inline-flex min-h-11 min-w-11 shrink-0 items-center justify-center gap-1 whitespace-nowrap rounded-control px-1.5 text-xs leading-6 text-ink-faint hover:bg-surface-sunken hover:text-ink @md:mt-1 @md:min-h-7 @md:min-w-0 ${FOCUS}`}
       >
-        {t("research.plan.narrative.commentShort")}
+        {/* A narrow column (a phone, a narrow workbench pane) keeps the item's words their width:
+            the action as its glyph, named by aria-label and title. */}
+        <Icon name="comment" size={14} className="@md:hidden" />
+        <span className="hidden @md:inline">{t("research.plan.narrative.commentShort")}</span>
       </button>
     ) : null;
 
   return (
-    <div className="flex flex-col gap-4">
+    <div className="@container flex flex-col gap-4">
       <p className="text-[13px] text-ink-muted">{t("research.plan.narrative.hint")}</p>
       <div className="flex items-start gap-2">
       <InlineText
@@ -126,10 +130,13 @@ export function PlanNarrative({ disabled = false, onQuote }: { disabled?: boolea
             <p className="mt-1 text-[13px] text-ink-muted">{t("research.plan.narrative.none")}</p>
           )}
           {disabled ? null : (
+            // A repeat is refused as typed by the list's own rule and words, the ones an edit in place
+            // says (itemProblem), never the row's name rules ("„…“ už existuje"); an empty row says
+            // what to write. addItem checks both again when it writes.
             <InlineCreateRow
               label={t(`research.plan.narrative.add.${list}`)}
+              validate={(v) => itemProblem(n, list, v, null)}
               emptyWords={t(`research.plan.narrative.addEmpty.${list}`)}
-              existing={n[list]}
               maxLength={ITEM_MAX}
               disabled={addProblem(n, list) !== null}
               className="mt-1"

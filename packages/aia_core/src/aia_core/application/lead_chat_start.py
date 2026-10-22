@@ -121,6 +121,8 @@ class RunStartSettings:
     #: The artifact store an analysis retry reads the run's stored outcomes from; without it a
     #: typed analysis retry is refused (``run_start_unavailable``).
     store: ArtifactStore | None = None
+    #: AIA_ROUTING_ENABLED: a valid display condition passes and the run pins it (WCE13 (d))
+    routing_enabled: bool = False
 
 
 def chat_start_decisions(
@@ -241,6 +243,7 @@ def approve_chat_start(
             population_contract=run_start.population_contract,
             population_id=run_start.population_id,
             panel_sampler=run_start.panel_sampler,
+            routing_enabled=run_start.routing_enabled,
         )
         outlook = runs.outlook(
             revision.revision_id,

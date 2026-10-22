@@ -7,11 +7,13 @@ operations. This module is that contract, before any writer moves onto it
 * **The closed set** (:data:`CATALOGUE`). Every operation the working copy will take, each with
   the item kinds it addresses (the kinds ``design_items`` keys), the fields it writes, whether it
   is a text edit, whether it can touch a locked Sociomap input, whether the Lead's closed output
-  can carry it today, and the chunk that owns it. The eight the Lead proposes today are
-  :attr:`Availability.APPLIED`: their payloads (:class:`SetText` … :class:`SetN`) and
-  :func:`apply_edit` are here. The rest are :attr:`Availability.DECLARED`: named, ruled on and
-  refused by name (``op_not_available``) until the chunk that gives each its payload and its
-  apply; nothing is claimed present because a slot could hold it.
+  can carry it today, and the chunk that owns it. The eight the Lead proposes today
+  (:data:`EditOp`: :class:`SetText` … :class:`SetN`) and a question's display condition
+  (:class:`RouteSet`, WCE13; a person's alone) are :attr:`Availability.APPLIED`: their payloads
+  (:data:`WorkingOp`) and :func:`apply_edit` are here. The rest are
+  :attr:`Availability.DECLARED`: named, ruled on and refused by name (``op_not_available``) until
+  the chunk that gives each its payload and its apply; nothing is claimed present because a slot
+  could hold it.
 * **Ids** (:data:`ITEM_ID`, :func:`new_item_id`, :func:`new_op_id`): the grammar an item's stable
   id keeps (the id part of the Lead's ``FOCUS_ID``), the prefix each kind's new ids take (the ones
   ``apply_edit`` and the web already write: ``Q_``, ``sec_``), and an operation's own id for the
@@ -53,7 +55,7 @@ from .design_fields import Touch, changed_fields
 from .design_items import Documents, ItemKey, item_values
 from .design_items import design_items as changed_items
 from .item_ids import with_item_ids
-from .research_design import SampleSizeLimits, sample_size_problem
+from .research_design import SampleSizeLimits, condition_refusal, sample_size_problem
 
 __all__ = [
     "CATALOGUE",
@@ -78,11 +80,14 @@ __all__ = [
     "QuestionRemove",
     "QuestionType",
     "Refused",
+    "RouteCondition",
+    "RouteSet",
     "SetN",
     "SetText",
     "TextField",
     "TextRuling",
     "Touch",
+    "WorkingOp",
     "apply_edit",
     "declares_sociomap_inputs",
     "is_item_id",
@@ -284,6 +289,27 @@ class SetN(_Closed):
     why: Why
 
 
+class RouteCondition(_Closed):
+    """Who a question is for: those whose answer to the earlier choice question stored as
+    ``question_id`` is one of ``options`` (``research_design.SpecCondition``'s stored form)."""
+
+    question_id: str = Field(min_length=1, max_length=120)
+    options: list[Option] = Field(min_length=1, max_length=40)
+
+
+class RouteSet(_Closed):
+    """A question's display condition set, changed or (``condition`` ``None``) removed (WCE13).
+    Held to the compiler's own rule (``research_design.condition_refusal``) before it is
+    written: an earlier choice question and answers it has. Not in the Lead's output
+    (``in_lead_output`` false): a person sets it on Dotazník."""
+
+    op: Literal["route_set"]
+    question_id: str = Field(min_length=1, max_length=120)
+    condition: RouteCondition | None
+    why: Why
+
+
+#: The operations the Lead's closed output carries (``research_lead.LeadOutput``).
 EditOp = Annotated[
     SetText
     | ListAdd
@@ -293,6 +319,19 @@ EditOp = Annotated[
     | QuestionEdit
     | QuestionRemove
     | SetN,
+    Field(discriminator="op"),
+]
+#: Every operation this module applies: the Lead's, and those a person makes alone.
+WorkingOp = Annotated[
+    SetText
+    | ListAdd
+    | ListReplace
+    | ListRemove
+    | QuestionAdd
+    | QuestionEdit
+    | QuestionRemove
+    | SetN
+    | RouteSet,
     Field(discriminator="op"),
 ]
 
@@ -462,7 +501,8 @@ def apply_edit(
     new_id: Callable[[IdKind], str] = new_item_id,
     sample_size: SampleSizeLimits | None = None,
 ) -> tuple[dict[str, Any], dict[str, Any] | None] | Refused:
-    """One accepted Lead edit applied to the working content and analysis, by the web's rules.
+    """One accepted edit (the Lead's, or a person's ``route_set``) applied to the working content
+    and analysis, by the web's rules.
 
     Returns the new content and analysis (copies; the inputs are not changed), or why the edit
     cannot be applied. A brief edit (``goal``, ``decision_use``, any ``briefing.*``) clears
@@ -587,7 +627,36 @@ def apply_edit(
             return Refused(reason=reason)
         body["n"] = edit.value
         return body, working
+    if isinstance(edit, RouteSet):
+        reason = _route_refusal(body, edit)
+        if reason is not None:
+            return Refused(reason=reason)
+        found = _find_question(body, edit.question_id)
+        if found is None:
+            return Refused(reason="unknown_question")
+        section, i = found
+        questions = list(section.get("questions") or [])
+        question = dict(questions[i])
+        if edit.condition is None:
+            question.pop("filtr", None)
+        else:
+            question["filtr"] = edit.condition.model_dump()
+        questions[i] = question
+        section["questions"] = questions
+        return body, working
     return Refused(reason="unknown_edit")
+
+
+def _route_refusal(content: Mapping[str, Any], edit: RouteSet) -> str | None:
+    """Why ``edit`` cannot stand on ``content``, in the web's order (``lib/lead.ts``
+    ``applyEdit``): the condition by the compiler's rule (``research_design.condition_refusal``),
+    then the question must be one of a questions section, where it is written. A pre-check:
+    compile judges the stored condition again and readiness fails what it refuses."""
+    condition = None if edit.condition is None else edit.condition.model_dump()
+    reason = condition_refusal(content, edit.question_id, condition)
+    if reason is not None:
+        return reason
+    return None if edit.question_id in _question_ids(content)[1] else "unknown_question"
 
 
 def sample_size_reason(value: int, limits: SampleSizeLimits | None) -> str | None:
@@ -603,7 +672,8 @@ def sample_size_reason(value: int, limits: SampleSizeLimits | None) -> str | Non
 
 
 class OpName(StrEnum):
-    """Every operation the working copy takes: today's eight, then the declared rest."""
+    """Every operation the working copy takes: the Lead's eight, then the declared rest
+    (``route_set`` among them is applied too, a person's alone; WCE13)."""
 
     # Applied today: the Lead proposes them, a person accepts them (ADR 0026).
     SET_TEXT = "set_text"
@@ -766,8 +836,8 @@ CATALOGUE: Final[Mapping[OpName, OpSpec]] = MappingProxyType(
                   locked=False, chunk="WCE3b"),
             _spec(OpName.SCALE_SET, (_K.QUESTION, _K.BATTERY), ("scale", "scale_labels"), _S,
                   locked=True, chunk="WCE3b"),
-            _spec(OpName.ROUTE_SET, (_K.QUESTION,), ("condition",), _S,
-                  locked=True, chunk="WCE13"),
+            _spec(OpName.ROUTE_SET, (_K.QUESTION,), ("filtr",), _S,
+                  locked=True, chunk="WCE13", applied=True),
             _spec(OpName.STIMULUS_SET, (_K.QUESTION, _K.STIMULUS), ("context",), _S,
                   locked=True, chunk="WCE14"),
             _spec(OpName.SET_ADD, (_K.TRACKED_SET,), ("item",), _S,
@@ -802,6 +872,12 @@ REFUSALS: Final = frozenset(
     {
         "already_present",
         "briefing_not_an_object",
+        "condition_ambiguous_question",
+        "condition_forward_reference",
+        "condition_not_choice",
+        "condition_unknown_option",
+        "condition_unknown_question",
+        "condition_unstructured",
         "op_not_available",
         "options_on_non_selection",
         "options_on_open_question",
@@ -892,6 +968,8 @@ def refusal(
         return "already_present" if _key(edit.value) in items else None
     if isinstance(edit, SetN):
         return sample_size_reason(edit.value, sample_size)
+    if isinstance(edit, RouteSet):
+        return _route_refusal(content, edit)
     if isinstance(edit, SetText):
         return None
     return "unknown_edit"
@@ -905,7 +983,7 @@ _PLACEHOLDER: Final[Callable[[IdKind], str]] = lambda kind: ID_PREFIX[IdKind(kin
 #: What an operation changes besides what a person wrote: the stages' own state.
 _CONSEQUENCES: Final = frozenset({ItemKey("content", "field", "ui_state")})
 _APPLIED_TYPES: Final = (SetText, ListAdd, ListReplace, ListRemove, QuestionAdd, QuestionEdit,
-                         QuestionRemove, SetN)  # fmt: skip
+                         QuestionRemove, SetN, RouteSet)  # fmt: skip
 
 
 def touches(
