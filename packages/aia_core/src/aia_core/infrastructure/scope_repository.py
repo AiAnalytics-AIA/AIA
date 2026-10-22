@@ -207,6 +207,24 @@ class ScopeRepository:
             "is_active": row.is_active,
         }
 
+    def record_subject_mismatch(self, *, user_id: str, request_id: str | None = None) -> None:
+        """Audit a refused sign-in as ``user_id`` (``SubjectMismatch``), in each organization.
+
+        The presented subject is not recorded: it is another person's identifier.
+        """
+        for organization_id in self.memberships_for_user(user_id):
+            self._session.add(
+                AccessAuditRow(
+                    organization_id=organization_id,
+                    subject_user_id=user_id,
+                    actor_id=None,
+                    action="AIA_SESSION_DENIED",
+                    reason="identity_mismatch",
+                    request_id=request_id,
+                )
+            )
+        self._session.flush()
+
     def memberships_for_user(self, user_id: str) -> list[str]:
         """Return the organization ids a user belongs to.
 

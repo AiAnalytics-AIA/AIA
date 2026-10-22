@@ -340,8 +340,14 @@ def principal_from_credential(
             external_subject=identity.subject,
         )
     except SubjectMismatch as exc:
+        # An attempt to sign in as someone else's account: the record worth keeping.
+        # The request session rolls back on the error below, so the audit row is
+        # committed first (as open_session does with a refused admission).
+        scope_repo.record_subject_mismatch(user_id=exc.user_id, request_id=request_id_var.get())
+        session.commit()
         logger.warning(
-            "authentication refused: e-mail bound to another subject",
+            "authentication refused: e-mail bound to another subject; an administrator "
+            "who confirms the change clears it with ScopeRepository.clear_subject",
             extra={"context": {"user_id": exc.user_id, "provider": provider.name}},
         )
         raise HTTPException(
