@@ -116,6 +116,7 @@ def test_a_condition_written_as_the_classic_did_reads_when_it_is_exactly_a_choic
         "Q1 == 'Ni' 'kdy'",  # two literals joined: not one answer as written
         "Q1 == " + " + ".join(["'a'"] * 5000),  # too long to be a choice; never parsed
         "(" * 400 + "Q1" + ")" * 400 + " == 'Nikdy'",  # nests past the parser
+        "\uff31" + "1 == 'Nikdy'",  # a full-width name the parser would fold to Q1 (NFKC)
     ],
 )
 def test_a_condition_the_domain_cannot_read_stays_as_written_and_is_refused_by_name(
@@ -160,6 +161,27 @@ def test_a_condition_naming_two_questions_is_refused_never_bound_to_the_first() 
     twin = {"id": "Q1", "text": "Pijete čaj?", "typ": "vyber", "kategorie": ["Nikdy", "Denně"]}
     content = _design(twin, _q3({"question_id": "Q1", "options": ["Nikdy"]}))
     assert _codes(content) == ["condition_ambiguous_question"]
+
+
+def test_a_condition_on_a_name_the_question_itself_carries_is_refused_as_ambiguous() -> None:
+    """A second Q1 conditioned on Q1: the earlier Q1 is not the only question so named."""
+    twin = {
+        "id": "Q1",
+        "text": "Proč?",
+        "typ": "otevrena",
+        "filtr": {"question_id": "Q1", "options": ["Nikdy"]},
+    }
+    assert _codes(_design(twin)) == ["condition_ambiguous_question"]
+
+
+@pytest.mark.parametrize(
+    "condition", [{"question_id": "Q1", "options": ["Nikdy"]}, "q1 == 'Nikdy'"]
+)
+def test_a_condition_on_a_name_a_later_question_carries_is_refused_as_ambiguous(
+    condition: Any,
+) -> None:
+    later = {"id": "Q1", "text": "Pijete čaj?", "typ": "vyber", "kategorie": ["Nikdy", "Denně"]}
+    assert _codes(_design(_q3(condition), later)) == ["condition_ambiguous_question"]
 
 
 def test_a_specification_cannot_say_a_question_is_conditional_without_its_condition() -> None:

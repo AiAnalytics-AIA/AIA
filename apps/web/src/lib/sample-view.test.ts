@@ -88,6 +88,7 @@ describe("checkStage", () => {
   it("sends the server's per-item checks by their prefix: a design that does not compile, a tracked set's size", () => {
     expect(checkStage("compile:empty_questionnaire:sections")).toBe("questionnaire");
     expect(checkStage("battery_size:b1")).toBe("questionnaire");
+    expect(checkStage("condition:q3")).toBe("questionnaire");
     expect(checkStage("compile")).toBeNull();
     expect(checkStage("toString:x")).toBeNull();
   });
