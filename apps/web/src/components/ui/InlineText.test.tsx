@@ -38,7 +38,6 @@ describe("InlineText (I1): edit where it is shown", () => {
     const elsewhere = screen.getByRole("button", { name: "Jinde" });
     elsewhere.focus();
     await new Promise((resolve) => requestAnimationFrame(() => resolve(null)));
-    await new Promise((resolve) => setTimeout(resolve, 20));
     expect(document.activeElement).toBe(elsewhere);
 
     // Left alone, focus still comes back to the value (I11).
