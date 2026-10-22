@@ -82,12 +82,13 @@ function useFocusRecovery(dialog: RefObject<HTMLDivElement | null>, modal: boole
         if (!(target instanceof HTMLElement) || !target.isConnected) return recover();
         const active = document.activeElement;
         const toBody = !active || active === document.body;
+        if (held !== target) return; // focus moved on (focusin after this focusout): B is held
         if (toBody && cannotHoldFocus(target)) {
           held = null;
           recoveryTarget(el).focus();
-        } else if (held === target) {
+        } else {
           // Only what this event let go of: a move from A to B inside the dialog fires
-          // focusout(A) then focusin(B) in one task, and B is held now (review of #683).
+          // focusout(A) then focusin(B) in one task, and B is held then (review of #683).
           held = null;
         }
       });
