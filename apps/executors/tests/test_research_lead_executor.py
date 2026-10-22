@@ -9,9 +9,11 @@ from __future__ import annotations
 
 import dataclasses
 import json
+import uuid
 from dataclasses import dataclass, field
 from typing import Any
 
+import aia_core.domain.project as project_module
 import pytest
 from aia_core.application.research import research_artifacts
 from aia_core.application.research_lead import ResearchLead
@@ -342,6 +344,24 @@ def test_a_reply_that_stays_invented_after_its_repair_fails_the_turn(
     transport = RecordedBedrock([{"reply": "Máme 7 otázek."}])
     assert worker(ready, database_url, store, build, transport).run_once()
     assert len(transport.requests) == 2  # the primary and its one repair, never a third
+    turn = lead_turn(ready, turn_id)
+    assert turn["status"] == "FAILED" and turn["output"] is None
+
+
+def test_a_number_only_an_identifier_holds_is_still_invented(
+    ready: Any, database_url: str, store: Any, build: Any, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """F-CLOCK-1: the design revision's id is ``REV-`` and random hex; one starting ``7a``
+    read as a 7 in the context, so the test above passed or failed by chance (CI on #554).
+    Here every revision id starts so, and the invented 7 is still repaired, then failed."""
+    monkeypatch.setattr(project_module, "uuid4", lambda: uuid.UUID("7a" + uuid.uuid4().hex[2:]))
+    turn_id = post(ready)
+    transport = RecordedBedrock([{"reply": "Máme 7 otázek."}])
+    assert worker(ready, database_url, store, build, transport).run_once()
+    sent = json.loads(transport.requests[0].body["messages"][0]["content"][0]["text"])
+    design = next(entry for entry in sent["context"] if entry["layer"] == "design")
+    assert design["design_revision_id"].startswith("REV-7a")
+    assert len(transport.requests) == 2
     turn = lead_turn(ready, turn_id)
     assert turn["status"] == "FAILED" and turn["output"] is None
 
@@ -694,3 +714,28 @@ def test_the_registry_parks_turns_without_a_runtime(store: Any, build: Any) -> N
     executor = registry_for(store=store, build=build)["research_lead_turn"]
     assert isinstance(executor, ResearchLeadExecutor)
     assert dataclasses.is_dataclass(ResearchLeadConfig)
+
+
+def test_a_reused_turn_is_grounded_as_a_fresh_one() -> None:
+    """Codex on #624: a turn stored by a worker from before the focus grounding, reused on a
+    retry, never carries a focus the frozen copy does not show."""
+    from aia_executors.research_lead import _regrounded
+
+    stored = {
+        "lead_output": {
+            "reply": "Podívejte se.",
+            "view": [
+                {"op": "focus", "target": "audience:filter:vzdelani"},
+                {"op": "focus", "target": "audience:filter:kraj"},
+            ],
+        },
+        "dropped": [],
+    }
+    design = {"content": {"audience": {"filters": {"kraj": ["Praha"]}}}}
+    result = _regrounded(stored, design)
+    assert result["lead_output"]["view"] == [{"op": "focus", "target": "audience:filter:kraj"}]
+    assert result["dropped"] == [
+        {"index": 0, "op": "focus", "reason": "audience_filter_not_stored"}
+    ]
+    # Idempotent: a result already grounded comes back unchanged.
+    assert _regrounded(result, design) == result

@@ -25,13 +25,18 @@ from typing import Any
 from sqlalchemy.orm import Session
 
 from aia_core.application.analysis_results import SourcesRefused, native_sources
-from aia_core.application.report import RESEARCH_SUBTITLE
+from aia_core.application.report import (
+    RESEARCH_SUBTITLE,
+    SOCIOMAP_ARTIFACT,
+    sourced,
+    upstream_artifacts,
+)
 from aia_core.application.report_chapters import verified_map
 from aia_core.application.report_design import compose_design_sections
 from aia_core.application.report_document import beside, store_document_beside
 from aia_core.application.report_export import review_stamp_record
 from aia_core.application.report_maps import compose_map_sections
-from aia_core.application.report_method import compose_method_section
+from aia_core.application.report_method import METHOD_SOURCES, compose_method_section
 from aia_core.application.report_tables import question_tables, scale_notes
 from aia_core.application.research import ResearchRuns, research_artifacts
 from aia_core.domain.analysis.native import native_evidence, native_items
@@ -41,8 +46,11 @@ from aia_core.domain.evidence.report_lift import MODELLED_CLIENT_REPORT_LIFT
 from aia_core.domain.evidence.validation import method_status
 from aia_core.domain.fieldwork import MODELLED_DISCLOSURE, OriginKind, origin_kind
 from aia_core.domain.pipeline import fingerprint
+from aia_core.domain.report.client_gate import GateCode, GateRefusal, client_gate
+from aia_core.domain.report.document_model import read_document_payload
 from aia_core.domain.report.evidence import EvidenceLedger
 from aia_core.domain.report.model import (
+    ArtifactSource,
     Callout,
     CalloutKind,
     Classification,
@@ -52,6 +60,7 @@ from aia_core.domain.report.model import (
     ReportKind,
     ReportMeta,
     Section,
+    SpecSource,
     text,
 )
 from aia_core.domain.report.validation import require_valid
@@ -104,7 +113,8 @@ def compose_client_report(
     scope.require(Permission.EXPORT_DELIVERABLE)
     run = ResearchRuns(session, scope).get(run_id)
     try:
-        sources = native_sources(session, scope, store, run)
+        # The data alone: the client report reads no analysis context.
+        sources = native_sources(session, scope, store, run, with_context=False)
     except SourcesRefused as exc:
         raise ClientReportRefused("sources_refused", f"{exc.reason}: {exc}") from exc
     origin = sources.dataset_origin
@@ -208,13 +218,26 @@ def compose_client_report(
         ),
         id="ch-intro",
     )
+    # What each section is composed from (artifact-chain CHN1); stored with the document model.
+    specification, dataset, aggregate = upstream_artifacts(sources.refs)
+    the_map = ArtifactSource(SOCIOMAP_ARTIFACT, mapped.artifact_id, mapped.sha256)
     sections = [
-        intro,
-        design.chapter,
-        compose_method_section(meta_run, origin, client=True),
-        *tables.sections,
-        *maps,
-        design.appendix,
+        sourced(intro, dataset, the_map),
+        sourced(
+            design.chapter,
+            specification,
+            SpecSource("questions"),
+            SpecSource("batteries"),
+            SpecSource("n"),
+            SpecSource("audience"),
+        ),
+        sourced(compose_method_section(meta_run, origin, client=True), dataset, *METHOD_SOURCES),
+        *(
+            sourced(section, aggregate, specification, SpecSource("questions"))
+            for section in tables.sections
+        ),
+        *(sourced(section, the_map) for section in maps),
+        sourced(design.appendix, specification, SpecSource("questions"), SpecSource("batteries")),
         Section("Evidenční příloha", (EvidenceAppendix(),), id="app-evidence", appendix=True),
     ]
     ledger = EvidenceLedger.from_claims(
@@ -297,6 +320,33 @@ def stored_client_report(
     valid artifact has exactly those sources, so the document a person approves is the
     document they downloaded.
     """
+    artifact, data = _client_report(session, scope, store, run_id=run_id, build=build)
+    if data is None:
+        data = research_artifacts(session, scope, store).read(artifact.artifact_id)
+    return artifact, data
+
+
+def prepare_client_report(
+    session: Session,
+    scope: StudyContext,
+    store: ArtifactStore,
+    *,
+    run_id: str,
+    build: str = "",
+) -> tuple[Artifact, Artifact | None]:
+    """The client report its download would hand over, stored as it would store it, and the
+    document model beside exactly that version, without reading its bytes (report-delivery RD3):
+    a person reads the version they will approve, in AIA, before any file leaves."""
+    artifact, _data = _client_report(session, scope, store, run_id=run_id, build=build)
+    found = client_report_document(session, scope, store, run_id=run_id, docx=artifact)
+    return artifact, found[1] if found else None
+
+
+def _client_report(
+    session: Session, scope: StudyContext, store: ArtifactStore, *, run_id: str, build: str
+) -> tuple[Artifact, bytes | None]:
+    """The client report as stored (see :func:`stored_client_report`), with its bytes only
+    when they were rendered here, so nothing reads a stored version twice."""
     from aia_core.infrastructure.report_docx.renderer import DocxRenderer
 
     scope.require(Permission.EXPORT_DELIVERABLE)
@@ -304,7 +354,7 @@ def stored_client_report(
     artifacts = research_artifacts(session, scope, store)
     approved = approved_client_report(artifacts, run, run_id=run_id)
     if approved is not None:
-        return approved, artifacts.read(approved.artifact_id)
+        return approved, None
     composed = compose_client_report(session, scope, store, run_id=run_id)
     key = fingerprint(composed.sources)
     found = artifacts.find_reusable(
@@ -317,7 +367,7 @@ def stored_client_report(
         # A draft stored before RD5a gets its document now: the same sources compose the same
         # document (the fingerprint holds them and the contract).
         _store_document(artifacts, run_id, found, composed.document, build)
-        return found, artifacts.read(found.artifact_id)
+        return found, None
     data = DocxRenderer().render(composed.document)
     artifact, _created = artifacts.put(
         project_id=run["project_id"],
@@ -366,12 +416,18 @@ def _store_document(
 
 
 def client_report_document(
-    session: Session, scope: StudyContext, store: ArtifactStore, *, run_id: str
+    session: Session,
+    scope: StudyContext,
+    store: ArtifactStore,
+    *,
+    run_id: str,
+    docx: Artifact | None = None,
 ) -> tuple[Artifact, Artifact | None] | None:
     """The run's client report as stored, and the document model beside it, composing
     nothing: the approved version when a person approved one, else the newest stored draft.
     ``None`` while no client report was stored; the model ``None`` for a version stored before
-    RD5a (an approved one keeps its bytes and gets none)."""
+    RD5a (an approved one keeps its bytes and gets none). ``docx``: that version's document
+    instead, the one its download hands over."""
     scope.require(Permission.VIEW_RESULTS)
     run = ResearchRuns(session, scope).get(run_id)
     artifacts = research_artifacts(session, scope, store)
@@ -389,14 +445,54 @@ def client_report_document(
     ]
     if not drafts:
         return None
-    approved = [a for a in drafts if a.is_approved]
-    docx = approved[-1] if approved else drafts[-1]
+    if docx is None:
+        approved = [a for a in drafts if a.is_approved]
+        docx = approved[-1] if approved else drafts[-1]
+    return docx, _document_of(stored, docx)
+
+
+def _document_of(stored: list[Artifact], docx: Artifact) -> Artifact | None:
+    """Among ``stored``, the newest document model beside exactly ``docx``."""
     models = [
         a
         for a in stored
         if a.artifact_type == CLIENT_REPORT_DOCUMENT_ARTIFACT_TYPE
         and a.status is ArtifactStatus.VALID
-        and a.metadata.get("run_id") == run_id
+        and a.metadata.get("run_id") == docx.metadata.get("run_id")
         and beside(a, docx)
     ]
-    return docx, (models[-1] if models else None)
+    return models[-1] if models else None
+
+
+class ClientGateRefused(Exception):
+    """The client deliverable may not be approved (RD0): every refusal, each by its block."""
+
+    def __init__(self, refusals: tuple[GateRefusal, ...]) -> None:
+        super().__init__("; ".join(f"{r.message} ({r.where})" for r in refusals))
+        self.refusals = refusals
+
+
+def require_client_gate(artifacts: ArtifactRepository, docx: Artifact) -> None:
+    """Refuse ``docx``, a stored client report, unless the document it was rendered from passes
+    the client deliverable's gate (RD0). A version with no stored document (stored before RD5a)
+    is not judged, so not passed: its next download stores the document beside it. Raises the
+    store's errors for a document that does not verify, and :class:`ClientGateRefused`."""
+    model = _document_of(
+        artifacts.list_for_stage(
+            project_id=docx.project_id, revision=docx.revision, stage_type=docx.stage_type
+        ),
+        docx,
+    )
+    if model is None:
+        raise ClientGateRefused(
+            (
+                GateRefusal(
+                    GateCode.UNRECORDED,
+                    "report",
+                    "verze nemá uložený dokument, brána ji nemůže posoudit; stáhněte ji znovu",
+                ),
+            )
+        )
+    refusals = client_gate(read_document_payload(artifacts.read(model.artifact_id)))
+    if refusals:
+        raise ClientGateRefused(refusals)

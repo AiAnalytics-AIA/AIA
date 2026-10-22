@@ -11,6 +11,8 @@
 // clamped to 50–5 000; it now refuses a value outside the server's valid n
 // (setSampleSize; plan run-qc-and-checkpoint RQC9, audit IA-1).
 
+import { ID_SOURCE, aiaId } from "@/lib/workbench-artifacts";
+
 import { type Json, PROVIDER_FORCED, type ResearchProject } from "./model";
 
 type Obj = { [k: string]: Json };
@@ -337,4 +339,32 @@ export const PROPOSAL_AI_DONE = "Návrh AI je ve Znalostech klienta. Do katalogu
 /** openDimensionResearch1793's topic, prefilled in the classic Data Library's Deep Research. */
 export function dimensionResearchTopic(label: string): string {
   return `Nová dimenze: ${label}. Dohledej pro českou populaci kvantitativní prevalenci nebo průměr, přesnou definici/škálu a doložené vztahy k existujícím behaviorálním/demografickým predictorům. Bez kvantitativní populační kotvy dimenzi nedosimulovávej.`;
+}
+
+/**
+ * Whether a selected dimension reaches a respondent (artifact-dimensions DIM2): the persona
+ * topic the server's mapping answers (persona_topics.dimension_topic), "unmatched" when it
+ * answers none -- a run then lists it in dimensions_unmatched -- and "unknown" while the
+ * server has not answered, never read as matched.
+ */
+export type DimensionTopic = { state: "matched"; topic: string } | { state: "unmatched" } | { state: "unknown" };
+
+export function dimensionTopic(topics: Readonly<Record<string, string | null>> | null, id: string): DimensionTopic {
+  if (!topics || !(id in topics)) return { state: "unknown" };
+  const topic = topics[id];
+  return topic ? { state: "matched", topic } : { state: "unmatched" };
+}
+
+/** The chip's words: V2's "téma persony: …" or "bez tématu persony". */
+export function dimensionTopicWords(t: DimensionTopic): string {
+  if (t.state === "matched") return `téma persony: ${t.topic}`;
+  if (t.state === "unmatched") return "bez tématu persony";
+  return "téma persony neověřeno";
+}
+
+const TARGET_ID = new RegExp(ID_SOURCE);
+
+/** A dimension's pointable id for the Lead (aiaId), or null for an id outside its grammar. */
+export function dimensionTarget(id: string): string | null {
+  return TARGET_ID.test(id) ? aiaId("dimension", id) : null;
 }

@@ -16,8 +16,15 @@ import { type DragEvent, type ReactNode, useEffect, useRef, useState } from "rea
 import { t, tv } from "@/i18n/t";
 import { workspace } from "@/lib/api";
 import { saveBlob } from "@/lib/download";
+import { fileProblem, uploadProblem } from "@/research/brief-upload";
 import { type BriefMaterials, classLabel, classOf } from "@/lib/material-class";
 import { briefElementId, contextField, materialAia } from "@/lib/artifacts/brief";
+import { aiaId } from "@/lib/workbench-artifacts";
+import { OBJECTIVE_MAX, addObjective, objectivesEditable, objectivesOf, removeObjective, restoreObjective, setObjective } from "@/research/brief-objectives";
+import { InlineCreateRow } from "../../ui/InlineCreateRow";
+import { InlineText } from "../../ui/InlineText";
+import { UndoToast, useUndo } from "../../ui/UndoToast";
+import { ChoiceChips } from "../../ui/ChoiceChips";
 import {
   type BriefingField,
   MAX_FILES_PER_PICK,
@@ -29,6 +36,7 @@ import {
   editBrief,
   fileToBase64,
   removeAttachment,
+  restoreAttachment,
   storedAttachmentId,
   titleValue,
   toggleProblemType,
@@ -46,13 +54,15 @@ const message = (e: unknown) => (e instanceof Error ? e.message : String(e));
 const FOCUS = "focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus-ring";
 const INPUT = `rounded-control border border-border-strong text-ink placeholder:text-ink-faint ${FOCUS}`;
 
+/** The longest text a brief field takes: the edit vocabulary's set_text value (edit_ops VALUE_MAX_CHARS). */
+const CONTEXT_MAX = 4000;
+
 /** A goal this long reads as a sentence; shorter, the AI will have to ask. */
 export const GOAL_SENTENCE = 40;
 
 /** The further context, in the order the classic form showed it. */
-const CONTEXT: { field: TopField | BriefingField; label: string }[] = [
+const CONTEXT: { field: BriefingField; label: string }[] = [
   { field: "product_description", label: "research.brief.productDescription" },
-  { field: "decision_use", label: "research.brief.decisionUse" },
   { field: "situation", label: "research.brief.situation" },
   { field: "what_is_known", label: "research.brief.whatIsKnown" },
   { field: "constraints", label: "research.brief.constraints" },
@@ -106,11 +116,14 @@ export function BriefStep() {
   const goal = p.goal || "";
   const goalLength = goal.trim().length;
   const attachments = p.briefing.attachments || [];
-  const filled = CONTEXT.filter((c) => contextValue(p, c.field).trim()).length;
+  const filled = [...CONTEXT.map((c) => contextValue(p, c.field)), p.decision_use || ""].filter((v) => v.trim()).length;
   const ready = canAnalyse(p);
   const score = [goalLength >= GOAL_SENTENCE, selected.size > 0, attachments.length > 0, filled > 0].filter(Boolean).length * 25;
 
   const uploads = useUploads();
+  // One undo offer for the whole stage (I6): a removal anywhere replaces the last offer, never sits
+  // beside it (Codex on #641).
+  const undo = useUndo();
   const note = ready ? (goalLength < GOAL_SENTENCE && !selected.size ? t("research.brief.dockShort") : t("research.brief.dockReady")) : t("research.brief.dockMissing");
 
   return (
@@ -196,40 +209,46 @@ export function BriefStep() {
         </div>
       </StepSection>
 
+      <Objectives undo={undo} />
+
+      <Decision edit={edit} p={p} />
+
+      <Context edit={edit} p={p} />
+
       <StepSection
         id="brief-type"
-        n={2}
+        n={5}
         title={t("research.brief.typesTitle")}
         hint={t("research.brief.typesHelp")}
         aside={selected.size ? <span className="font-mono text-xs text-ink-muted">{tv("research.brief.readyTypesN", { n: selected.size })}</span> : null}
       >
-        <div role="group" aria-label={t("research.brief.typesGroup")} className="grid grid-cols-[repeat(auto-fill,minmax(min(12rem,100%),1fr))] gap-1.5">
-          {PROBLEM_TYPES.map(([key, label, sub]) => {
-            const on = selected.has(key);
-            return (
-              <button
-                key={key}
-                type="button"
-                aria-pressed={on}
-                onClick={() => store.update(({ project }) => ({ project: toggleProblemType(project, key) }), { reason: "problem_types_1789" })}
-                className={`flex min-h-12 flex-col items-start justify-center rounded-control border px-2.5 py-1.5 text-left ${FOCUS} ${
-                  on ? "border-signal bg-signal-wash shadow-[inset_0_0_0_1px_var(--color-signal)]" : "border-border bg-surface-raised hover:border-border-strong"
-                }`}
-              >
-                <span className={`flex items-center gap-1.5 text-[13px] font-semibold leading-[18px] ${on ? "text-signal" : "text-ink"}`}>
-                  {on ? <Icon name="done" size={12} /> : null}
-                  {label}
-                </span>
-                <span className="text-[11px] leading-4 text-ink-muted">{sub}</span>
-              </button>
-            );
-          })}
-        </div>
+        <ChoiceChips
+          multiple
+          label={t("research.brief.typesGroup")}
+          options={PROBLEM_TYPES.map(([key, label, sub]) => ({
+            key,
+            label: (
+              <span title={sub}>
+                {label}
+                <span className="sr-only">: {sub}</span>
+              </span>
+            ),
+          }))}
+          value={PROBLEM_TYPES.map(([key]) => key).filter((key) => selected.has(key))}
+          // One chip changes per press: the one toggled, through the unit's own toggle, which also
+          // fills an empty goal with that type's default (toggleProblemType, parity-tested).
+          onChange={(keys) => {
+            const now = new Set(keys);
+            const changed = PROBLEM_TYPES.map(([key]) => key).find((key) => now.has(key) !== selected.has(key));
+            if (changed) store.update(({ project }) => ({ project: toggleProblemType(project, changed) }), { reason: "problem_types_1789" });
+          }}
+        />
       </StepSection>
 
-      <Attachments uploads={uploads} />
+      <Attachments uploads={uploads} undo={undo} />
 
-      <ContextFields edit={edit} p={p} />
+
+      <UndoToast offer={undo.current} onDone={undo.clear} />
 
       {uploads.over ? (
         <div aria-hidden="true" className="pointer-events-none absolute inset-0 z-10 flex items-start justify-center rounded-card border-2 border-dashed border-signal bg-signal-wash/90 pt-40">
@@ -241,6 +260,64 @@ export function BriefStep() {
         </div>
       ) : null}
     </div>
+  );
+}
+
+/**
+ * Cíle (artifact-brief BRF2): the study's objectives as items, each edited where it is shown, added
+ * in the list and removed with "Vrátit". The same list Návrh shows (brief-objectives.ts); each item
+ * is a Lead target, objective:<id>. None yet reads "Zatím prázdné", never the goal in their place.
+ */
+function Objectives({ undo }: { undo: Undo }) {
+  const { store, state } = useResearch();
+  const design = { project: state.project, analysis: state.analysis };
+  const items = objectivesOf(design);
+  const editable = objectivesEditable(design);
+  const remove = (index: number) => {
+    const { removed } = removeObjective(store.get(), index);
+    if (removed === null) return;
+    store.update((d) => removeObjective(d, index).design, { reason: "brief_objective_remove" });
+    undo.offer({
+      message: tv("research.brief.objectiveRemoved", { text: removed.length > 60 ? `${removed.slice(0, 57)}…` : removed }),
+      undo: () => store.update((d) => restoreObjective(d, index, removed), { reason: "brief_objective_restore" }),
+    });
+  };
+  return (
+    <StepSection id={briefElementId("objectives")} n={2} title={t("research.brief.objectivesTitle")} hint={t("research.brief.objectivesHint")}>
+      {items.length ? (
+        <ol className="flex flex-col gap-1.5">
+          {items.map((o, i) => (
+            <li key={o.id} data-aia={aiaId("objective", o.id)} className="flex items-start gap-2">
+              <span aria-hidden="true" className="mt-1.5 w-5 shrink-0 text-right font-mono text-xs text-ink-faint">{i + 1}.</span>
+              <InlineText
+                className="min-w-0 flex-1"
+                multiline
+                value={o.text}
+                label={tv("research.brief.objectiveLabel", { n: i + 1 })}
+                rules={{ maxLength: OBJECTIVE_MAX }}
+                onCommit={(text) => store.update((d) => setObjective(d, i, text), { reason: "brief_objective" })}
+              />
+              <Button small variant="quiet" aria-label={tv("research.brief.objectiveRemoveAria", { n: i + 1 })} onClick={() => remove(i)}>
+                ×
+              </Button>
+            </li>
+          ))}
+        </ol>
+      ) : (
+        <p className="text-sm text-ink-muted">
+          {editable ? t("research.brief.objectivesEmpty") : t("research.brief.objectivesUnreadable")}
+        </p>
+      )}
+      {editable ? (
+        <InlineCreateRow
+          className="mt-2"
+          label={t("research.brief.objectiveAdd")}
+          maxLength={OBJECTIVE_MAX}
+          existing={items.map((o) => o.text)}
+          onCreate={(text) => store.update((d) => addObjective(d, text), { reason: "brief_objective_add" })}
+        />
+      ) : null}
+    </StepSection>
   );
 }
 
@@ -308,60 +385,49 @@ function Readiness({ score, ready, rows, children }: {
 }
 
 /**
- * The further context, one field at a time: a field with a value is open, an
- * empty one is a "+" chip until the person opens it. × empties the field (the
- * same edit as deleting its text) and closes it.
+ * Rozhodnutí (artifact-brief BRF2): the decision the research is to support, one text edited
+ * where it is shown (I1). D-44 took the decision list out, so it is `decision_use`, one item.
  */
-function ContextFields({ p, edit }: { p: ResearchProject; edit: (field: TopField | BriefingField, value: string) => void }) {
-  const [opened, setOpened] = useState<ReadonlySet<string>>(() => new Set());
-  const open = CONTEXT.filter((c) => opened.has(c.field) || contextValue(p, c.field));
-  const closed = CONTEXT.filter((c) => !open.includes(c));
+function Decision({ p, edit }: { p: ResearchProject; edit: (field: TopField | BriefingField, value: string) => void }) {
   return (
-    <StepSection id="brief-context" n={4} optional title={t("research.brief.contextTitle")} hint={t("research.brief.contextHint")}>
-      <div className="flex flex-col gap-3">
-        {open.map((c) => (
-          <div key={c.field} className="flex flex-col gap-1">
-            <span className="flex items-center justify-between gap-2 text-xs font-medium text-ink-muted">
-              <label htmlFor={briefElementId(contextField(c.field))}>{t(c.label)}</label>
-              <button
-                type="button"
-                aria-label={tv("research.brief.contextRemoveAria", { label: t(c.label) })}
-                onClick={() => {
-                  edit(c.field, "");
-                  setOpened((s) => new Set([...s].filter((f) => f !== c.field)));
-                }}
-                className={`rounded-sm px-1 text-sm text-ink-faint hover:text-ink ${FOCUS}`}
-              >
-                ×
-              </button>
-            </span>
-            <textarea
-              id={briefElementId(contextField(c.field))}
-              rows={2}
-              placeholder={t(`research.brief.examples.${c.field}`)}
-              value={contextValue(p, c.field)}
-              onChange={(e) => edit(c.field, e.target.value)}
-              className={`min-h-[60px] w-full resize-y bg-surface-raised px-2.5 py-2 text-sm leading-[22px] ${INPUT}`}
-            />
+    <StepSection id={briefElementId("decision_use")} n={3} title={t("research.brief.decisionTitle")} hint={t("research.brief.decisionHint")}>
+      <InlineText
+        multiline
+        value={p.decision_use || ""}
+        label={t("research.brief.decisionUse")}
+        placeholder={t("research.brief.examples.decision_use")}
+        rules={{ required: false, maxLength: CONTEXT_MAX }}
+        onCommit={(v) => edit("decision_use", v)}
+      />
+    </StepSection>
+  );
+}
+
+/**
+ * Kontext (artifact-brief BRF2): the four further fields as items, each edited where it is shown
+ * (I1). An empty one shows its example as the placeholder; clearing it is an edit like any other.
+ * Each row is the Lead's brief:briefing.<field>.
+ */
+function Context({ p, edit }: { p: ResearchProject; edit: (field: TopField | BriefingField, value: string) => void }) {
+  return (
+    <StepSection id={briefElementId("context")} n={4} optional title={t("research.brief.contextTitle")} hint={t("research.brief.contextHint")}>
+      <dl className="flex flex-col gap-3">
+        {CONTEXT.map((c) => (
+          <div key={c.field} id={briefElementId(contextField(c.field))} className="flex flex-col gap-1">
+            <dt className="text-xs font-medium text-ink-muted">{t(c.label)}</dt>
+            <dd>
+              <InlineText
+                multiline
+                value={contextValue(p, c.field)}
+                label={t(c.label)}
+                placeholder={t(`research.brief.examples.${c.field}`)}
+                rules={{ required: false, maxLength: CONTEXT_MAX }}
+                onCommit={(v) => edit(c.field, v)}
+              />
+            </dd>
           </div>
         ))}
-        {closed.length ? (
-          <div className="flex flex-wrap gap-1.5">
-            {closed.map((c) => (
-              <button
-                key={c.field}
-                id={briefElementId(contextField(c.field))}
-                type="button"
-                onClick={() => setOpened((s) => new Set([...s, c.field]))}
-                className={`inline-flex items-center gap-1 rounded-pill border border-border bg-surface px-3 py-1 text-[13px] leading-5 text-ink hover:border-signal hover:text-signal ${FOCUS}`}
-              >
-                <Icon name="plus" size={12} />
-                {t(c.label)}
-              </button>
-            ))}
-          </div>
-        ) : null}
-      </div>
+      </dl>
     </StepSection>
   );
 }
@@ -396,6 +462,8 @@ function useMaterialClasses(studyId: string, revision: number | null): BriefMate
   return answer;
 }
 
+type Undo = ReturnType<typeof useUndo>;
+
 type Pending = { name: string; state: "waiting" | "uploading" | "done" | "failed"; message?: string };
 
 /**
@@ -425,14 +493,23 @@ function useUploads() {
     try {
       if (!store.saved) await store.flush("brief_attachments");
       for (const [i, f] of batch.entries()) {
+        // An empty or too large file is refused here, said in Czech, before its bytes are sent; the
+        // rest of the pick goes on. What the server refuses is said by its code (brief-upload.ts).
+        const refused = fileProblem(f.size);
+        if (refused) {
+          failed = true;
+          mark(i, { state: "failed", message: uploadProblem(refused) });
+          setError(`${f.name}: ${uploadProblem(refused)}`);
+          continue;
+        }
         mark(i, { state: "uploading" });
         try {
           records.push(await workspace.attach(frame.studyId, { filename: f.name, data_b64: await fileToBase64(f) }));
           mark(i, { state: "done" });
         } catch (e) {
           failed = true;
-          mark(i, { state: "failed", message: message(e) });
-          setError(message(e));
+          mark(i, { state: "failed", message: uploadProblem(e) });
+          setError(`${f.name}: ${uploadProblem(e)}`);
           break;
         }
       }
@@ -458,13 +535,15 @@ function useUploads() {
 type Uploads = ReturnType<typeof useUploads>;
 
 /** Podklady: the stored files and links, the files on their way, and how to add more. */
-function Attachments({ uploads }: { uploads: Uploads }) {
+function Attachments({ uploads, undo }: { uploads: Uploads; undo: Undo }) {
   const { store, state, frame } = useResearch();
   const files = useRef<HTMLInputElement>(null);
   const [url, setUrl] = useState("");
   const list: Attachment[] = state.project.briefing.attachments || [];
   const { upload, pending, busy, error, setError } = uploads;
   const classes = useMaterialClasses(frame.studyId, state.revision);
+  // A removal happens at once, with Vrátit (I6, audit A28). The stored file stays in AIA's storage
+  // until then and after: removing it from the brief only drops its record, which the undo puts back.
 
   const download = async (x: Attachment, attachmentId: string) => {
     setError(null);
@@ -475,10 +554,18 @@ function Attachments({ uploads }: { uploads: Uploads }) {
     }
   };
 
+  // I9: a link that is not http(s) is said at its field, not in the stage's alert, and once said it
+  // is checked again as it is typed. An empty field adds nothing and says nothing.
+  const [linkProblem, setLinkProblem] = useState<string | null>(null);
+  const problemOf = (raw: string) => {
+    const r = addLink(store.get().project, raw);
+    return "error" in r ? r.error : null;
+  };
   const link = () => {
+    if (!url.trim()) return setLinkProblem(null);
     const r = addLink(store.get().project, url);
-    if ("error" in r) return setError(r.error);
-    setError(null);
+    if ("error" in r) return setLinkProblem(r.error);
+    setLinkProblem(null);
     setUrl("");
     store.update(() => r, { reason: "brief_link" });
   };
@@ -486,7 +573,7 @@ function Attachments({ uploads }: { uploads: Uploads }) {
   return (
     <StepSection
       id="brief-files"
-      n={3}
+      n={6}
       optional
       title={t("research.brief.filesTitle")}
       hint={t("research.brief.attachHelpAnywhere")}
@@ -520,26 +607,34 @@ function Attachments({ uploads }: { uploads: Uploads }) {
           {t("research.brief.pickFiles")}
         </Button>
         <form
-          className="flex min-w-0 flex-[1_1_16rem] gap-1.5"
+          className="flex min-w-0 flex-[1_1_16rem] flex-col gap-1"
           onSubmit={(e) => {
             e.preventDefault();
             link();
           }}
         >
-          <span className="flex min-w-0 flex-1 items-center gap-2 rounded-control border border-border-strong bg-surface-raised px-2.5 focus-within:outline-2 focus-within:outline-offset-2 focus-within:outline-focus-ring">
-            <Icon name="link" size={14} className="text-ink-muted" />
-            <input
-              inputMode="url"
-              aria-label={t("research.brief.urlLabel")}
-              placeholder={t("research.brief.urlPlaceholder")}
-              value={url}
-              onChange={(e) => setUrl(e.target.value)}
-              className="min-h-[34px] min-w-0 flex-1 border-0 bg-transparent text-sm text-ink outline-none placeholder:text-ink-faint"
-            />
+          <span className="flex min-w-0 gap-1.5">
+            <span className={`flex min-w-0 flex-1 items-center gap-2 rounded-control border bg-surface-raised px-2.5 focus-within:outline-2 focus-within:outline-offset-2 focus-within:outline-focus-ring ${linkProblem ? "border-status-fault" : "border-border-strong"}`}>
+              <Icon name="link" size={14} className="text-ink-muted" />
+              <input
+                inputMode="url"
+                aria-label={t("research.brief.urlLabel")}
+                aria-invalid={linkProblem ? true : undefined}
+                aria-describedby={linkProblem ? "brief-link-problem" : undefined}
+                placeholder={t("research.brief.urlPlaceholder")}
+                value={url}
+                onChange={(e) => {
+                  setUrl(e.target.value);
+                  if (linkProblem) setLinkProblem(e.target.value.trim() ? problemOf(e.target.value) : null);
+                }}
+                className="min-h-[34px] min-w-0 flex-1 border-0 bg-transparent text-sm text-ink outline-none placeholder:text-ink-faint"
+              />
+            </span>
+            <Button type="submit" className="!rounded-control" aria-label={t("research.brief.addLinkAria")}>
+              {t("research.brief.addLink")}
+            </Button>
           </span>
-          <Button type="submit" className="!rounded-control" aria-label={t("research.brief.addLinkAria")}>
-            {t("research.brief.addLink")}
-          </Button>
+          {linkProblem ? <span id="brief-link-problem" className="text-xs leading-4 text-status-fault">{linkProblem}</span> : null}
         </form>
       </div>
       {error ? <p role="alert" className="mt-2 text-[13px] text-status-fault">{error}</p> : null}
@@ -580,7 +675,13 @@ function Attachments({ uploads }: { uploads: Uploads }) {
                   small
                   variant="quiet"
                   aria-label={tv("research.brief.removeAria", { name: line.name })}
-                  onClick={() => store.update(({ project }) => ({ project: removeAttachment(project, i) }), { reason: "brief_attachment_remove" })}
+                  onClick={() => {
+                    store.update(({ project }) => ({ project: removeAttachment(project, i) }), { reason: "brief_attachment_remove" });
+                    undo.offer({
+                      message: tv("research.brief.attachmentRemoved", { name: line.name }),
+                      undo: () => store.update(({ project }) => ({ project: restoreAttachment(project, i, x) }), { reason: "brief_attachment_restore" }),
+                    });
+                  }}
                 >
                   ×
                 </Button>

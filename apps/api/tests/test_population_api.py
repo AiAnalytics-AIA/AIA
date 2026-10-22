@@ -685,7 +685,7 @@ def test_a_researcher_starts_a_materialization_from_a_study_and_reads_its_run(
     assert started.status_code == 201, started.text
     run = started.json()
     assert run["created"] is True and run["step_status"] != "SUCCEEDED"
-    assert run["dimension_id"] == "pije_kavu_rano"
+    assert run["dimension_id"] == "pije_kavu_rano" and run["kind"] == "binary"
     assert run["base_version_id"] == registry["live"]
     assert run["child"] is None and run["refusal_reason"] is None
     assert started.headers["Location"].endswith(run["run_id"])

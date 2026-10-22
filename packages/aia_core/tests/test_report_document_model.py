@@ -10,7 +10,9 @@ from __future__ import annotations
 
 import hashlib
 import json
+import os
 from dataclasses import replace
+from pathlib import Path
 from typing import Any
 
 import pytest
@@ -235,3 +237,56 @@ def test_a_table_drops_the_rows_the_docx_removes_and_counts_them(report_ledger: 
     assert [row["cells"][0]["text"] for row in stored["rows"]] == ["Kept"]
     assert stored["refs"] == [admitted]
     assert suppressed not in payload["ledger"]["refs"]
+
+
+#: The stored form the web reads (apps/web/src/lib/artifacts/report.test.ts): one internal sample,
+#: with a map figure and a table row the DOCX removes, so every block kind the pane draws is in it.
+SHARED_FIXTURE = Path(__file__).parent / "fixtures" / "report_document" / "internal.json"
+
+
+def _shared_document(report_ledger: Any) -> ReportDocument:
+    document = build("internal", report_ledger)
+    suppressed = next(iter(document.ledger.suppressed))
+    admitted = next(iter(document.ledger.rows))
+    extra = Section(
+        "Fiktivní doplněk",
+        (
+            Table(
+                id="tab-shared",
+                title="Fiktivní tabulka",
+                columns=(Column("Skupina"), Column("Hodnota")),
+                rows=(
+                    TableRow((TextCell("Kept"), NumberCell(admitted, with_interval=True))),
+                    TableRow((TextCell("Malá skupina"), NumberCell(suppressed))),
+                ),
+                source="Fiktivní běh",
+            ),
+            SociomapFigure(
+                id="fig-shared",
+                title="Fiktivní mapa",
+                image_png=b"\x89PNG fictional",
+                methodology_status="INTERNAL_ONLY",
+                stress_1=0.083,
+                source="Fiktivní běh",
+                alt="Mapa objektů",
+            ),
+        ),
+        id="ch-shared",
+    )
+    return replace(document, sections=(*document.sections, extra))
+
+
+def test_the_web_reads_the_document_model_this_writes(report_ledger: Any) -> None:
+    """The web's fixture is this serializer's output, byte for byte. After a change to the stored
+    form, rewrite it with AIA_WRITE_REPORT_DOCUMENT_FIXTURE=1 and bump DOCUMENT_MODEL_CONTRACT
+    when a reader of the old form would misread the new one."""
+    data = json.dumps(
+        document_payload(_shared_document(report_ledger)),
+        ensure_ascii=False,
+        indent=1,
+        sort_keys=True,
+    )
+    if os.environ.get("AIA_WRITE_REPORT_DOCUMENT_FIXTURE") == "1":
+        SHARED_FIXTURE.parent.mkdir(parents=True, exist_ok=True)
+        SHARED_FIXTURE.write_text(data + "\n", encoding="utf-8")
+    assert SHARED_FIXTURE.read_text(encoding="utf-8") == data + "\n"

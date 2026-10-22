@@ -16,7 +16,11 @@ on:
 
 concurrency:
   group: ci-${{ github.ref }}
-  cancel-in-progress: true
+  # A pull request's older run is cancelled by its newer push. A push to develop never
+  # cancels a run in progress: with back-to-back merges every develop run was cancelled
+  # and none deployed for ~5 h 40 min (OI-191). GitHub keeps one pending run per group,
+  # so a burst of merges still runs at most the one in progress plus the newest.
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 env:
   PYTHON_VERSION: "3.12"
@@ -579,6 +583,12 @@ jobs:
               "/api/v1/studies/{study_id}/design/revisions/{revision_id}",
               # ... and the runs that execute them.
               "/api/v1/studies/{study_id}/research/readiness",
+              # Readiness on a working revision, nothing submitted (working-copy-edit-ops WCE7a).
+              "/api/v1/studies/{study_id}/research/readiness/working",
+              # Each stage against the working copy, nothing submitted (working-copy-edit-ops WCE7c).
+              "/api/v1/studies/{study_id}/research/impact",
+              # Dimenze's persona-topic chip before any run (artifact-dimensions DIM2).
+              "/api/v1/studies/{study_id}/research/persona-topics",
               "/api/v1/studies/{study_id}/research/runs",
               "/api/v1/studies/{study_id}/research/runs/{run_id}",
               "/api/v1/studies/{study_id}/research/runs/{run_id}/events",
@@ -672,7 +682,8 @@ jobs:
           cache: npm
           cache-dependency-path: apps/web/package-lock.json
 
-      - run: npm ci
+      # The security job's gate is the audit; this install's own would only wait on the same endpoint.
+      - run: npm ci --no-audit
       - run: npm run lint
       - run: npx tsc --noEmit
       # tokens.json is the one source: the generated CSS/TS must match it, and
@@ -987,10 +998,11 @@ jobs:
 
       # Blocking on every high or critical advisory, production and dev, except one
       # audit-allowlist.json names by GHSA id until its recheck date (ARCHITECTURE.md §8).
+      # npm ci's own audit is skipped: it judges nothing and asks the same endpoint the gate does.
       - name: Audit npm dependencies
         working-directory: apps/web
         run: |
-          npm ci
+          npm ci --no-audit
           node scripts/audit-gate.mjs
 
       - name: No secrets committed

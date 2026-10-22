@@ -43,7 +43,7 @@ import {
 import type { Analysis } from "@/research/store";
 import { applyPlanSets, lines, proposalAnalysis, validMeasurement } from "@/research/plan-edit";
 import { DesignCoverage } from "./DesignCoverage";
-import { ProposalEditor } from "./ProposalEditor";
+import { PlanNarrative } from "./PlanNarrative";
 import { Icon, type IconName } from "../icons";
 import { ActionDock, ChipInput, InlineConfirm, StepSection } from "../step";
 import { AiButton, Button, Field, TextArea, TextInput } from "../ui";
@@ -89,10 +89,9 @@ export function PlanStep() {
   const sets = trackedSets(a);
   const questions = followUps(a);
   const comments = planComments(p);
-  const [editingNarrative, setEditingNarrative] = useState(false);
   const [editingSet, setEditingSet] = useState<string | null>(null);
   const [pendingVariant, setPendingVariant] = useState<string | null>(null);
-  const editing = editingNarrative || editingSet !== null;
+  const editing = editingSet !== null;
   useEffect(() => {
     if (!editing) return;
     const beforeUnload = (e: BeforeUnloadEvent) => e.preventDefault();
@@ -187,7 +186,7 @@ export function PlanStep() {
           <h2 className="text-lg font-semibold">{t("research.plan.emptyTitle")}</h2>
           <p className="mx-auto mt-1 max-w-xl text-sm text-ink-muted">{t("research.plan.manualEmptyText")}</p>
           <div className="mt-4 flex flex-wrap justify-center gap-2">
-            <Button variant="primary" onClick={() => { store.update((current) => ({ ...current, analysis: { problem_summary: current.project.goal || "", objectives: [], hypotheses: [], research_questions: [], tracked_sets: [] } }), { reason: "plan_manual_started" }); setEditingNarrative(true); }}>{t("research.plan.createManual")}</Button>
+            <Button variant="primary" onClick={() => { store.update((current) => ({ ...current, analysis: { problem_summary: current.project.goal || "", objectives: [], hypotheses: [], research_questions: [], tracked_sets: [] } }), { reason: "plan_manual_started" }); }}>{t("research.plan.createManual")}</Button>
             <Button icon="back" className="!rounded-control" onClick={() => router.push(stepHref("brief"))}>
               {t("research.plan.openBrief")}
             </Button>
@@ -231,8 +230,8 @@ export function PlanStep() {
       <DesignCoverage />
       <Commentable onQuote={(quote) => setDrafts((d) => [...d, { key: ++seq.current, quote, text: "" }])}>
         <div className="flex flex-col gap-4">
-          <Understanding n={++n} analysis={a} goal={p.goal || ""} changed={Boolean(p.ui_state.plan_changed26)} editing={editingNarrative} setEditing={setEditingNarrative} blocked={editingSet !== null || busy} />
-          <Sets n={++n} analysis={a} editing={editingSet} onEditing={setEditingSet} blocked={editingNarrative || busy} />
+          <Understanding n={++n} changed={Boolean(p.ui_state.plan_changed26)} blocked={editingSet !== null || busy} onQuote={(quote) => { setDrafts((d) => [...d, { key: ++seq.current, quote, text: "" }]); jumpTo("plan-comments"); }} />
+          <Sets n={++n} analysis={a} editing={editingSet} onEditing={setEditingSet} blocked={busy} />
         </div>
       </Commentable>
       {questions.length ? (
@@ -364,47 +363,21 @@ function Variants({ variants, current, onApply }: { variants: Variant[]; current
   );
 }
 
-function Understanding({ n, analysis, goal, changed, editing, setEditing, blocked }: { n: number; analysis: Analysis; goal: string; changed: boolean; editing: boolean; setEditing: (v: boolean) => void; blocked: boolean }) {
-  const objectives = Array.isArray(analysis.objectives) ? analysis.objectives.map(String) : [];
-  const hypotheses = Array.isArray(analysis.hypotheses) ? analysis.hypotheses.map(String) : [];
-  const list = (title: string, items: string[]) =>
-    items.length ? (
-      <div>
-        <h3 className="text-[13px] font-semibold">{title}</h3>
-        <ul className="mt-1 flex flex-col gap-1 text-sm leading-6">
-          {items.map((x, i) => (
-            <li key={i} className="flex gap-2">
-              <span aria-hidden="true" className="mt-2.5 block size-1.5 shrink-0 rounded-full bg-signal" />
-              <span>{x}</span>
-            </li>
-          ))}
-        </ul>
-      </div>
-    ) : null;
+function Understanding({ n, changed, blocked, onQuote }: { n: number; changed: boolean; blocked: boolean; onQuote: (quote: string) => void }) {
   return (
     <StepSection
       id="plan-understanding"
       n={n}
       title={t("research.plan.understoodTitle")}
       hint={t("research.plan.understoodHint")}
-      aside={<div className="flex flex-wrap gap-2">
-        <Button small disabled={blocked} onClick={() => setEditing(!editing)}>{t(`research.plan.${editing ? "cancelEdits" : "edit"}`)}</Button>
-        {changed ? (
-          <span className="inline-flex items-center gap-1 whitespace-nowrap rounded-pill bg-status-done/14 px-2 py-0.5 text-xs text-status-done">
-            <Icon name="done" size={12} />
-            {t("research.plan.changed")}
-          </span>
-        ) : null}
-      </div>}
+      aside={changed ? (
+        <span className="inline-flex items-center gap-1 whitespace-nowrap rounded-pill bg-status-done/14 px-2 py-0.5 text-xs text-status-done">
+          <Icon name="done" size={12} />
+          {t("research.plan.changed")}
+        </span>
+      ) : null}
     >
-      {editing ? <ProposalEditor analysis={analysis} onClose={() => setEditing(false)} /> : <>
-      <p className="text-[15px] leading-6">{String(analysis.problem_summary || goal)}</p>
-      {list(t("research.plan.questionsLabel"), Array.isArray(analysis.research_questions) ? analysis.research_questions.map(String) : [])}
-      <div className="mt-4 grid gap-4 md:grid-cols-2">
-        {list(t("research.plan.objectives"), objectives)}
-        {list(t("research.plan.hypotheses"), hypotheses)}
-      </div>
-      </>}
+      <PlanNarrative disabled={blocked} onQuote={onQuote} />
       <details className="group mt-4 rounded-control border border-signal-edge bg-signal-tint px-3 py-2">
         <summary className="cursor-pointer text-[13px] font-medium text-signal">{t("research.plan.principleSummary")}</summary>
         <p className="mt-2 text-[13px] leading-5">

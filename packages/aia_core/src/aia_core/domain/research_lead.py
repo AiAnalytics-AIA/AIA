@@ -68,12 +68,14 @@ from .edit_ops import (
     question_add_problem,
     refusal,
 )
-from .licence import DataLineage
+from .item_ids import SIDECAR_KEYS
 from .material_rules import MaterialRule, classify_by_rule, rule_class
+from .population.subpanels import BUILTIN_SUBPANELS
 from .prompts import PromptPin
 from .research_agents import (
     FIXED_PREFIX,
     ResearchAction,
+    knowledge_lineage,
     prompt_class_source,
     prompt_data_class,
 )
@@ -85,6 +87,8 @@ __all__ = [
     "CONTEXT_MAX_BYTES",
     "DEFAULT_LEAD_NAME",
     "DEFAULT_SOUL",
+    "EXTERNAL_LAYER",
+    "EXTERNAL_NOTE",
     "FOCUS_ID",
     "FOCUS_KINDS",
     "ID_PATTERN",
@@ -122,13 +126,16 @@ __all__ = [
     "TextField",
     "apply_edit",
     "baseline_task",
+    "citable_context",
     "context_classification",
     "context_data_class",
+    "context_identifiers",
     "context_sha256",
     "freeze_context",
     "frozen_sample_size",
     "ground_edits",
     "ground_self_update",
+    "ground_view",
     "is_text_edit",
     "layer",
     "lead_contract",
@@ -141,6 +148,7 @@ __all__ = [
     "self_update_base",
     "split_self_update",
     "stale_files",
+    "target_refusal",
     "unreadable_numbers",
     "waiting_self_update",
 ]
@@ -205,7 +213,7 @@ STAGES: Final[tuple[str, ...]] = get_args(Stage)
 FOCUS_KINDS: Final[tuple[str, ...]] = (
     "brief", "objective", "material", "plan", "rq", "hypothesis", "set", "assumption",
     "section", "question", "audience", "dimension", "own_dimension", "sample", "step",
-    "measure", "object", "pair", "module", "finding", "claim", "report",
+    "receipt", "measure", "object", "pair", "module", "finding", "claim", "report",
 )  # fmt: skip
 #: An element's id: an identifier, possibly of colon-separated parts (``finding:executive:2``),
 #: a battery-qualified object (``set1/fio``) or a pair (``set1/fio~air``).
@@ -365,13 +373,117 @@ def unreadable_numbers(text: str) -> list[str]:
     return [m.group(0) for m in _EXPONENT.finditer(text)]
 
 
-def lead_contract(allowed_text: str) -> type[LeadOutput]:
+#: Identity metadata (F-CLOCK-1): keys whose values name, hash, version or date something,
+#: wherever they sit in a context. Their digits are no number: ``REV-7a3f…``, an item's
+#: ``bound`` hash ``7a01…`` or a ``created_at`` of ``…T13:07`` would otherwise ground a reply's
+#: invented 7. The stable-item sidecars (``item_ids.SIDECAR_KEYS``: the ids and their ``bound``
+#: wording hashes) end in ``_ids``; they are named too, so a rename there cannot reopen this.
+#: ``revision`` (a knowledge item's) and ``*_revision`` (the design layer's
+#: ``workspace_revision``) are save counters: the stage autosaves every 1.8 s, so the counter
+#: says how often the copy was saved, nothing about the design, and at 7 it grounded "Máme 7
+#: otázek." (the review of 4d434c4d).
+_IDENTITY_KEYS: Final = frozenset({"id", "bound", "revision"}) | SIDECAR_KEYS
+#: ``*_id`` / ``*_ids`` (``design_revision_id``, ``run_id``, ``item_id``, ``memory_id``,
+#: ``source_id``, ``omitted_ids``), ``*_revision`` (``workspace_revision``), ``*_version``
+#: (``methodology_version``,
+#: ``contract_version``), ``*_at`` (a dimension proposal's ``created_at``), ``*sha256`` (an
+#: attachment's ``sha256``, a material's ``reading_sha256``), ``*_signature`` (an analysis's
+#: ``_brief_signature``) and ``*fingerprint``.
+_IDENTITY_SUFFIXES: Final = (
+    "_id",
+    "_ids",
+    "_revision",
+    "_version",
+    "_at",
+    "sha256",
+    "_signature",
+    "fingerprint",
+)
+#: A value that is a number as written (``7``, ``-2,5``) is never masked as an identifier: a
+#: mask would hide that number in a reply, too.
+_BARE_NUMBER: Final = re.compile(r"[-\u2212]?\d+(?:[.,]\d+)?")
+#: The characters an identifier is made of (``ITEM_ID``, :data:`FOCUS_ID`): word characters, a
+#: hyphen and a dot. A dot ends an identifier only where no identifier character follows it, so
+#: a sentence may end on one.
+_ID_BEFORE: Final = r"(?<![\w.\-])"
+_ID_AFTER: Final = r"(?![\w\-]|\.[\w\-])"
+
+
+def _is_identity_key(key: str) -> bool:
+    return key in _IDENTITY_KEYS or key.endswith(_IDENTITY_SUFFIXES)
+
+
+def citable_context(context: Mapping[str, Any]) -> list[Any]:
+    """The layers the model is sent (:func:`model_message`) with their identity metadata left
+    out: every key :func:`_is_identity_key` names, with all it holds, and every string that is
+    a focus target (:data:`FOCUS_ID`). The numbers a reply may write are this text's. The
+    external context (:data:`EXTERNAL_LAYER`) is not citable: a figure from a source is
+    refused like any number the study's own context does not hold (evidence-integrity 7)."""
+
+    def strip(value: Any) -> Any:
+        if isinstance(value, Mapping):
+            return {k: strip(v) for k, v in value.items() if not _is_identity_key(str(k))}
+        if isinstance(value, (list, tuple)):
+            return [strip(v) for v in value]
+        if isinstance(value, str) and FOCUS_ID.fullmatch(value):
+            return ""
+        return value
+
+    return [
+        strip(entry)
+        for entry in context["layers"]
+        if entry["layer"] not in ("prompt", EXTERNAL_LAYER)
+    ]
+
+
+def context_identifiers(context: Mapping[str, Any]) -> frozenset[str]:
+    """Every identifier string a frozen context holds: the strings under an identity key
+    (:func:`_is_identity_key`) and every focus target. A bare number used as one is left out
+    (:data:`_BARE_NUMBER`). A reply quoting one whole writes no number by it, and a quote of one
+    in the context's prose (an earlier reply, a message) grounds none."""
+    found: set[str] = set()
+
+    def walk(value: Any, identity: bool) -> None:
+        if isinstance(value, Mapping):
+            for key, item in value.items():
+                walk(item, identity or _is_identity_key(str(key)))
+        elif isinstance(value, (list, tuple)):
+            for item in value:
+                walk(item, identity)
+        elif (
+            isinstance(value, str)
+            and (identity or FOCUS_ID.fullmatch(value))
+            and value
+            and not _BARE_NUMBER.fullmatch(value)
+        ):
+            found.add(value)
+
+    walk(context, False)
+    return frozenset(found)
+
+
+def _without_identifiers(text: str, identifiers: frozenset[str]) -> str:
+    """``text`` with every whole occurrence of an identifier blanked: not inside a longer word
+    or id, so ``REV-7a`` masks neither ``REV-7ab``, ``X.REV-7a`` nor ``REV-7a.b``."""
+    if not identifiers:
+        return text
+    # One pass, the longest first, so an id that begins another never masks a part of it.
+    alternatives = "|".join(re.escape(i) for i in sorted(identifiers, key=len, reverse=True))
+    return re.sub(rf"{_ID_BEFORE}(?:{alternatives}){_ID_AFTER}", " ", text)
+
+
+def lead_contract(allowed_text: str, identifiers: frozenset[str] = frozenset()) -> type[LeadOutput]:
     """The output contract a turn is validated against: :class:`LeadOutput`, refusing a
     reply that writes a number ``allowed_text`` (the frozen context and the prompt) does not.
 
+    ``allowed_text`` is the context without its identity metadata (:func:`citable_context`).
+    ``identifiers`` (:func:`context_identifiers`) are no numbers on either side: a quote of one
+    in ``allowed_text``'s prose grounds nothing, and a reply quoting one whole writes no number
+    by it. A digit of an identifier written on its own is a number, held to the context.
+
     A validation error, so the gateway's one schema repair tells the model which numbers.
     """
-    allowed = number_tokens(allowed_text)
+    allowed = number_tokens(_without_identifiers(allowed_text, identifiers))
 
     class CheckedLeadOutput(LeadOutput):
         model_config = ConfigDict(extra="forbid", frozen=True, title="LeadOutput")
@@ -385,7 +497,7 @@ def lead_contract(allowed_text: str) -> type[LeadOutput]:
                     + ", ".join(unreadable[:10])
                     + "; write a number out in digits as the context holds it, or none"
                 )
-            unknown = sorted(number_tokens(self.reply) - allowed)
+            unknown = sorted(number_tokens(_without_identifiers(self.reply, identifiers)) - allowed)
             if unknown:
                 raise ValueError(
                     "reply writes numbers that are not in the context: "
@@ -435,6 +547,53 @@ def ground_edits(
         else:
             dropped.append(Dropped(index=i, op=edit.op, reason=reason))
     return output.model_copy(update={"edits": kept}), dropped
+
+
+#: The audience's parts a target may name besides a filter or a subpanel (the Cílová skupina
+#: screen's marks, artifact-audience AUD1).
+_AUDIENCE_PARTS: Final = frozenset({"definition", "filters", "preview"})
+_SUBPANEL_KEYS: Final = frozenset(s.key for s in BUILTIN_SUBPANELS)
+
+
+def target_refusal(target: str, content: Mapping[str, Any]) -> str | None:
+    """Why ``target`` names nothing a stage screen shows, or None when it may.
+
+    The grammar first (:data:`FOCUS_ID`, ``unknown_target``). Then the audience, by what the
+    working copy stores (artifact-audience AUD1): ``audience:filter:<factor>`` names a filter
+    stored in ``content["audience"]["filters"]`` (``audience_filter_not_stored``),
+    ``audience:subpanel:<key>`` one of the built-in subpanels (``audience_subpanel_unknown``),
+    and any other audience id one of its parts. No catalogue is read: a filter the copy does
+    not hold is not on the screen to point at. Other kinds are held to their grammar alone.
+    """
+    if not FOCUS_ID.fullmatch(target):
+        return "unknown_target"
+    kind, _, id_ = target.partition(":")
+    if kind != "audience" or id_ in _AUDIENCE_PARTS:
+        return None
+    part, _, name = id_.partition(":")
+    raw = content.get("audience")
+    audience: Mapping[str, Any] = raw if isinstance(raw, Mapping) else {}
+    if part == "filter" and name:
+        filters = audience.get("filters")
+        stored = isinstance(filters, Mapping) and name in filters
+        return None if stored else "audience_filter_not_stored"
+    if part == "subpanel" and name:
+        return None if name in _SUBPANEL_KEYS else "audience_subpanel_unknown"
+    return "unknown_target"
+
+
+def ground_view(output: LeadOutput, content: Mapping[str, Any]) -> tuple[LeadOutput, list[Dropped]]:
+    """``output`` with only the focus targets the working content can show, and the rest named
+    (:func:`target_refusal`). Opening a stage is always kept."""
+    kept: list[Any] = []
+    dropped: list[Dropped] = []
+    for i, op in enumerate(output.view):
+        reason = target_refusal(op.target, content) if isinstance(op, FocusItem) else None
+        if reason is None:
+            kept.append(op)
+        else:
+            dropped.append(Dropped(index=i, op=op.op, reason=reason))
+    return output.model_copy(update={"view": kept}), dropped
 
 
 def readiness_layer(sample_size: SampleSizeLimits, methodology_version: str) -> dict[str, Any]:
@@ -645,6 +804,15 @@ def notes_layer(notes: Sequence[Mapping[str, Any]]) -> list[dict[str, Any]]:
     return kept
 
 
+#: The layer of a sealed Design Research bundle's public findings: external context for
+#: interpreting the study, never respondent evidence, and never a source of a number.
+EXTERNAL_LAYER: Final = "external_context_not_evidence"
+EXTERNAL_NOTE: Final = (
+    "Externí kontext z poslední rešerše k návrhu: k výkladu, nikdy jako zjištění respondentů. "
+    "Čísla z něj nepište."
+)
+
+
 def freeze_context(
     *,
     prompt: PromptPin,
@@ -656,8 +824,12 @@ def freeze_context(
     runs: Sequence[Mapping[str, Any]],
     view: Mapping[str, Any],
     conversation: Sequence[Mapping[str, Any]],
+    external: Mapping[str, Any] | None = None,
 ) -> dict[str, Any]:
     """The turn's context, its layers in ADR 0026's order, within :data:`CONTEXT_MAX_BYTES`.
+
+    ``external``: the bundle's pin and lines (``analysis_results._external_context``), as the
+    :data:`EXTERNAL_LAYER` after the runs; absent, the context is what it was without it.
 
     ``conversation`` is the turns before this one, oldest first; only the newest
     :data:`HISTORY_TURNS` are kept, and the oldest of those go first when the whole is over
@@ -679,6 +851,11 @@ def freeze_context(
                 {"layer": "study", **dict(study)},
                 {"layer": "design", **dict(design)},
                 {"layer": "runs", "runs": [dict(r) for r in runs]},
+                *(
+                    [{"layer": EXTERNAL_LAYER, "note": EXTERNAL_NOTE, **dict(external)}]
+                    if external is not None
+                    else []
+                ),
                 {"layer": "view", **dict(view)},
                 {"layer": "conversation", "turns": turns, "omitted_turns": dropped},
             ],
@@ -802,6 +979,15 @@ def context_classification(
                     "source": "turn",
                 }
             )
+    if any(entry["layer"] == EXTERNAL_LAYER for entry in context["layers"]):
+        # Public web material: the bundle's findings it classed Class C, the only ones kept.
+        parts.append(
+            {
+                "part": "external_context",
+                "data_class": DataClass.CLASS_C_INTERNAL.value,
+                "source": "bundle:public_findings",
+            }
+        )
     knowledge = layer(context, "knowledge")["items"]
     parts.extend(
         {
@@ -847,9 +1033,7 @@ def lead_request(
     system = lead_prompt(prompt.text)
     message = model_message(context)
     knowledge = layer(context, "knowledge")["items"]
-    lineage = DataLineage.none()
-    if any(k.get("kind") in {"DATASET", "ARTIFACT", "FINDING"} for k in knowledge):
-        lineage = DataLineage.of("unclassified-client-knowledge")
+    lineage = knowledge_lineage(knowledge)
     return ModelRequest(
         agent=AgentDefinition(
             agent_id=LEAD_AGENT_ID,
@@ -857,7 +1041,10 @@ def lead_request(
             capability=ModelCapability.STUDY_LEAD,
             prompt_id=LEAD_PROMPT_ID,
             prompt_version=prompt.version,
-            output_contract=lead_contract(system + "\n" + message),
+            output_contract=lead_contract(
+                system + "\n" + canonical_json(citable_context(context)),
+                context_identifiers(context),
+            ),
             max_output_tokens=max_output_tokens,
             schema_repair_attempts=1,
         ),

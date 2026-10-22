@@ -59,6 +59,7 @@ __all__ = [
     "Composition",
     "Draw",
     "PanelSample",
+    "QuotaCell",
     "SampleAudit",
     "SampledRespondent",
     "SamplingRefused",
@@ -468,6 +469,16 @@ def judge(draw: Draw, n: int) -> tuple[str, bool]:
 
 
 @dataclass(frozen=True, slots=True)
+class QuotaCell:
+    """One cell of the sample's quota: its value in each of the audit's ``quota_fields``, and
+    the respondents the largest-remainder allotment gave it (``Draw.quotas``). How ``n`` is
+    spread, never a promise of support for anything measured in the cell."""
+
+    values: tuple[str, ...]
+    n: int
+
+
+@dataclass(frozen=True, slots=True)
 class PanelSample:
     """The respondents a run's fieldwork draws, and how they were drawn. Frozen, recorded."""
 
@@ -479,6 +490,9 @@ class PanelSample:
     content_sha256: str
     sampler_version: str = SAMPLER_VERSION
     audience_filter_version: str = AUDIENCE_FILTER_VERSION
+    #: The allotment over ``audit.quota_fields``, in the sampler's order; out of
+    #: :meth:`provenance`, so what a run records is unchanged.
+    quota_cells: tuple[QuotaCell, ...] = ()
 
     def provenance(self) -> dict[str, Any]:
         """What the run's fieldwork provenance records about its sample."""
@@ -595,4 +609,8 @@ def draw_panel_sample(
         seed=seed,
         version_id=population.binding.version_id,
         content_sha256=population.binding.content_sha256,
+        quota_cells=tuple(
+            QuotaCell(tuple(cell.split(_CELL_SEPARATOR)), count)
+            for cell, count in draw.quotas.items()
+        ),
     )

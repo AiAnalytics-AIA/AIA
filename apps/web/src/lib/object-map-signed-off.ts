@@ -193,7 +193,7 @@ export type ObjectDetail = {
   height: number | null; // the mean rating on the declared 0-1 scale, as stored
   connectedness: number | null; // 0-100
   alignment: number | null; // null when it says nothing (see below)
-  relations: { id: string; label: string; r: number }[]; // the 5 strongest reliable, by |r|
+  relations: { j: number; id: string; label: string; r: number }[]; // the 5 strongest reliable, by |r|; j its index
   basis: number | null; // a secondary object only: its strongest reliable |r| to a PRIMARY object
 };
 
@@ -218,7 +218,7 @@ export function objectDetail(battery: BatteryWithMaps, map: ObjectMapArtifact, k
     height: map.heights.values[k],
     connectedness: score?.connectedness == null ? null : 100 * score.connectedness,
     alignment: degenerate ? null : score?.alignment ?? null,
-    relations: [...reliable].sort((a, b) => Math.abs(b.r) - Math.abs(a.r)).slice(0, 5).map(({ id: o, label: l, r }) => ({ id: o, label: l, r })),
+    relations: [...reliable].sort((a, b) => Math.abs(b.r) - Math.abs(a.r)).slice(0, 5),
     basis: primary(k) || !toPrimary.length ? null : Math.max(...toPrimary),
   };
 }
