@@ -250,7 +250,7 @@ function serverText(v: unknown): string | null {
  * research_design.py ``_slug``: ASCII (diacritics folded), lower case, every run of anything else
  * one underscore, none at either end; empty is ``prefix``, a leading digit takes it.
  */
-export function compiledSlug(value: string, prefix: string): string {
+function compiledSlug(value: string, prefix: string): string {
   const slug = value
     .normalize("NFKD")
     .replace(/[^\x00-\x7f]/g, "")

@@ -2293,6 +2293,40 @@ def test_readiness_says_what_would_stop_a_run_before_anything_starts(
     )
 
 
+def test_the_routing_switch_passes_a_valid_condition_and_pins_it_on_the_run(
+    app: FastAPI, researcher: TestClient, viewer: TestClient, world: Any
+) -> None:
+    """AIA_ROUTING_ENABLED (working-copy-edit-ops WCE13 (d)): off by default, a conditional
+    question stops a run as before; on, a valid one passes and the run pins it."""
+    assert Settings.model_fields["routing_enabled"].default is False
+    filtered = {**DESIGN, "sections": [dict(DESIGN["sections"][0]), DESIGN["sections"][1]]}
+    filtered["sections"][0]["questions"] = [
+        *DESIGN["sections"][0]["questions"],
+        {
+            "id": "q3",
+            "text": "Proč?",
+            "typ": "otevrena",
+            "filtr": {"question_id": "q2", "options": ["Nic"]},
+        },
+    ]
+    revision = submit(researcher, world, filtered).json()["revision_id"]
+    url = f"{API}/studies/{world.study_id()}/research/readiness"
+
+    def conditional() -> dict[str, Any]:
+        body = viewer.get(url, params={"design_revision_id": revision}).json()
+        return next(c for c in body["checks"] if c["id"] == "conditional_questions")
+
+    assert conditional()["status"] == "FAIL"
+    assert start(researcher, world, revision).json()["code"] == "design_not_ready"
+    app.state.settings = app.state.settings.model_copy(update={"routing_enabled": True})
+    assert conditional()["status"] == "PASS"
+    run = start(researcher, world, revision)
+    assert run.status_code in (200, 201), run.text
+    with create_session_factory(app.state.engine)() as session:
+        row = session.get(WorkflowRunRow, run.json()["run_id"])
+        assert row is not None and row.metadata_json["routing"] is True
+
+
 def test_readiness_reads_a_working_revision_without_submitting_a_design(
     researcher: TestClient, viewer: TestClient, other_client_lead: TestClient, world: Any
 ) -> None:

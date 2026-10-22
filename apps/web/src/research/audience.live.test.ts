@@ -6,7 +6,7 @@ import { describe, expect, it } from "vitest";
 
 import type { AudienceCatalogue, AudiencePreview } from "@/lib/api";
 
-import { applyPopulationSubpanel, factorRefusal, filterableFactors, liveCatalog, liveSubpanels, liveVerdict, setAudienceRange, setRange, filterCountLines, type Catalog, filterProblems, CATALOGUE_TOP_VALUES, rangeBounds, boundOf, endUnreadable, storedRange } from "./audience";
+import { applyPopulationSubpanel, factorRefusal, filterableFactors, liveCatalog, liveSubpanels, liveVerdict, setAudienceRange, setRange, filterCountLines, type Catalog, filterProblems, CATALOGUE_TOP_VALUES, rangeBounds, boundOf, endUnreadable, storedRange, pickValues, matchingValues, matchingSubpanels } from "./audience";
 import type { ResearchProject } from "./model";
 
 const project = (audience: Record<string, unknown> = {}) => ({ audience, briefing: {}, ui_state: {} }) as unknown as ResearchProject;
@@ -177,5 +177,39 @@ describe("a numeric factor's range bounds (audit B6)", () => {
     expect(endUnreadable(null)).toBe(false);
     expect(endUnreadable(30)).toBe(false);
     expect(endUnreadable("abc")).toBe(true);
+  });
+});
+
+describe("picking a factor's values (audit B7)", () => {
+  it("keeps the stored order and every stored value not on screen, and adds the new ones after", () => {
+    const stored = ["Zlínský kraj", "Fiktivní kraj A"];
+    const listed = ["Hlavní město Praha", "Zlínský kraj"];
+    expect(pickValues(stored, listed, [])).toEqual(["Fiktivní kraj A"]);
+    expect(pickValues(stored, listed, ["Hlavní město Praha", "Zlínský kraj"])).toEqual(["Zlínský kraj", "Fiktivní kraj A", "Hlavní město Praha"]);
+    expect(pickValues([], listed, ["Zlínský kraj"])).toEqual(["Zlínský kraj"]);
+  });
+
+  it("keeps a stored value that is not text as stored, never as its text", () => {
+    // The population keys true as "1" or "True" (audience.py _values); "true" would match nothing.
+    expect(pickValues([true, 1, "Zlínský kraj"], ["Hlavní město Praha", "Zlínský kraj"], ["Hlavní město Praha"])).toEqual([true, 1, "Hlavní město Praha"]);
+    expect(pickValues([1], ["1", "2"], ["1", "2"])).toEqual([1, "2"]);
+  });
+
+  it("matches values as the factor search does", () => {
+    const values = [{ value: "Obec 2" }, { value: "Obec 20" }, { value: "Žďár" }];
+    expect(matchingValues(values, "obec 2").map((v) => v.value)).toEqual(["Obec 2", "Obec 20"]);
+    expect(matchingValues(values, "žď").map((v) => v.value)).toEqual(["Žďár"]);
+    expect(matchingValues(values, "")).toEqual(values);
+  });
+});
+
+describe("the built-in subpanels a search matches (audit B9)", () => {
+  it("by name or description, as the factor search does, the query trimmed", () => {
+    const all = CATALOGUE.subpanels;
+    expect(matchingSubpanels(all, "").map((s) => s.key)).toEqual(["young_18_29", "students"]);
+    expect(matchingSubpanels(all, "  ").map((s) => s.key)).toEqual(["young_18_29", "students"]);
+    expect(matchingSubpanels(all, " MLADÍ ").map((s) => s.key)).toEqual(["young_18_29"]);
+    expect(matchingSubpanels(all, "vestavěný").map((s) => s.key)).toEqual(["young_18_29"]);
+    expect(matchingSubpanels(all, "nikdo")).toEqual([]);
   });
 });

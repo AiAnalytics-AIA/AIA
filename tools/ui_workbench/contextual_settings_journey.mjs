@@ -5,7 +5,7 @@ import { createRequire } from "node:module";
 import { mkdirSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
-import { requireProductionBuild } from "./production.mjs";
+import { INTERACTION_BUDGET_MS as budget, requireProductionBuild } from "./production.mjs";
 
 const repo = join(dirname(fileURLToPath(import.meta.url)), "../..");
 const require = createRequire(import.meta.url);
@@ -32,7 +32,6 @@ const page = await context.newPage();
 const errors = [], writes = [], latencies = [], layouts = [], checks = [];
 page.on("pageerror", (error) => errors.push(String(error)));
 page.on("request", (request) => { if (!["GET", "HEAD", "OPTIONS"].includes(request.method()) && new URL(request.url()).pathname.startsWith("/api/")) writes.push({ method: request.method(), path: new URL(request.url()).pathname }); });
-const budget = 400;
 async function timed(name, control, selector, text = null) {
   await control.evaluate((node, spec) => {
     window.uxInteraction = null;

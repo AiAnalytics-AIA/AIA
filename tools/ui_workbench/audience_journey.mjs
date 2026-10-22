@@ -105,7 +105,8 @@ ok("Cílová skupina: the filters come from AIA's population, not 'V AIA zatím 
 const region = catalogue.factors.find((f) => f.id === "kraj")?.values?.[0]?.value;
 if (!region) fail("the catalogue has no region values");
 const regionSave = saved();
-await page.getByRole("checkbox", { name: new RegExp(region) }).first().check();
+const regionName = new RegExp(region.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"));
+await page.getByRole("button", { name: regionName }).first().click();
 await regionSave;
 const ageFrom = page.getByRole("spinbutton", { name: "Věk od" });
 await ageFrom.fill("30");
@@ -152,20 +153,54 @@ await text("Vzorek N=300", "the sampler's verdict");
 ok("Ověřit proveditelnost: the API counted the audience and the sampler can draw N=300");
 await shot("2-preview");
 
+// 2b. The factor groups and values chosen, never typed (input-interactions I3, audit B7, B8), at four widths.
+const regionChip = page.getByRole("button", { name: regionName }).first();
+if ((await regionChip.getAttribute("aria-pressed")) !== "true") fail(`${region} is not shown as chosen`);
+for (const width of [1440, 1100, 768, 390]) {
+  await page.setViewportSize({ width, height: 1000 });
+  await page.getByRole("radiogroup", { name: "Skupina faktorů" }).waitFor({ timeout: 30000 });
+  const overflow = await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth);
+  if (overflow > 0) fail(`${width} px: the page overflows by ${overflow} px`);
+  const box = await regionChip.boundingBox();
+  const least = width < 640 ? 44 : 24;
+  if (!box || box.height < least) fail(`${width} px: the value chip is ${box?.height} px tall, under ${least}`);
+}
+await page.setViewportSize({ width: 1440, height: 1100 });
+ok("Cílová skupina: factor groups and values are chips at 1440/1100/768/390, 44 px tall on a phone, without overflow");
+
 // 3. Speciální skupiny: the built-in subpanels.
 await page.getByRole("radio", { name: /Speciální skupiny/ }).click();
 const usable = catalogue.subpanels.find((s) => s.usable === true);
 const refused = catalogue.subpanels.find((s) => s.usable === false);
 if (!usable || !refused) fail("the fictional population should make one subpanel usable and one not");
-if (!(await page.getByRole("radio", { name: new RegExp(refused.name) }).isDisabled())) fail(`${refused.name} is offered though the policy refuses it`);
+const nameOf = (name) => new RegExp(`^${name.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}(\\s|$)`);
+if (!(await page.getByRole("radio", { name: nameOf(refused.name) }).isDisabled())) fail(`${refused.name} is offered though the policy refuses it`);
 const subpanelSave = saved();
-await page.getByRole("radio", { name: new RegExp(usable.name) }).click();
+await page.getByRole("radio", { name: nameOf(usable.name) }).click();
 await subpanelSave;
 const audience = (await content()).content.audience;
 if (audience.builtin_subpanel !== usable.key || JSON.stringify(audience.filters) !== JSON.stringify(usable.filters)) fail(`the subpanel saved ${JSON.stringify(audience)}`);
 await text("speciální panely a vlastní publikum", "special panels not in AIA");
 ok(`Speciální skupiny: ${usable.name} saved as its filter ${JSON.stringify(usable.filters)}; ${refused.name} refused by policy`);
 await shot("3-subpanels");
+
+// 3b. The subpanels under a search (input-interactions I3, audit B9), at four widths.
+const subpanels = page.getByRole("radiogroup", { name: "Vestavěné subpanely" });
+const search = page.getByLabel("Hledat subpanel");
+for (const width of [1440, 1100, 768, 390]) {
+  await page.setViewportSize({ width, height: 1000 });
+  await search.waitFor({ timeout: 30000 });
+  const overflow = await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth);
+  if (overflow > 0) fail(`${width} px: the page overflows by ${overflow} px`);
+}
+await page.setViewportSize({ width: 1440, height: 1100 });
+await search.fill("žádný takový subpanel");
+const left = await subpanels.getByRole("radio").count();
+const chosenLeft = await subpanels.getByRole("radio", { checked: true }).count();
+if (left !== 1 || chosenLeft !== 1) fail(`a search that matches nothing should leave only the chosen ${usable.name}: ${left} shown`);
+await text("Hledání odpovídá 0 z", "the search's count");
+await search.fill("");
+ok(`Speciální skupiny: ${catalogue.subpanels.length} subpanels under a search at 1440/1100/768/390 without overflow; a search that matches nothing keeps the chosen one and says 0`);
 
 await browser.close();
 const toUnit = requests.filter((r) => { try { return UNIT_PATH.test(new URL(r.url).pathname); } catch { return false; } });

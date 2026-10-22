@@ -1,0 +1,82 @@
+# ONLYOFFICE Docs Community: Zpráva's report editor on the develop host
+# (.planning/plans/report-editor-hosting.md; artifact-report RPT8).
+#
+#   onlyoffice    the Document Server, upstream's image unmodified and pinned by digest
+#                 (NOTICE). Reached by Caddy at docs.<public hostname>, behind AIA's docs
+#                 gate, on the aia-docs network as onlyoffice:80, and by nothing else.
+#
+# A Compose project of its own (aia-docs), started by bin/docs.sh -- by hand, and by
+# bin/deploy.sh at the end of a deploy when AIA_ONLYOFFICE_ENABLED is true. Nothing of AIA's
+# stack depends on it: with it down, docs.<hostname> answers 502 and Zpráva keeps its
+# read-only pane.
+#
+# It shares a network with Caddy alone, not with the API: it reaches AIA only through the
+# public hostname, with its own request filter refusing private and metadata addresses,
+# because this host's containers can reach IMDS (infra/develop/main.tf, hop limit 2) and the
+# Document Server fetches URLs. Every request between AIA and it is JWT-signed with AIA_ONLYOFFICE_JWT_SECRET
+# (SSM aia_onlyoffice_jwt_secret), which it refuses to start without.
+#
+# Measured on 9.4.0.1 with these settings (2026-10-22): healthy about 10 s after start,
+# about 530 MiB once its fonts and themes are generated. Its editing sessions are kept in
+# memory and in docs_cache; a report's truth is AIA's stored draft, so neither is in
+# bin/backup.sh.
+
+name: aia-docs
+
+services:
+  onlyoffice:
+    image: onlyoffice/documentserver:9.4.0.1@sha256:3ab6ebc7c605e5a32b7ae3ff19daed4925090245acc8100ce2230bd766c88212
+    restart: unless-stopped
+    environment:
+      JWT_ENABLED: "true"
+      JWT_SECRET: ${AIA_ONLYOFFICE_JWT_SECRET:?SSM aia_onlyoffice_jwt_secret}
+      JWT_HEADER: Authorization
+      # A save callback's body is signed too, not only its header.
+      JWT_IN_BODY: "true"
+      # Its request filter stays on: no private address (AIA's services, the database) and
+      # no metadata address (IMDS, the instance role) for a URL it is asked to fetch.
+      ALLOW_PRIVATE_IP_ADDRESS: "false"
+      ALLOW_META_IP_ADDRESS: "false"
+      USE_UNAUTHORIZED_STORAGE: "false"
+      WOPI_ENABLED: "false"
+      # No plugin marketplace and no AI plugin: nothing in a report leaves for a third party.
+      PLUGINS_ENABLED: "false"
+      EXAMPLE_ENABLED: "false"
+      METRICS_ENABLED: "false"
+    expose: ["80"]
+    networks: [docs, egress]
+    # Upstream asks for 4 GB on the host; this is its share, swap included.
+    mem_limit: 2g
+    memswap_limit: 2g
+    security_opt: ["no-new-privileges:true"]
+    # The image declares these four as volumes; named, so a recreate keeps them and none is
+    # left behind anonymous.
+    volumes:
+      - docs_cache:/var/lib/onlyoffice
+      - docs_logs:/var/log/onlyoffice
+      - docs_data:/var/www/onlyoffice/Data
+      - docs_fonts:/usr/share/fonts/truetype/custom
+    healthcheck:
+      test: ["CMD-SHELL", "curl -fsS -m 3 http://localhost/healthcheck | grep -qx true"]
+      interval: 30s
+      timeout: 5s
+      retries: 5
+      # The first start generates its fonts and themes: about a minute, measured.
+      start_period: 180s
+    logging:
+      driver: json-file
+      options: { max-size: "20m", max-file: "3" }
+
+networks:
+  # Shared with Caddy alone (deploy/develop/docker-compose.yml, which creates it).
+  docs:
+    name: aia-docs
+    external: true
+  # Its outbound route, to the public hostname, on a network of its own.
+  egress:
+
+volumes:
+  docs_cache:
+  docs_logs:
+  docs_data:
+  docs_fonts:

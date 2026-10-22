@@ -1108,6 +1108,9 @@ export type ResearchStep = {
   /** How the API reads `data_origin`: SIMULATED, MODELLED or UNKNOWN; absent from an older API. */
   data_origin_kind?: string | null;
 };
+/** A research run's spend, by the rules Settings reads a person's spend (Q40); it names nobody (Q76 (c)). */
+export type RunSpend = { spent_usd: number; reserved_usd: number; uncertain_calls: number };
+
 export type ResearchRun = {
   run_id: string;
   study_id: string;
@@ -1128,6 +1131,9 @@ export type ResearchRun = {
   steps: ResearchStep[];
   artifact_ids: string[];
   actual_cost_usd: number | null;
+  /** What the run has spent, holds and could not price (artifact-fieldwork FLD4a): only on the run read
+   *  alone (GET …/research/runs/{id}) with VIEW_COSTS; null on a listed run and on an action's answer. */
+  spend?: RunSpend | null;
   /** The population the run recorded (population-operations P3); absent or null: none. */
   population?: ResearchRunPopulation | null;
   /** The methods the run pinned when it started (methodology-tab Z1); absent from an older API. */
@@ -1497,6 +1503,10 @@ export const deepResearch = {
   /** Where the report with this review stands, composing nothing (research-integrity-report 3). */
   contextReport: (studyId: string, runId: string, deepRunId: string) =>
     request<ReportVariant>("GET", `${studyPath(studyId)}/research/runs/${enc(runId)}/report/context${query({ deep_research_run_id: deepRunId })}`),
+  /** The prepared report with this review as its stored document model, beside the DOCX it names (RPT3a);
+   *  409 context_report_not_prepared before it is prepared. */
+  contextReportDocument: (studyId: string, runId: string, deepRunId: string) =>
+    request<StoredReportDocument>("GET", `${studyPath(studyId)}/research/runs/${enc(runId)}/report/context/document${query({ deep_research_run_id: deepRunId })}`),
   /** Store the report with this review once and ask the worker for its PDF: the same draft in both formats. */
   prepareContextReport: (studyId: string, runId: string, deepRunId: string) =>
     request<ReportVariant>("POST", `${studyPath(studyId)}/research/runs/${enc(runId)}/report/context${query({ deep_research_run_id: deepRunId })}`),

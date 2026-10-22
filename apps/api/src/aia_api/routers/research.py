@@ -31,7 +31,10 @@ from aia_core.application.client_report import (
     prepare_client_report,
     stored_client_report,
 )
-from aia_core.application.contextual_report import stored_contextual_report
+from aia_core.application.contextual_report import (
+    contextual_report_document,
+    stored_contextual_report,
+)
 from aia_core.application.deep_research import (
     BundleNotReady,
     DeepResearchRunNotFound,
@@ -1324,7 +1327,12 @@ def readiness(
     The 18.6.6 technical preflight is not these checks and is not claimed.
     """
     chosen = _chosen_persona_source(request, persona_source)
-    runs = ResearchRuns(session, scope, panel_sampler=sampler)
+    runs = ResearchRuns(
+        session,
+        scope,
+        panel_sampler=sampler,
+        routing_enabled=request.app.state.settings.routing_enabled,
+    )
     try:
         outlook = runs.outlook(
             design_revision_id,
@@ -1359,7 +1367,12 @@ def working_readiness(
     reads it on the revision it shows; a start still runs a submitted Design Revision.
     A revision the Study never saved is 404 ``working_revision``."""
     chosen = _chosen_persona_source(request, persona_source)
-    runs = ResearchRuns(session, scope, panel_sampler=sampler)
+    runs = ResearchRuns(
+        session,
+        scope,
+        panel_sampler=sampler,
+        routing_enabled=request.app.state.settings.routing_enabled,
+    )
     try:
         outlook = runs.outlook_working(
             working_revision,
@@ -1554,6 +1567,7 @@ def start_run(
         population_contract=population.contract,
         population_id=population.population_id,
         panel_sampler=sampler,
+        routing_enabled=request.app.state.settings.routing_enabled,
     )
     with run_start_errors():
         started = runs.start(
@@ -1613,8 +1627,8 @@ def run_start_settings(
     store: ArtifactStore | None = None,
 ) -> RunStartSettings:
     """What a research run's start takes from the deployment, as ``start_run`` passes it: the
-    fieldwork source, analysis and Sociomapping switches, reservations, the default persona
-    source, the answerability gate and the population a new run records. A typed start (LO5)
+    fieldwork source, analysis, Sociomapping and routing switches, reservations, the default
+    persona source, the answerability gate and the population a new run records. A typed start (LO5)
     names no persona source, population child or acknowledgement, so it starts on the
     deployment's defaults, as a start naming none does here. ``store``: what a typed analysis
     retry reads the run's stored outcomes from."""
@@ -1631,6 +1645,7 @@ def run_start_settings(
         population_id=population.population_id,
         panel_sampler=sampler,
         store=store,
+        routing_enabled=settings.routing_enabled,
     )
 
 
@@ -2897,6 +2912,50 @@ def contextual_report_status(
         deep_research_run_id,
         _variant(run_id, deep_research_run_id, scope, session, store),
     )
+
+
+@router.get(
+    "/research/runs/{run_id}/report/context/document",
+    response_model=dict[str, Any],
+    summary="The prepared report with a chosen literature review as its stored document model",
+    responses={409: {"model": ErrorResponse}},
+)
+def contextual_report_document_route(
+    run_id: RunIdPath,
+    deep_research_run_id: DeepResearchRunIdQuery,
+    scope: StudyScopeDep,
+    session: SessionDep,
+    store: ArtifactStoreDep,
+) -> dict[str, Any]:
+    """The document the variant's prepared DOCX was rendered from, in the shape of the internal
+    draft's (``…/report/document``), so the pane reads and approves exactly that version
+    (artifact-report RPT3a). Composes nothing. 409 ``context_report_not_prepared`` before it is
+    prepared; 409 ``report_document_not_stored`` for a version stored before its document was
+    (its DOCX still downloads)."""
+    found = _variant(run_id, deep_research_run_id, scope, session, store)
+    if found.docx is None:
+        raise _not_prepared()
+    repo = research_artifacts(session, scope, store)
+    model = contextual_report_document(repo, found.docx)
+    if model is None:
+        raise HTTPException(409, detail={"code": "report_document_not_stored"})
+    try:
+        document = read_document_payload(repo.read(model.artifact_id))
+    except (IntegrityError, ObjectNotFound) as exc:
+        raise artifact_corrupt(session) from exc
+    except DocumentModelInvalid as exc:
+        raise HTTPException(409, detail={"code": "report_artifact_invalid"}) from exc
+    docx = found.docx
+    return {
+        "run_id": run_id,
+        "artifact_id": model.artifact_id,
+        "sha256": model.sha256,
+        "report_artifact_id": docx.artifact_id,
+        "report_sha256": docx.sha256,
+        **_review_fields(docx, _mark(docx, scope, session, store)),
+        **_approval_fields(docx, scope, session, store),
+        "document": document,
+    }
 
 
 @router.get(

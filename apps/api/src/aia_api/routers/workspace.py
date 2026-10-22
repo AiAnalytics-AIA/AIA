@@ -96,6 +96,7 @@ from ..dependencies import (
     SessionDep,
     StudyScopeDep,
 )
+from ..schemas.names import EntityName
 from ..schemas.projects import ErrorResponse
 from .research import (
     DesignRevisionResponse,
@@ -468,7 +469,7 @@ class StudyCreate(BaseModel):
 
     model_config = ConfigDict(extra="forbid")
 
-    name: str = Field(min_length=1, max_length=255)
+    name: EntityName
     kind: Literal["RESEARCH", "SIMULATION"]
 
 
@@ -832,7 +833,7 @@ class ClientStart(BaseModel):
 
     model_config = ConfigDict(extra="forbid")
 
-    name: str = Field(min_length=1, max_length=255)
+    name: EntityName
 
 
 @router.get("/workspace/me", response_model=Me, summary="Who you are here")
@@ -864,7 +865,7 @@ def start_client(
     Any member of the organization may, as for ``POST /clients`` (ADR 0019). Membership is
     the access, so the creator, like every member, can open it at once.
     """
-    client = repo.create_client(admin, slug=_slug(body.name), name=body.name.strip())
+    client = repo.create_client(admin, slug=_slug(body.name), name=body.name)
     return _workspace(_client_scope(principal, resolver, client.client_id), repo)
 
 
@@ -1021,7 +1022,7 @@ class MemoryReuse(BaseModel):
     source_revision_id: str = Field(min_length=1, max_length=64)
     #: An existing, empty research study of the client; or ``new_study_name`` for a new one.
     target_study_id: str | None = Field(default=None, min_length=1, max_length=64)
-    new_study_name: str | None = Field(default=None, min_length=1, max_length=255)
+    new_study_name: EntityName | None = None
 
 
 class MemoryReuseResponse(BaseModel):
@@ -1068,7 +1069,7 @@ def client_memory_reuse(
             },
         )
     _client_scope(principal, resolver, client_id)  # 404 before anything is read
-    name = body.new_study_name.strip() if body.new_study_name else None
+    name = body.new_study_name
     try:
         reused = reuse_design(
             session,
@@ -1113,7 +1114,7 @@ def start_study(
     scope = _client_scope(principal, resolver, client_id)
     try:
         study = repo.create_study_in_client(
-            scope, slug=_slug(body.name), name=body.name.strip(), kind=StudyKind(body.kind)
+            scope, slug=_slug(body.name), name=body.name, kind=StudyKind(body.kind)
         )
     except ScopeDenied as exc:
         raise _forbidden(

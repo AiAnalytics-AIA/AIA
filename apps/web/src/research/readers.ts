@@ -9,7 +9,9 @@
 //   read over (research_sociomap.py:388-405); without a set no map is made (:585);
 // - an open question's answers are shown as illustrations and no analysis cites them
 //   (domain/question_outlook.py:61-62, 153);
-// - a question with a condition (`filtr`) is refused at the run (research_design.py:1093-1101), and
+// - a question with a condition (`filtr`) is refused at the run: readiness fails one compile cannot
+//   read or check (research_design.py `_condition`, condition:<id>) and a valid one
+//   (conditional_questions); and
 //   so is a set with familiarity required (battery_familiarity, research_design.py:1206-1212 @ 6359f8ee;
 //   read with Python's bool(), :910).
 // What else the compiler may refuse (a scale, too few options) Kontrola names, so a reader

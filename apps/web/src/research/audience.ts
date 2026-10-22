@@ -16,7 +16,7 @@
 // panels and the customer audience upload were the unit's audience store, and the
 // step still says they are not in AIA.
 
-import type { AudienceCatalogue, AudiencePreview } from "@/lib/api";
+import type { AudienceCatalogue, AudienceCatalogueSubpanel, AudiencePreview } from "@/lib/api";
 
 import { type Json, PROVIDER_FORCED, type ResearchProject } from "./model";
 
@@ -333,6 +333,45 @@ export function boundOf(v: Json): number | null {
 /** A stored end that is there but is no number the stepper can show. */
 export const endUnreadable = (v: Json): boolean => v !== null && v !== undefined && boundOf(v) === null;
 
+/** Up to this many values, a factor's values are toggle chips alone (input-interactions I3: 6–15);
+ * more, the same chips under a filter field (audit B7). */
+export const VALUE_CHIPS_MAX = 15;
+
+/** A factor's listed values matching a search, compared as the factor search compares (searchKey). */
+export function matchingValues<V extends { value: string }>(values: readonly V[], query: string): V[] {
+  const key = searchKey(query);
+  return key ? values.filter((v) => searchKey(v.value).includes(key)) : [...values];
+}
+
+/**
+ * A factor's values after a person picked among the `listed` ones (the chips on screen): the stored
+ * values in their stored order and as stored, less the listed ones not picked, then the newly picked.
+ * A stored value not on screen (filtered out, or one the population lacks, F3) is kept as it was,
+ * never dropped, moved or turned into text by a toggle of another: the population keys a stored
+ * `true` as "1" or "True", never "true" (audience.py _values).
+ */
+export function pickValues(stored: readonly Json[], listed: readonly string[], picked: readonly string[]): Json[] {
+  const text = stored.map(String);
+  const kept = stored.filter((_, i) => !listed.includes(text[i]) || picked.includes(text[i]));
+  return [...kept, ...picked.filter((v) => !text.includes(v))];
+}
+
+/** A categorical factor's stored values, as stored: a list, or one value as a list of one. */
+export function storedValues(p: ResearchProject, id: string): Json[] {
+  const cur = filters(p)[id] as Json | undefined;
+  return Array.isArray(cur) ? cur : cur != null ? [cur] : [];
+}
+
+/**
+ * The built-in subpanels a search matches (input-interactions I3, audit B9: 18 is past a plain
+ * list): by name or description, compared as the factor search compares (searchKey), the query
+ * trimmed. The screen shows the chosen one beside them whatever they are.
+ */
+export function matchingSubpanels(list: readonly AudienceCatalogueSubpanel[], query: string): AudienceCatalogueSubpanel[] {
+  const key = searchKey(query.trim());
+  return key ? list.filter((sp) => searchKey(`${sp.name} ${sp.description}`).includes(key)) : [...list];
+}
+
 /** factorEditor1793's selected values of a categorical factor. */
 export function selectedValues(p: ResearchProject, id: string): Set<string> {
   const cur = filters(p)[id] as Json | undefined;
@@ -340,7 +379,7 @@ export function selectedValues(p: ResearchProject, id: string): Set<string> {
 }
 
 /** setAudienceCategory1793 (then an automatic preview). */
-export function setAudienceCategory(p: ResearchProject, id: string, values: string[]): Change {
+export function setAudienceCategory(p: ResearchProject, id: string, values: Json[]): Change {
   const f = filters(p);
   if (values.length) f[id] = values;
   else delete f[id];

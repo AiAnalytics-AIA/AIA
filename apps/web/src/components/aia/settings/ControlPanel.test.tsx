@@ -207,6 +207,19 @@ describe("the settings control panel", () => {
     expect(within(visible).getAllByText("500").length).toBeGreaterThan(0);
   });
 
+  it("keeps a study's Upravit in view on a phone: client and status under the name, the rest but the budget from sm", async () => {
+    api();
+    render(<ControlPanel />);
+    for (const name of ["Vnímání značky", "Cizí studie"]) {
+      const row = (await screen.findByText(name)).closest("[data-study]") as HTMLElement;
+      const cells = [...row.children] as HTMLElement[];
+      const narrow = cells.filter((cell) => !cell.className.includes("hidden sm:table-cell"));
+      expect(narrow).toHaveLength(3);
+      expect(narrow[0].querySelector(".sm\\:hidden")?.textContent).toBe("Klient AAktivní");
+      expect(within(narrow[2]).getByRole("button", { name: "Upravit", hidden: true })).toBeTruthy();
+    }
+  });
+
   it("changes the organization's self-approval through the API, then re-reads", async () => {
     api();
     render(<ControlPanel />);

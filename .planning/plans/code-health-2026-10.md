@@ -4,7 +4,8 @@ chunks:
   - "[x] 1. Fix the web suite's red test: Vzorek's pending ids are in the contract now (taken by #627; fix/sample-pending-ids dropped)"
   - "[x] 2. Remove web code nothing references (#701)"
   - "[x] 3. Remove Python code nothing references (#715, merged as 292dbaf2)"
-  - "[ ] 4. Stop exporting what only its own module uses (knip's list below)"
+  - "[x] 4a. Stop exporting values only their own module uses: src/lib, src/research, scripts"
+  - "[ ] 4b. The same for src/components, outside files open PRs touch, with a standing knip check"
   - "[ ] 5. Review the remaining `# type: ignore` sites (list below)"
 ---
 # Code health, October 2026
@@ -60,12 +61,43 @@ The fix retires the pending set and holds every id to the grammar alone.
 - The files of the last 6% were then run on their own: 746 passed, 2 skipped. The skipped tests
   need PostgreSQL, which this session did not have.
 
+## Chunk 4a. Values only one module uses
+
+These figures are from knip at develop `03989975`.
+
+**What changed.** 48 functions and constants in `src/lib`, `src/research` and `scripts` lost their
+`export` (21 files). Each one met three tests:
+
+- knip listed it;
+- `git grep -w` over the repository, outside `legacy/`, finds it in no other file;
+- its own file still uses it.
+
+Files that the 11 PRs open at the time touch were skipped.
+
+**Types keep their `export`.** The first pass also un-exported 86 types. `/code-review` pointed
+out that many of them are named in the signature of an exported function, for example:
+
+- `MapOp` in `readMapOp` (`lib/artifacts/sociomap.ts`)
+- `NumberReading` in `readNumber` (`lib/number-input.ts`)
+- `ValueWords` in `showValue` (`lib/methodology.ts`)
+
+Hiding such a type would make callers write `ReturnType<…>` or redeclare it. So every type and
+interface kept its `export`. `RovingKey` (`lib/roving.ts:5 @ 03989975`) is unused, but it is the
+only written list of the roving keys, so it stays too.
+
+**Verification:** `tsc --noEmit` and `eslint src scripts` are clean;
+`npm run tokens:check` and `check:design` pass.
+
 ## Left for later
 
-- **Chunk 4.** Knip lists about 70 exports that only their own module uses (for example
-  `ControlPanel.tsx`'s `TABS`, `SettingRow` and `loadPanel`, and `object-map-panel.ts`'s geometry
-  helpers). Dropping `export` changes nothing at runtime. It touches many files that open PRs are
-  editing, so it waits for a quiet window.
+- **Chunk 4b.** The same rule (values only) for `src/components`, outside the files open PRs
+  touch.
+- **A standing check.** A pinned `knip` devDependency with a config, and a `make` target, so this
+  does not take a hand-run pass again. The config must allow a type exported for a signature. It
+  should arrive with chunk 4b, in the same PR.
+- **Kept on purpose.** `MaterialEligibility` (`src/research/brief-materials.ts:22 @ 03989975`) is
+  used nowhere yet, but it types the eligibility the server will answer once brief-materials
+  chunk 2 lands.
 - **Kept on purpose.** `SIDECAR_KEYS` in `src/research/item-ids.ts` is unused on the web, but the
   file is the port of `domain/item_ids.py`, which uses it.
 - **Kept on purpose.** `ProviderEventRow` (`infrastructure/tables.py:378`) has no reader, but its

@@ -4,7 +4,7 @@ chunks:
   - "[x] 1. The methodology journey has an edit for the readiness limits, and the research journey waits for the steps"
   - "[x] 2. Nový klient: an empty name is said, not silently dropped"
   - "[x] 3. Znalosti at 390 px: the library table's clipped columns"
-  - "[ ] 4. The API refuses a client or study name of spaces"
+  - "[x] 4. The API refuses a client or study name of spaces"
   - "[ ] 5. A run's methodology receipt reports its readiness pin"
   - "[x] 6. A slow rename's answer leaves focus where the person went"
   - "[x] 7. InlineText's refocus after Enter waits for nothing the person moved"
@@ -73,16 +73,22 @@ sheet), Projektová paměť, Společenská inteligence, Nastavení (eight tabs, 
    minor columns and show them in the opened item.
 6. Test: a journey assertion at 390 px that every column header's right edge is within the frame.
 
-### F4. The API accepts a client or study name made of spaces
+### F4. The API accepted a client or study name made of spaces (fixed on this branch)
 
 1. Claim: `name: str = Field(min_length=1, …)` does not strip, so a name of spaces is accepted.
 2. Anchor: `apps/api/src/aia_api/routers/workspace.py:290 @ 4568badd` (a client),
    `apps/api/src/aia_api/routers/workspace.py:470 @ 4568badd` (a study).
 3. Repro: `POST /api/v1/workspace/clients` with `{"name": "   "}` answers 201.
 4. Consequence: a client or study named by blanks, listed with no readable name. The dialogs refuse
-   it since #720, so only a caller other than the web can do this.
-5. Smallest fix: strip before the length check (a validator, or `StringConstraints(strip_whitespace=True)`).
-6. Test: an API test that posts a name of spaces and expects 422.
+   it since #720, so only a caller other than the web can do this. Reuse's `new_study_name` of
+   blanks was worse: the route stripped it to nothing and `reuse_design` raised, a 500
+   (`apps/api/src/aia_api/routers/workspace.py:1069 @ ba596c71`).
+5. Fix: `aia_api/schemas/names.py` `EntityName`, `StringConstraints(strip_whitespace=True,
+   min_length=1, max_length=255)`, on every field that names a client or a study (the two
+   workspace routes, the two administration routes, reuse); the domain models are unchanged, so a
+   stored name still reads as stored.
+6. Test: `test_client_api.py` › "a client or study named by blanks is refused and a name is kept
+   without them" (201, 201, 201, 201 and a 500 before; 422 for each now).
 
 ### F5. A run's methodology receipt does not report its readiness pin
 
@@ -114,6 +120,23 @@ person had opened meanwhile. #735 refocuses only when focus is on the page.
 5. Smallest fix: focus only when `document.activeElement` is still in the field or on the page.
 6. Test: an InlineText test that moves focus before the frame runs.
 
+### F8. A research stage's cold first open lands at about 480 ms (decided: no product change)
+
+1. Claim: a cold load of a research stage fetches the client, the study and its working content
+   one after another, so first content lands at about 480 ms on a production build.
+2. Anchor: `apps/web/src/components/aia/clients/ClientContext.tsx` (ClientProvider renders nothing
+   until the client has loaded) and `apps/web/src/components/aia/ResearchStudy.tsx:78-85 @ fec6d8c5`.
+3. Repro: `workbench.py up --production`, `make ui-fixtures`,
+   `node tools/ui_workbench/contextual_research_journey.mjs`: 456-751 ms over 5 runs (median 484);
+   the web client as of the journey's first day (aa4ef55e) measured 396-610 ms (median 432).
+4. Consequence: about half a second from navigation start before Návrh is usable.
+5. Decision: Q78 (c), the product owner, 2026-10-22: the cold first open of a research stage is held
+   to 800 ms from navigation start, on a production build; every interaction keeps 400 ms
+   (`tools/ui_workbench/production.mjs` `COLD_OPEN_BUDGET_MS`, `INTERACTION_BUDGET_MS`). A study
+   prefetch started beside the client fetch was tried and measured no gain (hydration takes about
+   250 ms before the first fetch), so it was dropped.
+6. Test: `contextual_research_journey.mjs`'s cold assertion, on `--production`.
+
 ### Notes (not defects)
 
 - A name the API refuses (longer than its 200 or 255 characters) still closes the dialog first,
@@ -122,3 +145,17 @@ person had opened meanwhile. #735 refocuses only when focus is on the page.
 - The workbench keeps every methodology version the journeys stored (`aia-sociomap-4+e1…e6`), so
   Metodika at 390 px is a very long page of versions. That comes from running the journeys again
   and again, not from the product; `workbench.py up --fresh` resets it.
+
+### F9. At 390 px a study's Upravit sat out of view on Studie a rozpočty (fixed on this branch)
+
+1. Claim: the studies table kept all seven columns on a phone, so the row's one action needed a
+   sideways scroll inside the table to be found.
+2. Anchor: `apps/web/src/components/aia/settings/ControlPanel.tsx:371 @ c7fbd15a`.
+3. Repro: `settings_journey.mjs` (every visible study's Upravit inside 390 px) failed with all 13
+   fixture studies out of view; `ControlPanel.test.tsx` › "keeps a study's Upravit in view on a
+   phone" failed with 7 cells where 3 are shown.
+4. Consequence: Upravit, Utraceno and Zbývá past the right edge at 390 px (table 367 px in 316).
+5. Fix: below `sm` the client and status show under the study's name; client, status, spent and
+   remaining are columns from `sm`, as #722 did for Výzkumy; a row whose costs are hidden spans
+   no hidden column.
+6. Test: the two above.

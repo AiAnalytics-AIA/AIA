@@ -3,14 +3,18 @@ status: in-progress
 chunks:
   - "[x] RPT1. Zpráva's contract as data: view operations, pointable ids (section, paragraph, figure, claim) and V2's interaction contract"
   - "[x] RPT2. The document first: the draft rendered in the pane from its stored document model, paragraphs with claim chips opening the inspector, figures in place"
-  - "[ ] RPT3. The doc bar and the Approve and Export slot: which document, its draft number and state, approval as a modal naming it, exports after approval (split 2026-10-22: RPT3a, RPT3b)"
-  - "[ ] RPT3a. Approval on the document being read: Schválit in the pane's doc bar for the version shown, internal or client, one owner of the version approved; the report card keeps downloads only"
+  - "[x] RPT3. The doc bar and the Approve and Export slot: which document, its draft number and state, approval as a modal naming it, exports after approval (split 2026-10-22: RPT3a, RPT3b)"
+  - "[x] RPT3a. Approval on the document being read: Schválit in the pane's doc bar for the version shown, internal or client, one owner of the version approved; the report card keeps downloads only"
   - "[x] RPT3b. Exports after approval: decided 2026-10-22, not built: the owner answered Q73 (c), downloads stay free before approval"
   - "[x] RPT4. Záznam pokrytí, outside the text: what the report does not hold and why, from the chain manifest"
   - "[ ] RPT5. Draft revisions: the draft counter and the editor's version history, a report edit never reopening fieldwork (changed 2026-10-22: on the editor, RPT8)"
   - "[ ] RPT6. The Lead and the report writer on the draft (replaced 2026-10-22 by RPT9 and RPT10)"
   - "[ ] RPT7. Journey: Zpráva at 1440, 1100, 768 and 390 px, a fictional run's internal draft, zero paid jobs (extended by RPT9's suggestion step)"
-  - "[ ] RPT8. The editor is Zpráva's main surface: the stored draft opened in ONLYOFFICE Docs (Q35), the researcher editing directly, every number a locked, tagged ledger ref checked on save (RD6, ADR 0035)"
+  - "[ ] RPT8. The editor is Zpráva's main surface: the stored draft opened in ONLYOFFICE Docs (Q35), the researcher editing directly, every number a locked, tagged ledger ref checked on save (RD6, ADR 0035; split 2026-10-22: RPT8a-d)"
+  - "[ ] RPT8a. Every printed number a locked content control tagged with its source (the editor spike's F-ED1): ledger values in prose, table cells, captions (part 1); KPI tiles, figures, the evidence appendix, suppressed counts, and the map, design, run and bundle spans (part 2)"
+  - "[ ] RPT8b. The save census: an edited DOCX refused when it loses or changes a tagged control or breaks the numeric-token rule (F-ED1), a pure check over the stored document model"
+  - "[ ] RPT8c. The editor routes behind AIA_ONLYOFFICE_URL (unset: off): the config with its JWT and the docs ticket, the signed document URL, the callback storing a save as a new draft once the census passes (the hosting contract, report-editor-hosting)"
+  - "[ ] RPT8d. The pane opens the stored draft in the editor when it is configured; the read-only document stays where it is not"
   - "[ ] RPT9. The Lead edits the same document: inline suggestions as tracked changes under the Lead's own name, with why, accepted or rejected one by one or all; direct edits per the researcher's setting (Q13) still attributed; every edit through the edit ops, every number a ledger ref passing the sentence check before accept"
   - "[ ] RPT10. Literature by the Lead: Interpretation Research proposed on a plan card (target, QUICK or STANDARD depth, STANDARD by default, cost), approved by the researcher, findings woven into the text with their sources (Q58); the panel's own start, depth and refresh removed once typed starts exist (Q48, LO5a.3), its findings readable beside the text"
 ---
@@ -199,9 +203,21 @@ reads the report again, so it follows the approved PDF being made (`ReportDocume
 the internal draft it shows, naming the PDF the approval renders as the run states it at the ask…", "asks
 nothing while the run's report names another version, and says why…", "approves an internal draft it cannot
 show on the version its run names…"; `ExecutionSteps.test.tsx` "says the internal draft approved in the doc
-bar once the pane answers…"; `report_journey.mjs` "approval in the doc bar, none on the card"). Left open: the
-report with literature (Interpretation Research) is still approved on the card, because the pane does not
-read that document; it moves when the pane reads it, and RPT3a closes then.
+bar once the pane answers…"; `report_journey.mjs` "approval in the doc bar, none on the card"). 
+
+*RPT3a, third part (`feature/report-with-literature-in-pane`), closing it:* the report with a completed
+literature review is a document of the pane too ("Zpráva s rešerší", one per completed Interpretation
+Research of the run, read for a reader who may review). Its document model is stored beside its DOCX when it
+is prepared (`contextual_report.py` `CONTEXT_REPORT_DOCUMENT_ARTIFACT_TYPE`, `contextual_report_document`,
+RD5a's `store_document_beside`; a draft stored before gets it on its next preparation) and read by
+`GET …/runs/{id}/report/context/document?deep_research_run_id=` (409 `context_report_not_prepared`,
+`report_document_not_stored`). It is prepared, read and approved in the doc bar, its question naming the
+review and the PDF as the variant's status states it at the ask. The card approves nothing: it keeps the
+downloads and says where each report is approved; a version approved elsewhere is told to it too
+(`test_analysis_executor.py` `test_native_ai_study_connects_a_populated_map_to_admitted_report_inputs`;
+`test_report_variant_api.py` `test_the_document_is_the_prepared_drafts_and_says_when_none_was_stored`;
+`ReportDocumentView.test.tsx` "reads, prepares and approves the report with a completed literature
+review…"; `ExecutionSteps.test.tsx` "…and leaves its approval to the doc bar").
 
 **RPT3b. Exports after approval.** Decided 2026-10-22, not built: the owner answered Q73 (c), keep
 today's free downloads. A draft's DOCX and PDF stay downloadable before approval, each file stamped
@@ -215,6 +231,22 @@ one is refused at the sentence (ADR 0035, RD7). A save is a new draft (RPT5), ne
 pane of RPT2 stays as the fallback where the editor is not configured. Test: a save that edits a number is
 refused; a save that edits prose stores a new draft with every ref intact; the DOCX round trip keeps every
 ref (the spike's count before and after).
+
+*RPT8a, part 1 (`feature/report-locked-number-controls`):* `ooxml.locked_inline(paragraph, tag)` wraps what is
+written inside it in one inline `w:sdt` with `w:lock sdtContentLocked` and `w:tag` the source. A value in prose
+(P1: its number, interval, grade mark, disclosure and "orientační"), a table's number cell and its interval line
+(P2, the interval line tagged `<ref>#interval`) and a caption's base n (P4, tagged `<ref>#n`) are each one
+control; the prose and labels around them stay editable (ED-R1's direction). python-docx's `Paragraph.text`
+does not read inside a control, so the client-source reader reads a control's runs too
+(`document_text.paragraph_text`, reader `docx/2`): a past AIA report uploaded as a client source keeps its
+numbers. The brief's attachment reader stays the unit's (parity), which reads none. The three report contracts move (`aia-internal-report-14`,
+`aia-client-report-5`, `aia-contextual-report-10`), so a draft rendered before is never reused for one an editor
+opens (`test_report_docx_locked_numbers.py`). Left for part 2 and RPT8b, from review: the KPI tile through the
+one locked writer (write_value), digits in cross-reference labels and footnote numbers (furniture the census
+must know), and a ref printed more than once or in two forms (prose holds the interval in its control, a cell
+in `#interval`): RPT8b compares the saved controls with the stored document rendered again as a multiset of
+(tag, text), so a deleted or changed duplicate is found without an id, and a moved paragraph is not a
+change. Whether ONLYOFFICE keeps a long `w:tag` as written is checked when RPT8c first opens a draft.
 
 **RPT9. The Lead in the document.** The Lead, on its own model (STUDY_LEAD), edits the same document
 through the edit operations:

@@ -33,7 +33,7 @@ from typing import Final
 
 from .evidence import SupportStatus
 from .research_aggregate import evidence_rating
-from .research_design import ResearchSpecification
+from .research_design import ResearchSpecification, routed_questions
 from .support_forecast import SupportForecast
 
 __all__ = [
@@ -52,7 +52,7 @@ class Verdict(StrEnum):
 
 
 class OutlookReason(StrEnum):
-    #: A conditional question (``filtr``): AIA asks every respondent every question.
+    #: A conditional question (``filtr``) fieldwork does not route: every respondent is asked.
     CONDITIONAL = "conditional"
     #: A tracked set that requires familiarity with its objects: AIA cannot ask it.
     FAMILIARITY = "familiarity"
@@ -135,16 +135,23 @@ def _outlook(
 
 
 def question_outlook(
-    spec: ResearchSpecification, forecast: SupportForecast | None
+    spec: ResearchSpecification, forecast: SupportForecast | None, *, routing: bool = False
 ) -> tuple[QuestionOutlook, ...]:
     """Every item of ``spec`` with its verdict, in questionnaire order (questions, then each
     tracked set's objects). ``forecast`` ``None``: no forecast was made, so support is
-    unknown for every item."""
+    unknown for every item.
+
+    ``routing`` as readiness takes it (WCE13 (d)): a valid condition is then asked only of
+    those it names, a part of the sample the forecast does not model, so support that the
+    whole sample would reach is unknown there, never good; a smaller part can only be worse,
+    so a weaker forecast stands. A condition compile refused is never routed."""
     support = _support_reason(forecast)
+    routed_ids = routed_questions(spec, routing=routing)
     out: list[QuestionOutlook] = []
     for q in spec.questions:
         reasons: list[OutlookReason] = []
-        if q.has_filter:
+        routed = q.id in routed_ids
+        if q.has_filter and not routed:
             reasons.append(OutlookReason.CONDITIONAL)
         # The aggregate's own rating, at the validation status every AIA run has: the mode
         # (REFUSE or not) does not depend on it.
@@ -152,7 +159,9 @@ def question_outlook(
             reasons.append(OutlookReason.FIDELITY_REFUSED)
         if q.typ == "otevrena":
             reasons.append(OutlookReason.OPEN_ENDED)
-        if support is not None:
+        if routed and support is None:
+            reasons.append(OutlookReason.SUPPORT_UNKNOWN)
+        elif support is not None:
             reasons.append(support)
         out.append(_outlook(q.id, q.text, q.section_id, None, reasons))
     for b in spec.batteries:

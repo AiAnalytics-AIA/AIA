@@ -50,7 +50,7 @@ export async function openSession(): Promise<SessionOutcome> {
 }
 
 /** Clear AIA's session cookie. Best effort: signing out must not stall on it. */
-export async function closeSession(): Promise<void> {
+async function closeSession(): Promise<void> {
   try {
     const config = await loadConfig();
     await fetch(`${config.apiBase}/api/v1/session`, { method: "DELETE", cache: "no-store" });

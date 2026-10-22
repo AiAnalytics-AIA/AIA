@@ -1,11 +1,11 @@
 #!/usr/bin/env node
-// Contextual assistance against AIA's real local API; fictional fixtures, disabled model runtime.
+// Contextual assistance against AIA's real local API; fictional fixtures, recorded design answers.
 import assert from "node:assert/strict";
 import { createRequire } from "node:module";
 import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
-import { requireProductionBuild } from "./production.mjs";
+import { COLD_OPEN_BUDGET_MS, INTERACTION_BUDGET_MS as budget, requireProductionBuild } from "./production.mjs";
 const repo = join(dirname(fileURLToPath(import.meta.url)), "../..");
 const require = createRequire(import.meta.url);
 const { chromium } = require("playwright");
@@ -33,7 +33,6 @@ const errors = [], starts = [], latencies = [], layouts = [], checks = [], netwo
 page.on("pageerror", (error) => errors.push(String(error)));
 page.on("requestfinished", (request) => network.push({ path: new URL(request.url()).pathname, type: request.resourceType(), timing: request.timing() }));
 page.on("request", (request) => { if (request.method() === "POST" && /\/research\/agent-jobs$/.test(new URL(request.url()).pathname)) starts.push(request.postDataJSON()); });
-const budget = 400;
 async function interaction(name, control, target, expected = {}) {
   await control.evaluate((node, spec) => {
     window.uxInteraction = null;
@@ -70,8 +69,8 @@ try {
   await page.waitForFunction(() => window.uxFirstContent !== null);
   const cold = await page.evaluate(() => window.uxFirstContent);
   latencies.push({ name: "Fresh browser document to proposal editor and contextual help (no browser cache)", milliseconds: cold });
-  assert(cold < budget, `Cold workspace: ${cold.toFixed(1)}ms >= ${budget}ms`);
-  assert(await page.locator("header [data-contextual-assistance]").isVisible());
+  assert(cold < COLD_OPEN_BUDGET_MS, `Cold workspace: ${cold.toFixed(1)}ms >= ${COLD_OPEN_BUDGET_MS}ms`);
+  assert(await page.locator("[data-inspector] [data-contextual-assistance]").isVisible());
   assert.equal(await page.locator("[data-contextual-assistance] [data-ai-action]").count(), 3);
   await interaction("Open and prefill contextual question", page.getByRole("button", { name: /Které výzkumné otázky/ }), '[data-assistance-panel] textarea');
   // Field's accessible name comes from its label; select it semantically when reading.
@@ -110,14 +109,15 @@ try {
     const response = await route.fetch(); await new Promise((resolve) => setTimeout(resolve, 1200)); await route.fulfill({ response });
   });
   await interaction("Explicit question submission acknowledges pending API work", page.getByRole("button", { name: "Odeslat otázku" }), '[data-assistance-panel] [role="status"]');
-  await page.locator('[data-assistance-panel] [role="alert"]').first().waitFor({ timeout: 30000 });
+  // The workbench answers design jobs from recordings (#597): the answer says it is one.
+  const answer = page.getByRole("region", { name: "Uložená odpověď AI" }); await answer.waitFor({ timeout: 30000 });
+  assert((await answer.innerText()).includes("Zaznamenaná odpověď, ne model."), "The recorded answer does not say it is recorded");
   assert.equal(starts.length, 1); assert.equal(starts[0].action, "design_copilot"); assert.equal(starts[0].instruction, "Unfinished contextual question");
-  assert.equal(await question.inputValue(), "Unfinished contextual question");
-  await page.getByRole("button", { name: "Obnovit stav", exact: true }).click();
-  assert.equal(starts.length, 1, "Refreshing created another job");
-  checks.push("Real local API receives one explicit request; disabled runtime/refusal remains visible; refresh does not resubmit");
+  await page.reload(); await page.locator("[data-contextual-assistance]").waitFor();
+  assert.equal(starts.length, 1, "Reloading created another job");
+  checks.push("Real local API receives one explicit request; its recorded answer is shown as recorded; a reload does not resubmit");
   assert.equal(errors.length, 0, errors.join("\n"));
-  const report = { status: "PASS", checks, latencies, layouts, starts, errors, scope: "Fictional local identity and disabled provider runtime; real API, no live model calls" };
+  const report = { status: "PASS", checks, latencies, layouts, starts, errors, scope: "Fictional local identity; real API; design jobs answered from recordings at no cost, no live model calls" };
   writeFileSync(join(out, "checks.json"), JSON.stringify(report, null, 2)); console.log(JSON.stringify({ status: "PASS", checks, latencies, layouts: layouts.length }, null, 2));
 } catch (error) {
   await page.screenshot({ path: join(out, "failure.png"), fullPage: true });

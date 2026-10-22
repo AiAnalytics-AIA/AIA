@@ -87,6 +87,36 @@ def test_a_researcher_creates_a_client_by_the_api_but_its_status_stays_with_admi
     assert owner.put(f"{API}/clients/{client_id}/status", json=archive).status_code == 200
 
 
+def test_a_client_or_study_named_by_blanks_is_refused_and_a_name_is_kept_without_them(
+    owner: TestClient, lead: TestClient, world: Any
+) -> None:
+    """A name of spaces names nothing (UX audit F4): every way a client or study is named
+    refuses it, and the blanks around a real name are not part of it."""
+    blank = "   "
+    client_id = world.client_id()
+    refused = [
+        lead.post(f"{API}/workspace/clients", json={"name": blank}),
+        lead.post(f"{API}/clients", json={"slug": "blank-name", "name": blank}),
+        start(lead, world, blank),
+        owner.post(
+            f"{API}/studies", json={"client_id": client_id, "slug": "blank-name", "name": blank}
+        ),
+        lead.post(
+            f"{API}/clients/{client_id}/memory/reuse",
+            json={
+                "source_study_id": "STU-x",
+                "source_revision_id": "REV-x",
+                "new_study_name": blank,
+            },
+        ),
+    ]
+    assert [r.status_code for r in refused] == [422] * len(refused)
+    made = lead.post(f"{API}/workspace/clients", json={"name": "  Trimmed s. r. o. "})
+    assert made.status_code == 201 and made.json()["name"] == "Trimmed s. r. o."
+    study = start(lead, world, "  Trimmed study ")
+    assert study.status_code == 201 and study.json()["name"] == "Trimmed study"
+
+
 def test_a_client_workspace_opens_for_every_member_and_an_unknown_one_is_404(
     lead: TestClient, other_client_lead: TestClient, outsider: TestClient, world: Any
 ) -> None:
