@@ -33,6 +33,7 @@ from ..domain.answerability import (
     read_answerability_note,
     with_answerability,
 )
+from ..domain.deep_research.workflow import DEEP_RESEARCH
 from ..domain.design import DESIGN_PROJECT_OWNER, DesignRejected
 from ..domain.design_items import ItemKey
 from ..domain.evidence import ClaimSurface
@@ -541,6 +542,7 @@ class ResearchRuns:
         fieldwork_source: FieldworkSource,
         retry_of: str | None = None,
         analysis_enabled: bool = False,
+        external_context: bool = False,
         sociomapping_enabled: bool = False,
         reservations: RunReservations | None = None,
         confirm_cost_usd: float | None = None,
@@ -570,6 +572,12 @@ class ResearchRuns:
         ledger. Like the cost gate, a start that finds its run asks nothing. The refusal ships
         behind ``require_answerability`` (the API's ``AIA_RESEARCH_ANSWERABILITY_GATE``): off,
         a run with gaps starts and records them unacknowledged, so its report still says so.
+
+        ``external_context`` (the API's ``AIA_AI_ANALYSIS_EXTERNAL_CONTEXT``, off by default)
+        pins, for a run with analysis, the Study's newest sealed Design Research bundle
+        (``metadata.analysis_context``: the run, the artifact and its SHA-256): each module is
+        shown its accepted findings as external context, never evidence (evidence-integrity 7).
+        A retry keeps the original's pin, or its absence. Metadata only, never the run's key.
 
         ``frozen_dataset`` makes the run an analysis retry (:func:`retry_failed_modules`
         in ``application.analysis_results``, through :meth:`retry_analysis`): its fieldwork
@@ -734,6 +742,16 @@ class ResearchRuns:
             )
         response_pin = response_spec.model_dump(mode="json")
         exists = self._workflows().find_run_by_idempotency_key(key) is not None
+        # A run that exists keeps what it pinned; only a new one looks for a bundle.
+        context_pin = (
+            held.get("analysis_context")
+            if retry_of
+            else (
+                self.design_research_pin()
+                if analysis_enabled and external_context and not exists
+                else None
+            )
+        )
         answer_note: dict[str, Any] | None = None
         fresh_acknowledgement: Answerability | None = None
         if _spec is not None and not exists:
@@ -812,6 +830,7 @@ class ResearchRuns:
                 "design_revision": revision.revision,
                 "fieldwork_source": fieldwork_source.value,
                 "analysis_enabled": analysis_enabled,
+                **({"analysis_context": context_pin} if context_pin else {}),
                 **({"sociomapping_enabled": True} if sociomapping_enabled else {}),
                 "sociomap_methods": pinned,
                 **({"methodology": methodology} if methodology else {}),
@@ -999,6 +1018,7 @@ class ResearchRuns:
                     "aggregation_methodology",
                     "response_methodology",
                     "readiness_methodology",
+                    "analysis_context",
                 )
                 if run["metadata"].get(k)
             },
@@ -1007,6 +1027,33 @@ class ResearchRuns:
             inherited_acknowledgement=_acknowledgement_of(run),
             require_answerability=require_answerability,
         )
+
+    def design_research_pin(self) -> dict[str, str] | None:
+        """The bundle the Study's newest finished Design Research run published, as a run's
+        ``analysis_context`` pins it (the run, the artifact, its SHA-256); ``None`` when it has
+        none. Only found here: a reader reads it again through the run that published it and
+        verifies it (``analysis_results._external_context``). Among the newest 200 Deep
+        Research runs, the most a listing returns."""
+        project_id = self._designs().project_id()
+        if project_id is None:
+            return None
+        for run in self._workflows().list_runs(
+            project_id=project_id, workflow_type=DEEP_RESEARCH, steps=True, limit=200
+        ):
+            if (
+                run["status"] is not WorkflowRunStatus.COMPLETED
+                or (run.get("metadata") or {}).get("purpose") != "DESIGN_RESEARCH"
+            ):
+                continue
+            publish = next((x for x in run.get("steps") or [] if x["node_key"] == "publish"), None)
+            output = (publish or {}).get("output") or {}
+            if all(isinstance(output.get(k), str) for k in ("artifact_id", "sha256")):
+                return {
+                    "deep_research_run_id": str(run["run_id"]),
+                    "artifact_id": output["artifact_id"],
+                    "sha256": output["sha256"],
+                }
+        return None
 
     def design_project_id(self) -> str | None:
         """The Study's owned design project, where its runs and reports are; ``None`` before

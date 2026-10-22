@@ -111,7 +111,8 @@ def compose_client_report(
     scope.require(Permission.EXPORT_DELIVERABLE)
     run = ResearchRuns(session, scope).get(run_id)
     try:
-        sources = native_sources(session, scope, store, run)
+        # The data alone: the client report reads no analysis context.
+        sources = native_sources(session, scope, store, run, with_context=False)
     except SourcesRefused as exc:
         raise ClientReportRefused("sources_refused", f"{exc.reason}: {exc}") from exc
     origin = sources.dataset_origin

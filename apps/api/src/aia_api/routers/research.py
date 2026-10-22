@@ -1341,6 +1341,7 @@ def start_run(
             design_revision_id=body.design_revision_id,
             fieldwork_source=_fieldwork_source(request),
             analysis_enabled=request.app.state.settings.ai_analysis_enabled,
+            external_context=request.app.state.settings.ai_analysis_external_context,
             sociomapping_enabled=request.app.state.settings.sociomapping_experimental_enabled,
             reservations=_reservations(request),
             confirm_cost_usd=body.confirm_cost_usd,
@@ -1387,6 +1388,7 @@ def run_start_settings(request: Request, population: AudiencePopulation) -> RunS
     return RunStartSettings(
         fieldwork_source=_fieldwork_source(request),
         analysis_enabled=settings.ai_analysis_enabled,
+        external_context=settings.ai_analysis_external_context,
         sociomapping_enabled=settings.sociomapping_experimental_enabled,
         reservations=_reservations(request),
         persona_source=_persona_source(request),
