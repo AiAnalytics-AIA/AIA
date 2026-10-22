@@ -639,7 +639,16 @@ Split by owner (PM, 2026-10-22): B1–B4 sit on Dimenze (`PersonaStep.tsx`), B5�
     built-in subpanels a search matches".
   - `audience_journey.mjs` checks the search at 1440/1100/768/390 without overflow, and that a search
     matching nothing leaves the chosen one and says 0.
-- **B11:** to come.
+- **B11. Discover's product and success criterion in place, feature/audience-discover-inline.**
+  - Both are `InlineText` (multi-line) where they are shown. Ctrl/Cmd+Enter or leaving the field
+    saves, and Esc restores. They were textareas that wrote every keystroke into the working copy.
+  - The value filter's count line ("Zobrazeno x z y hodnot", #761) is `aria-live="polite"`, as the
+    factor and subpanel counts are (#779).
+  - Tests: `AudienceStep.test.tsx` "Discover's product and success criterion are edited in place…" and
+    "announces how many values a long factor's filter shows…".
+  - `audience_journey.mjs` step 4 checks Discover at 1440/1100/768/390 without overflow: Esc restores,
+    and Ctrl+Enter saves what was typed.
+- B5–B11 are in. Chunk 5 is ticked once B1–B4 name Dimenze's PRs.
 
 ### Chunk 3b3, added by planning (2026-10-21)
 
