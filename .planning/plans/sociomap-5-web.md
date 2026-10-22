@@ -71,8 +71,12 @@ The owner's decisions:
 - the detail stays open while a work window is open;
 - „Top vztahy“ follows the selection in full screen too (an object selected: its five strongest).
 Departures for the web's own content: no „Analýza“, „Sada na mapě“ or dot style (the web has none); on Respondenti a
-pick from the object list marks the object, it opens no detail; the stage isolates its layers below the page's header
-and dialogs; on a narrow screen the detail keeps the panel's place at the right.
+the object list only lists (develop's read-only list); the stage isolates its layers below the page's header and
+dialogs; on a narrow screen the detail keeps the panel's place at the right.
+After develop's map work (the owner, 2026-10-22): the stage keeps develop's height (`stageHeight`, at most 700 px); the
+display filter bar is a glass chip in the dock's row and the ⓘ the dock's last row, so neither covers the other however
+the dock wraps; „Co je co“ goes into the ⓘ box; a Lead focus on an object while Správa objektů is closed opens it
+(`LEAD_REVEAL`); `tools/ui_workbench/sociomap_journey.mjs` walks the windows.
 
 ## Open questions
 

@@ -12,7 +12,7 @@ import legacy from "@/lib/fixtures/object-map.json";
 import golden from "@/lib/fixtures/object-map-draw-golden.json";
 import { type BatteryWithMaps, mapLinks } from "@/lib/object-map-view";
 import { readTarget } from "@/lib/artifacts/sociomap";
-import { focusSelector } from "@/lib/lead";
+import { LEAD_REVEAL, focusSelector } from "@/lib/lead";
 import { parseAiaId } from "@/lib/workbench-artifacts";
 import { INITIAL_CAMERA, densityGrid, panelDots, panelNodes, projection, relationGeometry, storedGrid, terrainAt } from "@/lib/object-map-panel";
 import { type SignedOffRespondents, storedFrame } from "@/lib/object-map-signed-off";
@@ -1160,6 +1160,19 @@ describe("the Lead's names on the map", () => {
     const target = `object:hudba/${map.object_ids[2]}`;
     expect(parseAiaId(target)?.stage).toBe("sociomap");
     expect(document.querySelector(focusSelector(target))).toBe(buttons[2]);
+  });
+
+  it("opens Správa objektů when the Lead points at one of its objects, and only then", () => {
+    render(<ObjectMapView battery={hudba} dataOrigin={null} />);
+    const reveal = (target: string) => act(() => { window.dispatchEvent(new CustomEvent(LEAD_REVEAL, { detail: target })); });
+    const list = () => screen.queryByRole("dialog", { name: "Správa objektů" });
+    reveal(`object:${sum.battery_id}/${map.object_ids[2]}`);
+    reveal("question:q1");
+    expect(list()).toBeNull();
+    const target = `object:hudba/${map.object_ids[2]}`;
+    reveal(target);
+    expect(list()).toBeTruthy();
+    expect(document.querySelector(focusSelector(target))?.tagName).toBe("BUTTON");
   });
 
   it("names the selected relation in the detail card, one pair id either way, and each object once", async () => {

@@ -76,7 +76,10 @@
 .omw-legend { background: var(--glassStrong66) !important; -webkit-backdrop-filter: var(--glassBlur66); backdrop-filter: var(--glassBlur66); border-color: var(--glassLine66) !important; }
 
 /* ---------- the ⓘ info pill and its box ---------- */
-.omw-hint { position: absolute; left: 12px; top: 58px; z-index: 58; display: flex; flex-wrap: wrap; gap: 6px; align-items: flex-start; max-width: min(520px, calc(100% - 70px)); pointer-events: none; }
+/* The dock's last row: wherever the dock wraps (a narrow stage, the filter bar), the ⓘ stays under it,
+   at the panel's 58 px under a one-row dock; its box opens under the pill. */
+.omw-hint { flex: 0 0 100%; margin-top: 3px; pointer-events: none; }
+.omw-hint .omw-pop { margin-top: 6px; max-width: min(520px, calc(100% - 46px)); }
 .omw-pill {
   pointer-events: auto; height: 26px; min-width: 26px; padding: 0 10px; border: 1px solid var(--glassLine66); border-radius: 999px;
   background: var(--glassStrong66); -webkit-backdrop-filter: var(--glassBlur66); backdrop-filter: var(--glassBlur66);
@@ -159,7 +162,10 @@
 .omw-detail-label { display: block; font-size: 14px; margin: 4px 0 8px; }
 
 /* ---------- the display filter bar (SOC3), a glass chip in the dock's row ---------- */
-.omw-status { min-width: 0; flex: 0 1 520px; pointer-events: none; }
+/* Short of the zoom column on the right, should the bar wrap down beside it. */
+.omw-status { min-width: 0; flex: 0 1 520px; max-width: calc(100% - 46px); pointer-events: none; }
+/* With no bar the live region takes no row of its own. */
+.omw-status:empty { flex-basis: 0; }
 .omw-filter {
   pointer-events: auto; display: flex; flex-wrap: wrap; align-items: baseline; gap: 2px 6px; max-width: 100%; padding: 5px 10px;
   border: 1px solid rgba(255, 190, 90, .45); border-radius: 13px;

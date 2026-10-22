@@ -28,6 +28,7 @@ import "./object-map-windows.css";
 import { type PointerEvent, type ReactNode, useEffect, useId, useMemo, useRef, useState } from "react";
 import { t, tv } from "@/i18n/t";
 import { objectTarget, pairTarget } from "@/lib/artifacts/sociomap";
+import { LEAD_REVEAL } from "@/lib/lead";
 import { type DisplayChange, MAP_REGISTERS, type MapRegister, displayChanges, stageHeight } from "@/lib/sociomap-display";
 import { num } from "@/lib/sociomapping-view";
 import { type BatteryWithMaps, type ObjectMapArtifact, originalRating } from "@/lib/object-map-view";
@@ -350,6 +351,16 @@ function PanelView({ battery, map, facts }: { battery: BatteryWithMaps; map: Obj
     const back = detailOpener.current?.isConnected ? detailOpener.current : canvas.current;
     back?.focus({ preventScroll: true });
   };
+  // The Lead points at one of this map's objects while Správa objektů is closed: open it, so the
+  // object's button (its target) is there to be shown.
+  useEffect(() => {
+    const on = (e: Event) => {
+      const target = (e as CustomEvent<unknown>).detail;
+      if (nodes.some((n) => objectTarget(battery.battery_id, n.id) === target)) setWork("objects");
+    };
+    window.addEventListener(LEAD_REVEAL, on);
+    return () => window.removeEventListener(LEAD_REVEAL, on);
+  }, [nodes, battery.battery_id]);
   // The panel's `npcOpenPanel27`: the dock button toggles its window, which takes the one place.
   // The detail stays open beside it.
   const openWork = (next: WorkWindow) => setWork((w) => (w === next ? null : next));
@@ -429,7 +440,7 @@ function PanelView({ battery, map, facts }: { battery: BatteryWithMaps; map: Obj
           onPointerDown={onDown} onPointerMove={onMove} onPointerUp={onUp} onPointerCancel={() => { pointer.current = null; }} onPointerLeave={() => { if (!pointer.current) setHovered(-1); }} />
         <p id={described} className="sr-only" aria-live="polite">{tv(`${p}.relationsShown`, { count: pairs.length })}</p>
 
-        {/* The panel's dock (`npcMapDock1877`), and the display filter bar in its row, above the work windows. */}
+        {/* The panel's dock (`npcMapDock1877`), the display filter bar in its row and the ⓘ under them, above the work windows. */}
         <div className="omw-dock">
           <div ref={dock} tabIndex={-1} className="omw-dock-bar focus:outline-none" role="toolbar" aria-label={t("research.exec.objectMap.controls")}>
             {density ? (
@@ -450,6 +461,22 @@ function PanelView({ battery, map, facts }: { battery: BatteryWithMaps; map: Obj
           <div role="status" className="omw-status" data-testid="object-map-filter-status">
             {changes.length ? <FilterBar changes={changes} onReset={resetDisplay} /> : null}
           </div>
+          {/* The ⓘ map information (`npcMapHint27`, `__npcMapInfo1910`), the facts with it: the dock's last row, under whatever the dock wraps to. */}
+          <div className="omw-hint">
+            <button type="button" className={`omw-pill${pill?.warn ? " warn" : ""}`} aria-expanded={info} aria-controls={info ? `${described}-info` : undefined}
+              aria-label={pill ? tv(`${p}.infoPill`, { pill: pill.text }) : t(`${p}.info`)} title={t(`${p}.info`)} onClick={() => setInfo(!info)}>
+              ⓘ{pill ? ` ${pill.text}` : ""}
+            </button>
+            {info ? (
+              <div id={`${described}-info`} className="omw-pop" role="region" aria-label={t(`${p}.info`)} data-testid="object-map-info">
+                <b>{battery.title}</b>
+                {people ? <RespondentCounts map={map} segments={segments} /> : null}
+                <QualityRows map={map} />
+                <div className="omw-pop-facts">{facts}</div>
+                <Registers />
+              </div>
+            ) : null}
+          </div>
         </div>
 
         <div className="omw-tools" role="group" aria-label={t(`${p}.tools`)}>
@@ -459,23 +486,6 @@ function PanelView({ battery, map, facts }: { battery: BatteryWithMaps; map: Obj
           {tool(t(`${p}.three`), "3D", () => setCamera(camera3d), !fromAbove)}
           {tool(t(`${p}.center`), "◎", () => setCamera(INITIAL_CAMERA))}
           {tool(t(`${p}.fullscreen`), "⛶", toggleFull, full)}
-        </div>
-
-        {/* The ⓘ map information (`npcMapHint27`, `__npcMapInfo1910`), the facts with it. */}
-        <div className="omw-hint">
-          <button type="button" className={`omw-pill${pill?.warn ? " warn" : ""}`} aria-expanded={info} aria-controls={info ? `${described}-info` : undefined}
-            aria-label={pill ? tv(`${p}.infoPill`, { pill: pill.text }) : t(`${p}.info`)} title={t(`${p}.info`)} onClick={() => setInfo(!info)}>
-            ⓘ{pill ? ` ${pill.text}` : ""}
-          </button>
-          {info ? (
-            <div id={`${described}-info`} className="omw-pop" role="region" aria-label={t(`${p}.info`)} data-testid="object-map-info">
-              <b>{battery.title}</b>
-              {people ? <RespondentCounts map={map} segments={segments} /> : null}
-              <QualityRows map={map} />
-              <div className="omw-pop-facts">{facts}</div>
-              <Registers />
-            </div>
-          ) : null}
         </div>
 
         {people ? <DensityLegend segments={segments} /> : <Legend battery={battery} values={nodes.map((n) => (n.primary ? n.value : null))} norm={norm} strongest={strongest} />}

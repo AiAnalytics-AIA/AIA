@@ -11,6 +11,7 @@ import { useContext, useEffect } from "react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import type { ResearchProject } from "@/research/model";
+import { LEAD_REVEAL } from "@/lib/lead";
 import { ResearchStore } from "@/research/store";
 import { TEST_FRAME } from "../rehome/research/test-frame";
 import { EMPTY_PROJECT } from "../rehome/research/test-workspace";
@@ -259,6 +260,23 @@ describe("the launcher and the drawer (26c)", () => {
     fireEvent.click(screen.getByRole("button", { name: "Zpět k Vedoucímu" }));
     expect(screen.getByRole("dialog")).toBeTruthy();
     await waitFor(() => expect(document.activeElement?.id).toBe("composer"));
+  });
+
+  it("a focus on what is not on screen asks its screen once to show it (a target in a closed window)", async () => {
+    leadReads = [leadState({ busy: true, turns: [leadTurn("T1", 1)] }), leadState({ turns: [leadTurn("T1", 1), leadTurn("T2", 2, [{ op: "focus", target: "object:hudba/hudba-o2" }])] })];
+    const asked: unknown[] = [];
+    const on = (e: Event) => asked.push((e as CustomEvent<unknown>).detail);
+    window.addEventListener(LEAD_REVEAL, on);
+    try {
+      bench();
+      setWidth(1440);
+      await waitFor(() => expect(asked).toEqual(["object:hudba/hudba-o2"]), { timeout: 4000 });
+      // The look goes on without asking again.
+      await new Promise((resolve) => setTimeout(resolve, 400));
+      expect(asked).toHaveLength(1);
+    } finally {
+      window.removeEventListener(LEAD_REVEAL, on);
+    }
   });
 
   it("the launcher says whether the Lead answers: unknown until the worker reports ready, never on", async () => {
