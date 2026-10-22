@@ -482,4 +482,20 @@ describe("Dotazník", () => {
     await saved();
     expect(lastSave()).toMatchObject({ reason: "questionnaire_done", content: { ui_state: { audience_entry: "choose" } } });
   });
+
+  it("says what Sestavit s AI does once the questionnaire has items, and claims no provider choice (QF-4, QF-5)", async () => {
+    unitStub({ ...BRIEF, sections: SECTIONS, ui_state: { questionnaire_path: "manual" } });
+    render(<ResearchScreen step="questionnaire" frame={TEST_FRAME} />);
+    fireEvent.click(await screen.findByRole("radio", { name: "Sestavit s AI" }));
+    expect(await screen.findByText("Dotazník už má otázky, takže ho AI znovu nesestaví: úpravy navrhne „Optimalizovat dotazník s AI“.")).toBeTruthy();
+    expect(screen.getByRole("button", { name: "Optimalizovat dotazník s AI" })).toBeTruthy();
+    fireEvent.click(screen.getByRole("radio", { name: "Náhled respondenta" }));
+    expect(screen.queryByText(/technický editor je pod ní/)).toBeNull();
+    expect(screen.getByText(/Upravíte je v režimu Upravit/)).toBeTruthy();
+    cleanup();
+    unitStub({ ...BRIEF, ui_state: { questionnaire_path: "ai" } });
+    render(<ResearchScreen step="questionnaire" frame={TEST_FRAME} />);
+    expect(await screen.findByRole("heading", { name: "Dotazník s AI" })).toBeTruthy();
+    expect(screen.queryByText(/Provider\/model/)).toBeNull();
+  });
 });

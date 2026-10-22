@@ -82,7 +82,7 @@ import { QuestionnaireDependencies } from "./QuestionnaireDependencies";
 import { QuestionnaireStrip } from "./QuestionnaireStrip";
 import { InspectorSlot } from "./Inspector";
 import { questionnaireIssues } from "@/research/lane";
-import { AskLead, useLeadOwnsAiStarts } from "./AskLead";
+import { AskLead, useAskLead, useLeadOwnsAiStarts } from "./AskLead";
 import { AiFailureCard, useAiStep } from "./useAiStep";
 import { AnalysisFailureCard, useAnalysis } from "./useAnalysis";
 import { DeepResearchPanel } from "./DeepResearchPanel";
@@ -249,6 +249,7 @@ export function QuestionnaireStep() {
           </>
         ) : null}
       </div>
+      {editor && current === "ai" ? <AiOnExisting /> : null}
       {analysis.failure ? <AnalysisFailureCard failure={analysis.failure} onRetry={() => void build()} onContinue={(id) => void continueBuild(id)} /> : null}
       {step.failure ? <AiFailureCard failure={step.failure} title={t("research.questionnaire.failedTitle")} onRetry={() => step.setFailure(null)} onContinue={(id) => void step.resume(id)} /> : null}
       {view === "upload" ? <Upload /> : null}
@@ -256,7 +257,6 @@ export function QuestionnaireStep() {
         <section className={CARD} aria-labelledby="q-ai">
           <h2 id="q-ai" className="text-lg font-semibold">{t("research.questionnaire.aiTitle")}</h2>
           <p className="mt-1 text-sm text-ink-muted">{t("research.questionnaire.aiIntro")}</p>
-          <p className="mt-1 text-xs text-ink-muted">{t("research.questionnaire.aiBuildHelp")}</p>
           {!leadOwnsAiStarts ? (
             <AiButton variant="primary" className="mt-4" disabled={step.busy || analysis.busy} onClick={() => void build()}>
               {t("research.questionnaire.aiBuild")}
@@ -445,6 +445,22 @@ function Upload() {
         {status?.kind === "error" ? <p role="alert" className="mt-3 text-sm text-status-fault">{status.message}</p> : null}
       </div>
     </section>
+  );
+}
+
+/**
+ * "Sestavit s AI" on a questionnaire that already has items (QF-4): the AI does not build it anew
+ * (questionnaireView keeps the editor), so the choice says what AI does here instead and, in the
+ * workbench, asks the Lead in one click; elsewhere the toolbar's optimize button is the way.
+ */
+function AiOnExisting() {
+  const leadOwns = useLeadOwnsAiStarts();
+  const ask = useAskLead();
+  return (
+    <div role="status" className="flex flex-wrap items-center gap-3 rounded-card border border-border bg-surface-raised px-4 py-3 text-sm">
+      <span className="min-w-0 flex-1">{t(leadOwns ? "research.questionnaire.aiExisting.lead" : "research.questionnaire.aiExisting.optimize")}</span>
+      {leadOwns && ask ? <Button small onClick={() => ask(t("research.questionnaire.aiExisting.message"))}>{t("research.questionnaire.aiExisting.ask")}</Button> : null}
+    </div>
   );
 }
 
