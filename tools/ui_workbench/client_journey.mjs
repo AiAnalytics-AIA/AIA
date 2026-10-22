@@ -204,7 +204,9 @@ try {
   const panel = page.getByRole("complementary", { name: "Otevřená znalost" });
   await panel.getByRole("textbox", { name: "Shrnutí" }).fill("Upraveno cestou v prohlížeči.");
   await panel.getByRole("button", { name: "Uložit jako revizi 2" }).click();
-  await panel.getByText("r2").waitFor();
+  // The history's own row, exactly: the run's stamp names the item, folder and label, and a stamp
+  // holding "r2" made a substring match find four elements.
+  await panel.getByRole("listitem").getByText("r2", { exact: true }).waitFor();
   checks.push("The open item is edited into revision 2 and its history shows it");
 
   // A delete happens at once with Vrátit (I6): the folder goes, Vrátit makes it again with the item
