@@ -318,6 +318,28 @@ class ScopeRepository:
             organization_id=admin.organization_id, user_id=user["user_id"], role=role
         )
 
+    def record_role_denied(
+        self, admin: OrganizationContext, *, email: str, role: str, reason: str
+    ) -> None:
+        """Audit a refused role change (``owner_only`` / ``last_owner``): the attempt is the
+        security-relevant event. The caller commits it after rolling the refused change back,
+        so a refused grant to a new address leaves no user behind."""
+        address = email.strip().lower()
+        subject = self._session.scalar(select(UserRow.user_id).where(UserRow.email == address))
+        self._session.add(
+            AccessAuditRow(
+                organization_id=admin.organization_id,
+                subject_user_id=subject,
+                actor_id=admin.actor_id,
+                action="MEMBER_ROLE_DENIED",
+                role=role,
+                reason=reason,
+                payload={"email": address},
+                request_id=admin.request_id,
+            )
+        )
+        self._session.flush()
+
     def _guard_owner(
         self, admin: OrganizationContext, *, previous: str | None, role: str | None
     ) -> None:

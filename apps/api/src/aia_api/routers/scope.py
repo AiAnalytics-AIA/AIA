@@ -595,6 +595,13 @@ def list_members(admin: OrganizationDep, repo: ScopeRepositoryDep) -> list[Membe
     return [MemberResponse(**m) for m in repo.members(admin)]
 
 
+# The two refusals of the OWNER rule (security-audit-2026-10 S14), each said as what it is.
+_OWNER_REFUSALS = {
+    "owner_only": "Only an OWNER grants or removes the OWNER role.",
+    "last_owner": "The organization's last OWNER cannot be demoted or deactivated.",
+}
+
+
 @router.post(
     "/members",
     response_model=MemberResponse,
@@ -602,11 +609,13 @@ def list_members(admin: OrganizationDep, repo: ScopeRepositoryDep) -> list[Membe
     summary="Add a member",
 )
 def add_member(
-    body: MemberRequest, admin: OrganizationDep, repo: ScopeRepositoryDep
+    body: MemberRequest, admin: OrganizationDep, repo: ScopeRepositoryDep, session: SessionDep
 ) -> MemberResponse:
     """Add a user to the organization.
 
     Membership is the access (ADR 0019): the new member can open every client and study.
+    Only an OWNER grants or removes OWNER, and the last OWNER stays; a refused attempt is
+    audited and committed before the 403, which rolls the request back.
     """
     try:
         repo.add_member(
@@ -616,7 +625,19 @@ def add_member(
             display_name=body.display_name,
         )
     except ScopeDenied as exc:
-        raise _forbidden(exc) from exc
+        if exc.reason not in _OWNER_REFUSALS:
+            raise _forbidden(exc) from exc
+        session.rollback()
+        repo.record_role_denied(admin, email=body.email, role=body.role, reason=exc.reason)
+        session.commit()
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail={
+                "code": "insufficient_role",
+                "message": _OWNER_REFUSALS[exc.reason],
+                "details": {"reason": exc.reason},
+            },
+        ) from exc
 
     for member in repo.members(admin):
         if member["email"] == body.email.strip().lower():
