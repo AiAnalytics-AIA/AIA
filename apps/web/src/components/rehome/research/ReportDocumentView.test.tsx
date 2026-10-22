@@ -7,14 +7,14 @@ import { join } from "node:path";
 
 import { cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { t } from "@/i18n/t";
-import { afterEach, describe, expect, it, vi } from "vitest";
+import { afterEach, describe, expect, it, onTestFinished, vi } from "vitest";
 
 import { ApiError, research, type ResearchRun } from "@/lib/api";
 import { type ReportDocumentModel, type StoredReportDocument, valueWords } from "@/lib/artifacts/report";
 import { parseAiaId } from "@/lib/workbench-artifacts";
 
 import { StudyFrameProvider } from "./frame";
-import { ReportDocumentView, REPORT_APPROVED } from "./ReportDocumentView";
+import { CLIENT_SHOWN, ReportDocumentView, REPORT_APPROVED } from "./ReportDocumentView";
 import { TEST_FRAME } from "./test-frame";
 
 vi.mock("@/lib/api", async () => ({
@@ -203,15 +203,36 @@ describe("the client report, read here before it is approved (RD3)", () => {
     expect(screen.getByRole("button", { name: "Interní zpráva" })).toBeTruthy();
   });
 
-  it("reads its document again when the report card approves one of this run", async () => {
+  it("reads its document again when the report card approves the version it shows, and only then", async () => {
     vi.mocked(research.reportDocument).mockResolvedValueOnce(STORED).mockResolvedValue({ ...STORED, review_state: "APPROVED_INTERNAL", approved_on: "2026-10-22" });
     const { container } = show();
     await screen.findByRole("article", { name: "Koncept zprávy" });
     expect(container.querySelector("[data-report-docbar]")!.textContent).toContain("neschváleno");
-    window.dispatchEvent(new CustomEvent(REPORT_APPROVED, { detail: "RUN-other" }));
-    window.dispatchEvent(new CustomEvent(REPORT_APPROVED, { detail: "RUN-1" }));
+    const approved = (runId: string, artifactId: string) =>
+      window.dispatchEvent(new CustomEvent(REPORT_APPROVED, { detail: { runId, artifactId } }));
+    approved("RUN-other", "ART-docx");
+    approved("RUN-1", "ART-another-version");
+    approved("RUN-1", "ART-docx");
     await waitFor(() => expect(container.querySelector("[data-report-docbar]")?.textContent).not.toContain("neschváleno"));
-    expect(research.reportDocument).toHaveBeenCalledTimes(2); // another run's approval reads nothing
+    expect(research.reportDocument).toHaveBeenCalledTimes(2); // another run's or version's approval reads nothing
+  });
+
+  it("tells the report card the client version it shows, and reads that version again, never a newer draft", async () => {
+    vi.mocked(research.reportDocument).mockResolvedValue(STORED);
+    vi.mocked(research.clientReportDocument).mockRejectedValueOnce(new ApiError(404, "not_found", "Nenalezeno.", null)).mockResolvedValue({ ...CLIENT, review_state: "APPROVED_INTERNAL", approved_on: "2026-10-22" });
+    vi.mocked(research.prepareClientReport).mockResolvedValue(CLIENT);
+    const heard: unknown[] = [];
+    const listen = (e: Event) => heard.push((e as CustomEvent).detail);
+    window.addEventListener(CLIENT_SHOWN, listen);
+    onTestFinished(() => window.removeEventListener(CLIENT_SHOWN, listen));
+    const { container } = show(modelled());
+    await screen.findByRole("article", { name: "Koncept zprávy" });
+    fireEvent.click(screen.getByRole("button", { name: "Klientská zpráva" }));
+    fireEvent.click(await screen.findByRole("button", { name: "Připravit klientskou zprávu" }));
+    await waitFor(() => expect(heard).toEqual([{ runId: "RUN-1", artifactId: "ART-client", reviewState: "DRAFT_UNAPPROVED", approvedOn: null, stamped: false }]));
+    window.dispatchEvent(new CustomEvent(REPORT_APPROVED, { detail: { runId: "RUN-1", artifactId: "ART-client" } }));
+    await waitFor(() => expect(container.querySelector("[data-report-docbar]")?.textContent).not.toContain("neschváleno"));
+    expect(vi.mocked(research.clientReportDocument).mock.calls.at(-1)).toEqual([TEST_FRAME.studyId, "RUN-1", "ART-client"]);
   });
 
   it("offers no client report for a run that has none", async () => {

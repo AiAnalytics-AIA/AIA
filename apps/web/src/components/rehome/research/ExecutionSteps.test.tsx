@@ -4,7 +4,7 @@
 // say, start one run over that revision, explain a run waiting for the AI
 // runtime, hide a suppressed cell's numbers, label fictional data every time, and
 // keep the internal Sociomap internal.
-import { cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
+import { act, cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, onTestFinished, vi } from "vitest";
 
 import { t, tv } from "@/i18n/t";
@@ -14,7 +14,7 @@ import { measureAnchor } from "@/lib/result-reading";
 import { parseAiaId } from "@/lib/workbench-artifacts";
 import { CONFLICT_MESSAGE } from "@/research/store";
 import { RunResults, fixStep } from "./ExecutionSteps";
-import { CLIENT_PREPARED } from "./ReportDocumentView";
+import { CLIENT_SHOWN } from "./ReportDocumentView";
 import { StudyFrameProvider } from "./frame";
 import { ResearchScreen, ResearchSession } from "./ResearchScreen";
 import { CONTENT_PATH, workspaceFixture } from "./test-workspace";
@@ -2638,15 +2638,13 @@ describe("Results", () => {
     expect(report.queryByText(/interní použití/)).toBeNull();
   });
 
-  it("approves the client report a person prepared and read in AIA, with no download first (RD3)", async () => {
+  it("approves exactly the client version the document pane shows, with no download first (RD3)", async () => {
     api({
       ...listed(reportRun()),
       "GET /api/v1/studies/STU-1/research/runs/RUN-1/artifacts/ART-4": () => AGGREGATE,
       "GET /api/v1/studies/STU-1/research/runs/RUN-1/artifacts/ART-5": () => SOCIOMAP,
       "GET /api/v1/studies/STU-1/research/runs/RUN-1/report": () =>
         reportStatus({ synthetic: false, modelled: true, data_origin_kind: "MODELLED" }),
-      "GET /api/v1/studies/STU-1/research/runs/RUN-1/report/client/document": () =>
-        ({ run_id: "RUN-1", report_artifact_id: "ART-client", review_state: "DRAFT_UNAPPROVED", approved_on: null, stamped: true }),
       "POST /api/v1/studies/STU-1/research/runs/RUN-1/report/approve": () =>
         ({ run_id: "RUN-1", artifact_id: "ART-client", review_state: "APPROVED_INTERNAL", approved_on: "2026-10-18", stamped: true, report_kind: "client", internal_only: false }),
     });
@@ -2654,15 +2652,21 @@ describe("Results", () => {
     const report = await card();
     await waitFor(() => expect(report.getByRole("radio", { name: "Pro klienta" }).getAttribute("aria-disabled")).not.toBe("true"));
     fireEvent.click(report.getByRole("radio", { name: "Pro klienta" }));
+    // Nothing read yet: nothing to approve, and the card reads no version of its own.
+    expect(report.queryByRole("button", { name: t("research.exec.results.reportApproveClient") })).toBeNull();
+    // Another run's version is never this run's.
+    const shown = (runId: string, artifactId: string) =>
+      window.dispatchEvent(new CustomEvent(CLIENT_SHOWN, { detail: { runId, artifactId, reviewState: "DRAFT_UNAPPROVED", approvedOn: null, stamped: true } }));
+    act(() => shown("RUN-other", "ART-elsewhere"));
+    expect(report.queryByRole("button", { name: t("research.exec.results.reportApproveClient") })).toBeNull();
+    act(() => shown("RUN-1", "ART-client"));
     fireEvent.click(await report.findByRole("button", { name: t("research.exec.results.reportApproveClient") }));
     await confirmApproval("ART-client");
     await waitFor(() => expect(called("POST", "/api/v1/studies/STU-1/research/runs/RUN-1/report/approve")).toHaveLength(1));
     expect(called("POST", "/api/v1/studies/STU-1/research/runs/RUN-1/report/approve")[0].body).toEqual({ artifact_id: "ART-client", note: "" });
-    // A version the pane prepared is read by its id, never the newest draft in its place.
-    window.dispatchEvent(new CustomEvent(CLIENT_PREPARED, { detail: { runId: "RUN-1", artifactId: "ART-0000000000000002" } }));
-    await waitFor(() => expect(called("GET", "/api/v1/studies/STU-1/research/runs/RUN-1/report/client/document").some((c) => c.url.includes("artifact_id=ART-0000000000000002"))).toBe(true));
-    // Nothing left AIA to be approved.
+    // Nothing left AIA to be approved, and the card read no client version itself.
     expect(called("GET", "/api/v1/studies/STU-1/research/runs/RUN-1/report/client/download")).toHaveLength(0);
+    expect(called("GET", "/api/v1/studies/STU-1/research/runs/RUN-1/report/client/document")).toHaveLength(0);
   });
 
   it("offers the report's PDF when the run stored one, and says why when it could not", async () => {

@@ -93,13 +93,15 @@ report, read here before it is approved"); `ExecutionSteps.test.tsx` ("approves 
 prepared and read in AIA, with no download first"); `report_journey.mjs`. Next: deliverable downloads refused until
 approval (F17, "no unapproved internal-draft exception").
 
-*RD3, the client read pinned (`fix/report-client-pinned-read`, the coordinator's notes on #679):* `GET
-…/report/client/document?artifact_id=` reads one stored version of the run's client report (404 for any other), and
-the report card reads the version the pane prepared by its id (`CLIENT_PREPARED` names it), so after a contract
-rollback it never approves a newer draft than was read; the pane reads again when the card approves
-(`REPORT_APPROVED`). Tests: `test_the_client_report_is_prepared_to_be_read_without_a_download` (the pinned read, an
-unknown version, another client's study refused); `ReportDocumentView.test.tsx` ("reads its document again when the
-report card approves"); `ExecutionSteps.test.tsx` (the prepared version read by its id).
+*RD3, the client version read is the version approved (`fix/report-client-pinned-read`, the coordinator's notes on
+#679):* the report card no longer reads a client version of its own. The pane announces each client document it
+shows (`CLIENT_SHOWN`: run, version, review), and the card approves exactly that version (or the one it downloaded),
+kept by run. The pane reads the version it shows again by its id (`GET …/report/client/document?artifact_id=`, 404
+for one not this run's client report) when the card approves that version (`REPORT_APPROVED` names it), so a read
+again never shows a newer draft than was read. Tests: `test_the_client_report_is_prepared_to_be_read_without_a_download`
+(the pinned read, an unknown version, another client's study refused); `ReportDocumentView.test.tsx` ("tells the
+report card the client version it shows…", "reads its document again when the report card approves the version it
+shows"); `ExecutionSteps.test.tsx` ("approves exactly the client version the document pane shows").
 
 **RD4. The map snapshot: an approvable object rendered server-side from the stored map and camera parameters, never browser bytes; one ledger shape**  
 The existing approval writes subject `artifact` (`artifact_repository.py:568`) and M3 names `map_snapshot`; one is chosen and the other removed. S2 supplies the deterministic figure function. Interfaces I13.

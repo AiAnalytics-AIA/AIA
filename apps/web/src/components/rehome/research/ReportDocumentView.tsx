@@ -33,12 +33,14 @@ type Loaded =
   | { state: "failed"; message: string }
   | { state: "ready"; stored: StoredReportDocument; doc: ReportDocumentModel };
 
-/** Fired when the pane prepares a client report, naming the run and the version read, so the report
- *  card approves exactly that version. */
-export const CLIENT_PREPARED = "aia:client-report-prepared";
-export type ClientPrepared = { runId: string; artifactId: string };
-/** Fired when the report card approves a report of the run, so the pane reads its state again. */
+/** Fired each time the pane shows a client report: the run, the version shown and its review. The
+ *  report card approves exactly the version the person reads here (RD3), never one it read itself. */
+export const CLIENT_SHOWN = "aia:client-report-shown";
+export type ClientShown = { runId: string; artifactId: string; reviewState: string; approvedOn: string | null; stamped: boolean };
+/** Fired when the report card approves a version of the run's report, naming it, so the pane
+ *  showing that version reads its review again. */
 export const REPORT_APPROVED = "aia:report-approved";
+export type ReportApproved = { runId: string; artifactId: string };
 
 /** Which document the pane reads: the internal draft, or the client report (RD3). */
 type Kind = "internal" | "client";
@@ -48,10 +50,17 @@ type Kind = "internal" | "client";
 function useReportDocument(studyId: string, run: ResearchRun, kind: Kind): { loaded: Loaded; prepare: () => void } {
   const step = stepOf(run, "report");
   const ready = step?.status === "SUCCEEDED";
-  // Read again when the card approves a report of this run: the doc bar says what was approved.
+  // The client version this pane shows, by run: every later read names it, so a read again (after
+  // an approval) never shows a newer draft than the one the person read.
+  const pin = useRef<{ runId: string; artifactId: string } | null>(null);
+  const shown = useRef<string | null>(null);
+  // Read again when the card approves the version shown: the doc bar says what was approved.
   const [approvals, setApprovals] = useState(0);
   useEffect(() => {
-    const on = (e: Event) => { if ((e as CustomEvent<string>).detail === run.run_id) setApprovals((n) => n + 1); };
+    const on = (e: Event) => {
+      const got = (e as CustomEvent<ReportApproved>).detail;
+      if (got?.runId === run.run_id && got.artifactId === shown.current) setApprovals((n) => n + 1);
+    };
     window.addEventListener(REPORT_APPROVED, on);
     return () => window.removeEventListener(REPORT_APPROVED, on);
   }, [run.run_id]);
@@ -64,7 +73,17 @@ function useReportDocument(studyId: string, run: ResearchRun, kind: Kind): { loa
     read.then(
       (stored) => {
         const doc = readDocument(stored.document);
-        if (live()) setAnswer({ key: at, loaded: doc ? { state: "ready", stored, doc } : { state: "refused" } });
+        if (!live()) return;
+        setAnswer({ key: at, loaded: doc ? { state: "ready", stored, doc } : { state: "refused" } });
+        shown.current = doc ? stored.report_artifact_id : null;
+        if (doc && kind === "client") {
+          pin.current = { runId: run.run_id, artifactId: stored.report_artifact_id };
+          const detail: ClientShown = {
+            runId: run.run_id, artifactId: stored.report_artifact_id, reviewState: stored.review_state,
+            approvedOn: stored.approved_on, stamped: stored.stamped,
+          };
+          window.dispatchEvent(new CustomEvent<ClientShown>(CLIENT_SHOWN, { detail }));
+        }
       },
       (error: unknown) => {
         if (!live()) return;
@@ -82,21 +101,18 @@ function useReportDocument(studyId: string, run: ResearchRun, kind: Kind): { loa
         setAnswer({ key: at, loaded });
       },
     );
-  }, [kind]);
+  }, [kind, run.run_id]);
   useEffect(() => {
     if (!ready) return;
     let live = true;
-    const read = kind === "client" ? research.clientReportDocument : research.reportDocument;
-    settle(read(studyId, run.run_id), key, () => live);
+    const pinned = pin.current?.runId === run.run_id ? pin.current.artifactId : undefined;
+    const read = kind === "client" ? research.clientReportDocument(studyId, run.run_id, pinned) : research.reportDocument(studyId, run.run_id);
+    settle(read, key, () => live);
     return () => { live = false; };
   }, [studyId, run.run_id, key, ready, kind, settle]);
   const prepare = useCallback(() => {
     setAnswer({ key, loaded: { state: "loading" } });
-    settle(research.prepareClientReport(studyId, run.run_id).then((stored) => {
-      // The report card approves the version read here, never one it would have to download first.
-      window.dispatchEvent(new CustomEvent<ClientPrepared>(CLIENT_PREPARED, { detail: { runId: run.run_id, artifactId: stored.report_artifact_id } }));
-      return stored;
-    }), key, () => current.current === key);
+    settle(research.prepareClientReport(studyId, run.run_id), key, () => current.current === key);
   }, [key, settle, studyId, run.run_id]);
   if (!ready) return { loaded: { state: "none" }, prepare };
   return { loaded: answer?.key === key ? answer.loaded : { state: "loading" }, prepare };

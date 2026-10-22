@@ -448,6 +448,8 @@ def client_report_document(
     if not drafts:
         return None
     if version is not None:
+        if docx is not None:
+            raise ValueError("name the version once: docx or version")
         docx = next((a for a in drafts if a.artifact_id == version), None)
         if docx is None:
             return None
