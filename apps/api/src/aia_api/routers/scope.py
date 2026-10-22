@@ -172,6 +172,16 @@ class MemberResponse(BaseModel):
     display_name: str
     is_active: bool
     organization_role: str
+    #: The Metodik mark (D-14): stores and puts in force methodology versions.
+    methodologist: bool
+
+
+class MethodologistRequest(BaseModel):
+    """Grant or revoke the Metodik mark."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    methodologist: bool
 
 
 class SelfApprovalRequest(BaseModel):
@@ -644,6 +654,44 @@ def add_member(
         if member["email"] == body.email.strip().lower():
             return MemberResponse(**member)
     raise HTTPException(  # pragma: no cover - the member was just written
+        status_code=500, detail={"code": "internal_error", "message": "Member not found."}
+    )
+
+
+@router.put(
+    "/members/{user_id}/methodologist",
+    response_model=MemberResponse,
+    summary="Grant or revoke the Metodik mark",
+)
+def set_methodologist(
+    user_id: str,
+    body: MethodologistRequest,
+    admin: OrganizationDep,
+    repo: ScopeRepositoryDep,
+) -> MemberResponse:
+    """Grant or revoke the Metodik mark (D-14): only a marked member stores and puts in force a
+    methodology version. Only an OWNER may; the member must be of the OWNER's own
+    organization. Audited."""
+    try:
+        repo.set_methodologist(admin, user_id=user_id, methodologist=body.methodologist)
+    except ScopeDenied as exc:
+        if exc.reason == "not_a_member":
+            raise HTTPException(
+                status_code=404,
+                detail={"code": "not_found", "message": "No such member of the organization."},
+            ) from exc
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail={
+                "code": "insufficient_role",
+                "message": "Only an OWNER grants or revokes the Metodik mark.",
+                "details": {"reason": exc.reason},
+            },
+        ) from exc
+    for member in repo.members(admin):
+        if member["user_id"] == user_id:
+            return MemberResponse(**member)
+    raise HTTPException(  # pragma: no cover - the member was just read
         status_code=500, detail={"code": "internal_error", "message": "Member not found."}
     )
 

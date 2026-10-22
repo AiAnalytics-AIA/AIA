@@ -1056,7 +1056,7 @@ export const cs = {
           origin: { stored: "uložená verze", code: "z kódu" },
           pinNote:
             "Běh si metodiku v platnosti zapíše při spuštění a počítá podle ní; změna platí jen pro běhy spuštěné potom. Opakovaný běh si ponechá metodiku původního běhu.",
-          adminNote: "Upravit metodiku a uvést ji v platnost může vlastník nebo správce organizace; ostatní členové ji vidí a mohou si úpravu zkontrolovat.",
+          adminNote: "Upravit metodiku a uvést ji v platnost může jen člen se značkou Metodik (uděluje ji vlastník organizace); ostatní členové ji vidí a mohou si úpravu zkontrolovat.",
           list: "Uložené verze",
           none: "Žádná uložená verze: platí metodika z kódu.",
           current: "v platnosti",

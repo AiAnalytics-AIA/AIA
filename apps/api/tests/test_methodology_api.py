@@ -29,6 +29,15 @@ API = "/api/v1"
 METHODOLOGY = f"{API}/methodology"
 
 
+@pytest.fixture
+def owner(owner: TestClient) -> TestClient:
+    """The organization OWNER holding the Metodik mark (D-14), granted through the route."""
+    me = owner.get(f"{API}/workspace/me").json()
+    marked = owner.put(f"{API}/members/{me['user_id']}/methodologist", json={"methodologist": True})
+    assert marked.status_code == 200 and marked.json()["methodologist"] is True
+    return owner
+
+
 def _values(body: dict[str, Any]) -> dict[str, dict[str, Any]]:
     return {v["reference"]: v for s in body["step_details"] for v in s["values"]}
 
@@ -192,9 +201,22 @@ def test_a_member_reads_and_checks_but_cannot_change(who: str, as_user: Any) -> 
     assert versions.status_code == 200 and versions.json()["may_administer"] is False
     assert member.post(f"{SOCIOMAP}/check", json=_edit()).json()["valid"] is True
     proposed = member.post(f"{SOCIOMAP}/versions", json=_edit())
-    assert proposed.status_code == 403 and proposed.json()["code"] == "insufficient_role"
+    assert proposed.status_code == 403 and proposed.json()["code"] == "methodologist_required"
     put = member.put(f"{SOCIOMAP}/activation", json={"version_number": None})
     assert put.status_code == 403
+
+
+def test_an_owner_without_the_metodik_mark_reads_but_cannot_change(as_user: Any) -> None:
+    unmarked: TestClient = as_user("owner")
+    versions = unmarked.get(f"{SOCIOMAP}/versions").json()
+    assert versions["may_administer"] is True and versions["may_edit"] is False
+    proposed = unmarked.post(f"{SOCIOMAP}/versions", json=_edit())
+    assert proposed.status_code == 403 and proposed.json()["code"] == "methodologist_required"
+
+
+def test_the_marked_owner_may_edit(owner: TestClient) -> None:
+    assert owner.get(f"{SOCIOMAP}/versions").json()["may_edit"] is True
+    assert owner.get(f"{API}/workspace/me").json()["methodologist"] is True
 
 
 def test_with_nothing_stored_the_codes_preset_is_in_force(owner: TestClient) -> None:

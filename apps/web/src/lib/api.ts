@@ -705,7 +705,7 @@ export type MemoryReuse = {
 };
 export type MemoryReused = { study_id: string; created_study: boolean; revision: DesignRevision; source: DesignSource };
 
-export type Me = { user_id: string; email: string | null; organization_role: string; may_administer: boolean };
+export type Me = { user_id: string; email: string | null; organization_role: string; may_administer: boolean; methodologist: boolean };
 
 const enc = encodeURIComponent;
 const query = (q: Record<string, string | undefined>) => {
@@ -1730,7 +1730,7 @@ export type SettingsDocument = {
   vocabularies: Vocabularies;
 };
 
-export type Member = { user_id: string; email: string; display_name: string; is_active: boolean; organization_role: string };
+export type Member = { user_id: string; email: string; display_name: string; is_active: boolean; organization_role: string; methodologist: boolean };
 
 export type AdminClient = {
   client_id: string; slug: string; name: string; status: string; reference: string; study_count: number; created_at: string | null;
@@ -1953,7 +1953,7 @@ export type MethodActivation = {
 /** What a run started now pins: a stored version, or the code's preset. */
 export type MethodInForce = { origin: "stored" | "code"; preset: string | null; version_number: number | null; name: string };
 export type MethodVersions = {
-  in_force: MethodInForce; may_administer: boolean; presets: Record<string, Record<string, unknown>>;
+  in_force: MethodInForce; may_administer: boolean; may_edit: boolean; presets: Record<string, Record<string, unknown>>;
   versions: MethodVersion[]; history: MethodActivation[];
 };
 /** An edit: the whole specification and the formulas it replaces (by slot). */
