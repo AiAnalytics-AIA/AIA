@@ -13,7 +13,9 @@
  * turns automatic text edits on, sees the next turn's text edit accepted as automatic, reverts it
  * with Vrátit, and turns the choice off again. At 1099, 768 and 390 px it opens the conversation from
  * the launcher as a dialog, sends a message, keeps Tab inside and closes it with Escape back to the
- * launcher, and at 390 points at a question with "@". Nothing paid starts.
+ * launcher, and at 390 points at a question with "@". On Zadání at 1440, 768 and 390 it points at
+ * the last objective with "@", and the chip names that objective and no other (artifact-brief BRF6).
+ * Nothing paid starts.
  */
 import assert from "node:assert/strict";
 import { execSync } from "node:child_process";
@@ -246,13 +248,20 @@ try {
     await page.locator("[data-workbench]").waitFor({ timeout: 30000 });
     const objectives = page.locator("[data-aia^='objective:']");
     await objectives.first().waitFor({ timeout: 30000 });
-    // The last objective, not the first, so a pick that always lands on the first one fails.
-    const all = await objectives.evaluateAll((els) => els.map((el) => ({ aia: el.getAttribute("data-aia") ?? "", words: (el.querySelector("button")?.textContent ?? "").replace(/^Upravit:\s*/, "").trim().slice(0, 20) })));
+    // The last objective, not the first, so a pick that always lands on the first one fails. Each
+    // is known by its id and the start of its words (the chip cuts a label at 57); the starts must
+    // differ, or the check below could not tell two objectives apart.
+    const all = await objectives.evaluateAll((els) => els.map((el) => ({ aia: el.getAttribute("data-aia") ?? "", words: (el.querySelector("button")?.textContent ?? "").replace(/\s+/g, " ").trim().slice(0, 40) })));
     assert(all.length >= 2, `${width}: the fixture has at least two objectives`);
+    assert.equal(new Set(all.map((o) => o.words)).size, all.length, `${width}: the objectives' first 40 characters differ`);
     const picked = all[all.length - 1];
     const others = all.slice(0, -1);
     if (width < 1100) await page.locator("[data-lead-launcher]").click();
-    await page.waitForFunction(() => !document.querySelector("button[aria-label='Ukázat na prvek artefaktu (@)']")?.disabled, null, { timeout: 30000 });
+    // Present and enabled: a button not rendered yet is not "not disabled".
+    await page.waitForFunction(() => {
+      const at = document.querySelector("button[aria-label='Ukázat na prvek artefaktu (@)']");
+      return at !== null && !at.disabled;
+    }, null, { timeout: 30000 });
     await page.getByRole("button", { name: "Ukázat na prvek artefaktu (@)" }).click();
     if (width < 1100) await page.getByRole("dialog", { name: "Vedoucí výzkumu" }).waitFor({ state: "hidden" });
     await objectives.last().locator("span").first().click();

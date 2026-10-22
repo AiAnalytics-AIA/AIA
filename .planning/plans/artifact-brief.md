@@ -188,13 +188,24 @@ Every item is an `Item` (`src/components/ui.tsx:52`): edit in place, remove, mov
   an objective sets the chip at 1440 (split), 768 (drawer) and 390 (sheet), no overflow, nothing
   paid. Still to come: the scripted Lead focusing `objective:<id>` with the drawer closing to peek
   (asked of the coordinator: `scripted_lead_output` focuses questions or `brief:title` only).
+- Steps in `tools/ui_workbench/workbench_journey.mjs`, at 1440, 1100, 768 and 390 px:
+  - an objective is edited in place and read back after a reload;
+  - the scripted Lead focuses `objective:<id>`, and the drawer closes to `peek` at 768 and 390 px;
+  - "@" then a click sets the Vidí chip.
+- The usage ledger's paid rows are unchanged.
+- 768 and 390 px depend on `research-lead-workbench#26b`-`#26d`.
 
-**Findings**
-- F-BRF-1 (UX, asked of the coordinator 2026-10-21): a picked objective's chip reads its raw id
-  ("Cíl obj_6393c6bada"), not its words. `apps/web/src/lib/lead.ts` `targetOfElement` appends only
-  a heading or label inside a `data-aia` element, and an item row has none. Repro:
-  `node tools/ui_workbench/lead_journey.mjs`, `tmp/ui-workbench/lead-journey/390-brief-picked.png`.
-  Fix: fall back to the element's own text (cut to 60). Test: a `lead.test.ts` case.
+## 7a. Findings
+
+- F-BRF-1 (UX, asked of the coordinator 2026-10-21, #647): a picked objective's chip reads its raw id
+  ("Cíl obj_6393c6bada"), not its words.
+  - Anchor: `apps/web/src/lib/lead.ts:516 @ b1a73536`. `targetOfElement` appends only a heading or
+    label inside a `data-aia` element, and an item row has none.
+  - Repro: `node tools/ui_workbench/lead_journey.mjs`, then `tmp/ui-workbench/lead-journey/390-brief-picked.png`.
+  - Consequence: the person sees an id where the objective's words belong.
+  - Fix: read the row's InlineText value. Not the row's whole text, which carries the number, the
+    screen-reader "Upravit: Cíl N" and the "×".
+  - Test: a `lead.test.ts` case over an objective row.
 - F-BRF-2 (journey flake, reported to the coordinator 2026-10-22): the drawer step's wait for the
   composer's focus times out intermittently at 1099 px.
   - Anchor: `tools/ui_workbench/lead_journey.mjs:198 @ b1a73536`, the wait
@@ -210,13 +221,6 @@ Every item is an `Item` (`src/components/ui.tsx:52`): edit in place, remove, mov
     routed by the PM.
   - Test: the journey passes 5 of 5 fresh runs at 1099 px.
 
-- Steps in `tools/ui_workbench/workbench_journey.mjs`, at 1440, 1100, 768 and 390 px:
-  - an objective is edited in place and read back after a reload;
-  - the scripted Lead focuses `objective:<id>`, and the drawer closes to `peek` at 768 and 390 px;
-  - "@" then a click sets the Vidí chip.
-- The usage ledger's paid rows are unchanged.
-- 768 and 390 px depend on `research-lead-workbench#26b`-`#26d`.
-
 ## 8. Owner questions
 
 None. Where assumptions are shown (B-6) and the absence of a decision list (B-2, D-44) are settled.
@@ -225,5 +229,6 @@ None. Where assumptions are shown (B-6) and the absence of a decision list (B-2,
 
 - `mvp-master-plan.md` §3 and `mvp-execution-contracts.md`: register this plan and its chunks (see the
   PR body).
-- `open-items.md`: F-BRF-2, `lead_journey.mjs:198` composer-focus timeout at 1099 px (above).
+- `open-items.md`: F-BRF-1, the objective chip reads its raw id (§ 7a).
+- `open-items.md`: F-BRF-2, `lead_journey.mjs:198` composer-focus timeout at 1099 px (§ 7a).
 - `CLAUDE.md` § 2, when BRF1 lands: `apps/web/src/lib/artifacts/` (one contract per artifact).
