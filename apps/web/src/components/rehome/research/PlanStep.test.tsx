@@ -6,6 +6,7 @@ import { afterEach, beforeEach, describe, expect, it, onTestFinished, vi } from 
 
 import { AGENTS_PATH, DESIGN_PATH, NATIVE_JOB_WAIT, NATIVE_TEST_TIMEOUT_MS, approveProposal, nativeAgentFixture } from "./test-native-agents";
 import { briefFingerprint, defaultsMerge } from "@/research/model";
+import { FrameNavigation } from "../step";
 import { ResearchScreen } from "./ResearchScreen";
 import { workspaceFixture } from "./test-workspace";
 import { TEST_FRAME, stagePath } from "./test-frame";
@@ -401,6 +402,28 @@ describe("Návrh", () => {
     render(<ResearchScreen step="plan" frame={TEST_FRAME} />);
     fireEvent.click(await screen.findByRole("button", { name: /Další · dotazník/ }));
     expect(push).toHaveBeenCalledWith(stagePath("questionnaire"));
+  });
+
+  it("inside the workbench goes on through the frame's next stage, and not while a refused draft is held", async () => {
+    unitStub();
+    const go = vi.fn();
+    render(<FrameNavigation.Provider value={{ next: { label: "Dotazník", go } }}><ResearchScreen step="plan" frame={TEST_FRAME} /></FrameNavigation.Provider>);
+    // A set's question refused at its field: the move asks first, and "Zrušit" stays before the frame is asked.
+    fireEvent.click(await screen.findByRole("button", { name: /^Upravit: Otázka sady · položí se ke každé položce · Varianty nápoje/ }));
+    const question = screen.getByRole("textbox", { name: "Otázka sady · položí se ke každé položce · Varianty nápoje" });
+    fireEvent.change(question, { target: { value: "Bez zástupného textu" } });
+    fireEvent.keyDown(question, { key: "Enter", ctrlKey: true });
+    expect(await screen.findByText(/musí obsahovat \{object\}/)).toBeTruthy();
+    fireEvent.click(screen.getByRole("button", { name: /Další · dotazník/ }));
+    expect(await screen.findByText(/nejdou uložit a zůstaly v poli/)).toBeTruthy();
+    fireEvent.click(screen.getByRole("button", { name: "Zrušit" }));
+    await waitFor(() => expect(screen.queryByText(/nejdou uložit a zůstaly v poli/)).toBeNull());
+    expect(go).not.toHaveBeenCalled();
+    fireEvent.keyDown(screen.getByRole("textbox", { name: "Otázka sady · položí se ke každé položce · Varianty nápoje" }), { key: "Escape" });
+    // The frame's go opens Dotazník through guardedNavigate and focuses its heading (Workbench's).
+    fireEvent.click(screen.getByRole("button", { name: /Další · dotazník/ }));
+    await waitFor(() => expect(go).toHaveBeenCalledTimes(1));
+    expect(push).not.toHaveBeenCalled();
   });
 });
 

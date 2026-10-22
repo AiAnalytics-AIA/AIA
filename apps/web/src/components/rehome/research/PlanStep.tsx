@@ -10,7 +10,7 @@
 // it. The inline editors call the same functions the classic prompts did.
 
 import { useRouter } from "next/navigation";
-import { type ReactNode, useEffect, useRef, useState } from "react";
+import { type ReactNode, useContext, useEffect, useRef, useState } from "react";
 
 import { t, tv } from "@/i18n/t";
 import { hashTarget } from "@/lib/answerability";
@@ -48,7 +48,7 @@ import { type SetField, applyPlanSets, objectProblem, proposalAnalysis, setField
 import { DesignCoverage } from "./DesignCoverage";
 import { PlanNarrative } from "./PlanNarrative";
 import { Icon, type IconName } from "../icons";
-import { ActionDock, ChipInput, InlineConfirm, StepSection } from "../step";
+import { ActionDock, ChipInput, FrameNavigation, InlineConfirm, StepSection } from "../step";
 import { AiButton, Button } from "../ui";
 import { InlineText } from "../../ui/InlineText";
 import { useResearch } from "./context";
@@ -89,6 +89,8 @@ export function PlanStep() {
   const sampleLimits = useSampleLimits(frame.studyId);
   const setLimits = readySetLimits(sampleLimits);
   const router = useRouter();
+  // Inside the workbench the frame opens the next stage (its leave guard, its heading's focus); outside it, the route.
+  const frameNav = useContext(FrameNavigation);
   const { analyse, resume, failure, busy } = useAnalysis();
   const a = proposalAnalysis(state);
   const p = state.project;
@@ -141,7 +143,7 @@ export function PlanStep() {
   const next = async () => {
     if (held() && !(await confirm(t("research.plan.setField.leave")))) return;
     store.update(({ project }) => ({ project: toQuestionnaire(project) }), { reason: "questionnaire_path", invalidateCheck: false });
-    router.push(stepHref("questionnaire"));
+    if (frameNav?.next) frameNav.next.go(); else router.push(stepHref("questionnaire"));
   };
   const short = sets.find((s) => outOfRange(s, setLimits));
   const dock = (

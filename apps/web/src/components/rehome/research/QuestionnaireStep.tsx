@@ -79,10 +79,11 @@ import {
 import type { ResearchProject } from "@/research/model";
 import { COMPARISONS, CONCEPT_TEST, comparisonOf, danglingLinks, linkKey, linksOf, researchQuestionsOf, setComparison, setConceptTest, toggleQuestionLink, toggleSectionLink, togglesConceptTest } from "@/research/trace";
 import { Icon, type IconName } from "../icons";
-import { ActionDock, ChipInput, InlineConfirm, Segmented, Switch } from "../step";
+import { ActionDock, ChipInput, FrameNavigation, InlineConfirm, Segmented, Switch } from "../step";
 import { ChoiceChips } from "@/components/ui/ChoiceChips";
 import { InlineCreateRow } from "@/components/ui/InlineCreateRow";
 import { InlineText } from "@/components/ui/InlineText";
+import { TOUCH } from "@/components/ui/parts";
 import { editKeyAction } from "@/lib/inline-edit";
 import { AiButton, Button } from "../ui";
 import { isNativeResult } from "@/lib/research-agent-jobs";
@@ -169,6 +170,8 @@ const OpenPlace = createContext<(id: string) => void>((id) => void openPlace(id,
 export function QuestionnaireStep() {
   const { store, state, template, runJob, toast, stepHref } = useResearch();
   const router = useRouter();
+  // Inside the workbench the frame opens the next stage (its leave guard, its heading's focus); outside it, the route.
+  const frameNav = useContext(FrameNavigation);
   const analysis = useAnalysis();
   const step = useAiStep();
   const leadOwnsAiStarts = useLeadOwnsAiStarts();
@@ -185,7 +188,7 @@ export function QuestionnaireStep() {
   // continueQuestionnaireToAudience: the run check and the final review are cleared.
   const toAudienceStep = () => {
     store.update(({ project }) => ({ project: toAudience(project) }), { reason: "questionnaire_done" });
-    router.push(stepHref("audience"));
+    if (frameNav?.next) frameNav.next.go(); else router.push(stepHref("audience"));
   };
 
   // buildQuestionnaire: the analysis first (reused when the brief is the same), then the job.
@@ -866,8 +869,13 @@ function QuestionCard({ n, q, si, sectionId, qi, update }: { n: number; q: Quest
   const hint = `${questionElementId(q)}_missing`;
   return (
     <div id={questionElementId(q)} data-aia={marks.questions[si]?.[qi]} data-unworded={unworded || undefined} className={`scroll-mt-40 rounded-card border bg-surface-raised p-4 ${FOCUS} ${unworded ? "border-status-you shadow-[0_0_0_3px_var(--color-status-you-wash)]" : "border-border"}`}>
-      <div className="flex flex-wrap items-center gap-2">
-        <span className="rounded-md bg-signal-wash px-1.5 py-0.5 font-mono text-xs font-semibold text-signal" title={String(q.id || "")}>Q{n}</span>
+      {/* The number and the × keep the row's ends; the type chips wrap between them, so on a phone
+          the × stays beside its question's number instead of falling to a row of its own. Both ends
+          take a chip's height (TOUCH), so they sit level with the chips' first row. */}
+      <div className="grid grid-cols-[auto_minmax(0,1fr)_auto] items-start gap-2">
+        <span className={`flex items-center ${TOUCH}`}>
+          <span className="rounded-md bg-signal-wash px-1.5 py-0.5 font-mono text-xs font-semibold text-signal" title={String(q.id || "")}>Q{n}</span>
+        </span>
         <ChoiceChips
           label={t("research.questionnaire.questionType")}
           value={typeKey(typ)}
@@ -877,7 +885,7 @@ function QuestionCard({ n, q, si, sectionId, qi, update }: { n: number; q: Quest
         <Button
           small
           variant="quiet"
-          className="ml-auto"
+          className={TOUCH}
           aria-label={tv("research.questionnaire.removeQuestion", { number: `Q${n}` })}
           onClick={() => {
             update((p) => removeQuestion(p, si, qi));

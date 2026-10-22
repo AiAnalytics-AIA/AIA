@@ -99,6 +99,8 @@ describe("Dotazník's block and set fields", () => {
 
   it("edits a set's object type and common question in place, refusing a question without {object}", async () => {
     render(<ResearchScreen step="questionnaire" frame={TEST_FRAME} />);
+    // The set's output in Czech, as a person reads it (the browser audit: "validačním gate").
+    expect(await screen.findByText(/mapa položek, když sada projde Kontrolou a odpovědí na mapu bude dost\./)).toBeTruthy();
     await open("Upravit: Typ sledovaných objektů média");
     const type = screen.getByRole("textbox", { name: "Typ sledovaných objektů" });
     fireEvent.change(type, { target: { value: "kanály" } });

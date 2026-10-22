@@ -277,8 +277,21 @@ warning. So a set of 3, or of 16-40, was listed as feeding nothing. Fix (Q75 (a)
 only the 41st, and keep refusing under four. Tests: `readers.test.ts`, `questionnaire-set-limits.test.ts`
 (the four limits held to TRACKED_SET_LIMITS), `QuestionnaireFields.test.tsx`, `PlanStep.test.tsx`.
 
+*Finding QF-9 (browser audit, 2026-10-22):* at 390 px a question's × falls to a row of its own,
+130 px below its number: the type chips wrap and `ml-auto` takes the × with them
+(`QuestionnaireStep.tsx:869-880 @ 54c44279`). Fix (fix/questionnaire-audit-390): the card's top row
+is a grid, the number and the × at its ends, each a chip's height (TOUCH), and the chips wrapping
+between them. Test: the journey
+asserts the × overlaps its number's row at 1440, 1100, 768 and 390 px (130 px apart before the fix).
+
+*Finding QF-10 (browser audit, 2026-10-22):* a set's output note ends "pokud projde validačním
+gate", half English and naming no rule a person can check (`cs.ts:2230 @ 54c44279`). Fix: "mapa
+položek, když sada projde Kontrolou a odpovědí na mapu bude dost" (Kontrola refuses a set by its
+size or familiarity; the map needs enough answers per pair, readiness's sociomap_support). Test: `QuestionnaireFields.test.tsx`.
+
 ## Doc follow-up
 
 - open-items.md: number QF-7 (the question's × named by its stored id), closed by fix/questionnaire-remove-label.
 - open-items.md: number QF-8 (Závislosti held sets the compiler takes), closed by feature/questionnaire-set-hard-max.
+- open-items.md: number QF-9 (a question's × on a row of its own at 390 px) and QF-10 ("validačním gate"), closed by fix/questionnaire-audit-390.
 - Register this plan and its chunks. `research-lead-workbench#7`'s questionnaire half is QST5.

@@ -7,7 +7,7 @@ chunks:
   - "[ ] 4. The API refuses a client or study name of spaces"
   - "[ ] 5. A run's methodology receipt reports its readiness pin"
   - "[x] 6. A slow rename's answer leaves focus where the person went"
-  - "[ ] 7. InlineText's refocus after Enter waits for nothing the person moved"
+  - "[x] 7. InlineText's refocus after Enter waits for nothing the person moved"
 ---
 # UX audit, 2026-10: the areas outside the study stages
 
@@ -104,12 +104,12 @@ The CI flake in `KnowledgeLibrary.test.tsx` › "renames a label on F2 and recol
 swatch": `useRenaming`'s refocus ran when the save answered and took focus from the colour list the
 person had opened meanwhile. #735 refocuses only when focus is on the page.
 
-### F7. InlineText refocuses its shown value a frame after Enter (hypothesis)
+### F7. InlineText refocused its shown value a frame after Enter (fixed by #746)
 
 1. Claim: on Enter, `commit(true)` schedules `requestAnimationFrame(() => shown.current?.focus())`
    while the save is in flight, so a person who moves within that frame can lose focus.
 2. Anchor: `apps/web/src/components/ui/InlineText.tsx:96 @ 4568badd`.
-3. Repro: not reproduced; it needs a move within one frame (/code-review on #735).
+3. Repro: `InlineText.test.tsx` › "gives focus back to the value only if the person has not moved it before the next frame" (fails on develop before #746).
 4. Consequence: focus jumps back into the field's row after Enter on a loaded machine.
 5. Smallest fix: focus only when `document.activeElement` is still in the field or on the page.
 6. Test: an InlineText test that moves focus before the frame runs.
