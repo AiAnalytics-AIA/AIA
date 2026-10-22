@@ -983,7 +983,7 @@ jobs:
       # every installed third-party distribution, frozen, instead.
       - name: Audit Python dependencies
         run: |
-          pip install -e "packages/aia_core[postgres,s3,report,bedrock,documents]" -e "apps/worker" -e "apps/executors" -e "apps/api"
+          pip install -e "packages/aia_core[postgres,s3,report,bedrock,documents,errors]" -e "apps/worker" -e "apps/executors" -e "apps/api"
           pip freeze --all --exclude-editable > "$RUNNER_TEMP/third-party.txt"
           pip-audit --strict --no-deps --disable-pip -r "$RUNNER_TEMP/third-party.txt"
 
