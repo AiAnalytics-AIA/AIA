@@ -22,7 +22,7 @@ import { jobCostAsked } from "@/lib/research-agent-jobs";
 import { appRoutes } from "@/lib/app-routes";
 import { guardedNavigate } from "@/lib/guarded-navigation";
 import {
-  applyLeadEdit, autoAcceptPlan, describeEdit, editRefusalWords, editStage, focusSelector, revertTextEdit, targetLabel, targetOfElement, textEditInverse,
+  LEAD_REASON_WORDS, STALE_CARD_QUESTION, applyLeadEdit, autoAcceptPlan, describeEdit, editRefusalWords, editStage, focusSelector, revertTextEdit, targetLabel, targetOfElement, textEditInverse,
   type LeadEdit, type LeadRequest, type LeadTurn, type LeadView, type ResearcherLead,
 } from "@/lib/lead";
 import {
@@ -378,9 +378,10 @@ export function Workbench({ frame, step, store, memory, save, inspector, reload,
     }
     await store.flush();
     let confirmUsd: number | undefined;
+    let onRevision: number | undefined;
     for (;;) {
       try {
-        const started = await leadApi.approveRequest(frame.studyId, turn.turn_id, confirmUsd);
+        const started = await leadApi.approveRequest(frame.studyId, turn.turn_id, confirmUsd, onRevision);
         onAgentStarted(started.run_id);
         setLeadEpoch((n) => n + 1);
         return;
@@ -392,7 +393,13 @@ export function Workbench({ frame, step, store, memory, save, inspector, reload,
           confirmUsd = ceiling;
           continue;
         }
-        setNotice(e instanceof ApiError ? e.message : String(e));
+        // The design moved since the card was prepared (LO10): it runs on the current one only on a yes.
+        if (e instanceof ApiError && e.code === "stale_card" && onRevision === undefined && typeof e.details.current_revision === "number") {
+          if (!(await confirm(STALE_CARD_QUESTION))) throw e;
+          onRevision = e.details.current_revision;
+          continue;
+        }
+        setNotice(e instanceof ApiError ? LEAD_REASON_WORDS[e.code] ?? e.message : String(e));
         throw e;
       }
     }

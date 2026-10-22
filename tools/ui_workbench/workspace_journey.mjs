@@ -120,6 +120,17 @@ if ((await page.getByRole("textbox", { name: "Cíl výzkumu", exact: true }).inp
 ok("Zadání: goal and attachment read back from AIA after a reload");
 await text("B · odvozené od klienta", "the attachment's data class");
 ok("Zadání: the attachment shows the class the server's rule gives it (BRF3)");
+
+// Rozhodnutí, edited where it is shown (artifact-brief BRF2): open, type, Ctrl+Enter, saved, read back.
+const DECISION = "Rozhodneme, zda změnit kampaň (fiktivní).";
+await page.getByRole("button", { name: /^Upravit: Jaké rozhodnutí uděláte/ }).click();
+const decisionSave = saved();
+await page.getByRole("textbox", { name: "Jaké rozhodnutí uděláte" }).fill(DECISION);
+await page.getByRole("textbox", { name: "Jaké rozhodnutí uděláte" }).press("Control+Enter");
+await decisionSave;
+await page.reload({ waitUntil: "load" });
+await text(DECISION, "the decision after a reload");
+ok("Zadání: Rozhodnutí edited in place and read back from AIA after a reload (BRF2)");
 const [download] = await Promise.all([page.waitForEvent("download", { timeout: 60000 }), page.getByRole("button", { name: `Stáhnout přílohu ${FILE.name}` }).click()]);
 const fileBack = readFileSync(await download.path(), "utf8");
 if (fileBack !== FILE.body) fail(`the downloaded file differs: ${JSON.stringify(fileBack)}`);
@@ -131,6 +142,17 @@ await page.locator('input[type="file"][aria-label="Soubory k zadání"]').setInp
 await text("Nepodařilo se uložit · soubor je prázdný", "the empty file's refusal in Czech");
 if (requests.filter((r) => r.url.endsWith("/workspace/attachments") && r.method === "POST").length !== attachesBefore) fail("an empty file was sent");
 ok("Zadání: an empty file refused before it is sent, said in Czech");
+// Removing a material happens at once, with Vrátit (input-interactions I6, audit A28).
+// The removal saves first (Vrátit stays offered for 8 s, past the 1.8 s save), then the restore.
+const removedSave = saved();
+await page.getByRole("button", { name: `Odebrat ${FILE.name}` }).click();
+await removedSave;
+const restored = saved();
+await page.getByRole("button", { name: "Vrátit" }).click();
+await restored;
+await page.reload({ waitUntil: "load" });
+await text(FILE.name, "the attachment after Vrátit and a reload");
+ok("Zadání: a removed attachment comes back with Vrátit, saved (A28)");
 // A link that is not http(s) is said at its field and checked again as it is typed (I9, audit A26).
 const linkField = page.getByRole("textbox", { name: "Odkaz" });
 await linkField.fill("example.test");

@@ -220,9 +220,10 @@ describe("Dotazník", () => {
     unitStub({ ...BRIEF, research_plan: plan, sections: SECTIONS, ui_state: { questionnaire_path: "manual" } });
     render(<ResearchScreen step="questionnaire" frame={TEST_FRAME} />);
     const panel = await screen.findByRole("region", { name: "Jak výzkumné otázky zodpovíme" });
-    const media = within(panel).getByLabelText("Způsob odpovědi na „Která média lidé používají?“") as HTMLSelectElement;
-    expect(media.value).toBe("");
-    fireEvent.change(media, { target: { value: "rank_objects" } });
+    // One of five, chosen as chips (input-interactions chunk 3, audit A11): "Neurčeno" until chosen.
+    const media = within(panel).getByRole("radiogroup", { name: "Způsob odpovědi na „Která média lidé používají?“" });
+    expect(within(media).getByRole("radio", { checked: true }).textContent).toBe("Neurčeno");
+    fireEvent.click(within(media).getByRole("radio", { name: "Pořadí položek sady" }));
     await saved();
     await waitFor(() => expect(lastSave().reason).toBe("research_question_comparison"));
     const content = lastSave().content as unknown as { research_plan: { research_question_comparisons?: Record<string, string>; research_questions: string[] } };
@@ -481,5 +482,21 @@ describe("Dotazník", () => {
     expect(push).toHaveBeenCalledWith(stagePath("audience"));
     await saved();
     expect(lastSave()).toMatchObject({ reason: "questionnaire_done", content: { ui_state: { audience_entry: "choose" } } });
+  });
+
+  it("says what Sestavit s AI does once the questionnaire has items, and claims no provider choice (QF-4, QF-5)", async () => {
+    unitStub({ ...BRIEF, sections: SECTIONS, ui_state: { questionnaire_path: "manual" } });
+    render(<ResearchScreen step="questionnaire" frame={TEST_FRAME} />);
+    fireEvent.click(await screen.findByRole("radio", { name: "Sestavit s AI" }));
+    expect(await screen.findByText("Dotazník už má otázky, takže ho AI znovu nesestaví: úpravy navrhne „Optimalizovat dotazník s AI“.")).toBeTruthy();
+    expect(screen.getByRole("button", { name: "Optimalizovat dotazník s AI" })).toBeTruthy();
+    fireEvent.click(screen.getByRole("radio", { name: "Náhled respondenta" }));
+    expect(screen.queryByText(/technický editor je pod ní/)).toBeNull();
+    expect(screen.getByText(/Upravíte je v režimu Upravit/)).toBeTruthy();
+    cleanup();
+    unitStub({ ...BRIEF, ui_state: { questionnaire_path: "ai" } });
+    render(<ResearchScreen step="questionnaire" frame={TEST_FRAME} />);
+    expect(await screen.findByRole("heading", { name: "Dotazník s AI" })).toBeTruthy();
+    expect(screen.queryByText(/Provider\/model/)).toBeNull();
   });
 });

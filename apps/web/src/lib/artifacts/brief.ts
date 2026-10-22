@@ -24,14 +24,14 @@ export const BRIEF_FIELDS = [
   "goal",
   "title",
   "objectives",
-  "type",
-  "files",
+  "decision_use",
   "context",
   "briefing.product_description",
-  "decision_use",
   "briefing.situation",
   "briefing.what_is_known",
   "briefing.constraints",
+  "type",
+  "files",
 ] as const;
 
 export type BriefField = (typeof BRIEF_FIELDS)[number];
