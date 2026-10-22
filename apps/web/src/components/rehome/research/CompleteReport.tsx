@@ -35,6 +35,7 @@ import { type Ask, AskDialog, Button, Select } from "../ui";
 import { Icon } from "../icons";
 import { canReview } from "./frame";
 import { useFrame } from "./frame-hook";
+import { CLIENT_PREPARED } from "./ReportDocumentView";
 
 type Part = { label: string; detail: string; state: "in" | "pending" | "later" | "excluded" };
 type Version = "internal" | "client";
@@ -150,6 +151,27 @@ export function CompleteReport({ run, review = null, onReview }: { run: Research
     approvedOn: string | null;
     stamped: boolean | null;
   } | null>(null);
+  // The client version stored for this run, read without composing (RD3): prepared in the
+  // document pane, it is approvable here with no download first. A read that finds none (404)
+  // or is refused leaves what the card knew; a download still prepares it.
+  const [prepared, setPrepared] = useState(0);
+  useEffect(() => {
+    const on = (e: Event) => { if ((e as CustomEvent<string>).detail === run.run_id) setPrepared((n) => n + 1); };
+    window.addEventListener(CLIENT_PREPARED, on);
+    return () => window.removeEventListener(CLIENT_PREPARED, on);
+  }, [run.run_id]);
+  useEffect(() => {
+    if (version !== "client") return;
+    let live = true;
+    research.clientReportDocument(frame.studyId, run.run_id).then(
+      (stored) => {
+        if (!live || typeof stored?.report_artifact_id !== "string") return;
+        setClient({ artifactId: stored.report_artifact_id, reviewState: stored.review_state, approvedOn: stored.approved_on, stamped: stored.stamped });
+      },
+      () => undefined,
+    );
+    return () => { live = false; };
+  }, [version, prepared, frame.studyId, run.run_id]);
   const [busy, setBusy] = useState(false);
   const [ask, setAsk] = useState<Ask | null>(null);
   const [error, setError] = useState<string | null>(null);
