@@ -12,7 +12,9 @@ import { useRouter } from "next/navigation";
 import { type ReactNode, useCallback, useContext, useEffect, useRef, useState } from "react";
 
 import { t, tv } from "@/i18n/t";
+import { blockedModules } from "@/lib/analysis-blocked";
 import { findingAnchor } from "@/lib/analysis-coverage";
+import { stageOf } from "@/lib/workbench-stages";
 import { analysisTarget, chipKey, claimMarks, type AnalysisModuleKind, type ChipPlace } from "@/lib/artifacts/analysis";
 import {
   ApiError,
@@ -43,6 +45,7 @@ import { clientChildren, outcomeValue, targetVerdict } from "@/lib/population";
 import { latestDesignRun, questionEvidence } from "@/lib/design-evidence";
 import { citedSnapshot } from "@/lib/verified-source";
 import { researchStepOrb, researchStepWork } from "@/lib/activity-orb";
+import { RECEIPT_TARGET, stepTarget } from "@/lib/artifacts/fieldwork";
 import { FOCUS, TOUCH } from "@/components/ui/parts";
 import { activityOf } from "@/lib/step-activity";
 import { type BatteryWithMaps, mapApproval, readObjectMap, type RecordedMethod, type RegisterEntry } from "@/lib/object-map-view";
@@ -92,6 +95,7 @@ import { codedText, codeWords } from "@/lib/reason-words";
 import { withBudget } from "@/lib/budget-line";
 import { reportStatus, reportStatusWords } from "@/lib/report-status";
 import type { Tone } from "@/lib/tone";
+import { AnalysisBlocked, ViolationList } from "./AnalysisBlocked";
 import { AnalysisCoverage, AnalysisMilestones } from "./AnalysisCoverage";
 import { setShownAnalysis } from "./AnalysisInspect";
 import { CodedWords } from "./CodedWords";
@@ -194,7 +198,7 @@ function OriginBanners({ run }: { run: ResearchRun }) {
  * the origin its data reports, a mismatch named -- the population it recorded and whether it was
  * read, and each selected dimension and filter, applied or not and why.
  */
-function RespondentsReceipt({ run }: { run: ResearchRun }) {
+function RespondentsReceipt({ run, pointable = false }: { run: ResearchRun; pointable?: boolean }) {
   const R = "research.exec.respondents.receipt";
   const who = respondentReceipt(run);
   const sel = run.selection;
@@ -214,6 +218,8 @@ function RespondentsReceipt({ run }: { run: ResearchRun }) {
     rows.push([t(`${R}.filters`), filters.length ? `${filters.join(", ")} · ${applied(sel.filters_applied, sel.filters_reason)}` : t(`${R}.none`)]);
   }
   return (
+    // Pointable only on Sběr dat, whose row names the receipt; Výsledky's names measures alone.
+    <div data-aia={pointable ? RECEIPT_TARGET : undefined}>
     <Card title={t(`${R}.title`)}>
       {who.mismatch ? <p role="alert" className="mb-2 text-sm font-semibold text-status-fault">{t(`${R}.mismatch`)}</p> : null}
       {/* Label beside value only where the card itself is wide enough; above it on a narrow card. */}
@@ -227,6 +233,7 @@ function RespondentsReceipt({ run }: { run: ResearchRun }) {
       </dl>
       {sel === null || sel === undefined ? <p className="mt-2 text-xs text-ink-muted">{t(`${R}.unrecorded`)}</p> : null}
     </Card>
+    </div>
   );
 }
 
@@ -1060,22 +1067,29 @@ function useRun(): [ResearchRun | null | undefined, () => void, (r: ResearchRun)
 type Repairable = { modules: string[]; stale: string[] };
 
 function useRetryableModules(run: ResearchRun | null | undefined): Repairable | null {
+  const read = useRetryableRead(run);
+  return read && read.modules.length ? read : null;
+}
+
+/** The server's retryable list for a finished run as read, empty or not; `null` while unread, after a
+ *  failed read (unknown, never "nothing to retry") or when it cannot be asked. */
+function useRetryableRead(run: ResearchRun | null | undefined): Repairable | null {
   const frame = useFrame();
   const runId = run?.run_id ?? null;
   const possible = !!run && mayRetryAnalysis(run);
-  const [modules, setModules] = useState<{ runId: string; list: Repairable } | null>(null);
+  const [modules, setModules] = useState<{ runId: string; list: Repairable | null } | null>(null);
   useEffect(() => {
     if (!possible || !runId) return;
     let live = true;
     research
       .retryableModules(frame.studyId, runId)
       .then((list) => live && setModules({ runId, list }))
-      .catch(() => live && setModules({ runId, list: { modules: [], stale: [] } }));
+      .catch(() => live && setModules({ runId, list: null }));
     return () => {
       live = false;
     };
   }, [frame.studyId, runId, possible]);
-  return possible && modules && modules.runId === runId && modules.list.modules.length ? modules.list : null;
+  return possible && modules?.runId === runId ? modules.list : null;
 }
 
 /** A finished run whose analysis a model could not complete: the data stands, the modules are asked again. */
@@ -1248,7 +1262,7 @@ export function ProgressStep() {
       </InspectorSlot>
       {foundByStart ? <p role="status" data-found-by-start className="rounded-sm border border-status-you-ink/40 bg-status-you-wash p-3 text-sm">{t("research.exec.foundByStart")}</p> : null}
       <OriginBanners run={run} />
-      <RespondentsReceipt run={run} />
+      <RespondentsReceipt run={run} pointable />
       <Card>
         <div className="flex flex-wrap items-center gap-3">
           <Chip tone={state.tone}>{state.label}</Chip>
@@ -1300,7 +1314,7 @@ export function ProgressStep() {
         <ol className="flex flex-col gap-3" aria-label={t("aia.stages.progress")}>
           {listed.map((s) => (
             // Pointable by the Lead (the coordinator's registry: fieldwork targets step:<node_key>).
-            <li key={s.node_key} data-aia={`step:${s.node_key}`} data-step={s.node_key} data-status={s.status} className="flex flex-col gap-0.5 text-sm">
+            <li key={s.node_key} data-aia={stepTarget(s.node_key) ?? undefined} data-step={s.node_key} data-status={s.status} className="flex flex-col gap-0.5 text-sm">
               <div className="flex flex-wrap items-center gap-2">
                 <Chip tone={stepTone(s, run.is_terminal)}>{stepStatusLabel(s, run.is_terminal)}</Chip>
                 <span className="font-medium">{stepLabel(s.node_key)}</span>
@@ -1469,7 +1483,8 @@ export function RunResults({ run, progressHref }: { run: ResearchRun | null; pro
         <Card>
           <p className="text-sm">{run && parkedForRuntime(run) ? t("research.exec.noResultsParked") : t("research.exec.noResults")}</p>
         </Card>
-        {report}
+        {/* With no run there is no run to say a report about (workbench audit, 2026-10-22). */}
+        {run ? report : null}
       </div>
     );
   }
@@ -1650,6 +1665,25 @@ function AnalysisResults({ run, spec, progressHref }: { run: ResearchRun; spec: 
     return () => { live = false; };
   }, [frame.studyId, run.run_id, states]);
   const shownValue = loaded.state === "ready" ? loaded.value : null;
+  // Opened as Analýza, the stage starts at its analysis rather than at the run's summary and report card
+  // above the tabs (~1,800 px, ANL8 audit F2): once its read settles (an error is shown here too), unless
+  // the person scrolled meanwhile, and on every later move to Analýza within the page.
+  const cardRef = useRef<HTMLDivElement>(null);
+  const moved = useRef(false);
+  const settled = loaded.state !== "loading";
+  useEffect(() => {
+    const onAnalysis = () => stageOf("results", window.location.hash) === "analysis";
+    const show = () => requestAnimationFrame(() => cardRef.current?.scrollIntoView?.({ block: "start" }));
+    const onScroll = () => { moved.current = true; };
+    if (!settled) {
+      document.addEventListener("scroll", onScroll, { capture: true, passive: true });
+      return () => document.removeEventListener("scroll", onScroll, { capture: true });
+    }
+    if (onAnalysis() && !moved.current) show();
+    const onHash = () => { if (onAnalysis()) show(); };
+    window.addEventListener("hashchange", onHash);
+    return () => window.removeEventListener("hashchange", onHash);
+  }, [settled]);
   // The inspector reads the analysis this page shows, never a run it fetched itself (ANL3).
   useEffect(() => {
     if (!shownValue) return;
@@ -1657,6 +1691,7 @@ function AnalysisResults({ run, spec, progressHref }: { run: ResearchRun; spec: 
     setShownAnalysis(next);
     return () => setShownAnalysis(null);
   }, [run.run_id, shownValue, spec]);
+  const retryable = useRetryableRead(run);
   if (loaded.state === "hidden") return null;
   const analysis = shownValue;
   const complete = ANALYSIS_ORDER.filter((id) => analysis?.modules[id]?.outcome === "COMPLETED").length;
@@ -1671,6 +1706,7 @@ function AnalysisResults({ run, spec, progressHref }: { run: ResearchRun; spec: 
   });
   const withoutFindings = ANALYSIS_ORDER.filter((id) => analysis?.modules[id]?.outcome === "BLOCKED").map((id) => stepLabel(`analysis_${id}`));
   return (
+    <div ref={cardRef} data-analysis-card className="scroll-mt-2">
     <Card title={t("research.exec.results.analysis")} tone="notice">
       <p role="note" className="mb-3 text-sm font-semibold">
         {loaded.state === "ready" && resultOriginKind(loaded.value)
@@ -1694,11 +1730,12 @@ function AnalysisResults({ run, spec, progressHref }: { run: ResearchRun; spec: 
           <section data-analysis-overview className={`rounded-md border p-4 ${blocked ? "border-status-fault/40 bg-status-fault-wash" : "border-border bg-surface-sunken"}`}>
             <p className="text-sm font-semibold">{complete} z {ANALYSIS_ORDER.length} částí analýzy dokončeno{blocked ? ` · k opravě: ${blocked}` : ""}</p>
             <p className="mt-1 text-sm leading-6 text-ink-muted">{blocked
-              ? "Některé výstupy neprošly kontrolou. AIA je nepoužije ve zprávě; dokončení pracovního kroku samo o sobě neznamená platný analytický výstup."
+              ? "Některé části neprošly kontrolou; které a proč, uvádí oddíl Blokované nároky níže. Dokončení pracovního kroku samo o sobě neznamená platný analytický výstup."
               : analysis.complete
                 ? "Všechny části jsou uložené. Interpretaci a vhodnost pro zprávu musí posoudit výzkumník."
                 : "Zbývající části ještě čekají na dokončení. Zpráva může vzniknout až z úplné analýzy."}</p>
           </section>
+          <AnalysisBlocked analysis={analysis} run={run} retryable={retryable?.modules ?? null} progressHref={progressHref} />
           <section aria-labelledby="key-findings-title" data-key-findings className="rounded-md border border-border bg-surface-raised p-4">
             <h3 id="key-findings-title" className="text-base font-semibold">Hlavní zjištění</h3>
             <p className="mt-1 text-sm leading-6 text-ink-muted">Ze všech dokončených částí analýzy, jak je analýza napsala. U každého zjištění jsou čísla, o která se opírá; kliknutím je otevřete v datech.</p>
@@ -1723,7 +1760,7 @@ function AnalysisResults({ run, spec, progressHref }: { run: ResearchRun; spec: 
               {ANALYSIS_ORDER.map((id) => {
                 const outcome = analysis.modules[id];
                 const label = outcome?.outcome === "COMPLETED" ? "Dokončeno" : outcome?.outcome === "BLOCKED" ? t("research.exec.stepStatus.ANALYSIS_BLOCKED") : "Čeká";
-                return <button key={id} type="button" data-aia={id === "research_questions" ? undefined : analysisTarget({ kind: "module", module: id }) ?? undefined} onClick={() => setSelectedModule(id)} aria-current={selectedModule === id ? "true" : undefined}
+                return <button key={id} type="button" data-aia={id === "research_questions" ? undefined : analysisTarget({ kind: "module", module: id }) ?? undefined} data-outcome={outcome?.outcome ?? "PENDING"} onClick={() => setSelectedModule(id)} aria-current={selectedModule === id ? "true" : undefined}
                   className={`flex items-center justify-between gap-2 rounded-control px-3 py-2 text-left text-sm focus-visible:outline-2 focus-visible:outline-focus-ring ${selectedModule === id ? "bg-signal-wash font-semibold text-signal" : "hover:bg-surface-sunken"}`}>
                   <span>{stepLabel(`analysis_${id}`)}</span><span className="shrink-0 text-xs font-normal text-ink-muted">{label}</span>
                 </button>;
@@ -1733,9 +1770,7 @@ function AnalysisResults({ run, spec, progressHref }: { run: ResearchRun; spec: 
               <h3 className="text-base font-semibold">{stepLabel(`analysis_${selectedModule}`)}</h3>
               {selected?.outcome === "BLOCKED" ? <>
                 <p className="mt-3 text-sm leading-6">Výstup této části neprošel kontrolou, proto se nesmí interpretovat ani použít ve zprávě.</p>
-                <details className="mt-3 text-xs text-ink-muted"><summary className="cursor-pointer">Technické důvody odmítnutí</summary>
-                  <ul className="mt-2 list-disc space-y-1 pl-5">{selected.violations.map((v, index) => <li key={index}>{v.code}: {v.detail}</li>)}</ul>
-                </details>
+                <div className="mt-3"><ViolationList reasons={blockedModules(analysis).find((b) => b.module === selectedModule)?.reasons ?? []} /></div>
               </> : selected?.outcome === "COMPLETED" ? <>
                 {selected.summary ? <FormattedText text={selected.summary} className="mt-3" /> : null}
                 {selected.research_question_answers.length ? <div className="mt-5 space-y-4"><h4 className="text-sm font-semibold">Odpovědi na výzkumné otázky</h4>
@@ -1750,6 +1785,7 @@ function AnalysisResults({ run, spec, progressHref }: { run: ResearchRun; spec: 
         </div>
       ) : null}
     </Card>
+    </div>
   );
 }
 

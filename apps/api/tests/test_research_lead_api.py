@@ -699,6 +699,126 @@ def test_a_prepared_job_is_approved_under_the_spend_limit_once(
     assert lead["request_decision"] == {"status": "approved", "run_id": body["run_id"]}
 
 
+JOB_WITH_EDIT = {
+    "reply": "Připraveno.",
+    "edits": [{"op": "set_text", "field": "title", "value": "Nový název", "why": WHY}],
+    "request": {"kind": "agent_job", "action": "analyze_brief", "why": WHY},
+}
+
+
+def _person_saves(app: FastAPI, world: Any, base_revision: int) -> int:
+    with create_session_factory(app.state.engine)() as session:
+        saved = StudyWorkspaceRepository(session).save(
+            _scope(app, world, session),
+            content={**CONTENT, "title": "Přepsáno rukou"},
+            base_revision=base_revision,
+        )
+        session.commit()
+        return saved.revision
+
+
+def _agent_jobs(app: FastAPI) -> int:
+    with create_session_factory(app.state.engine)() as session:
+        return len(
+            session.scalars(
+                select(WorkflowRunRow).where(WorkflowRunRow.workflow_type == RESEARCH_AGENT)
+            ).all()
+        )
+
+
+def test_a_card_whose_design_moved_waits_for_the_persons_yes_on_the_current_one(
+    researcher: TestClient, world: Any, app: FastAPI
+) -> None:
+    """LO10: a card ran the job on whatever the working copy was at approval; now a save made
+    after the card was prepared refuses it by name, until the person names the current revision."""
+    turn_id = _turn(researcher, world, app, JOB_WITH_EDIT)
+    current = _person_saves(app, world, base_revision=1)
+    url = f"{lead_url(world)}/turns/{turn_id}/request"
+
+    refused = researcher.post(url, json={})
+    assert refused.status_code == 409 and refused.json()["code"] == "stale_card"
+    assert refused.json()["details"] == {"current_revision": current, "turn_revision": 1}
+    older = researcher.post(url, json={"workspace_revision": 1})
+    assert older.status_code == 409 and older.json()["code"] == "stale_card"
+    assert _agent_jobs(app) == 0
+
+    approved = researcher.post(url, json={"workspace_revision": current})
+    assert approved.status_code == 200, approved.text
+    assert _agent_jobs(app) == 1
+
+
+def test_a_save_landing_after_the_check_does_not_change_what_the_job_runs_on(
+    researcher: TestClient, world: Any, app: FastAPI, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Review of LO10: the check and the submit read the working copy apart, so a save landing
+    between them ran the job on a revision nobody checked or confirmed."""
+    from aia_core.application.research import ResearchAgentJobs
+
+    turn_id = _turn(researcher, world, app, JOB_WITH_EDIT)
+    gate = ResearchAgentJobs.spend_gate
+
+    def save_meanwhile(self: Any, confirm: float | None) -> Any:
+        # Between the check and the submit, as another tab's save would land.
+        StudyWorkspaceRepository(self.session).save(
+            self.scope, content={**CONTENT, "title": "Jinde"}, base_revision=1
+        )
+        return gate(self, confirm)
+
+    monkeypatch.setattr(ResearchAgentJobs, "spend_gate", save_meanwhile)
+    refused = researcher.post(f"{lead_url(world)}/turns/{turn_id}/request", json={})
+    # The checked revision is submitted, and it is no longer current: refused whole, never the
+    # newer copy run instead.
+    assert refused.status_code == 409 and refused.json()["code"] == "stale_revision"
+    assert _agent_jobs(app) == 0
+
+
+def test_accepting_the_cards_own_edits_leaves_it_approvable(
+    researcher: TestClient, world: Any, app: FastAPI
+) -> None:
+    turn_id = _turn(researcher, world, app, JOB_WITH_EDIT)
+    accepted = researcher.post(
+        f"{lead_url(world)}/turns/{turn_id}/edits",
+        json={"decision": "accept", "indices": [0], "base_revision": 1},
+    )
+    assert accepted.status_code == 200 and accepted.json()["workspace_revision"] == 2
+    approved = researcher.post(f"{lead_url(world)}/turns/{turn_id}/request", json={})
+    assert approved.status_code == 200, approved.text
+    # A person's save beside an accept still moves the next card past what it was prepared on.
+    posted = researcher.post(
+        f"{lead_url(world)}/turns", json={"kind": "message", "stage": "brief", "text": "A dál?"}
+    )
+    assert posted.status_code == 201, posted.text
+    second = {**JOB_WITH_EDIT, "edits": [{**JOB_WITH_EDIT["edits"][0], "value": "Druhý název"}]}
+    _complete(app, world, second)
+    other = str(posted.json()["turns"][-1]["turn_id"])
+    url = f"{lead_url(world)}/turns/{other}/edits"
+    revision = researcher.get(lead_url(world)).json()["turns"][-1]["workspace_revision"]
+    assert (
+        researcher.post(
+            url, json={"decision": "accept", "indices": [0], "base_revision": revision}
+        ).json()["workspace_revision"]
+        == revision + 1
+    )
+    _person_saves(app, world, base_revision=revision + 1)
+    late = researcher.post(f"{lead_url(world)}/turns/{other}/request", json={})
+    assert late.status_code == 409 and late.json()["code"] == "stale_card"
+
+
+def test_a_study_too_large_for_a_design_job_is_refused_by_name_not_a_500(
+    researcher: TestClient, world: Any, app: FastAPI, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """LO10: the Lead reads up to 96 KB, a design job 64 KB; the job's bound raised a bare
+    ValueError the card's route did not catch."""
+    from aia_core.domain import research_agents
+
+    turn_id = _turn(researcher, world, app, JOB_WITH_EDIT)
+    monkeypatch.setattr(research_agents, "CONTEXT_MAX_BYTES", 10)
+    refused = researcher.post(f"{lead_url(world)}/turns/{turn_id}/request", json={})
+    assert refused.status_code == 422, refused.text
+    assert refused.json()["code"] == "agent_context_too_large"
+    assert _agent_jobs(app) == 0
+
+
 @pytest.mark.parametrize("bad", [-1.0, 1_000_001.0, "Infinity", "NaN", "-Infinity"])
 def test_a_confirmation_outside_its_bound_or_not_finite_is_refused(
     researcher: TestClient, world: Any, app: FastAPI, bad: Any
