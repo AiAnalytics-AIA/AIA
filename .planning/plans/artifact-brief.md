@@ -199,25 +199,25 @@ Every item is an `Item` (`src/components/ui.tsx:52`): edit in place, remove, mov
 - Depends on CHN1 and `research-lead-workbench#15`.
 
 **BRF6. Journey.**
-- *Landed* (`workspace_journey.mjs`, `lead_journey.mjs`):
+- *Landed* (`workspace_journey.mjs`, `lead_journey.mjs`; zero paid jobs):
   - an objective added in the list, read back after a reload as one `objective:<id>` target and
     reworded in place;
-  - "@" then a tap on an objective sets the chip, naming that objective and no other, at 1440
-    (split), 768 (drawer) and 390 (sheet);
+  - "@" then a tap on an objective sets the chip, naming that objective and no other, at 1440 and
+    1100 (split), 768 (drawer) and 390 (sheet);
   - a message about the goal makes the scripted Lead focus the first objective
-    (`aia_executors/workbench.py:179 @ 36e18caa`): at 1440 and 1100 it is marked and scrolled into
-    view beside the conversation; at 768 and 390 the conversation steps aside to `peek` and focus
-    follows;
-  - no overflow at any of them, and nothing paid.
-
-  These steps live in `lead_journey.mjs` rather than `workbench_journey.mjs`: they need a hatched
-  Lead, so they pass once per workbench (OI-133).
-- Steps in `tools/ui_workbench/workbench_journey.mjs`, at 1440, 1100, 768 and 390 px:
-  - an objective is edited in place and read back after a reload;
-  - the scripted Lead focuses `objective:<id>`, and the drawer closes to `peek` at 768 and 390 px;
-  - "@" then a click sets the Vidí chip.
-- The usage ledger's paid rows are unchanged.
-- 768 and 390 px depend on `research-lead-workbench#26b`-`#26d`.
+    (`aia_executors/workbench.py:179 @ 36e18caa`). At 1440 and 1100 the objective is marked and scrolled
+    into view while the conversation stays beside it. At 768 and 390 the conversation steps aside to
+    `peek` and focus follows;
+  - no overflow at any of them.
+- Deviations from the plan as written:
+  - The steps live in `lead_journey.mjs`, not `workbench_journey.mjs`: they need a hatched Lead, so they
+    pass once per workbench (OI-133).
+  - "Paid rows unchanged" is checked as the journey's existing check: no request to a path that starts
+    paid work (`/research/runs`, `/agent-jobs`, `/deep-research/runs`, a turn's `/request`). The usage
+    ledger itself is not read.
+- These steps run after the 1099 px drawer loop, so F-BRF-2 can stop a run before them (§ 7a). The final
+  version passed on 2 of 2 fresh workbenches; with the expected objective swapped for the last one it
+  fails: "1440: expected the Lead to point at objective:… ; it pointed at objective:…".
 
 ## 7a. Findings
 
