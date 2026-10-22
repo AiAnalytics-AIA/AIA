@@ -29,7 +29,7 @@ sheet), Projektová paměť, Společenská inteligence, Nastavení (eight tabs, 
 
 ## Findings
 
-### F1. `make ui-methodology` fails on develop (fixed by chunk 1)
+### F1. `make ui-methodology` failed on develop (fixed by #718, chunk 1)
 
 1. Claim: the methodology journey refuses the readiness module, which is now editable, because it
    has no edit for it. Once that is added, its research run fails on a timing bug.
@@ -90,7 +90,7 @@ sheet), Projektová paměť, Společenská inteligence, Nastavení (eight tabs, 
 6. Test: `test_client_api.py` › "a client or study named by blanks is refused and a name is kept
    without them" (201, 201, 201, 201 and a 500 before; 422 for each now).
 
-### F5. A run's methodology receipt did not report its readiness pin (fixed on this branch)
+### F5. A run's methodology receipt did not report its readiness pin (fixed by #789)
 
 1. Claim: a start pins the readiness limits in force as `readiness` / `readiness_methodology`, but
    `run_methods` reports only the Sociomap, support, aggregation and response modules.
@@ -125,7 +125,7 @@ person had opened meanwhile. #735 refocuses only when focus is on the page.
 5. Smallest fix: focus only when `document.activeElement` is still in the field or on the page.
 6. Test: an InlineText test that moves focus before the frame runs.
 
-### F8. A research stage's cold first open lands at about 480 ms (decided: no product change)
+### F8. A research stage's cold first open lands at about 480 ms (decided: no product change; budget in #768)
 
 1. Claim: a cold load of a research stage fetches the client, the study and its working content
    one after another, so first content lands at about 480 ms on a production build.
