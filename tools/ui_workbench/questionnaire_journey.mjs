@@ -90,6 +90,9 @@ try {
 
     await set.getByRole("link", { name: /^Sada 1 / }).click();
     await page.waitForFunction(() => location.hash === "#qset_sec_wb_set");
+    // An option's × is a 24 px target (WCAG 2.5.8; the browser audit measured 20 x 20).
+    const remove = await page.getByRole("button", { name: "Odebrat možnost 1" }).first().boundingBox();
+    assert(remove && remove.width >= 24 && remove.height >= 24, `an option's × at ${width}: ${remove?.width} x ${remove?.height}`);
     // The set's name stays readable beside its badge, count and Smazat (the browser audit, QF-3).
     const name = page.locator("#qset_sec_wb_set").getByRole("button", { name: /^Upravit: Název sady/ });
     const room = await name.evaluate((el) => ({ column: el.closest("div")?.getBoundingClientRect().width ?? 0, clipped: el.scrollWidth > el.clientWidth + 1 }));

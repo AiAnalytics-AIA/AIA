@@ -43,6 +43,7 @@ from ..domain.research_lead import (
     LEAD_HARNESS_VERSION,
     LEAD_PROMPT_ID,
     MESSAGE_MAX_CHARS,
+    RUNS_IN_CONTEXT,
     STAGES,
     AgentJobRequest,
     LeadContextTooLarge,
@@ -115,8 +116,6 @@ __all__ = [
 
 #: A greeting within this long of the Lead's last turn is a no-op: the Lead has spoken.
 GREETING_WINDOW: Final = timedelta(hours=8)
-#: The research runs a turn is shown, newest first.
-RUNS_IN_CONTEXT: Final = 5
 #: The stage a Design Revision is submitted from when a Lead-prepared job starts, by action,
 #: as the web submits it before its own buttons start the same job.
 _SOURCE_STAGE: Final[dict[ResearchAction, str]] = {

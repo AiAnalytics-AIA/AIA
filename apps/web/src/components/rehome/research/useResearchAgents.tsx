@@ -42,7 +42,7 @@ export function useResearchAgents(studyId: string, store: ResearchStore, onUpdat
   const [notice, setNotice] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [activeAction, setActiveAction] = useState<ResearchAgentAction | null>(null);
-  const [review, setReview] = useState<{ result: ResearchAgentResult; advice: boolean; stale: StaleNotice | null; decide: (d: boolean | ProposalDecision) => void } | null>(null);
+  const [review, setReview] = useState<{ result: ResearchAgentResult; action: ResearchAgentAction; advice: boolean; stale: StaleNotice | null; decide: (d: boolean | ProposalDecision) => void } | null>(null);
   const lifetime = useRef<AbortController | null>(null);
   const active = useRef<AbortController | null>(null);
   const pendingDecision = useRef<((d: ProposalDecision) => void) | null>(null);
@@ -52,9 +52,9 @@ export function useResearchAgents(studyId: string, store: ResearchStore, onUpdat
     if (owner && owner === lifetime.current && !owner.signal.aborted) setRecent(jobs);
     return jobs;
   }, [studyId]);
-  const askReview = useCallback((result: ResearchAgentResult, advice: boolean, stale: StaleNotice | null = null) => new Promise<ProposalDecision>((resolve) => {
+  const askReview = useCallback((result: ResearchAgentResult, action: ResearchAgentAction, advice: boolean, stale: StaleNotice | null = null) => new Promise<ProposalDecision>((resolve) => {
     pendingDecision.current = resolve;
-    setReview({ result, advice, stale, decide: (d) => {
+    setReview({ result, action, advice, stale, decide: (d) => {
       pendingDecision.current = null; setReview(null); resolve(decisionOf(d));
     } });
   }), []);
@@ -98,7 +98,7 @@ export function useResearchAgents(studyId: string, store: ResearchStore, onUpdat
     const advice = adviceActions.has(job.action);
     let stale: StaleNotice | null = null;
     for (;;) {
-      const decision = await askReview(result, advice, stale); check(signal);
+      const decision = await askReview(result, job.action, advice, stale); check(signal);
       if (advice) return { ...result.result, native: true };
       if (decision === "dismiss") {
         await researchAgents.dismiss(studyId, job.run_id); check(signal);

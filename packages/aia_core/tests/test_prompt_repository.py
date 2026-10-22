@@ -347,3 +347,33 @@ def test_a_version_saved_before_declarations_existed_has_none_and_is_never_read_
     assert repo.get_version(CRITIQUE, 1).declared_class is None
     pin = PromptResolver(session, scoped.organization_id).pin_for(CRITIQUE)
     assert (pin.origin, pin.declared_class, pin.declared_by) == ("stored", None, None)
+
+
+# ------------------------------------------------------------------ the Lead's byte bound
+
+LEAD = "aia.research.lead"
+#: 4,000 four-byte characters: within the 12,000-character limit, over the 12 KB pin.
+WIDE = "😀" * 4000
+
+
+def test_a_lead_prompt_over_its_context_bytes_is_refused_where_it_is_saved(
+    scoped: Any, session: Any
+) -> None:
+    with pytest.raises(PromptRefused) as refused:
+        _repo(scoped, session).create_version(LEAD, WIDE, declares_no_client_data=True)
+    assert refused.value.reason == "too_large_for_context"
+
+
+def test_a_stored_lead_prompt_over_the_bound_cannot_be_activated(scoped: Any, session: Any) -> None:
+    # A version stored before the bound existed: written past the check, as an old row is.
+    repo = _repo(scoped, session)
+    repo.create_version(LEAD, "Krátká verze.", declares_no_client_data=True)
+    session.execute(
+        update(PromptVersionRow)
+        .where(PromptVersionRow.prompt_id == LEAD)
+        .values(text=WIDE, text_sha256=prompt_sha256(WIDE))
+    )
+    second = PromptRepository(session, _admin(scoped, "second@art-chain.io"))
+    with pytest.raises(PromptRefused) as refused:
+        second.activate(LEAD, 1)
+    assert refused.value.reason == "too_large_for_context"

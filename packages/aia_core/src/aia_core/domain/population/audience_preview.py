@@ -28,7 +28,7 @@ from typing import Any, Final
 from .audience import AudienceRefused, select_audience
 from .errors import PopulationError
 from .runtime import RuntimePopulation
-from .sampling import DONOR_FIELD, SamplingRefused, draw_panel_sample
+from .sampling import DONOR_FIELD, SamplingRefused, draw_panel_sample, quota_keys
 
 __all__ = ["PREVIEW_SEED", "audience_preview"]
 
@@ -88,5 +88,11 @@ def audience_preview(
         "status": sample.audit.status,
         "sample_donors": sample.audit.sample_donors,
         "effective_n": sample.audit.effective_n,
+        # How the sampler spreads n at this seed (RQC6b); a run's own may differ only at ties.
+        "quota_fields": list(sample.audit.quota_fields),
+        "cells": [
+            {"key": key, "values": list(c.values), "n": c.n}
+            for c, key in zip(sample.quota_cells, quota_keys(sample.quota_cells), strict=True)
+        ],
     }
     return out

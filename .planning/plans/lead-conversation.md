@@ -2,7 +2,7 @@
 status: planned
 chunks:
   - "[ ] LC0. ADR 0041 accepted by the product owner (Proposed in this plan's PR): the relayed answers Q25-Q30 confirmed"
-  - "[ ] LC1. The layer table and the manifest: freeze_context as a pipeline over declared layers (order, floor, ceiling, over-policy, class rule), today's values first, a manifest stored per turn"
+  - "[x] LC1. The layer table and the manifest: freeze_context as a pipeline over declared layers (order, floor, ceiling, over-policy, class rule), today's values first, a manifest stored per turn"
   - "[ ] LC2. Co Vedoucí vidí: the Vidí chip opens the last turn's manifest in words, layer by layer, with what was left out and why"
   - "[ ] LC3. The decision digest: a code-built record of what this conversation decided (edits, cards, notes, self-updates, lookups) in the conversation-memory layer, never dropped"
   - "[ ] LC4. Budgets enforced: ADR 0041's floors, ceilings and two-pass global allocation, the design layer's five-step shortening ladder, spare bytes to the verbatim conversation, every omission named"
@@ -94,6 +94,39 @@ give the same manifest; a 12,000-character prompt of multibyte text is refused a
 a turn; every omitted id is listed with a reason or lies in the stored range; a
 manifest after 1,000 decisions is the same size as after 100; today's turns freeze byte-identical
 contexts (a regression fixture).
+
+*As built (LC1):*
+- `domain/lead_context.py` declares `LEAD_LAYERS` (today's bounds, in `freeze_context`'s order) and
+  `context_manifest(context, classification=None)`:
+  - per layer: bytes, bound, over-policy, included and omitted ids (at most 50 each, the rest
+    counted);
+  - `bounded_bytes` beside `bytes`: a ceiling bounds the notes or the items, not the whole layer
+    entry, so the manifest never shows a valid turn as over;
+  - each layer's class from the turn's `context_classification`, through `PART_LAYERS`.
+- The manifest is a reading of the frozen context, so it is stored beside the context and **not**
+  hashed with it; the context, its hash and the turn's identity do not move (the existing
+  `freeze_context` tests stay green unchanged).
+- Where it is stored: the worker writes it into the turn artifact's provenance
+  (`context_manifest`), with classes. For a turn that never reached the worker (parked, failed),
+  LC2 computes it from the stored step input's context, since it is a pure reading of it; no
+  second copy is stored.
+- `RUNS_IN_CONTEXT` moved from the application to the domain, so the table can name it.
+- The prompt bound is `PromptSlot.max_pin_bytes` on the Lead's slot (12 KB, measured with the
+  largest framing a stored version carries). It is refused on save and on activation as
+  `too_large_for_context`, the message naming the byte count.
+- A new answer whose `self_update` writes SOUL or USER over 2,800 bytes is refused by
+  `lead_contract` (`lead_file_too_large`, so the turn's one repair sees why). Only new answers
+  are held to it: a turn stored before the bound is read through plain `LeadOutput` as before,
+  so its edits and cards stay decidable. A name's 40 characters cannot exceed 160 bytes, so
+  names get no byte check.
+- **Moved to LC4:**
+  - `freeze_context` rebuilt as a pipeline over the table;
+  - floors, ceilings, allocation;
+  - shortening an older file already over the bounds (`lead_file_shortened`).
+
+  These change what a turn holds; LC1 changes nothing a turn holds.
+- **Earlier turns carry no ids in the context**, so the conversation layer reports a count, not ids
+  or a range (the range comes with LC5's ids).
 
 **LC2. Co Vedoucí vidí.** `GET /studies/{id}/lead/turns/{turn_id}/manifest` (the caller's own turn
 only); the pane's Vidí line becomes the chip that opens it inline in the pane, in Czech, layer by
@@ -307,6 +340,11 @@ The recall numbers go in the PR.
   (`settings/ControlPanel`) and Můj Vedoucí's notes and history.
 
 ## Findings
+
+- **F4.** Notes past the newest 40, or past 16 KB, leave the Lead's context without being counted:
+  `notes_layer` stops silently (`domain/research_lead.py:759-772` on this branch (`:733-746 @ bfe6d15`)), and the context holds
+  no `omitted_notes`. LC1's manifest names the bound in words but cannot count what was left. The
+  fix is LC4's: the layer carries its omitted count once its bytes may change.
 
 - **F1.** ADR 0026 decision 2 promises "a rolling summary of older turns, stored as an artifact of
   the Lead's run"; none exists. `freeze_context` keeps 12 turns and counts the rest

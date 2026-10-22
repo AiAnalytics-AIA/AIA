@@ -19,6 +19,10 @@ export type ItemInspectorApi = {
    *  contract's grammar (`parseAiaId`). `body`: the detail the opening screen already holds (the
    *  report's claim and its evidence), drawn instead of the kind's body (ItemInspectBody). */
   open: (entry: InspectorEntry, body?: () => ReactNode) => boolean;
+  /** Drop every entry whose id starts with `prefix` (a screen whose items stopped being true: the
+   *  report's claims once the person switched to the other document); the drawer shuts when none
+   *  is left. */
+  closeWhere: (prefix: string) => void;
 };
 
 export const ItemInspectorContext = createContext<ItemInspectorApi | null>(null);

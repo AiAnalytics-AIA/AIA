@@ -16,7 +16,7 @@ const LISTS: [string, string][] = [
   ["hypotheses", "Hypotézy"],
 ];
 
-const strings = (v: unknown): string[] => (Array.isArray(v) ? v.filter((x): x is string => typeof x === "string" && !!x.trim()).map((x) => x.trim()) : []);
+export const strings = (v: unknown): string[] => (Array.isArray(v) ? v.filter((x): x is string => typeof x === "string" && !!x.trim()).map((x) => x.trim()) : []);
 const objects = (v: unknown): Record<string, unknown>[] => (Array.isArray(v) ? v.filter((x): x is Record<string, unknown> => !!x && typeof x === "object") : []);
 const key = (s: string) => s.toLocaleLowerCase("cs").replace(/\s+/g, " ");
 
