@@ -1,7 +1,11 @@
 {
   "$schema": "https://unpkg.com/knip@5.88.1/schema.json",
-  // CI runs it directly (.github/workflows/ci.yml, the security job); nothing imports it.
-  "entry": ["scripts/audit-gate.mjs"],
+  // Scripts run by name, not imported. CI runs audit-gate.mjs directly (the security job); the
+  // npm scripts run the other two (tokens, tokens:check, check:design), and build-tokens.mjs
+  // imports faces.mjs. Named here because knip finds the npm-script entries only in some places:
+  // in a checkout under /tmp the root .gitignore's tmp/ hides them, and knip calls all three
+  // unused.
+  "entry": ["scripts/audit-gate.mjs", "scripts/build-tokens.mjs", "scripts/check-design.mjs"],
   // A type used in its own file is kept exported: it is usually named in an exported signature,
   // and hiding it would make callers write ReturnType<…>. A value used only in its file is not.
   "ignoreExportsUsedInFile": { "interface": true, "type": true },

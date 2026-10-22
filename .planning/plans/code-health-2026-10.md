@@ -127,7 +127,10 @@ These figures are from knip 5.88.1 at develop `9607ee09`.
   it to `aia-mark.svg`.
 - **`postcss`** is a dependency that Next.js supplies; `postcss.config.mjs` names only
   `@tailwindcss/postcss`.
-- **`scripts/audit-gate.mjs`** is a knip entry point, because CI runs it.
+- **`scripts/audit-gate.mjs`, `build-tokens.mjs` and `check-design.mjs`** are knip entry points,
+  because they are run by name. knip's own discovery of the two npm-script entries depends on
+  the checkout's path: under `/tmp`, the root `.gitignore`'s `tmp/` hides them, and knip called
+  them (and `faces.mjs`) unused. The stand-in review on #805 found this.
 - **`MaterialEligibility`** carries a `@public` tag, because brief-materials chunk 2 will use it.
 - **The `item-ids.ts` names.** Being a port of `domain/item_ids.py` is no reason to export: this
   chunk un-exported other server mirrors (`DESIGN_RESEARCH_KEY`, `TEXT_ONLY_FIELDS`). So
