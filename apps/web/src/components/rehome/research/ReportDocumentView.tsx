@@ -26,6 +26,10 @@ import { approvalQuestion, reviewLine } from "@/lib/report-variant";
 import { approvalRefusal, reviewStatus } from "@/lib/report-status";
 import { coverageRecord, type CoverageLine } from "@/lib/artifacts/report-coverage";
 
+// A line carrying an id or a SHA-256 breaks anywhere: an unbroken hash would widen the page past a
+// phone's width (the 390 px journey).
+const WRAPS = "[overflow-wrap:anywhere]";
+
 const message = (e: unknown) => (e instanceof Error ? e.message : String(e));
 
 type Loaded =
@@ -205,7 +209,7 @@ export function ReportDocumentView({ run }: { run: ResearchRun }) {
           <span className="font-semibold text-ink">{kind === "client" ? "Klientská zpráva" : "Interní zpráva"}</span>
           <span>· {reviewWords(stored, kind)}</span>
           {stored.approval ? <span data-approval>· {approvalWords(stored.approval, stored.approved_on)}</span> : null}
-          <span className="font-mono">· {stored.report_artifact_id}</span>
+          <span className={`font-mono ${WRAPS}`}>· {stored.report_artifact_id}</span>
           {/* The client report only, for now: the internal draft's approval also approves its PDF,
               which the card names and this pane does not read yet (RPT3a's next part). */}
           {kind === "client" && canReview(frame) && reviewStatus(stored.review_state) !== "APPROVED" ? (
@@ -255,7 +259,7 @@ function Coverage({ lines }: { lines: CoverageLine[] }) {
           <li key={i} data-coverage={line.kind} className="min-w-0 break-words">
             <span className="font-medium">{line.label}</span>: {line.state}
             {line.why ? <span className="text-ink-muted"> — {line.why}</span> : null}
-            {line.ref ? <span className="font-mono text-xs text-ink-muted"> · {line.ref}</span> : null}
+            {line.ref ? <span className={`font-mono text-xs text-ink-muted ${WRAPS}`}> · {line.ref}</span> : null}
           </li>
         ))}
       </ul>
@@ -422,7 +426,7 @@ function DocBlock({ block, entry, onClaim, refs, point }: { block: Block; point:
             {row.cells.map((cell, i) => <td key={i} className={`border-b border-border px-2 py-1 ${block.columns[i]?.align === "right" ? "text-right" : ""}`}><TableCell cell={cell} {...read} /></td>)}
           </tr>)}</tbody>
         </table></div>
-        <p className="mt-1 text-xs text-ink-muted">Zdroj: {block.source}{block.suppressed_rows ? ` · odstraněno řádků pro nedostatečnou podporu: ${block.suppressed_rows}` : ""}</p>
+        <p className={`mt-1 text-xs text-ink-muted ${WRAPS}`}>Zdroj: {block.source}{block.suppressed_rows ? ` · odstraněno řádků pro nedostatečnou podporu: ${block.suppressed_rows}` : ""}</p>
         {block.notes.map((note) => <p key={note} className="text-xs text-ink-muted">{note}</p>)}
       </figure>;
     case "figure":
@@ -435,7 +439,7 @@ function DocBlock({ block, entry, onClaim, refs, point }: { block: Block; point:
             {block.chart.series.map((s) => { const ref = s.refs[c]; return <td key={s.name} className="text-right">{ref ? <Claim ref_={ref} withInterval={false} {...read} /> : <span className="text-ink-muted">—</span>}</td>; })}
           </tr>)}</tbody>
         </table></div>
-        <p className="mt-1 text-xs text-ink-muted">Zdroj: {block.source}</p>
+        <p className={`mt-1 text-xs text-ink-muted ${WRAPS}`}>Zdroj: {block.source}</p>
       </figure>;
     case "sociomap_figure":
       return <figure className="rounded-control border border-border px-3 py-2 font-sans text-sm" data-map-figure={block.anchor}>

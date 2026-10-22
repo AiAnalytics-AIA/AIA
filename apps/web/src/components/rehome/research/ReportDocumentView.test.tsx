@@ -117,6 +117,17 @@ describe("the stored draft in the pane", () => {
     expect(within(container).queryByRole("complementary")).toBeNull();
   });
 
+  it("lets every source, id and hash line break anywhere, so a SHA-256 never widens a phone's page", async () => {
+    vi.mocked(research.reportDocument).mockResolvedValue(STORED);
+    const { container } = show();
+    await screen.findByRole("article", { name: "Koncept zprávy" });
+    const sources = [...container.querySelectorAll("p")].filter((p) => p.textContent?.startsWith("Zdroj:"));
+    expect(sources.length).toBeGreaterThan(0);
+    for (const p of sources) expect(p.className).toContain("[overflow-wrap:anywhere]");
+    const id = [...container.querySelectorAll("[data-report-docbar] span")].find((s) => s.textContent?.includes("ART-docx"));
+    expect(id?.className).toContain("[overflow-wrap:anywhere]");
+  });
+
   it("names the DOCX it is beside and that draft's review", async () => {
     vi.mocked(research.reportDocument).mockResolvedValue(STORED);
     const { container } = show();
