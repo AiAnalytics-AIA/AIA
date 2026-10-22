@@ -359,8 +359,26 @@ sentence refused by RD7 is marked at the sentence. Depends on `report-delivery#R
   4. the pane, pinned to the first version it read, never showed a version approved through the card.
   Cause: two components owning one decision. Fix: RPT3a (one owner, approval on the document read).
   Test that would have caught it: RPT3a's "the version approved is the version shown" at every width.
+- **F-RPT-2 (2026-10-22): a control character a person typed failed the whole draft.** A research question
+  (or a question's wording, a study's name) holding a character XML 1.0 cannot hold (a bell, a lone
+  surrogate, Word's vertical tab from a pasted line break) reached python-docx as written, and lxml refused
+  the run ("All strings must be XML compatible"): no draft at all
+  (`infrastructure/report_docx/renderer.py:53 @ 09571504`, found by the #792 stand-in review); only the
+  brief was cleaned (#792). Fix (`fix/report-xml-illegal-text`): one pure rule, `domain/report/printable.py`,
+  applied by the renderer before it writes and by the document model before it is stored, so the stored
+  model holds the text the DOCX printed (a choice's label in the stored ledger's metric too). Word's breaks
+  print as a space, since text also runs into one-line places (the running head, headings, captions), and its
+  non-breaking hyphen as a hyphen; the rest are dropped; what names something (ids, refs, targets, the ledger,
+  the manifest) is untouched. #792's own regex in `report_design._paragraphs` is replaced by `xml_text`: it keeps Word's line
+  break as a line for its paragraph split, and a brief field of nothing but such characters still reads
+  "V zadání neuvedeno." Tests:
+  `test_report_design.py::test_a_control_character_a_person_typed_never_fails_the_render`,
+  `test_report_printable.py`.
 
 ## 8. Owner questions
+
+- Held at the feature freeze (the owner, 2026-10-22, 16:5x UTC: "stop developing new features, let's get the
+  new deploy up and running"): RPT8a part 3 and RPT8b-d, none built or opened; they resume when the freeze lifts.
 
 - Q73 (decided 2026-10-22, (c)): downloads stay free before approval; RPT3b is closed, not built.
 - Hosting ONLYOFFICE Document Server beside develop (RPT8): an operations change, for the coordinator to

@@ -28,6 +28,7 @@ from aia_core.domain.report.model import (
     text,
 )
 from aia_core.domain.report.numbers import counted
+from aia_core.domain.report.printable import xml_text
 from aia_core.domain.research_design import (
     ResearchSpecification,
     SpecBattery,
@@ -126,18 +127,15 @@ def _audience_rule(spec: ResearchSpecification) -> str:
     return f"{_STRATEGY['filters']} ({named})."
 
 
-#: What XML 1.0 cannot hold, which python-docx refuses: the C0 controls but tab and newlines, and
-#: the two non-characters. A vertical tab (Word's soft line break, kept by some pastes) is a line.
-_NOT_XML = re.compile("[\x00-\x08\x0c\x0e-\x1f\ufffe\uffff]")
-
 #: Said, in code's words, where the person stated nothing: never a template's placeholder.
 NOT_STATED = "V zadání neuvedeno."
 
 
 def _paragraphs(written: str | None) -> list[Block]:
-    """A person's text as they wrote it, a paragraph for each part a blank line separates; what
-    XML cannot hold left out, never failing the report; nothing written is said so."""
-    clean = _NOT_XML.sub("", (written or "").replace("\x0b", "\n"))
+    """A person's text as they wrote it, a paragraph for each part a blank line separates (Word's
+    line break a line); what XML cannot hold left out (``printable.xml_text``), so a field of
+    nothing else is said not stated, never printed empty."""
+    clean = xml_text((written or "").replace("\x0b", "\n"))
     parts = [part.strip() for part in re.split(r"\n\s*\n", clean) if part.strip()]
     return [Paragraph(text(part)) for part in parts] or [Paragraph(text(NOT_STATED))]
 

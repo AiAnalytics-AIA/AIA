@@ -2,13 +2,16 @@
 
 from __future__ import annotations
 
+import io
 from typing import Any
 
+from docx import Document
 from test_report_docx_render import _meta
 
 from aia_core.application.analysis_results import Brief
 from aia_core.application.report_design import NOT_STATED, compose_design_sections
 from aia_core.application.report_tables import scale_notes
+from aia_core.domain.report.document_model import document_bytes
 from aia_core.domain.report.model import (
     BulletList,
     Callout,
@@ -263,3 +266,33 @@ def test_a_control_character_in_the_brief_never_fails_the_report(report_ledger: 
         report_ledger(),
     )
     assert lint_docx(DocxRenderer().render(doc)) == []
+
+
+def test_a_control_character_a_person_typed_never_fails_the_render(report_doc: Any) -> None:
+    """A research question or a question's wording carrying a character XML 1.0 cannot hold
+    (a vertical tab pasted from Word, a bell, a lone surrogate) failed the whole draft in
+    python-docx. Word's breaks print as a space, the rest are dropped, and the stored document
+    model holds the same text."""
+    design: dict[str, Any] = {**DESIGN}
+    sections = list(design["sections"])
+    first = dict(sections[0])
+    first["questions"] = [{**first["questions"][0], "text": "Jak často\x07 pijete kávu?"}]
+    design["sections"] = [first, *sections[1:]]
+    spec, problems = compile_design(design)
+    assert spec is not None, problems
+    composed = compose_design_sections(spec, ("Co lidé\x0bráno pijí?\x1f\ud800",))
+    doc = report_doc(
+        *composed.chapter.blocks, *composed.appendix.blocks, title="Důvěra\x0c v banky"
+    )
+
+    out = DocxRenderer().render(doc)
+
+    assert lint_docx(out) == []
+    read = Document(io.BytesIO(out))
+    cells = (c for t in read.tables for row in t.rows for c in row.cells)
+    words = "\n".join([p.text for p in read.paragraphs] + [c.text for c in cells])
+    assert "Co lidé ráno pijí?" in words  # the research question, its break a space
+    assert "Jak často pijete kávu?" in words  # the question as asked, its bell dropped
+    assert "\x07" not in words and "\x1f" not in words
+    assert read.core_properties.title == "Důvěra  v banky"
+    assert 'Co lidé ráno pijí?"' in document_bytes(doc).decode()  # as the DOCX printed it
