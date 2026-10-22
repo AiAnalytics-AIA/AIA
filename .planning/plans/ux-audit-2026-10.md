@@ -1,13 +1,13 @@
 ---
 status: done
 chunks:
-  - "[x] 1. The methodology journey has an edit for the readiness limits, and the research journey waits for the steps"
-  - "[x] 2. Nový klient: an empty name is said, not silently dropped"
-  - "[x] 3. Znalosti at 390 px: the library table's clipped columns"
-  - "[x] 4. The API refuses a client or study name of spaces"
-  - "[x] 5. A run's methodology receipt reports its readiness pin"
-  - "[x] 6. A slow rename's answer leaves focus where the person went"
-  - "[x] 7. InlineText's refocus after Enter waits for nothing the person moved"
+  - "[x] 1. The methodology journey has an edit for the readiness limits, and the research journey waits for the steps (#718)"
+  - "[x] 2. Nový klient: an empty name is said, not silently dropped (#720)"
+  - "[x] 3. Znalosti at 390 px: the library table's clipped columns (#722)"
+  - "[x] 4. The API refuses a client or study name of spaces (#783)"
+  - "[x] 5. A run's methodology receipt reports its readiness pin (#789)"
+  - "[x] 6. A slow rename's answer leaves focus where the person went (#735)"
+  - "[x] 7. InlineText's refocus after Enter waits for nothing the person moved (#746)"
 ---
 # UX audit, 2026-10: the areas outside the study stages
 
