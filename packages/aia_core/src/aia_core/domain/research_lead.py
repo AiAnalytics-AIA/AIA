@@ -847,11 +847,18 @@ def freeze_context(
     view: Mapping[str, Any],
     conversation: Sequence[Mapping[str, Any]],
     external: Mapping[str, Any] | None = None,
+    memory: Mapping[str, Any] | None = None,
+    memory_classes: Sequence[str | None] = (),
 ) -> dict[str, Any]:
     """The turn's context, its layers in ADR 0026's order, within :data:`CONTEXT_MAX_BYTES`.
 
     ``external``: the bundle's pin and lines (``analysis_results._external_context``), as the
     :data:`EXTERNAL_LAYER` after the runs; absent, the context is what it was without it.
+
+    ``memory``: the conversation's decision digest (``lead_digest``, ADR 0041 decision 4), a
+    layer of its own before the conversation; absent, the context is what it was without it.
+    ``memory_classes``: the class each turn was sent as whose text the digest carries, so the
+    digest takes the class of what it names (ADR 0041 M3), never lower.
 
     ``conversation`` is the turns before this one, oldest first; only the newest
     :data:`HISTORY_TURNS` are kept, and the oldest of those go first when the whole is over
@@ -879,6 +886,18 @@ def freeze_context(
                     else []
                 ),
                 {"layer": "view", **dict(view)},
+                *(
+                    [
+                        {
+                            "layer": "memory",
+                            "digest": dict(memory),
+                            "turn_classes": sorted({str(c) for c in memory_classes if c})
+                            + ([None] if any(not c for c in memory_classes) else []),
+                        }
+                    ]
+                    if memory is not None
+                    else []
+                ),
                 {"layer": "conversation", "turns": turns, "omitted_turns": dropped},
             ],
         }
@@ -1010,6 +1029,25 @@ def context_classification(
                 "source": "bundle:public_findings",
             }
         )
+    if any(entry["layer"] == "memory" for entry in context["layers"]):
+        # The digest names items in the design's own words (a hypothesis's text): Class B by
+        # rule, raised to the class of every turn whose text it carries; one unknown refuses.
+        memory = layer(context, "memory")
+        part = _part("decision_digest", memory["digest"], MaterialRule.DESIGN, approvals)
+        turns = memory.get("turn_classes") or []
+        if turns:
+            known = [c if c in DataClass._value2member_map_ else None for c in turns]
+            raised = most_restrictive_material(
+                [
+                    DataClass(part["data_class"]),
+                    *(None if c is None else DataClass(c) for c in known),
+                ]
+            )
+            part |= {
+                "data_class": None if raised is None else raised.value,
+                "source": f"{part['source']}+turn",
+            }
+        parts.append(part)
     knowledge = layer(context, "knowledge")["items"]
     parts.extend(
         {
