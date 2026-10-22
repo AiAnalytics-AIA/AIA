@@ -4,7 +4,6 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { AGENTS_PATH, NATIVE_JOB_WAIT, NATIVE_TEST_TIMEOUT_MS, PARK_MESSAGE, approveProposal, nativeAgentFixture } from "./test-native-agents";
 import { PROPOSAL_AI_DONE, PROPOSAL_DONE, REQUEST_EMPTY } from "@/research/persona";
-import { sliderRange } from "./PersonaStep";
 import { ResearchScreen } from "./ResearchScreen";
 import { type SavedBody, workspaceFixture } from "./test-workspace";
 import { TEST_FRAME, stagePath } from "./test-frame";
@@ -230,33 +229,38 @@ describe("Dimenze", () => {
     expect(saves).toEqual([]);
   });
 
-  it("the sample: a preset is the same change as typing it, and below the recommendation says so", async () => {
+  it("the sample is one stepper: a press steps by 50 and saves, and below the recommendation says so (DIM3)", async () => {
     aiaStub(PLANNED);
-    render(<ResearchScreen step="persona" frame={TEST_FRAME} />);
-    const preset = (await screen.findByRole("button", { name: "800" })) as HTMLButtonElement;
-    // Offered once the server's valid n is read (RQC9).
-    await waitFor(() => expect(preset.disabled).toBe(false));
-    fireEvent.click(preset);
+    const { container } = render(<ResearchScreen step="persona" frame={TEST_FRAME} />);
+    const n = (await screen.findByRole("spinbutton", { name: "Počet respondentů" })) as HTMLInputElement;
+    // One control for n: no slider, no preset list beside it (audit B1).
+    expect(screen.queryByRole("slider")).toBeNull();
+    expect(screen.queryByRole("button", { name: "800" })).toBeNull();
+    expect(container.querySelector('[data-aia="sample:n"]')?.contains(n)).toBe(true);
+    expect(screen.getByRole("button", { name: "Použít doporučené N=300" })).toBeTruthy();
+    expect(screen.getByText(/20–10\s000/)).toBeTruthy(); // the server's valid n, stated at the field
+    fireEvent.click(screen.getByRole("button", { name: /Zvýšit/ }));
     await savedWith("sample_n_1789");
-    expect(lastSave().content.n).toBe(800);
-    expect(screen.getByText(/^\d+ dimenzí · N=800$/)).toBeTruthy(); // the dock's note
-    const n = screen.getByLabelText("Počet respondentů") as HTMLInputElement;
-    fireEvent.change(n, { target: { value: "100" } });
-    fireEvent.blur(n);
+    expect(lastSave().content.n).toBe(350);
+    expect(screen.getByText(/^\d+ dimenzí · N=350$/)).toBeTruthy(); // the dock's note
+    const stepped = screen.getByRole("spinbutton", { name: "Počet respondentů" });
+    expect(stepped).not.toBe(n); // a new stored n redraws the field (key)
+    fireEvent.change(stepped, { target: { value: "100" } });
+    fireEvent.blur(stepped);
+    await waitFor(() => expect(lastSave().content.n).toBe(100));
     expect(await screen.findByText(/Pod doporučeným N=300/)).toBeTruthy();
   });
 
   it("the sample: a value outside the server's valid n is refused and said, never clamped (IA-1)", async () => {
     aiaStub(PLANNED);
     render(<ResearchScreen step="persona" frame={TEST_FRAME} />);
-    const n = (await screen.findByLabelText("Počet respondentů")) as HTMLInputElement;
-    await waitFor(() => expect(n.disabled).toBe(false));
+    const n = (await screen.findByRole("spinbutton", { name: "Počet respondentů" })) as HTMLInputElement;
     // The classic stored 50 for a typed 10 without a word; nothing is stored now.
-    for (const typed of ["19", "10001", "", "250.5"]) {
+    for (const typed of ["19", "10001", "", "250,5"]) {
       fireEvent.change(n, { target: { value: typed } });
       fireEvent.blur(n);
-      expect((await screen.findByRole("alert")).textContent).toContain("20");
-      expect((screen.getByLabelText("Počet respondentů") as HTMLInputElement).value).toBe(typed);
+      expect((await screen.findByRole("alert")).textContent).toMatch(/neuloženo/);
+      expect(n.value).toBe(typed);
     }
     expect(saves).toEqual([]);
     expect(n.getAttribute("aria-invalid")).toBe("true");
@@ -271,41 +275,54 @@ describe("Dimenze", () => {
     expect(lastSave().content.n).toBe(300);
   }, 20_000);
 
-  it("the sample: a narrower range in force disables what it does not admit, the recommendation included", async () => {
+  it("the sample: a narrower range in force bounds the stepper and disables the recommendation it does not admit", async () => {
     aiaStub(PLANNED, { [LIMITS_PATH]: () => ({ ...LIMITS, version: 2, sample_size: { min: 500, max: 1000 } }) });
     render(<ResearchScreen step="persona" frame={TEST_FRAME} />);
-    const recommended = await screen.findByRole("button", { name: "Použít doporučené N=300" });
-    await waitFor(() => expect((screen.getByRole("button", { name: "800" }) as HTMLButtonElement).disabled).toBe(false));
-    expect((recommended as HTMLButtonElement).disabled).toBe(true);
-    expect((screen.getByRole("button", { name: "400" }) as HTMLButtonElement).disabled).toBe(true);
-    expect((screen.getByRole("button", { name: "1200" }) as HTMLButtonElement).disabled).toBe(true);
-    const n = screen.getByLabelText("Počet respondentů") as HTMLInputElement;
+    const n = (await screen.findByRole("spinbutton", { name: "Počet respondentů" })) as HTMLInputElement;
+    expect(n.getAttribute("aria-valuemin")).toBe("500");
+    expect(n.getAttribute("aria-valuemax")).toBe("1000");
+    expect((screen.getByRole("button", { name: "Použít doporučené N=300" }) as HTMLButtonElement).disabled).toBe(true);
     fireEvent.change(n, { target: { value: "1500" } });
     fireEvent.blur(n);
-    expect((await screen.findByRole("alert")).textContent).toContain("od 500 do 1000");
+    // The refusal at the field, and the stored n (PLANNED's 300) said to be outside the range.
+    await waitFor(() => expect(screen.getAllByRole("alert").map((a) => a.textContent?.replace(/\s/g, " "))).toEqual([
+      "Musí být 500–1 000; neuloženo.",
+      "Uložené N=300 je mimo platný rozsah 500–1 000; spuštění ho odmítne. Zvolte jiné N.",
+    ]));
     expect(saves).toEqual([]);
   }, 20_000);
 
-  it("the sample: the slider's ends sit inside the valid n, a maximum under 250 included", () => {
-    expect(sliderRange({ min: 20, max: 10000 })).toEqual({ lo: 200, hi: 2000, step: 50 });
-    expect(sliderRange({ min: 500, max: 1000 })).toEqual({ lo: 500, hi: 1000, step: 50 });
-    expect(sliderRange({ min: 20, max: 100 })).toEqual({ lo: 20, hi: 100, step: 1 });
-    expect(sliderRange({ min: 20, max: 240 })).toEqual({ lo: 20, hi: 240, step: 1 });
-    expect(sliderRange({ min: 3000, max: 3010 })).toEqual({ lo: 3000, hi: 3010, step: 1 });
-    for (const l of [{ min: 20, max: 100 }, { min: 2500, max: 9000 }, { min: 30, max: 30 }]) {
-      const r = sliderRange(l);
-      expect(r.lo >= l.min && r.hi <= l.max && r.lo <= r.hi).toBe(true);
-    }
-  });
+  it("the sample: a refused draft does not outlive a change to n made beside it", async () => {
+    aiaStub({ ...PLANNED, n: 500 });
+    render(<ResearchScreen step="persona" frame={TEST_FRAME} />);
+    const n = (await screen.findByRole("spinbutton", { name: "Počet respondentů" })) as HTMLInputElement;
+    fireEvent.change(n, { target: { value: "19" } });
+    fireEvent.blur(n);
+    expect((await screen.findByRole("alert")).textContent).toMatch(/neuloženo/);
+    fireEvent.click(screen.getByRole("button", { name: "Použít doporučené N=300" }));
+    await savedWith("sample_recommended_1789");
+    const after = screen.getByRole("spinbutton", { name: "Počet respondentů" }) as HTMLInputElement;
+    expect(after.value).toBe("300");
+    expect(after.getAttribute("aria-invalid")).toBeNull();
+    expect(screen.queryByRole("alert")).toBeNull();
+    expect((screen.getByRole("button", { name: "Použít doporučené N=300" }) as HTMLButtonElement).disabled).toBe(true);
+  }, 20_000);
 
-  it("the sample: with the range unread nothing is stored, and the screen says why", async () => {
+  it("the sample: a stored n the limits in force no longer admit is said, not shown as fine", async () => {
+    aiaStub({ ...PLANNED, n: 300 }, { [LIMITS_PATH]: () => ({ ...LIMITS, version: 2, sample_size: { min: 500, max: 1000 } }) });
+    render(<ResearchScreen step="persona" frame={TEST_FRAME} />);
+    expect((await screen.findByRole("alert")).textContent?.replace(/\s/g, " ")).toBe("Uložené N=300 je mimo platný rozsah 500–1 000; spuštění ho odmítne. Zvolte jiné N.");
+    expect(saves).toEqual([]);
+  }, 20_000);
+
+  it("the sample: with the range unread there is no field to type into, and the screen says why", async () => {
     aiaStub(PLANNED, { [LIMITS_PATH]: () => new Response("{}", { status: 500 }) });
     render(<ResearchScreen step="persona" frame={TEST_FRAME} />);
-    expect((await screen.findByRole("alert")).textContent).toContain("Rozsah vzorku se nepodařilo načíst");
-    const n = screen.getByLabelText("Počet respondentů") as HTMLInputElement;
-    fireEvent.change(n, { target: { value: "500" } });
-    fireEvent.blur(n);
-    expect((screen.getByRole("button", { name: "800" }) as HTMLButtonElement).disabled).toBe(true);
+    const alert = (await screen.findByRole("alert")).textContent;
+    expect(alert).toContain("Uloženo N=300.");
+    expect(alert).toContain("Rozsah vzorku se nepodařilo načíst");
+    expect(screen.queryByRole("spinbutton")).toBeNull();
+    expect((screen.getByRole("button", { name: "Použít doporučené N=300" }) as HTMLButtonElement).disabled).toBe(true);
     expect(saves).toEqual([]);
   }, 20_000);
 
