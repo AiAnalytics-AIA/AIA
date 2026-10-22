@@ -106,6 +106,14 @@ V2: `QuestionnaireArt` (`DesignStages.tsx:95-142`).
 **QST1. Contract.** `lib/artifacts/questionnaire.ts`. Depends on `research-lead-workbench#14`,
 `#16`.
 
+- *Progress (feature/questionnaire-lead-targets):* the pointable ids alone, on the contract the
+  integration coordinator landed in `lib/workbench-artifacts.ts` (#563): each block and tracked set
+  carries `data-aia="section:<id>"`, each question `question:<id>`, through `aiaId` by the item's
+  stored id; an item without a valid id carries none. `lib/lead.ts`'s focus and pointing read the
+  mark (#599). `set:<id>` and `option:<question>.<n>` are not marked: the contract names only
+  section and question for Dotazník. Test: `QuestionnaireLeadTargets.test.tsx`. The view operations
+  as data (`show_changes`, `show_coverage`) stay with QST1, behind `#14` and `#16`; QST1 stays unticked.
+
 **QST2. Body.**
 - The strip and the item rows over today's data; `AskDialog` prompts retired (A6-A8).
 - Tests: `QuestionnaireStep.test.tsx`: the strip's coverage pill is a gap for an unmeasured RQ; ten

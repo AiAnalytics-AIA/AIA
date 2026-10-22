@@ -83,6 +83,7 @@ import { AiButton, Button } from "../ui";
 import { isNativeResult } from "@/lib/research-agent-jobs";
 import { openPlace, scrollBehavior, scrollToPlace } from "@/lib/open-place";
 import { useResearch } from "./context";
+import { ID_SOURCE, type TargetKind, aiaId } from "@/lib/workbench-artifacts";
 import { QuestionnaireDependencies } from "./QuestionnaireDependencies";
 import { QuestionnaireStrip } from "./QuestionnaireStrip";
 import { InspectorSlot } from "./Inspector";
@@ -97,6 +98,34 @@ const FOCUS = "focus-visible:outline-2 focus-visible:outline-offset-2 focus-visi
 const INPUT = `min-h-9 w-full rounded-control border border-border-strong bg-surface-raised px-2.5 text-sm text-ink placeholder:text-ink-faint ${FOCUS}`;
 const LABEL = "text-xs font-medium text-ink-muted";
 const CARD = "rounded-card border border-border bg-surface-raised p-5";
+
+/**
+ * The `data-aia` a block, a tracked set or a question carries for the Research Lead (the contract's
+ * targets, lib/workbench-artifacts.ts): `section:<id>` and `question:<id>` by the item's stored id.
+ * An item with no id yet, or one outside the id grammar, carries none: nothing is named for it.
+ * Each mark names one element: a repeated id (an import or a merged proposal keeps two items,
+ * design_items.py occurrence_keys) marks its first occurrence in the questionnaire's order only.
+ */
+const ID_RULE = new RegExp(ID_SOURCE);
+type LeadMarks = { sections: (string | undefined)[]; questions: (string | undefined)[][] };
+function leadMarks(xs: Section[]): LeadMarks {
+  const given = new Set<string>();
+  const mark = (kind: TargetKind, id: unknown): string | undefined => {
+    if (typeof id !== "string" || !ID_RULE.test(id)) return undefined;
+    const aia = aiaId(kind, id);
+    if (given.has(aia)) return undefined;
+    given.add(aia);
+    return aia;
+  };
+  const sections: (string | undefined)[] = [];
+  const questions: (string | undefined)[][] = [];
+  for (const sec of xs) {
+    sections.push(mark("section", sec.id));
+    questions.push(sec.type === "questions" ? (sec.questions || []).map((q) => mark("question", q.id)) : []);
+  }
+  return { sections, questions };
+}
+const useLeadMarks = (): LeadMarks => leadMarks(sections(useResearch().state.project));
 
 /**
  * A block or a tracked set removed at once, with "Vrátit" on the editor's toast (input-interactions
@@ -720,9 +749,10 @@ function InlineField({ label, value, placeholder, onChange, strong = false }: {
 function QuestionBlock({ n, firstQ, sec, si, update }: { n: number; firstQ: number; sec: Section; si: number; update: Update }) {
   const qs = sec.questions || [];
   const [confirming, setConfirming] = useState(false);
+  const marks = useLeadMarks();
   const undo = useEditorUndo();
   return (
-    <article id={`qblock_${sec.id || si}`} className="scroll-mt-40 rounded-panel bg-surface-sunken p-4">
+    <article id={`qblock_${sec.id || si}`} data-aia={marks.sections[si]} className="scroll-mt-40 rounded-panel bg-surface-sunken p-4">
       <div className="flex items-start gap-3">
         <div className="min-w-0 flex-1">
           <div className="font-mono text-[11px] uppercase tracking-[0.08em] text-ink-faint">{tv("research.questionnaire.blockHead", { n, q: countWords("questions", qs.length) })}</div>
@@ -760,6 +790,7 @@ const typeKey = (typ: string): TypeKey | null => TYPES.find(([key]) => key === t
 
 /** questionCard: the type as pills, the text, and below it what the type needs. */
 function QuestionCard({ n, q, si, sectionId, qi, update }: { n: number; q: Question; si: number; sectionId: string | undefined; qi: number; update: Update }) {
+  const marks = useLeadMarks();
   const undo = useEditorUndo();
   const typ = String(q.typ || "");
   const skala = q.skala || [1, 10];
@@ -768,7 +799,7 @@ function QuestionCard({ n, q, si, sectionId, qi, update }: { n: number; q: Quest
   const unworded = !String(q.text || "").trim();
   const hint = `${questionElementId(q)}_missing`;
   return (
-    <div id={questionElementId(q)} data-unworded={unworded || undefined} className={`scroll-mt-40 rounded-card border bg-surface-raised p-4 ${FOCUS} ${unworded ? "border-status-you shadow-[0_0_0_3px_var(--color-status-you-wash)]" : "border-border"}`}>
+    <div id={questionElementId(q)} data-aia={marks.questions[si]?.[qi]} data-unworded={unworded || undefined} className={`scroll-mt-40 rounded-card border bg-surface-raised p-4 ${FOCUS} ${unworded ? "border-status-you shadow-[0_0_0_3px_var(--color-status-you-wash)]" : "border-border"}`}>
       <div className="flex flex-wrap items-center gap-2">
         <span className="rounded-md bg-signal-wash px-1.5 py-0.5 font-mono text-xs font-semibold text-signal" title={String(q.id || "")}>Q{n}</span>
         <span className="sr-only">{q.id || "Q"}</span>
@@ -942,6 +973,7 @@ function OptionRows({ options, multi, onCommit }: { options: string[]; multi: bo
 /** objectSection: a tracked set of 4–15 comparable objects on one question and scale. */
 function TrackedSet({ n, sec, si, update }: { n: number; sec: Section; si: number; update: Update }) {
   const { store } = useResearch();
+  const marks = useLeadMarks();
   const undo = useEditorUndo();
   const [confirming, setConfirming] = useState(false);
   const [note, setNote] = useState<string | null>(null);
@@ -956,7 +988,7 @@ function TrackedSet({ n, sec, si, update }: { n: number; sec: Section; si: numbe
     setNote(r.note);
   };
   return (
-    <article id={setElementId(sec, si)} className={`scroll-mt-40 flex flex-col gap-3 rounded-card border border-border border-t-[3px] border-t-hue-violet bg-surface-raised p-4 ${FOCUS}`}>
+    <article id={setElementId(sec, si)} data-aia={marks.sections[si]} className={`scroll-mt-40 flex flex-col gap-3 rounded-card border border-border border-t-[3px] border-t-hue-violet bg-surface-raised p-4 ${FOCUS}`}>
       {/* The name keeps 12rem; on a phone the count and Smazat wrap below it rather than squeeze it. */}
       <div className="flex flex-wrap items-start gap-3">
         <span className="mt-1 whitespace-nowrap rounded-md bg-hue-violet/12 px-1.5 py-0.5 font-mono text-[11px] font-semibold text-hue-violet">{tv("research.questionnaire.setBadge", { n })}</span>

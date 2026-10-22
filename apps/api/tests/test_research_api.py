@@ -2215,6 +2215,57 @@ def test_readiness_reads_a_working_revision_without_submitting_a_design(
     assert other_client_lead.get(other, params={"working_revision": number}).status_code == 404
 
 
+def test_impact_reads_each_stage_of_a_design_against_the_working_copy(
+    researcher: TestClient, viewer: TestClient, other_client_lead: TestClient, world: Any
+) -> None:
+    """Plan working-copy-edit-ops WCE7, AC-07: a questionnaire edited after a design was
+    submitted; its stage reads CHANGED, the stages after it RECHECK, those before CURRENT, and the
+    Design Revision named is older than the working copy. Nothing is written."""
+    base = f"{API}/studies/{world.study_id()}"
+    url = f"{base}/research/impact"
+    assert viewer.get(url, params={"working_revision": 1}).status_code == 404  # nothing saved
+    made = submit(researcher, world).json()
+    same = viewer.get(url, params={"working_revision": made["workspace_revision"]})
+    assert same.status_code == 200, same.text
+    assert {s["impact"] for s in same.json()["stages"]} == {"CURRENT"}
+    assert same.json()["changed"] == []
+
+    edited = {**DESIGN, "sections": [dict(DESIGN["sections"][0]), DESIGN["sections"][1]]}
+    edited["sections"][0]["questions"] = [
+        {**DESIGN["sections"][0]["questions"][0], "text": "Upravená otázka?"},
+        *DESIGN["sections"][0]["questions"][1:],
+    ]
+    saved = researcher.put(
+        f"{base}/workspace/content",
+        json={"content": edited, "base_revision": made["workspace_revision"]},
+    )
+    assert saved.status_code == 200, saved.text
+    body = viewer.get(url, params={"working_revision": saved.json()["revision"]}).json()
+    assert body["design_revision_id"] == made["revision_id"]
+    assert body["design_revision"] == made["revision"] and body["changed"] == ["sections"]
+    impact = {s["stage"]: s["impact"] for s in body["stages"]}
+    assert impact["BRIEF"] == "CURRENT" and impact["RESEARCH_DESIGN"] == "CURRENT"
+    assert impact["QUESTIONNAIRE"] == "CHANGED" and impact["FIELDWORK"] == "CHANGED"
+    assert impact["ANALYSIS"] == "RECHECK" and impact["REPORT"] == "RECHECK"
+    assert len(viewer.get(f"{base}/design/revisions").json()["items"]) == 1, "nothing submitted"
+
+    # A named revision of this Study; another study's, or an unknown one, is not found.
+    named = viewer.get(
+        url,
+        params={
+            "working_revision": saved.json()["revision"],
+            "design_revision_id": made["revision_id"],
+        },
+    )
+    assert named.json() == body
+    missing = viewer.get(
+        url, params={"working_revision": saved.json()["revision"], "design_revision_id": "REV-0"}
+    )
+    assert missing.status_code == 404 and missing.json()["code"] == "design_revision_not_found"
+    other = f"{API}/studies/{world.study_id('other_client')}/research/impact"
+    assert other_client_lead.get(other, params={"working_revision": 1}).status_code == 404
+
+
 def test_readiness_forecasts_whether_a_runs_numbers_will_be_shown(
     researcher: TestClient, viewer: TestClient, world: Any
 ) -> None:

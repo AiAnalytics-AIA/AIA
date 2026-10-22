@@ -638,13 +638,14 @@ export function Workbench({ frame, step, store, memory, save, inspector, reload,
           right={
             <div className="art" aria-label={`Artefakt ${STAGES[stage].label}`}>
               <div className="arthead">
-                <div style={{ minWidth: 0 }}>
-                  <div className="row"><h2 className="arthead__title">{STAGES[stage].label}</h2>{save}</div>
+                <div style={{ minWidth: 0, flex: 1 }}>
+                  <div className="row"><h1 className="arthead__title">{STAGES[stage].label}</h1>{save}</div>
                   <div className="arthead__sub">{state.revision === null ? "Pracovní kopie zatím neuložena" : `Pracovní kopie · revize ${state.revision}`}{frame.canEdit ? "" : " · jen ke čtení"}</div>
                 </div>
                 <div className="arthead__actions">
                   <button ref={inspectorToggle} type="button" className={`btn btn--sm btn--quiet${inspectorOpen ? " is-on" : ""}`} aria-expanded={inspectorOpen} onClick={() => setInspectorOpen((v) => !v)}>
-                    <Icon name="inspector" size={14} />Připravenost a pomoc{blocked ? ` · ${blocked}` : ""}
+                    {/* The sheet shows the icon and the count; the name stays whole for assistive technology. */}
+                    <Icon name="inspector" size={14} /><span className="arthead__label">Připravenost a pomoc</span>{blocked ? <span>{` · ${blocked}`}</span> : null}
                   </button>
                   <button type="button" className={`iconbtn${mode === "artifact" ? " is-on" : ""}`} aria-pressed={mode === "artifact"} title={mode === "artifact" ? "Zpět na 40 / 60" : "Soustředit se na artefakt"} aria-label={mode === "artifact" ? "Zpět na 40 / 60" : "Soustředit se na artefakt"} onClick={() => setMode((m) => (m === "artifact" ? "split" : "artifact"))}>
                     <Icon name={mode === "artifact" ? "normal" : "focusArtifact"} size={16} />

@@ -1391,6 +1391,39 @@ Recommended with LO12b, whose record makes the disagreement visible instead.
 - `docs/architecture/adr/0026-…` *Accepted with*: Q42's refusal and the switch stated per
   deployment.
 
+## Frame follow-ups from the stage audits (2026-10-22, `fix/workbench-heading-and-save-note`)
+
+- **F13. No h1, and a cramped title column at 390 px** *(fixed)*.
+  1. Claim: the workbench page has no level-one heading (axe `page-has-heading-one` at every
+     width, reported by Dotazník). At 390 px the title column is 135 px wide, so "Změny se uloží
+     za chvíli" wraps to three lines beside "Dotazník" (also Dotazník).
+  2. Anchor: `apps/web/src/components/workbench/Workbench.tsx:612 @ b6ac25c5` (an `h2`, a block
+     sized to its content) and `:616` ("Připravenost a pomoc · N" is 209 px wide at 390).
+  3. Reproduction: `node tools/ui_workbench/workbench_journey.mjs` with the new check, which fails
+     on "the page's h1 @1280".
+  4. Consequence: no page heading for a screen reader's heading list, and a header three lines
+     tall while a save is pending.
+  5. Fix:
+     - the artifact's title is the `h1`; the study name is inside a button, where a heading
+       cannot go;
+     - the title block takes the free width (`flex: 1`), and the save state wraps under the
+       title when the two do not fit;
+     - in the sheet the readiness button shows its icon and count, and its name stays whole for
+       assistive technology.
+  6. Test: the workbench journey's "…, one h1, room for the save state" at 1280, 1100, 1099, 768
+     and 390.
+- **F14. Every root-modifier rule in `workbench.css` was dead** *(fixed)*.
+  1. Claim: written inside `.wb { … }`, `.wb--sheet .shead` compiles to `.wb .wb--sheet .shead`,
+     which never matches, because the root carries both classes.
+  2. Anchor: `workbench.css:140-144, 567-568 @ b6ac25c5`.
+  3. Reproduction: at 390 px, `getComputedStyle(.shead__spacer).display` is `block`, and
+     `document.querySelector("[data-workbench]").matches(".wb .wb--sheet")` is `false`.
+  4. Consequence: the sheet's header spacing, the readiness panel at full width, and, while
+     pointing at the artifact, the crosshair and the hover outline on what can be pointed at,
+     all never applied.
+  5. Fix: `&.wb--sheet …` and `&.wb-picking …`.
+  6. Test: the workbench journey's "the sheet's header rules apply".
+
 ## The stages' docks inside the workbench (2026-10-22, `fix/workbench-stage-dock`)
 
 - **F15 (DIM-F4, reported by Dimenze). A stage's dock named the classic flow** *(frame part fixed)*.
