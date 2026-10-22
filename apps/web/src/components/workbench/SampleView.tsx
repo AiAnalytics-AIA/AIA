@@ -49,7 +49,8 @@ function Sec({ n, title, aside, aia, children }: { n: number; title: string; asi
 /** How many cells the composition lists before the rest fold away. */
 const CELLS_SHOWN = 10;
 
-const share = (x: number) => `${(x * 100).toLocaleString("cs-CZ", { maximumFractionDigits: 1 })} %`;
+/** One decimal on every row, so a column of shares reads aligned ("3,0 %" beside "2,7 %"). */
+const share = (x: number) => `${(x * 100).toLocaleString("cs-CZ", { minimumFractionDigits: 1, maximumFractionDigits: 1 })} %`;
 
 function CellRows({ rows }: { rows: CompositionRow[] }) {
   return rows.map((r) => (

@@ -3,15 +3,16 @@
 A start is authorised by a person's own typed command that the server matched, never by a
 model's reading of their text (LO5's security condition; D22, Q43). So this module is the whole
 matcher: a closed vocabulary of Czech imperatives, each naming one start in the card registry's
-words (``agent_job:<action>``, ``research_run``), compared with the person's whole message after
-a fixed normalisation. Nothing is guessed: a message that is not exactly a command is a message,
-and goes to the Lead (or, with the Lead off, is refused).
+words (``agent_job:<action>``, ``research_run``, ``analysis_retry``), compared with the person's
+whole message after a fixed normalisation. Nothing is guessed: a message that is not exactly a
+command is a message, and goes to the Lead (or, with the Lead off, is refused).
 
 The normalisation: Unicode NFC, case folded, surrounding whitespace and one trailing ``.`` or
 ``!`` removed, inner whitespace collapsed, and an optional leading ``/``. Diacritics are kept
 exactly: "spust vyzkum" is not "spusť výzkum", because a near-match is a guess. A design job
 may carry the person's own instruction after a colon ("Navrhni dotazník: krátce, do 10
-otázek"); the research run takes none, since nothing in a run start reads one.
+otázek"); the research run and the analysis retry take none, since nothing in their starts
+reads one.
 
 The vocabulary is pinned in ``tests/fixtures/lead_commands/commands.json``, which the web's
 composer reads too, so the two cannot drift.
@@ -27,6 +28,7 @@ from typing import Final
 from .research_agents import ResearchAction
 
 __all__ = [
+    "ANALYSIS_RETRY",
     "COMMANDS",
     "INSTRUCTION_MAX_CHARS",
     "RESEARCH_RUN",
@@ -40,6 +42,8 @@ __all__ = [
 
 #: The card registry's name of a research run's start.
 RESEARCH_RUN: Final = "research_run"
+#: The card registry's name of a finished run's failed analysis asked again over its own data.
+ANALYSIS_RETRY: Final = "analysis_retry"
 #: An instruction typed after a design job's command, at most (the job's own bound is 8 KB).
 INSTRUCTION_MAX_CHARS: Final = 2000
 
@@ -56,7 +60,7 @@ class Command:
     phrase: str
     start: str
     label: str
-    #: The design job this starts; ``None`` for the research run.
+    #: The design job this starts; ``None`` for the research run and the analysis retry.
     action: ResearchAction | None
     #: Whether the phrase may be followed by ``: <instruction>``.
     takes_instruction: bool
@@ -78,6 +82,7 @@ COMMANDS: Final[tuple[Command, ...]] = (
     _job("Pomoz s návrhem", ResearchAction.COPILOT, "Pomoc s návrhem"),
     _job("Zeptej se na klientské znalosti", ResearchAction.MEMORY, "Klientské znalosti"),
     Command("Spusť výzkum", RESEARCH_RUN, "Spuštění výzkumu", None, False),
+    Command("Zopakuj analýzu", ANALYSIS_RETRY, "Opakování analýzy", None, False),
 )
 
 _WHITESPACE: Final = re.compile(r"\s+")

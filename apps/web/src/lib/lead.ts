@@ -33,6 +33,8 @@ export type LeadView = { op: "open_stage"; stage: WorkbenchStage } | { op: "focu
 export type LeadRequest =
   | { kind: "agent_job"; action: string; why: string }
   | { kind: "research_run"; why: string }
+  /** A person's typed "Zopakuj analýzu" (LO5): the stage's analysis retry, never a model's card. */
+  | { kind: "analysis_retry"; why: string }
   | { kind: "design_research"; why: string }
   | { kind: "interpretation_research"; why: string };
 
@@ -47,6 +49,7 @@ export const TYPED_UNDECIDED_WHY = "Spustí se až vaším potvrzením.";
 export function commandRequest(t: Pick<LeadTurn, "command" | "text">): LeadRequest | null {
   const said = t.text?.split(":").slice(1).join(":").trim() || TYPED_UNDECIDED_WHY;
   if (t.command === "research_run") return { kind: "research_run", why: said };
+  if (t.command === "analysis_retry") return { kind: "analysis_retry", why: said };
   const action = t.command?.startsWith("agent_job:") ? t.command.slice("agent_job:".length) : "";
   return action ? { kind: "agent_job", action, why: said } : null;
 }
