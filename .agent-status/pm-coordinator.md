@@ -33,6 +33,9 @@ of the change (19:55). Nigel talks to coordinator 3 directly. Tools: .agent-stat
    explainers/_retired/, left out of the next build; a standalone artifact a session published for it is deleted then.
 6. Codex review: marking a draft PR ready starts a Codex review (ready_for_review does not re-run CI). Nigel 20:08: the open
    PRs should be open for Codex review -> all 11 open PRs marked ready (20:09); owners told to handle Codex's findings.
+7. Methodology (Nigel, 2026-10-22 13:06, standing): Aram's (Arigamaru's) methodology changes are canonical and override
+   Nigel's methodology assumptions. Reviews treat his method as the reference; where our plans, defaults or tests conflict,
+   our side adapts. Still catch code-vs-method mismatches, UI, tests and CI. Never push to or comment on his branches unasked.
 
 ## Decisions recorded 2026-10-20 (don't re-ask)
 X1/X8/X10; wallet = Peněženka (#511); MVP ships aia-sociomap-5 only (D-13); only the methodologist edits methodology (D-14);
