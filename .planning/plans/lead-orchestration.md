@@ -13,9 +13,9 @@ chunks:
   - "[x] LO9a. The worker contract, early (W0, the first deliverable of `research-lead-workbench` 11): `LeadWorkerSpec` as a type, one row per worker (id, closed task, context layer, data-class rule, capability, reservation, prompt id and pin, switch, card kind, result kind), with its fixture"
   - "[ ] LO9c. A results-worker job shape (W2, before LO9b): a workflow type and step kind keyed on (run_id, target), frozen inputs by artifact id and SHA-256, its own context builder and executor behind its own switch, sharing the worker row, prompt pin and usage ledger"
   - "[ ] LO9b. The three new workers as rows (W3): a `REPORT_WRITING` binding, result kinds and accept destinations, per-worker price and keys"
-  - "[ ] LO10. `approve_request` bound to the revision shown on its card, and a clean error where the 96 KB Lead context meets the 64 KB agent limit"
+  - "[x] LO10. `approve_request` bound to the revision shown on its card, and a clean error where the 96 KB Lead context meets the 64 KB agent limit"
   - "[ ] LO11. The Lead over time (M7): `researcher_lead_signals`, proposed updates the researcher approves each, a reader and rollback for Lead file revisions; no handover or admin read (D-32 to D-34); a departed member's Lead sealed, then deleted at the retention end (Q14)"
-  - "[ ] LO12a. The route-class refusal says who fixes it (W0): on the job error, the Lead pane, source proposals and Progress, from the refusal codes that exist today, with a link to the runbook; static copy, no read of the route"
+  - "[x] LO12a. The route-class refusal says who fixes it (W0): on the job error, the Lead pane, source proposals and Progress, from the refusal codes that exist today, with a link to the runbook; static copy, no read of the route"
   - "[ ] LO12b. A pre-flight read of the AI route (W1): the worker publishes a composition record the API, Settings and the Lead pane read (shared with `deep-research-web-search#52`), and the new refusal reasons"
   - "[ ] LO13. Client-level paid AI (source proposals, `clients.budget_usd`) recorded as an explicit exception to "every AI action goes through the Lead" in AC-02"
   - "[ ] LO14. The Lead's cost per turn measured, and an `AIA_LEAD_*` kill switch and budget line"
@@ -109,11 +109,64 @@ The three workers (map interpreter, report writer, straight-liner check) have no
 **LO10. `approve_request` bound to the revision shown on its card, and a clean error where the 96 KB Lead context meets the 64 KB agent limit**  
 `approve_request` submits whatever the working copy is at approval time, unlike `decide_edits`, which needs `base_revision`. Test: approving a card whose revision moved is refused with a message, not a 500.
 
+- **Landed** (`feature/lead-card-revision`).
+  - **The card's revision.** `ResearchLead.approve_request` reads the working revision before it
+    submits anything. The card is stale (`LeadCardStale`, 409 `stale_card`, details
+    `current_revision` and `turn_revision`) when the working copy was saved past the revision the
+    turn was written from. Saves that are only accepts of this turn's own edits do not count
+    (`_only_own_accepts`, from the `lead_edit` ledger rows' `workspace_revision`).
+  - Accepting what the card came with is part of the card. A person's save, or another turn's
+    accept, is not.
+  - A stale card starts only when the request names the current revision (`workspace_revision`),
+    the person's yes. The web asks once (`STALE_CARD_QUESTION`) and approves again naming it.
+    This is the knowledge approval's rule (F-K1: a stale edit applies only when the reviewer
+    names the current revision).
+  - Refusing outright was the other choice. It was rejected because re-asking the Lead is a paid
+    turn, and the person's own small edit would cost one.
+  - The working copy is read once, before the check, and that revision is the one submitted
+    (review of LO10). A save landing between the check and the submit makes the submit refuse
+    (409 `stale_revision`, nothing started); the job never runs on a revision nobody checked.
+  - **The 64 KB bound.** `context_snapshot` raises `AgentContextTooLarge` (a `ValueError`, so
+    the agent-jobs route's `invalid_agent_input` 422 still holds). The card's route answers 422
+    `agent_context_too_large` instead of a 500, and the pane says it in words.
+  - Tests:
+    - `apps/api/tests/test_research_lead_api.py`:
+      `test_a_card_whose_design_moved_waits_for_the_persons_yes_on_the_current_one`,
+      `test_accepting_the_cards_own_edits_leaves_it_approvable`,
+      `test_a_save_landing_after_the_check_does_not_change_what_the_job_runs_on`,
+      `test_a_study_too_large_for_a_design_job_is_refused_by_name_not_a_500`.
+    - `tools/ui_workbench/lead_stale_journey.mjs`: "a card whose design moved asks before it
+      starts, and on a yes starts on the current revision".
+
 **LO11. The Lead over time (M7): `researcher_lead_signals`, proposed updates the researcher approves each, a reader and rollback for Lead file revisions; no handover or admin read (D-32 to D-34); a departed member's Lead sealed, then deleted at the retention end (Q14)**  
 File revisions have no reader today (`revisions()` has no caller). Turns stay private (Q26). A Lead is never handed over and no admin reads another researcher's Lead files (the owner, 2026-10-20, D-32 to D-34; the earlier "admin read and handover" is withdrawn). Another member's ability to accept a proposal is **not** a Lead-lifecycle matter and is not decided here: Q16 makes proposals shared, and `working-copy-edit-ops#WCE6` builds it (gap G42).
 
 **LO12a. The route-class refusal says who fixes it (W0): static copy on the four surfaces**  
 The refusal surfaces in the job error, the Lead pane, source proposals and Progress, and none says an operator fixes it (the AI route's classes are set in SSM, not on Settings, which is read-only). The copy is keyed by the refusal codes that exist today (`egress_route_not_approved_for_class` and its siblings) and names the operator step and the runbook; it reads nothing and needs no composition record. Test: each code on each surface renders its who-fixes-it line. Interfaces I24.
+
+- **Landed** (`feature/route-refusal-who-fixes`). `apps/web/src/lib/route-refusal.ts` maps the six
+  refusals the route's settings decide (`egress_` + `route_not_approved_for_class`,
+  `retention_unspecified`, `residency_violation`, `training_exclusion_missing`, `no_approved_route`,
+  `route_provider_mismatch`) to one line: the operator fixes it, by which SSM parameter, under
+  `deploy/develop/README.md`, and Settings cannot change it.
+  - Not on the list: `egress_unclassified_material` (an operator's classification, not the route),
+    `licence_undetermined` (the data owner) and the budget codes (the researcher).
+  - The four surfaces append it: the Lead pane (`leadReasonWords`), the job panel
+    (`agentJobUpdate`, `followAgentJob`), source proposals (`proposalsLine`) and Progress
+    (`waitingDetail`, and `stepProblem` for Deep Research).
+  - A run step had no code to key on: its message is free text, and the gate's code stayed in the
+    attempt's error. `ResearchStepResponse.error_reason` and Deep Research's `DeepResearchStep`
+    now carry that code, or null when it is not a code (`_code`).
+  - `lead-availability.ts` now re-exports the pane's `leadReasonWords` instead of keeping a copy,
+    closing its TODO(#547).
+  - Tests: `route-refusal.test.ts`; on each surface, `lead.test.ts`, `research-agent-jobs.test.ts`,
+    `source-proposals.test.ts`, `research-execution.test.ts`; the API test
+    `test_fieldwork_without_the_ai_runtime_waits_visibly_and_nothing_downstream_runs` and
+    `test_a_step_passes_on_a_stored_code_never_free_text`, and Deep Research's
+    `test_a_run_parked_for_the_runtime_goes_on_when_a_person_resumes_it`, with `reason-words.test.ts`.
+  - Not a browser journey: the workbench has no route to refuse (its fieldwork is fictional code),
+    and making one refuse would mean building a refusing gateway into the workbench for one line of
+    static copy.
 
 **LO12b. A pre-flight read of the AI route (W1)**  
 The API cannot evaluate class, so the worker publishes a composition record the API, Settings and the Lead pane read (shared with `deep-research-web-search#52`, whose Reach panel is the other consumer, and with `run-qc-and-checkpoint#RQC8`). It lands in the same row as 52 (E12). The Lead pane gains `retention_unspecified`, `residency_violation` and `training_exclusion_missing`. Settings is read-only and stays so. Interfaces I15.

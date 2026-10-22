@@ -4,14 +4,15 @@
 // Pure: the pane renders what this says, and never formats a number -- each ref's text is the one the
 // DOCX prints, stored beside it by the server (domain/report/document_model.py).
 
+import { czechDate } from "@/lib/report-variant";
 import { aiaId } from "@/lib/workbench-artifacts";
 
 /**
  * The contracts this reader knows; a document of any other is refused, never read in part. -2
  * (artifact-chain-to-draft-report CHN1) only adds each section's `sources` and the document's `unread`,
- * which this reader does not need to draw the draft.
+ * -3 (report-delivery RD0) each ledger entry's `level`: neither is needed to draw the draft.
  */
-export const DOCUMENT_CONTRACTS = ["aia-report-document-1", "aia-report-document-2"] as const;
+export const DOCUMENT_CONTRACTS = ["aia-report-document-1", "aia-report-document-2", "aia-report-document-3"] as const;
 
 export type Inline =
   | { type: "text"; text: string; emphasis: "none" | "em" | "strong" }
@@ -94,7 +95,20 @@ export type StoredReportDocument = {
   review_state: "DRAFT_UNAPPROVED" | "APPROVED_INTERNAL";
   approved_on: string | null;
   stamped: boolean;
+  /** Who approved the DOCX and when, from its ledger row (report-delivery RD2); null for a draft. */
+  approval?: Approval | null;
   document: ReportDocumentModel;
+};
+
+/** One approval as the ledger recorded it. `approver_name` null: a person with no name, or one the store no longer knows. */
+export type Approval = {
+  approved_at: string;
+  approver_name: string | null;
+  by_you: boolean;
+  self_approved: boolean;
+  self_approval_allowed: boolean;
+  self_approval_source: string;
+  note: string;
 };
 
 /** A stored document of this contract, or null: one of any other is not read. */
@@ -175,6 +189,19 @@ export function claimLines(entry: LedgerEntry | undefined): string[] {
 export function unresolvedRefs(doc: ReportDocumentModel): string[] {
   const held = doc.ledger.refs;
   return [...new Set(doc.sections.flatMap((section) => section.refs))].filter((ref) => !(ref in held));
+}
+
+/**
+ * Who approved and when, in words: "schválil(a) Jana Nováková 21. 10. 2026", "schválili jste …" for the
+ * asker, a person with no name "člen bez jména" (never a guess), and "vlastní práce" when they approved
+ * what they produced. The day is the server's (`approved_on`, the Prague day of the same ledger row).
+ * Null for a draft or an approval the response does not carry.
+ */
+export function approvalWords(approval: Approval | null | undefined, approvedOn: string | null): string | null {
+  if (!approval) return null;
+  const day = approvedOn ? czechDate(approvedOn) : "neznámého dne";
+  const said = approval.by_you ? `schválili jste ${day}` : `schválil(a) ${approval.approver_name ?? "člen bez jména"} ${day}`;
+  return approval.self_approved ? `${said} · vlastní práce` : said;
 }
 
 /** The review the doc bar names: the DOCX's, since the DOCX is what a person approves. */
