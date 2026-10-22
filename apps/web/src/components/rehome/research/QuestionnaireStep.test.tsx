@@ -109,7 +109,7 @@ describe("Dotazník", () => {
     fireEvent.click(screen.getByRole("radio", { name: "Náhled respondenta" }));
     const preview = screen.getByRole("region", { name: "Jak bude dotazník přibližně vypadat" });
     expect(within(preview).getByText("Otázka 1")).toBeTruthy();
-    expect(within(preview).getByText("Sledovaná sada 3 · Sledovaná sada — média")).toBeTruthy();
+    expect(within(preview).getByText("Sledovaná sada 1 · Sledovaná sada — média")).toBeTruthy();
     expect(within(preview).getAllByText("Jak často používáte TV?").length).toBe(1);
     expect(screen.queryByText(/zlepšit blok/)).toBeNull();
     expect((screen.getByRole("button", { name: /Další · cílová skupina/ }) as HTMLButtonElement).disabled).toBe(false);
@@ -254,6 +254,16 @@ describe("Dotazník", () => {
     expect(within(section).getByText(/^Volitelně si nechte udělat hlubokou rešerši tématu a trhu: .* AIA respondentům sama nikdy neukáže\.$/)).toBeTruthy();
     // The browser audit: half English, and a model choice and an update the panel does not offer.
     expect(section.textContent).not.toMatch(/research tématu|price\/value|Outcome|Existing|zvolený model|aktualizovat/);
+  });
+
+  it("numbers the respondent's preview as the editor does, questions and sets each on their own", async () => {
+    // A set before the questions: 18.6.6's running count would read Sledovaná sada 1, Otázka 2, Otázka 3.
+    unitStub({ ...BRIEF, sections: [SECTIONS[1], SECTIONS[0]], ui_state: { questionnaire_path: "manual" } });
+    render(<ResearchScreen step="questionnaire" frame={TEST_FRAME} />);
+    fireEvent.click(await screen.findByRole("radio", { name: "Náhled respondenta" }));
+    const preview = await screen.findByRole("region", { name: "Jak bude dotazník přibližně vypadat" });
+    for (const label of ["Sledovaná sada 1 · Sledovaná sada — média", "Otázka 1", "Otázka 2"]) expect(within(preview).getByText(label)).toBeTruthy();
+    expect(within(preview).queryByText("Otázka 3")).toBeNull();
   });
 
   it("edits a question as the classic editor does: type, options and a scale", async () => {

@@ -550,7 +550,7 @@ function Preview({ items }: { items: PreviewItem[] }) {
           items.map((it) =>
             it.kind === "question" ? (
               <li key={it.index} className={CARD}>
-                <div className="text-xs text-ink-muted">{tv("research.questionnaire.previewQuestion", { n: it.index })}</div>
+                <div className="text-xs text-ink-muted">{tv("research.questionnaire.previewQuestion", { n: it.number })}</div>
                 <div className="mt-0.5 text-[15px] font-medium leading-6">{it.text}</div>
                 {it.options.length ? (
                   <div className="mt-3 flex flex-col gap-1.5">
@@ -569,7 +569,7 @@ function Preview({ items }: { items: PreviewItem[] }) {
               </li>
             ) : (
               <li key={it.index} className={`${CARD} border-t-[3px] border-t-hue-violet`}>
-                <div className="text-xs text-ink-muted">{tv("research.questionnaire.previewSet", { n: it.index, title: it.title })}</div>
+                <div className="text-xs text-ink-muted">{tv("research.questionnaire.previewSet", { n: it.number, title: it.title })}</div>
                 {it.rows.slice(0, 2).map((r, i) => (
                   <div key={i} className="mt-3">
                     <div className="text-sm font-medium">{r}</div>

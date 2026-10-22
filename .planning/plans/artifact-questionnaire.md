@@ -302,6 +302,15 @@ Fix: the card is "Před uzavřením dotazníku", its intro in Czech, saying only
 never shows respondents a finding's outcome numbers (the leakage rule); the line promising a model
 choice and an update is gone, with the four unused half-English keys beside it. Test: `QuestionnaireStep.test.tsx`.
 
+*Finding QF-14 (browser audit 2, 2026-10-22):* the respondent preview numbers its items with
+18.6.6's running count over questions and sets, so after four questions the set reads "Sledovaná sada 5"
+where the editor says Sada 1, and a question after a set skips a number (`QuestionnaireStep.tsx:554,573
+@ 9607ee09`). Fix: `respondentPreview` gives each item its `number` as the editor numbers it, questions
+and every section that is not questions each counted on its own, beside the parity-tested `index`; the
+preview shows it. Tests: `questionnaire-preview.test.ts`, `QuestionnaireStep.test.tsx` (a set before the
+questions read Sledovaná sada 1, Otázka 2, Otázka 3 before the fix; the existing preview test had pinned
+"Sledovaná sada 3" beside the outline's S1, and now reads 1).
+
 *Question QF-13 (browser audit 2, 2026-10-22), for the PM:* in the workbench Dotazník shows its own
 "Spustit veřejný výzkum" (`QuestionnaireStep.tsx:351-359 @ 9607ee09`, `DeepResearchPanel`), although
 a stage in the workbench shows no AI start of its own (#550) and the Lead's contract lists
@@ -313,5 +322,5 @@ or Lead card starts Design Research yet, so hiding the button would leave no way
 - open-items.md: number QF-7 (the question's × named by its stored id), closed by fix/questionnaire-remove-label.
 - open-items.md: number QF-8 (Závislosti held sets the compiler takes), closed by feature/questionnaire-set-hard-max.
 - open-items.md: number QF-9 (a question's × on a row of its own at 390 px) and QF-10 ("validačním gate"), closed by fix/questionnaire-audit-390.
-- open-items.md: number QF-11 (a scale's right label apart from its end at 390 px) and QF-12 (the research card half English), closed by fix/questionnaire-audit-2; QF-13 (Dotazník's own Design Research start in the workbench) open, for the PM.
+- open-items.md: number QF-11 (a scale's right label apart from its end at 390 px), QF-12 (the research card half English) and QF-14 (the preview's running numbers), closed by fix/questionnaire-audit-2; QF-13 (Dotazník's own Design Research start in the workbench) open, for the PM.
 - Register this plan and its chunks. `research-lead-workbench#7`'s questionnaire half is QST5.
