@@ -1504,6 +1504,7 @@ export const cs = {
           noName: "Bez uvedeného jména", roleHelp: "Výzkumník pracuje s klienty a studiemi. Vlastník a správce navíc spravují členy a systémová nastavení.",
           editHelp: "Změna role mění oprávnění tohoto člena v celé organizaci. Přístup k jednotlivým studiím se zde nenastavuje.",
           ownerOnly: "Roli vlastníka mění jen vlastník.",
+          lastOwner: "Jediný aktivní vlastník organizace o roli přijít nemůže.",
           refused: {
             owner_only: "Roli vlastníka udělit nebo odebrat může jen vlastník.",
             last_owner: "Poslední aktivní vlastník organizace nemůže přijít o roli ani být deaktivován.",

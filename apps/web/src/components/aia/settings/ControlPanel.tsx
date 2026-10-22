@@ -303,6 +303,8 @@ function MembersPanel({ members, vocab, canAdminister, yourRole, reload }: { mem
   // offered the other roles, and an OWNER's role stays as it is.
   const owner = yourRole === "OWNER";
   const roles = owner ? vocab.organization_roles : vocab.organization_roles.filter((r) => r !== "OWNER");
+  // The last active OWNER is not offered a demotion the API refuses (last_owner).
+  const activeOwners = members.ok ? members.data.filter((m) => m.is_active && m.organization_role === "OWNER").length : 0;
   return <div className="flex min-w-0 flex-col gap-3">
     <Sub>{t(`${P}.members.title`)}</Sub>
     <p className="text-sm leading-6 text-ink-muted">{t(`${P}.members.roleHelp`)}</p>
@@ -319,9 +321,9 @@ function MembersPanel({ members, vocab, canAdminister, yourRole, reload }: { mem
         canAdminister && editing === m.user_id ? <tr key={`${m.user_id}-edit`} data-member-edit={m.user_id}><td colSpan={5} className="bg-surface-sunken px-3 py-3">
           <ActionForm submit={t(`${P}.save`)} reload={reload} run={(f) => admin.addMember({ email: m.email, display_name: str(f, "display_name"), role: str(f, "role") })}>
             <Field label={t(`${P}.members.name`)}><TextInput name="display_name" defaultValue={m.display_name} className="w-full sm:w-56" /></Field>
-            {owner || m.organization_role !== "OWNER"
+            {m.organization_role !== "OWNER" || (owner && activeOwners > 1)
               ? <Field label={t(`${P}.members.role`)}><RoleSelect roles={roles} label={`${t(`${P}.members.role`)}: ${m.email}`} prefix="aia.orgRoles" initial={m.organization_role} /></Field>
-              : <Field label={t(`${P}.members.role`)}><input type="hidden" name="role" value="OWNER" /><span className="text-sm">{t("aia.orgRoles.OWNER")}</span><span className="text-xs text-ink-muted">{t(`${P}.members.ownerOnly`)}</span></Field>}
+              : <Field label={t(`${P}.members.role`)}><input type="hidden" name="role" value="OWNER" /><span className="text-sm">{t("aia.orgRoles.OWNER")}</span><span className="text-xs text-ink-muted">{t(`${P}.members.${owner ? "lastOwner" : "ownerOnly"}`)}</span></Field>}
           </ActionForm>
           <p className="mt-2 text-xs leading-5 text-ink-muted">{t(`${P}.members.editHelp`)}</p>
         </td></tr> : null,

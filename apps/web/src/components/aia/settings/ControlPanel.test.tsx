@@ -216,8 +216,24 @@ describe("the settings control panel", () => {
     expect([...own.options].map((o) => o.textContent)).toEqual(["správce", "výzkumník"]);
   });
 
+  it("offers the organization's only active OWNER no demotion", async () => {
+    api();
+    render(<ControlPanel />);
+    fireEvent.click(await screen.findByRole("tab", { name: "Přístup a schvalování" }));
+    const member = document.querySelector('[data-member="USR-1"]') as HTMLElement;
+    fireEvent.click(within(member).getByRole("button", { name: "Upravit" }));
+    const edit = document.querySelector('[data-member-edit="USR-1"]') as HTMLElement;
+    expect(within(edit).queryByRole("combobox")).toBeNull();
+    expect(within(edit).getByText("Jediný aktivní vlastník organizace o roli přijít nemůže.")).toBeTruthy();
+  });
+
   it("says an OWNER refusal in Czech, the API's English sentence left out", async () => {
+    // The list was read while a second OWNER was still active; the server decides.
     api({
+      "GET /api/v1/members": () => [
+        { user_id: "USR-1", email: "owner@example.test", display_name: "", is_active: true, organization_role: "OWNER" },
+        { user_id: "USR-3", email: "second@example.test", display_name: "", is_active: true, organization_role: "OWNER" },
+      ],
       "POST /api/v1/members": () =>
         new Response('{"code":"insufficient_role","message":"The organization\'s last OWNER cannot be demoted or deactivated.","details":{"reason":"last_owner"}}', { status: 403 }),
     });
@@ -669,7 +685,13 @@ it("follows changed settings hashes and preserves the framework's navigation sta
 
 describe("usable settings controls", () => {
   it("offers existing member edits through the audited membership API and defaults a new member to researcher", async () => {
-    api({ "POST /api/v1/members": () => ({ user_id: "USR-1", email: "owner@example.test", organization_role: "ADMIN", display_name: "Updated", is_active: true }) });
+    api({
+      "GET /api/v1/members": () => [
+        { user_id: "USR-1", email: "owner@example.test", display_name: "", is_active: true, organization_role: "OWNER" },
+        { user_id: "USR-3", email: "second@example.test", display_name: "", is_active: true, organization_role: "OWNER" },
+      ],
+      "POST /api/v1/members": () => ({ user_id: "USR-1", email: "owner@example.test", organization_role: "ADMIN", display_name: "Updated", is_active: true }),
+    });
     render(<ControlPanel />);
     fireEvent.click(await screen.findByRole("tab", { name: "Přístup a schvalování" }));
     expect((screen.getByRole("combobox", { name: "Role" }) as HTMLSelectElement).value).toBe("MEMBER");
