@@ -21,7 +21,7 @@ chunks:
   - "[ ] WCE10. The Lead's edit vocabulary widened (Audience, Dimensions, Sample), with a prompt and harness version and an `is_text_edit` ruling per operation"
   - "[ ] WCE11. Auto-apply per stage (MVP-14, D18): the researcher's `auto_accept_text_edits` gains a per-stage structural choice, off by default"
   - "[ ] WCE12. Journey: two researchers, one study, recorded doubles (the I-1 exit)"
-  - "[ ] WCE13. Routing in the questionnaire (W1, with research-lead-workbench 17): route_set sets, edits and removes a display condition, validated by the domain (the condition names an earlier question and an option it has), and readiness accepts a valid conditional question"
+  - "[x] WCE13. Routing in the questionnaire (W1, with research-lead-workbench 17): route_set sets, edits and removes a display condition, validated by the domain (the condition names an earlier question and an option it has), and readiness accepts a valid conditional question (behind AIA_ROUTING_ENABLED, off until RQC11 routes fieldwork; #763, #766, #777, #788)"
   - "[ ] WCE14. A stimulus item: content shown to respondents before a question (respondents.context), in the edit vocabulary and the design (D-45)"
 ---
 # Working-copy edit operations, merge and the Sociomap lock
