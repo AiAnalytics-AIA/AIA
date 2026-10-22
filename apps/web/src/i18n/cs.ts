@@ -3279,6 +3279,7 @@ export const cs = {
         relyTitle: "Jak spolehlivá je mapa",
         relyHalves: "Shoda dvou polovin respondentů",
         relyHalvesNone: "Shodu nelze změřit: mapa nemá spolehlivý pár.",
+        relyHalvesNotCompared: "Shodu dvou polovin respondentů nešlo změřit.",
         relyHalvesHigh: "Dvě náhodné poloviny respondentů daly téměř stejnou mapu.",
         relyHalvesOk: "Dvě poloviny respondentů daly podobnou mapu.",
         relyHalvesLow: "Poloviny respondentů daly odlišné mapy: berte ji jako orientační.",

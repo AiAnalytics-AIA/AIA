@@ -60,7 +60,9 @@ export function MapExplained({ x, approved, tech, idPrefix = "" }: { x: MapExpla
   const people = p ? Math.max(1, p.placed + p.faded + p.notPlaced) : 1;
   const seg = x.segments;
   const id = (s: string) => `${idPrefix}${s}`;
-  const halves = x.quality === null ? t(`${M}.relyHalvesNone`)
+  // No split-half score: "no reliable pair" only when the map is weakly determined by that rule; else the
+  // two halves could not be compared, and nothing more is claimed (engine_v2's credibility).
+  const halves = x.quality === null ? t(`${M}.${x.weaklyDetermined ? "relyHalvesNone" : "relyHalvesNotCompared"}`)
     : x.quality.value >= 0.9 ? t(`${M}.relyHalvesHigh`)
       : x.quality.value >= x.quality.threshold ? t(`${M}.relyHalvesOk`) : t(`${M}.relyHalvesLow`);
   return (
