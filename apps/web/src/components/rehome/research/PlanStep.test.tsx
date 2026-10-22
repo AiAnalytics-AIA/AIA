@@ -132,15 +132,18 @@ describe("Návrh", () => {
     expect(((ws.saves.at(-1)!.content.research_plan as { tracked_sets: { objects: string[] }[] }).tracked_sets[0].objects)).toHaveLength(30);
   });
 
-  it("names the sections a comment quotes by the numbers they carry, with or without the variants", async () => {
-    unitStub();
-    const { unmount } = render(<ResearchScreen step="plan" frame={TEST_FRAME} />);
-    expect(await screen.findByText(/Označte text v oddílu 2 nebo 3 jako ve Wordu/)).toBeTruthy();
-    unmount();
-    // No variants: Porozumění is 1 and Sady 2, and the hint says so.
-    unitStub({ ...ANALYSIS, project_variants: [] });
-    render(<ResearchScreen step="plan" frame={TEST_FRAME} />);
-    expect(await screen.findByText(/Označte text v oddílu 1 nebo 2 jako ve Wordu/)).toBeTruthy();
+  it("names the sections a comment quotes as the page names them, with or without the variants", async () => {
+    // The sections draw no number (StepSection), so the hint names them as their jump chips do.
+    for (const analysis of [ANALYSIS, { ...ANALYSIS, project_variants: [] }]) {
+      unitStub(analysis);
+      const { unmount } = render(<ResearchScreen step="plan" frame={TEST_FRAME} />);
+      const hint = await screen.findByText(/Označte text v části Porozumění nebo Sady jako ve Wordu/);
+      const chips = within(screen.getByRole("navigation", { name: "Oddíly návrhu" })).getAllByRole("button").map((b) => b.textContent ?? "");
+      expect(chips.some((c) => c.startsWith("Porozumění"))).toBe(true);
+      expect(chips.some((c) => c.startsWith("Sady"))).toBe(true);
+      expect(hint.textContent).not.toMatch(/oddílu \d/);
+      unmount();
+    }
   });
 
   it("draws the analysis, its sets with the question preview, the follow-ups and the comments", async () => {

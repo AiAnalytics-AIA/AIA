@@ -218,9 +218,6 @@ export function PlanStep() {
   ];
   // Section numbers follow what is on the page: no variants, no "Rozsah".
   let n = variants.length ? 1 : 0;
-  // Porozumění and Sady come next, in that order; Komentáře names them by these numbers.
-  const nUnderstanding = ++n;
-  const nSets = ++n;
 
   return (
     <div ref={root} className="flex max-w-6xl flex-col gap-4">
@@ -242,8 +239,8 @@ export function PlanStep() {
       <DesignCoverage />
       <Commentable onQuote={(quote) => setDrafts((d) => [...d, { key: ++seq.current, quote, text: "" }])}>
         <div className="flex flex-col gap-4">
-          <Understanding n={nUnderstanding} changed={Boolean(p.ui_state.plan_changed26)} blocked={busy} onQuote={(quote) => { setDrafts((d) => [...d, { key: ++seq.current, quote, text: "" }]); jumpTo("plan-comments"); }} />
-          <Sets n={nSets} analysis={a} blocked={busy} limits={setLimits} />
+          <Understanding n={++n} changed={Boolean(p.ui_state.plan_changed26)} blocked={busy} onQuote={(quote) => { setDrafts((d) => [...d, { key: ++seq.current, quote, text: "" }]); jumpTo("plan-comments"); }} />
+          <Sets n={++n} analysis={a} blocked={busy} limits={setLimits} />
         </div>
       </Commentable>
       {questions.length ? (
@@ -269,7 +266,6 @@ export function PlanStep() {
       {savedForLead === "answers" ? <SavedForLead saved="Odpovědi jsou uložené" message="Aktualizuj návrh podle mých odpovědí." /> : null}
       <Comments
         n={++n}
-        from={[nUnderstanding, nSets]}
         busy={busy}
         drafts={drafts}
         setDrafts={setDrafts}
@@ -715,9 +711,7 @@ function Commentable({ onQuote, children }: { onQuote: (quote: string) => void; 
   );
 }
 
-function Comments({ n, from, busy, drafts, setDrafts, onProcess, saveOnly = false }: {
-  /** The sections a comment quotes text from, by the numbers they carry on the page. */
-  from: readonly [number, number];
+function Comments({ n, busy, drafts, setDrafts, onProcess, saveOnly = false }: {
   /** The workbench: the comments are saved for the Lead, with no AI call from here. */
   saveOnly?: boolean;
   n: number;
@@ -737,7 +731,7 @@ function Comments({ n, from, busy, drafts, setDrafts, onProcess, saveOnly = fals
     setDrafts((all) => all.filter((x) => x.key !== key));
   };
   return (
-    <StepSection id="plan-comments" n={n} optional={false} title={`${t("research.plan.commentsTitle")} · ${cs.length}`} hint={tv("research.plan.commentsHint", { a: from[0], b: from[1] })}>
+    <StepSection id="plan-comments" n={n} optional={false} title={`${t("research.plan.commentsTitle")} · ${cs.length}`} hint={t("research.plan.commentsHint")}>
       {cs.length || drafts.length ? (
         <ul className="flex flex-col gap-2">
           {cs.map((c, i) => (
