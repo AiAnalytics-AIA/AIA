@@ -5441,7 +5441,7 @@ the change waiting for its save".
 
 ---
 
-## OI-183 · Finding · An identifier's digits ground a number the Lead invents
+## OI-183 · Finding, closed · An identifier's digits ground a number the Lead invents
 
 **Claim.** The Lead's number guard reads digits inside identifiers in its context as numbers, so a
 number the Lead made up passes unrepaired whenever an id in the context happens to start with its
@@ -5469,7 +5469,9 @@ numbers are read.
 `test_an_identifiers_digits_ground_no_number`, `test_the_context_names_its_identifiers`,
 `test_a_request_holds_a_reply_to_the_context_without_its_identifiers`.
 
-**Status.** Open: the fix is #557 (`fix/lead-invented-number-test-clock`), not merged on 2026-10-21.
+**Status.** Closed by #557 (merged as `bcb2911e`, 2026-10-21): `context_identifiers`
+(`domain/research_lead.py:428 @ bfe6d15b`) blanks every identifier before numbers are read, on the
+allowed side (`:963`) and in the reply alike.
 
 ---
 
@@ -5627,7 +5629,7 @@ because its runs were cancelled (OI-191).
 
 ---
 
-## OI-190 · Finding · Výsledky's "Kish n" column shows the donor-adjusted n
+## OI-190 · Finding, closed · Výsledky's "Kish n" column shows the donor-adjusted n
 
 **Claim.** The rated-set table's column labelled Kish n reads `result.effective_n`, the
 donor-adjusted combined support size, instead of Kish's effective n, which the aggregate stores as
@@ -5647,7 +5649,9 @@ up to a factor of three where respondents share donors.
 
 **Test.** A `result-reading.test.ts` case with 401.8 against 125.0 that expects 401 in the column.
 
-**Status.** Open: the fix is #611 (`fix/results-kish-and-targets`), not merged on 2026-10-21.
+**Status.** Closed by #611 (merged as `dffd36fc`, 2026-10-21): the column reads `kishN` from
+`effective_n_kish` (`apps/web/src/lib/result-reading.ts:135 @ bfe6d15b`), null when not stored;
+`result-reading.test.ts` expects 401.8 where `effective_n` is 125.0.
 
 ---
 
@@ -5707,3 +5711,56 @@ and before 10, is refused at composition with the Segments module named.
 **Status.** Open: recorded as an ordering in this PR (the coordinator's census finding PM-2,
 2026-10-21); closes when 10 lands before 9b.
 
+---
+
+## OI-193 · Hypothesis · Per-researcher spend counts any settled hold without a ledger row as tool spend
+
+**Claim.** "Spend outside the ledger" on the per-researcher report is every settled hold that no
+usage-ledger row names; today that is exactly the priced tool calls, but a model hold settled
+without its ledger row would be counted there too, as tool spend.
+
+**Anchor.** `packages/aia_core/src/aia_core/infrastructure/researcher_spend_repository.py:121-123 @ bfe6d15b`
+(`in_ledger = exists().where(AIUsageEventRow.reservation_id == BudgetReservationRow.reservation_id)`),
+folded by `domain/spend_attribution.py` `researcher_spend` (`:254`). Plan `develop-spend-attribution`,
+Findings (chunk 7) F-SA7-1, #583 (merged as `e78dfa8b`).
+
+**Reproduction.** Hypothesis: no path today settles a model hold without writing its ledger row; a
+test would settle a `budget_reservations` model hold with no `ai_usage_events` row and read it under
+"mimo ledger". `test_the_fold_separates_model_tool_reserved_and_uncertain` covers only the intended
+split.
+
+**Consequence.** If it ever happens, a model call's cost is shown as tool spend, never lost: the
+person's total stays right, its parts do not.
+
+**Smallest fix.** `deep-research#4` gives tool calls their own ledger and
+`develop-spend-attribution#5b` reads tool spend from it, so "outside the ledger" is no longer
+inferred from an absence.
+
+**Test.** After #4, a hold with neither a usage row nor a tool-ledger row read as unknown, never as
+tool spend.
+
+**Status.** Open: closes with `deep-research#4` and `develop-spend-attribution#5b`.
+
+---
+
+## OI-194 · Question, closed · Who pays for the holds after a budget lift
+
+**Claim.** `charged_to` books every hold a run makes after a budget lift to the person who lifted
+it, not the run's starter; Q40 said only "whoever approves or starts", so the rule was a reading.
+
+**Anchor.** `packages/aia_core/src/aia_core/domain/spend_attribution.py:74-86 @ bfe6d15b` (rule 1,
+`if lift_approver: return lift_approver`); plan `develop-spend-attribution`, Findings (chunk 7)
+F-SA7-2, #583 (merged as `e78dfa8b`).
+
+**Reproduction.** `packages/aia_core/tests/test_spend_attribution.py::test_a_budget_lift_books_the_holds_after_it_to_the_lifter`.
+
+**Consequence.** A researcher who lifts a colleague's run's budget sees the rest of that run's spend
+under their own name on "Útrata podle výzkumníka".
+
+**Smallest fix.** None needed: the product owner answered Q67 (a) on 2026-10-21, 20:12, "Whoever
+lifts the budget pays for what runs after the lift" (`mvp-owner-decisions.md`). Had the answer been
+the starter, the change was rule 1's removal and its test.
+
+**Test.** The reproduction above.
+
+**Status.** Closed: decided by the owner (Q67 (a)) and built in #583.

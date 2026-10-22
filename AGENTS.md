@@ -303,6 +303,18 @@ schema first:
 psql "$TEST_DB" -c 'DROP SCHEMA public CASCADE; CREATE SCHEMA public;'
 ```
 
+**The `.env` that `make setup` writes fails part of the API suite locally.** `make setup` copies
+`.env.example` to `.env` (`Makefile:31`), and the API's settings read `.env`
+(`apps/api/src/aia_api/config.py:39 @ bfe6d15b`). With it in place about 23 tests in
+`apps/api/tests/test_research_api.py` fail, for example
+`test_research_artifacts_are_read_only_through_the_run_that_produced_them`
+(`assert None == 'SYNTHETIC_FIXTURE'`); the same tests pass on a clean `develop` worktree, which has
+no `.env`, and in CI (#612). Move `.env` aside to run the API suite:
+
+```bash
+mv .env .env.local-aside && make test; mv .env.local-aside .env
+```
+
 ## Pydantic
 
 **A new optional field changes every fingerprint already stored.** A model whose
@@ -538,6 +550,22 @@ table.** After a migration that adds columns, the workbench's API fails with
 `no such column: clients.short_code` on a database from before it. Start it from an empty one:
 `python tools/ui_workbench/workbench.py up --fresh`, then `make ui-fixtures` again
 (client-workspace C5, #380).
+
+**A `select` of more than ten columns types its rows as a variadic tuple.** SQLAlchemy's stubs
+type `Row` positionally only up to ten columns; past that, unpacking a row in the `for` fails
+`mypy --strict` with "Variadic tuple unpacking requires a star target". Read such rows by column
+instead (`researcher_spend_repository.py:150-165 @ bfe6d15b`, eleven columns, #583):
+
+```python
+# WRONG -- 11 columns: mypy --strict refuses the unpacking
+for (reservation_id, status, amount, settled, charged_to, ...) in rows: ...
+
+# RIGHT -- one typed read per column, through the row's mapping
+for row in rows:
+    m = row._mapping
+    status = str(m[BudgetReservationRow.status])
+    in_ledger = bool(m["in_ledger"])   # a labelled expression by its label
+```
 
 ## Alembic
 
