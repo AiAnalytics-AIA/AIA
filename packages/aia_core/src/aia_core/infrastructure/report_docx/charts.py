@@ -24,7 +24,7 @@ import io
 import math
 from collections.abc import Callable, Sequence
 from dataclasses import dataclass, replace
-from typing import Final, Literal
+from typing import Final, Literal, NotRequired, TypedDict
 
 from matplotlib.axes import Axes
 from matplotlib.figure import Figure as MplFigure
@@ -149,7 +149,14 @@ def _patch(series: Series, color: str) -> Patch:
     return Patch(facecolor=color, edgecolor="none", label=_series_label(series))
 
 
-def _bar_style(series: Series, color: str) -> dict[str, object]:
+class _BarStyle(TypedDict):
+    color: str
+    edgecolor: str
+    linewidth: float
+    hatch: NotRequired[str]
+
+
+def _bar_style(series: Series, color: str) -> _BarStyle:
     if series.modelled:
         return {"color": COLORS["doc-paper"], "edgecolor": color, "hatch": HATCH, "linewidth": 0.8}
     return {"color": color, "edgecolor": COLORS["doc-paper"], "linewidth": 0.6}
@@ -171,7 +178,7 @@ def _bars(ax: Axes, fig: MplFigure, chart: Chart, data: list[list[Point | None]]
             if p is None:
                 continue
             y = ci * band + (si - (n_series - 1) / 2) * thick
-            ax.barh(y, p.value, height=thick * 0.92, **_bar_style(series, color))  # type: ignore[arg-type]
+            ax.barh(y, p.value, height=thick * 0.92, **_bar_style(series, color))
             x = p.value + (span * _LABEL_PAD if p.value >= 0 else -span * _LABEL_PAD)
             ax.text(x, y, p.label, va="center", ha="left" if p.value >= 0 else "right")
     ax.set_yticks([i * band for i in range(len(chart.categories))], list(chart.categories))
@@ -210,7 +217,7 @@ def _stack(
             style = _bar_style(series, colors[si])
             style["edgecolor"] = COLORS["doc-paper"] if not series.modelled else colors[si]
             style["linewidth"] = 1.2 if not series.modelled else 0.8
-            ax.barh(ci, p.value, left=left[ci], height=0.6, **style)  # type: ignore[arg-type]
+            ax.barh(ci, p.value, left=left[ci], height=0.6, **style)
             if p.value >= 9:  # the label fits inside with room on both sides
                 ink = COLORS["doc-paper"] if not series.modelled and si in (0, 3, 4) else None
                 ax.text(left[ci] + p.value / 2, ci, p.label, ha="center", va="center",
@@ -233,15 +240,15 @@ def _diverging_chart(
         for si in negative:
             p = data[si][ci]
             left -= p.value if p else 0.0
-        if neutral is not None and data[neutral][ci] is not None:
-            left -= data[neutral][ci].value / 2  # type: ignore[union-attr]
+        if neutral is not None and (middle := data[neutral][ci]) is not None:
+            left -= middle.value / 2
         for si, series in enumerate(chart.series):
             p = data[si][ci]
             if p is None:
                 continue
             style = _bar_style(series, colors[si])
             style["edgecolor"] = COLORS["doc-paper"] if not series.modelled else colors[si]
-            ax.barh(ci, p.value, left=left, height=0.6, **style)  # type: ignore[arg-type]
+            ax.barh(ci, p.value, left=left, height=0.6, **style)
             if p.value >= 9:
                 ax.text(left + p.value / 2, ci, p.label, ha="center", va="center")
             left += p.value

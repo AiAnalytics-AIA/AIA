@@ -22,7 +22,7 @@ from docx.enum.style import WD_STYLE_TYPE
 from docx.enum.text import WD_ALIGN_PARAGRAPH, WD_LINE_SPACING
 from docx.oxml.ns import qn
 from docx.shared import Mm, Pt, RGBColor
-from docx.styles.style import BaseStyle, CharacterStyle, ParagraphStyle
+from docx.styles.style import CharacterStyle, ParagraphStyle
 from lxml import etree
 
 from aia_core.domain.report.print_tokens import COLORS, PAGE, STYLES, PrintStyle
@@ -379,12 +379,12 @@ def _strip_theme_fonts(rpr: etree._Element) -> etree._Element:
     return rfonts
 
 
-def _set_face(style: BaseStyle, ps: PrintStyle) -> None:
+def _set_face(style: CharacterStyle, ps: PrintStyle) -> None:
     rpr = style.element.get_or_add_rPr()
     rfonts = _strip_theme_fonts(rpr)
     for attr in ("w:ascii", "w:hAnsi", "w:cs", "w:eastAsia"):
         rfonts.set(qn(attr), ps.font)
-    font = style.font  # type: ignore[attr-defined]
+    font = style.font
     font.size = Pt(ps.size_pt)
     font.bold = ps.bold
     font.italic = ps.italic
