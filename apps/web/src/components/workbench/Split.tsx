@@ -44,6 +44,11 @@ export function recoveryTarget(container: HTMLElement): HTMLElement {
   return container.querySelector<HTMLElement>('[role="log"]') ?? container;
 }
 
+/** Whether an element still in the page can no longer hold the focus: disabled, hidden or inert. */
+function cannotHoldFocus(el: HTMLElement): boolean {
+  return (el as HTMLButtonElement).disabled === true || el.closest("[hidden], [inert]") !== null;
+}
+
 /** While the drawer or sheet is open, a focused card control that unmounts (an approve button
  *  replaced by its result, "Na nejnovější" scrolled away) leaves focus on the body, outside the
  *  modal and behind an inert page: it is brought back inside (recoveryTarget). Watched by mutation,
@@ -68,11 +73,21 @@ function useFocusRecovery(dialog: RefObject<HTMLDivElement | null>, modal: boole
     // held any more, so a later re-render that removes that element takes nothing back. Read
     // after the event: Chromium fires focusout during removeChild, while the element is still
     // connected, so the check waits a microtask, which runs before the mutation callback.
+    // A control that became disabled while it had the focus (an approve button while its decision
+    // is sent) blurs too, still connected: Chromium drops the focus to the body. The person did not
+    // move it, so it comes back at once.
     const onOut = (e: FocusEvent) => {
       const target = e.target;
       queueMicrotask(() => {
-        if (target instanceof Node && target.isConnected) held = null;
-        else recover();
+        if (!(target instanceof HTMLElement) || !target.isConnected) return recover();
+        const active = document.activeElement;
+        const toBody = !active || active === document.body;
+        if (toBody && cannotHoldFocus(target)) {
+          held = null;
+          recoveryTarget(el).focus();
+        } else {
+          held = null;
+        }
       });
     };
     const watch = new MutationObserver(recover);

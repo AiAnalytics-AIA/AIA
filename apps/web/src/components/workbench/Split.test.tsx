@@ -48,6 +48,21 @@ describe("focus recovery in the open drawer or sheet", () => {
     await waitFor(() => expect(document.activeElement).toBe(screen.getByLabelText("Napište Vedoucímu výzkumu")));
   });
 
+  it("brings the focus back when the focused control is disabled while its decision is sent (review of #683)", async () => {
+    bench(true);
+    const button = screen.getByRole("button", { name: "Spustit úlohu" });
+    button.focus();
+    // Chromium blurs a focused control that becomes disabled, still connected, and the focus
+    // drops to the body (measured); jsdom does neither and will not blur a disabled button, so
+    // the state Chromium leaves is made here: blurred, disabled, then its focusout.
+    act(() => {
+      button.blur();
+      button.setAttribute("disabled", "");
+      button.dispatchEvent(new FocusEvent("focusout", { bubbles: true }));
+    });
+    await waitFor(() => expect(document.activeElement).toBe(screen.getByLabelText("Napište Vedoucímu výzkumu")));
+  });
+
   it("brings it to the log when the composer takes no text", async () => {
     bench(true, false);
     const button = screen.getByRole("button", { name: "Spustit úlohu" });

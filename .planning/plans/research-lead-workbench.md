@@ -1531,5 +1531,8 @@ It does show focus: a 2 px signal line down its full height (`.split__handle:foc
    untouched when the conversation is closed or the person blurred it themselves, also when that
    control unmounts later (review of #683: a real blur now drops what was held); recovery when the
    browser fires focusout during the removal (Chromium does, the element still connected: the
-   check waits a microtask, measured in headless Chromium); and
+   check waits a microtask, measured in headless Chromium); recovery when the focused control is
+   disabled while its decision is sent (Chromium blurs it, still connected, to the body: measured,
+   and `lead_journey.mjs` caught it on "Pamatovat si" at 390, which it now decides by keyboard and
+   asserts the focus stays in the conversation); and
    `recoveryTarget`'s order.
