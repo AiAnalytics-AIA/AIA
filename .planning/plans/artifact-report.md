@@ -146,8 +146,8 @@ sentence refused by RD7 is marked at the sentence. Depends on `report-delivery#R
 
 ## 8. Owner questions
 
-The draft's sections (the chain plan's CQ1, Q55) and the editor choice (Q19) stay open. Settled
-2026-10-21 via /pmstatus: CQ2 = Q56 (b), code drafts and the Lead proposes tracked changes (RPT6);
+The editor choice (Q19) stays open. Settled 2026-10-21 via /pmstatus: CQ1 = Q55 (b), today's
+report with its gaps closed, plus RD9/RD10, plus literature when chosen, in today's order; CQ2 = Q56 (b), code drafts and the Lead proposes tracked changes (RPT6);
 CQ4 = Q58 (b), one document with the literature woven into its body (CHN8). A module with no supported finding is settled: MVPQ-04 blocks composition, approval and export
 (`artifact-chain-to-draft-report#CHN10`).
 

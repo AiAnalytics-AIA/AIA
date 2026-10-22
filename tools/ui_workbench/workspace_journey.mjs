@@ -136,10 +136,10 @@ if (!readFileSync(templatePath).subarray(0, 2).equals(Buffer.from("PK"))) fail("
 ok("Dotazník: AIA's template downloads");
 const imported = saved();
 await page.locator('input[type="file"][aria-label="Vyplněný XLSX / CSV"]').setInputFiles(templatePath);
-await text("Načteno: 2 otázek · 1 sledovaných sad", "the import's summary");
+await text("Načteno: 2 otázky · 1 sledovaná sada", "the import's summary");
 await imported;
 await page.reload({ waitUntil: "load" });
-await text("2 otázek · 1 sledovaných sad", "the imported questionnaire after a reload");
+await text("2 otázky · 1 sledovaná sada", "the imported questionnaire after a reload");
 ok("Dotazník: the template imports in AIA and the questionnaire is read back after a reload");
 await shot("2-questionnaire");
 

@@ -159,3 +159,14 @@ owner and A. Bahbouh.
 
 - Register this plan and its chunks. `research-lead-workbench#20`'s D-13 text is met by
   `sociomap-5-web` and SOC2.
+
+## Findings
+
+- **Fixed: the object list on the respondent map offered a selection it could not show.** Browser audit,
+  2026-10-21. On Respondenti, a click on a listed object set the selection (`aria-pressed`, `data-selected`), but
+  nothing a person could see changed: the respondent card stayed, and the markers do not react
+  (`ObjectMapPanel.tsx:349 @ bfe6d15b`, `onChoose={choose}` on both maps). Selection is the object map's, so on the
+  respondent map the list is read-only: `aria-disabled`, no `aria-pressed`, no "Vybrat" label, no hover. Not the
+  native `disabled` (Codex, #639): a disabled button takes no focus and fires no click, so the Lead's `focus` on an
+  `object:` target and the "@" pick would break on the respondent map. Test: `ObjectMapPanel.test.tsx` › "the object
+  list on the respondent map".

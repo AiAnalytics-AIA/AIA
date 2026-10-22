@@ -7,6 +7,8 @@
 // save reason. questionnaire.parity.test.ts compares each with the original
 // under Node. Survey: .planning/plans/research-flow-rehome.md (PR B).
 
+import { tv } from "@/i18n/t";
+
 import { type Template, type Json, PROVIDER_FORCED, type ResearchProject, defaultsMerge } from "./model";
 import { keepPointLabels } from "./scale-labels";
 import type { Analysis } from "./store";
@@ -66,6 +68,17 @@ export function questionnaireCounts(p: ResearchProject): { questions: number; se
     questions: xs.reduce((n, x) => n + (x.type === "questions" ? (x.questions || []).length : 0), 0),
     sets: xs.filter((x) => x.type === "object_battery").length,
   };
+}
+
+/** A Czech count of `kind`, the word by its number: 1 otázka, 2–4 otázky, 0 and 5+ otázek. */
+export function countWords(kind: "questions" | "sets", n: number): string {
+  const form = n === 1 ? "one" : n >= 2 && n <= 4 ? "few" : "many";
+  return tv(`research.questionnaire.countWords.${kind}.${form}`, { n });
+}
+
+/** The questionnaire's counts in words: "4 otázky · 1 sledovaná sada". */
+export function countsWords(c: { questions: number; sets: number }): string {
+  return tv("research.questionnaire.editorCounts", { questions: countWords("questions", c.questions), sets: countWords("sets", c.sets) });
 }
 
 export type QuestionnairePath = "choose" | "upload" | "manual" | "ai";
@@ -444,7 +457,10 @@ export function applyImport(
     template,
   );
   project.ui_state.questionnaire_path = "manual";
-  return { project, toast: `Načteno: ${r.summary?.question_count} otázek · ${r.summary?.tracked_sets} sledovaných sad` };
+  // What was loaded, counted from the sections kept: a summary missing from the answer never prints
+  // "undefined". The unit wrote "otázek · sledovaných sad" whatever the number; the words here
+  // follow it (countWords), so the two read the same from 5 and at 0 and differ only where it erred.
+  return { project, toast: tv("research.questionnaire.imported", { counts: countsWords(questionnaireCounts(project)) }) };
 }
 
 export const BUILD_TITLE = "AI tvoří dotazník";

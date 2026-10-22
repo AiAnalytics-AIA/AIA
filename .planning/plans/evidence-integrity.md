@@ -126,3 +126,10 @@ Source: the owner's answers of 2026-10-20 (`.planning/evidence/scope-freeze/answ
 
 **Existing chunks, changed.** 5 (G61): its test reads "one authority per evidence source", and AC-08's
 row names it. 1 moves from E20 to E32 (G62), before its W1 consumer 9a.
+
+### Ordering (the coordinator's census, 2026-10-21, OI-192)
+
+`segment-maps-and-drilldown#10` (segment evidence) lands before `evidence-integrity#9b` (the
+refusal while a module has no supported finding) and `artifact-chain-to-draft-report#CHN10`. Once
+9b lands, the Segments chapter (ch-5) has no admitted producer without 10, so no run could reach a
+draft report.
