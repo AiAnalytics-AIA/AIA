@@ -11,7 +11,7 @@ chunks:
   - "[ ] RPT6. The Lead and the report writer on the draft (replaced 2026-10-22 by RPT9 and RPT10)"
   - "[ ] RPT7. Journey: Zpráva at 1440, 1100, 768 and 390 px, a fictional run's internal draft, zero paid jobs (extended by RPT9's suggestion step)"
   - "[ ] RPT8. The editor is Zpráva's main surface: the stored draft opened in ONLYOFFICE Docs (Q35), the researcher editing directly, every number a locked, tagged ledger ref checked on save (RD6, ADR 0035; split 2026-10-22: RPT8a-d)"
-  - "[ ] RPT8a. Every printed number a locked content control tagged with its source (the editor spike's F-ED1): ledger values in prose, table cells, captions (part 1); KPI tiles, figures, the evidence appendix, suppressed counts, and the map, design, run and bundle spans (part 2)"
+  - "[ ] RPT8a. Every printed number a locked content control tagged with its source (the editor spike's F-ED1): ledger values in prose, table cells, captions (part 1); KPI tiles, figures, the evidence appendix, suppressed counts (part 2); the map, design, run and bundle spans (part 3, the map's provisional until OQ-ED1)"
   - "[ ] RPT8b. The save census: an edited DOCX refused when it loses or changes a tagged control or breaks the numeric-token rule (F-ED1), a pure check over the stored document model"
   - "[ ] RPT8c. The editor routes behind AIA_ONLYOFFICE_URL (unset: off): the config with its JWT and the docs ticket, the signed document URL, the callback storing a save as a new draft once the census passes (the hosting contract, report-editor-hosting)"
   - "[ ] RPT8d. The pane opens the stored draft in the editor when it is configured; the read-only document stays where it is not"
@@ -247,6 +247,21 @@ must know), and a ref printed more than once or in two forms (prose holds the in
 in `#interval`): RPT8b compares the saved controls with the stored document rendered again as a multiset of
 (tag, text), so a deleted or changed duplicate is found without an id, and a moved paragraph is not a
 change. Whether ONLYOFFICE keeps a long `w:tag` as written is checked when RPT8c first opens a draft.
+
+*RPT8a, part 2 (`feature/report-locked-numbers-part2`):* the tags are one grammar, `domain/report/control_tags.py`
+(builders and `parse_tag`), which the renderer writes and RPT8b's census will read. A KPI tile's value with its
+marks is one control tagged with the ref, the line under it (base n, interval, "orientační") one more tagged
+`<ref>#n` (P3); a chart's or a Sociomap's picture is locked, tagged `figure:<id>` (P5; its refs are the stored
+figure's); every cell of an evidence appendix row is locked, tagged `appendix:<ref>#<column>` (P6: the appendix is
+regenerated, never edited, ref ids hold digits, and a swapped cell is a changed one); a suppressed count in a
+table's notes row or under a figure is locked, tagged `count:suppressed:<table or figure id>`, the owner a required
+argument (P13). The contracts move
+(`aia-internal-report-16`, `aia-client-report-6`, `aia-contextual-report-12`). Test: every sample kind
+(client, final, internal, documentation), each value, number cell, KPI tile and figure tagged, each cited
+ref's appendix row with an appendix, and every tag naming a source the document holds
+(`test_report_docx_locked_numbers.py` `test_every_sample_kind_locks_every_ledger_number_it_prints`, `test_the_tag_grammar_reads_back_what_it_writes`). Furniture the
+census must know stays unlocked: the SEQ, PAGE and TOC fields, the lists of figures and tables, and
+cross-reference labels; a Sociomap caption's fit is the map's, part 3.
 
 **RPT9. The Lead in the document.** The Lead, on its own model (STUDY_LEAD), edits the same document
 through the edit operations:

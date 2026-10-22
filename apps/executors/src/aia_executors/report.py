@@ -52,8 +52,9 @@ from .research import upstream_artifact
 REPORT_ARTIFACT_TYPE = INTERNAL_REPORT_ARTIFACT_TYPE
 # -14: a ledger number in prose, a table or a caption is a locked, tagged content control
 # (artifact-report RPT8a, part 1), so a draft rendered before is never reused for an editor.
-# -15: the design chapter opens with the brief's goal and decision use (F19).
-REPORT_CONTRACT_VERSION = "aia-internal-report-15"
+# -16: KPI tiles, figures, the evidence appendix and suppressed counts locked too (RPT8a, part 2;
+# -15 is the brief's goal, F19).
+REPORT_CONTRACT_VERSION = "aia-internal-report-16"
 REPORT_PDF_ARTIFACT_TYPE = INTERNAL_REPORT_PDF_ARTIFACT_TYPE
 REPORT_DOCUMENT_ARTIFACT_TYPE = INTERNAL_REPORT_DOCUMENT_ARTIFACT_TYPE
 
