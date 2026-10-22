@@ -7,14 +7,17 @@ from __future__ import annotations
 from types import SimpleNamespace
 from typing import Any
 
-from aia_core.domain.ai_contracts import validate_structured_output
+from aia_core.domain.ai_contracts import ModelCallFailed, validate_structured_output
 from aia_core.domain.ai_respondent import block_contract, fictional_roster, plan_respondent
+from aia_core.domain.fieldwork_events import PAYLOAD_KEYS, FieldworkEvent, progress
 from aia_core.domain.licence import DataLineage
 from aia_core.domain.providers import Provider
 from aia_core.domain.research_design import compile_design
 from aia_core.domain.residency import DataClass
 from aia_core.domain.respondent_behavior import AIA_RESPONSE_V1
+from aia_core.domain.workflow import FailureClass
 from aia_core.infrastructure.build_identity import BuildIdentity
+from aia_executors import ai_fieldwork
 from aia_executors.ai_fieldwork import AIFieldwork, AIFieldworkConfig, Answered
 from aia_worker.executor import Failed
 
@@ -69,11 +72,15 @@ class _Context:
         self.checkpoints += 1
 
     def progress(self, message: str, **counts: Any) -> None:
-        self.progressed.append(counts)
+        self.progressed.append({"message": message, **counts})
 
 
 def _setup(
-    caller: _Caller, *, design: dict[str, Any] = DESIGN, scale_labels_in_prompt: bool = False
+    caller: _Caller,
+    *,
+    design: dict[str, Any] = DESIGN,
+    scale_labels_in_prompt: bool = False,
+    heartbeat: bool = False,
 ) -> tuple[AIFieldwork, Any, list[Any]]:
     spec, problems = compile_design(design)
     assert spec is not None, problems
@@ -100,6 +107,7 @@ def _setup(
             max_output_tokens=1000,
             fictional_client_ids=frozenset(),
             scale_labels_in_prompt=scale_labels_in_prompt,
+            heartbeat=heartbeat,
         ),
         build=BuildIdentity(sha="abc"),
         caller_factory=lambda **_: caller,
@@ -128,7 +136,11 @@ def test_plans_from_elsewhere_are_answered_block_by_block_and_drawn_by_code() ->
     assert {c["respondent_id"] for c in answered.calls} == {p.persona.persona_id for p in plans}
     for _, answers in answered.rows:
         assert set(answers) >= {"q1", "q2"}
-    assert context.progressed[-1] == {"respondents": len(plans), "of": len(plans)}
+    # The fieldwork event contract (RQC7): the last report counts every respondent and block.
+    assert context.progressed[-1] == {
+        "message": FieldworkEvent.PROGRESS,
+        **progress(respondents=len(plans), of=len(plans), sent=len(caller.requests), replayed=0),
+    }
 
 
 def test_each_draw_is_recorded_beside_the_answers_it_gave() -> None:
@@ -336,3 +348,116 @@ def test_a_replay_names_the_respondent_answered_now_when_two_sent_the_same_reque
         p.persona.persona_id for p in twins for _ in p.blocks
     ]
     assert [c["block"] for c in replayed.calls] == [b.index for p in twins for b in p.blocks]
+
+
+def _plain(fieldwork: AIFieldwork, spec: Any, plans: list[Any], context: Any) -> Any:
+    return fieldwork.answer_plans(
+        plans,
+        spec,
+        context,
+        seed=7,
+        response=AIA_RESPONSE_V1,
+        data_class=DataClass.CLASS_C_INTERNAL,
+        lineage=DataLineage(datasets=frozenset({"synthetic"})),
+    )
+
+
+def test_a_replayed_run_reports_its_blocks_replayed_not_sent() -> None:
+    journal = _Journal()
+    fieldwork, spec, plans = _setup(_Caller())
+    _answer(fieldwork, spec, plans, journal, "RUN-1")
+    fieldwork, spec, plans = _setup(_Caller())
+    context = _RunContext("RUN-2")
+    fieldwork.answer_plans(
+        plans,
+        spec,
+        context,  # type: ignore[arg-type]
+        seed=7,
+        response=AIA_RESPONSE_V1,
+        data_class=DataClass.CLASS_C_INTERNAL,
+        lineage=DataLineage(datasets=frozenset({"synthetic"})),
+        journal=journal,  # type: ignore[arg-type]
+    )
+    last = context.progressed[-1]
+    assert (last["sent"], last["replayed"]) == (0, sum(len(p.blocks) for p in plans))
+
+
+def _slow(monkeypatch: Any) -> None:
+    """Every read of the clock is 31 s after the last: each block takes longer than a heartbeat."""
+    ticks = iter(range(0, 100_000, 31))
+    monkeypatch.setattr(ai_fieldwork, "monotonic", lambda: float(next(ticks)))
+
+
+def test_without_the_switch_a_slow_model_reports_only_every_few_respondents(
+    monkeypatch: Any,
+) -> None:
+    _slow(monkeypatch)
+    fieldwork, spec, plans = _setup(_Caller())
+    context = _Context()
+    _plain(fieldwork, spec, plans, context)
+    assert [e["respondents"] for e in context.progressed] == [len(plans)]
+
+
+#: Ten closed questions: two blocks a respondent (MAX_BLOCK_ITEMS is 8).
+TWO_BLOCKS: dict[str, Any] = {
+    **DESIGN,
+    "sections": [
+        {
+            "type": "questions",
+            "questions": [
+                {"id": f"q{i}", "text": f"Otázka {i}?", "typ": "skala", "skala": [1, 4]}
+                for i in range(1, 11)
+            ],
+        }
+    ],
+}
+
+
+def test_a_slow_model_still_reports_a_heartbeat(monkeypatch: Any) -> None:
+    _slow(monkeypatch)
+    caller = _Caller()
+    fieldwork, spec, plans = _setup(caller, design=TWO_BLOCKS, heartbeat=True)
+    assert all(len(p.blocks) == 2 for p in plans)
+    # A fresh run sends every block in order: answer each with its own block's shape.
+    order = [b for p in plans for b in p.blocks]
+
+    def output_for(request: Any) -> Any:
+        block = order[len(caller.requests) - 1]
+        payload = {
+            item.item_id: {"probabilities": [1.0] + [0.0] * (item.width - 1)}
+            for item in block.items
+        }
+        return validate_structured_output(block_contract(block), structured=payload, text="").value
+
+    caller.output_for = output_for
+    context = _Context()
+    _plain(fieldwork, spec, plans, context)
+    reports = [e for e in context.progressed if e["message"] == FieldworkEvent.PROGRESS]
+    # Between a respondent's two blocks the heartbeat reports those answered so far; once the
+    # respondent is answered, it is counted at once, never a respondent behind.
+    assert [r["respondents"] for r in reports] == [n for i in range(len(plans)) for n in (i, i + 1)]
+    for report in reports:
+        assert set(report) - {"message"} == set(PAYLOAD_KEYS[FieldworkEvent.PROGRESS])
+    # Counts only grow, and the heartbeat never claims a respondent not yet answered.
+    assert [r["respondents"] for r in reports] == sorted(r["respondents"] for r in reports)
+    assert reports[-1]["respondents"] == len(plans)
+
+
+def test_a_park_writes_no_progress_and_returns_its_reason() -> None:
+    """Why the step stopped reaches the feed through the engine's STEP_RECOVERY (RQC7a)."""
+
+    class Refusing(_Caller):
+        def preflight(self, request: Any) -> Any:
+            raise ModelCallFailed(
+                "route closed",
+                failure=FailureClass.RUNTIME_UNAVAILABLE,
+                reason="egress_route_not_approved_for_class",
+            )
+
+    caller = Refusing()
+    fieldwork, spec, plans = _setup(caller)
+    context = _Context()
+    parked = _plain(fieldwork, spec, plans, context)
+    assert isinstance(parked, Failed) and caller.requests == []
+    assert parked.error["reason"] == "egress_route_not_approved_for_class"
+    assert context.progressed == []

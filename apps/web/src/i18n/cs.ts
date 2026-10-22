@@ -2779,6 +2779,9 @@ export const cs = {
         abandoned: "Pokus ukončen: {reason}",
         module: "modul {module}, kolo {turn}",
         aiSent: "Dotaz odeslán modelu",
+        // run-qc-and-checkpoint RQC7a: fieldwork's progress event, by its code.
+        fieldworkProgress: "Odpovědělo {done} z {of} respondentů",
+        fieldworkReplayed: "{replayed} bloků z uložených odpovědí, bez nového placení",
         aiAnswered: "Model odpověděl · {tokensIn} → {tokensOut} tokenů · {cost} · {seconds} s",
         aiAnsweredNoTokens: "Model odpověděl · tokeny neuvedeny · {cost} · {seconds} s",
         tokensUnknown: "?",
