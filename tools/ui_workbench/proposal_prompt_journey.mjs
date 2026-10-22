@@ -48,7 +48,19 @@ const measure = async (label) => {
 try {
   await visit(path + "/plan"); await page.getByRole("button", { name: /^Upravit: Shrnutí výzkumného problému/ }).waitFor();
   const original = await get(contentPath);
-  for (const width of [1440, 1024, 768, 390]) { await page.setViewportSize({ width, height: 1000 }); await measure("proposal"); }
+  for (const width of [1440, 1024, 768, 390]) {
+    await page.setViewportSize({ width, height: 1000 }); await measure("proposal");
+    // A narrative item's "Komentovat" is its glyph in a narrow column, a 44 px target, so the item
+    // keeps its width; in a wide one, its words.
+    const comment = page.locator("#plan-understanding li").first().getByRole("button", { name: /^Komentovat: / });
+    const box = await comment.boundingBox();
+    const row = await page.locator("#plan-understanding li").first().boundingBox();
+    assert(box && row && box.width >= 24 && box.height >= 24, `${width}: Komentovat under 24 px`);
+    if (width === 390) {
+      assert(box.width >= 44 && box.width <= 48 && box.height >= 44, `${width}: Komentovat is ${Math.round(box.width)}×${Math.round(box.height)}, not a 44 px glyph`);
+      assert(box.width / row.width < 0.2, `${width}: Komentovat takes ${Math.round((100 * box.width) / row.width)} % of the item's row`);
+    }
+  }
   await page.setViewportSize({ width: 1440, height: 1000 });
   // The stage shows (and writes back to both) the analysis's narrative when one is stored.
   const shown = original.analysis ?? original.content.research_plan;

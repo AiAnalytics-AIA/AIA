@@ -234,6 +234,14 @@ untested. Depends on `assumptions-and-open-answer-coding#AOC1`.
      one is started from the goal" holds.
   6. *Test:* the regression test above.
 
+- **F-DSN-2.** Komentáře's hint sends a person to "oddílu 2 nebo 3" (`cs.ts:2011 @ 9eb78f6c`), but
+  Návrh's sections draw no number (`StepSection`, `step.tsx`: `n` "is not drawn"), so the hint points
+  nowhere. Fixed on `fix/design-comments-hint`: it names them as the page's jump chips do,
+  "Porozumění nebo Sady" (`PlanStep.test.tsx` "names the sections a comment quotes as the page names
+  them…"). The same audit: "Komentovat" takes a third of a narrative item's row at 390 px; in a
+  narrow column (a container query, so a narrow workbench pane too) it is now its own glyph at 44 px
+  (`proposal_prompt_journey.mjs`). The undrawn `n` props remain, `StepSection`'s callers' to remove.
+
 ## 8. Owner questions
 
 None: D-44 settled the chain's reduction; MVPQ-02 the assumptions.
