@@ -50,6 +50,7 @@ __all__ = [
     "charged_to",
     "period_bounds",
     "researcher_spend",
+    "run_spend",
 ]
 
 #: Ledger subjects whose row names the run it let start in ``run_id`` (subject: the run, or
@@ -340,3 +341,21 @@ def researcher_spend(
                 uncertain=1 if hold.status == "SETTLED_UNCERTAIN" else 0,
             )
     return out
+
+
+def run_spend(usage: Iterable[UsageFact], holds: Iterable[HoldFact]) -> ActivitySpend:
+    """One run's spend over its whole life, by the same rules as a person's
+    (:func:`researcher_spend`), whoever each row is booked to: ``usage`` and ``holds`` are the
+    run's own. Its open holds are ``reserved_usd``; an uncertain call is counted, never zero."""
+    total = ActivitySpend()
+    for spend in researcher_spend(
+        usage, holds, start=datetime.min.replace(tzinfo=UTC), end=datetime.max.replace(tzinfo=UTC)
+    ).values():
+        _add(
+            [total],
+            model=spend.model_usd,
+            outside=spend.outside_ledger_usd,
+            reserved=spend.reserved_usd,
+            uncertain=spend.uncertain_calls,
+        )
+    return total

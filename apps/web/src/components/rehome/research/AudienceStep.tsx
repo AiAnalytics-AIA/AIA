@@ -46,6 +46,7 @@ import {
   factorRefusal,
   filterCategories,
   filterChips,
+  filterProblems,
   filterableFactors,
   humanFilters,
   humanSummary,
@@ -72,6 +73,9 @@ import { useResearch } from "./context";
 import { InspectorSlot } from "./Inspector";
 import { AskLead, useLeadOwnsAiStarts } from "./AskLead";
 import { AiFailureCard, useAiStep } from "./useAiStep";
+
+/** A filter refused whole, in words (filterProblems' reasons other than `values`). */
+const PROBLEM_WORDS = { factor: "research.audience.problemFactor", policy: "research.audience.problemPolicy", empty: "research.audience.problemEmpty", range: "research.audience.problemRange" } as const;
 
 const NOT_IN_AIA = "rounded-control border border-status-you-ink/40 bg-status-you-wash p-4";
 const EYEBROW = "font-mono text-[11px] uppercase tracking-[0.08em] text-ink-faint";
@@ -270,6 +274,10 @@ function FilterEditor({ live }: { live: Live }) {
   const leadOwnsAiStarts = useLeadOwnsAiStarts();
   const [text, setText] = useState(String(state.project.audience.description || ""));
   const chips = filterChips(state.project, live.state === "ready" ? live.catalog : null);
+  // What the population cannot honour as stored, said now rather than at the preview or the run.
+  const version = live.state === "ready" ? live.api.version_label : null;
+  const problems = live.state === "ready" ? filterProblems(state.project, live.catalog) : [];
+  const problemOf = new Map(problems.map((x) => [x.id, x]));
   const change = (c: Change) => store.update(() => ({ project: c.project }), { reason: c.reason, invalidateCheck: c.invalidateCheck });
 
   // proposeAudience: the job; the model proposes a description, never filters (research_agents).
@@ -313,20 +321,38 @@ function FilterEditor({ live }: { live: Live }) {
           <>
             <p className="mt-3 text-xs text-ink-muted">{live.state === "ready" ? t("research.audience.selectedFilters") : t("research.audience.storedFilters")}</p>
             <ul className="mt-1 flex flex-wrap gap-1.5">
-              {chips.map((c) => (
-                <li key={c.id} data-aia={audienceFilterAia(c.id) ?? undefined} className="inline-flex items-center gap-1 rounded-sm border border-signal-edge bg-signal-wash py-0.5 pl-2 pr-0.5 text-xs">
+              {chips.map((c) => {
+                const problem = problemOf.get(c.id);
+                return (
+                <li key={c.id} data-aia={audienceFilterAia(c.id) ?? undefined} data-filter-problem={problem ? true : undefined} className={`inline-flex items-center gap-1 rounded-sm border pl-2 text-xs ${problem ? "border-status-you-ink/40 bg-status-you-wash" : "border-signal-edge bg-signal-wash"}`}>
                   <b>{c.label}</b>: {c.text}
+                  {problem ? <span className="font-medium text-status-you-ink"> · {t(problem.reason === "values" && !problem.noneKnown ? "research.audience.problemChipPartial" : "research.audience.problemChip")}</span> : null}
                   <button
                     type="button"
                     aria-label={tv("research.audience.removeFilter", { label: c.label })}
                     onClick={() => change(removeAudienceFactor(store.get().project, c.id))}
-                    className="rounded-sm px-1 text-ink-muted hover:text-ink focus-visible:outline-2 focus-visible:outline-focus-ring"
+                    className="inline-flex size-6 shrink-0 items-center justify-center rounded-sm text-ink-muted hover:text-ink focus-visible:outline-2 focus-visible:outline-focus-ring"
                   >
                     ×
                   </button>
                 </li>
-              ))}
+                );
+              })}
             </ul>
+            {problems.length ? (
+              <div role="note" data-filter-problems className="mt-2 rounded-control border border-status-you-ink/40 bg-status-you-wash p-3 text-xs leading-5">
+                <p className="font-medium">{tv("research.audience.problemTitle", { version: String(version) })}</p>
+                <ul className="mt-1 list-disc pl-5">
+                  {problems.map((x) => (
+                    <li key={x.id}>
+                      {x.reason === "values"
+                        ? tv(x.noneKnown ? "research.audience.problemValuesAll" : "research.audience.problemValues", { label: x.label, values: x.unknownValues.join(", ") })
+                        : tv(PROBLEM_WORDS[x.reason], { label: x.label })}
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            ) : null}
           </>
         ) : null}
       </section>

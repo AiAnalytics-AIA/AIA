@@ -132,7 +132,7 @@ try {
   await page.goto(`${FACADE}${clientPath}/research`, { waitUntil: "load" });
   await page.getByRole("button", { name: "Nový výzkum" }).first().click();
   await page.getByRole("dialog").getByRole("textbox").fill(`Coherence ${stamp}`);
-  await page.getByRole("dialog").getByRole("button", { name: "OK" }).click();
+  await page.getByRole("dialog").getByRole("button", { name: "Založit výzkum" }).click();
   await page.waitForURL(/\/research\/STU-[^/]+\/brief/, { timeout: 60000 });
   const fresh = page.url().match(/\/research\/(STU-[^/]+)\//)[1];
   await page.waitForTimeout(3000);

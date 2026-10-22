@@ -17,7 +17,7 @@
  *     imported questionnaire is still there; puts its first question on the 1–10 preset
  *     with a label on every point, reloads -- the range and the ten labels are still there,
  *     and the editor fits at 390 px (input-interactions 3b2);
- *   * Cílová skupina: own audiences and Special Audience say they are not in AIA;
+ *   * Cílová skupina: own audiences and Speciální skupiny say they are not in AIA;
  *   * Dimenze: the panel's factors say they are not in AIA; a dimension request
  *     becomes a proposal to the client's knowledge.
  *
@@ -251,7 +251,7 @@ await page.setViewportSize({ width: 1440, height: 1100 });
 // 3. Cílová skupina: what 18.6.6 computed from its panel says so.
 await page.goto(stage("audience"), { waitUntil: "load", timeout: 120000 });
 await page.getByRole("radio", { name: /Vlastní audience/ }).click({ timeout: 60000 });
-await text("Nahrání, kontrolu a preflight vlastního datasetu dělala 18.6.6", "own audiences not in AIA");
+await text("Nahrání a kontrolu vlastního datasetu dělala 18.6.6", "own audiences not in AIA");
 ok("Cílová skupina: own audiences say they are not in AIA");
 await shot("3-audience");
 

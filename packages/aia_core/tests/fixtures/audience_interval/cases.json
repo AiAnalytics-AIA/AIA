@@ -1,0 +1,19 @@
+{
+  "about": "A numeric audience filter's stored value and whether domain/population/audience.py _interval refuses it. The web's rangeHolds (apps/web/src/research/audience.ts) is held to the same cases (audience.live.test.ts), so the audience screen warns exactly where the population refuses.",
+  "cases": [
+    { "value": { "min": null, "max": 59 }, "refused": true },
+    { "value": "abc", "refused": true },
+    { "value": [18], "refused": true },
+    { "value": [18, "x"], "refused": true },
+    { "value": { "min": "", "max": 59 }, "refused": true },
+    { "value": { "min": {} }, "refused": true },
+    { "value": { "min": 30 }, "refused": false },
+    { "value": { "min": 30, "max": 59 }, "refused": false },
+    { "value": [18, 29], "refused": false },
+    { "value": 40, "refused": false },
+    { "value": { "min": "30", "max": " 59 " }, "refused": false },
+    { "value": { "min": "1_000" }, "refused": false },
+    { "value": { "max": "inf" }, "refused": false },
+    { "value": true, "refused": false }
+  ]
+}

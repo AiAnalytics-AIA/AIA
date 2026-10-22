@@ -11,6 +11,7 @@ from aia_core.domain.lead_context import (
     PART_LAYERS,
     context_manifest,
 )
+from aia_core.domain.lead_digest import DigestEntry, decision_digest
 from aia_core.domain.prompt_slots import get_slot
 from aia_core.domain.research_lead import (
     CONTEXT_MAX_BYTES,
@@ -69,7 +70,7 @@ def _row(manifest: dict[str, Any], name: str) -> dict[str, Any]:
 
 def test_every_layer_of_the_context_is_declared_in_its_order() -> None:
     external = {"pin": {"deep_research_run_id": "RUN-1"}, "lines": ["[EV-1] Fiktivní nález."]}
-    context = _context(external=external)
+    context = _context(external=external, memory=decision_digest([], []))
     assert [entry["layer"] for entry in context["layers"]] == [s.name for s in LEAD_LAYERS]
     manifest = context_manifest(context, context_classification(context, (), _pin()))
     row = _row(manifest, EXTERNAL_LAYER)
@@ -96,9 +97,9 @@ def test_the_manifest_reads_the_context_without_moving_it() -> None:
     assert manifest == context_manifest(context)
     assert manifest["total_bytes"] == context_bytes(context)
     assert manifest["ceiling_bytes"] == CONTEXT_MAX_BYTES
-    # The external layer is there only when a Design Research run's findings are.
+    # The external and memory layers are there only when given.
     assert [r["layer"] for r in manifest["layers"]] == [
-        s.name for s in LEAD_LAYERS if s.name != EXTERNAL_LAYER
+        s.name for s in LEAD_LAYERS if s.name not in (EXTERNAL_LAYER, "memory")
     ]
     assert sum(r["bytes"] for r in manifest["layers"]) <= manifest["total_bytes"]
 
@@ -293,6 +294,46 @@ def test_every_part_the_classification_emits_maps_to_a_layer() -> None:
             },
         ],
         external={"pin": {"deep_research_run_id": "RUN-1"}, "lines": ["[EV-1] Fiktivní."]},
+        memory=decision_digest([], []),
     )
     parts = {p["part"] for p in context_classification(context, (), _pin())}
     assert parts <= set(PART_LAYERS), parts - set(PART_LAYERS)
+
+
+def test_the_decision_digest_is_its_own_layer_classed_as_the_design() -> None:
+    digest = decision_digest(
+        [DigestEntry("edit", "plan:plan.hypotheses:Ceny rostou", "dismiss", "T-1", ledger_id=4)],
+        [],
+    )
+    context = _context(memory=digest)
+    layers = [entry["layer"] for entry in context["layers"]]
+    assert layers.index("memory") == layers.index("conversation") - 1
+    manifest = context_manifest(context, context_classification(context, (), _pin()))
+    row = _row(manifest, "memory")
+    assert row["data_class"] == DataClass.CLASS_B_DERIVED_CLIENT.value
+    assert row["bounded_bytes"] <= row["ceiling_bytes"]
+
+
+def test_the_digest_takes_the_class_of_the_turns_whose_text_it_carries() -> None:
+    # A dismissed hypothesis from a turn sent as Class A, older than the conversation layer
+    # keeps: the digest still carries its text, so it is Class A, never the design's B.
+    digest = decision_digest(
+        [DigestEntry("edit", "plan:plan.hypotheses:Z know-how", "dismiss", "T-1", ledger_id=4)],
+        [],
+    )
+
+    def memory_class(classes: list[str | None]) -> str | None:
+        context = _context(memory=digest, memory_classes=classes)
+        (part,) = [
+            p for p in context_classification(context, (), _pin()) if p["part"] == "decision_digest"
+        ]
+        return part["data_class"]
+
+    assert memory_class([DataClass.CLASS_A_CLIENT_CONFIDENTIAL.value]) == (
+        DataClass.CLASS_A_CLIENT_CONFIDENTIAL.value
+    )
+    assert (
+        memory_class([DataClass.CLASS_C_INTERNAL.value]) == DataClass.CLASS_B_DERIVED_CLIENT.value
+    )
+    # A turn whose class is not known refuses, as an earlier reply's does.
+    assert memory_class([None]) is None

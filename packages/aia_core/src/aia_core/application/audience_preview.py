@@ -57,6 +57,9 @@ class PanelDraw:
     #: The version and seed the draw was asked on; ``None`` when no population was loaded.
     version_id: str | None = None
     seed: int | None = None
+    #: What the refusal names (the audience filter's dropped or refused filters); empty when it
+    #: names nothing.
+    reasons: tuple[str, ...] = ()
 
 
 #: Draws a panel run's sample at (filters, n, seed) over the population a new run records; the
@@ -151,7 +154,7 @@ class AudiencePreviewer:
                 draw_panel_sample(population, filters, n, seed), None, version_id, seed
             )
         except PopulationError as exc:  # the sampler's or the audience filter's refusal
-            draw = PanelDraw(None, exc.reason, version_id, seed)
+            draw = PanelDraw(None, exc.reason, version_id, seed, tuple(getattr(exc, "reasons", ())))
         with self._lock:
             self._draws[key] = draw
             while len(self._draws) > SAMPLE_CACHE:
