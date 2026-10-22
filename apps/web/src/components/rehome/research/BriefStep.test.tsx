@@ -211,9 +211,9 @@ describe("Zadání", () => {
       expect(found, target).toHaveLength(1);
       expect(targetOfElement(found[0]!)?.id, target).toBe(target);
     }
-    // An open field and a closed one's chip both carry the name; the label still finds its field.
-    expect(screen.getByLabelText("Situace / trh")).toBe(document.getElementById("brief-briefing.situation"));
-    expect(document.getElementById("brief-briefing.constraints")?.tagName).toBe("BUTTON");
+    // Each field's row carries the name, with the field edited in place inside it, empty or not.
+    expect(within(document.getElementById("brief-briefing.situation")!).getByRole("button", { name: /^Upravit: Situace \/ trh/ })).toBeTruthy();
+    expect(within(document.getElementById("brief-briefing.constraints")!).getByRole("button", { name: /^Upravit: Omezení/ })).toBeTruthy();
     // A target the contract does not name finds nothing on the screen.
     expect(briefTarget("brief:situation")).toBeNull();
     expect(document.querySelectorAll(focusSelector("brief:situation"))).toHaveLength(0);
@@ -449,18 +449,32 @@ describe("Zadání", () => {
     expect(screen.getByRole("complementary", { name: "Připravenost zadání" }).textContent).toContain("25 %");
   });
 
-  it("opens a context field from its chip, and × empties it and closes it", async () => {
-    unitStub({ briefing: { situation: "Konkurence zlevňuje" } });
+  it("edits Rozhodnutí and each Kontext field in place: Esc restores, a reword saves, clearing saves empty (BRF2)", async () => {
+    unitStub({ decision_use: "Kampaň A, nebo B", briefing: { situation: "Konkurence zlevňuje" } });
     render(<ResearchScreen step="brief" frame={TEST_FRAME} />);
-    // A field with a value is open; the others wait as chips.
-    expect(((await screen.findByLabelText("Situace / trh")) as HTMLTextAreaElement).value).toBe("Konkurence zlevňuje");
-    fireEvent.click(screen.getByRole("button", { name: "Omezení" }));
-    const limits = screen.getByLabelText("Omezení") as HTMLTextAreaElement;
-    expect(limits.getAttribute("placeholder")).toMatch(/^Např\./);
-    fireEvent.click(screen.getByRole("button", { name: "Odebrat pole Situace / trh" }));
-    await waitFor(() => expect(screen.queryByLabelText("Situace / trh")).toBeNull());
-    expect(screen.getByRole("button", { name: "Situace / trh" })).toBeTruthy();
-    await waitFor(() => expect((ws.saves.at(-1)?.content.briefing as { situation?: string })?.situation ?? "").toBe(""));
+    const decision = within(await screen.findByRole("region", { name: "Rozhodnutí, které má výzkum podpořit" }));
+    const context = within(screen.getByRole("region", { name: /^Kontext/ }));
+    // Every field is shown, an empty one with its example; nothing waits behind a chip.
+    expect(context.getByRole("button", { name: /^Upravit: Situace \/ trh/ }).textContent).toContain("Konkurence zlevňuje");
+    expect(context.getByRole("button", { name: /^Upravit: Omezení/ }).textContent).toMatch(/Např\./);
+
+    // Esc restores and saves nothing.
+    fireEvent.click(decision.getByRole("button", { name: /^Upravit: Jaké rozhodnutí uděláte/ }));
+    fireEvent.change(decision.getByRole("textbox", { name: "Jaké rozhodnutí uděláte" }), { target: { value: "Jinak" } });
+    fireEvent.keyDown(decision.getByRole("textbox", { name: "Jaké rozhodnutí uděláte" }), { key: "Escape" });
+    expect(decision.getByText("Kampaň A, nebo B")).toBeTruthy();
+
+    // A reword is saved where the Lead's edits write it.
+    fireEvent.click(decision.getByRole("button", { name: /^Upravit: Jaké rozhodnutí uděláte/ }));
+    fireEvent.change(decision.getByRole("textbox", { name: "Jaké rozhodnutí uděláte" }), { target: { value: "Kampaň B" } });
+    fireEvent.keyDown(decision.getByRole("textbox", { name: "Jaké rozhodnutí uděláte" }), { key: "Enter", ctrlKey: true });
+    await waitFor(() => expect(ws.saves.at(-1)?.content.decision_use).toBe("Kampaň B"));
+
+    // Clearing a context field is an edit like any other: it saves empty.
+    fireEvent.click(context.getByRole("button", { name: /^Upravit: Situace \/ trh/ }));
+    fireEvent.change(context.getByRole("textbox", { name: "Situace / trh" }), { target: { value: "" } });
+    fireEvent.keyDown(context.getByRole("textbox", { name: "Situace / trh" }), { key: "Enter", ctrlKey: true });
+    await waitFor(() => expect((ws.saves.at(-1)?.content.briefing as { situation?: string })?.situation).toBe(""));
   });
 
   it("takes files dropped anywhere on the stage the way it takes picked ones", async () => {

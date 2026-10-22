@@ -154,8 +154,14 @@ Every item is an `Item` (`src/components/ui.tsx:52`): edit in place, remove, mov
   objectives as items on the Brief, read and written where Návrh keeps them (`research_plan` and
   the analysis together, as `plan-edit.ts` does), each `objective:<item id>`, edited in place
   (InlineText), added in the list (InlineCreateRow), removed with Vrátit (UndoToast); none reads
-  "Zatím prázdné". On today's whole-copy store; WCE3a moves it onto the edit vocabulary. Still to
-  come in BRF2: Rozhodnutí and Kontext as items, Předpoklady as a link.
+  "Zatím prázdné". On today's whole-copy store; WCE3a moves it onto the edit vocabulary.
+- *Landed, Rozhodnutí and Kontext* (BriefStep `Decision`, `Context`): `decision_use` as one item
+  (D-44) and the four `briefing.*` fields as items, each edited in place (InlineText; Esc restores,
+  clearing saves empty), every field always shown with its example; the open/close chips are gone.
+  The screen's order is V2's: Cíl, Cíle, Rozhodnutí, Kontext, then Typ problému and Podklady (V2 has
+  no problem types; AIA keeps them). Deviation from B-3: the goal stays the stage's first field, a
+  textarea with its sentence starters and count, not a Kontext item -- it is what a new study is
+  written from. Still to come in BRF2: Předpoklady as a link (B-6, after AOC1).
 
 - *Landed, Typ problému as toggle chips* (audit A24): the shared ChoiceChips (I3): one Tab stop,
   arrows move, a press toggles one type through `toggleProblemType` (an empty goal still filled

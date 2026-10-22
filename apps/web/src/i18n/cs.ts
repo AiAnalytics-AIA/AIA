@@ -1834,6 +1834,9 @@ export const cs = {
       },
       dataClassUnknown: "třída neznámá",
       // artifact-brief BRF2: Cíle, the objectives as items (the same list Návrh shows).
+      // artifact-brief BRF2: Rozhodnutí, the decision the research supports (one text, D-44).
+      decisionTitle: "Rozhodnutí, které má výzkum podpořit",
+      decisionHint: "Co podle výsledku uděláte. Návrh z toho vychází.",
       objectivesTitle: "Cíle",
       objectivesHint: "Co má výzkum zjistit. Tentýž seznam ukazuje Návrh.",
       objectivesEmpty: "Zatím prázdné. Cíle navrhne analýza zadání, nebo je napište sem.",
