@@ -2227,7 +2227,7 @@ export const cs = {
       priceBandAdd: "Přidat cenu",
       priceBandsHelp: "Ceny musí zadat uživatel; AI si je nesmí vymyslet.",
       outputLabel: "Výstup:",
-      outputText: "společný dataset + samostatná analýza této sady + mapa, pokud projde validačním gate.",
+      outputText: "společný dataset + samostatná analýza této sady + mapa položek, když sada projde Kontrolou a odpovědí na mapu bude dost.",
       finalTitle: "Finální optimalizace",
       finalIntro: "Volitelně spusťte skutečně hluboký research tématu a trhu: ČR, relevantní zahraniční analogie, akademické a odborné studie, motivace, bariéry, konkurence, price/value, segmenty a mezery v evidenci. Outcome benchmarky zůstávají před simulací v karanténě.",
       researchYes: "Research dostupný · {n} evidencí",
