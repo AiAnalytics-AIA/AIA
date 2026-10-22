@@ -20,8 +20,9 @@ line must never go missing:
   report-editor-hosting). Every request there passes AIA's docs gate before it
   reaches the Document Server, without the cookie; the API is reached there only
   to exchange a ticket for the docs cookie (``/__aia/session``); the Document
-  Server's server-to-server and admin paths answer 404; and only AIA's own
-  pages may frame it. The product hostname never reaches the Document Server.
+  Server's server-to-server and admin paths answer 404; only AIA's own pages
+  may frame it; and its access log never writes the ticket a URI carries. The
+  product hostname never reaches the Document Server.
 * ``/`` is a redirect to ``/app/clients`` and nothing else: the product's front
   door is AIA, never the 18.6.6 document (ADR 0015).
 * The 18.6.6 interface is not served (ADR 0018 decision 4): no route rewrites to
@@ -59,8 +60,8 @@ DOCS_GATE = "/api/v1/session/docs-gate"
 # The one path of docs.<hostname> the API answers: a one-time ticket spent for the docs cookie.
 DOCS_SESSION = "/__aia/session"
 DOCS_SESSION_TARGET = "/api/v1/session/docs?{http.request.uri.query}"
-# The Document Server's server-to-server, AI proxy, hosting and admin paths: the API calls the
-# first inside, as onlyoffice:80, and nothing outside needs any of them. Each is refused in any
+# The Document Server's server-to-server, AI proxy, hosting and admin paths: nothing outside
+# needs any of them. Each is refused in any
 # case, behind the version prefix its nginx strips and with the slashes its nginx merges.
 SERVER_ONLY = (
     "/coauthoring/CommandService.ashx",
@@ -320,7 +321,33 @@ def check_docs(config: dict[str, Any]) -> list[str]:
     }
     if framers != {f"frame-ancestors https://{PRODUCT}"}:
         problems.append(f"{DOCS} must be framed by https://{PRODUCT} alone; got {sorted(framers)}")
+    if not logs_drop_ticket(config):
+        problems.append(f"{DOCS}'s access log writes the ticket in a URI's query")
     return problems
+
+
+def logs_drop_ticket(config: dict[str, Any]) -> bool:
+    """Whether every access log of docs.<hostname> deletes ``ticket`` from the logged URI."""
+    names = [
+        name
+        for server in config["apps"]["http"]["servers"].values()
+        for name in server.get("logs", {}).get("logger_names", {}).get(DOCS, [])
+    ]
+    logs = config.get("logging", {}).get("logs", {})
+
+    def drops(name: str) -> bool:
+        encoder = logs.get(name, {}).get("encoder", {})
+        uri = encoder.get("fields", {}).get("request>uri", {})
+        return (
+            encoder.get("format") == "filter"
+            and uri.get("filter") == "query"
+            and any(
+                a.get("type") == "delete" and a.get("parameter") == "ticket"
+                for a in uri.get("actions", [])
+            )
+        )
+
+    return bool(names) and all(drops(n) for n in names)
 
 
 def main(argv: list[str]) -> int:

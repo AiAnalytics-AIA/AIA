@@ -3,17 +3,17 @@
 #
 #   onlyoffice    the Document Server, upstream's image unmodified and pinned by digest
 #                 (NOTICE). Reached by Caddy at docs.<public hostname>, behind AIA's docs
-#                 gate, and by the API on the aia-docs network as onlyoffice:80.
+#                 gate, on the aia-docs network as onlyoffice:80, and by nothing else.
 #
 # A Compose project of its own (aia-docs), started by bin/docs.sh -- by hand, and by
 # bin/deploy.sh at the end of a deploy when AIA_ONLYOFFICE_ENABLED is true. Nothing of AIA's
 # stack depends on it: with it down, docs.<hostname> answers 502 and Zpráva keeps its
 # read-only pane.
 #
-# It is not on AIA's internal network: it reaches AIA only through the public hostname,
-# with its own request filter refusing private and metadata addresses, because this host's
-# containers can reach IMDS (infra/develop/main.tf, hop limit 2) and the Document Server
-# fetches URLs. Every request between AIA and it is JWT-signed with AIA_ONLYOFFICE_JWT_SECRET
+# It shares a network with Caddy alone, not with the API: it reaches AIA only through the
+# public hostname, with its own request filter refusing private and metadata addresses,
+# because this host's containers can reach IMDS (infra/develop/main.tf, hop limit 2) and the
+# Document Server fetches URLs. Every request between AIA and it is JWT-signed with AIA_ONLYOFFICE_JWT_SECRET
 # (SSM aia_onlyoffice_jwt_secret), which it refuses to start without.
 #
 # Measured on 9.4.0.1 with these settings (2026-10-22): healthy about 10 s after start,
@@ -68,7 +68,7 @@ services:
       options: { max-size: "20m", max-file: "3" }
 
 networks:
-  # Shared with Caddy and the API only (deploy/develop/docker-compose.yml, which creates it).
+  # Shared with Caddy alone (deploy/develop/docker-compose.yml, which creates it).
   docs:
     name: aia-docs
     external: true

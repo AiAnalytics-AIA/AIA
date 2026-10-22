@@ -85,7 +85,7 @@ built in the Zpráva session against chunks 1-3.
 2. **AIA's gate, with a docs-only cookie.** Every request to `docs.<hostname>` goes through Caddy's
    `forward_auth` to a docs gate in the API (`/api/v1/session/docs-gate`). The gate admits a request
    carrying `aia_docs`:
-   - an HMAC-signed, short-lived (60 min) cookie;
+   - an HMAC-signed cookie, good for a working day (8 h; 60 min at first, changed after review);
    - host-only on `docs.<hostname>`, HttpOnly, Secure, SameSite=Lax;
    - it names the person and their organization, and is never the id token.
 
@@ -118,8 +118,10 @@ built in the Zpráva session against chunks 1-3.
      on this host can reach IMDS and the instance role's credentials (hop limit 2), and ONLYOFFICE fetches
      URLs.
    - ONLYOFFICE is not on AIA's internal network, so it cannot reach `api:8000`, `postgres` or `glitchtip`.
-   - AIA's API reaches ONLYOFFICE's command and conversion services at `http://onlyoffice` on a network
-     the two share: a dedicated `docs` network, which only the API and Caddy join.
+   - It shares a network, `aia-docs`, with Caddy alone. The API joined it at first, for a call to the
+     command and conversion services that RPT8 does not make yet. Review found that this let the Document
+     Server reach `api:8000` directly, so the API left it; it joins only when AIA calls the Document
+     Server, through `AIA_ONLYOFFICE_INTERNAL_URL`.
 5. **Locked down to the editor.**
    - Variables: `PLUGINS_ENABLED=false` (no plugin marketplace, and above all no AI plugin sending text to
      a third party); `EXAMPLE_ENABLED=false`; `WOPI_ENABLED=false`;
@@ -193,11 +195,9 @@ built in the Zpráva session against chunks 1-3.
   - `ALLOW_PRIVATE_IP_ADDRESS` / `ALLOW_META_IP_ADDRESS` are not `true`;
   - `PLUGINS_ENABLED` is `false`.
 - Product stack:
-  - `api` and `caddy` join the external network `aia-docs`, declared `external: true` with
-    `name: aia-docs`. Compose refuses to start a service on a missing external network, so `bin/deploy.sh`
-    creates the network idempotently before `up`, whether docs is on or not;
-  - the API gets `AIA_ONLYOFFICE_JWT_SECRET` and `AIA_ONLYOFFICE_INTERNAL_URL=http://onlyoffice`, both unset unless
-    SSM has them;
+  - the product stack creates `aia-docs` (`name: aia-docs`), so it exists before the editor's project
+    joins it as an external network; Caddy alone of AIA's services is on it;
+  - the API gets `AIA_ONLYOFFICE_URL` and `AIA_ONLYOFFICE_JWT_SECRET`, both unset unless SSM has them;
   - CI asserts the web service never receives the secret.
 
 ### 2. `docs.<hostname>` in the Caddyfile
@@ -225,7 +225,7 @@ built in the Zpráva session against chunks 1-3.
   route may mint it in the same response instead.
 - `GET /api/v1/session/docs?ticket=…`:
   - spends the ticket (single use, stored hashed, refused twice);
-  - sets `aia_docs` (HMAC with a key from `AIA_ONLYOFFICE_JWT_SECRET`'s derivation, 60 min, host-only,
+  - sets `aia_docs` (HMAC with a key from `AIA_ONLYOFFICE_JWT_SECRET`'s derivation, 8 h, host-only,
     HttpOnly, Secure, Lax);
   - redirects to the path the ticket names on `docs.<hostname>`.
 - `GET /api/v1/session/docs-gate`:
@@ -268,8 +268,8 @@ Each step needs the owner's word and the coordinator's approval:
 - **Settings.**
   - `AIA_ONLYOFFICE_URL`: the public origin, `https://docs.<hostname>`, from SSM `aia_onlyoffice_url`.
     Unset by default; while it is unset, Zpráva keeps RPT2's read-only pane.
-  - `AIA_ONLYOFFICE_INTERNAL_URL`: `http://onlyoffice`, the API's way to the command and conversion
-    services on `aia-docs`.
+  - `AIA_ONLYOFFICE_INTERNAL_URL`: not yet. RPT8 makes no API-to-Document-Server call at first; when it
+    does, the API joins `aia-docs` in that PR, and `http://onlyoffice` is its way in.
   - `AIA_ONLYOFFICE_JWT_SECRET`: from SSM `aia_onlyoffice_jwt_secret`; the API and the Document Server
     only, never the web service.
   - `aia_onlyoffice_enabled`: whether the host runs the project at all.
@@ -387,6 +387,37 @@ Accepted, said here: the ticket travels in the query of `/__aia/session`, so Cad
 `docs.<hostname>` records it. It is good once and for 60 seconds, and spent on that very request, so the
 logged value opens nothing.
 
+## Review (2026-10-22, before the push)
+
+`/security-review` reported nothing it was at least 80 % sure was exploitable. It noted cookie tossing from
+`docs.<hostname>` as hardening. `/code-review` (medium) reported nine findings:
+
+| # | Finding | Outcome |
+|---|---|---|
+| 1 | The 60-minute docs cookie cannot be renewed (forward_auth's answer never reaches the browser), so a session longer than an hour breaks mid-edit | **Fixed**: 8 h, a working day. The gate still re-checks active membership on every request, so the age only bounds a stolen cookie |
+| 2 | A configured port (`https://docs.x:443`) never equals the Host a browser sends | **Fixed**: a port is refused at start |
+| 3 | A fragment or a password-only userinfo passed the origin check | **Fixed**: the origin must be exactly `https://<host>` (`netloc == hostname`, no path, params, query or fragment); tests for each |
+| 4 | Caddy's access log on the docs site would write the ticket in the URI | **Fixed**: the docs site's log filter deletes `ticket` from `request>uri`. Proved on the real Caddy: the API received `SECRET-TICKET-123`, and the log line reads `"/__aia/session?next=%2Fx"`. `tools/caddy_routes.py` requires the filter |
+| 5 | Login CSRF: a member's ticket link opened by another person gives that browser a docs cookie in the member's name | **Not changed**: the cookie names no document. What a browser may open is the editor config AIA signs for that browser's own AIA session (ONLYOFFICE's JWT), so the cookie's name decides nothing; the gate only stands in front of the Document Server |
+| 6 | The Document Server shared `aia-docs` with the API, so it could call `api:8000` directly | **Fixed**: the API left `aia-docs` (decision 4); CI asserts Caddy alone is on it |
+| 7 | Cookie tossing: a script on `docs.<hostname>` can set a cookie for the parent domain, `aia_session` included | **Finding F1 below** |
+| 8 | The docs gate checks membership in the database for every asset | **Kept, said**: the same check AIA's own gate makes per page request; it is what shuts a removed member out at once, and it runs only while the editor is on |
+| 9 | `claims.ticket_id is None` duplicates what `read(kind="ticket")` guarantees | **Kept**: it narrows the type for `open_docs_session(ticket_id: str)` under mypy --strict |
+
 ## Findings
 
-None yet.
+- **F1. A script on `docs.<hostname>` can plant a cookie AIA's pages read.**
+  - **Claim:** `docs.<hostname>` is a subdomain of the product hostname, so script running there can set
+    `aia_session` with `Domain=<product hostname>`, and the browser sends it to AIA's pages. AIA's own
+    cookie is host-only but has no `__Host-` prefix to refuse such a planted twin.
+  - **Anchor:** `apps/api/src/aia_api/routers/session.py:68` @ 8b51875b (`SESSION_COOKIE = "aia_session"`).
+  - **Reproduction:** a hypothesis until shown. It needs script execution on `docs.<hostname>`, that is,
+    a defect in ONLYOFFICE.
+  - **Consequence:** a person could be working in AIA as somebody else (login CSRF), never reading
+    another organization's data unseen.
+  - **Smallest fix:** the session cookie as `__Host-aia_session` in deployed environments (Secure,
+    Path=/, no Domain), read by the gate and the session routes.
+  - **Test that would catch it:** the gate refusing a request whose only session cookie is the
+    unprefixed name, in production settings.
+
+  A follow-up of its own: it changes AIA's sign-in, not this host.

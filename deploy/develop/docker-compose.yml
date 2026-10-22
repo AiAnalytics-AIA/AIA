@@ -203,7 +203,7 @@ services:
     depends_on:
       postgres:
         condition: service_healthy
-    networks: [internal, docs]
+    networks: [internal]
     read_only: true
     tmpfs: ["/tmp"]
     security_opt: ["no-new-privileges:true"]
@@ -370,10 +370,10 @@ networks:
   internal:
     # No outbound NAT is needed by web; api and worker reach S3 and IMDS, so the
     # network stays a normal bridge. It is simply not published.
-  # The report editor's network (docs/docker-compose.yml, bin/docs.sh): Caddy and the API
-  # reach the Document Server as onlyoffice:80, and it reaches neither the database nor the
-  # worker. Created here, so it exists before the editor's project joins it; empty while the
-  # editor is off.
+  # The report editor's network (docs/docker-compose.yml, bin/docs.sh): Caddy reaches the
+  # Document Server as onlyoffice:80, and it reaches nothing of AIA's but Caddy -- not the API,
+  # the database or the worker. Created here, so it exists before the editor's project joins
+  # it; empty while the editor is off.
   docs:
     name: aia-docs
 

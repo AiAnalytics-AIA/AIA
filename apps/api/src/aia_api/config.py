@@ -230,15 +230,18 @@ class Settings(BaseSettings):
     @field_validator("onlyoffice_url")
     @classmethod
     def _check_onlyoffice_url(cls, value: str) -> str:
-        """An origin only: https, a host, nothing after it -- a ticket's URL is built on it."""
+        """An origin only: https and a host, nothing else -- a ticket's URL is built on it, and
+        the ticket exchange compares the Host a browser sends with it, which carries no port."""
         origin = value.rstrip("/")
         parsed = urlparse(origin)
         if origin and (
             parsed.scheme != "https"
             or not parsed.hostname
+            or parsed.netloc != parsed.hostname
             or parsed.path
+            or parsed.params
             or parsed.query
-            or parsed.username
+            or parsed.fragment
         ):
             raise ValueError(
                 "AIA_ONLYOFFICE_URL must be an https origin, e.g. https://docs.example"

@@ -24,7 +24,7 @@ never reaches. It has a gate of its own, over a docs-only cookie (:mod:`aia_api.
 * ``POST /session/docs-ticket``: a signed ticket, 60 s, for an active member calling the API
   with their own token; the pane loads ``<editor>/__aia/session?ticket=…&next=…`` with it.
 * ``GET /session/docs``: Caddy sends that URL here, on the editor's origin only. The ticket is
-  spent once, the person admitted again and audited, and the ``aia_docs`` cookie set (60 min,
+  spent once, the person admitted again and audited, and the ``aia_docs`` cookie set (8 h,
   host-only on the editor's origin) before a redirect to ``next``, a path there.
 * ``GET /session/docs-gate``: Caddy's ``forward_auth`` target on the editor's origin, for
   every request: 204 for a valid cookie of a person still an active member; 401 otherwise,

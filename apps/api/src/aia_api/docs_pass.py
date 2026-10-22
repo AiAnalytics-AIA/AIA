@@ -6,7 +6,7 @@ cookie is host-only and *is* that token, so it never reaches the editor's origin
 
 * a signed **ticket** (60 s) names the person and their organization and carries a random
   id; the API spends it once (``docs_ticket_spends``), on the editor's own origin;
-* the **docs cookie** it buys (60 min) names the same two ids and nothing else, and is
+* the **docs cookie** it buys (8 h) names the same two ids and nothing else, and is
   what the docs gate reads on every request to the editor.
 
 Both are ``<payload>.<mac>``: the payload is base64url JSON, the mac an HMAC-SHA256 under
@@ -27,7 +27,10 @@ from datetime import UTC, datetime, timedelta
 from typing import Literal
 
 TICKET_LIFETIME = timedelta(seconds=60)
-COOKIE_LIFETIME = timedelta(minutes=60)
+# A working day: the docs gate cannot renew the cookie mid-session (forward_auth's answer never
+# reaches the browser), and it asks again on every request whether the person is still an
+# active member, so the cookie's age decides only how long a stolen one is of use.
+COOKIE_LIFETIME = timedelta(hours=8)
 # Separates this key from the JWT secret it is derived from, and from any later use of it.
 _KEY_LABEL = b"aia-docs-pass-1"
 

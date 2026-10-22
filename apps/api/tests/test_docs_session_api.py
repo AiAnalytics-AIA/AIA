@@ -25,7 +25,7 @@ from fastapi.testclient import TestClient
 from sqlalchemy import select
 
 from aia_api.config import Environment, Settings
-from aia_api.docs_pass import DocsPasses
+from aia_api.docs_pass import COOKIE_LIFETIME, DocsPasses
 
 API = "/api/v1/session"
 EDITOR = "https://docs.aia.example.test"
@@ -113,7 +113,7 @@ def test_a_member_s_ticket_buys_the_docs_cookie_and_a_redirect_to_next(
     assert response.headers["location"] == API_JS
     cookie = response.headers["set-cookie"]
     assert "HttpOnly" in cookie and "SameSite=lax" in cookie and "Path=/" in cookie
-    assert "Max-Age=3600" in cookie
+    assert "Max-Age=28800" in cookie  # a working day; the gate re-checks membership
     assert "Domain" not in cookie  # host-only: the editor's origin, never AIA's
     assert _audit(app, "AIA_SESSION") == before + 1  # opening it is in the access audit
 
@@ -255,7 +255,7 @@ def test_an_expired_docs_cookie_is_refused(anonymous: TestClient, world: Any) ->
     old, _ = DocsPasses(SECRET).cookie(
         user_id=world.users["researcher"],
         organization_id=world.organization_id,
-        now=datetime.now(UTC) - timedelta(hours=2),
+        now=datetime.now(UTC) - COOKIE_LIFETIME - timedelta(seconds=1),
     )
     assert _gate(anonymous, old).status_code == 401
 
@@ -336,3 +336,39 @@ def test_a_spend_needs_an_issued_scope(app: FastAPI) -> None:
     factory = create_session_factory(app.state.engine)
     with factory() as session, pytest.raises(ScopeDenied):
         DocsTicketRepository(session, object())  # type: ignore[arg-type]
+
+
+# --------------------------------------------------------------------------- #
+# The editor's origin, as configured
+# --------------------------------------------------------------------------- #
+
+
+@pytest.mark.parametrize(
+    "value",
+    [
+        "http://docs.example.test",
+        "https://docs.example.test:443",
+        "https://docs.example.test:8443",
+        "https://docs.example.test/path",
+        "https://docs.example.test#x",
+        "https://docs.example.test?x=1",
+        "https://user@docs.example.test",
+        "https://:pw@docs.example.test",
+        "docs.example.test",
+    ],
+)
+def test_anything_but_an_https_origin_is_refused_at_start(value: str) -> None:
+    # The ticket's URL is built on it, and the exchange compares a browser's Host with it.
+    with pytest.raises(ValueError):
+        Settings(onlyoffice_url=value)
+
+
+def test_an_https_origin_is_kept_without_its_trailing_slash() -> None:
+    assert Settings(onlyoffice_url="https://docs.example.test/").onlyoffice_url == (
+        "https://docs.example.test"
+    )
+
+
+def test_a_short_editor_secret_is_refused_at_start() -> None:
+    with pytest.raises(ValueError):
+        Settings(onlyoffice_jwt_secret="too-short")

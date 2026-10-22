@@ -327,7 +327,7 @@ patched), and it runs only when `aia_onlyoffice_enabled` is true.
 |---|---|
 | `https://docs.<public hostname>` | the editor's own origin, framed by AIA's pages alone; every request passes AIA's docs gate (`GET /api/v1/session/docs-gate`) |
 | `docs.<public hostname>/__aia/session?ticket=…&next=…` | the way in: a 60-second ticket from `POST /api/v1/session/docs-ticket`, spent once for the `aia_docs` cookie (60 min) |
-| `onlyoffice:80` on `aia-docs` | the API's way to its command and conversion services; nothing else is on that network but Caddy |
+| `onlyoffice:80` on `aia-docs` | Caddy's way to it; nothing else of AIA's is on that network, so the Document Server reaches neither the API nor the database except through the public hostname |
 | refused at Caddy (404) | commands, conversion, the builder, the AI proxy, WOPI hosting, admin, info, internal, welcome, example, the health check, with or without the version prefix |
 
 AIA's `aia_session` cookie never reaches the editor's origin, and the editor's JavaScript never runs

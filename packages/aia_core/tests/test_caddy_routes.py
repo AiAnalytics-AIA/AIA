@@ -321,9 +321,46 @@ def docs_routes(
     return [headers, exchange, refused, sub(None, gate, upstream or proxy("onlyoffice:80"))]
 
 
-def _with_docs_site(config: dict[str, Any], docs: list[dict[str, Any]]) -> dict[str, Any]:
-    config["apps"]["http"]["servers"]["srv0"]["routes"].append(site("docs.aia.example.test", docs))
+DROPS_TICKET = {
+    "format": "filter",
+    "wrap": {"format": "json"},
+    "fields": {
+        "request>uri": {"filter": "query", "actions": [{"type": "delete", "parameter": "ticket"}]}
+    },
+}
+
+
+def _with_docs_site(
+    config: dict[str, Any], docs: list[dict[str, Any]], *, encoder: dict[str, Any] | None = None
+) -> dict[str, Any]:
+    server = config["apps"]["http"]["servers"]["srv0"]
+    server["routes"].append(site("docs.aia.example.test", docs))
+    server["logs"] = {"logger_names": {"docs.aia.example.test": ["log2"]}}
+    config["logging"] = {"logs": {"log2": {"encoder": encoder or DROPS_TICKET}}}
     return config
+
+
+@pytest.mark.parametrize(
+    "encoder",
+    [
+        {"format": "json"},
+        {**DROPS_TICKET, "fields": {"request>uri": {"filter": "query", "actions": []}}},
+        {
+            **DROPS_TICKET,
+            "fields": {
+                "request>uri": {
+                    "filter": "query",
+                    "actions": [{"type": "delete", "parameter": "next"}],
+                }
+            },
+        },
+    ],
+)
+def test_a_docs_access_log_that_writes_the_ticket_is_refused(
+    routes: Any, encoder: dict[str, Any]
+) -> None:
+    problems = routes.check(_with_docs_site(good(), docs_routes(), encoder=encoder))
+    assert any("access log writes the ticket" in p for p in problems)
 
 
 def test_the_document_server_behind_the_docs_gate_passes(routes: Any) -> None:
