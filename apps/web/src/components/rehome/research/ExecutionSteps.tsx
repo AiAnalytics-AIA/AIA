@@ -97,6 +97,7 @@ import { reportStatus, reportStatusWords } from "@/lib/report-status";
 import type { Tone } from "@/lib/tone";
 import { AnalysisBlocked, ViolationList } from "./AnalysisBlocked";
 import { AnalysisCoverage, AnalysisMilestones } from "./AnalysisCoverage";
+import { AnalysisExternal } from "./AnalysisExternal";
 import { FindingInspectButton, setShownAnalysis, useOpenAnalysisItem, type OpenAnalysisItem } from "./AnalysisInspect";
 import { CodedWords } from "./CodedWords";
 import { CONFLICT_MESSAGE, submitWorkingDesign } from "@/research/store";
@@ -1766,6 +1767,7 @@ function AnalysisResults({ run, spec, progressHref }: { run: ResearchRun; spec: 
             )) : <p className="mt-3 text-sm text-ink-muted">Žádná dokončená část zatím neuvádí hlavní zjištění.</p>}
             {withoutFindings.length ? <p className="mt-3 text-xs text-ink-muted">Bez zjištění, protože neprošly kontrolou: {withoutFindings.join(", ")}.</p> : null}
           </section>
+          <AnalysisExternal context={analysis.external_context} />
           <h3 className="text-base font-semibold">Analýza po částech</h3>
           <div className="grid gap-4 lg:grid-cols-[15rem_minmax(0,1fr)]">
             <nav aria-label="Části AI analýzy" className="flex flex-col gap-1">

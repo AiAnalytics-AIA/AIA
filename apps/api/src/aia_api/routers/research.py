@@ -1966,7 +1966,10 @@ def run_analysis(
 
     Each answer to a research question carries ``gap``: what the run recorded at start about that
     question when it recorded it as a gap (its verdict and why), else ``None`` -- the same words
-    the internal report prints beside it, so Results never reads such an answer as measured."""
+    the internal report prints beside it, so Results never reads such an answer as measured.
+    ``external_context``: the pinned Design Research findings the modules were shown as context,
+    as shown, from the same verified read as the modules' sources; ``None`` without a pin or
+    before any module has an outcome."""
     try:
         scope.require(Permission.EDIT_STUDY)
         analysis = reconstruct_run(session, scope, store, run_id=run_id)
@@ -1994,6 +1997,17 @@ def run_analysis(
             else None
         ),
         "pending": {module.value: state for module, state in analysis.pending.items()},
+        # The Design Research findings every module was shown as context, never as evidence
+        # (evidence-integrity 7, artifact-analysis ANL5): exactly those, or None without a pin.
+        "external_context": {
+            "deep_research_run_id": analysis.external.deep_research_run_id,
+            "items": [
+                {"evidence_id": f.evidence_id, "claim": f.claim, "source": f.source}
+                for f in analysis.external.findings
+            ],
+        }
+        if analysis.external is not None
+        else None,
         "modules": {
             module.value: {
                 "outcome": outcome.outcome.value,

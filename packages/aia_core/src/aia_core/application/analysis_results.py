@@ -64,7 +64,12 @@ from ..domain.analysis.artifact import (
     module_reuse_fingerprint,
     parse_module_artifact,
 )
-from ..domain.analysis.external import external_context_lines, public_context
+from ..domain.analysis.external import (
+    ShownContext,
+    external_context_lines,
+    public_context,
+    shown_context,
+)
 from ..domain.analysis.harness import (
     AGENT_ID,
     AGENT_VERSION,
@@ -84,6 +89,7 @@ from ..domain.analysis.native import (
 )
 from ..domain.analysis.steps import analysis_node_key, module_of_node
 from ..domain.answerability import Acknowledgement
+from ..domain.deep_research.quarantine import AnalysisContext
 from ..domain.evidence import (
     ClaimSurface,
     InstrumentPolicyRefused,
@@ -208,8 +214,8 @@ class NativeSources:
     #: against (complete-study-report B5a); ``None`` for every other origin or when none.
     joint_certificate: tuple[bytes, str] | None = None
     #: The accepted findings of the Design Research bundle the run pinned, as each module is
-    #: shown them: external context, never evidence (evidence-integrity 7). Empty without a pin.
-    external_context: tuple[str, ...] = ()
+    #: shown them: external context, never evidence (evidence-integrity 7). None without a pin.
+    external: ShownContext | None = None
 
 
 def _upstream_ids(run: Mapping[str, Any]) -> dict[str, str]:
@@ -398,12 +404,14 @@ def native_sources(
 
     respondent_system = _respondent_system(origin, dataset_row.metadata)
     joint_certificate = _joint_certificate(origin, dataset_row.metadata)
-    external_context = (
-        _external_context(
-            session, scope, store, (run.get("metadata") or {}).get("analysis_context")
-        )
-        if with_context
-        else ()
+    pin = (run.get("metadata") or {}).get("analysis_context")
+    context = pinned_context(session, scope, store, pin) if with_context else None
+    # pinned_context answers a context only for a Mapping pin it read, never None for one: the
+    # isinstance narrows the type and is never false here.
+    external = (
+        shown_context(str(pin["deep_research_run_id"]), context)
+        if context is not None and isinstance(pin, Mapping)
+        else None
     )
 
     return NativeSources(
@@ -423,7 +431,7 @@ def native_sources(
         support=support,
         respondent_system=respondent_system,
         joint_certificate=joint_certificate,
-        external_context=external_context,
+        external=external,
     )
 
 
@@ -433,13 +441,22 @@ _CONTEXT_PIN: Final = ("deep_research_run_id", "artifact_id", "sha256")
 def _external_context(
     session: Session, scope: StudyContext, store: ArtifactStore, pin: object
 ) -> tuple[str, ...]:
+    """The external context the run pinned (``metadata.analysis_context``) as each module is
+    shown it: :func:`pinned_context`'s findings as lines, none without a pin."""
+    context = pinned_context(session, scope, store, pin)
+    return external_context_lines(context) if context is not None else ()
+
+
+def pinned_context(
+    session: Session, scope: StudyContext, store: ArtifactStore, pin: object
+) -> AnalysisContext | None:
     """The external context the run pinned (``metadata.analysis_context``), read again through
     the Deep Research run that published it and held to the pin: the same artifact, the same
-    bytes, its seal verified. Anything else is refused, never read as no context, since the
-    modules' fingerprints and payloads carry it. Its public findings only
+    bytes, its seal verified. ``None`` without a pin; anything else is refused, never read as no
+    context, since the modules' fingerprints and payloads carry it. Its public findings only
     (:func:`~aia_core.domain.analysis.external.public_context`)."""
     if pin is None:
-        return ()
+        return None
     if not isinstance(pin, Mapping) or not all(isinstance(pin.get(k), str) for k in _CONTEXT_PIN):
         raise SourcesRefused("context_pin", "the run's external-context pin does not read")
     runs = DeepResearchRuns(session, scope)
@@ -460,7 +477,7 @@ def _external_context(
         ) from exc
     except (IntegrityError, ObjectNotFound) as exc:
         raise _corrupt("the pinned Deep Research bundle") from exc
-    return external_context_lines(public_context(bundle))
+    return public_context(bundle)
 
 
 def _joint_certificate(
@@ -633,7 +650,7 @@ def prepare_module(
         research_questions=sources.research_questions,
         language=language,
         system_fingerprint=evidence.system_fingerprint,
-        external_context=sources.external_context,
+        external_context=sources.external.lines() if sources.external is not None else (),
     )
     fingerprint = input_fingerprint(module_id, inputs)
     harness = harness_summary(language=language, max_repairs=max_repairs)
@@ -745,6 +762,9 @@ class RunAnalysis:
     #: names it was computed under (:class:`ModuleSources`), so what the run stands on is read
     #: here, never from a record; ``None`` when no outcome was stored yet.
     sources: ModuleSources | None = None
+    #: The external context every module was shown, from the same verified read as its sources
+    #: (evidence-integrity 7); ``None`` without a pin, or when no outcome was stored yet.
+    external: ShownContext | None = None
 
     @property
     def complete(self) -> bool:
@@ -1031,9 +1051,11 @@ def reconstruct_run(
     modules: dict[AnalysisModuleId, ReconstructedModule] = {}
     deviation: Mapping[str, Any] | None = None
     refs: ModuleSources | None = None
+    external: ShownContext | None = None
     if outcomes:
         sources = _sources(session, scope, store, run)
         refs = sources.refs
+        external = sources.external
         raw = sources.aggregate.get("deviation")
         deviation = raw if isinstance(raw, Mapping) else None
         for module in AnalysisModuleId:
@@ -1047,6 +1069,7 @@ def reconstruct_run(
         pending=pending,
         aggregation_deviation=deviation,
         sources=refs,
+        external=external,
     )
 
 

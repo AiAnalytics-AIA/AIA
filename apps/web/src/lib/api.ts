@@ -1188,6 +1188,9 @@ export type ResearchAnalysis = {
    *  `null` (or absent, from an API before it) when it is the port. */
   aggregation_deviation?: Record<string, unknown> | null;
   pending: Record<string, string>;
+  /** The Design Research findings every module was shown as context, never evidence
+   *  (evidence-integrity 7); `null` (or absent, from an API before it) when the run pinned none. */
+  external_context?: { deep_research_run_id: string; items: { evidence_id: string; claim: string; source: string }[] } | null;
   modules: Record<string, {
     outcome: "COMPLETED" | "BLOCKED";
     artifact_id: string;
