@@ -378,14 +378,27 @@ export function fidelityRefusal(result: QuestionResult): string | null {
   return typeof rating.reason === "string" ? rating.reason : "";
 }
 
-export function resultTable(id: string, result: QuestionResult, topBox = 2, at: StoredPlaces = UNIT_PLACES): ResultTable {
+/** `ids` with the ones `order` names first, in its order, then the rest as they came. */
+export function inOrder<T extends string>(ids: readonly T[], order: readonly string[]): T[] {
+  const named = new Set(order);
+  return [...order.filter((id): id is T => ids.includes(id as T)), ...ids.filter((id) => !named.has(id))];
+}
+
+/**
+ * `options`: the question's options in the order the specification asks them. The stored aggregate
+ * is canonical JSON, its answers sorted by name, so without them a frequency scale reads out of
+ * order ("Jeden až dva dny" before "Každý den"); an answer the options do not name keeps its place
+ * after them.
+ */
+export function resultTable(id: string, result: QuestionResult, topBox = 2, at: StoredPlaces = UNIT_PLACES, options: readonly string[] = []): ResultTable {
   const suppressed = result.support_status === "SUPPRESS";
   const hide = (value: string | null) => (suppressed ? null : value);
   const rows: ResultRow[] = [];
   if (result.typ === "vyber" || result.typ === "multi") {
     const pct = (result.celkem_pct ?? {}) as Record<string, number>;
     const intervals = (result.intervaly_95 ?? {}) as Record<string, Interval>;
-    for (const [label, value] of Object.entries(pct)) {
+    for (const label of inOrder(Object.keys(pct), options)) {
+      const value = pct[label];
       const iv = intervals[label];
       rows.push({
         label,

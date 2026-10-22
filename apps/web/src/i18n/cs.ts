@@ -3144,7 +3144,8 @@ export const cs = {
       },
       refresh: "Obnovit stav",
       retryOf: "Opakování běhu {run}",
-      noResults: "Výsledky zatím nejsou.",
+      noResults: "Výsledky zatím nejsou: výzkum ještě neběžel.",
+      noResultsYet: "Výsledky zatím nejsou.",
       noResultsParked: "Výsledky nevzniknou, dokud běh čeká u sběru dat.",
       results: {
         noMaps: "Tento běh žádnou Sociomapu nespočetl.",
