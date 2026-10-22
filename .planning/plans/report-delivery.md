@@ -77,6 +77,14 @@ ledger shape; the with-literature variant's status does not carry it (retired by
 **RD3. The Approve and Export panel: what is approved and by whom; exports after approval; the slot in the Report artifact**  
 S1 hosts the slot (`research-lead-workbench` 21), same wave. Tests: approvals name the exact artifact fingerprint; a stale-version download is refused; both self-approval settings; an unauthorised download is refused. Today drafts download freely and approval follows the download (`research.py:2395-2449`); the panel makes the client export follow approval. Interfaces I12.
 
+*RD3, the client draft read in AIA (`feature/report-client-pane`):* `POST …/report/client/prepare` composes and
+stores the client report as its download would, once, and answers its document model; nothing leaves. Zpráva's
+pane offers "Interní zpráva" / "Klientská zpráva" for a modelled run only, one document at a time, and
+"Připravit klientskou zprávu" while none is prepared. Tests:
+`test_the_client_report_is_prepared_to_be_read_without_a_download`; `ReportDocumentView.test.tsx` ("the client
+report, read here before it is approved"); `report_journey.mjs`. Next: deliverable downloads refused until
+approval (F17, "no unapproved internal-draft exception").
+
 **RD4. The map snapshot: an approvable object rendered server-side from the stored map and camera parameters, never browser bytes; one ledger shape**  
 The existing approval writes subject `artifact` (`artifact_repository.py:568`) and M3 names `map_snapshot`; one is chosen and the other removed. S2 supplies the deterministic figure function. Interfaces I13.
 

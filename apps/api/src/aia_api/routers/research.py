@@ -2777,25 +2777,13 @@ def download_contextual_report_pdf(
     )
 
 
-@router.get(
-    "/research/runs/{run_id}/report/client/download",
-    response_class=Response,
-    summary="The run's client report (modelled data, labelled): its approved version, else a draft",
-    responses={409: {"model": ErrorResponse}},
-)
-def download_client_report(
-    run_id: RunIdPath,
-    scope: StudyScopeDep,
-    session: SessionDep,
-    store: ArtifactStoreDep,
-    settings: SettingsDep,
-) -> Response:
-    """Complete-study-report B5c: only a run whose respondents were modelled from the
-    population has one; any other is refused by name (409 ``client_report_refused``)."""
+def _stored_client(
+    run_id: str, scope: StudyContext, session: SessionDep, store: ArtifactStoreDep, build: str
+) -> tuple[Artifact, bytes]:
+    """The run's client report as stored (composed and stored as a draft first when none is),
+    with its refusals in the API's words: 409 ``client_report_refused`` for a run that has none."""
     try:
-        artifact, data = stored_client_report(
-            session, scope, store, run_id=run_id, build=settings.build.sha or ""
-        )
+        return stored_client_report(session, scope, store, run_id=run_id, build=build)
     except ScopeDenied as exc:
         raise _refused(exc) from exc
     except ResearchRunNotFound as exc:
@@ -2820,6 +2808,24 @@ def download_client_report(
                 "details": {"reason": "composition_refused"},
             },
         ) from exc
+
+
+@router.get(
+    "/research/runs/{run_id}/report/client/download",
+    response_class=Response,
+    summary="The run's client report (modelled data, labelled): its approved version, else a draft",
+    responses={409: {"model": ErrorResponse}},
+)
+def download_client_report(
+    run_id: RunIdPath,
+    scope: StudyScopeDep,
+    session: SessionDep,
+    store: ArtifactStoreDep,
+    settings: SettingsDep,
+) -> Response:
+    """Complete-study-report B5c: only a run whose respondents were modelled from the
+    population has one; any other is refused by name (409 ``client_report_refused``)."""
+    artifact, data = _stored_client(run_id, scope, session, store, settings.build.sha or "")
     # The bytes it just read (or stored) are the version's: never read twice per download.
     exported = _export(artifact, scope, session, store, data=data)
     return Response(
@@ -2832,6 +2838,26 @@ def download_client_report(
             ),
         ),
     )
+
+
+@router.post(
+    "/research/runs/{run_id}/report/client/prepare",
+    response_model=dict[str, Any],
+    summary="Prepare the run's client report to be read in AIA, without a download",
+    responses={409: {"model": ErrorResponse}},
+)
+def prepare_client_report(
+    run_id: RunIdPath,
+    scope: StudyScopeDep,
+    session: SessionDep,
+    store: ArtifactStoreDep,
+    settings: SettingsDep,
+) -> dict[str, Any]:
+    """The client report composed and stored as its download would store it, answered as its
+    document model (report-delivery RD3): a person reads the draft in AIA before approving it,
+    and no file leaves. The approved version once there is one; nothing is composed then."""
+    _stored_client(run_id, scope, session, store, settings.build.sha or "")
+    return client_report_document_route(run_id, scope, session, store)
 
 
 class ReportApprovalRequest(BaseModel):
