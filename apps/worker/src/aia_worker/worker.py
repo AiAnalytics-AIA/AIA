@@ -54,6 +54,7 @@ from aia_core.domain.scope import ScopeDenied, StudyContext, WorkScope
 from aia_core.domain.workflow import FailureClass, InteractionMode, StepDefinition, StepRunStatus
 from aia_core.infrastructure import error_tracking
 from aia_core.infrastructure.db import shares_one_connection
+from aia_core.infrastructure.redaction import redact
 from aia_core.infrastructure.workflow_repository import (
     BudgetExceeded,
     ClaimedWork,
@@ -545,23 +546,7 @@ def _report_step_failed(claim: _Claim, failed: Failed) -> None:
     )
 
 
-# Deeper than any error payload an executor writes; past it a container is not copied
-# (fails closed: "[truncated]", never the unscrubbed value).
-_MAX_ERROR_DEPTH = 8
-
-
 def _redacted(error: dict[str, Any]) -> dict[str, Any]:
-    """Redact every string an executor put in an error payload, at any depth."""
-    return {k: _redacted_value(v) for k, v in error.items()}
-
-
-def _redacted_value(value: Any, depth: int = 0) -> Any:
-    if isinstance(value, str):
-        return redact_text(value)
-    if depth >= _MAX_ERROR_DEPTH:
-        return value if isinstance(value, (int, float, bool)) or value is None else "[truncated]"
-    if isinstance(value, dict):
-        return {k: _redacted_value(v, depth + 1) for k, v in value.items()}
-    if isinstance(value, (list, tuple)):
-        return [_redacted_value(v, depth + 1) for v in value]
-    return value
+    """Redact an error payload with the one shared rule (keys and values, at any depth)."""
+    scrubbed: dict[str, Any] = redact(error, capped=True)
+    return scrubbed

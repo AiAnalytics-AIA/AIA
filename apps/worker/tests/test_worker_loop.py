@@ -272,7 +272,14 @@ def test_a_failure_an_executor_returns_is_redacted_too_at_any_depth(
     run_id = study.create_run(
         {
             "fail": FailureClass.AUTHENTICATION.value,
-            "fail_error": {"message": f"refused {key}", "details": {"cause": [f"Bearer {key}"]}},
+            "fail_error": {
+                "message": f"refused {key}",
+                "details": {
+                    "cause": [f"Bearer {key}"],
+                    "authorization": "Basic dXNlcjpwYXNzd29yZA==",
+                },
+                "password": "hunter2hunter2",
+            },
         }
     )
 
@@ -282,6 +289,9 @@ def test_a_failure_an_executor_returns_is_redacted_too_at_any_depth(
     assert "sk-ant" not in json.dumps(error)
     assert "[redacted]" in error["message"]
     assert "[redacted]" in error["details"]["cause"][0]
+    # A secret under a secret-named key is redacted by its key, whatever its shape.
+    assert error["details"]["authorization"] == "[redacted]"
+    assert error["password"] == "[redacted]"
     assert error["attempt"] == 1, "what is not a secret is kept as it was"
 
 
