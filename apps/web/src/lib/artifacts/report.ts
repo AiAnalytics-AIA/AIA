@@ -213,6 +213,9 @@ export function approvalWords(approval: Approval | null | undefined, approvedOn:
   return approval.self_approved ? `${said} · vlastní práce` : said;
 }
 
-/** The review the doc bar names: the DOCX's, since the DOCX is what a person approves. */
-export const reviewWords = (stored: Pick<StoredReportDocument, "review_state">): string =>
-  stored.review_state === "APPROVED_INTERNAL" ? "interně schváleno" : "neschváleno";
+/** The review the doc bar names: the DOCX's, since the DOCX is what a person approves. The server
+ *  stores one approved state for both reports; the client report's approval signs it off for the
+ *  client, never "for internal use". */
+export const reviewWords = (stored: Pick<StoredReportDocument, "review_state">, kind: "internal" | "client" = "internal"): string =>
+  stored.review_state !== "APPROVED_INTERNAL" ? "neschváleno"
+    : kind === "client" ? "schváleno k předání klientovi" : "interně schváleno";

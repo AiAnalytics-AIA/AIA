@@ -1,5 +1,5 @@
 ---
-status: in-progress
+status: done
 chunks:
   - "[x] SMP1. Vzorek's contract as data: view operations, pointable ids (size, quota cell, forecast item, readiness check) and V2's interaction contract"
   - "[x] SMP2. Velikost a složení: n, the dimensions and the audience summarized; the panel's quota cells before a run, and for the fictional roster the words that it has none"

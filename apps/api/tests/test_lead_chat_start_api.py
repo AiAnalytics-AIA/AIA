@@ -89,9 +89,9 @@ def _scope(world: Any, session: Any) -> Any:
 
 def _save(app: FastAPI, world: Any, content: dict[str, Any] = DESIGN) -> None:
     with create_session_factory(app.state.engine)() as session:
-        StudyWorkspaceRepository(session).save(
-            _scope(world, session), content=content, base_revision=None
-        )
+        repo = StudyWorkspaceRepository(session)
+        scope = _scope(world, session)
+        repo.save(scope, content=content, base_revision=repo.content(scope).revision)
         session.commit()
 
 
@@ -562,6 +562,61 @@ def test_a_typed_analysis_retry_starts_the_stage_retry_on_the_newest_analysed_ru
         None,
     )
     assert _written(app)["charges"] == charges_before
+
+
+def test_a_typed_analysis_retry_names_its_run_and_never_retries_a_newer_one_unasked(
+    researcher: TestClient, world: Any, app: FastAPI, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """The card names the run it retries (GET /lead ``analysis_retry_run``); approved with that
+    run while a newer one has run analysis since, it is refused by name and nothing starts, and
+    the newer one starts only once the person names it (the PM on #744, 2026-10-22)."""
+    from aia_core.application import lead_chat_start
+    from aia_core.application.workflows import StartedRun
+
+    first = _analysed_run(app, researcher, world)
+    state = researcher.get(_lead(world)).json()
+    assert state["analysis_retry_run"]["run_id"] == first
+    assert state["wallet_enabled"] is False
+    turn_id = _type(researcher, world, "Zopakuj analýzu").json()["turns"][0]["turn_id"]
+    # A newer run on a changed design runs analysis before the card is approved.
+    _save(app, world, {**DESIGN, "title": "Ranní nápoj 2"})
+    newer = _approve(
+        researcher, world, _type(researcher, world, "Spusť výzkum").json()["turns"][0]["turn_id"]
+    ).json()["run_id"]
+    assert newer != first
+    written = _written(app)
+    moved = _approve(researcher, world, turn_id, retry_run_id=first)
+    assert moved.status_code == 409, moved.text
+    assert moved.json()["code"] == "analysis_retry_target_moved"
+    assert moved.json()["details"]["current_run_id"] == newer
+    assert _written(app) == written
+    asked: list[str] = []
+
+    def stage_retry(session: Any, scope: Any, store: Any, **kw: Any) -> StartedRun:
+        asked.append(kw["run_id"])
+        run = WorkflowRepository(session, scope).get_run(kw["run_id"])
+        return StartedRun(
+            run_id=run["run_id"],
+            project_id=run["project_id"],
+            project_revision=run["project_revision"],
+            workflow_type=RESEARCH,
+            created=True,
+            run=run,
+        )
+
+    monkeypatch.setattr(lead_chat_start, "retry_failed_modules", stage_retry)
+    named = _approve(researcher, world, turn_id, retry_run_id=newer)
+    assert named.status_code == 200, named.text
+    assert asked == [newer]
+
+
+def test_the_conversation_says_whether_the_wallet_is_on(
+    researcher: TestClient, world: Any, app: FastAPI
+) -> None:
+    assert researcher.get(_lead(world)).json()["wallet_enabled"] is False
+    assert researcher.get(_lead(world)).json()["analysis_retry_run"] is None
+    _wallet_on(app, researcher, world, cap=5.0)
+    assert researcher.get(_lead(world)).json()["wallet_enabled"] is True
 
 
 # --------------------------------------------------------------------------- the wallet

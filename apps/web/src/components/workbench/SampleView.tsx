@@ -8,6 +8,7 @@
 
 import type { ReactNode } from "react";
 
+import { TOUCH, TOUCH_LINK } from "@/components/ui/parts";
 import { t } from "@/i18n/t";
 import { plural } from "@/lib/format";
 import { sampleAia } from "@/lib/artifacts/sample";
@@ -95,7 +96,7 @@ function Composition({ readiness }: { readiness: SampleReadiness }) {
         <CellTable rows={c.rows.slice(0, CELLS_SHOWN)} caption="Složení vzorku podle kvót" />
         {c.rows.length > CELLS_SHOWN ? (
           <details className="text-sm">
-            <summary className="cursor-pointer text-signal">Dalších {plural(c.rows.length - CELLS_SHOWN, "buňka", "buňky", "buněk")}</summary>
+            <summary className={`cursor-pointer text-signal ${TOUCH}`}>Dalších {plural(c.rows.length - CELLS_SHOWN, "buňka", "buňky", "buněk")}</summary>
             <CellTable rows={c.rows.slice(CELLS_SHOWN)} caption="Další buňky vzorku" />
           </details>
         ) : null}
@@ -127,12 +128,12 @@ export function SampleArtifact({ project, readiness, onOpen }: { project: Resear
           <div className="flex items-center gap-2"><Glyph tone={n ? "done" : "inert"} size={12} /><h3 className="text-sm font-semibold">Velikost vzorku</h3></div>
           <p className="mt-1 text-2xl font-semibold tabular-nums">{n ? `N = ${n}` : "Nenastaveno"}</p>
           <p className="text-sm text-ink-muted">Doporučeno {rec.n}: {rec.why}</p>
-          <button type="button" className="mt-1 text-sm text-signal underline" onClick={() => onOpen("dimensions")}>Upravit v Dimenzích</button>
+          <button type="button" className={`mt-1 text-sm ${TOUCH_LINK}`} onClick={() => onOpen("dimensions")}>Upravit v Dimenzích</button>
         </div>
         <div>
           <div className="flex items-center gap-2"><Glyph tone={audienceReady(project) ? "done" : "inert"} size={12} /><h3 className="text-sm font-semibold">Cílová skupina</h3></div>
           <p className="mt-1 text-sm">{description || "Bez popisu"}{filters ? ` · ${filters} ${filters === 1 ? "filtr" : filters < 5 ? "filtry" : "filtrů"}` : ""}</p>
-          <button type="button" className="mt-1 text-sm text-signal underline" onClick={() => onOpen("audience")}>Upravit cílovou skupinu</button>
+          <button type="button" className={`mt-1 text-sm ${TOUCH_LINK}`} onClick={() => onOpen("audience")}>Upravit cílovou skupinu</button>
         </div>
         <div>
           <div className="flex items-center gap-2"><Glyph tone={dims.length ? "done" : "inert"} size={12} /><h3 className="text-sm font-semibold">Dimenze</h3></div>
@@ -180,7 +181,7 @@ function Ready({ readiness, onOpen }: { readiness: SampleReadiness; onOpen: Open
                 <li key={c.id} className="flex items-start gap-2 border-t border-border py-1.5 text-sm first:border-t-0" data-aia={sampleAia.ready(c.id) ?? undefined}>
                   <span className="mt-1"><Glyph tone={STATUS_TONE[c.status] ?? "inert"} size={12} title={c.status} /></span>
                   <span className="min-w-0 flex-1">{c.message}</span>
-                  {stage ? <button type="button" className="shrink-0 text-xs text-signal underline" onClick={() => onOpen(stage)}>{STAGES[stage].label}</button> : null}
+                  {stage ? <button type="button" className={`shrink-0 text-xs ${TOUCH_LINK}`} onClick={() => onOpen(stage)}>{STAGES[stage].label}</button> : null}
                 </li>
               );
             })}
@@ -191,7 +192,7 @@ function Ready({ readiness, onOpen }: { readiness: SampleReadiness; onOpen: Open
         <p className="text-sm text-ink-muted">{forecast.known ? "Odhad opory výsledků varuje" : "Opora výsledků je předem neznámá"}: viz oddíl 2.</p>
       ) : null}
       <div className="flex flex-wrap items-center gap-3">
-        <button type="button" className="rounded-control border border-border-strong px-3 py-1.5 text-sm font-medium" onClick={() => onOpen("fieldwork")}>Pokračovat na Sběr dat</button>
+        <button type="button" className={`rounded-control border border-border-strong px-3 py-1.5 text-sm font-medium ${TOUCH}`} onClick={() => onOpen("fieldwork")}>Pokračovat na Sběr dat</button>
         {summary?.ready && !summary.unknown && summary.warnings ? <span className="text-xs text-ink-muted">Lze pokračovat s omezeními.</span> : null}
       </div>
     </Sec>

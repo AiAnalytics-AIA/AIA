@@ -98,6 +98,21 @@ try {
     const room = await name.evaluate((el) => ({ column: el.closest("div")?.getBoundingClientRect().width ?? 0, clipped: el.scrollWidth > el.clientWidth + 1 }));
     assert(room.column >= 160 && !room.clipped, `the set's name at ${width}: ${Math.round(room.column)} px, clipped ${room.clipped}`);
     check(`${width}: Závislosti lists the set's readers, the open question apart, no overflow`);
+
+    // A question's × stays beside its number at every width, never on a row of its own (the
+    // browser audit's QF-9: at 390 px the type chips wrapped and pushed it 130 px down).
+    const card = page.locator("#qedit_Q_wb1");
+    await card.scrollIntoViewIfNeeded();
+    const [num, x] = await card.evaluate((el) => {
+      const box = (n) => { const r = n.getBoundingClientRect(); return { y: r.top, height: r.height }; };
+      const badge = [...el.querySelectorAll("span")].find((n) => n.textContent === "Q1");
+      const remove = el.querySelector('button[aria-label^="Odebrat otázku Q1"]');
+      return badge && remove ? [box(badge), box(remove)] : [null, null];
+    });
+    assert(num && x, `Q1's number and its × are on the card at ${width}`);
+    // Measured together, so a scroll between the two reads cannot part them.
+    assert(x.y < num.y + num.height && x.y + x.height > num.y, `the question's × at ${width}: ${Math.round(x.y - num.y)} px from its number`);
+    check(`${width}: a question's × beside its number`);
   }
 
   // A block renamed in place (input-interactions chunk 3e, I1): Enter saves, the name reads back after a reload.
