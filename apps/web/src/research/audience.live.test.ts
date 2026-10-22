@@ -6,7 +6,7 @@ import { describe, expect, it } from "vitest";
 
 import type { AudienceCatalogue, AudiencePreview } from "@/lib/api";
 
-import { applyPopulationSubpanel, factorRefusal, filterableFactors, liveCatalog, liveSubpanels, liveVerdict, setAudienceRange, setRange, filterCountLines, type Catalog, filterProblems, CATALOGUE_TOP_VALUES, rangeBounds, boundOf, endUnreadable } from "./audience";
+import { applyPopulationSubpanel, factorRefusal, filterableFactors, liveCatalog, liveSubpanels, liveVerdict, setAudienceRange, setRange, filterCountLines, type Catalog, filterProblems, CATALOGUE_TOP_VALUES, rangeBounds, boundOf, endUnreadable, storedRange } from "./audience";
 import type { ResearchProject } from "./model";
 
 const project = (audience: Record<string, unknown> = {}) => ({ audience, briefing: {}, ui_state: {} }) as unknown as ResearchProject;
@@ -154,6 +154,19 @@ describe("a numeric factor's range bounds (audit B6)", () => {
     // A scale's ends stated by the catalogue say nothing of its values.
     expect(rangeBounds({ id: "price_sensitivity_1_10", min: 1, max: 10, scale_hint: "1–10" })).toEqual({ min: 1, max: 10, decimals: 2 });
     for (const f of [{ id: "x" }, { id: "x", min: 1 }, { id: "x", min: 5, max: 1 }, { id: "x", min: Number.NaN, max: 1 }]) expect(rangeBounds(f), JSON.stringify(f)).toBeNull();
+  });
+
+  it("reach the editor from the API: a catalogue-stated scale keeps its hint, so it takes decimals", () => {
+    const scale = { ...CATALOGUE.factors[0]!, id: "price_sensitivity_1_10", column: "price_sensitivity_1_10", label: "Citlivost na cenu", min: 1, max: 10, scale_hint: "1–10" };
+    const factor = liveCatalog({ ...CATALOGUE, factors: [...CATALOGUE.factors, scale] }).factors!.find((f) => f.id === "price_sensitivity_1_10")!;
+    expect(rangeBounds(factor)).toEqual({ min: 1, max: 10, decimals: 2 });
+  });
+
+  it("read a bare stored number as both ends, as the population does; rangeOf stays the classic's", () => {
+    const p = project({ filters: { vek: 40, x: { min: 30 }, y: [18, 29] } });
+    expect(storedRange(p, "vek")).toEqual({ lo: 40, hi: 40 });
+    expect(storedRange(p, "x")).toEqual({ lo: 30, hi: null });
+    expect(storedRange(p, "y")).toEqual({ lo: 18, hi: 29 });
   });
 
   it("read a stored end as the population does, and tell an unreadable end from no end", () => {

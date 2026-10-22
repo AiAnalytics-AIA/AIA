@@ -295,6 +295,16 @@ export function rangeOf(p: ResearchProject, id: string): { lo: Json; hi: Json } 
 }
 
 /**
+ * A numeric factor's stored ends as the population reads them (_interval): rangeOf's, and a bare
+ * number as both ends, an exact value (`vek: 40` is age 40 alone). rangeOf stays the classic's
+ * reading, which shows a bare number as no range.
+ */
+export function storedRange(p: ResearchProject, id: string): { lo: Json; hi: Json } {
+  const cur = filters(p)[id] as Json | undefined;
+  return typeof cur === "number" && Number.isFinite(cur) ? { lo: cur, hi: cur } : rangeOf(p, id);
+}
+
+/**
  * What a numeric factor's two steppers may hold (input-interactions I2, audit B6): the population's
  * own range from the catalogue, null when it states none (nothing to bound by, nothing guessed).
  * Whole numbers only when both ends are whole numbers read from the data; a scale whose ends the
@@ -559,6 +569,7 @@ export function liveCatalog(api: AudienceCatalogue): Catalog {
       filterable: f.filterable,
       min: f.min ?? undefined,
       max: f.max ?? undefined,
+      scale_hint: f.scale_hint ?? null,
       values: f.values ?? undefined,
       policy_allowed: f.policy_allowed,
       policy_reason: f.policy_reason,

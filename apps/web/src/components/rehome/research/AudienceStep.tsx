@@ -60,7 +60,6 @@ import {
   proposePayload,
   proposeText,
   rangeBounds,
-  rangeOf,
   removeAudienceFactor,
   searchKey,
   selectedValues,
@@ -69,6 +68,7 @@ import {
   setAudienceEntry,
   setDiscoverField,
   setRange,
+  storedRange,
 } from "@/research/audience";
 import type { Json, ResearchProject } from "@/research/model";
 import { Icon } from "../icons";
@@ -468,7 +468,7 @@ function FactorEditor({ factor, project, onChange }: { factor: Factor; project: 
   const refusal = factorRefusal(factor);
   const legend = `${factor.label || factor.id}`;
   if (factor.kind === "numeric") {
-    const { lo, hi } = rangeOf(project, factor.id);
+    const { lo, hi } = storedRange(project, factor.id);
     return (
       <fieldset className="rounded-control border border-border p-3" disabled={!!refusal}>
         <legend className="px-1 text-sm font-medium">{legend}</legend>

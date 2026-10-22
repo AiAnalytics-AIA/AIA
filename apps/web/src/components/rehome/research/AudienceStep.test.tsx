@@ -199,6 +199,19 @@ describe("Audience", () => {
       noUnitCalls();
     });
 
+    it("shows a stored bare number as both ends, as the population reads it, and keeps it when one end moves", async () => {
+      aiaStub({ ui_state: ANALYTICS, n: 500, audience: { strategy: "filters", source_mode: "population", filters: { vek: 40 } } }, live());
+      render(<ResearchScreen step="audience" frame={TEST_FRAME} />);
+      const from = await screen.findByRole("spinbutton", { name: "Věk od" });
+      const to = screen.getByRole("spinbutton", { name: "Věk do" });
+      expect([(from as HTMLInputElement).value, (to as HTMLInputElement).value]).toEqual(["40", "40"]);
+      fireEvent.change(from, { target: { value: "30" } });
+      fireEvent.blur(from);
+      await saved();
+      expect(lastSave().content.audience.filters).toEqual({ vek: { min: 30, max: 40 } });
+      noUnitCalls();
+    });
+
     it("says a stored end the population cannot read, and keeps a stored end beyond the population inside it", async () => {
       aiaStub({ ui_state: ANALYTICS, n: 500, audience: { strategy: "filters", source_mode: "population", filters: { vek: { min: "abc", max: 99 } } } }, live());
       render(<ResearchScreen step="audience" frame={TEST_FRAME} />);
