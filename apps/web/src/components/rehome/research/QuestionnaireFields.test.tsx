@@ -29,7 +29,7 @@ function stub() {
     return answer instanceof Response ? answer : new Response(JSON.stringify(answer), { status: 200 });
   }));
 }
-const sectionsSaved = () => (saves.at(-1) as unknown as { content: { sections: { title?: string; purpose?: string }[] } } | undefined)?.content.sections;
+const sectionsSaved = () => (saves.at(-1) as unknown as { content: { sections: { title?: string; purpose?: string; object_type?: string; object_family?: string; object_question?: string }[] } } | undefined)?.content.sections;
 const open = async (name: string) => {
   fireEvent.click(await screen.findByRole("button", { name }));
 };
@@ -86,5 +86,33 @@ describe("Dotazník's block and set fields", () => {
   it("offers no edit on a design the person may not change", async () => {
     render(<ResearchScreen step="questionnaire" frame={{ ...TEST_FRAME, canEdit: false }} />);
     expect(((await screen.findByRole("button", { name: "Upravit: Název bloku Hlavní otázky" })) as HTMLButtonElement).disabled).toBe(true);
+  });
+
+  it("edits a set's object type and common question in place, refusing a question without {object}", async () => {
+    render(<ResearchScreen step="questionnaire" frame={TEST_FRAME} />);
+    await open("Upravit: Typ sledovaných objektů média");
+    const type = screen.getByRole("textbox", { name: "Typ sledovaných objektů" });
+    fireEvent.change(type, { target: { value: "kanály" } });
+    fireEvent.keyDown(type, { key: "Enter" });
+    await waitFor(() => expect(sectionsSaved()?.[1]).toMatchObject({ object_type: "kanály", object_family: "kanály" }));
+    await open("Upravit: Společná otázka Jak hodnotíte {object}?");
+    const question = screen.getByRole("textbox", { name: "Společná otázka" });
+    fireEvent.change(question, { target: { value: "Jak často je používáte?" } });
+    fireEvent.keyDown(question, { key: "Enter" });
+    // Said at the field and kept there; nothing saved.
+    expect(question.getAttribute("aria-invalid")).toBe("true");
+    expect(screen.getByText("Otázka musí obsahovat {object}, jinak se položky do otázky nepromítnou.")).toBeTruthy();
+    fireEvent.change(question, { target: { value: "Jak často používáte {object}?" } });
+    fireEvent.keyDown(question, { key: "Enter" });
+    await waitFor(() => expect(sectionsSaved()?.[1].object_question).toBe("Jak často používáte {object}?"));
+  });
+
+  it("adds {object} to a stored question that lacks it with + {object}", async () => {
+    render(<ResearchScreen step="questionnaire" frame={TEST_FRAME} />);
+    await open("Upravit: Společná otázka Jak hodnotíte {object}?");
+    const question = screen.getByRole("textbox", { name: "Společná otázka" });
+    fireEvent.keyDown(question, { key: "Escape" });
+    fireEvent.click(screen.getByRole("button", { name: "+ {object}" }));
+    await waitFor(() => expect(sectionsSaved()?.[1].object_question).toBe("Jak hodnotíte {object}? {object}"));
   });
 });
