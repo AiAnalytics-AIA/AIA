@@ -6,6 +6,7 @@ from aia_core.domain.analysis.external import (
     MAX_CLAIM_CHARS,
     MAX_EXTERNAL_ITEMS,
     external_context_lines,
+    shown_context,
 )
 from aia_core.domain.deep_research.contracts import EvidenceOrigin
 from aia_core.domain.deep_research.quarantine import AnalysisContext, AnalysisItem
@@ -42,3 +43,18 @@ def test_the_context_is_bounded_in_findings_and_in_each_claim() -> None:
     assert len(lines) == MAX_EXTERNAL_ITEMS
     claim = lines[0].removeprefix("[EV-0] ").removesuffix(" (https://example.invalid/0)")
     assert len(claim) <= MAX_CLAIM_CHARS and claim.endswith("…")
+
+
+def test_the_listed_findings_are_the_lines_the_modules_are_shown() -> None:
+    """Analýza lists shown_context's findings: a long claim with line breaks is listed exactly as
+    cut and folded for the modules, never in full (review of the ANL5 register)."""
+    shown = shown_context("DR-1", context("Řádek\nčtyřistakrát " * 60, "Krátké."))
+    assert shown.deep_research_run_id == "DR-1"
+    assert shown.lines() == external_context_lines(context("Řádek\nčtyřistakrát " * 60, "Krátké."))
+    first = shown.findings[0]
+    assert (
+        "\n" not in first.claim
+        and len(first.claim) <= MAX_CLAIM_CHARS
+        and first.claim.endswith("…")
+    )
+    assert first.line() == shown.lines()[0]
