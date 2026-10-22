@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 // The Research Lead's pane (ADR 0026): the researcher hatches their own Lead, reads the session,
 // writes to it, and approves a prepared job only through the card; nothing is done for them.
-import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { act, cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import type { LeadState, LeadTurn, ResearcherLead } from "@/lib/lead";
@@ -63,6 +63,7 @@ beforeEach(() => {
 afterEach(() => {
   cleanup();
   vi.unstubAllGlobals();
+  vi.restoreAllMocks();
   sessionStorage.clear();
 });
 
@@ -323,5 +324,57 @@ describe("LeadPane", () => {
     expect(posts).toHaveLength(1);
     fireEvent.click(screen.getByRole("button", { name: "Zkusit znovu" }));
     await waitFor(() => expect(posts[1]).toEqual({ kind: "message", text: "Je cíl dost konkrétní?", stage: "brief", focus: null }));
+  });
+
+  // F-BRF-2 (lead_journey.mjs, "Tab stays inside the open conversation"): Tab onto "Na nejnovější" just
+  // as the log's scroll from the previous Tab reaches the bottom unmounted the button under the
+  // keyboard, and the focus fell to the page.
+  describe("Na nejnovější under the keyboard", () => {
+    // The log scrolled away from the bottom, its button shown and focused; jsdom's window never has
+    // the focus, so the window's focus is the test's to set.
+    const focusedLatest = async () => {
+      state = { ...state, turns: [turn({ output: { reply: "Dobrý den." } })] };
+      const windowFocus = vi.spyOn(document, "hasFocus").mockReturnValue(true);
+      render(pane());
+      const log = await screen.findByRole("log");
+      let top = 100;
+      Object.defineProperty(log, "scrollHeight", { configurable: true, get: () => 1000 });
+      Object.defineProperty(log, "clientHeight", { configurable: true, get: () => 200 });
+      Object.defineProperty(log, "scrollTop", { configurable: true, get: () => top, set: (v: number) => { top = v; } });
+      fireEvent.scroll(log);
+      const latest = await screen.findByRole("button", { name: "Na nejnovější" });
+      act(() => latest.focus());
+      const toBottom = () => { top = 790; fireEvent.scroll(log); };
+      return { log, latest, windowFocus, toBottom, top: () => top };
+    };
+    const shown = () => screen.queryByRole("button", { name: "Na nejnovější" });
+
+    it("stays while it has the focus, and gives the focus to the log once it has jumped", async () => {
+      const { log, latest, toBottom, top } = await focusedLatest();
+      toBottom(); // the previous Tab's scroll lands at the bottom after the button took the focus
+      expect(shown()).toBe(latest);
+      expect(document.activeElement).toBe(latest);
+      fireEvent.click(latest);
+      expect(shown()).toBeNull();
+      expect(document.activeElement).toBe(log);
+      expect(top()).toBe(1000);
+    });
+
+    it("stays when another window takes the focus, for the keyboard's return", async () => {
+      const { latest, windowFocus, toBottom } = await focusedLatest();
+      windowFocus.mockReturnValue(false);
+      fireEvent.blur(latest);
+      toBottom();
+      expect(shown()).toBe(latest);
+    });
+
+    it("goes at the next scroll once the focus left it without the keyboard (the pane hidden)", async () => {
+      const { log, windowFocus, toBottom } = await focusedLatest();
+      windowFocus.mockReturnValue(false); // the blur is not counted, as when the pane is hidden
+      act(() => log.focus());
+      windowFocus.mockReturnValue(true);
+      toBottom();
+      expect(shown()).toBeNull();
+    });
   });
 });

@@ -107,7 +107,7 @@ try {
     const composer = page.getByLabel("Napište Vedoucímu výzkumu");
     await Promise.race([hatch.waitFor({ timeout: 20000 }), composer.and(page.locator(":enabled")).waitFor({ timeout: 20000 })]).catch(() => {});
     if (await hatch.isVisible()) await hatch.click();
-    await page.waitForFunction(() => !document.querySelector("textarea[aria-label='Napište Vedoucímu výzkumu']")?.disabled, null, { timeout: 30000 });
+    await page.getByLabel("Napište Vedoucímu výzkumu").and(page.locator(":enabled")).waitFor({ state: "attached", timeout: 30000 });
 
     // The scripted Lead edits the first question and prepares the questionnaire's optimisation.
     const before = await jobs();
@@ -182,7 +182,7 @@ try {
   await page.goto(base + stagePath("questionnaire"));
   await page.locator("[data-workbench]").waitFor({ timeout: 30000 });
   const composer = page.getByLabel("Napište Vedoucímu výzkumu");
-  await page.waitForFunction(() => !document.querySelector("textarea[aria-label='Napište Vedoucímu výzkumu']")?.disabled, null, { timeout: 30000 });
+  await page.getByLabel("Napište Vedoucímu výzkumu").and(page.locator(":enabled")).waitFor({ state: "attached", timeout: 30000 });
   const cardsBefore = await page.locator(".conv .dec").count();
   await composer.fill("Navrhni úpravy dotazníku ještě jednou.");
   await composer.press("Enter");
