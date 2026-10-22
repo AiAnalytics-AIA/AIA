@@ -173,17 +173,19 @@ conditional question fails readiness exactly as today.
   `{"question_id": <stored id>, "options": [...]}`, compiled into `SpecQuestion.condition`
   (`SpecCondition`: the compiled id, the answers), absent from the fingerprint when there is none.
   `read_condition` also reads the two expressions the 18.6.6 interface wrote that are exactly a
-  choice (`Q1 == 'Nikdy'`, `Q1 in [...]`); anything else stays as written and compile refuses it
-  by name: `condition_unstructured` (also anything past 2,000 characters or the parser's depth,
+  choice (`Q1 == 'Nikdy'`, `Q1 in [...]`); anything else stays as written and is refused by
+  name: `condition_unstructured` (also anything past 2,000 characters or the parser's depth,
   and literals joined by juxtaposition), `condition_unknown_question`,
   `condition_forward_reference` (a later question or itself; with only earlier references a cycle
   cannot form), `condition_ambiguous_question` (two questions share the id, never bound to the
   first), `condition_not_choice`, `condition_unknown_option`. An 18.6.6 expression names a
   question as the unit resolved it: exactly, else case-insensitively by stored, then compiled id.
   A condition on an earlier question compile refused adds nothing to that question's problem.
-  `has_filter` is held equal to a declared condition. A valid condition still fails
-  `conditional_questions`; an unreadable or unchecked one now stops compile (by name) where it
-  used to reach readiness as one FAIL. Test: `test_research_conditions.py`.
+  A refused condition does not stop compile (the PM, 2026-10-22: Kontrola keeps every other
+  check): the question carries `condition_problem` (its code and message, out of the fingerprint
+  when none), and readiness fails it by name as `condition:<question id>`. `has_filter` is held
+  equal to a declared condition, read or refused. A valid condition still fails
+  `conditional_questions`. Test: `test_research_conditions.py`.
 
 **WCE11, amended (G56, X11).** The chunk states who performs a structural auto-apply (the researcher's browser session, or a named server path under the person's standing authority, coordinated with G42), where the per-stage choice lives (Můj Vedoucí or the artifact header), and the rule once fieldwork exists (a structural auto-apply is refused or announced in the conversation, never applied silently). Today an automatic accept is an act of the signed-in browser after it sees a turn finish, and `decide_edits` needs the caller's `APPROVE_GATE` and own completed turn, so a continuation turn (LO6) finishing with no browser open applies nothing. Test: with a stage on and no browser open, a continuation turn's structural edit stays pending; after fieldwork exists it is not applied silently.
 

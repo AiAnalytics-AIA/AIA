@@ -150,7 +150,7 @@ def test_a_question_measured_only_by_items_the_run_will_not_answer_names_why() -
             "text": "Kolik byste zaplatil?",
             "typ": "skala",
             "skala": [1, 5],
-            "filtr": {"question_id": "q2", "options": ["Nic"]},
+            "filtr": {"q": "q1"},
             "research_questions": [RQS[2]],
         }
     )

@@ -1,9 +1,10 @@
 """A question's display condition in the design (working-copy-edit-ops WCE13 (a)).
 
 A condition names an earlier choice question and the answers that lead to the question. The
-compiler reads it into the specification or refuses it by name; it never guesses one from text it
+compiler reads it into the specification or names why it refuses it, at the question, and readiness
+fails that by name while every other check is still read; it never guesses a condition from text it
 cannot read. Until fieldwork routes by it (run-qc-and-checkpoint RQC11), readiness still refuses a
-conditional question, valid or not.
+valid one too (conditional_questions).
 """
 
 from __future__ import annotations
@@ -47,9 +48,22 @@ def _q3(filtr: Any) -> dict[str, Any]:
 
 
 def _codes(content: dict[str, Any]) -> list[str]:
+    """The conditions refused, by code: the design still compiles, so every other check is read,
+    and readiness fails each refusal by name at its question."""
     spec, problems = compile_design(content)
-    assert spec is None
-    return [p.code for p in problems]
+    assert problems == () and spec is not None
+    refused = [q for q in spec.questions if q.condition_problem is not None]
+    checks = {c.id: c for c in assess_readiness(spec, pair_n_min=AUDIT_PROVISIONAL_N_MIN).checks}
+    assert checks["questionnaire"].status is CheckStatus.PASS, "the rest of Kontrola is still read"
+    for q in refused:
+        assert q.has_filter and q.condition is None
+        failed = checks[f"condition:{q.id}"]
+        assert failed.status is CheckStatus.FAIL and failed.message.startswith(f"{q.id}: ")
+    # A refused condition is no valid one: it is not counted under conditional_questions.
+    assert "conditional_questions" not in checks or all(
+        q.id not in checks["conditional_questions"].message for q in refused
+    )
+    return [q.condition_problem.code for q in refused if q.condition_problem is not None]
 
 
 def test_a_condition_on_an_earlier_choice_compiles_and_still_waits_for_routing() -> None:
@@ -138,7 +152,8 @@ def test_a_condition_on_a_question_compile_refused_says_nothing_more() -> None:
     """The earlier question's own problem stands; its dependant is not a forward reference."""
     content = _design(_q3({"question_id": "Q1", "options": ["Nikdy"]}))
     content["sections"][0]["questions"][0]["kategorie"] = ["Denně"]
-    assert _codes(content) == ["too_few_categories"]
+    spec, problems = compile_design(content)
+    assert spec is None and [p.code for p in problems] == ["too_few_categories"]
 
 
 def test_a_condition_naming_two_questions_is_refused_never_bound_to_the_first() -> None:
@@ -155,6 +170,10 @@ def test_a_specification_cannot_say_a_question_is_conditional_without_its_condit
         type(q3).model_validate({**q3.model_dump(), "condition": None})
     with pytest.raises(ValueError, match="has_filter"):
         type(q3).model_validate({**q3.model_dump(), "has_filter": False})
+    # Read and refused at once is no state compile produces.
+    problem = {"code": "condition_unknown_option", "where": "q3", "message": "q3: …"}
+    with pytest.raises(ValueError, match="has_filter"):
+        type(q3).model_validate({**q3.model_dump(), "condition_problem": problem})
 
 
 @pytest.mark.parametrize("empty", [None, "", "   "])
@@ -177,9 +196,14 @@ def test_a_condition_is_in_the_fingerprint_only_when_declared(
     plain, _ = compile_design(_design())
     assert plain is not None
     plain.fingerprint()
-    assert all("condition" not in q for q in hashed[-1]["questions"])
+    assert all(
+        "condition" not in q and "condition_problem" not in q for q in hashed[-1]["questions"]
+    )
     never, _ = compile_design(_design(_q3({"question_id": "Q1", "options": ["Nikdy"]})))
     weekly, _ = compile_design(_design(_q3({"question_id": "Q1", "options": ["Týdně"]})))
     unconditional, _ = compile_design(_design(_q3(None)))
     assert never is not None and weekly is not None and unconditional is not None
-    assert len({never.fingerprint(), weekly.fingerprint(), unconditional.fingerprint()}) == 3
+    unread, _ = compile_design(_design(_q3("Q1 != 'Nikdy'")))
+    assert unread is not None
+    prints = {p.fingerprint() for p in (never, weekly, unconditional, unread)}
+    assert len(prints) == 4

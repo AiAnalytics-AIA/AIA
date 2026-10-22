@@ -217,9 +217,9 @@ export function removeQuestion(p: ResearchProject, si: number, qi: number): Rese
 
 /**
  * A question's display condition (`filtr`): who is asked it. AIA cannot yet ask a question only of
- * those it is meant for, so the run refuses one: compile refuses a condition it cannot read or
- * check (domain/research_design.py read_condition, condition_*), readiness a valid one
- * (conditional_questions); null when the question has none. A condition of only whitespace, or
+ * those it is meant for, so the run refuses one: readiness fails a condition compile cannot read
+ * or check by name at its question (domain/research_design.py read_condition, condition:<id>), and
+ * a valid one too (conditional_questions); null when the question has none. A condition of only whitespace, or
  * an empty one, is none, as the server reads it. Shown here as stored, never interpreted.
  */
 export function questionCondition(q: Question): string | null {

@@ -122,18 +122,12 @@ def test_a_conditional_question_and_a_familiarity_set_cannot_be_asked() -> None:
                 "type": "questions",
                 "questions": [
                     {
-                        "id": "q0",
-                        "text": "Pijete kávu?",
-                        "typ": "vyber",
-                        "kategorie": ["Ano", "Ne"],
-                    },
-                    {
                         "id": "q1",
                         "text": "Jak často pijete kávu?",
                         "typ": "skala",
                         "skala": [1, 5],
-                        "filtr": {"question_id": "q0", "options": ["Ano"]},
-                    },
+                        "filtr": "q0 == Ano",
+                    }
                 ],
             },
             {**DESIGN["sections"][1], "familiarity_required": True},
@@ -141,7 +135,7 @@ def test_a_conditional_question_and_a_familiarity_set_cannot_be_asked() -> None:
     }
     spec = _spec(200, design)
     forecast = forecast_support(spec, support=AIA_SUPPORT_V1, persona_source=ROSTER)
-    items = question_outlook(spec, forecast)[1:]  # q0, which everyone answers, aside
+    items = question_outlook(spec, forecast)
     assert items[0].reasons[0] is OutlookReason.CONDITIONAL
     assert all(o.verdict is Verdict.UNANSWERABLE for o in items)
     assert all(o.reasons[0] is OutlookReason.FAMILIARITY for o in items[1:])

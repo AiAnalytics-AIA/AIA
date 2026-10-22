@@ -264,6 +264,14 @@ def _labels_fit(labels: tuple[str, ...], scale: tuple[int, int] | None, where: s
         )
 
 
+class CompileProblem(_Frozen):
+    """Why part of the design cannot be compiled. ``where`` names the section/question."""
+
+    code: str
+    where: str
+    message: str
+
+
 class SpecCondition(_Frozen):
     """Who a question is for (working-copy-edit-ops WCE13): the respondents whose answer to an
     earlier choice question is one of ``options``. ``question_id`` is that question's compiled
@@ -288,6 +296,9 @@ class SpecQuestion(_Frozen):
     #: none, and then absent from the fingerprint. Fieldwork does not route by it yet (RQC11),
     #: so a question with one still fails readiness (``conditional_questions``).
     condition: SpecCondition | None = None
+    #: Why the declared condition was refused (``condition_*``), which readiness fails by name;
+    #: ``None`` when it was read or none was declared, and then absent from the fingerprint.
+    condition_problem: CompileProblem | None = None
     #: The design declared this scale question a Sociomap rating item (``sociomap_rating``):
     #: it enters every person's min-max (audit F2) beside the tracked sets' items. Never
     #: inferred from the type: a numeric question is a descriptor unless declared.
@@ -311,8 +322,11 @@ class SpecQuestion(_Frozen):
             raise ValueError(f"{self.id}: only a scale question can be a rating item")
         if self.scale_labels and self.typ != "skala":
             raise ValueError(f"{self.id}: only a scale question carries scale labels")
-        if self.has_filter != (self.condition is not None):
-            raise ValueError(f"{self.id}: has_filter says whether a condition is declared")
+        declared = self.condition is not None or self.condition_problem is not None
+        if self.has_filter != declared or (self.condition and self.condition_problem):
+            raise ValueError(
+                f"{self.id}: has_filter says whether a condition is declared, read or refused"
+            )
         _labels_fit(self.scale_labels, self.scale, self.id)
         return self
 
@@ -447,6 +461,8 @@ class ResearchSpecification(_Frozen):
         for question in body["questions"]:
             if question["condition"] is None:
                 del question["condition"]
+            if question["condition_problem"] is None:
+                del question["condition_problem"]
             if not question["rating_item"]:
                 del question["rating_item"]
             if not question["research_questions"]:
@@ -471,14 +487,6 @@ class ResearchSpecification(_Frozen):
 
     def battery_questions(self) -> tuple[str, ...]:
         return tuple(b.question_id(o) for b in self.batteries for o in b.objects)
-
-
-class CompileProblem(_Frozen):
-    """Why part of the design cannot be compiled. ``where`` names the section/question."""
-
-    code: str
-    where: str
-    message: str
 
 
 class CheckStatus(StrEnum):
@@ -817,18 +825,17 @@ def _condition(
     earlier: Sequence[_Earlier],
     refused: frozenset[str],
     later: frozenset[str],
-    problems: list[CompileProblem],
-) -> SpecCondition | Literal[False] | None:
-    """A question's condition checked against the questions before it: ``None`` for none,
-    ``False`` when it is refused, else the condition. ``refused`` are earlier questions the
-    compiler refused (their own problem stands; nothing more is said of a condition on one);
-    ``later`` the stored ids from this question on."""
+) -> SpecCondition | CompileProblem | None:
+    """A question's condition checked against the questions before it: ``None`` for none, the
+    condition, or why it is refused, which readiness fails by name (the question still compiles,
+    so every other check is still read). ``refused`` are earlier questions the compiler refused:
+    their own problem stops the compile, so nothing is said of a condition on one. ``later`` the
+    stored ids from this question on."""
     if raw is None or (isinstance(raw, str) and not raw.strip()):
         return None
 
-    def refuse(code: str, message: str) -> Literal[False]:
-        problems.append(CompileProblem(code=code, where=qid, message=f"{qid}: {message}"))
-        return False
+    def refuse(code: str, message: str) -> CompileProblem:
+        return CompileProblem(code=code, where=qid, message=f"{qid}: {message}")
 
     read = read_condition(raw)
     if read is None:
@@ -841,7 +848,7 @@ def _condition(
     named = _named(ref, earlier, expression=expression)
     if not named:
         if ref in refused:
-            return False
+            return None
         if ref in later:
             return refuse(
                 "condition_forward_reference",
@@ -955,11 +962,7 @@ def _question(
     links = _links(raw, qid, problems)
     if links is None:
         return None
-    condition = _condition(
-        raw.get("filtr"), qid, earlier=earlier, refused=refused, later=later, problems=problems
-    )
-    if condition is False:
-        return None
+    condition = _condition(raw.get("filtr"), qid, earlier=earlier, refused=refused, later=later)
     return SpecQuestion(
         id=qid,
         section_id=section_id,
@@ -969,7 +972,8 @@ def _question(
         scale=scale,
         allow_dont_know=allow_dont_know,
         has_filter=condition is not None,
-        condition=condition,
+        condition=condition if isinstance(condition, SpecCondition) else None,
+        condition_problem=condition if isinstance(condition, CompileProblem) else None,
         rating_item=rating_item,
         research_questions=links,
         scale_labels=scale_labels,
@@ -1398,7 +1402,11 @@ def assess_readiness(
         f"({counted(asked, 'položka', 'položky', 'položek')} k zodpovězení).",
     )
 
-    filtered = [q.id for q in spec.questions if q.has_filter]
+    # A condition compile could not read or check, by name at its question (WCE13).
+    for q in spec.questions:
+        if q.condition_problem is not None:
+            check(f"condition:{q.id}", CheckStatus.FAIL, q.condition_problem.message)
+    filtered = [q.id for q in spec.questions if q.condition is not None]
     if filtered:
         check(
             "conditional_questions",
@@ -1407,7 +1415,8 @@ def assess_readiness(
             + ", ".join(filtered)
             + ". V Dotazníku u nich podmínku odeberte (otázku pak dostane každý), nebo je smažte.",
         )
-    else:
+    elif not any(q.has_filter for q in spec.questions):
+        # A refused condition is still a condition: its own FAIL above says so.
         check("conditional_questions", CheckStatus.PASS, "Žádná podmíněná otázka.")
 
     familiarity = [b.id for b in spec.batteries if b.familiarity_required]
