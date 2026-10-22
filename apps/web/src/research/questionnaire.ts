@@ -243,7 +243,10 @@ export type ConditionRefusal =
   | "condition_unknown_option";
 
 const DONT_KNOW = "Nevím / neodpovím";
-const collapsed = (x: unknown) => String(x ?? "").replace(/\s+/g, " ").trim();
+// Python's whitespace (`str.isspace`, what `\s` matches in research_design.py `_text`), not
+// JavaScript's: \x1c-\x1f and \x85 are space there, \ufeff is not.
+const PY_SPACE = /[\t\n\v\f\r\x1c-\x1f \x85\xa0\u1680\u2000-\u200a\u2028\u2029\u202f\u205f\u3000]+/g;
+const collapsed = (x: unknown) => String(x ?? "").replace(PY_SPACE, " ").replace(/^ | $/g, "");
 
 /**
  * Why `condition` cannot stand on the question stored as `questionId`, as the server's word, or
@@ -256,15 +259,17 @@ export function conditionRefusal(p: ResearchProject, questionId: string, conditi
   const order: string[] = [];
   const earlier: { id: string; typ: string; options: string[] }[] = [];
   let at = -1;
-  for (const sec of sections(p)) {
-    if (collapsed(sec.type || "questions") !== "questions") continue;
-    for (const q of sec.questions || []) {
-      const stored = q && typeof q === "object" ? collapsed(q.id) : "";
+  const isObj = (x: unknown): x is Record<string, unknown> => !!x && typeof x === "object" && !Array.isArray(x);
+  for (const sec of (Array.isArray(p.sections) ? p.sections : []) as unknown[]) {
+    if (!isObj(sec) || collapsed(sec.type || "questions") !== "questions") continue;
+    for (const q of Array.isArray(sec.questions) ? sec.questions : []) {
+      const stored = isObj(q) ? collapsed(q.id) : "";
       order.push(stored);
       if (at < 0 && stored === questionId) at = order.length - 1;
-      else if (at < 0 && stored) {
+      else if (at < 0 && isObj(q) && stored) {
         const typ = collapsed(q.typ || "vyber");
-        let options = typ === "vyber" || typ === "multi" ? [...new Set((q.kategorie || q.volby || []).map(collapsed).filter(Boolean))].slice(0, 24) : [];
+        const cats = q.kategorie || q.volby;
+        let options = typ === "vyber" || typ === "multi" ? [...new Set((Array.isArray(cats) ? cats : []).map(collapsed).filter(Boolean))].slice(0, 24) : [];
         if (options.length && q.povolit_nevim) options = [...options, DONT_KNOW];
         earlier.push({ id: stored, typ, options });
       }

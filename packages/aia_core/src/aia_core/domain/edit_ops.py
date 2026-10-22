@@ -501,7 +501,8 @@ def apply_edit(
     new_id: Callable[[IdKind], str] = new_item_id,
     sample_size: SampleSizeLimits | None = None,
 ) -> tuple[dict[str, Any], dict[str, Any] | None] | Refused:
-    """One accepted Lead edit applied to the working content and analysis, by the web's rules.
+    """One accepted edit (the Lead's, or a person's ``route_set``) applied to the working content
+    and analysis, by the web's rules.
 
     Returns the new content and analysis (copies; the inputs are not changed), or why the edit
     cannot be applied. A brief edit (``goal``, ``decision_use``, any ``briefing.*``) clears
@@ -647,13 +648,15 @@ def apply_edit(
 
 
 def _route_refusal(content: Mapping[str, Any], edit: RouteSet) -> str | None:
-    """Why ``edit`` cannot stand on ``content``: the question must be a stored one, and a
-    condition one the compiler takes (``research_design.condition_refusal``)."""
-    if edit.question_id not in _question_ids(content)[1]:
-        return "unknown_question"
-    if edit.condition is None:
-        return None
-    return condition_refusal(content, edit.question_id, edit.condition.model_dump())
+    """Why ``edit`` cannot stand on ``content``, in the web's order (``lib/lead.ts``
+    ``applyEdit``): the condition by the compiler's rule (``research_design.condition_refusal``),
+    then the question must be one of a questions section, where it is written. A pre-check:
+    compile judges the stored condition again and readiness fails what it refuses."""
+    condition = None if edit.condition is None else edit.condition.model_dump()
+    reason = condition_refusal(content, edit.question_id, condition)
+    if reason is not None:
+        return reason
+    return None if edit.question_id in _question_ids(content)[1] else "unknown_question"
 
 
 def sample_size_reason(value: int, limits: SampleSizeLimits | None) -> str | None:
@@ -669,7 +672,8 @@ def sample_size_reason(value: int, limits: SampleSizeLimits | None) -> str | Non
 
 
 class OpName(StrEnum):
-    """Every operation the working copy takes: today's eight, then the declared rest."""
+    """Every operation the working copy takes: the Lead's eight, then the declared rest
+    (``route_set`` among them is applied too, a person's alone; WCE13)."""
 
     # Applied today: the Lead proposes them, a person accepts them (ADR 0026).
     SET_TEXT = "set_text"
