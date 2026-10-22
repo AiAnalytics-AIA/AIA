@@ -33,7 +33,7 @@ owner's decision. Chunk 11 was closed by #709. Chunks 9, 10, 12, 13 and 15-18 ar
 
 ## What holds
 
-Each claim below is anchored at `bfe6d15`.
+Each claim below carries `file:line @ bfe6d15`, and a test name where one pins it.
 
 - **Cross-organization and cross-client isolation holds on every route.** Every id from a
   path, a query or a body resolves inside the `ScopeResolver` context. The study comes from
@@ -47,23 +47,36 @@ Each claim below is anchored at `bfe6d15`.
   `token_use`, the audience and `exp`/`nbf`. `validate_for_production` refuses any provider but
   Cognito in every deployed environment (`config.py:359-438`). The development provider
   refuses construction outside local and test.
-- **The session cookie** is HttpOnly, SameSite=Lax, and Secure when deployed. Only the gate
-  reads it, and the gate refuses every method except GET and HEAD. The API is bearer-only, so
-  there is no CSRF surface.
+- **The session cookie** is HttpOnly, SameSite=Lax, and Secure when deployed
+  (`apps/api/src/aia_api/routers/session.py:79-81`;
+  `test_every_active_member_gets_an_httponly_lax_session_cookie`). Only the gate reads it, and
+  the gate refuses every method except GET and HEAD (`session.py:49,154`;
+  `test_a_page_takes_no_writes_whoever_asks`). The API is bearer-only, so there is no CSRF
+  surface.
 - **Egress.** `check_url` and `check_address` refuse every non-global address, including the
-  IPv4-mapped forms. Every redirect hop is checked again. A connection goes to the checked IP
-  with SNI and `assert_hostname`, so DNS rebinding is closed. No proxy is read from the
-  environment, and bodies are capped while they stream.
-- **Storage keys** are built by the server from ids and SHA-256, never from a filename.
-  Download headers are sanitised and served as `application/octet-stream` attachments with
-  `nosniff`.
+  IPv4-mapped forms (`packages/aia_core/src/aia_core/domain/deep_research/web.py:150,163`;
+  `test_private_link_local_and_multicast_addresses_are_refused`). Every redirect hop is checked
+  again (`test_every_redirect_hop_is_checked_and_the_metadata_service_is_never_reached`). A
+  connection goes to the checked IP with SNI and `assert_hostname`, so DNS rebinding is closed
+  (`infrastructure/web_retrieval_live.py:115-118,137-140`;
+  `test_a_host_that_resolves_to_a_private_address_is_refused_before_any_request`). No proxy is
+  read from the environment, and bodies are capped while they stream.
+- **Storage keys** are built by the server from ids and SHA-256, never from a filename, and
+  checked before use (`infrastructure/storage.py:79`, `_validate_key`; `:313`, the filesystem
+  root check). Download headers are sanitised and served as `application/octet-stream`
+  attachments with `nosniff` (`apps/api/src/aia_api/routers/workspace.py:2283-2296`).
 - **Web client.** The only `dangerouslySetInnerHTML` is Temml with `trust: false`, over the
-  catalogue's own LaTeX. The browser's error reporter strips the OAuth `code`.
-- **Develop host.** Only Caddy's ports 80 and 443 are published. App containers are
-  `read_only` with `no-new-privileges` and run as non-root users.
-- **Dependencies.** `npm audit-gate` blocks nothing (one allowlisted dev-only `braces`
-  advisory). pip-audit over the image's extras reports nothing; see S8 for the gap in what it
-  read.
+  catalogue's own LaTeX (`apps/web/src/components/aia/settings/MethodologyFormula.tsx:29`;
+  `apps/web/src/lib/methodology.ts:91`). The browser's error reporter strips every URL's query
+  and fragment, the OAuth `code` with them (`apps/web/src/lib/error-tracking.ts:29,95,131-133`).
+- **Develop host.** Only Caddy's ports 80 and 443 are published
+  (`deploy/develop/docker-compose.yml:59-62`; `:347`, PostgreSQL deliberately without one). App
+  containers are `read_only` with `no-new-privileges` (`docker-compose.yml:125,127`,
+  `:202,204`, `:331,333`) and run as non-root users (`deploy/docker/python.Dockerfile:109,152`,
+  `USER aia`; `apps/web/Dockerfile:50`, `USER node`).
+- **Dependencies.** `npm audit-gate` blocks nothing (`.github/workflows/ci.yml:1002`; one
+  dev-only `braces` advisory, allowlisted in `apps/web/audit-allowlist.json`). pip-audit over
+  the image's extras reports nothing (`ci.yml:988`); see S8 for the gap in what it read.
 
 ## Findings
 
