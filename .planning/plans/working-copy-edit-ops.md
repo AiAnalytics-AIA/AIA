@@ -99,6 +99,11 @@ the agent-job and Design Research accepts; **2f** the 18.6.6 migration, then `sa
   the web never writes `sociomap_rating` or `context_objects` (`research/readers.ts` reads them).
   Tests: `test_workspace_writes_logged.py`, `test_design_reuse.py::test_a_reuse_is_logged_…`,
   `test_client_api.py::test_a_put_is_logged_as_the_persons_and_cannot_change_a_declared_…`.
+  One existing test met the lock: `test_sociomap_acceptance.py::test_each_changed_input_is_a_new_…
+  [rating_input]` changed a declared rating question's scale in the same study's copy. That write is
+  now refused (`sociomap_input_locked`), which the case asserts; the engine's answer to a changed
+  rating input (a new specification, a new run, the map on the new scale, the first run untouched)
+  is read in a sibling study, where nothing is locked, until WCE8's recorded unlock exists.
 
 **WCE3a. The web store on the server vocabulary, Brief and Design stages**  
 33 `store.update` sites in 9 files and about 1,900 lines of TypeScript with 18.6.6 parity tests are moved stage by stage; the parity tests stay green at every step.
