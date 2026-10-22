@@ -1278,8 +1278,9 @@ export const research = {
   /** The readiness limits in force: the valid sample size the Dimenze stage refuses outside of. */
   limits: (studyId: string) => request<ResearchLimits>("GET", `${studyPath(studyId)}/research/limits`),
   /** `personaSource` assesses the design under that source of respondents; omitted, the deployment's default. */
-  readiness: (studyId: string, revisionId: string, personaSource?: string) =>
-    request<Readiness>("GET", `${studyPath(studyId)}/research/readiness${query({ design_revision_id: revisionId, persona_source: personaSource })}`),
+  /** `populationVersionId`: the client's child the run is started over; readiness then draws no panel sample (RQC6b). */
+  readiness: (studyId: string, revisionId: string, personaSource?: string, populationVersionId?: string) =>
+    request<Readiness>("GET", `${studyPath(studyId)}/research/readiness${query({ design_revision_id: revisionId, persona_source: personaSource, population_version_id: populationVersionId })}`),
   /** Readiness on a working revision, as a submit of it would read it; nothing is written (WCE7a). */
   workingReadiness: (studyId: string, workingRevision: number, personaSource?: string) =>
     request<WorkingReadiness>("GET", `${studyPath(studyId)}/research/readiness/working${query({ working_revision: String(workingRevision), persona_source: personaSource })}`),

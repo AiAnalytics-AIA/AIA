@@ -2199,6 +2199,8 @@ export const cs = {
         blockRemovedBare: "Blok smazán i s otázkami",
         setRemoved: "Sada „{name}“ smazána",
         setRemovedBare: "Sada smazána",
+        optionRemoved: "Možnost „{name}“ odebrána",
+        optionRemovedBare: "Možnost odebrána",
       },
       setTag: "Sledovaná objektová sada · vlastní mapa",
       setTitle: "Název sady",
@@ -2453,6 +2455,7 @@ export const cs = {
       failedTitle: "AI krok se nedokončil",
       requestFailedTitle: "Požadavek se nepodařilo uložit",
       next: "Další · kontrola",
+      nextStage: "Další · {stage}",
       // Studio v3 (PersonaStep).
       asideLabel: "Výběr dimenzí a vzorek",
       chosenTitle: "Vybrané dimenze",
