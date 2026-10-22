@@ -14,6 +14,7 @@ import { type ReactNode, useCallback, useContext, useEffect, useRef, useState } 
 import { t, tv } from "@/i18n/t";
 import { blockedModules } from "@/lib/analysis-blocked";
 import { findingAnchor } from "@/lib/analysis-coverage";
+import { stageOf } from "@/lib/workbench-stages";
 import { analysisTarget, chipKey, claimMarks, type AnalysisModuleKind, type ChipPlace } from "@/lib/artifacts/analysis";
 import {
   ApiError,
@@ -1657,6 +1658,25 @@ function AnalysisResults({ run, spec, progressHref }: { run: ResearchRun; spec: 
     return () => { live = false; };
   }, [frame.studyId, run.run_id, states]);
   const shownValue = loaded.state === "ready" ? loaded.value : null;
+  // Opened as Analýza, the stage starts at its analysis rather than at the run's summary and report card
+  // above the tabs (~1,800 px, ANL8 audit F2): once its read settles (an error is shown here too), unless
+  // the person scrolled meanwhile, and on every later move to Analýza within the page.
+  const cardRef = useRef<HTMLDivElement>(null);
+  const moved = useRef(false);
+  const settled = loaded.state !== "loading";
+  useEffect(() => {
+    const onAnalysis = () => stageOf("results", window.location.hash) === "analysis";
+    const show = () => requestAnimationFrame(() => cardRef.current?.scrollIntoView?.({ block: "start" }));
+    const onScroll = () => { moved.current = true; };
+    if (!settled) {
+      document.addEventListener("scroll", onScroll, { capture: true, passive: true });
+      return () => document.removeEventListener("scroll", onScroll, { capture: true });
+    }
+    if (onAnalysis() && !moved.current) show();
+    const onHash = () => { if (onAnalysis()) show(); };
+    window.addEventListener("hashchange", onHash);
+    return () => window.removeEventListener("hashchange", onHash);
+  }, [settled]);
   // The inspector reads the analysis this page shows, never a run it fetched itself (ANL3).
   useEffect(() => {
     if (!shownValue) return;
@@ -1679,6 +1699,7 @@ function AnalysisResults({ run, spec, progressHref }: { run: ResearchRun; spec: 
   });
   const withoutFindings = ANALYSIS_ORDER.filter((id) => analysis?.modules[id]?.outcome === "BLOCKED").map((id) => stepLabel(`analysis_${id}`));
   return (
+    <div ref={cardRef} data-analysis-card className="scroll-mt-2">
     <Card title={t("research.exec.results.analysis")} tone="notice">
       <p role="note" className="mb-3 text-sm font-semibold">
         {loaded.state === "ready" && resultOriginKind(loaded.value)
@@ -1732,7 +1753,7 @@ function AnalysisResults({ run, spec, progressHref }: { run: ResearchRun; spec: 
               {ANALYSIS_ORDER.map((id) => {
                 const outcome = analysis.modules[id];
                 const label = outcome?.outcome === "COMPLETED" ? "Dokončeno" : outcome?.outcome === "BLOCKED" ? t("research.exec.stepStatus.ANALYSIS_BLOCKED") : "Čeká";
-                return <button key={id} type="button" data-aia={id === "research_questions" ? undefined : analysisTarget({ kind: "module", module: id }) ?? undefined} onClick={() => setSelectedModule(id)} aria-current={selectedModule === id ? "true" : undefined}
+                return <button key={id} type="button" data-aia={id === "research_questions" ? undefined : analysisTarget({ kind: "module", module: id }) ?? undefined} data-outcome={outcome?.outcome ?? "PENDING"} onClick={() => setSelectedModule(id)} aria-current={selectedModule === id ? "true" : undefined}
                   className={`flex items-center justify-between gap-2 rounded-control px-3 py-2 text-left text-sm focus-visible:outline-2 focus-visible:outline-focus-ring ${selectedModule === id ? "bg-signal-wash font-semibold text-signal" : "hover:bg-surface-sunken"}`}>
                   <span>{stepLabel(`analysis_${id}`)}</span><span className="shrink-0 text-xs font-normal text-ink-muted">{label}</span>
                 </button>;
@@ -1757,6 +1778,7 @@ function AnalysisResults({ run, spec, progressHref }: { run: ResearchRun; spec: 
         </div>
       ) : null}
     </Card>
+    </div>
   );
 }
 

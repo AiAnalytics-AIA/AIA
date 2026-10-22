@@ -3,7 +3,7 @@ status: in-progress
 chunks:
   - "[ ] RD0. Build the client deliverable's gate the owner set (MVPQ-09): no \"Interní dokument\" source, no drill-down content, no number without an admitted claim"
   - "[ ] RD1. The client report PDF: extend `RENDERABLE_REPORTS`, the PDF is approved with its DOCX"
-  - "[ ] RD2. A reader for the approval ledger: "approved by whom, when" for a report and a snapshot"
+  - "[x] RD2. A reader for the approval ledger: "approved by whom, when" for a report and a snapshot"
   - "[ ] RD3. The Approve and Export panel: what is approved and by whom; exports after approval; the slot in the Report artifact"
   - "[ ] RD4. The map snapshot: an approvable object rendered server-side from the stored map and camera parameters, never browser bytes; one ledger shape"
   - "[ ] RD5. Report draft revisions: a separate draft counter, tracked changes per paragraph; a report edit never reopens fieldwork"
@@ -59,6 +59,20 @@ The client report is DOCX only today (`report_variants.py:78`).
 
 **RD2. A reader for the approval ledger: "approved by whom, when" for a report and a snapshot**  
 
+
+*RD2, done (`feature/report-approval-reader`):* `ArtifactRepository.approval_record` reads an artifact's newest
+`APPROVED` ledger row within its scope (and `approval_of` reads it through that one query): when, the approver's
+display name (`None` without one or for a person the store no longer knows; never their e-mail, which a report's
+readers are not shown), the producer, whether it was self-approved and under which self-approval rule, and the note
+(`test_an_approval_names_who_approved_and_under_which_rule`,
+`test_an_approver_the_store_no_longer_knows_is_named_by_nothing`). The internal report's status, its document, the
+client report's document and the approve route answer it as `approval` beside `review_state` (null for a draft;
+`by_you` for the asker; an approval without its row is 409 `report_review_unrecorded`;
+`test_a_person_approves_a_runs_stored_report_once_and_only_that`,
+`test_the_client_report_is_read_as_its_document_beside_its_docx`). The web says it in words with the server's
+`approved_on` (`lib/artifacts/report.ts` `approvalWords`, report.test.ts "who approved, in words (RD2)") on Zpráva's doc
+bar (ReportDocumentView.test.tsx "who approved it (RD2)"). A map snapshot's approval reads the same once RD4 chooses its
+ledger shape; the with-literature variant's status does not carry it (retired by Q58).
 
 **RD3. The Approve and Export panel: what is approved and by whom; exports after approval; the slot in the Report artifact**  
 S1 hosts the slot (`research-lead-workbench` 21), same wave. Tests: approvals name the exact artifact fingerprint; a stale-version download is refused; both self-approval settings; an unauthorised download is refused. Today drafts download freely and approval follows the download (`research.py:2395-2449`); the panel makes the client export follow approval. Interfaces I12.

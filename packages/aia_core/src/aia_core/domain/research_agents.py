@@ -601,6 +601,13 @@ def knowledge_lineage(entries: list[dict[str, Any]]) -> DataLineage:
     return DataLineage.of(*sorted(datasets)) if datasets else DataLineage.none()
 
 
+class AgentContextTooLarge(ValueError):
+    """The design and knowledge a job would read exceed :data:`CONTEXT_MAX_BYTES`; nothing is
+    started. A ``ValueError``, so a caller that refuses bad agent input refuses this too."""
+
+    reason = "agent_context_too_large"
+
+
 def context_snapshot(content: dict[str, Any], knowledge: list[KnowledgeItem]) -> dict[str, Any]:
     """Bounded, deterministic memory selection; never silently truncate the design.
 
@@ -618,7 +625,9 @@ def context_snapshot(content: dict[str, Any], knowledge: list[KnowledgeItem]) ->
         "harness_version": HARNESS_VERSION,
     }
     if len(canonical_json(snapshot).encode()) > CONTEXT_MAX_BYTES:
-        raise ValueError("Research agent context exceeds 64 KB; reduce attached excerpts or design")
+        raise AgentContextTooLarge(
+            "Research agent context exceeds 64 KB; reduce attached excerpts or design"
+        )
     return snapshot
 
 

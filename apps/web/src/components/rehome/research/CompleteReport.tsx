@@ -15,6 +15,7 @@ import { ApiError, deepResearch, type DeepResearchRun, type ReportVariant, type 
 import { saveBlob } from "@/lib/download";
 import { resultOriginKind, runOriginKinds, type OriginKind } from "@/lib/research-execution";
 import {
+  approvalQuestion,
   currentVariant,
   czechDate,
   downloadMismatch,
@@ -30,7 +31,7 @@ import {
   variantPending,
   type VersionReview,
 } from "@/lib/report-variant";
-import { Button, Select } from "../ui";
+import { type Ask, AskDialog, Button, Select } from "../ui";
 import { Icon } from "../icons";
 import { canReview } from "./frame";
 import { useFrame } from "./frame-hook";
@@ -150,6 +151,7 @@ export function CompleteReport({ run, review = null, onReview }: { run: Research
     stamped: boolean | null;
   } | null>(null);
   const [busy, setBusy] = useState(false);
+  const [ask, setAsk] = useState<Ask | null>(null);
   const [error, setError] = useState<string | null>(null);
   const reportStep = run.steps.find((s) => s.kind === "research_report");
   // The run's own report, read again while a PDF a person asked for is being made.
@@ -299,18 +301,29 @@ export function CompleteReport({ run, review = null, onReview }: { run: Research
   // Approving freezes the version and asks for its approved PDF (D2): the card reads the report
   // again rather than patch what it showed, so the approved PDF's rendering is what it says.
   // The client report has no status of its own: the approval's answer is the server's.
-  const approve = () => run_(async () => {
-    if (version === "client" && client) {
-      const done = await research.approveReport(frame.studyId, run.run_id, client.artifactId);
+  const approve = (target: string) => run_(async () => {
+    const done = await research.approveReport(frame.studyId, run.run_id, target);
+    if (version === "client") {
       setClient({ artifactId: done.artifact_id, reviewState: done.review_state, approvedOn: done.approved_on ?? null, stamped: done.stamped ?? null });
-    } else if (withReview && review !== null && current?.artifact_id) {
-      await research.approveReport(frame.studyId, run.run_id, current.artifact_id);
-      setVariant(await deepResearch.contextReport(frame.studyId, run.run_id, review));
-    } else if (report?.artifact_id) {
-      await research.approveReport(frame.studyId, run.run_id, report.artifact_id);
-      setStatus(await research.report(frame.studyId, run.run_id));
+      return;
     }
+    if (withReview && review !== null) setVariant(await deepResearch.contextReport(frame.studyId, run.run_id, review));
+    else setStatus(await research.report(frame.studyId, run.run_id));
   });
+
+  // Approval is a decision about one stored version: the person is asked about exactly that one
+  // first, by name (B22), never approved on a single click; the id named is the id sent.
+  const askApproval = () => {
+    const target = version === "client" ? client?.artifactId : shown;
+    if (!target) return;
+    const question = approvalQuestion(version === "client" ? "client" : withReview ? "with_review" : "internal", target, { review, pdf: pdfToo });
+    setAsk({
+      kind: "confirm",
+      message: fileLine ? `${question} ${fileLine}` : question,
+      yes: t("research.exec.report.approveAsk.yes"),
+      resolve: (ok) => { if (ok) void approve(target); },
+    });
+  };
 
   // The report's state by the one rule (6e); a report still being read is said to be loading.
   // The variant with a review is its own draft: its state never waits on the run's own report.
@@ -456,7 +469,7 @@ export function CompleteReport({ run, review = null, onReview }: { run: Research
             </Button>
           ) : null}
           {approvable && !approved && mayReview ? (
-            <Button className="!min-h-11 justify-center" disabled={busy} onClick={() => void approve()}>
+            <Button className="!min-h-11 justify-center" disabled={busy} onClick={askApproval}>
               {t(version === "client" ? "research.exec.results.reportApproveClient" : "research.exec.results.reportApprove")}
             </Button>
           ) : null}
@@ -493,6 +506,7 @@ export function CompleteReport({ run, review = null, onReview }: { run: Research
           {error ? <p role="alert" className="text-xs text-status-fault">{error}</p> : null}
         </div>
       </div>
+      <AskDialog ask={ask} onDone={() => setAsk(null)} />
     </section>
   );
 }

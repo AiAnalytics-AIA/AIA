@@ -37,6 +37,18 @@ export type LeadRequest =
   | { kind: "design_research"; why: string }
   | { kind: "interpretation_research"; why: string };
 
+/**
+ * The card a person's typed start shows (LO5), as the request it starts: the server matched the
+ * command, so nothing here reads the message for intent. The instruction after a colon, when the
+ * person gave one, is the card's why. A command this client does not know shows no card.
+ */
+export function commandRequest(t: Pick<LeadTurn, "command" | "text">): LeadRequest | null {
+  const said = t.text?.split(":").slice(1).join(":").trim() || "Spustí se až vaším potvrzením.";
+  if (t.command === "research_run") return { kind: "research_run", why: said };
+  const action = t.command?.startsWith("agent_job:") ? t.command.slice("agent_job:".length) : "";
+  return action ? { kind: "agent_job", action, why: said } : null;
+}
+
 export type LeadSelfUpdate = {
   name?: string | null;
   soul?: string | null;
@@ -86,6 +98,10 @@ export type LeadTurn = {
   self_update_pending?: boolean;
   /** What waits (or waited) for that decision, as the server split it; null when nothing did. */
   self_update_waiting?: SelfUpdateWaiting | null;
+  /** The typed start the server matched in this person's message (lead-orchestration LO5:
+   *  `agent_job:<action>` or `research_run`); its card is the person's own, approved through
+   *  …/request. Absent or null on every other turn, and from an older API. */
+  command?: string | null;
   /** What the turn applied at once to the Lead's own files and notes (a client note, forgetting one). */
   changes?: { name?: boolean; soul?: boolean; user?: boolean; remembered?: string[]; forgotten?: string[] } | null;
 };
@@ -664,10 +680,15 @@ export const LEAD_REASON_WORDS: Readonly<Record<string, string>> = {
   lead_context_too_large: "Studie je pro jednu odpověď příliš velká. Zkuste se zeptat na konkrétní část.",
   lead_busy: "Vedoucí ještě odpovídá na předchozí zprávu.",
   lead_not_hatched: "Nejdřív si vylíhněte vlastního Vedoucího výzkumu.",
+  stale_card: "Studie se od přípravy této karty změnila; úloha se nespustila.",
+  agent_context_too_large: "Studie je pro návrhovou úlohu příliš rozsáhlá (úloha přečte nejvýš 64 KB); nic se nespustilo. Zkraťte přílohy nebo design.",
   budget_exceeded: "Na odpověď nezbývá rozpočet studie. Nastavte ho v Nastavení → Studie a zpráva se odešle sama.",
   reservation_exhausted: "Na odpověď nezbývá rozpočet studie. Nastavte ho v Nastavení → Studie a zpráva se odešle sama.",
   CANCELLED: "Na tuto zprávu Vedoucí neodpověděl zvlášť: přečetl ji s vaší další zprávou.",
 };
+
+/** Asked when a card is approved after the design moved past what its turn read (LO10). */
+export const STALE_CARD_QUESTION = "Od chvíle, kdy Vedoucí kartu připravil, se studie změnila. Spustit úlohu nad studií, jak je teď?";
 
 export function leadReasonWords(code: string | null | undefined): string {
   return code ? withFixer(LEAD_REASON_WORDS[code] ?? `Vedoucí se zastavil (${code}).`, code) : "Vedoucí se zastavil.";

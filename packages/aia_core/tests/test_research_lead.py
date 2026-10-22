@@ -43,6 +43,7 @@ from aia_core.domain.research_lead import (
     frozen_sample_size,
     ground_edits,
     ground_self_update,
+    ground_view,
     is_text_edit,
     layer,
     lead_contract,
@@ -54,6 +55,7 @@ from aia_core.domain.research_lead import (
     question_add_problem,
     readiness_layer,
     split_self_update,
+    target_refusal,
     unreadable_numbers,
     waiting_self_update,
 )
@@ -223,6 +225,54 @@ def test_a_view_command_outside_its_shape_is_refused(view: dict[str, Any]) -> No
 def test_focus_targets_name_an_item_by_its_data_aia_id() -> None:
     for target in ("question:q3", "brief:goal", "plan:research_questions"):
         assert _valid(_output(view=[{"op": "focus", "target": target}])).ok
+
+
+AUDIENCE_COPY: dict[str, Any] = {
+    "audience": {"filters": {"kraj": ["Praha"]}, "builtin_subpanel": ""}
+}
+
+
+@pytest.mark.parametrize(
+    ("target", "reason"),
+    [
+        ("audience:filter:kraj", None),
+        ("audience:definition", None),
+        ("audience:filters", None),
+        ("audience:preview", None),
+        ("audience:subpanel:young_18_29", None),
+        ("question:q3", None),
+        ("audience:filter:vzdelani", "audience_filter_not_stored"),
+        ("audience:subpanel:nobody", "audience_subpanel_unknown"),
+        ("audience:segment", "unknown_target"),
+        ("nonsense:q3", "unknown_target"),
+    ],
+)
+def test_an_audience_target_names_what_the_working_copy_stores(
+    target: str, reason: str | None
+) -> None:
+    """artifact-audience AUD1: the server refuses a filter the copy does not store; no catalogue
+    is read."""
+    assert target_refusal(target, AUDIENCE_COPY) == reason
+
+
+def test_a_focus_on_nothing_the_frozen_copy_shows_is_dropped_and_named() -> None:
+    output = LeadOutput.model_validate(
+        _output(
+            view=[
+                {"op": "open_stage", "stage": "audience"},
+                {"op": "focus", "target": "audience:filter:vzdelani"},
+                {"op": "focus", "target": "audience:filter:kraj"},
+            ]
+        )
+    )
+    grounded, dropped = ground_view(output, AUDIENCE_COPY)
+    assert [op.model_dump() for op in grounded.view] == [
+        {"op": "open_stage", "stage": "audience"},
+        {"op": "focus", "target": "audience:filter:kraj"},
+    ]
+    assert [d.model_dump() for d in dropped] == [
+        {"index": 1, "op": "focus", "reason": "audience_filter_not_stored"}
+    ]
 
 
 def test_bounds_on_lists_reply_and_follow() -> None:
