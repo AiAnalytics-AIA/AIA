@@ -42,6 +42,11 @@ describe("restoreLocked", () => {
     expect(restored.sections[1].questions.map((q) => q.id)).toEqual(["q1", "q2"]);
   });
 
+  it("puts back a removed section that held a rating question, as saved", () => {
+    const edited = edit((p) => { p.sections.splice(1, 1); });
+    expect(doc(restoreLocked(saved, edited)).sections).toEqual(doc(saved).sections);
+  });
+
   it("returns the same copy when nothing locked changed, or nothing is declared", () => {
     const edited = edit((p) => { p.sections[1].questions[1].text = "Kde jinde?"; });
     expect(restoreLocked(saved, edited)).toBe(edited);

@@ -318,7 +318,10 @@ export class ResearchStore {
         } else if (e instanceof ApiError && e.status === 409 && e.code === "sociomap_input_locked") {
           // The locked items go back as AIA holds them; every other change stays and is saved on.
           const project = this.lastSaved ? restoreLocked(this.lastSaved, this.state.project) : this.state.project;
-          this.set({ ...this.state, project, save: { kind: "locked", reverted: project !== this.state.project } });
+          const reverted = project !== this.state.project;
+          this.set({ ...this.state, project, save: { kind: "locked", reverted } });
+          // What is left differs from AIA's copy only in unlocked items: it is saved on its own.
+          if (reverted && !this.timer) this.timer = setTimeout(() => this.autosave(), SAVE_DEBOUNCE_MS);
         } else if (e instanceof ApiError && e.code === "study_closed") {
           // Closed by someone else while this copy was open: a retry can never succeed.
           this.set({ ...this.state, save: { kind: "closed" } });

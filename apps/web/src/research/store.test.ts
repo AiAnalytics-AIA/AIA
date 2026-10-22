@@ -132,11 +132,10 @@ describe("ResearchStore", () => {
     await vi.advanceTimersByTimeAsync(SAVE_DEBOUNCE_MS);
     expect(store.get().save).toEqual({ kind: "locked", reverted: true });
     expect(store.get().project).toMatchObject({ goal: "mine", sections: declared.sections });
-    // The next change saves, with the locked set as AIA holds it.
-    store.update(({ project }) => ({ project: { ...project, title: "Jiný" } }));
+    // The rest saves on its own, with the locked set as AIA holds it: nothing waits on a click.
     await vi.advanceTimersByTimeAsync(SAVE_DEBOUNCE_MS);
     expect(bodies).toHaveLength(2);
-    expect(bodies[1].content).toMatchObject({ goal: "mine", title: "Jiný", sections: declared.sections });
+    expect(bodies[1].content).toMatchObject({ goal: "mine", sections: declared.sections });
     expect(store.get().save).toEqual({ kind: "saved" });
   });
 

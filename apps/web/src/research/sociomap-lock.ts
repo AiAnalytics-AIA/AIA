@@ -21,8 +21,9 @@ export function declaresSociomapInputs(project: ResearchProject): boolean {
 /**
  * `edited` with every input `saved` had locked put back as it was saved: each tracked set
  * (an object_battery section) and each rating question, by id, where it stands now or, when removed,
- * where it stood. `edited` itself (the same object) when nothing was put back, or nothing was locked.
- * An item without an id cannot be found again and is left as it is.
+ * where it stood (with its section, as saved, when the section was removed too). `edited` itself
+ * (the same object) when nothing was put back, or nothing was locked. An item without an id cannot
+ * be found again and is left as it is.
  */
 export function restoreLocked(saved: ResearchProject, edited: ResearchProject): ResearchProject {
   if (!declaresSociomapInputs(saved)) return edited;
@@ -55,7 +56,13 @@ export function restoreLocked(saved: ResearchProject, edited: ResearchProject): 
         sections[where] = { ...holder, questions: list.map((q, i) => (i === index ? question : q)) };
       } else {
         const home = sections.findIndex((s) => isObj(s) && s.id === section.id && Array.isArray(s.questions));
-        if (home < 0) return;
+        if (home < 0) {
+          // Its whole section was removed: the section goes back where it stood, as saved.
+          if (typeof section.id !== "string") return;
+          sections.splice(Math.min(before.indexOf(section), sections.length), 0, section);
+          changed = true;
+          return;
+        }
         const holder = sections[home] as Obj;
         const list = [...(holder.questions as unknown[])];
         list.splice(Math.min(at, list.length), 0, question);
