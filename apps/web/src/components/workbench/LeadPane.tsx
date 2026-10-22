@@ -348,7 +348,8 @@ function Conversation({ turns, jobs, cards, studyId, onOpenJob, busy, name, onFo
               const el = box.current!;
               el.scrollTop = el.scrollHeight;
               atBottom.current = true;
-              // The keyboard's focus goes to the newest message; a pointer's stays where it was (the composer).
+              // A focus on the button goes to the newest message; where a click does not focus a button
+              // (Safari), the focus stays where it was, the composer.
               if (document.activeElement === e.currentTarget) el.focus({ preventScroll: true });
               setAway(false);
             }}><Icon name="down" size={13} />Na nejnovější</button>
