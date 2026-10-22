@@ -381,6 +381,8 @@ describe("the item inspector", () => {
     bench();
     await waitFor(() => expect(document.querySelector("[data-item-inspector]")?.getAttribute("data-item-inspector")).toBe("question:q1"), { timeout: 4000 });
     expect(push).not.toHaveBeenCalled();
+    // Named by its words on the page, not by its id.
+    await waitFor(() => expect(document.querySelector("[data-item-inspector]")!.textContent).toContain("Jak často pijete čaj?"));
     // The turn names it in words, and its chip opens it again.
     expect(screen.getByRole("button", { name: /^Detail: / })).toBeTruthy();
   });
@@ -395,8 +397,9 @@ describe("the item inspector", () => {
     // A route change remounts the workbench on Návrh: the drawer opens there.
     cleanup();
     leadReads = [leadState()];
-    bench(<Stage />, "plan");
+    bench(<div><div data-aia="rq:rq_1">Kdo pije čaj ráno?</div></div>, "plan");
     await waitFor(() => expect(document.querySelector("[data-item-inspector]")?.getAttribute("data-item-inspector")).toBe("rq:rq_1"));
+    await waitFor(() => expect(document.querySelector("[data-item-inspector]")!.textContent).toContain("Kdo pije čaj ráno?"));
   });
 
   it("leaves nothing pending when a leave guard stops the Lead's move to the inspected stage", async () => {

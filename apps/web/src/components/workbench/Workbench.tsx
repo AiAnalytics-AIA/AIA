@@ -420,10 +420,24 @@ export function Workbench({ frame, step, store, memory, save, inspector, reload,
     if (want?.stage !== stage || want.studyId !== frame.studyId) return;
     requestAnimationFrame(() => document.querySelector<HTMLElement>("[data-workbench] .arthead__title")?.focus());
   }, [stage, frame.studyId]);
+  // A Lead-opened item is titled by its id until its stage shows it: then by its own words on the
+  // page (targetOfElement: an item row's words, a question's wording), never its opaque id (the
+  // workbench audit's rule). Looked for briefly while the stage's content loads.
+  const nameFromPage = useCallback((id: string) => {
+    let tries = 0;
+    const look = () => {
+      const label = targetOfElement(document.querySelector(focusSelector(id)))?.label;
+      if (label && label !== targetLabel(id)) setItems((s) => ({ ...s, entries: s.entries.map((e) => (e.id === id ? { ...e, title: label } : e)) }));
+      else if (tries++ < 10) setTimeout(look, 150);
+    };
+    setTimeout(look, 0);
+  }, []);
   useEffect(() => {
     // The Lead's `inspect` on another stage, opened by openingStack: taken on every stage change.
+    const want = leadInspect.pending;
     leadInspect.pending = null;
-  }, [stage, frame.studyId]);
+    if (want?.stage === stage && want.studyId === frame.studyId) nameFromPage(want.entry.id);
+  }, [stage, frame.studyId, nameFromPage]);
 
   const onView = useCallback((ops: LeadView[]) => {
     // In the drawer or the sheet the conversation steps aside so the person sees what the Lead pointed at.
@@ -437,8 +451,10 @@ export function Workbench({ frame, step, store, memory, save, inspector, reload,
         const t = parseAiaId(v.target);
         if (!t) continue;
         const entry = { id: v.target, title: targetLabel(v.target) };
-        if (t.stage === stage) setItems((s) => openEntry(onStage(s, stage), entry));
-        else {
+        if (t.stage === stage) {
+          setItems((s) => openEntry(onStage(s, stage), entry));
+          nameFromPage(v.target);
+        } else {
           leadInspect.pending = { studyId: frame.studyId, stage: t.stage, entry };
           if (!go(t.stage)) leadInspect.pending = null;
         }
@@ -467,7 +483,7 @@ export function Workbench({ frame, step, store, memory, save, inspector, reload,
         find();
       }
     }
-  }, [go, compact, drawer, layout, stage, frame.studyId]);
+  }, [go, compact, drawer, layout, stage, frame.studyId, nameFromPage]);
 
   // A design job is approved on the server: the spend limit, the ledger row and the start together.
   const onRequest = useCallback(async (turn: LeadTurn, r: LeadRequest) => {
