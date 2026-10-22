@@ -367,6 +367,22 @@ describe("the item inspector", () => {
     expect(document.querySelector("[data-item-inspector]")).toBeNull();
   });
 
+  it("behind the Lead's modal drawer, Escape closes the drawer the person is in, not the item behind it (review of #623)", async () => {
+    bench(<Opener />);
+    setWidth(900);
+    fireEvent.click(screen.getByRole("button", { name: "open q1" }));
+    expect(document.querySelector("[data-item-inspector]")).toBeTruthy();
+    fireEvent.click(screen.getByRole("button", { name: /Otevřít konverzaci/ }));
+    expect(screen.getByRole("dialog")).toBeTruthy();
+    fireEvent.keyDown(window, { key: "Escape" });
+    await waitFor(() => expect(screen.queryByRole("dialog")).toBeNull());
+    expect(document.querySelector("[data-item-inspector]")).toBeTruthy();
+    // Back in the item, Escape is its own again.
+    (document.querySelector("[data-item-inspector]") as HTMLElement).focus();
+    fireEvent.keyDown(window, { key: "Escape" });
+    await waitFor(() => expect(document.querySelector("[data-item-inspector]")).toBeNull());
+  });
+
   it("refuses an id outside the contract's grammar and opens nothing", () => {
     bench(<Opener />);
     fireEvent.click(screen.getByRole("button", { name: "open bad" }));

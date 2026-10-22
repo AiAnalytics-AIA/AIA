@@ -1435,7 +1435,12 @@ open a finding or a cited number in it from a click (ANL3).
   have.
 - **Not yet:** the Lead's own `inspect` view op stays non-live until the server's `LeadView` carries
   it.
-- Tests: `Workbench.layout.test.tsx` "the item inspector".
+- **Escape is the frame's** (review of #623): inside the workbench the drawer takes Escape only
+  through the one handler (`ItemInspector ownEscape={false}`), by the readiness panel's rule: the
+  layer in use, never from behind the Lead's modal drawer. Its own listener had run first and
+  closed the item behind an open dialog, pulling the focus out of it.
+- Tests: `Workbench.layout.test.tsx` "the item inspector", with "behind the Lead's modal drawer,
+  Escape closes the drawer the person is in, not the item behind it".
 
 ### F12. A field inside the workbench drew two focus rings *(fixed, `fix/workbench-field-focus-ring`)*
 

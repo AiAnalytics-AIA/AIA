@@ -229,31 +229,6 @@ export function Workbench({ frame, step, store, memory, save, inspector, reload,
   useEffect(() => {
     if (inspectorOpen) inspectorPanel.current?.focus();
   }, [inspectorOpen]);
-  // One Escape handler for the drawer and the readiness panel: onEscape gives the one order, after
-  // anything a handler already took (lib/workbench-layout.ts). Pointing ("@") keeps its own.
-  useEffect(() => {
-    const modal = isModal(layout, drawer);
-    if (!modal && !inspectorOpen) return;
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key !== "Escape") return;
-      // The panel counts while it is the layer in use: not behind a modal drawer, and the focus in
-      // it or on nothing (the body), never pulled out of the composer or a field.
-      const active = document.activeElement;
-      const inPanel = !modal && inspectorOpen && (active === document.body || !!inspectorPanel.current?.contains(active) || active === inspectorToggle.current);
-      const step = onEscape(drawer, { handled: e.defaultPrevented, askDialogOpen: !!document.querySelector("[data-ask-dialog][open], dialog[open]"), inspectorOpen: inPanel }, layout);
-      if (step.action === "inspector") {
-        e.preventDefault();
-        setInspectorOpen(false);
-        inspectorToggle.current?.focus();
-      } else if (step.action === "drawer") {
-        e.preventDefault();
-        setDrawerState(step.state);
-        moveFocus(step.focus);
-      }
-    };
-    window.addEventListener("keydown", onKey);
-    return () => window.removeEventListener("keydown", onKey);
-  }, [drawer, layout, moveFocus, inspectorOpen]);
   // The item inspector (chunk 2): an item a screen opens (a finding, a cited number) over the
   // artifact, its back stack the stage's own; another stage starts it empty.
   const [items, setItems] = useState<InspectorStack>(() => emptyStack(stage));
@@ -269,6 +244,39 @@ export function Workbench({ frame, step, store, memory, save, inspector, reload,
       return true;
     },
   }), [stage]);
+  const itemDrawer = useRef<HTMLDivElement>(null);
+  // One Escape handler for the drawer, the readiness panel and the item drawer: onEscape gives the
+  // one order, after anything a handler already took (lib/workbench-layout.ts). Pointing ("@")
+  // keeps its own. The item drawer never takes Escape from behind a modal (review of #623).
+  const itemOpen = topEntry(shownItems) !== null;
+  useEffect(() => {
+    const modal = isModal(layout, drawer);
+    if (!modal && !inspectorOpen && !itemOpen) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key !== "Escape") return;
+      // The panel counts while it is the layer in use: not behind a modal drawer, and the focus in
+      // it or on nothing (the body), never pulled out of the composer or a field.
+      const active = document.activeElement;
+      const inPanel = !modal && inspectorOpen && (active === document.body || !!inspectorPanel.current?.contains(active) || active === inspectorToggle.current);
+      // The item drawer by the same rule; it lies over the panel, so it goes first.
+      const inItem = !modal && itemOpen && (active === document.body || !!itemDrawer.current?.contains(active));
+      const step = onEscape(drawer, { handled: e.defaultPrevented, askDialogOpen: !!document.querySelector("[data-ask-dialog][open], dialog[open]"), inspectorOpen: inItem || inPanel }, layout);
+      if (step.action === "inspector" && inItem) {
+        e.preventDefault();
+        setItems((s) => closeStack(onStage(s, stage)));
+      } else if (step.action === "inspector") {
+        e.preventDefault();
+        setInspectorOpen(false);
+        inspectorToggle.current?.focus();
+      } else if (step.action === "drawer") {
+        e.preventDefault();
+        setDrawerState(step.state);
+        moveFocus(step.focus);
+      }
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [drawer, layout, moveFocus, inspectorOpen, itemOpen, stage]);
   const [turns, setTurns] = useState<LeadTurn[]>([]);
   const [leadEpoch, setLeadEpoch] = useState(0);
   // Automatic text edits (inline-decisions 2): the researcher's choice, the turns already finished
@@ -685,8 +693,8 @@ export function Workbench({ frame, step, store, memory, save, inspector, reload,
                   <div hidden={stage === "sample"}><LeadAskContext.Provider value={askLead}><ItemInspectorContext.Provider value={itemInspector}>{children}</ItemInspectorContext.Provider></LeadAskContext.Provider></div>
                 </div></div>
                 {/* Mounted while empty, so closing it gives the focus back to what opened it. */}
-                <div className="itemdrawer" hidden={!topEntry(shownItems)}>
-                  <ItemInspector stack={shownItems} onBack={() => setItems((s) => backEntry(onStage(s, stage)))} onClose={() => setItems((s) => closeStack(onStage(s, stage)))}>
+                <div ref={itemDrawer} className="itemdrawer" hidden={!itemOpen}>
+                  <ItemInspector ownEscape={false} stack={shownItems} onBack={() => setItems((s) => backEntry(onStage(s, stage)))} onClose={() => setItems((s) => closeStack(onStage(s, stage)))}>
                     {(entry) => <ItemInspectBody entry={entry} />}
                   </ItemInspector>
                 </div>
