@@ -5,6 +5,7 @@ ADR 0026 and the product owner's 2026-10-19 decisions. No database, no model.
 
 from __future__ import annotations
 
+import json
 from typing import Any
 
 import pytest
@@ -24,6 +25,8 @@ from aia_core.domain.research_lead import (
     CONTEXT_MAX_BYTES,
     DEFAULT_LEAD_NAME,
     DEFAULT_SOUL,
+    EXTERNAL_LAYER,
+    EXTERNAL_NOTE,
     LEAD_PROMPT_ID,
     STAGES,
     TEXT_EDIT_OPS,
@@ -34,12 +37,15 @@ from aia_core.domain.research_lead import (
     Refused,
     SelfUpdate,
     apply_edit,
+    citable_context,
     context_bytes,
     context_classification,
+    context_identifiers,
     freeze_context,
     frozen_sample_size,
     ground_edits,
     ground_self_update,
+    ground_view,
     is_text_edit,
     layer,
     lead_contract,
@@ -51,6 +57,7 @@ from aia_core.domain.research_lead import (
     question_add_problem,
     readiness_layer,
     split_self_update,
+    target_refusal,
     unreadable_numbers,
     waiting_self_update,
 )
@@ -222,6 +229,54 @@ def test_focus_targets_name_an_item_by_its_data_aia_id() -> None:
         assert _valid(_output(view=[{"op": "focus", "target": target}])).ok
 
 
+AUDIENCE_COPY: dict[str, Any] = {
+    "audience": {"filters": {"kraj": ["Praha"]}, "builtin_subpanel": ""}
+}
+
+
+@pytest.mark.parametrize(
+    ("target", "reason"),
+    [
+        ("audience:filter:kraj", None),
+        ("audience:definition", None),
+        ("audience:filters", None),
+        ("audience:preview", None),
+        ("audience:subpanel:young_18_29", None),
+        ("question:q3", None),
+        ("audience:filter:vzdelani", "audience_filter_not_stored"),
+        ("audience:subpanel:nobody", "audience_subpanel_unknown"),
+        ("audience:segment", "unknown_target"),
+        ("nonsense:q3", "unknown_target"),
+    ],
+)
+def test_an_audience_target_names_what_the_working_copy_stores(
+    target: str, reason: str | None
+) -> None:
+    """artifact-audience AUD1: the server refuses a filter the copy does not store; no catalogue
+    is read."""
+    assert target_refusal(target, AUDIENCE_COPY) == reason
+
+
+def test_a_focus_on_nothing_the_frozen_copy_shows_is_dropped_and_named() -> None:
+    output = LeadOutput.model_validate(
+        _output(
+            view=[
+                {"op": "open_stage", "stage": "audience"},
+                {"op": "focus", "target": "audience:filter:vzdelani"},
+                {"op": "focus", "target": "audience:filter:kraj"},
+            ]
+        )
+    )
+    grounded, dropped = ground_view(output, AUDIENCE_COPY)
+    assert [op.model_dump() for op in grounded.view] == [
+        {"op": "open_stage", "stage": "audience"},
+        {"op": "focus", "target": "audience:filter:kraj"},
+    ]
+    assert [d.model_dump() for d in dropped] == [
+        {"index": 1, "op": "focus", "reason": "audience_filter_not_stored"}
+    ]
+
+
 def test_bounds_on_lists_reply_and_follow() -> None:
     assert not _valid(_output(view=[{"op": "open_stage", "stage": "brief"}] * 4)).ok
     assert not _valid(_output(edits=[VALID_EDITS[0]] * 13)).ok
@@ -367,6 +422,156 @@ def test_an_identifiers_digits_are_still_no_number() -> None:
     """The digits of ``Q1``, ``B2`` or ``goal2`` belong to the identifier, before and after."""
     assert number_tokens("Q1, B2, q3 a brief:goal2, s1.q12") == frozenset()
     assert _valid({"reply": "Otázka Q1 a blok B2 platí."}, canonical_json({"ids": ["Q1"]})).ok
+
+
+#: A revision id as ``new_revision_id`` mints it: ``REV-`` and random hex, here one whose hex
+#: starts with a 7 (F-CLOCK-1: about one id in forty does).
+REV_7 = "REV-7a3f0c9e2b1d4e5f"
+
+
+def test_an_identifiers_digits_ground_no_number() -> None:
+    """F-CLOCK-1: ``REV-7a3f…`` read as 7, so a reply inventing 7 passed whenever the random
+    revision id began with one (CI on #554). An identifier is no number on either side."""
+    allowed = canonical_json({"design_revision_id": REV_7, "n": 20})
+    assert "7" in number_tokens(allowed)  # what the bare text reads: the hole
+    ids = frozenset({REV_7})
+    refused = validate_structured_output(
+        lead_contract(allowed, ids), structured={"reply": "Máme 7 otázek."}, text=""
+    )
+    assert not refused.ok and "7" in refused.violations[0]
+    # Quoting the id whole writes no number; its digit alone is held to the context.
+    for reply in (f"Revize {REV_7} má 20 otázek.", f"Běží na {REV_7}."):
+        assert validate_structured_output(
+            lead_contract(allowed, ids), structured={"reply": reply}, text=""
+        ).ok, reply
+    # A longer id or word containing it is not that id.
+    assert not validate_structured_output(
+        lead_contract(allowed, ids), structured={"reply": f"Viz {REV_7}b, 7."}, text=""
+    ).ok
+
+
+def test_the_context_names_its_identifiers() -> None:
+    context = {
+        "layers": [
+            {
+                "layer": "design",
+                "design_revision_id": REV_7,
+                "workspace_revision": 3,
+                "readiness": {"methodology_version": "aia-readiness-1"},
+                "content": {
+                    "sections": [{"id": "s7", "questions": [{"id": "7", "text": "7 dní"}]}]
+                },
+            },
+            {"layer": "runs", "runs": [{"run_id": "RUN-07b", "status": "SUCCEEDED"}]},
+            {
+                "layer": "knowledge",
+                "items": [{"item_id": "KN-9", "title": "Rok 2025"}],
+                "omitted_ids": ["KN-7x"],
+            },
+            {"layer": "view", "focus": {"target": "question:q7", "label": "Otázka 7"}},
+        ]
+    }
+    assert context_identifiers(context) == {
+        REV_7,
+        "aia-readiness-1",
+        "s7",
+        "RUN-07b",
+        "KN-9",
+        "KN-7x",
+        "question:q7",
+    }  # a counter, a text and a bare-number id ("7") are not identifiers to mask
+
+
+def test_a_request_holds_a_reply_to_the_context_without_its_identifiers() -> None:
+    design = {
+        "workspace_revision": 1,
+        "design_revision_id": REV_7,
+        "content": APPROVED_DESIGN,
+        "analysis": None,
+    }
+    contract = _request(_context(design=design), IDENTITY, DESIGN_OK).agent.output_contract
+    invented = {"reply": "Máme 7 otázek."}
+    assert not validate_structured_output(contract, structured=invented, text="").ok
+    quoted = {"reply": f"Návrh {REV_7} je uložený."}
+    assert validate_structured_output(contract, structured=quoted, text="").ok
+
+
+#: The identity metadata a frozen design carries today, each value leading with a 7 (Codex P1
+#: on #557): the stable-item sidecar's ``bound`` hash (``item_ids``, ten hex digits), a brief
+#: attachment's ``sha256``, a material's ``reading_sha256``, ``source_id`` and
+#: ``contract_version``, the analysis's ``_brief_signature`` (the brief again, with the
+#: attachment's hash) and a dimension proposal's ``created_at`` (``persona.ts``).
+SHA_7 = "7f" + "0" * 62
+IDENTITY_DESIGN: dict[str, Any] = {
+    "title": "Fiktivní",
+    "goal": "Test",
+    "research_plan": {
+        "objectives": ["Poznat trh"],
+        "objective_ids": [{"id": "obj_7a01b2c3d4", "bound": "7a01b2c3d4"}],
+    },
+    "briefing": {
+        "attachments": [{"attachment_id": "ATT-7c", "filename": "zadani.pdf", "sha256": SHA_7}],
+        "materials": [
+            {"source_id": "SRC-7d", "reading_sha256": SHA_7, "contract_version": 7},
+        ],
+    },
+    "dimension_proposals": [{"label": "Ekologie", "created_at": "2026-10-21T13:07:00.000Z"}],
+}
+IDENTITY_ANALYSIS: dict[str, Any] = {
+    "_brief_signature": json.dumps({"goal": "Test", "attachments": [SHA_7]}),
+    "summary": "Shrnutí",
+}
+
+
+def test_identity_metadata_grounds_no_number() -> None:
+    """Codex P1 on #557: a ``bound`` hash starting ``7a`` still grounded a 7. The allowed numbers
+    come from the context with its identity metadata left out, not masked afterwards.
+
+    The review of 4d434c4d: the working copy's save counter (``workspace_revision``, moved by
+    every 1.8 s autosave) and a knowledge item's ``revision`` count saves, not anything in the
+    design, so at 7 they grounded "Máme 7 otázek." They are identity metadata too."""
+    design = {
+        "workspace_revision": 7,
+        "design_revision_id": REV_7,
+        "content": IDENTITY_DESIGN,
+        "analysis": IDENTITY_ANALYSIS,
+    }
+    knowledge = [{"item_id": "K1", "revision": 7, "kind": "FACT", "title": "t", "summary": "s"}]
+    context = _context(design=design, knowledge=knowledge)
+    assert "7" in number_tokens(model_message(context))  # what the whole message reads
+    citable = canonical_json(citable_context(context))
+    assert "7" not in number_tokens(citable)
+    assert "workspace_revision" not in citable and '"revision"' not in citable
+    # Only identity is left out: the words stay.
+    assert "Poznat trh" in citable and "zadani.pdf" in citable
+    contract = _request(context, IDENTITY).agent.output_contract
+    for reply in ("Máme 7 cílů.", "Máme 7 otázek."):
+        assert not validate_structured_output(contract, structured={"reply": reply}, text="").ok
+    # A number the design's words hold is still citable.
+    worded = _context(
+        design={**design, "content": {**IDENTITY_DESIGN, "goal": "Test 7 cílů"}},
+        knowledge=knowledge,
+    )
+    contract = _request(worded, IDENTITY).agent.output_contract
+    assert validate_structured_output(contract, structured={"reply": "Máme 7 cílů."}, text="").ok
+
+
+def test_an_identifier_ends_only_where_no_identifier_character_follows() -> None:
+    """Codex P2 on #557: a dot is part of an ``ITEM_ID`` or a focus target, so ``X.REV-7a…`` and
+    ``REV-7a….b`` are other identifiers, never a whole quote of ``REV-7a…``; a sentence still
+    ends on one."""
+    allowed = canonical_json({"n": 20})
+    ids = frozenset({REV_7})
+
+    def ok(reply: str) -> bool:
+        return validate_structured_output(
+            lead_contract(allowed, ids), structured={"reply": reply}, text=""
+        ).ok
+
+    assert ok(f"Běží na {REV_7}.") and ok(f"Běží na {REV_7}, ne jinak.")
+    assert not ok(f"Viz X.{REV_7}.")
+    assert not ok(f"Viz {REV_7}.b.")
+    assert not ok(f"Viz {REV_7}-2.")
 
 
 def test_a_number_in_another_field_is_not_the_replys() -> None:
@@ -1068,6 +1273,21 @@ def test_a_dataset_in_the_knowledge_declares_its_lineage() -> None:
     assert request.data_lineage is not None and request.data_lineage.datasets
 
 
+def test_a_turn_declares_recorded_datasets_and_the_placeholder_for_an_unrecorded_one() -> None:
+    # CR-4: the same rule as the design jobs (research_agents.knowledge_lineage).
+    from aia_core.domain.licence_determinations import SYNTHETIC_FIXTURE_DATASET
+    from aia_core.domain.research_agents import UNRECORDED_KNOWLEDGE_LINEAGE
+
+    seeded = {"item_id": "K1", "revision": 1, "kind": "DATASET", "title": "t", "summary": "s"}
+    seeded["datasets"] = [SYNTHETIC_FIXTURE_DATASET]
+    recorded = _request(_context(knowledge=[seeded]), IDENTITY, DESIGN_OK).data_lineage
+    assert recorded is not None and recorded.datasets == {SYNTHETIC_FIXTURE_DATASET}
+    finding = {"item_id": "K2", "revision": 1, "kind": "FINDING", "title": "t", "summary": "s"}
+    mixed = _request(_context(knowledge=[seeded, finding]), IDENTITY, DESIGN_OK).data_lineage
+    assert mixed is not None
+    assert mixed.datasets == {SYNTHETIC_FIXTURE_DATASET, UNRECORDED_KNOWLEDGE_LINEAGE}
+
+
 @pytest.mark.parametrize("kind", ["DATASET", "ARTIFACT", "FINDING"])
 def test_a_turn_over_dataset_derived_knowledge_passes_the_licence_gate_on_eu_bedrock_only(
     kind: str,
@@ -1102,3 +1322,59 @@ def test_a_turn_over_dataset_derived_knowledge_passes_the_licence_gate_on_eu_bed
 def test_the_window_bounds_a_turn_and_its_repair() -> None:
     assert lead_request_window_tokens(1500) > CONTEXT_MAX_BYTES + 5 * 1500
     assert lead_request_window_tokens(3000) - lead_request_window_tokens(1500) == 5 * 1500
+
+
+# --------------------------------------------------------------------------- external context
+
+EXTERNAL = {
+    "pin": {"deep_research_run_id": "RUN-dr1", "artifact_id": "ART-b1", "sha256": "ab" * 32},
+    "lines": ["[EV-1] Trh s nápoji roste o 37 % ročně. (cs.wikipedia.org)"],
+}
+
+
+def test_external_context_is_its_own_layer_after_the_runs_and_absent_when_not_given() -> None:
+    """evidence-integrity 7: the newest Design Research findings, labelled, never evidence."""
+    plain = _context()
+    assert EXTERNAL_LAYER not in [entry["layer"] for entry in plain["layers"]]
+    context = _context(external=EXTERNAL)
+    layers = [entry["layer"] for entry in context["layers"]]
+    assert layers[layers.index("runs") + 1] == EXTERNAL_LAYER
+    found = layer(context, EXTERNAL_LAYER)
+    assert found["note"] == EXTERNAL_NOTE and found["lines"] == EXTERNAL["lines"]
+    assert EXTERNAL["lines"][0] in model_message(context)
+
+
+def test_a_figure_from_external_context_is_refused_like_any_number_the_study_does_not_hold() -> (
+    None
+):
+    contract = _request(_context(external=EXTERNAL), IDENTITY, DESIGN_OK).agent.output_contract
+    quoted = {"reply": "Podle rešerše trh roste o 37 % ročně."}
+    assert not validate_structured_output(contract, structured=quoted, text="").ok
+    assert validate_structured_output(
+        contract, structured={"reply": "Rešerše říká, že trh roste."}, text=""
+    ).ok
+    assert all(
+        entry.get("layer") != EXTERNAL_LAYER
+        for entry in citable_context(_context(external=EXTERNAL))
+    )
+
+
+def test_external_context_is_classified_as_public_material() -> None:
+    parts = context_classification(
+        _context(external=EXTERNAL), (IDENTITY, DESIGN_OK), get_slot(LEAD_PROMPT_ID).baseline_pin()
+    )
+    external = [p for p in parts if p["part"] == "external_context"]
+    assert external == [
+        {
+            "part": "external_context",
+            "data_class": DataClass.CLASS_C_INTERNAL.value,
+            "source": "bundle:public_findings",
+        }
+    ]
+    assert not [
+        p
+        for p in context_classification(
+            _context(), (IDENTITY, DESIGN_OK), get_slot(LEAD_PROMPT_ID).baseline_pin()
+        )
+        if p["part"] == "external_context"
+    ]

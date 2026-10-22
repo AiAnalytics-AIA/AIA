@@ -6,16 +6,16 @@ chunks:
   - "[ ] LO2. A typed `start_run` with no `confirm_cost_usd`, and an import rule that a plan step cannot reach the confirming start"
   - "[ ] LO3. `lead_plans` and `lead_plan_steps` (M5), the plan authority capability issued by `ScopeResolver`, the `lead_plan` workflow type, behind `AIA_LEAD_PLANS_ENABLED`"
   - "[ ] LO4. The plan card: the steps (including "start fieldwork, ceiling X USD"), approved once, stopping at every gate it does not cover"
-  - "[ ] LO5. Direct human chat start: the typed command the server matches, ledger `chat_start`, the model not in the path"
+  - "[x] LO5. Direct human chat start: the typed command the server matches, ledger `chat_start`, the model not in the path"
   - "[ ] LO6. The continuation turn: a finished step enqueues a Lead turn with typed results; no polling"
   - "[ ] LO7. The Lead's context layers per ADR 0026 decision 2: readiness, question outlook, what changed since its last turn, other people's changes, and the execution state (status, park code, spend, selection receipt, QC)"
   - "[ ] LO8. `ResultsContext`: type, class (`MaterialRule` for results, module text, maps, report text), lineage, bound, an external-evidence slot labelled L; and the decision on a read tool against ADR 0026 decision 3"
   - "[x] LO9a. The worker contract, early (W0, the first deliverable of `research-lead-workbench` 11): `LeadWorkerSpec` as a type, one row per worker (id, closed task, context layer, data-class rule, capability, reservation, prompt id and pin, switch, card kind, result kind), with its fixture"
   - "[ ] LO9c. A results-worker job shape (W2, before LO9b): a workflow type and step kind keyed on (run_id, target), frozen inputs by artifact id and SHA-256, its own context builder and executor behind its own switch, sharing the worker row, prompt pin and usage ledger"
   - "[ ] LO9b. The three new workers as rows (W3): a `REPORT_WRITING` binding, result kinds and accept destinations, per-worker price and keys"
-  - "[ ] LO10. `approve_request` bound to the revision shown on its card, and a clean error where the 96 KB Lead context meets the 64 KB agent limit"
+  - "[x] LO10. `approve_request` bound to the revision shown on its card, and a clean error where the 96 KB Lead context meets the 64 KB agent limit"
   - "[ ] LO11. The Lead over time (M7): `researcher_lead_signals`, proposed updates the researcher approves each, a reader and rollback for Lead file revisions; no handover or admin read (D-32 to D-34); a departed member's Lead sealed, then deleted at the retention end (Q14)"
-  - "[ ] LO12a. The route-class refusal says who fixes it (W0): on the job error, the Lead pane, source proposals and Progress, from the refusal codes that exist today, with a link to the runbook; static copy, no read of the route"
+  - "[x] LO12a. The route-class refusal says who fixes it (W0): on the job error, the Lead pane, source proposals and Progress, from the refusal codes that exist today, with a link to the runbook; static copy, no read of the route"
   - "[ ] LO12b. A pre-flight read of the AI route (W1): the worker publishes a composition record the API, Settings and the Lead pane read (shared with `deep-research-web-search#52`), and the new refusal reasons"
   - "[ ] LO13. Client-level paid AI (source proposals, `clients.budget_usd`) recorded as an explicit exception to "every AI action goes through the Lead" in AC-02"
   - "[ ] LO14. The Lead's cost per turn measured, and an `AIA_LEAD_*` kill switch and budget line"
@@ -81,6 +81,28 @@ scripted Lead prepare an interpretation card. Detail in *Deep Research under the
 **LO7. The Lead's context layers per ADR 0026 decision 2: readiness, question outlook, what changed since its last turn, other people's changes, and the execution state (status, park code, spend, selection receipt, QC)**  
 `freeze_context` has none of these (`domain/research_lead.py:803-819`). The Lead's answer to "Kde jsme?" is built from them.
 
+- **Delivered beside LO7: external context, never evidence** (evidence-integrity 7, the Lead's half;
+  `feature/lead-external-context`, after #669).
+  - **The switch:** `AIA_AI_ANALYSIS_EXTERNAL_CONTEXT`, the analysis's own, off by default. With it
+    on, `POST …/lead/turns` gives the turn the artifact store (`ResearchLead.external_store`).
+  - **The layer:** `_freeze` reads the Study's newest finished Design Research bundle through the
+    analysis's reader (`ResearchRuns.design_research_pin`, then
+    `analysis_results._external_context`: pinned, seal-verified, Class C findings only). It
+    freezes them as the layer `external_context_not_evidence` after the runs, with its note and
+    pin.
+  - **When it cannot be read:** a bundle that does not read is said in the layer (`unavailable`),
+    never read as no context and never stopping the turn.
+  - **Numbers:** `citable_context` leaves the layer out, so `lead_contract` refuses a figure taken
+    from it like any number the study's context does not hold.
+  - **Classification:** `context_classification` counts it as Class C (`bundle:public_findings`).
+  - **Off:** the context is byte-identical to before.
+  - **Tests:**
+    - `test_research_lead.py` "external context …" (the layer, the refused figure, the class);
+    - `test_research_lead_application.py`
+      `test_external_context_is_frozen_only_when_switched_on_and_pinned`;
+    - `test_research_lead_api.py`
+      `test_a_turn_reads_external_context_only_with_the_analysis_switch_on`.
+
 **LO8. `ResultsContext`: type, class (`MaterialRule` for results, module text, maps, report text), lineage, bound, an external-evidence slot labelled L; and the decision on a read tool against ADR 0026 decision 3**  
 Written in **W1**, not W2. S2 and S3 write providers against it. Test: a result with Class A lineage is refused by a Class-C-only route. Interfaces I1.
 **Deep Research's provider and the one door for external numbers (DRL-11, 2026-10-21):** the L slot's
@@ -109,11 +131,64 @@ The three workers (map interpreter, report writer, straight-liner check) have no
 **LO10. `approve_request` bound to the revision shown on its card, and a clean error where the 96 KB Lead context meets the 64 KB agent limit**  
 `approve_request` submits whatever the working copy is at approval time, unlike `decide_edits`, which needs `base_revision`. Test: approving a card whose revision moved is refused with a message, not a 500.
 
+- **Landed** (`feature/lead-card-revision`).
+  - **The card's revision.** `ResearchLead.approve_request` reads the working revision before it
+    submits anything. The card is stale (`LeadCardStale`, 409 `stale_card`, details
+    `current_revision` and `turn_revision`) when the working copy was saved past the revision the
+    turn was written from. Saves that are only accepts of this turn's own edits do not count
+    (`_only_own_accepts`, from the `lead_edit` ledger rows' `workspace_revision`).
+  - Accepting what the card came with is part of the card. A person's save, or another turn's
+    accept, is not.
+  - A stale card starts only when the request names the current revision (`workspace_revision`),
+    the person's yes. The web asks once (`STALE_CARD_QUESTION`) and approves again naming it.
+    This is the knowledge approval's rule (F-K1: a stale edit applies only when the reviewer
+    names the current revision).
+  - Refusing outright was the other choice. It was rejected because re-asking the Lead is a paid
+    turn, and the person's own small edit would cost one.
+  - The working copy is read once, before the check, and that revision is the one submitted
+    (review of LO10). A save landing between the check and the submit makes the submit refuse
+    (409 `stale_revision`, nothing started); the job never runs on a revision nobody checked.
+  - **The 64 KB bound.** `context_snapshot` raises `AgentContextTooLarge` (a `ValueError`, so
+    the agent-jobs route's `invalid_agent_input` 422 still holds). The card's route answers 422
+    `agent_context_too_large` instead of a 500, and the pane says it in words.
+  - Tests:
+    - `apps/api/tests/test_research_lead_api.py`:
+      `test_a_card_whose_design_moved_waits_for_the_persons_yes_on_the_current_one`,
+      `test_accepting_the_cards_own_edits_leaves_it_approvable`,
+      `test_a_save_landing_after_the_check_does_not_change_what_the_job_runs_on`,
+      `test_a_study_too_large_for_a_design_job_is_refused_by_name_not_a_500`.
+    - `tools/ui_workbench/lead_stale_journey.mjs`: "a card whose design moved asks before it
+      starts, and on a yes starts on the current revision".
+
 **LO11. The Lead over time (M7): `researcher_lead_signals`, proposed updates the researcher approves each, a reader and rollback for Lead file revisions; no handover or admin read (D-32 to D-34); a departed member's Lead sealed, then deleted at the retention end (Q14)**  
 File revisions have no reader today (`revisions()` has no caller). Turns stay private (Q26). A Lead is never handed over and no admin reads another researcher's Lead files (the owner, 2026-10-20, D-32 to D-34; the earlier "admin read and handover" is withdrawn). Another member's ability to accept a proposal is **not** a Lead-lifecycle matter and is not decided here: Q16 makes proposals shared, and `working-copy-edit-ops#WCE6` builds it (gap G42).
 
 **LO12a. The route-class refusal says who fixes it (W0): static copy on the four surfaces**  
 The refusal surfaces in the job error, the Lead pane, source proposals and Progress, and none says an operator fixes it (the AI route's classes are set in SSM, not on Settings, which is read-only). The copy is keyed by the refusal codes that exist today (`egress_route_not_approved_for_class` and its siblings) and names the operator step and the runbook; it reads nothing and needs no composition record. Test: each code on each surface renders its who-fixes-it line. Interfaces I24.
+
+- **Landed** (`feature/route-refusal-who-fixes`). `apps/web/src/lib/route-refusal.ts` maps the six
+  refusals the route's settings decide (`egress_` + `route_not_approved_for_class`,
+  `retention_unspecified`, `residency_violation`, `training_exclusion_missing`, `no_approved_route`,
+  `route_provider_mismatch`) to one line: the operator fixes it, by which SSM parameter, under
+  `deploy/develop/README.md`, and Settings cannot change it.
+  - Not on the list: `egress_unclassified_material` (an operator's classification, not the route),
+    `licence_undetermined` (the data owner) and the budget codes (the researcher).
+  - The four surfaces append it: the Lead pane (`leadReasonWords`), the job panel
+    (`agentJobUpdate`, `followAgentJob`), source proposals (`proposalsLine`) and Progress
+    (`waitingDetail`, and `stepProblem` for Deep Research).
+  - A run step had no code to key on: its message is free text, and the gate's code stayed in the
+    attempt's error. `ResearchStepResponse.error_reason` and Deep Research's `DeepResearchStep`
+    now carry that code, or null when it is not a code (`_code`).
+  - `lead-availability.ts` now re-exports the pane's `leadReasonWords` instead of keeping a copy,
+    closing its TODO(#547).
+  - Tests: `route-refusal.test.ts`; on each surface, `lead.test.ts`, `research-agent-jobs.test.ts`,
+    `source-proposals.test.ts`, `research-execution.test.ts`; the API test
+    `test_fieldwork_without_the_ai_runtime_waits_visibly_and_nothing_downstream_runs` and
+    `test_a_step_passes_on_a_stored_code_never_free_text`, and Deep Research's
+    `test_a_run_parked_for_the_runtime_goes_on_when_a_person_resumes_it`, with `reason-words.test.ts`.
+  - Not a browser journey: the workbench has no route to refuse (its fieldwork is fictional code),
+    and making one refuse would mean building a refusing gateway into the workbench for one line of
+    static copy.
 
 **LO12b. A pre-flight read of the AI route (W1)**  
 The API cannot evaluate class, so the worker publishes a composition record the API, Settings and the Lead pane read (shared with `deep-research-web-search#52`, whose Reach panel is the other consumer, and with `run-qc-and-checkpoint#RQC8`). It lands in the same row as 52 (E12). The Lead pane gains `retention_unspecified`, `residency_violation` and `training_exclusion_missing`. Settings is read-only and stays so. Interfaces I15.
@@ -893,3 +968,150 @@ the scope freeze section.
   through `approve_request` (LO5a.2), with the Q44-Q47 answers.
 - ADR 0028 (the wallet): a person's approval of a Lead card is a charge authority, `lead_card`
   (migration M3b on the subject CHECK, LO5a.2); LO16's delivered note gains the same line.
+
+## LO5 delivered (2026-10-21, Sprint 5 part 3, stacked on research-lead-workbench 27b's #561)
+
+**The vocabulary** (`domain/lead_commands.py`, pinned in
+`packages/aia_core/tests/fixtures/lead_commands/commands.json`, served on `GET /lead` as
+`commands`). One Czech imperative per start, named as the card registry names it:
+
+| Typed | Start |
+|---|---|
+| Analyzuj zadání | `agent_job:analyze_brief` |
+| Navrhni dotazník | `agent_job:build_questionnaire` |
+| Uprav dotazník | `agent_job:optimize_questionnaire` |
+| Navrhni audienci | `agent_job:propose_audience` |
+| Navrhni dimenze | `agent_job:suggest_dimensions` |
+| Zkontroluj návrh | `agent_job:critique_design` |
+| Pomoz s návrhem | `agent_job:design_copilot` |
+| Zeptej se na klientské znalosti | `agent_job:answer_memory` |
+| Spusť výzkum | `research_run` |
+
+The whole message must be the command after a fixed normalisation (NFC, case folded, whitespace
+collapsed, an optional leading `/`, one trailing `.` or `!`); diacritics are kept exactly, so
+"spust vyzkum" is a message, and so is "Prosím spusť výzkum". A design job may carry the person's
+instruction after a colon ("Navrhni dotazník: krátce"); the run takes none. Nothing near a
+command is read as one: a guess at a start is the thing LO5 exists to prevent.
+
+**The path.** `ResearchLead.post` matches before anything else: a command is stored on the
+person's own turn (`study_lead_turns.command`, migration `c663617cf79b`, CHECK
+`command IS NULL OR actor = 'person'`), with no Lead turn and no run, Lead on or off, hatched or
+not (Q43). Free text with the Lead off is still 409 `research_lead_unavailable`.
+`approve_request` reads the stored turn: a person's turn naming a command goes to
+`application/lead_chat_start.py` `approve_chat_start`, never through the Lead switch (D22); a
+Lead turn keeps 27b's guard. The approval runs in LO1's order, in the request's one transaction:
+
+1. with `AIA_STUDY_WALLET_ENABLED`: `StudyWallets.quote` under the study lock and
+   `money.start_verdict(CHAT_START)`: outside the wallet or an unknown ceiling is 409
+   `outside_wallet` / `ceiling_unknown` (nothing written), the threshold asks
+   (`cost_confirmation_required`); with the wallet off, nothing is quoted or charged;
+2. the work's own start: `ResearchAgentJobs.start` (the job's reservation is its ceiling, LO15's
+   threshold and `spend` row) or `ResearchRuns.start` on the deployment's run settings
+   (`routers/research.py` `run_start_settings`, the same values `POST …/research/runs` passes;
+   its refusals through the shared `run_start_errors`);
+3. `WorkflowRepository.record_chat_start`: subject the run, decision `start`, the turn, the start,
+   the ceiling and the Design Revision; `APPROVE_GATE`, which the worker's scope withholds;
+4. `StudyWallets.charge` (`AGENT_JOB` or `RESEARCH_RUN`) under that row; a refusal rolls the run
+   and the row back with it.
+
+Approved once: a second approval returns the run its `chat_start` row names. A start that finds
+its work already there (the same job on the same design, the revision's run) returns it and
+writes nothing: that work was authorised when it was created.
+
+**Choices recorded.** (1) A typed research run starts on the deployment's defaults: the default
+persona source, LIVE, no answerability acknowledgement (a gap with the gate on is refused by the
+run's own rule and the person goes to Spuštění). (2) The command is a column, not a new turn
+kind: `kind` stays `message`, so every reader of the conversation is unchanged. (3) The matcher
+runs before the Lead's switch, its lock and its busy check: a typed start is the person's, not a
+conversation turn.
+
+**Not here.** Deep Research typed starts (LO5a.3) need DRL-0 (#555) and LO5a.1, neither on
+develop; `design_research` and `interpretation_research` are not matched yet. The composer's
+recognition and card in the web are the next PR, after #550 (Lead chat cards) merges.
+
+**The web's card (`feature/lead-typed-start-card`, 2026-10-22).**
+- A person's turn naming a `command` is followed by their own card in the conversation:
+  `RequestCard` with `typed`, the eyebrow "Váš příkaz", and the request built by `commandRequest`
+  (`lib/lead.ts`). The card reads the server's `command`, never the text; the instruction after a
+  colon is the card's why.
+- The card starts the work through `…/request`, the run too (`Workbench.tsx` `onRequest`: a typed
+  start is approved whatever its kind), with the threshold's confirmation as for every card. The
+  job or run it started follows under it.
+- Found because `lead_cards_journey.mjs` failed on develop (b6ac25c5). "Spusť výzkum." became a
+  command, and the journey waited for a Lead answer that no longer comes. The journey now:
+  - starts a job by typed "Zkontroluj návrh";
+  - asks the Lead with "Prosím, spusť výzkum." (a message, not a command) for its run card.
+- Tests: `LeadPane.test.tsx` "follows a person's typed start with their own card…", `lead.test.ts`
+  `commandRequest`, and `lead_cards_journey.mjs` "a typed start shows the person's own card, and
+  its approval starts the job through …/request".
+- Not built: the composer recognising a command before it is sent (a hint as the person types),
+  and the commands list (`GET /lead` `commands`) shown as suggestions.
+
+Tests: `packages/aia_core/tests/test_lead_commands.py` (the fixture, every worker and the run
+once, matches and near-misses), `test_lead_chat_start.py` (the row authorises its charge; the
+worker cannot write one), `apps/api/tests/test_lead_chat_start_api.py` (Lead off: a command taken,
+free text 409; Lead on: no model turn; in one switched-off state the model's card 409 and the typed
+card started; once only; the threshold; a typed run; a design not ready writes nothing; another
+researcher's card 404; with the wallet on: charged under its row, outside or unknown writes
+nothing, a charge refused after the create rolls back; the CHECK). Migration: `alembic upgrade
+head`, `alembic check`, `downgrade base`, `upgrade head` on PostgreSQL 16.
+
+### Doc follow-up (LO5)
+
+- `CLAUDE.md` map, `routers/lead.py`: "a message that is exactly a typed start command
+  (`domain/lead_commands.py`) is stored as the person's command, Lead on or off, with no model
+  turn; `POST …/turns/{turn_id}/request` starts it (ledger `chat_start`, the wallet when on);
+  `GET /lead` lists `commands`".
+- `CLAUDE.md` map, `domain/`: "`lead_commands.py` the composer's typed start commands, matched
+  by code (LO5), pinned in `tests/fixtures/lead_commands/commands.json`"; `application/`:
+  "`lead_chat_start.py` approve_chat_start: quote, create, `chat_start`, charge (LO1's order)";
+  `infrastructure/`: "`workflow_repository.record_chat_start`".
+- ADR 0028 *What enforces it*: the `chat_start` writer and its order.
+- ADR 0026 *Accepted with*: typed start commands bypass the model and the Lead's switch (Q43).
+
+### Finding: a typed start approved again on the same design was never decided (2026-10-22, `fix/typed-start-reuse`)
+
+1. **Claim.** A typed start approved on a job that an earlier approval had already started for the
+   same design writes nothing for its own turn. Its card stays undecided, no job card follows it,
+   and after a reload it asks again.
+2. **Anchor.** `application/lead_chat_start.py:219 @ fe85aa54` writes the `chat_start` row only
+   when `started.created`. `chat_start_decisions` reads a card's decision from that row alone.
+3. **Reproduction.**
+   - `apps/api/tests/test_lead_chat_start_api.py::test_a_typed_start_approved_on_a_job_already_started_decides_its_card_and_starts_nothing`
+   - In a browser: type "Zkontroluj návrh" twice on the UI workbench and approve both. The second
+     answers 200 with the first job, and `GET /lead` gives that turn `request_decision: null`.
+4. **Consequence.** The person clicks "Spustit úlohu" and nothing appears. The card read
+   "Rozhodnuto" beside "Spustí se až vaším potvrzením."; after a reload it is open again, and
+   every click returns the same job. `lead_cards_journey` failed on a second run on one workbench
+   (:145) for this reason.
+5. **Fix.** The found job decides the card with a `chat_start` row of decision `reuse`, which names
+   the run in its comment only and leaves `run_id` null.
+   - `run_id` is null because spend attribution counts every `chat_start` row whose `run_id` names
+     the run as a start approval (`workflow_repository.py:194 @ fe85aa54`). The second approver
+     started nothing and paid for nothing.
+   - It is no charge authority, which needs decision `start`.
+   - `request_decision.reused` tells the web, and the card reads "Už proběhlo / Tato úloha pro
+     tento návrh už proběhla". The job is shown once, where it started.
+   - A decided card no longer says "Spustí se až vaším potvrzením.".
+6. **Test.** The API test above, plus the typed research run's second approval in
+   `test_a_typed_research_run_starts_on_the_deployments_run_settings` and `LeadPane.test.tsx`
+   "says a typed start approved again found the job already done, and shows that job once".
+   `lead_cards_journey` accepts either outcome at its typed start, so it runs again on one
+   workbench.
+
+   - Review of #682: a found job is also not held to the wallet or the threshold again.
+     `existing_start` asks the start itself for the key it would use (`_probe`, raised before
+     any gate or write, so the key code is never copied), and `quote` runs only when a run will be
+     created. On the agent path the Design Revision is now submitted before the quote, as the
+     run path already did; a refusal rolls the whole request back. A reused turn's run is not
+     "linked" in `conversationTimeline`, so a job or run that no card started (a run started on
+     Spuštění) stays in the conversation. Tests: the wallet case with a cap of exactly one
+     reservation, `test_a_typed_start_found_already_started_asks_no_confirmation` (both fail at
+     ab1e892d), and `lead-cards.test.ts` "leaves a run a typed start found already started where
+     it is".
+
+### Doc follow-up (typed start reuse)
+
+- ADR 0028 *What enforces it*: "a typed start approved on a run another approval already started
+  writes a `chat_start` row of decision `reuse` naming the run in its comment only, never in
+  `run_id`: neither a start approval for attribution nor a charge authority".

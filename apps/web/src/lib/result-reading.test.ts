@@ -2,7 +2,8 @@
 import { describe, expect, it } from "vitest";
 
 import type { QuestionResult } from "./research-execution";
-import { citedMeasure, compareObjects, czechList, inlineRuns, measureAnchor, measureTarget, objectTarget, readMeasure, separation, setTarget, textBlocks } from "./result-reading";
+import { citedMeasure, compareObjects, czechList, inlineRuns, measureAnchor, measureTarget, readMeasure, separation, textBlocks } from "./result-reading";
+import { parseAiaId } from "./workbench-artifacts";
 
 const support = (status: "REPORTABLE" | "INDICATIVE" | "SUPPRESS") => ({ support_status: status, n_platnych: 140, n_unique_layer_donors: 120, effective_n: 110 });
 const choice = (status: "REPORTABLE" | "INDICATIVE" | "SUPPRESS", shares: Record<string, [number, number, number] | [number]>, typ = "vyber"): QuestionResult => ({
@@ -103,17 +104,23 @@ describe("compareObjects", () => {
   it("keeps each withheld object with its reason, its donors and Kish n, and never a number", () => {
     const c = compareObjects([object("a", 4.2, 4.0, 4.4), object("b", 3.7, 3.2, 4.3, "SUPPRESS"), object("c", null)]);
     expect(c.withheld).toEqual([
-      { id: "b", label: "B", reason: "suppressed", donors: expect.any(Number), effectiveN: expect.any(Number) },
-      { id: "c", label: "C", reason: "no_mean", donors: expect.any(Number), effectiveN: expect.any(Number) },
+      { id: "b", label: "B", reason: "suppressed", donors: expect.any(Number), kishN: null },
+      { id: "c", label: "C", reason: "no_mean", donors: expect.any(Number), kishN: null },
     ]);
     expect(c.withheld.map((o) => o.label)).toEqual(c.omitted);
     expect(Object.keys(c.withheld[0])).not.toContain("value");
-    expect(c.ranked[0].effectiveN).toEqual(expect.any(Number));
+  });
+
+  it("reads Kish n from effective_n_kish, never the donor-adjusted effective_n", () => {
+    const result = { ...scale("REPORTABLE", 4.2, 4.0, 4.4), effective_n: 125.0, effective_n_kish: 401.8 };
+    const c = compareObjects([{ id: "a", label: "A", result }, { id: "b", label: "B", result: { ...scale("SUPPRESS", 3.0), effective_n: 9.5, effective_n_kish: 22.4 } }]);
+    expect(c.ranked[0].kishN).toBe(401.8);
+    expect(c.withheld[0].kishN).toBe(22.4);
   });
 
   it("reads a Kish n the aggregate did not store as unknown, never zero", () => {
-    const c = compareObjects([{ id: "a", label: "A", result: { ...scale("REPORTABLE", 4.2, 4.0, 4.4), effective_n: undefined as unknown as number } }]);
-    expect(c.ranked[0].effectiveN).toBeNull();
+    const c = compareObjects([{ id: "a", label: "A", result: { ...scale("REPORTABLE", 4.2, 4.0, 4.4), effective_n: 125 } }]);
+    expect(c.ranked[0].kishN).toBeNull();
   });
 
   it("says nothing about order with fewer than two objects", () => {
@@ -204,10 +211,14 @@ describe("textBlocks", () => {
 });
 
 describe("the Lead's targets on Výsledky", () => {
-  it("names a measure, a set and an object row as the Lead's focus finds them", () => {
+  it("names a question's card and a set object's card in the published grammar, on Výsledky", () => {
     expect(measureTarget("q2")).toBe("measure:q2");
-    expect(measureTarget("napoje:caj")).toBe("measure:napoje:caj");
-    expect(setTarget("napoje")).toBe("set:napoje");
-    expect(objectTarget("napoje", "caj")).toBe("object:napoje.caj");
+    expect(measureTarget("napoje", "caj")).toBe("measure:napoje/caj");
+    for (const id of ["measure:q2", "measure:napoje/caj"]) expect(parseAiaId(id)).toMatchObject({ kind: "measure", stage: "results" });
+  });
+
+  it("gives an id outside the grammar no target, rather than throwing", () => {
+    expect(measureTarget("Q 9")).toBeNull();
+    expect(measureTarget("napoje", "čaj")).toBeNull();
   });
 });

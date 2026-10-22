@@ -1,58 +1,56 @@
 "use client";
 
 // Vzorek's readiness (plan artifact-sample SMP3-SMP5): the server's checks, support forecast,
-// question outlook and persona sources for the design as it stands, read once per visit.
+// question outlook and persona sources for the design as it stands.
 //
-// Until readiness can be read on a working revision (working-copy-edit-ops WCE7), it is read on a
-// Design Revision, as Spuštění reads it: an editor's working copy is saved and submitted first
-// (an unchanged copy answers its existing revision, so a visit adds none), a reader's is the
-// latest revision. When WCE7 lands this reads the working revision instead and submits nothing.
+// Read on the working revision the person sees (working-copy-edit-ops WCE7b), never on a submitted
+// Design Revision: a visit submits nothing, so it cannot move the design head and stale another
+// stage's pending proposal (WCE5). An editor's change still waiting for its save is saved first, so
+// the readiness is the copy's as shown; nothing else is written; a copy whose save was refused
+// (someone saved a newer one) is never read. It is read again whenever the working revision moves (a Lead's set_n accepted, a
+// save from the hidden Dimenze screen), the previous answer kept on screen meanwhile.
 
 import { useEffect, useState } from "react";
 
-import { research, type Readiness } from "@/lib/api";
-import { CONFLICT_MESSAGE, submitWorkingDesign, type ResearchStore } from "@/research/store";
+import { research, type WorkingReadiness } from "@/lib/api";
+import { CONFLICT_MESSAGE, type ResearchStore } from "@/research/store";
 
 export type SampleReadiness =
   | { kind: "loading" }
   | { kind: "failed"; message: string }
-  /** No Design Revision to read readiness on: a reader of a study nobody has submitted. */
+  /** No working revision to read readiness on: a study whose content was never saved. */
   | { kind: "none" }
-  | { kind: "ready"; revision: number; readiness: Readiness };
+  | { kind: "ready"; revision: number; readiness: WorkingReadiness };
 
-type Deps = {
-  submit: (store: ResearchStore, studyId: string) => Promise<{ revision_id: string; revision: number }>;
-  revisions: (studyId: string) => Promise<{ revision_id: string; revision: number }[]>;
-  readiness: (studyId: string, revisionId: string) => Promise<Readiness>;
-};
+type Deps = { readiness: (studyId: string, workingRevision: number) => Promise<WorkingReadiness> };
 
-const DEPS: Deps = {
-  // Vzorek is the persona step's sample view: its submissions name that stage.
-  submit: (store, studyId) => submitWorkingDesign(store, studyId, "persona"),
-  revisions: research.revisions,
-  readiness: research.readiness,
-};
+/** A change the person made that is not saved yet. */
+const WAITING: ReadonlySet<string> = new Set(["pending", "saving", "failed"]);
 
-/** One read: the revision the readiness is on, and the readiness. */
+const DEPS: Deps = { readiness: (studyId, revision) => research.workingReadiness(studyId, revision) };
+
+/** One read: the working revision the readiness is on, and the readiness. */
 export async function loadSampleReadiness(store: ResearchStore, studyId: string, canEdit: boolean, deps: Deps = DEPS): Promise<SampleReadiness> {
-  let revision: { revision_id: string; revision: number };
-  if (canEdit) {
+  const save = store.get().save.kind;
+  if (save === "conflict") return { kind: "failed", message: CONFLICT_MESSAGE };
+  // Only the person's own change still waiting is saved (a save, never a Design Revision), so the
+  // answer is the copy's as shown. A new study nobody has touched, or a copy the template completed
+  // on load, is read as stored: a visit writes nothing it was not already owed.
+  if (canEdit && WAITING.has(save)) {
     try {
-      revision = await deps.submit(store, studyId);
+      await store.flush();
     } catch (e) {
-      // A copy someone else saved meanwhile never becomes the revision readiness is read on.
       if (store.get().save.kind === "conflict") return { kind: "failed", message: CONFLICT_MESSAGE };
       throw e;
     }
-  } else {
-    const latest = (await deps.revisions(studyId))[0];
-    if (!latest) return { kind: "none" };
-    revision = latest;
   }
-  return { kind: "ready", revision: revision.revision, readiness: await deps.readiness(studyId, revision.revision_id) };
+  const revision = store.get().revision;
+  if (revision === null) return { kind: "none" };
+  return { kind: "ready", revision, readiness: await deps.readiness(studyId, revision) };
 }
 
-export function useSampleReadiness(store: ResearchStore, studyId: string, canEdit: boolean): SampleReadiness {
+/** `revision`: the working revision on screen; a new one reads readiness again. */
+export function useSampleReadiness(store: ResearchStore, studyId: string, canEdit: boolean, revision: number | null): SampleReadiness {
   const [state, setState] = useState<SampleReadiness>({ kind: "loading" });
   useEffect(() => {
     let live = true;
@@ -63,6 +61,6 @@ export function useSampleReadiness(store: ResearchStore, studyId: string, canEdi
     return () => {
       live = false;
     };
-  }, [store, studyId, canEdit]);
+  }, [store, studyId, canEdit, revision]);
   return state;
 }

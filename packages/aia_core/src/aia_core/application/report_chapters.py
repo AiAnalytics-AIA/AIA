@@ -19,14 +19,24 @@ substituted.
 from __future__ import annotations
 
 from collections.abc import Mapping
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from typing import Any
 
 from aia_core.application.analysis_results import RunAnalysis
-from aia_core.application.report import ReportCompositionRefused
+from aia_core.application.report import (
+    SOCIOMAP_ARTIFACT,
+    ReportCompositionRefused,
+    sourced,
+    upstream_artifacts,
+)
 from aia_core.application.report_design import DesignSections, compose_design_sections
 from aia_core.application.report_maps import compose_map_sections
-from aia_core.application.report_method import compose_method_section, research_question_gaps
+from aia_core.application.report_method import (
+    METHOD_SOURCES,
+    compose_method_section,
+    compose_methodology_rules,
+    research_question_gaps,
+)
 from aia_core.application.report_tables import (
     QuestionTables,
     compose_question_tables,
@@ -34,11 +44,10 @@ from aia_core.application.report_tables import (
 )
 from aia_core.domain.analysis import AnalysisModuleId
 from aia_core.domain.analysis.native import native_items
-from aia_core.domain.report.model import Section
+from aia_core.domain.report.model import ArtifactSource, Block, Section, SpecSource
 from aia_core.domain.research_design import ResearchSpecification
 from aia_core.infrastructure.artifact_repository import ArtifactRepository, ArtifactStatus
 
-SOCIOMAP_ARTIFACT = "research_sociomap"
 SPECIFICATION_ARTIFACT = "research_specification"
 
 
@@ -50,6 +59,8 @@ class ReportChapters:
     questions: QuestionTables
     design: DesignSections
     method: Section
+    #: The rules the run was computed under, for the methodology chapter (CHN9).
+    methodology: tuple[Block, ...]
     map_artifact_id: str
     map_sha256: str
     #: Each research question the run recorded as a gap at start, in words, by its text: the
@@ -129,22 +140,55 @@ def report_chapters(
         specification_fingerprint=first.record.sources.specification_fingerprint,
     )
     spec, body = mapped.specification, mapped.body
+    if analysis.sources is None:
+        raise ReportCompositionRefused("the run's own sources were not read")
+    # What each chapter is composed from (artifact-chain CHN1).
+    specification, dataset, aggregate = upstream_artifacts(analysis.sources)
+    the_map = ArtifactSource(SOCIOMAP_ARTIFACT, mapped.artifact_id, mapped.sha256)
+    questions = compose_question_tables(
+        analysis,
+        native_items(spec),
+        source=f"Zmrazený výsledek běhu {run_id}; evidence {first.inputs.table.fingerprint()[:12]}",
+        scales=scale_notes(spec),
+    )
+    design = compose_design_sections(spec, first.inputs.research_questions)
+    meta = run.get("metadata") or {}
     return ReportChapters(
-        maps=compose_map_sections(
-            body,
-            object_map_snapshots(body),
-            source=f"Zmrazený výsledek běhu {run_id}; SHA-256 {mapped.sha256}",
+        maps=tuple(
+            sourced(section, the_map)
+            for section in compose_map_sections(
+                body,
+                object_map_snapshots(body),
+                source=f"Zmrazený výsledek běhu {run_id}; SHA-256 {mapped.sha256}",
+            )
         ),
-        questions=compose_question_tables(
-            analysis,
-            native_items(spec),
-            source=f"Zmrazený výsledek běhu {run_id}; evidence "
-            f"{first.inputs.table.fingerprint()[:12]}",
-            scales=scale_notes(spec),
+        questions=replace(
+            questions,
+            sections=tuple(
+                sourced(section, aggregate, specification, SpecSource("questions"))
+                for section in questions.sections
+            ),
         ),
-        design=compose_design_sections(spec, first.inputs.research_questions),
-        method=compose_method_section(run.get("metadata") or {}, first.record.labels.data_origin),
+        design=DesignSections(
+            chapter=sourced(
+                design.chapter,
+                specification,
+                SpecSource("questions"),
+                SpecSource("batteries"),
+                SpecSource("n"),
+                SpecSource("audience"),
+            ),
+            appendix=sourced(
+                design.appendix, specification, SpecSource("questions"), SpecSource("batteries")
+            ),
+        ),
+        method=sourced(
+            compose_method_section(meta, first.record.labels.data_origin),
+            dataset,
+            *METHOD_SOURCES,
+        ),
+        methodology=compose_methodology_rules(meta),
         map_artifact_id=mapped.artifact_id,
         map_sha256=mapped.sha256,
-        gaps=research_question_gaps(run.get("metadata") or {}),
+        gaps=research_question_gaps(meta),
     )

@@ -1,0 +1,154 @@
+#!/usr/bin/env node
+/** Dotazník in a real browser (plan artifact-questionnaire, QST8 and QST9's journey).
+ * Start the workbench with the switch on, write the fixtures, then run:
+ *   AIA_WEB_RESEARCH_WORKBENCH=true python3 tools/ui_workbench/workbench.py up
+ *   python3 tools/ui_workbench/fixture_project.py
+ *   node tools/ui_workbench/questionnaire_journey.mjs [--facade http://127.0.0.1:8780] [--out DIR]
+ * Local fictional identity only. At 1440, 1100, 768 and 390 px (the workbench at every width):
+ * Dotazník's Závislosti lists the tracked set's readers with Sociomapa, keeps the
+ * open question out of Analýza, jumps to the set's card, and the page does not overflow; a question
+ * removed is put back in its place by Vrátit (input-interactions chunk 3); nothing
+ * paid starts: no research run, agent job, Deep Research run or Lead request approval.
+ */
+import assert from "node:assert/strict";
+import { execSync } from "node:child_process";
+import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
+import { createRequire } from "node:module";
+import { dirname, join } from "node:path";
+import { fileURLToPath, pathToFileURL } from "node:url";
+
+const repo = join(dirname(fileURLToPath(import.meta.url)), "../..");
+const args = process.argv.slice(2);
+const arg = (name, fallback) => (args.includes(`--${name}`) ? args[args.indexOf(`--${name}`) + 1] : fallback);
+const base = arg("facade", "http://127.0.0.1:8780");
+assert(["127.0.0.1", "localhost"].includes(new URL(base).hostname), "This journey uses local fictional identity only");
+const out = arg("out", join(repo, "tmp/ui-workbench/questionnaire-journey"));
+mkdirSync(out, { recursive: true });
+
+async function loadPlaywright() {
+  const require = createRequire(import.meta.url);
+  for (const from of [repo, join(repo, "apps/web")]) {
+    try {
+      return await import(pathToFileURL(require.resolve("playwright", { paths: [from] })).href);
+    } catch {
+      /* next */
+    }
+  }
+  const root = execSync("npm root -g", { encoding: "utf8" }).trim();
+  return await import(pathToFileURL(join(root, "playwright/index.mjs")).href);
+}
+const module = await loadPlaywright();
+const chromium = module.chromium ?? module.default.chromium;
+const browser = await chromium.launch({ executablePath: process.env.AIA_CHROMIUM || undefined });
+const context = await browser.newContext({ viewport: { width: 1440, height: 900 } });
+await context.addInitScript(() =>
+  sessionStorage.setItem(
+    "aia.session",
+    JSON.stringify({ idToken: "workbench@example.invalid", refreshToken: "", expiresAt: 4102444800000, email: "workbench@example.invalid", subject: "workbench@example.invalid" }),
+  ),
+);
+const page = await context.newPage();
+const errors = [], writes = [], checks = [];
+page.on("pageerror", (e) => errors.push(String(e)));
+page.on("request", (r) => {
+  const path = new URL(r.url()).pathname;
+  if (!["GET", "HEAD", "OPTIONS"].includes(r.method()) && !path.startsWith("/_next/")) writes.push({ method: r.method(), path });
+});
+const check = (name) => checks.push(name);
+
+
+const fixtures = JSON.parse(readFileSync(join(repo, "tmp/ui-workbench/studies.json"), "utf8"));
+const { client, study } = fixtures.questionnaire;
+const stagePath = (slug) => `/app/clients/${client}/research/${study}/${slug}`;
+const shot = (name) => page.screenshot({ path: join(out, `${name}.png`), fullPage: true });
+const noOverflow = async (label) => {
+  const r = await page.evaluate(() => ({ w: innerWidth, d: document.documentElement.scrollWidth }));
+  assert(r.d <= r.w + 2, `${label}: page overflow ${r.d} > ${r.w}`);
+};
+
+try {
+  // The workbench serves every width since research-lead-workbench 26b: a split from 1100 px, the
+  // Lead in a drawer or a sheet below it.
+  for (const [width, workbench] of [[1440, true], [1100, true], [768, true], [390, true]]) {
+    await page.setViewportSize({ width, height: 900 });
+    await page.goto(base + stagePath("questionnaire"));
+    const deps = page.getByRole("region", { name: "Závislosti" });
+    await deps.waitFor({ timeout: 30000 });
+    assert.equal(await page.locator("[data-workbench]").count(), workbench ? 1 : 0, `workbench at ${width}: ${workbench}`);
+
+    const set = deps.locator("li", { has: page.getByRole("link", { name: /^Sada 1 / }) });
+    assert.deepEqual(await set.getByRole("link").allInnerTexts(), ["Sada 1 Sledovaná sada — varianty", "Sběr dat", "Výsledky", "Sociomapa", "Analýza", "Zpráva"]);
+    assert.match(await set.getByRole("link", { name: "Sociomapa" }).getAttribute("href"), /\/results#maps$/);
+    const open = deps.locator("li", { has: page.getByRole("link", { name: /^Q4 / }) });
+    assert.equal(await open.getByRole("link", { name: "Analýza" }).count(), 0, "an open question feeds no analysis");
+    await open.getByText(/data, ne připuštěná evidence/).waitFor();
+    await deps.getByText("3 uzavřené otázky (Q1, Q2, Q3)").waitFor();
+    await deps.scrollIntoViewIfNeeded();
+    await noOverflow(`questionnaire @${width}`);
+    await shot(`${width}-dependencies`);
+    await deps.screenshot({ path: join(out, `${width}-dependencies-section.png`) });
+
+    await set.getByRole("link", { name: /^Sada 1 / }).click();
+    await page.waitForFunction(() => location.hash === "#qset_sec_wb_set");
+    // An option's × is a 24 px target (WCAG 2.5.8; the browser audit measured 20 x 20).
+    const remove = await page.getByRole("button", { name: "Odebrat možnost 1" }).first().boundingBox();
+    assert(remove && remove.width >= 24 && remove.height >= 24, `an option's × at ${width}: ${remove?.width} x ${remove?.height}`);
+    // The set's name stays readable beside its badge, count and Smazat (the browser audit, QF-3).
+    const name = page.locator("#qset_sec_wb_set").getByRole("button", { name: /^Upravit: Název sady/ });
+    const room = await name.evaluate((el) => ({ column: el.closest("div")?.getBoundingClientRect().width ?? 0, clipped: el.scrollWidth > el.clientWidth + 1 }));
+    assert(room.column >= 160 && !room.clipped, `the set's name at ${width}: ${Math.round(room.column)} px, clipped ${room.clipped}`);
+    check(`${width}: Závislosti lists the set's readers, the open question apart, no overflow`);
+  }
+
+  // A block renamed in place (input-interactions chunk 3e, I1): Enter saves, the name reads back after a reload.
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await page.goto(base + stagePath("questionnaire"));
+  const blockName = page.getByRole("button", { name: /^Upravit: Název bloku / }).first();
+  await blockName.waitFor({ timeout: 30000 });
+  const was = (await blockName.innerText()).trim();
+  await blockName.click();
+  const nameField = page.getByRole("textbox", { name: "Název bloku" });
+  await nameField.fill(`${was} (přejmenováno)`);
+  await nameField.press("Enter");
+  // The copy saved: the artifact header says "Uloženo" once the working copy holds the change.
+  const saved = () => page.getByText("Uloženo", { exact: true }).first().waitFor({ timeout: 15000 });
+  await page.getByRole("button", { name: `Upravit: Název bloku ${was} (přejmenováno)`, exact: true }).waitFor();
+  await saved();
+  await page.reload();
+  const renamed = page.getByRole("button", { name: `Upravit: Název bloku ${was} (přejmenováno)`, exact: true });
+  await renamed.waitFor({ timeout: 30000 });
+  await renamed.click();
+  await page.getByRole("textbox", { name: "Název bloku" }).fill(was);
+  await page.getByRole("textbox", { name: "Název bloku" }).press("Enter");
+  await page.getByRole("button", { name: `Upravit: Název bloku ${was}`, exact: true }).waitFor();
+  await saved();
+  check("1440: a block renamed in place, saved and read back after a reload, then restored");
+
+  // A question deleted at once and put back with Vrátit (input-interactions chunk 3, I6), at 1440.
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await page.goto(base + stagePath("questionnaire"));
+  const q4 = page.locator("#qedit_Q_wb4");
+  await q4.waitFor({ timeout: 30000 });
+  const order = () => page.locator('[id^="qedit_"]').evaluateAll((els) => els.map((el) => el.id));
+  const before = await order();
+  await q4.getByRole("button", { name: /^Odebrat otázku/ }).click();
+  // The toast's own Vrátit: the Lead's pane can show another for an automatic text edit.
+  const toast = page.getByRole("status").filter({ hasText: "Otázka „Co by vás přesvědčilo nápoj koupit znovu?“ odebrána" });
+  await toast.waitFor();
+  assert.equal(await q4.count(), 0, "the question is gone at once");
+  await toast.getByRole("button", { name: "Vrátit" }).click();
+  await q4.waitFor();
+  assert.deepEqual(await order(), before, "Vrátit puts the question back in its place");
+  await shot("1440-undo-restored");
+  check("1440: a question removed at once, Vrátit puts it back in its place");
+
+  const paid = writes.filter((w) => /\/research\/runs$|\/agent-jobs$|\/deep-research\/runs|\/lead\/turns\/[^/]+\/request$/.test(w.path));
+  assert.deepEqual(paid, [], "nothing paid started");
+  check("nothing paid started");
+  assert.deepEqual(errors, [], `page errors: ${errors.join("\n")}`);
+} finally {
+  writeFileSync(join(out, "report.json"), JSON.stringify({ checks, errors, writes }, null, 2));
+  await browser.close();
+}
+console.log(checks.map((c) => `ok  ${c}`).join("\n"));
+console.log(`evidence: ${out}`);

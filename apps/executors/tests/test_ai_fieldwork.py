@@ -48,7 +48,12 @@ from aia_core.infrastructure.model_adapters.transport import (
 )
 from aia_core.infrastructure.storage import InMemoryArtifactStore
 from aia_core.infrastructure.study_design_repository import StudyDesignRepository
-from aia_core.infrastructure.tables import BudgetReservationRow, StepAttemptRow, StudyRow
+from aia_core.infrastructure.tables import (
+    BudgetReservationRow,
+    FieldworkJournalRow,
+    StepAttemptRow,
+    StudyRow,
+)
 from aia_core.infrastructure.workflow_repository import WorkflowRepository
 from aia_executors import ai_fieldwork
 from aia_executors.ai_runtime import AIRuntimeConfigError, AIRuntimeSettings, build_ai_fieldwork
@@ -792,6 +797,50 @@ def test_cancellation_during_a_call_charges_that_call_and_sends_no_other(
     with world.sessions() as session:
         study = session.scalar(select(StudyRow).where(StudyRow.study_id == world.study_id))
     assert study is not None and study.spent_usd > 0, "the answered call was charged"
+
+
+@pytest.mark.parametrize("checkpoint", [True, False], ids=["checkpoint", "no-checkpoint"])
+def test_a_retry_of_interrupted_fieldwork_pays_only_for_the_blocks_never_answered(
+    world: Any, run_with: Callable[..., Worker], checkpoint: bool
+) -> None:
+    """RQC0 (OI-64): each answered block is kept the moment it returns; a retry replays it."""
+    env = _fictional(world)
+    if checkpoint:
+        env["AIA_AI_FIELDWORK_CHECKPOINT"] = "true"
+    run_id = _start(world)
+    answered_before_stop = 4
+
+    def cancel(number: int) -> None:
+        if number == answered_before_stop:
+            with world.sessions() as session:
+                WorkflowRepository(session, world.lead_scope(session)).request_cancel(run_id)
+                session.commit()
+            time.sleep(0.5)  # the heartbeat carries the cancellation back
+
+    first = ScriptedBedrock(hook=cancel)
+    _drain(run_with(first, env=env))
+    assert _run(world, run_id)["status"] is WorkflowRunStatus.CANCELLED
+    assert len(first.requests) == answered_before_stop
+    with world.sessions() as session:
+        kept = session.scalars(select(FieldworkJournalRow)).all()
+        retried = ResearchRuns(session, world.lead_scope(session)).retry(
+            run_id, fieldwork_source=FieldworkSource.AI_RUNTIME
+        )
+        session.commit()
+    assert len(kept) == (answered_before_stop if checkpoint else 0)
+    assert {row.lineage_run_id for row in kept} <= {run_id}
+
+    second = ScriptedBedrock()
+    _drain(run_with(second, env=env))
+    run = _run(world, retried.run_id)
+    assert _steps(run)["run"]["status"] == "SUCCEEDED"
+    # With the checkpoint, the retry sends only what was never answered; without, everything.
+    resent = N * BLOCKS - (answered_before_stop if checkpoint else 0)
+    assert len(second.requests) == resent
+    assert (
+        len([e for e in _ledger(world, retried.run_id) if e.outcome is UsageOutcome.SUCCEEDED])
+        == resent
+    )
 
 
 def test_a_lease_lost_mid_call_still_leaves_the_answer_on_the_ledger(

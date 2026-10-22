@@ -22,10 +22,12 @@ from contextlib import contextmanager
 from datetime import datetime
 from typing import Annotated, Any, Literal
 
+from aia_core.application.lead_chat_start import ChatStartRefused
 from aia_core.application.research import CostCeilingUnknown, CostConfirmationRequired
 from aia_core.application.research_lead import (
     LeadAlreadyHatched,
     LeadBusy,
+    LeadCardStale,
     LeadContextTooLarge,
     LeadEditsStale,
     LeadNotHatched,
@@ -42,13 +44,24 @@ from aia_core.application.research_lead import (
     worker_readiness,
 )
 from aia_core.domain.design import DesignRejected
+from aia_core.domain.lead_commands import COMMANDS
+from aia_core.domain.research_agents import AgentContextTooLarge
 from aia_core.domain.scope import ScopeDenied
+from aia_core.domain.wallet import WalletChargeRefused
 from aia_core.domain.workspace import WorkspaceRejected
-from fastapi import APIRouter, HTTPException, Path, Response, status
+from fastapi import APIRouter, HTTPException, Path, Request, Response, status
 from pydantic import BaseModel, ConfigDict, Field, StrictBool
 
-from ..dependencies import OrganizationDep, SessionDep, SettingsDep, StudyScopeDep
+from ..dependencies import (
+    ArtifactStoreDep,
+    OrganizationDep,
+    RunPopulationDep,
+    SessionDep,
+    SettingsDep,
+    StudyScopeDep,
+)
 from ..schemas.projects import ErrorResponse
+from .research import run_start_errors, run_start_settings
 
 _RESPONSES: dict[int | str, dict[str, Any]] = {
     401: {"model": ErrorResponse, "description": "Not authenticated"},
@@ -104,6 +117,9 @@ class RequestApproval(BaseModel):
 
     model_config = ConfigDict(extra="forbid")
     confirm_cost_usd: float | None = Field(default=None, ge=0, le=1_000_000, allow_inf_nan=False)
+    #: The working revision the person approves the job on, sent only after a ``stale_card``
+    #: refusal and their yes: the card then runs on the design as it is now (LO10).
+    workspace_revision: int | None = Field(default=None, ge=1)
 
 
 class EditStatus(BaseModel):
@@ -118,6 +134,9 @@ class RequestDecision(BaseModel):
     model_config = ConfigDict(extra="forbid")
     status: Literal["approved"]
     run_id: str | None
+    #: A typed start approved on the job an earlier approval had already started for this
+    #: design: nothing started, the card is decided (LO5).
+    reused: bool = False
 
 
 class SelfUpdateDecision(BaseModel):
@@ -195,6 +214,22 @@ class LeadTurn(BaseModel):
     workspace_revision: int | None
     created_at: datetime
     created_by: str
+    #: The typed start the server matched in a person's message (lead-orchestration LO5:
+    #: ``agent_job:<action>`` or ``research_run``); its card is approved through ``…/request``
+    #: as the person's own, a ``chat_start``. ``null`` on every other turn.
+    command: str | None = None
+
+
+class TypedCommand(BaseModel):
+    """One of the composer's typed start commands (lead-orchestration LO5), as the server
+    matches it: the phrase, the start it names, the card's label, and whether an instruction
+    may follow after a colon. The browser shows them; only the server matches them."""
+
+    model_config = ConfigDict(extra="forbid")
+    phrase: str
+    start: str
+    label: str
+    takes_instruction: bool
 
 
 class LeadState(BaseModel):
@@ -214,6 +249,8 @@ class LeadState(BaseModel):
     #: Why the worker is not ready (a park code, e.g. ``research_lead_unconfigured``); ``null``
     #: unless ``worker_ready`` is ``false``. The name ``lib/lead-availability.ts`` reads.
     worker_reason: str | None
+    #: The typed start commands the composer takes, with the Lead on or off (Q43).
+    commands: list[TypedCommand]
     busy: bool
     turns: list[LeadTurn]
 
@@ -320,6 +357,18 @@ def _lead_errors() -> Iterator[None]:
         raise _error(409, exc.reason, "This turn's self-update is already decided.") from exc
     except LeadSelfUpdateNone as exc:
         raise _error(409, exc.reason, "This turn left nothing waiting for you.") from exc
+    except LeadCardStale as exc:
+        raise _error(
+            409,
+            exc.reason,
+            "The working content changed since the Lead prepared this card.",
+            current_revision=exc.current_revision,
+            turn_revision=exc.turn_revision,
+        ) from exc
+    except AgentContextTooLarge as exc:
+        raise _error(
+            422, exc.reason, "The study is too large for a design job to read; nothing started."
+        ) from exc
     except LeadEditsStale as exc:
         raise _error(
             409,
@@ -345,6 +394,22 @@ def _lead_errors() -> Iterator[None]:
             "it is not started.",
             reason=exc.reason.value,
             limit_usd=exc.limit_usd,
+        ) from exc
+    except ChatStartRefused as exc:
+        raise _error(
+            409,
+            exc.reason,
+            "This start is not inside the study's wallet, or names nothing that can start.",
+            ceiling_usd=exc.ceiling_usd,
+            remaining_usd=exc.remaining_usd,
+        ) from exc
+    except WalletChargeRefused as exc:
+        raise _error(
+            409,
+            exc.reason,
+            "This start is not inside the study's wallet.",
+            ceiling_usd=exc.ceiling_usd,
+            remaining_usd=exc.remaining_usd,
         ) from exc
     except NotAPaidRequest as exc:
         raise _error(422, exc.reason, "This turn prepared no paid job.") from exc
@@ -375,6 +440,15 @@ def read_lead(scope: StudyScopeDep, session: SessionDep, settings: SettingsDep) 
         worker_ready=ready,
         worker_ready_source=source,
         worker_reason=reason,
+        commands=[
+            TypedCommand(
+                phrase=c.phrase,
+                start=c.start,
+                label=c.label,
+                takes_instruction=c.takes_instruction,
+            )
+            for c in COMMANDS
+        ],
         busy=state["busy"],
         turns=[LeadTurn.model_validate(t) for t in _public(state["turns"])],
     )
@@ -401,12 +475,18 @@ def post_turn(
     scope: StudyScopeDep,
     session: SessionDep,
     settings: SettingsDep,
+    store: ArtifactStoreDep,
     response: Response,
 ) -> LeadTurns:
     """Store the message and queue the Lead's turn: 201 with the turns stored, or 200 with
-    none for a greeting the Lead has already given in the last eight hours."""
+    none for a greeting the Lead has already given in the last eight hours. With
+    ``AIA_AI_ANALYSIS_EXTERNAL_CONTEXT`` on, the turn's context carries the Study's newest
+    Design Research findings as external context, never evidence (evidence-integrity 7)."""
+    external = store if settings.ai_analysis_external_context else None
     with _lead_errors():
-        turns = ResearchLead(session, scope, enabled=settings.research_lead_on).post(
+        turns = ResearchLead(
+            session, scope, enabled=settings.research_lead_on, external_store=external
+        ).post(
             kind=body.kind,
             stage=body.stage,
             text=body.text,
@@ -461,26 +541,41 @@ def decide_self_update(
     responses={
         409: {
             "model": ErrorResponse,
-            "description": "The spend limit asks, or it is unknown; or the Lead is switched off",
+            "description": "The spend limit asks, or it is unknown; the Lead is switched off; "
+            "or the working copy moved since the card was prepared (stale_card)",
         },
-        422: {"model": ErrorResponse, "description": "The turn prepared no paid job"},
+        422: {
+            "model": ErrorResponse,
+            "description": "The turn prepared no paid job, or the study is too large for it",
+        },
     },
 )
 def approve_request(
     turn_id: TurnIdPath,
     body: RequestApproval,
+    request: Request,
     scope: StudyScopeDep,
     session: SessionDep,
     settings: SettingsDep,
+    population: RunPopulationDep,
 ) -> ApprovedRequest:
     """Approve the design job the caller's own Lead turn prepared: held to the study's spend
     limit, started and recorded in the approval ledger, once. With the Lead switched off, a
-    card its model prepared is 409 ``research_lead_disabled`` and nothing is written (Q42)."""
-    with _lead_errors():
+    card its model prepared is 409 ``research_lead_disabled`` and nothing is written (Q42).
+
+    The caller's own typed start (a person's turn naming a ``command``, LO5) is approved here
+    too, with the Lead on or off (Q43): a design job, or a research run on the deployment's
+    run settings (the ones ``POST …/research/runs`` uses), held to the same threshold and, with
+    ``AIA_STUDY_WALLET_ENABLED``, to the wallet (409 ``outside_wallet``, ``ceiling_unknown``),
+    and recorded as ``chat_start``. A run start's refusals are that route's."""
+    with _lead_errors(), run_start_errors():
         started = ResearchLead(session, scope, enabled=settings.research_lead_on).approve_request(
             turn_id,
             confirm_cost_usd=body.confirm_cost_usd,
             reservation_usd=settings.ai_research_reservation_usd,
+            run_start=run_start_settings(request, population),
+            wallet_enabled=settings.study_wallet_enabled,
+            workspace_revision=body.workspace_revision,
         )
     return ApprovedRequest.model_validate(started)
 

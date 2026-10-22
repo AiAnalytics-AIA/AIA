@@ -1,7 +1,7 @@
 ---
-status: planned
+status: in-progress
 chunks:
-  - "[ ] BRF1. The Brief's contract as data: its view operations, its pointable element ids and V2's interaction contract, registered in research-lead-workbench 14's vocabulary and 16's target table"
+  - "[x] BRF1. The Brief's contract as data: its view operations, its pointable element ids and V2's interaction contract, registered in research-lead-workbench 14's vocabulary and 16's target table"
   - "[ ] BRF2. The Brief body as V2 draws it: Cíle, Rozhodnutí, Kontext and Podklady as items edited in place over the working copy, autosaved"
   - "[ ] BRF3. Podklady with their data class: the attachments and picked client sources served with the class material_rules gives them, shown as chips; links and removal with undo"
   - "[ ] BRF4. The Lead on the Brief: analyze_brief as a Lead card, its proposal inline, the stage's own AI start removed"
@@ -133,6 +133,13 @@ Every item is an `Item` (`src/components/ui.tsx:52`): edit in place, remove, mov
 - Depends on `research-lead-workbench#14` and `#16`. It lands as their first consumer if they ship
   together.
 
+- *Landed* (`apps/web/src/lib/artifacts/brief.ts`): `brief:<field>` for every field and section
+  (`briefing.<field>` as the Lead's edits name it) and `material:<attachment_id>` for a file kept in
+  AIA, each one element by the screen's `brief-<field>` id or the row's `data-aia`; an empty context
+  field is named by its chip. Agreed with the integration coordinator: the target kinds are
+  `objective` and `material` of their own (#563), not `brief.<section>.<item>`. `objective:<id>`
+  joins with BRF2. A link has no stable id and is not a target yet.
+
 **BRF2. The body as V2 draws it.**
 - `BriefStep` keeps its data and its save; its layout becomes V2's four sections (Předpoklady is a
   link, B-6) built from the existing primitives.
@@ -143,6 +150,24 @@ Every item is an `Item` (`src/components/ui.tsx:52`): edit in place, remove, mov
   - A study that has no objectives yet shows "Zatím prázdné", not a placeholder (D13).
 - Depends on `input-interactions#1` and `#4`, and on `working-copy-edit-ops#WCE3a`.
 
+- *Landed, Cíle* (`apps/web/src/research/brief-objectives.ts`, BriefStep `Objectives`): the
+  objectives as items on the Brief, read and written where Návrh keeps them (`research_plan` and
+  the analysis together, as `plan-edit.ts` does), each `objective:<item id>`, edited in place
+  (InlineText), added in the list (InlineCreateRow), removed with Vrátit (UndoToast); none reads
+  "Zatím prázdné". On today's whole-copy store; WCE3a moves it onto the edit vocabulary.
+- *Landed, Rozhodnutí and Kontext* (BriefStep `Decision`, `Context`): `decision_use` as one item
+  (D-44) and the four `briefing.*` fields as items, each edited in place (InlineText; Esc restores,
+  clearing saves empty), every field always shown with its example; the open/close chips are gone.
+  The screen's order is V2's: Cíl, Cíle, Rozhodnutí, Kontext, then Typ problému and Podklady (V2 has
+  no problem types; AIA keeps them). Deviation from B-3: the goal stays the stage's first field, a
+  textarea with its sentence starters and count, not a Kontext item -- it is what a new study is
+  written from. Still to come in BRF2: Předpoklady as a link (B-6, after AOC1).
+
+- *Landed, Typ problému as toggle chips* (audit A24): the shared ChoiceChips (I3): one Tab stop,
+  arrows move, a press toggles one type through `toggleProblemType` (an empty goal still filled
+  with its default); each chip's description kept as its title and in its accessible name. At
+  390 px the section is about 260 px tall instead of about 600.
+
 **BRF3. Podklady with their class.**
 - API: the attachments listing and the brief's picked sources answer each item's `data_class` and
   `class_source` (`rule:<name>` or `operator`), by `classify_by_rule`. An unknown class reads as
@@ -152,6 +177,11 @@ Every item is an `Item` (`src/components/ui.tsx:52`): edit in place, remove, mov
   - API: an attachment is Class B by rule and a client source Class A; a source marked internal is C.
   - Vitest: an unknown class prints "třída neznámá".
 - Depends on `client-data-in-analysis#8` for picked datasets.
+
+- *Landed, removal with undo* (audit A28): a file or link removed from Podklady goes at once,
+  with Vrátit for 8 s putting its record back in place (`research/brief.ts` restoreAttachment); the
+  stored file was never deleted, only its record. Still to come in BRF3: picked client sources
+  (client-data-in-analysis#8).
 
 **BRF4. The Lead on the Brief.**
 - `analyze_brief` is reachable only through a Lead card or a typed start (`lead-orchestration#LO5`).
@@ -169,12 +199,45 @@ Every item is an `Item` (`src/components/ui.tsx:52`): edit in place, remove, mov
 - Depends on CHN1 and `research-lead-workbench#15`.
 
 **BRF6. Journey.**
+- *Landed in part* (`workspace_journey.mjs`, `lead_journey.mjs`): an objective added in the list,
+  read back after a reload as one `objective:<id>` target and reworded in place; "@" then a tap on
+  an objective sets the chip at 1440 (split), 768 (drawer) and 390 (sheet), no overflow, nothing
+  paid. Still to come: the scripted Lead focusing `objective:<id>` with the drawer closing to peek
+  (asked of the coordinator: `scripted_lead_output` focuses questions or `brief:title` only).
 - Steps in `tools/ui_workbench/workbench_journey.mjs`, at 1440, 1100, 768 and 390 px:
   - an objective is edited in place and read back after a reload;
   - the scripted Lead focuses `objective:<id>`, and the drawer closes to `peek` at 768 and 390 px;
   - "@" then a click sets the Vidí chip.
 - The usage ledger's paid rows are unchanged.
 - 768 and 390 px depend on `research-lead-workbench#26b`-`#26d`.
+
+## 7a. Findings
+
+- F-BRF-1 (UX, asked of the coordinator 2026-10-21, #647): a picked objective's chip reads its raw id
+  ("Cíl obj_6393c6bada"), not its words.
+  - Anchor: `apps/web/src/lib/lead.ts:516 @ b1a73536`. `targetOfElement` appends only a heading or
+    label inside a `data-aia` element, and an item row has none.
+  - Repro: `node tools/ui_workbench/lead_journey.mjs`, then `tmp/ui-workbench/lead-journey/390-brief-picked.png`.
+  - Consequence: the person sees an id where the objective's words belong.
+  - Fix: read the row's InlineText value. Not the row's whole text, which carries the number, the
+    screen-reader "Upravit: Cíl N" and the "×".
+  - Test: a `lead.test.ts` case over an objective row.
+- F-BRF-2 (journey flake, reported to the coordinator 2026-10-22): the drawer step's wait for the
+  composer's focus times out intermittently at 1099 px.
+  - Anchor: `tools/ui_workbench/lead_journey.mjs:198 @ b1a73536`, the wait
+    `waitForFunction(() => document.activeElement?.id === "composer", …, { timeout: 10000 })` after the
+    launcher opens the dialog.
+  - Repro: `python tools/ui_workbench/workbench.py up --fresh` (with `AIA_WEB_RESEARCH_WORKBENCH=true`),
+    `make ui-fixtures`, `node tools/ui_workbench/lead_journey.mjs`. It failed in 2 of 3 fresh runs with
+    "page.waitForFunction: Timeout 10000ms exceeded", before any Zadání step. A fourth fresh run
+    passed that wait but failed the next one at 1099 px, at `lead_journey.mjs:220 @ be85b470`: "Tab stays
+    inside the open conversation", with focus on the page's body.
+  - Consequence: the journey fails on a sound build, so a real regression after line 198 (the BRF6 step
+    included) goes unseen in that run.
+  - Fix (hypothesis, unmeasured): the dialog takes focus before the composer is enabled. Wait for the
+    composer to be enabled after the dialog opens, then for focus. Owner: the workbench journey's owner,
+    routed by the PM.
+  - Test: the journey passes 5 of 5 fresh runs at 1099 px.
 
 ## 8. Owner questions
 
@@ -184,4 +247,6 @@ None. Where assumptions are shown (B-6) and the absence of a decision list (B-2,
 
 - `mvp-master-plan.md` §3 and `mvp-execution-contracts.md`: register this plan and its chunks (see the
   PR body).
+- `open-items.md`: F-BRF-1, the objective chip reads its raw id (§ 7a).
+- `open-items.md`: F-BRF-2, `lead_journey.mjs:198` composer-focus timeout at 1099 px (§ 7a).
 - `CLAUDE.md` § 2, when BRF1 lands: `apps/web/src/lib/artifacts/` (one contract per artifact).

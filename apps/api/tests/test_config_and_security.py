@@ -60,6 +60,61 @@ def test_develop_accepts_a_fictional_client_list() -> None:
     ).validate_for_production()
 
 
+def test_the_data_class_gates_are_enforced_unless_they_say_advisory(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    from aia_core.domain.deployment import DataClassGates
+
+    monkeypatch.delenv("AIA_DATA_CLASS_GATES", raising=False)
+    assert Settings(_env_file=None).data_class_gates is DataClassGates.ENFORCE
+    monkeypatch.setenv("AIA_DATA_CLASS_GATES", "")
+    assert Settings(_env_file=None).data_class_gates is DataClassGates.ENFORCE
+    monkeypatch.setenv("AIA_DATA_CLASS_GATES", "advisory")
+    assert Settings(_env_file=None).data_class_gates is DataClassGates.ADVISORY
+    monkeypatch.setenv("AIA_DATA_CLASS_GATES", "lenient")
+    with pytest.raises(ValueError, match="AIA_DATA_CLASS_GATES='lenient' is not one of"):
+        Settings(_env_file=None)
+
+
+@pytest.mark.parametrize("env", [Environment.STAGING, Environment.PRODUCTION])
+def test_staging_and_production_refuse_advisory_data_class_gates(env: Environment) -> None:
+    """Develop only (the product owner, 2026-10-21); the worker asks the same rule."""
+    settings = Settings(**{**PRODUCTION_OK, "env": env, "data_class_gates": "advisory"})
+    with pytest.raises(
+        RuntimeError, match=f"AIA_DATA_CLASS_GATES=advisory is refused in {env.value}"
+    ):
+        settings.validate_for_production()
+    Settings(
+        **{**PRODUCTION_OK, "env": env, "data_class_gates": "enforce"}
+    ).validate_for_production()
+
+
+def test_an_unset_environment_refuses_advisory_data_class_gates(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """``env`` defaults to local, but advisory needs AIA_ENV to say so, as the worker does."""
+    monkeypatch.delenv("AIA_ENV", raising=False)
+    monkeypatch.setenv("AIA_DATA_CLASS_GATES", "advisory")
+    settings = Settings(_env_file=None)
+    assert settings.env is Environment.LOCAL and "env" not in settings.model_fields_set
+    with pytest.raises(
+        RuntimeError, match="AIA_DATA_CLASS_GATES=advisory is refused in an unknown environment"
+    ):
+        settings.validate_for_production()
+    monkeypatch.setenv("AIA_DATA_CLASS_GATES", "enforce")
+    Settings(_env_file=None).validate_for_production()
+    monkeypatch.setenv("AIA_ENV", "local")
+    monkeypatch.setenv("AIA_DATA_CLASS_GATES", "advisory")
+    Settings(_env_file=None).validate_for_production()
+
+
+@pytest.mark.parametrize("env", [Environment.DEVELOP, Environment.LOCAL, Environment.TEST])
+def test_develop_local_and_test_accept_advisory_data_class_gates(env: Environment) -> None:
+    Settings(
+        **{**PRODUCTION_OK, "env": env, "data_class_gates": "advisory"}
+    ).validate_for_production()
+
+
 def test_production_refuses_debug_mode() -> None:
     """Debug mode in production leaks internals into responses and logs."""
     settings = Settings(

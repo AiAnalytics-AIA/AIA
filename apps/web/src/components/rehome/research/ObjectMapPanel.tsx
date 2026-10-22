@@ -27,6 +27,8 @@
 import "./object-map-windows.css";
 import { type PointerEvent, type ReactNode, useEffect, useId, useMemo, useRef, useState } from "react";
 import { t, tv } from "@/i18n/t";
+import { objectTarget, pairTarget } from "@/lib/artifacts/sociomap";
+import { type DisplayChange, MAP_REGISTERS, type MapRegister, displayChanges, stageHeight } from "@/lib/sociomap-display";
 import { num } from "@/lib/sociomapping-view";
 import { type BatteryWithMaps, type ObjectMapArtifact, originalRating } from "@/lib/object-map-view";
 import {
@@ -54,6 +56,9 @@ type WorkWindow = "settings" | "tools" | "objects";
 
 // The map last pressed or focused: Esc with nothing focused acts on it, not on every map on the page.
 let lastStage: HTMLElement | null = null;
+
+/** The stage's height before it is measured (stageHeight then follows the pane it is read in). */
+const FIRST_HEIGHT = "min(700px, max(120px, calc(100dvh - 260px)), max(360px, 110vw))";
 
 export function ObjectMapPanel({ battery, map, facts }: { battery: BatteryWithMaps; map: ObjectMapArtifact; facts: ReactNode }) {
   if (storedFrame(map) && map.terrain.status === "computed") return <PanelView battery={battery} map={map} facts={facts} />;
@@ -98,7 +103,7 @@ type ListItem = { id: string; label: string; value: number | null; colour: strin
 
 /** Správa objektů: every object as a button, its stored mean on the declared scale. */
 function ObjectList({ battery, items, selected, notPlaced, onChoose, onHover }: {
-  battery: BatteryWithMaps; items: ListItem[]; selected: number; notPlaced: string[]; onChoose: (k: number, from: HTMLElement) => void; onHover: (k: number) => void;
+  battery: BatteryWithMaps; items: ListItem[]; selected: number; notPlaced: string[]; onChoose?: (k: number, from: HTMLElement) => void; onHover: (k: number) => void;
 }) {
   return (
     <div data-testid="object-map-panel-list">
@@ -106,8 +111,11 @@ function ObjectList({ battery, items, selected, notPlaced, onChoose, onHover }: 
       <ul className="omw-list">
         {items.map((n, k) => (
           <li key={n.id}>
-            <button type="button" aria-pressed={k === selected} onClick={(e) => onChoose(k, e.currentTarget)} onPointerEnter={() => onHover(k)} onPointerLeave={() => onHover(-1)}
-              aria-label={tv("research.exec.objectMap.selectObject", { label: n.label })}>
+            {/* Read only without onChoose (the respondent map), yet focusable: the Lead's object target. */}
+            <button type="button" data-aia={objectTarget(battery.battery_id, n.id) ?? undefined}
+              aria-pressed={onChoose ? k === selected : undefined} aria-disabled={onChoose ? undefined : true}
+              onClick={(e) => onChoose?.(k, e.currentTarget)} onPointerEnter={() => onHover(k)} onPointerLeave={() => onHover(-1)}
+              aria-label={onChoose ? tv("research.exec.objectMap.selectObject", { label: n.label }) : undefined}>
               <span aria-hidden className="h-3 w-3 rounded-full" style={{ background: n.colour }} />
               <span className="truncate">{n.label}</span>
               <span className="tabular-nums">{panelNumber(originalRating(n.value, battery.rating_scale) ?? n.value)}</span>
@@ -148,8 +156,6 @@ function PanelView({ battery, map, facts }: { battery: BatteryWithMaps; map: Obj
   const [work, setWork] = useState<WorkWindow | null>(null);
   const [detail, setDetail] = useState(false);
   const [info, setInfo] = useState(false);
-  // On the respondent map an object picked in the list is marked as hovering marks it (-1: none).
-  const [marked, setMarked] = useState(-1);
   // What opened the detail (the canvas or a list button): × gives the focus back to it.
   const detailOpener = useRef<HTMLElement | null>(null);
   const [size, setSize] = useState(DEFAULT_SIZE);
@@ -215,7 +221,7 @@ function PanelView({ battery, map, facts }: { battery: BatteryWithMaps; map: Obj
   const latest = useRef<Parameters<typeof drawObjectMap>[1] | null>(null);
   const pending = useRef(0);
   useEffect(() => {
-    latest.current = { width: size.width, height: size.height, camera, grid, nodes, tones, pairs, selected, hovered: hovered >= 0 ? hovered : people ? marked : -1, nodeScale: scale, statements: statementsHere, respondents: people };
+    latest.current = { width: size.width, height: size.height, camera, grid, nodes, tones, pairs, selected, hovered, nodeScale: scale, statements: statementsHere, respondents: people };
     const draw = () => {
       pending.current = 0;
       const node = canvas.current;
@@ -230,7 +236,7 @@ function PanelView({ battery, map, facts }: { battery: BatteryWithMaps; map: Obj
     };
     if (typeof window.requestAnimationFrame !== "function") { draw(); return; }
     if (!pending.current) pending.current = window.requestAnimationFrame(draw);
-  }, [size, camera, grid, nodes, tones, pairs, selected, hovered, marked, scale, statementsHere, people, ratio]);
+  }, [size, camera, grid, nodes, tones, pairs, selected, hovered, scale, statementsHere, people, ratio]);
   // Cleared on unmount, so a remount (React's development double mount included) schedules again.
   useEffect(() => () => { if (pending.current) window.cancelAnimationFrame(pending.current); pending.current = 0; }, []);
 
@@ -294,7 +300,7 @@ function PanelView({ battery, map, facts }: { battery: BatteryWithMaps; map: Obj
     if (hit?.kind === "respondent") { setPerson(hit.index); setSelected(-1); setRelation(null); setDetail(true); }
     else if (hit?.kind === "relation" && !people) { setSelected(hit.index); setRelation([hit.index, hit.j!]); setDetail(true); }
     else if (hit?.kind === "object" && !people) { setSelected(hit.index); setRelation(null); setDetail(true); }
-    else if (!hit) { setSelected(-1); setPerson(-1); setRelation(null); setMarked(-1); setDetail(false); }
+    else if (!hit) { setSelected(-1); setPerson(-1); setRelation(null); setDetail(false); }
   };
 
   const tool = (label: string, short: string, act: () => void, pressed?: boolean) => (
@@ -327,14 +333,12 @@ function PanelView({ battery, map, facts }: { battery: BatteryWithMaps; map: Obj
   // respondent. The respondent map has no relation display, so Nástroje closes there.
   const showMap = (next: "objects" | "respondents") => {
     if (next === view) return;
-    setView(next); setSelected(-1); setRelation(null); setPerson(-1); setHovered(-1); setMarked(-1); setDetail(false);
+    setView(next); setSelected(-1); setRelation(null); setPerson(-1); setHovered(-1); setDetail(false);
     if (next === "respondents" && work === "tools") setWork(null);
   };
   // Choosing from the list opens the object's detail; choosing it again clears it and closes the
-  // detail. On the respondent map the pick only marks the object's marker; the respondent's
-  // profile stays as it is.
+  // detail. Selection is the object map's: on the respondent map the list only lists (see ObjectList).
   const choose = (k: number, from: HTMLElement) => {
-    if (people) { setMarked((m) => (m === k ? -1 : k)); return; }
     const next = selected === k ? -1 : k;
     setSelected(next); setRelation(null); setDetail(next >= 0);
     if (next >= 0) detailOpener.current = from;
@@ -376,6 +380,30 @@ function PanelView({ battery, map, facts }: { battery: BatteryWithMaps; map: Obj
     return () => document.removeEventListener("keydown", onKey);
   });
 
+  // What the dock and its windows have changed against the map's opening; the bar names it (SOC3).
+  const changes = displayChanges({ map: people ? "respondents" : "objects", norm, relations: mode });
+  // "Zrušit filtr" removes its own bar: the keyboard goes back to the dock, never to the page's top.
+  const dock = useRef<HTMLDivElement>(null);
+  const [resets, setResets] = useState(0);
+  useEffect(() => { if (resets) dock.current?.focus({ preventScroll: true }); }, [resets]);
+  const resetDisplay = () => { showMap("objects"); setNorm("range"); setMode("top"); setResets((n) => n + 1); };
+  // The stage fits the pane it is read in (stageHeight): the workbench's artifact pane, else the
+  // window less the page's sticky header. The dock, the ⓘ and the filter bar are on the map, so
+  // nothing of the panel sits over the stage; measured again whenever the pane or the stage moves.
+  const [fit, setFit] = useState<number | null>(null);
+  useEffect(() => {
+    if (!stage || typeof ResizeObserver === "undefined") return;
+    const pane = stage.closest<HTMLElement>(".artbody");
+    const measure = () => {
+      const visible = pane ? Math.min(pane.clientHeight, window.innerHeight) : window.innerHeight - stickyTop();
+      setFit(stageHeight(visible, 0, stage.clientWidth));
+    };
+    const observer = new ResizeObserver(measure);
+    for (const node of [stage, pane]) if (node) observer.observe(node);
+    window.addEventListener("resize", measure);
+    return () => { observer.disconnect(); window.removeEventListener("resize", measure); };
+  }, [stage]);
+
   const p = "research.exec.objectMap.panel";
   const windowProps = (id: string) => ({ id, style: windows.frame(id), onFront: windows.front, onDrag: windows.drag(id) });
   const detailTitle = t(`${p}.${people ? "personTitle" : "objectDetailTitle"}`);
@@ -388,12 +416,12 @@ function PanelView({ battery, map, facts }: { battery: BatteryWithMaps; map: Obj
   return (
     <div className="flex flex-col gap-3" data-testid="object-map-panel">
       <div ref={setStage} data-resize={windows.cursor || undefined}
-        className="omw relative isolate h-[clamp(700px,76vh,860px)] w-full min-w-0 overflow-hidden bg-[#07090c] max-[900px]:h-[680px] [&:fullscreen]:h-screen [&:fullscreen]:w-screen"
-        data-testid="object-map-stage"
+        className="omw relative isolate w-full min-w-0 overflow-hidden bg-[#07090c] [&:fullscreen]:h-screen [&:fullscreen]:w-screen"
+        data-testid="object-map-stage" style={full ? undefined : { height: fit ?? FIRST_HEIGHT }}
         onPointerDownCapture={(e) => { lastStage = e.currentTarget; windows.stageHandlers.onPointerDownCapture(e); }}
         onPointerMove={windows.stageHandlers.onPointerMove}
         onFocusCapture={(e) => { lastStage = e.currentTarget; }}>
-        <canvas ref={canvas} tabIndex={-1} className="block h-full w-full cursor-grab touch-none outline-none" role="img" data-testid="object-map-canvas" data-marked={people && marked >= 0 ? nodes[marked].id : ""}
+        <canvas ref={canvas} tabIndex={-1} className="block h-full w-full cursor-grab touch-none outline-none" role="img" data-testid="object-map-canvas"
           data-camera={JSON.stringify(camera)} data-norm={norm} data-map={people ? "respondents" : "objects"} data-person={people && person >= 0 ? dots[person].id : ""}
           data-relations={people ? "" : pairs.map((q) => `${nodes[q.i].id}|${nodes[q.j].id}`).join(" ")} data-selected={selected >= 0 ? nodes[selected].id : ""} data-relation={relation ? `${nodes[relation[0]].id}|${nodes[relation[1]].id}` : ""}
           aria-label={people ? tv(`${p}.respondentCanvas`, { title: battery.title, placed: dots.length, n: nodes.length }) : tv(`${p}.canvas`, { title: battery.title, n: nodes.length })}
@@ -401,20 +429,26 @@ function PanelView({ battery, map, facts }: { battery: BatteryWithMaps; map: Obj
           onPointerDown={onDown} onPointerMove={onMove} onPointerUp={onUp} onPointerCancel={() => { pointer.current = null; }} onPointerLeave={() => { if (!pointer.current) setHovered(-1); }} />
         <p id={described} className="sr-only" aria-live="polite">{tv(`${p}.relationsShown`, { count: pairs.length })}</p>
 
-        {/* The panel's dock (`npcMapDock1877`). */}
-        <div className="omw-dock" role="toolbar" aria-label={t("research.exec.objectMap.controls")}>
-          {density ? (
-            <div className="omw-group" role="group" aria-label={t(`${p}.mapGroup`)}>
-              <span className="omw-label" aria-hidden>{t(`${p}.mapGroup`)}</span>
-              <button type="button" aria-pressed={view === "respondents"} onClick={() => showMap("respondents")}>{t(`${p}.mapRespondents`)}</button>
-              <button type="button" aria-pressed={view === "objects"} onClick={() => showMap("objects")}>{t(`${p}.mapObjects`)}</button>
+        {/* The panel's dock (`npcMapDock1877`), and the display filter bar in its row, above the work windows. */}
+        <div className="omw-dock">
+          <div ref={dock} tabIndex={-1} className="omw-dock-bar focus:outline-none" role="toolbar" aria-label={t("research.exec.objectMap.controls")}>
+            {density ? (
+              <div className="omw-group" role="group" aria-label={t(`${p}.mapGroup`)}>
+                <span className="omw-label" aria-hidden>{t(`${p}.mapGroup`)}</span>
+                <button type="button" aria-pressed={view === "respondents"} onClick={() => showMap("respondents")}>{t(`${p}.mapRespondents`)}</button>
+                <button type="button" aria-pressed={view === "objects"} onClick={() => showMap("objects")}>{t(`${p}.mapObjects`)}</button>
+              </div>
+            ) : null}
+            <div className="omw-group" role="group" aria-label={t(`${p}.workGroup`)}>
+              <span className="omw-label" aria-hidden>{t(`${p}.workGroup`)}</span>
+              <button type="button" data-dock="settings" aria-pressed={work === "settings" || work === "objects"} onClick={() => openWork("settings")}>{t(`${p}.settings`)}</button>
+              {/* The relation display is the object map's: the respondent map has no Nástroje here. */}
+              {people ? null : <button type="button" data-dock="tools" aria-pressed={work === "tools"} onClick={() => openWork("tools")}>{t(`${p}.toolsButton`)}</button>}
             </div>
-          ) : null}
-          <div className="omw-group" role="group" aria-label={t(`${p}.workGroup`)}>
-            <span className="omw-label" aria-hidden>{t(`${p}.workGroup`)}</span>
-            <button type="button" data-dock="settings" aria-pressed={work === "settings" || work === "objects"} onClick={() => openWork("settings")}>{t(`${p}.settings`)}</button>
-            {/* The relation display is the object map's: the respondent map has no Nástroje here. */}
-            {people ? null : <button type="button" data-dock="tools" aria-pressed={work === "tools"} onClick={() => openWork("tools")}>{t(`${p}.toolsButton`)}</button>}
+          </div>
+          {/* One live region, always there, so the bar's first appearance is announced too. */}
+          <div role="status" className="omw-status" data-testid="object-map-filter-status">
+            {changes.length ? <FilterBar changes={changes} onReset={resetDisplay} /> : null}
           </div>
         </div>
 
@@ -439,6 +473,7 @@ function PanelView({ battery, map, facts }: { battery: BatteryWithMaps; map: Obj
               {people ? <RespondentCounts map={map} segments={segments} /> : null}
               <QualityRows map={map} />
               <div className="omw-pop-facts">{facts}</div>
+              <Registers />
             </div>
           ) : null}
         </div>
@@ -476,7 +511,8 @@ function PanelView({ battery, map, facts }: { battery: BatteryWithMaps; map: Obj
         ) : null}
         {work === "objects" ? (
           <MapWindow key="objects" {...windowProps("objects")} kind="work" title={t(`${p}.objectManager`)} closeLabel={tv(`${p}.closeWindow`, { title: t(`${p}.objectManager`) })} onClose={closeWork} focusOnOpen>
-            <ObjectList battery={battery} selected={people ? marked : selected} onChoose={choose} onHover={setHovered} notPlaced={notPlaced}
+            {/* Selection is the object map's: on the respondent map the list only lists (a click there showed nothing). */}
+            <ObjectList battery={battery} selected={selected} onChoose={people ? undefined : choose} onHover={setHovered} notPlaced={notPlaced}
               items={nodes.map((n, k) => ({ id: n.id, label: n.label, value: n.value, colour: n.primary ? color66(tones[k]) : SECONDARY }))} />
           </MapWindow>
         ) : null}
@@ -485,7 +521,8 @@ function PanelView({ battery, map, facts }: { battery: BatteryWithMaps; map: Obj
             closeLabel={tv(`${p}.closeWindow`, { title: detailTitle })} onClose={() => closeDetail(true)}>
             {people
               ? <PersonCard detail={person >= 0 ? respondentDetail(map, dots[person].id) : null} />
-              : <ObjectCard battery={battery} map={map} selected={selected} relation={relation} />}
+              : <ObjectCard battery={battery} map={map} selected={selected} relation={relation}
+                onRelation={(j) => setRelation((r) => (isPair(r, selected, j) ? null : [selected, j]))} />}
           </MapWindow>
         ) : null}
       </div>
@@ -751,16 +788,23 @@ function Fact({ label, help, value, note }: { label: string; help?: string; valu
 }
 
 const signed = (v: number) => (v >= 0 ? "+" : "") + num(v, 2);
+/** Whether a relation is the pair of i and j, whichever end it names first (the canvas names the line's own). */
+const isPair = (r: [number, number] | null, i: number, j: number) => !!r && ((r[0] === i && r[1] === j) || (r[0] === j && r[1] === i));
 
 /** The panel's object detail (`objectDetail66`): the selected relation, then the object's numbers
  *  and its strongest reliable relations, all as the map stores them. */
-function ObjectCard({ battery, map, selected, relation }: { battery: BatteryWithMaps; map: ObjectMapArtifact; selected: number; relation: [number, number] | null }) {
+function ObjectCard({ battery, map, selected, relation, onRelation }: { battery: BatteryWithMaps; map: ObjectMapArtifact; selected: number; relation: [number, number] | null; onRelation: (j: number) => void }) {
   const p = "research.exec.objectMap.panel";
   if (selected < 0) return <p className="omw-tip py-4 text-center">{t(`${p}.objectDetailEmpty`)}</p>;
   const o = objectDetail(battery, map, selected);
+  // The Lead's name for the card's relation (lib/artifacts/sociomap.ts); the object's one element is its list button.
+  const pair = relation ? pairTarget(battery.battery_id, map.object_ids[relation[0]], map.object_ids[relation[1]]) : null;
   return (
     <>
-      {relation ? <RelationBlock detail={relationDetail(battery, map, relation[0], relation[1])} /> : null}
+      {/* Announced when a relation opens from the list below: it appears above the button pressed. */}
+      <div aria-live="polite">
+        {relation ? <div data-aia={pair ?? undefined}><RelationBlock detail={relationDetail(battery, map, relation[0], relation[1])} /></div> : null}
+      </div>
       <b className="omw-detail-label" data-testid="object-map-detail-label">{o.label}</b>
       {o.primary ? null : <p className="omw-tip mb-2">{t(`${p}.detailSecondary`)}</p>}
       <div className="omw-facts">
@@ -771,8 +815,12 @@ function ObjectCard({ battery, map, selected, relation }: { battery: BatteryWith
       <h3 className="omw-h3 !mt-[15px]"><Tip label={t(`${p}.detailRelations`)} help={t(`${p}.detailRelationsHelp`)} /></h3>
       {o.relations.length ? (
         <div data-testid="object-map-detail-relations">
+          {/* Each relation opens the pair's detail, as a click on its line does: the canvas is no keyboard's. */}
           {o.relations.map((x) => (
-            <div key={x.id} className="omw-answer"><span>{x.label}</span><b>{signed(x.r)}</b></div>
+            <button key={x.id} type="button" className="omw-answer" aria-pressed={isPair(relation, selected, x.j)} onClick={() => onRelation(x.j)}>
+              <span>{x.label}</span>{" "}<b>{signed(x.r)}</b>
+              <span className="sr-only">{tv(`${p}.relationShow`, { a: o.label, b: x.label })}</span>
+            </button>
           ))}
         </div>
       ) : <p className="omw-tip">{t(`${p}.detailNoRelation`)}</p>}
@@ -833,4 +881,54 @@ function PersonCard({ detail: d }: { detail: ReturnType<typeof respondentDetail>
       </div>
     </div>
   );
+}
+
+const CHANGE_WORDS: Record<string, string> = {
+  "map:respondents": "research.exec.objectMap.panel.filterMapRespondents",
+  "norm:absolute": "research.exec.objectMap.panel.filterNormAbsolute",
+  "relations:selected": "research.exec.objectMap.panel.filterRelationsSelected",
+  "relations:all": "research.exec.objectMap.panel.filterRelationsAll",
+};
+
+/** The display filter bar (the V2 prototype's `filterbar`), a glass chip in the dock's row:
+ *  what the dock's windows changed, and that the computation did not change; one click back to how the map opens. */
+function FilterBar({ changes, onReset }: { changes: DisplayChange[]; onReset: () => void }) {
+  const p = "research.exec.objectMap.panel";
+  return (
+    <div className="omw-filter" data-testid="object-map-filter-bar" data-aia-filters={changes.map((c) => `${c.key}:${c.value}`).join(" ")}>
+      <b>{t(`${p}.filterTitle`)}</b>{" "}
+      <span>{changes.map((c) => t(CHANGE_WORDS[`${c.key}:${c.value}`]!)).join(", ")}.</span>{" "}
+      <span className="omw-filter-note">{t(`${p}.filterUnchanged`)}</span>{" "}
+      <button type="button" onClick={onReset}>{t(`${p}.filterReset`)}</button>
+    </div>
+  );
+}
+
+/** The four kinds of content around a map (the V2 prototype's "Co je co"), in the map's ⓘ box: the frozen
+ *  result, the display, a labelled interpretation, external context. Static words: what each may change. */
+function Registers() {
+  const p = "research.exec.objectMap.panel";
+  const name: Record<MapRegister, string> = { computed: "Computed", display: "Display", interpretation: "Interpretation", external: "External" };
+  return (
+    <div className="omw-pop-facts" data-testid="object-map-registers">
+      <b>{t(`${p}.registersTitle`)}</b>
+      <dl className="grid gap-0.5">
+        {MAP_REGISTERS.map((r) => (
+          <div key={r} className="flex flex-wrap gap-x-1.5" data-register={r}>
+            <dt className="font-semibold">{t(`${p}.register${name[r]}`)}</dt>
+            <dd>{t(`${p}.register${name[r]}Text`)}</dd>
+          </div>
+        ))}
+      </dl>
+    </div>
+  );
+}
+
+/** What the page's sticky headers cover at the window's top (the shell's header from lg up). */
+function stickyTop(): number {
+  let top = 0;
+  for (const h of document.querySelectorAll("header")) {
+    if (getComputedStyle(h).position === "sticky") top = Math.max(top, h.getBoundingClientRect().height);
+  }
+  return top;
 }

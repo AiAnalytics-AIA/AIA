@@ -13,6 +13,7 @@ import hashlib
 import io
 import json
 import zipfile
+from dataclasses import replace
 from datetime import date, datetime
 from pathlib import Path
 from typing import Any
@@ -44,6 +45,7 @@ from aia_core.domain.report.model import (
     CalloutKind,
     Classification,
     Paragraph,
+    Quote,
     ReportDocument,
     ReportKind,
     ReportMeta,
@@ -272,7 +274,13 @@ class _Stub:
     def execute(self, step: StepInput, context: StepContext) -> StepOutcome:
         if self.failure is None:
             return Succeeded()
-        return Failed(self.failure, error={"message": "The AI runtime is not deployed."})
+        return Failed(
+            self.failure,
+            error={
+                "message": "The AI runtime is not deployed.",
+                "reason": "egress_route_not_approved_for_class",
+            },
+        )
 
 
 def _worker(app: FastAPI, fieldwork: FailureClass | None) -> Worker:
@@ -821,7 +829,9 @@ def test_a_person_approves_a_runs_stored_report_once_and_only_that(
     app.state.settings = app.state.settings.model_copy(update={"ai_analysis_enabled": True})
     revision = submit(researcher, world).json()["revision_id"]
     run_id = start(researcher, world, revision).json()["run_id"]
-    report_id = _store_internal_report(app, world, run_id, b"PK\x03\x04approve-test")
+    report_id = _store_internal_report(
+        app, world, run_id, b"PK\x03\x04approve-test", model=_document_model()
+    )
     url = f"{_runs(world)}/{run_id}/report"
     approve = f"{url}/approve"
 
@@ -839,15 +849,28 @@ def test_a_person_approves_a_runs_stored_report_once_and_only_that(
     own = researcher.post(approve, json={"artifact_id": report_id})
     assert own.status_code == 403 and own.json()["code"] == "separation_of_duties"
     assert researcher.get(url).json()["review_state"] == "DRAFT_UNAPPROVED"
+    assert researcher.get(url).json()["approval"] is None  # a draft names no approver (RD2)
 
     before = _prague_today()
     approved = outsider.post(approve, json={"artifact_id": report_id, "note": "Přečteno."})
     assert approved.status_code == 200, approved.text
     assert approved.json()["review_state"] == "APPROVED_INTERNAL"
     assert approved.json()["internal_only"] is True
+    assert approved.json()["report_kind"] == "internal"  # RD3, G66
     status_ = researcher.get(url).json()
     assert status_["review_state"] == "APPROVED_INTERNAL"
     assert status_["approved_on"] in {before, _prague_today()}
+    # RD2: by whom, under which rule, from the ledger row; "you" is the asker.
+    approval = status_["approval"]
+    assert approval["approver_name"] and approval["by_you"] is False
+    assert approval["self_approved"] is False and approval["self_approval_allowed"] is False
+    assert approval["self_approval_source"] == "client" and approval["note"] == "Přečteno."
+    assert outsider.get(url).json()["approval"]["by_you"] is True
+    assert approved.json()["approval"]["by_you"] is True
+    # The document route Zpráva reads carries the same approval.
+    document = researcher.get(f"{url}/document")
+    assert document.status_code == 200, document.text
+    assert document.json()["approval"] == approval
     # D2: its fictional bytes take no stamp, so its approved export is its stored bytes and
     # approving asks for no new PDF (cross-review interactions#4); a person may ask for one.
     assert status_["stamped"] is False
@@ -1148,6 +1171,15 @@ def test_the_approved_client_report_downloads_stamped_and_is_read_once(
                 **REVIEW_STAMP_RECORD,
             },
         )
+        # stored_client_report stores the document beside the draft it stores (RD5a), which the
+        # client gate reads at approval (RD0).
+        client_report._store_document(
+            research_artifacts(session, scope, app.state.artifact_store),
+            run_id,
+            stored,
+            ReportDocument(meta, (section,), ledger),
+            "",
+        )
         session.commit()
 
     def found(session: Any, scope: Any, store: Any, *, run_id: str, build: str = "") -> Any:
@@ -1175,6 +1207,9 @@ def test_the_approved_client_report_downloads_stamped_and_is_read_once(
     approved = outsider.post(f"{url}/approve", json={"artifact_id": stored.artifact_id})
     assert approved.status_code == 200, approved.text
     assert approved.json()["stamped"] is True
+    # The client report is the deliverable that leaves: never said to be internal (RD3, G66).
+    assert approved.json()["report_kind"] == "client"
+    assert approved.json()["internal_only"] is False
     reads.clear()
     downloaded = researcher.get(f"{url}/client/download")
     assert downloaded.status_code == 200 and len(reads) == 1
@@ -1328,6 +1363,7 @@ def test_the_client_report_is_read_as_its_document_beside_its_docx(
     after = researcher.get(f"{url}/document").json()
     assert after["artifact_id"] == body["artifact_id"]
     assert after["review_state"] == "APPROVED_INTERNAL"
+    assert after["approval"]["by_you"] is False and after["approval"]["approver_name"]
     with create_session_factory(app.state.engine)() as session:
         models = session.scalars(
             select(ProjectArtifactRow.artifact_id).where(
@@ -1375,6 +1411,158 @@ def test_a_client_report_stored_again_gets_a_document_of_its_own(
     # Found again, not stored a third time.
     researcher.get(f"{url}/download")
     assert researcher.get(f"{url}/document").json()["artifact_id"] == read.json()["artifact_id"]
+
+
+def _composing(document: ReportDocument) -> Any:
+    def compose(session: Any, scope: Any, store: Any, *, run_id: str) -> Any:
+        return client_report.ComposedClientReport(
+            document=document,
+            sources={"contract": client_report.CLIENT_REPORT_CONTRACT, "run_id": run_id},
+            depends_on=(),
+        )
+
+    return compose
+
+
+def test_a_client_report_carrying_drill_down_content_cannot_be_approved(
+    app: FastAPI,
+    researcher: TestClient,
+    outsider: TestClient,
+    world: Any,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """RD0 (MVPQ-09): the gate refuses by name, and blocks: no reviewer approves past it."""
+    app.state.settings = app.state.settings.model_copy(update={"ai_analysis_enabled": True})
+    revision = submit(researcher, world).json()["revision_id"]
+    run_id = start(researcher, world, revision).json()["run_id"]
+    base = _client_report_document()
+    quoted = replace(
+        base,
+        sections=(
+            *base.sections,
+            Section(
+                "Hlasy", (Quote("Fiktivní citace.", "fiktivní respondent", synthetic=True),), id="v"
+            ),
+        ),
+    )
+    monkeypatch.setattr(client_report, "compose_client_report", _composing(quoted))
+    url = f"{_runs(world)}/{run_id}/report"
+    version = researcher.get(f"{url}/client/download").headers["X-AIA-Artifact-Id"]
+    refused = outsider.post(f"{url}/approve", json={"artifact_id": version})
+    assert refused.status_code == 409, refused.text
+    assert refused.json()["code"] == "client_gate_refused"
+    assert refused.json()["details"]["refusals"] == [
+        {
+            "code": "drill_down_content",
+            "where": "v.1",
+            "message": "doslovná odpověď jednoho respondenta",
+        }
+    ]
+    after = researcher.get(f"{url}/client/document").json()
+    assert after["review_state"] == "DRAFT_UNAPPROVED"
+
+
+def test_the_client_report_is_prepared_to_be_read_without_a_download(
+    app: FastAPI,
+    researcher: TestClient,
+    outsider: TestClient,
+    world: Any,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """RD3: a person reads the client draft in AIA, then approves it; no file leaves to do so.
+    Prepare stores it as the download would, once; a run with no client report is refused by
+    name, and nothing is stored."""
+    app.state.settings = app.state.settings.model_copy(update={"ai_analysis_enabled": True})
+    revision = submit(researcher, world).json()["revision_id"]
+    run_id = start(researcher, world, revision).json()["run_id"]
+    url = f"{_runs(world)}/{run_id}/report"
+    refused = researcher.post(f"{url}/client/prepare")
+    assert refused.status_code == 409 and refused.json()["code"] == "client_report_refused"
+    assert researcher.get(f"{url}/client/document").status_code == 404
+
+    monkeypatch.setattr(
+        client_report, "compose_client_report", _composing(_client_report_document())
+    )
+    assert researcher.get(f"{url}/client/document").status_code == 404
+    prepared = researcher.post(f"{url}/client/prepare")
+    assert prepared.status_code == 200, prepared.text
+    body = prepared.json()
+    assert body["review_state"] == "DRAFT_UNAPPROVED" and body["approval"] is None
+    assert body["document"]["meta"]["kind"] == "client"
+    assert researcher.get(f"{url}/client/document").json() == body
+    again = researcher.post(f"{url}/client/prepare").json()
+    assert again["report_artifact_id"] == body["report_artifact_id"]  # stored once
+    # The version read is the version the download hands over and the approval names.
+    handed = researcher.get(f"{url}/client/download").headers["X-AIA-Artifact-Id"]
+    assert handed == body["report_artifact_id"]
+    version = body["report_artifact_id"]
+    approved = outsider.post(f"{url}/approve", json={"artifact_id": version})
+    assert approved.status_code == 200, approved.text
+    after = researcher.post(f"{url}/client/prepare").json()
+    assert after["report_artifact_id"] == version and after["review_state"] == "APPROVED_INTERNAL"
+
+
+def test_a_client_document_of_an_older_contract_is_stored_again_on_download(
+    app: FastAPI,
+    researcher: TestClient,
+    outsider: TestClient,
+    world: Any,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """A document stored under an older contract names no claim's level, so the gate cannot
+    judge it (gate_unrecorded); the next download stores one of today's beside the same DOCX."""
+    app.state.settings = app.state.settings.model_copy(update={"ai_analysis_enabled": True})
+    revision = submit(researcher, world).json()["revision_id"]
+    run_id = start(researcher, world, revision).json()["run_id"]
+    monkeypatch.setattr(
+        client_report, "compose_client_report", _composing(_client_report_document())
+    )
+    url = f"{_runs(world)}/{run_id}/report"
+    version = researcher.get(f"{url}/client/download").headers["X-AIA-Artifact-Id"]
+    first = researcher.get(f"{url}/client/document").json()["artifact_id"]
+    with create_session_factory(app.state.engine)() as session:
+        row = session.get(ProjectArtifactRow, first)
+        assert row is not None
+        row.artifact_metadata = {
+            **row.artifact_metadata,
+            "document_contract": "aia-report-document-2",
+        }
+        session.commit()
+    assert researcher.get(f"{url}/client/download").headers["X-AIA-Artifact-Id"] == version
+    second = researcher.get(f"{url}/client/document").json()["artifact_id"]
+    assert second != first
+    assert outsider.post(f"{url}/approve", json={"artifact_id": version}).status_code == 200
+
+
+def test_a_client_draft_with_no_stored_document_is_not_approvable(
+    app: FastAPI, researcher: TestClient, outsider: TestClient, world: Any
+) -> None:
+    """A draft stored before its document (RD5a) cannot be judged: unknown, never passed."""
+    app.state.settings = app.state.settings.model_copy(update={"ai_analysis_enabled": True})
+    revision = submit(researcher, world).json()["revision_id"]
+    run_id = start(researcher, world, revision).json()["run_id"]
+    principal = AuthenticatedPrincipal(
+        user_id=world.users["researcher"], organization_id=world.organization_id
+    )
+    with create_session_factory(app.state.engine)() as session:
+        scope = ScopeResolver(session).study_context(principal, study_id=world.study_id())
+        run = ResearchRuns(session, scope).get(run_id)
+        stored, _ = research_artifacts(session, scope, app.state.artifact_store).put(
+            project_id=run["project_id"],
+            revision=int(run["project_revision"]),
+            stage_type="REPORT",
+            artifact_type=CLIENT_REPORT_ARTIFACT_TYPE,
+            data=DocxRenderer().render(_client_report_document()),
+            content_type=INTERNAL_REPORT_MEDIA_TYPE,
+            input_fingerprint="client-before-rd0",
+            metadata={"run_id": run_id, "report_kind": "client", **REVIEW_STAMP_RECORD},
+        )
+        session.commit()
+    refused = outsider.post(
+        f"{_runs(world)}/{run_id}/report/approve", json={"artifact_id": stored.artifact_id}
+    )
+    assert refused.status_code == 409
+    assert [r["code"] for r in refused.json()["details"]["refusals"]] == ["gate_unrecorded"]
 
 
 def test_a_client_report_stored_before_its_document_says_so(
@@ -1733,6 +1921,9 @@ def test_fieldwork_without_the_ai_runtime_waits_visibly_and_nothing_downstream_r
     assert steps["run"]["status"] == "WAITING_PROVIDER"
     assert steps["run"]["waiting_reason"] == "ai_runtime_unavailable"
     assert steps["run"]["failure_class"] == "RUNTIME_UNAVAILABLE"
+    # The gate's own code, which the web words as who fixes it (lead-orchestration LO12a).
+    assert steps["run"]["error_reason"] == "egress_route_not_approved_for_class"
+    assert steps["compile"]["error_reason"] is None
     assert steps["aggregate"]["status"] == steps["sociomap"]["status"] == "BLOCKED"
     assert run["artifact_ids"] == []
     # Waiting is not failure: it cannot be retried into a second run that waits for the same thing.
@@ -2100,6 +2291,97 @@ def test_readiness_says_what_would_stop_a_run_before_anything_starts(
     assert (
         other_client_lead.get(other, params={"design_revision_id": revision_id}).status_code == 404
     )
+
+
+def test_readiness_reads_a_working_revision_without_submitting_a_design(
+    researcher: TestClient, viewer: TestClient, other_client_lead: TestClient, world: Any
+) -> None:
+    """Plan working-copy-edit-ops WCE7: a stage reads readiness on the working revision it
+    shows. The answer is the one a submit of that revision reads, and nothing is written."""
+    base = f"{API}/studies/{world.study_id()}"
+    now = researcher.get(f"{base}/workspace/content").json().get("revision")
+    saved = researcher.put(
+        f"{base}/workspace/content", json={"content": DESIGN, "base_revision": now}
+    )
+    assert saved.status_code == 200, saved.text
+    number = saved.json()["revision"]
+    url = f"{base}/research/readiness/working"
+
+    working = viewer.get(url, params={"working_revision": number})
+    assert working.status_code == 200, working.text
+    body = working.json()
+    assert body["working_revision"] == number and "design_revision_id" not in body
+    assert viewer.get(f"{base}/design/revisions").json()["items"] == [], "nothing was submitted"
+
+    # The same answer a submit of that revision reads, but for the revision it names.
+    revision_id = submit(researcher, world).json()["revision_id"]
+    design = viewer.get(f"{base}/research/readiness", params={"design_revision_id": revision_id})
+    same = {**design.json()}
+    same.pop("design_revision_id")
+    mine = {k: v for k, v in body.items() if k != "working_revision"}
+    # Its acknowledgement digest names no Design Revision, so it never stands for a start's.
+    assert mine["answerability"]["digest"] != same["answerability"]["digest"]
+    mine["answerability"].pop("digest")
+    same["answerability"].pop("digest")
+    assert mine == same
+
+    # A revision the Study never saved, or another study's, is not found.
+    missing = viewer.get(url, params={"working_revision": number + 50})
+    assert missing.status_code == 404 and missing.json()["code"] == "working_revision_not_found"
+    assert viewer.get(url, params={"working_revision": 0}).status_code == 422
+    other = f"{API}/studies/{world.study_id('other_client')}/research/readiness/working"
+    assert other_client_lead.get(other, params={"working_revision": number}).status_code == 404
+
+
+def test_impact_reads_each_stage_of_a_design_against_the_working_copy(
+    researcher: TestClient, viewer: TestClient, other_client_lead: TestClient, world: Any
+) -> None:
+    """Plan working-copy-edit-ops WCE7, AC-07: a questionnaire edited after a design was
+    submitted; its stage reads CHANGED, the stages after it RECHECK, those before CURRENT, and the
+    Design Revision named is older than the working copy. Nothing is written."""
+    base = f"{API}/studies/{world.study_id()}"
+    url = f"{base}/research/impact"
+    assert viewer.get(url, params={"working_revision": 1}).status_code == 404  # nothing saved
+    made = submit(researcher, world).json()
+    same = viewer.get(url, params={"working_revision": made["workspace_revision"]})
+    assert same.status_code == 200, same.text
+    assert {s["impact"] for s in same.json()["stages"]} == {"CURRENT"}
+    assert same.json()["changed"] == []
+
+    edited = {**DESIGN, "sections": [dict(DESIGN["sections"][0]), DESIGN["sections"][1]]}
+    edited["sections"][0]["questions"] = [
+        {**DESIGN["sections"][0]["questions"][0], "text": "Upravená otázka?"},
+        *DESIGN["sections"][0]["questions"][1:],
+    ]
+    saved = researcher.put(
+        f"{base}/workspace/content",
+        json={"content": edited, "base_revision": made["workspace_revision"]},
+    )
+    assert saved.status_code == 200, saved.text
+    body = viewer.get(url, params={"working_revision": saved.json()["revision"]}).json()
+    assert body["design_revision_id"] == made["revision_id"]
+    assert body["design_revision"] == made["revision"] and body["changed"] == ["sections"]
+    impact = {s["stage"]: s["impact"] for s in body["stages"]}
+    assert impact["BRIEF"] == "CURRENT" and impact["RESEARCH_DESIGN"] == "CURRENT"
+    assert impact["QUESTIONNAIRE"] == "CHANGED" and impact["FIELDWORK"] == "CHANGED"
+    assert impact["ANALYSIS"] == "RECHECK" and impact["REPORT"] == "RECHECK"
+    assert len(viewer.get(f"{base}/design/revisions").json()["items"]) == 1, "nothing submitted"
+
+    # A named revision of this Study; another study's, or an unknown one, is not found.
+    named = viewer.get(
+        url,
+        params={
+            "working_revision": saved.json()["revision"],
+            "design_revision_id": made["revision_id"],
+        },
+    )
+    assert named.json() == body
+    missing = viewer.get(
+        url, params={"working_revision": saved.json()["revision"], "design_revision_id": "REV-0"}
+    )
+    assert missing.status_code == 404 and missing.json()["code"] == "design_revision_not_found"
+    other = f"{API}/studies/{world.study_id('other_client')}/research/impact"
+    assert other_client_lead.get(other, params={"working_revision": 1}).status_code == 404
 
 
 def test_readiness_forecasts_whether_a_runs_numbers_will_be_shown(
@@ -2730,3 +3012,29 @@ def test_a_panel_runs_filters_are_applied_only_once_its_draw_succeeded() -> None
         "dimensions_not_persona_topics",
     )
     assert unmatched.filters_applied is True
+
+
+def test_persona_topics_answer_each_dimension_before_any_run(
+    researcher: TestClient, world: Any
+) -> None:
+    """artifact-dimensions DIM2: Dimenze's chip, from the mapping a run's receipt reads."""
+    url = f"{API}/studies/{world.study_id()}/research/persona-topics"
+    got = researcher.get(url, params=[("dimension", "ekologie"), ("dimension", "barva_obalu")])
+    assert got.status_code == 200
+    assert got.json()["items"] == [
+        {"dimension": "ekologie", "topic": "eko"},
+        {"dimension": "barva_obalu", "topic": None},
+    ]
+    assert researcher.get(url).json() == {"items": []}
+    too_many = researcher.get(url, params=[("dimension", f"d{i}") for i in range(65)])
+    assert too_many.status_code == 422
+    assert researcher.get(url, params={"dimension": "x" * 81}).status_code == 422
+
+
+def test_a_step_passes_on_a_stored_code_never_free_text() -> None:
+    from aia_api.routers.research import _code
+
+    assert _code("egress_route_not_approved_for_class") == "egress_route_not_approved_for_class"
+    assert _code("Trasa není schválená.") is None
+    assert _code(None) is None
+    assert _code(3) is None

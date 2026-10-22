@@ -260,7 +260,10 @@ switched off is refused, 409 `research_lead_disabled`; stored text edits can sti
 dismissed (27b). Q43: with the Lead off, LO5's typed start commands still work, matched by code
 (27a, 27b). The research run keeps Spuštění's own Start button and also appears as a card in the
 Lead's chat ("i want this to appear in the lead researches chat too"; D15, 26f). Q40: spend is shown
-per researcher (`develop-spend-attribution#7`).
+per researcher (`develop-spend-attribution#7`), delivered by #583 (merged as `e78dfa8b`, 2026-10-21):
+Settings → Studie a rozpočty "Útrata podle výzkumníka", every member for OWNER/ADMIN, a researcher
+their own; a charge booked to the budget lifter, else the one start approver, else the starter,
+else nobody, never a guess (Q67 (a) below; OI-193, OI-194).
 
 **2026-10-21, the owner's answers Q50, Q52, Q54, Q56 and Q58** (on the PM status page, relayed by the
 coordinator; the artifact plans, #560). Q50 (b): in the `-5` drawing only the two state issues are
@@ -274,7 +277,7 @@ report narrative's first draft is written by code, then the Lead proposes tracke
 labelled as external sources (L), never respondent evidence (ADR 0021 unchanged in substance), and
 the separate report with literature is retired for new reports; stored ones stay downloadable. This
 may need a note in ADR 0021 and `contextual_report.py`'s description. Q57 was MVPQ-04 already (no new
-decision). Q51, Q53 and Q55 are open.
+decision). Q51, Q53 and Q55 were answered later (below).
 
 **2026-10-21 14:40 UTC, the owner's answer Q59 (a)** (relayed by the coordinator): "The lead
 researcher can see all the files in a client's knowledge base." Every Lead turn carries an index of
@@ -283,6 +286,39 @@ summary. The Lead opens any file's text by id on demand; code fetches it, scoped
 the Lead cites it by locator. Pending proposals are marked unapproved, sources marked "Interní
 dokument" are included and marked, and rejected items are left out. The plan,
 `lead-client-knowledge.md`, comes in its own PR.
+
+**2026-10-21, the owner's answers Q60-Q65** (on the PM status page, relayed by the coordinator).
+Q60 (a), 14:51 UTC, as data owner: client knowledge in the lineage `unclassified-client-knowledge` is
+licensed for `bedrock-eu-primary` only, beside the panel's OI-61 rule (`lead-client-knowledge#LK0`,
+its own fix PR); it ends the refusal of every Lead turn for a client with an approved dataset,
+artifact or finding (OI-142). Q61 (b), against the coordinator's recommendation: folder and label
+names never reach a model; the Lead's index carries item names and kinds only. Q62 (a): a dataset
+the Lead opens is read as its preview only, personal columns masked, never its rows (LK5). Q63 (a),
+15:15: the nine typed start commands in #574 stay as proposed. Q64 (a), 15:17: Claude reviews stand
+in for Codex until its credits reset (17:42 Prague time). Q65 (a), 15:18: brief attachments stay
+Class B, shown for awareness; "i dont want any gates stopping based on the classification, we are
+going for full functionality right now." Q66 (a), 15:20 UTC: **on develop only**, data classes are
+shown and recorded but never block; EU residency and the licence determinations still hold. The
+owner's note, "dont limit the brave search capabilities either": on develop, Brave may receive search
+queries of any class, the one stated exception to EU residency, and for search queries only. In the
+coordinator's session at about 15:22 UTC he said "build the develop-only class-advisory switch,
+including Brave for any class"; the PR is `feature/develop-class-advisory`. Production keeps the
+class rules (ADR 0008, ADR 0032 §4). Q67, who pays after a budget lift, is open. The read round inside a Lead turn (ADR 0042, Proposed) is
+the coordinator's decision within Q59; the experimental Sociomapping draft is named only in CHN1's
+section manifest (the coordinator, #579). Q51, Q53, Q55 and Q67 are answered below.
+
+**2026-10-21, the owner's answers Q51, Q53, Q55 and Q67** (on the PM status page, relayed by the
+coordinator with their stored wording). Q51 "Tracked sets: allow a word on every scale point?", (b),
+14:32: "Keep sets to two end words until 3b3 (Aram's wording rule)"; #559 gives a single scale
+question a word on every point, and a set stays two-ended because the server reads a set's first two
+labels as its ends (`SpecBattery.told_ends`, OI-184). Q53 "Dotazník: who sets the questionnaire
+length limit?", (a), 20:16: "A declared rule per study type, set by Aram on Metodika". Q55 "What
+sections does the MVP draft report have?", (b), 14:33: "Today's report with gaps closed, plus
+RD9/RD10, plus literature when chosen, in today's order", with his note "ensure we are not missing
+anything". Q67 "Per-researcher spend: who pays after a budget lift?", (a), 20:12: "Whoever lifts the
+budget pays for what runs after the lift" (built in #583). Still open on the PM status page: Q68
+(comments on Návrh; the coordinator recommends (b)) and Q69 (the Lead's study notes in the draft
+report; the coordinator recommends (a), left out).
 
 ## MVPQ-12 — Canonical Sociomap questions still requiring sign-off
 
