@@ -483,6 +483,17 @@ forbid "the worker never touches the approval ledger" \
 forbid "executors never touch the approval ledger" \
   'ApprovalDecisionRow|approval_decisions' \
   apps/executors/src
+# A write logged without its author (domain/edit_log.py WriteBy) is only a revision migrated from
+# 18.6.6, whose author the unit did not record. The source that admits it is named by the
+# migration alone, so no other writer can log a person's write as nobody's by picking the label
+# (working-copy-edit-ops WCE2, review of #762).
+forbid "only the 18.6.6 migration logs a write as migrated" \
+  'OpSource\.MIGRATION' \
+  "$CORE" \
+  "$CORE/domain/edit_log.py" "$CORE/application/workspace_migration.py"
+forbid "the API, worker and executors never log a write as migrated" \
+  'OpSource\.MIGRATION' \
+  apps
 # A study's wallet (ADR 0028 decision 2, lead-orchestration LO1): StudyWalletRepository is the
 # only reader and writer of its three tables, because every write that compares an amount takes
 # the study row's lock first; a charge written anywhere else is a hold nobody checked against the

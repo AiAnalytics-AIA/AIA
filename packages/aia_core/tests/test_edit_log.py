@@ -94,9 +94,10 @@ def test_an_analysis_change_is_logged() -> None:
 def test_only_a_migrated_revision_is_logged_without_its_author() -> None:
     assert WriteBy(ActorKind.PERSON, None, OpSource.MIGRATION).actor_user_id is None
     for source in OpSource:
-        if source is OpSource.MIGRATION:
-            continue
         for kind in ActorKind:
+            if (source, kind) == (OpSource.MIGRATION, ActorKind.PERSON):
+                continue
+            # 18.6.6 had no Lead: a Lead's write always names its researcher, migrated or not.
             with pytest.raises(ValueError, match="without its author"):
                 WriteBy(kind, None, source)
     with pytest.raises(ValueError, match="never empty"):

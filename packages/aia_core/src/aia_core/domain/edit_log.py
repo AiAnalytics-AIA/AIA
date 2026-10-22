@@ -80,8 +80,11 @@ class WriteBy:
     """Who made one write and why, shared by every row it logs.
 
     ``actor_user_id`` is the person, or the researcher whose Lead made it. It is ``None`` only
-    for a revision migrated from 18.6.6, whose author the unit did not record; any other write
-    without one is refused here, so a person's write is never logged as nobody's.
+    for a revision migrated from 18.6.6, whose author the unit did not record: a person's write
+    (18.6.6 had no Lead) with the source ``migration``. Any other write without one is refused
+    here, so a person's write is never logged as nobody's. Which code may name that source is
+    held by ``make layer_check`` (the 18.6.6 migration alone), so the label is not a caller's to
+    pick.
     """
 
     actor_kind: ActorKind
@@ -90,7 +93,8 @@ class WriteBy:
     source_ref: str | None = None
 
     def __post_init__(self) -> None:
-        if self.actor_user_id is None and self.source is not OpSource.MIGRATION:
+        migrated = self.source is OpSource.MIGRATION and self.actor_kind is ActorKind.PERSON
+        if self.actor_user_id is None and not migrated:
             raise ValueError("only a revision migrated from 18.6.6 is logged without its author")
         if self.actor_user_id is not None and not self.actor_user_id:
             raise ValueError("an author is a user id, never empty")

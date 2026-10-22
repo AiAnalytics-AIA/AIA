@@ -67,7 +67,11 @@ the agent-job and Design Research accepts; **2f** the 18.6.6 migration, then `sa
   (`design_fields.changed_fields`), a whole-copy write's `op` `{"op": "whole_copy", "reason"}`;
   a write no field counts (a re-spaced list entry, an id list) logs one `content:copy:` row, so no
   write skips the log; `WriteBy` refuses a write without its author unless it is a migrated
-  revision; a key or field past its column is a prefix and a digest, deterministic. Measured: a
+  revision, and only a person's (18.6.6 had no Lead); which code may name the `migration` source
+  is held by `layer_check` ("only the 18.6.6 migration logs a write as migrated":
+  `domain/edit_log.py` and `application/workspace_migration.py` alone), so the exemption is not a
+  label any writer can pick (review of #762); a key or field past its column is a prefix and a
+  digest, deterministic. Measured: a
   40-question import into the template is 44 rows in 5.6 ms (median of 20), one wording edit on it
   1 row in 7.3 ms. Tests: `test_edit_log.py`.
 
