@@ -88,6 +88,38 @@ def test_someone_who_is_no_member_gets_no_session(app: FastAPI, anonymous: TestC
     assert "set-cookie" not in response.headers
 
 
+def test_a_second_subject_with_a_members_email_is_not_that_member(
+    app: FastAPI, anonymous: TestClient, world: Any
+) -> None:
+    # The owner signs in once, so their record is bound to their subject. A token for
+    # another subject that carries the same e-mail (an address reassigned in the
+    # directory, a second identity provider) is someone else, never the owner.
+    owner = anonymous.post(SESSION, headers={"Authorization": f"Bearer {world.tokens['owner']}"})
+    assert owner.status_code == 204
+    app.state.identity_provider.register(
+        "token-same-email", subject="someone-else", email="owner@art-chain.io"
+    )
+    response = anonymous.post(SESSION, headers={"Authorization": "Bearer token-same-email"})
+    assert response.status_code == 403
+    assert response.json()["code"] == "identity_mismatch"
+    assert "set-cookie" not in response.headers
+    # The attempt is in the owner's organization's access audit, not only in a log.
+    factory = create_session_factory(app.state.engine)
+    with factory() as session:
+        refused = session.scalars(
+            select(AccessAuditRow).where(AccessAuditRow.reason == "identity_mismatch")
+        ).all()
+    assert [(r.action, r.subject_user_id) for r in refused] == [
+        ("AIA_SESSION_DENIED", world.users["owner"])
+    ]
+    assert (
+        anonymous.get(
+            f"{API}/workspace/me", headers={"Authorization": "Bearer token-same-email"}
+        ).status_code
+        == 403
+    )
+
+
 def test_a_deactivated_account_gets_no_session_and_loses_the_one_it_had(
     app: FastAPI, anonymous: TestClient, world: Any
 ) -> None:
