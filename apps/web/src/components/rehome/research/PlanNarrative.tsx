@@ -28,9 +28,9 @@ const TITLE: Record<NarrativeList, string> = {
 };
 
 /**
- * `onQuote`: a comment on an item, quoting it whole (audit A35). A value drawn for editing in place
- * is a button, and a browser selects no text inside one, so the narrative's items are commented on
- * by this action instead of a text selection.
+ * `onQuote`: a comment on an item, quoting it whole (audit A35), for a touch or keyboard reader. A
+ * part of an item's words is quoted by selecting it (the product owner, Q68): the items are drawn
+ * `selectable`, and the stage's Commentable picks the selection up.
  */
 export function PlanNarrative({ disabled = false, onQuote }: { disabled?: boolean; onQuote?: (quote: string) => void }) {
   const { store, state, toast } = useResearch();
@@ -82,6 +82,7 @@ export function PlanNarrative({ disabled = false, onQuote }: { disabled?: boolea
         value={n.problem_summary}
         label={t("research.plan.summaryLabel")}
         multiline
+        selectable
         disabled={disabled}
         rules={{ maxLength: SUMMARY_MAX }}
         className="min-w-0 flex-1 text-[15px] leading-6"
@@ -102,6 +103,7 @@ export function PlanNarrative({ disabled = false, onQuote }: { disabled?: boolea
                     value={text}
                     label={tv(`research.plan.narrative.item.${list}`, { n: i + 1 })}
                     multiline
+                    selectable
                     disabled={disabled}
                     rules={{ maxLength: ITEM_MAX, validate: (v) => itemProblem(narrativeOf(store.get()), list, v, i) }}
                     className="min-w-0 flex-1"
