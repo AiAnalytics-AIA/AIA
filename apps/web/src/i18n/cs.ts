@@ -2035,6 +2035,7 @@ export const cs = {
         comment: "Komentovat: {text}",
         commentShort: "Komentovat",
         add: { research_questions: "Přidat výzkumnou otázku", objectives: "Přidat cíl", hypotheses: "Přidat hypotézu" },
+        addEmpty: { research_questions: "Napište výzkumnou otázku.", objectives: "Napište cíl.", hypotheses: "Napište hypotézu." },
         item: { research_questions: "Výzkumná otázka {n}", objectives: "Cíl {n}", hypotheses: "Hypotéza {n}" },
       },
       createManual: "Začít vlastní návrh",

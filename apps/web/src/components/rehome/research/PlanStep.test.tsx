@@ -398,6 +398,20 @@ describe("direct proposal editing", () => {
     expect(posted(DESIGN_PATH)).toEqual([]); // manual editing never pays for an AI task
   });
 
+  it("says an empty new narrative item as the thing to write, never a name", async () => {
+    unitStub();
+    render(<ResearchScreen step="plan" frame={TEST_FRAME} />);
+    await screen.findByText("Mírnější varianta vyhraje");
+    for (const [add, words] of [["Přidat výzkumnou otázku", "Napište výzkumnou otázku."], ["Přidat cíl", "Napište cíl."], ["Přidat hypotézu", "Napište hypotézu."]]) {
+      fireEvent.click(screen.getByRole("button", { name: add }));
+      const row = screen.getByRole("textbox", { name: add });
+      fireEvent.keyDown(row, { key: "Enter" });
+      // The row's own message: the one its field is described by.
+      expect(document.getElementById(row.getAttribute("aria-describedby") ?? "")?.textContent).toBe(words);
+      fireEvent.keyDown(row, { key: "Escape" });
+    }
+  });
+
   it("refuses a repeat at the field, keeps the last objective, and takes a removal back with Vrátit", async () => {
     const ws = unitStub();
     render(<ResearchScreen step="plan" frame={TEST_FRAME} />);

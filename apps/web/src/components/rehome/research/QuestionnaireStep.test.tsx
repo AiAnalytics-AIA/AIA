@@ -317,6 +317,23 @@ describe("Dotazník", () => {
     expect((lastSave().content.sections as { title?: string }[]).at(-1)?.title).toBe("Úvod");
   });
 
+  it("says an empty new question as its wording to write, never a name", async () => {
+    unitStub({ ...BRIEF, sections: SECTIONS, ui_state: { questionnaire_path: "manual" } });
+    render(<ResearchScreen step="questionnaire" frame={TEST_FRAME} />);
+    await screen.findByRole("heading", { name: "2 otázky · 1 sledovaná sada" });
+    const block = document.getElementById("qblock_sec_a") as HTMLElement;
+    fireEvent.click(within(block).getByRole("button", { name: "Otázka do tohoto bloku" }));
+    // Each row's own message: the one its field is described by.
+    const said = (row: HTMLElement) => document.getElementById(row.getAttribute("aria-describedby") ?? "")?.textContent;
+    const inBlock = within(block).getByRole("textbox", { name: "Otázka do tohoto bloku" });
+    fireEvent.keyDown(inBlock, { key: "Enter" });
+    expect(said(inBlock)).toBe("Napište znění.");
+    fireEvent.click(screen.getByRole("button", { name: "Nová otázka" }));
+    const outline = screen.getByRole("textbox", { name: "Nová otázka" });
+    fireEvent.keyDown(outline, { key: "Enter" });
+    expect(said(outline)).toBe("Napište znění.");
+  });
+
   it("notes a set under four objects, and removes a block only when confirmed", async () => {
     unitStub({ ...BRIEF, sections: SECTIONS, ui_state: { questionnaire_path: "manual" } });
     render(<ResearchScreen step="questionnaire" frame={TEST_FRAME} />);
