@@ -3,9 +3,9 @@ status: in-progress
 chunks:
   - "[x] ANL1. Analýza's contract as data: view operations, pointable ids (module, finding, claim, research question) and V2's interaction contract"
   - "[x] ANL2. Milestones and Pokrytí výzkumných otázek: each research question with its answer state, the findings that answer it and what is missing"
-  - "[ ] ANL3. Findings with their claim and source chips, opened in the inspector down to the measure on Výsledky"
+  - "[x] ANL3. Findings with their claim chips, opened in the inspector down to the measure on Výsledky"
   - "[ ] ANL4. Blokované nároky and a module with no supported finding, each with its reason and the way out"
-  - "[ ] ANL5. The three registers apart: findings, labelled interpretation, external context from the sealed bundle"
+  - "[ ] ANL5. The three registers apart: findings, labelled interpretation, external context from the sealed bundle, with its source chips"
   - "[ ] ANL6. Moduly analýzy and the same-data retry through the Lead's card, the stage's retry buttons removed"
   - "[ ] ANL7. Open-answer coding hosted here: the coded themes as a proposal, the counts as admitted claims"
   - "[ ] ANL8. Journey: Analýza at 1440, 1100, 768 and 390 px on recorded analysis, zero paid jobs"
@@ -135,8 +135,33 @@ signature (`{ target: { kind, id } }`, no header of its own) and reads the analy
 which `AnalysisResults` publishes (`setShownAnalysis`), so the drawer never opens another run's item. Still
 open: the frame wiring `inspect` and a person's click to it (the integration coordinator's).
 
+*Landed (2026-10-22, `feature/analysis-inspector`).* The frame's drawer (#623) draws `finding` and `claim`
+through `AnalysisInspect` (`BODIES` in `ItemInspectBody.tsx`, as the coordinator invited). A person opens
+them the three ways V2 does:
+- a coverage chip;
+- each key finding's inspector button;
+- a cited-number chip, whose measure link is in the drawer.
+
+`useOpenAnalysisItem` is null outside the workbench, so there the page keeps its scroll and its measure
+links. Tests: `ExecutionSteps.test.tsx` "opens a finding and a cited number in the workbench's inspector …
+(ANL3)" and `analysis_journey.mjs` (drawer from the chip, the button and the number; the measure from the
+drawer). Source chips moved to ANL5, with the external-context register they belong to: a finding of
+this run cites admitted numbers only.
+
 **ANL4. Blocked claims and diagnostics.** Test: a module stored BLOCKED shows "Potřebuje opravu",
 never "Hotovo" (`needsRepair`). Depends on `evidence-integrity#9a`.
+
+The part that needs no new API has landed; the chunk stays open for evidence-integrity 9a's diagnostic.
+- `lib/analysis-blocked.ts`: `blockedModules`, every module stored BLOCKED in module order, its stored violations
+  grouped by reason with each subject beside its own detail; `wayOut`, the way out the server gives (`GET
+  …/analysis/retryable`): a same-data round only for a module it lists, "the same data would refuse it again" for a
+  module the preflight refused before any model turn, nothing promised while the run runs or the list is unread.
+- `AnalysisBlocked.tsx`: "Blokované nároky" after the overview, each reason in words (`research.exec.violation`,
+  every `ViolationCode` worded, held to `domain/evidence/gate.py` by `analysis-blocked.test.ts`; a code without words
+  keeps its code), counted, subjects and details folded; the way out per module only where the person can act
+  (`canEdit` and a Průběh to go to). `ViolationList` words the selected module's pane the same way. The Lead is not
+  offered as a way out: it cannot ask a same-data round until ANL6.
+- Still open: N-3 (per-claim refusals as stored, a new API) and 9a's "no supported finding" diagnostic.
 
 **ANL5. Registers.** Test: an external finding is labelled "Externí kontext" and has no claim chip.
 Depends on `evidence-integrity#7`, `lead-orchestration#LO9b`.
@@ -155,6 +180,38 @@ Depends on `evidence-integrity#7`, `lead-orchestration#LO9b`.
   - the Lead focusing `rq:<id>`;
   - a module retried through the card on recorded answers.
 - Zero paid jobs. 768 and 390 px depend on `research-lead-workbench#26b`-`#26d`.
+
+## Findings
+
+From the ANL8 audit in a browser: the UI workbench's recorded analysis, the `persona` fixture's finished run,
+1440/1100/768/390 px (`tools/ui_workbench/analysis_journey.mjs`). Fixed on `feature/analysis-audit-fixes`.
+
+- **F1.** The milestone "Sběr dokončen" read "čeká" on a finished run.
+  - Anchor: `AnalysisCoverage.tsx:59 @ bfe6d15b` reads a step keyed `fieldwork`; the fieldwork step is keyed `run`
+    (`research-execution.ts:16 @ bfe6d15b` `STEP_ORDER`).
+  - Repro: the journey's milestone check, or `ExecutionSteps.test.tsx` "covers every research question … (ANL2)".
+  - Consequence: every finished run said its fieldwork was still waiting.
+  - Fix: `stepOf(run, "run")`. Test: the milestone's `data-done` is `true` on the completed fixture.
+- **F2.** The Analýza stage opened about 1,780 px above its analysis (2,670 px at 390), at scroll 0.
+  - Anchor: `ResultsWorkspace.tsx:51-53 @ bfe6d15b` draws the report card (`lead`) and the run's summary above
+    the view tabs on every result stage. `ExecutionSteps.tsx:1659 @ bfe6d15b` (the analysis card) is below them.
+  - Repro: the journey's "opens on its analysis" check.
+  - Consequence: a person opening Analýza saw "Kdo odpovídal" and the report card, and had to scroll to find the analysis.
+  - Fix: when the stage is Analýza (`stageOf`), `AnalysisResults` scrolls its card into view once its read settles,
+    an error included, unless the person scrolled meanwhile, and again on every later move to Analýza within the page.
+    The same frame puts Sociomapa and Zpráva below the same header; that is reported to the integration coordinator.
+  - Test: the journey's checks at every width, and on moving from Výsledky to Analýza within the page.
+- **F3.** At 390 px the coverage table was cut off by a horizontal scroll (`min-w-[36rem]`, `AnalysisCoverage.tsx:88 @ bfe6d15b`).
+  - Repro: the journey's clip check at 390 px.
+  - Consequence: "Zjištění" was clipped and "Co chybí" was out of sight.
+  - Fix: below md each row is a card, each cell under its column's name.
+  - Test: the journey checks that the table is never wider than its section.
+- **F4.** A finding chip in the coverage table sent the page to Přehled.
+  - Anchor: `AnalysisCoverage.tsx:101 @ bfe6d15b` linked `#analysis-finding-…`, a hash `ResultsWorkspace` reads as no view.
+  - Repro: the journey's chip check, or `ExecutionSteps.test.tsx` "covers every research question … (ANL2)".
+  - Consequence: the finding was hidden, and the workbench's stage track moved to Výsledky.
+  - Fix: the chip is a button that scrolls to and focuses the finding, with no hash.
+  - Tests: `ExecutionSteps.test.tsx` (hash unchanged, the finding focused) and the journey (AI analýza still selected).
 
 ## 8. Owner questions
 

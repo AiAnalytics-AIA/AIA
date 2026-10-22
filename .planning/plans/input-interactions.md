@@ -567,6 +567,24 @@ IA-1 … IA-6, with all six parts, in the audit's §6. For the docs PR to number
   with a label on every point and reads it back after a reload.
 - **open-items.md**: number the 3b2 finding above (a per-point set's ends as develop read them).
 
+### Chunk 3, in progress (the Dotazník screen owner, in small PRs)
+
+- **3a. Deletes with undo (audit A17, A18), feature/questionnaire-undo-deletes.**
+  - A question is removed at once, and "Vrátit" on the editor's one toast puts it back in its place.
+  - A block or a tracked set keeps its InlineConfirm and is then removed, also with "Vrátit".
+  - The restore helpers are `research/questionnaire.ts` `restoreQuestion` and `restoreSection`. A question goes back by its section's id, never into another section, and nothing is restored twice.
+  - The toast is ScaleEditor's provider, shared through `useEditorUndo`.
+  - Tests: `questionnaire-undo.test.ts`, `QuestionnaireUndo.test.tsx`, and the journey step in `questionnaire_journey.mjs` (1440 px).
+  - Merged as #640; Vrátit outlives the preview tab and the last block's delete on the upload or AI path (the provider wraps the stage).
+- **3b. Segmented and chips (A2, A11, A12), #645.** A question's type, its research questions and a comparison are `ChoiceChips`; a dangling research-question link keeps its ×. Test: `QuestionnaireChoices.test.tsx`.
+- **3c. Quick adds inline (A5-A8, A21), #651.** A question, a block and a tracked set are added in their own `InlineCreateRow`s (the outline's quick add with "Typ nové otázky", "Nový blok", "Sledovaná sada", each block's "Otázka do tohoto bloku"); the AskDialog prompts are retired. Tests: `questionnaire-adds.test.ts`, `QuestionnaireStep.test.tsx`.
+- **3d. Prices as chips (A16), #652.** A concept test's price bands entered one at a time, each checked as an amount; `ChipInput` takes `refuse`, keeping the draft with its reason. Tests: `questionnaire-prices.test.ts`, `QuestionnairePrices.test.tsx`.
+- **3e. A block's name and purpose and a set's name in place (A4, part of A13), feature/questionnaire-fields-in-place.** `InlineText` on each: Enter or blur saves, Esc restores, the change written to the working copy at once and saved with it, the header saying the save (as Návrh's narrative); a name is required, a purpose may be emptied. Each block and set is also a heading (visually hidden), which `lead.ts` `titleOf` names it by. Tests: `QuestionnaireFields.test.tsx`; the journey renames a block and reads it back after a reload.
+- **3f. A set's object type, goal and common question in place (the rest of A13), feature/questionnaire-set-fields-in-place.** The same `InlineField`; the common question refuses a draft without `{object}` at the field, in words (I9), and "+ {object}" still appends it to a stored question that lacks it. Tests: `QuestionnaireFields.test.tsx`.
+- **Still open in chunk 3:**
+  - A1, A3: a question's wording and its options in place;
+  - A14: the n / 15 counter beside the objects (the set's header shows "n / 4–15" today).
+
 ### Chunk 3b3, added by planning (2026-10-21)
 
 3b1 built the label path behind `AIA_AI_SCALE_LABELS_IN_PROMPT`, off, and 3b2 is the editor; no

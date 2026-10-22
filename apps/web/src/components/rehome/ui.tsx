@@ -130,7 +130,13 @@ export function TextArea(props: ComponentProps<"textarea">) {
 }
 
 export type Ask =
-  | { kind: "confirm"; message: string; resolve: (ok: boolean) => void }
+  | {
+      kind: "confirm";
+      message: string;
+      resolve: (ok: boolean) => void;
+      /** A consequential yes, named by its action: the focus starts on Zrušit, the safe choice (I7). */
+      yes?: string;
+    }
   | { kind: "prompt"; message: string; initial: string; resolve: (value: string | null) => void };
 
 /**
@@ -163,6 +169,10 @@ export function AskDialog({ ask, onDone }: { ask: Ask | null; onDone: () => void
       onCancel={(e) => {
         e.preventDefault();
         finish(false, "");
+      }}
+      // Esc answers this question alone: a drawer or inspector beneath never sees it (D21).
+      onKeyDown={(e) => {
+        if (e.key === "Escape") e.stopPropagation();
       }}
       className="m-auto w-[min(32rem,calc(100vw-2rem))] rounded-md border border-border-strong bg-surface-overlay p-0 text-ink shadow-[var(--shadow-overlay)] backdrop:bg-surface-inverse/40"
     >
@@ -197,11 +207,11 @@ function AskForm({ ask, finish }: { ask: Ask; finish: (ok: boolean, value: strin
         <TextInput autoFocus value={value} onChange={(e) => setValue(e.target.value)} aria-label={ask.message} />
       ) : null}
       <div className="flex justify-end gap-2">
-        <Button variant="quiet" onClick={() => finish(false, value)}>
+        <Button variant="quiet" autoFocus={ask.kind === "confirm" && !!ask.yes} onClick={() => finish(false, value)}>
           {t("dialog.cancel")}
         </Button>
-        <Button variant="primary" type="submit" autoFocus={ask.kind === "confirm"}>
-          {t("dialog.ok")}
+        <Button variant="primary" type="submit" autoFocus={ask.kind === "confirm" && !ask.yes}>
+          {(ask.kind === "confirm" && ask.yes) || t("dialog.ok")}
         </Button>
       </div>
     </form>

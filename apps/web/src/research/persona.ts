@@ -11,6 +11,8 @@
 // clamped to 50–5 000; it now refuses a value outside the server's valid n
 // (setSampleSize; plan run-qc-and-checkpoint RQC9, audit IA-1).
 
+import { ID_SOURCE, aiaId } from "@/lib/workbench-artifacts";
+
 import { type Json, PROVIDER_FORCED, type ResearchProject } from "./model";
 
 type Obj = { [k: string]: Json };
@@ -360,7 +362,9 @@ export function dimensionTopicWords(t: DimensionTopic): string {
   return "téma persony neověřeno";
 }
 
-/** A dimension's pointable id for the Lead (the coordinator's grammar: [A-Za-z0-9_.~/-], at most 80). */
+const TARGET_ID = new RegExp(ID_SOURCE);
+
+/** A dimension's pointable id for the Lead (aiaId), or null for an id outside its grammar. */
 export function dimensionTarget(id: string): string | null {
-  return /^[A-Za-z0-9_.~/-]{1,80}$/.test(id) ? `dimension:${id}` : null;
+  return TARGET_ID.test(id) ? aiaId("dimension", id) : null;
 }

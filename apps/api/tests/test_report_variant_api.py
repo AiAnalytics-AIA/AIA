@@ -224,6 +224,9 @@ def test_a_draft_of_an_earlier_contract_stays_the_report_and_says_it_is_earlier(
         json={"artifact_id": artifact_id, "note": ""},
     )
     assert approved.status_code == 200, approved.text
+    # The report with literature is approved as its own kind, internal (RD3, G66).
+    assert approved.json()["report_kind"] == "with_review"
+    assert approved.json()["internal_only"] is True
     again = researcher.get(base, params=params).json()
     assert again["artifact_id"] == artifact_id and again["review_state"] == "APPROVED_INTERNAL"
 

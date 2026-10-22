@@ -1,5 +1,5 @@
 import { spawnSync } from "node:child_process";
-import { mkdtempSync, writeFileSync } from "node:fs";
+import { chmodSync, existsSync, mkdtempSync, readFileSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
@@ -110,5 +110,67 @@ describe("npm audit gate", () => {
     expect(gate(report([braces]), { allowlist: { entries: [noReason] } }).code).toBe(2);
     expect(gate(report([braces]), { allowlist: { entries: [{ ...entry, recheck: "next month" }] } }).code).toBe(2);
     expect(gate(report([braces]), { allowlist: { entries: [{ ...entry, id: "braces" }] } }).code).toBe(2);
+  });
+});
+
+// A stand-in for npm: each call takes the next step of FAKE_PLAN (`hang`, `error` or `report`),
+// counted in FAKE_DIR, so an attempt can time out or come back unreadable without the network.
+const fakeNpm = join(dir, "npm.mjs");
+writeFileSync(fakeNpm, `#!/usr/bin/env node
+import { existsSync, readFileSync, writeFileSync } from "node:fs";
+const count = process.env.FAKE_DIR + "/calls";
+const n = existsSync(count) ? Number(readFileSync(count, "utf8")) : 0;
+writeFileSync(count, String(n + 1));
+const step = process.env.FAKE_PLAN.split(",")[n];
+if (step === "hang") setTimeout(() => {}, 60000);
+else if (step === "answer-then-hang") process.stdout.write(process.env.FAKE_REPORT, () => setTimeout(() => {}, 60000));
+else if (step === "error") process.stdout.write(JSON.stringify({ error: { code: "ETIMEDOUT", summary: "" } }));
+else process.stdout.write(process.env.FAKE_REPORT);
+`);
+chmodSync(fakeNpm, 0o755);
+
+function audited(plan: string) {
+  const work = mkdtempSync(join(dir, "plan-"));
+  const summary = join(work, "summary.md");
+  writeFileSync(join(work, "allow.json"), JSON.stringify({ entries: [] }));
+  const run = spawnSync(process.execPath, [script, "--npm", fakeNpm, "--timeout-ms", "3000", "--today", "2026-10-20", "--allowlist", join(work, "allow.json")], {
+    encoding: "utf8",
+    env: { ...process.env, FAKE_DIR: work, FAKE_PLAN: plan, FAKE_REPORT: JSON.stringify(report([])), GITHUB_STEP_SUMMARY: summary },
+  });
+  const calls = Number(readFileSync(join(work, "calls"), "utf8"));
+  return { code: run.status, out: run.stdout + run.stderr, calls, summary: existsSync(summary) ? readFileSync(summary, "utf8") : "" };
+}
+
+describe("npm audit gate, asking npm", () => {
+  it("asks again after an attempt that timed out, and judges the report it then reads", () => {
+    const run = audited("hang,report");
+    expect([run.code, run.calls]).toEqual([0, 2]);
+    expect(run.out).toMatch(/attempt 1\/2: [\d.]+ s, exit SIGKILL, timed out after 3 s/);
+    expect(run.out).toMatch(/attempt 2\/2: [\d.]+ s, exit 0, report read/);
+    expect(run.summary.split("\n").filter(Boolean)).toHaveLength(2);
+  });
+
+  it("asks again after npm's own error, naming its code when its summary is empty", () => {
+    const run = audited("error,report");
+    expect([run.code, run.calls]).toEqual([0, 2]);
+    expect(run.out).toContain("attempt 1/2");
+    expect(run.out).toContain("npm audit failed: ETIMEDOUT");
+  });
+
+  it("fails when the second attempt reads no report either, never passing on a missing one", () => {
+    const run = audited("hang,hang,report");
+    expect([run.code, run.calls]).toEqual([2, 2]);
+    expect(run.out).toContain("no report after 2 attempts: timed out after 3 s");
+    expect(audited("hang,error").code).toBe(2);
+  });
+
+  it("asks once when the first attempt reads", () => {
+    expect(audited("report").calls).toBe(1);
+  });
+
+  it("judges a whole report npm wrote before it hung", () => {
+    const run = audited("answer-then-hang");
+    expect([run.code, run.calls]).toEqual([0, 1]);
+    expect(run.out).toMatch(/attempt 1\/2: [\d.]+ s, exit SIGKILL, report read/);
   });
 });

@@ -11,7 +11,7 @@
 // it does nothing in the classic interface (OI-49).
 
 import { useRouter } from "next/navigation";
-import { type DragEvent, type ReactNode, useEffect, useRef, useState } from "react";
+import { type DragEvent, type ReactNode, createContext, useContext, useEffect, useRef, useState } from "react";
 
 import { t, tv } from "@/i18n/t";
 import { hashTarget, questionElementId, questionnairePlace, setElementId } from "@/lib/answerability";
@@ -22,14 +22,9 @@ import {
   BUILD_FAILED_SUFFIX,
   BUILD_TITLE,
   BUILD_WARN_MS,
-  GUIDED_PROMPT,
   type GuidedKind,
   OPTIMIZE_DONE,
   OPTIMIZE_TITLE,
-  PROMPT_CHOICES,
-  PROMPT_CHOICES_DEFAULT,
-  PROMPT_SET_ITEMS,
-  PROMPT_SET_TYPE,
   type PreviewItem,
   type Question,
   type QuestionnairePath,
@@ -38,9 +33,9 @@ import {
   TEMPLATE_FILENAME,
   UPLOAD_NO_FILE,
   addGuidedQuestion,
-  addQuestion,
-  addQuestionSection,
-  addTrackedSet,
+  addNamedSection,
+  addNamedTrackedSet,
+  addQuestionTo,
   applyBuilt,
   applyImport,
   applyOptimized,
@@ -48,16 +43,22 @@ import {
   changeQType,
   optimizePayload,
   questionnaireCounts,
+  countWords,
+  countsWords,
   questionnaireHasQuestions,
   questionnaireView,
   questionCondition,
   removeCondition,
   removeQuestion,
   removeSection,
+  restoreQuestion,
+  restoreSection,
   respondentPreview,
   sections,
   setObjectFamily,
-  setPriceBands,
+  priceBandsOf,
+  priceProblem,
+  setPriceBandList,
   setQuestionOptions,
   setQuestionText,
   setQuestionnairePath,
@@ -69,27 +70,81 @@ import {
   SET_SIZE,
 } from "@/research/questionnaire";
 import type { ResearchProject } from "@/research/model";
-import { COMPARISONS, CONCEPT_TEST, type Comparison, comparisonOf, danglingLinks, linkKey, linksOf, researchQuestionsOf, setComparison, setConceptTest, toggleQuestionLink, toggleSectionLink, togglesConceptTest } from "@/research/trace";
+import { COMPARISONS, CONCEPT_TEST, comparisonOf, danglingLinks, linkKey, linksOf, researchQuestionsOf, setComparison, setConceptTest, toggleQuestionLink, toggleSectionLink, togglesConceptTest } from "@/research/trace";
 import { Icon, type IconName } from "../icons";
 import { ActionDock, ChipInput, InlineConfirm, Segmented, Switch } from "../step";
+import { ChoiceChips } from "@/components/ui/ChoiceChips";
+import { InlineCreateRow } from "@/components/ui/InlineCreateRow";
+import { InlineText } from "@/components/ui/InlineText";
 import { AiButton, Button } from "../ui";
 import { isNativeResult } from "@/lib/research-agent-jobs";
 import { openPlace, scrollBehavior, scrollToPlace } from "@/lib/open-place";
 import { useResearch } from "./context";
+import { useFrame } from "./frame-hook";
+import { ID_SOURCE, type TargetKind, aiaId } from "@/lib/workbench-artifacts";
 import { QuestionnaireDependencies } from "./QuestionnaireDependencies";
 import { QuestionnaireStrip } from "./QuestionnaireStrip";
 import { InspectorSlot } from "./Inspector";
 import { questionnaireIssues } from "@/research/lane";
-import { AskLead, useLeadOwnsAiStarts } from "./AskLead";
+import { AskLead, useAskLead, useLeadOwnsAiStarts } from "./AskLead";
 import { AiFailureCard, useAiStep } from "./useAiStep";
 import { AnalysisFailureCard, useAnalysis } from "./useAnalysis";
 import { DeepResearchPanel } from "./DeepResearchPanel";
-import { ScaleEditor, ScaleUndoProvider } from "./ScaleEditor";
+import { ScaleEditor, ScaleUndoProvider, useEditorUndo } from "./ScaleEditor";
 
 const FOCUS = "focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus-ring";
 const INPUT = `min-h-9 w-full rounded-control border border-border-strong bg-surface-raised px-2.5 text-sm text-ink placeholder:text-ink-faint ${FOCUS}`;
 const LABEL = "text-xs font-medium text-ink-muted";
 const CARD = "rounded-card border border-border bg-surface-raised p-5";
+
+/** The longest question wording a row takes: a question, not a name (NAME_MAX is a folder's). */
+const WORDING_MAX = 1000;
+
+/**
+ * The `data-aia` a block, a tracked set or a question carries for the Research Lead (the contract's
+ * targets, lib/workbench-artifacts.ts): `section:<id>` and `question:<id>` by the item's stored id.
+ * An item with no id yet, or one outside the id grammar, carries none: nothing is named for it.
+ * Each mark names one element: a repeated id (an import or a merged proposal keeps two items,
+ * design_items.py occurrence_keys) marks its first occurrence in the questionnaire's order only.
+ */
+const ID_RULE = new RegExp(ID_SOURCE);
+type LeadMarks = { sections: (string | undefined)[]; questions: (string | undefined)[][] };
+function leadMarks(xs: Section[]): LeadMarks {
+  const given = new Set<string>();
+  const mark = (kind: TargetKind, id: unknown): string | undefined => {
+    if (typeof id !== "string" || !ID_RULE.test(id)) return undefined;
+    const aia = aiaId(kind, id);
+    if (given.has(aia)) return undefined;
+    given.add(aia);
+    return aia;
+  };
+  const sections: (string | undefined)[] = [];
+  const questions: (string | undefined)[][] = [];
+  for (const sec of xs) {
+    sections.push(mark("section", sec.id));
+    questions.push(sec.type === "questions" ? (sec.questions || []).map((q) => mark("question", q.id)) : []);
+  }
+  return { sections, questions };
+}
+const useLeadMarks = (): LeadMarks => leadMarks(sections(useResearch().state.project));
+
+/**
+ * A block or a tracked set removed at once, with "Vrátit" on the editor's toast (input-interactions
+ * I6, audit A18): the undo puts the same section back where it was.
+ */
+type EditorUndo = ReturnType<typeof useEditorUndo>;
+
+/** Offer Vrátit for a delete, naming the item by at most 60 characters of its wording or title. */
+function offerRestore(undo: EditorUndo, what: "questionRemoved" | "blockRemoved" | "setRemoved", name: unknown, restore: () => void) {
+  const text = String(name || "").trim();
+  const clipped = text.length > 60 ? `${text.slice(0, 59)}…` : text;
+  undo?.offer({ message: clipped ? tv(`research.questionnaire.undo.${what}`, { name: clipped }) : t(`research.questionnaire.undo.${what}Bare`), undo: restore });
+}
+
+function removeWithUndo(update: Update, undo: EditorUndo, si: number, sec: Section, what: "blockRemoved" | "setRemoved") {
+  update((p) => removeSection(p, si));
+  offerRestore(undo, what, sec.title, () => update((p) => restoreSection(p, si, sec)));
+}
 
 /** A tracked set is measured on 4–15 objects (SET_SIZE). */
 const setInvalid = (sec: Section) => {
@@ -99,6 +154,11 @@ const setInvalid = (sec: Section) => {
 const OBJECT = "{object}";
 
 const jumpTo = (id: string) => scrollToPlace(id, "center");
+/**
+ * How the outline opens a place (QF-6): the editor's card or set, scrolled to and focused, so Tab
+ * goes on from there; from the respondent preview, which draws no editor, Upravit first.
+ */
+const OpenPlace = createContext<(id: string) => void>((id) => void openPlace(id, "center"));
 
 export function QuestionnaireStep() {
   const { store, state, template, runJob, toast, stepHref } = useResearch();
@@ -206,7 +266,16 @@ export function QuestionnaireStep() {
   if (view === "choose") return <Choose onPick={path}>{dock}</Choose>;
 
   const current = String(p.ui_state?.questionnaire_path || "manual") as QuestionnairePath;
+  // React commits the tab before the frame, so the place is drawn when it opens (as for a hash).
+  const open = (id: string) => {
+    setTab("edit");
+    window.requestAnimationFrame(() => openPlace(id, "center"));
+  };
+  // Around the whole stage: a delete's Vrátit outlives the preview tab, and the editor itself when
+  // the last block goes on the upload or AI path.
   return (
+    <OpenPlace.Provider value={open}>
+    <ScaleUndoProvider>
     <div className="flex max-w-[82.5rem] flex-col gap-4">
       {editor ? (
         <InspectorSlot>
@@ -247,6 +316,7 @@ export function QuestionnaireStep() {
           </>
         ) : null}
       </div>
+      {editor && current === "ai" ? <AiOnExisting /> : null}
       {analysis.failure ? <AnalysisFailureCard failure={analysis.failure} onRetry={() => void build()} onContinue={(id) => void continueBuild(id)} /> : null}
       {step.failure ? <AiFailureCard failure={step.failure} title={t("research.questionnaire.failedTitle")} onRetry={() => step.setFailure(null)} onContinue={(id) => void step.resume(id)} /> : null}
       {view === "upload" ? <Upload /> : null}
@@ -254,7 +324,6 @@ export function QuestionnaireStep() {
         <section className={CARD} aria-labelledby="q-ai">
           <h2 id="q-ai" className="text-lg font-semibold">{t("research.questionnaire.aiTitle")}</h2>
           <p className="mt-1 text-sm text-ink-muted">{t("research.questionnaire.aiIntro")}</p>
-          <p className="mt-1 text-xs text-ink-muted">{t("research.questionnaire.aiBuildHelp")}</p>
           {!leadOwnsAiStarts ? (
             <AiButton variant="primary" className="mt-4" disabled={step.busy || analysis.busy} onClick={() => void build()}>
               {t("research.questionnaire.aiBuild")}
@@ -265,13 +334,9 @@ export function QuestionnaireStep() {
       {editor ? (
         <>
           <div className="flex flex-wrap items-start gap-4">
-            <Outline update={update} />
+            <Outline />
             <div className="flex min-w-0 flex-[999_1_560px] flex-col gap-4">
-              {tab === "edit" ? (
-                <ScaleUndoProvider>
-                  <Editor update={update} />
-                </ScaleUndoProvider>
-              ) : <Preview items={respondentPreview(p)} />}
+              {tab === "edit" ? <Editor update={update} /> : <Preview items={respondentPreview(p)} />}
             </div>
           </div>
           <section className={CARD} aria-labelledby="q-final">
@@ -287,6 +352,8 @@ export function QuestionnaireStep() {
       ) : null}
       {dock}
     </div>
+    </ScaleUndoProvider>
+    </OpenPlace.Provider>
   );
 }
 
@@ -297,7 +364,7 @@ function QuestionnaireReadiness() {
   const issues = questionnaireIssues(state.project);
   const firstUnworded = () => document.querySelector<HTMLElement>("[data-unworded]")?.scrollIntoView?.({ behavior: scrollBehavior(), block: "center" });
   const rows: { label: string; detail: string; ok: boolean; go?: () => void }[] = [
-    { label: tv("research.questionnaire.readyCounts", counts), detail: t("research.questionnaire.readyCountsDetail"), ok: counts.questions > 0 },
+    { label: countsWords(counts), detail: t("research.questionnaire.readyCountsDetail"), ok: counts.questions > 0 },
     ...(issues.empty ? [{ label: tv("research.questionnaire.dockEmpty", { n: issues.empty }), detail: t("research.questionnaire.unworded"), ok: false, go: firstUnworded }] : []),
     ...(issues.badSets ? [{ label: tv("research.questionnaire.dockSets", { n: issues.badSets }), detail: SET_SIZE, ok: false }] : []),
   ];
@@ -446,6 +513,22 @@ function Upload() {
   );
 }
 
+/**
+ * "Sestavit s AI" on a questionnaire that already has items (QF-4): the AI does not build it anew
+ * (questionnaireView keeps the editor), so the choice says what AI does here instead and, in the
+ * workbench, asks the Lead in one click; elsewhere the toolbar's optimize button is the way.
+ */
+function AiOnExisting() {
+  const leadOwns = useLeadOwnsAiStarts();
+  const ask = useAskLead();
+  return (
+    <div role="status" className="flex flex-wrap items-center gap-3 rounded-card border border-border bg-surface-raised px-4 py-3 text-sm">
+      <span className="min-w-0 flex-1">{t(leadOwns ? "research.questionnaire.aiExisting.lead" : "research.questionnaire.aiExisting.optimize")}</span>
+      {leadOwns && ask ? <Button small onClick={() => ask(t("research.questionnaire.aiExisting.message"))}>{t("research.questionnaire.aiExisting.ask")}</Button> : null}
+    </div>
+  );
+}
+
 function Preview({ items }: { items: PreviewItem[] }) {
   return (
     <section aria-labelledby="q-preview" className="max-w-[560px]">
@@ -513,27 +596,36 @@ function ScaleBoxes({ low, high, from = 1, to = 10 }: { low: string; high: strin
 type Update = (next: (p: ResearchProject) => ResearchProject, reason?: string) => void;
 
 /** The questionnaire at a glance: blocks and their questions, then the sets; quick add beneath. */
-function Outline({ update }: { update: Update }) {
-  const { store, state, prompt, toast } = useResearch();
+function Outline() {
+  const { store, state } = useResearch();
+  const open = useContext(OpenPlace);
   const xs = sections(state.project);
   const counts = questionnaireCounts(state.project);
 
-  const guided = async (kind: GuidedKind) => {
-    const text = await prompt(GUIDED_PROMPT[kind]);
-    if (!text?.trim()) return;
-    const choices = kind === "choice" ? await prompt(PROMPT_CHOICES, PROMPT_CHOICES_DEFAULT) : null;
-    const r = addGuidedQuestion(store.get().project, kind, text, choices);
-    if (!r) return;
+  // Quick add (input-interactions I5, audit A6, A7): the kind chosen, the wording typed in the row;
+  // Enter adds it to the first block and opens the next row. A single choice starts as Ano / Ne,
+  // its options then edited on its card, never typed as a comma string in a prompt.
+  const [kind, setKind] = useState<GuidedKind>("choice");
+  const quickAdd = (text: string) => {
+    const r = addGuidedQuestion(store.get().project, kind, text, null);
+    if (!r) return t("research.questionnaire.inlineAdd.empty");
     store.update(() => ({ project: r.project }), { reason: "guided_question" });
-    setTimeout(() => jumpTo(questionElementId({ id: r.questionId })), 50);
   };
-  const trackedSet = async () => {
-    const typ = await prompt(PROMPT_SET_TYPE);
-    if (!typ) return;
-    const raw = await prompt(PROMPT_SET_ITEMS);
-    const r = addTrackedSet(store.get().project, typ, raw);
-    if (r && "error" in r) return toast(r.error);
-    if (r) store.update(() => ({ project: r.project }));
+  // A block and a set named in their rows (audit A21, A8), then opened where they are.
+  const newBlock = (name: string) => {
+    const r = addNamedSection(store.get().project, name);
+    if (!r) return t("research.questionnaire.inlineAdd.empty");
+    store.update(() => ({ project: r.project }), { reason: "questionnaire_block" });
+    setTimeout(() => jumpTo(`qblock_${r.sectionId}`), 50);
+  };
+  const newSet = (name: string) => {
+    const r = addNamedTrackedSet(store.get().project, name);
+    if (!r) return t("research.questionnaire.inlineAdd.empty");
+    store.update(() => ({ project: r.project }), { reason: "questionnaire_set" });
+    setTimeout(() => {
+      jumpTo(setElementId({ id: r.sectionId }, 0));
+      document.querySelector<HTMLInputElement>(`#${setElementId({ id: r.sectionId }, 0)} input[aria-label="${t("research.questionnaire.setObjectAdd")}"]`)?.focus();
+    }, 50);
   };
 
   let b = 0;
@@ -543,7 +635,7 @@ function Outline({ update }: { update: Update }) {
     <li key={id}>
       <button
         type="button"
-        onClick={() => jumpTo(id)}
+        onClick={() => open(id)}
         className={`grid w-full grid-cols-[2.25rem_1fr] items-baseline gap-1.5 rounded-control px-1.5 py-1 text-left text-[13px] leading-5 hover:bg-surface-sunken ${FOCUS} ${depth ? "pl-4" : ""}`}
       >
         <span className={`font-mono text-[11px] ${bad ? "text-status-you-ink" : "text-ink-faint"}`}>{tag}</span>
@@ -560,7 +652,7 @@ function Outline({ update }: { update: Update }) {
       <aside aria-labelledby="q-editor" className="sticky top-[136px] flex flex-col gap-3 rounded-card border border-border bg-surface-raised p-3.5">
         <div>
           <div className="font-mono text-[11px] uppercase tracking-[0.08em] text-ink-faint">{t("research.questionnaire.editorTag")}</div>
-          <h2 id="q-editor" className={`mt-0.5 rounded-sm text-sm font-semibold ${FOCUS}`}>{tv("research.questionnaire.editorCounts", counts)}</h2>
+          <h2 id="q-editor" className={`mt-0.5 rounded-sm text-sm font-semibold ${FOCUS}`}>{countsWords(counts)}</h2>
         </div>
         {xs.length ? (
           <ul className="flex max-h-[45vh] flex-col gap-0.5 overflow-y-auto">
@@ -574,18 +666,20 @@ function Outline({ update }: { update: Update }) {
             )}
           </ul>
         ) : null}
-        <div className="border-t border-border pt-3">
+        <div className="flex flex-col gap-1.5 border-t border-border pt-3">
           <div className={LABEL}>{t("research.questionnaire.quickAdd")}</div>
-          <div className="mt-1.5 flex flex-wrap gap-1.5">
-            {([["choice", "addChoice"], ["scale", "addScale"], ["open", "addOpen"]] as const).map(([kind, label]) => (
-              <Button key={kind} small variant="secondary" icon="plus" className="!rounded-control" onClick={() => void guided(kind)}>{t(`research.questionnaire.${label}`)}</Button>
-            ))}
-          </div>
-          <p className="mt-1.5 text-xs text-ink-muted">{t("research.questionnaire.quickHelp")}</p>
+          <ChoiceChips
+            label={t("research.questionnaire.inlineAdd.kind")}
+            value={kind}
+            options={([["choice", "addChoice"], ["scale", "addScale"], ["open", "addOpen"]] as const).map(([key, label]) => ({ key, label: t(`research.questionnaire.${label}`) }))}
+            onChange={setKind}
+          />
+          <InlineCreateRow label={t("research.questionnaire.inlineAdd.question")} maxLength={WORDING_MAX} onCreate={quickAdd} />
+          <p className="text-xs text-ink-muted">{t("research.questionnaire.quickHelp")}</p>
         </div>
-        <div className="flex flex-wrap gap-1.5">
-          <Button small icon="plus" className="!rounded-control" onClick={() => update((p) => addQuestionSection(p))}>{t("research.questionnaire.addBlockV3")}</Button>
-          <Button small icon="plus" className="!rounded-control" onClick={() => void trackedSet()}>{t("research.questionnaire.addSet")}</Button>
+        <div className="flex flex-col gap-1">
+          <InlineCreateRow label={t("research.questionnaire.addBlockV3")} next={false} onCreate={newBlock} />
+          <InlineCreateRow label={t("research.questionnaire.addSet")} next={false} placeholder={t("research.questionnaire.inlineAdd.setPlaceholder")} onCreate={newSet} />
         </div>
       </aside>
     </div>
@@ -629,6 +723,9 @@ function Editor({ update }: { update: Update }) {
  * that answers it (run-recovery-and-truth 3c). Readiness checks that the questions linked
  * to it can carry that comparison; "neurčeno" declares nothing and checks nothing.
  */
+/** "Neurčeno": no comparison declared, so readiness checks none (setComparison(…, null)). */
+const NONE = "none";
+
 function ResearchQuestionComparisons({ update }: { update: Update }) {
   const { state } = useResearch();
   const stated = researchQuestionsOf(state.project);
@@ -639,19 +736,14 @@ function ResearchQuestionComparisons({ update }: { update: Update }) {
       <p className="mt-1 text-[13px] text-ink-muted">{t("research.questionnaire.comparisons.help")}</p>
       <ul className="mt-3 flex flex-col gap-2">
         {stated.map((rq) => (
-          <li key={rq} className="grid gap-2 text-sm md:grid-cols-[1fr_16rem] md:items-center">
+          <li key={rq} className="flex flex-col gap-1.5 text-sm">
             <span>{rq}</span>
-            <select
-              aria-label={tv("research.questionnaire.comparisons.choose", { rq })}
-              className={INPUT}
-              value={comparisonOf(state.project, rq) ?? ""}
-              onChange={(e) => update((p) => setComparison(p, rq, (e.target.value || null) as Comparison | null), "research_question_comparison")}
-            >
-              <option value="">{t("research.questionnaire.comparisons.none")}</option>
-              {COMPARISONS.map((kind) => (
-                <option key={kind} value={kind}>{t(`research.questionnaire.comparisons.kind.${kind}`)}</option>
-              ))}
-            </select>
+            <ChoiceChips
+              label={tv("research.questionnaire.comparisons.choose", { rq })}
+              value={comparisonOf(state.project, rq) ?? NONE}
+              options={[{ key: NONE, label: t("research.questionnaire.comparisons.none") }, ...COMPARISONS.map((kind) => ({ key: kind, label: t(`research.questionnaire.comparisons.kind.${kind}`) }))]}
+              onChange={(key) => update((p) => setComparison(p, rq, key === NONE ? null : key), "research_question_comparison")}
+            />
           </li>
         ))}
       </ul>
@@ -659,50 +751,79 @@ function ResearchQuestionComparisons({ update }: { update: Update }) {
   );
 }
 
-/** A field edited in place: a quiet input that shows its border on hover and focus. */
-function InlineField({ label, value, placeholder, onChange, strong = false }: {
+/**
+ * A block's or set's short text, edited in place (input-interactions I1, audit A4, A13): Enter or
+ * blur saves, Esc restores. The change goes to the working copy at once and saves with it, the
+ * header saying the save, as Návrh's narrative does. A name is required; a purpose may be left empty.
+ */
+function InlineField({ label, value, onChange, strong = false, required = true, placeholder, validate }: {
   label: string;
   value: string;
-  placeholder?: string;
   onChange: (v: string) => void;
   strong?: boolean;
+  required?: boolean;
+  placeholder?: string;
+  /** A further rule, said at the field (I9); null when the draft passes. */
+  validate?: (v: string) => string | null;
 }) {
+  const { canEdit } = useFrame();
+  // A line of its own: the purpose under the name, as the inputs stood before.
   return (
-    <input
-      aria-label={label}
-      placeholder={placeholder ?? label}
-      value={value}
-      onChange={(e) => onChange(e.target.value)}
-      className={`-ml-1.5 w-full rounded-control border border-transparent bg-transparent px-1.5 py-0.5 text-ink placeholder:text-ink-faint hover:border-border focus:border-signal focus:bg-surface-raised ${FOCUS} ${strong ? "text-[15px] font-semibold" : "text-[13px] text-ink-muted"}`}
-    />
+    <div className="min-w-0">
+      <InlineText
+        label={label}
+        value={value}
+        placeholder={placeholder ?? label}
+        disabled={!canEdit}
+        rules={{ required, validate }}
+        onCommit={onChange}
+        className={strong ? "text-[15px] font-semibold text-ink" : "text-[13px] text-ink-muted"}
+      />
+    </div>
   );
 }
 
 function QuestionBlock({ n, firstQ, sec, si, update }: { n: number; firstQ: number; sec: Section; si: number; update: Update }) {
   const qs = sec.questions || [];
   const [confirming, setConfirming] = useState(false);
+  const marks = useLeadMarks();
+  const undo = useEditorUndo();
   return (
-    <article id={`qblock_${sec.id || si}`} className="scroll-mt-40 rounded-panel bg-surface-sunken p-4">
+    <article id={`qblock_${sec.id || si}`} data-aia={marks.sections[si]} className="scroll-mt-40 rounded-panel bg-surface-sunken p-4">
       <div className="flex items-start gap-3">
         <div className="min-w-0 flex-1">
-          <div className="font-mono text-[11px] uppercase tracking-[0.08em] text-ink-faint">{tv("research.questionnaire.blockHead", { n, q: qs.length })}</div>
+          <div className="font-mono text-[11px] uppercase tracking-[0.08em] text-ink-faint">{tv("research.questionnaire.blockHead", { n, q: countWords("questions", qs.length) })}</div>
+          {/* The block as a heading: navigable by a screen reader, and the title the Lead names it by (lead.ts titleOf). */}
+          <h3 className="sr-only">{sec.title?.trim() || tv("research.questionnaire.untitledBlock", { n })}</h3>
           <InlineField strong label={t("research.questionnaire.blockTitle")} value={sec.title || ""} onChange={(v) => update((p) => setSectionField(p, si, "title", v))} />
-          <InlineField label={t("research.questionnaire.blockPurpose")} value={sec.purpose || ""} onChange={(v) => update((p) => setSectionField(p, si, "purpose", v))} />
+          <InlineField required={false} label={t("research.questionnaire.blockPurpose")} value={sec.purpose || ""} onChange={(v) => update((p) => setSectionField(p, si, "purpose", v))} />
         </div>
         {confirming ? (
-          <InlineConfirm message={t("research.questionnaire.removeBlockConfirm")} action={t("research.questionnaire.remove")} onConfirm={() => update((p) => removeSection(p, si))} onCancel={() => setConfirming(false)} />
+          <InlineConfirm message={t("research.questionnaire.removeBlockConfirm")} action={t("research.questionnaire.remove")} onConfirm={() => removeWithUndo(update, undo, si, sec, "blockRemoved")} onCancel={() => setConfirming(false)} />
         ) : (
           <Button small variant="quiet" icon="trash" className="!rounded-control" onClick={() => setConfirming(true)}>{t("research.questionnaire.remove")}</Button>
         )}
       </div>
       <div className="mt-3 flex flex-col gap-3">
         {qs.length ? (
-          qs.map((q, qi) => <QuestionCard key={q.id || qi} n={firstQ + qi + 1} q={q} si={si} qi={qi} update={update} />)
+          qs.map((q, qi) => <QuestionCard key={q.id || qi} n={firstQ + qi + 1} q={q} si={si} sectionId={sec.id} qi={qi} update={update} />)
         ) : (
           <p className="rounded-control border border-signal-edge bg-signal-wash p-3 text-sm">{t("research.questionnaire.blockEmpty")}</p>
         )}
         <div>
-          <Button small icon="plus" className="!rounded-control" onClick={() => update((p) => addQuestion(p, si))}>{t("research.questionnaire.addQuestionV3")}</Button>
+          <InlineCreateRow
+            label={t("research.questionnaire.addQuestionV3")}
+            maxLength={WORDING_MAX}
+            onCreate={(text) => {
+              let made = false;
+              update((p) => {
+                const r = addQuestionTo(p, si, text);
+                made = r !== null;
+                return r?.project ?? p;
+              }, "questionnaire_question");
+              return made ? undefined : t("research.questionnaire.inlineAdd.empty");
+            }}
+          />
         </div>
       </div>
     </article>
@@ -715,9 +836,13 @@ const TYPES = [
   ["skala", "typeScale"],
   ["otevrena", "typeOpen"],
 ] as const;
+type TypeKey = (typeof TYPES)[number][0];
+const typeKey = (typ: string): TypeKey | null => TYPES.find(([key]) => key === typ)?.[0] ?? null;
 
 /** questionCard: the type as pills, the text, and below it what the type needs. */
-function QuestionCard({ n, q, si, qi, update }: { n: number; q: Question; si: number; qi: number; update: Update }) {
+function QuestionCard({ n, q, si, sectionId, qi, update }: { n: number; q: Question; si: number; sectionId: string | undefined; qi: number; update: Update }) {
+  const marks = useLeadMarks();
+  const undo = useEditorUndo();
   const typ = String(q.typ || "");
   const skala = q.skala || [1, 10];
   const labels = q.popisky_skaly || ["vůbec", "zcela"];
@@ -725,33 +850,24 @@ function QuestionCard({ n, q, si, qi, update }: { n: number; q: Question; si: nu
   const unworded = !String(q.text || "").trim();
   const hint = `${questionElementId(q)}_missing`;
   return (
-    <div id={questionElementId(q)} data-unworded={unworded || undefined} className={`scroll-mt-40 rounded-card border bg-surface-raised p-4 ${FOCUS} ${unworded ? "border-status-you shadow-[0_0_0_3px_var(--color-status-you-wash)]" : "border-border"}`}>
+    <div id={questionElementId(q)} data-aia={marks.questions[si]?.[qi]} data-unworded={unworded || undefined} className={`scroll-mt-40 rounded-card border bg-surface-raised p-4 ${FOCUS} ${unworded ? "border-status-you shadow-[0_0_0_3px_var(--color-status-you-wash)]" : "border-border"}`}>
       <div className="flex flex-wrap items-center gap-2">
         <span className="rounded-md bg-signal-wash px-1.5 py-0.5 font-mono text-xs font-semibold text-signal" title={String(q.id || "")}>Q{n}</span>
-        <span className="sr-only">{q.id || "Q"}</span>
-        <div role="radiogroup" aria-label={t("research.questionnaire.questionType")} className="flex flex-wrap gap-1">
-          {TYPES.map(([key, label]) => {
-            const on = typ === key;
-            return (
-              <button
-                key={key}
-                type="button"
-                role="radio"
-                aria-checked={on}
-                onClick={() => !on && update((p) => changeQType(p, si, qi, key))}
-                className={`whitespace-nowrap rounded-pill border px-2.5 text-xs leading-6 ${FOCUS} ${on ? "border-signal bg-signal-wash font-semibold text-signal" : "border-border bg-surface text-ink-muted hover:text-ink"}`}
-              >
-                {t(`research.questionnaire.${label}`)}
-              </button>
-            );
-          })}
-        </div>
+        <ChoiceChips
+          label={t("research.questionnaire.questionType")}
+          value={typeKey(typ)}
+          options={TYPES.map(([key, label]) => ({ key, label: t(`research.questionnaire.${label}`) }))}
+          onChange={(key) => key !== typ && update((p) => changeQType(p, si, qi, key))}
+        />
         <Button
           small
           variant="quiet"
           className="ml-auto"
-          aria-label={tv("research.questionnaire.removeQuestion", { id: String(q.id || "Q") })}
-          onClick={() => update((p) => removeQuestion(p, si, qi))}
+          aria-label={tv("research.questionnaire.removeQuestion", { number: `Q${n}` })}
+          onClick={() => {
+            update((p) => removeQuestion(p, si, qi));
+            offerRestore(undo, "questionRemoved", q.text, () => update((p) => restoreQuestion(p, si, sectionId, qi, q)));
+          }}
         >
           ×
         </Button>
@@ -812,18 +928,20 @@ function ResearchQuestionLinks({ item, onToggle }: { item: Question | Section; o
   return (
     <fieldset className="mt-3 flex flex-col gap-1">
       <legend className={LABEL}>{t("research.questionnaire.links.label")}</legend>
-      <div className="flex flex-wrap gap-1">
-        {stated.map((rq) => (
-          <button
-            key={rq}
-            type="button"
-            aria-pressed={on(rq)}
-            onClick={() => onToggle(rq)}
-            className={`max-w-full rounded-pill border px-2.5 text-left text-xs leading-6 ${FOCUS} ${on(rq) ? "border-signal bg-signal-wash font-semibold text-signal" : "border-border bg-surface text-ink-muted hover:text-ink"}`}
-          >
-            {rq}
-          </button>
-        ))}
+      <div className="flex flex-wrap items-start gap-1.5">
+        {stated.length ? (
+          <ChoiceChips
+            multiple
+            label={t("research.questionnaire.links.choices")}
+            value={stated.filter(on)}
+            options={stated.map((rq) => ({ key: rq, label: rq }))}
+            // One toggled at a time: the one whose state the new value changes.
+            onChange={(next) => {
+              const flipped = stated.find((rq) => next.includes(rq) !== on(rq));
+              if (flipped) onToggle(flipped);
+            }}
+          />
+        ) : null}
         {dangling.map((rq) => (
           <button
             key={`dangling-${rq}`}
@@ -905,11 +1023,14 @@ function OptionRows({ options, multi, onCommit }: { options: string[]; multi: bo
 /** objectSection: a tracked set of 4–15 comparable objects on one question and scale. */
 function TrackedSet({ n, sec, si, update }: { n: number; sec: Section; si: number; update: Update }) {
   const { store } = useResearch();
+  const marks = useLeadMarks();
+  const undo = useEditorUndo();
   const [confirming, setConfirming] = useState(false);
   const [note, setNote] = useState<string | null>(null);
   const labels = sec.scale_labels || ["vůbec", "velmi"];
   const objects = sec.objects || [];
   const question = sec.object_question || "Jak hodnotíte {object}?";
+  const objectMissing = tv("research.questionnaire.setQuestionMissing", { object: OBJECT });
   const bad = setInvalid(sec);
   // updateObjects takes the objects one per line, as the classic textarea gave them.
   const setObjects = (next: string[]) => {
@@ -918,51 +1039,62 @@ function TrackedSet({ n, sec, si, update }: { n: number; sec: Section; si: numbe
     setNote(r.note);
   };
   return (
-    <article id={setElementId(sec, si)} className={`scroll-mt-40 flex flex-col gap-3 rounded-card border border-border border-t-[3px] border-t-hue-violet bg-surface-raised p-4 ${FOCUS}`}>
-      <div className="flex items-start gap-3">
+    <article id={setElementId(sec, si)} data-aia={marks.sections[si]} className={`scroll-mt-40 flex flex-col gap-3 rounded-card border border-border border-t-[3px] border-t-hue-violet bg-surface-raised p-4 ${FOCUS}`}>
+      {/* The name keeps 12rem; on a phone the count and Smazat wrap below it rather than squeeze it. */}
+      <div className="flex flex-wrap items-start gap-3">
         <span className="mt-1 whitespace-nowrap rounded-md bg-hue-violet/12 px-1.5 py-0.5 font-mono text-[11px] font-semibold text-hue-violet">{tv("research.questionnaire.setBadge", { n })}</span>
-        <div className="min-w-0 flex-1">
+        <div className="min-w-[12rem] flex-1">
+          <h3 className="sr-only">{sec.title?.trim() || tv("research.questionnaire.untitledSet", { n })}</h3>
           <InlineField strong label={t("research.questionnaire.setTitle")} value={sec.title || ""} onChange={(v) => update((p) => setSectionField(p, si, "title", v))} />
         </div>
         <span className={`whitespace-nowrap rounded-md px-1.5 py-0.5 font-mono text-xs ${bad ? "bg-status-you-wash text-status-you-ink" : "bg-surface-sunken text-ink-muted"}`}>
           {tv("research.questionnaire.setCount", { n: objects.length })}
         </span>
         {confirming ? (
-          <InlineConfirm message={t("research.questionnaire.removeSetConfirm")} action={t("research.questionnaire.remove")} onConfirm={() => update((p) => removeSection(p, si))} onCancel={() => setConfirming(false)} />
+          <InlineConfirm message={t("research.questionnaire.removeSetConfirm")} action={t("research.questionnaire.remove")} onConfirm={() => removeWithUndo(update, undo, si, sec, "setRemoved")} onCancel={() => setConfirming(false)} />
         ) : (
           <Button small variant="quiet" icon="trash" className="!rounded-control" onClick={() => setConfirming(true)}>{t("research.questionnaire.remove")}</Button>
         )}
       </div>
       <div className="grid gap-3 md:grid-cols-2">
-        <label className="flex flex-col gap-1">
+        <div className="flex flex-col gap-1">
           <span className={LABEL}>{t("research.questionnaire.setFamily")}</span>
-          <input className={INPUT} value={sec.object_family || sec.object_type || ""} placeholder={t("research.questionnaire.setFamilyPlaceholder")} onChange={(e) => update((p) => setObjectFamily(p, si, e.target.value))} />
+          <InlineField required={false} label={t("research.questionnaire.setFamily")} placeholder={t("research.questionnaire.setFamilyPlaceholder")} value={sec.object_family || sec.object_type || ""} onChange={(v) => update((p) => setObjectFamily(p, si, v))} />
           <span className="text-xs text-ink-muted">{t("research.questionnaire.setFamilyHelp")}</span>
-        </label>
-        <label className="flex flex-col gap-1">
+        </div>
+        <div className="flex flex-col gap-1">
           <span className={LABEL}>{t("research.questionnaire.setPurpose")}</span>
-          <input className={INPUT} value={sec.purpose || ""} onChange={(e) => update((p) => setSectionField(p, si, "purpose", e.target.value))} />
-        </label>
+          <InlineField required={false} label={t("research.questionnaire.setPurpose")} placeholder="" value={sec.purpose || ""} onChange={(v) => update((p) => setSectionField(p, si, "purpose", v))} />
+        </div>
       </div>
       <div className="flex flex-col gap-1">
         <span className={LABEL}>{t("research.questionnaire.setQuestion")}</span>
-        <div className="flex gap-2">
-          <input
-            aria-label={t("research.questionnaire.setQuestion")}
-            className={`${INPUT} ${question.includes(OBJECT) ? "" : "!border-status-you-ink"}`}
-            value={question}
-            onChange={(e) => update((p) => setSectionField(p, si, "object_question", e.target.value))}
-          />
-          <Button small className="!min-h-9 shrink-0 !rounded-control font-mono" onClick={() => update((p) => setSectionField(p, si, "object_question", `${question.trimEnd()} ${OBJECT}`))}>
-            + {OBJECT}
-          </Button>
+        <div className="flex items-start gap-2">
+          <div className="min-w-0 flex-1">
+            <InlineField
+              label={t("research.questionnaire.setQuestion")}
+              value={question}
+              validate={(v) => (v.includes(OBJECT) ? null : objectMissing)}
+              onChange={(v) => update((p) => setSectionField(p, si, "object_question", v))}
+            />
+          </div>
+          {/* Only for a stored question without {object} (an older copy): the field refuses a new one. */}
+          {question.includes(OBJECT) ? null : (
+            <Button
+              small
+              className="!min-h-9 shrink-0 !rounded-control font-mono"
+              onClick={() => update((p) => setSectionField(p, si, "object_question", `${String(sections(p)[si]?.object_question || "").trimEnd()} ${OBJECT}`.trim()))}
+            >
+              + {OBJECT}
+            </Button>
+          )}
         </div>
         {question.includes(OBJECT) ? (
           <span className="text-xs text-ink-muted">
             {t("research.questionnaire.setQuestionHelp")} <code className="font-mono">{OBJECT}</code>.
           </span>
         ) : (
-          <span className="text-xs text-status-you-ink">{tv("research.questionnaire.setQuestionMissing", { object: OBJECT })}</span>
+          <span className="text-xs text-status-you-ink">{objectMissing}</span>
         )}
       </div>
       <div className="flex flex-col gap-1">
@@ -999,17 +1131,19 @@ function TrackedSet({ n, sec, si, update }: { n: number; sec: Section; si: numbe
         </div>
       ) : null}
       {sec.output_type === CONCEPT_TEST ? (
-        <label className="flex flex-col gap-1">
+        <div className="flex flex-col gap-1">
           <span className={LABEL}>{t("research.questionnaire.priceBands")}</span>
-          <input
-            key={((sec.metadata?.price_bands as string[] | undefined) || []).join(", ")}
-            className={INPUT}
-            defaultValue={((sec.metadata?.price_bands as string[] | undefined) || []).join(", ")}
+          {/* One chip per price, each checked as an amount at the field (input-interactions I9, A16). */}
+          <ChipInput
+            label={t("research.questionnaire.priceBandAdd")}
             placeholder={t("research.questionnaire.priceBandsPlaceholder")}
-            onBlur={(e) => update((p) => setPriceBands(p, si, e.target.value))}
+            values={priceBandsOf(sec)}
+            refuse={priceProblem}
+            onAdd={(v) => update((p) => setPriceBandList(p, si, [...priceBandsOf(sec), v]))}
+            onRemove={(i) => update((p) => setPriceBandList(p, si, priceBandsOf(sec).filter((_, j) => j !== i)))}
           />
           <span className="text-xs text-ink-muted">{t("research.questionnaire.priceBandsHelp")}</span>
-        </label>
+        </div>
       ) : null}
       <ResearchQuestionLinks item={sec} onToggle={(rq) => update((p) => toggleSectionLink(p, si, rq), "questionnaire_links")} />
       <p className="rounded-control border border-signal-edge bg-signal-tint p-3 text-[13px]">

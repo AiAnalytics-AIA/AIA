@@ -4,7 +4,7 @@ chunks:
   - "[x] RPT1. Zpráva's contract as data: view operations, pointable ids (section, paragraph, figure, claim) and V2's interaction contract"
   - "[x] RPT2. The document first: the draft rendered in the pane from its stored document model, paragraphs with claim chips opening the inspector, figures in place"
   - "[ ] RPT3. The doc bar and the Approve and Export slot: which document, its draft number and state, approval as a modal naming it, exports after approval"
-  - "[ ] RPT4. Záznam pokrytí, outside the text: what the report does not hold and why, from the chain manifest"
+  - "[x] RPT4. Záznam pokrytí, outside the text: what the report does not hold and why, from the chain manifest"
   - "[ ] RPT5. Draft revisions: the draft counter and tracked changes per paragraph, a report edit never reopening fieldwork"
   - "[ ] RPT6. The Lead and the report writer on the draft: paragraph rewrites, merges, splits and moves as proposals, every number a ledger ref, the sentence check's refusals at the sentence"
   - "[ ] RPT7. Journey: Zpráva at 1440, 1100, 768 and 390 px, a fictional run's internal draft, zero paid jobs"
@@ -128,8 +128,27 @@ V2: `ReportArt` (`InterpretStages.tsx:103-162`).
 **RPT3. Doc bar and approval.** Tests: approval sends the artifact id shown; a stale version is
 refused. Depends on `report-delivery#RD2`, `#RD3`, `input-interactions#6`.
 
+*RPT3, the approval modal (`feature/report-approval-modal`; input-interactions#6, B22, Q33):* "Schválit pro interní
+použití" and "Schválit klientskou zprávu" on `CompleteReport` ask first, in the shared `AskDialog`: the document and
+its variant (the review it carries), the stored version and its format (`approvalQuestion`, `lib/report-variant.ts`),
+that approval cannot be undone, then the card's own line on what the file will carry (never promised by the
+question). The focus starts on Zrušit (I7), Esc answers the dialog alone (D21), and "Schválit" sends exactly the id the
+question named. Tests: `report-variant.test.ts` (`approvalQuestion`), `ExecutionSteps.test.tsx` (every approval
+confirms the dialog naming its version, the client's included; the context variant's focus, Esc and Zrušit);
+`report_journey.mjs` at 1440 and 390. Still open: the doc bar and the export panel (RD2's approval line, RD3).
+
 **RPT4. Záznam pokrytí.** Test: a design that asks for a segment comparison lists "Segmenty:
 neprovedeno". Depends on `artifact-chain-to-draft-report#CHN1`.
+
+*RPT4 (`feature/report-coverage`):* "Záznam pokrytí (mimo text zprávy)" under the stored draft in
+`ReportDocumentView`, outside the article, from `lib/artifacts/report-coverage.ts` (`coverageRecord`, pure): the
+run's recorded answerability (`ResearchRun.answerability`: each gap by its question, verdict and why, a segment
+comparison as "Segmenty: neprovedeno", pending questions as not verified) and the stored manifest's `unread` (CHN1:
+each output no section read, in words by step or type). Neither recorded (a run from before answerability, a -1
+document) reads "nezaznamenáno", never covered. Tests: `report-coverage.test.ts`, `ReportDocumentView.test.tsx`
+("Záznam pokrytí, outside the text"); `report_journey.mjs` at 1440, 1100, 768 and 390. V2's other lines join with
+the chunks that make them: the coding state with `report-delivery#RD10`, the client report's refusal and the
+export note with `#RD3`; the Lead's quick asks with RPT6.
 
 **RPT5. Draft revisions.** Depends on `report-delivery#RD5`.
 
@@ -146,8 +165,8 @@ sentence refused by RD7 is marked at the sentence. Depends on `report-delivery#R
 
 ## 8. Owner questions
 
-The draft's sections (the chain plan's CQ1, Q55) and the editor choice (Q19) stay open. Settled
-2026-10-21 via /pmstatus: CQ2 = Q56 (b), code drafts and the Lead proposes tracked changes (RPT6);
+The editor choice (Q19) stays open. Settled 2026-10-21 via /pmstatus: CQ1 = Q55 (b), today's
+report with its gaps closed, plus RD9/RD10, plus literature when chosen, in today's order; CQ2 = Q56 (b), code drafts and the Lead proposes tracked changes (RPT6);
 CQ4 = Q58 (b), one document with the literature woven into its body (CHN8). A module with no supported finding is settled: MVPQ-04 blocks composition, approval and export
 (`artifact-chain-to-draft-report#CHN10`).
 

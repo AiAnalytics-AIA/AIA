@@ -203,7 +203,8 @@ S2 fix what the runs find.
 
 ## 4. The migration lane
 
-One Alembic head at all times (`migrations/versions`, 47 files, head `20261019_57eaa96a5538 @ 085abe0`).
+One Alembic head at all times (`migrations/versions`, 53 files, head `20261021_568761e1c719 @ bfe6d15b`;
+M3 is `5054d4d610c2`, M4 `60ccc9ff42cf`, M13 `568761e1c719` after `c663617cf79b`, the Lead turn's typed command).
 **The owner of the lane is S3.** A PR with a migration names its `down_revision` in the description,
 is rebased on `develop` immediately before merge, and migration PRs merge one at a time.
 
@@ -222,7 +223,7 @@ is rebased on `develop` immediately before merge, and migration PRs merge one at
 | M10 | `clients.data_posture` (`CLASSIFIED` default, `OPEN`), audited by who and when | S3 | W1 |
 | M11 | Tool-usage ledger storage, only the schema `deep-research#4` actually needs; no duplicate charge | S2 producer, S3 migration review | W3 before final AC-15 |
 | M12 | Deletion FK rules, only after `study-data-lifecycle#SDL0` settles the ledger/audit disposition | S3 | before W5 |
-| M13 | The actor user id on `ai_usage_events`, `budget_reservations` and tool-spend rows (per-researcher spend, Q40; `develop-spend-attribution#7`), null where the person is unknown, never a guess; first settles whether `ai_usage_events.actor_id` holds the person or the worker's lease identity | S3 | W3, after LO1 |
+| M13 | The actor user id on `ai_usage_events`, `budget_reservations` and tool-spend rows (per-researcher spend, Q40; `develop-spend-attribution#7`), null where the person is unknown, never a guess; first settles whether `ai_usage_events.actor_id` holds the person or the worker's lease identity. **Landed** as `568761e1c719` after `c663617cf79b` (#583): `charged_to_user_id` on `budget_reservations` and `ai_usage_events`; `actor_id` is the starter or the lease identity, never the payer, and stays as it is; tool holds are `budget_reservations` rows until M11 | S3 | W3, after LO1 |
 
 Each migration lands with its repository, its tests (round-trip, isolation predicate, concurrent
 access: `ARCHITECTURE.md` §7) and its `layer_check` rule in the same PR.
