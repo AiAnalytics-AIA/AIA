@@ -79,9 +79,9 @@ function Aside({ battery, facts, items, selected, notPlaced, counts = null, deta
         <ul className="flex flex-col">
           {items.map((n, k) => (
             <li key={n.id}>
-              <button type="button" data-aia={objectTarget(battery.battery_id, n.id) ?? undefined} aria-pressed={k === selected} disabled={!onChoose} onClick={() => onChoose?.(k)} onPointerEnter={() => onHover?.(k)} onPointerLeave={() => onHover?.(-1)}
-                aria-label={tv("research.exec.objectMap.selectObject", { label: n.label })}
-                className={`grid w-full grid-cols-[12px_minmax(0,1fr)_auto] items-center gap-2 rounded px-1.5 py-[5px] text-left text-xs hover:bg-surface ${k === selected ? "bg-signal-wash font-semibold" : ""}`}>
+              <button type="button" data-aia={objectTarget(battery.battery_id, n.id) ?? undefined} aria-pressed={onChoose ? k === selected : undefined} aria-disabled={onChoose ? undefined : true} onClick={() => onChoose?.(k)} onPointerEnter={() => onHover?.(k)} onPointerLeave={() => onHover?.(-1)}
+                aria-label={onChoose ? tv("research.exec.objectMap.selectObject", { label: n.label }) : undefined}
+                className={`grid w-full grid-cols-[12px_minmax(0,1fr)_auto] items-center gap-2 rounded px-1.5 py-[5px] text-left text-xs [&:not([aria-disabled])]:hover:bg-surface aria-disabled:cursor-default ${k === selected ? "bg-signal-wash font-semibold" : ""}`}>
                 <span aria-hidden className="h-3 w-3 rounded-full" style={{ background: n.colour }} />
                 <span className="truncate">{n.label}</span>
                 <span className="tabular-nums">{panelNumber(originalRating(n.value, battery.rating_scale) ?? n.value)}</span>
@@ -347,7 +347,7 @@ function PanelView({ battery, map, facts }: { battery: BatteryWithMaps; map: Obj
           {people ? <DensityLegend segments={segments} /> : <Legend battery={battery} values={nodes.map((n) => (n.primary ? n.value : null))} norm={norm} strongest={strongest} />}
         </div>
         {/* Selection is the object map's: on the respondent map the list only lists (a click there showed nothing). */}
-        <Aside battery={battery} facts={facts} selected={people ? -1 : selected} onChoose={people ? undefined : choose} onHover={setHovered} notPlaced={notPlaced} detail={detail}
+        <Aside battery={battery} facts={facts} selected={selected} onChoose={people ? undefined : choose} onHover={setHovered} notPlaced={notPlaced} detail={detail}
           counts={people ? <RespondentCounts map={map} segments={segments} /> : null}
           items={nodes.map((n, k) => ({ id: n.id, label: n.label, value: n.value, colour: n.primary ? color66(tones[k]) : SECONDARY }))} />
       </div>

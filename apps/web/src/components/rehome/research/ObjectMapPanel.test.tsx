@@ -732,13 +732,18 @@ describe("the object list on the respondent map", () => {
     fireEvent.click(screen.getByRole("button", { name: "Respondenti" }));
     const buttons = within(screen.getByTestId("object-map-panel-list")).getAllByRole("button");
     expect(buttons.length).toBe(map.object_ids.length);
-    for (const b of buttons) expect((b as HTMLButtonElement).disabled).toBe(true);
+    for (const b of buttons) expect(b.getAttribute("aria-disabled")).toBe("true");
+    // Read only, yet still a target the Lead can focus (Codex, #639): a disabled button takes no focus.
+    buttons[2].focus();
+    expect(document.activeElement).toBe(buttons[2]);
     fireEvent.click(buttons[2]);
     expect(canvas().getAttribute("data-selected")).toBe("");
-    expect(buttons[2].getAttribute("aria-pressed")).toBe("false");
+    // It reads as the object and its value, not as a toggle that selects (no "Vybrat", nothing pressed).
+    expect(buttons[2].hasAttribute("aria-pressed")).toBe(false);
+    expect(buttons[2].hasAttribute("aria-label")).toBe(false);
     fireEvent.click(screen.getByRole("button", { name: "Objekty" }));
     const back = within(screen.getByTestId("object-map-panel-list")).getAllByRole("button");
-    expect((back[2] as HTMLButtonElement).disabled).toBe(false);
+    expect(back[2].hasAttribute("aria-disabled")).toBe(false);
     fireEvent.click(back[2]);
     expect(canvas().getAttribute("data-selected")).toBe(map.object_ids[2]);
   });
