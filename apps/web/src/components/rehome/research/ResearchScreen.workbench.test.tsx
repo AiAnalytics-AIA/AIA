@@ -70,7 +70,9 @@ describe("the workbench: the Lead owns the AI starts", () => {
 
   it("says on Dimenze where the dimensions' proposal is asked for now", async () => {
     render(<ResearchScreen step="persona" frame={TEST_FRAME} />);
-    expect(await screen.findByText(/Návrh dimenzí připraví Vedoucí výzkumu/)).toBeTruthy();
+    const hint = await screen.findByText(/Návrh dimenzí připraví Vedoucí výzkumu/);
+    // Right at every width: below 1100 px the conversation is a drawer or a sheet, not "vlevo".
+    expect(hint.textContent).not.toMatch(/vlevo/);
   });
 
   it("saves Návrh's comments for the Lead, with no AI call, and asks the Lead in words on a click", async () => {

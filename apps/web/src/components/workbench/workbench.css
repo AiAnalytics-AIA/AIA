@@ -4,11 +4,14 @@
    the prototype's document-level rules are the root's own here. */
 /* The prototype's element-level base rules, in Tailwind's base layer: unlayered CSS beats every
    layer, so here they would override a re-homed screen's text-* utility on any button inside .wb
-   (a pressed object-map pill rendered ink on ink). The prototype's classes set their own colour. */
+   (a pressed object-map pill rendered ink on ink). The prototype's classes set their own colour.
+   The focus ring is here for the same reason: unlayered, it drew over a field's outline-none, a
+   second ring inside the ring its wrapper draws on focus-within. */
 @layer base {
   .wb {
     button, input, textarea, select { font: inherit; color: inherit; }
     button { cursor: pointer; }
+    :focus-visible { outline: 2px solid var(--focus-ring); outline-offset: 2px; }
   }
 }
 
@@ -22,8 +25,8 @@
   *, *::before, *::after { box-sizing: border-box; }
 
 /* ---------- base ---------- */
-/* The element rules (font, colour, cursor of form controls) are in @layer base, below the file. */
-:focus-visible { outline: 2px solid var(--focus-ring); outline-offset: 2px; }
+/* The element rules (font, colour, cursor of form controls) and the focus ring are in @layer base,
+   at the top of the file. */
 .sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0; }
 .icon, .glyph, .mark { flex: none; display: inline-block; vertical-align: middle; }
 .mono { font-family: var(--font-mono-stack); font-size: 12px; line-height: 16px; font-feature-settings: "zero"; }
@@ -94,6 +97,10 @@
 .nav__stage.is-inert { color: var(--ink-faint); }
 .nav__stage.is-you { box-shadow: inset 0 2px 0 var(--status-you); }
 .nav__stage.is-current.is-you { box-shadow: inset 0 -2px 0 var(--signal), inset 0 2px 0 var(--status-you); }
+/* The working copy reopened this stage (WCE7d): filled when its own input changed, a ring to re-check. */
+.nav__impact { flex: none; width: 6px; height: 6px; border-radius: 50%; }
+.nav__impact--changed { background: var(--status-you); }
+.nav__impact--recheck { box-shadow: inset 0 0 0 1.5px var(--status-you); }
 .nav__more { margin-left: auto; display: flex; align-items: center; gap: 6px; }
 
 /* main workspace */
@@ -137,11 +144,11 @@
 .nav__list .nav__plabel { display: block; padding: 4px 8px 2px; }
 .nav__list .nav__stage { justify-content: flex-start; height: 36px; }
 .menu__info { display: flex; align-items: center; gap: 6px; padding: 8px 12px; font-size: 13px; color: var(--ink-muted); border-bottom: 1px solid var(--border); }
-.wb--sheet .shead { gap: 8px; }
-.wb--sheet .shead__home { min-width: 0; flex: 1 1 auto; }
-.wb--sheet .shead__title { min-width: 0; }
-.wb--sheet .shead__spacer { display: none; }
-.wb--sheet .insp { width: 100%; }
+&.wb--sheet .shead { gap: 8px; }
+&.wb--sheet .shead__home { min-width: 0; flex: 1 1 auto; }
+&.wb--sheet .shead__title { min-width: 0; }
+&.wb--sheet .shead__spacer { display: none; }
+&.wb--sheet .insp { width: 100%; }
 
 /* conversation */
 .conv { display: flex; flex-direction: column; min-height: 0; height: 100%; }
@@ -245,6 +252,7 @@
 .refchip { display: inline-flex; align-items: center; gap: 6px; max-width: 100%; margin: 0 4px 6px 4px; padding: 2px 4px 2px 8px; border: 1px solid var(--ai-edge); background: var(--ai-wash); border-radius: 12px; font-size: 12px; }
 .composer { border: 1px solid var(--border); border-radius: 14px; background: var(--surface-raised); box-shadow: 0 4px 14px rgba(21, 26, 32, .07); }
 .composer:focus-within { border-color: var(--border-strong); }
+.composer:has(textarea:disabled) { background: var(--surface-sunken); box-shadow: none; }
 .composer textarea { display: block; width: 100%; border: 0; outline: 0; resize: none; background: transparent; padding: 11px 14px 2px 14px; font-size: 15px; line-height: 22px; min-height: 48px; max-height: 180px; }
 .composer textarea::placeholder { color: var(--ink-faint); }
 .composer__bar { display: flex; align-items: center; gap: 4px; padding: 4px 8px 8px 8px; }
@@ -260,6 +268,9 @@
 .art { display: flex; flex-direction: column; min-height: 0; height: 100%; }
 .arthead { display: flex; align-items: center; gap: 10px; padding: 8px 14px; min-height: 48px; border-bottom: 1px solid var(--border); background: var(--surface-raised); flex: none; }
 .arthead__title { font-size: 16px; line-height: 20px; font-weight: 600; }
+/* The save state goes under the title when the two do not fit side by side (workbench audit F13). */
+.arthead .row { flex-wrap: wrap; row-gap: 0; }
+&.wb--sheet .arthead__label { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
 .arthead__sub { font-size: 12px; line-height: 16px; color: var(--ink-muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .arthead__actions { margin-left: auto; display: flex; gap: 4px; align-items: center; }
 .artbody { flex: 1 1 auto; min-height: 0; overflow: auto; position: relative; }
@@ -324,7 +335,7 @@
 
 /* rail (artifact focus) */
 .rail { display: flex; flex-direction: column; align-items: center; gap: 8px; padding: 10px 0; height: 100%; }
-.rail__launch { position: relative; }
+.rail__launch { position: relative; width: 40px; height: 40px; }
 .rail__dot { position: absolute; right: 2px; bottom: 2px; display: inline-flex; border-radius: 50%; background: var(--surface-raised); padding: 1px; line-height: 0; }
 .rail__badge { min-width: 18px; height: 18px; border-radius: 9px; background: var(--status-you); color: var(--on-status-you); font-size: 11px; font-weight: 600; display: inline-flex; align-items: center; justify-content: center; padding: 0 5px; }
 
@@ -561,8 +572,8 @@
 .chg__before { color: var(--ink-muted); text-decoration: line-through; }
 .chg__why { font-size: 12px; line-height: 16px; color: var(--ink-muted); }
 .chg__refused { font-size: 12px; color: var(--status-fault); font-weight: 400; }
-.wb-picking .artbody { cursor: crosshair; }
-.wb-picking .artbody :is([id^="qedit_"], [id^="qblock_"], [id^="brief-"], [id^="plan-"]):hover { outline: 2px solid var(--signal); outline-offset: 2px; }
+&.wb-picking .artbody { cursor: crosshair; }
+&.wb-picking .artbody :is([id^="qedit_"], [id^="qblock_"], [id^="brief-"], [id^="plan-"]):hover { outline: 2px solid var(--signal); outline-offset: 2px; }
 .split__left[hidden] { display: none; }
 
 /* cards in the conversation (chunk 23): title and state pill, key facts as label/value rows, actions */
@@ -579,4 +590,19 @@
 .card__actions { display: flex; align-items: center; justify-content: flex-end; gap: 8px; flex-wrap: wrap; }
 .act__card { padding: 8px 12px 10px 12px; }
 .act__card .card__facts { margin: 6px 0 8px 0; }
+.refchip__clear { width: 20px; height: 20px; }
+/* At a phone's width every control the frame owns is a 44 px target, as the shared controls' TOUCH
+   is (input-interactions I11); from 640 px the prototype's density stands, above WCAG 2.2's 24 px. */
+@media (max-width: 639.98px) {
+  .iconbtn { width: 44px; height: 44px; }
+  .composer__send { width: 44px; height: 44px; border-radius: 22px; }
+  .btn, .btn--sm, button.chip, .linkchip, .follow__btn, .listbtn, .shead__pending, .nav__current, .nav__stage, .shead__home, .skip { min-height: 44px; }
+  .refchip__clear { flex: none; }
+  .nav--sheet { height: 48px; }
 }
+}
+
+/* The item inspector (chunk 2): an opened item's detail over the artifact, beside the stage. */
+.itemdrawer { position: absolute; top: 8px; right: 8px; bottom: 8px; width: min(400px, calc(100% - 16px)); z-index: 21; display: flex; flex-direction: column; }
+.itemdrawer > aside { flex: 1 1 auto; min-height: 0; }
+.itemdrawer[hidden] { display: none; }

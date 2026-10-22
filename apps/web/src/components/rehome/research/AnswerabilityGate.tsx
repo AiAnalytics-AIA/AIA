@@ -17,6 +17,7 @@ import Link from "next/link";
 import { useId } from "react";
 import { t, tv } from "@/i18n/t";
 import type { Answerability, QuestionOutlook } from "@/lib/api";
+import { TOUCH_LINK } from "@/components/ui/parts";
 import { type AcknowledgementState, confirmedFor, fixHref, gapFixes, gapWords, MAX_REASON, needsAcknowledgement } from "@/lib/answerability";
 import type { StepKey } from "@/research/steps";
 import { Field, TextArea } from "../ui";
@@ -67,7 +68,7 @@ export function AnswerabilityGate({
               {retry ? null : (
                 <span className="mt-0.5 flex flex-wrap gap-x-3">
                   {gapFixes(gap, outlook).map((fix) => (
-                    <Link key={`${fix.step}#${fix.anchor ?? ""}`} href={fixHref(fix, stepHref)} className="text-[13px] text-signal no-underline hover:underline">
+                    <Link key={`${fix.step}#${fix.anchor ?? ""}`} href={fixHref(fix, stepHref)} className={`text-[13px] ${TOUCH_LINK}`}>
                       {fix.words}
                     </Link>
                   ))}
@@ -84,7 +85,7 @@ export function AnswerabilityGate({
           <Link href={stepHref("run")} className="text-signal no-underline hover:underline">{tv("research.exec.answerability.retryOpen", { stage: t("aia.stages.run") })}</Link>
         </p>
       ) : linkable ? (
-        <Link href={stepHref("questionnaire")} className="text-sm text-signal no-underline hover:underline">{t("research.exec.answerability.fix")}</Link>
+        <Link href={stepHref("questionnaire")} className={`self-start text-sm ${TOUCH_LINK}`}>{t("research.exec.answerability.fix")}</Link>
       ) : null}
       {asks ? (
         <>

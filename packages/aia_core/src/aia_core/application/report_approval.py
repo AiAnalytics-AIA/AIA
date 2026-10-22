@@ -5,7 +5,8 @@ independence the scope's self-approval policy requires, and a row in the approva
 This module decides only *which* artifacts are a run's reports: the internal report its
 REPORT step stored, the report with literature or the client report stored for it, each
 found through the Study's run and checked to name that run. Approval is a person's sign-off
-on the stored document; what the client report may contain was decided when it was composed.
+on the stored document; what the client report may contain was decided when it was composed, and
+the client deliverable's gate (RD0) is read before the client report's approval.
 
 Approving a version (research-integrity-report D2) also freezes it -- it can no longer be
 deleted or superseded in place -- and, for a report the worker renders whose approved export is
@@ -20,9 +21,13 @@ offered: ``report_variants.variant_pdf``).
 
 from __future__ import annotations
 
+from collections.abc import Mapping
+from types import MappingProxyType
+from typing import Final
+
 from sqlalchemy.orm import Session
 
-from aia_core.application.client_report import CLIENT_REPORT_ARTIFACT_TYPE
+from aia_core.application.client_report import CLIENT_REPORT_ARTIFACT_TYPE, require_client_gate
 from aia_core.application.contextual_report import CONTEXT_REPORT_ARTIFACT_TYPE
 from aia_core.application.report import INTERNAL_REPORT_ARTIFACT_TYPE
 from aia_core.application.report_variants import approval_asks_pdf, draft_pdf_ready, request_pdf
@@ -31,9 +36,18 @@ from aia_core.domain.scope import Permission, StudyContext
 from aia_core.infrastructure.artifact_repository import Artifact, ArtifactStatus
 from aia_core.infrastructure.storage import ArtifactStore
 
-REPORT_ARTIFACT_TYPES = frozenset(
-    {INTERNAL_REPORT_ARTIFACT_TYPE, CONTEXT_REPORT_ARTIFACT_TYPE, CLIENT_REPORT_ARTIFACT_TYPE}
+#: Each approvable report by its stored type, as the approval names it (report-delivery RD3, G66):
+#: the client report is the one deliverable that leaves the organization.
+REPORT_KINDS: Final[Mapping[str, str]] = MappingProxyType(
+    {
+        INTERNAL_REPORT_ARTIFACT_TYPE: "internal",
+        CONTEXT_REPORT_ARTIFACT_TYPE: "with_review",
+        CLIENT_REPORT_ARTIFACT_TYPE: "client",
+    }
 )
+#: The kinds a client receives: never internal_only.
+CLIENT_REPORT_KINDS: Final = frozenset({"client"})
+REPORT_ARTIFACT_TYPES = frozenset(REPORT_KINDS)
 
 
 class ReportNotApprovable(Exception):
@@ -67,6 +81,10 @@ def approve_report(
         # Approved before this release, which froze nothing: invalidate_stage and delete spare
         # only a frozen artifact. Freezing is no decision, so the ledger keeps its one row.
         return artifact if artifact.is_frozen else artifacts.freeze(artifact_id)
+    if artifact.artifact_type == CLIENT_REPORT_ARTIFACT_TYPE:
+        # The client deliverable's gate (RD0, MVPQ-09): it blocks, never a flag a reviewer
+        # approves past.
+        require_client_gate(artifacts, artifact)
     # Read while it is still a draft: its own PDF, under the draft's key.
     ready = draft_pdf_ready(session, scope, store, docx=artifact, run_id=run_id)
     artifacts.approve(artifact_id, note=note)

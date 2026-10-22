@@ -12,10 +12,13 @@ import { t } from "@/i18n/t";
 import { type InspectorEntry, type InspectorStack, topEntry } from "@/lib/inspector-stack";
 import { Icon } from "../icons";
 
-export function ItemInspector({ stack, onBack, onClose, children }: {
+export function ItemInspector({ stack, onBack, onClose, ownEscape = true, children }: {
   stack: InspectorStack;
   onBack: () => void;
   onClose: () => void;
+  /** false inside a frame that orders Escape itself (the workbench's one handler, D21): the
+   *  frame closes this drawer only when it is the layer in use, never from behind a dialog. */
+  ownEscape?: boolean;
   /** The opened item's detail. */
   children: (entry: InspectorEntry) => ReactNode;
 }) {
@@ -37,7 +40,7 @@ export function ItemInspector({ stack, onBack, onClose, children }: {
   }, [open, top?.id]);
 
   useEffect(() => {
-    if (!open) return;
+    if (!open || !ownEscape) return;
     const onKey = (e: KeyboardEvent) => {
       if (e.key !== "Escape" || e.defaultPrevented) return;
       e.preventDefault();
@@ -45,7 +48,7 @@ export function ItemInspector({ stack, onBack, onClose, children }: {
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [open, onClose]);
+  }, [open, ownEscape, onClose]);
 
   if (!top) return null;
   return (

@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { attachmentName, type DeepResearchRun, type ReportVariant } from "./api";
 import {
+  approvalQuestion,
   currentVariant,
   czechDate,
   downloadMismatch,
@@ -185,5 +186,19 @@ describe("report variant (research-integrity-report 3)", () => {
       .toBe("AIA-STU-1-RUN-1-zakladni-ART-1-schvaleno.docx");
     expect(attachmentName("attachment")).toBeNull();
     expect(attachmentName(null)).toBeNull();
+  });
+});
+
+describe("approvalQuestion (B22)", () => {
+  it("names the document, its variant, the stored version and its format", () => {
+    expect(approvalQuestion("client", "ART-0000000000000001")).toBe(
+      "Schválit klientskou zprávu, uloženou verzi ART-0000000000000001 (DOCX)? Schválení nelze vrátit: tuto verzi pak nelze smazat ani nahradit.",
+    );
+    expect(approvalQuestion("internal", "ART-a", { pdf: true })).toContain("interní zprávu, uloženou verzi ART-a (DOCX i jeho PDF)?");
+    expect(approvalQuestion("with_review", "ART-b", { review: "DR-7" })).toContain("interní zprávu s rešerší DR-7, uloženou verzi ART-b (DOCX)?");
+  });
+
+  it("promises nothing about the file: that is the card's own line (was: \"stažený soubor ponese schválení\" always)", () => {
+    expect(approvalQuestion("internal", "ART-a")).not.toMatch(/ponese/);
   });
 });

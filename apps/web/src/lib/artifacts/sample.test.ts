@@ -14,7 +14,7 @@ describe("sampleAia", () => {
     ...FORECAST_ITEMS.map(sampleAia.forecast),
     sampleAia.ready("support_forecast"),
     sampleAia.respondents("fictional_roster"),
-  ];
+  ].map((id) => id!);
 
   // The contract's id grammar for Vzorek (packages/aia_core/tests/fixtures/lead_artifacts/contract.json),
   // e.g. "n|size|quota:<cell>|…": a literal alternative, or a prefix with a placeholder after it.
@@ -46,7 +46,12 @@ describe("sampleAia", () => {
     expect(sampleAia.ready("sample_size")).toBe("sample:ready:sample_size");
   });
 
-  it("refuses an id outside the grammar rather than send it", () => {
-    expect(() => sampleAia.ready("a b")).toThrow();
+  it("names no element for a server's name outside the grammar, never throwing during a render", () => {
+    // domain/research_design.py names a question's compile problem `compile:<code>:<section>#<n>`.
+    expect(sampleAia.ready("compile:question_without_text:S1#1")).toBeNull();
+    expect(sampleAia.ready("compile:empty_questionnaire:sections")).toBe("sample:ready:compile:empty_questionnaire:sections");
+    expect(sampleAia.ready("x".repeat(80))).toBeNull();
+    expect(sampleAia.respondents("a b")).toBeNull();
+    expect(sampleAia.quota("a b")).toBeNull();
   });
 });

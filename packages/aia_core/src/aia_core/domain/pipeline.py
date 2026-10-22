@@ -30,6 +30,7 @@ __all__ = [
     "STAGE_EQUIVALENTS",
     "ImpactPreview",
     "ProjectType",
+    "StageImpact",
     "StageStatus",
     "changed_fields",
     "fingerprint",
@@ -37,6 +38,7 @@ __all__ = [
     "resolve_stage",
     "stage_fingerprint",
     "stage_ids",
+    "stage_impacts",
     "stage_input_payload",
     "stage_labels",
     "stages_for",
@@ -511,3 +513,50 @@ def impact_preview(
         preserve=ids[:pos],
         presentation_only=presentation_only,
     )
+
+
+class StageImpact(StrEnum):
+    """What an edit means for one stage of a design that already ran (working-copy-edit-ops WCE7).
+
+    ``CHANGED``: the stage's own inputs differ. ``RECHECK``: its inputs are the same, but it lies in
+    the range an earlier change invalidates (:func:`impact_preview`), so what it produced must be
+    looked at again. ``CURRENT``: neither.
+    """
+
+    CURRENT = "CURRENT"
+    CHANGED = "CHANGED"
+    RECHECK = "RECHECK"
+
+
+def stage_impacts(
+    before: dict[str, Any], after: dict[str, Any], project_type: Any = ProjectType.RESEARCH
+) -> dict[str, StageImpact]:
+    """Every stage's :class:`StageImpact` going from design ``before`` to design ``after``, in
+    pipeline order.
+
+    A stage is ``CHANGED`` when its own input fingerprint differs. The invalidated range starts at
+    the earlier of :func:`impact_preview`'s root (from the fields that changed) and the first
+    ``CHANGED`` stage: a field a stage reads but :data:`IMPACT_ROOTS` does not map (a title, an
+    aggregation policy) still reopens what follows it, never reads as current. A presentation-only
+    edit changes only its own stages, which end the pipeline. Identical designs are ``CURRENT``
+    throughout."""
+    ids = stage_ids(project_type)
+    changed = {
+        stage
+        for stage in ids
+        if stage_fingerprint(before, stage, project_type)
+        != stage_fingerprint(after, stage, project_type)
+    }
+    roots = [ids.index(s) for s in changed]
+    preview = impact_preview(project_type, changed_fields(before, after))
+    if preview.root_stage is not None:
+        roots.append(ids.index(preview.root_stage))
+    start = min(roots) if roots else len(ids)
+    return {
+        stage: StageImpact.CHANGED
+        if stage in changed
+        else StageImpact.RECHECK
+        if i >= start
+        else StageImpact.CURRENT
+        for i, stage in enumerate(ids)
+    }

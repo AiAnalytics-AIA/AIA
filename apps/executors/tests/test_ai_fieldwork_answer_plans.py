@@ -222,3 +222,117 @@ def test_a_scale_questions_labels_are_sent_only_with_the_switch_on() -> None:
     off = _asked(scale_labels_in_prompt=False)
     assert "Škála 1 až 4. " in off and "nikdy" not in off
     assert "nikdy" not in _asked(scale_labels_in_prompt=True, override=False)
+
+
+class _Journal:
+    """A lineage's kept answers in memory, as ``_RunJournal`` keeps them (RQC0)."""
+
+    def __init__(self, entries: dict[str, dict[str, Any]] | None = None) -> None:
+        self.entries = dict(entries or {})
+        self.override: dict[str, Any] | None = None
+
+    def kept(self) -> dict[str, dict[str, Any]]:
+        return dict(self.entries)
+
+    def put(self, key: str, payload: dict[str, Any]) -> dict[str, Any]:
+        if self.override is not None:  # an earlier, raced answer is what is kept
+            payload = {**payload, "output": self.override}
+        return self.entries.setdefault(key, payload)
+
+
+class _RunContext(_Context):
+    def __init__(self, run_id: str) -> None:
+        super().__init__()
+        self.step = SimpleNamespace(run_id=run_id)
+
+
+def _answer(
+    fieldwork: AIFieldwork, spec: Any, plans: list[Any], journal: _Journal, run_id: str
+) -> Any:
+    return fieldwork.answer_plans(
+        plans,
+        spec,
+        _RunContext(run_id),  # type: ignore[arg-type]
+        seed=7,
+        response=AIA_RESPONSE_V1,
+        data_class=DataClass.CLASS_C_INTERNAL,
+        lineage=DataLineage(datasets=frozenset({"synthetic"})),
+        journal=journal,  # type: ignore[arg-type]
+    )
+
+
+def test_a_kept_answer_is_replayed_unsent_and_names_the_run_that_paid() -> None:
+    journal = _Journal()
+    first = _Caller()
+    fieldwork, spec, plans = _setup(first)
+    paid = _answer(fieldwork, spec, plans, journal, "RUN-1")
+    assert isinstance(paid, Answered) and len(journal.entries) == len(first.requests) > 0
+
+    again = _Caller()
+    fieldwork, spec, plans = _setup(again)
+    replayed = _answer(fieldwork, spec, plans, journal, "RUN-2")
+    assert isinstance(replayed, Answered)
+    assert again.requests == []
+    assert replayed.rows == paid.rows, "the same outputs draw the same answers"
+    assert {c["replayed_from_run"] for c in replayed.calls} == {"RUN-1"}
+    assert all(c["cost_usd"] == 0.0 and c["calls"] == 0 for c in replayed.calls)
+
+
+def test_another_model_or_route_asks_again_rather_than_replay() -> None:
+    journal = _Journal()
+    fieldwork, spec, plans = _setup(_Caller())
+    _answer(fieldwork, spec, plans, journal, "RUN-1")
+    other = _Caller()
+    other.preflight = lambda request: SimpleNamespace(route_id="route-y", model="model-y")  # type: ignore[method-assign]
+    fieldwork, spec, plans = _setup(other)
+    _answer(fieldwork, spec, plans, journal, "RUN-2")
+    assert len(other.requests) == sum(len(p.blocks) for p in plans)
+
+
+def test_an_output_the_draw_refuses_is_never_kept() -> None:
+    journal = _Journal()
+    caller = _Caller()
+    fieldwork, spec, plans = _setup(caller)
+    valid = caller.output_for
+    # The first answer has an item with no probability mass: the attempt fails on it.
+    caller.output_for = lambda request: valid(request).model_copy(
+        update={"item_0": valid(request).item_0.model_copy(update={"probabilities": [0.0] * 4})}
+    )
+    assert isinstance(_answer(fieldwork, spec, plans, journal, "RUN-1"), Failed)
+    assert journal.entries == {}
+
+
+def test_a_raced_answer_kept_first_is_the_one_drawn_from() -> None:
+    journal = _Journal()
+    caller = _Caller()
+    fieldwork, spec, plans = _setup(caller)
+    # Another attempt kept an answer with all mass on the last option of every item.
+    block = next(p.blocks[0] for p in plans if p.blocks)
+    journal.override = {
+        item.item_id: {"probabilities": [0.0] * (item.width - 1) + [1.0]} for item in block.items
+    }
+    answered = _answer(fieldwork, spec, plans, journal, "RUN-1")
+    assert isinstance(answered, Answered)
+    fresh = _answer(*_setup(_Caller()), _Journal(), "RUN-9")
+    assert answered.rows != fresh.rows, "the kept answer, not this attempt's own, drew the rows"
+
+
+def test_a_replay_names_the_respondent_answered_now_when_two_sent_the_same_request() -> None:
+    from dataclasses import replace
+
+    journal = _Journal()
+    caller = _Caller()
+    fieldwork, spec, plans = _setup(caller)
+    first = next(p for p in plans if p.blocks)
+    # Two respondents whose blocks are byte for byte the same: only their ids differ.
+    twins = [first, replace(first, persona=first.persona.model_copy(update={"persona_id": "TWIN"}))]
+    _answer(fieldwork, spec, twins, journal, "RUN-1")
+    assert len(journal.entries) == len(first.blocks), "the twins share each block's key"
+
+    fieldwork, spec, _ = _setup(_Caller())
+    replayed = _answer(fieldwork, spec, twins, journal, "RUN-2")
+    assert isinstance(replayed, Answered)
+    assert [c["respondent_id"] for c in replayed.calls] == [
+        p.persona.persona_id for p in twins for _ in p.blocks
+    ]
+    assert [c["block"] for c in replayed.calls] == [b.index for p in twins for b in p.blocks]
