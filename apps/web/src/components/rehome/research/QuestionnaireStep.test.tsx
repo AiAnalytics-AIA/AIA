@@ -213,9 +213,10 @@ describe("Dotazník", () => {
     unitStub({ ...BRIEF, research_plan: plan, sections: SECTIONS, ui_state: { questionnaire_path: "manual" } });
     render(<ResearchScreen step="questionnaire" frame={TEST_FRAME} />);
     const panel = await screen.findByRole("region", { name: "Jak výzkumné otázky zodpovíme" });
-    const media = within(panel).getByLabelText("Způsob odpovědi na „Která média lidé používají?“") as HTMLSelectElement;
-    expect(media.value).toBe("");
-    fireEvent.change(media, { target: { value: "rank_objects" } });
+    // One of five, chosen as chips (input-interactions chunk 3, audit A11): "Neurčeno" until chosen.
+    const media = within(panel).getByRole("radiogroup", { name: "Způsob odpovědi na „Která média lidé používají?“" });
+    expect(within(media).getByRole("radio", { checked: true }).textContent).toBe("Neurčeno");
+    fireEvent.click(within(media).getByRole("radio", { name: "Pořadí položek sady" }));
     await saved();
     await waitFor(() => expect(lastSave().reason).toBe("research_question_comparison"));
     const content = lastSave().content as unknown as { research_plan: { research_question_comparisons?: Record<string, string>; research_questions: string[] } };
