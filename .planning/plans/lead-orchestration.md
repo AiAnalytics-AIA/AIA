@@ -1077,6 +1077,17 @@ head`, `alembic check`, `downgrade base`, `upgrade head` on PostgreSQL 16.
    `lead_cards_journey` accepts either outcome at its typed start, so it runs again on one
    workbench.
 
+   - Review of #682: a found job is also not held to the wallet or the threshold again.
+     `existing_start` asks the start itself for the key it would use (`_probe`, raised before
+     any gate or write, so the key code is never copied), and `quote` runs only when a run will be
+     created. On the agent path the Design Revision is now submitted before the quote, as the
+     run path already did; a refusal rolls the whole request back. A reused turn's run is not
+     "linked" in `conversationTimeline`, so a job or run that no card started (a run started on
+     Spuštění) stays in the conversation. Tests: the wallet case with a cap of exactly one
+     reservation, `test_a_typed_start_found_already_started_asks_no_confirmation` (both fail at
+     ab1e892d), and `lead-cards.test.ts` "leaves a run a typed start found already started where
+     it is".
+
 ### Doc follow-up (typed start reuse)
 
 - ADR 0028 *What enforces it*: "a typed start approved on a run another approval already started

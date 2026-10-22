@@ -13,7 +13,7 @@ provides.
 
 from __future__ import annotations
 
-from collections.abc import Mapping, Sequence
+from collections.abc import Callable, Mapping, Sequence
 from dataclasses import dataclass
 from typing import Any
 
@@ -571,6 +571,7 @@ class ResearchRuns:
         acknowledge: Acknowledgement | None = None,
         inherited_acknowledgement: tuple[Acknowledgement, str, str | None] | None = None,
         require_answerability: bool = False,
+        _probe: bool = False,
     ) -> StartedRun:
         """Run the research workflow over one Design Revision of the Study.
 
@@ -731,6 +732,8 @@ class ResearchRuns:
             key += f":analysis-retry:{retry_of}"
         elif retry_of:
             key += f":retry:{retry_of}"
+        if _probe:
+            raise _Probed(key)
         # The limits are not part of the key (they decide whether a run may start, not what
         # it computes): a start that finds its run returns it, whatever limits are in force
         # now. Only a run that would be created is held to them.
@@ -1493,6 +1496,30 @@ class ResearchRuns:
         ]
 
 
+class _Probed(Exception):
+    """Raised by a start asked only for its key (``_probe``), before any gate or write."""
+
+    def __init__(self, key: str) -> None:
+        super().__init__(key)
+        self.key = key
+
+
+def existing_start(
+    session: Session, scope: StudyContext, start: Callable[[], StartedRun]
+) -> str | None:
+    """The run ``start`` would find already there, or None when it would create one.
+
+    ``start`` is a :meth:`ResearchRuns.start` or :meth:`ResearchAgentJobs.start` call with
+    ``_probe=True``: it computes the same idempotency key a real start does, from the same
+    code, and stops before any gate, charge or write. For a caller that must not hold a found
+    run to the gates of a new one (a typed start approved again, lead-orchestration LO5)."""
+    try:
+        start()
+    except _Probed as probed:
+        return WorkflowRepository(session, scope).find_run_by_idempotency_key(probed.key)
+    raise AssertionError("a probed start returned instead of naming its key")
+
+
 @dataclass(frozen=True, slots=True)
 class ResearchAgentJobs:
     """Design assistance is a durable job, never a request-time model call.
@@ -1550,6 +1577,7 @@ class ResearchAgentJobs:
         prompt_version: int | None = None,
         rebuild_of: str | None = None,
         confirm_cost_usd: float | None = None,
+        _probe: bool = False,
     ) -> StartedRun:
         """Queue one proposal. The prompt it runs is chosen here and frozen into the job.
 
@@ -1624,6 +1652,8 @@ class ResearchAgentJobs:
         if newest and _ended_without_result(workflows.get_run(newest[0]["run_id"])):
             round_ += 1
         key = base if round_ == 0 else f"{base}:again-{round_}"
+        if _probe:
+            raise _Probed(key)
         # Before anything is created: a job that exists already asks nothing.
         confirmation = (
             self.spend_gate(confirm_cost_usd)

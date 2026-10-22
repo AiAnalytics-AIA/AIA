@@ -49,6 +49,7 @@ from .research import (
     ResearchAgentJobs,
     ResearchRuns,
     RunReservations,
+    existing_start,
 )
 from .wallet import StudyWallets
 from .workflows import StartedRun
@@ -169,6 +170,9 @@ def approve_chat_start(
             assert ceiling is not None and threshold is not None
             raise CostConfirmationRequired(ceiling_usd=ceiling, limit_usd=threshold)
 
+    # A start that would find its run already there (the same job or run on the same design,
+    # started by an earlier approval or on its stage) is not held to the wallet or the threshold
+    # again: nothing is created or charged, and the card is decided by a reuse row below.
     if command.start == RESEARCH_RUN:
         if run_start is None:
             raise ChatStartRefused("run_start_unavailable")
@@ -184,6 +188,17 @@ def approve_chat_start(
             persona_source=run_start.persona_source,
             fieldwork_source=run_start.fieldwork_source,
         )
+        run_kwargs: dict[str, Any] = {
+            "design_revision_id": revision.revision_id,
+            "fieldwork_source": run_start.fieldwork_source,
+            "analysis_enabled": run_start.analysis_enabled,
+            "external_context": run_start.external_context,
+            "sociomapping_enabled": run_start.sociomapping_enabled,
+            "reservations": run_start.reservations,
+            "persona_source": run_start.persona_source,
+            "require_answerability": run_start.require_answerability,
+        }
+        found = existing_start(session, scope, lambda: runs.start(**run_kwargs, _probe=True))
         ceiling: float | None = None
         if outlook.spec is not None:
             # A design that does not compile is refused by the start itself, by name.
@@ -193,26 +208,30 @@ def approve_chat_start(
                 analysis_enabled=run_start.analysis_enabled,
                 reservations=run_start.reservations,
             ).total_usd
-            quote(ceiling)
-        started: StartedRun = runs.start(
-            design_revision_id=revision.revision_id,
-            fieldwork_source=run_start.fieldwork_source,
-            analysis_enabled=run_start.analysis_enabled,
-            external_context=run_start.external_context,
-            sociomapping_enabled=run_start.sociomapping_enabled,
-            reservations=run_start.reservations,
-            confirm_cost_usd=confirm_cost_usd,
-            persona_source=run_start.persona_source,
-            require_answerability=run_start.require_answerability,
-        )
+            if found is None:
+                quote(ceiling)
+        started: StartedRun = runs.start(**run_kwargs, confirm_cost_usd=confirm_cost_usd)
         kind = ChargeKind.RESEARCH_RUN
     else:
         assert command.action is not None
-        quote(reservation_usd)
-        revision = submit_design(_SOURCE_STAGE.get(command.action.value, "questionnaire"))
-        started = ResearchAgentJobs(session, scope, reservation_usd=reservation_usd).start(
+        action = command.action
+        revision = submit_design(_SOURCE_STAGE.get(action.value, "questionnaire"))
+        jobs = ResearchAgentJobs(session, scope, reservation_usd=reservation_usd)
+        found = existing_start(
+            session,
+            scope,
+            lambda: jobs.start(
+                design_revision_id=revision.revision_id,
+                action=action,
+                instruction=matched.instruction,
+                _probe=True,
+            ),
+        )
+        if found is None:
+            quote(reservation_usd)
+        started = jobs.start(
             design_revision_id=revision.revision_id,
-            action=command.action,
+            action=action,
             instruction=matched.instruction,
             confirm_cost_usd=confirm_cost_usd,
         )

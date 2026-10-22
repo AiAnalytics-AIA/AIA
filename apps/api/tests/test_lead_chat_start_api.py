@@ -258,9 +258,11 @@ def test_a_typed_start_approved_on_a_job_already_started_decides_its_card_and_st
     """The same command typed again on the same design finds the job the first approval started.
     Its card is decided (it never asks again after a reload) and says the job was found; nothing
     starts or is charged, and its row names the run in its comment only, so the second approval
-    is neither a start approval of that run (spend attribution) nor a charge authority."""
+    is neither a start approval of that run (spend attribution) nor a charge authority. With the
+    wallet on, its cap is exactly one job: the found job is not held to the wallet again, which
+    the first charge has used up (review of #682)."""
     if wallet:
-        _wallet_on(app, researcher, world, cap=5.0)
+        _wallet_on(app, researcher, world, cap=JOB_RESERVATION)
     _save(app, world)
     first = _type(researcher, world, "Zkontroluj návrh").json()["turns"][0]["turn_id"]
     run_id = _approve(researcher, world, first).json()["run_id"]
@@ -289,6 +291,28 @@ def test_a_typed_start_approved_on_a_job_already_started_decides_its_card_and_st
     # Asked once more, the card answers as decided and writes nothing further.
     assert _approve(researcher, world, second).json()["run_id"] == run_id
     assert _written(app)["chat_start"] == 2
+
+
+def test_a_typed_start_found_already_started_asks_no_confirmation(
+    researcher: TestClient, world: Any, app: FastAPI
+) -> None:
+    """With the wallet on, at or above the study's confirmation threshold the first approval
+    asks and is confirmed; the second finds the job and asks nothing, since nothing will be
+    charged (review of #682)."""
+    _wallet_on(app, researcher, world, cap=5.0)
+    _save(app, world)
+    with create_session_factory(app.state.engine)() as session:
+        ScopeRepository(session).set_study_spend_confirm(_scope(world, session), 1.0)
+        session.commit()
+    first = _type(researcher, world, "Zkontroluj návrh").json()["turns"][0]["turn_id"]
+    asked = _approve(researcher, world, first)
+    assert asked.status_code == 409 and asked.json()["code"] == "cost_confirmation_required"
+    run_id = _approve(researcher, world, first, confirm_cost_usd=JOB_RESERVATION).json()["run_id"]
+    second = _type(researcher, world, "Zkontroluj návrh").json()["turns"][0]["turn_id"]
+    again = _approve(researcher, world, second)
+    assert again.status_code == 200, again.text
+    assert again.json()["run_id"] == run_id
+    assert [r.decision for r in _chat_starts(app)] == ["start", "reuse"]
 
 
 def test_in_one_switched_off_state_the_typed_card_starts_and_the_models_card_waits(
