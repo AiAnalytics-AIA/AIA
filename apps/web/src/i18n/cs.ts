@@ -3144,7 +3144,7 @@ export const cs = {
         reportDownloadClient: "Stáhnout klientskou zprávu",
         reportClientHint: "Klientská zpráva obsahuje jen čísla, která prošla pravidly pro klienta, každé označené jako modelované, a jen schválené mapy.",
         // Said only of a client report the card knows is a draft (its last download said so).
-        reportClientHintDraft: "Je to koncept: před předáním ji schvalte.",
+        reportClientHintDraft: "Je to koncept: před předáním ji schvalte v panelu Zpráva, na verzi, kterou tam čtete.",
         reportPdfFailed: "PDF se nepodařilo vytvořit; zpráva je k dispozici jako DOCX.",
         reportApprove: "Schválit pro interní použití",
         reportApproveClient: "Schválit k předání klientovi",

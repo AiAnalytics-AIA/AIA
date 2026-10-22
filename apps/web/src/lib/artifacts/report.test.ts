@@ -110,6 +110,9 @@ describe("the document's refs", () => {
 it("names the DOCX's review", () => {
   expect(reviewWords({ review_state: "DRAFT_UNAPPROVED" })).toBe("neschváleno");
   expect(reviewWords({ review_state: "APPROVED_INTERNAL" })).toBe("interně schváleno");
+  // One stored state, the client's words for the client report (RPT3a).
+  expect(reviewWords({ review_state: "APPROVED_INTERNAL" }, "client")).toBe("schváleno k předání klientovi");
+  expect(reviewWords({ review_state: "DRAFT_UNAPPROVED" }, "client")).toBe("neschváleno");
 });
 
 describe("who approved, in words (RD2)", () => {
