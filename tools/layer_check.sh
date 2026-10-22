@@ -450,11 +450,11 @@ forbid "the API, worker and executors never touch the design source table" \
 # calling researcher in every query. The table used anywhere else could read another
 # researcher's turns, or another Study's.
 forbid "the Lead turn table is touched only by its repository" \
-  'StudyLeadTurnRow|study_lead_turns' \
+  'StudyLeadTurnRow|study_lead_turns|StudyLeadTurnAnswerRow|study_lead_turn_answers' \
   "$CORE" \
   "$CORE/infrastructure/tables.py" "$CORE/infrastructure/study_lead_repository.py"
 forbid "the API, worker and executors never touch the Lead turn table" \
-  'StudyLeadTurnRow|study_lead_turns' \
+  'StudyLeadTurnRow|study_lead_turns|StudyLeadTurnAnswerRow|study_lead_turn_answers' \
   apps
 # Each researcher's own Lead, its file history and its notes (product owner, 2026-10-19): the
 # repository works only on the calling researcher's Lead, and loads a client note only into

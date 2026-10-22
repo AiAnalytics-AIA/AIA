@@ -119,6 +119,12 @@ export type LeadTurn = {
   command?: string | null;
   /** What the turn applied at once to the Lead's own files and notes (a client note, forgetting one). */
   changes?: { name?: boolean; soul?: boolean; user?: boolean; remembered?: string[]; forgotten?: string[] } | null;
+  /** A person's message that waits for the Lead, stored on the server and shown in every tab
+   *  (ADR 0041 decision 7); withdrawn: taken back before any turn was sent it. */
+  queued?: boolean;
+  withdrawn?: boolean;
+  /** The messages a Lead turn was sent, in queue order. */
+  answers?: string[];
 };
 
 /**
@@ -746,6 +752,9 @@ export const LEAD_REASON_WORDS: Readonly<Record<string, string>> = {
   licence_undetermined: "Tuto studii nelze poslat modelu: licence dat panelu to neumožňuje.",
   lead_context_too_large: "Studie je pro jednu odpověď příliš velká. Zkuste se zeptat na konkrétní část.",
   lead_busy: "Vedoucí ještě odpovídá na předchozí zprávu.",
+  lead_queue_full: "Na Vedoucího už čeká pět zpráv. Počkejte, až odpoví.",
+  lead_message_not_queued: "Zpráva už nečeká: Vedoucí ji mezitím dostal.",
+  message_too_long: "Zpráva je příliš dlouhá: nejvýše 8 KB textu.",
   lead_not_hatched: "Nejdřív si vylíhněte vlastního Vedoucího výzkumu.",
   stale_card: "Studie se od přípravy této karty změnila; úloha se nespustila.",
   agent_context_too_large: "Studie je pro návrhovou úlohu příliš rozsáhlá (úloha přečte nejvýš 64 KB); nic se nespustilo. Zkraťte přílohy nebo design.",

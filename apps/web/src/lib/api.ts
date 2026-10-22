@@ -1603,6 +1603,12 @@ export const lead = {
   /** Keep or drop what a turn wants to remember for all of the researcher's work (once, in the ledger). */
   decideSelfUpdate: (studyId: string, turnId: string, decision: "accept" | "dismiss") =>
     request<SelfUpdateDecision>("POST", `${studyPath(studyId)}/lead/turns/${enc(turnId)}/self-update`, { decision }),
+  /** Start the Lead's turn on the messages that wait, once the conversation is free (any tab). */
+  answerQueued: (studyId: string) =>
+    request<{ turns: LeadTurn[] }>("POST", `${studyPath(studyId)}/lead/turns/queued`),
+  /** Withdraw a message that still waits: it stays stored, and no turn is sent it. */
+  withdraw: (studyId: string, turnId: string) =>
+    request<{ turns: LeadTurn[] }>("POST", `${studyPath(studyId)}/lead/turns/${enc(turnId)}/withdraw`),
   /** What a turn could see, layer by layer, read from the context it froze (lead-conversation LC2). */
   manifest: (studyId: string, turnId: string) =>
     request<TurnManifest>("GET", `${studyPath(studyId)}/lead/turns/${enc(turnId)}/manifest`),

@@ -36,6 +36,8 @@ let posts: unknown[];
 let failPosts = 0;
 let selfUpdates: unknown[];
 let staleAnswer: string[];
+let drains = 0;
+let withdrawn: string[] = [];
 function api() {
   vi.stubGlobal("fetch", vi.fn(async (url: RequestInfo | URL, init?: RequestInit) => {
     const u = String(url);
@@ -50,6 +52,14 @@ function api() {
       return new Response(JSON.stringify(me), { status: 201 });
     }
     if (u === "/api/v1/lead") return new Response(JSON.stringify(me));
+    if (u.endsWith("/lead/turns/queued")) {
+      drains += 1;
+      return new Response(JSON.stringify({ turns: [] }));
+    }
+    if (u.endsWith("/withdraw")) {
+      withdrawn.push(u.split("/").at(-2)!);
+      return new Response(JSON.stringify({ turns: [] }));
+    }
     if (u.endsWith("/lead/turns")) {
       if (failPosts > 0) {
         failPosts -= 1;
@@ -72,6 +82,8 @@ beforeEach(() => {
   posts = [];
   selfUpdates = [];
   staleAnswer = [];
+  drains = 0;
+  withdrawn = [];
   failPosts = 0;
   me = hatched;
   state = { available: true, unavailable_reason: null, busy: false, turns: [] };
@@ -412,17 +424,42 @@ describe("LeadPane", () => {
     expect(screen.getByRole("link", { name: "Otevřít Kontrolu a spuštění" })).toBeTruthy();
   });
 
-  it("sends a message written while the Lead works with the stage and element it was written about", async () => {
+  it("sends a message written while the Lead works at once, with the stage and element it was written about", async () => {
     state = { ...state, busy: true, turns: [turn({ status: "RUNNING", output: null })] };
     const focus = { id: "question:Q_1", label: "Otázka Q_1" };
-    const { rerender } = render(pane({ focus }));
+    render(pane({ focus }));
     await screen.findByLabelText("Napište Vedoucímu výzkumu");
     fireEvent.change(screen.getByLabelText("Napište Vedoucímu výzkumu"), { target: { value: "Zkrať ji" } });
     fireEvent.keyDown(screen.getByLabelText("Napište Vedoucímu výzkumu"), { key: "Enter" });
-    expect(await screen.findByText("Zkrať ji")).toBeTruthy();
-    rerender(pane({ focus: null, stage: "design" }));
-    state = { ...state, busy: false, turns: [turn({ output: { reply: "Hotovo." } })] };
+    // The server keeps it until the Lead is free (ADR 0041 decision 7): nothing waits in the page.
     await waitFor(() => expect(posts.at(-1)).toEqual({ kind: "message", text: "Zkrať ji", stage: "brief", focus }));
+  });
+
+  it("shows what waits on the server, withdraws it on request, and asks a free Lead to answer the rest", async () => {
+    const waiting = (id: string, text: string) => turn({ turn_id: id, actor: "person", text, run_id: null, queued: true });
+    state = { ...state, busy: true, turns: [turn({ status: "RUNNING", output: null }), waiting("LDT-8", "Z jiné karty"), waiting("LDT-9", "Zkrať ji")] };
+    render(pane());
+    const queue = await screen.findByLabelText("Čeká na Vedoucího");
+    expect(within(queue).getByText("Z jiné karty")).toBeTruthy();
+    // A waiting message is shown once, in the queue: not yet a turn of the conversation.
+    expect(screen.getAllByText("Zkrať ji")).toHaveLength(1);
+    expect(drains).toBe(0); // the Lead is still at work
+    // The Lead finishes; the withdrawal's read finds it free with one message still waiting.
+    state = { ...state, busy: false, turns: [turn({ output: { reply: "Hotovo." } }), waiting("LDT-8", "Z jiné karty")] };
+    fireEvent.click(within(queue).getAllByRole("button", { name: "Odebrat z fronty" })[1]!);
+    await waitFor(() => expect(withdrawn).toEqual(["LDT-9"]));
+    await waitFor(() => expect(drains).toBe(1));
+  });
+
+  it("asks again for what waits once a turn parked on the budget is released and answered", async () => {
+    const waiting = turn({ turn_id: "LDT-9", actor: "person", text: "Jsi tam?", run_id: null, queued: true });
+    state = { ...state, busy: false, turns: [turn({ status: "WAITING", reason: "budget_exceeded", output: null }), waiting] };
+    const { rerender } = render(pane());
+    await waitFor(() => expect(drains).toBe(1)); // the server answers none: the turn waits on the budget
+    // The budget is raised, the parked turn answered; the next read finds the message still waiting.
+    state = { ...state, turns: [turn({ output: { reply: "Hotovo." } }), waiting] };
+    rerender(pane({ epoch: 1 }));
+    await waitFor(() => expect(drains).toBe(2));
   });
 
   it("names a view chip's research question or hypothesis by its words in the working copy (F18)", async () => {

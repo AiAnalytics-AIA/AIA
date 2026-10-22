@@ -163,7 +163,10 @@ def scripted_lead_output(frozen: Mapping[str, Any]) -> LeadOutput:
             "Doporučený další krok: projděte zadání."
         )
         return LeadOutput(reply=reply, follow=["Co mám udělat jako první?"])
-    message = str(view.get("message") or "")
+    # Several queued messages answered together (LC5a): the script reads them as one.
+    message = str(view.get("message") or "") or "\n".join(
+        str(m.get("text") or "") for m in view.get("messages") or ()
+    )
     first = questions[0] if questions else None
     edit: dict[str, Any]
     target = "brief:title"

@@ -799,6 +799,9 @@ class StudyLeadTurnRow(Base):
     #: The typed start the server matched in a person's message (lead-orchestration LO5,
     #: ``domain/lead_commands.py``), or NULL. Only a person's turn names one.
     command: Mapped[str | None] = mapped_column(String(64))
+    #: The turn this one answers or follows (ADR 0041 decision 7): a ``withdrawal`` names the
+    #: queued message it withdraws. Set on insert, never after.
+    parent_turn_id: Mapped[str | None] = mapped_column(String(64))
     created_by: Mapped[str] = mapped_column(String(64), nullable=False)
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), nullable=False, default=utcnow
@@ -812,13 +815,22 @@ class StudyLeadTurnRow(Base):
         ForeignKeyConstraint(["study_id"], ["studies.study_id"], ondelete="CASCADE"),
         ForeignKeyConstraint(["user_id"], ["users.user_id"], ondelete="CASCADE"),
         ForeignKeyConstraint(["run_id"], ["workflow_runs.run_id"], ondelete="CASCADE"),
+        ForeignKeyConstraint(["parent_turn_id"], ["study_lead_turns.turn_id"], ondelete="CASCADE"),
         UniqueConstraint("study_id", "user_id", "sequence_no", name="study_lead_turn_sequence"),
         # A typed command is a person's: the Lead's model never names a start (D22).
         CheckConstraint(
             "command IS NULL OR actor = 'person'", name="study_lead_turn_command_is_a_persons"
         ),
         CheckConstraint("actor in ('person','lead')", name="study_lead_turn_actor_known"),
-        CheckConstraint("kind in ('message','greeting')", name="study_lead_turn_kind_known"),
+        CheckConstraint(
+            "kind in ('message','greeting','withdrawal')", name="study_lead_turn_kind_known"
+        ),
+        # A withdrawal is the person's, carries no text and names the message it withdraws.
+        CheckConstraint(
+            "kind <> 'withdrawal' OR (actor = 'person' AND text IS NULL"
+            " AND parent_turn_id IS NOT NULL)",
+            name="study_lead_turn_withdrawal_has_parent",
+        ),
         CheckConstraint("sequence_no >= 1", name="study_lead_turn_sequence_positive"),
         # A Lead turn is answered by its run; a person's turn names none.
         CheckConstraint(
@@ -835,6 +847,41 @@ class StudyLeadTurnRow(Base):
 def _lead_turns_are_never_updated(_mapper: Any, _connection: Any, row: StudyLeadTurnRow) -> None:
     """A turn is what was said; the conversation is append-only (ADR 0026 decision 8)."""
     raise RuntimeError(f"lead turn {row.turn_id} is immutable; append a new one")
+
+
+class StudyLeadTurnAnswerRow(Base):
+    """Which person messages a Lead turn was sent (ADR 0041 decision 7). **Append-only.**
+
+    One row per message a Lead turn answered, inserted with the Lead turn, so what a turn
+    answered is exact, never a high-water mark: a message no row names is still queued. Scoped
+    like the turns, and read and written only by ``StudyLeadRepository``.
+    """
+
+    __tablename__ = "study_lead_turn_answers"
+
+    lead_turn_id: Mapped[str] = mapped_column(String(64), primary_key=True)
+    person_turn_id: Mapped[str] = mapped_column(String(64), primary_key=True)
+    organization_id: Mapped[str] = mapped_column(String(64), nullable=False)
+    study_id: Mapped[str] = mapped_column(String(64), nullable=False)
+    user_id: Mapped[str] = mapped_column(String(64), nullable=False)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), nullable=False, default=utcnow
+    )
+
+    __table_args__ = (
+        ForeignKeyConstraint(["lead_turn_id"], ["study_lead_turns.turn_id"], ondelete="CASCADE"),
+        ForeignKeyConstraint(["person_turn_id"], ["study_lead_turns.turn_id"], ondelete="CASCADE"),
+        Index("ix_study_lead_turn_answers_person", "person_turn_id"),
+        Index("ix_study_lead_turn_answers_scope", "study_id", "user_id"),
+    )
+
+
+@event.listens_for(StudyLeadTurnAnswerRow, "before_update")
+def _lead_answers_are_never_updated(
+    _mapper: Any, _connection: Any, row: StudyLeadTurnAnswerRow
+) -> None:
+    """What a turn was sent is a fact of that turn (ADR 0041 decision 7)."""
+    raise RuntimeError(f"lead answer {row.lead_turn_id} is immutable; append a new one")
 
 
 class ResearcherLeadRow(Base):
