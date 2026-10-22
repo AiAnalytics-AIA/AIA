@@ -52,6 +52,10 @@ import {
   removeQuestion,
   removeSection,
   restoreOption,
+  type WordingEdit,
+  wordingEscape,
+  wordingFocused,
+  wordingTyped,
   restoreQuestion,
   restoreSection,
   respondentPreview,
@@ -845,8 +849,7 @@ const typeKey = (typ: string): TypeKey | null => TYPES.find(([key]) => key === t
 function QuestionCard({ n, q, si, sectionId, qi, update }: { n: number; q: Question; si: number; sectionId: string | undefined; qi: number; update: Update }) {
   const marks = useLeadMarks();
   const undo = useEditorUndo();
-  const wordingAtFocus = useRef<string | null>(null);
-  const typed = useRef<string | null>(null);
+  const wording = useRef<WordingEdit | null>(null);
   const typ = String(q.typ || "");
   const skala = q.skala || [1, 10];
   const labels = q.popisky_skaly || ["vůbec", "zcela"];
@@ -882,19 +885,18 @@ function QuestionCard({ n, q, si, sectionId, qi, update }: { n: number; q: Quest
         aria-invalid={unworded || undefined}
         value={q.text || ""}
         onChange={(e) => {
-          typed.current = e.target.value;
+          if (wording.current) wording.current = wordingTyped(wording.current, q.text || "", e.target.value);
           update((p) => setQuestionText(p, si, qi, e.target.value));
         }}
-        // Esc puts back the wording as it stood when the field took focus (input-interactions I1, A1),
-        // only while the wording is still what this field typed: a change accepted from elsewhere
-        // meanwhile (a Lead edit, a reload) is never overwritten.
+        // Esc puts back the wording this field's typing started from (wordingEscape), never one older
+        // than a change accepted from elsewhere meanwhile (a Lead edit, a reload).
         onFocus={(e) => {
-          wordingAtFocus.current = typed.current = e.currentTarget.value;
+          wording.current = wordingFocused(e.currentTarget.value);
         }}
         onKeyDown={(e) => {
-          if (e.nativeEvent.isComposing || editKeyAction(e, true) !== "cancel") return;
-          const back = wordingAtFocus.current;
-          if (back === null || back === (q.text || "") || typed.current !== (q.text || "")) return;
+          if (e.nativeEvent.isComposing || editKeyAction(e, true) !== "cancel" || !wording.current) return;
+          const back = wordingEscape(wording.current, q.text || "");
+          if (back === null) return;
           e.preventDefault();
           update((p) => setQuestionText(p, si, qi, back));
           e.currentTarget.blur();

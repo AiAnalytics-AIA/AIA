@@ -439,6 +439,22 @@ export function restoreOption(p: ResearchProject, si: number, sectionId: string 
   });
 }
 
+/**
+ * Esc on a question's wording (input-interactions I1, audit A1): what it puts back. `base` is the
+ * wording this field's typing started from, `typed` the last value it wrote. A wording changed under
+ * the field (a Lead edit, a reload) becomes the new base before the next keystroke, so Esc never
+ * puts back anything older than a change accepted from elsewhere.
+ */
+export type WordingEdit = { base: string; typed: string };
+export const wordingFocused = (value: string): WordingEdit => ({ base: value, typed: value });
+export function wordingTyped(w: WordingEdit, current: string, next: string): WordingEdit {
+  return { base: w.typed === current ? w.base : current, typed: next };
+}
+/** The wording Esc writes back, or null: nothing typed here, or the copy moved since. */
+export function wordingEscape(w: WordingEdit, current: string): string | null {
+  return w.typed === current && w.base !== current ? w.base : null;
+}
+
 export type SectionField = "title" | "purpose" | "object_question" | "familiarity_required";
 
 /** The section card's inline edits. */
