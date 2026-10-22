@@ -152,6 +152,20 @@ describe("Klienti", () => {
     expect(called("POST", "/api/v1/workspace/clients")[0].body).toEqual({ name: "Nový" });
   });
 
+  it("keeps the new-client dialog open on a blank name and says why, never closing silently", async () => {
+    api();
+    render(<ClientDirectory />);
+    fireEvent.click(await screen.findByRole("button", { name: "Nový klient" }));
+    const dialog = await screen.findByRole("dialog");
+    expect(within(dialog).getByRole("heading", { name: "Nový klient" })).toBeTruthy();
+    fireEvent.change(within(dialog).getByRole("textbox", { name: "Název klienta" }), { target: { value: "   " } });
+    fireEvent.click(within(dialog).getByRole("button", { name: "Založit klienta" }));
+    expect((await within(dialog).findByRole("alert")).textContent).toBe("Napište název. Bez něj nic nevznikne.");
+    expect((dialog as HTMLDialogElement).open).toBe(true);
+    expect(within(dialog).getByRole("textbox").getAttribute("aria-invalid")).toBe("true");
+    expect(called("POST", "/api/v1/workspace/clients")).toHaveLength(0);
+  });
+
   it("offers a new client to a researcher who may not administer (ADR 0019)", async () => {
     api({ "GET /api/v1/workspace/me": () => ({ user_id: "USR-3", email: null, organization_role: "MEMBER", may_administer: false }) });
     render(<ClientDirectory />);
@@ -498,6 +512,21 @@ describe("a client's workspace", () => {
     fireEvent.submit(dialog.querySelector("form")!);
     await waitFor(() => expect(push).toHaveBeenCalledWith("/app/clients/CLI-a/research/STU-9/brief"));
     expect(called("POST", "/api/v1/clients/CLI-a/studies")[0].body).toEqual({ name: "Brand 2027", kind: "RESEARCH" });
+  });
+
+  it("keeps the new-study dialog open on a blank name, and names what its button starts", async () => {
+    path = "/app/clients/CLI-a/simulations";
+    api();
+    render(inClient("CLI-a", <StudyList kind="SIMULATION" />));
+    fireEvent.click(await screen.findByRole("button", { name: "Nová simulace" }));
+    const dialog = await screen.findByRole("dialog");
+    expect(within(dialog).getByRole("heading", { name: "Nová simulace" })).toBeTruthy();
+    expect(within(dialog).getByRole("textbox", { name: "Název" }).getAttribute("placeholder")).toBe("Např. Cenové scénáře 2027");
+    fireEvent.submit(dialog.querySelector("form")!);
+    expect(await within(dialog).findByRole("alert")).toBeTruthy();
+    expect((dialog as HTMLDialogElement).open).toBe(true);
+    expect(within(dialog).getByRole("button", { name: "Založit simulaci" })).toBeTruthy();
+    expect(called("POST", "/api/v1/clients/CLI-a/studies")).toHaveLength(0);
   });
 
   it("keeps the client's knowledge its own: a study's finding accepted by a person, even the one who offered it", async () => {

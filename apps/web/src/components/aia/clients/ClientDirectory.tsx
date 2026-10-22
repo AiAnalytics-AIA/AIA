@@ -65,7 +65,10 @@ export function ClientDirectory() {
   const newClient = () =>
     setAsk({
       kind: "prompt",
+      title: t("aia.clients.newTitle"),
       message: t("aia.clients.newName"),
+      yes: t("aia.clients.create"),
+      required: true,
       initial: "",
       resolve: (name) => {
         if (!name?.trim()) return;

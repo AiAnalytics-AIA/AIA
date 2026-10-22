@@ -8,7 +8,7 @@
 
 import {
   type ButtonHTMLAttributes, type ComponentProps, type ReactNode, type SelectHTMLAttributes,
-  useLayoutEffect, useRef, useState,
+  useId, useLayoutEffect, useRef, useState,
 } from "react";
 
 import type { Tone } from "@/lib/tone";
@@ -137,7 +137,19 @@ export type Ask =
       /** A consequential yes, named by its action: the focus starts on Zrušit, the safe choice (I7). */
       yes?: string;
     }
-  | { kind: "prompt"; message: string; initial: string; resolve: (value: string | null) => void };
+  | {
+      kind: "prompt";
+      message: string;
+      initial: string;
+      resolve: (value: string | null) => void;
+      /** The dialog's heading, above the field's label (`message`). */
+      title?: string;
+      placeholder?: string;
+      /** What OK does, in words ("Založit klienta"); "OK" when unset. */
+      yes?: string;
+      /** A blank answer is refused in the dialog, said under the field, never closed silently. */
+      required?: boolean;
+    };
 
 /**
  * confirm() and prompt(), as a modal <dialog>: the classic screen's questions,
@@ -193,25 +205,46 @@ function askKey(ask: Ask): number {
 
 function AskForm({ ask, finish }: { ask: Ask; finish: (ok: boolean, value: string) => void }) {
   const [value, setValue] = useState(ask.kind === "prompt" ? ask.initial : "");
+  const [tried, setTried] = useState(false);
+  const blank = ask.kind === "prompt" && !!ask.required && !value.trim();
+  const hintId = useId();
   return (
     <form
       method="dialog"
       className="flex flex-col gap-4 p-5"
       onSubmit={(e) => {
         e.preventDefault();
+        if (blank) {
+          setTried(true);
+          return;
+        }
         finish(true, value);
       }}
     >
+      {ask.kind === "prompt" && ask.title ? <h2 className="text-base font-semibold">{ask.title}</h2> : null}
       <p className="text-sm leading-6">{ask.message}</p>
       {ask.kind === "prompt" ? (
-        <TextInput autoFocus value={value} onChange={(e) => setValue(e.target.value)} aria-label={ask.message} />
+        <TextInput
+          autoFocus
+          value={value}
+          onChange={(e) => setValue(e.target.value)}
+          aria-label={ask.message}
+          placeholder={ask.placeholder}
+          aria-invalid={tried && blank ? true : undefined}
+          aria-describedby={tried && blank ? hintId : undefined}
+        />
+      ) : null}
+      {tried && blank ? (
+        <p id={hintId} role="alert" className="-mt-2 text-sm text-status-fault">
+          {t("dialog.required")}
+        </p>
       ) : null}
       <div className="flex justify-end gap-2">
         <Button variant="quiet" autoFocus={ask.kind === "confirm" && !!ask.yes} onClick={() => finish(false, value)}>
           {t("dialog.cancel")}
         </Button>
         <Button variant="primary" type="submit" autoFocus={ask.kind === "confirm" && !ask.yes}>
-          {(ask.kind === "confirm" && ask.yes) || t("dialog.ok")}
+          {ask.yes || t("dialog.ok")}
         </Button>
       </div>
     </form>
