@@ -8,7 +8,7 @@ chunks:
   - "[ ] FLD5. Kvalita a zásah: the run's QC warnings and straight-liner flags, keep or flag; replacement shown unavailable until its method is set"
   - "[ ] FLD6. Spuštění: the Start stays with its gates and one spend dialog; the run also a Lead card; retries, resume and budget lift through the Lead's cards or a person's own gate"
   - "[x] FLD7. Kdo odpovídal: the receipt, source, population recorded and read, dimensions passed, the data's origin"
-  - "[ ] FLD8. Journey: Sběr dat at 1440, 1100, 768 and 390 px on fictional fieldwork, zero paid jobs"
+  - "[x] FLD8. Journey: Sběr dat at 1440, 1100, 768 and 390 px on fictional fieldwork, zero paid jobs"
 ---
 # Artifact: Sběr dat (Fieldwork: Spuštění and Průběh)
 
@@ -197,6 +197,7 @@ None new (replacement is MVPQ-10, already open).
 - `open-items.md`: F-FLD-1 (fixed by this PR, with Vzorek's F-SMP-1) and F-FLD-2 (open), from Findings above.
 - `open-items.md`: F-FLD-3 and F-FLD-4, fixed by the PR that carries them (stage link targets).
 - `open-items.md`: F-FLD-5, fixed by the PR that carries it (Spuštění's remaining links).
+- `CLAUDE.md` § 3, "A research run, end to end": `research_journey.mjs` also checks Start reachable and Progress at 1100, 768 and 390 px (steps, Kdo odpovídal, no overflow) and zero paid jobs (one fictional run at 0.00 USD); with `AIA_WEB_RESEARCH_WORKBENCH=true` also the run's card in the Lead's conversation (in the Lead's drawer below 1100 px), which the classic layout skips and says so (FLD8).
 
 - Register this plan and its chunks.
 - `CLAUDE.md` § 2, `routers/research.py`: a run's `spent_usd` / `reserved_usd` (FLD4).
