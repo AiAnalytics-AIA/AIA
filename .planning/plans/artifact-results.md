@@ -209,8 +209,23 @@ study with no run):
   covered as well as a phone; the set table now reads its card's width the same way. Test: the
   journey's "nothing spills out of its measure card" (fails on `9607ee09` at 390 px). A choice
   question's reading now breaks ties in the asked order too (`result-reading.test.ts`).
+- **F-R10. Přehled's cost read a call without a known price as nothing spent.**
+  `apps/web/src/components/rehome/research/ResultsWorkspace.tsx:88 @ 382b418a` showed
+  `actual_cost_usd`, the attempts' sum, where a paid call that came back without a price adds 0
+  (`apps/api/src/aia_api/routers/research.py:1144 @ 382b418a`, `or 0.0`); the run's spend (#774,
+  `research.py:1742 @ 382b418a`) counts it as `uncertain_calls`, and Průběh's Náklady says so. Fix: the
+  line reads "Utraceno" from `run.spend` through Průběh's own rule (`spendRows`), naming unpriced calls
+  beside the sum with Průběh's running or ended note; no spend reads Průběh's "AIA nyní nezjistí", never
+  "not reported yet" to a caller who will never see a figure. Tests: `ResultsWorkspace.test.tsx` "reads
+  what the run spent from its spend…", "names a call the run could not price…" and "says the cost cannot
+  be told…" (all fail on `382b418a`). Not fixed here: the API's `actual_cost_usd` itself still reads an
+  unpriced call as 0 for every other reader (the Lead's run cards, `lib/lead-cards.ts:142 @ 382b418a`);
+  the smallest fix is null from `_run` when any attempt's cost is unknown, a backend change.
 
-Checked and sound: the view tabs by arrow keys, Home and End, the focus ring (2 px), the search's
+Checked and sound (pass 3, 2026-10-22 @ `382b418a`): Přehled, AI analýza and Rešerše a zpráva at 1440 and
+390 px in light and dark, no page overflow (the tab row and the report's claim table scroll inside
+their own boxes); the one 404 is `design/source` on a study that reuses no design (`useResource`: nothing
+here). Pass 1 and 2: the view tabs by arrow keys, Home and End, the focus ring (2 px), the search's
 "Žádný výsledek neodpovídá filtru", no page error.
 
 ## 8. Owner questions
