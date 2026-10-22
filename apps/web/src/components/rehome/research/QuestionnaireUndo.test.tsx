@@ -78,4 +78,25 @@ describe("Dotazník's deletes", () => {
     fireEvent.click(await screen.findByRole("button", { name: "Vrátit" }));
     await waitFor(() => expect(cards(container)).toEqual(["qedit_Q1", "qedit_Q2"]));
   });
+
+  it("keeps Vrátit when the last block goes on the upload path and the editor closes", async () => {
+    stub({ goal: "G", sections: [SECTIONS[0]], ui_state: { questionnaire_path: "upload" } });
+    const { container } = render(<ResearchScreen step="questionnaire" frame={TEST_FRAME} />);
+    await screen.findAllByDisplayValue("Jak často?");
+    const block = container.querySelector("#qblock_sec_a") as HTMLElement;
+    fireEvent.click(within(block).getAllByRole("button", { name: "Smazat" })[0]!);
+    fireEvent.click(within(block).getAllByRole("button", { name: "Smazat" }).at(-1)!);
+    await waitFor(() => expect(container.querySelector("#qblock_sec_a")).toBeNull());
+    fireEvent.click(await screen.findByRole("button", { name: "Vrátit" }));
+    await waitFor(() => expect(cards(container)).toEqual(["qedit_Q1", "qedit_Q2"]));
+  });
+
+  it("names a long question by its first 60 characters", async () => {
+    const long = "Jak často během celého pracovního týdne dojíždíte do práce a jakým dopravním prostředkem?";
+    stub({ goal: "G", sections: [{ ...SECTIONS[0], questions: [{ id: "Q1", text: long, typ: "otevrena" }] }], ui_state: { questionnaire_path: "manual" } });
+    render(<ResearchScreen step="questionnaire" frame={TEST_FRAME} />);
+    await screen.findAllByDisplayValue(long);
+    fireEvent.click(screen.getByRole("button", { name: "Odebrat otázku Q1" }));
+    expect(await screen.findByText(`Otázka „${long.slice(0, 59)}…“ odebrána`)).toBeTruthy();
+  });
 });

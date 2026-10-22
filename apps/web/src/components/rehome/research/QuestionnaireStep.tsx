@@ -97,13 +97,18 @@ const CARD = "rounded-card border border-border bg-surface-raised p-5";
  * A block or a tracked set removed at once, with "Vrátit" on the editor's toast (input-interactions
  * I6, audit A18): the undo puts the same section back where it was.
  */
-function removeWithUndo(update: Update, undo: ReturnType<typeof useEditorUndo>, si: number, sec: Section, what: "blockRemoved" | "setRemoved") {
+type EditorUndo = ReturnType<typeof useEditorUndo>;
+
+/** Offer Vrátit for a delete, naming the item by at most 60 characters of its wording or title. */
+function offerRestore(undo: EditorUndo, what: "questionRemoved" | "blockRemoved" | "setRemoved", name: unknown, restore: () => void) {
+  const text = String(name || "").trim();
+  const clipped = text.length > 60 ? `${text.slice(0, 59)}…` : text;
+  undo?.offer({ message: clipped ? tv(`research.questionnaire.undo.${what}`, { name: clipped }) : t(`research.questionnaire.undo.${what}Bare`), undo: restore });
+}
+
+function removeWithUndo(update: Update, undo: EditorUndo, si: number, sec: Section, what: "blockRemoved" | "setRemoved") {
   update((p) => removeSection(p, si));
-  const title = String(sec.title || "").trim();
-  undo?.offer({
-    message: title ? tv(`research.questionnaire.undo.${what}`, { title }) : t(`research.questionnaire.undo.${what}Bare`),
-    undo: () => update((p) => restoreSection(p, si, sec)),
-  });
+  offerRestore(undo, what, sec.title, () => update((p) => restoreSection(p, si, sec)));
 }
 
 /** A tracked set is measured on 4–15 objects (SET_SIZE). */
@@ -221,7 +226,10 @@ export function QuestionnaireStep() {
   if (view === "choose") return <Choose onPick={path}>{dock}</Choose>;
 
   const current = String(p.ui_state?.questionnaire_path || "manual") as QuestionnairePath;
+  // Around the whole stage: a delete's Vrátit outlives the preview tab, and the editor itself when
+  // the last block goes on the upload or AI path.
   return (
+    <ScaleUndoProvider>
     <div className="flex max-w-[82.5rem] flex-col gap-4">
       {editor ? (
         <InspectorSlot>
@@ -279,15 +287,12 @@ export function QuestionnaireStep() {
       ) : null}
       {editor ? (
         <>
-          {/* Above the tab switch: a delete's Vrátit outlives a look at the preview. */}
-          <ScaleUndoProvider>
-            <div className="flex flex-wrap items-start gap-4">
-              <Outline update={update} />
-              <div className="flex min-w-0 flex-[999_1_560px] flex-col gap-4">
-                {tab === "edit" ? <Editor update={update} /> : <Preview items={respondentPreview(p)} />}
-              </div>
+          <div className="flex flex-wrap items-start gap-4">
+            <Outline update={update} />
+            <div className="flex min-w-0 flex-[999_1_560px] flex-col gap-4">
+              {tab === "edit" ? <Editor update={update} /> : <Preview items={respondentPreview(p)} />}
             </div>
-          </ScaleUndoProvider>
+          </div>
           <section className={CARD} aria-labelledby="q-final">
             <h2 id="q-final" className="text-base font-semibold">{t("research.questionnaire.finalTitle")}</h2>
             <p className="mt-1 text-[13px] leading-5 text-ink-muted">{t("research.questionnaire.finalIntro")}</p>
@@ -301,6 +306,7 @@ export function QuestionnaireStep() {
       ) : null}
       {dock}
     </div>
+    </ScaleUndoProvider>
   );
 }
 
@@ -712,7 +718,7 @@ function QuestionBlock({ n, firstQ, sec, si, update }: { n: number; firstQ: numb
       </div>
       <div className="mt-3 flex flex-col gap-3">
         {qs.length ? (
-          qs.map((q, qi) => <QuestionCard key={q.id || qi} n={firstQ + qi + 1} q={q} si={si} qi={qi} update={update} />)
+          qs.map((q, qi) => <QuestionCard key={q.id || qi} n={firstQ + qi + 1} q={q} si={si} sectionId={sec.id} qi={qi} update={update} />)
         ) : (
           <p className="rounded-control border border-signal-edge bg-signal-wash p-3 text-sm">{t("research.questionnaire.blockEmpty")}</p>
         )}
@@ -732,9 +738,8 @@ const TYPES = [
 ] as const;
 
 /** questionCard: the type as pills, the text, and below it what the type needs. */
-function QuestionCard({ n, q, si, qi, update }: { n: number; q: Question; si: number; qi: number; update: Update }) {
+function QuestionCard({ n, q, si, sectionId, qi, update }: { n: number; q: Question; si: number; sectionId: string | undefined; qi: number; update: Update }) {
   const undo = useEditorUndo();
-  const { state } = useResearch();
   const typ = String(q.typ || "");
   const skala = q.skala || [1, 10];
   const labels = q.popisky_skaly || ["vůbec", "zcela"];
@@ -769,12 +774,8 @@ function QuestionCard({ n, q, si, qi, update }: { n: number; q: Question; si: nu
           className="ml-auto"
           aria-label={tv("research.questionnaire.removeQuestion", { id: String(q.id || "Q") })}
           onClick={() => {
-            const sectionId = sections(state.project)[si]?.id;
             update((p) => removeQuestion(p, si, qi));
-            undo?.offer({
-              message: q.text?.trim() ? tv("research.questionnaire.undo.questionRemoved", { text: q.text.trim() }) : t("research.questionnaire.undo.questionRemovedBare"),
-              undo: () => update((p) => restoreQuestion(p, si, sectionId, qi, q)),
-            });
+            offerRestore(undo, "questionRemoved", q.text, () => update((p) => restoreQuestion(p, si, sectionId, qi, q)));
           }}
         >
           ×

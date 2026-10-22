@@ -101,9 +101,11 @@ try {
   const order = () => page.locator('[id^="qedit_"]').evaluateAll((els) => els.map((el) => el.id));
   const before = await order();
   await q4.getByRole("button", { name: /^Odebrat otázku/ }).click();
-  await page.getByText("Otázka „Co by vás přesvědčilo nápoj koupit znovu?“ odebrána").waitFor();
+  // The toast's own Vrátit: the Lead's pane can show another for an automatic text edit.
+  const toast = page.getByRole("status").filter({ hasText: "Otázka „Co by vás přesvědčilo nápoj koupit znovu?“ odebrána" });
+  await toast.waitFor();
   assert.equal(await q4.count(), 0, "the question is gone at once");
-  await page.getByRole("button", { name: "Vrátit" }).click();
+  await toast.getByRole("button", { name: "Vrátit" }).click();
   await q4.waitFor();
   assert.deepEqual(await order(), before, "Vrátit puts the question back in its place");
   await shot("1440-undo-restored");
