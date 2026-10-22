@@ -1775,3 +1775,24 @@ pass finds the jobs already done for the design.
      (both are in the Design Revision), and the cover takes the design's title when it has one.
   6. Test: a report composed from a revision with a goal and a decision use prints both under
      "Návrh studie". The journey's DOCX assertion then also requires the title.
+
+### A stage mounted twice on a fresh page (2026-10-22, `fix/stage-mounts-once`; the Dimenze audit, #798)
+
+- **F22. Every fresh page mounted the classic layout and then the workbench** *(fixed)*.
+  1. Claim: `useWorkbenchSwitch` read `false` until `/config` answered, so `Ready` first rendered
+     the classic layout (`DesignSourceNote`, the stage screens, the stage record) and then the
+     workbench, which mounted and read everything again.
+  2. Anchor: `apps/web/src/components/rehome/research/ResearchScreen.tsx:237-238 @ 9607ee09`.
+  3. Reproduction: `ResearchScreen.workbench.test.tsx` "mounts a stage once on a fresh page…" (two
+     `/design/source` reads before). In a browser on the UI workbench (`next dev`), one Dimenze
+     visit made 44 API requests: `/design/source` 4, runs 6, limits 12, PUT `/workspace/stage` 2.
+  4. Consequence: twice the reads on every stage a person opens fresh, and both layouts' effects.
+  5. Fix: the switch is `null` until read, and the stage renders nothing until then.
+  6. Test: the test above; after the fix the same visit makes 36 requests, `/design/source` 2,
+     runs 4, limits 8.
+- **By design, recorded:** the remaining doubles are `next dev`'s Strict Mode, which runs each
+  effect twice: one PUT `/workspace/stage` and one `/design/source` per visit in a production
+  build. `/research/impact`'s 404 on a study with no Design Revision is its "nothing to say", read
+  once.
+- **Left, a hypothesis:** limits are still read by several components on one visit (4 in a
+  production build). Sharing them is another change, not this one.
