@@ -143,7 +143,7 @@ from aia_core.infrastructure.artifact_repository import (
     ArtifactStatus,
 )
 from aia_core.infrastructure.report_pdf import PDF_MEDIA_TYPE
-from aia_core.infrastructure.storage import IntegrityError, ObjectNotFound
+from aia_core.infrastructure.storage import ArtifactStore, IntegrityError, ObjectNotFound
 from aia_core.infrastructure.study_design_repository import (
     DesignRevisionNotFound,
     StudyDesignRepository,
@@ -597,6 +597,18 @@ class SampleSizeRange(BaseModel):
     max: int
 
 
+class TrackedSetRange(BaseModel):
+    """How many objects one tracked set may hold: outside ``min``-``max`` the design does not
+    compile (battery_size); outside the recommended range readiness warns."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    min: int
+    max: int
+    recommended_min: int
+    recommended_max: int
+
+
 class ResearchLimitsResponse(BaseModel):
     """The readiness limits in force for the Study (plan ``run-qc-and-checkpoint`` RQC9).
 
@@ -610,6 +622,7 @@ class ResearchLimitsResponse(BaseModel):
     methodology_version: str
     version: int | None
     sample_size: SampleSizeRange
+    tracked_set: TrackedSetRange
 
 
 class QuotaCellResponse(BaseModel):
@@ -1248,7 +1261,7 @@ def _started(runs: ResearchRuns, started: StartedRun, response: Response) -> Res
 @router.get(
     "/research/limits",
     response_model=ResearchLimitsResponse,
-    summary="The readiness limits in force: the valid sample size",
+    summary="The readiness limits in force: the valid sample size and a tracked set's size",
 )
 def research_limits(scope: StudyScopeDep, session: SessionDep) -> ResearchLimitsResponse:
     """The limits a run start of this Study checks today, read from the organization's
@@ -1258,6 +1271,7 @@ def research_limits(scope: StudyScopeDep, session: SessionDep) -> ResearchLimits
         methodology_version=limits.methodology_version,
         version=None if stored is None else int(stored["version"]),
         sample_size=SampleSizeRange(min=limits.sample_size.min, max=limits.sample_size.max),
+        tracked_set=TrackedSetRange(**limits.tracked_set.model_dump()),
     )
 
 
@@ -1553,16 +1567,29 @@ def run_start_errors() -> Iterator[None]:
         raise _not_found("population_version") from exc
     except PopulationError as exc:
         raise _population_refused(exc) from exc
+    except AnalysisNotRetryable as exc:
+        # The Lead's typed analysis retry ("Zopakuj analýzu"), refused as the stage's retry is.
+        raise _not_retryable(exc) from exc
+    except ReconstructionRefused as exc:
+        if exc.reason == "run_not_found":
+            raise _not_found("run") from exc
+        raise HTTPException(
+            status_code=409, detail={"code": exc.reason, "message": str(exc)}
+        ) from exc
 
 
 def run_start_settings(
-    request: Request, population: AudiencePopulation, sampler: PanelSampler | None
+    request: Request,
+    population: AudiencePopulation,
+    sampler: PanelSampler | None,
+    store: ArtifactStore | None = None,
 ) -> RunStartSettings:
     """What a research run's start takes from the deployment, as ``start_run`` passes it: the
     fieldwork source, analysis and Sociomapping switches, reservations, the default persona
     source, the answerability gate and the population a new run records. A typed start (LO5)
     names no persona source, population child or acknowledgement, so it starts on the
-    deployment's defaults, as a start naming none does here."""
+    deployment's defaults, as a start naming none does here. ``store``: what a typed analysis
+    retry reads the run's stored outcomes from."""
     settings = request.app.state.settings
     return RunStartSettings(
         fieldwork_source=_fieldwork_source(request),
@@ -1575,6 +1602,7 @@ def run_start_settings(
         population_contract=population.contract,
         population_id=population.population_id,
         panel_sampler=sampler,
+        store=store,
     )
 
 
@@ -1949,6 +1977,8 @@ _NOT_RETRYABLE_MESSAGES: Final = {
     "analysis_not_in_run": "Tento běh neobsahoval AI analýzu.",
     "dataset_missing": "Běh nemá sebraná data, nad kterými by šlo analýzu zopakovat.",
     "nothing_to_retry": "Žádný modul analýzy v tomto běhu neselhal.",
+    # The Lead's typed retry, which names no run: the study has none that ran analysis.
+    "no_analysed_run": "Studie zatím nemá žádný běh s AI analýzou, který by šlo zopakovat.",
 }
 
 
@@ -2003,15 +2033,20 @@ def retry_analysis(
     except (CostConfirmationRequired, CostCeilingUnknown) as exc:
         raise _cost_refused(exc) from exc
     except AnalysisNotRetryable as exc:
-        raise HTTPException(
-            status_code=status.HTTP_409_CONFLICT,
-            detail={
-                "code": "analysis_not_retryable",
-                "message": _NOT_RETRYABLE_MESSAGES.get(exc.reason, str(exc)),
-                "details": {"reason": exc.reason},
-            },
-        ) from exc
+        raise _not_retryable(exc) from exc
     return _started(ResearchRuns(session, scope), started, response)
+
+
+def _not_retryable(exc: AnalysisNotRetryable) -> HTTPException:
+    """An analysis retry refused, by its reason: this route's and the Lead's typed retry's."""
+    return HTTPException(
+        status_code=status.HTTP_409_CONFLICT,
+        detail={
+            "code": "analysis_not_retryable",
+            "message": _NOT_RETRYABLE_MESSAGES.get(exc.reason, str(exc)),
+            "details": {"reason": exc.reason},
+        },
+    )
 
 
 @router.get(

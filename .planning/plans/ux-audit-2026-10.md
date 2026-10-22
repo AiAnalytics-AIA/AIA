@@ -2,10 +2,12 @@
 status: in-progress
 chunks:
   - "[x] 1. The methodology journey has an edit for the readiness limits, and the research journey waits for the steps"
-  - "[ ] 2. Nový klient: an empty name is said, not silently dropped"
-  - "[ ] 3. Znalosti at 390 px: the library table's clipped columns"
+  - "[x] 2. Nový klient: an empty name is said, not silently dropped"
+  - "[x] 3. Znalosti at 390 px: the library table's clipped columns"
   - "[ ] 4. The API refuses a client or study name of spaces"
   - "[ ] 5. A run's methodology receipt reports its readiness pin"
+  - "[x] 6. A slow rename's answer leaves focus where the person went"
+  - "[ ] 7. InlineText's refocus after Enter waits for nothing the person moved"
 ---
 # UX audit, 2026-10: the areas outside the study stages
 
@@ -46,7 +48,7 @@ sheet), Projektová paměť, Společenská inteligence, Nastavení (eight tabs, 
    the pane (`.conv`).
 6. Test: the journey itself; it passes with the fix (9 checks).
 
-### F2. Nový klient: an empty name is dropped without a word
+### F2. Nový klient: an empty name is dropped without a word (fixed by #720)
 
 1. Claim: OK on an empty or blank name closes the prompt, creates nothing and says nothing.
 2. Anchor: `apps/web/src/components/aia/clients/ClientDirectory.tsx:70-71 @ bfe6d15`
@@ -59,7 +61,7 @@ sheet), Projektová paměť, Společenská inteligence, Nastavení (eight tabs, 
 6. Test: a ClientDirectory Vitest that clicks OK on an empty name and expects the prompt to stay
    open with the reason.
 
-### F3. Znalosti at 390 px: the library table hides its last columns
+### F3. Znalosti at 390 px: the library table hides its last columns (fixed by #722, with Výzkumy and Simulace)
 
 1. Claim: at 390 px the knowledge table scrolls sideways inside its own frame. The revision column
    is cut at the edge and nothing shows that more is to the right.
@@ -95,6 +97,22 @@ sheet), Projektová paměť, Společenská inteligence, Nastavení (eight tabs, 
    `ResearchRunMethodology`.
 6. Test: a `pins.py` test over metadata with `readiness_methodology`, and the journey reading
    `latest.methodology.readiness`.
+
+### F6. A slow rename's answer took focus from where the person went (fixed by #735)
+
+The CI flake in `KnowledgeLibrary.test.tsx` › "renames a label on F2 and recolours it by its
+swatch": `useRenaming`'s refocus ran when the save answered and took focus from the colour list the
+person had opened meanwhile. #735 refocuses only when focus is on the page.
+
+### F7. InlineText refocuses its shown value a frame after Enter (hypothesis)
+
+1. Claim: on Enter, `commit(true)` schedules `requestAnimationFrame(() => shown.current?.focus())`
+   while the save is in flight, so a person who moves within that frame can lose focus.
+2. Anchor: `apps/web/src/components/ui/InlineText.tsx:96 @ 4568badd`.
+3. Repro: not reproduced; it needs a move within one frame (/code-review on #735).
+4. Consequence: focus jumps back into the field's row after Enter on a loaded machine.
+5. Smallest fix: focus only when `document.activeElement` is still in the field or on the page.
+6. Test: an InlineText test that moves focus before the frame runs.
 
 ### Notes (not defects)
 
