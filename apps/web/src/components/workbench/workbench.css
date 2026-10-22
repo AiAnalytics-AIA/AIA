@@ -4,11 +4,14 @@
    the prototype's document-level rules are the root's own here. */
 /* The prototype's element-level base rules, in Tailwind's base layer: unlayered CSS beats every
    layer, so here they would override a re-homed screen's text-* utility on any button inside .wb
-   (a pressed object-map pill rendered ink on ink). The prototype's classes set their own colour. */
+   (a pressed object-map pill rendered ink on ink). The prototype's classes set their own colour.
+   The focus ring is here for the same reason: unlayered, it drew over a field's outline-none, a
+   second ring inside the ring its wrapper draws on focus-within. */
 @layer base {
   .wb {
     button, input, textarea, select { font: inherit; color: inherit; }
     button { cursor: pointer; }
+    :focus-visible { outline: 2px solid var(--focus-ring); outline-offset: 2px; }
   }
 }
 
@@ -22,8 +25,8 @@
   *, *::before, *::after { box-sizing: border-box; }
 
 /* ---------- base ---------- */
-/* The element rules (font, colour, cursor of form controls) are in @layer base, below the file. */
-:focus-visible { outline: 2px solid var(--focus-ring); outline-offset: 2px; }
+/* The element rules (font, colour, cursor of form controls) and the focus ring are in @layer base,
+   at the top of the file. */
 .sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0; }
 .icon, .glyph, .mark { flex: none; display: inline-block; vertical-align: middle; }
 .mono { font-family: var(--font-mono-stack); font-size: 12px; line-height: 16px; font-feature-settings: "zero"; }
@@ -245,6 +248,7 @@
 .refchip { display: inline-flex; align-items: center; gap: 6px; max-width: 100%; margin: 0 4px 6px 4px; padding: 2px 4px 2px 8px; border: 1px solid var(--ai-edge); background: var(--ai-wash); border-radius: 12px; font-size: 12px; }
 .composer { border: 1px solid var(--border); border-radius: 14px; background: var(--surface-raised); box-shadow: 0 4px 14px rgba(21, 26, 32, .07); }
 .composer:focus-within { border-color: var(--border-strong); }
+.composer:has(textarea:disabled) { background: var(--surface-sunken); box-shadow: none; }
 .composer textarea { display: block; width: 100%; border: 0; outline: 0; resize: none; background: transparent; padding: 11px 14px 2px 14px; font-size: 15px; line-height: 22px; min-height: 48px; max-height: 180px; }
 .composer textarea::placeholder { color: var(--ink-faint); }
 .composer__bar { display: flex; align-items: center; gap: 4px; padding: 4px 8px 8px 8px; }

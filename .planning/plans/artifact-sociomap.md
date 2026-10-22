@@ -145,6 +145,12 @@ Depends on `research-lead-workbench#14`, `#16`.
 - `ItemInspector` (mounted by chunk 15) shows the object, pair and respondent detail of
   `ObjectMapPanel`'s cards.
 - Test: a pair with an undefined r reads UNKNOWN, not 0.
+- Done ahead of the inspector, on the panel's own card (browser audit, 2026-10-22): a pair's detail opened only by a
+  click on its line on the canvas, which takes no keyboard. The object card's listed relations are now buttons that
+  open the pair as that click does, and close it again (`ObjectMapPanel.tsx` `ObjectCard`). Test:
+  `ObjectMapPanel.test.tsx` › "opens a relation from the object's card, a focusable button named by what it shows, and
+  closes it again". The card lists the object's 5 strongest reliable relations, as the panel does; a drawn link beyond
+  those still opens only on the canvas.
 
 **SOC5. Interpretation.** Test: an interpretation is labelled "Výklad · od Vedoucího" and absent from
 the map's numbers. Depends on `lead-orchestration#LO9b`, `report-delivery#RD6`,
@@ -217,3 +223,11 @@ Browser audit, 2026-10-21, on the local workbench (`AIA_WEB_RESEARCH_WORKBENCH=t
   Both follow the AIA panel's layout.
 - **Known, already with the methodology owner:** Iris's label is dropped beside Halo (`placeLabels`, Q50 (b)),
   still seen in every width.
+- **Fixed: the object list on the respondent map offered a selection it could not show.** Browser audit,
+  2026-10-21. On Respondenti, a click on a listed object set the selection (`aria-pressed`, `data-selected`), but
+  nothing a person could see changed: the respondent card stayed, and the markers do not react
+  (`ObjectMapPanel.tsx:349 @ bfe6d15b`, `onChoose={choose}` on both maps). Selection is the object map's, so on the
+  respondent map the list is read-only: `aria-disabled`, no `aria-pressed`, no "Vybrat" label, no hover. Not the
+  native `disabled` (Codex, #639): a disabled button takes no focus and fires no click, so the Lead's `focus` on an
+  `object:` target and the "@" pick would break on the respondent map. Test: `ObjectMapPanel.test.tsx` › "the object
+  list on the respondent map".
