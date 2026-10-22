@@ -218,6 +218,8 @@ function Sub({ children }: { children: ReactNode }) {
 
 const TH = "px-2 py-1 text-left font-mono text-[11px] font-normal uppercase tracking-[0.08em] text-ink-faint";
 const TD = "px-2 py-1.5 align-top text-sm";
+// Below sm a column that would push a row's action out of view: its content is shown in the row's first cell or not at all.
+const WIDE = "hidden sm:table-cell";
 
 // ---------------------------------------------------------------- actions
 
@@ -369,22 +371,28 @@ function StudiesPanel({ studies, clients, vocab, reload }: {
     <div className="flex flex-col gap-2">
       <TextInput type="search" aria-label={t(`${P}.studySearch`)} placeholder={t(`${P}.studySearchPlaceholder`)} value={query} onChange={(e) => setQuery(e.target.value)} />
       <div className="overflow-x-auto"><table className="w-full">
-        <thead><tr><th className={TH}>{t(`${P}.col.study`)}</th><th className={TH}>{t(`${P}.col.client`)}</th><th className={TH}>{t(`${P}.col.status`)}</th><th className={`${TH} text-right`}>{t(`${P}.col.budget`)}</th><th className={`${TH} text-right`}>{t(`${P}.col.spent`)}</th><th className={`${TH} text-right`}>{t(`${P}.col.remaining`)}</th><th className={TH} /></tr></thead>
+        <thead><tr><th className={TH}>{t(`${P}.col.study`)}</th><th className={`${TH} ${WIDE}`}>{t(`${P}.col.client`)}</th><th className={`${TH} ${WIDE}`}>{t(`${P}.col.status`)}</th><th className={`${TH} text-right`}>{t(`${P}.col.budget`)}</th><th className={`${TH} ${WIDE} text-right`}>{t(`${P}.col.spent`)}</th><th className={`${TH} ${WIDE} text-right`}>{t(`${P}.col.remaining`)}</th><th className={TH} /></tr></thead>
         <tbody className="divide-y divide-border">
           {studies.data.map(({ study, detail }) => {
             const costs = detail.ok && detail.data.budget_usd !== null ? detail.data : null;
             const shown = `${study.name} ${clientName.get(study.client_id) ?? ""}`.toLocaleLowerCase("cs").includes(q);
             const open = editing === study.study_id;
+            const client = clientName.get(study.client_id) ?? study.client_id;
+            const status = <Tag>{t(`aia.status.${study.status}`)}</Tag>;
             return [
               <tr key={study.study_id} hidden={!shown} data-study={study.study_id}>
-                <td className={`${TD} font-medium`}>{study.name}</td>
-                <td className={`${TD} text-ink-muted`}>{clientName.get(study.client_id) ?? study.client_id}</td>
-                <td className={TD}><Tag>{t(`aia.status.${study.status}`)}</Tag></td>
+                <td className={`${TD} font-medium`}>{study.name}<span className="mt-0.5 flex flex-wrap items-center gap-x-2 font-normal text-ink-muted sm:hidden">{client}{status}</span></td>
+                <td className={`${TD} ${WIDE} text-ink-muted`}>{client}</td>
+                <td className={`${TD} ${WIDE}`}>{status}</td>
                 {costs ? <>
                   <td className={`${TD} text-right`}><Value value={costs.budget_usd} unit="USD" /></td>
-                  <td className={`${TD} text-right`}><Value value={costs.spent_usd} unit="USD" /></td>
-                  <td className={`${TD} text-right`}><Value value={costs.remaining_usd} unit="USD" /></td>
-                </> : <td colSpan={3} className={`${TD} text-right`}><span title={detail.ok ? "" : detail.message} className="rounded-sm border border-dashed border-border-strong px-1.5 text-xs">{t(`${P}.studies.costsHidden`)}</span></td>}
+                  <td className={`${TD} ${WIDE} text-right`}><Value value={costs.spent_usd} unit="USD" /></td>
+                  <td className={`${TD} ${WIDE} text-right`}><Value value={costs.remaining_usd} unit="USD" /></td>
+                </> : <>
+                  {/* No colSpan: one spanning hidden columns would add grid columns below sm. */}
+                  <td className={`${TD} text-right`}><span title={detail.ok ? "" : detail.message} className="rounded-sm border border-dashed border-border-strong px-1.5 text-xs">{t(`${P}.studies.costsHidden`)}</span></td>
+                  <td className={WIDE} /><td className={WIDE} />
+                </>}
                 <td className={`${TD} text-right`}><Button small aria-expanded={open} onClick={() => setEditing(open ? null : study.study_id)}>{open ? t(`${P}.closeEdit`) : t(`${P}.edit`)}</Button></td>
               </tr>,
               // Filtered out, an open edit is hidden, never unmounted: a typed budget survives the search.
