@@ -402,6 +402,9 @@ describe("a client's workspace", () => {
     const first = within(table).getAllByRole("row")[1];
     expect(within(first).getByText("přijato: 2")).toBeTruthy();
     expect(within(first).getByText("čeká: 1")).toBeTruthy();
+    // On a phone the brought column is hidden; what waits for a person stays, under the status.
+    expect(within(first).getByText("ke schválení: 1").className).toContain("sm:hidden");
+    expect(within(within(table).getAllByRole("row")[2]).queryByText(/ke schválení/)).toBeNull();
     expect(within(first).getByRole("link").getAttribute("href")).toBe("/app/clients/CLI-a/research/STU-1/questionnaire");
 
     const filters = screen.getByRole("group", { name: "Stav studií" });
