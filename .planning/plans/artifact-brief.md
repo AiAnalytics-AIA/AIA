@@ -213,7 +213,9 @@ Every item is an `Item` (`src/components/ui.tsx:52`): edit in place, remove, mov
     launcher opens the dialog.
   - Repro: `python tools/ui_workbench/workbench.py up --fresh` (with `AIA_WEB_RESEARCH_WORKBENCH=true`),
     `make ui-fixtures`, `node tools/ui_workbench/lead_journey.mjs`. It failed in 2 of 3 fresh runs with
-    "page.waitForFunction: Timeout 10000ms exceeded", before any Zadání step.
+    "page.waitForFunction: Timeout 10000ms exceeded", before any Zadání step. A fourth fresh run
+    passed that wait but failed the next one at 1099 px, at `lead_journey.mjs:220 @ be85b470`: "Tab stays
+    inside the open conversation", with focus on the page's body.
   - Consequence: the journey fails on a sound build, so a real regression after line 198 (the BRF6 step
     included) goes unseen in that run.
   - Fix (hypothesis, unmeasured): the dialog takes focus before the composer is enabled. Wait for the
