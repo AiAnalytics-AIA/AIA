@@ -187,6 +187,32 @@ anchors `@ bfe6d15b`.
   while the contract lacks them" fails on `bfe6d15b` (`[ 'sample:ready', true ]` against `false`);
   reported to the PM for Vzorek's owner.
 
+Second pass, 2026-10-22, anchors `@ 9607ee09` (each detail opened, the tabs by keyboard, the search, a
+study with no run):
+
+- **F-R7. A choice question's answers in name order.** `research-execution.ts:388` listed the stored
+  shares as the aggregate holds them, and the artifact store writes canonical JSON
+  (`artifact_repository.py:434`, `sort_keys=True`), so a frequency scale read "Jeden až dva dny, Každý
+  den, Méně často, Tři až čtyři dny". Fix: `resultTable(…, options)` lists the specification's options in
+  the order asked, any other answer after them. Test: `research-execution.test.ts` "lists a choice
+  question's answers in the order it asked them".
+- **F-R8. "Výsledky zatím nejsou." and nothing else.** `ExecutionSteps.tsx:1630` said neither why nor
+  where to go. Fix: no run says the study has not run and links to its run stage where the frame may
+  edit; a run says why it has none in its state's words (`runState`: running, waiting with its reason,
+  failed or cancelled, never "not finished" for a run that will never finish) and links to its Průběh.
+  Tests: `ExecutionSteps.test.tsx`, the no-run retry test, "says why a run without results has none"
+  and "never says a failed run is still going".
+- **F-R9. A question's detail table spilled out of its card on a phone.** `ExecutionSteps.tsx:1552`
+  gave the bar column 40 % at every width, so labels wrapped a word a line and a multi-option table ran
+  past its card's edge at 390 px (inside the screen, so F-R3's check passed). Fix: the bar column is left
+  out while the card is under 32rem, a container query on the card, so a narrow workbench pane is
+  covered as well as a phone; the set table now reads its card's width the same way. Test: the
+  journey's "nothing spills out of its measure card" (fails on `9607ee09` at 390 px). A choice
+  question's reading now breaks ties in the asked order too (`result-reading.test.ts`).
+
+Checked and sound: the view tabs by arrow keys, Home and End, the focus ring (2 px), the search's
+"Žádný výsledek neodpovídá filtru", no page error.
+
 ## 8. Owner questions
 
 **RQ1. Do raw open answers show on Výsledky before they are coded?** **Settled 2026-10-21 via
