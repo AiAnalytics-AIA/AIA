@@ -404,8 +404,10 @@ class PreflightExecutor(_Step):
                 return _missing_upstream("compile")
             repo = _artifacts(session, context, self._store)
             spec = _read_spec(repo, spec_id)
+            # The start's pin, never this worker's switch (WCE13 (d)); a run without it is unrouted.
+            routing = step.payload.get("routing") is True
             readiness = assess_readiness(
-                spec, pair_n_min=pair_n_min, filters_applied=panel, limits=limits
+                spec, pair_n_min=pair_n_min, filters_applied=panel, limits=limits, routing=routing
             )
             artifact, created = self._put(
                 repo,
@@ -419,6 +421,7 @@ class PreflightExecutor(_Step):
                         "pair_n_min": pair_n_min,
                         # Only when it changes the checks: a roster run's key is unchanged.
                         **({"filters_applied": True} if panel else {}),
+                        **({"routing": True} if routing else {}),
                         **_limits_part(limits),
                     }
                 ),
@@ -442,6 +445,12 @@ class PreflightExecutor(_Step):
 # --------------------------------------------------------------------------- #
 # fieldwork
 # --------------------------------------------------------------------------- #
+
+
+_ROUTING_UNAVAILABLE_MESSAGE = (
+    "The run routes its display conditions, and no fieldwork source routes them yet "
+    "(run-qc-and-checkpoint RQC11); nobody was asked."
+)
 
 
 class FieldworkExecutor(_Step):
@@ -471,6 +480,14 @@ class FieldworkExecutor(_Step):
 
     def execute(self, step: StepInput, context: StepContext) -> StepOutcome:
         context.checkpoint()
+        # A routed run (WCE13 (d)) asks a conditional question only of those its condition
+        # names. No source routes yet (run-qc-and-checkpoint RQC11), so it fails by name: never
+        # answered by everyone, which would put answers that should not exist in its data.
+        if step.payload.get("routing") is True:
+            return Failed(
+                FailureClass.MISSING_CONFIGURATION,
+                error={"code": "routing_unavailable", "message": _ROUTING_UNAVAILABLE_MESSAGE},
+            )
         if "frozen_dataset" in step.payload:
             return self._frozen(step, context, step.payload["frozen_dataset"])
         try:

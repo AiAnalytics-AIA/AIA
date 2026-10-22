@@ -67,8 +67,10 @@ class ReadinessImpact:
     not_assessed: int
 
 
-def _checks(content: Mapping[str, Any], limits: ReadinessSpec, pair_n_min: int) -> Any:
-    return prepare(dict(content), pair_n_min=pair_n_min, limits=limits)[1]
+def _checks(
+    content: Mapping[str, Any], limits: ReadinessSpec, pair_n_min: int, routing: bool
+) -> Any:
+    return prepare(dict(content), pair_n_min=pair_n_min, limits=limits, routing=routing)[1]
 
 
 def _moves(before: Any, after: Any) -> tuple[CheckMove, ...]:
@@ -95,11 +97,13 @@ def readiness_impact(
     in_force: ReadinessSpec,
     draft: ReadinessSpec,
     pair_n_min: int,
+    routing: bool = False,
 ) -> ReadinessImpact:
     """Every open research study the principal may open, checked under both sets of limits.
 
-    ``pair_n_min`` is the Sociomap's, in force: it moves no verdict, but the checks are the ones
-    Kontrola a spuštění would show."""
+    ``pair_n_min`` is the Sociomap's, in force, and ``routing`` the deployment's
+    ``AIA_ROUTING_ENABLED``: neither moves a verdict between the two, but the checks are the
+    ones Kontrola a spuštění would show."""
     scopes = ScopeRepository(session)
     workspaces = StudyWorkspaceRepository(session)
     impacts: list[StudyImpact] = []
@@ -127,8 +131,8 @@ def readiness_impact(
                 not_assessed += 1
                 continue
             try:
-                before = _checks(content, in_force, pair_n_min)
-                after = _checks(content, draft, pair_n_min)
+                before = _checks(content, in_force, pair_n_min, routing)
+                after = _checks(content, draft, pair_n_min, routing)
             except (TypeError, ValueError, AttributeError, KeyError):
                 # A half-written draft the compiler cannot read: this study cannot be
                 # assessed, and one such draft never stops the organization's comparison.

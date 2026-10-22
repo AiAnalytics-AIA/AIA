@@ -248,6 +248,23 @@ conditional question fails readiness exactly as today.
   can be removed). Tests: `QuestionnaireStep.test.tsx`,
   `questionnaire-conditions.test.ts`; `questionnaire_journey.mjs` sets, reads back and removes one
   at 1440, 1100, 768 and 390 px, the sentence at a reading width (390 px squeezed it to 50 px).
+- *(d) Progress (feature/wce13-routing-switch):* `AIA_ROUTING_ENABLED` (the API's
+  `Settings.routing_enabled`, off by default and off on develop until RQC11 routes fieldwork) is
+  `ResearchRuns.routing_enabled`. Readiness (`assess_readiness`/`prepare`, `routing=`) passes a
+  valid condition under it (`conditional_questions` PASS, naming the questions) and fails it
+  exactly as before without it; a condition compile refused fails either way (`condition:<id>`).
+  The outlook (`question_outlook`, `routing=`) asks a routed question of part of the sample the
+  forecast does not model, so support the whole sample reaches is `support_unknown` there, never
+  good. A new run of a design with a valid condition pins it (`metadata.routing`, the preflight
+  and fieldwork steps' `routing`); its preflight reads the pin, never the worker's switch, and a
+  retry keeps the original's. Fieldwork fails a routed run by name (`routing_unavailable`) until a
+  source routes (RQC11), so the switch never yields answers everyone gave to a question some should not
+  see. The pin is not in the run's key: without it such a design never starts, so a start after
+  the switch is off still finds its run. A design with no condition pins nothing and keeps its
+  run. Metodika's readiness comparison reads the switch too (`readiness_impact(routing=)`). The Lead's typed start takes the switch with the rest (`RunStartSettings.routing_enabled`).
+  Metodika's sample-size step re-pinned to `assess_readiness`. Tests: `test_research_conditions.py`,
+  `apps/executors/tests/test_routing_pin.py`, `test_research_api.py`
+  (`test_the_routing_switch_passes_a_valid_condition_and_pins_it_on_the_run`).
 
 **WCE11, amended (G56, X11).** The chunk states who performs a structural auto-apply (the researcher's browser session, or a named server path under the person's standing authority, coordinated with G42), where the per-stage choice lives (Můj Vedoucí or the artifact header), and the rule once fieldwork exists (a structural auto-apply is refused or announced in the conversation, never applied silently). Today an automatic accept is an act of the signed-in browser after it sees a turn finish, and `decide_edits` needs the caller's `APPROVE_GATE` and own completed turn, so a continuation turn (LO6) finishing with no browser open applies nothing. Test: with a stage on and no browser open, a continuation turn's structural edit stays pending; after fieldwork exists it is not applied silently.
 

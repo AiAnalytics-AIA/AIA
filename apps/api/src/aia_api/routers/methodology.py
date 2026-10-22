@@ -90,7 +90,7 @@ from aia_core.infrastructure.methodology_repository import (
     MethodologyRepository,
     StoredVersion,
 )
-from fastapi import APIRouter, HTTPException, Path, Query
+from fastapi import APIRouter, HTTPException, Path, Query, Request
 from pydantic import BaseModel, ConfigDict, Field
 
 from ..dependencies import OrganizationDep, PrincipalDep, ResolverDep, SessionDep
@@ -980,6 +980,7 @@ def compare(
     session: SessionDep,
     principal: PrincipalDep,
     resolver: ResolverDep,
+    request: Request,
 ) -> CompareOut:
     """Any member may compare: nothing is stored. Every module reads only fixed fictional
     panels, except readiness, which checks the open research studies the member may open."""
@@ -1053,6 +1054,7 @@ def compare(
                     in_force=readiness_spec_for(stored),
                     draft=validated.spec,
                     pair_n_min=side_tables_of(methods).n_min,
+                    routing=request.app.state.settings.routing_enabled,
                 ),
             ),
         )
