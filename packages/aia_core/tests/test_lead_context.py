@@ -16,6 +16,7 @@ from aia_core.domain.research_lead import (
     CONTEXT_MAX_BYTES,
     DEFAULT_LEAD_NAME,
     DEFAULT_SOUL,
+    EXTERNAL_LAYER,
     HISTORY_TURNS,
     LEAD_PROMPT_ID,
     context_bytes,
@@ -67,8 +68,19 @@ def _row(manifest: dict[str, Any], name: str) -> dict[str, Any]:
 
 
 def test_every_layer_of_the_context_is_declared_in_its_order() -> None:
-    context = _context()
+    external = {"pin": {"deep_research_run_id": "RUN-1"}, "lines": ["[EV-1] Fiktivní nález."]}
+    context = _context(external=external)
     assert [entry["layer"] for entry in context["layers"]] == [s.name for s in LEAD_LAYERS]
+    manifest = context_manifest(context, context_classification(context, (), _pin()))
+    row = _row(manifest, EXTERNAL_LAYER)
+    assert row["bound"] is not None
+    assert row["data_class"] == DataClass.CLASS_C_INTERNAL.value
+
+
+def _pin() -> Any:
+    slot = get_slot(LEAD_PROMPT_ID)
+    assert slot is not None
+    return slot.baseline_pin()
 
 
 def test_every_classified_part_belongs_to_a_declared_layer() -> None:
@@ -84,7 +96,10 @@ def test_the_manifest_reads_the_context_without_moving_it() -> None:
     assert manifest == context_manifest(context)
     assert manifest["total_bytes"] == context_bytes(context)
     assert manifest["ceiling_bytes"] == CONTEXT_MAX_BYTES
-    assert [r["layer"] for r in manifest["layers"]] == [s.name for s in LEAD_LAYERS]
+    # The external layer is there only when a Design Research run's findings are.
+    assert [r["layer"] for r in manifest["layers"]] == [
+        s.name for s in LEAD_LAYERS if s.name != EXTERNAL_LAYER
+    ]
     assert sum(r["bytes"] for r in manifest["layers"]) <= manifest["total_bytes"]
 
 

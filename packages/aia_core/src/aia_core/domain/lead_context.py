@@ -28,6 +28,7 @@ from .ai_material import most_restrictive_material
 from .research_agents import KNOWLEDGE_MAX_BYTES
 from .research_lead import (
     CONTEXT_MAX_BYTES,
+    EXTERNAL_LAYER,
     HISTORY_TURNS,
     NOTES_IN_CONTEXT,
     NOTES_MAX_BYTES,
@@ -88,6 +89,12 @@ LEAD_LAYERS: Final[tuple[LeadLayer, ...]] = (
     LeadLayer(
         "runs", None, f"the newest {RUNS_IN_CONTEXT} research runs", "older runs are left out"
     ),
+    LeadLayer(
+        EXTERNAL_LAYER,
+        None,
+        "the newest Design Research findings, pinned; context, never evidence",
+        "never shortened",
+    ),
     LeadLayer("view", None, "the stage, the focus and the message", "never shortened"),
     LeadLayer(
         "conversation",
@@ -123,6 +130,7 @@ PART_LAYERS: Final[Mapping[str, str]] = {
     "design_analysis": "design",
     "message": "view",
     "focus_label": "view",
+    "external_context": EXTERNAL_LAYER,
     "earlier_message": "conversation",
     "earlier_reply": "conversation",
 }
