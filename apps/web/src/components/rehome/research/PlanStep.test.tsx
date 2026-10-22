@@ -1,5 +1,5 @@
 // @vitest-environment jsdom
-import { cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
+import { act, cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { afterEach, beforeEach, describe, expect, it, onTestFinished, vi } from "vitest";
@@ -299,6 +299,36 @@ describe("Návrh", () => {
     expect(item("H1").getAttribute("data-aia")).toMatch(/^hypothesis:hyp_/);
   });
 
+  it("comments on a part of a narrative item selected in place, and still edits the item on a plain click (Q68)", async () => {
+    unitStub();
+    render(<ResearchScreen step="plan" frame={TEST_FRAME} />);
+    const text = (await screen.findByText("Jde o test nového konceptu.")).firstChild as Text;
+    // jsdom lays nothing out: a selection has no box of its own (put back after the test).
+    const box = Range.prototype.getBoundingClientRect;
+    Range.prototype.getBoundingClientRect = () => ({ left: 100, top: 200, width: 80, height: 16, right: 180, bottom: 216, x: 100, y: 200, toJSON: () => ({}) });
+    onTestFinished(() => {
+      Range.prototype.getBoundingClientRect = box;
+    });
+    const range = document.createRange();
+    range.setStart(text, 0);
+    range.setEnd(text, 10);
+    window.getSelection()!.removeAllRanges();
+    window.getSelection()!.addRange(range);
+    fireEvent.mouseUp(text.parentElement!);
+    // The click that ends the selection does not open the editor.
+    fireEvent.click(text.parentElement!, { detail: 1 });
+    await act(() => new Promise((r) => setTimeout(r, 350)));
+    expect(screen.queryByRole("textbox", { name: "Shrnutí výzkumného problému" })).toBeNull();
+    fireEvent.click(await screen.findByRole("button", { name: "Přidat komentář" }));
+    const draft = await screen.findByLabelText("Co změnit? Enter uloží komentář");
+    fireEvent.change(draft, { target: { value: "Není to test." } });
+    fireEvent.keyDown(draft, { key: "Enter" });
+    expect(await screen.findByText("„Jde o test“")).toBeTruthy();
+    window.getSelection()!.removeAllRanges();
+    fireEvent.click(screen.getByRole("button", { name: /^Upravit: Shrnutí výzkumného problému/ }), { detail: 1 });
+    expect(await screen.findByRole("textbox", { name: "Shrnutí výzkumného problému" })).toBeTruthy();
+  });
+
   it("still comments on text selected outside the narrative's items, such as a set's question", async () => {
     unitStub();
     render(<ResearchScreen step="plan" frame={TEST_FRAME} />);
@@ -364,14 +394,14 @@ describe("direct proposal editing", () => {
     expect(screen.queryByText("Zatím není návrh")).toBeNull();
     // artifact-design DSN3: no separate editor; every item is edited where it is shown.
     expect(screen.queryByRole("button", { name: "Upravit text návrhu" })).toBeNull();
-    const edit = (label: RegExp, name: string, value: string) => {
+    const edit = async (label: RegExp, name: string, value: string) => {
       fireEvent.click(screen.getByRole("button", { name: label }));
-      const field = screen.getByRole("textbox", { name });
+      const field = await screen.findByRole("textbox", { name });
       fireEvent.change(field, { target: { value } });
       fireEvent.keyDown(field, { key: "Enter", ctrlKey: true });
     };
-    edit(/^Upravit: Shrnutí výzkumného problému/, "Shrnutí výzkumného problému", "Upravený problém");
-    edit(/^Upravit: Výzkumná otázka 1/, "Výzkumná otázka 1", "Nová otázka?");
+    await edit(/^Upravit: Shrnutí výzkumného problému/, "Shrnutí výzkumného problému", "Upravený problém");
+    await edit(/^Upravit: Výzkumná otázka 1/, "Výzkumná otázka 1", "Nová otázka?");
     fireEvent.click(screen.getByRole("button", { name: "Přidat cíl" }));
     const row = screen.getByRole("textbox", { name: "Přidat cíl" });
     fireEvent.change(row, { target: { value: "Druhý cíl" } });

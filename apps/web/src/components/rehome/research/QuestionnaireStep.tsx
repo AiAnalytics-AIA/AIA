@@ -28,6 +28,8 @@ import {
   type PreviewItem,
   type Question,
   type QuestionnairePath,
+  SET_MAX,
+  SET_MIN,
   SET_TOO_SMALL,
   type Section,
   TEMPLATE_FILENAME,
@@ -155,7 +157,7 @@ function removeWithUndo(update: Update, undo: EditorUndo, si: number, sec: Secti
 /** A tracked set is measured on 4–15 objects (SET_SIZE). */
 const setInvalid = (sec: Section) => {
   const n = (sec.objects || []).length;
-  return n < 4 || n > 15;
+  return n < SET_MIN || n > SET_MAX;
 };
 const OBJECT = "{object}";
 
@@ -606,6 +608,7 @@ type Update = (next: (p: ResearchProject) => ResearchProject, reason?: string) =
 /** The questionnaire at a glance: blocks and their questions, then the sets; quick add beneath. */
 function Outline() {
   const { store, state } = useResearch();
+  const { canEdit } = useFrame();
   const open = useContext(OpenPlace);
   const xs = sections(state.project);
   const counts = questionnaireCounts(state.project);
@@ -682,12 +685,12 @@ function Outline() {
             options={([["choice", "addChoice"], ["scale", "addScale"], ["open", "addOpen"]] as const).map(([key, label]) => ({ key, label: t(`research.questionnaire.${label}`) }))}
             onChange={setKind}
           />
-          <InlineCreateRow label={t("research.questionnaire.inlineAdd.question")} maxLength={WORDING_MAX} onCreate={quickAdd} />
+          <InlineCreateRow disabled={!canEdit} label={t("research.questionnaire.inlineAdd.question")} maxLength={WORDING_MAX} onCreate={quickAdd} />
           <p className="text-xs text-ink-muted">{t("research.questionnaire.quickHelp")}</p>
         </div>
         <div className="flex flex-col gap-1">
-          <InlineCreateRow label={t("research.questionnaire.addBlockV3")} next={false} onCreate={newBlock} />
-          <InlineCreateRow label={t("research.questionnaire.addSet")} next={false} placeholder={t("research.questionnaire.inlineAdd.setPlaceholder")} onCreate={newSet} />
+          <InlineCreateRow disabled={!canEdit} label={t("research.questionnaire.addBlockV3")} next={false} onCreate={newBlock} />
+          <InlineCreateRow disabled={!canEdit} label={t("research.questionnaire.addSet")} next={false} placeholder={t("research.questionnaire.inlineAdd.setPlaceholder")} onCreate={newSet} />
         </div>
       </aside>
     </div>
@@ -796,6 +799,8 @@ function QuestionBlock({ n, firstQ, sec, si, update }: { n: number; firstQ: numb
   const [confirming, setConfirming] = useState(false);
   const marks = useLeadMarks();
   const undo = useEditorUndo();
+  const { store } = useResearch();
+  const { canEdit } = useFrame();
   return (
     <article id={`qblock_${sec.id || si}`} data-aia={marks.sections[si]} className="scroll-mt-40 rounded-panel bg-surface-sunken p-4">
       <div className="flex items-start gap-3">
@@ -822,14 +827,12 @@ function QuestionBlock({ n, firstQ, sec, si, update }: { n: number; firstQ: numb
           <InlineCreateRow
             label={t("research.questionnaire.addQuestionV3")}
             maxLength={WORDING_MAX}
+            disabled={!canEdit}
             onCreate={(text) => {
-              let made = false;
-              update((p) => {
-                const r = addQuestionTo(p, si, text);
-                made = r !== null;
-                return r?.project ?? p;
-              }, "questionnaire_question");
-              return made ? undefined : t("research.questionnaire.inlineAdd.empty");
+              // The row refuses an empty wording first; null here means the block is gone.
+              const r = addQuestionTo(store.get().project, si, sec.id, text);
+              if (!r) return t("research.questionnaire.inlineAdd.blockGone");
+              store.update(() => ({ project: r.project }), { reason: "questionnaire_question" });
             }}
           />
         </div>
@@ -1083,9 +1086,6 @@ function TrackedSet({ n, sec, si, update }: { n: number; sec: Section; si: numbe
           <h3 className="sr-only">{sec.title?.trim() || tv("research.questionnaire.untitledSet", { n })}</h3>
           <InlineField strong label={t("research.questionnaire.setTitle")} value={sec.title || ""} onChange={(v) => update((p) => setSectionField(p, si, "title", v))} />
         </div>
-        <span className={`whitespace-nowrap rounded-md px-1.5 py-0.5 font-mono text-xs ${bad ? "bg-status-you-wash text-status-you-ink" : "bg-surface-sunken text-ink-muted"}`}>
-          {tv("research.questionnaire.setCount", { n: objects.length })}
-        </span>
         {confirming ? (
           <InlineConfirm message={t("research.questionnaire.removeSetConfirm")} action={t("research.questionnaire.remove")} onConfirm={() => removeWithUndo(update, undo, si, sec, "setRemoved")} onCancel={() => setConfirming(false)} />
         ) : (
@@ -1134,11 +1134,19 @@ function TrackedSet({ n, sec, si, update }: { n: number; sec: Section; si: numbe
         )}
       </div>
       <div className="flex flex-col gap-1">
-        <span className={LABEL}>{t("research.questionnaire.setObjectsV3")}</span>
+        {/* The count beside the list it counts (audit A14), moved from the card's header, which
+            scrolls away while objects are added on a phone. */}
+        <div className="flex items-baseline justify-between gap-2">
+          <span className={LABEL}>{t("research.questionnaire.setObjectsV3")}</span>
+          <span className={`whitespace-nowrap rounded-md px-1.5 py-0.5 font-mono text-xs ${bad ? "bg-status-you-wash text-status-you-ink" : "bg-surface-sunken text-ink-muted"}`}>
+            {tv("research.questionnaire.setCount", { n: objects.length })}
+          </span>
+        </div>
         <ChipInput
           label={t("research.questionnaire.setObjectAdd")}
           placeholder={t("research.questionnaire.setObjectAdd")}
           values={objects}
+          refuse={() => (objects.length >= SET_MAX ? tv("research.questionnaire.setObjectsFull", { max: SET_MAX }) : null)}
           onAdd={(v) => setObjects([...objects, v])}
           onRemove={(i) => setObjects(objects.filter((_, j) => j !== i))}
         />

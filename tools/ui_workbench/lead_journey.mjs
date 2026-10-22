@@ -98,6 +98,10 @@ try {
   // The scripted Lead's answers say they are scripted, every time.
   await conv.getByText(SCRIPTED, { exact: false }).first().waitFor({ timeout: 60000 });
   check("the Lead's answers say they come from the workbench script, not a model");
+  // The conversation's times are times alone, so today's turns stand under a "Dnes" heading
+  // (lead-conversation LC19).
+  await conv.locator("h3.conv__day", { hasText: /^Dnes$/ }).last().waitFor({ timeout: 10000 });
+  check("today's turns stand under a Dnes heading");
   await shot("1440-greeting");
 
   const before = await page.locator(`text=${SCRIPTED}`).count();

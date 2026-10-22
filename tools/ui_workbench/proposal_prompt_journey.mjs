@@ -78,6 +78,29 @@ try {
   assert.equal(await page.getByRole("button", { name: "Upravit text návrhu" }).count(), 0, "no separate narrative editor");
   await page.reload(); await page.getByText("Fiktivní návrh: ověřit preference a dostupnost.", { exact: true }).waitFor();
   checks.push("Narrative items edited and added in place persist to project and analysis, survive reload and preserve the questionnaire");
+  // Q68: part of an item's words is selected in place to comment on it, only the words shown (never
+  // the hidden "Upravit: …" label); a double-click selects a word; a plain click still edits.
+  for (const width of [1440, 390]) {
+    await page.setViewportSize({ width, height: 1000 });
+    const item = page.locator("#plan-understanding li [role=button]").first();
+    await item.scrollIntoViewIfNeeded();
+    const box = await item.boundingBox();
+    await page.mouse.move(box.x + 6, box.y + box.height / 2);
+    await page.mouse.down();
+    await page.mouse.move(box.x + Math.min(box.width - 30, 120), box.y + box.height / 2, { steps: 12 });
+    await page.mouse.up();
+    const selected = (await page.evaluate(() => getSelection().toString())).trim();
+    assert(selected && !selected.includes("Upravit"), `${width}: a drag selects an item's own words, got "${selected}"`);
+    await page.getByRole("button", { name: "Přidat komentář" }).waitFor();
+    await item.dblclick();
+    await page.waitForTimeout(500);
+    assert.equal(await page.locator("#plan-understanding textarea").count(), 0, `${width}: a drag or a double-click does not open the editor`);
+    await page.evaluate(() => getSelection().removeAllRanges());
+    await item.click();
+    await page.locator("#plan-understanding textarea").first().waitFor();
+    await page.keyboard.press("Escape");
+  }
+  checks.push("Part of a narrative item is selected in place to comment on it, and a plain click still edits it (Q68)");
   await page.getByRole("button", { name: "Upravit měření a položky" }).first().click();
   const measurement = page.getByRole("form", { name: "Upravit měření a položky" });
   await measurement.getByLabel("Název sady", { exact: true }).fill("Varianty dostupnosti");
