@@ -248,7 +248,124 @@ def test_a_typed_design_job_starts_with_the_lead_off_and_writes_chat_start_once(
     assert again.status_code == 200 and again.json()["run_id"] == run_id
     assert _written(app)["chat_start"] == 1
     turn = researcher.get(_lead(world)).json()["turns"][-1]
-    assert turn["request_decision"] == {"status": "approved", "run_id": run_id}
+    assert turn["request_decision"] == {"status": "approved", "run_id": run_id, "reused": False}
+
+
+@pytest.mark.parametrize("wallet", [False, True])
+def test_a_typed_start_approved_on_a_job_already_started_decides_its_card_and_starts_nothing(
+    researcher: TestClient, world: Any, app: FastAPI, wallet: bool
+) -> None:
+    """The same command typed again on the same design finds the job the first approval started.
+    Its card is decided (it never asks again after a reload) and says the job was found; nothing
+    starts or is charged, and its row names the run in its comment only, so the second approval
+    is neither a start approval of that run (spend attribution) nor a charge authority. With the
+    wallet on, its cap is exactly one job: the found job is not held to the wallet again, which
+    the first charge has used up (review of #682)."""
+    if wallet:
+        _wallet_on(app, researcher, world, cap=JOB_RESERVATION)
+    _save(app, world)
+    first = _type(researcher, world, "Zkontroluj návrh").json()["turns"][0]["turn_id"]
+    run_id = _approve(researcher, world, first).json()["run_id"]
+    second = _type(researcher, world, "Zkontroluj návrh").json()["turns"][0]["turn_id"]
+    again = _approve(researcher, world, second)
+    assert again.status_code == 200, again.text
+    assert again.json()["run_id"] == run_id
+
+    turns = {t["turn_id"]: t for t in researcher.get(_lead(world)).json()["turns"]}
+    assert turns[first]["request_decision"] == {
+        "status": "approved",
+        "run_id": run_id,
+        "reused": False,
+    }
+    assert turns[second]["request_decision"] == {
+        "status": "approved",
+        "run_id": run_id,
+        "reused": True,
+    }
+    started, reused = _chat_starts(app)
+    assert (started.run_id, started.decision) == (run_id, "start")
+    assert (reused.subject_id, reused.run_id, reused.decision) == (run_id, None, "reuse")
+    assert json.loads(reused.comment)["turn_id"] == second
+    assert json.loads(reused.comment)["run_id"] == run_id
+    assert _written(app) == {"runs": 1, "chat_start": 2, "charges": 1 if wallet else 0}
+    # Asked once more, the card answers as decided and writes nothing further.
+    assert _approve(researcher, world, second).json()["run_id"] == run_id
+    assert _written(app)["chat_start"] == 2
+
+
+def test_a_typed_start_found_already_started_asks_no_confirmation(
+    researcher: TestClient, world: Any, app: FastAPI
+) -> None:
+    """With the wallet on, at or above the study's confirmation threshold the first approval
+    asks and is confirmed; the second finds the job and asks nothing, since nothing will be
+    charged (review of #682)."""
+    _wallet_on(app, researcher, world, cap=5.0)
+    _save(app, world)
+    with create_session_factory(app.state.engine)() as session:
+        ScopeRepository(session).set_study_spend_confirm(_scope(world, session), 1.0)
+        session.commit()
+    first = _type(researcher, world, "Zkontroluj návrh").json()["turns"][0]["turn_id"]
+    asked = _approve(researcher, world, first)
+    assert asked.status_code == 409 and asked.json()["code"] == "cost_confirmation_required"
+    run_id = _approve(researcher, world, first, confirm_cost_usd=JOB_RESERVATION).json()["run_id"]
+    second = _type(researcher, world, "Zkontroluj návrh").json()["turns"][0]["turn_id"]
+    again = _approve(researcher, world, second)
+    assert again.status_code == 200, again.text
+    assert again.json()["run_id"] == run_id
+    assert [r.decision for r in _chat_starts(app)] == ["start", "reuse"]
+
+
+RUN_CEILING = 450 * 0.5  # the typed research run's ceiling at the test reservations
+
+
+def _run_wallet(app: FastAPI, client: TestClient, world: Any, cap: float) -> None:
+    """The wallet on, with the study's budget large enough for the cap."""
+    app.state.settings = app.state.settings.model_copy(update={"study_wallet_enabled": True})
+    study = f"/api/v1/studies/{world.study_id()}"
+    assert client.put(f"{study}/budget", json={"budget_usd": cap}).status_code == 200
+    set_cap = client.put(f"{study}/wallet", json={"cap_usd": cap})
+    assert set_cap.status_code == 200, set_cap.text
+
+
+def test_a_typed_research_run_found_already_started_is_not_held_to_a_used_up_wallet(
+    researcher: TestClient, world: Any, app: FastAPI
+) -> None:
+    """The run branch (review of #682): a wallet of exactly one run's ceiling, used up by the
+    first approval's charge, does not refuse the second approval of the same run; it answers
+    with the run, decides the card by a reuse row, and charges nothing more."""
+    _run_wallet(app, researcher, world, cap=RUN_CEILING)
+    _save(app, world)
+    first = _type(researcher, world, "Spusť výzkum").json()["turns"][0]["turn_id"]
+    started = _approve(researcher, world, first)
+    assert started.status_code == 200, started.text
+    second = _type(researcher, world, "Spusť výzkum").json()["turns"][0]["turn_id"]
+    again = _approve(researcher, world, second)
+    assert again.status_code == 200, again.text
+    assert again.json()["run_id"] == started.json()["run_id"]
+    assert [r.decision for r in _chat_starts(app)] == ["start", "reuse"]
+    assert _written(app) == {"runs": 1, "chat_start": 2, "charges": 1}
+
+
+def test_a_typed_research_run_found_already_started_asks_no_confirmation(
+    researcher: TestClient, world: Any, app: FastAPI
+) -> None:
+    """The run branch at the threshold: the first approval asks and is confirmed; the second
+    finds the run and asks nothing (review of #682)."""
+    _run_wallet(app, researcher, world, cap=2 * RUN_CEILING)
+    _save(app, world)
+    with create_session_factory(app.state.engine)() as session:
+        ScopeRepository(session).set_study_spend_confirm(_scope(world, session), 1.0)
+        session.commit()
+    first = _type(researcher, world, "Spusť výzkum").json()["turns"][0]["turn_id"]
+    asked = _approve(researcher, world, first)
+    assert asked.status_code == 409 and asked.json()["code"] == "cost_confirmation_required"
+    ceiling = asked.json()["details"]["ceiling_usd"]
+    run_id = _approve(researcher, world, first, confirm_cost_usd=ceiling).json()["run_id"]
+    second = _type(researcher, world, "Spusť výzkum").json()["turns"][0]["turn_id"]
+    again = _approve(researcher, world, second)
+    assert again.status_code == 200, again.text
+    assert again.json()["run_id"] == run_id
+    assert [r.decision for r in _chat_starts(app)] == ["start", "reuse"]
 
 
 def test_in_one_switched_off_state_the_typed_card_starts_and_the_models_card_waits(
@@ -330,11 +447,17 @@ def test_a_typed_research_run_starts_on_the_deployments_run_settings(
     comment = json.loads(row.comment)
     assert (row.run_id, comment["start"]) == (run_id, "research_run")
     assert comment["ceiling_usd"] == pytest.approx(450 * 0.5)
-    # The run's own start: the same revision asked again returns it and writes nothing.
+    # The run's own start: the same revision asked again returns it and starts nothing. The
+    # second card is decided by a reuse row, which names the run in its comment only: the run
+    # still has one start approval.
     again = _type(researcher, world, "Spusť výzkum").json()["turns"][0]["turn_id"]
     second = _approve(researcher, world, again)
     assert second.status_code == 200 and second.json()["run_id"] == run_id
-    assert _written(app)["chat_start"] == 1
+    assert [(r.run_id, r.decision) for r in _chat_starts(app)] == [
+        (run_id, "start"),
+        (None, "reuse"),
+    ]
+    assert _written(app)["runs"] == 1
 
 
 def test_a_typed_run_on_a_design_that_is_not_ready_is_refused_by_the_runs_own_rule(

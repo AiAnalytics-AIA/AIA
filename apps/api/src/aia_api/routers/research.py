@@ -9,7 +9,8 @@ project id: the browser supplies content, never authority.
 
 from __future__ import annotations
 
-from collections.abc import Iterator, Mapping
+import re
+from collections.abc import Callable, Iterator, Mapping
 from contextlib import contextmanager
 from datetime import date, datetime
 from typing import Annotated, Any, Final, Literal
@@ -23,8 +24,10 @@ from aia_core.application.analysis_results import (
 )
 from aia_core.application.client_report import (
     CLIENT_REPORT_DOCUMENT_ARTIFACT_TYPE,
+    ClientGateRefused,
     ClientReportRefused,
     client_report_document,
+    prepare_client_report,
     stored_client_report,
 )
 from aia_core.application.contextual_report import stored_contextual_report
@@ -44,7 +47,12 @@ from aia_core.application.report import (
     INTERNAL_REPORT_MEDIA_TYPE,
     ReportCompositionRefused,
 )
-from aia_core.application.report_approval import ReportNotApprovable, approve_report
+from aia_core.application.report_approval import (
+    CLIENT_REPORT_KINDS,
+    REPORT_KINDS,
+    ReportNotApprovable,
+    approve_report,
+)
 from aia_core.application.report_export import (
     Export,
     ReviewUnrecorded,
@@ -77,7 +85,9 @@ from aia_core.application.research import (
     ResearchRunNotRetryable,
     ResearchRuns,
     ResearchStepNotFound,
+    RunOutlook,
     RunReservations,
+    WorkingRevisionNotFound,
     readiness_in_force,
     research_artifacts,
 )
@@ -104,6 +114,7 @@ from aia_core.domain.fieldwork import (
     persona_source_of,
 )
 from aia_core.domain.methodology.pins import response_deviates, run_methods
+from aia_core.domain.persona_topics import dimension_topic
 from aia_core.domain.population import PopulationError, UnknownDatasetVersion
 from aia_core.domain.report.document_model import (
     DOCUMENT_MODEL_MEDIA_TYPE,
@@ -140,7 +151,7 @@ from aia_core.infrastructure.workflow_repository import (
     RuntimeParkNotResumable,
 )
 from fastapi import APIRouter, HTTPException, Path, Query, Request, Response, status
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict, Field, StringConstraints
 
 from ..dependencies import (
     ArtifactStoreDep,
@@ -330,6 +341,10 @@ class ResearchStepResponse(BaseModel):
     finished_at: datetime | None
     failure_class: str | None
     error_message: str | None
+    #: The code the last attempt's error recorded beside its message (a gate's refusal, such as
+    #: ``egress_route_not_approved_for_class``); ``None`` when it recorded none, or anything that
+    #: is not a code.
+    error_reason: str | None = None
     artifact_id: str | None
     #: ``SYNTHETIC_FIXTURE`` when the step's output came from fictional fieldwork.
     data_origin: str | None = None
@@ -576,12 +591,11 @@ class ResearchLimitsResponse(BaseModel):
     sample_size: SampleSizeRange
 
 
-class ReadinessResponse(BaseModel):
-    """Whether a Design Revision can run in AIA: AIA's structural checks, by name."""
+class _ReadinessBody(BaseModel):
+    """What readiness says of a design, whichever revision it was read on."""
 
     model_config = ConfigDict(extra="forbid")
 
-    design_revision_id: str
     rules: str
     ready: bool
     checks: list[ReadinessCheckResponse]
@@ -613,6 +627,44 @@ class ReadinessResponse(BaseModel):
     persona_sources: list[PersonaSourceOption] = []
     #: ``None`` when the design does not compile.
     answerability: AnswerabilityResponse | None = None
+
+
+class ReadinessResponse(_ReadinessBody):
+    """Whether a Design Revision can run in AIA: AIA's structural checks, by name."""
+
+    design_revision_id: str
+
+
+class WorkingReadinessResponse(_ReadinessBody):
+    """The same readiness on a revision of the Study's working content, before any Design
+    Revision is submitted (working-copy-edit-ops WCE7). Its answerability's digest names no
+    Design Revision, so it never stands for a start's acknowledgement."""
+
+    working_revision: int
+
+
+class StageImpactResponse(BaseModel):
+    """One pipeline stage and what the working copy means for it."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    stage: str
+    #: CURRENT, CHANGED (its own inputs differ) or RECHECK (an earlier change reaches it).
+    impact: Literal["CURRENT", "CHANGED", "RECHECK"]
+
+
+class WorkingImpactResponse(BaseModel):
+    """A working revision beside a Design Revision (working-copy-edit-ops WCE7)."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    working_revision: int
+    design_revision_id: str
+    design_revision: int
+    #: The top-level fields of the design that differ.
+    changed: list[str]
+    #: Every pipeline stage, in pipeline order.
+    stages: list[StageImpactResponse]
 
 
 class PersonaSourceOption(BaseModel):
@@ -940,6 +992,14 @@ def _recovery_reason(
     return None
 
 
+_CODE = re.compile(r"[a-z][a-z0-9_:.-]{0,79}")
+
+
+def _code(value: object) -> str | None:
+    """A stored reason when it is a code; free text is never passed on as one."""
+    return value if isinstance(value, str) and _CODE.fullmatch(value) else None
+
+
 def _step(s: dict[str, Any]) -> ResearchStepResponse:
     attempts = s.get("attempts") or []
     last = attempts[-1] if attempts else None
@@ -958,6 +1018,7 @@ def _step(s: dict[str, Any]) -> ResearchStepResponse:
         finished_at=s.get("finished_at"),
         failure_class=last["failure_class"].value if last and last["failure_class"] else None,
         error_message=str(error.get("message")) if error.get("message") else None,
+        error_reason=_code(error.get("reason")),
         artifact_id=str(output["artifact_id"]) if output.get("artifact_id") else None,
         data_origin=str(output["data_origin"]) if output.get("data_origin") else None,
         data_origin_kind=origin_kind(output["data_origin"]) if output.get("data_origin") else None,
@@ -1169,6 +1230,82 @@ def readiness(
         )
     except DesignRevisionNotFound as exc:
         raise _not_found("design_revision") from exc
+    return ReadinessResponse(
+        design_revision_id=design_revision_id,
+        **_readiness_body(request, runs, outlook, chosen),
+    )
+
+
+@router.get(
+    "/research/readiness/working",
+    response_model=WorkingReadinessResponse,
+    summary="Could this working revision run in AIA?",
+)
+def working_readiness(
+    request: Request,
+    scope: StudyScopeDep,
+    session: SessionDep,
+    working_revision: Annotated[int, Query(ge=1)],
+    persona_source: Annotated[PersonaSource | None, Query()] = None,
+) -> WorkingReadinessResponse:
+    """The readiness of a revision of the Study's working content, read as a submit of it
+    would read it, with no Design Revision written (working-copy-edit-ops WCE7). A stage
+    reads it on the revision it shows; a start still runs a submitted Design Revision.
+    A revision the Study never saved is 404 ``working_revision``."""
+    chosen = _chosen_persona_source(request, persona_source)
+    runs = ResearchRuns(session, scope)
+    try:
+        outlook = runs.outlook_working(
+            working_revision,
+            persona_source=chosen,
+            fieldwork_source=_fieldwork_source(request),
+        )
+    except WorkingRevisionNotFound as exc:
+        raise _not_found("working_revision") from exc
+    return WorkingReadinessResponse(
+        working_revision=working_revision,
+        **_readiness_body(request, runs, outlook, chosen),
+    )
+
+
+@router.get(
+    "/research/impact",
+    response_model=WorkingImpactResponse,
+    summary="What a working revision changes against a Design Revision, stage by stage",
+)
+def working_impact(
+    scope: StudyScopeDep,
+    session: SessionDep,
+    working_revision: Annotated[int, Query(ge=1)],
+    design_revision_id: Annotated[
+        str | None, Query(max_length=64, pattern=r"^REV-[0-9a-f]{1,32}$")
+    ] = None,
+) -> WorkingImpactResponse:
+    """Each pipeline stage CURRENT, CHANGED or RECHECK going from the Design Revision (the newest
+    when none is named; a run's own to ask about that run) to the working revision, and the
+    top-level fields that differ (working-copy-edit-ops WCE7). Reads both; writes nothing. A
+    working revision the Study never saved is 404 ``working_revision``; a Design Revision not of
+    this Study, or a Study with none, 404 ``design_revision``."""
+    runs = ResearchRuns(session, scope)
+    try:
+        found = runs.impact(working_revision, design_revision_id)
+    except WorkingRevisionNotFound as exc:
+        raise _not_found("working_revision") from exc
+    except DesignRevisionNotFound as exc:
+        raise _not_found("design_revision") from exc
+    return WorkingImpactResponse(
+        working_revision=found.working_revision,
+        design_revision_id=found.design_revision_id,
+        design_revision=found.design_revision,
+        changed=list(found.changed),
+        stages=[StageImpactResponse(stage=k, impact=v.value) for k, v in found.stages.items()],
+    )
+
+
+def _readiness_body(
+    request: Request, runs: ResearchRuns, outlook: RunOutlook, chosen: PersonaSource
+) -> dict[str, Any]:
+    """The readiness fields both routes answer, from one outlook."""
     spec, result = outlook.spec, outlook.readiness
     settings = request.app.state.settings
     ceiling = (
@@ -1182,32 +1319,31 @@ def readiness(
         else None
     )
     limit = runs.spend_limit()
-    return ReadinessResponse(
-        design_revision_id=design_revision_id,
-        rules=result.rules,
-        ready=result.ready,
-        checks=[
+    return {
+        "rules": result.rules,
+        "ready": result.ready,
+        "checks": [
             ReadinessCheckResponse(id=c.id, status=c.status.value, message=c.message)
             for c in result.checks
         ],
-        questions=len(spec.questions) if spec else 0,
-        batteries=len(spec.batteries) if spec else 0,
-        objects=sum(len(b.objects) for b in spec.batteries) if spec else 0,
-        n=spec.n if spec else None,
-        fieldwork_source=str(_fieldwork_source(request).value),
-        cost_ceiling_usd=ceiling.total_usd if ceiling else None,
-        cost_ceiling_unknown=ceiling.unknown.value if ceiling and ceiling.unknown else None,
-        fieldwork_requests=ceiling.fieldwork_requests if ceiling else 0,
-        analysis_calls=ceiling.analysis_calls if ceiling else 0,
-        spend_confirm_usd=limit,
+        "questions": len(spec.questions) if spec else 0,
+        "batteries": len(spec.batteries) if spec else 0,
+        "objects": sum(len(b.objects) for b in spec.batteries) if spec else 0,
+        "n": spec.n if spec else None,
+        "fieldwork_source": str(_fieldwork_source(request).value),
+        "cost_ceiling_usd": ceiling.total_usd if ceiling else None,
+        "cost_ceiling_unknown": ceiling.unknown.value if ceiling and ceiling.unknown else None,
+        "fieldwork_requests": ceiling.fieldwork_requests if ceiling else 0,
+        "analysis_calls": ceiling.analysis_calls if ceiling else 0,
+        "spend_confirm_usd": limit,
         # Unknown does not ask: it refuses at the start, so the page shows it differently.
-        confirmation_required=bool(
+        "confirmation_required": bool(
             limit is not None
             and ceiling
             and ceiling.total_usd is not None
             and ceiling.total_usd >= limit
         ),
-        question_outlook=[
+        "question_outlook": [
             QuestionOutlookResponse(
                 question_id=q.question_id,
                 text=q.text,
@@ -1218,16 +1354,16 @@ def readiness(
             )
             for q in outlook.questions
         ],
-        research_trace=_trace(outlook.trace) if outlook.trace is not None else None,
-        persona_source=chosen.value,
-        persona_sources=_persona_sources(request),
-        answerability=_answerability(
+        "research_trace": _trace(outlook.trace) if outlook.trace is not None else None,
+        "persona_source": chosen.value,
+        "persona_sources": _persona_sources(request),
+        "answerability": _answerability(
             outlook.answerability,
             required=request.app.state.settings.research_answerability_gate,
         )
         if outlook.answerability is not None
         else None,
-    )
+    }
 
 
 def _trace(trace: ResearchTrace) -> ResearchTraceResponse:
@@ -1284,6 +1420,7 @@ def start_run(
             design_revision_id=body.design_revision_id,
             fieldwork_source=_fieldwork_source(request),
             analysis_enabled=request.app.state.settings.ai_analysis_enabled,
+            external_context=request.app.state.settings.ai_analysis_external_context,
             sociomapping_enabled=request.app.state.settings.sociomapping_experimental_enabled,
             reservations=_reservations(request),
             confirm_cost_usd=body.confirm_cost_usd,
@@ -1330,6 +1467,7 @@ def run_start_settings(request: Request, population: AudiencePopulation) -> RunS
     return RunStartSettings(
         fieldwork_source=_fieldwork_source(request),
         analysis_enabled=settings.ai_analysis_enabled,
+        external_context=settings.ai_analysis_external_context,
         sociomapping_enabled=settings.sociomapping_experimental_enabled,
         reservations=_reservations(request),
         persona_source=_persona_source(request),
@@ -1352,6 +1490,46 @@ def sociomap_register(scope: StudyScopeDep) -> dict[str, Any]:
     except ScopeDenied as exc:
         raise _refused(exc) from exc
     return {"entries": [entry.model_dump(mode="json") for entry in SOCIOMAP_REGISTER]}
+
+
+class DimensionTopic(BaseModel):
+    """A selected dimension and the persona topic it lets through (``dimension_topic``)."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    dimension: str
+    #: ``None``: it names no persona topic, so a run lists it in ``dimensions_unmatched`` and
+    #: no respondent's profile carries it.
+    topic: str | None
+
+
+class DimensionTopicList(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    items: list[DimensionTopic]
+
+
+@router.get(
+    "/research/persona-topics",
+    response_model=DimensionTopicList,
+    summary="The persona topic each dimension lets through",
+)
+def persona_topics(
+    scope: StudyScopeDep,
+    dimension: Annotated[
+        list[Annotated[str, StringConstraints(max_length=80)]], Query(max_length=64)
+    ] = [],  # noqa: B006
+) -> DimensionTopicList:
+    """Dimenze's chip before any run (artifact-dimensions DIM2): the same mapping a run's
+    ``selection_receipt`` reads, asked of the working copy's dimensions, in the order given.
+    It reads no design, so a dimension chosen a moment ago is answered without a revision."""
+    try:
+        scope.require(Permission.VIEW_STUDY)
+    except ScopeDenied as exc:
+        raise _refused(exc) from exc
+    return DimensionTopicList(
+        items=[DimensionTopic(dimension=d, topic=dimension_topic(d)) for d in dimension]
+    )
 
 
 @router.get("/research/runs", response_model=ResearchRunList, summary="The Study's research runs")
@@ -1952,6 +2130,7 @@ def run_report(
         "state": "READY",
         "internal_only": True,
         **_review_fields(artifact, mark),
+        **_approval_fields(artifact, scope, session, store),
         "artifact_id": artifact.artifact_id,
         "sha256": artifact.sha256,
         "size_bytes": artifact.size_bytes,
@@ -2070,6 +2249,30 @@ def _review_fields(artifact: Artifact, mark: ReviewMark) -> dict[str, Any]:
         "review_state": mark.state.value,
         "approved_on": mark.approved_on.isoformat() if mark.approved_on else None,
         "stamped": stampable(artifact),
+    }
+
+
+def _approval_fields(
+    artifact: Artifact, scope: StudyContext, session: SessionDep, store: ArtifactStoreDep
+) -> dict[str, Any]:
+    """Who approved a version and when, from its ledger row (report-delivery RD2): ``approval``
+    is null for a draft. ``by_you``: the asker is the approver. An approval without its row is
+    409, never a draft (``report_export.review_mark``)."""
+    if not artifact.is_approved:
+        return {"approval": None}
+    record = research_artifacts(session, scope, store).approval_record(artifact.artifact_id)
+    if record is None:
+        raise _unrecorded(ReviewUnrecorded(artifact.artifact_id))
+    return {
+        "approval": {
+            "approved_at": record.decided_at.isoformat(),
+            "approver_name": record.approver_name,
+            "by_you": record.approver_user_id == scope.actor_id,
+            "self_approved": record.self_approved,
+            "self_approval_allowed": record.self_approval_allowed,
+            "self_approval_source": record.self_approval_source,
+            "note": record.note,
+        }
     }
 
 
@@ -2249,6 +2452,7 @@ def run_report_document(
         "report_artifact_id": report.artifact_id,
         "report_sha256": report.sha256,
         **_review_fields(report, mark),
+        **_approval_fields(report, scope, session, store),
         "document": document,
     }
 
@@ -2579,25 +2783,18 @@ def download_contextual_report_pdf(
     )
 
 
-@router.get(
-    "/research/runs/{run_id}/report/client/download",
-    response_class=Response,
-    summary="The run's client report (modelled data, labelled): its approved version, else a draft",
-    responses={409: {"model": ErrorResponse}},
-)
-def download_client_report(
-    run_id: RunIdPath,
-    scope: StudyScopeDep,
+def _stored_client[T](
+    run_id: str,
+    scope: StudyContext,
     session: SessionDep,
     store: ArtifactStoreDep,
-    settings: SettingsDep,
-) -> Response:
-    """Complete-study-report B5c: only a run whose respondents were modelled from the
-    population has one; any other is refused by name (409 ``client_report_refused``)."""
+    read: Callable[[], T],
+) -> T:
+    """``read`` of the run's client report as stored (composed and stored as a draft first when
+    none is), its refusals in the API's words: 409 ``client_report_refused`` for a run that has
+    none."""
     try:
-        artifact, data = stored_client_report(
-            session, scope, store, run_id=run_id, build=settings.build.sha or ""
-        )
+        return read()
     except ScopeDenied as exc:
         raise _refused(exc) from exc
     except ResearchRunNotFound as exc:
@@ -2622,6 +2819,32 @@ def download_client_report(
                 "details": {"reason": "composition_refused"},
             },
         ) from exc
+
+
+@router.get(
+    "/research/runs/{run_id}/report/client/download",
+    response_class=Response,
+    summary="The run's client report (modelled data, labelled): its approved version, else a draft",
+    responses={409: {"model": ErrorResponse}},
+)
+def download_client_report(
+    run_id: RunIdPath,
+    scope: StudyScopeDep,
+    session: SessionDep,
+    store: ArtifactStoreDep,
+    settings: SettingsDep,
+) -> Response:
+    """Complete-study-report B5c: only a run whose respondents were modelled from the
+    population has one; any other is refused by name (409 ``client_report_refused``)."""
+    artifact, data = _stored_client(
+        run_id,
+        scope,
+        session,
+        store,
+        lambda: stored_client_report(
+            session, scope, store, run_id=run_id, build=settings.build.sha or ""
+        ),
+    )
     # The bytes it just read (or stored) are the version's: never read twice per download.
     exported = _export(artifact, scope, session, store, data=data)
     return Response(
@@ -2634,6 +2857,34 @@ def download_client_report(
             ),
         ),
     )
+
+
+@router.post(
+    "/research/runs/{run_id}/report/client/prepare",
+    response_model=dict[str, Any],
+    summary="Prepare the run's client report to be read in AIA, without a download",
+    responses={409: {"model": ErrorResponse}},
+)
+def prepare_client_report_route(
+    run_id: RunIdPath,
+    scope: StudyScopeDep,
+    session: SessionDep,
+    store: ArtifactStoreDep,
+    settings: SettingsDep,
+) -> dict[str, Any]:
+    """The client report composed and stored as its download would store it, answered as its
+    document model (report-delivery RD3): a person reads the draft in AIA before approving it,
+    and no file leaves. The approved version once there is one; nothing is composed then."""
+    report, model = _stored_client(
+        run_id,
+        scope,
+        session,
+        store,
+        lambda: prepare_client_report(
+            session, scope, store, run_id=run_id, build=settings.build.sha or ""
+        ),
+    )
+    return _client_document_body(run_id, report, model, scope, session, store)
 
 
 class ReportApprovalRequest(BaseModel):
@@ -2655,7 +2906,8 @@ def client_report_document_route(
 ) -> dict[str, Any]:
     """The document the run's stored client report was rendered from (report-delivery RD5a):
     the approved version's when a person approved one, else the newest stored draft's. It
-    composes nothing; a client report is prepared by its download. 404 while none is stored;
+    composes nothing; a client report is prepared by ``…/client/prepare`` or its download. 404
+    while none is stored;
     409 ``report_document_not_stored`` for a version stored before RD5a."""
     try:
         found = client_report_document(session, scope, store, run_id=run_id)
@@ -2665,7 +2917,18 @@ def client_report_document_route(
         raise _not_found("run") from exc
     if found is None:
         raise _not_found("report")
-    report, model = found
+    return _client_document_body(run_id, *found, scope, session, store)
+
+
+def _client_document_body(
+    run_id: str,
+    report: Artifact,
+    model: Artifact | None,
+    scope: StudyContext,
+    session: SessionDep,
+    store: ArtifactStoreDep,
+) -> dict[str, Any]:
+    """A stored client report's document model as the document route answers it."""
     if model is None:
         raise HTTPException(409, detail={"code": "report_document_not_stored"})
     if model.content_type != DOCUMENT_MODEL_MEDIA_TYPE or (
@@ -2687,6 +2950,7 @@ def client_report_document_route(
         "report_artifact_id": report.artifact_id,
         "report_sha256": report.sha256,
         **_review_fields(report, mark),
+        **_approval_fields(report, scope, session, store),
         "document": document,
     }
 
@@ -2694,7 +2958,7 @@ def client_report_document_route(
 @router.post(
     "/research/runs/{run_id}/report/approve",
     response_model=dict[str, Any],
-    summary="Approve a stored report of the run (internal approval, recorded)",
+    summary="Approve a stored report of the run (internal, with literature or client; recorded)",
     responses={403: {"model": ErrorResponse}, 409: {"model": ErrorResponse}},
 )
 def approve_run_report(
@@ -2722,6 +2986,19 @@ def approve_run_report(
         raise _not_found("run") from exc
     except ArtifactNotFound as exc:
         raise _not_found("report") from exc
+    except ClientGateRefused as exc:
+        raise HTTPException(
+            409,
+            detail={
+                "code": "client_gate_refused",
+                "message": "Klientskou zprávu nelze schválit: " + str(exc),
+                "details": {"refusals": [r.to_json() for r in exc.refusals]},
+            },
+        ) from exc
+    except (IntegrityError, ObjectNotFound) as exc:
+        raise artifact_corrupt(session) from exc
+    except DocumentModelInvalid as exc:
+        raise HTTPException(409, detail={"code": "report_artifact_invalid"}) from exc
     except ReportNotApprovable as exc:
         raise HTTPException(
             409,
@@ -2730,12 +3007,16 @@ def approve_run_report(
                 "message": "The artifact is not a valid stored report of this run.",
             },
         ) from exc
+    # Which report was approved, by kind: the client report is no internal document (G66).
+    kind = REPORT_KINDS[artifact.artifact_type]
     return {
         "run_id": run_id,
         "artifact_id": artifact.artifact_id,
         "artifact_type": artifact.artifact_type,
         **_review_fields(artifact, _mark(artifact, scope, session, store)),
-        "internal_only": True,
+        **_approval_fields(artifact, scope, session, store),
+        "report_kind": kind,
+        "internal_only": kind not in CLIENT_REPORT_KINDS,
     }
 
 

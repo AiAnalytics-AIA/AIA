@@ -57,6 +57,12 @@ from ..domain.scope import (
     payer_study_id,
     require_approval_independence,
 )
+from ..domain.spend_attribution import (
+    CARD_APPROVAL,
+    LIFT_DECISION,
+    START_APPROVALS,
+    charged_to,
+)
 from ..domain.wallet import CHARGE_DECISION
 from ..domain.workflow import (
     DEFAULT_CAPACITY_BACKOFF_SECONDS,
@@ -90,6 +96,7 @@ from .tables import (
     ApprovalDecisionRow,
     BudgetReservationRow,
     ClientRow,
+    OrganizationMemberRow,
     ProjectRow,
     RunPopulationBindingRow,
     StepAttemptRow,
@@ -103,7 +110,11 @@ from .tables import (
     utcnow,
 )
 
+#: A typed start approved on a run another approval had already started (``record_chat_start``).
+CHAT_START_REUSE = "reuse"
+
 __all__ = [
+    "CHAT_START_REUSE",
     "BudgetExceeded",
     "ClaimedWork",
     "LeaseLost",
@@ -112,6 +123,7 @@ __all__ = [
     "WorkQueue",
     "WorkflowNotFound",
     "WorkflowRepository",
+    "charged_to_for_run",
 ]
 
 
@@ -151,6 +163,72 @@ def _binding_identity(binding: PopulationBinding | None) -> tuple[str, ...] | No
         binding.companion_set_sha256,
         binding.joint_state.value,
     )
+
+
+def charged_to_for_run(
+    session: Session, run: WorkflowRunRow, *, at: datetime | None = None
+) -> str | None:
+    """The person a hold of ``run`` made now (or at ``at``) is booked to (Q40; the lifter pays
+    for what runs after a lift, Q67, the product owner, 2026-10-21 20:12 UTC, choice (a);
+    ``develop-spend-attribution`` 7): ``domain.spend_attribution.charged_to`` over what the
+    approval ledger and the run record. Read here because this module is one of the ledger's two
+    readers (``make layer_check``).
+
+    The lift and the start approvals are read from the ledger exactly: a lift of this run
+    (``subject_type`` budget, its ``run_id``, decision ``lift``) written before ``at``; the
+    start approvals naming this run (:data:`START_APPROVALS` by ``run_id``, the Lead card by its
+    comment's ``agent_run_id``, compared after parsing, never by the text alone). The starter is
+    the run's ``triggered_by`` only when it is a member of the run's organization: a worker's
+    identity or an unknown id is no person.
+    """
+    lift_query = (
+        select(ApprovalDecisionRow.approver_user_id)
+        .where(
+            ApprovalDecisionRow.subject_type == ApprovalSubject.BUDGET,
+            ApprovalDecisionRow.run_id == run.run_id,
+            ApprovalDecisionRow.decision == LIFT_DECISION,
+        )
+        .order_by(ApprovalDecisionRow.decision_id.desc())
+        .limit(1)
+    )
+    if at is not None:
+        lift_query = lift_query.where(ApprovalDecisionRow.created_at <= at)
+    lift = session.scalar(lift_query)
+
+    approvers = set(
+        session.scalars(
+            select(ApprovalDecisionRow.approver_user_id).where(
+                ApprovalDecisionRow.run_id == run.run_id,
+                ApprovalDecisionRow.subject_type.in_([s.value for s in START_APPROVALS]),
+            )
+        )
+    )
+    if run.study_id is not None:
+        cards = session.execute(
+            select(ApprovalDecisionRow.approver_user_id, ApprovalDecisionRow.comment).where(
+                ApprovalDecisionRow.study_id == run.study_id,
+                ApprovalDecisionRow.subject_type == CARD_APPROVAL,
+                ApprovalDecisionRow.comment.contains(run.run_id),
+            )
+        ).all()
+        for approver, comment in cards:
+            try:
+                named = json.loads(comment or "{}").get("agent_run_id")
+            except (ValueError, AttributeError):
+                continue
+            if named == run.run_id:
+                approvers.add(approver)
+
+    starter = run.triggered_by
+    if starter is not None:
+        member = session.scalar(
+            select(OrganizationMemberRow.user_id).where(
+                OrganizationMemberRow.organization_id == run.organization_id,
+                OrganizationMemberRow.user_id == starter,
+            )
+        )
+        starter = member
+    return charged_to(lift_approver=lift, start_approvers=approvers, starter=starter)
 
 
 class WorkflowNotFound(LookupError):
@@ -1281,6 +1359,7 @@ class WorkflowRepository:
                 amount_usd=requested,
                 status=ReservationStatus.RESERVED.value,
                 reason=reason or f"{step.node_key}:{payee}",
+                charged_to_user_id=charged_to_for_run(self._session, run),
             )
         )
         attempt.estimated_cost_usd = requested
@@ -2754,13 +2833,20 @@ class WorkflowRepository:
         start: str,
         ceiling_usd: float | None,
         design_revision_id: str,
+        reused: bool = False,
     ) -> int:
         """Write a person's approval of their own typed start (lead-orchestration LO5, ADR 0028
         decision 3): a ``chat_start`` row naming the run it created, decision ``start``, and
         return its id -- the authority a wallet charge of that run names (``CHARGE_AUTHORITIES``).
         The row records the person's turn, the start's name (``agent_job:<action>``,
         ``research_run``), its ceiling and the Design Revision. Needs ``APPROVE_GATE``, which the
-        worker's scope does not hold: a step cannot authorise a charge of its own."""
+        worker's scope does not hold: a step cannot authorise a charge of its own.
+
+        ``reused``: the approval found the run another approval had already started (the same
+        job on the same design), and started nothing. Its row is decision ``reuse`` and names the
+        run in its comment only, never in ``run_id``: the person decided their card, but neither
+        started nor authorised that run, so it is no start approval of it (spend attribution
+        reads ``run_id``) and no charge authority (decision ``start``)."""
         self.scope.require(Permission.APPROVE_GATE)
         run = self._run(run_id)
         independence = observe_approval_independence(
@@ -2774,17 +2860,18 @@ class WorkflowRepository:
             study_id=self.scope.study_id,
             subject_type=ApprovalSubject.CHAT_START,
             subject_id=run_id,
-            run_id=run_id,
+            run_id=None if reused else run_id,
             project_id=run.project_id,
             project_revision=run.project_revision,
             gate_type="chat_start",
-            decision=CHARGE_DECISION,
+            decision=CHAT_START_REUSE if reused else CHARGE_DECISION,
             comment=json.dumps(
                 {
                     "turn_id": turn_id,
                     "start": start,
                     "ceiling_usd": ceiling_usd,
                     "design_revision_id": design_revision_id,
+                    **({"run_id": run_id} if reused else {}),
                 },
                 sort_keys=True,
             ),
@@ -3364,6 +3451,15 @@ class WorkflowRepository:
         ]
 
     # -------------------------------------------------------------------- reads --
+
+    def retry_root(self, run_id: str) -> str:
+        """The run a retry chain began with (each retry names its original as ``retry_of``),
+        read from the run rows alone; a run that is no retry is its own root."""
+        seen = {run_id}
+        while (parent := self._run(run_id).metadata_json.get("retry_of")) and parent not in seen:
+            seen.add(parent)
+            run_id = str(parent)
+        return run_id
 
     def get_run(self, run_id: str) -> dict[str, Any]:
         """Return a run with its steps and each step's attempt history."""

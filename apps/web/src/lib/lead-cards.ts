@@ -158,11 +158,13 @@ export type Placed<T> =
  * (`request_decision.run_id`), as is a run started from a turn's card (`runOfTurn`); every other job
  * and run, however it was started, stands on its own at the moment it was created.
  */
-export function conversationTimeline<T extends { turn_id: string; created_at: string; request_decision?: { run_id: string } | null }>(
+export function conversationTimeline<T extends { turn_id: string; created_at: string; request_decision?: { run_id: string; reused?: boolean } | null }>(
   turns: T[], jobs: ResearchAgentJob[], runs: ResearchRun[], runOfTurn: ReadonlyMap<string, string> = new Map(),
 ): Placed<T>[] {
   const linked = new Set<string>([
-    ...turns.flatMap((t) => (t.request_decision?.run_id ? [t.request_decision.run_id] : [])),
+    // A typed start that found its job already started (LO5) does not place it: the job stays
+    // where it started, or on its own when no card started it (a run started on Spuštění).
+    ...turns.flatMap((t) => (t.request_decision?.run_id && !t.request_decision.reused ? [t.request_decision.run_id] : [])),
     ...runOfTurn.values(),
   ]);
   const at = (iso: string | null | undefined) => Date.parse(iso ?? "") || 0;

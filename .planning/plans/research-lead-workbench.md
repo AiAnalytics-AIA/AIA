@@ -3,6 +3,7 @@ status: in-progress
 chunks:
   - "[x] 1. Split layout: pure width, keyboard and focus-mode rules with the prototype's bounds"
   - "[x] 2. Inspector back stack: pure state and the item drawer, beside InspectorSlot"
+  - "[x] 2a. The item drawer mounted in the workbench and opened from a screen's click (useItemInspector); bodies by kind (ItemInspectBody BODIES); the Lead's inspect op still to come"
   - "[x] 3. Port the prototype's workbench frame: stylesheet, icons, study header, phase navigator over lane.ts, split, rail"
   - "[x] 4. Mount the workbench as the study screen behind AIA_WEB_RESEARCH_WORKBENCH (on for develop): artifact header and state bars over the existing stage screens"
   - "[x] 5. Lead backend: study_lead_turns, StudyLeadRepository, ResearchLead, /lead routes, research_lead template and executor, settings"
@@ -31,11 +32,11 @@ chunks:
   - "[ ] 23c. The finished Deep Research card (DRL-7): coverage and counts, the first findings with 'Ověřeno, přidat zdroj', 'Zkontrolovat návrh' (7b), 'Použít ve zprávě' and the report with literature prepared and approved on CompleteReport's routes, a failure's cause and 'Zkusit znovu'"
   - "[ ] 26f.1. The Deep Research half of 26f (DRL-5): the Deep Research starts and retries removed from every layout, their panels kept as readers; after 23b and after lead-orchestration LO5a.3 (Q48); with it lead-orchestration LO5a's acceptance"
   - "[ ] 25. Deep Research reachable from every stage as a capability"
-  - "[ ] 26a. The Lead at every width (D20, MVPQ-11), its pure rules: lib/workbench-layout.ts, the breakpoints (split from 1100 px, drawer 768-1099, sheet under 768), the drawer's states and the one Escape order, tested at 1099, 1100, 768, 767 and 390 px"
+  - "[x] 26a. The Lead at every width (D20, MVPQ-11), its pure rules: lib/workbench-layout.ts, the breakpoints (split from 1100 px, drawer 768-1099, sheet under 768), the drawer's states and the one Escape order, tested at 1099, 1100, 768, 767 and 390 px"
   - "[x] 26b. One tree, three layouts: Workbench renders the artifact and LeadPane once at every width, so crossing 1100 px remounts nothing (a mount-counter test); the workbench serves under 1100 px"
   - "[x] 26c. The launcher and the drawer (D21): the rail or bottom bar opens the same LeadPane as a side drawer (768-1099 px) or a full-screen sheet (under 768 px); keyboard, focus trap and Escape with a return to the targeted artifact; tested at 1099, 768 and 390 px"
   - "[x] 26d. The compact header and stage navigator at 768-1099 and under 768 px: all eleven stages reachable by keyboard, no page overflow"
-  - "[ ] 26e. A stale card refused and a direct request held by the same server gates, in the drawer and in the split"
+  - "[x] 26e. A stale card refused and a direct request held by the same server gates, in the drawer and in the split"
   - "[ ] 26f. The manual AI starts removed in every layout behind one predicate, except Spuštění's own Start (D15, 2026-10-21); a static guard test; the journeys start work through the Lead's cards or a typed start"
   - "[ ] 27a. Availability, said once and honestly (D20): first an anchored inventory of every path that turns the Lead off or stops it answering, each made hard to trigger by accident (Q43); then lib/lead-availability.ts (ON / WAITING / OFF / UNKNOWN from GET /lead, which incorporates the worker's readiness from the composition record, lead-orchestration LO12b; ON only with the worker ready, unknown never on), the launcher's dot and a stage's one line"
   - "[x] 27b. The kill switch holds on every Lead start: a card the Lead model prepared, approved after a switch-off, is 409 research_lead_disabled, stored text edits can still be accepted or dismissed (Q42); with the Lead off the composer takes only LO5's typed start commands, matched by code, and their server-matched chat_start cards stay approvable under the same wallet and LO15 confirmation (Q43); GET /lead reports the worker's readiness (LO12b)"
@@ -526,6 +527,116 @@ appear in the lead researches chat too"). Built on `feature/lead-worker-cards`:
   - #554's `DesignResearchReview.tsx` flushes until saved on its own; with the serialised `flush`
     that loop ends after one flush, and it stays as a guard.
 
+### The workbench frame audit (2026-10-22, `fix/workbench-frame-audit`)
+
+The audit drove the UI workbench (fictional studies, scripted Lead, zero paid) with Playwright at
+1440, 1100, 768 and 390 px over all eleven stages. It checked:
+- page errors and failed requests;
+- page overflow and clipped text;
+- unnamed controls and tap targets;
+- the readiness overlay and the Lead sheet by keyboard.
+
+There was no page overflow and no page error at any width. Fixed in this branch:
+
+- **F5. "Připravenost a pomoc" ignored Escape and the focus** *(fixed)*.
+  1. Claim: the overlay over the artifact took no focus when it opened and Escape did not close
+     it.
+  2. Anchor: `lib/workbench-layout.ts:113 @ bfe6d15b` already orders it before the drawer
+     (`inspector`), but `Workbench.tsx:221 @ bfe6d15b` passed no `inspectorOpen` and handled no
+     `inspector` action.
+  3. Reproduction: open it at 390 px and press Escape; the panel stays open and the focus stays on
+     its button.
+  4. Consequence: a keyboard user could not dismiss a panel covering 92 % of the artifact.
+  5. Fix: opening it focuses the panel, and Escape and Close shut it and give the focus back to its
+     button.
+  6. Tests: `Workbench.layout.test.tsx` "takes the focus when it opens, closes on Escape before the
+     drawer, and gives the focus back"; "leaves the panel open when Escape is pressed in the
+     composer"; "behind an open drawer, Escape closes the drawer the person is in". One Escape
+     handler now serves the drawer and the panel, through `onEscape`.
+- **F6. A shut composer invited typing it refused** *(fixed)*.
+  1. Claim: unhatched, read only or with the Lead off, the composer was disabled but still read
+     "Napište Vedoucímu výzkumu…".
+  2. Anchor: `LeadPane.tsx:516 @ bfe6d15b`.
+  3. Reproduction: open the workbench on a fresh study as a researcher with no Lead.
+  4. Consequence: the field says nothing about why it does not take input.
+  5. Fix: `composerHint` says why, in the field (read only, hatch first, the Lead not answering,
+     loading, or a refused read), and the shut composer is greyed.
+  6. Tests: `lead.test.ts` "composerHint"; `LeadPane.test.tsx` "offers hatching…" asserts the
+     disabled field and its words.
+- **F7. Výsledky and Zpráva spoke of "this run" when there is no run** *(fixed)*.
+  1. Claim: with no run, `RunResults` printed "Výsledky zatím nejsou." and then "Tento běh interní
+     report nevytváří…".
+  2. Anchor: `ExecutionSteps.tsx:1446-1458 @ bfe6d15b`: `report` falls to that sentence when
+     `run?.steps` is undefined.
+  3. Reproduction: open Výsledky on a study that has not run.
+  4. Consequence: a contradiction on the first screen a person sees there.
+  5. Fix: no report line without a run.
+  6. Test: `ExecutionSteps.test.tsx`, the results-failure test asserts its absence.
+
+- **F8. Pointing at an item row named it by its raw id** *(fixed; asked by Zadání and Návrh)*.
+  1. Claim: "@" on an objective, a research question or a hypothesis set the chip to "Cíl
+     obj_6393c6bada".
+  2. Anchor: `lib/lead.ts:515-518 @ bfe6d15b` appended only a heading, and an item row has none.
+  3. Reproduction: `lead_journey` at 390 px, `390-brief-picked.png`.
+  4. Consequence: the chip and the focus label sent to the model carry an opaque id.
+  5. Fix: an item kind (objective, rq, hypothesis, set, assumption, material, measure, finding,
+     claim) without a heading is named by its visible words, cut at 60 characters ("Cíl: Změřit
+     zájem o koncept"). The words leave out its numbering, screen-reader text, save note and icon
+     buttons. A screen part keeps its words ("Cílová skupina: náhled").
+  6. Test: `lead.test.ts` "names an item row without a heading by its own words".
+- **F9. An unmarked duplicate questionnaire card borrowed the first card's target** *(fixed;
+  asked by Dotazník)*.
+  1. Claim: #607 marks a repeated question id on its first card only. The second card's DOM id
+     `qedit_Q1` passed #618's guarded fallback as `question:Q1`, with its own wording.
+  2. Anchor: `lib/lead.ts:524-529 @ d3e4de7d`.
+  3. Reproduction: two cards `qedit_Q1`, only the first marked.
+  4. Consequence: pointing at the second card sends the first card's id with the second card's
+     wording, so the Lead reads one question and acts on another.
+  5. Fix: the fallback names nothing when the document already marks that target.
+  6. Test: `lead.test.ts` "names nothing for an unmarked duplicate of a marked card".
+- **F11. AskLead said the conversation is "vlevo" at every width** *(fixed; seen by Cílová skupina)*.
+  1. Claim: the hint on a stage that no longer starts its own AI work said the Lead is "v konverzaci
+     vlevo".
+  2. Anchor: `AskLead.tsx:28 @ bfe6d15b`.
+  3. Reproduction: open Cílová skupina or Dimenze at 390 px.
+  4. Consequence: below 1100 px the conversation is a drawer or a sheet behind a button, so the
+     hint points at nothing.
+  5. Fix: it names the conversation and the Lead's button, true at every width.
+  6. Test: `ResearchScreen.workbench.test.tsx` "says on Dimenze where the dimensions' proposal is
+     asked for now" asserts no "vlevo".
+
+Seen and left to the stages' owners, as hypotheses with a reproduction:
+
+- **H1. Remove buttons under 24 px at 390 px** (WCAG 2.2 target size, 2.5.8).
+  - The sizes measured:
+    - Zadání "Odebrat pole …", 16×20;
+    - Návrh "Odebrat …", 12×20;
+    - Dotazník "Odebrat možnost …", 20×20;
+    - Cílová skupina "Odebrat filtr …", 15×16.
+  - Reproduction: the audit script at 390 px.
+  - Each lives in its stage's own component.
+- **H2. Dotazník's guided editor** shows "GUIDED EDITOR" in English and "4 otázek · 1 sledovaných
+  sad" (should read "4 otázky · 1 sledovaná sada").
+- **H3. `GET …/design/source` is read on every stage mount** (four 404s per visit in dev, the
+  browser logging each).
+  - `DesignSourceNote.tsx:26 @ bfe6d15b`.
+  - A 404 means "not reused" by design. A per-study cache would read it once.
+- **H4. Focus left the open conversation once at 768 px on the 22nd Tab** (`lead_journey`, on a
+  workbench the audit script had used first).
+  - It passed on a fresh workbench, and twice more since.
+  - Hypothesis: a card re-rendered under the focused button, dropping the focus to the body
+    between two Tabs. Not reproduced since.
+- **H6. Sociomapa, Analýza and Zpráva open ~1,800 px above their content** (seen by Analýza).
+  - They are views of Výsledky below its run summary, the respondents and the report card
+    (`ResultsWorkspace.tsx:77 @ bfe6d15b`). At scroll 0 the views stand 1,549 px down at 1440 and
+    2,318 px at 390 (`make ui-research`, then `results#analysis`).
+  - A frame-level hold that scrolled to the views was built and withdrawn on review. It fought the
+    Lead's own focus scrolls, and it polled layout, when the cause is the layout itself.
+  - For the Results owner: on those three views, render the run summary collapsed, or the views
+    above it.
+- **H5. Analýza's research-question coverage table is cut at 390 px** ("Zjištění" column): its own
+  component.
+
 ## Doc follow-up (for the docs PR, not this branch)
 
 - **`docs/architecture/adr/README.md`.** Add 0026, *The Research Lead proposes; a person decides,
@@ -787,6 +898,14 @@ so it is rerun on `workbench.py up --fresh`.
   token meets the same LO15 confirmation and ledger; a direct `POST …/lead/turns/{id}/request` for a stale
   or used turn is refused. A server test only if a gap is found (LO15's tests exist,
   `lead-orchestration.md:23`). Depends on `feature/lead-worker-cards`, whose cards are what go stale.
+  *Landed* as its own journey, `tools/ui_workbench/lead_stale_journey.mjs` (`lead_journey.mjs` passes
+  once per workbench, OI-133), on the recorded design workers (`aia_executors.workbench`
+  `recorded_research_agent`, #597). What it established about the direct request: a *used* turn's
+  `…/request` asked again answers 200 with the same job and starts no second one (idempotent, not a
+  refusal). A *stale* turn's request is approved against the current working copy, not refused
+  (`application/research_lead.py` `approve_request` submits `_working_content()`). That is no gap,
+  because the job's own proposal meets the item-level stale rule when a person accepts it, which is
+  the refusal the journey shows. No server change was needed.
 - **26f. Remove the manual AI starts from every layout**, every row of *What exists* above except
   Spuštění's "Spustit výzkum", which stays and whose run also shows as a Lead chat card (D15,
   2026-10-21). Also `AI_HELP` and `ResearchAssistance` (the inspector keeps readiness and blockers),
@@ -1272,3 +1391,235 @@ Recommended with LO12b, whose record makes the disagreement visible instead.
 - `deploy/develop/README.md` (the switches): the same rule; develop states `true` by Compose.
 - `docs/architecture/adr/0026-…` *Accepted with*: Q42's refusal and the switch stated per
   deployment.
+
+## Frame follow-ups from the stage audits (2026-10-22, `fix/workbench-heading-and-save-note`)
+
+- **F13. No h1, and a cramped title column at 390 px** *(fixed)*.
+  1. Claim: the workbench page has no level-one heading (axe `page-has-heading-one` at every
+     width, reported by Dotazník). At 390 px the title column is 135 px wide, so "Změny se uloží
+     za chvíli" wraps to three lines beside "Dotazník" (also Dotazník).
+  2. Anchor: `apps/web/src/components/workbench/Workbench.tsx:612 @ b6ac25c5` (an `h2`, a block
+     sized to its content) and `:616` ("Připravenost a pomoc · N" is 209 px wide at 390).
+  3. Reproduction: `node tools/ui_workbench/workbench_journey.mjs` with the new check, which fails
+     on "the page's h1 @1280".
+  4. Consequence: no page heading for a screen reader's heading list, and a header three lines
+     tall while a save is pending.
+  5. Fix:
+     - the artifact's title is the `h1`; the study name is inside a button, where a heading
+       cannot go;
+     - the title block takes the free width (`flex: 1`), and the save state wraps under the
+       title when the two do not fit;
+     - in the sheet the readiness button shows its icon and count, and its name stays whole for
+       assistive technology.
+  6. Test: the workbench journey's "…, one h1, room for the save state" at 1280, 1100, 1099, 768
+     and 390.
+- **F14. Every root-modifier rule in `workbench.css` was dead** *(fixed)*.
+  1. Claim: written inside `.wb { … }`, `.wb--sheet .shead` compiles to `.wb .wb--sheet .shead`,
+     which never matches, because the root carries both classes.
+  2. Anchor: `workbench.css:140-144, 567-568 @ b6ac25c5`.
+  3. Reproduction: at 390 px, `getComputedStyle(.shead__spacer).display` is `block`, and
+     `document.querySelector("[data-workbench]").matches(".wb .wb--sheet")` is `false`.
+  4. Consequence: the sheet's header spacing, the readiness panel at full width, and, while
+     pointing at the artifact, the crosshair and the hover outline on what can be pointed at,
+     all never applied.
+  5. Fix: `&.wb--sheet …` and `&.wb-picking …`.
+  6. Test: the workbench journey's "the sheet's header rules apply".
+
+## The stages' docks inside the workbench (2026-10-22, `fix/workbench-stage-dock`)
+
+- **F15 (DIM-F4, reported by Dimenze). A stage's dock named the classic flow** *(frame part fixed)*.
+  1. Claim: inside the workbench each stage's ActionDock still linked back with the classic step's
+     number and name ("4. Audience", "2. Návrh"). The workbench navigator calls those stages
+     otherwise ("Cílová skupina") and orders them otherwise (Vzorek sits between Dimenze and
+     Spuštění).
+  2. Anchor: `apps/web/src/components/rehome/step.tsx:76 @ b6ac25c5`, and the callers:
+     `PersonaStep.tsx:381`, `AudienceStep.tsx:246`, `QuestionnaireStep.tsx:187`, `PlanStep.tsx:141`,
+     `ExecutionSteps.tsx:846`.
+  3. Reproduction: in the workbench, open Dimenze; the dock reads "4. Audience".
+  4. Consequence: two names and two orders for the same stages on one screen.
+  5. Fix, the rule: the frame provides `FrameNavigation` (`rehome/step.tsx`). Inside it, a dock
+     leaves its back link out, because the navigator names the neighbours. A stage's forward
+     action is the stage's own, and it reads the same context to go to the workbench's next stage
+     (`lib/workbench-stages.ts`). Dimenze's "Další" to Vzorek is Dimenze's change.
+  6. Test: `step.test.tsx` "ActionDock leaves its back link to a frame…", and the workbench
+     journey's "no stage's dock names a classic step inside the workbench".
+
+## Contract follow-ups from the stage owners (2026-10-21)
+
+Three changes to chunk 16's contract rows, each one a stage owner asked for. They change no server
+behaviour beyond `FOCUS_KINDS` gaining one kind.
+
+- **Sběr dat (FLD7, #563): kind `receipt`.** The fieldwork row targets `step` and `receipt`.
+  `receipt:respondents` is the "Kdo odpovídal" card, which `ch-method` reads. It was added to
+  `domain/lead_artifacts.py` `TargetKind`, `domain/research_lead.py` `FOCUS_KINDS`,
+  `lib/workbench-artifacts.ts` and `contract.json`. The label is "Kdo odpovídal"
+  (`targetLabel`).
+- **Vzorek (SMP4, SMP5, #606): kind `sample` takes `ready`, `respondents` and
+  `respondents:<persona source>`.** These sit beside the existing ids. `FOCUS_ID` already
+  accepted them; the fixture's grammar now says so.
+- **Dotazník (Codex on #607): `targetOfElement`'s `qedit_` / `qblock_` id fallbacks name only an id
+  the contract can send.** For a card without a stored id, the screen invents one, and the
+  fallbacks used to turn it into a target:
+  - `question:Q`, from `questionElementId`'s placeholder;
+  - `section:0`, from a block's index;
+  - `question:Q 2`, which the server refuses.
+
+  Those are now refused, while a stored id stays pickable whether #607's marks have landed yet or
+  not (review of #618). Test: `lead.test.ts` "names an unmarked card by its DOM id only when the
+  id is a stored one the contract can send".
+
+## 2a. The item drawer, opened from a click (2026-10-21)
+
+Chunk 2 built `ItemInspector` and its stack, but nothing mounted it. Analýza asked for a way to
+open a finding or a cited number in it from a click (ANL3).
+
+- **The workbench owns the stack.** It holds `lib/inspector-stack.ts` state and draws
+  `ItemInspector` over the artifact pane (`.itemdrawer`, inside `.artstage`, outside `#artbody`),
+  so `@`'s picking never lands on it.
+- **Moving to another stage starts it empty** (`onStage`).
+- **A screen opens an entry with `useItemInspector()?.open({ id, title, sub })`**
+  (`components/workbench/item-inspector-context.tsx`).
+  - An id outside `parseAiaId`'s grammar opens nothing and answers false.
+  - Outside the workbench the hook is null, and the screen keeps its own behaviour.
+- **Bodies are by kind** (`ItemInspectBody.tsx` `BODIES`), each written by the stage that owns the
+  kind. Analýza adds `finding` and `claim` (`AnalysisInspect`, #610); `module` stays on the page.
+- **A kind with no body** shows what was opened and "Ukázat na stránce", never a detail it does not
+  have.
+- **Not yet:** the Lead's own `inspect` view op stays non-live until the server's `LeadView` carries
+  it.
+- **Escape is the frame's** (review of #623): inside the workbench the drawer takes Escape only
+  through the one handler (`ItemInspector ownEscape={false}`), by the readiness panel's rule: the
+  layer in use, never from behind the Lead's modal drawer. Its own listener had run first and
+  closed the item behind an open dialog, pulling the focus out of it.
+- Tests: `Workbench.layout.test.tsx` "the item inspector", with "behind the Lead's modal drawer,
+  Escape closes the drawer the person is in, not the item behind it", and "while '@' is armed, Escape
+  disarms it first and leaves the item open".
+
+## Targets grounded in the working copy (2026-10-21, artifact-audience AUD1)
+
+`FOCUS_ID` held a focus to the grammar alone, so `audience:filter:<anything>` passed.
+`domain/research_lead.py` now checks targets against what the working copy stores:
+
+- `target_refusal(target, content)` says why a target names nothing on screen:
+  - `audience_filter_not_stored`: a filter the copy does not store;
+  - `audience_subpanel_unknown`: a subpanel that is not a built-in one;
+  - `unknown_target`: an id outside the grammar.
+
+  No catalogue is read.
+- `ground_view` drops such a focus from the Lead's output and names it, as `ground_edits` does
+  for edits, against the copy the turn froze.
+- `ResearchLead._focus_shown` refuses a person's focus against the current copy, at post time
+  (`invalid_lead_turn`).
+
+Other kinds stay at the grammar until their stage asks for the same.
+
+### F12. A field inside the workbench drew two focus rings *(fixed, `fix/workbench-field-focus-ring`)*
+
+1. Claim: a field that sets `outline-none` inside a wrapper that draws the ring on focus-within
+   (the Brief's link field) showed a second ring of its own inside the wrapper's (seen by Zadání).
+2. Anchor: `apps/web/src/components/workbench/workbench.css:26 @ bfe6d15b`. The workbench's
+   `:focus-visible` outline was unlayered, so it beat Tailwind's `outline-none` utility, which
+   sits in a layer. `BriefStep.tsx:604 @ bfe6d15b` is the field.
+3. Reproduction: `node tools/ui_workbench/workbench_journey.mjs`. Focusing "Odkaz" on Zadání
+   gives a computed `outline-style` of `solid`.
+4. Consequence: a double ring on the field, in every stage's `outline-none` inputs (Stepper,
+   InlineCreateRow, PersonaStep, step.tsx) and on the object map's points.
+5. Fix: the ring moves into `@layer base`, beside the element rules, so a stage's utility wins.
+   The workbench's own controls keep the ring.
+6. Test: the workbench journey's "one focus ring on a field, the ring on the workbench's
+   controls".
+
+### F16. The frame's controls were 26-32 px at a phone's width *(fixed, `fix/workbench-frame-a11y`)*
+
+Found in Sběr dat's keyboard audit, then swept over every frame control at 390 px.
+
+1. **Claim.** At 390 px every control the workbench frame owns was under 44 px, against
+   input-interactions I11 and the shared controls' `TOUCH`. That covers the header's menu, the
+   step button and its stage list, the artifact header's "Připravenost a pomoc" (26 px) and
+   "Soustředit se na artefakt" (28 px), the launcher (40 px), and in the open conversation "Můj
+   Vedoucí", "Zavřít", "@", the suggestions and Odeslat.
+2. **Anchor.** `workbench.css:42 @ fe85aa54` (`.btn--sm` 26 px), `:49` (`.iconbtn` 28 px), `:94`
+   (`.nav__stage` 30 px), `:135` (`.nav__current` 32 px), `:255` (`.composer__send` 32 px), and
+   `Workbench.tsx:892` (the launcher's inline 40 × 40).
+3. **Reproduction.** `workbench_journey.mjs` "every control the frame owns is a 44 px target at
+   390"; on develop it lists the controls above.
+4. **Consequence.** Small, close targets on a phone: "Zavřít" and "Můj Vedoucí" are 28 px side by
+   side in the conversation's header.
+5. **Fix.** Below 640 px the frame's `.iconbtn` and `.composer__send` are 44 × 44, and `.btn--sm`,
+   `.nav__current`, `.nav__stage`, `.shead__home` and `.skip` are at least 44 px high. The
+   launcher's size moves from an inline style to `.rail__launch`, so the rule reaches it. From 640 px
+   the prototype's density stands, above WCAG 2.2's 24 px.
+6. **Test.** The journey check above, at 390 with the frame closed, with the stage list open, and
+   with the conversation open. `lead_journey.mjs` measures "Zrušit odkaz" on the pointed element's
+   chip at 390 (review of #683: an inline 20 × 20 had beaten the rule, the launcher's pattern; it is
+   now `.refchip__clear`). `.btn` and `button.chip` (the held message's "Zkusit znovu") joined the
+   rule; no journey shows a held message, so that one is held by the CSS alone.
+
+The separator "Změnit poměr konverzace a artefaktu" was reported as taking focus with no outline.
+It does show focus: a 2 px signal line down its full height (`.split__handle:focus-visible::after`,
+`workbench.css:111`). It is kept as it is.
+
+### F17. A focused card control that unmounted dropped focus out of the open conversation *(fixed, `fix/workbench-frame-a11y`)*
+
+1. **Claim.** In the drawer and the sheet, a focused control that unmounts leaves focus on the
+   body, outside the modal dialog and behind an inert page. Examples: an approve button replaced by
+   its result, or "Na nejnovější" scrolled away (Sociomapa, F-BRF-2).
+2. **Anchor.** `Split.tsx:61-66 @ fe85aa54` traps Tab only. Nothing brings focus back when its
+   holder is removed.
+3. **Reproduction.** `Split.test.tsx` "brings the focus to the composer when the focused card
+   control unmounts" times out without the fix.
+4. **Consequence.** A keyboard or screen-reader user loses their place. The next Tab is pulled back
+   in by the trap, but Escape and arrow keys act on the body until then.
+5. **Fix.** `useFocusRecovery`: while the dialog is open, it watches the conversation by mutation
+   (a browser need not fire focusout for a removed element) and by focusout. When the element that
+   held focus is gone and focus is on the body, it focuses `recoveryTarget`: the composer while it
+   takes text, else the log, else the dialog.
+6. **Test.** `Split.test.tsx` (four cases): to the composer; to the log when the composer is shut;
+   untouched when the conversation is closed or the person blurred it themselves, also when that
+   control unmounts later (review of #683: a real blur now drops what was held); recovery when the
+   browser fires focusout during the removal (Chromium does, the element still connected: the
+   check waits a microtask, measured in headless Chromium); recovery when the focused control is
+   disabled while its decision is sent (Chromium blurs it, still connected, to the body: measured,
+   and `lead_journey.mjs` caught it on "Pamatovat si" at 390, which it now decides by keyboard and
+   asserts the focus stays in the conversation); and
+   `recoveryTarget`'s order.
+
+### FrameNavigation names the next stage (2026-10-22, `feature/frame-next-stage`, asked by Dimenze)
+
+#668 made `FrameNavigation` a boolean, so a stage's forward action ("Další → Vzorek") had to copy
+the workbench's `go`.
+- **Why that was wrong.** Dimenze's draft set `location.hash = "sample"` itself, which:
+  - lost the focus, because the pressed button is hidden with Dimenze's screen;
+  - hard-coded that Vzorek shares Dimenze's route, bypassing the leave guard if the next stage ever
+    lived on another route;
+  - named `STAGES.sample` instead of the stage after it in `STAGE_ORDER` (DIM-F4's drift).
+- **The context value.** It is now `{ next: { label, go } | null } | null`: null outside a frame,
+  `next` null on the last stage.
+- **What the workbench provides.** `next` is the stage after the current one in `STAGE_ORDER`.
+  `go` opens it as the navigator does (`go`: hash on the same route, `guardedNavigate` otherwise),
+  then focuses the new stage's heading (`.arthead__title`, `tabIndex={-1}`). The pending focus is
+  kept at module scope so a route change, which remounts the workbench, keeps it.
+- **ActionDock** reads `framed = value !== null`.
+- **Review of #686.** A pending heading focus no longer outlives a move that a leave guard
+  stopped. `guardedNavigate` returns whether it navigated, `go` passes that on, and `next.go` asks
+  for the focus only for a move that went through. The pending value names its study and is
+  consumed on every stage change, matched or not.
+- **Tests.** `Workbench.layout.test.tsx` "a stage's forward action through the frame": Výsledky →
+  Sociomapa by hash with the focus on Sociomapa's heading (it fails without the focus move), and
+  Dotazník → Cílová skupina named. `step.test.tsx` passes `{ next: null }`.
+
+### The report's claims open in the workbench's one item drawer (2026-10-22, `feature/report-items-in-drawer`)
+
+Zpráva's document (`ReportDocumentView`) kept a drawer of its own inside the workbench. Its Escape
+ran outside the frame's one order (D21), and a second drawer could open beside the workbench's.
+- **Inside the workbench** a claim chip opens `report:ref:<kind>:<ref>` (the document's kind, internal or client, since a ref is one ledger's) in the workbench's item drawer
+  (`useItemInspector`), with the claim's evidence as the entry's body.
+- **The drawer API.** `ItemInspectorApi.open(entry, body?)` takes the body the opening screen
+  already holds. The workbench keeps it by entry id and draws it instead of `ItemInspectBody`.
+- **Outside the workbench**, and for a ref the target grammar refuses, the view keeps its own
+  drawer as before.
+- **Tests.**
+  - `ReportDocumentView.test.tsx` "inside the workbench opens a claim in the workbench's one item
+    drawer…".
+  - `Workbench.layout.test.tsx` "draws the body the opening screen gave…".
+  - Both fail without the change.

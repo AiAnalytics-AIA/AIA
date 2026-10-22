@@ -26,7 +26,7 @@ from typing import Any
 
 from aia_core.application.model_gateway import GovernedModelGateway
 from aia_core.application.population import PopulationRuntime
-from aia_core.domain.ai_contracts import ModelCallFailed
+from aia_core.domain.ai_contracts import ModelCallFailed, ModelRequest
 from aia_core.domain.ai_material import (
     MaterialApproval,
     most_restrictive_material,
@@ -81,6 +81,7 @@ from aia_core.domain.respondent_behavior import BEHAVIOR_VERSION, ResponseProces
 from aia_core.domain.respondent_facts import FACT_LAYER_VERSION
 from aia_core.domain.workflow import FailureClass
 from aia_core.infrastructure.build_identity import BuildIdentity
+from aia_core.infrastructure.fieldwork_journal import FieldworkJournal
 from aia_core.infrastructure.population_source import PopulationAssetSource
 from aia_core.infrastructure.study_design_repository import StudyDesignRepository
 from aia_core.infrastructure.workflow_repository import WorkflowRepository
@@ -155,6 +156,11 @@ class AIFieldworkConfig:
     #: ``AIA_DATA_CLASS_GATES`` (plan develop-class-advisory), the gateway's own: advisory on
     #: develop only, where the validation's arms send an unclassified specification.
     class_gates: DataClassGates = DataClassGates.ENFORCE
+    #: ``AIA_AI_FIELDWORK_CHECKPOINT`` (off by default, run-qc-and-checkpoint RQC0): each
+    #: answered respondent block is kept under the lease the moment it returns, and an
+    #: interrupted attempt or a retry of the run replays it instead of paying again. Two
+    #: lease-fenced writes per block, so it is a switch (CLAUDE.md § 8).
+    checkpoint: bool = False
 
 
 @dataclass(frozen=True, slots=True)
@@ -184,6 +190,47 @@ class Answered:
     #: Whether the requests carried the scale labels: the value used, which is what the
     #: dataset records, never the composition's switch read again.
     scale_labels_in_prompt: bool = False
+
+
+def request_key(request: ModelRequest, binding: str) -> str:
+    """What identifies a respondent block's answer: exactly what was sent, to which model and
+    route, under which policy, contract and class. The block's output contract follows from its
+    items, which the messages carry, so its version stands for it."""
+    agent = request.agent
+    return fingerprint(
+        {
+            "agent": [agent.agent_id, agent.version, CONTRACT_VERSION],
+            "binding": binding,
+            "policy": request.policy_version,
+            "class": request.data_classification.value if request.data_classification else None,
+            "max_output_tokens": request.max_output_tokens,
+            "system": request.system,
+            "messages": [[m.role, m.content] for m in request.messages],
+        }
+    )
+
+
+class _RunJournal:
+    """A run lineage's kept answers: read once, each new one written in its own lease-fenced
+    transaction before the next request leaves."""
+
+    def __init__(self, context: StepContext, lineage_run_id: str) -> None:
+        self._context = context
+        self._lineage = lineage_run_id
+
+    def _journal(self, session: Session) -> FieldworkJournal:
+        return FieldworkJournal(session, self._context.scope, lineage_run_id=self._lineage)
+
+    def kept(self) -> dict[str, dict[str, Any]]:
+        with self._context.transaction() as (session, _):
+            return self._journal(session).kept()
+
+    def put(self, key: str, payload: dict[str, Any]) -> dict[str, Any]:
+        """Keep ``payload`` once; returns what is kept (an earlier answer wins a race)."""
+        with self._context.transaction() as (session, _):
+            return self._journal(session).put(
+                key, run_id=self._context.step.run_id, payload=payload
+            )
 
 
 class AIFieldwork:
@@ -227,6 +274,7 @@ class AIFieldwork:
         lineage: DataLineage,
         require_binding: str | None = None,
         scale_labels_in_prompt: bool | None = None,
+        journal: _RunJournal | None = None,
     ) -> Answered | Failed:
         """Ask the model every block of every plan and draw the answers by code.
 
@@ -241,6 +289,9 @@ class AIFieldwork:
 
         ``scale_labels_in_prompt`` overrides the composition's switch: a validation's arms ask
         the respondent system it preregistered, which names its prompt.
+
+        ``journal`` keeps each answered block and replays a kept one instead of sending it again
+        (RQC0). A replayed block's call record says so and costs this attempt nothing.
         """
         cfg = self._config
         labelled = (
@@ -305,6 +356,8 @@ class AIFieldwork:
                     },
                 )
 
+        binding = self.binding(resolution) if resolution is not None else ""
+        kept = journal.kept() if journal is not None else {}
         calls: list[dict[str, Any]] = []
         rows: list[tuple[Any, dict[str, Answer]]] = []
         details: list[dict[str, dict[str, Any]]] = []
@@ -313,26 +366,28 @@ class AIFieldwork:
             answers: dict[str, Answer] = dict(plan.facts)
             detail: dict[str, dict[str, Any]] = {}
             for block in plan.blocks:
-                result = caller.invoke(request_for(index, block.index, answers))
-                assert result.output is not None  # a structured agent's result has one
-                try:
-                    drawn, meta = interpret_block(
-                        block, result.output, plan.persona, seed=seed, response=response
-                    )
-                except RespondentOutputInvalid as exc:
-                    return Failed(
-                        FailureClass.SCHEMA_VIOLATION,
-                        error={
-                            "message": f"Odpověď respondenta neprošla kontrolou: {exc}",
-                            "reason": "respondent_output_invalid",
-                            "call_id": result.call_id,
-                            "provider_request_id": result.provider_request_id,
-                        },
-                    )
-                answers.update(drawn)
-                detail.update(meta)
-                calls.append(
-                    {
+                request = request_for(index, block.index, answers)
+                contract = request.agent.output_contract
+                assert contract is not None  # a respondent block's agent is structured
+                key = request_key(request, binding)
+                answer = kept.get(key)
+                if answer is not None:
+                    output = contract.model_validate(answer["output"])
+                    # Paid for by the run that answered it; this attempt sent nothing. Two
+                    # respondents can send the same request, so the record names this one.
+                    record = {
+                        **answer["call"],
+                        "respondent_id": plan.persona.persona_id,
+                        "block": block.index,
+                        "replayed_from_run": answer["run_id"],
+                        "cost_usd": 0.0,
+                        "calls": 0,
+                    }
+                else:
+                    result = caller.invoke(request)
+                    assert result.output is not None  # a structured agent's result has one
+                    output = result.output
+                    record = {
                         "respondent_id": plan.persona.persona_id,
                         "block": block.index,
                         "call_id": result.call_id,
@@ -345,7 +400,39 @@ class AIFieldwork:
                         "cost_basis": result.cost_basis.value,
                         "calls": len({e.call_id for e in result.usage_events}),
                     }
-                )
+                try:
+                    drawn, meta = interpret_block(
+                        block, output, plan.persona, seed=seed, response=response
+                    )
+                except RespondentOutputInvalid as exc:
+                    return Failed(
+                        FailureClass.SCHEMA_VIOLATION,
+                        error={
+                            "message": f"Odpověď respondenta neprošla kontrolou: {exc}",
+                            "reason": "respondent_output_invalid",
+                            "call_id": record["call_id"],
+                            "provider_request_id": record["provider_request_id"],
+                        },
+                    )
+                if journal is not None and answer is None:
+                    # Kept only once the draw accepted it, before the next request leaves: a
+                    # stop after this point never pays for this block again. A raced attempt's
+                    # earlier answer wins, and the draw is taken from what is kept.
+                    dumped = output.model_dump(mode="json", by_alias=True)
+                    stored = journal.put(
+                        key, {"output": dumped, "call": record, "run_id": context.step.run_id}
+                    )
+                    if stored["output"] != dumped:
+                        drawn, meta = interpret_block(
+                            block,
+                            contract.model_validate(stored["output"]),
+                            plan.persona,
+                            seed=seed,
+                            response=response,
+                        )
+                answers.update(drawn)
+                detail.update(meta)
+                calls.append(record)
             rows.append((plan.persona, answers))
             details.append(detail)
             done = index + 1
@@ -457,6 +544,7 @@ class AIFieldwork:
             run = workflow.get_run(step.run_id)
             revision_id = str(run["metadata"]["design_revision_id"])
             design = StudyDesignRepository(session, context.scope).content(revision_id)
+            run_lineage = workflow.retry_root(step.run_id) if cfg.checkpoint else None
         # The run's design is Class B by the owner's rule (2026-10-19, ``material_rules``);
         # an operator's classification of its exact bytes can only raise it, and the roster's
         # or the panel's class can only raise it too.
@@ -486,6 +574,7 @@ class AIFieldwork:
             response=response,
             data_class=data_class,
             lineage=lineage,
+            journal=_RunJournal(context, run_lineage) if run_lineage is not None else None,
         )
         if isinstance(answered, Failed):
             return answered

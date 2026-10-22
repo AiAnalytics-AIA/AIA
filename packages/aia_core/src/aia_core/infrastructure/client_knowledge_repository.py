@@ -44,6 +44,7 @@ from ..domain.knowledge import (
     new_knowledge_proposal_id,
     organizer_key,
     organizer_name,
+    recorded_datasets,
     reviewed_decision,
     revision_sha256,
     source_ref,
@@ -346,7 +347,30 @@ class ClientKnowledgeRepository:
         """
         scope = _study(scope)
         scope.require(Permission.VIEW_STUDY)
-        return self._approved(scope.organization_id, scope.client_id, kinds, text)
+        found = self._approved(scope.organization_id, scope.client_id, kinds, text)
+        return self._with_datasets(scope.organization_id, scope.client_id, found)
+
+    def _with_datasets(
+        self, organization_id: str, client_id: str, items: list[KnowledgeItem]
+    ) -> list[KnowledgeItem]:
+        """Each item with the datasets its current revision's provenance records (CR-4):
+        the lineage a model request declares for it. Unrecorded stays ``None``."""
+        if not items:
+            return items
+        current = {i.item_id: i.revision for i in items}
+        rows = self._session.scalars(
+            select(ClientKnowledgeRevisionRow).where(
+                ClientKnowledgeRevisionRow.organization_id == organization_id,
+                ClientKnowledgeRevisionRow.client_id == client_id,
+                ClientKnowledgeRevisionRow.item_id.in_(list(current)),
+            )
+        ).all()
+        datasets = {
+            r.item_id: recorded_datasets(dict(r.provenance or {}))
+            for r in rows
+            if current.get(r.item_id) == r.revision
+        }
+        return [i.model_copy(update={"datasets": datasets.get(i.item_id)}) for i in items]
 
     # ------------------------------------------------- use in this study (lifecycle K4)
 

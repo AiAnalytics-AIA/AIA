@@ -17,11 +17,11 @@ export const LIVE_VIEW_OPS: ReadonlySet<ViewOpKind> = new Set<ViewOpKind>(["open
 
 export type TargetKind =
   | "brief" | "objective" | "material" | "plan" | "rq" | "hypothesis" | "set" | "assumption" | "section" | "question" | "audience" | "dimension" | "own_dimension" | "sample"
-  | "step" | "measure" | "object" | "pair" | "module" | "finding" | "claim" | "report";
+  | "step" | "receipt" | "measure" | "object" | "pair" | "module" | "finding" | "claim" | "report";
 /** Every target kind: the server's FOCUS_ID takes each (research-lead-workbench 16). */
 export const LIVE_TARGETS: ReadonlySet<TargetKind> = new Set<TargetKind>([
   "brief", "objective", "material", "plan", "rq", "hypothesis", "set", "assumption", "section", "question",
-  "audience", "dimension", "own_dimension", "sample", "step", "measure", "object", "pair", "module", "finding",
+  "audience", "dimension", "own_dimension", "sample", "step", "receipt", "measure", "object", "pair", "module", "finding",
   "claim", "report",
 ]);
 
@@ -112,7 +112,7 @@ export const ARTIFACTS: Readonly<Record<WorkbenchStage, ArtifactContract>> = {
   },
   fieldwork: {
     stage: "fieldwork", artifact: "run", edits: false,
-    view_ops: ["open_stage", "focus", "inspect"], targets: ["step"],
+    view_ops: ["open_stage", "focus", "inspect"], targets: ["step", "receipt"],
     starts: ["research_run"],
     inputs: ["questionnaire", "audience", "dimensions", "sample"],
     hands_off: [

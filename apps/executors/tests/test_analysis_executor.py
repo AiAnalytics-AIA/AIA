@@ -35,6 +35,7 @@ from aia_core.application.analysis_results import (
     DatasetMaterial,
     ReconstructionRefused,
     SourcesRefused,
+    native_sources,
     reconstruct_run,
     retry_failed_modules,
     stored_analysis,
@@ -52,6 +53,7 @@ from aia_core.domain.analysis.artifact import (
     ANALYSIS_TURN_ARTIFACT,
     parse_module_artifact,
 )
+from aia_core.domain.analysis.external import external_context_lines, public_context
 from aia_core.domain.analysis.steps import (
     ANALYSIS_STEP_KIND,
     analysis_node_key,
@@ -66,12 +68,16 @@ from aia_core.domain.deep_research.integration import (
     InterpretationLineage,
     SociomapTarget,
 )
-from aia_core.domain.deep_research.quarantine import RecordedEvidenceRefused, require_live_evidence
+from aia_core.domain.deep_research.quarantine import (
+    RecordedEvidenceRefused,
+    analysis_context,
+    require_live_evidence,
+)
 from aia_core.domain.deep_research.workflow import deep_research_steps
 from aia_core.domain.evidence import AdmittedClaim, ClaimSurface, ViolationCode
 from aia_core.domain.fieldwork import FieldworkSource
 from aia_core.domain.pipeline import ProjectType
-from aia_core.domain.report.document_model import read_document_payload
+from aia_core.domain.report.document_model import DOCUMENT_MODEL_CONTRACT, read_document_payload
 from aia_core.domain.report.model import Callout
 from aia_core.domain.report.review import REVIEW_STAMP_CONTRACT, ReviewMark, ReviewState
 from aia_core.domain.residency import DataClass
@@ -419,7 +425,7 @@ def test_native_research_start_and_worker_complete_the_composed_analysis_graph(
         < body.index("Výsledky jednotlivých otázek")
     )
     assert "smyšlení respondenti" in body
-    assert report.metadata["report_contract"] == "aia-internal-report-12"
+    assert report.metadata["report_contract"] == "aia-internal-report-13"
     # The methodology chapter states the rules the run pinned (artifact-chain CHN9).
     assert "Pravidlo podpory aia-support-1" in body and "Agregace: metodika" in body
     # The document the DOCX was rendered from, beside it (report-delivery RD5a).
@@ -444,6 +450,20 @@ def test_native_research_start_and_worker_complete_the_composed_analysis_graph(
     assert "Výsledky jednotlivých otázek" in titles
     cited = {ref for s in payload["sections"] for ref in s["refs"]}
     assert cited and cited == set(payload["ledger"]["refs"])
+    # Every section names its sources, stored with the document (artifact-chain CHN1): the map
+    # chapters the run's Sociomap, the questions the aggregate, who answered the dataset.
+    assert payload["contract"] == DOCUMENT_MODEL_CONTRACT
+    sources = {s["id"]: s["sources"] for s in payload["sections"]}
+    assert all(sources.values()), [k for k, v in sources.items() if not v]
+    named = {k: {x.get("artifact_type") for x in v} for k, v in sources.items()}
+    assert "research_aggregate" in named["ch-questions"]
+    assert "research_fieldwork_dataset" in named["ch-method"]
+    assert all("research_sociomap" in v for k, v in named.items() if k.startswith("ch-native-map"))
+    assert [k for k, v in sources.items() if any(x["kind"] == "fixed" for x in v)] == [
+        "methodology"
+    ]
+    assert payload["unread"] == []
+    assert "Zdroje · Výsledky jednotlivých otázek" in body
 
 
 @pytest.mark.parametrize(
@@ -881,6 +901,126 @@ def _start_report_run(world: Any) -> str:
         )
         session.commit()
     return started.run_id
+
+
+def test_a_run_pins_its_design_research_and_every_module_is_shown_it_as_context(
+    world: Any,
+    store: InMemoryArtifactStore,
+    run_with: Callable[..., Worker],
+    deep_research_fixture: Any,
+) -> None:
+    """evidence-integrity 7: with the switch on, a run pins the Study's newest sealed Design
+    Research bundle when it starts, and every module is shown its accepted findings as external
+    context: in the payload and the fingerprint, never as evidence. A pin that no longer names
+    that bundle is refused, never read as no context."""
+    design = {
+        **deep_research_fixture.DESIGN_2,
+        "n": 150,
+        "sections": [
+            deep_research_fixture.DESIGN_2["sections"][0],
+            {
+                **deep_research_fixture.DESIGN_2["sections"][1],
+                "object_family": "nápoje",
+                "scale": [1, 10],
+            },
+        ],
+    }
+    approval = MaterialApproval(
+        sha256=material_sha256(design),
+        data_class=DataClass.CLASS_C_INTERNAL,
+        provenance="generated wholly by this test",
+    )
+    env = _env(world, AIA_AI_MATERIAL_CLASSIFICATIONS=f"[{approval.model_dump_json()}]")
+    with world.sessions() as session:
+        revision, _ = StudyDesignRepository(
+            session, world.lead_scope(session)
+        ).submit_as_working_copy(content=design, source_stage="run")
+        session.commit()
+    models = RecordedModels()
+    agents = deep_research_fixture.RecordedAgents(deep_research_fixture.ANSWERS)
+    deep_runtime = deep_research_fixture.recorded(
+        world, agents, approved_for=deep_research_fixture.DEVELOP_ROUTE, contents=(design,)
+    )
+    worker = run_with(models, env=env, ai_fieldwork=True, deep_research=deep_runtime)
+    with world.sessions() as session:
+        deep_run_id = (
+            DeepResearchRuns(session, world.lead_scope(session))
+            .start(
+                design_revision_id=revision.revision_id,
+                preset_name="QUICK",
+                channels=(Channel.WEB,),
+            )
+            .run_id
+        )
+        session.commit()
+    _drain(worker)
+    with world.sessions() as session:
+        scope = world.lead_scope(session)
+        bundle = DeepResearchRuns(session, scope).bundle(deep_run_id, store=store)
+        started = ResearchRuns(session, scope).start(
+            design_revision_id=revision.revision_id,
+            fieldwork_source=FieldworkSource.AI_RUNTIME,
+            analysis_enabled=True,
+            external_context=True,
+        )
+        session.commit()
+    lines = list(external_context_lines(public_context(bundle)))
+    assert lines == list(external_context_lines(analysis_context(bundle))), "every finding public"
+    assert lines and all(line.startswith("[") for line in lines)
+    # A finding drawn from the client's own knowledge is never sent under the module's class.
+    first = bundle.accepted[0]
+    private = first.model_copy(
+        update={
+            "evidence": first.evidence.model_copy(
+                update={"data_class": DataClass.CLASS_A_CLIENT_CONFIDENTIAL}
+            )
+        }
+    )
+    mixed = bundle.model_copy(update={"accepted": (private, *bundle.accepted[1:])})
+    assert len(external_context_lines(public_context(mixed))) == len(lines) - 1
+    _drain(worker)
+
+    run = _run(world, started.run_id)
+    pin = run["metadata"]["analysis_context"]
+    assert pin["deep_research_run_id"] == deep_run_id
+    with world.sessions() as session:
+        published = next(
+            x
+            for x in DeepResearchRuns(session, world.lead_scope(session)).get(deep_run_id)["steps"]
+            if x["node_key"] == "publish"
+        )["output"]
+    assert (pin["artifact_id"], pin["sha256"]) == (published["artifact_id"], published["sha256"])
+    assert run["status"] is WorkflowRunStatus.COMPLETED, _unfinished(world, started.run_id)
+    for module in MODULES:
+        payload = json.loads(models.messages(module, 1)[0])
+        assert payload["external_context_not_evidence"] == lines, module
+    assert _reconstruct(world, store, started.run_id).complete
+
+    for broken, reason in (
+        ({**pin, "sha256": "0" * 64}, "context_moved"),
+        ({**pin, "artifact_id": "elsewhere"}, "context_moved"),
+        ({**pin, "deep_research_run_id": str(uuid.uuid4())}, "context_not_found"),
+        ({"deep_research_run_id": deep_run_id}, "context_pin"),
+    ):
+        with world.sessions() as session, pytest.raises(SourcesRefused) as refused:
+            native_sources(
+                session,
+                world.lead_scope(session),
+                store,
+                {**run, "metadata": {**run["metadata"], "analysis_context": broken}},
+            )
+        assert refused.value.reason == reason, broken
+
+
+def test_without_the_switch_a_run_pins_no_context_and_its_modules_are_shown_none(
+    world: Any, store: InMemoryArtifactStore, run_with: Callable[..., Worker]
+) -> None:
+    models = RecordedModels()
+    worker = run_with(models)
+    run_id = _started_with_analysis(world)
+    _drain(worker)
+    assert "analysis_context" not in _run(world, run_id)["metadata"]
+    assert json.loads(models.messages("executive", 1)[0])["external_context_not_evidence"] == []
 
 
 def test_the_report_step_stores_its_docx_rendered_as_pdf_beside_it(

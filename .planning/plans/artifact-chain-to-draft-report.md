@@ -1,15 +1,16 @@
 ---
 status: in-progress
 chunks:
-  - "[ ] CHN1. The section-source manifest: every section of a stored report names its sources (artifact id with SHA-256, specification field, ledger refs, or fixed text), and the artifact outputs no section read, stored with the document model"
+  - "[x] CHN1. The section-source manifest: every section of a stored report names its sources (artifact id with SHA-256, specification field, ledger refs, or fixed text), and the artifact outputs no section read, stored with the document model"
   - "[ ] CHN2. The brief in the draft: goal, decision_use, objectives and the briefing compiled into the specification as typed text, printed in `intro` and given to the analysis with the hypotheses"
   - "[ ] CHN3. Research questions traced into the report: each question's measures and tables, the findings answering it and its recorded gap, in `ch-2`"
   - "[ ] CHN4. The Design Research a design was built on, in `ch-design`: accepted items by bundle id and SHA-256, labelled external context"
-  - "[ ] CHN5. The audience in full: the specification keeps the stated description and filters, and `ch-design` prints them"
+  - "[x] CHN5. The audience in full: the specification keeps the stated description and filters, and `ch-design` prints them"
   - "[x] CHN6. The report's audit names every artifact it stands on: the aggregate, the map, the specification, the dataset (#579); the experimental Sociomapping draft goes in CHN1's manifest instead (PM decision, 2026-10-21)"
-  - "[ ] CHN7. The UI workbench composes analysis and the internal report on recorded models, and runs the stage workers on recordings: local and test only"
+  - "[x] CHN7. The UI workbench composes analysis and the internal report on recorded models, and runs the stage workers on recordings: local and test only"
   - "[ ] CHN8. Interpretation Research woven into the body (CQ4 = Q58 b): when literature is chosen, each accepted finding in the body section it bears on, labelled external (L class), never respondent evidence; one document, the separate with-research DOCX retired for new reports"
-  - "[ ] CHN9. Metodika a způsob interpretace (`methodology`) from the run's pins: aggregation methodology, support rule, Sociomap method and QC warnings, the reading guidance kept and labelled"
+  - "[x] CHN9. Metodika a způsob interpretace (`methodology`) from the run's pins: aggregation methodology, support rule and Sociomap method, the reading guidance kept and labelled (#589)"
+  - "[ ] CHN9b. The run's QC warnings in `methodology` (after `evidence-integrity#3`): split from CHN9, which was ticked without them"
   - "[ ] CHN10. A module with no supported finding blocks the draft (MVPQ-04): composition, approval and export refuse; the module's diagnostic shown on Analýza and Výsledky and in the refusal's own words"
   - "[ ] CHN11a. The number census: a new scan of the stored document model's text, every numeric token classed as an admitted ledger ref, a value of the stored Sociomap artifact, or a design or document-control number with typed provenance; an unclassed token fails"
   - "[ ] CHN11. The chain over HTTP: a fictional study from brief to internal DOCX on recorded answers, every hand-off chunk's output (CHN1-CHN6, CHN8-CHN10, RD5a) asserted in the draft, every number in an accepted provenance class"
@@ -144,6 +145,34 @@ G12-G17 are added by this plan.
   for `methodology`'s guidance; the manifest of `make report-preview`'s internal sample matches a
   committed fixture.
 - Depends on `report-delivery#RD5a`.
+- **Landed** (feature/report-section-sources):
+  - `domain/report/model.py`: `ArtifactSource`, `SpecSource`, `RunSource`, `LedgerSource`,
+    `FixedSource`; `Section.sources`; `ReportDocument.outputs` with `BesideOutput`.
+  - `domain/report/sources.py`: `report_sources`, `source_payload`, `with_source_audit`.
+  - `document_model.py` is `aia-report-document-2` and still reads `-1`.
+  - The composers fill the sources: `report.py`, `report_chapters.py`, `contextual_report.py`
+    and `client_report.py`, plus the templates' `sources=` / `outputs=`.
+  - Contracts: `aia-internal-report-13`, `aia-contextual-report-9`.
+  - Tests: `test_report_sources.py`, with its fixture `fixtures/report_sources/internal.json`;
+    `test_reconstructed_analysis_composes_an_internal_branded_draft`;
+    `test_native_research_start_and_worker_complete_the_composed_analysis_graph`.
+
+  Five decisions taken beside the spec:
+  - **`run(path)` is a fifth source kind.** The methodology rules and "Respondenti a výpočet"
+    read pins and notes the run recorded at start (`metadata.support`, `.aggregation`,
+    `.population` …). These are neither an artifact nor a specification field.
+  - **The evidence refs are derived, never declared.** A section's `ledger` source is what its
+    blocks print (`validation.section_refs`). The evidence appendix's is every ref the document
+    prints.
+  - **What is made beside the report is named by its step.** The experimental Sociomapping and its
+    draft are `BesideOutput(node_key, step_kind)`, chosen by the graph (`beside_outputs`). Whether
+    they are stored at compose time is a race, and an artifact id would make the same run compose
+    different documents.
+  - **The intro names the executive module's stored outcome, not `spec(research_questions)`.** The
+    specification has no research questions; the analysis inputs carry them.
+  - **A client deliverable stores an artifact source's type only.** Its id and SHA-256 are dropped,
+    as RD5a drops the run's identifiers from a client document. The client report's contract stays
+    `aia-client-report-4`, so a client DOCX stored before keeps its `-1` document.
 
 **CHN2. The brief in the draft.**
 - `ResearchSpecification` gains `brief: SpecBrief | None` (goal, decision_use, objectives,
@@ -226,6 +255,10 @@ G12-G17 are added by this plan.
   (`evidence-integrity#3`). The fixed reading guidance stays, marked `fixed`.
 - Test: a run pinning `aia-sociomap-5` names it and its status.
 - Depends on `evidence-integrity#3` for QC.
+- **Landed in part** (#589): the rounding, support rule and Sociomap method from the pins. The
+  Sociomap's register status is left to the map chapters, which print it beside each map. The QC
+  warnings are **CHN9b**, because `evidence-integrity#3` (a run's QC stored beside it) is open. No
+  run stores QC yet (no `qc` key under `packages/aia_core/src` or `apps/executors/src`).
 
 **CHN10. A module without a supported finding blocks the draft** (MVPQ-04, settled 2026-10-20).
 - The owner's answer (`mvp-owner-decisions.md:87-99`): "Block the report until resolved." While any
@@ -335,7 +368,29 @@ G12-G17 are added by this plan.
 
 ## 6. Owner questions about the draft document's shape
 
-**CQ1. Which sections must a draft research document contain at MVP?** Open (Q55).
+**Q55 / CQ1, settled 2026-10-21 via /pmstatus: (b).** The MVP draft is today's report with its gaps
+closed, plus `report-delivery#RD9` (assumptions) and `#RD10` (open-answer coding), plus the
+literature when chosen, in today's section order. The owner adds: "ensure we are not missing
+anything". CHN2 is unblocked by it and still waits on `assumptions-and-open-answer-coding#AOC3`.
+The section census against this answer is in the PR that recorded it.
+
+**PM-2 (PM, 2026-10-21, on the census).** These decisions follow from Q55 (b):
+
+- **RD9 and RD10's sections have ids and places.**
+  - `ch-coding` (open-answer coding, `report-delivery#RD10`) prints right after `ch-questions`.
+  - `ch-assumptions` (`report-delivery#RD9`) prints right before `ch-6` Hypotézy.
+
+  CHN1's manifest and Zpráva's `report:section:<id>` name them by these ids.
+- **`segment-maps-and-drilldown#10` lands before `evidence-integrity#9b` and CHN10.** Otherwise no
+  run can reach a draft: SEGMENTS has no admitted producer, and the block refuses any draft that has
+  a module with no supported finding. Each owner marks the dependency in its own plan.
+- **CHN8 stays open.** The gaps inside sections stay listed in §2 as they are.
+- **The Lead's study notes (LO19) in the draft are held** as the owner's Q69. The PM recommends they
+  stay out of the draft, because they are working notes, not evidence. No plan line is added until
+  the owner answers.
+
+**CQ1. Which sections must a draft research document contain at MVP?** Settled as Q55 (b) above;
+the options as they were asked:
 - (a) Today's internal report as composed (§2), with its gaps closed: the brief, the full audience,
   traced RQs, the run's methods.
 - (b) (a) plus the chapters already planned to be added: assumptions (RD9), coding (RD10), and the
@@ -388,4 +443,11 @@ bases stay visibly apart. The Report artifact shows both and names which is whic
 - `docs/migration/mvp-acceptance.md`: CHN11 and CHN12 as the draft-report chain's lines under AC-08,
   AC-13 and AC-15.
 - `CLAUDE.md` § 2, when CHN1 and CHN7 land: `Section.sources` and `report_sources`; the workbench's
-  recorded analysis and agent recordings.
+  recorded analysis and agent recordings. Concretely for CHN1, under `domain/report/`:
+
+  > `sources.py`: the section-source manifest (artifact-chain CHN1). `report_sources(document)`
+  > gives each section's sources: artifact by id + SHA-256, specification field, run record
+  > field, the ledger refs its blocks print, or the methodology's fixed guidance. It also gives
+  > the run's outputs no section read, with the experimental Sociomapping named by its step.
+  > `with_source_audit` prints them in `app-audit`. Stored in the document model
+  > `aia-report-document-2`, which still reads `-1`.

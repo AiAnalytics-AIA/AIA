@@ -136,13 +136,19 @@
     {
       "kind": "sample",
       "stage": "sample",
-      "id": "n|size|quota:<cell>|forecast|forecast:<item>|ready:<readiness check id>",
+      "id": "n|size|quota:<cell>|forecast|forecast:<item>|ready|ready:<readiness check id>|respondents|respondents:<persona source>",
       "live": true
     },
     {
       "kind": "step",
       "stage": "fieldwork",
       "id": "<run step node_key>",
+      "live": true
+    },
+    {
+      "kind": "receipt",
+      "stage": "fieldwork",
+      "id": "respondents (Kdo odpovídal: persona source, population recorded and read, dimensions, data origin)",
       "live": true
     },
     {
@@ -584,7 +590,8 @@
         "inspect"
       ],
       "targets": [
-        "step"
+        "step",
+        "receipt"
       ],
       "starts": [
         "research_run"

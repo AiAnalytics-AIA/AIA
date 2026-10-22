@@ -32,6 +32,7 @@ from aia_core.domain.report.model import (
     Heading,
     ListItem,
     Paragraph,
+    RunSource,
     Section,
     Table,
     TableRow,
@@ -447,6 +448,22 @@ def _selection_blocks(meta: Mapping[str, Any], *, drawn: bool) -> list[Block]:
             + "."
         )
     return [Paragraph(text(" ".join(sentences)))]
+
+
+#: The run's own record the method chapter reads (artifact-chain CHN1): its section names them.
+METHOD_SOURCES: Final = tuple(
+    RunSource(f"metadata.{key}")
+    for key in (
+        "persona_source",
+        "population",
+        "selection",
+        "sociomap_methods",
+        "support",
+        "aggregation",
+        "response",
+        "answerability",
+    )
+)
 
 
 def compose_method_section(
