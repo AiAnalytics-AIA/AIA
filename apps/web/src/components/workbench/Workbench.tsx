@@ -22,7 +22,7 @@ import { jobCostAsked } from "@/lib/research-agent-jobs";
 import { appRoutes } from "@/lib/app-routes";
 import { guardedNavigate } from "@/lib/guarded-navigation";
 import {
-  applyLeadEdit, autoAcceptPlan, describeEdit, editRefusalWords, editStage, focusSelector, revertTextEdit, targetLabel, targetOfElement, textEditInverse,
+  LEAD_REASON_WORDS, STALE_CARD_QUESTION, applyLeadEdit, autoAcceptPlan, describeEdit, editRefusalWords, editStage, focusSelector, revertTextEdit, targetLabel, targetOfElement, textEditInverse,
   type LeadEdit, type LeadRequest, type LeadTurn, type LeadView, type ResearcherLead,
 } from "@/lib/lead";
 import {
@@ -213,22 +213,42 @@ export function Workbench({ frame, step, store, memory, save, inspector, reload,
     setDrawerState(next.state);
     moveFocus(next.focus);
   }, [drawer, layout, moveFocus]);
-  // Escape closes the open drawer last, after anything a handler already took (lib/workbench-layout.ts).
+  const [split, setSplit] = useState(() => readSplit(storage()));
+  // "Připravenost a pomoc" lies over the artifact: opening it takes the focus into it, and Escape
+  // closes it before the drawer while it is the layer the person is in, giving the focus back to its
+  // button (D21's one Escape order; workbench audit, 2026-10-22: it took neither the focus nor
+  // Escape).
+  const [inspectorOpen, setInspectorOpen] = useState(false);
+  const inspectorToggle = useRef<HTMLButtonElement>(null);
+  const inspectorPanel = useRef<HTMLElement>(null);
   useEffect(() => {
-    if (!isModal(layout, drawer)) return;
+    if (inspectorOpen) inspectorPanel.current?.focus();
+  }, [inspectorOpen]);
+  // One Escape handler for the drawer and the readiness panel: onEscape gives the one order, after
+  // anything a handler already took (lib/workbench-layout.ts). Pointing ("@") keeps its own.
+  useEffect(() => {
+    const modal = isModal(layout, drawer);
+    if (!modal && !inspectorOpen) return;
     const onKey = (e: KeyboardEvent) => {
       if (e.key !== "Escape") return;
-      const step = onEscape(drawer, { handled: e.defaultPrevented, askDialogOpen: !!document.querySelector("[data-ask-dialog][open], dialog[open]") }, layout);
-      if (step.action !== "drawer") return;
-      e.preventDefault();
-      setDrawerState(step.state);
-      moveFocus(step.focus);
+      // The panel counts while it is the layer in use: not behind a modal drawer, and the focus in
+      // it or on nothing (the body), never pulled out of the composer or a field.
+      const active = document.activeElement;
+      const inPanel = !modal && inspectorOpen && (active === document.body || !!inspectorPanel.current?.contains(active) || active === inspectorToggle.current);
+      const step = onEscape(drawer, { handled: e.defaultPrevented, askDialogOpen: !!document.querySelector("[data-ask-dialog][open], dialog[open]"), inspectorOpen: inPanel }, layout);
+      if (step.action === "inspector") {
+        e.preventDefault();
+        setInspectorOpen(false);
+        inspectorToggle.current?.focus();
+      } else if (step.action === "drawer") {
+        e.preventDefault();
+        setDrawerState(step.state);
+        moveFocus(step.focus);
+      }
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [drawer, layout, moveFocus]);
-  const [split, setSplit] = useState(() => readSplit(storage()));
-  const [inspectorOpen, setInspectorOpen] = useState(false);
+  }, [drawer, layout, moveFocus, inspectorOpen]);
   const [turns, setTurns] = useState<LeadTurn[]>([]);
   const [leadEpoch, setLeadEpoch] = useState(0);
   // Automatic text edits (inline-decisions 2): the researcher's choice, the turns already finished
@@ -358,9 +378,10 @@ export function Workbench({ frame, step, store, memory, save, inspector, reload,
     }
     await store.flush();
     let confirmUsd: number | undefined;
+    let onRevision: number | undefined;
     for (;;) {
       try {
-        const started = await leadApi.approveRequest(frame.studyId, turn.turn_id, confirmUsd);
+        const started = await leadApi.approveRequest(frame.studyId, turn.turn_id, confirmUsd, onRevision);
         onAgentStarted(started.run_id);
         setLeadEpoch((n) => n + 1);
         return;
@@ -372,7 +393,13 @@ export function Workbench({ frame, step, store, memory, save, inspector, reload,
           confirmUsd = ceiling;
           continue;
         }
-        setNotice(e instanceof ApiError ? e.message : String(e));
+        // The design moved since the card was prepared (LO10): it runs on the current one only on a yes.
+        if (e instanceof ApiError && e.code === "stale_card" && onRevision === undefined && typeof e.details.current_revision === "number") {
+          if (!(await confirm(STALE_CARD_QUESTION))) throw e;
+          onRevision = e.details.current_revision;
+          continue;
+        }
+        setNotice(e instanceof ApiError ? LEAD_REASON_WORDS[e.code] ?? e.message : String(e));
         throw e;
       }
     }
@@ -613,7 +640,7 @@ export function Workbench({ frame, step, store, memory, save, inspector, reload,
                   <div className="arthead__sub">{state.revision === null ? "Pracovní kopie zatím neuložena" : `Pracovní kopie · revize ${state.revision}`}{frame.canEdit ? "" : " · jen ke čtení"}</div>
                 </div>
                 <div className="arthead__actions">
-                  <button type="button" className={`btn btn--sm btn--quiet${inspectorOpen ? " is-on" : ""}`} aria-expanded={inspectorOpen} onClick={() => setInspectorOpen((v) => !v)}>
+                  <button ref={inspectorToggle} type="button" className={`btn btn--sm btn--quiet${inspectorOpen ? " is-on" : ""}`} aria-expanded={inspectorOpen} onClick={() => setInspectorOpen((v) => !v)}>
                     <Icon name="inspector" size={14} />Připravenost a pomoc{blocked ? ` · ${blocked}` : ""}
                   </button>
                   <button type="button" className={`iconbtn${mode === "artifact" ? " is-on" : ""}`} aria-pressed={mode === "artifact"} title={mode === "artifact" ? "Zpět na 40 / 60" : "Soustředit se na artefakt"} aria-label={mode === "artifact" ? "Zpět na 40 / 60" : "Soustředit se na artefakt"} onClick={() => setMode((m) => (m === "artifact" ? "split" : "artifact"))}>
@@ -637,10 +664,10 @@ export function Workbench({ frame, step, store, memory, save, inspector, reload,
                   {/* Sample shows Dimenze's screen hidden, so its readiness still reaches the inspector. */}
                   <div hidden={stage === "sample"}><LeadAskContext.Provider value={askLead}>{children}</LeadAskContext.Provider></div>
                 </div></div>
-                <aside className="insp" aria-label="Připravenost a pomoc" hidden={!inspectorOpen}>
+                <aside ref={inspectorPanel} tabIndex={-1} className="insp" aria-label="Připravenost a pomoc" hidden={!inspectorOpen}>
                   <div className="insp__head">
                     <div style={{ minWidth: 0, flex: 1 }}><div className="insp__title">Připravenost a pomoc</div><div className="insp__sub">{STAGES[stage].label}</div></div>
-                    <button type="button" className="iconbtn" aria-label="Zavřít" title="Zavřít" onClick={() => setInspectorOpen(false)}><Icon name="close" size={16} /></button>
+                    <button type="button" className="iconbtn" aria-label="Zavřít" title="Zavřít" onClick={() => { setInspectorOpen(false); inspectorToggle.current?.focus(); }}><Icon name="close" size={16} /></button>
                   </div>
                   <div className="insp__body">{inspector}</div>
                 </aside>

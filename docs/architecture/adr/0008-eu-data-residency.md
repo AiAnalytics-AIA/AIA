@@ -199,3 +199,45 @@ still to be made (plan `usable-classification`, Findings).
    each request, not held across it, so a batch sent as an unmark commits may still leave as
    Class C; every later batch stops (`source_class_changed`). Holding the row's lock across the
    model call would make an unmark wait for a request in flight; the owner chose the window.
+
+## Amendment 2026-10-21: advisory class gates on develop (product owner)
+
+**Context.** On develop, classification stopped work the owner wanted to see run: a design no
+operator had classified parked Deep Research (OI-129), and a Lead turn or a prompt of unknown class
+parked before any call. The owner, 2026-10-21, in his own words: "build the develop-only
+class-advisory switch, including Brave for any class", following his /pmstatus answers Q65 ("i dont
+want any gates stopping based on the classification we are going for full functionality right now")
+and Q66 (a) ("Develop only: classes are shown and recorded, never block; EU residency and licences
+still hold"; "dont limit the brave search capabilities either").
+
+**Decision.** One switch, `AIA_DATA_CLASS_GATES` = `enforce` | `advisory`, default `enforce`
+(`packages/aia_core/src/aia_core/domain/deployment.py`, `DataClassGates`). `advisory` is set only by
+develop's Compose file; staging, production and an unknown `AIA_ENV` refuse to start with it. On
+`advisory`, every gate that refuses **solely because of a data class** records the refusal it would
+have made and lets the call proceed. Plan
+[`develop-class-advisory`](../../../.planning/plans/develop-class-advisory.md), #594.
+
+- **What it relaxes:** egress for unclassified material and for a route not approved for the class
+  (`domain/residency.py`); the retrieval gate's class rules (`application/web_retrieval.py`);
+  Brave's search route, which takes a query of any class (`ToolRoute.any_class_when_advisory`, the
+  search route alone: the one stated exception to EU residency); Deep Research's parking of an
+  unclassified design, which takes the design rule's class (B) when no operator classified it
+  (OI-129); and validation's park of unclassified material.
+- **What it never relaxes:** EU residency for model calls (EU processing, training exclusion and
+  bounded retention for A and B); the licence gate, the `unclassified-client-knowledge` lineage
+  included; budgets, reservations and the study's spend limit; scope; the route/provider match;
+  tool metering; ADR 0022's live sign-off; the residency of every fetch, dataset, archive and Common
+  Crawl route. Wikipedia's routes and the public fetch keep refusing client material.
+- **Unclassified is judged as Class A** for every check that still holds, never as the permissive
+  answer: the ledger row's `data_class` is A and its note says `class=unclassified`.
+- **Where each pass is recorded** (`residency.ClassAdvisory`: the gate, the refusal enforce would
+  have made, the class, `advisory=true`): the note of every AI usage ledger row of the call and the
+  call's provenance (`CallProvenance.class_advisories`); the note of the retrieval gate's
+  `DISPATCHED` tool event; a step event for the refusals an executor makes before any call (Deep
+  Research's plan step, validation's arms).
+
+**Consequence.** On develop the data class no longer stops anything: a design, a Lead turn or a
+prompt nobody classified is sent, judged as Class A for residency, and Brave, outside the EU, may
+receive a search query written from client material. Every such pass is recorded, never silent.
+Enforce mode, every other environment and every recorded fixture are unchanged; OI-129 stays open
+for staging and production.

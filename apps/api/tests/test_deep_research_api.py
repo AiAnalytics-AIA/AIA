@@ -314,7 +314,7 @@ def test_the_bundle_route_serves_the_sealed_bundle_with_the_rules_it_ran_under(
     assert got.json()["versions"]["merge"] == "aia-merge-1"
 
 
-def _park_plan(app: Any, world: Any, failure: Any) -> None:
+def _park_plan(app: Any, world: Any, failure: Any, error: dict[str, Any] | None = None) -> None:
     """Claim the run's plan step as a worker would and end its attempt with ``failure``."""
     from aia_core.infrastructure.workflow_repository import WorkflowRepository
 
@@ -326,7 +326,9 @@ def _park_plan(app: Any, world: Any, failure: Any) -> None:
         workflow = WorkflowRepository(session, scope)
         claimed = workflow.claim_next(worker_id="dr-park-fixture")
         assert claimed is not None and claimed.node_key == "plan"
-        workflow.fail_attempt(claimed.attempt_id, worker_id="dr-park-fixture", failure=failure)
+        workflow.fail_attempt(
+            claimed.attempt_id, worker_id="dr-park-fixture", failure=failure, error=error
+        )
         session.commit()
 
 
@@ -353,9 +355,13 @@ def test_a_run_parked_for_the_runtime_goes_on_when_a_person_resumes_it(
     from aia_core.domain.workflow import FailureClass
 
     run_id = _started(researcher, world)
-    _park_plan(app, world, FailureClass.RUNTIME_UNAVAILABLE)
+    refused = {"message": "Trasa odmítla.", "reason": "egress_route_not_approved_for_class"}
+    _park_plan(app, world, FailureClass.RUNTIME_UNAVAILABLE, refused)
     run_url = f"{_url(world)}/{run_id}"
-    assert _plan(researcher.get(run_url).json())["status"] == "WAITING_PROVIDER"
+    parked = _plan(researcher.get(run_url).json())
+    assert parked["status"] == "WAITING_PROVIDER"
+    # The gate's code, which the web words as who fixes it (lead-orchestration LO12a).
+    assert parked["error_reason"] == "egress_route_not_approved_for_class"
     assert researcher.post(f"{run_url}/retry").status_code == 409
 
     elsewhere = other_client_lead.post(f"{_url(world, 'other_client')}/{run_id}/resume")

@@ -138,7 +138,33 @@ never resolved.
 
 None new (replacement is MVPQ-10, already open).
 
+## Findings
+
+- **F-FLD-1. "Opravit →" sends a failing dimensions or Sociomap-support check to Dotazník.**
+  `fixStep` (`apps/web/src/components/rehome/research/ExecutionSteps.tsx:381-385 @ bfe6d15b`) routed by
+  regex, which matched neither `dimensions` nor `sociomap_support`
+  (`packages/aia_core/src/aia_core/domain/research_design.py:1250, 1272 @ bfe6d15b`).
+  - Reproduction: `fixStep("dimensions")` returns `"questionnaire"`.
+  - Consequence: the person lands on a stage where neither can be fixed.
+  - Fix: an explicit table of the domain's check ids, both to Dimenze.
+  - Test: `ExecutionSteps.test.tsx > fixStep`, over every id readiness emits.
+  - Reported by the Vzorek session, which logs it as F-SMP-1 in its open SMP4 PR's
+    `artifact-sample.md`; this fix closes both.
+- **F-FLD-2. Some warnings are fixed on Spuštění itself, yet "Opravit →" leaves it.**
+  - Which warnings: `dimensions` when fictional respondents will not use the dimensions, `audience` when no
+    filters apply, and an unknown `support_forecast` on a panel run. Sources:
+    `research_design.py:1286-1293, 1299-1308 @ bfe6d15b` and `support_forecast.py:172-184 @ bfe6d15b`.
+  - Why it happens: they share their id with checks fixed elsewhere, so `fixStep` cannot tell them apart.
+  - Reproduction: readiness without `filters_applied` and with dimensions selected; "Opravit →" opens Dimenze.
+  - Consequence: the real fix, "Kdo bude odpovídat", is on the page the person just left.
+  - Smallest fix: the domain's `ReadinessCheck` names the stage that fixes it, and the web reads it,
+    replacing `FIX_STEP` and Vzorek's `checkStage`.
+  - Test: one shared case file of check, status and stage, read by both suites.
+
+
 ## Doc follow-up
+
+- `open-items.md`: F-FLD-1 (fixed by this PR, with Vzorek's F-SMP-1) and F-FLD-2 (open), from Findings above.
 
 - Register this plan and its chunks.
 - `CLAUDE.md` § 2, `routers/research.py`: a run's `spent_usd` / `reserved_usd` (FLD4).

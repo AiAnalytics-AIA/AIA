@@ -665,14 +665,14 @@ Výsledky shows up to five raw open answers per question, internal only (Q52); t
 chosen on Spuštění (Q54); code writes the report narrative's first draft and the Lead proposes
 tracked changes (Q56); the literature is woven into the one report, labelled external, and the
 separate report with literature is retired for new reports (Q58;
-[`mvp-owner-decisions.md`](mvp-owner-decisions.md)). Q51, Q53 and Q55 are open. Q59 (14:40): the Lead sees an index of all of the study's
+[`mvp-owner-decisions.md`](mvp-owner-decisions.md)). Q51, Q53 and Q55 are answered (below). Q59 (14:40): the Lead sees an index of all of the study's
 client's knowledge every turn and opens any file's text by id on demand, code-fetched and scoped to
 that client; pending proposals marked unapproved, "Interní dokument" sources marked, rejected items
 left out (plan [`lead-client-knowledge.md`](plans/lead-client-knowledge.md), #564). Q60-Q65: client
 knowledge of unknown lineage licensed for `bedrock-eu-primary` only (Q60); no folder or label name
 reaches a model (Q61); a dataset read as its preview only (Q62); #574's nine typed commands (Q63);
 Claude reviews in for Codex until its credits reset (Q64); brief attachments Class B with no
-classification gate stopping work (Q65); on develop only, classes shown and recorded but never blocking, EU residency and licences kept, and Brave open to search queries of any class (Q66, `feature/develop-class-advisory`); Q67, who pays after a budget lift, open
+classification gate stopping work (Q65); on develop only, classes shown and recorded but never blocking, EU residency and licences kept, and Brave open to search queries of any class (Q66, `feature/develop-class-advisory`); Q67 (a): whoever lifts the budget pays for what runs after the lift (#583). Q51 (b): a tracked set keeps two end words until 3b3; Q53 (a): the questionnaire length limit is a rule per study type, set by the methodology owner on Metodika; Q55 (b): the MVP draft report is today's report with its gaps closed, plus RD9 and RD10, plus literature when chosen, in today's order ("ensure we are not missing anything")
 ([`mvp-owner-decisions.md`](mvp-owner-decisions.md)).
 
 **Working model (owner, 2026-10-19).** This section is the roadmap. Each track has one owner,
