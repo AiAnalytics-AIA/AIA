@@ -109,6 +109,26 @@ describe("Zadání", () => {
     expect(screen.getByText("Změny se uloží za chvíli")).toBeTruthy();
   });
 
+  it("chooses problem types as toggle chips: one Tab stop, arrows move, a press toggles that type only (audit A24)", async () => {
+    unitStub({ goal: "Vlastní cíl" });
+    render(<ResearchScreen step="brief" frame={TEST_FRAME} />);
+    const group = within(await screen.findByRole("group", { name: "Typ problému" }));
+    const chips = group.getAllByRole("button");
+    expect(chips).toHaveLength(PROBLEM_TYPES.length);
+    // One Tab stop for the whole group.
+    expect(chips.filter((c) => c.tabIndex === 0)).toHaveLength(1);
+    // Each chip still says what the type covers.
+    expect(chips[0].textContent).toContain(PROBLEM_TYPES[0][2]);
+    chips[0].focus();
+    fireEvent.keyDown(chips[0], { key: "ArrowRight" });
+    expect(document.activeElement).toBe(chips[1]);
+    fireEvent.click(chips[1]);
+    await group.findByRole("button", { name: /Nový produkt \/ koncept/, pressed: true });
+    expect(group.getAllByRole("button", { pressed: true })).toHaveLength(1);
+    // A goal already written is kept: the type fills only an empty one.
+    expect((screen.getByLabelText("Cíl výzkumu") as HTMLTextAreaElement).value).toBe("Vlastní cíl");
+  });
+
   it("keeps a link only when it is http(s), and removes it again", async () => {
     unitStub({});
     render(<ResearchScreen step="brief" frame={TEST_FRAME} />);

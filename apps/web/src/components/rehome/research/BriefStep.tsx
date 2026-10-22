@@ -23,6 +23,7 @@ import { OBJECTIVE_MAX, addObjective, objectivesEditable, objectivesOf, removeOb
 import { InlineCreateRow } from "../../ui/InlineCreateRow";
 import { InlineText } from "../../ui/InlineText";
 import { UndoToast, useUndo } from "../../ui/UndoToast";
+import { ChoiceChips } from "../../ui/ChoiceChips";
 import {
   type BriefingField,
   MAX_FILES_PER_PICK,
@@ -210,28 +211,27 @@ export function BriefStep() {
         hint={t("research.brief.typesHelp")}
         aside={selected.size ? <span className="font-mono text-xs text-ink-muted">{tv("research.brief.readyTypesN", { n: selected.size })}</span> : null}
       >
-        <div role="group" aria-label={t("research.brief.typesGroup")} className="grid grid-cols-[repeat(auto-fill,minmax(min(12rem,100%),1fr))] gap-1.5">
-          {PROBLEM_TYPES.map(([key, label, sub]) => {
-            const on = selected.has(key);
-            return (
-              <button
-                key={key}
-                type="button"
-                aria-pressed={on}
-                onClick={() => store.update(({ project }) => ({ project: toggleProblemType(project, key) }), { reason: "problem_types_1789" })}
-                className={`flex min-h-12 flex-col items-start justify-center rounded-control border px-2.5 py-1.5 text-left ${FOCUS} ${
-                  on ? "border-signal bg-signal-wash shadow-[inset_0_0_0_1px_var(--color-signal)]" : "border-border bg-surface-raised hover:border-border-strong"
-                }`}
-              >
-                <span className={`flex items-center gap-1.5 text-[13px] font-semibold leading-[18px] ${on ? "text-signal" : "text-ink"}`}>
-                  {on ? <Icon name="done" size={12} /> : null}
-                  {label}
-                </span>
-                <span className="text-[11px] leading-4 text-ink-muted">{sub}</span>
-              </button>
-            );
-          })}
-        </div>
+        <ChoiceChips
+          multiple
+          label={t("research.brief.typesGroup")}
+          options={PROBLEM_TYPES.map(([key, label, sub]) => ({
+            key,
+            label: (
+              <span title={sub}>
+                {label}
+                <span className="sr-only">: {sub}</span>
+              </span>
+            ),
+          }))}
+          value={PROBLEM_TYPES.map(([key]) => key).filter((key) => selected.has(key))}
+          // One chip changes per press: the one toggled, through the unit's own toggle, which also
+          // fills an empty goal with that type's default (toggleProblemType, parity-tested).
+          onChange={(keys) => {
+            const now = new Set(keys);
+            const changed = PROBLEM_TYPES.map(([key]) => key).find((key) => now.has(key) !== selected.has(key));
+            if (changed) store.update(({ project }) => ({ project: toggleProblemType(project, changed) }), { reason: "problem_types_1789" });
+          }}
+        />
       </StepSection>
 
       <Attachments uploads={uploads} />

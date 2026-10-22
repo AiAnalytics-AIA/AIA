@@ -157,6 +157,11 @@ Every item is an `Item` (`src/components/ui.tsx:52`): edit in place, remove, mov
   "Zatím prázdné". On today's whole-copy store; WCE3a moves it onto the edit vocabulary. Still to
   come in BRF2: Rozhodnutí and Kontext as items, Předpoklady as a link.
 
+- *Landed, Typ problému as toggle chips* (audit A24): the shared ChoiceChips (I3): one Tab stop,
+  arrows move, a press toggles one type through `toggleProblemType` (an empty goal still filled
+  with its default); each chip's description kept as its title and in its accessible name. At
+  390 px the section is about 260 px tall instead of about 600.
+
 **BRF3. Podklady with their class.**
 - API: the attachments listing and the brief's picked sources answer each item's `data_class` and
   `class_source` (`rule:<name>` or `operator`), by `classify_by_rule`. An unknown class reads as
