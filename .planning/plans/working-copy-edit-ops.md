@@ -162,6 +162,23 @@ From the independent cross-check of the master plan against the code (`mvp-maste
 
 **WCE13. Routing in the questionnaire (G53, X8; the owner, 2026-10-20: build routing end to end).** Today the code cannot run a condition: readiness FAILs any conditional question, the outlook marks it UNANSWERABLE and fieldwork asks every respondent every question. This chunk makes `route_set` set, edit and remove a display condition through the shared vocabulary, validated by the domain (the condition names an earlier question and one of its options; a cycle or a forward reference is refused by name), and readiness accepts a valid conditional question instead of failing it. Fieldwork is `run-qc-and-checkpoint#RQC11`, the filtered base `evidence-integrity#10`. Test: a condition on Q7 for those who answered "never" to Q2 is stored, passes readiness, and a condition naming a later question is refused.
 
+*Owner and order (the PM, 2026-10-22):* the Dotazník session, in four PRs: (a) the condition model
+and its checks in compile, (b) `route_set` in `edit_ops` with the web mirror (`lib/lead.ts`
+`applyLeadEdit`, held to `tests/fixtures/edit_ops/cases.json`), (c) the condition edited at the
+question on Dotazník, (d) readiness and the outlook accept a valid condition behind
+`AIA_ROUTING_ENABLED` (off; off on develop until RQC11 routes in fieldwork). With the switch off a
+conditional question fails readiness exactly as today.
+
+- *(a) Progress (feature/wce13-condition-model):* a question's `filtr` is
+  `{"question_id": <stored id>, "options": [...]}`, compiled into `SpecQuestion.condition`
+  (`SpecCondition`: the compiled id, the answers), absent from the fingerprint when there is none.
+  `read_condition` also reads the two expressions the 18.6.6 interface wrote that are exactly a
+  choice (`Q1 == 'Nikdy'`, `Q1 in [...]`); anything else stays as written and compile refuses it
+  by name: `condition_unstructured`, `condition_unknown_question`, `condition_forward_reference`
+  (a later question or itself; with only earlier references a cycle cannot form),
+  `condition_not_choice`, `condition_unknown_option`. A valid condition still fails
+  `conditional_questions`. Test: `test_research_conditions.py`.
+
 **WCE11, amended (G56, X11).** The chunk states who performs a structural auto-apply (the researcher's browser session, or a named server path under the person's standing authority, coordinated with G42), where the per-stage choice lives (Můj Vedoucí or the artifact header), and the rule once fieldwork exists (a structural auto-apply is refused or announced in the conversation, never applied silently). Today an automatic accept is an act of the signed-in browser after it sees a turn finish, and `decide_edits` needs the caller's `APPROVE_GATE` and own completed turn, so a continuation turn (LO6) finishing with no browser open applies nothing. Test: with a stage on and no browser open, a continuation turn's structural edit stays pending; after fieldwork exists it is not applied silently.
 
 ## Scope freeze (2026-10-20)
