@@ -29,6 +29,7 @@ import {
   type Question,
   type QuestionnairePath,
   SET_MAX,
+  SET_MIN,
   SET_TOO_SMALL,
   type Section,
   TEMPLATE_FILENAME,
@@ -150,7 +151,7 @@ function removeWithUndo(update: Update, undo: EditorUndo, si: number, sec: Secti
 /** A tracked set is measured on 4–15 objects (SET_SIZE). */
 const setInvalid = (sec: Section) => {
   const n = (sec.objects || []).length;
-  return n < 4 || n > SET_MAX;
+  return n < SET_MIN || n > SET_MAX;
 };
 const OBJECT = "{object}";
 
