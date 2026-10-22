@@ -2047,8 +2047,9 @@ def run_analysis(
     as shown, from the same verified read as the modules' sources; ``None`` without a pin or
     before any module has an outcome.
     Each module carries ``diagnostic``: ``{reason, resolutions}`` when it states nothing --
-    ``no_supported_finding`` where the run held its context (what the report's refusal, 9b, will
-    read; MVPQ-04, Q72) or ``context_missing`` where the run lacks it -- else ``None``."""
+    ``no_supported_finding`` where the run held its context (MVPQ-04, Q72) or ``context_missing``
+    where the run lacks it -- else ``None``. ``holding``: the modules the report waits on, in
+    module order (9b; :attr:`RunAnalysis.holding`); ``complete`` is true only when it is empty."""
     try:
         scope.require(Permission.EDIT_STUDY)
         analysis = reconstruct_run(session, scope, store, run_id=run_id)
@@ -2064,6 +2065,7 @@ def run_analysis(
     return {
         "run_id": run_id,
         "complete": analysis.complete,
+        "holding": [m.value for m in analysis.holding],
         "internal_only": True,
         "synthetic": any(o.record.labels.simulated_respondents for o in analysis.modules.values()),
         **_origin_flags(

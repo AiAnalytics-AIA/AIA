@@ -1649,6 +1649,28 @@ describe("Results", () => {
     expect(document.querySelector("[data-aggregate-deviation]")).toBeNull(); // the unit's port
   });
 
+  it("names a completed module with no supported finding as what the report waits on, never as still running (9b)", async () => {
+    const done = run({ ...COMPLETED, steps: [...COMPLETED.steps,
+      step("analysis_executive", "SUCCEEDED", { kind: "research_analysis", artifact_id: "ART-6" }),
+    ] });
+    api({ ...listed(done),
+      "GET /api/v1/studies/STU-1/research/runs/RUN-1/artifacts/ART-4": () => AGGREGATE,
+      "GET /api/v1/studies/STU-1/research/runs/RUN-1/artifacts/ART-5": () => SOCIOMAP,
+      "GET /api/v1/studies/STU-1/research/runs/RUN-1/analysis": () => ({ complete: false, holding: ["executive"], synthetic: true, pending: {}, modules: {
+        executive: { outcome: "COMPLETED", summary: "Nic doloženého.", research_question_answers: [], key_findings: [], claims: [], violations: [] },
+      } }),
+    });
+    render(<ResearchScreen step="results" frame={TEST_FRAME} />);
+    fireEvent.click(await screen.findByRole("tab", { name: "AI analýza" }));
+    const overview = await waitFor(() => {
+      const el = document.querySelector("[data-analysis-overview]");
+      if (!el) throw new Error("no overview");
+      return el;
+    });
+    expect(overview.textContent).toMatch(/Zpráva čeká, dokud tyto části neuvedou doložené zjištění: .+\./);
+    expect(overview.textContent).not.toContain("Zbývající části ještě čekají");
+  });
+
   it("shows artifact outcomes rather than workflow completion and hides validation codes in details", async () => {
     const partial = run({ ...COMPLETED, steps: [...COMPLETED.steps,
       step("analysis_executive", "SUCCEEDED", { kind: "research_analysis", artifact_id: "ART-6" }),

@@ -814,13 +814,26 @@ class RunAnalysis:
     external: ShownContext | None = None
 
     @property
-    def complete(self) -> bool:
-        """True when all eight modules completed. Only then can a report be composed."""
-        return (
-            not self.pending
-            and len(self.modules) == len(AnalysisModuleId)
-            and all(m.outcome is ModuleOutcomeKind.COMPLETED for m in self.modules.values())
+    def holding(self) -> tuple[AnalysisModuleId, ...]:
+        """The modules the report waits on, in module order (MVPQ-04, evidence-integrity 9b): one
+        with no stored outcome, one not completed, and one completed without a supported finding
+        where the run held its context (:func:`no_supported_finding`). A diagnostic never takes a
+        module off this list; only a supported finding, a changed design or more data does."""
+        return tuple(
+            m
+            for m in AnalysisModuleId
+            if m not in self.modules
+            or self.modules[m].outcome is not ModuleOutcomeKind.COMPLETED
+            or no_supported_finding(self.modules[m].record)
         )
+
+    @property
+    def complete(self) -> bool:
+        """True when no module holds the report (:attr:`holding`). Only then does
+        :func:`~aia_core.application.report.compose_internal_report` compose: the internal draft
+        (and so its PDF) and the report with literature. Approval reads no analysis; it approves
+        only a draft composed through that gate."""
+        return not self.holding
 
     @property
     def retryable(self) -> tuple[AnalysisModuleId, ...]:

@@ -1721,6 +1721,8 @@ function AnalysisResults({ run, spec, progressHref }: { run: ResearchRun; spec: 
     const outcome = analysis?.modules[id];
     return outcome?.outcome === "COMPLETED" && outcome.key_findings.length ? [{ id, outcome }] : [];
   });
+  // Completed, yet holding the report: no supported finding (evidence-integrity 9b).
+  const withoutSupport = ANALYSIS_ORDER.filter((id) => analysis?.holding?.includes(id) && analysis.modules[id]?.outcome === "COMPLETED").map((id) => stepLabel(`analysis_${id}`));
   const withoutFindings = ANALYSIS_ORDER.filter((id) => analysis?.modules[id]?.outcome === "BLOCKED").map((id) => stepLabel(`analysis_${id}`));
   return (
     <div ref={cardRef} data-analysis-card className="scroll-mt-2">
@@ -1750,7 +1752,9 @@ function AnalysisResults({ run, spec, progressHref }: { run: ResearchRun; spec: 
               ? "Některé části neprošly kontrolou; které a proč, uvádí oddíl Blokované nároky níže. Dokončení pracovního kroku samo o sobě neznamená platný analytický výstup."
               : analysis.complete
                 ? "Všechny části jsou uložené. Interpretaci a vhodnost pro zprávu musí posoudit výzkumník."
-                : "Zbývající části ještě čekají na dokončení. Zpráva může vzniknout až z úplné analýzy."}</p>
+                : withoutSupport.length && !Object.keys(analysis.pending).length
+                  ? `Zpráva čeká, dokud tyto části neuvedou doložené zjištění: ${withoutSupport.join(", ")}.`
+                  : "Zbývající části ještě čekají na dokončení. Zpráva může vzniknout až z úplné analýzy."}</p>
           </section>
           <AnalysisBlocked analysis={analysis} run={run} retryable={retryable?.modules ?? null} progressHref={progressHref} />
           <section aria-labelledby="key-findings-title" data-key-findings className="rounded-md border border-border bg-surface-raised p-4">

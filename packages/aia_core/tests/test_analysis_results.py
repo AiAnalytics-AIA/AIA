@@ -48,6 +48,7 @@ from aia_core.domain.analysis.artifact import (
     ANALYSIS_MODULE_ARTIFACT,
     CallRecord,
     ProducedBy,
+    finding_diagnostic,
     parse_module_artifact,
 )
 from aia_core.domain.analysis.native import NativeEvidenceRefused, native_evidence, native_items
@@ -771,6 +772,69 @@ def test_a_whole_run_reads_back_and_is_complete_only_with_eight_completed(world:
     world.store_outcomes(run_id, completed, count=1)
     whole = reconstruct_run(world.session, world.scope, world.store, run_id=run_id)
     assert whole.complete and list(whole.modules) == list(AnalysisModuleId)
+
+
+def stating_nothing(*modules: AnalysisModuleId, expectation: bool = True) -> Any:
+    """``completed``, but the named modules state no key finding; ``expectation=False`` stores
+    them as a record from before 9a (no expectation stored)."""
+
+    def decide(prepared: Any) -> Any:
+        if prepared.module_id not in modules:
+            return completed(prepared)
+        record = module_artifact(
+            prepared,
+            outcome=ModuleOutcomeKind.COMPLETED,
+            draft={**good_draft(prepared), "key_findings": []},
+            violations=(),
+            calls=(call(),),
+            produced_by=PRODUCED,
+            runtime_version="abc",
+        )
+        return record if expectation else record.model_copy(update={"finding_expected": None})
+
+    return decide
+
+
+def test_a_module_with_no_supported_finding_holds_the_report_and_nothing_else_does(
+    world: World,
+) -> None:
+    """MVPQ-04, evidence-integrity 9b: the executive summary, always expected to find, holds the
+    report while it states nothing; the limitations, never expected to, hold nothing. The
+    diagnostic beside it does not lift the gate."""
+    executive, limitations = AnalysisModuleId.EXECUTIVE, AnalysisModuleId.LIMITATIONS
+    run_id = world.start()
+    world.upstream()
+    world.store_outcomes(run_id, stating_nothing(executive, limitations))
+    run = reconstruct_run(world.session, world.scope, world.store, run_id=run_id)
+    assert not run.pending and len(run.modules) == len(AnalysisModuleId)
+    assert run.holding == (executive,) and not run.complete
+    assert finding_diagnostic(run.modules[executive].record) is not None
+    meta = report_meta(run.modules[executive].result.method_status)  # type: ignore[union-attr]
+    with pytest.raises(ReportCompositionRefused, match=r"waiting on: executive$"):
+        compose_internal_report(run, meta)
+
+
+def test_a_record_from_before_the_expectation_never_holds_the_report(world: World) -> None:
+    """9b reads only what 9a stored: a record with no expectation is never read as empty."""
+    run_id = world.start()
+    world.upstream()
+    world.store_outcomes(run_id, stating_nothing(AnalysisModuleId.EXECUTIVE, expectation=False))
+    run = reconstruct_run(world.session, world.scope, world.store, run_id=run_id)
+    assert run.holding == () and run.complete
+
+
+def test_a_blocked_or_missing_module_holds_the_report(world: World) -> None:
+    run_id = world.start()
+    world.upstream()
+    world.store_outcomes(run_id, completed, count=7)
+    partial = reconstruct_run(world.session, world.scope, world.store, run_id=run_id)
+    assert partial.holding == tuple(partial.pending)
+    world.store_outcomes(run_id, blocked, count=1)
+    run = reconstruct_run(world.session, world.scope, world.store, run_id=run_id)
+    assert run.holding == tuple(
+        m for m in AnalysisModuleId if run.modules[m].outcome is ModuleOutcomeKind.BLOCKED
+    )
+    assert len(run.holding) == 1 and not run.complete
 
 
 def test_reconstructed_analysis_composes_an_internal_branded_draft(

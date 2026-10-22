@@ -182,8 +182,11 @@ def compose_internal_report(
     """
     if meta.kind is not ReportKind.INTERNAL or meta.classification is not Classification.INTERNAL:
         raise ReportCompositionRefused("composition makes an unapproved internal draft only")
-    if not run.complete or set(run.modules) != set(AnalysisModuleId):
-        raise ReportCompositionRefused("all eight analysis modules must be complete")
+    if not run.complete:
+        raise ReportCompositionRefused(
+            "all eight analysis modules must be complete with a supported finding; waiting on: "
+            + ", ".join(m.value for m in run.holding)
+        )
 
     first = run.modules[AnalysisModuleId.EXECUTIVE]
     if first.result is None:

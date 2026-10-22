@@ -1670,6 +1670,21 @@ def test_a_module_completed_without_a_finding_is_asked_again_over_the_same_data(
     assert executive["key_findings"] == []
     assert executive["diagnostic"] == finding_diagnostic(record)
     assert executive["diagnostic"]["reason"] == "no_supported_finding"
+    # The report waits on it (9b): the diagnostic does not satisfy the gate, so no draft is
+    # stored, the refusal names the module, and the analysis never reads as complete.
+    assert shown["complete"] is False and shown["holding"] == ["executive"]
+    report = {s["node_key"]: s for s in _run(world, first)["steps"]}["report"]
+    assert report["status"] is StepRunStatus.FAILED
+    refusal = report["attempts"][-1]["error"]
+    assert refusal["reason"] == "report_inputs_refused"
+    assert refusal["message"].endswith("waiting on: executive")
+    with world.sessions() as session:
+        kinds = {
+            a.artifact_type
+            for a in research_artifacts(session, world.lead_scope(session), store).recent(limit=200)
+            if a.metadata.get("run_id") == first
+        }
+    assert REPORT_ARTIFACT_TYPE not in kinds
     asked_before = len(models.asked)
 
     models.no_findings.clear()
@@ -1684,6 +1699,10 @@ def test_a_module_completed_without_a_finding_is_asked_again_over_the_same_data(
         again = stored_analysis(session, world.lead_scope(session), store, run_id=retry.run_id)
     assert not no_supported_finding(again.records[AnalysisModuleId.EXECUTIVE])
     assert again.retryable == ()
+    # Resolved by a supported finding, the retry's report composes.
+    assert {s["node_key"]: s for s in _run(world, retry.run_id)["steps"]}["report"][
+        "status"
+    ] is StepRunStatus.SUCCEEDED
 
 
 def test_a_same_data_round_that_still_states_nothing_is_not_offered_again(
