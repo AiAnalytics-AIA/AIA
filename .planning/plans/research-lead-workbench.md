@@ -1607,3 +1607,19 @@ the workbench's `go`.
 - **Tests.** `Workbench.layout.test.tsx` "a stage's forward action through the frame": Výsledky →
   Sociomapa by hash with the focus on Sociomapa's heading (it fails without the focus move), and
   Dotazník → Cílová skupina named. `step.test.tsx` passes `{ next: null }`.
+
+### The report's claims open in the workbench's one item drawer (2026-10-22, `feature/report-items-in-drawer`)
+
+Zpráva's document (`ReportDocumentView`) kept a drawer of its own inside the workbench. Its Escape
+ran outside the frame's one order (D21), and a second drawer could open beside the workbench's.
+- **Inside the workbench** a claim chip opens `report:ref:<kind>:<ref>` (the document's kind, internal or client, since a ref is one ledger's) in the workbench's item drawer
+  (`useItemInspector`), with the claim's evidence as the entry's body.
+- **The drawer API.** `ItemInspectorApi.open(entry, body?)` takes the body the opening screen
+  already holds. The workbench keeps it by entry id and draws it instead of `ItemInspectBody`.
+- **Outside the workbench**, and for a ref the target grammar refuses, the view keeps its own
+  drawer as before.
+- **Tests.**
+  - `ReportDocumentView.test.tsx` "inside the workbench opens a claim in the workbench's one item
+    drawer…".
+  - `Workbench.layout.test.tsx` "draws the body the opening screen gave…".
+  - Both fail without the change.

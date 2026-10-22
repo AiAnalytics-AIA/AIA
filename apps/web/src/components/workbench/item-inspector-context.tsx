@@ -16,8 +16,9 @@ export type AiaTarget = NonNullable<ReturnType<typeof parseAiaId>>;
 
 export type ItemInspectorApi = {
   /** Open `entry` over the item on top. False, and nothing opened, for an id outside the
-   *  contract's grammar (`parseAiaId`). */
-  open: (entry: InspectorEntry) => boolean;
+   *  contract's grammar (`parseAiaId`). `body`: the detail the opening screen already holds (the
+   *  report's claim and its evidence), drawn instead of the kind's body (ItemInspectBody). */
+  open: (entry: InspectorEntry, body?: () => ReactNode) => boolean;
 };
 
 export const ItemInspectorContext = createContext<ItemInspectorApi | null>(null);
