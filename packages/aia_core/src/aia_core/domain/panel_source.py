@@ -24,6 +24,7 @@ Pure: stdlib only.
 from __future__ import annotations
 
 import hashlib
+from collections.abc import Sequence
 from dataclasses import dataclass
 from typing import Any, Final
 
@@ -33,11 +34,12 @@ from .panel_persona import PANEL_PERSONA_VERSION, PanelPersonas, panel_personas,
 from .persona_profile import PERSONA_MODE, PROFILE_VERSION
 from .population.runtime import RuntimePopulation
 from .population.sampling import SAMPLER_VERSION, PanelSample, draw_panel_sample
-from .research_design import ResearchSpecification
+from .research_design import CheckStatus, Readiness, ReadinessCheck, ResearchSpecification
 from .respondent_behavior import AIA_RESPONSE_V1, BEHAVIOR_VERSION, ResponseProcessSpec
 from .respondent_facts import FACT_LAYER_VERSION
 
 __all__ = [
+    "PANEL_SAMPLE_CHECK",
     "PANEL_SOURCE",
     "PanelPlans",
     "joint_certificate_record",
@@ -45,6 +47,7 @@ __all__ = [
     "panel_plans",
     "pinned_components",
     "respondent_system",
+    "with_panel_refusal",
 ]
 
 #: The persona source a run pins when its respondents are drawn from its population
@@ -85,6 +88,45 @@ class PanelPlans:
             },
             "fictional": False,
         }
+
+
+#: The readiness check a panel run's refused sample adds (run-qc-and-checkpoint RQC6).
+PANEL_SAMPLE_CHECK: Final = "panel_sample"
+
+#: The sampler's refusals in words, by reason code; any other code is named as it is.
+_REFUSAL_WORDS: Final = {
+    "sampling_filter_invalid": "některý filtr cílové skupiny nelze použít",
+    "sampling_field_refused": "politika pole nepovoluje filtrovat podle některého z polí výběru",
+    "sampling_empty": "filtry nevyberou žádného člověka z populace",
+    "sampling_n_exceeds_support": (
+        "publikum má méně různých lidí, než kolik respondentů studie chce"
+    ),
+    "sampling_unrepresentative": (
+        "vzorek této velikosti by z publika nebyl reprezentativní ani po kalibraci"
+    ),
+}
+
+
+def with_panel_refusal(
+    readiness: Readiness, refused: str, reasons: Sequence[str] = ()
+) -> Readiness:
+    """``readiness`` with a FAIL when the sampler refuses the sample a panel run would draw.
+
+    Fieldwork draws the same sample (the design's filters, its n, ``fieldwork_seed``) over the
+    same population and would refuse it, so a start is refused here, before any run. Only the
+    sampler's or the audience filter's refusal is given here: a population that could not be
+    loaded says nothing about the design and is unknown, never a FAIL."""
+    words = _REFUSAL_WORDS.get(refused, f"výběr odmítnut ({refused})")
+    named = f": {'; '.join(reasons)}" if reasons else ""
+    check = ReadinessCheck(
+        id=PANEL_SAMPLE_CHECK,
+        status=CheckStatus.FAIL,
+        message=(
+            f"Vzorek z populace nelze vybrat, {words}{named}. Běh s respondenty z populace by "
+            "sběr dat odmítl; upravte cílovou skupinu nebo N, nebo zvolte fiktivní respondenty."
+        ),
+    )
+    return Readiness(rules=readiness.rules, ready=False, checks=(*readiness.checks, check))
 
 
 def panel_filters(spec: ResearchSpecification) -> dict[str, Any] | None:
