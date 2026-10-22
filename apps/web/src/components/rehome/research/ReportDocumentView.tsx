@@ -18,6 +18,7 @@ import { backEntry, closeStack, emptyStack, openEntry, type InspectorStack } fro
 import { stepOf } from "@/lib/research-execution";
 import { useFrame } from "./frame-hook";
 import { ItemInspector } from "./ItemInspector";
+import { coverageRecord, type CoverageLine } from "@/lib/artifacts/report-coverage";
 
 const message = (e: unknown) => (e instanceof Error ? e.message : String(e));
 
@@ -113,6 +114,7 @@ export function ReportDocumentView({ run }: { run: ResearchRun }) {
             {stored.review_state === "APPROVED_INTERNAL" ? "Schváleno" : "Koncept"} · {stored.review_state} · {run.run_id} · revize {doc.meta.revision} · dokument {stored.artifact_id}
           </footer>
         </article>
+        <Coverage lines={coverageRecord(run, doc.unread)} />
       </div>
       {/* Beside the document in a wide pane, a column only while a claim is open; in a narrow one, a sheet
           over the page's foot, so the claim opens where it was asked. */}
@@ -122,6 +124,24 @@ export function ReportDocumentView({ run }: { run: ResearchRun }) {
         </ItemInspector>
       </div>
     </div></div>
+  );
+}
+
+/** What the draft does not hold and why (RPT4): beside the document, never part of its text. */
+function Coverage({ lines }: { lines: CoverageLine[] }) {
+  return (
+    <section aria-labelledby="report-coverage" data-report-coverage className="mt-3 rounded-card border border-border bg-surface px-4 py-3 text-sm">
+      <h2 id="report-coverage" className="font-semibold">Záznam pokrytí <span className="font-normal text-ink-muted">(mimo text zprávy)</span></h2>
+      <ul className="mt-1.5 flex flex-col gap-1">
+        {lines.map((line, i) => (
+          <li key={i} data-coverage={line.kind} className="min-w-0 break-words">
+            <span className="font-medium">{line.label}</span>: {line.state}
+            {line.why ? <span className="text-ink-muted"> — {line.why}</span> : null}
+            {line.ref ? <span className="font-mono text-xs text-ink-muted"> · {line.ref}</span> : null}
+          </li>
+        ))}
+      </ul>
+    </section>
   );
 }
 

@@ -140,11 +140,11 @@
 .nav__list .nav__plabel { display: block; padding: 4px 8px 2px; }
 .nav__list .nav__stage { justify-content: flex-start; height: 36px; }
 .menu__info { display: flex; align-items: center; gap: 6px; padding: 8px 12px; font-size: 13px; color: var(--ink-muted); border-bottom: 1px solid var(--border); }
-.wb--sheet .shead { gap: 8px; }
-.wb--sheet .shead__home { min-width: 0; flex: 1 1 auto; }
-.wb--sheet .shead__title { min-width: 0; }
-.wb--sheet .shead__spacer { display: none; }
-.wb--sheet .insp { width: 100%; }
+&.wb--sheet .shead { gap: 8px; }
+&.wb--sheet .shead__home { min-width: 0; flex: 1 1 auto; }
+&.wb--sheet .shead__title { min-width: 0; }
+&.wb--sheet .shead__spacer { display: none; }
+&.wb--sheet .insp { width: 100%; }
 
 /* conversation */
 .conv { display: flex; flex-direction: column; min-height: 0; height: 100%; }
@@ -264,6 +264,9 @@
 .art { display: flex; flex-direction: column; min-height: 0; height: 100%; }
 .arthead { display: flex; align-items: center; gap: 10px; padding: 8px 14px; min-height: 48px; border-bottom: 1px solid var(--border); background: var(--surface-raised); flex: none; }
 .arthead__title { font-size: 16px; line-height: 20px; font-weight: 600; }
+/* The save state goes under the title when the two do not fit side by side (workbench audit F13). */
+.arthead .row { flex-wrap: wrap; row-gap: 0; }
+&.wb--sheet .arthead__label { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
 .arthead__sub { font-size: 12px; line-height: 16px; color: var(--ink-muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .arthead__actions { margin-left: auto; display: flex; gap: 4px; align-items: center; }
 .artbody { flex: 1 1 auto; min-height: 0; overflow: auto; position: relative; }
@@ -565,8 +568,8 @@
 .chg__before { color: var(--ink-muted); text-decoration: line-through; }
 .chg__why { font-size: 12px; line-height: 16px; color: var(--ink-muted); }
 .chg__refused { font-size: 12px; color: var(--status-fault); font-weight: 400; }
-.wb-picking .artbody { cursor: crosshair; }
-.wb-picking .artbody :is([id^="qedit_"], [id^="qblock_"], [id^="brief-"], [id^="plan-"]):hover { outline: 2px solid var(--signal); outline-offset: 2px; }
+&.wb-picking .artbody { cursor: crosshair; }
+&.wb-picking .artbody :is([id^="qedit_"], [id^="qblock_"], [id^="brief-"], [id^="plan-"]):hover { outline: 2px solid var(--signal); outline-offset: 2px; }
 .split__left[hidden] { display: none; }
 
 /* cards in the conversation (chunk 23): title and state pill, key facts as label/value rows, actions */

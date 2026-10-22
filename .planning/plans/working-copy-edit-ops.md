@@ -12,7 +12,8 @@ chunks:
   - "[ ] WCE6. Per-change accept (M6): `proposal_change_decisions`, one change identity across the three accept routes, a dependency rule for coupled changes, `touched_items` returned to the web; any member with the accept permission may accept a proposal another member's Lead prepared (Q16), the chat text staying private"
   - "[x] WCE7a. Readiness on a working revision: `GET …/research/readiness/working?working_revision=n`, the readiness a submit of that revision reads, nothing written"
   - "[x] WCE7b. Vzorek reads it on the working revision it shows, no submit on a visit (Návrh's coverage in artifact-design, Spuštění in artifact-fieldwork#FLD6)"
-  - "[ ] WCE7c. Impact per stage: "current / changed / re-check" against the run's Design Revision, and accepting a working copy as a revision"
+  - "[x] WCE7c. Impact per stage: `GET …/research/impact`, every pipeline stage CURRENT, CHANGED or RECHECK going from a Design Revision to the working copy"
+  - "[ ] WCE7d. The workbench reads it: a stage the working copy reopened says so, a run whose design is older than the head says so, and the working copy accepted as a revision"
   - "[ ] WCE8. Sociomap declarations: an editor for `sociomap_rating` and `context_objects`, the hard lock and `sociomap_unlock`"
   - "[ ] WCE8b. The questionnaire proposal keeps protected inputs and item identity (W2, with WCE8, before research-lead-workbench 7 and 17): declared batteries, tracked sets and rating questions copied from the baseline under their ids, never from model output; proposed items keep a baseline id"
   - "[ ] WCE9. Undo and restore of a person's edit, and a route that reads an old working revision"
@@ -88,7 +89,20 @@ Split 2026-10-21 (owner: the Vzorek session, assigned by the PM) into three PRs:
   nothing; moving it to the working revision is `artifact-design`'s. Spuštění reads it while open
   and submits only at start, with that revision's readiness checked again: the Sběr dat session's,
   in `artifact-fieldwork#FLD6`.
-- **WCE7c.** The impact rule and "accepting a working copy as a revision", the AC-07 test above.
+- **WCE7c, delivered.** `domain.pipeline.stage_impacts(before, after)`: a stage whose own input
+  fingerprint differs is CHANGED; the invalidated range starts at the earlier of `impact_preview`'s
+  root and the first CHANGED stage, so a field `IMPACT_ROOTS` does not map (title,
+  aggregation_policy) still reopens what follows (review on #638); in the range and unchanged is
+  RECHECK; the rest CURRENT. `ResearchRuns.impact(working_revision, design_revision_id=None)` (the
+  newest Design Revision when none is named) and `GET /studies/{id}/research/impact`. Tests:
+  `test_pipeline_parity.py::test_a_questionnaire_edit_changes_its_stage_and_reopens_every_stage_after_it`
+  (AC-07 in the domain) and `test_research_api.py::test_impact_reads_each_stage_of_a_design_against_the_working_copy`.
+- **WCE7d.** The workbench reads it: the stage track's "reopened", the run's "design older than
+  the head" and the explicit accept of a working copy as a revision. The stage track and lane are
+  the integration coordinator's; this chunk is a request to them, with the route and the pipeline
+  → workbench stage map (BRIEF brief, RESEARCH_DESIGN design, QUESTIONNAIRE questionnaire, AUDIENCE
+  audience, DIMENSIONS dimensions, SAMPLE_PLAN sample, FIELDWORK fieldwork, AGGREGATION results and
+  sociomap, ANALYSIS analysis, REPORT report).
 
 **WCE8. Sociomap declarations: an editor for `sociomap_rating` and `context_objects`, the hard lock and `sociomap_unlock`**  
 Nobody can set the declarations (zero web hits), so the lock has no subject. The unlock is a ledger row (`sociomap_unlock`, M3), warns, and cannot be called by the Lead. Test: the whole-copy route cannot change a locked item. Interfaces I11.

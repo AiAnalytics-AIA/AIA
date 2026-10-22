@@ -122,6 +122,13 @@ ok("Progress: every step tagged deterministic and pointable");
 const originCode = await page.locator('[data-aia="receipt:respondents"] [data-origin-code]').first().textContent({ timeout: 5000 }).catch(() => null);
 if (!originCode?.startsWith("SYNTHETIC_")) fail(`Kdo odpovídal shows origin ${originCode ?? "nothing"}, not a fictional code`);
 ok(`Progress: Kdo odpovídal names the data's origin (${originCode})`);
+// At a phone's width each value takes the card's width under its label, never a sliver beside it.
+await page.setViewportSize({ width: 390, height: 900 });
+const widths = await page.locator("dl:has([data-origin-code]) dd").evaluateAll((dds) =>
+  dds.map((dd) => dd.getBoundingClientRect().width / dd.closest("dl").getBoundingClientRect().width));
+if (!widths.length || widths.some((w) => w < 0.8)) fail(`Kdo odpovídal squeezes its values beside their labels at 390 px: ${widths.map((w) => w.toFixed(2))}`);
+await page.setViewportSize({ width: 1440, height: 1100 });
+ok("Progress: Kdo odpovídal stacks its values under their labels at 390 px");
 await shot("2-progress");
 
 // 3. Results: labelled fictional, an aggregate table, the Sociomap labelled by method.
