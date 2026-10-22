@@ -47,6 +47,12 @@ __all__ = [
 ZIP_MAX_UNCOMPRESSED: Final = 64 * 1024 * 1024
 ZIP_MAX_MEMBERS: Final = 5000
 TEMPLATE_FILENAME: Final = "AIA_dotaznik_sablona.xlsx"
+# A row is materialized up to its last named cell, so a cell reference alone decides
+# its size: one <c r="ZZZZZZ1"/> is 321 million strings. Excel's last column is XFD,
+# and a questionnaire is a few hundred rows of ten columns; past either bound the
+# file is not one.
+XLSX_MAX_COLUMN: Final = 16_383  # XFD, 0-based
+XLSX_MAX_CELLS: Final = 1_000_000
 
 _NS: Final = {
     "m": "http://schemas.openxmlformats.org/spreadsheetml/2006/main",
@@ -93,6 +99,7 @@ def _xlsx_rows(raw: bytes) -> list[list[str]]:
             target = "xl/" + target
         root = _xml(z.read(target))
         rows: list[list[str]] = []
+        cells = 0
         for row in root.findall(".//m:sheetData/m:row", ns):
             vals: dict[int, str] = {}
             maxc = -1
@@ -101,10 +108,16 @@ def _xlsx_rows(raw: bytes) -> list[list[str]]:
                 letters = re.match(r"[A-Z]+", ref)
                 if letters is None:
                     raise ValueError(f"not a cell reference: {ref}")
+                # XFD is three letters; a longer run is refused before it is counted,
+                # since counting it is quadratic in its length.
+                if len(letters.group(0)) > 3:
+                    raise ValueError("a cell past the last column")
                 ci = 0
                 for ch in letters.group(0):
                     ci = ci * 26 + (ord(ch) - 64)
                 ci -= 1
+                if ci > XLSX_MAX_COLUMN:
+                    raise ValueError(f"a cell past the last column: {ref}")
                 maxc = max(maxc, ci)
                 typ = c.attrib.get("t")
                 val: str | None = ""
@@ -121,6 +134,9 @@ def _xlsx_rows(raw: bytes) -> list[list[str]]:
                         val = rawv or ""
                 vals[ci] = str(val).strip()
             if maxc >= 0:
+                cells += maxc + 1
+                if cells > XLSX_MAX_CELLS:
+                    raise ValueError("more cells than a questionnaire holds")
                 rows.append([vals.get(i, "") for i in range(maxc + 1)])
         return rows
 

@@ -10,6 +10,7 @@ import { afterEach, beforeEach, describe, expect, it, onTestFinished, vi } from 
 import { t, tv } from "@/i18n/t";
 import type { ResearchRun } from "@/lib/api";
 import { AnalysisInspect } from "./AnalysisInspect";
+import { ItemInspectorContext } from "@/components/workbench/item-inspector-context";
 import { measureAnchor } from "@/lib/result-reading";
 import { parseAiaId } from "@/lib/workbench-artifacts";
 import { CONFLICT_MESSAGE } from "@/research/store";
@@ -906,7 +907,10 @@ describe("Run: what a run can cost (5b.2)", () => {
     expect((within(choice).getByRole("radio", { name: t("research.exec.population.live") }) as HTMLInputElement).checked).toBe(true);
 
     fireEvent.click(within(choice).getAllByRole("radio")[1]);
-    fireEvent.click(await screen.findByRole("button", { name: t("research.exec.start") }));
+    // The checks are read again over the child, so readiness and the start forecast one population.
+    await waitFor(() => expect(called("GET", "/api/v1/studies/STU-1/research/readiness").at(-1)!.url).toContain("population_version_id=ochota"));
+    await waitFor(() => expect((screen.getByRole("button", { name: t("research.exec.start") }) as HTMLButtonElement).disabled).toBe(false));
+    fireEvent.click(screen.getByRole("button", { name: t("research.exec.start") }));
     await waitFor(() => expect(called("POST", RUNS)).toHaveLength(1));
     expect(called("POST", RUNS)[0].body).toEqual({ design_revision_id: "REV-a1", population_version_id: "ochota" });
   });
@@ -1755,6 +1759,41 @@ describe("Results", () => {
     expect(document.activeElement).toBe(finding);
   });
 
+  it("opens a finding and a cited number in the workbench's inspector, from the coverage, the finding and its chip (ANL3)", async () => {
+    const analysed = run({ ...COMPLETED, steps: [...COMPLETED.steps,
+      step("analysis_research_questions", "SUCCEEDED", { kind: "research_analysis", artifact_id: "ART-7", analysis_outcome: "COMPLETED" }),
+    ] });
+    api({ ...listed(analysed),
+      "GET /api/v1/studies/STU-1/research/runs/RUN-1/artifacts/ART-4": () => AGGREGATE,
+      "GET /api/v1/studies/STU-1/design/revisions/REV-a1": () => ({ revision_id: "REV-a1", content: { research_plan: { research_questions: ["Co lidé pijí?"] } } }),
+      "GET /api/v1/studies/STU-1/research/runs/RUN-1/analysis": () => ({ complete: false, synthetic: true, pending: {}, modules: {
+        research_questions: { outcome: "COMPLETED", summary: null, violations: [],
+          research_question_answers: [{ question: "Co lidé pijí?", answer: "Čaj.", claim_ids: ["C1"] }],
+          key_findings: [{ text: "Čaj vede.", claim_ids: ["C1"] }],
+          claims: [{ claim_id: "C1", evidence_ref: "q2.pct.2", value: 38.4, indicative: false, data_origin: null }] },
+      } }),
+    });
+    const opened: string[] = [];
+    const inspector = { open: (entry: { id: string }) => { opened.push(entry.id); return true; } };
+    render(<ItemInspectorContext.Provider value={inspector}><ResearchScreen step="results" frame={TEST_FRAME} /></ItemInspectorContext.Provider>);
+    fireEvent.click(await screen.findByRole("tab", { name: "AI analýza" }));
+    const table = await screen.findByRole("region", { name: "Pokrytí výzkumných otázek" });
+    const chip = await within(table).findByRole("button", { name: /1$/ });
+    const before = document.activeElement;
+    fireEvent.click(chip);
+    // The drawer takes it: the page neither scrolls nor moves focus to the finding.
+    expect(document.activeElement).toBe(before);
+    const keyFindings = screen.getByRole("region", { name: "Hlavní zjištění" });
+    fireEvent.click(within(keyFindings).getByRole("button", { name: /^Otevřít .*zjištění 1 v inspektoru$/ }));
+    const number = keyFindings.querySelector("[data-inspect-claim]") as HTMLElement;
+    expect(number.tagName).toBe("BUTTON");
+    fireEvent.click(number);
+    expect(opened).toEqual(["finding:research_questions:0", "finding:research_questions:0", "claim:research_questions:C1"]);
+    // The Lead's targets stay where they were: one element each.
+    expect(document.querySelectorAll('[data-aia="claim:research_questions:C1"]')).toHaveLength(1);
+    expect(document.querySelectorAll('[data-aia="finding:research_questions:0"]')).toHaveLength(1);
+  });
+
   it("says the research questions are unknown when the frozen design cannot be read, never that it has none (ANL2)", async () => {
     const analysed = run({ ...COMPLETED, steps: [...COMPLETED.steps,
       step("analysis_research_questions", "SUCCEEDED", { kind: "research_analysis", artifact_id: "ART-7", analysis_outcome: "BLOCKED" }),
@@ -1873,7 +1912,7 @@ describe("Results", () => {
         executive: { outcome: "COMPLETED", summary: "Úvodní odstavec.\n\n- první bod\n- druhý bod", research_question_answers: [{ question: "Co lidé pijí?", answer: "Hlavně čaj a kávu.", claim_ids: ["C2"] }],
           key_findings: [{ text: "Čaj a káva jsou **vyrovnané**.", claim_ids: ["C1", "C2", "C9", "C3"] }],
           claims: [{ claim_id: "C1", evidence_ref: "q2.pct.2", value: 38.4, indicative: false, data_origin: null }, { claim_id: "C2", evidence_ref: "q2.pct.1", value: 34.8, indicative: true, data_origin: null }, { claim_id: "C3", evidence_ref: "x9.median", value: 4, indicative: false, data_origin: null }], violations: [] },
-        objects: { outcome: "COMPLETED", summary: null, research_question_answers: [], key_findings: [{ text: "Bez čísel.", claim_ids: [] }], claims: [], violations: [] },
+        objects: { outcome: "COMPLETED", summary: null, research_question_answers: [], key_findings: [{ text: "Bez čísel.", claim_ids: [] }, { text: "Jen neuložená čísla.", claim_ids: ["C7"] }], claims: [], violations: [] },
       } }),
     });
     render(<ResearchScreen step="results" frame={TEST_FRAME} />);
@@ -1908,6 +1947,14 @@ describe("Results", () => {
     expect(drawer.container.querySelector("[data-aia]")).toBeNull();
     for (const c of ["C1", "C2", "C3"]) expect(document.querySelectorAll(`[data-aia="claim:executive:${c}"]`)).toHaveLength(1);
     drawer.unmount();
+    // A finding that cites no admitted number is never said to rest on one (review of #692).
+    // Neither does one that cites only ids the module did not store.
+    for (const id of ["objects:0", "objects:1"]) {
+      const bare = render(<AnalysisInspect target={{ kind: "finding", id }} />);
+      expect(bare.container.textContent).not.toContain("z připuštěných čísel");
+      expect(bare.container.textContent).toContain("neopírá se o žádné připuštěné číslo");
+      bare.unmount();
+    }
     // A number whose question AIA cannot find says so in words; its reference stays as a code (6c).
     expect(within(keyFindings).getByText(/číslo, k němuž AIA nedohledala otázku/)).toBeTruthy();
     expect(within(keyFindings).getByText("x9.median").tagName).toBe("CODE");

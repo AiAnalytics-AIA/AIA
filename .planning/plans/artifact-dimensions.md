@@ -143,11 +143,13 @@ V2: `DimensionsArt` (`SampleStages.tsx:206-230`).
   the current n (`PersonaStep.tsx:323 @ b6ac25c`). The chip is gone, and the recommendation is named
   only on its button. Test: "the heading names no n but the stored one".
 
-- **DIM-F4 (reported to the integration coordinator; a cross-stage vocabulary rule,
-  `research-lead-workbench#14`).** Inside the workbench the dock still speaks the classic flow: its
+- **DIM-F4 (fixed: the frame's part in #668, Dimenze's "Další" → Vzorek in its own PR).** Inside the workbench the dock still speaks the classic flow: its
   back link reads "4. Audience" (`PersonaStep.tsx:379 @ b6ac25c`, `cs.ts:222`) where the navigator says
   "Cílová skupina" (`workbench-stages.ts:25`), and "Další · kontrola" skips Vzorek, the workbench's next
-  stage. Seen at 390 px. Waiting on the frame's rule before Dimenze's dock changes.
+  stage. Seen at 390 px. #668 drops the dock's back link inside the workbench (`FrameNavigation`);
+  #686 gives the stage the frame's next stage (`FrameNavigation`'s `next`, focus on its heading), and
+  Dimenze's "Další · Vzorek" opens it (test "inside the workbench goes on to the frame's next stage",
+  `dimensions_journey.mjs`); the classic layout keeps "Další · kontrola" to Spuštění.
 
 ## 8. Owner questions
 

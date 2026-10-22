@@ -26,7 +26,7 @@ from collections.abc import Callable, Iterator
 from dataclasses import dataclass
 from typing import Annotated, Final
 
-from aia_core.application.audience_preview import AudiencePreviewer
+from aia_core.application.audience_preview import AudiencePreviewer, PanelSampler
 from aia_core.application.population_double import PopulationDouble, population_double
 from aia_core.application.scope import AuthenticatedPrincipal, ScopeResolver
 from aia_core.domain.population import CZ_LIVE, PopulationImportContract
@@ -41,7 +41,7 @@ from aia_core.domain.scope import (
 from aia_core.infrastructure.db import create_app_engine, create_session_factory
 from aia_core.infrastructure.population_source import FilesystemPopulationSource
 from aia_core.infrastructure.repositories import ProjectRepository
-from aia_core.infrastructure.scope_repository import ScopeRepository
+from aia_core.infrastructure.scope_repository import ScopeRepository, SubjectMismatch
 from aia_core.infrastructure.storage import ArtifactStore
 from aia_core.infrastructure.storage_settings import build_artifact_store
 from fastapi import Depends, FastAPI, Header, HTTPException, Path, Request, status
@@ -333,11 +333,30 @@ def principal_from_credential(
         raise _unauthenticated("unauthenticated", exc.client_message) from exc
 
     scope_repo = ScopeRepository(session)
-    user = scope_repo.upsert_user(
-        email=identity.email or f"{identity.subject}@unknown.invalid",
-        display_name=identity.display_name or "",
-        external_subject=identity.subject,
-    )
+    try:
+        user = scope_repo.upsert_user(
+            email=identity.email or f"{identity.subject}@unknown.invalid",
+            display_name=identity.display_name or "",
+            external_subject=identity.subject,
+        )
+    except SubjectMismatch as exc:
+        # An attempt to sign in as someone else's account: the record worth keeping.
+        # The request session rolls back on the error below, so the audit row is
+        # committed first (as open_session does with a refused admission).
+        scope_repo.record_subject_mismatch(user_id=exc.user_id, request_id=request_id_var.get())
+        session.commit()
+        logger.warning(
+            "authentication refused: e-mail bound to another subject; an administrator "
+            "who confirms the change clears it with ScopeRepository.clear_subject",
+            extra={"context": {"user_id": exc.user_id, "provider": provider.name}},
+        )
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail={
+                "code": "identity_mismatch",
+                "message": "This sign-in does not match the account its e-mail belongs to.",
+            },
+        ) from exc
     if not user["is_active"]:
         raise _unauthenticated("account_disabled", "This account is disabled.")
 
@@ -530,3 +549,19 @@ SettingsDep = Annotated[Settings, Depends(get_app_settings)]
 AudiencePreviewerDep = Annotated[AudiencePreviewer | None, Depends(get_audience_previewer)]
 AudiencePopulationDep = Annotated[AudiencePopulation, Depends(get_audience_population)]
 RunPopulationDep = Annotated[AudiencePopulation, Depends(get_run_population)]
+
+
+def get_panel_sampler(
+    request: Request, session: SessionDep, population: RunPopulationDep
+) -> PanelSampler | None:
+    """A panel run's sample as a start would draw it (run-qc-and-checkpoint RQC6b): the
+    previewer's draw, bound to this request's session, over the population a new run records;
+    ``None`` when the previewer reads another population (the workbench's stand-in audience) or
+    there is none (no ``AIA_POPULATION_ASSET_ROOT``), so a panel forecast reads unknown."""
+    previewer: AudiencePreviewer | None = getattr(request.app.state, "audience_previewer", None)
+    if previewer is None or previewer.population_id != population.population_id:
+        return None
+    return lambda filters, n, seed: previewer.panel_sample(session, filters, n, seed)
+
+
+PanelSamplerDep = Annotated[PanelSampler | None, Depends(get_panel_sampler)]

@@ -97,7 +97,7 @@ import { reportStatus, reportStatusWords } from "@/lib/report-status";
 import type { Tone } from "@/lib/tone";
 import { AnalysisBlocked, ViolationList } from "./AnalysisBlocked";
 import { AnalysisCoverage, AnalysisMilestones } from "./AnalysisCoverage";
-import { setShownAnalysis } from "./AnalysisInspect";
+import { FindingInspectButton, setShownAnalysis, useOpenAnalysisItem, type OpenAnalysisItem } from "./AnalysisInspect";
 import { CodedWords } from "./CodedWords";
 import { CONFLICT_MESSAGE, submitWorkingDesign } from "@/research/store";
 import { projectVariants, selectedVariant } from "@/research/plan";
@@ -706,10 +706,11 @@ export function RunStep() {
     };
   }, [frame.studyId, frame.canEdit, store]);
 
-  const rereadReadiness = async (personaSource = prepared.kind === "ready" ? prepared.readiness.persona_source : undefined) => {
+  const rereadReadiness = async (personaSource = prepared.kind === "ready" ? prepared.readiness.persona_source : undefined, child = childId) => {
     if (prepared.kind !== "ready") return;
     try {
-      const readiness = await research.readiness(frame.studyId, prepared.readiness.design_revision_id, personaSource);
+      // The child the run starts over too: readiness forecasts the population the start draws from.
+      const readiness = await research.readiness(frame.studyId, prepared.readiness.design_revision_id, personaSource, child ?? undefined);
       setPrepared({ ...prepared, readiness });
     } catch (e) {
       setStartError(message(e));
@@ -719,6 +720,12 @@ export function RunStep() {
   const chooseSource = async (source: string) => {
     setChoosing(true);
     await rereadReadiness(source);
+    setChoosing(false);
+  };
+  const chooseChild = async (child: string | null) => {
+    setChildId(child);
+    setChoosing(true);
+    await rereadReadiness(undefined, child);
     setChoosing(false);
   };
 
@@ -856,7 +863,7 @@ export function RunStep() {
               disabled={!frame.canEdit || starting || choosing}
             />
           ) : null}
-          {children.length ? <PopulationChoice choices={children} value={childId} onChange={setChildId} disabled={!frame.canEdit || starting} /> : null}
+          {children.length ? <PopulationChoice choices={children} value={childId} onChange={chooseChild} disabled={!frame.canEdit || starting} /> : null}
           {prepared.readiness.fieldwork_source === "ai_runtime" ? (
             <p role="note" className="rounded-sm border border-status-you-ink/40 bg-status-you-wash p-3 text-sm">{t("research.exec.aiRuntimeNotice")}</p>
           ) : (
@@ -1601,18 +1608,24 @@ type AnalysisModule = ResearchAnalysis["modules"][string];
 /** The numbers a sentence of the analysis rests on: each claim it names, resolved to its Data
  *  card (result-reading.ts citedMeasure); an unknown reference shows as written. */
 /** `place` and `marks`: the chip that carries its claim's Lead target is the first in the page (claimMarks), so a target names one element. */
-function CitedNumbers({ ids, place, marks, outcome, spec }: { ids: readonly string[]; place: ChipPlace; marks: ReadonlySet<string>; outcome: AnalysisModule; spec: CompiledSpecification | null }) {
+function CitedNumbers({ ids, place, marks, outcome, spec, open }: { ids: readonly string[]; place: ChipPlace; marks: ReadonlySet<string>; outcome: AnalysisModule; spec: CompiledSpecification | null; open: OpenAnalysisItem | null }) {
   const cited = ids.map((id) => outcome.claims.find((claim) => claim.claim_id === id)).filter((claim): claim is AnalysisModule["claims"][number] => Boolean(claim));
   if (!cited.length) return null;
   return (
     <ul aria-label="Čísla, o která se opírá" className="mt-2 flex flex-wrap gap-2">
       {cited.map((claim) => {
         const measure = citedMeasure(claim.evidence_ref, spec);
+        const target = analysisTarget({ kind: "claim", module: place.module as AnalysisModuleKind, claimId: claim.claim_id });
+        const number = measure ? measure.format(claim.value, claim.decimals) : claim.value.toLocaleString("cs-CZ");
+        const words = measure
+          ? <><span className="font-semibold tabular-nums">{number}</span> {measure.what} · {measure.title}</>
+          : <><span className="font-semibold tabular-nums">{number}</span> <CodedWords inline coded={{ words: t("research.exec.untitled.cited"), code: claim.evidence_ref }} /></>;
         return (
-          <li key={claim.claim_id} data-cited-number data-aia={marks.has(chipKey(place, claim.claim_id)) ? analysisTarget({ kind: "claim", module: place.module as AnalysisModuleKind, claimId: claim.claim_id }) ?? undefined : undefined} className="max-w-full rounded-control border border-border bg-surface-sunken px-2.5 py-1 text-xs leading-5">
-            {measure
-              ? <a href={`#${measureAnchor(measure.measureId)}`} className="no-underline hover:underline"><span className="font-semibold tabular-nums">{measure.format(claim.value, claim.decimals)}</span> {measure.what} · {measure.title}</a>
-              : <span><span className="font-semibold tabular-nums">{claim.value.toLocaleString("cs-CZ")}</span> <CodedWords inline coded={{ words: t("research.exec.untitled.cited"), code: claim.evidence_ref }} /></span>}
+          <li key={claim.claim_id} data-cited-number data-aia={marks.has(chipKey(place, claim.claim_id)) ? target ?? undefined : undefined} className="max-w-full rounded-control border border-border bg-surface-sunken px-2.5 py-1 text-xs leading-5">
+            {/* In the workbench the number opens in the inspector, which links on to its measure (ANL3). */}
+            {open && target
+              ? <button type="button" data-inspect-claim onClick={() => open(target, `Číslo ${number}`)} className="text-left hover:underline focus-visible:outline-2 focus-visible:outline-focus-ring">{words}<span className="sr-only"> (otevřít v inspektoru)</span></button>
+              : measure ? <a href={`#${measureAnchor(measure.measureId)}`} className="no-underline hover:underline">{words}</a> : <span>{words}</span>}
             {claim.indicative ? <span className="text-status-you-ink"> · orientační</span> : null}
           </li>
         );
@@ -1694,6 +1707,7 @@ function AnalysisResults({ run, spec, progressHref }: { run: ResearchRun; spec: 
     return () => setShownAnalysis(null);
   }, [run.run_id, shownValue, spec]);
   const retryable = useRetryableRead(run);
+  const openItem = useOpenAnalysisItem();
   if (loaded.state === "hidden") return null;
   const analysis = shownValue;
   const complete = ANALYSIS_ORDER.filter((id) => analysis?.modules[id]?.outcome === "COMPLETED").length;
@@ -1747,8 +1761,11 @@ function AnalysisResults({ run, spec, progressHref }: { run: ResearchRun; spec: 
                 <ul className="mt-2 flex flex-col gap-3">
                   {outcome.key_findings.map((finding, index) => (
                     <li key={index} id={findingAnchor({ module: id, index })} data-aia={analysisTarget({ kind: "finding", module: id, index }) ?? undefined} className="scroll-mt-4 border-l-2 border-signal pl-3">
-                      <FormattedText text={finding.text} />
-                      <CitedNumbers ids={finding.claim_ids} place={{ list: "key", module: id, index }} marks={marks} outcome={outcome} spec={spec} />
+                      <div className="flex items-start gap-2">
+                        <FormattedText text={finding.text} className="min-w-0 grow" />
+                        <FindingInspectButton open={openItem} module={id} index={index} />
+                      </div>
+                      <CitedNumbers ids={finding.claim_ids} place={{ list: "key", module: id, index }} marks={marks} outcome={outcome} spec={spec} open={openItem} />
                     </li>
                   ))}
                 </ul>
@@ -1776,9 +1793,9 @@ function AnalysisResults({ run, spec, progressHref }: { run: ResearchRun; spec: 
               </> : selected?.outcome === "COMPLETED" ? <>
                 {selected.summary ? <FormattedText text={selected.summary} className="mt-3" /> : null}
                 {selected.research_question_answers.length ? <div className="mt-5 space-y-4"><h4 className="text-sm font-semibold">Odpovědi na výzkumné otázky</h4>
-                  {selected.research_question_answers.map((answer, index) => <div key={index} className="rounded-md bg-surface-sunken p-3"><h5 className="text-sm font-medium">{answer.question}</h5>{answer.gap ? <p role="note" data-answer-gap className="mt-1 rounded-sm border border-status-you-ink/40 bg-status-you-wash p-2 text-sm">{tv("research.exec.results.answerGap", { words: answer.gap })}</p> : null}<FormattedText text={answer.answer} className="mt-1" /><CitedNumbers ids={answer.claim_ids} place={{ list: "answer", module: selectedModule, index }} marks={marks} outcome={selected} spec={spec} /></div>)}
+                  {selected.research_question_answers.map((answer, index) => <div key={index} className="rounded-md bg-surface-sunken p-3"><h5 className="text-sm font-medium">{answer.question}</h5>{answer.gap ? <p role="note" data-answer-gap className="mt-1 rounded-sm border border-status-you-ink/40 bg-status-you-wash p-2 text-sm">{tv("research.exec.results.answerGap", { words: answer.gap })}</p> : null}<FormattedText text={answer.answer} className="mt-1" /><CitedNumbers ids={answer.claim_ids} place={{ list: "answer", module: selectedModule, index }} marks={marks} outcome={selected} spec={spec} open={openItem} /></div>)}
                 </div> : null}
-                {selected.key_findings.length ? <div className="mt-5"><h4 className="text-sm font-semibold">Hlavní zjištění</h4><ul className="mt-2 flex flex-col gap-3">{selected.key_findings.map((finding, index) => <li key={index} className="border-l-2 border-signal pl-3"><FormattedText text={finding.text} /><CitedNumbers ids={finding.claim_ids} place={{ list: "finding", module: selectedModule, index }} marks={marks} outcome={selected} spec={spec} /></li>)}</ul></div> : null}
+                {selected.key_findings.length ? <div className="mt-5"><h4 className="text-sm font-semibold">Hlavní zjištění</h4><ul className="mt-2 flex flex-col gap-3">{selected.key_findings.map((finding, index) => <li key={index} className="border-l-2 border-signal pl-3"><div className="flex items-start gap-2"><FormattedText text={finding.text} className="min-w-0 grow" /><FindingInspectButton open={openItem} module={selectedModule} index={index} /></div><CitedNumbers ids={finding.claim_ids} place={{ list: "finding", module: selectedModule, index }} marks={marks} outcome={selected} spec={spec} open={openItem} /></li>)}</ul></div> : null}
                 {!selected.summary && !selected.research_question_answers.length && !selected.key_findings.length ? <p className="mt-3 text-sm text-ink-muted">Tato část nemá textový souhrn.</p> : null}
                 {selected.claims.length ? <details className="mt-5 border-t border-border pt-3 text-xs text-ink-muted"><summary className="cursor-pointer">{t("research.exec.results.analysisEvidence")} a technický původ tvrzení</summary><p className="mt-2 break-words">{selected.claims.map((claim) => `${claim.claim_id} → ${claim.evidence_ref}`).join(", ")}</p></details> : null}
               </> : <div className="mt-3 text-sm text-ink-muted"><p>{selectedStep ? `Stav kroku: ${stepStatusLabel(selectedStep, run.is_terminal)}` : "Tato část zatím nemá uložený výstup."}</p>{selectedPending && !selectedStep ? <p className="mt-1">{t("research.exec.results.analysisPending")}: <CodedWords inline coded={codeWords("research.exec.stepStatus", selectedPending)} /></p> : null}{selectedStep && waitingDetail(selectedStep) ? <p className="mt-1">{waitingDetail(selectedStep)}</p> : null}</div>}

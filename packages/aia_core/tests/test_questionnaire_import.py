@@ -15,6 +15,7 @@ from __future__ import annotations
 import hashlib
 import io
 import json
+import time
 import zipfile
 from pathlib import Path
 from typing import Any
@@ -167,6 +168,56 @@ def test_a_workbook_part_declaring_a_dtd_is_not_parsed() -> None:
     with pytest.raises(QuestionnaireImportRejected) as refused:
         import_questionnaire(out.getvalue(), "sablona.xlsx")
     assert refused.value.reason == "unreadable"
+
+
+def _sheet_of(sheet_data: str) -> bytes:
+    """A minimal workbook whose one sheet holds ``sheet_data``."""
+    main = "http://schemas.openxmlformats.org/spreadsheetml/2006/main"
+    rel = "http://schemas.openxmlformats.org/officeDocument/2006/relationships"
+    out = io.BytesIO()
+    with zipfile.ZipFile(out, "w", zipfile.ZIP_DEFLATED) as archive:
+        archive.writestr(
+            "xl/workbook.xml",
+            f'<workbook xmlns="{main}" xmlns:r="{rel}"><sheets>'
+            '<sheet name="DOTAZNIK" r:id="rId1"/></sheets></workbook>',
+        )
+        archive.writestr(
+            "xl/_rels/workbook.xml.rels",
+            '<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">'
+            '<Relationship Id="rId1" Target="worksheets/sheet1.xml"/></Relationships>',
+        )
+        archive.writestr(
+            "xl/worksheets/sheet1.xml",
+            f'<worksheet xmlns="{main}"><sheetData>{sheet_data}</sheetData></worksheet>',
+        )
+    return out.getvalue()
+
+
+@pytest.mark.parametrize(
+    "sheet_data",
+    [
+        # A cell past Excel's last column (XFD): ZZZZ is a row of 475,254 strings, and
+        # ZZZZZZ (an 800-byte file) one of 321 million.
+        '<row r="1"><c r="ZZZZ1" t="inlineStr"><is><t>x</t></is></c></row>',
+        # Columns that exist, on enough rows to fill gigabytes: 16,384 cells each.
+        "".join(f'<row r="{n}"><c r="XFD{n}"/></row>' for n in range(1, 200)),
+    ],
+    ids=["past-the-last-column", "rows-of-every-column"],
+)
+def test_a_sheet_naming_cells_far_past_its_content_is_refused(sheet_data: str) -> None:
+    with pytest.raises(QuestionnaireImportRejected) as refused:
+        import_questionnaire(_sheet_of(sheet_data), "dotaznik.xlsx")
+    assert refused.value.reason == "unreadable"
+
+
+def test_a_cell_reference_of_endless_letters_is_refused_before_it_is_counted() -> None:
+    # Turning 300,000 letters into a column number is quadratic bigint arithmetic:
+    # 12 s from a 1 KB file before the column bound ever saw it.
+    started = time.monotonic()
+    with pytest.raises(QuestionnaireImportRejected) as refused:
+        import_questionnaire(_sheet_of(f'<row r="1"><c r="{"A" * 300_000}1"/></row>'), "q.xlsx")
+    assert refused.value.reason == "unreadable"
+    assert time.monotonic() - started < 2.0
 
 
 def test_the_units_text_and_id_rules() -> None:

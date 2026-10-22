@@ -648,6 +648,7 @@ def test_a_panel_forecast_reads_the_sample_a_start_would_draw(
 ) -> None:
     from dataclasses import replace as replaced
 
+    from aia_core.domain.ai_respondent import fieldwork_seed
     from aia_core.domain.evidence import SupportStatus
     from aia_core.domain.evidence.support import AIA_SUPPORT_V1
     from aia_core.domain.fieldwork import PersonaSource
@@ -670,7 +671,9 @@ def test_a_panel_forecast_reads_the_sample_a_start_would_draw(
     )
     assert spec is not None, problems
     population = _population(session, population_kit)
-    sample = draw_panel_sample(population, {"vek": {"min": 60, "max": 89}}, 150, 20)
+    sample = draw_panel_sample(
+        population, {"vek": {"min": 60, "max": 89}}, 150, fieldwork_seed(spec)
+    )
     panel = PersonaSource.PANEL
     forecast = forecast_support(spec, support=AIA_SUPPORT_V1, persona_source=panel, sample=sample)
     cell = donor_support(
@@ -688,6 +691,28 @@ def test_a_panel_forecast_reads_the_sample_a_start_would_draw(
         sample,
         respondents=(replaced(sample.respondents[0], donor=None), *sample.respondents[1:]),
     )
-    for other in (None, replaced(sample, respondents=sample.respondents[:149]), no_donor):
+    # The audience preview draws at its own seed: not the run's sample.
+    elsewhere = replaced(sample, seed=sample.seed + 1)
+    for other in (
+        None,
+        replaced(sample, respondents=sample.respondents[:149]),
+        no_donor,
+        elsewhere,
+    ):
         missing = forecast_support(spec, support=AIA_SUPPORT_V1, persona_source=panel, sample=other)
         assert not missing.known and missing.results is None and missing.analysis is None
+
+
+def test_a_quota_cells_key_is_an_identifier_of_its_values() -> None:
+    from aia_core.domain.population.sampling import QuotaCell
+
+    cell = QuotaCell(("žena", "18-29", "Hlavní město Praha"), 3)
+    assert cell.key == "zena/18-29/hlavni-mesto-praha"
+    assert QuotaCell(("<missing>", "65+"), 1).key == "missing/65"
+
+
+def test_a_samples_quota_keys_are_unique_where_values_fold_alike() -> None:
+    from aia_core.domain.population.sampling import QuotaCell, quota_keys
+
+    cells = [QuotaCell(("65",), 1), QuotaCell(("65+",), 2), QuotaCell(("65 ",), 0)]
+    assert quota_keys(cells) == ("65", "65~2", "65~3")

@@ -6,8 +6,10 @@
 // update, saved by the store's autosave, so there is no separate editor, no "Použít úpravy" and
 // no unsaved form to guard. What each change does is research/plan-narrative.ts.
 
+import { useMemo } from "react";
+
 import { t, tv } from "@/i18n/t";
-import { type Edited, type NarrativeList, NARRATIVE_LISTS, addItem, addProblem, itemProblem, narrativeOf, removeItem, setItem, setSummary } from "@/research/plan-narrative";
+import { type Edited, type NarrativeList, NARRATIVE_LISTS, addItem, addProblem, itemProblem, itemTargets, narrativeOf, removeItem, setItem, setSummary } from "@/research/plan-narrative";
 import type { PlanState } from "@/research/plan";
 import { Icon } from "../icons";
 import { InlineCreateRow } from "../../ui/InlineCreateRow";
@@ -34,6 +36,8 @@ export function PlanNarrative({ disabled = false, onQuote }: { disabled?: boolea
   const { store, state, toast } = useResearch();
   const undo = useUndo();
   const n = narrativeOf(state);
+  // Each item's Lead target, by its stable id (never its place); none where no id can be read.
+  const targets = useMemo(() => itemTargets(state), [state]);
   // A change is checked against the copy as it stands now, then written in one update.
   const apply = (edit: (s: PlanState) => Edited): string | null => {
     const r = edit(store.get());
@@ -92,7 +96,7 @@ export function PlanNarrative({ disabled = false, onQuote }: { disabled?: boolea
             <ul className="mt-1 flex flex-col gap-1 text-sm leading-6">
               {n[list].map((text, i) => (
                 // Keyed by place: an item's place is what every edit names (the ids are the store's).
-                <li key={`${list}-${i}`} className="group flex items-start gap-2">
+                <li key={`${list}-${i}`} data-aia={targets[list][i] ?? undefined} className="group flex items-start gap-2">
                   <span aria-hidden="true" className="mt-2.5 block size-1.5 shrink-0 rounded-full bg-signal" />
                   <InlineText
                     value={text}
