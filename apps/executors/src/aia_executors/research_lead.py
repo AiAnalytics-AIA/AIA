@@ -45,6 +45,7 @@ from aia_core.domain.research_lead import (
     frozen_sample_size,
     ground_edits,
     ground_self_update,
+    ground_view,
     layer,
     lead_request,
     self_update_base,
@@ -275,9 +276,8 @@ class ResearchLeadExecutor:
             if existing is not None:
                 stored = artifacts.read_json(existing.artifact_id)
                 if isinstance(stored, dict) and isinstance(stored.get("result"), dict):
-                    return Succeeded(
-                        output={**stored["result"], "artifact_id": existing.artifact_id}
-                    )
+                    result = _regrounded(stored["result"], layer(frozen, "design"))
+                    return Succeeded(output={**result, "artifact_id": existing.artifact_id})
 
         answer = self._answer(step, context, frozen, pin)
         if isinstance(answer, Failed):
@@ -289,6 +289,10 @@ class ResearchLeadExecutor:
             design.get("analysis") or None,
             sample_size=frozen_sample_size(design),
         )
+        # A focus naming nothing the frozen copy shows (an audience filter it does not store)
+        # is left out and named, as an edit it cannot take is (artifact-audience AUD1).
+        grounded, dropped_view = ground_view(grounded, design.get("content") or {})
+        dropped = [*dropped, *dropped_view]
         notes = list(layer(frozen, "lead").get("notes") or ())
         shown = [str(n["memory_id"]) for n in notes]
         update, dropped_forgets = ground_self_update(grounded.self_update, shown)
@@ -354,3 +358,22 @@ class ResearchLeadExecutor:
                 },
             )
         return Succeeded(output={**step_output, "artifact_id": artifact.artifact_id})
+
+
+def _regrounded(result: dict[str, Any], design: Mapping[str, Any]) -> dict[str, Any]:
+    """A stored turn's result with today's focus grounding applied (:func:`ground_view`): an
+    answer stored by a worker from before it, reused on a retry, never carries a focus the
+    frozen copy does not show (Codex on #624). Grounding is idempotent: a result stored after
+    it comes back unchanged."""
+    try:
+        output = LeadOutput.model_validate(result.get("lead_output"))
+    except ValidationError:
+        return result
+    grounded, dropped = ground_view(output, design.get("content") or {})
+    if not dropped:
+        return result
+    return {
+        **result,
+        "lead_output": grounded.model_dump(mode="json"),
+        "dropped": [*(result.get("dropped") or []), *(d.model_dump() for d in dropped)],
+    }

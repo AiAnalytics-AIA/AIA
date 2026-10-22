@@ -24,6 +24,7 @@
 import { type PointerEvent, type ReactNode, useEffect, useId, useMemo, useRef, useState } from "react";
 import { t, tv } from "@/i18n/t";
 import { objectTarget, pairTarget } from "@/lib/artifacts/sociomap";
+import { type DisplayChange, MAP_REGISTERS, type MapRegister, displayChanges, stageHeight } from "@/lib/sociomap-display";
 import { num } from "@/lib/sociomapping-view";
 import { type BatteryWithMaps, type ObjectMapArtifact, originalRating } from "@/lib/object-map-view";
 import {
@@ -46,6 +47,8 @@ const RELATION_MODES: { mode: RelationMode; label: string; help?: string }[] = [
 ];
 
 const PRESSED = "aria-pressed:!border-signal aria-pressed:!bg-signal-wash aria-pressed:font-semibold aria-pressed:text-signal";
+/** The stage's height before it is measured (stageHeight then follows the pane it is read in). */
+const FIRST_HEIGHT = "min(700px, max(120px, calc(100dvh - 260px)), max(360px, 110vw))";
 const SWITCH = `inline-flex min-h-7 items-center disabled:cursor-not-allowed disabled:opacity-50 rounded-sm border border-border-strong bg-surface-raised px-2 text-xs text-ink hover:border-signal focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus-ring ${PRESSED}`;
 
 export function ObjectMapPanel({ battery, map, facts }: { battery: BatteryWithMaps; map: ObjectMapArtifact; facts: ReactNode }) {
@@ -79,9 +82,9 @@ function Aside({ battery, facts, items, selected, notPlaced, counts = null, deta
         <ul className="flex flex-col">
           {items.map((n, k) => (
             <li key={n.id}>
-              <button type="button" data-aia={objectTarget(battery.battery_id, n.id) ?? undefined} aria-pressed={k === selected} disabled={!onChoose} onClick={() => onChoose?.(k)} onPointerEnter={() => onHover?.(k)} onPointerLeave={() => onHover?.(-1)}
-                aria-label={tv("research.exec.objectMap.selectObject", { label: n.label })}
-                className={`grid w-full grid-cols-[12px_minmax(0,1fr)_auto] items-center gap-2 rounded px-1.5 py-[5px] text-left text-xs hover:bg-surface ${k === selected ? "bg-signal-wash font-semibold" : ""}`}>
+              <button type="button" data-aia={objectTarget(battery.battery_id, n.id) ?? undefined} aria-pressed={onChoose ? k === selected : undefined} aria-disabled={onChoose ? undefined : true} onClick={() => onChoose?.(k)} onPointerEnter={() => onHover?.(k)} onPointerLeave={() => onHover?.(-1)}
+                aria-label={onChoose ? tv("research.exec.objectMap.selectObject", { label: n.label }) : undefined}
+                className={`grid w-full grid-cols-[12px_minmax(0,1fr)_auto] items-center gap-2 rounded px-1.5 py-[5px] text-left text-xs [&:not([aria-disabled])]:hover:bg-surface aria-disabled:cursor-default ${k === selected ? "bg-signal-wash font-semibold" : ""}`}>
                 <span aria-hidden className="h-3 w-3 rounded-full" style={{ background: n.colour }} />
                 <span className="truncate">{n.label}</span>
                 <span className="tabular-nums">{panelNumber(originalRating(n.value, battery.rating_scale) ?? n.value)}</span>
@@ -94,6 +97,7 @@ function Aside({ battery, facts, items, selected, notPlaced, counts = null, deta
           <p className="text-xs leading-[17px] text-ink-muted" data-testid="object-map-unplaced-objects">{tv("research.exec.objectMap.panel.notPlaced", { labels: notPlaced.join(", ") })}</p>
         ) : null}
       </div>
+      <Registers />
       <div className="flex flex-col gap-2 rounded-[10px] border border-border bg-surface-raised p-4">{facts}</div>
     </aside>
   );
@@ -294,13 +298,39 @@ function PanelView({ battery, map, facts }: { battery: BatteryWithMaps; map: Obj
     setView(next); setSelected(-1); setRelation(null); setPerson(-1); setHovered(-1);
   };
   const choose = (k: number) => { setSelected((s) => (s === k ? -1 : k)); setRelation(null); };
+  // What the toolbar has changed against the map's opening; the bar names it (SOC3).
+  const changes = displayChanges({ map: people ? "respondents" : "objects", norm, relations: mode });
+  // "Zrušit filtr" removes its own bar: the keyboard goes back to the toolbar, never to the page's top.
+  const toolbar = useRef<HTMLDivElement>(null);
+  const [resets, setResets] = useState(0);
+  useEffect(() => { if (resets) toolbar.current?.focus(); }, [resets]);
+  // The stage fits the pane it is read in (stageHeight): the workbench's artifact pane, else the
+  // window less the page's sticky header; measured again whenever the pane or what sits over the
+  // stage moves (a resize, a wrapped toolbar, the filter bar, a strip opening over the pane).
+  const status = useRef<HTMLDivElement>(null);
+  const [fit, setFit] = useState<number | null>(null);
+  useEffect(() => {
+    const bar = toolbar.current;
+    if (!stage || !bar || typeof ResizeObserver === "undefined") return;
+    const pane = stage.closest<HTMLElement>(".artbody");
+    const measure = () => {
+      const visible = pane ? Math.min(pane.clientHeight, window.innerHeight) : window.innerHeight - stickyTop();
+      setFit(stageHeight(visible, stage.getBoundingClientRect().top - bar.getBoundingClientRect().top, stage.clientWidth));
+    };
+    const observer = new ResizeObserver(measure);
+    for (const node of [stage, bar, status.current, pane]) if (node) observer.observe(node);
+    window.addEventListener("resize", measure);
+    return () => { observer.disconnect(); window.removeEventListener("resize", measure); };
+  }, [stage]);
+  const resetDisplay = () => { showMap("objects"); setNorm("range"); setMode("top"); setResets((n) => n + 1); };
   const detail = people
     ? <PersonCard detail={person >= 0 ? respondentDetail(map, dots[person].id) : null} />
-    : <ObjectCard battery={battery} map={map} selected={selected} relation={relation} />;
+    : <ObjectCard battery={battery} map={map} selected={selected} relation={relation}
+      onRelation={(j) => setRelation((r) => (isPair(r, selected, j) ? null : [selected, j]))} />;
 
   return (
     <div className="flex flex-col gap-3" data-testid="object-map-panel">
-      <div className="flex flex-wrap items-center gap-x-5 gap-y-2" role="toolbar" aria-label={t("research.exec.objectMap.controls")}>
+      <div ref={toolbar} tabIndex={-1} className="flex flex-wrap items-center gap-x-5 gap-y-2 focus:outline-none" role="toolbar" aria-label={t("research.exec.objectMap.controls")}>
         {density ? (
           <div className="flex items-center gap-1.5" role="group" aria-label={t("research.exec.objectMap.panel.mapGroup")}>
             <span className="text-[10px] uppercase tracking-[.06em] text-ink-muted">{t("research.exec.objectMap.panel.mapGroup")}</span>
@@ -326,8 +356,13 @@ function PanelView({ battery, map, facts }: { battery: BatteryWithMaps; map: Obj
         )}
         <button type="button" className={SWITCH} title={t("research.exec.objectMap.panel.exportHelp")} onClick={exportPng}>{t("research.exec.objectMap.panel.export")}</button>
       </div>
+      {/* One live region, always there, so the bar's first appearance is announced too. */}
+      <div ref={status} role="status" data-testid="object-map-filter-status">
+        {changes.length ? <FilterBar changes={changes} onReset={resetDisplay} /> : null}
+      </div>
       <div className="flex flex-wrap items-start gap-4">
-        <div ref={setStage} className="relative h-[700px] min-w-0 flex-[999_1_560px] overflow-hidden rounded-[10px] bg-[#07090c] [min-width:min(100%,560px)] [&:fullscreen]:h-screen [&:fullscreen]:w-screen [&:fullscreen]:rounded-none" data-testid="object-map-stage">
+        <div ref={setStage} className="relative min-w-0 flex-[999_1_560px] overflow-hidden rounded-[10px] bg-[#07090c] [min-width:min(100%,560px)] [&:fullscreen]:h-screen [&:fullscreen]:w-screen [&:fullscreen]:rounded-none" data-testid="object-map-stage"
+          style={full ? undefined : { height: fit ?? FIRST_HEIGHT }}>
           <canvas ref={canvas} className="block h-full w-full cursor-grab touch-none" role="img" data-testid="object-map-canvas"
             data-camera={JSON.stringify(camera)} data-norm={norm} data-map={people ? "respondents" : "objects"} data-person={people && person >= 0 ? dots[person].id : ""}
             data-relations={people ? "" : pairs.map((p) => `${nodes[p.i].id}|${nodes[p.j].id}`).join(" ")} data-selected={selected >= 0 ? nodes[selected].id : ""} data-relation={relation ? `${nodes[relation[0]].id}|${nodes[relation[1]].id}` : ""}
@@ -346,7 +381,8 @@ function PanelView({ battery, map, facts }: { battery: BatteryWithMaps; map: Obj
           </div>
           {people ? <DensityLegend segments={segments} /> : <Legend battery={battery} values={nodes.map((n) => (n.primary ? n.value : null))} norm={norm} strongest={strongest} />}
         </div>
-        <Aside battery={battery} facts={facts} selected={selected} onChoose={choose} onHover={setHovered} notPlaced={notPlaced} detail={detail}
+        {/* Selection is the object map's: on the respondent map the list only lists (a click there showed nothing). */}
+        <Aside battery={battery} facts={facts} selected={selected} onChoose={people ? undefined : choose} onHover={setHovered} notPlaced={notPlaced} detail={detail}
           counts={people ? <RespondentCounts map={map} segments={segments} /> : null}
           items={nodes.map((n, k) => ({ id: n.id, label: n.label, value: n.value, colour: n.primary ? color66(tones[k]) : SECONDARY }))} />
       </div>
@@ -598,10 +634,12 @@ function DetailCard({ title, children }: { title: string; children: ReactNode })
 
 const DETAIL_HEAD = "mt-1 text-xs font-semibold";
 const signed = (v: number) => (v >= 0 ? "+" : "") + num(v, 2);
+/** Whether a relation is the pair of i and j, whichever end it names first (the canvas names the line's own). */
+const isPair = (r: [number, number] | null, i: number, j: number) => !!r && ((r[0] === i && r[1] === j) || (r[0] === j && r[1] === i));
 
 /** The panel's object detail (`objectDetail66`): the selected relation, then the object's numbers
  *  and its strongest reliable relations, all as the map stores them. */
-function ObjectCard({ battery, map, selected, relation }: { battery: BatteryWithMaps; map: ObjectMapArtifact; selected: number; relation: [number, number] | null }) {
+function ObjectCard({ battery, map, selected, relation, onRelation }: { battery: BatteryWithMaps; map: ObjectMapArtifact; selected: number; relation: [number, number] | null; onRelation: (j: number) => void }) {
   const p = "research.exec.objectMap.panel";
   if (selected < 0) {
     return <DetailCard title={t(`${p}.objectDetailTitle`)}><p className="py-4 text-center text-ink-muted">{t(`${p}.objectDetailEmpty`)}</p></DetailCard>;
@@ -611,7 +649,10 @@ function ObjectCard({ battery, map, selected, relation }: { battery: BatteryWith
   const pair = relation ? pairTarget(battery.battery_id, map.object_ids[relation[0]], map.object_ids[relation[1]]) : null;
   return (
     <DetailCard title={t(`${p}.objectDetailTitle`)}>
-      {relation ? <div data-aia={pair ?? undefined}><RelationBlock detail={relationDetail(battery, map, relation[0], relation[1])} /></div> : null}
+      {/* Announced when a relation opens from the list below: it appears above the button pressed. */}
+      <div aria-live="polite">
+        {relation ? <div data-aia={pair ?? undefined}><RelationBlock detail={relationDetail(battery, map, relation[0], relation[1])} /></div> : null}
+      </div>
       <b className="text-sm" data-testid="object-map-detail-label">{o.label}</b>
       {o.primary ? null : <p className="text-[10.5px] text-ink-muted">{t(`${p}.detailSecondary`)}</p>}
       <div className="grid grid-cols-2 gap-1.5">
@@ -622,8 +663,13 @@ function ObjectCard({ battery, map, selected, relation }: { battery: BatteryWith
       <h5 className={DETAIL_HEAD}><Tip label={t(`${p}.detailRelations`)} help={t(`${p}.detailRelationsHelp`)} /></h5>
       {o.relations.length ? (
         <div className="grid gap-[3px]" data-testid="object-map-detail-relations">
+          {/* Each relation opens the pair's detail, as a click on its line does: the canvas is no keyboard's. */}
           {o.relations.map((x) => (
-            <div key={x.id} className="flex justify-between gap-2.5 border-b border-border py-[5px] text-[10.5px]"><span className="min-w-0 text-ink-muted">{x.label}</span><b className="tabular-nums">{signed(x.r)}</b></div>
+            <button key={x.id} type="button" aria-pressed={isPair(relation, selected, x.j)} onClick={() => onRelation(x.j)}
+              className="flex w-full justify-between gap-2.5 border-b border-border py-[5px] text-left text-[10.5px] hover:bg-surface focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus-ring aria-pressed:font-semibold">
+              <span className="min-w-0 text-ink-muted">{x.label}</span>{" "}<b className="tabular-nums">{signed(x.r)}</b>
+              <span className="sr-only">{tv(`${p}.relationShow`, { a: o.label, b: x.label })}</span>
+            </button>
           ))}
         </div>
       ) : <p className="text-[10.5px] text-ink-muted">{t(`${p}.detailNoRelation`)}</p>}
@@ -686,4 +732,55 @@ function PersonCard({ detail: d }: { detail: ReturnType<typeof respondentDetail>
       </div>
     </DetailCard>
   );
+}
+
+const CHANGE_WORDS: Record<string, string> = {
+  "map:respondents": "research.exec.objectMap.panel.filterMapRespondents",
+  "norm:absolute": "research.exec.objectMap.panel.filterNormAbsolute",
+  "relations:selected": "research.exec.objectMap.panel.filterRelationsSelected",
+  "relations:all": "research.exec.objectMap.panel.filterRelationsAll",
+};
+
+/** The display filter bar (the V2 prototype's `filterbar`): what the toolbar changed, and that the
+ *  computation did not change; one click back to how the map opens. */
+function FilterBar({ changes, onReset }: { changes: DisplayChange[]; onReset: () => void }) {
+  const p = "research.exec.objectMap.panel";
+  return (
+    <div data-testid="object-map-filter-bar" data-aia-filters={changes.map((c) => `${c.key}:${c.value}`).join(" ")}
+      className="flex flex-wrap items-baseline gap-x-2 gap-y-1 rounded-sm border border-border bg-surface-raised px-3 py-2 text-xs">
+      <b>{t(`${p}.filterTitle`)}</b>{" "}
+      <span>{changes.map((c) => t(CHANGE_WORDS[`${c.key}:${c.value}`]!)).join(", ")}.</span>{" "}
+      <span className="text-ink-muted">{t(`${p}.filterUnchanged`)}</span>{" "}
+      <button type="button" className="text-signal underline underline-offset-2 hover:no-underline focus-visible:outline-2 focus-visible:outline-focus-ring" onClick={onReset}>{t(`${p}.filterReset`)}</button>
+    </div>
+  );
+}
+
+/** The four kinds of content around a map (the V2 prototype's "Co je co"): the frozen result, the
+ *  display, a labelled interpretation, external context. Static words: what each may change. */
+function Registers() {
+  const p = "research.exec.objectMap.panel";
+  const name: Record<MapRegister, string> = { computed: "Computed", display: "Display", interpretation: "Interpretation", external: "External" };
+  return (
+    <div className="flex flex-col gap-1.5 rounded-[10px] border border-border bg-surface-raised p-4 text-xs" data-testid="object-map-registers">
+      <h4 className="font-semibold">{t(`${p}.registersTitle`)}</h4>
+      <dl className="grid gap-1">
+        {MAP_REGISTERS.map((r) => (
+          <div key={r} className="flex flex-wrap gap-x-1.5" data-register={r}>
+            <dt className="font-semibold">{t(`${p}.register${name[r]}`)}</dt>
+            <dd className="text-ink-muted">{t(`${p}.register${name[r]}Text`)}</dd>
+          </div>
+        ))}
+      </dl>
+    </div>
+  );
+}
+
+/** What the page's sticky headers cover at the window's top (the shell's header from lg up). */
+function stickyTop(): number {
+  let top = 0;
+  for (const h of document.querySelectorAll("header")) {
+    if (getComputedStyle(h).position === "sticky") top = Math.max(top, h.getBoundingClientRect().height);
+  }
+  return top;
 }

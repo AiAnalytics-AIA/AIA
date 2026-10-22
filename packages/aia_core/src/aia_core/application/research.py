@@ -13,7 +13,7 @@ provides.
 
 from __future__ import annotations
 
-from collections.abc import Mapping, Sequence
+from collections.abc import Callable, Mapping, Sequence
 from dataclasses import dataclass
 from typing import Any
 
@@ -33,6 +33,7 @@ from ..domain.answerability import (
     read_answerability_note,
     with_answerability,
 )
+from ..domain.deep_research.workflow import DEEP_RESEARCH
 from ..domain.design import DESIGN_PROJECT_OWNER, DesignRejected
 from ..domain.design_items import ItemKey
 from ..domain.evidence import ClaimSurface
@@ -52,7 +53,7 @@ from ..domain.methodology.pins import (
 )
 from ..domain.money import ThresholdVerdict, threshold_verdict
 from ..domain.panel_persona import persona_allowlist
-from ..domain.pipeline import fingerprint
+from ..domain.pipeline import StageImpact, changed_fields, fingerprint, stage_impacts
 from ..domain.population import (
     CZ_LIVE,
     CZ_SYNTHETIC_V17,
@@ -108,7 +109,7 @@ from ..infrastructure.methodology_repository import methodology_in_force_for_stu
 from ..infrastructure.prompt_repository import PromptRefused, PromptResolver
 from ..infrastructure.scope_repository import ScopeRepository
 from ..infrastructure.storage import ArtifactStore
-from ..infrastructure.study_design_repository import StudyDesignRepository
+from ..infrastructure.study_design_repository import DesignRevisionNotFound, StudyDesignRepository
 from ..infrastructure.study_workspace_repository import StudyWorkspaceRepository
 from ..infrastructure.workflow_repository import (
     BudgetWaitNotLiftable,
@@ -142,6 +143,7 @@ __all__ = [
     "ResearchStepNotFound",
     "RunOutlook",
     "RunReservations",
+    "WorkingImpact",
     "WorkingRevisionNotFound",
     "readiness_in_force",
     "report_pdf_key",
@@ -383,6 +385,18 @@ class WorkingRevisionNotFound(LookupError):
 
 
 @dataclass(frozen=True, slots=True)
+class WorkingImpact:
+    """A working revision beside a Design Revision: the top-level fields that differ and every
+    pipeline stage's impact, in pipeline order (``domain.pipeline.stage_impacts``)."""
+
+    working_revision: int
+    design_revision_id: str
+    design_revision: int
+    changed: tuple[str, ...]
+    stages: dict[str, StageImpact]
+
+
+@dataclass(frozen=True, slots=True)
 class RunOutlook:
     """What a run of a revision would be, before it starts: its specification (``None``: it
     does not compile), its readiness, every item's verdict (empty when it does not
@@ -541,6 +555,7 @@ class ResearchRuns:
         fieldwork_source: FieldworkSource,
         retry_of: str | None = None,
         analysis_enabled: bool = False,
+        external_context: bool = False,
         sociomapping_enabled: bool = False,
         reservations: RunReservations | None = None,
         confirm_cost_usd: float | None = None,
@@ -556,6 +571,7 @@ class ResearchRuns:
         acknowledge: Acknowledgement | None = None,
         inherited_acknowledgement: tuple[Acknowledgement, str, str | None] | None = None,
         require_answerability: bool = False,
+        _probe: bool = False,
     ) -> StartedRun:
         """Run the research workflow over one Design Revision of the Study.
 
@@ -570,6 +586,12 @@ class ResearchRuns:
         ledger. Like the cost gate, a start that finds its run asks nothing. The refusal ships
         behind ``require_answerability`` (the API's ``AIA_RESEARCH_ANSWERABILITY_GATE``): off,
         a run with gaps starts and records them unacknowledged, so its report still says so.
+
+        ``external_context`` (the API's ``AIA_AI_ANALYSIS_EXTERNAL_CONTEXT``, off by default)
+        pins, for a run with analysis, the Study's newest sealed Design Research bundle
+        (``metadata.analysis_context``: the run, the artifact and its SHA-256): each module is
+        shown its accepted findings as external context, never evidence (evidence-integrity 7).
+        A retry keeps the original's pin, or its absence. Metadata only, never the run's key.
 
         ``frozen_dataset`` makes the run an analysis retry (:func:`retry_failed_modules`
         in ``application.analysis_results``, through :meth:`retry_analysis`): its fieldwork
@@ -710,6 +732,8 @@ class ResearchRuns:
             key += f":analysis-retry:{retry_of}"
         elif retry_of:
             key += f":retry:{retry_of}"
+        if _probe:
+            raise _Probed(key)
         # The limits are not part of the key (they decide whether a run may start, not what
         # it computes): a start that finds its run returns it, whatever limits are in force
         # now. Only a run that would be created is held to them.
@@ -734,6 +758,16 @@ class ResearchRuns:
             )
         response_pin = response_spec.model_dump(mode="json")
         exists = self._workflows().find_run_by_idempotency_key(key) is not None
+        # A run that exists keeps what it pinned; only a new one looks for a bundle.
+        context_pin = (
+            held.get("analysis_context")
+            if retry_of
+            else (
+                self.design_research_pin()
+                if analysis_enabled and external_context and not exists
+                else None
+            )
+        )
         answer_note: dict[str, Any] | None = None
         fresh_acknowledgement: Answerability | None = None
         if _spec is not None and not exists:
@@ -812,6 +846,7 @@ class ResearchRuns:
                 "design_revision": revision.revision,
                 "fieldwork_source": fieldwork_source.value,
                 "analysis_enabled": analysis_enabled,
+                **({"analysis_context": context_pin} if context_pin else {}),
                 **({"sociomapping_enabled": True} if sociomapping_enabled else {}),
                 "sociomap_methods": pinned,
                 **({"methodology": methodology} if methodology else {}),
@@ -999,6 +1034,7 @@ class ResearchRuns:
                     "aggregation_methodology",
                     "response_methodology",
                     "readiness_methodology",
+                    "analysis_context",
                 )
                 if run["metadata"].get(k)
             },
@@ -1007,6 +1043,33 @@ class ResearchRuns:
             inherited_acknowledgement=_acknowledgement_of(run),
             require_answerability=require_answerability,
         )
+
+    def design_research_pin(self) -> dict[str, str] | None:
+        """The bundle the Study's newest finished Design Research run published, as a run's
+        ``analysis_context`` pins it (the run, the artifact, its SHA-256); ``None`` when it has
+        none. Only found here: a reader reads it again through the run that published it and
+        verifies it (``analysis_results._external_context``). Among the newest 200 Deep
+        Research runs, the most a listing returns."""
+        project_id = self._designs().project_id()
+        if project_id is None:
+            return None
+        for run in self._workflows().list_runs(
+            project_id=project_id, workflow_type=DEEP_RESEARCH, steps=True, limit=200
+        ):
+            if (
+                run["status"] is not WorkflowRunStatus.COMPLETED
+                or (run.get("metadata") or {}).get("purpose") != "DESIGN_RESEARCH"
+            ):
+                continue
+            publish = next((x for x in run.get("steps") or [] if x["node_key"] == "publish"), None)
+            output = (publish or {}).get("output") or {}
+            if all(isinstance(output.get(k), str) for k in ("artifact_id", "sha256")):
+                return {
+                    "deep_research_run_id": str(run["run_id"]),
+                    "artifact_id": output["artifact_id"],
+                    "sha256": output["sha256"],
+                }
+        return None
 
     def design_project_id(self) -> str | None:
         """The Study's owned design project, where its runs and reports are; ``None`` before
@@ -1205,6 +1268,31 @@ class ResearchRuns:
             design_revision_id=None,
             persona_source=persona_source,
             fieldwork_source=fieldwork_source,
+        )
+
+    def impact(self, working_revision: int, design_revision_id: str | None = None) -> WorkingImpact:
+        """What each stage of the design ``design_revision_id`` (the newest Design Revision when
+        omitted) would need going to working revision ``working_revision`` (plan
+        working-copy-edit-ops WCE7): ``domain.pipeline.stage_impacts``. Reads both, writes nothing.
+        A working revision the Study never saved is :class:`WorkingRevisionNotFound`; a Design
+        Revision not of this Study, or none at all, ``DesignRevisionNotFound``."""
+        working = StudyWorkspaceRepository(self.session).at_revision(self.scope, working_revision)
+        if working is None or working.content is None:
+            raise WorkingRevisionNotFound(working_revision)
+        designs = self._designs()
+        if design_revision_id is None:
+            latest = designs.latest()
+            if latest is None:
+                raise DesignRevisionNotFound("no design revision")
+            design_revision_id = latest.revision_id
+        revision = designs.get(design_revision_id)
+        before = designs.content(revision.revision_id)
+        return WorkingImpact(
+            working_revision=working_revision,
+            design_revision_id=revision.revision_id,
+            design_revision=revision.revision,
+            changed=tuple(changed_fields(before, working.content)),
+            stages=stage_impacts(before, working.content),
         )
 
     def _assess(
@@ -1408,6 +1496,30 @@ class ResearchRuns:
         ]
 
 
+class _Probed(Exception):
+    """Raised by a start asked only for its key (``_probe``), before any gate or write."""
+
+    def __init__(self, key: str) -> None:
+        super().__init__(key)
+        self.key = key
+
+
+def existing_start(
+    session: Session, scope: StudyContext, start: Callable[[], StartedRun]
+) -> str | None:
+    """The run ``start`` would find already there, or None when it would create one.
+
+    ``start`` is a :meth:`ResearchRuns.start` or :meth:`ResearchAgentJobs.start` call with
+    ``_probe=True``: it computes the same idempotency key a real start does, from the same
+    code, and stops before any gate, charge or write. For a caller that must not hold a found
+    run to the gates of a new one (a typed start approved again, lead-orchestration LO5)."""
+    try:
+        start()
+    except _Probed as probed:
+        return WorkflowRepository(session, scope).find_run_by_idempotency_key(probed.key)
+    raise AssertionError("a probed start returned instead of naming its key")
+
+
 @dataclass(frozen=True, slots=True)
 class ResearchAgentJobs:
     """Design assistance is a durable job, never a request-time model call.
@@ -1465,6 +1577,7 @@ class ResearchAgentJobs:
         prompt_version: int | None = None,
         rebuild_of: str | None = None,
         confirm_cost_usd: float | None = None,
+        _probe: bool = False,
     ) -> StartedRun:
         """Queue one proposal. The prompt it runs is chosen here and frozen into the job.
 
@@ -1539,6 +1652,8 @@ class ResearchAgentJobs:
         if newest and _ended_without_result(workflows.get_run(newest[0]["run_id"])):
             round_ += 1
         key = base if round_ == 0 else f"{base}:again-{round_}"
+        if _probe:
+            raise _Probed(key)
         # Before anything is created: a job that exists already asks nothing.
         confirmation = (
             self.spend_gate(confirm_cost_usd)

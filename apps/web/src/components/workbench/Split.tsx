@@ -5,7 +5,7 @@
 // lib/workbench-split.ts: 28-62 %, 2 % per arrow, Home / Enter / double-click back to 40 %, and
 // focus modes that never change the width the person chose.
 
-import { type ReactNode, useEffect, useRef, useState } from "react";
+import { type ReactNode, type RefObject, useEffect, useRef, useState } from "react";
 
 import type { WorkbenchLayout } from "@/lib/workbench-layout";
 import { type FocusMode, SPLIT_DEFAULT, SPLIT_MAX, SPLIT_MIN, leftWidth, splitFromKey, splitFromPointer } from "@/lib/workbench-split";
@@ -36,6 +36,75 @@ export function trapTab(container: HTMLElement, e: KeyboardEvent) {
   }
 }
 
+/** Where focus goes back to inside the open drawer or sheet when the control that held it is gone:
+ *  the composer while it takes text, else the conversation's log, else the dialog itself. */
+export function recoveryTarget(container: HTMLElement): HTMLElement {
+  const composer = container.querySelector<HTMLTextAreaElement>("textarea:not([disabled])");
+  if (composer && !composer.closest("[hidden]")) return composer;
+  return container.querySelector<HTMLElement>('[role="log"]') ?? container;
+}
+
+/** Whether an element still in the page can no longer hold the focus: disabled, hidden or inert. */
+function cannotHoldFocus(el: HTMLElement): boolean {
+  return (el as HTMLButtonElement).disabled === true || el.closest("[hidden], [inert]") !== null;
+}
+
+/** While the drawer or sheet is open, a focused card control that unmounts (an approve button
+ *  replaced by its result, "Na nejnovější" scrolled away) leaves focus on the body, outside the
+ *  modal and behind an inert page: it is brought back inside (recoveryTarget). Watched by mutation,
+ *  because a browser need not fire focusout for a removed element. */
+function useFocusRecovery(dialog: RefObject<HTMLDivElement | null>, modal: boolean) {
+  useEffect(() => {
+    const el = dialog.current;
+    if (!modal || !el) return;
+    let held: HTMLElement | null = null;
+    const onIn = (e: FocusEvent) => {
+      held = e.target instanceof HTMLElement ? e.target : null;
+    };
+    const recover = () => {
+      const active = document.activeElement;
+      const lost = !active || active === document.body || !active.isConnected;
+      if (held && !held.isConnected && lost) {
+        held = null;
+        recoveryTarget(el).focus();
+      }
+    };
+    // A focusout from an element still in the page is the person moving focus away: nothing is
+    // held any more, so a later re-render that removes that element takes nothing back. Read
+    // after the event: Chromium fires focusout during removeChild, while the element is still
+    // connected, so the check waits a microtask, which runs before the mutation callback.
+    // A control that became disabled while it had the focus (an approve button while its decision
+    // is sent) blurs too, still connected: Chromium drops the focus to the body. The person did not
+    // move it, so it comes back at once.
+    const onOut = (e: FocusEvent) => {
+      const target = e.target;
+      queueMicrotask(() => {
+        if (!(target instanceof HTMLElement) || !target.isConnected) return recover();
+        const active = document.activeElement;
+        const toBody = !active || active === document.body;
+        if (held !== target) return; // focus moved on (focusin after this focusout): B is held
+        if (toBody && cannotHoldFocus(target)) {
+          held = null;
+          recoveryTarget(el).focus();
+        } else {
+          // Only what this event let go of: a move from A to B inside the dialog fires
+          // focusout(A) then focusin(B) in one task, and B is held then (review of #683).
+          held = null;
+        }
+      });
+    };
+    const watch = new MutationObserver(recover);
+    el.addEventListener("focusin", onIn);
+    el.addEventListener("focusout", onOut);
+    watch.observe(el, { childList: true, subtree: true });
+    return () => {
+      watch.disconnect();
+      el.removeEventListener("focusin", onIn);
+      el.removeEventListener("focusout", onOut);
+    };
+  }, [dialog, modal]);
+}
+
 export function Split({ split, mode, layout = "split", shown = true, leftLabel, onSplit, onCommit, left, right, rail }: {
   split: number;
   mode: FocusMode;
@@ -59,6 +128,7 @@ export function Split({ split, mode, layout = "split", shown = true, leftLabel, 
   const compact = layout !== "split";
   const dialog = useRef<HTMLDivElement>(null);
   const modal = compact && shown;
+  useFocusRecovery(dialog, modal);
   useEffect(() => {
     if (!modal) return;
     const onKey = (e: KeyboardEvent) => dialog.current && trapTab(dialog.current, e);

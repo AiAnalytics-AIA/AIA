@@ -11,12 +11,20 @@ import { t, tv } from "@/i18n/t";
 import type { ResearchRun } from "@/lib/api";
 import { AnalysisInspect } from "./AnalysisInspect";
 import { measureAnchor } from "@/lib/result-reading";
+import { parseAiaId } from "@/lib/workbench-artifacts";
 import { CONFLICT_MESSAGE } from "@/research/store";
-import { RunResults } from "./ExecutionSteps";
+import { RunResults, fixStep } from "./ExecutionSteps";
 import { StudyFrameProvider } from "./frame";
 import { ResearchScreen, ResearchSession } from "./ResearchScreen";
 import { CONTENT_PATH, workspaceFixture } from "./test-workspace";
 import { TEST_FRAME, stagePath } from "./test-frame";
+
+/** Approval asks first, naming the version (input-interactions B22); answer yes. */
+async function confirmApproval(version?: string): Promise<void> {
+  const dialog = await screen.findByRole("dialog");
+  if (version) expect(dialog.textContent).toContain(`uloženou verzi ${version} (`);
+  fireEvent.click(within(dialog).getByRole("button", { name: t("research.exec.report.approveAsk.yes") }));
+}
 
 const push = vi.fn();
 const replace = vi.fn();
@@ -160,6 +168,23 @@ afterEach(() => {
   // Every test here also proves the screen reached nothing of the 18.6.6 unit (ADR 0018).
   expect(calls.filter((c) => !c.url.startsWith("/api/v1/") && c.url !== "/config").map((c) => c.url)).toEqual([]);
   sessionStorage.clear();
+});
+
+describe("fixStep", () => {
+  it("sends each readiness check to the stage where it is fixed", () => {
+    // The ids the domain's readiness emits (research_design.assess_readiness, support_forecast,
+    // research_trace), a prefixed one standing for its kind; n and its support live on Dimenze,
+    // the audience on its own stage.
+    const where = {
+      sample_size: "persona", support_forecast: "persona", sociomap_support: "persona", dimensions: "persona",
+      audience: "audience",
+      questionnaire: "questionnaire", conditional_questions: "questionnaire", battery_familiarity: "questionnaire",
+      sociomap_input: "questionnaire", research_question_coverage: "questionnaire", "compile:invalid_scale:q1": "questionnaire", "battery_size:b1": "questionnaire",
+    };
+    for (const [id, step] of Object.entries(where)) expect([id, fixStep(id)]).toEqual([id, step]);
+    // An id that names an Object.prototype member is an unknown check, never a function.
+    expect(fixStep("constructor")).toBe("questionnaire");
+  });
 });
 
 describe("Run", () => {
@@ -1118,7 +1143,7 @@ describe("Progress", () => {
     expect(within(card).getByText(t(`${R}.unrecorded`))).toBeTruthy();
   });
 
-  it("keeps both sides of a mismatch in view, the stored origin code beside the pinned source (artifact-fieldwork FLD7)", async () => {
+  it("keeps both sides of a mismatch in view, the stored origin code beside the pinned source, pointable by the Lead (artifact-fieldwork FLD7)", async () => {
     api(listed(run({ ...COMPLETED, persona_source: "panel" })));
     render(<ResearchScreen step="progress" frame={TEST_FRAME} />);
     const R = "research.exec.respondents.receipt";
@@ -1127,6 +1152,10 @@ describe("Progress", () => {
     // Named, never resolved: the pinned panel, what the data say, and the code as stored.
     expect(value(t(`${R}.source`))).toBe(`${t("research.exec.respondents.panel")} · ${t(`${R}.observed.SIMULATED`)}`);
     expect(value(t(`${R}.origin`))).toBe("SYNTHETIC_FIXTURE");
+    // Pointable by the Lead: the mark parses as the fieldwork stage's receipt (#618).
+    const mark = card.closest("[data-aia]")?.getAttribute("data-aia");
+    expect(mark).toBe("receipt:respondents");
+    expect(parseAiaId(mark!)).toEqual({ kind: "receipt", id: "respondents", stage: "fieldwork" });
   });
 
   it("says the data's origin is not yet stored while fieldwork has not stored it", async () => {
@@ -1517,6 +1546,17 @@ describe("Progress", () => {
 });
 
 describe("Results", () => {
+  it("shows who answered without the receipt's Lead mark: Výsledky's row names measures alone (#618)", async () => {
+    api({ ...listed(COMPLETED),
+      "GET /api/v1/studies/STU-1/research/runs/RUN-1/artifacts/ART-4": () => AGGREGATE,
+      "GET /api/v1/studies/STU-1/research/runs/RUN-1/artifacts/ART-5": () => SOCIOMAP,
+    });
+    render(<ResearchScreen step="results" frame={TEST_FRAME} />);
+    const card = (await screen.findByRole("heading", { name: t("research.exec.respondents.receipt.title") })).closest("section") as HTMLElement;
+    expect(card.closest("[data-aia]")).toBeNull();
+    expect(document.querySelector('[data-aia^="receipt:"]')).toBeNull();
+  });
+
   it("explains a failed run load and retries instead of leaving Results loading forever", async () => {
     let failed = true;
     api({ ...listed(COMPLETED),
@@ -1547,6 +1587,8 @@ describe("Results", () => {
     fireEvent.click(screen.getByRole("button", { name: t("research.retry") }));
     expect(await screen.findByText(t("research.exec.noResults"))).toBeTruthy();
     expect(screen.queryByText("Výsledky se nepodařilo načíst.")).toBeNull();
+    // No run, so no word about "this run's" report (workbench audit, 2026-10-22).
+    expect(screen.queryByText(t("research.exec.results.reportNotInAia"))).toBeNull();
   });
 
   it("keeps the neutral analysis note while no module has stored an outcome, never 'unknown origin'", async () => {
@@ -1622,9 +1664,13 @@ describe("Results", () => {
     const blocked = screen.getByRole("button", { name: /Výzkumné otázky.*Potřebuje opravu/ });
     fireEvent.click(blocked);
     expect(screen.getByText(/Výstup této části neprošel kontrolou/)).toBeTruthy();
-    const diagnostic = screen.getByText("Technické důvody odmítnutí").closest("details");
+    // The refusal in words on the surface; its code, subject and detail only in a closed fold.
+    const pane = screen.getByRole("region", { name: "Výzkumné otázky" });
+    expect(within(pane).getByText(/odpověď modelu neodpovídala předepsanému tvaru/)).toBeTruthy();
+    const diagnostic = within(pane).getByText("Technické podrobnosti").closest("details");
     expect(diagnostic?.open).toBe(false);
-    expect(within(diagnostic!).getByText(/SCHEMA_INVALID: Input should be a valid array/)).toBeTruthy();
+    expect(diagnostic?.textContent).toContain("research_question_answers: Input should be a valid array");
+    expect(pane.textContent?.replace(diagnostic?.textContent ?? "", "")).not.toContain("SCHEMA_INVALID");
   });
 
   it("says an analysis an earlier version of AIA built cannot be shown, and where it is repaired, not 'try again' (PC3)", async () => {
@@ -1692,10 +1738,21 @@ describe("Results", () => {
     expect(rows[1].textContent).toContain("bez doložené odpovědi");
     expect(rows[1].textContent).toContain("Při spuštění běh zaznamenal");
     // A finding on the same measure is linked to where it is shown, and carries its Lead target.
-    const link = within(rows[0] as HTMLElement).getByRole("link");
-    expect(link.getAttribute("href")).toBe("#analysis-finding-research_questions-0");
+    expect(rows[0].querySelector("[data-finding-chip]")?.getAttribute("data-finding-chip")).toBe("research_questions:0");
     expect(document.getElementById("analysis-finding-research_questions-0")?.getAttribute("data-aia")).toBe("finding:research_questions:0");
     expect(rows[2].textContent).toContain("Odpověď necituje žádné připuštěné číslo.");
+    // The run's fieldwork step ("run") succeeded: Sběr dokončen, never "čeká" (ANL8 audit, F1).
+    const milestones = [...document.querySelectorAll("[data-analysis-milestones] li")];
+    expect(milestones[0].textContent).toContain("Sběr dokončen");
+    expect(milestones[0].getAttribute("data-done")).toBe("true");
+    // A finding chip brings the finding into view without a hash: a hash naming no view sends the
+    // workspace back to Přehled (ANL8 audit, F4).
+    const before = window.location.hash;
+    const finding = document.getElementById("analysis-finding-research_questions-0") as HTMLElement;
+    finding.scrollIntoView = () => {};
+    fireEvent.click(within(rows[0] as HTMLElement).getByRole("button", { name: /1$/ }));
+    expect(window.location.hash).toBe(before);
+    expect(document.activeElement).toBe(finding);
   });
 
   it("says the research questions are unknown when the frozen design cannot be read, never that it has none (ANL2)", async () => {
@@ -1716,6 +1773,88 @@ describe("Results", () => {
     expect(section.textContent).toContain("Výzkumné otázky běhu jsou neznámé");
     expect(section.textContent).not.toContain("neuvádí výzkumné otázky");
     expect(section.querySelectorAll("tr[data-rq]")).toHaveLength(0);
+  });
+
+  it("reads a failed retryable read as unknown, and words a suppression by every cause it has (ANL4)", async () => {
+    const analysed = run({ ...COMPLETED, steps: [...COMPLETED.steps,
+      step("analysis_audience", "SUCCEEDED", { kind: "research_analysis", artifact_id: "ART-8", analysis_outcome: "BLOCKED" }),
+    ] });
+    api({ ...listed(analysed),
+      "GET /api/v1/studies/STU-1/research/runs/RUN-1/artifacts/ART-4": () => AGGREGATE,
+      "GET /api/v1/studies/STU-1/research/runs/RUN-1/analysis": () => ({ complete: false, synthetic: true, pending: {}, modules: {
+        // Every row removed because its question was refused for fidelity, not for thin support.
+        audience: { outcome: "BLOCKED", summary: null, research_question_answers: [], key_findings: [], claims: [], violations: [
+          { code: "SUPPORT_SUPPRESSED", subject: "preflight", detail: "no citable evidence: all 4 rows were removed (thin support, a refused question, or an estimate without its interval)" },
+        ] },
+      } }),
+      "GET /api/v1/studies/STU-1/research/runs/RUN-1/analysis/retryable": () => { throw new Error("409 conflict"); },
+    });
+    render(<ResearchScreen step="results" frame={TEST_FRAME} />);
+    fireEvent.click(await screen.findByRole("tab", { name: "AI analýza" }));
+    const blocked = await screen.findByRole("region", { name: "Blokované nároky" });
+    const audience = blocked.querySelector('[data-blocked-module="audience"]') as HTMLElement;
+    // A list that could not be read promises nothing: never "the same data would refuse it again".
+    await waitFor(() => expect(audience.getAttribute("data-way-out")).toBe("unknown"));
+    expect(audience.textContent).not.toContain("neopraví");
+    // The words name every cause the preflight groups under one code, not "too few respondents" alone.
+    expect(audience.textContent).toContain("odmítnutá otázka");
+    expect(audience.textContent).not.toContain("příliš málo respondentů");
+  });
+
+  it("names each blocked module's refusals in words with the way out the server gives, and never reads it as done (ANL4)", async () => {
+    const analysed = run({ ...COMPLETED, steps: [...COMPLETED.steps,
+      step("analysis_executive", "SUCCEEDED", { kind: "research_analysis", artifact_id: "ART-6", analysis_outcome: "COMPLETED" }),
+      step("analysis_audience", "SUCCEEDED", { kind: "research_analysis", artifact_id: "ART-8", analysis_outcome: "BLOCKED" }),
+      step("analysis_hypotheses", "SUCCEEDED", { kind: "research_analysis", artifact_id: "ART-9", analysis_outcome: "BLOCKED" }),
+    ] });
+    const blockedAnalysis = () => ({ complete: false, synthetic: true, pending: {}, modules: {
+      executive: { outcome: "COMPLETED", summary: null, research_question_answers: [], key_findings: [], claims: [], violations: [] },
+      // Refused by the preflight before any model turn: the server does not list it as retryable.
+      audience: { outcome: "BLOCKED", summary: null, research_question_answers: [], key_findings: [], claims: [], violations: [
+        { code: "JOINT_CERTIFICATE_DEGRADED", subject: "core", detail: "certificate degraded" },
+      ] },
+      hypotheses: { outcome: "BLOCKED", summary: null, research_question_answers: [], key_findings: [], claims: [], violations: [
+        { code: "EVIDENCE_REF_UNKNOWN", subject: "c1", detail: "q9.mean" },
+        { code: "EVIDENCE_REF_UNKNOWN", subject: "c2", detail: "q7.mean" },
+        { code: "NOT_A_KNOWN_CODE", subject: "summary", detail: "x" },
+      ] },
+    } });
+    api({ ...listed(analysed),
+      "GET /api/v1/studies/STU-1/research/runs/RUN-1/artifacts/ART-4": () => AGGREGATE,
+      "GET /api/v1/studies/STU-1/research/runs/RUN-1/analysis": blockedAnalysis,
+      "GET /api/v1/studies/STU-1/research/runs/RUN-1/analysis/retryable": () => ({ run_id: "RUN-1", modules: ["hypotheses"] }),
+    });
+    render(<ResearchScreen step="results" frame={TEST_FRAME} />);
+    fireEvent.click(await screen.findByRole("tab", { name: "AI analýza" }));
+    const blocked = await screen.findByRole("region", { name: "Blokované nároky" });
+    const hypotheses = blocked.querySelector('[data-blocked-module="hypotheses"]') as HTMLElement;
+    expect(hypotheses.textContent).toContain("Potřebuje opravu");
+    // Each reason once, in words, counted; each subject beside its own detail; a code without words keeps its code.
+    expect(hypotheses.querySelectorAll("[data-violation]")).toHaveLength(2);
+    expect(within(hypotheses).getByText(/cituje číslo, které v datech běhu není/)).toBeTruthy();
+    expect(hypotheses.textContent).toContain("(2×)");
+    expect([...hypotheses.querySelectorAll('[data-violation="EVIDENCE_REF_UNKNOWN"] details li')].map((li) => li.textContent)).toEqual(["c1: q9.mean", "c2: q7.mean"]);
+    expect(hypotheses.textContent).toContain("NOT_A_KNOWN_CODE");
+    expect(blocked.querySelector('[data-blocked-module="executive"]')).toBeNull();
+    // The way out is the server's: a retry only for what it lists; the preflight's refusal is said not to pass again.
+    await waitFor(() => expect(hypotheses.getAttribute("data-way-out")).toBe("retry"));
+    expect(blocked.querySelector('[data-blocked-module="audience"]')?.getAttribute("data-way-out")).toBe("same_data_fails");
+    expect(within(blocked).getByRole("link", { name: "Zobrazit průběh běhu" })).toBeTruthy();
+    // The module list never says it is done, and its pane words the refusals the same way.
+    const entry = screen.getByRole("button", { name: /Hypotézy/ });
+    expect(entry.textContent).toContain("Potřebuje opravu");
+    expect(entry.textContent).not.toMatch(/Dokončeno|Hotovo/);
+    fireEvent.click(entry);
+    const pane = screen.getByRole("region", { name: "Hypotézy" });
+    expect(within(pane).getByText(/cituje číslo, které v datech běhu není/)).toBeTruthy();
+    expect(pane.textContent).not.toMatch(/EVIDENCE_REF_UNKNOWN:/);
+    cleanup();
+    // On a frame that may not edit, nothing offers a round the reader cannot ask for.
+    render(<ResearchScreen step="results" frame={{ ...TEST_FRAME, canEdit: false }} />);
+    fireEvent.click(await screen.findByRole("tab", { name: "AI analýza" }));
+    const readOnly = await screen.findByRole("region", { name: "Blokované nároky" });
+    expect(readOnly.querySelector("[data-way-out]")).toBeNull();
+    expect(within(readOnly).queryByRole("link")).toBeNull();
   });
 
   it("puts every module's key findings first, each with the numbers it cites, and keeps every word formatted", async () => {
@@ -2167,6 +2306,23 @@ describe("Results", () => {
     expect(called("GET", "/api/v1/studies/STU-1/research/runs/RUN-1/report/pdf/download")).toHaveLength(0); // never the base PDF
     expect(createObjectURL).toHaveBeenCalledTimes(2);
     fireEvent.click(report.getByRole("button", { name: t("research.exec.results.reportApprove") }));
+    // Nothing is approved on the click: the person is asked about this version first, and "Zrušit"
+    // approves nothing (B22).
+    const asked = await screen.findByRole("dialog");
+    expect(asked.textContent).toContain("Schválit interní zprávu s rešerší RUN-deep, uloženou verzi ART-context (");
+    // The safe choice holds the focus, and Esc answers the dialog alone: nothing beneath it (an
+    // open inspector) sees it (I7, D21).
+    expect(document.activeElement).toBe(within(asked).getByRole("button", { name: t("dialog.cancel") }));
+    const beneath = vi.fn();
+    window.addEventListener("keydown", beneath);
+    onTestFinished(() => window.removeEventListener("keydown", beneath));
+    fireEvent.keyDown(asked, { key: "Escape" });
+    expect(beneath).not.toHaveBeenCalled();
+    fireEvent.click(within(asked).getByRole("button", { name: t("dialog.cancel") }));
+    await waitFor(() => expect(screen.queryByRole("dialog")).toBeNull());
+    expect(called("POST", "/api/v1/studies/STU-1/research/runs/RUN-1/report/approve")).toHaveLength(0);
+    fireEvent.click(report.getByRole("button", { name: t("research.exec.results.reportApprove") }));
+    await confirmApproval("ART-context");
     await waitFor(() => expect(called("POST", "/api/v1/studies/STU-1/research/runs/RUN-1/report/approve")).toHaveLength(1));
     expect(called("POST", "/api/v1/studies/STU-1/research/runs/RUN-1/report/approve")[0].body).toEqual({ artifact_id: "ART-context", note: "" });
     // The version is named before and after; what it is now is read again, never patched here
@@ -2420,7 +2576,7 @@ describe("Results", () => {
         ? new Response('{"code":"client_report_refused","message":"Žádné číslo tohoto běhu nesplnilo pravidla pro klienta."}', { status: 409 })
         : new Response(new Blob(["client docx"]), { status: 200, headers: { "X-AIA-Artifact-Id": "ART-client", "X-AIA-Review-State": "DRAFT_UNAPPROVED" } }),
       "POST /api/v1/studies/STU-1/research/runs/RUN-1/report/approve": () =>
-        ({ run_id: "RUN-1", artifact_id: "ART-client", review_state: "APPROVED_INTERNAL", internal_only: true }),
+        ({ run_id: "RUN-1", artifact_id: "ART-client", review_state: "APPROVED_INTERNAL", report_kind: "client", internal_only: false }),
     });
     render(<ResearchScreen step="results" frame={TEST_FRAME} />);
     const report = await card();
@@ -2444,6 +2600,7 @@ describe("Results", () => {
     // The downloaded draft is said to be one, and to need approving before it is handed over.
     expect(report.getByText(new RegExp(t("research.exec.results.reportClientHintDraft")))).toBeTruthy();
     fireEvent.click(approve);
+    await confirmApproval("ART-client");
     // The approval's answer does not say whether the file states it: the card says the review alone.
     expect(await report.findByText(`Stav: ${t("research.exec.report.review.clientApproved")}`)).toBeTruthy();
     expect(report.queryByText(/interní použití/)).toBeNull();
@@ -2474,9 +2631,34 @@ describe("Results", () => {
     fireEvent.click(report.getByRole("button", { name: t("research.exec.results.reportDownloadClient") }));
     expect(await report.findByText(`Stav: ${t("research.exec.report.review.clientDraft")}`)).toBeTruthy();
     fireEvent.click(await report.findByRole("button", { name: t("research.exec.results.reportApproveClient") }));
+    await confirmApproval("ART-client");
     // Its DOCX, the one the client receives, says SCHVÁLENO with the date and the version.
     expect(await report.findByText("Stav: Schváleno 18. 10. 2026 · verze ART-client — DOCX této verze to nese v zápatí")).toBeTruthy();
     expect(report.queryByText(/interní použití/)).toBeNull();
+  });
+
+  it("approves the client report a person prepared and read in AIA, with no download first (RD3)", async () => {
+    api({
+      ...listed(reportRun()),
+      "GET /api/v1/studies/STU-1/research/runs/RUN-1/artifacts/ART-4": () => AGGREGATE,
+      "GET /api/v1/studies/STU-1/research/runs/RUN-1/artifacts/ART-5": () => SOCIOMAP,
+      "GET /api/v1/studies/STU-1/research/runs/RUN-1/report": () =>
+        reportStatus({ synthetic: false, modelled: true, data_origin_kind: "MODELLED" }),
+      "GET /api/v1/studies/STU-1/research/runs/RUN-1/report/client/document": () =>
+        ({ run_id: "RUN-1", report_artifact_id: "ART-client", review_state: "DRAFT_UNAPPROVED", approved_on: null, stamped: true }),
+      "POST /api/v1/studies/STU-1/research/runs/RUN-1/report/approve": () =>
+        ({ run_id: "RUN-1", artifact_id: "ART-client", review_state: "APPROVED_INTERNAL", approved_on: "2026-10-18", stamped: true, report_kind: "client", internal_only: false }),
+    });
+    render(<ResearchScreen step="results" frame={TEST_FRAME} />);
+    const report = await card();
+    await waitFor(() => expect(report.getByRole("radio", { name: "Pro klienta" }).getAttribute("aria-disabled")).not.toBe("true"));
+    fireEvent.click(report.getByRole("radio", { name: "Pro klienta" }));
+    fireEvent.click(await report.findByRole("button", { name: t("research.exec.results.reportApproveClient") }));
+    await confirmApproval("ART-client");
+    await waitFor(() => expect(called("POST", "/api/v1/studies/STU-1/research/runs/RUN-1/report/approve")).toHaveLength(1));
+    expect(called("POST", "/api/v1/studies/STU-1/research/runs/RUN-1/report/approve")[0].body).toEqual({ artifact_id: "ART-client", note: "" });
+    // Nothing left AIA to be approved.
+    expect(called("GET", "/api/v1/studies/STU-1/research/runs/RUN-1/report/client/download")).toHaveLength(0);
   });
 
   it("offers the report's PDF when the run stored one, and says why when it could not", async () => {
@@ -2523,9 +2705,11 @@ describe("Results", () => {
     render(<ResearchScreen step="results" frame={TEST_FRAME} />);
     const report = await card();
     fireEvent.click(await report.findByRole("button", { name: t("research.exec.results.reportApprove") }));
+    await confirmApproval("ART-report");
     expect(await report.findByText(t("research.exec.results.reportApproveIndependent"))).toBeTruthy();
     refuse = false;
     fireEvent.click(report.getByRole("button", { name: t("research.exec.results.reportApprove") }));
+    await confirmApproval("ART-report");
     expect(await report.findByText("Stav: Schváleno pouze pro interní použití.")).toBeTruthy();
     expect(report.queryByRole("button", { name: t("research.exec.results.reportApprove") })).toBeNull();
     expect(called("POST", "/api/v1/studies/STU-1/research/runs/RUN-1/report/approve")[1].body)
@@ -2559,6 +2743,7 @@ describe("Results", () => {
     expect(await report.findByText(tv("research.exec.report.review.draft", { version: "ART-report" }))).toBeTruthy();
     const reads = called("GET", "/api/v1/studies/STU-1/research/runs/RUN-1/report").filter((c) => c.url.endsWith("/report")).length;
     fireEvent.click(report.getByRole("button", { name: t("research.exec.results.reportApprove") }));
+    await confirmApproval("ART-report");
     // The approved PDF is not made yet: the DOCX alone is said to carry it (review 4).
     expect(await report.findByText("Stav: Schváleno 18. 10. 2026 · verze ART-report — DOCX této verze to nese v zápatí")).toBeTruthy();
     // The state line is a live region: the approval a screen reader user made is announced

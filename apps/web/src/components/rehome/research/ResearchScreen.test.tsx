@@ -261,7 +261,8 @@ describe("ResearchScreen", () => {
     expect(saves()).toHaveLength(1);
     served = content({ revision: 3, content: { title: "Alfa", goal: "Jejich verze" } });
     fireEvent.click(screen.getByRole("button", { name: t("research.saveReload") }));
-    expect(((await screen.findByLabelText(GOAL_LABEL)) as HTMLTextAreaElement).value).toBe("Jejich verze");
+    // The field is there before the reload lands; wait for its value, not for the field.
+    await vi.waitFor(() => expect((screen.getByLabelText(GOAL_LABEL) as HTMLTextAreaElement).value).toBe("Jejich verze"), { timeout: 10_000 });
   });
 
   it("lists as rebuilt exactly the steps that have a screen", () => {

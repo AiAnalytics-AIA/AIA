@@ -25,6 +25,8 @@ from aia_core.domain.research_lead import (
     CONTEXT_MAX_BYTES,
     DEFAULT_LEAD_NAME,
     DEFAULT_SOUL,
+    EXTERNAL_LAYER,
+    EXTERNAL_NOTE,
     LEAD_PROMPT_ID,
     STAGES,
     TEXT_EDIT_OPS,
@@ -43,6 +45,7 @@ from aia_core.domain.research_lead import (
     frozen_sample_size,
     ground_edits,
     ground_self_update,
+    ground_view,
     is_text_edit,
     layer,
     lead_contract,
@@ -54,6 +57,7 @@ from aia_core.domain.research_lead import (
     question_add_problem,
     readiness_layer,
     split_self_update,
+    target_refusal,
     unreadable_numbers,
     waiting_self_update,
 )
@@ -223,6 +227,54 @@ def test_a_view_command_outside_its_shape_is_refused(view: dict[str, Any]) -> No
 def test_focus_targets_name_an_item_by_its_data_aia_id() -> None:
     for target in ("question:q3", "brief:goal", "plan:research_questions"):
         assert _valid(_output(view=[{"op": "focus", "target": target}])).ok
+
+
+AUDIENCE_COPY: dict[str, Any] = {
+    "audience": {"filters": {"kraj": ["Praha"]}, "builtin_subpanel": ""}
+}
+
+
+@pytest.mark.parametrize(
+    ("target", "reason"),
+    [
+        ("audience:filter:kraj", None),
+        ("audience:definition", None),
+        ("audience:filters", None),
+        ("audience:preview", None),
+        ("audience:subpanel:young_18_29", None),
+        ("question:q3", None),
+        ("audience:filter:vzdelani", "audience_filter_not_stored"),
+        ("audience:subpanel:nobody", "audience_subpanel_unknown"),
+        ("audience:segment", "unknown_target"),
+        ("nonsense:q3", "unknown_target"),
+    ],
+)
+def test_an_audience_target_names_what_the_working_copy_stores(
+    target: str, reason: str | None
+) -> None:
+    """artifact-audience AUD1: the server refuses a filter the copy does not store; no catalogue
+    is read."""
+    assert target_refusal(target, AUDIENCE_COPY) == reason
+
+
+def test_a_focus_on_nothing_the_frozen_copy_shows_is_dropped_and_named() -> None:
+    output = LeadOutput.model_validate(
+        _output(
+            view=[
+                {"op": "open_stage", "stage": "audience"},
+                {"op": "focus", "target": "audience:filter:vzdelani"},
+                {"op": "focus", "target": "audience:filter:kraj"},
+            ]
+        )
+    )
+    grounded, dropped = ground_view(output, AUDIENCE_COPY)
+    assert [op.model_dump() for op in grounded.view] == [
+        {"op": "open_stage", "stage": "audience"},
+        {"op": "focus", "target": "audience:filter:kraj"},
+    ]
+    assert [d.model_dump() for d in dropped] == [
+        {"index": 1, "op": "focus", "reason": "audience_filter_not_stored"}
+    ]
 
 
 def test_bounds_on_lists_reply_and_follow() -> None:
@@ -1221,6 +1273,21 @@ def test_a_dataset_in_the_knowledge_declares_its_lineage() -> None:
     assert request.data_lineage is not None and request.data_lineage.datasets
 
 
+def test_a_turn_declares_recorded_datasets_and_the_placeholder_for_an_unrecorded_one() -> None:
+    # CR-4: the same rule as the design jobs (research_agents.knowledge_lineage).
+    from aia_core.domain.licence_determinations import SYNTHETIC_FIXTURE_DATASET
+    from aia_core.domain.research_agents import UNRECORDED_KNOWLEDGE_LINEAGE
+
+    seeded = {"item_id": "K1", "revision": 1, "kind": "DATASET", "title": "t", "summary": "s"}
+    seeded["datasets"] = [SYNTHETIC_FIXTURE_DATASET]
+    recorded = _request(_context(knowledge=[seeded]), IDENTITY, DESIGN_OK).data_lineage
+    assert recorded is not None and recorded.datasets == {SYNTHETIC_FIXTURE_DATASET}
+    finding = {"item_id": "K2", "revision": 1, "kind": "FINDING", "title": "t", "summary": "s"}
+    mixed = _request(_context(knowledge=[seeded, finding]), IDENTITY, DESIGN_OK).data_lineage
+    assert mixed is not None
+    assert mixed.datasets == {SYNTHETIC_FIXTURE_DATASET, UNRECORDED_KNOWLEDGE_LINEAGE}
+
+
 @pytest.mark.parametrize("kind", ["DATASET", "ARTIFACT", "FINDING"])
 def test_a_turn_over_dataset_derived_knowledge_passes_the_licence_gate_on_eu_bedrock_only(
     kind: str,
@@ -1255,3 +1322,59 @@ def test_a_turn_over_dataset_derived_knowledge_passes_the_licence_gate_on_eu_bed
 def test_the_window_bounds_a_turn_and_its_repair() -> None:
     assert lead_request_window_tokens(1500) > CONTEXT_MAX_BYTES + 5 * 1500
     assert lead_request_window_tokens(3000) - lead_request_window_tokens(1500) == 5 * 1500
+
+
+# --------------------------------------------------------------------------- external context
+
+EXTERNAL = {
+    "pin": {"deep_research_run_id": "RUN-dr1", "artifact_id": "ART-b1", "sha256": "ab" * 32},
+    "lines": ["[EV-1] Trh s nápoji roste o 37 % ročně. (cs.wikipedia.org)"],
+}
+
+
+def test_external_context_is_its_own_layer_after_the_runs_and_absent_when_not_given() -> None:
+    """evidence-integrity 7: the newest Design Research findings, labelled, never evidence."""
+    plain = _context()
+    assert EXTERNAL_LAYER not in [entry["layer"] for entry in plain["layers"]]
+    context = _context(external=EXTERNAL)
+    layers = [entry["layer"] for entry in context["layers"]]
+    assert layers[layers.index("runs") + 1] == EXTERNAL_LAYER
+    found = layer(context, EXTERNAL_LAYER)
+    assert found["note"] == EXTERNAL_NOTE and found["lines"] == EXTERNAL["lines"]
+    assert EXTERNAL["lines"][0] in model_message(context)
+
+
+def test_a_figure_from_external_context_is_refused_like_any_number_the_study_does_not_hold() -> (
+    None
+):
+    contract = _request(_context(external=EXTERNAL), IDENTITY, DESIGN_OK).agent.output_contract
+    quoted = {"reply": "Podle rešerše trh roste o 37 % ročně."}
+    assert not validate_structured_output(contract, structured=quoted, text="").ok
+    assert validate_structured_output(
+        contract, structured={"reply": "Rešerše říká, že trh roste."}, text=""
+    ).ok
+    assert all(
+        entry.get("layer") != EXTERNAL_LAYER
+        for entry in citable_context(_context(external=EXTERNAL))
+    )
+
+
+def test_external_context_is_classified_as_public_material() -> None:
+    parts = context_classification(
+        _context(external=EXTERNAL), (IDENTITY, DESIGN_OK), get_slot(LEAD_PROMPT_ID).baseline_pin()
+    )
+    external = [p for p in parts if p["part"] == "external_context"]
+    assert external == [
+        {
+            "part": "external_context",
+            "data_class": DataClass.CLASS_C_INTERNAL.value,
+            "source": "bundle:public_findings",
+        }
+    ]
+    assert not [
+        p
+        for p in context_classification(
+            _context(), (IDENTITY, DESIGN_OK), get_slot(LEAD_PROMPT_ID).baseline_pin()
+        )
+        if p["part"] == "external_context"
+    ]

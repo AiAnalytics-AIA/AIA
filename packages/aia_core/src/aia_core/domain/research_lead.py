@@ -69,12 +69,13 @@ from .edit_ops import (
     refusal,
 )
 from .item_ids import SIDECAR_KEYS
-from .licence import DataLineage
 from .material_rules import MaterialRule, classify_by_rule, rule_class
+from .population.subpanels import BUILTIN_SUBPANELS
 from .prompts import PromptPin
 from .research_agents import (
     FIXED_PREFIX,
     ResearchAction,
+    knowledge_lineage,
     prompt_class_source,
     prompt_data_class,
 )
@@ -86,6 +87,8 @@ __all__ = [
     "CONTEXT_MAX_BYTES",
     "DEFAULT_LEAD_NAME",
     "DEFAULT_SOUL",
+    "EXTERNAL_LAYER",
+    "EXTERNAL_NOTE",
     "FOCUS_ID",
     "FOCUS_KINDS",
     "ID_PATTERN",
@@ -132,6 +135,7 @@ __all__ = [
     "frozen_sample_size",
     "ground_edits",
     "ground_self_update",
+    "ground_view",
     "is_text_edit",
     "layer",
     "lead_contract",
@@ -144,6 +148,7 @@ __all__ = [
     "self_update_base",
     "split_self_update",
     "stale_files",
+    "target_refusal",
     "unreadable_numbers",
     "waiting_self_update",
 ]
@@ -411,7 +416,9 @@ def _is_identity_key(key: str) -> bool:
 def citable_context(context: Mapping[str, Any]) -> list[Any]:
     """The layers the model is sent (:func:`model_message`) with their identity metadata left
     out: every key :func:`_is_identity_key` names, with all it holds, and every string that is
-    a focus target (:data:`FOCUS_ID`). The numbers a reply may write are this text's."""
+    a focus target (:data:`FOCUS_ID`). The numbers a reply may write are this text's. The
+    external context (:data:`EXTERNAL_LAYER`) is not citable: a figure from a source is
+    refused like any number the study's own context does not hold (evidence-integrity 7)."""
 
     def strip(value: Any) -> Any:
         if isinstance(value, Mapping):
@@ -422,7 +429,11 @@ def citable_context(context: Mapping[str, Any]) -> list[Any]:
             return ""
         return value
 
-    return [strip(entry) for entry in context["layers"] if entry["layer"] != "prompt"]
+    return [
+        strip(entry)
+        for entry in context["layers"]
+        if entry["layer"] not in ("prompt", EXTERNAL_LAYER)
+    ]
 
 
 def context_identifiers(context: Mapping[str, Any]) -> frozenset[str]:
@@ -536,6 +547,53 @@ def ground_edits(
         else:
             dropped.append(Dropped(index=i, op=edit.op, reason=reason))
     return output.model_copy(update={"edits": kept}), dropped
+
+
+#: The audience's parts a target may name besides a filter or a subpanel (the Cílová skupina
+#: screen's marks, artifact-audience AUD1).
+_AUDIENCE_PARTS: Final = frozenset({"definition", "filters", "preview"})
+_SUBPANEL_KEYS: Final = frozenset(s.key for s in BUILTIN_SUBPANELS)
+
+
+def target_refusal(target: str, content: Mapping[str, Any]) -> str | None:
+    """Why ``target`` names nothing a stage screen shows, or None when it may.
+
+    The grammar first (:data:`FOCUS_ID`, ``unknown_target``). Then the audience, by what the
+    working copy stores (artifact-audience AUD1): ``audience:filter:<factor>`` names a filter
+    stored in ``content["audience"]["filters"]`` (``audience_filter_not_stored``),
+    ``audience:subpanel:<key>`` one of the built-in subpanels (``audience_subpanel_unknown``),
+    and any other audience id one of its parts. No catalogue is read: a filter the copy does
+    not hold is not on the screen to point at. Other kinds are held to their grammar alone.
+    """
+    if not FOCUS_ID.fullmatch(target):
+        return "unknown_target"
+    kind, _, id_ = target.partition(":")
+    if kind != "audience" or id_ in _AUDIENCE_PARTS:
+        return None
+    part, _, name = id_.partition(":")
+    raw = content.get("audience")
+    audience: Mapping[str, Any] = raw if isinstance(raw, Mapping) else {}
+    if part == "filter" and name:
+        filters = audience.get("filters")
+        stored = isinstance(filters, Mapping) and name in filters
+        return None if stored else "audience_filter_not_stored"
+    if part == "subpanel" and name:
+        return None if name in _SUBPANEL_KEYS else "audience_subpanel_unknown"
+    return "unknown_target"
+
+
+def ground_view(output: LeadOutput, content: Mapping[str, Any]) -> tuple[LeadOutput, list[Dropped]]:
+    """``output`` with only the focus targets the working content can show, and the rest named
+    (:func:`target_refusal`). Opening a stage is always kept."""
+    kept: list[Any] = []
+    dropped: list[Dropped] = []
+    for i, op in enumerate(output.view):
+        reason = target_refusal(op.target, content) if isinstance(op, FocusItem) else None
+        if reason is None:
+            kept.append(op)
+        else:
+            dropped.append(Dropped(index=i, op=op.op, reason=reason))
+    return output.model_copy(update={"view": kept}), dropped
 
 
 def readiness_layer(sample_size: SampleSizeLimits, methodology_version: str) -> dict[str, Any]:
@@ -746,6 +804,15 @@ def notes_layer(notes: Sequence[Mapping[str, Any]]) -> list[dict[str, Any]]:
     return kept
 
 
+#: The layer of a sealed Design Research bundle's public findings: external context for
+#: interpreting the study, never respondent evidence, and never a source of a number.
+EXTERNAL_LAYER: Final = "external_context_not_evidence"
+EXTERNAL_NOTE: Final = (
+    "Externí kontext z poslední rešerše k návrhu: k výkladu, nikdy jako zjištění respondentů. "
+    "Čísla z něj nepište."
+)
+
+
 def freeze_context(
     *,
     prompt: PromptPin,
@@ -757,8 +824,12 @@ def freeze_context(
     runs: Sequence[Mapping[str, Any]],
     view: Mapping[str, Any],
     conversation: Sequence[Mapping[str, Any]],
+    external: Mapping[str, Any] | None = None,
 ) -> dict[str, Any]:
     """The turn's context, its layers in ADR 0026's order, within :data:`CONTEXT_MAX_BYTES`.
+
+    ``external``: the bundle's pin and lines (``analysis_results._external_context``), as the
+    :data:`EXTERNAL_LAYER` after the runs; absent, the context is what it was without it.
 
     ``conversation`` is the turns before this one, oldest first; only the newest
     :data:`HISTORY_TURNS` are kept, and the oldest of those go first when the whole is over
@@ -780,6 +851,11 @@ def freeze_context(
                 {"layer": "study", **dict(study)},
                 {"layer": "design", **dict(design)},
                 {"layer": "runs", "runs": [dict(r) for r in runs]},
+                *(
+                    [{"layer": EXTERNAL_LAYER, "note": EXTERNAL_NOTE, **dict(external)}]
+                    if external is not None
+                    else []
+                ),
                 {"layer": "view", **dict(view)},
                 {"layer": "conversation", "turns": turns, "omitted_turns": dropped},
             ],
@@ -903,6 +979,15 @@ def context_classification(
                     "source": "turn",
                 }
             )
+    if any(entry["layer"] == EXTERNAL_LAYER for entry in context["layers"]):
+        # Public web material: the bundle's findings it classed Class C, the only ones kept.
+        parts.append(
+            {
+                "part": "external_context",
+                "data_class": DataClass.CLASS_C_INTERNAL.value,
+                "source": "bundle:public_findings",
+            }
+        )
     knowledge = layer(context, "knowledge")["items"]
     parts.extend(
         {
@@ -948,9 +1033,7 @@ def lead_request(
     system = lead_prompt(prompt.text)
     message = model_message(context)
     knowledge = layer(context, "knowledge")["items"]
-    lineage = DataLineage.none()
-    if any(k.get("kind") in {"DATASET", "ARTIFACT", "FINDING"} for k in knowledge):
-        lineage = DataLineage.of("unclassified-client-knowledge")
+    lineage = knowledge_lineage(knowledge)
     return ModelRequest(
         agent=AgentDefinition(
             agent_id=LEAD_AGENT_ID,
