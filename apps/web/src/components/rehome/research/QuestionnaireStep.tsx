@@ -61,7 +61,9 @@ import {
   respondentPreview,
   sections,
   setObjectFamily,
-  setPriceBands,
+  priceBandsOf,
+  priceProblem,
+  setPriceBandList,
   setQuestionOptions,
   setQuestionText,
   setQuestionnairePath,
@@ -1036,17 +1038,19 @@ function TrackedSet({ n, sec, si, update }: { n: number; sec: Section; si: numbe
         </div>
       ) : null}
       {sec.output_type === CONCEPT_TEST ? (
-        <label className="flex flex-col gap-1">
+        <div className="flex flex-col gap-1">
           <span className={LABEL}>{t("research.questionnaire.priceBands")}</span>
-          <input
-            key={((sec.metadata?.price_bands as string[] | undefined) || []).join(", ")}
-            className={INPUT}
-            defaultValue={((sec.metadata?.price_bands as string[] | undefined) || []).join(", ")}
+          {/* One chip per price, each checked as an amount at the field (input-interactions I9, A16). */}
+          <ChipInput
+            label={t("research.questionnaire.priceBandAdd")}
             placeholder={t("research.questionnaire.priceBandsPlaceholder")}
-            onBlur={(e) => update((p) => setPriceBands(p, si, e.target.value))}
+            values={priceBandsOf(sec)}
+            refuse={priceProblem}
+            onAdd={(v) => update((p) => setPriceBandList(p, si, [...priceBandsOf(sec), v]))}
+            onRemove={(i) => update((p) => setPriceBandList(p, si, priceBandsOf(sec).filter((_, j) => j !== i)))}
           />
           <span className="text-xs text-ink-muted">{t("research.questionnaire.priceBandsHelp")}</span>
-        </label>
+        </div>
       ) : null}
       <ResearchQuestionLinks item={sec} onToggle={(rq) => update((p) => toggleSectionLink(p, si, rq), "questionnaire_links")} />
       <p className="rounded-control border border-signal-edge bg-signal-tint p-3 text-[13px]">
