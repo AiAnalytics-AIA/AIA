@@ -1,5 +1,5 @@
 {
- "contract": "aia-report-document-1",
+ "contract": "aia-report-document-2",
  "ledger": {
   "refs": {
    "n_total": {
@@ -212,6 +212,21 @@
     "trust_total",
     "n_total"
    ],
+   "sources": [
+    {
+     "artifact_id": "art-exec-7f3a2c",
+     "artifact_type": "research_analysis_module",
+     "kind": "artifact",
+     "sha256": "0567500005abd1b649280152c6f8ca2dcb2096c54576c95ed137a4f9d5efa588"
+    },
+    {
+     "kind": "ledger",
+     "refs": [
+      "trust_total",
+      "n_total"
+     ]
+    }
+   ],
    "title": "Shrnutí pro vedení"
   },
   {
@@ -250,6 +265,20 @@
    "id": "ch-decision",
    "refs": [
     "trust_praha"
+   ],
+   "sources": [
+    {
+     "artifact_id": "art-exec-7f3a2c",
+     "artifact_type": "research_analysis_module",
+     "kind": "artifact",
+     "sha256": "0567500005abd1b649280152c6f8ca2dcb2096c54576c95ed137a4f9d5efa588"
+    },
+    {
+     "kind": "ledger",
+     "refs": [
+      "trust_praha"
+     ]
+    }
    ],
    "title": "Odpověď pro rozhodnutí"
   },
@@ -340,6 +369,14 @@
    ],
    "id": "ch-questions",
    "refs": [],
+   "sources": [
+    {
+     "artifact_id": "art-rq-7f3a2c",
+     "artifact_type": "research_analysis_module",
+     "kind": "artifact",
+     "sha256": "4b810a94eae45295ec2bf18dc1270bd41dc79bd5e1265ce67fb65924a5984cb5"
+    }
+   ],
    "title": "Výzkumné otázky"
   },
   {
@@ -589,6 +626,25 @@
     "trust_total",
     "switch_modelled"
    ],
+   "sources": [
+    {
+     "artifact_id": "art-obj-7f3a2c",
+     "artifact_type": "research_analysis_module",
+     "kind": "artifact",
+     "sha256": "2ff96114e35a59c7ab98be0c9996e1db44706287637e14e3c01014d8ff9dd970"
+    },
+    {
+     "kind": "ledger",
+     "refs": [
+      "trust_praha",
+      "switch_modelled_young",
+      "trust_total",
+      "trust_brno",
+      "trust_ostrava",
+      "switch_modelled"
+     ]
+    }
+   ],
    "title": "Co jsme zjistili"
   },
   {
@@ -626,6 +682,21 @@
     "trust_praha",
     "trust_ostrava"
    ],
+   "sources": [
+    {
+     "artifact_id": "art-impl-7f3a2c",
+     "artifact_type": "research_analysis_module",
+     "kind": "artifact",
+     "sha256": "975b29e3ef57003bd3302eafefed89458255eed9af9e79c1b359e6c94344a36b"
+    },
+    {
+     "kind": "ledger",
+     "refs": [
+      "trust_praha",
+      "trust_ostrava"
+     ]
+    }
+   ],
    "title": "Doporučení"
   },
   {
@@ -648,6 +719,14 @@
    ],
    "id": "ch-external",
    "refs": [],
+   "sources": [
+    {
+     "artifact_id": "art-bundle-7f3a2c",
+     "artifact_type": "deep_research_bundle",
+     "kind": "artifact",
+     "sha256": "bb2ce670589536a91d06d29891f1ba0159462d781e716d623d13ac86c7266e66"
+    }
+   ],
    "title": "Jak výsledky zapadají do dostupné externí evidence"
   },
   {
@@ -675,6 +754,14 @@
    ],
    "id": "ch-confidence",
    "refs": [],
+   "sources": [
+    {
+     "artifact_id": "art-lim-7f3a2c",
+     "artifact_type": "research_analysis_module",
+     "kind": "artifact",
+     "sha256": "15159c7ca7ddf58f2506e0c7f8bffee144399d79d5b4e28a00e8f3e9f9e44afa"
+    }
+   ],
    "title": "Jistota závěrů"
   },
   {
@@ -697,6 +784,22 @@
    ],
    "id": "ch-method",
    "refs": [],
+   "sources": [
+    {
+     "artifact_id": "art-data-7f3a2c",
+     "artifact_type": "research_fieldwork_dataset",
+     "kind": "artifact",
+     "sha256": "d77eba0cdeae2f5385f959a5af9e4acf22c3b51033eab632449f70f04a48ebf8"
+    },
+    {
+     "kind": "run",
+     "path": "metadata.population"
+    },
+    {
+     "kind": "run",
+     "path": "metadata.support"
+    }
+   ],
    "title": "Metodika"
   },
   {
@@ -743,6 +846,14 @@
    ],
    "id": "ch-limitations",
    "refs": [],
+   "sources": [
+    {
+     "artifact_id": "art-lim-7f3a2c",
+     "artifact_type": "research_analysis_module",
+     "kind": "artifact",
+     "sha256": "15159c7ca7ddf58f2506e0c7f8bffee144399d79d5b4e28a00e8f3e9f9e44afa"
+    }
+   ],
    "title": "Limity"
   },
   {
@@ -765,6 +876,14 @@
    ],
    "id": "ch-conclusion",
    "refs": [],
+   "sources": [
+    {
+     "artifact_id": "art-exec-7f3a2c",
+     "artifact_type": "research_analysis_module",
+     "kind": "artifact",
+     "sha256": "0567500005abd1b649280152c6f8ca2dcb2096c54576c95ed137a4f9d5efa588"
+    }
+   ],
    "title": "Závěr"
   },
   {
@@ -787,6 +906,18 @@
    ],
    "id": "app-questionnaire",
    "refs": [],
+   "sources": [
+    {
+     "artifact_id": "art-spec-7f3a2c",
+     "artifact_type": "research_specification",
+     "kind": "artifact",
+     "sha256": "ee301815a29fa6a7a8bacced0cea456985aca8a94451ddda60b96e22e76bdc1f"
+    },
+    {
+     "kind": "spec",
+     "path": "questions"
+    }
+   ],
    "title": "Dotazník"
   },
   {
@@ -800,6 +931,20 @@
    ],
    "id": "app-evidence",
    "refs": [],
+   "sources": [
+    {
+     "kind": "ledger",
+     "refs": [
+      "trust_total",
+      "n_total",
+      "trust_praha",
+      "switch_modelled_young",
+      "trust_brno",
+      "trust_ostrava",
+      "switch_modelled"
+     ]
+    }
+   ],
    "title": "Evidenční příloha"
   },
   {
@@ -818,6 +963,58 @@
       [
        "QA",
        "passed"
+      ],
+      [
+       "Zdroje · Shrnutí pro vedení",
+       "research_analysis_module art-exec-7f3a2c · SHA-256 0567500005abd1b649280152c6f8ca2dcb2096c54576c95ed137a4f9d5efa588; evidence: 2 odkazů"
+      ],
+      [
+       "Zdroje · Odpověď pro rozhodnutí",
+       "research_analysis_module art-exec-7f3a2c · SHA-256 0567500005abd1b649280152c6f8ca2dcb2096c54576c95ed137a4f9d5efa588; evidence: 1 odkazů"
+      ],
+      [
+       "Zdroje · Výzkumné otázky",
+       "research_analysis_module art-rq-7f3a2c · SHA-256 4b810a94eae45295ec2bf18dc1270bd41dc79bd5e1265ce67fb65924a5984cb5"
+      ],
+      [
+       "Zdroje · Co jsme zjistili",
+       "research_analysis_module art-obj-7f3a2c · SHA-256 2ff96114e35a59c7ab98be0c9996e1db44706287637e14e3c01014d8ff9dd970; evidence: 6 odkazů"
+      ],
+      [
+       "Zdroje · Doporučení",
+       "research_analysis_module art-impl-7f3a2c · SHA-256 975b29e3ef57003bd3302eafefed89458255eed9af9e79c1b359e6c94344a36b; evidence: 2 odkazů"
+      ],
+      [
+       "Zdroje · Jak výsledky zapadají do dostupné externí evidence",
+       "deep_research_bundle art-bundle-7f3a2c · SHA-256 bb2ce670589536a91d06d29891f1ba0159462d781e716d623d13ac86c7266e66"
+      ],
+      [
+       "Zdroje · Jistota závěrů",
+       "research_analysis_module art-lim-7f3a2c · SHA-256 15159c7ca7ddf58f2506e0c7f8bffee144399d79d5b4e28a00e8f3e9f9e44afa"
+      ],
+      [
+       "Zdroje · Metodika",
+       "research_fieldwork_dataset art-data-7f3a2c · SHA-256 d77eba0cdeae2f5385f959a5af9e4acf22c3b51033eab632449f70f04a48ebf8; záznam běhu: metadata.population; záznam běhu: metadata.support"
+      ],
+      [
+       "Zdroje · Limity",
+       "research_analysis_module art-lim-7f3a2c · SHA-256 15159c7ca7ddf58f2506e0c7f8bffee144399d79d5b4e28a00e8f3e9f9e44afa"
+      ],
+      [
+       "Zdroje · Závěr",
+       "research_analysis_module art-exec-7f3a2c · SHA-256 0567500005abd1b649280152c6f8ca2dcb2096c54576c95ed137a4f9d5efa588"
+      ],
+      [
+       "Zdroje · Dotazník",
+       "research_specification art-spec-7f3a2c · SHA-256 ee301815a29fa6a7a8bacced0cea456985aca8a94451ddda60b96e22e76bdc1f; specifikace: questions"
+      ],
+      [
+       "Zdroje · Evidenční příloha",
+       "evidence: 7 odkazů"
+      ],
+      [
+       "Nepřečtené výstupy běhu",
+       "research_aggregate art-agg-7f3a2c · SHA-256 6247e189b52ab147459dfebd33324097a835c0fd84aa81619b37d9c59b0c2963; research_sociomapping_docx art-smx-7f3a2c · SHA-256 245d1a6ab776699af30d28775a72a4ca34543a163820916a760a208a199e4ab1"
       ]
      ],
      "id": "app-audit.1",
@@ -827,6 +1024,26 @@
    ],
    "id": "app-audit",
    "refs": [],
+   "sources": [
+    {
+     "artifact_id": "art-spec-7f3a2c",
+     "artifact_type": "research_specification",
+     "kind": "artifact",
+     "sha256": "ee301815a29fa6a7a8bacced0cea456985aca8a94451ddda60b96e22e76bdc1f"
+    },
+    {
+     "artifact_id": "art-data-7f3a2c",
+     "artifact_type": "research_fieldwork_dataset",
+     "kind": "artifact",
+     "sha256": "d77eba0cdeae2f5385f959a5af9e4acf22c3b51033eab632449f70f04a48ebf8"
+    },
+    {
+     "artifact_id": "art-agg-7f3a2c",
+     "artifact_type": "research_aggregate",
+     "kind": "artifact",
+     "sha256": "6247e189b52ab147459dfebd33324097a835c0fd84aa81619b37d9c59b0c2963"
+    }
+   ],
    "title": "Audit"
   },
   {
@@ -891,7 +1108,29 @@
    "refs": [
     "trust_total"
    ],
+   "sources": [
+    {
+     "kind": "ledger",
+     "refs": [
+      "trust_total"
+     ]
+    }
+   ],
    "title": "Fiktivní doplněk"
+  }
+ ],
+ "unread": [
+  {
+   "artifact_id": "art-agg-7f3a2c",
+   "artifact_type": "research_aggregate",
+   "kind": "artifact",
+   "sha256": "6247e189b52ab147459dfebd33324097a835c0fd84aa81619b37d9c59b0c2963"
+  },
+  {
+   "artifact_id": "art-smx-7f3a2c",
+   "artifact_type": "research_sociomapping_docx",
+   "kind": "artifact",
+   "sha256": "245d1a6ab776699af30d28775a72a4ca34543a163820916a760a208a199e4ab1"
   }
  ]
 }
