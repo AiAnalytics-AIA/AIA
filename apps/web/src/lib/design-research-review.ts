@@ -12,7 +12,7 @@ import { CONFLICT_MESSAGE } from "@/research/store";
 import { staleDetails, staleMessage } from "@/research/proposal-items";
 
 /** The one design key an accept writes (design_proposals.py DESIGN_RESEARCH_KEY). */
-export const DESIGN_RESEARCH_KEY = "design_research";
+const DESIGN_RESEARCH_KEY = "design_research";
 /** The block's contract (design_proposals.py DESIGN_PROPOSAL_CONTRACT); another is not read as this one. */
 export const DESIGN_PROPOSAL_CONTRACT = "aia-design-research-proposal-1";
 

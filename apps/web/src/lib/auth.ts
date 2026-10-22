@@ -91,7 +91,7 @@ function requireCognito(config: PublicConfig): { domain: string; clientId: strin
 let snapshotRaw: string | null = null;
 let snapshotValue: Session | null = null;
 
-export function readSession(): Session | null {
+function readSession(): Session | null {
   try {
     const raw = sessionStorage.getItem(SESSION_KEY);
     // Cached by the stored string, so React's external-store snapshot is stable

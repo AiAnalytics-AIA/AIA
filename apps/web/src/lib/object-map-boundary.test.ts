@@ -45,9 +45,10 @@ describe("the object map's browser code computes no methodology", () => {
 // (`rmsDistance`, as `drawAiaOverlay66`). Everything else stays out, as above.
 describe("the panel port computes only the panel's display", () => {
   const source = code("lib/object-map-panel.ts");
-  /** The body of one exported function: from its declaration to the next top-level one. */
+  /** The body of one top-level function: from its declaration to the next top-level one. */
   const body = (name: string) => {
-    const start = source.indexOf(`export function ${name}(`);
+    const start = source.search(new RegExp(`^(export )?function ${name}\\(`, "m"));
+    if (start < 0) throw new Error(`no top-level function ${name} in lib/object-map-panel.ts`);
     const next = source.slice(start + 1).search(/\n(export )?(function|const|type) /);
     return source.slice(start, next < 0 ? undefined : start + 1 + next);
   };

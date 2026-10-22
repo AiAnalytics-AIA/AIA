@@ -690,6 +690,8 @@ jobs:
       # the contrast, palette and client-accent evidence is re-measured from it.
       - run: npm run tokens:check
       - run: npm run check:design
+      # No unused file, dependency or export (knip.jsonc says what is kept on purpose).
+      - run: npm run knip
       - run: npm test
       - run: npm run build
 

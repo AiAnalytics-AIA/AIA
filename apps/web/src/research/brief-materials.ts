@@ -18,7 +18,10 @@ export type BriefMaterial = {
   contract_version?: number | null;
 };
 
-/** What the server computes for a material; the web shows it, never decides it. */
+/**
+ * What the server computes for a material; the web shows it, never decides it.
+ * @public Unused until brief-materials chunk 2 answers it.
+ */
 export type MaterialEligibility = "no_contract" | "contract_not_accepted" | "contract_stale" | "eligible";
 
 type Signed = { source_id: string | null; reading_sha256: string | null; contract_id: string | null; contract_version: number | null };

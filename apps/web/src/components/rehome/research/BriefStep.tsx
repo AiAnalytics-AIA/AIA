@@ -59,7 +59,7 @@ const INPUT = `rounded-control border border-border-strong text-ink placeholder:
 const CONTEXT_MAX = 4000;
 
 /** A goal this long reads as a sentence; shorter, the AI will have to ask. */
-export const GOAL_SENTENCE = 40;
+const GOAL_SENTENCE = 40;
 
 /** The further context, in the order the classic form showed it. */
 const CONTEXT: { field: BriefingField; label: string }[] = [
@@ -77,7 +77,7 @@ function contextValue(p: ResearchProject, field: TopField | BriefingField): stri
  * "Navrhnout z cíle": a short title from the goal's first clause, without its
  * sentence starter. Done in the browser; the person can change it like any title.
  */
-export function titleFromGoal(goal: string): string {
+function titleFromGoal(goal: string): string {
   const words = goal
     .trim()
     .replace(/^(Chceme zjistit|Rozhodujeme mezi|Potřebujeme ověřit)(,?\s+(jak|zda|jestli|co|kdo|proč))?\s*/i, "")

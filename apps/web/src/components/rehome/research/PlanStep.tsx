@@ -78,7 +78,7 @@ const holdsRefused = (el: Element | null, remount?: "items") =>
  * textarea took: each answered question with its answer. Unanswered ones are left
  * out; the AI resolves them by assumption.
  */
-export function followUpAnswers(questions: string[], answers: string[]): string {
+function followUpAnswers(questions: string[], answers: string[]): string {
   return questions
     .map((q, i) => ((answers[i] || "").trim() ? `${q}\n${(answers[i] || "").trim()}` : ""))
     .filter(Boolean)

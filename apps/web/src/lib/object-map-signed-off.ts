@@ -11,7 +11,7 @@
 import type { BatteryWithMaps, Frame, ObjectMapArtifact } from "./object-map-view";
 
 /** The estimator only the signed-off methodology declares: its maps are drawn as the panel draws them. */
-export const SIGNED_OFF_ESTIMATOR = "baseline_corrected_pearson";
+const SIGNED_OFF_ESTIMATOR = "baseline_corrected_pearson";
 
 export type Placement = "PLACED" | "FADED" | "NOT_PLACED";
 

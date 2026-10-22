@@ -23,6 +23,7 @@ export const MARK_POINTS = Array.from({ length: 25 }, (_, i) => {
   };
 });
 
+/** @public Rendered by no page yet; whether to remove it is an open decision (code-health-2026-10). */
 export function AiaMark({ size = 32, label, className = "" }: { size?: number; label?: string; className?: string }) {
   const a11y = label ? { role: "img", "aria-label": label } : { "aria-hidden": true as const, focusable: "false" as const };
   return (

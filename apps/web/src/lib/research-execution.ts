@@ -52,7 +52,7 @@ export const needsRepair = (step: ResearchStep): boolean =>
 /** The states of a step that has not started. Once its run has ended it never will: the engine
  *  claims no step of a finished run (PC14: a failed run's untouched modules read "Připraveno"). */
 const NOT_STARTED = new Set(["PENDING", "RUNNABLE", "BLOCKED"]);
-export const willNotRun = (step: Pick<ResearchStep, "status">, runEnded: boolean): boolean =>
+const willNotRun = (step: Pick<ResearchStep, "status">, runEnded: boolean): boolean =>
   runEnded && NOT_STARTED.has(step.status);
 
 export function stepTone(step: ResearchStep, runEnded = false): Tone {
@@ -173,7 +173,7 @@ export function reportHolds(run: ResearchRun): ReportHold[] {
 /** Origins that are never evidence: the fictional fixture, and AI respondents on fictional personas. */
 const SYNTHETIC_ORIGINS: ReadonlySet<string> = new Set(["SYNTHETIC_FIXTURE", "SYNTHETIC_AI_FICTIONAL"]);
 /** Origins of modelled evidence: AI respondents built from the run's own population (ADR 0024). */
-export const MODELLED_ORIGINS: ReadonlySet<string> = new Set(["MODELLED_AI_PANEL"]);
+const MODELLED_ORIGINS: ReadonlySet<string> = new Set(["MODELLED_AI_PANEL"]);
 /** What every modelled number says beside it (ADR 0024 §7); never "respondents said" or "measured". */
 export const MODELLED_DISCLOSURE = "modelováno: AI respondenti z populace";
 
