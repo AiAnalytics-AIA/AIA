@@ -3,7 +3,8 @@
  * Dimenze in a browser (artifact-dimensions DIM3, the start of DIM6): the sample size is one
  * stepper inside data-aia="sample:n", bounded by the server's limits; a press saves n plus the
  * step, a value outside the limits is refused at the field and nothing is saved.
- * The client's own dimensions (DIM4) are read and lead to "Populace běhu".
+ * The client's own dimensions (DIM4) are read and lead to "Populace běhu". Inside the workbench
+ * "Další" goes on to Vzorek, the navigator's next stage (DIM-F4).
  * At 1440, 1100, 768 and 390 px, no page overflow. Zero paid starts: the only writes are saves of
  * the working copy and of the stage the person is on. The fixture's n is put back at the end.
  *
@@ -98,6 +99,19 @@ try {
   await page.waitForTimeout(2500); // past the store's 1.8 s save
   assert.equal(writes.length, puts, "a refused n saves nothing");
   check("a value above the limits is refused at the field, nothing saved");
+
+  // Put n back while Dimenze is on screen; "Další" then leaves it for Vzorek.
+  await n().fill(String(restore));
+  const back = saved();
+  await n().press("Enter");
+  await back;
+  restore = null;
+  await page.getByRole("button", { name: "Další · Vzorek" }).click();
+  await page.waitForFunction(() => location.hash === "#sample");
+  await page.locator("[data-sample-view]").waitFor();
+  await page.waitForFunction(() => document.activeElement?.matches("h1.arthead__title") && /Vzorek/.test(document.activeElement.textContent ?? ""));
+  assert.equal(new URL(page.url()).pathname, `/app/clients/${client}/research/${study}/dimensions`);
+  check("inside the workbench, Další goes on to Vzorek, its heading focused");
 
   const paid = writes.filter((x) => !/\/workspace\/(content|stage)$/.test(x.path));
   assert.deepEqual(paid, [], "only the working copy is written: no run, job or request");

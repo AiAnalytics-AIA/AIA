@@ -16,7 +16,7 @@
 // licensed panel, its Data Library): the screen says they are not in AIA.
 
 import { useRouter } from "next/navigation";
-import { type ReactNode, useEffect, useState } from "react";
+import { type ReactNode, useContext, useEffect, useState } from "react";
 
 import { research, workspace } from "@/lib/api";
 import { isNativeResult } from "@/lib/research-agent-jobs";
@@ -61,7 +61,7 @@ import {
   applyRecommendedSample,
 } from "@/research/persona";
 import { Icon } from "../icons";
-import { ActionDock, StepSection } from "../step";
+import { ActionDock, FrameNavigation, StepSection } from "../step";
 import { AiButton, Button, Field, TextInput } from "../ui";
 import { Stepper } from "@/components/ui/Stepper";
 import { rangeWords } from "@/lib/number-input";
@@ -184,9 +184,12 @@ export function PersonaStep() {
     void request(q.label, q.sourceStrategy, q.extra, PROPOSAL_AI_DONE);
   };
 
-  const toRun = () => {
+  // Inside the workbench the next stage is the frame's (its navigator's order and focus).
+  const next = useContext(FrameNavigation)?.next ?? null;
+  const toNext = () => {
     apply(personaDone(store.get().project));
-    router.push(stepHref("run"));
+    if (next) next.go();
+    else router.push(stepHref("run"));
   };
 
   const visible = entries.filter((d) => matchesDimensionSearch(d, query));
@@ -382,8 +385,8 @@ export function PersonaStep() {
           back={{ href: stepHref("audience"), label: `4. ${t("aia.stages.audience")}` }}
           note={tv("research.persona.dockNote", { d: approved.length, n })}
         >
-          <Button variant="primary" className="!rounded-control" onClick={toRun}>
-            {t("research.persona.next")}
+          <Button variant="primary" className="!rounded-control" onClick={toNext}>
+            {next ? tv("research.persona.nextStage", { stage: next.label }) : t("research.persona.next")}
             <Icon name="next" size={14} />
           </Button>
         </ActionDock>
