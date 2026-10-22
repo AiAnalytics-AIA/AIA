@@ -319,14 +319,18 @@ sentence refused by RD7 is marked at the sentence. Depends on `report-delivery#R
   internal draft never said what the person asked for: "Návrh studie" printed only how the study
   measured. Now `NativeSources.brief` (`analysis_results.Brief`: the Design Revision's goal and decision
   use, each `None` when empty) is carried on `RunAnalysis`, and `compose_design_sections` opens with "Cíl
-  studie" and "Co rozhodnutí ovlivní" in the internal report and the report with literature, the chapter
-  naming the Design Revision as its source (`RunSource("metadata.design_revision_id")`, CHN1). The
+  studie" and "Rozhodnutí, které má výzkum podpořit" (the Brief's own title for the field, web `cs.ts`
+  `decisionTitle`) in the internal report and the report with literature, the chapter naming the Design
+  Revision as its source (`RunSource("metadata.design_revision_id")`, CHN1). An empty field reads "V zadání
+  neuvedeno." (code's words, never a template's placeholder), so not stated is never read as not shown;
+  a character XML cannot hold is left out (a vertical tab becomes a line), so a pasted brief never fails
+  the draft. The
   contracts move (`aia-internal-report-15`, `aia-contextual-report-11`). Deliberately not done, from
   review: the cover keeps the study's record, because a brief's title is the template's "Nový výzkum"
   until edited and a reused design carries the earlier study's; the client report is unchanged, because
   its internal-marker scan would refuse a person's own brief words (e.g. a goal naming an AI product).
   Tests: `test_report_design.py` `test_the_chapter_opens_with_what_the_brief_asked_for_before_how_it_was_measured`,
-  `test_an_empty_brief_adds_no_heading_of_its_own`; `test_analysis_executor.py`
+  `test_an_empty_brief_field_is_said_not_stated_never_left_out`, `test_a_control_character_in_the_brief_never_fails_the_report`; `test_analysis_executor.py`
   `test_native_research_start_and_worker_complete_the_composed_analysis_graph` (the stored draft's design
   chapter and its source).
 

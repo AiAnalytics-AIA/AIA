@@ -154,15 +154,7 @@ def report_chapters(
     design = compose_design_sections(
         spec,
         first.inputs.research_questions,
-        goal=analysis.brief.goal,
-        decision_use=analysis.brief.decision_use,
-    )
-    # The goal and decision use are read from the Design Revision the run names, not from the
-    # specification (CHN1): named only when the chapter prints them.
-    brief_source = (
-        (RunSource("metadata.design_revision_id"),)
-        if analysis.brief.goal or analysis.brief.decision_use
-        else ()
+        brief=analysis.brief,
     )
     meta = run.get("metadata") or {}
     return ReportChapters(
@@ -189,7 +181,9 @@ def report_chapters(
                 SpecSource("batteries"),
                 SpecSource("n"),
                 SpecSource("audience"),
-                *brief_source,
+                # The goal and decision use are read from the Design Revision the run names, not
+                # from the specification (CHN1).
+                RunSource("metadata.design_revision_id"),
             ),
             appendix=sourced(
                 design.appendix, specification, SpecSource("questions"), SpecSource("batteries")

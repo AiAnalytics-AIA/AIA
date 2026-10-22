@@ -16,6 +16,7 @@ import re
 from collections.abc import Sequence
 from dataclasses import dataclass
 
+from aia_core.application.analysis_results import Brief
 from aia_core.domain.report.model import (
     Block,
     BulletList,
@@ -125,20 +126,31 @@ def _audience_rule(spec: ResearchSpecification) -> str:
     return f"{_STRATEGY['filters']} ({named})."
 
 
-def _paragraphs(written: str) -> list[Block]:
-    """A person's text as they wrote it: a paragraph for each part a blank line separates."""
-    return [Paragraph(text(part.strip())) for part in re.split(r"\n\s*\n", written) if part.strip()]
+#: What XML 1.0 cannot hold, which python-docx refuses: the C0 controls but tab and newlines, and
+#: the two non-characters. A vertical tab (Word's soft line break, kept by some pastes) is a line.
+_NOT_XML = re.compile("[\x00-\x08\x0c\x0e-\x1f\ufffe\uffff]")
+
+#: Said, in code's words, where the person stated nothing: never a template's placeholder.
+NOT_STATED = "V zadání neuvedeno."
+
+
+def _paragraphs(written: str | None) -> list[Block]:
+    """A person's text as they wrote it, a paragraph for each part a blank line separates; what
+    XML cannot hold left out, never failing the report; nothing written is said so."""
+    clean = _NOT_XML.sub("", (written or "").replace("\x0b", "\n"))
+    parts = [part.strip() for part in re.split(r"\n\s*\n", clean) if part.strip()]
+    return [Paragraph(text(part)) for part in parts] or [Paragraph(text(NOT_STATED))]
 
 
 def compose_design_sections(
     spec: ResearchSpecification,
     research_questions: Sequence[str],
     *,
-    goal: str | None = None,
-    decision_use: str | None = None,
+    brief: Brief | None = None,
 ) -> DesignSections:
-    """The design as the run executed it: the brief's goal and what the decision is for, then
-    questions, sets, sample and audience; then every question of the questionnaire in its order."""
+    """The design as the run executed it: the brief's goal and what the decision is for (with
+    ``brief``; each said not stated when empty), then questions, sets, sample and audience; then
+    every question of the questionnaire in its order."""
     blocks: list[Block] = [
         Paragraph(
             text(
@@ -148,13 +160,13 @@ def compose_design_sections(
             )
         )
     ]
-    # What the person asked for, before how it was measured (F19).
-    if goal:
+    # What the person asked for, before how it was measured (F19): both always, so an empty field
+    # reads as not stated, never as a report that leaves it out.
+    if brief is not None:
         blocks.append(Heading("Cíl studie", 2))
-        blocks.extend(_paragraphs(goal))
-    if decision_use:
+        blocks.extend(_paragraphs(brief.goal))
         blocks.append(Heading("Rozhodnutí, které má výzkum podpořit", 2))
-        blocks.extend(_paragraphs(decision_use))
+        blocks.extend(_paragraphs(brief.decision_use))
     if research_questions:
         blocks.append(Heading("Výzkumné otázky", 2))
         blocks.append(BulletList(tuple(ListItem(text(q)) for q in research_questions)))
