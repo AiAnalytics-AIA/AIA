@@ -61,7 +61,7 @@ export function ObjectMapPanel({ battery, map, facts }: { battery: BatteryWithMa
       <p className="min-w-0 flex-[999_1_560px] text-xs text-ink-muted" data-testid="object-map-no-terrain">
         {tv("research.exec.objectMap.noTerrain", { reason: map.terrain.status === "not_computed" ? map.terrain.reason : "—" })}
       </p>
-      <Aside battery={battery} facts={facts} items={objects.map((o) => ({ id: o.id, label: o.label, value: o.height, colour: color66(o.relative ?? REL_FLOOR) }))} selected={-1}
+      <SideColumn battery={battery} facts={facts} items={objects.map((o) => ({ id: o.id, label: o.label, value: o.height, colour: color66(o.relative ?? REL_FLOOR) }))} selected={-1}
         notPlaced={objectsNotPlaced(battery, map)} />
     </div>
   );
@@ -70,11 +70,11 @@ export function ObjectMapPanel({ battery, map, facts }: { battery: BatteryWithMa
 type ListItem = { id: string; label: string; value: number | null; colour: string };
 
 /** Beside the map: every object as a button (keyboard and screen-reader access to the map), then the facts. */
-function Aside({ battery, facts, items, selected, notPlaced, counts = null, detail = null, onChoose, onHover }: {
+function SideColumn({ battery, facts, items, selected, notPlaced, counts = null, detail = null, onChoose, onHover }: {
   battery: BatteryWithMaps; facts: ReactNode; items: ListItem[]; selected: number; notPlaced: string[]; counts?: ReactNode; detail?: ReactNode; onChoose?: (k: number) => void; onHover?: (k: number) => void;
 }) {
   return (
-    <aside className="flex min-w-0 flex-[1_1_260px] flex-col gap-3">
+    <div className="flex min-w-0 flex-[1_1_260px] flex-col gap-3">
       {detail}
       {counts}
       <div className="flex flex-col gap-2 rounded-[10px] border border-border bg-surface-raised p-4" data-testid="object-map-panel-list">
@@ -99,7 +99,7 @@ function Aside({ battery, facts, items, selected, notPlaced, counts = null, deta
       </div>
       <Registers />
       <div className="flex flex-col gap-2 rounded-[10px] border border-border bg-surface-raised p-4">{facts}</div>
-    </aside>
+    </div>
   );
 }
 
@@ -382,7 +382,7 @@ function PanelView({ battery, map, facts }: { battery: BatteryWithMaps; map: Obj
           {people ? <DensityLegend segments={segments} /> : <Legend battery={battery} values={nodes.map((n) => (n.primary ? n.value : null))} norm={norm} strongest={strongest} />}
         </div>
         {/* Selection is the object map's: on the respondent map the list only lists (a click there showed nothing). */}
-        <Aside battery={battery} facts={facts} selected={selected} onChoose={people ? undefined : choose} onHover={setHovered} notPlaced={notPlaced} detail={detail}
+        <SideColumn battery={battery} facts={facts} selected={selected} onChoose={people ? undefined : choose} onHover={setHovered} notPlaced={notPlaced} detail={detail}
           counts={people ? <RespondentCounts map={map} segments={segments} /> : null}
           items={nodes.map((n, k) => ({ id: n.id, label: n.label, value: n.value, colour: n.primary ? color66(tones[k]) : SECONDARY }))} />
       </div>

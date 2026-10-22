@@ -3,6 +3,11 @@
 import { existsSync, readFileSync, readlinkSync } from "node:fs";
 import { join } from "node:path";
 
+/** An interaction: from the person's action to the screen that answers it. */
+export const INTERACTION_BUDGET_MS = 400;
+/** The cold first open of a research stage, from navigation start (Q78 (c), product owner 2026-10-22). */
+export const COLD_OPEN_BUDGET_MS = 800;
+
 /** Exits unless the workbench's web client is running as a production build (`up --production`). */
 export function requireProductionBuild(repo, base) {
   const home = join(repo, "tmp/ui-workbench");

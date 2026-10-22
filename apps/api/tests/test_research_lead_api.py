@@ -14,7 +14,7 @@ import pytest
 from aia_core.application.research import research_artifacts
 from aia_core.application.scope import AuthenticatedPrincipal, ScopeResolver
 from aia_core.domain.approval_ledger import ApprovalSubject
-from aia_core.domain.research_lead import ARTIFACT_TYPE
+from aia_core.domain.research_lead import ARTIFACT_TYPE, EXTERNAL_LAYER
 from aia_core.domain.workflow import FailureClass
 from aia_core.domain.workflow_templates import RESEARCH_AGENT, RESEARCH_LEAD_TURN
 from aia_core.infrastructure.db import create_session_factory
@@ -326,6 +326,8 @@ def test_every_lead_route_is_study_scoped_or_the_callers_own(app: FastAPI) -> No
         "/api/v1/studies/{study_id}/lead",
         "/api/v1/studies/{study_id}/lead/turns",
         "/api/v1/studies/{study_id}/lead/turns/{turn_id}/edits",
+        "/api/v1/studies/{study_id}/lead/turns/{turn_id}/manifest",
+        "/api/v1/studies/{study_id}/lead/turns/{turn_id}/manifest/omitted",
         "/api/v1/studies/{study_id}/lead/turns/{turn_id}/request",
         "/api/v1/studies/{study_id}/lead/turns/{turn_id}/self-update",
         "/api/v1/lead",
@@ -602,6 +604,35 @@ def test_someone_elses_turn_is_not_found(
         f"{lead_url(world)}/turns/{turn_id}/edits", json={"decision": "dismiss", "indices": [0]}
     )
     assert refused.status_code == 404 and refused.json()["code"] == "lead_turn_not_found"
+
+
+def test_a_turns_manifest_is_its_researchers_alone(
+    researcher: TestClient, viewer: TestClient, world: Any, app: FastAPI
+) -> None:
+    turn_id = _turn(researcher, world, app, EDITS)
+    read = researcher.get(f"{lead_url(world)}/turns/{turn_id}/manifest")
+    assert read.status_code == 200, read.text
+    body = read.json()
+    assert body["recorded"] is True
+    layers = {row["layer"]: row for row in body["manifest"]["layers"]}
+    # Not recorded is said so, with unknown counts; nothing says what class a layer was sent as.
+    assert layers["memory"]["recorded"] is True and layers[EXTERNAL_LAYER]["recorded"] is False
+    assert layers[EXTERNAL_LAYER]["included_count"] is None
+    assert "data_class" not in read.text
+    page = researcher.get(
+        f"{lead_url(world)}/turns/{turn_id}/manifest/omitted", params={"layer": "knowledge"}
+    )
+    assert page.status_code == 200 and page.json() == {
+        "layer": "knowledge", "after": 0, "total": 0, "omitted": []
+    }  # fmt: skip
+    _hatched(viewer)
+    for path in ("manifest", "manifest/omitted?layer=knowledge"):
+        refused = viewer.get(f"{lead_url(world)}/turns/{turn_id}/{path}")
+        assert refused.status_code == 404 and refused.json()["code"] == "lead_turn_not_found"
+    bad = researcher.get(
+        f"{lead_url(world)}/turns/{turn_id}/manifest/omitted", params={"layer": "../x"}
+    )
+    assert bad.status_code == 422
 
 
 def test_the_generic_run_routes_never_serve_a_lead_turn(

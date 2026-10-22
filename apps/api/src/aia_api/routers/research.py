@@ -31,7 +31,10 @@ from aia_core.application.client_report import (
     prepare_client_report,
     stored_client_report,
 )
-from aia_core.application.contextual_report import stored_contextual_report
+from aia_core.application.contextual_report import (
+    contextual_report_document,
+    stored_contextual_report,
+)
 from aia_core.application.deep_research import (
     BundleNotReady,
     DeepResearchRunNotFound,
@@ -2897,6 +2900,50 @@ def contextual_report_status(
         deep_research_run_id,
         _variant(run_id, deep_research_run_id, scope, session, store),
     )
+
+
+@router.get(
+    "/research/runs/{run_id}/report/context/document",
+    response_model=dict[str, Any],
+    summary="The prepared report with a chosen literature review as its stored document model",
+    responses={409: {"model": ErrorResponse}},
+)
+def contextual_report_document_route(
+    run_id: RunIdPath,
+    deep_research_run_id: DeepResearchRunIdQuery,
+    scope: StudyScopeDep,
+    session: SessionDep,
+    store: ArtifactStoreDep,
+) -> dict[str, Any]:
+    """The document the variant's prepared DOCX was rendered from, in the shape of the internal
+    draft's (``…/report/document``), so the pane reads and approves exactly that version
+    (artifact-report RPT3a). Composes nothing. 409 ``context_report_not_prepared`` before it is
+    prepared; 409 ``report_document_not_stored`` for a version stored before its document was
+    (its DOCX still downloads)."""
+    found = _variant(run_id, deep_research_run_id, scope, session, store)
+    if found.docx is None:
+        raise _not_prepared()
+    repo = research_artifacts(session, scope, store)
+    model = contextual_report_document(repo, found.docx)
+    if model is None:
+        raise HTTPException(409, detail={"code": "report_document_not_stored"})
+    try:
+        document = read_document_payload(repo.read(model.artifact_id))
+    except (IntegrityError, ObjectNotFound) as exc:
+        raise artifact_corrupt(session) from exc
+    except DocumentModelInvalid as exc:
+        raise HTTPException(409, detail={"code": "report_artifact_invalid"}) from exc
+    docx = found.docx
+    return {
+        "run_id": run_id,
+        "artifact_id": model.artifact_id,
+        "sha256": model.sha256,
+        "report_artifact_id": docx.artifact_id,
+        "report_sha256": docx.sha256,
+        **_review_fields(docx, _mark(docx, scope, session, store)),
+        **_approval_fields(docx, scope, session, store),
+        "document": document,
+    }
 
 
 @router.get(

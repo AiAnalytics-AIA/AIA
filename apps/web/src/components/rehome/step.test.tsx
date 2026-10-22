@@ -88,6 +88,22 @@ describe("Studio v3 step pieces", () => {
     expect(remove).toHaveBeenLastCalledWith(1);
   });
 
+  it("ChipInput with rename rewords a value in its place, refusing what refuse refuses for that place", () => {
+    const rename = vi.fn();
+    const refuse = vi.fn((v: string, i?: number) => (v === "A" && i !== 0 ? "Už je." : null));
+    render(<ChipInput label="Položky" values={["A", "B"]} onAdd={vi.fn()} onRemove={vi.fn()} refuse={refuse} rename={{ label: "Položka", onRename: rename }} />);
+    fireEvent.click(screen.getByRole("button", { name: "Upravit: Položka · 2 B" }));
+    const field = screen.getByRole("textbox", { name: "Položka · 2" });
+    fireEvent.change(field, { target: { value: "A" } });
+    fireEvent.keyDown(field, { key: "Enter" });
+    expect(screen.getByText("Už je.")).toBeTruthy();
+    expect(rename).not.toHaveBeenCalled();
+    fireEvent.change(field, { target: { value: "Bé" } });
+    fireEvent.keyDown(field, { key: "Enter" });
+    expect(rename).toHaveBeenCalledWith(1, "Bé");
+    expect(refuse).toHaveBeenLastCalledWith("Bé", 1);
+  });
+
   it("InlineConfirm confirms or keeps", () => {
     const yes = vi.fn();
     const no = vi.fn();

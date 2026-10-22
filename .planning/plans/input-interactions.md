@@ -612,6 +612,20 @@ Split by owner (PM, 2026-10-22): B1–B4 sit on Dimenze (`PersonaStep.tsx`), B5�
     the population cannot read…"; `audience.live.test.ts` "a numeric factor's range bounds".
   - `audience_journey.mjs` checks the range at 1440/1100/768/390: no overflow, the clear button at
     least 24 px, and 999 refused and not saved.
+- **B7+B8. Factor groups and values chosen as chips, feature/audience-value-chips.**
+  - A factor's group (Vše, Demografie…) is one `ChoiceChips` radio group, "Skupina faktorů".
+  - A categorical factor's values are `ChoiceChips` toggles, each with how many people hold it. Past 15
+    values (`VALUE_CHIPS_MAX`), the same chips sit under a filter field (`matchingValues`, the factor
+    search's rule). A list the catalogue cut at its 60 values says so.
+  - `pickValues` keeps the stored order and every stored value not on screen: a filtered-out value,
+    or one the population lacks (F3). A stored value that is not text stays as stored (`storedValues`):
+    `[true]` was saved back as `["true"]`, which the population keys as no value (stand-in review on
+    #761; `selectedValues` turned it into text before this change too).
+  - The factor search stays the list's filter field, as the audit keeps B3's.
+  - Tests: `AudienceStep.test.tsx` "a factor's group is chosen from chips…"; `audience.live.test.ts`
+    "picking a factor's values".
+  - `audience_journey.mjs` checks the chips at 1440/1100/768/390: no overflow, and a value chip 44 px
+    tall below 640 px.
 - **B9. The built-in subpanels under a search, feature/audience-subpanel-list.**
   - A search over the 18 subpanels' names and descriptions (`matchingSubpanels`, the factor search's
     rule, trimmed) sits above them, and a line says how many matched. The chosen subpanel stays shown
@@ -625,7 +639,7 @@ Split by owner (PM, 2026-10-22): B1–B4 sit on Dimenze (`PersonaStep.tsx`), B5�
     built-in subpanels a search matches".
   - `audience_journey.mjs` checks the search at 1440/1100/768/390 without overflow, and that a search
     matching nothing leaves the chosen one and says 0.
-- **B7+B8, B11:** B7+B8 is #761; B11 to come.
+- **B11:** to come.
 
 ### Chunk 3b3, added by planning (2026-10-21)
 
