@@ -4,7 +4,7 @@
 // a new revision, filed and unlabelled; the history it carries. Every write is checked by
 // the request it sends.
 import { cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
-import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, onTestFinished, vi } from "vitest";
 
 import { ClientValue } from "./ClientContext";
 import { KnowledgeArea } from "./KnowledgeArea";
@@ -432,9 +432,11 @@ describe("folders and labels, organized where they are listed", () => {
 
   it("leaves focus where the person moved it while a rename was still saving", async () => {
     // A slow save: the field closes and the row would take focus back when the answer comes, after
-    // the person has already opened another label's colours (seen as a CI flake on :424).
+    // the person has already opened another label's colours (once a CI flake in "renames a label on
+    // F2 and recolours it by its swatch").
     let answer!: () => void;
     const saved = new Promise<void>((resolve) => { answer = resolve; });
+    onTestFinished(() => answer());
     api({ "PUT /api/v1/clients/CLI-a/knowledge/labels/KNL-1": async (b) => { await saved; return { ...LABELS[0], ...(b as object) }; } });
     open();
     const retail = await nav().findByRole("button", { name: "retail 1" });
