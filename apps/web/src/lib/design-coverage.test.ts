@@ -1,13 +1,8 @@
 // Návrh's research questions with their coverage (artifact-design DSN2).
 import { describe, expect, it } from "vitest";
 
-import type { DesignRevision, QuestionOutlook, ResearchTrace } from "@/lib/api";
-import { coverageStatus, newestRevision, revisionIsCurrent, rqCoverage } from "./design-coverage";
-
-const revision = (n: number, workspace?: number | null): DesignRevision => ({
-  revision_id: `rev-${n}`, study_id: "s", revision: n, content_sha256: "x", parent_revision: null,
-  source_stage: "plan", created_by: "u", created_at: "2026-10-21T10:00:00Z", workspace_revision: workspace,
-});
+import type { QuestionOutlook, ResearchTrace } from "@/lib/api";
+import { coverageInputs, coverageInputsChanged, coverageStatus, rqCoverage } from "./design-coverage";
 
 const outlook: QuestionOutlook[] = [
   { question_id: "q1", text: "Jak často pijete kávu?", section_id: "s1", battery_id: null, verdict: "ANSWERABLE", reasons: [] },
@@ -33,25 +28,6 @@ describe("coverageStatus", () => {
     expect(coverageStatus("UNANSWERABLE")).toBe("gap");
     expect(coverageStatus("UNKNOWN")).toBe("unknown");
     expect(coverageStatus("SOMETHING_NEW")).toBe("unknown");
-  });
-});
-
-describe("newestRevision", () => {
-  it("takes the highest revision number in any order", () => {
-    expect(newestRevision([revision(2), revision(5), revision(3)])?.revision).toBe(5);
-    expect(newestRevision([])).toBeNull();
-  });
-});
-
-describe("revisionIsCurrent", () => {
-  it("is current only when the revision was made from the copy's working revision", () => {
-    expect(revisionIsCurrent(revision(1, 7), 7)).toBe(true);
-    expect(revisionIsCurrent(revision(1, 7), 9)).toBe(false);
-  });
-  it("is unknown, never current, when either side is not recorded", () => {
-    expect(revisionIsCurrent(revision(1, null), 7)).toBeNull();
-    expect(revisionIsCurrent(revision(1), 7)).toBeNull();
-    expect(revisionIsCurrent(revision(1, 7), null)).toBeNull();
   });
 });
 
@@ -88,5 +64,19 @@ describe("rqCoverage", () => {
   it("keeps a measure the outlook does not list as unknown, by its id", () => {
     const t: ResearchTrace = { linked: true, dangling: [], questions: [{ text: "X?", measures: ["gone"], verdict: "UNKNOWN", reasons: [] }] };
     expect(rqCoverage(["X?"], t, outlook)[0].measures[0]).toMatchObject({ key: "gone", code: "gone", verdict: "UNKNOWN", anchor: "qedit_gone" });
+  });
+});
+
+describe("coverageInputs", () => {
+  const sections = [{ id: "s1", questions: [] }];
+  const project = (over: Record<string, unknown> = {}) => ({ goal: "G", sections, research_plan: { research_questions: ["Kdo?"], ...over } }) as never;
+
+  it("changes with the research questions, their comparisons or the questionnaire, and nothing else", () => {
+    const base = coverageInputs(project());
+    expect(coverageInputsChanged(base, coverageInputs(project()))).toBe(false);
+    expect(coverageInputsChanged(base, coverageInputs(project({ hypotheses: ["H"] })))).toBe(false);
+    expect(coverageInputsChanged(base, coverageInputs(project({ research_questions: ["Kdo nakupuje?"] })))).toBe(true);
+    expect(coverageInputsChanged(base, coverageInputs(project({ research_question_comparisons: [{}] })))).toBe(true);
+    expect(coverageInputsChanged(base, coverageInputs({ ...(project() as object), sections: [...sections] } as never))).toBe(true);
   });
 });

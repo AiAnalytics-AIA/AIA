@@ -1,13 +1,12 @@
 // Návrh's research questions with their coverage (artifact-design DSN2). The coverage is the
-// server's: readiness's research_trace over a Design Revision (domain/research_trace.py). This
-// module adds no rule; it reads that trace against the working copy's research questions and says
-// how old the reading is. Until coverage is computed on the working revision
-// (working-copy-edit-ops#WCE7) it is read from the study's newest Design Revision, and a research
-// question that revision does not hold reads "not checked", never covered.
+// server's: readiness's research_trace on the working revision (domain/research_trace.py, WCE7).
+// This module adds no rule; it reads that trace against the working copy's research questions, and a
+// research question the trace does not hold reads "not checked", never covered.
 
-import type { DesignRevision, OutlookVerdict, QuestionOutlook, ResearchTrace } from "@/lib/api";
+import type { OutlookVerdict, QuestionOutlook, ResearchTrace } from "@/lib/api";
 import { type TraceMeasure, traceMeasures } from "@/lib/research-execution";
-import { linkKey } from "@/research/trace";
+import type { ResearchProject } from "@/research/model";
+import { linkKey, researchQuestionsOf } from "@/research/trace";
 
 /** V2's chip: pokryto / částečně / mezera, and unknown, which is never pokryto (CLAUDE.md § 8). */
 export type CoverageStatus = "covered" | "partial" | "gap" | "unknown";
@@ -18,24 +17,6 @@ export function coverageStatus(verdict: OutlookVerdict | string): CoverageStatus
   if (verdict === "AT_RISK") return "partial";
   if (verdict === "UNANSWERABLE") return "gap";
   return "unknown";
-}
-
-/** The study's newest Design Revision, by its number, whatever order the list came in. */
-export function newestRevision(revisions: readonly DesignRevision[]): DesignRevision | null {
-  let out: DesignRevision | null = null;
-  for (const r of revisions) if (!out || r.revision > out.revision) out = r;
-  return out;
-}
-
-/**
- * Whether the revision's coverage is the working copy's: true when the revision was made from the
- * working revision the copy is at; false when the copy has moved since; null when either is not
- * recorded (a revision made before ADR 0026, a copy never saved) -- unknown, never "current".
- */
-export function revisionIsCurrent(revision: Pick<DesignRevision, "workspace_revision">, working: number | null): boolean | null {
-  const from = revision.workspace_revision;
-  if (typeof from !== "number" || working === null) return null;
-  return from === working;
 }
 
 /** One measure as Návrh draws it: its words, its verdict, and where Dotazník shows it. */
@@ -81,3 +62,19 @@ export function rqCoverage(working: readonly string[], trace: ResearchTrace | nu
     };
   });
 }
+
+/** What the coverage is computed from: the research questions, their comparisons and the questionnaire. */
+export type CoverageInputs = readonly [string, unknown, unknown];
+
+export function coverageInputs(p: ResearchProject): CoverageInputs {
+  const plan = (p.research_plan ?? {}) as { research_question_comparisons?: unknown };
+  return [researchQuestionsOf(p).join("\n"), plan.research_question_comparisons, p.sections];
+}
+
+/**
+ * Whether the coverage must be read again: something it is computed from changed. The store keeps an
+ * unchanged part's object as it was, so a save that touched only a comment or a set's name (which
+ * cannot move the coverage) is not a reason to recompute the whole readiness.
+ */
+export const coverageInputsChanged = (a: CoverageInputs, b: CoverageInputs): boolean =>
+  a[0] !== b[0] || a[1] !== b[1] || a[2] !== b[2];
