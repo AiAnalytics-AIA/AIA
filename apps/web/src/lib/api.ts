@@ -984,6 +984,9 @@ export type ResearchLimits = {
   methodology_version: string;
   version: number | null;
   sample_size: { min: number; max: number };
+  /** A tracked set's size: outside min-max a design does not compile, outside the recommended
+   * range readiness warns (research/questionnaire.ts SetLimits). Absent from an older server. */
+  tracked_set?: { min: number; max: number; recommended_min: number; recommended_max: number };
   /** The questionnaire's length rule from Metodika (artifact-questionnaire QST7): seconds per
    * answer by question type and per tracked-set object, with the methodology version. Absent, or
    * null, while the methodology owner has set none; read through research/length.ts readRule. */

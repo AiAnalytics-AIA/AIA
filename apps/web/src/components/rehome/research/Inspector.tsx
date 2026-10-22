@@ -11,11 +11,13 @@ import { createPortal } from "react-dom";
 
 import { t } from "@/i18n/t";
 import { blockers } from "@/research/lane";
+import { useFrame } from "./frame-hook";
+import { readySetLimits, useSampleLimits } from "./useSampleLimits";
 import type { ResearchState } from "@/research/store";
 import type { StepKey } from "@/research/steps";
 
 export function Blockers({ state, stepHref }: { state: Pick<ResearchState, "project" | "analysis">; stepHref: (step: StepKey) => string }) {
-  const items = blockers(state);
+  const items = blockers(state, readySetLimits(useSampleLimits(useFrame().studyId)));
   return (
     <section aria-labelledby="lane-blockers" className="rounded-card border border-border bg-surface-raised p-3.5">
       <h2 id="lane-blockers" className="text-sm font-semibold">Do spuštění zbývá</h2>

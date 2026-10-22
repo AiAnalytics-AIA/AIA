@@ -560,6 +560,7 @@ def approve_request(
     settings: SettingsDep,
     population: RunPopulationDep,
     sampler: PanelSamplerDep,
+    store: ArtifactStoreDep,
 ) -> ApprovedRequest:
     """Approve the design job the caller's own Lead turn prepared: held to the study's spend
     limit, started and recorded in the approval ledger, once. With the Lead switched off, a
@@ -575,7 +576,7 @@ def approve_request(
             turn_id,
             confirm_cost_usd=body.confirm_cost_usd,
             reservation_usd=settings.ai_research_reservation_usd,
-            run_start=run_start_settings(request, population, sampler),
+            run_start=run_start_settings(request, population, sampler, store),
             wallet_enabled=settings.study_wallet_enabled,
             workspace_revision=body.workspace_revision,
         )

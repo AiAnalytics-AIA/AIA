@@ -142,6 +142,33 @@ try {
   await shot("1440-undo-restored");
   check("1440: a question removed at once, Vrátit puts it back in its place");
 
+  // Above the recommended fifteen a set is allowed and warned (Q75 (a)), at 390 px: the count beside
+  // the list and the warning stay in view while objects are added, then the added ones are removed.
+  await page.setViewportSize({ width: 390, height: 900 });
+  await page.goto(base + stagePath("questionnaire") + "#qset_sec_wb_set");
+  const card = page.locator("#qset_sec_wb_set");
+  const addObject = card.getByRole("textbox", { name: "Přidat objekt a Enter" });
+  await addObject.waitFor({ timeout: 30000 });
+  const countBadge = card.getByText(/^\d+ \/ doporučeno 4–15$/);
+  const objectCount = async () => Number((await countBadge.innerText()).split(" ")[0]);
+  const start = await objectCount();
+  const added = [];
+  for (let i = start; i < 16; i++) {
+    const name = `Navíc ${i + 1}`;
+    await addObject.fill(name);
+    await addObject.press("Enter");
+    added.push(name);
+    await page.waitForFunction(([n]) => document.querySelector("#qset_sec_wb_set")?.textContent?.includes(`${n} / doporučeno 4–15`), [i + 1]);
+  }
+  const warning = card.getByText("Víc než doporučených 15 objektů. Sada jich může mít až 40; Kontrola na to upozorní.");
+  await warning.waitFor();
+  for (const el of [countBadge, warning, addObject]) assert(await el.isVisible() && (await el.evaluate((n) => { const r = n.getBoundingClientRect(); return r.top >= 0 && r.bottom <= innerHeight; })), "the count, the warning and the field in view at 390");
+  await noOverflow("a set above fifteen @390");
+  await shot("390-set-above-recommended");
+  for (const name of added) await card.getByRole("button", { name: new RegExp(`${name}$`) }).click();
+  await page.waitForFunction(([n]) => document.querySelector("#qset_sec_wb_set")?.textContent?.includes(`${n} / doporučeno 4–15`), [start]);
+  check("390: a sixteenth object taken, counted beside the list and warned in words; the added ones removed");
+
   const paid = writes.filter((w) => /\/research\/runs$|\/agent-jobs$|\/deep-research\/runs|\/lead\/turns\/[^/]+\/request$/.test(w.path));
   assert.deepEqual(paid, [], "nothing paid started");
   check("nothing paid started");

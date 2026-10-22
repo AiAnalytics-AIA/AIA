@@ -253,6 +253,13 @@ describe("Složení podle kvót", () => {
     expect(section.querySelectorAll("details tr[data-aia]")).toHaveLength(2);
   });
 
+  it("prints every share with one decimal, so the column reads aligned", () => {
+    const even = [{ key: "muz/a", values: ["muž", "a"], n: 3 }, { key: "zena/a", values: ["žena", "a"], n: 97 }];
+    const { container } = render(<SampleArtifact project={project({ n: 100 })} onOpen={vi.fn()} readiness={ready({ persona_source: "panel", sample_composition: { ...composition, cells: even } })} />);
+    expect(container.querySelector('[data-aia="sample:quota:muz/a"]')!.textContent).toContain("3,0 %");
+    expect(container.querySelector('[data-aia="sample:quota:zena/a"]')!.textContent).toContain("97,0 %");
+  });
+
   it("says the sampler's refusal in words, unknown when nothing was drawn, and no quotas for the roster", () => {
     render(<SampleArtifact project={project({ n: 78 })} onOpen={vi.fn()} readiness={ready({ persona_source: "panel", sample_composition: { ...composition, refused: "sampling_empty", cells: [] } })} />);
     expect(screen.getByText(/Vzorek z populace teď nelze vybrat: Filtry nevyberou žádného člověka z populace\./)).toBeTruthy();
