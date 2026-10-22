@@ -1793,3 +1793,31 @@ pass finds the jobs already done for the design.
      also now waits until the guard has stopped the move, so it no longer passes when no move is
      tried at all.
   6. Test: the reproduction above passes; the file passes (38).
+
+### The Lead's `show_diff` (2026-10-22, `feature/lead-show-diff`; chunk 14)
+
+The owner's choice (2026-10-22, through the PM): on Návrh, Dotazník and Dimenze, `show_diff` shows that
+stage's waiting changes, the Lead's edits still to decide there, else the newest proposal still
+waiting for review. On Zpráva it waits for report-delivery RD5's tracked changes.
+- **Server.** `research_lead.ShowDiff` (`op: "show_diff"`, a stage) joins `ViewOp`; harness
+  `aia-research-lead-5`. `show_diff_refusal` drops one on a stage outside `SHOW_DIFF_STAGES`
+  (design, questionnaire, dimensions) or whose contract has none, as `not_available`, Zpráva
+  included. The prompt says where it applies. `show_diff` is live on both sides and in the fixture.
+- **Web.** `changesToShow` (pure): the Lead's edits waiting on the stage first, else the stage's
+  newest proposal with `proposal_state` pending (`JOB_STAGE`), else nothing.
+  - Workbench reveals the "Návrhy Vedoucího" bar (scrolled to and marked, as a focus is), or opens
+    the proposal as its card's review opens (`openJob`); with neither, it opens the stage through
+    its leave guard.
+  - The focus branch's find-and-mark is now `reveal(selector)`, shared by both.
+  - The chip reads "Změny: <stage>".
+- **Scripted Lead.** A message asking for "změny" on Návrh, Dotazník or Dimenze shows that stage's.
+- **Each stage shows it.** The frame does this generically for the three stages, so `show_diff` is
+  live with this change (the PM: "keep it out of the Lead's live ops until each stage shows it").
+- **In a browser** (UI workbench, the `questionnaire` fixture, scripted Lead, zero paid): at 1440 and
+  390 px, "Ukaž mi změny" proposes an edit and shows the bar, marked; the turn's chip reads
+  "Změny: Dotazník"; no page error, no overflow, no paid start.
+- **Tests.** `test_research_lead.py` "show_diff only where the stage shows its waiting changes";
+  `test_research_lead_workbench.py` "a scripted message asking for the changes…"; `lead.test.ts`
+  "changesToShow"; `LeadPane.test.tsx` "names a show_diff chip…"; `Workbench.layout.test.tsx`
+  "the Lead's show_diff": marks the edits, opens the waiting proposal, opens the stage when nothing
+  waits. Each fails without the change.
