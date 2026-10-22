@@ -920,6 +920,40 @@ jobs:
           assert "AIA_ERROR_TRACKING_DSN" not in env["web"], "the backend DSN stays inside"
           PY
 
+      - name: Validate the report editor's Compose project
+        run: |
+          # deploy/develop/docs: ONLYOFFICE Docs, a project of its own (plan
+          # report-editor-hosting). Its JWT secret is required; its image is upstream's,
+          # pinned by digest; its request filter, plugins and ports stay as the plan says;
+          # only Caddy and the API share its network.
+          if docker compose --env-file placeholder.env -f deploy/develop/docs/docker-compose.yml config -q 2>/dev/null; then
+            echo "::error::the Document Server's project starts without its JWT secret"; exit 1
+          fi
+          printf 'AIA_ONLYOFFICE_JWT_SECRET=placeholder\n' > docs.env
+          cat placeholder.env >> docs.env
+          docker compose --env-file docs.env -f deploy/develop/docs/docker-compose.yml config --format json > docs.json
+          docker compose --env-file placeholder.env -f deploy/develop/docker-compose.yml config --format json > composed.json
+          python3 - <<'PY'
+          import json
+          docs = json.load(open("docs.json"))
+          (name, oo), = docs["services"].items()
+          env = oo["environment"]
+          assert name == "onlyoffice"
+          assert oo["image"].startswith("onlyoffice/documentserver:") and "@sha256:" in oo["image"], oo["image"]
+          assert "ports" not in oo, "the Document Server publishes no port"
+          assert env["JWT_ENABLED"] == "true" and env["JWT_SECRET"] == "placeholder"
+          for key in ("ALLOW_PRIVATE_IP_ADDRESS", "ALLOW_META_IP_ADDRESS", "PLUGINS_ENABLED",
+                      "USE_UNAUTHORIZED_STORAGE", "WOPI_ENABLED", "EXAMPLE_ENABLED"):
+              assert env[key] == "false", key
+          assert docs["networks"]["docs"]["name"] == "aia-docs" and docs["networks"]["docs"]["external"]
+          product = json.load(open("composed.json"))
+          on_docs = sorted(n for n, s in product["services"].items() if "docs" in s.get("networks", {}))
+          assert on_docs == ["api", "caddy"], on_docs
+          assert product["networks"]["docs"]["name"] == "aia-docs"
+          assert not any("ONLYOFFICE" in k for k in product["services"]["web"]["environment"]), \
+              "the web client gets nothing of the editor's secret"
+          PY
+
       - name: Caddy loads through Compose
         run: |
           # The same check bin/deploy.sh makes before it replaces anything (run 10,

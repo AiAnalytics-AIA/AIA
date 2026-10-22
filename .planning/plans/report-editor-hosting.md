@@ -1,7 +1,7 @@
 ---
-status: planned
+status: in-progress
 chunks:
-  - "[ ] 1. ONLYOFFICE Docs on the develop host: a Compose project of its own (deploy/develop/docs), the upstream image pinned by digest, bin/docs.sh, off unless aia_onlyoffice_enabled"
+  - "[x] 1. ONLYOFFICE Docs on the develop host: a Compose project of its own (deploy/develop/docs), the upstream image pinned by digest, bin/docs.sh, off unless aia_onlyoffice_enabled"
   - "[ ] 2. docs.<hostname>: its own origin in the Caddyfile, every request through AIA's docs gate, the server-only paths refused; tools/caddy_routes.py holds it"
   - "[ ] 3. The docs gate in the API: a docs-only session cookie on docs.<hostname> from a one-time ticket, refused without it"
   - "[ ] 4. Activation on develop (operations, the owner's word): the host resized, docs.<hostname> in Route 53, the JWT secret in SSM, the flag on, the editor's own checks"
@@ -122,8 +122,10 @@ built in the Zpráva session against chunks 1-3.
      the two share: a dedicated `docs` network, which only the API and Caddy join.
 5. **Locked down to the editor.**
    - Variables: `PLUGINS_ENABLED=false` (no plugin marketplace, and above all no AI plugin sending text to
-     a third party); `WELCOME_PAGE_ENABLED=false`; `EXAMPLE_ENABLED=false`; `WOPI_ENABLED=false`;
-     `USE_UNAUTHORIZED_STORAGE=false`; `METRICS_ENABLED=false`.
+     a third party); `EXAMPLE_ENABLED=false`; `WOPI_ENABLED=false`;
+     `USE_UNAUTHORIZED_STORAGE=false`; `METRICS_ENABLED=false`. 9.4.0.1's start script has no
+     `WELCOME_PAGE_ENABLED` (upstream's README describes a later release), so the welcome page is
+     refused at Caddy instead.
    - Caddy refuses from outside the server-to-server and admin paths:
      - `/coauthoring/CommandService.ashx`, `/command`;
      - `/ConvertService.ashx`, `/converter`;
@@ -305,6 +307,28 @@ Each step needs the owner's word and the coordinator's approval:
 - ARCHITECTURE.md: the third origin, and why it is not a path.
 - `deploy/develop/README.md` § Report editor is in this PR: it is the runbook beside the code, like
   § Error tracking.
+
+## Measured (chunk 1, 2026-10-22)
+
+`onlyoffice/documentserver:9.4.0.1@sha256:3ab6…2c88212`, started locally with exactly the
+environment in `deploy/develop/docs/docker-compose.yml`, `--memory 2g --memory-swap 2g`, and
+`no-new-privileges`:
+
+- `/healthcheck` answered `true` about 10 s after start.
+- About 530 MiB once its first-start font and theme generation finished: docservice about 214 MiB,
+  converter about 164 MiB.
+- No PostgreSQL, RabbitMQ or Redis process runs in this release's Community image. Its editing state is
+  in memory and `/var/lib/onlyoffice`.
+- 4.86 GB unpacked.
+- Inside the container, `/welcome/` and `/info/info.json` answer 200, which is why decision 5 refuses
+  them at Caddy.
+- An unsigned `CommandService.ashx` request answered `{"error":6}` (invalid token): JWT is enforced.
+- `deploy/develop/bin/image_retention.py:108 @ 9eb78f6c` only ever removes this registry's
+  `aia-(api|worker|web)` images, so the Document Server's image is never a candidate.
+
+So the 4 GiB host would carry it idle: about 2.0 of 3.8 GiB at today's peak. Editing sessions and a
+LibreOffice PDF render on the worker would leave little room, and the host has no swap. The resize stays
+(the owner approved it, 2026-10-22).
 
 ## Findings
 
