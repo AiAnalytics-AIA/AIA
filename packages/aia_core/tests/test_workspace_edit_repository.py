@@ -95,26 +95,34 @@ def test_the_database_refuses_a_persons_write_without_its_author(
     repo = WorkspaceEditRepository(session, scope)
     repo.append(_rows(WriteBy(ActorKind.PERSON, None, OpSource.MIGRATION), base=None, result=1))
     assert {r.by.actor_user_id for r in repo.rows()} == {None}
-    session.add(
-        WorkspaceEditOpRow(
-            op_id="EOP-" + "0" * 32,
-            organization_id=scope.organization_id,
-            client_id=scope.client_id,
-            study_id=scope.study_id,
-            batch_id="B",
-            base_revision=None,
-            result_revision=2,
-            actor_kind="person",
-            actor_user_id=None,
-            source="ui",
-            item_key="content:copy:",
-            field="value",
-            op={"op": "whole_copy", "reason": "autosave"},
+    session.commit()
+    # Written past WriteBy, each of these is refused by the table itself.
+    for actor_kind, author, source in (
+        ("person", None, "ui"),  # a person's write with no author
+        ("lead", None, "migration"),  # a Lead in 18.6.6, which had none
+        ("person", "", "ui"),  # an empty author
+        ("lead", "", "lead_turn"),
+    ):
+        session.add(
+            WorkspaceEditOpRow(
+                op_id="EOP-" + "0" * 32,
+                organization_id=scope.organization_id,
+                client_id=scope.client_id,
+                study_id=scope.study_id,
+                batch_id="B",
+                base_revision=None,
+                result_revision=2,
+                actor_kind=actor_kind,
+                actor_user_id=author,
+                source=source,
+                item_key="content:copy:",
+                field="value",
+                op={"op": "whole_copy", "reason": "autosave"},
+            )
         )
-    )
-    with pytest.raises(IntegrityError):
-        session.flush()
-    session.rollback()
+        with pytest.raises(IntegrityError):
+            session.flush()
+        session.rollback()
 
 
 # --------------------------------------------------------------------------- the migration

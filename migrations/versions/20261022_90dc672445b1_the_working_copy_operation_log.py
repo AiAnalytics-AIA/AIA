@@ -77,7 +77,8 @@ def upgrade() -> None:
             name=op.f("ck_workspace_edit_ops_workspace_edit_op_source_known"),
         ),
         sa.CheckConstraint(
-            "actor_user_id IS NOT NULL OR source = 'migration'",
+            "(actor_user_id IS NOT NULL AND actor_user_id <> '') OR "
+            "(source = 'migration' AND actor_kind = 'person')",
             name=op.f("ck_workspace_edit_ops_workspace_edit_op_author_unless_migrated"),
         ),
         sa.CheckConstraint(

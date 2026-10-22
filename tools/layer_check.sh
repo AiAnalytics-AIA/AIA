@@ -792,6 +792,11 @@ forbid "among the executors, only the recorded composition builds the recorded n
 forbid "no statement updates a project revision" \
   'update\(\s*ProjectRevisionRow' \
   packages/aia_core/src
+# A logged change of the working copy is insert-once (tables.py, before_update); a bulk update()
+# would go around that too (working-copy-edit-ops WCE2b, review of #765).
+forbid "no statement updates a logged working-copy change" \
+  'update\(\s*WorkspaceEditOpRow' \
+  packages/aia_core/src
 
 # --- Layer 4b: executors do the work; they neither serve nor decide scope -----
 #

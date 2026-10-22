@@ -2789,7 +2789,10 @@ class WorkspaceEditOpRow(Base):
             name="workspace_edit_op_source_known",
         ),
         CheckConstraint(
-            f"actor_user_id IS NOT NULL OR source = '{OpSource.MIGRATION.value}'",
+            # WriteBy's rule, held by the table too: an author always, and never empty, but for
+            # a person's revision migrated from 18.6.6 (the unit had no Lead).
+            "(actor_user_id IS NOT NULL AND actor_user_id <> '') OR "
+            f"(source = '{OpSource.MIGRATION.value}' AND actor_kind = '{ActorKind.PERSON.value}')",
             name="workspace_edit_op_author_unless_migrated",
         ),
         CheckConstraint(
