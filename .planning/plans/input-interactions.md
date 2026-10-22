@@ -626,7 +626,20 @@ Split by owner (PM, 2026-10-22): B1–B4 sit on Dimenze (`PersonaStep.tsx`), B5�
     "picking a factor's values".
   - `audience_journey.mjs` checks the chips at 1440/1100/768/390: no overflow, and a value chip 44 px
     tall below 640 px.
-- **B9, B11:** to come, one PR each.
+- **B9. The built-in subpanels under a search, feature/audience-subpanel-list.**
+  - A search over the 18 subpanels' names and descriptions (`matchingSubpanels`, the factor search's
+    rule, trimmed) sits above them, and a line says how many matched. The chosen subpanel stays shown
+    whatever the search.
+  - The subpanels stay `RadioCard`s, chosen by a click. A choice rewrites the audience's filters and
+    description, so a radio group that selects on arrow keys would save a different subpanel at each
+    press. Each card keeps its people, donors and, for one the population cannot use, its reason.
+  - Not done: a subpanel the search hides has no element, so the Lead cannot point at it until the
+    search is cleared, as with a factor editor hidden by its group.
+  - Tests: `AudienceStep.test.tsx` "the subpanels sit under a search…"; `audience.live.test.ts` "the
+    built-in subpanels a search matches".
+  - `audience_journey.mjs` checks the search at 1440/1100/768/390 without overflow, and that a search
+    matching nothing leaves the chosen one and says 0.
+- **B11:** to come.
 
 ### Chunk 3b3, added by planning (2026-10-21)
 
