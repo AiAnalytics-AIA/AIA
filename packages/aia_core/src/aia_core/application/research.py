@@ -1051,10 +1051,12 @@ class ResearchRuns:
         stored: it keeps the pins, so its step finds that map under the same inputs and computes
         nothing (the step is told to reuse only, and fails rather than compute it again). A run
         of an edited version is retried with that version alone: the reference map pinned
-        beside it is dropped."""
+        beside it is dropped. Retired is the code's old default only: a run whose methods came
+        from a version in force (an unchanged aia-sociomap-3 pins the preset's own name) is that
+        organization's choice, retried as it pinned it."""
         run_id = str(run["run_id"])
         pinned = read_methods(run["metadata"].get("sociomap_methods"))
-        if is_retired(pinned):
+        if is_retired(pinned) and not run["metadata"].get("methodology"):
             if frozen_dataset is None or not _sociomap_stored(run):
                 raise ResearchRunOnRetiredMethod(run, [m.method_id for m in pinned])
         else:
