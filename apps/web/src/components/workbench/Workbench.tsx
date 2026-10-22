@@ -245,9 +245,12 @@ export function Workbench({ frame, step, store, memory, save, inspector, reload,
   // mounted) never brings back the drawer it had.
   if (items.stage !== stage) setItems(emptyStack(stage));
   const shownItems = onStage(items, stage);
+  // The bodies the opening screens gave, by entry id; another stage's are never shown (its stack is empty).
+  const [itemBodies, setItemBodies] = useState<ReadonlyMap<string, () => ReactNode>>(() => new Map());
   const itemInspector = useMemo<ItemInspectorApi>(() => ({
-    open: (entry) => {
+    open: (entry, body) => {
       if (!parseAiaId(entry.id)) return false;
+      if (body) setItemBodies((m) => new Map(m).set(entry.id, body));
       setItems((s) => openEntry(onStage(s, stage), entry));
       return true;
     },
@@ -706,7 +709,7 @@ export function Workbench({ frame, step, store, memory, save, inspector, reload,
                 {/* Mounted while empty, so closing it gives the focus back to what opened it. */}
                 <div ref={itemDrawer} className="itemdrawer" hidden={!itemOpen}>
                   <ItemInspector ownEscape={false} stack={shownItems} onBack={() => setItems((s) => backEntry(onStage(s, stage)))} onClose={() => setItems((s) => closeStack(onStage(s, stage)))}>
-                    {(entry) => <ItemInspectBody entry={entry} />}
+                    {(entry) => itemBodies.get(entry.id)?.() ?? <ItemInspectBody entry={entry} />}
                   </ItemInspector>
                 </div>
                 <aside ref={inspectorPanel} tabIndex={-1} className="insp" aria-label="Připravenost a pomoc" hidden={!inspectorOpen}>

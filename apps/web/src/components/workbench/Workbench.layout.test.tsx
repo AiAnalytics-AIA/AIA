@@ -103,6 +103,7 @@ function Opener() {
       <button type="button" onClick={() => opened.push(inspector?.open({ id: "question:q1", title: "Otázka q1", sub: "Dotazník" }) ?? false)}>open q1</button>
       <button type="button" onClick={() => opened.push(inspector?.open({ id: "measure:q1", title: "Měření q1" }) ?? false)}>open m1</button>
       <button type="button" onClick={() => opened.push(inspector?.open({ id: "question:Q 2", title: "Bad" }) ?? false)}>open bad</button>
+      <button type="button" onClick={() => opened.push(inspector?.open({ id: "report:ref:r1", title: "Tvrzení r1" }, () => <p>Hodnota: 42 %</p>) ?? false)}>open claim</button>
     </div>
   );
 }
@@ -348,6 +349,15 @@ describe("the item inspector", () => {
     fireEvent.keyDown(window, { key: "Escape" });
     await waitFor(() => expect(document.querySelector("[data-item-inspector]")).toBeNull());
     expect(opened).toEqual([true, true]);
+  });
+
+  it("draws the body the opening screen gave (a report claim's evidence), not the kind's fallback", () => {
+    bench(<Opener />);
+    fireEvent.click(screen.getByRole("button", { name: "open claim" }));
+    const drawer = document.querySelector("[data-item-inspector]")!;
+    expect(drawer.getAttribute("data-item-inspector")).toBe("report:ref:r1");
+    expect(drawer.textContent).toContain("Hodnota: 42 %");
+    expect(drawer.querySelector("[data-inspect-fallback]")).toBeNull();
   });
 
   it("gives the focus back to what opened it when it closes (Codex on #623)", async () => {

@@ -1528,3 +1528,19 @@ Other kinds stay at the grammar until their stage asks for the same.
    The workbench's own controls keep the ring.
 6. Test: the workbench journey's "one focus ring on a field, the ring on the workbench's
    controls".
+
+### The report's claims open in the workbench's one item drawer (2026-10-22, `feature/report-items-in-drawer`)
+
+Zpráva's document (`ReportDocumentView`) kept a drawer of its own inside the workbench. Its Escape
+ran outside the frame's one order (D21), and a second drawer could open beside the workbench's.
+- **Inside the workbench** a claim chip opens `report:ref:<ref>` in the workbench's item drawer
+  (`useItemInspector`), with the claim's evidence as the entry's body.
+- **The drawer API.** `ItemInspectorApi.open(entry, body?)` takes the body the opening screen
+  already holds. The workbench keeps it by entry id and draws it instead of `ItemInspectBody`.
+- **Outside the workbench**, and for a ref the target grammar refuses, the view keeps its own
+  drawer as before.
+- **Tests.**
+  - `ReportDocumentView.test.tsx` "inside the workbench opens a claim in the workbench's one item
+    drawer…".
+  - `Workbench.layout.test.tsx` "draws the body the opening screen gave…".
+  - Both fail without the change.
