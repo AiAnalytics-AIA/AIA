@@ -306,7 +306,7 @@ describe("Dotazník", () => {
     const name = screen.getByRole("textbox", { name: "Nový blok" });
     fireEvent.change(name, { target: { value: "Úvod" } });
     fireEvent.keyDown(name, { key: "Enter" });
-    await waitFor(() => expect(screen.getAllByDisplayValue("Úvod").length).toBeGreaterThan(0));
+    await waitFor(() => expect(screen.getByRole("button", { name: "Upravit: Název bloku Úvod" })).toBeTruthy());
     const block = document.getElementById("qblock_sec_a") as HTMLElement;
     fireEvent.click(within(block).getByRole("button", { name: "Otázka do tohoto bloku" }));
     const wording = within(block).getByRole("textbox", { name: "Otázka do tohoto bloku" });
