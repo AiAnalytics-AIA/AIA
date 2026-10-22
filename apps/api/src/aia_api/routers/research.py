@@ -9,6 +9,7 @@ project id: the browser supplies content, never authority.
 
 from __future__ import annotations
 
+import re
 from collections.abc import Iterator, Mapping
 from contextlib import contextmanager
 from datetime import date, datetime
@@ -333,6 +334,10 @@ class ResearchStepResponse(BaseModel):
     finished_at: datetime | None
     failure_class: str | None
     error_message: str | None
+    #: The code the last attempt's error recorded beside its message (a gate's refusal, such as
+    #: ``egress_route_not_approved_for_class``); ``None`` when it recorded none, or anything that
+    #: is not a code.
+    error_reason: str | None = None
     artifact_id: str | None
     #: ``SYNTHETIC_FIXTURE`` when the step's output came from fictional fieldwork.
     data_origin: str | None = None
@@ -956,6 +961,14 @@ def _recovery_reason(
     return None
 
 
+_CODE = re.compile(r"[a-z][a-z0-9_:.-]{0,79}")
+
+
+def _code(value: object) -> str | None:
+    """A stored reason when it is a code; free text is never passed on as one."""
+    return value if isinstance(value, str) and _CODE.fullmatch(value) else None
+
+
 def _step(s: dict[str, Any]) -> ResearchStepResponse:
     attempts = s.get("attempts") or []
     last = attempts[-1] if attempts else None
@@ -974,6 +987,7 @@ def _step(s: dict[str, Any]) -> ResearchStepResponse:
         finished_at=s.get("finished_at"),
         failure_class=last["failure_class"].value if last and last["failure_class"] else None,
         error_message=str(error.get("message")) if error.get("message") else None,
+        error_reason=_code(error.get("reason")),
         artifact_id=str(output["artifact_id"]) if output.get("artifact_id") else None,
         data_origin=str(output["data_origin"]) if output.get("data_origin") else None,
         data_origin_kind=origin_kind(output["data_origin"]) if output.get("data_origin") else None,

@@ -389,7 +389,8 @@ The section census against this answer is in the PR that recorded it.
   stay out of the draft, because they are working notes, not evidence. No plan line is added until
   the owner answers.
 
-**CQ1. Which sections must a draft research document contain at MVP?** Open (Q55).
+**CQ1. Which sections must a draft research document contain at MVP?** Settled as Q55 (b) above;
+the options as they were asked:
 - (a) Today's internal report as composed (§2), with its gaps closed: the brief, the full audience,
   traced RQs, the run's methods.
 - (b) (a) plus the chapters already planned to be added: assumptions (RD9), coding (RD10), and the

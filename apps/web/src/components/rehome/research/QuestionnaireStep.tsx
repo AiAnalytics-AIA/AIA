@@ -48,6 +48,8 @@ import {
   changeQType,
   optimizePayload,
   questionnaireCounts,
+  countWords,
+  countsWords,
   questionnaireHasQuestions,
   questionnaireView,
   questionCondition,
@@ -326,7 +328,7 @@ function QuestionnaireReadiness() {
   const issues = questionnaireIssues(state.project);
   const firstUnworded = () => document.querySelector<HTMLElement>("[data-unworded]")?.scrollIntoView?.({ behavior: scrollBehavior(), block: "center" });
   const rows: { label: string; detail: string; ok: boolean; go?: () => void }[] = [
-    { label: tv("research.questionnaire.readyCounts", counts), detail: t("research.questionnaire.readyCountsDetail"), ok: counts.questions > 0 },
+    { label: countsWords(counts), detail: t("research.questionnaire.readyCountsDetail"), ok: counts.questions > 0 },
     ...(issues.empty ? [{ label: tv("research.questionnaire.dockEmpty", { n: issues.empty }), detail: t("research.questionnaire.unworded"), ok: false, go: firstUnworded }] : []),
     ...(issues.badSets ? [{ label: tv("research.questionnaire.dockSets", { n: issues.badSets }), detail: SET_SIZE, ok: false }] : []),
   ];
@@ -589,7 +591,7 @@ function Outline({ update }: { update: Update }) {
       <aside aria-labelledby="q-editor" className="sticky top-[136px] flex flex-col gap-3 rounded-card border border-border bg-surface-raised p-3.5">
         <div>
           <div className="font-mono text-[11px] uppercase tracking-[0.08em] text-ink-faint">{t("research.questionnaire.editorTag")}</div>
-          <h2 id="q-editor" className={`mt-0.5 rounded-sm text-sm font-semibold ${FOCUS}`}>{tv("research.questionnaire.editorCounts", counts)}</h2>
+          <h2 id="q-editor" className={`mt-0.5 rounded-sm text-sm font-semibold ${FOCUS}`}>{countsWords(counts)}</h2>
         </div>
         {xs.length ? (
           <ul className="flex max-h-[45vh] flex-col gap-0.5 overflow-y-auto">
@@ -715,7 +717,7 @@ function QuestionBlock({ n, firstQ, sec, si, update }: { n: number; firstQ: numb
     <article id={`qblock_${sec.id || si}`} data-aia={marks.sections[si]} className="scroll-mt-40 rounded-panel bg-surface-sunken p-4">
       <div className="flex items-start gap-3">
         <div className="min-w-0 flex-1">
-          <div className="font-mono text-[11px] uppercase tracking-[0.08em] text-ink-faint">{tv("research.questionnaire.blockHead", { n, q: qs.length })}</div>
+          <div className="font-mono text-[11px] uppercase tracking-[0.08em] text-ink-faint">{tv("research.questionnaire.blockHead", { n, q: countWords("questions", qs.length) })}</div>
           <InlineField strong label={t("research.questionnaire.blockTitle")} value={sec.title || ""} onChange={(v) => update((p) => setSectionField(p, si, "title", v))} />
           <InlineField label={t("research.questionnaire.blockPurpose")} value={sec.purpose || ""} onChange={(v) => update((p) => setSectionField(p, si, "purpose", v))} />
         </div>
@@ -951,9 +953,10 @@ function TrackedSet({ n, sec, si, update }: { n: number; sec: Section; si: numbe
   };
   return (
     <article id={setElementId(sec, si)} data-aia={marks.sections[si]} className={`scroll-mt-40 flex flex-col gap-3 rounded-card border border-border border-t-[3px] border-t-hue-violet bg-surface-raised p-4 ${FOCUS}`}>
-      <div className="flex items-start gap-3">
+      {/* The name keeps 12rem; on a phone the count and Smazat wrap below it rather than squeeze it. */}
+      <div className="flex flex-wrap items-start gap-3">
         <span className="mt-1 whitespace-nowrap rounded-md bg-hue-violet/12 px-1.5 py-0.5 font-mono text-[11px] font-semibold text-hue-violet">{tv("research.questionnaire.setBadge", { n })}</span>
-        <div className="min-w-0 flex-1">
+        <div className="min-w-[12rem] flex-1">
           <InlineField strong label={t("research.questionnaire.setTitle")} value={sec.title || ""} onChange={(v) => update((p) => setSectionField(p, si, "title", v))} />
         </div>
         <span className={`whitespace-nowrap rounded-md px-1.5 py-0.5 font-mono text-xs ${bad ? "bg-status-you-wash text-status-you-ink" : "bg-surface-sunken text-ink-muted"}`}>

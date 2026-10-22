@@ -177,6 +177,19 @@ px, Závislosti included. Reproduction: the journey's `390-dependencies-section.
 while it sits beside the editor (a container query). Test: a journey assertion that the section is
 not covered at 390 px.
 
+*Finding QF-2 (browser audit, 2026-10-22):* Dotazník writes every count in the genitive plural
+whatever the number, and the outline's kicker is English: "4 otázek · 1 sledovaných sad", "Blok 1 ·
+4 otázek", "GUIDED EDITOR", "měří jeden outcome" (`QuestionnaireStep.tsx:562,688 @ bfe6d15b`, the
+strings in `cs.ts`). The import's note prints "Načteno: undefined otázek" when the answer carries no
+summary (`questionnaire.ts:404 @ bfe6d15b`). Reproduction: the fixture study's Dotazník. Fix
+(fix/questionnaire-czech-counts): `countWords` / `countsWords`, the word by its number, and the
+import's note counted from the sections kept. Test: `questionnaire-counts.test.ts`.
+
+*Finding QF-3 (browser audit, 2026-10-22):* at 390 px the tracked set's name shrinks to 80 px
+("Sledovan…") beside its badge, count and Smazat, one row that never wraps
+(`QuestionnaireStep.tsx:922 @ bfe6d15b`). Fix: the row wraps and the name keeps 12rem. Test: the
+journey asserts the name is at least 160 px wide at every width (failed at 390 before the fix).
+
 **QST9. Journey** at 1440, 1100, 768 and 390 px:
 - an item edited in place;
 - the Lead focusing `question:<id>`;
