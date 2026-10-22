@@ -71,7 +71,7 @@ export function stepNumbers(groups: readonly { id: string; step_ids: readonly st
 }
 
 /** The audit point the signed-off methodology's steps carry (they implement no point of the audit). */
-export const SIGNED_OFF_ORIGIN = "AIA";
+const SIGNED_OFF_ORIGIN = "AIA";
 
 /** Where a step comes from, in words, for its detail: the audit point it implements, or the
  *  signed-off methodology. */

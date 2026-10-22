@@ -21,18 +21,18 @@ import { type BatteryWithMaps, type Frame, type ObjectMapArtifact, mapLinks } fr
 /** The panel's frame: the stored grid spans +-62 frame units (`terrain66`, `FRAME_SPAN66`). */
 export const FRAME_SPAN = 62;
 /** Drawn elevation of a terrain height 1 (`z = t * 26`). */
-export const RELIEF = 26;
+const RELIEF = 26;
 /** On Relativni the lowest object keeps a hill 15 % of the top's (`REL_FLOOR66`). */
 export const REL_FLOOR = 0.15;
 /** The panel's map background (`draw66`). */
-export const BACKGROUND = "#07090c";
+const BACKGROUND = "#07090c";
 /** Relation colours: warm = move together, cool = opposite (`drawObjects66`). */
 export const WARM = "#ffb35c";
 export const COOL = "#6fa8ff";
 /** A SECONDARY object's node (`drawObjects66`). */
 export const SECONDARY = "#8a93a6";
 /** The contour levels on the normalised height (`drawContours66`). */
-export const CONTOUR_LEVELS = [0.16, 0.28, 0.4, 0.52, 0.64, 0.76, 0.88];
+const CONTOUR_LEVELS = [0.16, 0.28, 0.4, 0.52, 0.64, 0.76, 0.88];
 
 const clamp = (v: number, a: number, b: number) => Math.max(a, Math.min(b, v));
 
@@ -192,7 +192,7 @@ export function terrainAt(grid: PanelGrid, x: number, y: number): number {
 export type TerrainTriangle = { p: [ScreenPoint, ScreenPoint, ScreenPoint]; d: number; h: number; fill: string };
 
 /** Two triangles per grid cell, far first, each in its ramp colour lit by its height (`draw66`). */
-export function terrainTriangles(grid: PanelGrid, P: Projection): TerrainTriangle[] {
+function terrainTriangles(grid: PanelGrid, P: Projection): TerrainTriangle[] {
   const { N, xs, ht } = grid;
   const at = (gy: number, gx: number) => P.project(xs[gx], xs[gy], ht[gy][gx] * RELIEF);
   const tris: { p: [ScreenPoint, ScreenPoint, ScreenPoint]; d: number; h: number }[] = [];
@@ -209,7 +209,7 @@ export function terrainTriangles(grid: PanelGrid, P: Projection): TerrainTriangl
 }
 
 /** One contour level's segments on the frame, cell by cell, as `drawContours66` walks them. */
-export function contourSegments(grid: PanelGrid, level: number): { x: number; y: number }[][] {
+function contourSegments(grid: PanelGrid, level: number): { x: number; y: number }[][] {
   const { N, xs, ht } = grid;
   const out: { x: number; y: number }[][] = [];
   for (let y = 0; y < N; y++) {
@@ -267,9 +267,9 @@ export function nodeScale(M: number): number {
 }
 
 /** A node's disc radius before the node scale; the white ring is 2.5 px wider (`drawObjects66`). */
-export const nodeRadius = (selected: boolean) => (selected ? 7.5 : 5.7);
+const nodeRadius = (selected: boolean) => (selected ? 7.5 : 5.7);
 /** Where a relation line stops: just outside the disc, the node scale left out (`nodeR` in `drawObjects66`). */
-export const lineClearance = (selected: boolean) => nodeRadius(selected) + 4.5;
+const lineClearance = (selected: boolean) => nodeRadius(selected) + 4.5;
 
 // ---------------------------------------------------------------- relations
 
@@ -308,16 +308,16 @@ export function relationStrength(v: number, norm: Norm, strongest: number): numb
 }
 
 /** A line's width at strength k (`relationLine66`). */
-export const relationWidth = (k: number) => 1 + 5 * k;
+const relationWidth = (k: number) => 1 + 5 * k;
 
 type XY = { x: number; y: number };
 
-export function quadAt(a: XY, c: XY, b: XY, t: number): XY {
+function quadAt(a: XY, c: XY, b: XY, t: number): XY {
   const u = 1 - t;
   return { x: u * u * a.x + 2 * u * t * c.x + t * t * b.x, y: u * u * a.y + 2 * u * t * c.y + t * t * b.y };
 }
 
-export function quadTan(a: XY, c: XY, b: XY, t: number): XY {
+function quadTan(a: XY, c: XY, b: XY, t: number): XY {
   return { x: 2 * (1 - t) * (c.x - a.x) + 2 * t * (b.x - c.x), y: 2 * (1 - t) * (c.y - a.y) + 2 * t * (b.y - c.y) };
 }
 
@@ -333,7 +333,7 @@ export function quadClip(a: XY, c: XY, b: XY, R: number, atEnd: boolean): number
 }
 
 /** The end points and control point of the piece t0..t1 of the curve. */
-export function quadPiece(a: XY, c: XY, b: XY, t0: number, t1: number): { p0: XY; p1: XY; c: XY } {
+function quadPiece(a: XY, c: XY, b: XY, t0: number, t1: number): { p0: XY; p1: XY; c: XY } {
   const p0 = quadAt(a, c, b, t0), p1 = quadAt(a, c, b, t1), d = quadTan(a, c, b, t0), h = (t1 - t0) / 2;
   return { p0, p1, c: { x: p0.x + d.x * h, y: p0.y + d.y * h } };
 }
@@ -376,7 +376,7 @@ export function placeLabels(items: LabelItem[], measure: (text: string, font: st
 }
 
 /** A label's font: bold for the selected or hovered object (`drawObjects66`). */
-export const labelFont = (strong: boolean) => `${strong ? "800 " : "650 "}11px system-ui`;
+const labelFont = (strong: boolean) => `${strong ? "800 " : "650 "}11px system-ui`;
 
 // ---------------------------------------------------------------- the frame
 

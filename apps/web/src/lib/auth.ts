@@ -68,7 +68,7 @@ async function sha256(text: string): Promise<string> {
   return base64url(digest);
 }
 
-export function decodeClaims(jwt: string): Record<string, unknown> {
+function decodeClaims(jwt: string): Record<string, unknown> {
   // Display only. The API verifies the signature; the browser never trusts these
   // for anything but showing who is signed in.
   const payload = jwt.split(".")[1] ?? "";

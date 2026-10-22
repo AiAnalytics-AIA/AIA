@@ -17,7 +17,7 @@ export const PERIOD_LABEL: Record<SpendPeriod, string> = {
 };
 
 /** The activities in the order the API sends them. */
-export const ACTIVITY_LABEL: Record<SpendActivity, string> = {
+const ACTIVITY_LABEL: Record<SpendActivity, string> = {
   lead: "Vedoucí výzkumu",
   fieldwork: "Sběr dat",
   analysis_report: "Analýza a zpráva",
@@ -25,7 +25,7 @@ export const ACTIVITY_LABEL: Record<SpendActivity, string> = {
   other: "Ostatní",
 };
 
-export const UNATTRIBUTED = "Nepřiřazeno";
+const UNATTRIBUTED = "Nepřiřazeno";
 
 const NUMBER = new Intl.NumberFormat("cs-CZ", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 

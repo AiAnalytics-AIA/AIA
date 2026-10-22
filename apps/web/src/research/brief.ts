@@ -10,7 +10,7 @@ import { type Attachment, type Template, PROBLEM_TYPES, type ResearchProject, br
 import type { Analysis } from "./store";
 
 /** The empty project's title; the field shows empty rather than this. */
-export const DEFAULT_TITLE = "Nový výzkum";
+const DEFAULT_TITLE = "Nový výzkum";
 
 export function titleValue(p: ResearchProject): string {
   return p.title === DEFAULT_TITLE ? "" : p.title || "";

@@ -43,7 +43,7 @@ export function usualRange(x: unknown): string {
 }
 
 /** aiProviderLabel's effective binding: the name shown when the unit reports no provider. */
-export const PROVIDER_LABEL = "AI partner";
+const PROVIDER_LABEL = "AI partner";
 
 /** The classic progress meta line, as parts a screen can lay out. */
 export function jobMeta(j: JobRead, fallback: { model?: string; elapsed: number }) {
