@@ -63,7 +63,7 @@ export type LoadResult =
 
 const isRecord = (x: unknown): x is Record<string, unknown> => typeof x === "object" && x !== null && !Array.isArray(x);
 
-export function templateOf(r: Pick<WorkingContent, "template">): Template {
+function templateOf(r: Pick<WorkingContent, "template">): Template {
   if (!isRecord(r.template)) throw new Error("Neočekávaná odpověď AIA: chybí šablona výzkumu");
   return { empty_project: r.template as Template["empty_project"] };
 }
@@ -391,12 +391,12 @@ export class ResearchStore {
 }
 
 export const CONFLICT_MESSAGE = "Obsah studie mezitím uložil někdo jiný. Načtěte ho znovu, než budete pokračovat.";
-export const CLOSED_MESSAGE = "Studie je uzavřená a změny nepřijímá. Načtěte ji znovu.";
+const CLOSED_MESSAGE = "Studie je uzavřená a změny nepřijímá. Načtěte ji znovu.";
 
 /** How many saves one `flush` makes while the copy keeps changing under them, before it says so. */
 export const MAX_FLUSH_ROUNDS = 4;
 
-export const FLUSH_INCOMPLETE_MESSAGE = "Obsah studie se mění rychleji, než se stihne uložit. Změny čekají na uložení.";
+const FLUSH_INCOMPLETE_MESSAGE = "Obsah studie se mění rychleji, než se stihne uložit. Změny čekají na uložení.";
 
 /** A flush that saved MAX_FLUSH_ROUNDS times and still has a change waiting: nothing was dropped. */
 export class FlushIncomplete extends Error {

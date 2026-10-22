@@ -17,7 +17,7 @@ import type { WorkbenchStage } from "./workbench-stages";
 export type CardTone = "done" | "running" | "you" | "world" | "fault" | "cancelled" | "inert";
 
 /** The advice jobs: their answer is read, never applied to the design. */
-export const ADVICE_ACTIONS: ReadonlySet<ResearchAgentAction> = new Set(["critique_design", "design_copilot", "answer_memory"]);
+const ADVICE_ACTIONS: ReadonlySet<ResearchAgentAction> = new Set(["critique_design", "design_copilot", "answer_memory"]);
 
 /**
  * The stage a design job's proposal changes, where its review is opened: the stage it is submitted

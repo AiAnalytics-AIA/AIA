@@ -23,7 +23,7 @@ export const FACES = [
   { family: "Source Serif 4 Display", file: "SourceSerif4Display-Semibold.woff2", weight: 600, style: "normal" },
 ];
 
-export const FONT_URL_BASE = "/skin/fonts/";
+const FONT_URL_BASE = "/skin/fonts/";
 
 for (const f of FACES) {
   if (!existsSync(join(root, "public/skin/fonts", f.file))) throw new Error(`FACES names ${f.file}, which is not in public/skin/fonts/`);
