@@ -159,10 +159,17 @@ export function BriefStep() {
             </AiButton>
           ) : (
             <>
-              <Link href={stepHref("plan")} className="inline-flex w-full items-center justify-center gap-1 rounded-control border border-border-strong px-3 !min-h-11 text-sm no-underline">
-                Pokračovat na Návrh
-                <Icon name="next" size={14} />
-              </Link>
+              {frameNav?.next ? (
+                <Button className="w-full justify-center !rounded-control !min-h-11" onClick={() => frameNav.next?.go()}>
+                  Pokračovat na Návrh
+                  <Icon name="next" size={14} />
+                </Button>
+              ) : (
+                <Link href={stepHref("plan")} className="inline-flex w-full items-center justify-center gap-1 rounded-control border border-border-strong px-3 !min-h-11 text-sm no-underline">
+                  Pokračovat na Návrh
+                  <Icon name="next" size={14} />
+                </Link>
+              )}
               <AskLead className="mt-2" what="Analýzu zadání" />
             </>
           )}
