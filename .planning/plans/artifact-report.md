@@ -1,10 +1,10 @@
 ---
-status: planned
+status: in-progress
 chunks:
-  - "[ ] RPT1. Zpráva's contract as data: view operations, pointable ids (section, paragraph, figure, claim) and V2's interaction contract"
-  - "[ ] RPT2. The document first: the draft rendered in the pane from its stored document model, paragraphs with claim chips opening the inspector, figures in place"
+  - "[x] RPT1. Zpráva's contract as data: view operations, pointable ids (section, paragraph, figure, claim) and V2's interaction contract"
+  - "[x] RPT2. The document first: the draft rendered in the pane from its stored document model, paragraphs with claim chips opening the inspector, figures in place"
   - "[ ] RPT3. The doc bar and the Approve and Export slot: which document, its draft number and state, approval as a modal naming it, exports after approval"
-  - "[ ] RPT4. Záznam pokrytí, outside the text: what the report does not hold and why, from the chain manifest"
+  - "[x] RPT4. Záznam pokrytí, outside the text: what the report does not hold and why, from the chain manifest"
   - "[ ] RPT5. Draft revisions: the draft counter and tracked changes per paragraph, a report edit never reopening fieldwork"
   - "[ ] RPT6. The Lead and the report writer on the draft: paragraph rewrites, merges, splits and moves as proposals, every number a ledger ref, the sentence check's refusals at the sentence"
   - "[ ] RPT7. Journey: Zpráva at 1440, 1100, 768 and 390 px, a fictional run's internal draft, zero paid jobs"
@@ -103,11 +103,52 @@ V2: `ReportArt` (`InterpretStages.tsx:103-162`).
 - Tests: Vitest: every chip resolves in the ledger; a block kind with no renderer says so.
 - Depends on `report-delivery#RD5a`.
 
+*RPT1 and RPT2, done (`feature/report-document-pane`):*
+- `apps/web/src/lib/artifacts/report.ts` (pure): the stored document model's types (contract
+  `aia-report-document-1`, refused otherwise), the pointable ids through the registry's `aiaId` --
+  `report:<section id>`, `report:<section id>.<n>` for a block, `report:<block id>:<ref>` for a number's first
+  chip in its block (the report's own kind: `claim:` is Analýza's, `claim:<module>:<claim_id>`, #605; none for a
+  ref outside the id grammar, e.g. one carrying an answer's wording) -- and how a ref reads: the stored text only, a
+  suppressed ref "potlačeno", an unknown one "?", an unknown grade or support unknown, never good.
+  The view operations stay the registry's (`open_stage`, `focus`, `show_diff`); `show_tracked_changes` and
+  `show_variant` wait for RD5 and RPT3 and are asked of the coordinator then.
+- The web reads the serializer's own output: `packages/aia_core/tests/fixtures/report_document/internal.json`,
+  pinned by `test_the_web_reads_the_document_model_this_writes` (rewrite with
+  `AIA_WRITE_REPORT_DOCUMENT_FIXTURE=1`), read by `report.test.ts` and `ReportDocumentView.test.tsx`.
+- `ReportDocumentView` on Zpráva (the report view's panel, first): every section and block in print order with
+  its `data-aia`, no two elements sharing one; numbers as chips opening the claim in the item inspector (beside the draft in a wide pane, a
+  sheet in a narrow one); tables without the rows the DOCX removes, with their count; a chart's numbers as a
+  table (the DOCX draws the chart); a map figure's caption (the image is in the DOCX). Each route answer in
+  words: not stored before RD5a, refused, none for a reader the internal draft is not for (403).
+- Journey: `tools/ui_workbench/report_journey.mjs` at 1440, 1100, 768 and 390 px on the workbench's recorded
+  run; zero paid jobs. RPT7 extends it.
+- Not yet: the draft is first in the report view, but the stage still opens with the complete-report card and
+  the run's notices above it; RPT3's doc bar replaces that card's place.
+
 **RPT3. Doc bar and approval.** Tests: approval sends the artifact id shown; a stale version is
 refused. Depends on `report-delivery#RD2`, `#RD3`, `input-interactions#6`.
 
+*RPT3, the approval modal (`feature/report-approval-modal`; input-interactions#6, B22, Q33):* "Schválit pro interní
+použití" and "Schválit klientskou zprávu" on `CompleteReport` ask first, in the shared `AskDialog`: the document and
+its variant (the review it carries), the stored version and its format (`approvalQuestion`, `lib/report-variant.ts`),
+that approval cannot be undone, then the card's own line on what the file will carry (never promised by the
+question). The focus starts on Zrušit (I7), Esc answers the dialog alone (D21), and "Schválit" sends exactly the id the
+question named. Tests: `report-variant.test.ts` (`approvalQuestion`), `ExecutionSteps.test.tsx` (every approval
+confirms the dialog naming its version, the client's included; the context variant's focus, Esc and Zrušit);
+`report_journey.mjs` at 1440 and 390. Still open: the doc bar and the export panel (RD2's approval line, RD3).
+
 **RPT4. Záznam pokrytí.** Test: a design that asks for a segment comparison lists "Segmenty:
 neprovedeno". Depends on `artifact-chain-to-draft-report#CHN1`.
+
+*RPT4 (`feature/report-coverage`):* "Záznam pokrytí (mimo text zprávy)" under the stored draft in
+`ReportDocumentView`, outside the article, from `lib/artifacts/report-coverage.ts` (`coverageRecord`, pure): the
+run's recorded answerability (`ResearchRun.answerability`: each gap by its question, verdict and why, a segment
+comparison as "Segmenty: neprovedeno", pending questions as not verified) and the stored manifest's `unread` (CHN1:
+each output no section read, in words by step or type). Neither recorded (a run from before answerability, a -1
+document) reads "nezaznamenáno", never covered. Tests: `report-coverage.test.ts`, `ReportDocumentView.test.tsx`
+("Záznam pokrytí, outside the text"); `report_journey.mjs` at 1440, 1100, 768 and 390. V2's other lines join with
+the chunks that make them: the coding state with `report-delivery#RD10`, the client report's refusal and the
+export note with `#RD3`; the Lead's quick asks with RPT6.
 
 **RPT5. Draft revisions.** Depends on `report-delivery#RD5`.
 
@@ -124,8 +165,8 @@ sentence refused by RD7 is marked at the sentence. Depends on `report-delivery#R
 
 ## 8. Owner questions
 
-The draft's sections (the chain plan's CQ1, Q55) and the editor choice (Q19) stay open. Settled
-2026-10-21 via /pmstatus: CQ2 = Q56 (b), code drafts and the Lead proposes tracked changes (RPT6);
+The editor choice (Q19) stays open. Settled 2026-10-21 via /pmstatus: CQ1 = Q55 (b), today's
+report with its gaps closed, plus RD9/RD10, plus literature when chosen, in today's order; CQ2 = Q56 (b), code drafts and the Lead proposes tracked changes (RPT6);
 CQ4 = Q58 (b), one document with the literature woven into its body (CHN8). A module with no supported finding is settled: MVPQ-04 blocks composition, approval and export
 (`artifact-chain-to-draft-report#CHN10`).
 

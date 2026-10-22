@@ -106,6 +106,18 @@ describe("the conversation's order", () => {
     const order = conversationTimeline(turns, jobs, runs, new Map([["T2", "RUN-A"]])).map((x) => (x.kind === "turn" ? x.turn.turn_id : x.kind === "job" ? x.job.run_id : x.run.run_id));
     expect(order).toEqual(["RUN-B", "T1", "JOB-B", "T2"]);
   });
+
+  it("leaves a run a typed start found already started where it is: on its own when no card started it (review of #682)", () => {
+    // A run started on Spuštění, then "Spusť výzkum" typed on the same revision: the reused card
+    // names the run, but the run is still shown, once, at its own time.
+    const turns = [{ turn_id: "T1", created_at: "2026-10-21T09:00:00Z", request_decision: { run_id: "RUN-A", reused: true } }];
+    const runs = [run({ run_id: "RUN-A", created_at: "2026-10-21T08:00:00Z" })];
+    const order = conversationTimeline(turns, [], runs).map((x) => (x.kind === "turn" ? x.turn.turn_id : x.kind === "job" ? x.job.run_id : x.run.run_id));
+    expect(order).toEqual(["RUN-A", "T1"]);
+    // Placed by the card that started it, it stays there: still once.
+    const both = [{ turn_id: "T0", created_at: "2026-10-21T07:59:00Z", request_decision: { run_id: "RUN-A" } }, ...turns];
+    expect(conversationTimeline(both, [], runs).map((x) => (x.kind === "turn" ? x.turn.turn_id : x.kind))).toEqual(["T0", "T1"]);
+  });
 });
 
 describe("a prepared research run's card", () => {

@@ -1,13 +1,17 @@
 ---
 status: in-progress
 chunks:
-  - "[ ] RQC0. A per-respondent checkpoint (OI-64): each answered respondent and its paid-call identity are stored under the lease; a retry resumes; a possibly-billed uncertain call requires recovery and never triggers an automatic paid replay"
+  - "[x] RQC0. A per-respondent checkpoint (OI-64): each answered respondent and its paid-call identity are stored under the lease; a retry resumes; a possibly-billed uncertain call requires recovery and never triggers an automatic paid replay"
   - "[ ] RQC1. One straight-liner definition in `domain/`, called by the Sociomap engine, the run QC and the worker"
   - "[ ] RQC2. The QC node wired into the run: template node, step kind, registry, `AIA_RUN_QC_ENABLED`, the run-key identity"
   - "[ ] RQC3. A `MaterialRule` and lineage for run-derived material sent to a model (QC flags, the map interpreter)"
   - "[ ] RQC4. The flag artifact and the worker's keep-or-flag proposal; the accept destination"
   - "[ ] RQC5. Replace as a new linked run: a start path from a COMPLETED run with an exclusion pin that reuses the other respondents' paid answers; its ADR and deterministic admission rule (ADR 0026 decision 4) come first"
-  - "[ ] RQC6. Quotas before a run and a support forecast for the panel path"
+  - "[ ] RQC6. Quotas before a run and a support forecast for the panel path (split 2026-10-22 into RQC6a-RQC6d, owner: the Vzorek session)"
+  - "[ ] RQC6a. Domain: a panel sample's quota cells (the sampler's own largest-remainder allotment) and the support forecast from a drawn panel sample, through the roster path's donor_support and analysis gate"
+  - "[ ] RQC6b. Application and API: readiness draws the panel sample a start would draw (fieldwork_seed, the design's filters, the population the run would record) and carries its forecast and quota cells; the audience preview carries its quota cells at PREVIEW_SEED; unknown, said why, without the population"
+  - "[ ] RQC6c. Web (artifact-sample SMP2): Vzorek's composition as quota cells, each sample:quota:<cell>, and the panel run's forecast in words"
+  - "[ ] RQC6d. Journey (artifact-sample SMP6): Vzorek's panel composition and forecast at 1440, 1100, 768 and 390 px over the population double, zero paid jobs"
   - "[ ] RQC7. The fieldwork event contract: heartbeat, quota-cell fill, a respondent grid, the park reason code"
   - "[ ] RQC8. Readiness reads the worker's egress: a run whose route cannot carry Class A is flagged before it parks"
   - "[x] RQC9. One authority for the valid n: the domain readiness limits, read by the web and the Lead"
@@ -52,6 +56,47 @@ Per F18 replacement is a new linked run. **Prerequisite (ADR 0026 decision 4, Ac
 
 **RQC6. Quotas before a run and a support forecast for the panel path**  
 The preview drops the composition and readiness does not call the previewer for the panel; `support_forecast` is unknown for a panel run today.
+
+Split 2026-10-22 (assigned by the PM to the Vzorek session; SMP2 and SMP6 of `artifact-sample` wait on it).
+What the code already says, and what the split rests on:
+
+- A panel run's sample is not a guess before the run. Fieldwork draws it with
+  `draw_panel_sample(population, spec.selection.audience_filters, spec.n, fieldwork_seed(spec))`
+  (`panel_source.panel_plans`; `ai_fieldwork.py`, `seed = fieldwork_seed(spec)`), the seed the
+  roster forecast already uses (`support_forecast._statuses`). Drawn over the population the run
+  would record, the readiness forecast is that run's sample, not an approximation. The preview's
+  `PREVIEW_SEED` stays the preview's; readiness uses the run's seed.
+- The quota cells are the sampler's own: `representative_draw`'s largest-remainder allotment
+  (`Draw.quotas` over `Draw.quota_fields`, the unit's `_quotas`, held to
+  `fixtures/representative_draw`), which `PanelSample` drops today. They say how the n is spread,
+  never that a pair of objects will have support: the Sociomap's pair support is read from the
+  data (audit F3), and no word says a quota guarantees it.
+- Support uses the rules a start would pin (`SupportSpec` in force, the aggregation slots), as
+  the roster path does. Unknown is never good: no population, a refused draw, a selected child
+  population (P4d) or a version other than the one a start would record reads unknown, with the
+  reason.
+
+**RQC6a. Domain.** `PanelSample` carries its quota cells (fields and allotment), outside
+`provenance()`, so no recorded run changes. `forecast_support` takes a drawn panel sample: its
+donors and analysis weights through `donor_support` and `reassess_support`, as the roster's.
+`reportable_n` stays the roster's only (a panel search would draw the population per candidate).
+Tests: the cells equal `representative_draw`'s quotas on the captured cases; a panel forecast
+over a fictional population equals donor_support on the sample's own donors; no sample, unknown.
+
+**RQC6b. Application and API.** `ResearchRuns.readiness(…, persona_source=panel)` draws the
+sample through a process cache of the run population (the audience previewer's loader, keyed by
+the population the run records, `RunPopulationDep`), only when the panel is chosen, which the
+persona-source switch (`AIA_AI_POPULATION_PERSONAS_ENABLED`) already gates. The readiness body
+gains `sample_composition` (quota fields, cells with a Lead-safe id, the seed, the version);
+`/population/audience-preview` gains its cells at `PREVIEW_SEED`. The draw's cost on the
+population is measured and stated in the PR. Tests: readiness on a panel design over the
+population double states the run's donors and cells; without the population root, unknown.
+
+**RQC6c. Web (SMP2).** Vzorek's §1 composition from `sample_composition`; `sample:quota:<cell>`
+on each cell; the panel forecast's words in §2; unknown said with its reason.
+
+**RQC6d. Journey (SMP6).** The workbench journey reads Vzorek's panel composition over the
+population double at four widths; zero paid jobs.
 
 **RQC7. The fieldwork event contract: heartbeat, quota-cell fill, a respondent grid, the park reason code**  
 Written first by S2; consumed by the Fieldwork artifact (`research-lead-workbench` 19). Interfaces I7.

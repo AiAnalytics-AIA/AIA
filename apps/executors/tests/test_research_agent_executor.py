@@ -176,8 +176,13 @@ def worker(
     approvals: tuple[MaterialApproval, ...] = (),
     step_events: bool = False,
     route: str = ROUTE,
+    class_gates: str = "",
 ) -> Worker:
-    cfg = settings(world.client_id if fictional else "", AIA_AI_ROUTE_APPROVED_FOR=route)
+    cfg = settings(
+        world.client_id if fictional else "",
+        AIA_AI_ROUTE_APPROVED_FOR=route,
+        AIA_DATA_CLASS_GATES=class_gates,
+    )
     executor = ResearchAgentExecutor(
         store=store,
         build=build,
@@ -743,6 +748,46 @@ def test_a_version_saved_before_declarations_existed_is_parked_and_nothing_is_se
     with world.sessions() as session:
         job = ResearchAgentJobs(session, world.lead_scope(session)).get(run_id)
     assert job["status"] is WorkflowRunStatus.WAITING_PROVIDER
+
+
+def test_under_advisory_class_gates_an_undeclared_version_is_sent_and_says_so(
+    world: Any, database_url: str, store: Any, build: Any
+) -> None:
+    """Develop only (plan develop-class-advisory): the job the test above parks is sent, judged
+    as Class A, the prompt's class still recorded as unknown, the advisory on its provenance
+    and on every ledger row of the call."""
+    put_live(world, "aia.research.analyze_brief", CUSTOM_TASK, declared=False)
+    run_id = start(world)
+    transport = RecordedBedrock()
+    assert worker(world, database_url, store, build, transport, class_gates="advisory").run_once()
+    assert system_sent(transport) == FIXED_PREFIX + CUSTOM_TASK
+    with world.sessions() as session:
+        scope = world.lead_scope(session)
+        jobs = ResearchAgentJobs(session, scope)
+        assert jobs.get(run_id)["status"] is WorkflowRunStatus.COMPLETED
+        provenance = jobs.result(run_id, store=store)["provenance"]
+        events = AIUsageRepository(session, scope).events(run_id=run_id)
+    advisory = (
+        "class_advisory gate=egress rule=unclassified_material class=unclassified advisory=true"
+    )
+    assert provenance["data_class"] == "CLASS_A_CLIENT_CONFIDENTIAL"
+    assert advisory in provenance["class_advisory"]
+    prompt = provenance["material_classification"]["prompt"]
+    assert (prompt["data_class"], prompt["source"]) == (None, "unknown")
+    assert events and all(advisory in e.note for e in events)
+
+
+def test_under_enforce_a_job_records_no_advisory(
+    world: Any, database_url: str, store: Any, build: Any
+) -> None:
+    run_id = start(world)
+    assert worker(world, database_url, store, build, RecordedBedrock()).run_once()
+    with world.sessions() as session:
+        scope = world.lead_scope(session)
+        provenance = ResearchAgentJobs(session, scope).result(run_id, store=store)["provenance"]
+        events = AIUsageRepository(session, scope).events(run_id=run_id)
+    assert "class_advisory" not in provenance
+    assert all("class_advisory" not in e.note for e in events)
 
 
 def test_an_operator_can_still_classify_a_version_that_has_no_declaration(

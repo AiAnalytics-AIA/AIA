@@ -82,7 +82,7 @@ __all__ = [
 #: scale's verbal labels (input-interactions 3b); a specification ``-1`` stored is read as
 #: stored, held to the revision it records, never recompiled under ``-2``
 #: (``application.analysis_results.native_sources``).
-COMPILER_VERSION: Final = "aia-research-compile-2"
+COMPILER_VERSION: Final = "aia-research-compile-3"
 
 #: The unit's "don't know" option (``dotaznik.py`` ``Otazka.volby``).
 DONT_KNOW: Final = "Nevím / neodpovím"
@@ -1007,14 +1007,29 @@ def compile_design(
         n=n,
         questions=tuple(questions),
         batteries=tuple(batteries),
-        audience={
-            "source_mode": _text(audience.get("source_mode")) or "population",
-            "strategy": _text(audience.get("strategy")) or "population",
-            "has_filters": bool(audience.get("filters")),
-        },
+        audience=_audience(audience),
         selection=selection,
     )
     return spec, ()
+
+
+def _audience(audience: dict[str, Any]) -> dict[str, Any]:
+    """The audience as the design stated it: its source and strategy, whether it narrowed, and
+    (compiler 3, artifact-chain CHN5) the description and built-in subpanel a person gave, each
+    only when given (the subpanel only on a population audience), so a design that states
+    neither keeps the body it always had."""
+    out: dict[str, Any] = {
+        "source_mode": _text(audience.get("source_mode")) or "population",
+        "strategy": _text(audience.get("strategy")) or "population",
+        "has_filters": bool(audience.get("filters")),
+    }
+    if description := _text(audience.get("description")):
+        out["description"] = description
+    # A subpanel is a part of AIA's population. The audience step keeps the last one chosen
+    # when the source moves outside it (OI-51), so it is the audience's only on a population.
+    if out["source_mode"] == "population" and (subpanel := _text(audience.get("builtin_subpanel"))):
+        out["builtin_subpanel"] = subpanel
+    return out
 
 
 def _filter_value(value: Any) -> Any:
@@ -1165,6 +1180,9 @@ def assess_readiness(
     (``research_sociomap.side_tables_for``; plan ``methodology-tab`` S2c). It has no
     default: a warning that read the code's value would contradict the methodology in force.
     """
+    # Here, not at the top: report.numbers reaches evidence, which reaches this module.
+    from .report.numbers import counted
+
     checks: list[ReadinessCheck] = []
 
     def check(check_id: str, status: CheckStatus, message: str) -> None:
@@ -1187,8 +1205,9 @@ def assess_readiness(
     check(
         "questionnaire",
         CheckStatus.PASS,
-        f"{len(spec.questions)} otázek, {len(spec.batteries)} sledovaných sad "
-        f"({asked} položek k zodpovězení).",
+        f"{counted(len(spec.questions), 'otázka', 'otázky', 'otázek')}, "
+        f"{counted(len(spec.batteries), 'sledovaná sada', 'sledované sady', 'sledovaných sad')} "
+        f"({counted(asked, 'položka', 'položky', 'položek')} k zodpovězení).",
     )
 
     filtered = [q.id for q in spec.questions if q.has_filter]
@@ -1224,7 +1243,7 @@ def assess_readiness(
             CheckStatus.PASS,
             # Whether a map may reach a client is the Sociomap register's, for the method that
             # computed it, read when the map is read (domain/sociomap_register.py), never here.
-            f"{len(spec.batteries)} sad pro Sociomapu.",
+            f"{counted(len(spec.batteries), 'sada', 'sady', 'sad')} pro Sociomapu.",
         )
         # Structural readiness to collect answers is not support for a map: a pair needs
         # n_min respondents who rated both (audit F3), counted after missing answers and

@@ -8,24 +8,35 @@ does not ask a model to invent a second interpretation of the results.
 from __future__ import annotations
 
 import re
-from collections.abc import Mapping
-from typing import Any
+from collections.abc import Iterable, Mapping
+from dataclasses import replace
+from typing import Any, Final
 
-from aia_core.application.analysis_results import RunAnalysis
+from aia_core.application.analysis_results import (
+    AGGREGATE_ARTIFACT,
+    DATASET_ARTIFACT,
+    SPECIFICATION_ARTIFACT,
+    RunAnalysis,
+)
 from aia_core.application.report_design import DesignSections
 from aia_core.application.report_tables import QuestionTables
 from aia_core.domain.analysis import ANALYSIS_MODULES, AnalysisModuleId
+from aia_core.domain.analysis.artifact import ANALYSIS_MODULE_ARTIFACT, ModuleSources, SourceRef
+from aia_core.domain.analysis.steps import analysis_node_key
 from aia_core.domain.evidence import AdmittedClaim, ClaimSurface
 from aia_core.domain.fieldwork import MODELLED_DISCLOSURE, OriginKind, origin_kind
 from aia_core.domain.report.evidence import EvidenceLedger
 from aia_core.domain.report.model import (
+    ArtifactSource,
     AuditBlock,
+    BesideOutput,
     Block,
     BulletList,
     Callout,
     CalloutKind,
     Classification,
     EvidenceAppendix,
+    FixedSource,
     Heading,
     ListItem,
     Paragraph,
@@ -33,13 +44,19 @@ from aia_core.domain.report.model import (
     ReportDocument,
     ReportKind,
     ReportMeta,
+    RunOutput,
+    RunSource,
     Section,
+    SectionSource,
     Text,
     text,
 )
+from aia_core.domain.report.sources import with_source_audit
 from aia_core.domain.report.validation import require_valid
 
 INTERNAL_REPORT_ARTIFACT_TYPE = "research_internal_docx"
+#: The run's frozen Sociomap, which the map chapters are drawn from.
+SOCIOMAP_ARTIFACT = "research_sociomap"
 # The stored DOCX rendered as PDF beside it (complete-study-report B3).
 INTERNAL_REPORT_PDF_ARTIFACT_TYPE = "research_internal_pdf"
 # The draft's document model beside its DOCX, under the same fingerprint (report-delivery RD5a):
@@ -139,6 +156,9 @@ def compose_internal_report(
     design: DesignSections | None = None,
     method: Section | None = None,
     research_question_gaps: Mapping[str, str] | None = None,
+    map_source: tuple[str, str] | None = None,
+    methodology_rules: tuple[Block, ...] = (),
+    outputs: tuple[RunOutput, ...] = (),
 ) -> ReportDocument:
     """Make an unapproved AIA-branded internal draft from all eight admitted modules.
 
@@ -151,6 +171,12 @@ def compose_internal_report(
     ``research_question_gaps`` (``research_question_gaps``): the research questions the run
     recorded at start as gaps, in words, by their text; the introduction's list and every answer
     to one of them say so where the answer is read.
+    ``map_source``: the verified Sociomap's artifact id and SHA-256 (``report_chapters``), named
+    in the audit beside the specification, dataset and aggregate the analysis was built from.
+    ``methodology_rules`` (``compose_methodology_rules``): the rules the run was computed under,
+    printed in the methodology chapter after its reading guidance.
+    ``outputs``: the run's other stored outputs; every section names what it was composed from
+    and the audit prints the outputs no section read (artifact-chain CHN1).
     Client deliverables have a separate admission and review contract; this
     function never upgrades internal claims to a client-facing surface.
     """
@@ -229,10 +255,44 @@ def compose_internal_report(
                 CalloutKind.LIMITATION, text(_deviation_text(deviation)), title="Odchylka od 18.6.6"
             )
         )
-    sections: list[Section] = [Section("Úvod a rámec studie", tuple(introduction), id="intro")]
+    # The run's own sources: a module reused from an identical earlier run keeps that run's
+    # names in its record (ModuleSources), which this audit must never print as this run's.
+    upstream = run.sources
+    if upstream is None:
+        raise ReportCompositionRefused("the run's own sources were not read")
+    specification, dataset, aggregate = upstream_artifacts(upstream)
+    sections: list[Section] = [
+        Section(
+            "Úvod a rámec studie",
+            tuple(introduction),
+            id="intro",
+            # The research questions as the analysis read them, the frame by the data's origin.
+            sources=(
+                ArtifactSource(ANALYSIS_MODULE_ARTIFACT, first.artifact_id, first.artifact_sha256),
+                dataset,
+                *(() if deviation is None else (aggregate,)),
+            ),
+        )
+    ]
     if design is not None:
         sections.append(design.chapter)
-    audit = [("Běh", run.run_id), ("Evidence", table_fingerprint)]
+    read: list[ArtifactSource] = [specification, dataset, aggregate]
+    if map_source is not None:
+        read.append(ArtifactSource(SOCIOMAP_ARTIFACT, *map_source))
+    audit = [
+        ("Běh", run.run_id),
+        ("Evidence", table_fingerprint),
+        # Every artifact the draft stands on, by id and content (artifact-chain CHN6).
+        ("Revize návrhu", upstream.design_revision_id),
+        (
+            "Specifikace",
+            f"{upstream.specification.artifact_id} · SHA-256 {upstream.specification.sha256}",
+        ),
+        ("Data", f"{upstream.dataset.artifact_id} · SHA-256 {upstream.dataset.sha256}"),
+        ("Agregace", f"{upstream.aggregate.artifact_id} · SHA-256 {upstream.aggregate.sha256}"),
+    ]
+    if map_source is not None:
+        audit.append(("Sociomapa", f"{map_source[0]} · SHA-256 {map_source[1]}"))
     if deviation is not None:
         audit.append(("Metodika agregace", str(deviation.get("methodology_version") or "?")))
     # Put the population context before object-level findings; keep module IDs
@@ -288,6 +348,7 @@ def compose_internal_report(
                                 "následující kapitoly rozvíjejí jejich věcný význam."
                             )
                         ),
+                        *methodology_rules,
                         *(
                             ()
                             if deviation is None
@@ -295,6 +356,16 @@ def compose_internal_report(
                         ),
                     ),
                     id="methodology",
+                    # Its reading guidance is the composer's own text, the one fixed source.
+                    sources=(
+                        FixedSource("methodology.guidance"),
+                        *(
+                            (RunSource("metadata.support"), RunSource("metadata.aggregation"))
+                            if methodology_rules
+                            else ()
+                        ),
+                        *(() if deviation is None else (aggregate,)),
+                    ),
                 )
             )
             if method is not None:
@@ -407,10 +478,21 @@ def compose_internal_report(
                     ),
                 )
             )
-        sections.append(Section(_TITLES[spec.module_id], tuple(blocks), id=f"ch-{spec.ordinal}"))
+        artifact = ArtifactSource(
+            ANALYSIS_MODULE_ARTIFACT, module.artifact_id, module.artifact_sha256
+        )
+        sections.append(
+            Section(
+                _TITLES[spec.module_id],
+                tuple(blocks),
+                id=f"ch-{spec.ordinal}",
+                sources=(artifact,),
+            )
+        )
         if spec.module_id is AnalysisModuleId.OBJECTS:
             sections.extend(map_sections)
         audit.append((spec.artifact_name, module.artifact_sha256))
+        read.append(artifact)
 
     ledger = EvidenceLedger.from_claims(
         claims, surface=ClaimSurface.INTERNAL, table=reference.table
@@ -420,9 +502,72 @@ def compose_internal_report(
     sections.append(
         Section("Evidenční příloha", (EvidenceAppendix(),), id="app-evidence", appendix=True)
     )
-    sections.append(Section("Audit", (AuditBlock(tuple(audit)),), id="app-audit", appendix=True))
+    sections.append(
+        Section(
+            "Audit", (AuditBlock(tuple(audit)),), id="app-audit", appendix=True, sources=tuple(read)
+        )
+    )
     sections[0] = _with_contents(sections[0], sections, literature=bool(context_sections))
-    return require_valid(ReportDocument(meta, tuple(sections), ledger))
+    named = {(a.artifact_id, a.sha256) for a in read}
+    document = ReportDocument(
+        meta,
+        tuple(sections),
+        ledger,
+        outputs=(
+            *read,
+            *(
+                o
+                for o in outputs
+                if isinstance(o, BesideOutput) or (o.artifact_id, o.sha256) not in named
+            ),
+        ),
+    )
+    return require_valid(with_source_audit(document))
+
+
+def beside_outputs(steps: Iterable[Mapping[str, Any]]) -> tuple[BesideOutput, ...]:
+    """The run's steps the report does not stand on (the experimental Sociomapping and its
+    draft): what the manifest names as made beside it (CHN1). By the graph, never by whether
+    the step has finished, so the same run composes the same document."""
+    return tuple(
+        BesideOutput(str(s["node_key"]), str(s["kind"]))
+        for s in steps
+        if s["node_key"] not in _REPORT_UPSTREAM
+    )
+
+
+#: The report step and every step it stands on (``workflow_templates.steps_for_workflow``).
+_REPORT_UPSTREAM: Final = frozenset(
+    {
+        "compile",
+        "preflight",
+        "run",
+        "aggregate",
+        "sociomap",
+        "report",
+        *(analysis_node_key(m.module_id) for m in ANALYSIS_MODULES),
+    }
+)
+
+
+def upstream_artifacts(
+    sources: ModuleSources,
+) -> tuple[ArtifactSource, ArtifactSource, ArtifactSource]:
+    """The run's specification, dataset and aggregate as section sources (CHN1)."""
+    return (
+        ArtifactSource(SPECIFICATION_ARTIFACT, *_ref(sources.specification)),
+        ArtifactSource(DATASET_ARTIFACT, *_ref(sources.dataset)),
+        ArtifactSource(AGGREGATE_ARTIFACT, *_ref(sources.aggregate)),
+    )
+
+
+def _ref(ref: SourceRef) -> tuple[str, str]:
+    return ref.artifact_id, ref.sha256
+
+
+def sourced(section: Section, *sources: SectionSource) -> Section:
+    """``section`` naming ``sources`` beside those it names already (CHN1)."""
+    return replace(section, sources=(*section.sources, *sources))
 
 
 def _with_contents(intro: Section, sections: list[Section], *, literature: bool) -> Section:
@@ -448,4 +593,4 @@ def _with_contents(intro: Section, sections: list[Section], *, literature: bool)
         ),
     ]
     blocks = (intro.blocks[0], *contents, *intro.blocks[1:])
-    return Section(intro.title, blocks, id=intro.id, appendix=intro.appendix)
+    return replace(intro, blocks=blocks)

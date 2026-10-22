@@ -127,6 +127,13 @@ describe("waitingDetail", () => {
     expect(waitingDetail({ ...base, waiting_reason: "budget_exceeded", error_message: "Přesný důvod." })).toBe("Přesný důvod.");
   });
 
+  it("says who fixes a refusal of the AI route on Progress, after what the step recorded (LO12a)", () => {
+    const parked = waitingDetail({ ...base, waiting_reason: "ai_runtime_unavailable", error_message: "Běh čeká u sběru dat.", error_reason: "egress_residency_violation" });
+    expect(parked).toMatch(/^Běh čeká u sběru dat\. Opraví to provozovatel AIA/);
+    expect(parked).toContain("aia_ai_route_eu_processing_approved");
+    expect(waitingDetail({ ...base, error_message: "Běh čeká u sběru dat.", error_reason: "licence_undetermined" })).toBe("Běh čeká u sběru dat.");
+  });
+
   it("tells budget, quota and decisions apart", () => {
     expect(waitingDetail({ ...base, status: "AWAITING_BUDGET", waiting_reason: "budget_exceeded" })).toMatch(/rozpočet/);
     expect(waitingDetail({ ...base, waiting_reason: "provider_quota_exhausted" })).toMatch(/kvótu/);
@@ -338,16 +345,16 @@ describe("a research question's measures in words (run-recovery-and-truth 3b)", 
 describe("respondentReceipt (run-recovery-and-truth 5b)", () => {
   const fieldwork = (data_origin: string | null, data_origin_kind?: string | null) => ({ node_key: "run", data_origin, data_origin_kind }) as never;
   it("puts the pinned source beside the origin the fieldwork data reports", () => {
-    expect(respondentReceipt({ persona_source: "fictional_roster", steps: [fieldwork("SYNTHETIC_AI_FICTIONAL", "SIMULATED")] })).toEqual({ pinned: "fictional_roster", observed: "SIMULATED", mismatch: false });
-    expect(respondentReceipt({ persona_source: "panel", steps: [fieldwork("MODELLED_AI_PANEL")] })).toEqual({ pinned: "panel", observed: "MODELLED", mismatch: false });
+    expect(respondentReceipt({ persona_source: "fictional_roster", steps: [fieldwork("SYNTHETIC_AI_FICTIONAL", "SIMULATED")] })).toEqual({ pinned: "fictional_roster", observed: "SIMULATED", origin: "SYNTHETIC_AI_FICTIONAL", mismatch: false });
+    expect(respondentReceipt({ persona_source: "panel", steps: [fieldwork("MODELLED_AI_PANEL")] })).toEqual({ pinned: "panel", observed: "MODELLED", origin: "MODELLED_AI_PANEL", mismatch: false });
   });
   it("says nothing was observed before fieldwork stores its data, and reads an older run as the roster", () => {
-    expect(respondentReceipt({ steps: [fieldwork(null, null)] })).toEqual({ pinned: "fictional_roster", observed: null, mismatch: false });
+    expect(respondentReceipt({ steps: [fieldwork(null, null)] })).toEqual({ pinned: "fictional_roster", observed: null, origin: null, mismatch: false });
     expect(respondentReceipt({ persona_source: "panel", steps: [] }).observed).toBeNull();
   });
   it("names a mismatch, and an unknown origin is never a match", () => {
     expect(respondentReceipt({ persona_source: "panel", steps: [fieldwork("SYNTHETIC_AI_FICTIONAL")] }).mismatch).toBe(true);
-    expect(respondentReceipt({ persona_source: "fictional_roster", steps: [fieldwork("SOMETHING_NEW")] })).toEqual({ pinned: "fictional_roster", observed: "UNKNOWN", mismatch: true });
+    expect(respondentReceipt({ persona_source: "fictional_roster", steps: [fieldwork("SOMETHING_NEW")] })).toEqual({ pinned: "fictional_roster", observed: "UNKNOWN", origin: "SOMETHING_NEW", mismatch: true });
   });
 });
 

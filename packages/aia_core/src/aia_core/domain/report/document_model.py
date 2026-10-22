@@ -17,6 +17,13 @@ Three rules hold:
   DOCX prints it, so the pane prints what the file prints and never formats a number itself.
   A suppressed ref has no text, only its reasons.
 * **No bytes.** An image is named by its SHA-256; the DOCX holds the image.
+
+Since ``aia-report-document-2`` every section carries its ``sources`` and the document the run's
+outputs no section read, ``unread`` (artifact-chain CHN1, :mod:`~aia_core.domain.report.sources`).
+A stored ``-1`` document is still read: it recorded no sources, and a reader says so rather than
+presuming any. Since ``-3`` every ledger entry carries its claim's ``level`` (aggregate, segment
+or individual), which the client deliverable's gate reads (report-delivery RD0); an older entry
+has none, so the gate cannot judge it.
 """
 
 from __future__ import annotations
@@ -59,10 +66,16 @@ from aia_core.domain.report.model import (
     TextCell,
     Value,
 )
+from aia_core.domain.report.sources import report_sources, source_payload
 from aia_core.domain.report.validation import CLIENT_KINDS
 
 #: The stored form's contract. A reader refuses any other (:func:`read_document_payload`).
-DOCUMENT_MODEL_CONTRACT: Final = "aia-report-document-1"
+DOCUMENT_MODEL_CONTRACT: Final = "aia-report-document-3"
+#: Contracts still read: ``-1`` (RD5a) is ``-2`` without the manifest, ``-2`` is ``-3`` without
+#: each entry's level.
+READABLE_CONTRACTS: Final = frozenset(
+    {"aia-report-document-1", "aia-report-document-2", DOCUMENT_MODEL_CONTRACT}
+)
 DOCUMENT_MODEL_MEDIA_TYPE: Final = "application/json"
 
 
@@ -74,8 +87,11 @@ def document_payload(document: ReportDocument) -> dict[str, Any]:
     """``document`` as JSON-ready data. See the module note."""
     client = document.meta.kind in CLIENT_KINDS
     writer = _Writer(document.ledger, client=client)
+    manifest = report_sources(document)
     sections = []
-    for index, section in enumerate(document.sections, start=1):
+    for index, (section, entry) in enumerate(
+        zip(document.sections, manifest.sections, strict=True), start=1
+    ):
         section_id = section.id or f"section-{index}"
         blocks = [
             writer.block(block, f"{section_id}.{position}")
@@ -88,6 +104,7 @@ def document_payload(document: ReportDocument) -> dict[str, Any]:
                 "appendix": section.appendix,
                 "blocks": blocks,
                 "refs": _unique(ref for block in blocks for ref in block["refs"]),
+                "sources": [source_payload(s, client=client) for s in entry.sources],
             }
         )
     meta = document.meta
@@ -112,6 +129,7 @@ def document_payload(document: ReportDocument) -> dict[str, Any]:
             "identifiers": [] if client else [list(pair) for pair in meta.identifiers],
         },
         "sections": sections,
+        "unread": [source_payload(s, client=client) for s in manifest.unread],
         "ledger": writer.ledger_payload(),
     }
 
@@ -125,12 +143,12 @@ def document_bytes(document: ReportDocument) -> bytes:
 
 
 def read_document_payload(data: bytes) -> dict[str, Any]:
-    """Stored bytes as the document model, refused unless they are this contract's."""
+    """Stored bytes as the document model, refused unless they are a contract still read."""
     try:
         payload = json.loads(data.decode("utf-8"))
     except (UnicodeDecodeError, json.JSONDecodeError) as exc:
         raise DocumentModelInvalid("the stored document model is not JSON") from exc
-    if not isinstance(payload, dict) or payload.get("contract") != DOCUMENT_MODEL_CONTRACT:
+    if not isinstance(payload, dict) or payload.get("contract") not in READABLE_CONTRACTS:
         raise DocumentModelInvalid(f"the stored document model is not {DOCUMENT_MODEL_CONTRACT}")
     if not isinstance(payload.get("sections"), list) or not isinstance(payload.get("ledger"), dict):
         raise DocumentModelInvalid("the stored document model has no sections or ledger")
@@ -180,6 +198,7 @@ class _Writer:
                 "indicative": self._ledger.is_indicative(ref),
                 "modelled_panel": self._ledger.modelled_panel((ref,)),
                 "basis": row.basis.value,
+                "level": row.level.value,
                 "support": row.support.status.value,
                 "question_id": row.question_id,
                 "data_origin": row.data_origin.value if row.data_origin is not None else None,

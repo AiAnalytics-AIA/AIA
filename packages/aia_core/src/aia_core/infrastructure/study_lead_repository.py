@@ -39,6 +39,7 @@ def _to_domain(row: StudyLeadTurnRow) -> LeadTurn:
         design_revision_id=row.design_revision_id,
         created_by=row.created_by,
         created_at=as_utc(row.created_at),
+        command=row.command,
     )
 
 
@@ -134,6 +135,7 @@ class StudyLeadRepository:
         workspace_revision: int | None = None,
         design_revision_id: str | None = None,
         turn_id: str | None = None,
+        command: str | None = None,
     ) -> LeadTurn:
         """Append one turn to this researcher's conversation, numbered after the last."""
         s = self._scope
@@ -155,6 +157,7 @@ class StudyLeadRepository:
             run_id=run_id,
             workspace_revision=workspace_revision,
             design_revision_id=design_revision_id,
+            command=command,
             created_by=s.actor_id,
             created_at=utcnow(),
         )

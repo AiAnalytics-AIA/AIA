@@ -13,7 +13,13 @@ from functools import lru_cache
 from typing import Literal
 
 from aia_core.application.deep_research_pricing import DeepResearchPricingSettings
-from aia_core.domain.deployment import DeploymentEnvironment, fictional_material_problem
+from aia_core.domain.deployment import (
+    DataClassGates,
+    DeploymentEnvironment,
+    data_class_gates_problem,
+    fictional_material_problem,
+    parse_data_class_gates,
+)
 from aia_core.domain.fieldwork import FieldworkSource
 from aia_core.infrastructure.build_identity import BuildIdentity, parse_build_sha
 from aia_core.infrastructure.error_tracking import DSN_ENV, ErrorTrackingSettings
@@ -86,6 +92,10 @@ class Settings(BaseSettings):
     # workbench, refused in every deployed environment by validate_for_production().
     research_fieldwork_source: FieldworkSource = FieldworkSource.AI_RUNTIME
     ai_analysis_enabled: bool = False
+    # A run with analysis pins the Study's newest sealed Design Research bundle, and each module
+    # is shown its accepted findings as external context, never evidence (evidence-integrity 7;
+    # AIA_AI_ANALYSIS_EXTERNAL_CONTEXT). Off by default; a retry keeps what its original pinned.
+    ai_analysis_external_context: bool = False
     # The experimental Sociomapping (AIA's H-Model candidate) and its internal draft report,
     # added to a research run's graph when the run starts (AIA_SOCIOMAPPING_EXPERIMENTAL_ENABLED).
     # Deterministic, no model call; recorded on the run, so a retry keeps it. Off by default.
@@ -120,6 +130,12 @@ class Settings(BaseSettings):
     # empty (the default) means no draft can be run anywhere. Refused outside local, test and
     # develop, by the same rule the worker applies (aia_core.domain.deployment).
     ai_fictional_client_ids: str = ""
+
+    # Whether a refusal made solely because of a data class stops a call or is recorded and
+    # passed (``AIA_DATA_CLASS_GATES``, the worker's key; plan develop-class-advisory). Enforce
+    # by default; advisory only in local, test and develop, refused in staging and production by
+    # the same rule the worker applies (aia_core.domain.deployment).
+    data_class_gates: DataClassGates = DataClassGates.ENFORCE
 
     # What the worker reserves per model request (``AIA_AI_FIELDWORK_RESERVATION_USD``,
     # ``AIA_AI_ANALYSIS_RESERVATION_USD``), read here so the API can say what a run can cost at
@@ -238,6 +254,14 @@ class Settings(BaseSettings):
             return None
         return value
 
+    @field_validator("data_class_gates", mode="before")
+    @classmethod
+    def _parse_class_gates(cls, value: object) -> object:
+        """Empty is enforce; a value that is not a mode is refused by name, never guessed."""
+        if isinstance(value, str):
+            return parse_data_class_gates(value)
+        return value
+
     @field_validator("cors_origins", mode="before")
     @classmethod
     def _split_origins(cls, value: object) -> object:
@@ -342,6 +366,11 @@ class Settings(BaseSettings):
         Raised at startup rather than on first request, so a bad deploy fails its
         health check instead of serving traffic in an unsafe state.
         """
+        if self.data_class_gates.advisory and "env" not in self.model_fields_set:
+            # ``env`` defaults to local, but advisory needs an environment that says so: an
+            # unset AIA_ENV is unknown, as the worker and the executors read it, and refused.
+            problem = data_class_gates_problem(None, self.data_class_gates)
+            raise RuntimeError(f"invalid configuration: {problem}")
         if not self.is_production:
             return
 
@@ -385,6 +414,9 @@ class Settings(BaseSettings):
         fictional = fictional_material_problem(self.env, self.fictional_client_ids)
         if fictional:
             problems.append(fictional)
+        gates = data_class_gates_problem(self.env, self.data_class_gates)
+        if gates:
+            problems.append(gates)
 
         # Fictional respondents must never become a deployed study's fieldwork (D1).
         if self.research_fieldwork_source is FieldworkSource.SYNTHETIC_FIXTURE:

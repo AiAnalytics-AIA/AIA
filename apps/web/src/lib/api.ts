@@ -5,6 +5,8 @@
 // the server computed and decides nothing (ARCHITECTURE.md §2).
 
 import type { RegisterEntry } from "@/lib/object-map-view";
+import type { BriefMaterials } from "@/lib/material-class";
+import type { Approval, StoredReportDocument } from "@/lib/artifacts/report";
 import { currentIdToken, loadConfig } from "@/lib/auth";
 import type { EditDecisionResult, LeadPreferences, LeadState, LeadTurn, RequestApproval, ResearcherLead, SelfUpdateDecision } from "@/lib/lead";
 export type { ResearcherLead as ResearcherLeadView } from "@/lib/lead";
@@ -788,6 +790,21 @@ export type AudiencePreview = {
   seed: number;
 };
 
+/** A materialize run of a study (`GET …/population/materializations`, P4d4), as the API reads it. */
+export type Materialization = {
+  run_id: string;
+  status: string;
+  created_at: string;
+  finished_at: string | null;
+  dimension_id: string | null;
+  /** null when the run recorded none: its values then cannot be read as a share or a scale. */
+  kind: PopulationMaterialized["kind"] | null;
+  step_status: string | null;
+  waiting_reason: string | null;
+  refusal_reason: string | null;
+  child: { version_id: string; label: string; target: number; achieved: number; target_met: boolean } | null;
+};
+
 export const population = {
   registry: () => request<PopulationRegistry>("GET", "/api/v1/population"),
   characteristics: (versionId: string) =>
@@ -795,6 +812,9 @@ export const population = {
   audienceCatalogue: () => request<AudienceCatalogue>("GET", "/api/v1/population/audience-catalogue"),
   audiencePreview: (filters: Record<string, unknown>, n: number | null) =>
     request<AudiencePreview>("POST", "/api/v1/population/audience-preview", { filters, n }),
+  /** A study's materialize runs, newest first (the route's most, 100): the client's own dimensions made from it. */
+  materializations: (studyId: string) =>
+    request<{ items: Materialization[] }>("GET", `${studyPath(studyId)}/population/materializations?limit=100`),
 };
 
 export const workspace = {
@@ -895,6 +915,8 @@ export const workspace = {
     request<AttachmentRecord>("POST", `/api/v1/studies/${enc(studyId)}/workspace/attachments`, body),
   attachment: (studyId: string, attachmentId: string) =>
     requestBlob(`/api/v1/studies/${enc(studyId)}/workspace/attachments/${enc(attachmentId)}`),
+  /** Each of the brief's files and links, as saved, with the data class its rule gives it (artifact-brief BRF3). */
+  materials: (studyId: string) => request<BriefMaterials>("GET", `/api/v1/studies/${enc(studyId)}/workspace/materials`),
   importQuestionnaire: (studyId: string, body: { filename: string; data_b64: string }) =>
     request<QuestionnaireImport>("POST", `/api/v1/studies/${enc(studyId)}/workspace/questionnaire-import`, body),
   questionnaireTemplate: (studyId: string) => requestBlob(`/api/v1/studies/${enc(studyId)}/workspace/questionnaire-template`),
@@ -962,6 +984,10 @@ export type ResearchLimits = {
   methodology_version: string;
   version: number | null;
   sample_size: { min: number; max: number };
+  /** The questionnaire's length rule from Metodika (artifact-questionnaire QST7): seconds per
+   * answer by question type and per tracked-set object, with the methodology version. Absent, or
+   * null, while the methodology owner has set none; read through research/length.ts readRule. */
+  questionnaire_length?: unknown;
 };
 export type Readiness = {
   design_revision_id: string;
@@ -997,6 +1023,29 @@ export type Readiness = {
   answerability?: Answerability | null;
 };
 
+/** Readiness's fields, whichever revision it was read on. */
+export type ReadinessBody = Omit<Readiness, "design_revision_id">;
+/**
+ * Readiness on a revision of the study's working content, nothing submitted (working-copy-edit-ops
+ * WCE7a). Its answerability digest names no Design Revision: a start reads readiness again on the
+ * revision it runs and takes the acknowledgement from that.
+ */
+export type WorkingReadiness = ReadinessBody & { working_revision: number };
+
+/** CURRENT: as the Design Revision has it; CHANGED: its own inputs differ; RECHECK: an earlier change reaches it. */
+export type StageImpact = "CURRENT" | "CHANGED" | "RECHECK";
+
+/** A working revision beside a Design Revision, each pipeline stage's impact (WCE7c, GET …/research/impact). */
+export type WorkingImpact = {
+  working_revision: number;
+  design_revision_id: string;
+  design_revision: number;
+  /** The design's top-level fields that differ. */
+  changed: string[];
+  /** Every pipeline stage in pipeline order. Typed as sent: a word this client does not know is read as no answer. */
+  stages: { stage: string; impact: StageImpact | (string & {}) }[];
+};
+
 export type PersonaSourceOption = { source: string; offered: boolean; reason: string | null; default: boolean };
 
 export type ResearchPhase = "QUEUED" | "RUNNING" | "WAITING" | "COMPLETED" | "FAILED" | "CANCELLED";
@@ -1026,6 +1075,8 @@ export type ResearchStep = {
   finished_at: string | null;
   failure_class: string | null;
   error_message: string | null;
+  /** The code the last attempt recorded beside its message (a gate's refusal); absent from an older API. */
+  error_reason?: string | null;
   artifact_id: string | null;
   data_origin: string | null;
   /** An analysis step's stored outcome: its step SUCCEEDED either way. `null` for other steps. */
@@ -1192,6 +1243,8 @@ export type ResearchReport = {
   /** As ReportVariant's: the day it was approved, and whether its file states its review. */
   approved_on?: string | null;
   stamped?: boolean | null;
+  /** Who approved it and when, from the ledger (report-delivery RD2); null for a draft. */
+  approval?: Approval | null;
   artifact_id?: string;
   sha256?: string;
   size_bytes?: number;
@@ -1227,6 +1280,12 @@ export const research = {
   /** `personaSource` assesses the design under that source of respondents; omitted, the deployment's default. */
   readiness: (studyId: string, revisionId: string, personaSource?: string) =>
     request<Readiness>("GET", `${studyPath(studyId)}/research/readiness${query({ design_revision_id: revisionId, persona_source: personaSource })}`),
+  /** Readiness on a working revision, as a submit of it would read it; nothing is written (WCE7a). */
+  workingReadiness: (studyId: string, workingRevision: number, personaSource?: string) =>
+    request<WorkingReadiness>("GET", `${studyPath(studyId)}/research/readiness/working${query({ working_revision: String(workingRevision), persona_source: personaSource })}`),
+  /** What a working revision changes against a Design Revision (the newest when none is named), stage by stage; nothing is written (WCE7c). */
+  workingImpact: (studyId: string, workingRevision: number, designRevisionId?: string) =>
+    request<WorkingImpact>("GET", `${studyPath(studyId)}/research/impact${query({ working_revision: String(workingRevision), design_revision_id: designRevisionId })}`),
   /**
    * `confirmCostUsd` is the person's yes to the ceiling the server showed, when the study's limit asks for one.
    * `populationVersionId` runs over one of the study's client's materialized children instead of LIVE (P4d4c).
@@ -1300,9 +1359,24 @@ export const research = {
     request<ResearchAnalysis>("GET", `${studyPath(studyId)}/research/runs/${enc(runId)}/analysis`),
   report: (studyId: string, runId: string) =>
     request<ResearchReport>("GET", `${studyPath(studyId)}/research/runs/${enc(runId)}/report`),
+  /** The run's internal draft as its stored document model, beside the DOCX it names (report-delivery RD5a). */
+  reportDocument: (studyId: string, runId: string) =>
+    request<StoredReportDocument>("GET", `${studyPath(studyId)}/research/runs/${enc(runId)}/report/document`),
+  /** The run's stored client report as its document model (RD5a); 404 while none is prepared. */
+  clientReportDocument: (studyId: string, runId: string) =>
+    request<StoredReportDocument>("GET", `${studyPath(studyId)}/research/runs/${enc(runId)}/report/client/document`),
+  /** The client report composed and stored to be read in AIA, answered as its document (RD3): no file leaves. */
+  prepareClientReport: (studyId: string, runId: string) =>
+    request<StoredReportDocument>("POST", `${studyPath(studyId)}/research/runs/${enc(runId)}/report/client/prepare`),
   /** The run's own report: its bytes and the stored draft they are, so the card approves that draft. */
   downloadReport: (studyId: string, runId: string) =>
     requestStored(`${studyPath(studyId)}/research/runs/${enc(runId)}/report/download`),
+  /** The persona topic each dimension lets through, the mapping a run's receipt reads (artifact-dimensions DIM2). */
+  personaTopics: (studyId: string, dimensions: readonly string[]) =>
+    request<{ items: { dimension: string; topic: string | null }[] }>(
+      "GET",
+      `${studyPath(studyId)}/research/persona-topics${dimensions.length ? `?${dimensions.map((d) => `dimension=${encodeURIComponent(d)}`).join("&")}` : ""}`,
+    ),
   /** Which Sociomap methods are approved, by exact spec (complete-study-report B4). */
   sociomapRegister: (studyId: string) =>
     request<{ entries: RegisterEntry[] }>("GET", `${studyPath(studyId)}/research/sociomap-register`),
@@ -1315,7 +1389,7 @@ export const research = {
     request<ResearchReport>("POST", `${studyPath(studyId)}/research/runs/${enc(runId)}/report/pdf`),
   downloadReportPdf: (studyId: string, runId: string) =>
     requestStored(`${studyPath(studyId)}/research/runs/${enc(runId)}/report/pdf/download`),
-  /** A person approves a stored report of the run (internal only; recorded in the ledger). */
+  /** A person approves a stored report of the run: internal, with literature or the client report (recorded in the ledger). */
   approveReport: (studyId: string, runId: string, artifactId: string, note = "") =>
     request<{
       run_id: string;
@@ -1323,7 +1397,11 @@ export const research = {
       review_state: "DRAFT_UNAPPROVED" | "APPROVED_INTERNAL";
       approved_on?: string | null;
       stamped?: boolean | null;
-      internal_only: true;
+      approval?: Approval | null;
+      /** Which report was approved (RD3, G66): the client report is the one that leaves; absent
+       * from an API before it. */
+      report_kind?: "internal" | "with_review" | "client";
+      internal_only: boolean;
     }>(
       "POST", `${studyPath(studyId)}/research/runs/${enc(runId)}/report/approve`, { artifact_id: artifactId, note },
     ),
@@ -1338,7 +1416,7 @@ export type DeepResearchRun = {
   run_id: string; design_revision_id: string; preset: string; channels: string[];
   status: string; phase: ResearchPhase; is_terminal: boolean; needs_attention: boolean;
   retryable: boolean; created_at: string | null;
-  steps: { step_id: string; node_key: string; status: string; waiting_reason: string | null; error_message: string | null; started_at?: string | null }[];
+  steps: { step_id: string; node_key: string; status: string; waiting_reason: string | null; error_message: string | null; error_reason?: string | null; started_at?: string | null }[];
   actual_cost_usd: number | null;
   purpose?: string | null;
   target?: { kind: string; research_run_id?: string } | null;
@@ -1478,8 +1556,13 @@ export const lead = {
   decideEdits: (studyId: string, turnId: string, body: { decision: "accept" | "dismiss"; indices: number[]; base_revision: number | null; auto?: boolean }) =>
     request<EditDecisionResult>("POST", `${studyPath(studyId)}/lead/turns/${enc(turnId)}/edits`, body),
   /** Approve a turn's prepared design job: spend limit, ledger and start in one transaction. */
-  approveRequest: (studyId: string, turnId: string, confirmCostUsd?: number) =>
-    request<RequestApproval>("POST", `${studyPath(studyId)}/lead/turns/${enc(turnId)}/request`, confirmCostUsd === undefined ? {} : { confirm_cost_usd: confirmCostUsd }),
+  /** `workspaceRevision`: the current working revision, sent only after a 409 stale_card and the
+   *  person's yes to running the card on the design as it is now (lead-orchestration LO10). */
+  approveRequest: (studyId: string, turnId: string, confirmCostUsd?: number, workspaceRevision?: number) =>
+    request<RequestApproval>("POST", `${studyPath(studyId)}/lead/turns/${enc(turnId)}/request`, {
+      ...(confirmCostUsd === undefined ? {} : { confirm_cost_usd: confirmCostUsd }),
+      ...(workspaceRevision === undefined ? {} : { workspace_revision: workspaceRevision }),
+    }),
   /** Keep or drop what a turn wants to remember for all of the researcher's work (once, in the ledger). */
   decideSelfUpdate: (studyId: string, turnId: string, decision: "accept" | "dismiss") =>
     request<SelfUpdateDecision>("POST", `${studyPath(studyId)}/lead/turns/${enc(turnId)}/self-update`, { decision }),
@@ -1679,6 +1762,51 @@ export const admin = {
   setSelfApproval: (body: { allowed: boolean | null; client_id?: string; study_id?: string }) =>
     request<SelfApprovalPolicy>("PUT", "/api/v1/self-approval", body),
   audit: (limit = 50) => request<AuditEntry[]>("GET", `/api/v1/access-audit?limit=${limit}`),
+  /** Each person's spend (Q40): everyone for an OWNER or ADMIN, the caller alone otherwise. */
+  researcherSpend: (period: SpendPeriod = "this_month") =>
+    request<ResearcherSpend>("GET", `/api/v1/settings/researcher-spend?period=${enc(period)}`),
+};
+
+// ---- Per-researcher spend (routers/researcher_spend.py, develop-spend-attribution 7) ----
+
+export type SpendPeriod = "this_month" | "last_month" | "year_to_date";
+export type SpendActivity = "lead" | "fieldwork" | "analysis_report" | "deep_research" | "other";
+
+/** Spend settled in the period (model from the usage ledger, the rest from holds outside it),
+ *  holds open now, and calls whose bill is not known (above zero: the total is not exact). */
+export type SpendFigures = {
+  model_usd: number;
+  outside_ledger_usd: number;
+  total_usd: number;
+  reserved_usd: number;
+  uncertain_calls: number;
+};
+export type ActivitySpend = SpendFigures & { activity: SpendActivity };
+export type StudySpend = SpendFigures & {
+  /** null: the client's own work, which is no study. */
+  study_id: string | null;
+  study_name: string | null;
+  client_id: string;
+  client_name: string | null;
+  by_activity: ActivitySpend[];
+};
+export type PersonSpend = SpendFigures & {
+  /** null: what is booked to nobody ("nepřiřazeno"), listed for OWNER and ADMIN only. */
+  user_id: string | null;
+  email: string | null;
+  display_name: string | null;
+  is_member: boolean | null;
+  study_count: number;
+  by_activity: ActivitySpend[];
+  studies: StudySpend[];
+};
+export type ResearcherSpend = {
+  period: SpendPeriod;
+  start: string;
+  end: string;
+  everyone: boolean;
+  currency: string;
+  people: PersonSpend[];
 };
 
 // ---- Deep Research settings (routers/deep_research_settings.py, ADR 0022) ---------------

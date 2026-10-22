@@ -11,6 +11,7 @@ import dataclasses
 import hashlib
 import json
 import uuid
+from dataclasses import replace
 from datetime import date
 from pathlib import Path
 from typing import Any
@@ -33,7 +34,11 @@ from aia_core.application.analysis_results import (
     reconstruct_run,
     stored_analysis,
 )
-from aia_core.application.report import ReportCompositionRefused, compose_internal_report
+from aia_core.application.report import (
+    ReportCompositionRefused,
+    compose_internal_report,
+    upstream_artifacts,
+)
 from aia_core.application.report_design import compose_design_sections
 from aia_core.application.report_method import compose_method_section
 from aia_core.application.report_tables import compose_question_tables, scale_notes
@@ -63,10 +68,12 @@ from aia_core.domain.fieldwork import DataOrigin, FieldworkSource
 from aia_core.domain.licence_determinations import SYNTHETIC_FIXTURE_DATASET
 from aia_core.domain.pipeline import ProjectType, fingerprint
 from aia_core.domain.report.model import (
+    ArtifactSource,
     AuditBlock,
     BulletList,
     Callout,
     Classification,
+    FixedSource,
     NumberCell,
     Paragraph,
     ParagraphRole,
@@ -78,6 +85,7 @@ from aia_core.domain.report.model import (
     TextCell,
     text,
 )
+from aia_core.domain.report.sources import report_sources
 from aia_core.domain.report.validation import cited_refs
 from aia_core.domain.research_aggregate import AIA_AGGREGATE_V1, aggregate_dataset
 from aia_core.domain.research_design import (
@@ -783,6 +791,32 @@ def test_reconstructed_analysis_composes_an_internal_branded_draft(
     assert first is not None
     doc = compose_internal_report(run, report_meta(first.method_status))
     assert len(doc.sections) == 12  # Introduction, methods, eight modules, evidence, audit.
+    # Every section names what it was composed from (artifact-chain CHN1): a module's chapter
+    # its stored outcome, the audit the run's own upstream artifacts; fixed text is the
+    # methodology's guidance alone.
+    manifest = {e.section_id: e.sources for e in report_sources(doc).sections}
+    assert all(manifest.values())
+    for spec in ANALYSIS_MODULES:
+        module = run.modules[spec.module_id]
+        assert (
+            ArtifactSource("research_analysis_module", module.artifact_id, module.artifact_sha256)
+            in manifest[f"ch-{spec.ordinal}"]
+        )
+    assert run.sources is not None
+    audited = {s.artifact_id for s in manifest["app-audit"] if isinstance(s, ArtifactSource)}
+    assert {
+        run.sources.specification.artifact_id,
+        run.sources.dataset.artifact_id,
+        run.sources.aggregate.artifact_id,
+    } <= audited
+    fixed = [k for k, v in manifest.items() if any(isinstance(s, FixedSource) for s in v)]
+    assert fixed == ["methodology"]
+    # Composed without the run's chapters, nothing reads the specification or the aggregate:
+    # the audit names them, but listing is not reading (review of #621).
+    specification, dataset, aggregate = upstream_artifacts(run.sources)
+    unread = report_sources(doc).unread
+    assert specification in unread and aggregate in unread
+    assert dataset not in unread  # the introduction's frame reads its origin
     assert doc.sections[0].id == "intro"
     ids = [s.id for s in doc.sections]
     assert ids.index("methodology") < ids.index("ch-4") < ids.index("ch-3")
@@ -1268,6 +1302,59 @@ def test_an_aggregate_that_is_not_the_units_port_says_so_in_analysis_and_the_rep
     audit = next(b for b in sections["app-audit"].blocks if isinstance(b, AuditBlock))
     assert ("Metodika agregace", "aia-aggregate-1+e1") in audit.entries
     assert not lint_docx(DocxRenderer().render(doc))
+
+    # The audit names every artifact the draft stands on, by id and content (artifact-chain
+    # CHN6): the Design Revision, specification, dataset and aggregate, and the map it was given.
+    refs = run.sources
+    assert refs is not None
+    assert refs.design_revision_id == world.run(run_id)["metadata"]["design_revision_id"]
+    entries = dict(audit.entries)
+    assert entries["Revize návrhu"] == refs.design_revision_id
+    for label, ref in (
+        ("Specifikace", refs.specification),
+        ("Data", refs.dataset),
+        ("Agregace", refs.aggregate),
+    ):
+        assert entries[label] == f"{ref.artifact_id} · SHA-256 {ref.sha256}"
+    assert "Sociomapa" not in entries
+    mapped = compose_internal_report(
+        run, report_meta(first.method_status), map_source=("ART-map", "b" * 64)
+    )
+    mapped_audit = next(
+        b
+        for b in {s.id: s for s in mapped.sections}["app-audit"].blocks
+        if isinstance(b, AuditBlock)
+    )
+    assert ("Sociomapa", f"ART-map · SHA-256 {'b' * 64}") in mapped_audit.entries
+
+    # A module reused from an identical earlier run keeps that run's names in its record
+    # (ModuleSources); the audit names this run's own sources, never the record's.
+    earlier = {
+        m: replace(
+            o,
+            record=o.record.model_copy(
+                update={
+                    "sources": o.record.sources.model_copy(
+                        update={"design_revision_id": "REV-0123456789abcdef"}
+                    )
+                }
+            ),
+        )
+        for m, o in run.modules.items()
+    }
+    reused = replace(run, modules=earlier)
+    reused_audit = next(
+        b
+        for b in {
+            s.id: s
+            for s in compose_internal_report(reused, report_meta(first.method_status)).sections
+        }["app-audit"].blocks
+        if isinstance(b, AuditBlock)
+    )
+    assert dict(reused_audit.entries)["Revize návrhu"] == refs.design_revision_id
+    # Without the run's own sources the audit has nothing true to print: refused, never guessed.
+    with pytest.raises(ReportCompositionRefused, match="own sources"):
+        compose_internal_report(replace(run, sources=None), report_meta(first.method_status))
 
 
 def test_a_modelled_dataset_names_its_respondent_system_and_a_bad_record_is_refused() -> None:

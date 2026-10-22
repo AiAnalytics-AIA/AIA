@@ -53,6 +53,10 @@ export const FIELD_ERROR = "border-status-fault bg-status-fault-wash";
  */
 export const TOUCH = "min-h-11 sm:min-h-8";
 
+/** A link that stands on its own (not inside a sentence): the touch target and focus ring, its text on
+ *  the first line of the box, beside what it belongs to. */
+export const TOUCH_LINK = `inline-flex items-start text-signal no-underline hover:underline ${TOUCH} ${FOCUS}`;
+
 /** The save state beside a value: Ukládám… / Uloženo / Neuloženo – Zkusit znovu. Idle says nothing. */
 export function SaveNote({ state, onRetry }: { state: SaveState; onRetry?: () => void }) {
   // One live region that stays mounted, so each change of state is announced.

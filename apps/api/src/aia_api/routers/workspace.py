@@ -29,6 +29,7 @@ from aia_core.application.project_memory import (
 )
 from aia_core.application.research import BudgetNotRaised, ResearchStepNotFound
 from aia_core.domain.attachments import ATTACHMENT_MAX_BYTES, AttachmentRejected
+from aia_core.domain.brief_material_classes import brief_material_classes
 from aia_core.domain.client_profile import ClientContact, ClientProfile, ContactDraft
 from aia_core.domain.design import DesignRejected
 from aia_core.domain.knowledge import (
@@ -2087,6 +2088,56 @@ def study_working_content(scope: StudyScopeDep, session: SessionDep) -> WorkingC
     Each says so, with no content, rather than answering with an empty document.
     """
     return _content_response(scope, StudyWorkspaceRepository(session).content(scope))
+
+
+class BriefMaterialClassResponse(BaseModel):
+    """One entry of ``briefing.attachments`` and the class its rule gives it."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    index: int
+    kind: Literal["file", "url"] | None
+    ref: str | None
+    data_class: str | None
+    class_source: str | None
+
+
+class BriefMaterialsResponse(BaseModel):
+    """The Brief's materials at the working content's current revision, each with its class."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    revision: int | None
+    materials: list[BriefMaterialClassResponse]
+
+
+@router.get(
+    "/studies/{study_id}/workspace/materials",
+    response_model=BriefMaterialsResponse,
+    summary="The class of each material the research study's brief carries",
+)
+def study_brief_materials(scope: StudyScopeDep, session: SessionDep) -> BriefMaterialsResponse:
+    """Each file and link of the brief, as saved at the current revision, with its data class.
+
+    The class is the rule's (``aia_core.domain.material_rules``): a brief's file or link is the
+    study's design, Class B. An operator's classification may only raise it, when the design is
+    sent; this route does not hold those. An entry no rule names answers ``data_class: null``.
+    A study with nothing saved answers ``revision: null`` and no materials.
+    """
+    content = StudyWorkspaceRepository(session).content(scope)
+    return BriefMaterialsResponse(
+        revision=content.revision,
+        materials=[
+            BriefMaterialClassResponse(
+                index=m.index,
+                kind=m.kind,
+                ref=m.ref,
+                data_class=m.data_class.value if m.data_class else None,
+                class_source=m.class_source,
+            )
+            for m in brief_material_classes(content.content)
+        ],
+    )
 
 
 @router.put(
