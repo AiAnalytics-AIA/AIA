@@ -3275,6 +3275,7 @@ export const cs = {
           detailRelations: "Vztahy",
           detailRelationsHelp: "Nejsilnější spolehlivé vztahy objektu (po odečtení zvyku hodnocení). + = lidé oba objekty hodnotí podobně, − = opačně. Vztah nemá směr.",
           detailNoRelation: "Žádný spolehlivý vztah.",
+          relationShow: ", ukázat vztah {a} – {b}",
           detailSecondary: "Doplňkový objekt: poloha podle vztahů k objektům rodiny.",
           detailPlacement: "Umístění",
           detailBasis: "nejsilnější spolehlivý vztah k objektům rodiny",

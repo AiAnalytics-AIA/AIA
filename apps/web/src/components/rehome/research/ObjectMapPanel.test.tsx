@@ -538,6 +538,32 @@ describe("what a click shows beside the map", () => {
     expect(text).not.toMatch(/Úroveň šumu|Rozložení hodnocení|První volba/);
   });
 
+  // The canvas takes no keyboard: the object's listed relations open a pair as a click on its line does
+  // (artifact-sociomap audit, 2026-10-22).
+  // Enter and Space on a button are the browser's: the workbench check presses them (jsdom has no activation).
+  it("opens a relation from the object's card, a focusable button named by what it shows, and closes it again", () => {
+    render(<ObjectMapView battery={hudba} dataOrigin={null} />);
+    fireEvent.click(within(screen.getByTestId("object-map-panel-list")).getByRole("button", { name: "Vybrat objekt Rock" }));
+    const i = map.object_ids.indexOf(canvas().getAttribute("data-selected")!);
+    const rows = within(screen.getByTestId("object-map-detail-relations")).getAllByRole("button");
+    expect(rows.length).toBeGreaterThan(0);
+    const row = rows[0];
+    // Its name starts with the text it shows (WCAG 2.5.3), then says what it does.
+    expect(row.textContent).toMatch(/^.+ [+−-]?\d,\d\d, ukázat vztah Rock – .+$/);
+    row.focus();
+    expect(document.activeElement).toBe(row);
+    fireEvent.click(row);
+    const j = map.object_ids.findIndex((id) => row.textContent!.endsWith(`– ${label(id)}`));
+    expect(canvas().getAttribute("data-relation")).toBe(`${map.object_ids[i]}|${map.object_ids[j]}`);
+    expect(canvas().getAttribute("data-selected")).toBe(map.object_ids[i]);
+    expect(screen.getByTestId("object-map-detail-relation").textContent).toContain(`${label(map.object_ids[i])} – ${label(map.object_ids[j])}`);
+    const pressed = within(screen.getByTestId("object-map-detail-relations")).getAllByRole("button")[0];
+    expect(pressed.getAttribute("aria-pressed")).toBe("true");
+    fireEvent.click(pressed);
+    expect(canvas().getAttribute("data-relation")).toBe("");
+    expect(screen.queryByTestId("object-map-detail-relation")).toBeNull();
+  });
+
   it("selects a relation by a click on its line: the pair's r, interval, N and verdict", async () => {
     render(<ObjectMapView battery={hudba} dataOrigin={null} />);
     await nextFrame(0);
