@@ -21,6 +21,7 @@ chunks:
   - "[ ] LC16. After the MVP: branch navigation over replaced turns, and Začít od čistého stolu"
   - "[ ] LC17. After the MVP, own ADR: semantic retrieval (an EU embedding route, pgvector), or a Lead-requested recall on ADR 0040's continuation pattern"
   - "[ ] LC18. After the MVP: personal prompt templates in the / list beside the command registry"
+  - "[x] LC19. Day dividers in every time-only feed: Dnes, Včera, the weekday and date within the past week, else the date; the viewer's local day; an unknown moment shows none"
 ---
 # The Lead's conversation and context
 
@@ -281,6 +282,30 @@ The recall numbers go in the PR.
 
 **LC14-LC18** are after the MVP and get their own chunk text when admitted.
 
+**LC19. Day dividers** (the product owner, relayed 2026-10-21). The rule:
+- A divider stands before the first entry of each calendar day in a feed whose entries show only
+  their time: "Dnes", "Včera", otherwise the date ("21. října 2026"), with the weekday before it
+  when the day is within the past week ("pondělí 19. října 2026"). Each entry keeps its time.
+- The day is the viewer's local calendar day, never UTC; days are counted as calendar dates, so
+  a 23- or 25-hour day across a DST change does not move a label.
+- An unknown or invalid moment has no day: it shows no divider and breaks none, never "Dnes".
+- The divider is text in a heading (or a list item in a list), never colour alone.
+
+*As built (LC19):*
+- `apps/web/src/lib/day-label.ts`, pure: `dayKey`, `dayLabel(at, now)`,
+  `withDayBreaks(items, at, now)` and `isDayBreak`. Tests across midnight, the week, both DST
+  changes of 2026 and invalid moments (`day-label.test.ts`; pass under any `TZ`).
+- Wired into the two feeds that show a time alone:
+  - `components/workbench/LeadPane.tsx`: the conversation, an `h3.conv__day` before each day
+    (test: `LeadPane.test.tsx` "heads each local day of the conversation");
+  - `components/rehome/research/StepActivityPanel.tsx`: the live log, a list item marked
+    `data-day` (test: `ExecutionSteps.test.tsx` "opens a running step's space").
+- In a browser (UI workbench, the scripted Lead, turns backdated to 9, 3 and 1 days): "13. října
+  2026", "pondělí 19. října 2026", "Včera", "Dnes" as `h3` at 1440, 1100, 768 and 390 px, no
+  page overflow, no paid job; `lead_journey.mjs` passes unchanged.
+- Not wired, because they already show the date beside the time: Settings' audit log
+  (`settings/ControlPanel`) and Můj Vedoucí's notes and history.
+
 ## Findings
 
 - **F1.** ADR 0026 decision 2 promises "a rolling summary of older turns, stored as an artifact of
@@ -302,3 +327,6 @@ The recall numbers go in the PR.
   once LC2 lands.
 - `mvp-execution-contracts.md`: a row for LC1-LC13 in W1-W3 as above, once LC0 admits them.
 - `open-items.md`: F1 and F2 as new OIs.
+- The UI standard (`docs/design/aia-design-system-brief.md` § 6, Implementation constraints):
+  the LC19 rule as written above, under a heading "Day dividers in a time-only feed", naming
+  `lib/day-label.ts` as the one implementation.
