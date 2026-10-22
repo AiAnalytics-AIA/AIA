@@ -186,7 +186,7 @@ export function AskDialog({ ask, onDone }: { ask: Ask | null; onDone: () => void
       onKeyDown={(e) => {
         if (e.key === "Escape") e.stopPropagation();
       }}
-      aria-label={ask?.kind === "prompt" ? ask.title : undefined}
+      aria-labelledby={ask?.kind === "prompt" && ask.title ? `ask-${askKey(ask)}-title` : undefined}
       className="m-auto w-[min(32rem,calc(100vw-2rem))] rounded-md border border-border-strong bg-surface-overlay p-0 text-ink shadow-[var(--shadow-overlay)] backdrop:bg-surface-inverse/40"
     >
       {/* Mounted per question (keyed by it), so a prompt starts from its own initial value
@@ -206,8 +206,10 @@ function askKey(ask: Ask): number {
 
 function AskForm({ ask, finish }: { ask: Ask; finish: (ok: boolean, value: string) => void }) {
   const [value, setValue] = useState(ask.kind === "prompt" ? ask.initial : "");
-  const [tried, setTried] = useState(false);
+  // Each refused attempt remounts the alert, so a second blank submit is announced again.
+  const [tried, setTried] = useState(0);
   const blank = ask.kind === "prompt" && !!ask.required && !value.trim();
+  const fieldId = useId();
   const hintId = useId();
   const field = useRef<HTMLInputElement>(null);
   return (
@@ -217,29 +219,39 @@ function AskForm({ ask, finish }: { ask: Ask; finish: (ok: boolean, value: strin
       onSubmit={(e) => {
         e.preventDefault();
         if (blank) {
-          setTried(true);
+          setTried((n) => n + 1);
           field.current?.focus();
           return;
         }
         finish(true, value);
       }}
     >
-      {ask.kind === "prompt" && ask.title ? <h2 className="text-base font-semibold">{ask.title}</h2> : null}
-      <p className="text-sm leading-6">{ask.message}</p>
+      {ask.kind === "prompt" && ask.title ? (
+        <h2 id={`ask-${askKey(ask)}-title`} className="text-base font-semibold">
+          {ask.title}
+        </h2>
+      ) : null}
+      {ask.kind === "prompt" ? (
+        <label htmlFor={fieldId} className="text-sm leading-6">
+          {ask.message}
+        </label>
+      ) : (
+        <p className="text-sm leading-6">{ask.message}</p>
+      )}
       {ask.kind === "prompt" ? (
         <TextInput
+          id={fieldId}
           ref={field}
           autoFocus
           value={value}
           onChange={(e) => setValue(e.target.value)}
-          aria-label={ask.message}
           placeholder={ask.placeholder}
-          aria-invalid={tried && blank ? true : undefined}
-          aria-describedby={tried && blank ? hintId : undefined}
+          aria-invalid={tried > 0 && blank ? true : undefined}
+          aria-describedby={tried > 0 && blank ? hintId : undefined}
         />
       ) : null}
-      {tried && blank ? (
-        <p id={hintId} role="alert" className="-mt-2 text-sm text-status-fault">
+      {tried > 0 && blank ? (
+        <p key={tried} id={hintId} role="alert" className="-mt-2 text-sm text-status-fault">
           {t("dialog.required")}
         </p>
       ) : null}

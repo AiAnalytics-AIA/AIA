@@ -168,6 +168,10 @@ describe("Klienti", () => {
     expect(field.getAttribute("aria-invalid")).toBe("true");
     expect(field.getAttribute("aria-describedby")).toBe(alert.id);
     expect(document.activeElement).toBe(field);
+    expect(within(dialog).getByLabelText("Název klienta")).toBe(field);
+    // A second refusal is a new alert, so a screen reader announces it again.
+    fireEvent.click(within(dialog).getByRole("button", { name: "Založit klienta" }));
+    await waitFor(() => expect(within(dialog).getByRole("alert")).not.toBe(alert));
     expect(called("POST", "/api/v1/workspace/clients")).toHaveLength(0);
   });
 
