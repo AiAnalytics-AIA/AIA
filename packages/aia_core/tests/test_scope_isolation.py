@@ -48,7 +48,7 @@ from aia_core.domain.scope import (
     permissions_for,
 )
 from aia_core.infrastructure.repositories import ProjectNotFound, ProjectRepository
-from aia_core.infrastructure.scope_repository import ScopeRepository
+from aia_core.infrastructure.scope_repository import ScopeRepository, SubjectMismatch
 from aia_core.infrastructure.tables import ApprovalDecisionRow
 
 
@@ -927,6 +927,18 @@ def test_preprovisioned_user_binds_subject_on_first_signin(
     bound = scope_repo.upsert_user(email="invited@art-chain.io", external_subject="cognito-sub-42")
     assert bound["user_id"] == invited.user_id
     assert bound["external_subject"] == "cognito-sub-42"
+
+
+def test_an_email_never_hands_one_subjects_account_to_another(
+    scope_repo: ScopeRepository, world: dict[str, Any]
+) -> None:
+    """The e-mail fallback binds a subject once; a different subject is refused."""
+    scope_repo.upsert_user(email="bound@art-chain.io", external_subject="cognito-sub-1")
+    with pytest.raises(SubjectMismatch):
+        scope_repo.upsert_user(email="bound@art-chain.io", external_subject="cognito-sub-2")
+    # Provisioning by e-mail alone (no subject) still finds the bound record.
+    again = scope_repo.upsert_user(email="bound@art-chain.io")
+    assert again["external_subject"] == "cognito-sub-1"
 
 
 @pytest.mark.parametrize(

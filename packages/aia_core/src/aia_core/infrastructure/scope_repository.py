@@ -49,7 +49,7 @@ from .tables import (
     utcnow,
 )
 
-__all__ = ["ScopeRepository"]
+__all__ = ["ScopeRepository", "SubjectMismatch"]
 
 
 def _client_to_domain(row: ClientRow) -> Client:
@@ -87,6 +87,14 @@ def _study_to_domain(row: StudyRow) -> Study:
         modified_at=row.modified_at,
         delivered_at=row.delivered_at,
     )
+
+
+class SubjectMismatch(Exception):
+    """A sign-in's subject differs from the one the e-mail's record is bound to."""
+
+    def __init__(self, user_id: str) -> None:
+        super().__init__(f"user {user_id} is bound to another identity-provider subject")
+        self.user_id = user_id
 
 
 class ScopeRepository:
@@ -162,6 +170,16 @@ class ScopeRepository:
             row = self._session.scalar(
                 select(UserRow).where(UserRow.email == email.strip().lower())
             )
+            # The e-mail fallback binds a subject once. A record already bound to
+            # another subject belongs to that subject: an address reassigned in the
+            # directory, or a second provider asserting it, is someone else.
+            if (
+                row is not None
+                and external_subject
+                and row.external_subject
+                and row.external_subject != external_subject
+            ):
+                raise SubjectMismatch(row.user_id)
 
         if row is None:
             row = UserRow(

@@ -41,7 +41,7 @@ from aia_core.domain.scope import (
 from aia_core.infrastructure.db import create_app_engine, create_session_factory
 from aia_core.infrastructure.population_source import FilesystemPopulationSource
 from aia_core.infrastructure.repositories import ProjectRepository
-from aia_core.infrastructure.scope_repository import ScopeRepository
+from aia_core.infrastructure.scope_repository import ScopeRepository, SubjectMismatch
 from aia_core.infrastructure.storage import ArtifactStore
 from aia_core.infrastructure.storage_settings import build_artifact_store
 from fastapi import Depends, FastAPI, Header, HTTPException, Path, Request, status
@@ -333,11 +333,24 @@ def principal_from_credential(
         raise _unauthenticated("unauthenticated", exc.client_message) from exc
 
     scope_repo = ScopeRepository(session)
-    user = scope_repo.upsert_user(
-        email=identity.email or f"{identity.subject}@unknown.invalid",
-        display_name=identity.display_name or "",
-        external_subject=identity.subject,
-    )
+    try:
+        user = scope_repo.upsert_user(
+            email=identity.email or f"{identity.subject}@unknown.invalid",
+            display_name=identity.display_name or "",
+            external_subject=identity.subject,
+        )
+    except SubjectMismatch as exc:
+        logger.warning(
+            "authentication refused: e-mail bound to another subject",
+            extra={"context": {"user_id": exc.user_id, "provider": provider.name}},
+        )
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail={
+                "code": "identity_mismatch",
+                "message": "This sign-in does not match the account its e-mail belongs to.",
+            },
+        ) from exc
     if not user["is_active"]:
         raise _unauthenticated("account_disabled", "This account is disabled.")
 
