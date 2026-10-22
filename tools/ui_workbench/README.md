@@ -18,6 +18,7 @@ node tools/ui_workbench/deep_research_journey.mjs # after ui-fixtures: a Design 
 make ui-workbench-status
 make ui-workbench-down
 python3 tools/ui_workbench/workbench.py up --fresh   # also reset the API's (and the unit's) state
+python3 tools/ui_workbench/workbench.py up --production  # the web client as a production build: what a timed journey (contextual_*) measures
 ```
 
 | URL | What |
