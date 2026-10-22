@@ -323,7 +323,8 @@ class ScopeRepository:
     ) -> None:
         """Audit a refused role change (``owner_only`` / ``last_owner``): the attempt is the
         security-relevant event. The caller commits it after rolling the refused change back,
-        so a refused grant to a new address leaves no user behind."""
+        so a refused grant to a new address leaves no user behind. The person is the row's
+        subject when known; the address is not recorded (as ``record_subject_mismatch``)."""
         address = email.strip().lower()
         subject = self._session.scalar(select(UserRow.user_id).where(UserRow.email == address))
         self._session.add(
@@ -334,7 +335,6 @@ class ScopeRepository:
                 action="MEMBER_ROLE_DENIED",
                 role=role,
                 reason=reason,
-                payload={"email": address},
                 request_id=admin.request_id,
             )
         )

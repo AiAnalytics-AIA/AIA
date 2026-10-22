@@ -49,19 +49,20 @@ def test_a_refused_owner_change_is_in_the_access_audit(
             select(AccessAuditRow).where(AccessAuditRow.action == "MEMBER_ROLE_DENIED")
         ).all()
         stray = session.scalar(select(UserRow).where(UserRow.email == "nobody@art-chain.io"))
-    assert [(r.reason, r.role, r.payload) for r in rows] == [
-        ("owner_only", "MEMBER", {"email": "owner@art-chain.io"})
-    ]
+    assert [(r.reason, r.role, r.payload) for r in rows] == [("owner_only", "MEMBER", {})]
+    # The person is the row's subject; an address is never kept (as record_subject_mismatch).
+    assert rows[0].subject_user_id is not None
     assert stray is None
 
     # A refused grant to a new address writes the audit row and no user for that address.
     admin.post(f"{API}/members", json={"email": "nobody@art-chain.io", "role": "OWNER"})
     with factory() as session:
         stray = session.scalar(select(UserRow).where(UserRow.email == "nobody@art-chain.io"))
-        count = len(
-            session.scalars(
-                select(AccessAuditRow).where(AccessAuditRow.action == "MEMBER_ROLE_DENIED")
-            ).all()
-        )
+        rows = session.scalars(
+            select(AccessAuditRow)
+            .where(AccessAuditRow.action == "MEMBER_ROLE_DENIED")
+            .order_by(AccessAuditRow.event_id)
+        ).all()
     assert stray is None
-    assert count == 2
+    assert len(rows) == 2
+    assert rows[1].subject_user_id is None and rows[1].payload == {}
