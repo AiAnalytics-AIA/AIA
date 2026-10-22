@@ -206,7 +206,9 @@ try {
     await shot(`${width}-lead-open`);
     await page.keyboard.press("Escape");
     await dialog.waitFor({ state: "hidden" });
-    assert.equal(await page.evaluate(() => document.activeElement?.hasAttribute("data-lead-launcher")), true, `focus back on the launcher @${width}`);
+    // The launcher takes the focus a frame after the drawer hides (moveFocus): waited for, not raced.
+    await page.waitForFunction(() => document.activeElement?.hasAttribute("data-lead-launcher"), null, { timeout: 5000 })
+      .catch(() => assert.fail(`focus back on the launcher @${width}`));
   }
   check("the launcher opens the Lead at 1024 and 390; Escape closes it to the launcher");
 
