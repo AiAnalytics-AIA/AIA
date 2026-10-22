@@ -31,6 +31,7 @@ import {
 } from "@/lib/workbench-layout";
 import { type FocusMode, readSplit, writeSplit } from "@/lib/workbench-split";
 import { PHASES, STAGES, STAGE_ORDER, stageHref, stageOf, stageState, type WorkbenchStage } from "@/lib/workbench-stages";
+import { impactBase, impactMarks, type ImpactMark } from "@/lib/working-impact";
 import { blockers, designLane, runLane } from "@/research/lane";
 import { submitWorkingDesign, type ResearchState, type ResearchStore } from "@/research/store";
 import type { StepKey } from "@/research/steps";
@@ -43,6 +44,7 @@ import { Icon, Mark } from "./Icons";
 import { LeadPane, type LeadCardsContext } from "./LeadPane";
 import { SampleView } from "./SampleView";
 import { Split } from "./Split";
+import { useWorkingImpact } from "./useWorkingImpact";
 import "./workbench.css";
 
 const storage = () => {
@@ -183,6 +185,11 @@ export function Workbench({ frame, step, store, memory, save, inspector, reload,
   const [runEpoch, setRunEpoch] = useState(0);
   const runs = useRuns(frame.studyId, step, runEpoch);
   const lane = useMemo(() => ({ ...designLane(state), ...runLane(runs) }), [state, runs]);
+  // What the working copy reopened since the newest run's design (before any run, the newest Design
+  // Revision): the server's answer, unknown shown as nothing (working-copy-edit-ops WCE7d).
+  const base = useMemo(() => impactBase(runs), [runs]);
+  const impact = useWorkingImpact(frame.studyId, state.revision, base);
+  const reopened = useMemo(() => impactMarks(impact, base), [impact, base]);
   const [mode, setMode] = useState<FocusMode>("split");
   // The conversation at every width (D20, D21): beside the artifact in the split, a side drawer or a
   // full-screen sheet over it below 1100 px. Its state survives a resize; the split has no drawer.
@@ -629,7 +636,7 @@ export function Workbench({ frame, step, store, memory, save, inspector, reload,
     <div className={`wb wb--${layout}${picking ? " wb-picking" : ""}`} data-workbench data-layout={layout}>
       <a href="#composer" className="skip">Přeskočit na zprávu</a>
       <StudyHeader frame={frame} study={study} pending={open.length} blocked={blocked} onPending={() => open[0] && go(editStage(open[0].edit))} layout={layout} inert={isModal(layout, drawer)} />
-      <StageNav stage={stage} lane={lane} onOpen={go} layout={layout} inert={isModal(layout, drawer)} />
+      <StageNav stage={stage} lane={lane} marks={reopened} onOpen={go} layout={layout} inert={isModal(layout, drawer)} />
       <main className="workspace">
         <Split split={split} mode={mode} layout={layout} shown={conversationShown(layout, drawer)} leftLabel="Vedoucí výzkumu"
           onSplit={setSplit} onCommit={(v) => { setSplit(v); writeSplit(storage(), v); }}
@@ -813,7 +820,7 @@ function StudyHeader({ frame, study, pending, blocked, onPending, layout = "spli
 
 const STAGE_TONE: Record<string, GlyphTone> = { done: "done", running: "running", you: "you", fault: "fault", inert: "inert", ready: "ready" };
 
-function StageNav({ stage, lane, onOpen, layout = "split", inert = false }: { stage: WorkbenchStage; lane: Parameters<typeof stageState>[1]; onOpen: (s: WorkbenchStage) => void; layout?: WorkbenchLayout; inert?: boolean }) {
+function StageNav({ stage, lane, marks = {}, onOpen, layout = "split", inert = false }: { stage: WorkbenchStage; lane: Parameters<typeof stageState>[1]; marks?: Partial<Record<WorkbenchStage, ImpactMark>>; onOpen: (s: WorkbenchStage) => void; layout?: WorkbenchLayout; inert?: boolean }) {
   const nav = useRef<HTMLElement>(null);
   const [listOpen, setListOpen] = useState(false);
   // In the drawer layout the navigator scrolls sideways: the current stage is kept in view.
@@ -841,11 +848,13 @@ function StageNav({ stage, lane, onOpen, layout = "split", inert = false }: { st
   const stageButton = (s: WorkbenchStage) => {
     const k = stageState(s, lane);
     const cur = s === stage;
+    const mark = marks[s];
     return (
       <button key={s} type="button" className={`nav__stage${cur ? " is-current" : ""}${k.tone === "inert" ? " is-inert" : ""}${k.tone === "you" ? " is-you" : ""}`}
-        aria-current={cur ? "page" : undefined} title={`${STAGES[s].label}${k.line ? `: ${k.line}` : ""}`}
-        onClick={() => { setListOpen(false); onOpen(s); }}>
+        aria-current={cur ? "page" : undefined} title={`${STAGES[s].label}${k.line ? `: ${k.line}` : ""}${mark ? `; ${mark.words}` : ""}`}
+        data-impact={mark?.impact} onClick={() => { setListOpen(false); onOpen(s); }}>
         <Glyph tone={STAGE_TONE[k.tone] ?? "inert"} size={11} />{layout === "sheet" ? STAGES[s].label : STAGES[s].short}{k.line ? <span className="sr-only">, {k.line}</span> : null}
+        {mark ? <><span className={`nav__impact nav__impact--${mark.impact.toLowerCase()}`} aria-hidden="true" /><span className="sr-only">, {mark.words}</span></> : null}
       </button>
     );
   };

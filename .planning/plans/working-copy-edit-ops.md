@@ -13,7 +13,8 @@ chunks:
   - "[x] WCE7a. Readiness on a working revision: `GET …/research/readiness/working?working_revision=n`, the readiness a submit of that revision reads, nothing written"
   - "[x] WCE7b. Vzorek reads it on the working revision it shows, no submit on a visit (Návrh's coverage in artifact-design, Spuštění in artifact-fieldwork#FLD6)"
   - "[x] WCE7c. Impact per stage: `GET …/research/impact`, every pipeline stage CURRENT, CHANGED or RECHECK going from a Design Revision to the working copy"
-  - "[ ] WCE7d. The workbench reads it: a stage the working copy reopened says so, a run whose design is older than the head says so, and the working copy accepted as a revision"
+  - "[x] WCE7d1. The stage track reads it: a stage the working copy reopened says so, measured against the newest run's design, so a run whose design is older than the copy says so on every stage it reopened"
+  - "[ ] WCE7d2. The working copy accepted as a revision, explicitly, from the workbench"
   - "[ ] WCE8. Sociomap declarations: an editor for `sociomap_rating` and `context_objects`, the hard lock and `sociomap_unlock`"
   - "[ ] WCE8b. The questionnaire proposal keeps protected inputs and item identity (W2, with WCE8, before research-lead-workbench 7 and 17): declared batteries, tracked sets and rating questions copied from the baseline under their ids, never from model output; proposed items keep a baseline id"
   - "[ ] WCE9. Undo and restore of a person's edit, and a route that reads an old working revision"
@@ -103,6 +104,22 @@ Split 2026-10-21 (owner: the Vzorek session, assigned by the PM) into three PRs:
   → workbench stage map (BRIEF brief, RESEARCH_DESIGN design, QUESTIONNAIRE questionnaire, AUDIENCE
   audience, DIMENSIONS dimensions, SAMPLE_PLAN sample, FIELDWORK fieldwork, AGGREGATION results and
   sociomap, ANALYSIS analysis, REPORT report).
+- **WCE7d1, delivered (`feature/stage-track-impact`).** Built on Vzorek's #638 (`GET
+  …/research/impact`) and #673 (`lib/working-impact.ts` `stageImpacts`, `research.workingImpact`).
+  - The workbench reads the impact each time the copy's saved revision moves
+    (`components/workbench/useWorkingImpact.ts`). The last answer stays while the next is read, so
+    the marks do not flicker on every save.
+  - It reads against the newest run's Design Revision; before any run, against the newest Design
+    Revision (`impactBase`). A run whose design is older than the copy therefore shows on every stage
+    the copy reopened, the result stages included.
+  - The stage navigator marks a CHANGED stage with a filled dot and a RECHECK stage with a ring
+    (`.nav__impact`). Each mark has words in its title and for a screen reader (`impactWords`), for
+    example "změněno od běhu (revize 2)".
+  - It shows nothing for a 404 (no Design Revision), a failure, an answer about another revision than
+    the base asked for, or a stage not fully answered (`impactMarks`).
+  - Tests: `working-impact.test.ts` "impactBase", "impactWords", "impactMarks";
+    `Workbench.layout.test.tsx` "the stage track reads the working copy's impact".
+- **WCE7d2.** Accepting the working copy as a revision from the workbench is still to do.
 
 **WCE8. Sociomap declarations: an editor for `sociomap_rating` and `context_objects`, the hard lock and `sociomap_unlock`**  
 Nobody can set the declarations (zero web hits), so the lock has no subject. The unlock is a ledger row (`sociomap_unlock`, M3), warns, and cannot be called by the Lead. Test: the whole-copy route cannot change a locked item. Interfaces I11.

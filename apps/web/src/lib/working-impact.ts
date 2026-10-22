@@ -3,7 +3,7 @@
 // workbench's stages. Pure. The server decides; a stage it did not answer for, or answered with a
 // word this client does not know, shows nothing, never CURRENT.
 
-import type { StageImpact, WorkingImpact } from "./api";
+import type { ResearchRun, StageImpact, WorkingImpact } from "./api";
 import type { WorkbenchStage } from "./workbench-stages";
 
 /**
@@ -39,6 +39,43 @@ export function stageImpacts(impact: WorkingImpact | null | undefined): Partial<
   for (const [stage, pipeline] of Object.entries(PIPELINE_STAGES) as [WorkbenchStage, readonly string[]][]) {
     const words = pipeline.map((p) => answers.get(p));
     if (words.every(known)) out[stage] = words.reduce((a, b) => (RANK[b] < RANK[a] ? b : a));
+  }
+  return out;
+}
+
+/**
+ * What the stage track measures the working copy against: the newest run's Design Revision, so a run
+ * whose design is older than the copy says so on every stage the copy reopened; before any run, the
+ * newest Design Revision (`id` undefined, the server's default). Null while the runs are not known:
+ * nothing is read, rather than a base guessed.
+ */
+export type ImpactBase = { id?: string; run: number | null };
+
+export function impactBase(runs: readonly Pick<ResearchRun, "design_revision_id" | "design_revision">[] | null): ImpactBase | null {
+  if (!runs) return null;
+  const latest = runs[0];
+  return latest ? { id: latest.design_revision_id, run: latest.design_revision } : { run: null };
+}
+
+/** A stage's impact in words for the stage track; CURRENT says nothing. */
+export function impactWords(impact: StageImpact, base: ImpactBase, designRevision: number): string | null {
+  if (impact === "CHANGED") return base.run !== null ? `změněno od běhu (revize ${base.run})` : `změněno od revize ${designRevision}`;
+  if (impact === "RECHECK") return base.run !== null ? "ověřit znovu: návrh se od běhu změnil" : "ověřit znovu: změna dříve v návrhu";
+  return null;
+}
+
+export type ImpactMark = { impact: Exclude<StageImpact, "CURRENT">; words: string };
+
+/**
+ * Each stage the working copy reopened, with its words, from the server's answer against `base`. An
+ * answer about another Design Revision than the base asked for names nothing.
+ */
+export function impactMarks(impact: WorkingImpact | null | undefined, base: ImpactBase | null): Partial<Record<WorkbenchStage, ImpactMark>> {
+  if (!impact || !base || (base.id !== undefined && impact.design_revision_id !== base.id)) return {};
+  const out: Partial<Record<WorkbenchStage, ImpactMark>> = {};
+  for (const [stage, word] of Object.entries(stageImpacts(impact)) as [WorkbenchStage, StageImpact][]) {
+    const words = impactWords(word, base, impact.design_revision);
+    if (words && word !== "CURRENT") out[stage] = { impact: word, words };
   }
   return out;
 }
