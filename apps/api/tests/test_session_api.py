@@ -181,7 +181,11 @@ def test_a_forged_cookie_is_refused(anonymous: TestClient, world: Any) -> None:
     assert response.status_code == 401
 
 
-@pytest.mark.parametrize("uri", ["//evil.example/", "https://evil.example/", "/\\evil", ""])
+# A browser drops tab, CR and LF while it parses a URL, so "/<tab>/evil.example"
+# lands on //evil.example: another host.
+@pytest.mark.parametrize(
+    "uri", ["//evil.example/", "https://evil.example/", "/\\evil", "", "/\t/evil.example/"]
+)
 def test_the_login_redirect_never_leaves_the_origin(
     anonymous: TestClient, world: Any, uri: str
 ) -> None:

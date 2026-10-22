@@ -13,10 +13,22 @@ export type SessionOutcome =
   | { kind: "signed-out" }
   | { kind: "denied"; code: string; message: string };
 
+// A fixed origin to resolve `next` against: what the browser will do with it, read the
+// browser's way. Comparing strings misses what its URL parser rewrites -- it drops tab, CR
+// and LF, so "/\t/evil.example" is //evil.example, another host.
+const HERE = "https://aia.invalid";
+
 /** `next` if it is a path on this origin, else `/`: /login must not be an open redirect. */
 export function localPath(next: string | null): string {
-  if (!next || !next.startsWith("/") || next.startsWith("//") || next.includes("\\")) return "/";
-  return next;
+  if (!next || !next.startsWith("/")) return "/";
+  let url: URL;
+  try {
+    url = new URL(next, HERE);
+  } catch {
+    return "/";
+  }
+  if (url.origin !== HERE) return "/";
+  return url.pathname + url.search + url.hash;
 }
 
 /** Turn this tab's id token into AIA's session cookie. */
