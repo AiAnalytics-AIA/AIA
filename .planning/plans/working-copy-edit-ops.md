@@ -83,6 +83,22 @@ the agent-job and Design Research accepts; **2f** the 18.6.6 migration, then `sa
   its only reader and writer (`append` under `EDIT_STUDY`, `rows(after_revision=)`), held by two
   `layer_check` rules. `alembic check` against PostgreSQL 16: no difference from the model.
   Tests: `test_workspace_edit_repository.py`.
+- **WCE2c (2026-10-22).** The lock and the log sit where every whole-copy write already passes, under
+  the study lock: `StudyWorkspaceRepository.save` refuses, after the stale check, a write that
+  changes a Sociomap input the current copy has locked (`sociomap_input_locked`, 409 on the PUT),
+  and logs a write that made a revision, one row per changed field, in its transaction, made by
+  `by` (`WriteBy`). The PUT passes the person (`ui`), `submit_as_working_copy` the person it acts
+  for (`authored`), reuse the person and the revision reused (`reuse`). The Lead's and the proposals'
+  accepts pass no `by` yet (WCE2d, WCE2e); WCE2f makes it required, so no write skips the log.
+  This is a refinement of the scoped split: `apply_edit_ops` stays the application entry for a
+  vocabulary batch (WCE2d), and `save` stays the one persistence point the batch and every
+  whole-copy writer reach, rather than a second writer beside it. Measured on PostgreSQL 16: a
+  40-question import over the template, 44 rows, 28.5 ms logged against 22.0 ms unlogged (median of
+  3). Evidence for the lock: on the workbench database (7 working copies) and a freshly seeded
+  develop world (0), no working copy declares a Sociomap input; no fixture or seed writes one, and
+  the web never writes `sociomap_rating` or `context_objects` (`research/readers.ts` reads them).
+  Tests: `test_workspace_writes_logged.py`, `test_design_reuse.py::test_a_reuse_is_logged_…`,
+  `test_client_api.py::test_a_put_is_logged_as_the_persons_and_cannot_change_a_declared_…`.
 
 **WCE3a. The web store on the server vocabulary, Brief and Design stages**  
 33 `store.update` sites in 9 files and about 1,900 lines of TypeScript with 18.6.6 parity tests are moved stage by stage; the parity tests stay green at every step.
