@@ -278,13 +278,30 @@ def test_a_focus_on_nothing_the_frozen_copy_shows_is_dropped_and_named() -> None
     ]
 
 
+#: A working copy holding one research question and one hypothesis, each with its stable id.
+INSPECT_COPY: dict[str, Any] = {
+    **AUDIENCE_COPY,
+    "research_plan": {
+        "research_questions": ["Kdo pije čaj ráno?"],
+        "research_question_ids": [{"id": "rq_tea", "bound": "kdo pije čaj ráno?"}],
+        "hypotheses": ["Čaj vede."],
+        "hypothesis_ids": [{"id": "hyp_tea", "bound": "čaj vede."}],
+    },
+}
+
+
 @pytest.mark.parametrize(
     ("target", "reason"),
     [
-        ("finding:executive:1", None),  # Analýza allows inspect
-        ("measure:q3", None),  # Výsledky
-        ("rq:rq_1", None),  # Návrh
-        ("step:fieldwork", None),  # Sběr dat
+        ("rq:rq_tea", None),  # Návrh allows inspect, and the copy holds it
+        ("hypothesis:hyp_tea", None),
+        ("plan:sets", None),  # a Návrh section by its name
+        ("rq:rq_made_up", "unknown_item"),  # an id the copy does not hold
+        ("hypothesis:hyp_x", "unknown_item"),
+        ("plan:everything", "unknown_item"),
+        ("finding:executive:1", "not_in_context"),  # the context holds no run ids yet
+        ("measure:q3", "not_in_context"),
+        ("step:fieldwork", "not_in_context"),
         ("question:q3", "not_inspectable"),  # Dotazník focuses, has no detail to open
         ("brief:goal", "not_inspectable"),
         ("report:intro", "not_inspectable"),
@@ -292,30 +309,38 @@ def test_a_focus_on_nothing_the_frozen_copy_shows_is_dropped_and_named() -> None
         ("nonsense:x", "unknown_target"),
     ],
 )
-def test_the_lead_opens_a_detail_only_where_the_stage_has_one(
+def test_the_lead_opens_a_detail_only_of_what_the_context_holds(
     target: str, reason: str | None
 ) -> None:
-    """research-lead-workbench 14: ``inspect`` only on a stage whose contract allows it."""
-    assert inspect_refusal(target, AUDIENCE_COPY) == reason
+    """research-lead-workbench 14: ``inspect`` only on a stage whose contract allows it, and only
+    an element the frozen context holds (the stand-in review of #738)."""
+    assert inspect_refusal(target, INSPECT_COPY) == reason
 
 
-def test_an_inspect_the_contract_refuses_is_dropped_and_named() -> None:
+def test_an_inspect_reads_the_analysis_s_ids_too() -> None:
+    analysis = {
+        "research_questions": ["Proč?"],
+        "research_question_ids": [{"id": "rq_why", "bound": "proč?"}],
+    }
+    assert inspect_refusal("rq:rq_why", AUDIENCE_COPY) == "unknown_item"
+    assert inspect_refusal("rq:rq_why", AUDIENCE_COPY, analysis) is None
+
+
+def test_an_inspect_the_contract_or_the_copy_refuses_is_dropped_and_named() -> None:
     output = LeadOutput.model_validate(
         _output(
             view=[
-                {"op": "open_stage", "stage": "analysis"},
-                {"op": "inspect", "target": "finding:executive:1"},
+                {"op": "inspect", "target": "rq:rq_tea"},
                 {"op": "inspect", "target": "question:q3"},
+                {"op": "inspect", "target": "rq:rq_not_in_copy"},
             ]
         )
     )
-    grounded, dropped = ground_view(output, AUDIENCE_COPY)
-    assert [op.model_dump() for op in grounded.view] == [
-        {"op": "open_stage", "stage": "analysis"},
-        {"op": "inspect", "target": "finding:executive:1"},
-    ]
+    grounded, dropped = ground_view(output, INSPECT_COPY)
+    assert [op.model_dump() for op in grounded.view] == [{"op": "inspect", "target": "rq:rq_tea"}]
     assert [d.model_dump() for d in dropped] == [
-        {"index": 2, "op": "inspect", "reason": "not_inspectable"}
+        {"index": 1, "op": "inspect", "reason": "not_inspectable"},
+        {"index": 2, "op": "inspect", "reason": "unknown_item"},
     ]
 
 

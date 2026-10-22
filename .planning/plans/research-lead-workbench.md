@@ -1640,8 +1640,12 @@ ran outside the frame's one order (D21), and a second drawer could open beside t
   harness check and asks for the message again, as 3 did.
 - **The gate.** `ground_view` drops an `inspect` that `inspect_refusal` refuses: `target_refusal`
   first, then `not_inspectable` for an element of a stage whose contract has no `inspect`
-  (`lead_artifacts.stage_of` + `allows_view`: a finding, a measure, a research question, a run step
-  yes; a questionnaire question, the brief's goal, a report section no).
+  (`lead_artifacts.stage_of` + `allows_view`: a questionnaire question, the brief's goal, a report
+  section), then the id against the frozen context (the stand-in review of #738: an invented id
+  opened a drawer titled by that id): a research question or hypothesis by the working copy's and
+  the analysis's stable ids, a Návrh section by its name, else `unknown_item`; every other kind
+  (a finding, a measure, a run step) `not_in_context` until the context carries their ids (D19's
+  results layer).
 - **The web.** `LeadView` carries `inspect`; `LIVE_VIEW_OPS` (both sides, and the contract
   fixture's `live`) gains it. `Workbench.onView` opens the entry in the item drawer over the
   target's own stage (`parseAiaId(target).stage`). On another stage the move goes through the leave
@@ -1657,9 +1661,9 @@ ran outside the frame's one order (D21), and a second drawer could open beside t
   1440 and 390 px, "Ukaž mi detail…" moves to Návrh and opens the drawer on the first hypothesis,
   titled "Hypotéza: Mírnější varianta osloví širší publikum než nejsilnější."; Escape closes it,
   the turn's "Detail" chip opens it again; no page error, no overflow, no agent job posted.
-- **Tests.** `test_research_lead.py` "the Lead opens a detail only where the stage has one", "an
-  inspect the contract refuses is dropped and named", "an inspect target is held to the focus
-  grammar"; `test_lead_artifacts.py` "each kind has the stage that names it";
+- **Tests.** `test_research_lead.py` "the Lead opens a detail only of what the context holds"
+  (an invented id per kind), "an inspect reads the analysis's ids too", "an inspect the contract or
+  the copy refuses is dropped and named", "an inspect target is held to the focus grammar"; `test_lead_artifacts.py` "each kind has the stage that names it";
   `test_research_lead_workbench.py` "a scripted message asking for a detail…";
   `Workbench.layout.test.tsx` "opens what the Lead's inspect names on this stage…", "opens the
   Lead's inspect on another stage once that stage is shown…", "leaves nothing pending when a leave

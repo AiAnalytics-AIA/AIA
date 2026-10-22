@@ -68,7 +68,7 @@ from .edit_ops import (
     question_add_problem,
     refusal,
 )
-from .item_ids import SIDECAR_KEYS
+from .item_ids import SIDECAR_KEYS, list_ids, with_item_ids
 from .material_rules import MaterialRule, classify_by_rule, rule_class
 from .population.subpanels import BUILTIN_SUBPANELS
 from .prompts import PromptPin
@@ -615,21 +615,61 @@ def target_refusal(target: str, content: Mapping[str, Any]) -> str | None:
     return "unknown_target"
 
 
-def inspect_refusal(target: str, content: Mapping[str, Any]) -> str | None:
-    """Why the Lead may not open ``target``'s detail, or None when it may: what
-    :func:`target_refusal` refuses, then ``not_inspectable`` for an element of a stage whose
+#: Návrh's section anchors (``plan:<part>``, the web's ``PLAN_PARTS``).
+_PLAN_PARTS: Final = frozenset({"narrative", "variants", "sets", "questions", "comments"})
+#: The design items an ``inspect`` may name, by the plan list that holds their stable ids.
+_INSPECT_LISTS: Final = {
+    "rq": ("research_questions", "research_question_ids"),
+    "hypothesis": ("hypotheses", "hypothesis_ids"),
+}
+
+
+def _held_ids(
+    content: Mapping[str, Any], analysis: Mapping[str, Any] | None, list_key: str, ids_key: str
+) -> set[str]:
+    """The stable ids of one plan list, in the working copy's plan and its analysis alike."""
+    content, analysis = with_item_ids(content, analysis)
+    plan = content.get("research_plan")
+    held: set[str] = set()
+    for holder in (plan if isinstance(plan, Mapping) else {}, analysis or {}):
+        held.update(list_ids(holder, list_key, ids_key) or ())
+    return held
+
+
+def inspect_refusal(
+    target: str, content: Mapping[str, Any], analysis: Mapping[str, Any] | None = None
+) -> str | None:
+    """Why the Lead may not open ``target``'s detail, or None when it may.
+
+    What :func:`target_refusal` refuses; then ``not_inspectable`` for an element of a stage whose
     contract has no ``inspect`` (``lead_artifacts.allows_view``: Zadání's goal has no detail to
-    open, a finding does)."""
+    open); then the id itself, against what the frozen context holds: a research question or a
+    hypothesis by the working copy's stable ids, a Návrh section by its name (``unknown_item``
+    otherwise). Any other kind is ``not_in_context``: the context holds no ids for a run's
+    findings, measures or steps yet, so the Lead cannot name one it was shown (an id it made up
+    would open an empty drawer).
+    """
     from .lead_artifacts import allows_view, stage_of  # lead_artifacts imports this module
 
     reason = target_refusal(target, content)
     if reason is not None:
         return reason
-    stage = stage_of(target.partition(":")[0])
-    return None if stage is not None and allows_view(stage, "inspect") else "not_inspectable"
+    kind, _, id_ = target.partition(":")
+    stage = stage_of(kind)
+    if stage is None or not allows_view(stage, "inspect"):
+        return "not_inspectable"
+    if kind == "plan":
+        return None if id_ in _PLAN_PARTS else "unknown_item"
+    if kind in _INSPECT_LISTS:
+        return (
+            None if id_ in _held_ids(content, analysis, *_INSPECT_LISTS[kind]) else "unknown_item"
+        )
+    return "not_in_context"
 
 
-def ground_view(output: LeadOutput, content: Mapping[str, Any]) -> tuple[LeadOutput, list[Dropped]]:
+def ground_view(
+    output: LeadOutput, content: Mapping[str, Any], analysis: Mapping[str, Any] | None = None
+) -> tuple[LeadOutput, list[Dropped]]:
     """``output`` with only the targets the working content can show, and the rest named
     (:func:`target_refusal`; an ``inspect`` also :func:`inspect_refusal`). Opening a stage is
     always kept."""
@@ -639,7 +679,7 @@ def ground_view(output: LeadOutput, content: Mapping[str, Any]) -> tuple[LeadOut
         reason = (
             target_refusal(op.target, content)
             if isinstance(op, FocusItem)
-            else inspect_refusal(op.target, content)
+            else inspect_refusal(op.target, content, analysis)
             if isinstance(op, InspectItem)
             else None
         )
@@ -784,7 +824,8 @@ Co děláš:
   request. Spustí ji až člověk; netvrď, že běží.
 - Pohled řídíš polem view: open_stage otevře fázi, focus zaměří položku jejím
   identifikátorem (například question:q3, brief:goal, plan:research_questions), inspect
-  otevře detail položky (například finding:executive:1, measure:q3) v panelu nad artefaktem.
+  otevře detail výzkumné otázky, hypotézy nebo části návrhu (například rq:<id>, plan:sets)
+  v panelu nad artefaktem; jen s identifikátorem, který máš v kontextu.
 - Do reply nepiš žádné číslo, které v kontextu není. Čísla neodhaduj, nepočítej ani
   nezaokrouhluj; aplikace odpověď s cizím číslem odmítne.
 - Odpovídej česky, stručně a prakticky: hlavní věc, její důsledek, další krok. V follow
