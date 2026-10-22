@@ -12,6 +12,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import type { ResearchProject } from "@/research/model";
 import { ResearchStore } from "@/research/store";
+import type { ResearchAgentJob } from "@/lib/api";
 import { TEST_FRAME } from "../rehome/research/test-frame";
 import { EMPTY_PROJECT } from "../rehome/research/test-workspace";
 import { FrameNavigation } from "@/components/rehome/step";
@@ -620,6 +621,40 @@ describe("a stage's forward action through the frame (FrameNavigation's next)", 
   it("names Cílová skupina after Dotazník", () => {
     benchOn("questionnaire");
     expect(screen.getByRole("button", { name: "Další → Cílová skupina" })).toBeTruthy();
+  });
+});
+
+describe("the Lead's show_diff (research-lead-workbench 14)", () => {
+  it("marks the Lead's edits waiting on this stage", async () => {
+    Element.prototype.scrollIntoView = vi.fn();
+    const edit = { op: "question_edit", question_id: "q1", text: "Jak často pijete čaj ráno?", why: "přesnější" };
+    const t2 = leadTurn("T2", 2, [{ op: "show_diff", stage: "questionnaire" }]);
+    leadReads = [leadState({ busy: true, turns: [leadTurn("T1", 1)] }), leadState({ turns: [leadTurn("T1", 1), { ...t2, output: { ...t2.output, edits: [edit] } }] })];
+    bench();
+    const bar = await screen.findByRole("region", { name: "Návrhy Vedoucího" });
+    await waitFor(() => expect(bar.classList.contains("just")).toBe(true));
+  });
+
+  it("opens the stage's newest proposal still waiting for review when no edit waits there", async () => {
+    const pending = { run_id: "RUN-p", action: "optimize_questionnaire", proposal_state: "pending", created_at: "2026-10-22T09:00:00Z", status: "COMPLETED", is_terminal: true, steps: [] } as unknown as ResearchAgentJob;
+    leadReads = [leadState({ busy: true, turns: [leadTurn("T1", 1)] }), leadState({ turns: [leadTurn("T1", 1), leadTurn("T2", 2, [{ op: "show_diff", stage: "questionnaire" }])] })];
+    const onOpenJob = vi.fn();
+    const store = new ResearchStore({ revision: 3, project: EMPTY_PROJECT as unknown as ResearchProject, analysis: null, save: { kind: "saved" }, checkEpoch: 0 }, "STU-1");
+    render(
+      <Workbench frame={TEST_FRAME} step="questionnaire" store={store} memory={new Map()} save={null} inspector={null} reload={vi.fn()} confirm={vi.fn(async () => true)}
+        onAgentStarted={vi.fn()} jobs={[pending]} onOpenJob={onOpenJob} onRefreshJobs={vi.fn(async () => [])}>
+        <Stage />
+      </Workbench>,
+    );
+    await waitFor(() => expect(onOpenJob).toHaveBeenCalledWith(pending));
+  });
+
+  it("opens the stage itself, through its leave guard, when nothing waits there", async () => {
+    push.mockClear();
+    leadReads = [leadState({ busy: true, turns: [leadTurn("T1", 1)] }), leadState({ turns: [leadTurn("T1", 1), leadTurn("T2", 2, [{ op: "show_diff", stage: "dimensions" }])] })];
+    bench();
+    await waitFor(() => expect(push).toHaveBeenCalledTimes(1));
+    expect(push.mock.calls[0][0]).toMatch(/\/dimensions$/);
   });
 });
 
