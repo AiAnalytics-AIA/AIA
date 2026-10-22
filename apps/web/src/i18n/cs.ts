@@ -2178,6 +2178,15 @@ export const cs = {
         wide: "{range} ({n} bodů)",
       },
       removeQuestion: "Odebrat otázku {id}",
+      // A delete taken back with Vrátit (input-interactions chunk 3, I6).
+      undo: {
+        questionRemoved: "Otázka „{name}“ odebrána",
+        questionRemovedBare: "Otázka odebrána",
+        blockRemoved: "Blok „{name}“ smazán i s otázkami",
+        blockRemovedBare: "Blok smazán i s otázkami",
+        setRemoved: "Sada „{name}“ smazána",
+        setRemovedBare: "Sada smazána",
+      },
       setTag: "Sledovaná objektová sada · vlastní mapa",
       setTitle: "Název sady",
       setPurpose: "Co chceme z porovnání zjistit?",
