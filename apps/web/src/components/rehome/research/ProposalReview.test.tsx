@@ -91,4 +91,49 @@ describe("ProposalReview", () => {
     fireEvent.click(screen.getByRole("button", { name: "Navrhnout znovu" }));
     expect(decide).toHaveBeenLastCalledWith("rebuild");
   });
+
+  it("shows an audience proposal's description and criteria as change rows, and the questionnaire's blocks not at all (AUD5)", () => {
+    const audience: ResearchAgentResult = {
+      result: {
+        project: {},
+        proposal: {
+          description: "Lidé 18–35 let, kteří mají účet u banky",
+          inclusion_criteria: ["Věk 18–35 let", "Má účet u banky"],
+          exclusion_criteria: ["Zaměstnanci bank"],
+          limitations: ["Složení klientů Fio neznáme"],
+          questions_for_user: ["Zahrnout i studenty bez příjmu?"],
+        },
+      },
+      provenance: { agent_id: "aia.research.propose_audience", design_revision_id: "REV-1", context_sha256: "x", status: "COMPLETED" },
+    };
+    const now = { project: { research_plan: {}, sections: [], audience: { description: "Mladí lidé", filters: { vek: { min: 18, max: 35 } } } }, analysis: null } as unknown as Pick<ResearchState, "project" | "analysis">;
+    const onDecision = vi.fn();
+    render(<ProposalReview result={audience} action="propose_audience" state={now} onDecision={onDecision} />);
+    // The description and the three criteria: four changes.
+    expect(screen.getByRole("heading", { name: "Zkontrolujte návrh AI · 4 změny" })).toBeTruthy();
+    const block = document.querySelector("[data-audience-proposal]") as HTMLElement;
+    const description = within(block).getByRole("heading", { name: "Popis cílové skupiny" }).parentElement as HTMLElement;
+    expect(within(description).getByText("Mladí lidé").closest("span")?.className).toContain("line-through");
+    expect(within(description).getByText("Lidé 18–35 let, kteří mají účet u banky")).toBeTruthy();
+    const inclusion = within(block).getByRole("heading", { name: "Koho zahrnout" }).parentElement as HTMLElement;
+    expect(within(inclusion).getAllByRole("listitem").map((li) => li.textContent)).toEqual(["+Přibude: Věk 18–35 let", "+Přibude: Má účet u banky"]);
+    expect(within(block).getByText("Zaměstnanci bank")).toBeTruthy();
+    const notes = within(block).getByRole("heading", { name: "Co návrh nepokrývá" }).parentElement as HTMLElement;
+    expect(within(notes).getAllByRole("listitem").map((li) => li.textContent)).toEqual(["Složení klientů Fio neznáme", "Zahrnout i studenty bez příjmu?"]);
+    expect(screen.queryByRole("heading", { name: t("research.questionnaire.proposed.title") })).toBeNull();
+    // The footer and its decision are the same for every proposal.
+    fireEvent.click(screen.getByRole("button", { name: "Použít návrh" }));
+    expect(onDecision).toHaveBeenCalledWith(true);
+  });
+
+  it("draws no audience block for any other job, nor for an audience proposal that changes nothing", () => {
+    render(<ProposalReview result={result()} action="build_questionnaire" state={state} onDecision={vi.fn()} />);
+    expect(document.querySelector("[data-audience-proposal]")).toBeNull();
+    cleanup();
+    const same: ResearchAgentResult = { result: { project: {}, proposal: { description: "Mladí lidé", inclusion_criteria: [], exclusion_criteria: [], limitations: [], questions_for_user: [] } }, provenance: { agent_id: "aia.research.propose_audience", design_revision_id: "REV-1", context_sha256: "x", status: "COMPLETED" } };
+    const now = { project: { research_plan: {}, sections: [], audience: { description: "Mladí lidé" } }, analysis: null } as unknown as Pick<ResearchState, "project" | "analysis">;
+    render(<ProposalReview result={same} action="propose_audience" state={now} onDecision={vi.fn()} />);
+    expect(document.querySelector("[data-audience-proposal]")).toBeNull();
+    expect(screen.getByRole("heading", { name: "Zkontrolujte návrh AI" })).toBeTruthy();
+  });
 });

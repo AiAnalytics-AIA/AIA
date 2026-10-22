@@ -26,7 +26,7 @@
     },
     {
       "op": "inspect",
-      "live": false,
+      "live": true,
       "what": "open a target's detail in the inspector (a claim, a step, a source, a readiness item)"
     },
     {
@@ -519,7 +519,8 @@
       "edits": true,
       "view_ops": [
         "open_stage",
-        "focus"
+        "focus",
+        "show_diff"
       ],
       "targets": [
         "dimension",

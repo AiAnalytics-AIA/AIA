@@ -7,7 +7,7 @@ import { join } from "node:path";
 
 import { cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { t } from "@/i18n/t";
-import { afterEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { ApiError, research, type ResearchRun } from "@/lib/api";
 import { type ReportDocumentModel, type StoredReportDocument, valueWords } from "@/lib/artifacts/report";
@@ -16,12 +16,12 @@ import { parseAiaId } from "@/lib/workbench-artifacts";
 import { ItemInspectorContext } from "@/components/workbench/item-inspector-context";
 import type { ReactNode } from "react";
 import { StudyFrameProvider } from "./frame";
-import { ReportDocumentView } from "./ReportDocumentView";
+import { REPORT_APPROVED, type ReportApproved, ReportDocumentView } from "./ReportDocumentView";
 import { TEST_FRAME } from "./test-frame";
 
 vi.mock("@/lib/api", async () => ({
   ApiError: (await vi.importActual<typeof import("@/lib/api")>("@/lib/api")).ApiError,
-  research: { reportDocument: vi.fn(), clientReportDocument: vi.fn(), prepareClientReport: vi.fn() },
+  research: { reportDocument: vi.fn(), clientReportDocument: vi.fn(), prepareClientReport: vi.fn(), approveReport: vi.fn() },
 }));
 
 const DOC = JSON.parse(
@@ -40,7 +40,7 @@ const show = (r: ResearchRun = run("SUCCEEDED")) =>
 
 afterEach(() => {
   cleanup();
-  for (const f of [research.reportDocument, research.clientReportDocument, research.prepareClientReport]) vi.mocked(f).mockReset();
+  for (const f of [research.reportDocument, research.clientReportDocument, research.prepareClientReport, research.approveReport]) vi.mocked(f).mockReset();
 });
 
 describe("the stored draft in the pane", () => {
@@ -101,7 +101,7 @@ describe("the stored draft in the pane", () => {
   it("inside the workbench opens a claim in the workbench's one item drawer, with its evidence, and draws none of its own", async () => {
     vi.mocked(research.reportDocument).mockResolvedValue(STORED);
     const opened: { id: string; body?: () => ReactNode }[] = [];
-    const inspector = { open: (entry: { id: string }, body?: () => ReactNode) => { opened.push({ id: entry.id, body }); return true; } };
+    const inspector = { open: (entry: { id: string }, body?: () => ReactNode) => { opened.push({ id: entry.id, body }); return true; }, closeWhere: vi.fn() };
     const { container } = render(
       <StudyFrameProvider frame={TEST_FRAME}><ItemInspectorContext.Provider value={inspector}><ReportDocumentView run={run("SUCCEEDED")} /></ItemInspectorContext.Provider></StudyFrameProvider>,
     );
@@ -115,6 +115,17 @@ describe("the stored draft in the pane", () => {
     expect(body.getByText(/^Hodnota: /)).toBeTruthy();
     // Its own drawer stays shut: one drawer, under the frame's Escape order.
     expect(within(container).queryByRole("complementary")).toBeNull();
+  });
+
+  it("lets every source, id and hash line break anywhere, so a SHA-256 never widens a phone's page", async () => {
+    vi.mocked(research.reportDocument).mockResolvedValue(STORED);
+    const { container } = show();
+    await screen.findByRole("article", { name: "Koncept zprávy" });
+    const sources = [...container.querySelectorAll("p")].filter((p) => p.textContent?.startsWith("Zdroj:"));
+    expect(sources.length).toBeGreaterThan(0);
+    for (const p of sources) expect(p.className).toContain("[overflow-wrap:anywhere]");
+    const id = [...container.querySelectorAll("[data-report-docbar] span")].find((s) => s.textContent?.includes("ART-docx"));
+    expect(id?.className).toContain("[overflow-wrap:anywhere]");
   });
 
   it("names the DOCX it is beside and that draft's review", async () => {
@@ -158,6 +169,122 @@ describe("who approved it (RD2)", () => {
     const draft = show();
     await screen.findByRole("article", { name: "Koncept zprávy" });
     expect(draft.container.querySelector("[data-approval]")).toBeNull();
+  });
+});
+
+describe("approved on the document being read, in the doc bar (RPT3a)", () => {
+  beforeEach(() => {
+    HTMLDialogElement.prototype.showModal = function () { this.setAttribute("open", ""); };
+    HTMLDialogElement.prototype.close = function () { this.removeAttribute("open"); };
+  });
+  const heard: ReportApproved[] = [];
+  const listen = (e: Event) => heard.push((e as CustomEvent<ReportApproved>).detail);
+  beforeEach(() => { heard.length = 0; window.addEventListener(REPORT_APPROVED, listen); });
+  afterEach(() => window.removeEventListener(REPORT_APPROVED, listen));
+
+  const modelled = {
+    run_id: "RUN-1",
+    steps: [
+      { node_key: "run", kind: "research_fieldwork", status: "SUCCEEDED", data_origin: "MODELLED_AI_PANEL", data_origin_kind: "MODELLED" },
+      { node_key: "report", kind: "research_report", status: "SUCCEEDED", artifact_id: "ART-docx" },
+    ],
+  } as unknown as ResearchRun;
+  const CLIENT: StoredReportDocument = { ...STORED, report_artifact_id: "ART-client", document: { ...DOC, meta: { ...DOC.meta, kind: "client" } } };
+  const APPROVE = "Schválit k předání klientovi";
+  const bar = (c: HTMLElement) => c.querySelector("[data-report-docbar]") as HTMLElement;
+  const openClient = async (frame = TEST_FRAME) => {
+    const view = render(<StudyFrameProvider frame={frame}><ReportDocumentView run={modelled} /></StudyFrameProvider>);
+    await screen.findByRole("article", { name: "Koncept zprávy" });
+    fireEvent.click(screen.getByRole("button", { name: "Klientská zpráva" }));
+    await waitFor(() => expect(bar(view.container).textContent).toContain("ART-client"));
+    return view.container;
+  };
+
+  it("asks by the version's name and what its file carries, approves that version once, tells the card, and keeps the document on screen", async () => {
+    vi.mocked(research.reportDocument).mockResolvedValue(STORED);
+    vi.mocked(research.clientReportDocument).mockResolvedValue({ ...CLIENT, stamped: true });
+    let answer: (v: unknown) => void = () => undefined;
+    vi.mocked(research.approveReport).mockReturnValue(new Promise((ok) => { answer = ok; }) as never);
+    const container = await openClient();
+    const article = container.querySelector("article");
+    fireEvent.click(within(bar(container)).getByRole("button", { name: APPROVE }));
+    const dialog = container.querySelector("dialog[open]") as HTMLElement;
+    expect(dialog.textContent).toContain("klientskou zprávu, uloženou verzi ART-client");
+    expect(dialog.textContent).toContain("„KONCEPT — NESCHVÁLENO“");
+    // Zrušit approves nothing.
+    fireEvent.click(within(dialog).getByRole("button", { name: "Zrušit" }));
+    expect(research.approveReport).not.toHaveBeenCalled();
+    fireEvent.click(within(bar(container)).getByRole("button", { name: APPROVE }));
+    fireEvent.click(within(container.querySelector("dialog[open]") as HTMLElement).getByRole("button", { name: "Schválit" }));
+    // In flight: the same version cannot be asked about and sent twice.
+    await waitFor(() => expect((within(bar(container)).getByRole("button", { name: APPROVE }) as HTMLButtonElement).disabled).toBe(true));
+    answer({ artifact_id: "ART-client", review_state: "APPROVED_INTERNAL", approved_on: "2026-10-22", stamped: true, approval: null });
+    await waitFor(() => expect(heard).toHaveLength(1));
+    expect(research.approveReport).toHaveBeenCalledTimes(1);
+    expect(research.approveReport).toHaveBeenCalledWith(TEST_FRAME.studyId, "RUN-1", "ART-client");
+    expect(heard[0]).toEqual({ runId: "RUN-1", kind: "client", artifactId: "ART-client", reviewState: "APPROVED_INTERNAL", approvedOn: "2026-10-22", stamped: true });
+    // The server's answer, in place: the same article, no second read, no second approval offered.
+    await waitFor(() => expect(within(bar(container)).queryByRole("button", { name: APPROVE })).toBeNull());
+    expect(container.querySelector("article")).toBe(article);
+    expect(bar(container).textContent).toContain("schváleno k předání klientovi");
+    expect(bar(container).textContent).not.toContain("interně");
+    expect(research.clientReportDocument).toHaveBeenCalledTimes(1);
+  });
+
+  it("says a refusal in words over the version refused only, and tells the card nothing", async () => {
+    vi.mocked(research.reportDocument).mockResolvedValue(STORED);
+    vi.mocked(research.clientReportDocument).mockResolvedValue(CLIENT);
+    vi.mocked(research.approveReport).mockRejectedValue(new ApiError(409, "client_gate_refused", "Zprávu nelze schválit.", null));
+    const container = await openClient();
+    fireEvent.click(within(bar(container)).getByRole("button", { name: APPROVE }));
+    fireEvent.click(within(container.querySelector("dialog[open]") as HTMLElement).getByRole("button", { name: "Schválit" }));
+    expect((await screen.findByRole("alert")).textContent).toBeTruthy();
+    expect(heard).toHaveLength(0);
+    // The internal draft was not refused: its page says nothing of it.
+    fireEvent.click(screen.getByRole("button", { name: "Interní zpráva" }));
+    await waitFor(() => expect(bar(container).textContent).toContain("ART-docx"));
+    expect(screen.queryByRole("alert")).toBeNull();
+  });
+
+  it("prepares again a client report stored without its document, so it can be approved on one", async () => {
+    vi.mocked(research.reportDocument).mockResolvedValue(STORED);
+    vi.mocked(research.clientReportDocument).mockRejectedValue(new ApiError(409, "report_document_not_stored", "", null));
+    vi.mocked(research.prepareClientReport).mockResolvedValue(CLIENT);
+    render(<StudyFrameProvider frame={TEST_FRAME}><ReportDocumentView run={modelled} /></StudyFrameProvider>);
+    await screen.findByRole("article", { name: "Koncept zprávy" });
+    fireEvent.click(screen.getByRole("button", { name: "Klientská zpráva" }));
+    fireEvent.click(await screen.findByRole("button", { name: "Připravit klientskou zprávu znovu" }));
+    expect(await screen.findByRole("button", { name: APPROVE })).toBeTruthy();
+    expect(research.prepareClientReport).toHaveBeenCalledWith(TEST_FRAME.studyId, "RUN-1");
+  });
+
+  it("offers no second preparation when one answered the same, as for an approved version stored before its document", async () => {
+    vi.mocked(research.reportDocument).mockResolvedValue(STORED);
+    vi.mocked(research.clientReportDocument).mockRejectedValue(new ApiError(409, "report_document_not_stored", "", null));
+    vi.mocked(research.prepareClientReport).mockRejectedValue(new ApiError(409, "report_document_not_stored", "", null));
+    render(<StudyFrameProvider frame={TEST_FRAME}><ReportDocumentView run={modelled} /></StudyFrameProvider>);
+    await screen.findByRole("article", { name: "Koncept zprávy" });
+    fireEvent.click(screen.getByRole("button", { name: "Klientská zpráva" }));
+    fireEvent.click(await screen.findByRole("button", { name: "Připravit klientskou zprávu znovu" }));
+    await screen.findByText("K této verzi AIA dokument nesloží; lze ji jen stáhnout.");
+    expect(screen.queryByRole("button", { name: "Připravit klientskou zprávu znovu" })).toBeNull();
+    expect(research.prepareClientReport).toHaveBeenCalledTimes(1);
+  });
+
+  it("offers no approval to a reader who may not review, nor on an approved version, nor yet on the internal draft", async () => {
+    vi.mocked(research.reportDocument).mockResolvedValue(STORED);
+    vi.mocked(research.clientReportDocument).mockResolvedValue(CLIENT);
+    await openClient({ ...TEST_FRAME, canReview: false });
+    expect(screen.queryByRole("button", { name: APPROVE })).toBeNull();
+    cleanup();
+    vi.mocked(research.clientReportDocument).mockResolvedValue({ ...CLIENT, review_state: "APPROVED_INTERNAL", approved_on: "2026-10-22" });
+    await openClient();
+    expect(screen.queryByRole("button", { name: APPROVE })).toBeNull();
+    cleanup();
+    // The internal draft is approved on the report card, which names its PDF too, until the pane reads it.
+    show();
+    await screen.findByRole("article", { name: "Koncept zprávy" });
+    expect(screen.queryByRole("button", { name: /^Schválit/ })).toBeNull();
   });
 });
 
@@ -212,6 +339,24 @@ describe("the client report, read here before it is approved (RD3)", () => {
     await new Promise((r) => setTimeout(r, 0));
     expect(container.querySelector("[data-report-docbar]")!.textContent).toContain("ART-docx");
     expect(container.querySelector("[data-report-document]")!.getAttribute("data-report-document")).toBe("ready");
+  });
+
+  it("inside the workbench closes the old document's claims in the frame's drawer when the person switches (review of #689)", async () => {
+    vi.mocked(research.reportDocument).mockResolvedValue(STORED);
+    vi.mocked(research.clientReportDocument).mockResolvedValue(CLIENT);
+    const inspector = { open: vi.fn(() => true), closeWhere: vi.fn() };
+    render(
+      <StudyFrameProvider frame={TEST_FRAME}><ItemInspectorContext.Provider value={inspector}><ReportDocumentView run={modelled()} /></ItemInspectorContext.Provider></StudyFrameProvider>,
+    );
+    await screen.findByRole("article", { name: "Koncept zprávy" });
+    fireEvent.click(screen.getByRole("button", { name: "Klientská zpráva" }));
+    expect(inspector.closeWhere).toHaveBeenCalledWith("report:ref:internal:");
+    await waitFor(() => expect(document.querySelector("[data-report-docbar]")?.textContent).toContain("ART-client"));
+    fireEvent.click(screen.getByRole("button", { name: "Interní zpráva" }));
+    expect(inspector.closeWhere).toHaveBeenLastCalledWith("report:ref:client:");
+    // The document already shown closes nothing.
+    fireEvent.click(screen.getByRole("button", { name: "Interní zpráva" }));
+    expect(inspector.closeWhere).toHaveBeenCalledTimes(2);
   });
 
   it("keeps the switch when the client report may not be read", async () => {

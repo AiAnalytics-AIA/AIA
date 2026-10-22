@@ -40,7 +40,15 @@ from ..domain.client_sources import (
 )
 from ..domain.deep_research import documents as grid_bounds
 from ..domain.deep_research.documents import DocumentRefused, GridContent
-from .document_text import check_zip_bounds, grid_from_rows, read_csv, read_pdf, read_xlsx
+from .document_text import (
+    DtdDeclared,
+    check_zip_bounds,
+    grid_from_rows,
+    read_csv,
+    read_pdf,
+    read_xlsx,
+    refuse_dtd,
+)
 
 __all__ = ["READERS", "XML_PART_MAX_BYTES", "piece_text", "read_source"]
 
@@ -179,8 +187,12 @@ def _part(archive: zipfile.ZipFile, name: str, kind: str) -> ET.Element:
     if info.file_size > XML_PART_MAX_BYTES:
         raise DocumentRefused(f"the {kind}'s {name} is too large", reason="document_zip_bounds")
     data = archive.read(name)
-    if b"<!DOCTYPE" in data or b"<!ENTITY" in data:
-        raise DocumentRefused(f"the {kind}'s {name} declares a DTD", reason="document_malformed")
+    try:
+        refuse_dtd(data)
+    except DtdDeclared as exc:
+        raise DocumentRefused(
+            f"the {kind}'s {name} declares a DTD", reason="document_malformed"
+        ) from exc
     try:
         return ET.fromstring(data)
     except ET.ParseError as exc:
@@ -207,13 +219,36 @@ def _pptx(data: bytes) -> tuple[list[Segment], list[ReadingNote]]:
     return segments, []
 
 
-def _odf_text(element: ET.Element) -> str:
-    """A paragraph's text as written: spaces (``text:s``), tabs and line breaks kept."""
+# Spaces one document's ``text:s`` runs may add, all runs together. A run is a 30-byte
+# element naming its count, so without a budget a few hundred bytes ask for gigabytes
+# (``c="1000000000"``); this one is the part's own size bound, so the text read is at
+# most twice what the part could hold.
+ODF_MAX_SPACES: Final = XML_PART_MAX_BYTES
+# Characters an ODS may read as, every repeated copy of a cell counted: a cell repeated
+# across 500 columns and many rows is read (and joined into each row's text) that many
+# times. Twice the part's own bound, like the spaces.
+ODS_MAX_CHARS: Final = 2 * XML_PART_MAX_BYTES
+
+
+def _odf_spaces(child: ET.Element, budget: list[int]) -> str:
+    count = int(child.get(f"{_TEXT}c", "1") or 1)
+    budget[0] -= max(count, 0)
+    if budget[0] < 0:
+        raise DocumentRefused("its runs of spaces pass the bounds", reason="document_zip_bounds")
+    return " " * count
+
+
+def _odf_text(element: ET.Element, budget: list[int]) -> str:
+    """A paragraph's text as written: spaces (``text:s``), tabs and line breaks kept.
+
+    ``budget`` is the spaces the document may still add (``ODF_MAX_SPACES``), one for the
+    whole document.
+    """
     out: list[str] = [element.text or ""]
     for child in element:
         tag = child.tag
         if tag == f"{_TEXT}s":
-            out.append(" " * int(child.get(f"{_TEXT}c", "1") or 1))
+            out.append(_odf_spaces(child, budget))
         elif tag == f"{_TEXT}tab":
             out.append("\t")
         elif tag == f"{_TEXT}line-break":
@@ -221,7 +256,7 @@ def _odf_text(element: ET.Element) -> str:
         elif tag in (f"{_TEXT}note", f"{_OFFICE}annotation"):
             pass  # a footnote or a comment is not the paragraph's text
         else:
-            out.append(_odf_text(child))
+            out.append(_odf_text(child, budget))
         out.append(child.tail or "")
     return "".join(out)
 
@@ -236,20 +271,24 @@ def _odt(data: bytes) -> tuple[list[Segment], list[ReadingNote]]:
         raise DocumentRefused("the ODT has no text body", reason="document_malformed")
     segments: list[Segment] = []
     counts = {"paragraph": 0, "table": 0}
+    spaces = [ODF_MAX_SPACES]
 
     def walk(element: ET.Element) -> None:
         for child in element:
             if child.tag in (f"{_TEXT}p", f"{_TEXT}h"):
                 counts["paragraph"] += 1
                 segments.append(
-                    Segment(locator=Locator(paragraph=counts["paragraph"]), text=_odf_text(child))
+                    Segment(
+                        locator=Locator(paragraph=counts["paragraph"]),
+                        text=_odf_text(child, spaces),
+                    )
                 )
             elif child.tag == f"{_TABLE}table":
                 counts["table"] += 1
                 rows = list(child.iter(f"{_TABLE}table-row"))
                 for number, row in enumerate(rows, start=1):
                     cells = [
-                        "\n".join(_odf_text(p) for p in cell.iter(f"{_TEXT}p"))
+                        "\n".join(_odf_text(p, spaces) for p in cell.iter(f"{_TEXT}p"))
                         for cell in row.iter(f"{_TABLE}table-cell")
                     ]
                     segments.append(
@@ -465,7 +504,7 @@ def _xls(data: bytes) -> tuple[tuple[GridContent, ...], bool]:
         book.release_resources()
 
 
-def _ods_cell(cell: ET.Element) -> object:
+def _ods_cell(cell: ET.Element, spaces: list[int]) -> object:
     kind = cell.get("{urn:oasis:names:tc:opendocument:xmlns:office:1.0}value-type")
     office = "{urn:oasis:names:tc:opendocument:xmlns:office:1.0}"
     if kind in ("float", "percentage", "currency"):
@@ -480,7 +519,7 @@ def _ods_cell(cell: ET.Element) -> object:
         return cell.get(f"{office}time-value")
     if kind == "boolean":
         return cell.get(f"{office}boolean-value") == "true"
-    text = "\n".join(_odf_text(p) for p in cell.iter(f"{_TEXT}p"))
+    text = "\n".join(_odf_text(p, spaces) for p in cell.iter(f"{_TEXT}p"))
     return text or None
 
 
@@ -498,6 +537,8 @@ def _ods(data: bytes) -> tuple[tuple[GridContent, ...], bool]:
         raise DocumentRefused("the ODS has no spreadsheet body", reason="document_malformed")
     tables = body.findall(f"{_TABLE_NS}table")
     budget = [grid_bounds.MAX_GRID_CELLS]
+    spaces = [ODF_MAX_SPACES]
+    chars = [ODS_MAX_CHARS]
     grids: list[GridContent] = []
     for table in tables[: grid_bounds.MAX_GRID_SHEETS]:
         cut = False
@@ -507,17 +548,21 @@ def _ods(data: bytes) -> tuple[tuple[GridContent, ...], bool]:
             out: list[tuple[object, ...]] = []
             for row in table.iter(f"{_TABLE_NS}table-row"):
                 values: list[object] = []
+                row_chars = 0
                 for cell in row:
                     if cell.tag not in (f"{_TABLE_NS}table-cell", f"{_TABLE_NS}covered-table-cell"):
                         continue
                     repeat = int(cell.get(f"{_TABLE_NS}number-columns-repeated", "1") or 1)
-                    value = _ods_cell(cell)
+                    value = _ods_cell(cell, spaces)
                     room = grid_bounds.MAX_GRID_COLUMNS + 1 - len(values)
                     if value is None and repeat > room:
                         repeat = 0  # the empty rest of the row: nothing to keep
                     if repeat > room:
                         cut = True
-                    values.extend([value] * max(0, min(repeat, room)))
+                    kept = max(0, min(repeat, room))
+                    if isinstance(value, str):
+                        row_chars += len(value) * kept
+                    values.extend([value] * kept)
                 while values and values[-1] is None:
                     values.pop()
                 repeat_rows = int(row.get(f"{_TABLE_NS}number-rows-repeated", "1") or 1)
@@ -528,7 +573,13 @@ def _ods(data: bytes) -> tuple[tuple[GridContent, ...], bool]:
                     room = grid_bounds.MAX_GRID_ROWS + 1 - len(out)
                     if repeat_rows > room:
                         cut = True
-                    out.extend([tuple(values)] * max(0, min(repeat_rows, room)))
+                    kept_rows = max(0, min(repeat_rows, room))
+                    chars[0] -= row_chars * kept_rows
+                    if chars[0] < 0:
+                        raise DocumentRefused(
+                            "its repeated cells pass the bounds", reason="document_zip_bounds"
+                        )
+                    out.extend([tuple(values)] * kept_rows)
                 if len(out) > grid_bounds.MAX_GRID_ROWS:
                     cut = True
                     break

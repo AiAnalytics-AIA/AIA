@@ -9,11 +9,10 @@ import type { Json, ResearchProject } from "@/research/model";
 import { proposalAnalysis, type Narrative } from "@/research/plan-edit";
 import { qId, sections, type Question, type Section } from "@/research/questionnaire";
 import type { Analysis } from "@/research/store";
+import { parseAudienceId } from "./artifacts/audience";
 import { withFixer } from "./route-refusal";
 import type { WorkbenchStage } from "./workbench-stages";
 import { parseAiaId, type TargetKind } from "./workbench-artifacts";
-
-export const LEAD_EDIT_REASON = "lead_edit_accepted";
 
 export type TextField = TopField | `briefing.${BriefingField}` | "plan.problem_summary";
 export type PlanList = "plan.objectives" | "plan.research_questions" | "plan.hypotheses";
@@ -29,11 +28,15 @@ export type LeadEdit =
   | { op: "question_remove"; question_id: string; why: string }
   | { op: "set_n"; value: number; why: string };
 
-export type LeadView = { op: "open_stage"; stage: WorkbenchStage } | { op: "focus"; target: string };
+/** The Lead's view operations (research-lead-workbench 14): open a stage, point at an element,
+ *  open an element's detail in the item drawer over its stage. */
+export type LeadView = { op: "open_stage"; stage: WorkbenchStage } | { op: "focus" | "inspect"; target: string };
 
 export type LeadRequest =
   | { kind: "agent_job"; action: string; why: string }
   | { kind: "research_run"; why: string }
+  /** A person's typed "Zopakuj analýzu" (LO5): the stage's analysis retry, never a model's card. */
+  | { kind: "analysis_retry"; why: string; run_id?: string }
   | { kind: "design_research"; why: string }
   | { kind: "interpretation_research"; why: string };
 
@@ -48,6 +51,7 @@ export const TYPED_UNDECIDED_WHY = "Spustí se až vaším potvrzením.";
 export function commandRequest(t: Pick<LeadTurn, "command" | "text">): LeadRequest | null {
   const said = t.text?.split(":").slice(1).join(":").trim() || TYPED_UNDECIDED_WHY;
   if (t.command === "research_run") return { kind: "research_run", why: said };
+  if (t.command === "analysis_retry") return { kind: "analysis_retry", why: said };
   const action = t.command?.startsWith("agent_job:") ? t.command.slice("agent_job:".length) : "";
   return action ? { kind: "agent_job", action, why: said } : null;
 }
@@ -143,7 +147,14 @@ export function pendingSelfUpdate(w: SelfUpdateWaiting | null | undefined): { no
 export type EditDecisionResult = { workspace_revision: number | null; results: { index: number; status: "accepted" | "dismissed" | "refused"; reason: string | null }[] };
 export type RequestApproval = { run_id: string; design_revision_id: string; status: string };
 
-export type LeadState = { available: boolean; unavailable_reason: string | null; busy: boolean; turns: LeadTurn[] };
+export type LeadState = {
+  available: boolean; unavailable_reason: string | null; busy: boolean; turns: LeadTurn[];
+  /** AIA_STUDY_WALLET_ENABLED: whether a typed start's card speaks of the Peněženka (absent: off). */
+  wallet_enabled?: boolean;
+  /** The run a typed "Zopakuj analýzu" retries: the study's newest that ran analysis. */
+  analysis_retry_run?: RetryRun | null;
+};
+export type RetryRun = { run_id: string; created_at: string | null; phase: string };
 
 export type LeadMemory = { memory_id: string; scope: "personal" | "client"; client_id: string | null; client_name?: string | null; text: string; created_at: string; source_turn_id: string | null };
 export type ResearcherLead = {
@@ -508,9 +519,11 @@ export function targetLabel(target: string): string {
   const parsed = parseAiaId(target);
   if (!parsed) return target;
   if (parsed.kind === "audience") {
-    if (id.startsWith("filter:")) return `Filtr: ${id.slice(7)}`;
-    if (id.startsWith("subpanel:")) return `Podpanel: ${id.slice(9)}`;
-    return AUDIENCE_PARTS[id] ?? `Cílová skupina: ${id}`;
+    // Read by Cílová skupina's own contract (artifact-audience AUD1), never a second parser here.
+    const t = parseAudienceId(target);
+    if (t?.kind === "filter") return `Filtr: ${t.factor}`;
+    if (t?.kind === "subpanel") return `Podpanel: ${t.key}`;
+    return t ? AUDIENCE_PARTS[t.part] : `Cílová skupina: ${id}`;
   }
   if (parsed.kind === "receipt" && id === "respondents") return "Kdo odpovídal";
   return `${KIND_WORDS[parsed.kind]} ${id}`;
@@ -698,6 +711,8 @@ export const LEAD_REASON_WORDS: Readonly<Record<string, string>> = {
 
 /** Asked when a card is approved after the design moved past what its turn read (LO10). */
 export const STALE_CARD_QUESTION = "Od chvíle, kdy Vedoucí kartu připravil, se studie změnila. Spustit úlohu nad studií, jak je teď?";
+/** A typed analysis retry whose run is no longer the newest analysed one (409 analysis_retry_target_moved). */
+export const ANALYSIS_RETRY_MOVED_QUESTION = "Od chvíle, kdy jste kartu viděli, doběhl novější běh s AI analýzou. Zopakovat analýzu tohoto novějšího běhu?";
 
 export function leadReasonWords(code: string | null | undefined): string {
   return code ? withFixer(LEAD_REASON_WORDS[code] ?? `Vedoucí se zastavil (${code}).`, code) : "Vedoucí se zastavil.";

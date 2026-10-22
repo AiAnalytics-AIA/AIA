@@ -116,8 +116,16 @@ try {
   assert.equal(await page.getByRole("tab", { name: "Rešerše a zpráva", exact: true }).getAttribute("aria-selected"), "true");
   await page.reload();
   await page.getByRole("tabpanel", { name: "Rešerše a zpráva" }).waitFor();
-  await page.getByRole("button", { name: /AI Analytics ·/ }).click();
-  await page.getByRole("navigation", { name: "Hlavní navigace" }).waitFor();
+  // The way out of a study on a phone: AppShell's menu in the classic layout; with the research
+  // workbench on (AIA_WEB_RESEARCH_WORKBENCH), the workbench's own header and its "Nabídka" (ADR 0026).
+  if (await page.locator("[data-workbench]").count()) {
+    await page.getByRole("button", { name: "Nabídka", exact: true }).click();
+    const menu = page.getByRole("menu");
+    for (const name of ["Pracovní prostor klienta", "Projektová paměť", "Nastavení"]) await menu.getByRole("menuitem", { name }).waitFor();
+  } else {
+    await page.getByRole("button", { name: /AI Analytics ·/ }).click();
+    await page.getByRole("navigation", { name: "Hlavní navigace" }).waitFor();
+  }
   checks.push("Result sections, keyboard focus, reload and mobile menu");
   checks.push("Canonical 3D map rotation and camera preserved across sections");
   assert.equal(errors.length, 0, errors.join("\n"));

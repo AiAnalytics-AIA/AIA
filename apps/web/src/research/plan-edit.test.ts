@@ -21,7 +21,9 @@ describe("working proposal edits", () => {
     expect(validMeasurement(set)).toBe(true);
     expect(validMeasurement({ ...set, objects: ["A", "a", "C", "D"] })).toBe(false);
     expect(validMeasurement({ ...set, objects: ["A", "B", "C"] })).toBe(false);
-    expect(validMeasurement({ ...set, objects: Array.from({ length: 16 }, (_, i) => String(i)) })).toBe(false);
+    // Above the recommended 15 is allowed (Q75 (a)); past the server's 40 is not.
+    expect(validMeasurement({ ...set, objects: Array.from({ length: 16 }, (_, i) => String(i)) })).toBe(true);
+    expect(validMeasurement({ ...set, objects: Array.from({ length: 41 }, (_, i) => String(i)) })).toBe(false);
     expect(validMeasurement({ ...set, scale_labels: ["", "Always"] })).toBe(false);
     expect(validMeasurement({ ...set, object_question: "Rate the concept" })).toBe(false);
   });

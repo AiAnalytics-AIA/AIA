@@ -984,6 +984,9 @@ export type ResearchLimits = {
   methodology_version: string;
   version: number | null;
   sample_size: { min: number; max: number };
+  /** A tracked set's size: outside min-max a design does not compile, outside the recommended
+   * range readiness warns (research/questionnaire.ts SetLimits). Absent from an older server. */
+  tracked_set?: { min: number; max: number; recommended_min: number; recommended_max: number };
   /** The questionnaire's length rule from Metodika (artifact-questionnaire QST7): seconds per
    * answer by question type and per tracked-set object, with the methodology version. Absent, or
    * null, while the methodology owner has set none; read through research/length.ts readRule. */
@@ -1021,6 +1024,24 @@ export type Readiness = {
   persona_sources?: PersonaSourceOption[];
   /** Whether the run can answer every stated research question; absent from an older API. */
   answerability?: Answerability | null;
+  /** The sample a panel run would draw (run-qc-and-checkpoint RQC6b); `null` when none was drawn. */
+  sample_composition?: SampleComposition | null;
+};
+
+/** One quota cell: its id, its value in each quota field, its respondents. */
+export type QuotaCell = { key: string; values: string[]; n: number };
+/** How the sampler spreads n over its quota cells, or why it refused; never support for a cell. */
+export type SampleComposition = {
+  refused: string | null;
+  /** What the refusal names (the audience preview's `reasons`); absent from an older API. */
+  refused_reasons?: string[];
+  version_id: string | null;
+  seed: number | null;
+  quota_fields: string[];
+  cells: QuotaCell[];
+  sample_donors: number | null;
+  /** Whether the support forecast was counted from this sample; absent from an older API. */
+  support_counted?: boolean;
 };
 
 /** Readiness's fields, whichever revision it was read on. */
@@ -1188,6 +1209,9 @@ export type ResearchAnalysis = {
    *  `null` (or absent, from an API before it) when it is the port. */
   aggregation_deviation?: Record<string, unknown> | null;
   pending: Record<string, string>;
+  /** The Design Research findings every module was shown as context, never evidence
+   *  (evidence-integrity 7); `null` (or absent, from an API before it) when the run pinned none. */
+  external_context?: { deep_research_run_id: string; items: { evidence_id: string; claim: string; source: string }[] } | null;
   modules: Record<string, {
     outcome: "COMPLETED" | "BLOCKED";
     artifact_id: string;
@@ -1278,8 +1302,9 @@ export const research = {
   /** The readiness limits in force: the valid sample size the Dimenze stage refuses outside of. */
   limits: (studyId: string) => request<ResearchLimits>("GET", `${studyPath(studyId)}/research/limits`),
   /** `personaSource` assesses the design under that source of respondents; omitted, the deployment's default. */
-  readiness: (studyId: string, revisionId: string, personaSource?: string) =>
-    request<Readiness>("GET", `${studyPath(studyId)}/research/readiness${query({ design_revision_id: revisionId, persona_source: personaSource })}`),
+  /** `populationVersionId`: the client's child the run is started over; readiness then draws no panel sample (RQC6b). */
+  readiness: (studyId: string, revisionId: string, personaSource?: string, populationVersionId?: string) =>
+    request<Readiness>("GET", `${studyPath(studyId)}/research/readiness${query({ design_revision_id: revisionId, persona_source: personaSource, population_version_id: populationVersionId })}`),
   /** Readiness on a working revision, as a submit of it would read it; nothing is written (WCE7a). */
   workingReadiness: (studyId: string, workingRevision: number, personaSource?: string) =>
     request<WorkingReadiness>("GET", `${studyPath(studyId)}/research/readiness/working${query({ working_revision: String(workingRevision), persona_source: personaSource })}`),
@@ -1558,10 +1583,11 @@ export const lead = {
   /** Approve a turn's prepared design job: spend limit, ledger and start in one transaction. */
   /** `workspaceRevision`: the current working revision, sent only after a 409 stale_card and the
    *  person's yes to running the card on the design as it is now (lead-orchestration LO10). */
-  approveRequest: (studyId: string, turnId: string, confirmCostUsd?: number, workspaceRevision?: number) =>
+  approveRequest: (studyId: string, turnId: string, confirmCostUsd?: number, workspaceRevision?: number, retryRunId?: string) =>
     request<RequestApproval>("POST", `${studyPath(studyId)}/lead/turns/${enc(turnId)}/request`, {
       ...(confirmCostUsd === undefined ? {} : { confirm_cost_usd: confirmCostUsd }),
       ...(workspaceRevision === undefined ? {} : { workspace_revision: workspaceRevision }),
+      ...(retryRunId === undefined ? {} : { retry_run_id: retryRunId }),
     }),
   /** Keep or drop what a turn wants to remember for all of the researcher's work (once, in the ledger). */
   decideSelfUpdate: (studyId: string, turnId: string, decision: "accept" | "dismiss") =>

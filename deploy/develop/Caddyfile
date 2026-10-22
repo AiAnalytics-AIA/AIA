@@ -38,6 +38,12 @@
 	# the client address and scheme it logs are the browser's. Only /api/v1: any
 	# other /api/* path falls through to the web client's 404.
 	handle /api/v1/* {
+		# FastAPI reads a whole JSON body before authentication runs: bounded here,
+		# above the largest upload (a 25 MiB file, base64 in JSON), a stranger cannot
+		# make the API hold gigabytes before it answers 401 (tools/caddy_routes.py).
+		request_body {
+			max_size 40MiB
+		}
 		reverse_proxy api:8000 {
 			header_up X-Request-Start {time.now.unix_ms}
 		}

@@ -6,8 +6,10 @@
 // update, saved by the store's autosave, so there is no separate editor, no "Použít úpravy" and
 // no unsaved form to guard. What each change does is research/plan-narrative.ts.
 
+import { useMemo } from "react";
+
 import { t, tv } from "@/i18n/t";
-import { type Edited, type NarrativeList, NARRATIVE_LISTS, addItem, addProblem, itemProblem, narrativeOf, removeItem, setItem, setSummary } from "@/research/plan-narrative";
+import { type Edited, type NarrativeList, NARRATIVE_LISTS, addItem, addProblem, itemProblem, itemTargets, narrativeOf, removeItem, setItem, setSummary } from "@/research/plan-narrative";
 import type { PlanState } from "@/research/plan";
 import { Icon } from "../icons";
 import { InlineCreateRow } from "../../ui/InlineCreateRow";
@@ -26,14 +28,16 @@ const TITLE: Record<NarrativeList, string> = {
 };
 
 /**
- * `onQuote`: a comment on an item, quoting it whole (audit A35). A value drawn for editing in place
- * is a button, and a browser selects no text inside one, so the narrative's items are commented on
- * by this action instead of a text selection.
+ * `onQuote`: a comment on an item, quoting it whole (audit A35), for a touch or keyboard reader. A
+ * part of an item's words is quoted by selecting it (the product owner, Q68): the items are drawn
+ * `selectable`, and the stage's Commentable picks the selection up.
  */
 export function PlanNarrative({ disabled = false, onQuote }: { disabled?: boolean; onQuote?: (quote: string) => void }) {
   const { store, state, toast } = useResearch();
   const undo = useUndo();
   const n = narrativeOf(state);
+  // Each item's Lead target, by its stable id (never its place); none where no id can be read.
+  const targets = useMemo(() => itemTargets(state), [state]);
   // A change is checked against the copy as it stands now, then written in one update.
   const apply = (edit: (s: PlanState) => Edited): string | null => {
     const r = edit(store.get());
@@ -78,6 +82,7 @@ export function PlanNarrative({ disabled = false, onQuote }: { disabled?: boolea
         value={n.problem_summary}
         label={t("research.plan.summaryLabel")}
         multiline
+        selectable
         disabled={disabled}
         rules={{ maxLength: SUMMARY_MAX }}
         className="min-w-0 flex-1 text-[15px] leading-6"
@@ -92,12 +97,13 @@ export function PlanNarrative({ disabled = false, onQuote }: { disabled?: boolea
             <ul className="mt-1 flex flex-col gap-1 text-sm leading-6">
               {n[list].map((text, i) => (
                 // Keyed by place: an item's place is what every edit names (the ids are the store's).
-                <li key={`${list}-${i}`} className="group flex items-start gap-2">
+                <li key={`${list}-${i}`} data-aia={targets[list][i] ?? undefined} className="group flex items-start gap-2">
                   <span aria-hidden="true" className="mt-2.5 block size-1.5 shrink-0 rounded-full bg-signal" />
                   <InlineText
                     value={text}
                     label={tv(`research.plan.narrative.item.${list}`, { n: i + 1 })}
                     multiline
+                    selectable
                     disabled={disabled}
                     rules={{ maxLength: ITEM_MAX, validate: (v) => itemProblem(narrativeOf(store.get()), list, v, i) }}
                     className="min-w-0 flex-1"
@@ -122,6 +128,7 @@ export function PlanNarrative({ disabled = false, onQuote }: { disabled?: boolea
           {disabled ? null : (
             <InlineCreateRow
               label={t(`research.plan.narrative.add.${list}`)}
+              emptyWords={t(`research.plan.narrative.addEmpty.${list}`)}
               existing={n[list]}
               maxLength={ITEM_MAX}
               disabled={addProblem(n, list) !== null}

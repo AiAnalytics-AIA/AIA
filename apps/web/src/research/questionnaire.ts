@@ -317,7 +317,7 @@ export function addTrackedSet(
 ): { project: ResearchProject } | { error: string } | null {
   if (!typ || !raw) return null;
   const objs = raw.split(",").map((x) => x.trim()).filter(Boolean);
-  if (objs.length < 4 || objs.length > 15) return { error: SET_SIZE };
+  if (objs.length < SET_MIN || objs.length > SET_MAX) return { error: SET_SIZE };
   return { project: withSections(p, [...sections(p), trackedSet(typ, objs, ids)]) };
 }
 
@@ -353,17 +353,27 @@ export function addNamedSection(p: ResearchProject, title: string, ids: IdSource
 }
 
 /**
- * A question with its wording typed in the block's own row (audit A5): a single choice with the
- * options Ano / Ne, as addQuestion and the quick add give it. Null for an empty wording or a
- * section that is not a question block.
+ * Where a section a screen drew stands in the copy now: found by its id, or, for an older section
+ * without one, at its index while that place still holds an id-less section; -1 when it is gone (a
+ * remove, or the copy reloaded under the screen).
  */
-export function addQuestionTo(p: ResearchProject, si: number, text: string, ids: IdSource = SYSTEM): { project: ResearchProject; questionId: string } | null {
+function sectionNow(xs: Section[], si: number, sectionId: string | undefined): number {
+  return sectionId ? xs.findIndex((x) => x.id === sectionId) : si < xs.length && !xs[si].id ? si : -1;
+}
+
+/**
+ * A question with its wording typed in the block's own row (audit A5): a single choice with the
+ * options Ano / Ne, as addQuestion and the quick add give it. Null for an empty wording or a block
+ * that is gone or no longer a question block; a block with an id never takes another's question.
+ */
+export function addQuestionTo(p: ResearchProject, si: number, sectionId: string | undefined, text: string, ids: IdSource = SYSTEM): { project: ResearchProject; questionId: string } | null {
   const wording = text.trim();
   const xs = sections(p);
-  if (!wording || xs[si]?.type !== "questions") return null;
+  const at = sectionNow(xs, si, sectionId);
+  if (!wording || at < 0 || xs[at].type !== "questions") return null;
   const id = qId(ids);
   const project = edit(p, (ys) => {
-    ys[si].questions = [...(ys[si].questions || []), { id, text: wording, typ: "vyber", kategorie: ["Ano", "Ne"], povolit_nevim: false }];
+    ys[at].questions = [...(ys[at].questions || []), { id, text: wording, typ: "vyber", kategorie: ["Ano", "Ne"], povolit_nevim: false }];
   });
   return { project, questionId: id };
 }
@@ -405,7 +415,7 @@ export function restoreSection(p: ResearchProject, si: number, sec: Section): Re
  */
 export function restoreQuestion(p: ResearchProject, si: number, sectionId: string | undefined, qi: number, q: Question): ResearchProject {
   const xs = sections(p);
-  const at = sectionId ? xs.findIndex((x) => x.id === sectionId) : si < xs.length && !xs[si].id ? si : -1;
+  const at = sectionNow(xs, si, sectionId);
   if (at < 0 || xs[at].type !== "questions") return p;
   const qs = xs[at].questions || [];
   if (q.id && qs.some((x) => x.id === q.id)) return p;
@@ -425,7 +435,7 @@ export function restoreQuestion(p: ResearchProject, si: number, sectionId: strin
  */
 export function restoreOption(p: ResearchProject, si: number, sectionId: string | undefined, qi: number, questionId: string | undefined, index: number, value: string): ResearchProject {
   const xs = sections(p);
-  const at = sectionId ? xs.findIndex((x) => x.id === sectionId) : si < xs.length && !xs[si].id ? si : -1;
+  const at = sectionNow(xs, si, sectionId);
   if (at < 0 || xs[at].type !== "questions") return p;
   const qs = xs[at].questions || [];
   const qat = questionId ? qs.findIndex((x) => x.id === questionId) : qi < qs.length && !qs[qi].id ? qi : -1;
@@ -472,16 +482,40 @@ export function setObjectFamily(p: ResearchProject, si: number, v: string): Rese
   });
 }
 
+/**
+ * A tracked set's sizes as the readiness methodology in force states them (GET …/research/limits
+ * tracked_set): the compiler refuses a set outside min-max (battery_size); readiness only warns
+ * outside recommended_min-recommended_max. Above the recommendation a set is allowed and warned (the
+ * product owner, Q75 (a), 2026-10-22); the editors still refuse one under the recommended minimum.
+ */
+export type SetLimits = { min: number; max: number; recommended_min: number; recommended_max: number };
+
+/** The code's preset, research_design.py TRACKED_SET_LIMITS (held to it by questionnaire-set-limits.test.ts):
+ * what a study runs by while nothing is stored, and what the screens use until the limits are read. */
+export const SET_HARD_MIN = 3;
+export const SET_HARD_MAX = 40;
+export const SET_MIN = 4;
+export const SET_MAX = 15;
+export const SET_PRESET: SetLimits = { min: SET_HARD_MIN, max: SET_HARD_MAX, recommended_min: SET_MIN, recommended_max: SET_MAX };
+
+/** A set the editors stop: under the recommended minimum, or over the hard maximum. */
+export const setSizeRefused = (n: number, l: SetLimits = SET_PRESET) => n < l.recommended_min || n > l.max;
+/** Above the recommendation, within the hard range: allowed, warned at the field. */
+export const setAboveRecommended = (n: number, l: SetLimits = SET_PRESET) => n > l.recommended_max && n <= l.max;
+/** The limits as the copy names them: the editors' range ({min}–{max}) and the recommendation ({rmin}–{rmax}). */
+export const setWords = (l: SetLimits) => ({ min: l.recommended_min, max: l.max, rmin: l.recommended_min, rmax: l.recommended_max });
+
 export const SET_TOO_SMALL = "Sledovaná sada potřebuje 4–15 položek.";
 
-/** updateObjects: one per line, trimmed, fifteen at most; a note (not a refusal) under four. */
+/** updateObjects: one per line, trimmed; a note (not a refusal) under four. Unlike the classic's,
+ * nothing past the fifteenth is cut: a set may hold up to SET_HARD_MAX. */
 export function updateObjects(p: ResearchProject, si: number, v: string): { project: ResearchProject; note: string | null } {
-  const a = v.split(/\n/).map((x) => x.trim()).filter(Boolean).slice(0, 15);
+  const a = v.split(/\n/).map((x) => x.trim()).filter(Boolean);
   return {
     project: edit(p, (xs) => {
       xs[si].objects = a;
     }),
-    note: a.length && a.length < 4 ? SET_TOO_SMALL : null,
+    note: a.length && a.length < SET_MIN ? SET_TOO_SMALL : null,
   };
 }
 
@@ -624,12 +658,6 @@ export function applyDeep(p: ResearchProject, result: unknown): { project: Resea
     project: { ...p, pre_research: r.research || {} },
     toast: `Research uložen · ${r.accepted_count || 0} evidencí · ${r.quarantined_count || 0} v karanténě`,
   };
-}
-
-/** The evidence the project's research accepted (pre_research.accepted). */
-export function researchCount(p: ResearchProject): number {
-  const r = p.pre_research as { accepted?: unknown[] } | undefined;
-  return (r?.accepted || []).length;
 }
 
 /** continueQuestionnaireToAudience: the audience starts at its first choice unless already chosen. */

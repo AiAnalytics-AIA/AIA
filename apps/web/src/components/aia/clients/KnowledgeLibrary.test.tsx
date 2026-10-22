@@ -4,7 +4,7 @@
 // a new revision, filed and unlabelled; the history it carries. Every write is checked by
 // the request it sends.
 import { cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
-import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, onTestFinished, vi } from "vitest";
 
 import { ClientValue } from "./ClientContext";
 import { KnowledgeArea } from "./KnowledgeArea";
@@ -69,7 +69,8 @@ function api(overrides: Record<string, (body: unknown, url: string) => unknown> 
         "GET /api/v1/clients/CLI-a": () => CLIENT,
         ...overrides,
       };
-      const answer = routes[`${method} ${u.split("?")[0]}`]?.(body, u) ?? {};
+      // A route may answer later (a promise), as a slow server does.
+      const answer = (await routes[`${method} ${u.split("?")[0]}`]?.(body, u)) ?? {};
       return answer instanceof Response ? answer : new Response(JSON.stringify(answer), { status: 200 });
     }),
   );
@@ -427,6 +428,30 @@ describe("folders and labels, organized where they are listed", () => {
     fireEvent.click(within(list).getByRole("option", { name: "Modrá" }));
     await waitFor(() => expect(sent("PUT", "/labels/KNL-2")[0].body).toEqual({ colour: "BLUE" }));
     expect(nav().queryByRole("listbox")).toBeNull();
+  });
+
+  it("leaves focus where the person moved it while a rename was still saving", async () => {
+    // A slow save: the field closes and the row would take focus back when the answer comes, after
+    // the person has already opened another label's colours (once a CI flake in "renames a label on
+    // F2 and recolours it by its swatch").
+    let answer!: () => void;
+    const saved = new Promise<void>((resolve) => { answer = resolve; });
+    onTestFinished(() => answer());
+    api({ "PUT /api/v1/clients/CLI-a/knowledge/labels/KNL-1": async (b) => { await saved; return { ...LABELS[0], ...(b as object) }; } });
+    open();
+    const retail = await nav().findByRole("button", { name: "retail 1" });
+    fireEvent.keyDown(retail, { key: "F2" });
+    const field = nav().getByRole("textbox", { name: "Název štítku" });
+    fireEvent.change(field, { target: { value: "maloobchod" } });
+    fireEvent.keyDown(field, { key: "Enter" });
+    await waitFor(() => expect(sent("PUT", "/labels/KNL-1")).toHaveLength(1));
+
+    fireEvent.click(await nav().findByRole("button", { name: "Barva štítku ověřit: Oranžová" }));
+    const orange = within(nav().getByRole("listbox", { name: "Barva štítku ověřit" })).getByRole("option", { name: "Oranžová" });
+    await waitFor(() => expect(document.activeElement).toBe(orange));
+    answer();
+    await nav().findByRole("button", { name: /^maloobchod/ });
+    expect(document.activeElement).toBe(orange);
   });
 
   it("creates a label in the list in the colour its swatch shows, the first one unused by default (audit D4)", async () => {

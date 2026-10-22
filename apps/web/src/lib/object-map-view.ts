@@ -287,11 +287,6 @@ export function toScreen(x: number, y: number, span: number, view: ViewSize = { 
   return { sx: left + (x + span) * scale, sy: top + (span - y) * scale };
 }
 
-/** The screen size of one map unit in a view (the same on both axes). */
-export function screenScale(span: number, view: ViewSize): number {
-  return (Math.min(view.width, view.height) - 2 * MAP_VIEW.pad) / (2 * span);
-}
-
 /** A square of the map the view is centred on: its centre and half-width, in ruler units. */
 export type Frame = { cx: number; cy: number; half: number };
 
