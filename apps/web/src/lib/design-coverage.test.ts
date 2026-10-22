@@ -2,7 +2,7 @@
 import { describe, expect, it } from "vitest";
 
 import type { QuestionOutlook, ResearchTrace } from "@/lib/api";
-import { coverageInputs, coverageInputsChanged, coverageStatus, rqCoverage } from "./design-coverage";
+import { coverageInputs, coverageInputsChanged, coverageStatus, nextCoverageAt, rqCoverage, seedCoverageAt } from "./design-coverage";
 
 const outlook: QuestionOutlook[] = [
   { question_id: "q1", text: "Jak často pijete kávu?", section_id: "s1", battery_id: null, verdict: "ANSWERABLE", reasons: [] },
@@ -78,5 +78,27 @@ describe("coverageInputs", () => {
     expect(coverageInputsChanged(base, coverageInputs(project({ research_questions: ["Kdo nakupuje?"] })))).toBe(true);
     expect(coverageInputsChanged(base, coverageInputs(project({ research_question_comparisons: [{}] })))).toBe(true);
     expect(coverageInputsChanged(base, coverageInputs({ ...(project() as object), sections: [...sections] } as never))).toBe(true);
+  });
+});
+
+describe("the coverage's revision", () => {
+  const sections = [{ id: "s1", questions: [] }];
+  const project = (links: string[]) => ({ goal: "G", sections: [{ ...sections[0], research_questions: links }], research_plan: { research_questions: ["Kdo?"] } }) as never;
+  const copy = (revision: number, kind: string, p: unknown) => ({ revision, save: { kind }, project: p as never });
+
+  it("opened within another stage's autosave, takes nothing as read and moves on when that save lands (review of #723)", () => {
+    // A link toggled on Dotazník, still pending at revision 4, when Návrh opens.
+    const changed = project(["Kdo?"]);
+    const at = seedCoverageAt(copy(4, "pending", changed));
+    expect(at.inputs).toBeNull();
+    // The save lands as 5 with the same objects: the coverage is read on 5, not left on 4's.
+    expect(nextCoverageAt(at, copy(5, "saved", changed))).toMatchObject({ revision: 5 });
+  });
+
+  it("opened on a saved copy, stays put for a save that changed nothing it reads", () => {
+    const p = project([]);
+    const at = seedCoverageAt(copy(4, "saved", p));
+    expect(nextCoverageAt(at, copy(5, "saved", p))).toBe(at);
+    expect(nextCoverageAt(at, copy(5, "pending", project(["Kdo?"])))).toBe(at);
   });
 });

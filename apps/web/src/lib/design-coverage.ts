@@ -76,5 +76,23 @@ export function coverageInputs(p: ResearchProject): CoverageInputs {
  * unchanged part's object as it was, so a save that touched only a comment or a set's name (which
  * cannot move the coverage) is not a reason to recompute the whole readiness.
  */
-export const coverageInputsChanged = (a: CoverageInputs, b: CoverageInputs): boolean =>
-  a[0] !== b[0] || a[1] !== b[1] || a[2] !== b[2];
+export const coverageInputsChanged = (a: CoverageInputs | null, b: CoverageInputs): boolean =>
+  a === null || a[0] !== b[0] || a[1] !== b[1] || a[2] !== b[2];
+
+/** The working revision the coverage is read on, and the inputs it holds; null inputs: not known to be saved. */
+export type CoverageAt = { revision: number | null; inputs: CoverageInputs | null };
+type Copy = { revision: number | null; save: { kind: string }; project: ResearchProject };
+
+/**
+ * Where the coverage starts. A copy whose change is not saved yet (the stage opened within another's
+ * autosave) holds inputs its revision does not: they are not taken as read, so the save that lands
+ * moves the coverage on and nothing older is shown as current.
+ */
+export const seedCoverageAt = (c: Copy): CoverageAt => ({ revision: c.revision, inputs: c.save.kind === "saved" ? coverageInputs(c.project) : null });
+
+/** The coverage's revision after `c`: a saved revision that changed what it is computed from, else as it was. */
+export function nextCoverageAt(at: CoverageAt, c: Copy): CoverageAt {
+  if (c.save.kind !== "saved" || c.revision === null || c.revision === at.revision) return at;
+  const inputs = coverageInputs(c.project);
+  return coverageInputsChanged(at.inputs, inputs) ? { revision: c.revision, inputs } : at;
+}

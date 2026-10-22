@@ -9,7 +9,7 @@ import Link from "next/link";
 import { useState } from "react";
 
 import { t, tv } from "@/i18n/t";
-import { type CoverageInputs, type CoverageStatus, type RqCoverage, coverageInputs, coverageInputsChanged, coverageStatus, rqCoverage } from "@/lib/design-coverage";
+import { type CoverageAt, type CoverageStatus, type RqCoverage, coverageInputs, coverageInputsChanged, coverageStatus, nextCoverageAt, rqCoverage, seedCoverageAt } from "@/lib/design-coverage";
 import { codeWords } from "@/lib/reason-words";
 import type { Tone } from "@/lib/tone";
 import type { ResearchState } from "@/research/store";
@@ -69,13 +69,11 @@ export function DesignCoverage({ id = "plan-coverage" }: { id?: string }) {
  * computed from last changed. A save that touched nothing it reads (a comment, a set's name) does not
  * move it, so the whole readiness is not recomputed for it.
  */
-function useCoverageRevision(state: ResearchState): { revision: number | null; inputs: CoverageInputs } {
-  const [at, setAt] = useState<{ revision: number | null; inputs: CoverageInputs }>(() => ({ revision: state.revision, inputs: coverageInputs(state.project) }));
-  const saved = state.save.kind === "saved" && state.revision !== null;
-  if (saved && state.revision !== at.revision && coverageInputsChanged(at.inputs, coverageInputs(state.project))) {
-    setAt({ revision: state.revision, inputs: coverageInputs(state.project) });
-  }
-  return at;
+function useCoverageRevision(state: ResearchState): CoverageAt {
+  const [at, setAt] = useState<CoverageAt>(() => seedCoverageAt(state));
+  const next = nextCoverageAt(at, state);
+  if (next !== at) setAt(next);
+  return next;
 }
 
 function RqRow({ row, revision, questionnaire }: { row: RqCoverage; revision: number; questionnaire: string }) {
