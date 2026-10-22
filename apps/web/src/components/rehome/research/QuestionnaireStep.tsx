@@ -11,7 +11,7 @@
 // it does nothing in the classic interface (OI-49).
 
 import { useRouter } from "next/navigation";
-import { type DragEvent, type ReactNode, useEffect, useRef, useState } from "react";
+import { type DragEvent, type ReactNode, createContext, useContext, useEffect, useRef, useState } from "react";
 
 import { t, tv } from "@/i18n/t";
 import { hashTarget, questionElementId, questionnairePlace, setElementId } from "@/lib/answerability";
@@ -99,6 +99,11 @@ const setInvalid = (sec: Section) => {
 const OBJECT = "{object}";
 
 const jumpTo = (id: string) => scrollToPlace(id, "center");
+/**
+ * How the outline opens a place (QF-6): the editor's card or set, scrolled to and focused, so Tab
+ * goes on from there; from the respondent preview, which draws no editor, Upravit first.
+ */
+const OpenPlace = createContext<(id: string) => void>((id) => void openPlace(id, "center"));
 
 export function QuestionnaireStep() {
   const { store, state, template, runJob, toast, stepHref } = useResearch();
@@ -206,7 +211,13 @@ export function QuestionnaireStep() {
   if (view === "choose") return <Choose onPick={path}>{dock}</Choose>;
 
   const current = String(p.ui_state?.questionnaire_path || "manual") as QuestionnairePath;
+  // React commits the tab before the frame, so the place is drawn when it opens (as for a hash).
+  const open = (id: string) => {
+    setTab("edit");
+    window.requestAnimationFrame(() => openPlace(id, "center"));
+  };
   return (
+    <OpenPlace.Provider value={open}>
     <div className="flex max-w-[82.5rem] flex-col gap-4">
       {editor ? (
         <InspectorSlot>
@@ -287,6 +298,7 @@ export function QuestionnaireStep() {
       ) : null}
       {dock}
     </div>
+    </OpenPlace.Provider>
   );
 }
 
@@ -515,6 +527,7 @@ type Update = (next: (p: ResearchProject) => ResearchProject, reason?: string) =
 /** The questionnaire at a glance: blocks and their questions, then the sets; quick add beneath. */
 function Outline({ update }: { update: Update }) {
   const { store, state, prompt, toast } = useResearch();
+  const open = useContext(OpenPlace);
   const xs = sections(state.project);
   const counts = questionnaireCounts(state.project);
 
@@ -543,7 +556,7 @@ function Outline({ update }: { update: Update }) {
     <li key={id}>
       <button
         type="button"
-        onClick={() => jumpTo(id)}
+        onClick={() => open(id)}
         className={`grid w-full grid-cols-[2.25rem_1fr] items-baseline gap-1.5 rounded-control px-1.5 py-1 text-left text-[13px] leading-5 hover:bg-surface-sunken ${FOCUS} ${depth ? "pl-4" : ""}`}
       >
         <span className={`font-mono text-[11px] ${bad ? "text-status-you-ink" : "text-ink-faint"}`}>{tag}</span>

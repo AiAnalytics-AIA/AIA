@@ -482,4 +482,17 @@ describe("Dotazník", () => {
     await saved();
     expect(lastSave()).toMatchObject({ reason: "questionnaire_done", content: { ui_state: { audience_entry: "choose" } } });
   });
+
+  it("opens the outline's place and moves focus there, from the preview too (QF-6)", async () => {
+    unitStub({ ...BRIEF, sections: SECTIONS, ui_state: { questionnaire_path: "manual" } });
+    render(<ResearchScreen step="questionnaire" frame={TEST_FRAME} />);
+    fireEvent.click(await screen.findByRole("button", { name: /^Q2/ }));
+    await waitFor(() => expect(document.activeElement?.id).toBe("qedit_Q2"));
+    // The preview draws no editor: the outline opens Upravit, then the place.
+    fireEvent.click(screen.getByRole("radio", { name: "Náhled respondenta" }));
+    expect(document.getElementById("qedit_Q1")).toBeNull();
+    fireEvent.click(screen.getByRole("button", { name: /^S1/ }));
+    await waitFor(() => expect(document.activeElement?.id).toBe("qset_sec_b"));
+    expect((screen.getByRole("radio", { name: "Upravit" }) as HTMLElement).getAttribute("aria-checked")).toBe("true");
+  });
 });
