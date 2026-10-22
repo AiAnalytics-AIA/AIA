@@ -884,6 +884,22 @@ describe("the map's window, as the panel's", () => {
     expect(Math.min(z(list), z(detail))).toBeGreaterThan(400);
   });
 
+  it("shows a pick from Správa objektů in a detail in front of the list, the first pick and every next one", () => {
+    render(<ObjectMapView battery={hudba} dataOrigin={null} />);
+    const z = (el: HTMLElement) => Number(el.style.zIndex || 400);
+    const pick = (name: string) => {
+      const button = within(dialog("Správa objektů")!).getByRole("button", { name });
+      // As a person's click: the press brings the list forward first.
+      fireEvent.pointerDown(button);
+      fireEvent.click(button);
+    };
+    openList();
+    pick("Vybrat objekt Rock");
+    expect(z(dialog("Detail objektu / vztahu")!)).toBeGreaterThan(z(dialog("Správa objektů")!));
+    pick("Vybrat objekt Jazz");
+    expect(z(dialog("Detail objektu / vztahu")!)).toBeGreaterThan(z(dialog("Správa objektů")!));
+  });
+
   it("opens the detail on a click on the map, and closes it by its × and by a click on free ground", async () => {
     render(<ObjectMapView battery={hudba} dataOrigin={null} />);
     await nextFrame(0);

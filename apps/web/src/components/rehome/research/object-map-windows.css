@@ -14,7 +14,8 @@
   --glassBtn66: rgba(255, 255, 255, .45);
   --glassCard66: rgba(255, 255, 255, .38);
   --glassBlur66: blur(16px) saturate(150%);
-  --omwMuted: #7c8f98;
+  /* Labels on the light glass: 4.5:1 over the glass where it lies on the map's dark ground. */
+  --omwMuted: #435056;
   --omwAnswer: #54666f;
 }
 :root[data-theme="dark"] .omw {
@@ -22,6 +23,7 @@
   --glassLine66: rgba(255, 255, 255, .12);
   --glassBtn66: rgba(255, 255, 255, .06);
   --glassCard66: rgba(255, 255, 255, .04);
+  --omwMuted: #7c8f98;
   --omwAnswer: #afbac0;
 }
 @media (prefers-color-scheme: dark) {
@@ -30,6 +32,7 @@
     --glassLine66: rgba(255, 255, 255, .12);
     --glassBtn66: rgba(255, 255, 255, .06);
     --glassCard66: rgba(255, 255, 255, .04);
+    --omwMuted: #7c8f98;
     --omwAnswer: #afbac0;
   }
 }

@@ -298,9 +298,9 @@ function PanelView({ battery, map, facts }: { battery: BatteryWithMaps; map: Obj
     // every selection, as the panel's.
     // The detail window opens on what was hit (the panel's `openDetail1877`) and closes with the selection.
     if (hit) detailOpener.current = canvas.current;
-    if (hit?.kind === "respondent") { setPerson(hit.index); setSelected(-1); setRelation(null); setDetail(true); }
-    else if (hit?.kind === "relation" && !people) { setSelected(hit.index); setRelation([hit.index, hit.j!]); setDetail(true); }
-    else if (hit?.kind === "object" && !people) { setSelected(hit.index); setRelation(null); setDetail(true); }
+    if (hit?.kind === "respondent") { setPerson(hit.index); setSelected(-1); setRelation(null); showDetail(); }
+    else if (hit?.kind === "relation" && !people) { setSelected(hit.index); setRelation([hit.index, hit.j!]); showDetail(); }
+    else if (hit?.kind === "object" && !people) { setSelected(hit.index); setRelation(null); showDetail(); }
     else if (!hit) { setSelected(-1); setPerson(-1); setRelation(null); setDetail(false); }
   };
 
@@ -337,11 +337,14 @@ function PanelView({ battery, map, facts }: { battery: BatteryWithMaps; map: Obj
     setView(next); setSelected(-1); setRelation(null); setPerson(-1); setHovered(-1); setDetail(false);
     if (next === "respondents" && work === "tools") setWork(null);
   };
+  // What the detail now shows comes to the front, over Správa objektů the pick was made in.
+  const showDetail = () => { setDetail(true); windows.front("detail"); };
   // Choosing from the list opens the object's detail; choosing it again clears it and closes the
   // detail. Selection is the object map's: on the respondent map the list only lists (see ObjectList).
   const choose = (k: number, from: HTMLElement) => {
     const next = selected === k ? -1 : k;
-    setSelected(next); setRelation(null); setDetail(next >= 0);
+    setSelected(next); setRelation(null);
+    if (next >= 0) showDetail(); else setDetail(false);
     if (next >= 0) detailOpener.current = from;
   };
   /** Closes the detail; with `restore`, the focus goes back to what opened it (or the canvas). */
