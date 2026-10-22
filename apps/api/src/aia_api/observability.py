@@ -136,39 +136,6 @@ class RequestContextMiddleware(BaseHTTPMiddleware):
         return response
 
 
-class ProductionAuthGateMiddleware(BaseHTTPMiddleware):
-    """Refuse authenticated routes in production until a real verifier is wired up.
-
-    This lives in middleware rather than in a dependency because dependency
-    resolution order is an implementation detail of the framework: FastAPI may
-    enter a generator dependency (which opens a database session) before it runs
-    the plain dependency that checks identity. A security gate must not depend on
-    that ordering, so it runs here, before routing and before any dependency is
-    resolved.
-
-    Health and readiness probes stay open: an orchestrator has no credentials.
-    """
-
-    OPEN_PATHS = ("/api/v1/health", "/api/v1/ready")
-
-    def __init__(self, app: Any, *, enabled: bool) -> None:
-        super().__init__(app)
-        self._enabled = enabled
-
-    async def dispatch(
-        self, request: Request, call_next: Callable[[Request], Awaitable[Response]]
-    ) -> Response:
-        if not self._enabled or request.url.path in self.OPEN_PATHS:
-            return await call_next(request)
-
-        return _error(
-            501,
-            "auth_not_configured",
-            "No identity provider is configured. Production refuses header-based "
-            "identity; wire get_principal to the real verifier.",
-        )
-
-
 def _error(
     status_code: int,
     code: str,
