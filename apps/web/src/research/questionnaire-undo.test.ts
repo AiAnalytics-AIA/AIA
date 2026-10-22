@@ -2,7 +2,7 @@
 import { describe, expect, it } from "vitest";
 
 import type { ResearchProject } from "./model";
-import { type Section, removeQuestion, removeSection, restoreQuestion, restoreSection } from "./questionnaire";
+import { type Section, removeQuestion, removeSection, restoreOption, restoreQuestion, restoreSection } from "./questionnaire";
 
 const SECTIONS: Section[] = [
   { id: "sec_a", type: "questions", title: "A", questions: [{ id: "Q1", text: "Jedna?" }, { id: "Q2", text: "Dvě?" }, { id: "Q3", text: "Tři?" }] },
@@ -43,5 +43,25 @@ describe("undoing a delete on Dotazník", () => {
     const back = restoreQuestion(project(), 0, "sec_a", 0, q);
     (back.sections as Section[])[0].questions![0].text = "Změněno";
     expect(q.text).toBe("Nová?");
+  });
+});
+
+describe("undoing an option's removal", () => {
+  const withOptions = (typ?: string) => project([{ id: "sec_a", type: "questions", questions: [{ id: "Q1", text: "Jak?", ...(typ ? { typ } : {}), kategorie: ["Týdně", "Měsíčně"] }] }]);
+  const options = (p: ResearchProject) => (p.sections as Section[])[0].questions![0].kategorie;
+
+  it("puts the one option back in its place, keeping what was edited since", () => {
+    const edited = withOptions("vyber");
+    (edited.sections as Section[])[0].questions![0].kategorie = ["Každý týden", "Měsíčně"];
+    expect(options(restoreOption(edited, 0, "sec_a", 0, "Q1", 0, "Denně"))).toEqual(["Denně", "Každý týden", "Měsíčně"]);
+  });
+
+  it("does nothing once the question is gone, another type, or the option back already", () => {
+    const p = withOptions("skala");
+    expect(restoreOption(p, 0, "sec_a", 0, "Q1", 0, "Denně")).toBe(p);
+    const q = withOptions(undefined);
+    expect(options(restoreOption(q, 0, "sec_a", 0, "Q1", 9, "Denně"))).toEqual(["Týdně", "Měsíčně", "Denně"]);
+    expect(restoreOption(q, 0, "sec_a", 0, "Q9", 0, "Denně")).toBe(q);
+    expect(restoreOption(q, 0, "sec_a", 0, "Q1", 0, "Týdně")).toBe(q);
   });
 });
