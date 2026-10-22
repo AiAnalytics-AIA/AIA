@@ -377,11 +377,19 @@ function CostBar({ ceiling, limit, asks }: { ceiling: number; limit: number | nu
   );
 }
 
-/** Where a failing readiness check is fixed: the sample (and the support it gives) on Dimenze, the audience on Audience, the rest on Dotazník. */
+/** Where each readiness check (domain research_design.assess_readiness, support_forecast) is
+ *  fixed. A check not named here -- the questionnaire's, a compile problem, research-question
+ *  coverage -- is fixed on Dotazník. */
+const FIX_STEP: Readonly<Record<string, StepKey>> = {
+  sample_size: "persona",
+  support_forecast: "persona",
+  sociomap_support: "persona",
+  dimensions: "persona",
+  audience: "audience",
+};
+
 export function fixStep(checkId: string): StepKey {
-  if (/sample|^n$|^support_forecast$/.test(checkId)) return "persona";
-  if (/audience/.test(checkId)) return "audience";
-  return "questionnaire";
+  return Object.hasOwn(FIX_STEP, checkId) ? FIX_STEP[checkId] : "questionnaire";
 }
 
 /** "Co spustíte": each step of the design in one line, as the revision carries it, with a way back to it. */

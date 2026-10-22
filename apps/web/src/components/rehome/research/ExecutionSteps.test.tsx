@@ -12,7 +12,7 @@ import type { ResearchRun } from "@/lib/api";
 import { AnalysisInspect } from "./AnalysisInspect";
 import { measureAnchor } from "@/lib/result-reading";
 import { CONFLICT_MESSAGE } from "@/research/store";
-import { RunResults } from "./ExecutionSteps";
+import { RunResults, fixStep } from "./ExecutionSteps";
 import { StudyFrameProvider } from "./frame";
 import { ResearchScreen, ResearchSession } from "./ResearchScreen";
 import { CONTENT_PATH, workspaceFixture } from "./test-workspace";
@@ -160,6 +160,23 @@ afterEach(() => {
   // Every test here also proves the screen reached nothing of the 18.6.6 unit (ADR 0018).
   expect(calls.filter((c) => !c.url.startsWith("/api/v1/") && c.url !== "/config").map((c) => c.url)).toEqual([]);
   sessionStorage.clear();
+});
+
+describe("fixStep", () => {
+  it("sends each readiness check to the stage where it is fixed", () => {
+    // The ids the domain's readiness emits (research_design.assess_readiness, support_forecast,
+    // research_trace), a prefixed one standing for its kind; n and its support live on Dimenze,
+    // the audience on its own stage.
+    const where = {
+      sample_size: "persona", support_forecast: "persona", sociomap_support: "persona", dimensions: "persona",
+      audience: "audience",
+      questionnaire: "questionnaire", conditional_questions: "questionnaire", battery_familiarity: "questionnaire",
+      sociomap_input: "questionnaire", research_question_coverage: "questionnaire", "compile:invalid_scale:q1": "questionnaire", "battery_size:b1": "questionnaire",
+    };
+    for (const [id, step] of Object.entries(where)) expect([id, fixStep(id)]).toEqual([id, step]);
+    // An id that names an Object.prototype member is an unknown check, never a function.
+    expect(fixStep("constructor")).toBe("questionnaire");
+  });
 });
 
 describe("Run", () => {
