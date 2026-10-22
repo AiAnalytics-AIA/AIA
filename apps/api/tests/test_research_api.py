@@ -272,7 +272,13 @@ class _Stub:
     def execute(self, step: StepInput, context: StepContext) -> StepOutcome:
         if self.failure is None:
             return Succeeded()
-        return Failed(self.failure, error={"message": "The AI runtime is not deployed."})
+        return Failed(
+            self.failure,
+            error={
+                "message": "The AI runtime is not deployed.",
+                "reason": "egress_route_not_approved_for_class",
+            },
+        )
 
 
 def _worker(app: FastAPI, fieldwork: FailureClass | None) -> Worker:
@@ -1731,6 +1737,9 @@ def test_fieldwork_without_the_ai_runtime_waits_visibly_and_nothing_downstream_r
     assert steps["run"]["status"] == "WAITING_PROVIDER"
     assert steps["run"]["waiting_reason"] == "ai_runtime_unavailable"
     assert steps["run"]["failure_class"] == "RUNTIME_UNAVAILABLE"
+    # The gate's own code, which the web words as who fixes it (lead-orchestration LO12a).
+    assert steps["run"]["error_reason"] == "egress_route_not_approved_for_class"
+    assert steps["compile"]["error_reason"] is None
     assert steps["aggregate"]["status"] == steps["sociomap"]["status"] == "BLOCKED"
     assert run["artifact_ids"] == []
     # Waiting is not failure: it cannot be retried into a second run that waits for the same thing.
@@ -2713,3 +2722,12 @@ def test_persona_topics_answer_each_dimension_before_any_run(
     too_many = researcher.get(url, params=[("dimension", f"d{i}") for i in range(65)])
     assert too_many.status_code == 422
     assert researcher.get(url, params={"dimension": "x" * 81}).status_code == 422
+
+
+def test_a_step_passes_on_a_stored_code_never_free_text() -> None:
+    from aia_api.routers.research import _code
+
+    assert _code("egress_route_not_approved_for_class") == "egress_route_not_approved_for_class"
+    assert _code("Trasa není schválená.") is None
+    assert _code(None) is None
+    assert _code(3) is None

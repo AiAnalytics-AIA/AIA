@@ -15,7 +15,7 @@ chunks:
   - "[ ] LO9b. The three new workers as rows (W3): a `REPORT_WRITING` binding, result kinds and accept destinations, per-worker price and keys"
   - "[ ] LO10. `approve_request` bound to the revision shown on its card, and a clean error where the 96 KB Lead context meets the 64 KB agent limit"
   - "[ ] LO11. The Lead over time (M7): `researcher_lead_signals`, proposed updates the researcher approves each, a reader and rollback for Lead file revisions; no handover or admin read (D-32 to D-34); a departed member's Lead sealed, then deleted at the retention end (Q14)"
-  - "[ ] LO12a. The route-class refusal says who fixes it (W0): on the job error, the Lead pane, source proposals and Progress, from the refusal codes that exist today, with a link to the runbook; static copy, no read of the route"
+  - "[x] LO12a. The route-class refusal says who fixes it (W0): on the job error, the Lead pane, source proposals and Progress, from the refusal codes that exist today, with a link to the runbook; static copy, no read of the route"
   - "[ ] LO12b. A pre-flight read of the AI route (W1): the worker publishes a composition record the API, Settings and the Lead pane read (shared with `deep-research-web-search#52`), and the new refusal reasons"
   - "[ ] LO13. Client-level paid AI (source proposals, `clients.budget_usd`) recorded as an explicit exception to "every AI action goes through the Lead" in AC-02"
   - "[ ] LO14. The Lead's cost per turn measured, and an `AIA_LEAD_*` kill switch and budget line"
@@ -114,6 +114,30 @@ File revisions have no reader today (`revisions()` has no caller). Turns stay pr
 
 **LO12a. The route-class refusal says who fixes it (W0): static copy on the four surfaces**  
 The refusal surfaces in the job error, the Lead pane, source proposals and Progress, and none says an operator fixes it (the AI route's classes are set in SSM, not on Settings, which is read-only). The copy is keyed by the refusal codes that exist today (`egress_route_not_approved_for_class` and its siblings) and names the operator step and the runbook; it reads nothing and needs no composition record. Test: each code on each surface renders its who-fixes-it line. Interfaces I24.
+
+- **Landed** (`feature/route-refusal-who-fixes`). `apps/web/src/lib/route-refusal.ts` maps the six
+  refusals the route's settings decide (`egress_` + `route_not_approved_for_class`,
+  `retention_unspecified`, `residency_violation`, `training_exclusion_missing`, `no_approved_route`,
+  `route_provider_mismatch`) to one line: the operator fixes it, by which SSM parameter, under
+  `deploy/develop/README.md`, and Settings cannot change it.
+  - Not on the list: `egress_unclassified_material` (an operator's classification, not the route),
+    `licence_undetermined` (the data owner) and the budget codes (the researcher).
+  - The four surfaces append it: the Lead pane (`leadReasonWords`), the job panel
+    (`agentJobUpdate`, `followAgentJob`), source proposals (`proposalsLine`) and Progress
+    (`waitingDetail`, and `stepProblem` for Deep Research).
+  - A run step had no code to key on: its message is free text, and the gate's code stayed in the
+    attempt's error. `ResearchStepResponse.error_reason` and Deep Research's `DeepResearchStep`
+    now carry that code, or null when it is not a code (`_code`).
+  - `lead-availability.ts` now re-exports the pane's `leadReasonWords` instead of keeping a copy,
+    closing its TODO(#547).
+  - Tests: `route-refusal.test.ts`; on each surface, `lead.test.ts`, `research-agent-jobs.test.ts`,
+    `source-proposals.test.ts`, `research-execution.test.ts`; the API test
+    `test_fieldwork_without_the_ai_runtime_waits_visibly_and_nothing_downstream_runs` and
+    `test_a_step_passes_on_a_stored_code_never_free_text`, and Deep Research's
+    `test_a_run_parked_for_the_runtime_goes_on_when_a_person_resumes_it`, with `reason-words.test.ts`.
+  - Not a browser journey: the workbench has no route to refuse (its fieldwork is fictional code),
+    and making one refuse would mean building a refusing gateway into the workbench for one line of
+    static copy.
 
 **LO12b. A pre-flight read of the AI route (W1)**  
 The API cannot evaluate class, so the worker publishes a composition record the API, Settings and the Lead pane read (shared with `deep-research-web-search#52`, whose Reach panel is the other consumer, and with `run-qc-and-checkpoint#RQC8`). It lands in the same row as 52 (E12). The Lead pane gains `retention_unspecified`, `residency_violation` and `training_exclusion_missing`. Settings is read-only and stays so. Interfaces I15.

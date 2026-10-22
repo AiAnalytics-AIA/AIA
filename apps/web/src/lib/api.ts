@@ -1034,6 +1034,8 @@ export type ResearchStep = {
   finished_at: string | null;
   failure_class: string | null;
   error_message: string | null;
+  /** The code the last attempt recorded beside its message (a gate's refusal); absent from an older API. */
+  error_reason?: string | null;
   artifact_id: string | null;
   data_origin: string | null;
   /** An analysis step's stored outcome: its step SUCCEEDED either way. `null` for other steps. */
@@ -1355,7 +1357,7 @@ export type DeepResearchRun = {
   run_id: string; design_revision_id: string; preset: string; channels: string[];
   status: string; phase: ResearchPhase; is_terminal: boolean; needs_attention: boolean;
   retryable: boolean; created_at: string | null;
-  steps: { step_id: string; node_key: string; status: string; waiting_reason: string | null; error_message: string | null; started_at?: string | null }[];
+  steps: { step_id: string; node_key: string; status: string; waiting_reason: string | null; error_message: string | null; error_reason?: string | null; started_at?: string | null }[];
   actual_cost_usd: number | null;
   purpose?: string | null;
   target?: { kind: string; research_run_id?: string } | null;

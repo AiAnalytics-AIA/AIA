@@ -9,6 +9,7 @@ import type { Json, ResearchProject } from "@/research/model";
 import { proposalAnalysis, type Narrative } from "@/research/plan-edit";
 import { qId, sections, type Question, type Section } from "@/research/questionnaire";
 import type { Analysis } from "@/research/store";
+import { withFixer } from "./route-refusal";
 import type { WorkbenchStage } from "./workbench-stages";
 import { parseAiaId, type TargetKind } from "./workbench-artifacts";
 
@@ -641,9 +642,10 @@ export const LEAD_REASON_WORDS: Readonly<Record<string, string>> = {
   lead_busy: "Vedoucí ještě odpovídá na předchozí zprávu.",
   lead_not_hatched: "Nejdřív si vylíhněte vlastního Vedoucího výzkumu.",
   budget_exceeded: "Na odpověď nezbývá rozpočet studie. Nastavte ho v Nastavení → Studie a zpráva se odešle sama.",
+  reservation_exhausted: "Na odpověď nezbývá rozpočet studie. Nastavte ho v Nastavení → Studie a zpráva se odešle sama.",
   CANCELLED: "Na tuto zprávu Vedoucí neodpověděl zvlášť: přečetl ji s vaší další zprávou.",
 };
 
 export function leadReasonWords(code: string | null | undefined): string {
-  return code ? LEAD_REASON_WORDS[code] ?? `Vedoucí se zastavil (${code}).` : "Vedoucí se zastavil.";
+  return code ? withFixer(LEAD_REASON_WORDS[code] ?? `Vedoucí se zastavil (${code}).`, code) : "Vedoucí se zastavil.";
 }
