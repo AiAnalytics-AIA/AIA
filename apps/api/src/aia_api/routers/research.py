@@ -1296,7 +1296,12 @@ def readiness(
     The 18.6.6 technical preflight is not these checks and is not claimed.
     """
     chosen = _chosen_persona_source(request, persona_source)
-    runs = ResearchRuns(session, scope, panel_sampler=sampler)
+    runs = ResearchRuns(
+        session,
+        scope,
+        panel_sampler=sampler,
+        routing_enabled=request.app.state.settings.routing_enabled,
+    )
     try:
         outlook = runs.outlook(
             design_revision_id,
@@ -1331,7 +1336,12 @@ def working_readiness(
     reads it on the revision it shows; a start still runs a submitted Design Revision.
     A revision the Study never saved is 404 ``working_revision``."""
     chosen = _chosen_persona_source(request, persona_source)
-    runs = ResearchRuns(session, scope, panel_sampler=sampler)
+    runs = ResearchRuns(
+        session,
+        scope,
+        panel_sampler=sampler,
+        routing_enabled=request.app.state.settings.routing_enabled,
+    )
     try:
         outlook = runs.outlook_working(
             working_revision,
@@ -1526,6 +1536,7 @@ def start_run(
         population_contract=population.contract,
         population_id=population.population_id,
         panel_sampler=sampler,
+        routing_enabled=request.app.state.settings.routing_enabled,
     )
     with run_start_errors():
         started = runs.start(
@@ -1585,8 +1596,8 @@ def run_start_settings(
     store: ArtifactStore | None = None,
 ) -> RunStartSettings:
     """What a research run's start takes from the deployment, as ``start_run`` passes it: the
-    fieldwork source, analysis and Sociomapping switches, reservations, the default persona
-    source, the answerability gate and the population a new run records. A typed start (LO5)
+    fieldwork source, analysis, Sociomapping and routing switches, reservations, the default
+    persona source, the answerability gate and the population a new run records. A typed start (LO5)
     names no persona source, population child or acknowledgement, so it starts on the
     deployment's defaults, as a start naming none does here. ``store``: what a typed analysis
     retry reads the run's stored outcomes from."""
@@ -1603,6 +1614,7 @@ def run_start_settings(
         population_id=population.population_id,
         panel_sampler=sampler,
         store=store,
+        routing_enabled=settings.routing_enabled,
     )
 
 

@@ -15,6 +15,9 @@ from typing import Any
 import pytest
 
 from aia_core.domain import research_design
+from aia_core.domain.evidence.support import SupportStatus
+from aia_core.domain.fieldwork import PersonaSource
+from aia_core.domain.question_outlook import OutlookReason, Verdict, question_outlook
 from aia_core.domain.research_design import (
     CheckStatus,
     SpecCondition,
@@ -23,6 +26,7 @@ from aia_core.domain.research_design import (
     condition_refusal,
 )
 from aia_core.domain.sociomap.relations import AUDIT_PROVISIONAL_N_MIN
+from aia_core.domain.support_forecast import SupportForecast
 
 
 def _design(*questions: dict[str, Any]) -> dict[str, Any]:
@@ -255,3 +259,65 @@ def test_an_edit_is_held_to_the_compilers_own_rule(
 
 def test_an_edit_on_no_stored_question_is_refused() -> None:
     assert condition_refusal(_design(), "Q9", None) == "unknown_question"
+
+
+def _routing_checks(content: dict[str, Any], *, routing: bool) -> dict[str, Any]:
+    spec, problems = compile_design(content)
+    assert problems == () and spec is not None
+    readiness = assess_readiness(spec, pair_n_min=AUDIT_PROVISIONAL_N_MIN, routing=routing)
+    return {c.id: c for c in readiness.checks}
+
+
+def test_the_routing_switch_passes_a_valid_condition_and_off_fails_it_as_before() -> None:
+    """WCE13 (d): ``AIA_ROUTING_ENABLED`` as a run pins it. Off (the default, and develop's until
+    RQC11 routes fieldwork), a valid condition fails readiness exactly as before; on, it passes."""
+    content = _design(_q3({"question_id": "Q1", "options": ["Nikdy"]}))
+    off = _routing_checks(content, routing=False)["conditional_questions"]
+    assert off.status is CheckStatus.FAIL and "q3" in off.message
+    spec, _ = compile_design(content)
+    assert spec is not None
+    default = assess_readiness(spec, pair_n_min=AUDIT_PROVISIONAL_N_MIN)
+    assert next(c for c in default.checks if c.id == "conditional_questions") == off
+    on = _routing_checks(content, routing=True)["conditional_questions"]
+    assert on.status is CheckStatus.PASS and "q3" in on.message
+
+
+def test_routing_never_passes_a_condition_compile_refused() -> None:
+    checks = _routing_checks(
+        _design(_q3({"question_id": "Q1", "options": ["Někdy"]})), routing=True
+    )
+    assert checks["condition:q3"].status is CheckStatus.FAIL
+    assert "conditional_questions" not in checks
+
+
+def test_routing_asks_a_valid_condition_of_part_of_the_sample_whose_support_is_unknown() -> None:
+    """The outlook: off, a conditional question is unanswerable (everyone is asked it); on, it is
+    asked of those it names, a part the forecast does not model, so its support is unknown."""
+    spec, _ = compile_design(
+        _design(
+            _q3({"question_id": "Q1", "options": ["Nikdy"]}),
+            {"id": "Q4", "text": "Kolik?", "typ": "skala", "skala": [1, 5],
+             "filtr": {"question_id": "Q1", "options": ["Někdy"]}},
+        )
+    )  # fmt: skip
+    assert spec is not None
+    # The whole sample's support is reportable: what a question everyone answers would have.
+    whole = SupportForecast(
+        persona_source=PersonaSource.FICTIONAL_ROSTER,
+        respondents=300,
+        donors=300,
+        results=SupportStatus.REPORTABLE,
+        analysis=SupportStatus.REPORTABLE,
+    )
+    off = {o.question_id: o for o in question_outlook(spec, whole)}
+    assert OutlookReason.CONDITIONAL in off["q3"].reasons
+    assert off["q3"].verdict is Verdict.UNANSWERABLE
+    assert off["q2"].verdict is Verdict.ANSWERABLE
+    on = {o.question_id: o for o in question_outlook(spec, whole, routing=True)}
+    assert on["q2"] == off["q2"], "a question everyone answers is read as before"
+    assert OutlookReason.CONDITIONAL not in on["q3"].reasons
+    assert OutlookReason.SUPPORT_UNKNOWN in on["q3"].reasons
+    assert on["q3"].verdict is not Verdict.ANSWERABLE, "never good on a part not forecast"
+    # A refused condition is never routed.
+    assert OutlookReason.CONDITIONAL in on["q4"].reasons
+    assert on["q4"].verdict is Verdict.UNANSWERABLE

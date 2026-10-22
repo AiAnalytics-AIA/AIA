@@ -661,6 +661,37 @@ def test_readiness_compare_lists_the_studies_whose_verdict_the_draft_moves(
     assert lead.get(f"{READINESS}/versions").json()["versions"] == []
 
 
+def test_readiness_compare_reads_a_condition_as_the_routing_switch_does(
+    app: FastAPI, world: Any, as_user: Any
+) -> None:
+    """WCE13 (d): the comparison's checks are Kontrola's, so a valid display condition fails
+    both columns with AIA_ROUTING_ENABLED off and passes both with it on."""
+    lead = as_user("lead")
+    draft = _readiness_draft(15, 5)
+    draft["content"]["sections"].insert(
+        0,
+        {
+            "type": "questions",
+            "questions": [
+                {"id": "Q1", "text": "Pijete kávu?", "typ": "vyber", "kategorie": ["Ano", "Ne"]},
+                {"id": "Q2", "text": "Proč ne?", "typ": "otevrena",
+                 "filtr": {"question_id": "Q1", "options": ["Ne"]}},
+            ],
+        },
+    )  # fmt: skip
+    saved = lead.put(f"{API}/studies/{world.study_id('primary')}/workspace/content", json=draft)
+    assert saved.status_code == 200, saved.text
+
+    def primary() -> dict[str, Any]:
+        body = lead.post(f"{READINESS}/compare", json=_readiness_edit(sample_size__min=10)).json()
+        studies = {s["study_id"]: s for s in body["readiness"]["studies"]}
+        return studies[world.study_id("primary")]
+
+    assert primary()["ready"] == [False, False]
+    app.state.settings = app.state.settings.model_copy(update={"routing_enabled": True})
+    assert primary()["ready"] == [False, True]
+
+
 def test_a_half_written_draft_is_not_assessed_and_never_stops_the_comparison(
     world: Any, as_user: Any
 ) -> None:

@@ -84,6 +84,7 @@ from ..domain.research_design import (
     ReadinessSpec,
     ResearchSpecification,
     prepare,
+    routed_questions,
     selection_receipt,
 )
 from ..domain.research_sociomap import (
@@ -482,6 +483,10 @@ class ResearchRuns:
     #: Draws a panel run's sample over the population above (run-qc-and-checkpoint RQC6b);
     #: ``None``: none composed, so a panel run's support forecast reads unknown.
     panel_sampler: PanelSampler | None = None
+    #: ``AIA_ROUTING_ENABLED`` (off; working-copy-edit-ops WCE13 (d)): a valid display condition
+    #: passes readiness and a new run pins it (``routing``), which its preflight reads. Off until
+    #: fieldwork routes by it (run-qc-and-checkpoint RQC11).
+    routing_enabled: bool = False
 
     def _panel_draw(self, spec: ResearchSpecification) -> PanelDraw | None:
         """The sample a panel run of ``spec`` would draw: the design's filters, its n and the
@@ -590,6 +595,7 @@ class ResearchRuns:
         acknowledge: Acknowledgement | None = None,
         inherited_acknowledgement: tuple[Acknowledgement, str, str | None] | None = None,
         require_answerability: bool = False,
+        routing: bool | None = None,
         _probe: bool = False,
     ) -> StartedRun:
         """Run the research workflow over one Design Revision of the Study.
@@ -636,6 +642,14 @@ class ResearchRuns:
         the run's identity, so the same revision over LIVE and over a child is two runs; a
         child that is not this client's raises
         :class:`~aia_core.domain.population.UnknownDatasetVersion`, as a scope miss does.
+
+        The run pins whether fieldwork routes its display conditions (``routing``; the
+        composition's ``routing_enabled`` when not given, a retry the original's): readiness
+        passes a valid condition under it, and its preflight and fieldwork steps read the pin
+        (fieldwork fails a routed run by name until it routes, RQC11). With no valid condition
+        the pin changes nothing and is not recorded. It is not part of the run's key: without
+        it a design with a valid condition never starts, so every run of such a revision is
+        routed, and a start after the switch is turned off still finds its run.
 
         The run also pins its readiness limits (``readiness``; the organization's readiness
         version in force when not given, plan ``methodology-tab`` V1a): the start checks the
@@ -695,11 +709,15 @@ class ResearchRuns:
         response_spec, response_version = self._response(response)
         limits, readiness_version = self._readiness(readiness)
         content = designs.content(revision.revision_id)
+        routing = self.routing_enabled if routing is None else routing
         _spec, checked = prepare(
             content,
             pair_n_min=side_tables_of(methods).n_min,
             limits=limits,
+            routing=routing,
         )
+        # Only a design with a valid condition is routed: elsewhere the pin changes nothing.
+        routed = _spec is not None and bool(routed_questions(_spec, routing=routing))
         panel = persona_source is PersonaSource.PANEL
         # As readiness drew it: a new panel run over LIVE (a run over a selected child, or a
         # retry, which keeps the original's population, draws from one the sampler does not
@@ -817,7 +835,7 @@ class ResearchRuns:
                     slots=slots,
                     sample=drawn.sample if drawn is not None else None,
                 )
-            items = question_outlook(_spec, forecast)
+            items = question_outlook(_spec, forecast, routing=routing)
             trace = trace_research(
                 _spec, research_questions_of(content), items, comparisons_of(content)
             )
@@ -897,6 +915,7 @@ class ResearchRuns:
                 **({"response_methodology": response_version} if response_version else {}),
                 "readiness": readiness_pin,
                 **({"readiness_methodology": readiness_version} if readiness_version else {}),
+                **({"routing": True} if routed else {}),
                 **({"retry_of": retry_of} if retry_of else {}),
                 **({"analysis_retry": frozen_dataset.note()} if frozen_dataset else {}),
                 "persona_source": persona_source.value,
@@ -929,10 +948,12 @@ class ResearchRuns:
                     "methods": pinned,
                     "persona_source": persona_source.value,
                     "readiness": readiness_pin,
+                    **({"routing": True} if routed else {}),
                 },
                 "run": {
                     "fieldwork_source": fieldwork_source.value,
                     "persona_source": persona_source.value,
+                    **({"routing": True} if routed else {}),
                     "response": response_pin,
                     **({"frozen_dataset": frozen_dataset.step_input()} if frozen_dataset else {}),
                 },
@@ -1078,6 +1099,7 @@ class ResearchRuns:
                 if run["metadata"].get(k)
             },
             persona_source=persona_source_of(run["metadata"]),
+            routing=run["metadata"].get("routing") is True,
             acknowledge=acknowledge,
             inherited_acknowledgement=_acknowledgement_of(run),
             require_answerability=require_answerability,
@@ -1354,6 +1376,7 @@ class ResearchRuns:
             pair_n_min=side_tables_of(methods).n_min,
             filters_applied=persona_source is PersonaSource.PANEL,
             limits=limits,
+            routing=self.routing_enabled,
         )
         if spec is None:
             return RunOutlook(spec=None, readiness=readiness, questions=(), trace=None)
@@ -1379,7 +1402,7 @@ class ResearchRuns:
                 sample=panel.sample if panel is not None else None,
             )
             readiness = with_support_forecast(readiness, forecast, support=support)
-        questions = question_outlook(spec, forecast)
+        questions = question_outlook(spec, forecast, routing=self.routing_enabled)
         # The research questions as the analysis will read them, each traced to its measures.
         trace = trace_research(
             spec, research_questions_of(content), questions, comparisons_of(content)

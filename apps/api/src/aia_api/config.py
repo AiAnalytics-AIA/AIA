@@ -112,6 +112,12 @@ class Settings(BaseSettings):
     # start, so a retry keeps the original's; the worker composes the panel path behind the same
     # key and parks a panel run it cannot serve. Off by default: every run is the fictional roster.
     ai_population_personas_enabled: bool = False
+    # Whether a valid display condition passes readiness and a new run pins it, so its preflight
+    # reads the pin (AIA_ROUTING_ENABLED, working-copy-edit-ops WCE13 (d)). Off by default and off
+    # on develop too (its Compose file does not set it) until fieldwork routes by it
+    # (run-qc-and-checkpoint RQC11); until then fieldwork fails a routed run by name. Off, a
+    # conditional question fails readiness as it always has.
+    routing_enabled: bool = False
     # The read-only directory the population's bundles are under (AIA_POPULATION_ASSET_ROOT,
     # the worker's key), read here only by the audience step's preview (plan
     # panel-grounded-respondents 6c): the API loads LIVE once per process and version and

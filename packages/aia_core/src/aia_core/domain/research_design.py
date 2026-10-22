@@ -1403,14 +1403,26 @@ def selection_receipt(spec: ResearchSpecification, *, population_draw: bool) -> 
 READINESS_RULES: Final = "aia-structural-readiness-1"
 
 
+def routed_questions(spec: ResearchSpecification, *, routing: bool) -> tuple[str, ...]:
+    """The questions fieldwork asks only of those their condition names: under ``routing``
+    (a run's pin of ``AIA_ROUTING_ENABLED``, WCE13 (d)), each with a valid condition; none
+    without it. The one rule readiness, the outlook and a run's pin read."""
+    return tuple(q.id for q in spec.questions if routing and q.condition is not None)
+
+
 def assess_readiness(
     spec: ResearchSpecification,
     *,
     pair_n_min: int,
     filters_applied: bool = False,
     limits: ReadinessSpec = AIA_READINESS_V1,
+    routing: bool = False,
 ) -> Readiness:
     """AIA's structural readiness checks. Ready means no check FAILed.
+
+    ``routing`` (the run's pin of ``AIA_ROUTING_ENABLED``, off until fieldwork routes,
+    run-qc-and-checkpoint RQC11; working-copy-edit-ops WCE13 (d)): a valid display condition
+    passes; off, it fails as it always has. A condition compile refused fails either way.
 
     ``limits`` are the sample size and recommended set size the checks hold the design to
     (plan ``methodology-tab`` V1a): a run's pin, the version in force for a check now, the
@@ -1456,7 +1468,13 @@ def assess_readiness(
         if q.condition_problem is not None:
             check(f"condition:{q.id}", CheckStatus.FAIL, q.condition_problem.message)
     filtered = [q.id for q in spec.questions if q.condition is not None]
-    if filtered:
+    if routed := routed_questions(spec, routing=routing):
+        check(
+            "conditional_questions",
+            CheckStatus.PASS,
+            "Podmíněné otázky dostane jen ten, kdo na ně má odpovídat: " + ", ".join(routed) + ".",
+        )
+    elif filtered:
         check(
             "conditional_questions",
             CheckStatus.FAIL,
@@ -1584,10 +1602,11 @@ def prepare(
     pair_n_min: int,
     filters_applied: bool = False,
     limits: ReadinessSpec = AIA_READINESS_V1,
+    routing: bool = False,
 ) -> tuple[ResearchSpecification | None, Readiness]:
     """Compile and assess in one call. A design that does not compile is not ready.
-    ``pair_n_min``, ``filters_applied`` and ``limits`` as :func:`assess_readiness` takes
-    them; the design compiles under the same ``limits``. Labels compiled around are a WARN
+    ``pair_n_min``, ``filters_applied``, ``limits`` and ``routing`` as :func:`assess_readiness`
+    takes them; the design compiles under the same ``limits``. Labels compiled around are a WARN
     each, in words, never a FAIL."""
     notes: list[CompileProblem] = []
     spec, problems = compile_design(content, limits=limits, notes=notes)
@@ -1603,7 +1622,11 @@ def prepare(
             ),
         )
     readiness = assess_readiness(
-        spec, pair_n_min=pair_n_min, filters_applied=filters_applied, limits=limits
+        spec,
+        pair_n_min=pair_n_min,
+        filters_applied=filters_applied,
+        limits=limits,
+        routing=routing,
     )
     if not notes:
         return spec, readiness
