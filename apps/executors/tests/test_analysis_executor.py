@@ -429,7 +429,7 @@ def test_native_research_start_and_worker_complete_the_composed_analysis_graph(
         < body.index("Výsledky jednotlivých otázek")
     )
     assert "smyšlení respondenti" in body
-    assert report.metadata["report_contract"] == "aia-internal-report-13"
+    assert report.metadata["report_contract"] == "aia-internal-report-14"
     # The methodology chapter states the rules the run pinned (artifact-chain CHN9).
     assert "Pravidlo podpory aia-support-1" in body and "Agregace: metodika" in body
     # The document the DOCX was rendered from, beside it (report-delivery RD5a).

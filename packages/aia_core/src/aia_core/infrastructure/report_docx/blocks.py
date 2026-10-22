@@ -54,6 +54,7 @@ from aia_core.infrastructure.report_docx.ooxml import (
     full_width,
     header_row,
     keep_row,
+    locked_inline,
     notes_row,
 )
 from aia_core.infrastructure.report_docx.styles import S, kept_style, row_keeps
@@ -114,13 +115,15 @@ def base_text(ctx: RenderContext, ref: str) -> str:
 
 
 def write_value(ctx: RenderContext, p: DocxParagraph, ref: str, *, with_interval: bool) -> None:
-    """``42,5 % (38,1-46,9 %)`` in the numeral face, its grade mark, "orientační"."""
-    p.add_run(value_text(ctx, ref, with_interval=with_interval), style=S.NUMERAL)
-    p.add_run(numbers.NBSP)
-    write_mark(ctx, p, ref)
-    write_disclosure(ctx, p, (ref,))
-    if ctx.ledger.is_indicative(ref):
-        p.add_run(f" ({t('indicative')})", style=S.GRADE)
+    """``42,5 % (38,1-46,9 %)`` in the numeral face, its grade mark, "orientační": one locked
+    control tagged with the ref, so an editor keeps the number as AIA printed it (RPT8a)."""
+    with locked_inline(p, ref):
+        p.add_run(value_text(ctx, ref, with_interval=with_interval), style=S.NUMERAL)
+        p.add_run(numbers.NBSP)
+        write_mark(ctx, p, ref)
+        write_disclosure(ctx, p, (ref,))
+        if ctx.ledger.is_indicative(ref):
+            p.add_run(f" ({t('indicative')})", style=S.GRADE)
 
 
 def write_mark(ctx: RenderContext, p: DocxParagraph, ref: str) -> None:
