@@ -31,6 +31,10 @@ const matches = (query: string) => width >= Number(/min-width: (\d+)px/.exec(que
 let mounts = 0;
 // What GET /studies/{id}/lead answers, read by read: the last entry repeats.
 let leadReads: object[] = [];
+// What GET …/research/runs and GET …/research/impact answer (WCE7d); impact null is a 404.
+let runsAnswer: object[] = [];
+let impactAnswer: object | null = null;
+const impactUrls: string[] = [];
 const leadState = (over: object = {}) => ({ available: true, unavailable_reason: null, busy: false, turns: [], ...over });
 const leadTurn = (id: string, seq: number, view: object[] = []) => ({
   turn_id: id, sequence_no: seq, actor: "lead", kind: "message", stage: "questionnaire", text: null, focus: null, status: "COMPLETED", reason: null,
@@ -49,6 +53,9 @@ beforeEach(() => {
   mounts = 0;
   lists.length = 0;
   leadReads = [leadState()];
+  runsAnswer = [];
+  impactAnswer = null;
+  impactUrls.length = 0;
   vi.stubGlobal("requestAnimationFrame", (cb: FrameRequestCallback) => {
     cb(0);
     return 0;
@@ -70,7 +77,11 @@ beforeEach(() => {
     if (u === "/config") return new Response(JSON.stringify({ apiBase: "", aiRuntime: null }));
     if (u === "/api/v1/lead") return new Response(JSON.stringify({ hatched: true, lead: { lead_id: "LEAD-1", name: "Bára", hatched_at: "2026-10-19T08:00:00Z", updated_at: "2026-10-19T08:00:00Z", files: { soul: "", user: "" }, memories: [] } }));
     if (u.endsWith("/lead")) return new Response(JSON.stringify(leadReads.length > 1 ? leadReads.shift() : leadReads[0]));
-    if (u.endsWith("/research/runs")) return new Response(JSON.stringify([]));
+    if (u.endsWith("/research/runs")) return new Response(JSON.stringify({ items: runsAnswer }));
+    if (u.endsWith("/research/impact")) {
+      impactUrls.push(String(url));
+      return impactAnswer ? new Response(JSON.stringify(impactAnswer)) : new Response(JSON.stringify({ code: "design_revision" }), { status: 404 });
+    }
     if (u === "/api/v1/studies/STU-1") return new Response(JSON.stringify({ study_id: "STU-1", budget_usd: null, spent_usd: null }));
     return new Response(JSON.stringify({ code: "not_found" }), { status: 404 });
   }));
@@ -332,5 +343,34 @@ describe("Připravenost a pomoc", () => {
     fireEvent.keyDown(window, { key: "Escape" });
     await waitFor(() => expect(screen.queryByRole("dialog")).toBeNull());
     expect((document.querySelector("aside.insp") as HTMLElement).hidden).toBe(false);
+  });
+});
+
+describe("the stage track reads the working copy's impact (working-copy-edit-ops WCE7d)", () => {
+  const PIPELINE: string[] = JSON.parse(readFileSync(join(process.cwd(), "../../packages/aia_core/tests/fixtures/pipeline_stages/stages.json"), "utf8")).research;
+  const answer = (designId: string, over: Record<string, string>) => ({
+    working_revision: 3, design_revision_id: designId, design_revision: 2, changed: ["sections"],
+    stages: PIPELINE.map((stage) => ({ stage, impact: over[stage] ?? "CURRENT" })),
+  });
+  const stageButton = (label: string) => screen.getAllByRole("button").find((b) => b.classList.contains("nav__stage") && b.title.startsWith(label))!;
+
+  it("marks a stage the copy changed and the stages to re-check since the newest run, measured against that run's design", async () => {
+    runsAnswer = [{ run_id: "RUN-1", design_revision_id: "REV-2", design_revision: 2, status: "SUCCEEDED", steps: [] }];
+    impactAnswer = answer("REV-2", { QUESTIONNAIRE: "CHANGED", ANALYSIS: "RECHECK" });
+    bench();
+    await waitFor(() => expect(stageButton("Dotazník").getAttribute("data-impact")).toBe("CHANGED"));
+    expect(impactUrls[0]).toContain("working_revision=3");
+    expect(impactUrls[0]).toContain("design_revision_id=REV-2");
+    expect(stageButton("Dotazník").textContent).toContain("změněno od běhu (revize 2)");
+    expect(stageButton("Analýza").getAttribute("data-impact")).toBe("RECHECK");
+    expect(stageButton("Analýza").title).toContain("ověřit znovu: návrh se od běhu změnil");
+    expect(stageButton("Zadání").getAttribute("data-impact")).toBeNull();
+  });
+
+  it("says nothing for a study without a Design Revision (404), and reads against the newest one before any run", async () => {
+    bench();
+    await waitFor(() => expect(impactUrls.length).toBe(1));
+    expect(impactUrls[0]).not.toContain("design_revision_id");
+    expect(document.querySelectorAll("[data-impact]").length).toBe(0);
   });
 });

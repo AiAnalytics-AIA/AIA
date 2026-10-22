@@ -3,7 +3,7 @@ import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 
 import type { WorkingImpact } from "./api";
-import { PIPELINE_STAGES, stageImpacts } from "./working-impact";
+import { PIPELINE_STAGES, impactBase, impactMarks, impactWords, stageImpacts } from "./working-impact";
 import { STAGE_ORDER } from "./workbench-stages";
 
 // domain/pipeline.py's research stage ids, held there by test_pipeline_stage_fixture.py.
@@ -45,5 +45,40 @@ describe("stageImpacts", () => {
     expect(stageImpacts(null)).toEqual({});
     expect(stageImpacts(undefined)).toEqual({});
     expect(stageImpacts(impact([]))).toEqual({});
+  });
+});
+
+describe("impactBase", () => {
+  it("measures against the newest run's design, the newest Design Revision before any run, and nothing while the runs are unknown", () => {
+    expect(impactBase([{ design_revision_id: "REV-3", design_revision: 3 }, { design_revision_id: "REV-1", design_revision: 1 }])).toEqual({ id: "REV-3", run: 3 });
+    expect(impactBase([])).toEqual({ run: null });
+    expect(impactBase(null)).toBeNull();
+  });
+});
+
+describe("impactWords", () => {
+  it("says what moved since the run, or since the revision before any run; CURRENT says nothing", () => {
+    expect(impactWords("CHANGED", { id: "REV-3", run: 3 }, 3)).toBe("změněno od běhu (revize 3)");
+    expect(impactWords("RECHECK", { id: "REV-3", run: 3 }, 3)).toBe("ověřit znovu: návrh se od běhu změnil");
+    expect(impactWords("CHANGED", { run: null }, 2)).toBe("změněno od revize 2");
+    expect(impactWords("RECHECK", { run: null }, 2)).toBe("ověřit znovu: změna dříve v návrhu");
+    expect(impactWords("CURRENT", { run: null }, 2)).toBeNull();
+  });
+});
+
+describe("impactMarks", () => {
+  it("marks only the stages the copy reopened, with their words", () => {
+    const got = impactMarks(all("CURRENT", { QUESTIONNAIRE: "CHANGED", ANALYSIS: "RECHECK" }), { run: null });
+    expect(got).toEqual({
+      questionnaire: { impact: "CHANGED", words: "změněno od revize 1" },
+      analysis: { impact: "RECHECK", words: "ověřit znovu: změna dříve v návrhu" },
+    });
+  });
+
+  it("names nothing from an answer about another Design Revision than the base, or without a base", () => {
+    const changed = all("CHANGED");
+    expect(impactMarks(changed, { id: "REV-9", run: 9 })).toEqual({});
+    expect(impactMarks(changed, null)).toEqual({});
+    expect(impactMarks(null, { run: null })).toEqual({});
   });
 });
