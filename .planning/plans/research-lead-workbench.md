@@ -1789,7 +1789,19 @@ pass finds the jobs already done for the design.
      "Unable to find role="button" and name `/^Detail: /`" after 5.5 s. Idle, it takes 2.2 s of its
      4 s budget. Zpráva saw it fail once under load.
   4. Consequence: a red web suite on a loaded runner, unrelated to the change under test.
-  5. Fix: the five overrides removed, so the suite's 10 s budget applies. "leaves nothing pending"
-     also now waits until the guard has stopped the move, so it no longer passes when no move is
-     tried at all.
+  5. Fix: the five overrides removed, so the suite's 10 s budget applies.
   6. Test: the reproduction above passes; the file passes (38).
+- **F21. "leaves nothing pending" took its guard off before the Lead's move was tried** *(fixed,
+  the same branch)*.
+  1. Claim: the test removed its leave guard as soon as the turn's chip appeared. LeadPane runs
+     the turn's view from a passive effect (`LeadPane.tsx:166 @ eb0c7d47`); when `findByRole`
+     resolves before that effect has run, `cleanup()`'s `act` flushes it after the guard is gone,
+     so the move goes through and leaves the inspect pending for the remount.
+  2. Anchor: `Workbench.layout.test.tsx:407-424 @ eb0c7d47`.
+  3. Reproduction: about one run in ten of the file with develop's version of the test fails at
+     `:424` ("expected <aside …> to be null") after 2.2 s, not at the 4 s budget (seen on the
+     map-view branch, which predates this fix).
+  4. Consequence: a red web suite now and then, under no load at all.
+  5. Fix: the test waits until its guard has stopped the move (`stopped === 1`) before taking it
+     off, which also means it no longer passes when no move is tried.
+  6. Test: the same file, run repeatedly, never fails at `:424`.
