@@ -2136,7 +2136,14 @@ export const cs = {
       addScale: "Škála 1–10",
       addOpen: "Otevřená odpověď",
       addSet: "Sledovaná sada",
-      quickHelp: "Systém vytvoří správný typ otázky a vy jen upravíte text/odpovědi.",
+      quickHelp: "Vyberte typ, napište znění a Enter: otázka přibude do prvního bloku a otevře se další řádek. Odpovědi upravíte na kartě otázky.",
+      // Inline adds (input-interactions chunk 3, I5): no prompt, the row where the item appears.
+      inlineAdd: {
+        kind: "Typ nové otázky",
+        question: "Nová otázka",
+        setPlaceholder: "Co porovnáváme? Např. média, značky",
+        empty: "Napište znění.",
+      },
       emptyTitle: "Dotazník je prázdný",
       emptyText: "Začněte jedním z tlačítek „Rychle přidat“.",
       addBlock: "nový blok",
