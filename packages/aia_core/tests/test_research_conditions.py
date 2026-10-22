@@ -74,6 +74,8 @@ def test_a_condition_on_an_earlier_choice_compiles_and_still_waits_for_routing()
         ("Q1 == 'Nikdy'", ("Nikdy",)),
         ("Q1 in ['Týdně', 'Nikdy']", ("Týdně", "Nikdy")),
         ("Q1 in ('Týdně',)", ("Týdně",)),
+        # The unit named a question as its compiler did: case-insensitively (filter_syntax.py).
+        ("q1 == 'Nikdy'", ("Nikdy",)),
     ],
 )
 def test_a_condition_written_as_the_classic_did_reads_when_it_is_exactly_a_choice(
@@ -97,6 +99,9 @@ def test_a_condition_written_as_the_classic_did_reads_when_it_is_exactly_a_choic
         {"question_id": "Q1", "options": "Nikdy"},
         {"question_id": "Q1", "options": ["Nikdy"], "negate": True},
         ["Q1", "Nikdy"],
+        "Q1 == 'Ni' 'kdy'",  # two literals joined: not one answer as written
+        "Q1 == " + " + ".join(["'a'"] * 5000),  # too long to be a choice; never parsed
+        "(" * 400 + "Q1" + ")" * 400 + " == 'Nikdy'",  # nests past the parser
     ],
 )
 def test_a_condition_the_domain_cannot_read_stays_as_written_and_is_refused_by_name(
@@ -127,6 +132,29 @@ def test_a_condition_on_a_later_question_is_refused_as_a_forward_reference() -> 
     later = {"id": "Q4", "text": "Pijete čaj?", "typ": "vyber", "kategorie": ["Ano", "Ne"]}
     content = _design(_q3({"question_id": "Q4", "options": ["Ano"]}), later)
     assert _codes(content) == ["condition_forward_reference"]
+
+
+def test_a_condition_on_a_question_compile_refused_says_nothing_more() -> None:
+    """The earlier question's own problem stands; its dependant is not a forward reference."""
+    content = _design(_q3({"question_id": "Q1", "options": ["Nikdy"]}))
+    content["sections"][0]["questions"][0]["kategorie"] = ["Denně"]
+    assert _codes(content) == ["too_few_categories"]
+
+
+def test_a_condition_naming_two_questions_is_refused_never_bound_to_the_first() -> None:
+    twin = {"id": "Q1", "text": "Pijete čaj?", "typ": "vyber", "kategorie": ["Nikdy", "Denně"]}
+    content = _design(twin, _q3({"question_id": "Q1", "options": ["Nikdy"]}))
+    assert _codes(content) == ["condition_ambiguous_question"]
+
+
+def test_a_specification_cannot_say_a_question_is_conditional_without_its_condition() -> None:
+    spec, _ = compile_design(_design(_q3({"question_id": "Q1", "options": ["Nikdy"]})))
+    assert spec is not None
+    q3 = spec.questions[-1]
+    with pytest.raises(ValueError, match="has_filter"):
+        type(q3).model_validate({**q3.model_dump(), "condition": None})
+    with pytest.raises(ValueError, match="has_filter"):
+        type(q3).model_validate({**q3.model_dump(), "has_filter": False})
 
 
 @pytest.mark.parametrize("empty", [None, "", "   "])

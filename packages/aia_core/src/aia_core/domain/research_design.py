@@ -26,9 +26,12 @@ No I/O.
 from __future__ import annotations
 
 import ast
+import io
 import re
+import tokenize
 import unicodedata
 from collections.abc import Mapping, Sequence
+from dataclasses import dataclass
 from enum import StrEnum
 from typing import Any, Final, Literal
 
@@ -308,6 +311,8 @@ class SpecQuestion(_Frozen):
             raise ValueError(f"{self.id}: only a scale question can be a rating item")
         if self.scale_labels and self.typ != "skala":
             raise ValueError(f"{self.id}: only a scale question carries scale labels")
+        if self.has_filter != (self.condition is not None):
+            raise ValueError(f"{self.id}: has_filter says whether a condition is declared")
         _labels_fit(self.scale_labels, self.scale, self.id)
         return self
 
@@ -729,15 +734,21 @@ def _links(
     return tuple(dict.fromkeys(t for t in (_text(x) for x in declared) if t))
 
 
-def read_condition(raw: Any) -> tuple[str, tuple[str, ...]] | None:
-    """A stored ``filtr`` as (the stored id of the question it names, the answers that lead to
-    the question), or ``None`` when it is not exactly that.
+#: The longest condition expression read; a longer one is not a choice the 18.6.6 interface wrote.
+_CONDITION_MAX_CHARS: Final = 2000
+
+
+def read_condition(raw: Any) -> tuple[str, tuple[str, ...], bool] | None:
+    """A stored ``filtr`` as (the question it names, the answers that lead to the question,
+    whether it was written as an 18.6.6 expression), or ``None`` when it is not exactly that.
 
     The design's form is ``{"question_id": str, "options": [str, ...]}``. A condition the
     18.6.6 interface wrote as an expression reads only when it is exactly a choice:
-    ``Q1 == 'Nikdy'`` or ``Q1 in ['Týdně', 'Nikdy']``. Anything else -- another operator, a
-    compound, an unquoted answer the unit would have quoted by a guess (``filter_syntax.py``
-    ``repair_filter``) -- is not read, so it is refused by name, never coerced."""
+    ``Q1 == 'Nikdy'`` or ``Q1 in ['Týdně', 'Nikdy']``, each answer one quoted literal. Anything
+    else -- another operator, a compound, literals joined by juxtaposition, an unquoted answer
+    the unit would have quoted by a guess (``filter_syntax.py`` ``repair_filter``) -- is not
+    read, so it is refused by name, never coerced. Answers are compared as the compiler reads
+    a question's categories (``_text``: whitespace collapsed)."""
     if isinstance(raw, dict):
         qid, options = raw.get("question_id"), raw.get("options")
         if set(raw) != {"question_id", "options"} or not isinstance(qid, str) or not _text(qid):
@@ -746,12 +757,16 @@ def read_condition(raw: Any) -> tuple[str, tuple[str, ...]] | None:
             return None
         if not all(isinstance(o, str) and _text(o) for o in options):
             return None
-        return _text(qid), tuple(dict.fromkeys(_text(o) for o in options))
-    if not isinstance(raw, str):
+        return _text(qid), tuple(dict.fromkeys(_text(o) for o in options)), False
+    if not isinstance(raw, str) or len(raw) > _CONDITION_MAX_CHARS:
         return None
     try:
         tree = ast.parse(raw.strip(), mode="eval").body
-    except SyntaxError:
+        literals = sum(
+            t.type == tokenize.STRING
+            for t in tokenize.generate_tokens(io.StringIO(raw.strip()).readline)
+        )
+    except (SyntaxError, tokenize.TokenError, RecursionError, MemoryError):
         return None
     if not (
         isinstance(tree, ast.Compare) and len(tree.ops) == 1 and isinstance(tree.left, ast.Name)
@@ -767,25 +782,47 @@ def read_condition(raw: Any) -> tuple[str, tuple[str, ...]] | None:
     answers = [
         _text(v.value) for v in values if isinstance(v, ast.Constant) and isinstance(v.value, str)
     ]
-    if not answers or len(answers) != len(values) or not all(answers):
+    # One quoted literal per answer: 'Ni' 'kdy' parses as one constant, written as two.
+    if not answers or len(answers) != len(values) or literals != len(values) or not all(answers):
         return None
-    return tree.left.id, tuple(dict.fromkeys(answers))
+    return tree.left.id, tuple(dict.fromkeys(answers)), True
 
 
-#: An earlier question a condition may name, by its stored id: its compiled id, type and answers.
-_Earlier = tuple[str, str, tuple[str, ...]]
+@dataclass(frozen=True)
+class _Earlier:
+    """A question before the one being compiled, as a condition may name it."""
+
+    stored_id: str
+    compiled_id: str
+    typ: str
+    options: tuple[str, ...]
+
+
+def _named(ref: str, earlier: Sequence[_Earlier], *, expression: bool) -> list[_Earlier]:
+    """The earlier questions ``ref`` names: by stored id exactly; an 18.6.6 expression also as
+    the unit resolved its names, case-insensitively by stored id, else by compiled id
+    (``filter_syntax.py`` ``_QuestionIdCaseNormalizer``)."""
+    exact = [e for e in earlier if e.stored_id == ref]
+    if exact or not expression:
+        return exact
+    folded = ref.casefold()
+    by_stored = [e for e in earlier if e.stored_id.casefold() == folded]
+    return by_stored or [e for e in earlier if e.compiled_id.casefold() == folded]
 
 
 def _condition(
     raw: Any,
     qid: str,
     *,
-    earlier: Mapping[str, _Earlier],
-    stored_ids: frozenset[str],
+    earlier: Sequence[_Earlier],
+    refused: frozenset[str],
+    later: frozenset[str],
     problems: list[CompileProblem],
 ) -> SpecCondition | Literal[False] | None:
     """A question's condition checked against the questions before it: ``None`` for none,
-    ``False`` when it is refused (the problem appended), else the condition."""
+    ``False`` when it is refused, else the condition. ``refused`` are earlier questions the
+    compiler refused (their own problem stands; nothing more is said of a condition on one);
+    ``later`` the stored ids from this question on."""
     if raw is None or (isinstance(raw, str) and not raw.strip()):
         return None
 
@@ -800,9 +837,12 @@ def _condition(
             "podmínce AIA nerozumí (musí určit dřívější výběrovou otázku a odpovědi). "
             "V Dotazníku ji nastavte znovu, nebo ji odeberte.",
         )
-    ref, options = read
-    if ref not in earlier:
-        if ref in stored_ids:
+    ref, options, expression = read
+    named = _named(ref, earlier, expression=expression)
+    if not named:
+        if ref in refused:
+            return False
+        if ref in later:
             return refuse(
                 "condition_forward_reference",
                 f"podmínka smí stavět jen na otázce, která je v dotazníku dřív; {ref} je až "
@@ -812,19 +852,24 @@ def _condition(
             "condition_unknown_question",
             f"podmínka stojí na otázce {ref}, která v dotazníku není.",
         )
-    compiled, typ, answers = earlier[ref]
-    if typ not in ("vyber", "multi"):
+    if len(named) > 1:
+        return refuse(
+            "condition_ambiguous_question",
+            f"podmínka stojí na {ref}, ale toto označení má v dotazníku víc otázek.",
+        )
+    (target,) = named
+    if target.typ not in ("vyber", "multi"):
         return refuse(
             "condition_not_choice",
             f"podmínka smí stavět jen na výběrové otázce; {ref} jí není.",
         )
-    unknown = [o for o in options if o not in answers]
+    unknown = [o for o in options if o not in target.options]
     if unknown:
         return refuse(
             "condition_unknown_option",
             f"otázka {ref} nemá odpověď " + ", ".join(f"„{o}“" for o in unknown) + ".",
         )
-    return SpecCondition(question_id=compiled, options=options)
+    return SpecCondition(question_id=target.compiled_id, options=options)
 
 
 def _question(
@@ -835,8 +880,9 @@ def _question(
     used: set[str],
     problems: list[CompileProblem],
     notes: list[CompileProblem],
-    earlier: Mapping[str, _Earlier] | None = None,
-    stored_ids: frozenset[str] = frozenset(),
+    earlier: Sequence[_Earlier],
+    refused: frozenset[str],
+    later: frozenset[str],
 ) -> SpecQuestion | None:
     where = f"{section_id}#{ordinal}"
     if not isinstance(raw, dict):
@@ -910,7 +956,7 @@ def _question(
     if links is None:
         return None
     condition = _condition(
-        raw.get("filtr"), qid, earlier=earlier or {}, stored_ids=stored_ids, problems=problems
+        raw.get("filtr"), qid, earlier=earlier, refused=refused, later=later, problems=problems
     )
     if condition is False:
         return None
@@ -1060,15 +1106,16 @@ def compile_design(
     batteries: list[SpecBattery] = []
     section_ids: set[str] = set()
     question_ids: set[str] = set()
-    # A condition names a question by its stored id; one before it, by questionnaire order.
-    earlier: dict[str, _Earlier] = {}
-    stored_ids = frozenset(
-        _text(q.get("id"))
+    # A condition names a question by its stored id; one before it, in questionnaire order.
+    earlier: list[_Earlier] = []
+    refused: set[str] = set()
+    order = [
+        _text(q.get("id")) if isinstance(q, dict) else ""
         for sec in content.get("sections") or []
-        if isinstance(sec, dict)
+        if isinstance(sec, dict) and _text(sec.get("type") or "questions") == "questions"
         for q in (sec.get("questions") or [])
-        if isinstance(q, dict) and _text(q.get("id"))
-    )
+    ]
+    position = 0
     for i, sec in enumerate(content.get("sections") or [], start=1):
         if not isinstance(sec, dict):
             continue
@@ -1090,14 +1137,17 @@ def compile_design(
                     used=question_ids,
                     problems=problems,
                     notes=notes,
-                    earlier=earlier,
-                    stored_ids=stored_ids,
+                    earlier=tuple(earlier),
+                    refused=frozenset(refused),
+                    later=frozenset(order[position:]) - {""},
                 )
-                if compiled is not None:
-                    questions.append(compiled)
-                stored = _text(q.get("id")) if isinstance(q, dict) else ""
-                if compiled is not None and stored:
-                    earlier.setdefault(stored, (compiled.id, compiled.typ, compiled.options))
+                stored = order[position]
+                position += 1
+                if compiled is None:
+                    refused.add(stored)
+                    continue
+                questions.append(compiled)
+                earlier.append(_Earlier(stored, compiled.id, compiled.typ, compiled.options))
         else:
             battery = _battery(
                 sec,
