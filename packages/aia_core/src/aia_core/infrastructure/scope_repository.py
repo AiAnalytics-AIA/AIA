@@ -49,7 +49,7 @@ from .tables import (
     utcnow,
 )
 
-__all__ = ["ScopeRepository"]
+__all__ = ["ScopeRepository", "SubjectMismatch"]
 
 
 def _client_to_domain(row: ClientRow) -> Client:
@@ -87,6 +87,14 @@ def _study_to_domain(row: StudyRow) -> Study:
         modified_at=row.modified_at,
         delivered_at=row.delivered_at,
     )
+
+
+class SubjectMismatch(Exception):
+    """A sign-in's subject differs from the one the e-mail's record is bound to."""
+
+    def __init__(self, user_id: str) -> None:
+        super().__init__(f"user {user_id} is bound to another identity-provider subject")
+        self.user_id = user_id
 
 
 class ScopeRepository:
@@ -162,6 +170,16 @@ class ScopeRepository:
             row = self._session.scalar(
                 select(UserRow).where(UserRow.email == email.strip().lower())
             )
+            # The e-mail fallback binds a subject once. A record already bound to
+            # another subject belongs to that subject: an address reassigned in the
+            # directory, or a second provider asserting it, is someone else.
+            if (
+                row is not None
+                and external_subject
+                and row.external_subject
+                and row.external_subject != external_subject
+            ):
+                raise SubjectMismatch(row.user_id)
 
         if row is None:
             row = UserRow(
@@ -188,6 +206,50 @@ class ScopeRepository:
             "external_subject": row.external_subject,
             "is_active": row.is_active,
         }
+
+    def record_subject_mismatch(self, *, user_id: str, request_id: str | None = None) -> None:
+        """Audit a refused sign-in as ``user_id`` (``SubjectMismatch``), in each organization.
+
+        The presented subject is not recorded: it is another person's identifier.
+        """
+        for organization_id in self.memberships_for_user(user_id):
+            self._session.add(
+                AccessAuditRow(
+                    organization_id=organization_id,
+                    subject_user_id=user_id,
+                    actor_id=None,
+                    action="AIA_SESSION_DENIED",
+                    reason="identity_mismatch",
+                    request_id=request_id,
+                )
+            )
+        self._session.flush()
+
+    def clear_subject(self, admin: OrganizationContext, *, user_id: str) -> None:
+        """Unbind a member's identity-provider subject, so their next sign-in binds by e-mail.
+
+        For a person whose subject genuinely changed (a Cognito user re-created, an
+        account re-federated), refused ``identity_mismatch`` until an administrator who
+        has confirmed it is the same person clears it. Only a member of the
+        administrator's own organization; audited.
+        """
+        admin.require_administer()
+        if admin.organization_id not in self.memberships_for_user(user_id):
+            raise ScopeDenied("not a member of this organization", reason="unknown_user")
+        row = self._session.scalar(select(UserRow).where(UserRow.user_id == user_id))
+        if row is None:  # pragma: no cover - a membership names an existing user
+            raise ScopeDenied("not found", reason="unknown_user")
+        row.external_subject = None
+        self._session.add(
+            AccessAuditRow(
+                organization_id=admin.organization_id,
+                subject_user_id=user_id,
+                actor_id=admin.actor_id,
+                action="IDENTITY_SUBJECT_CLEARED",
+                request_id=admin.request_id,
+            )
+        )
+        self._session.flush()
 
     def memberships_for_user(self, user_id: str) -> list[str]:
         """Return the organization ids a user belongs to.

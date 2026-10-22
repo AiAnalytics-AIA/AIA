@@ -95,8 +95,10 @@ __all__ = [
     "LEAD_AGENT_ID",
     "LEAD_HARNESS_VERSION",
     "LEAD_PROMPT_ID",
+    "LEAD_PROMPT_MAX_PIN_BYTES",
     "LEAD_PROMPT_VERSION",
     "MESSAGE_MAX_CHARS",
+    "RUNS_IN_CONTEXT",
     "SELF_UPDATE_FILES",
     "STAGES",
     "TEXT_EDIT_OPS",
@@ -156,6 +158,9 @@ __all__ = [
 LEAD_PROMPT_ID: Final = "aia.research.lead"
 LEAD_AGENT_ID: Final = LEAD_PROMPT_ID
 LEAD_PROMPT_VERSION: Final = "1"
+#: The most bytes the Lead's prompt pin may take in its context (ADR 0041: layer 1 is 12 KB);
+#: a longer version is refused where it is saved or activated (``PromptSlot.check_pin_size``).
+LEAD_PROMPT_MAX_PIN_BYTES: Final = 12 * 1024
 #: 2: the frozen design layer carries the readiness limits in force, and ``set_n`` is held to
 #: them rather than to a range of its own (plan ``run-qc-and-checkpoint`` RQC9). A turn queued
 #: under 1 has no limits to be grounded against, so the executor refuses it by name.
@@ -172,10 +177,17 @@ MESSAGE_MAX_CHARS: Final = 4000
 REPLY_MAX_CHARS: Final = 4000
 #: The turns before this one the Lead is shown verbatim.
 HISTORY_TURNS: Final = 12
+#: The research runs a turn is shown, newest first.
+RUNS_IN_CONTEXT: Final = 5
 #: The Lead's files and notes.
 NAME_MAX_CHARS: Final = 40
 SOUL_MAX_CHARS: Final = 2000
 USER_MAX_CHARS: Final = 2000
+#: SOUL and USER bounded in UTF-8 bytes (ADR 0041): 2,000 characters of four-byte text would
+#: overflow the Lead files' layer, so a model's change over these is refused, never cut. Only a
+#: new answer is held to it (:func:`lead_contract`); a turn stored before it still reads.
+SOUL_MAX_BYTES: Final = 2800
+USER_MAX_BYTES: Final = 2800
 NOTE_MAX_CHARS: Final = 300
 #: The newest active notes a turn is shown, and their byte bound.
 NOTES_IN_CONTEXT: Final = 40
@@ -497,6 +509,16 @@ def lead_contract(allowed_text: str, identifiers: frozenset[str] = frozenset()) 
                     + ", ".join(unreadable[:10])
                     + "; write a number out in digits as the context holds it, or none"
                 )
+            update = self.self_update
+            for name, text, limit in (
+                ("soul", update.soul if update else None, SOUL_MAX_BYTES),
+                ("user", update.user if update else None, USER_MAX_BYTES),
+            ):
+                if text is not None and len(text.encode("utf-8")) > limit:
+                    raise ValueError(
+                        f"lead_file_too_large: self_update.{name} is "
+                        f"{len(text.encode('utf-8'))} bytes; write it in at most {limit}"
+                    )
             unknown = sorted(number_tokens(_without_identifiers(self.reply, identifiers)) - allowed)
             if unknown:
                 raise ValueError(

@@ -105,6 +105,7 @@ function Opener() {
       <button type="button" onClick={() => opened.push(inspector?.open({ id: "measure:q1", title: "Měření q1" }) ?? false)}>open m1</button>
       <button type="button" onClick={() => opened.push(inspector?.open({ id: "question:Q 2", title: "Bad" }) ?? false)}>open bad</button>
       <button type="button" onClick={() => opened.push(inspector?.open({ id: "report:ref:r1", title: "Tvrzení r1" }, () => <p>Hodnota: 42 %</p>) ?? false)}>open claim</button>
+      <button type="button" onClick={() => inspector?.closeWhere("report:ref:")}>close claims</button>
     </div>
   );
 }
@@ -359,6 +360,19 @@ describe("the item inspector", () => {
     expect(drawer.getAttribute("data-item-inspector")).toBe("report:ref:r1");
     expect(drawer.textContent).toContain("Hodnota: 42 %");
     expect(drawer.querySelector("[data-inspect-fallback]")).toBeNull();
+  });
+
+  it("drops the entries a screen says stopped being true, and shuts when none is left", async () => {
+    bench(<Opener />);
+    fireEvent.click(screen.getByRole("button", { name: "open q1" }));
+    fireEvent.click(screen.getByRole("button", { name: "open claim" }));
+    fireEvent.click(screen.getByRole("button", { name: "close claims" }));
+    expect(document.querySelector("[data-item-inspector]")!.getAttribute("data-item-inspector")).toBe("question:q1");
+    fireEvent.keyDown(window, { key: "Escape" });
+    await waitFor(() => expect(document.querySelector("[data-item-inspector]")).toBeNull());
+    fireEvent.click(screen.getByRole("button", { name: "open claim" }));
+    fireEvent.click(screen.getByRole("button", { name: "close claims" }));
+    expect(document.querySelector("[data-item-inspector]")).toBeNull();
   });
 
   it("gives the focus back to what opened it when it closes (Codex on #623)", async () => {

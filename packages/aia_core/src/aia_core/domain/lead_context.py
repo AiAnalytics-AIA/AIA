@@ -1,0 +1,220 @@
+"""What one Lead turn could see: the declared layers of its context and the turn's manifest.
+
+ADR 0041 decision 2 and 3, plan ``lead-conversation`` LC1. Pure.
+
+* **The layers are declared, not implied** (:data:`LEAD_LAYERS`): each layer of
+  :func:`~aia_core.domain.research_lead.freeze_context`'s context, in its order, with the
+  bound it is held to today and what happens when it is over. LC1 declares today's bounds and
+  changes none of them; ADR 0041's floors, ceilings and allocation are LC4's.
+* **Every turn has a manifest** (:func:`context_manifest`): per layer its bytes, its bound,
+  the ids it carried and the ids it left out with the reason, computed from the frozen
+  context alone, so two reads of the same context give the same manifest. With the turn's
+  ``context_classification`` it also carries each layer's class and who answered for it.
+* **Bounded by the number of layers, never by the history** (decision 3): a layer lists at
+  most :data:`MANIFEST_IDS_MAX` included and omitted ids and counts the rest.
+
+The manifest is a reading of the context, never an input to it: the context's hash, and so
+the turn's identity, does not move.
+"""
+
+from __future__ import annotations
+
+from collections.abc import Mapping, Sequence
+from dataclasses import dataclass
+from typing import Any, Final
+
+from .ai_contracts import canonical_json
+from .ai_material import most_restrictive_material
+from .research_agents import KNOWLEDGE_MAX_BYTES
+from .research_lead import (
+    CONTEXT_MAX_BYTES,
+    EXTERNAL_LAYER,
+    HISTORY_TURNS,
+    NOTES_IN_CONTEXT,
+    NOTES_MAX_BYTES,
+    RUNS_IN_CONTEXT,
+    context_bytes,
+)
+from .residency import DataClass
+
+__all__ = [
+    "LEAD_LAYERS",
+    "MANIFEST_IDS_MAX",
+    "MANIFEST_VERSION",
+    "PART_LAYERS",
+    "LeadLayer",
+    "context_manifest",
+]
+
+MANIFEST_VERSION: Final = 1
+
+#: The most ids a layer lists as included, and as omitted; the rest are counted.
+MANIFEST_IDS_MAX: Final = 50
+
+
+@dataclass(frozen=True, slots=True)
+class LeadLayer:
+    """One layer of a Lead turn's context.
+
+    ``ceiling_bytes`` is the layer's own byte bound, ``None`` where only the whole context's
+    :data:`~aia_core.domain.research_lead.CONTEXT_MAX_BYTES` holds it. ``bound`` and
+    ``over_policy`` say, in words a manifest can show, what the layer keeps and what goes
+    first when it is over.
+    """
+
+    name: str
+    ceiling_bytes: int | None
+    bound: str
+    over_policy: str
+
+
+#: The context's layers in :func:`freeze_context`'s order, with today's bounds (LC1).
+LEAD_LAYERS: Final[tuple[LeadLayer, ...]] = (
+    LeadLayer("prompt", None, "the pinned prompt, whole", "never shortened"),
+    LeadLayer(
+        "lead",
+        NOTES_MAX_BYTES,
+        f"name, SOUL and USER whole; the newest {NOTES_IN_CONTEXT} notes within "
+        f"{NOTES_MAX_BYTES} bytes",
+        "older notes are left out",
+    ),
+    LeadLayer(
+        "knowledge",
+        KNOWLEDGE_MAX_BYTES,
+        f"approved items' titles and summaries within {KNOWLEDGE_MAX_BYTES} bytes",
+        "items past the bound are left out by id",
+    ),
+    LeadLayer("study", None, "the study's name, client and money", "never shortened"),
+    LeadLayer("design", None, "the working copy and its analysis, whole", "never shortened"),
+    LeadLayer(
+        "runs", None, f"the newest {RUNS_IN_CONTEXT} research runs", "older runs are left out"
+    ),
+    LeadLayer(
+        EXTERNAL_LAYER,
+        None,
+        "the newest Design Research findings, pinned; context, never evidence",
+        "never shortened",
+    ),
+    LeadLayer("view", None, "the stage, the focus and the message", "never shortened"),
+    LeadLayer(
+        "conversation",
+        None,
+        f"the newest {HISTORY_TURNS} turns",
+        f"the oldest turns go first while the context is over {CONTEXT_MAX_BYTES} bytes",
+    ),
+)
+
+_BY_NAME: Final = {spec.name: spec for spec in LEAD_LAYERS}
+
+#: The part of a layer its ``ceiling_bytes`` bounds, measured as ``notes_layer`` and
+#: ``knowledge_entries`` measure it.
+_BOUNDED: Final = {"lead": "notes", "knowledge": "items"}
+
+
+def _bytes(value: Any) -> int:
+    return len(canonical_json(value if value is not None else []).encode("utf-8"))
+
+
+#: Which layer each part of ``context_classification`` belongs to.
+PART_LAYERS: Final[Mapping[str, str]] = {
+    "prompt": "prompt",
+    "lead_name": "lead",
+    "lead_soul": "lead",
+    "lead_user": "lead",
+    "client_note": "lead",
+    "personal_note": "lead",
+    "note": "lead",
+    "knowledge": "knowledge",
+    "study_name": "study",
+    "design": "design",
+    "design_analysis": "design",
+    "message": "view",
+    "focus_label": "view",
+    "external_context": EXTERNAL_LAYER,
+    "earlier_message": "conversation",
+    "earlier_reply": "conversation",
+}
+
+
+def _ids(entry: Mapping[str, Any]) -> tuple[list[str], list[dict[str, str]], int]:
+    """A layer's included ids, its omitted ids with their reason, and the count of what it
+    left out that it cannot name."""
+    name = entry["layer"]
+    if name == "lead":
+        return [str(n["memory_id"]) for n in entry.get("notes") or ()], [], 0
+    if name == "knowledge":
+        included = [str(k["item_id"]) for k in entry.get("items") or ()]
+        omitted = [{"id": str(i), "reason": "over_budget"} for i in entry.get("omitted_ids") or ()]
+        return included, omitted, 0
+    if name == "runs":
+        return [str(r["run_id"]) for r in entry.get("runs") or ()], [], 0
+    if name == "view":
+        focus = entry.get("focus")
+        if isinstance(focus, Mapping) and focus.get("id"):
+            return [str(focus["id"])], [], 0
+        return [], [], 0
+    if name == "conversation":
+        # Earlier turns reach the context without their ids; their count is what is known.
+        return [], [], int(entry.get("omitted_turns") or 0)
+    return [], [], 0
+
+
+def _classes(
+    classification: Sequence[Mapping[str, Any]],
+) -> dict[str, tuple[DataClass | None, list[str]]]:
+    by_layer: dict[str, list[Mapping[str, Any]]] = {}
+    for part in classification:
+        layer_name = PART_LAYERS.get(str(part.get("part")))
+        if layer_name is not None:
+            by_layer.setdefault(layer_name, []).append(part)
+    out: dict[str, tuple[DataClass | None, list[str]]] = {}
+    for layer_name, parts in by_layer.items():
+        data_class = most_restrictive_material(
+            [None if p.get("data_class") is None else DataClass(p["data_class"]) for p in parts]
+        )
+        sources = sorted({str(src) for p in parts if (src := p.get("source")) is not None})
+        out[layer_name] = (data_class, sources)
+    return out
+
+
+def context_manifest(
+    context: Mapping[str, Any],
+    classification: Sequence[Mapping[str, Any]] | None = None,
+) -> dict[str, Any]:
+    """What a frozen Lead context holds, layer by layer, and what it left out.
+
+    ``classification`` is the turn's ``context_classification``; without it (at enqueue,
+    before the worker has the operators' approvals) the layers carry no class. A layer's
+    ``data_class`` is the most restrictive of its parts', ``None`` when a part has no class,
+    and absent when no part of the turn falls in the layer. Pure and deterministic.
+    """
+    classes = _classes(classification) if classification is not None else {}
+    layers: list[dict[str, Any]] = []
+    for entry in context["layers"]:
+        name = str(entry["layer"])
+        spec = _BY_NAME.get(name)
+        included, omitted, unnamed = _ids(entry)
+        row: dict[str, Any] = {
+            "layer": name,
+            "bytes": _bytes(entry),
+            "ceiling_bytes": spec.ceiling_bytes if spec else None,
+            # What the ceiling bounds: the notes or the items, not the whole layer entry.
+            "bounded_bytes": _bytes(entry.get(_BOUNDED[name])) if name in _BOUNDED else None,
+            "bound": spec.bound if spec else None,
+            "over_policy": spec.over_policy if spec else None,
+            "included": included[:MANIFEST_IDS_MAX],
+            "included_count": len(included),
+            "omitted": omitted[:MANIFEST_IDS_MAX],
+            "omitted_count": len(omitted) + unnamed,
+        }
+        if name in classes:
+            data_class, sources = classes[name]
+            row["data_class"] = None if data_class is None else data_class.value
+            row["class_sources"] = sources
+        layers.append(row)
+    return {
+        "manifest_version": MANIFEST_VERSION,
+        "total_bytes": context_bytes(context),
+        "ceiling_bytes": CONTEXT_MAX_BYTES,
+        "layers": layers,
+    }

@@ -232,7 +232,7 @@ export function ChipInput({ values, onAdd, onRemove, label, placeholder, backspa
       {values.map((v, i) => (
         <span key={`${i}-${v}`} className="inline-flex max-w-full items-center gap-1 rounded-md border border-border bg-surface px-2 py-0.5 text-[13px] leading-5">
           <span className="min-w-0 break-words">{v}</span>
-          <button disabled={disabled} type="button" aria-label={`${t("research.step.remove")} ${v}`} onClick={() => onRemove(i)} className={`rounded-sm px-0.5 text-ink-faint hover:text-ink ${FOCUS}`}>
+          <button disabled={disabled} type="button" aria-label={`${t("research.step.remove")} ${v}`} onClick={() => onRemove(i)} className={`-my-1 -mr-1.5 inline-flex size-6 shrink-0 items-center justify-center rounded-sm text-ink-faint hover:text-ink ${FOCUS}`}>
             ×
           </button>
         </span>

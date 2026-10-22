@@ -917,14 +917,3 @@ class OrganizationContext:
                 "organization administration requires OWNER or ADMIN",
                 reason="insufficient_role",
             )
-
-
-@dataclass(frozen=True, slots=True)
-class ResolvedAccess:
-    """Internal result of an access lookup, before a context is built."""
-
-    organization_role: OrganizationRole
-    client_role: ScopeRole | None = None
-    study_role: ScopeRole | None = None
-    denied_reason: str | None = None
-    extra: dict[str, Any] = field(default_factory=dict)

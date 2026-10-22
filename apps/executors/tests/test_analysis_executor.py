@@ -997,6 +997,33 @@ def test_a_run_pins_its_design_research_and_every_module_is_shown_it_as_context(
         payload = json.loads(models.messages(module, 1)[0])
         assert payload["external_context_not_evidence"] == lines, module
     assert _reconstruct(world, store, started.run_id).complete
+    # Analýza lists exactly what the modules were shown, as context (ANL5).
+    from aia_api.routers.research import run_analysis
+
+    with world.sessions() as session:
+        shown = run_analysis(started.run_id, world.lead_scope(session), session, store)
+    listed = shown["external_context"]
+    assert listed["deep_research_run_id"] == deep_run_id
+    assert [f"[{i['evidence_id']}] {i['claim']} ({i['source']})" for i in listed["items"]] == lines
+    # A pin that no longer names that bundle refuses the analysis view by name, never shows none.
+    from aia_core.infrastructure.tables import WorkflowRunRow
+    from fastapi import HTTPException
+    from sqlalchemy import update
+
+    with world.sessions() as session:
+        session.execute(
+            update(WorkflowRunRow)
+            .where(WorkflowRunRow.run_id == started.run_id)
+            .values(
+                metadata_json={**run["metadata"], "analysis_context": {**pin, "sha256": "0" * 64}}
+            )
+        )
+        session.commit()
+    with world.sessions() as session, pytest.raises(HTTPException) as moved:
+        run_analysis(started.run_id, world.lead_scope(session), session, store)
+    assert moved.value.status_code == 409
+    assert moved.value.detail["code"] == "sources_refused"
+    assert "context_moved" in moved.value.detail["message"]
 
     for broken, reason in (
         ({**pin, "sha256": "0" * 64}, "context_moved"),
@@ -1023,6 +1050,11 @@ def test_without_the_switch_a_run_pins_no_context_and_its_modules_are_shown_none
     _drain(worker)
     assert "analysis_context" not in _run(world, run_id)["metadata"]
     assert json.loads(models.messages("executive", 1)[0])["external_context_not_evidence"] == []
+    from aia_api.routers.research import run_analysis
+
+    with world.sessions() as session:
+        shown = run_analysis(run_id, world.lead_scope(session), session, store)
+    assert shown["external_context"] is None
 
 
 def test_the_report_step_stores_its_docx_rendered_as_pdf_beside_it(

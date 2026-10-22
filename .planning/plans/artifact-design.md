@@ -112,6 +112,13 @@ když are not built. What stays is code-derived: measures, items, comparison, an
 
 **DSN1. Contract.** `lib/artifacts/design.ts` with its Vitest (as BRF1). Depends on
 `research-lead-workbench#14`, `#16`.
+- Progress (2026-10-21, `feature/design-lead-targets`): the screen carries the targets. Each
+  narrative item has `data-aia`: an objective as the Brief's `objective:<id>`, a research
+  question `rq:<id>` and a hypothesis `hypothesis:<id>`, all by item_ids' id (stored, else
+  derived from the wording, so with AIA_WEB_STABLE_ITEM_IDS off a reword moves it), never by
+  position (`plan-narrative.ts` `itemTargets`; `plan-narrative.test.ts` "each item's Lead target",
+  `PlanStep.test.tsx` "marks each narrative item"). The section anchors stay the ids
+  `lib/lead.ts` focusSelector already maps.
 
 **DSN2. Research questions with their coverage.**
 - Each RQ shows its measures by wording (`traceMeasures`), the items linking to Dotazník, the
@@ -169,6 +176,23 @@ untested. Depends on `assumptions-and-open-answer-coding#AOC1`.
 - zero paid jobs.
 
 768 and 390 px depend on `research-lead-workbench#26b`-`#26d`.
+
+## Findings
+
+- **F-DSN-1 (2026-10-21; refuted, kept as a regression test).**
+  1. *Claim (from #609):* after the Brief's goal edit drops the analysis (`brief.ts` `editBrief`),
+     Návrh's "Přidat sadu" seeds `objectives: [goal]` over the plan's objectives (`plan.ts:86-93
+     @ bfe6d15`, `addSet`).
+  2. *Anchor:* the only caller, `PlanStep.tsx` Sets `create` (`:400-403 @ bfe6d15`), passes
+     `proposalAnalysis(store.get())` (the plan when there is no analysis) and writes only
+     `applyPlanSets(s, trackedSets(next))`.
+  3. *Reproduction:* `PlanStep.test.tsx` "keeps objectives typed without an analysis when a set is
+     added" passes. With the caller changed to pass the raw analysis, the same test fails.
+  4. *Consequence:* none through the screen. Only a direct `addSet(s, …)` with analysis null returns
+     `[goal]`, and nothing in the app calls it that way.
+  5. *Fix:* none. `addSet` stays the parity-tested port, and its parity case "without an analysis,
+     one is started from the goal" holds.
+  6. *Test:* the regression test above.
 
 ## 8. Owner questions
 

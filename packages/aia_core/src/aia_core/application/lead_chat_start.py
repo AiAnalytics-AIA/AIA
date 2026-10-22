@@ -44,6 +44,7 @@ from ..domain.scope import StudyContext
 from ..domain.wallet import ChargeKind
 from ..infrastructure.scope_repository import ScopeRepository
 from ..infrastructure.workflow_repository import CHAT_START_REUSE, WorkflowRepository
+from .audience_preview import PanelSampler
 from .research import (
     CostConfirmationRequired,
     ResearchAgentJobs,
@@ -91,6 +92,8 @@ class RunStartSettings:
     #: AIA_AI_ANALYSIS_EXTERNAL_CONTEXT: the run pins its Design Research context
     #: (evidence-integrity 7)
     external_context: bool = False
+    #: Draws a panel run's sample, as readiness does (RQC6b); ``None``: unknown, as before.
+    panel_sampler: PanelSampler | None = None
 
 
 def chat_start_decisions(
@@ -182,6 +185,7 @@ def approve_chat_start(
             scope,
             population_contract=run_start.population_contract,
             population_id=run_start.population_id,
+            panel_sampler=run_start.panel_sampler,
         )
         outlook = runs.outlook(
             revision.revision_id,
