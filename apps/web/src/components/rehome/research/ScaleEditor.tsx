@@ -51,6 +51,12 @@ export type ScaleValue = { scale: Scale; labels: string[] };
 type Undo = ReturnType<typeof useUndo>;
 const ScaleUndo = createContext<Undo | null>(null);
 
+/**
+ * The editor's undo toast, shared by everything beneath ScaleUndoProvider: scale changes and
+ * Dotazník's deletes (input-interactions chunk 3); null outside it.
+ */
+export const useEditorUndo = (): Undo | null => useContext(ScaleUndo);
+
 /** One undo toast for every scale editor beneath it: one offer at a time (I6). */
 export function ScaleUndoProvider({ children }: { children: ReactNode }) {
   const undo = useUndo();

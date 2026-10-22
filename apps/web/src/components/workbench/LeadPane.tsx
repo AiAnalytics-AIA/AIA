@@ -14,7 +14,7 @@ import { lead as leadApi, researcherLead, ApiError, type Readiness, type Researc
 import { ACTION_LABELS } from "@/lib/research-agent-jobs";
 import { appRoutes } from "@/lib/app-routes";
 import type { LeadOutput, LeadRequest, LeadState, LeadTurn, LeadView, ResearcherLead, SelfUpdateDecision } from "@/lib/lead";
-import { droppedLines, leadReasonWords as reasonWords, pendingSelfUpdate, targetLabel } from "@/lib/lead";
+import { composerHint, droppedLines, leadReasonWords as reasonWords, pendingSelfUpdate, targetLabel } from "@/lib/lead";
 import { conversationTimeline } from "@/lib/lead-cards";
 import { STAGES, isWorkbenchStage, type WorkbenchStage } from "@/lib/workbench-stages";
 import type { StepKey } from "@/research/steps";
@@ -272,7 +272,7 @@ export function LeadPane({ studyId, stage, canEdit, focus, picking, onPick, onCl
         {session && !session.available ? <div className="msg"><div className="notice"><Glyph tone="inert" size={11} />{reasonWords(session.unavailable_reason ?? "research_lead_unavailable")}</div></div> : null}
       </Conversation>
       <Composer draft={draft} setDraft={setDraft} onSend={send} busy={!!session?.busy || sending} queued={queued.map((q) => q.text)} onUnqueue={(i) => setQueued((q) => q.filter((_, j) => j !== i))}
-        disabled={!canEdit || !me?.hatched || !session?.available} focus={focus} picking={picking} onPick={onPick} onClearFocus={onClearFocus} />
+        disabled={!canEdit || !me?.hatched || !session?.available} hint={composerHint({ canEdit, hatched: me?.hatched, available: session?.available, failed: error !== null })} focus={focus} picking={picking} onPick={onPick} onClearFocus={onClearFocus} />
     </div>
   );
 }
@@ -493,9 +493,12 @@ function RequestCard({ r, approved, onApprove, canEdit }: { r: LeadRequest; appr
   );
 }
 
-function Composer({ draft, setDraft, onSend, busy, queued, onUnqueue, disabled, focus, picking, onPick, onClearFocus }: {
+function Composer({ draft, setDraft, onSend, busy, queued, onUnqueue, disabled, hint, focus, picking, onPick, onClearFocus }: {
   draft: string; setDraft: (v: string) => void; onSend: (t: string) => void; busy: boolean;
-  queued: string[]; onUnqueue: (i: number) => void; disabled: boolean; focus: { id: string; label: string } | null;
+  queued: string[]; onUnqueue: (i: number) => void; disabled: boolean;
+  /** Why the composer is shut, in its own field (composerHint); null while it is open. */
+  hint: string | null;
+  focus: { id: string; label: string } | null;
   picking: boolean; onPick: () => void; onClearFocus: () => void;
 }) {
   const ta = useRef<HTMLTextAreaElement>(null);
@@ -513,7 +516,7 @@ function Composer({ draft, setDraft, onSend, busy, queued, onUnqueue, disabled, 
       {focus ? <div className="refchip"><Icon name="at" size={12} /><b>{focus.label}</b><button type="button" className="iconbtn" style={{ width: 20, height: 20 }} aria-label="Zrušit odkaz" onClick={onClearFocus}><Icon name="close" size={11} /></button></div> : null}
       <div className="composer">
         <label className="sr-only" htmlFor="composer">Napište Vedoucímu výzkumu</label>
-        <textarea id="composer" ref={ta} rows={1} value={draft} disabled={disabled} placeholder={focus ? "Co se má změnit? Např. „kratší“, „přejmenovat na …“" : "Napište Vedoucímu výzkumu…"}
+        <textarea id="composer" ref={ta} rows={1} value={draft} disabled={disabled} placeholder={disabled && hint ? hint : focus ? "Co se má změnit? Např. „kratší“, „přejmenovat na …“" : "Napište Vedoucímu výzkumu…"}
           onChange={(e) => { setDraft(e.target.value); e.target.style.height = "auto"; e.target.style.height = `${Math.min(180, e.target.scrollHeight)}px`; }}
           onKeyDown={(e) => {
             if (e.nativeEvent.isComposing) return;
