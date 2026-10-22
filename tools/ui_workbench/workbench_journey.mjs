@@ -170,9 +170,17 @@ try {
     await page.locator("[data-workbench]").waitFor();
     await layoutIs(want);
     await noOverflow(`questionnaire @${width}`);
+    // One level-one heading, the artifact's title; and at every width room beside it for the
+    // save state ("Změny se uloží za chvíli", 150 px at 12 px) on one line (workbench audit F13).
+    assert.deepEqual(await page.locator("h1").allInnerTexts(), ["Dotazník"], `the page's h1 @${width}`);
+    const column = await page.locator(".arthead > div").first().evaluate((e) => e.getBoundingClientRect().width);
+    assert.ok(column >= 240, `the title column is ${Math.round(column)} px @${width}`);
+    assert.equal(await page.getByRole("button", { name: /^Připravenost a pomoc/ }).count(), 1, `the readiness button keeps its name @${width}`);
+    // The root's layout rules apply: nested under .wb they once read ".wb .wb--sheet …" and matched nothing.
+    if (want === "sheet") assert.equal(await page.locator(".shead__spacer").evaluate((e) => getComputedStyle(e).display), "none", "the sheet's header rules apply");
     await shot(`${width}-questionnaire`);
   }
-  check("the workbench at 1280 and 1100 (split), 1099 and 768 (drawer), 390 (sheet), no overflow");
+  check("the workbench at 1280 and 1100 (split), 1099 and 768 (drawer), 390 (sheet), no overflow, one h1, room for the save state");
 
   // A resize across 1100 px remounts nothing: the stage's and the conversation's own DOM nodes,
   // tagged before, are the same nodes after crossing both ways (a remount makes new ones).
