@@ -212,6 +212,10 @@ def _pptx(data: bytes) -> tuple[list[Segment], list[ReadingNote]]:
 # (``c="1000000000"``); this one is the part's own size bound, so the text read is at
 # most twice what the part could hold.
 ODF_MAX_SPACES: Final = XML_PART_MAX_BYTES
+# Characters an ODS may read as, every repeated copy of a cell counted: a cell repeated
+# across 500 columns and many rows is read (and joined into each row's text) that many
+# times. Twice the part's own bound, like the spaces.
+ODS_MAX_CHARS: Final = 2 * XML_PART_MAX_BYTES
 
 
 def _odf_spaces(child: ET.Element, budget: list[int]) -> str:
@@ -522,6 +526,7 @@ def _ods(data: bytes) -> tuple[tuple[GridContent, ...], bool]:
     tables = body.findall(f"{_TABLE_NS}table")
     budget = [grid_bounds.MAX_GRID_CELLS]
     spaces = [ODF_MAX_SPACES]
+    chars = [ODS_MAX_CHARS]
     grids: list[GridContent] = []
     for table in tables[: grid_bounds.MAX_GRID_SHEETS]:
         cut = False
@@ -531,6 +536,7 @@ def _ods(data: bytes) -> tuple[tuple[GridContent, ...], bool]:
             out: list[tuple[object, ...]] = []
             for row in table.iter(f"{_TABLE_NS}table-row"):
                 values: list[object] = []
+                row_chars = 0
                 for cell in row:
                     if cell.tag not in (f"{_TABLE_NS}table-cell", f"{_TABLE_NS}covered-table-cell"):
                         continue
@@ -541,7 +547,10 @@ def _ods(data: bytes) -> tuple[tuple[GridContent, ...], bool]:
                         repeat = 0  # the empty rest of the row: nothing to keep
                     if repeat > room:
                         cut = True
-                    values.extend([value] * max(0, min(repeat, room)))
+                    kept = max(0, min(repeat, room))
+                    if isinstance(value, str):
+                        row_chars += len(value) * kept
+                    values.extend([value] * kept)
                 while values and values[-1] is None:
                     values.pop()
                 repeat_rows = int(row.get(f"{_TABLE_NS}number-rows-repeated", "1") or 1)
@@ -552,7 +561,13 @@ def _ods(data: bytes) -> tuple[tuple[GridContent, ...], bool]:
                     room = grid_bounds.MAX_GRID_ROWS + 1 - len(out)
                     if repeat_rows > room:
                         cut = True
-                    out.extend([tuple(values)] * max(0, min(repeat_rows, room)))
+                    kept_rows = max(0, min(repeat_rows, room))
+                    chars[0] -= row_chars * kept_rows
+                    if chars[0] < 0:
+                        raise DocumentRefused(
+                            "its repeated cells pass the bounds", reason="document_zip_bounds"
+                        )
+                    out.extend([tuple(values)] * kept_rows)
                 if len(out) > grid_bounds.MAX_GRID_ROWS:
                     cut = True
                     break

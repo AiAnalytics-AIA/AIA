@@ -217,6 +217,22 @@ def test_a_run_of_spaces_never_expands_past_the_bounds(name: str, body: bytes) -
     assert (reading.outcome, reading.reason) == (ReadingOutcome.REFUSED, "document_zip_bounds")
 
 
+@pytest.mark.parametrize("rows", [1, 3])
+def test_a_repeated_ods_cell_is_charged_for_every_copy_it_reads_as(rows: int) -> None:
+    # One cell of 300,000 spaces repeated across 500 columns is charged 300,000 once
+    # but read as 150 million characters, joined into one row's text: a few hundred
+    # bytes that reach gigabytes at c="49000000", still within the space budget.
+    sheet = (
+        b"<office:spreadsheet><table:table>"
+        b'<table:table-row table:number-rows-repeated="%d">'
+        b'<table:table-cell table:number-columns-repeated="500">'
+        b'<text:p>a<text:s text:c="300000"/>b</text:p>'
+        b"</table:table-cell></table:table-row></table:table></office:spreadsheet>" % rows
+    )
+    reading = read_source(zip_of({"content.xml": _odf(sheet)}), "a.ods")
+    assert (reading.outcome, reading.reason) == (ReadingOutcome.REFUSED, "document_zip_bounds")
+
+
 def test_a_run_of_spaces_within_the_bounds_reads_as_written() -> None:
     para = b'<office:text><text:p>a<text:s text:c="3"/>b<text:s/>c</text:p></office:text>'
     reading = read_source(zip_of({"content.xml": _odf(para)}), "a.odt")
