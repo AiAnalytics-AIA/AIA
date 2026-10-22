@@ -6,13 +6,18 @@
 
 import type { ReactNode } from "react";
 
+import { AnalysisInspect } from "@/components/rehome/research/AnalysisInspect";
 import type { InspectorEntry } from "@/lib/inspector-stack";
 import { focusSelector, targetLabel } from "@/lib/lead";
 import type { TargetKind } from "@/lib/workbench-artifacts";
 import { type InspectBody, inspectedTarget } from "./item-inspector-context";
 
 /** The drawer bodies by kind. A `module` stays on the page: its chapter is the page itself. */
-export const BODIES: Partial<Record<TargetKind, InspectBody>> = {};
+export const BODIES: Partial<Record<TargetKind, InspectBody>> = {
+  // Analýza (artifact-analysis ANL3): a finding with the numbers it cites, a claim with where it is cited.
+  finding: (target) => <AnalysisInspect target={{ kind: "finding", id: target.id }} />,
+  claim: (target) => <AnalysisInspect target={{ kind: "claim", id: target.id }} />,
+};
 
 /** Show the opened item on the page: scrolled to and focused, as the Lead's focus does. */
 export function showOnPage(id: string, root: ParentNode = document): boolean {

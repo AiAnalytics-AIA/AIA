@@ -4,11 +4,14 @@
 // passes the target alone; the analysis it reads is the one the page shows, published by
 // AnalysisResults (shownAnalysis), so the drawer can never open another run's item. Display only, and
 // it carries no Lead target: each target names one element, which is on the page (claimMarks).
-import { useSyncExternalStore, type ReactNode } from "react";
+import { useMemo, useSyncExternalStore, type ReactNode } from "react";
+import { useItemInspector } from "@/components/workbench/item-inspector-context";
 import { t } from "@/i18n/t";
 import type { ResearchAnalysis } from "@/lib/api";
 import { inspectView, numberWords, type CitedNumber } from "@/lib/analysis-inspect";
 import { readAnalysisTarget } from "@/lib/artifacts/analysis";
+import { stepLabel } from "@/lib/research-execution";
+import { Icon } from "../icons";
 import type { CompiledSpecification } from "@/lib/result-reading";
 import { CodedWords } from "./CodedWords";
 import { FormattedText } from "./FormattedText";
@@ -28,6 +31,38 @@ export function setShownAnalysis(next: Shown): void {
 function subscribe(listener: () => void): () => void {
   listeners.add(listener);
   return () => { listeners.delete(listener); };
+}
+
+/** Opens an Analýza finding or claim, by its target id, in the workbench's item inspector; true
+ *  when it opened (an id outside the grammar opens nothing). Null outside the workbench, where
+ *  there is no drawer and the page keeps its own behaviour. */
+export type OpenAnalysisItem = (id: string | null, title: string) => boolean;
+
+export function useOpenAnalysisItem(): OpenAnalysisItem | null {
+  const inspector = useItemInspector();
+  return useMemo(
+    () => (inspector ? (id, title) => id !== null && inspector.open({ id, title, sub: "Analýza" }) : null),
+    [inspector],
+  );
+}
+
+/** A key finding as the inspector opens it: its target id (null outside the grammar) and its title.
+ *  One builder for the coverage chip and the finding's own button. */
+export function findingItem(module: string, index: number): { id: string | null; title: string } {
+  const id = `finding:${module}:${index}`;
+  return { id: readAnalysisTarget(id) ? id : null, title: `${stepLabel(`analysis_${module}`)} · zjištění ${index + 1}` };
+}
+
+/** A key finding's own way into the inspector; nothing where there is none, or its id is outside the grammar. */
+export function FindingInspectButton({ open, module, index }: { open: OpenAnalysisItem | null; module: string; index: number }) {
+  const { id, title } = findingItem(module, index);
+  if (!open || !id) return null;
+  return (
+    <button type="button" data-inspect-finding aria-label={`Otevřít ${title} v inspektoru`} onClick={() => open(id, title)}
+      className="shrink-0 rounded-control p-1 text-ink-muted hover:text-ink focus-visible:outline-2 focus-visible:outline-focus-ring">
+      <Icon name="inspector" size={14} />
+    </button>
+  );
 }
 
 function CitedLine({ n }: { n: CitedNumber }) {
