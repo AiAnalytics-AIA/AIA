@@ -109,9 +109,10 @@
 }
 .omw-win:focus { outline: none; }
 .omw-win:focus-visible { outline: 2px solid var(--focus-ring); outline-offset: 2px; }
-.omw-win--work { top: 55px; left: 13px; width: min(430px, calc(100% - 26px)); max-height: calc(100% - 75px); }
-.omw-win--detail { top: 14px; bottom: 14px; right: 14px; width: min(430px, calc(100% - 28px)); }
-/* Narrow: the work windows span the stage; the detail keeps its place on the right. */
+.omw-win--work { top: var(--omw-under-dock, 55px); left: 13px; width: min(430px, calc(100% - 26px)); max-height: calc(100% - var(--omw-under-dock, 55px) - 20px); }
+.omw-win--detail { top: var(--omw-under-dock, 55px); bottom: 14px; right: 14px; width: min(430px, calc(100% - 28px)); }
+/* Windows open under the dock (--omw-under-dock, measured by the panel; 55px before it is).
+   Narrow: the work windows span the stage; the detail keeps its place on the right. */
 @media (max-width: 850px) {
   .omw-win--work { left: 8px; right: 8px; width: auto; }
 }

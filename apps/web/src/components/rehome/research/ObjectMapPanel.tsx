@@ -401,6 +401,24 @@ function PanelView({ battery, map, facts }: { battery: BatteryWithMaps; map: Obj
   const [resets, setResets] = useState(0);
   useEffect(() => { if (resets) dock.current?.focus({ preventScroll: true }); }, [resets]);
   const resetDisplay = () => { showMap("objects"); setNorm("range"); setMode("top"); setResets((n) => n + 1); };
+  // The windows open under the dock, its filter bar and its ⓘ, wherever they end (one row, or more
+  // on a narrow stage): all stay clickable beside an open window, never under a window's glass. The
+  // ⓘ's own box opens over the map and is not measured.
+  const status = useRef<HTMLDivElement>(null), infoPill = useRef<HTMLButtonElement>(null);
+  useEffect(() => {
+    const bar = dock.current, bars = ([bar, status.current, infoPill.current] as (HTMLElement | null)[]).filter((n): n is HTMLElement => n !== null);
+    if (!stage || !bar) return;
+    const measure = () => {
+      const bottom = Math.max(...bars.map((n) => n.getBoundingClientRect().bottom));
+      const under = Math.ceil(bottom - stage.getBoundingClientRect().top) + 9;
+      stage.style.setProperty("--omw-under-dock", `${Math.max(55, under)}px`);
+    };
+    measure();
+    if (typeof ResizeObserver === "undefined") return;
+    const observer = new ResizeObserver(measure);
+    for (const node of [stage, ...bars]) observer.observe(node);
+    return () => observer.disconnect();
+  }, [stage]);
   // The stage fits the pane it is read in (stageHeight): the workbench's artifact pane, else the
   // window less the page's sticky header. The dock, the ⓘ and the filter bar are on the map, so
   // nothing of the panel sits over the stage; measured again whenever the pane or the stage moves.
@@ -461,12 +479,12 @@ function PanelView({ battery, map, facts }: { battery: BatteryWithMaps; map: Obj
             </div>
           </div>
           {/* One live region, always there, so the bar's first appearance is announced too. */}
-          <div role="status" className="omw-status" data-testid="object-map-filter-status">
+          <div ref={status} role="status" className="omw-status" data-testid="object-map-filter-status">
             {changes.length ? <FilterBar changes={changes} onReset={resetDisplay} /> : null}
           </div>
           {/* The ⓘ map information (`npcMapHint27`, `__npcMapInfo1910`), the facts with it: the dock's last row, under whatever the dock wraps to. */}
           <div className="omw-hint">
-            <button type="button" className={`omw-pill${pill?.warn ? " warn" : ""}`} aria-expanded={info} aria-controls={info ? `${described}-info` : undefined}
+            <button ref={infoPill} type="button" className={`omw-pill${pill?.warn ? " warn" : ""}`} aria-expanded={info} aria-controls={info ? `${described}-info` : undefined}
               aria-label={pill ? tv(`${p}.infoPill`, { pill: pill.text }) : t(`${p}.info`)} title={t(`${p}.info`)} onClick={() => setInfo(!info)}>
               ⓘ{pill ? ` ${pill.text}` : ""}
             </button>
