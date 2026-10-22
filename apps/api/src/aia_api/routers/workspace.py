@@ -864,7 +864,7 @@ def start_client(
     Any member of the organization may, as for ``POST /clients`` (ADR 0019). Membership is
     the access, so the creator, like every member, can open it at once.
     """
-    client = repo.create_client(admin, slug=_slug(body.name), name=body.name.strip())
+    client = repo.create_client(admin, slug=_slug(body.name), name=body.name)
     return _workspace(_client_scope(principal, resolver, client.client_id), repo)
 
 
@@ -1113,7 +1113,7 @@ def start_study(
     scope = _client_scope(principal, resolver, client_id)
     try:
         study = repo.create_study_in_client(
-            scope, slug=_slug(body.name), name=body.name.strip(), kind=StudyKind(body.kind)
+            scope, slug=_slug(body.name), name=body.name, kind=StudyKind(body.kind)
         )
     except ScopeDenied as exc:
         raise _forbidden(
