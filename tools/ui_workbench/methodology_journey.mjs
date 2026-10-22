@@ -44,6 +44,7 @@ const EDITS = {
   support: { reference: "results.min_layer_donors", typed: "20", read: (spec) => spec.results.min_layer_donors, value: 20 },
   aggregation: { reference: "top_box", typed: "1", read: (spec) => spec.top_box, value: 1 },
   response: { reference: "dont_know", typed: "0,2", read: (spec) => spec.dont_know, value: 0.2 },
+  readiness: { reference: "sample_size.min", typed: "40", read: (spec) => spec.sample_size.min, value: 40 },
 };
 
 const require = createRequire(import.meta.url);
@@ -177,6 +178,13 @@ try {
     const runs = (await get(`/api/v1/studies/${studies.persona.study}/research/runs`)).items;
     const latest = runs.reduce((a, b) => (new Date(a.created_at) > new Date(b.created_at) ? a : b));
     for (const [moduleId, name] of Object.entries(stored)) {
+      // Readiness decides whether a run may start, never what it computes (domain/methodology/
+      // readiness.py): it is not in a run's methodology, so what a start checks is read instead.
+      if (moduleId === "readiness") {
+        const limits = await get(`/api/v1/studies/${studies.persona.study}/research/limits`);
+        assert.equal(limits.sample_size.min, EDITS.readiness.value, `a start checks n >= ${limits.sample_size.min}, not the stored ${name}`);
+        continue;
+      }
       const method = latest.methodology[moduleId];
       assert(method?.stored && method.name === name, `the run pinned ${moduleId} as ${JSON.stringify(method)}, not ${name}`);
     }

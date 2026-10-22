@@ -104,9 +104,16 @@ ok("Run: started, now on Progress");
 // 2. Progress: labelled fictional; polls until the worker has finished the chain.
 await page.getByText(TEXT.fictional).first().waitFor({ timeout: 60000 }).catch(() => fail("Progress does not say the data are fictional"));
 ok("Progress: the fictional-data notice is shown");
+// The steps themselves, never only the words: with the research workbench on, the Lead pane's
+// card for an earlier run of the study says "Zpráva je hotová" while this run is still going.
+const CHAIN = ["compile", "preflight", "run", "aggregate", "sociomap"];
+await page.waitForFunction(
+  (steps) => steps.every((step) => document.querySelector(`[data-step="${step}"]`)?.getAttribute("data-status") === "SUCCEEDED"),
+  CHAIN, { timeout: 180000 },
+).catch(() => {});
 await page.getByText(TEXT.completed).first().waitFor({ timeout: 180000 })
   .catch(async () => { await shot("2-progress-timeout"); fail("the run did not complete within 180 s (see tmp/ui-workbench/logs/worker.log)"); });
-for (const step of ["compile", "preflight", "run", "aggregate", "sociomap"]) {
+for (const step of CHAIN) {
   const status = await page.locator(`[data-step="${step}"]`).first().getAttribute("data-status", { timeout: 5000 }).catch(() => null);
   if (status !== "SUCCEEDED") fail(`step ${step} is ${status ?? "missing"}, not SUCCEEDED`);
 }
