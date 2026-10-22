@@ -12,6 +12,17 @@ approval of a stored report.
 ledger refs; the draft's closed operations and per-paragraph ref equality are withdrawn; and Q13 (a)
 and Q19 (a) on the PM status page (relayed by the coordinator): the Lead live-edits, per researcher;
 the editor by an evaluation spike.
+**Amended 2026-10-22: the researcher decides, code shows.** The product owner, in this session
+(Zpráva, 2026-10-22, on RPT8's save check): "lets not be so strict, at the end of the day its the
+discression of the researcher what they want to include in the final report. lets get rid of these
+strict gates." Decision 3's rules no longer refuse a person's edit or block an approval. They are
+computed on every saved version and shown: a number code wrote that no longer matches its evidence,
+or a number typed outside one, is marked "Upraveno ručně" in the pane and in the approval dialog
+(artifact-report RPT8b); RD7's sentence check marks a sentence, it does not block. Numbers code writes
+start as locked controls, a guard against an accidental keystroke, and a person may unlock or delete
+one. Unchanged: composition admits only claims (a number code writes is an admitted ref), a draft has
+a counter of its own and never reopens fieldwork (decision 4), and an approval names the exact version
+approved. The Lead's suggestions (RPT9) carry the same marks; the person accepting one decides.
 **Plan:** [report-delivery](../../../.planning/plans/report-delivery.md) RD5, RD5a, RD6, RD7;
 `lead-orchestration` LO9b, LO9c
 

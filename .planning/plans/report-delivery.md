@@ -44,6 +44,15 @@ download, not reused. `POST …/report/approve` answers 409 `client_gate_refused
 `details.refusals`. Tests: `test_client_gate.py`; `test_a_client_report_carrying_drill_down_content_cannot_be_approved`,
 `test_a_client_document_of_an_older_contract_is_stored_again_on_download`,
 `test_a_client_draft_with_no_stored_document_is_not_approvable`.
+
+*RD0, changed 2026-10-22 (the product owner, in the Zpráva session: "lets get rid of these strict gates", the
+relaxation reaching the client report too):* the checks stay, their answer changes. `client_gate.py`'s findings
+(`drill_down_content`, `unadmitted_number`, `gate_unrecorded`, and the "Interní dokument" check when RD11 gives it a
+source) are shown in the approval dialog, each naming its block, and never refuse: `POST …/report/approve` approves
+whatever they say and records the findings shown in the approval's ledger row, so who approved past which warning is
+on record. 409 `client_gate_refused` goes. Tests become: a client report carrying drill-down content is approved with
+the warning named in the dialog and in its ledger row; one with no stored document says "nelze ověřit" and is
+approvable. Built in `artifact-report#RPT8d`'s PR set.
 The third check, `internal_source_cited`, waits for a chapter that cites a client source (RD11): no client report cites
 one, so it would read nothing. RD0 stays open until it lands.
 
@@ -111,6 +120,7 @@ S3 defines the type, S1 writes the worker against it (`lead-orchestration#LO9b`)
 
 **RD7. A sentence-level claim check: a sentence that claims a comparison with no admitted claim blocks approval**  
 The prototype shows it (scenario M); the evidence validation checks numbers only. A new rule; its strictness is the owner's (MVPQ-09, 2026-10-20): it **blocks approval**, never a flag the reviewer may approve past, and the refusal names the sentence.
+*Changed 2026-10-22 (the owner, as RD0 above; ADR 0035, amended):* a sentence the check refuses is marked at the sentence, in the pane and the approval dialog; it never blocks approval.
 
 **RD8. The producer of a client report is the run that composed it, not whoever first downloaded it**  
 With self-approval off, the reviewer who opens it first cannot approve it today ◇.

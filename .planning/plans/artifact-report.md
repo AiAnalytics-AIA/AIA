@@ -10,11 +10,11 @@ chunks:
   - "[ ] RPT5. Draft revisions: the draft counter and the editor's version history, a report edit never reopening fieldwork (changed 2026-10-22: on the editor, RPT8)"
   - "[ ] RPT6. The Lead and the report writer on the draft (replaced 2026-10-22 by RPT9 and RPT10)"
   - "[ ] RPT7. Journey: Zpráva at 1440, 1100, 768 and 390 px, a fictional run's internal draft, zero paid jobs (extended by RPT9's suggestion step)"
-  - "[ ] RPT8. The editor is Zpráva's main surface: the stored draft opened in ONLYOFFICE Docs (Q35), the researcher editing directly, every number a locked, tagged ledger ref checked on save (RD6, ADR 0035; split 2026-10-22: RPT8a-d)"
-  - "[ ] RPT8a. Every printed number a locked content control tagged with its source (the editor spike's F-ED1): ledger values in prose, table cells, captions (part 1); KPI tiles, figures, the evidence appendix, suppressed counts (part 2); the map, design, run and bundle spans (part 3, the map's provisional until OQ-ED1)"
-  - "[ ] RPT8b. The save census: an edited DOCX refused when it loses or changes a tagged control or breaks the numeric-token rule (F-ED1), a pure check over the stored document model"
-  - "[ ] RPT8c. The editor routes behind AIA_ONLYOFFICE_URL (unset: off): the config with its JWT and the docs ticket, the signed document URL, the callback storing a save as a new draft once the census passes (the hosting contract, report-editor-hosting)"
-  - "[ ] RPT8d. The pane opens the stored draft in the editor when it is configured; the read-only document stays where it is not"
+  - "[ ] RPT8. The editor is Zpráva's main surface: the stored draft opened in ONLYOFFICE Docs (Q35), the researcher editing directly, every number code wrote a locked, tagged control whose edits are shown, never refused (ADR 0035, amended 2026-10-22; split 2026-10-22: RPT8a-d)"
+  - "[ ] RPT8a. Every printed number a locked content control tagged with its source (the editor spike's F-ED1): ledger values in prose, table cells, captions (part 1); KPI tiles, figures, the evidence appendix, suppressed counts (part 2); the map, design, run and bundle spans (part 3; the map locked and tagged like the rest, the owner 2026-10-22)"
+  - "[ ] RPT8b. What a saved version changed: each tagged number edited or removed and each number typed outside one, shown as \"Upraveno ručně\", never refusing (changed 2026-10-22: the owner, ADR 0035 amended)"
+  - "[ ] RPT8c. The editor routes behind AIA_ONLYOFFICE_URL (unset: off): the config with its JWT and the docs ticket, the signed document URL, the callback storing every save as the next version (the hosting contract, report-editor-hosting); the internal draft and the report with literature"
+  - "[ ] RPT8d. The pane opens the newest version in the editor from 768 px (view mode below), its doc bar naming the version and its \"Upraveno ručně\" changes; the read-only document stays where the editor is off"
   - "[ ] RPT9. The Lead edits the same document: inline suggestions as tracked changes under the Lead's own name, with why, accepted or rejected one by one or all; direct edits per the researcher's setting (Q13) still attributed; every edit through the edit ops, every number a ledger ref passing the sentence check before accept"
   - "[ ] RPT10. Literature by the Lead: Interpretation Research proposed on a plan card (target, QUICK or STANDARD depth, STANDARD by default, cost), approved by the researcher, findings woven into the text with their sources (Q58); the panel's own start, depth and refresh removed once typed starts exist (Q48, LO5a.3), its findings readable beside the text"
 ---
@@ -263,6 +263,85 @@ ref's appendix row with an appendix, and every tag naming a source the document 
 census must know stays unlocked: the SEQ, PAGE and TOC fields, the lists of figures and tables, and
 cross-reference labels; a Sociomap caption's fit is the map's, part 3.
 
+### Revision of 2026-10-22, evening: the researcher decides what the report says
+
+The owner, in the Zpráva session (2026-10-22), on RPT8's save check: "lets not be so strict, at the end of the day
+its the discression of the researcher what they want to include in the final report. lets get rid of these strict
+gates." ADR 0035 is amended the same day: its admission rules are computed and shown, never refusing an edit or
+blocking an approval. His other answers in the same session:
+
+| Question | Answer |
+|---|---|
+| Build now or after the deploy | Now, behind `AIA_ONLYOFFICE_URL` (unset: off) |
+| Which documents open in the editor | The internal draft and the report with literature; the client report stays composed by code |
+| When an edit becomes a stored version | Every autosave the Document Server sends (its timed force-save, a close, the save button) |
+| A number code wrote, edited or deleted | Allowed; marked "Upraveno ručně" in the pane and the approval dialog; never refused, never blocking |
+| The client report's gate (RD0) | Relaxed too: its checks are warnings in the approval dialog, recorded with the approval |
+| Map values (OQ-ED1) | Locked and tagged like ledger numbers (`map:<artifact_id>`), unlockable like them |
+| Phones, under 768 px | Read-only |
+| Two researchers at once | Live co-editing, ONLYOFFICE's own |
+| The Lead's suggestions (RPT9) | After RPT8 works |
+| Activation | The Zpráva session fixes F1 (`__Host-aia_session`); Route 53, SSM and the flag are the infra session's, on the owner's word |
+
+The chunks, as built from here:
+
+**RPT8a, part 3. The rest of the generated numbers locked and tagged.** The map's (P7-P9: the pair table as one block
+control, the support and credibility prose and the caption's fit as inline controls, each `map:<artifact_id>`), the
+design's and the run's (P10, P11: `spec:<path>`, `run:<path>`) and the literature bundle's (P14 with ED-R2's anchors:
+`bundle:<run_id>`), each an inline control on its numeric span (ED-R1), the grammar in `control_tags.py`. A lock is a
+guard against a stray keystroke, not a rule: ONLYOFFICE's content-control settings unlock it and a deletion removes
+it. Test: every sample kind and the report with literature, each generated numeric token inside a control whose tag
+`parse_tag` reads; the contracts move.
+
+**RPT8b. What a saved version changed ("Upraveno ručně"), never refusing.** A pure function over the stored document
+model rendered again and a saved DOCX: each tagged control changed or removed (by the multiset of (tag, text), so a
+moved paragraph is no change), and each numeric token typed outside a control, with the paragraph it sits in. Stored
+with the version as its own small JSON; read by the pane (RPT8d) and the approval dialog. Tests: a saved DOCX with one
+number retyped, one control deleted, one digit typed into prose and one paragraph moved reports exactly the first
+three; a save with prose edits only reports nothing; a version with no stored model reads "nelze porovnat", never
+"beze změn".
+
+**RPT8c. The editor routes, behind `AIA_ONLYOFFICE_URL` and `AIA_ONLYOFFICE_JWT_SECRET` (both unset: every route
+404, the product unchanged).** On the hosting contract (`report-editor-hosting`, "The contract with RPT8"):
+- `POST …/runs/{run_id}/report/editor` (`variant`: `internal` or `context` with `deep_research_run_id`): the editor
+  config, signed with the JWT secret: the document's key (its edit line and the version's SHA-256, within ONLYOFFICE's
+  128 characters of `[0-9A-Za-z._=-]`), the document URL, the callback URL, the person's id and display name (never an
+  e-mail), `mode: edit` for a study member (`view` below 768 px, RPT8d), `customization.forcesave: true`, co-editing
+  `fast`; and a one-time docs ticket (`aia_api.docs_pass.DocsPasses`). The client report is refused by name.
+- `GET …/report/editor/document?token=…`: the version's DOCX, the token short-lived and naming that artifact alone;
+  the Document Server's JWT checked as well.
+- `POST …/report/editor/callback?token=…`: the JWT checked (header and body); status 2 (closed, changed) and 6
+  (force-saved: the button, a close, the timer) store the file as the next version of the line, 1, 4 store nothing,
+  3 and 7 are logged. The file is fetched only from `AIA_ONLYOFFICE_URL`'s own origin (no other host, no redirect),
+  bounded in size, and must be a DOCX that opens; its users are the version's authors. Each version: a new artifact
+  (`research_internal_docx_edit` or `research_internal_docx_with_research_edit`) depending on the one it was saved
+  from, its counter "koncept N", RPT8b's changes beside it, its PDF rendered when `AIA_REPORT_PDF_ENABLED` is on.
+  Answers `{"error": 0}` once stored, an error otherwise, so the Document Server retries. A version already stored
+  under the same SHA-256 is not stored twice.
+- A recompose by code never touches an edited line (the /pmstatus question above).
+- Approval (`POST …/report/approve`) takes an edited version's id; the dialog shows its "Upraveno ručně" changes.
+- "Every autosave" needs the Document Server's timed force-save (`services.CoAuthoring.autoAssembly`, `enable: true`,
+  `interval: "5m"`) in its configuration: a request to the infra session (`deploy/develop/docs`), not this plan's file.
+- Tests: the config is signed and names no e-mail; an unsigned or wrongly signed callback is refused; a callback
+  naming a file on another host is refused unfetched; status 6 stores koncept N+1 depending on N with RPT8b's
+  changes; the same bytes twice store once; the client report is refused; with the URL unset every route is 404.
+
+**RPT8d. The pane opens the editor.**
+- 768 px and wider, with the editor configured: Zpráva's pane loads the Document Server's `api.js` through the
+  ticket (`/__aia/session?ticket=…&next=/web-apps/apps/api/documents/api.js`) and opens the line's newest version.
+- Below 768 px: the newest version in the editor's view mode; with the editor off, RPT2's read-only draft, as today.
+- The doc bar names the version shown ("koncept N, uloženo <kdy> · <kdo>"). Its "Upraveno ručně" count opens the list,
+  each change linked to its paragraph. "Schválit" approves that version, the dialog listing its changes and, for the
+  client report, RD0's warnings.
+- `next.config` CSP: `frame-src` and `script-src` add `AIA_ONLYOFFICE_URL`'s origin, and only it.
+- A Document Server that does not answer leaves the read-only draft and says so, never a blank pane.
+- Tests: Vitest for the config's use, the doc bar and the change list; the journey (`report_journey.mjs`) at 1440,
+  1100, 768 and 390 px against a stand-in Document Server (`tools/ui_workbench`: it serves a stub `api.js` and drives
+  the callback with a fictional edited DOCX), zero paid jobs. A real Document Server is checked once on develop after
+  activation.
+
+Order: F1 (its own small PR) → RPT8a part 3 → RPT8b → RPT8c → RPT8d → RD0's change → activation (infra) → RPT9.
+
 **RPT9. The Lead in the document.** The Lead, on its own model (STUDY_LEAD), edits the same document
 through the edit operations:
 - **Suggestions (default, Q56, Q13):** each edit lands in the text as a tracked change under the Lead's
@@ -378,7 +457,12 @@ sentence refused by RD7 is marked at the sentence. Depends on `report-delivery#R
 ## 8. Owner questions
 
 - Held at the feature freeze (the owner, 2026-10-22, 16:5x UTC: "stop developing new features, let's get the
-  new deploy up and running"): RPT8a part 3 and RPT8b-d, none built or opened; they resume when the freeze lifts.
+  new deploy up and running"): RPT8a part 3 and RPT8b-d. Lifted for RPT8 by the owner in the Zpráva session the
+  same evening ("Lift the freeze for RPT8 now"); RPT9 and RPT10 stay after it.
+- Open on /pmstatus (asked by the owner to go there): when code recomposes a run's draft (an analysis retry, a new
+  report contract), what happens to an edited one? (a) the edits keep their own history, the recomposed draft is a
+  separate line, nothing merged (recommended); (b) an edited draft is never recomposed; (c) recompose and re-apply
+  the edits. Until answered, RPT8c builds (a)'s minimum: a recompose never touches an edited version.
 
 - Q73 (decided 2026-10-22, (c)): downloads stay free before approval; RPT3b is closed, not built.
 - Hosting ONLYOFFICE Document Server beside develop (RPT8): an operations change, for the coordinator to
