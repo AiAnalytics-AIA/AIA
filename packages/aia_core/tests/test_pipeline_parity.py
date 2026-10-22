@@ -408,3 +408,16 @@ def test_a_presentation_only_edit_changes_its_stages_and_reopens_nothing_else() 
     impacts = stage_impacts(_design(), _design(report_style="formal"))
     assert {s for s, i in impacts.items() if i is not StageImpact.CURRENT} == {"REPORT", "DELIVERY"}
     assert StageImpact.RECHECK not in impacts.values()
+
+
+def test_a_field_impact_roots_does_not_map_still_reopens_what_follows_its_stage() -> None:
+    """Review on #638: a title or an aggregation policy is read by a stage but not mapped in
+    IMPACT_ROOTS; the stages after the one it changes are RECHECK, never CURRENT."""
+    ids = stage_ids(ProjectType.RESEARCH)
+    for field, stage in (("title", "BRIEF"), ("aggregation_policy", "AGGREGATION")):
+        assert field not in IMPACT_ROOTS
+        impacts = stage_impacts(_design(), _design(**{field: "jiné"}))
+        at = ids.index(stage)
+        assert impacts[stage] is StageImpact.CHANGED, field
+        assert all(impacts[s] is StageImpact.CURRENT for s in ids[:at]), field
+        assert all(impacts[s] is not StageImpact.CURRENT for s in ids[at + 1 :]), field

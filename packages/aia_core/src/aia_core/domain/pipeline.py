@@ -534,20 +534,29 @@ def stage_impacts(
     """Every stage's :class:`StageImpact` going from design ``before`` to design ``after``, in
     pipeline order.
 
-    The invalidated range is :func:`impact_preview`'s, from the fields that changed; a stage is
-    ``CHANGED`` when its own input fingerprint differs, whether or not the range reaches it (a
-    presentation-only field changes its stage and invalidates nothing). Identical designs are
-    ``CURRENT`` throughout."""
+    A stage is ``CHANGED`` when its own input fingerprint differs. The invalidated range starts at
+    the earlier of :func:`impact_preview`'s root (from the fields that changed) and the first
+    ``CHANGED`` stage: a field a stage reads but :data:`IMPACT_ROOTS` does not map (a title, an
+    aggregation policy) still reopens what follows it, never reads as current. A presentation-only
+    edit changes only its own stages, which end the pipeline. Identical designs are ``CURRENT``
+    throughout."""
+    ids = stage_ids(project_type)
+    changed = {
+        stage
+        for stage in ids
+        if stage_fingerprint(before, stage, project_type)
+        != stage_fingerprint(after, stage, project_type)
+    }
+    roots = [ids.index(s) for s in changed]
     preview = impact_preview(project_type, changed_fields(before, after))
-    invalidated = set(preview.invalidate)
-    impacts: dict[str, StageImpact] = {}
-    for stage in stage_ids(project_type):
-        if stage_fingerprint(before, stage, project_type) != stage_fingerprint(
-            after, stage, project_type
-        ):
-            impacts[stage] = StageImpact.CHANGED
-        elif stage in invalidated:
-            impacts[stage] = StageImpact.RECHECK
-        else:
-            impacts[stage] = StageImpact.CURRENT
-    return impacts
+    if preview.root_stage is not None:
+        roots.append(ids.index(preview.root_stage))
+    start = min(roots) if roots else len(ids)
+    return {
+        stage: StageImpact.CHANGED
+        if stage in changed
+        else StageImpact.RECHECK
+        if i >= start
+        else StageImpact.CURRENT
+        for i, stage in enumerate(ids)
+    }

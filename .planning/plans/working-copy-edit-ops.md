@@ -84,9 +84,10 @@ Split 2026-10-21 (owner: the Vzorek session, assigned by the PM) into three PRs:
   submitting a Design Revision. Spuštění reads it while open and submits only at start, with that
   revision's readiness checked again: the Sběr dat session's, in `artifact-fieldwork#FLD6`.
 - **WCE7c, delivered.** `domain.pipeline.stage_impacts(before, after)`: a stage whose own input
-  fingerprint differs is CHANGED; one in `impact_preview`'s invalidated range (from the changed
-  fields) but unchanged is RECHECK; the rest CURRENT. No new rule: the range is the one the
-  pipeline already uses. `ResearchRuns.impact(working_revision, design_revision_id=None)` (the
+  fingerprint differs is CHANGED; the invalidated range starts at the earlier of `impact_preview`'s
+  root and the first CHANGED stage, so a field `IMPACT_ROOTS` does not map (title,
+  aggregation_policy) still reopens what follows (review on #638); in the range and unchanged is
+  RECHECK; the rest CURRENT. `ResearchRuns.impact(working_revision, design_revision_id=None)` (the
   newest Design Revision when none is named) and `GET /studies/{id}/research/impact`. Tests:
   `test_pipeline_parity.py::test_a_questionnaire_edit_changes_its_stage_and_reopens_every_stage_after_it`
   (AC-07 in the domain) and `test_research_api.py::test_impact_reads_each_stage_of_a_design_against_the_working_copy`.
