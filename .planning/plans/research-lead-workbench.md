@@ -1440,7 +1440,8 @@ open a finding or a cited number in it from a click (ANL3).
   layer in use, never from behind the Lead's modal drawer. Its own listener had run first and
   closed the item behind an open dialog, pulling the focus out of it.
 - Tests: `Workbench.layout.test.tsx` "the item inspector", with "behind the Lead's modal drawer,
-  Escape closes the drawer the person is in, not the item behind it".
+  Escape closes the drawer the person is in, not the item behind it", and "while '@' is armed, Escape
+  disarms it first and leaves the item open".
 
 ### F12. A field inside the workbench drew two focus rings *(fixed, `fix/workbench-field-focus-ring`)*
 

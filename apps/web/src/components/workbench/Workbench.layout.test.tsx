@@ -383,6 +383,21 @@ describe("the item inspector", () => {
     await waitFor(() => expect(document.querySelector("[data-item-inspector]")).toBeNull());
   });
 
+  it("while '@' is armed, Escape disarms it first and leaves the item open (D21's order)", async () => {
+    bench(<Opener />);
+    setWidth(800);
+    fireEvent.click(screen.getByRole("button", { name: "open q1" }));
+    fireEvent.click(screen.getByRole("button", { name: /Otevřít konverzaci/ }));
+    const pick = screen.getByRole("button", { name: "Ukázat na prvek artefaktu (@)" });
+    await waitFor(() => expect((pick as HTMLButtonElement).disabled).toBe(false));
+    fireEvent.click(pick);
+    expect(screen.queryByRole("dialog")).toBeNull();
+    (document.querySelector("[data-item-inspector]") as HTMLElement).focus();
+    fireEvent.keyDown(window, { key: "Escape" });
+    expect(screen.getByRole("dialog")).toBeTruthy();
+    expect(document.querySelector("[data-item-inspector]")).toBeTruthy();
+  });
+
   it("refuses an id outside the contract's grammar and opens nothing", () => {
     bench(<Opener />);
     fireEvent.click(screen.getByRole("button", { name: "open bad" }));
