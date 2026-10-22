@@ -7,7 +7,7 @@
  */
 
 /** Whether the person asked for less motion: a scroll then jumps. No media query: none asked. */
-export function prefersReducedMotion(): boolean {
+function prefersReducedMotion(): boolean {
   return typeof window !== "undefined" && typeof window.matchMedia === "function" && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 }
 

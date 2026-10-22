@@ -14,7 +14,7 @@ chunks:
   - "[x] 11. No entity expands in an XLSX source or attachment (S11; #709: refuse_dtd over every workbook member before openpyxl, not defusedxml)"
   - "[ ] 12. AIA_MAX_REQUEST_BYTES is enforced by the API, per route, or removed from Settings (S12)"
   - "[ ] 13. A web fetch has an overall deadline, not only a per-read timeout (S13)"
-  - "[ ] 14. Only an OWNER grants or removes OWNER, and the last OWNER is never demoted (S14; the product owner chose option (b) on 2026-10-22; branch fix/only-an-owner-grants-owner)"
+  - "[x] 14. Only an OWNER grants or removes OWNER, and the last OWNER is never demoted (S14; the product owner chose option (b) on 2026-10-22; #782, merged 2026-10-22)"
   - "[ ] 15. ScopeRepository.deactivate_user acts only on a member of the admin's organization (S15)"
   - "[ ] 16. Hardening: email_verified, a CSP, worker log fields redacted, URL userinfo and AWS key shapes redacted, workflow inputs through env, GlitchTip on its own network (S16-S21)"
   - "[ ] 17. A route for clear_subject that settles cross-organization effect and deduplicates refused-sign-in audit rows (S22)"
@@ -289,6 +289,9 @@ what a bound on one path misses.
      is, only an OWNER grants or removes OWNER, and the last OWNER is never demoted.
   6. Test: an ADMIN's request to set or remove OWNER is 403, and so is demoting the last
      OWNER.
+  Status: fixed by #782 (merged as `b6cd4d9e`, 2026-10-22) on option (b): `_guard_owner`,
+  `infrastructure/scope_repository.py:343-375 @ 6bfe3760`;
+  `test_scope_isolation.py::test_an_admin_neither_grants_nor_removes_owner`. OI-229.
 - **S15. `deactivate_user` finds the user by id across every organization.**
   1. Claim: the lookup is `UserRow.user_id == user_id` with no membership filter, and the
      flag it sets is global.

@@ -1,0 +1,172 @@
+"""The Lead's accepted edits are the vocabulary's operations, logged as the turn's
+(working-copy-edit-ops WCE2d; ADR 0029 decisions 3 and 8).
+
+A person accepts what a Lead turn proposed; ``decide_edits`` applies it through
+``application/working_copy.apply_edit_ops``: each edit logged under its own operation, made by the
+researcher's Lead for that turn; an edit that writes a locked Sociomap input refused alone; a copy
+whose ids the web keeps settled, so a reworded research question keeps its links (F-WCE1-1).
+"""
+
+from __future__ import annotations
+
+import copy
+from typing import Any
+
+from aia_core.application.research_lead import ResearchLead
+from aia_core.domain.edit_log import ActorKind, OpSource, WriteBy
+from aia_core.domain.item_ids import SIDECAR_KEYS, with_item_ids
+from aia_core.domain.workflow_templates import RESEARCH_LEAD_TURN
+from aia_core.infrastructure.researcher_lead_repository import ResearcherLeadRepository
+from aia_core.infrastructure.study_workspace_repository import StudyWorkspaceRepository
+from aia_core.infrastructure.workflow_repository import WorkflowRepository
+from aia_core.infrastructure.workspace_edit_repository import WorkspaceEditRepository
+
+WHY = "Zadání to potřebuje."
+RQ = "Kdo kupuje kávu?"
+CONTENT: dict[str, Any] = {
+    "title": "Fiktivní koncept",
+    "goal": "Otestovat koncept",
+    "sections": [
+        {
+            "id": "s1",
+            "type": "questions",
+            "questions": [
+                {
+                    "id": "q1",
+                    "text": "Jak často kupujete kávu?",
+                    "typ": "skala",
+                    "skala": [1, 5],
+                    "research_questions": [RQ],
+                },
+                {"id": "q2", "text": "Znáte značku?", "typ": "vyber", "kategorie": ["Ano", "Ne"]},
+            ],
+        }
+    ],
+    "research_plan": {"objectives": ["Ověřit zájem"], "research_questions": [RQ]},
+}
+
+
+def _ready(scoped: Any, session: Any, content: dict[str, Any], edits: list[dict[str, Any]]) -> Any:
+    """A hatched researcher, ``content`` saved and one completed Lead turn proposing ``edits``."""
+    scope = scoped.scope(user="lead")
+    org = scoped.resolver.organization_context(scoped.principal(scoped.users["lead"]))
+    ResearcherLeadRepository(session, org).hatch()
+    StudyWorkspaceRepository(session).save(scope, content=content, base_revision=None)
+    lead = ResearchLead(session, scope, enabled=True)
+    turns = lead.post(kind="message", stage="brief", text="Uprav to.", focus=None)
+    workflows = WorkflowRepository(session, scope)
+    work = workflows.claim_next(worker_id="w", kinds={RESEARCH_LEAD_TURN})
+    assert work is not None
+    workflows.complete_attempt(
+        work.attempt_id,
+        worker_id="w",
+        output={
+            "lead_output": {"reply": "Navrhuji změny.", "edits": edits},
+            "dropped": [],
+            "self_update_applied": None,
+            "data_class": "CLASS_C_INTERNAL",
+        },
+    )
+    return scope, lead, turns[-1]["turn_id"]
+
+
+def _accept(scope: Any, session: Any, lead: ResearchLead, turn_id: str, n: int) -> dict[str, Any]:
+    base = StudyWorkspaceRepository(session).content(scope).revision
+    return lead.decide_edits(turn_id, decision="accept", indices=range(n), base_revision=base)
+
+
+def test_an_accepted_edit_is_logged_as_its_operation_made_by_the_turns_lead(
+    scoped: Any, session: Any
+) -> None:
+    edits = [
+        {"op": "set_text", "field": "title", "value": "Nový název", "why": WHY},
+        {"op": "list_add", "list": "plan.objectives", "value": "Ověřit cenu", "why": WHY},
+    ]
+    scope, lead, turn_id = _ready(scoped, session, CONTENT, edits)
+    before = StudyWorkspaceRepository(session).content(scope).revision
+    decided = _accept(scope, session, lead, turn_id, 2)
+    assert [r["status"] for r in decided["results"]] == ["accepted", "accepted"]
+
+    rows = WorkspaceEditRepository(session, scope).rows(after_revision=before)
+    assert {r.by for r in rows} == {
+        WriteBy(ActorKind.LEAD, scope.actor_id, OpSource.LEAD_TURN, turn_id)
+    }
+    assert {(r.base_revision, r.result_revision) for r in rows} == {
+        (before, decided["workspace_revision"])
+    }
+    assert len({r.batch_id for r in rows}) == 1
+    by_op = {(r.item_key, r.field): r.op for r in rows}
+    # Each edit is its own operation, without the Lead's reasoning; the copy holds the rest.
+    assert by_op[("content:brief:title", "text")] == {
+        "op": "set_text",
+        "field": "title",
+        "value": "Nový název",
+    }
+    added = [k for k, op in by_op.items() if op.get("op") == "list_add"]
+    assert len(added) == 1 and added[0][0].startswith("content:objective:")
+    others = {op["op"] for op in by_op.values()} - {"set_text", "list_add"}
+    assert others == {"whole_copy"}  # the stages' state and the analysis the plan edit wrote
+    assert all("why" not in op for op in by_op.values())
+
+
+def test_an_edit_of_a_locked_sociomap_input_is_refused_and_the_rest_apply(
+    scoped: Any, session: Any
+) -> None:
+    declared = copy.deepcopy(CONTENT)
+    declared["sections"][0]["questions"][0]["sociomap_rating"] = True
+    edits = [
+        {"op": "question_edit", "question_id": "q1", "text": "Jak moc často?", "why": WHY},
+        {"op": "set_text", "field": "title", "value": "Nový název", "why": WHY},
+    ]
+    scope, lead, turn_id = _ready(scoped, session, declared, edits)
+    decided = _accept(scope, session, lead, turn_id, 2)
+    assert decided["results"] == [
+        {"index": 0, "status": "refused", "reason": "sociomap_input_locked"},
+        {"index": 1, "status": "accepted", "reason": None},
+    ]
+    working = StudyWorkspaceRepository(session).content(scope).content
+    assert working is not None and working["title"] == "Nový název"
+    assert working["sections"][0]["questions"][0]["text"] == "Jak často kupujete kávu?"
+
+
+def test_a_reworded_research_question_keeps_its_links_in_a_copy_that_keeps_ids(
+    scoped: Any, session: Any
+) -> None:
+    """F-WCE1-1: with the web's ids stored, a reword accepted by a click carries its links, as the
+    same edit accepted in the browser does."""
+    with_ids, _ = with_item_ids(CONTENT)
+    edits = [
+        {
+            "op": "list_replace",
+            "list": "plan.research_questions",
+            "old": RQ,
+            "value": "Kdo pije kávu?",
+            "why": WHY,
+        }
+    ]
+    scope, lead, turn_id = _ready(scoped, session, with_ids, edits)
+    assert _accept(scope, session, lead, turn_id, 1)["results"][0]["status"] == "accepted"
+    working = StudyWorkspaceRepository(session).content(scope).content
+    assert working is not None
+    assert working["research_plan"]["research_questions"] == ["Kdo pije kávu?"]
+    assert working["sections"][0]["questions"][0]["research_questions"] == ["Kdo pije kávu?"]
+
+
+def test_a_copy_without_ids_is_given_none(scoped: Any, session: Any) -> None:
+    """With the web's switch off nothing writes an id: the server writes none either, and the
+    link names the old wording, as before."""
+    edits = [
+        {
+            "op": "list_replace",
+            "list": "plan.research_questions",
+            "old": RQ,
+            "value": "Kdo pije kávu?",
+            "why": WHY,
+        }
+    ]
+    scope, lead, turn_id = _ready(scoped, session, CONTENT, edits)
+    _accept(scope, session, lead, turn_id, 1)
+    working = StudyWorkspaceRepository(session).content(scope).content
+    assert working is not None
+    assert SIDECAR_KEYS.isdisjoint(working["research_plan"])
+    assert working["sections"][0]["questions"][0]["research_questions"] == [RQ]

@@ -8,6 +8,7 @@ import { act, cleanup, fireEvent, render, screen, waitFor, within } from "@testi
 import { afterEach, beforeEach, describe, expect, it, onTestFinished, vi } from "vitest";
 
 import { t, tv } from "@/i18n/t";
+import { runState } from "@/lib/run-state";
 import type { ResearchRun } from "@/lib/api";
 import signedOffFixture from "@/lib/fixtures/object-map-signed-off.json";
 import { AnalysisInspect } from "./AnalysisInspect";
@@ -1720,6 +1721,8 @@ describe("Results", () => {
     fireEvent.click(screen.getByRole("button", { name: t("research.retry") }));
     expect(await screen.findByText(t("research.exec.noResults"))).toBeTruthy();
     expect(screen.queryByText("Výsledky se nepodařilo načíst.")).toBeNull();
+    // With no run, the stage that starts one (workbench audit F-R8).
+    expect(screen.getByRole("link", { name: tv("research.exec.answerability.retryOpen", { stage: t("aia.stages.run") }) }).getAttribute("href")).toBe(TEST_FRAME.stepHref("run"));
     // No run, so no word about "this run's" report (workbench audit, 2026-10-22).
     expect(screen.queryByText(t("research.exec.results.reportNotInAia"))).toBeNull();
   });
@@ -2460,6 +2463,25 @@ describe("Results", () => {
     expect(within(comparison).getByText("4,2")).toBeTruthy();
     expect(within(comparison).getByText("3,0")).toBeTruthy();
     expect(within(comparison).queryByText("4,20")).toBeNull();
+  });
+
+  it("says why a run without results has none, in its state's words, and links to its progress", async () => {
+    api(listed(run()));
+    render(<ResearchScreen step="results" frame={TEST_FRAME} />);
+    expect(await screen.findByText(`${t("research.exec.noResultsYet")} ${runState(run() as ResearchRun).label}.`)).toBeTruthy();
+    expect(screen.getByRole("link", { name: t("research.exec.results.reportSeeProgress") }).getAttribute("href")).toContain("run=RUN-1");
+    expect(screen.queryByRole("link", { name: tv("research.exec.answerability.retryOpen", { stage: t("aia.stages.run") }) })).toBeNull();
+  });
+
+  it("never says a failed run is still going", async () => {
+    const failed = run({ phase: "FAILED", status: "FAILED", is_terminal: true, steps: [step("fieldwork", "FAILED", { kind: "research_fieldwork" })] });
+    api(listed(failed));
+    render(<ResearchScreen step="results" frame={TEST_FRAME} />);
+    const state = runState(failed as ResearchRun);
+    expect(state.state).not.toBe("RUNNING");
+    expect(state.reason).toBeTruthy();
+    // The whole sentence: one period, the reason's own (a doubled ".." was the stand-in review's P2).
+    expect(await screen.findByText(`${t("research.exec.noResultsYet")} ${state.label}: ${state.reason}`)).toBeTruthy();
   });
 
   it("says there are no results while the run waits at fieldwork", async () => {

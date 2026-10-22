@@ -25,7 +25,7 @@ import { guardedNavigate } from "@/lib/guarded-navigation";
 import { rovingIndex } from "@/lib/roving";
 import { useDismiss } from "../ui/parts";
 import {
-  LEAD_REASON_WORDS, ANALYSIS_RETRY_MOVED_QUESTION, STALE_CARD_QUESTION, applyLeadEdit, changesToShow, autoAcceptPlan, describeEdit, editRefusalWords, editStage, focusSelector, revertTextEdit, targetLabel, targetOfElement, textEditInverse,
+  LEAD_REASON_WORDS, ANALYSIS_RETRY_MOVED_QUESTION, STALE_CARD_QUESTION, LEAD_REVEAL, applyLeadEdit, changesToShow, autoAcceptPlan, describeEdit, editRefusalWords, editStage, focusSelector, revertTextEdit, targetLabel, targetOfElement, textEditInverse,
   type LeadEdit, type LeadRequest, type LeadTurn, type LeadView, type ResearcherLead,
 } from "@/lib/lead";
 import {
@@ -87,7 +87,7 @@ const DRAWER_QUERY = `(min-width: ${DRAWER_LAYOUT_MIN_PX}px)`;
  * from 1100 px, the side drawer from 768 px, the full-screen sheet below. Without media queries (a
  * test's DOM) and on the server the width is unknown, so the split serves. Changing it changes
  * classes and where the conversation sits, never what is mounted (D21). */
-export function useWorkbenchLayout(): WorkbenchLayout {
+function useWorkbenchLayout(): WorkbenchLayout {
   return useSyncExternalStore(
     (on) => {
       if (!canMatch()) return () => {};
@@ -468,12 +468,12 @@ export function Workbench({ frame, step, store, memory, save, inspector, reload,
       } else if (v.op === "show_diff") {
         showChanges.current(v.stage, reveal);
       } else {
-        reveal(focusSelector(v.target));
+        reveal(focusSelector(v.target), v.target);
       }
     }
     // What a view points at, scrolled to and marked; after a stage change it appears on the next
-    // render, so look again briefly.
-    function reveal(selector: string) {
+    // render, so look again briefly. A focus target not on screen is announced (LEAD_REVEAL) once.
+    function reveal(selector: string, target?: string) {
       let tries = 0;
       const find = () => {
         const el = document.querySelector<HTMLElement>(selector);
@@ -492,7 +492,10 @@ export function Workbench({ frame, step, store, memory, save, inspector, reload,
           }
           el.classList.add("just");
           setTimeout(() => el.classList.remove("just"), 2300);
-        } else if (tries++ < 10) setTimeout(find, 150);
+        } else {
+          if (!tries && target) window.dispatchEvent(new CustomEvent(LEAD_REVEAL, { detail: target }));
+          if (tries++ < 10) setTimeout(find, 150);
+        }
       };
       find();
     }

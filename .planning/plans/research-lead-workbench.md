@@ -1789,10 +1789,47 @@ pass finds the jobs already done for the design.
      "Unable to find role="button" and name `/^Detail: /`" after 5.5 s. Idle, it takes 2.2 s of its
      4 s budget. Zpráva saw it fail once under load.
   4. Consequence: a red web suite on a loaded runner, unrelated to the change under test.
-  5. Fix: the five overrides removed, so the suite's 10 s budget applies. "leaves nothing pending"
-     also now waits until the guard has stopped the move, so it no longer passes when no move is
-     tried at all.
+  5. Fix: the five overrides removed, so the suite's 10 s budget applies.
   6. Test: the reproduction above passes; the file passes (38).
+- **F21. "leaves nothing pending" took its guard off before the Lead's move was tried** *(fixed,
+  the same branch)*.
+  1. Claim: the test removed its leave guard as soon as the turn's chip appeared. LeadPane runs
+     the turn's view from a passive effect (`LeadPane.tsx:166 @ eb0c7d47`); when `findByRole`
+     resolves before that effect has run, `cleanup()`'s `act` flushes it after the guard is gone,
+     so the move goes through and leaves the inspect pending for the remount.
+  2. Anchor: `Workbench.layout.test.tsx:407-424 @ eb0c7d47`.
+  3. Reproduction: about one run in ten of the file with develop's version of the test fails at
+     `:424` ("expected <aside …> to be null") after 2.2 s, not at the 4 s budget (seen on the
+     map-view branch, which predates this fix).
+  4. Consequence: a red web suite now and then, under no load at all.
+  5. Fix: the test waits until its guard has stopped the move (`stopped === 1`) before taking it
+     off, which also means it no longer passes when no move is tried.
+  6. Test: the same file, run repeatedly, never fails at `:424`.
+
+### A stage mounted twice on a fresh page (2026-10-22, `fix/stage-mounts-once`; the Dimenze audit, #798)
+
+- **F22. Every fresh page mounted the classic layout and then the workbench** *(fixed)*.
+  1. Claim: `useWorkbenchSwitch` read `false` until `/config` answered, so `Ready` first rendered
+     the classic layout (`DesignSourceNote`, the stage screens, the stage record) and then the
+     workbench, which mounted and read everything again.
+  2. Anchor: `apps/web/src/components/rehome/research/ResearchScreen.tsx:237-238 @ 9607ee09`.
+  3. Reproduction: `ResearchScreen.workbench.test.tsx` "mounts a stage once on a fresh page…" (two
+     `/design/source` reads before). In a browser on the UI workbench (`next dev`), one Dimenze
+     visit made 44 API requests: `/design/source` 4, runs 6, limits 12, PUT `/workspace/stage` 2.
+  4. Consequence: twice the reads on every stage a person opens fresh, and both layouts' effects.
+  5. Fix: the switch is `null` until read, and until then the stage shows its chrome with the
+     loading line as a status (never blank). No timeout: every API read awaits the same cached
+     `/config` (`lib/api.ts:33`), so a hanging one holds the working copy's read first and `Ready`
+     never mounts; once it does, the switch answers at once (stand-in review on #807). The tests
+     reset the switch and the config cache before each one, so none depends on another's order.
+  6. Test: the test above; after the fix the same visit makes 36 requests, `/design/source` 2,
+     runs 4, limits 8.
+- **By design, recorded:** the remaining doubles are `next dev`'s Strict Mode, which runs each
+  effect twice: one PUT `/workspace/stage` and one `/design/source` per visit in a production
+  build. `/research/impact`'s 404 on a study with no Design Revision is its "nothing to say", read
+  once.
+- **Left, a hypothesis:** limits are still read by several components on one visit (4 in a
+  production build). Sharing them is another change, not this one.
 
 ### The Lead's `show_diff` (2026-10-22, `feature/lead-show-diff`; chunk 14)
 
@@ -1821,3 +1858,9 @@ waiting for review. On Zpráva it waits for report-delivery RD5's tracked change
   "changesToShow"; `LeadPane.test.tsx` "names a show_diff chip…"; `Workbench.layout.test.tsx`
   "the Lead's show_diff": marks the edits, opens the waiting proposal, opens the stage when nothing
   waits. Each fails without the change.
+- **Older than the page (Codex on #809).** The workbench's `jobs` are the newest 20, and the
+  server's `?pending=true` filtered that page, so a proposal waiting behind 20 newer jobs was never
+  shown. `?pending=true` now filters the study's newest 200 jobs (`list_runs`' cap) before reading
+  them in full, and show_diff asks it when its page holds no proposal for the stage. Tests:
+  `test_a_pending_proposal_older_than_the_newest_page_is_still_listed_as_pending`;
+  `Workbench.layout.test.tsx` "asks the server for the stage's pending proposals…".

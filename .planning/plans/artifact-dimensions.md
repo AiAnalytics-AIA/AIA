@@ -158,6 +158,29 @@ V2: `DimensionsArt` (`SampleStages.tsx:206-230`).
   Dimenze's "Další · Vzorek" opens it (test "inside the workbench goes on to the frame's next stage",
   `dimensions_journey.mjs`); the classic layout keeps "Další · kontrola" to Spuštění.
 
+- **DIM-F5 (fixed in its own PR).** In the workbench a chosen dimension could be removed, and a requested
+  one seen, only in the inspector drawer ("Připravenost a pomoc"), which is closed unless opened: the main
+  "Vybrané dimenze" list had no remove and no waiting rows, and with nothing chosen it drew nothing
+  (`PersonaStep.tsx:205-243` vs `:249 @ 9607ee09`). So after "Přidat jako požadavek" the request was gone
+  from the screen once its toast closed. The drawer's × was 16 × 19 px, under WCAG 2.5.8's 24. Seen at
+  1440 px. The selection now carries its base row, a 24 px remove per dimension (V2's `removable`) and the
+  empty state, with the waiting requests as their own list beside it ("Požadované dimenze"); the drawer's
+  duplicate is gone. Tests: "removes a chosen dimension where it is listed and shows a waiting request
+  beside it…", `dimensions_journey.mjs` (remove targets at four widths, removed and put back),
+  `workspace_journey.mjs` (the request waiting after its toast).
+
+- **DIM-F6 (fixed in the same PR).** The society-factor note named the old product and said the run
+  "počítá s celou populací" (`cs.ts:2491 @ 9607ee09`), though a panel run draws under the audience and the
+  persona source is chosen before the run ("Kdo bude odpovídat"). It now says where respondents are
+  chosen, without naming a stage (the classic calls it Kontrola a spuštění, the workbench Sběr dat) or
+  promising the panel, which is offered only under `AIA_AI_POPULATION_PERSONAS_ENABLED`. Test: "goes on
+  calibrated… say they are not in AIA and where respondents are chosen".
+
+- **Not fixed, for others.** "Cena / value for money" keeps its English half: it is 18.6.6's label
+  (`ui_app.html:404`), pinned with the server's `DIMENSION_LABELS` (`project_memory.py:46`), so renaming is
+  the product owner's call. Every visit sends `GET …/design/source` three to four times and `…/research/impact`
+  once (both 404 by design) and `PUT …/workspace/stage` twice: the shared frame's, noted with the coordinator.
+
 ## 8. Owner questions
 
 None new. MVPQ-03 (what a segment or descriptor is) stays open in `mvp-owner-decisions.md`.

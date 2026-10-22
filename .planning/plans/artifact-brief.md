@@ -230,6 +230,11 @@ Every item is an `Item` (`src/components/ui.tsx:52`): edit in place, remove, mov
   - Fix: read the row's InlineText value. Not the row's whole text, which carries the number, the
     screen-reader "Upravit: Cíl N" and the "×".
   - Test: a `lead.test.ts` case over an objective row.
+  - **Fixed** by 0c357a43 ("Fix the workbench frame defects a browser audit found at four widths"):
+    an item row with no heading is named by its visible words (`visibleWords`, `ITEM_KINDS`,
+    `apps/web/src/lib/lead.ts:519-526 @ 382b418a`). Test: `lead.test.ts` "names an item row without a
+    heading by its own words, never its opaque id". Checked in a browser on 382b418a: the journey's
+    `390-brief-picked.png` reads "Cíl: Najít cenu, nad kterou zájem výrazně klesá.".
 - F-BRF-2 (journey flake, reported to the coordinator 2026-10-22): the drawer step's wait for the
   composer's focus times out intermittently at 1099 px.
   - Anchor: `tools/ui_workbench/lead_journey.mjs:198 @ b1a73536`, the wait
@@ -265,11 +270,15 @@ Every item is an `Item` (`src/components/ui.tsx:52`): edit in place, remove, mov
 
 None. Where assumptions are shown (B-6) and the absence of a decision list (B-2, D-44) are settled.
 
+Settled 2026-10-22 (the product owner, through the PM): the Brief may hold no objective while it is
+drafted, so removing the last one stays allowed there; only Návrh requires an objective
+(`research.plan.requiredObjectives`). A repeated objective is refused on both, in Návrh's words (#795).
+
 ## Doc follow-up
 
 - `mvp-master-plan.md` §3 and `mvp-execution-contracts.md`: register this plan and its chunks (see the
   PR body).
-- `open-items.md`: F-BRF-1, the objective chip reads its raw id (§ 7a).
+- `open-items.md`: F-BRF-1, the objective chip reads its raw id (§ 7a), fixed by 0c357a43.
 - `open-items.md`: F-BRF-2, `lead_journey.mjs:198` composer-focus timeout at 1099 px (§ 7a), not reproduced in 5 fresh runs after #678; cause unconfirmed.
 - `open-items.md`: F-BRF-3, an empty new objective said as a name (§ 7a), fixed.
 - `CLAUDE.md` § 2, when BRF1 lands: `apps/web/src/lib/artifacts/` (one contract per artifact).

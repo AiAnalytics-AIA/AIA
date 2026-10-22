@@ -21,6 +21,7 @@ import { type BriefMaterials, classLabel, classOf } from "@/lib/material-class";
 import { briefElementId, contextField, materialAia } from "@/lib/artifacts/brief";
 import { aiaId } from "@/lib/workbench-artifacts";
 import { OBJECTIVE_MAX, addObjective, objectivesEditable, objectivesOf, removeObjective, restoreObjective, setObjective } from "@/research/brief-objectives";
+import { itemProblem, narrativeOf } from "@/research/plan-narrative";
 import { InlineCreateRow } from "../../ui/InlineCreateRow";
 import { InlineText } from "../../ui/InlineText";
 import { UndoToast, useUndo } from "../../ui/UndoToast";
@@ -58,7 +59,7 @@ const INPUT = `rounded-control border border-border-strong text-ink placeholder:
 const CONTEXT_MAX = 4000;
 
 /** A goal this long reads as a sentence; shorter, the AI will have to ask. */
-export const GOAL_SENTENCE = 40;
+const GOAL_SENTENCE = 40;
 
 /** The further context, in the order the classic form showed it. */
 const CONTEXT: { field: BriefingField; label: string }[] = [
@@ -76,7 +77,7 @@ function contextValue(p: ResearchProject, field: TopField | BriefingField): stri
  * "Navrhnout z cíle": a short title from the goal's first clause, without its
  * sentence starter. Done in the browser; the person can change it like any title.
  */
-export function titleFromGoal(goal: string): string {
+function titleFromGoal(goal: string): string {
   const words = goal
     .trim()
     .replace(/^(Chceme zjistit|Rozhodujeme mezi|Potřebujeme ověřit)(,?\s+(jak|zda|jestli|co|kdo|proč))?\s*/i, "")
@@ -282,6 +283,9 @@ function Objectives({ undo }: { undo: Undo }) {
   const design = { project: state.project, analysis: state.analysis };
   const items = objectivesOf(design);
   const editable = objectivesEditable(design);
+  // Návrh's rule and words for the same list (plan-narrative itemProblem), read from the copy as it
+  // is now, not as it was rendered; index null for a new item.
+  const repeat = (text: string, index: number | null) => itemProblem(narrativeOf(store.get()), "objectives", text, index);
   const remove = (index: number) => {
     const { removed } = removeObjective(store.get(), index);
     if (removed === null) return;
@@ -303,7 +307,7 @@ function Objectives({ undo }: { undo: Undo }) {
                 multiline
                 value={o.text}
                 label={tv("research.brief.objectiveLabel", { n: i + 1 })}
-                rules={{ maxLength: OBJECTIVE_MAX }}
+                rules={{ maxLength: OBJECTIVE_MAX, validate: (v) => repeat(v, i) }}
                 onCommit={(text) => store.update((d) => setObjective(d, i, text), { reason: "brief_objective" })}
               />
               <Button small variant="quiet" aria-label={tv("research.brief.objectiveRemoveAria", { n: i + 1 })} onClick={() => remove(i)}>
@@ -323,8 +327,12 @@ function Objectives({ undo }: { undo: Undo }) {
           label={t("research.brief.objectiveAdd")}
           emptyWords={t("research.brief.objectiveEmpty")}
           maxLength={OBJECTIVE_MAX}
-          existing={items.map((o) => o.text)}
-          onCreate={(text) => store.update((d) => addObjective(d, text), { reason: "brief_objective_add" })}
+          validate={(v) => repeat(v, null)}
+          onCreate={(text) => {
+            const problem = repeat(text, null);
+            if (problem) return problem;
+            store.update((d) => addObjective(d, text), { reason: "brief_objective_add" });
+          }}
         />
       ) : null}
     </StepSection>

@@ -3,7 +3,8 @@
  * Dimenze in a browser (artifact-dimensions DIM3, the start of DIM6): the sample size is one
  * stepper inside data-aia="sample:n", bounded by the server's limits; a press saves n plus the
  * step, a value outside the limits is refused at the field and nothing is saved.
- * The client's own dimensions (DIM4) are read and lead to "Populace běhu". Inside the workbench
+ * A chosen dimension is removed from the selection itself (each remove at least 24 px) and put back
+ * from the catalogue (DIM-F5). The client's own dimensions (DIM4) are read and lead to "Populace běhu". Inside the workbench
  * "Další" goes on to Vzorek, the navigator's next stage (DIM-F4).
  * At 1440, 1100, 768 and 390 px, no page overflow. Zero paid starts: the only writes are saves of
  * the working copy and of the stage the person is on. The fixture's n is put back at the end; "Další"
@@ -62,9 +63,12 @@ const fixtures = JSON.parse(readFileSync(join(repo, "tmp/ui-workbench/studies.js
 const { client, study } = fixtures.persona;
 const url = `${base}/app/clients/${client}/research/${study}/dimensions`;
 const n = () => page.locator('[data-aia="sample:n"] [role="spinbutton"]');
+// A catalogue card is named by its label and source ("<label> Systém · …"), never by a prefix of another's.
+const cardOf = (label) => page.getByRole("button", { name: new RegExp(`^${label.replace(/[.*+?^${}()|[\]\\/]/g, "\\$&")} (Systém|Znalosti klienta)`) }).first();
 const saved = () => page.waitForResponse((r) => r.url().endsWith(`/studies/${study}/workspace/content`) && r.request().method() === "PUT" && r.ok());
 
 let restore = null;
+let removed = null; // a chosen dimension removed and not yet put back
 try {
   for (const width of [1440, 1100, 768, 390]) {
     await page.setViewportSize({ width, height: 900 });
@@ -73,8 +77,14 @@ try {
     assert.equal(await page.locator('[data-aia="sample:n"] input[type="range"]').count(), 0, "no slider beside the stepper");
     const { w, d } = await page.evaluate(() => ({ w: innerWidth, d: document.documentElement.scrollWidth }));
     assert(d <= w + 2, `${width}: page overflow ${d} > ${w}`);
+    // DIM-F5: a chosen dimension is removed from the selection itself, its target at least 24 px.
+    const removes = page.getByRole("list", { name: "Vybrané dimenze" }).getByRole("button", { name: /^Odebrat dimenzi/ });
+    assert((await removes.count()) > 0, `${width}: the fixture's chosen dimensions can be removed where they are listed`);
+    for (const box of await removes.evaluateAll((els) => els.map((e) => e.getBoundingClientRect().toJSON()))) {
+      assert(box.width >= 24 && box.height >= 24, `${width}: a remove target is ${box.width}x${box.height}`);
+    }
     await page.screenshot({ path: join(out, `dimensions-${width}.png`), fullPage: true });
-    check(`${width}: one stepper for n, no overflow`);
+    check(`${width}: one stepper for n, the selection's remove targets 24 px or more, no overflow`);
   }
 
   const own = page.locator("section", { has: page.getByRole("heading", { name: "Vlastní dimenze klienta" }) });
@@ -82,11 +92,28 @@ try {
   assert.equal(await own.getByRole("link", { name: /Populace běhu/ }).getAttribute("href"), `/app/clients/${client}/research/${study}/run`);
   check("Vlastní dimenze klienta: read, with the way to Populace běhu");
 
+  // The last chosen one, so putting it back from the catalogue (which appends) keeps the stored order.
+  const chosen = page.getByRole("list", { name: "Vybrané dimenze" });
+  const remove = (name) => chosen.getByRole("button", { name: `Odebrat dimenzi ${name}`, exact: true });
+  const last = chosen.getByRole("button", { name: /^Odebrat dimenzi / }).last();
+  const label = (await last.getAttribute("aria-label")).slice("Odebrat dimenzi ".length);
+  let put = saved();
+  await last.click();
+  removed = label;
+  await put;
+  assert.equal(await remove(label).count(), 0);
+  put = saved();
+  await cardOf(label).click();
+  await put;
+  await remove(label).waitFor();
+  removed = null;
+  check("a chosen dimension is removed from the selection and put back from the catalogue");
+
   const before = Number((await n().getAttribute("aria-valuenow")) ?? NaN);
   const max = Number(await n().getAttribute("aria-valuemax"));
   assert(Number.isFinite(before) && before + 50 <= max, `n ${before} can step up within ${max}`);
   restore = before;
-  const put = saved();
+  put = saved();
   await page.getByRole("button", { name: /^Zvýšit/ }).click();
   await put;
   assert.equal(await n().getAttribute("aria-valuenow"), String(before + 50));
@@ -121,6 +148,11 @@ try {
   check("zero paid starts");
   assert.deepEqual(errors, []);
 } finally {
+  if (removed !== null) {
+    const put = saved();
+    await cardOf(removed).click();
+    await put;
+  }
   if (restore !== null) {
     await n().fill(String(restore));
     const put = saved();

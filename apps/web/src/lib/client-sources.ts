@@ -9,7 +9,7 @@ import { plural } from "@/lib/format";
 import type { Tone } from "@/lib/tone";
 
 /** The kinds that carry a file: the material itself (domain SOURCE_BACKED_KINDS). */
-export const FILE_KINDS = ["DOCUMENT", "SOURCE", "DATASET"] as const;
+const FILE_KINDS = ["DOCUMENT", "SOURCE", "DATASET"] as const;
 
 export const takesFile = (kind: string): boolean => (FILE_KINDS as readonly string[]).includes(kind);
 

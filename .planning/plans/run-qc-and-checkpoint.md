@@ -13,6 +13,8 @@ chunks:
   - "[x] RQC6c. Web (artifact-sample SMP2): Vzorek's composition as quota cells, each sample:quota:<cell>, and the panel run's forecast in words"
   - "[x] RQC6d. Journey (artifact-sample SMP6): Vzorek's panel composition and forecast at 1440, 1100, 768 and 390 px over the population double, zero paid jobs"
   - "[ ] RQC7. The fieldwork event contract: heartbeat, quota-cell fill, a respondent grid, the park reason code"
+  - "[x] RQC7a. The contract as data (aia-fieldwork-events-1): fieldwork_progress (respondents of n, blocks sent and replayed) every few respondents and, behind a switch, as a 30 s heartbeat; the park reason code as STEP_RECOVERY's error_reason, for every executor; the web words the progress"
+  - "[ ] RQC7b. Quota-cell fill and the respondent grid: each panel respondent's quota cell (the RQC6a keys), fill per cell, a per-respondent row, under aia-fieldwork-events-2"
   - "[ ] RQC8. Readiness reads the worker's egress: a run whose route cannot carry Class A is flagged before it parks"
   - "[x] RQC9. One authority for the valid n: the domain readiness limits, read by the web and the Lead"
   - "[x] RQC10. A population double composed in both the API and the worker over HTTP, for tier A's AC-05"
@@ -140,6 +142,17 @@ panel offered, `ai_runtime` fieldwork, so runs park) and `tools/ui_workbench/sam
 
 **RQC7. The fieldwork event contract: heartbeat, quota-cell fill, a respondent grid, the park reason code**  
 Written first by S2; consumed by the Fieldwork artifact (`research-lead-workbench` 19). Interfaces I7.
+
+- RQC7a: `domain/fieldwork_events.py` (closed `FieldworkEvent`, `PAYLOAD_KEYS`, `progress`,
+  `progress_due`, `HEARTBEAT_SECONDS`), held with the web's `lib/step-activity.ts` to
+  `packages/aia_core/tests/fixtures/fieldwork_events/contract.json`. `ai_fieldwork.answer_plans` writes
+  `fieldwork_progress` instead of its sentence (counts as reported; replayed blocks from the RQC0 journal apart,
+  at no cost); the heartbeat between a respondent's blocks is behind `AIA_AI_FIELDWORK_HEARTBEAT` (off by
+  default; at most two feed writes a minute). The park reason: the engine's `STEP_RECOVERY` payload carries
+  the attempt's own `error.reason` as `error_reason` when it differs from the waiting reason
+  (`workflow_repository._apply_recovery`), so every executor's park names why in the feed.
+- RQC7b needs each panel respondent's quota cell: `SampledRespondent` carries none, so the sample's
+  `audit.quota_fields` are looked up at the respondent's row (as `holdout/run.py` `cell_of` does).
 
 **RQC8. Readiness reads the worker's egress: a run whose route cannot carry Class A is flagged before it parks**  
 The panel default needs the route widened and the API reads no egress key. Shares the composition record of `lead-orchestration#LO12b`.
