@@ -639,7 +639,8 @@ Split by owner (PM, 2026-10-22): B1â€“B4 sit on Dimenze (`PersonaStep.tsx`), B5â
     built-in subpanels a search matches".
   - `audience_journey.mjs` checks the search at 1440/1100/768/390 without overflow, and that a search
     matching nothing leaves the chosen one and says 0.
-- **B11. Discover's product and success criterion in place, feature/audience-discover-inline.**
+- **B11. Discover's product and success criterion in place, feature/audience-discover-inline.** Held at the
+  feature freeze (the product owner, 2026-10-22, about 16:50 UTC): built, checked and pushed, no PR opened.
   - Both are `InlineText` (multi-line) where they are shown. Ctrl/Cmd+Enter or leaving the field
     saves, and Esc restores. They were textareas that wrote every keystroke into the working copy.
   - The value filter's count line ("Zobrazeno x z y hodnot", #761) is `aria-live="polite"`, as the
