@@ -66,6 +66,7 @@ import { ActionDock, StepSection } from "../step";
 import { AiButton, Button, Field, TextInput } from "../ui";
 import { useResearch, useSessionState } from "./context";
 import { InspectorSlot } from "./Inspector";
+import { OwnDimensions } from "./OwnDimensions";
 import { AskLead, useLeadOwnsAiStarts } from "./AskLead";
 import { AiFailureCard, useAiStep } from "./useAiStep";
 import { readyLimits, useSampleLimits } from "./useSampleLimits";
@@ -258,6 +259,8 @@ export function PersonaStep() {
           ) : null}
           {topics === "failed" ? <p role="status" className="px-4 pb-3 text-xs text-status-you-ink">{t("research.persona.topicsFailed")}</p> : null}
         </StepSection>
+
+        <OwnDimensions studyId={frame.studyId} runHref={stepHref("run")} />
 
         <StepSection
           n={1}

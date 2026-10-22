@@ -23,6 +23,7 @@ const CONTEXT_PATH = "/api/v1/studies/STU-1/context";
 const PROPOSALS_PATH = "/api/v1/studies/STU-1/knowledge-proposals";
 const LIMITS_PATH = "/api/v1/studies/STU-1/research/limits";
 const TOPICS_PATH = "/api/v1/studies/STU-1/research/persona-topics";
+const OWN_PATH = "/api/v1/studies/STU-1/population/materializations";
 /** The server's mapping (persona_topics.dimension_topic), for the ids these tests choose. */
 const TOPICS: Record<string, string | null> = { media: "media", cena: "cena", zdravi: "zdravi", ekologie: "eko", "KNI-ai": null };
 /** The readiness limits in force, as the server answers them (RQC9): the preset's 20-10 000. */
@@ -127,6 +128,39 @@ describe("Dimenze", () => {
     expect(own.textContent).toContain("Znalosti klienta");
     expect(calls.some((c) => c.url.startsWith(`${TOPICS_PATH}?dimension=ekologie&dimension=KNI-ai`))).toBe(true);
     noUnitCalls();
+  });
+
+  it("lists the client's own dimensions this study materialized, each with its state and outcome (DIM4)", async () => {
+    const base = { status: "SUCCEEDED", created_at: "2026-10-22T00:00:00Z", finished_at: null, kind: "binary", waiting_reason: null, refusal_reason: null };
+    aiaStub(PLANNED, {
+      [OWN_PATH]: () => ({
+        items: [
+          { ...base, run_id: "RUN-a", dimension_id: "pije_kavu_rano", step_status: "SUCCEEDED", child: { version_id: "v+c1", label: "Pije kávu ráno", target: 0.4, achieved: 0.31, target_met: false } },
+          { ...base, run_id: "RUN-b", dimension_id: "jezdi_vlakem", status: "RUNNING", step_status: "AWAITING_BUDGET", waiting_reason: "budget_exceeded", child: null },
+        ],
+      }),
+    });
+    const { container } = render(<ResearchScreen step="persona" frame={TEST_FRAME} />);
+    const done = await waitFor(() => {
+      const el = container.querySelector('[data-aia="own_dimension:RUN-a"]');
+      expect(el).not.toBeNull();
+      return el as HTMLElement;
+    });
+    expect(done.textContent).toContain("pije_kavu_rano");
+    expect(done.textContent).toContain("cíl 40 %, dosaženo 31 % · cíl nedosažen");
+    const waiting = container.querySelector('[data-aia="own_dimension:RUN-b"]') as HTMLElement;
+    expect(waiting.textContent).toContain("Čeká na rozpočet");
+    expect(waiting.textContent).toContain("překročil rozpočet studie");
+    expect(screen.getByRole("link", { name: /Populace běhu/ }).getAttribute("href")).toBe(stagePath("run"));
+    noUnitCalls();
+  });
+
+  it("without any materialization from this study the section says so, and still leads to the run's population", async () => {
+    aiaStub(PLANNED, { [OWN_PATH]: () => ({ items: [] }) });
+    render(<ResearchScreen step="persona" frame={TEST_FRAME} />);
+    expect(await screen.findByText(/žádná dimenze klienta nematerializovala/)).toBeTruthy();
+    // The Run stage offers the client's children from every study, so the way there stays.
+    expect(screen.getByRole("link", { name: /Populace běhu/ }).getAttribute("href")).toBe(stagePath("run"));
   });
 
   it("a topic the server did not answer is never shown as matched", async () => {
