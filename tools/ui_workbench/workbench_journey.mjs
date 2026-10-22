@@ -286,6 +286,12 @@ try {
     await coverage.getByText(/Podle pracovní kopie, revize \d+|Návrh zatím není uložený|nedá sestavit/).first().waitFor({ timeout: 30000 });
     await noOverflow(`plan @${width}`);
     assert.equal(writes.filter((w) => w.path.endsWith("/design/revisions")).length, planSubmitsBefore, `plan @${width}: Návrh's coverage submitted a design`);
+    // WCAG 2.5.8: a remove control on Návrh is at least 24 × 24 px (a set item's × was 12 × 20).
+    const small = await page.evaluate(() => [...document.querySelectorAll('button[aria-label^="Odebrat "]')]
+      .map((e) => [e.getAttribute("aria-label"), e.getBoundingClientRect()])
+      .filter(([, r]) => r.width > 0 && (r.width < 24 || r.height < 24))
+      .map(([name, r]) => `${name} ${Math.round(r.width)}×${Math.round(r.height)}`));
+    assert.deepEqual(small, [], `plan @${width}: remove targets under 24 px`);
     await coverage.screenshot({ path: join(out, `${width}-plan-coverage.png`) });
   }
   check("Návrh shows its research questions' coverage at 1440, 1100, 768 and 390, no overflow");

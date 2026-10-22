@@ -33,6 +33,7 @@ from aia_core.application.model_gateway import GovernedModelGateway
 from aia_core.application.research import research_artifacts
 from aia_core.domain.ai_contracts import ModelCallFailed, canonical_json
 from aia_core.domain.ai_material import MaterialApproval
+from aia_core.domain.lead_context import context_manifest
 from aia_core.domain.prompts import PromptPin
 from aia_core.domain.providers import Provider
 from aia_core.domain.research_lead import (
@@ -202,6 +203,7 @@ class ResearchLeadExecutor:
         # The class the gateway sent it as: the request's, or -- an unknown class passed under
         # advisory class gates (develop only) -- the class it was judged as, with the advisory.
         sent_class = result.provenance.data_class.value
+        classification = context_classification(frozen, cfg.material_approvals, pin)
         return LeadAnswer(
             output=LeadOutput.model_validate(result.output.model_dump(mode="json")),
             data_class=sent_class,
@@ -224,9 +226,10 @@ class ResearchLeadExecutor:
                 # Each part's class and who answered for it: a rule of the owner's
                 # (``rule:<name>``), an operator who raised it, the prompt's declaration or the
                 # code, an earlier reply's turn (``context_classification``).
-                "material_classification": context_classification(
-                    frozen, cfg.material_approvals, pin
-                ),
+                "material_classification": classification,
+                # What the turn could see, layer by layer, with each layer's class (ADR 0041
+                # decision 3).
+                "context_manifest": context_manifest(frozen, classification),
             },
         )
 

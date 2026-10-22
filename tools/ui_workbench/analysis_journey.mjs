@@ -185,6 +185,11 @@ try {
     check("no cited number on this run's findings (nothing to open)");
   }
 
+  // The fixture's run pinned no Design Research (AIA_AI_ANALYSIS_EXTERNAL_CONTEXT is off), so Analýza
+  // shows no Externí kontext; a register with no source would be context invented on the page (ANL5).
+  assert.equal(await page.locator("[data-external-context]").count(), 0, "no external context without a pin");
+  check("a run that pinned no Design Research shows no Externí kontext");
+
   const paid = writes.filter((w) => /\/research\/runs$|\/agent-jobs$|\/deep-research\/runs|\/analysis\/retry$|\/lead\/turns\/[^/]+\/request$/.test(w.path));
   assert.deepEqual(paid, [], "nothing paid started");
   check("nothing paid started");

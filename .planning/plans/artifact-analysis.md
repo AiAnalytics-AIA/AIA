@@ -166,6 +166,18 @@ The part that needs no new API has landed; the chunk stays open for evidence-int
 **ANL5. Registers.** Test: an external finding is labelled "Externí kontext" and has no claim chip.
 Depends on `evidence-integrity#7`, `lead-orchestration#LO9b`.
 
+*External context landed (2026-10-22, `feature/analysis-external-register`).* `GET …/analysis` answers
+`external_context`: the findings of the Design Research bundle the run pinned (evidence-integrity 7), exactly
+as the modules were shown them, claims folded and cut (`domain/analysis/external.py` `shown_context`), from the
+same verified read as the modules' sources (`RunAnalysis.external`); `None` without a pin or before any module
+has an outcome. A pin that no longer names its bundle refuses the view (409 `sources_refused`, `context_moved`). Analýza lists them as "Externí kontext"
+(`AnalysisExternal.tsx`), each labelled, its source a chip that links only an http(s) address
+(`lib/analysis-external.ts` `sourceChip`), never a claim chip or a Lead target. Tests:
+`ExecutionSteps.test.tsx` "lists the Design Research the modules were shown as Externí kontext … (ANL5)",
+`analysis-external.test.ts`, `test_analysis_executor.py` (the route lists exactly the modules' lines; none
+without the switch), and the journey (no register without a pin). Still open: the labelled-interpretation
+register, which waits on `lead-orchestration#LO9b`.
+
 **ANL6. Modules and the retry.**
 - `ExecutionSteps.tsx:1077-1089`'s starts move to the Lead's run card or a typed start; the list stays.
 - Test: the 26f guard.
