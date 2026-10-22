@@ -146,7 +146,7 @@ export type NewRunStart = {
 
 /** The server refused a retry because the run's Sociomap method is an older one: the start of a new run
  *  (on aia-sociomap-5) the refusal names, or null for any other error. */
-export function retiredMethodRefusal(e: unknown): NewRunStart | null {
+function retiredMethodRefusal(e: unknown): NewRunStart | null {
   if (!(e instanceof ApiError) || e.code !== "run_on_retired_method") return null;
   const body = (e.details as { new_run?: { body?: Partial<NewRunStart> } }).new_run?.body;
   return body && typeof body.design_revision_id === "string" ? (body as NewRunStart) : null;

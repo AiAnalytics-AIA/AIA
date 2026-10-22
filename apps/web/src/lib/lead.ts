@@ -258,7 +258,7 @@ const REFUSED: Record<EditRefusal, string> = {
 const refuse = (reason: EditRefusal) => ({ refused: REFUSED[reason], reason });
 
 /** Why a new question of `qtype` cannot carry `options` (the server's `question_add_problem`). */
-export function questionAddProblem(qtype: string, options: readonly string[]): EditRefusal | null {
+function questionAddProblem(qtype: string, options: readonly string[]): EditRefusal | null {
   if (qtype === "vyber" || qtype === "multi") return options.length < 2 ? "too_few_options" : null;
   if (qtype === "otevrena") return options.length ? "options_on_open_question" : null;
   if (qtype === "skala") return options.length === 0 || options.length === 2 ? null : "scale_labels_not_two";
@@ -650,10 +650,10 @@ export function targetOfElement(el: Element | null): { id: string; label: string
 // --------------------------------------------------------------------------- automatic text edits
 
 /** The `set_text` fields whose edit changes their wording alone (the server's `TEXT_ONLY_FIELDS`). */
-export const TEXT_ONLY_FIELDS: ReadonlySet<TextField> = new Set<TextField>(["title", "plan.problem_summary"]);
+const TEXT_ONLY_FIELDS: ReadonlySet<TextField> = new Set<TextField>(["title", "plan.problem_summary"]);
 /** The plan lists whose items are wording alone (the server's `TEXT_ONLY_LISTS`): not research
  * questions, nor objectives, which are read as research questions where a plan states none. */
-export const TEXT_ONLY_LISTS: ReadonlySet<PlanList> = new Set<PlanList>(["plan.hypotheses"]);
+const TEXT_ONLY_LISTS: ReadonlySet<PlanList> = new Set<PlanList>(["plan.hypotheses"]);
 
 /**
  * The edits that change wording only, with no other effect, as the server's `is_text_edit` holds

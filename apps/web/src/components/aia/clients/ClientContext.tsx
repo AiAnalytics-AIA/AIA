@@ -72,10 +72,10 @@ export function ClientProvider({ clientId, children }: { clientId: string; child
   return <ClientValue client={res.data} reload={retry}>{children}</ClientValue>;
 }
 
-export const canStart = (c: ClientWorkspace) => c.permissions.includes("CREATE_STUDY");
+const canStart = (c: ClientWorkspace) => c.permissions.includes("CREATE_STUDY");
 
 /** Start a research or a simulation for this client, then open it. */
-export function useStartStudy(): { start: (kind: StudyKind) => void; dialog: ReactNode; error: string | null } {
+function useStartStudy(): { start: (kind: StudyKind) => void; dialog: ReactNode; error: string | null } {
   const { client } = useClient();
   const router = useRouter();
   const [ask, setAsk] = useState<Ask | null>(null);
@@ -107,7 +107,7 @@ export function useStartStudy(): { start: (kind: StudyKind) => void; dialog: Rea
 const AREAS: ClientArea[] = ["overview", "research", "simulations", "knowledge", "data", "profile"];
 
 /** The client's tabs, each with what it counts: open studies, knowledge waiting on a person, datasets. */
-export function clientTabs(client: ClientWorkspace, area: ClientArea): Tab[] {
+function clientTabs(client: ClientWorkspace, area: ClientArea): Tab[] {
   const c = client.counts;
   const count = (a: ClientArea): Pick<Tab, "count" | "countLabel" | "attention"> => {
     if (!c) return {};
@@ -189,7 +189,7 @@ export function ClientPage({ children, sub, crumbs = [], actions }: { children: 
 }
 
 /** Who may bring material to the client: whoever may add knowledge to it. */
-export const mayAddMaterial = (c: ClientWorkspace) => c.permissions.includes("PROPOSE_CLIENT_KNOWLEDGE");
+const mayAddMaterial = (c: ClientWorkspace) => c.permissions.includes("PROPOSE_CLIENT_KNOWLEDGE");
 
 /** Přidat podklady: the client's one way in for files, on every area. */
 export function IntakeButton({ variant = "secondary" }: { variant?: "primary" | "secondary" }) {
