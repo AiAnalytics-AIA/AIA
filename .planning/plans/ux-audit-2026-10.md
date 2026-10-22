@@ -114,6 +114,23 @@ person had opened meanwhile. #735 refocuses only when focus is on the page.
 5. Smallest fix: focus only when `document.activeElement` is still in the field or on the page.
 6. Test: an InlineText test that moves focus before the frame runs.
 
+### F8. A research stage's cold first open lands at about 480 ms (decided: no product change)
+
+1. Claim: a cold load of a research stage fetches the client, the study and its working content
+   one after another, so first content lands at about 480 ms on a production build.
+2. Anchor: `apps/web/src/components/aia/clients/ClientContext.tsx` (ClientProvider renders nothing
+   until the client has loaded) and `apps/web/src/components/aia/ResearchStudy.tsx:78-85 @ fec6d8c5`.
+3. Repro: `workbench.py up --production`, `make ui-fixtures`,
+   `node tools/ui_workbench/contextual_research_journey.mjs`: 456-751 ms over 5 runs (median 484);
+   the web client as of the journey's first day (aa4ef55e) measured 396-610 ms (median 432).
+4. Consequence: about half a second from navigation start before Návrh is usable.
+5. Decision: Q78 (c), the product owner, 2026-10-22: the cold first open of a research stage is held
+   to 800 ms from navigation start, on a production build; every interaction keeps 400 ms
+   (`tools/ui_workbench/production.mjs` `COLD_OPEN_BUDGET_MS`, `INTERACTION_BUDGET_MS`). A study
+   prefetch started beside the client fetch was tried and measured no gain (hydration takes about
+   250 ms before the first fetch), so it was dropped.
+6. Test: `contextual_research_journey.mjs`'s cold assertion, on `--production`.
+
 ### Notes (not defects)
 
 - A name the API refuses (longer than its 200 or 255 characters) still closes the dialog first,

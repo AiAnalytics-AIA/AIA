@@ -5,7 +5,7 @@ import { createRequire } from "node:module";
 import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
-import { requireProductionBuild } from "./production.mjs";
+import { COLD_OPEN_BUDGET_MS, INTERACTION_BUDGET_MS as budget, requireProductionBuild } from "./production.mjs";
 const repo = join(dirname(fileURLToPath(import.meta.url)), "../..");
 const require = createRequire(import.meta.url);
 const { chromium } = require("playwright");
@@ -33,7 +33,6 @@ const errors = [], starts = [], latencies = [], layouts = [], checks = [], netwo
 page.on("pageerror", (error) => errors.push(String(error)));
 page.on("requestfinished", (request) => network.push({ path: new URL(request.url()).pathname, type: request.resourceType(), timing: request.timing() }));
 page.on("request", (request) => { if (request.method() === "POST" && /\/research\/agent-jobs$/.test(new URL(request.url()).pathname)) starts.push(request.postDataJSON()); });
-const budget = 400;
 async function interaction(name, control, target, expected = {}) {
   await control.evaluate((node, spec) => {
     window.uxInteraction = null;
@@ -70,7 +69,7 @@ try {
   await page.waitForFunction(() => window.uxFirstContent !== null);
   const cold = await page.evaluate(() => window.uxFirstContent);
   latencies.push({ name: "Fresh browser document to proposal editor and contextual help (no browser cache)", milliseconds: cold });
-  assert(cold < budget, `Cold workspace: ${cold.toFixed(1)}ms >= ${budget}ms`);
+  assert(cold < COLD_OPEN_BUDGET_MS, `Cold workspace: ${cold.toFixed(1)}ms >= ${COLD_OPEN_BUDGET_MS}ms`);
   assert(await page.locator("header [data-contextual-assistance]").isVisible());
   assert.equal(await page.locator("[data-contextual-assistance] [data-ai-action]").count(), 3);
   await interaction("Open and prefill contextual question", page.getByRole("button", { name: /Které výzkumné otázky/ }), '[data-assistance-panel] textarea');
