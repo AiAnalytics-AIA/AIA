@@ -520,7 +520,8 @@ export function setRange(p: ResearchProject, id: string, rawMin: string, rawMax:
   return { project: withAudience(p, { ...aud(p), filters: f }), reason: "aud_range", invalidateCheck: true };
 }
 
-const PREVIEW_REASONS: Record<string, string> = {
+/** The sampler's refusals in words, by reason code; shared with Vzorek's composition (lib/sample-view.ts). */
+export const PREVIEW_REASONS: Record<string, string> = {
   sampling_filter_invalid: "Některý filtr nelze použít",
   sampling_field_refused: "Politika pole nepovoluje filtrovat podle",
   sampling_empty: "Filtry nevyberou žádného člověka z populace.",

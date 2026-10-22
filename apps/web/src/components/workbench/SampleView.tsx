@@ -14,7 +14,7 @@ import { sampleAia } from "@/lib/artifacts/sample";
 import type { OutlookVerdict } from "@/lib/api";
 import { codeWords } from "@/lib/reason-words";
 import { VERDICT_ORDER } from "@/lib/research-execution";
-import { SUPPORT_FORECAST_CHECK, checkStage, outlookSummary, personaSourcesOf, readinessSummary, sourceChosenOnRun, supportForecastOf } from "@/lib/sample-view";
+import { SUPPORT_FORECAST_CHECK, checkStage, compositionOf, outlookSummary, personaSourcesOf, readinessSummary, sourceChosenOnRun, supportForecastOf, type CompositionRow } from "@/lib/sample-view";
 import { STAGES } from "@/lib/workbench-stages";
 import type { WorkbenchStage } from "@/lib/workbench-stages";
 import { audienceReady } from "@/research/audience";
@@ -43,6 +43,68 @@ function Sec({ n, title, aside, aia, children }: { n: number; title: string; asi
       </div>
       <div className="mt-2 flex flex-col gap-3">{children}</div>
     </section>
+  );
+}
+
+/** How many cells the composition lists before the rest fold away. */
+const CELLS_SHOWN = 10;
+
+const share = (x: number) => `${(x * 100).toLocaleString("cs-CZ", { maximumFractionDigits: 1 })} %`;
+
+function CellRows({ rows }: { rows: CompositionRow[] }) {
+  return rows.map((r) => (
+    <tr key={r.key} className="border-t border-border" data-aia={sampleAia.quota(r.key) ?? undefined}>
+      <td className="py-1 pr-3">{r.label}</td>
+      <td className="py-1 pr-3 text-right tabular-nums">{share(r.share)}</td>
+      <td className="py-1 text-right tabular-nums">{r.n}</td>
+    </tr>
+  ));
+}
+
+function CellTable({ rows, caption }: { rows: CompositionRow[]; caption: string }) {
+  return (
+    <table className="mt-1 w-full text-sm">
+      <caption className="sr-only">{caption}</caption>
+      <thead>
+        <tr className="text-left text-ink-muted">
+          <th scope="col" className="py-1 pr-3 font-normal">Kvótní buňka</th>
+          <th scope="col" className="py-1 pr-3 text-right font-normal">Podíl</th>
+          <th scope="col" className="py-1 text-right font-normal">n</th>
+        </tr>
+      </thead>
+      <tbody><CellRows rows={rows} /></tbody>
+    </table>
+  );
+}
+
+/** §1's composition (SMP2): the sampler's own quota allotment for a panel run, read only. */
+function Composition({ readiness }: { readiness: SampleReadiness }) {
+  if (readiness.kind !== "ready") return null;
+  const c = compositionOf(readiness.readiness);
+  const body =
+    c.kind === "roster" ? <p className="mt-1 text-sm text-ink-muted">Fiktivní respondenti se nevybírají podle kvót.</p>
+    : c.kind === "unknown" ? <p className="mt-1 text-sm">Složení vzorku z populace: neznámé. Server ho pro tento návrh předem nevybral.</p>
+    : c.kind === "refused" ? <p className="mt-1 text-sm" role="status">Vzorek z populace teď nelze vybrat: {c.words}</p>
+    : (
+      <>
+        <p className="mt-1 text-sm text-ink-muted">
+          Podle: {c.fields.join(" × ")}. {plural(c.rows.length, "buňka", "buňky", "buněk")} s respondenty
+          {c.donors !== null ? `, ${plural(c.donors, "různý dárce", "různí dárci", "různých dárců")}` : ""}.
+        </p>
+        <CellTable rows={c.rows.slice(0, CELLS_SHOWN)} caption="Složení vzorku podle kvót" />
+        {c.rows.length > CELLS_SHOWN ? (
+          <details className="text-sm">
+            <summary className="cursor-pointer text-signal">Dalších {plural(c.rows.length - CELLS_SHOWN, "buňka", "buňky", "buněk")}</summary>
+            <CellTable rows={c.rows.slice(CELLS_SHOWN)} caption="Další buňky vzorku" />
+          </details>
+        ) : null}
+      </>
+    );
+  return (
+    <div>
+      <div className="flex items-center gap-2"><Glyph tone={c.kind === "drawn" ? "done" : "inert"} size={12} /><h3 className="text-sm font-semibold">Složení podle kvót</h3></div>
+      {body}
+    </div>
   );
 }
 
@@ -75,6 +137,7 @@ export function SampleArtifact({ project, readiness, onOpen }: { project: Resear
           <div className="flex items-center gap-2"><Glyph tone={dims.length ? "done" : "inert"} size={12} /><h3 className="text-sm font-semibold">Dimenze</h3></div>
           {dims.length ? <ul className="mt-1 flex flex-wrap gap-1.5">{dims.map((d) => <li key={d} className="rounded-sm border border-border px-2 py-0.5 text-sm">{PERSONA_DIM_LABELS[d] ?? d}</li>)}</ul> : <p className="mt-1 text-sm text-ink-muted">Žádné</p>}
         </div>
+        <Composition readiness={readiness} />
       </Sec>
       <Sec n={2} title="Odhad podpory před během" aside="odhad, ne výsledek" aia={sampleAia.section("forecast")}>
         <Forecast readiness={readiness} />
