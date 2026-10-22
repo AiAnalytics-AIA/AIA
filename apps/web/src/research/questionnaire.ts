@@ -472,12 +472,6 @@ export function applyDeep(p: ResearchProject, result: unknown): { project: Resea
   };
 }
 
-/** The evidence the project's research accepted (pre_research.accepted). */
-export function researchCount(p: ResearchProject): number {
-  const r = p.pre_research as { accepted?: unknown[] } | undefined;
-  return (r?.accepted || []).length;
-}
-
 /** continueQuestionnaireToAudience: the audience starts at its first choice unless already chosen. */
 export function toAudience(p: ResearchProject): ResearchProject {
   return { ...p, ui_state: { ...p.ui_state, audience_entry: p.ui_state?.audience_entry || "choose" } };

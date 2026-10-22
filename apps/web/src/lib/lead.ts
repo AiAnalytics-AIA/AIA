@@ -12,8 +12,6 @@ import type { Analysis } from "@/research/store";
 import type { WorkbenchStage } from "./workbench-stages";
 import { parseAiaId, type TargetKind } from "./workbench-artifacts";
 
-export const LEAD_EDIT_REASON = "lead_edit_accepted";
-
 export type TextField = TopField | `briefing.${BriefingField}` | "plan.problem_summary";
 export type PlanList = "plan.objectives" | "plan.research_questions" | "plan.hypotheses";
 export type QType = "vyber" | "multi" | "skala" | "otevrena";
