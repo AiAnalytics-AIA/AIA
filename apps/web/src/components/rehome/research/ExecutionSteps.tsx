@@ -1701,7 +1701,8 @@ export function RunResults({ run, progressHref }: { run: ResearchRun | null; pro
  *  reason, a failed or cancelled run that will never have them. */
 function noResultsWords(run: ResearchRun): string {
   const state = runState(run);
-  return `${t("research.exec.noResultsYet")} ${state.label}${state.reason ? `: ${state.reason}` : ""}.`;
+  // A reason ends its own sentence (run-state's words carry the period).
+  return `${t("research.exec.noResultsYet")} ${state.label}${state.reason ? `: ${state.reason}` : "."}`;
 }
 
 /** The run's design is older than the study's (artifact-results RES4a): said above its numbers. */

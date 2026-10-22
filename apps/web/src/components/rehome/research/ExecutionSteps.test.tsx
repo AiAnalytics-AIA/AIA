@@ -2479,7 +2479,9 @@ describe("Results", () => {
     render(<ResearchScreen step="results" frame={TEST_FRAME} />);
     const state = runState(failed as ResearchRun);
     expect(state.state).not.toBe("RUNNING");
-    expect(await screen.findByText(new RegExp(`^${t("research.exec.noResultsYet")} ${state.label}`))).toBeTruthy();
+    expect(state.reason).toBeTruthy();
+    // The whole sentence: one period, the reason's own (a doubled ".." was the stand-in review's P2).
+    expect(await screen.findByText(`${t("research.exec.noResultsYet")} ${state.label}: ${state.reason}`)).toBeTruthy();
   });
 
   it("says there are no results while the run waits at fieldwork", async () => {
