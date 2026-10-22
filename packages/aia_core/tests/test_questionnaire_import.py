@@ -15,6 +15,7 @@ from __future__ import annotations
 import hashlib
 import io
 import json
+import zipfile
 from pathlib import Path
 from typing import Any
 
@@ -147,6 +148,24 @@ def test_an_office_file_that_declares_too_much_is_not_opened(
     monkeypatch.setattr(questionnaire_file, "ZIP_MAX_UNCOMPRESSED", 100)
     with pytest.raises(QuestionnaireImportRejected) as refused:
         import_questionnaire(template, "sablona.xlsx")
+    assert refused.value.reason == "unreadable"
+
+
+def test_a_workbook_part_declaring_a_dtd_is_not_parsed() -> None:
+    template = template_xlsx()
+    out = io.BytesIO()
+    with (
+        zipfile.ZipFile(io.BytesIO(template)) as source,
+        zipfile.ZipFile(out, "w", zipfile.ZIP_DEFLATED) as target,
+    ):
+        for info in source.infolist():
+            data = source.read(info)
+            if info.filename == "xl/workbook.xml":
+                head, _, body = data.partition(b"?>")
+                data = head + b'?><!DOCTYPE w [<!ENTITY a "aaaa">]>' + body
+            target.writestr(info, data)
+    with pytest.raises(QuestionnaireImportRejected) as refused:
+        import_questionnaire(out.getvalue(), "sablona.xlsx")
     assert refused.value.reason == "unreadable"
 
 

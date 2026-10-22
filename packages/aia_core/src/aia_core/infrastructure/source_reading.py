@@ -40,7 +40,15 @@ from ..domain.client_sources import (
 )
 from ..domain.deep_research import documents as grid_bounds
 from ..domain.deep_research.documents import DocumentRefused, GridContent
-from .document_text import check_zip_bounds, grid_from_rows, read_csv, read_pdf, read_xlsx
+from .document_text import (
+    DtdDeclared,
+    check_zip_bounds,
+    grid_from_rows,
+    read_csv,
+    read_pdf,
+    read_xlsx,
+    refuse_dtd,
+)
 
 __all__ = ["READERS", "XML_PART_MAX_BYTES", "piece_text", "read_source"]
 
@@ -179,8 +187,12 @@ def _part(archive: zipfile.ZipFile, name: str, kind: str) -> ET.Element:
     if info.file_size > XML_PART_MAX_BYTES:
         raise DocumentRefused(f"the {kind}'s {name} is too large", reason="document_zip_bounds")
     data = archive.read(name)
-    if b"<!DOCTYPE" in data or b"<!ENTITY" in data:
-        raise DocumentRefused(f"the {kind}'s {name} declares a DTD", reason="document_malformed")
+    try:
+        refuse_dtd(data)
+    except DtdDeclared as exc:
+        raise DocumentRefused(
+            f"the {kind}'s {name} declares a DTD", reason="document_malformed"
+        ) from exc
     try:
         return ET.fromstring(data)
     except ET.ParseError as exc:

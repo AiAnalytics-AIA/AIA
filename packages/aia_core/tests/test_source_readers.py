@@ -173,6 +173,27 @@ def test_a_part_declaring_a_dtd_is_refused_before_it_is_parsed() -> None:
     assert (reading.outcome, reading.reason) == (ReadingOutcome.REFUSED, "document_malformed")
 
 
+@pytest.mark.parametrize("encoding", ["utf-16", "utf-16-le", "utf-16-be"])
+def test_a_dtd_is_refused_in_whatever_encoding_the_part_declares(encoding: str) -> None:
+    # In UTF-16 neither b"<!DOCTYPE" nor b"<!ENTITY" occurs in the bytes, yet expat
+    # reads the declaration and expands its entities.
+    laughs = (
+        f'<?xml version="1.0" encoding="{encoding.upper()}"?>'
+        '<!DOCTYPE x [<!ENTITY a "aaaa"><!ENTITY b "&a;&a;&a;">]>'
+        '<office:document-content xmlns:office="urn:oasis:names:tc:opendocument:xmlns:office:1.0"'
+        ' xmlns:text="urn:oasis:names:tc:opendocument:xmlns:text:1.0">'
+        "<office:body><office:text><text:p>&b;</text:p></office:text></office:body>"
+        "</office:document-content>"
+    )
+    data = laughs.encode(encoding)
+    if encoding != "utf-16":
+        data = "\ufeff".encode(encoding) + data
+    assert b"<!DOCTYPE" not in data and b"<!ENTITY" not in data
+    reading = read_source(zip_of({"content.xml": data}), "a.odt")
+    assert (reading.outcome, reading.reason) == (ReadingOutcome.REFUSED, "document_malformed")
+    assert not reading.segments
+
+
 def test_a_zip_that_inflates_far_past_its_size_is_refused() -> None:
     bomb = zip_of({"content.xml": b"\0" * (20 * 1024 * 1024)})
     for name in ("a.odt", "a.pptx"):

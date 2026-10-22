@@ -42,7 +42,8 @@ import io
 import zipfile
 from collections.abc import Callable, Iterable
 from datetime import date, datetime, time
-from typing import Any, Final
+from typing import Any, Final, NoReturn
+from xml.parsers import expat
 
 from ..domain.attachments import TEXT_MAX_CHARS, extension_of
 from ..domain.deep_research import documents as web_documents
@@ -64,6 +65,7 @@ __all__ = [
     "TEXT_SUFFIXES",
     "ZIP_MAX_MEMBERS",
     "ZIP_MAX_UNCOMPRESSED",
+    "DtdDeclared",
     "check_zip_bounds",
     "extract_text",
     "grid_from_rows",
@@ -71,6 +73,7 @@ __all__ = [
     "read_pdf",
     "read_web_document",
     "read_xlsx",
+    "refuse_dtd",
 ]
 
 #: Read as UTF-8 text, undecodable bytes replaced (the unit's list).
@@ -399,6 +402,32 @@ def check_zip_bounds(data: bytes, kind: str = "XLSX") -> None:
             f"the {kind} declares {len(members)} members and {declared} bytes unpacked",
             reason="document_zip_bounds",
         )
+
+
+class DtdDeclared(ValueError):
+    """An XML part declares a document type: refused before anything in it is expanded."""
+
+
+def _refuse(*_args: object) -> NoReturn:
+    raise DtdDeclared("the XML declares a document type")
+
+
+def refuse_dtd(data: bytes) -> None:
+    """Raise ``DtdDeclared`` if ``data`` declares a DTD, in whatever encoding it is written.
+
+    Expat reads the declaration the way the real parse would, so a part in UTF-16 (where
+    ``b"<!DOCTYPE"`` never occurs in the bytes) is caught too; the handler stops the
+    parse at the declaration, before any entity is defined or expanded. A part that is
+    not XML passes through, for the real parse to refuse.
+    """
+    parser = expat.ParserCreate()
+    parser.SetParamEntityParsing(expat.XML_PARAM_ENTITY_PARSING_NEVER)
+    parser.StartDoctypeDeclHandler = _refuse
+    parser.EntityDeclHandler = _refuse
+    parser.UnparsedEntityDeclHandler = _refuse
+    parser.ExternalEntityRefHandler = _refuse
+    with contextlib.suppress(expat.ExpatError):
+        parser.Parse(data, True)
 
 
 def read_xlsx(data: bytes) -> tuple[str, tuple[GridContent, ...], bool]:
