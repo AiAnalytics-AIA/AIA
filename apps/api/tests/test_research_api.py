@@ -819,7 +819,9 @@ def test_a_person_approves_a_runs_stored_report_once_and_only_that(
     app.state.settings = app.state.settings.model_copy(update={"ai_analysis_enabled": True})
     revision = submit(researcher, world).json()["revision_id"]
     run_id = start(researcher, world, revision).json()["run_id"]
-    report_id = _store_internal_report(app, world, run_id, b"PK\x03\x04approve-test")
+    report_id = _store_internal_report(
+        app, world, run_id, b"PK\x03\x04approve-test", model=_document_model()
+    )
     url = f"{_runs(world)}/{run_id}/report"
     approve = f"{url}/approve"
 
@@ -854,6 +856,10 @@ def test_a_person_approves_a_runs_stored_report_once_and_only_that(
     assert approval["self_approval_source"] == "client" and approval["note"] == "Přečteno."
     assert outsider.get(url).json()["approval"]["by_you"] is True
     assert approved.json()["approval"]["by_you"] is True
+    # The document route Zpráva reads carries the same approval.
+    document = researcher.get(f"{url}/document")
+    assert document.status_code == 200, document.text
+    assert document.json()["approval"] == approval
     # D2: its fictional bytes take no stamp, so its approved export is its stored bytes and
     # approving asks for no new PDF (cross-review interactions#4); a person may ask for one.
     assert status_["stamped"] is False
@@ -1334,6 +1340,7 @@ def test_the_client_report_is_read_as_its_document_beside_its_docx(
     after = researcher.get(f"{url}/document").json()
     assert after["artifact_id"] == body["artifact_id"]
     assert after["review_state"] == "APPROVED_INTERNAL"
+    assert after["approval"]["by_you"] is False and after["approval"]["approver_name"]
     with create_session_factory(app.state.engine)() as session:
         models = session.scalars(
             select(ProjectArtifactRow.artifact_id).where(

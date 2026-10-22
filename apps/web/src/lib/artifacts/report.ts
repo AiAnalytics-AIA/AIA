@@ -4,6 +4,7 @@
 // Pure: the pane renders what this says, and never formats a number -- each ref's text is the one the
 // DOCX prints, stored beside it by the server (domain/report/document_model.py).
 
+import { czechDate } from "@/lib/report-variant";
 import { aiaId } from "@/lib/workbench-artifacts";
 
 /**
@@ -99,7 +100,7 @@ export type StoredReportDocument = {
   document: ReportDocumentModel;
 };
 
-/** One approval as the ledger recorded it. `approver_name` null: a person the store no longer knows. */
+/** One approval as the ledger recorded it. `approver_name` null: a person with no name, or one the store no longer knows. */
 export type Approval = {
   approved_at: string;
   approver_name: string | null;
@@ -191,18 +192,16 @@ export function unresolvedRefs(doc: ReportDocumentModel): string[] {
 }
 
 /**
- * Who approved and when, in words: "schválil(a) Jana Nováková 21. 10. 2026", "vy" for the asker, an
- * unknown person "neznámý člen" (never a guess), and "vlastní práce" when they approved what they
- * produced. Null for a draft or an approval the response does not carry.
+ * Who approved and when, in words: "schválil(a) Jana Nováková 21. 10. 2026", "schválili jste …" for the
+ * asker, a person with no name "člen bez jména" (never a guess), and "vlastní práce" when they approved
+ * what they produced. The day is the server's (`approved_on`, the Prague day of the same ledger row).
+ * Null for a draft or an approval the response does not carry.
  */
-export function approvalWords(approval: Approval | null | undefined): string | null {
+export function approvalWords(approval: Approval | null | undefined, approvedOn: string | null): string | null {
   if (!approval) return null;
-  const at = new Date(approval.approved_at);
-  const day = Number.isNaN(at.getTime())
-    ? "neznámého dne"
-    : at.toLocaleDateString("cs-CZ", { day: "numeric", month: "numeric", year: "numeric", timeZone: "Europe/Prague" });
-  const who = approval.by_you ? "vy" : approval.approver_name ?? "neznámý člen";
-  return `schválil(a) ${who} ${day}${approval.self_approved ? " · vlastní práce" : ""}`;
+  const day = approvedOn ? czechDate(approvedOn) : "neznámého dne";
+  const said = approval.by_you ? `schválili jste ${day}` : `schválil(a) ${approval.approver_name ?? "člen bez jména"} ${day}`;
+  return approval.self_approved ? `${said} · vlastní práce` : said;
 }
 
 /** The review the doc bar names: the DOCX's, since the DOCX is what a person approves. */

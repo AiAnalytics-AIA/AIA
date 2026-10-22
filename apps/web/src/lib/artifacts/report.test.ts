@@ -113,24 +113,24 @@ it("names the DOCX's review", () => {
 
 describe("who approved, in words (RD2)", () => {
   const base = {
-    approved_at: "2026-10-21T21:30:00+00:00", approver_name: "Fiktivní Recenzentka", by_you: false,
+    approved_at: "2026-10-21T23:30:00+00:00", approver_name: "Fiktivní Recenzentka", by_you: false,
     self_approved: false, self_approval_allowed: true, self_approval_source: "default", note: "",
   };
 
-  it("names the approver and the day in Prague", () => {
-    expect(approvalWords(base)).toBe("schválil(a) Fiktivní Recenzentka 21. 10. 2026");
-    // 23:30 UTC is already the next day in Prague.
-    expect(approvalWords({ ...base, approved_at: "2026-10-21T23:30:00+00:00" })).toBe("schválil(a) Fiktivní Recenzentka 22. 10. 2026");
+  it("names the approver and the server's day, never one the browser works out", () => {
+    // 23:30 UTC is 22. 10. in Prague; the server's approved_on says so, and it is the one used.
+    expect(approvalWords(base, "2026-10-22")).toBe("schválil(a) Fiktivní Recenzentka 22. 10. 2026");
+    expect(approvalWords(base, null)).toBe("schválil(a) Fiktivní Recenzentka neznámého dne");
   });
 
-  it("says you, an unknown person as unknown, and one's own work", () => {
-    expect(approvalWords({ ...base, by_you: true })).toBe("schválil(a) vy 21. 10. 2026");
-    expect(approvalWords({ ...base, approver_name: null })).toBe("schválil(a) neznámý člen 21. 10. 2026");
-    expect(approvalWords({ ...base, self_approved: true })).toBe("schválil(a) Fiktivní Recenzentka 21. 10. 2026 · vlastní práce");
+  it("speaks to the asker, names no one without a name, and says one's own work", () => {
+    expect(approvalWords({ ...base, by_you: true }, "2026-10-22")).toBe("schválili jste 22. 10. 2026");
+    expect(approvalWords({ ...base, approver_name: null }, "2026-10-22")).toBe("schválil(a) člen bez jména 22. 10. 2026");
+    expect(approvalWords({ ...base, self_approved: true }, "2026-10-22")).toBe("schválil(a) Fiktivní Recenzentka 22. 10. 2026 · vlastní práce");
   });
 
   it("says nothing for a draft", () => {
-    expect(approvalWords(null)).toBeNull();
-    expect(approvalWords(undefined)).toBeNull();
+    expect(approvalWords(null, null)).toBeNull();
+    expect(approvalWords(undefined, "2026-10-22")).toBeNull();
   });
 });

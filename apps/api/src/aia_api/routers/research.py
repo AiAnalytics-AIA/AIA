@@ -2175,13 +2175,13 @@ def _approval_fields(
     artifact: Artifact, scope: StudyContext, session: SessionDep, store: ArtifactStoreDep
 ) -> dict[str, Any]:
     """Who approved a version and when, from its ledger row (report-delivery RD2): ``approval``
-    is null for a draft. ``by_you``: the asker is the approver. A name the store no longer knows
-    is null, never a guess."""
+    is null for a draft. ``by_you``: the asker is the approver. An approval without its row is
+    409, never a draft (``report_export.review_mark``)."""
     if not artifact.is_approved:
         return {"approval": None}
     record = research_artifacts(session, scope, store).approval_record(artifact.artifact_id)
-    if record is None:  # approved without its row: _mark refuses it first, with 409
-        return {"approval": None}
+    if record is None:
+        raise _unrecorded(ReviewUnrecorded(artifact.artifact_id))
     return {
         "approval": {
             "approved_at": record.decided_at.isoformat(),

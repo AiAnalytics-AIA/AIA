@@ -1342,6 +1342,7 @@ export const research = {
       review_state: "DRAFT_UNAPPROVED" | "APPROVED_INTERNAL";
       approved_on?: string | null;
       stamped?: boolean | null;
+      approval?: Approval | null;
       internal_only: true;
     }>(
       "POST", `${studyPath(studyId)}/research/runs/${enc(runId)}/report/approve`, { artifact_id: artifactId, note },
