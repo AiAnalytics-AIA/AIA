@@ -769,7 +769,6 @@ function QuestionCard({ n, q, si, sectionId, qi, update }: { n: number; q: Quest
     <div id={questionElementId(q)} data-unworded={unworded || undefined} className={`scroll-mt-40 rounded-card border bg-surface-raised p-4 ${FOCUS} ${unworded ? "border-status-you shadow-[0_0_0_3px_var(--color-status-you-wash)]" : "border-border"}`}>
       <div className="flex flex-wrap items-center gap-2">
         <span className="rounded-md bg-signal-wash px-1.5 py-0.5 font-mono text-xs font-semibold text-signal" title={String(q.id || "")}>Q{n}</span>
-        <span className="sr-only">{q.id || "Q"}</span>
         <ChoiceChips
           label={t("research.questionnaire.questionType")}
           value={typeKey(typ)}
@@ -780,7 +779,7 @@ function QuestionCard({ n, q, si, sectionId, qi, update }: { n: number; q: Quest
           small
           variant="quiet"
           className="ml-auto"
-          aria-label={tv("research.questionnaire.removeQuestion", { id: String(q.id || "Q") })}
+          aria-label={tv("research.questionnaire.removeQuestion", { id: `Q${n}` })}
           onClick={() => {
             update((p) => removeQuestion(p, si, qi));
             offerRestore(undo, "questionRemoved", q.text, () => update((p) => restoreQuestion(p, si, sectionId, qi, q)));

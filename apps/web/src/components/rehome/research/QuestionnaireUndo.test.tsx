@@ -99,4 +99,12 @@ describe("Dotazník's deletes", () => {
     fireEvent.click(screen.getByRole("button", { name: "Odebrat otázku Q1" }));
     expect(await screen.findByText(`Otázka „${long.slice(0, 59)}…“ odebrána`)).toBeTruthy();
   });
+
+  it("names the question's × by the number on its card, never the stored id (QF-7)", async () => {
+    stub({ goal: "G", sections: [{ ...SECTIONS[0], questions: [{ id: "Q_wb7", text: "Jak často?", typ: "vyber", kategorie: ["Denně"] }] }], ui_state: { questionnaire_path: "manual" } });
+    render(<ResearchScreen step="questionnaire" frame={TEST_FRAME} />);
+    await screen.findAllByDisplayValue("Jak často?");
+    expect(screen.getByRole("button", { name: "Odebrat otázku Q1" })).toBeTruthy();
+    expect(screen.queryByText("Q_wb7")).toBeNull();
+  });
 });

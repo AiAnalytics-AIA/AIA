@@ -245,6 +245,12 @@ The preview says "technický editor je pod ní" (`QuestionnaireStep.tsx:453 @ b6
 replaces the editor. Fix: the first is dropped; the second says the preview is the respondent's
 view, and that editing happens under Upravit. Test: `QuestionnaireStep.test.tsx`.
 
+*Finding QF-7 (2026-10-22):* the question's × is named by the stored id, "Odebrat otázku Q_wb1",
+and a screen reader hears the id again after the card's number ("Q1 Q_wb1";
+`QuestionnaireStep.tsx:772,783 @ eaf9eeaa`). Fix (fix/questionnaire-remove-label): the × is named by
+the number on the card, "Odebrat otázku Q1", and the hidden id is gone (the badge's title keeps it).
+Test: `QuestionnaireUndo.test.tsx` (QF-7).
+
 ## Doc follow-up
 
 - Register this plan and its chunks. `research-lead-workbench#7`'s questionnaire half is QST5.
