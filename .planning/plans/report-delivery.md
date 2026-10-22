@@ -116,6 +116,16 @@ Each assumption of `assumptions-and-open-answer-coding#AOC1` with its status, th
 **RD10. The report's open-answer coding chapter (W3)**  
 The codebook version, each code's count as an admitted claim with its suppression stated, and the method's limits (`AOC4`); modelled answers are labelled modelled. Raw answer text is not printed as evidence. Test: a count not in the claim ledger cannot be composed.
 
+## Q69 (a): the Lead's study notes stay out of the draft report (the owner, 2026-10-22)
+
+"Even though it's a draft it should be as client ready as possible." No path that composes, stores,
+renders or approves a report reads the Lead's turns, its files or its notes (`study_lead_turns`,
+`researcher_leads`, `researcher_lead_revisions`, `researcher_lead_memories`): checked 2026-10-22, none did.
+Held by the import contract "no report path reads the Lead's notes (Q69)" (root `pyproject.toml`,
+`make layer_check`) and `packages/aia_core/tests/test_report_reads_no_lead_notes.py`, which refuses the
+tables by name in every report module; both shown to fail on a planted read. The Lead may still propose
+edits to the draft (Q56, `artifact-report#RPT9`); its notes never become the draft's text.
+
 ## Open: owner clarifications
 
 - What the evidence audit and the legal source-use gate check (RD0).

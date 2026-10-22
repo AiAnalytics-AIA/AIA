@@ -121,6 +121,39 @@ include_external_packages = false
 # went unreported (measured). The two __init__ modules the wildcard leaves out are
 # a grep rule in tools/layer_check.sh. Every ignore below must match an import, or
 # lint-imports fails: an allowance outlives nothing it was for.
+# The owner, 2026-10-22 (Q69 (a)): the Lead's study notes stay out of the draft report, "even
+# though it's a draft it should be as client ready as possible". No module that composes, stores,
+# renders or approves a report imports the Lead's turns, its notes or its files.
+# packages/aia_core/tests/test_report_reads_no_lead_notes.py also refuses their tables by name.
+[[tool.importlinter.contracts]]
+name = "no report path reads the Lead's notes (Q69)"
+type = "forbidden"
+source_modules = [
+    "aia_core.application.report",
+    "aia_core.application.report_chapters",
+    "aia_core.application.report_tables",
+    "aia_core.application.report_design",
+    "aia_core.application.report_method",
+    "aia_core.application.report_maps",
+    "aia_core.application.report_document",
+    "aia_core.application.report_variants",
+    "aia_core.application.report_approval",
+    "aia_core.application.report_export",
+    "aia_core.application.client_report",
+    "aia_core.application.contextual_report",
+    "aia_core.application.sociomapping_report",
+    "aia_core.domain.report",
+    "aia_core.infrastructure.report_docx",
+    "aia_executors.report",
+]
+forbidden_modules = [
+    "aia_core.infrastructure.study_lead_repository",
+    "aia_core.infrastructure.researcher_lead_repository",
+    "aia_core.application.research_lead",
+    "aia_core.domain.research_lead",
+]
+allow_indirect_imports = true
+
 [[tool.importlinter.contracts]]
 name = "only the executor compositions import the model adapters (ADR 0005)"
 type = "forbidden"
