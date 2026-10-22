@@ -8,7 +8,8 @@ chunks:
   - "[x] RES5a. Open answers on Results: up to five raw answers per open question, internal only and labelled as data (RQ1 = Q52 a)"
   - "[ ] RES5b. Their coded counts once coding exists (after assumptions-and-open-answer-coding#AOC8)"
   - "[ ] RES6. The Lead on Výsledky: Interpretation Research on a question or a set as a Lead card, the stage's own client-knowledge ask removed"
-  - "[ ] RES7. Journey: Výsledky at 1440, 1100, 768 and 390 px on a fictional run, zero paid jobs"
+  - "[x] RES7a. Journey: Výsledky's Data view at 1440, 1100, 768 and 390 px on a fictional run (layout, the Lead's ids, a measure by hash), zero paid jobs"
+  - "[ ] RES7b. The journey's Lead half: the Lead focusing measure:<id>, an Interpretation Research card on 12a's recorded web (after RES6)"
   - "[ ] RES8. CSV and XLSX export of the run's per-question tables, every cell an admitted claim, from the aggregate (report-delivery#RD12, moved here by the PM 2026-10-21)"
 ---
 # Artifact: Výsledky (Results)
@@ -142,6 +143,42 @@ report, analysis prompt or export reads them; RES8's export test repeats it for 
   records the aggregate artifact id and SHA-256. No raw open answer (RES5a).
 - Not paid. Depends on RES2 (the same admitted rows the screen shows).
 - Test: a suppressed cell never appears; the file's numbers equal the screen's; no `verbatimy`.
+
+RES7a, as built: `tools/ui_workbench/results_journey.mjs` (`make ui-results`, after `make ui-research`). It
+found F-R1 to F-R3 below, failed on each before its fix and passes after.
+
+## Findings
+
+Audit of Výsledky in a browser on the workbench's completed fictional run (persona fixture), 2026-10-21,
+anchors `@ bfe6d15b`.
+
+- **F-R1. The report card buries the data.** `ResultsWorkspace.tsx:51` renders the study's report card
+  (`CompleteReport`) above every view, so `#data` (the `results` stage) opened two screens above the
+  data at 1440 px and four at 390 px. Repro: `results_journey.mjs` on `bfe6d15b` fails "the study's
+  report card is not shown on Data". Fix: the card shows on Přehled and Rešerše a zpráva only,
+  hidden (kept mounted) elsewhere. Test: that journey check; `ExecutionSteps.test.tsx` "shows the
+  internal draft…" asserts it hidden on Data.
+- **F-R2. A measure's reading squeezed beside its chip.** `ExecutionSteps.tsx:1943` put the reading
+  inside the title column beside the support chip, so it ran 78 % of the card at 1440 px and about
+  half at 390 px. Fix: the reading runs the card's width under the title row. Test: the journey's
+  "every reading runs its card's width" (≥ 90 %).
+- **F-R3. A rated set's table wider than a phone.** `ExecutionSteps.tsx:1821` (`min-w-[30rem]`) made
+  the table 480 px at 390 px; Interval and Kish n were reachable only by a sideways scroll. Fix: the
+  interval band column is left out under 640 px, and the minimum width applies from 640 px. Test:
+  the journey's "nothing of the data view is wider than the screen".
+- **F-R4. A run's cost printed with a decimal point.** `ResultsWorkspace.tsx:62` (`toFixed(2)`) wrote
+  "0.00 USD" among Czech numbers. Fix: cs-CZ, "0,00 USD". No test of its own (one formatter).
+- **F-R6. A view opened by its address lands under the run's notices** (Sociomapa's audit,
+  `artifact-sociomap`, relayed by the PM). `ResultsWorkspace.tsx:77` (the tablist) sits below the
+  origin notices, the receipt and the run's header, so Sociomapa (`#maps`) and Výsledky (`#data`)
+  opened with their view 989 px down a 900 px screen (1,329 px at 390 px; 2,174 px with the report
+  card). Fix: a view named by the address scrolls its tabs into view and keeps them there while what
+  sits above loads (3 s, until the person scrolls, touches or types). Tests: `ResultsWorkspace.test.tsx`
+  "opens a view named by the address scrolled to its tabs"; the journey's "Data opens scrolled to its
+  view" and "Sociomapa opens scrolled to the map" at four widths.
+- **F-R5 (not Výsledky's).** `src/lib/artifacts/sample.test.ts` "keeps the pending ids pending only
+  while the contract lacks them" fails on `bfe6d15b` (`[ 'sample:ready', true ]` against `false`);
+  reported to the PM for Vzorek's owner.
 
 ## 8. Owner questions
 
