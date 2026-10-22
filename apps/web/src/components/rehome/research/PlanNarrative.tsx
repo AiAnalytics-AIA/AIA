@@ -126,9 +126,11 @@ export function PlanNarrative({ disabled = false, onQuote }: { disabled?: boolea
             <p className="mt-1 text-[13px] text-ink-muted">{t("research.plan.narrative.none")}</p>
           )}
           {disabled ? null : (
+            // A repeat and an empty row are refused by addItem's own rule and words, the ones an edit
+            // in place says (itemProblem), never the row's name rules ("„…“ už existuje").
             <InlineCreateRow
               label={t(`research.plan.narrative.add.${list}`)}
-              existing={n[list]}
+              emptyWords={t("research.plan.narrative.empty")}
               maxLength={ITEM_MAX}
               disabled={addProblem(n, list) !== null}
               className="mt-1"

@@ -409,6 +409,12 @@ describe("direct proposal editing", () => {
     const row = screen.getByRole("textbox", { name: "Přidat hypotézu" });
     fireEvent.change(row, { target: { value: "mírnější  varianta vyhraje" } });
     fireEvent.keyDown(row, { key: "Enter" });
+    // In the words an edit in place says, never the row's name rules.
+    expect(await screen.findByText("Tato položka už v seznamu je.")).toBeTruthy();
+    expect(screen.queryByText(/už existuje/)).toBeNull();
+    fireEvent.change(row, { target: { value: "  " } });
+    fireEvent.keyDown(row, { key: "Enter" });
+    expect(await screen.findByText("Prázdnou položku nelze uložit.")).toBeTruthy();
     expect(ws.saves).toEqual([]);
     fireEvent.keyDown(row, { key: "Escape" });
     // A removal happens at once and Vrátit puts it back where it was.
