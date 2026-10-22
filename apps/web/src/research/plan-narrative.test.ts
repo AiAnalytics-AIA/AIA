@@ -2,7 +2,9 @@
 import { describe, expect, it } from "vitest";
 
 import type { PlanState } from "./plan";
-import { addItem, addProblem, itemProblem, narrativeOf, removeItem, setItem, setSummary } from "./plan-narrative";
+import { objectivesOf } from "./brief-objectives";
+import { boundOf } from "./item-ids";
+import { addItem, addProblem, itemProblem, itemTargets, narrativeOf, removeItem, setItem, setSummary } from "./plan-narrative";
 
 const plan = { problem_summary: "Problém", research_questions: ["Kdo?", "Proč?"], objectives: ["Cíl A"], hypotheses: ["H1"], status: "approved" };
 const state = (over: Record<string, unknown> = {}): PlanState =>
@@ -59,5 +61,32 @@ describe("adding and removing", () => {
     expect(addProblem(narrativeOf(eight), "research_questions")).toBe("Analýza čte nejvýše 8 výzkumných otázek.");
     expect(addItem(eight, "research_questions", "Devátá?")).toHaveProperty("refused");
     expect(addProblem(narrativeOf(eight), "hypotheses")).toBeNull();
+  });
+});
+
+describe("each item's Lead target", () => {
+  it("names an objective by the Brief's own id, so both screens point at one target", () => {
+    const s = state();
+    const brief = objectivesOf({ project: s.project, analysis: s.analysis }).map((o) => `objective:${o.id}`);
+    expect(itemTargets(s).objectives).toEqual(brief);
+  });
+
+  it("names research questions and hypotheses by their stable ids, which follow the item when the list is reordered", () => {
+    const before = itemTargets(state()).research_questions;
+    expect(before.every((t) => t !== null && /^rq:/.test(t))).toBe(true);
+    expect(new Set(before).size).toBe(2);
+    expect(itemTargets(state()).hypotheses[0]).toMatch(/^hypothesis:/);
+    // The same two questions in the other order: each keeps its own target, never its place's.
+    const swapped = itemTargets(state({ research_questions: ["Proč?", "Kdo?"] })).research_questions;
+    expect(swapped).toEqual([before[1], before[0]]);
+  });
+
+  it("uses a stored id over the wording's, so a question reworded under the stable ids keeps its target", () => {
+    const stored = state({ research_questions: ["Kdo nakupuje?", "Proč?"], research_question_ids: [{ id: "rq_kept", bound: boundOf("Kdo?") }, { id: "rq_why", bound: boundOf("Proč?") }] });
+    expect(itemTargets(stored).research_questions).toEqual(["rq:rq_kept", "rq:rq_why"]);
+  });
+
+  it("names nothing for an empty list", () => {
+    expect(itemTargets(state({ hypotheses: [] })).hypotheses).toEqual([]);
   });
 });
