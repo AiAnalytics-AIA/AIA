@@ -31,6 +31,12 @@ chunks:
   - "[ ] LO18. The Lead's turns stream, take a file from the composer, and comment unprompted after the researcher pauses editing, each such comment a paid turn inside the wallet (D-39)"
   - "[ ] LO19. A study's context file: a Markdown file per study, built by code from the study's shared state and refreshed on every change, read by every researcher's Lead in that study as its study layer (Q5)"
   - "[ ] LO20. Hledat na webu: the Lead's governed web search through RetrievalGate, several results with inline citations in the turn, OPEN clients without a card and CLASSIFIED clients behind a plan card, each search charged to the wallet (Q6, Q24)"
+  - "[ ] LO21. Registry-driven actions (CARD-1, Nigel 2026-10-22): the Lead proposes actions: [{worker_id, args}], several per turn, from one registry; split into LO21a-LO21e, this line holds the acceptance"
+  - "[ ] LO21a. The action registry: each action an args schema, a Czech description and an example; LeadOutput's allowed action union generated from it at startup"
+  - "[ ] LO21b. The prompt's action section generated from the registry and filtered per turn: off, over budget or not permitted for the study left out"
+  - "[ ] LO21c. One generic card renderer keyed on card_kind with per-kind slots; each action its own ledger decision and approval route"
+  - "[ ] LO21d. The four request types (agent_job, research_run, design_research, interpretation_research) migrated to actions; a stored request still reads"
+  - "[ ] LO21e. The plan kind: one action whose steps reference registered actions, LO4's card (steps shown, one approval, live state per step)"
   - "[ ] LO9d. Every stage worker gets its declared inputs: the upstream accepted items, readiness, question outlook, research trace, earlier proposals' reasons and dismissals, and the newest sealed Deep Research bundle's findings by reference, labelled external context (Q12)"
 ---
 # Lead orchestration: the wallet, the plan card, the continuation turn and the Lead over time
@@ -757,6 +763,136 @@ Decided as engineering in the same plan, not asked:
   (`application/deep_research.py:625-632`), and the Lead never approves one.
 
 ### The chunks
+
+**Standing rule CARD-1: one card, one action** (Nigel, 2026-10-22 ~22:50 UTC, relayed by the
+coordinator). "One card in the Lead researcher chat is for one action: one run (běh) of AI
+respondents, one run of Deep Research", and so on for every kind.
+- A card never bundles two actions, two runs or two jobs.
+- A turn that proposes several gets several cards, each with its own approve and decline, cost,
+  state and result.
+
+Checked against today's cards (develop `b6cd4d9e`):
+- **Conforms:**
+  - the prepared agent job (one job, `approve_request`, `application/research_lead.py:934`);
+  - the research-run card (one run, started on Spuštění);
+  - a typed start (LO5, one start);
+  - the analysis-retry card (one run over the failed modules);
+  - LO5a.1/.2's `design_research` and `interpretation_research` (one run each, as planned);
+  - the budget lift (one parked step);
+  - LC5a's queue: one Lead turn answers several messages, and that is one paid action, not a card.
+- **Breaks it, or cannot yet keep it:**
+  1. **A turn can propose at most one request.** `LeadOutput.request: JobRequest | None`
+     (`domain/research_lead.py:348`), and the prompt says "nejvýše jednu" (`:823`). A turn that
+     would propose two can show only one. The fix is `requests: list[…]` with one card per item,
+     each with its own decision in the ledger, and a prompt version bump.
+  2. **"Pamatovat si" decides a whole `self_update` at once**: notes to remember and to forget,
+     SOUL, USER and the name, in one accept (`decide_self_update`, `:876`). Under CARD-1 each
+     change is its own card.
+  3. **The edits block's "Přijmout vše"** (`apps/web/src/components/workbench/Workbench.tsx:833`)
+     accepts up to 12 edits with one click. Each edit already has its own decision in the ledger
+     (`decide_edits`, `:753`), so the batch button is a convenience over per-item cards. It
+     conforms if edits count as one action each and the batch is only a shortcut; otherwise
+     drop it. Nigel's call.
+  4. **LO4's plan card**, as planned, approves several steps at once ("approved once"). Under
+     CARD-1, LO4 needs one card per step, or Nigel's explicit exception for plans.
+
+Nigel's answers (2026-10-22 ~22:55 UTC):
+- (1) Breaks the rule: chunked as **LO21** (LO20 is the Lead's web lookup, ADR 0040). Nigel then
+  asked for it to be shaped for scale, still systematic and approval-gated. See **LO21,
+  registry-driven actions** below.
+- (2) "Pamatovat si" stays one decision.
+- (3) "Přijmout vše" stays.
+- (4) **A plan is one action**, so one card approves a whole plan. LO4's card must show every
+  step visually and directly inside the card:
+  - each step is its own row with its kind's icon, what it does in plain words, its cost ceiling
+    and its order or dependency;
+  - the card shows the plan's total ceiling and has one approve and decline for the plan;
+  - after approval, each row carries its own live state (queued, running, done, failed, waiting
+    on you);
+  - a step that needs a person surfaces in its row without breaking the card.
+
+  Example plans:
+  - "Návrh dotazníku": Design Research → questionnaire job → readiness check;
+  - "Pilotní běh": 50 AI respondents → aggregation → report draft;
+  - "Plný běh": n respondents → aggregation → Sociomapa → 8 analysis modules → report;
+  - "Interpretace výsledků": Interpretation Research on the strongest relations → report with
+    literature;
+  - "Oprava modulů": retry the failed analysis modules.
+
+**LO21. Registry-driven actions** (Nigel, 2026-10-22 ~23:00 UTC, relayed by the coordinator).
+
+What it is:
+- `LeadOutput.request` today is one of four fixed types (`domain/research_lead.py:282-348 @
+  b6cd4d9e`). It becomes `actions: [{worker_id, args}]`, several per turn.
+- The registry is the single source of truth for what the Lead may propose. Adding a card kind
+  is one registry entry, its args schema and its card slot, with no change to the Lead's core
+  schema or prompt.
+- ADR 0026's shape stays: structured output without tools, a frozen context, one schema repair,
+  a predictable cost per turn.
+- Each change of the generated union or prompt section bumps `LEAD_HARNESS_VERSION` and the
+  Lead prompt version (ADR 0020 pin), so a stored turn always reads under the contract it was
+  answered with.
+
+The registry's shape:
+- `domain/lead_workers.py`'s `LeadWorkerSpec` (`:88-105`) describes a *model* worker today:
+  `output_contract`, `capability`, `prompt_id` and `schema_repairs` are required.
+- A research run or a Deep Research run is an action that calls no model of its own. So
+  LO21a adds an `ActionSpec` beside it:
+  - `worker_id`, `card_kind`, `result_kind` and `switch`;
+  - the cost source (`reservation_key` or a ceiling function);
+  - `material_rules`;
+  - `args` (a Pydantic model), `description_cs` and `example`;
+  - an optional reference to the `LeadWorkerSpec` it runs.
+
+  A model worker's action names its spec, so nothing is said twice.
+
+The chunks, each with its test:
+- **LO21a.** The `ActionSpec` registry and the generated `LeadOutput.actions` union.
+  - Tests: an unknown `worker_id` is refused; each action's args are validated by its schema;
+    the union equals the registry; a duplicate `worker_id` fails at import.
+- **LO21b.** The prompt's action section is generated from the registry and filtered per turn,
+  from the frozen context: a switch off, over the study's budget, or not permitted (scope,
+  study status). The model sees only what it can propose. `lead_contract` refuses an action
+  the turn was not offered.
+  - Tests: the section lists exactly the offered actions; an action that was not offered is
+    refused; the section's bytes stay bounded.
+- **LO21c.** One generic card renderer (web) keyed on `card_kind`, with small per-kind slots.
+  Each action is its own approve and decline and its own ledger decision (CARD-1); the route
+  becomes `…/turns/{turn_id}/actions/{index}`.
+  - Tests: two actions in one turn give two cards and two ledger rows; deciding one leaves the
+    other waiting; the spend limit, `LiveNotApproved` and classification parking apply per
+    action.
+- **LO21d.** The four request types are migrated: `agent_job`, `research_run`,
+  `design_research` and `interpretation_research`, the last two LO5a.2's.
+  - Tests: a stored single `request` still reads and decides; each type's card behaves as
+    before.
+- **LO21e.** The `plan` kind: one action whose steps reference registered actions. It is LO4's
+  card, with every step shown, one approval, live state per step, and a person's gate in its row.
+  - Tests: a plan naming an unregistered or not-offered action is refused; the per-step state
+    follows each step's run.
+
+Order: after LO5a.1 and LO5a.2. LO21d migrates their cards; LO21e needs LO3 and LO4.
+
+Later option, not now: native "propose" tools that only create pending cards. Revisit when the
+Lead gains read-only tools (LO20's web lookup), because tools change the cost and repair model
+ADR 0026 fixes.
+
+**First after the feature freeze (Nigel, 2026-10-22, relayed by the coordinator, /pmstatus
+Q80).**
+- Deep Research is started by the Lead: a card in the chat that the person approves. It is never
+  started automatically, and the guards stay those of Deep Research's own start:
+  - `confirm_cost_usd` at the spend threshold;
+  - `LiveNotApproved`;
+  - a ledger row;
+  - classification parking (OI-129).
+- LO5a.1 and LO5a.2 come first after the freeze, after `lead-conversation` LC5a.
+- LO5a.2 covers **both** `design_research` and `interpretation_research`.
+- In the same release:
+  - #808 (Dotazník) hides Dotazník's own workbench start (QF-13). It is held as a draft and
+    merges with LO5a.
+  - Výsledky hides its own workbench Interpretation Research start and retry.
+
+  Until LO5a.2 lands, those stage buttons are the workbench's only way to start either.
 
 **LO5a.1 (DRL-2). The Lead's Deep Research requests and context.**
 - `domain/research_lead.py`. Today both requests carry only `why` (`domain/research_lead.py:250-258`).
