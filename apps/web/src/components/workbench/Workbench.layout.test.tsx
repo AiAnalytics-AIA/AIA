@@ -255,7 +255,7 @@ describe("the launcher and the drawer (26c)", () => {
     expect(screen.getByRole("dialog")).toBeTruthy();
     Element.prototype.scrollIntoView = vi.fn();
     const target = document.getElementById("qedit_q1")!;
-    await waitFor(() => expect(document.activeElement).toBe(target), { timeout: 4000 });
+    await waitFor(() => expect(document.activeElement).toBe(target));
     await waitFor(() => expect(screen.queryByRole("dialog")).toBeNull());
     expect(target.getAttribute("tabindex")).toBe("-1");
     fireEvent.click(screen.getByRole("button", { name: "Zpět k Vedoucímu" }));
@@ -379,7 +379,7 @@ describe("the item inspector", () => {
   it("opens what the Lead's inspect names on this stage, as a click would (research-lead-workbench 14)", async () => {
     leadReads = [leadState({ busy: true, turns: [leadTurn("T1", 1)] }), leadState({ turns: [leadTurn("T1", 1), leadTurn("T2", 2, [{ op: "inspect", target: "question:q1" }])] })];
     bench();
-    await waitFor(() => expect(document.querySelector("[data-item-inspector]")?.getAttribute("data-item-inspector")).toBe("question:q1"), { timeout: 4000 });
+    await waitFor(() => expect(document.querySelector("[data-item-inspector]")?.getAttribute("data-item-inspector")).toBe("question:q1"));
     expect(push).not.toHaveBeenCalled();
     // Named by its words on the page, not by its id.
     await waitFor(() => expect(document.querySelector("[data-item-inspector]")!.textContent).toContain("Jak často pijete čaj?"));
@@ -391,7 +391,7 @@ describe("the item inspector", () => {
     push.mockClear();
     leadReads = [leadState({ busy: true, turns: [leadTurn("T1", 1)] }), leadState({ turns: [leadTurn("T1", 1), leadTurn("T2", 2, [{ op: "inspect", target: "rq:rq_1" }])] })];
     bench();
-    await waitFor(() => expect(push).toHaveBeenCalledTimes(1), { timeout: 4000 });
+    await waitFor(() => expect(push).toHaveBeenCalledTimes(1));
     expect(push.mock.calls[0][0]).toMatch(/\/plan$/);
     expect(document.querySelector("[data-item-inspector]")).toBeNull();
     // A route change remounts the workbench on Návrh: the drawer opens there.
@@ -406,12 +406,18 @@ describe("the item inspector", () => {
 
   it("leaves nothing pending when a leave guard stops the Lead's move to the inspected stage", async () => {
     push.mockClear();
-    const guard = (e: MouseEvent) => e.preventDefault();
+    // Held to the guard having stopped the move: without it, a move never tried would pass as stopped.
+    let stopped = 0;
+    const guard = (e: MouseEvent) => {
+      e.preventDefault();
+      if (e.target instanceof HTMLAnchorElement) stopped += 1;
+    };
     document.addEventListener("click", guard, true);
     try {
       leadReads = [leadState({ busy: true, turns: [leadTurn("T1", 1)] }), leadState({ turns: [leadTurn("T1", 1), leadTurn("T2", 2, [{ op: "inspect", target: "rq:rq_1" }])] })];
       bench();
-      await screen.findByRole("button", { name: /^Detail: / }, { timeout: 4000 });
+      await screen.findByRole("button", { name: /^Detail: / });
+      await waitFor(() => expect(stopped).toBe(1));
     } finally {
       document.removeEventListener("click", guard, true);
     }
@@ -676,7 +682,7 @@ describe("a typed analysis retry (the PM on #744)", () => {
         <Stage />
       </Workbench>,
     );
-    fireEvent.click(await screen.findByRole("button", { name: "Zopakovat analýzu" }, { timeout: 4000 }));
+    fireEvent.click(await screen.findByRole("button", { name: "Zopakovat analýzu" }));
     await waitFor(() => expect(sent).toHaveLength(2));
     expect(sent.map((b) => b.retry_run_id)).toEqual(["RUN-a1", "RUN-b2"]);
     expect(confirm).toHaveBeenCalledWith(expect.stringMatching(/novější běh s AI analýzou/));
