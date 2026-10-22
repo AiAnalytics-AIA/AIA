@@ -14,7 +14,7 @@
 // readiness from the worker composition record (lead-orchestration LO12b, research-lead-workbench
 // 27b); until it does, `worker_ready` is absent and available: true reads as UNKNOWN.
 
-import type { LeadState, LeadTurn } from "./lead";
+import { leadReasonWords, type LeadState, type LeadTurn } from "./lead";
 
 /**
  * GET /lead with the worker's readiness (27b, from LO12b's composition record). `worker_ready`
@@ -29,34 +29,8 @@ export type LeadAvailability =
   | { kind: "OFF"; reason: string }
   | { kind: "UNKNOWN"; reason: string | null };
 
-/**
- * The stored codes in words. A turn parked on the study's budget comes back as `budget_exceeded`
- * (the step's waiting reason) or `reservation_exhausted` (the gateway's refusal), never as the
- * status AWAITING_BUDGET.
- * TODO(#547): use `leadReasonWords` from ./lead once fix/lead-turn-after-budget merges, and drop
- * this copy; the pane's map (LeadPane.tsx:36-50) goes the same way.
- */
-export const LEAD_REASON_WORDS: Readonly<Record<string, string>> = {
-  research_lead_unavailable: "Vedoucí výzkumu není v tomto prostředí zapnutý.",
-  research_lead_disabled: "Vedoucí výzkumu není v tomto prostředí zapnutý.",
-  egress_unclassified_material: "Tuto zprávu zatím nelze poslat modelu: materiál studie není klasifikovaný. Rozhoduje o tom správce AIA.",
-  egress_no_approved_route: "Vedoucí výzkumu čeká: pro model AI není schválená trasa.",
-  egress_route_not_approved_for_class: "Tuto studii nelze poslat modelu: trasa AI není schválena pro třídu jejích dat.",
-  research_lead_unconfigured: "Vedoucí výzkumu čeká: model AI není pro pracovníka nastavený.",
-  ai_runtime_unavailable: "Vedoucí výzkumu čeká: AI v tomto prostředí neběží.",
-  licence_undetermined: "Tuto studii nelze poslat modelu: licence dat panelu to neumožňuje.",
-  lead_context_too_large: "Studie je pro jednu odpověď příliš velká. Zkuste se zeptat na konkrétní část.",
-  lead_busy: "Vedoucí ještě odpovídá na předchozí zprávu.",
-  lead_not_hatched: "Nejdřív si vylíhněte vlastního Vedoucího výzkumu.",
-  budget_exceeded: "Na odpověď nezbývá rozpočet studie. Nastavte ho v Nastavení → Studie a zpráva se odešle sama.",
-  reservation_exhausted: "Na odpověď nezbývá rozpočet studie. Nastavte ho v Nastavení → Studie a zpráva se odešle sama.",
-};
-
-/** A code in words; a code with no words keeps the code, never a guess at what it means. */
-export function leadReasonWords(code: string | null | undefined): string {
-  if (!code) return "Vedoucí se zastavil.";
-  return LEAD_REASON_WORDS[code] ?? `Vedoucí se zastavil (${code}).`;
-}
+/** The stored codes in words: the Lead pane's own, one table (./lead). */
+export { leadReasonWords };
 
 /** The newest turn the Lead answered or was asked to answer, by sequence; none: null. */
 function newestLeadTurn(turns: readonly LeadTurn[]): LeadTurn | null {

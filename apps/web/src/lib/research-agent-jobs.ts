@@ -1,8 +1,9 @@
 // Native Research job following. Durable identity/state live on the server.
-import { ApiError, researchAgents, type ResearchAgentAction, type ResearchAgentJob } from "./api";
+import { ApiError, researchAgents, type ResearchAgentAction, type ResearchAgentJob, type ResearchStep } from "./api";
 import { money } from "@/i18n/cs";
 import { JobError, jobMeta, type JobUpdate } from "@/research/jobs";
 import { agentJobOrb } from "./activity-orb";
+import { withFixer } from "./route-refusal";
 
 /**
  * The AI steps a research stage asks for, by the name the stages have always used
@@ -93,6 +94,10 @@ export async function withJobCostConfirmation<T>(create: (confirmCostUsd?: numbe
 /** What a stage says of a job stopped at the study's budget: it waits, it did not fail. */
 export const BUDGET_WAIT_MESSAGE = "AI krok čeká na rozpočet studie: zastavil se, protože by jej překročil. Po zvýšení rozpočtu pokračuje tatáž úloha.";
 
+/** A step's recorded error, with who fixes it when the AI route refused it (LO12a); none: null. */
+const stepError = (step: ResearchStep | undefined): string | null =>
+  step?.error_message ? withFixer(step.error_message, step.error_reason) : null;
+
 export function agentJobUpdate(job: ResearchAgentJob, title: string): JobUpdate {
   const startedAt = Date.parse(job.created_at || "") || Date.now();
   const state = agentJobState(job);
@@ -101,7 +106,7 @@ export function agentJobUpdate(job: ResearchAgentJob, title: string): JobUpdate 
   return { jobId: job.run_id, title,
     phase: job.status === "COMPLETED" ? "Návrh je připravený k revizi" : state === "awaiting_budget" ? "Čeká na rozpočet studie" : waiting ? "Čeká na zásah" : "AI zpracovává návrh",
     startedAt, orb: agentJobOrb(job), stepId: job.steps[0]?.step_id ?? null,
-    paused: state === "awaiting_budget" ? BUDGET_WAIT_MESSAGE : waiting ? last?.error_message || "Krok čeká na schválení nebo dostupnost prostředí." : null,
+    paused: state === "awaiting_budget" ? BUDGET_WAIT_MESSAGE : waiting ? stepError(last) ?? "Krok čeká na schválení nebo dostupnost prostředí." : null,
     meta: jobMeta({ telemetry: { provider: "AWS Bedrock", actual_cost_usd: job.actual_cost_usd ?? undefined } },
       { elapsed: (Date.now() - startedAt) / 1000 }),
   };
@@ -118,7 +123,7 @@ export async function followAgentJob(studyId: string, jobId: string, title: stri
     // Never a failure: the stage shows the study's budget lift for this same job, no retry.
     if (state === "awaiting_budget") throw new JobError(BUDGET_WAIT_MESSAGE, "awaiting_budget", jobId);
     if (state !== "running") {
-      throw new JobError(job.steps.find((s) => s.error_message)?.error_message ||
+      throw new JobError(stepError(job.steps.find((s) => s.error_message)) ??
         (job.status === "CANCELLED" ? "AI krok byl zrušen. Zadání zůstává uložené." : `AI krok čeká na zásah (${job.status}).`),
       "error", jobId);
     }

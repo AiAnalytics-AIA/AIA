@@ -9,6 +9,7 @@ project id: the browser supplies content, never authority.
 
 from __future__ import annotations
 
+import re
 from collections.abc import Iterator, Mapping
 from contextlib import contextmanager
 from datetime import date, datetime
@@ -23,6 +24,7 @@ from aia_core.application.analysis_results import (
 )
 from aia_core.application.client_report import (
     CLIENT_REPORT_DOCUMENT_ARTIFACT_TYPE,
+    ClientGateRefused,
     ClientReportRefused,
     client_report_document,
     stored_client_report,
@@ -333,6 +335,10 @@ class ResearchStepResponse(BaseModel):
     finished_at: datetime | None
     failure_class: str | None
     error_message: str | None
+    #: The code the last attempt's error recorded beside its message (a gate's refusal, such as
+    #: ``egress_route_not_approved_for_class``); ``None`` when it recorded none, or anything that
+    #: is not a code.
+    error_reason: str | None = None
     artifact_id: str | None
     #: ``SYNTHETIC_FIXTURE`` when the step's output came from fictional fieldwork.
     data_origin: str | None = None
@@ -980,6 +986,14 @@ def _recovery_reason(
     return None
 
 
+_CODE = re.compile(r"[a-z][a-z0-9_:.-]{0,79}")
+
+
+def _code(value: object) -> str | None:
+    """A stored reason when it is a code; free text is never passed on as one."""
+    return value if isinstance(value, str) and _CODE.fullmatch(value) else None
+
+
 def _step(s: dict[str, Any]) -> ResearchStepResponse:
     attempts = s.get("attempts") or []
     last = attempts[-1] if attempts else None
@@ -998,6 +1012,7 @@ def _step(s: dict[str, Any]) -> ResearchStepResponse:
         finished_at=s.get("finished_at"),
         failure_class=last["failure_class"].value if last and last["failure_class"] else None,
         error_message=str(error.get("message")) if error.get("message") else None,
+        error_reason=_code(error.get("reason")),
         artifact_id=str(output["artifact_id"]) if output.get("artifact_id") else None,
         data_origin=str(output["data_origin"]) if output.get("data_origin") else None,
         data_origin_kind=origin_kind(output["data_origin"]) if output.get("data_origin") else None,
@@ -2107,6 +2122,7 @@ def run_report(
         "state": "READY",
         "internal_only": True,
         **_review_fields(artifact, mark),
+        **_approval_fields(artifact, scope, session, store),
         "artifact_id": artifact.artifact_id,
         "sha256": artifact.sha256,
         "size_bytes": artifact.size_bytes,
@@ -2225,6 +2241,30 @@ def _review_fields(artifact: Artifact, mark: ReviewMark) -> dict[str, Any]:
         "review_state": mark.state.value,
         "approved_on": mark.approved_on.isoformat() if mark.approved_on else None,
         "stamped": stampable(artifact),
+    }
+
+
+def _approval_fields(
+    artifact: Artifact, scope: StudyContext, session: SessionDep, store: ArtifactStoreDep
+) -> dict[str, Any]:
+    """Who approved a version and when, from its ledger row (report-delivery RD2): ``approval``
+    is null for a draft. ``by_you``: the asker is the approver. An approval without its row is
+    409, never a draft (``report_export.review_mark``)."""
+    if not artifact.is_approved:
+        return {"approval": None}
+    record = research_artifacts(session, scope, store).approval_record(artifact.artifact_id)
+    if record is None:
+        raise _unrecorded(ReviewUnrecorded(artifact.artifact_id))
+    return {
+        "approval": {
+            "approved_at": record.decided_at.isoformat(),
+            "approver_name": record.approver_name,
+            "by_you": record.approver_user_id == scope.actor_id,
+            "self_approved": record.self_approved,
+            "self_approval_allowed": record.self_approval_allowed,
+            "self_approval_source": record.self_approval_source,
+            "note": record.note,
+        }
     }
 
 
@@ -2404,6 +2444,7 @@ def run_report_document(
         "report_artifact_id": report.artifact_id,
         "report_sha256": report.sha256,
         **_review_fields(report, mark),
+        **_approval_fields(report, scope, session, store),
         "document": document,
     }
 
@@ -2842,6 +2883,7 @@ def client_report_document_route(
         "report_artifact_id": report.artifact_id,
         "report_sha256": report.sha256,
         **_review_fields(report, mark),
+        **_approval_fields(report, scope, session, store),
         "document": document,
     }
 
@@ -2877,6 +2919,19 @@ def approve_run_report(
         raise _not_found("run") from exc
     except ArtifactNotFound as exc:
         raise _not_found("report") from exc
+    except ClientGateRefused as exc:
+        raise HTTPException(
+            409,
+            detail={
+                "code": "client_gate_refused",
+                "message": "Klientskou zprávu nelze schválit: " + str(exc),
+                "details": {"refusals": [r.to_json() for r in exc.refusals]},
+            },
+        ) from exc
+    except (IntegrityError, ObjectNotFound) as exc:
+        raise artifact_corrupt(session) from exc
+    except DocumentModelInvalid as exc:
+        raise HTTPException(409, detail={"code": "report_artifact_invalid"}) from exc
     except ReportNotApprovable as exc:
         raise HTTPException(
             409,
@@ -2890,6 +2945,7 @@ def approve_run_report(
         "artifact_id": artifact.artifact_id,
         "artifact_type": artifact.artifact_type,
         **_review_fields(artifact, _mark(artifact, scope, session, store)),
+        **_approval_fields(artifact, scope, session, store),
         "internal_only": True,
     }
 

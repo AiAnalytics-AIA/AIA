@@ -26,6 +26,7 @@ the caller's Lead; its files change only through chat, by the Lead's ``self_upda
 
 from __future__ import annotations
 
+import json
 from collections.abc import Callable, Mapping, Sequence
 from dataclasses import dataclass, field
 from datetime import UTC, datetime, timedelta
@@ -33,6 +34,7 @@ from typing import Any, Final
 
 from sqlalchemy.orm import Session
 
+from ..domain.approval_ledger import ApprovalSubject
 from ..domain.design import DESIGN_PROJECT_OWNER
 from ..domain.lead_commands import MatchedCommand, match_command
 from ..domain.research_agents import ResearchAction, design_material, knowledge_entries
@@ -87,6 +89,7 @@ __all__ = [
     "GREETING_WINDOW",
     "LeadAlreadyHatched",
     "LeadBusy",
+    "LeadCardStale",
     "LeadContextTooLarge",
     "LeadDisabled",
     "LeadEditsStale",
@@ -223,6 +226,19 @@ class LeadTurnStale(LeadEditsStale):
     def __init__(self, current_revision: int | None, turn_revision: int | None) -> None:
         super().__init__(current_revision)
         self.args = ("the working content changed while the Lead was working on this turn",)
+        self.turn_revision = turn_revision
+
+
+class LeadCardStale(Exception):
+    """A card approved after the working copy moved past the revision its turn was written from
+    (lead-orchestration LO10): the job would run on a design the card was not prepared for.
+    Approved again naming the current revision, it starts on that one."""
+
+    reason = "stale_card"
+
+    def __init__(self, current_revision: int | None, turn_revision: int | None) -> None:
+        super().__init__("the working content changed since the Lead prepared this card")
+        self.current_revision = current_revision
         self.turn_revision = turn_revision
 
 
@@ -879,6 +895,7 @@ class ResearchLead:
         reservation_usd: float | None,
         run_start: RunStartSettings | None = None,
         wallet_enabled: bool = False,
+        workspace_revision: int | None = None,
     ) -> dict[str, Any]:
         """A person approves the paid job a Lead turn prepared, and it starts (ADR 0026
         decision 7).
@@ -895,7 +912,11 @@ class ResearchLead:
         the stored turn says (:func:`_model_prepared`), so with the Lead switched off it is
         refused (:class:`LeadDisabled`, Q42) before anything is written; it waits until the
         Lead is on again. A card approved before the switch-off answers with its job, as any
-        repeated approval does. Its ceiling is the design job's
+        repeated approval does. The card is bound to the working revision its turn was written
+        from (LO10): when anything but this turn's own accepted edits has saved the working copy
+        since, it is refused (:class:`LeadCardStale`) unless ``workspace_revision`` names the
+        current revision, the person's yes to running it on the design as it is now. Its
+        ceiling is the design job's
         reservation (``reservation_usd``: a primary and one repair). At or above the study's
         spend limit it needs ``confirm_cost_usd`` at least the ceiling
         (:class:`CostConfirmationRequired`); with a limit and no reservation configured it is
@@ -948,6 +969,11 @@ class ResearchLead:
         # is submitted, created, written or held.
         if _model_prepared(turn) and not self.enabled:
             raise LeadDisabled("the Research Lead is switched off; its card waits until it is on")
+        # Read once: the revision checked is the one submitted, so a save landing after the
+        # check leaves the next card stale and never runs this job on an unchecked design.
+        content, _analysis, current = self._working_content()
+        if workspace_revision != current and not self._only_own_accepts(turn, current):
+            raise LeadCardStale(current, turn.workspace_revision)
 
         # The confirmation threshold's one rule, the job start's own (lead-orchestration LO15):
         # asked here before the design is submitted, and again by the start, which records the
@@ -963,10 +989,9 @@ class ResearchLead:
                 "confirmed_usd": confirm_cost_usd,
             }
 
-        content, _analysis, workspace_revision = self._working_content()
         revision = self._submit_design(
             content,
-            workspace_revision,
+            current,
             source_stage=_SOURCE_STAGE.get(request.action, "questionnaire"),
         )
         started = jobs.start(
@@ -992,6 +1017,20 @@ class ResearchLead:
         }
 
     # -- helpers ----------------------------------------------------------------
+
+    def _only_own_accepts(self, turn: LeadTurn, current: int | None) -> bool:
+        """Whether every save of the working copy since ``turn`` was written is an accept of
+        this turn's own edits: accepting what a card came with does not make it stale."""
+        since = turn.workspace_revision or 0
+        if current is None or current <= since:
+            return True
+        prefix = f"{turn.turn_id}:"
+        own = {
+            json.loads(entry.comment or "{}").get("workspace_revision")
+            for entry in self._workflows().ledger({ApprovalSubject.LEAD_EDIT})
+            if entry.subject_id.startswith(prefix) and entry.decision == "accept"
+        }
+        return all(r in own for r in range(since + 1, current + 1))
 
     @staticmethod
     def _checked(
