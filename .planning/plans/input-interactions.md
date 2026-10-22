@@ -581,8 +581,8 @@ IA-1 … IA-6, with all six parts, in the audit's §6. For the docs PR to number
 - **3d. Prices as chips (A16), #652.** A concept test's price bands entered one at a time, each checked as an amount; `ChipInput` takes `refuse`, keeping the draft with its reason. Tests: `questionnaire-prices.test.ts`, `QuestionnairePrices.test.tsx`.
 - **3e. A block's name and purpose and a set's name in place (A4, part of A13), feature/questionnaire-fields-in-place.** `InlineText` on each: Enter or blur saves, Esc restores, the change written to the working copy at once and saved with it, the header saying the save (as Návrh's narrative); a name is required, a purpose may be emptied. Each block and set is also a heading (visually hidden), which `lead.ts` `titleOf` names it by. Tests: `QuestionnaireFields.test.tsx`; the journey renames a block and reads it back after a reload.
 - **3f. A set's object type, goal and common question in place (the rest of A13), feature/questionnaire-set-fields-in-place.** The same `InlineField`; the common question refuses a draft without `{object}` at the field, in words (I9), and "+ {object}" still appends it to a stored question that lacks it. Tests: `QuestionnaireFields.test.tsx`.
+- **3g. A question's wording and options (A1, A3), feature/questionnaire-wording-in-place.** The wording stays the card's always-open field (it is the card's content, and `lead.ts` `wordingOf` reads it): Esc puts back the wording as it stood when the field took focus. An option is removed at once with Vrátit, which puts it back in its place; its × is a 24 px target. Rows already add the next on Enter and save on leaving the group. Tests: `QuestionnaireFields.test.tsx`; the journey measures the × at four widths.
 - **Still open in chunk 3:**
-  - A1, A3: a question's wording and its options in place;
   - A14: the n / 15 counter beside the objects (the set's header shows "n / 4–15" today).
 
 ### Chunk 3b3, added by planning (2026-10-21)
