@@ -6,7 +6,8 @@
  *
  * Needs the workbench running (`make ui-workbench`, whose worker has the
  * fictional fieldwork source; with AIA_WEB_RESEARCH_WORKBENCH=true for the Lead's card) and its
- * fixtures (`make ui-fixtures`). Signed in
+ * fixtures (`make ui-fixtures`). Safe to re-run on the same fixtures: each pass starts one more
+ * fictional run and follows that one. Signed in
  * as the workbench operator, it opens the fixture study's Run stage, where the
  * design is submitted as a Design Revision and AIA's readiness is shown; starts
  * one run; follows it on Progress until the worker has finished every step;
@@ -89,8 +90,16 @@ const toUnit = [];
 const bad = [];
 page.on("request", (r) => { try { if (UNIT_PATH.test(new URL(r.url()).pathname)) toUnit.push(`${r.method()} ${r.url()}`); } catch { /* not a URL */ } });
 page.on("response", (r) => { if (r.status() === 502) bad.push(r.url()); });
+// Every write the page sends, and the run's own answers: zero paid jobs is checked against them.
 const writes = [];
-page.on("request", (r) => { if (r.method() !== "GET") try { writes.push(new URL(r.url()).pathname); } catch { /* not a URL */ } });
+page.on("request", (r) => { if (r.method() !== "GET") try { writes.push(`${r.method()} ${new URL(r.url()).pathname}`); } catch { /* not a URL */ } });
+const runReads = new Map();
+page.on("response", async (r) => {
+  try {
+    const m = /\/research\/runs\/([^/]+)$/.exec(new URL(r.url()).pathname);
+    if (m && r.request().method() === "GET" && r.ok()) runReads.set(m[1], await r.json());
+  } catch { /* a closed page's answer */ }
+});
 const shot = (name) => page.screenshot({ path: join(OUT, `${name}.png`), fullPage: true });
 const ok = (what) => console.log(`research journey: ok   ${what}`);
 
@@ -185,9 +194,6 @@ for (const width of [1100, 768, 390]) {
     if (workbench) await page.getByRole("button", { name: "Připravenost a pomoc" }).click();
     const toResults = await page.getByRole("link", { name: "Zobrazit výsledky", exact: true }).first().boundingBox({ timeout: 5000 }).catch(() => null);
     if (!toResults || toResults.height < 44) fail(`Progress's "Zobrazit výsledky" is ${toResults?.height ?? "missing"} px tall at 390 px, not 44`);
-    // Zero paid: the fictional run's recorded cost.
-    const cost = (await page.locator('dt:text-is("Skutečné náklady") + dd').first().textContent({ timeout: 5000 }).catch(() => null))?.trim();
-    if (cost !== "0.00 USD") fail(`the run's recorded cost is ${cost ?? "not shown"}, not 0.00 USD`);
   }
   await shot(`2-progress-${width}`);
 }
@@ -205,11 +211,22 @@ ok("Results: fictional notice, aggregate tables, Sociomap INTERNAL_ONLY");
 await shot("3-results");
 
 await browser.close();
-// Zero paid jobs: the one run this journey starts, on fictional fieldwork, and nothing else that spends.
-const starts = writes.filter((w) => /\/research\/runs$/.test(w));
-const paid = writes.filter((w) => /\/agent-jobs$|\/deep-research\/runs|\/lead\/turns\/[^/]+\/request$|\/analysis\/retry$|\/retry$/.test(w));
-if (starts.length !== 1 || paid.length) fail(`paid work started: ${[...starts, ...paid].join(" | ")}`);
-ok("zero paid jobs: one fictional run at 0.00 USD, nothing else started");
+// Zero paid jobs, as an allowlist: the only writes are the working copy's save, the stage it is on, the
+// design's submit and the one start; anything else fails by its path. The run's own API answer: SYNTHETIC_ data, cost 0.
+const KNOWN = [
+  /^(PUT|POST) \/api\/v1\/studies\/[^/]+\/workspace\/content$/,
+  /^PUT \/api\/v1\/studies\/[^/]+\/workspace\/stage$/, // the stage a person is on, kept per visit
+  /^POST \/api\/v1\/studies\/[^/]+\/design\/revisions$/,
+];
+const starts = writes.filter((w) => /^POST \/api\/v1\/studies\/[^/]+\/research\/runs$/.test(w));
+const unknown = writes.filter((w) => !starts.includes(w) && !KNOWN.some((k) => k.test(w)));
+if (starts.length !== 1 || unknown.length) fail(`writes beyond one fictional start: ${starts.length} starts; ${unknown.join(" | ")}`);
+const answered = runReads.get(runId);
+const origin = answered?.steps?.find((st) => st.node_key === "run")?.data_origin;
+if (answered?.actual_cost_usd !== 0 || !origin?.startsWith("SYNTHETIC_")) {
+  fail(`the run's own answer: cost ${answered?.actual_cost_usd ?? "not read"}, origin ${origin ?? "not read"}`);
+}
+ok(`zero paid jobs: one fictional run (${origin}) at cost 0 by its own answer, no other write`);
 if (toUnit.length) fail(`requests to the unit's paths: ${toUnit.join(" | ")}`);
 if (bad.length) fail(`502 responses: ${bad.join(" | ")}`);
 if (errors.length) fail(`page errors: ${errors.join(" | ")}`);
