@@ -147,9 +147,10 @@ function removeWithUndo(update: Update, undo: EditorUndo, si: number, sec: Secti
 }
 
 /** A tracked set is measured on 4–15 objects (SET_SIZE). */
+const SET_MAX = 15;
 const setInvalid = (sec: Section) => {
   const n = (sec.objects || []).length;
-  return n < 4 || n > 15;
+  return n < 4 || n > SET_MAX;
 };
 const OBJECT = "{object}";
 
@@ -1098,11 +1099,19 @@ function TrackedSet({ n, sec, si, update }: { n: number; sec: Section; si: numbe
         )}
       </div>
       <div className="flex flex-col gap-1">
-        <span className={LABEL}>{t("research.questionnaire.setObjectsV3")}</span>
+        {/* The count beside the list it counts, said as it changes (audit A14): the header's badge
+            scrolls away while objects are added on a phone. */}
+        <div className="flex items-baseline justify-between gap-2">
+          <span className={LABEL}>{t("research.questionnaire.setObjectsV3")}</span>
+          <span aria-live="polite" className={`font-mono text-xs ${bad ? "text-status-you-ink" : "text-ink-muted"}`}>
+            {tv("research.questionnaire.setObjectsCount", { n: objects.length, max: SET_MAX })}
+          </span>
+        </div>
         <ChipInput
           label={t("research.questionnaire.setObjectAdd")}
           placeholder={t("research.questionnaire.setObjectAdd")}
           values={objects}
+          refuse={() => (objects.length >= SET_MAX ? tv("research.questionnaire.setObjectsFull", { max: SET_MAX }) : null)}
           onAdd={(v) => setObjects([...objects, v])}
           onRemove={(i) => setObjects(objects.filter((_, j) => j !== i))}
         />

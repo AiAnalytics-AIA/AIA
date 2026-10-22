@@ -2299,6 +2299,8 @@ export const cs = {
       setQuestionMissing: "Otázka musí obsahovat {object}, jinak se položky do otázky nepromítnou.",
       setObjectsV3: "Objekty (povinně 4–15)",
       setObjectAdd: "Přidat objekt a Enter",
+      setObjectsCount: "{n} / {max}",
+      setObjectsFull: "Sada má nejvýše {max} objektů. Jeden odeberte, než přidáte další.",
       dockEmpty: "Otázky bez znění: {n}",
       dockSets: "Sady mimo 4–15 položek: {n}",
       dockReady: "Dotazník je připravený",

@@ -124,4 +124,19 @@ describe("Dotazník's block and set fields", () => {
     fireEvent.keyDown(goal, { key: "Enter" });
     await waitFor(() => expect(sectionsSaved()?.[1].purpose).toBe("Který kanál oslovuje nejvíc"));
   });
+
+  it("counts a set's objects beside the list and refuses a sixteenth in words (A14)", async () => {
+    stub([SECTIONS[0], { ...SECTIONS[1], objects: Array.from({ length: 14 }, (_, i) => `Objekt ${i + 1}`) }]);
+    render(<ResearchScreen step="questionnaire" frame={TEST_FRAME} />);
+    expect(await screen.findByText("14 / 15")).toBeTruthy();
+    const add = screen.getByRole("textbox", { name: "Přidat objekt a Enter" });
+    fireEvent.change(add, { target: { value: "Objekt 15" } });
+    fireEvent.keyDown(add, { key: "Enter" });
+    expect(await screen.findByText("15 / 15")).toBeTruthy();
+    fireEvent.change(add, { target: { value: "Objekt 16" } });
+    fireEvent.keyDown(add, { key: "Enter" });
+    expect(await screen.findByText("Sada má nejvýše 15 objektů. Jeden odeberte, než přidáte další.")).toBeTruthy();
+    expect((add as HTMLInputElement).value).toBe("Objekt 16");
+    expect(screen.getByText("15 / 15")).toBeTruthy();
+  });
 });
