@@ -87,6 +87,16 @@ export function removeAttachment(p: ResearchProject, i: number): ResearchProject
   return { ...p, briefing: { ...(p.briefing || {}), attachments: attachments(p).filter((_, j) => j !== i) } };
 }
 
+/**
+ * `record` put back at `index` (or at the end, when the list has since grown shorter): the undo of
+ * removeAttachment (input-interactions I6, audit A28). Not from 18.6.6, which removed for good.
+ */
+export function restoreAttachment(p: ResearchProject, index: number, record: Attachment): ResearchProject {
+  const list = attachments(p);
+  const at = Math.min(Math.max(index, 0), list.length);
+  return { ...p, briefing: { ...(p.briefing || {}), attachments: [...list.slice(0, at), record, ...list.slice(at)] } };
+}
+
 /** What briefAttachmentsHtml1785 prints under an attachment's name. */
 export function attachmentLine(x: Attachment): { name: string; detail: string } {
   if (x.kind === "url") return { name: x.title || x.url || "", detail: x.url || "" };

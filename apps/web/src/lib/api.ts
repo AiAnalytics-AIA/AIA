@@ -790,6 +790,21 @@ export type AudiencePreview = {
   seed: number;
 };
 
+/** A materialize run of a study (`GET …/population/materializations`, P4d4), as the API reads it. */
+export type Materialization = {
+  run_id: string;
+  status: string;
+  created_at: string;
+  finished_at: string | null;
+  dimension_id: string | null;
+  /** null when the run recorded none: its values then cannot be read as a share or a scale. */
+  kind: PopulationMaterialized["kind"] | null;
+  step_status: string | null;
+  waiting_reason: string | null;
+  refusal_reason: string | null;
+  child: { version_id: string; label: string; target: number; achieved: number; target_met: boolean } | null;
+};
+
 export const population = {
   registry: () => request<PopulationRegistry>("GET", "/api/v1/population"),
   characteristics: (versionId: string) =>
@@ -797,6 +812,9 @@ export const population = {
   audienceCatalogue: () => request<AudienceCatalogue>("GET", "/api/v1/population/audience-catalogue"),
   audiencePreview: (filters: Record<string, unknown>, n: number | null) =>
     request<AudiencePreview>("POST", "/api/v1/population/audience-preview", { filters, n }),
+  /** A study's materialize runs, newest first (the route's most, 100): the client's own dimensions made from it. */
+  materializations: (studyId: string) =>
+    request<{ items: Materialization[] }>("GET", `${studyPath(studyId)}/population/materializations?limit=100`),
 };
 
 export const workspace = {
@@ -1512,8 +1530,13 @@ export const lead = {
   decideEdits: (studyId: string, turnId: string, body: { decision: "accept" | "dismiss"; indices: number[]; base_revision: number | null; auto?: boolean }) =>
     request<EditDecisionResult>("POST", `${studyPath(studyId)}/lead/turns/${enc(turnId)}/edits`, body),
   /** Approve a turn's prepared design job: spend limit, ledger and start in one transaction. */
-  approveRequest: (studyId: string, turnId: string, confirmCostUsd?: number) =>
-    request<RequestApproval>("POST", `${studyPath(studyId)}/lead/turns/${enc(turnId)}/request`, confirmCostUsd === undefined ? {} : { confirm_cost_usd: confirmCostUsd }),
+  /** `workspaceRevision`: the current working revision, sent only after a 409 stale_card and the
+   *  person's yes to running the card on the design as it is now (lead-orchestration LO10). */
+  approveRequest: (studyId: string, turnId: string, confirmCostUsd?: number, workspaceRevision?: number) =>
+    request<RequestApproval>("POST", `${studyPath(studyId)}/lead/turns/${enc(turnId)}/request`, {
+      ...(confirmCostUsd === undefined ? {} : { confirm_cost_usd: confirmCostUsd }),
+      ...(workspaceRevision === undefined ? {} : { workspace_revision: workspaceRevision }),
+    }),
   /** Keep or drop what a turn wants to remember for all of the researcher's work (once, in the ledger). */
   decideSelfUpdate: (studyId: string, turnId: string, decision: "accept" | "dismiss") =>
     request<SelfUpdateDecision>("POST", `${studyPath(studyId)}/lead/turns/${enc(turnId)}/self-update`, { decision }),

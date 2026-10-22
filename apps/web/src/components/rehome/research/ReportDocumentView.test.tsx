@@ -6,6 +6,7 @@ import { readFileSync } from "node:fs";
 import { join } from "node:path";
 
 import { cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
+import { t } from "@/i18n/t";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { ApiError, research, type ResearchRun } from "@/lib/api";
@@ -99,6 +100,23 @@ describe("the stored draft in the pane", () => {
     const bar = container.querySelector("[data-report-docbar]")!;
     expect(bar.textContent).toContain("neschváleno");
     expect(bar.textContent).toContain("ART-docx");
+  });
+});
+
+describe("Záznam pokrytí, outside the text (RPT4)", () => {
+  it("lists beside the article what the draft does not hold: the run's gaps and the outputs no section read", async () => {
+    vi.mocked(research.reportDocument).mockResolvedValue(STORED);
+    const r = { ...run("SUCCEEDED"), answerability: { rules: "r", capable: false, digest: "d", pending: [],
+      gaps: [{ kind: "not_answerable", research_question: "Liší se segmenty?", verdict: "UNANSWERABLE", reasons: ["segments_unavailable"], measures: ["q1"] }] } } as ResearchRun;
+    const { container } = show(r);
+    const record = await screen.findByRole("region", { name: /Záznam pokrytí/ });
+    // Outside the article: never part of the document's text.
+    expect(container.querySelector("article")!.contains(record)).toBe(false);
+    expect(record.textContent).toContain("Segmenty: neprovedeno");
+    // The shared fixture's manifest: its unread outputs, by words.
+    expect(DOC.unread?.length).toBe(2);
+    expect(record.textContent).toContain(`${t("research.exec.steps.aggregate")}: uloženo, žádná kapitola z něj nečte`);
+    expect(record.textContent).toContain("Zpráva Sociomappingu (interní koncept): uloženo, žádná kapitola z něj nečte");
   });
 });
 

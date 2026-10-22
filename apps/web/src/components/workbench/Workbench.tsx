@@ -22,7 +22,7 @@ import { jobCostAsked } from "@/lib/research-agent-jobs";
 import { appRoutes } from "@/lib/app-routes";
 import { guardedNavigate } from "@/lib/guarded-navigation";
 import {
-  applyLeadEdit, autoAcceptPlan, describeEdit, editRefusalWords, editStage, focusSelector, revertTextEdit, targetLabel, targetOfElement, textEditInverse,
+  LEAD_REASON_WORDS, STALE_CARD_QUESTION, applyLeadEdit, autoAcceptPlan, describeEdit, editRefusalWords, editStage, focusSelector, revertTextEdit, targetLabel, targetOfElement, textEditInverse,
   type LeadEdit, type LeadRequest, type LeadTurn, type LeadView, type ResearcherLead,
 } from "@/lib/lead";
 import {
@@ -372,16 +372,19 @@ export function Workbench({ frame, step, store, memory, save, inspector, reload,
 
   // A design job is approved on the server: the spend limit, the ledger row and the start together.
   const onRequest = useCallback(async (turn: LeadTurn, r: LeadRequest) => {
-    if (r.kind !== "agent_job") {
+    // A person's typed start (LO5) is started by its approval, a run too; the Lead's other cards open their stage.
+    if (r.kind !== "agent_job" && !turn.command) {
       go(r.kind === "research_run" ? "fieldwork" : r.kind === "design_research" ? "design" : "report");
       return;
     }
     await store.flush();
     let confirmUsd: number | undefined;
+    let onRevision: number | undefined;
     for (;;) {
       try {
-        const started = await leadApi.approveRequest(frame.studyId, turn.turn_id, confirmUsd);
-        onAgentStarted(started.run_id);
+        const started = await leadApi.approveRequest(frame.studyId, turn.turn_id, confirmUsd, onRevision);
+        if (r.kind === "agent_job") onAgentStarted(started.run_id);
+        else setRunEpoch((n) => n + 1);
         setLeadEpoch((n) => n + 1);
         return;
       } catch (e) {
@@ -392,7 +395,13 @@ export function Workbench({ frame, step, store, memory, save, inspector, reload,
           confirmUsd = ceiling;
           continue;
         }
-        setNotice(e instanceof ApiError ? e.message : String(e));
+        // The design moved since the card was prepared (LO10): it runs on the current one only on a yes.
+        if (e instanceof ApiError && e.code === "stale_card" && onRevision === undefined && typeof e.details.current_revision === "number") {
+          if (!(await confirm(STALE_CARD_QUESTION))) throw e;
+          onRevision = e.details.current_revision;
+          continue;
+        }
+        setNotice(e instanceof ApiError ? LEAD_REASON_WORDS[e.code] ?? e.message : String(e));
         throw e;
       }
     }
@@ -628,13 +637,14 @@ export function Workbench({ frame, step, store, memory, save, inspector, reload,
           right={
             <div className="art" aria-label={`Artefakt ${STAGES[stage].label}`}>
               <div className="arthead">
-                <div style={{ minWidth: 0 }}>
-                  <div className="row"><h2 className="arthead__title">{STAGES[stage].label}</h2>{save}</div>
+                <div style={{ minWidth: 0, flex: 1 }}>
+                  <div className="row"><h1 className="arthead__title">{STAGES[stage].label}</h1>{save}</div>
                   <div className="arthead__sub">{state.revision === null ? "Pracovní kopie zatím neuložena" : `Pracovní kopie · revize ${state.revision}`}{frame.canEdit ? "" : " · jen ke čtení"}</div>
                 </div>
                 <div className="arthead__actions">
                   <button ref={inspectorToggle} type="button" className={`btn btn--sm btn--quiet${inspectorOpen ? " is-on" : ""}`} aria-expanded={inspectorOpen} onClick={() => setInspectorOpen((v) => !v)}>
-                    <Icon name="inspector" size={14} />Připravenost a pomoc{blocked ? ` · ${blocked}` : ""}
+                    {/* The sheet shows the icon and the count; the name stays whole for assistive technology. */}
+                    <Icon name="inspector" size={14} /><span className="arthead__label">Připravenost a pomoc</span>{blocked ? <span>{` · ${blocked}`}</span> : null}
                   </button>
                   <button type="button" className={`iconbtn${mode === "artifact" ? " is-on" : ""}`} aria-pressed={mode === "artifact"} title={mode === "artifact" ? "Zpět na 40 / 60" : "Soustředit se na artefakt"} aria-label={mode === "artifact" ? "Zpět na 40 / 60" : "Soustředit se na artefakt"} onClick={() => setMode((m) => (m === "artifact" ? "split" : "artifact"))}>
                     <Icon name={mode === "artifact" ? "normal" : "focusArtifact"} size={16} />

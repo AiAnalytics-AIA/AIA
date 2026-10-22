@@ -119,6 +119,9 @@ class MaterializationResponse(_Model):
     created_at: datetime
     finished_at: datetime | None
     dimension_id: str | None
+    #: The dimension's kind as the run recorded it (binary, scale_1_10): how its target and
+    #: achieved values read. ``None`` when the run recorded none.
+    kind: MaterializedKind | None
     definition_sha256: str | None
     child_key: str | None
     base_version_id: str | None
@@ -202,6 +205,7 @@ def _response(run: dict[str, Any], *, created: bool | None = None) -> Materializ
         created_at=run["created_at"],
         finished_at=run.get("finished_at"),
         dimension_id=metadata.get("dimension_id"),
+        kind=kind,
         definition_sha256=metadata.get("definition_sha256"),
         child_key=metadata.get("child_key"),
         base_version_id=metadata.get("base_version_id"),

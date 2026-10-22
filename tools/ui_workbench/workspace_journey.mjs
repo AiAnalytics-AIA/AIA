@@ -10,7 +10,9 @@
  * research study through the API and then, in the browser:
  *
  *   * Zadání: types a goal, attaches a file, reloads -- the goal and the file are still
- *     there, read back from AIA -- and downloads the file through the study;
+ *     there, read back from AIA -- adds an objective, reloads -- it is one Lead target --
+ *     rewords it in place, reloads -- it is still one, in its new words -- and downloads the
+ *     file through the study;
  *   * Dotazník: downloads AIA's template, imports that same file, reloads -- the
  *     imported questionnaire is still there; puts its first question on the 1–10 preset
  *     with a label on every point, reloads -- the range and the ten labels are still there,
@@ -97,7 +99,9 @@ page.on("request", (r) => requests.push({ method: r.method(), url: r.url() }));
 const bad = [];
 page.on("response", (r) => { if (r.status() === 502) bad.push(r.url()); });
 const shot = (name) => page.screenshot({ path: join(OUT, `${name}.png`), fullPage: true });
-const saved = () => page.waitForResponse((r) => r.url().endsWith(`/studies/${study.study_id}/workspace/content`) && r.request().method() === "PUT" && r.ok(), { timeout: 30000 });
+// A save of the working copy; with `holding`, only one whose body carries that text, so a save
+// already in flight for something else does not stand in for it.
+const saved = (holding) => page.waitForResponse((r) => r.url().endsWith(`/studies/${study.study_id}/workspace/content`) && r.request().method() === "PUT" && r.ok() && (!holding || (r.request().postData() ?? "").includes(holding)), { timeout: 30000 });
 const text = async (t, what) => page.getByText(t).first().waitFor({ timeout: 60000 }).catch(async () => { await shot(`missing-${what}`); fail(`${what}: "${t}" not shown`); });
 
 // 1. Zadání: a goal, a file, a reload, a download.
@@ -121,10 +125,32 @@ ok("Zadání: goal and attachment read back from AIA after a reload");
 await text("B · odvozené od klienta", "the attachment's data class");
 ok("Zadání: the attachment shows the class the server's rule gives it (BRF3)");
 
+// Cíle (artifact-brief BRF2/BRF6): an objective added in the list, read back after a reload as a
+// Lead target, then reworded in place.
+const OBJECTIVE = "Zjistit, kdo kampaň zaznamenal (fiktivní).";
+const objectiveSave = saved(OBJECTIVE);
+await page.getByRole("button", { name: "Přidat cíl" }).click();
+await page.getByRole("textbox", { name: "Přidat cíl" }).fill(OBJECTIVE);
+await page.getByRole("textbox", { name: "Přidat cíl" }).press("Enter");
+await objectiveSave;
+await page.reload({ waitUntil: "load" });
+await text(OBJECTIVE, "the objective after a reload");
+if ((await page.locator("[data-aia^='objective:']").count()) !== 1) fail("the objective is not one Lead target after a reload");
+const rewordSave = saved(`${OBJECTIVE} Upřesněno.`);
+await page.getByRole("button", { name: /^Upravit: Cíl 1/ }).click();
+await page.getByRole("textbox", { name: "Cíl 1" }).fill(`${OBJECTIVE} Upřesněno.`);
+await page.getByRole("textbox", { name: "Cíl 1" }).press("Control+Enter");
+await rewordSave;
+await page.reload({ waitUntil: "load" });
+await text(`${OBJECTIVE} Upřesněno.`, "the reworded objective after a reload");
+// In place: still one objective, and the old wording is gone rather than kept beside the new.
+const rows = await page.locator("[data-aia^='objective:']").allInnerTexts();
+if (rows.length !== 1 || !rows[0].includes("Upřesněno.")) fail(`the reword was not in place: ${JSON.stringify(rows)}`);
+ok("Zadání: an objective added in the list, read back as one Lead target, reworded in place (BRF6)");
 // Rozhodnutí, edited where it is shown (artifact-brief BRF2): open, type, Ctrl+Enter, saved, read back.
 const DECISION = "Rozhodneme, zda změnit kampaň (fiktivní).";
 await page.getByRole("button", { name: /^Upravit: Jaké rozhodnutí uděláte/ }).click();
-const decisionSave = saved();
+const decisionSave = saved(DECISION);
 await page.getByRole("textbox", { name: "Jaké rozhodnutí uděláte" }).fill(DECISION);
 await page.getByRole("textbox", { name: "Jaké rozhodnutí uděláte" }).press("Control+Enter");
 await decisionSave;
@@ -136,6 +162,17 @@ const fileBack = readFileSync(await download.path(), "utf8");
 if (fileBack !== FILE.body) fail(`the downloaded file differs: ${JSON.stringify(fileBack)}`);
 ok("Zadání: the file downloads through the study, byte for byte");
 
+// Removing a material happens at once, with Vrátit (input-interactions I6, audit A28).
+// The removal saves first (Vrátit stays offered for 8 s, past the 1.8 s save), then the restore.
+const removedSave = saved();
+await page.getByRole("button", { name: `Odebrat ${FILE.name}` }).click();
+await removedSave;
+const restored = saved();
+await page.getByRole("button", { name: "Vrátit" }).click();
+await restored;
+await page.reload({ waitUntil: "load" });
+await text(FILE.name, "the attachment after Vrátit and a reload");
+ok("Zadání: a removed attachment comes back with Vrátit, saved (A28)");
 // A link that is not http(s) is said at its field and checked again as it is typed (I9, audit A26).
 const linkField = page.getByRole("textbox", { name: "Odkaz" });
 await linkField.fill("example.test");

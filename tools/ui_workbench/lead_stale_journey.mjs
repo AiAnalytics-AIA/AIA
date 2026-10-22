@@ -175,6 +175,42 @@ try {
     await page.getByRole("button", { name: "Ponechat současný návrh" }).click();
   }
 
+  // A card is bound to the design its turn read (lead-orchestration LO10): a save made after it was
+  // prepared (another tab's, here with the page's own token) makes its approval ask, and on a yes
+  // the job starts on the design as it is now, named by the current revision.
+  await page.setViewportSize({ width: 1100, height: 900 });
+  await page.goto(base + stagePath("questionnaire"));
+  await page.locator("[data-workbench]").waitFor({ timeout: 30000 });
+  const composer = page.getByLabel("Napište Vedoucímu výzkumu");
+  await page.waitForFunction(() => !document.querySelector("textarea[aria-label='Napište Vedoucímu výzkumu']")?.disabled, null, { timeout: 30000 });
+  const cardsBefore = await page.locator(".conv .dec").count();
+  await composer.fill("Navrhni úpravy dotazníku ještě jednou.");
+  await composer.press("Enter");
+  await page.waitForFunction((n) => document.querySelectorAll(".conv .dec").length > n, cardsBefore, { timeout: 60000 });
+  const working = (await call("GET", `/studies/${study}/workspace/content`)).json;
+  const moved = await call("PUT", `/studies/${study}/workspace/content`, {
+    content: { ...working.content, title: `${working.content.title} (upraveno jinde)` },
+    analysis: working.analysis,
+    base_revision: working.revision,
+  });
+  assert.equal(moved.status, 200, `another tab's save moves the working copy (${moved.status})`);
+  const jobsBefore = (await jobs()).length;
+  const staleCard = page.locator(".conv .dec").last();
+  const refusedApproval = page.waitForResponse((r) => /\/lead\/turns\/[^/]+\/request$/.test(new URL(r.url()).pathname) && r.status() === 409, { timeout: 30000 });
+  await staleCard.getByRole("button", { name: "Spustit úlohu" }).click();
+  assert.equal((await (await refusedApproval).json()).code, "stale_card", "the moved card is refused as stale");
+  const ask = page.locator("dialog[open]");
+  await ask.getByText("Od chvíle, kdy Vedoucí kartu připravil, se studie změnila.", { exact: false }).waitFor({ timeout: 30000 });
+  assert.equal((await jobs()).length, jobsBefore, "nothing starts before the person's yes");
+  await shot("1100-stale-card-asks");
+  const [onCurrent] = await Promise.all([
+    page.waitForResponse((r) => /\/lead\/turns\/[^/]+\/request$/.test(new URL(r.url()).pathname) && r.status() === 200, { timeout: 30000 }),
+    ask.getByRole("button", { name: "OK" }).click(),
+  ]);
+  assert.equal(onCurrent.request().postDataJSON()?.workspace_revision, moved.json.revision, "the yes names the current revision");
+  assert.equal((await jobs()).length, jobsBefore + 1, "the yes starts the job once");
+  check("a card whose design moved asks before it starts, and on a yes starts on the current revision");
+
   // Direct requests with the page's own token meet the same gates as the screen.
   const count = (await jobs()).length;
   const again = await call("POST", `/studies/${study}/lead/turns/${lastTurn}/request`, {});
