@@ -2150,6 +2150,7 @@ export const cs = {
         question: "Nová otázka",
         setPlaceholder: "Co porovnáváme? Např. média, značky",
         empty: "Napište znění.",
+        blockGone: "Tento blok už v dotazníku není; otázku přidejte do jiného.",
       },
       emptyTitle: "Dotazník je prázdný",
       emptyText: "Začněte jedním z tlačítek „Rychle přidat“.",
