@@ -1631,6 +1631,28 @@ ran outside the frame's one order (D21), and a second drawer could open beside t
   closes the old document's claims…" and `Workbench.layout.test.tsx` "drops the entries a screen
   says stopped being true…"; both fail without the change.
 
+### The stages' forward actions go through the frame (2026-10-22, `fix/stages-forward-through-frame`)
+
+Dimenze's review of #698 found the same DIM-F4-class defect in four other stages. Inside the
+workbench, their forward buttons called `router.push(stepHref(...))`, which skipped
+`guardedNavigate` (a stage's leave guard) and the heading focus #686 added. The four are Zadání
+(`BriefStep.tsx`, after the analysis is accepted, both paths), Návrh (`PlanStep.tsx` `next`), Dotazník
+(`QuestionnaireStep.tsx` `toAudienceStep`) and Cílová skupina (`AudienceStep.tsx`, "Další · dimenze").
+- **Fix.** Each reads `useContext(FrameNavigation)` and calls `next.go()` inside the frame;
+  outside it, `router.push` as before. No other change in those files (Zadání and Dotazník have open
+  work there).
+- **Tests.** One per stage file, "inside the workbench goes on … through the frame's next stage";
+  all four fail without the change. On Návrh the test also opens a set for editing: the forward
+  action stays disabled and the frame is not asked. That held before too (`next` returns on
+  `editing`).
+- **Zadání's workbench button** (the stand-in review of #714). With the Lead owning the AI starts,
+  Zadání shows "Pokračovat na Návrh", a bare `Link` that skipped the frame; inside the frame it is
+  now a button calling `next.go()`. Test: `ResearchScreen.workbench.test.tsx` "goes on from Zadání
+  to Návrh through the frame…", which renders the real workbench and fails without the change.
+- **Not repeated here.** The heading focus and the leave guard are the frame's `go`, tested by
+  #686 (`Workbench.layout.test.tsx` "a stage's forward action through the frame", "asks nothing of
+  a forward move a stage's leave guard stopped").
+
 ### The Lead's audience labels read Cílová skupina's parser (2026-10-22, `chore/target-label-parse-audience`)
 
 `targetLabel` (`lib/lead.ts`) parsed `audience:` ids with a second, looser rule of its own: an

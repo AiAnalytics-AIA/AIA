@@ -79,7 +79,7 @@ import {
 import type { ResearchProject } from "@/research/model";
 import { COMPARISONS, CONCEPT_TEST, comparisonOf, danglingLinks, linkKey, linksOf, researchQuestionsOf, setComparison, setConceptTest, toggleQuestionLink, toggleSectionLink, togglesConceptTest } from "@/research/trace";
 import { Icon, type IconName } from "../icons";
-import { ActionDock, ChipInput, InlineConfirm, Segmented, Switch } from "../step";
+import { ActionDock, ChipInput, FrameNavigation, InlineConfirm, Segmented, Switch } from "../step";
 import { ChoiceChips } from "@/components/ui/ChoiceChips";
 import { InlineCreateRow } from "@/components/ui/InlineCreateRow";
 import { InlineText } from "@/components/ui/InlineText";
@@ -170,6 +170,8 @@ const OpenPlace = createContext<(id: string) => void>((id) => void openPlace(id,
 export function QuestionnaireStep() {
   const { store, state, template, runJob, toast, stepHref } = useResearch();
   const router = useRouter();
+  // Inside the workbench the frame opens the next stage (its leave guard, its heading's focus); outside it, the route.
+  const frameNav = useContext(FrameNavigation);
   const analysis = useAnalysis();
   const step = useAiStep();
   const leadOwnsAiStarts = useLeadOwnsAiStarts();
@@ -186,7 +188,7 @@ export function QuestionnaireStep() {
   // continueQuestionnaireToAudience: the run check and the final review are cleared.
   const toAudienceStep = () => {
     store.update(({ project }) => ({ project: toAudience(project) }), { reason: "questionnaire_done" });
-    router.push(stepHref("audience"));
+    if (frameNav?.next) frameNav.next.go(); else router.push(stepHref("audience"));
   };
 
   // buildQuestionnaire: the analysis first (reused when the brief is the same), then the job.
