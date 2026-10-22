@@ -984,6 +984,9 @@ export type ResearchLimits = {
   methodology_version: string;
   version: number | null;
   sample_size: { min: number; max: number };
+  /** A tracked set's size: outside min-max a design does not compile, outside the recommended
+   * range readiness warns (research/questionnaire.ts SetLimits). Absent from an older server. */
+  tracked_set?: { min: number; max: number; recommended_min: number; recommended_max: number };
   /** The questionnaire's length rule from Metodika (artifact-questionnaire QST7): seconds per
    * answer by question type and per tracked-set object, with the methodology version. Absent, or
    * null, while the methodology owner has set none; read through research/length.ts readRule. */
@@ -1021,6 +1024,24 @@ export type Readiness = {
   persona_sources?: PersonaSourceOption[];
   /** Whether the run can answer every stated research question; absent from an older API. */
   answerability?: Answerability | null;
+  /** The sample a panel run would draw (run-qc-and-checkpoint RQC6b); `null` when none was drawn. */
+  sample_composition?: SampleComposition | null;
+};
+
+/** One quota cell: its id, its value in each quota field, its respondents. */
+export type QuotaCell = { key: string; values: string[]; n: number };
+/** How the sampler spreads n over its quota cells, or why it refused; never support for a cell. */
+export type SampleComposition = {
+  refused: string | null;
+  /** What the refusal names (the audience preview's `reasons`); absent from an older API. */
+  refused_reasons?: string[];
+  version_id: string | null;
+  seed: number | null;
+  quota_fields: string[];
+  cells: QuotaCell[];
+  sample_donors: number | null;
+  /** Whether the support forecast was counted from this sample; absent from an older API. */
+  support_counted?: boolean;
 };
 
 /** Readiness's fields, whichever revision it was read on. */

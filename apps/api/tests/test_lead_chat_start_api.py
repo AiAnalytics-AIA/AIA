@@ -480,6 +480,90 @@ def test_someone_elses_typed_card_is_not_found(
     assert _written(app)["runs"] == 0
 
 
+# --------------------------------------------------------------------------- the analysis retry
+
+
+def _analysed_run(app: FastAPI, client: TestClient, world: Any) -> str:
+    """A research run that ran analysis, started by its typed start (still queued: no worker)."""
+    app.state.settings = app.state.settings.model_copy(update={"ai_analysis_enabled": True})
+    _save(app, world)
+    turn_id = _type(client, world, "Spusť výzkum").json()["turns"][0]["turn_id"]
+    approved = _approve(client, world, turn_id)
+    assert approved.status_code == 200, approved.text
+    return str(approved.json()["run_id"])
+
+
+def test_a_typed_analysis_retry_with_no_analysed_run_is_refused_by_name(
+    researcher: TestClient, world: Any, app: FastAPI
+) -> None:
+    turn = _type(researcher, world, "Zopakuj analýzu").json()["turns"][0]
+    assert turn["command"] == "analysis_retry"
+    refused = _approve(researcher, world, turn["turn_id"])
+    assert refused.status_code == 409, refused.text
+    assert refused.json()["code"] == "analysis_not_retryable"
+    # Named as the study's, not a run's: there is no run to speak of.
+    assert refused.json()["details"]["reason"] == "no_analysed_run"
+    assert "Studie zatím nemá" in refused.json()["message"]
+    assert _written(app) == {"runs": 0, "chat_start": 0, "charges": 0}
+
+
+def test_a_typed_analysis_retry_of_a_run_still_going_is_refused_as_the_stage_route_is(
+    researcher: TestClient, world: Any, app: FastAPI
+) -> None:
+    run_id = _analysed_run(app, researcher, world)
+    turn_id = _type(researcher, world, "Zopakuj analýzu").json()["turns"][0]["turn_id"]
+    refused = _approve(researcher, world, turn_id)
+    assert refused.status_code == 409, refused.text
+    assert refused.json()["details"]["reason"] == "run_not_finished"
+    # The stage's own route answers the same run the same way: one rule for both starts.
+    stage = researcher.post(
+        f"/api/v1/studies/{world.study_id()}/research/runs/{run_id}/analysis/retry"
+    )
+    assert stage.json()["details"]["reason"] == refused.json()["details"]["reason"]
+    assert _written(app) == {"runs": 1, "chat_start": 1, "charges": 0}
+
+
+def test_a_typed_analysis_retry_starts_the_stage_retry_on_the_newest_analysed_run(
+    researcher: TestClient, world: Any, app: FastAPI, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Through the stage route's own start (retry_failed_modules), on the newest run that ran
+    analysis, with the confirmation passed on; recorded as chat_start, never charged to the
+    wallet (the product manager's decision (b), 2026-10-22; F-LO1-1 decides both starts)."""
+    from aia_core.application import lead_chat_start
+    from aia_core.application.workflows import StartedRun
+
+    run_id = _analysed_run(app, researcher, world)
+    _wallet_on(app, researcher, world, cap=50.0)
+    charges_before = _written(app)["charges"]
+    asked: list[dict[str, Any]] = []
+
+    def stage_retry(session: Any, scope: Any, store: Any, **kw: Any) -> StartedRun:
+        asked.append(kw)
+        run = WorkflowRepository(session, scope).get_run(kw["run_id"])
+        return StartedRun(
+            run_id=run["run_id"],
+            project_id=run["project_id"],
+            project_revision=run["project_revision"],
+            workflow_type=RESEARCH,
+            created=True,
+            run=run,
+        )
+
+    monkeypatch.setattr(lead_chat_start, "retry_failed_modules", stage_retry)
+    turn_id = _type(researcher, world, "Zopakuj analýzu").json()["turns"][0]["turn_id"]
+    approved = _approve(researcher, world, turn_id, confirm_cost_usd=3.0)
+    assert approved.status_code == 200, approved.text
+    assert [(a["run_id"], a["confirm_cost_usd"]) for a in asked] == [(run_id, 3.0)]
+    retry_row = _chat_starts(app)[-1]
+    comment = json.loads(retry_row.comment)
+    assert (comment["start"], comment["turn_id"], comment["ceiling_usd"]) == (
+        "analysis_retry",
+        turn_id,
+        None,
+    )
+    assert _written(app)["charges"] == charges_before
+
+
 # --------------------------------------------------------------------------- the wallet
 
 

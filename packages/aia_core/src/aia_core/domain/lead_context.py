@@ -25,6 +25,7 @@ from typing import Any, Final
 
 from .ai_contracts import canonical_json
 from .ai_material import most_restrictive_material
+from .lead_digest import DIGEST_SHARE_MAX_BYTES
 from .research_agents import KNOWLEDGE_MAX_BYTES
 from .research_lead import (
     CONTEXT_MAX_BYTES,
@@ -97,6 +98,12 @@ LEAD_LAYERS: Final[tuple[LeadLayer, ...]] = (
     ),
     LeadLayer("view", None, "the stage, the focus and the message", "never shortened"),
     LeadLayer(
+        "memory",
+        DIGEST_SHARE_MAX_BYTES,
+        "the conversation's decisions, from the approval ledger",
+        "decisions past the share are counted with their ledger range",
+    ),
+    LeadLayer(
         "conversation",
         None,
         f"the newest {HISTORY_TURNS} turns",
@@ -108,7 +115,7 @@ _BY_NAME: Final = {spec.name: spec for spec in LEAD_LAYERS}
 
 #: The part of a layer its ``ceiling_bytes`` bounds, measured as ``notes_layer`` and
 #: ``knowledge_entries`` measure it.
-_BOUNDED: Final = {"lead": "notes", "knowledge": "items"}
+_BOUNDED: Final = {"lead": "notes", "knowledge": "items", "memory": "digest"}
 
 
 def _bytes(value: Any) -> int:
@@ -131,6 +138,7 @@ PART_LAYERS: Final[Mapping[str, str]] = {
     "message": "view",
     "focus_label": "view",
     "external_context": EXTERNAL_LAYER,
+    "decision_digest": "memory",
     "earlier_message": "conversation",
     "earlier_reply": "conversation",
 }

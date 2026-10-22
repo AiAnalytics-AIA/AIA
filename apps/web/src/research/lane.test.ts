@@ -38,11 +38,24 @@ describe("designLane", () => {
     expect(designLane({ project: p, analysis: null }).questionnaire).toEqual({ tone: "you", line: "2 otázky · 1 sada · 1 bez znění" });
   });
 
-  it("names a tracked set outside 4-15 in the plan and in the questionnaire", () => {
+  it("names a tracked set outside 4-40 in the plan and in the questionnaire", () => {
     const small = { ...banks, objects: ["A", "B", "C"] };
     const p = project({ sections: [block(["Hlavní banka?"]), small] as never });
-    expect(designLane({ project: p, analysis: null }).questionnaire.line).toBe("1 otázka · 1 sada · 1 sada mimo 4–15");
-    expect(designLane({ project: p, analysis: { tracked_sets: [small] } as never }).plan).toEqual({ tone: "you", line: "1 sada mimo 4–15" });
+    expect(designLane({ project: p, analysis: null }).questionnaire.line).toBe("1 otázka · 1 sada · 1 sada mimo 4–40");
+    expect(designLane({ project: p, analysis: { tracked_sets: [small] } as never }).plan).toEqual({ tone: "you", line: "1 sada mimo 4–40" });
+  });
+
+  it("lets a set above the recommended fifteen through, up to the server's forty (Q75 (a))", () => {
+    const of = (n: number) => ({ ...banks, objects: Array.from({ length: n }, (_, i) => `O${i}`) });
+    const lane = (n: number) => designLane({ project: project({ sections: [block(["Hlavní banka?"]), of(n)] as never }), analysis: { tracked_sets: [of(n)] } as never });
+    expect(lane(16).plan).toEqual({ tone: "done", line: "Hotovo" });
+    // Twenty is the readiness WARN (battery_size), never a blocker of the stage.
+    expect(blockers({ project: project({ sections: [block(["Hlavní banka?"]), of(20)] as never }), analysis: { tracked_sets: [of(20)] } as never }).filter((b) => b.step !== "brief" && /sad|položek/.test(b.detail + b.label))).toEqual([]);
+    expect(lane(40).questionnaire.line).not.toContain("mimo");
+    expect(lane(41).plan).toEqual({ tone: "you", line: "1 sada mimo 4–40" });
+    // A stored methodology's limits, when the caller has read them, decide instead of the preset.
+    const stored = { min: 3, max: 30, recommended_min: 5, recommended_max: 12 };
+    expect(designLane({ project: project({ sections: [block(["Hlavní banka?"]), of(31)] as never }), analysis: { tracked_sets: [of(31)] } as never }, stored).plan).toEqual({ tone: "you", line: "1 sada mimo 5–30" });
   });
 
   it("says the audience is chosen only under the wizard's own condition", () => {

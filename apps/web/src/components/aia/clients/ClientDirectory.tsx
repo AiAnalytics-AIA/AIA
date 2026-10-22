@@ -65,10 +65,14 @@ export function ClientDirectory() {
   const newClient = () =>
     setAsk({
       kind: "prompt",
+      title: t("aia.clients.newTitle"),
       message: t("aia.clients.newName"),
+      yes: t("aia.clients.create"),
+      required: true,
       initial: "",
       resolve: (name) => {
-        if (!name?.trim()) return;
+        // A blank name never gets here: the dialog refuses it (required); null is a cancel.
+        if (name === null) return;
         workspace.startClient(name.trim()).then(
           (c) => router.push(appRoutes.client(c.client_id)),
           (e: unknown) => setError(e instanceof Error ? e.message : String(e)),

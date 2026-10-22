@@ -83,10 +83,15 @@ export function useStartStudy(): { start: (kind: StudyKind) => void; dialog: Rea
   const start = (kind: StudyKind) =>
     setAsk({
       kind: "prompt",
-      message: kind === "RESEARCH" ? t("aia.client.newResearchTitle") : t("aia.client.newSimulationTitle"),
+      title: kind === "RESEARCH" ? t("aia.client.newResearchTitle") : t("aia.client.newSimulationTitle"),
+      message: t("aia.client.studyName"),
+      placeholder: kind === "RESEARCH" ? t("aia.client.researchPlaceholder") : t("aia.client.simulationPlaceholder"),
+      yes: kind === "RESEARCH" ? t("aia.client.createResearch") : t("aia.client.createSimulation"),
+      required: true,
       initial: "",
       resolve: (name) => {
-        if (!name?.trim()) return;
+        // A blank name never gets here: the dialog refuses it (required); null is a cancel.
+        if (name === null) return;
         workspace.startStudy(client.client_id, name.trim(), kind).then(
           (s) =>
             router.push(

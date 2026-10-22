@@ -54,7 +54,7 @@ from ..domain.methodology.pins import (
 )
 from ..domain.money import ThresholdVerdict, threshold_verdict
 from ..domain.panel_persona import persona_allowlist
-from ..domain.panel_source import panel_filters
+from ..domain.panel_source import panel_filters, with_panel_refusal
 from ..domain.pipeline import StageImpact, changed_fields, fingerprint, stage_impacts
 from ..domain.population import (
     CZ_LIVE,
@@ -102,6 +102,7 @@ from ..domain.research_trace import (
 from ..domain.respondent_behavior import AIA_RESPONSE_V1, ResponseProcessSpec
 from ..domain.run_cost import CeilingUnknown, RunCostCeiling, run_cost_ceiling
 from ..domain.scope import OrganizationRole, Permission, StudyContext
+from ..domain.spend_attribution import ActivitySpend, run_spend
 from ..domain.support_forecast import SupportForecast, forecast_support, with_support_forecast
 from ..domain.workflow import RUNTIME_UNAVAILABLE_REASON, StepRunStatus, WorkflowRunStatus
 from ..domain.workflow_templates import REPORT_PDF, RESEARCH, RESEARCH_AGENT
@@ -109,6 +110,7 @@ from ..infrastructure.artifact_repository import Artifact, ArtifactRepository
 from ..infrastructure.client_knowledge_repository import ClientKnowledgeRepository
 from ..infrastructure.methodology_repository import methodology_in_force_for_study
 from ..infrastructure.prompt_repository import PromptRefused, PromptResolver
+from ..infrastructure.researcher_spend_repository import run_spend_facts
 from ..infrastructure.scope_repository import ScopeRepository
 from ..infrastructure.storage import ArtifactStore
 from ..infrastructure.study_design_repository import DesignRevisionNotFound, StudyDesignRepository
@@ -415,6 +417,8 @@ class RunOutlook:
     answerability: Answerability | None = None
     #: The sample a panel run would draw (or the sampler's refusal); ``None`` when none was drawn.
     panel: PanelDraw | None = None
+    #: The support forecast readiness carries; ``None`` when this fieldwork forecasts none.
+    forecast: SupportForecast | None = None
 
 
 @dataclass(frozen=True, slots=True)
@@ -696,6 +700,21 @@ class ResearchRuns:
             pair_n_min=side_tables_of(methods).n_min,
             limits=limits,
         )
+        panel = persona_source is PersonaSource.PANEL
+        # As readiness drew it: a new panel run over LIVE (a run over a selected child, or a
+        # retry, which keeps the original's population, draws from one the sampler does not
+        # read). A sample the sampler refuses is a failed check, never a run fieldwork refuses.
+        drawn = (
+            self._panel_draw(_spec)
+            if panel
+            and _spec is not None
+            and fieldwork_source is FieldworkSource.AI_RUNTIME
+            and population_version_id is None
+            and retry_of is None
+            else None
+        )
+        if drawn is not None and drawn.sampler_refused is not None:
+            checked = with_panel_refusal(checked, drawn.sampler_refused, drawn.reasons)
         # A retry keeps the original's population and never re-chooses it.
         selected = self._selected(population_version_id if retry_of is None else None)
         project_id = designs.project_id()
@@ -731,7 +750,6 @@ class ResearchRuns:
         if population_version_id is not None and retry_of is None:
             # A retry keeps the original's population; its key carries the original's id.
             key += f":population:{fingerprint(population_version_id)[:16]}"
-        panel = persona_source is PersonaSource.PANEL
         if panel and fieldwork_source is not FieldworkSource.AI_RUNTIME:
             raise ValueError("panel personas answer only through the ai_runtime source")
         if panel:
@@ -790,11 +808,8 @@ class ResearchRuns:
             forecast: SupportForecast | None = None
             if fieldwork_source is FieldworkSource.AI_RUNTIME:
                 _, slots = read_aggregation_pin(aggregation_pin)
-                # As readiness forecast it, so the gaps a person acknowledged there are these. A
-                # run over a selected child (or a retry, which keeps the original's population)
-                # draws from a population the sampler does not read: unknown, as before.
-                fresh_live = population_version_id is None and retry_of is None
-                drawn = self._panel_draw(_spec) if panel and fresh_live else None
+                # As readiness forecast it, from the sample drawn above, so the gaps a person
+                # acknowledged there are these; none drawn reads unknown, as before.
                 forecast = forecast_support(
                     _spec,
                     support=support_spec,
@@ -1354,6 +1369,8 @@ class ResearchRuns:
             # read: unknown, as its start reads it.
             if persona_source is PersonaSource.PANEL and population_version_id is None:
                 panel = self._panel_draw(spec)
+                if panel is not None and panel.sampler_refused is not None:
+                    readiness = with_panel_refusal(readiness, panel.sampler_refused, panel.reasons)
             forecast = forecast_support(
                 spec,
                 support=support,
@@ -1377,6 +1394,7 @@ class ResearchRuns:
             trace=decided_trace(trace, answer),
             answerability=answer,
             panel=panel,
+            forecast=forecast,
         )
 
     def _support(self, support: SupportSpec | None) -> tuple[SupportSpec, dict[str, Any] | None]:
@@ -1499,6 +1517,19 @@ class ResearchRuns:
         run["phase"] = phase_of(run["status"], attempted=run["attempted"])
         run["retryable"] = retryable(run["status"])
         return run
+
+    def spend(self, run: Mapping[str, Any]) -> ActivitySpend:
+        """What one research run of this Study has spent, holds open and could not settle, by
+        the rules a person's spend is read (``artifact-fieldwork`` FLD4). ``run`` is what
+        :meth:`get` found through this Study; the query is in the Study and organization too."""
+        self.scope.require(Permission.VIEW_COSTS)
+        usage, holds = run_spend_facts(
+            self.session,
+            organization_id=self.scope.organization_id,
+            study_id=self.scope.study_id,
+            run_id=str(run["run_id"]),
+        )
+        return run_spend(usage, holds)
 
     def runs(self, *, limit: int = 20, steps: bool = False) -> list[dict[str, Any]]:
         """This Study's research runs, newest first, with their phases.
