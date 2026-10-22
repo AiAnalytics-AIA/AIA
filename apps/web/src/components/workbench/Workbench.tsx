@@ -448,7 +448,7 @@ export function Workbench({ frame, step, store, memory, save, inspector, reload,
   const onRequest = useCallback(async (turn: LeadTurn, r: LeadRequest) => {
     // A person's typed start (LO5) is started by its approval, a run too; the Lead's other cards open their stage.
     if (r.kind !== "agent_job" && !turn.command) {
-      go(r.kind === "research_run" ? "fieldwork" : r.kind === "design_research" ? "design" : "report");
+      go(r.kind === "research_run" ? "fieldwork" : r.kind === "design_research" ? "design" : r.kind === "analysis_retry" ? "analysis" : "report");
       return;
     }
     await store.flush();

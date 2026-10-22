@@ -141,6 +141,18 @@ describe("LeadPane", () => {
     await waitFor(() => expect(onRequest).toHaveBeenCalledWith(expect.objectContaining({ turn_id: "LDT-8" }), expect.objectContaining({ kind: "research_run" })));
   });
 
+  it("shows a typed analysis retry as the stage's retry, says it is not charged to the Peněženka, and starts it on approval", async () => {
+    state.turns = [turn({ turn_id: "LDT-10", actor: "person", text: "Zopakuj analýzu", command: "analysis_retry", run_id: null, output: null })];
+    const onRequest = vi.fn(async () => {});
+    const { container } = render(pane({ onRequest, cards: cards() }));
+    expect(await screen.findByText("Opakování analýzy")).toBeTruthy();
+    const card = container.querySelector('[data-card="request"][data-typed]')!;
+    expect(card.textContent).toContain("Opakování analýzy se nestrhává z Peněženky.");
+    expect(card.textContent).toContain("nová data se nesbírají");
+    fireEvent.click(screen.getByRole("button", { name: "Zopakovat analýzu" }));
+    await waitFor(() => expect(onRequest).toHaveBeenCalledWith(expect.objectContaining({ turn_id: "LDT-10" }), { kind: "analysis_retry", why: "Spustí se až vaším potvrzením." }));
+  });
+
   it("says a typed start approved again found the job already done, and shows that job once", async () => {
     const job = { run_id: "RUN-J", design_revision_id: "REV-1", action: "critique_design" as const, status: "COMPLETED", is_terminal: true, needs_attention: false, context_sha256: "x", harness_version: "3", created_at: "2026-10-19T08:01:00Z", steps: [], actual_cost_usd: 0.012 };
     state.turns = [

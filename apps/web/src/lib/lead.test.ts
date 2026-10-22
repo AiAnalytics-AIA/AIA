@@ -309,6 +309,7 @@ describe("commandRequest", () => {
   it("reads the start the server matched, the instruction after a colon as its why, and nothing it does not know", () => {
     expect(commandRequest({ command: "agent_job:build_questionnaire", text: "Navrhni dotazník: krátce, 10 otázek" })).toEqual({ kind: "agent_job", action: "build_questionnaire", why: "krátce, 10 otázek" });
     expect(commandRequest({ command: "research_run", text: "Spusť výzkum" })).toEqual({ kind: "research_run", why: "Spustí se až vaším potvrzením." });
+    expect(commandRequest({ command: "analysis_retry", text: "Zopakuj analýzu" })).toEqual({ kind: "analysis_retry", why: "Spustí se až vaším potvrzením." });
     for (const command of [null, undefined, "", "agent_job:", "deep_research"]) expect(commandRequest({ command, text: "x" })).toBeNull();
   });
 });
