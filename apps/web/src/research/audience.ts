@@ -304,13 +304,21 @@ export function matchingValues<V extends { value: string }>(values: readonly V[]
 
 /**
  * A factor's values after a person picked among the `listed` ones (the chips on screen): the stored
- * values in their stored order, less the listed ones not picked, then the newly picked. A stored value
- * not on screen (filtered out, or one the population lacks, F3) is kept as it was, never dropped or
- * moved by a toggle of another.
+ * values in their stored order and as stored, less the listed ones not picked, then the newly picked.
+ * A stored value not on screen (filtered out, or one the population lacks, F3) is kept as it was,
+ * never dropped, moved or turned into text by a toggle of another: the population keys a stored
+ * `true` as "1" or "True", never "true" (audience.py _values).
  */
-export function pickValues(stored: readonly string[], listed: readonly string[], picked: readonly string[]): string[] {
-  const kept = stored.filter((v) => !listed.includes(v) || picked.includes(v));
-  return [...kept, ...picked.filter((v) => !stored.includes(v))];
+export function pickValues(stored: readonly Json[], listed: readonly string[], picked: readonly string[]): Json[] {
+  const text = stored.map(String);
+  const kept = stored.filter((_, i) => !listed.includes(text[i]) || picked.includes(text[i]));
+  return [...kept, ...picked.filter((v) => !text.includes(v))];
+}
+
+/** A categorical factor's stored values, as stored: a list, or one value as a list of one. */
+export function storedValues(p: ResearchProject, id: string): Json[] {
+  const cur = filters(p)[id] as Json | undefined;
+  return Array.isArray(cur) ? cur : cur != null ? [cur] : [];
 }
 
 /** factorEditor1793's selected values of a categorical factor. */
@@ -320,7 +328,7 @@ export function selectedValues(p: ResearchProject, id: string): Set<string> {
 }
 
 /** setAudienceCategory1793 (then an automatic preview). */
-export function setAudienceCategory(p: ResearchProject, id: string, values: string[]): Change {
+export function setAudienceCategory(p: ResearchProject, id: string, values: Json[]): Change {
   const f = filters(p);
   if (values.length) f[id] = values;
   else delete f[id];

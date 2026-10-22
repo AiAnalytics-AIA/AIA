@@ -155,6 +155,12 @@ describe("picking a factor's values (audit B7)", () => {
     expect(pickValues([], listed, ["Zlínský kraj"])).toEqual(["Zlínský kraj"]);
   });
 
+  it("keeps a stored value that is not text as stored, never as its text", () => {
+    // The population keys true as "1" or "True" (audience.py _values); "true" would match nothing.
+    expect(pickValues([true, 1, "Zlínský kraj"], ["Hlavní město Praha", "Zlínský kraj"], ["Hlavní město Praha"])).toEqual([true, 1, "Hlavní město Praha"]);
+    expect(pickValues([1], ["1", "2"], ["1", "2"])).toEqual([1, "2"]);
+  });
+
   it("matches values as the factor search does", () => {
     const values = [{ value: "Obec 2" }, { value: "Obec 20" }, { value: "Žďár" }];
     expect(matchingValues(values, "obec 2").map((v) => v.value)).toEqual(["Obec 2", "Obec 20"]);

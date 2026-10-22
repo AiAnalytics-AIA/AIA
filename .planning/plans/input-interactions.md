@@ -604,7 +604,9 @@ Split by owner (PM, 2026-10-22): B1–B4 sit on Dimenze (`PersonaStep.tsx`), B5�
     values (`VALUE_CHIPS_MAX`), the same chips sit under a filter field (`matchingValues`, the factor
     search's rule). A list the catalogue cut at its 60 values says so.
   - `pickValues` keeps the stored order and every stored value not on screen: a filtered-out value,
-    or one the population lacks (F3).
+    or one the population lacks (F3). A stored value that is not text stays as stored (`storedValues`):
+    `[true]` was saved back as `["true"]`, which the population keys as no value (stand-in review on
+    #761; `selectedValues` turned it into text before this change too).
   - The factor search stays the list's filter field, as the audit keeps B3's.
   - Tests: `AudienceStep.test.tsx` "a factor's group is chosen from chips…"; `audience.live.test.ts`
     "picking a factor's values".

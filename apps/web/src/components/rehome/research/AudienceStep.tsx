@@ -59,18 +59,18 @@ import {
   rangeOf,
   removeAudienceFactor,
   searchKey,
-  selectedValues,
   setAnalyticsChoice,
   setAudienceCategory,
   setAudienceEntry,
   setDiscoverField,
   setRange,
+  storedValues,
   CATALOGUE_TOP_VALUES,
   VALUE_CHIPS_MAX,
   matchingValues,
   pickValues,
 } from "@/research/audience";
-import type { ResearchProject } from "@/research/model";
+import type { Json, ResearchProject } from "@/research/model";
 import { Icon } from "../icons";
 import { ActionDock, RadioCard, StepSection } from "../step";
 import { AiButton, Button, Chip, Field, Tag, TextArea, TextInput } from "../ui";
@@ -429,12 +429,12 @@ function FactorEditor({ factor, project, onChange }: { factor: Factor; project: 
       </fieldset>
     );
   }
-  const chosen = selectedValues(project, factor.id);
+  const chosen = storedValues(project, factor.id);
   return (
     <fieldset className="rounded-control border border-border p-3" disabled={!!refusal}>
       <legend className="px-1 text-sm font-medium">{legend}</legend>
       {refusal ? <p className="text-xs text-ink-muted">{refusal}</p> : null}
-      <ValueChips legend={legend} values={factor.values || []} chosen={[...chosen]} disabled={!!refusal} onPick={(next) => onChange(setAudienceCategory(project, factor.id, next))} />
+      <ValueChips legend={legend} values={factor.values || []} chosen={chosen} disabled={!!refusal} onPick={(next) => onChange(setAudienceCategory(project, factor.id, next))} />
     </fieldset>
   );
 }
@@ -443,7 +443,7 @@ function FactorEditor({ factor, project, onChange }: { factor: Factor; project: 
  * A categorical factor's values as toggle chips, each with how many people hold it (input-interactions
  * I3, audit B7); past VALUE_CHIPS_MAX, under a filter field. A stored value not on screen is kept.
  */
-function ValueChips({ legend, values, chosen, disabled, onPick }: { legend: string; values: { value: string; count?: number }[]; chosen: string[]; disabled: boolean; onPick: (values: string[]) => void }) {
+function ValueChips({ legend, values, chosen, disabled, onPick }: { legend: string; values: { value: string; count?: number }[]; chosen: Json[]; disabled: boolean; onPick: (values: Json[]) => void }) {
   const [query, setQuery] = useState("");
   const long = values.length > VALUE_CHIPS_MAX;
   const shown = long ? matchingValues(values, query) : values;
@@ -475,7 +475,7 @@ function ValueChips({ legend, values, chosen, disabled, onPick }: { legend: stri
             </>
           ),
         }))}
-        value={listed.filter((v) => chosen.includes(v))}
+        value={listed.filter((v) => chosen.some((c) => String(c) === v))}
         onChange={(picked) => onPick(pickValues(chosen, listed, picked))}
       />
     </>

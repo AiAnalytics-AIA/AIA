@@ -189,6 +189,15 @@ describe("Audience", () => {
       noUnitCalls();
     });
 
+    it("a toggle keeps a stored value that is not text as stored", async () => {
+      aiaStub({ ui_state: ANALYTICS, n: 500, audience: { strategy: "filters", source_mode: "population", filters: { kraj: [true, "Zlínský kraj"] } } }, live());
+      render(<ResearchScreen step="audience" frame={TEST_FRAME} />);
+      fireEvent.click(await screen.findByRole("button", { name: /Hlavní město Praha/ }));
+      await saved();
+      expect(lastSave().content.audience.filters).toEqual({ kraj: [true, "Zlínský kraj", "Hlavní město Praha"] });
+      noUnitCalls();
+    });
+
     it("names the description, the filters, each stored filter and the preview for the Lead to focus", async () => {
       // prijem is outside the category the editor opens on, so its editor is not drawn: its
       // target is the chip every stored filter has.
