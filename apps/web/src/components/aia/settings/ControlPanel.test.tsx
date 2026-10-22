@@ -216,6 +216,22 @@ describe("the settings control panel", () => {
     expect([...own.options].map((o) => o.textContent)).toEqual(["správce", "výzkumník"]);
   });
 
+  it("says an OWNER refusal in Czech, the API's English sentence left out", async () => {
+    api({
+      "POST /api/v1/members": () =>
+        new Response('{"code":"insufficient_role","message":"The organization\'s last OWNER cannot be demoted or deactivated.","details":{"reason":"last_owner"}}', { status: 403 }),
+    });
+    render(<ControlPanel />);
+    fireEvent.click(await screen.findByRole("tab", { name: "Přístup a schvalování" }));
+    const member = document.querySelector('[data-member="USR-1"]') as HTMLElement;
+    fireEvent.click(within(member).getByRole("button", { name: "Upravit" }));
+    const edit = document.querySelector('[data-member-edit="USR-1"]') as HTMLElement;
+    fireEvent.change(within(edit).getByRole("combobox", { name: "Role: owner@example.test" }), { target: { value: "MEMBER" } });
+    fireEvent.click(within(edit).getByRole("button", { name: "Uložit" }));
+    expect(await within(edit).findByText("Poslední aktivní vlastník organizace nemůže přijít o roli ani být deaktivován.")).toBeTruthy();
+    expect(edit.textContent).not.toMatch(/last OWNER/);
+  });
+
   it("still renders a group the page has no panel for", async () => {
     api();
     render(<ControlPanel />);

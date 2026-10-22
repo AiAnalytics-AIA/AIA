@@ -30,6 +30,7 @@ import {
   type SettingsDocument,
   type Study,
   type Vocabularies,
+  ApiError,
   Unauthenticated,
   admin,
 } from "@/lib/api";
@@ -55,7 +56,13 @@ const H = `${P}.history`;
 /** One part of the panel: its data, or why it is missing. A part never blanks the page. */
 export type Part<T> = { ok: true; data: T } | { ok: false; message: string };
 
-const describe = describeError;
+/** The OWNER guard's refusals (details.reason) said in Czech; any other refusal as given. */
+const OWNER_REFUSALS = new Set(["owner_only", "last_owner"]);
+function describe(e: unknown): string {
+  const reason = e instanceof ApiError ? e.details.reason : undefined;
+  if (typeof reason === "string" && OWNER_REFUSALS.has(reason)) return t(`${P}.members.refused.${reason}`);
+  return describeError(e);
+}
 
 async function part<T>(p: Promise<T>): Promise<Part<T>> {
   try {
