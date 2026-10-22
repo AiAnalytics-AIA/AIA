@@ -2537,7 +2537,7 @@ export const cs = {
         VALUE_MISMATCH: "uvádí jinou hodnotu, než jakou data běhu mají",
         UNIT_MISMATCH: "uvádí číslo v jiné jednotce, než v jaké bylo změřeno",
         UNCITED_NUMBER: "uvádí číslo, které necituje",
-        FINDING_UNCITED: "zjištění se neopírá o žádné připuštěné číslo",
+        FINDING_UNCITED: "necituje žádné číslo, o které by se opíralo",
         DANGLING_CLAIM_REF: "odkazuje na tvrzení, které neexistuje",
         DUPLICATE_CLAIM_ID: "dvě tvrzení mají stejné označení",
         MODULE_MISMATCH: "odpověď patří jiné části analýzy",

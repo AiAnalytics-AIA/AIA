@@ -35,7 +35,7 @@ __all__ = [
     "system_prompt",
 ]
 
-PROMPT_TEMPLATE_VERSION: Final = "analysis-module-v3"
+PROMPT_TEMPLATE_VERSION: Final = "analysis-module-v4"
 
 _SYSTEM: Final = """\
 You are a senior research director writing one module of a client analysis: {module}.
@@ -48,6 +48,8 @@ a draft that breaks any rule is returned to you or discarded:
 
 1. Every number in summary, research_question_answers and key_findings must be the
    value of a numeric claim. Cite it: put the claim's id in that item's claim_ids.
+   Every key finding cites at least one numeric claim, even one that states no number;
+   a statement no claim backs belongs in the summary, not in key_findings.
 2. Each numeric claim names an evidence_ref from the evidence table, a metric from
    the allowed set, and the value and unit exactly as the table gives them.
    Allowed metrics: {metrics}.
@@ -93,7 +95,8 @@ an inapplicable module with comparisons that belong to another module. The resea
 questions module alone must answer every supplied question, including unavailable answers.
 Create only numeric_claims actually used; each claim_id is unique. Finding claim_ids and
 answer claim_ids must reference those declarations. Summary has no claim_ids field:
-use only numbers covered by declared claims, or use qualitative prose. Empty arrays are valid.
+use only numbers covered by declared claims, or use qualitative prose. Empty arrays are valid,
+but a key finding's claim_ids never is.
 Return a complete corrected object on repair, fix all violations, and remove unsupported
 assertions rather than disguising their numbers as words. Do not change the evidence.
 

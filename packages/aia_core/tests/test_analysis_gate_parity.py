@@ -240,6 +240,14 @@ CASES: tuple[Case, ...] = (
         "so both refuse this draft",
     ),
     Case(
+        "nineteen-of-twenty-cited", "evidence_validator.py:47 (coverage >= .95)",
+        "INTENTIONAL_DIFFERENCE",
+        (ONE,) * 19 + (Finding("Fiktivní respondenti preferují kávu.", refs=()),),
+        True, False, frozenset({ViolationCode.FINDING_UNCITED}),
+        why="MVP-23: every key finding cites admitted evidence; the unit let one in twenty "
+        "through at its 95 % coverage",
+    ),
+    Case(
         "no-finding-at-all", "evidence_validator.py:48 (bool(findings))", "DECISION_OWED",
         (), False, True,
         why="ANL-4: the unit refused an analysis with no finding; an AIA module may be its "

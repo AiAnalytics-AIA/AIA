@@ -64,14 +64,27 @@ named when chunk 1 starts.** Chunks 1, 7 and 9a: the Analýza screen session (20
      by the existing harness.
    - Refusal only, no "unsupported hypothesis" register: the default. A finding that cannot cite evidence is
      not a finding.
-   - The system prompt is unchanged. Its text is in `prompt_template_sha256`, and so in every module's
-     fingerprint and the recorded analysis wire; the repair turn carries the rule. The harness version is
-     unchanged too, because the gate is not part of `harness_sha256`. A stored outcome re-judged today
-     refuses an uncited finding, which is the rule.
-   - Parity: "finding-without-evidence" is now EXACT (both refuse). "no-finding-at-all" stays owed, waiting
-     on 9a's diagnostic (MVPQ-04), not on a gate refusal.
+   - The rule is part of the identity. `ANALYSIS_HARNESS_VERSION` moves to `aia-analysis-harness-3`
+     (`domain/analysis/harness.py:79`) and `PROMPT_TEMPLATE_VERSION` to `analysis-module-v4`, whose rule 1 now
+     states it, so the model learns it before a paid turn.
+     - Without the bump, a module stored COMPLETED with an uncited finding would fail re-admission under
+       today's gate. It would not read stale (`_stale`, `application/analysis_results.py:726 @ 16682082`), so
+       `_retryable` (`:705`) would never offer it, and its run's analysis would stay unreadable.
+     - With the bump, every module completed under harness 2 reads stale and retryable, and Analýza and
+       Průběh say so (PC3) until a same-data round asks it again.
+     - The workbench's recorded wire answers from the payload (`aia_executors/recorded_models.py`
+       `grounded_draft`, every finding cited), so the bump does not break it.
+   - `AnalysisModuleResult` refuses a key finding with no claim too (`domain/analysis/result.py`), so no path
+     around the gate builds one. A finding that cites nothing is not also scanned for numbers: one defect,
+     one violation.
+   - Parity: "finding-without-evidence" is now EXACT (both refuse that draft). The new
+     "nineteen-of-twenty-cited" is an INTENTIONAL_DIFFERENCE: the unit's 95 % lets one uncited finding in
+     twenty through, and AIA does not. "no-finding-at-all" stays owed, waiting on 9a's diagnostic (MVPQ-04),
+     not on a gate refusal.
    - Tests: `test_analysis_draft.py` (one uncited finding refused and named, also in the repair prompt; a
-     finding citing only an unknown claim; a draft without findings left to 9a), `test_analysis_gate_parity.py`;
+     finding citing only an unknown claim; a draft without findings left to 9a; a hand-built result with an
+     uncited finding refused), `test_analysis_gate_parity.py`, the version pins in `test_analysis_harness.py`
+     and `test_analysis_modules.py`;
      `test_analysis_executor.py`, the recorded-analysis and acceptance suites green.
 2. **QC function.** `domain/` pure: straight-lining first, over a run's stored dataset, thresholds
    as declared parameters (the unit's, recorded as such). EXACT fixture captured from the unit's

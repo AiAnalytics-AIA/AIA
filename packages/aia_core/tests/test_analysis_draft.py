@@ -354,7 +354,9 @@ def test_a_result_built_by_hand_still_refuses_unbacked_prose(check: Any) -> None
     good = _result(check)
     fields = {name: getattr(good, name) for name in AnalysisModuleResult.__dataclass_fields__}
     with pytest.raises(UnbackedResult, match="no admitted claim backs"):
-        AnalysisModuleResult(**{**fields, "key_findings": (Finding("Zájem má 77 %.", ()),)})
+        AnalysisModuleResult(**{**fields, "key_findings": (Finding("Zájem má 77 %.", ("c1",)),)})
+    with pytest.raises(UnbackedResult, match="cites no admitted claim"):
+        AnalysisModuleResult(**{**fields, "key_findings": (Finding("Mladší o nápoj stojí.", ()),)})
     with pytest.raises(UnbackedResult, match="not admitted"):
         AnalysisModuleResult(**{**fields, "key_findings": (Finding("51 %", ("c7",)),)})
     with pytest.raises(UnbackedResult, match="only admitted claims"):

@@ -272,7 +272,10 @@ def _coverage(
     for i, answer in enumerate(draft.research_question_answers):
         check(f"research_question_answers[{i}]", answer.answer, answer.claim_ids, [answer.question])
     for i, finding in enumerate(draft.key_findings):
-        if not finding.claim_ids:
+        # One defect, one violation: a finding that cites nothing is not also scanned for numbers.
+        if finding.claim_ids:
+            check(f"key_findings[{i}]", finding.text, finding.claim_ids, [])
+        else:
             decisions.append(
                 block(
                     ViolationCode.FINDING_UNCITED,
@@ -280,7 +283,6 @@ def _coverage(
                     "a key finding must cite at least one numeric claim; cite one or drop it",
                 )
             )
-        check(f"key_findings[{i}]", finding.text, finding.claim_ids, [])
     # The summary cites nothing itself, so it may use any claim the draft makes.
     check("summary", draft.summary, list(claims), list(research_questions))
     return combine(decisions)
