@@ -192,6 +192,11 @@ services:
       # same read-only directory the worker reads, once per version, and answers with counts.
       # AIA_API_POPULATION_ASSET_ROOT= (empty) in .env turns the preview off; the step says so.
       AIA_POPULATION_ASSET_ROOT: ${AIA_API_POPULATION_ASSET_ROOT-/srv/population/v17}
+      # The report editor (docs/docker-compose.yml, plan report-editor-hosting): its public origin
+      # and the secret it signs with, from SSM aia_onlyoffice_url and aia_onlyoffice_jwt_secret.
+      # Unset (the default), the docs session routes answer 404 and Zpráva stays read-only.
+      AIA_ONLYOFFICE_URL: ${AIA_ONLYOFFICE_URL:-}
+      AIA_ONLYOFFICE_JWT_SECRET: ${AIA_ONLYOFFICE_JWT_SECRET:-}
     volumes:
       - ${AIA_POPULATION_DIR:-/opt/aia/population}:/srv/population:ro
     expose: ["8000"]

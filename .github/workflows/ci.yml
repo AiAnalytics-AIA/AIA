@@ -952,6 +952,10 @@ jobs:
           assert product["networks"]["docs"]["name"] == "aia-docs"
           assert not any("ONLYOFFICE" in k for k in product["services"]["web"]["environment"]), \
               "the web client gets nothing of the editor's secret"
+          api = product["services"]["api"]["environment"]
+          assert api["AIA_ONLYOFFICE_URL"] == "" and api["AIA_ONLYOFFICE_JWT_SECRET"] == "", \
+              "the editor is off unless SSM switches it on"
+          assert not any("ONLYOFFICE" in k for k in product["services"]["worker"]["environment"])
           PY
 
       - name: Caddy loads through Compose
