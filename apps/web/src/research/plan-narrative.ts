@@ -6,6 +6,10 @@
 // state, or the refusal in words; nothing here saves.
 
 import { t, tv } from "@/i18n/t";
+import { designTarget, objectiveTarget } from "@/lib/artifacts/design";
+import { objectivesOf } from "./brief-objectives";
+import { ID_LISTS, listIds, withItemIds } from "./item-ids";
+import type { Json } from "./model";
 import { type PlanState } from "./plan";
 import { type Narrative, applyNarrative, proposalAnalysis } from "./plan-edit";
 import { MAX_RESEARCH_QUESTIONS } from "./trace";
@@ -81,4 +85,34 @@ export function removeItem(state: PlanState, list: NarrativeList, index: number)
   if (index < 0 || index >= n[list].length) return { refused: t("research.plan.narrative.gone") };
   if (list === "objectives" && n.objectives.length === 1) return { refused: t("research.plan.requiredObjectives") };
   return write(state, { ...n, [list]: n[list].filter((_, i) => i !== index) });
+}
+
+/**
+ * Each item's Lead target (`data-aia`), list by list in the list's order: an objective as the
+ * Brief's own `objective:<id>` (objectivesOf, so both screens name it by one target), a research
+ * question `rq:<id>`, a hypothesis `hypothesis:<id>`. The id is item_ids' (WCE1): the stored one,
+ * else the one derived from the wording (so, with AIA_WEB_STABLE_ITEM_IDS off, a reword moves it).
+ * Where no id can be read there is no target -- never the item's position.
+ */
+export function itemTargets(state: PlanState): Record<NarrativeList, (string | null)[]> {
+  const n = narrativeOf(state);
+  const [content, analysis] = withItemIds(state.project as unknown as { [k: string]: Json }, state.analysis);
+  const holder = analysis ?? (content as { research_plan?: unknown }).research_plan;
+  const ids = (list: NarrativeList): string[] | null => {
+    if (list === "objectives") return objectivesOf(state).map((o) => o.id);
+    return listIds(holder, list, ID_LISTS.find((l) => l[0] === list)![1]);
+  };
+  const target = (list: NarrativeList, id: string): string | null => {
+    try {
+      return list === "objectives" ? objectiveTarget(id) : designTarget(list === "research_questions" ? "rq" : "hypothesis", id);
+    } catch {
+      return null; // an id outside the target grammar is never sent
+    }
+  };
+  return Object.fromEntries(
+    NARRATIVE_LISTS.map((list) => {
+      const found = ids(list);
+      return [list, found && found.length === n[list].length ? found.map((id) => target(list, id)) : n[list].map(() => null)];
+    }),
+  ) as Record<NarrativeList, (string | null)[]>;
 }

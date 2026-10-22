@@ -13,7 +13,7 @@ import pytest
 
 from aia_core.domain.population.audience import select_audience
 from aia_core.domain.population.audience_preview import PREVIEW_SEED, audience_preview
-from aia_core.domain.population.sampling import draw_panel_sample
+from aia_core.domain.population.sampling import draw_panel_sample, quota_keys
 
 
 @pytest.fixture
@@ -37,7 +37,13 @@ def test_a_filter_and_an_n_the_sampler_can_draw(population: Any) -> None:
         "status": sample.audit.status,
         "sample_donors": sample.audit.sample_donors,
         "effective_n": sample.audit.effective_n,
+        "quota_fields": list(sample.audit.quota_fields),
+        "cells": [
+            {"key": key, "values": list(c.values), "n": c.n}
+            for c, key in zip(sample.quota_cells, quota_keys(sample.quota_cells), strict=True)
+        ],
     }
+    assert sum(c["n"] for c in answer["sample"]["cells"]) == 200
     assert answer["seed"] == PREVIEW_SEED
 
 

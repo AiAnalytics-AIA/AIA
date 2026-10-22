@@ -41,6 +41,7 @@ __all__ = [
     "PANEL_SOURCE",
     "PanelPlans",
     "joint_certificate_record",
+    "panel_filters",
     "panel_plans",
     "pinned_components",
     "respondent_system",
@@ -86,6 +87,12 @@ class PanelPlans:
         }
 
 
+def panel_filters(spec: ResearchSpecification) -> dict[str, Any] | None:
+    """The audience a panel run's sample is drawn from: the design's recorded filters; ``None``
+    when it selected none (the whole population, as 18.6.6 drew)."""
+    return dict(spec.selection.audience_filters) if spec.selection is not None else None
+
+
 def panel_plans(
     population: RuntimePopulation,
     spec: ResearchSpecification,
@@ -100,8 +107,7 @@ def panel_plans(
     """
     if spec.n is None or spec.n < 1:
         raise ValueError("a panel sample needs the design's n")
-    filters = dict(spec.selection.audience_filters) if spec.selection is not None else None
-    sample = draw_panel_sample(population, filters, spec.n, seed)
+    sample = draw_panel_sample(population, panel_filters(spec), spec.n, seed)
     personas = panel_personas(population, sample, response=response)
     plans = tuple(personas.plan(spec, persona) for persona in personas.personas)
     return PanelPlans(

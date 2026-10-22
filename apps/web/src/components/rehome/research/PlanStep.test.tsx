@@ -274,6 +274,30 @@ describe("Návrh", () => {
     expect(await screen.findByText("Komentáře zapracovány", {}, NATIVE_JOB_WAIT)).toBeTruthy();
   });
 
+  it("keeps objectives typed without an analysis when a set is added (#609's addSet finding, traced through Návrh)", async () => {
+    // The Brief's goal edit drops the analysis; the plan keeps the objectives a person typed.
+    const ws = unitStub(null, {}, { ...PROJECT, research_plan: { problem_summary: "Uložený problém", objectives: ["Zjistit bariéry"], research_questions: ["Proč nekupují?"] } });
+    render(<ResearchScreen step="plan" frame={TEST_FRAME} />);
+    fireEvent.click(await screen.findByRole("button", { name: "Přidat sadu" }));
+    fireEvent.change(screen.getByPlaceholderText("Např. Značky, Regiony, Argumenty…"), { target: { value: "Kraje" } });
+    fireEvent.click(screen.getByRole("button", { name: "Založit sadu" }));
+    await waitFor(() => expect(ws.saves.length).toBeGreaterThan(0));
+    // addSet starts an analysis from the goal only where it is called with none; Návrh passes the plan.
+    expect(ws.saves.at(-1)?.content.research_plan).toMatchObject({ objectives: ["Zjistit bariéry"] });
+    expect(ws.saves.at(-1)?.analysis).toMatchObject({ objectives: ["Zjistit bariéry"] });
+    expect(screen.queryByText(PROJECT.goal)).toBeNull();
+  });
+
+  it("marks each narrative item for the Lead by its stable id: an objective as the Brief's own target", async () => {
+    unitStub(null, {}, { ...PROJECT, research_plan: { problem_summary: "P", objectives: ["Cíl A"], research_questions: ["Kdo?"], hypotheses: ["H1"] } });
+    render(<ResearchScreen step="plan" frame={TEST_FRAME} />);
+    const item = (text: string) => screen.getByText(text).closest("li")!;
+    await screen.findByText("Cíl A");
+    expect(item("Cíl A").getAttribute("data-aia")).toMatch(/^objective:obj_/);
+    expect(item("Kdo?").getAttribute("data-aia")).toMatch(/^rq:rq_/);
+    expect(item("H1").getAttribute("data-aia")).toMatch(/^hypothesis:hyp_/);
+  });
+
   it("still comments on text selected outside the narrative's items, such as a set's question", async () => {
     unitStub();
     render(<ResearchScreen step="plan" frame={TEST_FRAME} />);

@@ -6,7 +6,7 @@ chunks:
   - "[ ] BRF3. Podklady with their data class: the attachments and picked client sources served with the class material_rules gives them, shown as chips; links and removal with undo"
   - "[ ] BRF4. The Lead on the Brief: analyze_brief as a Lead card, its proposal inline, the stage's own AI start removed"
   - "[ ] BRF5. What the Brief hands on, in its inspector (Vstupy, závislosti a původ): the readers of each field, from the chain manifest"
-  - "[ ] BRF6. Journey: the Brief at 1440, 1100, 768 and 390 px with the scripted Lead and zero paid jobs"
+  - "[x] BRF6. Journey: the Brief at 1440, 1100, 768 and 390 px with the scripted Lead and zero paid jobs"
 ---
 # Artifact: Zadání (Brief)
 
@@ -199,17 +199,25 @@ Every item is an `Item` (`src/components/ui.tsx:52`): edit in place, remove, mov
 - Depends on CHN1 and `research-lead-workbench#15`.
 
 **BRF6. Journey.**
-- *Landed in part* (`workspace_journey.mjs`, `lead_journey.mjs`): an objective added in the list,
-  read back after a reload as one `objective:<id>` target and reworded in place; "@" then a tap on
-  an objective sets the chip at 1440 (split), 768 (drawer) and 390 (sheet), no overflow, nothing
-  paid. Still to come: the scripted Lead focusing `objective:<id>` with the drawer closing to peek
-  (asked of the coordinator: `scripted_lead_output` focuses questions or `brief:title` only).
-- Steps in `tools/ui_workbench/workbench_journey.mjs`, at 1440, 1100, 768 and 390 px:
-  - an objective is edited in place and read back after a reload;
-  - the scripted Lead focuses `objective:<id>`, and the drawer closes to `peek` at 768 and 390 px;
-  - "@" then a click sets the Vidí chip.
-- The usage ledger's paid rows are unchanged.
-- 768 and 390 px depend on `research-lead-workbench#26b`-`#26d`.
+- *Landed* (`workspace_journey.mjs`, `lead_journey.mjs`; zero paid jobs):
+  - an objective added in the list, read back after a reload as one `objective:<id>` target and
+    reworded in place;
+  - "@" then a tap on an objective sets the chip, naming that objective and no other, at 1440 and
+    1100 (split), 768 (drawer) and 390 (sheet);
+  - a message about the goal makes the scripted Lead focus the first objective
+    (`aia_executors/workbench.py:179 @ 36e18caa`). At 1440 and 1100 the objective is marked and scrolled
+    into view while the conversation stays beside it. At 768 and 390 the conversation steps aside to
+    `peek` and focus follows;
+  - no overflow at any of them.
+- Deviations from the plan as written:
+  - The steps live in `lead_journey.mjs`, not `workbench_journey.mjs`: they need a hatched Lead, so they
+    pass once per workbench (OI-133).
+  - "Paid rows unchanged" is checked as the journey's existing check: no request to a path that starts
+    paid work (`/research/runs`, `/agent-jobs`, `/deep-research/runs`, a turn's `/request`). The usage
+    ledger itself is not read.
+- These steps run after the 1099 px drawer loop, so F-BRF-2 can stop a run before them (§ 7a). The final
+  version passed on 2 of 2 fresh workbenches; with the expected objective swapped for the last one it
+  fails: "1440: expected the Lead to point at objective:… ; it pointed at objective:…".
 
 ## 7a. Findings
 
