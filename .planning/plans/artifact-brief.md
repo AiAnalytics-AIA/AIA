@@ -230,6 +230,8 @@ Every item is an `Item` (`src/components/ui.tsx:52`): edit in place, remove, mov
   - Fix: read the row's InlineText value. Not the row's whole text, which carries the number, the
     screen-reader "Upravit: Cíl N" and the "×".
   - Test: a `lead.test.ts` case over an objective row.
+  - Status: fixed by #647 (merged as `9076d0f8`): an item row names itself by its own words, never its
+    id (`apps/web/src/lib/lead.ts:615-618 @ 382b418a`); `lead.test.ts:143-147` holds an objective row.
 - F-BRF-2 (journey flake, reported to the coordinator 2026-10-22): the drawer step's wait for the
   composer's focus times out intermittently at 1099 px.
   - Anchor: `tools/ui_workbench/lead_journey.mjs:198 @ b1a73536`, the wait
