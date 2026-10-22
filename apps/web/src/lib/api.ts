@@ -1005,6 +1005,15 @@ export type Readiness = {
   answerability?: Answerability | null;
 };
 
+/** Readiness's fields, whichever revision it was read on. */
+export type ReadinessBody = Omit<Readiness, "design_revision_id">;
+/**
+ * Readiness on a revision of the study's working content, nothing submitted (working-copy-edit-ops
+ * WCE7a). Its answerability digest names no Design Revision: a start reads readiness again on the
+ * revision it runs and takes the acknowledgement from that.
+ */
+export type WorkingReadiness = ReadinessBody & { working_revision: number };
+
 export type PersonaSourceOption = { source: string; offered: boolean; reason: string | null; default: boolean };
 
 export type ResearchPhase = "QUEUED" | "RUNNING" | "WAITING" | "COMPLETED" | "FAILED" | "CANCELLED";
@@ -1235,6 +1244,9 @@ export const research = {
   /** `personaSource` assesses the design under that source of respondents; omitted, the deployment's default. */
   readiness: (studyId: string, revisionId: string, personaSource?: string) =>
     request<Readiness>("GET", `${studyPath(studyId)}/research/readiness${query({ design_revision_id: revisionId, persona_source: personaSource })}`),
+  /** Readiness on a working revision, as a submit of it would read it; nothing is written (WCE7a). */
+  workingReadiness: (studyId: string, workingRevision: number, personaSource?: string) =>
+    request<WorkingReadiness>("GET", `${studyPath(studyId)}/research/readiness/working${query({ working_revision: String(workingRevision), persona_source: personaSource })}`),
   /**
    * `confirmCostUsd` is the person's yes to the ceiling the server showed, when the study's limit asks for one.
    * `populationVersionId` runs over one of the study's client's materialized children instead of LIVE (P4d4c).
