@@ -8,8 +8,9 @@
  * Local fictional identity only. At 1440, 1100, 768 and 390 px, on the completed run's Data view:
  *   - the view opened by hash is what the screen shows: the study's report card stays on Přehled and
  *     Rešerše a zpráva (hidden, never unmounted), so the data is not two screens down;
- *   - no page overflow, and nothing of the data view wider than the screen (a rated set's table
- *     fits a phone: its interval band column is left out under 640 px);
+ *   - no page overflow, nothing of the data view wider than the screen and nothing wider than its own
+ *     measure card (a rated set's and a question's tables fit a phone: their band column is left out
+ *     under 640 px);
  *   - each measure card's reading runs the card's width, never squeezed beside its support chip;
  *   - the Lead's ids: every data-aia on the data view is a measure: id in the published grammar,
  *     each on exactly one element;
@@ -107,15 +108,20 @@ try {
           return { id: card.id, ratio: p.getBoundingClientRect().width / (box.width - pad) };
         })
         .filter((r) => r.ratio < 0.9);
+      // Nothing spills out of its own card (a detail table did, inside the screen: F-R9).
+      const spilled = [...view.querySelectorAll("section[id^='measure-']")]
+        .filter((card) => { const edge = card.getBoundingClientRect().right; return [...card.querySelectorAll("*")].some((el) => el.getClientRects().length && el.getBoundingClientRect().right > edge + 1); })
+        .map((card) => card.id);
       return {
-        page: document.documentElement.scrollWidth - innerWidth, wide: [...new Set(wide)].slice(0, 5), squeezed,
+        page: document.documentElement.scrollWidth - innerWidth, wide: [...new Set(wide)].slice(0, 5), squeezed, spilled,
         sets: view.querySelectorAll("[data-object-comparison] table").length, readings: view.querySelectorAll("[data-measure-reading]").length,
       };
     });
     assert(layout.sets > 0 && layout.readings > 0, `${width}: the run has a rated set's table and readings to measure`);
     assert(layout.page <= 2, `${width}: page overflow by ${layout.page}px`);
     assert.deepEqual(layout.wide, [], `${width}: nothing of the data view is wider than the screen`);
-    check(`${width}: no overflow, a rated set's table fits`);
+    assert.deepEqual(layout.spilled, [], `${width}: nothing spills out of its measure card`);
+    check(`${width}: no overflow, a rated set's table fits, nothing spills out of a card`);
     assert.deepEqual(layout.squeezed, [], `${width}: every reading runs its card's width`);
     check(`${width}: each reading runs its card's width`);
 

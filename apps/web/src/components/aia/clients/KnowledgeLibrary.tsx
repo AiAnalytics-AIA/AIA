@@ -30,7 +30,7 @@ import type { AiRights } from "./SourceProposals";
 const FOCUS = "focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus-ring";
 
 /** How long the search waits for typing to pause before it asks (MemorySearch's 300 ms). */
-export const SEARCH_PAUSE_MS = 300;
+const SEARCH_PAUSE_MS = 300;
 
 /** "Bez složky" as a menu item: takes the items out of every folder. */
 const NO_FOLDER = "none";

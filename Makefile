@@ -18,7 +18,7 @@ BIN := $(shell [ -d $(VENV)/bin ] && echo $(VENV)/bin/ || echo "")
 PYTHON_VERSION := $(shell cat .python-version)
 
 .PHONY: ui-audience ui-results ui-intake ui-methodology help setup deps services migrate migration dev dev-api dev-web dev-worker \
-        test test-core test-api test-worker test-executors test-acceptance test-parity test-golden test-oracle parity-status test-web report-preview web_design ui-workbench ui-workbench-reference ui-workbench-status ui-workbench-down ui-capture ui-fixtures ui-research ui-sociomapping ui-workspace ui-coherence report-journey \
+        test test-core test-api test-worker test-executors test-acceptance test-parity test-golden test-oracle parity-status test-web report-preview web_design web_unused ui-workbench ui-workbench-reference ui-workbench-status ui-workbench-down ui-capture ui-fixtures ui-research ui-sociomapping ui-workspace ui-coherence report-journey \
         lint format typecheck python-version \
         layer_check exposure_check check verify openapi clean
 
@@ -162,6 +162,9 @@ report-preview: ## Render the four report samples DOCX -> PDF -> PNG (needs libr
 web_design: ## Design tokens: generated files current, contrast / palette / accent evidence holds
 	@cd apps/web && npm run tokens:check && npm run check:design
 
+web_unused: ## No unused file, dependency or export in the web client (knip; config apps/web/knip.jsonc)
+	@cd apps/web && npm run knip
+
 lint: ## Lint Python and the web client
 	@$(BIN)ruff check packages/aia_core apps/api apps/worker apps/executors migrations tests
 	@$(BIN)ruff format --check packages/aia_core apps/api apps/worker apps/executors migrations tests
@@ -200,7 +203,7 @@ layer_check: ## Enforce the layering rules in ARCHITECTURE.md (grep rules + impo
 exposure_check: ## Fail if detailed reference material reached this repository
 	@./tools/exposure_check.sh
 
-check: lint typecheck layer_check exposure_check web_design test test-web ## Everything CI runs
+check: lint typecheck layer_check exposure_check web_design web_unused test test-web ## Everything CI runs
 
 verify: ## The pre-commit sequence from CLAUDE.md §10, in order
 	@$(MAKE) typecheck
@@ -210,6 +213,7 @@ verify: ## The pre-commit sequence from CLAUDE.md §10, in order
 	@$(BIN)ruff format --check packages/aia_core apps/api apps/worker apps/executors migrations tests
 	@$(MAKE) test
 	@$(MAKE) web_design
+	@$(MAKE) web_unused
 	@$(MAKE) test-web
 
 openapi: ## Write the OpenAPI document to openapi.json

@@ -5,7 +5,7 @@
 
 import { ARTIFACTS, type TargetKind, aiaId, allowsView, parseAiaId } from "@/lib/workbench-artifacts";
 
-export const DESIGN = ARTIFACTS.design;
+const DESIGN = ARTIFACTS.design;
 
 /** The kinds Návrh's items carry; each must be in DESIGN.targets (checked by its test). */
 export type DesignKind = Extract<TargetKind, "plan" | "rq" | "hypothesis" | "set" | "assumption">;

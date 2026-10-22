@@ -49,21 +49,21 @@ const AREA_LOOK: Record<ClientArea, { icon: IconName; on: string; off: string; e
 // The six client accents of the design system; a client keeps the same one wherever it is drawn.
 const CLIENT_ACCENT = ["bg-client-1", "bg-client-2", "bg-client-3", "bg-client-4", "bg-client-5", "bg-client-6"] as const;
 
-export function clientAccent(clientId: string): (typeof CLIENT_ACCENT)[number] {
+function clientAccent(clientId: string): (typeof CLIENT_ACCENT)[number] {
   let h = 0;
   for (const ch of clientId) h = (h * 31 + ch.charCodeAt(0)) >>> 0;
   return CLIENT_ACCENT[h % CLIENT_ACCENT.length];
 }
 
 /** Up to two letters: the first of the first two words ("Banka Horizont" → "BH"). */
-export function initials(name: string): string {
+function initials(name: string): string {
   const words = name.trim().split(/[\s@._-]+/).filter(Boolean);
   return words.slice(0, 2).map((w) => w[0]!.toUpperCase()).join("") || "?";
 }
 
 const FOCUS = "focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus-ring";
 
-export function Breadcrumbs({ crumbs }: { crumbs: Crumb[] }) {
+function Breadcrumbs({ crumbs }: { crumbs: Crumb[] }) {
   if (!crumbs.length) return null;
   return (
     <nav aria-label={t("aia.breadcrumbs")}>

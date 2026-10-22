@@ -16,7 +16,7 @@ const FOCUSABLE = 'a[href], button:not([disabled]), textarea:not([disabled]), in
  * (which is inert as well; the wrap keeps focus off the browser's own controls between the ends). Read
  * on the document, so a Tab from nowhere -- the focused control removed, focus fallen to the body --
  * is brought back inside as well. */
-export function trapTab(container: HTMLElement, e: KeyboardEvent) {
+function trapTab(container: HTMLElement, e: KeyboardEvent) {
   if (e.key !== "Tab") return;
   const items = [...container.querySelectorAll<HTMLElement>(FOCUSABLE)].filter((el) => !el.closest("[hidden]"));
   if (!items.length) {

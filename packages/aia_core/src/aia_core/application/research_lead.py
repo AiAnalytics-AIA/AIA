@@ -36,6 +36,7 @@ from sqlalchemy.orm import Session
 
 from ..domain.approval_ledger import ApprovalSubject
 from ..domain.design import DESIGN_PROJECT_OWNER
+from ..domain.edit_log import ActorKind, OpSource, WriteBy
 from ..domain.lead_commands import MatchedCommand, match_command
 from ..domain.lead_context import manifest_view, omitted_page
 from ..domain.lead_digest import DigestEntry, decision_digest, edit_item
@@ -55,10 +56,8 @@ from ..domain.research_lead import (
     LeadNote,
     LeadOutput,
     LeadTurn,
-    Refused,
     ResearcherLead,
     SelfUpdate,
-    apply_edit,
     context_sha256,
     freeze_context,
     is_text_edit,
@@ -94,6 +93,7 @@ from .analysis_results import SourcesRefused, _external_context
 from .lead_chat_start import RunStartSettings, approve_chat_start, chat_start_decisions
 from .research import ResearchAgentJobs, ResearchRuns, readiness_in_force
 from .workflows import start_workflow
+from .working_copy import apply_edit_ops
 
 __all__ = [
     "GREETING_WINDOW",
@@ -901,7 +901,11 @@ class ResearchLead:
         ``base_revision`` is not the current working revision -- saves the working copy once
         (``reason = "lead_edit_accepted"``) when any applied, and writes one ledger row per
         decided edit, all in one transaction under the Study's lock. An edit the content
-        cannot take is ``refused`` with its reason and stays undecided. An edit already
+        cannot take, or one that writes a locked Sociomap input (``sociomap_input_locked``), is
+        ``refused`` with its reason and stays undecided. The applied edits are the vocabulary's
+        operations, logged as the Lead's for this turn (``application/working_copy.py``,
+        working-copy-edit-ops WCE2d); a copy whose ids the web keeps is settled, so a reworded
+        research question keeps its links. An edit already
         decided keeps its first decision. A dismiss writes the ledger rows only.
 
         ``auto``: the accept is the researcher's standing choice, not a click (plan
@@ -949,13 +953,10 @@ class ResearchLead:
             # The turn was written from an older working copy: a person's save made while the
             # Lead worked would be overwritten without a click. It waits for one.
             raise LeadTurnStale(current, turn.workspace_revision)
-        content: dict[str, Any] = (
-            dict(working.content) if working.content is not None else research_template()
-        )
-        analysis: dict[str, Any] | None = working.analysis
         # A set_n is accepted under the limits in force now, not those the turn was frozen
         # with: a version activated meanwhile is what the start will check (RQC9).
         limits, _ = readiness_in_force(self.session, self.scope)
+        candidates: list[int] = []
         for index in order:
             if not 0 <= index < len(output.edits):
                 results[index] = {"index": index, "status": "refused", "reason": "unknown_edit"}
@@ -970,25 +971,29 @@ class ResearchLead:
             if auto and not is_text_edit(output.edits[index]):
                 results[index] = {"index": index, "status": "refused", "reason": "not_a_text_edit"}
                 continue
-            applied = apply_edit(
-                content, analysis, output.edits[index], sample_size=limits.sample_size
-            )
-            if isinstance(applied, Refused):
-                results[index] = {"index": index, "status": "refused", "reason": applied.reason}
-                continue
-            content, analysis = applied
-            pending.append(index)
+            candidates.append(index)
 
         revision, revision_id = current, working.revision_id
-        if decision == "accept" and pending:
-            saved = workspace.save(
+        if candidates:
+            # The Lead's edits as the vocabulary's operations, each logged as the turn's
+            # (working-copy-edit-ops WCE2d): the Lead wrote them, the researcher accepted them.
+            batch = apply_edit_ops(
+                self.session,
                 self.scope,
-                content=content,
-                analysis=analysis,
-                base_revision=current,
+                working,
+                [output.edits[i] for i in candidates],
+                by=WriteBy(ActorKind.LEAD, self.scope.actor_id, OpSource.LEAD_TURN, turn_id),
                 reason="lead_edit_accepted",
+                sample_size=limits.sample_size,
             )
-            revision, revision_id = saved.revision, saved.revision_id
+            for position, index in enumerate(candidates):
+                reason = batch.refused.get(position)
+                if reason is not None:
+                    results[index] = {"index": index, "status": "refused", "reason": reason}
+                else:
+                    pending.append(index)
+            if batch.saved is not None:
+                revision, revision_id = batch.saved.revision, batch.saved.revision_id
         for index in pending:
             workflows.record_lead_edit_decision(
                 turn.run_id,

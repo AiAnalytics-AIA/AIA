@@ -24,10 +24,11 @@ Pure: no I/O.
 from __future__ import annotations
 
 import hashlib
-from collections.abc import Iterable, Mapping
+from collections.abc import Iterable, Mapping, Sequence
 from dataclasses import dataclass
 from enum import StrEnum
 from typing import Any, Final
+from uuid import uuid4
 
 from .design_fields import Touch, changed_fields
 from .design_items import Documents, ItemKey
@@ -41,10 +42,12 @@ __all__ = [
     "EditLogRow",
     "OpSource",
     "WriteBy",
+    "new_batch_id",
     "op_rows",
     "whole_copy_op",
     "whole_copy_rows",
     "whole_copy_touches",
+    "write_rows",
 ]
 
 #: The columns' widths (``workspace_edit_ops.item_key``, ``.field``).
@@ -116,6 +119,11 @@ class EditLogRow:
     inverse: dict[str, Any] | None = None
 
 
+def new_batch_id() -> str:
+    """A fresh id for one write's rows, which share it."""
+    return "EOB-" + uuid4().hex
+
+
 def _bounded(text: str, limit: int) -> str:
     """``text``, or, when longer than ``limit``, its prefix and a digest of the whole."""
     if len(text) <= limit:
@@ -179,11 +187,49 @@ def whole_copy_rows(
     result_revision: int,
 ) -> tuple[EditLogRow, ...]:
     """The rows a whole-copy write logs: one per field it changed, at least one."""
-    return op_rows(
-        whole_copy_touches(before, after),
-        op=whole_copy_op(reason),
+    return write_rows(
+        before,
+        after,
+        reason=reason,
         by=by,
         batch_id=batch_id,
         base_revision=base_revision,
         result_revision=result_revision,
     )
+
+
+def write_rows(
+    before: Documents | Mapping[str, Any] | None,
+    after: Documents | Mapping[str, Any],
+    *,
+    ops: Sequence[tuple[Mapping[str, Any], frozenset[Touch]]] = (),
+    reason: str,
+    by: WriteBy,
+    batch_id: str,
+    base_revision: int | None,
+    result_revision: int,
+) -> tuple[EditLogRow, ...]:
+    """The rows one write logs, at least one.
+
+    Each vocabulary operation in ``ops`` (the operation, and what it touched: ``edit_ops.touches``)
+    logs one row per field it touched, itself as the ``op``. Whatever else the write changed (the
+    stages' own state an edit marks, the analysis a brief edit clears, a link that followed a
+    reword) is logged as a whole-copy change, ``reason`` its op, so no changed field goes unlogged.
+    With no operation, the write is a whole-copy write (:func:`whole_copy_rows`)."""
+    common: dict[str, Any] = {
+        "by": by,
+        "batch_id": batch_id,
+        "base_revision": base_revision,
+        "result_revision": result_revision,
+    }
+    rows: list[EditLogRow] = []
+    covered: set[Touch] = set()
+    for op, touched in ops:
+        rows.extend(op_rows(touched, op=op, **common))
+        covered |= touched
+    rest = changed_fields(Documents(content={}) if before is None else before, after) - covered
+    if not rows and not rest:
+        rest = frozenset({WHOLE_COPY})
+    if rest:
+        rows.extend(op_rows(rest, op=whole_copy_op(reason), **common))
+    return tuple(rows)

@@ -169,15 +169,20 @@ method owner).
 - Zero paid jobs. 768 and 390 px depend on `research-lead-workbench#26b`-`#26d`.
 - Delivered so far: `tools/ui_workbench/sociomap_journey.mjs`, a journey of its own:
   `sociomapping_journey.mjs` covers the experimental Sociomapping document, not this stage.
-  `--prepare` puts a version of the `aia-sociomap-5` preset in force in the local workbench only, and
-  runs one fictional run, after an older method's run when there is none. The journey checks:
+  `--prepare` runs one fictional `-5` run in the local workbench only (putting a version of the
+  `aia-sociomap-5` preset in force while `-5` is not what a new run pins), and an older method's run
+  first only while an older method is still in force. The journey checks:
   - the `-5` map at 1440, 1100, 768 and 390 px with no page overflow;
   - each listed object's Lead name, once, on its button;
   - the selection reset between Objekty and Respondenti, and full screen's five strongest (#562);
   - the filter bar, "Zrušit filtr" and the four registers (SOC3);
-  - every pressed control's colour apart from its background, on the `-5` map and on an older
-    method's run. It fails on the stylesheet from before #591, on the `-3` map's pressed "Shora".
-    Once #598 lands, the older run's check is its old-method notice instead;
+  - every pressed control's colour apart from its background on the `-5` map (#591);
+  - an older method's run reads "Mapa ze starší metody; spusťte nový běh" and draws no map, at 1440,
+    1100, 768 and 390 px (#598). No new run can pin an older method, so on a workbench without one
+    from before, the `-5` run is read as one: its Sociomap artifact answered in the browser with no
+    map in it (the "none" case of `olderMethodOnly`; a battery holding a `-3` map is
+    `object-map-view.test.ts`'s). Before this, the check took either a notice or a drawn older map,
+    so an older map drawn again would have passed it. Fails with `olderMethodOnly` made false;
   - no page error, no write but the stage opened, zero paid jobs.
 - Still to come: `select_pair` by the scripted Lead (once `select` is live, research-lead-workbench
   14b) and the inspector's pair detail (SOC4).
@@ -247,3 +252,11 @@ Browser audit, 2026-10-21, on the local workbench (`AIA_WEB_RESEARCH_WORKBENCH=t
   5. A way to reach a respondent without the pointer, e.g. a list or a "next respondent" control beside the map: a
      layout decision inside the panel (Aram's rule), so recorded here, not built.
   6. A test that Tabs on Respondenti and expects a control naming a respondent.
+- **Open, SOC2: an older method's run is told how to use a map it does not draw.** Browser, 2026-10-22, 390 px:
+  the Sociomapa card prints `mapToolNotInAia` ("Mapu můžete prohlížet shora nebo jako 3D terén, otáčet…",
+  `ExecutionSteps.tsx:1666 @ 9607ee09`) above every battery, and a battery with no `-5` map says "Mapa ze
+  starší metody; spusťte nový běh" below it. A person on such a run reads how to turn a map that is not there.
+  Reproduction: `node tools/ui_workbench/sociomap_journey.mjs` (after `--prepare`), then
+  `tmp/ui-workbench/sociomap-journey/390-older-method.png`. Smallest fix: print the hint only when some battery draws a map (`!olderMethodOnly(b)` for one). Test: the
+  `ExecutionSteps.test.tsx` older-method case expects no `mapToolNotInAia`. Left for SOC2, which hosts the
+  panel and writes no second notice; ExecutionSteps is Výsledky's.

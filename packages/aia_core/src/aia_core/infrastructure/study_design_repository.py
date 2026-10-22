@@ -25,6 +25,7 @@ from ..domain.design import (
     validate_design,
 )
 from ..domain.design_reuse import DesignSource, SourceLabels
+from ..domain.edit_log import ActorKind, OpSource, WriteBy
 from ..domain.pipeline import ProjectType, fingerprint
 from ..domain.scope import Permission, ScopeDenied, StudyContext, StudyKind
 from .repositories import ProjectRepository
@@ -219,12 +220,18 @@ class StudyDesignRepository:
         browser saves and submits itself. The working copy's newest revision becomes ``content``
         (a new revision, so nothing earlier is lost, and a browser holding an older copy is
         refused its next save as stale, never overwritten), and the Design Revision names it.
+        The write is logged as authored by the server on the calling person's action
+        (``OpSource.AUTHORED``, working-copy-edit-ops WCE2).
         """
         workspaces = StudyWorkspaceRepository(self._session)
         self._require_research(lock=True)
         current = workspaces.content(self._scope)
         saved = workspaces.save(
-            self._scope, content=content, base_revision=current.revision, reason=reason
+            self._scope,
+            content=content,
+            base_revision=current.revision,
+            reason=reason,
+            by=WriteBy(ActorKind.PERSON, self._scope.actor_id, OpSource.AUTHORED),
         )
         stored = workspaces.at_revision(self._scope, saved.revision)
         assert stored is not None  # save has just written or found it
