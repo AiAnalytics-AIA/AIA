@@ -373,9 +373,12 @@ class AIFieldwork:
                 answer = kept.get(key)
                 if answer is not None:
                     output = contract.model_validate(answer["output"])
-                    # Paid for by the run that answered it; this attempt sent nothing.
+                    # Paid for by the run that answered it; this attempt sent nothing. Two
+                    # respondents can send the same request, so the record names this one.
                     record = {
                         **answer["call"],
+                        "respondent_id": plan.persona.persona_id,
+                        "block": block.index,
                         "replayed_from_run": answer["run_id"],
                         "cost_usd": 0.0,
                         "calls": 0,

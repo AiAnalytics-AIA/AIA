@@ -315,3 +315,24 @@ def test_a_raced_answer_kept_first_is_the_one_drawn_from() -> None:
     assert isinstance(answered, Answered)
     fresh = _answer(*_setup(_Caller()), _Journal(), "RUN-9")
     assert answered.rows != fresh.rows, "the kept answer, not this attempt's own, drew the rows"
+
+
+def test_a_replay_names_the_respondent_answered_now_when_two_sent_the_same_request() -> None:
+    from dataclasses import replace
+
+    journal = _Journal()
+    caller = _Caller()
+    fieldwork, spec, plans = _setup(caller)
+    first = next(p for p in plans if p.blocks)
+    # Two respondents whose blocks are byte for byte the same: only their ids differ.
+    twins = [first, replace(first, persona=first.persona.model_copy(update={"persona_id": "TWIN"}))]
+    _answer(fieldwork, spec, twins, journal, "RUN-1")
+    assert len(journal.entries) == len(first.blocks), "the twins share each block's key"
+
+    fieldwork, spec, _ = _setup(_Caller())
+    replayed = _answer(fieldwork, spec, twins, journal, "RUN-2")
+    assert isinstance(replayed, Answered)
+    assert [c["respondent_id"] for c in replayed.calls] == [
+        p.persona.persona_id for p in twins for _ in p.blocks
+    ]
+    assert [c["block"] for c in replayed.calls] == [b.index for p in twins for b in p.blocks]
