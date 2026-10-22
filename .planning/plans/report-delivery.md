@@ -34,6 +34,26 @@ Every chunk below is **open**; a chunk is built from this file, not from the mas
 **RD0. Build the client deliverable's gate the owner set (MVPQ-09, 2026-10-20)**  
 Three deterministic checks before approval, each refusing by name: no cited source marked "Interní dokument"; no drill-down content; no number without an admitted claim. No separate legal-rights review step: a source-class check is not a legal-rights determination, and the MVP does not claim one. A scientific check beyond admitted support stays the methodology owner's to add. Tests: a client report citing an internal source, carrying a drill-down field or an unadmitted number is refused by name and cannot be approved.
 
+*RD0, two of its three checks (`feature/client-deliverable-gate`):* `domain/report/client_gate.py` judges the stored
+document model a client DOCX was rendered from (RD5a), at approval, so the version approved is the version judged:
+`drill_down_content` (a respondent's verbatim quote, or a claim at `ClaimLevel.INDIVIDUAL`) and `unadmitted_number`
+(a ref the stored ledger does not hold, or a ledger not on the client surface), each naming its block; a version with no
+stored document, or one of an older contract (no claim levels), is `gate_unrecorded`, never passed. The stored document
+is `aia-report-document-3` (each ledger entry's `level`); a document of an older contract is stored again on the next
+download, not reused. `POST …/report/approve` answers 409 `client_gate_refused` with every refusal in
+`details.refusals`. Tests: `test_client_gate.py`; `test_a_client_report_carrying_drill_down_content_cannot_be_approved`,
+`test_a_client_document_of_an_older_contract_is_stored_again_on_download`,
+`test_a_client_draft_with_no_stored_document_is_not_approvable`.
+The third check, `internal_source_cited`, waits for a chapter that cites a client source (RD11): no client report cites
+one, so it would read nothing. RD0 stays open until it lands.
+
+**Findings (RD0).**
+- *The prose-number half of G63 is not built.* A client report's prose is written by code alone and states design and
+  method numbers: the scale's ends and the planned n (`application/report_design.py`), the day of the owner's decision
+  (`domain/evidence/report_lift.py` `reader_note`). A digit scan of prose would refuse every client report, so a number
+  reaches the gate only as a ref until those facts are typed blocks (G63); a sentence claiming a result without a ref is
+  RD7's. Numbers printed as `TextCell` (no client chapter prints one) pass unchecked for the same reason.
+
 **RD1. The client report PDF: extend `RENDERABLE_REPORTS`, the PDF is approved with its DOCX**  
 The client report is DOCX only today (`report_variants.py:78`).
 

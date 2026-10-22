@@ -303,6 +303,18 @@ schema first:
 psql "$TEST_DB" -c 'DROP SCHEMA public CASCADE; CREATE SCHEMA public;'
 ```
 
+**The `.env` that `make setup` writes fails part of the API suite locally.** `make setup` copies
+`.env.example` to `.env` (`Makefile:31`), and the API's settings read `.env`
+(`apps/api/src/aia_api/config.py:39 @ bfe6d15b`). With it in place about 23 tests in
+`apps/api/tests/test_research_api.py` fail, for example
+`test_research_artifacts_are_read_only_through_the_run_that_produced_them`
+(`assert None == 'SYNTHETIC_FIXTURE'`); the same tests pass on a clean `develop` worktree, which has
+no `.env`, and in CI (#612). Move `.env` aside to run the API suite:
+
+```bash
+mv .env .env.local-aside && make test; mv .env.local-aside .env
+```
+
 ## Pydantic
 
 **A new optional field changes every fingerprint already stored.** A model whose
@@ -538,6 +550,22 @@ table.** After a migration that adds columns, the workbench's API fails with
 `no such column: clients.short_code` on a database from before it. Start it from an empty one:
 `python tools/ui_workbench/workbench.py up --fresh`, then `make ui-fixtures` again
 (client-workspace C5, #380).
+
+**A `select` of more than ten columns types its rows as a variadic tuple.** SQLAlchemy's stubs
+type `Row` positionally only up to ten columns; past that, unpacking a row in the `for` fails
+`mypy --strict` with "Variadic tuple unpacking requires a star target". Read such rows by column
+instead (`researcher_spend_repository.py:150-165 @ bfe6d15b`, eleven columns, #583):
+
+```python
+# WRONG -- 11 columns: mypy --strict refuses the unpacking
+for (reservation_id, status, amount, settled, charged_to, ...) in rows: ...
+
+# RIGHT -- one typed read per column, through the row's mapping
+for row in rows:
+    m = row._mapping
+    status = str(m[BudgetReservationRow.status])
+    in_ledger = bool(m["in_ledger"])   # a labelled expression by its label
+```
 
 ## Alembic
 
@@ -845,6 +873,20 @@ is in `sys.modules` first:
 module = importlib.util.module_from_spec(spec)
 sys.modules[spec.name] = module          # dataclasses resolve their module by name
 spec.loader.exec_module(module)
+```
+
+**A scripted model route still needs a price.** A "free" scripted route with zero prices is refused
+by `StepModelCaller`: "a metered request needs a positive reservation". Give the route a nominal
+price that sizes the hold, and have the double report 0 tokens, so the call settles at 0. The study
+also needs a budget above the hold, or the step waits `AWAITING_BUDGET` (`aia_executors/workbench.py`,
+research-lead-workbench 12a, #578).
+
+```python
+# WRONG: no reservation can be taken, so every request is refused before it is sent
+_HOLD_USD_PER_MTOK = "0"
+# RIGHT (workbench.py): a nominal price sizes the hold; the scripted wire reports 0 tokens,
+# so every call settles at exactly zero -- and the study's budget is above the hold
+_HOLD_USD_PER_MTOK: Final = "0.01"
 ```
 
 ## FastAPI
@@ -1802,6 +1844,49 @@ over a `[hi, lo]` pair of 32-bit halves (#543).
 const MASK = (1n << 64n) - 1n;
 // RIGHT -- 64-bit arithmetic in limbs
 [hi, lo] = mul64(hi, lo, 0x00000100, 0x000001b3);
+```
+
+**Callers waiting behind one in-flight promise all resume on the same resolution.** The research
+store's `flush` let every waiter go at once, each building its save from the same `state.revision`,
+so the second was refused `stale_revision` (#556, OI-182; `apps/web/src/research/store.ts`). Loop
+until nothing is in flight, read the state again, and set `inflight` synchronously before the first
+`await` of the new save, so the next waiter sees it and waits.
+
+```ts
+// WRONG: every waiter resumes together and sends the same base
+if (this.inflight) await this.inflight;
+const body = { base_revision: this.state.revision, ... };
+// RIGHT: wait out every save, re-read, and claim the slot before awaiting
+while (this.inflight) await this.inflight;
+const body = { base_revision: this.state.revision, ... };   // read after the wait
+this.inflight = this.save(body);                             // set before the first await
+```
+
+**Focus an element after the render that mounts it, never on a frame guess.** `KnowledgeOrganizers`'
+rename called `setRenaming(false)` and then `requestAnimationFrame(() => row.current?.focus())`;
+under jsdom (and with no guarantee in a browser) the frame can run before React commits, find
+`row.current === null` and never try again (#596, OI-189). Mark that a refocus is owed and focus in
+an effect keyed on the state that mounts the element. A test that runs every
+`requestAnimationFrame` callback at once pins the losing order.
+
+```tsx
+// WRONG: the frame may run before the row exists
+setRenaming(false); requestAnimationFrame(() => row.current?.focus());
+// RIGHT: focus after the commit that mounted it
+owed.current = true; setRenaming(false);
+useEffect(() => { if (!renaming && owed.current) { owed.current = false; row.current?.focus(); } }, [renaming]);
+```
+
+**Under Tailwind 4, an unlayered element rule beats every utility class, whatever the specificity.**
+Utilities live in `@layer utilities`, and any unlayered rule outranks every layer, so
+`.wb button { color: inherit }` overrode a screen's `text-…` utility on its buttons (#591). Put base
+element rules in `@layer base`.
+
+```css
+/* WRONG: unlayered, so it beats text-accent on every button inside .wb */
+.wb button { color: inherit; }
+/* RIGHT */
+@layer base { .wb button { color: inherit; } }
 ```
 
 ## The 18.6.6 unit, run outside its container

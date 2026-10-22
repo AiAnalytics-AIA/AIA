@@ -11,8 +11,9 @@ import { t, tv } from "@/i18n/t";
 import type { ResearchRun } from "@/lib/api";
 import { AnalysisInspect } from "./AnalysisInspect";
 import { measureAnchor } from "@/lib/result-reading";
+import { parseAiaId } from "@/lib/workbench-artifacts";
 import { CONFLICT_MESSAGE } from "@/research/store";
-import { RunResults } from "./ExecutionSteps";
+import { RunResults, fixStep } from "./ExecutionSteps";
 import { StudyFrameProvider } from "./frame";
 import { ResearchScreen, ResearchSession } from "./ResearchScreen";
 import { CONTENT_PATH, workspaceFixture } from "./test-workspace";
@@ -160,6 +161,23 @@ afterEach(() => {
   // Every test here also proves the screen reached nothing of the 18.6.6 unit (ADR 0018).
   expect(calls.filter((c) => !c.url.startsWith("/api/v1/") && c.url !== "/config").map((c) => c.url)).toEqual([]);
   sessionStorage.clear();
+});
+
+describe("fixStep", () => {
+  it("sends each readiness check to the stage where it is fixed", () => {
+    // The ids the domain's readiness emits (research_design.assess_readiness, support_forecast,
+    // research_trace), a prefixed one standing for its kind; n and its support live on Dimenze,
+    // the audience on its own stage.
+    const where = {
+      sample_size: "persona", support_forecast: "persona", sociomap_support: "persona", dimensions: "persona",
+      audience: "audience",
+      questionnaire: "questionnaire", conditional_questions: "questionnaire", battery_familiarity: "questionnaire",
+      sociomap_input: "questionnaire", research_question_coverage: "questionnaire", "compile:invalid_scale:q1": "questionnaire", "battery_size:b1": "questionnaire",
+    };
+    for (const [id, step] of Object.entries(where)) expect([id, fixStep(id)]).toEqual([id, step]);
+    // An id that names an Object.prototype member is an unknown check, never a function.
+    expect(fixStep("constructor")).toBe("questionnaire");
+  });
 });
 
 describe("Run", () => {
@@ -1118,7 +1136,7 @@ describe("Progress", () => {
     expect(within(card).getByText(t(`${R}.unrecorded`))).toBeTruthy();
   });
 
-  it("keeps both sides of a mismatch in view, the stored origin code beside the pinned source (artifact-fieldwork FLD7)", async () => {
+  it("keeps both sides of a mismatch in view, the stored origin code beside the pinned source, pointable by the Lead (artifact-fieldwork FLD7)", async () => {
     api(listed(run({ ...COMPLETED, persona_source: "panel" })));
     render(<ResearchScreen step="progress" frame={TEST_FRAME} />);
     const R = "research.exec.respondents.receipt";
@@ -1127,6 +1145,10 @@ describe("Progress", () => {
     // Named, never resolved: the pinned panel, what the data say, and the code as stored.
     expect(value(t(`${R}.source`))).toBe(`${t("research.exec.respondents.panel")} · ${t(`${R}.observed.SIMULATED`)}`);
     expect(value(t(`${R}.origin`))).toBe("SYNTHETIC_FIXTURE");
+    // Pointable by the Lead: the mark parses as the fieldwork stage's receipt (#618).
+    const mark = card.closest("[data-aia]")?.getAttribute("data-aia");
+    expect(mark).toBe("receipt:respondents");
+    expect(parseAiaId(mark!)).toEqual({ kind: "receipt", id: "respondents", stage: "fieldwork" });
   });
 
   it("says the data's origin is not yet stored while fieldwork has not stored it", async () => {
@@ -1517,6 +1539,17 @@ describe("Progress", () => {
 });
 
 describe("Results", () => {
+  it("shows who answered without the receipt's Lead mark: Výsledky's row names measures alone (#618)", async () => {
+    api({ ...listed(COMPLETED),
+      "GET /api/v1/studies/STU-1/research/runs/RUN-1/artifacts/ART-4": () => AGGREGATE,
+      "GET /api/v1/studies/STU-1/research/runs/RUN-1/artifacts/ART-5": () => SOCIOMAP,
+    });
+    render(<ResearchScreen step="results" frame={TEST_FRAME} />);
+    const card = (await screen.findByRole("heading", { name: t("research.exec.respondents.receipt.title") })).closest("section") as HTMLElement;
+    expect(card.closest("[data-aia]")).toBeNull();
+    expect(document.querySelector('[data-aia^="receipt:"]')).toBeNull();
+  });
+
   it("explains a failed run load and retries instead of leaving Results loading forever", async () => {
     let failed = true;
     api({ ...listed(COMPLETED),
@@ -1547,6 +1580,8 @@ describe("Results", () => {
     fireEvent.click(screen.getByRole("button", { name: t("research.retry") }));
     expect(await screen.findByText(t("research.exec.noResults"))).toBeTruthy();
     expect(screen.queryByText("Výsledky se nepodařilo načíst.")).toBeNull();
+    // No run, so no word about "this run's" report (workbench audit, 2026-10-22).
+    expect(screen.queryByText(t("research.exec.results.reportNotInAia"))).toBeNull();
   });
 
   it("keeps the neutral analysis note while no module has stored an outcome, never 'unknown origin'", async () => {
@@ -1622,9 +1657,13 @@ describe("Results", () => {
     const blocked = screen.getByRole("button", { name: /Výzkumné otázky.*Potřebuje opravu/ });
     fireEvent.click(blocked);
     expect(screen.getByText(/Výstup této části neprošel kontrolou/)).toBeTruthy();
-    const diagnostic = screen.getByText("Technické důvody odmítnutí").closest("details");
+    // The refusal in words on the surface; its code, subject and detail only in a closed fold.
+    const pane = screen.getByRole("region", { name: "Výzkumné otázky" });
+    expect(within(pane).getByText(/odpověď modelu neodpovídala předepsanému tvaru/)).toBeTruthy();
+    const diagnostic = within(pane).getByText("Technické podrobnosti").closest("details");
     expect(diagnostic?.open).toBe(false);
-    expect(within(diagnostic!).getByText(/SCHEMA_INVALID: Input should be a valid array/)).toBeTruthy();
+    expect(diagnostic?.textContent).toContain("research_question_answers: Input should be a valid array");
+    expect(pane.textContent?.replace(diagnostic?.textContent ?? "", "")).not.toContain("SCHEMA_INVALID");
   });
 
   it("says an analysis an earlier version of AIA built cannot be shown, and where it is repaired, not 'try again' (PC3)", async () => {
@@ -1716,6 +1755,88 @@ describe("Results", () => {
     expect(section.textContent).toContain("Výzkumné otázky běhu jsou neznámé");
     expect(section.textContent).not.toContain("neuvádí výzkumné otázky");
     expect(section.querySelectorAll("tr[data-rq]")).toHaveLength(0);
+  });
+
+  it("reads a failed retryable read as unknown, and words a suppression by every cause it has (ANL4)", async () => {
+    const analysed = run({ ...COMPLETED, steps: [...COMPLETED.steps,
+      step("analysis_audience", "SUCCEEDED", { kind: "research_analysis", artifact_id: "ART-8", analysis_outcome: "BLOCKED" }),
+    ] });
+    api({ ...listed(analysed),
+      "GET /api/v1/studies/STU-1/research/runs/RUN-1/artifacts/ART-4": () => AGGREGATE,
+      "GET /api/v1/studies/STU-1/research/runs/RUN-1/analysis": () => ({ complete: false, synthetic: true, pending: {}, modules: {
+        // Every row removed because its question was refused for fidelity, not for thin support.
+        audience: { outcome: "BLOCKED", summary: null, research_question_answers: [], key_findings: [], claims: [], violations: [
+          { code: "SUPPORT_SUPPRESSED", subject: "preflight", detail: "no citable evidence: all 4 rows were removed (thin support, a refused question, or an estimate without its interval)" },
+        ] },
+      } }),
+      "GET /api/v1/studies/STU-1/research/runs/RUN-1/analysis/retryable": () => { throw new Error("409 conflict"); },
+    });
+    render(<ResearchScreen step="results" frame={TEST_FRAME} />);
+    fireEvent.click(await screen.findByRole("tab", { name: "AI analýza" }));
+    const blocked = await screen.findByRole("region", { name: "Blokované nároky" });
+    const audience = blocked.querySelector('[data-blocked-module="audience"]') as HTMLElement;
+    // A list that could not be read promises nothing: never "the same data would refuse it again".
+    await waitFor(() => expect(audience.getAttribute("data-way-out")).toBe("unknown"));
+    expect(audience.textContent).not.toContain("neopraví");
+    // The words name every cause the preflight groups under one code, not "too few respondents" alone.
+    expect(audience.textContent).toContain("odmítnutá otázka");
+    expect(audience.textContent).not.toContain("příliš málo respondentů");
+  });
+
+  it("names each blocked module's refusals in words with the way out the server gives, and never reads it as done (ANL4)", async () => {
+    const analysed = run({ ...COMPLETED, steps: [...COMPLETED.steps,
+      step("analysis_executive", "SUCCEEDED", { kind: "research_analysis", artifact_id: "ART-6", analysis_outcome: "COMPLETED" }),
+      step("analysis_audience", "SUCCEEDED", { kind: "research_analysis", artifact_id: "ART-8", analysis_outcome: "BLOCKED" }),
+      step("analysis_hypotheses", "SUCCEEDED", { kind: "research_analysis", artifact_id: "ART-9", analysis_outcome: "BLOCKED" }),
+    ] });
+    const blockedAnalysis = () => ({ complete: false, synthetic: true, pending: {}, modules: {
+      executive: { outcome: "COMPLETED", summary: null, research_question_answers: [], key_findings: [], claims: [], violations: [] },
+      // Refused by the preflight before any model turn: the server does not list it as retryable.
+      audience: { outcome: "BLOCKED", summary: null, research_question_answers: [], key_findings: [], claims: [], violations: [
+        { code: "JOINT_CERTIFICATE_DEGRADED", subject: "core", detail: "certificate degraded" },
+      ] },
+      hypotheses: { outcome: "BLOCKED", summary: null, research_question_answers: [], key_findings: [], claims: [], violations: [
+        { code: "EVIDENCE_REF_UNKNOWN", subject: "c1", detail: "q9.mean" },
+        { code: "EVIDENCE_REF_UNKNOWN", subject: "c2", detail: "q7.mean" },
+        { code: "NOT_A_KNOWN_CODE", subject: "summary", detail: "x" },
+      ] },
+    } });
+    api({ ...listed(analysed),
+      "GET /api/v1/studies/STU-1/research/runs/RUN-1/artifacts/ART-4": () => AGGREGATE,
+      "GET /api/v1/studies/STU-1/research/runs/RUN-1/analysis": blockedAnalysis,
+      "GET /api/v1/studies/STU-1/research/runs/RUN-1/analysis/retryable": () => ({ run_id: "RUN-1", modules: ["hypotheses"] }),
+    });
+    render(<ResearchScreen step="results" frame={TEST_FRAME} />);
+    fireEvent.click(await screen.findByRole("tab", { name: "AI analýza" }));
+    const blocked = await screen.findByRole("region", { name: "Blokované nároky" });
+    const hypotheses = blocked.querySelector('[data-blocked-module="hypotheses"]') as HTMLElement;
+    expect(hypotheses.textContent).toContain("Potřebuje opravu");
+    // Each reason once, in words, counted; each subject beside its own detail; a code without words keeps its code.
+    expect(hypotheses.querySelectorAll("[data-violation]")).toHaveLength(2);
+    expect(within(hypotheses).getByText(/cituje číslo, které v datech běhu není/)).toBeTruthy();
+    expect(hypotheses.textContent).toContain("(2×)");
+    expect([...hypotheses.querySelectorAll('[data-violation="EVIDENCE_REF_UNKNOWN"] details li')].map((li) => li.textContent)).toEqual(["c1: q9.mean", "c2: q7.mean"]);
+    expect(hypotheses.textContent).toContain("NOT_A_KNOWN_CODE");
+    expect(blocked.querySelector('[data-blocked-module="executive"]')).toBeNull();
+    // The way out is the server's: a retry only for what it lists; the preflight's refusal is said not to pass again.
+    await waitFor(() => expect(hypotheses.getAttribute("data-way-out")).toBe("retry"));
+    expect(blocked.querySelector('[data-blocked-module="audience"]')?.getAttribute("data-way-out")).toBe("same_data_fails");
+    expect(within(blocked).getByRole("link", { name: "Zobrazit průběh běhu" })).toBeTruthy();
+    // The module list never says it is done, and its pane words the refusals the same way.
+    const entry = screen.getByRole("button", { name: /Hypotézy/ });
+    expect(entry.textContent).toContain("Potřebuje opravu");
+    expect(entry.textContent).not.toMatch(/Dokončeno|Hotovo/);
+    fireEvent.click(entry);
+    const pane = screen.getByRole("region", { name: "Hypotézy" });
+    expect(within(pane).getByText(/cituje číslo, které v datech běhu není/)).toBeTruthy();
+    expect(pane.textContent).not.toMatch(/EVIDENCE_REF_UNKNOWN:/);
+    cleanup();
+    // On a frame that may not edit, nothing offers a round the reader cannot ask for.
+    render(<ResearchScreen step="results" frame={{ ...TEST_FRAME, canEdit: false }} />);
+    fireEvent.click(await screen.findByRole("tab", { name: "AI analýza" }));
+    const readOnly = await screen.findByRole("region", { name: "Blokované nároky" });
+    expect(readOnly.querySelector("[data-way-out]")).toBeNull();
+    expect(within(readOnly).queryByRole("link")).toBeNull();
   });
 
   it("puts every module's key findings first, each with the numbers it cites, and keeps every word formatted", async () => {

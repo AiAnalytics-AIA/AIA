@@ -124,6 +124,20 @@ const [download] = await Promise.all([page.waitForEvent("download", { timeout: 6
 const fileBack = readFileSync(await download.path(), "utf8");
 if (fileBack !== FILE.body) fail(`the downloaded file differs: ${JSON.stringify(fileBack)}`);
 ok("Zadání: the file downloads through the study, byte for byte");
+
+// A link that is not http(s) is said at its field and checked again as it is typed (I9, audit A26).
+const linkField = page.getByRole("textbox", { name: "Odkaz" });
+await linkField.fill("example.test");
+await linkField.press("Enter");
+if ((await linkField.getAttribute("aria-invalid")) !== "true") fail("a link that is not http(s) is not marked at its field");
+await shot("brief-link-problem");
+await linkField.fill("https://example.test/fiktivni");
+if ((await linkField.getAttribute("aria-invalid")) !== null) fail("the link's problem stays after a valid address is typed");
+const linkSave = saved();
+await linkField.press("Enter");
+await linkSave;
+await text("https://example.test/fiktivni", "the added link");
+ok("Zadání: a link's problem said at its field, cleared as it is typed, the link added (A26)");
 await shot("1-brief");
 
 // 2. Dotazník: AIA's template, imported back.
@@ -136,10 +150,10 @@ if (!readFileSync(templatePath).subarray(0, 2).equals(Buffer.from("PK"))) fail("
 ok("Dotazník: AIA's template downloads");
 const imported = saved();
 await page.locator('input[type="file"][aria-label="Vyplněný XLSX / CSV"]').setInputFiles(templatePath);
-await text("Načteno: 2 otázek · 1 sledovaných sad", "the import's summary");
+await text("Načteno: 2 otázky · 1 sledovaná sada", "the import's summary");
 await imported;
 await page.reload({ waitUntil: "load" });
-await text("2 otázek · 1 sledovaných sad", "the imported questionnaire after a reload");
+await text("2 otázky · 1 sledovaná sada", "the imported questionnaire after a reload");
 ok("Dotazník: the template imports in AIA and the questionnaire is read back after a reload");
 await shot("2-questionnaire");
 

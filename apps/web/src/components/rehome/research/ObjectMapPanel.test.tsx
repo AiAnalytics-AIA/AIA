@@ -722,3 +722,29 @@ describe("the Lead's names on the map", () => {
     expect(document.querySelector(focusSelector(`object:hudba/${map.object_ids[i]}`))?.tagName).toBe("BUTTON");
   });
 });
+
+// The object list on the respondent map (artifact-sociomap audit, 2026-10-21): a click there marked an
+// object pressed and changed nothing a person could see, the respondent card staying where the object's
+// detail would be. Selection is the object map's; on the respondent map the list only lists.
+describe("the object list on the respondent map", () => {
+  it("lists the objects without offering a selection the respondent map cannot show", () => {
+    render(<ObjectMapView battery={hudba} dataOrigin={null} />);
+    fireEvent.click(screen.getByRole("button", { name: "Respondenti" }));
+    const buttons = within(screen.getByTestId("object-map-panel-list")).getAllByRole("button");
+    expect(buttons.length).toBe(map.object_ids.length);
+    for (const b of buttons) expect(b.getAttribute("aria-disabled")).toBe("true");
+    // Read only, yet still a target the Lead can focus (Codex, #639): a disabled button takes no focus.
+    buttons[2].focus();
+    expect(document.activeElement).toBe(buttons[2]);
+    fireEvent.click(buttons[2]);
+    expect(canvas().getAttribute("data-selected")).toBe("");
+    // It reads as the object and its value, not as a toggle that selects (no "Vybrat", nothing pressed).
+    expect(buttons[2].hasAttribute("aria-pressed")).toBe(false);
+    expect(buttons[2].hasAttribute("aria-label")).toBe(false);
+    fireEvent.click(screen.getByRole("button", { name: "Objekty" }));
+    const back = within(screen.getByTestId("object-map-panel-list")).getAllByRole("button");
+    expect(back[2].hasAttribute("aria-disabled")).toBe(false);
+    fireEvent.click(back[2]);
+    expect(canvas().getAttribute("data-selected")).toBe(map.object_ids[2]);
+  });
+});
