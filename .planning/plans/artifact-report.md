@@ -128,6 +128,15 @@ V2: `ReportArt` (`InterpretStages.tsx:103-162`).
 **RPT3. Doc bar and approval.** Tests: approval sends the artifact id shown; a stale version is
 refused. Depends on `report-delivery#RD2`, `#RD3`, `input-interactions#6`.
 
+*RPT3, the approval modal (`feature/report-approval-modal`; input-interactions#6, B22, Q33):* "Schválit pro interní
+použití" and "Schválit klientskou zprávu" on `CompleteReport` ask first, in the shared `AskDialog`: the document and
+its variant (the review it carries), the stored version and its format (`approvalQuestion`, `lib/report-variant.ts`),
+that approval cannot be undone, then the card's own line on what the file will carry (never promised by the
+question). The focus starts on Zrušit (I7), Esc answers the dialog alone (D21), and "Schválit" sends exactly the id the
+question named. Tests: `report-variant.test.ts` (`approvalQuestion`), `ExecutionSteps.test.tsx` (every approval
+confirms the dialog naming its version, the client's included; the context variant's focus, Esc and Zrušit);
+`report_journey.mjs` at 1440 and 390. Still open: the doc bar and the export panel (RD2's approval line, RD3).
+
 **RPT4. Záznam pokrytí.** Test: a design that asks for a segment comparison lists "Segmenty:
 neprovedeno". Depends on `artifact-chain-to-draft-report#CHN1`.
 

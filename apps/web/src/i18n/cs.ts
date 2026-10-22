@@ -2898,6 +2898,17 @@ export const cs = {
           APPROVED: "Schváleno pouze pro interní použití.",
           UNKNOWN: "Stav zprávy se nepodařilo zjistit.",
         },
+        // The question before an approval (input-interactions B22, Q33): the document, its variant,
+        // the stored version and its format, and that it cannot be undone.
+        approveAsk: {
+          internal: "interní zprávu",
+          with_review: "interní zprávu s rešerší {review}",
+          client: "klientskou zprávu",
+          docx: "DOCX",
+          docxPdf: "DOCX i jeho PDF",
+          question: "Schválit {what}, uloženou verzi {version} ({format})? Schválení nelze vrátit: tuto verzi pak nelze smazat ani nahradit.",
+          yes: "Schválit",
+        },
         // A stored version's review as its file states it (research-integrity-report D2): only
         // in its footers, KONCEPT while a draft, SCHVÁLENO with the date once approved.
         review: {

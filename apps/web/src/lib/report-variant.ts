@@ -177,3 +177,21 @@ export function reviewLine(review: VersionReview, pdf: boolean): string | null {
   }
   return tv(`research.exec.report.review.${pdf ? "draft" : "draftDocx"}`, { version: review.version });
 }
+
+/**
+ * The question a person answers before approving (input-interactions B22, Q33, artifact-report RPT3):
+ * which document and variant, its stored version and format, and that approving cannot be undone.
+ * What the file will carry is the card's own line (reviewLine), never promised here.
+ */
+export function approvalQuestion(
+  document: "internal" | "with_review" | "client",
+  version: string,
+  { review = null, pdf = false }: { review?: string | null; pdf?: boolean } = {},
+): string {
+  const k = "research.exec.report.approveAsk";
+  return tv(`${k}.question`, {
+    what: tv(`${k}.${document}`, { review: review ?? "" }),
+    version,
+    format: t(`${k}.${pdf ? "docxPdf" : "docx"}`),
+  });
+}
