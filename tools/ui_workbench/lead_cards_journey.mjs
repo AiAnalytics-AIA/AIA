@@ -79,7 +79,7 @@ async function composerReady() {
   const composer = page.getByLabel("Napište Vedoucímu výzkumu");
   await Promise.race([hatch.waitFor({ timeout: 20000 }), composer.and(page.locator(":enabled")).waitFor({ timeout: 20000 })]).catch(() => {});
   if (await hatch.isVisible()) await hatch.click();
-  await page.waitForFunction(() => !document.querySelector("textarea[aria-label='Napište Vedoucímu výzkumu']")?.disabled, null, { timeout: 60000 });
+  await page.getByLabel("Napište Vedoucímu výzkumu").and(page.locator(":enabled")).waitFor({ state: "attached", timeout: 60000 });
   return composer;
 }
 async function say(text) {

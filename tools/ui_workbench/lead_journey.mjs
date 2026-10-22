@@ -84,7 +84,7 @@ try {
   } else {
     check("the researcher's Lead was already hatched");
   }
-  await page.waitForFunction(() => !document.querySelector("textarea[aria-label='Napište Vedoucímu výzkumu']")?.disabled, null, { timeout: 30000 });
+  await page.getByLabel("Napište Vedoucímu výzkumu").and(page.locator(":enabled")).waitFor({ state: "attached", timeout: 30000 });
 
   // The scripted Lead's answers say they are scripted, every time.
   await conv.getByText(SCRIPTED, { exact: false }).first().waitFor({ timeout: 60000 });
@@ -156,7 +156,7 @@ try {
     await page.goto(base + stagePath("questionnaire"));
     await page.locator("[data-workbench]").waitFor({ timeout: 30000 });
     const again = page.getByLabel("Napište Vedoucímu výzkumu");
-    await page.waitForFunction(() => !document.querySelector("textarea[aria-label='Napište Vedoucímu výzkumu']")?.disabled, null, { timeout: 30000 });
+    await page.getByLabel("Napište Vedoucímu výzkumu").and(page.locator(":enabled")).waitFor({ state: "attached", timeout: 30000 });
     const autoAccepted = page.waitForResponse(
       (r) => /\/lead\/turns\/[^/]+\/edits$/.test(new URL(r.url()).pathname) && r.request().method() === "POST" && r.request().postDataJSON()?.auto === true,
       { timeout: 60000 },
@@ -191,7 +191,7 @@ try {
     await launcher.waitFor();
     assert.equal(await page.getByRole("dialog", { name: "Vedoucí výzkumu" }).count(), 0, `${width}: the conversation starts closed`);
     // The pane reads the session while closed; open it once the composer can take focus.
-    await page.waitForFunction(() => !document.querySelector("textarea[aria-label='Napište Vedoucímu výzkumu']")?.disabled, null, { timeout: 30000 });
+    await page.getByLabel("Napište Vedoucímu výzkumu").and(page.locator(":enabled")).waitFor({ state: "attached", timeout: 30000 });
     await launcher.press("Enter");
     const dialog = page.getByRole("dialog", { name: "Vedoucí výzkumu" });
     await dialog.waitFor();
@@ -199,7 +199,7 @@ try {
     const reply = page.locator(`text=${SCRIPTED}`);
     const answered = await reply.count();
     const box = page.getByLabel("Napište Vedoucímu výzkumu");
-    await page.waitForFunction(() => !document.querySelector("textarea[aria-label='Napište Vedoucímu výzkumu']")?.disabled, null, { timeout: 30000 });
+    await page.getByLabel("Napište Vedoucímu výzkumu").and(page.locator(":enabled")).waitFor({ state: "attached", timeout: 30000 });
     await box.fill(`Jak to vypadá při šířce ${width} px?`);
     await box.press("Enter");
     // The scripted answer points at a question: the conversation steps aside to it, focus follows,
