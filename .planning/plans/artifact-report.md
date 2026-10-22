@@ -362,6 +362,9 @@ sentence refused by RD7 is marked at the sentence. Depends on `report-delivery#R
 
 ## 8. Owner questions
 
+- Held at the feature freeze (the owner, 2026-10-22, 16:5x UTC: "stop developing new features, let's get the
+  new deploy up and running"): RPT8a part 3 and RPT8b-d, none built or opened; they resume when the freeze lifts.
+
 - Q73 (decided 2026-10-22, (c)): downloads stay free before approval; RPT3b is closed, not built.
 - Hosting ONLYOFFICE Document Server beside develop (RPT8): an operations change, for the coordinator to
   schedule with the owner (AGPL obligations named in the spike).
