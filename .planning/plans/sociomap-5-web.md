@@ -9,6 +9,7 @@ chunks:
   - "[x] 5. Taste segments on the respondent map: colours, legend, borderline hint"
   - "[x] 6. Detail on click: an object's and a respondent's detail, in the panel's content"
   - "[x] 7. The Word report's -5 map figure in the panel's look; the web map's PNG snapshot, with its legend"
+  - "[x] 8. The panel's map window: the dock and tools on the map, the ⓘ info pill, Nastavení mapy / Nástroje / Správa objektů and the detail as movable, resizable glass windows inside the stage"
 ---
 # aia-sociomap-5 in the web — the map drawn as the AIA panel draws it
 
@@ -54,6 +55,24 @@ independent review; the owner's look at screenshots before each commit.
 
 **Minimal diff.** `-2/-3/-4` code paths untouched; no change outside the map panel's components, its lib modules and
 `cs.ts`.
+
+## Chunk 8: the panel's map window (the owner, 2026-10-21)
+
+The visual rule widens from the drawing to the map's whole window: the controls and the detail are no longer the page's
+toolbar and right-hand column but the AIA panel's dock on the map („Mapa“, „Práce“), its tools column, its ⓘ info pill
+and its floating glass windows („Nastavení mapy“, „Nástroje mapy“, „Správa objektů“, the detail), moved by the header,
+resized from a corner (at least 260 × 140), kept inside the stage, the one pressed brought to the front; only one work
+window at a time, Esc closing the work window, then the detail, then the info box. Pages outside the map stay as in git.
+The owner's decisions:
+- the windows live inside the stage, so they stay usable in full screen (the panel's detail is out of sight there);
+- the object list becomes „Správa objektů“ and the map's facts go into the ⓘ box;
+- the ⓘ pill shows the stored map quality (the panel's relation-strength level is computed in the browser and is not
+  stored);
+- the detail stays open while a work window is open;
+- „Top vztahy“ follows the selection in full screen too (an object selected: its five strongest).
+Departures for the web's own content: no „Analýza“, „Sada na mapě“ or dot style (the web has none); on Respondenti a
+pick from the object list marks the object, it opens no detail; the stage isolates its layers below the page's header
+and dialogs; on a narrow screen the detail keeps the panel's place at the right.
 
 ## Open questions
 
