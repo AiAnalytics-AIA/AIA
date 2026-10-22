@@ -2,7 +2,7 @@
 status: in-progress
 chunks:
   - "[x] SMP1. Vzorek's contract as data: view operations, pointable ids (size, quota cell, forecast item, readiness check) and V2's interaction contract"
-  - "[ ] SMP2. Velikost a složení: n, the dimensions and the audience summarized; the panel's quota cells before a run, and for the fictional roster the words that it has none"
+  - "[x] SMP2. Velikost a složení: n, the dimensions and the audience summarized; the panel's quota cells before a run, and for the fictional roster the words that it has none"
   - "[x] SMP3. Odhad podpory před během: the support forecast and the question outlook, labelled a forecast, never a result"
   - "[x] SMP4. Připravenost ke spuštění: every readiness check with its stage link, on the working revision"
   - "[x] SMP5. Kdo bude odpovídat: the persona source offered, its default and why an unoffered one is not, read only here with a link to Spuštění, where it is chosen (SQ1 = Q54 b)"
@@ -96,6 +96,13 @@ V2: `SampleArt` (`SampleStages.tsx:232-273`).
 - Tests: `SampleView.test.tsx`: the roster reads "fiktivní soupis nemá kvóty"; a panel run's cells
   come from the API.
 - Depends on `run-qc-and-checkpoint#RQC6` for panel cells.
+- Delivered with RQC6c: `lib/sample-view.ts` `compositionOf` (roster, drawn, refused, unknown);
+  §1's "Složení podle kvót" lists the cells with respondents, largest first, each `sample:quota:<key>`,
+  ten shown and the rest under a `details` element; the roster reads "Fiktivní respondenti se
+  nevybírají podle kvót."; a refusal in the audience step's words (`PREVIEW_REASONS`). SMP3's
+  forecast now reads a panel run known when the server drew its sample. Tests
+  `sample-view.test.ts` (`compositionOf`, the panel forecast) and `SampleView.test.tsx`
+  ("Složení podle kvót").
 
 **SMP3. Forecast.** Test: an unknown forecast for a panel run reads "neznámé", never good.
 
