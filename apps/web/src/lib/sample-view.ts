@@ -2,7 +2,7 @@
 // outlook as the server worked them out before the run. Pure. Nothing here decides: the server's
 // readiness is the authority, and what it could not forecast reads as unknown, never as good.
 
-import { PREVIEW_REASONS } from "@/research/audience";
+import { verdictWords } from "@/research/audience";
 
 import type { CheckStatus, OutlookVerdict, PersonaSourceOption, ReadinessBody } from "./api";
 import { outlookCounts } from "./research-execution";
@@ -27,7 +27,8 @@ export type SupportForecastLine =
 export function supportForecastOf(readiness: ReadinessBody): SupportForecastLine {
   const check = readiness.checks.find((c) => c.id === SUPPORT_FORECAST_CHECK);
   if (!check) return { known: false, message: null };
-  const drawn = readiness.sample_composition != null && readiness.sample_composition.refused === null;
+  // Counted, not just drawn: a drawn sample with a respondent without a donor stays unknown.
+  const drawn = readiness.sample_composition?.refused === null && readiness.sample_composition.support_counted === true;
   if (readiness.persona_source === "panel" && !drawn) return { known: false, message: check.message };
   return { known: true, status: check.status, message: check.message };
 }
@@ -153,7 +154,7 @@ export function compositionOf(readiness: ReadinessBody): Composition {
     const words =
       drawn.refused === "population_unavailable"
         ? "Populaci se teď nepodařilo načíst, vzorek nelze předem vybrat."
-        : (PREVIEW_REASONS[drawn.refused] ?? `Výběr odmítnut (${drawn.refused}).`);
+        : verdictWords({ reason: drawn.refused, reasons: drawn.refused_reasons });
     return { kind: "refused", words };
   }
   const total = drawn.cells.reduce((sum, c) => sum + c.n, 0);

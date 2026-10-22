@@ -1030,11 +1030,15 @@ export type QuotaCell = { key: string; values: string[]; n: number };
 /** How the sampler spreads n over its quota cells, or why it refused; never support for a cell. */
 export type SampleComposition = {
   refused: string | null;
+  /** What the refusal names (the audience preview's `reasons`); absent from an older API. */
+  refused_reasons?: string[];
   version_id: string | null;
   seed: number | null;
   quota_fields: string[];
   cells: QuotaCell[];
   sample_donors: number | null;
+  /** Whether the support forecast was counted from this sample; absent from an older API. */
+  support_counted?: boolean;
 };
 
 /** Readiness's fields, whichever revision it was read on. */

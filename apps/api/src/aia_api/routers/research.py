@@ -619,12 +619,17 @@ class SampleCompositionResponse(BaseModel):
 
     #: Why the sampler refused (its reason code); ``None`` when it drew.
     refused: str | None
+    #: What the refusal names, the audience preview's ``reasons``; empty when it names nothing.
+    refused_reasons: list[str] = []
     version_id: str | None
     seed: int | None
     quota_fields: list[str]
     cells: list[QuotaCellResponse]
     #: Distinct donors behind the sample; ``None`` when refused or without a donor column.
     sample_donors: int | None
+    #: Whether the support forecast was counted from this sample (a respondent without a donor
+    #: leaves it unknown, as fieldwork refuses such a sample).
+    support_counted: bool = False
 
 
 class _ReadinessBody(BaseModel):
@@ -1408,15 +1413,20 @@ def _readiness_body(
         )
         if outlook.answerability is not None
         else None,
-        "sample_composition": _composition(outlook.panel) if outlook.panel is not None else None,
+        "sample_composition": _composition(
+            outlook.panel, counted=outlook.forecast is not None and outlook.forecast.known
+        )
+        if outlook.panel is not None
+        else None,
     }
 
 
-def _composition(panel: PanelDraw) -> SampleCompositionResponse:
+def _composition(panel: PanelDraw, *, counted: bool) -> SampleCompositionResponse:
     sample = panel.sample
     if sample is None:
         return SampleCompositionResponse(
             refused=panel.refused,
+            refused_reasons=list(panel.reasons),
             version_id=panel.version_id,
             seed=panel.seed,
             quota_fields=[],
@@ -1433,6 +1443,7 @@ def _composition(panel: PanelDraw) -> SampleCompositionResponse:
             for c, key in zip(sample.quota_cells, quota_keys(sample.quota_cells), strict=True)
         ],
         sample_donors=sample.audit.sample_donors,
+        support_counted=counted,
     )
 
 
