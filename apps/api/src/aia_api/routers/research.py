@@ -24,6 +24,7 @@ from aia_core.application.analysis_results import (
 )
 from aia_core.application.client_report import (
     CLIENT_REPORT_DOCUMENT_ARTIFACT_TYPE,
+    ClientGateRefused,
     ClientReportRefused,
     client_report_document,
     stored_client_report,
@@ -2833,6 +2834,19 @@ def approve_run_report(
         raise _not_found("run") from exc
     except ArtifactNotFound as exc:
         raise _not_found("report") from exc
+    except ClientGateRefused as exc:
+        raise HTTPException(
+            409,
+            detail={
+                "code": "client_gate_refused",
+                "message": "Klientskou zprávu nelze schválit: " + str(exc),
+                "details": {"refusals": [r.to_json() for r in exc.refusals]},
+            },
+        ) from exc
+    except (IntegrityError, ObjectNotFound) as exc:
+        raise artifact_corrupt(session) from exc
+    except DocumentModelInvalid as exc:
+        raise HTTPException(409, detail={"code": "report_artifact_invalid"}) from exc
     except ReportNotApprovable as exc:
         raise HTTPException(
             409,

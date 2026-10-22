@@ -60,6 +60,10 @@ def store_document_beside(
         "depends_on": [docx.artifact_id],
     }
     model, _created = repo.put(**put)
-    if not beside(model, docx):
+    if (
+        not beside(model, docx)
+        or model.metadata.get("document_contract") != DOCUMENT_MODEL_CONTRACT
+    ):
+        # Another DOCX's, or one of an older contract a reader of today's cannot judge in full.
         model, _created = repo.put(**put, reuse=False)
     return model
