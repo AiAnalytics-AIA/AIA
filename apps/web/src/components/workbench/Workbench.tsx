@@ -158,6 +158,10 @@ function autoList(memory: Map<string, unknown>): AutoList {
   return list;
 }
 
+/** The stage whose heading takes the focus once it opens (FrameNavigation's `next.go`); module
+ *  scope, because a move to another route remounts the workbench. */
+const headingFocus: { pending: { studyId: string; stage: WorkbenchStage } | null } = { pending: null };
+
 export function Workbench({ frame, step, store, memory, save, inspector, reload, confirm, onAgentStarted, jobs, onOpenJob, onRefreshJobs, children }: {
   frame: StudyFrame;
   step: StepKey;
@@ -362,16 +366,40 @@ export function Workbench({ frame, step, store, memory, save, inspector, reload,
   }, [frame.studyId, runs, jobStates, turnStates]);
 
 
-  const go = useCallback((target: WorkbenchStage) => {
+  /** Opens a stage; true when it moved now, false when a stage's leave guard stopped it. */
+  const go = useCallback((target: WorkbenchStage): boolean => {
     const s = STAGES[target];
     // Within one route the stage is its hash (a result view, or Vzorek on Dimenze's route).
     if (s.step === step) {
       window.location.hash = s.view ?? "";
-      return;
+      return true;
     }
     // Through a link's click, so a stage's leave guard (Návrh's unsaved edits) can stop it.
-    guardedNavigate(stageHref(target, frame.stepHref), (url) => router.push(url));
+    return guardedNavigate(stageHref(target, frame.stepHref), (url) => router.push(url));
   }, [router, step, frame.stepHref]);
+
+  // A stage's forward action (FrameNavigation's `next`): the stage after this one in the workbench's
+  // order, opened as the navigator opens it, then the focus on the new stage's heading. The pressed
+  // button may be hidden by the move (Vzorek hides Dimenze's screen), so the focus would fall to the
+  // body; the heading names where the person is now. Kept across a route change, which remounts.
+  const nextStage = STAGE_ORDER[STAGE_ORDER.indexOf(stage) + 1] ?? null;
+  const frameNav = useMemo(() => ({
+    next: nextStage ? {
+      label: STAGES[nextStage].label,
+      go: () => {
+        // Only a move that went through asks for the focus: a leave guard that stopped it leaves
+        // nothing pending to steal the focus on a later visit (review of #686).
+        if (go(nextStage)) headingFocus.pending = { studyId: frame.studyId, stage: nextStage };
+      },
+    } : null,
+  }), [nextStage, go, frame.studyId]);
+  useEffect(() => {
+    // Consumed on every stage change, matched or not, and only for this study.
+    const want = headingFocus.pending;
+    headingFocus.pending = null;
+    if (want?.stage !== stage || want.studyId !== frame.studyId) return;
+    requestAnimationFrame(() => document.querySelector<HTMLElement>("[data-workbench] .arthead__title")?.focus());
+  }, [stage, frame.studyId]);
 
   const onView = useCallback((ops: LeadView[]) => {
     // In the drawer or the sheet the conversation steps aside so the person sees what the Lead pointed at.
@@ -674,7 +702,7 @@ export function Workbench({ frame, step, store, memory, save, inspector, reload,
             <div className="art" aria-label={`Artefakt ${STAGES[stage].label}`}>
               <div className="arthead">
                 <div style={{ minWidth: 0, flex: 1 }}>
-                  <div className="row"><h1 className="arthead__title">{STAGES[stage].label}</h1>{save}</div>
+                  <div className="row"><h1 className="arthead__title" tabIndex={-1}>{STAGES[stage].label}</h1>{save}</div>
                   <div className="arthead__sub">{state.revision === null ? "Pracovní kopie zatím neuložena" : `Pracovní kopie · revize ${state.revision}`}{frame.canEdit ? "" : " · jen ke čtení"}</div>
                 </div>
                 <div className="arthead__actions">
@@ -701,7 +729,7 @@ export function Workbench({ frame, step, store, memory, save, inspector, reload,
                 <div className="artbody" id="artbody"><div className="wb-stage">
                   {stage === "sample" ? <SampleView project={state.project} onOpen={go} /> : null}
                   {/* Sample shows Dimenze's screen hidden, so its readiness still reaches the inspector. */}
-                  <div hidden={stage === "sample"}><LeadAskContext.Provider value={askLead}><ItemInspectorContext.Provider value={itemInspector}><FrameNavigation.Provider value>{children}</FrameNavigation.Provider></ItemInspectorContext.Provider></LeadAskContext.Provider></div>
+                  <div hidden={stage === "sample"}><LeadAskContext.Provider value={askLead}><ItemInspectorContext.Provider value={itemInspector}><FrameNavigation.Provider value={frameNav}>{children}</FrameNavigation.Provider></ItemInspectorContext.Provider></LeadAskContext.Provider></div>
                 </div></div>
                 {/* Mounted while empty, so closing it gives the focus back to what opened it. */}
                 <div ref={itemDrawer} className="itemdrawer" hidden={!itemOpen}>

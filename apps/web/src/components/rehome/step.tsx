@@ -63,13 +63,18 @@ export function StepSection({
  * ready in the middle, the one primary action on the right. It replaces each
  * step's bottom row; the action keeps the conditions it had there.
  */
+/** The frame's next stage, as a stage's forward action names and opens it. */
+export type FrameNext = { label: string; go: () => void };
+
 /**
- * True inside a frame whose own navigator names the neighbouring stages (the research workbench,
- * whose stages and their order are lib/workbench-stages.ts). A dock there leaves its back link out:
- * the classic flow's "4. Audience" names a step the workbench calls otherwise, in another order.
- * A stage reads it too, to send its forward action to the workbench's next stage.
+ * Set inside a frame whose own navigator names the neighbouring stages (the research workbench,
+ * whose stages and their order are lib/workbench-stages.ts); null outside. A dock there leaves its
+ * back link out: the classic flow's "4. Audience" names a step the workbench calls otherwise, in
+ * another order. A stage's forward action reads `next`: the stage after it in the frame's order,
+ * with its label, opened by the frame (its route or hash, its leave guard, the focus moved to the
+ * new stage's heading), never by the stage itself. `next` is null on the last stage.
  */
-export const FrameNavigation = createContext(false);
+export const FrameNavigation = createContext<{ next: FrameNext | null } | null>(null);
 
 export function ActionDock({ back, note, ready = true, children }: {
   back?: { href: string; label: string };
@@ -78,7 +83,7 @@ export function ActionDock({ back, note, ready = true, children }: {
   ready?: boolean;
   children: ReactNode;
 }) {
-  const framed = useContext(FrameNavigation);
+  const framed = useContext(FrameNavigation) !== null;
   return (
     <div className="flex flex-wrap items-center gap-3 rounded-card border border-border bg-surface-raised px-3 py-2.5">
       {back && !framed ? (
