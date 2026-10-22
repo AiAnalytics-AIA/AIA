@@ -3,7 +3,7 @@ status: in-progress
 chunks:
   - "[x] 1. ONLYOFFICE Docs on the develop host: a Compose project of its own (deploy/develop/docs), the upstream image pinned by digest, bin/docs.sh, off unless aia_onlyoffice_enabled"
   - "[x] 2. docs.<hostname>: its own origin in the Caddyfile, every request through AIA's docs gate, the server-only paths refused; tools/caddy_routes.py holds it"
-  - "[ ] 3. The docs gate in the API: a docs-only session cookie on docs.<hostname> from a one-time ticket, refused without it"
+  - "[x] 3. The docs gate in the API: a docs-only session cookie on docs.<hostname> from a one-time ticket, refused without it"
   - "[ ] 4. Activation on develop (operations, the owner's word): the host resized, docs.<hostname> in Route 53, the JWT secret in SSM, the flag on, the editor's own checks"
 ---
 # Report editor hosting: ONLYOFFICE Docs beside the develop stack
@@ -355,6 +355,37 @@ service. A plain path match on `/coauthoring/CommandService.ashx` would therefor
 the prefix and repeated slashes, and `tools/caddy_routes.py` checks it against sample paths both ways: refused
 ones, and the editor's own paths, which must stay open. The same config also showed an `/ai-proxy` location;
 it is refused.
+
+## Built (chunk 3, 2026-10-22)
+
+- `apps/api/src/aia_api/docs_pass.py`: the ticket and the cookie, `<payload>.<mac>`, HMAC-SHA256 under
+  a key derived from `AIA_ONLYOFFICE_JWT_SECRET` (never the secret itself), read back only as their own
+  kind, unexpired, under the same secret.
+- `routers/session.py`:
+  - `POST /session/docs-ticket` takes the person's own token;
+  - `GET /session/docs` answers only when the request's Host is the editor's origin (any other host is
+    404 and spends nothing), admits and audits (`AIA_SESSION`, or `AIA_SESSION_DENIED`), then sets
+    `aia_docs` and redirects to `next` through `_local_path`;
+  - `GET /session/docs-gate` checks the method first (GET, HEAD, POST), then the cookie, then the person,
+    who must still be an active member of the organization the cookie names; it answers 401, never a
+    redirect.
+  - All three answer 404 until both `AIA_ONLYOFFICE_URL` (an https origin, checked at start) and
+    `AIA_ONLYOFFICE_JWT_SECRET` (at least 32 characters) are set.
+- `docs_ticket_spends`, migration `f4b6d8a0c2e3`: single use by primary key. It was run up, down and up
+  on PostgreSQL 16, and `alembic check` finds nothing to add. `DocsTicketRepository` writes it only
+  under the `OrganizationContext` that `ScopeResolver` issued, and deletes that person's rows a day past
+  expiry. `application/docs_session.open_docs_session` is the router's way to it (the ratchet contract).
+- Tests: `apps/api/tests/test_docs_pass.py` (19) and `test_docs_session_api.py` (35), on SQLite and on
+  PostgreSQL; the existing session tests pass unchanged.
+- `infra/develop/main.tf`: `aws_route53_record.docs`, like `errors`. A read-only plan on 2026-10-22
+  (`-lock=false`, the SSM tfvars) showed 2 to add: `docs[0]`, and `errors[0]`, the drift known since
+  2026-10-20 (the record is in the zone but not in state). An apply would fail on `errors[0]`, so
+  activation imports it first:
+  `terraform import 'aws_route53_record.errors[0]' Z0491946PNRJDOXB1EWV_errors.aia-develop.art-chain.io_A`.
+
+Accepted, said here: the ticket travels in the query of `/__aia/session`, so Caddy's access log on
+`docs.<hostname>` records it. It is good once and for 60 seconds, and spent on that very request, so the
+logged value opens nothing.
 
 ## Findings
 
