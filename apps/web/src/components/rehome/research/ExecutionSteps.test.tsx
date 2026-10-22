@@ -1301,7 +1301,11 @@ describe("Progress", () => {
     expect(panel.dataset.stepActivity).toBe("open");
     expect(panel.querySelector<HTMLElement>("[data-orb]")?.style.width).toBe("64px");
     const log = await within(panel).findByRole("log");
-    expect(within(log).getAllByRole("listitem").map((l) => l.textContent?.replace(/^[\d:]+/, ""))).toEqual([
+    // The log's times are the time alone, so its first entry of a day is headed by that day.
+    const items = within(log).getAllByRole("listitem");
+    expect(items[0].hasAttribute("data-day")).toBe(true);
+    expect(items[0].textContent).toBe("25. září 2026");
+    expect(items.filter((l) => !l.hasAttribute("data-day")).map((l) => l.textContent?.replace(/^[\d:]+/, ""))).toEqual([
       "Worker krok převzal",
       "AI respondenti odpověděli · 40 z 300 respondentů",
       "Model odpověděl · 1200 → 380 tokenů · $0.004 · 3.2 s",
@@ -1781,7 +1785,7 @@ describe("Results", () => {
       } }),
     });
     const opened: string[] = [];
-    const inspector = { open: (entry: { id: string }) => { opened.push(entry.id); return true; }, closeWhere: () => undefined };
+    const inspector = { open: (entry: { id: string }) => { opened.push(entry.id); return true; }, closeWhere: () => {} };
     render(<ItemInspectorContext.Provider value={inspector}><ResearchScreen step="results" frame={TEST_FRAME} /></ItemInspectorContext.Provider>);
     fireEvent.click(await screen.findByRole("tab", { name: "AI analýza" }));
     const table = await screen.findByRole("region", { name: "Pokrytí výzkumných otázek" });

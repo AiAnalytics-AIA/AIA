@@ -368,6 +368,18 @@ class ResearchStepResponse(BaseModel):
     recovery_reason: Literal["paid_call_uncertain", "attempts_exhausted"] | None = None
 
 
+class ResearchRunSpend(BaseModel):
+    """What one run has cost, by the rules Settings reads a person's spend (Q40), whoever each
+    charge is booked to (``artifact-fieldwork`` FLD4)."""
+
+    #: Settled: the usage ledger's rows and the holds no ledger row names.
+    spent_usd: float
+    #: Holds open now: not spent yet, and not in the study's remainder.
+    reserved_usd: float
+    #: Calls whose cost is not known: with any, ``spent_usd`` is not known to the cent.
+    uncertain_calls: int
+
+
 class ResearchRunPopulation(BaseModel):
     """The population a run recorded (population-operations P3), and whether anything read it.
 
@@ -493,6 +505,9 @@ class ResearchRunResponse(BaseModel):
     artifact_ids: list[str] = Field(default_factory=list)
     #: Only with ``VIEW_COSTS``; ``None`` otherwise, never zero.
     actual_cost_usd: float | None = None
+    #: Only on ``GET …/research/runs/{run_id}``, with ``VIEW_COSTS``; ``None`` on a listed run
+    #: and on an action's answer (start, cancel, retry, budget), which is not a cost read.
+    spend: ResearchRunSpend | None = None
     #: The population the run recorded; ``None``: it recorded none (no LIVE when it started).
     population: ResearchRunPopulation | None = None
     #: The Sociomap, support and aggregation methods the run pinned when it started.
@@ -619,12 +634,17 @@ class SampleCompositionResponse(BaseModel):
 
     #: Why the sampler refused (its reason code); ``None`` when it drew.
     refused: str | None
+    #: What the refusal names, the audience preview's ``reasons``; empty when it names nothing.
+    refused_reasons: list[str] = []
     version_id: str | None
     seed: int | None
     quota_fields: list[str]
     cells: list[QuotaCellResponse]
     #: Distinct donors behind the sample; ``None`` when refused or without a donor column.
     sample_donors: int | None
+    #: Whether the support forecast was counted from this sample (a respondent without a donor
+    #: leaves it unknown, as fieldwork refuses such a sample).
+    support_counted: bool = False
 
 
 class _ReadinessBody(BaseModel):
@@ -1408,15 +1428,20 @@ def _readiness_body(
         )
         if outlook.answerability is not None
         else None,
-        "sample_composition": _composition(outlook.panel) if outlook.panel is not None else None,
+        "sample_composition": _composition(
+            outlook.panel, counted=outlook.forecast is not None and outlook.forecast.known
+        )
+        if outlook.panel is not None
+        else None,
     }
 
 
-def _composition(panel: PanelDraw) -> SampleCompositionResponse:
+def _composition(panel: PanelDraw, *, counted: bool) -> SampleCompositionResponse:
     sample = panel.sample
     if sample is None:
         return SampleCompositionResponse(
             refused=panel.refused,
+            refused_reasons=list(panel.reasons),
             version_id=panel.version_id,
             seed=panel.seed,
             quota_fields=[],
@@ -1433,6 +1458,7 @@ def _composition(panel: PanelDraw) -> SampleCompositionResponse:
             for c, key in zip(sample.quota_cells, quota_keys(sample.quota_cells), strict=True)
         ],
         sample_donors=sample.audit.sample_donors,
+        support_counted=counted,
     )
 
 
@@ -1619,10 +1645,20 @@ def list_runs(
     "/research/runs/{run_id}", response_model=ResearchRunResponse, summary="One research run"
 )
 def get_run(run_id: RunIdPath, scope: StudyScopeDep, session: SessionDep) -> ResearchRunResponse:
+    runs = ResearchRuns(session, scope)
     try:
-        return _run(ResearchRuns(session, scope).get(run_id), scope)
+        run = runs.get(run_id)
+        response = _run(run, scope)
+        if scope.has(Permission.VIEW_COSTS):
+            spent = runs.spend(run)
+            response.spend = ResearchRunSpend(
+                spent_usd=spent.total_usd,
+                reserved_usd=spent.reserved_usd,
+                uncertain_calls=spent.uncertain_calls,
+            )
     except ResearchRunNotFound as exc:
         raise _not_found("run") from exc
+    return response
 
 
 @router.get(
