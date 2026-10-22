@@ -87,6 +87,7 @@ beforeEach(() => {
       return impactAnswer ? new Response(JSON.stringify(impactAnswer)) : new Response(JSON.stringify({ code: "design_revision" }), { status: 404 });
     }
     if (u === "/api/v1/studies/STU-1") return new Response(JSON.stringify({ study_id: "STU-1", budget_usd: null, spent_usd: null }));
+    if (u.endsWith("/research/agent-jobs")) return new Response(JSON.stringify([]));
     return new Response(JSON.stringify({ code: "not_found" }), { status: 404 });
   }));
 });
@@ -653,6 +654,31 @@ describe("the Lead's show_diff (research-lead-workbench 14)", () => {
       </Workbench>,
     );
     await waitFor(() => expect(onOpenJob).toHaveBeenCalledWith(pending));
+  });
+
+  it("asks the server for the stage's pending proposals when the newest page holds none (Codex on #809)", async () => {
+    const pending = { run_id: "RUN-old", action: "optimize_questionnaire", proposal_state: "pending", created_at: "2026-10-01T09:00:00Z", status: "COMPLETED", is_terminal: true, steps: [] } as unknown as ResearchAgentJob;
+    leadReads = [leadState({ busy: true, turns: [leadTurn("T1", 1)] }), leadState({ turns: [leadTurn("T1", 1), leadTurn("T2", 2, [{ op: "show_diff", stage: "questionnaire" }])] })];
+    const base = vi.mocked(fetch);
+    const asked: string[] = [];
+    vi.stubGlobal("fetch", vi.fn(async (url: RequestInfo | URL, init?: RequestInit) => {
+      if (String(url).includes("/research/agent-jobs?")) {
+        asked.push(String(url));
+        return new Response(JSON.stringify([pending]));
+      }
+      return base(url, init);
+    }));
+    const onOpenJob = vi.fn();
+    const store = new ResearchStore({ revision: 3, project: EMPTY_PROJECT as unknown as ResearchProject, analysis: null, save: { kind: "saved" }, checkEpoch: 0 }, "STU-1");
+    render(
+      <Workbench frame={TEST_FRAME} step="questionnaire" store={store} memory={new Map()} save={null} inspector={null} reload={vi.fn()} confirm={vi.fn(async () => true)}
+        onAgentStarted={vi.fn()} jobs={[]} onOpenJob={onOpenJob} onRefreshJobs={vi.fn(async () => [])}>
+        <Stage />
+      </Workbench>,
+    );
+    await waitFor(() => expect(onOpenJob).toHaveBeenCalledWith(pending));
+    expect(asked.length).toBeGreaterThan(0);
+    expect(asked.every((u) => u.endsWith("/research/agent-jobs?pending=true"))).toBe(true);
   });
 
   it("opens the stage itself, through its leave guard, when nothing waits there", async () => {

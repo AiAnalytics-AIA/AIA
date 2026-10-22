@@ -13,7 +13,7 @@
 import { useRouter } from "next/navigation";
 import { type KeyboardEvent as ReactKeyboardEvent, type ReactNode, type Ref, useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
 
-import { ApiError, api, lead as leadApi, research, type Readiness, type ResearchAgentJob, type ResearchRun, type Study } from "@/lib/api";
+import { ApiError, api, lead as leadApi, research, researchAgents, type Readiness, type ResearchAgentJob, type ResearchRun, type Study } from "@/lib/api";
 import { withBudget } from "@/lib/budget-line";
 import { backEntry, closeStack, emptyStack, type InspectorEntry, type InspectorStack, onStage, openEntry, topEntry } from "@/lib/inspector-stack";
 import { availabilityWords, leadAvailability, type LeadAvailability, type LeadStateWithWorker } from "@/lib/lead-availability";
@@ -713,11 +713,23 @@ export function Workbench({ frame, step, store, memory, save, inspector, reload,
 
   // A Lead's show_diff (research-lead-workbench 14): the Lead's edits still to decide on the
   // stage, else its newest proposal still waiting for review; with neither, the stage itself.
+  // `jobs` is the newest page only: a proposal older than it is asked of the server, which
+  // filters the pending ones before its page.
   showChanges.current = (target, reveal) => {
     const what = changesToShow(target, open.map((x) => editStage(x.edit)), jobs);
     if (what?.kind === "proposal") return openJob(what.job);
-    if (target !== stage && !go(target)) return;
-    if (what?.kind === "edits") reveal(EDITS_SELECTOR);
+    if (what?.kind === "edits") {
+      if (target === stage || go(target)) reveal(EDITS_SELECTOR);
+      return;
+    }
+    researchAgents.jobs(frame.studyId, true).then(
+      (pending) => {
+        const older = changesToShow(target, [], pending);
+        if (older?.kind === "proposal") openJob(older.job);
+        else if (target !== stage) go(target);
+      },
+      () => { if (target !== stage) go(target); },
+    );
   };
 
   // The prepared research run's card (chunk 23): the design the person sees submitted and read as
