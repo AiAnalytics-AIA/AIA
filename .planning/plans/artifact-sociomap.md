@@ -217,7 +217,9 @@ Browser audit, 2026-10-21, on the local workbench (`AIA_WEB_RESEARCH_WORKBENCH=t
     project memory's classic layout at 1366 × 768 (under the sticky header), and that a canvas is no taller than
     1.5 × its width. Each short screen failed on the CSS guess; the memory case fails without the header subtracted
     (752 > 640 px). `sociomap-display.test.ts` holds `stageHeight`.
-- **Open, SOC2 (blocked on research-lead-workbench#15): the Sociomapa stage opens on Výsledky's other cards.** The
+- **Fixed by #773 (merged as `d71b1738`), was SOC2's: the Sociomapa stage opened on Výsledky's other cards.** A view
+  named by the address now opens scrolled to its tabs (`ResultsWorkspace.tsx:36-48 @ 382b418a`;
+  `ResultsWorkspace.test.tsx` "opens a view named by the address scrolled to its tabs…"). As recorded: The
   stage is Výsledky's maps view (`workbench-stages.ts`, view `maps`), and `ResultsWorkspace` puts "Kdo odpovídal",
   "Kompletní zpráva studie" and the results tabs above the maps panel. The map starts 2,174 px into a 755 px pane at
   1440 px. SOC2's frame shows the map alone; until then a person scrolls three screens to the map. The Výsledky screen
