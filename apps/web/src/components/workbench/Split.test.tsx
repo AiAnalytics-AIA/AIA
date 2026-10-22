@@ -79,6 +79,32 @@ describe("focus recovery in the open drawer or sheet", () => {
     await waitFor(() => expect(document.activeElement).toBe(screen.getByLabelText("Napište Vedoucímu výzkumu")));
   });
 
+  it("still recovers after trapTab's wrap moved the focus to a control that then unmounts (review of #683)", async () => {
+    function Wrapped() {
+      const [gone, setGone] = useState(false);
+      return (
+        <div>
+          {gone ? <p>Rozhodnuto</p> : <button type="button" onClick={() => setGone(true)}>Přijmout</button>}
+          <textarea aria-label="Napište Vedoucímu výzkumu" />
+        </div>
+      );
+    }
+    render(<Split split={40} mode="split" layout="sheet" shown leftLabel="Vedoucí výzkumu" onSplit={() => {}} onCommit={() => {}}
+      left={<Wrapped />} right={<div>artefakt</div>} rail={<button type="button">Vedoucí</button>} />);
+    const composer = screen.getByLabelText("Napište Vedoucímu výzkumu");
+    composer.focus();
+    // Tab from the last control: trapTab focuses the first from its keydown listener, so
+    // focusout(composer) and focusin(Přijmout) both run before the deferred check.
+    act(() => {
+      document.dispatchEvent(new KeyboardEvent("keydown", { key: "Tab", bubbles: true }));
+    });
+    const accept = screen.getByRole("button", { name: "Přijmout" });
+    expect(document.activeElement).toBe(accept);
+    await new Promise((r) => setTimeout(r, 0));
+    act(() => accept.click());
+    await waitFor(() => expect(document.activeElement).toBe(composer));
+  });
+
   it("brings it to the log when the composer takes no text", async () => {
     bench(true, false);
     const button = screen.getByRole("button", { name: "Spustit úlohu" });
