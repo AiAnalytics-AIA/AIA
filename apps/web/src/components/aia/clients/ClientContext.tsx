@@ -90,7 +90,8 @@ export function useStartStudy(): { start: (kind: StudyKind) => void; dialog: Rea
       required: true,
       initial: "",
       resolve: (name) => {
-        if (!name?.trim()) return;
+        // A blank name never gets here: the dialog refuses it (required); null is a cancel.
+        if (name === null) return;
         workspace.startStudy(client.client_id, name.trim(), kind).then(
           (s) =>
             router.push(

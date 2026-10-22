@@ -3537,7 +3537,7 @@ export const cs = {
   dialog: {
     ok: "OK",
     cancel: "Zrušit",
-    required: "Napište název. Bez něj nic nevznikne.",
+    required: "Pole nesmí zůstat prázdné. Bez něj nic nevznikne.",
   },
   // The input standard's shared controls (input-interactions chunk 1, I1-I11).
   input: {

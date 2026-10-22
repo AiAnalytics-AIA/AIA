@@ -186,6 +186,7 @@ export function AskDialog({ ask, onDone }: { ask: Ask | null; onDone: () => void
       onKeyDown={(e) => {
         if (e.key === "Escape") e.stopPropagation();
       }}
+      aria-label={ask?.kind === "prompt" ? ask.title : undefined}
       className="m-auto w-[min(32rem,calc(100vw-2rem))] rounded-md border border-border-strong bg-surface-overlay p-0 text-ink shadow-[var(--shadow-overlay)] backdrop:bg-surface-inverse/40"
     >
       {/* Mounted per question (keyed by it), so a prompt starts from its own initial value
@@ -208,6 +209,7 @@ function AskForm({ ask, finish }: { ask: Ask; finish: (ok: boolean, value: strin
   const [tried, setTried] = useState(false);
   const blank = ask.kind === "prompt" && !!ask.required && !value.trim();
   const hintId = useId();
+  const field = useRef<HTMLInputElement>(null);
   return (
     <form
       method="dialog"
@@ -216,6 +218,7 @@ function AskForm({ ask, finish }: { ask: Ask; finish: (ok: boolean, value: strin
         e.preventDefault();
         if (blank) {
           setTried(true);
+          field.current?.focus();
           return;
         }
         finish(true, value);
@@ -225,6 +228,7 @@ function AskForm({ ask, finish }: { ask: Ask; finish: (ok: boolean, value: strin
       <p className="text-sm leading-6">{ask.message}</p>
       {ask.kind === "prompt" ? (
         <TextInput
+          ref={field}
           autoFocus
           value={value}
           onChange={(e) => setValue(e.target.value)}

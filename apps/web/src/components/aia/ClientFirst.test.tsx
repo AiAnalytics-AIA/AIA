@@ -160,9 +160,14 @@ describe("Klienti", () => {
     expect(within(dialog).getByRole("heading", { name: "Nový klient" })).toBeTruthy();
     fireEvent.change(within(dialog).getByRole("textbox", { name: "Název klienta" }), { target: { value: "   " } });
     fireEvent.click(within(dialog).getByRole("button", { name: "Založit klienta" }));
-    expect((await within(dialog).findByRole("alert")).textContent).toBe("Napište název. Bez něj nic nevznikne.");
+    const alert = await within(dialog).findByRole("alert");
+    expect(alert.textContent).toBe("Pole nesmí zůstat prázdné. Bez něj nic nevznikne.");
     expect((dialog as HTMLDialogElement).open).toBe(true);
-    expect(within(dialog).getByRole("textbox").getAttribute("aria-invalid")).toBe("true");
+    expect(screen.getByRole("dialog", { name: "Nový klient" })).toBe(dialog);
+    const field = within(dialog).getByRole("textbox");
+    expect(field.getAttribute("aria-invalid")).toBe("true");
+    expect(field.getAttribute("aria-describedby")).toBe(alert.id);
+    expect(document.activeElement).toBe(field);
     expect(called("POST", "/api/v1/workspace/clients")).toHaveLength(0);
   });
 
@@ -522,10 +527,11 @@ describe("a client's workspace", () => {
     const dialog = await screen.findByRole("dialog");
     expect(within(dialog).getByRole("heading", { name: "Nová simulace" })).toBeTruthy();
     expect(within(dialog).getByRole("textbox", { name: "Název" }).getAttribute("placeholder")).toBe("Např. Cenové scénáře 2027");
-    fireEvent.submit(dialog.querySelector("form")!);
-    expect(await within(dialog).findByRole("alert")).toBeTruthy();
+    fireEvent.click(within(dialog).getByRole("button", { name: "Založit simulaci" }));
+    const alert = await within(dialog).findByRole("alert");
+    expect(alert.textContent).toBe("Pole nesmí zůstat prázdné. Bez něj nic nevznikne.");
     expect((dialog as HTMLDialogElement).open).toBe(true);
-    expect(within(dialog).getByRole("button", { name: "Založit simulaci" })).toBeTruthy();
+    expect(within(dialog).getByRole("textbox").getAttribute("aria-describedby")).toBe(alert.id);
     expect(called("POST", "/api/v1/clients/CLI-a/studies")).toHaveLength(0);
   });
 
