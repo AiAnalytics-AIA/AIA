@@ -13,28 +13,28 @@ export type WindowRect = { x: number; y: number; w: number; h: number };
 type Corner = "tl" | "tr" | "bl" | "br";
 
 /** The panel's grip size, minimum size, and how much of a moved window stays in view. */
-export const EDGE = 14, MIN_W = 260, MIN_H = 140, KEEP_X = 100, KEEP_Y = 40;
+const EDGE = 14, MIN_W = 260, MIN_H = 140, KEEP_X = 100, KEEP_Y = 40;
 /** Windows stack from here up, over the dock (300). */
-export const Z_BASE = 400;
+const Z_BASE = 400;
 // A press on one of these in a header is that control's, not a drag (the panel's list).
 const INTERACTIVE = "button,input,select,textarea,a,label";
 
 const clamp = (v: number, lo: number, hi: number) => Math.min(Math.max(v, lo), hi);
 
 /** Where a window of width w may sit in a stage: at least KEEP_X of it across, the header inside. */
-export function clampMove(x: number, y: number, w: number, stageW: number, stageH: number): { x: number; y: number } {
+function clampMove(x: number, y: number, w: number, stageW: number, stageH: number): { x: number; y: number } {
   return { x: clamp(x, KEEP_X - w, stageW - KEEP_X), y: clamp(y, 0, stageH - KEEP_Y) };
 }
 
 /** The corner of a box the point is within EDGE of (the panel's `corner`), or "". */
-export function cornerAt(r: { left: number; top: number; right: number; bottom: number; width: number; height: number }, x: number, y: number): Corner | "" {
+function cornerAt(r: { left: number; top: number; right: number; bottom: number; width: number; height: number }, x: number, y: number): Corner | "" {
   if (!r.width || !r.height || x < r.left || x > r.right || y < r.top || y > r.bottom) return "";
   const L = x - r.left < EDGE, R = r.right - x < EDGE, T = y - r.top < EDGE, B = r.bottom - y < EDGE;
   return T && L ? "tl" : T && R ? "tr" : B && L ? "bl" : B && R ? "br" : "";
 }
 
 /** A window resized from a corner by (dx, dy): never under MIN_W x MIN_H, never past the stage's edges. */
-export function resized(r0: WindowRect, corner: Corner, dx: number, dy: number, stageW: number, stageH: number): WindowRect {
+function resized(r0: WindowRect, corner: Corner, dx: number, dy: number, stageW: number, stageH: number): WindowRect {
   let { x, y, w, h } = r0;
   if (corner[1] === "r") w = Math.max(MIN_W, Math.min(r0.w + dx, stageW - r0.x));
   else { w = Math.max(MIN_W, Math.min(r0.w - dx, r0.x + r0.w)); x = r0.x + r0.w - w; }

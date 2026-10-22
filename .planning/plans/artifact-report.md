@@ -11,7 +11,7 @@ chunks:
   - "[ ] RPT6. The Lead and the report writer on the draft (replaced 2026-10-22 by RPT9 and RPT10)"
   - "[ ] RPT7. Journey: Zpráva at 1440, 1100, 768 and 390 px, a fictional run's internal draft, zero paid jobs (extended by RPT9's suggestion step)"
   - "[ ] RPT8. The editor is Zpráva's main surface: the stored draft opened in ONLYOFFICE Docs (Q35), the researcher editing directly, every number a locked, tagged ledger ref checked on save (RD6, ADR 0035; split 2026-10-22: RPT8a-d)"
-  - "[ ] RPT8a. Every printed number a locked content control tagged with its source (the editor spike's F-ED1): ledger values in prose, table cells, captions (part 1); KPI tiles, figures, the evidence appendix, suppressed counts, and the map, design, run and bundle spans (part 2)"
+  - "[ ] RPT8a. Every printed number a locked content control tagged with its source (the editor spike's F-ED1): ledger values in prose, table cells, captions (part 1); KPI tiles, figures, the evidence appendix, suppressed counts (part 2); the map, design, run and bundle spans (part 3, the map's provisional until OQ-ED1)"
   - "[ ] RPT8b. The save census: an edited DOCX refused when it loses or changes a tagged control or breaks the numeric-token rule (F-ED1), a pure check over the stored document model"
   - "[ ] RPT8c. The editor routes behind AIA_ONLYOFFICE_URL (unset: off): the config with its JWT and the docs ticket, the signed document URL, the callback storing a save as a new draft once the census passes (the hosting contract, report-editor-hosting)"
   - "[ ] RPT8d. The pane opens the stored draft in the editor when it is configured; the read-only document stays where it is not"
@@ -248,6 +248,21 @@ in `#interval`): RPT8b compares the saved controls with the stored document rend
 (tag, text), so a deleted or changed duplicate is found without an id, and a moved paragraph is not a
 change. Whether ONLYOFFICE keeps a long `w:tag` as written is checked when RPT8c first opens a draft.
 
+*RPT8a, part 2 (`feature/report-locked-numbers-part2`):* the tags are one grammar, `domain/report/control_tags.py`
+(builders and `parse_tag`), which the renderer writes and RPT8b's census will read. A KPI tile's value with its
+marks is one control tagged with the ref, the line under it (base n, interval, "orientační") one more tagged
+`<ref>#n` (P3); a chart's or a Sociomap's picture is locked, tagged `figure:<id>` (P5; its refs are the stored
+figure's); every cell of an evidence appendix row is locked, tagged `appendix:<ref>#<column>` (P6: the appendix is
+regenerated, never edited, ref ids hold digits, and a swapped cell is a changed one); a suppressed count in a
+table's notes row or under a figure is locked, tagged `count:suppressed:<table or figure id>`, the owner a required
+argument (P13). The contracts move
+(`aia-internal-report-16`, `aia-client-report-6`, `aia-contextual-report-12`). Test: every sample kind
+(client, final, internal, documentation), each value, number cell, KPI tile and figure tagged, each cited
+ref's appendix row with an appendix, and every tag naming a source the document holds
+(`test_report_docx_locked_numbers.py` `test_every_sample_kind_locks_every_ledger_number_it_prints`, `test_the_tag_grammar_reads_back_what_it_writes`). Furniture the
+census must know stays unlocked: the SEQ, PAGE and TOC fields, the lists of figures and tables, and
+cross-reference labels; a Sociomap caption's fit is the map's, part 3.
+
 **RPT9. The Lead in the document.** The Lead, on its own model (STUDY_LEAD), edits the same document
 through the edit operations:
 - **Suggestions (default, Q56, Q13):** each edit lands in the text as a tracked change under the Lead's
@@ -315,6 +330,25 @@ sentence refused by RD7 is marked at the sentence. Depends on `report-delivery#R
 
 ## Findings
 
+- **F19 (research-lead-workbench, from #778's journey): fixed on `fix/report-states-the-brief`.** The
+  internal draft never said what the person asked for: "Návrh studie" printed only how the study
+  measured. Now `NativeSources.brief` (`analysis_results.Brief`: the Design Revision's goal and decision
+  use, each `None` when empty) is carried on `RunAnalysis`, and `compose_design_sections` opens with "Cíl
+  studie" and "Rozhodnutí, které má výzkum podpořit" (the Brief's own title for the field, web `cs.ts`
+  `decisionTitle`) in the internal report and the report with literature, the chapter naming the Design
+  Revision as its source (`RunSource("metadata.design_revision_id")`, CHN1). An empty field reads "V zadání
+  neuvedeno." (code's words, never a template's placeholder), so not stated is never read as not shown;
+  a character XML cannot hold is left out (a vertical tab becomes a line), so a pasted brief never fails
+  the draft. The
+  contracts move (`aia-internal-report-15`, `aia-contextual-report-11`). Deliberately not done, from
+  review: the cover keeps the study's record, because a brief's title is the template's "Nový výzkum"
+  until edited and a reused design carries the earlier study's; the client report is unchanged, because
+  its internal-marker scan would refuse a person's own brief words (e.g. a goal naming an AI product).
+  Tests: `test_report_design.py` `test_the_chapter_opens_with_what_the_brief_asked_for_before_how_it_was_measured`,
+  `test_an_empty_brief_field_is_said_not_stated_never_left_out`, `test_a_control_character_in_the_brief_never_fails_the_report`; `test_analysis_executor.py`
+  `test_native_research_start_and_worker_complete_the_composed_analysis_graph` (the stored draft's design
+  chapter and its source).
+
 - **F-RPT-1 (2026-10-22): two owners of "the client version" cannot be kept in step.** On
   `fix/report-client-pinned-read` (`df1fb276`, `0bb8ebbe`, pushed, no PR), the report card and the pane
   each held a client version and were synced by events; two `/code-review high` passes found that the
@@ -325,8 +359,26 @@ sentence refused by RD7 is marked at the sentence. Depends on `report-delivery#R
   4. the pane, pinned to the first version it read, never showed a version approved through the card.
   Cause: two components owning one decision. Fix: RPT3a (one owner, approval on the document read).
   Test that would have caught it: RPT3a's "the version approved is the version shown" at every width.
+- **F-RPT-2 (2026-10-22): a control character a person typed failed the whole draft.** A research question
+  (or a question's wording, a study's name) holding a character XML 1.0 cannot hold (a bell, a lone
+  surrogate, Word's vertical tab from a pasted line break) reached python-docx as written, and lxml refused
+  the run ("All strings must be XML compatible"): no draft at all
+  (`infrastructure/report_docx/renderer.py:53 @ 09571504`, found by the #792 stand-in review); only the
+  brief was cleaned (#792). Fix (`fix/report-xml-illegal-text`): one pure rule, `domain/report/printable.py`,
+  applied by the renderer before it writes and by the document model before it is stored, so the stored
+  model holds the text the DOCX printed (a choice's label in the stored ledger's metric too). Word's breaks
+  print as a space, since text also runs into one-line places (the running head, headings, captions), and its
+  non-breaking hyphen as a hyphen; the rest are dropped; what names something (ids, refs, targets, the ledger,
+  the manifest) is untouched. #792's own regex in `report_design._paragraphs` is replaced by `xml_text`: it keeps Word's line
+  break as a line for its paragraph split, and a brief field of nothing but such characters still reads
+  "V zadání neuvedeno." Tests:
+  `test_report_design.py::test_a_control_character_a_person_typed_never_fails_the_render`,
+  `test_report_printable.py`.
 
 ## 8. Owner questions
+
+- Held at the feature freeze (the owner, 2026-10-22, 16:5x UTC: "stop developing new features, let's get the
+  new deploy up and running"): RPT8a part 3 and RPT8b-d, none built or opened; they resume when the freeze lifts.
 
 - Q73 (decided 2026-10-22, (c)): downloads stay free before approval; RPT3b is closed, not built.
 - Hosting ONLYOFFICE Document Server beside develop (RPT8): an operations change, for the coordinator to

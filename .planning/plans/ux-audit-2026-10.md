@@ -1,13 +1,13 @@
 ---
-status: in-progress
+status: done
 chunks:
-  - "[x] 1. The methodology journey has an edit for the readiness limits, and the research journey waits for the steps"
-  - "[x] 2. Nový klient: an empty name is said, not silently dropped"
-  - "[x] 3. Znalosti at 390 px: the library table's clipped columns"
-  - "[x] 4. The API refuses a client or study name of spaces"
-  - "[ ] 5. A run's methodology receipt reports its readiness pin"
-  - "[x] 6. A slow rename's answer leaves focus where the person went"
-  - "[x] 7. InlineText's refocus after Enter waits for nothing the person moved"
+  - "[x] 1. The methodology journey has an edit for the readiness limits, and the research journey waits for the steps (#718)"
+  - "[x] 2. Nový klient: an empty name is said, not silently dropped (#720)"
+  - "[x] 3. Znalosti at 390 px: the library table's clipped columns (#722)"
+  - "[x] 4. The API refuses a client or study name of spaces (#783)"
+  - "[x] 5. A run's methodology receipt reports its readiness pin (#789)"
+  - "[x] 6. A slow rename's answer leaves focus where the person went (#735)"
+  - "[x] 7. InlineText's refocus after Enter waits for nothing the person moved (#746)"
 ---
 # UX audit, 2026-10: the areas outside the study stages
 
@@ -29,7 +29,7 @@ sheet), Projektová paměť, Společenská inteligence, Nastavení (eight tabs, 
 
 ## Findings
 
-### F1. `make ui-methodology` fails on develop (fixed by chunk 1)
+### F1. `make ui-methodology` failed on develop (fixed by #718, chunk 1)
 
 1. Claim: the methodology journey refuses the readiness module, which is now editable, because it
    has no edit for it. Once that is added, its research run fails on a timing bug.
@@ -73,7 +73,7 @@ sheet), Projektová paměť, Společenská inteligence, Nastavení (eight tabs, 
    minor columns and show them in the opened item.
 6. Test: a journey assertion at 390 px that every column header's right edge is within the frame.
 
-### F4. The API accepted a client or study name made of spaces (fixed on this branch)
+### F4. The API accepted a client or study name made of spaces (fixed by #783)
 
 1. Claim: `name: str = Field(min_length=1, …)` does not strip, so a name of spaces is accepted.
 2. Anchor: `apps/api/src/aia_api/routers/workspace.py:290 @ 4568badd` (a client),
@@ -90,7 +90,7 @@ sheet), Projektová paměť, Společenská inteligence, Nastavení (eight tabs, 
 6. Test: `test_client_api.py` › "a client or study named by blanks is refused and a name is kept
    without them" (201, 201, 201, 201 and a 500 before; 422 for each now).
 
-### F5. A run's methodology receipt does not report its readiness pin
+### F5. A run's methodology receipt did not report its readiness pin (fixed by #789)
 
 1. Claim: a start pins the readiness limits in force as `readiness` / `readiness_methodology`, but
    `run_methods` reports only the Sociomap, support, aggregation and response modules.
@@ -101,8 +101,13 @@ sheet), Projektová paměť, Společenská inteligence, Nastavení (eight tabs, 
    the methodology journey checks it only as in force (F1).
 5. Smallest fix: add `readiness` to `run_methods`' pinned and stored keys, and to
    `ResearchRunMethodology`.
-6. Test: a `pins.py` test over metadata with `readiness_methodology`, and the journey reading
-   `latest.methodology.readiness`.
+6. Test: `test_run_methods.py` (four tests fail on develop's `pins.py`), `test_research_api.py` ›
+   "a run names the methods it computed under", `test_methodology_run_pins.py` › "a retry keeps the
+   stored versions its pins came from" (readiness among them), and `methodology_journey.mjs` reading
+   `latest.methodology.readiness` (its skip removed; `make ui-methodology` reports
+   `aia-readiness-1+e1`). The report's method table and Results are
+   unchanged: they list what computed the numbers, and readiness decides only whether a run may
+   start.
 
 ### F6. A slow rename's answer took focus from where the person went (fixed by #735)
 
@@ -120,7 +125,7 @@ person had opened meanwhile. #735 refocuses only when focus is on the page.
 5. Smallest fix: focus only when `document.activeElement` is still in the field or on the page.
 6. Test: an InlineText test that moves focus before the frame runs.
 
-### F8. A research stage's cold first open lands at about 480 ms (decided: no product change)
+### F8. A research stage's cold first open lands at about 480 ms (decided: no product change; budget in #768)
 
 1. Claim: a cold load of a research stage fetches the client, the study and its working content
    one after another, so first content lands at about 480 ms on a production build.
@@ -146,7 +151,7 @@ person had opened meanwhile. #735 refocuses only when focus is on the page.
   Metodika at 390 px is a very long page of versions. That comes from running the journeys again
   and again, not from the product; `workbench.py up --fresh` resets it.
 
-### F9. At 390 px a study's Upravit sat out of view on Studie a rozpočty (fixed on this branch)
+### F9. At 390 px a study's Upravit sat out of view on Studie a rozpočty (fixed by #767)
 
 1. Claim: the studies table kept all seven columns on a phone, so the row's one action needed a
    sideways scroll inside the table to be found.

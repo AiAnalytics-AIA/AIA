@@ -12,7 +12,7 @@ export type BuildIdentity = {
   built_at: string | null;
 };
 
-export function parseBuildSha(raw: string | undefined | null): string | null {
+function parseBuildSha(raw: string | undefined | null): string | null {
   const value = (raw ?? "").trim().toLowerCase();
   if (!value) return null;
   if (!GIT_SHA.test(value)) {

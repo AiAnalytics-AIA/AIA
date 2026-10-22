@@ -69,6 +69,7 @@ __all__ = [
     "reconcile",
     "section_ids",
     "settle_item_ids",
+    "stores_item_ids",
     "with_item_ids",
 ]
 
@@ -589,6 +590,19 @@ def settle_item_ids(
     base = with_item_ids(*before)
     content, analysis = with_item_ids(*after, previous=base)
     return follow_rewords(base[0], content), analysis
+
+
+def stores_item_ids(content: Mapping[str, Any], analysis: Mapping[str, Any] | None = None) -> bool:
+    """Whether a stored design keeps id lists of its own: the web's store wrote them
+    (``AIA_WEB_STABLE_ITEM_IDS`` on). A server writer settles such a copy (:func:`settle_item_ids`)
+    as the store does, and leaves a copy without them as it is, so with the switch off nothing
+    writes an id."""
+    holders: list[Any] = [content.get("research_plan"), analysis]
+    for section in content.get("sections") or ():
+        if isinstance(section, Mapping):
+            holders.append(section)
+            holders.extend(section.get("questions") or ())
+    return any(isinstance(h, Mapping) and not SIDECAR_KEYS.isdisjoint(h) for h in holders)
 
 
 def ids_by_kind(content: Mapping[str, Any]) -> Iterable[tuple[str, str]]:

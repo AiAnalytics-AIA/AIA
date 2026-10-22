@@ -6,7 +6,7 @@
 // the artifact does not hold (a surface between objects, respondents on the map) is not
 // drawn; what it holds undefined stays undefined.
 
-export const SOCIOMAPPING_VERSION = "aia-research-sociomapping-1";
+const SOCIOMAPPING_VERSION = "aia-research-sociomapping-1";
 
 export type Limitation = { code: string; detail: string; question: string | null };
 

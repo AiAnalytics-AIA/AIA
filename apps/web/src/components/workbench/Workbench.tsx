@@ -87,7 +87,7 @@ const DRAWER_QUERY = `(min-width: ${DRAWER_LAYOUT_MIN_PX}px)`;
  * from 1100 px, the side drawer from 768 px, the full-screen sheet below. Without media queries (a
  * test's DOM) and on the server the width is unknown, so the split serves. Changing it changes
  * classes and where the conversation sits, never what is mounted (D21). */
-export function useWorkbenchLayout(): WorkbenchLayout {
+function useWorkbenchLayout(): WorkbenchLayout {
   return useSyncExternalStore(
     (on) => {
       if (!canMatch()) return () => {};

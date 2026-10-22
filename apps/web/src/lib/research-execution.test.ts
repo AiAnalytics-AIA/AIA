@@ -54,6 +54,14 @@ describe("research execution", () => {
     expect(stepLabel("something_new")).toBe("something_new");
   });
 
+  it("lists a choice question's answers in the order it asked them, not the stored name order", () => {
+    // The aggregate is canonical JSON, its answers sorted by name (artifact_repository.py sort_keys).
+    const stored = { typ: "vyber", n_platnych: 300, effective_n: 250, n_unique_layer_donors: 200, support_status: "REPORTABLE" as const, celkem_pct: { "Jeden až dva dny": 30, "Každý den": 28, "Méně často": 20, Jinak: 2 }, intervaly_95: {} };
+    const table = resultTable("q", stored, 2, UNIT_PLACES, ["Každý den", "Jeden až dva dny", "Méně často"]);
+    expect(table.rows.map((r) => r.label)).toEqual(["Každý den", "Jeden až dva dny", "Méně často", "Jinak"]);
+    expect(resultTable("q", stored).rows.map((r) => r.label)).toEqual(["Jeden až dva dny", "Každý den", "Méně často", "Jinak"]);
+  });
+
   it("shows each number at the places the aggregate stored it, never rounded again (V1b)", () => {
     expect(storedPlaces({ questions: {} })).toEqual(UNIT_PLACES);
     expect(storedPlaces({ rounding: { share_decimals: 0, mean_decimals: 3 } })).toEqual({ share: 0, mean: 3 });

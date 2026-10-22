@@ -1775,3 +1775,58 @@ pass finds the jobs already done for the design.
      (both are in the Design Revision), and the cover takes the design's title when it has one.
   6. Test: a report composed from a revision with a goal and a decision use prints both under
      "Návrh studie". The journey's DOCX assertion then also requires the title.
+
+### A Lead test's budget sized for an idle machine (2026-10-22, `fix/lead-inspect-guard-test-race`)
+
+- **F20. Five workbench tests waited 4 s for a Lead turn the pane polls every 1.5 s** *(fixed)*.
+  1. Claim: `Workbench.layout.test.tsx` overrode the suite's 10 s wait (#536, OI-134) with
+     `{ timeout: 4000 }` in five places. Each waits for a Lead turn that arrives only after
+     LeadPane's fixed 1.5 s poll (`LeadPane.tsx:27 @ eb0c7d47`, `POLL_MS`), leaving about 2.5 s for
+     two reads and their renders.
+  2. Anchor: `Workbench.layout.test.tsx:258, 382, 394, 420, 686 @ eb0c7d47`.
+  3. Reproduction: with three busy loops on CPU 0, `taskset -c 0 npx vitest run
+     src/components/workbench/Workbench.layout.test.tsx -t "leaves nothing pending"` fails with
+     "Unable to find role="button" and name `/^Detail: /`" after 5.5 s. Idle, it takes 2.2 s of its
+     4 s budget. Zpráva saw it fail once under load.
+  4. Consequence: a red web suite on a loaded runner, unrelated to the change under test.
+  5. Fix: the five overrides removed, so the suite's 10 s budget applies.
+  6. Test: the reproduction above passes; the file passes (38).
+- **F21. "leaves nothing pending" took its guard off before the Lead's move was tried** *(fixed,
+  the same branch)*.
+  1. Claim: the test removed its leave guard as soon as the turn's chip appeared. LeadPane runs
+     the turn's view from a passive effect (`LeadPane.tsx:166 @ eb0c7d47`); when `findByRole`
+     resolves before that effect has run, `cleanup()`'s `act` flushes it after the guard is gone,
+     so the move goes through and leaves the inspect pending for the remount.
+  2. Anchor: `Workbench.layout.test.tsx:407-424 @ eb0c7d47`.
+  3. Reproduction: about one run in ten of the file with develop's version of the test fails at
+     `:424` ("expected <aside …> to be null") after 2.2 s, not at the 4 s budget (seen on the
+     map-view branch, which predates this fix).
+  4. Consequence: a red web suite now and then, under no load at all.
+  5. Fix: the test waits until its guard has stopped the move (`stopped === 1`) before taking it
+     off, which also means it no longer passes when no move is tried.
+  6. Test: the same file, run repeatedly, never fails at `:424`.
+
+### A stage mounted twice on a fresh page (2026-10-22, `fix/stage-mounts-once`; the Dimenze audit, #798)
+
+- **F22. Every fresh page mounted the classic layout and then the workbench** *(fixed)*.
+  1. Claim: `useWorkbenchSwitch` read `false` until `/config` answered, so `Ready` first rendered
+     the classic layout (`DesignSourceNote`, the stage screens, the stage record) and then the
+     workbench, which mounted and read everything again.
+  2. Anchor: `apps/web/src/components/rehome/research/ResearchScreen.tsx:237-238 @ 9607ee09`.
+  3. Reproduction: `ResearchScreen.workbench.test.tsx` "mounts a stage once on a fresh page…" (two
+     `/design/source` reads before). In a browser on the UI workbench (`next dev`), one Dimenze
+     visit made 44 API requests: `/design/source` 4, runs 6, limits 12, PUT `/workspace/stage` 2.
+  4. Consequence: twice the reads on every stage a person opens fresh, and both layouts' effects.
+  5. Fix: the switch is `null` until read, and until then the stage shows its chrome with the
+     loading line as a status (never blank). No timeout: every API read awaits the same cached
+     `/config` (`lib/api.ts:33`), so a hanging one holds the working copy's read first and `Ready`
+     never mounts; once it does, the switch answers at once (stand-in review on #807). The tests
+     reset the switch and the config cache before each one, so none depends on another's order.
+  6. Test: the test above; after the fix the same visit makes 36 requests, `/design/source` 2,
+     runs 4, limits 8.
+- **By design, recorded:** the remaining doubles are `next dev`'s Strict Mode, which runs each
+  effect twice: one PUT `/workspace/stage` and one `/design/source` per visit in a production
+  build. `/research/impact`'s 404 on a study with no Design Revision is its "nothing to say", read
+  once.
+- **Left, a hypothesis:** limits are still read by several components on one visit (4 in a
+  production build). Sharing them is another change, not this one.

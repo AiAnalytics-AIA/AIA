@@ -587,7 +587,8 @@ describe("a research, re-homed under its client", () => {
     await waitFor(() => expect(called("GET", "/api/v1/studies/STU-1/workspace/content")).toHaveLength(1));
     // Nothing reaches the 18.6.6 unit's project store any more.
     expect(calls.filter((c) => c.url.startsWith("/api/projects"))).toEqual([]);
-    const crumbs = within(screen.getByRole("navigation", { name: "Kde jste" })).getAllByRole("listitem");
+    // The stage's layout mounts once /config says which it is (not the classic one first).
+    const crumbs = within(await screen.findByRole("navigation", { name: "Kde jste" })).getAllByRole("listitem");
     expect(crumbs.map((c) => c.textContent?.replace("/", "").trim())).toEqual(["Klienti", "Klient A", "Výzkumy", "Vnímání značky", "Dotazník"]);
     await waitFor(() => expect(called("PUT", "/api/v1/studies/STU-1/workspace/stage")[0].body).toEqual({ stage: "questionnaire" }));
   });

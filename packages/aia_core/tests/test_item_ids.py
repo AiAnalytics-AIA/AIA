@@ -38,6 +38,7 @@ from aia_core.domain.item_ids import (
     reconcile,
     section_ids,
     settle_item_ids,
+    stores_item_ids,
     with_item_ids,
 )
 from aia_core.domain.research_design import ResearchSpecification, compile_design
@@ -387,3 +388,15 @@ def test_keys_recorded_before_ids_are_read_as_the_ids_they_name() -> None:
     assert from_legacy_keys(recorded, base, proposed) == now | {ItemKey("content", "brief", "goal")}
     assert legacy_keys(now, base, proposed) == recorded - {ItemKey("content", "brief", "goal")}
     assert from_legacy_keys(now, base, proposed) == now  # already ids: kept
+
+
+def test_a_copy_keeps_ids_only_once_a_writer_stored_them() -> None:
+    plain = {
+        "research_plan": {"research_questions": ["Kdo kupuje?"]},
+        "sections": [{"id": "s1", "questions": [{"id": "q1", "kategorie": ["A", "B"]}]}],
+    }
+    assert not stores_item_ids(plain)
+    assert not stores_item_ids(plain, {"objectives": ["Cíl"]})
+    content, analysis = with_item_ids(plain, {"objectives": ["Cíl"]})
+    assert stores_item_ids(content)
+    assert stores_item_ids(plain, analysis)

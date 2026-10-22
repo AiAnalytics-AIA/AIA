@@ -66,6 +66,7 @@ from aia_core.domain.report.model import (
     TextCell,
     Value,
 )
+from aia_core.domain.report.printable import printable, xml_text
 from aia_core.domain.report.sources import report_sources, source_payload
 from aia_core.domain.report.validation import CLIENT_KINDS
 
@@ -84,7 +85,9 @@ class DocumentModelInvalid(ValueError):
 
 
 def document_payload(document: ReportDocument) -> dict[str, Any]:
-    """``document`` as JSON-ready data. See the module note."""
+    """``document`` as JSON-ready data, its text as the DOCX printed it (``printable``). See the
+    module note."""
+    document = printable(document)
     client = document.meta.kind in CLIENT_KINDS
     writer = _Writer(document.ledger, client=client)
     manifest = report_sources(document)
@@ -192,7 +195,7 @@ class _Writer:
                 ),
                 # Absent n is unknown, never a guess (blocks.base_text).
                 "base_text": numbers.base_n(effective) if effective is not None else None,
-                "metric": str(row.metric),
+                "metric": xml_text(str(row.metric)),  # a choice's label, as typed
                 "unit": row.unit.value,
                 "grade": self._ledger.grade(ref).value,
                 "indicative": self._ledger.is_indicative(ref),

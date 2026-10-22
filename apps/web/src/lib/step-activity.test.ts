@@ -1,5 +1,9 @@
 // A running step's activity is what its events said, folded per step, in words; nothing else.
+import { readFileSync } from "node:fs";
+import { join } from "node:path";
 import { describe as group, expect, it } from "vitest";
+
+import { t, tv } from "@/i18n/t";
 
 import type { RunEvent } from "./api";
 import { EMPTY_ACTIVITY, KEEP_LINES, activityOf, describe, foldActivity } from "./step-activity";
@@ -105,5 +109,36 @@ group("folding a feed", () => {
     // One answer without counts makes the total unknown, not smaller.
     const unknown = foldActivity(state, [ev({ message: "ai_request_answered", payload: { input_tokens: null, output_tokens: null, cost_usd: 0, latency_ms: 1 } })]);
     expect(activityOf(unknown, "STEP-a")?.model).toEqual({ answered: 3, tokens: null, costUsd: 0.03 });
+  });
+});
+
+group("the fieldwork event contract (run-qc-and-checkpoint RQC7a)", () => {
+  // The case file the domain holds too (packages/aia_core/src/aia_core/domain/fieldwork_events.py).
+  const contract = JSON.parse(
+    readFileSync(join(process.cwd(), "../../packages/aia_core/tests/fixtures/fieldwork_events/contract.json"), "utf8"),
+  ) as { version: string; events: Record<string, string[]> };
+  const sample: Record<string, Record<string, unknown>> = {
+    fieldwork_progress: { respondents: 40, of: 300, sent: 70, replayed: 50 },
+  };
+
+  it("says every event of the contract in words", () => {
+    expect(Object.keys(contract.events).sort()).toEqual(Object.keys(sample).sort());
+    for (const [code, keys] of Object.entries(contract.events)) {
+      const payload = { version: contract.version, ...sample[code] };
+      expect(Object.keys(payload).sort()).toEqual([...keys].sort());
+      expect(text(ev({ message: code, payload }))).not.toBeNull();
+    }
+  });
+
+  it("reads progress as counted, the blocks replayed at no cost said only when there are any", () => {
+    expect(text(ev({ message: "fieldwork_progress", payload: { respondents: 40, of: 300, sent: 70, replayed: 50 } }))).toBe(
+      `${tv("research.exec.activity.fieldworkProgress", { done: 40, of: 300 })} · ${tv("research.exec.activity.fieldworkReplayed", { replayed: 50 })}`,
+    );
+    expect(text(ev({ message: "fieldwork_progress", payload: { respondents: 4, of: 30, sent: 8, replayed: 0 } }))).toBe(
+      tv("research.exec.activity.fieldworkProgress", { done: 4, of: 30 }),
+    );
+    expect(text(ev({ message: "fieldwork_progress", payload: {} }))).toBeNull();
+    const folded = foldActivity(EMPTY_ACTIVITY, [ev({ message: "fieldwork_progress", payload: { respondents: 40, of: 300, sent: 70, replayed: 0 } })]);
+    expect(activityOf(folded, "STEP-a")?.progress).toEqual({ done: 40, of: 300 });
   });
 });

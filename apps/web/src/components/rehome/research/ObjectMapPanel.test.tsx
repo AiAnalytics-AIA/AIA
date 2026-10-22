@@ -3,6 +3,9 @@
 // chunk 2): the map is routed to the panel's renderer by its stored estimator, an earlier method
 // keeps its terraces, and the panel's controls change only what is shown. Stored fixtures only;
 // the canvas is a recording stub (jsdom has none), its frames checked through what it was given.
+import { readFileSync } from "node:fs";
+import { join } from "node:path";
+
 import { act, cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { StrictMode } from "react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
@@ -1014,6 +1017,56 @@ describe("the map's window: review follow-ups", () => {
     fireEvent.pointerDown(canvas(), { clientX: at.x, clientY: at.y, pointerId: 1 });
     fireEvent.pointerUp(canvas(), { clientX: at.x, clientY: at.y, pointerId: 1 });
   };
+
+  it("opens its windows under the dock, so a picked object's detail leaves the dock's buttons free", async () => {
+    // The dock's bar on one row (12 + 34), then wrapped onto two (12 + 80), as on a narrow stage;
+    // then the filter bar on a row of its own under it (to 140), then the ⓘ on the last row (to 175).
+    let barHeight = 34, filterBottom = 0, infoBottom = 0;
+    vi.spyOn(HTMLElement.prototype, "getBoundingClientRect").mockImplementation(function (this: HTMLElement) {
+      if (this.dataset.testid === "object-map-stage") return box(0, 0, 900, 700);
+      if (this.getAttribute("role") === "toolbar") return box(12, 12, 400, barHeight);
+      if (this.dataset.testid === "object-map-filter-status") return box(12, 0, 500, filterBottom);
+      if (this.classList.contains("omw-pill")) return box(12, 0, 120, infoBottom);
+      return box(0, 0, 0, 0);
+    });
+    const resize = observer();
+    render(<ObjectMapView battery={hudba} dataOrigin={null} />);
+    await nextFrame(0);
+    clickNode(0);
+    const stage = screen.getByTestId("object-map-stage");
+    expect(screen.getByTestId("object-map-detail")).toBeTruthy();
+    expect(stage.style.getPropertyValue("--omw-under-dock")).toBe("55px");
+    barHeight = 80;
+    resize(390, 700);
+    expect(stage.style.getPropertyValue("--omw-under-dock")).toBe("101px");
+    filterBottom = 140;
+    resize(390, 700);
+    expect(stage.style.getPropertyValue("--omw-under-dock")).toBe("149px");
+    infoBottom = 175;
+    resize(390, 700);
+    expect(stage.style.getPropertyValue("--omw-under-dock")).toBe("184px");
+    // Both kinds of window start there; the detail no longer starts at the stage's top, over the dock.
+    const css = readFileSync(join(process.cwd(), "src/components/rehome/research/object-map-windows.css"), "utf8");
+    for (const kind of ["work", "detail"]) {
+      expect(css).toMatch(new RegExp(`\\.omw-win--${kind} \\{[^}]*top: var\\(--omw-under-dock, 55px\\)`));
+    }
+  });
+
+  it("opens the detail beside the zoom column, so its buttons stay free while an object is picked", () => {
+    const css = readFileSync(join(process.cwd(), "src/components/rehome/research/object-map-windows.css"), "utf8");
+    const px = (rule: string, prop: string) => Number(new RegExp(`${rule} \\{[^}]*?\\b${prop}: (\\d+)px`).exec(css)?.[1]);
+    // The column's width: its buttons, its padding on both sides and its 1 px border.
+    const column = px("\\.omw-tools", "right") + px("\\.omw-tools button", "width") + 2 * px("\\.omw-tools", "padding") + 2;
+    const gutter = Number(/--omw-zoom-gutter: (\d+)px/.exec(css)?.[1]);
+    expect(gutter).toBeGreaterThanOrEqual(column + 8);
+    expect(css).toMatch(/\.omw-win--detail \{[^}]*right: var\(--omw-zoom-gutter\)/);
+    expect(css).toMatch(/\.omw-win--detail \{[^}]*width: min\(430px, calc\(100% - var\(--omw-zoom-gutter\) - 14px\)\)/);
+    // Narrow, the work windows span the stage up to the column too.
+    const narrow = /@media \(max-width: 850px\) \{\n((?:  .*\n)*)\}/.exec(css)?.[1] ?? "";
+    expect(narrow).toMatch(/\.omw-win--work \{[^}]*right: var\(--omw-zoom-gutter\)/);
+    // A stage too narrow for 260 px beside the column narrows its windows rather than covering it.
+    expect(narrow).toMatch(/\.omw-win \{ min-width: min\(260px, calc\(100% - var\(--omw-zoom-gutter\) - 8px\)\)/);
+  });
 
   it("isolates the stage, so its windows stay under the page's header, toasts and dialogs", () => {
     render(<ObjectMapView battery={hudba} dataOrigin={null} />);

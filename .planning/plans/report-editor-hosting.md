@@ -437,3 +437,19 @@ the same request then logged `"/__aia/session?next=%2Fx"` in both its access and
     unprefixed name, in production settings.
 
   A follow-up of its own: it changes AIA's sign-in, not this host.
+
+- **F2. A deploy of a SHA older than #785 fails before reaching the host.** Fixed in this plan's follow-up
+  PR.
+  - **Claim:** `deploy-develop.yml` runs from develop's head but checks out the SHA it deploys, and its
+    bundle step named `deploy/develop/docs` unconditionally. A SHA from before #785 has no `docs/`, so
+    `cp` failed.
+  - **Anchor:** `.github/workflows/deploy-develop.yml:165-170 @ 07b2fa31`.
+  - **Reproduction:** deploy run 39811181434 (inputs.sha `013f2e11`) failed with
+    `cp: cannot stat 'deploy/develop/docs'`. CI's "The deploy bundle of an older SHA" step, run on the
+    previous workflow, fails the same way.
+  - **Consequence:** a rollback or re-dispatch of an older SHA cannot deploy. Nothing reached the host;
+    the site stayed on the SHA it ran.
+  - **Smallest fix:** the bundle carries what the deployed SHA has: `errors/` and `docs/` only where
+    they exist.
+  - **Test that would have caught it:** that CI step. It runs the real bundle step, in Actions' shell
+    and with S3 stubbed, on `013f2e11` and on the current tree.

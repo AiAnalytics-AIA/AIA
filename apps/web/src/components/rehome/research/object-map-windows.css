@@ -15,8 +15,10 @@
   --glassCard66: rgba(255, 255, 255, .38);
   --glassBlur66: blur(16px) saturate(150%);
   /* Labels on the light glass: 4.5:1 over the glass where it lies on the map's dark ground. */
-  --omwMuted: #435056;
+  --omwMuted: #3d494f;
   --omwAnswer: #54666f;
+  /* The detail stops short of the zoom column (13 + 39 px wide) and an 8 px gap, so its buttons stay free. */
+  --omw-zoom-gutter: 60px;
 }
 :root[data-theme="dark"] .omw {
   --glass66: rgba(12, 17, 22, .64);
@@ -109,11 +111,14 @@
 }
 .omw-win:focus { outline: none; }
 .omw-win:focus-visible { outline: 2px solid var(--focus-ring); outline-offset: 2px; }
-.omw-win--work { top: 55px; left: 13px; width: min(430px, calc(100% - 26px)); max-height: calc(100% - 75px); }
-.omw-win--detail { top: 14px; bottom: 14px; right: 14px; width: min(430px, calc(100% - 28px)); }
-/* Narrow: the work windows span the stage; the detail keeps its place on the right. */
+.omw-win--work { top: var(--omw-under-dock, 55px); left: 13px; width: min(430px, calc(100% - 26px)); max-height: calc(100% - var(--omw-under-dock, 55px) - 20px); }
+.omw-win--detail { top: var(--omw-under-dock, 55px); bottom: 14px; right: var(--omw-zoom-gutter); width: min(430px, calc(100% - var(--omw-zoom-gutter) - 14px)); }
+/* Windows open under the dock (--omw-under-dock, measured by the panel; 55px before it is).
+   Narrow: the work windows span the stage up to the zoom column; the detail keeps its place on the right.
+   A stage too narrow for 260 px beside the column (308 px at a 390 px phone) narrows its windows instead. */
 @media (max-width: 850px) {
-  .omw-win--work { left: 8px; right: 8px; width: auto; }
+  .omw-win { min-width: min(260px, calc(100% - var(--omw-zoom-gutter) - 8px)); }
+  .omw-win--work { left: 8px; right: var(--omw-zoom-gutter); width: auto; }
 }
 
 /* The header drags the window; only the body scrolls. A touch on the header or a corner grip is a

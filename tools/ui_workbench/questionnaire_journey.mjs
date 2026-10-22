@@ -116,6 +116,25 @@ try {
     check(`${width}: a question's × beside its number`);
   }
 
+  // A scale's two ends sit under the ends they name at 390 px (the browser audit, QF-11): the right
+  // label had wrapped to a row of its own, below the low label, away from the 10 it names.
+  await page.setViewportSize({ width: 390, height: 900 });
+  await page.goto(base + stagePath("questionnaire") + "#qedit_Q_wb2");
+  const scaleCard = page.locator("#qedit_Q_wb2");
+  const low = scaleCard.getByRole("button", { name: /^Upravit: Levý popisek/ });
+  const high = scaleCard.getByRole("button", { name: /^Upravit: Pravý popisek/ });
+  await high.waitFor({ timeout: 30000 });
+  await high.scrollIntoViewIfNeeded();
+  const [lowBox, highBox] = [await low.boundingBox(), await high.boundingBox()];
+  assert(lowBox && highBox && Math.abs(lowBox.y - highBox.y) < 4, `the scale's labels share a row at 390: ${lowBox?.y} vs ${highBox?.y}`);
+  assert(highBox.x > lowBox.x + lowBox.width, "the right label sits right of the left one");
+  // The boxes above them, and each label under the end it names.
+  const boxes = await scaleCard.locator('span[aria-hidden="true"]', { has: page.locator("i") }).boundingBox();
+  assert(boxes && boxes.y + boxes.height <= lowBox.y, "the boxes above the labels");
+  assert(lowBox.x - boxes.x < 8 && boxes.x + boxes.width - (highBox.x + highBox.width) < 8, "each label at its end");
+  await shot("390-scale-labels");
+  check("390: a scale's two labels share a row, each under the end it names");
+
   // A block renamed in place (input-interactions chunk 3e, I1): Enter saves, the name reads back after a reload.
   await page.setViewportSize({ width: 1440, height: 900 });
   await page.goto(base + stagePath("questionnaire"));
