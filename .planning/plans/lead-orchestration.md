@@ -1007,6 +1007,24 @@ conversation turn.
 develop; `design_research` and `interpretation_research` are not matched yet. The composer's
 recognition and card in the web are the next PR, after #550 (Lead chat cards) merges.
 
+**The web's card (`feature/lead-typed-start-card`, 2026-10-22).**
+- A person's turn naming a `command` is followed by their own card in the conversation:
+  `RequestCard` with `typed`, the eyebrow "Váš příkaz", and the request built by `commandRequest`
+  (`lib/lead.ts`). The card reads the server's `command`, never the text; the instruction after a
+  colon is the card's why.
+- The card starts the work through `…/request`, the run too (`Workbench.tsx` `onRequest`: a typed
+  start is approved whatever its kind), with the threshold's confirmation as for every card. The
+  job or run it started follows under it.
+- Found because `lead_cards_journey.mjs` failed on develop (b6ac25c5). "Spusť výzkum." became a
+  command, and the journey waited for a Lead answer that no longer comes. The journey now:
+  - starts a job by typed "Zkontroluj návrh";
+  - asks the Lead with "Prosím, spusť výzkum." (a message, not a command) for its run card.
+- Tests: `LeadPane.test.tsx` "follows a person's typed start with their own card…", `lead.test.ts`
+  `commandRequest`, and `lead_cards_journey.mjs` "a typed start shows the person's own card, and
+  its approval starts the job through …/request".
+- Not built: the composer recognising a command before it is sent (a hint as the person types),
+  and the commands list (`GET /lead` `commands`) shown as suggestions.
+
 Tests: `packages/aia_core/tests/test_lead_commands.py` (the fixture, every worker and the run
 once, matches and near-misses), `test_lead_chat_start.py` (the row authorises its charge; the
 worker cannot write one), `apps/api/tests/test_lead_chat_start_api.py` (Lead off: a command taken,
