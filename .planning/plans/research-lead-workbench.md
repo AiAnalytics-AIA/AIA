@@ -1517,6 +1517,10 @@ the workbench's `go`.
   then focuses the new stage's heading (`.arthead__title`, `tabIndex={-1}`). The pending focus is
   kept at module scope so a route change, which remounts the workbench, keeps it.
 - **ActionDock** reads `framed = value !== null`.
+- **Review of #686.** A pending heading focus no longer outlives a move that a leave guard
+  stopped. `guardedNavigate` returns whether it navigated, `go` passes that on, and `next.go` asks
+  for the focus only for a move that went through. The pending value names its study and is
+  consumed on every stage change, matched or not.
 - **Tests.** `Workbench.layout.test.tsx` "a stage's forward action through the frame": Výsledky →
   Sociomapa by hash with the focus on Sociomapa's heading (it fails without the focus move), and
   Dotazník → Cílová skupina named. `step.test.tsx` passes `{ next: null }`.
