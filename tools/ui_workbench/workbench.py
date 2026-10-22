@@ -6,6 +6,9 @@
     python tools/ui_workbench/workbench.py up --fresh  # also reset the API's (and the unit's) state
     python tools/ui_workbench/workbench.py up --with-unit  # and the 18.6.6 unit beside it, as
                                                        # the reference (ADR 0018)
+    python tools/ui_workbench/workbench.py up --population-double  # the API over the fictional
+                                                       # population double, the panel offered:
+                                                       # Vzorek's sample by quota cell; runs park
 
 Four processes, all under tmp/ui-workbench/ (git-ignored), and a fifth on request:
 
@@ -60,6 +63,7 @@ STATE = HOME / "state.json"
 
 UNIT_PORT, API_PORT, WEB_PORT, FACADE_PORT = 8767, 8766, 13000, 8780
 WITH_UNIT = HOME / "with-unit"
+POPULATION_DOUBLE = HOME / "population-double"
 NAMES = ("unit", "api", "worker", "web", "facade")
 DB = HOME / "aia.sqlite"
 ARTIFACTS = HOME / "artifacts"
@@ -175,12 +179,17 @@ def _wait(url: str, what: str, seconds: int) -> tuple[int, dict[str, str]]:
     raise SystemExit(f"workbench: {what} did not answer at {url} within {seconds}s; see {LOGS}")
 
 
-def up(fresh: bool, with_unit: bool = False) -> int:
+def up(fresh: bool, with_unit: bool = False, population_double: bool = False) -> int:
     HOME.mkdir(parents=True, exist_ok=True)
     state = {k: v for k, v in _read_state().items() if _alive(v)}
-    if with_unit != WITH_UNIT.exists() and state:
+    mode = (with_unit, population_double)
+    if mode != (WITH_UNIT.exists(), POPULATION_DOUBLE.exists()) and state:
         print("workbench: running in the other mode; `down` first", file=sys.stderr)
         return 1
+    if population_double:
+        POPULATION_DOUBLE.write_text("the API composes the fictional population double\n")
+    else:
+        POPULATION_DOUBLE.unlink(missing_ok=True)
     if fresh:
         for name in ("unit", "api", "worker"):
             if name in state:
@@ -208,8 +217,12 @@ def up(fresh: bool, with_unit: bool = False) -> int:
                 "--artifacts",
                 str(ARTIFACTS),
                 "--fieldwork",
-                "synthetic_fixture",
             ]
+            + (
+                ["ai_runtime", "--population-double"]
+                if population_double
+                else ["synthetic_fixture"]
+            )
             + (["--fresh"] if fresh else []),
             REPO,
         )
@@ -302,6 +315,7 @@ def down() -> int:
             _stop(name, pid)
     STATE.unlink(missing_ok=True)
     WITH_UNIT.unlink(missing_ok=True)
+    POPULATION_DOUBLE.unlink(missing_ok=True)
     return 0
 
 
@@ -336,11 +350,16 @@ def main(argv: list[str]) -> int:
         action="store_true",
         help="also start the 18.6.6 unit on its own port, as the reference (ADR 0018)",
     )
+    p_up.add_argument(
+        "--population-double",
+        action="store_true",
+        help="the API over the fictional population double, the panel offered (runs park)",
+    )
     sub.add_parser("down")
     sub.add_parser("status")
     args = ap.parse_args(argv)
     if args.cmd == "up":
-        return up(args.fresh, args.with_unit)
+        return up(args.fresh, args.with_unit, args.population_double)
     if args.cmd == "down":
         return down()
     return status()

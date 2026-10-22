@@ -102,6 +102,7 @@ from ..domain.research_trace import (
 from ..domain.respondent_behavior import AIA_RESPONSE_V1, ResponseProcessSpec
 from ..domain.run_cost import CeilingUnknown, RunCostCeiling, run_cost_ceiling
 from ..domain.scope import OrganizationRole, Permission, StudyContext
+from ..domain.spend_attribution import ActivitySpend, run_spend
 from ..domain.support_forecast import SupportForecast, forecast_support, with_support_forecast
 from ..domain.workflow import RUNTIME_UNAVAILABLE_REASON, StepRunStatus, WorkflowRunStatus
 from ..domain.workflow_templates import REPORT_PDF, RESEARCH, RESEARCH_AGENT
@@ -109,6 +110,7 @@ from ..infrastructure.artifact_repository import Artifact, ArtifactRepository
 from ..infrastructure.client_knowledge_repository import ClientKnowledgeRepository
 from ..infrastructure.methodology_repository import methodology_in_force_for_study
 from ..infrastructure.prompt_repository import PromptRefused, PromptResolver
+from ..infrastructure.researcher_spend_repository import run_spend_facts
 from ..infrastructure.scope_repository import ScopeRepository
 from ..infrastructure.storage import ArtifactStore
 from ..infrastructure.study_design_repository import DesignRevisionNotFound, StudyDesignRepository
@@ -415,6 +417,8 @@ class RunOutlook:
     answerability: Answerability | None = None
     #: The sample a panel run would draw (or the sampler's refusal); ``None`` when none was drawn.
     panel: PanelDraw | None = None
+    #: The support forecast readiness carries; ``None`` when this fieldwork forecasts none.
+    forecast: SupportForecast | None = None
 
 
 @dataclass(frozen=True, slots=True)
@@ -1377,6 +1381,7 @@ class ResearchRuns:
             trace=decided_trace(trace, answer),
             answerability=answer,
             panel=panel,
+            forecast=forecast,
         )
 
     def _support(self, support: SupportSpec | None) -> tuple[SupportSpec, dict[str, Any] | None]:
@@ -1499,6 +1504,19 @@ class ResearchRuns:
         run["phase"] = phase_of(run["status"], attempted=run["attempted"])
         run["retryable"] = retryable(run["status"])
         return run
+
+    def spend(self, run: Mapping[str, Any]) -> ActivitySpend:
+        """What one research run of this Study has spent, holds open and could not settle, by
+        the rules a person's spend is read (``artifact-fieldwork`` FLD4). ``run`` is what
+        :meth:`get` found through this Study; the query is in the Study and organization too."""
+        self.scope.require(Permission.VIEW_COSTS)
+        usage, holds = run_spend_facts(
+            self.session,
+            organization_id=self.scope.organization_id,
+            study_id=self.scope.study_id,
+            run_id=str(run["run_id"]),
+        )
+        return run_spend(usage, holds)
 
     def runs(self, *, limit: int = 20, steps: bool = False) -> list[dict[str, Any]]:
         """This Study's research runs, newest first, with their phases.

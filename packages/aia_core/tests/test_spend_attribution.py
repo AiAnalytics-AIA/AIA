@@ -48,12 +48,16 @@ from aia_core.domain.spend_attribution import (
     charged_to,
     period_bounds,
     researcher_spend,
+    run_spend,
 )
 from aia_core.domain.workflow import FailureClass, StepDefinition
 from aia_core.domain.workflow_templates import RESEARCH, RESEARCH_LEAD
 from aia_core.infrastructure.ai_usage_repository import AIUsageRepository
 from aia_core.infrastructure.repositories import ProjectRepository
-from aia_core.infrastructure.researcher_spend_repository import ResearcherSpendRepository
+from aia_core.infrastructure.researcher_spend_repository import (
+    ResearcherSpendRepository,
+    run_spend_facts,
+)
 from aia_core.infrastructure.tables import (
     AIUsageEventRow,
     ApprovalDecisionRow,
@@ -191,6 +195,24 @@ def test_the_fold_separates_model_tool_reserved_and_uncertain() -> None:
     # The parts add up to the whole, by activity and by study.
     assert sum(x.total_usd for x in a.by_activity.values()) == pytest.approx(a.total_usd)
     assert sum(x.total_usd for x in a.studies.values()) == pytest.approx(a.total_usd)
+
+
+def test_a_runs_spend_is_every_persons_over_its_whole_life() -> None:
+    usage = [
+        _u("c1", "SUCCEEDED", 0.40, who="A"),
+        _u("c2", "SUCCEEDED", 0.20, who="B", occurred_at=_T1 + timedelta(days=40)),
+        _u("c3", "DISPATCHED", 0.0, who=None),  # died in flight: uncertain, never zero
+    ]
+    holds = [
+        _h("r1", "SETTLED", 0.10, 0.05, charged_to="B"),
+        _h("r2", "RESERVED", 1.5, 0.0, settled_at=None, charged_to=None),
+    ]
+    spend = run_spend(usage, holds)
+    assert spend.total_usd == pytest.approx(0.65)
+    assert spend.reserved_usd == pytest.approx(1.5)
+    assert spend.uncertain_calls == 1
+    empty = run_spend([], [])
+    assert (empty.total_usd, empty.reserved_usd, empty.uncertain_calls) == (0.0, 0.0, 0)
 
 
 def test_the_fold_keeps_the_unattributed_apart() -> None:
@@ -483,7 +505,7 @@ def test_a_usage_row_takes_its_holds_person_and_a_resolution_keeps_it(
 # --------------------------------------------------------------------------- the read
 
 
-def _spend_world(lead_repo: WorkflowRepository, session: Session, scoped: Any) -> None:
+def _spend_world(lead_repo: WorkflowRepository, session: Session, scoped: Any) -> tuple[str, str]:
     """lead: a fieldwork call (USD 0.40) and an open hold (USD 2); researcher: an analysis call
     (USD 0.25) in the sibling study; nobody: a hold whose run names no person (USD 0.30)."""
     run_id = _run(lead_repo, session, scoped, "lead-work")
@@ -548,6 +570,7 @@ def _spend_world(lead_repo: WorkflowRepository, session: Session, scoped: Any) -
     session.flush()
     orphan_hold = _hold(lead_repo, _claim(lead_repo, orphan), 0.3)
     lead_repo.settle_reservation(orphan_hold.reservation_id, actual_cost_usd=0.30)
+    return run_id, orphan
 
 
 def test_an_administrator_reads_everyone_and_the_unattributed(
@@ -573,6 +596,29 @@ def test_an_administrator_reads_everyone_and_the_unattributed(
     outside = 0.30
     total = sum(n.spend.total_usd for n in report.people)
     assert abs(total - (ledger + outside)) < 0.01
+
+
+def test_a_runs_facts_are_its_own_whoever_they_are_booked_to(
+    lead_repo: WorkflowRepository, session: Session, scoped: Any
+) -> None:
+    run_id, orphan = _spend_world(lead_repo, session, scoped)
+    scope = lead_repo.scope
+
+    def spend(run: str) -> tuple[float, float, int]:
+        usage, holds = run_spend_facts(
+            session, organization_id=scope.organization_id, study_id=scope.study_id, run_id=run
+        )
+        s = run_spend(usage, holds)
+        return s.total_usd, s.reserved_usd, s.uncertain_calls
+
+    assert spend(run_id) == pytest.approx((0.40, 2.0, 0))
+    # Booked to nobody, outside the ledger: still the run's own.
+    assert spend(orphan) == pytest.approx((0.30, 0.0, 0))
+    # Another study's run is not found through this study.
+    sibling_run = session.scalars(
+        select(WorkflowRunRow.run_id).where(WorkflowRunRow.idempotency_key == "spend-sibling")
+    ).one()
+    assert spend(sibling_run) == (0.0, 0.0, 0)
 
 
 def test_a_researcher_reads_only_themself_in_the_query(

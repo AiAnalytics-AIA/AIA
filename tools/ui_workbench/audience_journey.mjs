@@ -14,7 +14,7 @@
  *     reload;
  *   * Ověřit proveditelnost: the API counts the fictional population and the step says how
  *     many people the filters select and that N=300 can be drawn;
- *   * Special Audience: the built-in subpanels; one is chosen and saved as its filter, one
+ *   * Speciální skupiny: the built-in subpanels; one is chosen and saved as its filter, one
  *     the population's policy refuses cannot be; special panels still say they are not in AIA.
  *
  * Every request is recorded. The journey fails on any request to a path the unit served,
@@ -129,8 +129,8 @@ await text("Vzorek N=300", "the sampler's verdict");
 ok("Ověřit proveditelnost: the API counted the audience and the sampler can draw N=300");
 await shot("2-preview");
 
-// 3. Special Audience: the built-in subpanels.
-await page.getByRole("radio", { name: /Special Audience/ }).click();
+// 3. Speciální skupiny: the built-in subpanels.
+await page.getByRole("radio", { name: /Speciální skupiny/ }).click();
 const usable = catalogue.subpanels.find((s) => s.usable === true);
 const refused = catalogue.subpanels.find((s) => s.usable === false);
 if (!usable || !refused) fail("the fictional population should make one subpanel usable and one not");
@@ -141,7 +141,7 @@ await subpanelSave;
 const audience = (await content()).content.audience;
 if (audience.builtin_subpanel !== usable.key || JSON.stringify(audience.filters) !== JSON.stringify(usable.filters)) fail(`the subpanel saved ${JSON.stringify(audience)}`);
 await text("speciální panely a vlastní publikum", "special panels not in AIA");
-ok(`Special Audience: ${usable.name} saved as its filter ${JSON.stringify(usable.filters)}; ${refused.name} refused by policy`);
+ok(`Speciální skupiny: ${usable.name} saved as its filter ${JSON.stringify(usable.filters)}; ${refused.name} refused by policy`);
 await shot("3-subpanels");
 
 await browser.close();
