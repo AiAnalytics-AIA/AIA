@@ -2,7 +2,7 @@
 // Contextual assistance against AIA's real local API; fictional fixtures, disabled model runtime.
 import assert from "node:assert/strict";
 import { createRequire } from "node:module";
-import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
+import { mkdirSync, readFileSync, writeFileSync, existsSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 const repo = join(dirname(fileURLToPath(import.meta.url)), "../..");
@@ -12,6 +12,12 @@ const args = process.argv.slice(2);
 const arg = (key, fallback) => args.includes(`--${key}`) ? args[args.indexOf(`--${key}`) + 1] : fallback;
 const base = arg("facade", "http://127.0.0.1:8780");
 assert(["localhost", "127.0.0.1"].includes(new URL(base).hostname), "Fictional local identity only");
+// The 400 ms budgets are measured on a production build: `next dev` compiles on demand and runs
+// dev-only checks, so on it a timed interaction measures the dev server (contextual journeys, 2026-10-22).
+if (!existsSync(join(repo, "tmp/ui-workbench/production"))) {
+  console.error("This journey times interactions; run it on a production build: python3 tools/ui_workbench/workbench.py down && python3 tools/ui_workbench/workbench.py up --production");
+  process.exit(2);
+}
 const out = arg("out", join(repo, "tmp/ui-workbench/contextual-research")); mkdirSync(out, { recursive: true });
 const fixture = JSON.parse(readFileSync(join(repo, "tmp/ui-workbench/studies.json"), "utf8")).planned;
 const stage = (name) => `${base}/app/clients/${fixture.client}/research/${fixture.study}/${name}`;
