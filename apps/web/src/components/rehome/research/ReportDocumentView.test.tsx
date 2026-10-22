@@ -247,6 +247,19 @@ describe("approved on the document being read, in the doc bar (RPT3a)", () => {
     expect(research.prepareClientReport).toHaveBeenCalledWith(TEST_FRAME.studyId, "RUN-1");
   });
 
+  it("offers no second preparation when one answered the same, as for an approved version stored before its document", async () => {
+    vi.mocked(research.reportDocument).mockResolvedValue(STORED);
+    vi.mocked(research.clientReportDocument).mockRejectedValue(new ApiError(409, "report_document_not_stored", "", null));
+    vi.mocked(research.prepareClientReport).mockRejectedValue(new ApiError(409, "report_document_not_stored", "", null));
+    render(<StudyFrameProvider frame={TEST_FRAME}><ReportDocumentView run={modelled} /></StudyFrameProvider>);
+    await screen.findByRole("article", { name: "Koncept zprávy" });
+    fireEvent.click(screen.getByRole("button", { name: "Klientská zpráva" }));
+    fireEvent.click(await screen.findByRole("button", { name: "Připravit klientskou zprávu znovu" }));
+    await screen.findByText("K této verzi AIA dokument nesloží; lze ji jen stáhnout.");
+    expect(screen.queryByRole("button", { name: "Připravit klientskou zprávu znovu" })).toBeNull();
+    expect(research.prepareClientReport).toHaveBeenCalledTimes(1);
+  });
+
   it("offers no approval to a reader who may not review, nor on an approved version, nor yet on the internal draft", async () => {
     vi.mocked(research.reportDocument).mockResolvedValue(STORED);
     vi.mocked(research.clientReportDocument).mockResolvedValue(CLIENT);

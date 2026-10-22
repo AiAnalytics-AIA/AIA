@@ -31,9 +31,11 @@ const message = (e: unknown) => (e instanceof Error ? e.message : String(e));
 type Loaded =
   | { state: "loading" }
   | { state: "none" }
-  | { state: "not_stored" }
+  // `prepared`: a preparation answered so too, so preparing again would change nothing (an approved
+  // version is handed over as approved, and no document is composed beside it).
+  | { state: "not_stored"; prepared?: boolean }
   | { state: "unprepared" }
-  | { state: "refused" }
+  | { state: "refused"; prepared?: boolean }
   | { state: "failed"; message: string }
   | { state: "ready"; stored: StoredReportDocument; doc: ReportDocumentModel };
 
@@ -64,7 +66,7 @@ function useReportDocument(studyId: string, run: ResearchRun, kind: Kind): {
   // The document asked for now: an answer for another (a prepare that returns after a switch) is dropped.
   const current = useRef(key);
   useEffect(() => { current.current = key; }, [key]);
-  const settle = useCallback((read: Promise<StoredReportDocument>, at: string, live: () => boolean) => {
+  const settle = useCallback((read: Promise<StoredReportDocument>, at: string, live: () => boolean, prepared = false) => {
     read.then(
       (stored) => {
         const doc = readDocument(stored.document);
@@ -80,8 +82,8 @@ function useReportDocument(studyId: string, run: ResearchRun, kind: Kind): {
           status === 404 ? (kind === "client" ? { state: "unprepared" } : { state: "none" })
             // The switch stays when the client report is refused: the internal draft is one click back.
             : status === 403 ? (kind === "client" ? { state: "failed", message: "Klientskou zprávu číst nemůžete." } : { state: "none" })
-              : code === "report_document_not_stored" ? { state: "not_stored" }
-                : code === "report_artifact_invalid" ? { state: "refused" }
+              : code === "report_document_not_stored" ? { state: "not_stored", prepared }
+                : code === "report_artifact_invalid" ? { state: "refused", prepared }
                   : { state: "failed", message: message(error) };
         setAnswer({ key: at, loaded });
       },
@@ -100,7 +102,7 @@ function useReportDocument(studyId: string, run: ResearchRun, kind: Kind): {
       // The report card approves the version read here, never one it would have to download first.
       window.dispatchEvent(new CustomEvent(CLIENT_PREPARED, { detail: run.run_id }));
       return stored;
-    }), key, () => current.current === key);
+    }), key, () => current.current === key, true);
   }, [key, settle, studyId, run.run_id]);
   // An approval made here, as the server answered it, on the version it names: the document stays
   // on screen (no reload, no lost place), and only a version still shown takes it.
@@ -263,7 +265,9 @@ function Coverage({ lines }: { lines: CoverageLine[] }) {
 
 /** What the pane says instead of a document: undefined, nothing at all; null, the document. */
 function noticeOf(loaded: Loaded, kind: Kind, prepare: () => void, mayPrepare: boolean): ReactNode | undefined {
-  const again = kind === "client" && mayPrepare ? <Button className="!min-h-11" onClick={prepare}>Připravit klientskou zprávu znovu</Button> : null;
+  const again = kind !== "client" || !(loaded.state === "not_stored" || loaded.state === "refused") ? null
+    : loaded.prepared ? <span>K této verzi AIA dokument nesloží; lze ji jen stáhnout.</span>
+      : mayPrepare ? <Button className="!min-h-11" onClick={prepare}>Připravit klientskou zprávu znovu</Button> : null;
   switch (loaded.state) {
     case "none": return undefined;
     case "ready": return null;
