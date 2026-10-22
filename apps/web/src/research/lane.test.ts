@@ -49,6 +49,8 @@ describe("designLane", () => {
     const of = (n: number) => ({ ...banks, objects: Array.from({ length: n }, (_, i) => `O${i}`) });
     const lane = (n: number) => designLane({ project: project({ sections: [block(["Hlavní banka?"]), of(n)] as never }), analysis: { tracked_sets: [of(n)] } as never });
     expect(lane(16).plan).toEqual({ tone: "done", line: "Hotovo" });
+    // Twenty is the readiness WARN (battery_size), never a blocker of the stage.
+    expect(blockers({ project: project({ sections: [block(["Hlavní banka?"]), of(20)] as never }), analysis: { tracked_sets: [of(20)] } as never }).filter((b) => b.step !== "brief" && /sad|položek/.test(b.detail + b.label))).toEqual([]);
     expect(lane(40).questionnaire.line).not.toContain("mimo");
     expect(lane(41).plan).toEqual({ tone: "you", line: "1 sada mimo 4–40" });
   });
