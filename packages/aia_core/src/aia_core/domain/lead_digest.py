@@ -7,7 +7,8 @@ what is bounded is how much of it one turn carries. Built by code, never by a mo
 never summarised. Its share of the conversation-memory layer is filled in four groups, each
 with its own cap and order, so no group starves another:
 
-1. decisions on items the message, the focus or a pin names (the newest three per item);
+1. decisions on the items named (the newest three per item): today the focus; the message
+   and pins name items once LC9 and LC11 land;
 2. proposals still undecided, newest first, as pointers to the turn that holds them;
 3. the latest decision on every other item, newest first;
 4. counts per kind, and per named item, of what the lines left out, which always fit: the
@@ -169,8 +170,9 @@ def decision_digest(
     """The digest within ``share_bytes`` (between the minimum and maximum share).
 
     ``decided`` are this conversation's ledger decisions and ``undecided`` its proposals
-    waiting for one, each oldest first; ``named`` are the items the message, the focus or a
-    pin names, in that order. Deterministic: the same entries give the same digest.
+    waiting for one, each oldest first; ``named`` are the items the turn names, in order (the
+    application passes the focus). The share is the maximum until LC4 allocates it.
+    Deterministic: the same entries give the same digest.
     """
     if not DIGEST_SHARE_MIN_BYTES <= share_bytes <= DIGEST_SHARE_MAX_BYTES:
         raise ValueError(
