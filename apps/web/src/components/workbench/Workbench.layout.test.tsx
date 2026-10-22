@@ -622,3 +622,34 @@ describe("a stage's forward action through the frame (FrameNavigation's next)", 
     expect(screen.getByRole("button", { name: "Další → Cílová skupina" })).toBeTruthy();
   });
 });
+
+describe("a typed analysis retry (the PM on #744)", () => {
+  it("is approved on the run its card named, and on a newer one only after the person's yes", async () => {
+    const typed = { ...leadTurn("T1", 1), actor: "person", kind: "message", text: "Zopakuj analýzu", command: "analysis_retry", output: null };
+    leadReads = [leadState({ turns: [typed], analysis_retry_run: { run_id: "RUN-a1", created_at: null, phase: "succeeded" } })];
+    const base = vi.mocked(fetch);
+    const sent: Record<string, unknown>[] = [];
+    vi.stubGlobal("fetch", vi.fn(async (url: RequestInfo | URL, init?: RequestInit) => {
+      if (String(url).endsWith("/lead/turns/T1/request")) {
+        const body = JSON.parse(String(init?.body ?? "{}")) as Record<string, unknown>;
+        sent.push(body);
+        return body.retry_run_id === "RUN-b2"
+          ? new Response(JSON.stringify({ run_id: "RUN-r3", design_revision_id: "REV-1", status: "QUEUED" }))
+          : new Response(JSON.stringify({ code: "analysis_retry_target_moved", message: "moved", details: { current_run_id: "RUN-b2" } }), { status: 409 });
+      }
+      return base(url, init);
+    }));
+    const confirm = vi.fn(async () => true);
+    const store = new ResearchStore({ revision: 3, project: EMPTY_PROJECT as unknown as ResearchProject, analysis: null, save: { kind: "saved" }, checkEpoch: 0 }, "STU-1");
+    render(
+      <Workbench frame={TEST_FRAME} step="questionnaire" store={store} memory={new Map()} save={null} inspector={null} reload={vi.fn()} confirm={confirm}
+        onAgentStarted={vi.fn()} jobs={[]} onOpenJob={vi.fn()} onRefreshJobs={vi.fn(async () => [])}>
+        <Stage />
+      </Workbench>,
+    );
+    fireEvent.click(await screen.findByRole("button", { name: "Zopakovat analýzu" }, { timeout: 4000 }));
+    await waitFor(() => expect(sent).toHaveLength(2));
+    expect(sent.map((b) => b.retry_run_id)).toEqual(["RUN-a1", "RUN-b2"]);
+    expect(confirm).toHaveBeenCalledWith(expect.stringMatching(/novější běh s AI analýzou/));
+  });
+});

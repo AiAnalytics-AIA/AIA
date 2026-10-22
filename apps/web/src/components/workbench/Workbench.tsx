@@ -23,7 +23,7 @@ import { jobCostAsked } from "@/lib/research-agent-jobs";
 import { appRoutes } from "@/lib/app-routes";
 import { guardedNavigate } from "@/lib/guarded-navigation";
 import {
-  LEAD_REASON_WORDS, STALE_CARD_QUESTION, applyLeadEdit, autoAcceptPlan, describeEdit, editRefusalWords, editStage, focusSelector, revertTextEdit, targetLabel, targetOfElement, textEditInverse,
+  LEAD_REASON_WORDS, ANALYSIS_RETRY_MOVED_QUESTION, STALE_CARD_QUESTION, applyLeadEdit, autoAcceptPlan, describeEdit, editRefusalWords, editStage, focusSelector, revertTextEdit, targetLabel, targetOfElement, textEditInverse,
   type LeadEdit, type LeadRequest, type LeadTurn, type LeadView, type ResearcherLead,
 } from "@/lib/lead";
 import {
@@ -498,9 +498,12 @@ export function Workbench({ frame, step, store, memory, save, inspector, reload,
     await store.flush();
     let confirmUsd: number | undefined;
     let onRevision: number | undefined;
+    // A typed analysis retry runs on the run its card named; a newer one only on the person's yes.
+    let retryRunId = r.kind === "analysis_retry" ? r.run_id : undefined;
+    let retryConfirmed = false;
     for (;;) {
       try {
-        const started = await leadApi.approveRequest(frame.studyId, turn.turn_id, confirmUsd, onRevision);
+        const started = await leadApi.approveRequest(frame.studyId, turn.turn_id, confirmUsd, onRevision, retryRunId);
         if (r.kind === "agent_job") onAgentStarted(started.run_id);
         else setRunEpoch((n) => n + 1);
         setLeadEpoch((n) => n + 1);
@@ -511,6 +514,12 @@ export function Workbench({ frame, step, store, memory, save, inspector, reload,
           const limit = Number(e.details.limit_usd);
           if (!(await confirm(`Úloha může stát až ${usd(ceiling)} USD, což dosahuje prahu potvrzení studie ${usd(limit)} USD. Spustit?`))) throw e;
           confirmUsd = ceiling;
+          continue;
+        }
+        if (e instanceof ApiError && e.code === "analysis_retry_target_moved" && !retryConfirmed && typeof e.details.current_run_id === "string") {
+          if (!(await confirm(ANALYSIS_RETRY_MOVED_QUESTION))) throw e;
+          retryRunId = e.details.current_run_id;
+          retryConfirmed = true;
           continue;
         }
         // The design moved since the card was prepared (LO10): it runs on the current one only on a yes.
