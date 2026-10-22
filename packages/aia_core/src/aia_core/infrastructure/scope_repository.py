@@ -275,7 +275,11 @@ class ScopeRepository:
         role: OrganizationRole = OrganizationRole.MEMBER,
         display_name: str = "",
     ) -> OrganizationMembership:
-        """Add a user to the organization."""
+        """Add a user to the organization, or change a member's role.
+
+        Only an OWNER grants or removes OWNER, and the last OWNER is never demoted (the
+        product owner's decision, security-audit-2026-10 S14).
+        """
         admin.require_administer()
         user = self.upsert_user(email=email, display_name=display_name)
 
@@ -285,6 +289,8 @@ class ScopeRepository:
                 OrganizationMemberRow.user_id == user["user_id"],
             )
         )
+        previous = existing.role if existing is not None else None
+        self._guard_owner(admin, previous=previous, role=role.value)
         if existing is not None:
             existing.role = role.value
         else:
@@ -303,6 +309,7 @@ class ScopeRepository:
                 actor_id=admin.actor_id,
                 action="MEMBER_ADDED",
                 role=role.value,
+                payload={"from": previous, "to": role.value},
                 request_id=admin.request_id,
             )
         )
@@ -310,6 +317,31 @@ class ScopeRepository:
         return OrganizationMembership(
             organization_id=admin.organization_id, user_id=user["user_id"], role=role
         )
+
+    def _guard_owner(
+        self, admin: OrganizationContext, *, previous: str | None, role: str | None
+    ) -> None:
+        """Refuse a change that grants or removes OWNER unless an OWNER makes it, and any
+        that would leave the organization with no OWNER. ``role`` None: removed."""
+        owner = OrganizationRole.OWNER.value
+        if (previous == owner) == (role == owner):
+            return  # OWNER neither granted nor removed
+        if admin.organization_role is not OrganizationRole.OWNER:
+            raise ScopeDenied("only an OWNER grants or removes OWNER", reason="owner_only")
+        if previous == owner:
+            # Active owners only: a deactivated OWNER cannot sign in to administer.
+            owners = self._session.scalar(
+                select(func.count())
+                .select_from(OrganizationMemberRow)
+                .join(UserRow, UserRow.user_id == OrganizationMemberRow.user_id)
+                .where(
+                    OrganizationMemberRow.organization_id == admin.organization_id,
+                    OrganizationMemberRow.role == owner,
+                    UserRow.is_active.is_(True),
+                )
+            )
+            if (owners or 0) <= 1:
+                raise ScopeDenied("the organization's last OWNER", reason="last_owner")
 
     def deactivate_user(self, admin: OrganizationContext, *, user_id: str) -> None:
         """Deactivate an account.
@@ -321,6 +353,13 @@ class ScopeRepository:
         row = self._session.scalar(select(UserRow).where(UserRow.user_id == user_id))
         if row is None:
             raise ScopeDenied("not found", reason="unknown_user")
+        membership = self._session.scalar(
+            select(OrganizationMemberRow.role).where(
+                OrganizationMemberRow.organization_id == admin.organization_id,
+                OrganizationMemberRow.user_id == user_id,
+            )
+        )
+        self._guard_owner(admin, previous=membership, role=None)
         row.is_active = False
         self._session.add(
             AccessAuditRow(
