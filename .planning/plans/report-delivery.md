@@ -77,6 +77,11 @@ ledger shape; the with-literature variant's status does not carry it (retired by
 **RD3. The Approve and Export panel: what is approved and by whom; exports after approval; the slot in the Report artifact**  
 S1 hosts the slot (`research-lead-workbench` 21), same wave. Tests: approvals name the exact artifact fingerprint; a stale-version download is refused; both self-approval settings; an unauthorised download is refused. Today drafts download freely and approval follows the download (`research.py:2395-2449`); the panel makes the client export follow approval. Interfaces I12.
 
+*RD3, G66 (`feature/report-export-panel`):* `POST …/report/approve` answers `report_kind` (`internal`,
+`with_review` or `client`, `application/report_approval.py` `REPORT_KINDS`), and `internal_only` is false for the
+client report, which said `true` before. Test: `test_the_approved_client_report_downloads_stamped_and_is_read_once`
+(and the internal approval test). The panel and the client export after approval stay open.
+
 **RD4. The map snapshot: an approvable object rendered server-side from the stored map and camera parameters, never browser bytes; one ledger shape**  
 The existing approval writes subject `artifact` (`artifact_repository.py:568`) and M3 names `map_snapshot`; one is chosen and the other removed. S2 supplies the deterministic figure function. Interfaces I13.
 

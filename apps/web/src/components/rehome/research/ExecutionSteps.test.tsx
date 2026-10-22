@@ -2576,7 +2576,7 @@ describe("Results", () => {
         ? new Response('{"code":"client_report_refused","message":"Žádné číslo tohoto běhu nesplnilo pravidla pro klienta."}', { status: 409 })
         : new Response(new Blob(["client docx"]), { status: 200, headers: { "X-AIA-Artifact-Id": "ART-client", "X-AIA-Review-State": "DRAFT_UNAPPROVED" } }),
       "POST /api/v1/studies/STU-1/research/runs/RUN-1/report/approve": () =>
-        ({ run_id: "RUN-1", artifact_id: "ART-client", review_state: "APPROVED_INTERNAL", internal_only: true }),
+        ({ run_id: "RUN-1", artifact_id: "ART-client", review_state: "APPROVED_INTERNAL", report_kind: "client", internal_only: false }),
     });
     render(<ResearchScreen step="results" frame={TEST_FRAME} />);
     const report = await card();
