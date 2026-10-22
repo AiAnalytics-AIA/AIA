@@ -166,19 +166,21 @@ jobs:
           # population/: the list of the population's files (bin/sync-population.sh) and
           # the frozen unit's configuration files it names as "unit", from Git.
           set -euo pipefail
-          items="docker-compose.yml Caddyfile bin population"
-          for optional in errors docs; do
-            if [ -d "deploy/develop/$optional" ]; then items="$items $optional"; fi
+          optional=""
+          for dir in errors docs; do
+            if [ -d "deploy/develop/$dir" ]; then optional="$optional $dir"; fi
           done
           stage="$(mktemp -d)"
-          for item in $items; do cp -R "deploy/develop/$item" "$stage/"; done
+          cp -R deploy/develop/docker-compose.yml deploy/develop/Caddyfile deploy/develop/bin \
+            deploy/develop/population "$stage/"
+          for dir in $optional; do cp -R "deploy/develop/$dir" "$stage/"; done
           awk '$3 == "unit" { print $4 }' deploy/develop/population/v17.files | while read -r name; do
             cp "legacy/npc-panel-18.6.6/app/$name" "$stage/population/$name"
           done
-          # shellcheck disable=SC2086 -- items is a list of names without spaces
-          tar -czf deploy-bundle.tar.gz -C "$stage" $items
+          # shellcheck disable=SC2086 -- optional is a list of names without spaces
+          tar -czf deploy-bundle.tar.gz -C "$stage" docker-compose.yml Caddyfile bin population $optional
           aws s3 cp deploy-bundle.tar.gz "s3://$OPS_BUCKET/deploy/$SHA.tar.gz" --only-show-errors
-          echo "bundle s3://$OPS_BUCKET/deploy/$SHA.tar.gz ($items)" >> "$GITHUB_STEP_SUMMARY"
+          echo "bundle s3://$OPS_BUCKET/deploy/$SHA.tar.gz (optional:${optional:- none})" >> "$GITHUB_STEP_SUMMARY"
 
       - name: Deploy on the host through SSM
         env:
