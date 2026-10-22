@@ -400,6 +400,8 @@ describe("the item inspector", () => {
     bench(<div><div data-aia="rq:rq_1">Kdo pije čaj ráno?</div></div>, "plan");
     await waitFor(() => expect(document.querySelector("[data-item-inspector]")?.getAttribute("data-item-inspector")).toBe("rq:rq_1"));
     await waitFor(() => expect(document.querySelector("[data-item-inspector]")!.textContent).toContain("Kdo pije čaj ráno?"));
+    // Nowhere by its opaque id: neither the heading nor the body of a kind without a detail.
+    expect(document.querySelector("[data-item-inspector]")!.textContent).not.toContain("rq_1");
   });
 
   it("leaves nothing pending when a leave guard stops the Lead's move to the inspected stage", async () => {
