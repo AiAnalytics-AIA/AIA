@@ -2089,10 +2089,16 @@ export const cs = {
       aiTitle: "Dotazník s AI",
       aiIntro: "AI použije schválený návrh výzkumu. První verze je vždy editovatelná.",
       aiBuild: "Sestavit první verzi dotazníku",
-      aiBuildHelp: "Provider/model můžete změnit přímo zde.",
+      // "Sestavit s AI" when the questionnaire already has items (QF-4).
+      aiExisting: {
+        lead: "Dotazník už má otázky, takže ho AI znovu nesestaví: úpravy těch, které tu jsou, navrhne Vedoucí výzkumu.",
+        optimize: "Dotazník už má otázky, takže ho AI znovu nesestaví: úpravy navrhne „Optimalizovat dotazník s AI“.",
+        ask: "Požádat Vedoucího",
+        message: "Navrhni úpravy dotazníku.",
+      },
       previewTag: "NÁHLED PRO RESPONDENTA",
       previewTitle: "Jak bude dotazník přibližně vypadat",
-      previewHelp: "Rychlá vizualizace pořadí, odpovědí a objektových baterií; technický editor je pod ní.",
+      previewHelp: "Takto dotazník uvidí respondent: otázky a sledované sady v tomto pořadí. Upravíte je v režimu Upravit.",
       previewEmpty: "Jakmile vzniknou otázky, uvidíte je zde očima respondenta.",
       previewQuestion: "Otázka {n}",
       previewSet: "Sledovaná sada {n} · {title}",
