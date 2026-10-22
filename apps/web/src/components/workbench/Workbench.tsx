@@ -37,6 +37,7 @@ import type { StepKey } from "@/research/steps";
 import type { StudyFrame } from "../rehome/research/frame";
 import { useRuns } from "../rehome/research/StageTrack";
 import { LeadAskContext } from "../rehome/research/AskLead";
+import { FrameNavigation } from "@/components/rehome/step";
 import { Glyph, type GlyphTone } from "./Glyph";
 import { Icon, Mark } from "./Icons";
 import { LeadPane, type LeadCardsContext } from "./LeadPane";
@@ -635,7 +636,7 @@ export function Workbench({ frame, step, store, memory, save, inspector, reload,
                 <div className="artbody" id="artbody"><div className="wb-stage">
                   {stage === "sample" ? <SampleView project={state.project} onOpen={go} /> : null}
                   {/* Sample shows Dimenze's screen hidden, so its readiness still reaches the inspector. */}
-                  <div hidden={stage === "sample"}><LeadAskContext.Provider value={askLead}>{children}</LeadAskContext.Provider></div>
+                  <div hidden={stage === "sample"}><LeadAskContext.Provider value={askLead}><FrameNavigation.Provider value>{children}</FrameNavigation.Provider></LeadAskContext.Provider></div>
                 </div></div>
                 <aside className="insp" aria-label="Připravenost a pomoc" hidden={!inspectorOpen}>
                   <div className="insp__head">

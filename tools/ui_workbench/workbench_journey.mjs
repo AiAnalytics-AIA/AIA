@@ -162,6 +162,7 @@ try {
   }
   check("the workbench at 1280 and 1100 (split), 1099 and 768 (drawer), 390 (sheet), no overflow");
 
+
   // A resize across 1100 px remounts nothing: the stage's and the conversation's own DOM nodes,
   // tagged before, are the same nodes after crossing both ways (a remount makes new ones).
   await page.setViewportSize({ width: 1440, height: 900 });
@@ -287,6 +288,17 @@ try {
   await page.getByRole("button", { name: "Ověřit v Kontrole a spuštění" }).click();
   await page.locator(".nav__stage.is-current", { hasText: "Sběr dat" }).waitFor();
   check("Vzorek: size and the server's forecast on the working copy at 1440, 1100, 768 and 390, nothing submitted, read only, no overflow; Spuštění one click away");
+
+  // The stages' docks name no classic step: the navigator names the neighbours (DIM-F4). Last,
+  // because a visit to Návrh submits a Design Revision that Vzorek's forecast then reads (WCE7b).
+  for (const slug of ["plan", "questionnaire", "audience", "dimensions"]) {
+    await page.goto(base + stagePath(slug));
+    await page.locator("[data-workbench]").waitFor();
+    await page.locator("#artbody").getByRole("button").first().waitFor({ timeout: 60000 });
+    const classic = await page.locator("#artbody a").evaluateAll((as) => as.map((a) => a.textContent?.trim() ?? "").filter((t) => /^\d\. /.test(t)));
+    assert.deepEqual(classic, [], `${slug}: no classic "N. stage" link in the artifact`);
+  }
+  check("no stage's dock names a classic step inside the workbench");
 
   const paid = writes.filter((w) => /\/research\/runs$|\/agent-jobs$|\/deep-research\/runs|\/lead\/turns\/[^/]+\/request$/.test(w.path));
   assert.deepEqual(paid, [], "nothing paid started");
