@@ -87,6 +87,9 @@ class RunStartSettings:
     require_answerability: bool
     population_contract: PopulationImportContract
     population_id: str
+    #: AIA_AI_ANALYSIS_EXTERNAL_CONTEXT: the run pins its Design Research context
+    #: (evidence-integrity 7)
+    external_context: bool = False
 
 
 def chat_start_decisions(
@@ -192,6 +195,7 @@ def approve_chat_start(
             design_revision_id=revision.revision_id,
             fieldwork_source=run_start.fieldwork_source,
             analysis_enabled=run_start.analysis_enabled,
+            external_context=run_start.external_context,
             sociomapping_enabled=run_start.sociomapping_enabled,
             reservations=run_start.reservations,
             confirm_cost_usd=confirm_cost_usd,
