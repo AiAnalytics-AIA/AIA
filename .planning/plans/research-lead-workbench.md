@@ -1630,3 +1630,11 @@ ran outside the frame's one order (D21), and a second drawer could open beside t
   calls it with `report:ref:<old kind>:`. Tests: `ReportDocumentView.test.tsx` "inside the workbench
   closes the old document's claims…" and `Workbench.layout.test.tsx` "drops the entries a screen
   says stopped being true…"; both fail without the change.
+
+### The Lead's audience labels read Cílová skupina's parser (2026-10-22, `chore/target-label-parse-audience`)
+
+`targetLabel` (`lib/lead.ts`) parsed `audience:` ids with a second, looser rule of its own: an
+`audience:filter:` with no factor read "Filtr: ". It now reads them with Cílová skupina's
+`parseAudienceId` (`lib/artifacts/audience.ts`, #700), as that stage asked; a filter or subpanel
+with no name is no filter. Test: `lead.test.ts` "says each kind in words…" (fails without it).
+
