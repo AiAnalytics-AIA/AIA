@@ -121,6 +121,11 @@ V2: `DimensionsArt` (`SampleStages.tsx:206-230`).
   readiness limits in steps of 50, the recommendation stated beside it and one button to apply it; the
   slider and the 400/800/1200 presets are gone (audit B1). A value outside the limits is refused at the
   field and not saved. This is also the n half of `input-interactions#5`, which stays that plan's to tick.
+- DIM1, part: `lib/artifacts/dimensions.ts` builds Dimenze's ids (`dimensionAia`, `ownDimensionAia`), an id
+  outside the grammar left unmarked (the own-dimension rows used to call `aiaId`, which throws). The
+  stepper's `sample:n` comes from Vzorek's `sampleAia.n()`. Still open, in the registry's row (the
+  integration coordinator's): `show_changes`, and whether `sample:n` points at Dimenze's stepper or
+  Vzorek's (the same id is on both screens).
 - DIM4, read half (#667): "Vlastní dimenze klienta" on Dimenze (`OwnDimensions.tsx`,
   `lib/own-dimensions.ts`) lists the study's materializations, each with its state, its reason and the
   target beside what was achieved (unknown never met), pointable as `own_dimension:<run id>`, and links
