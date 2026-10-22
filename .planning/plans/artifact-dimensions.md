@@ -138,6 +138,12 @@ V2: `DimensionsArt` (`SampleStages.tsx:206-230`).
   the current n (`PersonaStep.tsx:323 @ b6ac25c`). The chip is gone, and the recommendation is named
   only on its button. Test: "the heading names no n but the stored one".
 
+- **DIM-F4 (reported to the integration coordinator; a cross-stage vocabulary rule,
+  `research-lead-workbench#14`).** Inside the workbench the dock still speaks the classic flow: its
+  back link reads "4. Audience" (`PersonaStep.tsx:379 @ b6ac25c`, `cs.ts:222`) where the navigator says
+  "Cílová skupina" (`workbench-stages.ts:25`), and "Další · kontrola" skips Vzorek, the workbench's next
+  stage. Seen at 390 px. Waiting on the frame's rule before Dimenze's dock changes.
+
 ## 8. Owner questions
 
 None new. MVPQ-03 (what a segment or descriptor is) stays open in `mvp-owner-decisions.md`.
