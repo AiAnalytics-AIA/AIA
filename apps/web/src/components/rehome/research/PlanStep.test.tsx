@@ -539,7 +539,7 @@ describe("Návrh: Výzkumné otázky a jejich pokrytí", () => {
     const ws = stub(null);
     render(<ResearchScreen step="plan" frame={TEST_FRAME} />);
     await within(await section()).findByText(/Podle pracovní kopie, revize 3/);
-    // A narrative item opens once its click settles (InlineText selectable, #727).
+    // A narrative item is selectable (#727): a click opens it once SELECT_SETTLE_MS has passed.
     const edit = async (label: string, value: string) => {
       fireEvent.click(screen.getByRole("button", { name: new RegExp(`^Upravit: ${label}`) }));
       const field = await screen.findByRole("textbox", { name: label });

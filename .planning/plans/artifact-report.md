@@ -5,7 +5,7 @@ chunks:
   - "[x] RPT2. The document first: the draft rendered in the pane from its stored document model, paragraphs with claim chips opening the inspector, figures in place"
   - "[ ] RPT3. The doc bar and the Approve and Export slot: which document, its draft number and state, approval as a modal naming it, exports after approval (split 2026-10-22: RPT3a, RPT3b)"
   - "[ ] RPT3a. Approval on the document being read: Schválit in the pane's doc bar for the version shown, internal or client, one owner of the version approved; the report card keeps downloads only"
-  - "[ ] RPT3b. Exports after approval: a deliverable's download refused until a person approved that version (F17), as the owner answers Q73"
+  - "[x] RPT3b. Exports after approval: decided 2026-10-22, not built: the owner answered Q73 (c), downloads stay free before approval"
   - "[x] RPT4. Záznam pokrytí, outside the text: what the report does not hold and why, from the chain manifest"
   - "[ ] RPT5. Draft revisions: the draft counter and the editor's version history, a report edit never reopening fieldwork (changed 2026-10-22: on the editor, RPT8)"
   - "[ ] RPT6. The Lead and the report writer on the draft (replaced 2026-10-22 by RPT9 and RPT10)"
@@ -150,7 +150,7 @@ like google docs has the suggestions feature". This revision reconciles that wit
 
 What changes:
 - **RPT3** splits. RPT3a (approval on the document being read) comes first, ahead of the editor; RPT3b
-  (exports after approval) waits for Q73.
+  (exports after approval) is closed as decided: Q73 (c), downloads stay free (2026-10-22).
 - **RPT5** keeps the draft counter, now over the editor's saved versions (RPT8), still never reopening
   fieldwork.
 - **RPT6 is replaced** by RPT9 (the Lead in the document) and RPT10 (literature by the Lead). Its tests
@@ -158,7 +158,7 @@ What changes:
   marked at the sentence.
 - **RPT7** gains RPT9's suggestion step.
 
-Order: RPT3a → RPT8 → RPT9 → RPT10 → RPT5 → RPT3b (on Q73) → RPT7.
+Order: RPT3a → RPT8 → RPT9 → RPT10 → RPT5 → RPT7 (RPT3b decided, not built: Q73 (c)).
 
 Dependencies:
 - RPT8: the ONLYOFFICE Docs integration (`research-lead-workbench#33`'s go; a self-hosted Document Server
@@ -176,9 +176,24 @@ card offers no approval; a client version is approved with no download; journey 
 Why (Findings, 2026-10-22, below): syncing a card and a pane that each held a client version failed four
 ways.
 
-**RPT3b. Exports after approval.** A deliverable's download refused until a person approved that exact
-version (F17, "no unapproved internal-draft exception"), the internal and client reports alike, each
-read in the pane first. Waits for the owner's Q73.
+*RPT3a, first part (`feature/report-docbar-approval`):* the pane's doc bar offers "Schválit k předání
+klientovi" on the client version it shows, to a reader who may review and only while that version is not
+approved; the dialog names that version (`approvalQuestion`) and what its file carries (`reviewLine`),
+`POST …/report/approve` sends its id once (the button held while in flight), and the server's answer
+updates the document in place, never reloading it. A question, a flight and a refusal belong to the
+version they named: another document on screen shows none of them. The pane then fires
+`aia:report-approved` with the server's answer, and the report card says what was approved without
+approving: the card no longer approves the client report at all
+(`ReportDocumentView.test.tsx` "approved on the document being read, in the doc bar (RPT3a)";
+`ExecutionSteps.test.tsx` "offers the client report only for modelled data, says why when refused, and
+leaves its approval to the doc bar", "hears an approval of another run as nothing (RPT3a)"). Left for the
+next part: the internal draft's approval, which also approves its PDF; the card names that PDF and the pane
+does not read it yet, so it moves with the PDF's state, and the card then keeps downloads only.
+
+**RPT3b. Exports after approval.** Decided 2026-10-22, not built: the owner answered Q73 (c), keep
+today's free downloads. A draft's DOCX and PDF stay downloadable before approval, each file stamped
+KONCEPT until its version is approved (RD2). F17's "available only after approval" is superseded for
+downloads; approval still names the exact version (RPT3a).
 
 **RPT8. The editor is the surface.** The stored draft opens in ONLYOFFICE Docs (Q35) inside Zpráva's pane;
 the researcher edits it directly. Every number is a locked, tagged content control naming its ledger ref,
@@ -198,7 +213,10 @@ through the edit operations:
   change in the history.
 - A suggestion touching a number passes the ledger and sentence check (ADR 0035) before it can be accepted;
   a typed digit is refused; a merge's refs are the union; a split divides them.
-- The Lead's study notes never reach the draft (Q69 (a)).
+- The Lead's study notes never reach the draft (Q69 (a)). When the Lead edits the report document, keep
+  that path in `domain/edit_ops` and the report modules' own apply step, so the import contract "no
+  report path reads the Lead's notes (Q69)" (#719) still holds. If RPT9 ever needs something from
+  `research_lead`, move that piece into `edit_ops` rather than loosening the contract.
 
 Acceptance (journey step): the Lead proposes two edits; both show in the text as its suggestions; one is
 accepted and one rejected; the version then approved (RPT3a) holds exactly the accepted one. Open: how
@@ -265,7 +283,7 @@ sentence refused by RD7 is marked at the sentence. Depends on `report-delivery#R
 
 ## 8. Owner questions
 
-- Q73 (open): whether downloads wait for approval (RPT3b).
+- Q73 (decided 2026-10-22, (c)): downloads stay free before approval; RPT3b is closed, not built.
 - Hosting ONLYOFFICE Document Server beside develop (RPT8): an operations change, for the coordinator to
   schedule with the owner (AGPL obligations named in the spike).
 

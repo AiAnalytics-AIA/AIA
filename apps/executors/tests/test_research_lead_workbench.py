@@ -229,3 +229,30 @@ def test_a_scripted_message_about_the_goal_points_at_the_first_objective() -> No
     other = scripted_lead_output(_frozen("Kde jsme?", with_objectives))
     assert without.view == other.view
     assert not without.view[0].model_dump()["target"].startswith("objective:")
+
+
+def test_a_scripted_message_asking_for_a_detail_opens_the_first_research_question() -> None:
+    """research-lead-workbench 14: the journey needs the scripted Lead to run ``inspect``."""
+    from aia_core.domain.item_ids import list_ids, with_item_ids
+    from aia_executors.workbench import scripted_lead_output
+
+    with_rqs = {**CONTENT, "research_plan": {"research_questions": ["Kdo pije čaj?", "Proč?"]}}
+    content, _ = with_item_ids(with_rqs)
+    first = list_ids(content["research_plan"], "research_questions", "research_question_ids")
+    assert first
+    shown = scripted_lead_output(_frozen("Ukaž mi detail otázky", with_rqs))
+    assert [v.model_dump() for v in shown.view][1:] == [
+        {"op": "inspect", "target": f"rq:{first[0]}"}
+    ]
+    # No research question: the first hypothesis, also on Návrh.
+    with_hypotheses = {**CONTENT, "research_plan": {"hypotheses": ["Čaj vede."]}}
+    content, _ = with_item_ids(with_hypotheses)
+    h = list_ids(content["research_plan"], "hypotheses", "hypothesis_ids")
+    assert h
+    shown = scripted_lead_output(_frozen("Ukaž mi detail", with_hypotheses))
+    assert [v.model_dump() for v in shown.view][1:] == [
+        {"op": "inspect", "target": f"hypothesis:{h[0]}"}
+    ]
+    # Without the word, or with neither: only the focus it always had.
+    assert len(scripted_lead_output(_frozen("Kde jsme?", with_rqs)).view) == 1
+    assert len(scripted_lead_output(_frozen("Ukaž mi detail otázky", CONTENT)).view) == 1

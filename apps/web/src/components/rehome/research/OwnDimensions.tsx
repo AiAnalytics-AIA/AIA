@@ -10,7 +10,7 @@ import Link from "next/link";
 import { t } from "@/i18n/t";
 import { population } from "@/lib/api";
 import { ownDimension } from "@/lib/own-dimensions";
-import { aiaId } from "@/lib/workbench-artifacts";
+import { ownDimensionAia } from "@/lib/artifacts/dimensions";
 import { useResource } from "../../aia/useResource";
 import { StepSection } from "../step";
 import { CodedWords } from "./CodedWords";
@@ -28,7 +28,7 @@ export function OwnDimensions({ studyId, runHref }: { studyId: string; runHref: 
           {items.map((m) => {
             const d = ownDimension(m);
             return (
-              <li key={m.run_id} data-aia={aiaId("own_dimension", m.run_id)} className="flex flex-col gap-1 py-2 text-sm">
+              <li key={m.run_id} data-aia={ownDimensionAia(m.run_id) ?? undefined} className="flex flex-col gap-1 py-2 text-sm">
                 <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
                   <span className="min-w-0 flex-1 basis-48 font-semibold">{d.name}</span>
                   <span className="rounded-pill border border-border px-2 text-xs leading-5"><CodedWords inline coded={d.status} /></span>

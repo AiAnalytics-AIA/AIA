@@ -28,7 +28,9 @@ export type LeadEdit =
   | { op: "question_remove"; question_id: string; why: string }
   | { op: "set_n"; value: number; why: string };
 
-export type LeadView = { op: "open_stage"; stage: WorkbenchStage } | { op: "focus"; target: string };
+/** The Lead's view operations (research-lead-workbench 14): open a stage, point at an element,
+ *  open an element's detail in the item drawer over its stage. */
+export type LeadView = { op: "open_stage"; stage: WorkbenchStage } | { op: "focus" | "inspect"; target: string };
 
 export type LeadRequest =
   | { kind: "agent_job"; action: string; why: string }

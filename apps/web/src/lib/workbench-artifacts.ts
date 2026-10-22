@@ -13,7 +13,7 @@ export type ArtifactKind = "working" | "run" | "draft";
 
 export type ViewOpKind = "open_stage" | "focus" | "inspect" | "select" | "filter" | "show_diff";
 /** The view operations the Lead's output carries today (lead.ts LeadView); the rest are to build. */
-export const LIVE_VIEW_OPS: ReadonlySet<ViewOpKind> = new Set<ViewOpKind>(["open_stage", "focus"]);
+export const LIVE_VIEW_OPS: ReadonlySet<ViewOpKind> = new Set<ViewOpKind>(["open_stage", "focus", "inspect"]);
 
 export type TargetKind =
   | "brief" | "objective" | "material" | "plan" | "rq" | "hypothesis" | "set" | "assumption" | "section" | "question" | "audience" | "dimension" | "own_dimension" | "sample"
