@@ -125,6 +125,7 @@ under `AIA_ENV=local` or `test`; an unset or unknown `AIA_ENV` counts as deploye
 | only the step's model caller invokes the model gateway | A model call with no reservation, no settle and no journal under the lease (`ai_step.py`, StepModelCaller) |
 | network egress only from the transport modules (ruff TID251: `urllib3`, `httpx`, `requests`, `urllib.request`, `http.client`, `socket`, `ssl`; exemptions per file in the root `pyproject.toml`) | A connection with no residency check, pacing, TLS-refusal handling or record: web reads around RetrievalGate, model calls around GovernedModelGateway |
 | only the executor compositions import a live network wire: `deep_research_live` and `deep_research_runtime` (web search, Common Crawl), `ai_runtime` (the model transport); every app and the core's domain and application layers are checked, indirect imports included (import contract; RetrievalGate reaches the index and archive through `infrastructure/archive_index.py`, which loads no wire) | A module building a connection no composition configured |
+| no report path reads the Lead's notes (Q69; import contract: every module that composes, stores, renders or approves a report imports none of the Lead's turns, notes, files or their repositories; `test_report_reads_no_lead_notes.py` holds the contract's list to every report module and refuses the Lead's tables and its turn artifact by name, which an import contract cannot see) | A researcher's private Lead notes printed in a draft meant to be as client-ready as possible (the owner, 2026-10-22, Q69 (a)) |
 | the API never builds its own scope context | The same, at the edge where untrusted input arrives |
 | the worker never builds its own scope context | The same, inside the process where model-driven code will run |
 | the worker knows nothing about HTTP | A worker that only works behind a web server |
@@ -676,15 +677,22 @@ contention detects it.
 
 ## 8. CI tiers
 
-CI runs on every pull request and on every push to `main`
-([ci.yml](.github/workflows/ci.yml)). A check that fails for reasons nobody
-intends to fix today trains everyone to ignore red, so every step sits in a
-declared tier.
+CI runs on every pull request and on every push to `main` or `develop`
+([ci.yml](.github/workflows/ci.yml)); on a green `develop` push it dispatches
+`deploy-develop.yml` for the SHA it verified (`dispatch-develop`, after every job).
+A check that fails for reasons nobody intends to fix today trains everyone to
+ignore red, so every step sits in a declared tier.
 
 A pull request that changes only `.planning/`, `docs/architecture/adr/`, `CLAUDE.md`,
 `AGENTS.md` or `ARCHITECTURE.md` runs `Documentation checks` (layering, exposure, plan
 front-matter, committed-key scan) instead of the suites; the path list is the `changes` job in
 `ci.yml`. A push to `main` or `develop` always runs everything.
+
+Runs share one concurrency group per ref. A pull request's newer push cancels its older run; a push
+to `develop` or `main` never cancels a run in progress: with back-to-back merges every `develop` run
+was cancelled and none deployed for about 5 h 40 min (OI-191). GitHub still keeps only one pending
+run per group: a pending run that a newer push supersedes is cancelled, so a burst of merges runs
+the run in progress and the newest.
 
 | Step | Tier |
 |---|---|
@@ -700,12 +708,12 @@ front-matter, committed-key scan) instead of the suites; the path list is the `c
 | Executor suite (the `develop_snapshot` step under the real loop, the develop seed, the smoke module) with `AIA_REQUIRE_POSTGRES=1` | **blocking** |
 | MVP acceptance, tier A (`tests/acceptance`, its own PostgreSQL database): the API and a worker as processes over HTTP, recorded models, `timeout-minutes: 15` | **blocking** |
 | API contract (OpenAPI paths + study-scoping assertion, now covering `/runs`, `/artifacts` and the research `agent-jobs` routes) | **blocking** |
-| Frontend `lint` / `tsc --noEmit` / `build` | **blocking** |
+| Frontend (`npm ci --no-audit`): `lint` / `tsc --noEmit` / `tokens:check` and `check:design` (the design tokens and their evidence) / `knip` (`make web_unused`, config `apps/web/knip.jsonc`: no unused file, dependency or export; a type used in its own file may stay exported) / `npm test` / `build` | **blocking** |
 | Startup smoke: migrate, boot, end-to-end lifecycle over HTTP; the worker boots **with the real executor registry** and stops on `SIGTERM` with no error logged | **blocking** |
-| Develop host configuration: `caddy validate` on the Caddyfile; from `caddy adapt`, `tools/caddy_routes.py` (the product hostname the only site, `/` → `/app/clients`, `/app` behind AIA's own gate and without the session cookie, no route to the 18.6.6 document and `/classic` only the web client's page, no upstream but the API and the web client, no panel gate); `docker compose config` on the product stack and on `deploy/reference` (its gate's rules validated too); `bash -n` on the host scripts | **blocking** |
+| Develop host configuration: `caddy validate` on the Caddyfile; from `caddy adapt`, `tools/caddy_routes.py` (the product hostname the only site but `errors.<hostname>`, GlitchTip alone, and `docs.<hostname>`, the Document Server alone behind the docs gate with its server paths refused; `/` → `/app/clients`, `/app` behind AIA's own gate and without the session cookie, an API request body bounded, no route to the 18.6.6 document and `/classic` only the web client's page, no upstream but the API and the web client, no panel gate); `docker compose config` on the product stack, on GlitchTip's project (`deploy/develop/errors`, its secrets required) and on the report editor's (`deploy/develop/docs`: its JWT secret required, the upstream image pinned by digest, no published port, its request filter, plugins and WOPI off, only Caddy on its network, the editor off unless SSM switches it on), and on `deploy/reference` (its gate's rules validated too); the deploy bundle step of `deploy-develop.yml` run as written on an older SHA and on this tree (each bundle holds what its tree has); Caddy loading through Compose; `bash -n` on the host scripts and `py_compile` on the host Python scripts | **blocking** |
 | Committed-provider-key scan | **blocking** |
-| `pip-audit`: any known advisory in a third-party distribution, read from `pip freeze --all --exclude-editable` after a pip upgrade; an exception is a dated, justified `--ignore-vuln` entry | **blocking** |
-| `npm audit` gate (`apps/web/scripts/audit-gate.mjs`): every high or critical advisory, production and dev, blocks unless `apps/web/audit-allowlist.json` names its GHSA id for that package before its recheck date. An entry carries the path, the date added, the reason, the approver and a recheck date at most a month out; after that date it no longer counts | **blocking** |
+| `pip-audit`: any known advisory in a third-party distribution, read from `pip freeze --all --exclude-editable` after a pip upgrade, with every extra the images ship installed (`errors` included); an exception is a dated, justified `--ignore-vuln` entry | **blocking** |
+| `npm audit` gate (`apps/web/scripts/audit-gate.mjs`): every high or critical advisory, production and dev, blocks unless `apps/web/audit-allowlist.json` names its GHSA id for that package before its recheck date. An entry carries the path, the date added, the reason, the approver and a recheck date at most a month out; after that date it no longer counts. `npm audit --json` is asked at most twice, each attempt stopped at 150 s, each attempt's duration and exit in the job's step summary; two attempts without a readable report fail the job; `npm ci` runs with `--no-audit` | **blocking** |
 | Parity suite against the legacy prototype | **blocking when it runs** (no more `|| true`); skips without the withheld archive, reported `NOT_EXECUTED` |
 | Golden fixtures F1–F9 (vendored, inside the pytest steps) | **blocking** |
 | Golden fixtures F10–F11, pin checks, and population / evidence reference parity against the reference repository | **blocking when they run** (`golden-fixtures` job); skipped without the deploy key *(see below)*. The evidence layer's recovered decision tables need no checkout and run in the blocking `pytest` step |
@@ -774,10 +782,24 @@ check. Every other path is the web client's, with its own 404, the unit's old pa
 (`/api/*` outside `/api/v1`, `/files/*`, `/artifacts/*`, `/project-attachments/*`,
 `/brand/*`, `/fullsim-arena`, `/health`, `/status`) among them; the panel's gate that
 guarded them (ADR 0012) is gone, `/api/v1/panel/*` with it. `tools/caddy_routes.py`
-holds the adapted Caddyfile to this paragraph in CI (one hostname; no upstream but
-the API and the web client); `tools/develop_routing_proof.py` runs it, and the smoke
+holds the adapted Caddyfile to this paragraph in CI (the product hostname and the two
+origins below; no upstream there but the API and the web client); `tools/develop_routing_proof.py` runs it, and the smoke
 check fails a deploy on which a unit path answers or a `legacy-panel` container of
-the product's Compose project exists.
+the product's Compose project exists. Caddy bounds an API request body at 40 MiB
+(`tools/caddy_routes.py`), above the largest upload (a 25 MiB file, base64 in JSON): FastAPI
+reads a whole JSON body before a route's dependencies, authentication among them, run.
+`AIA_MAX_REQUEST_BYTES` is not enforced yet (security-audit-2026-10 S12).
+
+**Two other origins, each reaching one service.** `errors.<hostname>` is GlitchTip and
+nothing else. `docs.<hostname>` is the report editor, ONLYOFFICE Docs (`deploy/develop/docs`,
+its own Compose project, off unless switched on), and it is an origin of its own rather than a
+path on the product's: on AIA's origin the editor's JavaScript would share `sessionStorage`,
+which holds the person's id token, and the API that trusts it, so an editor bug would be an AIA
+credential leak. `aia_session` is host-only and never reaches it; every request there passes
+AIA's docs gate (`GET /api/v1/session/docs-gate`, `forward_auth`) over a docs-only cookie,
+`aia_docs`, which a one-time ticket (`POST /api/v1/session/docs-ticket`, 60 s, spent once)
+buys on that origin alone. The Document Server's server-to-server and admin paths answer 404
+there, and the product hostname never reaches it.
 
 **The 18.6.6 unit is a reference beside the product** (ADR 0018 decision 5).
 `deploy/reference/` runs it as the Compose project `aia-reference`, on the unit's
