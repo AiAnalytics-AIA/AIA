@@ -1500,3 +1500,23 @@ Other kinds stay at the grammar until their stage asks for the same.
    The workbench's own controls keep the ring.
 6. Test: the workbench journey's "one focus ring on a field, the ring on the workbench's
    controls".
+
+### FrameNavigation names the next stage (2026-10-22, `feature/frame-next-stage`, asked by Dimenze)
+
+#668 made `FrameNavigation` a boolean, so a stage's forward action ("Další → Vzorek") had to copy
+the workbench's `go`.
+- **Why that was wrong.** Dimenze's draft set `location.hash = "sample"` itself, which:
+  - lost the focus, because the pressed button is hidden with Dimenze's screen;
+  - hard-coded that Vzorek shares Dimenze's route, bypassing the leave guard if the next stage ever
+    lived on another route;
+  - named `STAGES.sample` instead of the stage after it in `STAGE_ORDER` (DIM-F4's drift).
+- **The context value.** It is now `{ next: { label, go } | null } | null`: null outside a frame,
+  `next` null on the last stage.
+- **What the workbench provides.** `next` is the stage after the current one in `STAGE_ORDER`.
+  `go` opens it as the navigator does (`go`: hash on the same route, `guardedNavigate` otherwise),
+  then focuses the new stage's heading (`.arthead__title`, `tabIndex={-1}`). The pending focus is
+  kept at module scope so a route change, which remounts the workbench, keeps it.
+- **ActionDock** reads `framed = value !== null`.
+- **Tests.** `Workbench.layout.test.tsx` "a stage's forward action through the frame": Výsledky →
+  Sociomapa by hash with the focus on Sociomapa's heading (it fails without the focus move), and
+  Dotazník → Cílová skupina named. `step.test.tsx` passes `{ next: null }`.

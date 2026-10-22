@@ -14,6 +14,8 @@ import type { ResearchProject } from "@/research/model";
 import { ResearchStore } from "@/research/store";
 import { TEST_FRAME } from "../rehome/research/test-frame";
 import { EMPTY_PROJECT } from "../rehome/research/test-workspace";
+import { FrameNavigation } from "@/components/rehome/step";
+import { useContext } from "react";
 import { Workbench } from "./Workbench";
 
 vi.mock("next/navigation", () => ({ useRouter: () => ({ push: vi.fn(), replace: vi.fn() }), usePathname: () => "/app" }));
@@ -372,5 +374,41 @@ describe("the stage track reads the working copy's impact (working-copy-edit-ops
     await waitFor(() => expect(impactUrls.length).toBe(1));
     expect(impactUrls[0]).not.toContain("design_revision_id");
     expect(document.querySelectorAll("[data-impact]").length).toBe(0);
+  });
+});
+
+describe("a stage's forward action through the frame (FrameNavigation's next)", () => {
+  function Forward() {
+    const frame = useContext(FrameNavigation);
+    return frame?.next ? <button type="button" onClick={frame.next.go}>Další → {frame.next.label}</button> : <span>poslední</span>;
+  }
+  const benchOn = (step: "results" | "questionnaire") => {
+    const store = new ResearchStore({ revision: 3, project: EMPTY_PROJECT as unknown as ResearchProject, analysis: null, save: { kind: "saved" }, checkEpoch: 0 }, "STU-1");
+    return render(
+      <Workbench frame={TEST_FRAME} step={step} store={store} memory={new Map()} save={null} inspector={null} reload={vi.fn()} confirm={vi.fn(async () => true)}
+        onAgentStarted={vi.fn()} jobs={[]} onOpenJob={vi.fn()} onRefreshJobs={vi.fn(async () => [])}>
+        <Forward />
+      </Workbench>,
+    );
+  };
+  afterEach(() => {
+    window.location.hash = "";
+  });
+
+  it("names the stage after this one in the workbench's order, and opens it with the focus on its heading", async () => {
+    // Výsledky -> Sociomapa: one route, the stage its hash, as Dimenze -> Vzorek (whose screen
+    // needs the study's research context, which this frame-only test does not mount).
+    window.location.hash = "";
+    benchOn("results");
+    const forward = screen.getByRole("button", { name: "Další → Sociomapa" });
+    forward.focus();
+    act(() => forward.click());
+    await waitFor(() => expect(window.location.hash).toBe("#maps"));
+    await waitFor(() => expect(document.activeElement).toBe(screen.getByRole("heading", { level: 1, name: "Sociomapa" })));
+  });
+
+  it("names Cílová skupina after Dotazník", () => {
+    benchOn("questionnaire");
+    expect(screen.getByRole("button", { name: "Další → Cílová skupina" })).toBeTruthy();
   });
 });
