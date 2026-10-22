@@ -206,7 +206,13 @@ conditional question fails readiness exactly as today.
   A condition in the design's form reads as a sentence (who is asked, after which answers) with
   why the run still refuses it; one the rule refuses says why in the server's words
   (`EDIT_REFUSAL_WORDS`) and can be set again; an 18.6.6 expression is shown as stored. "Odebrat
-  podmínku" removes it by the question's place. Tests: `QuestionnaireStep.test.tsx`,
+  podmínku" removes it by the question's place. An 18.6.6 expression in the two forms the compiler
+  reads (`Q1 == 'x'`, `Q1 in [...]`) is judged as compile judges it (`readExpression`,
+  `expressionState`), held to the compiler by `tests/fixtures/conditions/expressions.json`; where
+  the web cannot know the server's answer (another form, a name only a compiled id matches) it is
+  shown as written, with no claim either way. Setting or editing one is behind the switch (d)
+  reads, `AIA_ROUTING_ENABLED`, through /config's `routing` (off: a stored condition is shown and
+  can be removed). Tests: `QuestionnaireStep.test.tsx`,
   `questionnaire-conditions.test.ts`; `questionnaire_journey.mjs` sets, reads back and removes one
   at 1440, 1100, 768 and 390 px, the sentence at a reading width (390 px squeezed it to 50 px).
 

@@ -128,12 +128,14 @@ describe("Dotazník", () => {
 
   it("shows a question's display condition from 18.6.6 and removes it, so the run can start (PC15)", async () => {
     const sections = structuredClone(SECTIONS) as { questions?: Record<string, unknown>[] }[];
-    sections[0]!.questions![1]!.filtr = "Q1 == 'Denně'";
+    sections[0]!.questions![1]!.filtr = "Q1 != 'Denně'";
     unitStub({ ...BRIEF, sections, ui_state: { questionnaire_path: "manual" } });
     render(<ResearchScreen step="questionnaire" frame={TEST_FRAME} />);
     await screen.findByRole("heading", { name: "2 otázky · 1 sledovaná sada" });
     const card = document.getElementById("qedit_Q2") as HTMLElement;
-    expect(within(card).getByText(/„Q1 == 'Denně'“/)).toBeTruthy();
+    // Shown as written, with no claim that AIA cannot read it: Kontrola says what it makes of it.
+    expect(within(card).getByText(/„Q1 != 'Denně'“\)\. Ukazujeme ji, jak je zapsaná; zda ji běh přijme, řekne Kontrola\./)).toBeTruthy();
+    expect(card.textContent).not.toMatch(/nerozumí/);
     expect(document.getElementById("qedit_Q1")!.querySelector("[data-question-condition]")).toBeNull();
     fireEvent.click(within(card).getByRole("button", { name: "Odebrat podmínku" }));
     expect(card.querySelector("[data-question-condition]")).toBeNull();
@@ -144,13 +146,14 @@ describe("Dotazník", () => {
   });
 
   it("sets a question's display condition on an earlier choice question's answers, edits it and removes it (WCE13)", async () => {
-    unitStub({ ...BRIEF, sections: SECTIONS, ui_state: { questionnaire_path: "manual" } });
+    unitStub({ ...BRIEF, sections: SECTIONS, ui_state: { questionnaire_path: "manual" } }, null, { "/config": () => ({ routing: true }) });
     render(<ResearchScreen step="questionnaire" frame={TEST_FRAME} />);
     await screen.findByRole("heading", { name: "2 otázky · 1 sledovaná sada" });
     // Q1 has no earlier choice question, so nothing to stand on: no condition is offered.
     expect(within(document.getElementById("qedit_Q1")!).queryByRole("button", { name: "Podmínka zobrazení" })).toBeNull();
     const card = document.getElementById("qedit_Q2") as HTMLElement;
-    fireEvent.click(within(card).getByRole("button", { name: "Podmínka zobrazení" }));
+    // The switch is read from /config once the card is there.
+    fireEvent.click(await within(card).findByRole("button", { name: "Podmínka zobrazení" }));
     fireEvent.click(within(within(card).getByRole("radiogroup", { name: "Zobrazit podle odpovědi na otázku" })).getByRole("radio", { name: /^Q1 · Jak často\?/ }));
     const save = within(card).getByRole("button", { name: "Uložit podmínku" }) as HTMLButtonElement;
     expect(save.disabled).toBe(true);
@@ -175,11 +178,11 @@ describe("Dotazník", () => {
   });
 
   it("keeps the form open and says why when the questionnaire moved under it", async () => {
-    unitStub({ ...BRIEF, sections: SECTIONS, ui_state: { questionnaire_path: "manual" } });
+    unitStub({ ...BRIEF, sections: SECTIONS, ui_state: { questionnaire_path: "manual" } }, null, { "/config": () => ({ routing: true }) });
     render(<ResearchScreen step="questionnaire" frame={TEST_FRAME} />);
     await screen.findByRole("heading", { name: "2 otázky · 1 sledovaná sada" });
     const card = document.getElementById("qedit_Q2") as HTMLElement;
-    fireEvent.click(within(card).getByRole("button", { name: "Podmínka zobrazení" }));
+    fireEvent.click(await within(card).findByRole("button", { name: "Podmínka zobrazení" }));
     fireEvent.click(within(card).getByRole("radio", { name: /^Q1 · / }));
     fireEvent.click(within(within(card).getByRole("group", { name: "Zobrazit těm, kdo odpověděli" })).getByRole("button", { name: "Týdně" }));
     // The answer chosen is removed from Q1 while the form is open.
@@ -193,12 +196,12 @@ describe("Dotazník", () => {
   it("says why a stored condition does not stand, and sets it again", async () => {
     const sections = structuredClone(SECTIONS) as { questions?: Record<string, unknown>[] }[];
     sections[0]!.questions![1]!.filtr = { question_id: "Q1", options: ["Někdy"] };
-    unitStub({ ...BRIEF, sections, ui_state: { questionnaire_path: "manual" } });
+    unitStub({ ...BRIEF, sections, ui_state: { questionnaire_path: "manual" } }, null, { "/config": () => ({ routing: true }) });
     render(<ResearchScreen step="questionnaire" frame={TEST_FRAME} />);
     await screen.findByRole("heading", { name: "2 otázky · 1 sledovaná sada" });
     const card = document.getElementById("qedit_Q2") as HTMLElement;
     expect(within(card).getByText(/Podmínka neplatí: Otázka, na které podmínka stojí, takovou odpověď nemá\./)).toBeTruthy();
-    fireEvent.click(within(card).getByRole("button", { name: "Nastavit znovu" }));
+    fireEvent.click(await within(card).findByRole("button", { name: "Nastavit znovu" }));
     // Nothing refused is carried into the form: it starts from no question and no answer.
     const sources = within(card).getByRole("radiogroup", { name: "Zobrazit podle odpovědi na otázku" });
     expect(within(sources).getAllByRole("radio").every((r) => r.getAttribute("aria-checked") === "false")).toBe(true);
@@ -208,6 +211,39 @@ describe("Dotazník", () => {
     fireEvent.click(within(answers).getByRole("button", { name: "Denně" }));
     fireEvent.click(within(card).getByRole("button", { name: "Uložit podmínku" }));
     await within(card).findByText(/Zobrazí se jen těm, kdo u Q1 \(„Jak často\?“\) odpověděli „Denně“\./);
+  });
+
+  it("reads an 18.6.6 expression as Kontrola does: a valid one as a sentence, a refused one with why", async () => {
+    const sections = structuredClone(SECTIONS) as { questions?: Record<string, unknown>[] }[];
+    sections[0]!.questions![0]!.filtr = "Q2 == '5'";
+    sections[0]!.questions![1]!.filtr = "Q1 in ['Týdně']";
+    unitStub({ ...BRIEF, sections, ui_state: { questionnaire_path: "manual" } });
+    render(<ResearchScreen step="questionnaire" frame={TEST_FRAME} />);
+    await screen.findByRole("heading", { name: "2 otázky · 1 sledovaná sada" });
+    const first = document.getElementById("qedit_Q1") as HTMLElement;
+    expect(within(first).getByText(/^Podmínka neplatí: Podmínka smí stavět jen na otázce, která je v dotazníku dřív\.$/)).toBeTruthy();
+    const second = document.getElementById("qedit_Q2") as HTMLElement;
+    expect(within(second).getByText(/Zobrazí se jen těm, kdo u Q1 \(„Jak často\?“\) odpověděli „Týdně“\./)).toBeTruthy();
+    expect(document.body.textContent).not.toMatch(/nerozumí/);
+  });
+
+  it("offers no condition to set without the routing switch; a stored one is shown and can be removed", async () => {
+    const sections = structuredClone(SECTIONS) as { questions?: Record<string, unknown>[] }[];
+    unitStub({ ...BRIEF, sections, ui_state: { questionnaire_path: "manual" } }, null, { "/config": () => ({ routing: false }) });
+    render(<ResearchScreen step="questionnaire" frame={TEST_FRAME} />);
+    await screen.findByRole("heading", { name: "2 otázky · 1 sledovaná sada" });
+    await waitFor(() => expect(calls.some((c) => c.url === "/config")).toBe(true));
+    const card = document.getElementById("qedit_Q2") as HTMLElement;
+    await waitFor(() => expect(within(card).queryByRole("button", { name: "Podmínka zobrazení" })).toBeNull());
+    cleanup();
+    sections[0]!.questions![1]!.filtr = { question_id: "Q1", options: ["Týdně"] };
+    unitStub({ ...BRIEF, sections, ui_state: { questionnaire_path: "manual" } }, null, { "/config": () => ({ routing: false }) });
+    render(<ResearchScreen step="questionnaire" frame={TEST_FRAME} />);
+    await screen.findByRole("heading", { name: "2 otázky · 1 sledovaná sada" });
+    const stored = document.getElementById("qedit_Q2") as HTMLElement;
+    expect(within(stored).getByText(/Zobrazí se jen těm, kdo u Q1/)).toBeTruthy();
+    await waitFor(() => expect(within(stored).queryByRole("button", { name: "Upravit podmínku" })).toBeNull());
+    expect(within(stored).getByRole("button", { name: "Odebrat podmínku" })).toBeTruthy();
   });
 
   it("edits a question as the classic editor does: type, options and a scale", async () => {

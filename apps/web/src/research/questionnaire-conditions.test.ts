@@ -1,5 +1,7 @@
 // The web's half of a question's display condition (working-copy-edit-ops WCE13): the rule cases
 // are the shared edit case file's (edit-ops.cases.test.ts); this holds what that file cannot carry.
+import { readFileSync } from "node:fs";
+import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 
 import type { ResearchProject } from "./model";
@@ -43,7 +45,7 @@ describe("a question's display condition", () => {
     expect(conditionOf(p, 3, 1).sources).toEqual([]);
   });
 
-  it("reads a stored condition by the question's place: set, refused by name, or shown as stored", () => {
+  it("reads a stored condition by the question's place: set, refused by name, or shown as written", () => {
     const at = (filtr: unknown, q2: Record<string, unknown> = Q2) => conditionOf(project([{ type: "questions", questions: [Q1, { ...q2, filtr }] }]), 0, 1).state;
     expect(at(undefined)).toEqual({ kind: "none" });
     expect(at("  ")).toEqual({ kind: "none" });
@@ -51,8 +53,29 @@ describe("a question's display condition", () => {
     expect(at({ question_id: "Q1", options: ["Možná"] })).toEqual({ kind: "refused", reason: "condition_unknown_option" });
     // A question without an id cannot be named by route_set, so its condition is refused as such.
     expect(at({ question_id: "Q1", options: ["Ano"] }, { text: "Bez id", typ: "otevrena" })).toEqual({ kind: "refused", reason: "unknown_question" });
-    expect(at("Q1 == 'Ano'")).toEqual({ kind: "unread", stored: "Q1 == 'Ano'" });
-    expect(at({ question_id: "Q1", options: ["Ano"], negate: true })).toEqual({ kind: "unread", stored: '{"question_id":"Q1","options":["Ano"],"negate":true}' });
-    expect(at({ question_id: "Q1", options: [1] }).kind).toBe("unread");
+    expect(at("Q1 != 'Ano'")).toEqual({ kind: "unread", stored: "Q1 != 'Ano'" });
+    // Any other shape the compiler refuses as unstructured, whatever it says.
+    expect(at({ question_id: "Q1", options: ["Ano"], negate: true })).toEqual({ kind: "refused", reason: "condition_unstructured" });
+    expect(at({ question_id: "Q1", options: [1] })).toEqual({ kind: "refused", reason: "condition_unstructured" });
+    expect(at(7)).toEqual({ kind: "refused", reason: "condition_unstructured" });
   });
+
+  // research_design.py read_condition's two 18.6.6 forms, held to the compiler by a case file the
+  // server's test reads too (test_research_conditions.py test_an_expression_reads_as_dotaznik_shows_it).
+  const EXPRESSIONS = JSON.parse(readFileSync(join(process.cwd(), "../../packages/aia_core/tests/fixtures/conditions/expressions.json"), "utf8")) as {
+    cases: { name: string; questions: Record<string, unknown>[]; expect: { kind: string; question_id?: string; options?: string[]; reason?: string } }[];
+  };
+  for (const c of EXPRESSIONS.cases) {
+    it(`reads an 18.6.6 expression as the compiler does: ${c.name}`, () => {
+      const at = c.questions.findIndex((q) => q.id === "Q2");
+      const { state } = conditionOf(project([{ type: "questions", questions: c.questions }]), 0, at);
+      if (c.expect.kind === "set") {
+        expect(state.kind === "set" && { id: state.source.id, options: state.options }).toEqual({ id: c.expect.question_id, options: c.expect.options });
+      } else if (c.expect.kind === "refused") {
+        expect(state).toEqual({ kind: "refused", reason: c.expect.reason });
+      } else {
+        expect(state.kind).toBe("unread");
+      }
+    });
+  }
 });

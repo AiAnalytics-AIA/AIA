@@ -6,10 +6,11 @@
 // (research_design.py condition_refusal); a stored condition the rule refuses, or one 18.6.6 wrote
 // that AIA cannot read, is shown as stored with why, never rewritten here.
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 
 import { ChoiceChips } from "@/components/ui/ChoiceChips";
 import { t, tv } from "@/i18n/t";
+import { loadConfig } from "@/lib/auth";
 import { EDIT_REFUSAL_WORDS, applyEdit } from "@/lib/lead";
 import type { ResearchProject } from "@/research/model";
 import { type ConditionSource, type ConditionValue, type Question, conditionOf, removeCondition } from "@/research/questionnaire";
@@ -22,9 +23,32 @@ type Update = (next: (p: ResearchProject) => ResearchProject, reason?: string) =
 const quoted = (xs: readonly string[]) => xs.map((x) => `„${x}“`).join(", ");
 const label = (s: ConditionSource) => (s.number === null ? s.id : `Q${s.number}`);
 
+/** /config's routing switch once read, so a card mounted later starts from it (null until then). */
+let routingKnown: boolean | null = null;
+
+/** /config's routing switch (AIA_ROUTING_ENABLED); off until read, and off when it cannot be. */
+function useRouting(): boolean {
+  const [on, setOn] = useState(routingKnown ?? false);
+  useEffect(() => {
+    let live = true;
+    loadConfig().then(
+      (c) => {
+        routingKnown = c.routing === true;
+        if (live) setOn(routingKnown);
+      },
+      () => undefined,
+    );
+    return () => {
+      live = false;
+    };
+  }, []);
+  return on;
+}
+
 export function QuestionCondition({ q, si, qi, update }: { q: Question; si: number; qi: number; update: Update }) {
   const { state: research } = useResearch();
   const { canEdit } = useFrame();
+  const routing = useRouting();
   const [editing, setEditing] = useState(false);
   const { state, sources } = conditionOf(research.project, si, qi);
   const id = String(q.id ?? "").trim();
@@ -43,7 +67,9 @@ export function QuestionCondition({ q, si, qi, update }: { q: Question; si: numb
   };
 
   if (editing) return <ConditionForm sources={sources} initial={state.kind === "set" ? state : null} onCancel={() => setEditing(false)} onSave={save} />;
-  const editable = canEdit && sources.length > 0;
+  // Set or edited only behind the switch (off until fieldwork routes, RQC11); a stored one is
+  // still shown and can be removed.
+  const editable = canEdit && routing && sources.length > 0;
   if (state.kind === "none") {
     // Only where a condition can stand: an earlier selection question with answers.
     if (!editable) return null;

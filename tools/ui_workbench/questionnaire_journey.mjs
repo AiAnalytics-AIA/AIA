@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 /** Dotazník in a real browser (plan artifact-questionnaire, QST8 and QST9's journey).
  * Start the workbench with the switch on, write the fixtures, then run:
- *   AIA_WEB_RESEARCH_WORKBENCH=true python3 tools/ui_workbench/workbench.py up
+ *   AIA_WEB_RESEARCH_WORKBENCH=true AIA_ROUTING_ENABLED=true python3 tools/ui_workbench/workbench.py up
  *   python3 tools/ui_workbench/fixture_project.py
  *   node tools/ui_workbench/questionnaire_journey.mjs [--facade http://127.0.0.1:8780] [--out DIR]
  * Local fictional identity only. At 1440, 1100, 768 and 390 px (the workbench at every width):
@@ -126,7 +126,10 @@ try {
   check("1440: a block renamed in place, saved and read back after a reload, then restored");
 
   // A display condition set at the question (working-copy-edit-ops WCE13 (c)) at every width: Q4 asked
-  // only of those who answered Q1 "Méně často", read back after a reload at 1440, then removed.
+  // only of those who answered Q1 "Méně často", read back after a reload at 1440, then removed. Set
+  // only behind the routing switch, which this workbench must run with.
+  const config = await (await page.request.get(base + "/config")).json();
+  assert.equal(config.routing, true, "start the workbench with AIA_ROUTING_ENABLED=true");
   for (const width of [1440, 1100, 768, 390]) {
     await page.setViewportSize({ width, height: 900 });
     await page.goto(base + stagePath("questionnaire") + "#qedit_Q_wb4");
