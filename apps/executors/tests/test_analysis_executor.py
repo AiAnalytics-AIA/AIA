@@ -188,6 +188,14 @@ ANALYSIS_CALL_USD = (2400 * 3 + 380 * 15) / 1_000_000
 # --------------------------------------------------------------------------- #
 
 
+#: The design with its brief filled in: what the internal draft must say it was asked (F19).
+BRIEFED: dict[str, Any] = {
+    **DESIGN,
+    "goal": "Zjistit, co fiktivní respondenti pijí ráno.",
+    "decision_use": "Fiktivní rozhodnutí o ranní nabídce.",
+}
+
+
 def _start(
     world: Any,
     design: dict[str, Any] = DESIGN,
@@ -381,7 +389,7 @@ def test_native_research_start_and_worker_complete_the_composed_analysis_graph(
     with world.sessions() as session:
         scope = world.lead_scope(session)
         revision, _ = StudyDesignRepository(session, scope).submit_as_working_copy(
-            content=DESIGN, source_stage="run"
+            content=BRIEFED, source_stage="run"
         )
         started = ResearchRuns(session, scope).start(
             design_revision_id=revision.revision_id,
@@ -419,8 +427,10 @@ def test_native_research_start_and_worker_complete_the_composed_analysis_graph(
     body = zipfile.ZipFile(io.BytesIO(document)).read("word/document.xml").decode()
     assert "Výsledky jednotlivých otázek" in body
     assert body.index("Metodika a způsob interpretace") < body.index("Výsledky jednotlivých otázek")
-    # The design it ran, and its questionnaire as an appendix (B1b).
+    # The design it ran, and its questionnaire as an appendix (B1b); it opens with what the brief
+    # asked for (F19).
     assert body.index("Návrh studie") < body.index("Metodika a způsob interpretace")
+    assert body.index(BRIEFED["goal"]) < body.index(BRIEFED["decision_use"])
     assert body.index("Výsledky jednotlivých otázek") < body.rindex("Dotazník")
     # Who answered, and how the run computed, before the numbers (B1c).
     assert (
@@ -429,7 +439,7 @@ def test_native_research_start_and_worker_complete_the_composed_analysis_graph(
         < body.index("Výsledky jednotlivých otázek")
     )
     assert "smyšlení respondenti" in body
-    assert report.metadata["report_contract"] == "aia-internal-report-14"
+    assert report.metadata["report_contract"] == "aia-internal-report-15"
     # The methodology chapter states the rules the run pinned (artifact-chain CHN9).
     assert "Pravidlo podpory aia-support-1" in body and "Agregace: metodika" in body
     # The document the DOCX was rendered from, beside it (report-delivery RD5a).
@@ -452,6 +462,16 @@ def test_native_research_start_and_worker_complete_the_composed_analysis_graph(
     assert section_ids[-1] == "app-audit"
     titles = [section["title"] for section in payload["sections"]]
     assert "Výsledky jednotlivých otázek" in titles
+    # The design chapter opens with what the brief asked, before how it was measured.
+    design = next(s for s in payload["sections"] if s["id"] == "ch-design")
+    printed = json.dumps(design["blocks"], ensure_ascii=False)
+    assert (
+        printed.index(BRIEFED["goal"])
+        < printed.index(BRIEFED["decision_use"])
+        < printed.index(QUESTIONS[0])
+    )
+    # It names where those words came from: the Design Revision the run recorded (CHN1).
+    assert {"kind": "run", "path": "metadata.design_revision_id"} in design["sources"]
     cited = {ref for s in payload["sections"] for ref in s["refs"]}
     assert cited and cited == set(payload["ledger"]["refs"])
     # Every section names its sources, stored with the document (artifact-chain CHN1): the map
