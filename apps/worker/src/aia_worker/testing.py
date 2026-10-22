@@ -34,7 +34,7 @@ Payload keys, all optional:
 ``fail``
     A :class:`~aia_core.domain.workflow.FailureClass` name, returned as
     :class:`Failed` while ``attempt_number < fail_until_attempt`` (default:
-    always).
+    always), with ``fail_error`` (a mapping) merged into its error payload.
 ``raise``
     Raise an unclassified ``RuntimeError`` with this message.
 ``approval``
@@ -145,7 +145,8 @@ class ScriptedExecutor:
 
         failure = script.get("fail")
         if failure and step.attempt_number < int(script.get("fail_until_attempt", 10**6)):
-            return Failed(FailureClass(str(failure)), {"attempt": step.attempt_number})
+            error = {"attempt": step.attempt_number, **dict(script.get("fail_error") or {})}
+            return Failed(FailureClass(str(failure)), error)
 
         children = script.get("defer")
         if isinstance(children, list) and step.attempt_number <= int(

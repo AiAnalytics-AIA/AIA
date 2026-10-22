@@ -77,7 +77,7 @@ const clientId = new URL(page.url()).pathname.split("/")[3];
 await page.screenshot({ path: `${OUT}/2-client.png` });
 await page.getByRole("button", { name: "Nový výzkum" }).click();
 await page.locator("dialog[open] input, dialog[open] textarea").first().fill("Proof · cesta prohlížečem");
-await page.locator("dialog[open]").getByRole("button", { name: /OK|Pokračovat|Vytvořit|Potvrdit/ }).first().click();
+await page.locator("dialog[open]").getByRole("button", { name: /OK|Pokračovat|Vytvořit|Založit|Potvrdit/ }).first().click();
 await page.waitForURL(/\/research\/[^/]+\/brief$/, { timeout: 60000 });
 const [, , , , , studyId] = new URL(page.url()).pathname.split("/");
 check(new URL(page.url()).pathname === `/app/clients/${clientId}/research/${studyId}/brief`, "new research opens on its brief, under its client", new URL(page.url()).pathname);

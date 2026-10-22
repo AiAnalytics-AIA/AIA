@@ -22,6 +22,11 @@ The audience step's catalogue and preview read a fictional LIVE population built
 the sampler's fixture rows (``fictional_population.py``), unless ``--no-audience-population``;
 research runs still record the Czech LIVE, which the workbench never establishes.
 
+``--population-double`` composes the population double instead (RQC10, local and test only):
+runs record its LIVE, the panel is offered and the default, and readiness draws the run's own
+sample from it, so Vzorek shows the sample by quota cell (run-qc-and-checkpoint RQC6d). It needs
+``--fieldwork ai_runtime``; no model is configured, so a run started there parks at fieldwork.
+
 Needs the repository's own Python environment (``make setup``), not the
 workbench venv, which holds the 18.6.6 unit's requirements.
 """
@@ -44,6 +49,7 @@ def build(
     *,
     artifacts: Path | None = None,
     fieldwork: str = "ai_runtime",
+    population_double: bool = False,
 ) -> object:
     from aia_api.config import Environment, Settings
     from aia_api.main import create_app
@@ -75,6 +81,8 @@ def build(
         # A design job's ceiling (lead-orchestration LO15): its recorded answer costs nothing,
         # and a nominal hold keeps the spend gate a real one (aia_executors.workbench).
         ai_research_reservation_usd=0.01,
+        population_double=population_double,
+        ai_population_personas_enabled=population_double,
     )
     app = create_app(settings)
     return app, Base, seed_develop, Session
@@ -97,7 +105,14 @@ def main(argv: list[str]) -> int:
         action="store_true",
         help="leave the audience step without a population (it says so, as on a fresh develop)",
     )
+    ap.add_argument(
+        "--population-double",
+        action="store_true",
+        help="compose the fictional population double and offer the panel (needs ai_runtime)",
+    )
     args = ap.parse_args(argv)
+    if args.population_double and args.fieldwork != "ai_runtime":
+        ap.error("--population-double offers the panel, which only ai_runtime fieldwork answers")
 
     import uvicorn
     from fastapi.testclient import TestClient
@@ -112,6 +127,7 @@ def main(argv: list[str]) -> int:
         db,
         artifacts=artifacts,
         fieldwork=args.fieldwork,
+        population_double=args.population_double,
     )
     # Startup builds the engine; create the schema and seed through it once.
     with TestClient(app):  # type: ignore[arg-type]
@@ -120,7 +136,7 @@ def main(argv: list[str]) -> int:
         with session_cls(engine) as session:  # type: ignore[operator]
             result = seed_develop(session, owner_email=WORKBENCH_EMAIL)
             session.commit()
-            if not args.no_audience_population:
+            if not (args.no_audience_population or args.population_double):
                 import fictional_population
 
                 contract, source = fictional_population.build(session)

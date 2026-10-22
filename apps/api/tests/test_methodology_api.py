@@ -602,15 +602,19 @@ def test_the_study_reads_the_valid_n_in_force_and_an_activation_moves_it(
         "methodology_version": "aia-readiness-1",
         "version": None,
         "sample_size": {"min": 20, "max": 10000},
+        "tracked_set": {"min": 3, "max": 40, "recommended_min": 4, "recommended_max": 15},
     }
-    number = owner.post(
-        f"{READINESS}/versions",
-        json={**_readiness_edit(sample_size__min=100, sample_size__max=800), "note": "užší"},
-    ).json()["version_number"]
+    edit = _readiness_edit(sample_size__min=100, sample_size__max=800, tracked_set__max=30)
+    number = owner.post(f"{READINESS}/versions", json={**edit, "note": "užší"}).json()[
+        "version_number"
+    ]
     put = owner.put(f"{READINESS}/activation", json={"version_number": number, "reason": "test"})
     assert put.status_code == 200, put.text
     edited = member.get(limits).json()
     assert edited["version"] == number and edited["sample_size"] == {"min": 100, "max": 800}
+    # A tracked set's size is the version's too: the web refuses by what compile checks.
+    tracked_set = {"min": 3, "max": 30, "recommended_min": 4, "recommended_max": 15}
+    assert edited["tracked_set"] == tracked_set
     assert edited["methodology_version"] == "aia-readiness-1+e1"
 
 

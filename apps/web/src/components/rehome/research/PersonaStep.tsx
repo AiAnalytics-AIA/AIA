@@ -16,7 +16,7 @@
 // licensed panel, its Data Library): the screen says they are not in AIA.
 
 import { useRouter } from "next/navigation";
-import { type ReactNode, useEffect, useState } from "react";
+import { type ReactNode, useContext, useEffect, useState } from "react";
 
 import { research, workspace } from "@/lib/api";
 import { isNativeResult } from "@/lib/research-agent-jobs";
@@ -42,7 +42,6 @@ import {
   clientDimensions,
   dimensionLabels,
   dimensionProposal,
-  dimensionTarget,
   dimensionTopic,
   dimensionTopicWords,
   isSampleRefusal,
@@ -61,11 +60,12 @@ import {
   applyRecommendedSample,
 } from "@/research/persona";
 import { Icon } from "../icons";
-import { ActionDock, StepSection } from "../step";
+import { ActionDock, FrameNavigation, StepSection } from "../step";
 import { AiButton, Button, Field, TextInput } from "../ui";
 import { Stepper } from "@/components/ui/Stepper";
 import { rangeWords } from "@/lib/number-input";
-import { aiaId } from "@/lib/workbench-artifacts";
+import { dimensionAia } from "@/lib/artifacts/dimensions";
+import { sampleAia } from "@/lib/artifacts/sample";
 import { useResearch, useSessionState } from "./context";
 import { InspectorSlot } from "./Inspector";
 import { OwnDimensions } from "./OwnDimensions";
@@ -184,9 +184,13 @@ export function PersonaStep() {
     void request(q.label, q.sourceStrategy, q.extra, PROPOSAL_AI_DONE);
   };
 
-  const toRun = () => {
+  // Inside the workbench the next stage is the frame's (its navigator's order and focus); a frame
+  // with none leaves the dock without a forward action, never the classic run step.
+  const nav = useContext(FrameNavigation);
+  const toNext = () => {
     apply(personaDone(store.get().project));
-    router.push(stepHref("run"));
+    if (nav) nav.next?.go();
+    else router.push(stepHref("run"));
   };
 
   const visible = entries.filter((d) => matchesDimensionSearch(d, query));
@@ -247,7 +251,7 @@ export function PersonaStep() {
               {approved.map((id) => {
                 const topic = dimensionTopic(topics === "failed" ? null : topics, id);
                 return (
-                  <li key={id} data-aia={dimensionTarget(id) ?? undefined} className="flex flex-wrap items-center gap-x-3 gap-y-1 py-2">
+                  <li key={id} data-aia={dimensionAia(id) ?? undefined} className="flex flex-wrap items-center gap-x-3 gap-y-1 py-2">
                     <span className="min-w-0 flex-1 basis-48 text-sm font-semibold">{labels[id] || id}</span>
                     <span className="text-xs text-ink-muted">{entries.find((d) => d.id === id)?.source ?? "Systém"}</span>
                     <span className={`rounded-pill border px-2 text-xs leading-5 ${topic.state === "matched" ? "border-status-done/40 text-ink" : topic.state === "unmatched" ? "border-status-you-ink/50 text-status-you-ink" : "border-border text-ink-muted"}`}>
@@ -322,7 +326,7 @@ export function PersonaStep() {
 
         <section aria-labelledby="per-sample" className="rounded-card border border-border bg-surface-raised p-4">
           <h2 id="per-sample" className="text-sm font-semibold">{t("research.persona.sampleTitle")}</h2>
-          <div className="mt-3" data-aia={aiaId("sample", "n")}>
+          <div className="mt-3" data-aia={sampleAia.n()}>
             {limits ? (
               <Stepper
                 key={n}
@@ -382,10 +386,12 @@ export function PersonaStep() {
           back={{ href: stepHref("audience"), label: `4. ${t("aia.stages.audience")}` }}
           note={tv("research.persona.dockNote", { d: approved.length, n })}
         >
-          <Button variant="primary" className="!rounded-control" onClick={toRun}>
-            {t("research.persona.next")}
-            <Icon name="next" size={14} />
-          </Button>
+          {!nav || nav.next ? (
+            <Button variant="primary" className="!rounded-control" onClick={toNext}>
+              {nav?.next ? tv("research.persona.nextStage", { stage: nav.next.label }) : t("research.persona.next")}
+              <Icon name="next" size={14} />
+            </Button>
+          ) : null}
         </ActionDock>
       </div>
     </div>

@@ -68,7 +68,7 @@ from .edit_ops import (
     question_add_problem,
     refusal,
 )
-from .item_ids import SIDECAR_KEYS
+from .item_ids import SIDECAR_KEYS, list_ids, with_item_ids
 from .material_rules import MaterialRule, classify_by_rule, rule_class
 from .population.subpanels import BUILTIN_SUBPANELS
 from .prompts import PromptPin
@@ -95,8 +95,10 @@ __all__ = [
     "LEAD_AGENT_ID",
     "LEAD_HARNESS_VERSION",
     "LEAD_PROMPT_ID",
+    "LEAD_PROMPT_MAX_PIN_BYTES",
     "LEAD_PROMPT_VERSION",
     "MESSAGE_MAX_CHARS",
+    "RUNS_IN_CONTEXT",
     "SELF_UPDATE_FILES",
     "STAGES",
     "TEXT_EDIT_OPS",
@@ -136,6 +138,7 @@ __all__ = [
     "ground_edits",
     "ground_self_update",
     "ground_view",
+    "inspect_refusal",
     "is_text_edit",
     "layer",
     "lead_contract",
@@ -156,12 +159,17 @@ __all__ = [
 LEAD_PROMPT_ID: Final = "aia.research.lead"
 LEAD_AGENT_ID: Final = LEAD_PROMPT_ID
 LEAD_PROMPT_VERSION: Final = "1"
+#: The most bytes the Lead's prompt pin may take in its context (ADR 0041: layer 1 is 12 KB);
+#: a longer version is refused where it is saved or activated (``PromptSlot.check_pin_size``).
+LEAD_PROMPT_MAX_PIN_BYTES: Final = 12 * 1024
 #: 2: the frozen design layer carries the readiness limits in force, and ``set_n`` is held to
 #: them rather than to a range of its own (plan ``run-qc-and-checkpoint`` RQC9). A turn queued
 #: under 1 has no limits to be grounded against, so the executor refuses it by name.
 #: 3: a focus may name any element in the per-artifact contract (FOCUS_KINDS) by an id of the one
 #: grammar the contract publishes (ID_PATTERN); the output's view schema widened with it.
-LEAD_HARNESS_VERSION: Final = "aia-research-lead-3"
+#: 4: ``inspect`` joins the view: the Lead opens an element's detail in the item drawer, on a stage
+#: whose contract allows it (``lead_artifacts.allows_view``; research-lead-workbench 14).
+LEAD_HARNESS_VERSION: Final = "aia-research-lead-4"
 #: A turn's stored output. Served only by the Lead's own routes, never the generic ones.
 ARTIFACT_TYPE: Final = "research_lead_turn"
 
@@ -172,10 +180,17 @@ MESSAGE_MAX_CHARS: Final = 4000
 REPLY_MAX_CHARS: Final = 4000
 #: The turns before this one the Lead is shown verbatim.
 HISTORY_TURNS: Final = 12
+#: The research runs a turn is shown, newest first.
+RUNS_IN_CONTEXT: Final = 5
 #: The Lead's files and notes.
 NAME_MAX_CHARS: Final = 40
 SOUL_MAX_CHARS: Final = 2000
 USER_MAX_CHARS: Final = 2000
+#: SOUL and USER bounded in UTF-8 bytes (ADR 0041): 2,000 characters of four-byte text would
+#: overflow the Lead files' layer, so a model's change over these is refused, never cut. Only a
+#: new answer is held to it (:func:`lead_contract`); a turn stored before it still reads.
+SOUL_MAX_BYTES: Final = 2800
+USER_MAX_BYTES: Final = 2800
 NOTE_MAX_CHARS: Final = 300
 #: The newest active notes a turn is shown, and their byte bound.
 NOTES_IN_CONTEXT: Final = 40
@@ -250,7 +265,15 @@ class FocusItem(Closed):
     target: str = Field(min_length=3, max_length=200, pattern=_TARGET)
 
 
-ViewOp = Annotated[OpenStage | FocusItem, Field(discriminator="op")]
+class InspectItem(Closed):
+    """Open an element's detail in the item drawer over its own stage (the drawer a person's click
+    opens). Only an element of a stage whose contract allows ``inspect``: :func:`ground_view`."""
+
+    op: Literal["inspect"]
+    target: str = Field(min_length=3, max_length=200, pattern=_TARGET)
+
+
+ViewOp = Annotated[OpenStage | FocusItem | InspectItem, Field(discriminator="op")]
 
 
 # --------------------------------------------------------------------------- requests
@@ -497,6 +520,16 @@ def lead_contract(allowed_text: str, identifiers: frozenset[str] = frozenset()) 
                     + ", ".join(unreadable[:10])
                     + "; write a number out in digits as the context holds it, or none"
                 )
+            update = self.self_update
+            for name, text, limit in (
+                ("soul", update.soul if update else None, SOUL_MAX_BYTES),
+                ("user", update.user if update else None, USER_MAX_BYTES),
+            ):
+                if text is not None and len(text.encode("utf-8")) > limit:
+                    raise ValueError(
+                        f"lead_file_too_large: self_update.{name} is "
+                        f"{len(text.encode('utf-8'))} bytes; write it in at most {limit}"
+                    )
             unknown = sorted(number_tokens(_without_identifiers(self.reply, identifiers)) - allowed)
             if unknown:
                 raise ValueError(
@@ -582,13 +615,74 @@ def target_refusal(target: str, content: Mapping[str, Any]) -> str | None:
     return "unknown_target"
 
 
-def ground_view(output: LeadOutput, content: Mapping[str, Any]) -> tuple[LeadOutput, list[Dropped]]:
-    """``output`` with only the focus targets the working content can show, and the rest named
-    (:func:`target_refusal`). Opening a stage is always kept."""
+#: Návrh's section anchors (``plan:<part>``, the web's ``PLAN_PARTS``).
+_PLAN_PARTS: Final = frozenset({"narrative", "variants", "sets", "questions", "comments"})
+#: The design items an ``inspect`` may name, by the plan list that holds their stable ids.
+_INSPECT_LISTS: Final = {
+    "rq": ("research_questions", "research_question_ids"),
+    "hypothesis": ("hypotheses", "hypothesis_ids"),
+}
+
+
+def _held_ids(
+    content: Mapping[str, Any], analysis: Mapping[str, Any] | None, list_key: str, ids_key: str
+) -> set[str]:
+    """The stable ids of one plan list, in the working copy's plan and its analysis alike."""
+    content, analysis = with_item_ids(content, analysis)
+    plan = content.get("research_plan")
+    held: set[str] = set()
+    for holder in (plan if isinstance(plan, Mapping) else {}, analysis or {}):
+        held.update(list_ids(holder, list_key, ids_key) or ())
+    return held
+
+
+def inspect_refusal(
+    target: str, content: Mapping[str, Any], analysis: Mapping[str, Any] | None = None
+) -> str | None:
+    """Why the Lead may not open ``target``'s detail, or None when it may.
+
+    What :func:`target_refusal` refuses; then ``not_inspectable`` for an element of a stage whose
+    contract has no ``inspect`` (``lead_artifacts.allows_view``: Zadání's goal has no detail to
+    open); then the id itself, against what the frozen context holds: a research question or a
+    hypothesis by the working copy's stable ids, a Návrh section by its name (``unknown_item``
+    otherwise). Any other kind is ``not_in_context``: the context holds no ids for a run's
+    findings, measures or steps yet, so the Lead cannot name one it was shown (an id it made up
+    would open an empty drawer).
+    """
+    from .lead_artifacts import allows_view, stage_of  # lead_artifacts imports this module
+
+    reason = target_refusal(target, content)
+    if reason is not None:
+        return reason
+    kind, _, id_ = target.partition(":")
+    stage = stage_of(kind)
+    if stage is None or not allows_view(stage, "inspect"):
+        return "not_inspectable"
+    if kind == "plan":
+        return None if id_ in _PLAN_PARTS else "unknown_item"
+    if kind in _INSPECT_LISTS:
+        return (
+            None if id_ in _held_ids(content, analysis, *_INSPECT_LISTS[kind]) else "unknown_item"
+        )
+    return "not_in_context"
+
+
+def ground_view(
+    output: LeadOutput, content: Mapping[str, Any], analysis: Mapping[str, Any] | None = None
+) -> tuple[LeadOutput, list[Dropped]]:
+    """``output`` with only the targets the working content can show, and the rest named
+    (:func:`target_refusal`; an ``inspect`` also :func:`inspect_refusal`). Opening a stage is
+    always kept."""
     kept: list[Any] = []
     dropped: list[Dropped] = []
     for i, op in enumerate(output.view):
-        reason = target_refusal(op.target, content) if isinstance(op, FocusItem) else None
+        reason = (
+            target_refusal(op.target, content)
+            if isinstance(op, FocusItem)
+            else inspect_refusal(op.target, content, analysis)
+            if isinstance(op, InspectItem)
+            else None
+        )
         if reason is None:
             kept.append(op)
         else:
@@ -729,7 +823,9 @@ Co děláš:
 - Placenou práci (specialistu, běh výzkumu, rešerši) jen připravíš, nejvýše jednu, v poli
   request. Spustí ji až člověk; netvrď, že běží.
 - Pohled řídíš polem view: open_stage otevře fázi, focus zaměří položku jejím
-  identifikátorem (například question:q3, brief:goal, plan:research_questions).
+  identifikátorem (například question:q3, brief:goal, plan:research_questions), inspect
+  otevře detail výzkumné otázky, hypotézy nebo části návrhu (například rq:<id>, plan:sets)
+  v panelu nad artefaktem; jen s identifikátorem, který máš v kontextu.
 - Do reply nepiš žádné číslo, které v kontextu není. Čísla neodhaduj, nepočítej ani
   nezaokrouhluj; aplikace odpověď s cizím číslem odmítne.
 - Odpovídej česky, stručně a prakticky: hlavní věc, její důsledek, další krok. V follow
@@ -825,11 +921,18 @@ def freeze_context(
     view: Mapping[str, Any],
     conversation: Sequence[Mapping[str, Any]],
     external: Mapping[str, Any] | None = None,
+    memory: Mapping[str, Any] | None = None,
+    memory_classes: Sequence[str | None] = (),
 ) -> dict[str, Any]:
     """The turn's context, its layers in ADR 0026's order, within :data:`CONTEXT_MAX_BYTES`.
 
     ``external``: the bundle's pin and lines (``analysis_results._external_context``), as the
     :data:`EXTERNAL_LAYER` after the runs; absent, the context is what it was without it.
+
+    ``memory``: the conversation's decision digest (``lead_digest``, ADR 0041 decision 4), a
+    layer of its own before the conversation; absent, the context is what it was without it.
+    ``memory_classes``: the class each turn was sent as whose text the digest carries, so the
+    digest takes the class of what it names (ADR 0041 M3), never lower.
 
     ``conversation`` is the turns before this one, oldest first; only the newest
     :data:`HISTORY_TURNS` are kept, and the oldest of those go first when the whole is over
@@ -857,6 +960,18 @@ def freeze_context(
                     else []
                 ),
                 {"layer": "view", **dict(view)},
+                *(
+                    [
+                        {
+                            "layer": "memory",
+                            "digest": dict(memory),
+                            "turn_classes": sorted({str(c) for c in memory_classes if c})
+                            + ([None] if any(not c for c in memory_classes) else []),
+                        }
+                    ]
+                    if memory is not None
+                    else []
+                ),
                 {"layer": "conversation", "turns": turns, "omitted_turns": dropped},
             ],
         }
@@ -988,6 +1103,25 @@ def context_classification(
                 "source": "bundle:public_findings",
             }
         )
+    if any(entry["layer"] == "memory" for entry in context["layers"]):
+        # The digest names items in the design's own words (a hypothesis's text): Class B by
+        # rule, raised to the class of every turn whose text it carries; one unknown refuses.
+        memory = layer(context, "memory")
+        part = _part("decision_digest", memory["digest"], MaterialRule.DESIGN, approvals)
+        turns = memory.get("turn_classes") or []
+        if turns:
+            known = [c if c in DataClass._value2member_map_ else None for c in turns]
+            raised = most_restrictive_material(
+                [
+                    DataClass(part["data_class"]),
+                    *(None if c is None else DataClass(c) for c in known),
+                ]
+            )
+            part |= {
+                "data_class": None if raised is None else raised.value,
+                "source": f"{part['source']}+turn",
+            }
+        parts.append(part)
     knowledge = layer(context, "knowledge")["items"]
     parts.extend(
         {

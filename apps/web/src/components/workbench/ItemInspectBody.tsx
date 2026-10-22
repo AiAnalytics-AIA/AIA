@@ -8,7 +8,7 @@ import type { ReactNode } from "react";
 
 import { AnalysisInspect } from "@/components/rehome/research/AnalysisInspect";
 import type { InspectorEntry } from "@/lib/inspector-stack";
-import { focusSelector, targetLabel } from "@/lib/lead";
+import { focusSelector } from "@/lib/lead";
 import type { TargetKind } from "@/lib/workbench-artifacts";
 import { type InspectBody, inspectedTarget } from "./item-inspector-context";
 
@@ -35,7 +35,6 @@ export function ItemInspectBody({ entry }: { entry: InspectorEntry }): ReactNode
   if (target && body) return body(target);
   return (
     <div data-inspect-fallback>
-      <p>{targetLabel(entry.id)}</p>
       <p className="muted">Podrobnosti této položky se zde zatím nezobrazují.</p>
       <button type="button" className="btn btn--sm" onClick={() => showOnPage(entry.id)}>Ukázat na stránce</button>
     </div>

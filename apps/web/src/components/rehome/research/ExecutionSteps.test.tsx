@@ -4,7 +4,7 @@
 // say, start one run over that revision, explain a run waiting for the AI
 // runtime, hide a suppressed cell's numbers, label fictional data every time, and
 // keep the internal Sociomap internal.
-import { cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
+import { act, cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, onTestFinished, vi } from "vitest";
 
 import { t, tv } from "@/i18n/t";
@@ -16,6 +16,7 @@ import { measureAnchor } from "@/lib/result-reading";
 import { parseAiaId } from "@/lib/workbench-artifacts";
 import { CONFLICT_MESSAGE } from "@/research/store";
 import { RunResults, fixStep } from "./ExecutionSteps";
+import { REPORT_APPROVED, type ReportApproved } from "./ReportDocumentView";
 import { StudyFrameProvider } from "./frame";
 import { ResearchScreen, ResearchSession } from "./ResearchScreen";
 import { CONTENT_PATH, workspaceFixture } from "./test-workspace";
@@ -26,6 +27,12 @@ async function confirmApproval(version?: string): Promise<void> {
   const dialog = await screen.findByRole("dialog");
   if (version) expect(dialog.textContent).toContain(`uloženou verzi ${version} (`);
   fireEvent.click(within(dialog).getByRole("button", { name: t("research.exec.report.approveAsk.yes") }));
+}
+
+/** An approval made in the document pane's doc bar (RPT3a), as the pane announces it. */
+function approvedInPane(d: Partial<ReportApproved> & Pick<ReportApproved, "kind" | "artifactId">): void {
+  const detail: ReportApproved = { runId: "RUN-1", reviewState: "APPROVED_INTERNAL", approvedOn: null, stamped: null, ...d };
+  window.dispatchEvent(new CustomEvent(REPORT_APPROVED, { detail }));
 }
 
 const push = vi.fn();
@@ -908,7 +915,10 @@ describe("Run: what a run can cost (5b.2)", () => {
     expect((within(choice).getByRole("radio", { name: t("research.exec.population.live") }) as HTMLInputElement).checked).toBe(true);
 
     fireEvent.click(within(choice).getAllByRole("radio")[1]);
-    fireEvent.click(await screen.findByRole("button", { name: t("research.exec.start") }));
+    // The checks are read again over the child, so readiness and the start forecast one population.
+    await waitFor(() => expect(called("GET", "/api/v1/studies/STU-1/research/readiness").at(-1)!.url).toContain("population_version_id=ochota"));
+    await waitFor(() => expect((screen.getByRole("button", { name: t("research.exec.start") }) as HTMLButtonElement).disabled).toBe(false));
+    fireEvent.click(screen.getByRole("button", { name: t("research.exec.start") }));
     await waitFor(() => expect(called("POST", RUNS)).toHaveLength(1));
     expect(called("POST", RUNS)[0].body).toEqual({ design_revision_id: "REV-a1", population_version_id: "ochota" });
   });
@@ -1408,7 +1418,11 @@ describe("Progress", () => {
     expect(panel.dataset.stepActivity).toBe("open");
     expect(panel.querySelector<HTMLElement>("[data-orb]")?.style.width).toBe("64px");
     const log = await within(panel).findByRole("log");
-    expect(within(log).getAllByRole("listitem").map((l) => l.textContent?.replace(/^[\d:]+/, ""))).toEqual([
+    // The log's times are the time alone, so its first entry of a day is headed by that day.
+    const items = within(log).getAllByRole("listitem");
+    expect(items[0].hasAttribute("data-day")).toBe(true);
+    expect(items[0].textContent).toBe("25. září 2026");
+    expect(items.filter((l) => !l.hasAttribute("data-day")).map((l) => l.textContent?.replace(/^[\d:]+/, ""))).toEqual([
       "Worker krok převzal",
       "AI respondenti odpověděli · 40 z 300 respondentů",
       "Model odpověděl · 1200 → 380 tokenů · $0.004 · 3.2 s",
@@ -1888,7 +1902,7 @@ describe("Results", () => {
       } }),
     });
     const opened: string[] = [];
-    const inspector = { open: (entry: { id: string }) => { opened.push(entry.id); return true; } };
+    const inspector = { open: (entry: { id: string }) => { opened.push(entry.id); return true; }, closeWhere: () => {} };
     render(<ItemInspectorContext.Provider value={inspector}><ResearchScreen step="results" frame={TEST_FRAME} /></ItemInspectorContext.Provider>);
     fireEvent.click(await screen.findByRole("tab", { name: "AI analýza" }));
     const table = await screen.findByRole("region", { name: "Pokrytí výzkumných otázek" });
@@ -1906,6 +1920,37 @@ describe("Results", () => {
     // The Lead's targets stay where they were: one element each.
     expect(document.querySelectorAll('[data-aia="claim:research_questions:C1"]')).toHaveLength(1);
     expect(document.querySelectorAll('[data-aia="finding:research_questions:0"]')).toHaveLength(1);
+    // A run that pinned no Design Research shows no register (ANL5).
+    expect(screen.queryByRole("region", { name: "Externí kontext" })).toBeNull();
+  });
+
+  it("lists the Design Research the modules were shown as Externí kontext, with its sources and no claim chip (ANL5)", async () => {
+    const analysed = run({ ...COMPLETED, steps: [...COMPLETED.steps,
+      step("analysis_executive", "SUCCEEDED", { kind: "research_analysis", artifact_id: "ART-6", analysis_outcome: "COMPLETED" }),
+    ] });
+    api({ ...listed(analysed),
+      "GET /api/v1/studies/STU-1/research/runs/RUN-1/artifacts/ART-4": () => AGGREGATE,
+      "GET /api/v1/studies/STU-1/research/runs/RUN-1/analysis": () => ({ complete: false, synthetic: true, pending: {},
+        external_context: { deep_research_run_id: "DR-1", items: [
+          { evidence_id: "EV-1", claim: "Spotřeba rostlinných nápojů vzrostla o 12,5 %.", source: "https://www.stat.example/napoje" },
+          { evidence_id: "EV-2", claim: "Ze znalostí klienta.", source: "javascript:alert(1)" },
+        ] },
+        modules: { executive: { outcome: "COMPLETED", summary: null, violations: [], research_question_answers: [], key_findings: [{ text: "Čaj vede.", claim_ids: [] }], claims: [] } } }),
+    });
+    render(<ResearchScreen step="results" frame={TEST_FRAME} />);
+    fireEvent.click(await screen.findByRole("tab", { name: "AI analýza" }));
+    const register = await screen.findByRole("region", { name: "Externí kontext" });
+    const items = register.querySelectorAll("[data-external-item]");
+    expect(items).toHaveLength(2);
+    expect(items[0].textContent).toContain("Spotřeba rostlinných nápojů vzrostla o 12,5 %.");
+    expect(within(items[0] as HTMLElement).getByText("Externí kontext")).toBeTruthy();
+    // A source links only as an http(s) address; anything else stays text.
+    const link = within(items[0] as HTMLElement).getByRole("link", { name: "stat.example" });
+    expect(link.getAttribute("href")).toBe("https://www.stat.example/napoje");
+    expect(link.getAttribute("rel")).toBe("noopener noreferrer");
+    expect(within(items[1] as HTMLElement).queryByRole("link")).toBeNull();
+    // Context is never evidence: no claim chip and no Lead target in the register.
+    expect(register.querySelector("[data-cited-number], [data-aia]")).toBeNull();
   });
 
   it("says the research questions are unknown when the frozen design cannot be read, never that it has none (ANL2)", async () => {
@@ -2750,7 +2795,7 @@ describe("Results", () => {
     expect(createObjectURL).not.toHaveBeenCalled();
   });
 
-  it("offers the client report only for modelled data, approves the draft it downloaded, and says why when refused", async () => {
+  it("offers the client report only for modelled data, says why when refused, and leaves its approval to the doc bar", async () => {
     stubDownloads();
     let refuse = true;
     api({
@@ -2780,22 +2825,21 @@ describe("Results", () => {
     expect(await report.findByText(/nesplnilo pravidla pro klienta/)).toBeTruthy();
     refuse = false;
     fireEvent.click(report.getByRole("button", { name: t("research.exec.results.reportDownloadClient") }));
-    // Approving the client report signs it off for the client, and its file then says SCHVÁLENO
-    // (D2): never worded as an approval "for internal use" (was, review 4 of D2).
-    const approve = await report.findByRole("button", { name: t("research.exec.results.reportApproveClient") });
+    // The client report is approved on the document being read (RPT3a): the card offers no approval,
+    // neither as "for the client" nor as "for internal use".
+    await report.findByText(new RegExp(t("research.exec.results.reportClientHintDraft")));
+    expect(report.queryByRole("button", { name: t("research.exec.results.reportApproveClient") })).toBeNull();
     expect(report.queryByRole("button", { name: t("research.exec.results.reportApprove") })).toBeNull();
     // The downloaded draft is said to be one, and to need approving before it is handed over.
     expect(report.getByText(new RegExp(t("research.exec.results.reportClientHintDraft")))).toBeTruthy();
-    fireEvent.click(approve);
-    await confirmApproval("ART-client");
-    // The approval's answer does not say whether the file states it: the card says the review alone.
+    // Approved in the pane's doc bar: the card says the review alone, as the server answered it.
+    act(() => approvedInPane({ kind: "client", artifactId: "ART-client", stamped: null }));
     expect(await report.findByText(`Stav: ${t("research.exec.report.review.clientApproved")}`)).toBeTruthy();
     expect(report.queryByText(/interní použití/)).toBeNull();
     // Approved: never "Je to koncept" two lines from "Schváleno" (cross-review web#4).
     expect(report.queryByText(new RegExp(t("research.exec.results.reportClientHintDraft")))).toBeNull();
-    const posted = called("POST", "/api/v1/studies/STU-1/research/runs/RUN-1/report/approve");
-    expect(posted).toHaveLength(1);
-    expect(posted[0].body).toEqual({ artifact_id: "ART-client", note: "" });
+    // The card itself approved nothing.
+    expect(called("POST", "/api/v1/studies/STU-1/research/runs/RUN-1/report/approve")).toHaveLength(0);
   });
 
   it("says what approving the client report does to the file the client receives", async () => {
@@ -2817,35 +2861,27 @@ describe("Results", () => {
     fireEvent.click(report.getByRole("radio", { name: "Pro klienta" }));
     fireEvent.click(report.getByRole("button", { name: t("research.exec.results.reportDownloadClient") }));
     expect(await report.findByText(`Stav: ${t("research.exec.report.review.clientDraft")}`)).toBeTruthy();
-    fireEvent.click(await report.findByRole("button", { name: t("research.exec.results.reportApproveClient") }));
-    await confirmApproval("ART-client");
+    act(() => approvedInPane({ kind: "client", artifactId: "ART-client", approvedOn: "2026-10-18", stamped: true }));
     // Its DOCX, the one the client receives, says SCHVÁLENO with the date and the version.
     expect(await report.findByText("Stav: Schváleno 18. 10. 2026 · verze ART-client — DOCX této verze to nese v zápatí")).toBeTruthy();
     expect(report.queryByText(/interní použití/)).toBeNull();
   });
 
-  it("approves the client report a person prepared and read in AIA, with no download first (RD3)", async () => {
+  it("hears an approval of another run as nothing (RPT3a)", async () => {
     api({
       ...listed(reportRun()),
       "GET /api/v1/studies/STU-1/research/runs/RUN-1/artifacts/ART-4": () => AGGREGATE,
       "GET /api/v1/studies/STU-1/research/runs/RUN-1/artifacts/ART-5": () => SOCIOMAP,
       "GET /api/v1/studies/STU-1/research/runs/RUN-1/report": () =>
         reportStatus({ synthetic: false, modelled: true, data_origin_kind: "MODELLED" }),
-      "GET /api/v1/studies/STU-1/research/runs/RUN-1/report/client/document": () =>
-        ({ run_id: "RUN-1", report_artifact_id: "ART-client", review_state: "DRAFT_UNAPPROVED", approved_on: null, stamped: true }),
-      "POST /api/v1/studies/STU-1/research/runs/RUN-1/report/approve": () =>
-        ({ run_id: "RUN-1", artifact_id: "ART-client", review_state: "APPROVED_INTERNAL", approved_on: "2026-10-18", stamped: true, report_kind: "client", internal_only: false }),
     });
     render(<ResearchScreen step="results" frame={TEST_FRAME} />);
     const report = await card();
     await waitFor(() => expect(report.getByRole("radio", { name: "Pro klienta" }).getAttribute("aria-disabled")).not.toBe("true"));
     fireEvent.click(report.getByRole("radio", { name: "Pro klienta" }));
-    fireEvent.click(await report.findByRole("button", { name: t("research.exec.results.reportApproveClient") }));
-    await confirmApproval("ART-client");
-    await waitFor(() => expect(called("POST", "/api/v1/studies/STU-1/research/runs/RUN-1/report/approve")).toHaveLength(1));
-    expect(called("POST", "/api/v1/studies/STU-1/research/runs/RUN-1/report/approve")[0].body).toEqual({ artifact_id: "ART-client", note: "" });
-    // Nothing left AIA to be approved.
-    expect(called("GET", "/api/v1/studies/STU-1/research/runs/RUN-1/report/client/download")).toHaveLength(0);
+    act(() => approvedInPane({ runId: "RUN-other", kind: "client", artifactId: "ART-elsewhere" }));
+    expect(report.queryByText(`Stav: ${t("research.exec.report.review.clientApproved")}`)).toBeNull();
+    expect(report.queryByText(/ART-elsewhere/)).toBeNull();
   });
 
   it("offers the report's PDF when the run stored one, and says why when it could not", async () => {

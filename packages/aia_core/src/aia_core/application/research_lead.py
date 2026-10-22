@@ -37,12 +37,14 @@ from sqlalchemy.orm import Session
 from ..domain.approval_ledger import ApprovalSubject
 from ..domain.design import DESIGN_PROJECT_OWNER
 from ..domain.lead_commands import MatchedCommand, match_command
+from ..domain.lead_digest import DigestEntry, decision_digest, edit_item
 from ..domain.research_agents import ResearchAction, design_material, knowledge_entries
 from ..domain.research_lead import (
     FOCUS_ID,
     LEAD_HARNESS_VERSION,
     LEAD_PROMPT_ID,
     MESSAGE_MAX_CHARS,
+    RUNS_IN_CONTEXT,
     STAGES,
     AgentJobRequest,
     LeadContextTooLarge,
@@ -113,10 +115,12 @@ __all__ = [
     "worker_readiness",
 ]
 
+#: The ledger subjects a Lead conversation decides (the decision digest's source).
+_DIGEST_SUBJECTS: Final = frozenset(
+    {ApprovalSubject.LEAD_EDIT, ApprovalSubject.LEAD_JOB_REQUEST, ApprovalSubject.LEAD_SELF_UPDATE}
+)
 #: A greeting within this long of the Lead's last turn is a no-op: the Lead has spoken.
 GREETING_WINDOW: Final = timedelta(hours=8)
-#: The research runs a turn is shown, newest first.
-RUNS_IN_CONTEXT: Final = 5
 #: The stage a Design Revision is submitted from when a Lead-prepared job starts, by action,
 #: as the web submits it before its own buttons start the same job.
 _SOURCE_STAGE: Final[dict[ResearchAction, str]] = {
@@ -908,6 +912,7 @@ class ResearchLead:
         run_start: RunStartSettings | None = None,
         wallet_enabled: bool = False,
         workspace_revision: int | None = None,
+        retry_run_id: str | None = None,
     ) -> dict[str, Any]:
         """A person approves the paid job a Lead turn prepared, and it starts (ADR 0026
         decision 7).
@@ -916,7 +921,8 @@ class ResearchLead:
         here too, by :func:`~aia_core.application.lead_chat_start.approve_chat_start`: not Lead
         output, so not refused while the Lead is off (D22), under the same threshold, the
         wallet when ``wallet_enabled`` and the ledger row ``chat_start``. ``run_start`` is the
-        deployment's run settings a typed research run starts under.
+        deployment's run settings a typed research run starts under; ``retry_run_id`` the run a
+        typed analysis retry's card named (another is refused, ``AnalysisRetryTargetMoved``).
 
         Needs ``EDIT_STUDY``, ``RUN_WORKFLOW`` and ``APPROVE_GATE`` on an open Study, and the
         caller's own completed Lead turn whose request is an ``agent_job``; any other request
@@ -958,6 +964,7 @@ class ResearchLead:
                 reservation_usd=reservation_usd,
                 run_start=run_start,
                 wallet_enabled=wallet_enabled,
+                retry_run_id=retry_run_id,
             )
         turn, output = self._completed(turn_id)
         assert turn.run_id is not None
@@ -1154,6 +1161,7 @@ class ResearchLead:
             if project_id is not None
             else []
         )
+        digest, digest_classes = self._decision_digest(history, focus)
         return freeze_context(
             prompt=prompt,
             lead={
@@ -1191,7 +1199,66 @@ class ResearchLead:
             view={"kind": kind, "stage": stage, "focus": focus, "message": message},
             conversation=_conversation(history),
             external=self._external(),
+            memory=digest,
+            memory_classes=digest_classes,
         )
+
+    def _decision_digest(
+        self, history: Sequence[Mapping[str, Any]], focus: Mapping[str, str] | None
+    ) -> tuple[dict[str, Any], list[str | None]]:
+        """What this researcher's conversation decided, from the ledger (ADR 0041 decision 4):
+        every decision on one of their Lead turns, named by the item its edit touched where the
+        turn is within ``history``, and the proposals in ``history`` still waiting for one;
+        with the class each turn whose text the digest carries was sent as."""
+        mine = set(self._turns().lead_turn_ids())
+        outputs = {t["turn_id"]: t["output"] for t in history if isinstance(t.get("output"), dict)}
+        decided: list[DigestEntry] = []
+        for entry in self._workflows().ledger(_DIGEST_SUBJECTS):
+            turn_id, _, index = entry.subject_id.rpartition(":")
+            if entry.subject is ApprovalSubject.LEAD_EDIT and turn_id in mine:
+                edits = (outputs.get(turn_id) or {}).get("edits") or []
+                at = int(index) if index.isdigit() else len(edits)
+                item = edit_item(edits[at]) if at < len(edits) else None
+                kind = "edit"
+            elif entry.subject is not ApprovalSubject.LEAD_EDIT and entry.subject_id in mine:
+                turn_id, item = entry.subject_id, None
+                kind = "job" if entry.subject is ApprovalSubject.LEAD_JOB_REQUEST else "self_update"
+            else:
+                continue
+            decided.append(
+                DigestEntry(kind, item, entry.decision, turn_id, ledger_id=entry.decision_id)
+            )
+        waiting: list[DigestEntry] = []
+        for turn in history:
+            output = turn.get("output")
+            if turn["actor"] != "lead" or not isinstance(output, dict):
+                continue
+            decided_edits = turn.get("edit_decisions") or {}
+            waiting.extend(
+                DigestEntry("edit", edit_item(edit), None, turn["turn_id"], index=i)
+                for i, edit in enumerate(output.get("edits") or [])
+                if str(i) not in decided_edits
+            )
+            request = output.get("request")
+            # Only a prepared agent job is decided through the ledger; a run or Deep Research
+            # card is started from its own screen and never waits here.
+            if (
+                isinstance(request, dict)
+                and request.get("kind") == "agent_job"
+                and turn.get("request_decision") is None
+            ):
+                waiting.append(DigestEntry("job", None, None, turn["turn_id"], index=0))
+        named = [focus["id"]] if focus and focus.get("id") else []
+        digest = decision_digest(decided, waiting, named=named)
+        # The class of every turn whose text a line carries (an item named by a turn's edit).
+        sent = {t["turn_id"]: t.get("data_class") for t in history}
+        carried = {
+            line["turn"]
+            for group in ("named", "undecided", "latest")
+            for line in digest[group]
+            if line.get("item") is not None
+        }
+        return digest, [sent.get(turn_id) for turn_id in sorted(carried)]
 
     def _external(self) -> dict[str, Any] | None:
         """The newest Design Research bundle's public findings, pinned and seal-verified as the

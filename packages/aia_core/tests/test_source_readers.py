@@ -173,11 +173,141 @@ def test_a_part_declaring_a_dtd_is_refused_before_it_is_parsed() -> None:
     assert (reading.outcome, reading.reason) == (ReadingOutcome.REFUSED, "document_malformed")
 
 
+@pytest.mark.parametrize("encoding", ["utf-16", "utf-16-le", "utf-16-be"])
+def test_a_dtd_is_refused_in_whatever_encoding_the_part_declares(encoding: str) -> None:
+    # In UTF-16 neither b"<!DOCTYPE" nor b"<!ENTITY" occurs in the bytes, yet expat
+    # reads the declaration and expands its entities.
+    laughs = (
+        f'<?xml version="1.0" encoding="{encoding.upper()}"?>'
+        '<!DOCTYPE x [<!ENTITY a "aaaa"><!ENTITY b "&a;&a;&a;">]>'
+        '<office:document-content xmlns:office="urn:oasis:names:tc:opendocument:xmlns:office:1.0"'
+        ' xmlns:text="urn:oasis:names:tc:opendocument:xmlns:text:1.0">'
+        "<office:body><office:text><text:p>&b;</text:p></office:text></office:body>"
+        "</office:document-content>"
+    )
+    data = laughs.encode(encoding)
+    if encoding != "utf-16":
+        data = "\ufeff".encode(encoding) + data
+    assert b"<!DOCTYPE" not in data and b"<!ENTITY" not in data
+    reading = read_source(zip_of({"content.xml": data}), "a.odt")
+    assert (reading.outcome, reading.reason) == (ReadingOutcome.REFUSED, "document_malformed")
+    assert not reading.segments
+
+
+def _xlsx_with_entity(sheet: str = "xl/worksheets/sheet1.xml") -> bytes:
+    """A workbook whose one cell is an entity its sheet's own DTD declares.
+
+    ``sheet`` renames the worksheet part (its content type and relationship follow): a
+    part can be named anything, and openpyxl finds it by those, not by its extension.
+    """
+    from openpyxl import Workbook
+
+    book = Workbook()
+    book.active["A1"] = "PLACEHOLDER"
+    plain = io.BytesIO()
+    book.save(plain)
+    out = io.BytesIO()
+    with (
+        zipfile.ZipFile(io.BytesIO(plain.getvalue())) as source,
+        zipfile.ZipFile(out, "w", zipfile.ZIP_DEFLATED) as target,
+    ):
+        for info in source.infolist():
+            data = source.read(info)
+            if info.filename == "xl/worksheets/sheet1.xml":
+                data = b'<!DOCTYPE w [<!ENTITY a "AAAA"><!ENTITY b "&a;&a;&a;&a;">]>' + (
+                    data.replace(b"PLACEHOLDER", b"&b;")
+                )
+            name = info.filename
+            if name == "xl/worksheets/sheet1.xml":
+                name = sheet
+            elif name in ("[Content_Types].xml", "xl/_rels/workbook.xml.rels"):
+                data = data.replace(b"/xl/worksheets/sheet1.xml", ("/" + sheet).encode())
+                data = data.replace(b"worksheets/sheet1.xml", sheet.removeprefix("xl/").encode())
+            target.writestr(name, data)
+    return out.getvalue()
+
+
+def test_a_workbook_part_declaring_a_dtd_is_refused_before_openpyxl_parses_it(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    # Without defusedxml (the images do not install it), openpyxl parses with expat and
+    # expands internal entities. Whether it is installed here or not, the workbook must
+    # never reach it: refused as an ODS part is.
+    import openpyxl
+
+    opened: list[object] = []
+    monkeypatch.setattr(openpyxl, "load_workbook", lambda *a, **k: opened.append(a))
+    for sheet in ("xl/worksheets/sheet1.xml", "xl/s.bin", "xl/worksheets/sheet1"):
+        reading = read_source(_xlsx_with_entity(sheet), "a.xlsx")
+        assert (reading.outcome, reading.reason) == (ReadingOutcome.REFUSED, "document_malformed")
+        assert not reading.segments
+    assert opened == []
+
+
 def test_a_zip_that_inflates_far_past_its_size_is_refused() -> None:
     bomb = zip_of({"content.xml": b"\0" * (20 * 1024 * 1024)})
     for name in ("a.odt", "a.pptx"):
         reading = read_source(bomb, name)
         assert (reading.outcome, reading.reason) == (ReadingOutcome.REFUSED, "document_zip_bounds")
+
+
+_ODF_NS = (
+    b'xmlns:office="urn:oasis:names:tc:opendocument:xmlns:office:1.0" '
+    b'xmlns:text="urn:oasis:names:tc:opendocument:xmlns:text:1.0" '
+    b'xmlns:table="urn:oasis:names:tc:opendocument:xmlns:table:1.0"'
+)
+
+
+def _odf(body: bytes) -> bytes:
+    return (
+        b"<office:document-content "
+        + _ODF_NS
+        + b"><office:body>"
+        + body
+        + b"</office:body></office:document-content>"
+    )
+
+
+@pytest.mark.parametrize(
+    ("name", "body"),
+    [
+        ("a.odt", b"<office:text><text:p>{runs}</text:p></office:text>"),
+        (
+            "a.ods",
+            b"<office:spreadsheet><table:table><table:table-row><table:table-cell>"
+            b"<text:p>{runs}</text:p></table:table-cell></table:table-row></table:table>"
+            b"</office:spreadsheet>",
+        ),
+    ],
+)
+def test_a_run_of_spaces_never_expands_past_the_bounds(name: str, body: bytes) -> None:
+    # Two elements of 40 bytes asking for 60 million spaces each: a few hundred bytes
+    # that would be 120 MB of text, and 2 GB with c="1000000000".
+    runs = b'<text:s text:c="60000000"/>' * 2
+    reading = read_source(zip_of({"content.xml": _odf(body.replace(b"{runs}", runs))}), name)
+    assert (reading.outcome, reading.reason) == (ReadingOutcome.REFUSED, "document_zip_bounds")
+
+
+@pytest.mark.parametrize("rows", [1, 3])
+def test_a_repeated_ods_cell_is_charged_for_every_copy_it_reads_as(rows: int) -> None:
+    # One cell of 300,000 spaces repeated across 500 columns is charged 300,000 once
+    # but read as 150 million characters, joined into one row's text: a few hundred
+    # bytes that reach gigabytes at c="49000000", still within the space budget.
+    sheet = (
+        b"<office:spreadsheet><table:table>"
+        b'<table:table-row table:number-rows-repeated="%d">'
+        b'<table:table-cell table:number-columns-repeated="500">'
+        b'<text:p>a<text:s text:c="300000"/>b</text:p>'
+        b"</table:table-cell></table:table-row></table:table></office:spreadsheet>" % rows
+    )
+    reading = read_source(zip_of({"content.xml": _odf(sheet)}), "a.ods")
+    assert (reading.outcome, reading.reason) == (ReadingOutcome.REFUSED, "document_zip_bounds")
+
+
+def test_a_run_of_spaces_within_the_bounds_reads_as_written() -> None:
+    para = b'<office:text><text:p>a<text:s text:c="3"/>b<text:s/>c</text:p></office:text>'
+    reading = read_source(zip_of({"content.xml": _odf(para)}), "a.odt")
+    assert [s.text for s in reading.segments] == ["a   b c"]
 
 
 def test_a_presentation_without_its_parts_is_refused() -> None:

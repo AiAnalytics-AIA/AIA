@@ -13,6 +13,7 @@ import importlib.util
 from pathlib import Path
 from types import ModuleType
 
+import pytest
 from aia_core.domain.fieldwork import FieldworkSource
 
 REPO = Path(__file__).resolve().parents[3]
@@ -43,3 +44,18 @@ def test_the_workbench_records_the_fictional_source_in_the_shared_store(tmp_path
     settings = app.state.settings
     assert settings.research_fieldwork_source is FieldworkSource.SYNTHETIC_FIXTURE
     assert settings.storage_root == str(tmp_path / "shared")
+
+
+def test_the_population_double_mode_offers_the_panel_and_refuses_the_fixture(
+    tmp_path: Path,
+) -> None:
+    """``--population-double`` (run-qc-and-checkpoint RQC6d): the double composed and the panel
+    offered, so readiness draws a panel run's sample; the fixture fieldwork, which the panel is
+    never offered under, refused by name."""
+    standin = _standin()
+    app, *_ = standin.build(tmp_path / "aia.sqlite", population_double=True)
+    settings = app.state.settings
+    assert settings.population_double and settings.ai_population_personas_enabled
+    assert settings.research_fieldwork_source is FieldworkSource.AI_RUNTIME
+    with pytest.raises(SystemExit):
+        standin.main(["--population-double", "--fieldwork", "synthetic_fixture"])

@@ -270,6 +270,13 @@ def test_a_turn_is_answered_once_and_its_reply_is_read_from_the_step(
     assert ("message", "CLASS_B_DERIVED_CLIENT", "rule:lead_message") in sources
     assert ("prompt", "CLASS_C_INTERNAL", "code") in sources
     assert ("lead_soul", "CLASS_C_INTERNAL", "rule:lead_files") in sources
+    # What the turn could see, with each layer's class (ADR 0041 decision 3, LC1).
+    manifest = stored["provenance"]["context_manifest"]
+    classes = {r["layer"]: r.get("data_class") for r in manifest["layers"]}
+    assert classes["design"] == "CLASS_B_DERIVED_CLIENT"
+    assert classes["view"] == "CLASS_B_DERIVED_CLIENT"
+    assert classes["lead"] == "CLASS_C_INTERNAL"
+    assert manifest["total_bytes"] <= manifest["ceiling_bytes"]
 
     with ready.sessions() as session:
         events = AIUsageRepository(session, ready.lead_scope(session)).events(run_id=turn["run_id"])

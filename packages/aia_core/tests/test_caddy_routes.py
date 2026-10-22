@@ -7,6 +7,11 @@ prove the rules themselves: each one fails a configuration that breaks it.
 from __future__ import annotations
 
 import copy
+import json
+import os
+import shutil
+import subprocess
+from pathlib import Path
 from typing import Any
 
 import pytest
@@ -29,6 +34,7 @@ APP_GATE = {
     "upstreams": [{"dial": "api:8000"}],
 }
 UNIT = "legacy-panel:8765"
+CADDYFILE = Path(__file__).resolve().parents[3] / "deploy" / "develop" / "Caddyfile"
 
 
 def proxy(dial: str) -> dict[str, Any]:
@@ -54,7 +60,11 @@ def site(host: str, routes: list[dict[str, Any]]) -> dict[str, Any]:
 
 def good() -> dict[str, Any]:
     product = [
-        sub(["/api/v1/*"], {"handler": "reverse_proxy", "upstreams": [{"dial": "api:8000"}]}),
+        sub(
+            ["/api/v1/*"],
+            {"handler": "request_body", "max_size": 40 * 1024 * 1024},
+            {"handler": "reverse_proxy", "upstreams": [{"dial": "api:8000"}]},
+        ),
         sub(
             ["/login", "/_next/*"],
             {"handler": "reverse_proxy", "upstreams": [{"dial": "web:3000"}]},
@@ -223,3 +233,44 @@ def test_glitchtip_on_another_name_is_refused(routes: Any) -> None:
     config["apps"]["http"]["servers"]["srv0"]["routes"].append(other)
     problems = routes.check(config)
     assert any("serves another hostname: ['glitchtip.example.test']" in p for p in problems)
+
+
+def test_an_api_that_takes_a_body_of_any_size_is_refused(routes: Any) -> None:
+    # FastAPI reads a whole JSON body before a route's dependencies run, the
+    # authentication among them: without a bound here, anyone can make the API hold
+    # gigabytes before it answers 401.
+    config = good()
+    product(config)[at(config, "/api/v1/*")] = sub(
+        ["/api/v1/*"], {"handler": "reverse_proxy", "upstreams": [{"dial": "api:8000"}]}
+    )
+    problems = routes.check(config)
+    assert any("/api/v1/* takes a body of any size" in p for p in problems)
+
+
+@pytest.mark.parametrize("size", [8 * 1024 * 1024, 1024 * 1024 * 1024])
+def test_a_body_bound_below_an_upload_or_far_above_one_is_refused(routes: Any, size: int) -> None:
+    config = good()
+    api = product(config)[at(config, "/api/v1/*")]
+    api["handle"][0]["routes"][0]["handle"][0]["max_size"] = size
+    problems = routes.check(config)
+    assert any("/api/v1/* bounds a body at" in p for p in problems)
+
+
+def test_the_real_caddyfile_adapts_to_routing_that_passes(routes: Any) -> None:
+    caddy = shutil.which("caddy")
+    if caddy is None:
+        pytest.skip("caddy is not installed; CI's develop-host-config job runs the real one")
+    env = {
+        **os.environ,
+        "AIA_PUBLIC_HOSTNAME": "aia.example.test",
+        "AIA_LEGACY_HOSTNAME": "legacy.example.test",
+        "AIA_ACME_EMAIL": "ops@example.test",
+    }
+    adapted = subprocess.run(
+        [caddy, "adapt", "--config", str(CADDYFILE), "--adapter", "caddyfile"],
+        capture_output=True,
+        check=True,
+        env=env,
+        text=True,
+    )
+    assert routes.check(json.loads(adapted.stdout)) == []
