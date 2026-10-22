@@ -415,6 +415,8 @@ class RunOutlook:
     answerability: Answerability | None = None
     #: The sample a panel run would draw (or the sampler's refusal); ``None`` when none was drawn.
     panel: PanelDraw | None = None
+    #: The support forecast readiness carries; ``None`` when this fieldwork forecasts none.
+    forecast: SupportForecast | None = None
 
 
 @dataclass(frozen=True, slots=True)
@@ -1377,6 +1379,7 @@ class ResearchRuns:
             trace=decided_trace(trace, answer),
             answerability=answer,
             panel=panel,
+            forecast=forecast,
         )
 
     def _support(self, support: SupportSpec | None) -> tuple[SupportSpec, dict[str, Any] | None]:

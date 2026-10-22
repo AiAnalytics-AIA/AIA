@@ -21,11 +21,15 @@ describe("supportForecastOf", () => {
   });
 
   it("reads a panel run's forecast as known when the server drew the sample a start would draw", () => {
-    const composition = { refused: null, version_id: "DSV-1", seed: 7, quota_fields: ["pohlavi"], cells: [], sample_donors: 120 };
+    const composition = { refused: null, version_id: "DSV-1", seed: 7, quota_fields: ["pohlavi"], cells: [], sample_donors: 120, support_counted: true };
     const check = { id: "support_forecast", status: "PASS" as const, message: "Běh bude mít 120 různých dárců na 200 respondentů: opora stačí." };
     expect(supportForecastOf(readiness({ persona_source: "panel", checks: [check], sample_composition: composition }))).toEqual({ known: true, status: "PASS", message: check.message });
     // A refused draw counted nothing.
     expect(supportForecastOf(readiness({ persona_source: "panel", checks: [check], sample_composition: { ...composition, refused: "sampling_empty" } })).known).toBe(false);
+    // Drawn, but the forecast was not counted from it (a respondent without a donor), or an older
+    // API that does not say: the unknown check's words are never read as a counted forecast.
+    expect(supportForecastOf(readiness({ persona_source: "panel", checks: [check], sample_composition: { ...composition, support_counted: false } })).known).toBe(false);
+    expect(supportForecastOf(readiness({ persona_source: "panel", checks: [check], sample_composition: { ...composition, support_counted: undefined } })).known).toBe(false);
   });
 
   it("reads a readiness without the check as unknown", () => {
@@ -148,6 +152,18 @@ describe("compositionOf", () => {
       kind: "refused",
       words: "Výběr odmítnut (something_new).",
     });
+  });
+
+  it("names what a refusal names, and finishes a fragment that names nothing (review on #725)", () => {
+    expect(compositionOf(readiness({ persona_source: "panel", sample_composition: drawn({ refused: "sampling_field_refused", refused_reasons: ["kraj: research_only"], cells: [] }) }))).toEqual({
+      kind: "refused",
+      words: "Politika pole nepovoluje filtrovat podle: kraj: research_only.",
+    });
+    for (const code of ["sampling_field_refused", "sampling_filter_invalid"]) {
+      const c = compositionOf(readiness({ persona_source: "panel", sample_composition: drawn({ refused: code, cells: [] }) }));
+      expect(c.kind === "refused" && c.words.endsWith(".")).toBe(true);
+      expect(c.kind === "refused" && /podle$|použít$/.test(c.words)).toBe(false);
+    }
   });
 
   it("is unknown for a panel run the server drew nothing for, and the roster's when respondents are fictional", () => {

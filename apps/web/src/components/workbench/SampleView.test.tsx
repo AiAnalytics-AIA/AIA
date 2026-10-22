@@ -238,7 +238,7 @@ describe("loadSampleReadiness", () => {
 
 describe("Složení podle kvót", () => {
   const cells = Array.from({ length: 12 }, (_, i) => ({ key: `zena/k${i}`, values: ["žena", `kraj ${i}`], n: 12 - i }));
-  const composition = { refused: null, version_id: "DSV-1", seed: 7, quota_fields: ["pohlavi", "kraj"], cells, sample_donors: 40 };
+  const composition = { refused: null, version_id: "DSV-1", seed: 7, quota_fields: ["pohlavi", "kraj"], cells, sample_donors: 40, support_counted: true };
 
   it("lists a panel run's quota cells, largest first, each a target, the rest folded away", () => {
     const { container } = render(<SampleArtifact project={project({ n: 78 })} onOpen={vi.fn()} readiness={ready({ persona_source: "panel", sample_composition: composition })} />);

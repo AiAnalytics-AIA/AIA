@@ -167,7 +167,7 @@ def test_readiness_draws_the_panel_sample_a_start_would_draw(
     assert read.status_code == 200, read.text
     body = read.json()
     composition = body["sample_composition"]
-    assert composition["refused"] is None
+    assert composition["refused"] is None and composition["support_counted"] is True
     assert composition["quota_fields"] and composition["cells"]
     assert sum(c["n"] for c in composition["cells"]) == DESIGN["n"]
     assert all(len(c["values"]) == len(composition["quota_fields"]) for c in composition["cells"])
@@ -251,3 +251,43 @@ def test_readiness_for_a_run_over_a_selected_child_draws_nothing(
     assert "se ukáže až při výběru" in check["message"]
     over_live = researcher.get(url, params=params).json()
     assert over_live["sample_composition"] is not None
+
+
+def test_a_refused_draw_names_what_it_refused(researcher: TestClient, world: Any) -> None:
+    """A refusal carries the filters it names, as the audience preview's ``reasons`` do, so
+    Vzorek can say which filter (review on #725): the code alone left a fragment."""
+    design = {**DESIGN, "audience": {"filters": {"fiktivni_pole": "ano"}}}
+    revision = world.design(researcher, design).json()["revision_id"]
+    read = researcher.get(
+        f"{API}/studies/{world.study_id()}/research/readiness",
+        params={"design_revision_id": revision, "persona_source": "panel"},
+    )
+    assert read.status_code == 200, read.text
+    composition = read.json()["sample_composition"]
+    assert composition["refused"] == "sampling_filter_invalid"
+    assert composition["refused_reasons"] and "fiktivni_pole" in composition["refused_reasons"][0]
+
+
+def test_a_drawn_sample_whose_forecast_is_unknown_says_it_was_not_counted(
+    researcher: TestClient, world: Any, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """A drawn sample can still leave the forecast unknown (a respondent without a donor,
+    ``forecast_support``): the composition says so, so Vzorek never reads the unknown check's
+    words as a counted forecast (review on #725)."""
+    from aia_core.application import research as application
+
+    real = application.forecast_support
+    monkeypatch.setattr(
+        application,
+        "forecast_support",
+        lambda spec, **kw: real(spec, **{**kw, "sample": None}),  # as an undonored sample reads
+    )
+    revision = world.design(researcher, DESIGN).json()["revision_id"]
+    read = researcher.get(
+        f"{API}/studies/{world.study_id()}/research/readiness",
+        params={"design_revision_id": revision, "persona_source": "panel"},
+    )
+    assert read.status_code == 200, read.text
+    composition = read.json()["sample_composition"]
+    assert composition["refused"] is None and composition["cells"]
+    assert composition["support_counted"] is False
