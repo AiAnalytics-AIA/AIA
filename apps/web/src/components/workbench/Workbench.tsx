@@ -258,6 +258,13 @@ export function Workbench({ frame, step, store, memory, save, inspector, reload,
       setItems((s) => openEntry(onStage(s, stage), entry));
       return true;
     },
+    closeWhere: (prefix) => {
+      setItems((s) => {
+        const on = onStage(s, stage);
+        const kept = on.entries.filter((e) => !e.id.startsWith(prefix));
+        return kept.length === on.entries.length ? on : { ...on, entries: kept };
+      });
+    },
   }), [stage]);
   const itemDrawer = useRef<HTMLDivElement>(null);
   // One Escape handler for the drawer, the readiness panel and the item drawer: onEscape gives the

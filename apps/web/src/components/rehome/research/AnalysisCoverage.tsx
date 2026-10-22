@@ -10,6 +10,7 @@ import { coverage, findingAnchor, findingId, type CoverageRow, type CoverageStat
 import { ANALYSIS_ORDER, stepLabel, stepOf } from "@/lib/research-execution";
 import type { ResearchProject } from "@/research/model";
 import { researchQuestionsOf } from "@/research/trace";
+import { findingItem, useOpenAnalysisItem } from "./AnalysisInspect";
 import { useFrame } from "./frame-hook";
 
 /** A cell that, below md, stacks under its column's name; the explicit roles keep the table's semantics
@@ -100,6 +101,7 @@ export function AnalysisMilestones({ run, analysis }: { run: ResearchRun; analys
 
 export function AnalysisCoverage({ run, analysis }: { run: ResearchRun; analysis: ResearchAnalysis | null }) {
   const frame = useFrame();
+  const openItem = useOpenAnalysisItem();
   const design = useDesignQuestions(frame.studyId, run.design_revision_id);
   const rows = design.state === "ready" ? coverage(design.questions, analysis, run.answerability?.gaps ?? []) : [];
   return (
@@ -120,7 +122,10 @@ export function AnalysisCoverage({ run, analysis }: { run: ResearchRun; analysis
                     {row.findings.length ? (
                       <span className="flex flex-wrap gap-1">
                         {row.findings.map((f) => (
-                          <button key={findingId(f)} type="button" data-finding-chip={findingId(f)} onClick={() => showFinding(findingAnchor(f))}
+                          <button key={findingId(f)} type="button" data-finding-chip={findingId(f)} onClick={() => {
+                            const item = findingItem(f.module, f.index);
+                            if (!openItem?.(item.id, item.title)) showFinding(findingAnchor(f));
+                          }}
                             className="rounded-control border border-border bg-surface-sunken px-1.5 text-left text-xs hover:underline focus-visible:outline-2 focus-visible:outline-focus-ring">
                             {stepLabel(`analysis_${f.module}`)} {f.index + 1}
                           </button>

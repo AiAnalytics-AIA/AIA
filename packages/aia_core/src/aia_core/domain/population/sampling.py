@@ -42,6 +42,8 @@ from __future__ import annotations
 
 import math
 import random
+import re
+import unicodedata
 from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
 from typing import Any, Final
@@ -68,6 +70,7 @@ __all__ = [
     "draw_panel_sample",
     "joint_fields",
     "quantile",
+    "quota_keys",
     "quotas",
     "rake",
     "representative_draw",
@@ -476,6 +479,28 @@ class QuotaCell:
 
     values: tuple[str, ...]
     n: int
+
+    @property
+    def key(self) -> str:
+        """The cell's values folded to ASCII letters and digits, joined by ``/``
+        ("žena/18-29/Hlavní město Praha" is ``zena/18-29/hlavni-mesto-praha``). Two cells may
+        fold alike ("65" and "65+"); :func:`quota_keys` makes a sample's keys unique."""
+        return "/".join(_slug(v) for v in self.values)
+
+
+def quota_keys(cells: Sequence[QuotaCell]) -> tuple[str, ...]:
+    """Each cell's :attr:`QuotaCell.key`, in order, a repeated one suffixed ``~2``, ``~3``."""
+    seen: dict[str, int] = {}
+    keys = []
+    for cell in cells:
+        count = seen[cell.key] = seen.get(cell.key, 0) + 1
+        keys.append(cell.key if count == 1 else f"{cell.key}~{count}")
+    return tuple(keys)
+
+
+def _slug(value: str) -> str:
+    folded = unicodedata.normalize("NFKD", value).encode("ascii", "ignore").decode().lower()
+    return re.sub(r"[^a-z0-9]+", "-", folded).strip("-") or "-"
 
 
 @dataclass(frozen=True, slots=True)

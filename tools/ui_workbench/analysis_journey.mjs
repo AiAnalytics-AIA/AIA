@@ -7,7 +7,8 @@
  * (a finished run on the `persona` fixture). Checks, at every width:
  *   - the coverage table, the milestones and Hlavní zjištění are shown, with no page overflow;
  *   - every Analýza target (module:, finding:, claim:) names exactly one element (focus takes the first);
- *   - a cited number opens its measure on Výsledky (#measure-<id>);
+ *   - in the workbench a coverage chip, a key finding's button and a cited number open in the item
+ *     inspector (ANL3), and a cited number links on to its measure on Výsledky (#measure-<id>);
  *   - the stage opens on its analysis, not ~1,800 px down the pane, and nothing in the coverage table is
  *     clipped (at 390 px each row is a card);
  *   - a finished run's milestones read "Sběr dokončen" done;
@@ -137,30 +138,49 @@ try {
   }, null, { timeout: 15000 }).catch(() => assert.fail("moving to Analýza within the page leaves the analysis out of view"));
   check("moving from Výsledky to Analýza within the page opens on the analysis");
 
-  // A coverage finding chip keeps the analysis view and brings the finding into view (F4).
+  // A coverage finding chip keeps the analysis view (F4) and, in the workbench, opens the finding in
+  // the item inspector (ANL3), whose cited numbers link on to their measures.
   const chip = page.locator("[data-analysis-coverage] [data-finding-chip]").first();
   await chip.waitFor({ timeout: 30000 });
   {
     await chip.click();
-    const after = await page.evaluate(() => ({ hash: location.hash, tab: document.querySelector('[role=tab][aria-selected=true]')?.textContent?.trim(), focused: document.activeElement?.id ?? "" }));
+    const drawer = page.locator('[data-item-inspector^="finding:"]');
+    await drawer.waitFor({ timeout: 15000 });
+    await drawer.locator('[data-inspect="finding"]').waitFor({ timeout: 15000 });
+    const after = await page.evaluate(() => ({ hash: location.hash, tab: document.querySelector('[role=tab][aria-selected=true]')?.textContent?.trim() }));
     assert.equal(after.hash, "#analysis", "a finding chip leaves the hash as it was");
     assert.equal(after.tab, "AI analýza", "a finding chip keeps the analysis view");
-    assert.match(after.focused, /^analysis-finding-/, "the finding is focused");
-    check("a coverage finding chip keeps AI analýza and focuses the finding");
+    check("a coverage finding chip keeps AI analýza and opens the finding in the inspector");
+    await page.keyboard.press("Escape");
+    await drawer.waitFor({ state: "detached", timeout: 15000 });
   }
 
-  // A cited number opens its measure on Výsledky.
-  await page.setViewportSize({ width: 1440, height: 900 });
-  await page.goto(analysisUrl, { waitUntil: "load", timeout: 180000 });
-  await page.locator("[data-key-findings]").waitFor({ timeout: 120000 });
-  const cited = page.locator("[data-key-findings] [data-cited-number] a").first();
+  // Each key finding opens in the inspector from its own button.
+  const findingButton = page.locator("[data-key-findings] [data-inspect-finding]").first();
+  await findingButton.click();
+  await page.locator('[data-item-inspector^="finding:"] [data-inspect="finding"]').waitFor({ timeout: 15000 });
+  check("a key finding opens in the inspector from its button");
+  await page.keyboard.press("Escape");
+  await page.locator("[data-item-inspector]").waitFor({ state: "detached", timeout: 15000 });
+
+  // A cited number opens in the inspector, and from there its measure on Výsledky.
+  const cited = page.locator("[data-key-findings] [data-inspect-claim]").first();
+  const numbers = await page.locator("[data-key-findings] [data-cited-number]").count();
+  assert.equal(numbers > 0, (await cited.count()) > 0, "in the workbench every cited number opens in the inspector");
   if (await cited.count()) {
-    const href = await cited.getAttribute("href");
-    assert.match(href ?? "", /^#measure-/, "a cited number links to its measure");
     await cited.click();
-    await page.waitForFunction((h) => location.hash === h, href, { timeout: 15000 });
-    await page.locator(`[id="${href.slice(1)}"]`).waitFor({ timeout: 30000 });
-    check("a cited number opens its measure on Výsledky");
+    const claim = page.locator('[data-item-inspector^="claim:"] [data-inspect="claim"]');
+    await claim.waitFor({ timeout: 15000 });
+    const link = claim.locator("a[href^='#measure-']").first();
+    if (await link.count()) {
+      const href = await link.getAttribute("href");
+      await link.click();
+      await page.waitForFunction((h) => location.hash === h, href, { timeout: 15000 });
+      await page.locator(`[id="${href.slice(1)}"]`).waitFor({ timeout: 30000 });
+      check("a cited number opens in the inspector, and from there its measure on Výsledky");
+    } else {
+      check("a cited number opens in the inspector (its measure is not in the design)");
+    }
   } else {
     check("no cited number on this run's findings (nothing to open)");
   }

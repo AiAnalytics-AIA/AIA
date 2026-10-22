@@ -51,6 +51,11 @@ import {
   removeCondition,
   removeQuestion,
   removeSection,
+  restoreOption,
+  type WordingEdit,
+  wordingEscape,
+  wordingFocused,
+  wordingTyped,
   restoreQuestion,
   restoreSection,
   respondentPreview,
@@ -76,6 +81,7 @@ import { ActionDock, ChipInput, InlineConfirm, Segmented, Switch } from "../step
 import { ChoiceChips } from "@/components/ui/ChoiceChips";
 import { InlineCreateRow } from "@/components/ui/InlineCreateRow";
 import { InlineText } from "@/components/ui/InlineText";
+import { editKeyAction } from "@/lib/inline-edit";
 import { AiButton, Button } from "../ui";
 import { isNativeResult } from "@/lib/research-agent-jobs";
 import { openPlace, scrollBehavior, scrollToPlace } from "@/lib/open-place";
@@ -135,7 +141,7 @@ const useLeadMarks = (): LeadMarks => leadMarks(sections(useResearch().state.pro
 type EditorUndo = ReturnType<typeof useEditorUndo>;
 
 /** Offer Vrátit for a delete, naming the item by at most 60 characters of its wording or title. */
-function offerRestore(undo: EditorUndo, what: "questionRemoved" | "blockRemoved" | "setRemoved", name: unknown, restore: () => void) {
+function offerRestore(undo: EditorUndo, what: "questionRemoved" | "blockRemoved" | "setRemoved" | "optionRemoved", name: unknown, restore: () => void) {
   const text = String(name || "").trim();
   const clipped = text.length > 60 ? `${text.slice(0, 59)}…` : text;
   undo?.offer({ message: clipped ? tv(`research.questionnaire.undo.${what}`, { name: clipped }) : t(`research.questionnaire.undo.${what}Bare`), undo: restore });
@@ -843,6 +849,7 @@ const typeKey = (typ: string): TypeKey | null => TYPES.find(([key]) => key === t
 function QuestionCard({ n, q, si, sectionId, qi, update }: { n: number; q: Question; si: number; sectionId: string | undefined; qi: number; update: Update }) {
   const marks = useLeadMarks();
   const undo = useEditorUndo();
+  const wording = useRef<WordingEdit | null>(null);
   const typ = String(q.typ || "");
   const skala = q.skala || [1, 10];
   const labels = q.popisky_skaly || ["vůbec", "zcela"];
@@ -877,7 +884,23 @@ function QuestionCard({ n, q, si, sectionId, qi, update }: { n: number; q: Quest
         aria-describedby={unworded ? hint : undefined}
         aria-invalid={unworded || undefined}
         value={q.text || ""}
-        onChange={(e) => update((p) => setQuestionText(p, si, qi, e.target.value))}
+        onChange={(e) => {
+          if (wording.current) wording.current = wordingTyped(wording.current, q.text || "", e.target.value);
+          update((p) => setQuestionText(p, si, qi, e.target.value));
+        }}
+        // Esc puts back the wording this field's typing started from (wordingEscape), never one older
+        // than a change accepted from elsewhere meanwhile (a Lead edit, a reload).
+        onFocus={(e) => {
+          wording.current = wordingFocused(e.currentTarget.value);
+        }}
+        onKeyDown={(e) => {
+          if (e.nativeEvent.isComposing || editKeyAction(e, true) !== "cancel" || !wording.current) return;
+          const back = wordingEscape(wording.current, q.text || "");
+          if (back === null) return;
+          e.preventDefault();
+          update((p) => setQuestionText(p, si, qi, back));
+          e.currentTarget.blur();
+        }}
         rows={2}
         className={`mt-3 block w-full resize-y rounded-control border border-border-strong bg-surface px-3 py-2 text-[15px] font-medium leading-6 ${FOCUS} ${unworded ? "border-status-you-ink" : ""}`}
       />
@@ -894,7 +917,7 @@ function QuestionCard({ n, q, si, sectionId, qi, update }: { n: number; q: Quest
         </div>
       ) : null}
       {typ === "vyber" || typ === "multi" ? (
-        <OptionRows key={(q.kategorie || []).join("\n")} multi={typ === "multi"} options={q.kategorie || []} onCommit={(raw) => update((p) => setQuestionOptions(p, si, qi, raw))} />
+        <OptionRows key={(q.kategorie || []).join("\n")} multi={typ === "multi"} options={q.kategorie || []} onCommit={(raw) => update((p) => setQuestionOptions(p, si, qi, raw))} onRestore={(at, value) => update((p) => restoreOption(p, si, sectionId, qi, q.id, at, value))} />
       ) : null}
       {typ === "skala" ? (
         <ScaleEditor
@@ -964,8 +987,15 @@ function ResearchQuestionLinks({ item, onToggle }: { item: Question | Section; o
  * applied when the list is left, as the classic textarea's onchange: trimmed, empty
  * rows dropped (setQuestionOptions). Enter adds a row below; × removes one.
  */
-function OptionRows({ options, multi, onCommit }: { options: string[]; multi: boolean; onCommit: (raw: string) => void }) {
+function OptionRows({ options, multi, onCommit, onRestore }: {
+  options: string[];
+  multi: boolean;
+  onCommit: (raw: string) => void;
+  /** Vrátit for a removed option: the one option back at its place (restoreOption). */
+  onRestore: (index: number, value: string) => void;
+}) {
   const [rows, setRows] = useState<string[]>(options.length ? options : [""]);
+  const undo = useEditorUndo();
   const list = useRef<HTMLDivElement>(null);
   const commit = (next = rows) => onCommit(next.join("\n"));
   const focusRow = (i: number) => setTimeout(() => list.current?.querySelectorAll("input")[i]?.focus(), 0);
@@ -1001,8 +1031,12 @@ function OptionRows({ options, multi, onCommit }: { options: string[]; multi: bo
               const next = rows.filter((_, j) => j !== i);
               setRows(next.length ? next : [""]);
               commit(next);
+              // Vrátit puts the removed option back in its place, whatever was edited since (I6, A3).
+              const value = r.trim();
+              const at = rows.slice(0, i).filter((x) => x.trim()).length;
+              if (value) offerRestore(undo, "optionRemoved", value, () => onRestore(at, value));
             }}
-            className={`rounded-sm px-1.5 text-ink-faint hover:text-ink ${FOCUS}`}
+            className={`inline-flex size-6 shrink-0 items-center justify-center rounded-sm text-ink-faint hover:text-ink ${FOCUS}`}
           >
             ×
           </button>

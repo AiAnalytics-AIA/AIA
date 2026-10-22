@@ -85,5 +85,25 @@ describe("where the person may be sent", () => {
   it("is a path on this origin, never elsewhere", () => {
     expect(localPath("/app/clients/CLI-1?tab=x")).toBe("/app/clients/CLI-1?tab=x");
     for (const bad of [null, "", "//evil.example/", "https://evil.example/", "/\\evil"]) expect(localPath(bad)).toBe("/");
+    // The URL parser drops tab, CR and LF, so each of these is //evil.example: another host.
+    for (const bad of ["/\t/evil.example/", "/\n/evil.example", "/\r/evil.example", "/\t\\evil.example"]) {
+      expect(localPath(bad)).toBe("/");
+    }
+  });
+
+  it("stays on this origin when the browser follows it, dot segments included", () => {
+    // Normalising "/.//evil.example" gives the pathname "//evil.example": handed back
+    // as a path, the browser reads it as protocol-relative and leaves the site.
+    const origin = "https://aia.example";
+    for (const next of [
+      "/.//evil.example/",
+      "/..//evil.example",
+      "/%2e//evil.example",
+      "/x/..//evil.example",
+      "/\t/evil.example/",
+      "/app/clients?tab=x#a",
+    ]) {
+      expect(new URL(localPath(next), origin).origin).toBe(origin);
+    }
   });
 });

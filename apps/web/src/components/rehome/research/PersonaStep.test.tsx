@@ -4,6 +4,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { AGENTS_PATH, NATIVE_JOB_WAIT, NATIVE_TEST_TIMEOUT_MS, PARK_MESSAGE, approveProposal, nativeAgentFixture } from "./test-native-agents";
 import { PROPOSAL_AI_DONE, PROPOSAL_DONE, REQUEST_EMPTY } from "@/research/persona";
+import { FrameNavigation } from "../step";
 import { ResearchScreen } from "./ResearchScreen";
 import { type SavedBody, workspaceFixture } from "./test-workspace";
 import { TEST_FRAME, stagePath } from "./test-frame";
@@ -380,5 +381,23 @@ describe("Dimenze", () => {
     await savedWith("persona_done_1789");
     expect(lastSave().content).toMatchObject({ persona_mode: "calibrated", persona_dimensions: { approved: [] } });
     noUnitCalls();
+  }, 20_000);
+
+  it("inside the workbench goes on to the frame's next stage, not the classic run step (DIM-F4)", async () => {
+    aiaStub(PLANNED);
+    const go = vi.fn();
+    render(<FrameNavigation.Provider value={{ next: { label: "Vzorek", go } }}><ResearchScreen step="persona" frame={TEST_FRAME} /></FrameNavigation.Provider>);
+    fireEvent.click(await screen.findByRole("button", { name: "Další · Vzorek" }));
+    expect(go).toHaveBeenCalledOnce();
+    expect(push).not.toHaveBeenCalled();
+    expect(screen.queryByRole("button", { name: "Další · kontrola" })).toBeNull();
+    await savedWith("persona_done_1789");
+  }, 20_000);
+
+  it("inside a frame with no next stage offers no forward action rather than the classic run step", async () => {
+    aiaStub(PLANNED);
+    render(<FrameNavigation.Provider value={{ next: null }}><ResearchScreen step="persona" frame={TEST_FRAME} /></FrameNavigation.Provider>);
+    await screen.findByRole("spinbutton", { name: "Počet respondentů" });
+    expect(screen.queryByRole("button", { name: /^Další/ })).toBeNull();
   }, 20_000);
 });
