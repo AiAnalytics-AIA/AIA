@@ -2,6 +2,8 @@
 // outlook as the server worked them out before the run. Pure. Nothing here decides: the server's
 // readiness is the authority, and what it could not forecast reads as unknown, never as good.
 
+import { verdictWords } from "@/research/audience";
+
 import type { CheckStatus, OutlookVerdict, PersonaSourceOption, ReadinessBody } from "./api";
 import { outlookCounts } from "./research-execution";
 import type { WorkbenchStage } from "./workbench-stages";
@@ -12,10 +14,11 @@ export const SUPPORT_FORECAST_CHECK = "support_forecast";
 /**
  * The support forecast as Vzorek shows it.
  * - `known`: the server counted the donors the run will draw; its check's status and words.
- * - `unknown`: nothing was counted. A panel run draws its donors at fieldwork, so the server's
- *   forecast for it is unknown by rule (`forecast_support`, `SupportForecast.known`); a readiness
- *   without the check (a fieldwork source the server does not forecast, or an older API) is
- *   unknown too. The server's words, when it gave any, say why.
+ * - `unknown`: nothing was counted. A panel run's donors are counted only from the sample a start
+ *   would draw (run-qc-and-checkpoint RQC6b): without a drawn `sample_composition` (no population,
+ *   a refused draw, a selected child, an older API) the server's forecast is unknown by rule
+ *   (`forecast_support`). A readiness without the check (a fieldwork source the server does not
+ *   forecast) is unknown too. The server's words, when it gave any, say why.
  */
 export type SupportForecastLine =
   | { known: true; status: CheckStatus; message: string }
@@ -24,7 +27,9 @@ export type SupportForecastLine =
 export function supportForecastOf(readiness: ReadinessBody): SupportForecastLine {
   const check = readiness.checks.find((c) => c.id === SUPPORT_FORECAST_CHECK);
   if (!check) return { known: false, message: null };
-  if (readiness.persona_source === "panel") return { known: false, message: check.message };
+  // Counted, not just drawn: a drawn sample with a respondent without a donor stays unknown.
+  const drawn = readiness.sample_composition?.refused === null && readiness.sample_composition.support_counted === true;
+  if (readiness.persona_source === "panel" && !drawn) return { known: false, message: check.message };
   return { known: true, status: check.status, message: check.message };
 }
 
@@ -72,6 +77,7 @@ const CHECK_STAGE: Readonly<Record<string, WorkbenchStage>> = {
   sociomap_support: "dimensions",
   dimensions: "dimensions",
   audience: "audience",
+  panel_sample: "audience",
   questionnaire: "questionnaire",
   conditional_questions: "questionnaire",
   battery_familiarity: "questionnaire",
@@ -109,4 +115,53 @@ export function readinessSummary(readiness: ReadinessBody): ReadinessSummary {
   const checks = readiness.checks.map((c, i) => [c, i] as const).sort((a, b) => rank(a[0].status) - rank(b[0].status) || a[1] - b[1]).map(([c]) => c);
   const count = (s: string) => checks.filter((c) => c.status === s).length;
   return { ready: readiness.ready, checks, blocking: count("FAIL"), warnings: count("WARN"), unknown: checks.filter((c) => !known(c.status)).length };
+}
+
+/** The sampler's quota fields in words; a field this client does not know keeps its name. */
+const QUOTA_FIELD_WORDS: Readonly<Record<string, string>> = {
+  pohlavi: "Pohlaví",
+  vek_skupina: "Věk",
+  kraj: "Kraj",
+  vzdelani: "Vzdělání",
+  zamestnani_status: "Zaměstnání",
+};
+
+/** The sampler's word for a missing value (domain/population/sampling.py MISSING). */
+const MISSING = "<missing>";
+
+/** One row of the composition: a cell with respondents, its values in words and its share of n. */
+export type CompositionRow = { key: string; label: string; n: number; share: number };
+
+/**
+ * The sample a panel run would draw, as Vzorek's composition reads it (plan artifact-sample SMP2,
+ * run-qc-and-checkpoint RQC6c).
+ * - `roster`: fictional respondents, drawn without quotas.
+ * - `drawn`: the sampler's own allotment, the cells with respondents largest first.
+ * - `refused`: the sampler would not draw this design, in words.
+ * - `unknown`: a panel run the server drew nothing for (no population, a selected child, an older
+ *   API); never a composition.
+ */
+export type Composition =
+  | { kind: "roster" }
+  | { kind: "drawn"; fields: string[]; rows: CompositionRow[]; total: number; donors: number | null }
+  | { kind: "refused"; words: string }
+  | { kind: "unknown" };
+
+export function compositionOf(readiness: ReadinessBody): Composition {
+  if (readiness.persona_source !== "panel") return { kind: "roster" };
+  const drawn = readiness.sample_composition;
+  if (!drawn) return { kind: "unknown" };
+  if (drawn.refused !== null) {
+    const words =
+      drawn.refused === "population_unavailable"
+        ? "Populaci se teď nepodařilo načíst, vzorek nelze předem vybrat."
+        : verdictWords({ reason: drawn.refused, reasons: drawn.refused_reasons });
+    return { kind: "refused", words };
+  }
+  const total = drawn.cells.reduce((sum, c) => sum + c.n, 0);
+  const rows = drawn.cells
+    .filter((c) => c.n > 0)
+    .map((c) => ({ key: c.key, label: c.values.map((v) => (v === MISSING ? "neuvedeno" : v)).join(" · "), n: c.n, share: total ? c.n / total : 0 }))
+    .sort((a, b) => b.n - a.n || a.label.localeCompare(b.label, "cs"));
+  return { kind: "drawn", fields: drawn.quota_fields.map((f) => QUOTA_FIELD_WORDS[f] ?? f), rows, total, donors: drawn.sample_donors };
 }

@@ -32,6 +32,7 @@ import {
   renameSet,
   setTitle,
   toQuestionnaire,
+  trackedSets,
 } from "./plan";
 import type { Analysis } from "./store";
 
@@ -127,7 +128,6 @@ describe("comparable sets are edited as the classic editors do", () => {
   const addCases: [string, (string | null)[], Analysis | null][] = [
     ["a set with a comma list", ["  Regiony ", " Praha, Brno ,, Ostrava "], ANALYSIS],
     ["no items: the second prompt cancelled", ["Argumenty", null], ANALYSIS],
-    ["more than fifteen items are cut", ["Značky", Array.from({ length: 20 }, (_, i) => `z${i}`).join(",")], ANALYSIS],
     ["no title: nothing added", ["  ", "a,b"], ANALYSIS],
     ["cancelled at the title", [null], ANALYSIS],
     ["without an analysis, one is started from the goal", ["Sada", "a"], null],
@@ -142,7 +142,20 @@ describe("comparable sets are edited as the classic editors do", () => {
     });
   }
 
-  for (const [name, si, value] of [["an object", 0, "  H "], ["into an empty set", 1, "Praha"], ["past fifteen", 2, "Z15"], ["nothing typed", 0, " "]] as const) {
+  // A deliberate departure (the product owner, Q75 (a)): the classic stopped a set at 15 objects;
+  // AIA stops it at the server's hard 40 (TRACKED_SET_LIMITS) and only warns above 15.
+  it("addPlanSet and addPlanObject: past fifteen kept, where the classic cut and refused", () => {
+    const twenty = Array.from({ length: 20 }, (_, i) => `z${i}`);
+    expect(trackedSets(classic("addPlanSet()", { prompts: ["Značky", twenty.join(",")], a: ANALYSIS }).a!).at(-1)?.objects).toEqual(twenty.slice(0, 15));
+    expect(trackedSets(addSet({ project: base, analysis: ANALYSIS }, "Značky", twenty.join(","))!).at(-1)?.objects).toEqual(twenty);
+    expect(classic("addPlanObject(2)", { prompts: ["Z15"] }).alerts).toEqual(["Sledovaná sada má maximálně 15 položek."]);
+    const got = addObject(ANALYSIS, 2, "Z15");
+    expect(got && "analysis" in got ? trackedSets(got.analysis)[2].objects?.length : null).toBe(16);
+    const full = { ...ANALYSIS, tracked_sets: [{ object_type: "Plná", objects: Array.from({ length: 40 }, (_, i) => `P${i}`) }] } as Analysis;
+    expect(addObject(full, 0, "P40")).toEqual({ error: SET_FULL });
+  });
+
+  for (const [name, si, value] of [["an object", 0, "  H "], ["into an empty set", 1, "Praha"], ["nothing typed", 0, " "]] as const) {
     it(`addPlanObject: ${name}`, () => {
       const ran = classic(`addPlanObject(${si})`, { prompts: [value] });
       const got = addObject(ANALYSIS, si, value);

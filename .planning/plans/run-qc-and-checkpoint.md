@@ -7,11 +7,11 @@ chunks:
   - "[ ] RQC3. A `MaterialRule` and lineage for run-derived material sent to a model (QC flags, the map interpreter)"
   - "[ ] RQC4. The flag artifact and the worker's keep-or-flag proposal; the accept destination"
   - "[ ] RQC5. Replace as a new linked run: a start path from a COMPLETED run with an exclusion pin that reuses the other respondents' paid answers; its ADR and deterministic admission rule (ADR 0026 decision 4) come first"
-  - "[ ] RQC6. Quotas before a run and a support forecast for the panel path (split 2026-10-22 into RQC6a-RQC6d, owner: the Vzorek session)"
+  - "[x] RQC6. Quotas before a run and a support forecast for the panel path (split 2026-10-22 into RQC6a-RQC6d, owner: the Vzorek session)"
   - "[x] RQC6a. Domain: a panel sample's quota cells (the sampler's own largest-remainder allotment) and the support forecast from a drawn panel sample, through the roster path's donor_support and analysis gate"
   - "[x] RQC6b. Application and API: readiness draws the panel sample a start would draw (fieldwork_seed, the design's filters, the population the run would record) and carries its forecast and quota cells; the audience preview carries its quota cells at PREVIEW_SEED; unknown, said why, without the population"
-  - "[ ] RQC6c. Web (artifact-sample SMP2): Vzorek's composition as quota cells, each sample:quota:<cell>, and the panel run's forecast in words"
-  - "[ ] RQC6d. Journey (artifact-sample SMP6): Vzorek's panel composition and forecast at 1440, 1100, 768 and 390 px over the population double, zero paid jobs"
+  - "[x] RQC6c. Web (artifact-sample SMP2): Vzorek's composition as quota cells, each sample:quota:<cell>, and the panel run's forecast in words"
+  - "[x] RQC6d. Journey (artifact-sample SMP6): Vzorek's panel composition and forecast at 1440, 1100, 768 and 390 px over the population double, zero paid jobs"
   - "[ ] RQC7. The fieldwork event contract: heartbeat, quota-cell fill, a respondent grid, the park reason code"
   - "[ ] RQC8. Readiness reads the worker's egress: a run whose route cannot carry Class A is flagged before it parks"
   - "[x] RQC9. One authority for the valid n: the domain readiness limits, read by the web and the Lead"
@@ -115,9 +115,18 @@ a `key`, donors); the audience preview's `sample` gains its `quota_fields` and `
 `refused: population_unavailable`, never a 500).
 
 Open from RQC6b's review, each a hypothesis until reproduced over HTTP:
-- A refused panel draw (`sampling_n_exceeds_support`, `sampling_field_refused`) is named in
-  `sample_composition.refused` but is no readiness check, so a start goes ahead and fieldwork fails
-  on the same refusal; a FAIL (or WARN) check from the refusal is a readiness rule of its own.
+- **F-RQC6-1 (reproduced and fixed 2026-10-22).** A refused panel draw was named in
+  `sample_composition.refused` but was no readiness check: readiness read ready, and a start
+  created the run, which fieldwork then failed on the same refusal.
+  - Anchor: `packages/aia_core/src/aia_core/application/research.py:696-758 @ 4568badd` (start's
+    `prepare` never saw the draw; the draw came after the `DesignNotReady` check).
+  - Reproduction: a panel design whose filter the population cannot apply (`fiktivni_pole`) read
+    `ready: true` and `POST …/research/runs` answered 201.
+  - Fix: `domain/panel_source.py` `with_panel_refusal`, a FAIL `panel_sample` check naming what was
+    refused, added by readiness and by start from the one draw (`PanelDraw.sampler_refused`); a
+    population that will not load stays unknown, never a FAIL. Vzorek sends the check to Cílová
+    skupina (`checkStage`).
+  - Test: `test_population_double_api.py::test_a_sample_the_sampler_refuses_fails_readiness_and_refuses_the_start`.
 - (Fixed on #694 after review: readiness takes the run's `population_version_id` and draws nothing
   over a selected child, as its start; Spuštění forwards its chosen child.)
 
@@ -126,6 +135,8 @@ on each cell; the panel forecast's words in §2; unknown said with its reason.
 
 **RQC6d. Journey (SMP6).** The workbench journey reads Vzorek's panel composition over the
 population double at four widths; zero paid jobs.
+Done 2026-10-22: `workbench.py up --population-double` (the API over the population double, the
+panel offered, `ai_runtime` fieldwork, so runs park) and `tools/ui_workbench/sample_panel_journey.mjs`.
 
 **RQC7. The fieldwork event contract: heartbeat, quota-cell fill, a respondent grid, the park reason code**  
 Written first by S2; consumed by the Fieldwork artifact (`research-lead-workbench` 19). Interfaces I7.

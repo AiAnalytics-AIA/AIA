@@ -34,6 +34,7 @@ from ..domain.questionnaire_import import (
     QuestionnaireImportRejected,
     import_rows,
 )
+from .document_text import refuse_dtd
 
 __all__ = [
     "TEMPLATE_FILENAME",
@@ -60,17 +61,23 @@ _NS: Final = {
 _UNREADABLE_XLSX: Final = "Soubor se nepodařilo přečíst jako sešit XLSX."
 
 
+def _xml(data: bytes) -> ET.Element:
+    """One part, parsed; a part declaring a DTD is refused before its entities expand."""
+    refuse_dtd(data)
+    return ET.fromstring(data)
+
+
 def _xlsx_rows(raw: bytes) -> list[list[str]]:
     """``ui_server._xlsx_rows``: the DOTAZNIK sheet (else the first), every cell as text."""
     ns = _NS
     with zipfile.ZipFile(io.BytesIO(raw)) as z:
         shared: list[str] = []
         if "xl/sharedStrings.xml" in z.namelist():
-            root = ET.fromstring(z.read("xl/sharedStrings.xml"))
+            root = _xml(z.read("xl/sharedStrings.xml"))
             for si in root.findall("m:si", ns):
                 shared.append("".join(t.text or "" for t in si.findall(".//m:t", ns)))
-        wb = ET.fromstring(z.read("xl/workbook.xml"))
-        rels = ET.fromstring(z.read("xl/_rels/workbook.xml.rels"))
+        wb = _xml(z.read("xl/workbook.xml"))
+        rels = _xml(z.read("xl/_rels/workbook.xml.rels"))
         relmap = {x.attrib["Id"]: x.attrib["Target"] for x in rels}
         sheets = wb.find("m:sheets", ns)
         target = None
@@ -90,7 +97,7 @@ def _xlsx_rows(raw: bytes) -> list[list[str]]:
             target = target[3:]
         if not target.startswith("xl/"):
             target = "xl/" + target
-        root = ET.fromstring(z.read(target))
+        root = _xml(z.read(target))
         rows: list[list[str]] = []
         cells = 0
         for row in root.findall(".//m:sheetData/m:row", ns):

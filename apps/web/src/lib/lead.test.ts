@@ -194,6 +194,10 @@ describe("targetLabel for every artifact's kinds", () => {
   it("says each kind in words, and the audience's parts as the Cílová skupina screen names them", () => {
     expect(targetLabel("audience:definition")).toBe("Cílová skupina: popis");
     expect(targetLabel("audience:subpanel:young_18_29")).toBe("Podpanel: young_18_29");
+    expect(targetLabel("audience:filter:kraj")).toBe("Filtr: kraj");
+    // Read by Cílová skupina's own parser: a filter or subpanel with no name is no filter.
+    expect(targetLabel("audience:filter:")).toBe("Cílová skupina: filter:");
+    expect(targetLabel("audience:subpanel:")).toBe("Cílová skupina: subpanel:");
     expect(targetLabel("pair:set1/fio~air")).toBe("Dvojice set1/fio~air");
     expect(targetLabel("measure:q3")).toBe("Měření q3");
     expect(targetLabel("receipt:respondents")).toBe("Kdo odpovídal");
@@ -309,6 +313,7 @@ describe("commandRequest", () => {
   it("reads the start the server matched, the instruction after a colon as its why, and nothing it does not know", () => {
     expect(commandRequest({ command: "agent_job:build_questionnaire", text: "Navrhni dotazník: krátce, 10 otázek" })).toEqual({ kind: "agent_job", action: "build_questionnaire", why: "krátce, 10 otázek" });
     expect(commandRequest({ command: "research_run", text: "Spusť výzkum" })).toEqual({ kind: "research_run", why: "Spustí se až vaším potvrzením." });
+    expect(commandRequest({ command: "analysis_retry", text: "Zopakuj analýzu" })).toEqual({ kind: "analysis_retry", why: "Spustí se až vaším potvrzením." });
     for (const command of [null, undefined, "", "agent_job:", "deep_research"]) expect(commandRequest({ command, text: "x" })).toBeNull();
   });
 });

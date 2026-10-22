@@ -9,6 +9,7 @@ import type { Json, ResearchProject } from "@/research/model";
 import { proposalAnalysis, type Narrative } from "@/research/plan-edit";
 import { qId, sections, type Question, type Section } from "@/research/questionnaire";
 import type { Analysis } from "@/research/store";
+import { parseAudienceId } from "./artifacts/audience";
 import { withFixer } from "./route-refusal";
 import type { WorkbenchStage } from "./workbench-stages";
 import { parseAiaId, type TargetKind } from "./workbench-artifacts";
@@ -32,6 +33,8 @@ export type LeadView = { op: "open_stage"; stage: WorkbenchStage } | { op: "focu
 export type LeadRequest =
   | { kind: "agent_job"; action: string; why: string }
   | { kind: "research_run"; why: string }
+  /** A person's typed "Zopakuj analýzu" (LO5): the stage's analysis retry, never a model's card. */
+  | { kind: "analysis_retry"; why: string }
   | { kind: "design_research"; why: string }
   | { kind: "interpretation_research"; why: string };
 
@@ -46,6 +49,7 @@ export const TYPED_UNDECIDED_WHY = "Spustí se až vaším potvrzením.";
 export function commandRequest(t: Pick<LeadTurn, "command" | "text">): LeadRequest | null {
   const said = t.text?.split(":").slice(1).join(":").trim() || TYPED_UNDECIDED_WHY;
   if (t.command === "research_run") return { kind: "research_run", why: said };
+  if (t.command === "analysis_retry") return { kind: "analysis_retry", why: said };
   const action = t.command?.startsWith("agent_job:") ? t.command.slice("agent_job:".length) : "";
   return action ? { kind: "agent_job", action, why: said } : null;
 }
@@ -502,9 +506,11 @@ export function targetLabel(target: string): string {
   const parsed = parseAiaId(target);
   if (!parsed) return target;
   if (parsed.kind === "audience") {
-    if (id.startsWith("filter:")) return `Filtr: ${id.slice(7)}`;
-    if (id.startsWith("subpanel:")) return `Podpanel: ${id.slice(9)}`;
-    return AUDIENCE_PARTS[id] ?? `Cílová skupina: ${id}`;
+    // Read by Cílová skupina's own contract (artifact-audience AUD1), never a second parser here.
+    const t = parseAudienceId(target);
+    if (t?.kind === "filter") return `Filtr: ${t.factor}`;
+    if (t?.kind === "subpanel") return `Podpanel: ${t.key}`;
+    return t ? AUDIENCE_PARTS[t.part] : `Cílová skupina: ${id}`;
   }
   if (parsed.kind === "receipt" && id === "respondents") return "Kdo odpovídal";
   return `${KIND_WORDS[parsed.kind]} ${id}`;

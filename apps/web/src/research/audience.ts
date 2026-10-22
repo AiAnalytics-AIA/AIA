@@ -602,6 +602,7 @@ export function setRange(p: ResearchProject, id: string, min: number | null, max
   return { project: withAudience(p, { ...aud(p), filters: f }), reason: "aud_range", invalidateCheck: true };
 }
 
+/** The sampler's refusals in words, by reason code. */
 const PREVIEW_REASONS: Record<string, string> = {
   sampling_filter_invalid: "Některý filtr nelze použít",
   sampling_field_refused: "Politika pole nepovoluje filtrovat podle",
@@ -611,8 +612,17 @@ const PREVIEW_REASONS: Record<string, string> = {
   sampling_n_invalid: "Studie nemá platné N.",
 };
 
-function verdictWords(v: { reason?: string | null; reasons?: string[] | null }): string {
-  const base = PREVIEW_REASONS[v.reason || ""] || `Výběr odmítnut (${v.reason || "neznámý důvod"}).`;
+/** The two fragments above, finished when the refusal names nothing to finish them with. */
+const UNNAMED_REASONS: Record<string, string> = {
+  sampling_filter_invalid: "Některý filtr cílové skupiny nelze použít.",
+  sampling_field_refused: "Politika pole nepovoluje filtrovat podle některého z polí výběru.",
+};
+
+/** A refusal in words: its code's sentence, completed by what it names; never a fragment. */
+export function verdictWords(v: { reason?: string | null; reasons?: string[] | null }): string {
+  const code = v.reason || "";
+  if (!v.reasons?.length && UNNAMED_REASONS[code]) return UNNAMED_REASONS[code];
+  const base = PREVIEW_REASONS[code] || `Výběr odmítnut (${v.reason || "neznámý důvod"}).`;
   return v.reasons?.length ? `${base}: ${v.reasons.join("; ")}.` : base;
 }
 
