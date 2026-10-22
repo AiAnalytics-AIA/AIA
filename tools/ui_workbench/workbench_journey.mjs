@@ -91,6 +91,18 @@ try {
   assert.equal(await page.locator('[id="brief-situation"]').count(), 0, "brief:situation is not a target");
   check("every Brief target the contract names is one element");
 
+  // One focus ring per field: a field that sets outline-none inside a wrapper drawing the ring on
+  // focus-within keeps it, and the workbench's own controls still get theirs.
+  const linkField = page.getByRole("textbox", { name: "Odkaz", exact: true });
+  await linkField.focus();
+  assert.equal(await linkField.evaluate((e) => getComputedStyle(e).outlineStyle), "none", "a focused outline-none field draws no ring of its own");
+  const phase = page.locator(".wb button").first();
+  await phase.focus();
+  await page.keyboard.press("Shift+Tab");
+  await page.keyboard.press("Tab");
+  assert.equal(await page.evaluate(() => getComputedStyle(document.activeElement).outlineStyle), "solid", "a workbench control focused by keyboard draws the ring");
+  check("one focus ring on a field, the ring on the workbench's controls");
+
   // The separator: keyboard moves it 2 % within 28-62 %; Home goes back to 40 %.
   const sep = page.getByRole("separator", { name: "Změnit poměr konverzace a artefaktu" });
   await sep.focus();
