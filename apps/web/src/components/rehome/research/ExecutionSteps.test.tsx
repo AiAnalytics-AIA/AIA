@@ -2505,7 +2505,7 @@ describe("Results", () => {
     return option;
   };
 
-  it("downloads one variant with its chosen review as DOCX and PDF of the same stored draft", async () => {
+  it("downloads one variant with its chosen review as DOCX and PDF of the same stored draft, and leaves its approval to the doc bar", async () => {
     // research-integrity-report 3: the Fio split -- a 40-page DOCX with literature, a 33-page base PDF.
     const createObjectURL = stubDownloads();
     const review = { run_id: "RUN-deep", purpose: "INTERPRETATION_RESEARCH", target: { research_run_id: "RUN-1" },
@@ -2535,7 +2535,6 @@ describe("Results", () => {
       // The PDF names the DOCX draft it renders: the same document in both formats.
       "GET /api/v1/studies/STU-1/research/runs/RUN-1/report/context/pdf/download": () =>
         new Response(new Blob(["%PDF"]), { headers: { "X-AIA-Artifact-Id": "ART-context", "X-AIA-Review-State": "DRAFT_UNAPPROVED" } }),
-      "POST /api/v1/studies/STU-1/research/runs/RUN-1/report/approve": () => { approvedNow = true; return { artifact_id: "ART-context", review_state: "APPROVED_INTERNAL" }; },
     });
     render(<ResearchScreen step="results" frame={TEST_FRAME} />);
     const report = await card();
@@ -2562,26 +2561,16 @@ describe("Results", () => {
     expect(called("GET", "/api/v1/studies/STU-1/research/runs/RUN-1/report/context/pdf/download")[0].url).toContain("deep_research_run_id=RUN-deep");
     expect(called("GET", "/api/v1/studies/STU-1/research/runs/RUN-1/report/pdf/download")).toHaveLength(0); // never the base PDF
     expect(createObjectURL).toHaveBeenCalledTimes(2);
-    fireEvent.click(report.getByRole("button", { name: t("research.exec.results.reportApprove") }));
-    // Nothing is approved on the click: the person is asked about this version first, and "Zrušit"
-    // approves nothing (B22).
-    const asked = await screen.findByRole("dialog");
-    expect(asked.textContent).toContain("Schválit interní zprávu s rešerší RUN-deep, uloženou verzi ART-context (");
-    // The safe choice holds the focus, and Esc answers the dialog alone: nothing beneath it (an
-    // open inspector) sees it (I7, D21).
-    expect(document.activeElement).toBe(within(asked).getByRole("button", { name: t("dialog.cancel") }));
-    const beneath = vi.fn();
-    window.addEventListener("keydown", beneath);
-    onTestFinished(() => window.removeEventListener("keydown", beneath));
-    fireEvent.keyDown(asked, { key: "Escape" });
-    expect(beneath).not.toHaveBeenCalled();
-    fireEvent.click(within(asked).getByRole("button", { name: t("dialog.cancel") }));
-    await waitFor(() => expect(screen.queryByRole("dialog")).toBeNull());
+    // Approved on the document being read, in the pane's doc bar (RPT3a): the card offers no
+    // approval, says where it is, and follows the pane's answer by reading the variant again.
+    expect(report.queryByRole("button", { name: t("research.exec.results.reportApprove") })).toBeNull();
+    expect(report.getByText(t("research.exec.results.reportApproveWhere"))).toBeTruthy();
+    // Another review's approval is not this card's: nothing read for it, nothing changed here.
+    act(() => approvedInPane({ kind: "with_review", artifactId: "ART-elsewhere", review: "RUN-other" }));
+    expect(calls.filter((c) => c.url.includes("deep_research_run_id=RUN-other"))).toHaveLength(0);
+    approvedNow = true;
+    act(() => approvedInPane({ kind: "with_review", artifactId: "ART-context", review: "RUN-deep" }));
     expect(called("POST", "/api/v1/studies/STU-1/research/runs/RUN-1/report/approve")).toHaveLength(0);
-    fireEvent.click(report.getByRole("button", { name: t("research.exec.results.reportApprove") }));
-    await confirmApproval("ART-context");
-    await waitFor(() => expect(called("POST", "/api/v1/studies/STU-1/research/runs/RUN-1/report/approve")).toHaveLength(1));
-    expect(called("POST", "/api/v1/studies/STU-1/research/runs/RUN-1/report/approve")[0].body).toEqual({ artifact_id: "ART-context", note: "" });
     // The version is named before and after; what it is now is read again, never patched here
     // (was: the card patched review_state locally and kept the draft's PDF state).
     expect(report.getByText("ART-context")).toBeTruthy();

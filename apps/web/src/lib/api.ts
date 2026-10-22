@@ -1497,6 +1497,10 @@ export const deepResearch = {
   /** Where the report with this review stands, composing nothing (research-integrity-report 3). */
   contextReport: (studyId: string, runId: string, deepRunId: string) =>
     request<ReportVariant>("GET", `${studyPath(studyId)}/research/runs/${enc(runId)}/report/context${query({ deep_research_run_id: deepRunId })}`),
+  /** The prepared report with this review as its stored document model, beside the DOCX it names (RPT3a);
+   *  409 context_report_not_prepared before it is prepared. */
+  contextReportDocument: (studyId: string, runId: string, deepRunId: string) =>
+    request<StoredReportDocument>("GET", `${studyPath(studyId)}/research/runs/${enc(runId)}/report/context/document${query({ deep_research_run_id: deepRunId })}`),
   /** Store the report with this review once and ask the worker for its PDF: the same draft in both formats. */
   prepareContextReport: (studyId: string, runId: string, deepRunId: string) =>
     request<ReportVariant>("POST", `${studyPath(studyId)}/research/runs/${enc(runId)}/report/context${query({ deep_research_run_id: deepRunId })}`),

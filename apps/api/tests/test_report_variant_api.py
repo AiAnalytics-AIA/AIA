@@ -16,6 +16,7 @@ from typing import Any
 from aia_core.application.contextual_report import (
     CONTEXT_REPORT_ARTIFACT_TYPE,
     CONTEXT_REPORT_CONTRACT,
+    _store_document,
 )
 from aia_core.application.report import INTERNAL_REPORT_PDF_ARTIFACT_TYPE
 from aia_core.application.report_export import REVIEW_STAMP_RECORD, export_docx
@@ -127,24 +128,29 @@ def _prepared(
 _RENDERED: list[bytes] = []
 
 
+def _document() -> ReportDocument:
+    """A fictional report with literature, as composed."""
+    meta = ReportMeta(
+        ReportKind.INTERNAL,
+        "Interní analytická zpráva",
+        "Fiktivní data",
+        "Fiktivní klient",
+        "Fiktivní studie",
+        "STU-1",
+        date(2026, 10, 18),
+        1,
+        METHOD_STATUS_PENDING,
+        classification=Classification.INTERNAL,
+    )
+    ledger = EvidenceLedger.from_claims([], surface=ClaimSurface.INTERNAL)
+    section = Section("Literatura", (Paragraph(text("Fiktivní rešerše.")),), id="ch-literature")
+    return ReportDocument(meta, (section,), ledger)
+
+
 def _rendered() -> bytes:
     """A real report with literature as the renderer lays it out, rendered once."""
     if not _RENDERED:
-        meta = ReportMeta(
-            ReportKind.INTERNAL,
-            "Interní analytická zpráva",
-            "Fiktivní data",
-            "Fiktivní klient",
-            "Fiktivní studie",
-            "STU-1",
-            date(2026, 10, 18),
-            1,
-            METHOD_STATUS_PENDING,
-            classification=Classification.INTERNAL,
-        )
-        ledger = EvidenceLedger.from_claims([], surface=ClaimSurface.INTERNAL)
-        section = Section("Literatura", (Paragraph(text("Fiktivní rešerše.")),))
-        _RENDERED.append(DocxRenderer().render(ReportDocument(meta, (section,), ledger)))
+        _RENDERED.append(DocxRenderer().render(_document()))
     return _RENDERED[0]
 
 
@@ -171,6 +177,43 @@ def test_the_status_names_the_prepared_draft_and_its_pdf_and_composes_nothing(
     assert body["approval_renders_pdf"] is False
     other = researcher.get(url, params={"deep_research_run_id": "RUN-abcabc"})
     assert other.json()["state"] == "NOT_PREPARED" and other.json()["pdf"] is None
+    assert _jobs(app) == before
+
+
+def test_the_document_is_the_prepared_drafts_and_says_when_none_was_stored(
+    app: FastAPI, researcher: TestClient, world: Any
+) -> None:
+    """The pane reads the variant's document beside the DOCX it would approve (RPT3a): before it
+    is prepared, before its document was stored, and once it is, all by name; another client's
+    study finds nothing. Composes nothing and makes no job."""
+    run_id, artifact_id = _prepared(app, researcher, world)
+    url = f"{_study(world)}/research/runs/{run_id}/report/context/document"
+    params = {"deep_research_run_id": REVIEW}
+    before = _jobs(app)
+    unstored = researcher.get(url, params=params)
+    assert unstored.status_code == 409 and unstored.json()["code"] == "report_document_not_stored"
+    other = researcher.get(url, params={"deep_research_run_id": "RUN-abcabc"})
+    assert other.status_code == 409 and other.json()["code"] == "context_report_not_prepared"
+    with create_session_factory(app.state.engine)() as session:
+        scope = _scope(session, world)
+        repo = research_artifacts(session, scope, app.state.artifact_store)
+        _store_document(repo, run_id, REVIEW, repo.get(artifact_id), _document(), "")
+        session.commit()
+    read = researcher.get(url, params=params)
+    assert read.status_code == 200, read.text
+    body = read.json()
+    assert body["report_artifact_id"] == artifact_id and body["run_id"] == run_id
+    assert body["review_state"] == "DRAFT_UNAPPROVED" and body["approval"] is None
+    assert [section["id"] for section in body["document"]["sections"]] == ["ch-literature"]
+    # A newer draft of the same pair has no document of its own yet: never the older one's.
+    _store_draft(app, world, run_id, b"PK newer draft", CONTEXT_REPORT_CONTRACT)
+    newer = researcher.get(url, params=params)
+    assert newer.status_code == 409 and newer.json()["code"] == "report_document_not_stored"
+    foreign = researcher.get(
+        f"{_study(world, 'other_client')}/research/runs/{run_id}/report/context/document",
+        params=params,
+    )
+    assert foreign.status_code == 404
     assert _jobs(app) == before
 
 
