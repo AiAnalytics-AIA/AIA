@@ -2446,6 +2446,7 @@ export const cs = {
       failedTitle: "AI krok se nedokončil",
       requestFailedTitle: "Požadavek se nepodařilo uložit",
       next: "Další · kontrola",
+      nextStage: "Další · {stage}",
       // Studio v3 (PersonaStep).
       asideLabel: "Výběr dimenzí a vzorek",
       chosenTitle: "Vybrané dimenze",
