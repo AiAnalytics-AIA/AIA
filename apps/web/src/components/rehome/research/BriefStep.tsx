@@ -18,10 +18,10 @@ import { workspace } from "@/lib/api";
 import { saveBlob } from "@/lib/download";
 import { fileProblem, uploadProblem } from "@/research/brief-upload";
 import { type BriefMaterials, classLabel, classOf } from "@/lib/material-class";
-import { nameKey } from "@/lib/name-input";
 import { briefElementId, contextField, materialAia } from "@/lib/artifacts/brief";
 import { aiaId } from "@/lib/workbench-artifacts";
 import { OBJECTIVE_MAX, addObjective, objectivesEditable, objectivesOf, removeObjective, restoreObjective, setObjective } from "@/research/brief-objectives";
+import { itemProblem, narrativeOf } from "@/research/plan-narrative";
 import { InlineCreateRow } from "../../ui/InlineCreateRow";
 import { InlineText } from "../../ui/InlineText";
 import { UndoToast, useUndo } from "../../ui/UndoToast";
@@ -283,6 +283,9 @@ function Objectives({ undo }: { undo: Undo }) {
   const design = { project: state.project, analysis: state.analysis };
   const items = objectivesOf(design);
   const editable = objectivesEditable(design);
+  // Návrh's rule and words for the same list (plan-narrative itemProblem), read from the copy as it
+  // is now, not as it was rendered; index null for a new item.
+  const repeat = (text: string, index: number | null) => itemProblem(narrativeOf(store.get()), "objectives", text, index);
   const remove = (index: number) => {
     const { removed } = removeObjective(store.get(), index);
     if (removed === null) return;
@@ -304,7 +307,7 @@ function Objectives({ undo }: { undo: Undo }) {
                 multiline
                 value={o.text}
                 label={tv("research.brief.objectiveLabel", { n: i + 1 })}
-                rules={{ maxLength: OBJECTIVE_MAX }}
+                rules={{ maxLength: OBJECTIVE_MAX, validate: (v) => repeat(v, i) }}
                 onCommit={(text) => store.update((d) => setObjective(d, i, text), { reason: "brief_objective" })}
               />
               <Button small variant="quiet" aria-label={tv("research.brief.objectiveRemoveAria", { n: i + 1 })} onClick={() => remove(i)}>
@@ -324,9 +327,12 @@ function Objectives({ undo }: { undo: Undo }) {
           label={t("research.brief.objectiveAdd")}
           emptyWords={t("research.brief.objectiveEmpty")}
           maxLength={OBJECTIVE_MAX}
-          // Návrh's rule and words for the same list (plan-narrative itemProblem), not a name's.
-          validate={(v) => (items.some((o) => nameKey(o.text) === nameKey(v)) ? t("research.plan.narrative.duplicate") : null)}
-          onCreate={(text) => store.update((d) => addObjective(d, text), { reason: "brief_objective_add" })}
+          validate={(v) => repeat(v, null)}
+          onCreate={(text) => {
+            const problem = repeat(text, null);
+            if (problem) return problem;
+            store.update((d) => addObjective(d, text), { reason: "brief_objective_add" });
+          }}
         />
       ) : null}
     </StepSection>

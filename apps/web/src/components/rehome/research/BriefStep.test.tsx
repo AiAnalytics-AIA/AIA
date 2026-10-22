@@ -330,6 +330,24 @@ describe("Zadání", () => {
     const row = section.getByRole("textbox", { name: "Přidat cíl" });
     fireEvent.change(row, { target: { value: "změřit  ZÁJEM" } });
     expect(document.getElementById(row.getAttribute("aria-describedby") ?? "")?.textContent).toBe("Tato položka už v seznamu je.");
+    // Enter on the refused repeat saves nothing.
+    fireEvent.keyDown(row, { key: "Enter" });
+    await new Promise((r) => setTimeout(r, 2100));
+    expect(ws.saves).toHaveLength(0);
+    fireEvent.keyDown(row, { key: "Escape" });
+  });
+
+  it("refuses rewording an objective into another one, in the same words", async () => {
+    unitStub({ title: "Studie", goal: "Chceme zjistit, jak lidé vnímají značku.", research_plan: { objectives: ["Změřit zájem", "Ověřit cenu"] } });
+    render(<ResearchScreen step="brief" frame={TEST_FRAME} />);
+    const section = within(await screen.findByRole("region", { name: "Cíle" }));
+    fireEvent.click(section.getByRole("button", { name: /^Upravit: Cíl 2/ }));
+    const field = section.getByRole("textbox", { name: "Cíl 2" });
+    fireEvent.change(field, { target: { value: "změřit zájem" } });
+    fireEvent.keyDown(field, { key: "Enter", ctrlKey: true });
+    expect(await section.findByText("Tato položka už v seznamu je.")).toBeTruthy();
+    await new Promise((r) => setTimeout(r, 2100));
+    expect(ws.saves).toHaveLength(0);
   });
 
   it("says an empty new objective as a goal to write, not a name (audit)", async () => {
