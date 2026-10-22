@@ -5,7 +5,7 @@ chunks:
   - "[x] 2. Nový klient: an empty name is said, not silently dropped"
   - "[x] 3. Znalosti at 390 px: the library table's clipped columns"
   - "[ ] 4. The API refuses a client or study name of spaces"
-  - "[ ] 5. A run's methodology receipt reports its readiness pin"
+  - "[x] 5. A run's methodology receipt reports its readiness pin"
   - "[x] 6. A slow rename's answer leaves focus where the person went"
   - "[x] 7. InlineText's refocus after Enter waits for nothing the person moved"
 ---
@@ -84,7 +84,7 @@ sheet), Projektová paměť, Společenská inteligence, Nastavení (eight tabs, 
 5. Smallest fix: strip before the length check (a validator, or `StringConstraints(strip_whitespace=True)`).
 6. Test: an API test that posts a name of spaces and expects 422.
 
-### F5. A run's methodology receipt does not report its readiness pin
+### F5. A run's methodology receipt did not report its readiness pin (fixed on this branch)
 
 1. Claim: a start pins the readiness limits in force as `readiness` / `readiness_methodology`, but
    `run_methods` reports only the Sociomap, support, aggregation and response modules.
@@ -95,8 +95,13 @@ sheet), Projektová paměť, Společenská inteligence, Nastavení (eight tabs, 
    the methodology journey checks it only as in force (F1).
 5. Smallest fix: add `readiness` to `run_methods`' pinned and stored keys, and to
    `ResearchRunMethodology`.
-6. Test: a `pins.py` test over metadata with `readiness_methodology`, and the journey reading
-   `latest.methodology.readiness`.
+6. Test: `test_run_methods.py` (four tests fail on develop's `pins.py`), `test_research_api.py` ›
+   "a run names the methods it computed under", `test_methodology_run_pins.py` › "a retry keeps the
+   stored versions its pins came from" (readiness among them), and `methodology_journey.mjs` reading
+   `latest.methodology.readiness` (its skip removed; `make ui-methodology` reports
+   `aia-readiness-1+e1`). The report's method table and Results are
+   unchanged: they list what computed the numbers, and readiness decides only whether a run may
+   start.
 
 ### F6. A slow rename's answer took focus from where the person went (fixed by #735)
 

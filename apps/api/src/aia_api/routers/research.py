@@ -437,6 +437,8 @@ class ResearchRunMethodology(BaseModel):
     aggregation: ResearchRunMethod
     #: How AI respondents' answers were drawn (plan ``methodology-tab`` R1d).
     response: ResearchRunMethod
+    #: The readiness limits the run was started under (plan ``methodology-tab`` V1a).
+    readiness: ResearchRunMethod
     #: ``True``: the response process is not 18.6.6's; ``None``: its pin cannot be read.
     response_deviates: bool | None
 
