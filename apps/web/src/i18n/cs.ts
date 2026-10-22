@@ -2136,7 +2136,14 @@ export const cs = {
       addScale: "Škála 1–10",
       addOpen: "Otevřená odpověď",
       addSet: "Sledovaná sada",
-      quickHelp: "Systém vytvoří správný typ otázky a vy jen upravíte text/odpovědi.",
+      quickHelp: "Vyberte typ, napište znění a Enter: otázka přibude do prvního bloku a otevře se další řádek. Odpovědi upravíte na kartě otázky.",
+      // Inline adds (input-interactions chunk 3, I5): no prompt, the row where the item appears.
+      inlineAdd: {
+        kind: "Typ nové otázky",
+        question: "Nová otázka",
+        setPlaceholder: "Co porovnáváme? Např. média, značky",
+        empty: "Napište znění.",
+      },
       emptyTitle: "Dotazník je prázdný",
       emptyText: "Začněte jedním z tlačítek „Rychle přidat“.",
       addBlock: "nový blok",
@@ -2181,7 +2188,7 @@ export const cs = {
         invalidStored: "Uložený rozsah {raw} nelze použít: škála má dvě celá čísla od {min} do {max}, od menšího k většímu. Vyberte rozsah.",
         wide: "{range} ({n} bodů)",
       },
-      removeQuestion: "Odebrat otázku {id}",
+      removeQuestion: "Odebrat otázku {number}",
       // A delete taken back with Vrátit (input-interactions chunk 3, I6).
       undo: {
         questionRemoved: "Otázka „{name}“ odebrána",
@@ -2207,7 +2214,8 @@ export const cs = {
       conceptTest: "Porovnat položky jako koncepty (A/B test)",
       conceptTestHelp: "Sada se vyhodnotí jako test konceptů místo poziční mapy; výzkumnou otázku zodpovídanou A/B testem lze zodpovědět jen takovou sadou.",
       priceBands: "Cenová pásma pro test konceptu",
-      priceBandsPlaceholder: "např. 199 Kč, 249 Kč, 299 Kč",
+      priceBandsPlaceholder: "Cena, např. 199 Kč, a Enter",
+      priceBandAdd: "Přidat cenu",
       priceBandsHelp: "Ceny musí zadat uživatel; AI si je nesmí vymyslet.",
       outputLabel: "Výstup:",
       outputText: "společný dataset + samostatná analýza této sady + mapa, pokud projde validačním gate.",

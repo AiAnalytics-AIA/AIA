@@ -318,14 +318,19 @@ export function addTrackedSet(
   if (!typ || !raw) return null;
   const objs = raw.split(",").map((x) => x.trim()).filter(Boolean);
   if (objs.length < 4 || objs.length > 15) return { error: SET_SIZE };
-  const set: Section = {
+  return { project: withSections(p, [...sections(p), trackedSet(typ, objs, ids)]) };
+}
+
+/** The tracked set addTrackedSet makes: the classic's defaults, its family and objects. */
+function trackedSet(typ: string, objects: string[], ids: IdSource): Section {
+  return {
     id: secId(ids),
     type: "object_battery",
     title: `Sledovaná sada — ${typ}`,
     purpose: "",
     object_family: typ,
     object_type: typ,
-    objects: objs,
+    objects,
     object_question: "Jak hodnotíte {object}?",
     scale: [1, 10],
     scale_labels: ["vůbec", "velmi"],
@@ -334,7 +339,45 @@ export function addTrackedSet(
     visualize: true,
     metadata: { tracked_set: true },
   };
-  return { project: withSections(p, [...sections(p), set]) };
+}
+
+/**
+ * A new block named as the person typed it in its row (input-interactions I5, audit A21), instead
+ * of "Nový blok" to be renamed afterwards. Null for an empty name.
+ */
+export function addNamedSection(p: ResearchProject, title: string, ids: IdSource = SYSTEM): { project: ResearchProject; sectionId: string } | null {
+  const name = title.trim();
+  if (!name) return null;
+  const id = secId(ids);
+  return { project: withSections(p, [...sections(p), { id, type: "questions", title: name, purpose: "", questions: [] }]), sectionId: id };
+}
+
+/**
+ * A question with its wording typed in the block's own row (audit A5): a single choice with the
+ * options Ano / Ne, as addQuestion and the quick add give it. Null for an empty wording or a
+ * section that is not a question block.
+ */
+export function addQuestionTo(p: ResearchProject, si: number, text: string, ids: IdSource = SYSTEM): { project: ResearchProject; questionId: string } | null {
+  const wording = text.trim();
+  const xs = sections(p);
+  if (!wording || xs[si]?.type !== "questions") return null;
+  const id = qId(ids);
+  const project = edit(p, (ys) => {
+    ys[si].questions = [...(ys[si].questions || []), { id, text: wording, typ: "vyber", kategorie: ["Ano", "Ne"], povolit_nevim: false }];
+  });
+  return { project, questionId: id };
+}
+
+/**
+ * A tracked set named in its row (audit A8): the same set addTrackedSet makes, with no objects yet.
+ * Its 4–15 objects are then added on its card, the count beside them; readiness holds a set
+ * outside 4–15, as it holds one made any other way. Null for an empty name.
+ */
+export function addNamedTrackedSet(p: ResearchProject, typ: string, ids: IdSource = SYSTEM): { project: ResearchProject; sectionId: string } | null {
+  const family = typ.trim();
+  if (!family) return null;
+  const set = trackedSet(family, [], ids);
+  return { project: withSections(p, [...sections(p), set]), sectionId: String(set.id) };
 }
 
 export const CONFIRM_REMOVE_SECTION = "Smazat celý blok?";
@@ -409,6 +452,33 @@ export function setObjectLabel(p: ResearchProject, si: number, i: 0 | 1, v: stri
     const s = xs[si];
     s.scale_labels = [...(s.scale_labels || ["vůbec", "velmi"])];
     s.scale_labels[i] = v;
+  });
+}
+
+/** A concept-test set's price bands, as stored (metadata.price_bands): the person's own words. */
+export function priceBandsOf(sec: Section): string[] {
+  const raw = sec.metadata?.price_bands;
+  return Array.isArray(raw) ? raw.filter((x): x is string => typeof x === "string" && x.trim() !== "").map((x) => x.trim()) : [];
+}
+
+/**
+ * Why a typed price is not one (input-interactions I9, audit A16), or null: a positive amount with
+ * at most two decimals, a space or a non-breaking space between thousands, a decimal comma or dot,
+ * and Kč (or CZK, ",-") after it or nothing. Kept as typed when it is one: no prices are invented
+ * or rewritten here, only refused at the field.
+ */
+export function priceProblem(raw: string): string | null {
+  const text = raw.trim().replace(/\s*(Kč|Kc|CZK|,-)$/i, "");
+  if (!/^\d{1,3}(?:[ \u00a0]?\d{3})*(?:[.,]\d{1,2})?$/.test(text)) return PRICE_REFUSED;
+  return Number(text.replace(/[ \u00a0]/g, "").replace(",", ".")) > 0 ? null : PRICE_REFUSED;
+}
+export const PRICE_REFUSED = "Cena musí být kladná částka, např. 199 Kč nebo 1 299,90 Kč.";
+
+/** The price bands as chips give them, one string each (the setter the screen uses). */
+export function setPriceBandList(p: ResearchProject, si: number, bands: readonly string[]): ResearchProject {
+  return edit(p, (xs) => {
+    const s = xs[si];
+    s.metadata = { ...(s.metadata || {}), price_bands: bands.map((x) => x.trim()).filter(Boolean) };
   });
 }
 

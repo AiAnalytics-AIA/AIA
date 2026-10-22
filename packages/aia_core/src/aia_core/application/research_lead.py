@@ -60,6 +60,7 @@ from ..domain.research_lead import (
     notes_layer,
     readiness_layer,
     stale_files,
+    target_refusal,
 )
 from ..domain.research_template import research_template
 from ..domain.scope import OrganizationContext, Permission, Study, StudyContext
@@ -603,6 +604,9 @@ class ResearchLead:
             # Revision: the turn is frozen from that revision, and names it, so an automatic
             # accept of its text edits is not refused as written from an older copy.
             content, analysis, workspace_revision = self._working_content()
+        # Against the copy this turn is frozen with, read once: a focus valid on an earlier read
+        # could name a filter another tab removed before the freeze (Codex on #624).
+        self._focus_shown(focus_, content)
         stored: list[LeadTurn] = []
         person: LeadTurn | None = None
         if kind == "message":
@@ -692,7 +696,8 @@ class ResearchLead:
         self.scope.require(Permission.RUN_WORKFLOW)
         self.scope.require_open_study()
         message, focus_ = self._checked(kind="message", stage=stage, text=text, focus=focus)
-        _content, _analysis, workspace_revision = self._working_content()
+        content, _analysis, workspace_revision = self._working_content()
+        self._focus_shown(focus_, content)
         turn = self._turns().append(
             actor="person",
             kind="message",
@@ -1060,6 +1065,20 @@ class ResearchLead:
                     reason="invalid_lead_turn",
                 )
         return message, focus_
+
+    @staticmethod
+    def _focus_shown(focus: Mapping[str, str] | None, content: Mapping[str, Any]) -> None:
+        """A person's focus names what ``content``, the working copy the turn is stored with,
+        shows (artifact-audience AUD1): an audience filter it does not store is refused by
+        name, never sent to the model."""
+        if focus is None:
+            return
+        reason = target_refusal(focus["id"], content)
+        if reason is not None:
+            raise LeadRejected(
+                f"the focus {focus['id']!r} names nothing the working copy shows ({reason})",
+                reason="invalid_lead_turn",
+            )
 
     def _working_content(self) -> tuple[dict[str, Any], dict[str, Any] | None, int | None]:
         working = StudyWorkspaceRepository(self.session).content(self.scope)

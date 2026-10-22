@@ -637,6 +637,30 @@ class WorkingReadinessResponse(_ReadinessBody):
     working_revision: int
 
 
+class StageImpactResponse(BaseModel):
+    """One pipeline stage and what the working copy means for it."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    stage: str
+    #: CURRENT, CHANGED (its own inputs differ) or RECHECK (an earlier change reaches it).
+    impact: Literal["CURRENT", "CHANGED", "RECHECK"]
+
+
+class WorkingImpactResponse(BaseModel):
+    """A working revision beside a Design Revision (working-copy-edit-ops WCE7)."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    working_revision: int
+    design_revision_id: str
+    design_revision: int
+    #: The top-level fields of the design that differ.
+    changed: list[str]
+    #: Every pipeline stage, in pipeline order.
+    stages: list[StageImpactResponse]
+
+
 class PersonaSourceOption(BaseModel):
     """One source of a run's AI respondents, and whether this deployment offers it (5a)."""
 
@@ -1238,6 +1262,40 @@ def working_readiness(
     )
 
 
+@router.get(
+    "/research/impact",
+    response_model=WorkingImpactResponse,
+    summary="What a working revision changes against a Design Revision, stage by stage",
+)
+def working_impact(
+    scope: StudyScopeDep,
+    session: SessionDep,
+    working_revision: Annotated[int, Query(ge=1)],
+    design_revision_id: Annotated[
+        str | None, Query(max_length=64, pattern=r"^REV-[0-9a-f]{1,32}$")
+    ] = None,
+) -> WorkingImpactResponse:
+    """Each pipeline stage CURRENT, CHANGED or RECHECK going from the Design Revision (the newest
+    when none is named; a run's own to ask about that run) to the working revision, and the
+    top-level fields that differ (working-copy-edit-ops WCE7). Reads both; writes nothing. A
+    working revision the Study never saved is 404 ``working_revision``; a Design Revision not of
+    this Study, or a Study with none, 404 ``design_revision``."""
+    runs = ResearchRuns(session, scope)
+    try:
+        found = runs.impact(working_revision, design_revision_id)
+    except WorkingRevisionNotFound as exc:
+        raise _not_found("working_revision") from exc
+    except DesignRevisionNotFound as exc:
+        raise _not_found("design_revision") from exc
+    return WorkingImpactResponse(
+        working_revision=found.working_revision,
+        design_revision_id=found.design_revision_id,
+        design_revision=found.design_revision,
+        changed=list(found.changed),
+        stages=[StageImpactResponse(stage=k, impact=v.value) for k, v in found.stages.items()],
+    )
+
+
 def _readiness_body(
     request: Request, runs: ResearchRuns, outlook: RunOutlook, chosen: PersonaSource
 ) -> dict[str, Any]:
@@ -1356,6 +1414,7 @@ def start_run(
             design_revision_id=body.design_revision_id,
             fieldwork_source=_fieldwork_source(request),
             analysis_enabled=request.app.state.settings.ai_analysis_enabled,
+            external_context=request.app.state.settings.ai_analysis_external_context,
             sociomapping_enabled=request.app.state.settings.sociomapping_experimental_enabled,
             reservations=_reservations(request),
             confirm_cost_usd=body.confirm_cost_usd,
@@ -1402,6 +1461,7 @@ def run_start_settings(request: Request, population: AudiencePopulation) -> RunS
     return RunStartSettings(
         fieldwork_source=_fieldwork_source(request),
         analysis_enabled=settings.ai_analysis_enabled,
+        external_context=settings.ai_analysis_external_context,
         sociomapping_enabled=settings.sociomapping_experimental_enabled,
         reservations=_reservations(request),
         persona_source=_persona_source(request),

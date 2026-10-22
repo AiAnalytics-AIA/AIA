@@ -3,6 +3,7 @@
  * Dimenze in a browser (artifact-dimensions DIM3, the start of DIM6): the sample size is one
  * stepper inside data-aia="sample:n", bounded by the server's limits; a press saves n plus the
  * step, a value outside the limits is refused at the field and nothing is saved.
+ * The client's own dimensions (DIM4) are read and lead to "Populace běhu".
  * At 1440, 1100, 768 and 390 px, no page overflow. Zero paid starts: the only writes are saves of
  * the working copy and of the stage the person is on. The fixture's n is put back at the end.
  *
@@ -73,6 +74,11 @@ try {
     await page.screenshot({ path: join(out, `dimensions-${width}.png`), fullPage: true });
     check(`${width}: one stepper for n, no overflow`);
   }
+
+  const own = page.locator("section", { has: page.getByRole("heading", { name: "Vlastní dimenze klienta" }) });
+  await own.getByRole("link", { name: /Populace běhu/ }).waitFor();
+  assert.equal(await own.getByRole("link", { name: /Populace běhu/ }).getAttribute("href"), `/app/clients/${client}/research/${study}/run`);
+  check("Vlastní dimenze klienta: read, with the way to Populace běhu");
 
   const before = Number((await n().getAttribute("aria-valuenow")) ?? NaN);
   const max = Number(await n().getAttribute("aria-valuemax"));

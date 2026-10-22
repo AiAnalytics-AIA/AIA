@@ -121,6 +121,11 @@ V2: `DimensionsArt` (`SampleStages.tsx:206-230`).
   readiness limits in steps of 50, the recommendation stated beside it and one button to apply it; the
   slider and the 400/800/1200 presets are gone (audit B1). A value outside the limits is refused at the
   field and not saved. This is also the n half of `input-interactions#5`, which stays that plan's to tick.
+- DIM4, read half (#667): "Vlastní dimenze klienta" on Dimenze (`OwnDimensions.tsx`,
+  `lib/own-dimensions.ts`) lists the study's materializations, each with its state, its reason and the
+  target beside what was achieved (unknown never met), pointable as `own_dimension:<run id>`, and links
+  to "Populace běhu". The list route answers `kind`. Still open in DIM4: the request, which waits on
+  `client-knowledge-lifecycle#K5` (how a person writes a definition) and MVPQ-03 (descriptors).
 
 ## Findings
 

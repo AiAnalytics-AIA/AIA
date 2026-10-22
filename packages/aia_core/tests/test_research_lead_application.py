@@ -172,6 +172,31 @@ def test_a_message_stores_the_persons_turn_and_queues_the_leads(scoped: Any, ses
         _message(_lead(scope, session), "A ještě?")
 
 
+def test_a_focus_on_an_audience_filter_the_copy_does_not_store_is_refused(
+    scoped: Any, session: Any
+) -> None:
+    """artifact-audience AUD1: refused by name before anything is stored or queued."""
+    scope = scoped.scope()
+    _hatch(scoped, session)
+    _save(scope, session, {**CONTENT, "audience": {"filters": {"kraj": ["Praha"]}}})
+    lead = _lead(scope, session)
+    with pytest.raises(LeadRejected, match="audience_filter_not_stored"):
+        lead.post(
+            kind="message",
+            stage="audience",
+            text="Proč tenhle filtr?",
+            focus={"id": "audience:filter:vzdelani", "label": "Filtr: vzdelani"},
+        )
+    assert lead.state()["turns"] == []
+    person, _lead_turn = lead.post(
+        kind="message",
+        stage="audience",
+        text="Proč tenhle filtr?",
+        focus={"id": "audience:filter:kraj", "label": "Filtr: kraj"},
+    )
+    assert person["focus"]["id"] == "audience:filter:kraj"
+
+
 def test_a_greeting_stores_no_persons_turn_and_is_said_once_in_eight_hours(
     scoped: Any, session: Any
 ) -> None:

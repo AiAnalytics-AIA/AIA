@@ -8,7 +8,8 @@
  *   node tools/ui_workbench/lead_cards_journey.mjs [--facade http://127.0.0.1:8780] [--out DIR]
  * It checks that no stage of the workbench offers an AI start of its own (no AI pomoc, no
  * "Navrhnout"), approves the scripted Lead's design job and sees it as a card in the conversation
- * with no dialog, then has the Lead prepare a research run, starts it from the card through
+ * with no dialog, starts a job by a typed command from the person's own card (LO5), then has the
+ * Lead prepare a research run, starts it from the card through
  * Spuštění's route, and follows its card: the orb while a step runs, Průběh and Výsledky once done.
  */
 import assert from "node:assert/strict";
@@ -125,8 +126,29 @@ try {
   await cardShot(worker, "1440-worker-card");
   await shot("1440-worker-card-page");
 
-  // The research run: prepared by the Lead, started from its card through Spuštění's route.
-  await say("Spusť výzkum.");
+  // A typed start (lead-orchestration LO5): the whole message is a command the server matched, so
+  // no Lead turn answers it; the person's own card follows their message, and its approval starts
+  // the job through …/request (ledger chat_start).
+  const typedCards = await page.locator(".conv [data-typed]").count();
+  const composer = await composerReady();
+  await composer.fill("Zkontroluj návrh");
+  await composer.press("Enter");
+  await page.waitForFunction((n) => document.querySelectorAll(".conv [data-typed]").length > n, typedCards, { timeout: 30000 });
+  const typed = page.locator(".conv [data-typed]").last();
+  assert.match(await typed.innerText(), /Váš příkaz/, "the card says it is the person's own command");
+  const jobsBefore = await page.locator('.conv [data-card="worker"]').count();
+  const [typedStart] = await Promise.all([
+    page.waitForResponse((r) => /\/lead\/turns\/[^/]+\/request$/.test(new URL(r.url()).pathname) && r.request().method() === "POST", { timeout: 30000 }),
+    typed.getByRole("button", { name: "Spustit úlohu" }).click(),
+  ]);
+  assert.ok(typedStart.ok(), `the typed start answered ${typedStart.status()}`);
+  await page.waitForFunction((n) => document.querySelectorAll('.conv [data-card="worker"]').length > n, jobsBefore, { timeout: 30000 });
+  await cardShot(typed, "1440-typed-start");
+  check("a typed start shows the person's own card, and its approval starts the job through …/request");
+
+  // The research run: prepared by the Lead, started from its card through Spuštění's route. Not the
+  // bare command: "Prosím, spusť výzkum." is a message, so the Lead answers it.
+  await say("Prosím, spusť výzkum.");
   const request = page.locator('.conv [data-card="run-request"]').last();
   await request.getByRole("button", { name: "Zkontrolovat spuštění" }).click();
   const start = request.locator("[data-run-request-start]");

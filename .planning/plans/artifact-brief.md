@@ -199,12 +199,45 @@ Every item is an `Item` (`src/components/ui.tsx:52`): edit in place, remove, mov
 - Depends on CHN1 and `research-lead-workbench#15`.
 
 **BRF6. Journey.**
+- *Landed in part* (`workspace_journey.mjs`, `lead_journey.mjs`): an objective added in the list,
+  read back after a reload as one `objective:<id>` target and reworded in place; "@" then a tap on
+  an objective sets the chip at 1440 (split), 768 (drawer) and 390 (sheet), no overflow, nothing
+  paid. Still to come: the scripted Lead focusing `objective:<id>` with the drawer closing to peek
+  (asked of the coordinator: `scripted_lead_output` focuses questions or `brief:title` only).
 - Steps in `tools/ui_workbench/workbench_journey.mjs`, at 1440, 1100, 768 and 390 px:
   - an objective is edited in place and read back after a reload;
   - the scripted Lead focuses `objective:<id>`, and the drawer closes to `peek` at 768 and 390 px;
   - "@" then a click sets the Vidí chip.
 - The usage ledger's paid rows are unchanged.
 - 768 and 390 px depend on `research-lead-workbench#26b`-`#26d`.
+
+## 7a. Findings
+
+- F-BRF-1 (UX, asked of the coordinator 2026-10-21, #647): a picked objective's chip reads its raw id
+  ("Cíl obj_6393c6bada"), not its words.
+  - Anchor: `apps/web/src/lib/lead.ts:516 @ b1a73536`. `targetOfElement` appends only a heading or
+    label inside a `data-aia` element, and an item row has none.
+  - Repro: `node tools/ui_workbench/lead_journey.mjs`, then `tmp/ui-workbench/lead-journey/390-brief-picked.png`.
+  - Consequence: the person sees an id where the objective's words belong.
+  - Fix: read the row's InlineText value. Not the row's whole text, which carries the number, the
+    screen-reader "Upravit: Cíl N" and the "×".
+  - Test: a `lead.test.ts` case over an objective row.
+- F-BRF-2 (journey flake, reported to the coordinator 2026-10-22): the drawer step's wait for the
+  composer's focus times out intermittently at 1099 px.
+  - Anchor: `tools/ui_workbench/lead_journey.mjs:198 @ b1a73536`, the wait
+    `waitForFunction(() => document.activeElement?.id === "composer", …, { timeout: 10000 })` after the
+    launcher opens the dialog.
+  - Repro: `python tools/ui_workbench/workbench.py up --fresh` (with `AIA_WEB_RESEARCH_WORKBENCH=true`),
+    `make ui-fixtures`, `node tools/ui_workbench/lead_journey.mjs`. It failed in 2 of 3 fresh runs with
+    "page.waitForFunction: Timeout 10000ms exceeded", before any Zadání step. A fourth fresh run
+    passed that wait but failed the next one at 1099 px, at `lead_journey.mjs:220 @ be85b470`: "Tab stays
+    inside the open conversation", with focus on the page's body.
+  - Consequence: the journey fails on a sound build, so a real regression after line 198 (the BRF6 step
+    included) goes unseen in that run.
+  - Fix (hypothesis, unmeasured): the dialog takes focus before the composer is enabled. Wait for the
+    composer to be enabled after the dialog opens, then for focus. Owner: the workbench journey's owner,
+    routed by the PM.
+  - Test: the journey passes 5 of 5 fresh runs at 1099 px.
 
 ## 8. Owner questions
 
@@ -214,4 +247,6 @@ None. Where assumptions are shown (B-6) and the absence of a decision list (B-2,
 
 - `mvp-master-plan.md` §3 and `mvp-execution-contracts.md`: register this plan and its chunks (see the
   PR body).
+- `open-items.md`: F-BRF-1, the objective chip reads its raw id (§ 7a).
+- `open-items.md`: F-BRF-2, `lead_journey.mjs:198` composer-focus timeout at 1099 px (§ 7a).
 - `CLAUDE.md` § 2, when BRF1 lands: `apps/web/src/lib/artifacts/` (one contract per artifact).
