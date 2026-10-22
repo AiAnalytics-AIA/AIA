@@ -1503,6 +1503,7 @@ export const cs = {
         members: {
           noName: "Bez uvedeného jména", roleHelp: "Výzkumník pracuje s klienty a studiemi. Vlastník a správce navíc spravují členy a systémová nastavení.",
           editHelp: "Změna role mění oprávnění tohoto člena v celé organizaci. Přístup k jednotlivým studiím se zde nenastavuje.",
+          ownerOnly: "Roli vlastníka mění jen vlastník.",
           title: "Členové organizace",
           name: "Jméno",
           role: "Role",

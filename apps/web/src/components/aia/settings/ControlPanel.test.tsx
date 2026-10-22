@@ -191,6 +191,31 @@ describe("the settings control panel", () => {
     expect(called("POST", "/api/v1/clients/CLI-a/grants")).toHaveLength(0);
   });
 
+  it("offers an administrator no OWNER to grant and no OWNER row's role to change", async () => {
+    // Only an OWNER grants or removes OWNER (the API refuses it, owner_only): an ADMIN is not
+    // offered what the server refuses.
+    api({
+      "GET /api/v1/settings": () => ({ ...DOC(true), your_role: "ADMIN" }),
+      "GET /api/v1/members": () => [
+        { user_id: "USR-1", email: "owner@example.test", display_name: "", is_active: true, organization_role: "OWNER" },
+        { user_id: "USR-2", email: "admin@example.test", display_name: "", is_active: true, organization_role: "ADMIN" },
+      ],
+    });
+    render(<ControlPanel />);
+    const picker = (await screen.findByRole("combobox", { name: "Role", hidden: true })) as HTMLSelectElement;
+    expect([...picker.options].map((o) => o.textContent)).toEqual(["správce", "výzkumník"]);
+    const ownerRow = document.querySelector('[data-member="USR-1"]') as HTMLElement;
+    fireEvent.click(within(ownerRow).getByRole("button", { name: "Upravit", hidden: true }));
+    const edit = document.querySelector('[data-member-edit="USR-1"]') as HTMLElement;
+    expect(within(edit).queryByRole("combobox", { hidden: true })).toBeNull();
+    expect(within(edit).getByText("Roli vlastníka mění jen vlastník.")).toBeTruthy();
+    const adminRow = document.querySelector('[data-member="USR-2"]') as HTMLElement;
+    fireEvent.click(within(adminRow).getByRole("button", { name: "Upravit", hidden: true }));
+    const adminEdit = document.querySelector('[data-member-edit="USR-2"]') as HTMLElement;
+    const own = within(adminEdit).getByRole("combobox", { hidden: true }) as HTMLSelectElement;
+    expect([...own.options].map((o) => o.textContent)).toEqual(["správce", "výzkumník"]);
+  });
+
   it("still renders a group the page has no panel for", async () => {
     api();
     render(<ControlPanel />);
