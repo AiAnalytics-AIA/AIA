@@ -178,6 +178,11 @@ Every item is an `Item` (`src/components/ui.tsx:52`): edit in place, remove, mov
   - Vitest: an unknown class prints "třída neznámá".
 - Depends on `client-data-in-analysis#8` for picked datasets.
 
+- *Landed, removal with undo* (audit A28): a file or link removed from Podklady goes at once,
+  with Vrátit for 8 s putting its record back in place (`research/brief.ts` restoreAttachment); the
+  stored file was never deleted, only its record. Still to come in BRF3: picked client sources
+  (client-data-in-analysis#8).
+
 **BRF4. The Lead on the Brief.**
 - `analyze_brief` is reachable only through a Lead card or a typed start (`lead-orchestration#LO5`).
   `BriefStep.tsx:135` is removed under `leadOwnsAiStarts` (`research-lead-workbench#26f`).

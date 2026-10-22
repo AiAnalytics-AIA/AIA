@@ -151,6 +151,35 @@ describe("Zadání", () => {
     expect(screen.queryByText("https://example.test/a")).toBeNull();
   });
 
+  it("keeps one undo offer for the stage: a later removal replaces the earlier one (Codex on #641)", async () => {
+    const analysis = { problem_summary: "S", objectives: ["Změřit zájem"], research_questions: [], hypotheses: [], tracked_sets: [] };
+    unitStub({ research_plan: { objectives: ["Změřit zájem"] }, briefing: { attachments: [{ kind: "url", url: "https://a.test", title: "A" }] } }, {}, analysis);
+    render(<ResearchScreen step="brief" frame={TEST_FRAME} />);
+    fireEvent.click(await screen.findByRole("button", { name: "Odebrat cíl 1" }));
+    fireEvent.click(screen.getByRole("button", { name: "Odebrat A" }));
+    // One offer, the newest: the objective's removal stands, the material's can be taken back.
+    expect(screen.getAllByRole("button", { name: "Vrátit" })).toHaveLength(1);
+    expect(screen.getByText("Podklad „A“ odebrán")).toBeTruthy();
+    expect(screen.queryByText(/^Cíl „/)).toBeNull();
+    fireEvent.click(screen.getByRole("button", { name: "Vrátit" }));
+    await waitFor(() => expect(screen.getByRole("button", { name: "Odebrat A" })).toBeTruthy());
+    expect(screen.queryByText("Změřit zájem")).toBeNull();
+  });
+
+  it("removes a material at once and puts it back in place with Vrátit (audit A28)", async () => {
+    unitStub({ briefing: { attachments: [{ kind: "url", url: "https://a.test", title: "A" }, { kind: "url", url: "https://b.test", title: "B" }] } });
+    render(<ResearchScreen step="brief" frame={TEST_FRAME} />);
+    fireEvent.click(await screen.findByRole("button", { name: "Odebrat A" }));
+    expect(screen.queryByRole("button", { name: "Odebrat A" })).toBeNull();
+    expect(screen.getByText("Podklad „A“ odebrán")).toBeTruthy();
+    fireEvent.click(screen.getByRole("button", { name: "Vrátit" }));
+    await waitFor(() => expect(screen.getByRole("button", { name: "Odebrat A" })).toBeTruthy());
+    // Back first, as it was, and saved so.
+    expect(screen.getAllByRole("button", { name: /^Odebrat / }).map((x) => x.getAttribute("aria-label"))).toEqual(["Odebrat A", "Odebrat B"]);
+    await waitFor(() => expect(ws.saves.at(-1)?.reason).toBe("brief_attachment_restore"));
+    expect((ws.saves.at(-1)!.content.briefing as { attachments: { url: string }[] }).attachments.map((x) => x.url)).toEqual(["https://a.test", "https://b.test"]);
+  });
+
   const record = (b: unknown, n = 1) => ({
     kind: "file",
     attachment_id: `ART-${n}a`,

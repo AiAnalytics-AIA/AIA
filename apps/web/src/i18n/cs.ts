@@ -1845,6 +1845,7 @@ export const cs = {
       objectiveAdd: "Přidat cíl",
       objectiveRemoveAria: "Odebrat cíl {n}",
       objectiveRemoved: "Cíl „{text}“ odebrán",
+      attachmentRemoved: "Podklad „{name}“ odebrán",
       dataClassAside: "třída dat určuje, kam smí",
       dataClassRule: "Třída podle pravidla {rule}; přísněji ji může zařadit jen operátor.",
       readyContext: "Kontext",
