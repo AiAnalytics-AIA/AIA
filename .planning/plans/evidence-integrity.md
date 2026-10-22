@@ -9,7 +9,7 @@ chunks:
   - "[ ] 6. Results serves admitted claims: an API over the evidence table with suppression decided server-side, so the screen no longer reads raw aggregates"
   - "[ ] 7. Wire the sealed-bundle external-context producer into module preparation and the Lead; preserve the existing prompt/fingerprint context field and context-not-evidence boundary"
   - "[ ] 9a. A module with no supported finding (MVPQ-04, W1): stored as a structured diagnostic that is not a finding, shown on Analysis and Results, with its resolution paths named"
-  - "[ ] 9b. The refusal (MVPQ-04, W3): report composition, approval and every export refuse while any of the eight modules is blocked or has no supported finding, until it is resolved; the diagnostic cannot satisfy the gate"
+  - "[x] 9b. The refusal (MVPQ-04, W3): report composition, approval and every export refuse while any of the eight modules is blocked or has no supported finding, until it is resolved; the diagnostic cannot satisfy the gate"
   - "[ ] 8a. A two-origin analysis input and its fingerprint, designed (W1) and reviewed with S3 before client-data-in-analysis 5"
   - "[ ] 8b. The two-origin input wired (W3): the production constructor supplies the client-reported table and the sealed-bundle context, and a changed context or origin changes the module's input fingerprint and payload"
   - "[ ] 10. The filtered base (W2, after run-qc-and-checkpoint RQC11): a conditional question aggregated over the respondents it was asked, its own effective n and support, the base stated on Results and in the report"
@@ -230,9 +230,9 @@ Analýza's "Povinná analýza" and the with-literature start read the same rule.
   again over the same data":
   the run's report step is refused naming the module, no report is stored and `complete` is false; after
   the same-data round finds something, the retry's report composes.
-- **Open: the client report.** It reads no analysis (`client_report.py:117`, `with_context=False`). The
-  plan's text lists it among the exports. Gating it would mean no modelled run gets a client report until
-  its analysis finds something, even with analysis switched off. Asked of the PM; not built here.
+- **The client report stays ungated** (the product owner, 2026-10-22, /pmstatus Q79 (a)). It prints no
+  analysis prose (`client_report.py:117` reads the data alone, `with_context=False`), so an empty module
+  cannot reach it. `client_report.py` is unchanged.
 
 ## Cross-check additions (2026-10-20)
 
