@@ -38,6 +38,11 @@ export type PublicConfig = {
   // option's and object's id beside it and follows a reworded research question's links.
   // AIA_WEB_STABLE_ITEM_IDS; unset or not a switch value, off (the server keys by ids either way).
   stableItemIds: boolean;
+  // Display conditions (working-copy-edit-ops WCE13): Dotazník sets one at its question only
+  // under AIA_ROUTING_ENABLED, one key for the API and the web alike (the API's readiness reads it
+  // in WCE13 (d)), so a deployment sets it on both; off until fieldwork routes by it (RQC11).
+  // Unset or not a switch value, off: a stored condition is still shown, and can be removed.
+  routing: boolean;
   build: { sha: string | null; built_at: string | null };
   // Where the browser reports an error it could not handle (GlitchTip; lib/error-tracking.ts).
   // A DSN's key is public by design: it can only send events. null: nothing is loaded.

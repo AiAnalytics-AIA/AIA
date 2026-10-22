@@ -41,7 +41,7 @@ export const AGENT_ORB: Record<ResearchAgentAction, OrbState> = {
  * (aia_executors.ai_fieldwork) and the analysis modules think (aia_executors.analysis);
  * the rest is code.
  */
-export const RUN_STEP_ORB: Readonly<Record<string, Orb>> = {
+const RUN_STEP_ORB: Readonly<Record<string, Orb>> = {
   compile: code("shaping"),
   preflight: code("solving"),
   aggregate: code("weaving"),
@@ -52,7 +52,7 @@ export const RUN_STEP_ORB: Readonly<Record<string, Orb>> = {
 };
 
 /** Deep Research's steps: plan, investigate, verify and synthesize call models; merge and publish are code. */
-export const DEEP_RESEARCH_ORB: Readonly<Record<string, Orb>> = {
+const DEEP_RESEARCH_ORB: Readonly<Record<string, Orb>> = {
   plan: ai("shaping"),
   investigate: ai("searching"),
   merge: code("weaving"),

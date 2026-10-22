@@ -91,9 +91,9 @@ import {
   verdictTone,
 } from "@/lib/research-execution";
 import { runDestination, runState } from "@/lib/run-state";
-import { usd } from "@/lib/researcher-spend";
 import { codedText, codeWords } from "@/lib/reason-words";
-import { withBudget } from "@/lib/budget-line";
+import { readBudget, withBudget } from "@/lib/budget-line";
+import { spendRows } from "@/lib/run-spend";
 import { reportStatus, reportStatusWords } from "@/lib/report-status";
 import type { Tone } from "@/lib/tone";
 import { AnalysisBlocked, ViolationList } from "./AnalysisBlocked";
@@ -111,6 +111,7 @@ import { BudgetLift } from "./BudgetLift";
 import { canReview, type StudyFrame } from "./frame";
 import { VerifiedSourceButton } from "./VerifiedSourceButton";
 import { useFrame } from "./frame-hook";
+import { useResource } from "@/components/aia/useResource";
 import { InspectorSlot } from "./Inspector";
 import { ResearchContext, useResearch } from "./context";
 import { SociomappingView } from "./SociomappingView";
@@ -120,7 +121,7 @@ import { ObjectMapView } from "./ObjectMapView";
 import { InterpretationResearch } from "./InterpretationResearch";
 import { ReportDocumentView } from "./ReportDocumentView";
 import { ResultsWorkspace } from "./ResultsWorkspace";
-import { citedMeasure, untitled, compareObjects, type CompiledSpecification, measureAnchor, measureTarget, readMeasure, type ReadingTone } from "@/lib/result-reading";
+import { citedMeasure, untitled, compareObjects, type CompiledSpecification, measureAnchor, measureTarget, readMeasure, type ReadingTone, revisionNote, type RevisionNote } from "@/lib/result-reading";
 import { FormattedText } from "./FormattedText";
 import { CompleteReport } from "./CompleteReport";
 import { AnswerabilityGate } from "./AnswerabilityGate";
@@ -1044,7 +1045,8 @@ function useRun(): [ResearchRun | null | undefined, () => void, (r: ResearchRun)
   const [version, setVersion] = useState(0);
   const followed = useRef<string | null>(null);
   const follow = useCallback((next: ResearchRun) => {
-    setRun(next);
+    // An action's answer carries no spend (FLD4a): the run's last spend stays until the read below.
+    setRun((prev) => (next.spend == null && prev?.run_id === next.run_id && prev.spend ? { ...next, spend: prev.spend } : next));
     followed.current = next.run_id;
     const params = new URLSearchParams(window.location.search);
     if (params.has("run") && params.get("run") !== next.run_id) {
@@ -1281,9 +1283,6 @@ function ProgressActions({ run, act, busy, refresh, actionError, repairable }: {
   return (
     <section aria-labelledby="run-actions" className="flex flex-col gap-3 rounded-card border border-border bg-surface-raised p-3.5">
       <h2 id="run-actions" className="text-sm font-semibold">{tv("research.exec.revision", { revision: run.design_revision })}</h2>
-      <dl className="grid grid-cols-[auto_1fr] gap-x-3 gap-y-1.5 text-[13px]">
-        <dt className="text-ink-muted">{t("research.exec.runCost")}</dt><dd className="font-mono">{run.actual_cost_usd == null ? t("research.exec.runCostUnknown") : usd(run.actual_cost_usd)}</dd>
-      </dl>
       <div className="flex flex-wrap items-center gap-2">
         {run.phase === "COMPLETED" ? (
           <a className={`text-sm underline ${RUN_LINK}`} href={`${stepHref("results")}?run=${encodeURIComponent(run.run_id)}`}>{t("research.exec.toResults")}</a>
@@ -1325,6 +1324,39 @@ function ProgressActions({ run, act, busy, refresh, actionError, repairable }: {
       ) : null}
       {actionError ? <p role="alert" className="text-sm text-status-fault">{actionError}</p> : null}
     </section>
+  );
+}
+
+/** Náklady (artifact-fieldwork FLD4b): what the run has spent and holds, the calls it could not price
+ *  and what remains in the study; totals only (Q76 (c)). The remainder is read again whenever the spend
+ *  shown changes, so the two never disagree for long; with no spend to show, nothing is read. */
+function SpendCard({ run }: { run: ResearchRun }) {
+  const frame = useFrame();
+  const spend = run.spend ?? null;
+  const [remaining, setRemaining] = useState<number | null | undefined>(undefined);
+  const known = spend !== null;
+  useEffect(() => {
+    if (!known) return;
+    let live = true;
+    void readBudget(frame.studyId).then((s) => live && setRemaining(s?.remaining_usd ?? null));
+    return () => {
+      live = false;
+    };
+  }, [frame.studyId, known, spend?.spent_usd, spend?.reserved_usd]);
+  const rows = spendRows(spend, run.is_terminal, remaining);
+  return (
+    <Card title={t("research.exec.spend.title")}>
+      {rows ? (
+        <dl data-run-spend className="@container divide-y divide-border rounded-control border border-border">
+          {rows.map((r) => (
+            <div key={r.key} data-spend={r.key} className="grid gap-1 px-3 py-2 text-sm @sm:grid-cols-[8rem_1fr] @sm:items-baseline @sm:gap-3">
+              <dt className="text-ink-muted">{r.label}</dt>
+              <dd className="min-w-0"><span className="font-mono">{r.value}</span>{r.note ? <span className="text-ink-muted"> · {r.note}</span> : null}</dd>
+            </div>
+          ))}
+        </dl>
+      ) : <p className="text-sm text-ink-muted">{t("research.exec.spend.unknown")}</p>}
+    </Card>
   );
 }
 
@@ -1373,6 +1405,7 @@ export function ProgressStep() {
       {foundByStart ? <p role="status" data-found-by-start className="rounded-sm border border-status-you-ink/40 bg-status-you-wash p-3 text-sm">{t("research.exec.foundByStart")}</p> : null}
       <OriginBanners run={run} />
       <RespondentsReceipt run={run} pointable />
+      <SpendCard run={run} />
       <Card>
         <div className="flex flex-wrap items-center gap-3">
           <Chip tone={state.tone}>{state.label}</Chip>
@@ -1579,6 +1612,9 @@ export function RunResults({ run, progressHref }: { run: ResearchRun | null; pro
   const specification = useArtifact(run && stepOf(run, "aggregate")?.artifact_id ? run : null, "compile");
   const aggregate = useArtifact(run, "aggregate");
   const sociomap = useArtifact(run, "sociomap");
+  // Read only for a run with results to show; none read is no note.
+  const shows = Boolean(run && stepOf(run, "aggregate")?.artifact_id);
+  const [revisions] = useResource(() => (shows ? research.revisions(frame.studyId) : Promise.resolve([])), [frame.studyId, shows]);
   const sociomapping = useArtifact(run, "sociomapping");
   // The literature review the report variant adds (research-integrity-report 3): chosen once,
   // read by the report card above and the literature panel below, never two selections.
@@ -1607,7 +1643,7 @@ export function RunResults({ run, progressHref }: { run: ResearchRun | null; pro
     <div><h4 className="text-sm font-semibold">Literární rešerše</h4><p className="mt-1 text-xs leading-5 text-ink-muted">Externí kontext a citované zdroje patří do samostatné rešerše. Vyberte ji v oddílu Rešerše a zpráva; odpověď AI z klientských znalostí ji nenahrazuje.</p></div></div>
   </section>;
   return <ResultsWorkspace run={run} progressHref={progressHref}
-    notice={<><OriginBanners run={run} /><RespondentsReceipt run={run} /></>}
+    notice={<><RevisionMoved note={revisionNote(run.design_revision, revisions.state === "ready" ? revisions.data.map((r) => r.revision) : null)} /><OriginBanners run={run} /><RespondentsReceipt run={run} /></>}
     lead={session ? <CompleteReport run={run} review={review} onReview={setReview} /> : null}
     panels={[
       { id: "data", label: "Data", description: "Odpovědi a srovnání hodnocených objektů. U každého výsledku zůstává uvedena podpora dat a nejistota.", content: <>
@@ -1653,6 +1689,17 @@ export function RunResults({ run, progressHref }: { run: ResearchRun | null; pro
         <details><summary className="cursor-pointer text-sm font-medium">Klientské znalosti a kontextová AI pomoc</summary><div className="mt-3">{knowledgeContext}</div></details>
       </> },
     ]} />;
+}
+
+/** The run's design is older than the study's (artifact-results RES4a): said above its numbers. */
+function RevisionMoved({ note }: { note: RevisionNote | null }) {
+  if (!note) return null;
+  return (
+    <section role="note" data-revision-moved className="rounded-md border border-status-you-ink/40 bg-status-you-wash p-4">
+      <p className="text-sm font-semibold">{note.title}</p>
+      <p className="mt-1 text-sm">{note.body}</p>
+    </section>
+  );
 }
 
 function InternalReport({ run, progressHref }: { run: ResearchRun; progressHref: string | null }) {

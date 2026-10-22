@@ -31,11 +31,11 @@ const setRange = (l: SetLimits) => `${l.recommended_min}–${l.max}`;
 
 const plural = (n: number, one: string, few: string, many: string) => (n === 1 ? one : n >= 2 && n <= 4 ? few : many);
 
-export function briefStage(p: ResearchProject): LaneStage {
+function briefStage(p: ResearchProject): LaneStage {
   return canAnalyse(p) ? { tone: "done", line: "Hotovo" } : { tone: "you", line: "Chybí cíl" };
 }
 
-export function planStage(state: Pick<ResearchState, "project" | "analysis">, l: SetLimits = SET_PRESET): LaneStage {
+function planStage(state: Pick<ResearchState, "project" | "analysis">, l: SetLimits = SET_PRESET): LaneStage {
   const a = proposalAnalysis(state);
   if (!a) return { tone: "idle", line: "Bez návrhu" };
   const bad = trackedSets(a).filter((s) => setSizeRefused((s.objects || []).length, l)).length;
@@ -60,7 +60,7 @@ export function questionnaireIssues(p: ResearchProject, l: SetLimits = SET_PRESE
   return { questions, sets, empty, badSets };
 }
 
-export function questionnaireStage(p: ResearchProject, l: SetLimits = SET_PRESET): LaneStage {
+function questionnaireStage(p: ResearchProject, l: SetLimits = SET_PRESET): LaneStage {
   const { questions, sets, empty, badSets } = questionnaireIssues(p, l);
   if (!questions && !sets) return { tone: "idle", line: "Zatím prázdný" };
   const count = [questions ? `${questions} ${plural(questions, "otázka", "otázky", "otázek")}` : "", sets ? `${sets} ${plural(sets, "sada", "sady", "sad")}` : ""].filter(Boolean).join(" · ");
@@ -69,11 +69,11 @@ export function questionnaireStage(p: ResearchProject, l: SetLimits = SET_PRESET
   return { tone: "done", line: count };
 }
 
-export function audienceStage(p: ResearchProject): LaneStage {
+function audienceStage(p: ResearchProject): LaneStage {
   return audienceReady(p) ? { tone: "done", line: "Vybráno" } : { tone: "idle", line: "Nevybráno" };
 }
 
-export function personaStage(p: ResearchProject): LaneStage {
+function personaStage(p: ResearchProject): LaneStage {
   const approved = chosenDimensions(p);
   const n = Number(p.n) || 0;
   const d = approved.length ? `${approved.length} ${plural(approved.length, "dimenze", "dimenze", "dimenzí")}` : "Bez dimenzí";

@@ -46,8 +46,6 @@ import {
   countsWords,
   questionnaireHasQuestions,
   questionnaireView,
-  questionCondition,
-  removeCondition,
   removeQuestion,
   removeSection,
   restoreOption,
@@ -94,6 +92,7 @@ import { SetLimitsContext, readySetLimits, useSampleLimits } from "./useSampleLi
 import { ID_SOURCE, type TargetKind, aiaId } from "@/lib/workbench-artifacts";
 import { QuestionnaireDependencies } from "./QuestionnaireDependencies";
 import { QuestionnaireStrip } from "./QuestionnaireStrip";
+import { QuestionCondition } from "./QuestionCondition";
 import { InspectorSlot } from "./Inspector";
 import { questionnaireIssues } from "@/research/lane";
 import { AskLead, useAskLead, useLeadOwnsAiStarts } from "./AskLead";
@@ -926,12 +925,7 @@ function QuestionCard({ n, q, si, sectionId, qi, update }: { n: number; q: Quest
           {t("research.questionnaire.unworded")}
         </p>
       ) : null}
-      {questionCondition(q) !== null ? (
-        <div data-question-condition className="mt-2 flex flex-wrap items-center gap-2 rounded-sm border border-status-you-ink/40 bg-status-you-wash p-2 text-xs">
-          <span className="flex-1">{tv("research.questionnaire.condition", { condition: questionCondition(q)! })}</span>
-          <Button small onClick={() => update((p) => removeCondition(p, si, qi))}>{t("research.questionnaire.removeCondition")}</Button>
-        </div>
-      ) : null}
+      <QuestionCondition q={q} si={si} qi={qi} update={update} />
       {typ === "vyber" || typ === "multi" ? (
         <OptionRows key={(q.kategorie || []).join("\n")} multi={typ === "multi"} options={q.kategorie || []} onCommit={(raw) => update((p) => setQuestionOptions(p, si, qi, raw))} onRestore={(at, value) => update((p) => restoreOption(p, si, sectionId, qi, q.id, at, value))} />
       ) : null}

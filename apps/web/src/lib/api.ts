@@ -9,6 +9,7 @@ import type { BriefMaterials } from "@/lib/material-class";
 import type { Approval, StoredReportDocument } from "@/lib/artifacts/report";
 import { currentIdToken, loadConfig } from "@/lib/auth";
 import type { EditDecisionResult, LeadPreferences, LeadState, LeadTurn, RequestApproval, ResearcherLead, SelfUpdateDecision } from "@/lib/lead";
+import type { OmittedPage, TurnManifest } from "@/lib/lead-manifest";
 export type { ResearcherLead as ResearcherLeadView } from "@/lib/lead";
 
 export class ApiError extends Error {
@@ -1107,6 +1108,9 @@ export type ResearchStep = {
   /** How the API reads `data_origin`: SIMULATED, MODELLED or UNKNOWN; absent from an older API. */
   data_origin_kind?: string | null;
 };
+/** A research run's spend, by the rules Settings reads a person's spend (Q40); it names nobody (Q76 (c)). */
+export type RunSpend = { spent_usd: number; reserved_usd: number; uncertain_calls: number };
+
 export type ResearchRun = {
   run_id: string;
   study_id: string;
@@ -1127,6 +1131,9 @@ export type ResearchRun = {
   steps: ResearchStep[];
   artifact_ids: string[];
   actual_cost_usd: number | null;
+  /** What the run has spent, holds and could not price (artifact-fieldwork FLD4a): only on the run read
+   *  alone (GET …/research/runs/{id}) with VIEW_COSTS; null on a listed run and on an action's answer. */
+  spend?: RunSpend | null;
   /** The population the run recorded (population-operations P3); absent or null: none. */
   population?: ResearchRunPopulation | null;
   /** The methods the run pinned when it started (methodology-tab Z1); absent from an older API. */
@@ -1496,6 +1503,10 @@ export const deepResearch = {
   /** Where the report with this review stands, composing nothing (research-integrity-report 3). */
   contextReport: (studyId: string, runId: string, deepRunId: string) =>
     request<ReportVariant>("GET", `${studyPath(studyId)}/research/runs/${enc(runId)}/report/context${query({ deep_research_run_id: deepRunId })}`),
+  /** The prepared report with this review as its stored document model, beside the DOCX it names (RPT3a);
+   *  409 context_report_not_prepared before it is prepared. */
+  contextReportDocument: (studyId: string, runId: string, deepRunId: string) =>
+    request<StoredReportDocument>("GET", `${studyPath(studyId)}/research/runs/${enc(runId)}/report/context/document${query({ deep_research_run_id: deepRunId })}`),
   /** Store the report with this review once and ask the worker for its PDF: the same draft in both formats. */
   prepareContextReport: (studyId: string, runId: string, deepRunId: string) =>
     request<ReportVariant>("POST", `${studyPath(studyId)}/research/runs/${enc(runId)}/report/context${query({ deep_research_run_id: deepRunId })}`),
@@ -1592,6 +1603,12 @@ export const lead = {
   /** Keep or drop what a turn wants to remember for all of the researcher's work (once, in the ledger). */
   decideSelfUpdate: (studyId: string, turnId: string, decision: "accept" | "dismiss") =>
     request<SelfUpdateDecision>("POST", `${studyPath(studyId)}/lead/turns/${enc(turnId)}/self-update`, { decision }),
+  /** What a turn could see, layer by layer, read from the context it froze (lead-conversation LC2). */
+  manifest: (studyId: string, turnId: string) =>
+    request<TurnManifest>("GET", `${studyPath(studyId)}/lead/turns/${enc(turnId)}/manifest`),
+  /** A layer's left-out ids past the manifest's first fifty, from `after`. */
+  omitted: (studyId: string, turnId: string, layer: string, after: number) =>
+    request<OmittedPage>("GET", `${studyPath(studyId)}/lead/turns/${enc(turnId)}/manifest/omitted?layer=${enc(layer)}&after=${after}`),
 };
 
 /** The signed-in researcher's own Lead: its files, read only; hatched once (ADR 0026, Accepted with 6). */

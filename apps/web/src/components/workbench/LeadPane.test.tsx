@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 // The Research Lead's pane (ADR 0026): the researcher hatches their own Lead, reads the session,
 // writes to it, and approves a prepared job only through the card; nothing is done for them.
-import { act, cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { act, cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import type { LeadState, LeadTurn, ResearcherLead } from "@/lib/lead";
@@ -18,6 +18,17 @@ const turn = (over: Partial<LeadTurn>): LeadTurn => ({
   status: "COMPLETED", reason: null, output: null, run_id: "RUN-1", workspace_revision: 3, created_at: "2026-10-19T08:00:00Z", created_by: "USR-1",
   ...over,
 });
+
+// A turn's manifest as the server reads it from the frozen context (LC2): fictional ids; the
+// knowledge layer left 51 items out and lists the first fifty; Design Research was not recorded.
+const MANIFEST = {
+  turn_id: "LDT-1", recorded: true,
+  manifest: { manifest_version: 1, total_bytes: 41_200, ceiling_bytes: 98_304, layers: [
+    { layer: "knowledge", recorded: true, bytes: 21_000, ceiling_bytes: 20_480, bounded_bytes: 20_100, bound: "x", over_policy: "y", included: ["K-0"], included_count: 1,
+      omitted: Array.from({ length: 50 }, (_, i) => ({ id: `K-${i + 1}`, reason: "over_budget" })), omitted_count: 51 },
+    { layer: "external_context_not_evidence", recorded: false, ceiling_bytes: null, bound: "x", over_policy: "y", included: [], omitted: [] },
+  ] },
+};
 
 let me: ResearcherLead;
 let state: LeadState;
@@ -47,6 +58,10 @@ function api() {
       posts.push(JSON.parse(String(init?.body)));
       return new Response(JSON.stringify({ turns: [] }), { status: 201 });
     }
+    if (u.includes("/manifest/omitted")) {
+      return new Response(JSON.stringify({ layer: "knowledge", after: 50, total: 51, omitted: [{ id: "K-51", reason: "over_budget" }] }));
+    }
+    if (u.endsWith("/manifest")) return new Response(JSON.stringify(MANIFEST));
     if (u.endsWith("/lead")) return new Response(JSON.stringify(state));
     return new Response(JSON.stringify({ code: "not_found" }), { status: 404 });
   }));
@@ -100,6 +115,36 @@ describe("LeadPane", () => {
     } finally {
       vi.useRealTimers();
     }
+  });
+
+  it("opens what the last Lead turn could see from the Vidí chip, naming what it left out", async () => {
+    state.turns = [turn({ output: { reply: "Hotovo." } })];
+    render(pane());
+    const chip = await screen.findByRole("button", { name: /Vidí: / });
+    expect(chip.getAttribute("aria-expanded")).toBe("false");
+    fireEvent.click(chip);
+    expect(chip.getAttribute("aria-expanded")).toBe("true");
+    const panel = await screen.findByRole("region", { name: "Co Vedoucí viděl v poslední odpovědi" });
+    expect(await within(panel).findByText("Znalosti klienta")).toBeTruthy();
+    const left = within(panel).getByRole("list", { name: "Vynecháno z vrstvy Znalosti klienta" });
+    expect(within(left).getByText("K-1").closest("li")?.textContent).toBe("K-1 · nevešla se do limitu vrstvy");
+    expect(within(panel).getByText("Nezaznamenáno: tato odpověď vrstvu neměla.")).toBeTruthy();
+    fireEvent.click(within(panel).getByRole("button", { name: "Načíst další vynechané" }));
+    expect(await within(left).findByText("K-51")).toBeTruthy();
+    expect(within(panel).queryByRole("button", { name: "Načíst další vynechané" })).toBeNull();
+  });
+
+  it("opens the same panel in the compact drawer", async () => {
+    state.turns = [turn({ output: { reply: "Hotovo." } })];
+    render(pane({ onClose: vi.fn() }));
+    fireEvent.click(await screen.findByRole("button", { name: /Vidí: / }));
+    expect(await screen.findByRole("region", { name: "Co Vedoucí viděl v poslední odpovědi" })).toBeTruthy();
+  });
+
+  it("offers no chip before any Lead turn froze a context", async () => {
+    render(pane());
+    expect(await screen.findByText(/Vidí: /)).toBeTruthy();
+    expect(screen.queryByRole("button", { name: /Vidí: / })).toBeNull();
   });
 
   it("offers hatching to a researcher without a Lead, and hatches it on their click", async () => {

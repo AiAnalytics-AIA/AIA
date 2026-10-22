@@ -41,7 +41,7 @@ export type CoverageRow = {
   findings: FindingRef[];
 };
 
-export const RESEARCH_QUESTIONS_MODULE = "research_questions";
+const RESEARCH_QUESTIONS_MODULE = "research_questions";
 
 /** The measures a set of claim ids rests on, within one module. */
 function refsOf(module: Module, ids: readonly string[]): Set<string> {

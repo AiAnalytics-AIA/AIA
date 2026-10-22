@@ -163,6 +163,26 @@ export function compareObjects(objects: readonly { id: string; label: string; re
   };
 }
 
+// ---- a run read after its design moved on ------------------------------------------------
+
+export type RevisionNote = { title: string; body: string };
+
+/**
+ * V2's reopened note (artifact-results RES4a): a run's numbers belong to the Design Revision it ran,
+ * so once the study holds a newer one Výsledky says so. It states what is so and advises nothing: a
+ * run on the newer revision may already exist, and project memory cannot start one. Null when the study's revisions are not known
+ * (an unread list never claims the design moved) or none is newer than the run's.
+ */
+export function revisionNote(runRevision: number, studyRevisions: readonly number[] | null): RevisionNote | null {
+  if (studyRevisions === null || !studyRevisions.length) return null;
+  const study = Math.max(...studyRevisions);
+  if (study <= runRevision) return null;
+  return {
+    title: `Výsledky běhu z revize ${runRevision}; studie je na revizi ${study}`,
+    body: `Čísla platí pro revizi ${runRevision}; změny z revize ${study} v nich nejsou.`,
+  };
+}
+
 // ---- what an analysis claim cites ----------------------------------------------------------
 
 /** The compiled specification as the results read it: wording, options and scales. */
