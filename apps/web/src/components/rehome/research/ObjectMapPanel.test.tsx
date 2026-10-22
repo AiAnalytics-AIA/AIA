@@ -856,7 +856,6 @@ describe("the map's overlays (artifact-sociomap SOC13)", () => {
     render(<ObjectMapView battery={hudba} dataOrigin={null} />);
     openLegend();
     expect(screen.getByTestId("object-map-legend")).toBeTruthy();
-    openInfo();
     fireEvent.click(openList().getByRole("button", { name: "Vybrat objekt Rock" }));
     openTools();
     esc();
@@ -868,6 +867,8 @@ describe("the map's overlays (artifact-sociomap SOC13)", () => {
     expect(screen.getByTestId("object-map-panel-list")).toBeTruthy();
     esc();
     expect(sheet()).toBeNull();
+    // The ⓘ box shares the popovers' place, so it is open alone (see the next test).
+    openInfo();
     expect(screen.getByTestId("object-map-info")).toBeTruthy();
     esc();
     expect(screen.queryByTestId("object-map-info")).toBeNull();
@@ -877,6 +878,27 @@ describe("the map's overlays (artifact-sociomap SOC13)", () => {
     expect(screen.queryByTestId("object-map-legend")).toBeNull();
     // The selection stays; only the overlays closed.
     expect(canvas().getAttribute("data-selected")).not.toBe("");
+  });
+
+  // Codex, #815: the ⓘ box and the two popovers open at one place under the bar, so one at a time.
+  it("opens the ⓘ box and the bar's popovers one at a time, by click and by key, and Esc reveals none", () => {
+    render(<ObjectMapView battery={hudba} dataOrigin={null} />);
+    const open = () => stage().querySelectorAll(".omx-pop");
+    openSettings();
+    openInfo();
+    expect(open()).toHaveLength(1);
+    expect(screen.getByTestId("object-map-info")).toBeTruthy();
+    esc();
+    expect(open()).toHaveLength(0);
+    openInfo();
+    openTools();
+    expect(open()).toHaveLength(1);
+    expect(pop("Nástroje mapy")).toBeTruthy();
+    key("i");
+    expect(open()).toHaveLength(1);
+    expect(screen.getByTestId("object-map-info")).toBeTruthy();
+    esc();
+    expect(open()).toHaveLength(0);
   });
 
   it("opens the detail on a click on the map, and closes it by its × and by a click on free ground", async () => {
@@ -927,8 +949,8 @@ describe("the map's overlays (artifact-sociomap SOC13)", () => {
     fireEvent.click(screen.getByRole("button", { name: "Celá obrazovka" }));
     Object.defineProperty(document, "fullscreenElement", { configurable: true, value: s });
     fireEvent(document, new Event("fullscreenchange"));
-    openInfo();
     fireEvent.click(openList().getByRole("button", { name: "Vybrat objekt Rock" }));
+    openInfo();
     openLegend();
     const inside = [screen.getByRole("toolbar", { name: "Ovládání mapy" }), screen.getByRole("group", { name: "Pohled na mapu" }), screen.getByTestId("object-map-info"), screen.getByTestId("object-map-legend"), sheet()!];
     for (const el of inside) expect(s.contains(el)).toBe(true);

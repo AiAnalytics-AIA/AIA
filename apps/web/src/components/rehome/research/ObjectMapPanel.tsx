@@ -352,7 +352,9 @@ function PanelView({ battery, map, facts }: { battery: BatteryWithMaps; map: Obj
   // What the detail now shows comes to the front, over Správa objektů the pick was made in.
   const showDetail = () => { setDetail(true); setTab("detail"); setFolded(false); setLegendOpen(false); };
   // A popover or the sheet opening folds the legend back to its chip.
-  const openMenu = (next: "settings" | "tools" | "more") => { setMenu((m) => (m === next ? null : next)); setLegendOpen(false); };
+  // The ⓘ box and the bar's popovers open at one place under the bar: one at a time.
+  const openMenu = (next: "settings" | "tools" | "more") => { setMenu((m) => (m === next ? null : next)); setInfo(false); setLegendOpen(false); };
+  const toggleInfo = () => { setInfo((v) => !v); setMenu(null); };
   const openSheet = () => { setWork("objects"); setTab("objects"); setFolded(false); setLegendOpen(false); };
   // Choosing from the list opens the object's detail; choosing it again clears it and closes the
   // detail. Selection is the object map's: on the respondent map the list only lists (see ObjectList).
@@ -411,7 +413,7 @@ function PanelView({ battery, map, facts }: { battery: BatteryWithMaps; map: Obj
       if (k === "o") showMap("objects");
       else if (k === "r" && density) showMap("respondents");
       else if (k === "l") setLegendOpen((v) => !v);
-      else if (k === "i") setInfo((v) => !v);
+      else if (k === "i") toggleInfo();
       else if (k === "f") toggleFull();
       else if (k === "+" || k === "=") setCamera((c) => zoomCamera(c, ZOOM_IN));
       else if (k === "-") setCamera((c) => zoomCamera(c, ZOOM_OUT));
@@ -525,7 +527,7 @@ function PanelView({ battery, map, facts }: { battery: BatteryWithMaps; map: Obj
                 </>
               )}
               <button type="button" className={`omx-icon${pill?.warn ? " is-warn" : ""}`} aria-expanded={info} aria-controls={info ? `${described}-info` : undefined}
-                aria-label={pill ? tv(`${p}.infoPill`, { pill: pill.text }) : t(`${p}.info`)} title={`${t(`${p}.info`)} (I)`} onClick={() => setInfo(!info)}>
+                aria-label={pill ? tv(`${p}.infoPill`, { pill: pill.text }) : t(`${p}.info`)} title={`${t(`${p}.info`)} (I)`} onClick={toggleInfo}>
                 <Ic d="M12 8h.01M11 12h1v5h1M12 3a9 9 0 100 18 9 9 0 000-18z" />{quality ? <span className="omx-badge" aria-hidden>{quality}</span> : null}
               </button>
               {/* One live region, always there, so the chip's first appearance is announced too. */}
