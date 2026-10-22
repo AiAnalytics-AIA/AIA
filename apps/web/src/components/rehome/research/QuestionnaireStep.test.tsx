@@ -7,6 +7,7 @@ import { afterEach, beforeEach, describe, expect, it, onTestFinished, vi } from 
 import { AGENTS_PATH, NATIVE_JOB_WAIT, NATIVE_TEST_TIMEOUT_MS, PARK_MESSAGE, approveProposal, nativeAgentFixture } from "./test-native-agents";
 import { briefFingerprint, defaultsMerge } from "@/research/model";
 import { SET_TOO_SMALL } from "@/research/questionnaire";
+import { FrameNavigation } from "../step";
 import { ResearchScreen } from "./ResearchScreen";
 import { type SavedBody, workspaceFixture } from "./test-workspace";
 import { TEST_FRAME, stagePath } from "./test-frame";
@@ -497,6 +498,17 @@ describe("Dotazník", () => {
     expect(posted("/api/providers/claude-code/status")).toEqual([]);
     expect(posted(AGENTS_PATH)[0].body).toMatchObject({ action: "optimize_questionnaire" });
     expect(posted("/api/questionnaire/optimize")).toEqual([]);
+  });
+
+  it("inside the workbench goes on to the audience through the frame's next stage", async () => {
+    unitStub({ ...BRIEF, sections: SECTIONS, ui_state: { questionnaire_path: "manual" } });
+    const go = vi.fn();
+    render(<FrameNavigation.Provider value={{ next: { label: "Cílová skupina", go } }}><ResearchScreen step="questionnaire" frame={TEST_FRAME} /></FrameNavigation.Provider>);
+    fireEvent.click(await screen.findByRole("button", { name: /Další · cílová skupina/ }));
+    expect(go).toHaveBeenCalledTimes(1);
+    expect(push).not.toHaveBeenCalled();
+    await saved();
+    expect(lastSave()).toMatchObject({ reason: "questionnaire_done" });
   });
 
   it("goes on to the audience at its first choice", async () => {

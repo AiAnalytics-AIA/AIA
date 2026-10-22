@@ -10,7 +10,7 @@
 // it. The inline editors call the same functions the classic prompts did.
 
 import { useRouter } from "next/navigation";
-import { type ReactNode, useEffect, useRef, useState } from "react";
+import { type ReactNode, useContext, useEffect, useRef, useState } from "react";
 
 import { t, tv } from "@/i18n/t";
 import { hashTarget } from "@/lib/answerability";
@@ -45,7 +45,7 @@ import { applyPlanSets, lines, proposalAnalysis, validMeasurement } from "@/rese
 import { DesignCoverage } from "./DesignCoverage";
 import { PlanNarrative } from "./PlanNarrative";
 import { Icon, type IconName } from "../icons";
-import { ActionDock, ChipInput, InlineConfirm, StepSection } from "../step";
+import { ActionDock, ChipInput, FrameNavigation, InlineConfirm, StepSection } from "../step";
 import { AiButton, Button, Field, TextArea, TextInput } from "../ui";
 import { useResearch } from "./context";
 import { SavedForLead, useLeadOwnsAiStarts } from "./AskLead";
@@ -82,6 +82,8 @@ export function PlanStep() {
   const { store, state, toast, stepHref, confirm, frame } = useResearch();
   const sampleLimits = useSampleLimits(frame.studyId);
   const router = useRouter();
+  // Inside the workbench the frame opens the next stage (its leave guard, its heading's focus); outside it, the route.
+  const frameNav = useContext(FrameNavigation);
   const { analyse, resume, failure, busy } = useAnalysis();
   const a = proposalAnalysis(state);
   const p = state.project;
@@ -133,7 +135,7 @@ export function PlanStep() {
   const next = () => {
     if (editing) { toast(t("research.plan.pendingEdits")); return; }
     store.update(({ project }) => ({ project: toQuestionnaire(project) }), { reason: "questionnaire_path", invalidateCheck: false });
-    router.push(stepHref("questionnaire"));
+    if (frameNav?.next) frameNav.next.go(); else router.push(stepHref("questionnaire"));
   };
   const short = sets.find(outOfRange);
   const dock = (

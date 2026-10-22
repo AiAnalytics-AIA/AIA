@@ -3,6 +3,7 @@ import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/re
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { AGENTS_PATH, NATIVE_TEST_TIMEOUT_MS, approveProposal, findProposalDialog, nativeAgentFixture } from "./test-native-agents";
+import { FrameNavigation } from "../step";
 import { ResearchScreen } from "./ResearchScreen";
 import { type SavedBody, workspaceFixture } from "./test-workspace";
 import { TEST_FRAME } from "./test-frame";
@@ -85,6 +86,18 @@ describe("Audience", () => {
     expect((await screen.findByText("Uložený dataset:")).parentElement?.textContent).toBe("Uložený dataset: Lékaři ČR");
     expect(screen.getAllByText("Zůstává v návrhu studie, ale běh v AIA ho nepoužije.").length).toBe(1);
     noUnitCalls();
+  });
+
+  it("inside the workbench goes on to Dimenze through the frame's next stage", async () => {
+    aiaStub({ ui_state: { audience_entry: "analytics" } });
+    const go = vi.fn();
+    render(<FrameNavigation.Provider value={{ next: { label: "Dimenze", go } }}><ResearchScreen step="audience" frame={TEST_FRAME} /></FrameNavigation.Provider>);
+    fireEvent.click(await screen.findByRole("radio", { name: /Česká populace \(\+18\)/ }));
+    const next = await screen.findByRole("button", { name: /Další · dimenze/ });
+    await waitFor(() => expect((next as HTMLButtonElement).disabled).toBe(false));
+    fireEvent.click(next);
+    expect(go).toHaveBeenCalledTimes(1);
+    expect(push).not.toHaveBeenCalled();
   });
 
   it("AI Analytics: ČR 18+ is ready at once; Special Audience says it is not in AIA", async () => {
