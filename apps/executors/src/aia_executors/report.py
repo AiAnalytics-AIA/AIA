@@ -50,7 +50,9 @@ from aia_worker.executor import Failed, StepContext, StepInput, StepOutcome, Suc
 from .research import upstream_artifact
 
 REPORT_ARTIFACT_TYPE = INTERNAL_REPORT_ARTIFACT_TYPE
-REPORT_CONTRACT_VERSION = "aia-internal-report-13"
+# -14: a ledger number in prose, a table or a caption is a locked, tagged content control
+# (artifact-report RPT8a, part 1), so a draft rendered before is never reused for an editor.
+REPORT_CONTRACT_VERSION = "aia-internal-report-14"
 REPORT_PDF_ARTIFACT_TYPE = INTERNAL_REPORT_PDF_ARTIFACT_TYPE
 REPORT_DOCUMENT_ARTIFACT_TYPE = INTERNAL_REPORT_DOCUMENT_ARTIFACT_TYPE
 

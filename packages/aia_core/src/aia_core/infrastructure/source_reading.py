@@ -44,6 +44,7 @@ from .document_text import (
     DtdDeclared,
     check_zip_bounds,
     grid_from_rows,
+    paragraph_text,
     read_csv,
     read_pdf,
     read_xlsx,
@@ -56,7 +57,8 @@ __all__ = ["READERS", "XML_PART_MAX_BYTES", "piece_text", "read_source"]
 #: new name: a reading records which reader made it.
 READERS: Final[dict[str, str]] = {
     ".pdf": "pdf/1",
-    ".docx": "docx/1",
+    # /2: a paragraph's inline content controls read too (an AIA report locks its numbers in them).
+    ".docx": "docx/2",
     ".doc": "doc/1",
     ".odt": "odt/1",
     ".pptx": "pptx/1",
@@ -123,7 +125,7 @@ def _docx(data: bytes) -> tuple[list[Segment], list[ReadingNote]]:
         tag = child.tag.rsplit("}", 1)[-1]
         if tag == "p":
             paragraph += 1
-            text = Paragraph(child, document).text
+            text = paragraph_text(Paragraph(child, document))
             segments.append(Segment(locator=Locator(paragraph=paragraph), text=text))
         elif tag == "tbl":
             table += 1
@@ -131,7 +133,12 @@ def _docx(data: bytes) -> tuple[list[Segment], list[ReadingNote]]:
                 segments.append(
                     Segment(
                         locator=Locator(table=table, row=number),
-                        text=_cells([cell.text for cell in row.cells]),
+                        text=_cells(
+                            [
+                                "\n".join(paragraph_text(p) for p in cell.paragraphs)
+                                for cell in row.cells
+                            ]
+                        ),
                     )
                 )
     return segments, []

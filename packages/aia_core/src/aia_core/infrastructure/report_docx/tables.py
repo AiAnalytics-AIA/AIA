@@ -49,6 +49,7 @@ from aia_core.infrastructure.report_docx.ooxml import (
     full_width,
     header_row,
     keep_row,
+    locked_inline,
     notes_row,
 )
 from aia_core.infrastructure.report_docx.styles import S, kept_style, row_keeps
@@ -84,15 +85,21 @@ def caption(
     p.add_run(f"{word} ")
     add_field(p, f"SEQ {word} \\* ARABIC", str(number))
     p.add_run(f" — {title}")
-    basis = [base_text(ctx, base_ref)] if base_ref else []
+    basis: list[str] = []
     if grade is not None and not (modelled_panel and grade is PrintGrade.MODELLED):
         basis.append(_grade_phrase(grade))
     if modelled_panel:
         basis.append(MODELLED_DISCLOSURE)
     if extra:
         basis.append(extra)
-    if basis:
-        p.add_run(f" ({'; '.join(basis)})", style=S.GRADE)
+    if base_ref or basis:
+        p.add_run(" (", style=S.GRADE)
+        if base_ref:
+            # The base n is the ref's own number: locked and tagged ``<ref>#n`` (RPT8a, P4).
+            with locked_inline(p, f"{base_ref}#n"):
+                p.add_run(base_text(ctx, base_ref), style=S.GRADE)
+        rest = "; ".join(basis)
+        p.add_run(f"{'; ' if base_ref and rest else ''}{rest})", style=S.GRADE)
     ctx.bookmarks.wrap(p, anchor)
 
 
@@ -180,22 +187,27 @@ def _write_cell(
         p.add_run(value.reason, style=S.GRADE)
         return False
     row = ctx.ledger.row(value.ref)
-    # The unit is in the header when the column names one; never twice.
-    p.add_run(
-        numbers.number(row.value, row.decimals)
-        if column.unit
-        else numbers.with_unit(row.value, row.decimals, row.unit),
-        style=run_style,
-    )
     indicative = ctx.ledger.is_indicative(value.ref)
-    if indicative:
-        p.add_run(INDICATIVE_MARK, style=S.GRADE)
-    if marks:
-        p.add_run(numbers.NBSP)
-        write_mark(ctx, p, value.ref)
+    # The cell's number with its marks, tagged with the ref, and its interval below, tagged
+    # ``<ref>#interval``: each a locked control (RPT8a, P2), inline, so the cell's other text stays
+    # editable.
+    with locked_inline(p, value.ref):
+        # The unit is in the header when the column names one; never twice.
+        p.add_run(
+            numbers.number(row.value, row.decimals)
+            if column.unit
+            else numbers.with_unit(row.value, row.decimals, row.unit),
+            style=run_style,
+        )
+        if indicative:
+            p.add_run(INDICATIVE_MARK, style=S.GRADE)
+        if marks:
+            p.add_run(numbers.NBSP)
+            write_mark(ctx, p, value.ref)
     if row.interval is not None and shows_interval(ctx, value.ref, value.with_interval):
         under = cell.add_paragraph(style=kept_style(S.TABLE_NUMBER, keep))
-        under.add_run(numbers.interval(row.interval, row.decimals, row.unit), style=S.GRADE)
+        with locked_inline(under, f"{value.ref}#interval"):
+            under.add_run(numbers.interval(row.interval, row.decimals, row.unit), style=S.GRADE)
     return indicative
 
 

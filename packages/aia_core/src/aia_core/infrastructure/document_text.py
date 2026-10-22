@@ -100,9 +100,24 @@ def _pdf(data: bytes) -> str:
     return "\n".join(parts)
 
 
+def paragraph_text(paragraph: Any) -> str:
+    """A DOCX paragraph's text as python-docx's ``Paragraph.text`` reads it, and the runs inside its
+    inline content controls too, which that skips: an AIA report locks each printed number in one
+    (artifact-report RPT8a), and a reader that dropped them would read the report without numbers.
+    Identical to ``Paragraph.text`` for a paragraph with no control. The client-source reader's; the
+    attachment reader stays the unit's."""
+    return "".join(
+        e.text
+        for e in paragraph._p.xpath(
+            "w:r | w:hyperlink | w:sdt/w:sdtContent/w:r | w:sdt/w:sdtContent/w:hyperlink"
+        )
+    )
+
+
 def _docx(data: bytes) -> str:
     from docx import Document
 
+    # As the unit read it (Paragraph.text): a content control's runs are not, here alone.
     return "\n".join(p.text for p in Document(io.BytesIO(data)).paragraphs)
 
 
