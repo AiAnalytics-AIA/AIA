@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 import { cleanup, fireEvent, render, screen } from "@testing-library/react";
-import { afterEach, expect, it } from "vitest";
+import { afterEach, expect, it, vi } from "vitest";
 import { useState } from "react";
 import type { ResearchRun } from "@/lib/api";
 import { ResultsWorkspace } from "./ResultsWorkspace";
@@ -150,4 +150,35 @@ it("says a response process it cannot read is unreadable, and that it cannot tel
   render(<ResultsWorkspace run={unreadable} panels={panels} progressHref={null} notice={null} />);
   expect((document.querySelector("[data-run-methodology]") as HTMLElement).textContent).toContain("Odpověď záznam nelze přečíst");
   expect((document.querySelector("[data-response-deviation]") as HTMLElement).textContent).toContain("nelze říct");
+});
+
+it("shows the study's report card on Přehled and Rešerše a zpráva only, kept mounted with its state", () => {
+  render(<ResultsWorkspace run={run} panels={[...panels, { id: "analysis", label: "AI analýza", description: "Analýza", content: <p>Moduly</p> }]} progressHref={null} notice={null} lead={<Camera />} />);
+  const card = () => document.querySelector("[data-results-lead]") as HTMLElement;
+  expect(card().hidden).toBe(false);
+  fireEvent.click(screen.getByRole("button", { name: "Úhel 0" }));
+  for (const [tab, hidden] of [["Data", true], ["Sociomapy", true], ["AI analýza", true], ["Rešerše a zpráva", false], ["Přehled", false]] as const) {
+    fireEvent.click(screen.getByRole("tab", { name: tab }));
+    expect(card().hidden, tab).toBe(hidden);
+  }
+  expect(screen.getAllByRole("button", { name: "Úhel 15" })).toHaveLength(1);
+});
+
+it("opens a view named by the address scrolled to its tabs, and the overview where it is", async () => {
+  const scrolled = vi.fn();
+  const real = Element.prototype.scrollIntoView;
+  Element.prototype.scrollIntoView = scrolled;
+  try {
+    view();
+    await new Promise((r) => requestAnimationFrame(r));
+    expect(scrolled).not.toHaveBeenCalled();
+    cleanup();
+    window.history.replaceState(null, "", "/results#maps");
+    view();
+    await new Promise((r) => requestAnimationFrame(r));
+    expect(screen.getByRole("tab", { name: "Sociomapy" }).getAttribute("aria-selected")).toBe("true");
+    expect(scrolled.mock.contexts).toEqual([screen.getByRole("tablist")]);
+  } finally {
+    Element.prototype.scrollIntoView = real;
+  }
 });

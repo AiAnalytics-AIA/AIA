@@ -14,7 +14,7 @@ import { lead as leadApi, researcherLead, ApiError, type Readiness, type Researc
 import { ACTION_LABELS } from "@/lib/research-agent-jobs";
 import { appRoutes } from "@/lib/app-routes";
 import type { LeadOutput, LeadRequest, LeadState, LeadTurn, LeadView, ResearcherLead, RetryRun, SelfUpdateDecision } from "@/lib/lead";
-import { commandRequest, composerHint, droppedLines, leadReasonWords as reasonWords, pendingSelfUpdate, targetLabel, TYPED_UNDECIDED_WHY } from "@/lib/lead";
+import { commandRequest, composerHint, droppedLines, leadReasonWords as reasonWords, pendingSelfUpdate, targetLabel, type TargetWords, TYPED_UNDECIDED_WHY } from "@/lib/lead";
 import { conversationTimeline } from "@/lib/lead-cards";
 import { isDayBreak, withDayBreaks } from "@/lib/day-label";
 import { STAGES, isWorkbenchStage, type WorkbenchStage } from "@/lib/workbench-stages";
@@ -63,7 +63,7 @@ const time = (iso: string) => {
 /** The newest Lead turn that finished: the one whose view tools have been applied. */
 const newestCompleted = (turns: LeadTurn[]) => [...turns].reverse().find((t) => t.actor === "lead" && t.status === "COMPLETED") ?? null;
 
-export function LeadPane({ studyId, stage, canEdit, focus, picking, onPick, onClearFocus, onView, onRequest, onTurns, onFocusMode, onClose, onSession, mode, epoch, jobs = [], onOpenJob, onLead, beforeMessage, cards, registerSend }: {
+export function LeadPane({ studyId, stage, canEdit, focus, picking, onPick, onClearFocus, onView, onRequest, onTurns, onFocusMode, onClose, onSession, mode, epoch, jobs = [], onOpenJob, onLead, beforeMessage, cards, registerSend, design }: {
   studyId: string;
   stage: WorkbenchStage;
   canEdit: boolean;
@@ -98,6 +98,8 @@ export function LeadPane({ studyId, stage, canEdit, focus, picking, onPick, onCl
   cards?: LeadCardsContext;
   /** Receives the way a stage sends the Lead a message, as the person would type it. */
   registerSend?: (send: (text: string) => void) => void;
+  /** The working copy a view chip's research question or hypothesis is named from (F18). */
+  design?: TargetWords | null;
 }) {
   const [me, setMe] = useState<ResearcherLead | null>(null);
   const [session, setSession] = useState<LeadState | null>(null);
@@ -264,6 +266,7 @@ export function LeadPane({ studyId, stage, canEdit, focus, picking, onPick, onCl
         )}
       </div>
       <TypedCardFacts.Provider value={{ walletOn: session?.wallet_enabled === true, retryRun: session?.analysis_retry_run ?? null }}>
+      <ViewWords.Provider value={design ?? null}>
       <Conversation turns={session?.turns ?? []} jobs={jobs} cards={cards} studyId={studyId} onOpenJob={onOpenJob} busy={!!session?.busy || sending} name={name} onFollow={send} onView={onView} onRequest={onRequest} onSelfUpdate={decideSelfUpdate} canEdit={canEdit}>
         {error ? <div className="msg"><div className="notice"><Glyph tone="fault" size={11} />{error}</div></div> : null}
         {held ? (
@@ -273,6 +276,7 @@ export function LeadPane({ studyId, stage, canEdit, focus, picking, onPick, onCl
         {me && !me.hatched ? <HatchCard onHatch={hatch} /> : null}
         {session && !session.available ? <div className="msg"><div className="notice"><Glyph tone="inert" size={11} />{reasonWords(session.unavailable_reason ?? "research_lead_unavailable")}</div></div> : null}
       </Conversation>
+      </ViewWords.Provider>
       </TypedCardFacts.Provider>
       <Composer draft={draft} setDraft={setDraft} onSend={send} busy={!!session?.busy || sending} queued={queued.map((q) => q.text)} onUnqueue={(i) => setQueued((q) => q.filter((_, j) => j !== i))}
         disabled={!canEdit || !me?.hatched || !session?.available} hint={composerHint({ canEdit, hatched: me?.hatched, available: session?.available, failed: error !== null })} focus={focus} picking={picking} onPick={onPick} onClearFocus={onClearFocus} />
@@ -405,7 +409,10 @@ function Prose({ text }: { text: string }) {
   })}</>;
 }
 
-const VIEW_LABEL = (v: LeadView) => (v.op === "open_stage" ? `Otevřít ${isWorkbenchStage(v.stage) ? STAGES[v.stage].label : v.stage}` : `${v.op === "inspect" ? "Detail" : "Ukázat"}: ${targetLabel(v.target)}`);
+/** The working copy a view chip's target is named from (F18). */
+const ViewWords = createContext<TargetWords | null>(null);
+
+const VIEW_LABEL = (v: LeadView, design: TargetWords | null) => (v.op === "open_stage" ? `Otevřít ${isWorkbenchStage(v.stage) ? STAGES[v.stage].label : v.stage}` : `${v.op === "inspect" ? "Detail" : "Ukázat"}: ${targetLabel(v.target, design)}`);
 
 function LeadTurnView({ t, name, last, busy, onFollow, onView, onRequest, onSelfUpdate, canEdit, job, onOpenJob, studyId, cards, run }: {
   t: LeadTurn; name: string; last: boolean; busy: boolean; canEdit: boolean; job: ResearchAgentJob | null; onOpenJob?: (job: ResearchAgentJob) => void;
@@ -413,6 +420,7 @@ function LeadTurnView({ t, name, last, busy, onFollow, onView, onRequest, onSelf
   onFollow: (t: string) => void; onView: (ops: LeadView[]) => void; onRequest: (turn: LeadTurn, r: LeadRequest) => Promise<void>;
   onSelfUpdate: (turn: LeadTurn, decision: "accept" | "dismiss") => Promise<SelfUpdateDecision | null>;
 }) {
+  const design = useContext(ViewWords);
   if (t.status === "QUEUED" || t.status === "RUNNING") {
     return (
       <div className="msg"><div className="lead"><div className="lead__av"><Mark size={14} onDark /></div>
@@ -435,7 +443,7 @@ function LeadTurnView({ t, name, last, busy, onFollow, onView, onRequest, onSelf
           {edits.length ? (
             <div className="links"><button type="button" className="linkchip" onClick={() => onView([{ op: "open_stage", stage: t.stage && isWorkbenchStage(t.stage) ? t.stage : "brief" }])}><Icon name="pencil" size={12} />{edits.length === 1 ? "1 návrh změny v artefaktu" : `${edits.length} návrhů změn v artefaktu`}</button></div>
           ) : null}
-          {o.view?.length ? <div className="links">{o.view.map((v, i) => <button key={i} type="button" className="linkchip" onClick={() => onView([v])}><Icon name="open" size={12} />{VIEW_LABEL(v)}</button>)}</div> : null}
+          {o.view?.length ? <div className="links">{o.view.map((v, i) => <button key={i} type="button" className="linkchip" onClick={() => onView([v])}><Icon name="open" size={12} />{VIEW_LABEL(v, design)}</button>)}</div> : null}
           <SelfUpdate t={t} o={o} canEdit={canEdit} onDecide={(d) => onSelfUpdate(t, d)} />
           {o.dropped?.length ? droppedLines(o.dropped).map((line) => <div key={line} className="cap">{line}</div>) : null}
         </div>

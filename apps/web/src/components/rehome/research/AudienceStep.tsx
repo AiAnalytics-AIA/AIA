@@ -21,8 +21,10 @@
 import { useRouter } from "next/navigation";
 import { useContext, useEffect, useState } from "react";
 
+import { Stepper } from "@/components/ui/Stepper";
 import { ApiError, type AudienceCatalogue, population } from "@/lib/api";
 import { audienceFilterAia, audiencePartAia, audienceSubpanelAia } from "@/lib/artifacts/audience";
+import { rangeWords } from "@/lib/number-input";
 import { isNativeResult } from "@/lib/research-agent-jobs";
 import { t, tv } from "@/i18n/t";
 import {
@@ -41,6 +43,8 @@ import {
   applyProposal,
   audienceReady,
   audienceView,
+  boundOf,
+  endUnreadable,
   chooseAudience,
   discoverText,
   factorRefusal,
@@ -55,7 +59,7 @@ import {
   liveVerdict,
   proposePayload,
   proposeText,
-  rangeOf,
+  rangeBounds,
   removeAudienceFactor,
   searchKey,
   selectedValues,
@@ -64,8 +68,9 @@ import {
   setAudienceEntry,
   setDiscoverField,
   setRange,
+  storedRange,
 } from "@/research/audience";
-import type { ResearchProject } from "@/research/model";
+import type { Json, ResearchProject } from "@/research/model";
 import { Icon } from "../icons";
 import { ActionDock, FrameNavigation, RadioCard, StepSection } from "../step";
 import { AiButton, Button, Chip, Field, Tag, TextArea, TextInput } from "../ui";
@@ -401,28 +406,76 @@ function LiveFilters({ live }: { live: Extract<Live, { state: "ready" }> }) {
   );
 }
 
+/**
+ * A numeric factor's range (input-interactions I2, audit B6): two steppers bounded by the
+ * population's own range, each also bounded by the other end, so a crossed range is refused at the
+ * field rather than swapped as the population would. An unset end is "Bez omezení", said, and an end
+ * is unset by its own button: the population's end then stands for it (setRange leaves it out).
+ * Nothing typed is clamped. A stored end the stepper cannot show is said, never shown as no end.
+ */
+function RangeEditor({ factor, legend, lo, hi, disabled, onSave }: { factor: Factor; legend: string; lo: Json; hi: Json; disabled: boolean; onSave: (min: number | null, max: number | null) => void }) {
+  const bounds = rangeBounds(factor);
+  if (!bounds) return <p className="text-xs text-ink-muted">{t("research.audience.rangeUnknown")}</p>;
+  const low = boundOf(lo);
+  const high = boundOf(hi);
+  const within = (v: number) => Math.min(Math.max(v, bounds.min), bounds.max);
+  const side = (end: "min" | "max") => {
+    const value = end === "min" ? low : high;
+    const unreadable = endUnreadable(end === "min" ? lo : hi);
+    const label = tv(end === "min" ? "research.audience.rangeFromOf" : "research.audience.rangeToOf", { factor: legend });
+    const save = (v: number | null) => (end === "min" ? onSave(v, high) : onSave(low, v));
+    return (
+      <div className="flex flex-col gap-1">
+        <span aria-hidden className="text-xs text-ink-muted">{t(end === "min" ? "research.audience.rangeMin" : "research.audience.rangeMax")}</span>
+        <Stepper
+          // Either end moving moves this field's bounds: it starts afresh, so a draft refused against
+          // the old bounds never outlives them.
+          key={`${String(low)}-${String(high)}`}
+          value={value}
+          label={label}
+          min={end === "min" ? bounds.min : within(low ?? bounds.min)}
+          max={end === "min" ? within(high ?? bounds.max) : bounds.max}
+          decimals={bounds.decimals}
+          showBounds={false}
+          disabled={disabled}
+          onCommit={save}
+          note={value === null ? <span className="text-xs text-ink-muted">{t(unreadable ? "research.audience.rangeUnreadable" : "research.audience.rangeOpen")}</span> : undefined}
+        />
+        {/* Beside the field, not its note: a refused value replaces the note, and clearing the end
+            is a way out of it. */}
+        {value === null ? null : (
+          <button type="button" disabled={disabled} aria-label={tv("research.audience.rangeClear", { label })} onClick={() => save(null)} className="min-h-6 self-start rounded-sm text-xs text-ink-muted underline hover:text-ink focus-visible:outline-2 focus-visible:outline-focus-ring">
+            {t("research.audience.rangeOpen")}
+          </button>
+        )}
+      </div>
+    );
+  };
+  return (
+    <>
+      <div className="flex flex-wrap items-start gap-4">
+        {side("min")}
+        {side("max")}
+      </div>
+      <p className="mt-1 text-xs text-ink-muted">
+        {tv("research.audience.rangeHint", { range: rangeWords(bounds) })}
+        {low !== null && high !== null ? ` ${t("research.audience.rangeOrder")}` : ""}
+      </p>
+    </>
+  );
+}
+
 /** One factor: a range for a numeric one, its values (with counts) for any other. */
 function FactorEditor({ factor, project, onChange }: { factor: Factor; project: ResearchProject; onChange: (c: Change) => void }) {
   const refusal = factorRefusal(factor);
   const legend = `${factor.label || factor.id}`;
   if (factor.kind === "numeric") {
-    const { lo, hi } = rangeOf(project, factor.id);
-    const commit = (min: string, max: string) => onChange(setRange(project, factor.id, min, max));
+    const { lo, hi } = storedRange(project, factor.id);
     return (
       <fieldset className="rounded-control border border-border p-3" disabled={!!refusal}>
         <legend className="px-1 text-sm font-medium">{legend}</legend>
         {refusal ? <p className="text-xs text-ink-muted">{refusal}</p> : null}
-        <div className="flex flex-wrap items-end gap-2">
-          <Field label={t("research.audience.rangeMin")}>
-            <TextInput key={`lo-${String(lo)}`} type="number" disabled={!!refusal} className="w-28" defaultValue={lo == null ? "" : String(lo)} onBlur={(e) => commit(e.target.value, hi == null ? "" : String(hi))} />
-          </Field>
-          <Field label={t("research.audience.rangeMax")}>
-            <TextInput key={`hi-${String(hi)}`} type="number" disabled={!!refusal} className="w-28" defaultValue={hi == null ? "" : String(hi)} onBlur={(e) => commit(lo == null ? "" : String(lo), e.target.value)} />
-          </Field>
-        </div>
-        {factor.min != null && factor.max != null ? (
-          <p className="mt-1 text-xs text-ink-muted">{tv("research.audience.rangeHint", { min: factor.min, max: factor.max })}</p>
-        ) : null}
+        <RangeEditor factor={factor} legend={legend} lo={lo} hi={hi} disabled={!!refusal} onSave={(min, max) => onChange(setRange(project, factor.id, min, max))} />
       </fieldset>
     );
   }

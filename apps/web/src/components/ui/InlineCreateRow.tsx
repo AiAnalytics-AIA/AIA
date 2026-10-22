@@ -2,9 +2,9 @@
 
 // I5: a new thing is created in the list, where it will appear. "+ Nová složka" becomes a row
 // with its input focused; Enter creates and opens the next empty row (ten folders are ten Enters);
-// Esc, or leaving it empty, cancels and gives focus back to "+". Length and uniqueness are checked
-// at the row as the person types; a refusal from the server is said at the same row (I9), with
-// the name kept. Reference: `AddItem`, prototypes/research-lead-v2/src/components/ui.tsx:108.
+// Esc, or leaving it empty, cancels and gives focus back to "+". Length and uniqueness (or the
+// caller's own rule, `validate`) are checked at the row as the person types; a refusal from the
+// server is said at the same row (I9), with the name kept. Reference: `AddItem`, prototypes/research-lead-v2/src/components/ui.tsx:108.
 
 import { type ReactNode, useId, useRef, useState } from "react";
 
@@ -14,7 +14,7 @@ import { Icon, type IconName } from "../rehome/icons";
 import { FIELD_ERROR, FOCUS } from "./parts";
 
 export function InlineCreateRow({
-  label, onCreate, existing = [], maxLength = NAME_MAX, icon = "plus", placeholder, next = true, disabled = false, adornment, emptyWords, className = "",
+  label, onCreate, existing = [], validate, maxLength = NAME_MAX, icon = "plus", placeholder, next = true, disabled = false, adornment, emptyWords, className = "",
 }: {
   /** The action and the field's name ("Nová složka"). */
   label: string;
@@ -25,6 +25,12 @@ export function InlineCreateRow({
   onCreate: (name: string) => Promise<string | boolean | void> | string | boolean | void;
   /** The names already in the list: one equal to the typed name, case and spacing aside, is refused. */
   existing?: readonly string[];
+  /**
+   * The caller's own rule for what it makes when that is not a name (a research question): why the
+   * typed text cannot be one, in its words, or null; checked as typed, after the length. A caller
+   * whose list has its own uniqueness rule passes it here instead of `existing`.
+   */
+  validate?: (value: string) => string | null;
   maxLength?: number;
   /** The icon of the row while it is typed in (the thing it makes: a folder, a file). */
   icon?: IconName;
@@ -52,9 +58,10 @@ export function InlineCreateRow({
   const hintId = useId();
 
   const problem = nameProblem(draft, existing, maxLength);
+  const ruled = problem ? null : (validate?.(cleanName(draft)) ?? null);
   // An empty row is said only once the person tried to create it; a taken or too long name at once.
   const words = (p: NonNullable<typeof problem>) => (p.kind === "empty" && emptyWords !== undefined ? emptyWords : nameProblemWords(p));
-  const shown: string | null = refusal ?? (problem && (problem.kind !== "empty" || submitted) ? words(problem) : null);
+  const shown: string | null = refusal ?? (problem && (problem.kind !== "empty" || submitted) ? words(problem) : ruled);
 
   // Each creation is numbered, and closing the row ends the current one: an answer that comes
   // back for a row already left (Esc while it was creating) sets nothing on the row reopened
@@ -75,7 +82,7 @@ export function InlineCreateRow({
 
   const create = async () => {
     setSubmitted(true);
-    if (problem || busy) return;
+    if (problem || ruled || busy) return;
     const name = cleanName(draft);
     const op = ++latest.current;
     setBusy(true);

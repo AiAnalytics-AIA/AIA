@@ -74,7 +74,7 @@ def test_a_member_reads_but_only_an_administrator_changes(scoped: Any, session: 
 
 def test_with_nothing_stored_the_codes_preset_is_in_force(scoped: Any, session: Any) -> None:
     in_force = _reader(scoped, session).in_force(SOCIOMAP)
-    assert (in_force.origin, in_force.preset, in_force.version) == ("code", "aia-sociomap-3", None)
+    assert (in_force.origin, in_force.preset, in_force.version) == ("code", "aia-sociomap-5", None)
     assert _reader(scoped, session).versions(SOCIOMAP) == []
 
 
@@ -99,7 +99,7 @@ def test_activation_puts_a_version_in_force_and_reset_returns_to_the_preset(
     assert in_force.version.payload == second.payload
     assert _reader(scoped, session).in_force(SOCIOMAP).version == second
     back = repo.activate(SOCIOMAP, None, reason="zpět")
-    assert (back.origin, back.preset) == ("code", "aia-sociomap-3")
+    assert (back.origin, back.preset) == ("code", "aia-sociomap-5")
     history = _reader(scoped, session).history(SOCIOMAP)
     assert [(a.version_number, a.reason) for a in history] == [
         (None, "zpět"),

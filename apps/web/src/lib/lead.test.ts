@@ -9,6 +9,8 @@ import {
   type LeadEdit, type LeadTurn,
 } from "./lead";
 import type { ResearchProject } from "@/research/model";
+import { itemTargets } from "@/research/plan-narrative";
+import type { PlanState } from "@/research/plan";
 
 const project = (over: Partial<ResearchProject> = {}): ResearchProject => ({
   title: "Studie",
@@ -205,13 +207,30 @@ describe("targetLabel for every artifact's kinds", () => {
   });
 });
 
+describe("targetLabel with the working copy (F18)", () => {
+  it("names a research question or a hypothesis by its words, and by its id only when the copy does not hold it", () => {
+    const project = { research_plan: { research_questions: ["Kdo kupuje?"], hypotheses: ["Mladší kupují častěji než starší, kteří zůstávají u své oblíbené značky déle."] } };
+    const [rq] = itemTargets({ project, analysis: null } as unknown as PlanState).research_questions;
+    const [hyp] = itemTargets({ project, analysis: null } as unknown as PlanState).hypotheses;
+    expect(targetLabel(rq!, { project, analysis: null })).toBe("Výzkumná otázka: Kdo kupuje?");
+    expect(targetLabel(hyp!, { project, analysis: null })).toBe("Hypotéza: Mladší kupují častěji než starší, kteří zůstávají u své o…");
+    expect(targetLabel("hypothesis:hyp_none", { project, analysis: null })).toBe("Hypotéza hyp_none");
+    expect(targetLabel(hyp!)).toBe(`Hypotéza ${hyp!.split(":")[1]}`);
+  });
+});
+
 describe("targetLabel", () => {
   it("says a Lead target in words, never the raw code for a kind it knows", () => {
     expect(targetLabel("question:Q_1")).toBe("Otázka Q_1");
     expect(targetLabel("section:B1")).toBe("Oddíl B1");
     expect(targetLabel("plan:variants")).toBe("Návrh: varianty výzkumu");
     expect(targetLabel("plan:narrative")).toBe("Návrh: porozumění zadání");
-    expect(targetLabel("brief:goal")).toBe("Zadání: goal");
+    // Zadání's sections by the words its screen gives them (F18), an unknown one by its name.
+    expect(targetLabel("brief:goal")).toBe("Zadání: Cíl");
+    expect(targetLabel("brief:title")).toBe("Zadání: Název");
+    expect(targetLabel("brief:briefing.situation")).toBe("Zadání: Situace");
+    expect(targetLabel("brief:files")).toBe("Zadání: Podklady");
+    expect(targetLabel("brief:elsewhere")).toBe("Zadání: elsewhere");
     expect(targetLabel("somewhere")).toBe("somewhere");
   });
 });

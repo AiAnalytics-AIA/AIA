@@ -483,6 +483,29 @@ forbid "the worker never touches the approval ledger" \
 forbid "executors never touch the approval ledger" \
   'ApprovalDecisionRow|approval_decisions' \
   apps/executors/src
+# A write logged without its author (domain/edit_log.py WriteBy) is only a revision migrated from
+# 18.6.6, whose author the unit did not record. The source that admits it is named by the
+# migration alone, so no other writer can log a person's write as nobody's by picking the label
+# (working-copy-edit-ops WCE2, review of #762). The table's own CHECK names it too (tables.py).
+forbid "only the 18.6.6 migration logs a write as migrated" \
+  'OpSource\.MIGRATION' \
+  "$CORE" \
+  "$CORE/domain/edit_log.py" "$CORE/application/workspace_migration.py" \
+  "$CORE/infrastructure/tables.py"
+forbid "the API, worker and executors never log a write as migrated" \
+  'OpSource\.MIGRATION' \
+  apps
+# The working copy's operation log (ADR 0029 decision 3, working-copy-edit-ops WCE2): insert-once,
+# every query under the Study's three scope columns. Its repository is the only reader and writer,
+# so a row written anywhere else is a change of a study's design nobody logged through the one
+# writer (apply_edit_ops), and a read anywhere else could cross a Study.
+forbid "the working copy's operation log is touched only by its repository" \
+  'WorkspaceEditOpRow|(FROM|INTO|UPDATE|JOIN)[[:space:]]+workspace_edit_ops' \
+  "$CORE" \
+  "$CORE/infrastructure/tables.py" "$CORE/infrastructure/workspace_edit_repository.py"
+forbid "the API, worker and executors never touch the working copy's operation log" \
+  'WorkspaceEditOpRow|(FROM|INTO|UPDATE|JOIN)[[:space:]]+workspace_edit_ops' \
+  apps
 # A study's wallet (ADR 0028 decision 2, lead-orchestration LO1): StudyWalletRepository is the
 # only reader and writer of its three tables, because every write that compares an amount takes
 # the study row's lock first; a charge written anywhere else is a hold nobody checked against the
@@ -768,6 +791,11 @@ forbid "among the executors, only the recorded composition builds the recorded n
 # (tables.py, before_update); a bulk update() would go around it.
 forbid "no statement updates a project revision" \
   'update\(\s*ProjectRevisionRow' \
+  packages/aia_core/src
+# A logged change of the working copy is insert-once (tables.py, before_update); a bulk update()
+# would go around that too (working-copy-edit-ops WCE2b, review of #765).
+forbid "no statement updates a logged working-copy change" \
+  'update\(\s*WorkspaceEditOpRow' \
   packages/aia_core/src
 
 # --- Layer 4b: executors do the work; they neither serve nor decide scope -----

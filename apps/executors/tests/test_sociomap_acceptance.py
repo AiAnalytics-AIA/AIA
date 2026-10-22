@@ -27,8 +27,14 @@ from aia_core.domain.research_design import (
     SELECTION_NOT_APPLIED,
     ResearchSpecification,
 )
-from aia_core.domain.research_sociomap import read_methods, research_sociomaps
-from aia_core.domain.sociomap import MapOutcome, SociomapArtifactV3, read_artifact
+from aia_core.domain.research_sociomap import SociomapMethod, read_methods, research_sociomaps
+from aia_core.domain.sociomap import (
+    AIA_SOCIOMAP_V1,
+    AIA_SOCIOMAP_V3,
+    MapOutcome,
+    SociomapArtifactV3,
+    read_artifact,
+)
 from aia_core.domain.synthetic_fieldwork import synthetic_dataset
 from aia_core.domain.workflow import WorkflowRunStatus
 from aia_core.infrastructure.build_identity import BuildIdentity
@@ -134,6 +140,13 @@ def worker(
     )
 
 
+#: The pins these acceptance runs take: the old default (the reference map beside
+#: aia-sociomap-3), whose object map every assertion here reads. A stored run of it still
+#: computes, and replays, exactly as it did; a new run's aia-sociomap-5 is accepted in
+#: ``test_sociomap_frozen_methods.py``.
+OLD_DEFAULT = (SociomapMethod.of(AIA_SOCIOMAP_V1), SociomapMethod.of(AIA_SOCIOMAP_V3))
+
+
 def _start(world: Any, design: dict[str, Any]) -> str:
     with world.sessions() as session:
         scope = world.lead_scope(session)
@@ -143,6 +156,7 @@ def _start(world: Any, design: dict[str, Any]) -> str:
         started = ResearchRuns(session, scope).start(
             design_revision_id=revision.revision_id,
             fieldwork_source=FieldworkSource.SYNTHETIC_FIXTURE,
+            sociomap_methods=OLD_DEFAULT,
         )
         session.commit()
         return started.run_id

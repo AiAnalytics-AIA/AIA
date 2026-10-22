@@ -168,7 +168,14 @@ def test_an_edited_n_min_moves_every_side_table() -> None:
 
 def test_a_runs_pinned_methods_give_its_side_tables() -> None:
     """What the readiness warning and the side tables both read (S2c)."""
-    assert side_tables_of(default_methods()) == side_tables_for((AIA_SOCIOMAP_V3,))
+    from aia_core.domain.sociomap.specification import AIA_SOCIOMAP_V5
+
+    # A new run's pair n_min (the readiness warning's) is aia-sociomap-5's own.
+    assert side_tables_of(default_methods()) == side_tables_for((AIA_SOCIOMAP_V5,))
+    assert side_tables_of(default_methods()).n_min == AIA_SOCIOMAP_V5.relation.n_min == 10
+    assert side_tables_of((*LEGACY_METHODS, SociomapMethod.of(AIA_SOCIOMAP_V3))) == (
+        side_tables_for((AIA_SOCIOMAP_V3,))
+    )
     assert side_tables_of(LEGACY_METHODS) == LEGACY_SIDE_TABLES
     edited = SociomapMethod.of(_edited(n_min=45))
     assert side_tables_of((*LEGACY_METHODS, edited)).n_min == 45

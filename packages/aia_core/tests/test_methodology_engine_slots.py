@@ -172,12 +172,13 @@ def test_a_versions_formulas_travel_with_its_specification() -> None:
     ).model_dump(mode="json")
     kernel = "h * exp(-d2 / (2 * sigma ** 2))"
     methods = sociomap_methods_for({"spec": spec, "formulas": {"f12.kernel": kernel}})
-    edited = methods[1]
+    # The edited version alone: no reference map is pinned beside it any more.
+    (edited,) = methods
     assert edited.method_id == "aia-sociomap-3+e4"
     assert edited.model_dump(mode="json")["formulas"] == {"f12.kernel": kernel}
     stored = read_methods([m.model_dump(mode="json") for m in methods])
     assert stored == methods
-    assert set(stored[1].slots()) == {"f12.kernel"}
+    assert set(stored[0].slots()) == {"f12.kernel"}
     plain = sociomap_methods_for({"spec": spec, "formulas": {}})
     assert methods_fingerprint(plain) != methods_fingerprint(methods)
 
@@ -201,3 +202,20 @@ def test_the_reference_map_carries_no_formula() -> None:
     method = SociomapMethod.of(AIA_SOCIOMAP_V1, {"f6.distance": "1 - r"})
     with pytest.raises(SociomapMethodsInvalid, match="only an object map"):
         method.slots()
+
+
+def test_a_version_that_changes_nothing_pins_its_preset_under_the_presets_own_name() -> None:
+    from aia_core.domain.research_sociomap import SociomapMethod
+    from aia_core.domain.sociomap.specification import AIA_SOCIOMAP_V5
+
+    spec = AIA_SOCIOMAP_V5.model_copy(
+        update={"methodology_version": "aia-sociomap-5+e1"}
+    ).model_dump(mode="json")
+    unchanged = {"base_preset": "aia-sociomap-5", "spec": spec, "formulas": {}}
+    assert sociomap_methods_for(unchanged) == (SociomapMethod.of(AIA_SOCIOMAP_V5),)
+    # A replaced formula, or any changed value, is another method under the version's name.
+    kernel = {"f12.kernel": "h * exp(-d2 / (sigma * sigma))"}
+    (with_formula,) = sociomap_methods_for({**unchanged, "formulas": kernel})
+    assert with_formula.method_id == "aia-sociomap-5+e1" and with_formula.formulas == kernel
+    changed = {**unchanged, "spec": {**spec, "relation": {**spec["relation"], "n_min": 12}}}
+    assert [m.method_id for m in sociomap_methods_for(changed)] == ["aia-sociomap-5+e1"]

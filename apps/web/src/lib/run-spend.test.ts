@@ -13,9 +13,9 @@ describe("spendRows", () => {
   it("reads spent, held and the study's remainder, a hold never as spent", () => {
     const rows = spendRows(SPEND, true, 98.5)!;
     expect(rows.map((r) => [r.key, r.value])).toEqual([
-      ["spent", "1.23 USD"],
-      ["held", "0.50 USD"],
-      ["remaining", "98.50 USD"],
+      ["spent", "1,23 USD"],
+      ["held", "0,50 USD"],
+      ["remaining", "98,50 USD"],
     ]);
     expect(rows.find((r) => r.key === "remaining")!.note).toBe(t("research.exec.spend.remainingNote"));
     // Holds are spoken of as the running steps' only while the run goes on.

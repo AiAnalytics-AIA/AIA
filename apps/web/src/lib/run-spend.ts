@@ -6,10 +6,9 @@
 
 import { t, tv } from "@/i18n/t";
 import type { RunSpend } from "@/lib/api";
+import { usd } from "@/lib/researcher-spend";
 
 export type SpendRow = { key: "spent" | "held" | "unpriced" | "remaining"; label: string; value: string; note?: string };
-
-const usd = (v: number) => `${v.toFixed(2)} USD`;
 
 /** The card's rows, or null when the run's spend is unknown (not read, or not given to this caller).
  *  `remaining`: the study's remainder, undefined while it is read, null when it could not be. */

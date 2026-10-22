@@ -5,6 +5,8 @@ import { act, cleanup, fireEvent, render, screen, waitFor } from "@testing-libra
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import type { LeadState, LeadTurn, ResearcherLead } from "@/lib/lead";
+import type { PlanState } from "@/research/plan";
+import { itemTargets } from "@/research/plan-narrative";
 import { LeadPane, type LeadCardsContext } from "./LeadPane";
 
 const hatched: ResearcherLead = {
@@ -376,6 +378,18 @@ describe("LeadPane", () => {
     rerender(pane({ focus: null, stage: "design" }));
     state = { ...state, busy: false, turns: [turn({ output: { reply: "Hotovo." } })] };
     await waitFor(() => expect(posts.at(-1)).toEqual({ kind: "message", text: "Zkrať ji", stage: "brief", focus }));
+  });
+
+  it("names a view chip's research question or hypothesis by its words in the working copy (F18)", async () => {
+    const design = { project: { research_plan: { hypotheses: ["Mírnější varianta osloví širší publikum."] } }, analysis: null };
+    const target = itemTargets(design as unknown as PlanState).hypotheses[0]!;
+    state = { ...state, turns: [turn({ output: { reply: "Tady je.", view: [{ op: "inspect", target }, { op: "focus", target: "hypothesis:hyp_gone" }] } })] };
+    const onView = vi.fn();
+    render(pane({ design, onView }));
+    fireEvent.click(await screen.findByRole("button", { name: "Detail: Hypotéza: Mírnější varianta osloví širší publikum." }));
+    expect(onView).toHaveBeenCalledWith([{ op: "inspect", target }]);
+    // One the copy no longer holds keeps its id rather than borrowing words.
+    expect(screen.getByRole("button", { name: "Ukázat: Hypotéza hyp_gone" })).toBeTruthy();
   });
 
   it("keeps a message the server did not take, held until the researcher tries again", async () => {
