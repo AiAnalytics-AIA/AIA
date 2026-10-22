@@ -6,7 +6,7 @@ from typing import Any
 
 from aia_core.application.report_design import compose_design_sections
 from aia_core.application.report_tables import scale_notes
-from aia_core.domain.report.model import BulletList, Paragraph, Text
+from aia_core.domain.report.model import BulletList, Heading, Paragraph, Text
 from aia_core.domain.research_design import compile_design
 
 DESIGN: dict[str, Any] = {
@@ -185,3 +185,43 @@ def test_a_subpanel_left_from_a_population_choice_is_not_an_external_audiences()
     words = _words(compose_design_sections(spec, ()).chapter.blocks)
     assert "podpanelu" not in words
     assert "mimo populaci AIA" in words
+
+
+def test_the_chapter_opens_with_what_the_brief_asked_for_before_how_it_was_measured() -> None:
+    """F19: the draft said "co měl výzkum zjistit" and printed only how it measured it."""
+    spec, problems = compile_design(DESIGN)
+    assert spec is not None, problems
+    blocks = compose_design_sections(
+        spec,
+        ("Co lidé ráno pijí?",),
+        goal="Zjistit, zda dojíždějící koupí ranní nápoj do 60 Kč.",
+        decision_use="Rozhodnutí o uvedení nápoje.",
+    ).chapter.blocks
+    chapter = _words(blocks)
+    goal, use, question = (
+        chapter.index("Zjistit, zda dojíždějící koupí ranní nápoj do 60 Kč."),
+        chapter.index("Rozhodnutí o uvedení nápoje."),
+        chapter.index("Co lidé ráno pijí?"),
+    )
+    assert goal < use < question
+    headings = [b.text for b in blocks if isinstance(b, Heading)]
+    assert headings[:3] == ["Cíl studie", "Rozhodnutí, které má výzkum podpořit", "Výzkumné otázky"]
+
+
+def test_an_empty_brief_adds_no_heading_of_its_own() -> None:
+    spec, problems = compile_design(DESIGN)
+    assert spec is not None, problems
+    blocks = compose_design_sections(spec, (), goal=None, decision_use=None).chapter.blocks
+    headings = [b.text for b in blocks if isinstance(b, Heading)]
+    assert "Cíl studie" not in headings
+    assert "Rozhodnutí, které má výzkum podpořit" not in headings
+
+
+def test_a_goal_in_two_paragraphs_prints_as_two() -> None:
+    spec, problems = compile_design(DESIGN)
+    assert spec is not None, problems
+    blocks = compose_design_sections(
+        spec, (), goal="První odstavec.\n\nDruhý odstavec."
+    ).chapter.blocks
+    written = [_words((b,)) for b in blocks if isinstance(b, Paragraph)]
+    assert "První odstavec." in written and "Druhý odstavec." in written

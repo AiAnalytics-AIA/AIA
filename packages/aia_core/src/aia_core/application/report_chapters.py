@@ -44,7 +44,7 @@ from aia_core.application.report_tables import (
 )
 from aia_core.domain.analysis import AnalysisModuleId
 from aia_core.domain.analysis.native import native_items
-from aia_core.domain.report.model import ArtifactSource, Block, Section, SpecSource
+from aia_core.domain.report.model import ArtifactSource, Block, RunSource, Section, SpecSource
 from aia_core.domain.research_design import ResearchSpecification
 from aia_core.infrastructure.artifact_repository import ArtifactRepository, ArtifactStatus
 
@@ -151,7 +151,19 @@ def report_chapters(
         source=f"Zmrazený výsledek běhu {run_id}; evidence {first.inputs.table.fingerprint()[:12]}",
         scales=scale_notes(spec),
     )
-    design = compose_design_sections(spec, first.inputs.research_questions)
+    design = compose_design_sections(
+        spec,
+        first.inputs.research_questions,
+        goal=analysis.brief.goal,
+        decision_use=analysis.brief.decision_use,
+    )
+    # The goal and decision use are read from the Design Revision the run names, not from the
+    # specification (CHN1): named only when the chapter prints them.
+    brief_source = (
+        (RunSource("metadata.design_revision_id"),)
+        if analysis.brief.goal or analysis.brief.decision_use
+        else ()
+    )
     meta = run.get("metadata") or {}
     return ReportChapters(
         maps=tuple(
@@ -177,6 +189,7 @@ def report_chapters(
                 SpecSource("batteries"),
                 SpecSource("n"),
                 SpecSource("audience"),
+                *brief_source,
             ),
             appendix=sourced(
                 design.appendix, specification, SpecSource("questions"), SpecSource("batteries")

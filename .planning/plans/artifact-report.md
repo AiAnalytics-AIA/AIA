@@ -315,6 +315,21 @@ sentence refused by RD7 is marked at the sentence. Depends on `report-delivery#R
 
 ## Findings
 
+- **F19 (research-lead-workbench, from #778's journey): fixed on `fix/report-states-the-brief`.** The
+  internal draft never said what the person asked for: "Návrh studie" printed only how the study
+  measured. Now `NativeSources.brief` (`analysis_results.Brief`: the Design Revision's goal and decision
+  use, each `None` when empty) is carried on `RunAnalysis`, and `compose_design_sections` opens with "Cíl
+  studie" and "Co rozhodnutí ovlivní" in the internal report and the report with literature, the chapter
+  naming the Design Revision as its source (`RunSource("metadata.design_revision_id")`, CHN1). The
+  contracts move (`aia-internal-report-15`, `aia-contextual-report-11`). Deliberately not done, from
+  review: the cover keeps the study's record, because a brief's title is the template's "Nový výzkum"
+  until edited and a reused design carries the earlier study's; the client report is unchanged, because
+  its internal-marker scan would refuse a person's own brief words (e.g. a goal naming an AI product).
+  Tests: `test_report_design.py` `test_the_chapter_opens_with_what_the_brief_asked_for_before_how_it_was_measured`,
+  `test_an_empty_brief_adds_no_heading_of_its_own`; `test_analysis_executor.py`
+  `test_native_research_start_and_worker_complete_the_composed_analysis_graph` (the stored draft's design
+  chapter and its source).
+
 - **F-RPT-1 (2026-10-22): two owners of "the client version" cannot be kept in step.** On
   `fix/report-client-pinned-read` (`df1fb276`, `0bb8ebbe`, pushed, no PR), the report card and the pane
   each held a client version and were synced by events; two `/code-review high` passes found that the

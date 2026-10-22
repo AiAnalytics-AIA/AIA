@@ -1,16 +1,18 @@
 """The study's design in the internal report (complete-study-report B1b).
 
 A reader of the complete report needs to know what was asked before reading what came
-back: the comparable sets the run measured, its sample size and audience as the design
-stated them, and the whole questionnaire as an appendix. All of it is words from the run's
-own compiled specification -- the one its evidence was computed from -- so nothing here
-can describe a design the run did not execute. No number is printed but the design's own
-sizes (the sample the design asked for, a scale's end points), which are design facts, not
-results.
+back: the brief's goal and what the decision is for, the comparable sets the run measured,
+its sample size and audience as the design stated them, and the whole questionnaire as an
+appendix. The goal and decision use are the run's own Design Revision's words (F19); the rest
+is words from the run's own compiled specification -- the one its evidence was computed
+from -- so nothing here can describe a design the run did not execute. No result is printed:
+the numbers here are the design's own sizes (the sample the design asked for, a scale's end
+points) and whatever the person wrote into the goal or decision use, design facts all.
 """
 
 from __future__ import annotations
 
+import re
 from collections.abc import Sequence
 from dataclasses import dataclass
 
@@ -123,11 +125,20 @@ def _audience_rule(spec: ResearchSpecification) -> str:
     return f"{_STRATEGY['filters']} ({named})."
 
 
+def _paragraphs(written: str) -> list[Block]:
+    """A person's text as they wrote it: a paragraph for each part a blank line separates."""
+    return [Paragraph(text(part.strip())) for part in re.split(r"\n\s*\n", written) if part.strip()]
+
+
 def compose_design_sections(
-    spec: ResearchSpecification, research_questions: Sequence[str]
+    spec: ResearchSpecification,
+    research_questions: Sequence[str],
+    *,
+    goal: str | None = None,
+    decision_use: str | None = None,
 ) -> DesignSections:
-    """The design as the run executed it: questions, sets, sample and audience; then every
-    question of the questionnaire in its order."""
+    """The design as the run executed it: the brief's goal and what the decision is for, then
+    questions, sets, sample and audience; then every question of the questionnaire in its order."""
     blocks: list[Block] = [
         Paragraph(
             text(
@@ -137,6 +148,13 @@ def compose_design_sections(
             )
         )
     ]
+    # What the person asked for, before how it was measured (F19).
+    if goal:
+        blocks.append(Heading("Cíl studie", 2))
+        blocks.extend(_paragraphs(goal))
+    if decision_use:
+        blocks.append(Heading("Rozhodnutí, které má výzkum podpořit", 2))
+        blocks.extend(_paragraphs(decision_use))
     if research_questions:
         blocks.append(Heading("Výzkumné otázky", 2))
         blocks.append(BulletList(tuple(ListItem(text(q)) for q in research_questions)))
