@@ -6,8 +6,8 @@
 // Read on the working revision the person sees (working-copy-edit-ops WCE7b), never on a submitted
 // Design Revision: a visit submits nothing, so it cannot move the design head and stale another
 // stage's pending proposal (WCE5). An editor's change still waiting for its save is saved first, so
-// the readiness is the copy's as shown; a copy whose save was refused (someone saved a newer one)
-// is never read. It is read again whenever the working revision moves (a Lead's set_n accepted, a
+// the readiness is the copy's as shown; nothing else is written; a copy whose save was refused
+// (someone saved a newer one) is never read. It is read again whenever the working revision moves (a Lead's set_n accepted, a
 // save from the hidden Dimenze screen), the previous answer kept on screen meanwhile.
 
 import { useEffect, useState } from "react";
@@ -24,13 +24,20 @@ export type SampleReadiness =
 
 type Deps = { readiness: (studyId: string, workingRevision: number) => Promise<WorkingReadiness> };
 
+/** A change the person made that is not saved yet. */
+const WAITING: ReadonlySet<string> = new Set(["pending", "saving", "failed"]);
+
 const DEPS: Deps = { readiness: (studyId, revision) => research.workingReadiness(studyId, revision) };
 
 /** One read: the working revision the readiness is on, and the readiness. */
 export async function loadSampleReadiness(store: ResearchStore, studyId: string, canEdit: boolean, deps: Deps = DEPS): Promise<SampleReadiness> {
-  if (canEdit) {
+  const save = store.get().save.kind;
+  if (save === "conflict") return { kind: "failed", message: CONFLICT_MESSAGE };
+  // Only the person's own change still waiting is saved (a save, never a Design Revision), so the
+  // answer is the copy's as shown. A new study nobody has touched, or a copy the template completed
+  // on load, is read as stored: a visit writes nothing it was not already owed.
+  if (canEdit && WAITING.has(save)) {
     try {
-      // A save, never a Design Revision: what is waiting is saved so the answer is the copy's.
       await store.flush();
     } catch (e) {
       if (store.get().save.kind === "conflict") return { kind: "failed", message: CONFLICT_MESSAGE };
