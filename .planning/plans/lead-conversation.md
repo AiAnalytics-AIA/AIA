@@ -327,8 +327,9 @@ The recall numbers go in the PR.
 *As built (LC19):*
 - `apps/web/src/lib/day-label.ts`, pure: `dayKey`, `dayLabel(at, now)`,
   `withDayBreaks(items, at, now)` and `isDayBreak`. Tests across midnight, the week, both DST
-  changes of 2026 and invalid moments (`day-label.test.ts`). The web suite runs in
-  Europe/Prague (`vitest.setup.ts`), so the DST cases cross the transitions wherever it runs.
+  changes of 2026 and invalid moments (`day-label.test.ts`, which runs in Europe/Prague, checked,
+  so the DST cases cross the transitions wherever it runs). `lead_journey.mjs` checks the "Dnes"
+  heading.
 - Wired into the two feeds that show a time alone:
   - `components/workbench/LeadPane.tsx`: the conversation, an `h3.conv__day` before each day
     (test: `LeadPane.test.tsx` "heads each local day of the conversation");

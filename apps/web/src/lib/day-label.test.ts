@@ -1,5 +1,17 @@
-import { describe, expect, it } from "vitest";
+import { afterAll, describe, expect, it, vi } from "vitest";
 import { dayKey, dayLabel, isDayBreak, withDayBreaks } from "./day-label";
+
+// This file runs in Europe/Prague wherever it runs: CI's UTC has no 23- or 25-hour day, so the DST
+// cases would test nothing there. Hoisted above the import, before any Date or Intl formatter.
+const zone = vi.hoisted(() => {
+  const before = process.env.TZ;
+  process.env.TZ = "Europe/Prague";
+  return before;
+});
+afterAll(() => {
+  if (zone === undefined) delete process.env.TZ;
+  else process.env.TZ = zone;
+});
 
 // Local-time constructors throughout: the rule is the viewer's day, so the tests are too.
 const now = new Date(2026, 9, 21, 9, 30); // středa 21. října 2026
@@ -17,6 +29,9 @@ describe("dayLabel", () => {
   });
 
   it("counts calendar days, not 24-hour spans, over a DST change", () => {
+    // The zone took effect: 25 October 2026 is 25 hours long, 29 March 23.
+    expect(new Date(2026, 9, 26).getTime() - new Date(2026, 9, 25).getTime()).toBe(25 * 3_600_000);
+    expect(new Date(2026, 2, 30).getTime() - new Date(2026, 2, 29).getTime()).toBe(23 * 3_600_000);
     // Europe/Prague leaves summer time on 25 October 2026: that Sunday has 25 hours.
     const monday = new Date(2026, 9, 26, 0, 30);
     expect(dayLabel(new Date(2026, 9, 25, 23, 30), monday)).toBe("Včera");
