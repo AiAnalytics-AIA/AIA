@@ -422,12 +422,14 @@ def client_report_document(
     *,
     run_id: str,
     docx: Artifact | None = None,
+    version: str | None = None,
 ) -> tuple[Artifact, Artifact | None] | None:
     """The run's client report as stored, and the document model beside it, composing
     nothing: the approved version when a person approved one, else the newest stored draft.
     ``None`` while no client report was stored; the model ``None`` for a version stored before
     RD5a (an approved one keeps its bytes and gets none). ``docx``: that version's document
-    instead, the one its download hands over."""
+    instead, the one its download hands over; ``version``: the stored version of that id, ``None``
+    when it is not one of this run's client reports."""
     scope.require(Permission.VIEW_RESULTS)
     run = ResearchRuns(session, scope).get(run_id)
     artifacts = research_artifacts(session, scope, store)
@@ -445,6 +447,10 @@ def client_report_document(
     ]
     if not drafts:
         return None
+    if version is not None:
+        docx = next((a for a in drafts if a.artifact_id == version), None)
+        if docx is None:
+            return None
     if docx is None:
         approved = [a for a in drafts if a.is_approved]
         docx = approved[-1] if approved else drafts[-1]

@@ -2902,15 +2902,20 @@ class ReportApprovalRequest(BaseModel):
     summary="The run's stored client report as its document model",
 )
 def client_report_document_route(
-    run_id: RunIdPath, scope: StudyScopeDep, session: SessionDep, store: ArtifactStoreDep
+    run_id: RunIdPath,
+    scope: StudyScopeDep,
+    session: SessionDep,
+    store: ArtifactStoreDep,
+    artifact_id: Annotated[str | None, Query(pattern=r"^ART-[0-9a-f]{16}$")] = None,
 ) -> dict[str, Any]:
     """The document the run's stored client report was rendered from (report-delivery RD5a):
     the approved version's when a person approved one, else the newest stored draft's. It
     composes nothing; a client report is prepared by ``…/client/prepare`` or its download. 404
-    while none is stored;
+    while none is stored; ``artifact_id``: that stored version's, the one a person prepared and
+    read (404 for one that is not this run's client report);
     409 ``report_document_not_stored`` for a version stored before RD5a."""
     try:
-        found = client_report_document(session, scope, store, run_id=run_id)
+        found = client_report_document(session, scope, store, run_id=run_id, version=artifact_id)
     except ScopeDenied as exc:
         raise _refused(exc) from exc
     except ResearchRunNotFound as exc:

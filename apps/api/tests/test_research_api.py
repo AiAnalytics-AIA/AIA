@@ -1464,6 +1464,7 @@ def test_the_client_report_is_prepared_to_be_read_without_a_download(
     app: FastAPI,
     researcher: TestClient,
     outsider: TestClient,
+    other_client_lead: TestClient,
     world: Any,
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
@@ -1494,10 +1495,19 @@ def test_the_client_report_is_prepared_to_be_read_without_a_download(
     handed = researcher.get(f"{url}/client/download").headers["X-AIA-Artifact-Id"]
     assert handed == body["report_artifact_id"]
     version = body["report_artifact_id"]
+    # The read names the version prepared, so it never answers a newer draft than was read.
+    pinned = researcher.get(f"{url}/client/document", params={"artifact_id": version})
+    assert pinned.status_code == 200 and pinned.json()["report_artifact_id"] == version
+    unknown = researcher.get(f"{url}/client/document", params={"artifact_id": "ART-" + "0" * 16})
+    assert unknown.status_code == 404
     approved = outsider.post(f"{url}/approve", json={"artifact_id": version})
     assert approved.status_code == 200, approved.text
     after = researcher.post(f"{url}/client/prepare").json()
     assert after["report_artifact_id"] == version and after["review_state"] == "APPROVED_INTERNAL"
+    # Another client's study reaches neither the run nor its client report.
+    foreign = f"{_runs(world, 'other_client')}/{run_id}/report/client"
+    assert other_client_lead.post(f"{foreign}/prepare").status_code == 404
+    assert other_client_lead.get(f"{foreign}/document").status_code == 404
 
 
 def test_a_client_document_of_an_older_contract_is_stored_again_on_download(

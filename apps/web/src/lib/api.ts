@@ -1362,9 +1362,9 @@ export const research = {
   /** The run's internal draft as its stored document model, beside the DOCX it names (report-delivery RD5a). */
   reportDocument: (studyId: string, runId: string) =>
     request<StoredReportDocument>("GET", `${studyPath(studyId)}/research/runs/${enc(runId)}/report/document`),
-  /** The run's stored client report as its document model (RD5a); 404 while none is prepared. */
-  clientReportDocument: (studyId: string, runId: string) =>
-    request<StoredReportDocument>("GET", `${studyPath(studyId)}/research/runs/${enc(runId)}/report/client/document`),
+  /** The run's stored client report as its document model (RD5a), or the stored version `artifactId`; 404 while none is prepared. */
+  clientReportDocument: (studyId: string, runId: string, artifactId?: string) =>
+    request<StoredReportDocument>("GET", `${studyPath(studyId)}/research/runs/${enc(runId)}/report/client/document${query({ artifact_id: artifactId })}`),
   /** The client report composed and stored to be read in AIA, answered as its document (RD3): no file leaves. */
   prepareClientReport: (studyId: string, runId: string) =>
     request<StoredReportDocument>("POST", `${studyPath(studyId)}/research/runs/${enc(runId)}/report/client/prepare`),

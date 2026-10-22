@@ -14,6 +14,7 @@ import { measureAnchor } from "@/lib/result-reading";
 import { parseAiaId } from "@/lib/workbench-artifacts";
 import { CONFLICT_MESSAGE } from "@/research/store";
 import { RunResults, fixStep } from "./ExecutionSteps";
+import { CLIENT_PREPARED } from "./ReportDocumentView";
 import { StudyFrameProvider } from "./frame";
 import { ResearchScreen, ResearchSession } from "./ResearchScreen";
 import { CONTENT_PATH, workspaceFixture } from "./test-workspace";
@@ -2657,6 +2658,9 @@ describe("Results", () => {
     await confirmApproval("ART-client");
     await waitFor(() => expect(called("POST", "/api/v1/studies/STU-1/research/runs/RUN-1/report/approve")).toHaveLength(1));
     expect(called("POST", "/api/v1/studies/STU-1/research/runs/RUN-1/report/approve")[0].body).toEqual({ artifact_id: "ART-client", note: "" });
+    // A version the pane prepared is read by its id, never the newest draft in its place.
+    window.dispatchEvent(new CustomEvent(CLIENT_PREPARED, { detail: { runId: "RUN-1", artifactId: "ART-0000000000000002" } }));
+    await waitFor(() => expect(called("GET", "/api/v1/studies/STU-1/research/runs/RUN-1/report/client/document").some((c) => c.url.includes("artifact_id=ART-0000000000000002"))).toBe(true));
     // Nothing left AIA to be approved.
     expect(called("GET", "/api/v1/studies/STU-1/research/runs/RUN-1/report/client/download")).toHaveLength(0);
   });

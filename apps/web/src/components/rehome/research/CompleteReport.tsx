@@ -35,7 +35,7 @@ import { type Ask, AskDialog, Button, Select } from "../ui";
 import { Icon } from "../icons";
 import { canReview } from "./frame";
 import { useFrame } from "./frame-hook";
-import { CLIENT_PREPARED } from "./ReportDocumentView";
+import { CLIENT_PREPARED, type ClientPrepared, REPORT_APPROVED } from "./ReportDocumentView";
 
 type Part = { label: string; detail: string; state: "in" | "pending" | "later" | "excluded" };
 type Version = "internal" | "client";
@@ -154,16 +154,20 @@ export function CompleteReport({ run, review = null, onReview }: { run: Research
   // The client version stored for this run, read without composing (RD3): prepared in the
   // document pane, it is approvable here with no download first. A read that finds none (404)
   // or is refused leaves what the card knew; a download still prepares it.
-  const [prepared, setPrepared] = useState(0);
+  // The version the pane prepared and showed: read by its id, never the newest draft instead.
+  const [prepared, setPrepared] = useState<string | null>(null);
   useEffect(() => {
-    const on = (e: Event) => { if ((e as CustomEvent<string>).detail === run.run_id) setPrepared((n) => n + 1); };
+    const on = (e: Event) => {
+      const got = (e as CustomEvent<ClientPrepared>).detail;
+      if (got?.runId === run.run_id) setPrepared(got.artifactId);
+    };
     window.addEventListener(CLIENT_PREPARED, on);
     return () => window.removeEventListener(CLIENT_PREPARED, on);
   }, [run.run_id]);
   useEffect(() => {
     if (version !== "client") return;
     let live = true;
-    research.clientReportDocument(frame.studyId, run.run_id).then(
+    research.clientReportDocument(frame.studyId, run.run_id, prepared ?? undefined).then(
       (stored) => {
         if (!live || typeof stored?.report_artifact_id !== "string") return;
         setClient({ artifactId: stored.report_artifact_id, reviewState: stored.review_state, approvedOn: stored.approved_on, stamped: stored.stamped });
@@ -325,6 +329,7 @@ export function CompleteReport({ run, review = null, onReview }: { run: Research
   // The client report has no status of its own: the approval's answer is the server's.
   const approve = (target: string) => run_(async () => {
     const done = await research.approveReport(frame.studyId, run.run_id, target);
+    window.dispatchEvent(new CustomEvent(REPORT_APPROVED, { detail: run.run_id }));
     if (version === "client") {
       setClient({ artifactId: done.artifact_id, reviewState: done.review_state, approvedOn: done.approved_on ?? null, stamped: done.stamped ?? null });
       return;

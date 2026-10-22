@@ -33,8 +33,12 @@ type Loaded =
   | { state: "failed"; message: string }
   | { state: "ready"; stored: StoredReportDocument; doc: ReportDocumentModel };
 
-/** Fired with the run id when the pane prepares a client report, so the report card reads it. */
+/** Fired when the pane prepares a client report, naming the run and the version read, so the report
+ *  card approves exactly that version. */
 export const CLIENT_PREPARED = "aia:client-report-prepared";
+export type ClientPrepared = { runId: string; artifactId: string };
+/** Fired when the report card approves a report of the run, so the pane reads its state again. */
+export const REPORT_APPROVED = "aia:report-approved";
 
 /** Which document the pane reads: the internal draft, or the client report (RD3). */
 type Kind = "internal" | "client";
@@ -44,7 +48,14 @@ type Kind = "internal" | "client";
 function useReportDocument(studyId: string, run: ResearchRun, kind: Kind): { loaded: Loaded; prepare: () => void } {
   const step = stepOf(run, "report");
   const ready = step?.status === "SUCCEEDED";
-  const key = `${studyId}:${run.run_id}:${step?.status ?? ""}:${step?.artifact_id ?? ""}:${kind}`;
+  // Read again when the card approves a report of this run: the doc bar says what was approved.
+  const [approvals, setApprovals] = useState(0);
+  useEffect(() => {
+    const on = (e: Event) => { if ((e as CustomEvent<string>).detail === run.run_id) setApprovals((n) => n + 1); };
+    window.addEventListener(REPORT_APPROVED, on);
+    return () => window.removeEventListener(REPORT_APPROVED, on);
+  }, [run.run_id]);
+  const key = `${studyId}:${run.run_id}:${step?.status ?? ""}:${step?.artifact_id ?? ""}:${kind}:${approvals}`;
   const [answer, setAnswer] = useState<{ key: string; loaded: Loaded } | null>(null);
   // The document asked for now: an answer for another (a prepare that returns after a switch) is dropped.
   const current = useRef(key);
@@ -83,7 +94,7 @@ function useReportDocument(studyId: string, run: ResearchRun, kind: Kind): { loa
     setAnswer({ key, loaded: { state: "loading" } });
     settle(research.prepareClientReport(studyId, run.run_id).then((stored) => {
       // The report card approves the version read here, never one it would have to download first.
-      window.dispatchEvent(new CustomEvent(CLIENT_PREPARED, { detail: run.run_id }));
+      window.dispatchEvent(new CustomEvent<ClientPrepared>(CLIENT_PREPARED, { detail: { runId: run.run_id, artifactId: stored.report_artifact_id } }));
       return stored;
     }), key, () => current.current === key);
   }, [key, settle, studyId, run.run_id]);
