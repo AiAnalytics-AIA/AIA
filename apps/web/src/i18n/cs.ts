@@ -2525,7 +2525,7 @@ export const cs = {
         CLIENT_JOINT_OUTPUT: "společný výstup bloků se klientovi ukázat nesmí",
         SYNTHETIC_DATA_ORIGIN: "fiktivní data nejsou důkaz pro klienta",
         ORIGIN_NOT_ADMISSIBLE: "původ dat se pro tento výstup nepřipouští",
-        SUPPORT_SUPPRESSED: "za číslem je příliš málo respondentů, proto je skryté",
+        SUPPORT_SUPPRESSED: "čísla jsou skrytá: malá podpora, odmítnutá otázka nebo chybějící interval",
         INTERVAL_MISSING: "číslu chybí interval spolehlivosti",
         VALIDATION_NOT_CURRENT: "systém respondentů nemá platné ověření",
         PREDICTIVE_VALIDITY_UNPROVEN: "předpovědní platnost není prokázaná",

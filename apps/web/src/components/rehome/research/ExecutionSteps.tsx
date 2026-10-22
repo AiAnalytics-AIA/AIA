@@ -1051,24 +1051,25 @@ function useRetryableModules(run: ResearchRun | null | undefined): Repairable | 
   return read && read.modules.length ? read : null;
 }
 
-/** The server's retryable list for a finished run as read, empty or not; `null` while unread or not askable. */
+/** The server's retryable list for a finished run as read, empty or not; `null` while unread, after a
+ *  failed read (unknown, never "nothing to retry") or when it cannot be asked. */
 function useRetryableRead(run: ResearchRun | null | undefined): Repairable | null {
   const frame = useFrame();
   const runId = run?.run_id ?? null;
   const possible = !!run && mayRetryAnalysis(run);
-  const [modules, setModules] = useState<{ runId: string; list: Repairable } | null>(null);
+  const [modules, setModules] = useState<{ runId: string; list: Repairable | null } | null>(null);
   useEffect(() => {
     if (!possible || !runId) return;
     let live = true;
     research
       .retryableModules(frame.studyId, runId)
       .then((list) => live && setModules({ runId, list }))
-      .catch(() => live && setModules({ runId, list: { modules: [], stale: [] } }));
+      .catch(() => live && setModules({ runId, list: null }));
     return () => {
       live = false;
     };
   }, [frame.studyId, runId, possible]);
-  return possible && modules && modules.runId === runId ? modules.list : null;
+  return possible && modules?.runId === runId ? modules.list : null;
 }
 
 /** A finished run whose analysis a model could not complete: the data stands, the modules are asked again. */

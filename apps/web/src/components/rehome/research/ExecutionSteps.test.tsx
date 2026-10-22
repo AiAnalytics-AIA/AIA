@@ -1722,6 +1722,32 @@ describe("Results", () => {
     expect(section.querySelectorAll("tr[data-rq]")).toHaveLength(0);
   });
 
+  it("reads a failed retryable read as unknown, and words a suppression by every cause it has (ANL4)", async () => {
+    const analysed = run({ ...COMPLETED, steps: [...COMPLETED.steps,
+      step("analysis_audience", "SUCCEEDED", { kind: "research_analysis", artifact_id: "ART-8", analysis_outcome: "BLOCKED" }),
+    ] });
+    api({ ...listed(analysed),
+      "GET /api/v1/studies/STU-1/research/runs/RUN-1/artifacts/ART-4": () => AGGREGATE,
+      "GET /api/v1/studies/STU-1/research/runs/RUN-1/analysis": () => ({ complete: false, synthetic: true, pending: {}, modules: {
+        // Every row removed because its question was refused for fidelity, not for thin support.
+        audience: { outcome: "BLOCKED", summary: null, research_question_answers: [], key_findings: [], claims: [], violations: [
+          { code: "SUPPORT_SUPPRESSED", subject: "preflight", detail: "no citable evidence: all 4 rows were removed (thin support, a refused question, or an estimate without its interval)" },
+        ] },
+      } }),
+      "GET /api/v1/studies/STU-1/research/runs/RUN-1/analysis/retryable": () => { throw new Error("409 conflict"); },
+    });
+    render(<ResearchScreen step="results" frame={TEST_FRAME} />);
+    fireEvent.click(await screen.findByRole("tab", { name: "AI analýza" }));
+    const blocked = await screen.findByRole("region", { name: "Blokované nároky" });
+    const audience = blocked.querySelector('[data-blocked-module="audience"]') as HTMLElement;
+    // A list that could not be read promises nothing: never "the same data would refuse it again".
+    await waitFor(() => expect(audience.getAttribute("data-way-out")).toBe("unknown"));
+    expect(audience.textContent).not.toContain("neopraví");
+    // The words name every cause the preflight groups under one code, not "too few respondents" alone.
+    expect(audience.textContent).toContain("odmítnutá otázka");
+    expect(audience.textContent).not.toContain("příliš málo respondentů");
+  });
+
   it("names each blocked module's refusals in words with the way out the server gives, and never reads it as done (ANL4)", async () => {
     const analysed = run({ ...COMPLETED, steps: [...COMPLETED.steps,
       step("analysis_executive", "SUCCEEDED", { kind: "research_analysis", artifact_id: "ART-6", analysis_outcome: "COMPLETED" }),

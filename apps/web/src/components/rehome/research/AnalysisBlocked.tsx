@@ -15,7 +15,7 @@ const WAY_OUT: Record<WayOut, string> = {
   retry: "Nové kolo nad stejnými daty ji může opravit; spouští se u běhu na stránce Průběh.",
   same_data_fails: "Nové kolo nad stejnými daty ji neopraví: kontrola ji odmítla dřív, než se zeptala modelu, a stejná data odmítne znovu.",
   run_unfinished: "Běh ještě neskončil; o novém kole lze rozhodnout, až doběhne.",
-  unknown: "Zjišťuje se, zda ji nové kolo nad stejnými daty může opravit.",
+  unknown: "Zda ji nové kolo nad stejnými daty může opravit, nelze zatím říct.",
 };
 
 /** A blocked module's refusals: each reason once, in words, with each subject and its detail under the fold. */

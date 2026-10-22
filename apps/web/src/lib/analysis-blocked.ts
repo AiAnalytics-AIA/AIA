@@ -29,7 +29,7 @@ export function blockedModules(analysis: ResearchAnalysis | null): BlockedModule
  * - `retry`: a new round over the same data may pass (a model's drafts were refused);
  * - `same_data_fails`: the preflight refused it before any model turn, so the same data would refuse it again;
  * - `run_unfinished`: the run has not ended, so no round can be asked yet;
- * - `unknown`: the retryable list has not been read (never a promise either way).
+ * - `unknown`: the retryable list is unread or its read failed (never a promise either way).
  */
 export type WayOut = "retry" | "same_data_fails" | "run_unfinished" | "unknown";
 
