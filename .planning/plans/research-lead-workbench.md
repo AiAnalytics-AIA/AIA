@@ -1787,7 +1787,11 @@ pass finds the jobs already done for the design.
      `/design/source` reads before). In a browser on the UI workbench (`next dev`), one Dimenze
      visit made 44 API requests: `/design/source` 4, runs 6, limits 12, PUT `/workspace/stage` 2.
   4. Consequence: twice the reads on every stage a person opens fresh, and both layouts' effects.
-  5. Fix: the switch is `null` until read, and the stage renders nothing until then.
+  5. Fix: the switch is `null` until read, and until then the stage shows its chrome with the
+     loading line as a status (never blank). No timeout: every API read awaits the same cached
+     `/config` (`lib/api.ts:33`), so a hanging one holds the working copy's read first and `Ready`
+     never mounts; once it does, the switch answers at once (stand-in review on #807). The tests
+     reset the switch and the config cache before each one, so none depends on another's order.
   6. Test: the test above; after the fix the same visit makes 36 requests, `/design/source` 2,
      runs 4, limits 8.
 - **By design, recorded:** the remaining doubles are `next dev`'s Strict Mode, which runs each

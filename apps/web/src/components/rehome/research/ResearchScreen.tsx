@@ -233,8 +233,15 @@ export function ResearchScreen({ step, frame: given }: { step: StepKey; frame?: 
 /** The workbench switch once read: later studies of the same page start with it, without a flash. */
 let workbenchKnown: boolean | null = null;
 
+/** Forgets the switch read, for a test that needs a fresh page. */
+export function resetWorkbenchSwitch(): void {
+  workbenchKnown = null;
+}
+
 /** The research workbench is on for this deployment (/config's workbench); null until read, so
- *  neither layout mounts and reads the study twice on a fresh page (the Dimenze audit, #798). */
+ *  neither layout mounts and reads the study twice on a fresh page (the Dimenze audit, #798). No
+ *  wait of its own: Ready mounts once the working copy is read, and every API read awaits the same
+ *  cached /config (lib/api.ts), so it answers at once; a /config that fails serves classic. */
 function useWorkbenchSwitch(): boolean | null {
   const [on, setOn] = useState<boolean | null>(workbenchKnown);
   useEffect(() => {
@@ -362,8 +369,14 @@ function Ready({ store, template, origin, memory, step, frame, reload }: {
   }, [memory, agents.recent, agents.busy, openAgent]);
 
   // The layout is the switch's: mounting the classic one while it is unread would read and record
-  // the stage twice, once for each layout.
-  if (workbench === null) return null;
+  // the stage twice, once for each layout. Until then the stage's chrome says it is loading.
+  if (workbench === null) {
+    return (
+      <StageChrome frame={frame} step={step}>
+        <p role="status" className="py-10 text-sm text-ink-muted">{t("research.loading")}</p>
+      </StageChrome>
+    );
+  }
   return (
     <ResearchAssistance step={step} studyName={frame.studyName} canEdit={frame.canEdit} memory={memory} actions={aiHelp} agents={agents} job={job} onCancel={onCancel} studyId={frame.studyId} starts={starts}>
     {({ card, panel, expanded, ask: askAssistance }) => <ResearchContext.Provider value={{ ...value, leadOwnsAiStarts: leadOwns, askAssistance: leadOwns ? undefined : askAssistance }}>

@@ -7,7 +7,8 @@ import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/re
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { t } from "@/i18n/t";
-import { ResearchScreen } from "./ResearchScreen";
+import { resetConfigCache } from "@/lib/auth";
+import { ResearchScreen, resetWorkbenchSwitch } from "./ResearchScreen";
 import { TEST_FRAME } from "./test-frame";
 import { CONTENT_PATH, EMPTY_PROJECT, signedIn } from "./test-workspace";
 
@@ -17,6 +18,8 @@ vi.mock("next/navigation", () => ({ usePathname: () => "/app/clients/CLI-1/resea
 const urls: string[] = [];
 const bodies: { url: string; body: Record<string, unknown> }[] = [];
 let stored: Record<string, unknown> = {};
+/** /config never answers: a proxy stall or a slow cold start. */
+let configHangs = false;
 function api(content: Record<string, unknown> = { title: "Alfa", goal: "Zjistit, co lidé chtějí od nové služby." }, analysis: Record<string, unknown> | null = null) {
   urls.length = 0;
   bodies.length = 0;
@@ -25,6 +28,7 @@ function api(content: Record<string, unknown> = { title: "Alfa", goal: "Zjistit,
   vi.stubGlobal("fetch", vi.fn(async (url: RequestInfo | URL, init?: RequestInit) => {
     const u = String(url).split("?")[0];
     const method = init?.method ?? "GET";
+    if (u === "/config" && configHangs) return new Promise<Response>(() => {});
     urls.push(`${method} ${u}`);
     if (init?.body) bodies.push({ url: `${method} ${u}`, body: JSON.parse(String(init.body)) as Record<string, unknown> });
     const answer =
@@ -46,6 +50,10 @@ function api(content: Record<string, unknown> = { title: "Alfa", goal: "Zjistit,
 }
 
 beforeEach(() => {
+  // Each test is a fresh page: the switch and /config read anew, never left by an earlier test.
+  resetWorkbenchSwitch();
+  resetConfigCache();
+  configHangs = false;
   signedIn();
   api();
 });
@@ -87,6 +95,17 @@ describe("the workbench: the Lead owns the AI starts", () => {
     // The stage's reads once: the classic layout, mounted while the switch was unknown, read them too.
     expect(urls.filter((u) => u.endsWith("/design/source"))).toHaveLength(1);
     expect(container.querySelector("[data-research-workspace]")).toBeNull();
+  });
+
+  it("is never blank while /config does not answer: the stage's chrome says it is loading, and no layout mounts", async () => {
+    configHangs = true;
+    const { container } = render(<ResearchScreen step="persona" frame={TEST_FRAME} />);
+    expect(await screen.findByText(t("research.loading"))).toBeTruthy();
+    expect(screen.getByRole("navigation", { name: "Kde jste" })).toBeTruthy();
+    await new Promise((r) => setTimeout(r, 1500));
+    // Every read waits on /config (lib/api.ts), so nothing of either layout is read or mounted.
+    expect(urls.filter((u) => u.endsWith("/design/source"))).toHaveLength(0);
+    expect(container.querySelector("[data-workbench], [data-research-workspace]")).toBeNull();
   });
 
   it("says on Dimenze where the dimensions' proposal is asked for now", async () => {
