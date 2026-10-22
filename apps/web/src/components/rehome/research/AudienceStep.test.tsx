@@ -73,7 +73,7 @@ describe("Audience", () => {
     aiaStub({});
     render(<ResearchScreen step="audience" frame={TEST_FRAME} />);
     fireEvent.click(await screen.findByRole("radio", { name: /Vlastní audience/ }));
-    expect(await screen.findByText(/Nahrání, kontrolu a preflight vlastního datasetu dělala 18.6.6/)).toBeTruthy();
+    expect(await screen.findByText(/Nahrání a kontrolu vlastního datasetu dělala 18.6.6/)).toBeTruthy();
     expect(screen.getAllByText("V AIA zatím není").length).toBeGreaterThan(0);
     expect(screen.queryByLabelText("Soubor")).toBeNull();
     expect(screen.queryByText("Stáhnout XLSX šablonu")).toBeNull();
@@ -89,12 +89,12 @@ describe("Audience", () => {
     noUnitCalls();
   });
 
-  it("AI Analytics: ČR 18+ is ready at once; Special Audience says it is not in AIA", async () => {
+  it("AI Analytics: ČR 18+ is ready at once; Speciální skupiny say they are not in AIA", async () => {
     aiaStub({ ui_state: { audience_entry: "analytics" } });
     render(<ResearchScreen step="audience" frame={TEST_FRAME} />);
     expect(await screen.findByText(/= výsledky reprezentují celou dospělou populaci/)).toBeTruthy();
     // Studio v3: one page; the population is the second question, its three choices side by side.
-    fireEvent.click(await screen.findByRole("radio", { name: /Special Audience/ }));
+    fireEvent.click(await screen.findByRole("radio", { name: /Speciální skupiny/ }));
     expect(await screen.findByText(/Profesní a speciální subpanely počítala 18.6.6/)).toBeTruthy();
     expect(screen.queryByRole("button", { name: /^Lékaři/ })).toBeNull();
     fireEvent.click(screen.getByRole("radio", { name: /Česká populace \(\+18\)/ }));
@@ -192,6 +192,25 @@ describe("Audience", () => {
       expect(container.querySelector(focusSelector("audience:preview"))).toBeNull();
       const marks = [...container.querySelectorAll("[data-aia^='audience:']")].map((e) => e.getAttribute("data-aia"));
       expect(marks.sort()).toEqual(audienceTargets({ audience: {} } as unknown as ResearchProject, { preview: false, subpanels: [] }).sort());
+    });
+
+    it("says at once which stored filter the population cannot honour, and how a run treats it (F3)", async () => {
+      aiaStub({ ui_state: ANALYTICS, n: 500, audience: { strategy: "filters", source_mode: "population", filters: { kraj: ["Zlínský kraj", "Fiktivní kraj A"], vek: { min: 30 } } } }, live());
+      const { container } = render(<ResearchScreen step="audience" frame={TEST_FRAME} />);
+      const note = await screen.findByRole("note");
+      expect(note.textContent).toContain("Populace v17_4_0");
+      expect(note.textContent).toContain("Kraj – v populaci chybí: Fiktivní kraj A. Výběr je vynechá a použije ostatní uložené hodnoty.");
+      const chip = container.querySelector('[data-aia="audience:filter:kraj"]')!;
+      expect(chip.hasAttribute("data-filter-problem")).toBe(true);
+      expect(chip.textContent).toContain("některé hodnoty chybí"); // said in words; the filter still applies with the rest
+      expect(container.querySelector('[data-aia="audience:filter:vek"]')!.hasAttribute("data-filter-problem")).toBe(false);
+      // Unticking the value it has leaves only the one it lacks: a run refuses the filter.
+      fireEvent.click(screen.getByRole("checkbox", { name: /Zlínský kraj/ }));
+      await saved();
+      expect(lastSave().content.audience.filters).toEqual({ kraj: ["Fiktivní kraj A"], vek: { min: 30 } });
+      expect((await screen.findByRole("note")).textContent).toContain("Žádná uložená hodnota nezbývá, výběr odmítne celou cílovou skupinu.");
+      expect(container.querySelector('[data-aia="audience:filter:kraj"]')!.textContent).toContain("nelze použít");
+      noUnitCalls();
     });
 
     it("the preview counts the audience in AIA and says whether n can be drawn", async () => {
