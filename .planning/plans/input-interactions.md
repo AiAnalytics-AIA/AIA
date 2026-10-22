@@ -598,6 +598,20 @@ Split by owner (PM, 2026-10-22): B1–B4 sit on Dimenze (`PersonaStep.tsx`), B5�
   bounded by `…/research/limits`, steps of 50, the recommendation beside it, no slider or presets, no clamp.
 - **B2–B4:** Dimenze's, not yet scheduled here.
 - **B5, B10:** kept, as the audit says (`RadioCard`; a prompt to AI is not a value).
+- **B6. A numeric factor's range as two bounded steppers, feature/audience-range-steppers.**
+  - Od and Do are `Stepper`s bounded by the catalogue's range (`research/audience.ts` `rangeBounds`):
+    whole numbers when both ends are, else two decimals, the ends rounded outward. A scale whose ends
+    the catalogue states (`scale_hint`) takes two decimals.
+  - Each end is also bounded by the other, so a crossed range is refused at the field. The population
+    would swap it (`_interval`).
+  - An unset end reads "Bez omezení", and a set one clears by its own button. `setRange` takes numbers
+    and leaves an unset end out.
+  - A stored end the population cannot read (`boundOf`, `endUnreadable`) is said at the field, never
+    shown as no end.
+  - Tests: `AudienceStep.test.tsx` "a numeric factor's range is two steppers…" and "says a stored end
+    the population cannot read…"; `audience.live.test.ts` "a numeric factor's range bounds".
+  - `audience_journey.mjs` checks the range at 1440/1100/768/390: no overflow, the clear button at
+    least 24 px, and 999 refused and not saved.
 - **B9. The built-in subpanels under a search, feature/audience-subpanel-list.**
   - A search over the 18 subpanels' names and descriptions (`matchingSubpanels`, the factor search's
     rule, trimmed) sits above them, and a line says how many matched. The chosen subpanel stays shown
@@ -611,7 +625,7 @@ Split by owner (PM, 2026-10-22): B1–B4 sit on Dimenze (`PersonaStep.tsx`), B5�
     built-in subpanels a search matches".
   - `audience_journey.mjs` checks the search at 1440/1100/768/390 without overflow, and that a search
     matching nothing leaves the chosen one and says 0.
-- **B6, B7+B8, B11:** one PR each.
+- **B7+B8, B11:** B7+B8 is #761; B11 to come.
 
 ### Chunk 3b3, added by planning (2026-10-21)
 

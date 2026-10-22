@@ -3,8 +3,8 @@
 A run pins its Sociomap methods when it starts (``research_sociomap.SociomapMethod``), each
 with its whole specification, and computes exactly those whatever is put in force later. With
 nothing stored the pins are the code's (:func:`~aia_core.domain.research_sociomap.default_methods`);
-with an edited object map in force, the reference map is pinned as always beside the edited
-specification, under the version's own name. That is all the engine needs for an edited
+with an edited object map in force, the edited specification alone, under the version's own
+name: no reference map is computed beside it any more. That is all the engine needs for an edited
 parameter: it already computes whatever specification a run pinned.
 
 A version's replaced formulas are pinned with its specification
@@ -31,6 +31,7 @@ from ..sociomap.slots import ENGINE_SLOTS, NO_SLOTS, Slots
 from ..sociomap.specification import AIA_SOCIOMAP_V1, SociomapSpecV3
 from .aggregation_formulas import AGGREGATION_FORMULAS
 from .expressions import compile_formula
+from .sociomap import SOCIOMAP
 
 __all__ = [
     "COMPUTED_SLOTS",
@@ -82,17 +83,31 @@ def uncomputed_formulas(payload: Mapping[str, Any]) -> list[str]:
 
 
 def sociomap_methods_for(payload: Mapping[str, Any] | None) -> tuple[SociomapMethod, ...]:
-    """The Sociomap pins of a run started under ``payload`` (``None``: the code's preset)."""
+    """The Sociomap pins of a run started under ``payload`` (``None``: the code's preset).
+
+    A version that changes nothing of its base preset -- every value the preset's, no formula
+    replaced -- is that preset put in force, and is pinned under the preset's own name at its
+    fingerprint, so the Sociomap register's entry for the preset holds for its maps. Any change
+    is another method, pinned under the version's own name."""
     if payload is None:
         return default_methods()
     missing = uncomputed_formulas(payload)
     if missing:
         raise FormulaNotComputed(missing)
     edited = SociomapSpecV3.model_validate(payload["spec"])
-    return (
-        SociomapMethod.of(AIA_SOCIOMAP_V1),
-        SociomapMethod.of(edited, payload.get("formulas") or {}),
-    )
+    formulas = payload.get("formulas") or {}
+    base = _sociomap_preset(payload.get("base_preset"))
+    if not formulas and base is not None:
+        same = edited.model_copy(update={"methodology_version": base.methodology_version})
+        if same.fingerprint() == base.fingerprint():
+            return (SociomapMethod.of(base),)
+    return (SociomapMethod.of(edited, formulas),)
+
+
+def _sociomap_preset(name: Any) -> SociomapSpecV3 | None:
+    """The object map's code preset named ``name``, or ``None``."""
+    preset = next((p for p in SOCIOMAP.presets if p.name == name), None)
+    return preset.spec if preset is not None and isinstance(preset.spec, SociomapSpecV3) else None
 
 
 def support_spec_for(payload: Mapping[str, Any] | None) -> SupportSpec:

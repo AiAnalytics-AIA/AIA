@@ -22,7 +22,11 @@ from aia_core.domain.methodology import (
 )
 from aia_core.domain.methodology.sociomap import SOCIOMAP
 from aia_core.domain.methodology.sociomap_reference import SOCIOMAP_REFERENCE
-from aia_core.domain.sociomap.specification import AIA_SOCIOMAP_V1, AIA_SOCIOMAP_V3
+from aia_core.domain.sociomap.specification import (
+    AIA_SOCIOMAP_V1,
+    AIA_SOCIOMAP_V3,
+    AIA_SOCIOMAP_V5,
+)
 
 REPO = Path(__file__).resolve().parents[3]
 REGISTER = REPO / "docs/migration/sociomapping-evidence-register.json"
@@ -84,11 +88,16 @@ def test_the_points_aia_does_not_compute_say_so() -> None:
 
 
 def test_the_map_in_force_shows_the_values_it_runs_with() -> None:
+    # aia-sociomap-5, what every new run pins.
+    assert SOCIOMAP.in_force == "aia-sociomap-5" == SOCIOMAP.presets[0].name
     values = _values()
-    assert values["relation.n_min"] == AIA_SOCIOMAP_V3.relation.n_min == 30
+    assert values["relation.n_min"] == AIA_SOCIOMAP_V5.relation.n_min == 10
     assert values["relation.confidence"] == 0.95
-    assert values["relation.effect_floor"] == 0.1
+    assert values["relation.effect_floor"] is ABSENT
+    assert values["relation.false_discovery_rate"] == 0.05
     assert values["terrain.sigma"] == 0.25
+    # The earlier presets stay offered, aia-sociomap-3's values with them.
+    assert _values("aia-sociomap-3")["relation.n_min"] == AIA_SOCIOMAP_V3.relation.n_min == 30
     assert values["layout.tolerance"] == 1e-12
     assert values["respondent_placement"] is None
 

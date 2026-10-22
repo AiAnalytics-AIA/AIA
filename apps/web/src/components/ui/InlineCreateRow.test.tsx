@@ -47,6 +47,25 @@ describe("InlineCreateRow (I5): created in the list, no dialog", () => {
     expect(create).not.toHaveBeenCalled();
   });
 
+  it("says the caller's own rule at the row as it is typed, in its words, and sends nothing", () => {
+    const create = vi.fn();
+    const validate = vi.fn((v: string) => (v.toLowerCase() === "kdo?" ? "Tato položka už v seznamu je." : null));
+    render(<InlineCreateRow label="Nová složka" validate={validate} maxLength={10} onCreate={create} />);
+    openRow();
+    fireEvent.change(row(), { target: { value: "  KDO? " } });
+    expect(screen.getByRole("alert").textContent).toBe("Tato položka už v seznamu je.");
+    expect(validate).toHaveBeenLastCalledWith("KDO?");
+    fireEvent.keyDown(row(), { key: "Enter" });
+    expect(create).not.toHaveBeenCalled();
+    // The length is said before the caller's rule is asked.
+    fireEvent.change(row(), { target: { value: "příliš dlouhá otázka" } });
+    expect(screen.getByRole("alert").textContent).toBe("Nejvýš 10 znaků.");
+    fireEvent.change(row(), { target: { value: "Proč?" } });
+    expect(screen.queryByRole("alert")).toBeNull();
+    fireEvent.keyDown(row(), { key: "Enter" });
+    expect(create).toHaveBeenCalledWith("Proč?");
+  });
+
   it("says an empty row only once Enter was pressed on it", () => {
     render(<InlineCreateRow label="Nová složka" onCreate={vi.fn()} />);
     openRow();

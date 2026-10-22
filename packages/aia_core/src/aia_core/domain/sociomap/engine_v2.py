@@ -39,7 +39,7 @@ Pure: no I/O, no clock; the only randomness is the bootstrap's seeded generator.
 from __future__ import annotations
 
 import math
-from collections.abc import Sequence
+from collections.abc import Mapping, Sequence
 from typing import Any, Final
 
 import numpy as np
@@ -859,12 +859,15 @@ def compute_object_map(
     *,
     connectedness_interval: bool,
     slots: Slots = NO_SLOTS,
+    runtime: Mapping[str, str] | None = None,
 ) -> SociomapArtifactV3:
     """The audit's object map of ``inputs.object_ids`` under ``spec``. See the module.
 
     ``slots`` are the formulas a methodology version replaces (ADR 0023, ``slots.py``),
     each computed where the code's formula would be; with none, the code computes every
-    one, bit for bit as before.
+    one, bit for bit as before. ``runtime`` is what the worker read of its numerical
+    libraries (versions, ``NUMBA_CACHE_DIR``): recorded in the provenance of a map under the
+    baseline-corrected relation only, so every earlier map's output stays byte for byte.
     """
     require_supported(spec)
     if spec.relation.estimator == RelationEstimator.BASELINE_CORRECTED_PEARSON:
@@ -1092,6 +1095,7 @@ def compute_object_map(
             implementation=OBJECT_MAP_IMPLEMENTATION,
             implementation_version=OBJECT_MAP_IMPLEMENTATION_VERSION,
             input_fingerprints=inputs.fingerprints(),
+            runtime=dict(runtime) if corrected and runtime else None,
         ),
         sparse_design=sparse,
         credibility=credibility,

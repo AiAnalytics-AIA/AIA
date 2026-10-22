@@ -18,7 +18,7 @@ from matplotlib.figure import Figure
 
 from aia_core.application import report_maps
 from aia_core.application.report_maps import compose_map_sections
-from aia_core.domain.report.model import SociomapFigure
+from aia_core.domain.report.model import Callout, Paragraph, SociomapFigure
 from aia_core.domain.sociomap import (
     AIA_SOCIOMAP_V3,
     ObjectMapInputs,
@@ -399,13 +399,12 @@ def test_the_respondent_alt_text_names_segment_colours_only_when_they_are_shown(
     assert "barva bodu chuťový segment" not in respondent_alt(plain)
 
 
-def test_the_client_report_leaves_the_respondent_map_out(monkeypatch: pytest.MonkeyPatch) -> None:
-    # As if the register approved this method for clients (it approves no signed-off one yet).
+def test_the_client_report_shows_the_respondent_map_too(monkeypatch: pytest.MonkeyPatch) -> None:
+    # The register's entry for aia-sociomap-5, as the stored map's method recorded it.
     method = AIA_SOCIOMAP_V5.methodology_version
-    monkeypatch.setattr(
-        report_maps, "recorded_statuses", lambda _result: {method: SOCIOMAP_REGISTER[0]}
-    )
-    assert SOCIOMAP_REGISTER[0].status is MethodologyStatus.CLIENT_FACING
+    entry = next(a for a in SOCIOMAP_REGISTER if a.method_id == method)
+    monkeypatch.setattr(report_maps, "recorded_statuses", lambda _result: {method: entry})
+    assert entry.status is MethodologyStatus.CLIENT_FACING
     frozen = tastes()
     images = object_map_snapshots(frozen)
     client = [
@@ -413,10 +412,188 @@ def test_the_client_report_leaves_the_respondent_map_out(monkeypatch: pytest.Mon
         for b in compose_map_sections(frozen, images, source="Frozen", client=True)[0].blocks
         if isinstance(b, SociomapFigure)
     ]
-    assert [f.title.split(" · ")[1] for f in client] == ["Pohled shora", "Prostorový pohled"]
+    views = ["Pohled shora", "Prostorový pohled", "Mapa respondentů"]
+    assert [f.title.split(" · ")[1] for f in client] == views
+    assert all(f.methodology_status == "CLIENT_FACING" for f in client)
     internal = [
         b
         for b in compose_map_sections(frozen, images, source="Frozen")[0].blocks
         if isinstance(b, SociomapFigure)
     ]
     assert len(internal) == 3
+
+
+def _tiny() -> dict:
+    """Eight fictional respondents rating five objects at random: mappable, no relation reliable
+    (no split-half score), and fewer objects than an informative respondent map needs."""
+    rng = random.Random(0)
+    objects = ("a", "b", "c", "d", "e")
+    data = ObjectMapInputs(
+        respondent_ids=tuple(f"FIC-{i}" for i in range(8)),
+        donor_ids=tuple(f"DONOR-{i}" for i in range(8)),
+        items=tuple(RatingItem(item_id=o, scale_min=1, scale_max=5) for o in objects),
+        values=tuple(tuple(float(rng.randint(1, 5)) for _ in objects) for _ in range(8)),
+        weights=(1.0,) * 8,
+        object_ids=objects,
+        object_items=objects,
+        roles=dict.fromkeys(objects, "primary"),
+    )
+    artifact = compute_object_map(data, AIA_SOCIOMAP_V5, connectedness_interval=False)
+    return {
+        "batteries": [
+            {
+                "battery_id": "tiny",
+                "title": "Malá sada",
+                "objects": [{"id": o, "label": o.upper()} for o in objects],
+                "maps": {AIA_SOCIOMAP_V5.methodology_version: artifact.to_payload()},
+            }
+        ]
+    }
+
+
+def test_the_report_says_no_reliable_structure_as_the_figure_does() -> None:
+    frozen = _tiny()
+    ((_, artifact),) = read_object_maps(frozen["batteries"][0])
+    assert artifact.credibility is not None and artifact.credibility.split_half is None
+    blocks = compose_map_sections(frozen, object_map_snapshots(frozen), source="Frozen")[0].blocks
+    titles = [b.title for b in blocks if isinstance(b, Callout) and b.title]
+    assert "Žádná spolehlivá struktura" in titles and "Slabě určená mapa" not in titles
+    fig, cam = axes()
+    render_objects(fig.axes[0], artifact, list("ABCDE"), cam, scale=None)
+    assert "Žádná spolehlivá struktura" in words(fig)
+
+
+def test_a_small_set_notes_that_its_respondent_map_is_only_indicative() -> None:
+    frozen = _tiny()
+    ((_, artifact),) = read_object_maps(frozen["batteries"][0])
+    resp = artifact.respondents
+    assert isinstance(resp, RespondentMap) and not resp.informative
+    fig, cam = axes()
+    note = render_respondents(fig.axes[0], artifact, list("ABCDE"), cam)["note"]
+    assert (
+        note == "Sada má 5 objektů: mapa respondentů je jen orientační "
+        f"(spolehlivá od {resp.min_objects})"
+    )
+    assert note in words(fig)
+    # Fewer objects than a respondent's ratings need: nobody can be placed, and it says so.
+    placing = artifact.spec.respondent_map
+    assert placing is not None
+    strict = artifact.spec.model_copy(
+        update={"respondent_map": placing.model_copy(update={"min_ratings": 6})}
+    )
+    fig, cam = axes()
+    note = render_respondents(fig.axes[0], _with(artifact, spec=strict), list("ABCDE"), cam)["note"]
+    assert note == "Sada má 5 objektů: respondenty nelze umístit (potřeba aspoň 6 hodnocení)"
+    # An informative map has no note.
+    fig, cam = axes()
+    assert (
+        render_respondents(fig.axes[0], stored(), [o.capitalize() for o in OBJECTS], cam)["note"]
+        is None
+    )
+
+
+def test_the_report_reads_the_declared_scale_and_explains_the_respondent_map() -> None:
+    frozen = tastes()
+    images = object_map_snapshots(frozen)
+    blocks = compose_map_sections(frozen, images, source="Frozen")[0].blocks
+    prose = " ".join(
+        i.text for b in blocks if isinstance(b, Paragraph) for i in b.content if hasattr(i, "text")
+    )
+    floor = stored().spec.terrain.relative_height_floor  # type: ignore[union-attr]
+    assert (
+        "Výška a barva ukazují průměrné hodnocení na škále 1\u201310 vůči ostatním objektům sady: "
+        f"nejvýše hodnocený objekt má plnou výšku, nejníže hodnocený {round(100 * floor)} % výšky."
+        in prose
+    )
+    assert "převedené na škálu od nuly do jedné" not in prose
+    assert "Mapa respondentů ukazuje každého umístěného respondenta jako bod" in prose
+    assert "Barva bodu ukazuje chuťový segment" in prose and "alespoň 80 %" in prose
+    # An earlier method keeps its 0-1 sentence and has no respondent paragraph.
+    earlier = tastes(AIA_SOCIOMAP_V3)
+    old = " ".join(
+        i.text
+        for b in compose_map_sections(earlier, object_map_snapshots(earlier), source="Frozen")[
+            0
+        ].blocks
+        if isinstance(b, Paragraph)
+        for i in b.content
+        if hasattr(i, "text")
+    )
+    assert "převedené na škálu od nuly do jedné" in old and "Mapa respondentů ukazuje" not in old
+    # The small set: its 1-5 scale, no segments sought and only indicative.
+    small = " ".join(
+        i.text
+        for b in compose_map_sections(_tiny(), object_map_snapshots(_tiny()), source="Frozen")[
+            0
+        ].blocks
+        if isinstance(b, Paragraph)
+        for i in b.content
+        if hasattr(i, "text")
+    )
+    assert "na škále 1\u20135" in small and "mapa respondentů je jen orientační" in small
+
+
+def _four() -> SociomapArtifactV3:
+    """Two fictional taste groups of 100 on four objects: fewer objects than a taste slope needs."""
+    rng = random.Random(4)
+    objects = ("a", "b", "c", "d")
+    values = tuple(
+        tuple(
+            float(min(10, max(1, round(rng.gauss(8 if (i < 2) == (k < 100) else 3, 1.6)))))
+            for i in range(4)
+        )
+        for k in range(200)
+    )
+    data = ObjectMapInputs(
+        respondent_ids=tuple(f"FIC-{i}" for i in range(200)),
+        donor_ids=tuple(f"DONOR-{i}" for i in range(200)),
+        items=tuple(RatingItem(item_id=o, scale_min=1, scale_max=10) for o in objects),
+        values=values,
+        weights=(1.0,) * 200,
+        object_ids=objects,
+        object_items=objects,
+        roles=dict.fromkeys(objects, "primary"),
+    )
+    return compute_object_map(data, AIA_SOCIOMAP_V5, connectedness_interval=False)
+
+
+def test_too_few_objects_for_a_taste_and_the_boundary_at_the_declared_minimum() -> None:
+    four = _four()
+    resp = four.respondents
+    assert isinstance(resp, RespondentMap) and resp.segments is not None
+    assert resp.segments.reason == "TOO_FEW_OBJECTS"
+    fig, cam = axes()
+    render_respondents(fig.axes[0], four, list("ABCD"), cam)
+    assert "Chuťové segmenty se nehledají (méně než 5 objektů)" in words(fig)
+    assert "sada má méně než 5 objektů a chuť člověka se určuje z alespoň 5 hodnocení" in (
+        report_maps._respondent_reading(four, resp)
+    )
+    # Exactly the declared five: the objects suffice; too few respondents is the reason then.
+    ((_, five),) = read_object_maps(_tiny()["batteries"][0])
+    tiny = five.respondents
+    assert isinstance(tiny, RespondentMap) and tiny.segments is not None
+    assert len(five.object_ids) == AIA_SOCIOMAP_V5.segments.min_ratings  # type: ignore[union-attr]
+    assert tiny.segments.reason == "TOO_FEW_RESPONDENTS"
+
+
+def test_a_set_with_as_many_objects_as_a_position_needs_is_placed_not_refused() -> None:
+    ((_, five),) = read_object_maps(_tiny()["batteries"][0])
+    placing = five.spec.respondent_map
+    assert placing is not None
+    at = five.spec.model_copy(
+        update={"respondent_map": placing.model_copy(update={"min_ratings": 5})}
+    )
+    fig, cam = axes()
+    note = render_respondents(fig.axes[0], _with(five, spec=at), list("ABCDE"), cam)["note"]
+    assert note is not None and note.endswith("jen orientační (spolehlivá od 6)")
+    # One more rating than objects: nobody can be placed, in the figure and the report alike.
+    over = five.spec.model_copy(
+        update={"respondent_map": placing.model_copy(update={"min_ratings": 6})}
+    )
+    resp = five.respondents
+    assert isinstance(resp, RespondentMap)
+    text = report_maps._respondent_reading(_with(five, spec=over), resp)
+    assert text == (
+        "Sada má méně objektů, než kolik hodnocení potřebuje poloha respondenta (6): "
+        "respondenty nelze umístit."
+    )

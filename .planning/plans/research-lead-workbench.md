@@ -1660,6 +1660,23 @@ workbench, their forward buttons called `router.push(stepHref(...))`, which skip
 `parseAudienceId` (`lib/artifacts/audience.ts`, #700), as that stage asked; a filter or subpanel
 with no name is no filter. Test: `lead.test.ts` "says each kind in words…" (fails without it).
 
+
+### The study header's "Nabídka" is a menu by the keyboard (2026-10-22, `fix/workbench-offer-menu`; the UX audit, #753)
+
+The header's menu (`Workbench.tsx` `StudyHeader`) said `role="menu"` but ignored Escape, kept the
+focus on its button, did not move with the arrows, and laid a scrim that swallowed the press meant
+for what was under it.
+- **Fix.** Opened (click, ↓ or ↑) on its first or last item; ↑ ↓ Home End move (`rovingIndex`); Esc
+  or a press outside closes it and gives the focus back to its button (`useDismiss`); Tab closes it;
+  no scrim. The items are read from the open menu, so the informative rows under 768 px are never
+  stopped on.
+- **Why not `MenuButton`.** It draws its own popover and takes only actionable items; this menu keeps
+  the workbench's look and carries the sheet's information rows. The behaviour is the same shared
+  helpers `MenuButton` uses.
+- **Tests.** `Workbench.layout.test.tsx` "opens from the keyboard on its first item, moves with the
+  arrows, and Escape closes it back to its button" and "closes on a press outside without a scrim
+  swallowing it"; both fail without the change.
+
 ### The Lead's `inspect` is live (2026-10-22, `feature/lead-inspect-view`; chunk 14, its first op beyond 2a)
 
 2a's drawer opened only from a person's click; the Lead's `inspect` was declared in the contract

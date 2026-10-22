@@ -95,8 +95,8 @@ def test_the_d6_subject_keeps_its_stored_form_and_fingerprint() -> None:
     assert read_spec(stored) == AIA_SOCIOMAP_V3
 
 
-def test_new_runs_still_pin_the_d6_subject() -> None:
-    assert [m.method_id for m in default_methods()][-1] == "aia-sociomap-3"
+def test_new_runs_no_longer_pin_aia_sociomap_3() -> None:
+    assert [m.method_id for m in default_methods()] == ["aia-sociomap-5"]
 
 
 def test_v4_declares_the_constants_the_code_used() -> None:
