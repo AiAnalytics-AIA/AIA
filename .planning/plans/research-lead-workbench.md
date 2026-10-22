@@ -1723,3 +1723,43 @@ for what was under it.
   sends the label it grounded the target against (the frozen copy holds the words) beside each view
   op, or the web keeps the words it saw when the element was last shown. Test: a chip for a
   hypothesis reads its words.
+
+### From an empty brief to the internal draft, through the Lead (2026-10-22, `feature/brief-to-draft-journey`)
+
+`tools/ui_workbench/acceptance_journey.mjs` takes the `empty` fixture from its brief to the run's
+internal DOCX in a real browser. Every AI start goes through the Lead (typed commands, LO5), and
+nothing is paid: the workbench's Lead is scripted, its design jobs and analysis come from
+recordings at zero price, and fieldwork uses fictional respondents. At 1440 px it:
+1. types and saves Zadání's title, goal and decision use;
+2. "Analyzuj zadání": the person's card is approved, the job's card completes, and its proposal is
+   reviewed on the stage and accepted ("Použít návrh");
+3. "Navrhni dotazník": the same, for the questionnaire;
+4. "Spusť výzkum": the run starts from the person's card and is followed to its end, all 16 steps
+   (compile through fieldwork, the eight analysis modules, report, Sociomapping and its report);
+5. on Výsledky, downloads the internal draft as DOCX from the report card. The file must be a Word
+   file carrying the accepted design's research questions and saying it is internal;
+6. checks that nothing was paid: every job ended at a cost that is a number and zero, the usage
+   ledger has no row for the study with a cost or an unknown cost, the study spent $0, there is no
+   page error and no Deep Research start.
+
+Measured on a fresh workbench at e508e483: 2 jobs and 20 usage rows, all at $0. The run took about
+8 s and the DOCX was 1.5 MB. It passes once per fresh workbench; a second pass finds the jobs
+already done for the design.
+
+- **F19. The internal draft never says what the person asked for** *(open; the report's owner,
+  artifact-report)*.
+  1. Claim: the brief's title, goal and decision use do not reach the internal draft. Its cover and
+     introduction name the study record (`study.name`), and "Návrh studie" says it describes "co
+     měl výzkum zjistit" but prints only the research questions, sets and sample.
+  2. Anchors: `apps/executors/src/aia_executors/report.py:85 @ e508e483` (`study_name=study.name`),
+     `packages/aia_core/src/aia_core/application/report.py:208 @ e508e483`, and
+     `packages/aia_core/src/aia_core/application/report_design.py:126-142 @ e508e483`.
+  3. Reproduction: the journey above. The draft's cover reads "Workbench · empty" although the
+     brief's title is "Akceptace · ranní nápoj pro dojíždějící (fiktivní)", and neither the typed
+     goal nor the decision use appears anywhere in its `word/document.xml`.
+  4. Consequence: the person reads a report about a study named by its record, with no statement
+     of the decision it serves.
+  5. Smallest fix: `compose_design_sections` opens with the frozen design's goal and decision use
+     (both are in the Design Revision), and the cover takes the design's title when it has one.
+  6. Test: a report composed from a revision with a goal and a decision use prints both under
+     "Návrh studie". The journey's DOCX assertion then also requires the title.
