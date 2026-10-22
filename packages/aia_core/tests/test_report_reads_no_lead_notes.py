@@ -40,9 +40,7 @@ def _module(path: Path) -> str:
 
 def _contract_sources() -> list[str]:
     config = tomllib.loads((ROOT / "pyproject.toml").read_text())
-    (contract,) = (
-        c for c in config["tool"]["importlinter"]["contracts"] if "(Q69)" in c["name"]
-    )
+    (contract,) = (c for c in config["tool"]["importlinter"]["contracts"] if "(Q69)" in c["name"])
     return list(contract["source_modules"])
 
 
