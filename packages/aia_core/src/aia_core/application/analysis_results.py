@@ -78,6 +78,7 @@ from ..domain.analysis.native import (
     NATIVE_EVIDENCE_VERSION,
     NativeEvidence,
     NativeEvidenceRefused,
+    hypotheses_of,
     native_evidence,
     native_preflight,
     research_questions_of,
@@ -198,6 +199,8 @@ class NativeSources:
     dataset_origin: DataOrigin | None
     fieldwork_source: str | None
     research_questions: tuple[str, ...]
+    #: The hypotheses the design states, which the hypotheses module is given (Q72).
+    hypotheses: tuple[str, ...]
     #: The support rules the run pinned (plan ``methodology-tab`` G1c); its ``analysis`` rule
     #: gates every number this run's analysis admits.
     support: SupportSpec
@@ -420,6 +423,7 @@ def native_sources(
         dataset_origin=origin,
         fieldwork_source=dataset_row.metadata.get("fieldwork_source"),
         research_questions=research_questions_of(content),
+        hypotheses=hypotheses_of(content),
         support=support,
         respondent_system=respondent_system,
         joint_certificate=joint_certificate,
@@ -634,6 +638,7 @@ def prepare_module(
         language=language,
         system_fingerprint=evidence.system_fingerprint,
         external_context=sources.external_context,
+        hypotheses=sources.hypotheses if module_id is AnalysisModuleId.HYPOTHESES else (),
     )
     fingerprint = input_fingerprint(module_id, inputs)
     harness = harness_summary(language=language, max_repairs=max_repairs)

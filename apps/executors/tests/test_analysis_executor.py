@@ -1587,6 +1587,30 @@ def test_a_retry_whose_specification_does_not_read_is_refused_by_name(
     assert not any(s["attempts"] for s in _analysis(_run(world, started.run_id)).values())
 
 
+def test_the_hypotheses_module_is_given_the_design_s_stated_hypotheses(
+    world: Any, store: InMemoryArtifactStore, run_with: Callable[..., Worker]
+) -> None:
+    """Q72: before this, the module answered "none supplied" whatever the design stated."""
+    stated = ["Mladší pijí víc čaje než starší."]
+    design = {**DESIGN, "research_plan": {**DESIGN["research_plan"], "hypotheses": stated}}
+    models = RecordedModels()
+    worker = run_with(models)
+    with world.sessions() as session:
+        scope = world.lead_scope(session)
+        revision, _ = StudyDesignRepository(session, scope).submit_as_working_copy(
+            content=design, source_stage="run"
+        )
+        ResearchRuns(session, scope).start(
+            design_revision_id=revision.revision_id,
+            fieldwork_source=FieldworkSource.SYNTHETIC_FIXTURE,
+            analysis_enabled=True,
+        )
+        session.commit()
+    _drain(worker)
+    assert json.loads(models.messages("hypotheses", 1)[0])["stated_hypotheses"] == stated
+    assert "stated_hypotheses" not in json.loads(models.messages("executive", 1)[0])
+
+
 def test_a_retry_round_asks_again_what_the_model_refused_and_replays_nothing_old(
     world: Any, store: InMemoryArtifactStore, run_with: Callable[..., Worker]
 ) -> None:

@@ -18,6 +18,7 @@ from aia_core.domain.analysis import (
     repair_prompt,
     system_prompt,
 )
+from aia_core.domain.analysis.native import hypotheses_of
 from aia_core.domain.evidence import (
     EvidenceTable,
     SupportEvidence,
@@ -85,6 +86,7 @@ def _fp(**overrides: Any) -> str:
         {"method_status": "synthetic/modelled research; externally validated"},
         {"system_fingerprint": "b" * 64},
         {"external_context": ["Jiná zpráva"]},
+        {"hypotheses": ["Mladší pijí víc čaje."]},
         {"module": AnalysisModuleId.LIMITATIONS},
     ],
 )
@@ -159,3 +161,28 @@ def test_payload_offers_only_citable_rows_and_marks_context(evidence_row: Any) -
     assert payload["suppressed_evidence"] == ["E3"]
     assert payload["external_context_not_evidence"] == ["Tisková zpráva konkurence"]
     assert payload["evidence"][0]["unit"] == "%"
+
+
+def test_only_the_hypotheses_module_is_given_the_stated_hypotheses(evidence_row: Any) -> None:
+    """Q72 (Nigel, 2026-10-22): the hypotheses module answered "none supplied" on every run because
+    the design's hypotheses never reached it. It is given them now; no other module is."""
+    table = EvidenceTable.build([evidence_row("E1")])
+    stated = ["Mladší pijí víc čaje."]
+    given = module_payload(
+        module_spec("hypotheses"), table, research_questions=[], hypotheses=stated
+    )
+    assert given["stated_hypotheses"] == stated
+    other = module_payload(module_spec("objects"), table, research_questions=[], hypotheses=stated)
+    assert "stated_hypotheses" not in other
+    # A module given none keeps the fingerprint it had: no stored outcome moves for nothing.
+    assert _fp(hypotheses=[]) == _fp()
+
+
+def test_the_design_s_hypotheses_are_read_as_stated() -> None:
+    design = {
+        "research_plan": {"hypotheses": [" Mladší pijí víc čaje. ", "", 3, "Mladší pijí víc čaje."]}
+    }
+    assert hypotheses_of(design) == ("Mladší pijí víc čaje.",)
+    assert (
+        hypotheses_of({}) == () and hypotheses_of({"research_plan": {"hypotheses": "jedna"}}) == ()
+    )

@@ -25,7 +25,7 @@ from ..evidence import (
     allowed_metric_spellings,
     unit_for,
 )
-from .modules import AnalysisModuleSpec
+from .modules import AnalysisModuleId, AnalysisModuleSpec
 
 __all__ = [
     "PROMPT_TEMPLATE_VERSION",
@@ -153,8 +153,10 @@ def module_payload(
     *,
     research_questions: Sequence[str],
     external_context: Sequence[str] = (),
+    hypotheses: Sequence[str] = (),
 ) -> dict[str, Any]:
-    """The user turn: the evidence table as citable rows, and context marked as context."""
+    """The user turn: the evidence table as citable rows, and context marked as context. The
+    hypotheses module alone is given the design's stated hypotheses (``stated_hypotheses``)."""
     return {
         "module": spec.module_id.value,
         "research_questions": list(research_questions),
@@ -173,4 +175,9 @@ def module_payload(
         ],
         "suppressed_evidence": sorted(table.suppressed),
         "external_context_not_evidence": list(external_context),
+        **(
+            {"stated_hypotheses": list(hypotheses)}
+            if spec.module_id is AnalysisModuleId.HYPOTHESES
+            else {}
+        ),
     }

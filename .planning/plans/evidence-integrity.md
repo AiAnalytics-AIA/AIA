@@ -187,3 +187,20 @@ row names it. 1 moves from E20 to E32 (G62), before its W1 consumer 9a.
 refusal while a module has no supported finding) and `artifact-chain-to-draft-report#CHN10`. Once
 9b lands, the Segments chapter (ch-5) has no admitted producer without 10, so no run could reach a
 draft report.
+
+## Findings
+
+- **F1. The hypotheses module was never given the design's hypotheses** (found while building 9a, 2026-10-22).
+  - Anchor: `domain/analysis/prompt.py:147 @ 774eca10` `module_payload` sends the research questions, the
+    evidence and the external context, never `research_plan.hypotheses`. `domain/analysis/modules.py:101
+    @ 774eca10` tells the module to "Evaluate only hypotheses explicitly supplied … If none are supplied, say
+    hypotheses cannot be assessed".
+  - Consequence: on every run the hypotheses module answered "cannot be assessed". The product owner saw it
+    (Q72, 2026-10-22: "basically every hypothesis was answered in the style of 'there was no context'").
+  - Repro: any run whose design states hypotheses; the module's first request has no hypotheses in it.
+  - Fix: `domain/analysis/native.py` `hypotheses_of` reads `research_plan.hypotheses`; the hypotheses module
+    alone is given them as `stated_hypotheses`, inside harness 3 (chunk 1's bump), so stored modules are
+    repaired by one same-data round. A module given none keeps its fingerprint.
+  - Tests: `test_analysis_modules.py` "only the hypotheses module is given the stated hypotheses" and "the
+    design's hypotheses are read as stated"; `test_analysis_executor.py` "the hypotheses module is given the
+    design's stated hypotheses".
