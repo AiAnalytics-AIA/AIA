@@ -51,6 +51,26 @@ Today those items are keyed by normalised text (`design_items.py:120-172`), so a
 **WCE2. `workspace_edit_ops` (M1) and `apply_edit_ops`: the one writer of the working copy; every other writer becomes a recorded whole-copy operation**  
 The PUT, questionnaire import, reuse, the 18.6.6 migration, Design Research accept and the web autosave are the six other writers; none may change a locked item or skip the log. Test: a whole-copy write leaves an op and cannot change a locked item. Interfaces I8.
 
+WCE2 split (scoped 2026-10-22, approved by the PM): **2a** the log as values
+(`domain/edit_log.py`); **2b** M1, the table and `WorkspaceEditRepository`; **2c**
+`apply_edit_ops` for whole-copy writes, the PUT, `submit_as_working_copy` and reuse through it, the
+lock enforced; **2d** the Lead's `decide_edits` as vocabulary operations (closes F-WCE1-1); **2e**
+the agent-job and Design Research accepts; **2f** the 18.6.6 migration, then `save` and
+`import_migrated` reachable from `apply_edit_ops` alone (layer_check). The eight callers, at
+`3a544cb3`: `routers/workspace.py:2164` (PUT: autosave, every stage, questionnaire import),
+`application/research_lead.py:822` (Lead edits), `study_design_repository.py:226`
+(`submit_as_working_copy`, the template behind OI-173), `application/design_reuse.py:186`,
+`proposal_accept.py:185` from `research.py:1981` and `design_research.py:135`,
+`workspace_migration.py:151, :238`.
+
+- **WCE2a (2026-10-22).** `domain/edit_log.py`: a row per `(item, field)` a write touched
+  (`design_fields.changed_fields`), a whole-copy write's `op` `{"op": "whole_copy", "reason"}`;
+  a write no field counts (a re-spaced list entry, an id list) logs one `content:copy:` row, so no
+  write skips the log; `WriteBy` refuses a write without its author unless it is a migrated
+  revision; a key or field past its column is a prefix and a digest, deterministic. Measured: a
+  40-question import into the template is 44 rows in 5.6 ms (median of 20), one wording edit on it
+  1 row in 7.3 ms. Tests: `test_edit_log.py`.
+
 **WCE3a. The web store on the server vocabulary, Brief and Design stages**  
 33 `store.update` sites in 9 files and about 1,900 lines of TypeScript with 18.6.6 parity tests are moved stage by stage; the parity tests stay green at every step.
 
