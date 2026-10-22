@@ -80,6 +80,7 @@ import { AiButton, Button } from "../ui";
 import { isNativeResult } from "@/lib/research-agent-jobs";
 import { openPlace, scrollBehavior, scrollToPlace } from "@/lib/open-place";
 import { useResearch } from "./context";
+import { useFrame } from "./frame-hook";
 import { ID_SOURCE, type TargetKind, aiaId } from "@/lib/workbench-artifacts";
 import { QuestionnaireDependencies } from "./QuestionnaireDependencies";
 import { QuestionnaireStrip } from "./QuestionnaireStrip";
@@ -737,11 +738,10 @@ function ResearchQuestionComparisons({ update }: { update: Update }) {
   );
 }
 
-/** A field edited in place: a quiet input that shows its border on hover and focus. */
 /**
  * A block's or set's short text, edited in place (input-interactions I1, audit A4, A13): Enter or
- * blur saves, Esc restores, and the field says its own save, the change saved at once rather than
- * after the editor's quiet period. A name is required; a purpose may be left empty.
+ * blur saves, Esc restores. The change goes to the working copy at once and saves with it, the
+ * header saying the save, as Návrh's narrative does. A name is required; a purpose may be left empty.
  */
 function InlineField({ label, value, onChange, strong = false, required = true }: {
   label: string;
@@ -750,21 +750,19 @@ function InlineField({ label, value, onChange, strong = false, required = true }
   strong?: boolean;
   required?: boolean;
 }) {
-  const { store } = useResearch();
+  const { canEdit } = useFrame();
   // A line of its own: the purpose under the name, as the inputs stood before.
   return (
     <div className="min-w-0">
-    <InlineText
-      label={label}
-      value={value}
-      placeholder={label}
-      rules={{ required }}
-      onCommit={(v) => {
-        onChange(v);
-        return store.flush();
-      }}
-      className={strong ? "text-[15px] font-semibold text-ink" : "text-[13px] text-ink-muted"}
-    />
+      <InlineText
+        label={label}
+        value={value}
+        placeholder={label}
+        disabled={!canEdit}
+        rules={{ required }}
+        onCommit={onChange}
+        className={strong ? "text-[15px] font-semibold text-ink" : "text-[13px] text-ink-muted"}
+      />
     </div>
   );
 }

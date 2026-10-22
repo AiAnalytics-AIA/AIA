@@ -107,15 +107,18 @@ try {
   const nameField = page.getByRole("textbox", { name: "Název bloku" });
   await nameField.fill(`${was} (přejmenováno)`);
   await nameField.press("Enter");
-  await page.getByRole("button", { name: `Upravit: Název bloku ${was} (přejmenováno)` }).waitFor();
-  await page.waitForFunction(() => !document.body.innerText.includes("Ukládám"));
+  // The copy saved: the artifact header says "Uloženo" once the working copy holds the change.
+  const saved = () => page.getByText("Uloženo", { exact: true }).first().waitFor({ timeout: 15000 });
+  await page.getByRole("button", { name: `Upravit: Název bloku ${was} (přejmenováno)`, exact: true }).waitFor();
+  await saved();
   await page.reload();
-  const renamed = page.getByRole("button", { name: `Upravit: Název bloku ${was} (přejmenováno)` });
+  const renamed = page.getByRole("button", { name: `Upravit: Název bloku ${was} (přejmenováno)`, exact: true });
   await renamed.waitFor({ timeout: 30000 });
   await renamed.click();
   await page.getByRole("textbox", { name: "Název bloku" }).fill(was);
   await page.getByRole("textbox", { name: "Název bloku" }).press("Enter");
-  await page.getByRole("button", { name: `Upravit: Název bloku ${was}` }).waitFor();
+  await page.getByRole("button", { name: `Upravit: Název bloku ${was}`, exact: true }).waitFor();
+  await saved();
   check("1440: a block renamed in place, saved and read back after a reload, then restored");
 
   // A question deleted at once and put back with Vrátit (input-interactions chunk 3, I6), at 1440.

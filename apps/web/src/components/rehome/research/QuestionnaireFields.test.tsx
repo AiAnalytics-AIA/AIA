@@ -82,4 +82,9 @@ describe("Dotazník's block and set fields", () => {
     await waitFor(() => expect(sectionsSaved()?.[0].purpose).toBe(""));
     expect(sectionsSaved()?.[0].title).toBe("Hlavní otázky");
   });
+
+  it("offers no edit on a design the person may not change", async () => {
+    render(<ResearchScreen step="questionnaire" frame={{ ...TEST_FRAME, canEdit: false }} />);
+    expect(((await screen.findByRole("button", { name: "Upravit: Název bloku Hlavní otázky" })) as HTMLButtonElement).disabled).toBe(true);
+  });
 });
