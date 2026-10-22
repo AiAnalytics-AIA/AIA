@@ -6,7 +6,6 @@ import { afterEach, beforeEach, describe, expect, it, onTestFinished, vi } from 
 
 import { AGENTS_PATH, NATIVE_JOB_WAIT, NATIVE_TEST_TIMEOUT_MS, PARK_MESSAGE, approveProposal, nativeAgentFixture } from "./test-native-agents";
 import { briefFingerprint, defaultsMerge } from "@/research/model";
-import { SET_TOO_SMALL } from "@/research/questionnaire";
 import { ResearchScreen } from "./ResearchScreen";
 import { type SavedBody, workspaceFixture } from "./test-workspace";
 import { TEST_FRAME, stagePath } from "./test-frame";
@@ -293,7 +292,7 @@ describe("Dotazník", () => {
     fireEvent.change(set, { target: { value: "značky" } });
     fireEvent.keyDown(set, { key: "Enter" });
     await screen.findByRole("heading", { name: "3 otázky · 2 sledované sady" });
-    expect(screen.getByText("0 / 4–15")).toBeTruthy();
+    expect(screen.getByText("0 / doporučeno 4–15")).toBeTruthy();
     expect(screen.queryByRole("dialog")).toBeNull();
     expect(screen.queryByRole("alertdialog")).toBeNull();
   });
@@ -339,8 +338,8 @@ describe("Dotazník", () => {
     render(<ResearchScreen step="questionnaire" frame={TEST_FRAME} />);
     // Objects are chips; updateObjects notes a set under four.
     fireEvent.click(await screen.findByRole("button", { name: "Odebrat Tisk" }));
-    expect(await screen.findByText(SET_TOO_SMALL)).toBeTruthy();
-    expect(screen.getByText("3 / 4–15")).toBeTruthy();
+    expect(await screen.findByText("Nejmenší počet objektů v sadě: 4.")).toBeTruthy();
+    expect(screen.getByText("3 / doporučeno 4–15")).toBeTruthy();
     // Removal is confirmed on the card.
     fireEvent.click(screen.getAllByRole("button", { name: "Smazat" })[1]);
     expect(screen.getByRole("alertdialog").textContent).toContain("Odstranit tuto sadu?");

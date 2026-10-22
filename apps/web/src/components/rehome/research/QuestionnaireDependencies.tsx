@@ -6,6 +6,7 @@
 // each; the ordinary closed questions share one. Display only: it edits nothing.
 
 import Link from "next/link";
+import { useContext } from "react";
 
 import { t, tv } from "@/i18n/t";
 import { questionElementId, setElementId } from "@/lib/answerability";
@@ -13,6 +14,8 @@ import { STAGES, stageHref, type WorkbenchStage } from "@/lib/workbench-stages";
 import { type ItemReaders, type Reader, questionnaireReaders } from "@/research/readers";
 import { useResearch } from "./context";
 import { useFrame } from "./frame-hook";
+import { SetLimitsContext } from "./useSampleLimits";
+import type { SetLimits } from "@/research/questionnaire";
 
 const FOCUS = "focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus-ring";
 const LINK = `underline decoration-border-strong underline-offset-2 hover:decoration-ink ${FOCUS}`;
@@ -42,8 +45,9 @@ function ItemName({ item }: { item: ItemReaders }) {
   return anchor ? <a className={`font-medium ${LINK}`} href={`#${anchor}`}>{name}</a> : <span className="font-medium">{name}</span>;
 }
 
-function note(item: ItemReaders): string | null {
-  if (item.held) return t(`research.questionnaire.dependencies.held.${item.held}`);
+function note(item: ItemReaders, l: SetLimits): string | null {
+  // A set's size is held to the compiler's hard range in force.
+  if (item.held) return tv(`research.questionnaire.dependencies.held.${item.held}`, { min: l.min, max: l.max });
   if (item.open) return t("research.questionnaire.dependencies.open");
   if (item.rating && !item.readers.includes("sociomap")) return t("research.questionnaire.dependencies.ratingNoSet");
   if (item.rating) return t("research.questionnaire.dependencies.rating");
@@ -53,7 +57,8 @@ function note(item: ItemReaders): string | null {
 
 export function QuestionnaireDependencies() {
   const { state } = useResearch();
-  const items = questionnaireReaders(state.project);
+  const setLimits = useContext(SetLimitsContext);
+  const items = questionnaireReaders(state.project, setLimits);
   if (!items.length) return null;
   const closed = items.filter(plain);
   const own = items.filter((i) => !plain(i));
@@ -62,7 +67,7 @@ export function QuestionnaireDependencies() {
       <h3 id="q-dependencies" className="text-sm font-semibold">{t("research.questionnaire.dependencies.title")}</h3>
       <ul className="flex flex-col gap-2 text-[13px] leading-5">
         {own.map((item) => {
-          const why = note(item);
+          const why = note(item, setLimits);
           return (
             <li key={`${item.kind}-${item.label}`}>
               <ItemName item={item} />

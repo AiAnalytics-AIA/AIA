@@ -91,6 +91,26 @@ describe("Návrh", () => {
     expect(push).toHaveBeenCalledWith(stagePath("questionnaire"));
   });
 
+  it("warns in words above the recommended fifteen objects and still lets the plan go on (Q75 (a))", async () => {
+    const sixteen = Array.from({ length: 16 }, (_, i) => `Varianta ${i + 1}`);
+    unitStub({ ...ANALYSIS, tracked_sets: [{ ...ANALYSIS.tracked_sets[0], objects: sixteen }] });
+    render(<ResearchScreen step="plan" frame={TEST_FRAME} />);
+    expect(await screen.findByText("16 / doporučeno 4–15")).toBeTruthy();
+    expect(screen.getByText("Víc než doporučených 15 objektů. Sada jich může mít až 40; Kontrola na to upozorní.")).toBeTruthy();
+    expect(screen.queryByText(/potřebuje 4–40/)).toBeNull();
+    expect(screen.getByText("Návrh je připravený")).toBeTruthy();
+  });
+
+  it("holds a set to the methodology in force: 31 objects stop the plan where the maximum is 30", async () => {
+    const objects = Array.from({ length: 31 }, (_, i) => `Varianta ${i + 1}`);
+    const tracked_set = { min: 3, max: 30, recommended_min: 5, recommended_max: 12 };
+    unitStub({ ...ANALYSIS, tracked_sets: [{ ...ANALYSIS.tracked_sets[0], objects }] }, { [LIMITS_PATH]: () => ({ ...LIMITS, tracked_set }) });
+    render(<ResearchScreen step="plan" frame={TEST_FRAME} />);
+    expect(await screen.findByText("31 / doporučeno 5–12")).toBeTruthy();
+    expect(screen.getByText(/má 31 položek, potřebuje 5–30/)).toBeTruthy();
+    expect(screen.queryByText("Návrh je připravený")).toBeNull();
+  });
+
   it("draws the analysis, its sets with the question preview, the follow-ups and the comments", async () => {
     unitStub();
     render(<ResearchScreen step="plan" frame={TEST_FRAME} />);
@@ -98,9 +118,9 @@ describe("Návrh", () => {
     expect(screen.getByText("Jde o test nového konceptu.")).toBeTruthy();
     expect(screen.getByText("Mírnější varianta vyhraje")).toBeTruthy();
     expect(screen.getByText("Jak vás oslovuje Jemná?")).toBeTruthy();
-    // Two items: under the 4–15 a set is measured with, and the dock says so.
-    expect(screen.getByText("2 / 4–15")).toBeTruthy();
-    expect(screen.getByText(/má 2 položek, potřebuje 4–15/)).toBeTruthy();
+    // Two items: under the four a set needs, and the dock says so.
+    expect(screen.getByText("2 / doporučeno 4–15")).toBeTruthy();
+    expect(screen.getByText(/má 2 položek, potřebuje 4–40/)).toBeTruthy();
     expect(screen.getByText("Jen MHD?")).toBeTruthy();
     const process = screen.getByRole("button", { name: "Zpracovat komentáře" }) as HTMLButtonElement;
     expect(process.disabled).toBe(true);
