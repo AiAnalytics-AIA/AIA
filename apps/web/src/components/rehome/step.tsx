@@ -8,11 +8,10 @@
 import Link from "next/link";
 import { createContext, type KeyboardEvent, type ReactNode, useContext, useId, useRef, useState } from "react";
 
+import { FOCUS, TOUCH } from "@/components/ui/parts";
 import { t } from "@/i18n/t";
 import { rovingIndex, tabStop } from "@/lib/roving";
 import { Icon } from "./icons";
-
-const FOCUS = "focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus-ring";
 
 /**
  * One section of a step: a card whose header carries the title, its help under it,
@@ -83,7 +82,7 @@ export function ActionDock({ back, note, ready = true, children }: {
   return (
     <div className="flex flex-wrap items-center gap-3 rounded-card border border-border bg-surface-raised px-3 py-2.5">
       {back && !framed ? (
-        <Link href={back.href} className={`inline-flex items-center gap-1.5 whitespace-nowrap rounded-sm text-sm text-ink-muted no-underline hover:text-ink ${FOCUS}`}>
+        <Link href={back.href} className={`inline-flex items-center gap-1.5 whitespace-nowrap rounded-sm text-sm text-ink-muted no-underline hover:text-ink ${TOUCH} ${FOCUS}`}>
           <Icon name="back" size={14} />
           {back.label}
         </Link>
