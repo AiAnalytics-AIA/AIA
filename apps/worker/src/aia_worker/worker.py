@@ -400,7 +400,7 @@ class Worker:
         except StepFailed as failed:
             return self._record_failure(
                 claim,
-                Failed(failed.failure, _redacted(failed.error), failed.quota_reset_at),
+                Failed(failed.failure, failed.error, failed.quota_reset_at),
             )
         except Exception as error:
             # An error event with its stack (the logging integration), even when a retry
@@ -479,6 +479,9 @@ class Worker:
     def _record_failure(
         self, claim: _Claim, failed: Failed, *, reported: bool = False
     ) -> AttemptResult:
+        # Every failure is scrubbed here, whichever way it came: a raised StepFailed, an
+        # unclassified exception, or a Failed an executor returned with str(exc) in it.
+        failed = Failed(failed.failure, _redacted(failed.error), failed.quota_reset_at)
         result = self._record(
             claim,
             "failed",
@@ -542,6 +545,23 @@ def _report_step_failed(claim: _Claim, failed: Failed) -> None:
     )
 
 
+# Deeper than any error payload an executor writes; past it a container is not copied
+# (fails closed: "[truncated]", never the unscrubbed value).
+_MAX_ERROR_DEPTH = 8
+
+
 def _redacted(error: dict[str, Any]) -> dict[str, Any]:
-    """Redact string values an executor put in an error payload."""
-    return {k: redact_text(v) if isinstance(v, str) else v for k, v in error.items()}
+    """Redact every string an executor put in an error payload, at any depth."""
+    return {k: _redacted_value(v) for k, v in error.items()}
+
+
+def _redacted_value(value: Any, depth: int = 0) -> Any:
+    if isinstance(value, str):
+        return redact_text(value)
+    if depth >= _MAX_ERROR_DEPTH:
+        return value if isinstance(value, (int, float, bool)) or value is None else "[truncated]"
+    if isinstance(value, dict):
+        return {k: _redacted_value(v, depth + 1) for k, v in value.items()}
+    if isinstance(value, (list, tuple)):
+        return [_redacted_value(v, depth + 1) for v in value]
+    return value
