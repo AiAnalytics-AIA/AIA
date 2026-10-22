@@ -119,3 +119,61 @@ errors.{$AIA_PUBLIC_HOSTNAME} {
 		format json
 	}
 }
+
+# ONLYOFFICE Docs, Zpráva's report editor (deploy/develop/docs, plan report-editor-hosting):
+# its own name, so its JavaScript never runs beside AIA's session token. Every request passes
+# AIA's docs gate, which reads a docs-only cookie (never AIA's session), and the cookie stops
+# here; the one way in is /__aia/session, where the API spends a one-time ticket and sets that
+# cookie. The Document Server's server-to-server and admin paths are not served at all: the
+# API reaches them inside, as onlyoffice:80. Framed by AIA's pages alone. When the Document
+# Server is not running this answers 502 and AIA is unaffected.
+docs.{$AIA_PUBLIC_HOSTNAME} {
+	encode zstd gzip
+
+	header {
+		Strict-Transport-Security "max-age=31536000; includeSubDomains"
+		X-Content-Type-Options "nosniff"
+		Content-Security-Policy "frame-ancestors https://{$AIA_PUBLIC_HOSTNAME}"
+		Referrer-Policy "strict-origin-when-cross-origin"
+		-Server
+	}
+
+	# A ticket for the docs cookie: the API's, and nothing else of the API is served here.
+	handle /__aia/session {
+		rewrite * /api/v1/session/docs?{query}
+		reverse_proxy api:8000
+	}
+
+	# Server to server (commands, conversion, the builder), its AI proxy, WOPI hosting and the
+	# admin, info, welcome and example pages: the API calls the first inside, and nobody needs the
+	# rest. Any case, with or without the version prefix its nginx strips
+	# (/<a.b.c-d>/<path> reaches the same service), and with repeated slashes, which its nginx
+	# merges.
+	@server_only path_regexp server_only (?i)^/+(?:[0-9]+\.[0-9]+\.[0-9]+[.|-]\w+/+)?(?:coauthoring/+commandservice\.ashx|convertservice\.ashx|command|converter|docbuilder|ai-proxy|hosting|admin|info|internal|example|welcome|healthcheck)(?:[/?].*)?$
+	handle @server_only {
+		respond 404
+	}
+
+	handle {
+		# Uploads into a document (an image), bounded like the API's.
+		request_body {
+			max_size 40MiB
+		}
+		route {
+			forward_auth api:8000 {
+				uri /api/v1/session/docs-gate
+				# The gate answers a plain GET: an editor's WebSocket upgrade is not passed to it.
+				header_up -Connection
+				header_up -Upgrade
+			}
+			reverse_proxy onlyoffice:80 {
+				header_up -Cookie
+			}
+		}
+	}
+
+	log {
+		output stdout
+		format json
+	}
+}

@@ -10,12 +10,18 @@ must be ``aia.example.test``, and ``AIA_LEGACY_HOSTNAME`` is set to
 here rather than as an empty address. Stdlib only. What it asserts, and why each
 line must never go missing:
 
-* The product hostname is the only site but one: NPC Panel 18.6.6's oracle hostname
+* The product hostname is the only site but two: NPC Panel 18.6.6's oracle hostname
   is not served by the product (ADR 0018 decision 5); the unit runs, when a
-  comparison needs it, from ``deploy/reference`` on the host's loopback. The one
+  comparison needs it, from ``deploy/reference`` on the host's loopback. One
   other is ``errors.<product hostname>``, GlitchTip (plan error-tracking), and it
   reaches GlitchTip and nothing else -- never the API or the web client, so it
   shares nothing of AIA's origin.
+* The other is ``docs.<product hostname>``, ONLYOFFICE Docs (plan
+  report-editor-hosting). Every request there passes AIA's docs gate before it
+  reaches the Document Server, without the cookie; the API is reached there only
+  to exchange a ticket for the docs cookie (``/__aia/session``); the Document
+  Server's server-to-server and admin paths answer 404; and only AIA's own
+  pages may frame it. The product hostname never reaches the Document Server.
 * ``/`` is a redirect to ``/app/clients`` and nothing else: the product's front
   door is AIA, never the 18.6.6 document (ADR 0015).
 * The 18.6.6 interface is not served (ADR 0018 decision 4): no route rewrites to
@@ -39,6 +45,7 @@ line must never go missing:
 from __future__ import annotations
 
 import json
+import re
 import sys
 from collections.abc import Iterator
 from typing import Any
@@ -46,6 +53,43 @@ from typing import Any
 PRODUCT = "aia.example.test"
 ERRORS = f"errors.{PRODUCT}"
 GLITCHTIP = "glitchtip:8000"
+DOCS = f"docs.{PRODUCT}"
+ONLYOFFICE = "onlyoffice:80"
+DOCS_GATE = "/api/v1/session/docs-gate"
+# The one path of docs.<hostname> the API answers: a one-time ticket spent for the docs cookie.
+DOCS_SESSION = "/__aia/session"
+DOCS_SESSION_TARGET = "/api/v1/session/docs?{http.request.uri.query}"
+# The Document Server's server-to-server, AI proxy, hosting and admin paths: the API calls the
+# first inside, as onlyoffice:80, and nothing outside needs any of them. Each is refused in any
+# case, behind the version prefix its nginx strips and with the slashes its nginx merges.
+SERVER_ONLY = (
+    "/coauthoring/CommandService.ashx",
+    "/9.4.0-1/coauthoring/CommandService.ashx",
+    "//coauthoring//commandservice.ashx",
+    "/ConvertService.ashx",
+    "/converter",
+    "/command",
+    "/docbuilder",
+    "/ai-proxy/openai/v1/chat",
+    "/9.4.0.1/AI-PROXY",
+    "/hosting/discovery",
+    "/admin",
+    "/info/info.json",
+    "/internal/cluster/inactive",
+    "/example/",
+    "/welcome/",
+    "/healthcheck",
+)
+# What the editor itself loads, which the refusal must leave alone.
+EDITOR_PATHS = (
+    "/web-apps/apps/api/documents/api.js",
+    "/9.4.0-1/web-apps/apps/documenteditor/main/index.html",
+    "/9.4.0-1/sdkjs/word/sdk-all.js",
+    "/doc/ART-1.abc/c/",
+    "/downloadas/ART-1.abc",
+    "/cache/files/data/ART-1.abc/output.docx/output.docx",
+    "/information",
+)
 LEGACY = "legacy.example.test"
 UNIT = "legacy-panel:8765"
 WEB = "web:3000"
@@ -54,7 +98,7 @@ APP_GATE = "/api/v1/session/gate"
 # The 18.6.6 panel's gate (ADR 0012), retired with the unit (ADR 0018). Named so
 # that a route asking it is reported as the gate it is, and refused.
 PANEL_GATE = "/api/v1/panel/gate"
-GATES = (APP_GATE, PANEL_GATE)
+GATES = (APP_GATE, PANEL_GATE, DOCS_GATE)
 # The largest body a route takes: a 25 MiB file as base64 (4/3) in its JSON envelope.
 BODY_MIN = 36 * 1024 * 1024
 BODY_MAX = 64 * 1024 * 1024
@@ -75,6 +119,16 @@ def dials(node: Any) -> list[str]:
         u.get("dial", "")
         for n in walk(node)
         if n.get("handler") == "reverse_proxy"
+        for u in n.get("upstreams", [])
+    ]
+
+
+def proxied(node: Any) -> list[str]:
+    """The upstreams a route serves from: every proxy's but a gate's."""
+    return [
+        u.get("dial", "")
+        for n in walk(node)
+        if n.get("handler") == "reverse_proxy" and n.get("rewrite", {}).get("uri") not in GATES
         for u in n.get("upstreams", [])
     ]
 
@@ -131,10 +185,22 @@ def paths_of(route: dict[str, Any]) -> list[str]:
     return [p for m in route.get("match", []) for p in m.get("path", [])]
 
 
+def refuses(route: dict[str, Any], path: str) -> bool:
+    """Whether the route's path_regexp matches ``path``.
+
+    Caddy's patterns are Go's RE2; the ones checked here read the same in Python's ``re``.
+    """
+    return any(
+        re.search(m["path_regexp"]["pattern"], path) is not None
+        for m in route.get("match", [])
+        if "path_regexp" in m
+    )
+
+
 def check(config: dict[str, Any]) -> list[str]:
     """Every problem found; empty when the routing is as the ADRs say."""
     problems: list[str] = []
-    others = sorted(hosts(config) - {PRODUCT, ERRORS})
+    others = sorted(hosts(config) - {PRODUCT, ERRORS, DOCS})
     if others:
         problems.append(
             f"the product Caddyfile serves another hostname: {others} (the 18.6.6 oracle is "
@@ -147,6 +213,8 @@ def check(config: dict[str, Any]) -> list[str]:
                 f"{ERRORS} must reach GlitchTip ({GLITCHTIP}) and nothing else; got "
                 f"{sorted(upstreams)}"
             )
+    if DOCS in hosts(config):
+        problems.extend(check_docs(config))
     routes = site(config, PRODUCT)
 
     def only(path: str) -> dict[str, Any] | None:
@@ -194,11 +262,64 @@ def check(config: dict[str, Any]) -> list[str]:
             problems.append(f"{where} reaches {stray}: only the API and the web client are AIA's")
         if f"gate:{PANEL_GATE}" in steps(r):
             problems.append(f"{where} asks the 18.6.6 panel's gate, which is gone with the unit")
+        if f"gate:{DOCS_GATE}" in steps(r):
+            problems.append(f"{where} asks the docs gate: AIA's pages are behind AIA's own")
     last = routes[-1]
     if paths_of(last) or dials(last) != [WEB]:
         problems.append(
             f"the last route must be the web client for any other path; got {steps(last)}"
         )
+    return problems
+
+
+def check_docs(config: dict[str, Any]) -> list[str]:
+    """What docs.<hostname> must be: the Document Server behind the docs gate, and no more."""
+    problems: list[str] = []
+    routes = site(config, DOCS)
+    served = [r for r in routes if dials(r) or steps(r)]
+    session = [r for r in served if DOCS_SESSION in paths_of(r)]
+    if len(session) != 1 or steps(session[0]) != [
+        f"rewrite:{DOCS_SESSION_TARGET}",
+        f"proxy:{API}",
+    ]:
+        problems.append(
+            f"{DOCS}{DOCS_SESSION} must be the API's ticket exchange and nothing else; got "
+            f"{[steps(r) for r in session]}"
+        )
+    refusal = [r for r in served if steps(r) == ["static:404:"]]
+    for path in SERVER_ONLY:
+        if not any(refuses(r, path) for r in refusal):
+            problems.append(f"{DOCS}{path} must answer 404: it is the Document Server's own")
+    for path in EDITOR_PATHS:
+        if any(refuses(r, path) for r in served):
+            problems.append(f"{DOCS}{path} is refused, and the editor needs it")
+    for r in served:
+        where = paths_of(r) or ["any path"]
+        if r in session:
+            continue
+        if API in proxied(r):
+            problems.append(f"{DOCS} {where} reaches the API beyond the ticket exchange")
+        if stray := sorted(set(proxied(r)) - {ONLYOFFICE}):
+            problems.append(f"{DOCS} {where} reaches {stray}: only the Document Server is served")
+        if ONLYOFFICE in proxied(r):
+            if steps(r) != [f"gate:{DOCS_GATE}", f"proxy:{ONLYOFFICE}"]:
+                problems.append(
+                    f"{DOCS} {where} must be the docs gate, then the Document Server; "
+                    f"got {steps(r)}"
+                )
+            if not cookie_dropped(r):
+                problems.append(f"{DOCS} {where}: a cookie reaches the Document Server")
+    last = served[-1] if served else {}
+    if paths_of(last) or proxied(last) != [ONLYOFFICE]:
+        problems.append(f"{DOCS}: the last route must be the Document Server for any other path")
+    framers = {
+        value
+        for n in walk(routes)
+        if n.get("handler") == "headers"
+        for value in n.get("response", {}).get("set", {}).get("Content-Security-Policy", [])
+    }
+    if framers != {f"frame-ancestors https://{PRODUCT}"}:
+        problems.append(f"{DOCS} must be framed by https://{PRODUCT} alone; got {sorted(framers)}")
     return problems
 
 
@@ -210,8 +331,9 @@ def main(argv: list[str]) -> int:
     if problems:
         return 1
     print(
-        "caddy routes: AIA's hostname, and errors.<it> to GlitchTip alone; / -> /app/clients; "
-        "/app behind AIA's gate; the API and the web client only, nothing of 18.6.6"
+        "caddy routes: AIA's hostname, errors.<it> to GlitchTip alone and docs.<it> to the "
+        "Document Server behind the docs gate; / -> /app/clients; /app behind AIA's gate; the "
+        "API and the web client only, nothing of 18.6.6"
     )
     return 0
 

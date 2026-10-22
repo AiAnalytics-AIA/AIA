@@ -274,3 +274,114 @@ def test_the_real_caddyfile_adapts_to_routing_that_passes(routes: Any) -> None:
         text=True,
     )
     assert routes.check(json.loads(adapted.stdout)) == []
+
+
+# Plan report-editor-hosting: docs.<product hostname> is ONLYOFFICE Docs behind AIA's docs gate.
+DOCS_GATE = {
+    "handler": "reverse_proxy",
+    "rewrite": {"method": "GET", "uri": "/api/v1/session/docs-gate"},
+    "upstreams": [{"dial": "api:8000"}],
+}
+SERVER_ONLY = (
+    "(?i)^/+(?:[0-9]+\\.[0-9]+\\.[0-9]+[.|-]\\w+/+)?(?:coauthoring/+commandservice\\.ashx|"
+    "convertservice\\.ashx|command|converter|docbuilder|ai-proxy|hosting|admin|info|internal|"
+    "example|welcome|healthcheck)(?:[/?].*)?$"
+)
+
+
+def docs_routes(
+    *,
+    refusal: str = SERVER_ONLY,
+    gate: dict[str, Any] = DOCS_GATE,
+    upstream: dict[str, Any] | None = None,
+    framed_by: str = "https://aia.example.test",
+) -> list[dict[str, Any]]:
+    headers = {
+        "handle": [
+            {
+                "handler": "headers",
+                "response": {"set": {"Content-Security-Policy": [f"frame-ancestors {framed_by}"]}},
+            }
+        ]
+    }
+    exchange = sub(
+        ["/__aia/session"],
+        {"handler": "rewrite", "uri": "/api/v1/session/docs?{http.request.uri.query}"},
+        {"handler": "reverse_proxy", "upstreams": [{"dial": "api:8000"}]},
+    )
+    refused = {
+        "handle": [
+            {
+                "handler": "subroute",
+                "routes": [{"handle": [{"handler": "static_response", "status_code": 404}]}],
+            }
+        ],
+        "match": [{"path_regexp": {"name": "server_only", "pattern": refusal}}],
+    }
+    return [headers, exchange, refused, sub(None, gate, upstream or proxy("onlyoffice:80"))]
+
+
+def _with_docs_site(config: dict[str, Any], docs: list[dict[str, Any]]) -> dict[str, Any]:
+    config["apps"]["http"]["servers"]["srv0"]["routes"].append(site("docs.aia.example.test", docs))
+    return config
+
+
+def test_the_document_server_behind_the_docs_gate_passes(routes: Any) -> None:
+    assert routes.check(_with_docs_site(good(), docs_routes())) == []
+
+
+def test_the_document_server_without_the_docs_gate_is_refused(routes: Any) -> None:
+    for gate in (APP_GATE, {"handler": "vars"}):
+        problems = routes.check(_with_docs_site(good(), docs_routes(gate=gate)))
+        assert any("must be the docs gate, then the Document Server" in p for p in problems)
+
+
+def test_a_cookie_reaching_the_document_server_is_refused(routes: Any) -> None:
+    keeps = {"handler": "reverse_proxy", "upstreams": [{"dial": "onlyoffice:80"}]}
+    problems = routes.check(_with_docs_site(good(), docs_routes(upstream=keeps)))
+    assert any("a cookie reaches the Document Server" in p for p in problems)
+
+
+@pytest.mark.parametrize("dial", ["api:8000", "web:3000", "glitchtip:8000"])
+def test_the_docs_name_reaching_anything_else_is_refused(routes: Any, dial: str) -> None:
+    problems = routes.check(_with_docs_site(good(), docs_routes(upstream=proxy(dial))))
+    assert any("docs.aia.example.test" in p and dial in p for p in problems)
+
+
+@pytest.mark.parametrize(
+    "refusal",
+    [
+        # The plain paths only: the version prefix and repeated slashes reach the same service.
+        "^/(coauthoring/CommandService\\.ashx|ConvertService\\.ashx|converter|info|healthcheck)$",
+        # Without the AI proxy.
+        SERVER_ONLY.replace("ai-proxy|", ""),
+    ],
+)
+def test_a_server_path_left_open_is_refused(routes: Any, refusal: str) -> None:
+    problems = routes.check(_with_docs_site(good(), docs_routes(refusal=refusal)))
+    assert any("must answer 404: it is the Document Server's own" in p for p in problems)
+
+
+def test_a_refusal_that_takes_the_editor_s_own_paths_is_refused(routes: Any) -> None:
+    problems = routes.check(_with_docs_site(good(), docs_routes(refusal="(?i)^/+(?:info|.*)")))
+    assert any("is refused, and the editor needs it" in p for p in problems)
+
+
+@pytest.mark.parametrize("framed_by", ["*", "https://evil.example.test", "'self'"])
+def test_the_editor_framed_by_anything_but_aia_is_refused(routes: Any, framed_by: str) -> None:
+    problems = routes.check(_with_docs_site(good(), docs_routes(framed_by=framed_by)))
+    assert any("must be framed by https://aia.example.test alone" in p for p in problems)
+
+
+def test_the_product_reaching_the_document_server_is_refused(routes: Any) -> None:
+    config = good()
+    product(config).insert(-1, sub(["/docs/*"], APP_GATE, proxy("onlyoffice:80")))
+    problems = routes.check(config)
+    assert any("reaches ['onlyoffice:80']" in p for p in problems)
+
+
+def test_aias_pages_behind_the_docs_gate_are_refused(routes: Any) -> None:
+    config = good()
+    product(config)[-1] = sub(None, DOCS_GATE, proxy("web:3000"))
+    problems = routes.check(config)
+    assert any("asks the docs gate" in p for p in problems)

@@ -2,7 +2,7 @@
 status: in-progress
 chunks:
   - "[x] 1. ONLYOFFICE Docs on the develop host: a Compose project of its own (deploy/develop/docs), the upstream image pinned by digest, bin/docs.sh, off unless aia_onlyoffice_enabled"
-  - "[ ] 2. docs.<hostname>: its own origin in the Caddyfile, every request through AIA's docs gate, the server-only paths refused; tools/caddy_routes.py holds it"
+  - "[x] 2. docs.<hostname>: its own origin in the Caddyfile, every request through AIA's docs gate, the server-only paths refused; tools/caddy_routes.py holds it"
   - "[ ] 3. The docs gate in the API: a docs-only session cookie on docs.<hostname> from a one-time ticket, refused without it"
   - "[ ] 4. Activation on develop (operations, the owner's word): the host resized, docs.<hostname> in Route 53, the JWT secret in SSM, the flag on, the editor's own checks"
 ---
@@ -329,6 +329,32 @@ environment in `deploy/develop/docs/docker-compose.yml`, `--memory 2g --memory-s
 So the 4 GiB host would carry it idle: about 2.0 of 3.8 GiB at today's peak. Editing sessions and a
 LibreOffice PDF render on the worker would leave little room, and the host has no swap. The resize stays
 (the owner approved it, 2026-10-22).
+
+## Proved (chunk 2, 2026-10-22)
+
+Caddy 2.10.2 ran the real Caddyfile, with only its three site names given an `http://` scheme, in front of
+the real Document Server (9.4.0.1, the chunk 1 settings) and a stand-in for the API's two docs routes, all on
+one Docker network:
+
+| Request to docs.<host> | Answer |
+|---|---|
+| `api.js`, no cookie | 401 from the docs gate |
+| `/__aia/session?ticket=T1&next=…api.js` | 302 to `next`, `Set-Cookie: aia_docs=…`; the API saw the query and `Host: docs.<host>` |
+| `api.js`, with the cookie | 200 |
+| `POST /coauthoring/CommandService.ashx`, `POST /9.4.0-1/coauthoring/CommandService.ashx`, `//info/info.json`, `/AI-PROXY/x`, `/healthcheck`, `/welcome/` | 404 each, before the gate is asked |
+| `POST /downloadas/abc`, with the cookie | passed the gate (`X-Forwarded-Method: POST`), then the Document Server's own 400 for an empty body |
+| WebSocket upgrade, no cookie | 401 |
+| WebSocket upgrade, with the cookie | 101 Switching Protocols; the gate received no `Upgrade` header |
+
+Every answer carried `Content-Security-Policy: frame-ancestors https://<host>`.
+
+The Document Server's nginx (`/etc/nginx/includes/ds-docservice.conf` in the image) has a versioned location,
+`location ~ ^/([\d]+\.[\d]+\.[\d]+[\.|-][\w]+)/(?<path>.*)$`, which passes any path to the document
+service. A plain path match on `/coauthoring/CommandService.ashx` would therefore leave
+`/9.4.0-1/coauthoring/CommandService.ashx` open. The refusal is one case-insensitive `path_regexp` that takes
+the prefix and repeated slashes, and `tools/caddy_routes.py` checks it against sample paths both ways: refused
+ones, and the editor's own paths, which must stay open. The same config also showed an `/ai-proxy` location;
+it is refused.
 
 ## Findings
 
