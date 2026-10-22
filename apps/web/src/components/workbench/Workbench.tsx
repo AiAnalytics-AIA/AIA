@@ -11,19 +11,21 @@
 // gate, recorded as automatic -- shown as "Přijato automaticky" with Vrátit; structure still waits.
 
 import { useRouter } from "next/navigation";
-import { type ReactNode, type Ref, useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
+import { type KeyboardEvent as ReactKeyboardEvent, type ReactNode, type Ref, useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
 
 import { ApiError, api, lead as leadApi, research, type Readiness, type ResearchAgentJob, type ResearchRun, type Study } from "@/lib/api";
 import { withBudget } from "@/lib/budget-line";
-import { backEntry, closeStack, emptyStack, type InspectorStack, onStage, openEntry, topEntry } from "@/lib/inspector-stack";
+import { backEntry, closeStack, emptyStack, type InspectorEntry, type InspectorStack, onStage, openEntry, topEntry } from "@/lib/inspector-stack";
 import { availabilityWords, leadAvailability, type LeadAvailability, type LeadStateWithWorker } from "@/lib/lead-availability";
 import { JOB_STAGE, jobMovesByItself } from "@/lib/lead-cards";
 import { unanswerableAsked } from "@/lib/answerability";
 import { jobCostAsked } from "@/lib/research-agent-jobs";
 import { appRoutes } from "@/lib/app-routes";
 import { guardedNavigate } from "@/lib/guarded-navigation";
+import { rovingIndex } from "@/lib/roving";
+import { useDismiss } from "../ui/parts";
 import {
-  LEAD_REASON_WORDS, STALE_CARD_QUESTION, applyLeadEdit, autoAcceptPlan, describeEdit, editRefusalWords, editStage, focusSelector, revertTextEdit, targetLabel, targetOfElement, textEditInverse,
+  LEAD_REASON_WORDS, ANALYSIS_RETRY_MOVED_QUESTION, STALE_CARD_QUESTION, LEAD_REVEAL, applyLeadEdit, autoAcceptPlan, describeEdit, editRefusalWords, editStage, focusSelector, revertTextEdit, targetLabel, targetOfElement, textEditInverse,
   type LeadEdit, type LeadRequest, type LeadTurn, type LeadView, type ResearcherLead,
 } from "@/lib/lead";
 import {
@@ -38,6 +40,7 @@ import { blockers, designLane, runLane } from "@/research/lane";
 import { submitWorkingDesign, type ResearchState, type ResearchStore } from "@/research/store";
 import type { StepKey } from "@/research/steps";
 import type { StudyFrame } from "../rehome/research/frame";
+import { readySetLimits, useSampleLimits } from "../rehome/research/useSampleLimits";
 import { useRuns } from "../rehome/research/StageTrack";
 import { LeadAskContext } from "../rehome/research/AskLead";
 import { FrameNavigation } from "@/components/rehome/step";
@@ -84,7 +87,7 @@ const DRAWER_QUERY = `(min-width: ${DRAWER_LAYOUT_MIN_PX}px)`;
  * from 1100 px, the side drawer from 768 px, the full-screen sheet below. Without media queries (a
  * test's DOM) and on the server the width is unknown, so the split serves. Changing it changes
  * classes and where the conversation sits, never what is mounted (D21). */
-export function useWorkbenchLayout(): WorkbenchLayout {
+function useWorkbenchLayout(): WorkbenchLayout {
   return useSyncExternalStore(
     (on) => {
       if (!canMatch()) return () => {};
@@ -162,6 +165,16 @@ function autoList(memory: Map<string, unknown>): AutoList {
  *  scope, because a move to another route remounts the workbench. */
 const headingFocus: { pending: { studyId: string; stage: WorkbenchStage } | null } = { pending: null };
 
+/** An item the Lead's `inspect` opens on another stage: opened once that stage is shown, module
+ *  scope for the same reason. A move a leave guard stopped leaves nothing pending. */
+const leadInspect: { pending: { studyId: string; stage: WorkbenchStage; entry: InspectorEntry } | null } = { pending: null };
+/** A stage's item stack as it opens: empty, or holding the Lead's pending `inspect` for it. Reads
+ *  the pending entry without taking it (a render may run twice); the stage's effect takes it. */
+const openingStack = (studyId: string, stage: WorkbenchStage): InspectorStack => {
+  const want = leadInspect.pending;
+  return want?.stage === stage && want.studyId === studyId ? openEntry(emptyStack(stage), want.entry) : emptyStack(stage);
+};
+
 export function Workbench({ frame, step, store, memory, save, inspector, reload, confirm, onAgentStarted, jobs, onOpenJob, onRefreshJobs, children }: {
   frame: StudyFrame;
   step: StepKey;
@@ -193,7 +206,9 @@ export function Workbench({ frame, step, store, memory, save, inspector, reload,
   // Read again when the conversation starts a run, so its card follows it at once.
   const [runEpoch, setRunEpoch] = useState(0);
   const runs = useRuns(frame.studyId, step, runEpoch);
-  const lane = useMemo(() => ({ ...designLane(state), ...runLane(runs) }), [state, runs]);
+  // A tracked set judged by the readiness methodology in force, as compile judges it (#736).
+  const setLimits = readySetLimits(useSampleLimits(frame.studyId));
+  const lane = useMemo(() => ({ ...designLane(state, setLimits), ...runLane(runs) }), [state, runs, setLimits]);
   // What the working copy reopened since the newest run's design (before any run, the newest Design
   // Revision): the server's answer, unknown shown as nothing (working-copy-edit-ops WCE7d).
   const base = useMemo(() => impactBase(runs), [runs]);
@@ -243,11 +258,11 @@ export function Workbench({ frame, step, store, memory, save, inspector, reload,
   }, [inspectorOpen]);
   // The item inspector (chunk 2): an item a screen opens (a finding, a cited number) over the
   // artifact, its back stack the stage's own; another stage starts it empty.
-  const [items, setItems] = useState<InspectorStack>(() => emptyStack(stage));
+  const [items, setItems] = useState<InspectorStack>(() => openingStack(frame.studyId, stage));
   // Another stage starts it empty, stored so (reset while rendering, React's pattern for state
   // that follows a prop): a stage reached again (Výsledky's views by hash keep this workbench
   // mounted) never brings back the drawer it had.
-  if (items.stage !== stage) setItems(emptyStack(stage));
+  if (items.stage !== stage) setItems(openingStack(frame.studyId, stage));
   const shownItems = onStage(items, stage);
   // The bodies the opening screens gave, by entry id; another stage's are never shown (its stack is empty).
   const [itemBodies, setItemBodies] = useState<ReadonlyMap<string, () => ReactNode>>(() => new Map());
@@ -410,14 +425,45 @@ export function Workbench({ frame, step, store, memory, save, inspector, reload,
     if (want?.stage !== stage || want.studyId !== frame.studyId) return;
     requestAnimationFrame(() => document.querySelector<HTMLElement>("[data-workbench] .arthead__title")?.focus());
   }, [stage, frame.studyId]);
+  // A Lead-opened item is titled by its id until its stage shows it: then by its own words on the
+  // page (targetOfElement: an item row's words, a question's wording), never its opaque id (the
+  // workbench audit's rule). Looked for briefly while the stage's content loads.
+  const nameFromPage = useCallback((id: string) => {
+    let tries = 0;
+    const look = () => {
+      const label = targetOfElement(document.querySelector(focusSelector(id)))?.label;
+      if (label && label !== targetLabel(id, store.get())) setItems((s) => ({ ...s, entries: s.entries.map((e) => (e.id === id ? { ...e, title: label } : e)) }));
+      else if (tries++ < 10) setTimeout(look, 150);
+    };
+    setTimeout(look, 0);
+  }, [store]);
+  useEffect(() => {
+    // The Lead's `inspect` on another stage, opened by openingStack: taken on every stage change.
+    const want = leadInspect.pending;
+    leadInspect.pending = null;
+    if (want?.stage === stage && want.studyId === frame.studyId) nameFromPage(want.entry.id);
+  }, [stage, frame.studyId, nameFromPage]);
 
   const onView = useCallback((ops: LeadView[]) => {
     // In the drawer or the sheet the conversation steps aside so the person sees what the Lead pointed at.
     const last = ops[ops.length - 1];
-    if (compact && last) setDrawerState(nextDrawer(drawer, { type: "view", target: last.op === "focus" ? last.target : last.stage }, layout).state);
+    if (compact && last) setDrawerState(nextDrawer(drawer, { type: "view", target: last.op === "open_stage" ? last.stage : last.target }, layout).state);
     for (const v of ops) {
       if (v.op === "open_stage") go(v.stage);
-      else {
+      else if (v.op === "inspect") {
+        // The item drawer over the target's own stage, the one a person's click opens; on another
+        // stage it opens once that stage is shown (the move remounts on a route change).
+        const t = parseAiaId(v.target);
+        if (!t) continue;
+        const entry = { id: v.target, title: targetLabel(v.target, store.get()) };
+        if (t.stage === stage) {
+          setItems((s) => openEntry(onStage(s, stage), entry));
+          nameFromPage(v.target);
+        } else {
+          leadInspect.pending = { studyId: frame.studyId, stage: t.stage, entry };
+          if (!go(t.stage)) leadInspect.pending = null;
+        }
+      } else {
         // After a stage change the element appears on the next render: look again briefly.
         let tries = 0;
         const find = () => {
@@ -437,26 +483,32 @@ export function Workbench({ frame, step, store, memory, save, inspector, reload,
             }
             el.classList.add("just");
             setTimeout(() => el.classList.remove("just"), 2300);
-          } else if (tries++ < 10) setTimeout(find, 150);
+          } else {
+            if (!tries) window.dispatchEvent(new CustomEvent(LEAD_REVEAL, { detail: v.target }));
+            if (tries++ < 10) setTimeout(find, 150);
+          }
         };
         find();
       }
     }
-  }, [go, compact, drawer, layout]);
+  }, [go, compact, drawer, layout, stage, frame.studyId, nameFromPage, store]);
 
   // A design job is approved on the server: the spend limit, the ledger row and the start together.
   const onRequest = useCallback(async (turn: LeadTurn, r: LeadRequest) => {
     // A person's typed start (LO5) is started by its approval, a run too; the Lead's other cards open their stage.
     if (r.kind !== "agent_job" && !turn.command) {
-      go(r.kind === "research_run" ? "fieldwork" : r.kind === "design_research" ? "design" : "report");
+      go(r.kind === "research_run" ? "fieldwork" : r.kind === "design_research" ? "design" : r.kind === "analysis_retry" ? "analysis" : "report");
       return;
     }
     await store.flush();
     let confirmUsd: number | undefined;
     let onRevision: number | undefined;
+    // A typed analysis retry runs on the run its card named; a newer one only on the person's yes.
+    let retryRunId = r.kind === "analysis_retry" ? r.run_id : undefined;
+    let retryConfirmed = false;
     for (;;) {
       try {
-        const started = await leadApi.approveRequest(frame.studyId, turn.turn_id, confirmUsd, onRevision);
+        const started = await leadApi.approveRequest(frame.studyId, turn.turn_id, confirmUsd, onRevision, retryRunId);
         if (r.kind === "agent_job") onAgentStarted(started.run_id);
         else setRunEpoch((n) => n + 1);
         setLeadEpoch((n) => n + 1);
@@ -467,6 +519,12 @@ export function Workbench({ frame, step, store, memory, save, inspector, reload,
           const limit = Number(e.details.limit_usd);
           if (!(await confirm(`Úloha může stát až ${usd(ceiling)} USD, což dosahuje prahu potvrzení studie ${usd(limit)} USD. Spustit?`))) throw e;
           confirmUsd = ceiling;
+          continue;
+        }
+        if (e instanceof ApiError && e.code === "analysis_retry_target_moved" && !retryConfirmed && typeof e.details.current_run_id === "string") {
+          if (!(await confirm(ANALYSIS_RETRY_MOVED_QUESTION))) throw e;
+          retryRunId = e.details.current_run_id;
+          retryConfirmed = true;
           continue;
         }
         // The design moved since the card was prepared (LO10): it runs on the current one only on a yes.
@@ -632,7 +690,7 @@ export function Workbench({ frame, step, store, memory, save, inspector, reload,
     if (changed) reload();
   };
 
-  const blocked = blockers(state).length;
+  const blocked = blockers(state, setLimits).length;
   const flushBeforeMessage = useCallback(() => store.flush(), [store]);
   // A stage may send the Lead a message as the person would type it (Návrh's "Požádat Vedoucího").
   const leadSend = useRef<((text: string) => void) | null>(null);
@@ -693,7 +751,7 @@ export function Workbench({ frame, step, store, memory, save, inspector, reload,
   }), [runs, frame.stepHref, go, prepareRun, startRun, runOfTurn, onRefreshJobs]);
   const leadPane = (
     <LeadPane studyId={frame.studyId} stage={stage} canEdit={frame.canEdit} focus={focus} picking={picking}
-      onPick={() => drawerEvent({ type: picking ? "picked" : "pick" })} onSession={onSession} onClearFocus={() => setFocus(null)} jobs={[...jobs].reverse()} onOpenJob={openJob} cards={cards} onView={onView} onRequest={onRequest} onTurns={onTurns} onLead={onLead} beforeMessage={flushBeforeMessage} epoch={leadEpoch} registerSend={registerSend}
+      onPick={() => drawerEvent({ type: picking ? "picked" : "pick" })} onSession={onSession} onClearFocus={() => setFocus(null)} jobs={[...jobs].reverse()} onOpenJob={openJob} cards={cards} onView={onView} onRequest={onRequest} onTurns={onTurns} onLead={onLead} beforeMessage={flushBeforeMessage} epoch={leadEpoch} registerSend={registerSend} design={state}
       mode={mode} onFocusMode={() => setMode((m) => (m === "conversation" ? "split" : "conversation"))}
       onClose={compact ? () => drawerEvent({ type: "close" }) : undefined} />
   );
@@ -728,7 +786,7 @@ export function Workbench({ frame, step, store, memory, save, inspector, reload,
               {picking ? <div className="artbar artbar--op" role="status"><Icon name="at" size={13} /><div className="artbar__grow">Klikněte na otázku, oddíl nebo část zadání, o které chcete s Vedoucím mluvit. Esc zruší.</div></div> : null}
               {drawer.kind === "peek" ? (
                 <div className="artbar artbar--op" role="status" data-peek>
-                  <Mark size={13} /><div className="artbar__grow">Vedoucí ukazuje: {drawer.target.includes(":") ? targetLabel(drawer.target) : STAGES[drawer.target as WorkbenchStage]?.label ?? drawer.target}</div>
+                  <Mark size={13} /><div className="artbar__grow">Vedoucí ukazuje: {drawer.target.includes(":") ? targetLabel(drawer.target, state) : STAGES[drawer.target as WorkbenchStage]?.label ?? drawer.target}</div>
                   <button type="button" className="btn btn--sm btn--quiet" onClick={() => drawerEvent({ type: "back" })}>Zpět k Vedoucímu</button>
                 </div>
               ) : null}
@@ -840,6 +898,36 @@ function StudyHeader({ frame, study, pending, blocked, onPending, layout = "spli
   const narrow = layout === "sheet";
   const router = useRouter();
   const [menu, setMenu] = useState(false);
+  // A menu by the keyboard too (the UX audit, #753): opened on its first item, ↑ ↓ Home End move,
+  // Esc or a press outside closes it and gives the focus back to its button. No scrim: a press
+  // outside reaches what it was meant for. The items are read from the open menu, so the rows that
+  // only inform (under 768 px) are never stopped on.
+  const menuBox = useRef<HTMLDivElement>(null);
+  const menuToggle = useRef<HTMLButtonElement>(null);
+  const closeMenu = useCallback(() => setMenu(false), []);
+  useDismiss(menu, closeMenu, menuBox, menuToggle);
+  const menuItems = () => Array.from(menuBox.current?.querySelectorAll<HTMLElement>('[role="menuitem"]') ?? []);
+  // Which item takes the focus once the menu has rendered (an effect: after the commit).
+  const focusOnOpen = useRef<"first" | "last" | null>(null);
+  const openMenu = (where: "first" | "last") => {
+    focusOnOpen.current = where;
+    setMenu(true);
+  };
+  useEffect(() => {
+    const where = focusOnOpen.current;
+    focusOnOpen.current = null;
+    if (!menu || !where) return;
+    const items = Array.from(menuBox.current?.querySelectorAll<HTMLElement>('[role="menuitem"]') ?? []);
+    (where === "first" ? items[0] : items[items.length - 1])?.focus();
+  }, [menu]);
+  const onMenuKey = (e: ReactKeyboardEvent<HTMLElement>) => {
+    if (e.key === "Tab") return setMenu(false);
+    const items = menuItems();
+    const next = rovingIndex(items.indexOf(e.target as HTMLElement), e.key, items.length, () => false, "vertical");
+    if (next === null) return;
+    e.preventDefault();
+    items[next]?.focus();
+  };
   // Leaving the study goes through a link's click too, so Návrh's leave guard can stop it.
   const leave = (url: string) => {
     setMenu(false);
@@ -865,12 +953,13 @@ function StudyHeader({ frame, study, pending, blocked, onPending, layout = "spli
           <span className="num">{budget === null ? "Rozpočet nenastaven" : `${usd(spent)} / ${usd(budget)} USD`}</span>
         </span>
       )}
-      <div style={{ position: "relative" }}>
-        <button type="button" className="iconbtn" aria-label="Nabídka" title="Nabídka" aria-expanded={menu} onClick={() => setMenu((v) => !v)}><Icon name="menu" size={16} /></button>
+      <div ref={menuBox} style={{ position: "relative" }}>
+        <button ref={menuToggle} type="button" className="iconbtn" aria-label="Nabídka" title="Nabídka" aria-haspopup="menu" aria-expanded={menu}
+          onClick={() => (menu ? setMenu(false) : openMenu("first"))}
+          onKeyDown={(e) => { if (e.key === "ArrowDown" || e.key === "ArrowUp") { e.preventDefault(); openMenu(e.key === "ArrowDown" ? "first" : "last"); } }}><Icon name="menu" size={16} /></button>
         {menu ? (
           <>
-            <div className="scrim" onClick={() => setMenu(false)} />
-            <div className="pop menu" style={{ right: 0, top: 34, width: 280 }} role="menu">
+            <div className="pop menu" style={{ right: 0, top: 34, width: 280 }} role="menu" aria-label="Nabídka" onKeyDown={onMenuKey}>
               {narrow ? (
                 <>
                   <div className="menu__info" role="none"><Glyph tone={blocked ? "you" : "done"} size={11} />{blocked ? `Do spuštění zbývá ${blocked}` : "Návrh splňuje podmínky kroků"}</div>

@@ -8,6 +8,7 @@ methods were pinned is computed as ``aia-sociomap-1``, which computed every such
 
 from __future__ import annotations
 
+from importlib import metadata
 from typing import Any
 
 import pytest
@@ -15,7 +16,7 @@ from aia_core.application.research import ResearchRuns, research_artifacts
 from aia_core.domain import research_sociomap
 from aia_core.domain.fieldwork import FieldworkSource
 from aia_core.domain.research_sociomap import SociomapMethod, default_methods
-from aia_core.domain.sociomap import AIA_SOCIOMAP_V1, AIA_SOCIOMAP_V3, SociomapSpec
+from aia_core.domain.sociomap import AIA_SOCIOMAP_V1, AIA_SOCIOMAP_V2, AIA_SOCIOMAP_V3, SociomapSpec
 from aia_core.domain.workflow import StepRunStatus, WorkflowRunStatus
 from aia_core.infrastructure.build_identity import BuildIdentity
 from aia_core.infrastructure.storage import InMemoryArtifactStore
@@ -42,6 +43,11 @@ DESIGN = {
         }
     ],
 }
+
+
+#: What a run started before aia-sociomap-5 pinned: the reference map beside aia-sociomap-3.
+#: Such a run still computes exactly what it pinned.
+OLD_DEFAULT = (SociomapMethod.of(AIA_SOCIOMAP_V1), SociomapMethod.of(AIA_SOCIOMAP_V3))
 
 
 def _variant(extent: float) -> SociomapSpec:
@@ -126,7 +132,7 @@ def test_a_new_run_pins_the_default_and_records_it(world: Any) -> None:
     run_id = _start(world)
     run = _run(world, run_id)
     pinned = [m.model_dump(mode="json") for m in default_methods()]
-    assert [m["method_id"] for m in pinned] == ["aia-sociomap-1", "aia-sociomap-3"]
+    assert [m["method_id"] for m in pinned] == ["aia-sociomap-5"]
     assert run["metadata"]["sociomap_methods"] == pinned
     with world.sessions() as session:
         step = session.scalars(
@@ -141,7 +147,7 @@ def test_the_run_computes_its_pin_after_the_module_preset_changes(
     worker: Worker,
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    run_id = _start(world)
+    run_id = _start(world, methods=OLD_DEFAULT)
     # The preset changes between enqueue and execution (a new build, a new default):
     # the run still computes the spec it pinned.
     monkeypatch.setattr(research_sociomap, "AIA_SOCIOMAP_V1", _variant(30.0))
@@ -163,7 +169,7 @@ def test_the_run_computes_its_pin_after_the_module_preset_changes(
 def test_a_run_pinned_to_another_spec_computes_that_spec_and_is_another_run(
     world: Any, store: InMemoryArtifactStore, worker: Worker
 ) -> None:
-    legacy = _start(world)
+    legacy = _start(world, methods=OLD_DEFAULT)
     variant = (SociomapMethod.of(_variant(30.0)),)
     pinned = _start(world, methods=variant)
     assert pinned != legacy  # the same revision under another set is another run
@@ -198,7 +204,8 @@ def test_a_run_stored_before_pins_is_computed_as_aia_sociomap_1(
 def test_a_retry_pins_what_the_run_it_retries_pinned(
     world: Any, monkeypatch: pytest.MonkeyPatch
 ) -> None:
-    variant = (SociomapMethod.of(_variant(30.0)),)
+    # A method a retry may still compute (a run pinned aia-sociomap-1 or -3 is never retried).
+    variant = (SociomapMethod.of(AIA_SOCIOMAP_V2),)
     run_id = _start(world, methods=variant)
     with world.sessions() as session:
         runs = ResearchRuns(session, world.lead_scope(session))
@@ -220,7 +227,7 @@ def test_a_retry_pins_what_the_run_it_retries_pinned(
 
 
 def test_a_pin_that_does_not_verify_fails_the_step_by_name(world: Any, worker: Worker) -> None:
-    run_id = _start(world)
+    run_id = _start(world, methods=OLD_DEFAULT)
     with world.sessions() as session:
         step = session.scalars(
             select(StepRunRow).where(StepRunRow.run_id == run_id, StepRunRow.node_key == "sociomap")
@@ -241,16 +248,11 @@ def test_a_pin_that_does_not_verify_fails_the_step_by_name(world: Any, worker: W
     assert "fingerprint" in error["message"]
 
 
-def test_a_restart_after_the_default_changes_returns_the_run_and_pays_nothing(
-    world: Any, monkeypatch: pytest.MonkeyPatch
-) -> None:
-    """Taking the default is not identity: a revision started under an earlier default is
-    not started again (with its AI fieldwork paid again) because the default moved."""
-    from aia_core.domain.research_sociomap import LEGACY_METHODS
-
-    monkeypatch.setattr("aia_core.application.research.default_methods", lambda: LEGACY_METHODS)
-    first = _start(world)
-    monkeypatch.undo()
+def test_a_start_after_the_default_changes_is_a_new_run_on_the_new_default(world: Any) -> None:
+    """The methods are identity, the default's too: a revision started under the old default
+    (aia-sociomap-1 beside -3) starts a new run on aia-sociomap-5, never the old run handed
+    back as if it had the new method; the old run keeps what it pinned."""
+    first = _start(world, methods=OLD_DEFAULT)
     with world.sessions() as session:
         scope = world.lead_scope(session)
         revision_id = _run(world, first)["metadata"]["design_revision_id"]
@@ -258,7 +260,40 @@ def test_a_restart_after_the_default_changes_returns_the_run_and_pays_nothing(
             design_revision_id=revision_id, fieldwork_source=FieldworkSource.SYNTHETIC_FIXTURE
         )
         session.commit()
-    assert again.run_id == first and not again.created
-    assert [m["method_id"] for m in _run(world, first)["metadata"]["sociomap_methods"]] == [
-        "aia-sociomap-1"
+    assert again.run_id != first and again.created
+    assert [m["method_id"] for m in _run(world, again.run_id)["metadata"]["sociomap_methods"]] == [
+        "aia-sociomap-5"
     ]
+    assert [m["method_id"] for m in _run(world, first)["metadata"]["sociomap_methods"]] == [
+        "aia-sociomap-1",
+        "aia-sociomap-3",
+    ]
+
+
+def test_a_new_run_computes_aia_sociomap_5_alone_and_records_the_workers_libraries(
+    world: Any, store: InMemoryArtifactStore, worker: Worker, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    # A deployment path is not part of a map's identity: it is never recorded.
+    monkeypatch.setenv("NUMBA_CACHE_DIR", "/tmp/numba")
+    run_id = _start(world)
+    _drain(worker)
+    body = _sociomap(world, store, run_id)
+    assert [m["method_id"] for m in body["methods"]] == ["aia-sociomap-5"]
+    assert body["methodology_status"] == "CLIENT_FACING"
+    (battery,) = body["batteries"]
+    # No reference picture: nothing but the signed-off map is computed.
+    assert set(battery["maps"]) == {"aia-sociomap-5"} and "sociomap" not in battery
+    runtime = battery["maps"]["aia-sociomap-5"]["artifact"]["provenance"]["runtime"]
+    assert runtime == {
+        name: metadata.version(name) for name in ("numpy", "scipy", "numba", "llvmlite")
+    }
+
+
+def test_an_earlier_presets_map_records_no_runtime(
+    world: Any, store: InMemoryArtifactStore, worker: Worker
+) -> None:
+    # Its stored form, and so its fingerprint, is byte for byte what it was.
+    run_id = _start(world, methods=OLD_DEFAULT)
+    _drain(worker)
+    (battery,) = _sociomap(world, store, run_id)["batteries"]
+    assert "runtime" not in battery["maps"]["aia-sociomap-3"]["artifact"]["provenance"]

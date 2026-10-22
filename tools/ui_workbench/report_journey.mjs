@@ -132,17 +132,19 @@ try {
   check("no client report offered for the fictional run; Záznam pokrytí beside the draft at every width: the research questions, each output no section read, outside the text");
   check("a number chip opens its claim in the inspector and Escape closes it, at every width");
 
-  // Approval asks first, naming the stored version (input-interactions B22); "Zrušit" approves
+  // Approval is on the document being read, in the pane's doc bar (artifact-report RPT3a), never on
+  // the report card. It asks first, naming the stored version (input-interactions B22); "Zrušit" approves
   // nothing. The draft stays a draft, so the journey can run again; a draft approved by someone
   // else on this workbench is said by name, not waited out (run on `workbench.py up --fresh`).
   for (const width of [1440, 390]) {
     await page.setViewportSize({ width, height: 900 });
     await page.goto("about:blank");
     await page.goto(`${base}/app/clients/${client}/research/${study}/results#report`);
-    const approve = page.getByRole("button", { name: "Schválit pro interní použití" });
+    const approve = page.locator("[data-report-docbar]").getByRole("button", { name: "Schválit pro interní použití" });
     const approvedAlready = page.getByText(/^Stav: Schváleno/);
     await approve.or(approvedAlready).first().waitFor({ timeout: 60000 });
     if (await approvedAlready.count()) throw new Error("the fixture run's internal report is already approved: rerun on `python tools/ui_workbench/workbench.py up --fresh`");
+    assert.equal(await page.locator("[data-complete-report]").getByRole("button", { name: /^Schválit/ }).count(), 0, `@${width}: the report card approves nothing`);
     const before = writes.filter((w) => w.path.endsWith("/report/approve")).length;
     await approve.click();
     const dialog = page.getByRole("dialog");
@@ -155,7 +157,7 @@ try {
     await dialog.waitFor({ state: "hidden", timeout: 10000 });
     assert.equal(writes.filter((w) => w.path.endsWith("/report/approve")).length, before, `@${width}: Zrušit approves nothing`);
   }
-  check("approval asks first, naming the stored version and its format, the focus on Zrušit, which approves nothing, at 1440 and 390");
+  check("approval in the doc bar, none on the card, asks first, naming the stored version and its format, the focus on Zrušit, which approves nothing, at 1440 and 390");
 
   const paid = writes.filter((w) => /\/research\/runs$|\/agent-jobs$|\/deep-research\/runs|\/lead\/turns\/[^/]+\/request$/.test(w.path));
   assert.deepEqual(paid, [], "nothing paid started");

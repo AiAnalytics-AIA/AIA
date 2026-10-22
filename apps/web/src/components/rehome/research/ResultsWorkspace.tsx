@@ -1,9 +1,10 @@
 "use client";
 
-import { type KeyboardEvent, type ReactNode, useEffect, useId, useState } from "react";
+import { type KeyboardEvent, type ReactNode, useEffect, useId, useRef, useState } from "react";
 import Link from "next/link";
 import type { ResearchRun } from "@/lib/api";
 import { runState } from "@/lib/run-state";
+import { usd } from "@/lib/researcher-spend";
 
 export type ResultPanel = { id: string; label: string; description: string; content: ReactNode };
 
@@ -15,6 +16,7 @@ export function ResultsWorkspace({ run, panels, progressHref, notice, lead }: {
   lead?: ReactNode;
 }) {
   const [active, setActive] = useState("overview");
+  const tabs = useRef<HTMLDivElement>(null);
   const prefix = useId();
   const keys = ["overview", ...panels.map(p => p.id)];
   const panelKeys = panels.map(p => p.id).join(",");
@@ -25,12 +27,33 @@ export function ResultsWorkspace({ run, panels, progressHref, notice, lead }: {
       const aliases: Record<string, string> = { "res-sociomap": "maps", "res-sociomapping": "maps", "res-aggregate": "data", "res-analysis": "analysis", "res-report": "report", "res-literature": "report" };
       // A measure's card (#measure-<id>, result-reading.ts measureAnchor) is in Data.
       const next = id.startsWith("measure-") ? "data" : aliases[id] ?? id;
-      setActive(next === "overview" || panelKeys.split(",").includes(next) ? next : "overview");
+      const known = panelKeys.split(",").includes(next);
+      setActive(next === "overview" || known ? next : "overview");
+      // A view named by the address (a stage of its own: Výsledky, Sociomapa, Analýza, Zpráva) opens
+      // scrolled to it, not under the run's notices; a measure's card scrolls itself into view.
+      if (known && !id.startsWith("measure-")) pin();
+    };
+    // What sits above the tabs (the run's notices, its receipt) loads after them and pushes them
+    // down, so the tabs stay pinned while it settles: every resize within 3 s scrolls them back,
+    // until the person scrolls, touches or types.
+    let release = () => {};
+    const pin = () => {
+      release();
+      const root = tabs.current?.parentElement;
+      const scroll = () => tabs.current?.scrollIntoView?.({ block: "start" });
+      window.requestAnimationFrame(scroll);
+      if (!root || typeof ResizeObserver === "undefined") return;
+      const observer = new ResizeObserver(scroll);
+      observer.observe(root);
+      const stop = window.setTimeout(() => release(), 3000);
+      const user = ["wheel", "touchstart", "keydown"] as const;
+      release = () => { observer.disconnect(); window.clearTimeout(stop); user.forEach((e) => window.removeEventListener(e, release)); release = () => {}; };
+      user.forEach((e) => window.addEventListener(e, release, { once: true, passive: true }));
     };
     read();
     window.addEventListener("hashchange", read);
     window.addEventListener("popstate", read);
-    return () => { window.removeEventListener("hashchange", read); window.removeEventListener("popstate", read); };
+    return () => { release(); window.removeEventListener("hashchange", read); window.removeEventListener("popstate", read); };
   }, [panelKeys]);
   const select = (id: string) => {
     setActive(id);
@@ -48,7 +71,10 @@ export function ResultsWorkspace({ run, panels, progressHref, notice, lead }: {
   };
   return <div className="flex min-w-0 max-w-6xl flex-col gap-5">
     {notice}
-    {lead}
+    {/* The study's report card belongs to Přehled and Rešerše a zpráva. On Data, Sociomapy and AI
+        analýza it would push the view a person opened two screens down (artifact-results,
+        Findings). Hidden, never unmounted, so its choices survive a switch, as the panels' do. */}
+    {lead ? <div data-results-lead hidden={!(active === "overview" || active === "report")}>{lead}</div> : null}
     <section aria-label="Vybraný běh výzkumu" className="rounded-md border border-border bg-surface-raised p-4 sm:p-5">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div><p className="text-xs font-semibold uppercase tracking-wide text-signal">Výsledky studie</p>
@@ -59,7 +85,7 @@ export function ResultsWorkspace({ run, panels, progressHref, notice, lead }: {
       <dl className="mt-4 flex flex-wrap gap-x-8 gap-y-2 border-t border-border pt-3 text-sm">
         <div><dt className="text-xs text-ink-muted">Stav běhu</dt><dd className="font-semibold">{runState(run).label}</dd></div>
         <div><dt className="text-xs text-ink-muted">Revize návrhu</dt><dd className="font-semibold">{run.design_revision}</dd></div>
-        <div><dt className="text-xs text-ink-muted">Skutečné náklady běhu</dt><dd className="font-semibold">{run.actual_cost_usd == null ? "Zatím nejsou vykázané" : `${run.actual_cost_usd.toFixed(2)} USD`}</dd></div>
+        <div><dt className="text-xs text-ink-muted">Skutečné náklady běhu</dt><dd className="font-semibold">{run.actual_cost_usd == null ? "Zatím nejsou vykázané" : usd(run.actual_cost_usd)}</dd></div>
         {run.methodology ? <div data-run-methodology><dt className="text-xs text-ink-muted">Metodika běhu</dt><dd className="flex flex-wrap gap-x-3 gap-y-1">
           {([["Sociomapa", run.methodology.sociomap], ["Podpora", run.methodology.support], ["Agregace", run.methodology.aggregation], ...(run.methodology.response ? [["Odpověď", run.methodology.response] as const] : [])] as const).map(([label, m]) =>
             m.name == null
@@ -74,7 +100,7 @@ export function ResultsWorkspace({ run, panels, progressHref, notice, lead }: {
       ) : null}
       <details className="mt-3 text-xs text-ink-muted"><summary className="cursor-pointer">Identifikace a původ běhu</summary><p className="mt-2 break-all">{run.run_id} · {run.design_revision_id}</p></details>
     </section>
-    <div role="tablist" aria-label="Oddíly výsledků" className="flex gap-1 overflow-x-auto border-b border-border pb-1">
+    <div ref={tabs} role="tablist" aria-label="Oddíly výsledků" className="scroll-mt-4 flex gap-1 overflow-x-auto border-b border-border pb-1">
       {[{ id: "overview", label: "Přehled" }, ...panels].map((panel, index) => <button key={panel.id} type="button"
         id={`${prefix}-tab-${panel.id}`} role="tab" aria-selected={active === panel.id} aria-controls={`${prefix}-panel-${panel.id}`}
         tabIndex={active === panel.id ? 0 : -1} onKeyDown={event => onKey(event, index)} onClick={() => select(panel.id)}

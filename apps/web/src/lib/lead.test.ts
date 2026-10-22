@@ -9,6 +9,8 @@ import {
   type LeadEdit, type LeadTurn,
 } from "./lead";
 import type { ResearchProject } from "@/research/model";
+import { itemTargets } from "@/research/plan-narrative";
+import type { PlanState } from "@/research/plan";
 
 const project = (over: Partial<ResearchProject> = {}): ResearchProject => ({
   title: "Studie",
@@ -194,10 +196,26 @@ describe("targetLabel for every artifact's kinds", () => {
   it("says each kind in words, and the audience's parts as the Cílová skupina screen names them", () => {
     expect(targetLabel("audience:definition")).toBe("Cílová skupina: popis");
     expect(targetLabel("audience:subpanel:young_18_29")).toBe("Podpanel: young_18_29");
+    expect(targetLabel("audience:filter:kraj")).toBe("Filtr: kraj");
+    // Read by Cílová skupina's own parser: a filter or subpanel with no name is no filter.
+    expect(targetLabel("audience:filter:")).toBe("Cílová skupina: filter:");
+    expect(targetLabel("audience:subpanel:")).toBe("Cílová skupina: subpanel:");
     expect(targetLabel("pair:set1/fio~air")).toBe("Dvojice set1/fio~air");
     expect(targetLabel("measure:q3")).toBe("Měření q3");
     expect(targetLabel("receipt:respondents")).toBe("Kdo odpovídal");
     expect(targetLabel("nonsense:q3")).toBe("nonsense:q3");
+  });
+});
+
+describe("targetLabel with the working copy (F18)", () => {
+  it("names a research question or a hypothesis by its words, and by its id only when the copy does not hold it", () => {
+    const project = { research_plan: { research_questions: ["Kdo kupuje?"], hypotheses: ["Mladší kupují častěji než starší, kteří zůstávají u své oblíbené značky déle."] } };
+    const [rq] = itemTargets({ project, analysis: null } as unknown as PlanState).research_questions;
+    const [hyp] = itemTargets({ project, analysis: null } as unknown as PlanState).hypotheses;
+    expect(targetLabel(rq!, { project, analysis: null })).toBe("Výzkumná otázka: Kdo kupuje?");
+    expect(targetLabel(hyp!, { project, analysis: null })).toBe("Hypotéza: Mladší kupují častěji než starší, kteří zůstávají u své o…");
+    expect(targetLabel("hypothesis:hyp_none", { project, analysis: null })).toBe("Hypotéza hyp_none");
+    expect(targetLabel(hyp!)).toBe(`Hypotéza ${hyp!.split(":")[1]}`);
   });
 });
 
@@ -207,7 +225,12 @@ describe("targetLabel", () => {
     expect(targetLabel("section:B1")).toBe("Oddíl B1");
     expect(targetLabel("plan:variants")).toBe("Návrh: varianty výzkumu");
     expect(targetLabel("plan:narrative")).toBe("Návrh: porozumění zadání");
-    expect(targetLabel("brief:goal")).toBe("Zadání: goal");
+    // Zadání's sections by the words its screen gives them (F18), an unknown one by its name.
+    expect(targetLabel("brief:goal")).toBe("Zadání: Cíl");
+    expect(targetLabel("brief:title")).toBe("Zadání: Název");
+    expect(targetLabel("brief:briefing.situation")).toBe("Zadání: Situace");
+    expect(targetLabel("brief:files")).toBe("Zadání: Podklady");
+    expect(targetLabel("brief:elsewhere")).toBe("Zadání: elsewhere");
     expect(targetLabel("somewhere")).toBe("somewhere");
   });
 });
@@ -309,6 +332,7 @@ describe("commandRequest", () => {
   it("reads the start the server matched, the instruction after a colon as its why, and nothing it does not know", () => {
     expect(commandRequest({ command: "agent_job:build_questionnaire", text: "Navrhni dotazník: krátce, 10 otázek" })).toEqual({ kind: "agent_job", action: "build_questionnaire", why: "krátce, 10 otázek" });
     expect(commandRequest({ command: "research_run", text: "Spusť výzkum" })).toEqual({ kind: "research_run", why: "Spustí se až vaším potvrzením." });
+    expect(commandRequest({ command: "analysis_retry", text: "Zopakuj analýzu" })).toEqual({ kind: "analysis_retry", why: "Spustí se až vaším potvrzením." });
     for (const command of [null, undefined, "", "agent_job:", "deep_research"]) expect(commandRequest({ command, text: "x" })).toBeNull();
   });
 });

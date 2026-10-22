@@ -488,8 +488,14 @@ class PairEvidenceSpec(_Frozen):
     #: other estimator, left out of the stored form so earlier pins read unchanged.
     false_discovery_rate: float | None = None
     noise_rule: NoiseRuleSpec | None = None
+    #: The ``|r~|`` from which the map's relation detail calls a relation clear ("zřetelný")
+    #: rather than slight ("slabý"); wording only (``aia-sociomap-5``). ``None`` under every
+    #: other estimator, left out of the stored form.
+    clear_effect: float | None = None
 
-    @field_validator("n_min", "confidence", "effect_floor", "false_discovery_rate", mode="before")
+    @field_validator(
+        "n_min", "confidence", "effect_floor", "false_discovery_rate", "clear_effect", mode="before"
+    )
     @classmethod
     def _no_bool(cls, v: object) -> object:
         return _not_boolean(v)
@@ -497,7 +503,7 @@ class PairEvidenceSpec(_Frozen):
     @model_serializer(mode="wrap")
     def _without_absent_gate(self, handler: SerializerFunctionWrapHandler) -> dict[str, Any]:
         body: dict[str, Any] = handler(self)
-        for key in ("effect_floor", "false_discovery_rate", "noise_rule"):
+        for key in ("effect_floor", "false_discovery_rate", "noise_rule", "clear_effect"):
             if body.get(key) is None:
                 body.pop(key, None)
         return body
@@ -965,6 +971,16 @@ def _baseline_corrected_problems(spec: SociomapSpecV3) -> dict[str, str]:
         "respondent_map": spec.respondent_map,
         "segments": spec.segments,
     }
+    # The clear relation's wording may be left out (a version saved before it), never misplaced.
+    clear = rel.clear_effect
+    if clear is not None and not corrected:
+        problems["relation.clear_effect"] = (
+            "only the baseline-corrected relation reads it; declare null"
+        )
+    elif clear is not None and not (math.isfinite(clear) and 0.0 < clear < 1.0):
+        problems["relation.clear_effect"] = (
+            f"a clear relation's |r~| lies strictly between 0 and 1; got {clear!r}"
+        )
     if not corrected:
         for path, value in declared.items():
             if value is not None:
@@ -1548,8 +1564,8 @@ AIA_SOCIOMAP_V4 = AIA_SOCIOMAP_V3.model_copy(
 # rule, Interval MDS; no Stress-1; the survey-weighted mean rating as height, and the envelope of
 # relative heights on a grid framed on the map; the split-half check and the uncertainty radius;
 # the respondents placed by the vector model with the chance test, and their density on the
-# map's frame; taste segments on the respondents' slopes; every value the methodology's own. Not
-# pinned by default and not in the register: a run gets it only through a methodology version.
+# map's frame; taste segments on the respondents' slopes; every value the methodology's own. What
+# every new run pins, alone; approved for reports in the Sociomap register at its fingerprint.
 AIA_SOCIOMAP_V5 = AIA_SOCIOMAP_V4.model_copy(
     update={
         "methodology_version": "aia-sociomap-5",
@@ -1564,6 +1580,7 @@ AIA_SOCIOMAP_V5 = AIA_SOCIOMAP_V4.model_copy(
                 "effect_floor": None,
                 "false_discovery_rate": 0.05,
                 "noise_rule": NoiseRuleSpec(enabled=True, permutations=100, seed=0),
+                "clear_effect": 0.3,
             }
         ),
         "layout": AIA_SOCIOMAP_V4.layout.model_copy(

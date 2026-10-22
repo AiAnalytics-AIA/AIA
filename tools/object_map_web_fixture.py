@@ -3,8 +3,9 @@
 
 ``apps/web/src/lib/fixtures/object-map.json`` is what the Results page's object map tests
 render. It is the ``research_sociomap`` payload the worker stores, produced here by
-``research_sociomaps`` under the default pins (``aia-sociomap-1`` + ``aia-sociomap-3``) on
-fictional answers, never by hand; ``packages/aia_core/tests/test_object_map_web_fixture.py``
+``research_sociomaps`` under the pins a run had before ``aia-sociomap-5`` became the default
+(``aia-sociomap-1`` + ``aia-sociomap-3``, what a stored run holds) on fictional answers, never
+by hand; ``packages/aia_core/tests/test_object_map_web_fixture.py``
 fails when the two drift.
 
     python tools/object_map_web_fixture.py           # rewrite the fixture
@@ -21,7 +22,8 @@ from typing import Any
 
 from aia_core.domain.fieldwork import FieldworkDataset
 from aia_core.domain.research_design import compile_design
-from aia_core.domain.research_sociomap import default_methods, research_sociomaps
+from aia_core.domain.research_sociomap import SociomapMethod, research_sociomaps
+from aia_core.domain.sociomap.specification import AIA_SOCIOMAP_V1, AIA_SOCIOMAP_V3
 
 REPO = Path(__file__).resolve().parents[1]
 FIXTURE = REPO / "apps/web/src/lib/fixtures/object-map.json"
@@ -90,7 +92,10 @@ def build() -> dict[str, Any]:
         }
     )
     result = research_sociomaps(
-        spec, dataset, methods=default_methods(), connectedness_interval=False
+        spec,
+        dataset,
+        methods=(SociomapMethod.of(AIA_SOCIOMAP_V1), SociomapMethod.of(AIA_SOCIOMAP_V3)),
+        connectedness_interval=False,
     )
     return {"kind": "research_sociomap", "sociomap": result}
 

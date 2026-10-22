@@ -277,13 +277,15 @@ try {
 
   // Návrh: each research question with its coverage (artifact-design DSN2), at every width, in the
   // workbench at each. Reading it is a GET.
+  const planSubmitsBefore = writes.filter((w) => w.path.endsWith("/design/revisions")).length;
   for (const width of [1440, 1100, 768, 390]) {
     await page.setViewportSize({ width, height: 900 });
     await page.goto(base + stagePath("plan"));
     const coverage = page.getByRole("region", { name: "Výzkumné otázky a jejich pokrytí" });
     await coverage.waitFor({ timeout: 30000 });
-    await coverage.getByText(/Podle revize návrhu|Návrh zatím nemá revizi|nedá sestavit/).first().waitFor({ timeout: 30000 });
+    await coverage.getByText(/Podle pracovní kopie, revize \d+|Návrh zatím není uložený|nedá sestavit/).first().waitFor({ timeout: 30000 });
     await noOverflow(`plan @${width}`);
+    assert.equal(writes.filter((w) => w.path.endsWith("/design/revisions")).length, planSubmitsBefore, `plan @${width}: Návrh's coverage submitted a design`);
     // WCAG 2.5.8: a remove control on Návrh is at least 24 × 24 px (a set item's × was 12 × 20).
     const small = await page.evaluate(() => [...document.querySelectorAll('button[aria-label^="Odebrat "]')]
       .map((e) => [e.getAttribute("aria-label"), e.getBoundingClientRect()])
@@ -307,11 +309,16 @@ try {
     }
     // Every stored filter's chip carries its target, whichever factors the editor shows.
     const chips = await page.getByRole("button", { name: /^Odebrat filtr/ }).count();
+    assert(chips > 0, `the audience fixture stores filters (fixture_project.py), so a chip shows @${width}`);
     assert.equal(await page.locator('[data-aia^="audience:filter:"]').count(), chips, `a target per stored filter @${width}`);
+    // A chip's remove button is a 24 px target at every width (WCAG 2.5.8; it was 15 x 16).
+    for (const box of await page.getByRole("button", { name: /^Odebrat filtr/ }).evaluateAll((els) => els.map((e) => e.getBoundingClientRect()))) {
+      assert(box.width >= 24 && box.height >= 24, `remove-filter target ${box.width} x ${box.height} @${width}`);
+    }
     await noOverflow(`audience @${width}`);
     await shot(`${width}-audience`);
   }
-  check("Cílová skupina names its description, filters, factors and preview at 1440, 1100, 768 and 390");
+  check("Cílová skupina names its description, filters, factors and preview at 1440, 1100, 768 and 390; each filter's remove button a 24 px target");
 
   // Vzorek (artifact-sample SMP6): read only, at every width. Its forecast is the server's, labelled
   // a forecast, on the revision it was read on; nothing on it sets n or starts anything.

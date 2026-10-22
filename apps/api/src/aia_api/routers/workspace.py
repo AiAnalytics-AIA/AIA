@@ -32,6 +32,7 @@ from aia_core.domain.attachments import ATTACHMENT_MAX_BYTES, AttachmentRejected
 from aia_core.domain.brief_material_classes import brief_material_classes
 from aia_core.domain.client_profile import ClientContact, ClientProfile, ContactDraft
 from aia_core.domain.design import DesignRejected
+from aia_core.domain.edit_log import ActorKind, OpSource, WriteBy
 from aia_core.domain.knowledge import (
     KNOWLEDGE_SECTIONS,
     KnowledgeFolder,
@@ -95,6 +96,7 @@ from ..dependencies import (
     SessionDep,
     StudyScopeDep,
 )
+from ..schemas.names import EntityName
 from ..schemas.projects import ErrorResponse
 from .research import (
     DesignRevisionResponse,
@@ -467,7 +469,7 @@ class StudyCreate(BaseModel):
 
     model_config = ConfigDict(extra="forbid")
 
-    name: str = Field(min_length=1, max_length=255)
+    name: EntityName
     kind: Literal["RESEARCH", "SIMULATION"]
 
 
@@ -831,7 +833,7 @@ class ClientStart(BaseModel):
 
     model_config = ConfigDict(extra="forbid")
 
-    name: str = Field(min_length=1, max_length=255)
+    name: EntityName
 
 
 @router.get("/workspace/me", response_model=Me, summary="Who you are here")
@@ -863,7 +865,7 @@ def start_client(
     Any member of the organization may, as for ``POST /clients`` (ADR 0019). Membership is
     the access, so the creator, like every member, can open it at once.
     """
-    client = repo.create_client(admin, slug=_slug(body.name), name=body.name.strip())
+    client = repo.create_client(admin, slug=_slug(body.name), name=body.name)
     return _workspace(_client_scope(principal, resolver, client.client_id), repo)
 
 
@@ -1020,7 +1022,7 @@ class MemoryReuse(BaseModel):
     source_revision_id: str = Field(min_length=1, max_length=64)
     #: An existing, empty research study of the client; or ``new_study_name`` for a new one.
     target_study_id: str | None = Field(default=None, min_length=1, max_length=64)
-    new_study_name: str | None = Field(default=None, min_length=1, max_length=255)
+    new_study_name: EntityName | None = None
 
 
 class MemoryReuseResponse(BaseModel):
@@ -1067,7 +1069,7 @@ def client_memory_reuse(
             },
         )
     _client_scope(principal, resolver, client_id)  # 404 before anything is read
-    name = body.new_study_name.strip() if body.new_study_name else None
+    name = body.new_study_name
     try:
         reused = reuse_design(
             session,
@@ -1112,7 +1114,7 @@ def start_study(
     scope = _client_scope(principal, resolver, client_id)
     try:
         study = repo.create_study_in_client(
-            scope, slug=_slug(body.name), name=body.name.strip(), kind=StudyKind(body.kind)
+            scope, slug=_slug(body.name), name=body.name, kind=StudyKind(body.kind)
         )
     except ScopeDenied as exc:
         raise _forbidden(
@@ -2167,6 +2169,7 @@ def save_study_working_content(
             analysis=body.analysis,
             base_revision=body.base_revision,
             reason=body.reason,
+            by=WriteBy(ActorKind.PERSON, scope.actor_id, OpSource.UI),
         )
     except ScopeDenied as exc:
         raise _forbidden(exc.reason, "Your role on this study does not permit that.") from exc
@@ -2208,6 +2211,9 @@ def _workspace_conflict(exc: WorkspaceConflict) -> HTTPException:
     messages = {
         "awaiting_migration": "The working content awaits migration from 18.6.6.",
         "not_saved": "Save the study's working content before attaching files to it.",
+        "sociomap_input_locked": (
+            "The save changes a declared Sociomap input, which is locked; nothing was saved."
+        ),
     }
     return HTTPException(
         status_code=409,

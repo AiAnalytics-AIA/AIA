@@ -9,15 +9,16 @@
 //   read over (research_sociomap.py:388-405); without a set no map is made (:585);
 // - an open question's answers are shown as illustrations and no analysis cites them
 //   (domain/question_outlook.py:61-62, 153);
-// - a question with a condition (`filtr`) is refused at the run (research_design.py:1093-1101), and
+// - a question with a condition (`filtr`) is refused at the run: readiness fails one compile cannot
+//   read or check (research_design.py `_condition`, condition:<id>) and a valid one
+//   (conditional_questions); and
 //   so is a set with familiarity required (battery_familiarity, research_design.py:1206-1212 @ 6359f8ee;
 //   read with Python's bool(), :910).
 // What else the compiler may refuse (a scale, too few options) Kontrola names, so a reader
 // listed here is what the item feeds once it compiles, never a verdict that it will.
 
 import type { ResearchProject } from "./model";
-import { SET_MAX, SET_MIN } from "./lane";
-import { type Question, type Section, questionCondition, sections } from "./questionnaire";
+import { SET_PRESET, type SetLimits, type Question, type Section, questionCondition, sections } from "./questionnaire";
 
 /** A downstream stage of the workbench that reads questionnaire items. */
 export type Reader = "fieldwork" | "results" | "sociomap" | "analysis" | "report";
@@ -63,10 +64,10 @@ function questionReaders(q: Question, si: number, n: number, hasSet: boolean): I
   return { kind: "question", id: str(q.id) || null, section: si, label: `Q${n}`, text, open, rating, context: [], readers, held };
 }
 
-function setReaders(sec: Section, si: number, n: number): ItemReaders {
+function setReaders(sec: Section, si: number, n: number, l: SetLimits): ItemReaders {
   const objects = (sec.objects || []).map(str).filter(Boolean);
   const size = new Set(objects).size;
-  const held: Held | null = size < SET_MIN || size > SET_MAX ? "set_size" : pyTrue(sec.familiarity_required) ? "familiarity" : null;
+  const held: Held | null = size < l.min || size > l.max ? "set_size" : pyTrue(sec.familiarity_required) ? "familiarity" : null;
   const declared = Array.isArray(sec.context_objects) ? (sec.context_objects as unknown[]).map(str).filter(Boolean) : [];
   return {
     kind: "set",
@@ -83,16 +84,17 @@ function setReaders(sec: Section, si: number, n: number): ItemReaders {
 }
 
 /** Every question and tracked set of the questionnaire, in its order, with what reads it. */
-export function questionnaireReaders(p: ResearchProject): ItemReaders[] {
+/** Every item's readers; a set's size held to the compiler's hard range in force (the preset until read). */
+export function questionnaireReaders(p: ResearchProject, l: SetLimits = SET_PRESET): ItemReaders[] {
   const xs = sections(p);
-  const hasSet = xs.some((s) => s.type === "object_battery" && !setReaders(s, 0, 0).held);
+  const hasSet = xs.some((s) => s.type === "object_battery" && !setReaders(s, 0, 0, l).held);
   const out: ItemReaders[] = [];
   let qn = 0;
   let sn = 0;
   xs.forEach((sec, si) => {
     const kind = sec.type || "questions";
     if (kind === "questions") for (const q of sec.questions || []) out.push(questionReaders(q, si, ++qn, hasSet));
-    else if (kind === "object_battery") out.push(setReaders(sec, si, ++sn));
+    else if (kind === "object_battery") out.push(setReaders(sec, si, ++sn, l));
   });
   return out;
 }

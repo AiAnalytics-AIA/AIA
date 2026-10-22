@@ -41,7 +41,7 @@ const when = (iso: string | null) => (iso ? (relative(iso) ?? iso) : "—");
 const number = new Intl.NumberFormat("cs-CZ", { maximumFractionDigits: 6 });
 
 /** A setting's name in Czech; the catalogue's own label when the page has none for it. */
-export const labelOf = (s: Pick<DrSetting, "key" | "label">) => LABELS[s.key] ?? s.label;
+const labelOf = (s: Pick<DrSetting, "key" | "label">) => LABELS[s.key] ?? s.label;
 
 /** A value as a reader sees it. Null is unknown -- the code holds nothing -- never zero. */
 export function showValue(type: string, value: DrSettingValue): string {

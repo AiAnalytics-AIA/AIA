@@ -42,7 +42,8 @@ import io
 import zipfile
 from collections.abc import Callable, Iterable
 from datetime import date, datetime, time
-from typing import Any, Final
+from typing import Any, Final, NoReturn
+from xml.parsers import expat
 
 from ..domain.attachments import TEXT_MAX_CHARS, extension_of
 from ..domain.deep_research import documents as web_documents
@@ -64,6 +65,7 @@ __all__ = [
     "TEXT_SUFFIXES",
     "ZIP_MAX_MEMBERS",
     "ZIP_MAX_UNCOMPRESSED",
+    "DtdDeclared",
     "check_zip_bounds",
     "extract_text",
     "grid_from_rows",
@@ -71,6 +73,7 @@ __all__ = [
     "read_pdf",
     "read_web_document",
     "read_xlsx",
+    "refuse_dtd",
 ]
 
 #: Read as UTF-8 text, undecodable bytes replaced (the unit's list).
@@ -97,14 +100,45 @@ def _pdf(data: bytes) -> str:
     return "\n".join(parts)
 
 
+def paragraph_text(paragraph: Any) -> str:
+    """A DOCX paragraph's text as python-docx's ``Paragraph.text`` reads it, and the runs inside its
+    inline content controls too, which that skips: an AIA report locks each printed number in one
+    (artifact-report RPT8a), and a reader that dropped them would read the report without numbers.
+    Identical to ``Paragraph.text`` for a paragraph with no control. The client-source reader's; the
+    attachment reader stays the unit's."""
+    return "".join(
+        e.text
+        for e in paragraph._p.xpath(
+            "w:r | w:hyperlink | w:sdt/w:sdtContent/w:r | w:sdt/w:sdtContent/w:hyperlink"
+        )
+    )
+
+
 def _docx(data: bytes) -> str:
     from docx import Document
 
+    # As the unit read it (Paragraph.text): a content control's runs are not, here alone.
     return "\n".join(p.text for p in Document(io.BytesIO(data)).paragraphs)
+
+
+def _refuse_dtd_in_parts(data: bytes) -> None:
+    """``refuse_dtd`` over every member of an Office ZIP, before openpyxl parses any.
+
+    Without defusedxml (not installed) openpyxl parses with expat, which expands a
+    part's internal entities. Every member, whatever its name: openpyxl finds a part by
+    its content type and relationship, so a worksheet can be stored as ``xl/s.bin``. A
+    member that is not XML fails expat at its first bytes and passes through. The
+    members are bounded already (the ZIP checks).
+    """
+    with zipfile.ZipFile(io.BytesIO(data)) as archive:
+        for info in archive.infolist():
+            refuse_dtd(archive.read(info))
 
 
 def _xlsx(data: bytes) -> str:
     from openpyxl import load_workbook
+
+    _refuse_dtd_in_parts(data)
 
     workbook = load_workbook(io.BytesIO(data), read_only=True, data_only=True)
     try:
@@ -401,6 +435,32 @@ def check_zip_bounds(data: bytes, kind: str = "XLSX") -> None:
         )
 
 
+class DtdDeclared(ValueError):
+    """An XML part declares a document type: refused before anything in it is expanded."""
+
+
+def _refuse(*_args: object) -> NoReturn:
+    raise DtdDeclared("the XML declares a document type")
+
+
+def refuse_dtd(data: bytes) -> None:
+    """Raise ``DtdDeclared`` if ``data`` declares a DTD, in whatever encoding it is written.
+
+    Expat reads the declaration the way the real parse would, so a part in UTF-16 (where
+    ``b"<!DOCTYPE"`` never occurs in the bytes) is caught too; the handler stops the
+    parse at the declaration, before any entity is defined or expanded. A part that is
+    not XML passes through, for the real parse to refuse.
+    """
+    parser = expat.ParserCreate()
+    parser.SetParamEntityParsing(expat.XML_PARAM_ENTITY_PARSING_NEVER)
+    parser.StartDoctypeDeclHandler = _refuse
+    parser.EntityDeclHandler = _refuse
+    parser.UnparsedEntityDeclHandler = _refuse
+    parser.ExternalEntityRefHandler = _refuse
+    with contextlib.suppress(expat.ExpatError):
+        parser.Parse(data, True)
+
+
 def read_xlsx(data: bytes) -> tuple[str, tuple[GridContent, ...], bool]:
     """A workbook's title, its sheets as grids, and whether a sheet bound cut it."""
     if not data.startswith(b"PK\x03\x04"):
@@ -408,6 +468,12 @@ def read_xlsx(data: bytes) -> tuple[str, tuple[GridContent, ...], bool]:
     check_zip_bounds(data)
     from openpyxl import load_workbook
 
+    try:
+        _refuse_dtd_in_parts(data)
+    except DtdDeclared as exc:
+        raise DocumentRefused(
+            "the XLSX declares a DTD in one of its parts", reason="document_malformed"
+        ) from exc
     try:
         workbook = load_workbook(io.BytesIO(data), read_only=True, data_only=True)
     except Exception as exc:

@@ -48,7 +48,19 @@ const measure = async (label) => {
 try {
   await visit(path + "/plan"); await page.getByRole("button", { name: /^Upravit: Shrnutí výzkumného problému/ }).waitFor();
   const original = await get(contentPath);
-  for (const width of [1440, 1024, 768, 390]) { await page.setViewportSize({ width, height: 1000 }); await measure("proposal"); }
+  for (const width of [1440, 1024, 768, 390]) {
+    await page.setViewportSize({ width, height: 1000 }); await measure("proposal");
+    // A narrative item's "Komentovat" is its glyph in a narrow column, a 44 px target, so the item
+    // keeps its width; in a wide one, its words.
+    const comment = page.locator("#plan-understanding li").first().getByRole("button", { name: /^Komentovat: / });
+    const box = await comment.boundingBox();
+    const row = await page.locator("#plan-understanding li").first().boundingBox();
+    assert(box && row && box.width >= 24 && box.height >= 24, `${width}: Komentovat under 24 px`);
+    if (width === 390) {
+      assert(box.width >= 44 && box.width <= 48 && box.height >= 44, `${width}: Komentovat is ${Math.round(box.width)}×${Math.round(box.height)}, not a 44 px glyph`);
+      assert(box.width / row.width < 0.2, `${width}: Komentovat takes ${Math.round((100 * box.width) / row.width)} % of the item's row`);
+    }
+  }
   await page.setViewportSize({ width: 1440, height: 1000 });
   // The stage shows (and writes back to both) the analysis's narrative when one is stored.
   const shown = original.analysis ?? original.content.research_plan;
@@ -57,7 +69,12 @@ try {
   await editInPlace("Cíl 1", "Porovnat čtyři nabídky");
   await page.getByRole("button", { name: "Přidat cíl", exact: true }).click();
   const row = page.getByRole("textbox", { name: "Přidat cíl", exact: true });
-  await row.fill("Ověřit bariéry dostupnosti"); await row.press("Enter"); await row.press("Escape");
+  await row.fill("Ověřit bariéry dostupnosti"); await row.press("Enter");
+  // A repeat is refused at the row in the words an edit in place says, never as a taken name.
+  await row.fill("ověřit  bariéry dostupnosti"); await row.press("Enter");
+  await page.getByText("Tato položka už v seznamu je.", { exact: true }).waitFor();
+  assert.equal(await page.getByText(/už existuje/).count(), 0, "a narrative repeat is not said as a taken name");
+  await row.press("Escape");
   const questions = shown.research_questions?.length ?? 0;
   await page.getByRole("button", { name: "Přidat výzkumnou otázku", exact: true }).click();
   const rq = page.getByRole("textbox", { name: "Přidat výzkumnou otázku", exact: true });
@@ -78,26 +95,82 @@ try {
   assert.equal(await page.getByRole("button", { name: "Upravit text návrhu" }).count(), 0, "no separate narrative editor");
   await page.reload(); await page.getByText("Fiktivní návrh: ověřit preference a dostupnost.", { exact: true }).waitFor();
   checks.push("Narrative items edited and added in place persist to project and analysis, survive reload and preserve the questionnaire");
-  await page.getByRole("button", { name: "Upravit měření a položky" }).first().click();
-  const measurement = page.getByRole("form", { name: "Upravit měření a položky" });
-  await measurement.getByLabel("Název sady", { exact: true }).fill("Varianty dostupnosti");
-  await measurement.getByLabel("Co tato sada porovnává").fill("Srovnat stejné nabídky v různých časech.");
-  await measurement.getByLabel("Položky sady (jedna na řádek)").fill("Ráno\nPoledne\nOdpoledne\nVečer");
-  await measurement.getByLabel("Otázka sady · položí se ke každé položce").fill("Chybí zástupný text");
-  await measurement.getByRole("button", { name: "Použít změny sady" }).click();
-  await measurement.getByRole("alert").waitFor();
-  await measurement.getByLabel("Otázka sady · položí se ke každé položce").fill("Jak vám vyhovuje {object}?");
-  await measurement.getByLabel("1 na škále", { exact: true }).fill("nevyhovuje");
-  await measurement.getByLabel("10 na škále", { exact: true }).fill("zcela vyhovuje");
-  await measurement.getByText("Jak vám vyhovuje Ráno?", { exact: true }).waitFor();
-  for (const width of [1440, 1024, 768, 390]) { await page.setViewportSize({ width, height: 1000 }); await measure("measurement editor"); }
+  // Q68: part of an item's words is selected in place to comment on it, only the words shown (never
+  // the hidden "Upravit: …" label); a double-click selects a word; a plain click still edits.
+  for (const width of [1440, 390]) {
+    await page.setViewportSize({ width, height: 1000 });
+    const item = page.locator("#plan-understanding li [role=button]").first();
+    await item.scrollIntoViewIfNeeded();
+    const box = await item.boundingBox();
+    await page.mouse.move(box.x + 6, box.y + box.height / 2);
+    await page.mouse.down();
+    await page.mouse.move(box.x + Math.min(box.width - 30, 120), box.y + box.height / 2, { steps: 12 });
+    await page.mouse.up();
+    const selected = (await page.evaluate(() => getSelection().toString())).trim();
+    assert(selected && !selected.includes("Upravit"), `${width}: a drag selects an item's own words, got "${selected}"`);
+    await page.getByRole("button", { name: "Přidat komentář" }).waitFor();
+    await item.dblclick();
+    await page.waitForTimeout(500);
+    assert.equal(await page.locator("#plan-understanding textarea").count(), 0, `${width}: a drag or a double-click does not open the editor`);
+    await page.evaluate(() => getSelection().removeAllRanges());
+    await item.click();
+    await page.locator("#plan-understanding textarea").first().waitFor();
+    await page.keyboard.press("Escape");
+  }
+  checks.push("Part of a narrative item is selected in place to comment on it, and a plain click still edits it (Q68)");
+  await page.setViewportSize({ width: 1440, height: 1000 });
+  // audit A33: a set's measurement is edited field by field on its card, each saved at once.
+  assert.equal(await page.getByRole("button", { name: "Upravit měření a položky" }).count(), 0, "no separate measurement editor");
+  const card = page.locator("#plan-sets article").first();
+  await card.getByRole("button", { name: /^Upravit: Název sady/ }).click();
+  await card.getByRole("textbox", { name: "Název sady", exact: true }).fill("Varianty dostupnosti");
+  await card.getByRole("textbox", { name: "Název sady", exact: true }).press("Enter");
+  const setField = async (label, value, multiline = true) => {
+    const name = `${label} · Varianty dostupnosti`;
+    await card.getByRole("button", { name: new RegExp(`^Upravit: ${name}`) }).click();
+    const field = card.getByRole("textbox", { name, exact: true });
+    await field.fill(value);
+    await field.press(multiline ? "Control+Enter" : "Enter");
+    return field;
+  };
+  await setField("Co tato sada porovnává", "Srovnat stejné nabídky v různých časech.");
+  const question = await setField("Otázka sady · položí se ke každé položce", "Chybí zástupný text");
+  await card.getByText("Otázka musí obsahovat {object}: tam se vloží název položky.").waitFor();
+  assert.equal(await question.inputValue(), "Chybí zástupný text", "a refused question stays typed");
+  // Leaving the stage would drop it: every way out asks first, and "Zrušit" stays on Návrh.
+  const onWorkbench = (await page.locator("[data-workbench]").count()) > 0;
+  await (onWorkbench ? page.locator(".nav__stage", { hasText: "Dotazník" }) : page.locator(`a[href="${path}/questionnaire"]`).first()).click();
+  await page.getByText("Některé úpravy návrhu nejdou uložit a zůstaly v poli. Zahodit je a pokračovat?").waitFor();
+  await page.getByRole("button", { name: "Zrušit", exact: true }).click();
+  assert(page.url().endsWith(`${path}/plan`), "a refused draft keeps the person on Návrh");
+  await question.fill("Jak vám vyhovuje {object}?");
+  await question.press("Control+Enter");
+  await setField("1 na škále", "nevyhovuje", false);
+  await setField("10 na škále", "zcela vyhovuje", false);
+  // An item is reworded in its place, keeping its order.
+  await card.getByRole("button", { name: /^Upravit: Položka · 2 / }).click();
+  const second = card.getByRole("textbox", { name: "Položka · 2", exact: true });
+  await second.fill("Varianta Druhá"); await second.press("Enter");
+  // A repeated item is refused at the chip and stays typed there.
+  const stored = await get(contentPath);
+  const firstItem = (stored.analysis ?? stored.content.research_plan).tracked_sets[0].objects[0];
+  const chip = card.getByRole("textbox", { name: "Přidat položku a Enter" });
+  await chip.fill(firstItem.toLocaleUpperCase("cs")); await chip.press("Enter");
+  await card.getByText("Tato položka už v sadě je.").waitFor();
+  assert.equal(await chip.inputValue(), firstItem.toLocaleUpperCase("cs"));
+  await chip.fill("");
+  await card.getByText(`Jak vám vyhovuje ${firstItem}?`, { exact: true }).waitFor();
+  for (const width of [1440, 1024, 768, 390]) { await page.setViewportSize({ width, height: 1000 }); await measure("set card in place"); }
   await page.screenshot({ path: join(out, "proposal-measurement-phone.png"), fullPage: true });
-  await measurement.getByRole("button", { name: "Použít změny sady" }).click();
   current = await saved();
   assert.deepEqual(current.analysis.tracked_sets, current.content.research_plan.tracked_sets);
+  assert.equal(current.content.research_plan.tracked_sets[0].title, "Varianty dostupnosti");
+  assert.equal(current.content.research_plan.tracked_sets[0].object_question, "Jak vám vyhovuje {object}?");
   assert.deepEqual(current.content.research_plan.tracked_sets[0].scale_labels, ["nevyhovuje", "zcela vyhovuje"]);
-  await page.reload(); await page.getByText("Jak vám vyhovuje Ráno?", { exact: true }).waitFor();
-  checks.push("Measurement template validation, live preview and edited objects/anchors persist after reload");
+  assert.equal(current.content.research_plan.tracked_sets[0].objects[1], "Varianta Druhá");
+  assert.equal(current.content.research_plan.tracked_sets[0].objects[0], firstItem);
+  await page.reload(); await page.getByText(`Jak vám vyhovuje ${firstItem}?`, { exact: true }).waitFor();
+  checks.push("Set fields and items edited in place: a question without {object} and a repeated item refused at the field, leaving asks while one is held, the preview live, every field persisting after reload");
   await page.setViewportSize({ width: 1440, height: 1000 });
   await page.screenshot({ path: join(out, "proposal-desktop.png"), fullPage: true });
   // An item open in place is saved when the person leaves it: following a link blurs the field first.

@@ -34,7 +34,13 @@ from aia_core.application.research_lead import (
     set_study_budget,
     worker_readiness,
 )
-from aia_core.domain.research_lead import RememberNote, SelfUpdate, layer, self_update_base
+from aia_core.domain.research_lead import (
+    RememberNote,
+    SelfUpdate,
+    context_bytes,
+    layer,
+    self_update_base,
+)
 from aia_core.domain.scope import (
     WORKER_PERMISSIONS,
     Permission,
@@ -530,6 +536,94 @@ def test_a_client_note_reaches_only_its_own_clients_turns(scoped: Any, session: 
     (turn,) = _lead(acme, session).post(kind="greeting", stage="brief")
     notes = layer(_step_input(session, acme, turn["run_id"])["context"], "lead")["notes"]
     assert {n["text"] for n in notes} == {"Acme chce čísla v tabulce.", "Má rád stručnost."}
+
+
+def test_the_next_turn_carries_what_the_conversation_decided(scoped: Any, session: Any) -> None:
+    """ADR 0041 decision 4: the decision digest, from the ledger, in the next turn's context."""
+    scope, turn_id = _ready(scoped, session, EDITS)
+    base = StudyWorkspaceRepository(session).content(scope).revision
+    lead = _lead(scope, session)
+    lead.decide_edits(turn_id, decision="accept", indices=[0], base_revision=base)
+    lead.decide_edits(turn_id, decision="dismiss", indices=[3], base_revision=None)
+    (_, nxt) = _lead(scope, session).post(
+        kind="message",
+        stage="brief",
+        text="A název?",
+        focus={"id": "brief:title", "label": "Název"},
+    )
+    digest = layer(_step_input(session, scope, nxt["run_id"])["context"], "memory")["digest"]
+    rows = {r.subject_id: r.decision_id for r in _ledger(session, "lead_edit")}
+    assert digest["named"] == [
+        {"kind": "edit", "item": "brief:title", "turn": turn_id, "decision": "accept",
+         "ledger": rows[f"{turn_id}:0"]}
+    ]  # fmt: skip
+    assert digest["latest"] == [
+        {"kind": "edit", "item": "sample:n", "turn": turn_id, "decision": "dismiss",
+         "ledger": rows[f"{turn_id}:3"]}
+    ]  # fmt: skip
+    assert [(p["item"], p["index"]) for p in digest["undecided"]] == [
+        ("question:q9", 2),
+        ("plan:plan.objectives:Ověřit cenu", 1),
+    ]
+
+
+def test_another_researchers_decisions_are_not_in_my_digest(scoped: Any, session: Any) -> None:
+    scope, turn_id = _ready(scoped, session, EDITS)
+    base = StudyWorkspaceRepository(session).content(scope).revision
+    _lead(scope, session).decide_edits(turn_id, decision="accept", indices=[0], base_revision=base)
+    other = scoped.scope(user="researcher")
+    _hatch(scoped, session, "researcher")
+    (_, theirs) = _message(_lead(other, session))
+    digest = layer(_step_input(session, other, theirs["run_id"])["context"], "memory")["digest"]
+    assert digest["named"] == digest["latest"] == digest["undecided"] == []
+
+
+@pytest.mark.parametrize(
+    ("output", "waiting"),
+    [
+        ({"reply": "Můžeme spustit.", "request": {"kind": "research_run", "why": WHY}}, []),
+        (
+            {
+                "reply": "Připravil.",
+                "request": {"kind": "agent_job", "action": "analyze_brief", "why": WHY},
+            },
+            ["job"],
+        ),
+    ],
+)
+def test_only_a_prepared_job_waits_in_the_digest(
+    scoped: Any, session: Any, output: dict[str, Any], waiting: list[str]
+) -> None:
+    # A run card is started from its own screen and is never decided through the ledger, so
+    # it is no waiting proposal; a prepared agent job is one until a person decides it.
+    scope, _ = _ready(scoped, session, output)
+    (_, nxt) = _message(_lead(scope, session))
+    digest = layer(_step_input(session, scope, nxt["run_id"])["context"], "memory")["digest"]
+    assert [p["kind"] for p in digest["undecided"]] == waiting
+
+
+def test_a_turns_manifest_is_what_it_froze_and_only_its_researchers(
+    scoped: Any, session: Any
+) -> None:
+    """Co Vedoucí vidí (LC2): read from the turn's frozen context, never today's study."""
+    scope = scoped.scope()
+    _hatch(scoped, session)
+    _save(scope, session)
+    person, turn = _message(_lead(scope, session))
+    frozen = _step_input(session, scope, turn["run_id"])["context"]
+    read = _lead(scope, session).manifest(turn["turn_id"])
+    assert read["recorded"] is True
+    assert read["manifest"]["total_bytes"] == context_bytes(frozen)
+    view = next(r for r in read["manifest"]["layers"] if r["layer"] == "view")
+    assert view["included"] == ["brief:goal"]
+    with pytest.raises(LeadTurnNotFound):
+        _lead(scope, session).manifest(person["turn_id"])  # a person's turn saw nothing
+    other = scoped.scope(user="researcher")
+    with pytest.raises(LeadTurnNotFound):
+        _lead(other, session).manifest(turn["turn_id"])
+    with pytest.raises(LeadTurnNotFound):
+        _lead(other, session).omitted(turn["turn_id"], "knowledge")
+    assert _lead(scope, session).omitted(turn["turn_id"], "knowledge") == ([], 0)
 
 
 # --------------------------------------------------------------------------- deciding on edits

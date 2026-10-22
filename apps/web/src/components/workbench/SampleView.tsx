@@ -8,13 +8,14 @@
 
 import type { ReactNode } from "react";
 
+import { TOUCH, TOUCH_LINK } from "@/components/ui/parts";
 import { t } from "@/i18n/t";
 import { plural } from "@/lib/format";
 import { sampleAia } from "@/lib/artifacts/sample";
 import type { OutlookVerdict } from "@/lib/api";
 import { codeWords } from "@/lib/reason-words";
 import { VERDICT_ORDER } from "@/lib/research-execution";
-import { SUPPORT_FORECAST_CHECK, checkStage, outlookSummary, personaSourcesOf, readinessSummary, sourceChosenOnRun, supportForecastOf } from "@/lib/sample-view";
+import { SUPPORT_FORECAST_CHECK, checkStage, compositionOf, outlookSummary, personaSourcesOf, readinessSummary, sourceChosenOnRun, supportForecastOf, type CompositionRow } from "@/lib/sample-view";
 import { STAGES } from "@/lib/workbench-stages";
 import type { WorkbenchStage } from "@/lib/workbench-stages";
 import { audienceReady } from "@/research/audience";
@@ -46,6 +47,69 @@ function Sec({ n, title, aside, aia, children }: { n: number; title: string; asi
   );
 }
 
+/** How many cells the composition lists before the rest fold away. */
+const CELLS_SHOWN = 10;
+
+/** One decimal on every row, so a column of shares reads aligned ("3,0 %" beside "2,7 %"). */
+const share = (x: number) => `${(x * 100).toLocaleString("cs-CZ", { minimumFractionDigits: 1, maximumFractionDigits: 1 })} %`;
+
+function CellRows({ rows }: { rows: CompositionRow[] }) {
+  return rows.map((r) => (
+    <tr key={r.key} className="border-t border-border" data-aia={sampleAia.quota(r.key) ?? undefined}>
+      <td className="py-1 pr-3">{r.label}</td>
+      <td className="py-1 pr-3 text-right tabular-nums">{share(r.share)}</td>
+      <td className="py-1 text-right tabular-nums">{r.n}</td>
+    </tr>
+  ));
+}
+
+function CellTable({ rows, caption }: { rows: CompositionRow[]; caption: string }) {
+  return (
+    <table className="mt-1 w-full text-sm">
+      <caption className="sr-only">{caption}</caption>
+      <thead>
+        <tr className="text-left text-ink-muted">
+          <th scope="col" className="py-1 pr-3 font-normal">Kvótní buňka</th>
+          <th scope="col" className="py-1 pr-3 text-right font-normal">Podíl</th>
+          <th scope="col" className="py-1 text-right font-normal">n</th>
+        </tr>
+      </thead>
+      <tbody><CellRows rows={rows} /></tbody>
+    </table>
+  );
+}
+
+/** §1's composition (SMP2): the sampler's own quota allotment for a panel run, read only. */
+function Composition({ readiness }: { readiness: SampleReadiness }) {
+  if (readiness.kind !== "ready") return null;
+  const c = compositionOf(readiness.readiness);
+  const body =
+    c.kind === "roster" ? <p className="mt-1 text-sm text-ink-muted">Fiktivní respondenti se nevybírají podle kvót.</p>
+    : c.kind === "unknown" ? <p className="mt-1 text-sm">Složení vzorku z populace: neznámé. Server ho pro tento návrh předem nevybral.</p>
+    : c.kind === "refused" ? <p className="mt-1 text-sm" role="status">Vzorek z populace teď nelze vybrat: {c.words}</p>
+    : (
+      <>
+        <p className="mt-1 text-sm text-ink-muted">
+          Podle: {c.fields.join(" × ")}. {plural(c.rows.length, "buňka", "buňky", "buněk")} s respondenty
+          {c.donors !== null ? `, ${plural(c.donors, "různý dárce", "různí dárci", "různých dárců")}` : ""}.
+        </p>
+        <CellTable rows={c.rows.slice(0, CELLS_SHOWN)} caption="Složení vzorku podle kvót" />
+        {c.rows.length > CELLS_SHOWN ? (
+          <details className="text-sm">
+            <summary className={`cursor-pointer text-signal ${TOUCH}`}>Dalších {plural(c.rows.length - CELLS_SHOWN, "buňka", "buňky", "buněk")}</summary>
+            <CellTable rows={c.rows.slice(CELLS_SHOWN)} caption="Další buňky vzorku" />
+          </details>
+        ) : null}
+      </>
+    );
+  return (
+    <div>
+      <div className="flex items-center gap-2"><Glyph tone={c.kind === "drawn" ? "done" : "inert"} size={12} /><h3 className="text-sm font-semibold">Složení podle kvót</h3></div>
+      {body}
+    </div>
+  );
+}
+
 const STATUS_TONE: Record<string, GlyphTone> = { PASS: "done", WARN: "done-warn", FAIL: "fault" };
 const VERDICT_TONE: Record<OutlookVerdict, GlyphTone> = { ANSWERABLE: "done", UNKNOWN: "inert", AT_RISK: "you", UNANSWERABLE: "fault" };
 
@@ -64,17 +128,18 @@ export function SampleArtifact({ project, readiness, onOpen }: { project: Resear
           <div className="flex items-center gap-2"><Glyph tone={n ? "done" : "inert"} size={12} /><h3 className="text-sm font-semibold">Velikost vzorku</h3></div>
           <p className="mt-1 text-2xl font-semibold tabular-nums">{n ? `N = ${n}` : "Nenastaveno"}</p>
           <p className="text-sm text-ink-muted">Doporučeno {rec.n}: {rec.why}</p>
-          <button type="button" className="mt-1 text-sm text-signal underline" onClick={() => onOpen("dimensions")}>Upravit v Dimenzích</button>
+          <button type="button" className={`mt-1 text-sm ${TOUCH_LINK}`} onClick={() => onOpen("dimensions")}>Upravit v Dimenzích</button>
         </div>
         <div>
           <div className="flex items-center gap-2"><Glyph tone={audienceReady(project) ? "done" : "inert"} size={12} /><h3 className="text-sm font-semibold">Cílová skupina</h3></div>
           <p className="mt-1 text-sm">{description || "Bez popisu"}{filters ? ` · ${filters} ${filters === 1 ? "filtr" : filters < 5 ? "filtry" : "filtrů"}` : ""}</p>
-          <button type="button" className="mt-1 text-sm text-signal underline" onClick={() => onOpen("audience")}>Upravit cílovou skupinu</button>
+          <button type="button" className={`mt-1 text-sm ${TOUCH_LINK}`} onClick={() => onOpen("audience")}>Upravit cílovou skupinu</button>
         </div>
         <div>
           <div className="flex items-center gap-2"><Glyph tone={dims.length ? "done" : "inert"} size={12} /><h3 className="text-sm font-semibold">Dimenze</h3></div>
           {dims.length ? <ul className="mt-1 flex flex-wrap gap-1.5">{dims.map((d) => <li key={d} className="rounded-sm border border-border px-2 py-0.5 text-sm">{PERSONA_DIM_LABELS[d] ?? d}</li>)}</ul> : <p className="mt-1 text-sm text-ink-muted">Žádné</p>}
         </div>
+        <Composition readiness={readiness} />
       </Sec>
       <Sec n={2} title="Odhad podpory před během" aside="odhad, ne výsledek" aia={sampleAia.section("forecast")}>
         <Forecast readiness={readiness} />
@@ -116,7 +181,7 @@ function Ready({ readiness, onOpen }: { readiness: SampleReadiness; onOpen: Open
                 <li key={c.id} className="flex items-start gap-2 border-t border-border py-1.5 text-sm first:border-t-0" data-aia={sampleAia.ready(c.id) ?? undefined}>
                   <span className="mt-1"><Glyph tone={STATUS_TONE[c.status] ?? "inert"} size={12} title={c.status} /></span>
                   <span className="min-w-0 flex-1">{c.message}</span>
-                  {stage ? <button type="button" className="shrink-0 text-xs text-signal underline" onClick={() => onOpen(stage)}>{STAGES[stage].label}</button> : null}
+                  {stage ? <button type="button" className={`shrink-0 text-xs ${TOUCH_LINK}`} onClick={() => onOpen(stage)}>{STAGES[stage].label}</button> : null}
                 </li>
               );
             })}
@@ -127,7 +192,7 @@ function Ready({ readiness, onOpen }: { readiness: SampleReadiness; onOpen: Open
         <p className="text-sm text-ink-muted">{forecast.known ? "Odhad opory výsledků varuje" : "Opora výsledků je předem neznámá"}: viz oddíl 2.</p>
       ) : null}
       <div className="flex flex-wrap items-center gap-3">
-        <button type="button" className="rounded-control border border-border-strong px-3 py-1.5 text-sm font-medium" onClick={() => onOpen("fieldwork")}>Pokračovat na Sběr dat</button>
+        <button type="button" className={`rounded-control border border-border-strong px-3 py-1.5 text-sm font-medium ${TOUCH}`} onClick={() => onOpen("fieldwork")}>Pokračovat na Sběr dat</button>
         {summary?.ready && !summary.unknown && summary.warnings ? <span className="text-xs text-ink-muted">Lze pokračovat s omezeními.</span> : null}
       </div>
     </Sec>

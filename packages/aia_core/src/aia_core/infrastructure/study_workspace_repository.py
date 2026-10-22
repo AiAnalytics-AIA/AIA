@@ -20,6 +20,7 @@ and only :meth:`StudyWorkspaceRepository.attachment` serves their bytes.
 
 from __future__ import annotations
 
+from collections.abc import Mapping, Sequence
 from typing import Any
 
 from sqlalchemy import or_, select
@@ -34,6 +35,10 @@ from ..domain.attachments import (
     extension_of,
     validate_attachment,
 )
+from ..domain.design_fields import Touch
+from ..domain.design_items import Documents
+from ..domain.edit_log import WriteBy, new_batch_id, write_rows
+from ..domain.edit_ops import whole_copy_lock_refusal
 from ..domain.pipeline import ProjectType, fingerprint
 from ..domain.scope import ClientContext, Permission, ScopeDenied, StudyContext, StudyKind
 from ..domain.workspace import (
@@ -61,6 +66,7 @@ from .tables import (
     as_utc,
     utcnow,
 )
+from .workspace_edit_repository import WorkspaceEditRepository
 
 __all__ = ["StudyWorkspaceRepository", "WorkspaceConflict"]
 
@@ -240,6 +246,8 @@ class StudyWorkspaceRepository:
         analysis: Any = None,
         base_revision: int | None,
         reason: str = "autosave",
+        by: WriteBy | None = None,
+        ops: Sequence[tuple[Mapping[str, Any], frozenset[Touch]]] = (),
     ) -> WorkingSave:
         """Save the Study's working content as its newest revision.
 
@@ -252,6 +260,14 @@ class StudyWorkspaceRepository:
         write nothing (``deduplicated``). Needs ``EDIT_STUDY`` on an open research
         Study whose content is not awaiting migration. The first save creates the
         Study's working project.
+
+        Under the same lock, after the stale check: a save that changes a Sociomap input the
+        current copy has locked is refused (``sociomap_input_locked``, ADR 0029 decision 8), and a
+        save that writes a revision logs it, one ``workspace_edit_ops`` row per ``(item, field)``
+        it changed, made by ``by`` (``domain/edit_log.py``; working-copy-edit-ops WCE2): each of
+        ``ops``, the vocabulary operations the write applied (``application/working_copy.py``),
+        under its own operation, the rest as a whole-copy change. ``None``: a writer not yet moved
+        onto the log (the proposals' accepts, WCE2e), which WCE2f refuses.
         """
         scope.require(Permission.EDIT_STUDY)
         scope.require_open_study()
@@ -277,6 +293,19 @@ class StudyWorkspaceRepository:
             raise WorkspaceConflict(
                 "the working content changed since it was loaded",
                 reason="stale_revision",
+                current_revision=current_revision,
+            )
+        before = (
+            Documents(content=dict(current.content or {}), analysis=current.analysis)
+            if current is not None
+            else None
+        )
+        after = Documents(content=body, analysis=analysis_body)
+        refused = whole_copy_lock_refusal(before, after) if before is not None else None
+        if refused is not None:
+            raise WorkspaceConflict(
+                "the save changes a declared Sociomap input, which is locked",
+                reason=refused,
                 current_revision=current_revision,
             )
 
@@ -316,6 +345,7 @@ class StudyWorkspaceRepository:
                 row.project_id = project.project_id
                 row.lineage = lineage
             self._session.flush()
+            self._log(scope, by, ops, before, after, reason, base_revision, outcome.revision)
             return WorkingSave(
                 study_id=scope.study_id,
                 state=ContentState(row.content_state),
@@ -343,12 +373,41 @@ class StudyWorkspaceRepository:
             revision_id = outcome.revision_id or ""
             row.modified_at = utcnow()
         self._session.flush()
+        if not outcome.deduplicated:
+            self._log(scope, by, ops, before, after, reason, base_revision, outcome.revision)
         return WorkingSave(
             study_id=scope.study_id,
             state=ContentState(row.content_state),
             revision=outcome.revision,
             revision_id=revision_id,
             deduplicated=outcome.deduplicated,
+        )
+
+    def _log(
+        self,
+        scope: StudyContext,
+        by: WriteBy | None,
+        ops: Sequence[tuple[Mapping[str, Any], frozenset[Touch]]],
+        before: Documents | None,
+        after: Documents,
+        reason: str,
+        base_revision: int | None,
+        result_revision: int,
+    ) -> None:
+        """Log a write in its transaction: one row per ``(item, field)`` it changed."""
+        if by is None:
+            return
+        WorkspaceEditRepository(self._session, scope).append(
+            write_rows(
+                before,
+                after,
+                ops=ops,
+                reason=reason,
+                by=by,
+                batch_id=new_batch_id(),
+                base_revision=base_revision,
+                result_revision=result_revision,
+            )
         )
 
     # -- the 18.6.6 migration (ADR 0018, decision 2) ----------------------------

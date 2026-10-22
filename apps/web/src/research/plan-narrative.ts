@@ -7,6 +7,7 @@
 
 import { t, tv } from "@/i18n/t";
 import { designTarget, objectiveTarget } from "@/lib/artifacts/design";
+import { nameKey } from "@/lib/name-input";
 import { objectivesOf } from "./brief-objectives";
 import { ID_LISTS, listIds, withItemIds } from "./item-ids";
 import type { Json } from "./model";
@@ -32,8 +33,8 @@ export function narrativeOf(state: PlanState): Narrative {
 
 export type Edited = { state: PlanState } | { refused: string };
 
-/** Case and spacing aside, as the plan's lists compare (InlineCreateRow's rule). */
-const same = (a: string, b: string) => a.replace(/\s+/g, " ").trim().toLocaleLowerCase("cs") === b.replace(/\s+/g, " ").trim().toLocaleLowerCase("cs");
+/** Case and spacing aside, as the plan's lists compare (name-input's nameKey, InlineCreateRow's rule). */
+const same = (a: string, b: string) => nameKey(a) === nameKey(b);
 
 /** Why `text` cannot stand at `index` of `list` (a repeat of another item), or null. */
 export function itemProblem(n: Narrative, list: NarrativeList, text: string, index: number | null): string | null {

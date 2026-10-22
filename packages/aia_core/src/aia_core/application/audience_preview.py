@@ -40,10 +40,19 @@ from ..infrastructure.population_repository import PopulationRegistryRepository
 from ..infrastructure.population_source import PopulationAssetSource
 from .population import Enricher, PopulationRuntime
 
-__all__ = ["SAMPLE_CACHE", "AudiencePreviewer", "PanelDraw", "PanelSampler"]
+__all__ = [
+    "POPULATION_UNAVAILABLE",
+    "SAMPLE_CACHE",
+    "AudiencePreviewer",
+    "PanelDraw",
+    "PanelSampler",
+]
 
 #: How many panel draws a previewer keeps.
 SAMPLE_CACHE: Final = 32
+
+#: A draw's ``refused`` when the population could not be loaded: unknown, not the design's.
+POPULATION_UNAVAILABLE: Final = "population_unavailable"
 
 
 @dataclass(frozen=True, slots=True)
@@ -57,6 +66,15 @@ class PanelDraw:
     #: The version and seed the draw was asked on; ``None`` when no population was loaded.
     version_id: str | None = None
     seed: int | None = None
+    #: What the refusal names (the audience filter's dropped or refused filters); empty when it
+    #: names nothing.
+    reasons: tuple[str, ...] = ()
+
+    @property
+    def sampler_refused(self) -> str | None:
+        """The sampler's (or the audience filter's) refusal of this design; ``None`` when it
+        drew, or when the population could not be loaded, which says nothing of the design."""
+        return None if self.refused == POPULATION_UNAVAILABLE else self.refused
 
 
 #: Draws a panel run's sample at (filters, n, seed) over the population a new run records; the
@@ -131,7 +149,7 @@ class AudiencePreviewer:
         try:
             population = self._population(session)
         except PopulationError:  # a missing or corrupt asset: unknown, never a failed readiness
-            return PanelDraw(None, refused="population_unavailable", seed=seed)
+            return PanelDraw(None, refused=POPULATION_UNAVAILABLE, seed=seed)
         if population is None:
             return None
         version_id = population.binding.version_id
@@ -151,7 +169,7 @@ class AudiencePreviewer:
                 draw_panel_sample(population, filters, n, seed), None, version_id, seed
             )
         except PopulationError as exc:  # the sampler's or the audience filter's refusal
-            draw = PanelDraw(None, exc.reason, version_id, seed)
+            draw = PanelDraw(None, exc.reason, version_id, seed, tuple(getattr(exc, "reasons", ())))
         with self._lock:
             self._draws[key] = draw
             while len(self._draws) > SAMPLE_CACHE:

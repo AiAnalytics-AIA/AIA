@@ -196,9 +196,12 @@ def _changes(
     ids: Sequence[str], before: SociomapArtifactV3, after: SociomapArtifactV3
 ) -> tuple[tuple[str, str, str, str], ...]:
     out: list[tuple[str, str, str, str]] = []
+    at0 = {oid: k for k, oid in enumerate(before.object_ids)}
+    at1 = {oid: k for k, oid in enumerate(after.object_ids)}
     for i in range(len(ids)):
         for j in range(i + 1, len(ids)):
-            a, b = before.relations.status[i][j], after.relations.status[i][j]
+            a = before.relations.status[at0[ids[i]]][at0[ids[j]]]
+            b = after.relations.status[at1[ids[i]]][at1[ids[j]]]
             if a != b:
                 out.append((ids[i], ids[j], str(_value(a)), str(_value(b))))
     return tuple(out)
@@ -235,12 +238,21 @@ def compare_object_maps(
             inputs, in_force[0], connectedness_interval=False, slots=in_force[1]
         )
         after = compute_object_map(inputs, draft[0], connectedness_interval=False, slots=draft[1])
-        ids = list(inputs.object_ids)
+        # The objects both maps place: the signed-off methodology maps the PRIMARY, rated
+        # objects only, so a draft of another method is compared over what both have.
+        ids = [o for o in inputs.object_ids if o in before.object_ids and o in after.object_ids]
         shifts: dict[str, float] = {}
         rmsd: float | None = None
         if before.layout is not None and after.layout is not None:
-            reference = dict(zip(ids, before.layout.points, strict=True))
-            turned = align_to_reference(dict(zip(ids, after.layout.points, strict=True)), reference)
+            reference = {
+                o: p
+                for o, p in zip(before.object_ids, before.layout.points, strict=True)
+                if o in ids
+            }
+            placed = {
+                o: p for o, p in zip(after.object_ids, after.layout.points, strict=True) if o in ids
+            }
+            turned = align_to_reference(placed, reference)
             rmsd = turned.rmsd
             shifts = {
                 oid: math.hypot(
@@ -263,10 +275,11 @@ def compare_object_maps(
                 shifts=shifts,
                 alignment_rmsd=rmsd,
                 heights={
-                    oid: (h0, h1)
-                    for oid, h0, h1 in zip(
-                        ids, before.heights.values, after.heights.values, strict=True
+                    oid: (
+                        before.heights.values[before.object_ids.index(oid)],
+                        after.heights.values[after.object_ids.index(oid)],
                     )
+                    for oid in ids
                 },
                 k100={oid: (k_before.get(oid), k_after.get(oid)) for oid in k_before | k_after},
                 terrain_max_change=terrain,

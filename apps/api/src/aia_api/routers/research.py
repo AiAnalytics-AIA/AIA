@@ -31,7 +31,10 @@ from aia_core.application.client_report import (
     prepare_client_report,
     stored_client_report,
 )
-from aia_core.application.contextual_report import stored_contextual_report
+from aia_core.application.contextual_report import (
+    contextual_report_document,
+    stored_contextual_report,
+)
 from aia_core.application.deep_research import (
     BundleNotReady,
     DeepResearchRunNotFound,
@@ -84,6 +87,7 @@ from aia_core.application.research import (
     ResearchQuestionsUnanswerable,
     ResearchRunNotFound,
     ResearchRunNotRetryable,
+    ResearchRunOnRetiredMethod,
     ResearchRuns,
     ResearchStepNotFound,
     RunOutlook,
@@ -144,7 +148,7 @@ from aia_core.infrastructure.artifact_repository import (
     ArtifactStatus,
 )
 from aia_core.infrastructure.report_pdf import PDF_MEDIA_TYPE
-from aia_core.infrastructure.storage import IntegrityError, ObjectNotFound
+from aia_core.infrastructure.storage import ArtifactStore, IntegrityError, ObjectNotFound
 from aia_core.infrastructure.study_design_repository import (
     DesignRevisionNotFound,
     StudyDesignRepository,
@@ -369,6 +373,27 @@ class ResearchStepResponse(BaseModel):
     recovery_reason: Literal["paid_call_uncertain", "attempts_exhausted"] | None = None
 
 
+class ResearchRunSpend(BaseModel):
+    """What one run has cost, by the rules Settings reads a person's spend (Q40), whoever each
+    charge is booked to (``artifact-fieldwork`` FLD4)."""
+
+    #: Settled: the usage ledger's rows and the holds no ledger row names.
+    spent_usd: float
+    #: Holds open now: not spent yet, and not in the study's remainder.
+    reserved_usd: float
+    #: Calls whose cost is not known: with any, ``spent_usd`` is not known to the cent.
+    uncertain_calls: int
+
+
+class ResearchRunCeiling(BaseModel):
+    """The most a run could cost when it started, as its start worked it out (artifact-fieldwork
+    FLD4d): an upper bound, never a forecast."""
+
+    #: ``None``: it could not be worked out, and ``unknown`` says why.
+    usd: float | None
+    unknown: str | None = None
+
+
 class ResearchRunPopulation(BaseModel):
     """The population a run recorded (population-operations P3), and whether anything read it.
 
@@ -425,6 +450,8 @@ class ResearchRunMethodology(BaseModel):
     aggregation: ResearchRunMethod
     #: How AI respondents' answers were drawn (plan ``methodology-tab`` R1d).
     response: ResearchRunMethod
+    #: The readiness limits the run was started under (plan ``methodology-tab`` V1a).
+    readiness: ResearchRunMethod
     #: ``True``: the response process is not 18.6.6's; ``None``: its pin cannot be read.
     response_deviates: bool | None
 
@@ -494,6 +521,11 @@ class ResearchRunResponse(BaseModel):
     artifact_ids: list[str] = Field(default_factory=list)
     #: Only with ``VIEW_COSTS``; ``None`` otherwise, never zero.
     actual_cost_usd: float | None = None
+    #: Only on ``GET …/research/runs/{run_id}``, with ``VIEW_COSTS``; ``None`` on a listed run
+    #: and on an action's answer (start, cancel, retry, budget), which is not a cost read.
+    spend: ResearchRunSpend | None = None
+    #: With ``VIEW_COSTS``; ``None`` without it, or for a run started before runs recorded one.
+    cost_ceiling: ResearchRunCeiling | None = None
     #: The population the run recorded; ``None``: it recorded none (no LIVE when it started).
     population: ResearchRunPopulation | None = None
     #: The Sociomap, support and aggregation methods the run pinned when it started.
@@ -583,6 +615,18 @@ class SampleSizeRange(BaseModel):
     max: int
 
 
+class TrackedSetRange(BaseModel):
+    """How many objects one tracked set may hold: outside ``min``-``max`` the design does not
+    compile (battery_size); outside the recommended range readiness warns."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    min: int
+    max: int
+    recommended_min: int
+    recommended_max: int
+
+
 class ResearchLimitsResponse(BaseModel):
     """The readiness limits in force for the Study (plan ``run-qc-and-checkpoint`` RQC9).
 
@@ -596,6 +640,7 @@ class ResearchLimitsResponse(BaseModel):
     methodology_version: str
     version: int | None
     sample_size: SampleSizeRange
+    tracked_set: TrackedSetRange
 
 
 class QuotaCellResponse(BaseModel):
@@ -620,12 +665,17 @@ class SampleCompositionResponse(BaseModel):
 
     #: Why the sampler refused (its reason code); ``None`` when it drew.
     refused: str | None
+    #: What the refusal names, the audience preview's ``reasons``; empty when it names nothing.
+    refused_reasons: list[str] = []
     version_id: str | None
     seed: int | None
     quota_fields: list[str]
     cells: list[QuotaCellResponse]
     #: Distinct donors behind the sample; ``None`` when refused or without a donor column.
     sample_donors: int | None
+    #: Whether the support forecast was counted from this sample (a respondent without a donor
+    #: leaves it unknown, as fieldwork refuses such a sample).
+    support_counted: bool = False
 
 
 class _ReadinessBody(BaseModel):
@@ -1116,6 +1166,11 @@ def _run(
         steps=steps,
         artifact_ids=[s.artifact_id for s in steps if s.artifact_id],
         actual_cost_usd=cost,
+        cost_ceiling=(
+            ResearchRunCeiling.model_validate(meta["cost_ceiling"])
+            if scope.has(Permission.VIEW_COSTS) and isinstance(meta.get("cost_ceiling"), dict)
+            else None
+        ),
         population=(
             ResearchRunPopulation.model_validate(meta["population"])
             if isinstance(meta.get("population"), dict)
@@ -1216,6 +1271,33 @@ def _no_population(exc: PanelPopulationMissing) -> HTTPException:
     )
 
 
+def _retired_method(exc: ResearchRunOnRetiredMethod, study_id: str) -> HTTPException:
+    """409: the run's Sociomap method is one no new run computes, so it is not started again.
+    ``new_run`` is the request that starts a new run over the same Design Revision, which pins
+    ``aia-sociomap-5``, with the refused run's respondents, population and research-question
+    decision; nothing was started."""
+    return HTTPException(
+        status_code=status.HTTP_409_CONFLICT,
+        detail={
+            "code": "run_on_retired_method",
+            "message": (
+                "Běh byl spočten starší metodou Sociomapy a znovu se nespouští. Spusťte nový "
+                "běh ze stejné revize návrhu; spočte se metodou aia-sociomap-5. Nic nebylo "
+                "spuštěno."
+            ),
+            "details": {
+                "methods": exc.methods,
+                "design_revision_id": exc.design_revision_id,
+                "new_run": {
+                    "method": "POST",
+                    "href": f"/api/v1/studies/{study_id}/research/runs",
+                    "body": exc.new_run,
+                },
+            },
+        },
+    )
+
+
 def _started(runs: ResearchRuns, started: StartedRun, response: Response) -> ResearchRunResponse:
     if started.created:
         response.headers["Location"] = (
@@ -1229,7 +1311,7 @@ def _started(runs: ResearchRuns, started: StartedRun, response: Response) -> Res
 @router.get(
     "/research/limits",
     response_model=ResearchLimitsResponse,
-    summary="The readiness limits in force: the valid sample size",
+    summary="The readiness limits in force: the valid sample size and a tracked set's size",
 )
 def research_limits(scope: StudyScopeDep, session: SessionDep) -> ResearchLimitsResponse:
     """The limits a run start of this Study checks today, read from the organization's
@@ -1239,6 +1321,7 @@ def research_limits(scope: StudyScopeDep, session: SessionDep) -> ResearchLimits
         methodology_version=limits.methodology_version,
         version=None if stored is None else int(stored["version"]),
         sample_size=SampleSizeRange(min=limits.sample_size.min, max=limits.sample_size.max),
+        tracked_set=TrackedSetRange(**limits.tracked_set.model_dump()),
     )
 
 
@@ -1263,7 +1346,12 @@ def readiness(
     The 18.6.6 technical preflight is not these checks and is not claimed.
     """
     chosen = _chosen_persona_source(request, persona_source)
-    runs = ResearchRuns(session, scope, panel_sampler=sampler)
+    runs = ResearchRuns(
+        session,
+        scope,
+        panel_sampler=sampler,
+        routing_enabled=request.app.state.settings.routing_enabled,
+    )
     try:
         outlook = runs.outlook(
             design_revision_id,
@@ -1298,7 +1386,12 @@ def working_readiness(
     reads it on the revision it shows; a start still runs a submitted Design Revision.
     A revision the Study never saved is 404 ``working_revision``."""
     chosen = _chosen_persona_source(request, persona_source)
-    runs = ResearchRuns(session, scope, panel_sampler=sampler)
+    runs = ResearchRuns(
+        session,
+        scope,
+        panel_sampler=sampler,
+        routing_enabled=request.app.state.settings.routing_enabled,
+    )
     try:
         outlook = runs.outlook_working(
             working_revision,
@@ -1409,15 +1502,20 @@ def _readiness_body(
         )
         if outlook.answerability is not None
         else None,
-        "sample_composition": _composition(outlook.panel) if outlook.panel is not None else None,
+        "sample_composition": _composition(
+            outlook.panel, counted=outlook.forecast is not None and outlook.forecast.known
+        )
+        if outlook.panel is not None
+        else None,
     }
 
 
-def _composition(panel: PanelDraw) -> SampleCompositionResponse:
+def _composition(panel: PanelDraw, *, counted: bool) -> SampleCompositionResponse:
     sample = panel.sample
     if sample is None:
         return SampleCompositionResponse(
             refused=panel.refused,
+            refused_reasons=list(panel.reasons),
             version_id=panel.version_id,
             seed=panel.seed,
             quota_fields=[],
@@ -1434,6 +1532,7 @@ def _composition(panel: PanelDraw) -> SampleCompositionResponse:
             for c, key in zip(sample.quota_cells, quota_keys(sample.quota_cells), strict=True)
         ],
         sample_donors=sample.audit.sample_donors,
+        support_counted=counted,
     )
 
 
@@ -1487,6 +1586,7 @@ def start_run(
         population_contract=population.contract,
         population_id=population.population_id,
         panel_sampler=sampler,
+        routing_enabled=request.app.state.settings.routing_enabled,
     )
     with run_start_errors():
         started = runs.start(
@@ -1528,16 +1628,29 @@ def run_start_errors() -> Iterator[None]:
         raise _not_found("population_version") from exc
     except PopulationError as exc:
         raise _population_refused(exc) from exc
+    except AnalysisNotRetryable as exc:
+        # The Lead's typed analysis retry ("Zopakuj analýzu"), refused as the stage's retry is.
+        raise _not_retryable(exc) from exc
+    except ReconstructionRefused as exc:
+        if exc.reason == "run_not_found":
+            raise _not_found("run") from exc
+        raise HTTPException(
+            status_code=409, detail={"code": exc.reason, "message": str(exc)}
+        ) from exc
 
 
 def run_start_settings(
-    request: Request, population: AudiencePopulation, sampler: PanelSampler | None
+    request: Request,
+    population: AudiencePopulation,
+    sampler: PanelSampler | None,
+    store: ArtifactStore | None = None,
 ) -> RunStartSettings:
     """What a research run's start takes from the deployment, as ``start_run`` passes it: the
-    fieldwork source, analysis and Sociomapping switches, reservations, the default persona
-    source, the answerability gate and the population a new run records. A typed start (LO5)
+    fieldwork source, analysis, Sociomapping and routing switches, reservations, the default
+    persona source, the answerability gate and the population a new run records. A typed start (LO5)
     names no persona source, population child or acknowledgement, so it starts on the
-    deployment's defaults, as a start naming none does here."""
+    deployment's defaults, as a start naming none does here. ``store``: what a typed analysis
+    retry reads the run's stored outcomes from."""
     settings = request.app.state.settings
     return RunStartSettings(
         fieldwork_source=_fieldwork_source(request),
@@ -1550,6 +1663,8 @@ def run_start_settings(
         population_contract=population.contract,
         population_id=population.population_id,
         panel_sampler=sampler,
+        store=store,
+        routing_enabled=settings.routing_enabled,
     )
 
 
@@ -1620,10 +1735,20 @@ def list_runs(
     "/research/runs/{run_id}", response_model=ResearchRunResponse, summary="One research run"
 )
 def get_run(run_id: RunIdPath, scope: StudyScopeDep, session: SessionDep) -> ResearchRunResponse:
+    runs = ResearchRuns(session, scope)
     try:
-        return _run(ResearchRuns(session, scope).get(run_id), scope)
+        run = runs.get(run_id)
+        response = _run(run, scope)
+        if scope.has(Permission.VIEW_COSTS):
+            spent = runs.spend(run)
+            response.spend = ResearchRunSpend(
+                spent_usd=spent.total_usd,
+                reserved_usd=spent.reserved_usd,
+                uncertain_calls=spent.uncertain_calls,
+            )
     except ResearchRunNotFound as exc:
         raise _not_found("run") from exc
+    return response
 
 
 @router.get(
@@ -1832,7 +1957,8 @@ def resume_run(run_id: RunIdPath, scope: StudyScopeDep, session: SessionDep) -> 
         200: {"description": "This run was already retried: that retry"},
         409: {
             "model": ErrorResponse,
-            "description": "The run is not failed or cancelled, or the study's limit asks first",
+            "description": "The run is not failed or cancelled, the study's limit asks first, "
+            "or it pinned a Sociomap method no new run computes (run_on_retired_method)",
         },
     },
 )
@@ -1867,6 +1993,8 @@ def retry_run(
         raise _cost_refused(exc) from exc
     except PanelPopulationMissing as exc:
         raise _no_population(exc) from exc
+    except ResearchRunOnRetiredMethod as exc:
+        raise _retired_method(exc, scope.study_id) from exc
     except ResearchRunNotRetryable as exc:
         raise HTTPException(
             status_code=status.HTTP_409_CONFLICT,
@@ -1914,6 +2042,8 @@ _NOT_RETRYABLE_MESSAGES: Final = {
     "analysis_not_in_run": "Tento běh neobsahoval AI analýzu.",
     "dataset_missing": "Běh nemá sebraná data, nad kterými by šlo analýzu zopakovat.",
     "nothing_to_retry": "Žádný modul analýzy v tomto běhu neselhal.",
+    # The Lead's typed retry, which names no run: the study has none that ran analysis.
+    "no_analysed_run": "Studie zatím nemá žádný běh s AI analýzou, který by šlo zopakovat.",
 }
 
 
@@ -1967,16 +2097,23 @@ def retry_analysis(
         raise _unanswerable(exc) from exc
     except (CostConfirmationRequired, CostCeilingUnknown) as exc:
         raise _cost_refused(exc) from exc
+    except ResearchRunOnRetiredMethod as exc:
+        raise _retired_method(exc, scope.study_id) from exc
     except AnalysisNotRetryable as exc:
-        raise HTTPException(
-            status_code=status.HTTP_409_CONFLICT,
-            detail={
-                "code": "analysis_not_retryable",
-                "message": _NOT_RETRYABLE_MESSAGES.get(exc.reason, str(exc)),
-                "details": {"reason": exc.reason},
-            },
-        ) from exc
+        raise _not_retryable(exc) from exc
     return _started(ResearchRuns(session, scope), started, response)
+
+
+def _not_retryable(exc: AnalysisNotRetryable) -> HTTPException:
+    """An analysis retry refused, by its reason: this route's and the Lead's typed retry's."""
+    return HTTPException(
+        status_code=status.HTTP_409_CONFLICT,
+        detail={
+            "code": "analysis_not_retryable",
+            "message": _NOT_RETRYABLE_MESSAGES.get(exc.reason, str(exc)),
+            "details": {"reason": exc.reason},
+        },
+    )
 
 
 @router.get(
@@ -2802,6 +2939,50 @@ def contextual_report_status(
         deep_research_run_id,
         _variant(run_id, deep_research_run_id, scope, session, store),
     )
+
+
+@router.get(
+    "/research/runs/{run_id}/report/context/document",
+    response_model=dict[str, Any],
+    summary="The prepared report with a chosen literature review as its stored document model",
+    responses={409: {"model": ErrorResponse}},
+)
+def contextual_report_document_route(
+    run_id: RunIdPath,
+    deep_research_run_id: DeepResearchRunIdQuery,
+    scope: StudyScopeDep,
+    session: SessionDep,
+    store: ArtifactStoreDep,
+) -> dict[str, Any]:
+    """The document the variant's prepared DOCX was rendered from, in the shape of the internal
+    draft's (``…/report/document``), so the pane reads and approves exactly that version
+    (artifact-report RPT3a). Composes nothing. 409 ``context_report_not_prepared`` before it is
+    prepared; 409 ``report_document_not_stored`` for a version stored before its document was
+    (its DOCX still downloads)."""
+    found = _variant(run_id, deep_research_run_id, scope, session, store)
+    if found.docx is None:
+        raise _not_prepared()
+    repo = research_artifacts(session, scope, store)
+    model = contextual_report_document(repo, found.docx)
+    if model is None:
+        raise HTTPException(409, detail={"code": "report_document_not_stored"})
+    try:
+        document = read_document_payload(repo.read(model.artifact_id))
+    except (IntegrityError, ObjectNotFound) as exc:
+        raise artifact_corrupt(session) from exc
+    except DocumentModelInvalid as exc:
+        raise HTTPException(409, detail={"code": "report_artifact_invalid"}) from exc
+    docx = found.docx
+    return {
+        "run_id": run_id,
+        "artifact_id": model.artifact_id,
+        "sha256": model.sha256,
+        "report_artifact_id": docx.artifact_id,
+        "report_sha256": docx.sha256,
+        **_review_fields(docx, _mark(docx, scope, session, store)),
+        **_approval_fields(docx, scope, session, store),
+        "document": document,
+    }
 
 
 @router.get(

@@ -11,7 +11,7 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { type DragEvent, type ReactNode, useEffect, useRef, useState } from "react";
+import { type DragEvent, type ReactNode, useContext, useEffect, useRef, useState } from "react";
 
 import { t, tv } from "@/i18n/t";
 import { workspace } from "@/lib/api";
@@ -21,6 +21,7 @@ import { type BriefMaterials, classLabel, classOf } from "@/lib/material-class";
 import { briefElementId, contextField, materialAia } from "@/lib/artifacts/brief";
 import { aiaId } from "@/lib/workbench-artifacts";
 import { OBJECTIVE_MAX, addObjective, objectivesEditable, objectivesOf, removeObjective, restoreObjective, setObjective } from "@/research/brief-objectives";
+import { itemProblem, narrativeOf } from "@/research/plan-narrative";
 import { InlineCreateRow } from "../../ui/InlineCreateRow";
 import { InlineText } from "../../ui/InlineText";
 import { UndoToast, useUndo } from "../../ui/UndoToast";
@@ -43,7 +44,7 @@ import {
 } from "@/research/brief";
 import { type Attachment, PROBLEM_TYPES, type ResearchProject, selectedProblemTypes } from "@/research/model";
 import { Icon, type IconName } from "../icons";
-import { StepSection } from "../step";
+import { FrameNavigation, StepSection } from "../step";
 import { InspectorSlot } from "./Inspector";
 import { AiButton, Button, TextInput } from "../ui";
 import { useResearch } from "./context";
@@ -58,7 +59,7 @@ const INPUT = `rounded-control border border-border-strong text-ink placeholder:
 const CONTEXT_MAX = 4000;
 
 /** A goal this long reads as a sentence; shorter, the AI will have to ask. */
-export const GOAL_SENTENCE = 40;
+const GOAL_SENTENCE = 40;
 
 /** The further context, in the order the classic form showed it. */
 const CONTEXT: { field: BriefingField; label: string }[] = [
@@ -76,7 +77,7 @@ function contextValue(p: ResearchProject, field: TopField | BriefingField): stri
  * "Navrhnout z cíle": a short title from the goal's first clause, without its
  * sentence starter. Done in the browser; the person can change it like any title.
  */
-export function titleFromGoal(goal: string): string {
+function titleFromGoal(goal: string): string {
   const words = goal
     .trim()
     .replace(/^(Chceme zjistit|Rozhodujeme mezi|Potřebujeme ověřit)(,?\s+(jak|zda|jestli|co|kdo|proč))?\s*/i, "")
@@ -93,6 +94,8 @@ const jumpTo = (id: string) => document.getElementById(id)?.scrollIntoView?.({ b
 export function BriefStep() {
   const { store, state, stepHref } = useResearch();
   const router = useRouter();
+  // Inside the workbench the frame opens the next stage (its leave guard, its heading's focus); outside it, the route.
+  const frameNav = useContext(FrameNavigation);
   const p = state.project;
   const { analyse: runAnalysis, resume, failure, busy } = useAnalysis();
   const leadOwnsAiStarts = useLeadOwnsAiStarts();
@@ -103,13 +106,13 @@ export function BriefStep() {
   // analyzeBrief -> ensureAnalysis1776 -> go('plan').
   const analyse = async () => {
     if (!(await runAnalysis({ force: true }))) return;
-    router.push(stepHref("plan"));
+    if (frameNav?.next) frameNav.next.go(); else router.push(stepHref("plan"));
   };
   // The same analysis job, after a budget lift: on its accept the person goes on to Návrh, as
   // `analyse` does, so "Další krok" is never pressed again for an analysis already made (CR-2).
   const continueAnalysis = async (jobId: string) => {
     if (!(await resume(jobId))) return;
-    router.push(stepHref("plan"));
+    if (frameNav?.next) frameNav.next.go(); else router.push(stepHref("plan"));
   };
 
   const selected = new Set(selectedProblemTypes(p));
@@ -157,10 +160,17 @@ export function BriefStep() {
             </AiButton>
           ) : (
             <>
-              <Link href={stepHref("plan")} className="inline-flex w-full items-center justify-center gap-1 rounded-control border border-border-strong px-3 !min-h-11 text-sm no-underline">
-                Pokračovat na Návrh
-                <Icon name="next" size={14} />
-              </Link>
+              {frameNav?.next ? (
+                <Button className="w-full justify-center !rounded-control !min-h-11" onClick={() => frameNav.next?.go()}>
+                  Pokračovat na Návrh
+                  <Icon name="next" size={14} />
+                </Button>
+              ) : (
+                <Link href={stepHref("plan")} className="inline-flex w-full items-center justify-center gap-1 rounded-control border border-border-strong px-3 !min-h-11 text-sm no-underline">
+                  Pokračovat na Návrh
+                  <Icon name="next" size={14} />
+                </Link>
+              )}
               <AskLead className="mt-2" what="Analýzu zadání" />
             </>
           )}
@@ -273,6 +283,9 @@ function Objectives({ undo }: { undo: Undo }) {
   const design = { project: state.project, analysis: state.analysis };
   const items = objectivesOf(design);
   const editable = objectivesEditable(design);
+  // Návrh's rule and words for the same list (plan-narrative itemProblem), read from the copy as it
+  // is now, not as it was rendered; index null for a new item.
+  const repeat = (text: string, index: number | null) => itemProblem(narrativeOf(store.get()), "objectives", text, index);
   const remove = (index: number) => {
     const { removed } = removeObjective(store.get(), index);
     if (removed === null) return;
@@ -294,7 +307,7 @@ function Objectives({ undo }: { undo: Undo }) {
                 multiline
                 value={o.text}
                 label={tv("research.brief.objectiveLabel", { n: i + 1 })}
-                rules={{ maxLength: OBJECTIVE_MAX }}
+                rules={{ maxLength: OBJECTIVE_MAX, validate: (v) => repeat(v, i) }}
                 onCommit={(text) => store.update((d) => setObjective(d, i, text), { reason: "brief_objective" })}
               />
               <Button small variant="quiet" aria-label={tv("research.brief.objectiveRemoveAria", { n: i + 1 })} onClick={() => remove(i)}>
@@ -314,8 +327,12 @@ function Objectives({ undo }: { undo: Undo }) {
           label={t("research.brief.objectiveAdd")}
           emptyWords={t("research.brief.objectiveEmpty")}
           maxLength={OBJECTIVE_MAX}
-          existing={items.map((o) => o.text)}
-          onCreate={(text) => store.update((d) => addObjective(d, text), { reason: "brief_objective_add" })}
+          validate={(v) => repeat(v, null)}
+          onCreate={(text) => {
+            const problem = repeat(text, null);
+            if (problem) return problem;
+            store.update((d) => addObjective(d, text), { reason: "brief_objective_add" });
+          }}
         />
       ) : null}
     </StepSection>

@@ -197,6 +197,20 @@ class ReconstructionRefused(Exception):
 # --------------------------------------------------------------------------- #
 
 
+@dataclass(frozen=True)
+class Brief:
+    """The brief's goal and what the decision is for, as the run's Design Revision states them;
+    each ``None`` when left empty, never a guess."""
+
+    goal: str | None = None
+    decision_use: str | None = None
+
+
+def _stated(value: Any) -> str | None:
+    """A brief field as written, or ``None`` when it is empty or not text."""
+    return value.strip() or None if isinstance(value, str) else None
+
+
 @dataclass(frozen=True, slots=True)
 class NativeSources:
     """A run's upstream artifacts, read in scope and checked against each other."""
@@ -213,6 +227,8 @@ class NativeSources:
     #: Research questions the run recorded as gaps at start, whitespace folded: none of them is
     #: expected to be answered with a number (evidence-integrity 9a).
     gap_questions: frozenset[str]
+    #: The brief as the run's Design Revision states it (F19: the draft says what was asked).
+    brief: Brief
     #: The support rules the run pinned (plan ``methodology-tab`` G1c); its ``analysis`` rule
     #: gates every number this run's analysis admits.
     support: SupportSpec
@@ -443,6 +459,10 @@ def native_sources(
         respondent_system=respondent_system,
         joint_certificate=joint_certificate,
         external=external,
+        brief=Brief(
+            goal=_stated(content.get("goal")),
+            decision_use=_stated(content.get("decision_use")),
+        ),
     )
 
 
@@ -812,6 +832,9 @@ class RunAnalysis:
     #: The external context every module was shown, from the same verified read as its sources
     #: (evidence-integrity 7); ``None`` without a pin, or when no outcome was stored yet.
     external: ShownContext | None = None
+    #: The brief the run's Design Revision states, from the same read; empty when no outcome was
+    #: stored yet.
+    brief: Brief = Brief()
 
     @property
     def complete(self) -> bool:
@@ -1120,10 +1143,12 @@ def reconstruct_run(
     deviation: Mapping[str, Any] | None = None
     refs: ModuleSources | None = None
     external: ShownContext | None = None
+    brief = Brief()
     if outcomes:
         sources = _sources(session, scope, store, run)
         refs = sources.refs
         external = sources.external
+        brief = sources.brief
         raw = sources.aggregate.get("deviation")
         deviation = raw if isinstance(raw, Mapping) else None
         for module in AnalysisModuleId:
@@ -1139,6 +1164,7 @@ def reconstruct_run(
         sources=refs,
         retried=_retried(run),
         external=external,
+        brief=brief,
     )
 
 

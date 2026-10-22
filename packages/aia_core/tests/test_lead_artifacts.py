@@ -27,6 +27,7 @@ from aia_core.domain.lead_artifacts import (
     ViewOpKind,
     allows_view,
     contract_for,
+    stage_of,
 )
 from aia_core.domain.research_lead import (
     FOCUS_ID,
@@ -67,6 +68,15 @@ def test_live_view_ops_are_what_the_lead_s_output_carries() -> None:
         if "op" in d.get("properties", {}) and "const" in d["properties"]["op"]
     }
     assert {v.value for v in LIVE_VIEW_OPS} <= carried
+
+
+@pytest.mark.parametrize("kind", sorted(TargetKind))
+def test_each_kind_has_the_stage_that_names_it(kind: TargetKind) -> None:
+    assert kind in contract_for(stage_of(kind.value) or "").targets
+
+
+def test_a_kind_no_row_names_has_no_stage() -> None:
+    assert stage_of("nonsense") is None
 
 
 @pytest.mark.parametrize("kind", sorted(TargetKind))

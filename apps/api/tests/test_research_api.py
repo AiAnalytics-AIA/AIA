@@ -810,9 +810,11 @@ def test_a_run_without_modelled_data_has_no_client_report_and_says_why(
 
 def test_the_sociomap_register_is_read_through_a_study(researcher: TestClient, world: Any) -> None:
     url = f"{API}/studies/{world.study_id()}/research/sociomap-register"
-    (entry,) = researcher.get(url).json()["entries"]
+    entry, signed_off = researcher.get(url).json()["entries"]
     assert entry["method_id"] == "aia-sociomap-3" and entry["status"] == "CLIENT_FACING"
     assert entry["decided_on"] == "2026-10-13" and len(entry["spec_fingerprint"]) == 64
+    assert signed_off["method_id"] == "aia-sociomap-5" and signed_off["status"] == "CLIENT_FACING"
+    assert signed_off["decided_on"] == "2026-10-21"
 
 
 def test_a_person_approves_a_runs_stored_report_once_and_only_that(
@@ -2077,6 +2079,48 @@ def test_a_failed_run_is_retried_as_a_new_run_linked_to_it(
     assert again.status_code == 200 and again.json()["run_id"] == body["run_id"]
 
 
+def test_a_retry_of_an_old_method_run_is_refused_with_a_new_run_link_and_starts_nothing(
+    app: FastAPI, researcher: TestClient, world: Any
+) -> None:
+    from aia_core.domain.research_sociomap import SociomapMethod
+    from aia_core.domain.sociomap.specification import AIA_SOCIOMAP_V1, AIA_SOCIOMAP_V3
+
+    revision = submit(researcher, world).json()["revision_id"]
+    run_id = start(researcher, world, revision).json()["run_id"]
+    old = [SociomapMethod.of(s).model_dump(mode="json") for s in (AIA_SOCIOMAP_V1, AIA_SOCIOMAP_V3)]
+    with create_session_factory(app.state.engine)() as session:
+        # What a run stored under the old default holds: aia-sociomap-1 beside -3, and the
+        # bare key every start that took a default had.
+        row = session.get(WorkflowRunRow, run_id)
+        assert row is not None
+        row.metadata_json = {**row.metadata_json, "sociomap_methods": old}
+        row.idempotency_key = f"research:{revision}"
+        session.commit()
+    worker = _worker(app, FailureClass.PERMISSION)
+    while worker.run_once() is not None:
+        pass
+    assert researcher.get(f"{_runs(world)}/{run_id}").json()["retryable"] is True
+    before = researcher.get(_runs(world)).json()["items"]
+    refused = researcher.post(f"{_runs(world)}/{run_id}/retry")
+    assert refused.status_code == 409, refused.text
+    body = refused.json()
+    assert body["code"] == "run_on_retired_method"
+    details = body["details"]
+    assert details["methods"] == ["aia-sociomap-1", "aia-sociomap-3"]
+    assert details["new_run"] == {
+        "method": "POST",
+        "href": f"/api/v1/studies/{world.study_id('primary')}/research/runs",
+        # The refused run's respondents, so the new run starts as it did.
+        "body": {"design_revision_id": revision, "persona_source": "fictional_roster"},
+    }
+    assert researcher.get(_runs(world)).json()["items"] == before  # nothing started
+    # The link starts a new run over the same revision, on aia-sociomap-5.
+    new = researcher.post(details["new_run"]["href"], json=details["new_run"]["body"])
+    assert new.status_code == 201, new.text
+    assert new.json()["run_id"] != run_id
+    assert new.json()["design_revision_id"] == revision
+
+
 def test_retrying_analysis_says_why_a_run_has_nothing_to_ask_again(
     app: FastAPI, researcher: TestClient, world: Any
 ) -> None:
@@ -2104,6 +2148,36 @@ def test_retrying_analysis_says_why_a_run_has_nothing_to_ask_again(
     assert (
         researcher.get(f"{_runs(world)}/RUN-0000000000000000/analysis/retryable").status_code == 404
     )
+
+
+def test_an_analysis_retry_refused_for_an_old_method_names_the_new_run(
+    researcher: TestClient, world: Any, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """The route's answer when the application refuses (test_research_runs holds when it does:
+    an old-default run whose map is not stored)."""
+    from aia_core.application.research import ResearchRunOnRetiredMethod
+
+    from aia_api.routers import research as research_router
+
+    revision = submit(researcher, world).json()["revision_id"]
+    run_id = start(researcher, world, revision).json()["run_id"]
+    old = {
+        "run_id": run_id,
+        "metadata": {"design_revision_id": revision, "persona_source": "fictional_roster"},
+    }
+
+    def _refuse(*_: object, **__: object) -> object:
+        raise ResearchRunOnRetiredMethod(old, ["aia-sociomap-1", "aia-sociomap-3"])
+
+    monkeypatch.setattr(research_router, "retry_failed_modules", _refuse)
+    refused = researcher.post(f"{_runs(world)}/{run_id}/analysis/retry")
+    assert refused.status_code == 409, refused.text
+    assert refused.json()["code"] == "run_on_retired_method"
+    assert refused.json()["details"]["new_run"] == {
+        "method": "POST",
+        "href": f"/api/v1/studies/{world.study_id('primary')}/research/runs",
+        "body": {"design_revision_id": revision, "persona_source": "fictional_roster"},
+    }
 
 
 def test_any_member_may_cancel_a_run_with_or_without_a_grant(
@@ -2217,6 +2291,40 @@ def test_readiness_says_what_would_stop_a_run_before_anything_starts(
     assert (
         other_client_lead.get(other, params={"design_revision_id": revision_id}).status_code == 404
     )
+
+
+def test_the_routing_switch_passes_a_valid_condition_and_pins_it_on_the_run(
+    app: FastAPI, researcher: TestClient, viewer: TestClient, world: Any
+) -> None:
+    """AIA_ROUTING_ENABLED (working-copy-edit-ops WCE13 (d)): off by default, a conditional
+    question stops a run as before; on, a valid one passes and the run pins it."""
+    assert Settings.model_fields["routing_enabled"].default is False
+    filtered = {**DESIGN, "sections": [dict(DESIGN["sections"][0]), DESIGN["sections"][1]]}
+    filtered["sections"][0]["questions"] = [
+        *DESIGN["sections"][0]["questions"],
+        {
+            "id": "q3",
+            "text": "Proč?",
+            "typ": "otevrena",
+            "filtr": {"question_id": "q2", "options": ["Nic"]},
+        },
+    ]
+    revision = submit(researcher, world, filtered).json()["revision_id"]
+    url = f"{API}/studies/{world.study_id()}/research/readiness"
+
+    def conditional() -> dict[str, Any]:
+        body = viewer.get(url, params={"design_revision_id": revision}).json()
+        return next(c for c in body["checks"] if c["id"] == "conditional_questions")
+
+    assert conditional()["status"] == "FAIL"
+    assert start(researcher, world, revision).json()["code"] == "design_not_ready"
+    app.state.settings = app.state.settings.model_copy(update={"routing_enabled": True})
+    assert conditional()["status"] == "PASS"
+    run = start(researcher, world, revision)
+    assert run.status_code in (200, 201), run.text
+    with create_session_factory(app.state.engine)() as session:
+        row = session.get(WorkflowRunRow, run.json()["run_id"])
+        assert row is not None and row.metadata_json["routing"] is True
 
 
 def test_readiness_reads_a_working_revision_without_submitting_a_design(
@@ -2447,7 +2555,8 @@ def test_research_artifacts_are_read_only_through_the_run_that_produced_them(
     assert dataset.status_code == 200
     assert dataset.json()["payload"] is None, "respondent rows are never inlined"
 
-    # The full fictional chain completed: aggregate, and an INTERNAL_ONLY Sociomap.
+    # The full fictional chain completed: aggregate, and a Sociomap under aia-sociomap-5,
+    # which the register approves for reports.
     assert run["status"] == "COMPLETED" and run["phase"] == "COMPLETED"
     aggregate_id, sociomap_id = steps["aggregate"]["artifact_id"], steps["sociomap"]["artifact_id"]
     aggregate = viewer.get(f"{_runs(world)}/{run_id}/artifacts/{aggregate_id}")
@@ -2455,13 +2564,12 @@ def test_research_artifacts_are_read_only_through_the_run_that_produced_them(
     assert aggregate.json()["payload"]["aggregate"]["data_origin"] == "SYNTHETIC_FIXTURE"
     sociomap = researcher.get(f"{_runs(world)}/{run_id}/artifacts/{sociomap_id}")
     assert sociomap.status_code == 200
-    assert sociomap.json()["payload"]["sociomap"]["methodology_status"] == "INTERNAL_ONLY"
-    # INTERNAL_ONLY while D6 is open. ADR 0019: every member is a Researcher and reads it
-    # (the payload above still says INTERNAL_ONLY), a member who was never granted the study
-    # included; respondent rows are still never inlined for anyone.
+    assert sociomap.json()["payload"]["sociomap"]["methodology_status"] == "CLIENT_FACING"
+    # ADR 0019: every member is a Researcher and reads it, a member who was never granted the
+    # study included; respondent rows are still never inlined for anyone.
     internal = viewer.get(f"{_runs(world)}/{run_id}/artifacts/{sociomap_id}")
     assert internal.status_code == 200
-    assert internal.json()["payload"]["sociomap"]["methodology_status"] == "INTERNAL_ONLY"
+    assert internal.json()["payload"]["sociomap"]["methodology_status"] == "CLIENT_FACING"
     for artifact_id in (spec_id, dataset_id, aggregate_id, sociomap_id):
         read = outsider.get(f"{_runs(world)}/{run_id}/artifacts/{artifact_id}")
         assert read.status_code == 200
@@ -2653,15 +2761,16 @@ def test_a_run_says_which_population_it_recorded_and_that_fieldwork_did_not_read
 def test_a_run_names_the_methods_it_computed_under(
     app: FastAPI, researcher: TestClient, world: Any
 ) -> None:
-    """Methodology-tab Z1, R1d: Results say which Sociomap, support, aggregation and response
-    process a run pinned, and whether its response process is 18.6.6's."""
+    """Methodology-tab Z1, R1d, V1a: Results say which Sociomap, support, aggregation, response
+    process and readiness limits a run pinned, and whether its response process is 18.6.6's."""
     revision_id = submit(researcher, world).json()["revision_id"]
     run = start(researcher, world, revision_id).json()
     assert run["methodology"] == {
-        "sociomap": {"name": "aia-sociomap-3", "stored": False},
+        "sociomap": {"name": "aia-sociomap-5", "stored": False},
         "support": {"name": "aia-support-1", "stored": False},
         "aggregation": {"name": "aia-aggregate-1", "stored": False},
         "response": {"name": "aia-response-1", "stored": False},
+        "readiness": {"name": "aia-readiness-1", "stored": False},
         "response_deviates": False,
     }
 
@@ -2682,6 +2791,7 @@ def test_a_run_names_the_methods_it_computed_under(
                 "extremity": 0.5,
             },
             "response_methodology": version("response", "aia-response-1+e1"),
+            "readiness_methodology": version("readiness", "aia-readiness-1+e2"),
         }
         session.commit()
     read = researcher.get(f"{_runs(world)}/{run['run_id']}").json()
@@ -2690,6 +2800,7 @@ def test_a_run_names_the_methods_it_computed_under(
         "support": {"name": "aia-support-1+e2", "stored": True},
         "aggregation": {"name": "aia-aggregate-1+e1", "stored": True},
         "response": {"name": "aia-response-1+e1", "stored": True},
+        "readiness": {"name": "aia-readiness-1+e2", "stored": True},
         "response_deviates": True,
     }
     listed = researcher.get(_runs(world)).json()["items"]
@@ -2704,6 +2815,7 @@ def test_a_run_from_before_the_pins_reads_as_the_presets_it_was_computed_under()
         "support": {"name": "aia-support-1", "stored": False},
         "aggregation": {"name": "aia-aggregate-1", "stored": False},
         "response": {"name": "aia-response-1", "stored": False},
+        "readiness": {"name": "aia-readiness-1", "stored": False},
         "response_deviates": False,
     }
     unreadable = _methodology({"response": {"extremity": "much"}}).model_dump()

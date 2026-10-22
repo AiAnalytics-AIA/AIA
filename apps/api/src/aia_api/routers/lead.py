@@ -22,8 +22,16 @@ from contextlib import contextmanager
 from datetime import datetime
 from typing import Annotated, Any, Literal
 
-from aia_core.application.lead_chat_start import ChatStartRefused
-from aia_core.application.research import CostCeilingUnknown, CostConfirmationRequired
+from aia_core.application.lead_chat_start import (
+    AnalysisRetryTargetMoved,
+    ChatStartRefused,
+    newest_analysed_run,
+)
+from aia_core.application.research import (
+    CostCeilingUnknown,
+    CostConfirmationRequired,
+    ResearchRuns,
+)
 from aia_core.application.research_lead import (
     LeadAlreadyHatched,
     LeadBusy,
@@ -49,7 +57,7 @@ from aia_core.domain.research_agents import AgentContextTooLarge
 from aia_core.domain.scope import ScopeDenied
 from aia_core.domain.wallet import WalletChargeRefused
 from aia_core.domain.workspace import WorkspaceRejected
-from fastapi import APIRouter, HTTPException, Path, Request, Response, status
+from fastapi import APIRouter, HTTPException, Path, Query, Request, Response, status
 from pydantic import BaseModel, ConfigDict, Field, StrictBool
 
 from ..dependencies import (
@@ -121,6 +129,9 @@ class RequestApproval(BaseModel):
     #: The working revision the person approves the job on, sent only after a ``stale_card``
     #: refusal and their yes: the card then runs on the design as it is now (LO10).
     workspace_revision: int | None = Field(default=None, ge=1)
+    #: A typed analysis retry's run, as its card showed it (``analysis_retry_run``); another
+    #: newest analysed run since is 409 ``analysis_retry_target_moved``.
+    retry_run_id: str | None = Field(default=None, max_length=64, pattern=r"^RUN-[0-9a-f]{1,32}$")
 
 
 class EditStatus(BaseModel):
@@ -233,6 +244,15 @@ class TypedCommand(BaseModel):
     takes_instruction: bool
 
 
+class RetryTarget(BaseModel):
+    """The run a typed "Zopakuj analýzu" would retry: the study's newest run that ran analysis."""
+
+    model_config = ConfigDict(extra="forbid")
+    run_id: str
+    created_at: datetime | None
+    phase: str
+
+
 class LeadState(BaseModel):
     """The conversation and whether it is offered. ``available`` is the API's switch alone;
     ``worker_ready`` is whether a worker can answer a turn, ``null`` when that is unknown and
@@ -252,6 +272,10 @@ class LeadState(BaseModel):
     worker_reason: str | None
     #: The typed start commands the composer takes, with the Lead on or off (Q43).
     commands: list[TypedCommand]
+    #: AIA_STUDY_WALLET_ENABLED: whether a typed start's card speaks of the Peněženka.
+    wallet_enabled: bool
+    #: The run a typed analysis retry's card names; ``null`` when no run ran analysis.
+    analysis_retry_run: RetryTarget | None
     busy: bool
     turns: list[LeadTurn]
 
@@ -279,6 +303,53 @@ class ApprovedRequest(BaseModel):
     run_id: str
     design_revision_id: str
     status: str
+
+
+class OmittedId(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    id: str
+    reason: str
+
+
+class ManifestLayer(BaseModel):
+    """One declared layer of a turn's context. Not ``recorded``: the turn's context does not
+    hold it, and its counts are unknown (``None``), never zero."""
+
+    model_config = ConfigDict(extra="forbid")
+    layer: str
+    recorded: bool
+    bytes: int | None = None
+    ceiling_bytes: int | None
+    bounded_bytes: int | None = None
+    bound: str | None
+    over_policy: str | None
+    included: list[str] = Field(default_factory=list)
+    included_count: int | None = None
+    omitted: list[OmittedId] = Field(default_factory=list)
+    omitted_count: int | None = None
+
+
+class ContextManifest(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    manifest_version: int
+    total_bytes: int
+    ceiling_bytes: int
+    layers: list[ManifestLayer]
+
+
+class TurnManifest(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    turn_id: str
+    recorded: bool
+    manifest: ContextManifest | None
+
+
+class OmittedPage(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    layer: str
+    after: int
+    total: int
+    omitted: list[OmittedId]
 
 
 class LeadFiles(BaseModel):
@@ -396,6 +467,13 @@ def _lead_errors() -> Iterator[None]:
             reason=exc.reason.value,
             limit_usd=exc.limit_usd,
         ) from exc
+    except AnalysisRetryTargetMoved as exc:
+        raise _error(
+            409,
+            exc.reason,
+            "A newer run has run analysis since this card was shown; confirm it to retry that one.",
+            current_run_id=exc.current_run_id,
+        ) from exc
     except ChatStartRefused as exc:
         raise _error(
             409,
@@ -433,6 +511,7 @@ def read_lead(scope: StudyScopeDep, session: SessionDep, settings: SettingsDep) 
     with _lead_errors():
         lead = ResearchLead(session, scope, enabled=settings.research_lead_on)
         state = lead.state()
+        retry_run = newest_analysed_run(ResearchRuns(session, scope))
     on = settings.research_lead_on
     ready, source, reason = worker_readiness(state["turns"])
     return LeadState(
@@ -450,6 +529,14 @@ def read_lead(scope: StudyScopeDep, session: SessionDep, settings: SettingsDep) 
             )
             for c in COMMANDS
         ],
+        wallet_enabled=settings.study_wallet_enabled,
+        analysis_retry_run=None
+        if retry_run is None
+        else RetryTarget(
+            run_id=retry_run["run_id"],
+            created_at=retry_run.get("created_at"),
+            phase=str(retry_run["phase"]),
+        ),
         busy=state["busy"],
         turns=[LeadTurn.model_validate(t) for t in _public(state["turns"])],
     )
@@ -496,6 +583,43 @@ def post_turn(
     if not turns:
         response.status_code = status.HTTP_200_OK
     return LeadTurns(turns=[LeadTurn.model_validate(t) for t in _public(turns)])
+
+
+@router.get(
+    "/lead/turns/{turn_id}/manifest",
+    response_model=TurnManifest,
+    responses={404: {"model": ErrorResponse, "description": "Not the caller's own Lead turn"}},
+)
+def read_manifest(turn_id: TurnIdPath, scope: StudyScopeDep, session: SessionDep) -> TurnManifest:
+    """What the caller's own Lead turn could see, layer by layer, and what it left out: read
+    from the context the turn froze, never rebuilt (Co Vedoucí vidí)."""
+    with _lead_errors():
+        manifest = ResearchLead(session, scope).manifest(turn_id)
+    return TurnManifest.model_validate(manifest)
+
+
+@router.get(
+    "/lead/turns/{turn_id}/manifest/omitted",
+    response_model=OmittedPage,
+    responses={404: {"model": ErrorResponse, "description": "Not the caller's own Lead turn"}},
+)
+def read_omitted(
+    turn_id: TurnIdPath,
+    scope: StudyScopeDep,
+    session: SessionDep,
+    layer: Annotated[str, Query(max_length=40, pattern=r"^[a-z_]+$")],
+    after: Annotated[int, Query(ge=0, le=100_000)] = 0,
+) -> OmittedPage:
+    """The ids a layer of the caller's own Lead turn left out, fifty at a time from ``after``:
+    the rest of what the manifest lists the first fifty of."""
+    with _lead_errors():
+        omitted, total = ResearchLead(session, scope).omitted(turn_id, layer, after=after)
+    return OmittedPage(
+        layer=layer,
+        after=after,
+        total=total,
+        omitted=[OmittedId.model_validate(o) for o in omitted],
+    )
 
 
 @router.post(
@@ -560,6 +684,7 @@ def approve_request(
     settings: SettingsDep,
     population: RunPopulationDep,
     sampler: PanelSamplerDep,
+    store: ArtifactStoreDep,
 ) -> ApprovedRequest:
     """Approve the design job the caller's own Lead turn prepared: held to the study's spend
     limit, started and recorded in the approval ledger, once. With the Lead switched off, a
@@ -575,9 +700,10 @@ def approve_request(
             turn_id,
             confirm_cost_usd=body.confirm_cost_usd,
             reservation_usd=settings.ai_research_reservation_usd,
-            run_start=run_start_settings(request, population, sampler),
+            run_start=run_start_settings(request, population, sampler, store),
             wallet_enabled=settings.study_wallet_enabled,
             workspace_revision=body.workspace_revision,
+            retry_run_id=body.retry_run_id,
         )
     return ApprovedRequest.model_validate(started)
 

@@ -36,7 +36,10 @@ from sqlalchemy.orm import Session
 
 from ..domain.approval_ledger import ApprovalSubject
 from ..domain.design import DESIGN_PROJECT_OWNER
+from ..domain.edit_log import ActorKind, OpSource, WriteBy
 from ..domain.lead_commands import MatchedCommand, match_command
+from ..domain.lead_context import manifest_view, omitted_page
+from ..domain.lead_digest import DigestEntry, decision_digest, edit_item
 from ..domain.research_agents import ResearchAction, design_material, knowledge_entries
 from ..domain.research_lead import (
     FOCUS_ID,
@@ -50,10 +53,8 @@ from ..domain.research_lead import (
     LeadNote,
     LeadOutput,
     LeadTurn,
-    Refused,
     ResearcherLead,
     SelfUpdate,
-    apply_edit,
     context_sha256,
     freeze_context,
     is_text_edit,
@@ -88,6 +89,7 @@ from .analysis_results import SourcesRefused, _external_context
 from .lead_chat_start import RunStartSettings, approve_chat_start, chat_start_decisions
 from .research import ResearchAgentJobs, ResearchRuns, readiness_in_force
 from .workflows import start_workflow
+from .working_copy import apply_edit_ops
 
 __all__ = [
     "GREETING_WINDOW",
@@ -114,6 +116,10 @@ __all__ = [
     "worker_readiness",
 ]
 
+#: The ledger subjects a Lead conversation decides (the decision digest's source).
+_DIGEST_SUBJECTS: Final = frozenset(
+    {ApprovalSubject.LEAD_EDIT, ApprovalSubject.LEAD_JOB_REQUEST, ApprovalSubject.LEAD_SELF_UPDATE}
+)
 #: A greeting within this long of the Lead's last turn is a no-op: the Lead has spoken.
 GREETING_WINDOW: Final = timedelta(hours=8)
 #: The stage a Design Revision is submitted from when a Lead-prepared job starts, by action,
@@ -528,6 +534,33 @@ class ResearchLead:
         busy = any(_holds(t) for t in turns)
         return {"busy": busy, "turns": turns}
 
+    def _frozen(self, turn_id: str) -> Mapping[str, Any] | None:
+        """The context the caller's own Lead turn froze at enqueue, as its step holds it;
+        ``None`` when the step holds none. Another researcher's turn, or a person's, is not
+        found."""
+        turn = self._turns().get(turn_id)
+        if turn is None or turn.actor != "lead" or turn.run_id is None:
+            raise LeadTurnNotFound(turn_id)
+        frozen = (self._workflows().step_input(turn.run_id, "turn") or {}).get("context")
+        return frozen if isinstance(frozen, Mapping) else None
+
+    def manifest(self, turn_id: str) -> dict[str, Any]:
+        """What the caller's own Lead turn could see (Co Vedoucí vidí, plan lead-conversation
+        LC2): read from the context it froze, never rebuilt from today's study.
+        ``recorded: False`` when the turn's step holds no context."""
+        frozen = self._frozen(turn_id)
+        if frozen is None:
+            return {"turn_id": turn_id, "recorded": False, "manifest": None}
+        return {"turn_id": turn_id, "recorded": True, "manifest": manifest_view(frozen)}
+
+    def omitted(
+        self, turn_id: str, layer_name: str, *, after: int = 0
+    ) -> tuple[list[dict[str, str]], int]:
+        """The ids a layer of the caller's own Lead turn left out, from ``after``: the rest of
+        what its manifest lists the first fifty of."""
+        frozen = self._frozen(turn_id)
+        return omitted_page(frozen, layer_name, after=after) if frozen is not None else ([], 0)
+
     def _completed(self, turn_id: str) -> tuple[LeadTurn, LeadOutput]:
         """The caller's own completed Lead turn and its output, or why not."""
         turn = self._turns().get(turn_id)
@@ -734,7 +767,11 @@ class ResearchLead:
         ``base_revision`` is not the current working revision -- saves the working copy once
         (``reason = "lead_edit_accepted"``) when any applied, and writes one ledger row per
         decided edit, all in one transaction under the Study's lock. An edit the content
-        cannot take is ``refused`` with its reason and stays undecided. An edit already
+        cannot take, or one that writes a locked Sociomap input (``sociomap_input_locked``), is
+        ``refused`` with its reason and stays undecided. The applied edits are the vocabulary's
+        operations, logged as the Lead's for this turn (``application/working_copy.py``,
+        working-copy-edit-ops WCE2d); a copy whose ids the web keeps is settled, so a reworded
+        research question keeps its links. An edit already
         decided keeps its first decision. A dismiss writes the ledger rows only.
 
         ``auto``: the accept is the researcher's standing choice, not a click (plan
@@ -782,13 +819,10 @@ class ResearchLead:
             # The turn was written from an older working copy: a person's save made while the
             # Lead worked would be overwritten without a click. It waits for one.
             raise LeadTurnStale(current, turn.workspace_revision)
-        content: dict[str, Any] = (
-            dict(working.content) if working.content is not None else research_template()
-        )
-        analysis: dict[str, Any] | None = working.analysis
         # A set_n is accepted under the limits in force now, not those the turn was frozen
         # with: a version activated meanwhile is what the start will check (RQC9).
         limits, _ = readiness_in_force(self.session, self.scope)
+        candidates: list[int] = []
         for index in order:
             if not 0 <= index < len(output.edits):
                 results[index] = {"index": index, "status": "refused", "reason": "unknown_edit"}
@@ -803,25 +837,29 @@ class ResearchLead:
             if auto and not is_text_edit(output.edits[index]):
                 results[index] = {"index": index, "status": "refused", "reason": "not_a_text_edit"}
                 continue
-            applied = apply_edit(
-                content, analysis, output.edits[index], sample_size=limits.sample_size
-            )
-            if isinstance(applied, Refused):
-                results[index] = {"index": index, "status": "refused", "reason": applied.reason}
-                continue
-            content, analysis = applied
-            pending.append(index)
+            candidates.append(index)
 
         revision, revision_id = current, working.revision_id
-        if decision == "accept" and pending:
-            saved = workspace.save(
+        if candidates:
+            # The Lead's edits as the vocabulary's operations, each logged as the turn's
+            # (working-copy-edit-ops WCE2d): the Lead wrote them, the researcher accepted them.
+            batch = apply_edit_ops(
+                self.session,
                 self.scope,
-                content=content,
-                analysis=analysis,
-                base_revision=current,
+                working,
+                [output.edits[i] for i in candidates],
+                by=WriteBy(ActorKind.LEAD, self.scope.actor_id, OpSource.LEAD_TURN, turn_id),
                 reason="lead_edit_accepted",
+                sample_size=limits.sample_size,
             )
-            revision, revision_id = saved.revision, saved.revision_id
+            for position, index in enumerate(candidates):
+                reason = batch.refused.get(position)
+                if reason is not None:
+                    results[index] = {"index": index, "status": "refused", "reason": reason}
+                else:
+                    pending.append(index)
+            if batch.saved is not None:
+                revision, revision_id = batch.saved.revision, batch.saved.revision_id
         for index in pending:
             workflows.record_lead_edit_decision(
                 turn.run_id,
@@ -907,6 +945,7 @@ class ResearchLead:
         run_start: RunStartSettings | None = None,
         wallet_enabled: bool = False,
         workspace_revision: int | None = None,
+        retry_run_id: str | None = None,
     ) -> dict[str, Any]:
         """A person approves the paid job a Lead turn prepared, and it starts (ADR 0026
         decision 7).
@@ -915,7 +954,8 @@ class ResearchLead:
         here too, by :func:`~aia_core.application.lead_chat_start.approve_chat_start`: not Lead
         output, so not refused while the Lead is off (D22), under the same threshold, the
         wallet when ``wallet_enabled`` and the ledger row ``chat_start``. ``run_start`` is the
-        deployment's run settings a typed research run starts under.
+        deployment's run settings a typed research run starts under; ``retry_run_id`` the run a
+        typed analysis retry's card named (another is refused, ``AnalysisRetryTargetMoved``).
 
         Needs ``EDIT_STUDY``, ``RUN_WORKFLOW`` and ``APPROVE_GATE`` on an open Study, and the
         caller's own completed Lead turn whose request is an ``agent_job``; any other request
@@ -957,6 +997,7 @@ class ResearchLead:
                 reservation_usd=reservation_usd,
                 run_start=run_start,
                 wallet_enabled=wallet_enabled,
+                retry_run_id=retry_run_id,
             )
         turn, output = self._completed(turn_id)
         assert turn.run_id is not None
@@ -1153,6 +1194,7 @@ class ResearchLead:
             if project_id is not None
             else []
         )
+        digest, digest_classes = self._decision_digest(history, focus)
         return freeze_context(
             prompt=prompt,
             lead={
@@ -1190,7 +1232,66 @@ class ResearchLead:
             view={"kind": kind, "stage": stage, "focus": focus, "message": message},
             conversation=_conversation(history),
             external=self._external(),
+            memory=digest,
+            memory_classes=digest_classes,
         )
+
+    def _decision_digest(
+        self, history: Sequence[Mapping[str, Any]], focus: Mapping[str, str] | None
+    ) -> tuple[dict[str, Any], list[str | None]]:
+        """What this researcher's conversation decided, from the ledger (ADR 0041 decision 4):
+        every decision on one of their Lead turns, named by the item its edit touched where the
+        turn is within ``history``, and the proposals in ``history`` still waiting for one;
+        with the class each turn whose text the digest carries was sent as."""
+        mine = set(self._turns().lead_turn_ids())
+        outputs = {t["turn_id"]: t["output"] for t in history if isinstance(t.get("output"), dict)}
+        decided: list[DigestEntry] = []
+        for entry in self._workflows().ledger(_DIGEST_SUBJECTS):
+            turn_id, _, index = entry.subject_id.rpartition(":")
+            if entry.subject is ApprovalSubject.LEAD_EDIT and turn_id in mine:
+                edits = (outputs.get(turn_id) or {}).get("edits") or []
+                at = int(index) if index.isdigit() else len(edits)
+                item = edit_item(edits[at]) if at < len(edits) else None
+                kind = "edit"
+            elif entry.subject is not ApprovalSubject.LEAD_EDIT and entry.subject_id in mine:
+                turn_id, item = entry.subject_id, None
+                kind = "job" if entry.subject is ApprovalSubject.LEAD_JOB_REQUEST else "self_update"
+            else:
+                continue
+            decided.append(
+                DigestEntry(kind, item, entry.decision, turn_id, ledger_id=entry.decision_id)
+            )
+        waiting: list[DigestEntry] = []
+        for turn in history:
+            output = turn.get("output")
+            if turn["actor"] != "lead" or not isinstance(output, dict):
+                continue
+            decided_edits = turn.get("edit_decisions") or {}
+            waiting.extend(
+                DigestEntry("edit", edit_item(edit), None, turn["turn_id"], index=i)
+                for i, edit in enumerate(output.get("edits") or [])
+                if str(i) not in decided_edits
+            )
+            request = output.get("request")
+            # Only a prepared agent job is decided through the ledger; a run or Deep Research
+            # card is started from its own screen and never waits here.
+            if (
+                isinstance(request, dict)
+                and request.get("kind") == "agent_job"
+                and turn.get("request_decision") is None
+            ):
+                waiting.append(DigestEntry("job", None, None, turn["turn_id"], index=0))
+        named = [focus["id"]] if focus and focus.get("id") else []
+        digest = decision_digest(decided, waiting, named=named)
+        # The class of every turn whose text a line carries (an item named by a turn's edit).
+        sent = {t["turn_id"]: t.get("data_class") for t in history}
+        carried = {
+            line["turn"]
+            for group in ("named", "undecided", "latest")
+            for line in digest[group]
+            if line.get("item") is not None
+        }
+        return digest, [sent.get(turn_id) for turn_id in sorted(carried)]
 
     def _external(self) -> dict[str, Any] | None:
         """The newest Design Research bundle's public findings, pinned and seal-verified as the

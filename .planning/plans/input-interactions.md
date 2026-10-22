@@ -4,7 +4,7 @@ chunks:
   - "[x] 0. Audit, standard and this plan (docs only; .planning/evidence/input-interactions-audit.md)"
   - "[ ] 1. Shared primitives with tests: InlineText, Stepper, ChoiceChips (+ Segmented and Switch adopted everywhere), InlineCreateRow, SwatchPicker, MenuButton, UndoToast, SpendDialog; retire AskDialog's prompt form"
   - "[x] 2. Knowledge library: folders and labels created in the list, renamed in place, recoloured by swatch; bulk and item filing by menu; search debounced (audit D1-D13)"
-  - "[ ] 3. Questionnaire: questions, options, blocks and sets created and edited in place; comparisons as segmented; deletes with undo (audit A1-A8, A11-A21)"
+  - "[x] 3. Questionnaire: questions, options, blocks and sets created and edited in place; comparisons as segmented; deletes with undo (audit A1-A8, A11-A21)"
   - "[x] 3b1. Scales, server side: the domain compiling a scale's labels (two ends or one per point; labels that break the rule left out with a readiness WARN, scale_labels_ignored; the compiler aia-research-compile-2) and refusing a non-integer end (invalid_scale); the labels reaching respondents behind AIA_AI_SCALE_LABELS_IN_PROMPT (off), the respondent prompt's identity moving with it; the report printing them; the editor's pure rule (apps/web/src/research/scale-labels.ts) (audit IA-2, IA-7)"
   - "[x] 3b2. Scales, the editor: range presets 1-5, 1-7, 0-10, 1-10 and Vlastní; a verbal label on every point, on chunk 1's primitives (#532); the range-change rule with its undo toast (audit A9, A10)"
   - "[ ] 3b3. Scale labels switched on for respondents: AIA_AI_SCALE_LABELS_IN_PROMPT on for develop once the methodology owner has approved the wording rule; the moved respondent-system fingerprint recorded; deployment evidence (a run whose respondents read the labels); before any holdout confirmation binds to a fingerprint"
@@ -45,7 +45,9 @@ it, or focus it and press Enter/F2, and it becomes a field of the same size and 
 spot. Enter saves (Ctrl/Cmd+Enter in multi-line text), blur saves, Esc restores the old value. A
 pencil/underline affordance shows on hover **and** on focus (touch has no hover). The save state
 sits beside the value: *Ukládám… / Uloženo / Neuloženo – Zkusit znovu*. Reference: `Item`,
-`prototypes/research-lead-v2/src/components/ui.tsx:52`.
+`prototypes/research-lead-v2/src/components/ui.tsx:52`. Where a person also selects the shown text
+(Návrh's comments), `InlineText`'s opt-in `selectable` opens on a settled single click, so a drag or
+a double-click selects instead of opening (#727); every other caller is unchanged.
 
 **I2. Bounded numbers get a stepper.** `− [value] +`, the value typeable, bounds stated beside it
 ("50–5 000"), Shift+arrow or Shift+click ×10, buttons disabled at the bound. A typed value out of
@@ -567,7 +569,7 @@ IA-1 … IA-6, with all six parts, in the audit's §6. For the docs PR to number
   with a label on every point and reads it back after a reload.
 - **open-items.md**: number the 3b2 finding above (a per-point set's ends as develop read them).
 
-### Chunk 3, in progress (the Dotazník screen owner, in small PRs)
+### Chunk 3, as delivered (the Dotazník screen owner, in small PRs)
 
 - **3a. Deletes with undo (audit A17, A18), feature/questionnaire-undo-deletes.**
   - A question is removed at once, and "Vrátit" on the editor's one toast puts it back in its place.
@@ -582,8 +584,62 @@ IA-1 … IA-6, with all six parts, in the audit's §6. For the docs PR to number
 - **3e. A block's name and purpose and a set's name in place (A4, part of A13), feature/questionnaire-fields-in-place.** `InlineText` on each: Enter or blur saves, Esc restores, the change written to the working copy at once and saved with it, the header saying the save (as Návrh's narrative); a name is required, a purpose may be emptied. Each block and set is also a heading (visually hidden), which `lead.ts` `titleOf` names it by. Tests: `QuestionnaireFields.test.tsx`; the journey renames a block and reads it back after a reload.
 - **3f. A set's object type, goal and common question in place (the rest of A13), feature/questionnaire-set-fields-in-place.** The same `InlineField`; the common question refuses a draft without `{object}` at the field, in words (I9), and "+ {object}" still appends it to a stored question that lacks it. Tests: `QuestionnaireFields.test.tsx`.
 - **3g. A question's wording and options (A1, A3), feature/questionnaire-wording-in-place.** The wording stays the card's always-open field (it is the card's content, and `lead.ts` `wordingOf` reads it): Esc puts back the wording as it stood when the field took focus. An option is removed at once with Vrátit, which puts that one option back in its place (`restoreOption`: the question found by its ids, a choice question only, other options edited since kept); its × is a 24 px target. Esc restores only while the wording is still what the field typed. Rows already add the next on Enter and save on leaving the group. Tests: `QuestionnaireFields.test.tsx`; the journey measures the × at four widths.
-- **Still open in chunk 3:**
-  - A14: the n / 15 counter beside the objects (the set's header shows "n / 4–15" today).
+- **3h. The objects' count beside their list (A14), #693.** The header's "n / 4–15" was not enough: at 390 px it scrolls out of view while objects are added, and a sixteenth object was dropped without a word (`updateObjects` sliced at 15). The count moves from the card's header to beside the list's label, one count per card; `ChipInput` refuses an add in words, keeping the draft, and shows a reason only while it holds. Nothing is cut: a set stored above 15 keeps every object (the classic's cut is the one stated departure in `questionnaire.parity.test.ts`). The four limits are defined once, in `research/questionnaire.ts`. Tests: `QuestionnaireFields.test.tsx` (A14, a 17-object set); checked in a browser at 390 px.
+- **After chunk 3 (tracked in `artifact-questionnaire.md`):** Q75 (a) made 15 a recommendation: 16–40 objects allowed and warned, the 41st refused, the count "n / doporučeno 4–15" (#736, QF-8). A block's create row adds to its block by id, and every create row is shut on a study the person may not edit (#734).
+
+Chunk 3 is complete: 3a–3h are merged (#640, #645, #651, #652, #681, #687, #691, #693). Every questionnaire A-item in the audit's fix list is addressed; A15 and A20 were "keep", and A19's path cards are the toolbar's `Segmented`.
+
+### Chunk 5, as delivered (the Cílová skupina screen owner, in small PRs)
+
+Split by owner (PM, 2026-10-22): B1–B4 sit on Dimenze (`PersonaStep.tsx`), B5–B11 on Cílová skupina
+(`AudienceStep.tsx`). Chunk 5 is ticked once B5–B11 are in and B1–B4 name Dimenze's PRs.
+
+- **B1. n as one stepper:** Dimenze's `artifact-dimensions#DIM3` (`PersonaStep.tsx`, `data-aia="sample:n"`):
+  bounded by `…/research/limits`, steps of 50, the recommendation beside it, no slider or presets, no clamp.
+- **B2–B4:** Dimenze's, not yet scheduled here.
+- **B5, B10:** kept, as the audit says (`RadioCard`; a prompt to AI is not a value).
+- **B6. A numeric factor's range as two bounded steppers, feature/audience-range-steppers.**
+  - Od and Do are `Stepper`s bounded by the catalogue's range (`research/audience.ts` `rangeBounds`):
+    whole numbers when both ends are, else two decimals, the ends rounded outward. A scale whose ends
+    the catalogue states (`scale_hint`) takes two decimals.
+  - Each end is also bounded by the other, so a crossed range is refused at the field. The population
+    would swap it (`_interval`).
+  - An unset end reads "Bez omezení", and a set one clears by its own button. `setRange` takes numbers
+    and leaves an unset end out.
+  - A stored end the population cannot read (`boundOf`, `endUnreadable`) is said at the field, never
+    shown as no end.
+  - Tests: `AudienceStep.test.tsx` "a numeric factor's range is two steppers…" and "says a stored end
+    the population cannot read…"; `audience.live.test.ts` "a numeric factor's range bounds".
+  - `audience_journey.mjs` checks the range at 1440/1100/768/390: no overflow, the clear button at
+    least 24 px, and 999 refused and not saved.
+- **B7+B8. Factor groups and values chosen as chips, feature/audience-value-chips.**
+  - A factor's group (Vše, Demografie…) is one `ChoiceChips` radio group, "Skupina faktorů".
+  - A categorical factor's values are `ChoiceChips` toggles, each with how many people hold it. Past 15
+    values (`VALUE_CHIPS_MAX`), the same chips sit under a filter field (`matchingValues`, the factor
+    search's rule). A list the catalogue cut at its 60 values says so.
+  - `pickValues` keeps the stored order and every stored value not on screen: a filtered-out value,
+    or one the population lacks (F3). A stored value that is not text stays as stored (`storedValues`):
+    `[true]` was saved back as `["true"]`, which the population keys as no value (stand-in review on
+    #761; `selectedValues` turned it into text before this change too).
+  - The factor search stays the list's filter field, as the audit keeps B3's.
+  - Tests: `AudienceStep.test.tsx` "a factor's group is chosen from chips…"; `audience.live.test.ts`
+    "picking a factor's values".
+  - `audience_journey.mjs` checks the chips at 1440/1100/768/390: no overflow, and a value chip 44 px
+    tall below 640 px.
+- **B9. The built-in subpanels under a search, feature/audience-subpanel-list.**
+  - A search over the 18 subpanels' names and descriptions (`matchingSubpanels`, the factor search's
+    rule, trimmed) sits above them, and a line says how many matched. The chosen subpanel stays shown
+    whatever the search.
+  - The subpanels stay `RadioCard`s, chosen by a click. A choice rewrites the audience's filters and
+    description, so a radio group that selects on arrow keys would save a different subpanel at each
+    press. Each card keeps its people, donors and, for one the population cannot use, its reason.
+  - Not done: a subpanel the search hides has no element, so the Lead cannot point at it until the
+    search is cleared, as with a factor editor hidden by its group.
+  - Tests: `AudienceStep.test.tsx` "the subpanels sit under a search…"; `audience.live.test.ts` "the
+    built-in subpanels a search matches".
+  - `audience_journey.mjs` checks the search at 1440/1100/768/390 without overflow, and that a search
+    matching nothing leaves the chosen one and says 0.
+- **B11:** to come.
 
 ### Chunk 3b3, added by planning (2026-10-21)
 

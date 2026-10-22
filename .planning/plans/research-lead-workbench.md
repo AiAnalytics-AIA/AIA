@@ -1485,7 +1485,7 @@ open a finding or a cited number in it from a click (ANL3).
   kind. Analýza adds `finding` and `claim` (`AnalysisInspect`, #610); `module` stays on the page.
 - **A kind with no body** shows what was opened and "Ukázat na stránce", never a detail it does not
   have.
-- **Not yet:** the Lead's own `inspect` view op stays non-live until the server's `LeadView` carries
+- **Since `feature/lead-inspect-view`:** the Lead's own `inspect` view op is live (below). Before it, it stayed non-live until the server's `LeadView` carried
   it.
 - **Escape is the frame's** (review of #623): inside the workbench the drawer takes Escape only
   through the one handler (`ItemInspector ownEscape={false}`), by the readiness panel's rule: the
@@ -1630,3 +1630,203 @@ ran outside the frame's one order (D21), and a second drawer could open beside t
   calls it with `report:ref:<old kind>:`. Tests: `ReportDocumentView.test.tsx` "inside the workbench
   closes the old document's claims…" and `Workbench.layout.test.tsx` "drops the entries a screen
   says stopped being true…"; both fail without the change.
+
+### The stages' forward actions go through the frame (2026-10-22, `fix/stages-forward-through-frame`)
+
+Dimenze's review of #698 found the same DIM-F4-class defect in four other stages. Inside the
+workbench, their forward buttons called `router.push(stepHref(...))`, which skipped
+`guardedNavigate` (a stage's leave guard) and the heading focus #686 added. The four are Zadání
+(`BriefStep.tsx`, after the analysis is accepted, both paths), Návrh (`PlanStep.tsx` `next`), Dotazník
+(`QuestionnaireStep.tsx` `toAudienceStep`) and Cílová skupina (`AudienceStep.tsx`, "Další · dimenze").
+- **Fix.** Each reads `useContext(FrameNavigation)` and calls `next.go()` inside the frame;
+  outside it, `router.push` as before. No other change in those files (Zadání and Dotazník have open
+  work there).
+- **Tests.** One per stage file, "inside the workbench goes on … through the frame's next stage";
+  all four fail without the change. On Návrh the test also opens a set for editing: the forward
+  action stays disabled and the frame is not asked. That held before too (`next` returns on
+  `editing`).
+- **Zadání's workbench button** (the stand-in review of #714). With the Lead owning the AI starts,
+  Zadání shows "Pokračovat na Návrh", a bare `Link` that skipped the frame; inside the frame it is
+  now a button calling `next.go()`. Test: `ResearchScreen.workbench.test.tsx` "goes on from Zadání
+  to Návrh through the frame…", which renders the real workbench and fails without the change.
+- **Not repeated here.** The heading focus and the leave guard are the frame's `go`, tested by
+  #686 (`Workbench.layout.test.tsx` "a stage's forward action through the frame", "asks nothing of
+  a forward move a stage's leave guard stopped").
+
+### The Lead's audience labels read Cílová skupina's parser (2026-10-22, `chore/target-label-parse-audience`)
+
+`targetLabel` (`lib/lead.ts`) parsed `audience:` ids with a second, looser rule of its own: an
+`audience:filter:` with no factor read "Filtr: ". It now reads them with Cílová skupina's
+`parseAudienceId` (`lib/artifacts/audience.ts`, #700), as that stage asked; a filter or subpanel
+with no name is no filter. Test: `lead.test.ts` "says each kind in words…" (fails without it).
+
+
+### The study header's "Nabídka" is a menu by the keyboard (2026-10-22, `fix/workbench-offer-menu`; the UX audit, #753)
+
+The header's menu (`Workbench.tsx` `StudyHeader`) said `role="menu"` but ignored Escape, kept the
+focus on its button, did not move with the arrows, and laid a scrim that swallowed the press meant
+for what was under it.
+- **Fix.** Opened (click, ↓ or ↑) on its first or last item; ↑ ↓ Home End move (`rovingIndex`); Esc
+  or a press outside closes it and gives the focus back to its button (`useDismiss`); Tab closes it;
+  no scrim. The items are read from the open menu, so the informative rows under 768 px are never
+  stopped on.
+- **Why not `MenuButton`.** It draws its own popover and takes only actionable items; this menu keeps
+  the workbench's look and carries the sheet's information rows. The behaviour is the same shared
+  helpers `MenuButton` uses.
+- **Tests.** `Workbench.layout.test.tsx` "opens from the keyboard on its first item, moves with the
+  arrows, and Escape closes it back to its button" and "closes on a press outside without a scrim
+  swallowing it"; both fail without the change.
+
+### The Lead's `inspect` is live (2026-10-22, `feature/lead-inspect-view`; chunk 14, its first op beyond 2a)
+
+2a's drawer opened only from a person's click; the Lead's `inspect` was declared in the contract
+(`lead_artifacts.ViewOpKind.INSPECT`) but not in `LeadOutput`. Now it is:
+- **The output.** `research_lead.InspectItem` (`op: "inspect"`, a target of the focus grammar) joins
+  `ViewOp`. Harness `aia-research-lead-4`; a turn queued under 3 is refused by the executor's
+  harness check and asks for the message again, as 3 did.
+- **The gate.** `ground_view` drops an `inspect` that `inspect_refusal` refuses: `target_refusal`
+  first, then `not_inspectable` for an element of a stage whose contract has no `inspect`
+  (`lead_artifacts.stage_of` + `allows_view`: a questionnaire question, the brief's goal, a report
+  section), then the id against the frozen context (the stand-in review of #738: an invented id
+  opened a drawer titled by that id): a research question or hypothesis by the working copy's and
+  the analysis's stable ids, a Návrh section by its name, else `unknown_item`; every other kind
+  (a finding, a measure, a run step) `not_in_context` until the context carries their ids (D19's
+  results layer).
+- **The web.** `LeadView` carries `inspect`; `LIVE_VIEW_OPS` (both sides, and the contract
+  fixture's `live`) gains it. `Workbench.onView` opens the entry in the item drawer over the
+  target's own stage (`parseAiaId(target).stage`). On another stage the move goes through the leave
+  guard; the entry waits in module scope (`leadInspect`, a route change remounts) and the opening
+  stack reads it (`openingStack`); a move the guard stopped leaves nothing pending. The turn's chip
+  reads "Detail: <label>".
+- **Named by its words.** The entry is titled by the id (`targetLabel`) until the stage shows the
+  element, then by the words a person's pointing gives it (`targetOfElement`), looked for briefly
+  while the content loads; the drawer's fallback body no longer repeats the id under the heading.
+- **The scripted Lead** (UI workbench): a message with "detail" adds an `inspect` of the first
+  research question, else the first hypothesis, so a browser can run it.
+- **In a browser** (UI workbench, the planned fixture, scripted Lead, zero paid): from Zadání at
+  1440 and 390 px, "Ukaž mi detail…" moves to Návrh and opens the drawer on the first hypothesis,
+  titled "Hypotéza: Mírnější varianta osloví širší publikum než nejsilnější."; Escape closes it,
+  the turn's "Detail" chip opens it again; no page error, no overflow, no agent job posted.
+- **Tests.** `test_research_lead.py` "the Lead opens a detail only of what the context holds"
+  (an invented id per kind), "an inspect reads the analysis's ids too", "an inspect the contract or
+  the copy refuses is dropped and named", "an inspect target is held to the focus grammar"; `test_lead_artifacts.py` "each kind has the stage that names it";
+  `test_research_lead_workbench.py` "a scripted message asking for a detail…";
+  `Workbench.layout.test.tsx` "opens what the Lead's inspect names on this stage…", "opens the
+  Lead's inspect on another stage once that stage is shown…", "leaves nothing pending when a leave
+  guard stops…". The web tests fail without the change.
+- **Still to build in chunk 14:** `select`, `filter` and `show_diff`, each with the artifact that
+  declares it.
+- **F18. A view chip names its element by id** *(fixed, `fix/lead-view-chip-words`)*. A turn's
+  chips read "Ukázat: Zadání: title" and "Detail: Hypotéza hyp_37d84435f2" (`LeadPane.tsx:393 @ 1fd345a0`
+  `VIEW_LABEL`, which has only `targetLabel`; seen in the browser run above). The element is often on
+  another stage, so the conversation cannot read its words from the page. Smallest fix: the server
+  sends the label it grounded the target against (the frozen copy holds the words) beside each view
+  op, or the web keeps the words it saw when the element was last shown. Test: a chip for a
+  hypothesis reads its words.
+  - **Fix.** The web names it from the working copy it already holds, not the server: `targetLabel`
+    takes the store's `{project, analysis}` and reads a research question's or a hypothesis's words
+    by its stable id (`item-ids.ts` `wordingOf`, the port of the server's ids), "Hypotéza: <words>",
+    as pointing at it names it; an id the copy no longer holds keeps its id rather than borrowing
+    words. Zadání's sections read by its own field names ("Zadání: Název", `FIELD_LABEL`). LeadPane
+    reads the copy through a context (`ViewWords`), and the Workbench's drawer entry and "Vedoucí
+    ukazuje" bar use the same words. No server change: the copy the turn was frozen on can be older
+    than the one shown, and a chip is a link to what is on screen now.
+  - **Tests.** `lead.test.ts` "targetLabel with the working copy (F18)" and the Zadání lines of
+    "targetLabel"; `LeadPane.test.tsx` "names a view chip's research question or hypothesis by its
+    words in the working copy (F18)". Each fails without the change.
+
+### From an empty brief to the internal draft, through the Lead (2026-10-22, `feature/brief-to-draft-journey`)
+
+`tools/ui_workbench/acceptance_journey.mjs` takes the `empty` fixture from its brief to the run's
+internal DOCX in a real browser. Every AI start goes through the Lead (typed commands, LO5), and
+nothing is paid: the workbench's Lead is scripted, its design jobs and analysis come from
+recordings at zero price, and fieldwork uses fictional respondents. At 1440 px it:
+1. types and saves Zadání's title, goal and decision use;
+2. "Analyzuj zadání": the person's card is approved, the job's card completes, and its proposal is
+   reviewed on the stage and accepted ("Použít návrh");
+3. "Navrhni dotazník": the same, for the questionnaire;
+4. "Spusť výzkum": the run starts from the person's card and is followed to its end, all 16 steps
+   (compile through fieldwork, the eight analysis modules, report, Sociomapping and its report);
+5. on Výsledky, downloads the internal draft as DOCX from the report card. The file must be a Word
+   file carrying the accepted design's research questions and saying it is internal;
+6. checks that nothing was paid: every job ended at a cost that is a number and zero; the usage
+   ledger has no row for the study with a cost, no call whose billing is unknown (an `UNCERTAIN`
+   outcome no `RESOLVED_*` row has settled, because `cost_usd` is never null) and no dispatched
+   call without an outcome; the study spent $0; there is no page error and no Deep Research start.
+
+Measured on a fresh workbench at e508e483: 2 jobs and 10 model calls (20 ledger rows), all settled
+at $0. The run took about 8 s and the DOCX was 1.5 MB. It passes once per fresh workbench; a second
+pass finds the jobs already done for the design.
+
+- **F19. The internal draft never says what the person asked for** *(open; the report's owner,
+  artifact-report)*.
+  1. Claim: the brief's title, goal and decision use do not reach the internal draft. Its cover and
+     introduction name the study record (`study.name`), and "Návrh studie" says it describes "co
+     měl výzkum zjistit" but prints only the research questions, sets and sample.
+  2. Anchors: `apps/executors/src/aia_executors/report.py:85 @ e508e483` (`study_name=study.name`),
+     `packages/aia_core/src/aia_core/application/report.py:208 @ e508e483`, and
+     `packages/aia_core/src/aia_core/application/report_design.py:126-142 @ e508e483`.
+  3. Reproduction: the journey above. The draft's cover reads "Workbench · empty" although the
+     brief's title is "Akceptace · ranní nápoj pro dojíždějící (fiktivní)", and neither the typed
+     goal nor the decision use appears anywhere in its `word/document.xml`.
+  4. Consequence: the person reads a report about a study named by its record, with no statement
+     of the decision it serves.
+  5. Smallest fix: `compose_design_sections` opens with the frozen design's goal and decision use
+     (both are in the Design Revision), and the cover takes the design's title when it has one.
+  6. Test: a report composed from a revision with a goal and a decision use prints both under
+     "Návrh studie". The journey's DOCX assertion then also requires the title.
+
+### A Lead test's budget sized for an idle machine (2026-10-22, `fix/lead-inspect-guard-test-race`)
+
+- **F20. Five workbench tests waited 4 s for a Lead turn the pane polls every 1.5 s** *(fixed)*.
+  1. Claim: `Workbench.layout.test.tsx` overrode the suite's 10 s wait (#536, OI-134) with
+     `{ timeout: 4000 }` in five places. Each waits for a Lead turn that arrives only after
+     LeadPane's fixed 1.5 s poll (`LeadPane.tsx:27 @ eb0c7d47`, `POLL_MS`), leaving about 2.5 s for
+     two reads and their renders.
+  2. Anchor: `Workbench.layout.test.tsx:258, 382, 394, 420, 686 @ eb0c7d47`.
+  3. Reproduction: with three busy loops on CPU 0, `taskset -c 0 npx vitest run
+     src/components/workbench/Workbench.layout.test.tsx -t "leaves nothing pending"` fails with
+     "Unable to find role="button" and name `/^Detail: /`" after 5.5 s. Idle, it takes 2.2 s of its
+     4 s budget. Zpráva saw it fail once under load.
+  4. Consequence: a red web suite on a loaded runner, unrelated to the change under test.
+  5. Fix: the five overrides removed, so the suite's 10 s budget applies.
+  6. Test: the reproduction above passes; the file passes (38).
+- **F21. "leaves nothing pending" took its guard off before the Lead's move was tried** *(fixed,
+  the same branch)*.
+  1. Claim: the test removed its leave guard as soon as the turn's chip appeared. LeadPane runs
+     the turn's view from a passive effect (`LeadPane.tsx:166 @ eb0c7d47`); when `findByRole`
+     resolves before that effect has run, `cleanup()`'s `act` flushes it after the guard is gone,
+     so the move goes through and leaves the inspect pending for the remount.
+  2. Anchor: `Workbench.layout.test.tsx:407-424 @ eb0c7d47`.
+  3. Reproduction: about one run in ten of the file with develop's version of the test fails at
+     `:424` ("expected <aside …> to be null") after 2.2 s, not at the 4 s budget (seen on the
+     map-view branch, which predates this fix).
+  4. Consequence: a red web suite now and then, under no load at all.
+  5. Fix: the test waits until its guard has stopped the move (`stopped === 1`) before taking it
+     off, which also means it no longer passes when no move is tried.
+  6. Test: the same file, run repeatedly, never fails at `:424`.
+
+### A stage mounted twice on a fresh page (2026-10-22, `fix/stage-mounts-once`; the Dimenze audit, #798)
+
+- **F22. Every fresh page mounted the classic layout and then the workbench** *(fixed)*.
+  1. Claim: `useWorkbenchSwitch` read `false` until `/config` answered, so `Ready` first rendered
+     the classic layout (`DesignSourceNote`, the stage screens, the stage record) and then the
+     workbench, which mounted and read everything again.
+  2. Anchor: `apps/web/src/components/rehome/research/ResearchScreen.tsx:237-238 @ 9607ee09`.
+  3. Reproduction: `ResearchScreen.workbench.test.tsx` "mounts a stage once on a fresh page…" (two
+     `/design/source` reads before). In a browser on the UI workbench (`next dev`), one Dimenze
+     visit made 44 API requests: `/design/source` 4, runs 6, limits 12, PUT `/workspace/stage` 2.
+  4. Consequence: twice the reads on every stage a person opens fresh, and both layouts' effects.
+  5. Fix: the switch is `null` until read, and until then the stage shows its chrome with the
+     loading line as a status (never blank). No timeout: every API read awaits the same cached
+     `/config` (`lib/api.ts:33`), so a hanging one holds the working copy's read first and `Ready`
+     never mounts; once it does, the switch answers at once (stand-in review on #807). The tests
+     reset the switch and the config cache before each one, so none depends on another's order.
+  6. Test: the test above; after the fix the same visit makes 36 requests, `/design/source` 2,
+     runs 4, limits 8.
+- **By design, recorded:** the remaining doubles are `next dev`'s Strict Mode, which runs each
+  effect twice: one PUT `/workspace/stage` and one `/design/source` per visit in a production
+  build. `/research/impact`'s 404 on a study with no Design Revision is its "nothing to say", read
+  once.
+- **Left, a hypothesis:** limits are still read by several components on one visit (4 in a
+  production build). Sharing them is another change, not this one.

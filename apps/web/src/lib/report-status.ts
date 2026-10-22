@@ -6,7 +6,6 @@
 
 import { t } from "@/i18n/t";
 import { ApiError, type ResearchReport } from "@/lib/api";
-import type { Tone } from "@/lib/tone";
 
 export type ReportStatus =
   | "NONE" //       the run makes no report
@@ -38,18 +37,6 @@ export function reportStatus(report: Pick<ResearchReport, "state" | "reason" | "
   return COMPOSING.test(report.state) ? "COMPOSING" : "UNKNOWN";
 }
 
-const TONE: Record<ReportStatus, Tone> = {
-  NONE: "neutral",
-  COMPOSING: "running",
-  NOT_MADE: "neutral",
-  FAILED: "fault",
-  REFUSED: "fault",
-  DRAFT: "you",
-  APPROVED: "done",
-  UNKNOWN: "neutral",
-};
-
-export const reportStatusTone = (status: ReportStatus): Tone => TONE[status];
 export const reportStatusWords = (status: ReportStatus): string => t(`research.exec.report.status.${status}`);
 
 /**

@@ -29,7 +29,7 @@ LIMITS = AIA_READINESS_V1.sample_size
 CASES: dict[str, Any] = json.loads(
     (Path(__file__).parent / "fixtures/edit_ops/cases.json").read_text(encoding="utf-8")
 )
-EDIT = TypeAdapter(e.EditOp)
+EDIT = TypeAdapter(e.WorkingOp)
 
 
 def _ids() -> Callable[[e.IdKind], str]:
@@ -68,8 +68,8 @@ def test_every_operation_has_one_entry_and_the_names_are_unique() -> None:
     assert all(spec.kinds and spec.fields and spec.chunk for spec in e.CATALOGUE.values())
 
 
-def _payload_ops() -> set[str]:
-    members = get_args(get_args(e.EditOp)[0])
+def _payload_ops(union: Any = e.WorkingOp) -> set[str]:
+    members = get_args(get_args(union)[0])
     return {get_args(m.model_fields["op"].annotation)[0] for m in members}
 
 
@@ -86,10 +86,11 @@ def test_the_lead_output_carries_exactly_the_operations_marked_so() -> None:
         for definition in schema["$defs"].values()
         if "op" in definition.get("properties", {})
         and definition["properties"]["op"].get("const")
-        not in ("open_stage", "focus")  # the view's commands, not edits
+        not in ("open_stage", "focus", "inspect")  # the view's commands, not edits
     }
     marked = {n.value for n, s in e.CATALOGUE.items() if s.in_lead_output}
-    assert in_schema == marked == _payload_ops()
+    # A route_set is applied but a person's alone (WCE13): outside the Lead's union.
+    assert in_schema == marked == _payload_ops(e.EditOp)
 
 
 def test_a_declared_operation_is_refused_by_name_until_its_chunk() -> None:

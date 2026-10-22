@@ -57,7 +57,12 @@ from aia_core.domain.ai_contracts import (
     ModelResult,
     UsageOutcome,
 )
-from aia_core.domain.ai_execution import ExecutionContext, ReservationView, recovery_inputs
+from aia_core.domain.ai_execution import (
+    CallJournal,
+    ExecutionContext,
+    ReservationView,
+    recovery_inputs,
+)
 from aia_core.domain.ai_models import ModelResolution
 from aia_core.domain.providers import Provider
 from aia_core.domain.workflow import FailureClass
@@ -101,7 +106,7 @@ class ModelConcurrency(Protocol):
         ...
 
 
-class StepCallJournal:
+class StepCallJournal(CallJournal):
     """``CallJournal`` for one logical request, over ``StepContext``."""
 
     def __init__(self, context: StepContext, call: PaidCall) -> None:
@@ -165,7 +170,7 @@ class StepModelCaller:
             return True
         return False
 
-    def _execution_context(self, journal: object, call: PaidCall | None) -> ExecutionContext:
+    def _execution_context(self, journal: CallJournal, call: PaidCall | None) -> ExecutionContext:
         step = self._context.step
         reservation = (
             ReservationView(call.reservation_id, call.amount_usd)
@@ -175,7 +180,7 @@ class StepModelCaller:
         return ExecutionContext(
             scope=self._context.work_scope,
             runtime_version=self._runtime_version,
-            journal=journal,  # type: ignore[arg-type]
+            journal=journal,
             run_id=step.run_id,
             step_id=step.step_id,
             attempt_id=step.attempt_id,
@@ -271,7 +276,7 @@ class StepModelCaller:
         return result
 
 
-class _NoJournal:
+class _NoJournal(CallJournal):
     """Preflight writes nothing; a journal call here would be a defect."""
 
     def record_dispatch(self, event: AIUsageEvent) -> None:

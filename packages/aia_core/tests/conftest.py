@@ -1433,6 +1433,44 @@ def report_ledger(evidence_row: Any, field_book: Any, joint_status: Any) -> Any:
     return build
 
 
+@pytest.fixture
+def report_doc(report_ledger: Any) -> Any:
+    """A client report of one method callout and ``blocks``, over ``ledger`` (the report
+    ledger by default): the smallest document the renderer accepts."""
+    from datetime import date
+
+    from aia_core.domain.evidence.validation import METHOD_STATUS_PENDING
+    from aia_core.domain.report.model import (
+        Callout,
+        CalloutKind,
+        ReportDocument,
+        ReportKind,
+        ReportMeta,
+        Section,
+    )
+
+    def build(*blocks: Any, ledger: Any = None, title: str = "Důvěra v banky 2026") -> Any:
+        meta = ReportMeta(
+            ReportKind.CLIENT,
+            title,
+            "Co rozhoduje o přechodu",
+            "Klient a.s.",
+            "Důvěra 2026",
+            "STU-1",
+            date(2026, 9, 25),
+            2,
+            METHOD_STATUS_PENDING,
+        )
+        method = Callout(CalloutKind.METHOD, ())
+        return ReportDocument(
+            meta,
+            (Section("Návrh", (method, *blocks)),),
+            report_ledger() if ledger is None else ledger,
+        )
+
+    return build
+
+
 # --------------------------------------------------------------------------- #
 # Deep Research: sealed bundles from two fictional subjects
 # --------------------------------------------------------------------------- #

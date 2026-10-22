@@ -22,10 +22,8 @@ export const ID_LISTS = [
   ["research_questions", "research_question_ids", "research_question", "rq_"],
   ["hypotheses", "hypothesis_ids", "hypothesis", "hyp_"],
 ] as const;
-export const OPTION_IDS = "kategorie_ids";
-export const OBJECT_IDS = "object_ids";
-/** Every key an id list is kept under: never an item or a field of its own. */
-export const SIDECAR_KEYS: ReadonlySet<string> = new Set([...ID_LISTS.map((l) => l[1]), OPTION_IDS, OBJECT_IDS]);
+const OPTION_IDS = "kategorie_ids";
+const OBJECT_IDS = "object_ids";
 
 const ID = /^[A-Za-z0-9_.-]{1,80}$/;
 // Whitespace as Python's str.split reads it (JavaScript's \s differs on U+001C-U+001F and U+FEFF).
@@ -385,7 +383,7 @@ function relink(links: unknown, renamed: Map<string, string>): unknown {
  * `after` (ids written in) with each reworded research question's links -- the questionnaire
  * items that measure it, the key of its comparison -- carried to its new wording.
  */
-export function followRewords<C extends Obj>(before: Obj, after: C): C {
+function followRewords<C extends Obj>(before: Obj, after: C): C {
   const out: Obj = { ...after };
   const list = stated(after);
   if (list === null) return out as C;

@@ -3,11 +3,12 @@
 // together. Editing a proposal never edits an existing questionnaire or frozen run.
 import type { Json } from "./model";
 import type { Analysis } from "./store";
-import { MAX_OBJECTS, trackedSets, type PlanState, type TrackedSet } from "./plan";
+import { t } from "@/i18n/t";
+import { SCALE_DEFAULT, setFull, trackedSets, type PlanState, type TrackedSet } from "./plan";
+import { SET_PRESET, type SetLimits } from "./questionnaire";
 
 const narrativeKeys = ["problem_summary", "research_questions", "objectives", "hypotheses"] as const;
 export type Narrative = { problem_summary: string; research_questions: string[]; objectives: string[]; hypotheses: string[] };
-export const lines = (text: string): string[] => text.split(/\r?\n/).map((s) => s.trim()).filter(Boolean);
 
 /** The stored plan is usable even when no legacy analysis was saved alongside it. */
 export function proposalAnalysis(state: PlanState): Analysis | null {
@@ -33,10 +34,43 @@ export function applyPlanSets(state: PlanState, sets: TrackedSet[]): PlanState {
   };
 }
 
-/** Form validation only: readiness and execution still validate their own contracts. */
-export function validMeasurement(set: TrackedSet): boolean {
+/** A tracked set's measurement fields, each edited where the set's card shows it (audit A33). */
+export type SetField = "purpose" | "object_question" | "scale_low" | "scale_high";
+
+/** Why `value` cannot be the set's `field`, in words (a set is measured on a question naming {object} and two labelled ends), or null. */
+export function setFieldProblem(field: SetField, value: string): string | null {
+  if (!value.trim()) return t(`research.plan.setField.empty.${field}`);
+  if (field === "object_question" && !value.includes("{object}")) return t("research.plan.setField.needsObject");
+  return null;
+}
+
+/**
+ * The set with `field` written as typed (trimmed); the other fields, and any the set carries, kept.
+ * A scale end written on a set that states no ends keeps the other end the person saw (the
+ * preview's default); a set that states them keeps its other end as stored.
+ */
+export function withSetField(set: TrackedSet, field: SetField, value: string): TrackedSet {
+  const v = value.trim();
+  if (field === "purpose" || field === "object_question") return { ...set, [field]: v };
+  const labels = set.scale_labels ? [set.scale_labels[0] ?? "", set.scale_labels[1] ?? ""] : [...SCALE_DEFAULT];
+  labels[field === "scale_low" ? 0 : 1] = v;
+  return { ...set, scale_labels: labels };
+}
+
+/**
+ * Why `value` cannot be one of the set's items: a repeat of another (case aside), or, added
+ * (`except` unset), one past the limits in force (`limits.max`, the max addObject refuses at;
+ * above the recommendation is allowed and only warned, Q75 (a)); else null. A rename names its own
+ * place in `except`.
+ */
+export function objectProblem(set: TrackedSet, value: string, except?: number, limits: SetLimits = SET_PRESET): string | null {
   const objects = set.objects ?? [];
-  return !!set.title?.trim() && !!set.purpose?.trim() && objects.length >= 4 && objects.length <= MAX_OBJECTS &&
-    objects.every((s) => !!s.trim()) && new Set(objects.map((s) => s.trim().toLocaleLowerCase("cs"))).size === objects.length &&
-    !!set.object_question?.includes("{object}") && !!set.scale_labels?.[0]?.trim() && !!set.scale_labels?.[1]?.trim();
+  if (except === undefined && objects.length >= limits.max) return setFull(limits.max);
+  const key = value.trim().toLocaleLowerCase("cs");
+  return objects.some((o, i) => i !== except && o.trim().toLocaleLowerCase("cs") === key) ? t("research.plan.setField.duplicate") : null;
+}
+
+/** The set with item `index` reworded in its place, the order kept. */
+export function withObject(set: TrackedSet, index: number, value: string): TrackedSet {
+  return { ...set, objects: (set.objects ?? []).map((o, i) => (i === index ? value.trim() : o)) };
 }

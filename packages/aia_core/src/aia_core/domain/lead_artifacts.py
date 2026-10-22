@@ -6,8 +6,9 @@ Each of the eleven artifacts plugs into the Research Lead the same way, and this
   the report's unapproved draft;
 * ``edits``: whether the Lead's proposed edits (``research_lead.EditOp``) land on this stage;
 * ``view_ops``: the closed set of display operations the Lead may run on it (chunk 14). Only
-  ``open_stage`` and ``focus`` are in :class:`~aia_core.domain.research_lead.LeadOutput` today;
-  the others are the contract a screen builds to, and join the Lead's output with it;
+  ``open_stage``, ``focus`` and ``inspect`` are in
+  :class:`~aia_core.domain.research_lead.LeadOutput` today; the others are the contract a screen
+  builds to, and join the Lead's output with it;
 * ``targets``: the kinds of element the Lead can name there (chunk 16), each a ``data-aia``
   id ``<kind>:<id>`` the screen puts on the element;
 * ``starts``: the workers and requests its cards start (an ``agent_job:<action>`` or a
@@ -45,6 +46,7 @@ __all__ = [
     "ViewOpKind",
     "allows_view",
     "contract_for",
+    "stage_of",
 ]
 
 FIELDS: Final = (
@@ -77,7 +79,7 @@ class ViewOpKind(StrEnum):
 
 
 #: The view operations the Lead's output carries today (``research_lead.ViewOp``).
-LIVE_VIEW_OPS: Final = frozenset({ViewOpKind.OPEN_STAGE, ViewOpKind.FOCUS})
+LIVE_VIEW_OPS: Final = frozenset({ViewOpKind.OPEN_STAGE, ViewOpKind.FOCUS, ViewOpKind.INSPECT})
 
 
 class TargetKind(StrEnum):
@@ -307,7 +309,7 @@ ARTIFACTS: Final[dict[str, ArtifactContract]] = {
             "dimensions",
             "working",
             edits=True,
-            view_ops=(),
+            view_ops=("show_diff",),
             targets=("dimension", "own_dimension"),
             starts=("agent_job:suggest_dimensions", _MEMORY),
             inputs=("design", "audience"),
@@ -419,3 +421,12 @@ def allows_view(stage: str, op: str) -> bool:
     """Whether the Lead may run the display operation ``op`` on ``stage``'s artifact."""
     row = ARTIFACTS.get(stage)
     return row is not None and op in {v.value for v in row.view_ops}
+
+
+def stage_of(kind: str) -> str | None:
+    """The stage whose screen shows elements of ``kind`` (the row naming it in ``targets``), or
+    None for a kind no row names."""
+    for stage, row in ARTIFACTS.items():
+        if kind in {t.value for t in row.targets}:
+            return stage
+    return None

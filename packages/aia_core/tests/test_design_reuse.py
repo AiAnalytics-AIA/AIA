@@ -174,3 +174,25 @@ def test_a_source_never_run_is_cited_as_never_run(world: Any, session: Any) -> N
     reused = _reuse(world, session, source_revision_id=second.revision_id, new_study=("z", "Z"))
     labels = reused.source.labels
     assert (labels.never_run, labels.synthetic, labels.run_ids) == (True, False, ())
+
+
+def test_a_reuse_is_logged_as_a_reuse_citing_its_source_revision(world: Any, session: Any) -> None:
+    """working-copy-edit-ops WCE2c: the reuse's write leaves its rows, by the person, citing the
+    revision it was reused from."""
+    from aia_core.domain.edit_log import ActorKind, OpSource, WriteBy
+    from aia_core.infrastructure.workspace_edit_repository import WorkspaceEditRepository
+
+    reused = _reuse(world, session, new_study=("ranni-napoj-3", "Ranní nápoj 3"))
+    target = world.resolver.study_context(
+        world.principal(world.users["lead"]), study_id=reused.study_id
+    )
+    rows = WorkspaceEditRepository(session, target).rows()
+    assert rows and {r.result_revision for r in rows} == {reused.revision.workspace_revision}
+    assert {r.by for r in rows} == {
+        WriteBy(
+            ActorKind.PERSON,
+            world.users["lead"],
+            OpSource.REUSE,
+            world.source_revision.revision_id,
+        )
+    }
