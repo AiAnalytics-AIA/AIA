@@ -258,7 +258,7 @@ def _owned_organization(
     # every develop smoke fail with a bare "ScopeDenied: not found". The seed
     # is an operator command with the database's credentials, as the creation
     # of the organization above is; it does not widen what a request can do.
-    if organization_id not in scope_repo.memberships_for_user(owner_id):
+    if organization_id not in scope_repo.memberships_for_user(owner_id, include_deactivated=True):
         session.add(
             OrganizationMemberRow(
                 organization_id=organization_id,

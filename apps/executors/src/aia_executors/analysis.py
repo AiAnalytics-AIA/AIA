@@ -72,6 +72,7 @@ from aia_core.domain.analysis.artifact import (
     CallRecord,
     ProducedBy,
     TurnArtifact,
+    no_supported_finding,
     parse_module_artifact,
     parse_turn_artifact,
     turn_fingerprint,
@@ -755,6 +756,10 @@ class AnalysisModuleExecutor:
         if analysis_round and record.outcome == "BLOCKED" and record.attempts > 0:
             # A person asked for this module again: a model's refusal is not reused.
             # The preflight's (no turn taken) is code's, and stays.
+            return None
+        if step.payload.get("analysis_retried") is True and no_supported_finding(record):
+            # Nor an answer with no supported finding, where the person asked this module
+            # again (MVPQ-04, evidence-integrity 9a); any other module keeps its outcome.
             return None
         return self._succeeded(found, record.outcome, prepared, reused=True, sent=0, replayed=0)
 

@@ -42,6 +42,7 @@ import { ResearcherSpendCard } from "./ResearcherSpendCard";
 import { SETTING_HELP, TAB_GUIDE } from "./settings-guide";
 import { SystemPromptsPanel } from "./SystemPromptsPanel";
 import { Technical, TechnicalProvider, TechnicalSwitch, useTechnical, useTechnicalChoice } from "./technical";
+import { Activity, BookOpen, Cpu, Database, History, type LucideIcon, ScrollText, Sigma, Telescope, Users, Wallet } from "lucide-react";
 import { Icon, type IconName } from "../../rehome/icons";
 import { Button, Chip, Field, Select, Tag, TextInput } from "../../rehome/ui";
 import { CARD, EYEBROW, Empty, Loaded } from "../states";
@@ -771,13 +772,19 @@ function AuditPanel({ audit, members }: { audit: Part<AuditEntry[]> | null; memb
 // never lost by looking at another. A group the API adds later still renders -- in
 // Reference -- so a new control is never hidden. What powers AIA comes first: every
 // reader needs it, the deployment's posture only administrators.
-export const TABS = ["methodology", "prompts", "deep_research", "ai", "access", "studies", "audit", "reference"] as const;
+export const TABS = ["methodology", "prompts", "deep_research", "ai", "access", "studies", "audit", "system", "reference", "data"] as const;
 export type TabId = (typeof TABS)[number];
 const TAB_GROUPS: { title: string; tabs: readonly TabId[] }[] = [
   { title: "Nastavení výzkumu", tabs: ["methodology", "prompts", "deep_research", "ai"] },
-  { title: "Tým a útrata", tabs: ["access", "studies"] },
-  { title: "Provoz", tabs: ["audit", "reference"] },
+  { title: "Tým a peníze", tabs: ["access", "studies"] },
+  { title: "Provoz", tabs: ["audit", "system", "reference", "data"] },
 ];
+// Each tab's line under its name in the side navigation, and its icon (decorative: the name is the label).
+const TAB_ICON: Record<TabId, LucideIcon> = {
+  methodology: Sigma, prompts: ScrollText, deep_research: Telescope, ai: Cpu,
+  access: Users, studies: Wallet,
+  audit: History, system: Activity, reference: BookOpen, data: Database,
+};
 const TAB_FACTS: Record<TabId, { scope: string; owner: string }> = {
   methodology: { scope: "Budoucí běhy studií", owner: "Verze může upravovat vlastník nebo správce; účinná je až po aktivaci" },
   prompts: { scope: "Nově zadané AI úlohy organizace", owner: "Vlastník nebo správce; uložení a zapnutí jsou samostatné kroky" },
@@ -786,7 +793,9 @@ const TAB_FACTS: Record<TabId, { scope: string; owner: string }> = {
   access: { scope: "Organizace, klient nebo studie", owner: "Změny podléhají roli a oprávnění ověřenému serverem" },
   studies: { scope: "Jednotlivá studie", owner: "Rozpočet se mění jen s oprávněním pro danou studii" },
   audit: { scope: "Historie organizace", owner: "Záznamy jsou jen ke čtení" },
+  system: { scope: "Toto nasazení", owner: "Jen ke čtení; připravenost hlásí nasazení, chyby GlitchTip" },
   reference: { scope: "Toto nasazení a kód", owner: "Technické hodnoty a pevná pravidla zde nelze upravit" },
+  data: { scope: "Organizace a její klienti", owner: "Vlastník nebo správce; smazání klienta je nevratné" },
 };
 
 const NO_ITEMS: SettingItem[] = [];
@@ -796,7 +805,7 @@ const OWN_TABS = new Set<TabId>(["prompts", "deep_research", "methodology"]);
 
 // The settings-document groups each tab shows, in order. "roles", "audit" and
 // "invariants" are not API groups; the panel draws them itself.
-const TAB_SECTIONS: Record<Exclude<TabId, "prompts" | "deep_research" | "methodology">, string[]> = {
+const TAB_SECTIONS: Record<Exclude<TabId, "prompts" | "deep_research" | "methodology" | "system" | "data">, string[]> = {
   ai: ["ai", "ai_history"],
   access: ["access", "approvals", "roles"],
   studies: ["studies"],
@@ -900,6 +909,8 @@ function PanelView({ panel, reload }: { panel: Panel; reload: () => void }) {
     if (tab === "prompts") return <SystemPromptsSection doc={doc} members={members} clients={clients} studies={studies} />;
     if (tab === "deep_research") return <DeepResearchSection items={byKey.get("deep_research")?.items ?? NO_ITEMS} members={members} />;
     if (tab === "methodology") return <MethodologySection members={members} />;
+    if (tab === "system") return <SystemSection />;
+    if (tab === "data") return <DataSection />;
     const keys = [...TAB_SECTIONS[tab].filter(present), ...(tab === "reference" ? unknown : [])];
     return (
       <>
@@ -917,10 +928,10 @@ function PanelView({ panel, reload }: { panel: Panel; reload: () => void }) {
   return (
     <TechnicalProvider on={technical}>
     <div data-settings-workspace className="flex flex-col gap-4 [&_button:not([data-dense])]:!min-h-11 [&_select]:!min-h-11 [&_input:not([type=checkbox]):not([type=radio])]:!min-h-11 [&_summary]:!min-h-11">
-      <div className="grid min-w-0 gap-5 xl:grid-cols-[12rem_minmax(0,1fr)]">
+      <div className="grid min-w-0 gap-5 xl:grid-cols-[14.25rem_minmax(0,1fr)]">
       <div role="tablist" aria-label={t(`${P}.tabs.label`)} onKeyDown={onKey} className="flex h-fit min-w-0 gap-3 overflow-x-auto border-b border-border bg-surface-raised p-2 xl:sticky xl:top-28 xl:flex-col xl:overflow-visible xl:rounded-md xl:border">
         {TAB_GROUPS.map((group) => <div key={group.title} role="group" aria-label={group.title} className="flex shrink-0 gap-1 xl:flex-col">
-          <p className="hidden px-3 pt-2 font-mono text-[11px] font-semibold uppercase tracking-wider text-ink-faint xl:block">{group.title}</p>
+          <p className="hidden px-2.5 pb-1.5 pt-3.5 text-[11px] uppercase tracking-[0.06em] text-ink-faint xl:block">{group.title}</p>
           {group.tabs.map((tab) => (
           <button
             key={tab}
@@ -932,9 +943,13 @@ function PanelView({ panel, reload }: { panel: Panel; reload: () => void }) {
             aria-controls={`panel-${tab}`}
             tabIndex={active === tab ? 0 : -1}
             onClick={() => select(tab)}
-            className={`min-w-28 rounded-sm border px-3 py-2 text-left text-sm focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus-ring xl:min-w-0 ${active === tab ? "border-signal-edge bg-signal-wash font-semibold text-signal" : "border-transparent text-ink-muted hover:bg-surface-sunken hover:text-ink"}`}
+            className={`flex min-w-28 items-start gap-2.5 rounded-md border px-2.5 py-2 text-left text-sm focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus-ring xl:min-w-0 ${active === tab ? "border-transparent bg-signal-wash font-medium text-ink" : "border-transparent text-ink-muted hover:bg-surface-sunken hover:text-ink"}`}
           >
-            <span className="block">{t(`${P}.tabs.${tab}`)}</span>
+            <TabIcon tab={tab} active={active === tab} />
+            <span className="min-w-0">
+              <span className="block whitespace-nowrap">{t(`${P}.tabs.${tab}`)}</span>
+              <span data-tab-subtitle className="hidden text-xs font-normal leading-4 text-ink-faint xl:block">{t(`${P}.tabSubtitles.${tab}`)}</span>
+            </span>
           </button>
           ))}
         </div>)}
@@ -955,6 +970,45 @@ function PanelView({ panel, reload }: { panel: Panel; reload: () => void }) {
       ))}</div></div>
     </div>
     </TechnicalProvider>
+  );
+}
+
+/** A tab's icon in the side navigation: decorative, the tab's name is its label. */
+function TabIcon({ tab, active }: { tab: TabId; active: boolean }) {
+  const Glyph = TAB_ICON[tab];
+  return <Glyph aria-hidden="true" focusable="false" size={18} strokeWidth={1.75} className={`mt-px shrink-0 ${active ? "text-signal" : "text-ink-faint"}`} />;
+}
+
+/** One card of a tab whose content AIA does not have yet: its heading, what it will hold, and the plain fact. */
+function NotYet({ id, title, holds }: { id: string; title: string; holds: string }) {
+  return (
+    <section id={`set-${id}`} aria-labelledby={`set-${id}-title`} className="rounded-md border border-border bg-surface-raised px-6 py-5">
+      <h3 id={`set-${id}-title`} className="text-base font-semibold">{title}</h3>
+      <p className="mt-1 text-sm leading-6 text-ink-muted">{holds}</p>
+      <p data-not-yet className="mt-3 inline-flex rounded-sm border border-dashed border-border-strong px-2 py-0.5 text-xs text-ink-muted">{t(`${P}.notYet`)}</p>
+    </section>
+  );
+}
+
+/** Stav systému: readiness after a deploy and error reporting (settings-redesign chunk 1; the content comes with its backend). */
+function SystemSection() {
+  const S = `${P}.system`;
+  return (
+    <div className="flex flex-col gap-4">
+      <NotYet id="readiness" title={t(`${S}.readiness`)} holds={t(`${S}.readinessHolds`)} />
+      <NotYet id="errors" title={t(`${S}.errors`)} holds={t(`${S}.errorsHolds`)} />
+    </div>
+  );
+}
+
+/** Správa dat: deleting a client and the records AIA keeps (settings-redesign chunk 1; the content comes with its backend). */
+function DataSection() {
+  const D = `${P}.data`;
+  return (
+    <div className="flex flex-col gap-4">
+      <NotYet id="client-delete" title={t(`${D}.clientDelete`)} holds={t(`${D}.clientDeleteHolds`)} />
+      <NotYet id="kept-records" title={t(`${D}.keptRecords`)} holds={t(`${D}.keptRecordsHolds`)} />
+    </div>
   );
 }
 

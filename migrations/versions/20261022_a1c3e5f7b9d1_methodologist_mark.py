@@ -6,7 +6,7 @@ of the membership, not a role. At ship only the product owner holds it (the owne
 2026-10-22): his memberships are marked here where his user exists; an OWNER grants it to others.
 
 Revision ID: a1c3e5f7b9d1
-Revises: f4b6d8a0c2e3
+Revises: b2d4f6a8c0e3
 Created: 2026-10-22 00:00:00.000000+00:00
 """
 
@@ -16,7 +16,7 @@ import sqlalchemy as sa
 from alembic import op
 
 revision: str = "a1c3e5f7b9d1"
-down_revision: str | None = "f4b6d8a0c2e3"
+down_revision: str | None = "b2d4f6a8c0e3"
 branch_labels = None
 depends_on = None
 

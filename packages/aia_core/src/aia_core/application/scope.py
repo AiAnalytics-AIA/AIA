@@ -102,6 +102,9 @@ class ScopeResolver:
         )
         if row is None:
             raise ScopeDenied("not found", reason="not_a_member")
+        if row.deactivated_at is not None:
+            # Deactivated in this organization (D-27): no scope here, at once, whatever token.
+            raise ScopeDenied("not found", reason="user_deactivated")
         return row
 
     def _membership_role(self, principal: AuthenticatedPrincipal) -> OrganizationRole:

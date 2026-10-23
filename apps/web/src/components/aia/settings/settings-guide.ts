@@ -7,6 +7,8 @@ export const TAB_GUIDE: Record<string, { purpose: string; action: string }> = {
   access: { purpose: "Členové, role a schvalování", action: "Spravujte členy a stav klientů. Pravidla samoschválení mohou platit pro organizaci, klienta nebo jedinou studii." },
   studies: { purpose: "Stav studií a limity útraty", action: "Vyhledejte studii a stiskněte Upravit. Rozpočet je maximální celková útrata studie v USD." },
   audit: { purpose: "Kdo co změnil a kdy", action: "Vyhledejte událost, osobu nebo důvod změny. Historie je pouze ke čtení." },
+  system: { purpose: "Je nasazení připravené a co se pokazilo", action: "Zkontrolujte výsledek kontrol po posledním nasazení a hlášené chyby. Vše je jen ke čtení; chyby se řeší v GlitchTip." },
+  data: { purpose: "Smazání klienta a uchovávané záznamy", action: "Smazání klienta je nevratné a potvrzuje se. Účetní a schvalovací záznamy a audit zůstávají; vidíte, kolik jich je a jak dlouho se drží." },
   reference: { purpose: "Technické hodnoty a pevná pravidla", action: "Tyto hodnoty nejsou běžné uživatelské volby. U každé zjistíte její účel a zda změnu spravuje nasazení nebo kód." },
 };
 
