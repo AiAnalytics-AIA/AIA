@@ -980,8 +980,6 @@ function StudyHeader({ frame, study, pending, blocked, onPending, layout = "spli
 }
 
 const STAGE_TONE: Record<string, GlyphTone> = { done: "done", running: "running", you: "you", fault: "fault", inert: "inert", ready: "ready" };
-/** A stage's status in one word under its name; a stage the lane says nothing of says nothing (never "not started"). */
-const STATUS_WORD: Record<string, string> = { done: "Hotovo", running: "Běží", you: "Čeká na vás", fault: "Chyba", ready: "Připraveno", inert: "" };
 
 function StageNav({ stage, lane, marks = {}, onOpen, layout = "split", inert = false }: { stage: WorkbenchStage; lane: Parameters<typeof stageState>[1]; marks?: Partial<Record<WorkbenchStage, ImpactMark>>; onOpen: (s: WorkbenchStage) => void; layout?: WorkbenchLayout; inert?: boolean }) {
   const nav = useRef<HTMLElement>(null);
@@ -1012,7 +1010,9 @@ function StageNav({ stage, lane, marks = {}, onOpen, layout = "split", inert = f
     const k = stageState(s, lane);
     const cur = s === stage;
     const mark = marks[s];
-    const word = STATUS_WORD[k.tone] ?? "";
+    // The word is the lane's, beside its tone (stageState): a stage is never called done on a tone it
+    // did not earn; a stage the lane says nothing of says nothing (never "not started").
+    const word = k.word;
     // One slot per stage, the same markup whichever is current: aria-current and the fill tell it
     // apart, never a width. Its status is said three ways: the glyph, a word and the tone's strip.
     return (

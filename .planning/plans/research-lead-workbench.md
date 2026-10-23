@@ -1857,4 +1857,18 @@ pass finds the jobs already done for the design.
      current stages).
 - The journey's stage locators match a stage by its own name: a button's words (its status, what
   reopened it, "změna dříve v návrhu") can name another stage.
+- **Review on #840 (stand-in, thread 4355136231), fixed:** the word was the tone's, so a stage read
+  "Hotovo" where the lane never called it done: Sběr dat after a cancelled or unread newest run
+  (Kontrola's "Spuštěno N×" is done), and Sociomapa, Analýza and Zpráva whenever Výsledky was.
+  `stageState` now returns the word beside the tone (`lib/workbench-stages.ts`): Sběr dat is done
+  only when the newest run's results are ready, otherwise as that run is, or inert with its line;
+  the three views are inert with Výsledky's line. Tests: `workbench-stages.test.ts` (cancelled,
+  unread, none, ready; the three views) and `Workbench.layout.test.tsx` "never calls Sběr dat done
+  for a run that was only started and then cancelled…".
+- **F25, a follow-up (hypothesis until built):** Sociomapa, Analýza and Zpráva have no state of
+  their own in the lane, so the navigator says nothing of them. Each could: a map stored for the
+  newest finished run (and its register status), its analysis modules COMPLETED or BLOCKED
+  (`needsRepair`), its report composed or approved (`reportStatus`). Smallest fix: extend
+  `runLane` with `sociomap`, `analysis` and `report` from the run's steps as `run-state.ts` and
+  `report-status.ts` already read them, and route the three views to them in `stageState`.
 

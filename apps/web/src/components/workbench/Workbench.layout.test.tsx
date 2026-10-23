@@ -624,6 +624,17 @@ describe("the stage navigator: a steady, full-width bar (research-lead-workbench
     expect(slot("Sběr dat").querySelector(".nav__status")?.getAttribute("aria-hidden")).toBe("true");
   });
 
+  it("never calls Sběr dat done for a run that was only started and then cancelled, and leaves Výsledky's views wordless", async () => {
+    runsAnswer = [{ run_id: "RUN-1", design_revision_id: "REV-2", design_revision: 2, phase: "CANCELLED", is_terminal: true, steps: [] }];
+    bench();
+    await waitFor(() => expect(slot("Sběr dat").title).toMatch(/zrušen/i));
+    expect(slot("Sběr dat").dataset.tone).toBe("inert");
+    expect(slot("Sběr dat").querySelector(".nav__status")?.textContent).toBe("");
+    // What is read aloud and what is shown agree: the lane's line, and no word it did not earn.
+    expect(slot("Sběr dat").querySelector(".sr-only")?.textContent).toMatch(/zrušen/i);
+    for (const view of ["Sociomapa", "Analýza", "Zpráva"]) expect(slot(view).querySelector(".nav__status")?.textContent).toBe("");
+  });
+
   it("moves between stages by the arrow keys, Home and End", () => {
     bench();
     const stages = Array.from(nav().querySelectorAll<HTMLButtonElement>(".nav__stage"));
