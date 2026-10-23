@@ -25,6 +25,8 @@ vi.mock("next/navigation", () => ({
   usePathname: () => path,
   useRouter: () => ({ push, replace }),
   useSearchParams: () => new URLSearchParams(window.location.search),
+  // Called only by the study's layout, one level below which is the stage (research-lead-workbench 34).
+  useSelectedLayoutSegment: () => /\/research\/[^/]+\/([^/?#]+)/.exec(path)?.[1] ?? null,
   notFound: () => {
     throw new Error("NEXT_NOT_FOUND");
   },
