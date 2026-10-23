@@ -710,7 +710,7 @@ export function Workbench({ frame, step, store, memory, save, inspector, reload,
   const openJob = useCallback((job: ResearchAgentJob) => {
     const target = JOB_STAGE[job.action];
     if (!target || target === stage || !memory) return onOpenJob(job);
-    memory.set(OPEN_REVIEW_KEY, job.run_id);
+    memory.set(OPEN_REVIEW_KEY, job);
     go(target);
   }, [stage, memory, onOpenJob, go]);
 
@@ -735,8 +735,14 @@ export function Workbench({ frame, step, store, memory, save, inspector, reload,
         const older = changesToShow(target, [], pending);
         if (older?.kind === "proposal") openJob(older.job);
         else if (target !== stage) go(target);
+        else setNotice(NOTHING_WAITS);
       },
-      () => { if (lookup.current === mine && target !== stage) go(target); },
+      () => {
+        if (lookup.current !== mine) return;
+        // Not read is not "nothing waits": the person is told, and the stage still opens.
+        setNotice(PENDING_UNREAD);
+        if (target !== stage) go(target);
+      },
     );
   };
 
@@ -855,6 +861,8 @@ export function Workbench({ frame, step, store, memory, save, inspector, reload,
 }
 
 const EDITS_LABEL = "Návrhy Vedoucího";
+const NOTHING_WAITS = "Na této fázi nic nečeká na rozhodnutí (prohledáno posledních 200 úloh).";
+const PENDING_UNREAD = "Návrhy čekající na rozhodnutí se nepodařilo načíst. Zkuste to znovu.";
 const EDITS_SELECTOR = `[role="region"][aria-label="${EDITS_LABEL}"]`;
 
 function EditsBar({ items, state, marks, canEdit, onAccept, onDismiss }: {

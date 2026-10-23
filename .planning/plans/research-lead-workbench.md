@@ -1865,3 +1865,15 @@ waiting for review. On Zpráva it waits for report-delivery RD5's tracked change
   them in full, and show_diff asks it when its page holds no proposal for the stage. Tests:
   `test_a_pending_proposal_older_than_the_newest_page_is_still_listed_as_pending`;
   `Workbench.layout.test.tsx` "asks the server for the stage's pending proposals…".
+- **Review fixes after it was marked ready.**
+  - *A slow lookup could act after the person moved on* (Codex). Each `?pending=true` lookup carries
+    its own number (`lookup`), moved on by a newer show_diff, a stage change or a study change; an
+    older answer is ignored. Test: `Workbench.layout.test.tsx` "drops a pending-proposal lookup…".
+  - *An older proposal on another stage did not open* (stand-in review). `openJob` kept only the job's
+    id in page memory, and the next stage looked for it in the newest page alone. The job itself is
+    now kept (`OPEN_REVIEW_KEY`), the page's copy preferred. Test: `ResearchScreen.workbench.test.tsx`
+    "opens on its own stage a proposal the Lead's show_diff found older than the newest page".
+  - *Silence on the current stage* (stand-in review). Nothing found says "Na této fázi nic nečeká na
+    rozhodnutí (prohledáno posledních 200 úloh)."; a lookup that failed says the proposals could not be
+    read, never that nothing waits. Tests: `Workbench.layout.test.tsx` "says so on the stage the person
+    is on when…" (both).

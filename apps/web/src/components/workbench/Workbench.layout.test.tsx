@@ -720,6 +720,20 @@ describe("the Lead's show_diff (research-lead-workbench 14)", () => {
     expect(push).not.toHaveBeenCalled();
   });
 
+  for (const [what, answer, words] of [
+    ["nothing waits", () => new Response(JSON.stringify([])), /nic nečeká na rozhodnutí \(prohledáno posledních 200 úloh\)/],
+    ["the waiting proposals could not be read", () => new Response(JSON.stringify({ code: "unavailable" }), { status: 503 }), /nepodařilo načíst/],
+  ] as const) {
+    it(`says so on the stage the person is on when ${what} (stand-in review on #809)`, async () => {
+      leadReads = [leadState({ busy: true, turns: [leadTurn("T1", 1)] }), leadState({ turns: [leadTurn("T1", 1), leadTurn("T2", 2, [{ op: "show_diff", stage: "questionnaire" }])] })];
+      const base = vi.mocked(fetch);
+      vi.stubGlobal("fetch", vi.fn(async (url: RequestInfo | URL, init?: RequestInit) => (String(url).includes("/research/agent-jobs?") ? answer() : base(url, init))));
+      bench();
+      const note = await screen.findByText(words);
+      expect(note.closest('[role="status"]')).not.toBeNull();
+    });
+  }
+
   it("opens the stage itself, through its leave guard, when nothing waits there", async () => {
     push.mockClear();
     leadReads = [leadState({ busy: true, turns: [leadTurn("T1", 1)] }), leadState({ turns: [leadTurn("T1", 1), leadTurn("T2", 2, [{ op: "show_diff", stage: "dimensions" }])] })];
