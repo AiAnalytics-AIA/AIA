@@ -20,6 +20,7 @@ fact, or retry anything on its own.
 
 from __future__ import annotations
 
+from collections import Counter
 from collections.abc import Callable, Sequence
 from dataclasses import dataclass
 from time import monotonic
@@ -66,7 +67,6 @@ from aia_core.domain.fieldwork_events import (
     progress_due,
     respondent_cells,
 )
-from aia_core.domain.fieldwork_events import respondent as respondent_event
 from aia_core.domain.fieldwork_events import sample as sample_event
 from aia_core.domain.licence import DataLineage
 from aia_core.domain.material_rules import MaterialRule, classify_by_rule
@@ -176,11 +176,11 @@ class AIFieldworkConfig:
     #: without one, so slow answering never reads as a stalled step. At most two lease-fenced
     #: feed writes a minute, so it is a switch (CLAUDE.md § 8).
     heartbeat: bool = False
-    #: ``AIA_AI_FIELDWORK_RESPONDENT_EVENTS`` (off by default, run-qc-and-checkpoint RQC7b): a
-    #: panel run's ``fieldwork_sample`` before its first respondent and a ``fieldwork_respondent``
-    #: after each, so Sběr dat fills each quota cell. One lease-fenced feed write per respondent,
-    #: so it is a switch (CLAUDE.md § 8).
-    respondent_events: bool = False
+    #: ``AIA_AI_FIELDWORK_QUOTA_FILL`` (off by default, run-qc-and-checkpoint RQC7b): a
+    #: panel run's ``fieldwork_sample`` before its first respondent, and each ``fieldwork_progress``
+    #: counting the respondents answered per cell since the last, so Průběh fills each quota cell.
+    #: One more feed write per attempt and a larger progress payload, so it is a switch (§ 8).
+    quota_fill: bool = False
 
 
 @dataclass(frozen=True, slots=True)
@@ -315,9 +315,9 @@ class AIFieldwork:
         (RQC0). A replayed block's call record says so and costs this attempt nothing.
 
         ``quota`` is a panel run's sample, whose respondents the plans are, in order (RQC7b): with
-        the composition's ``respondent_events`` on, its cells are written once the preflight
-        passed and each respondent's ``fieldwork_respondent`` names its cell. Without it (the
-        roster, a validation's arms) no cell and no respondent row is written.
+        the composition's ``quota_fill`` on, its cells are written once the preflight
+        passed and each ``fieldwork_progress`` counts the respondents answered in each cell since
+        the last. Without it (the roster, a validation's arms) no cell is written or counted.
         """
         cfg = self._config
         labelled = (
@@ -384,8 +384,10 @@ class AIFieldwork:
 
         binding = self.binding(resolution) if resolution is not None else ""
         # A panel run's cells, once nothing refused it: a park writes none (RQC7b).
-        cells = respondent_cells(quota) if quota is not None and cfg.respondent_events else None
-        if quota is not None and cfg.respondent_events and (event := sample_event(quota)):
+        # Counted only when the cells were written: a sample without quota fields counts none.
+        event = sample_event(quota) if quota is not None and cfg.quota_fill else None
+        cells = respondent_cells(quota) if quota is not None and event is not None else None
+        if event is not None:
             context.progress(FieldworkEvent.SAMPLE, **event)
         kept = journal.kept() if journal is not None else {}
         calls: list[dict[str, Any]] = []
@@ -393,18 +395,26 @@ class AIFieldwork:
         details: list[dict[str, dict[str, Any]]] = []
         sent = replayed = 0
         last_report = monotonic()
+        # Respondents answered in each cell since the last report, carried by it (RQC7b).
+        filled: Counter[str] = Counter()
 
         def report(done: int) -> None:
             nonlocal last_report
             context.progress(
                 FieldworkEvent.PROGRESS,
-                **progress(respondents=done, of=len(plans), sent=sent, replayed=replayed),
+                **progress(
+                    respondents=done,
+                    of=len(plans),
+                    sent=sent,
+                    replayed=replayed,
+                    cells=None if cells is None else filled,
+                ),
             )
+            filled.clear()
             last_report = monotonic()
 
         for index, plan in enumerate(plans):
             context.checkpoint()
-            sent_before, replayed_before = sent, replayed
             answers: dict[str, Answer] = dict(plan.facts)
             detail: dict[str, dict[str, Any]] = {}
             for block in plan.blocks:
@@ -489,16 +499,8 @@ class AIFieldwork:
             rows.append((plan.persona, answers))
             details.append(detail)
             done = index + 1
-            if cells is not None:
-                context.progress(
-                    FieldworkEvent.RESPONDENT,
-                    **respondent_event(
-                        respondent=done,
-                        cell=cells[index],
-                        sent=sent - sent_before,
-                        replayed=replayed - replayed_before,
-                    ),
-                )
+            if cells is not None and (cell := cells[index]) is not None:
+                filled[cell] += 1
             idle = monotonic() - last_report if cfg.heartbeat else 0.0
             if progress_due(
                 respondents=done, of=len(plans), idle_seconds=idle, every=cfg.progress_every

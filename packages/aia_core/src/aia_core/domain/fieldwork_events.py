@@ -12,15 +12,17 @@ payload holds exactly that event's keys (:data:`PAYLOAD_KEYS`); the web holds th
   :data:`HEARTBEAT_SECONDS` passed without one. A single call that takes longer writes nothing
   until it returns.
 
-Behind the worker's ``AIA_AI_FIELDWORK_RESPONDENT_EVENTS`` (RQC7b, version 2):
+Behind the worker's ``AIA_AI_FIELDWORK_QUOTA_FILL`` (RQC7b, version 2), for a panel run:
 
-* ``fieldwork_sample``: once per attempt of a panel run, once the gateway's preflight passed and
-  before its first respondent: the sample's quota fields and the cells allotted respondents, each
-  with its key (:func:`~.population.sampling.quota_keys`), its values and its allotment. How ``n``
-  is spread, never a promise of support. None for a sample drawn without quota fields.
-* ``fieldwork_respondent``: after each respondent of a panel run: its place in the sample
-  (1-based), its quota cell's key (``None`` without one) and the blocks it sent and replayed. A
-  cell's fill is the count of its respondents, never estimated.
+* ``fieldwork_sample``: once per attempt, once the gateway's preflight passed and before its
+  first respondent: the sample's quota fields and the cells allotted respondents, each with its
+  key (:func:`~.population.sampling.quota_keys`), its values and its allotment. How ``n`` is
+  spread, never a promise of support. None for a sample drawn without quota fields.
+* ``fieldwork_progress``'s ``cells``: the respondents answered in each cell since the attempt's
+  previous report, by key (a respondent without a cell is not in it); ``None`` when the attempt
+  reports no cells (the switch off, a roster run). A cell's fill is the sum of its counts, never
+  estimated. Carried by the report fieldwork writes anyway, so it adds no write of its own: a
+  replayed attempt writes exactly the reports it always did.
 
 Why a step stopped is not a fieldwork event: the engine's ``STEP_RECOVERY`` carries the
 executor's own reason as ``error_reason``, for every executor (``workflow_repository``).
@@ -28,6 +30,7 @@ executor's own reason as ``error_reason``, for every executor (``workflow_reposi
 
 from __future__ import annotations
 
+from collections.abc import Mapping
 from enum import StrEnum
 from typing import Final
 
@@ -40,7 +43,6 @@ __all__ = [
     "FieldworkEvent",
     "progress",
     "progress_due",
-    "respondent",
     "respondent_cells",
     "sample",
 ]
@@ -52,24 +54,31 @@ HEARTBEAT_SECONDS: Final = 30.0
 class FieldworkEvent(StrEnum):
     PROGRESS = "fieldwork_progress"
     SAMPLE = "fieldwork_sample"
-    RESPONDENT = "fieldwork_respondent"
 
 
 PAYLOAD_KEYS: Final[dict[FieldworkEvent, tuple[str, ...]]] = {
-    FieldworkEvent.PROGRESS: ("version", "respondents", "of", "sent", "replayed"),
+    FieldworkEvent.PROGRESS: ("version", "respondents", "of", "sent", "replayed", "cells"),
     FieldworkEvent.SAMPLE: ("version", "quota_fields", "cells"),
-    FieldworkEvent.RESPONDENT: ("version", "respondent", "cell", "sent", "replayed"),
 }
 
 
-def progress(*, respondents: int, of: int, sent: int, replayed: int) -> dict[str, object]:
-    """A ``fieldwork_progress`` payload: respondents answered of ``of``; blocks sent, replayed."""
+def progress(
+    *,
+    respondents: int,
+    of: int,
+    sent: int,
+    replayed: int,
+    cells: Mapping[str, int] | None = None,
+) -> dict[str, object]:
+    """A ``fieldwork_progress`` payload: respondents answered of ``of``; blocks sent, replayed;
+    and, for a panel run reporting its cells, those answered in each cell since the last report."""
     return {
         "version": FIELDWORK_EVENTS_VERSION,
         "respondents": respondents,
         "of": of,
         "sent": sent,
         "replayed": replayed,
+        "cells": None if cells is None else dict(cells),
     }
 
 
@@ -106,15 +115,3 @@ def respondent_cells(drawn: PanelSample) -> tuple[str | None, ...]:
     """Each sampled respondent's quota cell key, in sample order (``None`` without one)."""
     keys = quota_keys(drawn.quota_cells)
     return tuple(None if r.quota_cell is None else keys[r.quota_cell] for r in drawn.respondents)
-
-
-def respondent(*, respondent: int, cell: str | None, sent: int, replayed: int) -> dict[str, object]:
-    """A ``fieldwork_respondent`` payload: the respondent's 1-based place in the sample, its quota
-    cell's key, and the blocks it sent to a model and replayed from the run's journal."""
-    return {
-        "version": FIELDWORK_EVENTS_VERSION,
-        "respondent": respondent,
-        "cell": cell,
-        "sent": sent,
-        "replayed": replayed,
-    }

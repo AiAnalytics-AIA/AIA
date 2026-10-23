@@ -118,7 +118,7 @@ group("the fieldwork event contract (run-qc-and-checkpoint RQC7)", () => {
     readFileSync(join(process.cwd(), "../../packages/aia_core/tests/fixtures/fieldwork_events/contract.json"), "utf8"),
   ) as { version: string; events: Record<string, string[]> };
   const sample: Record<string, Record<string, unknown>> = {
-    fieldwork_progress: { respondents: 40, of: 300, sent: 70, replayed: 50 },
+    fieldwork_progress: { respondents: 40, of: 300, sent: 70, replayed: 50, cells: { "zena/18-29": 1 } },
     fieldwork_sample: {
       quota_fields: ["pohlavi", "vek"],
       cells: [
@@ -126,48 +126,44 @@ group("the fieldwork event contract (run-qc-and-checkpoint RQC7)", () => {
         { key: "muz/30-44", values: ["muž", "30-44"], n: 1 },
       ],
     },
-    fieldwork_respondent: { respondent: 1, cell: "zena/18-29", sent: 2, replayed: 0 },
   };
   const of = (code: string) => ev({ message: code, payload: { version: contract.version, ...sample[code] } });
 
-  it("reads every event of the contract: in words, or one respondent folded into its cell", () => {
+  it("says every event of the contract in words, and folds a report's cells into their fill", () => {
     expect(Object.keys(contract.events).sort()).toEqual(Object.keys(sample).sort());
     for (const [code, keys] of Object.entries(contract.events)) {
       expect(Object.keys(of(code).payload ?? {}).sort()).toEqual([...keys].sort());
-      if (code === "fieldwork_respondent") continue;
       expect(text(of(code))).not.toBeNull();
     }
-    // A respondent is no log line of its own (hundreds would bury the rest): its cell's fill.
-    expect(text(of("fieldwork_respondent"))).toBeNull();
-    const folded = foldActivity(EMPTY_ACTIVITY, [of("fieldwork_sample"), of("fieldwork_respondent")]);
+    const folded = foldActivity(EMPTY_ACTIVITY, [of("fieldwork_sample"), of("fieldwork_progress")]);
     expect(activityOf(folded, "STEP-a")?.quota?.cells.map((c) => c.answered)).toEqual([1, 0]);
   });
 
-  it("fills each quota cell from its respondents; a new attempt counts again; a broken list is none (RQC7b)", () => {
-    const respondent = (cell: string | null) => ev({ message: "fieldwork_respondent", payload: { respondent: 1, cell, sent: 1, replayed: 0 } });
+  it("fills each quota cell from the counts its reports carry; a new attempt counts again; a broken list is none (RQC7b)", () => {
+    let done = 0;
+    const report = (cells: unknown) => ev({ message: "fieldwork_progress", payload: { respondents: ++done, of: 3, sent: 1, replayed: 0, cells } });
     const state = foldActivity(EMPTY_ACTIVITY, [
-      respondent("zena/18-29"), // before any cells: nothing to fill
+      report({ "zena/18-29": 1 }), // before any cells: nothing to fill
       of("fieldwork_sample"),
-      respondent("zena/18-29"),
-      respondent("zena/18-29"),
-      respondent("muz/30-44"),
-      respondent("neznama"), // a cell the sample did not name fills nothing
-      respondent(null),
+      report({ "zena/18-29": 2, neznama: 4 }), // a cell the sample did not name fills nothing
+      report({ "muz/30-44": 1 }),
+      report(null), // a report carrying no cells counts none
+      report({ "muz/30-44": -1, "zena/18-29": 0.5 }), // nor one carrying no whole, non-negative count
     ]);
     const quota = activityOf(state, "STEP-a")?.quota;
     expect(quota?.cells).toEqual([
       { key: "zena/18-29", values: ["žena", "18-29"], n: 2, answered: 2 },
       { key: "muz/30-44", values: ["muž", "30-44"], n: 1, answered: 1 },
     ]);
-    expect(activityOf(state, "STEP-a")?.lines.at(-1)?.text).toBe(tv("research.exec.activity.fieldworkSample", { cells: 2 }));
+    expect(activityOf(state, "STEP-a")?.lines.map((l) => l.text)).toContain(tv("research.exec.activity.fieldworkSample", { cells: 2 }));
     // A new attempt's claim clears the last attempt's count, replays and cells (Codex on #836):
     // until it reports, nothing of the earlier attempt is shown as its own.
-    const progressed = foldActivity(state, [ev({ message: "fieldwork_progress", payload: { respondents: 40, of: 300, sent: 10, replayed: 30 } })]);
+    const progressed = foldActivity(state, [ev({ message: "fieldwork_progress", payload: { respondents: 40, of: 300, sent: 10, replayed: 30, cells: null } })]);
     const claimed = activityOf(foldActivity(progressed, [ev({ event_type: "ATTEMPT_CLAIMED", message: "run claimed by worker-2" })]), "STEP-a");
     expect([claimed?.progress, claimed?.replayed, claimed?.quota]).toEqual([null, 0, null]);
     expect(lastReported(claimed ?? null, "FAILED", false)).toBeNull();
     // A retried attempt reports its cells again and counts its respondents from the first.
-    const retried = foldActivity(state, [of("fieldwork_sample"), respondent("muz/30-44")]);
+    const retried = foldActivity(state, [of("fieldwork_sample"), report({ "muz/30-44": 1 })]);
     expect(activityOf(retried, "STEP-a")?.quota?.cells.map((c) => c.answered)).toEqual([0, 1]);
     // One unreadable cell refuses the table: never a partial list read as the whole.
     const broken = ev({ message: "fieldwork_sample", payload: { quota_fields: [], cells: [{ key: "a", values: ["a"], n: 1 }, { key: "b", n: 1 }] } });
@@ -179,7 +175,7 @@ group("the fieldwork event contract (run-qc-and-checkpoint RQC7)", () => {
     expect(activityOf(foldActivity(state, [none]), "STEP-a")?.quota).toBeNull();
     // A fold counts into its own copy: the state it was given is never changed.
     const before = activityOf(state, "STEP-a")?.quota?.cells.map((c) => c.answered);
-    foldActivity(state, [respondent("zena/18-29"), respondent("zena/18-29")]);
+    foldActivity(state, [report({ "zena/18-29": 2 })]);
     expect(activityOf(state, "STEP-a")?.quota?.cells.map((c) => c.answered)).toEqual(before);
   });
 

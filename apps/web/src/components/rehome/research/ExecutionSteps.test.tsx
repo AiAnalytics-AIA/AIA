@@ -1475,8 +1475,7 @@ describe("Progress", () => {
           { key: "zena/18-29", values: ["žena", "18-29"], n: 1 },
           { key: "muz/30-44", values: ["muž", "30-44"], n: 2 },
         ] }),
-        feed(2, "fieldwork_respondent", { respondent: 1, cell: "zena/18-29", sent: 1, replayed: 0 }),
-        feed(3, "fieldwork_respondent", { respondent: 2, cell: "muz/30-44", sent: 1, replayed: 0 }),
+        feed(2, "fieldwork_progress", { respondents: 2, of: 3, sent: 2, replayed: 0, cells: { "zena/18-29": 1, "muz/30-44": 1 } }),
       ],
     });
     render(<ResearchScreen step="progress" frame={TEST_FRAME} />);

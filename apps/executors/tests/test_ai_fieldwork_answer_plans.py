@@ -14,7 +14,6 @@ from aia_core.domain.fieldwork_events import (
     PAYLOAD_KEYS,
     FieldworkEvent,
     progress,
-    respondent,
 )
 from aia_core.domain.licence import DataLineage
 from aia_core.domain.providers import Provider
@@ -87,7 +86,8 @@ def _setup(
     design: dict[str, Any] = DESIGN,
     scale_labels_in_prompt: bool = False,
     heartbeat: bool = False,
-    respondent_events: bool = False,
+    quota_fill: bool = False,
+    progress_every: int = 10,
 ) -> tuple[AIFieldwork, Any, list[Any]]:
     spec, problems = compile_design(design)
     assert spec is not None, problems
@@ -115,7 +115,8 @@ def _setup(
             fictional_client_ids=frozenset(),
             scale_labels_in_prompt=scale_labels_in_prompt,
             heartbeat=heartbeat,
-            respondent_events=respondent_events,
+            quota_fill=quota_fill,
+            progress_every=progress_every,
         ),
         build=BuildIdentity(sha="abc"),
         caller_factory=lambda **_: caller,
@@ -471,43 +472,30 @@ def test_a_park_writes_no_progress_and_returns_its_reason() -> None:
     assert context.progressed == []
 
 
-def _respondents(context: _Context) -> list[dict[str, Any]]:
-    return [e for e in context.progressed if e["message"] == FieldworkEvent.RESPONDENT]
+def _reports(context: _Context) -> list[dict[str, Any]]:
+    return [e for e in context.progressed if e["message"] == FieldworkEvent.PROGRESS]
 
 
-def test_each_respondent_names_its_cell_and_its_blocks_with_the_switch_on() -> None:
-    """RQC7b: one ``fieldwork_respondent`` per respondent, in order, with the cell it was given."""
+def test_each_report_counts_the_respondents_answered_per_cell_with_the_switch_on() -> None:
+    """RQC7b: the cells once, then each ``fieldwork_progress`` counts the respondents answered in
+    each cell since the previous report. No write of its own: the reports are the ones written
+    anyway, so an attempt replayed from the journal writes no more rows than with the switch off."""
     from aia_core.domain.population.sampling import QuotaCell
 
     journal = _Journal()
-    caller = _Caller()
-    fieldwork, spec, plans = _setup(caller, respondent_events=True)
+    fieldwork, spec, plans = _setup(_Caller(), quota_fill=True, progress_every=4)
     # A panel sample's cells as the sampler names them (one allotted none), and each respondent's.
-    quota_cells = (
-        QuotaCell(("žena", "18-29"), 3),
-        QuotaCell(("muž", "65"), 0),
-        QuotaCell(("muž", "30-44"), 3),
-    )
-    at = [0, 2, 2, 0, 0, 2]
     quota = SimpleNamespace(
-        quota_cells=quota_cells,
+        quota_cells=(
+            QuotaCell(("žena", "18-29"), 3),
+            QuotaCell(("muž", "65"), 0),
+            QuotaCell(("muž", "30-44"), 3),
+        ),
         audit=SimpleNamespace(quota_fields=("pohlavi", "vek")),
-        respondents=tuple(SimpleNamespace(quota_cell=i) for i in at),
+        respondents=tuple(SimpleNamespace(quota_cell=i) for i in [0, 2, 2, 0, 0, 2]),
     )
-    keys = ["zena/18-29", "muz/65", "muz/30-44"]
-    cells = [keys[i] for i in at]
     context = _RunContext("RUN-1")
-    fieldwork.answer_plans(
-        plans,
-        spec,
-        context,  # type: ignore[arg-type]
-        seed=7,
-        response=AIA_RESPONSE_V1,
-        data_class=DataClass.CLASS_C_INTERNAL,
-        lineage=DataLineage(datasets=frozenset({"synthetic"})),
-        journal=journal,  # type: ignore[arg-type]
-        quota=quota,  # type: ignore[arg-type]
-    )
+    _answer_into(fieldwork, spec, plans, journal, context, quota=quota)
     # The cells once, before the first respondent, without the one allotted none.
     assert context.progressed[0] == {
         "message": FieldworkEvent.SAMPLE,
@@ -518,35 +506,39 @@ def test_each_respondent_names_its_cell_and_its_blocks_with_the_switch_on() -> N
             {"key": "muz/30-44", "values": ["muž", "30-44"], "n": 3},
         ],
     }
-    assert [e["message"] for e in context.progressed].count(FieldworkEvent.SAMPLE) == 1
-    rows = _respondents(context)
-    assert rows == [
-        {
-            "message": FieldworkEvent.RESPONDENT,
-            **respondent(respondent=i + 1, cell=cells[i], sent=len(p.blocks), replayed=0),
-        }
-        for i, p in enumerate(plans)
+    reports = _reports(context)
+    for report in reports:
+        assert set(report) - {"message"} == set(PAYLOAD_KEYS[FieldworkEvent.PROGRESS])
+    # Respondents 1-4 then 5-6: each report counts only those since the last one.
+    assert [(r["respondents"], r["cells"]) for r in reports] == [
+        (4, {"zena/18-29": 2, "muz/30-44": 2}),
+        (6, {"zena/18-29": 1, "muz/30-44": 1}),
     ]
-    for row in rows:
-        assert set(row) - {"message"} == set(PAYLOAD_KEYS[FieldworkEvent.RESPONDENT])
-    # Each row is written once its respondent is answered: before the progress that counts it.
-    progress_at = next(
-        i for i, e in enumerate(context.progressed) if e["message"] == FieldworkEvent.PROGRESS
-    )
-    assert context.progressed[progress_at - 1]["respondent"] == len(plans)
+    assert len(context.progressed) == 1 + len(reports)
 
-    # Run again over the journal: every block replayed, none sent, each in its cell.
-    fieldwork, spec, plans = _setup(_Caller(), respondent_events=True)
+    # Replayed from the journal: the same reports, the same counts, nothing sent, no extra row.
+    fieldwork, spec, plans = _setup(_Caller(), quota_fill=True, progress_every=4)
     again = _RunContext("RUN-2")
     _answer_into(fieldwork, spec, plans, journal, again, quota=quota)
-    assert [(r["cell"], r["sent"], r["replayed"]) for r in _respondents(again)] == [
-        (cells[i], 0, len(p.blocks)) for i, p in enumerate(plans)
-    ]
-    # Without a panel sample (the roster, a validation's arms) no cell and no row is written.
-    fieldwork, spec, plans = _setup(_Caller(), respondent_events=True)
+    assert [(r["cells"], r["sent"]) for r in _reports(again)] == [(r["cells"], 0) for r in reports]
+    assert len(again.progressed) == len(context.progressed)
+    # Without a panel sample (the roster, a validation's arms) no cell is written or counted.
+    fieldwork, spec, plans = _setup(_Caller(), quota_fill=True, progress_every=4)
     roster = _RunContext("RUN-3")
     _answer_into(fieldwork, spec, plans, _Journal(), roster)
-    assert {e["message"] for e in roster.progressed} == {FieldworkEvent.PROGRESS}
+    assert [e["message"] for e in roster.progressed] == [FieldworkEvent.PROGRESS] * 2
+    assert all(r["cells"] is None for r in roster.progressed)
+    # A panel sample drawn without quota fields writes no cells and counts none: null, never {}.
+    fieldwork, spec, plans = _setup(_Caller(), quota_fill=True, progress_every=4)
+    unquoted = _RunContext("RUN-4")
+    no_fields = SimpleNamespace(
+        quota_cells=(),
+        audit=SimpleNamespace(quota_fields=()),
+        respondents=tuple(SimpleNamespace(quota_cell=None) for _ in plans),
+    )
+    _answer_into(fieldwork, spec, plans, _Journal(), unquoted, quota=no_fields)
+    assert [e["message"] for e in unquoted.progressed] == [FieldworkEvent.PROGRESS] * 2
+    assert all(r["cells"] is None for r in unquoted.progressed)
 
 
 def test_a_park_writes_no_cells() -> None:
@@ -561,7 +553,7 @@ def test_a_park_writes_no_cells() -> None:
                 reason="egress_route_not_approved_for_class",
             )
 
-    fieldwork, spec, plans = _setup(Refusing(), respondent_events=True)
+    fieldwork, spec, plans = _setup(Refusing(), quota_fill=True)
     context = _RunContext("RUN-1")
     quota = SimpleNamespace(
         quota_cells=(QuotaCell(("žena",), 6),),
@@ -572,12 +564,19 @@ def test_a_park_writes_no_cells() -> None:
     assert isinstance(parked, Failed) and context.progressed == []
 
 
-def test_without_the_switch_no_respondent_is_written() -> None:
+def test_without_the_switch_no_cell_is_written_or_counted() -> None:
+    from aia_core.domain.population.sampling import QuotaCell
+
     fieldwork, spec, plans = _setup(_Caller())
-    context = _Context()
-    _plain(fieldwork, spec, plans, context)
-    assert _respondents(context) == []
-    assert {e["message"] for e in context.progressed} == {FieldworkEvent.PROGRESS}
+    quota = SimpleNamespace(
+        quota_cells=(QuotaCell(("žena",), 6),),
+        audit=SimpleNamespace(quota_fields=("pohlavi",)),
+        respondents=tuple(SimpleNamespace(quota_cell=0) for _ in plans),
+    )
+    context = _RunContext("RUN-1")
+    _answer_into(fieldwork, spec, plans, _Journal(), context, quota=quota)
+    assert [e["message"] for e in context.progressed] == [FieldworkEvent.PROGRESS]
+    assert context.progressed[0]["cells"] is None
 
 
 def _answer_into(

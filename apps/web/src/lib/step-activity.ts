@@ -23,7 +23,7 @@ export type StepActivity = {
   replayed: number;
   /**
    * A panel run's quota cells (RQC7b `fieldwork_sample`), each with the respondents answered in it
-   * as `fieldwork_respondent` reported them; null until the cells are reported.
+   * as `fieldwork_progress`'s `cells` counted them; null until the cells are reported.
    */
   quota: { cells: QuotaFill[] } | null;
   /**
@@ -126,8 +126,6 @@ export function describe(event: RunEvent): ActivityLine | null {
     const cells = quotaCells(p.cells);
     return cells ? line(tv("research.exec.activity.fieldworkSample", { cells: cells.length })) : null;
   }
-  // Folded into the cells' fill (foldActivity), one per respondent: never a log line each.
-  if (code === "fieldwork_respondent") return null;
   if (code.startsWith(TOOL_PREFIX)) {
     const text = toolLine(code.slice(TOOL_PREFIX.length), p);
     return text ? line(text, code.endsWith("failed") || code.endsWith("uncertain") ? "warn" : "info") : null;
@@ -165,6 +163,12 @@ function quotaCells(raw: unknown): QuotaFill[] | null {
   return cells;
 }
 
+/** A report's per-cell counts: whole, non-negative numbers only; anything else counts nothing. */
+function cellCounts(raw: unknown): [string, number][] {
+  if (!raw || typeof raw !== "object" || Array.isArray(raw)) return [];
+  return Object.entries(raw as Record<string, unknown>).filter((e): e is [string, number] => Number.isInteger(e[1]) && (e[1] as number) >= 0);
+}
+
 /** Fold events read after the state's cursor; the same events twice change nothing. */
 export function foldActivity(state: ActivityState, events: readonly RunEvent[], keep = KEEP_LINES): ActivityState {
   let cursor = state.cursor;
@@ -192,14 +196,19 @@ export function foldActivity(state: ActivityState, events: readonly RunEvent[], 
         next.quota = cells ? { cells } : null;
         if (cells) owned.add(event.step_id);
       }
-      if (event.message === "fieldwork_respondent" && next.quota) {
-        // Copied once per fold, then counted in place: a long feed never copies every cell per row.
+      // Each report counts the respondents answered per cell since the previous one (RQC7b).
+      const filled = event.message === "fieldwork_progress" ? cellCounts(p.cells) : [];
+      if (filled.length && next.quota) {
+        // Copied once per fold, then counted in place: a long feed never copies every cell per report.
         if (!owned.has(event.step_id)) {
           next.quota = { cells: next.quota.cells.map((c) => ({ ...c })) };
           owned.add(event.step_id);
         }
-        const cell = next.quota.cells.find((c) => c.key === str(p.cell));
-        if (cell) cell.answered += 1;
+        const byKey = new Map(next.quota.cells.map((c) => [c.key, c]));
+        for (const [key, count] of filled) {
+          const cell = byKey.get(key);
+          if (cell) cell.answered += count;
+        }
       }
       if (event.message === "ai_request_answered") {
         next.model.answered += 1;
