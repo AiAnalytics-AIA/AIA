@@ -1272,6 +1272,48 @@ def test_a_run_pinned_to_its_population_is_answered_by_respondents_drawn_from_it
         assert steps[node]["output"]["data_origin"] == "MODELLED_AI_PANEL"
 
 
+def test_a_panel_run_writes_its_quota_cells_and_fills_them_through_its_reports(
+    world: Any, run_with: Callable[..., Worker], grounded: Any
+) -> None:
+    """RQC7b under the real worker: with AIA_AI_FIELDWORK_QUOTA_FILL on, the feed holds the
+    sample's quota cells once, and the progress reports' counts fill each cell to its allotment."""
+    from collections import Counter
+
+    from aia_core.domain.fieldwork_events import PAYLOAD_KEYS, FieldworkEvent
+    from aia_core.infrastructure.tables import WorkflowEventRow
+
+    run_id = _start_grounded(world, grounded)
+    env = {**_grounded_env(), "AIA_AI_FIELDWORK_QUOTA_FILL": "true"}
+    worker = run_with(ScriptedBedrock(), env=env, population=grounded.loader())
+    assert _drain(worker) == ["completed"] * 5
+    with world.sessions() as session:
+        rows = session.scalars(
+            select(WorkflowEventRow)
+            .where(
+                WorkflowEventRow.run_id == run_id,
+                WorkflowEventRow.event_type == "STEP_PROGRESS",
+            )
+            .order_by(WorkflowEventRow.event_id)
+        ).all()
+        feed = [(r.message, r.payload_json) for r in rows]
+    samples = [p for m, p in feed if m == FieldworkEvent.SAMPLE]
+    reports = [p for m, p in feed if m == FieldworkEvent.PROGRESS]
+    assert len(samples) == 1 and set(samples[0]) == set(PAYLOAD_KEYS[FieldworkEvent.SAMPLE])
+    cells = samples[0]["cells"]
+    assert sum(c["n"] for c in cells) == GROUNDED_N and samples[0]["quota_fields"]
+    # The cells come before the first report; the reports' counts sum to each cell's allotment.
+    assert [m for m, _ in feed].index(FieldworkEvent.SAMPLE) < [m for m, _ in feed].index(
+        FieldworkEvent.PROGRESS
+    )
+    filled: Counter[str] = Counter()
+    for report in reports:
+        filled.update(report["cells"])
+    assert dict(filled) == {c["key"]: c["n"] for c in cells}
+    # Every respondent counted once, in one cell; a first attempt replays nothing.
+    assert sum(filled.values()) == reports[-1]["respondents"] == GROUNDED_N
+    assert reports[-1]["sent"] > 0 and reports[-1]["replayed"] == 0
+
+
 def test_a_panel_run_with_scale_labels_in_the_prompt_records_another_respondent_system(
     world: Any, store: InMemoryArtifactStore, run_with: Callable[..., Worker], grounded: Any
 ) -> None:
@@ -1332,6 +1374,8 @@ def test_a_panel_run_has_a_client_report_of_admitted_modelled_numbers_and_a_fict
     assert "modelováno: AI respondenti z populace" in body
     assert "13. 10. 2026 rozhodl zařadit je do klientské" in body
     assert "Výsledky jednotlivých otázek" in body
+    # Nothing internal reaches the client's file, not even as a content control's tag (RPT8a).
+    assert 'w:val="run:' not in body and 'w:val="design:' not in body and run_id not in body
     # The run tracks no set and has no map chapter, so its introduction names none and says
     # why not (it said "a mapy hodnocených objektů" whatever was composed; cross-review, PC17).
     assert not any((s.id or "").startswith("ch-native-map-") for s in document.sections)

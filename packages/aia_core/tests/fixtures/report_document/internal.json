@@ -1,5 +1,5 @@
 {
- "contract": "aia-report-document-3",
+ "contract": "aia-report-document-5",
  "ledger": {
   "refs": {
    "n_total": {
@@ -178,6 +178,7 @@
        "type": "text"
       }
      ],
+     "control": null,
      "id": "ch-summary.1",
      "marks": [],
      "refs": [
@@ -188,6 +189,7 @@
     },
     {
      "content": [],
+     "control": null,
      "id": "ch-summary.2",
      "kind": "method",
      "marks": [],
@@ -257,6 +259,7 @@
        "type": "text"
       }
      ],
+     "control": null,
      "id": "ch-decision.1",
      "kind": "decision",
      "marks": [
@@ -314,19 +317,23 @@
      ],
      "id": "ch-questions.1",
      "notes": [],
+     "notes_control": null,
      "refs": [],
      "rows": [
       {
        "cells": [
         {
+         "control": null,
          "text": "Jak moc lidé důvěřují bankám?",
          "type": "text"
         },
         {
+         "control": null,
          "text": "Necelá polovina dospělých jim důvěřuje.",
          "type": "text"
         },
         {
+         "control": null,
          "text": "měřeno",
          "type": "text"
         }
@@ -336,14 +343,17 @@
       {
        "cells": [
         {
+         "control": null,
          "text": "Kde je důvěra nejvyšší?",
          "type": "text"
         },
         {
+         "control": null,
          "text": "V Praze; v Ostravě nejnižší.",
          "type": "text"
         },
         {
+         "control": null,
          "text": "měřeno",
          "type": "text"
         }
@@ -353,14 +363,17 @@
       {
        "cells": [
         {
+         "control": null,
          "text": "Kdo je ochoten přejít?",
          "type": "text"
         },
         {
+         "control": null,
          "text": "Spíše mladší lidé; jde o modelovaný odhad.",
          "type": "text"
         },
         {
+         "control": null,
          "text": "modelováno",
          "type": "text"
         }
@@ -449,6 +462,7 @@
        "type": "footnote"
       }
      ],
+     "control": null,
      "id": "ch-findings.3",
      "marks": [],
      "refs": [],
@@ -511,6 +525,7 @@
      ],
      "id": "ch-findings.5",
      "notes": [],
+     "notes_control": null,
      "refs": [
       "trust_praha",
       "trust_brno",
@@ -521,6 +536,7 @@
       {
        "cells": [
         {
+         "control": null,
          "text": "Praha",
          "type": "text"
         },
@@ -535,6 +551,7 @@
       {
        "cells": [
         {
+         "control": null,
          "text": "Brno",
          "type": "text"
         },
@@ -549,6 +566,7 @@
       {
        "cells": [
         {
+         "control": null,
          "text": "Ostrava",
          "type": "text"
         },
@@ -563,6 +581,7 @@
       {
        "cells": [
         {
+         "control": null,
          "text": "Celkem",
          "type": "text"
         },
@@ -717,6 +736,7 @@
        "type": "text"
       }
      ],
+     "control": null,
      "id": "ch-external.1",
      "marks": [],
      "refs": [],
@@ -747,6 +767,7 @@
        "type": "text"
       }
      ],
+     "control": null,
      "id": "ch-confidence.1",
      "marks": [],
      "refs": [],
@@ -782,6 +803,7 @@
        "type": "text"
       }
      ],
+     "control": null,
      "id": "ch-method.1",
      "marks": [],
      "refs": [],
@@ -813,6 +835,7 @@
    "appendix": false,
    "blocks": [
     {
+     "control": null,
      "id": "ch-limitations.1",
      "items": [
       {
@@ -874,6 +897,7 @@
        "type": "text"
       }
      ],
+     "control": null,
      "id": "ch-conclusion.1",
      "marks": [],
      "refs": [],
@@ -904,6 +928,7 @@
        "type": "text"
       }
      ],
+     "control": null,
      "id": "app-questionnaire.1",
      "marks": [],
      "refs": [],
@@ -1073,6 +1098,7 @@
      ],
      "id": "ch-shared.1",
      "notes": [],
+     "notes_control": null,
      "refs": [
       "trust_total"
      ],
@@ -1080,6 +1106,7 @@
       {
        "cells": [
         {
+         "control": null,
          "text": "Kept",
          "type": "text"
         },
@@ -1100,6 +1127,7 @@
     {
      "alt": "Mapa objektů",
      "anchor": "fig-shared",
+     "control": null,
      "fit_caption": null,
      "id": "ch-shared.2",
      "image_sha256": "1b618cde06fad79af0b808725bf1955debe5f6ef5d8cee842e33d3553b7abc45",

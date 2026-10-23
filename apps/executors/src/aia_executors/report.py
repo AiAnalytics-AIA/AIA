@@ -54,7 +54,9 @@ REPORT_ARTIFACT_TYPE = INTERNAL_REPORT_ARTIFACT_TYPE
 # (artifact-report RPT8a, part 1), so a draft rendered before is never reused for an editor.
 # -16: KPI tiles, figures, the evidence appendix and suppressed counts locked too (RPT8a, part 2;
 # -15 is the brief's goal, F19).
-REPORT_CONTRACT_VERSION = "aia-internal-report-16"
+# -17: the map's numbers locked under their stored map (map:<battery>/<method>; RPT8a, part 3).
+# -18: the design and method chapters' numbers locked under their sources (design:, run:).
+REPORT_CONTRACT_VERSION = "aia-internal-report-18"
 REPORT_PDF_ARTIFACT_TYPE = INTERNAL_REPORT_PDF_ARTIFACT_TYPE
 REPORT_DOCUMENT_ARTIFACT_TYPE = INTERNAL_REPORT_DOCUMENT_ARTIFACT_TYPE
 

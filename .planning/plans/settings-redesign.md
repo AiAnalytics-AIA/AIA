@@ -3,11 +3,12 @@ status: in-progress
 chunks:
   - "[x] 1. Tab frame: ten tabs in three groups (Tým a peníze), a line under each name, Lucide icons; Stav systému and Správa dat as their own tabs"
   - "[x] 2. Shared inputs: one Switch (ui/Switch); Segmented = ChoiceChips, Stepper, InlineCreateRow, InlineText and UndoToast already in ui/ (input-interactions)"
-  - "[ ] 3. Přístup a schvalování: segmented role and status, Metodik switch, inline add member, deactivate with Vrátit, roles boxes, samoschválení above Klienti"
-  - "[ ] 4. Studie a rozpočty: the four money names, steppers with bounds, % and near-limit (90 %), spend tiles and per-researcher spend"
-  - "[ ] 5. Systémové prompty: grouped list, editor layout, in-force version in green, Verze table"
-  - "[ ] 6. Deep Research: Dosah, proposals in the Návrh cell, I7 modals, Pevné ochrany v kódu"
-  - "[ ] 7. AI běh: route tiles, activities grouped with descriptions, the missing activities"
+  - "[x] 3. Přístup a schvalování: role, status and self-approval chosen in their rows, name edited in place, inline add member, role change with Vrátit, roles boxes, samoschválení above Klienti"
+  - "[ ] 3b. Přístup over its backends: Metodik switch (owner only), deactivate with Vrátit and the sealed Lead, a client's posture and wallet ceiling"
+  - "[x] 4. Studie a rozpočty: the four money names, steppers with bounds, % and near-limit (90 %), spend tiles and per-researcher spend"
+  - "[x] 5. Systémové prompty: grouped list, editor layout, in-force version in green, Verze table"
+  - "[x] 6. Deep Research: Dosah, proposals in the Návrh cell, I7 modals, Pevné ochrany v kódu"
+  - "[x] 7. AI běh: route tiles, activities grouped with descriptions, the missing activities"
   - "[ ] 8. Audit: categories with counts, period, search, Czech names for every action code"
   - "[ ] 9. Reference: categories, Kdo mění filter, Co znamená column"
   - "[ ] 10. Metodika: module cards with drawings and accent colours (no stage filter), -5 only, editor from the version in force, activation modal with reason chips"
@@ -41,4 +42,47 @@ https://claude.ai/artifact/8W9LR8Ju9BWnR5JACmiWv7 (ten boards, one per tab) and 
   Never hide information behind toggles.
 
 ## Findings
-(none yet)
+- The membership call (POST /api/v1/members) writes a member's name and role together, so a role chosen
+  while the list was still re-reading a new name would have written the old name back. Caught by the
+  settings journey on chunk 3; the row now sends the newest name (AccessPanel.tsx MemberRow), and
+  ControlPanel.test.tsx "never writes an old name back when a role is chosen while the new name is
+  still being read" fails without it.
+- A stepped study budget fell back to its old value between the PUT's answer and the re-read, so
+  the field showed 0,00 after a save that had landed (caught by the settings journey on chunk 4). The
+  row now holds the answered value until the re-read reaches it (StudiesPanel.tsx useAnswered);
+  ControlPanel.test.tsx "keeps a saved budget in its field while the re-read has not caught up" fails
+  without it.
+- Hypothesis (no fix here): the settings journey's "Methodology default height < 4500" grows with
+  each run on the same workbench (4178 on a fresh one; 4502 after several runs), because each run
+  stores and activates a methodology version and the tab lists every version. It passes on
+  `workbench.py up --fresh`; chunk 10 (Metodika) redraws that tab and should settle it.
+- The prompts' Verze table, with its actions in a fifth column, pushed the page wider than 1024 px
+  once a version was saved (caught by proposal_prompt_journey on chunk 5): the actions now stand on a
+  row of their own under each version's facts (SystemPromptsPanel.tsx Versions).
+- Chunk 5 removes Settings' draft test (X10): the web half of system-prompts-settings #14. The web no
+  longer sends `prompt_version` or reads `draft_test_client_ids`, but the server half stays open: the
+  agent-job route still accepts `prompt_version` (AgentJobStart.prompt_version) and the prompt detail
+  still answers `draft_test_client_ids` (SlotDetail). The backend builder removes them under #14 (D-15);
+  until then #14 is not done.
+- A stored version "waits" only when saved after the last switch-on (or with none made): a number above
+  the one in force read a rollback or a reset to the code's wording as waiting (review of #838). The
+  list's summary carries no version date, so the list says a version waits only when nothing was ever
+  switched on (SystemPromptsPanel.tsx waitsForActivation, standing).
+- Deep Research's rules: a proposal "waits" only when saved after the rule's last approval (or with
+  none made). A version approved and then withdrawn to the default read as waiting by number alone
+  (caught by the settings journey on chunk 6); the overview carries no version date, so a rule with a
+  newer number is read once to decide (DeepResearchSettingsPanel.tsx usePending), and until then
+  nothing waits.
+- Chunk 6's "Dosah" reads #844's GET /settings/deep-research/reach: the newest worker's record,
+  waiting first (coral for an administrator only), each reason code in Czech (the server's English
+  detail is technical only); "no worker has recorded" says so and claims nothing reachable; a 404 (the
+  route not deployed yet) still says "V AIA zatím není". "Stáhnout návrh" is wired to
+  #841's POST …/versions/{n}/withdrawal (reason required) and reads each version's `state` when the
+  server sends it; until #841 merges, the route answers 404 and the refusal is said in the modal.
+- Chunk 6 keeps the group list beside the rules (the catalogue has ~40 rules; the design's flat table
+  had 8) and puts the design's columns in each group: Pravidlo, V platnosti, Návrh, Schválení.
+- Chunk 7 lists five activities the settings document does not carry (Lead plans and the run's
+  quality check, not built; population personas, the report PDF and client-source proposals, built).
+  /config does not read their switches, so the built ones read "Stav nevidíme", never on or off. Their
+  state belongs in the settings document's `ai_runtime` (backend follow-up), with their data classes;
+  until then the board has no data-class column, rather than one written by hand.

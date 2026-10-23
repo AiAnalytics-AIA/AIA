@@ -854,20 +854,25 @@ class ScopeRepository:
         now: datetime,
         counts: dict[str, int],
     ) -> None:
-        """What stays of a deleted client: its row and its studies' rows, archived and named by
-        their ids, so the kept ledgers still resolve; every kept audit row of the organization
-        with the client's or a study's name in it reads the id instead. Audited CLIENT_DELETED
-        with the counts, never a name."""
+        """What stays of a deleted client: its row and its studies' rows, archived, named and
+        slugged by their ids, so the kept ledgers still resolve; every kept audit row of the
+        organization with the client's or a study's name in it reads the id instead. Audited
+        CLIENT_DELETED with the counts, never a name."""
         row = self._deletable(admin, client_id)
         studies = self._session.scalars(
             select(StudyRow).where(StudyRow.client_id == client_id)
         ).all()
         names = {row.name: row.client_id} | {s.name: s.study_id for s in studies}
         names = {k: v for k, v in names.items() if k}
+        # A slug is the client's identity too ("acme-corp"), and the client's would keep holding
+        # client_slug_unique against a new client of that name. Each becomes its id, which no
+        # person can choose: a person's slug is lower case (scope.py _validate_slug).
         for study in studies:
             study.name = study.study_id
+            study.slug = study.study_id
             study.status = StudyStatus.ARCHIVED.value
         row.name = row.client_id
+        row.slug = row.client_id
         row.status = ClientStatus.ARCHIVED.value
         row.deleted_at, row.deleted_by = now, admin.actor_id
         audit = self._session.scalars(

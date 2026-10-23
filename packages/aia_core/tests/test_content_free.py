@@ -2,7 +2,10 @@
 
 from __future__ import annotations
 
-from aia_core.domain.content_free import ERASED, content_free, rename
+import ast
+from pathlib import Path
+
+from aia_core.domain.content_free import AUDIT_ACTIONS, ERASED, content_free, rename
 
 
 def test_only_aia_ids_codes_digests_and_times_stay() -> None:
@@ -41,3 +44,36 @@ def test_the_codes_own_single_words_stay_and_a_brand_does_not() -> None:
         "READ",
         ERASED,
     ]
+
+
+def test_a_code_is_kept_by_its_vocabulary_never_by_its_shape() -> None:
+    # Client text in upper snake case is still client text.
+    assert content_free(["ACME_SECRET", "CLIENT_DELETED", "CLASS_B_DERIVED_CLIENT"]) == [
+        ERASED,
+        "CLIENT_DELETED",
+        "CLASS_B_DERIVED_CLIENT",
+    ]
+
+
+def test_every_audit_action_the_code_writes_is_a_kept_code() -> None:
+    root = Path(__file__).resolve().parents[3]
+    written: set[str] = set()
+    for tree in ("packages/aia_core/src", "apps/api/src", "apps/worker/src", "apps/executors/src"):
+        for path in (root / tree).rglob("*.py"):
+            for node in ast.walk(ast.parse(path.read_text(encoding="utf-8"))):
+                if not isinstance(node, ast.Call):
+                    continue
+                func = node.func
+                name = func.attr if isinstance(func, ast.Attribute) else getattr(func, "id", "")
+                values = [kw.value for kw in node.keywords if kw.arg == "action"]
+                if name.endswith("_audit") and node.args:
+                    values += [a for a in node.args if isinstance(a, ast.Constant)]
+                for v in values:
+                    if (
+                        isinstance(v, ast.Constant)
+                        and isinstance(v.value, str)
+                        and v.value.isupper()
+                    ):
+                        written.add(v.value)
+    assert written, "the scan found no audit action"
+    assert written <= AUDIT_ACTIONS, sorted(written - AUDIT_ACTIONS)

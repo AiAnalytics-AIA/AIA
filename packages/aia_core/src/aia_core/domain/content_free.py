@@ -15,10 +15,11 @@ from typing import Any, Final
 
 from .client_sources import ReadingOutcome, SourceFamily, SourceOrigin
 from .knowledge import KnowledgeAuthor, KnowledgeDecision, KnowledgeKind
+from .residency import DataClass
 from .scope import ClientStatus, OrganizationRole, StudyKind, StudyStatus
 from .workflow import AttemptStatus, ReservationStatus, StepRunStatus, WorkflowRunStatus
 
-__all__ = ["ERASED", "ID_PREFIXES", "content_free", "rename"]
+__all__ = ["AUDIT_ACTIONS", "ERASED", "ID_PREFIXES", "content_free", "rename"]
 
 ERASED: Final = "erased"
 
@@ -33,10 +34,34 @@ ID_PREFIXES: Final = frozenset(
     }
 )  # fmt: skip
 _ID: Final = re.compile(r"^(?P<prefix>[A-Z]{2,5})-[0-9A-Za-z]{4,64}$")
-#: An enumerated code: upper case with at least one underscore (MEMBER_ADDED, CLASS_C_...),
-#: or a single word that is one of the code's own vocabularies (ARCHIVED, ADMIN, READ); any
-#: other single upper-case word ("SKODA") is text.
-_CODE: Final = re.compile(r"^[A-Z][A-Z0-9]*(?:_[A-Z0-9]+)+$")
+#: The codes an audit row is written under (``access_audit.action``); one inside a payload is
+#: the code's word, not the client's. Held to the repositories' ``action=`` literals by
+#: test_content_free.py::test_every_audit_action_the_code_writes_is_a_kept_code.
+AUDIT_ACTIONS: Final = frozenset(
+    {
+        "AIA_SESSION", "AIA_SESSION_DENIED", "CLIENT_BUDGET_CHANGED", "CLIENT_CONTACT_ADDED",
+        "CLIENT_CONTACT_CHANGED", "CLIENT_CONTACT_REMOVED", "CLIENT_CREATED", "CLIENT_DELETED",
+        "CLIENT_DELETION_OBJECTS", "CLIENT_KNOWLEDGE_AUTHORED", "CLIENT_KNOWLEDGE_DECIDED",
+        "CLIENT_KNOWLEDGE_FOLDER_CREATED", "CLIENT_KNOWLEDGE_FOLDER_DELETED",
+        "CLIENT_KNOWLEDGE_FOLDER_RENAMED", "CLIENT_KNOWLEDGE_LABEL_CHANGED",
+        "CLIENT_KNOWLEDGE_LABEL_CREATED", "CLIENT_KNOWLEDGE_LABEL_DELETED",
+        "CLIENT_KNOWLEDGE_ORGANIZED", "CLIENT_KNOWLEDGE_SELECTED", "CLIENT_KNOWLEDGE_UNSELECTED",
+        "CLIENT_PROFILE_CHANGED", "CLIENT_SOURCE_ADDED", "CLIENT_SOURCE_MARKED_INTERNAL",
+        "CLIENT_SOURCE_REREAD", "CLIENT_SOURCE_UNMARKED_INTERNAL", "CLIENT_STATUS_CHANGED",
+        "DR_SETTING_APPROVED", "DR_SETTING_PROPOSED", "DR_SETTING_WITHDRAWN",
+        "DR_TEST_POLICY_APPROVED", "DR_TEST_POLICY_PROPOSED", "DR_TEST_POLICY_WITHDRAWN",
+        "IDENTITY_SUBJECT_CLEARED", "LEAD_ERASED", "LEAD_SEALED", "LEAD_UNSEALED", "MEMBER_ADDED",
+        "MEMBER_DEACTIVATED", "MEMBER_REACTIVATED", "MEMBER_ROLE_DENIED", "METHODOLOGIST_GRANTED",
+        "METHODOLOGIST_REVOKED", "METHODOLOGY_ACTIVATED", "METHODOLOGY_PROPOSED",
+        "METHODOLOGY_RESET", "ORGANIZATION_CREATED", "PERMISSION_DENIED", "PROMPT_ACTIVATED",
+        "PROMPT_RESET_TO_BASELINE", "PROMPT_VERSION_CREATED", "RESEARCH_LEAD_PREFERENCES_SET",
+        "SELF_APPROVAL_CONFIGURED", "STUDY_BUDGET_CHANGED", "STUDY_CREATED",
+        "STUDY_SPEND_CONFIRM_CHANGED", "STUDY_STATUS_CHANGED", "USER_DEACTIVATED",
+        "WORKSPACE_MIGRATED",
+    }
+)  # fmt: skip
+#: A kept code is a value of one of the code's own vocabularies (ARCHIVED, ADMIN, READ,
+#: CLIENT_DELETED); a string's shape decides nothing: "ACME_SECRET" and "SKODA" are text.
 _ENUMS: Final[tuple[type[StrEnum], ...]] = (
     ClientStatus,
     OrganizationRole,
@@ -52,8 +77,9 @@ _ENUMS: Final[tuple[type[StrEnum], ...]] = (
     KnowledgeAuthor,
     KnowledgeDecision,
     KnowledgeKind,
+    DataClass,
 )
-_WORDS: Final = frozenset(m.value for e in _ENUMS for m in e)
+_WORDS: Final = frozenset(m.value for e in _ENUMS for m in e) | AUDIT_ACTIONS
 _DIGEST: Final = re.compile(r"^[0-9a-f]{12,128}$")
 _TIME: Final = re.compile(r"^\d{4}-\d{2}-\d{2}(?:[T ][0-9:.]+(?:Z|[+-]\d{2}:?\d{2})?)?$")
 #: A name shorter than this is not searched for inside other text: "S" is in every id.
@@ -64,7 +90,7 @@ def _kept(text: str) -> bool:
     m = _ID.match(text)
     if m and m.group("prefix") in ID_PREFIXES:
         return True
-    return bool(text in _WORDS or _CODE.match(text) or _DIGEST.match(text) or _TIME.match(text))
+    return bool(text in _WORDS or _DIGEST.match(text) or _TIME.match(text))
 
 
 def rename(value: Any, names: Mapping[str, str]) -> Any:

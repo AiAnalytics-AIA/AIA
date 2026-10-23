@@ -32,6 +32,7 @@ from aia_core.infrastructure.client_source_repository import (
     count_client_sources,
 )
 from aia_core.infrastructure.repositories import client_projects
+from aia_core.infrastructure.scope_repository import ScopeRepository
 from aia_core.infrastructure.storage import ObjectNotFound
 from aia_core.infrastructure.study_lead_repository import erase_client_lead_turns
 from aia_core.infrastructure.study_wallet_repository import StudyWalletRepository
@@ -110,6 +111,7 @@ def test_a_deleted_client_leaves_its_ledgers_and_nothing_else(
         study.name = "Fiktivní studie Alfa"  # the world's "S" is in every id
         client = session.get(ClientRow, world.client_id)
         study_name, client_name = study.name, client.name
+        client_slug = client.slug
         keys = list(session.scalars(select(ProjectArtifactRow.storage_key)))
         usage_before = len(session.scalars(select(AIUsageEventRow)).all())
         charges_before = len(session.scalars(select(StudyWalletChargeRow)).all())
@@ -152,6 +154,14 @@ def test_a_deleted_client_leaves_its_ledgers_and_nothing_else(
         tomb = session.get(ClientRow, world.client_id)
         assert tomb.name == world.client_id and tomb.deleted_at is not None
         assert session.get(StudyRow, world.study_id).name == world.study_id
+        # The slugs are the client's identity too: each is its id, and the client's frees
+        # client_slug_unique, so a new client takes the old slug.
+        assert tomb.slug == world.client_id
+        assert session.get(StudyRow, world.study_id).slug == world.study_id
+        again_named = ScopeRepository(session).create_client(
+            world.admin_context(session), slug=client_slug, name="Nový klient"
+        )
+        assert again_named.slug == client_slug and again_named.client_id != world.client_id
         audit = session.scalars(select(AccessAuditRow)).all()
         leaks = [
             (a.action, a.payload)

@@ -109,7 +109,7 @@ it("a job reaching the confirmation threshold starts only on the person's yes, c
   render(<Confirming answer />); fireEvent.click(screen.getByText("Run"));
   await screen.findByRole("dialog");
   expect(asked).toHaveLength(1); expect(asked[0]).toContain("Práh potvrzení");
-  expect(vi.mocked(researchAgents.start).mock.calls.map((c) => c[5])).toEqual([undefined, 2]);
+  expect(vi.mocked(researchAgents.start).mock.calls.map((c) => c[4])).toEqual([undefined, 2]);
 });
 
 it("a no to the threshold starts nothing and says why", async () => {
@@ -127,7 +127,7 @@ it("freezes a Study revision naming its working revision, follows the job, and w
   await screen.findByRole("dialog");
   expect(research.submitDesign).toHaveBeenCalledWith("STU-1", { goal: "Original" }, "brief", 3);
   // No confirmation is sent unless the server asks for one (LO15).
-  expect(researchAgents.start).toHaveBeenCalledWith("STU-1", "REV-1", "analyze_brief", "", undefined, undefined);
+  expect(researchAgents.start).toHaveBeenCalledWith("STU-1", "REV-1", "analyze_brief", "", undefined);
   expect(researchAgents.accept).not.toHaveBeenCalled(); expect(project).toEqual({ goal: "Original" });
   fireEvent.click(screen.getByText("Použít návrh"));
   await waitFor(() => expect(reload).toHaveBeenCalledOnce());
