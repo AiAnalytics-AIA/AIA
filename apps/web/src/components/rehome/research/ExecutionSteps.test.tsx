@@ -32,13 +32,6 @@ vi.mock("./AskLead", async (importOriginal) => {
   return { ...actual, useLeadOwnsAiStarts: () => layout.workbench ?? actual.useLeadOwnsAiStarts() };
 });
 
-/** Approval asks first, naming the version (input-interactions B22); answer yes. */
-async function confirmApproval(version?: string): Promise<void> {
-  const dialog = await screen.findByRole("dialog");
-  if (version) expect(dialog.textContent).toContain(`uloženou verzi ${version} (`);
-  fireEvent.click(within(dialog).getByRole("button", { name: t("research.exec.report.approveAsk.yes") }));
-}
-
 /** An approval made in the document pane's doc bar (RPT3a), as the pane announces it. */
 function approvedInPane(d: Partial<ReportApproved> & Pick<ReportApproved, "kind" | "artifactId">): void {
   const detail: ReportApproved = { runId: "RUN-1", reviewState: "APPROVED_INTERNAL", approvedOn: null, stamped: null, ...d };

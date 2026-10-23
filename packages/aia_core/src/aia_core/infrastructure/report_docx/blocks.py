@@ -60,6 +60,7 @@ from aia_core.infrastructure.report_docx.ooxml import (
     full_width,
     header_row,
     keep_row,
+    locked,
     locked_inline,
     notes_row,
 )
@@ -185,7 +186,8 @@ def render_heading(ctx: RenderContext, container: Container, block: Heading) -> 
 def render_paragraph(ctx: RenderContext, container: Container, block: Paragraph) -> None:
     style = {ParagraphRole.LEDE: S.LEDE, ParagraphRole.LEAD_IN: S.LEAD_IN}.get(block.role, S.BODY)
     paragraph = container.add_paragraph(style=style)
-    write_inlines(ctx, paragraph, block.content)
+    with locked(paragraph, block.control):
+        write_inlines(ctx, paragraph, block.content)
     # One mark per grade, rather than a row of identical marks for every number.
     grades = dict.fromkeys(ctx.ledger.grade(ref) for ref in block.refs)
     for grade in grades:
@@ -221,7 +223,9 @@ def render_callout(ctx: RenderContext, container: Container, block: Callout) -> 
     if block.kind is CalloutKind.METHOD:
         container.add_paragraph(method_status_text(ctx.report.meta.method_status), style=S.CALLOUT)
     if block.content:
-        write_inlines(ctx, container.add_paragraph(style=S.CALLOUT), block.content)
+        body = container.add_paragraph(style=S.CALLOUT)
+        with locked(body, block.control):
+            write_inlines(ctx, body, block.content)
 
 
 # ---------------------------------------------------------------------- lists and quotes
