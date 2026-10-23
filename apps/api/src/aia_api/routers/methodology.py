@@ -284,8 +284,10 @@ class InForceOut(_Strict):
 
 class VersionsOut(_Strict):
     in_force: InForceOut
-    #: Whether the caller may propose and activate (an organization OWNER or ADMIN).
+    #: Whether the caller is an organization OWNER or ADMIN.
     may_administer: bool
+    #: Whether the caller may store and activate versions: the Metodik mark (D-14).
+    may_edit: bool
     #: Each code preset's whole specification, by name: what an edit starts from.
     presets: dict[str, dict[str, Any]]
     versions: list[VersionOut]
@@ -783,8 +785,10 @@ def _refused(exc: ScopeDenied | MethodologyRefused) -> HTTPException:
         return HTTPException(
             status_code=403,
             detail={
-                "code": "insufficient_role",
-                "message": "Changing the methodology requires an organization OWNER or ADMIN.",
+                "code": exc.reason
+                if exc.reason == "methodologist_required"
+                else "insufficient_role",
+                "message": "Storing or activating a methodology requires the Metodik mark.",
                 "details": {"reason": exc.reason},
             },
         )
@@ -919,6 +923,7 @@ def read_versions(module_id: ModuleId, org: OrganizationDep, session: SessionDep
         return VersionsOut(
             in_force=_in_force(reader.in_force(module_id)),
             may_administer=org.may_administer,
+            may_edit=org.methodologist,
             presets=_presets(module_id),
             versions=[_version(v) for v in reader.versions(module_id)],
             history=[_activation(a) for a in reader.history(module_id)],
