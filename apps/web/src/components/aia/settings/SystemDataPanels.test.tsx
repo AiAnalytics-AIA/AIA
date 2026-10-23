@@ -135,6 +135,25 @@ describe("Správa dat", () => {
     });
   };
 
+  it("offers a few clients as a segmented bar and more as a select, never a bar of every client (review of #870)", async () => {
+    fake({ "GET /api/v1/settings/kept-records": () => [] });
+    const client = (i: number) => ({ client_id: `CLI-${i}`, slug: `c${i}`, name: `Klient ${i}`, status: "ACTIVE", reference: "", study_count: 0, created_at: null });
+    const five = { ok: true as const, data: [1, 2, 3, 4, 5].map(client) };
+    const { unmount } = render(<DataPanel mayAdminister clients={five} reload={() => {}} />);
+    const bar = await screen.findByRole("radiogroup", { name: "Klient" });
+    expect(within(bar).getAllByRole("radio")).toHaveLength(5);
+    expect(screen.queryByRole("combobox")).toBeNull();
+    unmount();
+    const thirty = { ok: true as const, data: Array.from({ length: 30 }, (_, i) => client(i + 1)) };
+    render(<DataPanel mayAdminister clients={thirty} reload={() => {}} />);
+    const pick = await screen.findByRole("combobox", { name: "Klient" });
+    expect(screen.queryByRole("radiogroup", { name: "Klient" })).toBeNull();
+    expect(within(pick).getAllByRole("option")).toHaveLength(31);
+    expect((screen.getByRole("button", { name: "Smazat klienta…" }) as HTMLButtonElement).disabled).toBe(true);
+    fireEvent.change(pick, { target: { value: "CLI-17" } });
+    expect(screen.getByRole("button", { name: "Smazat klienta Klient 17…" })).toBeTruthy();
+  });
+
   it("shows what is deleted and what stays, unknown as nezjištěno, and deletes only once acknowledged, with the server's token", async () => {
     fake({
       "POST /api/v1/clients/CLI-a/deletion": () => PREVIEW,

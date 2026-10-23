@@ -14,7 +14,7 @@ import { t, tv } from "@/i18n/t";
 import { type AdminClient, ApiError, type ClientDeletionPreview, type KeptRecord, clientDeletion } from "@/lib/api";
 import { ConfirmDialog } from "../../ui/ConfirmDialog";
 import { Switch } from "../../ui/Switch";
-import { Button } from "../../rehome/ui";
+import { Button, Select } from "../../rehome/ui";
 import { ChoiceChips } from "../../ui/ChoiceChips";
 import { describeError } from "./errors";
 
@@ -96,9 +96,17 @@ function ClientDelete({ clients, reload }: { clients: Part<AdminClient[]>; reloa
       {notYet ? <NotYetChip /> : <>
         {!clients.ok ? <p role="alert" className="mt-2 text-sm text-status-fault">{clients.message}</p> : !list.length ? <p className="mt-2 text-sm text-ink-muted">{t(`${D}.noClients`)}</p> : (
           <div className="mt-3 flex flex-wrap items-center gap-3">
-            {/* The client as one segmented bar, as the prototype draws it; nothing chosen at first. */}
+            {/* A few clients as one segmented bar, as the prototype draws it; more as a select, since the
+                list is unbounded and a bar of thirty is thirty rows on a phone (review of #870). */}
             <span className="text-xs text-ink-muted" aria-hidden="true">{t(`${D}.client`)}</span>
-            <ChoiceChips look="segmented" label={t(`${D}.client`)} value={chosen} options={list.map((c) => ({ key: c.client_id, label: c.name }))} onChange={setChosen} />
+            {list.length <= SEGMENTED_MAX ? (
+              <ChoiceChips look="segmented" label={t(`${D}.client`)} value={chosen} options={list.map((c) => ({ key: c.client_id, label: c.name }))} onChange={setChosen} />
+            ) : (
+              <Select aria-label={t(`${D}.client`)} value={chosen ?? ""} onChange={(e) => setChosen(e.target.value || null)} className="min-w-56">
+                <option value="">{t(`${D}.chooseClient`)}</option>
+                {list.map((c) => <option key={c.client_id} value={c.client_id}>{c.name}</option>)}
+              </Select>
+            )}
             <Button disabled={!chosen || busy} onClick={() => chosen && void open(chosen)}>{(() => { const name = list.find((c) => c.client_id === chosen)?.name; return name ? tv(`${D}.deleteThis`, { name }) : t(`${D}.deleteNone`); })()}</Button>
           </div>
         )}
@@ -168,6 +176,9 @@ function KeptRecords({ version }: { version: number }) {
   );
 }
 
+
+/** Up to this many clients the picker is the segmented bar; beyond it, a select. */
+const SEGMENTED_MAX = 5;
 export function DataPanel({ mayAdminister, clients, reload }: { mayAdminister: boolean; clients: Part<AdminClient[]>; reload: () => void }) {
   const [kept, setKept] = useState(0);
   if (!mayAdminister) return <section className={CARD}><p className="text-sm text-ink-muted">{t(`${D}.adminOnly`)}</p></section>;

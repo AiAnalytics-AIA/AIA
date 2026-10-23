@@ -1603,6 +1603,7 @@ export const cs = {
           clientDeleteHelp: "Vyberte klienta a zkontrolujte, co se smaže a co zůstane; smazání se potvrzuje a zapíše do auditu.",
           noClients: "Žádný klient ke smazání.",
           client: "Klient",
+          chooseClient: "Vyberte klienta…",
           deleteThis: "Smazat klienta {name}…",
           deleteNone: "Smazat klienta…",
           dialogTitle: "Smazat klienta {name}?",
