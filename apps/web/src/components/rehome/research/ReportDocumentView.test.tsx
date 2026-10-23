@@ -21,7 +21,7 @@ import { TEST_FRAME } from "./test-frame";
 
 vi.mock("@/lib/api", async () => ({
   ApiError: (await vi.importActual<typeof import("@/lib/api")>("@/lib/api")).ApiError,
-  research: { reportDocument: vi.fn(), clientReportDocument: vi.fn(), prepareClientReport: vi.fn(), approveReport: vi.fn(), report: vi.fn() },
+  research: { reportDocument: vi.fn(), clientReportDocument: vi.fn(), prepareClientReport: vi.fn(), approveReport: vi.fn(), report: vi.fn(), openReportEditor: vi.fn() },
   deepResearch: { runs: vi.fn(), contextReport: vi.fn(), contextReportDocument: vi.fn(), prepareContextReport: vi.fn() },
 }));
 
@@ -45,11 +45,13 @@ beforeEach(() => {
   // No literature review by default: the pane offers the reports a run has.
   vi.mocked(deepResearch.runs).mockResolvedValue([]);
   vi.mocked(research.report).mockResolvedValue({ artifact_id: "ART-docx", pdf: { state: "NOT_REQUESTED" }, approval_renders_pdf: false } as never);
+  // The report editor off (AIA_ONLYOFFICE_URL unset, the default): the read-only draft is the pane.
+  vi.mocked(research.openReportEditor).mockRejectedValue(new ApiError(404, "not_found", "No such resource.", null));
 });
 
 afterEach(() => {
   cleanup();
-  for (const f of [research.reportDocument, research.clientReportDocument, research.prepareClientReport, research.approveReport, research.report,
+  for (const f of [research.reportDocument, research.clientReportDocument, research.prepareClientReport, research.approveReport, research.report, research.openReportEditor,
     deepResearch.runs, deepResearch.contextReport, deepResearch.contextReportDocument, deepResearch.prepareContextReport]) vi.mocked(f).mockReset();
 });
 

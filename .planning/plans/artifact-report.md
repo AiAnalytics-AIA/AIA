@@ -488,6 +488,19 @@ PDF is ready, `approval_asks_pdf`); one whose footers changed is served as saved
   the callback with a fictional edited DOCX), zero paid jobs. A real Document Server is checked once on develop after
   activation.
 
+*RPT8d, part 1 (`feature/report-editor-pane`), the editor in the pane:* `ReportDocumentView` hands the internal draft and the
+report with literature to `ReportEditor` (the client report is never edited), which opens them through
+`POST …/report/editor` (`research.openReportEditor`; mode `edit` from 768 px, `view` below, followed as the width
+changes) and mounts `DocsAPI.DocEditor` from the api.js of the origin the API named (`lib/report-editor.ts`
+`apiScriptUrl`: https alone, its origin alone; loaded once per page) with the config the API signed. A 404 (the editor
+off) is the read-only draft, saying nothing, as before; a refusal is said in words beside it; a script that does not
+load, an editor error or no `onAppReady` within `EDITOR_TIMEOUT_MS` (20 s) leaves the read-only draft and says so
+(`UNREACHABLE`), the editor destroyed. The line's last failed save (`problem`) is said in words (`problemWords`). Found
+while building it: AIA's pages send no Content-Security-Policy (`next.config.ts` and the Caddyfile's product site set
+none), so the CSP the chunk names has nothing to add the editor's origin to; a CSP for the product is its own work, not
+started here. While the editor is open the read-only draft, and the `report:` targets the Lead focuses, is not on the
+page: the Lead in the document is RPT9. Tests: `report-editor.test.ts`, `ReportEditor.test.tsx`.
+
 Order: F1 (its own small PR) → RPT8a part 3 → RPT8b → RPT8c → RPT8d → RD0's change → activation (infra: the
 editor's own domain, its Caddy site without the docs gate, Route 53, SSM, the flag) → RPT9.
 

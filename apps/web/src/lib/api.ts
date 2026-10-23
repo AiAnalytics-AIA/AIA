@@ -7,6 +7,7 @@
 import type { RegisterEntry } from "@/lib/object-map-view";
 import type { BriefMaterials } from "@/lib/material-class";
 import type { Approval, StoredReportDocument } from "@/lib/artifacts/report";
+import type { EditorMode, EditorOpened } from "@/lib/report-editor";
 import { currentIdToken, loadConfig } from "@/lib/auth";
 import type { EditDecisionResult, LeadPreferences, LeadState, LeadTurn, RequestApproval, ResearcherLead, SelfUpdateDecision } from "@/lib/lead";
 import type { OmittedPage, TurnManifest } from "@/lib/lead-manifest";
@@ -1400,6 +1401,13 @@ export const research = {
     request<ResearchAnalysis>("GET", `${studyPath(studyId)}/research/runs/${enc(runId)}/analysis`),
   report: (studyId: string, runId: string) =>
     request<ResearchReport>("GET", `${studyPath(studyId)}/research/runs/${enc(runId)}/report`),
+  /** The report opened in the editor (artifact-report RPT8c/RPT8d): the line asked for or the newest
+   *  one, and the config the API signed for this person; 404 while the editor is off. */
+  openReportEditor: (
+    studyId: string,
+    runId: string,
+    body: { variant: "internal" | "context"; deep_research_run_id?: string | null; line?: string | null; mode: EditorMode },
+  ) => request<EditorOpened>("POST", `${studyPath(studyId)}/research/runs/${enc(runId)}/report/editor`, body),
   /** The run's internal draft as its stored document model, beside the DOCX it names (report-delivery RD5a). */
   reportDocument: (studyId: string, runId: string) =>
     request<StoredReportDocument>("GET", `${studyPath(studyId)}/research/runs/${enc(runId)}/report/document`),
