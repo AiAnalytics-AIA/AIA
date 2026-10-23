@@ -749,17 +749,25 @@ describe("the settings tabs", () => {
   });
 
   it("opens Stav systému and Správa dat as their own tabs, saying plainly what AIA does not have yet", async () => {
-    api();
+    // Their routes not deployed: a 404 each.
+    const none = () => new Response('{"code":"http_404","message":"Not Found"}', { status: 404 });
+    api({ "GET /api/v1/settings/system-status": none, "GET /api/v1/settings/error-tracking": none, "GET /api/v1/settings/kept-records": none });
     render(<ControlPanel />);
     await screen.findByRole("tablist");
+    // Not read until their tab is first opened: opening Settings fires no GlitchTip read (review of #854).
+    await screen.findByText("Prostředí");
+    for (const route of ["/api/v1/settings/system-status", "/api/v1/settings/error-tracking", "/api/v1/settings/kept-records"]) expect(called("GET", route)).toEqual([]);
     fireEvent.click(tab("Stav systému"));
+    await waitFor(() => expect(called("GET", "/api/v1/settings/error-tracking")).toHaveLength(1));
+    expect(called("GET", "/api/v1/settings/kept-records")).toEqual([]);
     expect(panelOf("Stav systému").hidden).toBe(false);
     expect(within(panelOf("Stav systému")).getByRole("heading", { name: "Připravenost po nasazení" })).toBeTruthy();
     expect(within(panelOf("Stav systému")).getByRole("heading", { name: "Hlášení chyb" })).toBeTruthy();
-    expect(within(panelOf("Stav systému")).getAllByText("V AIA zatím není").length).toBeGreaterThan(0);
+    expect((await within(panelOf("Stav systému")).findAllByText("V AIA zatím není")).length).toBe(2);
     fireEvent.click(tab("Správa dat"));
     expect(within(panelOf("Správa dat")).getByRole("heading", { name: "Smazat klienta" })).toBeTruthy();
     expect(within(panelOf("Správa dat")).getByRole("heading", { name: "Uchovávané záznamy" })).toBeTruthy();
+    expect(await within(panelOf("Správa dat")).findByText("V AIA zatím není")).toBeTruthy();
     expect(window.location.hash).toBe("#data");
   });
 

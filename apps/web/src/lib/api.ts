@@ -1916,6 +1916,45 @@ export type DeepResearchReach = {
   missing_for_live: string[]; routes: ReachRoute[];
 };
 
+/** Stav systému (#839): the deployment's latest smoke run and GlitchTip's state; OWNER or ADMIN. */
+export type SmokeCheckStatus = "ok" | "FAIL" | "NOT_RUNNABLE";
+export type SystemStatus = {
+  latest: { run_id: string; build_sha: string; ran_at: string; all_ok: boolean; failed: number; not_runnable: number; checks: { check: string; status: SmokeCheckStatus }[] } | null;
+};
+export type ErrorTracking = {
+  /** false: no read token yet; said so, never as an error. */
+  configured: boolean; dashboard_url: string | null; project: string | null; project_url: string | null;
+  alerts: { name: string; quantity: number | null; timespan_minutes: number | null; recipients: number }[];
+  /** is_up null: GlitchTip did not say; never read as up. */
+  uptime: { name: string; is_up: boolean | null; last_change: string | null }[];
+  /** false: monitoring is off in GlitchTip; null: not read. */
+  uptime_enabled: boolean | null;
+  issues_7d: { title: string; culprit: string | null; count: number | null; last_seen: string | null; url: string | null }[];
+  error: string | null;
+};
+export const settingsStatus = {
+  system: () => request<SystemStatus>("GET", "/api/v1/settings/system-status"),
+  errorTracking: () => request<ErrorTracking>("GET", "/api/v1/settings/error-tracking"),
+};
+
+/** Správa dat (#850): a client's deletion, OWNER or ADMIN. */
+export type ClientDeletionPreview = {
+  client_id: string; name: string; status: string;
+  deleted: Partial<Record<"studies" | "working_revisions" | "knowledge_items" | "sources" | "files" | "runs" | "artifacts", number>>;
+  kept: Partial<Record<"usage_rows" | "approval_rows" | "audit_rows", number>>;
+  /** Not deleted until SDL2; null: not counted, never 0. */
+  remains_until_sdl2: { population_children?: number | null; replaced_source_readings?: number | null };
+  confirm_token: string; expires_at: string;
+};
+export type KeptRecord = { record: string; count: number; kept_for: string; why: string };
+export const clientDeletion = {
+  /** Issues the one-time confirmation (ten minutes, this person only). */
+  preview: (clientId: string) => request<ClientDeletionPreview>("POST", `/api/v1/clients/${enc(clientId)}/deletion`),
+  remove: (clientId: string, confirmToken: string) =>
+    request<{ client_id: string; already_deleted: boolean; deleted: Record<string, number>; objects_deleted: number; objects_failed: number }>("DELETE", `/api/v1/clients/${enc(clientId)}`, { confirm_token: confirmToken }),
+  kept: () => request<KeptRecord[]>("GET", "/api/v1/settings/kept-records"),
+};
+
 export const deepResearchSettings = {
   reach: () => request<DeepResearchReach>("GET", "/api/v1/settings/deep-research/reach"),
   list: () => request<DrSettingsOverview>("GET", DR_SETTINGS),
