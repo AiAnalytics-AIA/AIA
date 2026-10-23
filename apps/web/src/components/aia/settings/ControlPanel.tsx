@@ -838,9 +838,12 @@ const DeepResearchSection = memo(function DeepResearchSection({ items, members }
   );
 });
 
-export function ControlPanel({ footer, me }: { footer?: ReactNode; me?: Resource<Me> } = {}) {
+export function ControlPanel({ footer, me, rereadMe }: { footer?: ReactNode; me?: Resource<Me>; rereadMe?: () => void } = {}) {
   const passed = me !== undefined;
-  const [res, retry] = useResource(() => loadPanel(!passed), [passed]);
+  const [res, reloadPanel] = useResource(() => loadPanel(!passed), [passed]);
+  // A change in the panel may be your own (your role, your Metodik mark): who you are is read again
+  // with it, or the heads keep the old answer (review of #870). The read keeps its value meanwhile.
+  const retry = () => { reloadPanel(); if (passed) rereadMe?.(); };
   // The page is edge to edge (AppShell bleed); a loading or failed read keeps the content's gutter,
   // and the page keeps its one heading in every state.
   if (res.state !== "ready") {

@@ -944,6 +944,21 @@ describe("what powers AIA", () => {
     expect(called("GET", "/api/v1/workspace/me")).toHaveLength(1);
   });
 
+  it("on the Settings page, your own Metodik mark changed in Přístup changes the Metodika head at once (review of #870)", async () => {
+    let marked = false;
+    api({
+      "GET /api/v1/workspace/me": () => ({ user_id: "USR-1", email: "owner@example.test", organization_role: "OWNER", may_administer: true, methodologist: marked }),
+      "GET /api/v1/members": () => [{ user_id: "USR-1", email: "owner@example.test", display_name: "Petr", is_active: true, organization_role: "OWNER", methodologist: marked }],
+      "PUT /api/v1/members/USR-1/methodologist": (body) => { marked = (body as { methodologist: boolean }).methodologist; return { user_id: "USR-1", email: "owner@example.test", display_name: "Petr", is_active: true, organization_role: "OWNER", methodologist: marked }; },
+    });
+    render(<SettingsPage />);
+    const head = () => panelOf("Metodika").querySelector("[data-tab-chips]") as HTMLElement;
+    await waitFor(() => expect(within(head()).getByText("Upravuje jen Metodik")).toBeTruthy());
+    fireEvent.click(tab("Přístup a schvalování"));
+    fireEvent.click(await within(panelOf("Přístup a schvalování")).findByRole("switch", { name: "Štítek Metodik: owner@example.test" }));
+    await waitFor(() => expect(within(head()).getByText("Vy: Metodik · můžete upravovat")).toBeTruthy());
+  });
+
   it("keeps one h1 while the settings load and after a failed read", async () => {
     api({ "GET /api/v1/settings": () => new Response('{"code":"internal","message":"Neznámá chyba."}', { status: 500 }) });
     render(<SettingsPage />);
