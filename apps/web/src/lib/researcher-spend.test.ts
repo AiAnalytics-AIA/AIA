@@ -4,7 +4,7 @@
 import { describe, expect, it } from "vitest";
 
 import type { ActivitySpend, PersonSpend, ResearcherSpend } from "./api";
-import { activityBar, isSpendReport, nearLimit, overall, parts, personLabel, reservedLine, shareOf, studyCount, totalLine, usd } from "./researcher-spend";
+import { activityBar, isSpendReport, nearLimit, overall, parts, personLabel, reservedLine, shareOf, studyCount, totalLine, usd, nearLimitTally, nearLimitWords } from "./researcher-spend";
 
 const fig = (total: number, uncertain = 0, reserved = 0) => ({
   model_usd: total, outside_ledger_usd: 0, total_usd: total, reserved_usd: reserved, uncertain_calls: uncertain,
@@ -120,5 +120,15 @@ describe("the redesign's figures (settings-redesign 4)", () => {
     // A zero budget that has nothing spent is not near anything; one with spend is.
     expect(nearLimit({ budget_usd: 0, spent_usd: 0 })).toBe(false);
     expect(nearLimit({ budget_usd: 0, spent_usd: 1 })).toBe(true);
+  });
+});
+
+describe("nearLimitTally / nearLimitWords", () => {
+  it("never reads 0 when a study's costs are unknown", () => {
+    const ok = (budget_usd: number | null, spent_usd: number | null) => ({ ok: true as const, data: { budget_usd, spent_usd } });
+    expect(nearLimitWords(nearLimitTally([ok(100, 10), ok(100, 50)]))).toBe("0");
+    expect(nearLimitWords(nearLimitTally([ok(100, 10), { ok: false }]))).toBe("neznámo");
+    expect(nearLimitWords(nearLimitTally([ok(100, 95), ok(null, null)]))).toBe("≥ 1");
+    expect(nearLimitTally([ok(100, 95), { ok: false }, ok(null, null)])).toEqual({ near: 1, unknown: 2 });
   });
 });

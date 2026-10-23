@@ -33,7 +33,7 @@ import {
   admin,
 } from "@/lib/api";
 import { appRoutes } from "@/lib/app-routes";
-import { nearLimit } from "@/lib/researcher-spend";
+import { nearLimitTally } from "@/lib/researcher-spend";
 import { ClientsCard, MembersCard, SelfApprovalCard } from "./AccessPanel";
 import { describeMemberError } from "./errors";
 import { DeepResearchSettingsPanel } from "./DeepResearchSettingsPanel";
@@ -579,7 +579,7 @@ function PanelView({ panel, reload }: { panel: Panel; reload: () => void }) {
     access: <MembersCard members={members} vocab={vocab} canAdminister={doc.may_administer} yourRole={doc.your_role} reload={reload} />,
     studies: (
       <>
-        <ResearcherSpendCard nearLimitCount={studies.ok ? studies.data.filter(({ detail }) => detail.ok && nearLimit(detail.data)).length : null} />
+        <ResearcherSpendCard nearLimitCount={studies.ok ? nearLimitTally(studies.data.map(({ detail }) => detail)) : null} />
         <StudiesTable studies={studies} clients={clients} vocab={vocab} reload={reload} />
       </>
     ),
