@@ -30,21 +30,21 @@ import {
   type SettingsDocument,
   type Study,
   type Vocabularies,
-  ApiError,
   Unauthenticated,
   admin,
 } from "@/lib/api";
 import { appRoutes } from "@/lib/app-routes";
-import { describeError } from "./errors";
+import { ClientsCard, MembersCard, SelfApprovalCard } from "./AccessPanel";
+import { describeMemberError } from "./errors";
 import { DeepResearchSettingsPanel } from "./DeepResearchSettingsPanel";
 import { MethodologyPanel } from "./MethodologyPanel";
 import { ResearcherSpendCard } from "./ResearcherSpendCard";
 import { SETTING_HELP, TAB_GUIDE } from "./settings-guide";
 import { SystemPromptsPanel } from "./SystemPromptsPanel";
-import { Technical, TechnicalProvider, TechnicalSwitch, useTechnical, useTechnicalChoice } from "./technical";
+import { Technical, TechnicalProvider, TechnicalSwitch, useTechnicalChoice } from "./technical";
 import { Activity, BookOpen, Cpu, Database, History, type LucideIcon, ScrollText, Sigma, Telescope, Users, Wallet } from "lucide-react";
 import { Icon, type IconName } from "../../rehome/icons";
-import { Button, Chip, Field, Select, Tag, TextInput } from "../../rehome/ui";
+import { Button, Chip, Select, Tag, TextInput } from "../../rehome/ui";
 import { CARD, EYEBROW, Empty, Loaded } from "../states";
 import { useResource } from "../useResource";
 
@@ -57,13 +57,7 @@ const H = `${P}.history`;
 /** One part of the panel: its data, or why it is missing. A part never blanks the page. */
 export type Part<T> = { ok: true; data: T } | { ok: false; message: string };
 
-/** The OWNER guard's refusals (details.reason) said in Czech; any other refusal as given. */
-const OWNER_REFUSALS = new Set(["owner_only", "last_owner"]);
-function describe(e: unknown): string {
-  const reason = e instanceof ApiError ? e.details.reason : undefined;
-  if (typeof reason === "string" && OWNER_REFUSALS.has(reason)) return t(`${P}.members.refused.${reason}`);
-  return describeError(e);
-}
+const describe = describeMemberError;
 
 async function part<T>(p: Promise<T>): Promise<Part<T>> {
   try {
@@ -289,90 +283,7 @@ function budget(form: FormData): number {
   return n;
 }
 
-function RoleSelect({ roles, label, prefix, initial }: { roles: string[]; label: string; prefix: string; initial?: string }) {
-  const technical = useTechnical();
-  return (
-    <Select name="role" defaultValue={initial} aria-label={label} className="w-auto">
-      {roles.map((r) => <option key={r} value={r}>{t(`${prefix}.${r}`)}{technical ? ` (${r})` : ""}</option>)}
-    </Select>
-  );
-}
-
 // ---------------------------------------------------------------- panels
-
-function MembersPanel({ members, vocab, canAdminister, yourRole, reload }: { members: Part<Member[]>; vocab: Vocabularies; canAdminister: boolean; yourRole: string; reload: () => void }) {
-  const [editing, setEditing] = useState<string | null>(null);
-  // Only an OWNER grants or removes OWNER (the API refuses it, owner_only): anyone else is
-  // offered the other roles, and an OWNER's role stays as it is.
-  const owner = yourRole === "OWNER";
-  const roles = owner ? vocab.organization_roles : vocab.organization_roles.filter((r) => r !== "OWNER");
-  // The last active OWNER is not offered a demotion the API refuses (last_owner).
-  const activeOwners = members.ok ? members.data.filter((m) => m.is_active && m.organization_role === "OWNER").length : 0;
-  return <div className="flex min-w-0 flex-col gap-3">
-    <Sub>{t(`${P}.members.title`)}</Sub>
-    <p className="text-sm leading-6 text-ink-muted">{t(`${P}.members.roleHelp`)}</p>
-    {members.ok ? <div className="overflow-x-auto"><table className="w-full">
-      <thead><tr><th className={TH}>{t(`${P}.col.member`)}</th><th className={TH}>{t(`${P}.col.name`)}</th><th className={TH}>{t(`${P}.col.role`)}</th><th className={TH}>{t(`${P}.col.active`)}</th><th className={TH} /></tr></thead>
-      <tbody className="divide-y divide-border">{members.data.map((m) => [
-        <tr key={m.user_id} data-member={m.user_id}>
-          <td className={`${TD} break-all font-medium`}>{m.email}</td>
-          <td className={TD}>{m.display_name || <span className="text-ink-muted">{t(`${P}.members.noName`)}</span>}</td>
-          <td className={TD}><Tag>{t(`aia.orgRoles.${m.organization_role}`)}</Tag></td>
-          <td className={TD}>{t(`${P}.${m.is_active ? "yes" : "no"}`)}</td>
-          <td className={`${TD} text-right`}>{canAdminister ? <Button small aria-expanded={editing === m.user_id} onClick={() => setEditing(editing === m.user_id ? null : m.user_id)}>{editing === m.user_id ? t(`${P}.closeEdit`) : t(`${P}.edit`)}</Button> : null}</td>
-        </tr>,
-        canAdminister && editing === m.user_id ? <tr key={`${m.user_id}-edit`} data-member-edit={m.user_id}><td colSpan={5} className="bg-surface-sunken px-3 py-3">
-          <ActionForm submit={t(`${P}.save`)} reload={reload} run={(f) => admin.addMember({ email: m.email, display_name: str(f, "display_name"), role: str(f, "role") })}>
-            <Field label={t(`${P}.members.name`)}><TextInput name="display_name" defaultValue={m.display_name} className="w-full sm:w-56" /></Field>
-            {m.organization_role !== "OWNER" || (owner && activeOwners > 1)
-              ? <Field label={t(`${P}.members.role`)}><RoleSelect roles={roles} label={`${t(`${P}.members.role`)}: ${m.email}`} prefix="aia.orgRoles" initial={m.organization_role} /></Field>
-              : <Field label={t(`${P}.members.role`)}><input type="hidden" name="role" value="OWNER" /><span className="text-sm">{t("aia.orgRoles.OWNER")}</span><span className="text-xs text-ink-muted">{t(`${P}.members.${owner ? "lastOwner" : "ownerOnly"}`)}</span></Field>}
-          </ActionForm>
-          <p className="mt-2 text-xs leading-5 text-ink-muted">{t(`${P}.members.editHelp`)}</p>
-        </td></tr> : null,
-      ])}</tbody>
-    </table></div> : <Unavailable what={t(`${P}.members.title`)} message={members.message} />}
-    {canAdminister ? <div className="rounded-md border border-border bg-surface-sunken p-4"><h4 className="mb-3 text-sm font-semibold">{t(`${P}.members.add`)}</h4><ActionForm submit={t(`${P}.members.add`)} reload={reload} run={(f) => admin.addMember({ email: str(f, "email"), display_name: str(f, "display_name"), role: str(f, "role") })}>
-      <Field label="E-mail"><TextInput name="email" type="email" required className="w-full sm:w-64" /></Field>
-      <Field label={t(`${P}.members.name`)}><TextInput name="display_name" className="w-full sm:w-48" /></Field>
-      <Field label={t(`${P}.members.role`)}><RoleSelect roles={roles} label={t(`${P}.members.role`)} prefix="aia.orgRoles" initial="MEMBER" /></Field>
-    </ActionForm><p className="mt-3 text-xs leading-5 text-ink-muted">{t(`${P}.members.note`)}</p></div> : null}
-  </div>;
-}
-
-function ClientsPanel({ clients, vocab, canAdminister, reload }: {
-  clients: Part<AdminClient[]>; vocab: Vocabularies; canAdminister: boolean; reload: () => void;
-}) {
-  const technical = useTechnical();
-  return (
-    <div className="flex flex-col gap-3">
-      <Sub>{t(`${P}.clients.title`)}</Sub>
-      {!clients.ok ? <Unavailable what={t(`${P}.clients.title`)} message={clients.message} /> : !clients.data.length ? <Empty>{t(`${P}.clients.none`)}</Empty> : (
-        <div className="overflow-x-auto"><table className="w-full">
-          <thead><tr><th className={TH}>{t(`${P}.clients.name`)}</th>{technical ? <th className={TH}>ID</th> : null}<th className={TH}>{t(`${P}.clients.studies`)}</th><th className={TH}>{t(`${P}.clients.status`)}</th></tr></thead>
-          <tbody className="divide-y divide-border">
-            {clients.data.map((c) => (
-              <tr key={c.client_id} data-client={c.client_id}>
-                <td className={TD}>{c.name}</td>
-                {technical ? <td className={`${TD} font-mono text-xs`}>{c.client_id}</td> : null}
-                <td className={`${TD} font-mono text-xs`}>{c.study_count}</td>
-                <td className={TD}>
-                  {canAdminister ? (
-                    <ActionForm submit={t(`${P}.save`)} reload={reload} run={(f) => admin.setClientStatus(c.client_id, str(f, "status"))}>
-                      <Select name="status" defaultValue={c.status} aria-label={t(`${P}.clients.status`)} className="w-auto">
-                        {vocab.client_statuses.map((s) => <option key={s} value={s}>{t(`${P}.clientStatus.${s}`)}</option>)}
-                      </Select>
-                    </ActionForm>
-                  ) : t(`${P}.clientStatus.${c.status}`)}
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table></div>
-      )}
-    </div>
-  );
-}
 
 function StudiesPanel({ studies, clients, vocab, reload }: {
   studies: Part<StudyRow[]>; clients: Part<AdminClient[]>; vocab: Vocabularies; reload: () => void;
@@ -439,83 +350,6 @@ function StudiesPanel({ studies, clients, vocab, reload }: {
           })}
         </tbody>
       </table></div>
-    </div>
-  );
-}
-
-function Tri({ value }: { value: boolean | null }) {
-  if (value === null) return <span className="rounded-sm border border-dashed border-border-strong px-1.5 text-xs text-ink-muted">{t(`${P}.approvals.inherit`)}</span>;
-  // A plain tag: the "you" glyph is reserved for work waiting on the viewer (DS-3).
-  return <Tag>{t(value ? `${P}.approvals.allowed` : `${P}.approvals.forbidden`)}</Tag>;
-}
-
-function choice(form: FormData): boolean | null {
-  const c = str(form, "allowed");
-  if (c === "allow") return true;
-  if (c === "forbid") return false;
-  if (c === "inherit") return null;
-  throw new Error(t(`${P}.approvals.chooseFirst`));
-}
-
-function target(form: FormData): { client_id?: string; study_id?: string } {
-  const [kind, id] = str(form, "target").split(":", 2);
-  return kind === "client" ? { client_id: id } : kind === "study" ? { study_id: id } : {};
-}
-
-function TriSelect() {
-  return (
-    <Select name="allowed" defaultValue="" required aria-label={t(`${P}.approvals.choose`)} className="w-auto">
-      <option value="" disabled>{t(`${P}.approvals.choose`)}</option>
-      <option value="forbid">{t(`${P}.approvals.forbid`)}</option>
-      <option value="allow">{t(`${P}.approvals.allow`)}</option>
-      <option value="inherit">{t(`${P}.approvals.inheritOption`)}</option>
-    </Select>
-  );
-}
-
-function SelfApprovalPanel({ levels, clients, studies, reload }: {
-  levels: Part<SelfApprovalLevels> | null; clients: Part<AdminClient[]>; studies: Part<StudyRow[]>; reload: () => void;
-}) {
-  if (levels === null) return <p className="text-sm text-ink-muted">{t(`${P}.approvals.adminOnly`)}</p>;
-  if (!levels.ok) return <Unavailable what={t(`${P}.approvals.title`)} message={levels.message} />;
-  const clientName = new Map(clients.ok ? clients.data.map((c) => [c.client_id, c.name]) : []);
-  const studyName = new Map(studies.ok ? studies.data.map((s) => [s.study.study_id, s.study.name]) : []);
-  const set = (f: FormData) => admin.setSelfApproval({ allowed: choice(f), ...target(f) });
-  const row = (key: string, label: string, value: boolean | null, targetValue: string) => (
-    <tr key={key} data-level={key}>
-      <td className={TD}>{label}</td>
-      <td className={TD}><Tri value={value} /></td>
-      <td className={TD}>
-        <ActionForm submit={t(`${P}.save`)} reload={reload} run={set}>
-          <input type="hidden" name="target" value={targetValue} />
-          <TriSelect />
-        </ActionForm>
-      </td>
-    </tr>
-  );
-  return (
-    <div className="flex flex-col gap-3">
-      <Sub>{t(`${P}.approvals.title`)}</Sub>
-      <p className="text-sm text-ink-muted">{t(`${P}.approvals.rule`)}</p>
-      <div className="overflow-x-auto"><table className="w-full">
-        <thead><tr><th className={TH}>{t(`${P}.approvals.level`)}</th><th className={TH}>{t(`${P}.approvals.stored`)}</th><th className={TH} /></tr></thead>
-        <tbody className="divide-y divide-border">
-          {row("organization", t(`${P}.approvals.organization`), levels.data.organization, "")}
-          {levels.data.clients.map((c) => row(`client:${c.client_id}`, `${t(`${P}.clients.client`)}: ${clientName.get(c.client_id) ?? c.client_id}`, c.allowed, `client:${c.client_id}`))}
-          {levels.data.studies.map((s) => row(`study:${s.study_id}`, `${t(`${P}.studies.study`)}: ${studyName.get(s.study_id) ?? s.study_id}`, s.allowed, `study:${s.study_id}`))}
-        </tbody>
-      </table></div>
-      <div className="rounded-sm border border-border p-3">
-<p className="mb-2 text-xs font-medium text-ink-muted">{t(`${P}.approvals.addOverride`)}</p>
-        <ActionForm submit={t(`${P}.save`)} reload={reload} run={set}>
-          <Select name="target" required defaultValue="" aria-label={t(`${P}.approvals.chooseTarget`)} className="w-auto">
-            <option value="" disabled>{t(`${P}.approvals.chooseTarget`)}</option>
-            {clients.ok ? clients.data.map((c) => <option key={c.client_id} value={`client:${c.client_id}`}>{t(`${P}.clients.client`)}: {c.name}</option>) : null}
-            {studies.ok ? studies.data.map(({ study }) => <option key={study.study_id} value={`study:${study.study_id}`}>{t(`${P}.studies.study`)}: {study.name}</option>) : null}
-          </Select>
-          <TriSelect />
-        </ActionForm>
-      </div>
     </div>
   );
 }
@@ -869,19 +703,19 @@ function PanelView({ panel, reload }: { panel: Panel; reload: () => void }) {
   const extra: Record<string, ReactNode> = {
     ai: <RuntimePanel runtime={doc.ai_runtime} config={runtime} vocab={vocab} />,
     ai_history: <HistoryPanel vocab={vocab} items={byKey.get("ai_history")?.items ?? []} />,
-    access: (
-      <>
-        <MembersPanel members={members} vocab={vocab} canAdminister={doc.may_administer} yourRole={doc.your_role} reload={reload} />
-        <ClientsPanel clients={clients} vocab={vocab} canAdminister={doc.may_administer} reload={reload} />
-      </>
-    ),
+    access: <MembersCard members={members} vocab={vocab} canAdminister={doc.may_administer} yourRole={doc.your_role} reload={reload} />,
     studies: (
       <>
         <ResearcherSpendCard />
         <StudiesPanel studies={studies} clients={clients} vocab={vocab} reload={reload} />
       </>
     ),
-    approvals: <SelfApprovalPanel levels={levels} clients={clients} studies={studies} reload={reload} />,
+    approvals: (
+      <>
+        <SelfApprovalCard levels={levels} canAdminister={doc.may_administer} reload={reload} studies={studies.ok ? studies.data.map(({ study }) => ({ study_id: study.study_id, name: study.name })) : []} />
+        <ClientsCard clients={clients} levels={levels} vocab={vocab} canAdminister={doc.may_administer} reload={reload} />
+      </>
+    ),
     residency: <DataClasses vocab={vocab} />,
     workflow: <Stages vocab={vocab} />,
     roles: <RoleMatrix vocab={vocab} />,
