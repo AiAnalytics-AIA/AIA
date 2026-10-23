@@ -1339,8 +1339,14 @@ class WorkflowRepository:
         else:
             client_query = select(ClientRow).where(ClientRow.client_id == run.client_id)
             if self._is_postgres:
-                client_query = client_query.with_for_update()
+                client_query = client_query.with_for_update().execution_options(
+                    populate_existing=True
+                )
             payer = self._session.scalar(client_query)
+            if payer is not None and payer.deleted_at is not None:
+                # A deletion held the lock first and committed (settings-backends SB5): the
+                # client's own work spends nothing under its tombstone.
+                raise ScopeDenied("not found", reason="client_deleted")
         if payer is None:
             raise WorkflowNotFound(run.study_id or run.client_id)
 

@@ -1428,14 +1428,18 @@ class ClientKnowledgeRepository:
                 for key in ("url", "final_url")
             )
 
-        self._session.scalar(
-            select(ClientRow.client_id)
+        deleted_at = self._session.scalar(
+            select(ClientRow.deleted_at)
             .where(
                 ClientRow.client_id == scope.client_id,
                 ClientRow.organization_id == scope.organization_id,
             )
             .with_for_update()
         )
+        if deleted_at is not None:
+            # A deletion took the lock first and committed (settings-backends SB5): nothing is
+            # written under its tombstone.
+            raise ScopeDenied("not found", reason="client_deleted")
         # Filtered in Python, not by a JSON path: the same on SQLite and PostgreSQL, and a
         # client's sources are a short list read only on this click.
         items = self._session.execute(
