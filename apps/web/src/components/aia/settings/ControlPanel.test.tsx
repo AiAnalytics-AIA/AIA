@@ -430,18 +430,57 @@ describe("the settings control panel", () => {
     await waitFor(() => expect(called("POST", "/api/v1/members/USR-3/reactivate")).toHaveLength(1));
   });
 
+  it("claims no sealed Lead the API does not report, and offers an administrator no Obnovit on an OWNER", async () => {
+    api({
+      "GET /api/v1/settings": () => ({ ...DOC(true), your_role: "ADMIN" }),
+      "GET /api/v1/members": () => [
+        { user_id: "USR-1", email: "owner@example.test", display_name: "Petr", is_active: true, organization_role: "ADMIN", methodologist: false },
+        { user_id: "USR-4", email: "eva@example.test", display_name: "Eva", is_active: false, organization_role: "OWNER", methodologist: false, deactivated_at: "2026-10-20T10:00:00Z", lead_sealed_at: null, lead_erase_after: null },
+        { user_id: "USR-5", email: "ota@example.test", display_name: "Ota", is_active: false, organization_role: "MEMBER", methodologist: false, deactivated_at: "2026-10-20T10:00:00Z", lead_sealed_at: null, lead_erase_after: null },
+      ],
+    });
+    render(<ControlPanel />);
+    fireEvent.click(await screen.findByRole("tab", { name: "Přístup a schvalování" }));
+    const panel = document.getElementById("panel-access") as HTMLElement;
+    await waitFor(() => expect(panel.querySelector('[data-member="USR-5"]')).toBeTruthy());
+    expect(panel.querySelector("[data-lead-sealed]")).toBeNull();
+    expect(panel.textContent).not.toMatch(/zapečetěn:/);
+    expect(panel.querySelector('[data-lead-none="USR-5"]')?.textContent).toMatch(/žádný zapečetěný/);
+    const restoreOwner = within(panel).getByRole("button", { name: "Obnovit eva@example.test" }) as HTMLButtonElement;
+    expect(restoreOwner.disabled).toBe(true);
+    fireEvent.click(restoreOwner);
+    expect(called("POST", "/api/v1/members/USR-4/reactivate")).toEqual([]);
+    expect((within(panel).getByRole("button", { name: "Obnovit ota@example.test" }) as HTMLButtonElement).disabled).toBe(false);
+  });
+
+  it("says the Lead is sealed on deactivation only when the answer says so", async () => {
+    api({
+      "GET /api/v1/members": () => [
+        { user_id: "USR-1", email: "owner@example.test", display_name: "Petr", is_active: true, organization_role: "OWNER", methodologist: false },
+        { user_id: "USR-2", email: "jana@example.test", display_name: "Jana", is_active: true, organization_role: "MEMBER", methodologist: false },
+      ],
+      "POST /api/v1/members/USR-2/deactivate": () => ({ user_id: "USR-2", email: "jana@example.test", display_name: "Jana", is_active: false, organization_role: "MEMBER", methodologist: false, deactivated_at: "2026-10-23T04:00:00Z", lead_sealed_at: null, lead_erase_after: null }),
+    });
+    render(<ControlPanel />);
+    fireEvent.click(await screen.findByRole("tab", { name: "Přístup a schvalování" }));
+    fireEvent.click(await screen.findByRole("button", { name: "Deaktivovat jana@example.test" }));
+    expect(await screen.findByText("Jana: deaktivace hotova. Nepřihlásí se, studie zůstávají.")).toBeTruthy();
+    expect(screen.queryByText(/Vedoucí je zapečetěn/)).toBeNull();
+  });
+
   it("deactivates at once and offers Vrátit, which reactivates", async () => {
     api({
       "GET /api/v1/members": () => [
         { user_id: "USR-1", email: "owner@example.test", display_name: "Petr", is_active: true, organization_role: "OWNER", methodologist: false },
         { user_id: "USR-2", email: "jana@example.test", display_name: "Jana", is_active: true, organization_role: "MEMBER", methodologist: false },
       ],
+      "POST /api/v1/members/USR-2/deactivate": () => ({ user_id: "USR-2", email: "jana@example.test", display_name: "Jana", is_active: false, organization_role: "MEMBER", methodologist: false, deactivated_at: "2026-10-23T04:00:00Z", lead_sealed_at: "2026-10-23T04:00:00Z", lead_erase_after: "2026-11-22T04:00:00Z" }),
     });
     render(<ControlPanel />);
     fireEvent.click(await screen.findByRole("tab", { name: "Přístup a schvalování" }));
     fireEvent.click(await screen.findByRole("button", { name: "Deaktivovat jana@example.test" }));
     await waitFor(() => expect(called("POST", "/api/v1/members/USR-2/deactivate")).toHaveLength(1));
-    expect(await screen.findByText(/Jana je deaktivovaná|Jana je deaktivovaný|jeho Vedoucí je zapečetěn|Vedoucí je zapečetěn/)).toBeTruthy();
+    expect(await screen.findByText(/Vedoucí je zapečetěn/)).toBeTruthy();
     fireEvent.click(screen.getByRole("button", { name: "Vrátit" }));
     await waitFor(() => expect(called("POST", "/api/v1/members/USR-2/reactivate")).toHaveLength(1));
   });

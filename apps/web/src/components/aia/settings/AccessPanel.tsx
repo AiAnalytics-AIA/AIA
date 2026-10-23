@@ -125,10 +125,14 @@ function MemberRow({ m, roles, locked, lockedWhy, canAdminister, owner, self, re
   };
   // Deactivation is at once and undone by reactivating: within 30 days the Lead is unsealed for them.
   const deactivate = async () => {
-    if (await membership.run(() => admin.deactivateMember(m.user_id))) {
-      offerUndo(tv(`${A}.deactivated`, { who }), () => { void membership.run(() => admin.reactivateMember(m.user_id)); });
+    // The toast says the Lead is sealed only when the answer says so: a member who never hatched one has none.
+    let sealed = false;
+    if (await membership.run(async () => { sealed = !!(await admin.deactivateMember(m.user_id))?.lead_sealed_at; })) {
+      offerUndo(tv(`${A}.${sealed ? "deactivated" : "deactivatedNoLead"}`, { who }), () => { void membership.run(() => admin.reactivateMember(m.user_id)); });
     }
   };
+  // Only an OWNER restores an OWNER (owner_only): an administrator is not offered what the API refuses.
+  const restoreLocked = m.organization_role === "OWNER" && !owner;
   const eraseOn = m.lead_erase_after ? new Intl.DateTimeFormat("cs-CZ", { dateStyle: "medium", timeZone: "Europe/Prague" }).format(new Date(m.lead_erase_after)) : null;
   const initials = (m.display_name || m.email).split(/[\s.@]+/).filter(Boolean).slice(0, 2).map((w) => w[0]?.toUpperCase()).join("");
   return (
@@ -159,7 +163,9 @@ function MemberRow({ m, roles, locked, lockedWhy, canAdminister, owner, self, re
       </div>
       <div role="cell" className="border-t border-border px-2 py-2 text-sm">
         {t(`${A}.${m.is_active ? "active" : "inactive"}`)}
-        {deactivatedHere ? <span data-lead-sealed={m.user_id} className="block max-w-64 text-xs leading-5 text-ink-faint">{eraseOn ? tv(`${A}.sealed`, { when: eraseOn }) : t(`${A}.sealedNoDate`)}</span> : null}
+        {/* A seal is said only when the API reports one; none read is not "sealed" (never hatched, or erased). */}
+        {deactivatedHere && m.lead_sealed_at ? <span data-lead-sealed={m.user_id} className="block max-w-64 text-xs leading-5 text-ink-faint">{eraseOn ? tv(`${A}.sealed`, { when: eraseOn }) : t(`${A}.sealedNoDate`)}</span> : null}
+        {deactivatedHere && !m.lead_sealed_at && canAdminister ? <span data-lead-none={m.user_id} className="block max-w-64 text-xs leading-5 text-ink-faint">{t(`${A}.noSealedLead`)}</span> : null}
         <span className="block"><SaveNote state={state === "idle" ? (mark.state === "idle" ? membership.state : mark.state) : state} /></span>
         {membership.error ? <p role="alert" className="mt-1 max-w-56 text-xs text-status-fault">{membership.error}</p> : null}
       </div>
@@ -168,7 +174,10 @@ function MemberRow({ m, roles, locked, lockedWhy, canAdminister, owner, self, re
           <Button small variant="quiet" disabled={locked || membership.state === "saving"} aria-label={tv(`${A}.deactivateOf`, { who: m.email })} onClick={() => void deactivate()}>{t(`${A}.deactivate`)}</Button>
         ) : null}
         {canAdminister && deactivatedHere ? (
-          <Button small disabled={membership.state === "saving"} aria-label={tv(`${A}.restoreOf`, { who: m.email })} onClick={() => void membership.run(() => admin.reactivateMember(m.user_id))}>{t(`${A}.restore`)}</Button>
+          <>
+            <Button small disabled={restoreLocked || membership.state === "saving"} aria-label={tv(`${A}.restoreOf`, { who: m.email })} onClick={() => void membership.run(() => admin.reactivateMember(m.user_id))}>{t(`${A}.restore`)}</Button>
+            {restoreLocked ? <span className="mt-1 block max-w-48 text-xs text-ink-faint">{t(`${P}.members.ownerOnly`)}</span> : null}
+          </>
         ) : null}
       </div>
     </div>

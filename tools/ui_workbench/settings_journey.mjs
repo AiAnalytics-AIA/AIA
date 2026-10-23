@@ -127,7 +127,10 @@ try {
   await page.getByRole("button", { name: `Deaktivovat ${email}`, exact: true }).click();
   await waitFor(async () => !!(await get("/api/v1/members")).find((m) => m.email === email)?.deactivated_at, "the member deactivated");
   const sealedRow = page.locator(`[data-member="${savedMember.user_id}"][data-deactivated="true"]`); await sealedRow.waitFor();
-  await page.locator(`[data-lead-sealed="${savedMember.user_id}"]`).waitFor(); await widths("access deactivated member");
+  // Sealed only when the API reports a seal; this fictional member never hatched a Lead, so none is claimed.
+  const deactivatedMember = (await get("/api/v1/members")).find((m) => m.email === email);
+  await page.locator(deactivatedMember.lead_sealed_at ? `[data-lead-sealed="${savedMember.user_id}"]` : `[data-lead-none="${savedMember.user_id}"]`).waitFor();
+  await widths("access deactivated member");
   await page.getByRole("button", { name: `Obnovit ${email}`, exact: true }).click();
   await waitFor(async () => !(await get("/api/v1/members")).find((m) => m.email === email)?.deactivated_at, "the member restored");
   checks.push("The OWNER grants the Metodik mark in the row and Vrátit takes it back; a member is deactivated with their Lead sealed and dated, and Obnovit restores them; the API agrees each time");

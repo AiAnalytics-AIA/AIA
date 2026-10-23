@@ -1808,6 +1808,8 @@ export const cs = {
           deactivated: "{who}: deaktivace hotova. Nepřihlásí se, studie zůstávají; Vedoucí je zapečetěn a nikdo, ani správce, ho nečte.",
           sealed: "Vedoucí zapečetěn: nikdo ho nečte, smaže se {when}. Obnovení do té doby ho vrátí jen tomuto členovi.",
           sealedNoDate: "Vedoucí zapečetěn: nikdo ho nečte, smaže se po lhůtě uchování.",
+          noSealedLead: "Vedoucí: žádný zapečetěný (nikdy nevznikl, nebo je už smazaný).",
+          deactivatedNoLead: "{who}: deaktivace hotova. Nepřihlásí se, studie zůstávají.",
           deactivatedHelp: "Deaktivovaný člen se nepřihlásí; jeho studie zůstávají.",
           rolesTitle: "Co která role smí",
           roles: {
