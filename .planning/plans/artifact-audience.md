@@ -93,6 +93,8 @@ V2: `AudienceArt` (`prototypes/research-lead-v2/src/artifacts/SampleStages.tsx:1
   each row is input-interactions.md § Chunk 5, as delivered.
 - Delivered: B9, the built-in subpanels under a search (feature/audience-subpanel-list);
   the record of each row is input-interactions.md § Chunk 5, as delivered.
+- Delivered: B11, Discover's product and success criterion edited in place (feature/audience-discover-inline);
+  the record of each row is input-interactions.md § Chunk 5, as delivered.
 
 ## 7. Chunks
 
