@@ -9,6 +9,7 @@ from __future__ import annotations
 import copy
 import json
 import os
+import re
 import shutil
 import subprocess
 from pathlib import Path
@@ -289,12 +290,27 @@ SERVER_ONLY = (
 )
 
 
+CACHE_FILE = "^/cache/files/(?:[A-Za-z0-9_=-][A-Za-z0-9_.=-]*/)*[A-Za-z0-9_=-][A-Za-z0-9_.=-]*$"
+CACHE_MATCH = {
+    "method": ["GET", "HEAD"],
+    "path_regexp": {"name": "cache_file", "pattern": CACHE_FILE},
+    "query": {"expires": ["*"], "md5": ["*"]},
+}
+
+
+def cache_route(match: dict[str, Any] | None = None, *handlers: dict[str, Any]) -> dict[str, Any]:
+    r = sub(None, *(handlers or (proxy("onlyoffice:80"),)))
+    r["match"] = [match or CACHE_MATCH]
+    return r
+
+
 def docs_routes(
     *,
     refusal: str = SERVER_ONLY,
     gate: dict[str, Any] = DOCS_GATE,
     upstream: dict[str, Any] | None = None,
     framed_by: str = "https://aia.example.test",
+    cache: dict[str, Any] | None = None,
 ) -> list[dict[str, Any]]:
     headers = {
         "handle": [
@@ -318,14 +334,26 @@ def docs_routes(
         ],
         "match": [{"path_regexp": {"name": "server_only", "pattern": refusal}}],
     }
-    return [headers, exchange, refused, sub(None, gate, upstream or proxy("onlyoffice:80"))]
+    links = cache if cache is not None else cache_route()
+    return [
+        headers,
+        exchange,
+        refused,
+        *([links] if links else []),
+        sub(None, gate, upstream or proxy("onlyoffice:80")),
+    ]
 
 
 DROPS_TICKET = {
     "format": "filter",
     "wrap": {"format": "json"},
     "fields": {
-        "request>uri": {"filter": "query", "actions": [{"type": "delete", "parameter": "ticket"}]}
+        "request>uri": {
+            "filter": "query",
+            "actions": [
+                {"type": "delete", "parameter": name} for name in ("ticket", "md5", "expires")
+            ],
+        }
     },
 }
 
@@ -439,3 +467,113 @@ def test_an_error_log_that_writes_the_ticket_is_refused(routes: Any) -> None:
     config = _with_docs_site(good(), docs_routes(), default={"format": "json"})
     problems = routes.check(config)
     assert any("access log writes the ticket" in p for p in problems)
+
+
+# The save callback names the Document Server's signed links to the saved document; AIA's API
+# fetches them server to server, without the docs cookie, so they alone go by without the gate.
+@pytest.mark.parametrize(
+    "path",
+    [
+        "/cache/files/data/ART-1.abc_17/output.docx/output.docx",
+        "/cache/files/data/ART-1.abc_17/changes.zip/changes.zip",
+        # A document key may carry `=` (base64-like) anywhere.
+        "/cache/files/data/=abc=_3/output.docx/output.docx",
+    ],
+)
+def test_the_callbacks_cache_links_match(routes: Any, path: str) -> None:
+    assert routes.CACHE_FILE == CACHE_FILE
+    assert re.search(CACHE_FILE, path)
+
+
+@pytest.mark.parametrize(
+    "path",
+    [
+        # Anything its nginx would resolve to another location must stay behind the gate.
+        "/cache/files/../web-apps/apps/api/documents/api.js",
+        "/cache/files/data/../../coauthoring/CommandService.ashx",
+        "/cache/files/./data/x",
+        "/cache/files/data/.x",
+        "//cache/files/data/x",
+        "/cache/files//data/x",
+        "/cache/files/",
+        "/cache/files",
+        "/9.4.0-1/cache/files/data/x",
+        "/web-apps/apps/api/documents/api.js",
+    ],
+)
+def test_no_other_path_matches_the_cache_links(path: str) -> None:
+    assert re.search(CACHE_FILE, path) is None
+
+
+def test_saves_that_cannot_be_fetched_are_refused(routes: Any) -> None:
+    problems = routes.check(_with_docs_site(good(), docs_routes(cache={})))
+    assert any("signed cache links must be one route" in p for p in problems)
+
+
+@pytest.mark.parametrize(
+    "match",
+    [
+        {**CACHE_MATCH, "path_regexp": {"name": "cache_file", "pattern": "^/cache/files/.*$"}},
+        {k: v for k, v in CACHE_MATCH.items() if k != "query"},
+        {**CACHE_MATCH, "query": {"md5": ["*"]}},
+        {k: v for k, v in CACHE_MATCH.items() if k != "method"},
+        {**CACHE_MATCH, "method": ["GET", "HEAD", "POST"]},
+    ],
+)
+def test_a_wider_ungated_route_is_refused(routes: Any, match: dict[str, Any]) -> None:
+    problems = routes.check(_with_docs_site(good(), docs_routes(cache=cache_route(match))))
+    assert any("must be the docs gate, then the Document Server" in p for p in problems)
+
+
+def test_cache_links_that_keep_the_cookie_are_refused(routes: Any) -> None:
+    keeps = {"handler": "reverse_proxy", "upstreams": [{"dial": "onlyoffice:80"}]}
+    problems = routes.check(_with_docs_site(good(), docs_routes(cache=cache_route(None, keeps))))
+    assert any("cache links: a cookie reaches the Document Server" in p for p in problems)
+
+
+def test_cache_links_reaching_anything_else_are_refused(routes: Any) -> None:
+    elsewhere = cache_route(None, proxy("api:8000"))
+    problems = routes.check(_with_docs_site(good(), docs_routes(cache=elsewhere)))
+    assert any("signed cache links must be one route" in p for p in problems)
+
+
+def test_the_adapters_method_order_does_not_matter(routes: Any) -> None:
+    reordered = {**CACHE_MATCH, "method": ["HEAD", "GET"]}
+    assert routes.check(_with_docs_site(good(), docs_routes(cache=cache_route(reordered)))) == []
+
+
+def test_cache_links_rewritten_elsewhere_are_refused(routes: Any) -> None:
+    rewritten = cache_route(
+        None,
+        {"handler": "rewrite", "uri": "/coauthoring/CommandService.ashx"},
+        proxy("onlyoffice:80"),
+    )
+    problems = routes.check(_with_docs_site(good(), docs_routes(cache=rewritten)))
+    assert any("a rewrite would send them to another path" in p for p in problems)
+
+
+@pytest.mark.parametrize("kept", ["md5", "expires"])
+def test_a_log_that_writes_a_cache_links_signature_is_refused(routes: Any, kept: str) -> None:
+    # A signed link in the log opens the saved document without the gate until it expires.
+    encoder = copy.deepcopy(DROPS_TICKET)
+    actions = encoder["fields"]["request>uri"]["actions"]
+    encoder["fields"]["request>uri"]["actions"] = [a for a in actions if a["parameter"] != kept]
+    for which in ("encoder", "default"):
+        config = _with_docs_site(good(), docs_routes(), **{which: encoder})
+        assert any("a cache link's signature" in p for p in routes.check(config)), which
+
+
+def test_a_non_404_refusal_of_the_editors_paths_is_refused(routes: Any) -> None:
+    blocks = {
+        "handle": [
+            {
+                "handler": "subroute",
+                "routes": [{"handle": [{"handler": "static_response", "status_code": 403}]}],
+            }
+        ],
+        "match": [{"path_regexp": {"name": "x", "pattern": "^/web-apps/"}}],
+    }
+    docs = docs_routes()
+    docs.insert(-1, blocks)
+    problems = routes.check(_with_docs_site(good(), docs))
+    assert any("is refused, and the editor needs it" in p for p in problems)

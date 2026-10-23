@@ -14,6 +14,7 @@ import { type KeyboardEvent, type ReactNode, useEffect, useRef, useState } from 
 import { t, tv } from "@/i18n/t";
 import { type AdminClient, type Member, type SelfApprovalLevels, type Vocabularies, Unauthenticated, admin } from "@/lib/api";
 import { appRoutes } from "@/lib/app-routes";
+import { useSession } from "@/lib/auth";
 import type { SaveState } from "@/lib/inline-edit";
 import { ChoiceChips } from "../../ui/ChoiceChips";
 import { InlineText } from "../../ui/InlineText";
@@ -76,11 +77,15 @@ const GRID_HEAD = "px-2 py-1.5 text-left text-xs font-normal text-ink-faint";
 
 // ---------------------------------------------------------------- members
 
-function MemberRow({ m, roles, locked, lockedWhy, canAdminister, reload, offerUndo }: {
-  m: Member; roles: readonly string[]; locked: boolean; lockedWhy: string | null; canAdminister: boolean; reload: () => void;
+function MemberRow({ m, roles, locked, lockedWhy, canAdminister, self, reload, offerUndo }: {
+  m: Member; roles: readonly string[]; locked: boolean; lockedWhy: string | null; canAdminister: boolean;
+  /** The signed-in person's own row. */
+  self: boolean;
+  reload: () => void;
   offerUndo: (message: string, undo: () => void) => void;
 }) {
   const { state, error, run } = useSave(reload);
+  const [note, setNote] = useState<string | null>(null);
   // The membership call writes the name and the role together: each save sends the newest of both,
   // so a role chosen while the list is still re-reading a new name never writes the old name back.
   const typed = useRef<string | null>(null);
@@ -90,7 +95,10 @@ function MemberRow({ m, roles, locked, lockedWhy, canAdminister, reload, offerUn
   const save = (display_name: string, role: string) => admin.addMember({ email: m.email, display_name, role });
   const setRole = async (role: string) => {
     const before = m.organization_role;
+    setNote(null);
     if (await run(() => save(name(), role))) {
+      // An OWNER who steps down is no OWNER to undo it (owner_only): another owner restores it.
+      if (self && before === "OWNER" && role !== "OWNER") { setNote(t(`${A}.selfDemoted`)); return; }
       offerUndo(tv(`${A}.roleChanged`, { who: name() || m.email, role: t(`aia.orgRoles.${role}`) }), () => {
         void run(() => save(name(), before));
       });
@@ -98,7 +106,8 @@ function MemberRow({ m, roles, locked, lockedWhy, canAdminister, reload, offerUn
   };
   const setName = (value: string) => {
     typed.current = value.trim();
-    return save(typed.current, m.organization_role).then(reload);
+    // A refused name is not the newest: a later role change must not send it again.
+    return save(typed.current, m.organization_role).then(reload, (e: unknown) => { typed.current = null; throw e; });
   };
   const initials = (m.display_name || m.email).split(/[\s.@]+/).filter(Boolean).slice(0, 2).map((w) => w[0]?.toUpperCase()).join("");
   return (
@@ -120,6 +129,7 @@ function MemberRow({ m, roles, locked, lockedWhy, canAdminister, reload, offerUn
           <span className="text-sm">{t(`aia.orgRoles.${m.organization_role}`)}{lockedWhy ? <span className="block text-xs text-ink-faint">{lockedWhy}</span> : null}</span>
         )}
         {error ? <p role="alert" className="mt-1 text-xs text-status-fault">{error}</p> : null}
+        {note ? <p role="status" data-self-demoted className="mt-1 max-w-64 text-xs text-ink-muted">{note}</p> : null}
       </div>
       <div role="cell" className="border-t border-border px-2 py-2"><NotYetChip /></div>
       <div role="cell" className="border-t border-border px-2 py-2 text-sm">
@@ -130,15 +140,22 @@ function MemberRow({ m, roles, locked, lockedWhy, canAdminister, reload, offerUn
   );
 }
 
+/** One address, one @, a dot in the domain: what a person can be invited at. The API decides the rest. */
+const EMAIL = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
 function AddMemberRow({ roles, reload }: { roles: readonly string[]; reload: () => void }) {
   const [open, setOpen] = useState(false);
   const [email, setEmail] = useState("");
   const [role, setRole] = useState("MEMBER");
   const { state, error, run } = useSave(reload);
-  const cancel = () => { setOpen(false); setEmail(""); };
+  const [problem, setProblem] = useState<string | null>(null);
+  const cancel = () => { setOpen(false); setEmail(""); setProblem(null); };
   const add = async () => {
     const e = email.trim();
     if (!e) return;
+    // Said at the field (I9): the row has no form, so the browser's own e-mail check never runs.
+    if (!EMAIL.test(e)) { setProblem(t(`${A}.badEmail`)); return; }
+    setProblem(null);
     if (await run(() => admin.addMember({ email: e, display_name: "", role }))) { setEmail(""); setOpen(false); }
   };
   const onKey = (e: KeyboardEvent<HTMLInputElement>) => {
@@ -155,9 +172,10 @@ function AddMemberRow({ roles, reload }: { roles: readonly string[]; reload: () 
   return (
     <div role="row" data-member-new className="contents">
       <div role="cell" className="border-t border-border bg-surface-sunken px-2 py-2">
-        <input type="email" autoFocus aria-label={t(`${A}.newEmail`)} placeholder="jmeno@organizace.cz" value={email} onChange={(e) => setEmail(e.target.value)} onKeyDown={onKey}
+        <input type="email" autoFocus aria-label={t(`${A}.newEmail`)} aria-invalid={problem ? true : undefined} placeholder="jmeno@organizace.cz" value={email} onChange={(e) => { setEmail(e.target.value); if (problem && EMAIL.test(e.target.value.trim())) setProblem(null); }} onKeyDown={onKey}
           className={`min-h-9 w-full rounded-sm border border-border-strong bg-surface-raised px-2 text-sm ${FOCUS}`} />
         <span className="mt-1 block text-xs text-ink-faint">{t(`${A}.newHint`)}</span>
+        {problem ? <p role="alert" className="mt-1 text-xs text-status-fault">{problem}</p> : null}
         {error ? <p role="alert" className="mt-1 text-xs text-status-fault">{error}</p> : null}
       </div>
       <div role="cell" className="border-t border-border bg-surface-sunken px-2 py-2">
@@ -178,6 +196,7 @@ export function MembersCard({ members, vocab, canAdminister, yourRole, reload }:
   members: Part<Member[]>; vocab: Vocabularies; canAdminister: boolean; yourRole: string; reload: () => void;
 }) {
   const undo = useUndo();
+  const me = useSession()?.email?.toLocaleLowerCase() ?? null;
   // Only an OWNER grants or removes OWNER (the API refuses it, owner_only); the last active OWNER
   // is not offered a demotion the API refuses (last_owner).
   const owner = yourRole === "OWNER";
@@ -210,7 +229,7 @@ export function MembersCard({ members, vocab, canAdminister, yourRole, reload }:
             const locked = isOwnerRow && !(owner && activeOwners > 1);
             const lockedWhy = isOwnerRow && canAdminister ? t(`${P}.members.${owner ? "lastOwner" : "ownerOnly"}`) : null;
             return <MemberRow key={m.user_id} m={m} roles={roles} locked={locked} lockedWhy={locked ? lockedWhy : null} canAdminister={canAdminister}
-              reload={reload} offerUndo={(message, back) => undo.offer({ message, undo: back })} />;
+              self={me !== null && m.email.toLocaleLowerCase() === me} reload={reload} offerUndo={(message, back) => undo.offer({ message, undo: back })} />;
           })}
           {canAdminister ? <AddMemberRow roles={roles} reload={reload} /> : null}
         </div>

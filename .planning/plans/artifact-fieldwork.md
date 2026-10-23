@@ -3,7 +3,7 @@ status: in-progress
 chunks:
   - "[ ] FLD1. Sběr dat's contract as data: view operations, pointable ids (run, step, cost line, quality flag) and V2's interaction contract"
   - "[x] FLD2. The run head and its steps as V2 draws them: done over target, status in words, each step marked deterministic or worker, from the run's steps"
-  - "[ ] FLD3. Progress from the fieldwork event contract and the per-respondent checkpoint: answered respondents, blocks in flight, waits and parks in words"
+  - "[x] FLD3. Progress from the fieldwork event contract and the per-respondent checkpoint: answered respondents, blocks in flight, waits and parks in words"
   - "[x] FLD4. Náklady: spent, reserved, the run's ceiling and the study's remainder (no names on a run, Q76 (c))"
   - "[x] FLD4a. The run's spend over HTTP: GET …/research/runs/{id} answers spent, held and uncertain calls by the per-person fold's rules, whoever each charge is booked to"
   - "[x] FLD4b. Náklady on Průběh: spent and held beside the study's remainder; an uncertain call shown apart, never as zero"
@@ -111,6 +111,21 @@ reads "deterministické"; an unknown state reads UNKNOWN (`run-state.ts`).
 **FLD3. Progress.**
 - Test: counts only as reported (`step-activity.ts`), never a percentage guessed.
 - Depends on `run-qc-and-checkpoint#RQC7`, `#RQC0`.
+- Built over RQC7a's `fieldwork_progress`. A running step's panel shows the respondents answered
+  out of the total and, in its line, the blocks replayed from the checkpoint. A step that stopped
+  short shows "Naposledy hlášeno: odpovědělo X z Y" beside its wait or park words (`waitingDetail`),
+  with the replayed blocks. That covers waiting, recovery, failed and cancelled steps, and a step
+  still marked running in an ended run (`step-activity.ts` `lastReported`). Each event carries its
+  attempt's own `replayed`, so one without it replayed none.
+- `useStepActivity` reads a stopped feed to its end, where before it stopped at eight pages. Průběh
+  also reads the feed once more whenever a step's status or attempt changes, so a step that ran and
+  parked between two polls of the run still has its count. A stopped feed's failed read is tried
+  again up to five times, each wait twice the last (Codex on #825): otherwise a transient failure
+  after the first page left an intermediate count shown as the last one, with no tick to fix it.
+- Blocks in flight: no event reports them, so nothing shows them. A count is never derived from
+  `sent` (unknown, never guessed). The per-cell fill and the respondent grid are RQC7b.
+- Journey: the workbench's fictional fieldwork writes no `fieldwork_progress`, so `research_journey.mjs`
+  cannot reach this line. The ExecutionSteps test drives it from a recorded feed.
 
 **FLD4. Náklady.**
 - API: the run answers `spent_usd` and `reserved_usd` from the ledger and holds (unknown never

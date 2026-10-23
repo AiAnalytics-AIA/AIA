@@ -361,6 +361,17 @@ def principal_from_credential(
         raise _unauthenticated("account_disabled", "This account is disabled.")
 
     memberships = scope_repo.memberships_for_user(user["user_id"])
+    if not memberships and scope_repo.memberships_for_user(
+        user["user_id"], include_deactivated=True
+    ):
+        # Every membership deactivated (D-27): said as what it is, not as never provisioned.
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail={
+                "code": "member_deactivated",
+                "message": "This account is deactivated in its organization.",
+            },
+        )
     if not memberships:
         # Authenticated but not provisioned. 403 rather than 401: retrying with a
         # different token will not help; an administrator must add them.
