@@ -228,6 +228,13 @@ class Settings(BaseSettings):
     # Where a 500 is reported (aia_core.infrastructure.error_tracking): GlitchTip's DSN for
     # the API project. Empty, the reporter is off and nothing is installed.
     error_tracking_dsn: str = ""
+    # Settings → Stav systému reads GlitchTip's issues, alerts and uptime (settings-backends SB4)
+    # with a read-only API token (SSM aia_glitchtip_api_token; org, project and event read).
+    # Empty: the card says it is not configured. Never logged or returned. The API reaches
+    # GlitchTip on the internal network; people open it at the dashboard URL.
+    glitchtip_api_token: SecretStr = SecretStr("")
+    glitchtip_api_url: str = "http://glitchtip:8000"
+    glitchtip_dashboard_url: str = ""
 
     # Request body ceiling. Dataset uploads go through a dedicated upload path with
     # its own limit; this guards ordinary JSON endpoints.

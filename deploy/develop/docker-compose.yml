@@ -139,6 +139,11 @@ services:
       AIA_COGNITO_TOKEN_USE: id
       # Same-origin through Caddy: an empty list means no CORS middleware at all.
       AIA_CORS_ORIGINS: "[]"
+      # Settings → Stav systému (settings-backends SB4): GlitchTip read through a read-only API
+      # token, SSM aia_glitchtip_api_token, this service only; unset, the card says it is not
+      # configured. GlitchTip is reached as glitchtip:8000 (the default); people open it here.
+      AIA_GLITCHTIP_API_TOKEN: ${AIA_GLITCHTIP_API_TOKEN:-}
+      AIA_GLITCHTIP_DASHBOARD_URL: https://errors.${AIA_PUBLIC_HOSTNAME}
       # Where an administrator may try a draft system prompt (ADR 0020): the same list the
       # worker reads below, so the API can refuse a draft on any other client before a job
       # exists. Empty means no draft can be run anywhere.
