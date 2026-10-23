@@ -1,7 +1,7 @@
 ---
-status: planned
+status: in-progress
 chunks:
-  - "[ ] 1. Every key finding cites an admitted claim (MVP-23): a new rule, not a tightening, since AIA has no 95 % threshold (that is the unit's)"
+  - "[x] 1. Every key finding cites an admitted claim (MVP-23): a new rule, not a tightening, since AIA has no 95 % threshold (that is the unit's)"
   - "[ ] 2. Run QC as a pure function over a run's stored dataset, EXACT against the unit's qc.kontrola (MVP-24)"
   - "[ ] 3. A run's QC stored beside it and shown as warnings on Fieldwork and Results, never a gate"
   - "[ ] 4. The straight-liner check: flags by code, no pause, the worker proposes keep or flag; replace is a new linked run (F18, settled); the one definition is run-qc-and-checkpoint RQC1"
@@ -19,7 +19,7 @@ chunks:
 Track E of the MVP roadmap (`overview.md` § MVP roadmap, #493). Written 2026-10-19 from
 `mvp-cohesion.md` F7 (#496): three decisions had no plan, and all three change the same two
 places, the analysis gate and the evidence layer, so they share one plan. **Owner: a chat session,
-named when chunk 1 starts.**
+named when chunk 1 starts.** Chunks 1, 7 and 9a: the Analýza screen session (2026-10-22, the PM's assignment).
 
 ## Decisions this plan carries
 
@@ -55,6 +55,37 @@ named when chunk 1 starts.**
    with one uncited finding is refused; a draft with all cited passes; `test_analysis_executor.py`
    stays green. Decide here whether "shown as an unsupported hypothesis" is built or only refusal
    (refusal is the smaller change and the default).
+   *Landed.* `check_analysis_draft` refuses a key finding with no `claim_ids` as
+   `ViolationCode.FINDING_UNCITED`, subject `key_findings[<i>]` (`domain/analysis/draft.py` `_coverage`). A
+   finding that names only an unknown claim stays `DANGLING_CLAIM_REF`, and one whose claims fail admission
+   fails the draft as before, so "names at least one claim" is "cites at least one admitted claim".
+   - The hypothesis is settled: a refused finding reaches the repair turn like any violation. `repair_prompt`
+     lists each, and the test asserts the finding's path is named. A draft still failing is stored BLOCKED
+     by the existing harness.
+   - Refusal only, no "unsupported hypothesis" register: the default. A finding that cannot cite evidence is
+     not a finding.
+   - The rule is part of the identity. `ANALYSIS_HARNESS_VERSION` moves to `aia-analysis-harness-3`
+     (`domain/analysis/harness.py:79`) and `PROMPT_TEMPLATE_VERSION` to `analysis-module-v4`, whose rule 1 now
+     states it, so the model learns it before a paid turn.
+     - Without the bump, a module stored COMPLETED with an uncited finding would fail re-admission under
+       today's gate. It would not read stale (`_stale`, `application/analysis_results.py:726 @ 16682082`), so
+       `_retryable` (`:705`) would never offer it, and its run's analysis would stay unreadable.
+     - With the bump, every module completed under harness 2 reads stale and retryable, and Analýza and
+       Průběh say so (PC3) until a same-data round asks it again.
+     - The workbench's recorded wire answers from the payload (`aia_executors/recorded_models.py`
+       `grounded_draft`, every finding cited), so the bump does not break it.
+   - `AnalysisModuleResult` refuses a key finding with no claim too (`domain/analysis/result.py`), so no path
+     around the gate builds one. A finding that cites nothing is not also scanned for numbers: one defect,
+     one violation.
+   - Parity: "finding-without-evidence" is now EXACT (both refuse that draft). The new
+     "nineteen-of-twenty-cited" is an INTENTIONAL_DIFFERENCE: the unit's 95 % lets one uncited finding in
+     twenty through, and AIA does not. "no-finding-at-all" stays owed, waiting on 9a's diagnostic (MVPQ-04),
+     not on a gate refusal.
+   - Tests: `test_analysis_draft.py` (one uncited finding refused and named, also in the repair prompt; a
+     finding citing only an unknown claim; a draft without findings left to 9a; a hand-built result with an
+     uncited finding refused), `test_analysis_gate_parity.py`, the version pins in `test_analysis_harness.py`
+     and `test_analysis_modules.py`;
+     `test_analysis_executor.py`, the recorded-analysis and acceptance suites green.
 2. **QC function.** `domain/` pure: straight-lining first, over a run's stored dataset, thresholds
    as declared parameters (the unit's, recorded as such). EXACT fixture captured from the unit's
    own `qc.py` with `tools/` capture (the pattern of `respondent_capture.py`), pinned by SHA-256.
@@ -137,6 +168,38 @@ MVPQ-04 is settled (block), so the diagnostic of chunk 9a is W1 and the composer
 
 **9a and 9b, added 2026-10-20 (MVPQ-04).** A module that cannot state a supported finding stores a diagnostic: the module, reason codes and what would resolve it (a same-data retry through `retry_analysis`, a changed design, more data). It is not a finding, is not counted as admitted, and appears on Analysis and Results. The composer of the internal report and the exports (internal DOCX and PDF, with literature, client) refuse while any of the eight modules is BLOCKED or empty; the existing "all eight modules complete" rule is the same rule stated once. Test: a module with no finding blocks composition and export, shows its diagnostic, and a patched finding with no claim id is refused by the citation gate.
 
+*9a, the backend (2026-10-22, under Q72 (A), stacked on chunk 1's harness 3).* Q72 (A), the product owner
+2026-10-22: a module must have a supported finding before the report goes only where a finding is expected.
+**The module list is pending the methodology owner's confirmation (Aram).**
+- Which modules are expected is decided by code from the run's own data, never from a model's "no context"
+  (`domain/analysis/artifact.py` `finding_expected`, stored on each outcome as `finding_expected`):
+  - the executive summary, the audience and the implications always;
+  - the objects when the evidence the module is given holds a tracked set's rows (a set whose every row was
+    suppressed is not measured);
+  - the hypotheses when the design states one (they reach the module since F1);
+  - the segments when the evidence holds segment rows;
+  - the research questions when one is not a gap the run recorded at start; an answer or a key finding there
+    must cite a number;
+  - never the limitations.
+- `no_supported_finding(record)`: expected and states nothing. The report's refusal (9b) reads it. It is
+  offered one same-data round: `_retryable` lists it unless this run already asked it again (its
+  `analysis_retry.modules`), and the executor does not reuse its empty answer only for a module the person
+  asked again (`analysis_retried` in its step input), so a round never pays for a module the ceiling left out.
+- `finding_diagnostic(record, same_data_tried=)`: `no_supported_finding` with `same_data_retry` (unless tried),
+  `changed_design`, `more_data`;
+  `context_missing` with `changed_design`, `more_data` for a module the run lacks the context for (holds
+  nothing); else `None`. `GET …/runs/{id}/analysis` answers it per module as `diagnostic`.
+- A record stored before the expectation (`None`) is never read as either: under its older harness it is stale.
+- Tests: `test_analysis_artifact.py` "a module expected to find that states nothing holds and says so" and
+  "the expectation is decided by the run's own data"; `test_analysis_executor.py` "a module completed without
+  a finding is asked again over the same data" and "no context from the hypotheses module holds only when the
+  design states some" (the guard the PM asked for), "a same-data round that still states nothing is not
+  offered again", "research questions the run recorded as gaps hold nothing".
+- Ships inside chunk 1's harness 3, never apart from it: a harness-3 record stored without the hypotheses or the
+  expectation would otherwise be neither stale nor retryable. A rollback to an image before it cannot parse a
+  record carrying `finding_expected` (a closed model).
+- Left for 9a's web part: Analýza shows the diagnostic and its ways out (ANL4). 9b: the report's refusal.
+
 ## Cross-check additions (2026-10-20)
 
 From the independent cross-check of the master plan against the code (`mvp-master-plan.md` §6.1, G47-G57). Anchors are `@ 085abe0`.
@@ -156,3 +219,20 @@ row names it. 1 moves from E20 to E32 (G62), before its W1 consumer 9a.
 refusal while a module has no supported finding) and `artifact-chain-to-draft-report#CHN10`. Once
 9b lands, the Segments chapter (ch-5) has no admitted producer without 10, so no run could reach a
 draft report.
+
+## Findings
+
+- **F1. The hypotheses module was never given the design's hypotheses** (found while building 9a, 2026-10-22).
+  - Anchor: `domain/analysis/prompt.py:147 @ 774eca10` `module_payload` sends the research questions, the
+    evidence and the external context, never `research_plan.hypotheses`. `domain/analysis/modules.py:101
+    @ 774eca10` tells the module to "Evaluate only hypotheses explicitly supplied … If none are supplied, say
+    hypotheses cannot be assessed".
+  - Consequence: on every run the hypotheses module answered "cannot be assessed". The product owner saw it
+    (Q72, 2026-10-22: "basically every hypothesis was answered in the style of 'there was no context'").
+  - Repro: any run whose design states hypotheses; the module's first request has no hypotheses in it.
+  - Fix: `domain/analysis/native.py` `hypotheses_of` reads `research_plan.hypotheses`; the hypotheses module
+    alone is given them as `stated_hypotheses`, inside harness 3 (chunk 1's bump), so stored modules are
+    repaired by one same-data round. A module given none keeps its fingerprint.
+  - Tests: `test_analysis_modules.py` "only the hypotheses module is given the stated hypotheses" and "the
+    design's hypotheses are read as stated"; `test_analysis_executor.py` "the hypotheses module is given the
+    design's stated hypotheses".

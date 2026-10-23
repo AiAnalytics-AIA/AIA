@@ -2130,6 +2130,8 @@ export const cs = {
       uploadIntro: "Použijte šablonu AIA. Druhý list šablony, NAVOD, popisuje každé pole – podle něj ji vyplníte ručně, nebo ji připraví jiná AI. AIA pak strukturu zkontroluje a otevře ve stejném editoru.",
       template: "Stáhnout XLSX šablonu",
       fileLabel: "Vyplněný XLSX / CSV",
+      fileUnreadable: "soubor se nepodařilo přečíst; vyberte ho znovu",
+      templateRefused: "Šablonu se nepodařilo stáhnout (kód {code})",
       load: "Načíst dotazník",
       loading: "Načítám dotazník",
       loadingSub: "Validuji strukturu a sledované sady…",
@@ -2673,6 +2675,7 @@ export const cs = {
         VALUE_MISMATCH: "uvádí jinou hodnotu, než jakou data běhu mají",
         UNIT_MISMATCH: "uvádí číslo v jiné jednotce, než v jaké bylo změřeno",
         UNCITED_NUMBER: "uvádí číslo, které necituje",
+        FINDING_UNCITED: "necituje žádné číslo, o které by se opíralo",
         DANGLING_CLAIM_REF: "odkazuje na tvrzení, které neexistuje",
         DUPLICATE_CLAIM_ID: "dvě tvrzení mají stejné označení",
         MODULE_MISMATCH: "odpověď patří jiné části analýzy",
@@ -2801,6 +2804,8 @@ export const cs = {
         // run-qc-and-checkpoint RQC7a: fieldwork's progress event, by its code.
         fieldworkProgress: "Odpovědělo {done} z {of} respondentů",
         fieldworkReplayed: "{replayed} bloků z uložených odpovědí, bez nového placení",
+        // artifact-fieldwork FLD3: a stopped step's count, as it last reported it.
+        lastReported: "Naposledy hlášeno: odpovědělo {done} z {of} respondentů",
         aiAnswered: "Model odpověděl · {tokensIn} → {tokensOut} tokenů · {cost} · {seconds} s",
         aiAnsweredNoTokens: "Model odpověděl · tokeny neuvedeny · {cost} · {seconds} s",
         tokensUnknown: "?",
