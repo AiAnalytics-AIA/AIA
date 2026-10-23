@@ -37,6 +37,7 @@ from ..domain.answerability import (
 from ..domain.deep_research.workflow import DEEP_RESEARCH
 from ..domain.design import DESIGN_PROJECT_OWNER, DesignRejected
 from ..domain.design_items import ItemKey
+from ..domain.edit_log import ActorKind, OpSource, WriteBy
 from ..domain.evidence import ClaimSurface
 from ..domain.evidence.support import AIA_SUPPORT_V1, SupportSpec
 from ..domain.fieldwork import FieldworkSource, PersonaSource, persona_source_of
@@ -2086,6 +2087,7 @@ class ResearchAgentJobs:
             expected_workspace_revision=expected_workspace_revision,
             source_stage=_ACCEPT_STAGES[action],
             reason="ai_proposal_accepted",
+            by=WriteBy(ActorKind.PERSON, self.scope.actor_id, OpSource.PROPOSAL_ACCEPT, run_id),
             touched=[ItemKey.parse(str(k)) for k in recorded]
             if isinstance(recorded, list)
             else None,
