@@ -414,7 +414,9 @@ shaped as a config (`document`, `editorConfig`) is never read as the Document Se
 must name the URL fetched (`url` or `payload.url`: its path and its query's token), so the browser's config token
 cannot stand in for the Document Server; the URL token never reaches a log: `deploy/develop/Caddyfile` deletes
 `token` from the query in the product's access log and the default logger, and `tools/caddy_routes.py`
-(`logs_drop_token`) refuses a Caddyfile that writes it. Tests: the browser's config token, a JWT for another URL, an
+(`logs_drop_token`) refuses a Caddyfile that writes it. The develop Compose file hands the API `AIA_ONLYOFFICE_CALLBACK_BASE:
+https://${AIA_PUBLIC_HOSTNAME}` (the worker none); the editor stays off there until SSM sets its URL and secret
+(`test_the_report_editor_reaches_the_api_on_its_public_origin_and_stays_off_until_set`). Tests: the browser's config token, a JWT for another URL, an
 expired document token, a callback token, another line's version and another run's path are each refused.
 
 **RPT8d. The pane opens the editor.**
