@@ -100,7 +100,8 @@ from aia_core.infrastructure.storage import ArtifactStore, IntegrityError, Objec
 # -10: a ledger number in prose, a table or a caption is a locked, tagged control (RPT8a, part 1).
 # -12: KPI tiles, figures, the evidence appendix and suppressed counts locked too (RPT8a, part 2;
 # -11 is the brief's goal, F19).
-CONTEXT_REPORT_CONTRACT = "aia-contextual-report-12"
+# -13: the map's numbers locked under their stored map (map:<battery>/<method>; RPT8a, part 3).
+CONTEXT_REPORT_CONTRACT = "aia-contextual-report-13"
 #: The sealed Deep Research bundle the literature chapter is read from.
 BUNDLE_ARTIFACT = ARTIFACT_TYPES["bundle"]
 # Stored beside the run's own report, on the Study's design project (ADR 0016).

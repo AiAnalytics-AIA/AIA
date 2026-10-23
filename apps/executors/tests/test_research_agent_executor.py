@@ -707,26 +707,12 @@ def test_a_queued_job_keeps_the_prompt_it_was_queued_with(
     assert system_sent(transport2) == FIXED_PREFIX + CUSTOM_TASK
 
 
-def test_a_draft_runs_only_when_an_administrator_asks_for_it(
-    world: Any, database_url: str, store: Any, build: Any
-) -> None:
-    with world.sessions() as session:
-        admin = world.admin_context(session)
-        PromptRepository(session, admin).create_version(
-            "aia.research.analyze_brief", CUSTOM_TASK, declares_no_client_data=True
-        )
-        revision, _ = StudyDesignRepository(
-            session, world.lead_scope(session)
-        ).submit_as_working_copy(content=DESIGN, source_stage="brief")
-        lead_jobs = ResearchAgentJobs(session, world.lead_scope(session))
-        with pytest.raises(DesignRejected) as refused:
-            lead_jobs.start(
-                design_revision_id=revision.revision_id,
-                action=ResearchAction.ANALYZE,
-                prompt_version=1,
-            )
-        assert refused.value.reason == "prompt_test_requires_administrator"
-        session.rollback()
+def test_a_job_can_no_longer_be_asked_to_run_a_draft(world: Any) -> None:
+    """D-15: ``ResearchAgentJobs.start`` takes no prompt version; a job runs the active
+    prompt."""
+    import inspect
+
+    assert "prompt_version" not in inspect.signature(ResearchAgentJobs.start).parameters
 
 
 def test_a_job_whose_pin_was_altered_or_misplaced_is_refused_not_guessed() -> None:
@@ -913,7 +899,10 @@ def edit_working_copy(world: Any, change: dict[str, Any]) -> int:
         workspaces = StudyWorkspaceRepository(session)
         now = workspaces.content(scope)
         saved = workspaces.save(
-            scope, content={**(now.content or {}), **change}, base_revision=now.revision
+            scope,
+            content={**(now.content or {}), **change},
+            base_revision=now.revision,
+            by=WriteBy(ActorKind.PERSON, scope.actor_id, OpSource.UI),
         )
         session.commit()
         return saved.revision

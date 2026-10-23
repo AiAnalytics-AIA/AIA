@@ -291,6 +291,13 @@ def seed_develop(session: Session, *, owner_email: str) -> SeedResult:
         name="AIA develop (synthetic)",
         owner_email=email,
     )
+    if created["organization"]:
+        # A new world's operator holds the Metodik mark (D-14), so its Metodika can be edited
+        # at once; only when the world is created, never re-granted over an OWNER's revoke.
+        scope_repo.set_methodologist(admin, user_id=owner_id, methodologist=True)
+        admin = resolver.organization_context(
+            AuthenticatedPrincipal(user_id=owner_id, organization_id=organization_id)
+        )
     # The smoke acts on a world of its own. The operator's organization may hold
     # an archived `synthetic-client` from before this split: it is left as its
     # owner left it, and nothing below looks for it there.

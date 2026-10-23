@@ -468,6 +468,9 @@ class OrganizationMemberRow(Base):
     organization_id: Mapped[str] = mapped_column(String(64), primary_key=True)
     user_id: Mapped[str] = mapped_column(String(64), primary_key=True)
     role: Mapped[str] = mapped_column(String(32), nullable=False, default="MEMBER")
+    # The Metodik mark (D-14, settings-backends SB1): only a marked member stores and puts in
+    # force a methodology version. Granted and revoked by an OWNER; not a role.
+    methodologist: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
     # Deactivated in this organization (D-27, settings-backends SB2): the member resolves no
     # scope here while set; their membership elsewhere and the account are untouched.
     deactivated_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
@@ -600,6 +603,27 @@ class StudyRow(Base):
         CheckConstraint("kind in ('RESEARCH','SIMULATION')", name="study_kind_known"),
         Index("ix_studies_client", "client_id", "status"),
         Index("ix_studies_org_modified", "organization_id", "modified_at"),
+    )
+
+
+class DeploySmokeResultRow(Base):
+    """One check of one deploy's smoke run (settings-backends SB4): its label and result, no
+    detail. Deployment-wide, not an organization's: the smoke proves the deployment."""
+
+    __tablename__ = "deploy_smoke_results"
+
+    result_id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    run_id: Mapped[str] = mapped_column(String(64), nullable=False)
+    build_sha: Mapped[str] = mapped_column(String(64), nullable=False)
+    position: Mapped[int] = mapped_column(Integer, nullable=False)
+    check_label: Mapped[str] = mapped_column(String(300), nullable=False)
+    status: Mapped[str] = mapped_column(String(16), nullable=False)
+    ran_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+
+    __table_args__ = (
+        CheckConstraint("status in ('ok', 'FAIL', 'NOT_RUNNABLE')", name="status_known"),
+        UniqueConstraint("run_id", "position", name="uq_deploy_smoke_results_run_id_position"),
+        Index("ix_deploy_smoke_results_ran_at", "ran_at"),
     )
 
 

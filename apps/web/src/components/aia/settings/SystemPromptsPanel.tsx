@@ -312,7 +312,7 @@ function EditorBody({ detail, people, clients, studies, reload, onDirty }: {
 
   const running = detail.active.origin === "stored" ? versionName(detail.active.label) : t(`${P}.baselineName`);
   const savedWaiting = offer !== null && detail.active.version_number !== offer ? offer : null;
-  const canTest = actionOf(detail.prompt_id) !== null && detail.draft_test_client_ids.length > 0;
+  const canTest = actionOf(detail.prompt_id) !== null && (detail.draft_test_client_ids ?? []).length > 0;
   const basedOnName = basedOn === "baseline" ? t(`${P}.baselineName`) : versionName(basedOn);
 
   if (!detail.wired) {
@@ -694,7 +694,7 @@ function TestRun({ detail, version, studies, clients, onClose }: {
   const action = actionOf(detail.prompt_id);
   const clientName = new Map(clients.ok ? clients.data.map((c) => [c.client_id, c.name]) : []);
   // Only studies of a client the deployment lists as fictional; the API refuses any other server-side.
-  const fictional = new Set(detail.draft_test_client_ids);
+  const fictional = new Set(detail.draft_test_client_ids ?? []);
   const eligible = studies.ok
     ? studies.data.map((r) => r.study).filter((s) => s.kind === "RESEARCH" && s.accepts_work && fictional.has(s.client_id))
     : [];

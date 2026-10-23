@@ -68,7 +68,15 @@ INTERNAL_REPORT_MEDIA_TYPE = (
 
 
 class ReportCompositionRefused(ValueError):
-    """A report cannot be made from incomplete or inconsistent analysis."""
+    """A report cannot be made from incomplete or inconsistent analysis. ``reason`` names a refusal
+    a screen says in words (``analysis_holds_report``: ``modules`` hold it, 9b); ``None`` else."""
+
+    def __init__(
+        self, message: str, *, reason: str | None = None, modules: tuple[str, ...] = ()
+    ) -> None:
+        super().__init__(message)
+        self.reason = reason
+        self.modules = modules
 
 
 _TITLES = {
@@ -182,8 +190,14 @@ def compose_internal_report(
     """
     if meta.kind is not ReportKind.INTERNAL or meta.classification is not Classification.INTERNAL:
         raise ReportCompositionRefused("composition makes an unapproved internal draft only")
-    if not run.complete or set(run.modules) != set(AnalysisModuleId):
-        raise ReportCompositionRefused("all eight analysis modules must be complete")
+    if not run.complete:
+        holding = tuple(m.value for m in run.holding)
+        raise ReportCompositionRefused(
+            "all eight analysis modules must be complete with a supported finding; waiting on: "
+            + ", ".join(holding),
+            reason="analysis_holds_report",
+            modules=holding,
+        )
 
     first = run.modules[AnalysisModuleId.EXECUTIVE]
     if first.result is None:

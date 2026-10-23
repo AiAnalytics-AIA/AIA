@@ -136,8 +136,8 @@ const STUDY = (id: string, name: string, kind = "RESEARCH", clientId = "CLI-a") 
   detail: { ok: false, message: "" },
 }) as unknown as StudyRow;
 const DOC = (may = true) => ({ may_administer: may }) as unknown as SettingsDocument;
-const members: Part<{ user_id: string; email: string; display_name: string; is_active: boolean; organization_role: string }[]> = {
-  ok: true, data: [{ user_id: "USR-1", email: "owner@example.test", display_name: "", is_active: true, organization_role: "OWNER" }],
+const members: Part<{ user_id: string; email: string; display_name: string; is_active: boolean; organization_role: string; methodologist: boolean }[]> = {
+  ok: true, data: [{ user_id: "USR-1", email: "owner@example.test", display_name: "", is_active: true, organization_role: "OWNER", methodologist: false }],
 };
 const clients: Part<{ client_id: string; slug: string; name: string; status: string; reference: string; study_count: number; created_at: null }[]> = {
   ok: true, data: [

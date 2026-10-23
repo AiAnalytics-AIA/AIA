@@ -58,7 +58,12 @@ def _ready(scoped: Any, session: Any, content: dict[str, Any], edits: list[dict[
     scope = scoped.scope(user="lead")
     org = scoped.resolver.organization_context(scoped.principal(scoped.users["lead"]))
     ResearcherLeadRepository(session, org).hatch()
-    StudyWorkspaceRepository(session).save(scope, content=content, base_revision=None)
+    StudyWorkspaceRepository(session).save(
+        scope,
+        content=content,
+        base_revision=None,
+        by=WriteBy(ActorKind.PERSON, scope.actor_id, OpSource.UI),
+    )
     lead = ResearchLead(session, scope, enabled=True)
     turns = lead.post(kind="message", stage="brief", text="Uprav to.", focus=None)
     workflows = WorkflowRepository(session, scope)

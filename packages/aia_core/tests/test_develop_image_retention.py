@@ -148,6 +148,8 @@ def _host(
     dry: bool = False,
     lock_ok: bool = True,
     warmup: bool = False,
+    onlyoffice_enabled: bool = False,
+    docs_running: bool = False,
 ) -> subprocess.CompletedProcess[str]:
     host = tmp_path / "host"
     scripts = host / "bin"
@@ -177,6 +179,9 @@ retire_product_unit(){ :; }
         path = scripts / name
         path.write_text("#!/bin/sh\nprintf '%s\\n' " + name + ' >> "$CALLS"\n' + content + "\n")
         path.chmod(0o755)
+    docs = scripts / "docs.sh"
+    docs.write_text('#!/bin/sh\nprintf \'docs.sh %s\\n\' "$*" >> "$CALLS"\n')
+    docs.chmod(0o755)
     shims = tmp_path / "shims"
     shims.mkdir()
     docker_py = shims / "docker.py"
@@ -188,7 +193,9 @@ retire_product_unit(){ :; }
 from pathlib import Path
 args=sys.argv[1:]
 with open(os.environ['CALLS'],'a') as f: f.write('docker '+ ' '.join(args)+'\\n')
-if args[:1]==['ps']: print('stopped-container')
+if args[:1]==['ps'] and 'label=com.docker.compose.project=aia-docs' in args:
+    if os.environ['DOCS_RUNNING']=='1': print('docs-container')
+elif args[:1]==['ps']: print('stopped-container')
 elif args[:1]==['inspect']: print('sha256:'+format(1,'064x'))
 elif args[:2]==['image','ls']: print('\\n'.join(i['Id'] for i in json.loads(os.environ['IMAGES'])))
 elif args[:2]==['image','inspect']: print(os.environ['IMAGES'])
@@ -225,6 +232,8 @@ raise SystemExit(module['main']())
         "IMAGES": json.dumps(old),
         "LOW_SPACE": str(int(low_space)),
         "RM_FAIL": str(int(not removal_ok)),
+        "AIA_ONLYOFFICE_ENABLED": "true" if onlyoffice_enabled else "false",
+        "DOCS_RUNNING": str(int(docs_running)),
     }
     if dry:
         args = [
@@ -308,3 +317,18 @@ def test_multiple_aia_aliases_are_shared_and_never_removed() -> None:
     shared = image(1)
     shared["RepoTags"].append(f"{REGISTRY}/aia-api:{2:040x}")
     assert retention.candidates([shared], set(), REGISTRY, [], NOW) == []
+
+
+@pytest.mark.parametrize(
+    "enabled,running,expected",
+    [(True, False, ["docs.sh up"]), (False, True, ["docs.sh down"]), (False, False, [])],
+)
+def test_the_report_editor_follows_its_switch_on_every_deploy(
+    tmp_path: Path, enabled: bool, running: bool, expected: list[str]
+) -> None:
+    # Switched off while it runs, the deploy stops it: turning it off needs no hand on the host
+    # (report-editor-hosting 4a). Nothing runs and it is off: the deploy does not touch it.
+    result = _host(tmp_path, onlyoffice_enabled=enabled, docs_running=running)
+    assert result.returncode == 0, result.stderr
+    calls = (tmp_path / "calls").read_text().splitlines()
+    assert [c.strip() for c in calls if c.startswith("docs.sh")] == expected

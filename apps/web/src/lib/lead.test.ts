@@ -5,10 +5,11 @@ import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 
 import {
-  applyLeadEdit, autoAcceptIndices, commandRequest, autoAcceptPlan, describeEdit, droppedLines, editRefusalWords, editStage, isTextEdit, leadReasonWords, pendingSelfUpdate, revertTextEdit, targetLabel, textEditInverse,
+  applyLeadEdit, autoAcceptIndices, commandRequest, autoAcceptPlan, describeEdit, droppedLines, editRefusalWords, editStage, isTextEdit, leadReasonWords, pendingSelfUpdate, revertTextEdit, targetLabel, textEditInverse, changesToShow,
   type LeadEdit, type LeadTurn,
 } from "./lead";
 import type { ResearchProject } from "@/research/model";
+import type { ResearchAgentJob } from "./api";
 import { itemTargets } from "@/research/plan-narrative";
 import type { PlanState } from "@/research/plan";
 
@@ -204,6 +205,22 @@ describe("targetLabel for every artifact's kinds", () => {
     expect(targetLabel("measure:q3")).toBe("Měření q3");
     expect(targetLabel("receipt:respondents")).toBe("Kdo odpovídal");
     expect(targetLabel("nonsense:q3")).toBe("nonsense:q3");
+  });
+});
+
+describe("changesToShow", () => {
+  const job = (run_id: string, action: string, proposal_state: string, created_at: string) => ({ run_id, action, proposal_state, created_at }) as unknown as ResearchAgentJob;
+  const jobs = [
+    job("RUN-old", "build_questionnaire", "pending", "2026-10-22T08:00:00Z"),
+    job("RUN-new", "optimize_questionnaire", "pending", "2026-10-22T09:00:00Z"),
+    job("RUN-done", "optimize_questionnaire", "accepted", "2026-10-22T10:00:00Z"),
+    job("RUN-plan", "analyze_brief", "pending", "2026-10-22T11:00:00Z"),
+  ];
+  it("shows the Lead's waiting edits first, then the stage's newest proposal still waiting, else nothing", () => {
+    expect(changesToShow("questionnaire", ["questionnaire"], jobs)).toEqual({ kind: "edits" });
+    expect(changesToShow("questionnaire", ["design"], jobs)).toEqual({ kind: "proposal", job: jobs[1] });
+    expect(changesToShow("design", [], jobs)).toEqual({ kind: "proposal", job: jobs[3] });
+    expect(changesToShow("dimensions", ["design"], jobs)).toBeNull();
   });
 });
 

@@ -2,8 +2,9 @@
 status: in-progress
 chunks:
   - "[x] 1. Tab frame: ten tabs in three groups (Tým a peníze), a line under each name, Lucide icons; Stav systému and Správa dat as their own tabs"
-  - "[ ] 2. Shared inputs: Segmented, Stepper (bounds, Shift x10, refusal at the field), Switch, inline new row, Vrátit toast"
-  - "[ ] 3. Přístup a schvalování: segmented role and status, Metodik switch, inline add member, deactivate with Vrátit, roles boxes, samoschválení above Klienti"
+  - "[x] 2. Shared inputs: one Switch (ui/Switch); Segmented = ChoiceChips, Stepper, InlineCreateRow, InlineText and UndoToast already in ui/ (input-interactions)"
+  - "[x] 3. Přístup a schvalování: role, status and self-approval chosen in their rows, name edited in place, inline add member, role change with Vrátit, roles boxes, samoschválení above Klienti"
+  - "[ ] 3b. Přístup over its backends: Metodik switch (owner only), deactivate with Vrátit and the sealed Lead, a client's posture and wallet ceiling"
   - "[ ] 4. Studie a rozpočty: the four money names, steppers with bounds, % and near-limit (90 %), spend tiles and per-researcher spend"
   - "[ ] 5. Systémové prompty: grouped list, editor layout, in-force version in green, Verze table"
   - "[ ] 6. Deep Research: Dosah, proposals in the Návrh cell, I7 modals, Pevné ochrany v kódu"
@@ -41,4 +42,8 @@ https://claude.ai/artifact/8W9LR8Ju9BWnR5JACmiWv7 (ten boards, one per tab) and 
   Never hide information behind toggles.
 
 ## Findings
-(none yet)
+- The membership call (POST /api/v1/members) writes a member's name and role together, so a role chosen
+  while the list was still re-reading a new name would have written the old name back. Caught by the
+  settings journey on chunk 3; the row now sends the newest name (AccessPanel.tsx MemberRow), and
+  ControlPanel.test.tsx "never writes an old name back when a role is chosen while the new name is
+  still being read" fails without it.
