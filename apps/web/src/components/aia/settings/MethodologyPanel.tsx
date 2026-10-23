@@ -100,11 +100,11 @@ function Modules({ modules, people }: { modules: MethodModuleSummary[]; people: 
           return <button key={m.id} type="button" data-module-card={m.id} aria-label={m.title_cs} aria-pressed={on} onClick={() => {
             if (m.id === active) { setChooserOpen(false); return; }
             if (editing) setPending(m.id); else { setActive(m.id); setChooserOpen(false); }
-          }} style={{ borderTopColor: `var(--color-${accentOf(m.id)})` }}
+          }} style={{ borderTopColor: `var(--${accentOf(m.id)})` }}
             className={`group flex min-w-0 flex-col overflow-hidden rounded-md border border-t-4 text-left text-sm transition-transform duration-[var(--duration-confirm)] hover:-translate-y-0.5 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus-ring motion-reduce:transform-none ${m.id === "sociomap" ? "md:col-span-2 xl:col-span-3" : ""} ${on ? "border-signal-edge bg-signal-wash" : "border-border bg-surface-raised hover:border-border-strong"}`}>
             <span className={`block ${m.id === "sociomap" ? "h-24" : "h-20"} border-b border-border bg-surface`}><ModuleArt id={m.id} /></span>
             <span className="flex flex-col gap-1.5 p-3.5">
-              <span className="flex items-baseline justify-between gap-2"><strong className="text-sm font-semibold">{m.title_cs}</strong><span aria-hidden="true" style={{ color: `var(--color-${accentOf(m.id)})` }}>→</span></span>
+              <span className="flex items-baseline justify-between gap-2"><strong className="text-sm font-semibold">{m.title_cs}</strong><span aria-hidden="true" style={{ color: `var(--${accentOf(m.id)})` }}>→</span></span>
               {m.note_cs ? <span className="block text-xs leading-5 text-ink-muted">{m.note_cs}</span> : null}
               <dl data-module-facts className="mt-1 grid grid-cols-[max-content_1fr] gap-x-3 gap-y-0.5 text-xs">
                 {summary ? <>

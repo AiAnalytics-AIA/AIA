@@ -115,7 +115,7 @@ function Segment<T extends string>({ label, value, options, onChange }: {
           title={o.disabled ?? undefined}
           onClick={() => { if (!o.disabled) onChange(o.id); }}
           className={value === o.id
-            ? "min-h-8 rounded-[4px] bg-surface-raised px-2.5 text-xs font-medium shadow-[0_0_0_1px_var(--color-border)]"
+            ? "min-h-8 rounded-[4px] bg-surface-raised px-2.5 text-xs font-medium shadow-[0_0_0_1px_var(--border)]"
             : `min-h-8 rounded-[4px] px-2.5 text-xs font-medium ${o.disabled ? "cursor-not-allowed text-ink-faint" : "text-ink-muted"}`}
         >
           {o.text}
