@@ -75,6 +75,7 @@ function Modules({ modules, people }: { modules: MethodModuleSummary[]; people: 
   const onDirty = useCallback((value: boolean) => setEditing(value), []);
   // Which area's editor is open: there the editor speaks for itself.
   const [openFor, setOpenFor] = useState<string | null>(null);
+  const onOpen = useCallback((open: boolean) => setOpenFor(open ? active : null), [active]);
   const areas: Area[] = [...modules.filter((m) => !HIDDEN_MODULES.has(m.id)), FIELD_ORIGIN];
   const current = areas.find((m) => m.id === active) ?? null;
   const visible = areas.filter((m) => `${m.title_cs} ${m.note_cs}`.toLocaleLowerCase("cs").includes(query.trim().toLocaleLowerCase("cs")));
@@ -120,7 +121,7 @@ function Modules({ modules, people }: { modules: MethodModuleSummary[]; people: 
     {!visible.length ? <p role="status" className="text-sm text-ink-muted">{t(`${M}.noMatch`)}</p> : null}
     {pending ? <InlineConfirm message={t(`${M}.leaveEditor`)} action={t(`${M}.discardEditor`)} onCancel={() => { setPending(null); setChooserOpen(false); }} onConfirm={() => { setActive(pending); setPending(null); setEditing(false); setChooserOpen(false); }} /> : null}
     {current?.id === FIELD_ORIGIN.id ? <FieldOriginPanel /> : null}
-    {current && current.id !== FIELD_ORIGIN.id ? <ModuleView key={current.id} summary={modules.find((m) => m.id === current.id) as MethodModuleSummary} people={people} onDirty={onDirty} onOpen={(open) => setOpenFor(open ? current.id : null)} /> : null}
+    {current && current.id !== FIELD_ORIGIN.id ? <ModuleView key={current.id} summary={modules.find((m) => m.id === current.id) as MethodModuleSummary} people={people} onDirty={onDirty} onOpen={onOpen} /> : null}
   </div>;
 }
 
@@ -140,24 +141,23 @@ function InForceFact({ summary }: { summary: MethodModuleSummary }) {
 
 function ModuleView({ summary, people, onDirty, onOpen }: { summary: MethodModuleSummary; people: People; onDirty: (value: boolean) => void; onOpen: (open: boolean) => void }) {
   const [preset, setPreset] = useState(summary.in_force ?? undefined);
-  const [editing, setEditing] = useState(false);
   const [res, retry] = useResource(() => methodology.get(summary.id, preset), [summary.id, preset]);
-  return <div className="flex min-w-0 flex-col gap-4">
-    {summary.editable ? <MethodologyVersions summary={summary} people={people} onEditing={(open) => { setEditing(open); onOpen(open); }} onDirty={onDirty} /> : null}
-    <div hidden={editing} className="flex min-w-0 flex-col gap-4">
-      <div className="rounded-md border border-border p-3">
-        <p className="text-sm font-semibold">{t(`${M}.catalogueTitle`)}</p>
-        <p className="mt-1 text-xs leading-5 text-ink-muted">{t(`${M}.catalogueHelp`)}</p>
-        {presetsShown(summary).length === 1 ? <p data-preset className="mt-2 font-mono text-xs text-ink-muted">{presetsShown(summary)[0]}{presetsShown(summary)[0] === summary.in_force ? ` · ${t(`${M}.codeDefault`)}` : ""}</p> : null}
-        {presetsShown(summary).length > 1 ? <div role="radiogroup" aria-label={t(`${M}.preset`)} className="mt-3 flex flex-wrap gap-2">
-          {presetsShown(summary).map((p) => <button key={p} type="button" role="radio" aria-checked={p === preset} onClick={() => setPreset(p)} className={`rounded-sm border px-3 py-2 font-mono text-xs focus-visible:outline-2 focus-visible:outline-focus-ring ${p === preset ? "border-signal-edge bg-signal-wash text-signal" : "border-border text-ink-muted"}`}>
-            {p}{p === summary.in_force ? ` · ${t(`${M}.codeDefault`)}` : ""}
-          </button>)}
-        </div> : null}
-      </div>
-      <Loaded res={res} retry={retry}>{(detail) => <Steps key={detail.preset ?? detail.id} detail={detail} />}</Loaded>
+  const calc = <>
+    <div className="rounded-md border border-border p-3">
+      <p className="text-sm font-semibold">{t(`${M}.catalogueTitle`)}</p>
+      <p className="mt-1 text-xs leading-5 text-ink-muted">{t(`${M}.catalogueHelp`)}</p>
+      {presetsShown(summary).length === 1 ? <p data-preset className="mt-2 font-mono text-xs text-ink-muted">{presetsShown(summary)[0]}{presetsShown(summary)[0] === summary.in_force ? ` · ${t(`${M}.codeDefault`)}` : ""}</p> : null}
+      {presetsShown(summary).length > 1 ? <div role="radiogroup" aria-label={t(`${M}.preset`)} className="mt-3 flex flex-wrap gap-2">
+        {presetsShown(summary).map((p) => <button key={p} type="button" role="radio" aria-checked={p === preset} onClick={() => setPreset(p)} className={`rounded-sm border px-3 py-2 font-mono text-xs focus-visible:outline-2 focus-visible:outline-focus-ring ${p === preset ? "border-signal-edge bg-signal-wash text-signal" : "border-border text-ink-muted"}`}>
+          {p}{p === summary.in_force ? ` · ${t(`${M}.codeDefault`)}` : ""}
+        </button>)}
+      </div> : null}
     </div>
-  </div>;
+    <Loaded res={res} retry={retry}>{(detail) => <Steps key={detail.preset ?? detail.id} detail={detail} />}</Loaded>
+  </>;
+  // An editable module is its parts as tabs (settings-redesign 10b); a read-only one is its calculation.
+  if (summary.editable) return <MethodologyVersions summary={summary} people={people} calc={calc} onEditing={onOpen} onDirty={onDirty} />;
+  return <div className="flex min-w-0 flex-col gap-4">{calc}</div>;
 }
 
 function Steps({ detail }: { detail: MethodModuleDetail }) {

@@ -104,6 +104,11 @@ const field = (form: HTMLElement, reference: string) =>
     return input as HTMLInputElement;
   });
 
+/** A module's part (settings-redesign 10b): Výpočet, Verze a aktivace, Porovnání or Upravit. */
+async function openPart(name: string) {
+  fireEvent.click(await screen.findByRole("tab", { name }));
+}
+
 /** The area chooser is closed by default (the editor opens first): open it, then pick an area. */
 async function openModule(name: string) {
   if (!screen.queryByRole("navigation", { name: "Oblasti metodiky" })) fireEvent.click(await screen.findByRole("button", { name: "Změnit oblast" }));
@@ -111,6 +116,9 @@ async function openModule(name: string) {
 }
 
 beforeEach(() => {
+  // jsdom has no <dialog> modality: the activation is a native dialog (I7b).
+  HTMLDialogElement.prototype.showModal = function showModal(this: HTMLDialogElement) { this.setAttribute("open", ""); };
+  HTMLDialogElement.prototype.close = function close(this: HTMLDialogElement) { this.removeAttribute("open"); };
   resetConfigCache();
   sessionStorage.setItem("aia.session", JSON.stringify({ idToken: "tok", refreshToken: "r", expiresAt: Date.now() + 3_600_000, email: "owner@example.test", subject: "s" }));
 });
@@ -125,8 +133,10 @@ describe("the support rules' versions (plan G1d)", () => {
     const { sent } = fakeApi();
     render(<MethodologyPanel />);
     await openModule("Podpora a potlačení: kdy se číslo smí ukázat");
+    await openPart("Výpočet");
     await screen.findByRole("heading", { name: "Pravidlo jednotky 18.6.6 (Výsledky)" });
     await versionsSection();
+    await openPart("Upravit");
     await openEditor();
     const form = await editor();
     const unchecked = await field(form, "results.n_guard");
@@ -237,8 +247,9 @@ describe("the methodology's versions", () => {
     fakeApi();
     render(<MethodologyPanel />);
     const section = await versionsSection();
-    expect(within(section).getByText("aia-sociomap-5").closest("[data-in-force]")).not.toBeNull();
-    expect(within(section).getByText("z kódu")).toBeTruthy();
+    const inForce = section.querySelector("[data-in-force]") as HTMLElement;
+    expect(within(inForce).getByText("aia-sociomap-5")).toBeTruthy();
+    expect(within(inForce).getByText("z kódu")).toBeTruthy();
     expect(within(section).getByText("Žádná uložená verze: platí metodika z kódu.")).toBeTruthy();
   });
 
@@ -268,19 +279,21 @@ describe("the methodology's versions", () => {
     const confirm = await found("[data-methodology-activate]", section);
     // Putting an edited Sociomap in force says its maps will be internal, before it is confirmed (PC17).
     expect(confirm.querySelector("[data-sociomap-internal]")).toBeTruthy();
-    fireEvent.change(within(confirm).getByLabelText("Důvod (zapíše se do historie)"), { target: { value: "ověřeno" } });
-    fireEvent.click(within(confirm).getByRole("button", { name: "Potvrdit" }));
-    await waitFor(() => expect(within(section).getByText("uložená verze")).toBeTruthy());
-    expect(sent.find((s) => s.method === "PUT")?.body).toEqual({ version_number: 1, reason: "ověřeno" });
-    expect(within(section).getByText("— ověřeno", { exact: false })).toBeTruthy();
+    fireEvent.click(within(confirm).getByRole("radio", { name: "Oprava chyby v metodě" }));
+    fireEvent.change(within(confirm).getByLabelText("Poznámka k důvodu"), { target: { value: "ověřeno" } });
+    fireEvent.click(within(confirm).getByRole("button", { name: "Aktivovat jako interní" }));
+    await waitFor(() => expect(within(section.querySelector("[data-in-force]") as HTMLElement).getByText("uložená verze")).toBeTruthy());
+    expect(sent.find((s) => s.method === "PUT")?.body).toEqual({ version_number: 1, reason: "Oprava chyby v metodě: ověřeno" });
+    expect(within(section).getByText("Oprava chyby v metodě: ověřeno")).toBeTruthy();
 
     fireEvent.click(within(section).getByRole("button", { name: "Vrátit na aia-sociomap-5 z kódu" }));
     const back = await found("[data-methodology-activate]", section);
     // Back to the code's preset: nothing to warn about.
     expect(back.querySelector("[data-sociomap-internal]")).toBeNull();
-    fireEvent.click(within(back).getByRole("button", { name: "Potvrdit" }));
-    await waitFor(() => expect(within(section).getByText("z kódu")).toBeTruthy());
-    expect(sent.filter((s) => s.method === "PUT").at(-1)?.body).toEqual({ version_number: null, reason: "" });
+    fireEvent.click(within(back).getByRole("radio", { name: "Návrat k výchozí metodě" }));
+    fireEvent.click(within(back).getByRole("button", { name: "Vrátit na výchozí" }));
+    await waitFor(() => expect(within(section.querySelector("[data-in-force]") as HTMLElement).getByText("z kódu")).toBeTruthy());
+    expect(sent.filter((s) => s.method === "PUT").at(-1)?.body).toEqual({ version_number: null, reason: "Návrat k výchozí metodě" });
   });
 
   it("send a replaced formula, show the domain's problems at the field and store nothing", async () => {
@@ -385,7 +398,9 @@ describe("the comparison with what is in force", () => {
     fireEvent.change(await field(form, "relation.n_min"), { target: { value: "34" } });
     fireEvent.click(within(form).getByRole("button", { name: "Porovnat s metodikou v platnosti" }));
 
-    const panel = await found('[data-compare-panel="small"]', form);
+    // The comparison is the module's Porovnání (10b): the page moves there.
+    await waitFor(() => expect(screen.getByRole("tab", { name: "Porovnání" }).getAttribute("aria-selected")).toBe("true"));
+    const panel = await found('[data-compare-panel="small"]');
     expect(within(panel).getByText(/objekt 1 – objekt 2: spolehlivý →/)).toBeTruthy();
     expect(within(panel).getByText("neznámý")).toBeTruthy();
     expect(within(panel).getByText("Žádný objekt se neposunul.")).toBeTruthy();
@@ -404,7 +419,8 @@ describe("the comparison with what is in force", () => {
     const form = await editor();
     fireEvent.click(within(form).getByRole("button", { name: "Porovnat s metodikou v platnosti" }));
     await waitFor(() => expect(within(form).getByText("must be at least 4")).toBeTruthy());
-    expect(form.querySelector("[data-methodology-compare]")).toBeNull();
+    expect(document.querySelector("[data-methodology-compare]")).toBeNull();
+    expect(screen.getByRole("tab", { name: "Upravit" }).getAttribute("aria-selected")).toBe("true");
   });
 });
 
@@ -427,6 +443,11 @@ describe("guided methodology editing", () => {
     fireEvent.click(within(form).getByRole("button", { name: "Zrušit" }));
     fireEvent.click(screen.getByRole("button", { name: "Zahodit neuložené úpravy" }));
     expect(document.querySelector("[data-methodology-editor]")).toBeNull();
+    // A cancelled edit returns to the calculation it was made against (settings-redesign 10b).
+    expect(screen.getByRole("tab", { name: "Výpočet" }).getAttribute("aria-selected")).toBe("true");
+    // Upravit starts the next edit from what is in force.
+    fireEvent.click(screen.getByRole("tab", { name: "Upravit" }));
+    expect(await editor()).toBeTruthy();
   });
 
   it("switches areas at once from an untouched editor, and asks first when it holds changes", async () => {
@@ -529,8 +550,10 @@ describe("the editor a methodologist opens on (product owner, 2026-10-13)", () =
     fireEvent.click(within(form).getByRole("button", { name: "Zkontrolovat a uložit" }));
     const section = await versionsSection();
     fireEvent.click(await within(section).findByRole("button", { name: "Uvést aia-sociomap-5+e1 v platnost" }));
-    fireEvent.click(within(await found("[data-methodology-activate]", section)).getByRole("button", { name: "Potvrdit" }));
-    await waitFor(() => expect(within(section).getByText("uložená verze")).toBeTruthy());
+    const dialog = await found("[data-methodology-activate]", section);
+    fireEvent.click(within(dialog).getByRole("radio", { name: "Ověření na pilotní studii" }));
+    fireEvent.click(within(dialog).getByRole("button", { name: "Aktivovat jako interní" }));
+    await waitFor(() => expect(within(section.querySelector("[data-in-force]") as HTMLElement).getByText("uložená verze")).toBeTruthy());
     cleanup();
     render(<MethodologyPanel />);
     form = await editor();
@@ -575,8 +598,75 @@ describe("the editor a methodologist opens on (product owner, 2026-10-13)", () =
     expect(within(section).getAllByRole("button", { name: "Uvést aia-sociomap-5+e1 v platnost" })).toEqual([offer]);
     fireEvent.click(offer);
     const confirm = await found("[data-methodology-activate]", section);
-    fireEvent.change(within(confirm).getByLabelText("Důvod (zapíše se do historie)"), { target: { value: "širší kopec" } });
-    fireEvent.click(within(confirm).getByRole("button", { name: "Potvrdit" }));
+    fireEvent.click(within(confirm).getByRole("radio", { name: "Rozhodnutí vlastníka metody" }));
+    fireEvent.change(within(confirm).getByLabelText("Poznámka k důvodu"), { target: { value: "širší kopec" } });
+    fireEvent.click(within(confirm).getByRole("button", { name: "Aktivovat jako interní" }));
     await waitFor(() => expect(sent.some((s) => s.url.endsWith("/activation") && (s.body?.version_number as number) === 1)).toBe(true));
+  });
+});
+
+describe("a module's view (settings-redesign 10b)", () => {
+  const tab = (name: RegExp | string) => screen.getByRole("tab", { name });
+
+  it("opens an administrator on Upravit; Výpočet, Verze a aktivace and Porovnání are a tab away, the draft kept", async () => {
+    fakeApi();
+    render(<MethodologyPanel />);
+    const form = await editor();
+    expect(await screen.findByRole("tablist", { name: "Části modulu" })).toBeTruthy();
+    expect(tab("Upravit").getAttribute("aria-selected")).toBe("true");
+    fireEvent.change(await field(form, "relation.n_min"), { target: { value: "12" } });
+    fireEvent.click(tab("Výpočet"));
+    expect(tab("Výpočet").getAttribute("aria-selected")).toBe("true");
+    expect(form.closest("[role=tabpanel]")?.hasAttribute("hidden")).toBe(true);
+    fireEvent.click(tab("Verze a aktivace"));
+    expect(screen.getByRole("heading", { name: "Historie platnosti" })).toBeTruthy();
+    fireEvent.click(tab("Upravit"));
+    expect((await field(form, "relation.n_min")).value).toBe("12");
+  });
+
+  it("shows a member the module read-only: Upravit is the Metodik's, and the member opens on Výpočet", async () => {
+    fakeApi({ mayAdminister: false });
+    render(<MethodologyPanel />);
+    await screen.findByRole("tablist", { name: "Části modulu" });
+    const edit = tab(/^Upravit · jen Metodik$/);
+    expect((edit as HTMLButtonElement).disabled).toBe(true);
+    expect(tab("Výpočet").getAttribute("aria-selected")).toBe("true");
+    expect(document.querySelector("[data-methodology-editor]")).toBeNull();
+  });
+
+  it("shows Porovnat s platnou's result on Porovnání, and before any comparison says both sides are the same", async () => {
+    fakeApi({ compare: { valid: true, problems: {}, in_force: "aia-sociomap-5", panels: [] } });
+    render(<MethodologyPanel />);
+    const form = await editor();
+    fireEvent.click(await screen.findByRole("tab", { name: "Porovnání" }));
+    expect(screen.getByText(/Bez úpravy jsou obě strany stejné/)).toBeTruthy();
+    fireEvent.click(tab("Upravit"));
+    fireEvent.change(await field(form, "relation.n_min"), { target: { value: "12" } });
+    fireEvent.click(within(form).getByRole("button", { name: "Porovnat s metodikou v platnosti" }));
+    await waitFor(() => expect(tab("Porovnání").getAttribute("aria-selected")).toBe("true"));
+    expect(screen.getByText("Porovnává se vaše neuložená úprava.")).toBeTruthy();
+  });
+
+  it("activates a version in one dialog with a reason chosen as a chip and a note, and sends nothing without a reason", async () => {
+    const { sent } = fakeApi();
+    render(<MethodologyPanel />);
+    const form = await editor();
+    fireEvent.change(await field(form, "relation.n_min"), { target: { value: "12" } });
+    fireEvent.click(within(form).getByRole("button", { name: "Zkontrolovat a uložit" }));
+    fireEvent.click(await screen.findByRole("button", { name: "Uvést aia-sociomap-5+e1 v platnost" }));
+    const dialog = await found("[data-methodology-activate]");
+    // An edited Sociomap is internal until the register approves it: the act says so.
+    expect(dialog.querySelector("[data-sociomap-internal]")).toBeTruthy();
+    fireEvent.click(within(dialog).getByRole("button", { name: "Aktivovat jako interní" }));
+    expect(within(dialog).getByRole("alert").textContent).toMatch(/Vyberte důvod/);
+    expect(sent.filter((s) => s.method === "PUT")).toEqual([]);
+    fireEvent.click(within(dialog).getByRole("radio", { name: "Ověření na pilotní studii" }));
+    fireEvent.change(within(dialog).getByLabelText("Poznámka k důvodu"), { target: { value: "studie Lípa" } });
+    fireEvent.click(within(dialog).getByRole("button", { name: "Aktivovat jako interní" }));
+    await waitFor(() => expect(sent.filter((s) => s.method === "PUT")).toHaveLength(1));
+    expect(sent.find((s) => s.method === "PUT")?.body).toEqual({ version_number: 1, reason: "Ověření na pilotní studii: studie Lípa" });
+    fireEvent.click(tab("Verze a aktivace"));
+    const history = await waitFor(() => screen.getByRole("table", { name: "Historie platnosti" }));
+    expect(within(history).getByText("Ověření na pilotní studii: studie Lípa")).toBeTruthy();
   });
 });
