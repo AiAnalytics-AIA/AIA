@@ -3389,11 +3389,9 @@ class AgentJobStart(BaseModel):
     design_revision_id: str = Field(max_length=64, pattern=r"^REV-[0-9a-f]{1,32}$")
     action: ResearchAction
     instruction: str = Field(default="", max_length=8000)
-    #: A stored prompt version to run instead of the active one, to test a draft (ADR 0020).
-    #: Organization administrators only, and only on a client the deployment lists as
-    #: fictional (409 ``prompt_test_requires_fictional_client`` otherwise); the job records
-    #: which prompt it ran.
-    prompt_version: int | None = Field(default=None, ge=1)
+    # No prompt_version: a job runs the organization's active prompt, never a draft (D-15,
+    # system-prompts-settings 14). Asking for one is 422 (extra="forbid"): no paid start
+    # outside the Lead stays reachable over HTTP.
     #: The ceiling a person confirmed when the study's confirmation threshold asked (409
     #: ``cost_confirmation_required``, lead-orchestration LO15). Never the ceiling itself: the
     #: server works that out from the design job's reservation.
@@ -3561,19 +3559,14 @@ def start_agent_job(
     response: Response,
 ) -> AgentJobResponse:
     with _agent_errors(session):
-        # The deployment's fictional-client list decides where a draft prompt may be tried.
         # What one job can cost at most, for the study's confirmation threshold (LO15).
         jobs = ResearchAgentJobs(
-            session,
-            scope,
-            draft_client_ids=settings.fictional_client_ids,
-            reservation_usd=settings.ai_research_reservation_usd,
+            session, scope, reservation_usd=settings.ai_research_reservation_usd
         )
         started = jobs.start(
             design_revision_id=body.design_revision_id,
             action=body.action,
             instruction=body.instruction,
-            prompt_version=body.prompt_version,
             confirm_cost_usd=body.confirm_cost_usd,
         )
         if not started.created:
