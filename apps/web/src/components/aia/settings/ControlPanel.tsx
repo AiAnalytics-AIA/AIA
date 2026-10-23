@@ -40,6 +40,7 @@ import { DeepResearchSettingsPanel } from "./DeepResearchSettingsPanel";
 import { MethodologyPanel } from "./MethodologyPanel";
 import { ResearcherSpendCard } from "./ResearcherSpendCard";
 import { StudiesTable } from "./StudiesPanel";
+import { ChoiceChips } from "../../ui/ChoiceChips";
 import { AUDIT_PAGE, AuditPanel } from "./AuditPanel";
 import { SETTING_HELP, TAB_GUIDE } from "./settings-guide";
 import { SystemPromptsPanel } from "./SystemPromptsPanel";
@@ -191,6 +192,43 @@ function SettingRow({ item }: { item: SettingItem }) {
       </div>
       <div className="min-w-0">{item.control === "API" ? <ApiHint item={item} /> : <Value value={item.value} unit={item.unit} />}</div>
       <ControlBadge control={item.control} />
+    </div>
+  );
+}
+
+/** Who changes a reference value: the deployment, a rule in code (code or invariant), or AIA's own API. */
+type RefOwner = "deployment" | "fixed" | "app";
+const ownerOf = (c: SettingControl): RefOwner => (c === "DEPLOYMENT" ? "deployment" : c === "API" ? "app" : "fixed");
+const itemName = (key: string) => (t(`${P}.items.${key}`).startsWith(P) ? key.replaceAll("_", " ") : t(`${P}.items.${key}`));
+
+/** A reference value as a table row: Hodnota, Nastaveno, Kdo mění, Co znamená (the redesign's Reference). */
+function ReferenceRow({ item }: { item: SettingItem }) {
+  return (
+    <tr data-setting={item.key} data-owner={ownerOf(item.control)}>
+      <td className="border-t border-border px-2 py-2 align-top text-sm font-medium text-ink">
+        {itemName(item.key)}
+        <Technical><code data-technical className="mt-1 block break-all text-xs font-normal text-ink-faint">{item.source}</code></Technical>
+      </td>
+      <td className="border-t border-border px-2 py-2 align-top">{item.control === "API" ? <ApiHint item={item} /> : <Value value={item.value} unit={item.unit} />}</td>
+      <td className="whitespace-nowrap border-t border-border px-2 py-2 align-top"><ControlBadge control={item.control} /></td>
+      <td className="border-t border-border px-2 py-2 align-top text-xs leading-5 text-ink-muted">{SETTING_HELP[item.key] ?? "—"}</td>
+    </tr>
+  );
+}
+
+function ReferenceTable({ items }: { items: SettingItem[] }) {
+  const head = "px-2 py-1.5 text-left text-xs font-normal text-ink-faint";
+  return (
+    <div data-setting-rows className="overflow-x-auto">
+      <table className="w-full min-w-[36rem] border-collapse">
+        <thead><tr>
+          <th scope="col" className={`${head} w-[24%]`}>{t(`${P}.reference.col.value`)}</th>
+          <th scope="col" className={`${head} w-[22%]`}>{t(`${P}.reference.col.set`)}</th>
+          <th scope="col" className={head}>{t(`${P}.reference.col.owner`)}</th>
+          <th scope="col" className={head}>{t(`${P}.reference.col.means`)}</th>
+        </tr></thead>
+        <tbody>{items.map((item) => <ReferenceRow key={item.key} item={item} />)}</tbody>
+      </table>
     </div>
   );
 }
@@ -569,6 +607,8 @@ function PanelView({ panel, reload }: { panel: Panel; reload: () => void }) {
   const invariants = doc.groups.flatMap((g) => g.items.filter((i) => i.control === "INVARIANT"));
   const [active, setActive] = useState<TabId>("methodology");
   const [referenceQuery, setReferenceQuery] = useState("");
+  const [referenceCategory, setReferenceCategory] = useState<string>("all");
+  const [referenceOwner, setReferenceOwner] = useState<"all" | RefOwner>("all");
   const [technical, setTechnical] = useTechnicalChoice();
   const [drawn, setDrawn] = useState<ReadonlySet<TabId>>(new Set<TabId>(["methodology"]));
   const select = (tab: TabId) => {
@@ -633,17 +673,24 @@ function PanelView({ panel, reload }: { panel: Panel; reload: () => void }) {
   const present = (k: string) => (byKey.has(k) || k === "ai" || k === "roles" || k === "audit") && (technical || (k !== "roles" && k !== "ai_history"));
   const known = new Set([...Object.values(TAB_SECTIONS).flat(), "deep_research"]);
   const unknown = doc.groups.map((g) => g.key).filter((k) => !known.has(k));
+  const referenceMatch = (item: SettingItem) => (referenceOwner === "all" || ownerOf(item.control) === referenceOwner)
+    && `${itemName(item.key)} ${SETTING_HELP[item.key] ?? ""} ${item.key} ${item.source} ${String(item.value)}`.toLocaleLowerCase("cs").includes(referenceQuery.trim().toLocaleLowerCase("cs"));
+  // A reference group's own values: its invariants are listed once, under Invarianty.
+  const groupItems = (key: string) => (key === "invariants" ? invariants : (byKey.get(key)?.items ?? []).filter((i) => i.control !== "INVARIANT"));
   const section = (key: string, tab: TabId) => {
     const reference = TAB_SECTIONS.reference.includes(key) || unknown.includes(key);
     const query = referenceQuery.trim().toLocaleLowerCase("cs");
-    const items = (byKey.get(key)?.items ?? []).filter((item) => !reference || !query || `${t(`${P}.items.${item.key}`)} ${SETTING_HELP[item.key] ?? ""} ${item.key} ${item.source} ${String(item.value)}`.toLocaleLowerCase("cs").includes(query));
-    if (reference && query && !items.length && !t(`${P}.groups.${key}.title`).toLocaleLowerCase("cs").includes(query)) return null;
-    const rows = <div data-setting-rows>{items.map((item) => <SettingRow key={item.key} item={item} />)}</div>;
-    // A group with its own panel keeps the document's rows as technical details; a group
-    // without one (the reference) is its rows.
+    // An invariant is listed once, under Invarianty, not again in its group (review of #851).
+    const items = (byKey.get(key)?.items ?? []).filter((item) => !reference || (item.control !== "INVARIANT" && referenceMatch(item)));
+    if (reference && (referenceCategory !== "all" && referenceCategory !== key)) return null;
+    if (reference && (query || referenceOwner !== "all") && !items.length) return null;
+    const rows = reference ? <ReferenceTable items={items} /> : <div data-setting-rows>{items.map((item) => <SettingRow key={item.key} item={item} />)}</div>;
+    // A group with its own panel keeps the document's rows as technical details. A reference group
+    // is its rows, always: a search or category that finds a value shows it, and only each row's
+    // source waits for technical details (ReferenceRow), never the table (review of #851).
     return <Section key={key} id={key} tab={tab}>
       {extra[key] ?? null}
-      {OWN_ROWS.has(key) || key === "roles" || key === "audit" || !items.length ? null : extra[key] ? <Technical><Sub>{t(`${P}.relatedSettings`)}</Sub>{rows}</Technical> : rows}
+      {OWN_ROWS.has(key) || key === "roles" || key === "audit" || !items.length ? null : extra[key] && !reference ? <Technical><Sub>{t(`${P}.relatedSettings`)}</Sub>{rows}</Technical> : rows}
     </Section>;
   };
   const body = (tab: TabId): ReactNode => {
@@ -655,14 +702,34 @@ function PanelView({ panel, reload }: { panel: Panel; reload: () => void }) {
     const keys = [...TAB_SECTIONS[tab].filter(present), ...(tab === "reference" ? unknown : [])];
     return (
       <>
-        {tab === "reference" ? <>
-          <TextInput type="search" aria-label={t(`${P}.referenceSearch`)} placeholder={t(`${P}.referenceSearchPlaceholder`)} value={referenceQuery} onChange={(e) => setReferenceQuery(e.target.value)} />
-          <nav aria-label={t(`${P}.referenceJump`)} data-reference-jump className="flex flex-wrap gap-2">
-            {[...keys, "invariants"].map((key) => <a key={key} href={`#set-${key}`} onClick={(e) => { e.preventDefault(); document.getElementById(`set-${key}`)?.scrollIntoView({ block: "start" }); }} className="rounded-sm border border-border px-3 py-2 text-sm text-ink hover:bg-surface-sunken focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus-ring">{t(`${P}.groups.${key}.title`).startsWith(P) ? key.replaceAll("_", " ") : t(`${P}.groups.${key}.title`)}</a>)}
-          </nav>
-        </> : null}
+        {tab === "reference" ? (() => {
+          const total = [...keys, "invariants"].reduce((n, key) => n + groupItems(key).length, 0);
+          const shown = [...keys, "invariants"].filter((key) => referenceCategory === "all" || referenceCategory === key).reduce((n, key) => n + groupItems(key).filter(referenceMatch).length, 0);
+          const owners = (["all", "deployment", "fixed", "app"] as const).filter((o) => o === "all" || [...keys, "invariants"].some((key) => groupItems(key).some((i) => ownerOf(i.control) === o)));
+          return <div data-reference-filters className={`${CARD} flex flex-col gap-3`}>
+            <TextInput type="search" aria-label={t(`${P}.referenceSearch`)} placeholder={t(`${P}.referenceSearchPlaceholder`)} value={referenceQuery} onChange={(e) => setReferenceQuery(e.target.value)} />
+            <div className="flex flex-wrap items-baseline justify-between gap-2">
+              <span className="text-xs text-ink-faint">{t(`${P}.reference.categories`)}</span>
+              <span role="status" className="text-xs text-ink-muted">{tv(`${P}.reference.shown`, { shown, total })}</span>
+            </div>
+            <div data-reference-categories className="flex flex-wrap gap-1.5">
+              {["all", ...keys, "invariants"].map((key) => {
+                const on = referenceCategory === key;
+                // A chip counts what its group shows under the search and Kdo mění, as the tables do.
+                const n = (key === "all" ? [...keys, "invariants"] : [key]).reduce((sum, k) => sum + groupItems(k).filter(referenceMatch).length, 0);
+                const label = key === "all" ? t(`${P}.reference.all`) : t(`${P}.groups.${key}.title`).startsWith(P) ? key.replaceAll("_", " ") : t(`${P}.groups.${key}.title`);
+                return <button key={key} type="button" data-reference-category={key} aria-pressed={on} onClick={() => setReferenceCategory(key)}
+                  className={`inline-flex min-h-8 items-center gap-1.5 rounded-pill border px-2.5 text-xs ${on ? "border-signal bg-signal-wash font-medium text-ink" : "border-border text-ink-muted hover:bg-surface-sunken"} focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus-ring`}>
+                  {label}<span className="font-mono tabular-nums text-ink-faint">{n}</span>
+                </button>;
+              })}
+            </div>
+            <ChoiceChips label={t(`${P}.reference.owner`)} value={referenceOwner} options={owners.map((o) => ({ key: o, label: t(`${P}.reference.owners.${o}`) }))} onChange={setReferenceOwner} />
+          </div>;
+        })() : null}
         {keys.map((key) => section(key, tab))}
-        {tab === "reference" ? <Section id="invariants"><div>{invariants.filter((item) => `${t(`${P}.items.${item.key}`)} ${SETTING_HELP[item.key] ?? ""} ${item.key}`.toLocaleLowerCase("cs").includes(referenceQuery.trim().toLocaleLowerCase("cs"))).map((item) => <SettingRow key={item.key} item={item} />)}</div></Section> : null}
+        {tab === "reference" && (referenceCategory === "all" || referenceCategory === "invariants") && invariants.some(referenceMatch) ? <Section id="invariants"><ReferenceTable items={invariants.filter(referenceMatch)} /></Section> : null}
+        {tab === "reference" && ![...keys, "invariants"].filter((k) => referenceCategory === "all" || referenceCategory === k).some((k) => groupItems(k).some(referenceMatch)) ? <p role="status" className="text-sm text-ink-muted">{t(`${P}.reference.none`)}</p> : null}
       </>
     );
   };

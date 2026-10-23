@@ -436,6 +436,22 @@ const elsewhere = () => calls.filter((c) => !c.url.startsWith("/api/v1/") && c.u
 const OVERCLAIM = /připojen|funkční spojení|spojení funguje|(?<!ne)ověřen[oaáý]|healthy|connected|\bverified\b/i;
 const LOGIN = /přihlaste se|zadejte (api )?klíč|api klíč se zadává|subscription login|ANTHROPIC_API_KEY/i;
 
+describe("the reference", () => {
+  it("shows a value found by search in a group with its own panel, its source alone behind technical details", async () => {
+    const doc = DOC();
+    doc.groups = [...doc.groups, { key: "workflow", items: [item("lease_seconds", 60, "CODE", "aia_core.domain.workflow:LEASE_SECONDS", "s")] }];
+    api({ "GET /api/v1/settings": () => doc });
+    render(<ControlPanel />);
+    fireEvent.click(await screen.findByRole("tab", { name: "Reference" }));
+    const panel = panelOf("Reference");
+    fireEvent.change(await within(panel).findByRole("searchbox", { name: "Hledat technickou hodnotu" }), { target: { value: "lease" } });
+    const row = await waitFor(() => { const r = panel.querySelector('[data-setting="lease_seconds"]') as HTMLElement | null; if (!r) throw new Error("no row"); return r; });
+    // The row is shown with technical details off; only its source waits for them.
+    expect(row.closest("[hidden]")).toBeNull();
+    expect(within(row).queryByText("aia_core.domain.workflow:LEASE_SECONDS")).toBeNull();
+  });
+});
+
 describe("what powers AIA", () => {
   it("names analysis activity and its disabled state in human-readable language", async () => {
     const doc = DOC();
@@ -778,9 +794,54 @@ describe("the settings tabs", () => {
       expect(within(panel).getByRole("switch", { name: "Technické údaje" })).toBeTruthy();
       expect(panel.querySelectorAll("details, summary")).toHaveLength(0);
     }
-    // The reference names its groups up front, each a link to the group.
-    const jump = panelOf("Reference").querySelector("[data-reference-jump]") as HTMLElement;
-    expect([...jump.querySelectorAll("a")].map((a) => a.getAttribute("href"))).toContain("#set-invariants");
+    // The reference names its groups up front as categories with their counts.
+    const cats = panelOf("Reference").querySelector("[data-reference-categories]") as HTMLElement;
+    expect([...cats.querySelectorAll("[data-reference-category]")].map((b) => b.getAttribute("data-reference-category"))).toContain("invariants");
+  });
+
+  it("reads Reference as tables by category, filters by category and by who changes a value, and says what each means", async () => {
+    api();
+    render(<ControlPanel />);
+    fireEvent.click(await screen.findByRole("tab", { name: "Reference" }));
+    const reference = panelOf("Reference");
+    const env = (await within(reference).findByText("Prostředí")).closest("tr") as HTMLElement;
+    expect(env.getAttribute("data-owner")).toBe("deployment");
+    expect(within(env).getByText(/Rozlišuje vývojové/)).toBeTruthy();
+    expect(within(section("deployment")).getAllByRole("columnheader").map((h) => h.textContent)).toEqual(["Hodnota", "Nastaveno", "Kdo mění", "Co znamená"]);
+    // Only the rules fixed in code.
+    fireEvent.click(within(within(reference).getByRole("radiogroup", { name: "Kdo mění" })).getByRole("radio", { name: "Pevné pravidlo" }));
+    expect(reference.querySelector('[data-owner="deployment"]')).toBeNull();
+    expect(reference.querySelector('[data-owner="fixed"]')).toBeTruthy();
+    fireEvent.click(within(within(reference).getByRole("radiogroup", { name: "Kdo mění" })).getByRole("radio", { name: "Vše" }));
+    // One category at a time.
+    fireEvent.click(reference.querySelector('[data-reference-category="invariants"]') as HTMLElement);
+    expect(section("deployment")).toBeNull();
+    expect(reference.contains(section("invariants"))).toBe(true);
+    expect(within(reference).getByRole("status").textContent).toMatch(/^Zobrazeno \d+ z \d+ hodnot$/);
+  });
+
+  it("lists each Reference value once, invariants under Invarianty only, and counts each chip under the filters", async () => {
+    // An invariant in a reference group (as residency, workflow and evidence carry them).
+    const doc = DOC();
+    doc.groups = doc.groups.map((g) => (g.key === "deployment" ? { ...g, items: [...g.items, { key: "eu_residency", value: true, control: "INVARIANT" as const, source: "ADR 0008", unit: null }] } : g));
+    api({ "GET /api/v1/settings": () => doc });
+    render(<ControlPanel />);
+    fireEvent.click(await screen.findByRole("tab", { name: "Reference" }));
+    const reference = panelOf("Reference");
+    await within(reference).findByText("Prostředí");
+    const keys = [...reference.querySelectorAll("tr[data-setting]")].map((r) => r.getAttribute("data-setting"));
+    expect(keys.length).toBe(new Set(keys).size);
+    const total = Number(/z (\d+) hodnot/.exec(within(reference).getByRole("status").textContent ?? "")?.[1]);
+    expect(total).toBe(keys.length);
+    expect(reference.querySelector('[data-reference-category="all"]')?.textContent).toBe(`Vše${total}`);
+    // Under Kdo mění, a chip counts only what its group then shows.
+    fireEvent.click(within(within(reference).getByRole("radiogroup", { name: "Kdo mění" })).getByRole("radio", { name: "Spravuje nasazení" }));
+    const deployment = reference.querySelector('[data-reference-category="deployment"]')?.textContent ?? "";
+    expect(Number(/(\d+)$/.exec(deployment)?.[1])).toBe(section("deployment").querySelectorAll('tr[data-owner="deployment"]').length);
+    expect(reference.querySelector('[data-reference-category="invariants"]')?.textContent).toMatch(/0$/);
+    // Nothing in the chosen category: said, though other groups still match.
+    fireEvent.click(reference.querySelector('[data-reference-category="invariants"]') as HTMLElement);
+    expect(within(reference).getByText("Nic neodpovídá výběru.")).toBeTruthy();
   });
 
   it("shows one panel at a time and keeps the others' state when switching back", async () => {

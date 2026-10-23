@@ -69,7 +69,11 @@ try {
     for (const [width, height] of [[1710, 1000], [1920, 1080]]) { await page.setViewportSize({ width, height }); await measure(`tab ${id} ${width}`); }
     await page.setViewportSize({ width: 1440, height: 900 }); await measure(`tab ${id} 1440x900`); await page.setViewportSize({ width: 1440, height: 1000 });
   }
-  const techPanel = await tab("reference"); const techSwitch = techPanel.getByRole("switch", { name: "Technické údaje", exact: true });
+  const techPanel = await tab("reference");
+  assert(await techPanel.locator("[data-reference-category]").count() > 2, "reference: categories");
+  await techPanel.getByRole("radiogroup", { name: "Kdo mění" }).getByRole("radio", { name: "Pevné pravidlo", exact: true }).click();
+  assert.equal(await techPanel.locator('[data-owner="deployment"]').count(), 0, "reference: the owner filter");
+  await techPanel.getByRole("radiogroup", { name: "Kdo mění" }).getByRole("radio", { name: "Vše", exact: true }).click(); const techSwitch = techPanel.getByRole("switch", { name: "Technické údaje", exact: true });
   const t0 = Date.now(); await techSwitch.click(); await techPanel.locator("[data-technical]").first().waitFor(); const techMs = Date.now() - t0; console.log(`technical details: ${techMs} ms`);
   assert(techMs < 400, `technical details: ${techMs} ms`); await widths("reference with technical details"); await screenshot("reference-technical");
   await techSwitch.click(); assert.equal(await techPanel.locator("[data-technical]").count(), 0);

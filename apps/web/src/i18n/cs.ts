@@ -1936,6 +1936,15 @@ export const cs = {
         },
         stages: { research: "Fáze výzkumu", simulation: "Fáze simulace" },
         roles: { permission: "Oprávnění" },
+        reference: {
+          categories: "Kategorie",
+          all: "Vše",
+          shown: "Zobrazeno {shown} z {total} hodnot",
+          owner: "Kdo mění",
+          owners: { all: "Vše", deployment: "Spravuje nasazení", fixed: "Pevné pravidlo", app: "V aplikaci" },
+          col: { value: "Hodnota", set: "Nastaveno", owner: "Kdo mění", means: "Co znamená" },
+          none: "Nic neodpovídá výběru.",
+        },
         audit: {
           adminOnly: "Audit vidí jen vlastník nebo správce.",
           none: "Zatím žádné záznamy.",
