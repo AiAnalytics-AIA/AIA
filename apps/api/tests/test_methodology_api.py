@@ -228,6 +228,8 @@ def test_with_nothing_stored_the_codes_preset_is_in_force(owner: TestClient) -> 
         "preset": "aia-sociomap-5",
         "version_number": None,
         "name": "aia-sociomap-5",
+        # The register's answer for the method in force: the preset is approved for clients.
+        "register_status": "CLIENT_FACING",
     }
     assert (body["may_administer"], body["versions"], body["history"]) == (True, [], [])
 
@@ -252,9 +254,15 @@ def test_propose_then_activate_puts_an_edit_in_force_and_reset_returns_the_prese
         "preset": None,
         "version_number": 1,
         "name": "aia-sociomap-3+e1",
+        # An edit is another method: internal until registered, never presumed approved.
+        "register_status": "INTERNAL_ONLY",
     }
+    assert owner.get(f"{SOCIOMAP}/versions").json()["in_force"]["register_status"] == (
+        "INTERNAL_ONLY"
+    )
     back = owner.put(f"{SOCIOMAP}/activation", json={"version_number": None, "reason": "zpět"})
     assert back.json()["origin"] == "code"
+    assert back.json()["register_status"] == "CLIENT_FACING"
     body = owner.get(f"{SOCIOMAP}/versions").json()
     assert [v["version_number"] for v in body["versions"]] == [1]
     assert [(a["version_number"], a["reason"]) for a in body["history"]] == [
@@ -385,7 +393,10 @@ def _support_edit(**lines: Any) -> dict[str, Any]:
 
 
 def test_support_is_edited_both_ways_and_put_in_force(owner: TestClient) -> None:
-    presets = owner.get(f"{SUPPORT}/versions").json()["presets"]
+    support = owner.get(f"{SUPPORT}/versions").json()
+    # No register covers the support rules: the field says nothing rather than "approved".
+    assert support["in_force"]["register_status"] is None
+    presets = support["presets"]
     assert presets == {"aia-support-1": AIA_SUPPORT_V1.model_dump(mode="json")}
     looser = owner.post(f"{SUPPORT}/versions", json=_support_edit(results__min_layer_donors=10))
     stricter = owner.post(

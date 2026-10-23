@@ -82,6 +82,7 @@ from aia_core.domain.population.policy import (
 from aia_core.domain.research_design import ReadinessSpec
 from aia_core.domain.research_sociomap import side_tables_of
 from aia_core.domain.scope import ScopeDenied
+from aia_core.domain.sociomap_register import method_status
 from aia_core.infrastructure.methodology_repository import (
     Activation,
     InForce,
@@ -280,6 +281,10 @@ class InForceOut(_Strict):
     preset: str | None
     version_number: int | None
     name: str
+    #: The object map only: the Sociomap register's status for the exact method a run started now
+    #: pins (CLIENT_FACING or INTERNAL_ONLY; a stored version is another method, internal until
+    #: registered). None for every other module, which no register covers.
+    register_status: str | None = None
 
 
 class VersionsOut(_Strict):
@@ -639,6 +644,16 @@ def _in_force(found: InForce) -> InForceOut:
     )
 
 
+def _with_register(module_id: str, found: InForce) -> InForceOut:
+    """:func:`_in_force` with the Sociomap register's status of the method it pins."""
+    out = _in_force(found)
+    if module_id != "sociomap":
+        return out
+    method = sociomap_methods_for(None if found.version is None else found.version.payload)[-1]
+    status = method_status(method.method_id, method.spec_fingerprint, method.formulas)
+    return out.model_copy(update={"register_status": status.value})
+
+
 def _panel(c: PanelComparison) -> PanelOut:
     return PanelOut(
         panel=c.panel,
@@ -921,7 +936,7 @@ def read_versions(module_id: ModuleId, org: OrganizationDep, session: SessionDep
     try:
         reader = MethodologyReader(session, org)
         return VersionsOut(
-            in_force=_in_force(reader.in_force(module_id)),
+            in_force=_with_register(module_id, reader.in_force(module_id)),
             may_administer=org.may_administer,
             may_edit=org.methodologist,
             presets=_presets(module_id),
@@ -1124,10 +1139,11 @@ def activate(
 ) -> InForceOut:
     """Takes effect for runs started afterwards; a run already started keeps its pin."""
     try:
-        return _in_force(
+        return _with_register(
+            module_id,
             MethodologyRepository(session, org).activate(
                 module_id, body.version_number, reason=body.reason
-            )
+            ),
         )
     except (ScopeDenied, MethodologyRefused) as exc:
         raise _refused(exc) from exc
