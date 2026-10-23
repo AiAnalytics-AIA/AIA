@@ -36,7 +36,7 @@ from datetime import UTC, datetime, timedelta
 from typing import Any
 from urllib.parse import urlsplit
 
-from sqlalchemy import func, select
+from sqlalchemy import delete, func, select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
@@ -81,6 +81,7 @@ __all__ = [
     "SettingOverview",
     "SettingRefused",
     "StoredSettingVersion",
+    "erase_client_test_policies",
     "settings_in_force_for_study",
     "test_approval_receipt_for_study",
 ]
@@ -714,3 +715,25 @@ class DeepResearchSettingsRepository:
 
 def _label(version_number: int | None) -> str:
     return "default" if version_number is None else f"v{version_number}"
+
+
+def erase_client_test_policies(session: Session, *, client_id: str) -> None:
+    """Delete a deleted client's study-test policies and their approvals (SB5): the policy's
+    values and its provider permission are the client's study's content."""
+    ids = list(
+        session.scalars(
+            select(DeepResearchTestPolicyRow.policy_id).where(
+                DeepResearchTestPolicyRow.client_id == client_id
+            )
+        )
+    )
+    if ids:
+        session.execute(
+            delete(DeepResearchTestApprovalRow).where(
+                DeepResearchTestApprovalRow.policy_id.in_(ids)
+            )
+        )
+        session.execute(
+            delete(DeepResearchTestPolicyRow).where(DeepResearchTestPolicyRow.policy_id.in_(ids))
+        )
+        session.flush()

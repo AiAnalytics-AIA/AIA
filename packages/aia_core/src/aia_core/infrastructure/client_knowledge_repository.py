@@ -82,7 +82,13 @@ from .tables import (
     utcnow,
 )
 
-__all__ = ["KEEP_FOLDER", "ClientKnowledgeRepository", "SourceAdded"]
+__all__ = [
+    "KEEP_FOLDER",
+    "ClientKnowledgeRepository",
+    "SourceAdded",
+    "count_client_knowledge",
+    "erase_client_knowledge",
+]
 
 _MAX_RESULTS = 200
 #: The most items one placement may move or label at once.
@@ -1672,3 +1678,36 @@ class ClientKnowledgeRepository:
             )
         )
         return revision
+
+
+def count_client_knowledge(session: Session, *, client_id: str) -> int:
+    """How many knowledge items the client has, for a deletion's preview (settings-backends SB5)."""
+    return int(
+        session.scalar(
+            select(func.count())
+            .select_from(ClientKnowledgeItemRow)
+            .where(ClientKnowledgeItemRow.client_id == client_id)
+        )
+        or 0
+    )
+
+
+def erase_client_knowledge(session: Session, *, client_id: str) -> int:
+    """Delete every knowledge item of a client being deleted, with its revisions, proposals,
+    selections, filing, folders and labels (settings-backends SB5; the owner, 2026-10-22: the
+    content goes, not retired). The caller owns the transaction. Returns the items deleted."""
+    items = count_client_knowledge(session, client_id=client_id)
+    session.execute(
+        delete(ClientKnowledgeProposalRow).where(ClientKnowledgeProposalRow.client_id == client_id)
+    )
+    session.execute(
+        delete(ClientKnowledgeItemRow).where(ClientKnowledgeItemRow.client_id == client_id)
+    )
+    session.execute(
+        delete(ClientKnowledgeFolderRow).where(ClientKnowledgeFolderRow.client_id == client_id)
+    )
+    session.execute(
+        delete(ClientKnowledgeLabelRow).where(ClientKnowledgeLabelRow.client_id == client_id)
+    )
+    session.flush()
+    return items

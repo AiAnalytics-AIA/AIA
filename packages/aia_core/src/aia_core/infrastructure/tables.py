@@ -525,6 +525,10 @@ class ClientRow(Base):
     modified_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), nullable=False, default=utcnow, onupdate=utcnow
     )
+    # Deleted (settings-backends SB5): its content is gone and the row stays, archived and named
+    # by its id, so the ledgers it keeps still resolve. NULL: not deleted.
+    deleted_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    deleted_by: Mapped[str | None] = mapped_column(String(64))
 
     __table_args__ = (
         ForeignKeyConstraint(
@@ -542,6 +546,23 @@ class ClientRow(Base):
         CheckConstraint("status in ('ACTIVE','DORMANT','ARCHIVED')", name="client_status_known"),
         Index("ix_clients_org", "organization_id", "status"),
     )
+
+
+class ClientDeletionTicketRow(Base):
+    """A one-time confirmation of a client's deletion (settings-backends SB5): issued by the
+    preview to the person who asked, for ten minutes, spent by the deletion. Only the token's
+    SHA-256 is kept."""
+
+    __tablename__ = "client_deletion_tickets"
+
+    token_sha256: Mapped[str] = mapped_column(String(64), primary_key=True)
+    organization_id: Mapped[str] = mapped_column(String(64), nullable=False)
+    client_id: Mapped[str] = mapped_column(String(64), nullable=False)
+    actor_id: Mapped[str] = mapped_column(String(64), nullable=False)
+    expires_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+    spent_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+
+    __table_args__ = (Index("ix_client_deletion_tickets_client", "client_id"),)
 
 
 class StudyRow(Base):

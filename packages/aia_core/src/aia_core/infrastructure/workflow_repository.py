@@ -124,7 +124,9 @@ __all__ = [
     "WorkflowNotFound",
     "WorkflowRepository",
     "charged_to_for_run",
+    "client_approval_rows",
     "erase_lead_run_payloads",
+    "organization_approval_rows",
 ]
 
 
@@ -3817,3 +3819,27 @@ def erase_lead_run_payloads(
             .values(output_json=_ERASED, error_json=_ERASED)
         )
     return attempt_ids
+
+
+def client_approval_rows(session: Session, *, client_id: str) -> int:
+    """How many approval-ledger rows a client has: what a deletion keeps."""
+    return int(
+        session.scalar(
+            select(func.count())
+            .select_from(ApprovalDecisionRow)
+            .where(ApprovalDecisionRow.client_id == client_id)
+        )
+        or 0
+    )
+
+
+def organization_approval_rows(session: Session, *, organization_id: str) -> int:
+    """The organization's approval-ledger rows: what deletions keep."""
+    return int(
+        session.scalar(
+            select(func.count())
+            .select_from(ApprovalDecisionRow)
+            .where(ApprovalDecisionRow.organization_id == organization_id)
+        )
+        or 0
+    )

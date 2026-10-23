@@ -47,14 +47,23 @@ from ..domain.scope import (
     payer_study_id,
 )
 from .tables import (
+    ProjectArtifactRow,
     ProjectEventRow,
     ProjectRevisionRow,
     ProjectRow,
     ProjectStageRow,
+    WorkflowRunRow,
     utcnow,
 )
 
-__all__ = ["ProjectNotFound", "ProjectPage", "ProjectRepository"]
+__all__ = [
+    "ClientProjects",
+    "ProjectNotFound",
+    "ProjectPage",
+    "ProjectRepository",
+    "client_projects",
+    "erase_client_projects",
+]
 
 
 class ProjectNotFound(LookupError):
@@ -668,3 +677,68 @@ class ProjectRepository:
             raise ValueError("only a trashed project can be purged")
         self._session.execute(delete(ProjectRow).where(ProjectRow.project_id == project_id))
         self._session.flush()
+
+
+@dataclass(frozen=True, slots=True)
+class ClientProjects:
+    """What a client's projects hold (settings-backends SB5): its working, design and owned
+    projects, their revisions, the runs beneath them and their artifacts."""
+
+    projects: int
+    revisions: int
+    runs: int
+    artifacts: int
+
+
+def _client_project_ids(session: Session, client_id: str) -> list[str]:
+    return list(
+        session.scalars(select(ProjectRow.project_id).where(ProjectRow.client_id == client_id))
+    )
+
+
+def client_projects(session: Session, *, client_id: str) -> ClientProjects:
+    """Count what deleting a client's projects removes, for the deletion's preview."""
+    ids = list(
+        session.scalars(select(ProjectRow.project_id).where(ProjectRow.client_id == client_id))
+    )
+
+    def count(table: Any, column: Any) -> int:
+        if not ids:
+            return 0
+        return int(
+            session.scalar(select(func.count()).select_from(table).where(column.in_(ids))) or 0
+        )
+
+    return ClientProjects(
+        projects=len(ids),
+        revisions=count(ProjectRevisionRow, ProjectRevisionRow.project_id),
+        runs=count(WorkflowRunRow, WorkflowRunRow.project_id),
+        artifacts=count(ProjectArtifactRow, ProjectArtifactRow.project_id),
+    )
+
+
+def erase_client_projects(session: Session, *, client_id: str) -> tuple[ClientProjects, list[str]]:
+    """Delete every project of a client being deleted: with them go their revisions, events,
+    artifacts' rows and edges, and the runs beneath them with their steps, attempts, events,
+    gates, population bindings, Lead turns and wallet charges (all by cascade). Returns what
+    was there and the artifact storage keys to delete once the caller has committed. The
+    working and design rows that hold a project (RESTRICT) go first, by their repositories.
+    Usage, budget holds and the approval ledger name runs by id only and stay."""
+    counted = client_projects(session, client_id=client_id)
+    ids = list(
+        session.scalars(select(ProjectRow.project_id).where(ProjectRow.client_id == client_id))
+    )
+    keys: list[str] = []
+    if ids:
+        keys = sorted(
+            set(
+                session.scalars(
+                    select(ProjectArtifactRow.storage_key).where(
+                        ProjectArtifactRow.project_id.in_(ids)
+                    )
+                )
+            )
+        )
+        session.execute(delete(ProjectRow).where(ProjectRow.project_id.in_(ids)))
+        session.flush()
+    return counted, keys
