@@ -80,7 +80,8 @@ describe("the Metodika tab", () => {
     // Each card: its drawing, its accent, and its facts.
     const map = nav.querySelector('[data-module-card="sociomap"]') as HTMLElement;
     expect(map.querySelector("svg")).toBeTruthy();
-    expect(map.getAttribute("style")).toContain("--color-hue-blue");
+    // The runtime property, which tokens.css always defines (never Tailwind's --color-*, gap 2).
+    expect(map.getAttribute("style")).toContain("var(--hue-blue)");
     expect(within(map.querySelector("[data-module-facts]") as HTMLElement).getByText("V platnosti")).toBeTruthy();
     expect(map.textContent).toMatch(/\d+ kroků · \d+ etap/);
     // No card takes a status colour or the in-force green.

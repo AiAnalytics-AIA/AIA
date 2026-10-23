@@ -44,7 +44,7 @@ const P = "aia.settings.prompts";
  * and the Verze table's row. Green (`in-force`) is the interface's colour for "in force" alone.
  */
 const IN_FORCE = "bg-in-force-wash";
-const IN_FORCE_EDGE = "shadow-[inset_3px_0_0_var(--color-in-force)]";
+const IN_FORCE_EDGE = "shadow-[inset_3px_0_0_var(--in-force)]";
 const IN_FORCE_DOT = "bg-in-force";
 
 export const nameOf = (id: string) => {
@@ -188,7 +188,7 @@ function PromptList({ rows, current, onChoose }: { rows: PromptSlotSummary[]; cu
                   <li key={row.prompt_id}>
                     <button type="button" data-prompt={row.prompt_id} data-waiting={waiting ? "true" : undefined} aria-current={on ? "true" : undefined}
                       onClick={() => onChoose(row.prompt_id)}
-                      className={`flex min-h-11 w-full min-w-0 flex-col items-start justify-center gap-0.5 border-b border-border px-2.5 py-2 text-left text-[13px] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus-ring ${on ? "bg-signal-wash shadow-[inset_3px_0_0_var(--color-signal)]" : waiting ? "bg-status-you-wash hover:bg-surface-sunken" : "hover:bg-surface-sunken"}`}>
+                      className={`flex min-h-11 w-full min-w-0 flex-col items-start justify-center gap-0.5 border-b border-border px-2.5 py-2 text-left text-[13px] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus-ring ${on ? "bg-signal-wash shadow-[inset_3px_0_0_var(--signal)]" : waiting ? "bg-status-you-wash hover:bg-surface-sunken" : "hover:bg-surface-sunken"}`}>
                       <span className={`max-w-full break-words ${on ? "font-semibold text-signal" : "text-ink"}`}>{nameOf(row.prompt_id)}</span>
                       <span className="flex max-w-full items-center gap-1.5 text-xs text-ink-muted">
                         {row.wired ? <i aria-hidden="true" className={`size-1.5 shrink-0 rounded-full ${IN_FORCE_DOT}`} /> : null}
