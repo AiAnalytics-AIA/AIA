@@ -44,10 +44,16 @@ from aia_core.domain.scope import (
 )
 from aia_core.domain.workflow import FailureClass, as_utc
 
-from .tables import AIUsageEventRow, BudgetReservationRow, WorkflowRunRow, utcnow
+from .tables import AIUsageEventRow, BudgetReservationRow, ClientRow, WorkflowRunRow, utcnow
 from .workflow_repository import charged_to_for_run
 
-__all__ = ["AIUsageRepository", "LedgerConflict", "UncertainCall"]
+__all__ = [
+    "AIUsageRepository",
+    "LedgerConflict",
+    "UncertainCall",
+    "client_usage_rows",
+    "organization_usage_rows",
+]
 
 
 class LedgerConflict(ValueError):
@@ -417,3 +423,35 @@ class AIUsageRepository:
             query = query.where(AIUsageEventRow.run_id == run_id)
         # SUM over no rows is genuinely zero spend, not an unknown (OI-4).
         return float(self._session.scalar(query) or 0.0)
+
+
+def client_usage_rows(session: Session, *, client_id: str) -> int:
+    """How many usage-ledger rows and budget holds a client has: what a deletion keeps, so
+    spend still reconciles (MVPQ-07)."""
+    usage = session.scalar(
+        select(func.count())
+        .select_from(AIUsageEventRow)
+        .where(AIUsageEventRow.client_id == client_id)
+    )
+    holds = session.scalar(
+        select(func.count())
+        .select_from(BudgetReservationRow)
+        .where(BudgetReservationRow.client_id == client_id)
+    )
+    return int(usage or 0) + int(holds or 0)
+
+
+def organization_usage_rows(session: Session, *, organization_id: str) -> tuple[int, int]:
+    """The organization's usage-ledger rows and budget holds: what deletions keep."""
+    usage = session.scalar(
+        select(func.count())
+        .select_from(AIUsageEventRow)
+        .where(AIUsageEventRow.organization_id == organization_id)
+    )
+    holds = session.scalar(
+        select(func.count())
+        .select_from(BudgetReservationRow)
+        .join(ClientRow, ClientRow.client_id == BudgetReservationRow.client_id)
+        .where(ClientRow.organization_id == organization_id)
+    )
+    return int(usage or 0), int(holds or 0)

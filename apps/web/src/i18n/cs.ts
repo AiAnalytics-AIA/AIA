@@ -1368,6 +1368,7 @@ export const cs = {
           },
         },
         approve: {
+          unread: "Pravidlo se nepodařilo načíst: co schválení změní, nevíme, a tak ho nelze potvrdit.",
           reason: "Důvod (nepovinný)",
           short: "Schválit",
           rule: "Pravidlo",
@@ -1832,7 +1833,8 @@ export const cs = {
           changeInProfile: "Změnit v Profil → Pravidla",
           posture: { OPEN: "OPEN", CLASSIFIED: "CLASSIFIED" },
           postureUnset: "nenastaveno, platí CLASSIFIED",
-          noCeiling: "bez stropu",
+          // null is no client-level ceiling, not an uncapped wallet: the study budget still bounds it (ADR 0028).
+          noCeiling: "bez stropu klienta (platí rozpočet studie)",
           ceilingOf: "strop peněženky {amount}",
           rulesUnknown: "nezjištěno",
           rulesMalformed: "Pravidla klientů přišla v nečitelném tvaru.",
