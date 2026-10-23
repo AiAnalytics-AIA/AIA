@@ -359,6 +359,11 @@ Left, as findings:
   100 turns. Harmless at today's sizes.
 - **F7.** A queued person turn no longer stores `design_revision_id`. Nothing reads it on a
   person turn; the Lead turn that answers it names its revision.
+- **F8.** `POST …/lead/turns` takes no idempotency key (`apps/api/src/aia_api/routers/lead.py:574
+  @ ddda4d21`; it predates LC5a), so a retry after a lost response stores the message twice, and
+  with the queue both copies wait to be answered. Hypothesis until reproduced (the coordinator's
+  review of #817). Smallest fix: a client-chosen key on the post, unique per researcher and
+  study, answering the stored turn on a repeat. Test: the same key posted twice stores one turn.
 
 **LC6. Cost, model and class per turn.** The turn's usage rows (model, tokens, USD) and class in
 `GET …/lead`; a quiet line under each Lead turn; compaction and lookup costs as their own lines.
