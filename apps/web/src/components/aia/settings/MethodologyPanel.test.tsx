@@ -139,6 +139,28 @@ describe("the Metodika tab", () => {
     expect(smacof.querySelector("[data-slot]")).toBeNull();
   });
 
+  it("says on its card the version the organization has in force, read from its versions, never the code's preset as if it were", async () => {
+    fakeApi();
+    const base = vi.mocked(fetch).getMockImplementation()!;
+    vi.stubGlobal("fetch", vi.fn(async (url: RequestInfo | URL, init?: RequestInit) => {
+      const u = String(url).split("?")[0];
+      if (u === "/api/v1/methodology/sociomap/versions") {
+        return new Response(JSON.stringify({ in_force: { origin: "stored", preset: "aia-sociomap-5", version_number: 1, name: "aia-sociomap-5+e1" }, may_administer: true, presets: {}, versions: [], history: [] }), { status: 200 });
+      }
+      return base(url, init);
+    }));
+    render(<MethodologyPanel />);
+    fireEvent.click(await screen.findByRole("button", { name: "Změnit oblast" }));
+    const nav = await screen.findByRole("navigation", { name: "Oblasti metodiky" });
+    const map = nav.querySelector('[data-module-card="sociomap"]') as HTMLElement;
+    await waitFor(() => expect(map.querySelector("[data-current-name]")?.textContent).toBe("aia-sociomap-5+e1"));
+    // A module whose versions could not be read says so, never its preset as the one in force.
+    const support = nav.querySelector('[data-module-card="support"]') as HTMLElement;
+    await waitFor(() => expect(support.querySelector("[data-current-unknown]")?.textContent).toBe("nezjištěno"));
+    // A read-only module: its code preset, said as the code's.
+    expect(nav.querySelector('[data-module-card="weighting"] [data-module-facts]')?.textContent).toMatch(/výchozí v kódu|z kódu/);
+  });
+
   it("offers aia-sociomap-5 only, never the earlier methods (D-13)", async () => {
     fakeApi();
     render(<MethodologyPanel />);

@@ -107,7 +107,7 @@ function Modules({ modules, people }: { modules: MethodModuleSummary[]; people: 
               {m.note_cs ? <span className="block text-xs leading-5 text-ink-muted">{m.note_cs}</span> : null}
               <dl data-module-facts className="mt-1 grid grid-cols-[max-content_1fr] gap-x-3 gap-y-0.5 text-xs">
                 {summary ? <>
-                  <dt className="text-ink-faint">{t(`${M}.facts.inForce`)}</dt><dd className="break-words font-mono">{summary.in_force ?? t(`${M}.facts.fromCode`)}</dd>
+                  <dt className="text-ink-faint">{t(`${M}.facts.inForce`)}</dt><dd className="break-words font-mono"><InForceFact summary={summary} /></dd>
                   <dt className="text-ink-faint">{t(`${M}.facts.calculation`)}</dt><dd>{tv(`${M}.facts.steps`, { steps: summary.steps, groups: summary.groups.length })}</dd>
                 </> : null}
                 <dt className="text-ink-faint">{t(`${M}.facts.edits`)}</dt><dd>{t(`${M}.facts.${m.editable ? "editable" : "readOnly"}`)}</dd>
@@ -122,6 +122,20 @@ function Modules({ modules, people }: { modules: MethodModuleSummary[]; people: 
     {current?.id === FIELD_ORIGIN.id ? <FieldOriginPanel /> : null}
     {current && current.id !== FIELD_ORIGIN.id ? <ModuleView key={current.id} summary={modules.find((m) => m.id === current.id) as MethodModuleSummary} people={people} onDirty={onDirty} onOpen={(open) => setOpenFor(open ? current.id : null)} /> : null}
   </div>;
+}
+
+/**
+ * What is in force for the organization: an editable module's activation, read from its versions
+ * (summary.in_force is only the code's preset); until read, "…", and unread, "nezjištěno". A
+ * read-only module has no activations: its code preset, said as such (review of #852).
+ */
+function InForceFact({ summary }: { summary: MethodModuleSummary }) {
+  const [res] = useResource(() => (summary.editable ? methodology.versions(summary.id) : Promise.resolve(null)), [summary.id, summary.editable]);
+  if (!summary.editable) return <>{summary.in_force ? `${summary.in_force} · ${t(`${M}.codeDefault`)}` : t(`${M}.facts.fromCode`)}</>;
+  if (res.state === "loading") return <>…</>;
+  if (res.state !== "ready" || !res.data) return <span data-current-unknown>{t(`${M}.facts.unknown`)}</span>;
+  const f = res.data.in_force;
+  return <span data-current-name>{f.origin === "stored" ? f.name : `${f.name} · ${t(`${M}.codeDefault`)}`}</span>;
 }
 
 function ModuleView({ summary, people, onDirty, onOpen }: { summary: MethodModuleSummary; people: People; onDirty: (value: boolean) => void; onOpen: (open: boolean) => void }) {

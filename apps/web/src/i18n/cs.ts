@@ -954,6 +954,7 @@ export const cs = {
         facts: {
           inForce: "V platnosti",
           fromCode: "z kódu",
+          unknown: "nezjištěno",
           calculation: "Výpočet",
           steps: "{steps} kroků · {groups} etap",
           edits: "Úpravy",
