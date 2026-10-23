@@ -203,7 +203,7 @@ describe("the Metodika tab", () => {
   it("says where AIA does not compute a point yet", async () => {
     fakeApi();
     render(<MethodologyPanel />); await openMap();
-    const f14 = (await screen.findByRole("heading", { name: "Zatím v AIA není: testy při porovnání oblastí (F14)" })).closest("section") as HTMLElement;
+    const f14 = (await screen.findByRole("heading", { name: /^Zatím v AIA není: testy při porovnání oblastí \(F14\)/ })).closest("section") as HTMLElement;
     expect(within(f14).getByText(/V AIA zatím není/)).toBeTruthy();
     expect(within(f14).getByText("Žádný krok: v AIA se zatím nepočítá.")).toBeTruthy();
   });

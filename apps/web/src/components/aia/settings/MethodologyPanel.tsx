@@ -264,7 +264,7 @@ function Steps({ detail }: { detail: MethodModuleDetail }) {
         <button type="button" data-dense onClick={() => setOpen(allOpen ? new Set() : new Set(shown.flatMap((g) => g.steps.map((x) => x.id))))}
           className="min-h-8 rounded-sm px-2 text-sm text-ink-muted hover:bg-surface-sunken hover:text-ink focus-visible:outline-2 focus-visible:outline-focus-ring">{t(`${M}.${allOpen ? "collapseAll" : "expandAll"}`)}</button>
       </div>
-      <div role="group" aria-label={t(`${M}.stagesGroup`)} className="mt-2.5 grid gap-2 [grid-template-columns:repeat(auto-fill,minmax(150px,1fr))]">
+      <div role="group" aria-label={t(`${M}.stagesGroup`)} className="mt-2.5 grid gap-2 [grid-template-columns:repeat(auto-fill,minmax(130px,1fr))]">
         {tile(null, t(`${M}.allStages`), live.reduce((n, g) => n + g.steps.length, 0))}
         {live.map((g) => tile(key(g), g.group?.title_cs ?? t(`${M}.calculation`), g.steps.length))}
       </div>
@@ -290,10 +290,10 @@ function Steps({ detail }: { detail: MethodModuleDetail }) {
     {withValues && !shown.length ? <p role="status" className="text-sm text-ink-muted">{t(`${M}.noValues`)}</p> : null}
     {notYet.length ? <section data-not-computed className="rounded-md border border-dashed border-border-strong px-5 py-4">
       <p className="text-sm font-semibold">{t(`${M}.notYet`)}</p>
+      {/* One line each; the whole note on hover and to a screen reader. */}
       {notYet.map((g) => <section key={g.group!.id} aria-labelledby={`mg-${detail.id}-${g.group!.id}`} className="mt-2">
-        <h3 id={`mg-${detail.id}-${g.group!.id}`} className="text-sm">{g.group!.title_cs}</h3>
-        {g.group!.note_cs ? <p className="text-xs text-ink-muted">{g.group!.note_cs}</p> : null}
-        <p className="text-xs text-ink-faint">{t(`${M}.noSteps`)}</p>
+        <h3 id={`mg-${detail.id}-${g.group!.id}`} className="text-sm">{g.group!.title_cs} <span aria-hidden="true" className="text-ink-faint">·</span> <span className="text-xs font-normal text-ink-faint">{t(`${M}.noSteps`)}</span></h3>
+        {g.group!.note_cs ? <p title={g.group!.note_cs} className="line-clamp-1 text-xs text-ink-muted">{g.group!.note_cs}</p> : null}
       </section>)}
     </section> : null}
   </div>;
@@ -306,13 +306,13 @@ function StepRow({ step, number, editable, titles, open, onToggle, onPick }: { s
   return <article aria-labelledby={`ms-${step.id}`} data-step={step.id} className="border-b border-border last:border-b-0">
     <h4 id={`ms-${step.id}`} aria-labelledby={`mst-${step.id}`} className="scroll-mt-4">
       <button type="button" aria-expanded={open} aria-labelledby={`mst-${step.id}`} aria-describedby={line ? `msl-${step.id}` : undefined} onClick={onToggle}
-        className="flex w-full items-start gap-2.5 px-1 py-2.5 text-left focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus-ring">
+        className="flex w-full items-start gap-2.5 px-1 py-2 text-left focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus-ring">
         <span data-step-number className="w-12 shrink-0 pt-0.5 font-mono text-xs text-ink-faint">{number ?? ""}</span>
         <span className="flex min-w-0 flex-1 flex-col gap-1">
           <span id={`mst-${step.id}`} className="text-sm font-medium">{step.title_cs}</span>
           {line ? <span id={`msl-${step.id}`} className="text-xs leading-5 text-ink-muted">{line}</span> : null}
           {step.values.length ? <span className="flex flex-wrap gap-1.5">{step.values.map((v) => (
-            <span key={v.reference} data-step-value className="inline-flex min-h-[22px] items-center rounded-[11px] border border-border px-2 text-xs font-normal text-ink-muted">{v.label_cs}: <b className="ml-1 font-mono font-medium text-ink">{showValue(v, WORDS)}{v.unit && !v.absent && v.value !== null ? ` ${v.unit}` : ""}</b></span>
+            <span key={v.reference} data-step-value className="inline-flex min-h-[22px] max-w-full flex-wrap items-center rounded-[11px] border border-border px-2 text-xs font-normal text-ink-muted">{v.label_cs}: <b className="ml-1 break-all font-mono font-medium text-ink">{showValue(v, WORDS)}{v.unit && !v.absent && v.value !== null ? ` ${v.unit}` : ""}</b></span>
           ))}</span> : null}
         </span>
         <span aria-hidden="true" className="pt-0.5 text-ink-faint">{open ? "▾" : "▸"}</span>
@@ -327,7 +327,7 @@ function StepBody({ step, editable, titles, onPick }: { step: MethodStepOut; edi
   return (
     <>
       {step.audit ? <p data-step-origin className="text-xs text-ink-faint">{stepOrigin(step.audit)}</p> : null}
-      <div className="text-ink"><Formula latex={step.formula_latex} /></div>
+      <div className="min-w-0 overflow-x-auto text-ink"><Formula latex={step.formula_latex} /></div>
       {step.note_cs ? <p className="max-w-3xl text-sm text-ink-muted">{step.note_cs}</p> : null}
       <StepContext step={step} titles={titles} onPick={onPick} />
       {step.symbols.length ? (
@@ -392,7 +392,7 @@ function EditableFormula({ formula, editable }: { formula: MethodFormula; editab
     <details aria-label={`${t(`${M}.editable`)}: ${formula.title_cs}`} data-slot={formula.slot_id} className="rounded-sm border border-border p-3">
       <summary className="cursor-pointer text-xs font-semibold text-ink-muted">{t(`${M}.editable`)} · {formula.title_cs}</summary><div className="mt-3 flex min-w-0 flex-col gap-2">
       <p className="text-xs text-ink-muted">{t(editable ? `${M}.editableHelp` : `${M}.editableHelpLater`)}</p>
-      <div className="text-ink"><Formula latex={formula.latex} /></div>
+      <div className="min-w-0 overflow-x-auto text-ink"><Formula latex={formula.latex} /></div>
       <p className="text-sm">
         <span className="text-xs text-ink-muted">{t(`${M}.expression`)}: </span>
         <code className="whitespace-pre-wrap break-all font-mono text-xs">{formula.expression}</code>
