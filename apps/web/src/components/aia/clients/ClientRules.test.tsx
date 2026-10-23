@@ -17,7 +17,7 @@ beforeAll(() => {
 
 type Rules = { data_posture: "OPEN" | "CLASSIFIED" | null; effective_posture: "OPEN" | "CLASSIFIED"; wallet_ceiling_usd: number | null; set_by: string | null; set_at: string | null };
 let calls: { method: string; url: string; body: Record<string, unknown> | null }[] = [];
-function fake(get: () => Response | Rules, put?: (body: Record<string, unknown>) => Response | Rules) {
+function fake(get: () => Response | Rules, put?: (body: Record<string, unknown>) => Response | Rules | Promise<Response>) {
   calls = [];
   let rules: Rules | null = null;
   vi.stubGlobal("fetch", vi.fn(async (url: RequestInfo | URL, init?: RequestInit) => {
@@ -28,7 +28,7 @@ function fake(get: () => Response | Rules, put?: (body: Record<string, unknown>)
     if (u === "/config") return new Response(JSON.stringify({ apiBase: "", cognitoDomain: "", cognitoClientId: "", publicOrigin: "http://localhost", build: { sha: null } }));
     if (u !== "/api/v1/clients/CLI-a/rules") return new Response('{"code":"http_404","message":"Not Found"}', { status: 404 });
     if (method === "GET") { const r = get(); if (!(r instanceof Response)) rules = r; return r instanceof Response ? r : new Response(JSON.stringify(r)); }
-    if (put) { const r = put(body); return r instanceof Response ? r : new Response(JSON.stringify(r)); }
+    if (put) { const r = await put(body); return r instanceof Response ? r : new Response(JSON.stringify(r)); }
     // The route's own rule: only what is sent changes, null clears.
     const next: Rules = { ...(rules as Rules), ...body, set_by: "USR-1", set_at: new Date().toISOString() };
     next.effective_posture = next.data_posture ?? "CLASSIFIED";
@@ -124,6 +124,52 @@ describe("a client's rules on its profile", () => {
     fireEvent.keyDown(field, { key: "Enter" });
     expect(await screen.findByText(/must be less than 1e9/)).toBeTruthy();
     expect(await screen.findByText(/Neuloženo/)).toBeTruthy();
+  });
+
+  it("shows nothing of client A once the page moves to client B, until B's rules are read", async () => {
+    const answers: Record<string, Rules> = { "CLI-a": { ...UNSET, data_posture: "OPEN", effective_posture: "OPEN", wallet_ceiling_usd: 40 } };
+    vi.stubGlobal("fetch", vi.fn(async (url: RequestInfo | URL) => {
+      const u = String(url).split("?")[0];
+      if (u === "/config") return new Response(JSON.stringify({ apiBase: "", cognitoDomain: "", cognitoClientId: "", publicOrigin: "http://localhost", build: { sha: null } }));
+      const id = u.match(/^\/api\/v1\/clients\/([^/]+)\/rules$/)?.[1];
+      // B's read is held: nothing of A may be shown, or sent, in the meantime.
+      return id && answers[id] ? new Response(JSON.stringify(answers[id])) : new Promise<Response>(() => {});
+    }));
+    const { rerender } = render(<ClientRulesEditor clientId="CLI-a" mayAdminister />);
+    expect(await screen.findByLabelText("Strop peněženky")).toBeTruthy();
+    rerender(<ClientRulesEditor clientId="CLI-b" mayAdminister />);
+    expect(screen.queryByRole("radiogroup", { name: "Postoj dat" })).toBeNull();
+    expect(screen.queryByLabelText("Strop peněženky")).toBeNull();
+    expect(screen.queryByRole("button", { name: "Bez stropu" })).toBeNull();
+  });
+
+  it("saves the ceiling one at a time: the field waits for an answer, and the newest value is the one kept", async () => {
+    let release: (() => void) | null = null;
+    let first = true;
+    fake(() => UNSET, (body) => {
+      const answer = { ...UNSET, ...body, set_by: "USR-1", set_at: new Date().toISOString() } as Rules;
+      if (!first) return answer;
+      first = false;
+      return new Promise<Response>((resolve) => { release = () => resolve(new Response(JSON.stringify(answer))); });
+    });
+    render(<ClientRulesEditor clientId="CLI-a" mayAdminister />);
+    const field = await screen.findByLabelText("Strop peněženky") as HTMLInputElement;
+    fireEvent.change(field, { target: { value: "60" } });
+    fireEvent.keyDown(field, { key: "Enter" });
+    await waitFor(() => expect(calls.filter((c) => c.method === "PUT")).toHaveLength(1));
+    // While the first save is unanswered, the field takes no second one.
+    await waitFor(() => expect((screen.getByLabelText("Strop peněženky") as HTMLInputElement).disabled).toBe(true));
+    fireEvent.change(screen.getByLabelText("Strop peněženky"), { target: { value: "70" } });
+    fireEvent.keyDown(screen.getByLabelText("Strop peněženky"), { key: "Enter" });
+    expect(calls.filter((c) => c.method === "PUT")).toHaveLength(1);
+    release!();
+    await waitFor(() => expect((screen.getByLabelText("Strop peněženky") as HTMLInputElement).disabled).toBe(false));
+    const again = screen.getByLabelText("Strop peněženky") as HTMLInputElement;
+    fireEvent.change(again, { target: { value: "70" } });
+    fireEvent.keyDown(again, { key: "Enter" });
+    await waitFor(() => expect(calls.filter((c) => c.method === "PUT")).toHaveLength(2));
+    expect(calls.filter((c) => c.method === "PUT").at(-1)?.body).toEqual({ wallet_ceiling_usd: 70 });
+    await waitFor(() => expect((screen.getByLabelText("Strop peněženky") as HTMLInputElement).value).toBe("70,00"));
   });
 
   it("shows a member the rules read-only, and says not in AIA yet without the route", async () => {
