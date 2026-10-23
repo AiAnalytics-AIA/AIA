@@ -43,8 +43,8 @@ function fakeApi({ mayAdminister = true, mayEdit = mayAdminister, check, compare
         const current = versions.find((v) => v.version_number === inForce);
         return json({
           in_force: current
-            ? { origin: "stored", preset: null, version_number: inForce, name: current.name }
-            : { origin: "code", preset: "aia-sociomap-5", version_number: null, name: "aia-sociomap-5" },
+            ? { origin: "stored", preset: null, version_number: inForce, name: current.name, register_status: id === "sociomap" ? "INTERNAL_ONLY" : null }
+            : { origin: "code", preset: "aia-sociomap-5", version_number: null, name: "aia-sociomap-5", register_status: id === "sociomap" ? "CLIENT_FACING" : null },
           may_administer: mayAdminister,
           may_edit: mayEdit,
           presets: doc.presets[id],
@@ -288,6 +288,11 @@ describe("the methodology's versions", () => {
     fireEvent.click(within(confirm).getByRole("button", { name: "Aktivovat jako interní" }));
     await waitFor(() => expect(within(section.querySelector("[data-in-force]") as HTMLElement).getByText("uložená verze")).toBeTruthy());
     expect(sent.find((s) => s.method === "PUT")?.body).toEqual({ version_number: 1, reason: "Oprava chyby v metodě: ověřeno" });
+    // The module's head moves with it: the edit in force, internal by the register (review of #873).
+    const chips = document.querySelector("[data-module-chips]") as HTMLElement;
+    await waitFor(() => expect(chips.querySelector("[data-register]")?.getAttribute("data-register")).toBe("INTERNAL_ONLY"));
+    expect(within(chips).getByText("V platnosti: aia-sociomap-5+e1")).toBeTruthy();
+    expect(within(chips).queryByText("Schváleno pro klienty")).toBeNull();
     expect(within(section).getByText("Oprava chyby v metodě: ověřeno")).toBeTruthy();
 
     fireEvent.click(within(section).getByRole("button", { name: "Vrátit na aia-sociomap-5 z kódu" }));
@@ -298,6 +303,14 @@ describe("the methodology's versions", () => {
     fireEvent.click(within(back).getByRole("button", { name: "Vrátit na výchozí" }));
     await waitFor(() => expect(within(section.querySelector("[data-in-force]") as HTMLElement).getByText("z kódu")).toBeTruthy());
     expect(sent.filter((s) => s.method === "PUT").at(-1)?.body).toEqual({ version_number: null, reason: "Návrat k výchozí metodě" });
+    // And back: the preset in force, approved for clients, in the head too.
+    await waitFor(() => expect(chips.querySelector("[data-register]")?.getAttribute("data-register")).toBe("CLIENT_FACING"));
+    expect(within(chips).getByText("V platnosti: aia-sociomap-5")).toBeTruthy();
+    // One read of the versions serves the head and the versions' tabs.
+    const reads = sent.filter((s) => s.method === "GET" && s.url.endsWith("/sociomap/versions")).length;
+    // The catalogue card's, the open module's one (not one each for its head and its tabs), then a
+    // re-read after the save, the activation and the return.
+    expect(reads).toBe(5);
   });
 
   it("send a replaced formula, show the domain's problems at the field and store nothing", async () => {

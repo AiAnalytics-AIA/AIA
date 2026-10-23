@@ -98,18 +98,27 @@ function Modules({ modules, people }: { modules: MethodModuleSummary[]; people: 
       <span aria-hidden="true">←</span>{t(`${M}.back`)}
     </button>
     {confirm}
+    <ModulePage key={current.id} area={current} summary={summary} people={people} onDirty={onDirty} />
+  </div>;
+}
+
+/** An open module: its head and its parts, over one read of its versions -- the head's chips and the
+ *  versions' tabs read the same answer, and an activation's reload moves both (review of #873). */
+function ModulePage({ area, summary, people, onDirty }: { area: Area; summary: MethodModuleSummary | undefined; people: People; onDirty: (value: boolean) => void }) {
+  const versions = useModuleFacts(summary);
+  return <>
     <header data-module-header className="flex flex-wrap items-start justify-between gap-4">
       <div className="min-w-0 max-w-[720px]">
-        <h2 className="font-serif text-xl font-semibold leading-7">{current.title_cs}</h2>
-        <p className="mt-1.5 text-sm leading-6 text-ink-muted">{oneLine(current)}</p>
+        <h2 className="font-serif text-xl font-semibold leading-7">{area.title_cs}</h2>
+        <p className="mt-1.5 text-sm leading-6 text-ink-muted">{oneLine(area)}</p>
         {/* Who changes it, and for a read-only module the API's own note on what it is. */}
-        <p data-module-note className="mt-1 text-xs leading-5 text-ink-faint">{current.editable ? t(`${M}.editableModule`) : `${t(`${M}.readOnlyModule`)}${current.note_cs ? ` ${current.note_cs}` : ""}`}</p>
+        <p data-module-note className="mt-1 text-xs leading-5 text-ink-faint">{area.editable ? t(`${M}.editableModule`) : `${t(`${M}.readOnlyModule`)}${area.note_cs ? ` ${area.note_cs}` : ""}`}</p>
       </div>
-      {summary ? <ModuleChips summary={summary} /> : null}
+      {summary ? <ModuleChips summary={summary} res={versions.res} /> : null}
     </header>
-    {current.id === FIELD_ORIGIN.id ? <FieldOriginPanel /> : null}
-    {current.id !== FIELD_ORIGIN.id && summary ? <ModuleView key={current.id} summary={summary} people={people} onDirty={onDirty} onOpen={noop} /> : null}
-  </div>;
+    {area.id === FIELD_ORIGIN.id ? <FieldOriginPanel /> : null}
+    {area.id !== FIELD_ORIGIN.id && summary ? <ModuleView summary={summary} people={people} onDirty={onDirty} onOpen={noop} versions={versions} /> : null}
+  </>;
 }
 
 const noop = () => {};
@@ -124,11 +133,12 @@ function oneLine(area: Area): string {
 /** What a module's versions say about it: what is in force, the register's word on it, and whether
  *  you may edit it. A read-only module has no versions to read; an unread answer is said, never
  *  presumed (review of #852). */
-function useModuleFacts(summary: MethodModuleSummary | undefined) {
+function useModuleFacts(summary: MethodModuleSummary | undefined): ModuleVersions {
   const editable = summary?.editable ?? false;
-  const [res] = useResource(() => (summary && editable ? methodology.versions(summary.id) : Promise.resolve(null)), [summary?.id, editable]);
-  return { res, editable };
+  const [res, reload] = useResource(() => (summary && editable ? methodology.versions(summary.id) : Promise.resolve(null)), [summary?.id, editable]);
+  return { res, reload, editable };
 }
+type ModuleVersions = { res: Resource<MethodVersions | null>; reload: () => void; editable: boolean };
 
 const CHIP = "inline-flex min-h-[22px] items-center gap-[5px] whitespace-nowrap rounded-[11px] border px-2 text-xs";
 
@@ -139,8 +149,8 @@ function RegisterChip({ status, head = false }: { status: string | null | undefi
   return <span data-register={status} className={`${CHIP} ${status === "CLIENT_FACING" ? "border-border-strong text-ink" : "border-status-fault bg-status-fault-wash text-status-fault"}`}>{t(`${M}.register.${head ? `head${status}` : status}`)}</span>;
 }
 
-function ModuleChips({ summary }: { summary: MethodModuleSummary }) {
-  const { res, editable } = useModuleFacts(summary);
+function ModuleChips({ summary, res }: { summary: MethodModuleSummary; res: Resource<MethodVersions | null> }) {
+  const editable = summary.editable;
   const name = !editable ? summary.in_force : res.state === "ready" && res.data ? res.data.in_force.name : null;
   return <div data-module-chips className="flex flex-wrap items-center gap-1.5">
     {name ? <span data-in-force-chip className={`${CHIP} border-in-force bg-in-force-wash font-mono font-medium text-ink`}><span aria-hidden="true" className="size-1.5 rounded-full bg-in-force" />{tv(`${M}.inForceChip`, { name })}</span> : null}
@@ -186,7 +196,7 @@ function InForceFact({ summary, res }: { summary: MethodModuleSummary; res: Reso
   return <span data-current-name>{f.origin === "stored" ? f.name : `${f.name} · ${t(`${M}.codeDefault`)}`}</span>;
 }
 
-function ModuleView({ summary, people, onDirty, onOpen }: { summary: MethodModuleSummary; people: People; onDirty: (value: boolean) => void; onOpen: (open: boolean) => void }) {
+function ModuleView({ summary, people, onDirty, onOpen, versions }: { summary: MethodModuleSummary; people: People; onDirty: (value: boolean) => void; onOpen: (open: boolean) => void; versions: ModuleVersions }) {
   const [preset, setPreset] = useState(summary.in_force ?? undefined);
   const [res, retry] = useResource(() => methodology.get(summary.id, preset), [summary.id, preset]);
   const calc = <>
@@ -203,7 +213,7 @@ function ModuleView({ summary, people, onDirty, onOpen }: { summary: MethodModul
     <Loaded res={res} retry={retry}>{(detail) => <Steps key={detail.preset ?? detail.id} detail={detail} />}</Loaded>
   </>;
   // An editable module is its parts as tabs (settings-redesign 10b); a read-only one is its calculation.
-  if (summary.editable) return <MethodologyVersions summary={summary} people={people} calc={calc} onEditing={onOpen} onDirty={onDirty} />;
+  if (summary.editable) return <MethodologyVersions summary={summary} people={people} calc={calc} onEditing={onOpen} onDirty={onDirty} versions={{ res: versions.res as Resource<MethodVersions>, reload: versions.reload }} />;
   return <div className="flex min-w-0 flex-col gap-4">{calc}</div>;
 }
 
