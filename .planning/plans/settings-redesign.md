@@ -29,8 +29,9 @@ https://claude.ai/artifact/8W9LR8Ju9BWnR5JACmiWv7 (ten boards, one per tab) and 
   built beside this one; a tab whose route has not landed says "V AIA zatím není", never fake data).
 - Green marks only what is in force (a prompt's active version, a switched-on item); done stays ink.
   "Needs you" rows use the status-you tokens (coral after the Indigo palette).
-- Lucide icons in Settings now (lucide-react, pinned): tab icons and icon buttons with a label and
-  tooltip; consequential actions keep their text.
+- ~~Lucide icons in Settings now (lucide-react, pinned): tab icons and icon buttons with a label and
+  tooltip; consequential actions keep their text.~~ Superseded 2026-10-23 by the decision to follow
+  prototype v51 (fidelity F2): its plain tab column draws no icons, so #868 removed them and lucide-react.
 - As many chunks as fit, one PR each.
 - Metodika keeps the module accent colours and drawings and drops the per-stage filter (S1–S7, "Jen kroky").
 - "Téměř vyčerpáno" at 90 % of a study's budget.

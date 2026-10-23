@@ -14,7 +14,8 @@ import { t, tv } from "@/i18n/t";
 import { type AdminClient, ApiError, type ClientDeletionPreview, type KeptRecord, clientDeletion } from "@/lib/api";
 import { ConfirmDialog } from "../../ui/ConfirmDialog";
 import { Switch } from "../../ui/Switch";
-import { Button, Select } from "../../rehome/ui";
+import { Button } from "../../rehome/ui";
+import { ChoiceChips } from "../../ui/ChoiceChips";
 import { describeError } from "./errors";
 
 const D = "aia.settings.panel.data";
@@ -95,10 +96,9 @@ function ClientDelete({ clients, reload }: { clients: Part<AdminClient[]>; reloa
       {notYet ? <NotYetChip /> : <>
         {!clients.ok ? <p role="alert" className="mt-2 text-sm text-status-fault">{clients.message}</p> : !list.length ? <p className="mt-2 text-sm text-ink-muted">{t(`${D}.noClients`)}</p> : (
           <div className="mt-3 flex flex-wrap items-center gap-3">
-            <Select aria-label={t(`${D}.chooseClient`)} value={chosen ?? ""} onChange={(e) => setChosen(e.target.value || null)} className="min-w-56">
-              <option value="">{t(`${D}.chooseClient`)}</option>
-              {list.map((c) => <option key={c.client_id} value={c.client_id}>{c.name}</option>)}
-            </Select>
+            {/* The client as one segmented bar, as the prototype draws it; nothing chosen at first. */}
+            <span className="text-xs text-ink-muted" aria-hidden="true">{t(`${D}.client`)}</span>
+            <ChoiceChips look="segmented" label={t(`${D}.client`)} value={chosen} options={list.map((c) => ({ key: c.client_id, label: c.name }))} onChange={setChosen} />
             <Button disabled={!chosen || busy} onClick={() => chosen && void open(chosen)}>{(() => { const name = list.find((c) => c.client_id === chosen)?.name; return name ? tv(`${D}.deleteThis`, { name }) : t(`${D}.deleteNone`); })()}</Button>
           </div>
         )}

@@ -207,7 +207,7 @@ export function SettingsPage() {
   const crumbs = organization ? [{ prefix: t("aia.settings.organization"), label: organization }, { label: t("aia.settings.title") }] : [{ label: t("aia.settings.title") }];
   return (
     <AppShell title={t("aia.settings.title")} crumbs={crumbs} topbar bleed>
-      <ControlPanel footer={
+      <ControlPanel me={me} footer={
         <details className="mt-6 border-t border-border pt-3 text-sm text-ink-muted">
           <summary className="cursor-pointer font-medium"><span>{t("aia.settings.account")}</span>{session?.email ? <span className="font-normal"> · {session.email}</span> : null}</summary>
           {me.state === "ready" ? <p className="mt-2">{tv("aia.settings.orgRole", { role: t(`aia.orgRoles.${me.data.organization_role}`) })}</p> : null}

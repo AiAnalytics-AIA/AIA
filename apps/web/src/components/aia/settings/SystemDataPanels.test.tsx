@@ -122,9 +122,11 @@ const PREVIEW = {
 
 describe("Správa dat", () => {
   const openDialog = async () => {
-    const pick = await screen.findByRole("combobox", { name: "Vyberte klienta…" });
+    // The client is one segmented bar (prototype v51); nothing is chosen at first.
+    const pick = await screen.findByRole("radiogroup", { name: "Klient" });
+    expect(within(pick).getAllByRole("radio").every((r) => r.getAttribute("aria-checked") === "false")).toBe(true);
     expect((screen.getByRole("button", { name: "Smazat klienta…" }) as HTMLButtonElement).disabled).toBe(true);
-    fireEvent.change(pick, { target: { value: "CLI-a" } });
+    fireEvent.click(within(pick).getByRole("radio", { name: "Kavárny Lípa" }));
     fireEvent.click(screen.getByRole("button", { name: "Smazat klienta Kavárny Lípa…" }));
     return waitFor(() => {
       const d = document.querySelector("[data-client-delete-dialog]") as HTMLElement | null;
@@ -188,7 +190,7 @@ describe("Správa dat", () => {
     });
     const reload = vi.fn();
     render(<DataPanel mayAdminister clients={CLIENTS} reload={reload} />);
-    fireEvent.change(await screen.findByRole("combobox", { name: "Vyberte klienta…" }), { target: { value: "CLI-a" } });
+    fireEvent.click(within(await screen.findByRole("radiogroup", { name: "Klient" })).getByRole("radio", { name: "Kavárny Lípa" }));
     fireEvent.click(screen.getByRole("button", { name: "Smazat klienta Kavárny Lípa…" }));
     expect(await screen.findByText("Klient už neexistuje; seznam je obnovený.")).toBeTruthy();
     expect(reload).toHaveBeenCalled();

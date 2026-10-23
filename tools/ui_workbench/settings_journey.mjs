@@ -39,7 +39,8 @@ const chooseField = async (reference) => {
 };
 try {
   await page.goto(base + "/app/settings"); await page.getByRole("tablist", { name: "Oddíly nastavení" }).waitFor();
-  assert.equal(await page.getByRole("tab").count(), 10);
+  // The page's ten tabs; a Metodika module's own sub-tabs (#856) are another tablist.
+  assert.equal(await page.getByRole("tablist", { name: "Oddíly nastavení" }).getByRole("tab").count(), 10);
   // At 1440 every tab shows its line under its name (settings-redesign 1).
   assert.equal(await page.locator("[data-tab-subtitle]:visible").count(), 10);
   for (const id of ["ai", "prompts", "deep_research", "methodology", "access", "studies", "audit", "system", "reference", "data"]) {
@@ -67,7 +68,7 @@ try {
     }
     if (id === "data") {
       await page.locator("[data-kept-records] :is([data-not-yet], table, [role=alert])").first().waitFor();
-      assert(await page.locator("[data-client-delete] select option").count() > 1, "data: the clients to choose from");
+      assert(await page.locator("[data-client-delete] [role=radiogroup] [role=radio]").count() > 0, "data: the clients to choose from");
     }
     await widths(`tab ${id}`); await screenshot(id);
   }
