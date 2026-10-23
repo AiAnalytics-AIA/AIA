@@ -4,7 +4,7 @@
 // force, an edit checked and stored as a version that says what it changes, a version put in
 // force with a reason and back to the code, the domain's problems at the field they name, a
 // word where a number was caught before anything is sent, and a member who sees but cannot edit.
-import { cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
+import { act, cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { resetConfigCache } from "@/lib/auth";
@@ -411,6 +411,34 @@ describe("the comparison with what is in force", () => {
     const body = sent.find((x) => x.url.endsWith("/compare"))?.body;
     expect((body?.spec as { relation: { n_min: number } }).relation.n_min).toBe(34);
     expect(sent.some((x) => x.method === "POST" && x.url.endsWith("/versions"))).toBe(false);
+  });
+
+  it("counts a long comparison's seconds and, past 10 s, says it is computing, never a silent wait", async () => {
+    fakeApi();
+    render(<MethodologyPanel />);
+    await openEditor();
+    const form = await editor();
+    // The server takes its time: the comparison answers only when the test lets it.
+    const real = globalThis.fetch;
+    let answer: (r: Response) => void = () => {};
+    vi.stubGlobal("fetch", vi.fn((url: RequestInfo | URL, init?: RequestInit) => String(url).endsWith("/compare") ? new Promise<Response>((r) => { answer = r; }) : real(url, init)));
+    vi.useFakeTimers({ shouldAdvanceTime: true });
+    try {
+      fireEvent.click(within(form).getByRole("button", { name: "Porovnat s metodikou v platnosti" }));
+      const status = await within(form).findByText("Porovnávám metodiky…");
+      const box = status.closest("[data-operation]") as HTMLElement;
+      expect(box.querySelector("[data-elapsed]")).toBeNull();
+      await act(async () => { vi.advanceTimersByTime(4000); });
+      expect(box.querySelector("[data-elapsed]")?.textContent).toMatch(/^ \d+ s$/);
+      expect(box.querySelector("[data-elapsed]")?.getAttribute("aria-hidden")).toBe("true");
+      expect(box.querySelector("[data-compare-slow]")).toBeNull();
+      await act(async () => { vi.advanceTimersByTime(7000); });
+      expect(within(box).getByText(/trvá obvykle kolem 10 s, první po nasazení až minutu/)).toBeTruthy();
+      answer(new Response(JSON.stringify({ valid: false, problems: { "spec.relation.n_min": "must be at least 4" }, in_force: "", panels: [] }), { status: 200 }));
+      await waitFor(() => expect(within(form).queryByText("Porovnávám metodiky…")).toBeNull());
+    } finally {
+      vi.useRealTimers();
+    }
   });
 
   it("shows a refused edit's problems at its fields instead of a comparison", async () => {
