@@ -522,6 +522,11 @@ class ClientRow(Base):
     # orchestration LO1): set by an organization OWNER or ADMIN; NULL means a wallet may not
     # exceed its study's budget. Spends nothing itself.
     wallet_ceiling_usd: Mapped[float | None] = mapped_column(Float)
+    # The client's data posture (settings-backends SB7): OPEN or CLASSIFIED; NULL is not set and
+    # reads as CLASSIFIED (domain/client_rules.py). Who last set the rules, and when.
+    data_posture: Mapped[str | None] = mapped_column(String(16))
+    rules_set_by: Mapped[str | None] = mapped_column(String(64))
+    rules_set_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), nullable=False, default=utcnow
     )
@@ -545,6 +550,10 @@ class ClientRow(Base):
         CheckConstraint(
             "wallet_ceiling_usd is null or wallet_ceiling_usd >= 0",
             name="client_wallet_ceiling_non_negative",
+        ),
+        CheckConstraint(
+            "data_posture is null or data_posture in ('OPEN', 'CLASSIFIED')",
+            name="data_posture_known",
         ),
         CheckConstraint("status in ('ACTIVE','DORMANT','ARCHIVED')", name="client_status_known"),
         Index("ix_clients_org", "organization_id", "status"),

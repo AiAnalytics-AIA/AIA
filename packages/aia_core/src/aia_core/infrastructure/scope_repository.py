@@ -16,6 +16,7 @@ from typing import Any
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
+from ..domain.client_rules import DataPosture, effective_posture
 from ..domain.content_free import content_free, rename
 from ..domain.scope import (
     Client,
@@ -562,6 +563,92 @@ class ScopeRepository:
         if row is None:
             raise ScopeDenied("not found", reason="unknown_client")
         return _client_to_domain(row)
+
+    def client_rules(self, reader: OrganizationContext, client_id: str) -> dict[str, Any]:
+        """A client's rules (settings-backends SB7): its data posture as stored (``None``: not
+        set, read as CLASSIFIED) and as it applies, its wallet ceiling, who set them and when.
+        Any member of the client's organization (ADR 0019)."""
+        row = self._rules_row(reader, client_id)
+        return _rules(row)
+
+    def all_client_rules(self, reader: OrganizationContext) -> list[dict[str, Any]]:
+        """Every client's rules in the organization, read-only, by name (Settings → Přístup)."""
+        rows = self._session.scalars(
+            select(ClientRow)
+            .where(
+                ClientRow.organization_id == reader.organization_id,
+                ClientRow.deleted_at.is_(None),
+            )
+            .order_by(ClientRow.name)
+        ).all()
+        return [{"client_id": r.client_id, "name": r.name, **_rules(r)} for r in rows]
+
+    def set_client_rules(
+        self,
+        admin: OrganizationContext,
+        client_id: str,
+        *,
+        changes: dict[str, Any],
+        now: datetime,
+    ) -> dict[str, Any]:
+        """Set a client's ``data_posture`` (OPEN, CLASSIFIED or None) and/or
+        ``wallet_ceiling_usd`` (>= 0 or None). OWNER or ADMIN; audited CLIENT_RULES_CHANGED with
+        each field's from and to. Setting what is already there changes nothing."""
+        admin.require_administer()
+        row = self._rules_row(admin, client_id)
+        before: dict[str, Any] = {
+            "data_posture": row.data_posture,
+            "wallet_ceiling_usd": row.wallet_ceiling_usd,
+        }
+        after = dict(before)
+        if "data_posture" in changes:
+            posture = changes["data_posture"]
+            after["data_posture"] = None if posture is None else DataPosture(posture).value
+        if "wallet_ceiling_usd" in changes:
+            ceiling = changes["wallet_ceiling_usd"]
+            if ceiling is not None and not (
+                isinstance(ceiling, int | float) and 0 <= ceiling < 1e9
+            ):
+                raise ValueError("the wallet ceiling is a non-negative amount or null")
+            after["wallet_ceiling_usd"] = None if ceiling is None else float(ceiling)
+        moved = {k: {"from": before[k], "to": after[k]} for k in after if after[k] != before[k]}
+        if not moved:
+            return _rules(row)
+        row.data_posture = after["data_posture"]
+        row.wallet_ceiling_usd = after["wallet_ceiling_usd"]
+        row.rules_set_by, row.rules_set_at = admin.actor_id, now
+        self._session.add(
+            AccessAuditRow(
+                organization_id=admin.organization_id,
+                client_id=client_id,
+                actor_id=admin.actor_id,
+                action="CLIENT_RULES_CHANGED",
+                role=admin.organization_role.value,
+                payload=moved,
+                request_id=admin.request_id,
+            )
+        )
+        self._session.flush()
+        return _rules(row)
+
+    def _rules_row(self, reader: OrganizationContext, client_id: str) -> ClientRow:
+        row = self._session.scalar(
+            select(ClientRow).where(
+                ClientRow.client_id == client_id,
+                ClientRow.organization_id == reader.organization_id,
+                ClientRow.deleted_at.is_(None),
+            )
+        )
+        if row is None:
+            raise ScopeDenied("not found", reason="unknown_client")
+        return row
+
+    def client_posture(self, scope: StudyContext) -> DataPosture:
+        """The posture a run of this Study pins (SB7): the client's, CLASSIFIED when not set."""
+        stored = self._session.scalar(
+            select(ClientRow.data_posture).where(ClientRow.client_id == scope.client_id)
+        )
+        return effective_posture(stored)
 
     def list_clients(
         self, admin: OrganizationContext, *, include_archived: bool = False
@@ -1396,3 +1483,13 @@ class ScopeRepository:
             .group_by(StudyRow.client_id)
         ).all()
         return {client_id: int(count) for client_id, count in rows}
+
+
+def _rules(row: ClientRow) -> dict[str, Any]:
+    return {
+        "data_posture": row.data_posture,
+        "effective_posture": effective_posture(row.data_posture).value,
+        "wallet_ceiling_usd": row.wallet_ceiling_usd,
+        "set_by": row.rules_set_by,
+        "set_at": as_utc(row.rules_set_at) if row.rules_set_at is not None else None,
+    }
