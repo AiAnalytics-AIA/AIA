@@ -374,6 +374,8 @@ def test_a_session_cookie_sent_twice_is_no_session(
     """A nameless cookie planted for the parent domain is sent as its value alone, so it can
     arrive as a second __Host-aia_session; Starlette would keep the last. Neither counts."""
     token, other = world.tokens["owner"], world.tokens["viewer"]
-    twice = f"__Host-aia_session={token}; __Host-aia_session={other}"
-    refused = anonymous.get(GATE, headers={"X-Forwarded-Method": "GET", "Cookie": twice})
-    assert refused.status_code == 401
+    # Spaced or tabbed before the "=", the name is still the one Starlette keys it under.
+    for second in ("__Host-aia_session=", "__Host-aia_session =", "__Host-aia_session\t="):
+        twice = f"__Host-aia_session={token}; {second}{other}"
+        refused = anonymous.get(GATE, headers={"X-Forwarded-Method": "GET", "Cookie": twice})
+        assert refused.status_code == 401, second

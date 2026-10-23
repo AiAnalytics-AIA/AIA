@@ -134,10 +134,11 @@ def _session_credential(request: Request, settings: Settings) -> str | None:
     A planted twin arrives under the same name (a nameless cookie is sent as its value alone),
     and Starlette keeps whichever came last, so a repeated name is no session at all."""
     name = session_cookie(settings)
+    # Keyed as Starlette's cookie_parser keys a chunk: split on the first "=", then stripped.
     sent = [
         chunk
         for chunk in request.headers.get("cookie", "").split(";")
-        if chunk.strip().split("=", 1)[0] == name
+        if "=" in chunk and chunk.split("=", 1)[0].strip() == name
     ]
     return request.cookies.get(name) if len(sent) == 1 else None
 
