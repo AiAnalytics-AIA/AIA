@@ -47,6 +47,8 @@ from aia_core.domain.evidence.validation import method_status
 from aia_core.domain.fieldwork import MODELLED_DISCLOSURE, OriginKind, origin_kind
 from aia_core.domain.pipeline import fingerprint
 from aia_core.domain.report.client_gate import GateCode, GateRefusal, client_gate
+from aia_core.domain.report.control_tags import source_tag
+from aia_core.domain.report.controls import under
 from aia_core.domain.report.document_model import read_document_payload
 from aia_core.domain.report.evidence import EvidenceLedger
 from aia_core.domain.report.model import (
@@ -76,7 +78,8 @@ CLIENT_REPORT_DOCUMENT_ARTIFACT_TYPE = "research_client_document"
 # -5: a ledger number in prose, a table or a caption is a locked, tagged control (RPT8a, part 1).
 # -6: KPI tiles, figures, the evidence appendix and suppressed counts locked too (RPT8a, part 2).
 # -7: the map's numbers locked under their stored map (map:<battery>/<method>; RPT8a, part 3).
-CLIENT_REPORT_CONTRACT = "aia-client-report-7"
+# -8: the design chapter's numbers locked under the specification (design:<fingerprint>).
+CLIENT_REPORT_CONTRACT = "aia-client-report-8"
 CLIENT_REPORT_STAGE = "REPORT"
 
 
@@ -234,7 +237,13 @@ def compose_client_report(
             SpecSource("n"),
             SpecSource("audience"),
         ),
-        sourced(compose_method_section(meta_run, origin, client=True), dataset, *METHOD_SOURCES),
+        # One rule for the whole deliverable: the run's own record prints locked under it, as the
+        # design under its specification (RPT8a, part 3).
+        sourced(
+            under(compose_method_section(meta_run, origin, client=True), source_tag("run", run_id)),
+            dataset,
+            *METHOD_SOURCES,
+        ),
         *(
             sourced(section, aggregate, specification, SpecSource("questions"))
             for section in tables.sections

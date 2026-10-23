@@ -17,6 +17,7 @@ from collections.abc import Sequence
 from dataclasses import dataclass
 
 from aia_core.application.analysis_results import Brief
+from aia_core.domain.report.control_tags import source_tag
 from aia_core.domain.report.model import (
     Block,
     BulletList,
@@ -148,7 +149,17 @@ def compose_design_sections(
 ) -> DesignSections:
     """The design as the run executed it: the brief's goal and what the decision is for (with
     ``brief``; each said not stated when empty), then questions, sets, sample and audience; then
-    every question of the questionnaire in its order."""
+    every question of the questionnaire in its order.
+
+    A block that prints a number code wrote from the specification (a scale's ends, a count, the
+    planned n, an audience bound) prints locked under ``design:<fingerprint>`` (RPT8a, part 3,
+    P10); what the person wrote around it (a set's title, the wording) is locked with it. The
+    questionnaire appendix is the questionnaire as it was asked, a record, so its question lists
+    are locked whole; the chapter's own research questions and items, which print no number,
+    stay as they are."""
+    # The fingerprint's first 16 hex characters: Word keeps a content control's tag to 64; the
+    # section's manifest pins the specification whole.
+    control = source_tag("design", spec.fingerprint()[:16])
     blocks: list[Block] = [
         Paragraph(
             text(
@@ -189,7 +200,8 @@ def compose_design_sections(
                             )
                             + "."
                         ),
-                    )
+                    ),
+                    control=control,
                 )
             )
             blocks.append(BulletList(tuple(ListItem(text(o.label)) for o in battery.objects)))
@@ -204,7 +216,8 @@ def compose_design_sections(
                 )
                 + _audience_sentence(spec)
                 + " Jak byli respondenti v běhu skutečně vybráni, uvádí kapitola o metodice."
-            )
+            ),
+            control=control,
         )
     )
     chapter = Section("Návrh studie", tuple(blocks), id="ch-design")
@@ -222,7 +235,9 @@ def compose_design_sections(
         sections.setdefault(q.section_id, []).append(q)
     for index, questions in enumerate(sections.values(), start=1):
         questionnaire.append(Heading(f"Blok {index}", 2))
-        questionnaire.append(BulletList(tuple(_question_line(q) for q in questions)))
+        questionnaire.append(
+            BulletList(tuple(_question_line(q) for q in questions), control=control)
+        )
     for battery in spec.batteries:
         low, high = _ends(battery)
         scale = (
@@ -239,7 +254,8 @@ def compose_design_sections(
                 text(
                     f"„{battery.question_template.replace('{object}', '…')}“ — škála "
                     f"{scale}, položky: {', '.join(o.label for o in battery.objects)}."
-                )
+                ),
+                control=control,
             )
         )
     appendix = Section("Dotazník", tuple(questionnaire), id="app-questionnaire", appendix=True)
