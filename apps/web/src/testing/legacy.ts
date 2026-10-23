@@ -10,8 +10,8 @@ import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import vm from "node:vm";
 
-export const REPO = join(process.cwd(), "../..");
-export const UI_APP = readFileSync(join(REPO, "legacy/npc-panel-18.6.6/app/ui_app.html"), "utf8");
+const REPO = join(process.cwd(), "../..");
+const UI_APP = readFileSync(join(REPO, "legacy/npc-panel-18.6.6/app/ui_app.html"), "utf8");
 
 /** The source of the binding of `name` that runs in the browser. */
 export function effective(name: string): string {

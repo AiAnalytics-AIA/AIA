@@ -14,6 +14,7 @@ import { type ReactNode, useContext, useEffect, useRef, useState } from "react";
 
 import { t, tv } from "@/i18n/t";
 import { hashTarget } from "@/lib/answerability";
+import { plural } from "@/lib/format";
 import { openPlace, scrollToPlace } from "@/lib/open-place";
 import {
   type TrackedSet,
@@ -77,7 +78,7 @@ const holdsRefused = (el: Element | null, remount?: "items") =>
  * textarea took: each answered question with its answer. Unanswered ones are left
  * out; the AI resolves them by assumption.
  */
-export function followUpAnswers(questions: string[], answers: string[]): string {
+function followUpAnswers(questions: string[], answers: string[]): string {
   return questions
     .map((q, i) => ((answers[i] || "").trim() ? `${q}\n${(answers[i] || "").trim()}` : ""))
     .filter(Boolean)
@@ -152,7 +153,7 @@ export function PlanStep() {
       ready={!short}
       note={
         short
-          ? tv("research.plan.dockSetSize", { name: setTitle(short) || t("research.plan.untitledSet"), n: (short.objects || []).length, ...setWords(setLimits) })
+          ? tv("research.plan.dockSetSize", { name: setTitle(short) || t("research.plan.untitledSet"), count: plural((short.objects || []).length, "položku", "položky", "položek"), ...setWords(setLimits) })
           : comments.length
             ? tv("research.plan.dockComments", { n: comments.length })
             : a
@@ -199,7 +200,6 @@ export function PlanStep() {
             <Button icon="back" className="!rounded-control" onClick={() => router.push(stepHref("brief"))}>
               {t("research.plan.openBrief")}
             </Button>
-            <Button variant="quiet" className="!rounded-control" onClick={() => void next()}>{t("research.plan.skipToQuestionnaire")}</Button>
           </div>
         </section>
         {dock}
@@ -387,13 +387,6 @@ function Understanding({ n, changed, blocked, onQuote }: { n: number; changed: b
       ) : null}
     >
       <PlanNarrative disabled={blocked} onQuote={onQuote} />
-      <details className="group mt-4 rounded-control border border-signal-edge bg-signal-tint px-3 py-2">
-        <summary className="cursor-pointer text-[13px] font-medium text-signal">{t("research.plan.principleSummary")}</summary>
-        <p className="mt-2 text-[13px] leading-5">
-          {t("research.plan.principleIntro")} <b>{t("research.plan.principleYes")}</b> {t("research.plan.principleYesText")} <b>{t("research.plan.principleNo")}</b>{" "}
-          {t("research.plan.principleNoText")}
-        </p>
-      </details>
     </StepSection>
   );
 }
@@ -484,6 +477,14 @@ function Sets({ n, analysis, blocked, limits }: { n: number; analysis: Analysis;
       ) : (
         <p className="rounded-control border border-signal-edge bg-signal-wash p-3 text-sm">{t("research.plan.noSets")}</p>
       )}
+      {/* What belongs in one set: beside the sets it is about. */}
+      <details className="group mt-4 rounded-control border border-signal-edge bg-signal-tint px-3 py-2">
+        <summary className="cursor-pointer text-[13px] font-medium text-signal">{t("research.plan.principleSummary")}</summary>
+        <p className="mt-2 text-[13px] leading-5">
+          {t("research.plan.principleIntro")} <b>{t("research.plan.principleYes")}</b> {t("research.plan.principleYesText")} <b>{t("research.plan.principleNo")}</b>{" "}
+          {t("research.plan.principleNoText")}
+        </p>
+      </details>
     </StepSection>
   );
 }

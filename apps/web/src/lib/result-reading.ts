@@ -9,7 +9,7 @@
 //   is never read as an order.
 
 import { t } from "@/i18n/t";
-import { type QuestionResult, type StoredPlaces, type SupportStatus, UNIT_PLACES } from "@/lib/research-execution";
+import { inOrder, type QuestionResult, type StoredPlaces, type SupportStatus, UNIT_PLACES } from "@/lib/research-execution";
 import { aiaId } from "@/lib/workbench-artifacts";
 
 /**
@@ -51,11 +51,12 @@ export type MeasureReading = { text: string; tone: ReadingTone };
 /** How a scale is named in a sentence: "na škále 1–5", nothing when the run did not record it. */
 const onScale = (scale: readonly [number, number] | null | undefined) => (scale ? ` na škále ${scale[0]}–${scale[1]}` : "");
 
-function choiceReading(result: QuestionResult, d: number): string | null {
+function choiceReading(result: QuestionResult, d: number, asked: readonly string[]): string | null {
   const pct = (x: number) => pctAt(x, d);
   const shares = (result.celkem_pct ?? {}) as Record<string, unknown>;
   const intervals = (result.intervaly_95 ?? {}) as Record<string, unknown>;
-  const options = Object.entries(shares)
+  // Equal shares keep the order the question asked them in, as its table lists them.
+  const options = inOrder(Object.keys(shares), asked).map((label): [string, unknown] => [label, shares[label]])
     .filter((entry): entry is [string, number] => finite(entry[1]))
     .map(([label, value]) => ({ label, value, ...interval(intervals[label]) }))
     .sort((a, b) => b.value - a.value);
@@ -85,10 +86,10 @@ function scaleReading(result: QuestionResult, scale: readonly [number, number] |
  * its leading answer only as far as the intervals separate it from the next ones; a scale names
  * its mean with its interval and, when recorded, the scale it was asked on.
  */
-export function readMeasure(result: QuestionResult, scale?: readonly [number, number] | null, topBox = 2, at: StoredPlaces = UNIT_PLACES): MeasureReading {
+export function readMeasure(result: QuestionResult, scale?: readonly [number, number] | null, topBox = 2, at: StoredPlaces = UNIT_PLACES, options: readonly string[] = []): MeasureReading {
   if (result.support_status === "SUPPRESS") return { text: "Číselný výsledek je skrytý: podpora dat nestačí.", tone: "suppressed" };
   const words = result.typ === "vyber" || result.typ === "multi"
-    ? choiceReading(result, at.share)
+    ? choiceReading(result, at.share, options)
     : result.typ === "skala"
       ? scaleReading(result, scale, topBox, at)
       : Array.isArray(result.verbatimy) && result.verbatimy.length

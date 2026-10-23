@@ -1217,6 +1217,19 @@ handle / {
 }
 ```
 
+**An exact `path` matcher does not refuse an ONLYOFFICE Document Server path.** Its nginx passes
+`/<a.b.c-d>/<any path>` to the same service, merges repeated slashes and matches without regard to
+case, so `/9.4.0-1/coauthoring/CommandService.ashx` and `//coauthoring//commandservice.ashx` reach
+the path an exact matcher refuses (report-editor-hosting, #785; `tools/caddy_routes.py` holds the
+variants).
+
+```caddyfile
+# WRONG — refuses one spelling of the path
+@server_only path /coauthoring/CommandService.ashx
+# RIGHT — any case, the optional version prefix, repeated slashes
+@server_only path_regexp server_only (?i)^/+(?:[0-9]+\.[0-9]+\.[0-9]+[.|-]\w+/+)?(?:coauthoring/+commandservice\.ashx|…)(?:[/?].*)?$
+```
+
 ## DOCX (python-docx) and embedded fonts
 
 **Word embeds only TrueType or OpenType, never WOFF2.** The web client's fonts are
@@ -1299,6 +1312,17 @@ picture to its leading in LibreOffice and Word alike: seven charts rendered as
 characters.** Grep a newly written file for NBSP, en dash and minus before
 running ruff; RUF001 then catches the rest.
 
+**`Paragraph.text` and `_Cell.text` read `w:r` and `w:hyperlink` only; an inline `w:sdt`'s runs
+are skipped.** AIA's report renderer locks every printed ledger number in one (RPT8a, #786), so
+`p.text` reads an AIA report without its numbers.
+
+```python
+# WRONG
+text = p.text
+# RIGHT -- the runs inside inline content controls too (infrastructure/document_text.py)
+text = paragraph_text(p)
+```
+
 **python-docx writes the current time into the zip.** Two renders of the same
 document differ in bytes unless the package is rewritten with fixed timestamps
 (`renderer._normalise_zip`) and the core properties are dated explicitly.
@@ -1330,6 +1354,18 @@ pip freeze --all --exclude-editable > reqs.txt && pip-audit --strict --no-deps -
 
 The runner's own pip sits in the audited environment, so upgrade it first (`python -m pip install
 --upgrade pip`): pip 24.0 carried six advisories.
+
+**npm's audit endpoint can hang for about 420 s and then answer `{"summary":"","detail":""}`**
+(2026-10-22, three CI runs). One unbounded call made the security job wait it out and fail on an
+unreadable report (#676).
+
+```bash
+# WRONG -- one unbounded call; npm ci's own audit asks the same endpoint again
+npm ci && npm audit --json
+# RIGHT -- bounded attempts, failing closed (apps/web/scripts/audit-gate.mjs: two attempts,
+# 150 s each, each in the step summary; no readable report after both fails the job)
+npm ci --no-audit && node scripts/audit-gate.mjs
+```
 
 **A contract assertion that outlives the contract is worse than none.** CI
 asserted `/api/v1/projects` after projects had moved under
@@ -1370,6 +1406,22 @@ which reports new findings (`set-state-in-effect`, `use-memo`; 11 on the 16.4.2 
 # WRONG -- overriding the plugin back to 7.0.1 breaks eslint-config-next's own range
 # RIGHT -- fix the effect, or disable the rule on that line with its reason:
 # eslint-disable-next-line react-hooks/set-state-in-effect -- <reason>
+```
+
+**An open-redirect check on the raw string misses what the URL parser rewrites.** A browser's URL
+parser drops tab, CR and LF, so `/\t/evil.example` is `//evil.example`, another host; and it
+normalises dot segments, so `/.//evil.example` has the pathname `//evil.example` (security-audit S1,
+#705). Resolve `next` against a fixed origin, require that origin, then hand back `next` as given,
+never the parsed path (`apps/web/src/lib/session.ts` `localPath`; the API's `_local_path` refuses
+any control character).
+
+```ts
+// WRONG -- "/\t/evil.example" passes, and the browser goes to evil.example
+const ok = next.startsWith("/") && !next.startsWith("//") && !next.includes("\\");
+// WRONG -- returning url.pathname reopens it through dot segments
+// RIGHT
+const url = new URL(next, HERE);           // HERE: a fixed origin, "https://aia.invalid"
+return url.origin === HERE ? next : "/";
 ```
 
 **Route modules cannot export arbitrary helpers or constants.** The production
@@ -1875,6 +1927,59 @@ setRenaming(false); requestAnimationFrame(() => row.current?.focus());
 // RIGHT: focus after the commit that mounted it
 owed.current = true; setRenaming(false);
 useEffect(() => { if (!renaming && owed.current) { owed.current = false; row.current?.focus(); } }, [renaming]);
+```
+
+**A focus restored when an async save answers must not steal focus the person has since moved.**
+Restoring focus in an effect after `onSettled` (a save's answer) ran after the person had opened
+another control, and took focus from it; it showed as a CI flake under load (#735). Restore only
+when focus is on the page. Deciding by containment at the moment the save settles does not work:
+the field's own DOM has already dropped focus by then (`KnowledgeOrganizers.tsx` `useRenaming`).
+
+```tsx
+// WRONG: takes focus from wherever the person went while the save was in flight
+useEffect(() => { if (!renaming && owed.current) { owed.current = false; row.current?.focus(); } }, [renaming]);
+// RIGHT: only focus left on the page comes back
+const now = document.activeElement;
+if (now && now !== document.body) return;
+row.current?.focus();
+```
+
+**Time a page on a production build, never on `next dev`.** The dev server compiles routes on
+demand and runs dev-only checks: the same Metodika interaction took 506–570 ms on `next dev` and
+57–103 ms on `next build` + the standalone server (#752). The standalone server renames its process
+to `next-server`, so identify it by its working directory, not its command line
+(`tools/ui_workbench/production.mjs`). The timed journeys run on `workbench.py up --production`
+and refuse `next dev`; their budgets are 400 ms an interaction and 800 ms a research stage's cold
+first open (Q78 (c), #768).
+
+```text
+WRONG: time a journey against `next dev`, or find the server with pgrep -f "next start"
+RIGHT: python3 tools/ui_workbench/workbench.py up --production; the web process's cwd ends
+       with apps/web/.next/standalone
+```
+
+**A Vitest test that crosses a DST change passes vacuously in CI's UTC.** UTC has no 23- or 25-hour
+day. Set `process.env.TZ` in `vi.hoisted` (before the imports build any `Intl` formatter), restore it
+in `afterAll`, and assert the zone took effect (`apps/web/src/lib/day-label.test.ts`, #730).
+
+```ts
+// WRONG: set in a beforeAll, after the module's formatters exist; or not asserted at all
+// RIGHT
+const zone = vi.hoisted(() => { const before = process.env.TZ; process.env.TZ = "Europe/Prague"; return before; });
+afterAll(() => { if (zone === undefined) delete process.env.TZ; else process.env.TZ = zone; });
+expect(new Date(2026, 9, 26).getTime() - new Date(2026, 9, 25).getTime()).toBe(25 * 3_600_000);
+```
+
+**A Playwright `waitForFunction` over `querySelector(...)?.prop` is vacuously true when nothing
+matches.** The Lead journey waited for an enabled composer that way, and went on before it existed
+(#678). Wait on the locator the test acts on; for a hidden element that must be ready, use
+`.waitFor({ state: "attached" })`, since the default `visible` never resolves.
+
+```js
+// WRONG: true while no element matches
+await page.waitForFunction(() => !document.querySelector("textarea")?.disabled);
+// RIGHT
+await page.getByLabel("Napište Vedoucímu výzkumu").and(page.locator(":enabled")).waitFor({ state: "attached" });
 ```
 
 **Under Tailwind 4, an unlayered element rule beats every utility class, whatever the specificity.**
@@ -2396,17 +2501,27 @@ and the [Docker command reference](https://docs.docker.com/reference/cli/docker/
 ## Office and OpenDocument files read with the stdlib
 
 **Refuse an XML part that declares a DTD before parsing it.** OOXML (DOCX, PPTX, XLSX) and
-OpenDocument (ODT, ODS) never carry a document type declaration, so a part with `<!DOCTYPE` or
-`<!ENTITY` in it is hostile or broken. Refusing it outright closes entity expansion whatever the
-expat version, instead of trusting the parser's amplification limits (client sources K2b, #395).
-Check the ZIP's declared sizes first (`document_text.check_zip_bounds`), then the part:
+OpenDocument (ODT, ODS) never carry a document type declaration, so a part that declares one is
+hostile or broken. Refusing it outright closes entity expansion whatever the expat version, instead
+of trusting the parser's amplification limits (client sources K2b, #395). Check the ZIP's declared
+sizes first (`document_text.check_zip_bounds`), then the part.
+
+A byte search for `<!DOCTYPE` misses a part written in UTF-16, where those bytes never occur
+(security-audit S6, #709). Let expat read the declaration the way the real parse would:
+`document_text.refuse_dtd`, a pre-pass whose doctype and entity handlers raise before anything is
+defined. Run it over every member before openpyxl parses any: openpyxl finds a part by its content
+type and relationship, not by its name, so a worksheet can be stored as `xl/s.bin` (S11).
 
 ```python
 # Wrong: parses whatever the part declares
 root = ET.fromstring(archive.read("content.xml"))
-# Right: bounded, and no DTD
+# Wrong: a UTF-16 part's DTD passes
+if b"<!DOCTYPE" in data or b"<!ENTITY" in data: raise ...
+# Right: bounded, and no DTD in whatever encoding the part declares
 data = archive.read("content.xml")
-if b"<!DOCTYPE" in data or b"<!ENTITY" in data:
-    raise DocumentRefused("the part declares a DTD", reason="document_malformed")
+try:
+    refuse_dtd(data)
+except DtdDeclared as exc:
+    raise DocumentRefused("the part declares a DTD", reason="document_malformed") from exc
 root = ET.fromstring(data)
 ```

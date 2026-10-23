@@ -21,7 +21,7 @@ import {
 import { num } from "@/lib/sociomapping-view";
 
 export const TERRACE = (band: number) => `var(--viz-terrace-${band + 1})`;
-export const SIGN = { positive: "var(--viz-link-positive)", negative: "var(--viz-link-negative)" } as const;
+const SIGN = { positive: "var(--viz-link-positive)", negative: "var(--viz-link-negative)" } as const;
 
 export type MarkState = {
   selected: string | null;
@@ -55,7 +55,7 @@ function width(lines: string[], fonts: string[], padding: number, fallback: numb
 
 /** The label's lines: the name (marked as context for a SECONDARY object) and, when the object
  * is active and labels are not names-only, its stored height, original rating and display band. */
-export function labelLines(o: MapObject, active: boolean, labelsOnly: boolean, scale?: [number, number]): string[] {
+function labelLines(o: MapObject, active: boolean, labelsOnly: boolean, scale?: [number, number]): string[] {
   const name = o.primary ? o.label : tv("research.exec.objectMap.contextSuffix", { label: o.label });
   if (labelsOnly || !active || o.height === null || o.band === null) return [name];
   const band = o.band + 1;

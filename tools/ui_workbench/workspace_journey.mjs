@@ -257,13 +257,14 @@ await shot("3-audience");
 
 // 4. Dimenze: no panel factors; a request is a proposal to the client's knowledge.
 await page.goto(stage("dimensions"), { waitUntil: "load", timeout: 120000 });
-await text("Faktory panelu v AIA zatím nejsou", "the panel factors not in AIA");
+await text("Faktory společnosti v AIA zatím nejsou", "the society factors not in AIA");
 await page.getByText("Potřebuji dimenzi, která v systému není").first().click();
 await page.getByLabel("Název dimenze").fill("Vztah k ranním nápojům");
 const proposed = page.waitForResponse((r) => r.url().endsWith(`/studies/${study.study_id}/knowledge-proposals`) && r.ok(), { timeout: 60000 });
 await page.getByRole("button", { name: "Přidat jako požadavek" }).click();
 await proposed;
 await text("Návrh dimenze je ve Znalostech klienta", "the proposal toast");
+await text("Vztah k ranním nápojům · čeká na schválení", "the request waiting beside the selection");
 ok("Dimenze: a dimension request became a proposal to the client's knowledge");
 await shot("4-dimensions");
 

@@ -62,7 +62,7 @@ export const nameOf = (id: string) => {
 };
 const short = (hash: string) => hash.slice(0, 8);
 /** A stored version's label as a reader says it: the API's "e3" is "verze 3". */
-export const versionName = (label: string) => {
+const versionName = (label: string) => {
   const n = /^e(\d+)$/.exec(label)?.[1];
   return n ? tv(`${P}.versionName`, { n }) : label;
 };

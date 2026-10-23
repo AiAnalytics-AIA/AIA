@@ -51,6 +51,7 @@ import { activityOf } from "@/lib/step-activity";
 import { type BatteryWithMaps, mapApproval, olderMethodOnly, readObjectMap, type RecordedMethod, type RegisterEntry } from "@/lib/object-map-view";
 import {
   STEP_ORDER,
+  inOrder,
   ANALYSIS_ORDER,
   hasUnknownOrigin,
   isModelled,
@@ -118,6 +119,8 @@ import { SociomappingView } from "./SociomappingView";
 import { StepActivityPanel } from "./StepActivityPanel";
 import { useStepActivity } from "./useStepActivity";
 import { ObjectMapView } from "./ObjectMapView";
+import { SociomapStage, useOnSociomapStage } from "./SociomapStage";
+import { useLeadOwnsAiStarts } from "./AskLead";
 import { InterpretationResearch } from "./InterpretationResearch";
 import { ReportDocumentView } from "./ReportDocumentView";
 import { ResultsWorkspace } from "./ResultsWorkspace";
@@ -146,7 +149,7 @@ export type NewRunStart = {
 
 /** The server refused a retry because the run's Sociomap method is an older one: the start of a new run
  *  (on aia-sociomap-5) the refusal names, or null for any other error. */
-export function retiredMethodRefusal(e: unknown): NewRunStart | null {
+function retiredMethodRefusal(e: unknown): NewRunStart | null {
   if (!(e instanceof ApiError) || e.code !== "run_on_retired_method") return null;
   const body = (e.details as { new_run?: { body?: Partial<NewRunStart> } }).new_run?.body;
   return body && typeof body.design_revision_id === "string" ? (body as NewRunStart) : null;
@@ -1343,7 +1346,7 @@ function SpendCard({ run }: { run: ResearchRun }) {
       live = false;
     };
   }, [frame.studyId, known, spend?.spent_usd, spend?.reserved_usd]);
-  const rows = spendRows(spend, run.is_terminal, remaining);
+  const rows = spendRows(spend, run.is_terminal, remaining, run.cost_ceiling);
   return (
     <Card title={t("research.exec.spend.title")}>
       {rows ? (
@@ -1532,15 +1535,16 @@ function Provenance({ artifact, run }: { artifact: Artifact; run: ResearchRun })
 }
 
 function Table({ table, showSupportNote = true }: { table: ResultTable; showSupportNote?: boolean }) {
+  // The band column needs room: the card's own width decides, not the screen's (a narrow workbench pane).
   return (
-    <div className="flex flex-col gap-1">
+    <div className="@container flex flex-col gap-1">
       {showSupportNote ? <p className="text-xs text-ink-muted">{supportNote(table)}</p> : null}
       {table.rows.length ? (
         <table className="w-full text-sm">
           <thead>
             <tr className="text-left text-xs text-ink-muted">
               <th className="py-1 font-medium"> </th>
-              <th className="py-1 font-medium"><span className="sr-only">{t("research.exec.results.bar")}</span></th>
+              <th className="hidden py-1 font-medium @lg:table-cell"><span className="sr-only">{t("research.exec.results.bar")}</span></th>
               <th className="whitespace-nowrap py-1 font-medium">{t("research.exec.results.value")}</th>
               <th className="whitespace-nowrap py-1 font-medium">{t("research.exec.results.interval")}</th>
             </tr>
@@ -1549,7 +1553,7 @@ function Table({ table, showSupportNote = true }: { table: ResultTable; showSupp
             {table.rows.map((r) => (
               <tr key={r.label} className="border-t border-border">
                 <td className="py-1 pr-3">{r.label}</td>
-                <td className="w-[40%] min-w-20 py-1 pr-3">{r.bar ? <IntervalBar bar={r.bar} /> : null}</td>
+                <td className="hidden w-[40%] min-w-20 py-1 pr-3 @lg:table-cell">{r.bar ? <IntervalBar bar={r.bar} /> : null}</td>
                 <td className="whitespace-nowrap py-1 pr-3 tabular-nums">{r.value ?? "—"}</td>
                 <td className="whitespace-nowrap py-1 tabular-nums text-ink-muted">{r.interval ?? "—"}</td>
               </tr>
@@ -1616,6 +1620,8 @@ export function RunResults({ run, progressHref }: { run: ResearchRun | null; pro
   const shows = Boolean(run && stepOf(run, "aggregate")?.artifact_id);
   const [revisions] = useResource(() => (shows ? research.revisions(frame.studyId) : Promise.resolve([])), [frame.studyId, shows]);
   const sociomapping = useArtifact(run, "sociomapping");
+  const onSociomapStage = useOnSociomapStage();
+  const leadOwns = useLeadOwnsAiStarts();
   // The literature review the report variant adds (research-integrity-report 3): chosen once,
   // read by the report card above and the literature panel below, never two selections.
   const [review, setReview] = useState<string | null>(null);
@@ -1627,7 +1633,11 @@ export function RunResults({ run, progressHref }: { run: ResearchRun | null; pro
     return (
       <div className="flex max-w-3xl flex-col gap-4">
         <Card>
-          <p className="text-sm">{run && parkedForRuntime(run) ? t("research.exec.noResultsParked") : t("research.exec.noResults")}</p>
+          <p className="text-sm">{run && parkedForRuntime(run) ? t("research.exec.noResultsParked") : run ? noResultsWords(run) : t("research.exec.noResults")}</p>
+          {/* Where the results will come from (workbench audit F-R8): the run's progress, or with no run
+              the stage that starts one, where the frame may start it. */}
+          {run && progressHref ? <Link href={progressHref} className="mt-2 inline-block text-sm font-medium">{t("research.exec.results.reportSeeProgress")}</Link>
+            : !run && frame.canEdit ? <Link href={frame.stepHref("run")} className="mt-2 inline-block text-sm font-medium">{tv("research.exec.answerability.retryOpen", { stage: t("aia.stages.run") })}</Link> : null}
         </Card>
         {/* With no run there is no run to say a report about (workbench audit, 2026-10-22). */}
         {run ? report : null}
@@ -1636,6 +1646,24 @@ export function RunResults({ run, progressHref }: { run: ResearchRun | null; pro
   }
   const showMap = Boolean(sociomap && sociomap.state !== "hidden");
   const showMapping = Boolean(sociomapping && sociomapping.state !== "hidden");
+  // The workbench's Sociomapa stage is the map (artifact-sociomap SOC9): the map first, what explains it
+  // under it, no results tabs. The classic layout keeps Sociomapy as a tab of Výsledky.
+  // The experimental Sociomapping, with its draft's review: on Výsledky's Sociomapy tab, and on the
+  // Sociomapa stage under the map (with no amber frame there, SOC12).
+  const mappingCard = (tone?: "notice") => sociomapping && sociomapping.state !== "hidden" ? (
+    <Card id="res-sociomapping" title={t("research.exec.results.sociomapping")} tone={tone}>
+      {sociomapping.state === "ready" ? (
+        <SociomappingView artifact={sociomapping.value} run={run} studyId={frame.studyId} canEdit={canReview(frame)} />
+      ) : null}
+      {sociomapping.state === "loading" ? <p className="text-sm text-ink-muted">{t("research.loading")}</p> : null}
+      {sociomapping.state === "failed" ? <p role="alert" className="text-sm text-status-fault">{sociomapping.message}</p> : null}
+    </Card>
+  ) : null;
+  if (onSociomapStage && leadOwns && (showMap || showMapping)) {
+    return <SociomapStage run={run} artifact={sociomap?.state === "ready" ? sociomap.value : null} loading={sociomap?.state === "loading"}
+      error={sociomap?.state === "failed" ? sociomap.message : null} after={mappingCard()}
+      notice={<><RevisionMoved note={revisionNote(run.design_revision, revisions.state === "ready" ? revisions.data.map((r) => r.revision) : null)} /><OriginBanners run={run} /></>} />;
+  }
   const showAnalysis = run.steps.some((step) => step.kind === "research_analysis");
   const knowledgeContext = <section aria-label="Kontext klienta a literatura" className="rounded-md border border-border bg-surface-raised p-4">
     <h3 className="text-sm font-semibold">Doplňte souvislosti k interpretaci</h3>
@@ -1671,15 +1699,7 @@ export function RunResults({ run, progressHref }: { run: ResearchRun | null; pro
           {sociomap.state === "failed" ? <p role="alert" className="text-sm text-status-fault">{sociomap.message}</p> : null}
         </Card>
       ) : null}
-      {sociomapping && sociomapping.state !== "hidden" ? (
-        <Card id="res-sociomapping" title={t("research.exec.results.sociomapping")} tone="notice">
-          {sociomapping.state === "ready" ? (
-            <SociomappingView artifact={sociomapping.value} run={run} studyId={frame.studyId} canEdit={canReview(frame)} />
-          ) : null}
-          {sociomapping.state === "loading" ? <p className="text-sm text-ink-muted">{t("research.loading")}</p> : null}
-          {sociomapping.state === "failed" ? <p role="alert" className="text-sm text-status-fault">{sociomapping.message}</p> : null}
-        </Card>
-      ) : null}
+      {mappingCard("notice")}
       </> }] : []),
       ...(showAnalysis ? [{ id: "analysis", label: "AI analýza", description: "Souhrn, odpovědi na výzkumné otázky a omezení. Interpretace vychází z podkladů tohoto běhu a čeká na posouzení výzkumníkem.", content: <div id="res-analysis"><AnalysisResults key={run.run_id} run={run} progressHref={progressHref} spec={pinnedSpecification(specification?.state === "ready" ? specification.value : null)} /></div> }] : []),
       { id: "report", label: "Rešerše a zpráva", description: "Zkontrolujte připravenost interní zprávy, přijaté externí podklady a omezení rešerše. Dostupnost stažení závisí na úplnosti analýzy.", content: <>
@@ -1689,6 +1709,14 @@ export function RunResults({ run, progressHref }: { run: ResearchRun | null; pro
         <details><summary className="cursor-pointer text-sm font-medium">Klientské znalosti a kontextová AI pomoc</summary><div className="mt-3">{knowledgeContext}</div></details>
       </> },
     ]} />;
+}
+
+/** Why a run has no results yet, in its state's words (run-state.ts): a running run, a wait with its
+ *  reason, a failed or cancelled run that will never have them. */
+function noResultsWords(run: ResearchRun): string {
+  const state = runState(run);
+  // A reason ends its own sentence (run-state's words carry the period).
+  return `${t("research.exec.noResultsYet")} ${state.label}${state.reason ? `: ${state.reason}` : "."}`;
 }
 
 /** The run's design is older than the study's (artifact-results RES4a): said above its numbers. */
@@ -1970,7 +1998,7 @@ type SpecificationPayload = {
   specification?: CompiledSpecification;
 };
 
-type AggregateMeasure = { id: string; target: string | null; title: string; group: string | null; result: AggregateResult; table: ResultTable; scale: readonly [number, number] | null };
+type AggregateMeasure = { id: string; target: string | null; options: readonly string[]; title: string; group: string | null; result: AggregateResult; table: ResultTable; scale: readonly [number, number] | null };
 type AggregateFilter = "all" | ResultTable["support"];
 
 function supportLabel(support: ResultTable["support"]): string {
@@ -1991,21 +2019,20 @@ function aggregateMeasures(payload: AggregatePayload, pinned: CompiledSpecificat
   const { questions, batteries } = payload.aggregate;
   const specQuestions = new Map((pinned?.questions ?? []).map((q) => [q.id, q]));
   const specBatteries = new Map((pinned?.batteries ?? []).map((b) => [b.id, b]));
-  const inOrder = <T,>(ids: string[], order: string[]) => [...order.filter((id) => ids.includes(id)), ...ids.filter((id) => !order.includes(id))] as T[];
-  const questionIds = inOrder<string>(Object.keys(questions), [...specQuestions.keys()]);
-  const batteryIds = inOrder<string>(Object.keys(batteries), [...specBatteries.keys()]);
+  const questionIds = inOrder(Object.keys(questions), [...specQuestions.keys()]);
+  const batteryIds = inOrder(Object.keys(batteries), [...specBatteries.keys()]);
   return [
     ...questionIds.map((id) => {
       const q = specQuestions.get(id);
-      return { id, target: measureTarget(id), title: q?.text || untitled("question"), group: null, result: questions[id], table: resultTable(id, questions[id], box, at), scale: q?.scale ?? null };
+      return { id, target: measureTarget(id), options: q?.options ?? [], title: q?.text || untitled("question"), group: null, result: questions[id], table: resultTable(id, questions[id], box, at, q?.options ?? []), scale: q?.scale ?? null };
     }),
     ...batteryIds.flatMap((id) => {
       const battery = batteries[id];
       const spec = specBatteries.get(id);
-      const objectIds = inOrder<string>(Object.keys(battery.objects), (spec?.objects ?? []).map((o) => o.id));
+      const objectIds = inOrder(Object.keys(battery.objects), (spec?.objects ?? []).map((o) => o.id));
       return objectIds.map((oid) => {
         const result = battery.objects[oid];
-        return { id: `${id}:${oid}`, target: measureTarget(id, oid), title: result.label || untitled("object"), group: battery.title || untitled("set"), result, table: resultTable(oid, result, box, at), scale: spec?.scale ?? null };
+        return { id: `${id}:${oid}`, target: measureTarget(id, oid), options: [], title: result.label || untitled("object"), group: battery.title || untitled("set"), result, table: resultTable(oid, result, box, at), scale: spec?.scale ?? null };
       });
     }),
   ];
@@ -2031,19 +2058,19 @@ function ObjectComparison({ setId, title, comparison, scale, places }: { setId: 
   const mean = (x: number) => x.toLocaleString("cs-CZ", { minimumFractionDigits: places, maximumFractionDigits: places });
   const objectOf = (id: string) => id.slice(setId.length + 1);
   return (
-    <section aria-label={`Srovnání: ${title}`} data-object-comparison className="rounded-md border border-border bg-surface-raised p-4">
+    <section aria-label={`Srovnání: ${title}`} data-object-comparison className="@container rounded-md border border-border bg-surface-raised p-4">
       <div className="flex flex-wrap items-baseline justify-between gap-2">
         <h4 className="text-sm font-semibold">{title}</h4>
         <span className="text-xs text-ink-muted">{scale ? `Průměr na škále ${scale[0]}–${scale[1]}` : "Průměr; škála běhu není uvedena"} · 95% interval · Kish n</span>
       </div>
       <div className="mt-3 overflow-x-auto">
-        <table className="w-full text-sm sm:min-w-[30rem]">
+        <table className="w-full text-sm @lg:min-w-[30rem]">
           <thead>
             <tr className="text-left text-xs text-ink-muted">
               <th className="py-1 pr-3 font-medium">Objekt</th>
               <th className="py-1 pr-3 text-right font-medium">Průměr</th>
               <th className="py-1 pr-3 text-right font-medium">Interval</th>
-              <th className="hidden py-1 pr-3 font-medium sm:table-cell">{scale ? `${scale[0]} · · · ${scale[1]}` : <span className="sr-only">Interval na škále</span>}</th>
+              <th className="hidden py-1 pr-3 font-medium @lg:table-cell">{scale ? `${scale[0]} · · · ${scale[1]}` : <span className="sr-only">Interval na škále</span>}</th>
               <th className="py-1 text-right font-medium">Kish n</th>
             </tr>
           </thead>
@@ -2053,7 +2080,7 @@ function ObjectComparison({ setId, title, comparison, scale, places }: { setId: 
                 <td className="max-w-48 truncate py-1.5 pr-3"><a href={`#${measureAnchor(o.id)}`} className="no-underline hover:underline" title={o.label}>{o.label}</a>{o.support === "INDICATIVE" ? <span className="ml-1 text-xs text-status-you-ink">(orientační)</span> : null}</td>
                 <td className="whitespace-nowrap py-1.5 pr-3 text-right tabular-nums"><b>{mean(o.value)}</b>{scale ? <span className="text-ink-muted"> z {scale[1]}</span> : null}</td>
                 <td className="whitespace-nowrap py-1.5 pr-3 text-right tabular-nums text-ink-muted">{o.low !== null && o.high !== null ? `[${mean(o.low)}; ${mean(o.high)}]` : "interval chybí"}</td>
-                <td className="hidden w-[30%] min-w-24 py-1.5 pr-3 sm:table-cell">
+                <td className="hidden w-[30%] min-w-24 py-1.5 pr-3 @lg:table-cell">
                   <span aria-hidden="true" className="relative block h-4 rounded-full bg-surface-sunken">
                     {o.low !== null && o.high !== null ? <span className="absolute top-1 h-2 rounded-full bg-signal/25" style={{ left: at(o.low), width: `calc(${at(o.high)} - ${at(o.low)})` }} /> : null}
                     <span className="absolute top-0.5 size-3 -translate-x-1/2 rounded-full bg-signal" style={{ left: at(o.value) }} />
@@ -2068,7 +2095,7 @@ function ObjectComparison({ setId, title, comparison, scale, places }: { setId: 
                 <td colSpan={2} className="py-1.5 pr-3 text-ink-muted">{o.reason === "suppressed"
                   ? `Potlačeno · ${o.donors === null ? "podpora dat nestačí" : `podpora dat nestačí (${o.donors.toLocaleString("cs-CZ")} unikátních dárců)`}`
                   : "Bez průměru"}</td>
-                <td aria-hidden="true" className="hidden sm:table-cell" />
+                <td aria-hidden="true" className="hidden @lg:table-cell" />
                 <td className="whitespace-nowrap py-1.5 text-right tabular-nums text-ink-muted">{kish(o.kishN)}</td>
               </tr>
             ))}
@@ -2153,7 +2180,7 @@ function AggregateView({ artifact, run, specification }: { artifact: Artifact; r
       <div className="flex flex-col gap-3" aria-live="polite">
         {matching.length ? matching.map((measure) => {
           const anchor = measureAnchor(measure.id);
-          const reading = readMeasure(measure.result, measure.scale, box, at);
+          const reading = readMeasure(measure.result, measure.scale, box, at, measure.options);
           return <section key={measure.id} id={anchor} aria-label={measure.title} data-aia={measure.target ?? undefined} data-focused={focused === anchor ? "true" : undefined}
             className={`scroll-mt-24 rounded-md border bg-surface-raised p-4 ${focused === anchor ? "border-signal shadow-[0_0_0_1px_var(--color-signal)]" : "border-border"}`}>
             {/* The reading runs the card's full width under the title and its chip: beside the chip it

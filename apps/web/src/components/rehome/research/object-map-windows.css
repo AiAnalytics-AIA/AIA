@@ -1,0 +1,165 @@
+/* The signed-off map's stage: the panel's glass and its content rules (ui_app.html: .npcObjManager27,
+   the detail .socio66Side, somecs-map-glass) with AIA's own overlays around the map (.omx, artifact-sociomap
+   SOC13), scoped under the map stage `.omw` so nothing reaches the rest of the page. The glass tokens
+   follow the page's own theme (data-theme on <html>, none = the system's). */
+
+/* The stage is its own stacking context: the bar, the rail and the legend (300) and the popovers (310)
+   stay under the page's sticky header, toasts and dialogs. */
+.omw {
+  isolation: isolate;
+  --glass66: rgba(255, 255, 255, .72);
+  --glassStrong66: rgba(10, 15, 20, .62);
+  --glassLine66: rgba(15, 23, 42, .14);
+  --glassBtn66: rgba(255, 255, 255, .45);
+  --glassCard66: rgba(255, 255, 255, .38);
+  --glassBlur66: blur(16px) saturate(150%);
+  /* Labels on the light glass: 4.5:1 over the glass where it lies on the map's dark ground. */
+  --omwMuted: #3d494f;
+  --omwAnswer: #54666f;
+}
+:root[data-theme="dark"] .omw {
+  --glass66: rgba(12, 17, 22, .64);
+  --glassLine66: rgba(255, 255, 255, .12);
+  --glassBtn66: rgba(255, 255, 255, .06);
+  --glassCard66: rgba(255, 255, 255, .04);
+  --omwMuted: #7c8f98;
+  --omwAnswer: #afbac0;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) .omw {
+    --glass66: rgba(12, 17, 22, .64);
+    --glassLine66: rgba(255, 255, 255, .12);
+    --glassBtn66: rgba(255, 255, 255, .06);
+    --glassCard66: rgba(255, 255, 255, .04);
+    --omwMuted: #7c8f98;
+    --omwAnswer: #afbac0;
+  }
+}
+@supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
+  .omw { --glass66: rgba(255, 255, 255, .94); --glassStrong66: rgba(10, 15, 20, .9); }
+  :root[data-theme="dark"] .omw { --glass66: rgba(12, 17, 22, .93); }
+  @media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .omw { --glass66: rgba(12, 17, 22, .93); } }
+}
+
+/* ---------- the legend (bottom left) ---------- */
+.omw-legend { background: var(--glassStrong66) !important; -webkit-backdrop-filter: var(--glassBlur66); backdrop-filter: var(--glassBlur66); border-color: var(--glassLine66) !important; }
+
+.omw-pop-facts { margin-top: 6px; padding-top: 6px; border-top: 1px solid var(--glassLine66); }
+.omw-pop-facts [data-testid="object-map-support"] { color: inherit; }
+
+.omw-btn {
+  border: 1px solid var(--glassLine66); background: var(--glassBtn66); border-radius: 7px; padding: 6px 8px; font-size: 12px !important; line-height: normal; cursor: pointer;
+}
+.omw-btn[aria-pressed="true"], .omw-btn.on { background: #176a89; border-color: #50a6c6; color: #fff; }
+.omw-btn:disabled { opacity: .45; cursor: not-allowed; }
+.omw-row { display: flex; gap: 6px; flex-wrap: wrap; align-items: center; margin: 6px 0; }
+
+/* The object list (Správa objektů). */
+.omw-list { display: flex; flex-direction: column; }
+.omw-list button { display: grid; grid-template-columns: 12px minmax(0, 1fr) auto; align-items: center; gap: 8px; width: 100%; border: 0; border-radius: 6px; background: transparent; padding: 5px 6px; text-align: left; font-size: 12.5px; cursor: pointer; }
+.omw-list button:hover { background: var(--glassBtn66); }
+.omw-list button[aria-pressed="true"] { background: var(--glassCard66); font-weight: 700; box-shadow: inset 0 0 0 1px #50a6c6; }
+
+/* The detail's content (.socio66Fact, .socio66Answer, .socio66Rel, .socio66Hint, .socio66Side h3). */
+.omw-facts { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
+.omw-fact { border: 1px solid var(--glassLine66); border-radius: 6px; background: var(--glassCard66); padding: 7px; }
+.omw-fact small { display: block; color: var(--omwMuted); font-size: 11px; margin-bottom: 2px; }
+.omw-fact strong { font-size: 16px; font-variant-numeric: tabular-nums; }
+.omw-answer { display: flex; justify-content: space-between; gap: 10px; padding: 5px 0; border-bottom: 1px solid var(--glassLine66); font-size: 12px; background: transparent; }
+.omw-answer span { color: var(--omwAnswer); min-width: 0; }
+.omw-answer b { font-variant-numeric: tabular-nums; text-align: right; }
+.omw-rel { display: flex; flex-direction: column; gap: 6px; padding: 8px; border: 1px solid var(--glassLine66); border-radius: 7px; background: var(--glassCard66); margin-bottom: 7px; }
+.omw-tip { font-size: 12px; color: var(--omwMuted); line-height: 1.45; }
+.omw-h3 { font-size: 12px; letter-spacing: .07em; text-transform: uppercase; color: var(--omwMuted); margin: 15px 0 7px; font-weight: 700; }
+.omw-h3:first-child { margin-top: 0; }
+.omw-detail-label { display: block; font-size: 14px; margin: 4px 0 8px; }
+
+/* A relation on the object's card is a button that opens the pair (the panel's answer row). */
+button.omw-answer { width: 100%; border-width: 0 0 1px; border-style: solid; border-color: var(--glassLine66); text-align: left; cursor: pointer; }
+button.omw-answer:hover { background: var(--glassBtn66); }
+button.omw-answer[aria-pressed="true"] { font-weight: 700; background: var(--glassCard66); }
+button.omw-answer[aria-pressed="true"] span { color: inherit; }
+
+/* On the respondent map the object list only lists: no hover, no hand. */
+.omw-list button[aria-disabled="true"] { cursor: default; }
+.omw-list button[aria-disabled="true"]:hover { background: transparent; }
+
+/* ---------- the overlays (.omx): one bar, one rail, a legend chip, a side sheet beside the map ----------
+   Dark glass on the map (--glassStrong66), light glass for the popovers (--glass66); their text keeps
+   4.5:1 over the brightest terrain. */
+.omx { --omx-gap: 12px; --omx-target: 32px; --omx-radius: 10px; --omx-fade: .4; }
+@media (pointer: coarse) { .omx { --omx-target: 44px; } }
+.omx-body { position: absolute; inset: 0; display: flex; }
+.omx-mapbox { position: relative; flex: 1 1 auto; min-width: 0; }
+.omx-glass { background: var(--glassStrong66); -webkit-backdrop-filter: var(--glassBlur66); backdrop-filter: var(--glassBlur66); border: 1px solid rgba(255, 255, 255, .1); box-shadow: 0 6px 20px rgba(0, 0, 0, .28); color: #eef6f9; }
+.omx-glass-light { background: var(--glass66); -webkit-backdrop-filter: var(--glassBlur66); backdrop-filter: var(--glassBlur66); border: 1px solid var(--glassLine66); box-shadow: 0 18px 50px rgba(0, 0, 0, .28); color: var(--ink); }
+@media (prefers-reduced-transparency: reduce) {
+  .omx-glass { background: rgb(14, 18, 23); -webkit-backdrop-filter: none; backdrop-filter: none; }
+  .omx-glass-light, .omx-sheet { background: var(--surface-raised); -webkit-backdrop-filter: none; backdrop-filter: none; }
+}
+.omx-bar, .omx-rail, .omx-legendchip, .omx-legendwrap { transition: opacity .18s ease; }
+.omx[data-moving] :is(.omx-bar, .omx-rail, .omx-legendchip, .omx-legendwrap) { opacity: var(--omx-fade); }
+@media (prefers-reduced-motion: reduce) { .omx-bar, .omx-rail, .omx-legendchip, .omx-legendwrap { transition: none; } }
+
+/* 1. The bar: one row, never wraps. */
+.omx-bar { position: absolute; top: var(--omx-gap); left: var(--omx-gap); z-index: 300; display: flex; align-items: center; gap: 2px; height: calc(var(--omx-target) + 6px); padding: 3px; border-radius: var(--omx-radius); white-space: nowrap; max-width: calc(100% - 2 * var(--omx-gap)); }
+.omx-seg { display: flex; gap: 2px; }
+.omx-seg button, .omx-dim button { height: var(--omx-target); padding: 0 10px; border: 0; border-radius: 7px; background: transparent; color: #eef6f9; font-size: 12px; font-weight: 700; cursor: pointer; }
+.omx-seg button:hover, .omx-dim button:hover, .omx-icon:hover { background: rgba(255, 255, 255, .13); }
+.omx-seg button[aria-pressed="true"], .omx-dim button[aria-pressed="true"], .omx-icon[aria-pressed="true"] { background: #176a89; color: #fff; }
+.omx-sep { width: 1px; height: 18px; margin: 0 4px; background: rgba(255, 255, 255, .18); }
+.omx-icon { position: relative; display: inline-grid; place-items: center; width: var(--omx-target); height: var(--omx-target); border: 0; border-radius: 7px; background: transparent; color: #eef6f9; cursor: pointer; }
+.omx-icon--sm { width: 28px; height: 28px; color: var(--ink); font-size: 16px; }
+.omx-icon--sm:hover { background: var(--glassBtn66); }
+.omx-icon:has(.omx-badge) { width: auto; padding: 0 9px 0 7px; gap: 5px; grid-auto-flow: column; }
+.omx-badge { font-size: 11.5px; font-weight: 700; color: #eef6f9; }
+.omx-bar :focus-visible, .omx-rail :focus-visible, .omx-legendchip:focus-visible { outline: 2px solid #e8edf0; outline-offset: 1px; }
+.omx-filter { display: inline-flex; align-items: center; gap: 6px; margin-left: 8px; padding: 0 4px 0 9px; height: 26px; border-radius: 999px; border: 1px solid rgba(255, 190, 90, .5); color: #dce9ef; font-size: 11px; overflow: hidden; text-overflow: ellipsis; max-width: 260px; }
+.omx-filter b { color: #ffd27a; }
+.omx-filter button { width: 20px; height: 20px; border: 0; border-radius: 50%; background: rgba(255, 255, 255, .14); color: #fff; cursor: pointer; font-size: 13px; line-height: 1; }
+
+/* Popovers under the bar. */
+.omx-pop { position: absolute; top: calc(var(--omx-gap) + var(--omx-target) + 14px); left: var(--omx-gap); z-index: 310; width: min(340px, calc(100% - 2 * var(--omx-gap))); max-height: calc(100% - var(--omx-target) - 80px); overflow: auto; padding: 10px 12px; border-radius: 12px; font-size: 12px; line-height: 1.45; }
+.omx-pop--info { width: min(460px, calc(100% - 2 * var(--omx-gap))); }
+.omx-pop h4 { font-size: 13px; font-weight: 700; margin: 10px 0 4px; }
+.omx-pop h4:first-child { margin-top: 0; }
+.omx-menuitem { display: block; width: 100%; text-align: left; padding: 8px; border: 0; border-radius: 6px; background: transparent; color: inherit; font-size: 13px; cursor: pointer; }
+.omx-menuitem:hover { background: var(--glassBtn66); }
+
+/* 2. The rail, bottom right. */
+.omx-rail { position: absolute; right: var(--omx-gap); bottom: var(--omx-gap); z-index: 300; display: flex; flex-direction: column; align-items: center; gap: 2px; padding: 3px; border-radius: var(--omx-radius); }
+.omx-hair { width: 70%; height: 1px; margin: 2px 0; background: rgba(255, 255, 255, .16); }
+.omx-dim { display: flex; flex-direction: column; gap: 2px; }
+.omx-dim button { width: var(--omx-target); padding: 0; font-size: 11px; }
+
+/* 3. The legend chip and the legend it opens. */
+.omx-legendchip { position: absolute; left: var(--omx-gap); bottom: var(--omx-gap); z-index: 300; display: inline-flex; align-items: center; gap: 8px; height: var(--omx-target); padding: 0 10px; border-radius: 999px; font-size: 11.5px; font-weight: 600; cursor: pointer; }
+.omx-chiplabel { white-space: nowrap; }
+.omx-ramp { width: 48px; height: 6px; border-radius: 3px; background: linear-gradient(90deg, #07134f, #005fa8, #00bdd1, #14d178, #7ce700, #f4e81b, #ff8f16, #e8231d); }
+.omx-swatch { width: 10px; height: 10px; border-radius: 50%; }
+.omx-legendwrap { position: absolute; left: var(--omx-gap); bottom: var(--omx-gap); z-index: 300; }
+.omx-legendwrap > .omw-legend { position: static !important; }
+.omx-legendclose { position: absolute; top: 4px; right: 4px; width: 24px; height: 24px; border: 0; border-radius: 6px; background: rgba(255, 255, 255, .1); color: #fff; cursor: pointer; }
+
+/* 4. The side sheet beside the map: the map re-frames to the space left. */
+.omx-sheet { position: relative; flex: 0 0 min(340px, 44%); display: flex; flex-direction: column; min-width: 0; background: var(--surface-raised); border-left: 1px solid var(--border); color: var(--ink); font-size: 12.5px; line-height: 1.42; }
+.omx-sheet.is-folded { flex-basis: 18px; }
+.omx-handle { width: 18px; height: 100%; border: 0; background: transparent; color: var(--ink); font-size: 14px; cursor: pointer; }
+.omx-sheethead { display: flex; align-items: center; gap: 4px; padding: 8px 8px 0 10px; border-bottom: 1px solid var(--glassLine66); }
+.omx-tabs { display: flex; gap: 2px; flex: 1 1 auto; min-width: 0; }
+.omx-tabs button { padding: 7px 10px 9px; border: 0; border-bottom: 2px solid transparent; background: transparent; color: var(--omwMuted); font-size: 12.5px; font-weight: 700; cursor: pointer; }
+.omx-tabs button[aria-selected="true"] { color: var(--ink); border-bottom-color: #176a89; }
+.omx-tabs button:disabled { opacity: .45; cursor: default; }
+.omx-sheetbody { flex: 1 1 auto; min-height: 0; overflow: auto; padding: 12px 14px; }
+.omx-sheetbody h4 { font-size: 14px; font-weight: 700; margin: 0 0 6px; }
+@media (max-width: 1180px) { .omx-sheet { flex-basis: min(300px, 48%); } }
+
+/* The sheet is beside the map, not over it: an opaque surface, the glass tokens read as on the page. */
+.omx-sheet { --glassBtn66: var(--surface-sunken); --glassCard66: var(--surface-sunken); --glassLine66: var(--border); }
+.omx-sheet .omx-tabs button { color: var(--ink-muted); }
+
+.omx-sheet button, .omx-pop button { font: inherit; color: inherit; }
+.omx-sheet button:focus-visible, .omx-pop button:focus-visible { outline: 2px solid var(--focus-ring); outline-offset: 1px; }
+.omx-pop > b { display: block; }
+.omx-icon.is-warn .omx-badge { color: #ffd27a; }
+.omx-sheettitle { margin: 0 0 10px; font-size: 11.5px; letter-spacing: .08em; text-transform: uppercase; color: var(--ink-muted); font-weight: 700; }

@@ -1,30 +1,35 @@
 "use client";
 
-// The signed-off map (aia-sociomap-5) on the Results page, drawn as the AIA panel draws it
-// (plan sociomap-5-web, chunk 2). Inside the map everything is the panel's: the canvas drawing
-// (object-map-panel.ts), the camera tools in the top right corner, the legend in the bottom left
-// with its fold-out key. Around the map the page stays the web's: the Normalizace and Vztahy
-// switches, the object list (which also makes every object reachable by keyboard and screen
-// reader) and the facts.
+// The signed-off map (aia-sociomap-5), drawn as the AIA panel draws it (plan sociomap-5-web). The
+// canvas drawing is the panel's (object-map-panel.ts); the overlays around it keep the map clear
+// (artifact-sociomap SOC13): one bar top left (Objekty / Respondenti, Nastavení mapy and Nástroje as
+// popovers under it, the ⓘ map information with the map's quality, the display filter as a chip),
+// one view rail bottom right (zoom, centre, 2D / 3D, full screen), the legend as a chip bottom left,
+// and Správa objektů and the detail as the tabs of one side sheet BESIDE the map: the canvas
+// re-frames to the width left, so nothing lies over it. Správa objektů also makes every object
+// reachable by keyboard and screen reader. While the map is dragged, rotated or zoomed the overlays
+// fade; keys O / R / L / I / F / + / − / 0 do what the controls do, Escape closes in order.
 //
 // The map draws the stored artifact and computes nothing methodological; camera, scale mode,
-// relation display, selection and hover are presentation state. What the map says about itself
-// (the weakly determined banner, the uncertainty circle, the notes) is drawn over it from the
-// stored credibility, and the objects nobody rated are listed beside it. A map that stores its
-// respondent map switches to it (the panel's Mapa: Respondenti / Objekty): the stored density of
-// the clearly placed respondents as the terrain, every placed respondent as a dot (a weakly placed
-// one faint), the objects as markers, its own legend, note and counts, the taste segments'
-// colours, legend and hint. A clicked object, relation or respondent shows its detail above the
-// list, from what the map stores (the panel's p-value, noise level and the respondent's answers
-// are not stored, so not shown). Export PNG saves the map as drawn with its legend card.
+// relation display, selection, hover and the overlays are presentation state. What the map says
+// about itself (the weakly determined banner, the uncertainty circle, the notes) is drawn over it
+// from the stored credibility, and the objects nobody rated are named in the object list. A map
+// that stores its respondent map switches to it: the stored density of the clearly placed
+// respondents as the terrain, every placed respondent as a dot (a weakly placed one faint), the
+// objects as markers, its own legend, note and counts, the taste segments' colours, legend and
+// hint. The detail shows what the map stores (the panel's p-value, noise level and the
+// respondent's answers are not stored, so not shown). Export PNG saves the map as drawn with its
+// legend card.
 //
 // As the panel embedded in a page: the wheel zooms while the pointer is over the map and scrolls the
 // page elsewhere; ⛶ opens the map in the browser's full screen (the panel's `socioFullscreen66`).
 
+import "./object-map-windows.css";
 import { type PointerEvent, type ReactNode, useEffect, useId, useMemo, useRef, useState } from "react";
 import { t, tv } from "@/i18n/t";
 import { objectTarget, pairTarget } from "@/lib/artifacts/sociomap";
-import { type DisplayChange, MAP_REGISTERS, type MapRegister, displayChanges, stageHeight } from "@/lib/sociomap-display";
+import { LEAD_REVEAL } from "@/lib/lead";
+import { MAP_REGISTERS, type MapRegister, displayChanges, stageHeight } from "@/lib/sociomap-display";
 import { num } from "@/lib/sociomapping-view";
 import { type BatteryWithMaps, type ObjectMapArtifact, originalRating } from "@/lib/object-map-view";
 import {
@@ -46,10 +51,14 @@ const RELATION_MODES: { mode: RelationMode; label: string; help?: string }[] = [
   { mode: "all", label: "research.exec.objectMap.panel.relAll" },
 ];
 
-const PRESSED = "aria-pressed:!border-signal aria-pressed:!bg-signal-wash aria-pressed:font-semibold aria-pressed:text-signal";
+/** The work windows share one place (the panel's `panel27`): one open at a time. */
+type WorkWindow = "settings" | "tools" | "objects";
+
+// The map last pressed or focused: Esc with nothing focused acts on it, not on every map on the page.
+let lastStage: HTMLElement | null = null;
+
 /** The stage's height before it is measured (stageHeight then follows the pane it is read in). */
 const FIRST_HEIGHT = "min(700px, max(120px, calc(100dvh - 260px)), max(360px, 110vw))";
-const SWITCH = `inline-flex min-h-7 items-center disabled:cursor-not-allowed disabled:opacity-50 rounded-sm border border-border-strong bg-surface-raised px-2 text-xs text-ink hover:border-signal focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus-ring ${PRESSED}`;
 
 export function ObjectMapPanel({ battery, map, facts }: { battery: BatteryWithMaps; map: ObjectMapArtifact; facts: ReactNode }) {
   if (storedFrame(map) && map.terrain.status === "computed") return <PanelView battery={battery} map={map} facts={facts} />;
@@ -61,46 +70,67 @@ export function ObjectMapPanel({ battery, map, facts }: { battery: BatteryWithMa
       <p className="min-w-0 flex-[999_1_560px] text-xs text-ink-muted" data-testid="object-map-no-terrain">
         {tv("research.exec.objectMap.noTerrain", { reason: map.terrain.status === "not_computed" ? map.terrain.reason : "—" })}
       </p>
-      <SideColumn battery={battery} facts={facts} items={objects.map((o) => ({ id: o.id, label: o.label, value: o.height, colour: color66(o.relative ?? REL_FLOOR) }))} selected={-1}
-        notPlaced={objectsNotPlaced(battery, map)} />
+      <div className="flex min-w-0 flex-[1_1_260px] flex-col gap-3">
+        <div className="flex flex-col gap-2 rounded-[10px] border border-border bg-surface-raised p-4 text-xs" data-testid="object-map-panel-list">
+          <h4 className="text-xs font-semibold">{t("research.exec.objectMap.panel.listTitle")}</h4>
+          <ul className="flex flex-col">
+            {objects.map((o) => (
+              <li key={o.id}>
+                <button type="button" disabled aria-label={tv("research.exec.objectMap.selectObject", { label: o.label })}
+                  className="grid w-full grid-cols-[12px_minmax(0,1fr)_auto] items-center gap-2 rounded px-1.5 py-[5px] text-left text-xs">
+                  <span aria-hidden className="h-3 w-3 rounded-full" style={{ background: color66(o.relative ?? REL_FLOOR) }} />
+                  <span className="truncate">{o.label}</span>
+                  <span className="tabular-nums">{panelNumber(originalRating(o.height, battery.rating_scale) ?? o.height)}</span>
+                </button>
+              </li>
+            ))}
+          </ul>
+          <NotPlaced labels={objectsNotPlaced(battery, map)} />
+        </div>
+        <div className="flex flex-col gap-2 rounded-[10px] border border-border bg-surface-raised p-4">{facts}</div>
+      </div>
     </div>
   );
 }
 
+/** The set's objects nobody rated have no place on the map; the panel names them under its list. */
+function NotPlaced({ labels }: { labels: string[] }) {
+  if (!labels.length) return null;
+  return <p className="text-xs leading-[17px] text-ink-muted" data-testid="object-map-unplaced-objects">{tv("research.exec.objectMap.panel.notPlaced", { labels: labels.join(", ") })}</p>;
+}
+
 type ListItem = { id: string; label: string; value: number | null; colour: string };
 
-/** Beside the map: every object as a button (keyboard and screen-reader access to the map), then the facts. */
-function SideColumn({ battery, facts, items, selected, notPlaced, counts = null, detail = null, onChoose, onHover }: {
-  battery: BatteryWithMaps; facts: ReactNode; items: ListItem[]; selected: number; notPlaced: string[]; counts?: ReactNode; detail?: ReactNode; onChoose?: (k: number) => void; onHover?: (k: number) => void;
+/** Správa objektů: every object as a button, its stored mean on the declared scale. */
+function ObjectList({ battery, items, selected, notPlaced, onChoose, onHover }: {
+  battery: BatteryWithMaps; items: ListItem[]; selected: number; notPlaced: string[]; onChoose?: (k: number, from: HTMLElement) => void; onHover: (k: number) => void;
 }) {
   return (
-    <div className="flex min-w-0 flex-[1_1_260px] flex-col gap-3">
-      {detail}
-      {counts}
-      <div className="flex flex-col gap-2 rounded-[10px] border border-border bg-surface-raised p-4" data-testid="object-map-panel-list">
-        <h4 className="text-xs font-semibold">{t("research.exec.objectMap.panel.listTitle")}</h4>
-        <ul className="flex flex-col">
-          {items.map((n, k) => (
-            <li key={n.id}>
-              <button type="button" data-aia={objectTarget(battery.battery_id, n.id) ?? undefined} aria-pressed={onChoose ? k === selected : undefined} aria-disabled={onChoose ? undefined : true} onClick={() => onChoose?.(k)} onPointerEnter={() => onHover?.(k)} onPointerLeave={() => onHover?.(-1)}
-                aria-label={onChoose ? tv("research.exec.objectMap.selectObject", { label: n.label }) : undefined}
-                className={`grid w-full grid-cols-[12px_minmax(0,1fr)_auto] items-center gap-2 rounded px-1.5 py-[5px] text-left text-xs [&:not([aria-disabled])]:hover:bg-surface aria-disabled:cursor-default ${k === selected ? "bg-signal-wash font-semibold" : ""}`}>
-                <span aria-hidden className="h-3 w-3 rounded-full" style={{ background: n.colour }} />
-                <span className="truncate">{n.label}</span>
-                <span className="tabular-nums">{panelNumber(originalRating(n.value, battery.rating_scale) ?? n.value)}</span>
-              </button>
-            </li>
-          ))}
-        </ul>
-        {/* The set's objects nobody rated have no place on the map; the panel names them under it. */}
-        {notPlaced.length ? (
-          <p className="text-xs leading-[17px] text-ink-muted" data-testid="object-map-unplaced-objects">{tv("research.exec.objectMap.panel.notPlaced", { labels: notPlaced.join(", ") })}</p>
-        ) : null}
-      </div>
-      <Registers />
-      <div className="flex flex-col gap-2 rounded-[10px] border border-border bg-surface-raised p-4">{facts}</div>
+    <div data-testid="object-map-panel-list">
+      <h4>{t("research.exec.objectMap.panel.listTitle")}</h4>
+      <ul className="omw-list">
+        {items.map((n, k) => (
+          <li key={n.id}>
+            {/* Read only without onChoose (the respondent map), yet focusable: the Lead's object target. */}
+            <button type="button" data-aia={objectTarget(battery.battery_id, n.id) ?? undefined}
+              aria-pressed={onChoose ? k === selected : undefined} aria-disabled={onChoose ? undefined : true}
+              onClick={(e) => onChoose?.(k, e.currentTarget)} onPointerEnter={() => onHover(k)} onPointerLeave={() => onHover(-1)}
+              aria-label={onChoose ? tv("research.exec.objectMap.selectObject", { label: n.label }) : undefined}>
+              <span aria-hidden className="h-3 w-3 rounded-full" style={{ background: n.colour }} />
+              <span className="truncate">{n.label}</span>
+              <span className="tabular-nums">{panelNumber(originalRating(n.value, battery.rating_scale) ?? n.value)}</span>
+            </button>
+          </li>
+        ))}
+      </ul>
+      <div className="mt-2"><NotPlaced labels={notPlaced} /></div>
     </div>
   );
+}
+
+/** A window section's heading with its meaning behind an ⓘ (the panel's `mi1910` in Nastavení mapy). */
+function SectionHead({ label, help }: { label: string; help?: string }) {
+  return <h4>{help ? <Tip label={label} help={help} /> : label}</h4>;
 }
 
 function PanelView({ battery, map, facts }: { battery: BatteryWithMaps; map: ObjectMapArtifact; facts: ReactNode }) {
@@ -122,6 +152,27 @@ function PanelView({ battery, map, facts }: { battery: BatteryWithMaps; map: Obj
   const segments = useMemo(() => segmentLegend(battery, map), [battery, map]);
   const people = useMemo(() => (view === "respondents" && density ? { dots, selected: person } : undefined), [view, density, dots, person]);
   const [hovered, setHovered] = useState(-1);
+  // The open work window (one at a time), whether the detail window is open, whether the ⓘ box is.
+  const [work, setWork] = useState<WorkWindow | null>(null);
+  const [detail, setDetail] = useState(false);
+  const [info, setInfo] = useState(false);
+  // The overlays' state: the bar's popovers, the side sheet's tab and whether it is folded to its edge,
+  // the legend chip, and the map moving (overlays fade while it does).
+  const [menu, setMenu] = useState<null | "settings" | "tools" | "more">(null);
+  const [tab, setTab] = useState<"objects" | "detail">("objects");
+  const [folded, setFolded] = useState(false);
+  const [legendOpen, setLegendOpen] = useState(false);
+  const [moving, setMoving] = useState(false);
+  const movingRef = useRef(false);
+  const moveStop = useRef(0);
+  const startMoving = (pause?: number) => {
+    if (!movingRef.current) { movingRef.current = true; setMoving(true); }
+    window.clearTimeout(moveStop.current);
+    if (pause) moveStop.current = window.setTimeout(() => { movingRef.current = false; setMoving(false); }, pause);
+  };
+  const stopMoving = () => { window.clearTimeout(moveStop.current); if (movingRef.current) { movingRef.current = false; setMoving(false); } };
+  // What opened the detail (the canvas or a list button): × gives the focus back to it.
+  const detailOpener = useRef<HTMLElement | null>(null);
   const [size, setSize] = useState(DEFAULT_SIZE);
   const [ratio, setRatio] = useState(() => (typeof window === "undefined" ? 1 : Math.min(2, window.devicePixelRatio || 1)));
   // Absolutni draws the stored envelope of the absolute means; a map that stores none offers only Relativni.
@@ -132,10 +183,9 @@ function PanelView({ battery, map, facts }: { battery: BatteryWithMaps; map: Obj
   // Full screen shows the stage alone (the canvas follows its new box through the resize observer).
   const [stage, setStage] = useState<HTMLDivElement | null>(null);
   const [full, setFull] = useState(false);
-  // In full screen the detail card that names the selection is out of sight, so "Top vztahy" is the
-  // map's five strongest whatever is selected; on the page, the selection's five, as the panel's.
-  const topOf = mode === "top" && full ? -1 : selected;
-  const pairs = useMemo(() => relationPairs(map, mode, topOf).map((p) => ({ ...p, k: relationStrength(p.v, norm, strongest) })), [map, mode, topOf, norm, strongest]);
+  // "Top vztahy" follows the selection, in full screen as on the page: the selected object's five
+  // strongest, or the map's five strongest with nothing selected (the panel's rule).
+  const pairs = useMemo(() => relationPairs(map, mode, selected).map((p) => ({ ...p, k: relationStrength(p.v, norm, strongest) })), [map, mode, selected, norm, strongest]);
   // The node size follows the mapped objects; an object nobody rated is left out of the map, as the panel counts it.
   const scale = nodeScale(map.object_ids.length);
   const statements = useMemo(() => mapStatements(map, {
@@ -211,6 +261,7 @@ function PanelView({ battery, map, facts }: { battery: BatteryWithMaps; map: Obj
     const onWheel = (e: WheelEvent) => {
       e.preventDefault();
       setCamera((c) => wheelCamera(c, e.deltaY));
+      startMoving(450);
     };
     node.addEventListener("wheel", onWheel, { passive: false });
     return () => node.removeEventListener("wheel", onWheel);
@@ -248,10 +299,11 @@ function PanelView({ battery, map, facts }: { battery: BatteryWithMaps; map: Obj
     const dx = x - p.lastX, dy = y - p.lastY;
     p.moved += Math.hypot(dx, dy);
     if (p.mode === "select" && p.moved >= CLICK_SLOP) p.mode = "rotate";
-    if (p.mode === "rotate") setCamera((c) => dragCamera(c, dx, dy));
+    if (p.mode === "rotate") { setCamera((c) => dragCamera(c, dx, dy)); startMoving(); }
     p.lastX = x; p.lastY = y;
   };
   const onUp = () => {
+    stopMoving();
     const p = pointer.current;
     pointer.current = null;
     if (!p || p.moved >= CLICK_SLOP) return;
@@ -259,16 +311,14 @@ function PanelView({ battery, map, facts }: { battery: BatteryWithMaps; map: Obj
     // On the respondent map a click on a dot rings that respondent and shows its profile; on the
     // object map an object or a relation line shows its detail. A click on free ground clears
     // every selection, as the panel's.
-    if (hit?.kind === "respondent") { setPerson(hit.index); setSelected(-1); setRelation(null); }
-    else if (hit?.kind === "relation" && !people) { setSelected(hit.index); setRelation([hit.index, hit.j!]); }
-    else if (hit?.kind === "object" && !people) { setSelected(hit.index); setRelation(null); }
-    else if (!hit) { setSelected(-1); setPerson(-1); setRelation(null); }
+    // The detail window opens on what was hit (the panel's `openDetail1877`) and closes with the selection.
+    if (hit) detailOpener.current = canvas.current;
+    if (hit?.kind === "respondent") { setPerson(hit.index); setSelected(-1); setRelation(null); showDetail(); }
+    else if (hit?.kind === "relation" && !people) { setSelected(hit.index); setRelation([hit.index, hit.j!]); showDetail(); }
+    else if (hit?.kind === "object" && !people) { setSelected(hit.index); setRelation(null); showDetail(); }
+    else if (!hit) { setSelected(-1); setPerson(-1); setRelation(null); setDetail(false); }
   };
 
-  const tool = (label: string, short: string, act: () => void, pressed?: boolean) => (
-    <button type="button" title={label} aria-label={label} aria-pressed={pressed} onClick={act}
-      className={`h-[29px] w-[29px] cursor-pointer rounded-[5px] border-0 text-[13px] text-[#e8edf0] hover:bg-white/[.14] focus-visible:outline focus-visible:outline-2 focus-visible:outline-[#e8edf0] ${pressed ? "bg-white/[.14]" : "bg-transparent"}`}>{short}</button>
-  );
   const fromAbove = camera.pitch < TOP_PITCH;
   const notPlaced = objectsNotPlaced(battery, map);
   // The panel's Export PNG (`socioExport66`): the canvas as drawn, here with the legend card
@@ -292,106 +342,298 @@ function PanelView({ battery, map, facts }: { battery: BatteryWithMaps; map: Obj
     link.href = out.toDataURL("image/png");
     link.click();
   };
-  // Each map opens with nothing selected: an object chosen on one is not the other's, nor a ringed respondent.
+  // Each map opens with nothing selected: an object chosen on one is not the other's, nor a ringed
+  // respondent. The respondent map has no relation display, so Nástroje closes there.
   const showMap = (next: "objects" | "respondents") => {
     if (next === view) return;
-    setView(next); setSelected(-1); setRelation(null); setPerson(-1); setHovered(-1);
+    setView(next); setSelected(-1); setRelation(null); setPerson(-1); setHovered(-1); setDetail(false);
+    if (next === "respondents" && menu === "tools") setMenu(null);
   };
-  const choose = (k: number) => { setSelected((s) => (s === k ? -1 : k)); setRelation(null); };
-  // What the toolbar has changed against the map's opening; the bar names it (SOC3).
+  // What the detail now shows comes to the front, over Správa objektů the pick was made in.
+  const showDetail = () => { setDetail(true); setTab("detail"); setFolded(false); setLegendOpen(false); };
+  // A popover or the sheet opening folds the legend back to its chip.
+  // The ⓘ box and the bar's popovers open at one place under the bar: one at a time.
+  const openMenu = (next: "settings" | "tools" | "more") => { setMenu((m) => (m === next ? null : next)); setInfo(false); setLegendOpen(false); };
+  const toggleInfo = () => { setInfo((v) => !v); setMenu(null); };
+  const openSheet = () => { setWork("objects"); setTab("objects"); setFolded(false); setLegendOpen(false); };
+  // Choosing from the list opens the object's detail; choosing it again clears it and closes the
+  // detail. Selection is the object map's: on the respondent map the list only lists (see ObjectList).
+  const choose = (k: number, from: HTMLElement) => {
+    const next = selected === k ? -1 : k;
+    setSelected(next); setRelation(null);
+    if (next >= 0) showDetail(); else setDetail(false);
+    if (next >= 0) detailOpener.current = from;
+  };
+  /** Closes the detail; with `restore`, the focus goes back to what opened it (or the canvas). */
+  const closeDetail = (restore: boolean) => {
+    setDetail(false);
+    if (!restore) return;
+    const back = detailOpener.current?.isConnected ? detailOpener.current : canvas.current;
+    back?.focus({ preventScroll: true });
+  };
+  // The Lead points at one of this map's objects while Správa objektů is closed: open it, so the
+  // object's button (its target) is there to be shown.
+  useEffect(() => {
+    const on = (e: Event) => {
+      const target = (e as CustomEvent<unknown>).detail;
+      if (nodes.some((n) => objectTarget(battery.battery_id, n.id) === target)) openSheet();
+    };
+    window.addEventListener(LEAD_REVEAL, on);
+    return () => window.removeEventListener(LEAD_REVEAL, on);
+  }, [nodes, battery.battery_id]);
+  // Nastavení mapy and Nástroje are the bar's popovers (a second press closes); Správa objektů is a tab
+  // of the side sheet, beside the detail.
+  const openWork = (next: WorkWindow) => {
+    if (next === "objects") { openSheet(); setMenu(null); return; }
+    openMenu(next);
+  };
+  const closeWork = () => { setWork(null); if (detail) setTab("detail"); };
+
+  // Esc closes in order (a popover, the sheet's open tab, the ⓘ box, the legend), and the map's keys do
+  // what its controls do. Only on this map: a key from inside it, in its full screen, or with nothing
+  // focused after it was used; never one typed in a field.
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (e.defaultPrevented || !stage || e.ctrlKey || e.metaKey || e.altKey) return;
+      const target = e.target as Element | null;
+      if (target?.closest?.("input,textarea,select,[contenteditable='true']")) return;
+      const loose = !target || target === document.body || target === document.documentElement;
+      if (!(target && stage.contains(target)) && document.fullscreenElement !== stage && !(loose && lastStage === stage)) return;
+      if (e.key === "Escape") {
+        // Escape's order: a popover, then the sheet (its open tab), then the ⓘ box, then the legend.
+        if (menu) { setMenu(null); stage.querySelector<HTMLElement>(".omx-bar")?.focus(); }
+        else if (work || detail) { if (tab === "detail" && detail) closeDetail(Boolean(stage.querySelector(".omx-sheet")?.contains(document.activeElement))); else closeWork(); }
+        else if (info) setInfo(false);
+        else if (legendOpen) setLegendOpen(false);
+        else return;
+        e.preventDefault();
+        return;
+      }
+      const k = e.key.toLowerCase();
+      if (k === "o") showMap("objects");
+      else if (k === "r" && density) showMap("respondents");
+      else if (k === "l") setLegendOpen((v) => !v);
+      else if (k === "i") toggleInfo();
+      else if (k === "f") toggleFull();
+      else if (k === "+" || k === "=") setCamera((c) => zoomCamera(c, ZOOM_IN));
+      else if (k === "-") setCamera((c) => zoomCamera(c, ZOOM_OUT));
+      else if (k === "0") setCamera(INITIAL_CAMERA);
+      else return;
+      e.preventDefault();
+    };
+    document.addEventListener("keydown", onKey);
+    return () => document.removeEventListener("keydown", onKey);
+  });
+
+  // What the bar's popovers have changed against the map's opening; its filter chip names it (SOC3).
   const changes = displayChanges({ map: people ? "respondents" : "objects", norm, relations: mode });
-  // "Zrušit filtr" removes its own bar: the keyboard goes back to the toolbar, never to the page's top.
-  const toolbar = useRef<HTMLDivElement>(null);
+  // "Zrušit filtr" removes its own chip: the keyboard goes back to the bar, never to the page's top.
+  const dock = useRef<HTMLDivElement>(null);
   const [resets, setResets] = useState(0);
-  useEffect(() => { if (resets) toolbar.current?.focus(); }, [resets]);
+  useEffect(() => { if (resets) dock.current?.focus({ preventScroll: true }); }, [resets]);
+  const resetDisplay = () => { showMap("objects"); setNorm("range"); setMode("top"); setResets((n) => n + 1); };
   // The stage fits the pane it is read in (stageHeight): the workbench's artifact pane, else the
-  // window less the page's sticky header; measured again whenever the pane or what sits over the
-  // stage moves (a resize, a wrapped toolbar, the filter bar, a strip opening over the pane).
-  const status = useRef<HTMLDivElement>(null);
+  // window less the page's sticky header. The bar, the rail and the legend chip are on the map, so
+  // nothing of the panel sits over the stage; measured again whenever the pane or the stage moves.
   const [fit, setFit] = useState<number | null>(null);
   useEffect(() => {
-    const bar = toolbar.current;
-    if (!stage || !bar || typeof ResizeObserver === "undefined") return;
+    if (!stage || typeof ResizeObserver === "undefined") return;
     const pane = stage.closest<HTMLElement>(".artbody");
     const measure = () => {
       const visible = pane ? Math.min(pane.clientHeight, window.innerHeight) : window.innerHeight - stickyTop();
-      setFit(stageHeight(visible, stage.getBoundingClientRect().top - bar.getBoundingClientRect().top, stage.clientWidth));
+      setFit(stageHeight(visible, 0, stage.clientWidth));
     };
     const observer = new ResizeObserver(measure);
-    for (const node of [stage, bar, status.current, pane]) if (node) observer.observe(node);
+    for (const node of [stage, pane]) if (node) observer.observe(node);
     window.addEventListener("resize", measure);
     return () => { observer.disconnect(); window.removeEventListener("resize", measure); };
   }, [stage]);
-  const resetDisplay = () => { showMap("objects"); setNorm("range"); setMode("top"); setResets((n) => n + 1); };
-  const detail = people
-    ? <PersonCard detail={person >= 0 ? respondentDetail(map, dots[person].id) : null} />
-    : <ObjectCard battery={battery} map={map} selected={selected} relation={relation}
-      onRelation={(j) => setRelation((r) => (isPair(r, selected, j) ? null : [selected, j]))} />;
+
+  const p = "research.exec.objectMap.panel";
+  const detailTitle = t(`${p}.${people ? "personTitle" : "objectDetailTitle"}`);
+  const credibility = map.credibility;
+  const pill = !credibility || people ? null
+    : credibility.split_half !== null
+      ? (credibility.weakly_determined ? { text: t(`${p}.pillWeak`), warn: true } : { text: tv(`${p}.pillQuality`, { percent: Math.round(100 * credibility.split_half) }), warn: false })
+      : credibility.weakly_determined ? { text: t(`${p}.pillNoStructure`), warn: true } : null;
+
+  // One bar top left, one view rail bottom right, the legend as a chip bottom left, and Správa objektů
+  // and the detail as tabs of one side sheet beside the map, so the canvas re-frames to what is left.
+  const narrow = size.width < 460;
+  const sheetOpen = work === "objects" || detail;
+  const sheetTab = tab === "detail" && detail ? "detail" : work === "objects" ? "objects" : "detail";
+  const quality = credibility?.split_half != null ? `${Math.round(100 * credibility.split_half)} %` : pill?.warn ? "!" : null;
+  const [lo, word, hi] = legendMarks(battery, nodes.map((n) => (n.primary ? n.value : null)), norm);
+  const iconBtn = (label: string, icon: ReactNode, act: () => void, pressed?: boolean, dock?: string) => (
+    <button type="button" className="omx-icon" aria-label={label} title={label} aria-pressed={pressed} onClick={act} data-dock={dock}>{icon}</button>
+  );
+  const settingsBody = (
+    <>
+      {people ? null : (
+        <div role="group" aria-label={t(`${p}.norm`)}>
+          <SectionHead label={t(`${p}.norm`)} help={t(`${p}.normHelp`)} />
+          <div className="omw-row">
+            <button type="button" className="omw-btn" aria-pressed={norm === "absolute"} disabled={!stored} title={t(`${p}.absoluteHelp`)} onClick={() => setNorm("absolute")}>{t(`${p}.absolute`)}</button>
+            <button type="button" className="omw-btn" aria-pressed={norm === "range"} title={t(`${p}.rangeHelp`)} onClick={() => setNorm("range")}>{t(`${p}.range`)}</button>
+          </div>
+        </div>
+      )}
+      <SectionHead label={t(`${p}.objectsSection`)} help={t(`${p}.objectsHelp`)} />
+      <div className="omw-row"><button type="button" className="omw-btn" onClick={() => openWork("objects")}>{t(`${p}.objectManager`)}</button></div>
+      <SectionHead label={t(`${p}.exportSection`)} help={t(`${p}.exportHelp`)} />
+      <div className="omw-row"><button type="button" className="omw-btn" title={t(`${p}.exportHelp`)} onClick={exportPng}>{t(`${p}.export`)}</button></div>
+    </>
+  );
+  const toolsBody = (
+    <div role="group" aria-label={t(`${p}.relations`)}>
+      <SectionHead label={t(`${p}.relations`)} />
+      <div className="omw-row">
+        {RELATION_MODES.map((r) => (
+          <button key={r.mode} type="button" className="omw-btn" aria-pressed={mode === r.mode} title={r.help ? t(r.help) : undefined} onClick={() => setMode(r.mode)}>{t(r.label)}</button>
+        ))}
+      </div>
+    </div>
+  );
 
   return (
     <div className="flex flex-col gap-3" data-testid="object-map-panel">
-      <div ref={toolbar} tabIndex={-1} className="flex flex-wrap items-center gap-x-5 gap-y-2 focus:outline-none" role="toolbar" aria-label={t("research.exec.objectMap.controls")}>
-        {density ? (
-          <div className="flex items-center gap-1.5" role="group" aria-label={t("research.exec.objectMap.panel.mapGroup")}>
-            <span className="text-[10px] uppercase tracking-[.06em] text-ink-muted">{t("research.exec.objectMap.panel.mapGroup")}</span>
-            <button type="button" className={SWITCH} aria-pressed={view === "respondents"} onClick={() => showMap("respondents")}>{t("research.exec.objectMap.panel.mapRespondents")}</button>
-            <button type="button" className={SWITCH} aria-pressed={view === "objects"} onClick={() => showMap("objects")}>{t("research.exec.objectMap.panel.mapObjects")}</button>
+      <div ref={setStage} className="omw omx relative isolate w-full min-w-0 overflow-hidden bg-[#07090c] [&:fullscreen]:h-screen [&:fullscreen]:w-screen"
+        data-testid="object-map-stage" data-moving={moving || undefined} style={full ? undefined : { height: fit ?? FIRST_HEIGHT }}
+        onPointerDownCapture={(e) => { lastStage = e.currentTarget; }}
+        onFocusCapture={(e) => { lastStage = e.currentTarget; }}>
+        <div className="omx-body">
+          <div className="omx-mapbox">
+            <canvas ref={canvas} tabIndex={0} className="block h-full w-full cursor-grab touch-none outline-none" role="img" data-testid="object-map-canvas"
+              data-camera={JSON.stringify(camera)} data-norm={norm} data-map={people ? "respondents" : "objects"} data-person={people && person >= 0 ? dots[person].id : ""}
+              data-relations={people ? "" : pairs.map((q) => `${nodes[q.i].id}|${nodes[q.j].id}`).join(" ")} data-selected={selected >= 0 ? nodes[selected].id : ""} data-relation={relation ? `${nodes[relation[0]].id}|${nodes[relation[1]].id}` : ""}
+              aria-label={people ? tv(`${p}.respondentCanvas`, { title: battery.title, placed: dots.length, n: nodes.length }) : tv(`${p}.canvas`, { title: battery.title, n: nodes.length })}
+              aria-describedby={people ? undefined : described}
+              onPointerDown={onDown} onPointerMove={onMove} onPointerUp={onUp} onPointerCancel={() => { pointer.current = null; stopMoving(); }} onPointerLeave={() => { if (!pointer.current) setHovered(-1); }} />
+            <p id={described} className="sr-only" aria-live="polite">{tv(`${p}.relationsShown`, { count: pairs.length })}</p>
+
+            {/* 1. One bar, one row: the map switch, Nastavení mapy, Nástroje, ⓘ with the quality, the filter chip. */}
+            <div ref={dock} tabIndex={-1} className="omx-bar omx-glass focus:outline-none" role="toolbar" aria-label={t("research.exec.objectMap.controls")}>
+              {density ? (
+                <div className="omx-seg" role="group" aria-label={t(`${p}.mapGroup`)}>
+                  <button type="button" aria-pressed={view === "objects"} title={`${t(`${p}.mapObjects`)} (O)`} onClick={() => showMap("objects")}>{t(`${p}.mapObjects`)}</button>
+                  <button type="button" aria-pressed={view === "respondents"} title={`${t(`${p}.mapRespondents`)} (R)`} onClick={() => showMap("respondents")}>{t(`${p}.mapRespondents`)}</button>
+                </div>
+              ) : null}
+              <span className="omx-sep" aria-hidden />
+              {narrow ? iconBtn(t(`${p}.more`), <Ic d="M5 12h.01M12 12h.01M19 12h.01" bold />, () => openMenu("more"), menu === "more") : (
+                <>
+                  {iconBtn(t(`${p}.settings`), <Ic d="M4 7h10M18 7h2M4 17h4M12 17h8M14 5v4M8 15v4" />, () => openWork("settings"), menu === "settings", "settings")}
+                  {people ? null : iconBtn(t(`${p}.toolsButton`), <Ic d="M5 19c4-9 10-9 14-14M5 19l3-1M5 19l1-3M19 5l-3 1M19 5l-1 3" />, () => openWork("tools"), menu === "tools", "tools")}
+                </>
+              )}
+              <button type="button" className={`omx-icon${pill?.warn ? " is-warn" : ""}`} aria-expanded={info} aria-controls={info ? `${described}-info` : undefined}
+                aria-label={pill ? tv(`${p}.infoPill`, { pill: pill.text }) : t(`${p}.info`)} title={`${t(`${p}.info`)} (I)`} onClick={toggleInfo}>
+                <Ic d="M12 8h.01M11 12h1v5h1M12 3a9 9 0 100 18 9 9 0 000-18z" />{quality ? <span className="omx-badge" aria-hidden>{quality}</span> : null}
+              </button>
+              {/* One live region, always there, so the chip's first appearance is announced too. */}
+              <span role="status" data-testid="object-map-filter-status">
+                {changes.length ? (
+                  <span className="omx-filter" data-testid="object-map-filter-bar" data-aia-filters={changes.map((c) => `${c.key}:${c.value}`).join(" ")}
+                    title={`${t(`${p}.filterTitle`)} ${changes.map((c) => t(CHANGE_WORDS[`${c.key}:${c.value}`]!)).join(", ")}. ${t(`${p}.filterUnchanged`)}`}>
+                    <b>{t(`${p}.filterChip`)}</b> {changes.map((c) => t(CHANGE_WORDS[`${c.key}:${c.value}`]!)).join(", ")}<span className="sr-only">. {t(`${p}.filterUnchanged`)}</span>
+                    <button type="button" aria-label={t(`${p}.filterReset`)} title={t(`${p}.filterReset`)} onClick={resetDisplay}>×</button>
+                  </span>
+                ) : null}
+              </span>
+            </div>
+
+            {menu === "more" ? (
+              <div className="omx-pop omx-glass-light" role="menu" aria-label={t(`${p}.more`)}>
+                <button type="button" role="menuitem" className="omx-menuitem" onClick={() => openMenu("settings")}>{t(`${p}.settings`)}</button>
+                {people ? null : <button type="button" role="menuitem" className="omx-menuitem" onClick={() => openMenu("tools")}>{t(`${p}.toolsButton`)}</button>}
+              </div>
+            ) : null}
+            {menu === "settings" ? <div className="omx-pop omx-glass-light" role="dialog" aria-label={t(`${p}.settings`)}>{settingsBody}</div> : null}
+            {menu === "tools" && !people ? <div className="omx-pop omx-glass-light" role="dialog" aria-label={t(`${p}.toolsTitle`)}>{toolsBody}</div> : null}
+            {info ? (
+              <div id={`${described}-info`} className="omx-pop omx-glass-light omx-pop--info" role="region" aria-label={t(`${p}.info`)} data-testid="object-map-info">
+                <b>{battery.title}</b>
+                {people ? <RespondentCounts map={map} segments={segments} /> : null}
+                <QualityRows map={map} />
+                <div className="omw-pop-facts">{facts}</div>
+                <Registers />
+              </div>
+            ) : null}
+
+            {/* 2. The view rail, bottom right: zoom, fit, 2D / 3D, full screen. */}
+            <div className="omx-rail omx-glass" role="group" aria-label={t(`${p}.tools`)}>
+              <button type="button" className="omx-icon" title={`${t(`${p}.zoomIn`)} (+)`} aria-label={t(`${p}.zoomIn`)} onClick={() => setCamera((c) => zoomCamera(c, ZOOM_IN))}><Ic d="M12 5v14M5 12h14" /></button>
+              <button type="button" className="omx-icon" title={`${t(`${p}.zoomOut`)} (−)`} aria-label={t(`${p}.zoomOut`)} onClick={() => setCamera((c) => zoomCamera(c, ZOOM_OUT))}><Ic d="M5 12h14" /></button>
+              <span className="omx-hair" aria-hidden />
+              <button type="button" className="omx-icon" title={`${t(`${p}.center`)} (0)`} aria-label={t(`${p}.center`)} onClick={() => setCamera(INITIAL_CAMERA)}><Ic d="M12 12h.01M12 5a7 7 0 100 14 7 7 0 000-14zM12 2v3M12 19v3M2 12h3M19 12h3" /></button>
+              <span className="omx-hair" aria-hidden />
+              <div className="omx-dim" role="group" aria-label={t(`${p}.dimension`)}>
+                <button type="button" aria-pressed={fromAbove} title={t(`${p}.top`)} aria-label={t(`${p}.top`)} onClick={() => setCamera((c) => topCamera(c, size.width, size.height))}>2D</button>
+                <button type="button" aria-pressed={!fromAbove} title={t(`${p}.three`)} aria-label={t(`${p}.three`)} onClick={() => setCamera(camera3d)}>3D</button>
+              </div>
+              <span className="omx-hair" aria-hidden />
+              <button type="button" className="omx-icon" title={`${t(`${p}.fullscreen`)} (F)`} aria-label={t(`${p}.fullscreen`)} aria-pressed={full} onClick={toggleFull}><Ic d={full ? "M9 4v5H4M15 4v5h5M9 20v-5H4M15 20v-5h5" : "M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5"} /></button>
+            </div>
+
+            {/* 3. The legend: a chip, opened on demand; closed again when a sheet or a popover opens. */}
+            {legendOpen ? (
+              <div className="omx-legendwrap">
+                {people ? <DensityLegend segments={segments} /> : <Legend battery={battery} values={nodes.map((n) => (n.primary ? n.value : null))} norm={norm} strongest={strongest} />}
+                <button type="button" className="omx-legendclose" aria-label={t(`${p}.legendClose`)} title={`${t(`${p}.legendClose`)} (L)`} onClick={() => setLegendOpen(false)}>×</button>
+              </div>
+            ) : (
+              <button type="button" className="omx-legendchip omx-glass" aria-expanded={false} title={`${t(`${p}.legend`)} (L)`} onClick={() => setLegendOpen(true)}>
+                {people && segments?.decision === "SEGMENTS"
+                  ? <><span className="omx-chiplabel">{t(`${p}.legendGroups`)}</span>{segments.segments.map((g, k) => <span key={k} className="omx-swatch" style={{ background: SEGMENT_COLOURS[k % SEGMENT_COLOURS.length] }} title={sharePercent(g.share)} />)}</>
+                  : people ? <><span className="omx-chiplabel">{t(`${p}.legendDensity`)}</span><span className="omx-ramp" aria-hidden /></>
+                    : <><span className="omx-chiplabel">{tv(`${p}.legendHeight`, { lo, hi })}</span><span className="omx-ramp" aria-hidden /><span className="sr-only">{word}</span></>}
+              </button>
+            )}
           </div>
-        ) : null}
-        {/* The respondent map's height is a density: the panel offers neither Normalizace nor Vztahy there. */}
-        {people ? null : (
-          <div className="flex items-center gap-1.5" role="group" aria-label={t("research.exec.objectMap.panel.norm")}>
-            <span className="text-[10px] uppercase tracking-[.06em] text-ink-muted">{t("research.exec.objectMap.panel.norm")}</span>
-            <button type="button" className={SWITCH} aria-pressed={norm === "absolute"} disabled={!stored} title={t("research.exec.objectMap.panel.absoluteHelp")} onClick={() => setNorm("absolute")}>{t("research.exec.objectMap.panel.absolute")}</button>
-            <button type="button" className={SWITCH} aria-pressed={norm === "range"} title={t("research.exec.objectMap.panel.rangeHelp")} onClick={() => setNorm("range")}>{t("research.exec.objectMap.panel.range")}</button>
-          </div>
-        )}
-        {people ? null : (
-          <div className="flex items-center gap-1.5" role="group" aria-label={t("research.exec.objectMap.panel.relations")}>
-            <span className="text-[10px] uppercase tracking-[.06em] text-ink-muted">{t("research.exec.objectMap.panel.relations")}</span>
-            {RELATION_MODES.map((r) => (
-              <button key={r.mode} type="button" className={SWITCH} aria-pressed={mode === r.mode} title={r.help ? t(r.help) : undefined} onClick={() => setMode(r.mode)}>{t(r.label)}</button>
-            ))}
-          </div>
-        )}
-        <button type="button" className={SWITCH} title={t("research.exec.objectMap.panel.exportHelp")} onClick={exportPng}>{t("research.exec.objectMap.panel.export")}</button>
-      </div>
-      {/* One live region, always there, so the bar's first appearance is announced too. */}
-      <div ref={status} role="status" data-testid="object-map-filter-status">
-        {changes.length ? <FilterBar changes={changes} onReset={resetDisplay} /> : null}
-      </div>
-      <div className="flex flex-wrap items-start gap-4">
-        <div ref={setStage} className="relative min-w-0 flex-[999_1_560px] overflow-hidden rounded-[10px] bg-[#07090c] [min-width:min(100%,560px)] [&:fullscreen]:h-screen [&:fullscreen]:w-screen [&:fullscreen]:rounded-none" data-testid="object-map-stage"
-          style={full ? undefined : { height: fit ?? FIRST_HEIGHT }}>
-          <canvas ref={canvas} className="block h-full w-full cursor-grab touch-none" role="img" data-testid="object-map-canvas"
-            data-camera={JSON.stringify(camera)} data-norm={norm} data-map={people ? "respondents" : "objects"} data-person={people && person >= 0 ? dots[person].id : ""}
-            data-relations={people ? "" : pairs.map((p) => `${nodes[p.i].id}|${nodes[p.j].id}`).join(" ")} data-selected={selected >= 0 ? nodes[selected].id : ""} data-relation={relation ? `${nodes[relation[0]].id}|${nodes[relation[1]].id}` : ""}
-            aria-label={people ? tv("research.exec.objectMap.panel.respondentCanvas", { title: battery.title, placed: dots.length, n: nodes.length }) : tv("research.exec.objectMap.panel.canvas", { title: battery.title, n: nodes.length })}
-            aria-describedby={people ? undefined : described}
-            onPointerDown={onDown} onPointerMove={onMove} onPointerUp={onUp} onPointerCancel={() => { pointer.current = null; }} onPointerLeave={() => { if (!pointer.current) setHovered(-1); }} />
-          <p id={described} className="sr-only" aria-live="polite">{tv("research.exec.objectMap.panel.relationsShown", { count: pairs.length })}</p>
-          <div role="group" aria-label={t("research.exec.objectMap.panel.tools")}
-            className="absolute right-[13px] top-[13px] z-[5] flex flex-col gap-[3px] rounded-[7px] border border-white/[.14] bg-[rgba(8,11,15,.7)] p-1 backdrop-blur-[8px]">
-            {tool(t("research.exec.objectMap.panel.zoomIn"), "＋", () => setCamera((c) => zoomCamera(c, ZOOM_IN)))}
-            {tool(t("research.exec.objectMap.panel.zoomOut"), "−", () => setCamera((c) => zoomCamera(c, ZOOM_OUT)))}
-            {tool(t("research.exec.objectMap.panel.top"), "2D", () => setCamera((c) => topCamera(c, size.width, size.height)), fromAbove)}
-            {tool(t("research.exec.objectMap.panel.three"), "3D", () => setCamera(camera3d), !fromAbove)}
-            {tool(t("research.exec.objectMap.panel.center"), "◎", () => setCamera(INITIAL_CAMERA))}
-            {tool(t("research.exec.objectMap.panel.fullscreen"), "⛶", toggleFull, full)}
-          </div>
-          {people ? <DensityLegend segments={segments} /> : <Legend battery={battery} values={nodes.map((n) => (n.primary ? n.value : null))} norm={norm} strongest={strongest} />}
+
+          {/* 4. Správa objektů and the detail: one side sheet with two tabs, foldable to its edge. */}
+          {sheetOpen ? (
+            <div role="group" className={`omx-sheet${folded ? " is-folded" : ""}`} aria-label={sheetTab === "detail" ? detailTitle : t(`${p}.objectManager`)} data-testid="object-map-sheet">
+              {folded ? (
+                <button type="button" className="omx-handle" aria-label={t(`${p}.sheetUnfold`)} title={t(`${p}.sheetUnfold`)} onClick={() => setFolded(false)}>‹</button>
+              ) : (
+                <>
+                  <div className="omx-sheethead">
+                    <div className="omx-tabs" role="tablist" aria-label={t(`${p}.sheet`)}>
+                      <button type="button" role="tab" id={`${described}-tab-objects`} aria-controls={`${described}-sheet`} aria-selected={sheetTab === "objects"} onClick={() => { setWork("objects"); setTab("objects"); }}>{t(`${p}.sheetObjects`)}</button>
+                      <button type="button" role="tab" id={`${described}-tab-detail`} aria-controls={`${described}-sheet`} aria-selected={sheetTab === "detail"} disabled={!detail} onClick={() => setTab("detail")}>{t(people ? `${p}.sheetRespondent` : `${p}.sheetDetail`)}</button>
+                    </div>
+                    <button type="button" className="omx-icon omx-icon--sm" aria-label={t(`${p}.sheetFold`)} title={t(`${p}.sheetFold`)} onClick={() => setFolded(true)}>›</button>
+                    <button type="button" className="omx-icon omx-icon--sm" aria-label={tv(`${p}.closeWindow`, { title: sheetTab === "detail" ? detailTitle : t(`${p}.objectManager`) })} title={`${t(`${p}.sheetClose`)} (Esc)`}
+                      onClick={() => { if (sheetTab === "detail") { closeDetail(true); if (work !== "objects") setTab("objects"); } else closeWork(); }}>×</button>
+                  </div>
+                  <div className="omx-sheetbody" id={`${described}-sheet`} role="tabpanel" aria-labelledby={`${described}-tab-${sheetTab}`} data-testid={sheetTab === "detail" ? "object-map-detail" : undefined}>
+                    {sheetTab === "detail" ? <h3 className="omx-sheettitle">{detailTitle}</h3> : null}
+                    {sheetTab === "objects" ? (
+                      <ObjectList battery={battery} selected={selected} onChoose={people ? undefined : choose} onHover={setHovered} notPlaced={notPlaced}
+                        items={nodes.map((n, k) => ({ id: n.id, label: n.label, value: n.value, colour: n.primary ? color66(tones[k]) : SECONDARY }))} />
+                    ) : people
+                      ? <PersonCard detail={person >= 0 ? respondentDetail(map, dots[person].id) : null} />
+                      : <ObjectCard battery={battery} map={map} selected={selected} relation={relation}
+                        onRelation={(j) => setRelation((r) => (isPair(r, selected, j) ? null : [selected, j]))} />}
+                  </div>
+                </>
+              )}
+            </div>
+          ) : null}
         </div>
-        {/* Selection is the object map's: on the respondent map the list only lists (a click there showed nothing). */}
-        <SideColumn battery={battery} facts={facts} selected={selected} onChoose={people ? undefined : choose} onHover={setHovered} notPlaced={notPlaced} detail={detail}
-          counts={people ? <RespondentCounts map={map} segments={segments} /> : null}
-          items={nodes.map((n, k) => ({ id: n.id, label: n.label, value: n.value, colour: n.primary ? color66(tones[k]) : SECONDARY }))} />
       </div>
     </div>
   );
 }
 
+/** A line icon on a 24 px grid. */
+function Ic({ d, bold = false }: { d: string; bold?: boolean }) {
+  return <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={bold ? 3 : 1.8} strokeLinecap="round" strokeLinejoin="round" aria-hidden><path d={d} /></svg>;
+}
+
 /** A number as the panel's `fmt66` prints it (two decimals below 10, one below 100), in Czech. */
-export function panelNumber(v: number | null): string {
+function panelNumber(v: number | null): string {
   if (v === null || !Number.isFinite(v)) return "—";
   return Math.abs(v) >= 100 ? num(v, 0) : num(v, Math.abs(v) < 10 ? 2 : 1);
 }
@@ -414,7 +656,7 @@ function Legend({ battery, values: stored, norm, strongest }: { battery: Battery
   const relative = norm !== "absolute" && strongest > 1e-6;
   const row = (k: string, v: string) => <div><span className="font-semibold">{t(`research.exec.objectMap.panel.${k}`)}</span> {t(`research.exec.objectMap.panel.${v}`)}</div>;
   return (
-    <div className="absolute bottom-[14px] left-[17px] z-[5] w-[260px] max-w-[calc(100%-34px)] rounded-[8px] border border-white/[.13] bg-[rgba(8,11,15,.75)] px-3 py-2.5 text-white backdrop-blur-[8px]" data-testid="object-map-legend">
+    <div className="omw-legend absolute bottom-[14px] left-[17px] z-[5] w-[260px] max-w-[calc(100%-34px)] rounded-[8px] border border-white/[.13] bg-[rgba(8,11,15,.75)] px-3 py-2.5 text-white backdrop-blur-[8px]" data-testid="object-map-legend">
       <b className="text-[10.5px] uppercase tracking-[.05em] text-white/70">
         {t("research.exec.objectMap.panel.legendTitle")}{" "}
         <details className="inline">
@@ -471,7 +713,7 @@ function DensityLegend({ segments }: { segments: SegmentLegend | null }) {
   const [open, setOpen] = useState(false);
   const row = (k: string, v: string) => <div><span className="font-semibold">{t(`research.exec.objectMap.panel.${k}`)}</span> {t(`research.exec.objectMap.panel.${v}`)}</div>;
   return (
-    <div className="absolute bottom-[14px] left-[17px] z-[5] w-[260px] max-w-[calc(100%-34px)] rounded-[8px] border border-white/[.13] bg-[rgba(8,11,15,.75)] px-3 py-2.5 text-white backdrop-blur-[8px]" data-testid="object-map-legend">
+    <div className="omw-legend absolute bottom-[14px] left-[17px] z-[5] w-[260px] max-w-[calc(100%-34px)] rounded-[8px] border border-white/[.13] bg-[rgba(8,11,15,.75)] px-3 py-2.5 text-white backdrop-blur-[8px]" data-testid="object-map-legend">
       <b className="text-[10.5px] uppercase tracking-[.05em] text-white/70">
         {t("research.exec.objectMap.panel.legendTitleRespondents")}{" "}
         <details className="inline">
@@ -516,7 +758,7 @@ export function sharePercent(x: number): string {
   return `${Math.round(100 * Number(x.toFixed(4)))} %`;
 }
 
-export function segmentLines(legend: SegmentLegend): SegmentLines {
+function segmentLines(legend: SegmentLegend): SegmentLines {
   const pct = sharePercent;
   const named = (g: SegmentLegend["segments"][number]) =>
     (g.likes.length ? ` · ${tv("research.exec.objectMap.panel.segmentLikes", { labels: g.likes.join(", ") })}` : "")
@@ -557,7 +799,7 @@ function SegmentNote({ lines }: { lines: SegmentLines }) {
 
 /** The map info's „Segmenty“ row: how many, their shares and overlap; the borderline hint; or why none.
  *  The thresholds it quotes are the declared ones. */
-export function segmentsRow(legend: SegmentLegend, map: ObjectMapArtifact): { value: string; help: string } {
+function segmentsRow(legend: SegmentLegend, map: ObjectMapArtifact): { value: string; help: string } {
   const rules = map.spec.segments ?? {};
   const pct = sharePercent;
   const shares = legend.segments.map((g) => pct(g.share)).join(" / ");
@@ -592,8 +834,7 @@ function RespondentCounts({ map, segments }: { map: ObjectMapArtifact; segments:
     <div title={help}><span className="font-semibold">{t(`research.exec.objectMap.panel.${key}`)}:</span> {value}</div>
   );
   return (
-    <div className="flex flex-col gap-1 rounded-[10px] border border-border bg-surface-raised p-4 text-xs" data-testid="object-map-respondent-counts">
-      <h4 className="font-semibold">{t("research.exec.objectMap.panel.mapRespondents")}</h4>
+    <div data-testid="object-map-respondent-counts">
       {/* Only a map whose respondents can be placed is "indicative"; otherwise the map's own note says nobody is. */}
       {note?.placeable ? row("countIndicative", tv("research.exec.objectMap.panel.countIndicativeValue", { n: note.objects, min: note.minObjects }), t("research.exec.objectMap.panel.countIndicativeHelp")) : null}
       {row("countPlaced", tv("research.exec.objectMap.panel.countPlacedValue", { share: share(c.PLACED), n: count(c.PLACED) }), t("research.exec.objectMap.panel.countPlacedHelp"))}
@@ -604,14 +845,35 @@ function RespondentCounts({ map, segments }: { map: ObjectMapArtifact; segments:
   );
 }
 
+/** The map's own statements in the ⓘ box (the panel's `aiaMapLines1910`), from the stored
+ *  credibility and sparse-design flag: the split-half quality and a sparse design. */
+function QualityRows({ map }: { map: ObjectMapArtifact }) {
+  const p = "research.exec.objectMap.panel";
+  const c = map.credibility;
+  const row = (key: string, value: string, help: string) => (
+    <div title={help}><span className="font-semibold">{t(`${p}.${key}`)}:</span> {value}</div>
+  );
+  let quality: ReactNode = null;
+  if (c && c.split_half !== null) {
+    const percent = Math.round(100 * c.split_half);
+    quality = row("quality", tv(`${p}.${c.weakly_determined ? "qualityWeakValue" : "qualityValue"}`, { percent }), tv(`${p}.qualityHelp`, { threshold: Math.round(100 * c.threshold) }));
+  } else if (c?.weakly_determined) quality = row("quality", t(`${p}.qualityNoneValue`), t(`${p}.qualityNoneHelp`));
+  return (
+    <div data-testid="object-map-quality">
+      {quality}
+      {map.sparse_design?.flag ? row("sparse", t(`${p}.sparseValue`), t(`${p}.sparseHelp`)) : null}
+    </div>
+  );
+}
+
 /** A label with its meaning behind an ⓘ, as the panel's detail labels (`mi1910`). */
 function Tip({ label, help }: { label: string; help: string }) {
   return (
     <span>
       {label}{" "}
       <details className="inline">
-        <summary className="inline cursor-pointer list-none opacity-60 [&::-webkit-details-marker]:hidden" title={t("research.exec.objectMap.panel.infoTip")} aria-label={t("research.exec.objectMap.panel.infoTip")}>ⓘ</summary>
-        <span className="mt-1 block text-[11px] font-normal leading-[1.4]">{help}</span>
+        <summary className="inline cursor-pointer list-none font-normal opacity-60 [&::-webkit-details-marker]:hidden" title={t("research.exec.objectMap.panel.infoTip")} aria-label={t("research.exec.objectMap.panel.infoTip")}>ⓘ</summary>
+        <span className="mt-1 block text-[11px] font-normal normal-case leading-[1.4] tracking-normal">{help}</span>
       </details>
     </span>
   );
@@ -619,24 +881,14 @@ function Tip({ label, help }: { label: string; help: string }) {
 
 function Fact({ label, help, value, note }: { label: string; help?: string; value: string; note?: string }) {
   return (
-    <div className="rounded-[6px] border border-border bg-surface p-[7px]">
-      <small className="mb-0.5 block text-[9.5px] text-ink-muted">{help ? <Tip label={label} help={help} /> : label}</small>
-      <strong className="text-[15px] tabular-nums">{value}</strong>
-      {note ? <small className="block text-[9.5px] text-ink-muted">{note}</small> : null}
+    <div className="omw-fact">
+      <small>{help ? <Tip label={label} help={help} /> : label}</small>
+      <strong>{value}</strong>
+      {note ? <small>{note}</small> : null}
     </div>
   );
 }
 
-function DetailCard({ title, children }: { title: string; children: ReactNode }) {
-  return (
-    <div className="flex flex-col gap-2 rounded-[10px] border border-border bg-surface-raised p-4 text-xs" data-testid="object-map-detail">
-      <h4 className="font-semibold">{title}</h4>
-      {children}
-    </div>
-  );
-}
-
-const DETAIL_HEAD = "mt-1 text-xs font-semibold";
 const signed = (v: number) => (v >= 0 ? "+" : "") + num(v, 2);
 /** Whether a relation is the pair of i and j, whichever end it names first (the canvas names the line's own). */
 const isPair = (r: [number, number] | null, i: number, j: number) => !!r && ((r[0] === i && r[1] === j) || (r[0] === j && r[1] === i));
@@ -645,46 +897,43 @@ const isPair = (r: [number, number] | null, i: number, j: number) => !!r && ((r[
  *  and its strongest reliable relations, all as the map stores them. */
 function ObjectCard({ battery, map, selected, relation, onRelation }: { battery: BatteryWithMaps; map: ObjectMapArtifact; selected: number; relation: [number, number] | null; onRelation: (j: number) => void }) {
   const p = "research.exec.objectMap.panel";
-  if (selected < 0) {
-    return <DetailCard title={t(`${p}.objectDetailTitle`)}><p className="py-4 text-center text-ink-muted">{t(`${p}.objectDetailEmpty`)}</p></DetailCard>;
-  }
+  if (selected < 0) return <p className="omw-tip py-4 text-center">{t(`${p}.objectDetailEmpty`)}</p>;
   const o = objectDetail(battery, map, selected);
   // The Lead's name for the card's relation (lib/artifacts/sociomap.ts); the object's one element is its list button.
   const pair = relation ? pairTarget(battery.battery_id, map.object_ids[relation[0]], map.object_ids[relation[1]]) : null;
   return (
-    <DetailCard title={t(`${p}.objectDetailTitle`)}>
+    <>
       {/* Announced when a relation opens from the list below: it appears above the button pressed. */}
       <div aria-live="polite">
         {relation ? <div data-aia={pair ?? undefined}><RelationBlock detail={relationDetail(battery, map, relation[0], relation[1])} /></div> : null}
       </div>
-      <b className="text-sm" data-testid="object-map-detail-label">{o.label}</b>
-      {o.primary ? null : <p className="text-[10.5px] text-ink-muted">{t(`${p}.detailSecondary`)}</p>}
-      <div className="grid grid-cols-2 gap-1.5">
+      <b className="omw-detail-label" data-testid="object-map-detail-label">{o.label}</b>
+      {o.primary ? null : <p className="omw-tip mb-2">{t(`${p}.detailSecondary`)}</p>}
+      <div className="omw-facts">
         <Fact label={t(`${p}.detailHeight`)} help={t(`${p}.detailHeightHelp`)} value={panelNumber(o.height === null ? null : originalRating(o.height, battery.rating_scale) ?? o.height)} />
         <Fact label={t(`${p}.detailConnectedness`)} help={t(`${p}.detailConnectednessHelp`)} value={panelNumber(o.connectedness)} />
         {o.alignment !== null ? <Fact label={t(`${p}.detailAlignment`)} help={t(`${p}.detailAlignmentHelp`)} value={(o.alignment >= 0 ? "+" : "") + panelNumber(o.alignment)} /> : null}
       </div>
-      <h5 className={DETAIL_HEAD}><Tip label={t(`${p}.detailRelations`)} help={t(`${p}.detailRelationsHelp`)} /></h5>
+      <h3 className="omw-h3 !mt-[15px]"><Tip label={t(`${p}.detailRelations`)} help={t(`${p}.detailRelationsHelp`)} /></h3>
       {o.relations.length ? (
-        <div className="grid gap-[3px]" data-testid="object-map-detail-relations">
+        <div data-testid="object-map-detail-relations">
           {/* Each relation opens the pair's detail, as a click on its line does: the canvas is no keyboard's. */}
           {o.relations.map((x) => (
-            <button key={x.id} type="button" aria-pressed={isPair(relation, selected, x.j)} onClick={() => onRelation(x.j)}
-              className="flex w-full justify-between gap-2.5 border-b border-border py-[5px] text-left text-[10.5px] hover:bg-surface focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus-ring aria-pressed:font-semibold">
-              <span className="min-w-0 text-ink-muted">{x.label}</span>{" "}<b className="tabular-nums">{signed(x.r)}</b>
+            <button key={x.id} type="button" className="omw-answer" aria-pressed={isPair(relation, selected, x.j)} onClick={() => onRelation(x.j)}>
+              <span>{x.label}</span>{" "}<b>{signed(x.r)}</b>
               <span className="sr-only">{tv(`${p}.relationShow`, { a: o.label, b: x.label })}</span>
             </button>
           ))}
         </div>
-      ) : <p className="text-[10.5px] text-ink-muted">{t(`${p}.detailNoRelation`)}</p>}
+      ) : <p className="omw-tip">{t(`${p}.detailNoRelation`)}</p>}
       {o.primary ? null : (
         <>
-          <h5 className={DETAIL_HEAD}>{t(`${p}.detailPlacement`)}</h5>
+          <h3 className="omw-h3 !mt-[15px]">{t(`${p}.detailPlacement`)}</h3>
           <Fact label={t(`${p}.detailBasis`)} value={o.basis === null ? t(`${p}.detailBasisNone`) : num(o.basis, 2)} />
-          <p className="text-[10.5px] text-ink-muted">{t(`${p}.detailBasisNote`)}</p>
+          <p className="omw-tip mt-2">{t(`${p}.detailBasisNote`)}</p>
         </>
       )}
-    </DetailCard>
+    </>
   );
 }
 
@@ -702,16 +951,16 @@ function RelationBlock({ detail: d }: { detail: ReturnType<typeof relationDetail
       : <><b>{t(`${p}.relationWeak`)}</b> {t(`${p}.${d.noiseRule ? "relationWeakNoiseText" : "relationWeakText"}`)}</>;
   }
   return (
-    <div className="flex flex-col gap-1.5 rounded-[7px] border border-border bg-surface p-2" data-testid="object-map-detail-relation">
-      <h5 className="text-xs font-semibold">{t(`${p}.relationTitle`)}</h5>
+    <div className="omw-rel" data-testid="object-map-detail-relation">
+      <h3 className="omw-h3">{t(`${p}.relationTitle`)}</h3>
       <b>{d.a} – {d.b}</b>
       {d.r !== null ? (
-        <div className="grid grid-cols-2 gap-1.5">
+        <div className="omw-facts">
           <Fact label={t(`${p}.relationR`)} help={t(`${p}.relationRHelp`)} value={signed(d.r)} note={d.interval ? tv(`${p}.relationInterval`, { lo: signed(d.interval[0]), hi: signed(d.interval[1]) }) : t(`${p}.relationNoInterval`)} />
           <Fact label={t(`${p}.relationN`)} help={tv(`${p}.relationNHelp`, { total: d.respondents })} value={d.n === null ? "—" : String(d.n)} />
         </div>
       ) : null}
-      <p className="text-[10.5px] leading-[1.45] text-ink-muted" data-testid="object-map-detail-verdict">{verdict}</p>
+      <p className="omw-tip" data-testid="object-map-detail-verdict">{verdict}</p>
     </div>
   );
 }
@@ -720,21 +969,19 @@ function RelationBlock({ detail: d }: { detail: ReturnType<typeof relationDetail
  *  the map fits them, and their taste segment. The stored map holds no profile and no answers. */
 function PersonCard({ detail: d }: { detail: ReturnType<typeof respondentDetail> }) {
   const p = "research.exec.objectMap.panel";
-  if (!d) return <DetailCard title={t(`${p}.personTitle`)}><p className="py-4 text-center text-ink-muted">{t(`${p}.personEmpty`)}</p></DetailCard>;
+  if (!d) return <p className="omw-tip py-4 text-center">{t(`${p}.personEmpty`)}</p>;
   return (
-    <DetailCard title={t(`${p}.personTitle`)}>
-      <div className="flex items-center gap-[9px]">
-        <div aria-hidden className="grid h-[46px] w-[46px] flex-none place-items-center rounded-full bg-[#1d2b33] font-extrabold text-white">{d.id.slice(-2)}</div>
-        <div>
-          <b data-testid="object-map-detail-person">{d.id}</b>
-          <p className="text-[10.5px] leading-[1.45] text-ink-muted">
-            {t(`${p}.personPosition`)}
-            {d.explained !== null ? <><br />{tv(`${p}.personExplained`, { pct: d.explained })}{d.faded ? ` · ${t(`${p}.personFaded`)}` : ""}</> : null}
-            {d.segment !== null ? <><br />{d.segment >= 0 ? tv(`${p}.personSegment`, { n: d.segment + 1 }) : t(`${p}.personNoSegment`)}</> : null}
-          </p>
-        </div>
+    <div className="flex items-center gap-[9px]">
+      <div aria-hidden className="grid h-[46px] w-[46px] flex-none place-items-center rounded-full bg-[#1d2b33] font-extrabold text-white">{d.id.slice(-2)}</div>
+      <div>
+        <b data-testid="object-map-detail-person">{d.id}</b>
+        <p className="omw-tip">
+          {t(`${p}.personPosition`)}
+          {d.explained !== null ? <><br />{tv(`${p}.personExplained`, { pct: d.explained })}{d.faded ? ` · ${t(`${p}.personFaded`)}` : ""}</> : null}
+          {d.segment !== null ? <><br />{d.segment >= 0 ? tv(`${p}.personSegment`, { n: d.segment + 1 }) : t(`${p}.personNoSegment`)}</> : null}
+        </p>
       </div>
-    </DetailCard>
+    </div>
   );
 }
 
@@ -745,34 +992,20 @@ const CHANGE_WORDS: Record<string, string> = {
   "relations:all": "research.exec.objectMap.panel.filterRelationsAll",
 };
 
-/** The display filter bar (the V2 prototype's `filterbar`): what the toolbar changed, and that the
- *  computation did not change; one click back to how the map opens. */
-function FilterBar({ changes, onReset }: { changes: DisplayChange[]; onReset: () => void }) {
-  const p = "research.exec.objectMap.panel";
-  return (
-    <div data-testid="object-map-filter-bar" data-aia-filters={changes.map((c) => `${c.key}:${c.value}`).join(" ")}
-      className="flex flex-wrap items-baseline gap-x-2 gap-y-1 rounded-sm border border-border bg-surface-raised px-3 py-2 text-xs">
-      <b>{t(`${p}.filterTitle`)}</b>{" "}
-      <span>{changes.map((c) => t(CHANGE_WORDS[`${c.key}:${c.value}`]!)).join(", ")}.</span>{" "}
-      <span className="text-ink-muted">{t(`${p}.filterUnchanged`)}</span>{" "}
-      <button type="button" className="text-signal underline underline-offset-2 hover:no-underline focus-visible:outline-2 focus-visible:outline-focus-ring" onClick={onReset}>{t(`${p}.filterReset`)}</button>
-    </div>
-  );
-}
 
-/** The four kinds of content around a map (the V2 prototype's "Co je co"): the frozen result, the
- *  display, a labelled interpretation, external context. Static words: what each may change. */
+/** The four kinds of content around a map (the V2 prototype's "Co je co"), in the map's ⓘ box: the frozen
+ *  result, the display, a labelled interpretation, external context. Static words: what each may change. */
 function Registers() {
   const p = "research.exec.objectMap.panel";
   const name: Record<MapRegister, string> = { computed: "Computed", display: "Display", interpretation: "Interpretation", external: "External" };
   return (
-    <div className="flex flex-col gap-1.5 rounded-[10px] border border-border bg-surface-raised p-4 text-xs" data-testid="object-map-registers">
-      <h4 className="font-semibold">{t(`${p}.registersTitle`)}</h4>
-      <dl className="grid gap-1">
+    <div className="omw-pop-facts" data-testid="object-map-registers">
+      <b>{t(`${p}.registersTitle`)}</b>
+      <dl className="grid gap-0.5">
         {MAP_REGISTERS.map((r) => (
           <div key={r} className="flex flex-wrap gap-x-1.5" data-register={r}>
             <dt className="font-semibold">{t(`${p}.register${name[r]}`)}</dt>
-            <dd className="text-ink-muted">{t(`${p}.register${name[r]}Text`)}</dd>
+            <dd>{t(`${p}.register${name[r]}Text`)}</dd>
           </div>
         ))}
       </dl>

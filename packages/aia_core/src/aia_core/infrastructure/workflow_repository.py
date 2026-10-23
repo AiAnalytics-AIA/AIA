@@ -2035,6 +2035,11 @@ class WorkflowRepository:
             "attempt_number": attempt.attempt_number,
             "consumes_attempt": decision.consumes_attempt,
         }
+        # The executor's own reason, which a waiting reason as broad as ai_runtime_unavailable hides
+        # (run-qc-and-checkpoint RQC7a): the feed names why the step stopped, for every executor.
+        error_reason = (attempt.error_json or {}).get("reason")
+        if isinstance(error_reason, str) and error_reason and error_reason != decision.reason:
+            payload["error_reason"] = error_reason
         if exposure:
             payload["conservative_cost_exposure_usd"] = exposure
         if decision.retry_after:

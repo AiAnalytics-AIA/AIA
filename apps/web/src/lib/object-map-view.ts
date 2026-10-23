@@ -176,7 +176,7 @@ export function terraceBand(height: number): number {
 
 /** How high the lowest terrace is drawn: a thin sheet, so a hill never sits on the ground that
  * means "bez dat", yet the lowest band does not read as a slab (the approved design's base). */
-export const TERRACE_BASE = 0.03;
+const TERRACE_BASE = 0.03;
 
 /** The display elevation of a stored height: the top of its terrace, `TERRACE_BASE` plus a
  * tenth per band above the lowest. Presentation only; labels print the stored number. */
@@ -436,11 +436,11 @@ export function pairDetail(battery: BatteryWithMaps, map: ObjectMapArtifact, a: 
 }
 
 /** An unordered pair's key, the same for (a, b) and (b, a). */
-export function pairKey(a: string, b: string): string {
+function pairKey(a: string, b: string): string {
   return [a, b].sort().join("|");
 }
 
-export function linkKey(link: MapLink): string {
+function linkKey(link: MapLink): string {
   return pairKey(link.a, link.b);
 }
 

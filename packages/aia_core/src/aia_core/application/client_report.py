@@ -74,7 +74,8 @@ CLIENT_REPORT_ARTIFACT_TYPE = "research_client_docx"
 # (report-delivery RD5a, part 2).
 CLIENT_REPORT_DOCUMENT_ARTIFACT_TYPE = "research_client_document"
 # -5: a ledger number in prose, a table or a caption is a locked, tagged control (RPT8a, part 1).
-CLIENT_REPORT_CONTRACT = "aia-client-report-5"
+# -6: KPI tiles, figures, the evidence appendix and suppressed counts locked too (RPT8a, part 2).
+CLIENT_REPORT_CONTRACT = "aia-client-report-6"
 CLIENT_REPORT_STAGE = "REPORT"
 
 

@@ -9,6 +9,11 @@ chunks:
   - "[ ] SOC6. Segment maps, filters and the respondent drill-down hosted here"
   - "[ ] SOC7. The map snapshot's approval slot"
   - "[ ] SOC8. Journey: Sociomapa at 1440, 1100, 768 and 390 px on a fictional run, zero paid jobs"
+  - "[x] SOC9. The workbench's Sociomapa stage is the map: no Výsledky tabs, no guide, no other results card; the map first at the pane's width"
+  - "[x] SOC10. Below the map, in order: what it shows (tiles), the strongest relations, the objects, respondents and segments, its reliability, how it was computed (folded)"
+  - "[x] SOC11. Plain Czech on the stage: no artifact, run, method or spec id outside Technické údaje"
+  - "[x] SOC12. No amber notice frame on the stage: amber means only a person is waited on"
+  - "[x] SOC13. The map's overlays: one bar with popovers, a view rail bottom right, the legend as a chip, the side sheet beside the map, fading while the map moves, keys"
 ---
 # Artifact: Sociomapa (Sociomap)
 
@@ -169,18 +174,48 @@ method owner).
 - Zero paid jobs. 768 and 390 px depend on `research-lead-workbench#26b`-`#26d`.
 - Delivered so far: `tools/ui_workbench/sociomap_journey.mjs`, a journey of its own:
   `sociomapping_journey.mjs` covers the experimental Sociomapping document, not this stage.
-  `--prepare` puts a version of the `aia-sociomap-5` preset in force in the local workbench only, and
-  runs one fictional run, after an older method's run when there is none. The journey checks:
+  `--prepare` runs one fictional `-5` run in the local workbench only (putting a version of the
+  `aia-sociomap-5` preset in force while `-5` is not what a new run pins), and an older method's run
+  first only while an older method is still in force. The journey checks:
   - the `-5` map at 1440, 1100, 768 and 390 px with no page overflow;
   - each listed object's Lead name, once, on its button;
   - the selection reset between Objekty and Respondenti, and full screen's five strongest (#562);
   - the filter bar, "Zrušit filtr" and the four registers (SOC3);
-  - every pressed control's colour apart from its background, on the `-5` map and on an older
-    method's run. It fails on the stylesheet from before #591, on the `-3` map's pressed "Shora".
-    Once #598 lands, the older run's check is its old-method notice instead;
+  - every pressed control's colour apart from its background on the `-5` map (#591);
+  - an older method's run reads "Mapa ze starší metody; spusťte nový běh" and draws no map, at 1440,
+    1100, 768 and 390 px (#598). No new run can pin an older method, so on a workbench without one
+    from before, the `-5` run is read as one: its Sociomap artifact answered in the browser with no
+    map in it (the "none" case of `olderMethodOnly`; a battery holding a `-3` map is
+    `object-map-view.test.ts`'s). Before this, the check took either a notice or a drawn older map,
+    so an older map drawn again would have passed it. Fails with `olderMethodOnly` made false;
   - no page error, no write but the stage opened, zero paid jobs.
 - Still to come: `select_pair` by the scripted Lead (once `select` is live, research-lead-workbench
   14b) and the inspector's pair detail (SOC4).
+
+**SOC9-SOC13. The stage is the map** (Nigel, 2026-10-22, from the artifact
+<https://claude.ai/artifact/QWDidu8ztrcuiBNL5Sa4Vy> v4, "Návrh: zaměřeno na mapu" with "Překryvy: nové").
+- SOC9: on the workbench's Sociomapa stage (`#maps`, `useOnSociomapStage`) `RunResults` renders
+  `SociomapStage` instead of `ResultsWorkspace`: the run's notices (origin, a moved design), then each set's
+  map at the pane's width, then `MapExplained`, then the run's experimental Sociomapping with its review
+  (`#res-sociomapping` opens the stage too). The stage follows navigation (hashchange, popstate), never a
+  tab of Výsledky that rewrites the hash in place. Výsledky keeps its tabs; the classic layout keeps
+  Sociomapy as a tab. An older method's set says "Mapa ze starší metody; spusťte nový
+  běh" and draws nothing; a map that is not the signed-off method's is drawn as Výsledky draws it.
+- SOC10: `MapExplained` over `lib/map-explained.ts` (`explainMap`, pure): Co mapa ukazuje (sentence, approval
+  badge, four tiles), Nejsilnější vztahy (six, signed bars), Objekty (rating and connectedness bars),
+  Respondenti a segmenty (placement and segment bars), Jak spolehlivá je mapa (three gauges, one sentence
+  each), Jak byla spočtena (folded, Technické údaje last). Every number is the stored map's.
+- SOC11: the main view prints no id; the ⓘ box carries one plain sentence on the stage.
+- SOC12: the stage has no `Card tone="notice"`; the result cards on Výsledky keep theirs (design system v2).
+- SOC13: `ObjectMapPanel`'s overlays: one bar top left (Objekty / Respondenti, Nastavení mapy and Nástroje
+  as popovers, ⓘ with the map's quality, the filter as a chip in an always-present live region), one view
+  rail bottom right, the legend as a chip, Správa objektů and the detail as the tabs of one side sheet
+  beside the map (the canvas re-frames to the width left), overlays fading to 40 % while the map is dragged,
+  rotated or zoomed, keys O / R / L / I / F / + / − / 0, Esc in order. `ObjectMapWindows.tsx` (floating,
+  dragged, resized windows) is gone; nothing else used it.
+- Tests: `lib/map-explained.test.ts`; `ExecutionSteps.test.tsx` › "the workbench's Sociomapa stage";
+  `ObjectMapPanel.test.tsx` › "the map's overlays (artifact-sociomap SOC13)" and its follow-ups;
+  `sociomap_journey.mjs` on the bar, popovers and sheet.
 
 ## 8. Owner questions
 
@@ -193,6 +228,22 @@ owner and A. Bahbouh.
   `sociomap-5-web` and SOC2.
 
 ## Findings
+
+- **For the methodology owner: the stage's plain-language method text (SOC10) is new wording.** "Jak byla
+  spočtena" (`cs.ts` `research.exec.mapStage.how*`) and the gauges' sentences restate the signed-off method:
+  person-mean centring, the baseline-corrected correlation with n ≥ `n_min`, false-discovery control and the
+  noise test, the soft-rank layout (else "rozmístil výpočet"), the relative terrain whose lowest hill is 15 %
+  of the highest, split-half agreement and bootstrap uncertainty. "± N %" reads `credibility.uncertainty_radius`
+  as a share of the typical distance between objects, as the artifact type documents it. To confirm the words.
+- **Fixed on the Sociomapa stage: an older method's run was told how to use a map it does not draw** (the
+  "Open, SOC2" entry below). The stage prints no map hint and no guide; the notice alone. Test:
+  `ExecutionSteps.test.tsx` › "says a set stored under an older method draws no map, with no map hint above the
+  notice". Výsledky's Sociomapy tab still prints `mapToolNotInAia` above an older method's notice: Výsledky's to fix.
+- **Fixed by SOC13 (the two "for the methodology owner" items below):** at 390 px the legend is a chip until
+  opened, and the view controls moved to a rail bottom right, off the labels at the top right.
+- **Open: object labels near the map's edge can still pass under the bar or the legend chip.**
+  `drawObjectMap` (`lib/object-map-panel.ts`) places labels without insets. Smallest fix: an `insets`
+  parameter to its projection (centre shifted, scale reduced). Test: a label's box never meets the bar's.
 
 Browser audit, 2026-10-21, on the local workbench (`AIA_WEB_RESEARCH_WORKBENCH=true`, a fictional eight-brand run on
 `aia-sociomap-5` and one on `-3`), 1440 / 1100 / 768 / 390 px:
@@ -212,7 +263,9 @@ Browser audit, 2026-10-21, on the local workbench (`AIA_WEB_RESEARCH_WORKBENCH=t
     project memory's classic layout at 1366 × 768 (under the sticky header), and that a canvas is no taller than
     1.5 × its width. Each short screen failed on the CSS guess; the memory case fails without the header subtracted
     (752 > 640 px). `sociomap-display.test.ts` holds `stageHeight`.
-- **Open, SOC2 (blocked on research-lead-workbench#15): the Sociomapa stage opens on Výsledky's other cards.** The
+- **Fixed by #773 (merged as `d71b1738`), was SOC2's: the Sociomapa stage opened on Výsledky's other cards.** A view
+  named by the address now opens scrolled to its tabs (`ResultsWorkspace.tsx:36-48 @ 382b418a`;
+  `ResultsWorkspace.test.tsx` "opens a view named by the address scrolled to its tabs…"). As recorded: The
   stage is Výsledky's maps view (`workbench-stages.ts`, view `maps`), and `ResultsWorkspace` puts "Kdo odpovídal",
   "Kompletní zpráva studie" and the results tabs above the maps panel. The map starts 2,174 px into a 755 px pane at
   1440 px. SOC2's frame shows the map alone; until then a person scrolls three screens to the map. The Výsledky screen
@@ -247,3 +300,11 @@ Browser audit, 2026-10-21, on the local workbench (`AIA_WEB_RESEARCH_WORKBENCH=t
   5. A way to reach a respondent without the pointer, e.g. a list or a "next respondent" control beside the map: a
      layout decision inside the panel (Aram's rule), so recorded here, not built.
   6. A test that Tabs on Respondenti and expects a control naming a respondent.
+- **Open, SOC2: an older method's run is told how to use a map it does not draw.** Browser, 2026-10-22, 390 px:
+  the Sociomapa card prints `mapToolNotInAia` ("Mapu můžete prohlížet shora nebo jako 3D terén, otáčet…",
+  `ExecutionSteps.tsx:1666 @ 9607ee09`) above every battery, and a battery with no `-5` map says "Mapa ze
+  starší metody; spusťte nový běh" below it. A person on such a run reads how to turn a map that is not there.
+  Reproduction: `node tools/ui_workbench/sociomap_journey.mjs` (after `--prepare`), then
+  `tmp/ui-workbench/sociomap-journey/390-older-method.png`. Smallest fix: print the hint only when some battery draws a map (`!olderMethodOnly(b)` for one). Test: the
+  `ExecutionSteps.test.tsx` older-method case expects no `mapToolNotInAia`. Left for SOC2, which hosts the
+  panel and writes no second notice; ExecutionSteps is Výsledky's.

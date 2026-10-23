@@ -14,7 +14,6 @@ import { keepPointLabels } from "./scale-labels";
 import type { Analysis } from "./store";
 
 type Obj = { [k: string]: Json };
-export type QType = "vyber" | "multi" | "skala" | "otevrena";
 export type Question = Obj & {
   id?: string;
   text?: string;
@@ -166,7 +165,7 @@ export function previewBattery(sec: Section, index: number): Omit<Extract<Previe
 export type IdSource = { now: () => number; random: () => number };
 const SYSTEM: IdSource = { now: Date.now, random: Math.random };
 /** secId */
-export const secId = (s: IdSource = SYSTEM) => `sec_${s.now().toString(36)}${s.random().toString(36).slice(2, 5)}`;
+const secId = (s: IdSource = SYSTEM) => `sec_${s.now().toString(36)}${s.random().toString(36).slice(2, 5)}`;
 /** qId */
 export const qId = (s: IdSource = SYSTEM) => `Q_${s.now().toString(36)}${s.random().toString(36).slice(2, 4)}`;
 
@@ -179,7 +178,7 @@ export const GUIDED_PROMPT: Record<GuidedKind, string> = {
   choice: "Jak zní otázka?",
 };
 export const PROMPT_CHOICES = "Odpovědi oddělte čárkou. Pokud necháte prázdné, použije se Ano / Ne.";
-export const PROMPT_CHOICES_DEFAULT = "Ano, Ne";
+const PROMPT_CHOICES_DEFAULT = "Ano, Ne";
 
 /**
  * addGuidedQuestion: the question the kind asks for, into the first question

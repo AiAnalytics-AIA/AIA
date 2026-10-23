@@ -11,9 +11,11 @@ name:** code, the interface, stored artifacts and older documents cite
 `PROGRESS D6`, `PROGRESS D11` and so on, and they mean the rows of *Decisions
 needed* below.
 
-**Updated:** 2026-10-19 (MVP roadmap; header SHA below not re-measured) · **Code of record:** `develop` @ `c1c8ec1e` (#315's merge) ·
-**Release:** `main` @ `9cf1f58`, 1,187 commits behind it and none ahead
-(`git rev-list --count origin/main..origin/develop` / `origin/develop..origin/main`; ADR 0009).
+**Updated:** 2026-10-22 (the owner's decisions of 2026-10-22; header SHA re-measured) · **Code of record:** `develop` @ `6bfe3760` (#810's merge) ·
+**Release:** `main` @ `9cf1f58`, 3,455 commits behind it and none ahead
+(`gh api repos/AiAnalytics-AIA/AIA/compare/main...<develop sha>`, whose `ahead_by` / `behind_by` a
+shallow clone's `git rev-list --count` cannot give; ADR 0009). It read `develop` @ `c1c8ec1e` (#315)
+and 1,187 behind on 2026-10-19.
 This header names `develop`, never a feature branch. Open pull requests are GitHub's list, not a
 table here, and a feature's state is its plan's front-matter (`python tools/progress.py`).
 *History:* the header read `develop` @ `e0edf2a` on 2026-09-27 and `develop` @ `877e63e` on
@@ -674,6 +676,24 @@ reaches a model (Q61); a dataset read as its preview only (Q62); #574's nine typ
 Claude reviews in for Codex until its credits reset (Q64); brief attachments Class B with no
 classification gate stopping work (Q65); on develop only, classes shown and recorded but never blocking, EU residency and licences kept, and Brave open to search queries of any class (Q66, `feature/develop-class-advisory`); Q67 (a): whoever lifts the budget pays for what runs after the lift (#583). Q51 (b): a tracked set keeps two end words until 3b3; Q53 (a): the questionnaire length limit is a rule per study type, set by the methodology owner on Metodika; Q55 (b): the MVP draft report is today's report with its gaps closed, plus RD9 and RD10, plus literature when chosen, in today's order ("ensure we are not missing anything")
 ([`mvp-owner-decisions.md`](mvp-owner-decisions.md)).
+
+**The owner's decisions of 2026-10-22.** Q68 (b): a person selects part of a Návrh item's words to
+comment on it, and still edits the item where it is shown (`artifact-design` DSN3b, #727). Q69 (a):
+the Lead's study notes stay out of the draft report, held by the import contract "no report path reads
+the Lead's notes (Q69)" (`report-delivery`, #719). Q73 (c): report downloads stay free before
+approval, each draft file saying KONCEPT until its version is approved; approval moves to the document
+being read, in Zpráva's doc bar (`artifact-report` RPT3a, #741, #758, #775; RPT3b closed as decided,
+superseding `report-delivery` F17's "DOCX and PDF only after approval" for downloads). Q75 (a): a
+tracked set may hold up to 40 objects, above the recommended 15 allowed and warned, the 41st refused
+(#736). Q76 (c): a run's
+Náklady names nobody, per-person spend stays in Settings (Q40) (`artifact-fieldwork` FLD4c, #721,
+#774). Q77 (a): ONLYOFFICE Docs Community self-hosted beside the develop stack as the report editor
+(plan [`report-editor-hosting`](plans/report-editor-hosting.md), #785; its activation waits on OI-200).
+Q78 (c): a research stage's cold first open is held to 800 ms on a production build, every interaction
+to 400 ms (`ux-audit-2026-10` F8, #768). Security audit S14, option (b): only an OWNER grants or
+removes OWNER, and the last active OWNER is never demoted (#782, OI-229). The October security audit
+(plan [`security-audit-2026-10`](plans/security-audit-2026-10.md), #771) fixed S1-S8, S11 and S14;
+S9, S10, S12, S13 and S15-S23 are OI-203 to OI-215.
 
 **Working model (owner, 2026-10-19).** This section is the roadmap. Each track has one owner,
 named here when its work starts; no two agents edit the same plan. An agent marks its own PR ready
