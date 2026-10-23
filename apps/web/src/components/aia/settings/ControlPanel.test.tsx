@@ -518,6 +518,28 @@ describe("what powers AIA", () => {
     expect(within(section("ai").querySelector("[data-config]") as HTMLElement).getByText("oblast v EU: data zůstávají v EU")).toBeTruthy();
   });
 
+  it("keeps an activity the document comes to list in its own group, once, and marks the group headings as row groups", async () => {
+    const doc = DOC();
+    doc.ai_runtime = { ...AI_RUNTIME, activities: [...AI_RUNTIME.activities, {
+      key: "report_pdf", step_kind: "research_report", capabilities: [], versions: [], switches: ["AIA_AI_RUNTIME_ENABLED"], actions: [],
+    }] };
+    api({ "GET /api/v1/settings": () => doc });
+    render(<ControlPanel />);
+    await waitFor(() => expect(card("report_pdf")).toBeTruthy());
+    expect(section("ai").querySelectorAll('[data-activity="report_pdf"]')).toHaveLength(1);
+    expect(section("ai").querySelector('[data-ai-group="out"] [data-activity="report_pdf"]')).toBeTruthy();
+    expect(section("ai").querySelector('[data-ai-group="run"] [data-activity="report_pdf"]')).toBeNull();
+    for (const th of section("ai").querySelectorAll("[data-ai-group] th")) expect(th.getAttribute("scope")).toBe("rowgroup");
+  });
+
+  it("keeps an invalid activity standing out, and says the API reads the personas switch too", async () => {
+    api({ "GET /config": () => CONFIG({ switches: { AIA_AI_RUNTIME_ENABLED: null } }) });
+    render(<ControlPanel />);
+    await waitFor(() => expect(card("respondent_fieldwork").getAttribute("data-state")).toBe("invalid"));
+    expect(card("respondent_fieldwork").className).not.toContain("text-ink-muted");
+    expect(within(card("population_personas")).getByText(/čte API .* i worker/)).toBeTruthy();
+  });
+
   it("the runtime off: says which switch and what happens, and never suggests a login", async () => {
     technicalOn();
     api({ "GET /config": () => CONFIG({ enabled: false, switches: { AIA_AI_RUNTIME_ENABLED: false, AIA_AI_RESEARCH_AGENTS_ENABLED: true } }) });

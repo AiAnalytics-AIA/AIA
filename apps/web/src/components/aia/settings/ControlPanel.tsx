@@ -272,7 +272,7 @@ function ActivityRow({ runtime, activity, switches }: { runtime: NativeRuntime; 
   // The switch this activity has of its own; the master switch is said once, above the table.
   const own = activity.switches.filter((x) => x !== runtime.switch);
   return (
-    <tr data-activity={activity.key} data-state={state.kind} className={state.kind === "configured" ? "" : "text-ink-muted"}>
+    <tr data-activity={activity.key} data-state={state.kind} className={state.kind === "off" || state.kind === "unknown" ? "text-ink-muted" : ""}>
       <td className={`${TD} min-w-48`}>
         <h3 className="text-sm font-semibold text-ink">{t(`${A}.title`)}</h3>
         <p className="mt-0.5 text-[13px] leading-5 text-ink-muted">{t(`${A}.text`)}</p>
@@ -317,6 +317,9 @@ const LISTED_ONLY: { key: string; group: (typeof GROUPS)[number]; switch: string
   { key: "client_source_proposals", group: "client", switch: "AIA_AI_CLIENT_SOURCE_PROPOSALS_ENABLED", built: true },
 ];
 
+/** An activity's group: the board's own, then the code-listed row's, else Běh a analýza. */
+const groupOf = (key: string): string => GROUP_OF[key] ?? LISTED_ONLY.find((e) => e.key === key)?.group ?? "run";
+
 function ListedOnlyRow({ entry }: { entry: (typeof LISTED_ONLY)[number] }) {
   const A = `${R}.activity.${entry.key}`;
   return (
@@ -328,7 +331,7 @@ function ListedOnlyRow({ entry }: { entry: (typeof LISTED_ONLY)[number] }) {
       <td className={`${TD} whitespace-nowrap`}><Chip tone="neutral">{t(`${R}.state.${entry.built ? "unread" : "not_built"}`)}</Chip></td>
       <td className={`${TD} break-all font-mono text-xs`}>{entry.switch}</td>
       <td className={`${TD} text-xs`}>{t(`${R}.modelOf.${entry.key}`)}</td>
-      <td className={TD}><p data-reason className="break-words text-sm text-ink-muted">{t(`${R}.reason.${entry.built ? "unread" : "notBuilt"}`)}</p></td>
+      <td className={TD}><p data-reason className="break-words text-sm text-ink-muted">{t(`${R}.reason.${!entry.built ? "notBuilt" : entry.key === "population_personas" ? "unreadApi" : "unread"}`)}</p></td>
     </tr>
   );
 }
@@ -397,8 +400,8 @@ function RuntimePanel({ runtime, config, vocab }: { runtime: NativeRuntime; conf
           <thead><tr><th className={TH}>{t(`${P}.col.capability`)}</th><th className={TH}>{t(`${P}.col.state`)}</th><th className={TH}>{t(`${R}.col.switch`)}</th><th className={TH}>{t(`${R}.col.model`)}</th><th className={TH}>{t(`${P}.col.why`)}</th></tr></thead>
           {GROUPS.map((g) => (
             <tbody key={g} data-ai-group={g} className="divide-y divide-border">
-              <tr><th colSpan={5} scope="colgroup" className="px-2 pb-1 pt-4 text-left text-[11px] font-normal uppercase tracking-[0.06em] text-ink-faint">{t(`${R}.group.${g}`)}</th></tr>
-              {runtime.activities.filter((a) => (GROUP_OF[a.key] ?? "run") === g).map((a) => <ActivityRow key={a.key} runtime={runtime} activity={a} switches={switches} />)}
+              <tr><th colSpan={5} scope="rowgroup" className="px-2 pb-1 pt-4 text-left text-[11px] font-normal uppercase tracking-[0.06em] text-ink-faint">{t(`${R}.group.${g}`)}</th></tr>
+              {runtime.activities.filter((a) => groupOf(a.key) === g).map((a) => <ActivityRow key={a.key} runtime={runtime} activity={a} switches={switches} />)}
               {LISTED_ONLY.filter((e) => e.group === g && !runtime.activities.some((a) => a.key === e.key)).map((e) => <ListedOnlyRow key={e.key} entry={e} />)}
             </tbody>
           ))}

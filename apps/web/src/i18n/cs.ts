@@ -1789,6 +1789,7 @@ export const cs = {
             switchNeeds: "Přepínač: {switch} · chybí: {needs}",
             unknownConfig: "Konfiguraci nasazení se nepodařilo načíst, takže nic netvrdí.",
             unread: "Tento přepínač čte worker, stránka ho z nasazení nedostává, takže o stavu nic netvrdí.",
+            unreadApi: "Tento přepínač čte API (nabídka zdroje respondentů) i worker; stránka ho z nasazení nedostává, takže o stavu nic netvrdí.",
             notBuilt: "Činnost je v plánu, ale v AIA zatím není; přepínač zatím nic nezapíná.",
           },
           activity: {
