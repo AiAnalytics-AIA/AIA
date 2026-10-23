@@ -1947,8 +1947,13 @@ export type ClientRules = {
   wallet_ceiling_usd: number | null;
   set_by: string | null; set_at: string | null;
 };
+export type ClientRulesOf = Omit<ClientRules, "client_id" | "name">;
 export const clientRules = {
   list: () => request<ClientRules[]>("GET", "/api/v1/settings/client-rules"),
+  get: (clientId: string) => request<ClientRulesOf>("GET", `/api/v1/clients/${enc(clientId)}/rules`),
+  /** OWNER or ADMIN: only the fields sent change; null clears one (audited CLIENT_RULES_CHANGED). */
+  set: (clientId: string, changes: { data_posture?: "OPEN" | "CLASSIFIED"; wallet_ceiling_usd?: number | null }) =>
+    request<ClientRulesOf>("PUT", `/api/v1/clients/${enc(clientId)}/rules`, changes),
 };
 
 /** Správa dat (#850): a client's deletion, OWNER or ADMIN. */
