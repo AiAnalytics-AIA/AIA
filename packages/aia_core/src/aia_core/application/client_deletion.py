@@ -10,7 +10,7 @@ them again.
 :func:`deletion_preview` counts both sides and issues a one-time confirmation, valid ten
 minutes, to the person who asked. :func:`delete_client` spends it and deletes every row in the
 caller's transaction; the caller commits, then deletes the stored objects
-(:func:`delete_objects`), so no row ever points at a deleted object. A second call answers
+(:func:`finish_deletion`), so no row ever points at a deleted object. A second call answers
 ``already_deleted``. Irreversible; within 30 days backups and object versions still hold the
 content (MVPQ-07), which the restore runbook's journal covers (SDL5).
 """
@@ -38,23 +38,34 @@ from ..infrastructure.client_work_journal import erase_client_work_journal
 from ..infrastructure.deep_research_settings_repository import erase_client_test_policies
 from ..infrastructure.fieldwork_journal import erase_study_fieldwork_journals
 from ..infrastructure.holdout_repository import erase_client_holdouts
-from ..infrastructure.repositories import client_projects, erase_client_projects
+from ..infrastructure.population_repository import client_population_children
+from ..infrastructure.repositories import (
+    active_client_runs,
+    client_projects,
+    erase_client_projects,
+)
 from ..infrastructure.researcher_lead_repository import erase_client_notes
 from ..infrastructure.scope_repository import ScopeRepository
 from ..infrastructure.storage import ArtifactStore, ObjectNotFound
 from ..infrastructure.study_design_repository import erase_client_designs
+from ..infrastructure.study_lead_repository import erase_client_lead_turns
 from ..infrastructure.study_workspace_repository import erase_client_workspaces
-from ..infrastructure.workflow_repository import client_approval_rows, organization_approval_rows
+from ..infrastructure.workflow_repository import (
+    client_approval_rows,
+    organization_approval_rows,
+    scrub_client_approvals,
+)
 from ..infrastructure.workspace_edit_repository import erase_client_edit_ops
 
 __all__ = [
     "CONFIRMATION_MINUTES",
     "ClientDeletion",
+    "ClientHasActiveWork",
     "DeletionPreview",
     "KeptRecord",
     "delete_client",
-    "delete_objects",
     "deletion_preview",
+    "finish_deletion",
     "kept_records",
 ]
 
@@ -72,6 +83,11 @@ class DeletionPreview:
     deleted: dict[str, int]
     #: usage_rows (usage ledger and budget holds), approval_rows, audit_rows
     kept: dict[str, int]
+    #: What is not deleted yet, though it should be, until the stores can delete it
+    #: (study-data-lifecycle SDL2): ``population_children`` (materialized for the client) and
+    #: ``replaced_source_readings`` (an older reading of a reread source; ``None``: not counted,
+    #: its key is not kept). Nothing here is shown as deleted.
+    remains_until_sdl2: dict[str, int | None]
     confirm_token: str
     expires_at: datetime
 
@@ -80,8 +96,15 @@ class DeletionPreview:
 class ClientDeletion:
     already_deleted: bool
     deleted: dict[str, int]
-    #: The stored objects to delete once the caller has committed the rows' deletion.
-    object_keys: tuple[str, ...] = ()
+
+
+class ClientHasActiveWork(Exception):
+    """The client has runs that have not ended: a leased step would go on paying and writing
+    under a deleted client. The person cancels them first (the runs' own cancel)."""
+
+    def __init__(self, run_ids: Sequence[str]) -> None:
+        super().__init__(f"{len(run_ids)} run(s) of the client have not ended")
+        self.run_ids = list(run_ids)
 
 
 def _counts(
@@ -126,6 +149,10 @@ def deletion_preview(
         status=client.status.value,
         deleted=deleted,
         kept=kept,
+        remains_until_sdl2={
+            "population_children": client_population_children(session, client_id=client_id),
+            "replaced_source_readings": None,
+        },
         confirm_token=token,
         expires_at=expires_at,
     )
@@ -140,15 +167,24 @@ def delete_client(
     now: datetime,
 ) -> ClientDeletion:
     """Delete the client's content in the caller's transaction and leave its tombstone.
-    ``ScopeDenied`` ``confirmation_invalid`` / ``confirmation_expired`` when the confirmation is
-    not this person's for this client, or is old. The caller commits, then deletes
-    ``object_keys`` (:func:`delete_objects`)."""
+
+    The client row is locked first. ``ScopeDenied`` ``confirmation_invalid`` /
+    ``confirmation_expired`` when the confirmation is not this person's for this client, or is
+    old; :class:`ClientHasActiveWork` while any of its runs has not ended. The objects to delete
+    are listed with the rows, in the same transaction; the caller commits, then
+    :func:`finish_deletion` deletes them. On a tombstone this answers ``already_deleted`` and
+    asks nothing: :func:`finish_deletion` retries what is left."""
     scope = ScopeRepository(session)
+    scope.lock_client(admin, client_id)
     if scope.client_for_deletion(admin, client_id) is None:
         return ClientDeletion(already_deleted=True, deleted={})
     scope.spend_deletion_ticket(admin, client_id, token=confirm_token, now=now)
+    running = active_client_runs(session, client_id=client_id)
+    if running:
+        raise ClientHasActiveWork(running)
     deleted, kept = _counts(session, scope, admin, client_id)
     study_ids = scope.client_study_ids(admin, client_id)
+    names = scope.client_names(admin, client_id)
 
     erase_client_knowledge(session, client_id=client_id)
     _, source_keys = erase_client_sources(session, client_id=client_id)
@@ -159,23 +195,32 @@ def delete_client(
     erase_client_test_policies(session, client_id=client_id)
     erase_client_work_journal(session, client_id=client_id)
     erase_study_fieldwork_journals(session, study_ids=study_ids)
+    # A person's own Lead message has no run: no cascade from the runs reaches it.
+    erase_client_lead_turns(session, client_id=client_id)
     # The rows that hold a project (RESTRICT) before the projects themselves.
     erase_client_designs(session, client_id=client_id)
     erase_client_workspaces(session, client_id=client_id)
     _, artifact_keys = erase_client_projects(session, client_id=client_id)
+    # The kept approval ledger, content-free (MVPQ-07): names to ids, other text erased.
+    scrub_client_approvals(session, client_id=client_id, names=names)
 
+    scope.keep_pending_objects(admin, client_id, [*artifact_keys, *source_keys])
     scope.tombstone_client(admin, client_id, now=now, counts={**deleted, **kept})
-    return ClientDeletion(
-        already_deleted=False,
-        deleted=deleted,
-        object_keys=tuple(sorted({*artifact_keys, *source_keys})),
-    )
+    return ClientDeletion(already_deleted=False, deleted=deleted)
 
 
-def delete_objects(store: ArtifactStore, keys: Sequence[str]) -> int:
-    """Delete a deleted client's stored objects after the rows' deletion committed; returns how
-    many were not deleted (logged, never raised: the rows are already gone)."""
-    failed = 0
+def finish_deletion(
+    session: Session, admin: OrganizationContext, client_id: str, store: ArtifactStore
+) -> tuple[int, int]:
+    """Delete a deleted client's stored objects still listed, after the rows' deletion
+    committed: each cleared, and committed, as it goes, so an interruption leaves only what is
+    left to the next try. Audited with what was deleted and what failed. Returns
+    ``(deleted, failed)``."""
+    scope = ScopeRepository(session)
+    keys = scope.pending_objects(admin, client_id)
+    if not keys:
+        return 0, 0
+    deleted = failed = 0
     for key in keys:
         try:
             store.delete(key)
@@ -183,8 +228,14 @@ def delete_objects(store: ArtifactStore, keys: Sequence[str]) -> int:
             pass
         except Exception:
             failed += 1
-            log.exception("a deleted client's object could not be deleted")
-    return failed
+            log.exception("a deleted client's object could not be deleted; it stays listed")
+            continue
+        scope.clear_pending_object(admin, client_id, key)
+        session.commit()
+        deleted += 1
+    scope.record_object_deletion(admin, client_id, deleted=deleted, failed=failed)
+    session.commit()
+    return deleted, failed
 
 
 @dataclass(frozen=True, slots=True)

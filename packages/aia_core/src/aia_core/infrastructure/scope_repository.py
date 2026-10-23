@@ -9,14 +9,14 @@ decision having already been made.
 from __future__ import annotations
 
 import hashlib
-import re
 from collections.abc import Sequence
 from datetime import datetime
-from typing import Any, Final
+from typing import Any
 
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
+from ..domain.content_free import content_free, rename
 from ..domain.scope import (
     Client,
     ClientBudget,
@@ -44,6 +44,7 @@ from ..domain.workflow import ReservationStatus
 from .tables import (
     AccessAuditRow,
     BudgetReservationRow,
+    ClientDeletionObjectRow,
     ClientDeletionTicketRow,
     ClientRow,
     OrganizationMemberRow,
@@ -691,6 +692,73 @@ class ScopeRepository:
         ticket.spent_at = now
         self._session.flush()
 
+    def lock_client(self, admin: OrganizationContext, client_id: str) -> None:
+        """Lock the client row for its deletion (FOR UPDATE on PostgreSQL): a status change, a
+        budget lift or a second deletion of the same client waits for this one."""
+        query = select(ClientRow.client_id).where(
+            ClientRow.client_id == client_id,
+            ClientRow.organization_id == admin.organization_id,
+        )
+        if self._session.get_bind().dialect.name == "postgresql":
+            query = query.with_for_update()
+        self._session.execute(query)
+
+    def client_names(self, admin: OrganizationContext, client_id: str) -> dict[str, str]:
+        """The client's and its studies' names, each to its id: what a deletion replaces."""
+        row = self._deletable(admin, client_id)
+        studies = self._session.execute(
+            select(StudyRow.name, StudyRow.study_id).where(StudyRow.client_id == client_id)
+        ).all()
+        names = {row.name: row.client_id} | {str(n): str(i) for n, i in studies}
+        return {k: v for k, v in names.items() if k and k != v}
+
+    def keep_pending_objects(
+        self, admin: OrganizationContext, client_id: str, keys: Sequence[str]
+    ) -> None:
+        """List a deleted client's stored objects still to delete, in the deletion's
+        transaction, so a delete interrupted after its commit is retried."""
+        for key in sorted(set(keys)):
+            self._session.merge(
+                ClientDeletionObjectRow(
+                    client_id=client_id, storage_key=key, organization_id=admin.organization_id
+                )
+            )
+        self._session.flush()
+
+    def pending_objects(self, admin: OrganizationContext, client_id: str) -> list[str]:
+        self._deletable(admin, client_id)
+        return sorted(
+            self._session.scalars(
+                select(ClientDeletionObjectRow.storage_key).where(
+                    ClientDeletionObjectRow.client_id == client_id,
+                    ClientDeletionObjectRow.organization_id == admin.organization_id,
+                )
+            )
+        )
+
+    def clear_pending_object(self, admin: OrganizationContext, client_id: str, key: str) -> None:
+        row = self._session.get(ClientDeletionObjectRow, (client_id, key))
+        if row is not None and row.organization_id == admin.organization_id:
+            self._session.delete(row)
+            self._session.flush()
+
+    def record_object_deletion(
+        self, admin: OrganizationContext, client_id: str, *, deleted: int, failed: int
+    ) -> None:
+        """Audit how many of a deleted client's objects were deleted and how many are left."""
+        self._session.add(
+            AccessAuditRow(
+                organization_id=admin.organization_id,
+                client_id=client_id,
+                actor_id=admin.actor_id,
+                action="CLIENT_DELETION_OBJECTS",
+                role=admin.organization_role.value,
+                payload={"deleted": deleted, "failed": failed},
+                request_id=admin.request_id,
+            )
+        )
+        self._session.flush()
+
     def tombstone_client(
         self,
         admin: OrganizationContext,
@@ -720,17 +788,17 @@ class ScopeRepository:
         ).all()
         own = {client_id, *(s.study_id for s in studies)}
         for entry in audit:
-            renamed = _rename(entry.payload, names)
+            renamed = rename(entry.payload, names)
             if entry.client_id in own or entry.study_id in own:
                 # The client's own rows are kept content-free (MVPQ-07): ids, codes, numbers
                 # and times stay; any other text (a file name, a title) is erased.
-                renamed = _content_free(renamed)
+                renamed = content_free(renamed)
             if renamed != entry.payload:
                 entry.payload = renamed
-            if entry.reason and entry.reason in names:
-                entry.reason = names[entry.reason]
-            elif entry.reason and (entry.client_id in own or entry.study_id in own):
-                entry.reason = _content_free(entry.reason)
+            if entry.reason:
+                entry.reason = rename(entry.reason, names)
+            if entry.reason and (entry.client_id in own or entry.study_id in own):
+                entry.reason = content_free(entry.reason)
         self._session.add(
             AccessAuditRow(
                 organization_id=admin.organization_id,
@@ -1292,34 +1360,3 @@ class ScopeRepository:
             .group_by(StudyRow.client_id)
         ).all()
         return {client_id: int(count) for client_id, count in rows}
-
-
-def _rename(value: Any, names: dict[str, str]) -> Any:
-    """``value`` with every string that is one of ``names`` replaced by its id, nested."""
-    if isinstance(value, str):
-        return names.get(value, value)
-    if isinstance(value, list):
-        return [_rename(v, names) for v in value]
-    if isinstance(value, dict):
-        return {k: _rename(v, names) for k, v in value.items()}
-    return value
-
-
-#: What a deleted client's kept audit rows still say: an identifier, a code, a hash or a time.
-_KEPT_TEXT: Final = re.compile(
-    r"^(?:[A-Z][A-Z0-9_]*|[A-Za-z]{2,8}-[0-9A-Za-z]{4,64}|[0-9a-f]{12,64}"
-    r"|\d{4}-\d{2}-\d{2}(?:[T ][0-9:.+\-Z]*)?)$"
-)
-ERASED: Final = "erased"
-
-
-def _content_free(value: Any) -> Any:
-    """``value`` with every string that is no identifier, code, hash or time replaced by
-    :data:`ERASED`, nested; numbers, booleans and nulls stay."""
-    if isinstance(value, str):
-        return value if _KEPT_TEXT.match(value) else ERASED
-    if isinstance(value, list):
-        return [_content_free(v) for v in value]
-    if isinstance(value, dict):
-        return {k: _content_free(v) for k, v in value.items()}
-    return value

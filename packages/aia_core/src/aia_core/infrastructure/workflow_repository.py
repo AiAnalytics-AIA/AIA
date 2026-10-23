@@ -23,7 +23,7 @@ The behavioural contract is
 from __future__ import annotations
 
 import json
-from collections.abc import Collection, Sequence
+from collections.abc import Collection, Mapping, Sequence
 from dataclasses import dataclass
 from datetime import UTC, datetime
 from typing import Any, cast
@@ -32,6 +32,7 @@ from sqlalchemy import CursorResult, func, or_, select, update
 from sqlalchemy.orm import Session
 
 from ..domain.approval_ledger import ApprovalSubject, LedgerEntry
+from ..domain.content_free import content_free, rename
 from ..domain.population import (
     JointState,
     PopulationBinding,
@@ -127,6 +128,7 @@ __all__ = [
     "client_approval_rows",
     "erase_lead_run_payloads",
     "organization_approval_rows",
+    "scrub_client_approvals",
 ]
 
 
@@ -3843,3 +3845,27 @@ def organization_approval_rows(session: Session, *, organization_id: str) -> int
         )
         or 0
     )
+
+
+def scrub_client_approvals(session: Session, *, client_id: str, names: Mapping[str, str]) -> int:
+    """A deleted client's approval ledger kept content-free (settings-backends SB5, MVPQ-07):
+    each decision's comment -- a lift note, a report or gate note, an acknowledgement's reason
+    and gaps -- with names replaced by ids and every other text erased; ids, digests, codes and
+    numbers stay. A JSON comment is scrubbed field by field. Returns the comments changed."""
+    changed = 0
+    for row in session.scalars(
+        select(ApprovalDecisionRow).where(ApprovalDecisionRow.client_id == client_id)
+    ):
+        if not row.comment:
+            continue
+        try:
+            parsed = json.loads(row.comment)
+        except ValueError:
+            scrubbed = content_free(rename(row.comment, names))
+        else:
+            scrubbed = json.dumps(content_free(rename(parsed, names)), ensure_ascii=False)
+        if scrubbed != row.comment:
+            row.comment = scrubbed
+            changed += 1
+    session.flush()
+    return changed

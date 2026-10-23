@@ -64,7 +64,10 @@ from .tables import (
     as_utc,
 )
 
-__all__ = ["PopulationRegistryRepository"]
+__all__ = [
+    "PopulationRegistryRepository",
+    "client_population_children",
+]
 
 
 def _version(row: PopulationDatasetVersionRow) -> DatasetVersion:
@@ -467,3 +470,15 @@ class PopulationRegistryRepository:
             )
         )
         self._session.flush()
+
+
+def client_population_children(session: Session, *, client_id: str) -> int:
+    """How many materialized population children a client owns: kept on a deletion until the
+    population store can delete them (study-data-lifecycle SDL2)."""
+    return len(
+        session.scalars(
+            select(PopulationDatasetVersionRow.version_id).where(
+                PopulationDatasetVersionRow.owner_client_id == client_id
+            )
+        ).all()
+    )
