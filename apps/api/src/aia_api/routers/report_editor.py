@@ -46,7 +46,7 @@ from aia_core.application.research import research_artifacts
 from aia_core.application.scope import AuthenticatedPrincipal
 from aia_core.domain.report.editor import CallbackAction, callback_action
 from aia_core.domain.report.saved_changes import changes_payload
-from aia_core.domain.scope import ScopeDenied, StudyContext
+from aia_core.domain.scope import Permission, ScopeDenied, StudyContext
 from fastapi import APIRouter, Depends, Header, HTTPException, Path, Query, Request, Response
 from pydantic import BaseModel, ConfigDict, Field
 
@@ -61,7 +61,19 @@ from ..dependencies import (
 )
 from ..editor_tokens import EditorTokens, TokenRefused, bearer
 from ..schemas.projects import ErrorResponse
-from .research import RunIdPath, _not_found, _refused, _report_for_run, _variant
+from .research import (
+    RunIdPath,
+    _approval_fields,
+    _export,
+    _mark,
+    _not_found,
+    _refused,
+    _report_filename,
+    _report_for_run,
+    _review_fields,
+    _review_headers,
+    _variant,
+)
 from .runs import artifact_corrupt
 
 router = APIRouter(
@@ -400,39 +412,94 @@ def report_editor_callback(
 ArtifactIdPath = Annotated[str, Path(max_length=64, pattern=r"^ART-[0-9a-f]{1,32}$")]
 
 
-@router.get(
-    "/research/runs/{run_id}/report/editor/versions/{artifact_id}/changes",
-    summary="What a saved version changed in the numbers code wrote (Upraveno ručně)",
-)
-def report_editor_version_changes(
-    run_id: RunIdPath,
-    artifact_id: ArtifactIdPath,
-    scope: StudyScopeDep,
-    session: SessionDep,
-    store: ArtifactStoreDep,
-    settings: SettingsDep,
-) -> dict[str, Any]:
-    """The version's changes, as stored beside it when it was saved, for the doc bar and the
-    approval dialog (RPT8d): each control changed, removed or added, each number typed outside
-    one; ``changes`` null for koncept 1, the composer's own; ``uncomparable`` when there was
-    nothing to compare it with, never an empty list read as no change."""
-    _tokens(settings)
+def _version(
+    run_id: str, artifact_id: str, scope: StudyContext, session: Any, store: Any
+) -> tuple[Any, Any, Any]:
     try:
-        version, changes = version_changes(
-            session, scope, store, run_id=run_id, artifact_id=artifact_id
-        )
+        return version_changes(session, scope, store, run_id=run_id, artifact_id=artifact_id)
     except ScopeDenied as exc:
         raise _refused(exc) from exc
     except VersionNotFound as exc:
         raise _not_found("editor_version") from exc
     except (IntegrityError, ObjectNotFound) as exc:
         raise artifact_corrupt(session) from exc
+
+
+#: The variant a version's file names: the internal report's, or its Deep Research run's.
+def _file_variant(version: Any) -> str:
+    return "zakladni" if version.variant == "internal" else str(version.deep_research_run_id)
+
+
+@router.get(
+    "/research/runs/{run_id}/report/editor/versions/{artifact_id}",
+    summary="A saved version of a run's report: its provenance, review and what it changed",
+)
+def report_editor_version(
+    run_id: RunIdPath,
+    artifact_id: ArtifactIdPath,
+    scope: StudyScopeDep,
+    session: SessionDep,
+    store: ArtifactStoreDep,
+) -> dict[str, Any]:
+    """A version of one of the run's report lines, for the doc bar and the approval dialog
+    (RPT8d): who saved it and from which version, its review and approval as the run's report
+    status says them, and what it changed in the numbers code wrote, as stored beside it (each
+    control changed, removed or added, each number typed outside one). ``changes`` null for
+    koncept 1, the composer's own; ``uncomparable`` when there was nothing to compare it with,
+    never an empty list read as no change. Served whether or not the editor is on: an approved
+    version stays readable."""
+    version, artifact, changes = _version(run_id, artifact_id, scope, session, store)
+    mark = _mark(artifact, scope, session, store)
     return {
         "run_id": run_id,
         "version_artifact_id": version.artifact_id,
+        "artifact_type": artifact.artifact_type,
+        "sha256": version.sha256,
         "line_id": version.line_id,
         "koncept": version.koncept,
+        "edited_from": artifact.metadata.get("edited_from"),
         "authors": list(version.authors),
         "saved_at": version.saved_at.isoformat(),
+        **_review_fields(artifact, mark),
+        **_approval_fields(artifact, scope, session, store),
         "changes": changes_payload(changes) if changes is not None else None,
     }
+
+
+@router.get(
+    "/research/runs/{run_id}/report/editor/versions/{artifact_id}/download",
+    response_class=Response,
+    summary="Download a saved version of a run's report",
+)
+def download_report_editor_version(
+    run_id: RunIdPath,
+    artifact_id: ArtifactIdPath,
+    scope: StudyScopeDep,
+    session: SessionDep,
+    store: ArtifactStoreDep,
+) -> Response:
+    """Exactly that version's DOCX, with the run's report download's headers (its id, SHA-256
+    and review), so the version a person approves is the one they downloaded. An edited version
+    is not stamped: approved, its file keeps the draft footer, and its name says so
+    (``schvaleno-v-aia``)."""
+    try:
+        scope.require(Permission.EXPORT_DELIVERABLE)
+    except ScopeDenied as exc:
+        raise _refused(exc) from exc
+    version, artifact, _changes = _version(run_id, artifact_id, scope, session, store)
+    exported = _export(artifact, scope, session, store)
+    return Response(
+        content=exported.data,
+        media_type=INTERNAL_REPORT_MEDIA_TYPE,
+        headers=_review_headers(
+            exported.mark,
+            _report_filename(
+                scope.study_id,
+                run_id,
+                _file_variant(version),
+                exported.mark,
+                "docx",
+                stamped=exported.stamped,
+            ),
+        ),
+    )

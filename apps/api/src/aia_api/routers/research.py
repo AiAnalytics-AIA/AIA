@@ -57,6 +57,7 @@ from aia_core.application.report_approval import (
     ReportNotApprovable,
     approve_report,
 )
+from aia_core.application.report_editor_saves import approved_versions
 from aia_core.application.report_export import (
     Export,
     ReviewUnrecorded,
@@ -2379,6 +2380,19 @@ def run_report(
         "approval_renders_pdf": approval_renders_pdf(
             scope, artifact, mark, pdf_ready=pdf is not None and pdf.get("state") == PdfState.READY
         ),
+        # The versions edited in the report editor that a person approved (RPT8c): approving
+        # one leaves this composed draft a draft, so the status names them beside it.
+        "approved_edits": [
+            {
+                "artifact_id": version.artifact_id,
+                "line_id": version.line_id,
+                "koncept": version.koncept,
+                **_review_fields(edited, _mark(edited, scope, session, store)),
+            }
+            for version, edited in approved_versions(
+                session, scope, store, run_id=run_id, variant="internal"
+            )
+        ],
     }
 
 

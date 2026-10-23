@@ -753,32 +753,83 @@ def test_a_save_naming_another_organizations_member_is_refused(
 def test_an_edited_version_says_what_it_changed_and_is_approved_as_itself(
     app: FastAPI, researcher: TestClient, client: TestClient, world: Any, saves: Saves
 ) -> None:
+    from aia_core.infrastructure.tables import ApprovalDecisionRow
+    from sqlalchemy import func, select
+
     run_id, draft = _reported_run(app, researcher, world)
+    other_run, _ = _reported_run(app, researcher, world, title="Večerní nápoj")
     config = researcher.post(_editor(world, run_id), json={}).json()["config"]
-    url = saves.put(_docx("50 %"))
     me = world.users["researcher"]
+    url = saves.put(_docx("50 %"))
     assert _callback(client, config, status=6, url=url, users=[me]).json() == {"error": 0}
     edited = researcher.post(_editor(world, run_id), json={}).json()["version_artifact_id"]
+    versions = f"{_editor(world, run_id)}/versions"
 
-    first = researcher.get(f"{_editor(world, run_id)}/versions/{draft}/changes")
+    first = researcher.get(f"{versions}/{draft}")
     assert first.status_code == 200 and first.json()["koncept"] == 1
     assert first.json()["changes"] is None  # the composer's own changed nothing
-    said = researcher.get(f"{_editor(world, run_id)}/versions/{edited}/changes").json()
-    assert said["koncept"] == 2 and said["authors"] == [me]
+    said = researcher.get(f"{versions}/{edited}").json()
+    assert said["koncept"] == 2 and said["authors"] == [me] and said["edited_from"] == draft
+    assert said["review_state"] == "DRAFT_UNAPPROVED" and said["approval"] is None
     assert said["changes"]["uncomparable"] is None
     assert said["changes"]["changes"] == [
         {"kind": "changed", "tag": "trust_total", "was": "42,5 %", "now": "50 %", "paragraph": None}
     ]
-    other = f"{API}/studies/{world.study_id()}/research/runs/RUN-0/report/editor"
-    assert researcher.get(f"{other}/versions/{edited}/changes").status_code == 404
+    # Never under another run of the study, nor another study's path.
+    assert researcher.get(f"{_editor(world, other_run)}/versions/{edited}").status_code == 404
+    sibling = f"{API}/studies/{world.study_id('sibling')}/research/runs/{run_id}/report/editor"
+    assert researcher.get(f"{sibling}/versions/{edited}").status_code == 404
 
-    runs = f"{API}/studies/{world.study_id()}/research/runs/{run_id}"
-    approved = researcher.post(f"{runs}/report/approve", json={"artifact_id": edited})
+    runs = f"{API}/studies/{world.study_id()}/research/runs"
+    wrong = researcher.post(f"{runs}/{other_run}/report/approve", json={"artifact_id": edited})
+    assert wrong.status_code == 409 and wrong.json()["code"] == "report_not_approvable"
+    approved = researcher.post(f"{runs}/{run_id}/report/approve", json={"artifact_id": edited})
     assert approved.status_code == 200, approved.text
     body = approved.json()
     assert body["artifact_id"] == edited and body["report_kind"] == "internal"
     assert body["artifact_type"] == "research_internal_docx_edit"
     assert body["internal_only"] is True
+    again = researcher.post(f"{runs}/{run_id}/report/approve", json={"artifact_id": edited})
+    assert again.status_code == 200, again.text
+
+    # Approved as itself: one decision, frozen, said by the version and by the run's status.
+    factory = create_session_factory(app.state.engine)
+    with factory() as session:
+        rows = session.scalar(
+            select(func.count())
+            .select_from(ApprovalDecisionRow)
+            .where(ApprovalDecisionRow.subject_id == edited)
+        )
+        assert rows == 1
+        principal = AuthenticatedPrincipal(user_id=me, organization_id=world.organization_id)
+        scope = ScopeResolver(session).study_context(principal, study_id=world.study_id())
+        frozen = research_artifacts(session, scope, app.state.artifact_store).get(edited)
+        assert frozen.is_approved and frozen.is_frozen
+    now = researcher.get(f"{versions}/{edited}").json()
+    assert now["review_state"] == "APPROVED_INTERNAL" and now["approval"]["by_you"] is True
+    status_ = researcher.get(f"{runs}/{run_id}/report").json()
+    assert status_["artifact_id"] == draft and status_["review_state"] == "DRAFT_UNAPPROVED"
+    (named,) = status_["approved_edits"]
+    assert named["artifact_id"] == edited
+    assert named["koncept"] == 2 and named["review_state"] == "APPROVED_INTERNAL"
+
+    # Downloaded as exactly the version approved, its draft footer said in its name.
+    got = researcher.get(f"{versions}/{edited}/download")
+    assert got.status_code == 200 and got.content == _docx("50 %")
+    assert got.headers["X-AIA-Artifact-Id"] == edited
+    assert got.headers["X-AIA-Review-State"] == "APPROVED_INTERNAL"
+    assert "schvaleno-v-aia" in got.headers["Content-Disposition"]
+
+    # A later save is the next koncept; the approved version stays as it was.
+    later = saves.put(_docx("55 %"))
+    assert _callback(client, config, status=6, url=later, users=[me]).json() == {"error": 0}
+    assert researcher.post(_editor(world, run_id), json={}).json()["koncept"] == 3
+    assert researcher.get(f"{versions}/{edited}/download").content == _docx("50 %")
+
+    # Readable with the editor off: an approved version is no editing session's.
+    app.state.settings = app.state.settings.model_copy(update={"onlyoffice_callback_base": ""})
+    assert researcher.get(f"{versions}/{edited}").status_code == 200
+    assert researcher.get(f"{versions}/{edited}/download").status_code == 200
 
 
 def test_no_author_of_an_edited_version_approves_it_where_self_approval_is_off(
@@ -814,3 +865,26 @@ def test_no_author_of_an_edited_version_approves_it_where_self_approval_is_off(
         assert refused.status_code == 403 and refused.json()["code"] == "separation_of_duties"
     approved = outsider.post(approve, json={"artifact_id": edited})
     assert approved.status_code == 200, approved.text
+
+
+def test_a_co_author_who_approves_an_edited_version_is_recorded_as_self_approving(
+    app: FastAPI,
+    researcher: TestClient,
+    lead: TestClient,
+    client: TestClient,
+    world: Any,
+    saves: Saves,
+) -> None:
+    """Self-approval on (the default): the save's second author may approve, and the ledger
+    says it is their own work, though the artifact records the first author as producer."""
+    run_id, _ = _reported_run(app, researcher, world)
+    config = researcher.post(_editor(world, run_id), json={}).json()["config"]
+    lead.post(_editor(world, run_id), json={})
+    users = [world.users["researcher"], world.users["lead"]]
+    url = saves.put(_docx("50 %"))
+    assert _callback(client, config, status=6, url=url, users=users).json() == {"error": 0}
+    edited = researcher.post(_editor(world, run_id), json={}).json()["version_artifact_id"]
+    approve = f"{API}/studies/{world.study_id()}/research/runs/{run_id}/report/approve"
+    assert lead.post(approve, json={"artifact_id": edited}).status_code == 200
+    said = lead.get(f"{_editor(world, run_id)}/versions/{edited}").json()["approval"]
+    assert said["self_approved"] is True and said["by_you"] is True

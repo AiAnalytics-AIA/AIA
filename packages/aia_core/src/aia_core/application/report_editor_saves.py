@@ -32,6 +32,7 @@ from aia_core.domain.report.saved_changes import (
     read_changes_payload,
 )
 from aia_core.domain.scope import Permission, StudyContext
+from aia_core.infrastructure.artifact_repository import Artifact, ArtifactNotFound
 from aia_core.infrastructure.editor_fetch import SaveFetcher, SaveFetchRefused, allowed
 from aia_core.infrastructure.report_docx.census import census
 from aia_core.infrastructure.report_editor_repository import (
@@ -41,7 +42,14 @@ from aia_core.infrastructure.report_editor_repository import (
 )
 from aia_core.infrastructure.storage import ArtifactStore, IntegrityError, ObjectNotFound
 
-__all__ = ["SaveNotStored", "StoredSave", "VersionNotFound", "store_save", "version_changes"]
+__all__ = [
+    "SaveNotStored",
+    "StoredSave",
+    "VersionNotFound",
+    "approved_versions",
+    "store_save",
+    "version_changes",
+]
 
 
 class VersionNotFound(LookupError):
@@ -188,13 +196,42 @@ def _store(
 
 def version_changes(
     session: Session, scope: StudyContext, store: ArtifactStore, *, run_id: str, artifact_id: str
-) -> tuple[EditorVersion, SavedChanges | None]:
-    """A version of one of ``run_id``'s lines and what it changed in the numbers code wrote,
-    as stored beside it; ``None`` for koncept 1, the composer's own, which changed nothing."""
+) -> tuple[EditorVersion, Artifact, SavedChanges | None]:
+    """A version of one of ``run_id``'s lines, its artifact, and what it changed in the numbers
+    code wrote, as stored beside it; ``None`` for koncept 1, the composer's own, which changed
+    nothing."""
+    scope.require(Permission.VIEW_RESULTS)
     version = ReportEditorRepository(session, scope).version(artifact_id)
     if version is None or version.run_id != run_id:
         raise VersionNotFound(artifact_id)
+    artifacts = research_artifacts(session, scope, store)
+    try:
+        artifact = artifacts.get(version.artifact_id)
+    except ArtifactNotFound as exc:  # its row outlived the artifact: nothing to serve
+        raise VersionNotFound(artifact_id) from exc
     if version.changes_artifact_id is None:
-        return version, None
-    data = research_artifacts(session, scope, store).read(version.changes_artifact_id)
-    return version, read_changes_payload(json.loads(data))
+        return version, artifact, None
+    data = artifacts.read(version.changes_artifact_id)
+    return version, artifact, read_changes_payload(json.loads(data))
+
+
+def approved_versions(
+    session: Session,
+    scope: StudyContext,
+    store: ArtifactStore,
+    *,
+    run_id: str,
+    variant: str,
+    deep_research_run_id: str | None = None,
+) -> list[tuple[EditorVersion, Artifact]]:
+    """The run's edited versions of ``variant`` a person approved, oldest first: what a run's
+    report status names beside its composed draft, which an approved edit leaves a draft."""
+    artifacts = research_artifacts(session, scope, store)
+    found = []
+    for version in ReportEditorRepository(session, scope).edited_versions(
+        run_id=run_id, variant=variant, deep_research_run_id=deep_research_run_id
+    ):
+        artifact = artifacts.get(version.artifact_id)
+        if artifact.is_approved:
+            found.append((version, artifact))
+    return sorted(found, key=lambda pair: (pair[0].saved_at, pair[0].koncept))
