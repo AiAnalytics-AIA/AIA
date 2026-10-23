@@ -86,6 +86,11 @@ try {
   assert(await page.getByText("Typ databáze, ve které AIA ukládá pracovní obsah a historii.").isVisible());
   checks.push("Reference search finds purpose as well as identifiers; technical settings explain their ownership");
   await tab("access");
+  // A client's posture and wallet ceiling are read here (#853) and set on its profile (D-17): until the
+  // route is deployed each row says so, never OPEN and never a ceiling of 0.
+  await page.locator("[data-client] [data-not-yet]").first().waitFor();
+  assert.equal(await page.locator("[data-client]").count(), await page.locator("[data-client] [data-not-yet]").count(), "access: every client's rules not in AIA yet");
+  assert.equal(await page.locator('[data-client] [data-client-rules="read"]').count(), 0, "access: no client rules invented");
   const email = `ux.settings.${Date.now()}@example.invalid`;
   // The redesign (settings-redesign 3): add in an inline row, name and role changed where they are shown.
   await page.getByRole("button", { name: "+ Přidat člena", exact: true }).click();

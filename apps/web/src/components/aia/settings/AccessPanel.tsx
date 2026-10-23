@@ -4,23 +4,25 @@
 // 8W9LR8Ju9BWnR5JACmiWv7, Access board): members with their role chosen in the row, the roles
 // explained, self-approval above the clients, and each client's status and self-approval chosen
 // in its row. Every change is one API call made where the value is shown (input standard I3/I4);
-// a role change offers Vrátit for 8 s (I6). What AIA does not have yet -- the Metodik mark,
-// deactivating a member, a client's data posture and wallet ceiling -- says so in its place.
+// a role change offers Vrátit for 8 s (I6). A client's data posture and wallet ceiling are read
+// here (#853) and set on its Profil → Pravidla (D-17). What AIA does not have yet -- the Metodik
+// mark, deactivating a member -- says so in its place.
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { type KeyboardEvent, type ReactNode, useEffect, useRef, useState } from "react";
 
 import { t, tv } from "@/i18n/t";
-import { type AdminClient, type Member, type SelfApprovalLevels, type Vocabularies, Unauthenticated, admin } from "@/lib/api";
+import { type AdminClient, type ClientRules, type Member, type SelfApprovalLevels, type Vocabularies, ApiError, Unauthenticated, admin, clientRules } from "@/lib/api";
 import { appRoutes } from "@/lib/app-routes";
 import type { SaveState } from "@/lib/inline-edit";
+import { usd } from "@/lib/researcher-spend";
 import { ChoiceChips } from "../../ui/ChoiceChips";
 import { InlineText } from "../../ui/InlineText";
 import { FOCUS, SaveNote } from "../../ui/parts";
 import { UndoToast, useUndo } from "../../ui/UndoToast";
 import { Button } from "../../rehome/ui";
-import { describeMemberError } from "./errors";
+import { describeError, describeMemberError } from "./errors";
 
 const P = "aia.settings.panel";
 const A = `${P}.accessTab`;
@@ -324,8 +326,39 @@ export function SelfApprovalCard({ levels, studies, canAdminister, reload }: {
   );
 }
 
-function ClientRow({ c, statuses, self, canAdminister, reload }: {
-  c: AdminClient; statuses: readonly string[]; self: Tri | null; canAdminister: boolean; reload: () => void;
+/** Every client's rules from one read: a 404 is "not in AIA yet", a client not answered for unknown. */
+type RulesRead = { state: "loading" } | { state: "not_yet" } | { state: "ready"; byClient: Map<string, ClientRules> } | { state: "refused"; message: string };
+
+function useClientRules(): RulesRead {
+  const [read, setRead] = useState<RulesRead>({ state: "loading" });
+  useEffect(() => {
+    let live = true;
+    clientRules.list().then(
+      (rows) => { if (live) setRead(Array.isArray(rows) ? { state: "ready", byClient: new Map(rows.map((r) => [r.client_id, r])) } : { state: "refused", message: t(`${A}.rulesMalformed`) }); },
+      (e: unknown) => { if (live) setRead(e instanceof ApiError && e.status === 404 && e.code === "http_404" ? { state: "not_yet" } : { state: "refused", message: describeError(e) }); },
+    );
+    return () => { live = false; };
+  }, []);
+  return read;
+}
+
+function RulesCell({ id, read }: { id: string; read: RulesRead }) {
+  if (read.state === "not_yet") return <NotYetChip />;
+  if (read.state === "loading") return <span data-client-rules="loading" className="text-xs text-ink-faint">…</span>;
+  // A refused read is said once, above the table; here the row is unknown.
+  const r = read.state === "ready" ? read.byClient.get(id) : undefined;
+  if (!r) return <span data-client-rules="unknown" className="text-sm text-ink-muted">{t(`${A}.rulesUnknown`)}</span>;
+  return (
+    <span data-client-rules="read" className="flex flex-wrap items-center gap-x-2 gap-y-1 text-sm">
+      <span className="inline-flex min-h-[22px] items-center rounded-pill border border-border px-2 font-mono text-xs">{t(`${A}.posture.${r.effective_posture}`)}</span>
+      {r.data_posture === null ? <span className="text-xs text-ink-muted">{t(`${A}.postureUnset`)}</span> : null}
+      <span>{r.wallet_ceiling_usd === null ? t(`${A}.noCeiling`) : tv(`${A}.ceilingOf`, { amount: usd(r.wallet_ceiling_usd) })}</span>
+    </span>
+  );
+}
+
+function ClientRow({ c, statuses, self, rules, canAdminister, reload }: {
+  c: AdminClient; statuses: readonly string[]; self: Tri | null; rules: RulesRead; canAdminister: boolean; reload: () => void;
 }) {
   const status = useSave(reload);
   const approval = useSave(reload);
@@ -353,7 +386,7 @@ function ClientRow({ c, statuses, self, canAdminister, reload }: {
         {approval.error ? <p role="alert" className="mt-1 text-xs text-status-fault">{approval.error}</p> : null}
       </div>
       <div role="cell" className="border-t border-border px-2 py-2">
-        <NotYetChip />
+        <RulesCell id={c.client_id} read={rules} />
         <Link href={appRoutes.area(c.client_id, "profile")} className={`mt-1 block text-xs text-signal hover:underline ${FOCUS}`}>{t(`${A}.changeInProfile`)}</Link>
       </div>
     </div>
@@ -364,10 +397,12 @@ export function ClientsCard({ clients, levels, vocab, canAdminister, reload }: {
   clients: Part<AdminClient[]>; levels: Part<SelfApprovalLevels> | null; vocab: Vocabularies; canAdminister: boolean; reload: () => void;
 }) {
   const byClient = new Map(levels?.ok ? levels.data.clients.map((c) => [c.client_id, c.allowed]) : []);
+  const rules = useClientRules();
   return (
     <section id="set-clients" aria-labelledby="set-clients-title" className={CARD}>
       <CardHead title={t(`${P}.clients.title`)}>{clients.ok ? <Count>{tv(`${A}.clientCount`, { n: clients.data.length })}</Count> : null}</CardHead>
       <p className="mt-1 text-xs leading-5 text-ink-muted">{t(`${A}.clientsHelp`)}</p>
+      {rules.state === "refused" ? <p role="alert" className="mt-2 text-sm text-status-fault">{rules.message}</p> : null}
       {!clients.ok ? <p role="alert" className="mt-3 text-sm text-status-fault">{clients.message}</p>
         : !clients.data.length ? <p className="mt-3 text-sm text-ink-muted">{t(`${P}.clients.none`)}</p>
         : (
@@ -379,7 +414,7 @@ export function ClientsCard({ clients, levels, vocab, canAdminister, reload }: {
               <div role="columnheader" className={GRID_HEAD}>{t(`${A}.postureCeiling`)}</div>
             </div>
             {clients.data.map((c) => (
-              <ClientRow key={c.client_id} c={c} statuses={vocab.client_statuses} reload={reload} canAdminister={canAdminister}
+              <ClientRow key={c.client_id} c={c} statuses={vocab.client_statuses} rules={rules} reload={reload} canAdminister={canAdminister}
                 self={levels === null || !levels.ok ? null : tri(byClient.get(c.client_id))} />
             ))}
           </div>

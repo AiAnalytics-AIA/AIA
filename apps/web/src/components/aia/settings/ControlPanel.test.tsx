@@ -285,7 +285,10 @@ describe("the settings control panel", () => {
   });
 
   it("puts self-approval above the clients, and sets a client's status and self-approval in its row", async () => {
-    api({ "GET /api/v1/self-approval": () => ({ organization: true, clients: [{ client_id: "CLI-a", allowed: false }], studies: [{ study_id: "STU-1", client_id: "CLI-a", allowed: true }] }) });
+    api({
+      "GET /api/v1/self-approval": () => ({ organization: true, clients: [{ client_id: "CLI-a", allowed: false }], studies: [{ study_id: "STU-1", client_id: "CLI-a", allowed: true }] }),
+      "GET /api/v1/settings/client-rules": () => new Response('{"code":"http_404","message":"Not Found"}', { status: 404 }),
+    });
     render(<ControlPanel />);
     fireEvent.click(await screen.findByRole("tab", { name: "Přístup a schvalování" }));
     const panel = document.getElementById("panel-access") as HTMLElement;
@@ -306,6 +309,46 @@ describe("the settings control panel", () => {
     const row = panel.querySelector('[data-client="CLI-a"]') as HTMLElement;
     expect(row.parentElement?.querySelector("[data-not-yet]")).toBeTruthy();
     expect(within(panel).getByRole("link", { name: "Změnit v Profil → Pravidla" }).getAttribute("href")).toBe("/app/clients/CLI-a/profile");
+  });
+
+  it("reads each client's data posture and wallet ceiling, an unset posture as CLASSIFIED and no ceiling as bez stropu, never 0", async () => {
+    api({
+      "GET /api/v1/clients": () => [
+        { client_id: "CLI-a", slug: "a", name: "Klient A", status: "ACTIVE", reference: "", study_count: 2, created_at: null },
+        { client_id: "CLI-b", slug: "b", name: "Klient B", status: "ACTIVE", reference: "", study_count: 0, created_at: null },
+        { client_id: "CLI-c", slug: "c", name: "Klient C", status: "ACTIVE", reference: "", study_count: 0, created_at: null },
+      ],
+      "GET /api/v1/settings/client-rules": () => [
+        { client_id: "CLI-a", name: "Klient A", data_posture: "OPEN", effective_posture: "OPEN", wallet_ceiling_usd: 60, set_by: "USR-1", set_at: null },
+        { client_id: "CLI-b", name: "Klient B", data_posture: null, effective_posture: "CLASSIFIED", wallet_ceiling_usd: null, set_by: null, set_at: null },
+      ],
+    });
+    render(<ControlPanel />);
+    fireEvent.click(await screen.findByRole("tab", { name: "Přístup a schvalování" }));
+    const panel = document.getElementById("panel-access") as HTMLElement;
+    const rules = async (id: string) => waitFor(() => {
+      const cell = panel.querySelector(`[data-client="${id}"] [data-client-rules]`) as HTMLElement | null;
+      if (!cell || cell.getAttribute("data-client-rules") === "loading") throw new Error("not read");
+      return cell;
+    });
+    const a = await rules("CLI-a");
+    expect(a.getAttribute("data-client-rules")).toBe("read");
+    expect(within(a).getByText("OPEN")).toBeTruthy();
+    expect(a.textContent?.replace(/\s/g, " ")).toContain("60,00 USD");
+    const b = await rules("CLI-b");
+    expect(within(b).getByText("CLASSIFIED")).toBeTruthy();
+    expect(within(b).getByText("nenastaveno, platí CLASSIFIED")).toBeTruthy();
+    expect(within(b).getByText("bez stropu")).toBeTruthy();
+    expect(b.textContent).not.toMatch(/\b0,00\b/);
+    // A client the list does not answer for is unknown: never OPEN, never "bez stropu".
+    const c = await rules("CLI-c");
+    expect(c.getAttribute("data-client-rules")).toBe("unknown");
+    expect(within(c).getByText("nezjištěno")).toBeTruthy();
+    expect(c.textContent).not.toMatch(/OPEN|bez stropu/);
+    expect(panel.querySelector("[data-client] [data-not-yet]")).toBeNull();
+    // Read-only here: no control changes them, the profile does.
+    expect(a.querySelector("button, input, [role=radio]")).toBeNull();
+    expect(within(panel).getAllByRole("link", { name: "Změnit v Profil → Pravidla" })).toHaveLength(3);
   });
 
   it("sets, clears and adds a study's own self-approval rule, and returns the organization to the default", async () => {

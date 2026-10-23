@@ -1812,6 +1812,12 @@ export const cs = {
           adminOnlyShort: "vidí vlastník nebo správce",
           postureCeiling: "Postoj dat · strop peněženky",
           changeInProfile: "Změnit v Profil → Pravidla",
+          posture: { OPEN: "OPEN", CLASSIFIED: "CLASSIFIED" },
+          postureUnset: "nenastaveno, platí CLASSIFIED",
+          noCeiling: "bez stropu",
+          ceilingOf: "strop peněženky {amount}",
+          rulesUnknown: "nezjištěno",
+          rulesMalformed: "Pravidla klientů přišla v nečitelném tvaru.",
         },
         approvals: {
           title: "Samoschválení",

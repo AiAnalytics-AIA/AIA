@@ -1933,6 +1933,20 @@ export const settingsStatus = {
   errorTracking: () => request<ErrorTracking>("GET", "/api/v1/settings/error-tracking"),
 };
 
+/** A client's rules (#853, SB7), read by any member; set on the client's Profil → Pravidla. */
+export type ClientRules = {
+  client_id: string; name: string;
+  /** As stored; null: never set, which reads as CLASSIFIED (effective_posture), never open. */
+  data_posture: "OPEN" | "CLASSIFIED" | null;
+  effective_posture: "OPEN" | "CLASSIFIED";
+  /** null: no ceiling ("bez stropu"), never 0. */
+  wallet_ceiling_usd: number | null;
+  set_by: string | null; set_at: string | null;
+};
+export const clientRules = {
+  list: () => request<ClientRules[]>("GET", "/api/v1/settings/client-rules"),
+};
+
 /** Správa dat (#850): a client's deletion, OWNER or ADMIN. */
 export type ClientDeletionPreview = {
   client_id: string; name: string; status: string;
