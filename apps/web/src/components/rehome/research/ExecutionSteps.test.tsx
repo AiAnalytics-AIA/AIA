@@ -1808,6 +1808,28 @@ describe("Results", () => {
     expect(document.querySelector("[data-aggregate-deviation]")).toBeNull(); // the unit's port
   });
 
+  it("names a completed module with no supported finding as what the report waits on, never as still running (9b)", async () => {
+    const done = run({ ...COMPLETED, steps: [...COMPLETED.steps,
+      step("analysis_executive", "SUCCEEDED", { kind: "research_analysis", artifact_id: "ART-6" }),
+    ] });
+    api({ ...listed(done),
+      "GET /api/v1/studies/STU-1/research/runs/RUN-1/artifacts/ART-4": () => AGGREGATE,
+      "GET /api/v1/studies/STU-1/research/runs/RUN-1/artifacts/ART-5": () => SOCIOMAP,
+      "GET /api/v1/studies/STU-1/research/runs/RUN-1/analysis": () => ({ complete: false, holding: ["executive"], synthetic: true, pending: {}, modules: {
+        executive: { outcome: "COMPLETED", summary: "Nic doloženého.", research_question_answers: [], key_findings: [], claims: [], violations: [] },
+      } }),
+    });
+    render(<ResearchScreen step="results" frame={TEST_FRAME} />);
+    fireEvent.click(await screen.findByRole("tab", { name: "AI analýza" }));
+    const overview = await waitFor(() => {
+      const el = document.querySelector("[data-analysis-overview]");
+      if (!el) throw new Error("no overview");
+      return el;
+    });
+    expect(overview.textContent).toMatch(/Zpráva čeká, dokud tyto části analýzy neuvedou doložené zjištění: .+\./);
+    expect(overview.textContent).not.toContain("Zbývající části ještě čekají");
+  });
+
   it("shows artifact outcomes rather than workflow completion and hides validation codes in details", async () => {
     const partial = run({ ...COMPLETED, steps: [...COMPLETED.steps,
       step("analysis_executive", "SUCCEEDED", { kind: "research_analysis", artifact_id: "ART-6" }),
@@ -3349,6 +3371,27 @@ describe("Interpretation research", () => {
     fireEvent.click(use);
     expect(called("POST", "/api/v1/studies/STU-1/research/runs/RUN-1/report/context")).toHaveLength(0);
     expect(called("GET", "/api/v1/studies/STU-1/research/runs/RUN-1/report/context/download")).toHaveLength(0);
+  });
+  it("names the module with no supported finding that holds the report with literature (9b)", async () => {
+    const completed = run({ ...COMPLETED, steps: [...COMPLETED.steps,
+      step("analysis_research_questions", "SUCCEEDED", { kind: "research_analysis", artifact_id: "ART-questions" })] });
+    const review = { run_id: "RUN-deep", purpose: "INTERPRETATION_RESEARCH", target: { research_run_id: "RUN-1" },
+      preset: "QUICK", status: "COMPLETED", phase: "COMPLETED", is_terminal: true, retryable: false,
+      created_at: null, actual_cost_usd: 0.8, steps: [] };
+    api({ ...listed(completed),
+      "GET /api/v1/studies/STU-1/research/runs/RUN-1/artifacts/ART-4": () => AGGREGATE,
+      "GET /api/v1/studies/STU-1/research/runs/RUN-1/artifacts/ART-5": () => SOCIOMAP,
+      "GET /api/v1/studies/STU-1/research/runs/RUN-1/analysis": () => ({ complete: false, holding: ["executive"], pending: {}, modules: {
+        executive: { outcome: "COMPLETED", summary: "Nic doloženého.", research_question_answers: [], key_findings: [], claims: [], violations: [] } } }),
+      "GET /api/v1/studies/STU-1/deep-research/runs": () => [review],
+      "GET /api/v1/studies/STU-1/deep-research/runs/RUN-deep/bundle": () => ({ quality_status: "NO_EVIDENCE", accepted: [], snapshots: [], quarantined: [], sha256: "bundle-1" }),
+    });
+    render(<ResearchScreen step="results" frame={TEST_FRAME} />);
+    fireEvent.click(await screen.findByRole("tab", { name: "Rešerše a zpráva" }));
+    // The card's own status line, not the analysis overview elsewhere on the page.
+    await waitFor(() => expect([...document.querySelectorAll("[role=status]")].some((e) => /^Zpráva čeká, dokud tyto části analýzy neuvedou doložené zjištění: .+\.$/.test(e.textContent ?? ""))).toBe(true));
+    expect(screen.queryByText(/Analýza běhu není úplná/)).toBeNull();
+    expect((screen.getByRole("button", { name: "Použít ve zprávě" }) as HTMLButtonElement).disabled).toBe(true);
   });
   it("shows every word of the review, formatted: findings, sources, gaps and rejections with their reasons, the draft by section", async () => {
     const completed = run({ ...COMPLETED, steps: [...COMPLETED.steps,

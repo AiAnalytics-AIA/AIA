@@ -1214,6 +1214,9 @@ export type ResearchRunSummary = ResearchRun;
 export type ResearchAnalysis = {
   run_id: string;
   complete: boolean;
+  /** The modules the report waits on (evidence-integrity 9b): not stored, not completed, or with no
+   *  supported finding; absent from an API before it. */
+  holding?: string[];
   internal_only: true;
   synthetic: boolean;
   modelled?: boolean;
