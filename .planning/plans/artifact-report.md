@@ -12,7 +12,7 @@ chunks:
   - "[ ] RPT7. Journey: Zpráva at 1440, 1100, 768 and 390 px, a fictional run's internal draft, zero paid jobs (extended by RPT9's suggestion step)"
   - "[ ] RPT8. The editor is Zpráva's main surface: the stored draft opened in ONLYOFFICE Docs (Q35), the researcher editing directly, every number code wrote a locked, tagged control whose edits are shown, never refused (ADR 0035, amended 2026-10-22; split 2026-10-22: RPT8a-d)"
   - "[ ] RPT8a. Every printed number a locked content control tagged with its source (the editor spike's F-ED1): ledger values in prose, table cells, captions (part 1); KPI tiles, figures, the evidence appendix, suppressed counts (part 2); the map, design, run and bundle spans (part 3; the map locked and tagged like the rest, the owner 2026-10-22)"
-  - "[ ] RPT8b. What a saved version changed: each tagged number edited or removed and each number typed outside one, shown as \"Upraveno ručně\", never refusing (changed 2026-10-22: the owner, ADR 0035 amended)"
+  - "[x] RPT8b. What a saved version changed: each tagged number edited or removed and each number typed outside one, shown as \"Upraveno ručně\", never refusing (changed 2026-10-22: the owner, ADR 0035 amended)"
   - "[ ] RPT8c. The editor routes behind AIA_ONLYOFFICE_URL (unset: off): the config with its JWT and the docs ticket, the signed document URL, the callback storing every save as the next version (the hosting contract, report-editor-hosting); the internal draft and the report with literature"
   - "[ ] RPT8d. The pane opens the newest version in the editor from 768 px (view mode below), its doc bar naming the version and its \"Upraveno ručně\" changes; the read-only document stays where the editor is off"
   - "[ ] RPT9. The Lead edits the same document: inline suggestions as tracked changes under the Lead's own name, with why, accepted or rejected one by one or all; direct edits per the researcher's setting (Q13) still attributed; every edit through the edit ops, every number a ledger ref passing the sentence check before accept"
@@ -307,6 +307,25 @@ with the version as its own small JSON; read by the pane (RPT8d) and the approva
 number retyped, one control deleted, one digit typed into prose and one paragraph moved reports exactly the first
 three; a save with prose edits only reports nothing; a version with no stored model reads "nelze porovnat", never
 "beze změn".
+
+*RPT8b (`feature/report-saved-changes`):* `domain/report/saved_changes.py` compares two censuses (`compare`):
+`changed`, `removed` and `added` controls by the multiset of (tag, text), paired per tag in document order, and
+`typed` numbers outside every control, reported only where the save holds more of that number than the baseline
+*and* holds it in a paragraph the baseline did not, so prose edited around a cover date or a heading's number is no
+change, and neither is a number moved with its paragraph. No baseline is `no_baseline`, a baseline with no locked
+control (rendered before RPT8a) `no_controls`: `comparable` false, never an empty list read as "beze změn". The
+stored form is `aia-report-changes-1` (`changes_payload` / `read_changes_payload`, another contract refused);
+RPT8c stores it beside each version, RPT8d draws it. `infrastructure/report_docx/census.py` (`census`) reads a
+DOCX's body alone: controls whose tag is in the grammar, numbers outside them and outside every field's instruction
+and cached result (a TOC page, a SEQ caption number an editor updates on its own). The baseline is the line's
+koncept 1 as the composer stored it, which *is* the stored model rendered (the renderer is deterministic, RPT8a),
+so nothing is rendered twice and a model whose figures are not in its JSON is never needed. A saved file is read as
+a stranger's: `check_zip_bounds` and `refuse_dtd` before the parse, lxml without entities or network. Tests:
+`test_report_docx_census.py` (`test_a_save_reports_the_retyped_the_deleted_and_the_typed_but_not_the_moved`,
+`test_a_save_of_prose_edits_only_reports_nothing`, `test_a_fields_result_is_left_to_the_editor`,
+`test_a_draft_rendered_without_controls_cannot_be_compared`, `test_a_saved_file_is_read_as_a_strangers`) and
+`test_report_saved_changes.py`. Whether ONLYOFFICE keeps the tags as written is checked when RPT8c first opens a
+draft.
 
 **RPT8c. The editor routes, behind `AIA_ONLYOFFICE_URL` and `AIA_ONLYOFFICE_JWT_SECRET` (both unset: every route
 404, the product unchanged).** ONLYOFFICE is served from its own registrable domain and guarded by its JWT alone
