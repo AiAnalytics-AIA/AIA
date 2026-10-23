@@ -537,22 +537,43 @@ describe("the settings tabs", () => {
     window.history.replaceState(null, "", "/app/settings");
   });
 
-  it("groups all eight settings tabs by purpose and opens on methodology", async () => {
+  it("groups all ten settings tabs by purpose, each with its subtitle and icon, and opens on methodology", async () => {
     api();
     render(<ControlPanel />);
     await screen.findByRole("tablist", { name: "Oddíly nastavení" });
     expect(screen.getAllByRole("tab").map((t) => t.getAttribute("aria-label"))).toEqual([
-      "Metodika", "Systémové prompty", "Deep Research", "AI běh", "Přístup a schvalování", "Studie a rozpočty", "Audit", "Reference",
+      "Metodika", "Systémové prompty", "Deep Research", "AI běh", "Přístup a schvalování", "Studie a rozpočty", "Audit", "Stav systému", "Reference", "Správa dat",
     ]);
     expect(screen.getByRole("group", { name: "Nastavení výzkumu" })).toBeTruthy();
-    expect(screen.getByRole("group", { name: "Tým a útrata" })).toBeTruthy();
+    expect(screen.getByRole("group", { name: "Tým a peníze" })).toBeTruthy();
+    expect(screen.queryByRole("group", { name: "Tým a útrata" })).toBeNull();
     expect(screen.getByRole("group", { name: "Provoz" })).toBeTruthy();
+    // Each tab names what it holds under its title, and carries a decorative icon.
+    expect(tab("Metodika").textContent).toContain("Jak se počítají mapy a čísla");
+    expect(tab("AI běh").textContent).toContain("Co pohání AI · jen ke čtení");
+    expect(tab("Správa dat").textContent).toContain("Smazání klienta, uchovávané záznamy");
+    for (const t of screen.getAllByRole("tab")) expect(t.querySelector("svg[aria-hidden='true']")).toBeTruthy();
     expect(tab("Metodika").getAttribute("aria-selected")).toBe("true");
     expect(panelOf("Metodika").hidden).toBe(false);
-    for (const other of ["Systémové prompty", "Deep Research", "AI běh", "Přístup a schvalování", "Studie a rozpočty", "Audit", "Reference"]) {
+    for (const other of ["Systémové prompty", "Deep Research", "AI běh", "Přístup a schvalování", "Studie a rozpočty", "Audit", "Stav systému", "Reference", "Správa dat"]) {
       expect(panelOf(other).hidden).toBe(true);
       expect(tab(other).getAttribute("aria-selected")).toBe("false");
     }
+  });
+
+  it("opens Stav systému and Správa dat as their own tabs, saying plainly what AIA does not have yet", async () => {
+    api();
+    render(<ControlPanel />);
+    await screen.findByRole("tablist");
+    fireEvent.click(tab("Stav systému"));
+    expect(panelOf("Stav systému").hidden).toBe(false);
+    expect(within(panelOf("Stav systému")).getByRole("heading", { name: "Připravenost po nasazení" })).toBeTruthy();
+    expect(within(panelOf("Stav systému")).getByRole("heading", { name: "Hlášení chyb" })).toBeTruthy();
+    expect(within(panelOf("Stav systému")).getAllByText("V AIA zatím není").length).toBeGreaterThan(0);
+    fireEvent.click(tab("Správa dat"));
+    expect(within(panelOf("Správa dat")).getByRole("heading", { name: "Smazat klienta" })).toBeTruthy();
+    expect(within(panelOf("Správa dat")).getByRole("heading", { name: "Uchovávané záznamy" })).toBeTruthy();
+    expect(window.location.hash).toBe("#data");
   });
 
   it("puts each group where its tab says, and the read-only material under Reference", async () => {
