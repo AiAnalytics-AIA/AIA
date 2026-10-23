@@ -270,6 +270,42 @@ describe("Audience", () => {
       noUnitCalls();
     });
 
+    it("Discover's product and success criterion are edited in place: leaving saves, Esc restores (audit B11)", async () => {
+      aiaStub({ ui_state: ANALYTICS, n: 500, audience: { strategy: "discover", source_mode: "population", success_definition: "Koupí za 220 Kč" } }, live());
+      render(<ResearchScreen step="audience" frame={TEST_FRAME} />);
+      const SUCCESS = "Co má ideální člověk udělat / jak poznáme úspěch?";
+      fireEvent.click(await screen.findByRole("button", { name: new RegExp(`${SUCCESS.replace(/[?/]/g, "\\$&")}.*Koupí za 220 Kč`) }));
+      const field = screen.getByRole("textbox", { name: SUCCESS });
+      fireEvent.change(field, { target: { value: "Zahodí to" } });
+      fireEvent.keyDown(field, { key: "Escape" });
+      // Esc restores: the field closes on the stored value, the typed one gone.
+      expect(screen.queryByRole("textbox", { name: SUCCESS })).toBeNull();
+      expect(screen.queryByText("Zahodí to")).toBeNull();
+      fireEvent.click(screen.getByRole("button", { name: new RegExp("Koupí za 220 Kč") }));
+      const again = screen.getByRole("textbox", { name: SUCCESS });
+      fireEvent.change(again, { target: { value: "Koupí a doporučí" } });
+      fireEvent.blur(again);
+      await saved();
+      expect(lastSave().content.audience).toMatchObject({ success_definition: "Koupí a doporučí" });
+      expect(saves.some((x) => JSON.stringify(x.content).includes("Zahodí to"))).toBe(false);
+      // Optional, as it was: emptied, it is saved empty rather than refused.
+      fireEvent.click(screen.getByRole("button", { name: new RegExp("Koupí a doporučí") }));
+      const third = screen.getByRole("textbox", { name: SUCCESS });
+      fireEvent.change(third, { target: { value: "" } });
+      fireEvent.blur(third);
+      await waitFor(() => expect(lastSave().content.audience).toMatchObject({ success_definition: "" }));
+      noUnitCalls();
+    });
+
+    it("announces how many values a long factor's filter shows, as the person types", async () => {
+      const many = { ...CATALOGUE.factors[1]!, id: "obec", column: "obec", label: "Obec", values: Array.from({ length: 20 }, (_, i) => ({ value: `Obec ${i + 1}`, count: 100 - i })) };
+      aiaStub({ ui_state: ANALYTICS, n: 500, audience: { strategy: "filters", source_mode: "population", filters: {} } }, { [CAT]: () => ({ ...CATALOGUE, factors: [...CATALOGUE.factors, many] }) });
+      render(<ResearchScreen step="audience" frame={TEST_FRAME} />);
+      fireEvent.change(await screen.findByLabelText("Hledat hodnotu: Obec"), { target: { value: "obec 2" } });
+      expect(screen.getByText("Zobrazeno 2 z 20 hodnot.").getAttribute("aria-live")).toBe("polite"); // the count alone
+      noUnitCalls();
+    });
+
     it("names the description, the filters, each stored filter and the preview for the Lead to focus", async () => {
       // prijem is outside the category the editor opens on, so its editor is not drawn: its
       // target is the chip every stored filter has.

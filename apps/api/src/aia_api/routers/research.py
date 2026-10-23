@@ -98,6 +98,7 @@ from aia_core.application.research import (
 )
 from aia_core.application.sociomapping_report import SOCIOMAPPING_REPORT_ARTIFACT_TYPE
 from aia_core.application.workflows import StartedRun
+from aia_core.domain.analysis.artifact import finding_diagnostic
 from aia_core.domain.analysis.steps import ANALYSIS_STEP_KIND
 from aia_core.domain.answerability import (
     ANSWERABILITY_RULES,
@@ -2181,7 +2182,10 @@ def run_analysis(
     the internal report prints beside it, so Results never reads such an answer as measured.
     ``external_context``: the pinned Design Research findings the modules were shown as context,
     as shown, from the same verified read as the modules' sources; ``None`` without a pin or
-    before any module has an outcome."""
+    before any module has an outcome.
+    Each module carries ``diagnostic``: ``{reason, resolutions}`` when it states nothing --
+    ``no_supported_finding`` where the run held its context (what the report's refusal, 9b, will
+    read; MVPQ-04, Q72) or ``context_missing`` where the run lacks it -- else ``None``."""
     try:
         scope.require(Permission.EDIT_STUDY)
         analysis = reconstruct_run(session, scope, store, run_id=run_id)
@@ -2266,6 +2270,11 @@ def run_analysis(
                     }
                     for violation in outcome.violations
                 ],
+                # A module a model completed without one key finding: never a finding
+                # (MVPQ-04, evidence-integrity 9a).
+                "diagnostic": finding_diagnostic(
+                    outcome.record, same_data_tried=module in analysis.retried
+                ),
             }
             for module, outcome in analysis.modules.items()
         },

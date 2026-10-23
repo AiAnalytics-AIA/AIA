@@ -15,7 +15,8 @@ import { type DragEvent, type ReactNode, createContext, useContext, useEffect, u
 
 import { t, tv } from "@/i18n/t";
 import { hashTarget, questionElementId, questionnairePlace, setElementId } from "@/lib/answerability";
-import { workspace } from "@/lib/api";
+import { ApiError, workspace } from "@/lib/api";
+import { fileProblem, uploadProblem } from "@/research/brief-upload";
 import { saveBlob } from "@/lib/download";
 import { fileToBase64 } from "@/research/brief";
 import {
@@ -438,6 +439,14 @@ function Choose({ onPick, children }: { onPick: (x: QuestionnairePath) => void; 
   );
 }
 
+/** Why a file did not import, in Czech, named by the file. A 422 the import itself gave carries the
+ * person's Czech words (questionnaire_import.py); the schema's and base64's refusals, an empty or too
+ * large file and a connection that failed are said in the Brief's upload words (brief-upload.ts). */
+function importProblem(e: unknown, filename: string): string {
+  if (e instanceof ApiError && e.status === 422 && e.code !== "validation_error" && e.code !== "not_base64") return e.message;
+  return `${filename}: ${uploadProblem(e)}`;
+}
+
 /**
  * uploadQuestionnaireFile: AIA reads the file (ADR 0018), and its sections replace
  * this questionnaire's. The template is AIA's own workbook; its second sheet, NAVOD,
@@ -453,10 +462,18 @@ function Upload() {
   const [over, setOver] = useState(false);
 
   const load = async (f: File | undefined) => {
+    // The same file picked again must fire a change, whatever happened to this one.
+    if (input.current) input.current.value = "";
     if (!f) return setStatus({ kind: "error", message: UPLOAD_NO_FILE });
+    // An empty or too large file is said before its bytes are sent: the API's refusal of one is English.
+    const refused = fileProblem(f.size);
+    if (refused) return setStatus({ kind: "error", message: importProblem(refused, f.name) });
     setStatus({ kind: "loading" });
+    let read = false;
     try {
-      const r = await workspace.importQuestionnaire(frame.studyId, { filename: f.name, data_b64: await fileToBase64(f) });
+      const data_b64 = await fileToBase64(f);
+      read = true;
+      const r = await workspace.importQuestionnaire(frame.studyId, { filename: f.name, data_b64 });
       const before = store.get().project;
       const imported = applyImport(before, r, template);
       store.update(() => ({ project: imported.project }), { reason: "questionnaire_import" });
@@ -488,9 +505,8 @@ function Upload() {
       }
       setStatus(null);
     } catch (e) {
-      setStatus({ kind: "error", message: e instanceof Error ? e.message : String(e) });
-    } finally {
-      if (input.current) input.current.value = "";
+      // A file the browser could not read was never sent: no connection is to blame.
+      setStatus({ kind: "error", message: read ? importProblem(e, f.name) : `${f.name}: ${t("research.questionnaire.fileUnreadable")}` });
     }
   };
 
@@ -498,7 +514,8 @@ function Upload() {
     try {
       saveBlob(await workspace.questionnaireTemplate(frame.studyId), TEMPLATE_FILENAME);
     } catch (e) {
-      setStatus({ kind: "error", message: e instanceof Error ? e.message : String(e) });
+      const message = e instanceof ApiError ? tv("research.questionnaire.templateRefused", { code: e.code }) : t("research.brief.uploadUnreachable");
+      setStatus({ kind: "error", message });
     }
   };
   const loading = status?.kind === "loading";

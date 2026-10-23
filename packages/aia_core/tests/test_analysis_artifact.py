@@ -13,7 +13,10 @@ from aia_core.domain.analysis.artifact import (
     ANALYSIS_ARTIFACT_CONTRACT,
     HarnessSummary,
     ModuleSources,
+    finding_diagnostic,
+    finding_expected,
     module_reuse_fingerprint,
+    no_supported_finding,
     parse_module_artifact,
     parse_turn_artifact,
     turn_fingerprint,
@@ -150,6 +153,64 @@ def test_a_completed_and_a_blocked_outcome_parse() -> None:
     assert [v.violation().code.value for v in blocked.violations] == ["UNCITED_NUMBER"]
     preflight = parse_module_artifact(payload(**{**BLOCKED, "attempts": 0, "calls": []}))
     assert preflight.attempts == 0
+
+
+def test_a_module_expected_to_find_that_states_nothing_holds_and_says_so() -> None:
+    """MVPQ-04, Q72 (A), evidence-integrity 9a: read from the stored outcome and the expectation
+    code stored with it. Expected and empty: no_supported_finding. Not expected and empty:
+    context_missing, which holds nothing. A finding, a refusal, the preflight, an older record
+    with no expectation, and the limitations each say nothing here."""
+    held = parse_module_artifact(payload(finding_expected=True))  # DRAFT states no key finding
+    assert no_supported_finding(held)
+    assert finding_diagnostic(held) == {
+        "reason": "no_supported_finding",
+        "resolutions": ["same_data_retry", "changed_design", "more_data"],
+    }
+    lacking = parse_module_artifact(payload(finding_expected=False))
+    assert not no_supported_finding(lacking)
+    assert finding_diagnostic(lacking) == {
+        "reason": "context_missing",
+        "resolutions": ["changed_design", "more_data"],
+    }
+    found = {**DRAFT, "key_findings": [{"text": "Ráno vede káva.", "claim_ids": ["c1"]}]}
+    limitations = {
+        "module_id": "limitations",
+        "ordinal": 8,
+        "artifact_name": "ANALYSIS_08_LIMITATIONS",
+        "draft": {**DRAFT, "module": "limitations"},
+        "finding_expected": False,
+    }
+    for record in (
+        parse_module_artifact(payload(draft=found, finding_expected=True)),
+        parse_module_artifact(payload(**BLOCKED, finding_expected=True)),
+        parse_module_artifact(payload(**{**BLOCKED, "attempts": 0, "calls": []})),
+        parse_module_artifact(payload()),  # stored before the expectation was
+        parse_module_artifact(payload(**limitations)),
+    ):
+        assert not no_supported_finding(record) and finding_diagnostic(record) is None
+
+
+def test_the_expectation_is_decided_by_the_run_s_own_data() -> None:
+    """Q72 (A): code decides whether a module's context exists, never a model's "no context"."""
+
+    def expected(module: AnalysisModuleId, **held: bool) -> bool:
+        facts = {"tracked_sets": False, "hypotheses": False, "segment_rows": False}
+        return finding_expected(module, **{**facts, "research_questions": False, **held})
+
+    for always in (
+        AnalysisModuleId.EXECUTIVE,
+        AnalysisModuleId.AUDIENCE,
+        AnalysisModuleId.IMPLICATIONS,
+    ):
+        assert expected(always)
+    assert not expected(AnalysisModuleId.LIMITATIONS, hypotheses=True, tracked_sets=True)
+    for module, fact in (
+        (AnalysisModuleId.OBJECTS, "tracked_sets"),
+        (AnalysisModuleId.HYPOTHESES, "hypotheses"),
+        (AnalysisModuleId.SEGMENTS, "segment_rows"),
+        (AnalysisModuleId.RESEARCH_QUESTIONS, "research_questions"),
+    ):
+        assert not expected(module) and expected(module, **{fact: True})
 
 
 @pytest.mark.parametrize(

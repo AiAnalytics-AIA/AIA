@@ -604,6 +604,41 @@ describe("Dotazník", () => {
     expect(saves).toEqual([]);
   });
 
+  it("says an empty file, a refusal without words of its own and a lost connection in Czech, never the API's English", async () => {
+    let answer: () => Response = () => new Response(JSON.stringify({ code: "validation_error", message: "The request body or parameters are invalid." }), { status: 422 });
+    unitStub({ ...BRIEF, ui_state: { questionnaire_path: "upload" } }, null, { [IMPORT_PATH]: () => answer() });
+    render(<ResearchScreen step="questionnaire" frame={TEST_FRAME} />);
+    const pick = async (f: File) => fireEvent.change(await screen.findByLabelText("Vyplněný XLSX / CSV"), { target: { files: [f] } });
+    // An empty file is refused before it is sent (the API's 422 for it is English).
+    await pick(new File([], "prazdny.csv"));
+    expect((await screen.findByRole("alert")).textContent).toBe("prazdny.csv: soubor je prázdný");
+    expect(posted(IMPORT_PATH)).toEqual([]);
+    await pick(new File(["x"], "dotaznik.csv"));
+    await waitFor(() => expect(screen.getByRole("alert").textContent).toBe("dotaznik.csv: AIA soubor nepřijala (kód validation_error)"));
+    answer = () => {
+      throw new TypeError("Failed to fetch");
+    };
+    await pick(new File(["x"], "dotaznik.csv"));
+    await waitFor(() => expect(screen.getByRole("alert").textContent).toBe("dotaznik.csv: Spojení s AIA se nepodařilo; zkuste to znovu"));
+    // A file the browser cannot read was never sent, so no connection is blamed.
+    const sent = posted(IMPORT_PATH).length;
+    const gone = new File(["x"], "smazany.csv");
+    gone.arrayBuffer = () => Promise.reject(new DOMException("gone", "NotReadableError"));
+    await pick(gone);
+    await waitFor(() => expect(screen.getByRole("alert").textContent).toBe("smazany.csv: soubor se nepodařilo přečíst; vyberte ho znovu"));
+    expect(posted(IMPORT_PATH)).toHaveLength(sent);
+    expect(saves).toEqual([]);
+  });
+
+  it("says a template the API would not give in Czech, by its code", async () => {
+    unitStub({ ...BRIEF, ui_state: { questionnaire_path: "upload" } }, null, {
+      [TEMPLATE_PATH]: () => new Response(JSON.stringify({ code: "study_not_open", message: "Your role on this study does not permit that." }), { status: 403 }),
+    });
+    render(<ResearchScreen step="questionnaire" frame={TEST_FRAME} />);
+    fireEvent.click(await screen.findByRole("button", { name: "Stáhnout XLSX šablonu" }));
+    expect((await screen.findByRole("alert")).textContent).toBe("Šablonu se nepodařilo stáhnout (kód study_not_open)");
+  });
+
   it("downloads AIA's template through the study, and links to nothing of the unit's", async () => {
     const created: Blob[] = [];
     const clicked = vi.fn();

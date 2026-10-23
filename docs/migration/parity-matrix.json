@@ -995,7 +995,7 @@
     "blocking": false,
     "reason": "On the MVP acceptance path (AC-08); its parity is reported as information, never a release gate (owner, 2026-10-19, MVP-21)."
    },
-   "notes": "The eight module definitions, draft checking and admitted-claim results are ported; a native run's artifacts map to evidence (instrument items internal only), with the harness, the stored-outcome contract, reconstruction by re-admission and the research_analysis executor (.planning/plans/evidence-backed-analysis.md). The draft gate is compared decision by decision with the unit's own evidence_validator.py: AIA refuses everything the unit refused except two cases that wait on decision ANL-4 (a finding that cites no evidence, a module with no finding). The executor is not registered in the production worker or added to the research template, and no module body calls a model in production."
+   "notes": "The eight module definitions, draft checking and admitted-claim results are ported; a native run's artifacts map to evidence (instrument items internal only), with the harness, the stored-outcome contract, reconstruction by re-admission and the research_analysis executor (.planning/plans/evidence-backed-analysis.md). The draft gate is compared decision by decision with the unit's own evidence_validator.py: AIA refuses everything the unit refused, including a key finding that cites no evidence (MVP-23, FINDING_UNCITED), except one case: a module with no finding, which MVPQ-04 settles through evidence-integrity 9a's diagnostic rather than the gate. The executor is not registered in the production worker or added to the research template, and no module body calls a model in production."
   },
   "analysis.qc": {
    "family": "analysis",
