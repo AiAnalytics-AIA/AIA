@@ -27,7 +27,6 @@ Routers reach the stamp only through here (the import ratchet in ``pyproject.tom
 from __future__ import annotations
 
 import hashlib
-import zipfile
 from collections.abc import Mapping
 from dataclasses import dataclass
 from datetime import date
@@ -96,7 +95,9 @@ def review_stamp_record(docx: bytes) -> Mapping[str, str]:
     )
     try:
         stamp_review(docx, probe)
-    except (ValueError, zipfile.BadZipFile):  # NotStampable is a ValueError
+    except Exception:  # a probe of a stranger's bytes (an editor save, RPT8c):
+        # any failure -- NotStampable, a part lxml cannot parse, a member zipfile cannot
+        # inflate -- means "not stampable", never a lost save. Its answer is only yes or no.
         return MappingProxyType({})
     return REVIEW_STAMP_RECORD
 

@@ -81,13 +81,14 @@ def _prepared(
     ask_pdf: bool = True,
     contract: str = CONTEXT_REPORT_CONTRACT,
     stampable: bool = False,
+    design: dict[str, Any] | None = None,
 ) -> tuple[str, str]:
     """A run, and the variant's draft stored and (``ask_pdf``) its PDF asked for, as the
     prepare does; without it, as a draft whose PDF nobody asked for yet. ``contract``: the
     composition contract the draft was stored under. ``stampable``: a real report laid out
     with its status in its footers, recorded so (D2); else fictional bytes, which a version
     stored before that layout stands for."""
-    made = world.design(researcher, DESIGN)
+    made = world.design(researcher, design or DESIGN)
     assert made.status_code in (200, 201), made.text
     started = researcher.post(
         f"{_study(world)}/research/runs", json={"design_revision_id": made.json()["revision_id"]}
@@ -804,3 +805,79 @@ def test_an_edited_version_renders_its_pdf_and_approved_says_so_in_its_footers(
     assert pdf.status_code == 200 and pdf.headers["X-AIA-Review-State"] == "APPROVED_INTERNAL"
     assert researcher.get(f"{versions}/{edited}").json()["pdf"]["artifact_id"] == approved_pdf
     assert pdf.headers["content-disposition"].endswith(f'-{REVIEW}-{edited}-schvaleno.pdf"')
+
+
+def _repacked(data: bytes, part: str, edit: Any) -> bytes:
+    """``data`` with ``part``'s bytes replaced by ``edit(bytes)``, every other part as stored."""
+    import io
+    import zipfile
+
+    out = io.BytesIO()
+    with zipfile.ZipFile(io.BytesIO(data)) as source, zipfile.ZipFile(out, "w") as target:
+        for info in source.infolist():
+            body = source.read(info)
+            target.writestr(info, edit(body) if info.filename == part else body)
+    return out.getvalue()
+
+
+def test_an_edit_whose_footers_the_editor_changed_is_approved_as_saved(
+    app: FastAPI, researcher: TestClient, world: Any
+) -> None:
+    """The case the footer contract exists for: where the editor changed the status layout
+    (here the status style renamed), approving stamps nothing. The DOCX and its PDF are the
+    bytes as saved, named schvaleno-v-aia, and no second PDF is asked. A save whose other
+    parts the stamp cannot even parse is stored the same way, never lost."""
+    from aia_core.infrastructure.report_docx.styles import S
+
+    run_id, draft = _prepared(app, researcher, world, ask_pdf=False)
+    altered = _repacked(
+        _rendered(),
+        "word/styles.xml",
+        lambda b: b.replace(f'w:val="{S.STATUS}"'.encode(), b'w:val="Vlastni styl"'),
+    )
+    assert altered != _rendered()
+    edited = _edit(app, world, run_id, draft, data=altered)
+    broken = _edit(
+        app, world, run_id, draft, data=_repacked(_rendered(), "word/styles.xml", lambda b: b[:40])
+    )
+    with create_session_factory(app.state.engine)() as session:
+        repo = research_artifacts(session, _scope(session, world), app.state.artifact_store)
+        assert "review_stamp" not in repo.get(edited).metadata
+        assert "review_stamp" not in repo.get(broken).metadata
+    versions = f"{_study(world)}/research/runs/{run_id}/report/editor/versions"
+    assert researcher.get(f"{versions}/{edited}").json()["stamped"] is False
+    assert researcher.post(f"{versions}/{edited}/pdf").status_code == 200
+    (pdf_id,) = _render_pdfs(app, world)
+    before = _jobs(app)
+    approve = f"{_study(world)}/research/runs/{run_id}/report/approve"
+    assert researcher.post(approve, json={"artifact_id": edited}).status_code == 200
+    assert _jobs(app) == before  # its draft's PDF renders the approved bytes: none asked
+    docx = researcher.get(f"{versions}/{edited}/download")
+    assert docx.content == altered
+    assert docx.headers["content-disposition"].endswith(f'-{edited}-schvaleno-v-aia.docx"')
+    pdf = researcher.get(f"{versions}/{edited}/pdf/download")
+    assert pdf.status_code == 200 and pdf.headers["X-AIA-Review-State"] == "APPROVED_INTERNAL"
+    assert pdf.headers["content-disposition"].endswith(f'-{edited}-schvaleno-v-aia.pdf"')
+    assert researcher.get(f"{versions}/{edited}").json()["pdf"]["artifact_id"] == pdf_id
+
+
+def test_an_edited_versions_pdf_is_found_only_through_its_own_run_and_study(
+    app: FastAPI, researcher: TestClient, other_client_lead: TestClient, world: Any
+) -> None:
+    """The PDF routes find the version as the version route does: under another run of the
+    study, another study of the client, or another client's study, it is not there."""
+    run_id, draft = _prepared(app, researcher, world, ask_pdf=False)
+    other_run, _ = _prepared(
+        app, researcher, world, ask_pdf=False, design={**DESIGN, "title": "Jiná studie"}
+    )
+    edited = _edit(app, world, run_id, draft, data=_rendered())
+    before = _jobs(app)
+    for study, run, asker in (
+        ("primary", other_run, researcher),
+        ("sibling", run_id, researcher),
+        ("other_client", run_id, other_client_lead),
+    ):
+        versions = f"{_study(world, study)}/research/runs/{run}/report/editor/versions/{edited}"
+        assert asker.post(f"{versions}/pdf").status_code == 404, study
+        assert asker.get(f"{versions}/pdf/download").status_code == 404, study
+    assert _jobs(app) == before

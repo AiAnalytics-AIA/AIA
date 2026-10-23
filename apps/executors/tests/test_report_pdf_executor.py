@@ -234,6 +234,23 @@ def test_a_version_saved_in_the_report_editor_is_rendered_like_the_report(
     assert found.artifact.metadata["rendering_of"] == docx.artifact_id and pdf.calls == 1
 
 
+def test_an_edited_versions_pdf_without_a_converter_is_not_offered_again(
+    world: Any, database_url: str, store: InMemoryArtifactStore, build: BuildIdentity
+) -> None:
+    """Where the worker composes no converter, an edited version's PDF fails as a composed
+    report's does (pdf_disabled), and is not offered again."""
+    from aia_core.domain.report.editor import EDIT_ARTIFACT_TYPES
+
+    run_id, docx = _report(
+        world, store, b"PK edited version", artifact_type=EDIT_ARTIFACT_TYPES["internal"]
+    )
+    _ask(world, run_id, docx)
+    assert _drain(_worker(world, database_url, store, build, None)) == ["failed"]
+    failed = _pdf_state(world, store, run_id, docx)
+    assert failed.state is PdfState.FAILED and failed.reason == "pdf_disabled"
+    assert not failed.askable
+
+
 def test_a_pdf_that_failed_for_want_of_a_converter_is_rendered_once_a_person_asks_again(
     world: Any, database_url: str, store: InMemoryArtifactStore, build: BuildIdentity
 ) -> None:
