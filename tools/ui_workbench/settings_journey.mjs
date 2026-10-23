@@ -57,7 +57,7 @@ try {
       await page.locator("[data-prompt-in-force]").waitFor();
     }
     if (id === "deep_research") await page.locator("[data-dr-setting]").first().waitFor({ state: "attached" });
-    if (id === "methodology") await page.locator("[data-methodology-editor]").waitFor(); // an administrator opens on the editor
+    if (id === "methodology") await page.locator('[data-module-card="sociomap"]').waitFor(); // the tab opens on the catalogue (F4)
     // Until #839 and #850 are deployed, both boards say so where they are met, never a fabricated state.
     // Before #839 / #850 are deployed each board says it is not in AIA yet; after, it reads its route.
     // Either way it settles on one of the states it can say, never stays loading or invents one.
@@ -196,7 +196,15 @@ try {
   checks.push("A rule's proposal made in its Návrh cell waits highlighted and is approved through the I7 modal; Dosah says it is not in AIA yet");
   checks.push("Policy purpose search, draft protection across close/tab changes and separate propose/approve work through real APIs");
   await tab("methodology");
-  // An administrator opens on the editor, its five-step sequence on the first screen (product owner, 2026-10-13).
+  // The tab opens on the catalogue (prototype v51, fidelity F4): a drawing each, no category,
+  // neither the reference map nor the H-Model (D-13), and the MVP's note.
+  if (!await page.locator("[data-module-card]").count()) await page.locator("[data-methodology-back]").click();
+  assert(await page.locator("[data-module-card] svg").count() >= 6, "methodology: each card its drawing");
+  assert.equal(await page.locator('[data-module-card="sociomap_reference"], [data-module-card="sociomapping"]').count(), 0, "methodology: D-13");
+  assert(await page.locator("[data-mvp-note]").isVisible(), "methodology: the MVP note");
+  await widths("methodology cards");
+  await page.locator('[data-module-card="sociomap"]').click();
+  // An administrator opens the map on the editor, its five-step sequence on the first screen (product owner, 2026-10-13).
   const methodEditor = page.locator("[data-methodology-editor]"); await methodEditor.waitFor();
   for (const [width, height] of [[1440, 900], [1710, 1000], [1920, 1080]]) {
     await page.setViewportSize({ width, height }); await page.evaluate(() => scrollTo(0, 0));
@@ -232,12 +240,8 @@ try {
   await (await chooseField("relation.n_min")).fill("34"); assert.equal(await (await chooseField("terrain.sigma")).inputValue(), "0,3");
   await methodForm.getByLabel("Začít od metodiky z kódu", { exact: true }).selectOption("aia-sociomap-2"); await page.getByRole("button", { name: "Ponechat", exact: true }).click();
   assert.equal(await (await chooseField("terrain.sigma")).inputValue(), "0,3");
-  await page.getByRole("button", { name: "Změnit oblast", exact: true }).click();
-  // The cards: a drawing each, no category, neither the reference map nor the H-Model (D-13).
-  assert(await page.locator("[data-module-card] svg").count() >= 6, "methodology: each card its drawing");
-  assert.equal(await page.locator('[data-module-card="sociomap_reference"], [data-module-card="sociomapping"]').count(), 0, "methodology: D-13");
-  await widths("methodology cards");
-  await page.getByRole("button", { name: "Vážení: která váha patří respondentovi a co s neplatnou", exact: true }).click(); await page.getByRole("button", { name: "Ponechat", exact: true }).click();
+  // Back to the catalogue with a draft open asks first; Ponechat keeps the draft.
+  await page.locator("[data-methodology-back]").click(); await page.getByRole("button", { name: "Ponechat", exact: true }).click();
   await widths("methodology editor"); await screenshot("methodology-editor");
   await methodForm.getByRole("button", { name: "Porovnat s metodikou v platnosti", exact: true }).click();
   // The comparison is the module's Porovnání (settings-redesign 10b); the draft stays on Upravit.
@@ -261,6 +265,14 @@ try {
   await activateDialog.getByRole("radio", { name: "Ověření na pilotní studii", exact: true }).click(); await widths("methodology activation dialog");
   await activateDialog.getByRole("button", { name: "Aktivovat jako interní", exact: true }).click();
   await page.locator("[data-in-force]").filter({ hasText: created.name }).waitFor(); await page.reload();
+  // After a reload the tab is the catalogue again: the map's card names the version in force, and
+  // the register calls an edited method internal (never presumed approved); its page says the same.
+  const mapCard = page.locator('[data-module-card="sociomap"]');
+  await mapCard.locator("[data-current-name]").filter({ hasText: created.name }).waitFor();
+  await mapCard.locator('[data-register="INTERNAL_ONLY"]').waitFor();
+  await mapCard.click();
+  await page.locator("[data-module-chips]").getByText(`V platnosti: ${created.name}`, { exact: true }).waitFor();
+  await page.locator("[data-module-chips]").getByText("Jen interně (neregistrováno)", { exact: true }).waitFor();
   await page.locator("[data-in-force]").filter({ hasText: created.name }).waitFor();
   versions = await get("/api/v1/methodology/sociomap/versions"); assert.equal(versions.in_force.version_number, created.version_number);
   await screenshot("methodology-activated");

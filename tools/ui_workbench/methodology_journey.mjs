@@ -64,15 +64,18 @@ const ok = (what) => { checks.push(what); console.log(`methodology journey: ok  
 const openTab = async () => {
   await page.goto(base + "/app/settings"); await page.getByRole("tablist", { name: "Oddíly nastavení" }).waitFor();
   await page.locator("#tab-methodology").click();
-  await page.locator("#panel-methodology h3").first().waitFor();
+  await page.locator("#panel-methodology :is([data-module-card], [data-module-header])").first().waitFor();
 };
+/** The tab opens on the catalogue (fidelity F4); a module is a card away, back through ← Metodika. */
 const openModule = async (title) => {
-  const heading = page.getByRole("heading", { level: 3, name: title, exact: true });
+  const heading = page.getByRole("heading", { level: 2, name: title, exact: true });
   if (await heading.count()) return;
-  await page.getByRole("button", { name: "Změnit oblast", exact: true }).click();
-  await page.getByRole("button", { name: title, exact: true }).click();
-  const leave = page.getByRole("button", { name: "Zahodit úpravy a přepnout", exact: true });
-  if (await leave.count()) await leave.click();
+  if (await page.locator("[data-methodology-back]").count()) {
+    await page.locator("[data-methodology-back]").click();
+    const leave = page.getByRole("button", { name: "Zahodit úpravy a přepnout", exact: true });
+    if (await leave.count()) await leave.click();
+  }
+  await page.getByRole("navigation", { name: "Oblasti metodiky" }).getByRole("button", { name: title, exact: true }).click();
   await heading.waitFor();
 };
 const visibleSteps = () => page.locator("[data-methodology-editor] fieldset[data-edit-step]:not([hidden])");

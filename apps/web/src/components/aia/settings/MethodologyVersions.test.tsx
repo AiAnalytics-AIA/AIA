@@ -110,11 +110,14 @@ async function openPart(name: string) {
   fireEvent.click(await screen.findByRole("tab", { name }));
 }
 
-/** The area chooser is closed by default (the editor opens first): open it, then pick an area. */
+/** The tab opens on the module catalogue (fidelity F4): back to it if a module is open, then a card. */
 async function openModule(name: string) {
-  if (!screen.queryByRole("navigation", { name: "Oblasti metodiky" })) fireEvent.click(await screen.findByRole("button", { name: "Změnit oblast" }));
-  fireEvent.click(await screen.findByRole("button", { name }));
+  const back = document.querySelector<HTMLElement>("[data-methodology-back]");
+  if (back) fireEvent.click(back);
+  fireEvent.click(await within(await screen.findByRole("navigation", { name: "Oblasti metodiky" })).findByRole("button", { name }));
 }
+/** Opens the object map from the catalogue, as a person's first click on the tab does. */
+const openMap = () => openModule("Sociomapa: objektová mapa");
 
 beforeEach(() => {
   // jsdom has no <dialog> modality: the activation is a native dialog (I7b).
@@ -132,7 +135,7 @@ afterEach(() => {
 describe("the support rules' versions (plan G1d)", () => {
   it("edit a line both ways, a line not checked included, and store the whole specification", async () => {
     const { sent } = fakeApi();
-    render(<MethodologyPanel />);
+    render(<MethodologyPanel />); await openMap();
     await openModule("Podpora a potlačení: kdy se číslo smí ukázat");
     await openPart("Výpočet");
     await screen.findByRole("heading", { name: "Pravidlo jednotky 18.6.6 (Výsledky)" });
@@ -177,7 +180,7 @@ describe("the readiness limits (plan V1a2)", () => {
       },
     };
     fakeApi({ check: () => ({ valid: true, problems: {}, not_computed: [], formulas_latex: {}, preview }), compare });
-    render(<MethodologyPanel />);
+    render(<MethodologyPanel />); await openMap();
     await openModule("Připravenost studie: kdy lze běh spustit");
     await versionsSection();
     await openEditor();
@@ -215,7 +218,7 @@ describe("the readiness limits (plan V1a2)", () => {
 describe("the aggregation's versions (plan G3b)", () => {
   it("edit a value, the interval's quantiles and an estimator, and store them together", async () => {
     const { sent } = fakeApi();
-    render(<MethodologyPanel />);
+    render(<MethodologyPanel />); await openMap();
     await openModule("Agregace: z odpovědí odhad s intervalem");
     await versionsSection();
     await openEditor();
@@ -246,7 +249,7 @@ describe("the aggregation's versions (plan G3b)", () => {
 describe("the methodology's versions", () => {
   it("say the code's preset is in force when nothing is stored", async () => {
     fakeApi();
-    render(<MethodologyPanel />);
+    render(<MethodologyPanel />); await openMap();
     const section = await versionsSection();
     const inForce = section.querySelector("[data-in-force]") as HTMLElement;
     expect(within(inForce).getByText("aia-sociomap-5")).toBeTruthy();
@@ -256,7 +259,7 @@ describe("the methodology's versions", () => {
 
   it("store an edit as a version that says what it changes, put it in force with a reason and back", async () => {
     const { sent } = fakeApi();
-    render(<MethodologyPanel />);
+    render(<MethodologyPanel />); await openMap();
     const section = await versionsSection();
     await openEditor();
     const form = await editor();
@@ -306,7 +309,7 @@ describe("the methodology's versions", () => {
         formulas_latex: {},
       }),
     });
-    render(<MethodologyPanel />);
+    render(<MethodologyPanel />); await openMap();
     await openEditor();
     const form = await editor();
     fireEvent.change(await field(form, "relation.n_min"), { target: { value: "2" } });
@@ -326,7 +329,7 @@ describe("the methodology's versions", () => {
 
   it("catch a word where a number was before anything is sent", async () => {
     const { sent } = fakeApi();
-    render(<MethodologyPanel />);
+    render(<MethodologyPanel />); await openMap();
     await openEditor();
     const form = await editor();
     const sigma = await field(form, "terrain.sigma");
@@ -339,7 +342,7 @@ describe("the methodology's versions", () => {
 
   it("say a replaced formula can be stored but not yet put in force, and draw it", async () => {
     fakeApi({ check: () => ({ valid: true, problems: {}, not_computed: ["f12.kernel"], formulas_latex: { "f12.kernel": "h \\exp\\left(-\\frac{d_2}{2\\sigma^{2}}\\right)" } }) });
-    render(<MethodologyPanel />);
+    render(<MethodologyPanel />); await openMap();
     await openEditor();
     const form = await editor();
     const slot = await found('[data-edit-slot="f12.kernel"]', form);
@@ -352,7 +355,7 @@ describe("the methodology's versions", () => {
 
   it("are shown to a member, who is offered no edit", async () => {
     fakeApi({ mayAdminister: false });
-    render(<MethodologyPanel />);
+    render(<MethodologyPanel />); await openMap();
     const section = await versionsSection();
     expect(within(section).getByText(/může jen člen se značkou Metodik/)).toBeTruthy();
     expect(within(section).queryByRole("button", { name: "Upravit metodiku" })).toBeNull();
@@ -360,7 +363,7 @@ describe("the methodology's versions", () => {
 
   it("are not offered for a read-only module, which is shown and never edited", async () => {
     fakeApi();
-    render(<MethodologyPanel />);
+    render(<MethodologyPanel />); await openMap();
     await versionsSection();
     await openModule("Vážení: která váha patří respondentovi a co s neplatnou");
     await screen.findByRole("heading", { name: "Kishovo efektivní n na čtyřech místech" });
@@ -393,7 +396,7 @@ describe("the comparison with what is in force", () => {
         ],
       },
     });
-    render(<MethodologyPanel />);
+    render(<MethodologyPanel />); await openMap();
     await openEditor();
     const form = await editor();
     fireEvent.change(await field(form, "relation.n_min"), { target: { value: "34" } });
@@ -415,7 +418,7 @@ describe("the comparison with what is in force", () => {
 
   it("shows a refused edit's problems at its fields instead of a comparison", async () => {
     fakeApi({ compare: { valid: false, problems: { "spec.relation.n_min": "must be at least 4" }, in_force: "", panels: [] } });
-    render(<MethodologyPanel />);
+    render(<MethodologyPanel />); await openMap();
     await openEditor();
     const form = await editor();
     fireEvent.click(within(form).getByRole("button", { name: "Porovnat s metodikou v platnosti" }));
@@ -427,7 +430,7 @@ describe("the comparison with what is in force", () => {
 
 describe("guided methodology editing", () => {
   it("preserves changes across sections, guards preset replacement and cancellation, and warns before leaving", async () => {
-    fakeApi(); render(<MethodologyPanel />);
+    fakeApi(); render(<MethodologyPanel />); await openMap();
     await openEditor();
     const form = await editor();
     fireEvent.change(await field(form, "terrain.sigma"), { target: { value: "0,35" } });
@@ -451,26 +454,26 @@ describe("guided methodology editing", () => {
     expect(await editor()).toBeTruthy();
   });
 
-  it("switches areas at once from an untouched editor, and asks first when it holds changes", async () => {
-    fakeApi(); render(<MethodologyPanel />);
+  it("goes back to the catalogue at once from an untouched editor, and asks first when it holds changes", async () => {
+    fakeApi(); render(<MethodologyPanel />); await openMap();
     await openEditor();
     const form = await editor();
     fireEvent.change(await field(form, "terrain.sigma"), { target: { value: "0,35" } });
     expect(screen.queryByRole("navigation", { name: "Oblasti metodiky" })).toBeNull();
-    fireEvent.click(screen.getByRole("button", { name: "Změnit oblast" }));
-    fireEvent.click(screen.getByRole("button", { name: "Vážení: která váha patří respondentovi a co s neplatnou" }));
+    fireEvent.click(screen.getByRole("button", { name: "Metodika" }));
     fireEvent.click(screen.getByRole("button", { name: "Ponechat" }));
     expect(document.querySelector("[data-methodology-editor]")).toBeTruthy();
     expect(screen.queryByRole("navigation", { name: "Oblasti metodiky" })).toBeNull();
-    fireEvent.click(screen.getByRole("button", { name: "Změnit oblast" }));
-    fireEvent.click(screen.getByRole("button", { name: "Vážení: která váha patří respondentovi a co s neplatnou" }));
+    fireEvent.click(screen.getByRole("button", { name: "Metodika" }));
     fireEvent.click(screen.getByRole("button", { name: "Zahodit úpravy a přepnout" }));
-    expect(await screen.findByRole("heading", { name: "Vážení: která váha patří respondentovi a co s neplatnou" })).toBeTruthy();
+    expect(await screen.findByRole("navigation", { name: "Oblasti metodiky" })).toBeTruthy();
     expect(document.querySelector("[data-methodology-editor]")).toBeNull();
+    await openModule("Vážení: která váha patří respondentovi a co s neplatnou");
+    expect(await screen.findByRole("heading", { name: "Vážení: která váha patří respondentovi a co s neplatnou" })).toBeTruthy();
   });
 
   it("shows each step's stage, audit point and place in the computation, and moves along it", async () => {
-    fakeApi(); render(<MethodologyPanel />);
+    fakeApi(); render(<MethodologyPanel />); await openMap();
     await openEditor();
     const form = await editor();
     const outline = form.querySelector("[data-methodology-outline]") as HTMLElement;
@@ -494,7 +497,7 @@ describe("guided methodology editing", () => {
   });
 
   it("says which part of a step's formula the expression replaces, and what stays code", async () => {
-    fakeApi(); render(<MethodologyPanel />);
+    fakeApi(); render(<MethodologyPanel />); await openMap();
     await openEditor();
     const form = await editor();
     fireEvent.click(form.querySelector('[data-edit-step-link="f3_effective_n"]')!);
@@ -505,7 +508,7 @@ describe("guided methodology editing", () => {
   });
 
   it("numbers each stage by its place in the computation, also when a stage has nothing to edit", async () => {
-    fakeApi(); render(<MethodologyPanel />);
+    fakeApi(); render(<MethodologyPanel />); await openMap();
     await openModule("Odpověď respondenta: od pravděpodobností modelu k odpovědi");
     await versionsSection();
     await openEditor();
@@ -518,7 +521,7 @@ describe("guided methodology editing", () => {
   });
 
   it("invalidates a previous successful check when the parameter changes", async () => {
-    const { sent } = fakeApi(); render(<MethodologyPanel />);
+    const { sent } = fakeApi(); render(<MethodologyPanel />); await openMap();
     await openEditor();
     const form = await editor();
     fireEvent.click(within(form).getByRole("button", { name: "Zkontrolovat" }));
@@ -531,7 +534,7 @@ describe("guided methodology editing", () => {
 
 describe("the editor a methodologist opens on (product owner, 2026-10-13)", () => {
   it("opens on the editor, with no extra click", async () => {
-    fakeApi(); render(<MethodologyPanel />);
+    fakeApi(); render(<MethodologyPanel />); await openMap();
     const form = await editor();
     // It edits what is in force, aia-sociomap-5, and says so; it saves over that preset itself, not
     // over the first one listed, so no note says it saves over another.
@@ -545,7 +548,7 @@ describe("the editor a methodologist opens on (product owner, 2026-10-13)", () =
   });
 
   it("opens the next edit on the stored version in force, with its values", async () => {
-    fakeApi(); render(<MethodologyPanel />);
+    fakeApi(); render(<MethodologyPanel />); await openMap();
     let form = await editor();
     fireEvent.change(await field(form, "terrain.sigma"), { target: { value: "0,3" } });
     fireEvent.click(within(form).getByRole("button", { name: "Zkontrolovat a uložit" }));
@@ -556,7 +559,7 @@ describe("the editor a methodologist opens on (product owner, 2026-10-13)", () =
     fireEvent.click(within(dialog).getByRole("button", { name: "Aktivovat jako interní" }));
     await waitFor(() => expect(within(section.querySelector("[data-in-force]") as HTMLElement).getByText("uložená verze")).toBeTruthy());
     cleanup();
-    render(<MethodologyPanel />);
+    render(<MethodologyPanel />); await openMap();
     form = await editor();
     expect(within(form).getByRole("heading", { name: "Úprava metodiky v platnosti (aia-sociomap-5+e1)" })).toBeTruthy();
     expect((await field(form, "terrain.sigma")).value).toBe("0.3"); // stored values are shown as stored
@@ -565,7 +568,7 @@ describe("the editor a methodologist opens on (product owner, 2026-10-13)", () =
   });
 
   it("shows the change's place in the safe sequence, and what the draft changes in words", async () => {
-    fakeApi(); render(<MethodologyPanel />);
+    fakeApi(); render(<MethodologyPanel />); await openMap();
     const form = await editor();
     const flow = within(form).getByRole("list", { name: "Postup změny" });
     const state = (key: string) => flow.querySelector(`[data-flow-step="${key}"]`)?.getAttribute("data-state");
@@ -588,7 +591,7 @@ describe("the editor a methodologist opens on (product owner, 2026-10-13)", () =
   });
 
   it("offers to put a just-saved version in force, with a reason, without hunting for it", async () => {
-    const { sent } = fakeApi(); render(<MethodologyPanel />);
+    const { sent } = fakeApi(); render(<MethodologyPanel />); await openMap();
     const form = await editor();
     fireEvent.change(await field(form, "terrain.sigma"), { target: { value: "0,35" } });
     fireEvent.click(within(form).getByRole("button", { name: "Zkontrolovat a uložit" }));
@@ -611,7 +614,7 @@ describe("a module's view (settings-redesign 10b)", () => {
 
   it("opens an administrator on Upravit; Výpočet, Verze a aktivace and Porovnání are a tab away, the draft kept", async () => {
     fakeApi();
-    render(<MethodologyPanel />);
+    render(<MethodologyPanel />); await openMap();
     const form = await editor();
     expect(await screen.findByRole("tablist", { name: "Části modulu" })).toBeTruthy();
     expect(tab("Upravit").getAttribute("aria-selected")).toBe("true");
@@ -627,7 +630,7 @@ describe("a module's view (settings-redesign 10b)", () => {
 
   it("shows a member the module read-only: Upravit is the Metodik's, and the member opens on Výpočet", async () => {
     fakeApi({ mayAdminister: false });
-    render(<MethodologyPanel />);
+    render(<MethodologyPanel />); await openMap();
     await screen.findByRole("tablist", { name: "Části modulu" });
     const edit = tab(/^Upravit · jen Metodik$/);
     expect((edit as HTMLButtonElement).disabled).toBe(true);
@@ -639,7 +642,7 @@ describe("a module's view (settings-redesign 10b)", () => {
 
   it("follows the Metodik mark, not the organization role: an admin without it reads, a marked researcher edits", async () => {
     fakeApi({ mayAdminister: true, mayEdit: false });
-    render(<MethodologyPanel />);
+    render(<MethodologyPanel />); await openMap();
     await screen.findByRole("tablist", { name: "Části modulu" });
     expect((tab(/^Upravit · jen Metodik$/) as HTMLButtonElement).disabled).toBe(true);
     expect(document.querySelector("[data-methodology-editor]")).toBeNull();
@@ -649,14 +652,14 @@ describe("a module's view (settings-redesign 10b)", () => {
     expect(screen.queryByText(/Bez úpravy jsou obě strany stejné/)).toBeNull();
     cleanup();
     fakeApi({ mayAdminister: false, mayEdit: true });
-    render(<MethodologyPanel />);
+    render(<MethodologyPanel />); await openMap();
     expect(await editor()).toBeTruthy();
     expect(tab("Upravit").getAttribute("aria-selected")).toBe("true");
   });
 
   it("never says both sides are the same while the edit starts from a version not in force", async () => {
     fakeApi();
-    render(<MethodologyPanel />);
+    render(<MethodologyPanel />); await openMap();
     const form = await editor();
     fireEvent.change(await field(form, "relation.n_min"), { target: { value: "12" } });
     fireEvent.click(within(form).getByRole("button", { name: "Zkontrolovat a uložit" }));
@@ -672,7 +675,7 @@ describe("a module's view (settings-redesign 10b)", () => {
 
   it("shows Porovnat s platnou's result on Porovnání, and before any comparison says both sides are the same", async () => {
     fakeApi({ compare: { valid: true, problems: {}, in_force: "aia-sociomap-5", panels: [] } });
-    render(<MethodologyPanel />);
+    render(<MethodologyPanel />); await openMap();
     const form = await editor();
     fireEvent.click(await screen.findByRole("tab", { name: "Porovnání" }));
     expect(screen.getByText(/Bez úpravy jsou obě strany stejné/)).toBeTruthy();
@@ -685,7 +688,7 @@ describe("a module's view (settings-redesign 10b)", () => {
 
   it("activates a version in one dialog with a reason chosen as a chip and a note, and sends nothing without a reason", async () => {
     const { sent } = fakeApi();
-    render(<MethodologyPanel />);
+    render(<MethodologyPanel />); await openMap();
     const form = await editor();
     fireEvent.change(await field(form, "relation.n_min"), { target: { value: "12" } });
     fireEvent.click(within(form).getByRole("button", { name: "Zkontrolovat a uložit" }));
