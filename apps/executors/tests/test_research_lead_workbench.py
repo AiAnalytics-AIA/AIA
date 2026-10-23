@@ -6,6 +6,7 @@ from typing import Any
 
 from aia_core.application.research_lead import ResearchLead
 from aia_core.application.scope import AuthenticatedPrincipal, ScopeResolver
+from aia_core.domain.edit_log import ActorKind, OpSource, WriteBy
 from aia_core.infrastructure.researcher_lead_repository import ResearcherLeadRepository
 from aia_core.infrastructure.study_design_repository import StudyDesignRepository
 from aia_core.infrastructure.study_workspace_repository import StudyWorkspaceRepository
@@ -51,7 +52,10 @@ def _setup(world: Any) -> None:
         )
         ResearcherLeadRepository(session, org).hatch()
         StudyWorkspaceRepository(session).save(
-            world.lead_scope(session), content=CONTENT, base_revision=None
+            world.lead_scope(session),
+            content=CONTENT,
+            base_revision=None,
+            by=WriteBy(ActorKind.PERSON, world.lead_scope(session).actor_id, OpSource.UI),
         )
         session.commit()
 
@@ -177,7 +181,10 @@ def test_the_design_update_from_saved_answers_and_comments_goes_through_approve_
     }
     with world.sessions() as session:
         StudyWorkspaceRepository(session).save(
-            world.lead_scope(session), content=saved, base_revision=1
+            world.lead_scope(session),
+            content=saved,
+            base_revision=1,
+            by=WriteBy(ActorKind.PERSON, world.lead_scope(session).actor_id, OpSource.UI),
         )
         session.commit()
     _post(world, kind="message", text="Aktualizuj návrh podle mých komentářů.")

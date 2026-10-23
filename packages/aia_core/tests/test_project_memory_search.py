@@ -16,6 +16,7 @@ from aia_core.application.project_memory import (
     MemorySource,
     search_client_studies,
 )
+from aia_core.domain.edit_log import ActorKind, OpSource, WriteBy
 from aia_core.domain.knowledge import KnowledgeKind
 from aia_core.domain.research_template import research_template
 from aia_core.domain.scope import ScopeDenied
@@ -46,7 +47,10 @@ def world(session: Any, scoped: Any) -> Any:
         content=_design("Ranní káva", dimensions=("zdravi", own_id)), source_stage="run"
     )
     StudyWorkspaceRepository(session).save(
-        scoped.scope(study="sibling"), content=_design("Kávové ceny"), base_revision=None
+        scoped.scope(study="sibling"),
+        content=_design("Kávové ceny"),
+        base_revision=None,
+        by=WriteBy(ActorKind.PERSON, scoped.scope(study="sibling").actor_id, OpSource.UI),
     )
     StudyDesignRepository(
         session, scoped.scope(user="other_lead", study="other_client")

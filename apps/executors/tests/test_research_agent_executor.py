@@ -913,7 +913,10 @@ def edit_working_copy(world: Any, change: dict[str, Any]) -> int:
         workspaces = StudyWorkspaceRepository(session)
         now = workspaces.content(scope)
         saved = workspaces.save(
-            scope, content={**(now.content or {}), **change}, base_revision=now.revision
+            scope,
+            content={**(now.content or {}), **change},
+            base_revision=now.revision,
+            by=WriteBy(ActorKind.PERSON, scope.actor_id, OpSource.UI),
         )
         session.commit()
         return saved.revision
