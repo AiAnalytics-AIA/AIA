@@ -334,9 +334,10 @@ a25d2435`, and the `/session/docs*` routes go with the hosting plan's change).
 - `GET …/report/editor/document?token=…`: the version's DOCX, the token short-lived and naming that artifact alone;
   the Document Server's JWT checked as well.
 - `POST …/report/editor/callback?token=…`: the JWT checked (header and body); status 2 and 6 store the file, 1
-  marks the session open, 4 closes it with nothing stored, 3 and 7 are logged. The file is fetched from
-  `AIA_ONLYOFFICE_URL`'s own origin only, at the cache path the callback names (signed and expiring by ONLYOFFICE's
-  secure link), never another host, never a redirect, bounded in size, and must be a DOCX that opens; its users are
+  marks the session open, 4 closes it with nothing stored, 3 and 7 are logged. The file is fetched by GET from
+  `AIA_ONLYOFFICE_URL`'s exact origin only, at a path under `/cache/files/` (the Document Server's own link, signed
+  by its secure link with `md5` and `expires`, which Caddy lets past alone, #829), never another host or path, never
+  a redirect, bounded in size, and must be a DOCX that opens; its users are
   the version's authors. Answers `{"error": 0}` once stored, an error otherwise, so the Document Server retries. A
   version already stored under the same SHA-256 is not stored twice.
 - Approval (`POST …/report/approve`) takes an edited version's id; the dialog shows its "Upraveno ručně" changes.
@@ -485,7 +486,7 @@ sentence refused by RD7 is marked at the sentence. Depends on `report-delivery#R
   new deploy up and running"): RPT8a part 3 and RPT8b-d. Lifted for RPT8 by the owner in the Zpráva session the
   same evening ("Lift the freeze for RPT8 now"); RPT9 and RPT10 stay after it.
 - Decided on /pmstatus (2026-10-22, relayed by the coordinator): a recompose after edits keeps both, separate (a);
-  RPT8c's line model below.
+  RPT8c's line model above.
 
 - Q73 (decided 2026-10-22, (c)): downloads stay free before approval; RPT3b is closed, not built.
 - Hosting ONLYOFFICE Document Server beside develop (RPT8): an operations change, for the coordinator to
