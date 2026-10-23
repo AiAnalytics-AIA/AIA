@@ -3,57 +3,50 @@
 // The system prompts tab: what each step tells the model, edited here (ADR 0020).
 //
 // What an administrator can do: read a prompt, edit its instruction, save the edit as
-// a new version, compare versions, test one on a fictional study, put one live, and go
-// back to the wording shipped in code. What they cannot: edit the code's frame around
+// a new version, compare versions, put one live, and go back to the wording shipped in
+// code. What they cannot: edit the code's frame around
 // the instruction (shown, never editable) or make an edit take effect for a job already
 // queued -- a job keeps the prompt it was queued with. A saved version does not run until
 // it is put live. By default the author may do that themselves (ADR 0019: no approval
 // between people); an organization that requires independent review gets a refusal for
 // the author instead, shown as the API gave it.
 //
-// Nothing here calls a model. A test queues a normal agent job pinned to the version.
+// Nothing here calls a model or starts paid work: trying a draft from Settings was removed
+// (X10, system-prompts-settings #14; the product owner, 2026-10-20). Paid AI work starts only
+// through the Lead in a study; a version's effect is seen on the next real job, which pins it.
 
 import { useRouter } from "next/navigation";
-import { type ReactNode, useDeferredValue, useEffect, useMemo, useRef, useState } from "react";
+import { useDeferredValue, useEffect, useMemo, useRef, useState } from "react";
 
 import { t, tv } from "@/i18n/t";
 import {
-  type AdminClient,
   type Member,
   type PromptSlotDetail,
   type PromptSlotSummary,
   type PromptVersion,
-  type ResearchAgentAction,
-  type ResearchAgentJob,
-  type ResearchAgentResult,
   type SettingsDocument,
   Unauthenticated,
   admin,
-  research,
-  researchAgents,
 } from "@/lib/api";
 import { relative } from "@/lib/format";
 import { diffLines, differs, summarise } from "@/lib/text-diff";
-import { withJobCostConfirmation } from "@/lib/research-agent-jobs";
-import { Button, Chip, Field, Select, TextArea, TextInput } from "../../rehome/ui";
+import { Button, Field, Select, TextArea, TextInput } from "../../rehome/ui";
 import { Technical } from "./technical";
-import { EYEBROW, Empty, Loaded } from "../states";
+import { Empty, Loaded } from "../states";
 import { useResource } from "../useResource";
-import type { Part, StudyRow } from "./ControlPanel";
+import type { Part } from "./ControlPanel";
 import { describeError } from "./errors";
 
 const P = "aia.settings.prompts";
 
-const ACTIONS: readonly ResearchAgentAction[] = [
-  "analyze_brief", "build_questionnaire", "optimize_questionnaire", "propose_audience",
-  "suggest_dimensions", "critique_design", "design_copilot", "answer_memory",
-];
-
-/** The agent action a research prompt belongs to; only those can be tested from here. */
-export function actionOf(promptId: string): ResearchAgentAction | null {
-  const name = promptId.startsWith("aia.research.") ? promptId.slice("aia.research.".length) : "";
-  return ACTIONS.find((a) => a === name) ?? null;
-}
+/**
+ * The version in force, marked the same way wherever it is shown: the list's dot, the editor's chip
+ * and the Verze table's row. Green is the redesign's colour for "in force" alone; until its token
+ * lands with the Indigo palette (#816) it is the signal wash, and only this constant changes then.
+ */
+const IN_FORCE = "bg-signal-wash";
+const IN_FORCE_EDGE = "shadow-[inset_3px_0_0_var(--color-signal)]";
+const IN_FORCE_DOT = "bg-signal";
 
 export const nameOf = (id: string) => {
   const key = `${P}.names.${id.replaceAll(".", "_")}`;
@@ -78,18 +71,19 @@ type People = (id: string | null) => string;
 type Props = {
   doc: SettingsDocument;
   members: Part<Member[]>;
-  clients: Part<AdminClient[]>;
-  studies: Part<StudyRow[]>;
 };
 
 /** The tab. Only an organization administrator is shown the prompts, and asked for them. */
-export function SystemPromptsPanel({ doc, members, clients, studies }: Props) {
+export function SystemPromptsPanel({ doc, members }: Props) {
   if (!doc.may_administer) {
     return <p className="text-sm text-ink-muted">{t(`${P}.adminOnly`)}</p>;
   }
   const emails = new Map(members.ok ? members.data.map((m) => [m.user_id, m.email]) : []);
   const people: People = (id) => (id ? (emails.get(id) ?? id) : "—");
-  return <Workspace people={people} clients={clients} studies={studies} />;
+  return <>
+    <ChangeSteps />
+    <Workspace people={people} />
+  </>;
 }
 
 // ---------------------------------------------------------------- the workspace
@@ -101,7 +95,7 @@ async function loadList(): Promise<PromptSlotSummary[]> {
   return rows as PromptSlotSummary[];
 }
 
-function Workspace({ people, clients, studies }: { people: People; clients: Props["clients"]; studies: Props["studies"] }) {
+function Workspace({ people }: { people: People }) {
   const [list, reloadList] = useResource(loadList, []);
   const [selected, setSelected] = useState<string | null>(null);
   const [pending, setPending] = useState<string | null>(null);
@@ -117,7 +111,7 @@ function Workspace({ people, clients, studies }: { people: People; clients: Prop
           else setSelected(id);
         };
         return (
-          <div className="grid items-start gap-6 lg:grid-cols-[minmax(0,15rem)_minmax(0,1fr)] 2xl:grid-cols-[minmax(0,17rem)_minmax(0,1fr)]">
+          <div className="grid grid-cols-[minmax(0,1fr)] items-start gap-6 lg:grid-cols-[13.125rem_minmax(0,1fr)]">
             <PromptList rows={rows} current={current} onChoose={choose} />
             <div className="min-w-0">
               {pending ? (
@@ -128,7 +122,7 @@ function Workspace({ people, clients, studies }: { people: People; clients: Prop
                 </div>
               ) : null}
               {current ? (
-                <Editor key={current} promptId={current} people={people} clients={clients} studies={studies} onChanged={reloadList} onDirty={setDirty} />
+                <Editor key={current} promptId={current} people={people} onChanged={reloadList} onDirty={setDirty} />
               ) : (
                 <Empty>{t(`${P}.none`)}</Empty>
               )}
@@ -140,50 +134,79 @@ function Workspace({ people, clients, studies }: { people: People; clients: Prop
   );
 }
 
-/** Where a prompt stands, in words: no chip, no colour that has to be learnt. */
-function stateText(row: PromptSlotSummary): ReactNode {
-  if (!row.wired) return <span className="text-ink-faint">{t(`${P}.state.locked`)}</span>;
-  if (row.active.origin === "stored") return <span className="text-ink">{tv(`${P}.state.edited`, { label: versionName(row.active.label) })}</span>;
-  return <span className="text-ink-muted">{t(`${P}.state.baseline`)}</span>;
+/** "v3": a stored version as the list and the Verze table say it. */
+const shortName = (n: number) => tv(`${P}.short`, { n });
+
+/** Where a prompt stands, in words: the version in force, and a newer saved one waiting to be switched on. */
+function standing(row: PromptSlotSummary): { text: string; waiting: boolean } {
+  if (!row.wired) return { text: t(`${P}.state.locked`), waiting: false };
+  const active = row.active.origin === "stored" ? row.active.version_number : null;
+  const live = active === null ? t(`${P}.state.baseline`) : tv(`${P}.state.inForce`, { v: shortName(active) });
+  const waiting = row.latest_number !== null && row.latest_number > (active ?? 0);
+  return { text: waiting ? `${live} · ${tv(`${P}.state.waiting`, { v: shortName(row.latest_number!) })}` : live, waiting };
 }
 
+/** The list: the prompts a person may edit, then those read only, each with where it stands. */
 function PromptList({ rows, current, onChoose }: { rows: PromptSlotSummary[]; current: string | null; onChoose: (id: string) => void }) {
   const [query, setQuery] = useState("");
-  const [filter, setFilter] = useState("all");
-  const matching = rows.filter((r) =>
-    (filter === "all" || r.wired === (filter === "editable")) &&
-    `${nameOf(r.prompt_id)} ${r.prompt_id} ${t(`${P}.families.${r.family}`)}`.toLocaleLowerCase("cs").includes(query.trim().toLocaleLowerCase("cs")));
-  const families = [...new Set(matching.map((r) => r.family))];
+  const q = query.trim().toLocaleLowerCase("cs");
+  const matching = rows.filter((r) => `${nameOf(r.prompt_id)} ${r.prompt_id} ${t(`${P}.families.${r.family}`)}`.toLocaleLowerCase("cs").includes(q));
+  const groups = [
+    { key: "editable", rows: matching.filter((r) => r.wired) },
+    { key: "readOnly", rows: matching.filter((r) => !r.wired) },
+  ];
   return (
     <nav aria-label={t(`${P}.listLabel`)} className="min-w-0 lg:sticky lg:top-4">
       <div className="flex flex-col gap-2 pb-3">
         <TextInput type="search" aria-label={t(`${P}.search`)} placeholder={t(`${P}.searchPlaceholder`)} value={query} onChange={(e) => setQuery(e.target.value)} />
-        <Select aria-label={t(`${P}.filter`)} value={filter} onChange={(e) => setFilter(e.target.value)}>
-          {["all", "editable", "readOnly"].map((f) => <option key={f} value={f}>{t(`${P}.${f}`)}</option>)}
-        </Select>
         <span role="status" className="text-xs text-ink-muted">{tv(`${P}.found`, { shown: matching.length, total: rows.length })}</span>
       </div>
-      <div className="flex max-h-64 flex-col gap-4 overflow-y-auto overscroll-contain lg:max-h-[70vh]">
-        {families.map((family) => (
-          <div key={family} data-family={family}>
-            <h3 className={EYEBROW}>{t(`${P}.families.${family}`)}</h3>
-            <ul className="mt-1 flex flex-col gap-0.5">
-              {matching.filter((r) => r.family === family).map((row) => (
-                <li key={row.prompt_id}>
-                  <button type="button" data-prompt={row.prompt_id} aria-current={row.prompt_id === current ? "true" : undefined}
-                    onClick={() => onChoose(row.prompt_id)}
-                    className={`flex min-h-11 w-full min-w-0 flex-col items-start justify-center rounded-sm px-3 py-1.5 text-left text-sm focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus-ring ${row.prompt_id === current ? "bg-signal-wash" : "hover:bg-surface-sunken"}`}>
-                    <span className={`break-words ${row.prompt_id === current ? "font-semibold text-signal" : "text-ink"}`}>{nameOf(row.prompt_id)}</span>
-                    <span className="text-xs">{stateText(row)}</span>
-                  </button>
-                </li>
-              ))}
+      <div className="flex max-h-64 flex-col overflow-y-auto overscroll-contain rounded-md border border-border lg:max-h-[70vh]">
+        {groups.map((group) => group.rows.length ? (
+          <div key={group.key} data-group={group.key}>
+            <h3 className="px-2.5 pb-1 pt-3 text-[11px] uppercase tracking-[0.06em] text-ink-faint">{t(`${P}.${group.key}`)}</h3>
+            <ul className="flex flex-col">
+              {group.rows.map((row) => {
+                const on = row.prompt_id === current;
+                const { text, waiting } = standing(row);
+                return (
+                  <li key={row.prompt_id}>
+                    <button type="button" data-prompt={row.prompt_id} data-waiting={waiting ? "true" : undefined} aria-current={on ? "true" : undefined}
+                      onClick={() => onChoose(row.prompt_id)}
+                      className={`flex min-h-11 w-full min-w-0 flex-col items-start justify-center gap-0.5 border-b border-border px-2.5 py-2 text-left text-[13px] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus-ring ${on ? "bg-signal-wash shadow-[inset_3px_0_0_var(--color-signal)]" : waiting ? "bg-status-you-wash hover:bg-surface-sunken" : "hover:bg-surface-sunken"}`}>
+                      <span className={`max-w-full break-words ${on ? "font-semibold text-signal" : "text-ink"}`}>{nameOf(row.prompt_id)}</span>
+                      <span className="flex max-w-full items-center gap-1.5 text-xs text-ink-muted">
+                        {row.wired ? <i aria-hidden="true" className={`size-1.5 shrink-0 rounded-full ${IN_FORCE_DOT}`} /> : null}
+                        <span className="truncate">{text}</span>
+                      </span>
+                    </button>
+                  </li>
+                );
+              })}
             </ul>
           </div>
-        ))}
-        {!matching.length ? <div className="flex flex-col gap-2 text-sm"><p>{t(`${P}.noMatch`)}</p><Button small onClick={() => { setQuery(""); setFilter("all"); }}>{t(`${P}.clearSearch`)}</Button></div> : null}
+        ) : null)}
+        {!matching.length ? <div className="flex flex-col gap-2 p-3 text-sm"><p>{t(`${P}.noMatch`)}</p><Button small onClick={() => setQuery("")}>{t(`${P}.clearSearch`)}</Button></div> : null}
       </div>
     </nav>
+  );
+}
+
+/** "Jak se instrukce mění": the three steps of a change, and why there is no test here. */
+function ChangeSteps() {
+  return (
+    <section data-change-steps aria-labelledby="pf-h" className="mb-5 rounded-md border border-border bg-surface-raised px-5 py-4">
+      <h3 id="pf-h" className="text-sm font-semibold">{t(`${P}.flow.label`)}</h3>
+      <ol className="mt-2.5 grid grid-cols-[repeat(auto-fit,minmax(11.25rem,1fr))] gap-2.5">
+        {([1, 2, 3] as const).map((n) => (
+          <li key={n} className="rounded-md border border-border px-3 py-2.5">
+            <b className="text-sm font-medium">{n} · {t(`${P}.flow.step${n}`)}</b>
+            <p className="mt-0.5 text-xs leading-[18px] text-ink-muted">{t(`${P}.flow.what${n}`)}</p>
+          </li>
+        ))}
+      </ol>
+      <p data-no-test className="mt-2.5 text-xs leading-5 text-ink-muted">{t(`${P}.flow.noTest`)}</p>
+    </section>
   );
 }
 
@@ -196,7 +219,7 @@ function runningText(d: PromptSlotDetail): string {
 }
 
 function Editor(props: {
-  promptId: string; people: People; clients: Props["clients"]; studies: Props["studies"];
+  promptId: string; people: People;
   onChanged: () => void; onDirty: (dirty: boolean) => void;
 }) {
   const [detail, reload] = useResource(() => admin.prompt(props.promptId), [props.promptId]);
@@ -207,8 +230,8 @@ function Editor(props: {
   );
 }
 
-function EditorBody({ detail, people, clients, studies, reload, onDirty }: {
-  detail: PromptSlotDetail; people: People; clients: Props["clients"]; studies: Props["studies"];
+function EditorBody({ detail, people, reload, onDirty }: {
+  detail: PromptSlotDetail; people: People;
   reload: () => void; onDirty: (dirty: boolean) => void;
 }) {
   const router = useRouter();
@@ -227,7 +250,6 @@ function EditorBody({ detail, people, clients, studies, reload, onDirty }: {
   // The version this editor saved and has not seen switched on: the next step offers it until
   // it runs. Its own state, so clearing a message or reverting an edit never loses it.
   const [offer, setOffer] = useState<number | null>(null);
-  const [testing, setTesting] = useState<number | null>(null);
   const [pendingLoad, setPendingLoad] = useState<{ text: string; label: string } | null>(null);
   const [compareOpen, setCompareOpen] = useState(false);
   const activationRef = useRef<HTMLDivElement>(null);
@@ -312,13 +334,16 @@ function EditorBody({ detail, people, clients, studies, reload, onDirty }: {
 
   const running = detail.active.origin === "stored" ? versionName(detail.active.label) : t(`${P}.baselineName`);
   const savedWaiting = offer !== null && detail.active.version_number !== offer ? offer : null;
-  const canTest = actionOf(detail.prompt_id) !== null && detail.draft_test_client_ids.length > 0;
+  // The newest stored version not in force, whoever saved it: the chip the design shows ("v4 čeká").
+  const activeNumber = detail.active.origin === "stored" ? detail.active.version_number : null;
+  const newest = Math.max(0, ...detail.versions.map((v) => v.version_number), justSaved?.version_number ?? 0);
+  const waitingNumber = newest > (activeNumber ?? 0) ? newest : null;
   const basedOnName = basedOn === "baseline" ? t(`${P}.baselineName`) : versionName(basedOn);
 
   if (!detail.wired) {
     return (
       <div data-editor={detail.prompt_id} className="flex min-w-0 flex-col gap-4">
-        <Heading detail={detail} dirty={false} />
+        <Heading detail={detail} dirty={false} waiting={null} />
         <div data-locked className="flex flex-col gap-3">
           <p role="note" className="max-w-3xl text-sm">{t(`${P}.unwired.${detail.unwired_reason ?? "unknown"}`)}</p>
           <h4 className="text-sm font-semibold">{t(`${P}.editor.showBaseline`)}</h4>
@@ -329,10 +354,9 @@ function EditorBody({ detail, people, clients, studies, reload, onDirty }: {
   }
 
   return (
-    <div data-editor={detail.prompt_id} className="grid min-w-0 items-start gap-6 2xl:grid-cols-[minmax(0,1fr)_21rem]">
+    <div data-editor={detail.prompt_id} className="flex min-w-0 flex-col gap-6">
       <div className="flex min-w-0 flex-col gap-4">
-        <Heading detail={detail} dirty={dirty} />
-        <Flow dirty={dirty} savedWaiting={savedWaiting !== null} />
+        <Heading detail={detail} dirty={dirty} waiting={waitingNumber} />
         <div data-frame className="flex min-w-0 flex-col gap-2">
           <p className="flex max-w-3xl items-start gap-2 text-sm text-ink-muted">
             <svg aria-hidden="true" width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="mt-0.5 shrink-0"><path d="M4.5 7V5a3.5 3.5 0 0 1 7 0v2M3.5 7h9v6.5h-9z" /></svg>
@@ -356,11 +380,11 @@ function EditorBody({ detail, people, clients, studies, reload, onDirty }: {
           <TextArea
             id={`${detail.prompt_id}-text`}
             aria-label={t(`${P}.editor.textLabel`)}
-            name="instruction" rows={18} disabled={busy} spellCheck={false} value={draft}
+            name="instruction" rows={20} disabled={busy} spellCheck={false} value={draft}
             onChange={(e) => setDraft(e.target.value)}
             aria-invalid={problem ? true : undefined}
             aria-describedby={`${detail.prompt_id}-hint`}
-            className="w-full resize-y text-sm leading-6"
+            className="min-h-[28.75rem] w-full resize-y text-[13px] leading-5"
           />
           <p id={`${detail.prompt_id}-hint`} data-problem={problem ? "yes" : "no"} className={`text-sm ${problem ? "text-status-fault" : "text-ink-muted"}`}>
             {problem ?? (duplicateOf ? tv(`${P}.editor.duplicate`, { label: duplicateOf === t(`${P}.baselineName`) ? duplicateOf : versionName(duplicateOf) }) : t(`${P}.editor.notLiveYet`))}
@@ -379,13 +403,10 @@ function EditorBody({ detail, people, clients, studies, reload, onDirty }: {
           ) : null}
         </form>
 
-        {testing !== null ? (
-          <TestRun key={testing} detail={detail} version={testing} studies={studies} clients={clients} onClose={() => setTesting(null)} />
-        ) : null}
         {compareOpen ? <Compare options={options} state={compare} onChange={setCompare} side={side} onClose={() => setCompareOpen(false)} /> : null}
       </div>
 
-      <aside aria-label={t(`${P}.versions.title`)} className="flex min-w-0 flex-col gap-5 2xl:sticky 2xl:top-4">
+      <aside aria-label={t(`${P}.versions.title`)} className="flex min-w-0 flex-col gap-5">
         <div data-running-card className="rounded-md border border-border bg-surface-raised p-4">
           <p className="text-xs font-semibold text-ink-faint">{t(`${P}.liveLabel`)}</p>
           <p className="mt-0.5 text-base font-semibold">{running}</p>
@@ -402,7 +423,6 @@ function EditorBody({ detail, people, clients, studies, reload, onDirty }: {
             <p><strong className="font-semibold">{tv(`${P}.next.saved`, { label: versionName(`e${savedWaiting}`) })}</strong> {t(`${P}.next.what`)}</p>
             <div className="flex flex-wrap gap-2">
               <Button variant="primary" onClick={() => setActivating({ version: savedWaiting })}>{tv(`${P}.versions.activate`, { label: versionAcc(`e${savedWaiting}`) })}</Button>
-              {canTest ? <Button onClick={() => setTesting(savedWaiting)}>{t(`${P}.versions.test`)}</Button> : null}
             </div>
           </div>
         ) : null}
@@ -430,7 +450,7 @@ function EditorBody({ detail, people, clients, studies, reload, onDirty }: {
         </div>
 
         <Versions
-          detail={detail} people={people} canTest={canTest} offered={activating ? null : savedWaiting}
+          detail={detail} people={people} offered={activating ? null : savedWaiting}
           onLoad={(text, label) => {
             if (busy) return;
             if (dirty) { setPendingLoad({ text, label }); return; }
@@ -438,7 +458,6 @@ function EditorBody({ detail, people, clients, studies, reload, onDirty }: {
           }}
           onCompare={(key) => { setCompare((c) => ({ ...c, a: key })); setCompareOpen(true); }}
           onActivate={(version) => setActivating({ version })}
-          onTest={(version) => setTesting(version)}
         />
 
         <History detail={detail} people={people} />
@@ -447,34 +466,31 @@ function EditorBody({ detail, people, clients, studies, reload, onDirty }: {
   );
 }
 
-/** The prompt's name, what its family does, and whether an edit waits to be saved. */
-function Heading({ detail, dirty }: { detail: PromptSlotDetail; dirty: boolean }) {
+/** The prompt's name, its state as chips, what it does and where it runs. */
+function Heading({ detail, dirty, waiting }: { detail: PromptSlotDetail; dirty: boolean; waiting: number | null }) {
+  const key = detail.prompt_id.replaceAll(".", "_");
+  const purpose = t(`${P}.purpose.${key}`);
+  const where = t(`${P}.where.${key}`);
+  const known = (text: string, k: string) => text !== `${P}.${k}.${key}`;
+  const chip = "inline-flex min-h-[22px] items-center rounded-pill border px-2 text-xs";
   return (
-    <header className="flex flex-col gap-1">
-      <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
+    <header className="flex flex-col gap-2">
+      <div className="flex flex-wrap items-center gap-x-3 gap-y-1.5">
         <h3 className="text-xl font-semibold">{nameOf(detail.prompt_id)}</h3>
-        {dirty ? <span className="text-sm font-medium text-status-you-ink">{t(`${P}.guard.unsaved`)}</span> : null}
+        {!detail.wired ? <span className={`${chip} border-border text-ink-muted`}>{t(`${P}.chips.fixed`)}</span> : <>
+          <span data-prompt-in-force className={`${chip} border-signal-edge font-medium text-ink ${IN_FORCE}`}>
+            {detail.active.origin === "stored" ? tv(`${P}.chips.inForce`, { v: shortName(detail.active.version_number!) }) : t(`${P}.chips.inForceBaseline`)}
+          </span>
+          {waiting !== null ? <span data-waiting-chip className={`${chip} border-status-you-ink/40 bg-status-you-wash text-ink`}>{tv(`${P}.chips.waiting`, { v: shortName(waiting) })}</span> : null}
+          {dirty ? <span className={`${chip} border-status-you-ink/40 font-medium text-status-you-ink`}>{t(`${P}.guard.unsaved`)}</span> : null}
+        </>}
       </div>
-      <p className="max-w-3xl text-sm text-ink-muted">{t(`${P}.about.${detail.family}`)}</p>
+      <dl className="grid max-w-3xl grid-cols-[max-content_1fr] gap-x-4 gap-y-1 text-sm">
+        <dt className="text-ink-faint">{t(`${P}.whatItDoes`)}</dt>
+        <dd className="text-ink-muted">{known(purpose, "purpose") ? purpose : t(`${P}.about.${detail.family}`)}</dd>
+        {known(where, "where") ? <><dt className="text-ink-faint">{t(`${P}.whereItRuns`)}</dt><dd className="text-ink-muted">{where}</dd></> : null}
+      </dl>
     </header>
-  );
-}
-
-/** The safe order of a change: edit, save a version, try it (optional), switch it on. */
-function Flow({ dirty, savedWaiting }: { dirty: boolean; savedWaiting: boolean }) {
-  const now = savedWaiting ? 4 : dirty ? 2 : 1;
-  return (
-    <ol data-prompt-flow aria-label={t(`${P}.flow.label`)} className="flex flex-wrap gap-x-5 gap-y-1 text-sm">
-      {([1, 2, 3, 4] as const).map((n) => {
-        const st = n === 3 ? (savedWaiting ? "optional" : "") : n < now ? "done" : n === now ? "now" : "";
-        return (
-          <li key={n} data-state={st || "later"} className={`flex items-center gap-2 ${st === "now" ? "font-semibold text-signal" : st === "done" ? "text-ink" : "text-ink-faint"}`}>
-            <span aria-hidden="true" className={`inline-flex size-5 items-center justify-center rounded-full border font-mono text-[11px] ${st === "done" ? "border-ink bg-ink text-surface-raised" : st === "now" ? "border-signal" : "border-border-strong"}`}>{n}</span>
-            {t(`${P}.flow.step${n}`)}
-          </li>
-        );
-      })}
-    </ol>
   );
 }
 
@@ -502,46 +518,72 @@ function LiveDiff({ from, to, label }: { from: string; to: string; label: string
 
 // ---------------------------------------------------------------- versions
 
-function Versions({ detail, people, canTest, offered, onLoad, onCompare, onActivate, onTest }: {
-  detail: PromptSlotDetail; people: People; canTest: boolean;
+function Versions({ detail, people, offered, onLoad, onCompare, onActivate }: {
+  detail: PromptSlotDetail; people: People;
   /** The version the next-step card offers to switch on: its own button is the one, never two. */
   offered: number | null;
   onLoad: (text: string, label: string) => void;
   onCompare: (key: string) => void;
   onActivate: (version: number | null) => void;
-  onTest: (version: number) => void;
 }) {
-  const baselineRunning = detail.active.origin === "baseline";
+  const activeNumber = detail.active.origin === "stored" ? detail.active.version_number : null;
+  const head = "px-2 py-1.5 text-left text-xs font-normal text-ink-faint";
+  const cell = "border-t border-border px-2 py-2 align-top";
   const row = (v: PromptVersion | null) => {
-    const running = v === null ? baselineRunning : detail.active.version_number === v.version_number;
+    const running = v === null ? activeNumber === null : activeNumber === v.version_number;
+    const waiting = v !== null && v.version_number > (activeNumber ?? 0);
     const key = v === null ? "baseline" : `v${v.version_number}`;
-    const label = v === null ? t(`${P}.baselineName`) : versionName(v.label);
+    const state = running ? t(`${P}.versions.stateInForce`) : waiting ? t(`${P}.versions.stateWaiting`) : v === null ? t(`${P}.versions.stateCode`) : t(`${P}.versions.stateEarlier`);
+    const tone = running ? `${IN_FORCE} ${IN_FORCE_EDGE}` : waiting ? "bg-status-you-wash" : "";
+    // The actions stand on a row of their own under the version's facts: a fifth column of buttons
+    // pushed the page wider than 1024 px (proposal_prompt_journey).
     return (
-      <li key={key} data-version={key} data-running={running ? "yes" : "no"} className="flex min-w-0 flex-col gap-2 py-3">
-        <div className="flex flex-wrap items-baseline justify-between gap-2">
-          <strong className="text-sm">{label}</strong>
-          {running ? <span className="text-xs font-semibold text-signal">{t(`${P}.versions.running`)}</span> : null}
-        </div>
-        <p className="break-words text-xs text-ink-muted">{v === null ? t(`${P}.versions.byCode`) : <><span>{people(v.created_by)}</span> · <span>{when(v.created_at)}</span></>}</p>
-        {v?.note ? <p className="break-words text-sm text-ink-muted">{v.note}</p> : null}
-        <div className="flex flex-wrap gap-2">
-          <Button small onClick={() => onLoad(v === null ? detail.baseline_text : v.text, v === null ? "baseline" : v.label)}>{t(`${P}.versions.load`)}</Button>
-          <Button small onClick={() => onCompare(key)}>{t(`${P}.versions.compare`)}</Button>
-          {!running && (v === null || v.version_number !== offered) ? <Button small onClick={() => onActivate(v === null ? null : v.version_number)}>{v === null ? t(`${P}.versions.reset`) : tv(`${P}.versions.activate`, { label: versionAcc(v.label) })}</Button> : null}
-          {v !== null && canTest ? <Button small onClick={() => onTest(v.version_number)}>{t(`${P}.versions.test`)}</Button> : null}
-        </div>
-      </li>
+      <tbody key={key} data-version={key} data-running={running ? "yes" : "no"} className={tone}>
+      <tr>
+        <td className={`${cell} font-medium sm:whitespace-nowrap`}>
+          {v === null ? t(`${P}.baselineName`) : shortName(v.version_number)}
+          {/* Under 640 px the author and the time stand under the version: the row keeps every fact without a scroll. */}
+          <span className="block text-xs font-normal text-ink-muted sm:hidden">{v === null ? t(`${P}.versions.byCode`) : `${people(v.created_by)} · ${when(v.created_at)}`}</span>
+        </td>
+        <td className={`${cell} ${running ? "text-ink" : waiting ? "text-ink" : "text-ink-muted"}`}>
+          <span className="inline-flex items-center gap-1.5 xl:whitespace-nowrap">
+            <i aria-hidden="true" className={`size-1.5 shrink-0 rounded-full ${running ? IN_FORCE_DOT : waiting ? "bg-status-you" : "bg-border-strong"}`} />{state}
+          </span>
+          {v?.note ? <span className="block break-words text-xs text-ink-muted">{v.note}</span> : null}
+        </td>
+        <td className={`${cell} hidden break-words text-ink-muted sm:table-cell`}>{v === null ? t(`${P}.versions.byCode`) : people(v.created_by)}</td>
+        <td className={`${cell} hidden whitespace-nowrap text-ink-muted sm:table-cell`}>{v === null ? "—" : when(v.created_at)}</td>
+      </tr>
+      <tr>
+        <td colSpan={4} className="px-2 pb-2">
+          <div className="flex flex-wrap gap-1.5">
+            <Button small onClick={() => onLoad(v === null ? detail.baseline_text : v.text, v === null ? "baseline" : v.label)}>{t(`${P}.versions.load`)}</Button>
+            <Button small onClick={() => onCompare(key)}>{t(`${P}.versions.compare`)}</Button>
+            {!running && (v === null || v.version_number !== offered) ? <Button small onClick={() => onActivate(v === null ? null : v.version_number)}>{v === null ? t(`${P}.versions.reset`) : tv(`${P}.versions.activate`, { label: versionAcc(v.label) })}</Button> : null}
+          </div>
+        </td>
+      </tr>
+      </tbody>
     );
   };
   return (
-    <section aria-labelledby="pv-h" className="flex flex-col">
+    <section aria-labelledby="pv-h" className="flex min-w-0 flex-col">
       <h4 id="pv-h" className="text-sm font-semibold">{t(`${P}.versions.title`)}</h4>
-      <ul className="flex flex-col divide-y divide-border">
-        {[...detail.versions].map((v) => row(v))}
-        {row(null)}
-      </ul>
+      <div className="mt-1 max-w-full overflow-x-auto">
+        <table className="w-full border-collapse text-sm">
+          <thead>
+            <tr>
+              <th scope="col" className={head}>{t(`${P}.versions.col.version`)}</th>
+              <th scope="col" className={head}>{t(`${P}.versions.col.state`)}</th>
+              <th scope="col" className={`${head} hidden sm:table-cell`}>{t(`${P}.versions.col.author`)}</th>
+              <th scope="col" className={`${head} hidden sm:table-cell`}>{t(`${P}.versions.col.when`)}</th>
+            </tr>
+          </thead>
+          {[...detail.versions].map((v) => row(v))}
+          {row(null)}
+        </table>
+      </div>
       {!detail.versions.length ? <p className="text-xs text-ink-faint">{t(`${P}.versions.none`)}</p> : null}
-      {!canTest && actionOf(detail.prompt_id) !== null ? <p data-test-off className="mt-2 text-xs text-ink-muted">{t(`${P}.test.noFictional`)}</p> : null}
       {detail.versions.length ? (
         <div data-approval className="mt-3 flex flex-col gap-2 border-t border-border pt-3">
           <h5 className="text-sm font-semibold">{t(`${P}.approval.title`)}</h5>
@@ -679,170 +721,6 @@ function History({ detail, people }: { detail: PromptSlotDetail; people: People 
           ))}
         </ul>
       ) : <p className="text-sm text-ink-muted">{t(`${P}.history.none`)}</p>}
-    </section>
-  );
-}
-
-// ---------------------------------------------------------------- test a version
-
-const POLL_MS = 3000;
-
-function TestRun({ detail, version, studies, clients, onClose }: {
-  detail: PromptSlotDetail; version: number; studies: Props["studies"]; clients: Props["clients"]; onClose: () => void;
-}) {
-  const router = useRouter();
-  const action = actionOf(detail.prompt_id);
-  const clientName = new Map(clients.ok ? clients.data.map((c) => [c.client_id, c.name]) : []);
-  // Only studies of a client the deployment lists as fictional; the API refuses any other server-side.
-  const fictional = new Set(detail.draft_test_client_ids);
-  const eligible = studies.ok
-    ? studies.data.map((r) => r.study).filter((s) => s.kind === "RESEARCH" && s.accepts_work && fictional.has(s.client_id))
-    : [];
-  const [studyId, setStudyId] = useState(eligible[0]?.study_id ?? "");
-  const [revisions, setRevisions] = useState<{ id: string; label: string }[] | null>(null);
-  const [revisionId, setRevisionId] = useState("");
-  const [job, setJob] = useState<ResearchAgentJob | null>(null);
-  const [result, setResult] = useState<ResearchAgentResult | null>(null);
-  const [busy, setBusy] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  // The study's confirmation threshold asks before a job that reaches it (LO15): answered here.
-  const [costAsk, setCostAsk] = useState<{ message: string; resolve: (yes: boolean) => void } | null>(null);
-  const confirmCost = (message: string) => new Promise<boolean>((resolve) => setCostAsk({ message, resolve }));
-  const answerCost = (yes: boolean) => { costAsk?.resolve(yes); setCostAsk(null); };
-  const resultFor = useRef<string | null>(null);
-  const [resultRetry, setResultRetry] = useState(0);
-  const [resultFailed, setResultFailed] = useState(false);
-  const generation = useRef(0);
-  useEffect(() => () => { generation.current += 1; }, []);
-  const changeStudy = (id: string) => {
-    generation.current += 1;
-    setStudyId(id); setJob(null); setResult(null); setError(null); setResultFailed(false);
-    resultFor.current = null;
-  };
-
-  const fail = (e: unknown) => {
-    if (e instanceof Unauthenticated) {
-      router.replace(`/login?next=${encodeURIComponent(window.location.pathname + window.location.search + window.location.hash)}`);
-      return;
-    }
-    setError(describeError(e));
-  };
-
-  // The study's design revisions, newest first; the newest is the default.
-  useEffect(() => {
-    if (!studyId) return;
-    let live = true;
-    // eslint-disable-next-line react-hooks/set-state-in-effect -- another study's revisions are cleared before its own are read
-    setRevisions(null);
-    setRevisionId("");
-    research.revisions(studyId).then(
-      (items) => {
-        if (!live) return;
-        const sorted = [...items].sort((a, b) => b.revision - a.revision);
-        setRevisions(sorted.map((r) => ({ id: r.revision_id, label: `#${r.revision} · ${r.source_stage}` })));
-        setRevisionId(sorted[0]?.revision_id ?? "");
-      },
-      (e: unknown) => { if (live) { setRevisions([]); fail(e); } },
-    );
-    return () => { live = false; };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [studyId]);
-
-  // A failed read can retry the result, never the paid model call. Old reads cannot
-  // attach a result to another study, job or unmounted test panel.
-  useEffect(() => {
-    if (!job || !studyId) return;
-    let live = true;
-    if (job.is_terminal || job.needs_attention || job.status.startsWith("WAITING")) {
-      if (job.status === "COMPLETED" && resultFor.current !== job.run_id) {
-        resultFor.current = job.run_id;
-        researchAgents.result(studyId, job.run_id).then(
-          (value) => { if (live) { setResult(value); setResultFailed(false); } },
-          (e: unknown) => { if (live) { fail(e); setResultFailed(true); } },
-        );
-      }
-      return () => { live = false; };
-    }
-    const timer = setTimeout(() => {
-      researchAgents.job(studyId, job.run_id).then((value) => { if (live) setJob(value); }, (e: unknown) => { if (live) fail(e); });
-    }, POLL_MS);
-    return () => { live = false; clearTimeout(timer); };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [job, studyId, resultRetry]);
-
-  async function run() {
-    if (!action || busy || !revisionId || (!!job && !job.is_terminal)) return;
-    const operation = ++generation.current;
-    setBusy(true);
-    setError(null);
-    setResult(null);
-    resultFor.current = null;
-    try {
-      const queued = await withJobCostConfirmation(
-        (usd) => researchAgents.start(studyId, revisionId, action, "", version, usd),
-        confirmCost,
-      );
-      if (generation.current === operation) setJob(queued);
-    } catch (e) {
-      if (generation.current === operation) fail(e);
-    } finally {
-      if (generation.current === operation) setBusy(false);
-    }
-  }
-
-  return (
-    <section data-test-run aria-labelledby="pt-h" className="flex flex-col gap-3 rounded-sm border border-border p-4">
-      <div className="flex items-center justify-between gap-2">
-        <h4 id="pt-h" className="text-sm font-semibold">{tv(`${P}.test.title`, { label: versionAcc(`e${version}`) })}</h4>
-        <Button small variant="quiet" onClick={onClose}>{t(`${P}.test.close`)}</Button>
-      </div>
-      <p className="max-w-3xl text-sm text-ink-muted">{t(`${P}.test.intro`)}</p>
-      <p role="note" className="text-xs text-ink-muted">{t(`${P}.test.cost`)}</p>
-      {!eligible.length ? <Empty>{t(`${P}.test.${fictional.size ? "noStudies" : "noFictional"}`)}</Empty> : (
-        <div className="flex flex-wrap items-end gap-3">
-          <Field label={t(`${P}.test.study`)}>
-            <Select value={studyId} disabled={busy || (!!job && !job.is_terminal)} onChange={(e) => changeStudy(e.target.value)} className="w-full sm:w-auto">
-              {eligible.map((s) => <option key={s.study_id} value={s.study_id}>{s.name} · {clientName.get(s.client_id) ?? s.client_id}</option>)}
-            </Select>
-          </Field>
-          <Field label={t(`${P}.test.revision`)}>
-            <Select value={revisionId} onChange={(e) => setRevisionId(e.target.value)} className="w-full sm:w-auto" disabled={!revisions?.length || busy || (!!job && !job.is_terminal)}>
-              {(revisions ?? []).map((r) => <option key={r.id} value={r.id}>{r.label}</option>)}
-            </Select>
-          </Field>
-          <Button variant="primary" disabled={busy || !revisionId || (!!job && !job.is_terminal)} onClick={() => void run()}>
-            {busy ? t(`${P}.test.starting`) : t(`${P}.test.start`)}
-          </Button>
-        </div>
-      )}
-      {revisions && !revisions.length && studyId ? <p className="text-xs text-ink-muted">{t(`${P}.test.noRevision`)}</p> : null}
-      {costAsk ? (
-        <div role="alertdialog" aria-labelledby="pt-cost" data-cost-ask className="flex flex-col gap-2 rounded-sm border border-border p-3 text-sm">
-          <p id="pt-cost">{costAsk.message}</p>
-          <div className="flex gap-2">
-            <Button variant="primary" onClick={() => answerCost(true)}>{t(`${P}.test.costConfirm`)}</Button>
-            <Button onClick={() => answerCost(false)}>{t(`${P}.test.costDecline`)}</Button>
-          </div>
-        </div>
-      ) : null}
-      {error ? <p role="alert" data-refusal className="text-sm text-status-fault">{error}</p> : null}
-      {resultFailed ? <Button onClick={() => { resultFor.current = null; setResultFailed(false); setError(null); setResultRetry((n) => n + 1); }}>{t(`${P}.retryResult`)}</Button> : null}
-      {job ? (
-        <div data-job className="flex flex-col gap-2 text-sm">
-          <p>
-            <Chip tone={job.status === "COMPLETED" ? "done" : job.needs_attention ? "fault" : "running"}>{job.status}</Chip>{" "}
-            {tv(`${P}.test.ranWith`, { version: job.prompt_version ?? "—" })}
-            {job.actual_cost_usd !== null ? <> · ${job.actual_cost_usd.toFixed(4)}</> : null}
-          </p>
-          {job.status === "WAITING_PROVIDER" ? <p className="text-xs text-ink-muted">{t(`${P}.test.parked`)}</p> : null}
-          {result ? (
-            <details open data-result>
-              <summary className="cursor-pointer font-medium">{t(`${P}.test.result`)}</summary>
-              <pre className="mt-2 max-h-96 overflow-auto rounded-sm border border-border bg-surface p-3 font-mono text-xs leading-5">{JSON.stringify(result.result.proposal, null, 2)}</pre>
-            </details>
-          ) : null}
-        </div>
-      ) : null}
     </section>
   );
 }

@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 // The system prompts tab against a fake of the prompt API: what an administrator can read,
-// edit, save, compare, put live, return to the code's wording and test -- and that every
+// edit, save, compare, put live and return to the code's wording -- never run (X10) -- and that every
 // refusal is shown as the API gave it. The fake keeps real state, so a save followed by an
 // activation behaves as the server does: a saved version does not run until it is put live.
 import { cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
@@ -9,8 +9,8 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { PromptActive, PromptSlotDetail, PromptSlotSummary, PromptVersion, SettingsDocument } from "@/lib/api";
 import { resetConfigCache } from "@/lib/auth";
 import { TechnicalProvider } from "./technical";
-import type { Part, StudyRow } from "./ControlPanel";
-import { SystemPromptsPanel, actionOf, nameOf } from "./SystemPromptsPanel";
+import type { Part } from "./ControlPanel";
+import { SystemPromptsPanel, nameOf } from "./SystemPromptsPanel";
 
 const replace = vi.fn();
 vi.mock("next/navigation", () => ({ useRouter: () => ({ push: vi.fn(), replace }), usePathname: () => "/app/settings" }));
@@ -131,28 +131,12 @@ const versionRow = (key: string) =>
   });
 const called = (method: string, url: string) => calls.filter((c) => c.method === method && c.url === url);
 
-const STUDY = (id: string, name: string, kind = "RESEARCH", clientId = "CLI-a") => ({
-  study: { study_id: id, client_id: clientId, slug: id, name, kind, status: "ACTIVE", accepts_work: true, your_role: "LEAD", budget_usd: null, spent_usd: null, remaining_usd: null },
-  detail: { ok: false, message: "" },
-}) as unknown as StudyRow;
 const DOC = (may = true) => ({ may_administer: may }) as unknown as SettingsDocument;
 const members: Part<{ user_id: string; email: string; display_name: string; is_active: boolean; organization_role: string }[]> = {
   ok: true, data: [{ user_id: "USR-1", email: "owner@example.test", display_name: "", is_active: true, organization_role: "OWNER" }],
 };
-const clients: Part<{ client_id: string; slug: string; name: string; status: string; reference: string; study_count: number; created_at: null }[]> = {
-  ok: true, data: [
-    { client_id: "CLI-a", slug: "a", name: "Fiktivní klient", status: "ACTIVE", reference: "", study_count: 1, created_at: null },
-    { client_id: "CLI-b", slug: "b", name: "Skutečný klient", status: "ACTIVE", reference: "", study_count: 1, created_at: null },
-  ],
-};
-// STU-2 belongs to a client the deployment does not list as fictional: never offered for a draft.
-const studies: Part<StudyRow[]> = {
-  ok: true,
-  data: [STUDY("STU-1", "Fiktivní studie"), STUDY("STU-9", "Simulace", "SIMULATION"), STUDY("STU-2", "Skutečná studie", "RESEARCH", "CLI-b")],
-};
-
 function mount(may = true, technical = false) {
-  render(<TechnicalProvider on={technical}><SystemPromptsPanel doc={DOC(may)} members={members} clients={clients} studies={studies} /></TechnicalProvider>);
+  render(<TechnicalProvider on={technical}><SystemPromptsPanel doc={DOC(may)} members={members} /></TechnicalProvider>);
 }
 const editor = async () => (await screen.findByLabelText("Instrukce")) as HTMLTextAreaElement;
 const saveButton = () => screen.getByRole("button", { name: "Uložit jako novou verzi" }) as HTMLButtonElement;
@@ -176,18 +160,44 @@ afterEach(() => {
 });
 
 describe("the prompt list", () => {
-  it("groups prompts by family, marks what runs, and locks what no step reads", async () => {
+  it("lists the prompts a person may edit, then those read only, each with the version in force", async () => {
     fakeApi();
     mount();
     const list = await screen.findByRole("navigation", { name: "Seznam promptů" });
-    expect(within(list).getByText("Návrhoví agenti výzkumu")).toBeTruthy();
-    expect(within(list).getByText("AI respondent")).toBeTruthy();
-    const analyze = list.querySelector(`[data-prompt="${ANALYZE}"]`) as HTMLElement;
-    expect(within(analyze).getByText("Základ z kódu")).toBeTruthy();
-    const respondent = list.querySelector(`[data-prompt="${RESPONDENT}"]`) as HTMLElement;
-    expect(within(respondent).getByText("Zatím nelze upravit")).toBeTruthy();
+    const editable = list.querySelector('[data-group="editable"]') as HTMLElement;
+    const readOnly = list.querySelector('[data-group="readOnly"]') as HTMLElement;
+    expect(within(editable).getByText("Upravitelné")).toBeTruthy();
+    expect(within(readOnly).getByText("Jen ke čtení")).toBeTruthy();
+    const analyze = editable.querySelector(`[data-prompt="${ANALYZE}"]`) as HTMLElement;
+    expect(within(analyze).getByText("základ z kódu v platnosti")).toBeTruthy();
+    const respondent = readOnly.querySelector(`[data-prompt="${RESPONDENT}"]`) as HTMLElement;
+    expect(within(respondent).getByText("součást metody")).toBeTruthy();
+    expect(editable.querySelector(`[data-prompt="${RESPONDENT}"]`)).toBeNull();
     // The first prompt an edit can reach is open.
     expect(analyze.getAttribute("aria-current")).toBe("true");
+  });
+
+  it("says in the list that a saved version waits to be switched on, and which is in force", async () => {
+    fakeApi();
+    mount();
+    await saveAs("Analyzuj stručně.");
+    const row = () => document.querySelector(`[data-prompt="${ANALYZE}"]`) as HTMLElement;
+    await waitFor(() => expect(row().textContent).toContain("základ z kódu v platnosti · v1 čeká"));
+    expect(row().getAttribute("data-waiting")).toBe("true");
+    fireEvent.click(within(await versionRow("v1")).queryByRole("button", { name: "Zapnout verzi 1" }) ?? within(document.querySelector("[data-next-step]") as HTMLElement).getByRole("button", { name: "Zapnout verzi 1" }));
+    fireEvent.click(within(document.querySelector("[data-activation]") as HTMLElement).getByRole("button", { name: "Potvrdit" }));
+    await waitFor(() => expect(row().textContent).toContain("v1 v platnosti"));
+    expect(row().textContent).not.toContain("čeká");
+    expect(row().getAttribute("data-waiting")).toBeNull();
+  });
+
+  it("says how an instruction changes, and that it is never tried from here", async () => {
+    fakeApi();
+    mount();
+    const steps = document.querySelector("[data-change-steps]") as HTMLElement;
+    expect(within(steps).getByRole("heading", { name: "Jak se instrukce mění" })).toBeTruthy();
+    expect([...steps.querySelectorAll("li b")].map((b) => b.textContent)).toEqual(["1 · Upravit", "2 · Uložit verzi", "3 · Zapnout"]);
+    expect(steps.querySelector("[data-no-test]")?.textContent).toMatch(/jen přes Vedoucího ve studii/);
   });
 
   it("does not ask for or show prompts to a member", async () => {
@@ -275,17 +285,18 @@ describe("a prompt that can be edited", () => {
     // The code's wording still runs.
     expect((document.querySelector('[data-version="baseline"]') as HTMLElement).getAttribute("data-running")).toBe("yes");
     const list = screen.getByRole("navigation", { name: "Seznam promptů" });
-    expect(within(list.querySelector(`[data-prompt="${ANALYZE}"]`) as HTMLElement).getByText("Základ z kódu")).toBeTruthy();
+    expect(await within(list.querySelector(`[data-prompt="${ANALYZE}"]`) as HTMLElement).findByText("základ z kódu v platnosti · v1 čeká")).toBeTruthy();
   });
 
   it("walks the change in order: edit, save, then switch on from the next step beside the editor", async () => {
     fakeApi();
     mount();
     const box = await editor();
-    const now = () => document.querySelector('[data-prompt-flow] [data-state="now"]')?.textContent;
-    expect(now()).toBe("1Upravit");
+    const head = () => (document.querySelector("[data-editor] header") as HTMLElement).textContent ?? "";
+    expect(document.querySelector("[data-prompt-in-force]")?.textContent).toBe("Zapnutý základ z kódu");
+    expect(document.querySelector("[data-waiting-chip]")).toBeNull();
     fireEvent.change(box, { target: { value: "Analyzuj problém.\nPiš stručně." } });
-    expect(now()).toBe("2Uložit verzi");
+    expect(head()).toContain("Neuložené změny");
     // What the edit changes shows as it is typed, against the text it started from.
     const diff = await waitFor(() => {
       const el = document.querySelector("[data-live-diff]") as HTMLElement | null;
@@ -296,7 +307,8 @@ describe("a prompt that can be edited", () => {
     expect(diff.querySelector('[data-diff="del"]')?.textContent).toContain("Nesestavuj dotazník.");
     fireEvent.click(saveButton());
     await screen.findByText("Uloženo jako verze 1. Zatím neběží.");
-    expect(now()).toBe("4Zapnout");
+    expect(document.querySelector("[data-waiting-chip]")?.textContent).toBe("uložená v1 čeká");
+    expect(head()).not.toContain("Neuložené změny");
     const next = document.querySelector("[data-next-step]") as HTMLElement;
     expect(next.textContent).toContain("Uložená verze 1 zatím neběží.");
     expect(document.querySelector("[data-live-diff]")).toBeNull();
@@ -311,6 +323,9 @@ describe("a prompt that can be edited", () => {
     await screen.findByText("Teď běží: verze 1.");
     await waitFor(() => expect(document.querySelector("[data-running-card]")?.textContent).toContain("verze 1"));
     expect(document.querySelector("[data-next-step]")).toBeNull();
+    await waitFor(() => expect(document.querySelector("[data-prompt-in-force]")?.textContent).toBe("Zapnutá v1"));
+    expect(document.querySelector("[data-waiting-chip]")).toBeNull();
+    expect((await versionRow("v1")).textContent).toContain("zapnutá · platí pro nové úlohy");
   });
 
   it("shows the API's refusal of a save as given", async () => {
@@ -344,7 +359,7 @@ describe("putting a version live", () => {
     expect(await screen.findByText("Teď běží: verze 1.")).toBeTruthy();
     await waitFor(() => expect((document.querySelector('[data-version="v1"]') as HTMLElement).getAttribute("data-running")).toBe("yes"));
     const list = screen.getByRole("navigation", { name: "Seznam promptů" });
-    expect(within(list.querySelector(`[data-prompt="${ANALYZE}"]`) as HTMLElement).getByText("Upraveno · běží verze 1")).toBeTruthy();
+    expect(await within(list.querySelector(`[data-prompt="${ANALYZE}"]`) as HTMLElement).findByText("v1 v platnosti")).toBeTruthy();
     expect(document.querySelector("[data-activation]")).toBeNull();
     const history = document.querySelector("[data-history]") as HTMLElement;
     expect(within(history).getByText("kratší je lepší", { exact: false })).toBeTruthy();
@@ -360,7 +375,7 @@ describe("putting a version live", () => {
     expect(refusal.textContent).toContain("someone other than its author");
     expect(backend.active[ANALYZE]).toBeNull();
     const list = screen.getByRole("navigation", { name: "Seznam promptů" });
-    expect(within(list.querySelector(`[data-prompt="${ANALYZE}"]`) as HTMLElement).getByText("Základ z kódu")).toBeTruthy();
+    expect(await within(list.querySelector(`[data-prompt="${ANALYZE}"]`) as HTMLElement).findByText("základ z kódu v platnosti · v1 čeká")).toBeTruthy();
   });
 
   it("returns to the code's wording in one confirmed step", async () => {
@@ -542,105 +557,17 @@ describe("a prompt no running step reads", () => {
   });
 });
 
-describe("trying a version", () => {
-  async function openTest() {
-    await saveAs("Analyzuj stručně.");
-    await screen.findByText("Uloženo jako verze 1. Zatím neběží.");
-    fireEvent.click(within(await versionRow("v1")).getByRole("button", { name: "Vyzkoušet" }));
-    return (await waitFor(() => {
-      const el = document.querySelector("[data-test-run]") as HTMLElement | null;
-      if (!el) throw new Error("no panel");
-      return el;
-    }));
-  }
-
-  it("queues an ordinary job pinned to that version and shows what it proposes", async () => {
+describe("no AI start in Settings (X10, AC-02)", () => {
+  it("offers no way to run a version, and calls no job or study route", async () => {
     fakeApi();
-    mount();
-    const panel = await openTest();
-    expect(within(panel).getByText(/Zkoušet lze jen na klientech, které nasazení označilo za fiktivní/)).toBeTruthy();
-    // Only an open research study of a client the deployment lists as fictional is offered:
-    // not a simulation, and not another client's study.
-    const study = within(panel).getByLabelText("Studie") as HTMLSelectElement;
-    expect([...study.options].map((o) => o.textContent)).toEqual(["Fiktivní studie · Fiktivní klient"]);
-    expect(panel.textContent).not.toContain("Skutečná studie");
-    await waitFor(() => expect((within(panel).getByLabelText("Revize návrhu") as HTMLSelectElement).value).toBe("REV-2")); // the newest
-    fireEvent.click(within(panel).getByRole("button", { name: "Zadat zkušební úlohu" }));
-    await waitFor(() => expect(called("POST", "/api/v1/studies/STU-1/research/agent-jobs")).toHaveLength(1));
-    expect(called("POST", "/api/v1/studies/STU-1/research/agent-jobs")[0].body).toEqual({
-      design_revision_id: "REV-2", action: "analyze_brief", instruction: "", prompt_version: 1,
-    });
-    const job = await waitFor(() => {
-      const el = panel.querySelector("[data-job]") as HTMLElement | null;
-      if (!el) throw new Error("no job");
-      return el;
-    });
-    expect(job.textContent).toContain("Prompt e1");
-    expect(job.textContent).toContain("$0.0123");
-    expect(await within(panel).findByText(/Návrh z e1/)).toBeTruthy();
-  });
-
-  const thresholdAsks = (body: Body) =>
-    body && "confirm_cost_usd" in body
-      ? { run_id: "RUN-1", design_revision_id: "REV-2", action: "analyze_brief", status: "COMPLETED", is_terminal: true, needs_attention: false,
-          context_sha256: "c", harness_version: "h", prompt_version: "e1", prompt_origin: "stored", created_at: null, steps: [], actual_cost_usd: 0.0123 }
-      : new Response('{"code":"cost_confirmation_required","message":"confirm","details":{"ceiling_usd":2,"limit_usd":1}}', { status: 409 });
-
-  it("asks before a test job that reaches the study's confirmation threshold, and confirms the server's ceiling", async () => {
-    fakeApi({ "POST /api/v1/studies/STU-1/research/agent-jobs": thresholdAsks });
-    mount();
-    const panel = await openTest();
-    await waitFor(() => expect((within(panel).getByLabelText("Revize návrhu") as HTMLSelectElement).value).toBe("REV-2"));
-    fireEvent.click(within(panel).getByRole("button", { name: "Zadat zkušební úlohu" }));
-    const ask = await within(panel).findByRole("alertdialog");
-    expect(ask.textContent).toContain("Práh potvrzení");
-    fireEvent.click(within(ask).getByRole("button", { name: "Spustit" }));
-    await waitFor(() => expect(panel.querySelector("[data-job]")).toBeTruthy());
-    expect(called("POST", "/api/v1/studies/STU-1/research/agent-jobs").map((c) => c.body)).toEqual([
-      { design_revision_id: "REV-2", action: "analyze_brief", instruction: "", prompt_version: 1 },
-      { design_revision_id: "REV-2", action: "analyze_brief", instruction: "", prompt_version: 1, confirm_cost_usd: 2 },
-    ]);
-  });
-
-  it("starts nothing when the person declines the threshold, and says so in Czech", async () => {
-    fakeApi({ "POST /api/v1/studies/STU-1/research/agent-jobs": thresholdAsks });
-    mount();
-    const panel = await openTest();
-    await waitFor(() => expect((within(panel).getByLabelText("Revize návrhu") as HTMLSelectElement).value).toBe("REV-2"));
-    fireEvent.click(within(panel).getByRole("button", { name: "Zadat zkušební úlohu" }));
-    fireEvent.click(within(await within(panel).findByRole("alertdialog")).getByRole("button", { name: "Nespouštět" }));
-    expect(await within(panel).findByText(/AI krok se nespustil/)).toBeTruthy();
-    expect(called("POST", "/api/v1/studies/STU-1/research/agent-jobs")).toHaveLength(1);
-    expect(panel.querySelector("[data-job]")).toBeNull();
-  });
-
-  it("shows the API's refusal when a non-administrator's job is not allowed", async () => {
-    fakeApi({
-      "POST /api/v1/studies/STU-1/research/agent-jobs": () =>
-        new Response('{"code":"prompt_test_requires_administrator","message":"only an organization administrator may test a prompt version"}', { status: 409 }),
-    });
-    mount();
-    const panel = await openTest();
-    await waitFor(() => expect((within(panel).getByLabelText("Revize návrhu") as HTMLSelectElement).value).toBe("REV-2"));
-    fireEvent.click(within(panel).getByRole("button", { name: "Zadat zkušební úlohu" }));
-    expect(await within(panel).findByText(/HTTP 409 · prompt_test_requires_administrator/)).toBeTruthy();
-  });
-
-  it("offers no test at all when the deployment lists no fictional client, and says why", async () => {
-    fakeApi();
-    backend.draftClients = [];
     mount();
     await saveAs("Analyzuj stručně.");
     await screen.findByText("Uloženo jako verze 1. Zatím neběží.");
     const row = await versionRow("v1");
     expect(within(row).queryByRole("button", { name: "Vyzkoušet" })).toBeNull();
-    expect(document.querySelector("[data-test-off]")?.textContent).toMatch(/AIA_AI_FICTIONAL_CLIENT_IDS/);
-  });
-
-  it("only offers a test where a job exists to run it", () => {
-    expect(actionOf(ANALYZE)).toBe("analyze_brief");
-    expect(actionOf("aia.research.nope")).toBeNull();
-    expect(actionOf(RESPONDENT)).toBeNull();
+    expect(screen.queryByRole("button", { name: /Vyzkoušet|Zadat zkušební/ })).toBeNull();
+    expect(document.querySelector("[data-test-run], [data-test-off]")).toBeNull();
+    expect(calls.filter((c) => c.url.includes("/studies/") || c.url.includes("agent-jobs"))).toEqual([]);
   });
 });
 
@@ -655,7 +582,7 @@ describe("sending a signed-out person to sign in", () => {
 
 
 describe("prompt workspace repairs", () => {
-  it("gives every newly registered research role a readable name and supports search and read-only filters", async () => {
+  it("gives every newly registered research role a readable name and supports search", async () => {
     for (const suffix of ["investigator", "independent_verifier", "brief_synthesizer", "lead", "lead_replan"]) expect(nameOf(`aia.deep_research.${suffix}`)).not.toMatch(/aia.settings/);
     fakeApi(); mount(); await editor();
     fireEvent.change(screen.getByRole("searchbox", { name: "Hledat prompt" }), { target: { value: "sestavení" } });
@@ -664,9 +591,11 @@ describe("prompt workspace repairs", () => {
     fireEvent.change(screen.getByRole("searchbox"), { target: { value: "no-result" } });
     expect(screen.getByText("Žádný prompt neodpovídá hledání.")).toBeTruthy();
     fireEvent.click(screen.getByRole("button", { name: "Zrušit hledání" }));
-    fireEvent.change(screen.getByLabelText("Zobrazit prompty"), { target: { value: "readOnly" } });
+    fireEvent.change(screen.getByRole("searchbox"), { target: { value: "respondent" } });
     expect(within(list).getAllByRole("button").length).toBe(1);
-    expect(within(list).getByText("AI respondent (blok otázek)")).toBeTruthy();
+    expect(within(list.querySelector('[data-group="readOnly"]') as HTMLElement).getByText("AI respondent (blok otázek)")).toBeTruthy();
+    expect(list.querySelector('[data-group="editable"]')).toBeNull();
+    expect(nameOf("aia.research.lead")).toBe("Vedoucí výzkumu (studie)");
   });
 
   it("protects a dirty draft when loading a stored version and includes version notes in the switch guard", async () => {
@@ -682,21 +611,5 @@ describe("prompt workspace repairs", () => {
     fireEvent.change(screen.getByLabelText("Poznámka k verzi (nepovinná)"), { target: { value: "Nesmí zmizet" } });
     fireEvent.click(screen.getByRole("button", { name: /Sestavení dotazníku/ }));
     expect(await screen.findByRole("alert")).toBeTruthy();
-  });
-
-  it("retries a failed result read without starting a second paid test", async () => {
-    let reads = 0;
-    fakeApi({ "GET /api/v1/studies/STU-1/research/agent-jobs/RUN-1/result": () => {
-      if (++reads === 1) return new Response(JSON.stringify({code:"temporary_failure", message:"Výsledek nelze načíst"}), {status:503});
-      return { result: {project:{}, proposal:{title:"Výsledek po obnovení"}}, provenance:{} };
-    } });
-    mount(); await saveAs("Nová instrukce.");
-    fireEvent.click(within(await versionRow("v1")).getByRole("button", { name: "Vyzkoušet" }));
-    await waitFor(() => expect((screen.getByLabelText("Revize návrhu") as HTMLSelectElement).value).toBe("REV-2"));
-    fireEvent.click(screen.getByRole("button", { name: "Zadat zkušební úlohu" }));
-    fireEvent.click(await screen.findByRole("button", {name:"Znovu načíst výsledek"}));
-    expect(await screen.findByText(/Výsledek po obnovení/)).toBeTruthy();
-    expect(called("POST", "/api/v1/studies/STU-1/research/agent-jobs")).toHaveLength(1);
-    expect(reads).toBe(2);
   });
 });

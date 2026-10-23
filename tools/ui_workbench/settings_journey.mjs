@@ -44,7 +44,13 @@ try {
   assert.equal(await page.locator("[data-tab-subtitle]:visible").count(), 10);
   for (const id of ["ai", "prompts", "deep_research", "methodology", "access", "studies", "audit", "system", "reference", "data"]) {
     const panel = await tab(id); await panel.locator("h2").first().waitFor();
-    if (id === "prompts") await page.getByLabel("Instrukce", { exact: true }).waitFor();
+    if (id === "prompts") {
+      await page.getByLabel("Instrukce", { exact: true }).waitFor();
+      assert.equal(await page.locator("[data-change-steps] li").count(), 3, "prompts: three steps of a change");
+      assert(await page.locator('[data-group="editable"] [data-prompt]').count() > 0 && await page.locator('[data-group="readOnly"] [data-prompt]').count() > 0, "prompts: editable and read-only groups");
+      assert.equal(await page.locator("#panel-prompts").getByRole("button", { name: /Vyzkoušet/ }).count(), 0, "prompts: no test button (X10)");
+      await page.locator("[data-prompt-in-force]").waitFor();
+    }
     if (id === "deep_research") await page.locator("[data-dr-setting]").first().waitFor({ state: "attached" });
     if (id === "methodology") await page.locator("[data-methodology-editor]").waitFor(); // an administrator opens on the editor
     await widths(`tab ${id}`); await screenshot(id);

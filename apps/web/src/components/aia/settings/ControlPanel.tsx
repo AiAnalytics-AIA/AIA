@@ -613,7 +613,7 @@ function PanelView({ panel, reload }: { panel: Panel; reload: () => void }) {
     </Section>;
   };
   const body = (tab: TabId): ReactNode => {
-    if (tab === "prompts") return <SystemPromptsSection doc={doc} members={members} clients={clients} studies={studies} />;
+    if (tab === "prompts") return <SystemPromptsSection doc={doc} members={members} />;
     if (tab === "deep_research") return <DeepResearchSection items={byKey.get("deep_research")?.items ?? NO_ITEMS} members={members} />;
     if (tab === "methodology") return <MethodologySection members={members} />;
     if (tab === "system") return <SystemSection />;
