@@ -296,6 +296,11 @@ def erase_client_lead_turns(session: Session, *, client_id: str) -> int:
         )
         or 0
     )
+    # The answer rows name these turns; deleted explicitly, never left to the FK's cascade.
+    client_turns = select(StudyLeadTurnRow.turn_id).where(StudyLeadTurnRow.client_id == client_id)
+    session.execute(
+        delete(StudyLeadTurnAnswerRow).where(StudyLeadTurnAnswerRow.lead_turn_id.in_(client_turns))
+    )
     session.execute(delete(StudyLeadTurnRow).where(StudyLeadTurnRow.client_id == client_id))
     session.flush()
     return turns

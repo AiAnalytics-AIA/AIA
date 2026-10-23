@@ -732,6 +732,20 @@ def test_erasing_a_members_turns_deletes_their_answer_rows_and_no_one_elses(
     assert answers(other.actor_id)  # another member's conversation is untouched
 
 
+def test_erasing_a_clients_lead_turns_deletes_their_answer_rows(scoped: Any, session: Any) -> None:
+    from aia_core.infrastructure.study_lead_repository import erase_client_lead_turns
+    from aia_core.infrastructure.tables import StudyLeadTurnAnswerRow
+
+    scope = _busy(scoped, session)
+    _lead(scope, session).post(kind="message", stage="brief", text="Ve frontě")
+    _complete(session, scope, {"reply": "Hotovo."})
+    assert _lead(scope, session).answer_queued()
+    rows = select(StudyLeadTurnAnswerRow).where(StudyLeadTurnAnswerRow.study_id == scope.study_id)
+    assert session.scalars(rows).all()
+    erase_client_lead_turns(session, client_id=scope.client_id)
+    assert session.scalars(rows).all() == []
+
+
 def test_a_message_is_bounded_in_bytes_and_the_queue_in_count(scoped: Any, session: Any) -> None:
     scope = _busy(scoped, session)
     with pytest.raises(LeadRejected) as refused:
