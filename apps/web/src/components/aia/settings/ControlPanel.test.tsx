@@ -351,6 +351,26 @@ describe("the settings control panel", () => {
     expect(within(panel).getAllByRole("link", { name: "Změnit v Profil → Pravidla" })).toHaveLength(3);
   });
 
+  it("says once when the client rules could not be read, and reads every row unknown, never not-in-AIA or open", async () => {
+    for (const answer of [
+      () => new Response('{"code":"internal","message":"Boom"}', { status: 500 }),
+      () => new Response('{"code":"not_found","message":"No such organization."}', { status: 404 }),
+      () => ({ rules: "not a list" }),
+    ]) {
+      api({ "GET /api/v1/settings/client-rules": answer });
+      render(<ControlPanel />);
+      fireEvent.click(await screen.findByRole("tab", { name: "Přístup a schvalování" }));
+      const panel = document.getElementById("panel-access") as HTMLElement;
+      const card = panel.querySelector("#set-clients") as HTMLElement;
+      await waitFor(() => expect(card.querySelector('[data-client-rules="unknown"]')).toBeTruthy());
+      expect(within(card).getAllByRole("alert")).toHaveLength(1);
+      expect(card.querySelector("[data-not-yet]")).toBeNull();
+      expect([...card.querySelectorAll("[data-client-rules]")].every((e) => e.getAttribute("data-client-rules") === "unknown")).toBe(true);
+      expect(card.textContent).not.toMatch(/OPEN|bez stropu/);
+      cleanup();
+    }
+  });
+
   it("sets, clears and adds a study's own self-approval rule, and returns the organization to the default", async () => {
     api({ "GET /api/v1/self-approval": () => ({ organization: false, clients: [], studies: [{ study_id: "STU-1", client_id: "CLI-a", allowed: false }] }) });
     render(<ControlPanel />);
