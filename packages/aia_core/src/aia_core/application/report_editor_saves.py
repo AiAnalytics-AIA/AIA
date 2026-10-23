@@ -201,6 +201,7 @@ def version_changes(
     code wrote, as stored beside it; ``None`` for koncept 1, the composer's own, which changed
     nothing."""
     scope.require(Permission.VIEW_RESULTS)
+    scope.require(Permission.EDIT_STUDY)  # an internal draft, as the run's report status asks
     version = ReportEditorRepository(session, scope).version(artifact_id)
     if version is None or version.run_id != run_id:
         raise VersionNotFound(artifact_id)
@@ -231,7 +232,10 @@ def approved_versions(
     for version in ReportEditorRepository(session, scope).edited_versions(
         run_id=run_id, variant=variant, deep_research_run_id=deep_research_run_id
     ):
-        artifact = artifacts.get(version.artifact_id)
+        try:
+            artifact = artifacts.get(version.artifact_id)
+        except ArtifactNotFound:
+            continue  # its row outlived the artifact: nothing approved to name
         if artifact.is_approved:
             found.append((version, artifact))
     return sorted(found, key=lambda pair: (pair[0].saved_at, pair[0].koncept))

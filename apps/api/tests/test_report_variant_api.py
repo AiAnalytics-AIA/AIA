@@ -663,3 +663,58 @@ def test_approving_a_variant_whose_pdf_is_not_rendered_yet_asks_for_none(
     ).json()
     assert body["review_state"] == "APPROVED_INTERNAL"
     assert body["pdf"]["state"] == "NOT_REQUESTED" and body["pdf"]["askable"] is True
+
+
+def test_an_approved_edit_of_the_report_with_literature_is_named_beside_its_draft(
+    app: FastAPI, researcher: TestClient, world: Any
+) -> None:
+    """A version of this report saved in the editor and approved (RPT8c) leaves the prepared
+    draft a draft: the variant's status names the approved edit beside it."""
+    import io
+    import zipfile
+    from datetime import UTC, datetime
+
+    from aia_core.application.report_editor import ReportEditor
+    from aia_core.application.report_editor_saves import store_save
+
+    run_id, draft = _prepared(app, researcher, world)
+    w = "http://schemas.openxmlformats.org/wordprocessingml/2006/main"
+    out = io.BytesIO()
+    with zipfile.ZipFile(out, "w") as z:
+        z.writestr(
+            zipfile.ZipInfo("word/document.xml", (2026, 10, 23, 0, 0, 0)),
+            f'<w:document xmlns:w="{w}"><w:body><w:p><w:r><w:t>Upraveno</w:t></w:r></w:p>'
+            "</w:body></w:document>",
+        )
+    url = "https://docs.aia.example.test/cache/files/x.docx"
+    now = datetime(2026, 10, 23, 9, 0, tzinfo=UTC)
+    with create_session_factory(app.state.engine)() as session:
+        scope = _scope(session, world)
+        store = app.state.artifact_store
+        docx = research_artifacts(session, scope, store).get(draft)
+        opened = ReportEditor(session, scope).open(
+            docx, run_id=run_id, variant="context", deep_research_run_id=REVIEW, now=now
+        )
+        edited = store_save(
+            session,
+            scope,
+            store,
+            opened.session,
+            url=url,
+            origin="https://docs.aia.example.test",
+            fetcher={url: out.getvalue()}.__getitem__,
+            authors=[scope.actor_id],
+            now=now,
+        ).version.artifact_id
+        session.commit()
+    runs = f"{_study(world)}/research/runs/{run_id}"
+    approved = researcher.post(f"{runs}/report/approve", json={"artifact_id": edited})
+    assert approved.status_code == 200, approved.text
+    assert approved.json()["report_kind"] == "with_review"
+    body = researcher.get(f"{runs}/report/context", params={"deep_research_run_id": REVIEW}).json()
+    assert body["artifact_id"] == draft and body["review_state"] == "DRAFT_UNAPPROVED"
+    (named,) = body["approved_edits"]
+    assert named["artifact_id"] == edited and named["koncept"] == 2
+    assert named["review_state"] == "APPROVED_INTERNAL"
+    # The internal report's status is another report's: it names no edit of this one.
+    assert researcher.get(f"{runs}/report").json().get("approved_edits", []) == []

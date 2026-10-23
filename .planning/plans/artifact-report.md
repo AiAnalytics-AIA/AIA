@@ -455,8 +455,9 @@ version's provenance (authors, `edited_from`), its review and approval as the ru
 changed, as stored beside it (`report_editor_saves.version_changes`; `changes` null for koncept 1; a version of another
 run or study 404), for the doc bar and the approval dialog (RPT8d); `…/download`: exactly its DOCX with the report
 download's headers (`X-AIA-Artifact-Id`, `X-AIA-Review-State`), named `schvaleno-v-aia` once approved (it keeps the
-draft footer). Both answer with the editor off. `GET …/report` names the run's approved edits beside its composed
-draft (`approved_edits`), which an approved edit leaves a draft. Every author of the line is a producer for the ledger too
+draft footer). Both answer with the editor off. `GET …/report` and the report with literature's status (`GET`/`POST
+…/report/context`) name the run's approved edits of that report beside its composed draft (`approved_edits`), which an
+approved edit leaves a draft; a version row whose artifact is gone is skipped there and 404 on its own route. Every author of the line is a producer for the ledger too
 (`ArtifactRepository.approve(co_producers=)`): a co-author approving where self-approval is on is recorded as self-approving.
 Noted, older than RPT8c: two concurrent first approvals of one report take no row lock between them (the stand-in's P3 on
 #869); not changed here. Still open in RPT8c: an edited version's PDF (the PDF job takes a composed report
