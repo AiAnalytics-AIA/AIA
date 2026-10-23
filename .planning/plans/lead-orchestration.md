@@ -830,8 +830,17 @@ What it is:
 - ADR 0026's shape stays: structured output without tools, a frozen context, one schema repair,
   a predictable cost per turn.
 - Each change of the generated union or prompt section bumps `LEAD_HARNESS_VERSION` and the
-  Lead prompt version (ADR 0020 pin), so a stored turn always reads under the contract it was
-  answered with.
+  Lead prompt version (ADR 0020 pin).
+- A bump alone does not keep old turns readable: `ResearchLead._completed` parses every stored
+  output with today's `LeadOutput` (`application/research_lead.py:564-572 @ 689a2d24`). So the
+  registry is append-only by version (Codex review on #818):
+  - an action's `args` schema never changes in place; a change is a new version of the action
+    (`ActionSpec.version`), and every version stays registered for decoding;
+  - removing an action stops *offering* it (LO21b), never decoding it;
+  - a stored action is decoded by its turn's recorded harness version and its own
+    `worker_id`@`version`, never by today's union;
+  - a decoded action whose version is no longer offered can still be declined; approving it
+    re-checks it against today's guards, and one that no longer passes says why, by name.
 
 The registry's shape:
 - `domain/lead_workers.py`'s `LeadWorkerSpec` (`:88-105`) describes a *model* worker today:
@@ -849,13 +858,25 @@ The registry's shape:
 The chunks, each with its test:
 - **LO21a.** The `ActionSpec` registry and the generated `LeadOutput.actions` union.
   - Tests: an unknown `worker_id` is refused; each action's args are validated by its schema;
-    the union equals the registry; a duplicate `worker_id` fails at import.
+    the union equals the registry; a duplicate `worker_id`@`version` fails at import; a turn
+    stored under an earlier version decodes, and can be declined, after the action's `args`
+    gain a new version.
 - **LO21b.** The prompt's action section is generated from the registry and filtered per turn,
-  from the frozen context: a switch off, over the study's budget, or not permitted (scope,
-  study status). The model sees only what it can propose. `lead_contract` refuses an action
-  the turn was not offered.
+  from the frozen context: a switch off, or not permitted (scope, study status). The model sees
+  only what it can propose. `lead_contract` refuses an action the turn was not offered.
+  - Cost depends on the arguments (a focused Deep Research quote is cheaper than a whole
+    design's, a QUICK preset than a STANDARD one, a run by its n), so the budget cannot be
+    judged on the registry entry alone (Codex review on #818):
+    - an action is left out only when its *cheapest* arguments exceed what the study has left;
+    - otherwise it is offered with what the study has left, and each spec's ceiling function
+      prices the arguments the model chose when the turn is grounded;
+    - an action over budget keeps its card, with its cost beside what is left and the spend
+      limit's own confirmation (ADR 0019 gate 2); it is never dropped silently and never
+      started without that yes.
   - Tests: the section lists exactly the offered actions; an action that was not offered is
-    refused; the section's bytes stay bounded.
+    refused; the section's bytes stay bounded; with a budget that covers QUICK or focused work
+    but not STANDARD or whole-design work, the action is offered, a QUICK card is approvable,
+    and a STANDARD card shows its cost over what is left and asks for the confirmation.
 - **LO21c.** One generic card renderer (web) keyed on `card_kind`, with small per-kind slots.
   Each action is its own approve and decline and its own ledger decision (CARD-1); the route
   becomes `…/turns/{turn_id}/actions/{index}`.
