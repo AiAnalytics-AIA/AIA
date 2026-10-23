@@ -1,17 +1,17 @@
 "use client";
 
-// The signed-off map (aia-sociomap-5) on the Results page, drawn as the AIA panel draws it
-// (plan sociomap-5-web). The canvas drawing is the panel's (object-map-panel.ts), and so is the
-// whole map window around it: the dock on the map (Mapa: Respondenti / Objekty; Práce: Nastavení
-// mapy / Nástroje), the camera tools under it on the right, the ⓘ map information top left, the
-// legend bottom left, and the floating glass windows (ObjectMapWindows.tsx). Nastavení mapy holds
-// Normalizace, the way to the object list (Správa objektů, which also makes every object reachable
-// by keyboard and screen reader) and Export PNG; Nástroje the relation display; a click on the map
-// opens the detail window on the right. The windows live inside the stage, so they stay usable in
-// the stage's full screen.
+// The signed-off map (aia-sociomap-5), drawn as the AIA panel draws it (plan sociomap-5-web). The
+// canvas drawing is the panel's (object-map-panel.ts); the overlays around it keep the map clear
+// (artifact-sociomap SOC13): one bar top left (Objekty / Respondenti, Nastavení mapy and Nástroje as
+// popovers under it, the ⓘ map information with the map's quality, the display filter as a chip),
+// one view rail bottom right (zoom, centre, 2D / 3D, full screen), the legend as a chip bottom left,
+// and Správa objektů and the detail as the tabs of one side sheet BESIDE the map: the canvas
+// re-frames to the width left, so nothing lies over it. Správa objektů also makes every object
+// reachable by keyboard and screen reader. While the map is dragged, rotated or zoomed the overlays
+// fade; keys O / R / L / I / F / + / − / 0 do what the controls do, Escape closes in order.
 //
 // The map draws the stored artifact and computes nothing methodological; camera, scale mode,
-// relation display, selection, hover and the windows are presentation state. What the map says
+// relation display, selection, hover and the overlays are presentation state. What the map says
 // about itself (the weakly determined banner, the uncertainty circle, the notes) is drawn over it
 // from the stored credibility, and the objects nobody rated are named in the object list. A map
 // that stores its respondent map switches to it: the stored density of the clearly placed
@@ -29,7 +29,7 @@ import { type PointerEvent, type ReactNode, useEffect, useId, useMemo, useRef, u
 import { t, tv } from "@/i18n/t";
 import { objectTarget, pairTarget } from "@/lib/artifacts/sociomap";
 import { LEAD_REVEAL } from "@/lib/lead";
-import { type DisplayChange, MAP_REGISTERS, type MapRegister, displayChanges, stageHeight } from "@/lib/sociomap-display";
+import { MAP_REGISTERS, type MapRegister, displayChanges, stageHeight } from "@/lib/sociomap-display";
 import { num } from "@/lib/sociomapping-view";
 import { type BatteryWithMaps, type ObjectMapArtifact, originalRating } from "@/lib/object-map-view";
 import {
@@ -41,7 +41,6 @@ import {
   REL_FLOOR, absoluteGrid, densityGrid, mapStatements, panelDots, camera3d, color66, dragCamera, drawObjectMap, hitTest, nodeScale, nodeTones, normalizer,
   panelNodes, relationPairs, relationStrength, storedGrid, strongestRelation, topCamera, wheelCamera, zoomCamera,
 } from "@/lib/object-map-panel";
-import { MapWindow, useMapWindows } from "./ObjectMapWindows";
 
 /** The canvas's size before it is measured (and in tests): the panel's own fallback. */
 const DEFAULT_SIZE = { width: 900, height: 700 };
@@ -157,6 +156,21 @@ function PanelView({ battery, map, facts }: { battery: BatteryWithMaps; map: Obj
   const [work, setWork] = useState<WorkWindow | null>(null);
   const [detail, setDetail] = useState(false);
   const [info, setInfo] = useState(false);
+  // The overlays' state: the bar's popovers, the side sheet's tab and whether it is folded to its edge,
+  // the legend chip, and the map moving (overlays fade while it does).
+  const [menu, setMenu] = useState<null | "settings" | "tools" | "more">(null);
+  const [tab, setTab] = useState<"objects" | "detail">("objects");
+  const [folded, setFolded] = useState(false);
+  const [legendOpen, setLegendOpen] = useState(false);
+  const [moving, setMoving] = useState(false);
+  const movingRef = useRef(false);
+  const moveStop = useRef(0);
+  const startMoving = (pause?: number) => {
+    if (!movingRef.current) { movingRef.current = true; setMoving(true); }
+    window.clearTimeout(moveStop.current);
+    if (pause) moveStop.current = window.setTimeout(() => { movingRef.current = false; setMoving(false); }, pause);
+  };
+  const stopMoving = () => { window.clearTimeout(moveStop.current); if (movingRef.current) { movingRef.current = false; setMoving(false); } };
   // What opened the detail (the canvas or a list button): × gives the focus back to it.
   const detailOpener = useRef<HTMLElement | null>(null);
   const [size, setSize] = useState(DEFAULT_SIZE);
@@ -169,7 +183,6 @@ function PanelView({ battery, map, facts }: { battery: BatteryWithMaps; map: Obj
   // Full screen shows the stage alone (the canvas follows its new box through the resize observer).
   const [stage, setStage] = useState<HTMLDivElement | null>(null);
   const [full, setFull] = useState(false);
-  const windows = useMapWindows(stage, size);
   // "Top vztahy" follows the selection, in full screen as on the page: the selected object's five
   // strongest, or the map's five strongest with nothing selected (the panel's rule).
   const pairs = useMemo(() => relationPairs(map, mode, selected).map((p) => ({ ...p, k: relationStrength(p.v, norm, strongest) })), [map, mode, selected, norm, strongest]);
@@ -248,6 +261,7 @@ function PanelView({ battery, map, facts }: { battery: BatteryWithMaps; map: Obj
     const onWheel = (e: WheelEvent) => {
       e.preventDefault();
       setCamera((c) => wheelCamera(c, e.deltaY));
+      startMoving(450);
     };
     node.addEventListener("wheel", onWheel, { passive: false });
     return () => node.removeEventListener("wheel", onWheel);
@@ -285,10 +299,11 @@ function PanelView({ battery, map, facts }: { battery: BatteryWithMaps; map: Obj
     const dx = x - p.lastX, dy = y - p.lastY;
     p.moved += Math.hypot(dx, dy);
     if (p.mode === "select" && p.moved >= CLICK_SLOP) p.mode = "rotate";
-    if (p.mode === "rotate") setCamera((c) => dragCamera(c, dx, dy));
+    if (p.mode === "rotate") { setCamera((c) => dragCamera(c, dx, dy)); startMoving(); }
     p.lastX = x; p.lastY = y;
   };
   const onUp = () => {
+    stopMoving();
     const p = pointer.current;
     pointer.current = null;
     if (!p || p.moved >= CLICK_SLOP) return;
@@ -304,9 +319,6 @@ function PanelView({ battery, map, facts }: { battery: BatteryWithMaps; map: Obj
     else if (!hit) { setSelected(-1); setPerson(-1); setRelation(null); setDetail(false); }
   };
 
-  const tool = (label: string, short: string, act: () => void, pressed?: boolean) => (
-    <button type="button" title={label} aria-label={label} aria-pressed={pressed} onClick={act}>{short}</button>
-  );
   const fromAbove = camera.pitch < TOP_PITCH;
   const notPlaced = objectsNotPlaced(battery, map);
   // The panel's Export PNG (`socioExport66`): the canvas as drawn, here with the legend card
@@ -335,10 +347,15 @@ function PanelView({ battery, map, facts }: { battery: BatteryWithMaps; map: Obj
   const showMap = (next: "objects" | "respondents") => {
     if (next === view) return;
     setView(next); setSelected(-1); setRelation(null); setPerson(-1); setHovered(-1); setDetail(false);
-    if (next === "respondents" && work === "tools") setWork(null);
+    if (next === "respondents" && menu === "tools") setMenu(null);
   };
   // What the detail now shows comes to the front, over Správa objektů the pick was made in.
-  const showDetail = () => { setDetail(true); windows.front("detail"); };
+  const showDetail = () => { setDetail(true); setTab("detail"); setFolded(false); setLegendOpen(false); };
+  // A popover or the sheet opening folds the legend back to its chip.
+  // The ⓘ box and the bar's popovers open at one place under the bar: one at a time.
+  const openMenu = (next: "settings" | "tools" | "more") => { setMenu((m) => (m === next ? null : next)); setInfo(false); setLegendOpen(false); };
+  const toggleInfo = () => { setInfo((v) => !v); setMenu(null); };
+  const openSheet = () => { setWork("objects"); setTab("objects"); setFolded(false); setLegendOpen(false); };
   // Choosing from the list opens the object's detail; choosing it again clears it and closes the
   // detail. Selection is the object map's: on the respondent map the list only lists (see ObjectList).
   const choose = (k: number, from: HTMLElement) => {
@@ -359,34 +376,48 @@ function PanelView({ battery, map, facts }: { battery: BatteryWithMaps; map: Obj
   useEffect(() => {
     const on = (e: Event) => {
       const target = (e as CustomEvent<unknown>).detail;
-      if (nodes.some((n) => objectTarget(battery.battery_id, n.id) === target)) setWork("objects");
+      if (nodes.some((n) => objectTarget(battery.battery_id, n.id) === target)) openSheet();
     };
     window.addEventListener(LEAD_REVEAL, on);
     return () => window.removeEventListener(LEAD_REVEAL, on);
   }, [nodes, battery.battery_id]);
-  // The panel's `npcOpenPanel27`: the dock button toggles its window, which takes the one place.
-  // The detail stays open beside it.
-  const openWork = (next: WorkWindow) => setWork((w) => (w === next ? null : next));
-  const dockOf = (w: WorkWindow) => (w === "tools" ? "tools" : "settings");
-  const closeWork = () => {
-    const was = work;
-    setWork(null);
-    // Back to the dock button the window belongs to, so the keyboard does not land on the page's start.
-    if (was) stage?.querySelector<HTMLElement>(`[data-dock="${dockOf(was)}"]`)?.focus();
+  // Nastavení mapy and Nástroje are the bar's popovers (a second press closes); Správa objektů is a tab
+  // of the side sheet, beside the detail.
+  const openWork = (next: WorkWindow) => {
+    if (next === "objects") { openSheet(); setMenu(null); return; }
+    openMenu(next);
   };
+  const closeWork = () => { setWork(null); if (detail) setTab("detail"); };
 
-  // Esc closes, in the panel's order: the work window, then the detail, then the ⓘ box. Only on
-  // this map: a key from inside it, in its full screen, or with nothing focused after it was used.
+  // Esc closes in order (a popover, the sheet's open tab, the ⓘ box, the legend), and the map's keys do
+  // what its controls do. Only on this map: a key from inside it, in its full screen, or with nothing
+  // focused after it was used; never one typed in a field.
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
-      if (e.key !== "Escape" || e.defaultPrevented || !stage) return;
+      if (e.defaultPrevented || !stage || e.ctrlKey || e.metaKey || e.altKey) return;
       const target = e.target as Element | null;
       if (target?.closest?.("input,textarea,select,[contenteditable='true']")) return;
       const loose = !target || target === document.body || target === document.documentElement;
       if (!(target && stage.contains(target)) && document.fullscreenElement !== stage && !(loose && lastStage === stage)) return;
-      if (work) closeWork();
-      else if (detail) closeDetail(Boolean(stage.querySelector('[data-window="detail"]')?.contains(document.activeElement)));
-      else if (info) setInfo(false);
+      if (e.key === "Escape") {
+        // Escape's order: a popover, then the sheet (its open tab), then the ⓘ box, then the legend.
+        if (menu) { setMenu(null); stage.querySelector<HTMLElement>(".omx-bar")?.focus(); }
+        else if (work || detail) { if (tab === "detail" && detail) closeDetail(Boolean(stage.querySelector(".omx-sheet")?.contains(document.activeElement))); else closeWork(); }
+        else if (info) setInfo(false);
+        else if (legendOpen) setLegendOpen(false);
+        else return;
+        e.preventDefault();
+        return;
+      }
+      const k = e.key.toLowerCase();
+      if (k === "o") showMap("objects");
+      else if (k === "r" && density) showMap("respondents");
+      else if (k === "l") setLegendOpen((v) => !v);
+      else if (k === "i") toggleInfo();
+      else if (k === "f") toggleFull();
+      else if (k === "+" || k === "=") setCamera((c) => zoomCamera(c, ZOOM_IN));
+      else if (k === "-") setCamera((c) => zoomCamera(c, ZOOM_OUT));
+      else if (k === "0") setCamera(INITIAL_CAMERA);
       else return;
       e.preventDefault();
     };
@@ -394,33 +425,15 @@ function PanelView({ battery, map, facts }: { battery: BatteryWithMaps; map: Obj
     return () => document.removeEventListener("keydown", onKey);
   });
 
-  // What the dock and its windows have changed against the map's opening; the bar names it (SOC3).
+  // What the bar's popovers have changed against the map's opening; its filter chip names it (SOC3).
   const changes = displayChanges({ map: people ? "respondents" : "objects", norm, relations: mode });
-  // "Zrušit filtr" removes its own bar: the keyboard goes back to the dock, never to the page's top.
+  // "Zrušit filtr" removes its own chip: the keyboard goes back to the bar, never to the page's top.
   const dock = useRef<HTMLDivElement>(null);
   const [resets, setResets] = useState(0);
   useEffect(() => { if (resets) dock.current?.focus({ preventScroll: true }); }, [resets]);
   const resetDisplay = () => { showMap("objects"); setNorm("range"); setMode("top"); setResets((n) => n + 1); };
-  // The windows open under the dock, its filter bar and its ⓘ, wherever they end (one row, or more
-  // on a narrow stage): all stay clickable beside an open window, never under a window's glass. The
-  // ⓘ's own box opens over the map and is not measured.
-  const status = useRef<HTMLDivElement>(null), infoPill = useRef<HTMLButtonElement>(null);
-  useEffect(() => {
-    const bar = dock.current, bars = ([bar, status.current, infoPill.current] as (HTMLElement | null)[]).filter((n): n is HTMLElement => n !== null);
-    if (!stage || !bar) return;
-    const measure = () => {
-      const bottom = Math.max(...bars.map((n) => n.getBoundingClientRect().bottom));
-      const under = Math.ceil(bottom - stage.getBoundingClientRect().top) + 9;
-      stage.style.setProperty("--omw-under-dock", `${Math.max(55, under)}px`);
-    };
-    measure();
-    if (typeof ResizeObserver === "undefined") return;
-    const observer = new ResizeObserver(measure);
-    for (const node of [stage, ...bars]) observer.observe(node);
-    return () => observer.disconnect();
-  }, [stage]);
   // The stage fits the pane it is read in (stageHeight): the workbench's artifact pane, else the
-  // window less the page's sticky header. The dock, the ⓘ and the filter bar are on the map, so
+  // window less the page's sticky header. The bar, the rail and the legend chip are on the map, so
   // nothing of the panel sits over the stage; measured again whenever the pane or the stage moves.
   const [fit, setFit] = useState<number | null>(null);
   useEffect(() => {
@@ -437,7 +450,6 @@ function PanelView({ battery, map, facts }: { battery: BatteryWithMaps; map: Obj
   }, [stage]);
 
   const p = "research.exec.objectMap.panel";
-  const windowProps = (id: string) => ({ id, style: windows.frame(id), onFront: windows.front, onDrag: windows.drag(id) });
   const detailTitle = t(`${p}.${people ? "personTitle" : "objectDetailTitle"}`);
   const credibility = map.credibility;
   const pill = !credibility || people ? null
@@ -445,51 +457,101 @@ function PanelView({ battery, map, facts }: { battery: BatteryWithMaps; map: Obj
       ? (credibility.weakly_determined ? { text: t(`${p}.pillWeak`), warn: true } : { text: tv(`${p}.pillQuality`, { percent: Math.round(100 * credibility.split_half) }), warn: false })
       : credibility.weakly_determined ? { text: t(`${p}.pillNoStructure`), warn: true } : null;
 
+  // One bar top left, one view rail bottom right, the legend as a chip bottom left, and Správa objektů
+  // and the detail as tabs of one side sheet beside the map, so the canvas re-frames to what is left.
+  const narrow = size.width < 460;
+  const sheetOpen = work === "objects" || detail;
+  const sheetTab = tab === "detail" && detail ? "detail" : work === "objects" ? "objects" : "detail";
+  const quality = credibility?.split_half != null ? `${Math.round(100 * credibility.split_half)} %` : pill?.warn ? "!" : null;
+  const [lo, word, hi] = legendMarks(battery, nodes.map((n) => (n.primary ? n.value : null)), norm);
+  const iconBtn = (label: string, icon: ReactNode, act: () => void, pressed?: boolean, dock?: string) => (
+    <button type="button" className="omx-icon" aria-label={label} title={label} aria-pressed={pressed} onClick={act} data-dock={dock}>{icon}</button>
+  );
+  const settingsBody = (
+    <>
+      {people ? null : (
+        <div role="group" aria-label={t(`${p}.norm`)}>
+          <SectionHead label={t(`${p}.norm`)} help={t(`${p}.normHelp`)} />
+          <div className="omw-row">
+            <button type="button" className="omw-btn" aria-pressed={norm === "absolute"} disabled={!stored} title={t(`${p}.absoluteHelp`)} onClick={() => setNorm("absolute")}>{t(`${p}.absolute`)}</button>
+            <button type="button" className="omw-btn" aria-pressed={norm === "range"} title={t(`${p}.rangeHelp`)} onClick={() => setNorm("range")}>{t(`${p}.range`)}</button>
+          </div>
+        </div>
+      )}
+      <SectionHead label={t(`${p}.objectsSection`)} help={t(`${p}.objectsHelp`)} />
+      <div className="omw-row"><button type="button" className="omw-btn" onClick={() => openWork("objects")}>{t(`${p}.objectManager`)}</button></div>
+      <SectionHead label={t(`${p}.exportSection`)} help={t(`${p}.exportHelp`)} />
+      <div className="omw-row"><button type="button" className="omw-btn" title={t(`${p}.exportHelp`)} onClick={exportPng}>{t(`${p}.export`)}</button></div>
+    </>
+  );
+  const toolsBody = (
+    <div role="group" aria-label={t(`${p}.relations`)}>
+      <SectionHead label={t(`${p}.relations`)} />
+      <div className="omw-row">
+        {RELATION_MODES.map((r) => (
+          <button key={r.mode} type="button" className="omw-btn" aria-pressed={mode === r.mode} title={r.help ? t(r.help) : undefined} onClick={() => setMode(r.mode)}>{t(r.label)}</button>
+        ))}
+      </div>
+    </div>
+  );
+
   return (
     <div className="flex flex-col gap-3" data-testid="object-map-panel">
-      <div ref={setStage} data-resize={windows.cursor || undefined}
-        className="omw relative isolate w-full min-w-0 overflow-hidden bg-[#07090c] [&:fullscreen]:h-screen [&:fullscreen]:w-screen"
-        data-testid="object-map-stage" style={full ? undefined : { height: fit ?? FIRST_HEIGHT }}
-        onPointerDownCapture={(e) => { lastStage = e.currentTarget; windows.stageHandlers.onPointerDownCapture(e); }}
-        onPointerMove={windows.stageHandlers.onPointerMove}
+      <div ref={setStage} className="omw omx relative isolate w-full min-w-0 overflow-hidden bg-[#07090c] [&:fullscreen]:h-screen [&:fullscreen]:w-screen"
+        data-testid="object-map-stage" data-moving={moving || undefined} style={full ? undefined : { height: fit ?? FIRST_HEIGHT }}
+        onPointerDownCapture={(e) => { lastStage = e.currentTarget; }}
         onFocusCapture={(e) => { lastStage = e.currentTarget; }}>
-        <canvas ref={canvas} tabIndex={-1} className="block h-full w-full cursor-grab touch-none outline-none" role="img" data-testid="object-map-canvas"
-          data-camera={JSON.stringify(camera)} data-norm={norm} data-map={people ? "respondents" : "objects"} data-person={people && person >= 0 ? dots[person].id : ""}
-          data-relations={people ? "" : pairs.map((q) => `${nodes[q.i].id}|${nodes[q.j].id}`).join(" ")} data-selected={selected >= 0 ? nodes[selected].id : ""} data-relation={relation ? `${nodes[relation[0]].id}|${nodes[relation[1]].id}` : ""}
-          aria-label={people ? tv(`${p}.respondentCanvas`, { title: battery.title, placed: dots.length, n: nodes.length }) : tv(`${p}.canvas`, { title: battery.title, n: nodes.length })}
-          aria-describedby={people ? undefined : described}
-          onPointerDown={onDown} onPointerMove={onMove} onPointerUp={onUp} onPointerCancel={() => { pointer.current = null; }} onPointerLeave={() => { if (!pointer.current) setHovered(-1); }} />
-        <p id={described} className="sr-only" aria-live="polite">{tv(`${p}.relationsShown`, { count: pairs.length })}</p>
+        <div className="omx-body">
+          <div className="omx-mapbox">
+            <canvas ref={canvas} tabIndex={0} className="block h-full w-full cursor-grab touch-none outline-none" role="img" data-testid="object-map-canvas"
+              data-camera={JSON.stringify(camera)} data-norm={norm} data-map={people ? "respondents" : "objects"} data-person={people && person >= 0 ? dots[person].id : ""}
+              data-relations={people ? "" : pairs.map((q) => `${nodes[q.i].id}|${nodes[q.j].id}`).join(" ")} data-selected={selected >= 0 ? nodes[selected].id : ""} data-relation={relation ? `${nodes[relation[0]].id}|${nodes[relation[1]].id}` : ""}
+              aria-label={people ? tv(`${p}.respondentCanvas`, { title: battery.title, placed: dots.length, n: nodes.length }) : tv(`${p}.canvas`, { title: battery.title, n: nodes.length })}
+              aria-describedby={people ? undefined : described}
+              onPointerDown={onDown} onPointerMove={onMove} onPointerUp={onUp} onPointerCancel={() => { pointer.current = null; stopMoving(); }} onPointerLeave={() => { if (!pointer.current) setHovered(-1); }} />
+            <p id={described} className="sr-only" aria-live="polite">{tv(`${p}.relationsShown`, { count: pairs.length })}</p>
 
-        {/* The panel's dock (`npcMapDock1877`), the display filter bar in its row and the ⓘ under them, above the work windows. */}
-        <div className="omw-dock">
-          <div ref={dock} tabIndex={-1} className="omw-dock-bar focus:outline-none" role="toolbar" aria-label={t("research.exec.objectMap.controls")}>
-            {density ? (
-              <div className="omw-group" role="group" aria-label={t(`${p}.mapGroup`)}>
-                <span className="omw-label" aria-hidden>{t(`${p}.mapGroup`)}</span>
-                <button type="button" aria-pressed={view === "respondents"} onClick={() => showMap("respondents")}>{t(`${p}.mapRespondents`)}</button>
-                <button type="button" aria-pressed={view === "objects"} onClick={() => showMap("objects")}>{t(`${p}.mapObjects`)}</button>
+            {/* 1. One bar, one row: the map switch, Nastavení mapy, Nástroje, ⓘ with the quality, the filter chip. */}
+            <div ref={dock} tabIndex={-1} className="omx-bar omx-glass focus:outline-none" role="toolbar" aria-label={t("research.exec.objectMap.controls")}>
+              {density ? (
+                <div className="omx-seg" role="group" aria-label={t(`${p}.mapGroup`)}>
+                  <button type="button" aria-pressed={view === "objects"} title={`${t(`${p}.mapObjects`)} (O)`} onClick={() => showMap("objects")}>{t(`${p}.mapObjects`)}</button>
+                  <button type="button" aria-pressed={view === "respondents"} title={`${t(`${p}.mapRespondents`)} (R)`} onClick={() => showMap("respondents")}>{t(`${p}.mapRespondents`)}</button>
+                </div>
+              ) : null}
+              <span className="omx-sep" aria-hidden />
+              {narrow ? iconBtn(t(`${p}.more`), <Ic d="M5 12h.01M12 12h.01M19 12h.01" bold />, () => openMenu("more"), menu === "more") : (
+                <>
+                  {iconBtn(t(`${p}.settings`), <Ic d="M4 7h10M18 7h2M4 17h4M12 17h8M14 5v4M8 15v4" />, () => openWork("settings"), menu === "settings", "settings")}
+                  {people ? null : iconBtn(t(`${p}.toolsButton`), <Ic d="M5 19c4-9 10-9 14-14M5 19l3-1M5 19l1-3M19 5l-3 1M19 5l-1 3" />, () => openWork("tools"), menu === "tools", "tools")}
+                </>
+              )}
+              <button type="button" className={`omx-icon${pill?.warn ? " is-warn" : ""}`} aria-expanded={info} aria-controls={info ? `${described}-info` : undefined}
+                aria-label={pill ? tv(`${p}.infoPill`, { pill: pill.text }) : t(`${p}.info`)} title={`${t(`${p}.info`)} (I)`} onClick={toggleInfo}>
+                <Ic d="M12 8h.01M11 12h1v5h1M12 3a9 9 0 100 18 9 9 0 000-18z" />{quality ? <span className="omx-badge" aria-hidden>{quality}</span> : null}
+              </button>
+              {/* One live region, always there, so the chip's first appearance is announced too. */}
+              <span role="status" data-testid="object-map-filter-status">
+                {changes.length ? (
+                  <span className="omx-filter" data-testid="object-map-filter-bar" data-aia-filters={changes.map((c) => `${c.key}:${c.value}`).join(" ")}
+                    title={`${t(`${p}.filterTitle`)} ${changes.map((c) => t(CHANGE_WORDS[`${c.key}:${c.value}`]!)).join(", ")}. ${t(`${p}.filterUnchanged`)}`}>
+                    <b>{t(`${p}.filterChip`)}</b> {changes.map((c) => t(CHANGE_WORDS[`${c.key}:${c.value}`]!)).join(", ")}<span className="sr-only">. {t(`${p}.filterUnchanged`)}</span>
+                    <button type="button" aria-label={t(`${p}.filterReset`)} title={t(`${p}.filterReset`)} onClick={resetDisplay}>×</button>
+                  </span>
+                ) : null}
+              </span>
+            </div>
+
+            {menu === "more" ? (
+              <div className="omx-pop omx-glass-light" role="menu" aria-label={t(`${p}.more`)}>
+                <button type="button" role="menuitem" className="omx-menuitem" onClick={() => openMenu("settings")}>{t(`${p}.settings`)}</button>
+                {people ? null : <button type="button" role="menuitem" className="omx-menuitem" onClick={() => openMenu("tools")}>{t(`${p}.toolsButton`)}</button>}
               </div>
             ) : null}
-            <div className="omw-group" role="group" aria-label={t(`${p}.workGroup`)}>
-              <span className="omw-label" aria-hidden>{t(`${p}.workGroup`)}</span>
-              <button type="button" data-dock="settings" aria-pressed={work === "settings" || work === "objects"} onClick={() => openWork("settings")}>{t(`${p}.settings`)}</button>
-              {/* The relation display is the object map's: the respondent map has no Nástroje here. */}
-              {people ? null : <button type="button" data-dock="tools" aria-pressed={work === "tools"} onClick={() => openWork("tools")}>{t(`${p}.toolsButton`)}</button>}
-            </div>
-          </div>
-          {/* One live region, always there, so the bar's first appearance is announced too. */}
-          <div ref={status} role="status" className="omw-status" data-testid="object-map-filter-status">
-            {changes.length ? <FilterBar changes={changes} onReset={resetDisplay} /> : null}
-          </div>
-          {/* The ⓘ map information (`npcMapHint27`, `__npcMapInfo1910`), the facts with it: the dock's last row, under whatever the dock wraps to. */}
-          <div className="omw-hint">
-            <button ref={infoPill} type="button" className={`omw-pill${pill?.warn ? " warn" : ""}`} aria-expanded={info} aria-controls={info ? `${described}-info` : undefined}
-              aria-label={pill ? tv(`${p}.infoPill`, { pill: pill.text }) : t(`${p}.info`)} title={t(`${p}.info`)} onClick={() => setInfo(!info)}>
-              ⓘ{pill ? ` ${pill.text}` : ""}
-            </button>
+            {menu === "settings" ? <div className="omx-pop omx-glass-light" role="dialog" aria-label={t(`${p}.settings`)}>{settingsBody}</div> : null}
+            {menu === "tools" && !people ? <div className="omx-pop omx-glass-light" role="dialog" aria-label={t(`${p}.toolsTitle`)}>{toolsBody}</div> : null}
             {info ? (
-              <div id={`${described}-info`} className="omw-pop" role="region" aria-label={t(`${p}.info`)} data-testid="object-map-info">
+              <div id={`${described}-info`} className="omx-pop omx-glass-light omx-pop--info" role="region" aria-label={t(`${p}.info`)} data-testid="object-map-info">
                 <b>{battery.title}</b>
                 {people ? <RespondentCounts map={map} segments={segments} /> : null}
                 <QualityRows map={map} />
@@ -497,68 +559,77 @@ function PanelView({ battery, map, facts }: { battery: BatteryWithMaps; map: Obj
                 <Registers />
               </div>
             ) : null}
-          </div>
-        </div>
 
-        <div className="omw-tools" role="group" aria-label={t(`${p}.tools`)}>
-          {tool(t(`${p}.zoomIn`), "＋", () => setCamera((c) => zoomCamera(c, ZOOM_IN)))}
-          {tool(t(`${p}.zoomOut`), "−", () => setCamera((c) => zoomCamera(c, ZOOM_OUT)))}
-          {tool(t(`${p}.top`), "2D", () => setCamera((c) => topCamera(c, size.width, size.height)), fromAbove)}
-          {tool(t(`${p}.three`), "3D", () => setCamera(camera3d), !fromAbove)}
-          {tool(t(`${p}.center`), "◎", () => setCamera(INITIAL_CAMERA))}
-          {tool(t(`${p}.fullscreen`), "⛶", toggleFull, full)}
-        </div>
-
-        {people ? <DensityLegend segments={segments} /> : <Legend battery={battery} values={nodes.map((n) => (n.primary ? n.value : null))} norm={norm} strongest={strongest} />}
-
-        {work === "settings" ? (
-          <MapWindow key="settings" {...windowProps("settings")} kind="work" title={t(`${p}.settings`)} closeLabel={tv(`${p}.closeWindow`, { title: t(`${p}.settings`) })} onClose={closeWork} focusOnOpen>
-            {people ? null : (
-              <div role="group" aria-label={t(`${p}.norm`)}>
-                <SectionHead label={t(`${p}.norm`)} help={t(`${p}.normHelp`)} />
-                <div className="omw-row">
-                  <button type="button" className="omw-btn" aria-pressed={norm === "absolute"} disabled={!stored} title={t(`${p}.absoluteHelp`)} onClick={() => setNorm("absolute")}>{t(`${p}.absolute`)}</button>
-                  <button type="button" className="omw-btn" aria-pressed={norm === "range"} title={t(`${p}.rangeHelp`)} onClick={() => setNorm("range")}>{t(`${p}.range`)}</button>
-                </div>
+            {/* 2. The view rail, bottom right: zoom, fit, 2D / 3D, full screen. */}
+            <div className="omx-rail omx-glass" role="group" aria-label={t(`${p}.tools`)}>
+              <button type="button" className="omx-icon" title={`${t(`${p}.zoomIn`)} (+)`} aria-label={t(`${p}.zoomIn`)} onClick={() => setCamera((c) => zoomCamera(c, ZOOM_IN))}><Ic d="M12 5v14M5 12h14" /></button>
+              <button type="button" className="omx-icon" title={`${t(`${p}.zoomOut`)} (−)`} aria-label={t(`${p}.zoomOut`)} onClick={() => setCamera((c) => zoomCamera(c, ZOOM_OUT))}><Ic d="M5 12h14" /></button>
+              <span className="omx-hair" aria-hidden />
+              <button type="button" className="omx-icon" title={`${t(`${p}.center`)} (0)`} aria-label={t(`${p}.center`)} onClick={() => setCamera(INITIAL_CAMERA)}><Ic d="M12 12h.01M12 5a7 7 0 100 14 7 7 0 000-14zM12 2v3M12 19v3M2 12h3M19 12h3" /></button>
+              <span className="omx-hair" aria-hidden />
+              <div className="omx-dim" role="group" aria-label={t(`${p}.dimension`)}>
+                <button type="button" aria-pressed={fromAbove} title={t(`${p}.top`)} aria-label={t(`${p}.top`)} onClick={() => setCamera((c) => topCamera(c, size.width, size.height))}>2D</button>
+                <button type="button" aria-pressed={!fromAbove} title={t(`${p}.three`)} aria-label={t(`${p}.three`)} onClick={() => setCamera(camera3d)}>3D</button>
               </div>
-            )}
-            <SectionHead label={t(`${p}.objectsSection`)} help={t(`${p}.objectsHelp`)} />
-            <div className="omw-row"><button type="button" className="omw-btn" onClick={() => setWork("objects")}>{t(`${p}.objectManager`)}</button></div>
-            <SectionHead label={t(`${p}.exportSection`)} help={t(`${p}.exportHelp`)} />
-            <div className="omw-row"><button type="button" className="omw-btn" title={t(`${p}.exportHelp`)} onClick={exportPng}>{t(`${p}.export`)}</button></div>
-          </MapWindow>
-        ) : null}
-        {work === "tools" && !people ? (
-          <MapWindow key="tools" {...windowProps("tools")} kind="work" title={t(`${p}.toolsTitle`)} closeLabel={tv(`${p}.closeWindow`, { title: t(`${p}.toolsTitle`) })} onClose={closeWork} focusOnOpen>
-            <div role="group" aria-label={t(`${p}.relations`)}>
-              <SectionHead label={t(`${p}.relations`)} />
-              <div className="omw-row">
-                {RELATION_MODES.map((r) => (
-                  <button key={r.mode} type="button" className="omw-btn" aria-pressed={mode === r.mode} title={r.help ? t(r.help) : undefined} onClick={() => setMode(r.mode)}>{t(r.label)}</button>
-                ))}
-              </div>
+              <span className="omx-hair" aria-hidden />
+              <button type="button" className="omx-icon" title={`${t(`${p}.fullscreen`)} (F)`} aria-label={t(`${p}.fullscreen`)} aria-pressed={full} onClick={toggleFull}><Ic d={full ? "M9 4v5H4M15 4v5h5M9 20v-5H4M15 20v-5h5" : "M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5"} /></button>
             </div>
-          </MapWindow>
-        ) : null}
-        {work === "objects" ? (
-          <MapWindow key="objects" {...windowProps("objects")} kind="work" title={t(`${p}.objectManager`)} closeLabel={tv(`${p}.closeWindow`, { title: t(`${p}.objectManager`) })} onClose={closeWork} focusOnOpen>
-            {/* Selection is the object map's: on the respondent map the list only lists (a click there showed nothing). */}
-            <ObjectList battery={battery} selected={selected} onChoose={people ? undefined : choose} onHover={setHovered} notPlaced={notPlaced}
-              items={nodes.map((n, k) => ({ id: n.id, label: n.label, value: n.value, colour: n.primary ? color66(tones[k]) : SECONDARY }))} />
-          </MapWindow>
-        ) : null}
-        {detail ? (
-          <MapWindow key={`detail-${view}`} {...windowProps("detail")} kind="detail" testId="object-map-detail" title={detailTitle}
-            closeLabel={tv(`${p}.closeWindow`, { title: detailTitle })} onClose={() => closeDetail(true)}>
-            {people
-              ? <PersonCard detail={person >= 0 ? respondentDetail(map, dots[person].id) : null} />
-              : <ObjectCard battery={battery} map={map} selected={selected} relation={relation}
-                onRelation={(j) => setRelation((r) => (isPair(r, selected, j) ? null : [selected, j]))} />}
-          </MapWindow>
-        ) : null}
+
+            {/* 3. The legend: a chip, opened on demand; closed again when a sheet or a popover opens. */}
+            {legendOpen ? (
+              <div className="omx-legendwrap">
+                {people ? <DensityLegend segments={segments} /> : <Legend battery={battery} values={nodes.map((n) => (n.primary ? n.value : null))} norm={norm} strongest={strongest} />}
+                <button type="button" className="omx-legendclose" aria-label={t(`${p}.legendClose`)} title={`${t(`${p}.legendClose`)} (L)`} onClick={() => setLegendOpen(false)}>×</button>
+              </div>
+            ) : (
+              <button type="button" className="omx-legendchip omx-glass" aria-expanded={false} title={`${t(`${p}.legend`)} (L)`} onClick={() => setLegendOpen(true)}>
+                {people && segments?.decision === "SEGMENTS"
+                  ? <><span className="omx-chiplabel">{t(`${p}.legendGroups`)}</span>{segments.segments.map((g, k) => <span key={k} className="omx-swatch" style={{ background: SEGMENT_COLOURS[k % SEGMENT_COLOURS.length] }} title={sharePercent(g.share)} />)}</>
+                  : people ? <><span className="omx-chiplabel">{t(`${p}.legendDensity`)}</span><span className="omx-ramp" aria-hidden /></>
+                    : <><span className="omx-chiplabel">{tv(`${p}.legendHeight`, { lo, hi })}</span><span className="omx-ramp" aria-hidden /><span className="sr-only">{word}</span></>}
+              </button>
+            )}
+          </div>
+
+          {/* 4. Správa objektů and the detail: one side sheet with two tabs, foldable to its edge. */}
+          {sheetOpen ? (
+            <div role="group" className={`omx-sheet${folded ? " is-folded" : ""}`} aria-label={sheetTab === "detail" ? detailTitle : t(`${p}.objectManager`)} data-testid="object-map-sheet">
+              {folded ? (
+                <button type="button" className="omx-handle" aria-label={t(`${p}.sheetUnfold`)} title={t(`${p}.sheetUnfold`)} onClick={() => setFolded(false)}>‹</button>
+              ) : (
+                <>
+                  <div className="omx-sheethead">
+                    <div className="omx-tabs" role="tablist" aria-label={t(`${p}.sheet`)}>
+                      <button type="button" role="tab" id={`${described}-tab-objects`} aria-controls={`${described}-sheet`} aria-selected={sheetTab === "objects"} onClick={() => { setWork("objects"); setTab("objects"); }}>{t(`${p}.sheetObjects`)}</button>
+                      <button type="button" role="tab" id={`${described}-tab-detail`} aria-controls={`${described}-sheet`} aria-selected={sheetTab === "detail"} disabled={!detail} onClick={() => setTab("detail")}>{t(people ? `${p}.sheetRespondent` : `${p}.sheetDetail`)}</button>
+                    </div>
+                    <button type="button" className="omx-icon omx-icon--sm" aria-label={t(`${p}.sheetFold`)} title={t(`${p}.sheetFold`)} onClick={() => setFolded(true)}>›</button>
+                    <button type="button" className="omx-icon omx-icon--sm" aria-label={tv(`${p}.closeWindow`, { title: sheetTab === "detail" ? detailTitle : t(`${p}.objectManager`) })} title={`${t(`${p}.sheetClose`)} (Esc)`}
+                      onClick={() => { if (sheetTab === "detail") { closeDetail(true); if (work !== "objects") setTab("objects"); } else closeWork(); }}>×</button>
+                  </div>
+                  <div className="omx-sheetbody" id={`${described}-sheet`} role="tabpanel" aria-labelledby={`${described}-tab-${sheetTab}`} data-testid={sheetTab === "detail" ? "object-map-detail" : undefined}>
+                    {sheetTab === "detail" ? <h3 className="omx-sheettitle">{detailTitle}</h3> : null}
+                    {sheetTab === "objects" ? (
+                      <ObjectList battery={battery} selected={selected} onChoose={people ? undefined : choose} onHover={setHovered} notPlaced={notPlaced}
+                        items={nodes.map((n, k) => ({ id: n.id, label: n.label, value: n.value, colour: n.primary ? color66(tones[k]) : SECONDARY }))} />
+                    ) : people
+                      ? <PersonCard detail={person >= 0 ? respondentDetail(map, dots[person].id) : null} />
+                      : <ObjectCard battery={battery} map={map} selected={selected} relation={relation}
+                        onRelation={(j) => setRelation((r) => (isPair(r, selected, j) ? null : [selected, j]))} />}
+                  </div>
+                </>
+              )}
+            </div>
+          ) : null}
+        </div>
       </div>
     </div>
   );
+}
+
+/** A line icon on a 24 px grid. */
+function Ic({ d, bold = false }: { d: string; bold?: boolean }) {
+  return <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={bold ? 3 : 1.8} strokeLinecap="round" strokeLinejoin="round" aria-hidden><path d={d} /></svg>;
 }
 
 /** A number as the panel's `fmt66` prints it (two decimals below 10, one below 100), in Czech. */
@@ -921,19 +992,6 @@ const CHANGE_WORDS: Record<string, string> = {
   "relations:all": "research.exec.objectMap.panel.filterRelationsAll",
 };
 
-/** The display filter bar (the V2 prototype's `filterbar`), a glass chip in the dock's row:
- *  what the dock's windows changed, and that the computation did not change; one click back to how the map opens. */
-function FilterBar({ changes, onReset }: { changes: DisplayChange[]; onReset: () => void }) {
-  const p = "research.exec.objectMap.panel";
-  return (
-    <div className="omw-filter" data-testid="object-map-filter-bar" data-aia-filters={changes.map((c) => `${c.key}:${c.value}`).join(" ")}>
-      <b>{t(`${p}.filterTitle`)}</b>{" "}
-      <span>{changes.map((c) => t(CHANGE_WORDS[`${c.key}:${c.value}`]!)).join(", ")}.</span>{" "}
-      <span className="omw-filter-note">{t(`${p}.filterUnchanged`)}</span>{" "}
-      <button type="button" onClick={onReset}>{t(`${p}.filterReset`)}</button>
-    </div>
-  );
-}
 
 /** The four kinds of content around a map (the V2 prototype's "Co je co"), in the map's ⓘ box: the frozen
  *  result, the display, a labelled interpretation, external context. Static words: what each may change. */
