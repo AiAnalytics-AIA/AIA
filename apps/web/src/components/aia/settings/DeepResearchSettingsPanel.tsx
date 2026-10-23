@@ -377,11 +377,16 @@ function usePending(s: DrSetting): DrSettingVersion | null {
   const candidate = s.latest_number !== null && s.latest_number > (s.version ?? 0);
   const [res] = useResource(() => (candidate ? deepResearchSettings.get(s.key) : Promise.resolve(null)), [s, candidate]);
   if (!candidate || res.state !== "ready" || !res.data) return null;
-  // Saved after the last approval, in both cases: a PENDING version from before it is one an approval
-  // passed over (review of #842). The server's state (#841), where sent, adds what the dates cannot
-  // say: a withdrawn or declined version waits for nothing.
-  const last = res.data.history.map((h) => h.approved_at).sort().at(-1);
-  const waiting = res.data.versions.filter((v) => (v.state !== undefined ? v.state === "PENDING" : v.version_number !== res.data!.version)
+  return pendingOf(res.data);
+}
+
+/** The one rule for what waits, read by the row and the detail's steps alike. Saved after the last
+ *  approval, in both cases: a PENDING version from before it is one an approval passed over (review of
+ *  #842). The server's state (#841), where sent, adds what the dates cannot say: a withdrawn or
+ *  declined version waits for nothing. */
+function pendingOf(detail: DrSettingDetail): DrSettingVersion | null {
+  const last = detail.history.map((h) => h.approved_at).sort().at(-1);
+  const waiting = detail.versions.filter((v) => (v.state !== undefined ? v.state === "PENDING" : v.version_number !== detail.version)
     && (last === undefined || v.created_at > last));
   return waiting.sort((a, b) => b.version_number - a.version_number)[0] ?? null;
 }
@@ -492,8 +497,8 @@ type Approving = { version: number | null } | null;
 /** Where a rule's change stands: propose, approve, in force for new runs. */
 function Flow({ detail }: { detail: DrSettingDetail }) {
   const inForce = detail.origin === "approved" ? detail.version : null;
-  const newest = detail.versions.reduce<number | null>((n, v) => (n === null || v.version_number > n ? v.version_number : n), null);
-  const waiting = newest !== null && newest !== inForce;
+  // What waits is the row's rule: a declined, withdrawn or passed-over newest version waits for nothing.
+  const waiting = pendingOf(detail) !== null;
   const state = (step: 1 | 2 | 3) =>
     step === 1 ? (waiting || inForce !== null ? "done" : "now")
     : step === 2 ? (waiting ? "now" : inForce !== null ? "done" : "")
@@ -601,7 +606,9 @@ function Approve({ settingKey, version, onCancel, onDone }: { settingKey: string
     }
   };
   return (
-    <ConfirmDialog open marker="dr-approve" busy={busy} error={error}
+    // Nothing is approved before the person has seen what it changes: the comparison read, or its failure said.
+    <ConfirmDialog open marker="dr-approve" busy={busy} error={error ?? (res.state === "failed" || res.state === "not-found" ? (res.state === "failed" ? res.message : t(`${D}.approve.unread`)) : null)}
+      confirmDisabled={res.state !== "ready"}
       title={version === null ? t(`${D}.approve.withdrawTitle`) : tv(`${D}.approve.title`, { version })}
       rows={[
         { label: t(`${D}.approve.rule`), value: detail ? labelOf(detail) : settingKey },

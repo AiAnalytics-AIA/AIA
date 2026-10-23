@@ -10,8 +10,12 @@ A tag names where a printed span came from:
 - ``figure:<id>``: a figure's picture, its refs the stored figure's;
 - ``count:suppressed:<id>``: what suppression removed from that table or figure;
 - ``map:<battery>/<method>``: text code wrote whole from one stored map (``source_tag``), which the
-  section's manifest names by id and SHA-256. The design's, the run's and the literature bundle's
-  join with the chunks that write them (RPT8a, part 3).
+  section's manifest names by id and SHA-256;
+- ``design:<fingerprint>``: text code wrote from the research specification the run executed, by its
+  fingerprint;
+- ``run:<run>``: text code wrote from the run's own record (its metadata, its pins, its audit rows);
+- ``bundle:<Deep Research run>``: text code wrote from that run's sealed bundle (the literature
+  chapter).
 """
 
 from __future__ import annotations
@@ -32,11 +36,11 @@ APPENDIX_COLUMNS: Final = (
     "disclosures",
 )
 
-Source = Literal["map"]
+Source = Literal["map", "design", "run", "bundle"]
 Kind = Literal["value", "interval", "base_n", "appendix", "figure", "suppressed"] | Source
 
 #: The stored sources, other than the ledger, that code writes numbers from.
-SOURCE_KINDS: Final[tuple[Source, ...]] = ("map",)
+SOURCE_KINDS: Final[tuple[Source, ...]] = ("map", "design", "run", "bundle")
 
 
 def value_tag(ref: str) -> str:

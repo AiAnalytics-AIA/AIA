@@ -528,6 +528,10 @@ class ClientRow(Base):
     modified_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), nullable=False, default=utcnow, onupdate=utcnow
     )
+    # Deleted (settings-backends SB5): its content is gone and the row stays, archived and named
+    # by its id, so the ledgers it keeps still resolve. NULL: not deleted.
+    deleted_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    deleted_by: Mapped[str | None] = mapped_column(String(64))
 
     __table_args__ = (
         ForeignKeyConstraint(
@@ -545,6 +549,35 @@ class ClientRow(Base):
         CheckConstraint("status in ('ACTIVE','DORMANT','ARCHIVED')", name="client_status_known"),
         Index("ix_clients_org", "organization_id", "status"),
     )
+
+
+class ClientDeletionTicketRow(Base):
+    """A one-time confirmation of a client's deletion (settings-backends SB5): issued by the
+    preview to the person who asked, for ten minutes, spent by the deletion. Only the token's
+    SHA-256 is kept."""
+
+    __tablename__ = "client_deletion_tickets"
+
+    token_sha256: Mapped[str] = mapped_column(String(64), primary_key=True)
+    organization_id: Mapped[str] = mapped_column(String(64), nullable=False)
+    client_id: Mapped[str] = mapped_column(String(64), nullable=False)
+    actor_id: Mapped[str] = mapped_column(String(64), nullable=False)
+    expires_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+    spent_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+
+    __table_args__ = (Index("ix_client_deletion_tickets_client", "client_id"),)
+
+
+class ClientDeletionObjectRow(Base):
+    """A deleted client's stored object still to delete (settings-backends SB5): written in the
+    deletion's transaction, cleared as each object is deleted after it commits, so a failed or
+    interrupted delete is retried by the next DELETE on the tombstone."""
+
+    __tablename__ = "client_deletion_objects"
+
+    client_id: Mapped[str] = mapped_column(String(64), primary_key=True)
+    storage_key: Mapped[str] = mapped_column(String(512), primary_key=True)
+    organization_id: Mapped[str] = mapped_column(String(64), nullable=False)
 
 
 class StudyRow(Base):
@@ -1821,7 +1854,8 @@ class StudyWalletChargeRow(Base):
 
     One charge per run (unique ``run_id``): a start that finds its run already there charges
     nothing again. ``plan_id`` names a ``lead_plans`` row once LO3 creates that table; until then
-    it is a bare id with no foreign key.
+    it is a bare id with no foreign key. ``run_id`` names its run by id, with no foreign key: a
+    charge is money ledger and stays when a deleted client's runs go (settings-backends SB5).
     """
 
     __tablename__ = "study_wallet_charges"
@@ -1843,7 +1877,8 @@ class StudyWalletChargeRow(Base):
     __table_args__ = (
         ForeignKeyConstraint(["wallet_id"], ["study_wallets.wallet_id"], ondelete="CASCADE"),
         ForeignKeyConstraint(["study_id"], ["studies.study_id"], ondelete="CASCADE"),
-        ForeignKeyConstraint(["run_id"], ["workflow_runs.run_id"], ondelete="CASCADE"),
+        # No foreign key to the run (settings-backends SB5): a charge is money ledger and
+        # names its run by id, as usage rows and holds do, so a client's deletion keeps it.
         CheckConstraint(
             "(plan_id is null) = (plan_step_id is null)", name="wallet_charge_plan_and_step"
         ),
@@ -2529,6 +2564,24 @@ class PromptActivationRow(Base):
 # --------------------------------------------------------------------------- #
 
 
+class DeepResearchCompositionRow(Base):
+    """What one worker's Deep Research composition reached, recorded at its start
+    (deep-research-web-search 52). Deployment-wide; Settings reads the newest. ``routes``
+    holds ``domain.deep_research_reach.reach_record``'s list."""
+
+    __tablename__ = "deep_research_compositions"
+
+    composition_id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    worker: Mapped[str] = mapped_column(String(128), nullable=False)
+    build_sha: Mapped[str | None] = mapped_column(String(64))
+    composed_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+    agent_directed: Mapped[bool] = mapped_column(Boolean, nullable=False)
+    class_gates: Mapped[str | None] = mapped_column(String(16))
+    routes: Mapped[list[dict[str, Any]]] = mapped_column(JSONType, nullable=False)
+
+    __table_args__ = (Index("ix_deep_research_compositions_composed_at", "composed_at"),)
+
+
 class DeepResearchSettingVersionRow(Base):
     """One proposed value of a Deep Research setting. Immutable (ADR 0022).
 
@@ -2560,6 +2613,41 @@ class DeepResearchSettingVersionRow(Base):
         ),
         CheckConstraint("version_number >= 1", name="dr_setting_version_positive"),
         Index("ix_dr_setting_versions_key", "organization_id", "setting_key", "version_number"),
+    )
+
+
+class DeepResearchSettingDeclineRow(Base):
+    """A proposed version taken back by its proposer (WITHDRAWN) or turned down by another
+    administrator (DECLINED). Append-only, at most one per version; a version with one is
+    never approved. The version itself stays, immutable (ADR 0022)."""
+
+    __tablename__ = "deep_research_setting_declines"
+
+    decline_id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    organization_id: Mapped[str] = mapped_column(String(64), nullable=False)
+    setting_key: Mapped[str] = mapped_column(String(128), nullable=False)
+    version_number: Mapped[int] = mapped_column(Integer, nullable=False)
+    kind: Mapped[str] = mapped_column(String(16), nullable=False)
+    declined_by: Mapped[str] = mapped_column(String(64), nullable=False)
+    reason: Mapped[str] = mapped_column(String(255), nullable=False)
+    declined_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), nullable=False, default=utcnow
+    )
+
+    __table_args__ = (
+        ForeignKeyConstraint(
+            ["organization_id", "setting_key", "version_number"],
+            [
+                "deep_research_setting_versions.organization_id",
+                "deep_research_setting_versions.setting_key",
+                "deep_research_setting_versions.version_number",
+            ],
+            name="fk_dr_setting_declines_version",
+        ),
+        CheckConstraint("kind in ('WITHDRAWN', 'DECLINED')", name="dr_setting_decline_kind"),
+        UniqueConstraint(
+            "organization_id", "setting_key", "version_number", name="uq_dr_setting_decline"
+        ),
     )
 
 
