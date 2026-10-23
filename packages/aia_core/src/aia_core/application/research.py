@@ -37,6 +37,7 @@ from ..domain.answerability import (
 from ..domain.deep_research.workflow import DEEP_RESEARCH
 from ..domain.design import DESIGN_PROJECT_OWNER, DesignRejected
 from ..domain.design_items import ItemKey
+from ..domain.edit_log import ActorKind, OpSource, WriteBy
 from ..domain.evidence import ClaimSurface
 from ..domain.evidence.support import AIA_SUPPORT_V1, SupportSpec
 from ..domain.fieldwork import FieldworkSource, PersonaSource, persona_source_of
@@ -387,6 +388,9 @@ class FrozenDataset:
     #: ``None`` only for a caller that names none; :func:`retry_failed_modules` always does.
     specification_artifact_id: str | None = None
     specification_sha256: str | None = None
+    #: Modules already asked again earlier in this retry chain (evidence-integrity 9a): with
+    #: :attr:`retried`, the chain's ``tried``, so a module still empty is offered no further round.
+    tried: tuple[str, ...] = ()
 
     def __post_init__(self) -> None:
         if self.analysis_round < 1:
@@ -396,7 +400,12 @@ class FrozenDataset:
         return {"run_id": self.run_id, "artifact_id": self.artifact_id, "sha256": self.sha256}
 
     def note(self) -> dict[str, Any]:
-        return {**self.step_input(), "round": self.analysis_round, "modules": list(self.retried)}
+        return {
+            **self.step_input(),
+            "round": self.analysis_round,
+            "modules": list(self.retried),
+            "tried": sorted({*self.tried, *self.retried}),
+        }
 
     def specification_input(self) -> dict[str, Any] | None:
         """The compile step's ``frozen_specification``; ``None`` when none is named."""
@@ -1012,6 +1021,7 @@ class ResearchRuns:
                     analysis_step_inputs(
                         ClaimSurface.INTERNAL,
                         analysis_round=frozen_dataset.analysis_round if frozen_dataset else 0,
+                        retried=frozen_dataset.retried if frozen_dataset else (),
                     )
                     if analysis_enabled
                     else {}
@@ -2077,6 +2087,7 @@ class ResearchAgentJobs:
             expected_workspace_revision=expected_workspace_revision,
             source_stage=_ACCEPT_STAGES[action],
             reason="ai_proposal_accepted",
+            by=WriteBy(ActorKind.PERSON, self.scope.actor_id, OpSource.PROPOSAL_ACCEPT, run_id),
             touched=[ItemKey.parse(str(k)) for k in recorded]
             if isinstance(recorded, list)
             else None,

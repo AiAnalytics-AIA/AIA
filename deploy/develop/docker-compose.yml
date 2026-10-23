@@ -281,6 +281,7 @@ services:
       # Each answered respondent block kept and replayed on a resumed or retried run (RQC0).
       AIA_AI_FIELDWORK_CHECKPOINT: ${AIA_AI_FIELDWORK_CHECKPOINT:-false}
       AIA_AI_FIELDWORK_HEARTBEAT: ${AIA_AI_FIELDWORK_HEARTBEAT:-false}
+      AIA_AI_FIELDWORK_QUOTA_FILL: ${AIA_AI_FIELDWORK_QUOTA_FILL:-false}
       # The report's PDF beside its DOCX (complete-study-report B3). The develop worker image
       # is built with LibreOffice (AIA_WORKER_PDF=true in deploy-develop.yml), so it is on.
       AIA_REPORT_PDF_ENABLED: ${AIA_REPORT_PDF_ENABLED:-true}

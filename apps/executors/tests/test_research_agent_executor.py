@@ -13,6 +13,7 @@ from aia_core.application.proposal_accept import StaleProposal
 from aia_core.application.research import ResearchAgentJobs
 from aia_core.domain.ai_material import MaterialApproval, material_sha256
 from aia_core.domain.design import DesignRejected
+from aia_core.domain.edit_log import ActorKind, OpSource, WriteBy
 from aia_core.domain.item_ids import derived_id
 from aia_core.domain.prompts import PromptPin
 from aia_core.domain.research_agents import (
@@ -35,6 +36,7 @@ from aia_core.infrastructure.study_design_repository import StudyDesignRepositor
 from aia_core.infrastructure.study_workspace_repository import StudyWorkspaceRepository
 from aia_core.infrastructure.tables import ApprovalDecisionRow, PromptVersionRow
 from aia_core.infrastructure.workflow_repository import WorkflowRepository
+from aia_core.infrastructure.workspace_edit_repository import WorkspaceEditRepository
 from aia_executors.ai_runtime import AIRuntimeConfigError, AIRuntimeSettings, build_gateway
 from aia_executors.recorded_models import DESIGN_ANSWERS, RecordedModels
 from aia_executors.registry import registry_for
@@ -268,6 +270,12 @@ def test_worker_stores_proposal_and_review_creates_a_new_revision(
         assert after.content["research_plan"]["objectives"] == ["Test appeal"]
         assert after.analysis is not None and after.analysis["objectives"] == ["Test appeal"]
         assert after.analysis["_brief_signature"].startswith('{"goal":"Test concept"')
+        # Logged as the person who accepted, citing the job (working-copy-edit-ops WCE2e).
+        logged = WorkspaceEditRepository(session, scope).rows(after_revision=before.revision)
+        assert logged and {r.result_revision for r in logged} == {after.revision}
+        assert {r.by for r in logged} == {
+            WriteBy(ActorKind.PERSON, scope.actor_id, OpSource.PROPOSAL_ACCEPT, run_id)
+        }
         with pytest.raises(DesignRejected):
             jobs.accept(
                 run_id,
@@ -905,7 +913,10 @@ def edit_working_copy(world: Any, change: dict[str, Any]) -> int:
         workspaces = StudyWorkspaceRepository(session)
         now = workspaces.content(scope)
         saved = workspaces.save(
-            scope, content={**(now.content or {}), **change}, base_revision=now.revision
+            scope,
+            content={**(now.content or {}), **change},
+            base_revision=now.revision,
+            by=WriteBy(ActorKind.PERSON, scope.actor_id, OpSource.UI),
         )
         session.commit()
         return saved.revision

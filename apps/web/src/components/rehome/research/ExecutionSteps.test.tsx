@@ -11,6 +11,7 @@ import { t, tv } from "@/i18n/t";
 import { runState } from "@/lib/run-state";
 import type { ResearchRun } from "@/lib/api";
 import signedOffFixture from "@/lib/fixtures/object-map-signed-off.json";
+import sociomappingFixture from "@/lib/fixtures/sociomapping.json";
 import { AnalysisInspect } from "./AnalysisInspect";
 import { ItemInspectorContext } from "@/components/workbench/item-inspector-context";
 import { measureAnchor } from "@/lib/result-reading";
@@ -22,6 +23,14 @@ import { StudyFrameProvider } from "./frame";
 import { ResearchScreen, ResearchSession } from "./ResearchScreen";
 import { CONTENT_PATH, workspaceFixture } from "./test-workspace";
 import { TEST_FRAME, stagePath } from "./test-frame";
+
+// The workbench's layout, where a test asks for it: the Lead owns the AI starts there, and the
+// Sociomapa stage is the map (artifact-sociomap SOC9). Null: the layout's own answer.
+const layout = vi.hoisted(() => ({ workbench: null as boolean | null }));
+vi.mock("./AskLead", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("./AskLead")>();
+  return { ...actual, useLeadOwnsAiStarts: () => layout.workbench ?? actual.useLeadOwnsAiStarts() };
+});
 
 /** Approval asks first, naming the version (input-interactions B22); answer yes. */
 async function confirmApproval(version?: string): Promise<void> {
@@ -1436,6 +1445,57 @@ describe("Progress", () => {
     expect(panel.textContent).not.toMatch(/%/);
   });
 
+  it("keeps parked fieldwork's last reported count beside the step, from its events (FLD3)", async () => {
+    api({
+      ...listed(PARKED),
+      [`GET /api/v1/studies/STU-1/research/runs/${PARKED.run_id}/events`]: () => [
+        { event_id: 7, step_id: "STEP-run", attempt_id: "ATT-1", event_type: "STEP_PROGRESS", level: "INFO", message: "fieldwork_progress",
+          payload: { version: "aia-fieldwork-events-1", respondents: 40, of: 300, sent: 70, replayed: 50 }, created_at: "2026-09-25T08:01:00Z" },
+      ],
+    });
+    render(<ResearchScreen step="progress" frame={TEST_FRAME} />);
+    const list = await screen.findByRole("list", { name: t("aia.stages.progress") });
+    const row = list.querySelector<HTMLElement>('li[data-step="run"]')!;
+    await waitFor(() => expect(row.querySelector("[data-last-reported]")?.textContent).toBe(
+      `${tv("research.exec.activity.lastReported", { done: 40, of: 300 })} · ${tv("research.exec.activity.fieldworkReplayed", { replayed: 50 })}`,
+    ));
+    expect(row.querySelector("[data-step-activity]")).toBeNull();
+    expect(list.querySelectorAll("[data-last-reported]")).toHaveLength(1);
+  });
+
+  it("shows a panel run's quota cells filled by the respondents fieldwork reported (RQC7b)", async () => {
+    const feed = (id: number, message: string, payload: Record<string, unknown>) => ({
+      event_id: id, step_id: "STEP-run", attempt_id: "ATT-1", event_type: "STEP_PROGRESS", level: "INFO", message,
+      payload: { version: "aia-fieldwork-events-2", ...payload }, created_at: "2026-09-25T08:01:00Z",
+    });
+    api({
+      ...listed(PARKED),
+      [`GET /api/v1/studies/STU-1/research/runs/${PARKED.run_id}/events`]: () => [
+        feed(1, "fieldwork_sample", { quota_fields: ["pohlavi", "vek"], cells: [
+          { key: "zena/18-29", values: ["žena", "18-29"], n: 1 },
+          { key: "muz/30-44", values: ["muž", "30-44"], n: 2 },
+        ] }),
+        feed(2, "fieldwork_progress", { respondents: 2, of: 3, sent: 2, replayed: 0, cells: { "zena/18-29": 1, "muz/30-44": 1 } }),
+      ],
+    });
+    render(<ResearchScreen step="progress" frame={TEST_FRAME} />);
+    const list = await screen.findByRole("list", { name: t("aia.stages.progress") });
+    const row = list.querySelector<HTMLElement>('li[data-step="run"]')!;
+    const fill = await waitFor(() => {
+      const el = row.querySelector<HTMLElement>("[data-quota-fill]");
+      expect(el).not.toBeNull();
+      return el!;
+    });
+    expect(within(fill).getByText(tv("research.exec.activity.quotaTitle", { full: 1, cells: 2 }))).toBeTruthy();
+    const cells = [...fill.querySelectorAll<HTMLElement>("tr[data-cell]")].map((tr) => tr.textContent);
+    expect(cells).toEqual(["žena · 18-29" + tv("research.exec.activity.quotaOf", { answered: 1, n: 1 }), "muž · 30-44" + tv("research.exec.activity.quotaOf", { answered: 1, n: 2 })]);
+    expect(fill.textContent).toContain(t("research.exec.activity.quotaNote"));
+    // A full-size touch target on a phone, with the shared focus ring (Codex on #836).
+    expect(fill.querySelector("summary")?.className).toMatch(/min-h-11/);
+    expect(fill.querySelector("summary")?.className).toMatch(/focus-visible/);
+    expect(list.querySelectorAll("[data-quota-fill]")).toHaveLength(1);
+  });
+
   it("shows no orb while fieldwork waits for the AI runtime", async () => {
     api(listed(PARKED));
     render(<ResearchScreen step="progress" frame={TEST_FRAME} />);
@@ -1779,6 +1839,28 @@ describe("Results", () => {
     fireEvent.click(screen.getByRole("button", { name: /Omezení.*Čeká/ }));
     expect(screen.getByText("Stav kroku: Čeká")).toBeTruthy();
     expect(document.querySelector("[data-aggregate-deviation]")).toBeNull(); // the unit's port
+  });
+
+  it("names a completed module with no supported finding as what the report waits on, never as still running (9b)", async () => {
+    const done = run({ ...COMPLETED, steps: [...COMPLETED.steps,
+      step("analysis_executive", "SUCCEEDED", { kind: "research_analysis", artifact_id: "ART-6" }),
+    ] });
+    api({ ...listed(done),
+      "GET /api/v1/studies/STU-1/research/runs/RUN-1/artifacts/ART-4": () => AGGREGATE,
+      "GET /api/v1/studies/STU-1/research/runs/RUN-1/artifacts/ART-5": () => SOCIOMAP,
+      "GET /api/v1/studies/STU-1/research/runs/RUN-1/analysis": () => ({ complete: false, holding: ["executive"], synthetic: true, pending: {}, modules: {
+        executive: { outcome: "COMPLETED", summary: "Nic doloženého.", research_question_answers: [], key_findings: [], claims: [], violations: [] },
+      } }),
+    });
+    render(<ResearchScreen step="results" frame={TEST_FRAME} />);
+    fireEvent.click(await screen.findByRole("tab", { name: "AI analýza" }));
+    const overview = await waitFor(() => {
+      const el = document.querySelector("[data-analysis-overview]");
+      if (!el) throw new Error("no overview");
+      return el;
+    });
+    expect(overview.textContent).toMatch(/Zpráva čeká, dokud tyto části analýzy neuvedou doložené zjištění: .+\./);
+    expect(overview.textContent).not.toContain("Zbývající části ještě čekají");
   });
 
   it("shows artifact outcomes rather than workflow completion and hides validation codes in details", async () => {
@@ -2220,6 +2302,112 @@ describe("Results", () => {
     expect(within(map).queryByText(t("research.exec.results.olderMethod"))).toBeNull();
     // No reference map was computed, so no comparison with one is offered.
     expect(within(map).queryByText(t("research.exec.objectMap.comparison"))).toBeNull();
+  });
+
+  describe("the workbench's Sociomapa stage (artifact-sociomap SOC9-SOC11)", () => {
+    const battery = signedOffFixture.batteries[0];
+    const methodId = Object.keys(battery.maps)[0];
+    const signedOff = { ...SOCIOMAP, payload: { sociomap: {
+      methodology_status: "CLIENT_FACING", data_origin: "SYNTHETIC_FIXTURE",
+      methods: [{ method_id: methodId, spec_fingerprint: (battery.maps as Record<string, { spec_fingerprint: string }>)[methodId].spec_fingerprint }],
+      batteries: [battery],
+    } } };
+    // A run that also made the experimental Sociomapping (its own step and artifact).
+    const MAPPED = run({ ...COMPLETED, steps: [...(COMPLETED.steps as ReturnType<typeof step>[]), step("sociomapping", "SUCCEEDED", { artifact_id: "ART-6", data_origin: "SYNTHETIC_FIXTURE" })] });
+    const SOCIOMAPPING = { ...SOCIOMAP, artifact_id: "ART-6", artifact_type: "research_sociomapping", payload: sociomappingFixture };
+    const open = (artifact: unknown, workbench: boolean, hash = "#maps", runs = COMPLETED) => {
+      layout.workbench = workbench;
+      window.history.replaceState(null, "", `${window.location.pathname}${hash}`);
+      onTestFinished(() => { layout.workbench = null; window.history.replaceState(null, "", window.location.pathname); });
+      api({
+        ...listed(runs),
+        "GET /api/v1/studies/STU-1/research/runs/RUN-1/artifacts/ART-4": () => AGGREGATE,
+        "GET /api/v1/studies/STU-1/research/runs/RUN-1/artifacts/ART-5": () => artifact,
+        "GET /api/v1/studies/STU-1/research/runs/RUN-1/artifacts/ART-6": () => SOCIOMAPPING,
+      });
+      return render(<ResearchScreen step="results" frame={TEST_FRAME} />);
+    };
+
+    it("is the map: no results tabs, no guide, no other card, the map before what explains it", async () => {
+      open(signedOff, true);
+      const stage = await screen.findByTestId("sociomap-stage");
+      await waitFor(() => expect(within(stage).getByTestId("object-map-stage")).toBeTruthy());
+      expect(screen.queryByRole("tablist", { name: "Oddíly výsledků" })).toBeNull();
+      expect(screen.queryByText("Jak používat mapu a AI pomoc")).toBeNull();
+      expect(screen.queryByText(t("research.exec.results.mapsByMethod"))).toBeNull();
+      expect(screen.queryByText(t("research.exec.results.mapToolNotInAia"))).toBeNull();
+      expect(document.getElementById("res-sociomap")).toBeNull();
+      // The run's origin is still said above it: fictional data is labelled every time.
+      expect(screen.getByText(/Fiktivní data\. Tento běh používá smyšlené respondenty/)).toBeTruthy();
+      // The map first, then the sections in their order, the method folded last.
+      const map = within(stage).getByTestId("object-map-stage");
+      const explained = within(stage).getByTestId("map-explained");
+      expect(map.compareDocumentPosition(explained) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+      expect([...explained.querySelectorAll("[data-map-section]")].map((n) => n.getAttribute("data-map-section")))
+        .toEqual(["what", "rel", "obj", "resp", "rely", "how"].map((k) => `${battery.battery_id}-${k}`));
+      expect((explained.querySelector("details.fx-how") as HTMLDetailsElement).open).toBe(false);
+    });
+
+    it("says it in plain words: no artifact, run or method id outside Technické údaje", async () => {
+      open(signedOff, true);
+      const stage = await screen.findByTestId("sociomap-stage");
+      await within(stage).findByTestId("map-explained");
+      const tech = within(stage).getByTestId("map-tech");
+      const outside = stage.cloneNode(true) as HTMLElement;
+      outside.querySelector('[data-testid="map-tech"]')!.remove();
+      for (const code of ["ART-5", "RUN-1", SOCIOMAP.sha256, methodId, "baseline_corrected_pearson", "soft_rank_spearman_coulomb"]) {
+        expect(outside.textContent).not.toContain(code);
+      }
+      expect(tech.textContent).toContain("ART-5");
+      expect(tech.textContent).toContain(methodId);
+      expect(within(stage).getByText("Co mapa ukazuje")).toBeTruthy();
+      expect(within(stage).getByText("Jak spolehlivá je mapa")).toBeTruthy();
+    });
+
+    it("says a set stored under an older method draws no map, with no map hint above the notice", async () => {
+      open(SOCIOMAP, true);
+      const stage = await screen.findByTestId("sociomap-stage");
+      const notice = await within(stage).findByText(t("research.exec.results.olderMethod"));
+      expect(notice.textContent).toBe("Mapa ze starší metody; spusťte nový běh");
+      expect(within(stage).queryByTestId("object-map-stage")).toBeNull();
+      expect(within(stage).queryByTestId("map-explained")).toBeNull();
+      // Nothing about using a map is said above a notice that no map is drawn.
+      expect(within(stage).queryByText(t("research.exec.objectMap.hint"))).toBeNull();
+      expect(screen.queryByText(t("research.exec.results.mapToolNotInAia"))).toBeNull();
+      expect(screen.queryByText("Jak používat mapu a AI pomoc")).toBeNull();
+    });
+
+    it("shows the run's experimental Sociomapping under the map, its old anchor opening the stage", async () => {
+      open(signedOff, true, "#res-sociomapping", MAPPED);
+      const stage = await screen.findByTestId("sociomap-stage");
+      await within(stage).findByText(t("research.exec.sociomapping.experimental"));
+      const card = document.getElementById("res-sociomapping")!;
+      expect(stage.contains(card)).toBe(true);
+      // Under the maps and what explains them, and with no amber frame on the stage (SOC12).
+      const explained = await within(stage).findByTestId("map-explained");
+      expect(explained.compareDocumentPosition(card) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+      expect(card.className).not.toContain("status-you");
+    });
+
+    it("keeps Výsledky when its Sociomapy tab is chosen, after any later render: a tab is not a stage", async () => {
+      const { rerender } = open(signedOff, true, "#data");
+      fireEvent.click(await screen.findByRole("tab", { name: "Sociomapy" }));
+      expect(window.location.hash).toBe("#maps");
+      rerender(<ResearchScreen step="results" frame={TEST_FRAME} />);
+      await act(async () => { await new Promise((r) => setTimeout(r, 50)); });
+      expect(screen.getByRole("tablist", { name: "Oddíly výsledků" })).toBeTruthy();
+      expect(screen.queryByTestId("sociomap-stage")).toBeNull();
+      // Navigation to the stage (the workbench sets the hash: hashchange) opens it.
+      act(() => { window.location.hash = "#data"; });
+      act(() => { window.location.hash = "#maps"; });
+      expect(await screen.findByTestId("sociomap-stage")).toBeTruthy();
+    });
+
+    it("keeps Sociomapy a tab of Výsledky in the classic layout", async () => {
+      open(signedOff, false);
+      expect(await screen.findByRole("tab", { name: "Sociomapy" })).toBeTruthy();
+      expect(screen.queryByTestId("sociomap-stage")).toBeNull();
+    });
   });
 
   it("shows a fictional run's aggregates labelled as fiction, hides a suppressed cell, keeps the Sociomap internal", async () => {
@@ -3216,6 +3404,27 @@ describe("Interpretation research", () => {
     fireEvent.click(use);
     expect(called("POST", "/api/v1/studies/STU-1/research/runs/RUN-1/report/context")).toHaveLength(0);
     expect(called("GET", "/api/v1/studies/STU-1/research/runs/RUN-1/report/context/download")).toHaveLength(0);
+  });
+  it("names the module with no supported finding that holds the report with literature (9b)", async () => {
+    const completed = run({ ...COMPLETED, steps: [...COMPLETED.steps,
+      step("analysis_research_questions", "SUCCEEDED", { kind: "research_analysis", artifact_id: "ART-questions" })] });
+    const review = { run_id: "RUN-deep", purpose: "INTERPRETATION_RESEARCH", target: { research_run_id: "RUN-1" },
+      preset: "QUICK", status: "COMPLETED", phase: "COMPLETED", is_terminal: true, retryable: false,
+      created_at: null, actual_cost_usd: 0.8, steps: [] };
+    api({ ...listed(completed),
+      "GET /api/v1/studies/STU-1/research/runs/RUN-1/artifacts/ART-4": () => AGGREGATE,
+      "GET /api/v1/studies/STU-1/research/runs/RUN-1/artifacts/ART-5": () => SOCIOMAP,
+      "GET /api/v1/studies/STU-1/research/runs/RUN-1/analysis": () => ({ complete: false, holding: ["executive"], pending: {}, modules: {
+        executive: { outcome: "COMPLETED", summary: "Nic doloženého.", research_question_answers: [], key_findings: [], claims: [], violations: [] } } }),
+      "GET /api/v1/studies/STU-1/deep-research/runs": () => [review],
+      "GET /api/v1/studies/STU-1/deep-research/runs/RUN-deep/bundle": () => ({ quality_status: "NO_EVIDENCE", accepted: [], snapshots: [], quarantined: [], sha256: "bundle-1" }),
+    });
+    render(<ResearchScreen step="results" frame={TEST_FRAME} />);
+    fireEvent.click(await screen.findByRole("tab", { name: "Rešerše a zpráva" }));
+    // The card's own status line, not the analysis overview elsewhere on the page.
+    await waitFor(() => expect([...document.querySelectorAll("[role=status]")].some((e) => /^Zpráva čeká, dokud tyto části analýzy neuvedou doložené zjištění: .+\.$/.test(e.textContent ?? ""))).toBe(true));
+    expect(screen.queryByText(/Analýza běhu není úplná/)).toBeNull();
+    expect((screen.getByRole("button", { name: "Použít ve zprávě" }) as HTMLButtonElement).disabled).toBe(true);
   });
   it("shows every word of the review, formatted: findings, sources, gaps and rejections with their reasons, the draft by section", async () => {
     const completed = run({ ...COMPLETED, steps: [...COMPLETED.steps,

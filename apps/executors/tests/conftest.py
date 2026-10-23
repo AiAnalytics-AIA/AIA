@@ -104,7 +104,7 @@ class World:
     owner_id: str = ""
 
     def admin_context(self, session: Session) -> OrganizationContext:
-        """The organization's owner, for tests that edit what the organization runs."""
+        """The organization's owner, with the Metodik mark, for tests that edit what it runs."""
         return ScopeResolver(session).organization_context(
             AuthenticatedPrincipal(user_id=self.owner_id, organization_id=self.organization_id)
         )
@@ -127,6 +127,8 @@ def world(sessions: sessionmaker[Session]) -> World:
         admin = resolver.organization_context(
             AuthenticatedPrincipal(user_id=owner.user_id, organization_id=org.organization_id)
         )
+        # The owner edits what the organization runs (admin_context): the Metodik mark (D-14).
+        scope_repo.set_methodologist(admin, user_id=owner.user_id, methodologist=True)
         client = scope_repo.create_client(admin, slug="acme", name="Acme")
         study = scope_repo.create_study(
             admin, client_id=client.client_id, slug="s", name="S", budget_usd=25.0

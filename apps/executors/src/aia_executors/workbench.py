@@ -53,7 +53,7 @@ from aia_core.domain.deep_research.workflow import DEEP_RESEARCH_KINDS
 from aia_core.domain.fieldwork import FieldworkSource
 from aia_core.domain.item_ids import list_ids, with_item_ids
 from aia_core.domain.prompts import PromptPin
-from aia_core.domain.research_lead import LeadOutput, layer
+from aia_core.domain.research_lead import SHOW_DIFF_STAGES, LeadOutput, layer
 from aia_core.domain.residency import DataClass
 from aia_core.domain.synthetic_fieldwork import synthetic_dataset
 from aia_core.infrastructure.build_identity import BuildIdentity
@@ -149,7 +149,8 @@ def scripted_lead_output(frozen: Mapping[str, Any]) -> LeadOutput:
     "aktualizuj návrh": the brief's analysis, which reads Návrh's saved answers and comments); a
     message with "pamatuj" also asks the Lead to remember it as a personal note, and one with
     "detail" opens the first research question's detail, else the first hypothesis's
-    (``inspect``). Every reply
+    (``inspect``); one asking for "změny" on Návrh, Dotazník or Dimenze shows that stage's
+    waiting changes (``show_diff``). Every reply
     starts with :data:`SCRIPTED_PREFIX`.
     """
     view = layer(frozen, "view")
@@ -199,9 +200,12 @@ def scripted_lead_output(frozen: Mapping[str, Any]) -> LeadOutput:
             views.append({"op": "inspect", "target": f"rq:{rq}"})
         elif hypothesis is not None:
             views.append({"op": "inspect", "target": f"hypothesis:{hypothesis}"})
+    # A message asking for the changes shows this stage's waiting ones (research-lead-workbench 14).
+    if "změny" in message.casefold() and view.get("stage") in SHOW_DIFF_STAGES:
+        views.append({"op": "show_diff", "stage": view["stage"]})
     body: dict[str, Any] = {
         "reply": f"{SCRIPTED_PREFIX} Připravil jsem ukázkovou úpravu a jedno rozhodnutí.",
-        "view": views,
+        "view": views[:3],
         "edits": [edit],
         "request": {
             "kind": "agent_job",

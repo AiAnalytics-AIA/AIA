@@ -80,6 +80,8 @@ class ViolationCode(StrEnum):
     VALUE_MISMATCH = "VALUE_MISMATCH"
     UNIT_MISMATCH = "UNIT_MISMATCH"
     UNCITED_NUMBER = "UNCITED_NUMBER"
+    #: A key finding that names no claim: every key finding cites admitted evidence (MVP-23).
+    FINDING_UNCITED = "FINDING_UNCITED"
     DANGLING_CLAIM_REF = "DANGLING_CLAIM_REF"
     DUPLICATE_CLAIM_ID = "DUPLICATE_CLAIM_ID"
     MODULE_MISMATCH = "MODULE_MISMATCH"

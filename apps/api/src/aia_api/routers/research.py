@@ -98,6 +98,7 @@ from aia_core.application.research import (
 )
 from aia_core.application.sociomapping_report import SOCIOMAPPING_REPORT_ARTIFACT_TYPE
 from aia_core.application.workflows import StartedRun
+from aia_core.domain.analysis.artifact import finding_diagnostic
 from aia_core.domain.analysis.steps import ANALYSIS_STEP_KIND
 from aia_core.domain.answerability import (
     ANSWERABILITY_RULES,
@@ -129,7 +130,7 @@ from aia_core.domain.report.document_model import (
 )
 from aia_core.domain.report.review import ReviewMark, ReviewState
 from aia_core.domain.report.validation import ReportInvalid
-from aia_core.domain.research_agents import ResearchAction
+from aia_core.domain.research_agents import ProposalState, ResearchAction
 from aia_core.domain.research_design import settle_selection
 from aia_core.domain.research_trace import ResearchTrace
 from aia_core.domain.scope import (
@@ -2181,7 +2182,11 @@ def run_analysis(
     the internal report prints beside it, so Results never reads such an answer as measured.
     ``external_context``: the pinned Design Research findings the modules were shown as context,
     as shown, from the same verified read as the modules' sources; ``None`` without a pin or
-    before any module has an outcome."""
+    before any module has an outcome.
+    Each module carries ``diagnostic``: ``{reason, resolutions}`` when it states nothing --
+    ``no_supported_finding`` where the run held its context (MVPQ-04, Q72) or ``context_missing``
+    where the run lacks it -- else ``None``. ``holding``: the modules the report waits on, in
+    module order (9b; :attr:`RunAnalysis.holding`); ``complete`` is true only when it is empty."""
     try:
         scope.require(Permission.EDIT_STUDY)
         analysis = reconstruct_run(session, scope, store, run_id=run_id)
@@ -2197,6 +2202,7 @@ def run_analysis(
     return {
         "run_id": run_id,
         "complete": analysis.complete,
+        "holding": [m.value for m in analysis.holding],
         "internal_only": True,
         "synthetic": any(o.record.labels.simulated_respondents for o in analysis.modules.values()),
         **_origin_flags(
@@ -2266,6 +2272,11 @@ def run_analysis(
                     }
                     for violation in outcome.violations
                 ],
+                # A module a model completed without one key finding: never a finding
+                # (MVPQ-04, evidence-integrity 9a).
+                "diagnostic": finding_diagnostic(
+                    outcome.record, same_data_tried=module in analysis.retried
+                ),
             }
             for module, outcome in analysis.modules.items()
         },
@@ -2858,13 +2869,19 @@ def prepare_contextual_report(
     except _CONTEXT_REFUSALS as exc:
         # A refusal that names why carries it, so the screen can say it in words (PC17): the
         # analysis an earlier harness built (fingerprint_mismatch) is repaired on Průběh.
+        # A module that holds the report is named (9b), so the screen names it too.
         reason = getattr(exc, "reason", None)
+        modules = list(getattr(exc, "modules", ()))
         raise HTTPException(
             409,
             detail={
                 "code": "context_report_refused",
                 "message": str(exc),
-                "details": {"reason": reason} if isinstance(reason, str) else {},
+                "details": (
+                    {"reason": reason, **({"modules": modules} if modules else {})}
+                    if isinstance(reason, str)
+                    else {}
+                ),
             },
         ) from exc
     return _variant_response(
@@ -3569,13 +3586,18 @@ def list_agent_jobs(
     scope: StudyScopeDep, session: SessionDep, pending: Annotated[bool, Query()] = False
 ) -> list[AgentJobResponse]:
     """The Study's agent jobs, newest first, each with its proposal's state (ADR 0026 d8).
-    ``pending=true``: only the proposals a person has still to decide."""
+    ``pending=true``: only the proposals a person has still to decide, among the Study's newest
+    200 jobs (``list_runs``' cap), filtered before the page, never the newest 20 filtered."""
     with _agent_errors(session):
         jobs = ResearchAgentJobs(session, scope)
+        if pending:
+            rows = jobs.jobs(limit=200)
+            states = jobs.proposal_states(rows)
+            waiting = [r["run_id"] for r in rows if states[r["run_id"]] is ProposalState.PENDING]
+            return [_agent_response(jobs.get(i), scope, "pending") for i in waiting]
         runs = [jobs.get(r["run_id"]) for r in jobs.jobs()]
         states = jobs.proposal_states(runs)
-        listed = [_agent_response(r, scope, (s := states[r["run_id"]]) and s.value) for r in runs]
-        return [j for j in listed if j.proposal_state == "pending"] if pending else listed
+        return [_agent_response(r, scope, (s := states[r["run_id"]]) and s.value) for r in runs]
 
 
 @router.get("/research/agent-jobs/{run_id}", response_model=AgentJobResponse)

@@ -6,6 +6,7 @@
 
 import { t } from "@/i18n/t";
 import { ApiError, type ResearchReport } from "@/lib/api";
+import { stepLabel } from "@/lib/research-execution";
 
 export type ReportStatus =
   | "NONE" //       the run makes no report
@@ -44,8 +45,17 @@ export const reportStatusWords = (status: ReportStatus): string => t(`research.e
  * on an approval, and a report with literature refused because the run's analysis was built by an
  * earlier version of AIA (repaired on Průběh, PC3/PC17); anything else as the API said it.
  */
+/** The report waits on analysis modules that state no supported finding (evidence-integrity 9b),
+ *  named by their labels; a module this client does not know keeps its code. */
+export function holdingWords(modules: readonly string[]): string {
+  return `Zpráva čeká, dokud tyto části analýzy neuvedou doložené zjištění: ${modules.map((m) => stepLabel(`analysis_${m}`)).join(", ")}.`;
+}
+
 export function approvalRefusal(e: unknown): string {
   if (e instanceof ApiError && e.code === "separation_of_duties") return t("research.exec.results.reportApproveIndependent");
   if (e instanceof ApiError && e.code === "context_report_refused" && e.details.reason === "fingerprint_mismatch") return t("research.exec.results.analysisStale");
+  if (e instanceof ApiError && e.code === "context_report_refused" && e.details.reason === "analysis_holds_report" && Array.isArray(e.details.modules)) {
+    return holdingWords(e.details.modules.filter((m): m is string => typeof m === "string"));
+  }
   return e instanceof Error ? e.message : String(e);
 }
