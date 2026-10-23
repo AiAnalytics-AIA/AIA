@@ -1,5 +1,5 @@
 {
-  "source": "packages/aia_core/src/aia_core/domain/content_free.py AUDIT_ACTIONS (with #853's CLIENT_RULES_CHANGED). Copy, not import: the web does not read Python. When the backend adds an action, add it here and give it a Czech name in lib/audit.ts.",
+  "source": "packages/aia_core/src/aia_core/domain/content_free.py AUDIT_ACTIONS, as on develop after #853. Copy, not import: the web does not read Python. When the backend adds an action, add it here and give it a Czech name in lib/audit.ts.",
   "actions": [
     "AIA_SESSION",
     "AIA_SESSION_DENIED",
@@ -29,6 +29,8 @@
     "CLIENT_SOURCE_UNMARKED_INTERNAL",
     "CLIENT_STATUS_CHANGED",
     "DR_SETTING_APPROVED",
+    "DR_SETTING_PROPOSAL_DECLINED",
+    "DR_SETTING_PROPOSAL_WITHDRAWN",
     "DR_SETTING_PROPOSED",
     "DR_SETTING_WITHDRAWN",
     "DR_TEST_POLICY_APPROVED",
