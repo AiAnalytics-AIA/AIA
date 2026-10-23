@@ -5,9 +5,11 @@
 // approves a value, the code's proposed default is in force and is labelled so. An
 // administrator proposes a value -- a new version, not yet in force -- and approves a
 // version or withdraws to the default; each change takes effect for runs enqueued
-// after it. Switches, secrets and the model route are not here: they stay in the
-// deployment, and no setting turns a rail off. What is allowed is the API's to say:
-// its refusal is shown as it gave it.
+// after it. The redesign's board (settings-redesign chunk 6): where research reaches
+// (Dosah), the client's data posture pointed to where it is set, the rules with a
+// proposal made in their Návrh cell and approved through a modal (I7), and the code's
+// fixed protections, which no rule turns off. What is allowed is the API's to say: its
+// refusal is shown as it gave it.
 
 import { type FormEvent, useCallback, useEffect, useState } from "react";
 
@@ -20,12 +22,18 @@ import {
   type DrSetting,
   type DrSettingDetail,
   type DrSettingValue,
+  type DrSettingVersion,
   type DrSettingsOverview,
   deepResearchSettings,
 } from "@/lib/api";
 import { STATUS_VALUES, groupsInOrder, inputKind, parseInput, toInput } from "@/lib/deep-research-settings";
 import { relative } from "@/lib/format";
+import Link from "next/link";
 import { Button, Field, Select, TextArea, TextInput } from "../../rehome/ui";
+import { ChoiceChips } from "../../ui/ChoiceChips";
+import { ConfirmDialog } from "../../ui/ConfirmDialog";
+import { Stepper } from "../../ui/Stepper";
+import { FOCUS } from "../../ui/parts";
 import { Technical } from "./technical";
 import { Loaded } from "../states";
 import { useResource } from "../useResource";
@@ -109,8 +117,16 @@ function Overview({ overview, people, reload }: { overview: DrSettingsOverview; 
   const anyVisible = overview.settings.some(matches);
   return (
     <div className="flex flex-col gap-4">
+      <div className="flex flex-wrap gap-2 text-xs">
+        <span className="inline-flex min-h-[22px] items-center rounded-pill border border-border px-2 text-ink-muted">{t(`${D}.board.readsEveryone`)}</span>
+        <span className={`inline-flex min-h-[22px] items-center rounded-pill border px-2 ${overview.may_administer ? "border-signal-edge bg-signal-wash text-ink" : "border-border text-ink-muted"}`}>{t(`${D}.board.${overview.may_administer ? "youDecide" : "ownerDecides"}`)}</span>
+      </div>
+      <Reach />
+      <Posture />
       {overview.may_administer ? null : <p className="text-sm text-ink-muted">{t(`${D}.adminNote`)}</p>}
       <Technical><p data-technical className="text-xs text-ink-faint">{tv(`${D}.catalogue`, { version: overview.catalogue_version })}</p></Technical>
+      <h3 className="mt-2 text-base font-semibold">{t(`${D}.board.rules`)}</h3>
+      <p className="-mt-2 max-w-3xl text-xs leading-5 text-ink-muted">{t(`${D}.board.rulesHelp`)}</p>
       <Readiness count={missing.size} liveOnly={liveOnly} onToggle={() => setLiveOnly((v) => !v)} />
       {pending ? <InlineConfirm message={t(`${D}.draftGuard`)} action={t(`${D}.discardDraft`)} onCancel={() => setPending(null)} onConfirm={() => { setOpen(pending.key); setDirty(false); setPending(null); }} /> : null}
       <div className="grid min-w-0 gap-4 lg:grid-cols-[15rem_minmax(0,1fr)]">
@@ -145,7 +161,7 @@ function Overview({ overview, people, reload }: { overview: DrSettingsOverview; 
                   <p className="max-w-3xl text-sm leading-6 text-ink-muted">{DR_GROUP_HELP[group] ?? researchPolicyHelp("", group)}</p>
                 </div>
                 <div className="overflow-x-auto"><table className="w-full">
-                  <thead><tr><th className={TH}>{t(`${D}.col.setting`)}</th><th className={`${TH} w-48`}>{t(`${D}.col.value`)}</th><th className={`${TH} w-24`}><span className="sr-only">{t(`${D}.col.action`)}</span></th></tr></thead>
+                  <thead><tr><th className={TH}>{t(`${D}.col.setting`)}</th><th className={`${TH} w-44`}>{t(`${D}.col.value`)}</th><th className={`${TH} w-56`}>{t(`${D}.col.proposal`)}</th><th className={`${TH} w-32`}>{t(`${D}.col.approval`)}</th></tr></thead>
                   <tbody className="divide-y divide-border">
                     {settings.map((s) => (
                       <Row
@@ -168,7 +184,50 @@ function Overview({ overview, people, reload }: { overview: DrSettingsOverview; 
           })}
         </div>
       </div>
+      <Protections />
     </div>
+  );
+}
+
+/** Dosah: where Deep Research reaches. Its panel reads the worker's last report (#52), not built yet. */
+function Reach() {
+  return (
+    <section data-dr-reach aria-labelledby="dr-reach-h" className="rounded-md border border-border bg-surface-raised px-5 py-4">
+      <div className="flex flex-wrap items-center gap-2">
+        <h3 id="dr-reach-h" className="text-base font-semibold">{t(`${D}.reach.title`)}</h3>
+        <span data-not-yet className="inline-flex min-h-[22px] items-center rounded-pill border border-dashed border-border-strong px-2 text-xs text-ink-muted">{t("aia.settings.panel.notYet")}</span>
+      </div>
+      <p className="mt-1 max-w-3xl text-sm leading-6 text-ink-muted">{t(`${D}.reach.notYet`)}</p>
+    </section>
+  );
+}
+
+/** The client's data posture: set at the client, read here so a person knows where it lives. */
+function Posture() {
+  return (
+    <section data-dr-posture aria-labelledby="dr-posture-h" className="rounded-md border border-border bg-surface-raised px-5 py-4">
+      <h3 id="dr-posture-h" className="text-sm font-semibold">{t(`${D}.posture.title`)}</h3>
+      <p className="mt-1 max-w-3xl text-sm leading-6 text-ink-muted">
+        {t(`${D}.posture.text`)}{" "}
+        <Link href="/app/clients" className={`text-signal hover:underline ${FOCUS}`}>{t(`${D}.posture.profile`)}</Link>
+        {" · "}
+        <Link href="/app/settings#access" className={`text-signal hover:underline ${FOCUS}`}>{t(`${D}.posture.access`)}</Link>
+      </p>
+    </section>
+  );
+}
+
+const PROTECTIONS = ["robots", "noLogin", "noPersonal", "publicOnly", "cited"] as const;
+/** "Pevné ochrany v kódu": what holds for every run, whatever a rule says. */
+function Protections() {
+  return (
+    <section data-dr-protections aria-labelledby="dr-prot-h" className="rounded-md border border-border bg-surface-raised px-5 py-4">
+      <h3 id="dr-prot-h" className="text-sm font-semibold">{t(`${D}.protections.title`)}</h3>
+      <p className="mt-0.5 text-xs text-ink-muted">{t(`${D}.protections.note`)}</p>
+      <ul className="mt-2 flex flex-wrap gap-1.5">
+        {PROTECTIONS.map((k) => <li key={k} className="inline-flex min-h-[22px] items-center rounded-pill border border-border px-2 text-xs">{t(`${D}.protections.${k}`)}</li>)}
+      </ul>
+    </section>
   );
 }
 
@@ -190,9 +249,12 @@ function Row({ setting: s, shown, missing, people, open, onToggle, mayAdminister
 }) {
   const approved = s.origin === "approved";
   const range = bounds(s);
+  const pending = usePending(s);
+  const waiting = pending?.version_number ?? null;
   return (
     <>
-      <tr data-dr-setting={s.key} data-missing={missing ? s.key : undefined} hidden={!shown} className={open ? "bg-signal-wash/50" : undefined}>
+      <tr data-dr-setting={s.key} data-missing={missing ? s.key : undefined} data-pending={waiting !== null ? waiting : undefined} hidden={!shown}
+        className={open ? "bg-signal-wash/50" : waiting !== null ? "bg-status-you-wash" : undefined}>
         <td className={TD}>
           <div className="font-medium text-ink">{labelOf(s)}</div>
           <p className="mt-0.5 max-w-prose text-[13px] leading-5 text-ink-muted">{researchPolicyHelp(s.key, s.group)}</p>
@@ -212,17 +274,99 @@ function Row({ setting: s, shown, missing, people, open, onToggle, mayAdminister
             <span className="block text-xs text-ink-muted">{tv(`${D}.origin.approvedBy`, { version: s.version, who: people(s.approved_by), when: when(s.approved_at) })}</span>
           ) : null}
         </td>
-        <td className={`${TD} text-right`}>
-          <Button small onClick={onToggle} aria-expanded={open} aria-controls={`dr-detail-${s.key}`}>{t(`${D}.${open ? "close" : mayAdminister ? "open" : "view"}`)}</Button>
+        <td className={TD}>
+          {pending ? <PendingValue setting={s} version={pending} />
+            : mayAdminister ? <ProposeInPlace setting={s} onChanged={onChanged} onOpen={onToggle} />
+            : <span className="text-xs text-ink-faint">{t(`${D}.noProposal`)}</span>}
+        </td>
+        <td className={TD}>
+          <div className="flex flex-col items-start gap-1.5">
+            {waiting !== null && mayAdminister ? <ApproveButton setting={s} version={waiting} onDone={onChanged} /> : null}
+            {waiting !== null && mayAdminister ? <span data-not-yet title={t(`${D}.withdrawProposalNotYet`)} className="inline-flex min-h-[22px] items-center rounded-pill border border-dashed border-border-strong px-2 text-xs text-ink-muted">{t(`${D}.withdrawProposal`)} · {t("aia.settings.panel.notYet")}</span> : null}
+            <Button small variant="quiet" onClick={onToggle} aria-expanded={open} aria-controls={`dr-detail-${s.key}`}>{t(`${D}.${open ? "close" : mayAdminister ? "open" : "view"}`)}</Button>
+          </div>
         </td>
       </tr>
       {open ? (
-        <tr hidden={!shown}><td colSpan={3} id={`dr-detail-${s.key}`} className="bg-surface-sunken px-3 py-4">
+        <tr hidden={!shown}><td colSpan={4} id={`dr-detail-${s.key}`} className="bg-surface-sunken px-3 py-4">
           <Detail settingKey={s.key} people={people} mayAdminister={mayAdminister} onChanged={onChanged} onDirty={onDirty} />
         </td></tr>
       ) : null}
     </>
   );
+}
+
+/**
+ * The proposal waiting for approval, when there is one: the newest version saved after the rule's
+ * last approval (or with none made). A number above the one in force is not enough -- a withdrawal
+ * to the default leaves the version it withdrew from earlier, not waiting. The overview carries no
+ * version's date, so a rule with a newer number is read once to decide; until then nothing waits.
+ */
+function usePending(s: DrSetting): DrSettingVersion | null {
+  const candidate = s.latest_number !== null && s.latest_number > (s.version ?? 0);
+  const [res] = useResource(() => (candidate ? deepResearchSettings.get(s.key) : Promise.resolve(null)), [s.key, candidate, s.latest_number, s.version, s.approved_at]);
+  if (!candidate || res.state !== "ready" || !res.data) return null;
+  const last = res.data.history.map((h) => h.approved_at).sort().at(-1);
+  const waiting = res.data.versions.filter((v) => v.version_number !== res.data!.version && (last === undefined || v.created_at > last));
+  return waiting.sort((a, b) => b.version_number - a.version_number)[0] ?? null;
+}
+
+function bound(s: DrSetting): { min: number; max: number } {
+  // A cap may be lowered and never raised (lower_only): its default is the field's top.
+  const top = s.lower_only && typeof s.default === "number" ? s.default : null;
+  const max = s.maximum ?? top ?? 1e9;
+  return { min: s.minimum ?? 0, max: top !== null ? Math.min(max, top) : max };
+}
+
+/** A proposal made where the rule is read (I1): a stepper for a number, a choice for yes/no or a status.
+ *  Any other type opens its form below the row, where a list, a date or an address is written. */
+function ProposeInPlace({ setting: s, onChanged, onOpen }: { setting: DrSetting; onChanged: () => void; onOpen: () => void }) {
+  const kind = inputKind(s.type);
+  const [error, setError] = useState<string | null>(null);
+  const propose = (value: DrSettingValue) => {
+    setError(null);
+    return deepResearchSettings.propose(s.key, { value, source_url: "", note: "" }).then(onChanged, (e: unknown) => { setError(describeError(e)); throw e; });
+  };
+  const label = tv(`${D}.proposeOf`, { rule: labelOf(s) });
+  const shown = error ? <p role="alert" className="mt-1 text-xs text-status-fault">{error}</p> : null;
+  if (kind === "whole" || kind === "decimal") {
+    const { min, max } = bound(s);
+    return <>
+      <Stepper label={label} value={typeof s.value === "number" ? s.value : null} min={min} max={max} decimals={kind === "whole" ? 0 : 4} step={kind === "whole" ? 1 : 0.5}
+        unit={unitOf(s) || undefined} showBounds={false} note={bounds(s)} onCommit={(v) => propose(v)} />
+      {shown}
+    </>;
+  }
+  if (kind === "decision" || kind === "status") {
+    const options = kind === "decision"
+      ? [{ key: "true", label: t(`${D}.yes`) }, { key: "false", label: t(`${D}.no`) }]
+      : STATUS_VALUES.map((v) => ({ key: v, label: t(`${D}.status.${v}`) }));
+    const value = s.value === null ? null : String(s.value);
+    return <>
+      <ChoiceChips label={label} value={value} options={options} onChange={(k) => { if (k !== value) void propose(kind === "decision" ? k === "true" : k).catch(() => {}); }} />
+      {shown}
+    </>;
+  }
+  return <Button small onClick={onOpen}>{t(`${D}.proposeHere`)}</Button>;
+}
+
+/** The waiting proposal's value. */
+function PendingValue({ setting: s, version: v }: { setting: DrSetting; version: DrSettingVersion }) {
+  return (
+    <span data-pending-value className="text-sm">
+      <span className="font-mono">{showValue(s.type, v.value)}</span>{v.value !== null && unitOf(s) ? <span className="text-ink-muted"> {unitOf(s)}</span> : null}
+      <span className="block text-xs text-status-you-ink">{tv(`${D}.waitingVersion`, { version: v.version_number })}</span>
+    </span>
+  );
+}
+
+/** Schválit: an I7 modal with the rule, what holds and what is approved, and what follows. */
+function ApproveButton({ setting: s, version, onDone }: { setting: DrSetting; version: number; onDone: () => void }) {
+  const [open, setOpen] = useState(false);
+  return <>
+    <Button small variant="primary" onClick={() => setOpen(true)}>{t(`${D}.approve.short`)}</Button>
+    {open ? <Approve settingKey={s.key} version={version} onCancel={() => setOpen(false)} onDone={() => { setOpen(false); onDone(); }} /> : null}
+  </>;
 }
 
 function Detail({ settingKey, people, mayAdminister, onChanged, onDirty }: { settingKey: string; people: People; mayAdminister: boolean; onChanged: () => void; onDirty: (value: boolean) => void }) {
@@ -333,6 +477,11 @@ function Approve({ settingKey, version, onCancel, onDone }: { settingKey: string
   const [reason, setReason] = useState("");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  // What holds and what the approval makes of it, read from the rule's own versions.
+  const [res] = useResource(() => deepResearchSettings.get(settingKey), [settingKey]);
+  const detail = res.state === "ready" ? res.data : null;
+  const fmt = (value: DrSettingValue) => (detail ? `${showValue(detail.type, value)}${value !== null && unitOf(detail) ? ` ${unitOf(detail)}` : ""}` : "…");
+  const to = version === null ? detail?.default ?? null : detail?.versions.find((v) => v.version_number === version)?.value ?? null;
   const go = async () => {
     setBusy(true);
     setError(null);
@@ -346,17 +495,20 @@ function Approve({ settingKey, version, onCancel, onDone }: { settingKey: string
     }
   };
   return (
-    <div data-dr-approve className="flex flex-col gap-2 rounded-sm border border-signal-edge bg-surface-raised p-3">
-      <h4 className="text-sm font-semibold">{version === null ? t(`${D}.approve.withdrawTitle`) : tv(`${D}.approve.title`, { version })}</h4>
+    <ConfirmDialog open marker="dr-approve" busy={busy} error={error}
+      title={version === null ? t(`${D}.approve.withdrawTitle`) : tv(`${D}.approve.title`, { version })}
+      rows={[
+        { label: t(`${D}.approve.rule`), value: detail ? labelOf(detail) : settingKey },
+        { label: t(`${D}.approve.from`), value: detail ? fmt(detail.value) : "…" },
+        { label: version === null ? t(`${D}.approve.toDefault`) : t(`${D}.approve.to`), value: detail ? fmt(to) : "…" },
+      ]}
+      text={t(`${D}.approve.consequence`)}
+      confirmLabel={t(`${D}.approve.confirm`)} cancelLabel={t(`${D}.approve.cancel`)}
+      onConfirm={() => void go()} onCancel={onCancel}>
       <Field label={t(`${D}.approve.reason`)}>
         <TextInput value={reason} maxLength={255} onChange={(e) => setReason(e.target.value)} />
       </Field>
-      {error ? <p role="alert" className="text-sm text-status-fault">{error}</p> : null}
-      <div className="flex gap-2">
-        <Button variant="primary" disabled={busy} onClick={() => void go()}>{t(`${D}.approve.confirm`)}</Button>
-        <Button disabled={busy} onClick={onCancel}>{t(`${D}.approve.cancel`)}</Button>
-      </div>
-    </div>
+    </ConfirmDialog>
   );
 }
 

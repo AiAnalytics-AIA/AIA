@@ -4,13 +4,19 @@
 // withdrawing -- a proposal is not in force until approved. The fake keeps real state and
 // refuses as the API does; every refusal is shown as the API gave it.
 import { cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
-import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 
 import type { DrSetting, DrSettingApproval, DrSettingDetail, DrSettingValue, DrSettingVersion } from "@/lib/api";
 import { resetConfigCache } from "@/lib/auth";
 import { researchPolicyHelp } from "./settings-guide";
 import { DeepResearchSettingsPanel, showValue } from "./DeepResearchSettingsPanel";
 import { TechnicalProvider } from "./technical";
+
+// jsdom has <dialog> without showModal/close: the modal's open state, as a browser sets it.
+beforeAll(() => {
+  HTMLDialogElement.prototype.showModal = function showModal(this: HTMLDialogElement) { this.setAttribute("open", ""); };
+  HTMLDialogElement.prototype.close = function close(this: HTMLDialogElement) { this.removeAttribute("open"); };
+});
 
 vi.mock("next/navigation", () => ({ useRouter: () => ({ push: vi.fn(), replace: vi.fn() }), usePathname: () => "/app/settings" }));
 
@@ -130,14 +136,15 @@ describe("Deep Research settings", () => {
     expect(within(crawl).getByText("Exhaustive: procházené stránky")).toBeTruthy();
     expect(within(crawl).queryByText(CRAWL)).toBeNull();
     expect(crawl.querySelector("[data-value]")?.textContent).toBe(showValue("integer", 1000));
-    expect(within(crawl).getByText("na běh")).toBeTruthy();
+    const inForceCell = (r: HTMLElement) => r.querySelector("[data-value]")?.closest("td") as HTMLElement;
+    expect(within(inForceCell(crawl)).getByText("na běh")).toBeTruthy();
     expect(crawl.querySelector("[data-origin]")?.textContent).toBe("Navržená výchozí");
     expect(within(crawl).getByText("jen snížit")).toBeTruthy();
     expect(within(crawl).getByText("mění metodu")).toBeTruthy();
     // The code holds no retention: it reads as unknown, never as zero days.
     const retention = await row(RETENTION);
     expect(retention.querySelector("[data-value]")?.textContent).toBe("neznámé");
-    expect(within(retention).queryByText("dní")).toBeNull();
+    expect(within(inForceCell(retention)).queryByText("dní")).toBeNull();
     expect((await row(DENYLIST)).querySelector("[data-value]")?.textContent).toBe("prázdný seznam");
   });
 
@@ -224,6 +231,10 @@ describe("Deep Research settings", () => {
     });
     expect(history[0]).toMatch(/^vráceno na výchozí/);
     expect(history[1]).toMatch(/^Verze 1 · owner@example\.test/);
+    // Withdrawn to the default, version 1 is earlier, not a proposal waiting for approval.
+    await new Promise((r) => setTimeout(r, 50));
+    expect((await row(RETENTION)).getAttribute("data-pending")).toBeNull();
+    expect((await row(RETENTION)).className).not.toContain("bg-status-you-wash");
   });
 
   it("sends a host list as a list, one per line", async () => {
@@ -265,6 +276,72 @@ describe("Deep Research settings", () => {
     expect(detail.querySelector("[data-dr-propose]")).toBeNull();
     expect(within(detail).queryByRole("button", { name: /Schválit|Vrátit/ })).toBeNull();
     expect(detail.querySelector("[data-dr-flow]")).toBeNull();
+  });
+
+  it("draws the board: who decides, Dosah and the posture pointed to where they live, the code's protections", async () => {
+    fakeApi();
+    render(<DeepResearchSettingsPanel people={people} />);
+    await row(RETENTION);
+    expect(screen.getByText("Čte každý člen")).toBeTruthy();
+    expect(screen.getByText("Vy: navrhujete a schvalujete")).toBeTruthy();
+    const reach = document.querySelector("[data-dr-reach]") as HTMLElement;
+    expect(within(reach).getByText("V AIA zatím není")).toBeTruthy();
+    const posture = document.querySelector("[data-dr-posture]") as HTMLElement;
+    expect(within(posture).getByRole("link", { name: "Přístup a schvalování" }).getAttribute("href")).toBe("/app/settings#access");
+    const prot = document.querySelector("[data-dr-protections]") as HTMLElement;
+    expect(within(prot).getAllByRole("listitem").map((li) => li.textContent)).toEqual([
+      "respektuje robots.txt", "žádné přihlášení ani paywall", "žádné osobní údaje", "jen veřejné zdroje", "každé zjištění doložené citací",
+    ]);
+  });
+
+  it("proposes in the rule's Návrh cell, highlights the waiting proposal, and approves it through a modal", async () => {
+    fakeApi();
+    render(<DeepResearchSettingsPanel people={people} />);
+    await row(RETENTION);
+    fireEvent.click(document.querySelector('[data-dr-group-link="retention"]') as HTMLElement);
+    const r = await row(RETENTION);
+    const field = within(r).getByRole("spinbutton", { name: /^Návrh:/ });
+    fireEvent.change(field, { target: { value: "90" } });
+    fireEvent.keyDown(field, { key: "Enter" });
+    await waitFor(() => expect(called("POST", `/api/v1/deep-research/settings/${RETENTION}/versions`)).toHaveLength(1));
+    expect(called("POST", `/api/v1/deep-research/settings/${RETENTION}/versions`)[0].body).toEqual({ value: 90, source_url: "", note: "" });
+    await waitFor(async () => expect((await row(RETENTION)).getAttribute("data-pending")).toBe("1"));
+    const pending = await row(RETENTION);
+    expect(pending.className).toContain("bg-status-you-wash");
+    await waitFor(() => expect(pending.querySelector("[data-pending-value]")?.textContent).toContain("90"));
+    expect(within(pending).getByText(/Stáhnout návrh/).closest("[data-not-yet]")).toBeTruthy();
+    // Nothing is in force until approved.
+    expect(pending.querySelector("[data-origin]")?.textContent).toBe("Navržená výchozí");
+    fireEvent.click(within(pending).getByRole("button", { name: "Schválit" }));
+    const dialog = await waitFor(() => {
+      const el = document.querySelector("[data-dr-approve]") as HTMLElement | null;
+      if (!el?.textContent?.includes("90 dní")) throw new Error("no dialog yet");
+      return el;
+    });
+    expect(within(dialog).getByText("neznámé")).toBeTruthy();
+    expect(within(dialog).getByText(/zařazené od teď/)).toBeTruthy();
+    fireEvent.click(within(dialog).getByRole("button", { name: "Potvrdit" }));
+    await waitFor(() => expect(called("PUT", `/api/v1/deep-research/settings/${RETENTION}/approval`)).toHaveLength(1));
+    expect(called("PUT", `/api/v1/deep-research/settings/${RETENTION}/approval`)[0].body).toEqual({ version_number: 1, reason: "" });
+    await waitFor(async () => expect((await row(RETENTION)).getAttribute("data-pending")).toBeNull());
+    expect((await row(RETENTION)).querySelector("[data-value]")?.textContent).toBe("90");
+  });
+
+  it("proposes a status by its choice in place, and offers a member no proposal", async () => {
+    fakeApi();
+    render(<DeepResearchSettingsPanel people={people} />);
+    await row(REGISTER);
+    fireEvent.click(document.querySelector('[data-dr-group-link="sources"]') as HTMLElement);
+    const chips = within(await row(REGISTER)).getByRole("radiogroup", { name: /^Návrh:/ });
+    fireEvent.click(within(chips).getByRole("radio", { name: "schváleno" }));
+    await waitFor(() => expect(called("POST", `/api/v1/deep-research/settings/${REGISTER}/versions`)[0]?.body).toEqual({ value: "approved", source_url: "", note: "" }));
+    cleanup();
+    fakeApi(false);
+    render(<DeepResearchSettingsPanel people={people} />);
+    const r = await row(RETENTION);
+    expect(within(r).queryByRole("spinbutton", { hidden: true })).toBeNull();
+    expect(within(r).getByText("žádný návrh")).toBeTruthy();
+    expect(screen.getByText("Navrhuje a schvaluje vlastník nebo správce")).toBeTruthy();
   });
 
   it("says the API sent no settings rather than drawing an empty tab", async () => {
