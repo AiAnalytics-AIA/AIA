@@ -36,6 +36,8 @@
   --on-status-you: #151a20;
   --status-you-ink: #971c11;
   --status-you-wash: #fbe7e6;
+  --in-force: #1d9a6c;
+  --in-force-wash: #e2f3ec;
   --status-world: #576574;
   --status-world-wash: #e3e8ee;
   --status-fault: #c92516;
@@ -170,6 +172,8 @@
   --on-status-you: #0f1215;
   --status-you-ink: #fda258;
   --status-you-wash: #45301f;
+  --in-force: #5fd1a5;
+  --in-force-wash: #16332a;
   --status-world: #97a7b7;
   --status-world-wash: #21272d;
   --status-fault: #f5746b;
@@ -306,6 +310,8 @@
     --on-status-you: #0f1215;
     --status-you-ink: #fda258;
     --status-you-wash: #45301f;
+    --in-force: #5fd1a5;
+    --in-force-wash: #16332a;
     --status-world: #97a7b7;
     --status-world-wash: #21272d;
     --status-fault: #f5746b;
