@@ -146,6 +146,7 @@ def compose_design_sections(
     research_questions: Sequence[str],
     *,
     brief: Brief | None = None,
+    locked: bool = True,
 ) -> DesignSections:
     """The design as the run executed it: the brief's goal and what the decision is for (with
     ``brief``; each said not stated when empty), then questions, sets, sample and audience; then
@@ -156,10 +157,11 @@ def compose_design_sections(
     P10); what the person wrote around it (a set's title, the wording) is locked with it. The
     questionnaire appendix is the questionnaire as it was asked, a record, so its question lists
     are locked whole; the chapter's own research questions and items, which print no number,
-    stay as they are."""
+    stay as they are. ``locked=False`` (the client report, which never opens in the editor) prints
+    no control: a tag would carry the specification's fingerprint into the client's file."""
     # The fingerprint's first 16 hex characters: Word keeps a content control's tag to 64; the
     # section's manifest pins the specification whole.
-    control = source_tag("design", spec.fingerprint()[:16])
+    control = source_tag("design", spec.fingerprint()[:16]) if locked else None
     blocks: list[Block] = [
         Paragraph(
             text(

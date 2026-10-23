@@ -389,9 +389,11 @@ the planned n and audience bounds) under `design:<the specification fingerprint'
 a record, so its question lists are locked whole; what the person wrote alone in the chapter (research questions, item
 names, the brief) stays as it is. The method chapter and the methodology rules go under
 `run:<run>` through `domain/report/controls.py` `under` / `under_blocks` (every block printing a digit, holding no
-ledger value and no control yet; P11), applied where `report_chapters` assembles them, and to the client report's method chapter so
-one deliverable keeps one rule; the methodology deviation the internal report prints is under the run too. P12's
-refused count prints only in the client report, which never opens in the editor, and is left as it is. The contracts move (`aia-internal-report-18`, `aia-client-report-8`, `aia-contextual-report-14`). Tests:
+ledger value and no control yet; P11), applied where `report_chapters` assembles them; the methodology deviation the internal report
+prints is under the run too. The client report locks none of these (`compose_design_sections(locked=False)`, its method
+chapter as it was): it never opens in the editor, and a tag would carry the run id or the specification's fingerprint
+into the client's file, which holds no identifier (review of #857). P12's refused count is the client report's and is
+left as it is. The contracts move (`aia-internal-report-18`, `aia-contextual-report-14`; the client report unchanged). Tests:
 `test_report_design.py` `test_the_designs_numbers_print_under_the_specification_it_came_from`, `test_report_controls.py`,
 and `test_analysis_executor.py`'s composed report carrying `design:` and `run:` controls.
 
