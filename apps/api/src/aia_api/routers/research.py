@@ -130,7 +130,7 @@ from aia_core.domain.report.document_model import (
 )
 from aia_core.domain.report.review import ReviewMark, ReviewState
 from aia_core.domain.report.validation import ReportInvalid
-from aia_core.domain.research_agents import ResearchAction
+from aia_core.domain.research_agents import ProposalState, ResearchAction
 from aia_core.domain.research_design import settle_selection
 from aia_core.domain.research_trace import ResearchTrace
 from aia_core.domain.scope import (
@@ -3586,13 +3586,18 @@ def list_agent_jobs(
     scope: StudyScopeDep, session: SessionDep, pending: Annotated[bool, Query()] = False
 ) -> list[AgentJobResponse]:
     """The Study's agent jobs, newest first, each with its proposal's state (ADR 0026 d8).
-    ``pending=true``: only the proposals a person has still to decide."""
+    ``pending=true``: only the proposals a person has still to decide, among the Study's newest
+    200 jobs (``list_runs``' cap), filtered before the page, never the newest 20 filtered."""
     with _agent_errors(session):
         jobs = ResearchAgentJobs(session, scope)
+        if pending:
+            rows = jobs.jobs(limit=200)
+            states = jobs.proposal_states(rows)
+            waiting = [r["run_id"] for r in rows if states[r["run_id"]] is ProposalState.PENDING]
+            return [_agent_response(jobs.get(i), scope, "pending") for i in waiting]
         runs = [jobs.get(r["run_id"]) for r in jobs.jobs()]
         states = jobs.proposal_states(runs)
-        listed = [_agent_response(r, scope, (s := states[r["run_id"]]) and s.value) for r in runs]
-        return [j for j in listed if j.proposal_state == "pending"] if pending else listed
+        return [_agent_response(r, scope, (s := states[r["run_id"]]) and s.value) for r in runs]
 
 
 @router.get("/research/agent-jobs/{run_id}", response_model=AgentJobResponse)
