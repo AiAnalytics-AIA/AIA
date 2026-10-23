@@ -4,6 +4,8 @@ chunks:
   - "[x] 1. ONLYOFFICE Docs on the develop host: a Compose project of its own (deploy/develop/docs), the upstream image pinned by digest, bin/docs.sh, off unless aia_onlyoffice_enabled"
   - "[x] 2. docs.<hostname>: its own origin in the Caddyfile, every request through AIA's docs gate, the server-only paths refused; tools/caddy_routes.py holds it"
   - "[x] 3. The docs gate in the API: a docs-only session cookie on docs.<hostname> from a one-time ticket, refused without it"
+  - "[x] 3b. A timed force-save every 5 minutes while a document is open (RPT8: every autosave a stored version), through one read-only configuration file"
+  - "[x] 4a. Before activation, in a PR: smoke rows for docs.<hostname> (when aia_onlyoffice_enabled), and bin/deploy.sh stopping the Document Server when the switch is false"
   - "[ ] 4. Activation on develop (operations, the owner's word; precondition: F1 fixed, __Host-aia_session in deployed environments): the host resized, docs.<hostname> in Route 53, the JWT secret in SSM, the flag on, the editor's own checks"
 ---
 # Report editor hosting: ONLYOFFICE Docs beside the develop stack
@@ -297,8 +299,25 @@ Each step needs the owner's word and the coordinator's approval:
   - each route is authorized by its own short-lived token and the Document Server's JWT, so the
     session gate is not involved;
   - the API's service name is therefore not part of the contract.
-- **Document key.** The stored version's artifact id and its SHA-256, as RPT8 proposed. ONLYOFFICE takes
-  at most 128 characters of `0-9 a-z A-Z . = _ -`; the artifact id plus 64 hex characters fits.
+- **The saved document's download** (added 2026-10-23, the #824 review's P1). A save callback (status 2
+  or 6) names the result as the Document Server's own signed link,
+  `https://docs.<hostname>/cache/files/…?md5=…&expires=…`, and its `changesurl` the same way. AIA's API
+  fetches it server to server, with no docs cookie. The docs gate would refuse it (401), and no version
+  would ever be stored.
+  - Caddy therefore serves exactly that shape without the gate. Only GET or HEAD, both signature
+    parameters, and plain path segments (chunk 4a below); the Document Server's nginx checks the
+    signature.
+  - RPT8 fetches only a URL whose origin is exactly `AIA_ONLYOFFICE_URL` and whose path is
+    `/cache/files/…`, follows no redirect and bounds the body. The URL comes from the callback, so this
+    is the API's SSRF guard.
+- **Document key.** ONLYOFFICE takes at most 128 characters of `0-9 a-z A-Z . = _ -`.
+  - Superseded 2026-10-23: the stored version's artifact id and its SHA-256. With a timed force-save
+    every 5 minutes, a key from the version's SHA would change on every save. Everyone who opens the
+    document after that gets a new key and so a separate editing session (the #824 review's P1).
+  - Instead, the key must stay the same while a document is being edited, force-saves (status 6)
+    included, and change only for the next session after a final save (status 2) or a close with no
+    changes (status 4). For example, the draft's id plus a session number the API raises at status 2
+    or 4. That is RPT8's to settle in its plan; the hosting side needs nothing for it.
 - **Outbound calls.** The Document Server makes exactly two kinds:
   - to `https://<hostname>`, for the document fetch and the save callback;
   - with plugins off, no third-party calls.
@@ -395,6 +414,223 @@ it is refused.
 Accepted, said here: the ticket travels in the query of `/__aia/session`, so Caddy's access log on
 `docs.<hostname>` records it. It is good once and for 60 seconds, and spent on that very request, so the
 logged value opens nothing.
+
+## Timed force-save (chunk 3b, 2026-10-22, evening)
+
+Asked by the Zpráva session (PR #824, artifact-report "Revision of 2026-10-22, evening"): the owner
+decided that every autosave becomes a stored report version, so the Document Server must force-save
+every 5 minutes while a document is open; AIA's callback then gets status 6 with forcesavetype 2.
+
+- The setting is `services.CoAuthoring.autoAssembly` (`default.json` of 9.4.0.1: `enable: false,
+  interval: "5m", step: "1m"`). No environment variable reaches it.
+- **Not `local.json`.** The image's start script (`/app/ds/run-document-server.sh`, `ONLYOFFICE_DEFAULT_CONFIG`)
+  writes `local.json` at every start, the JWT secrets among it, and the image ships one with a fixed
+  secret. A read-only `local.json` would stop that write: at best the start fails, at worst the server
+  runs on the image's published secret.
+- **`local-production-linux.json` instead**: the services run with `NODE_ENV=production-linux` and
+  `NODE_CONFIG_DIR=/etc/onlyoffice/documentserver` (`/etc/supervisor/conf.d/ds-docservice.conf`), and
+  their configuration loader reads `local-<NODE_ENV>.json` after `local.json`. Proved on the pinned image,
+  2026-10-22 23:40 UTC: the same mount carrying `server.port: 8001` moved the document service to 8001,
+  and `local.json` still held the JWT secret given in the environment. With the real file
+  (`autoAssembly: {enable: true, interval: "5m"}`) `/healthcheck` answered `true`.
+- `deploy/develop/docs/local-production-linux.json`, mounted read-only; nothing else in it.
+- CI's "Validate the report editor's Compose project" now holds the one bind mount (that path, read-only)
+  and the file's exact content. Run on the previous Compose file, it fails (`AssertionError: []`).
+- `NOTICE`: the program is still unmodified. A configuration file its own loader reads is configuration,
+  not a change to the program's code, so AGPL section 13's offer of modified source does not arise; the
+  notice now names the file.
+- Not measured here (a hypothesis, from upstream's documentation of forcesavetype 2): the timer saves
+  only a document that changed since its last save, so an open document nobody edits sends no callback.
+  RPT8's end-to-end test (an edit, then a callback within the interval plus `step`) is what proves it.
+
+## Activation on develop (chunk 4): the plan
+
+Written 2026-10-22, late, at the owner's request through the coordinator. Nothing below has been done
+yet. Each step names who does it, what exactly, and the check that it held. Step order matters: DNS
+goes first because Caddy cannot get the certificate for `docs.<hostname>` until the name resolves, and
+the switches go last.
+
+State at writing (read-only, 2026-10-22 ~23:50 UTC):
+- Develop runs `6bfe3760`, schema head `f4b6d8a0c2e3` (`docs_ticket_spends` is applied). The `docs.`
+  site in the Caddyfile and `deploy/develop/docs/` are on the host already, inert.
+- No `/aia/develop/aia_onlyoffice_*` parameter exists. `aia_errors_enabled` is true, so GlitchTip runs.
+- Route 53 zone `Z0491946PNRJDOXB1EWV` has `aia-develop` and `errors.aia-develop` (A, 3.64.35.250), and
+  no `docs.` record.
+
+### 0. Precondition: F1 fixed (owner: the Zpráva session)
+
+`__Host-aia_session` in deployed environments, so a page on `docs.<hostname>` cannot toss a cookie into
+AIA's session (Findings, F1).
+- **Check:** its PR is merged to `develop` and deployed; the deploy's smoke still passes its sign-in and
+  cookie rows. Nothing below starts before this.
+
+### 4a. The small PR before activation (built 2026-10-23, on the owner's word)
+
+- `bin/smoke-docs.sh`, sourced by `bin/smoke.sh`, runs when `AIA_ONLYOFFICE_ENABLED` is true. With it
+  off, the smoke says `info  docs: the report editor is off`, asks nothing, and warns if the Document
+  Server still runs, which means the deploy's stop failed.
+  - A probe nothing answers (DNS or Caddy's certificate not ready) reads `000`, so it fails as a row
+    with that hint. Before this was caught in review, an unguarded `curl` under `lib.sh`'s errexit ended
+    the smoke with no row and no verdict. A 404 from the gate says that the API needs both
+    `AIA_ONLYOFFICE_URL` and the secret.
+  - **Fail the smoke**, because they are AIA's own and hold whether the Document Server runs or not:
+    - `https://docs.<hostname>/` answers 401 without the cookie (the docs gate answers before the
+      Document Server is asked);
+    - `/healthcheck`, `/coauthoring/CommandService.ashx`, `/9.4.0-1/coauthoring/CommandService.ashx`,
+      `//info/info.json` and `/AI-PROXY/x` answer 404 at Caddy;
+    - `/__aia/session` without a ticket answers 401 and sets no docs cookie, a `__Host-` prefixed one
+      included.
+  - **Warn only** (a new `WARN` row, never counted as a pass): the `onlyoffice` container is healthy.
+    The Document Server never fails a deploy (`bin/deploy.sh`), and without it Zpráva stays read-only.
+  - Changed from the first draft of this plan, which had every row warn: a gate that lets a request
+    through, or a server path that answers, is a security failure of AIA's own routing, and a warning
+    would let a deploy with it go green.
+- `bin/deploy.sh`: with the switch not true and the `aia-docs` project running, `bin/docs.sh down`
+  (bounded, 120 s; a failure is said and the deploy goes on). Turning it off is then the switch and a
+  deploy, with no hand on the host; this session has no `ssm:SendCommand`.
+- **The signed cache links, without the gate** (the #824 review's first P1; see the RPT8 contract,
+  "The saved document's download"). A `@cache_file` route sits after the server-path refusal: GET or
+  HEAD, `md5` and `expires` present, and the path
+  `^/cache/files/(?:[A-Za-z0-9_=-][A-Za-z0-9_.=-]*/)*[A-Za-z0-9_=-][A-Za-z0-9_.=-]*$`: a document key's
+  characters, never a leading dot. It is proxied to the Document Server with the cookie dropped.
+  - Neither Caddy log writes a signed link's `md5` or `expires`, nor the ticket: the docs access log and
+    the default logger both delete all three from the URI's query. A link in a log would open the
+    saved document without the gate until it expires. Measured: a fetched link was logged as
+    `…/output.docx?filename=output.docx`.
+  - `tools/caddy_routes.py` pins that exact match (`CACHE_FILE`, the methods in any order, the two query
+    keys) as the one ungated route. A wider pattern, a missing method or query condition, a kept cookie,
+    a rewrite or another upstream fails it, and so does a log that keeps the ticket, the `md5` or the
+    `expires`. A miss names how the route differs.
+  - The image's nginx (`ds-docservice.conf`) checks `secure_link $arg_md5,$arg_expires` under a secret
+    `run-document-server.sh` draws at each start (`pwgen -s 20`). Measured: the running container's
+    secret was 20 characters, not the template's `verysecretstring`.
+  - Measured 2026-10-23, Caddy 2.10.2 running this Caddyfile in front of the pinned image and a
+    stand-in gate:
+    - A correctly signed link answered 200 with the file, with no cookie, and the gate was not asked.
+      HEAD answered 200.
+    - An expired link answered 410, and a forged one 403.
+    - The same path without the parameters, a POST, an upper-case `/CACHE/`, and the traversals
+      `/cache/files/../web-apps/…`, `…/data/../../coauthoring/CommandService.ashx` and
+      `%2e%2e%2f…` / `x%2f..%2f..%2f..%2fweb-apps/…` all went to the gate (401). Their `healthcheck` form
+      hit the server-path refusal (404).
+    - Sent straight to the Document Server's nginx, `x%2f..%2f..%2f..%2fweb-apps/…` answers 200, so its
+      nginx does decode and resolve those. Caddy matches the decoded, cleaned path and agrees with it.
+      `…/data/x%2f..%2f..%2fweb-apps/y`, which cleans to a path still under `/cache/files/`, went by the
+      gate and was refused by the signature (403).
+    - Two backstops if a future Caddy changed: without cleaning, the `..` segments fail the pattern;
+      without decoding, the `%` does.
+  - A new smoke row: a cache link with a forged signature must be refused (403).
+    - A 2xx or 3xx fails the smoke: the ungated route serves unsigned links.
+    - So do a 401 or a 404: the route is gone, and no save could be fetched.
+    - Only nothing answering (000, or 502 to 504 with the Document Server down) warns.
+- `bin/docs.sh down`, `status` and `logs` no longer need the secret. Compose interpolates the whole
+  file for every command, and `JWT_SECRET` is required there (`:?`), so after the rollback deletes the
+  secret they refused. Measured with Compose on 2026-10-23: `status` failed with "required variable
+  AIA_ONLYOFFICE_JWT_SECRET is missing a value". Every command but `up` now gets a placeholder when
+  there is no secret, and `up` still refuses without one (measured).
+- Tests:
+  - `packages/aia_core/tests/test_develop_docs_smoke.py` (21): the rows run as the smoke runs them,
+    beside smoke.sh's own helpers, with `curl` and `docker` stubbed. Cases: off, off but still running,
+    every row passing, each security row failing alone, nothing answering (seven failed rows, the
+    smoke run to its end; it fails without the guard), a gate with its settings missing, and the health
+    row only warning.
+  - `test_develop_image_retention.py::test_the_report_editor_follows_its_switch_on_every_deploy` (3):
+    the whole `deploy.sh` under its harness. On starts it; off while running stops it; off and not
+    running leaves it alone. The stop case fails on the previous `deploy.sh`.
+- **Check:** CI's backend and develop-host jobs. A deploy with the switch still false prints the `info`
+  row and changes nothing else.
+
+### 1. DNS (owner: this session runs it, on the owner's word in this session)
+
+The resource is in `infra/develop/main.tf` since #785: `aws_route53_record.docs`, an A record
+`docs.${var.public_hostname}` to `aws_eip.host.public_ip`, TTL 300.
+1. Import the drift first, or the apply fails on it:
+   `terraform import 'aws_route53_record.errors[0]' Z0491946PNRJDOXB1EWV_errors.aia-develop.art-chain.io_A`
+2. Plan, then show it to the owner: `terraform plan -target='aws_route53_record.docs[0]'` from a clean
+   `develop` checkout, with the tfvars from SSM `/aia/terraform/develop/tfvars`. Expected: 1 to add, 0 to
+   change, 0 to destroy.
+3. Apply exactly that plan. The owner may instead apply it himself from CloudShell.
+- **Check:** `aws route53 list-resource-record-sets --hosted-zone-id Z0491946PNRJDOXB1EWV` shows
+  `docs.aia-develop.art-chain.io. A 3.64.35.250`; a full plan afterwards shows no change to either record.
+
+### 2. The secret (owner: the owner, from CloudShell)
+
+The value is never printed or pasted into a chat:
+```bash
+aws ssm put-parameter --region eu-central-1 --name /aia/develop/aia_onlyoffice_jwt_secret \
+  --type SecureString --value "$(openssl rand -hex 32)"
+```
+- 64 hex characters. `config.py` requires at least 32, and `write-env.sh` refuses a single quote.
+- `write-env.sh` turns it into `AIA_ONLYOFFICE_JWT_SECRET` in `.env`. From there:
+  - the API gets it (`docker-compose.yml`, `api.environment`);
+  - the Document Server gets it as `JWT_SECRET` (`bin/docs.sh` reads the same `.env`);
+  - the worker and the web client do not (CI holds that).
+- **Check:** `aws ssm describe-parameters --parameter-filters Key=Name,Values=/aia/develop/aia_onlyoffice_jwt_secret`
+  shows a SecureString; its value is not read.
+
+### 3. The switches (owner: this session, on the owner's word; or the owner)
+
+```bash
+aws ssm put-parameter --region eu-central-1 --name /aia/develop/aia_onlyoffice_url \
+  --type String --value https://docs.aia-develop.art-chain.io
+aws ssm put-parameter --region eu-central-1 --name /aia/develop/aia_onlyoffice_enabled \
+  --type String --value true
+```
+- Keys the code reads today:
+  - `AIA_ONLYOFFICE_URL` and `AIA_ONLYOFFICE_JWT_SECRET` (`apps/api/src/aia_api/config.py`; both set,
+    or the docs routes stay 404);
+  - `AIA_ONLYOFFICE_ENABLED` (`bin/deploy.sh`).
+- Any key RPT8 adds is named in its PR and added here.
+- Caddy's route needs no change: the `docs.` site has been deployed since #785, `tools/caddy_routes.py`
+  checks it in CI, and the smoke's "running the deployed Caddyfile" row confirms it on the host.
+- Then deploy: the next merge to `develop`, or "Deploy develop" dispatched for the head SHA.
+- **Check:** the deploy log shows `write-env.sh` naming the three keys, then "the Document Server is up
+  at https://docs.aia-develop.art-chain.io". Smoke passes.
+
+### 4. Verification
+
+- **The deploy:** "Confirm from outside" names the SHA, and the 4a rows are `ok`.
+- **From outside, in a browser or on the deploy runner:**
+  - the certificate for `docs.aia-develop.art-chain.io` is valid;
+  - `/` answers 401;
+  - `/healthcheck` and `/AI-PROXY/x` answer 404.
+- **The round trip (owner: the Zpráva session, RPT8)**, on a fictional study's run:
+  1. open its draft in Zpráva; the editor loads in the frame;
+  2. make an edit; within `interval` plus `step` (5 + 1 minutes) the callback receives status 6 with
+     forcesavetype 2 and AIA stores a new version;
+  3. close the document; status 2 stores the final one;
+  4. a ticket used twice is refused.
+- **The host:** CloudWatch `mem_used_percent` and `disk_used_percent` for the hour after start.
+
+### 5. Rollback
+
+- **Off:**
+  - `aia_onlyoffice_enabled` false, then a deploy: since 4a, `bin/deploy.sh` stops the Document Server
+    when the switch is not true (`bin/docs.sh down`, which needs no secret).
+  - Deleting `aia_onlyoffice_url` also turns the API's docs routes to 404, and Zpráva goes back to its
+    read-only pane. This session cannot delete parameters (`ssm:DeleteParameter` is denied), so the
+    owner does it.
+- **What stays:** every version the callback stored, which are AIA's artifacts; the
+  `docs_ticket_spends` rows; and the `aia-docs_*` volumes (editing caches, nothing authoritative).
+- **Abandoned for good:**
+  - `terraform destroy -target='aws_route53_record.docs[0]'`, or remove the resource in a PR;
+  - delete the three parameters;
+  - on the host, `docker compose -p aia-docs down -v` and `docker image rm` of the pinned image.
+
+### Headroom on the t3a.large (8 GiB, 80 GB)
+
+- **Memory:**
+  - In the last 6 hours, with GlitchTip running, `mem_used_percent` peaked at 18.4 % (about 1.5 GiB).
+  - The Document Server measured about 530 MiB once its fonts were generated, and is capped at 2 GiB
+    with swap.
+  - Worst case: about 3.5 GiB of 8 (about 44 %). Expected: about 2 GiB (about 25 %).
+- **Disk:**
+  - 27.7 GiB free (63.8 % used) after tonight's deploy.
+  - The image is 4.86 GB (4.5 GiB) unpacked (measured), so about 23 GiB remains (about 70 % used), before its
+    volumes, which hold caches.
+  - `bin/image_retention.py` touches only `aia-api|worker|web` release images, so it never removes this
+    one. A pull needs Docker Hub; anonymous pulls are rate-limited, and one pull per version is far
+    below the limit.
 
 ## Review (2026-10-22, before the push)
 

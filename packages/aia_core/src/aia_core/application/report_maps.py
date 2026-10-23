@@ -5,6 +5,7 @@ from __future__ import annotations
 from collections.abc import Mapping
 from typing import Any, Final
 
+from aia_core.domain.report.control_tags import source_tag
 from aia_core.domain.report.model import (
     Align,
     Block,
@@ -112,6 +113,11 @@ def _respondent_reading(artifact: SociomapArtifactV3, resp: RespondentMap) -> st
     elif not resp.informative:
         out += f" Sada má méně než {resp.min_objects} objektů: mapa respondentů je jen orientační."
     return out
+
+
+def map_control(battery: Mapping[str, Any], method: str) -> str:
+    """The tag of the locked controls text written from one stored map prints in."""
+    return source_tag("map", f"{battery['battery_id']}/{method}")
 
 
 def _is_signed_off(artifact: SociomapArtifactV3) -> bool:
@@ -222,6 +228,17 @@ def compose_map_sections(
     approvals = recorded_statuses(result)
     sections: list[Section] = []
     for index, battery in enumerate(result.get("batteries", []), start=1):
+        guide_maps = [
+            (method, artifact)
+            for method, artifact in read_object_maps(battery)
+            if not client
+            or getattr(approvals.get(method), "status", None) is MethodologyStatus.CLIENT_FACING
+        ]
+        # The guide's numbers (the scale, the height floor) are the first signed-off map's
+        # (_height_sentence): its text prints locked under that map (RPT8a, P8); without one it
+        # prints none.
+        signed = [method for method, artifact in guide_maps if _is_signed_off(artifact)]
+        guide_control = map_control(battery, signed[0]) if signed else None
         blocks: list[Block] = [
             Callout(
                 CalloutKind.LIMITATION,
@@ -240,22 +257,17 @@ def compose_map_sections(
                     "znamená větší cílovou vzdálenost. Rozmístění v rovině tyto vzdálenosti "
                     "přibližuje; konkrétní dvojice proto ověřujte podle korelace "
                     "a její podpory v tabulce pod mapami. "
-                    + _height_sentence(
-                        [
-                            (method, artifact)
-                            for method, artifact in read_object_maps(battery)
-                            if not client
-                            or getattr(approvals.get(method), "status", None)
-                            is MethodologyStatus.CLIENT_FACING
-                        ]
-                    )
+                    + _height_sentence(guide_maps)
                     + "Směr os nemá věcný význam; pro čtení jsou podstatné vzájemné vzdálenosti."
-                )
+                ),
+                control=guide_control,
             ),
         ]
         drawn = 0
         for ordinal, (method, artifact) in enumerate(read_object_maps(battery), start=1):
             approval = approvals.get(method)
+            # Text code writes whole from this stored map prints locked under it (RPT8a, P7-P9).
+            map_tag = map_control(battery, method)
             map_status = (
                 approval.status if approval is not None else MethodologyStatus.INTERNAL_ONLY
             )
@@ -265,14 +277,15 @@ def compose_map_sections(
                 assert artifact.not_mappable is not None
                 blocks.append(
                     Paragraph(
-                        text(f"Metoda {method}: mapa nevznikla. {artifact.not_mappable.message}")
+                        text(f"Metoda {method}: mapa nevznikla. {artifact.not_mappable.message}"),
+                        control=map_tag,
                     )
                 )
                 continue
             layout = artifact.layout
             support = artifact.support
             blocks.append(
-                Callout(CalloutKind.METHOD, text(approval.reader_note))
+                Callout(CalloutKind.METHOD, text(approval.reader_note), control=map_tag)
                 if approval is not None and map_status is MethodologyStatus.CLIENT_FACING
                 else Callout(
                     CalloutKind.LIMITATION,
@@ -280,6 +293,7 @@ def compose_map_sections(
                         f"Mapa metodou {method} je interním výstupem: metodika dosud čeká "
                         "na schválení a mapa nesmí do klientské zprávy."
                     ),
+                    control=map_tag,
                 )
             )
             credibility = artifact.credibility
@@ -302,6 +316,7 @@ def compose_map_sections(
                         title="Žádná spolehlivá struktura"
                         if credibility.split_half is None
                         else "Slabě určená mapa",
+                        control=map_tag,
                     )
                 )
             if not client:
@@ -325,7 +340,8 @@ def compose_map_sections(
                                 else ""
                             )
                             + ("" if credibility is None else _credibility_note(credibility))
-                        )
+                        ),
+                        control=map_tag,
                     )
                 )
             # The framed envelope draws relative heights and reaches every cell.
@@ -358,6 +374,7 @@ def compose_map_sections(
                         else f"rozložení {POSITION_METHOD.get(layout.method, layout.method)}; "
                         "Stress-1 se nepočítá",
                         source=source,
+                        control=map_tag,
                         alt=RESPONDENT_ALT.format(
                             title=battery["title"],
                             segments=", barva bodu chuťový segment"
@@ -401,7 +418,11 @@ def compose_map_sections(
                     )
                 )
             if "respondents" in views and isinstance(artifact.respondents, RespondentMap):
-                blocks.append(Paragraph(text(_respondent_reading(artifact, artifact.respondents))))
+                blocks.append(
+                    Paragraph(
+                        text(_respondent_reading(artifact, artifact.respondents)), control=map_tag
+                    )
+                )
             drawn += 1
             if client:
                 continue  # the pair table prints r and n outside the ledger: internal only
@@ -419,13 +440,26 @@ def compose_map_sections(
                     status = pairs.status[i][j]
                     cells = [
                         TextCell(f"{labels[first]} \u00d7 {labels[second]}"),
-                        TextCell("nedefinováno" if r is None else number(round(r, 3), 3)),
-                        TextCell(str(pairs.n[i][j])),
+                        TextCell(
+                            "nedefinováno" if r is None else number(round(r, 3), 3),
+                            control=map_tag,
+                        ),
+                        TextCell(str(pairs.n[i][j]), control=map_tag),
                     ]
                     if effective is not None:
                         n_eff = effective[i][j]
-                        cells.append(TextCell("neuvedeno" if n_eff is None else effective_n(n_eff)))
-                    cells.append(TextCell("neuvedeno" if status is None else PAIR_STATUS[status]))
+                        cells.append(
+                            TextCell(
+                                "neuvedeno" if n_eff is None else effective_n(n_eff),
+                                control=map_tag,
+                            )
+                        )
+                    cells.append(
+                        TextCell(
+                            "neuvedeno" if status is None else PAIR_STATUS[status],
+                            control=map_tag,
+                        )
+                    )
                     rows.append(TableRow(tuple(cells)))
             columns = [
                 Column("Dvojice objektů", width_weight=3),
@@ -455,6 +489,7 @@ def compose_map_sections(
                         + ". Hodnoty jsou vlastnosti výpočtu, nikoli schválená populační "
                         "tvrzení.",
                     ),
+                    notes_control=map_tag,
                 )
             )
         if client and not drawn:

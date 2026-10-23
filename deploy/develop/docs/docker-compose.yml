@@ -13,8 +13,8 @@
 # It shares a network with Caddy alone, not with the API: it reaches AIA only through the
 # public hostname, with its own request filter refusing private and metadata addresses,
 # because this host's containers can reach IMDS (infra/develop/main.tf, hop limit 2) and the
-# Document Server fetches URLs. Every request between AIA and it is JWT-signed with AIA_ONLYOFFICE_JWT_SECRET
-# (SSM aia_onlyoffice_jwt_secret), which it refuses to start without.
+# Document Server fetches URLs. Every request between AIA and it is JWT-signed with
+# AIA_ONLYOFFICE_JWT_SECRET (SSM aia_onlyoffice_jwt_secret), which it refuses to start without.
 #
 # Measured on 9.4.0.1 with these settings (2026-10-22): healthy about 10 s after start,
 # about 530 MiB once its fonts and themes are generated. Its editing sessions are kept in
@@ -56,6 +56,11 @@ services:
       - docs_logs:/var/log/onlyoffice
       - docs_data:/var/www/onlyoffice/Data
       - docs_fonts:/usr/share/fonts/truetype/custom
+      # Its one setting no variable reaches: a force-save every 5 minutes while a document is
+      # open, so AIA's callback gets status 6, forcesavetype 2, and stores a version (RPT8).
+      # local-production-linux.json, not local.json: the image's start script writes local.json
+      # (the JWT secret among it), and its loader reads this file after it.
+      - ./local-production-linux.json:/etc/onlyoffice/documentserver/local-production-linux.json:ro
     healthcheck:
       test: ["CMD-SHELL", "curl -fsS -m 3 http://localhost/healthcheck | grep -qx true"]
       interval: 30s

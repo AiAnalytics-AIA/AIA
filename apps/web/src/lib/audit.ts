@@ -52,6 +52,8 @@ export const ACTION_NAMES: Record<string, string> = {
   METHODOLOGY_PROPOSED: "Nová verze metodiky",
   METHODOLOGY_ACTIVATED: "Uvedení metodiky v platnost",
   METHODOLOGY_RESET: "Návrat metodiky na verzi z kódu",
+  METHODOLOGIST_GRANTED: "Udělení značky Metodik",
+  METHODOLOGIST_REVOKED: "Odebrání značky Metodik",
   // Prompty
   PROMPT_VERSION_CREATED: "Nová verze promptu",
   PROMPT_ACTIVATED: "Zapnutí verze systémového promptu",

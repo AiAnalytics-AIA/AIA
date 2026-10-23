@@ -21,13 +21,14 @@ from __future__ import annotations
 
 import json
 import re
+from collections.abc import Sequence
 from dataclasses import dataclass
 from datetime import datetime
 from enum import StrEnum
 from typing import Any
 from uuid import uuid4
 
-from sqlalchemy import select
+from sqlalchemy import delete, or_, select
 from sqlalchemy.orm import Session
 
 from ..domain.approval_ledger import ApprovalSubject
@@ -55,6 +56,7 @@ __all__ = [
     "ArtifactNotFound",
     "ArtifactRepository",
     "ArtifactStatus",
+    "erase_artifacts_of_attempts",
     "new_artifact_id",
 ]
 
@@ -701,3 +703,31 @@ class ArtifactRepository:
         if result["corrupt"]:
             self._session.flush()
         return result
+
+
+def erase_artifacts_of_attempts(session: Session, attempt_ids: Sequence[str]) -> list[str]:
+    """Delete the rows of every artifact these attempts produced, and the edges to and from
+    them; returns their storage keys, which the caller deletes after the commit (a row is
+    never left pointing at a deleted object). The retention sweep's alone (settings-backends
+    SB2): a sealed Lead's turn artifacts."""
+    if not attempt_ids:
+        return []
+    rows = list(
+        session.scalars(
+            select(ProjectArtifactRow).where(
+                ProjectArtifactRow.produced_by_job_id.in_(list(attempt_ids))
+            )
+        )
+    )
+    ids = [r.artifact_id for r in rows]
+    if ids:
+        session.execute(
+            delete(ProjectArtifactDependencyRow).where(
+                or_(
+                    ProjectArtifactDependencyRow.artifact_id.in_(ids),
+                    ProjectArtifactDependencyRow.depends_on_artifact_id.in_(ids),
+                )
+            )
+        )
+        session.execute(delete(ProjectArtifactRow).where(ProjectArtifactRow.artifact_id.in_(ids)))
+    return [r.storage_key for r in rows]

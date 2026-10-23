@@ -12,6 +12,7 @@ import { codedText, codeWords, coverageWords, deepStepLabel, stepProblem } from 
 import { CodedWords } from "./CodedWords";
 import { withBudget } from "@/lib/budget-line";
 import { olderRulesWords } from "@/lib/review-rules";
+import { holdingWords } from "@/lib/report-status";
 import { AiButton, Button, Field, Select } from "../ui";
 import { useResearch } from "./context";
 import { canReview } from "./frame";
@@ -36,6 +37,8 @@ export function InterpretationResearch({ run, review = null, onReview }: { run: 
   const [selected, setSelected] = useState<string | null>(null);
   const [bundleFor, setBundleFor] = useState<{ runId: string; value: DeepResearchBundle } | null>(null);
   const [analysisReady, setAnalysisReady] = useState<"loading" | "ready" | "incomplete" | "stale" | "unavailable">("loading");
+  // Completed modules that hold the report: no supported finding (evidence-integrity 9b).
+  const [unsupported, setUnsupported] = useState<string[]>([]);
   const [preset, setPreset] = useState<"QUICK" | "STANDARD">("QUICK");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -90,7 +93,11 @@ export function InterpretationResearch({ run, review = null, onReview }: { run: 
     let live = true;
     setAnalysisReady("loading");
     research.analysis(frame.studyId, run.run_id).then(
-      value => { if (live) setAnalysisReady(value.complete === true ? "ready" : "incomplete"); },
+      value => {
+        if (!live) return;
+        setAnalysisReady(value.complete === true ? "ready" : "incomplete");
+        setUnsupported((value.holding ?? []).filter((m) => value.modules[m]?.outcome === "COMPLETED"));
+      },
       (e: unknown) => { if (live) setAnalysisReady(e instanceof ApiError && e.code === "fingerprint_mismatch" ? "stale" : "unavailable"); },
     );
     return () => { live = false; };
@@ -173,7 +180,7 @@ export function InterpretationResearch({ run, review = null, onReview }: { run: 
         <p className="mb-3 text-sm leading-6">{bundle.accepted.length
           ? "Zpráva spojí uložené výsledky a sociomapy s přijatými externími podklady a jejich zdroji. Stažení nespouští další placený výzkum."
           : "Zpráva může uvést, že rešerše nepřinesla ověřené zjištění; nebude tvrdit, že obsahuje externě doložený benchmark. Stažení nespouští další placený výzkum."}</p>
-        {analysisReady === "incomplete" ? <p role="status" className="mb-3 text-sm font-medium">Analýza běhu není úplná. Zprávu lze stáhnout až po dokončení všech jejích částí.</p> : null}
+        {analysisReady === "incomplete" ? <p role="status" className="mb-3 text-sm font-medium">{unsupported.length ? holdingWords(unsupported) : "Analýza běhu není úplná. Zprávu lze stáhnout až po dokončení všech jejích částí."}</p> : null}
         {analysisReady === "stale" ? <p role="status" className="mb-3 text-sm font-medium">{t("research.exec.results.analysisStale")}</p> : null}
         {analysisReady === "unavailable" ? <p role="status" className="mb-3 text-sm font-medium">Připravenost analýzy se nepodařilo ověřit. Obnovte stránku a zkuste to znovu.</p> : null}
         {analysisReady === "loading" ? <p role="status" className="mb-3 text-sm text-ink-muted">Ověřuji připravenost zprávy…</p> : null}
