@@ -754,7 +754,12 @@ describe("the settings tabs", () => {
     api({ "GET /api/v1/settings/system-status": none, "GET /api/v1/settings/error-tracking": none, "GET /api/v1/settings/kept-records": none });
     render(<ControlPanel />);
     await screen.findByRole("tablist");
+    // Not read until their tab is first opened: opening Settings fires no GlitchTip read (review of #854).
+    await screen.findByText("Prostředí");
+    for (const route of ["/api/v1/settings/system-status", "/api/v1/settings/error-tracking", "/api/v1/settings/kept-records"]) expect(called("GET", route)).toEqual([]);
     fireEvent.click(tab("Stav systému"));
+    await waitFor(() => expect(called("GET", "/api/v1/settings/error-tracking")).toHaveLength(1));
+    expect(called("GET", "/api/v1/settings/kept-records")).toEqual([]);
     expect(panelOf("Stav systému").hidden).toBe(false);
     expect(within(panelOf("Stav systému")).getByRole("heading", { name: "Připravenost po nasazení" })).toBeTruthy();
     expect(within(panelOf("Stav systému")).getByRole("heading", { name: "Hlášení chyb" })).toBeTruthy();

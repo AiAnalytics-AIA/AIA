@@ -581,8 +581,9 @@ const TAB_FACTS: Record<TabId, { scope: string; owner: string }> = {
 
 const NO_ITEMS: SettingItem[] = [];
 
-// Tabs that read their own route and are drawn on the first visit only.
-const OWN_TABS = new Set<TabId>(["prompts", "deep_research", "methodology"]);
+// Tabs that read their own route and are drawn on the first visit only: opening Settings reads
+// nothing of a tab not yet opened (Stav systému's error read reaches GlitchTip; review of #854).
+const OWN_TABS = new Set<TabId>(["prompts", "deep_research", "methodology", "system", "data"]);
 
 // The settings-document groups each tab shows, in order. "roles", "audit" and
 // "invariants" are not API groups; the panel draws them itself.
