@@ -1889,6 +1889,10 @@ export type DrSettingsOverview = {
 export type DrSettingVersion = {
   version_number: number; value: DrSettingValue; value_sha256: string; source_url: string; note: string;
   created_by: string; created_at: string;
+  /** Where the version stands (#841); absent from a server before it, then read from the dates. */
+  state?: "IN_FORCE" | "APPROVED_BEFORE" | "PENDING" | "WITHDRAWN" | "DECLINED";
+  /** Its proposer took it back (WITHDRAWN) or another administrator turned it down (DECLINED). */
+  decline?: { kind: "WITHDRAWN" | "DECLINED"; by: string; reason: string; at: string } | null;
 };
 /** `version_number` null: the approval was withdrawn and the code's default came back into force. */
 export type DrSettingApproval = { approval_id: number; version_number: number | null; approved_by: string; reason: string; approved_at: string };
@@ -1897,11 +1901,30 @@ export type DrSettingDetail = DrSetting & { versions: DrSettingVersion[]; histor
 const DR_SETTINGS = "/api/v1/deep-research/settings";
 
 /** Read by any member; proposing and approving are an administrator's (the API decides). */
+/** Settings → Deep Research → Dosah (#844): what the newest worker's composition reaches. Any member. */
+export type ReachRoute = {
+  route: string; kind: "search" | "fetch" | "connector" | "index" | "archive";
+  state: "waiting" | "active" | "refused" | "built";
+  /** A code (settings_unapproved, class, deep_research_off, …); `detail` is the server's English. */
+  reason: string | null; detail: string | null;
+  classes: string[]; priced: boolean; zone: string | null; missing_settings: string[]; class_advisory: boolean;
+};
+export type DeepResearchReach = {
+  /** false: no worker has recorded its composition, and nothing is presumed reachable. */
+  recorded: boolean; worker: string | null; build_sha: string | null; composed_at: string | null;
+  agent_directed: boolean | null; class_gates: "enforce" | "advisory" | null; data_class: "A" | "B" | "C" | null;
+  missing_for_live: string[]; routes: ReachRoute[];
+};
+
 export const deepResearchSettings = {
+  reach: () => request<DeepResearchReach>("GET", "/api/v1/settings/deep-research/reach"),
   list: () => request<DrSettingsOverview>("GET", DR_SETTINGS),
   get: (key: string) => request<DrSettingDetail>("GET", `${DR_SETTINGS}/${enc(key)}`),
   propose: (key: string, body: { value: DrSettingValue; source_url: string; note: string }) =>
     request<DrSettingVersion>("POST", `${DR_SETTINGS}/${enc(key)}/versions`, body),
+  /** A pending proposal taken back (its proposer) or turned down (another administrator), with a reason. */
+  withdraw: (key: string, versionNumber: number, reason: string) =>
+    request<DrSettingVersion>("POST", `${DR_SETTINGS}/${enc(key)}/versions/${versionNumber}/withdrawal`, { reason }),
   /** `versionNumber` null returns the setting to the code's proposed default. */
   approve: (key: string, versionNumber: number | null, reason: string) =>
     request<DrSetting>("PUT", `${DR_SETTINGS}/${enc(key)}/approval`, { version_number: versionNumber, reason }),

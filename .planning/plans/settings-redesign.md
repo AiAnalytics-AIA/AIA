@@ -7,7 +7,7 @@ chunks:
   - "[ ] 3b. Přístup over its backends: Metodik switch (owner only), deactivate with Vrátit and the sealed Lead, a client's posture and wallet ceiling"
   - "[x] 4. Studie a rozpočty: the four money names, steppers with bounds, % and near-limit (90 %), spend tiles and per-researcher spend"
   - "[x] 5. Systémové prompty: grouped list, editor layout, in-force version in green, Verze table"
-  - "[ ] 6. Deep Research: Dosah, proposals in the Návrh cell, I7 modals, Pevné ochrany v kódu"
+  - "[x] 6. Deep Research: Dosah, proposals in the Návrh cell, I7 modals, Pevné ochrany v kódu"
   - "[ ] 7. AI běh: route tiles, activities grouped with descriptions, the missing activities"
   - "[ ] 8. Audit: categories with counts, period, search, Czech names for every action code"
   - "[ ] 9. Reference: categories, Kdo mění filter, Co znamená column"
@@ -68,3 +68,16 @@ https://claude.ai/artifact/8W9LR8Ju9BWnR5JACmiWv7 (ten boards, one per tab) and 
   the one in force read a rollback or a reset to the code's wording as waiting (review of #838). The
   list's summary carries no version date, so the list says a version waits only when nothing was ever
   switched on (SystemPromptsPanel.tsx waitsForActivation, standing).
+- Deep Research's rules: a proposal "waits" only when saved after the rule's last approval (or with
+  none made). A version approved and then withdrawn to the default read as waiting by number alone
+  (caught by the settings journey on chunk 6); the overview carries no version date, so a rule with a
+  newer number is read once to decide (DeepResearchSettingsPanel.tsx usePending), and until then
+  nothing waits.
+- Chunk 6's "Dosah" reads #844's GET /settings/deep-research/reach: the newest worker's record,
+  waiting first (coral for an administrator only), each reason code in Czech (the server's English
+  detail is technical only); "no worker has recorded" says so and claims nothing reachable; a 404 (the
+  route not deployed yet) still says "V AIA zatím není". "Stáhnout návrh" is wired to
+  #841's POST …/versions/{n}/withdrawal (reason required) and reads each version's `state` when the
+  server sends it; until #841 merges, the route answers 404 and the refusal is said in the modal.
+- Chunk 6 keeps the group list beside the rules (the catalogue has ~40 rules; the design's flat table
+  had 8) and puts the design's columns in each group: Pravidlo, V platnosti, Návrh, Schválení.

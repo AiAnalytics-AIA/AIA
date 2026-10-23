@@ -108,6 +108,9 @@ try {
   await page.getByRole("searchbox", { name: "Hledat v historii" }).fill("no-such-event"); await page.getByText("Žádný záznam neodpovídá hledání.", { exact: true }).waitFor();
   checks.push("Readable audit entries filter by person, event and reason");
   await tab("deep_research"); const policyKey = "retention.snapshots";
+  assert.equal(await page.locator("[data-dr-reach] [data-not-yet]").count(), 1, "deep research: Dosah says it is not in AIA yet");
+  assert.equal(await page.locator("[data-dr-protections] li").count(), 5, "deep research: the code's five protections");
+  await page.locator("[data-dr-posture]").getByRole("link", { name: "Přístup a schvalování", exact: true }).waitFor();
   await page.getByRole("searchbox", { name: "Hledat pravidlo rešerše" }).fill("zachycené");
   const row = page.locator(`[data-dr-setting="${policyKey}"]`); await row.getByRole("button", { name: "Upravit", exact: true }).click();
   const ruleDetail = page.locator(`[data-dr-detail="${policyKey}"]`); const policyForm = ruleDetail.locator("[data-dr-propose]"); await policyForm.getByLabel("Hodnota", { exact: true }).fill("365");
@@ -120,9 +123,24 @@ try {
   let policy = await get(`/api/v1/deep-research/settings/${policyKey}`); const policyVersion = policy.versions.find((v) => v.value === 365);
   assert(policyVersion); assert.equal(policy.origin, "proposed_default");
   await ruleDetail.getByRole("button", { name: `Schválit verzi ${policyVersion.version_number}`, exact: true }).click();
-  await ruleDetail.locator("[data-dr-approve]").getByRole("button", { name: "Potvrdit", exact: true }).click();
+  await ruleDetail.locator("[data-dr-approve]").getByRole("button", { name: "Schválit", exact: true }).click();
   await row.locator('[data-origin="approved"]').waitFor(); policy = await get(`/api/v1/deep-research/settings/${policyKey}`); assert.equal(policy.value, 365);
-  await ruleDetail.getByRole("button", { name: "Vrátit na výchozí", exact: true }).click(); await ruleDetail.locator("[data-dr-approve]").getByRole("button", { name: "Potvrdit", exact: true }).click();
+  await ruleDetail.getByRole("button", { name: "Vrátit na výchozí", exact: true }).click(); await ruleDetail.locator("[data-dr-approve]").getByRole("button", { name: "Vrátit na výchozí", exact: true }).click();
+  // A proposal made in the rule's Návrh cell waits, highlighted, until approved through the modal.
+  await page.locator("[data-dr-approve]").waitFor({ state: "detached" });
+  await row.getByRole("button", { name: "Zavřít", exact: true }).click();
+  const inPlace = row.getByRole("spinbutton", { name: /^Návrh:/ }); await inPlace.fill("200"); await inPlace.press("Enter");
+  await page.locator(`[data-dr-setting="${policyKey}"][data-pending]`).waitFor();
+  await widths("research policy waiting proposal");
+  await row.getByRole("button", { name: "Schválit", exact: true }).click();
+  const modal = page.locator("dialog [data-dr-approve]"); await modal.getByText("200 dní", { exact: false }).waitFor();
+  await modal.getByRole("button", { name: "Schválit", exact: true }).click();
+  await page.locator(`[data-dr-setting="${policyKey}"]:not([data-pending])`).waitFor();
+  assert.equal((await get(`/api/v1/deep-research/settings/${policyKey}`)).value, 200);
+  await row.getByRole("button", { name: "Upravit", exact: true }).click();
+  await ruleDetail.getByRole("button", { name: "Vrátit na výchozí", exact: true }).click(); await ruleDetail.locator("[data-dr-approve]").getByRole("button", { name: "Vrátit na výchozí", exact: true }).click();
+  await page.locator("[data-dr-approve]").waitFor({ state: "detached" });
+  checks.push("A rule's proposal made in its Návrh cell waits highlighted and is approved through the I7 modal; Dosah says it is not in AIA yet");
   checks.push("Policy purpose search, draft protection across close/tab changes and separate propose/approve work through real APIs");
   await tab("methodology");
   // An administrator opens on the editor, its five-step sequence on the first screen (product owner, 2026-10-13).
