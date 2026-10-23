@@ -13,9 +13,15 @@ them were dropped (plan chunk 6). The organization is the boundary.
 
 from __future__ import annotations
 
-from datetime import datetime
+from datetime import UTC, datetime
 from typing import Annotated, Any, Literal
 
+from aia_core.application.membership import (
+    deactivate_member,
+    delete_objects,
+    lead_seals,
+    reactivate_member,
+)
 from aia_core.application.research_lead import set_study_budget as change_study_budget
 from aia_core.application.wallet import set_study_status as change_study_status
 from aia_core.domain.scope import (
@@ -30,6 +36,7 @@ from fastapi import APIRouter, Depends, HTTPException, Path, Query, Response, st
 from pydantic import BaseModel, ConfigDict, Field
 
 from ..dependencies import (
+    ArtifactStoreDep,
     OrganizationDep,
     PrincipalDep,
     ResolverDep,
@@ -172,6 +179,12 @@ class MemberResponse(BaseModel):
     display_name: str
     is_active: bool
     organization_role: str
+    #: When the member was deactivated in this organization (D-27), else ``None``.
+    deactivated_at: datetime | None = None
+    #: Their Research Lead's seal (ADR 0030): unreadable by anyone from ``lead_sealed_at``,
+    #: erased after ``lead_erase_after``; ``None`` when not sealed.
+    lead_sealed_at: datetime | None = None
+    lead_erase_after: datetime | None = None
 
 
 class SelfApprovalRequest(BaseModel):
@@ -590,10 +603,119 @@ def set_self_approval(
 # --------------------------------------------------------------------------- #
 
 
+def _members(admin: Any, repo: Any, session: Any) -> list[MemberResponse]:
+    """The members, each with their Lead's seal when an administrator reads them."""
+    seals = lead_seals(session, admin) if admin.may_administer else {}
+    out = []
+    for m in repo.members(admin):
+        seal = seals.get(m["user_id"])
+        out.append(
+            MemberResponse(
+                **m,
+                lead_sealed_at=seal.sealed_at if seal else None,
+                lead_erase_after=seal.erase_after if seal else None,
+            )
+        )
+    return out
+
+
 @router.get("/members", response_model=list[MemberResponse], summary="List members")
-def list_members(admin: OrganizationDep, repo: ScopeRepositoryDep) -> list[MemberResponse]:
+def list_members(
+    admin: OrganizationDep, repo: ScopeRepositoryDep, session: SessionDep
+) -> list[MemberResponse]:
     """List organization members and their administrative roles."""
-    return [MemberResponse(**m) for m in repo.members(admin)]
+    return _members(admin, repo, session)
+
+
+def _member_or_404(admin: Any, repo: Any, session: Any, user_id: str) -> MemberResponse:
+    for member in _members(admin, repo, session):
+        if member.user_id == user_id:
+            return member
+    raise HTTPException(  # pragma: no cover - the member was just read
+        status_code=500, detail={"code": "internal_error", "message": "Member not found."}
+    )
+
+
+def _membership_refused(
+    exc: ScopeDenied, admin: Any, repo: Any, session: Any, *, user_id: str, change: str
+) -> HTTPException:
+    """The refusal of a deactivation or reactivation as the error contract says it. A refusal
+    of the OWNER rule is the security-relevant event: it is audited and committed after the
+    refused change is rolled back, before the 403 (as a refused role change). Any reason not
+    named here is not this route's to render, and propagates."""
+    if exc.reason == "not_a_member":
+        return HTTPException(
+            status_code=404,
+            detail={"code": "not_found", "message": "No such member of the organization."},
+        )
+    if exc.reason in _OWNER_REFUSALS:
+        session.rollback()
+        repo.record_role_denied(
+            admin, user_id=user_id, role="OWNER", reason=exc.reason, change=change
+        )
+        session.commit()
+        return HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail={
+                "code": "insufficient_role",
+                "message": _OWNER_REFUSALS[exc.reason],
+                "details": {"reason": exc.reason},
+            },
+        )
+    if exc.reason == "insufficient_role":
+        return _forbidden(exc)
+    raise exc
+
+
+@router.post(
+    "/members/{user_id}/deactivate",
+    response_model=MemberResponse,
+    summary="Deactivate a member here, sealing their Lead",
+)
+def deactivate(
+    user_id: str, admin: OrganizationDep, repo: ScopeRepositoryDep, session: SessionDep
+) -> MemberResponse:
+    """Deactivate a member of the caller's organization (D-27). From the next request they
+    resolve no scope here, whatever token they hold; the account and other organizations are
+    untouched. Their Research Lead is sealed at once (ADR 0030): unreadable by anyone, erased
+    after 30 days unless they are reactivated first. OWNER or ADMIN; only an OWNER deactivates
+    an OWNER, never the last active one. Audited. Deactivating twice changes nothing."""
+    try:
+        deactivate_member(session, admin, user_id=user_id, now=datetime.now(UTC))
+    except ScopeDenied as exc:
+        raise _membership_refused(
+            exc, admin, repo, session, user_id=user_id, change="deactivate"
+        ) from exc
+    return _member_or_404(admin, repo, session, user_id)
+
+
+@router.post(
+    "/members/{user_id}/reactivate",
+    response_model=MemberResponse,
+    summary="Reactivate a member, unsealing their Lead",
+)
+def reactivate(
+    user_id: str,
+    admin: OrganizationDep,
+    repo: ScopeRepositoryDep,
+    session: SessionDep,
+    store: ArtifactStoreDep,
+) -> MemberResponse:
+    """Reactivate a member deactivated in the caller's organization. Within 30 days their Lead
+    is unsealed, for them alone; after that it is erased here, if the retention sweep has not
+    erased it yet, and they hatch a new one. OWNER or ADMIN; only an OWNER restores an OWNER.
+    Audited."""
+    try:
+        back = reactivate_member(session, admin, user_id=user_id, now=datetime.now(UTC))
+    except ScopeDenied as exc:
+        raise _membership_refused(
+            exc, admin, repo, session, user_id=user_id, change="reactivate"
+        ) from exc
+    if back.erased_keys:
+        # The erased rows first, then their objects: a row never points at a deleted object.
+        session.commit()
+        delete_objects(store, back.erased_keys)
+    return _member_or_404(admin, repo, session, user_id)
 
 
 # The two refusals of the OWNER rule (security-audit-2026-10 S14), each said as what it is.

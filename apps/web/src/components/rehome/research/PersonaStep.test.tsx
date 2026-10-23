@@ -216,6 +216,32 @@ describe("Dimenze", () => {
     expect(within(chosen).getByText("Zatím není vybraná žádná volitelná dimenze.")).toBeTruthy();
   }, 20_000);
 
+  it("after a remove, focus goes to the next row's remove, then the previous one's, then the list (DIM-F7)", async () => {
+    aiaStub({ ...PLANNED, persona_dimensions: { approved: ["cena", "media"] } });
+    render(<ResearchScreen step="persona" frame={TEST_FRAME} />);
+    const chosen = await screen.findByRole("list", { name: "Vybrané dimenze" });
+    fireEvent.click(within(chosen).getByRole("button", { name: "Odebrat dimenzi Cena / value for money" }));
+    await waitFor(() => expect(document.activeElement?.getAttribute("aria-label")).toBe("Odebrat dimenzi Média a informační chování"));
+    fireEvent.click(within(chosen).getByRole("button", { name: "Odebrat dimenzi Média a informační chování" }));
+    await waitFor(() => expect(document.activeElement).toBe(chosen));
+  }, 20_000);
+
+  it("says a search that matches nothing in a status the screen reader announces (DIM-F8)", async () => {
+    aiaStub(PLANNED);
+    render(<ResearchScreen step="persona" frame={TEST_FRAME} />);
+    const search = await screen.findByLabelText("Hledat dimenzi");
+    // The live region is mounted, empty, before the search, so its change is what gets announced.
+    const section = search.closest("section") as HTMLElement;
+    const status = within(section).getByRole("status");
+    expect(status.textContent).toBe("");
+    // Never hidden while empty: a live region out of the accessibility tree is not announced (jsdom has no
+    // Tailwind, so the class is what can be checked here; dimensions_journey checks the computed style).
+    expect(status.className).not.toMatch(/hidden/);
+    fireEvent.change(search, { target: { value: "zzz" } });
+    expect(within(section).getByRole("status")).toBe(status);
+    expect(status.textContent).toBe("Hledání nic nenašlo. Zkuste jiné slovo, nebo dimenzi požádejte níže.");
+  });
+
   it("reviews new dimensions and proposes one to the client's knowledge, never approving it", async () => {
     aiaStub({ ...PLANNED, persona_dimensions: { approved: ["cena"] } });
     render(<ResearchScreen step="persona" frame={TEST_FRAME} />);
@@ -257,9 +283,18 @@ describe("Dimenze", () => {
     render(<ResearchScreen step="persona" frame={TEST_FRAME} />);
     const input = await screen.findByLabelText("Název dimenze");
     fireEvent.click(screen.getByRole("button", { name: "Přidat jako požadavek" }));
+    // An empty name is the field's error, said at the field; nothing failed to save.
     expect(await screen.findByText(REQUEST_EMPTY)).toBeTruthy();
+    expect(input.getAttribute("aria-invalid")).toBe("true");
+    expect(document.getElementById(input.getAttribute("aria-describedby") ?? "")?.textContent).toBe(REQUEST_EMPTY);
+    expect(document.activeElement).toBe(input);
+    expect(screen.queryByText("Požadavek se nepodařilo uložit")).toBeNull();
     fireEvent.change(input, { target: { value: "  Vztah k AI ve zdravotnictví " } });
-    fireEvent.click(screen.getByRole("button", { name: "Přidat jako požadavek" }));
+    // Typing clears the field's error.
+    expect(input.getAttribute("aria-invalid")).toBeNull();
+    expect(screen.queryByText(REQUEST_EMPTY)).toBeNull();
+    // Enter in the field sends it, as the button does.
+    fireEvent.submit(input.closest("form") as HTMLFormElement);
     expect(await screen.findByText(PROPOSAL_DONE)).toBeTruthy();
     expect(posted(PROPOSALS_PATH)[0].body).toEqual({
       kind: "DIMENSION",
@@ -283,6 +318,11 @@ describe("Dimenze", () => {
     fireEvent.click(screen.getByRole("button", { name: "Přidat jako požadavek" }));
     expect((await screen.findByRole("alert")).textContent).toContain("does not permit proposing knowledge");
     expect(saves).toEqual([]);
+    // An empty try after it sends nothing, so the earlier failure is no longer said beside its error.
+    fireEvent.change(screen.getByLabelText("Název dimenze"), { target: { value: "" } });
+    fireEvent.click(screen.getByRole("button", { name: "Přidat jako požadavek" }));
+    expect(await screen.findByText(REQUEST_EMPTY)).toBeTruthy();
+    expect(screen.queryByText(/does not permit proposing knowledge/)).toBeNull();
   });
 
   it("the sample is one stepper: a press steps by 50 and saves, and below the recommendation says so (DIM3)", async () => {

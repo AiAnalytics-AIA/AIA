@@ -47,6 +47,8 @@ chunks:
   - "[ ] 31. Results: charts on the result views and a CSV/XLSX export of the per-question tables from admitted claims (report-delivery RD12) (D-41)"
   - "[ ] 32. The Lead pane's web results: inline citations with links and quotes, the result list as it arrives, each search's cost, and Kontext studie (the study's context file) readable with its version (Q5, Q6)"
   - "[ ] 33. Editor spike (Q19): Wordcraft, ONLYOFFICE Docs and Collabora Online compared against Tiptap for the study context file and reports, on Word-like UX, tracked changes and comments, Lead-driven edits, ledger refs through a round trip, DOCX fidelity, licence and EU self-hosting; a go/no-go to the owner"
+  - "[x] 34. A stage change swaps only the stage's body: the study's layout draws the workbench (ResearchStages, the stage read from the address below it), so the Lead's pane, its draft, scroll and cards, the split, the header and the navigator stay mounted and nothing study-wide is read again; a review left open is kept as leaving the page kept it; the journey times each switch and asserts the same composer"
+  - "[ ] 35. The stage navigator as a steady, full-width bar: the six phases as labelled groups, fixed-width stage slots (the current stage marked, never grown), done, needs-you, fault, running and not-started each by glyph and tone; no shift at 1440, 1280 and 1100 px"
 ---
 # Research Lead workbench
 
@@ -1831,6 +1833,35 @@ pass finds the jobs already done for the design.
   once.
 - **Left, a hypothesis:** limits are still read by several components on one visit (4 in a
   production build). Sharing them is another change, not this one.
+
+### The stages remounted the whole workbench on every click (2026-10-23, `fix/workbench-persistent-stages`; chunk 34)
+
+- **F23. Every stage change drew the Lead's pane anew and read the whole study again** *(fixed)*.
+  1. Claim: each stage was the page of its own route segment (`[stage]/page.tsx` rendered
+     `ResearchStage` -> `ResearchScreen` -> `Ready` -> `Workbench` -> `LeadPane`), and Next.js
+     remounts a page when its dynamic segment changes; only the study's layout (the session and
+     its store) survived. The Lead's pane, its draft and scroll, the jobs, runs, limits, the
+     study and the Lead's turns were all read again.
+  2. Anchor: `apps/web/src/components/aia/ResearchStudy.tsx:131-137 @ 82541803`.
+  3. Reproduction: `ResearchStudy.stages.test.tsx` "keeps the Lead's pane, its draft and the
+     study's reads when the stage changes" fails with the screen keyed by its step (a remount per
+     stage). In a browser on the UI workbench (`next dev`, warm): Zadání -> Návrh -> Dotazník ->
+     Cílová skupina -> Dimenze -> Zadání took 297, 344, 381, 251 and 251 ms with 22-26 API reads
+     each, the Lead's composer a new element every time.
+  4. Consequence: a lag and a flash of the conversation on every stage click (Nigel, 2026-10-22).
+  5. Fix: the study's layout draws the stages (`ResearchStages`, `useSelectedLayoutSegment`); the
+     stage page only answers an unknown stage with 404. The screen tolerated a step change
+     already (the item drawer, the runs, the heading focus); what a remount used to reset is reset
+     on the step: an open proposal or advice review is kept for later ("keep", as the unmount
+     did), the AI pomoc panel closes, the artifact opens at its top. A card that opens a review on
+     another stage still opens it there (the effect follows the step).
+  6. Test: the test above and `workbench_journey.mjs` (the same composer and conversation, the
+     draft kept, no read of the study's Lead, each switch timed). After: 187, 234, 187, 208 and
+     146 ms, 4-9 reads each, all the stage's own (its runs, limits, readiness, PUT
+     `/workspace/stage`); the journey's four switches 138-229 ms.
+- **Not changed, recorded:** the runs are read again per route (`useRuns(studyId, step, …)`), and
+  the study with them (the header's state follows the runs). They are the lane's input on every
+  stage; sharing them across stages is another change.
 
 ### The Lead's `show_diff` (2026-10-22, `feature/lead-show-diff`; chunk 14)
 

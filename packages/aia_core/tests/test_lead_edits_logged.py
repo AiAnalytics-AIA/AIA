@@ -12,12 +12,19 @@ from __future__ import annotations
 import copy
 from typing import Any
 
+import pytest
+from sqlalchemy import select
+
 from aia_core.application.research_lead import ResearchLead
 from aia_core.domain.edit_log import ActorKind, OpSource, WriteBy
 from aia_core.domain.item_ids import SIDECAR_KEYS, with_item_ids
 from aia_core.domain.workflow_templates import RESEARCH_LEAD_TURN
 from aia_core.infrastructure.researcher_lead_repository import ResearcherLeadRepository
-from aia_core.infrastructure.study_workspace_repository import StudyWorkspaceRepository
+from aia_core.infrastructure.study_workspace_repository import (
+    StudyWorkspaceRepository,
+    WorkspaceConflict,
+)
+from aia_core.infrastructure.tables import ApprovalDecisionRow
 from aia_core.infrastructure.workflow_repository import WorkflowRepository
 from aia_core.infrastructure.workspace_edit_repository import WorkspaceEditRepository
 
@@ -170,3 +177,72 @@ def test_a_copy_without_ids_is_given_none(scoped: Any, session: Any) -> None:
     assert working is not None
     assert SIDECAR_KEYS.isdisjoint(working["research_plan"])
     assert working["sections"][0]["questions"][0]["research_questions"] == [RQ]
+
+
+def _declared(content: dict[str, Any]) -> dict[str, Any]:
+    """``content`` with q1 marked a Sociomap rating question: a locked input."""
+    declared = copy.deepcopy(content)
+    declared["sections"][0]["questions"][0]["sociomap_rating"] = True
+    return declared
+
+
+def test_an_automatic_accept_takes_the_unlocked_text_edit_and_refuses_the_locked_one(
+    scoped: Any, session: Any
+) -> None:
+    """The researcher's standing choice takes text edits only, and a text edit of a locked input is
+    refused alone, as a click's is (review of #801)."""
+    edits = [
+        {"op": "question_edit", "question_id": "q1", "text": "Jak moc často?", "why": WHY},
+        {"op": "set_text", "field": "title", "value": "Nový název", "why": WHY},
+    ]
+    scope, lead, turn_id = _ready(scoped, session, _declared(CONTENT), edits)
+    org = scoped.resolver.organization_context(scoped.principal(scoped.users["lead"]))
+    ResearcherLeadRepository(session, org).set_preferences(auto_accept_text_edits=True)
+    base = StudyWorkspaceRepository(session).content(scope).revision
+    decided = lead.decide_edits(
+        turn_id, decision="accept", indices=[0, 1], base_revision=base, auto=True
+    )
+    assert decided["results"] == [
+        {"index": 0, "status": "refused", "reason": "sociomap_input_locked"},
+        {"index": 1, "status": "accepted", "reason": None},
+    ]
+    working = StudyWorkspaceRepository(session).content(scope).content
+    assert working is not None and working["title"] == "Nový název"
+    assert working["sections"][0]["questions"][0]["text"] == "Jak často kupujete kávu?"
+    assert [r.decision for r in _ledger(session)] == ["accept"]
+
+
+def test_a_reword_whose_links_follow_onto_a_locked_question_refuses_the_whole_accept(
+    scoped: Any, session: Any
+) -> None:
+    """The edge left to WCE8: with the web's ids kept, the reword itself is unlocked, but its link
+    follows onto a locked rating question. The save refuses the accept whole, 409 by the router,
+    and nothing is written: no revision, no log row, no ledger row."""
+    with_ids, _ = with_item_ids(_declared(CONTENT))
+    edits = [
+        {
+            "op": "list_replace",
+            "list": "plan.research_questions",
+            "old": RQ,
+            "value": "Kdo pije kávu?",
+            "why": WHY,
+        }
+    ]
+    scope, lead, turn_id = _ready(scoped, session, with_ids, edits)
+    session.commit()  # the turn and the copy exist before the accept is tried
+    before = StudyWorkspaceRepository(session).content(scope).revision
+    with pytest.raises(WorkspaceConflict) as refused:
+        _accept(scope, session, lead, turn_id, 1)
+    assert refused.value.reason == "sociomap_input_locked"
+    session.rollback()
+    assert StudyWorkspaceRepository(session).content(scope).revision == before
+    assert WorkspaceEditRepository(session, scope).rows(after_revision=before) == []
+    assert _ledger(session) == []
+
+
+def _ledger(session: Any) -> list[ApprovalDecisionRow]:
+    return list(
+        session.scalars(
+            select(ApprovalDecisionRow).where(ApprovalDecisionRow.subject_type == "lead_edit")
+        )
+    )

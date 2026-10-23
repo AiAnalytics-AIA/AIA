@@ -6,6 +6,7 @@
 
 import { t, tv } from "@/i18n/t";
 import type { RunEvent } from "./api";
+import { isWaiting } from "./research-execution";
 
 /** Feed lines kept per step: the latest few, newest last. */
 export const KEEP_LINES = 6;
@@ -18,6 +19,8 @@ export type StepActivity = {
   lines: ActivityLine[];
   /** A count the step reported, as it reported it ("respondent 40 of 300"); null until it does. */
   progress: { done: number; of: number } | null;
+  /** Fieldwork blocks answered from the checkpoint, not paid again (RQC7a `replayed`); 0 until reported. */
+  replayed: number;
   /**
    * Model requests the step reported answered (AIA_AI_STEP_EVENTS), summed from their events.
    * `tokens` is null once any answer came without its counts: unknown, never counted as none.
@@ -40,6 +43,10 @@ const usd = (v: number) => `$${v.toFixed(3)}`;
 export const formatUsd = usd;
 
 const TOOL_PREFIX = "deep_research_tool_";
+
+/** A fieldwork count with the blocks answered from the checkpoint, said only when there are any. */
+const withReplayed = (text: string, replayed: number) =>
+  replayed ? `${text} · ${tv("research.exec.activity.fieldworkReplayed", { replayed })}` : text;
 
 /** A Deep Research code with its counts filled; the placeholders a payload lacks stay out. */
 function deepResearchLine(code: string, payload: Record<string, unknown>): string | null {
@@ -106,9 +113,7 @@ export function describe(event: RunEvent): ActivityLine | null {
     const done = num(p.respondents);
     const of = num(p.of);
     if (done === null || of === null) return null;
-    const replayed = num(p.replayed);
-    const text = tv("research.exec.activity.fieldworkProgress", { done, of });
-    return line(replayed ? `${text} · ${tv("research.exec.activity.fieldworkReplayed", { replayed })}` : text);
+    return line(withReplayed(tv("research.exec.activity.fieldworkProgress", { done, of }), num(p.replayed) ?? 0));
   }
   if (code.startsWith(TOOL_PREFIX)) {
     const text = toolLine(code.slice(TOOL_PREFIX.length), p);
@@ -129,7 +134,7 @@ export function describe(event: RunEvent): ActivityLine | null {
 }
 
 function blank(stepId: string): StepActivity {
-  return { stepId, lines: [], progress: null, model: { answered: 0, tokens: 0, costUsd: 0 }, toolCalls: 0 };
+  return { stepId, lines: [], progress: null, replayed: 0, model: { answered: 0, tokens: 0, costUsd: 0 }, toolCalls: 0 };
 }
 
 /** Fold events read after the state's cursor; the same events twice change nothing. */
@@ -147,6 +152,8 @@ export function foldActivity(state: ActivityState, events: readonly RunEvent[], 
       const done = num(p.respondents);
       const of = num(p.of);
       if (done !== null && of !== null) next.progress = { done, of };
+      // Each event carries its attempt's own total: one without it says nothing was replayed.
+      if (event.message === "fieldwork_progress") next.replayed = num(p.replayed) ?? 0;
       if (event.message === "ai_request_answered") {
         next.model.answered += 1;
         const tokensIn = num(p.input_tokens);
@@ -161,6 +168,19 @@ export function foldActivity(state: ActivityState, events: readonly RunEvent[], 
     steps[event.step_id] = next;
   }
   return { cursor, steps };
+}
+
+/**
+ * How far a step that stopped short got, as it last reported it (artifact-fieldwork FLD3): a
+ * waiting, parked, failed or cancelled step keeps its count on Průběh once its activity panel
+ * closes, and so does a step still marked running in a run that has ended. Null for a step that
+ * runs (its panel says it), is queued for another attempt, succeeded or was skipped, and when it
+ * reported nothing.
+ */
+export function lastReported(activity: StepActivity | null, status: string, runEnded: boolean): string | null {
+  const stopped = isWaiting(status) || status === "FAILED" || status === "CANCELLED" || (status === "RUNNING" && runEnded);
+  if (!activity?.progress || !stopped) return null;
+  return withReplayed(tv("research.exec.activity.lastReported", activity.progress), activity.replayed);
 }
 
 /** The activity of the steps given, by step id; a step that reported nothing has none. */

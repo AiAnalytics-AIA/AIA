@@ -16,7 +16,7 @@
 // licensed panel, its Data Library): the screen says they are not in AIA.
 
 import { useRouter } from "next/navigation";
-import { type ReactNode, useContext, useEffect, useState } from "react";
+import { type ReactNode, useContext, useEffect, useId, useRef, useState } from "react";
 
 import { research, workspace } from "@/lib/api";
 import { isNativeResult } from "@/lib/research-agent-jobs";
@@ -175,8 +175,20 @@ export function PersonaStep() {
       setRequesting(false);
     }
   };
+  // An empty name is the field's own error, apart from a failed request (the suggestions share that one);
+  // `tried` remounts the message, so a second empty try is announced again.
+  const [emptyTried, setEmptyTried] = useState(0);
+  const customField = useRef<HTMLInputElement>(null);
+  const customErrorId = useId();
   const requestCustom = async () => {
-    if (await request(requestLabel(custom), "document_or_research", {}, PROPOSAL_DONE)) setCustom("");
+    const label = requestLabel(custom);
+    if (!label) {
+      setRequestError(null); // nothing is sent, so an earlier request's failure is no longer the news
+      setEmptyTried((n) => n + 1);
+      customField.current?.focus();
+      return;
+    }
+    if (await request(label, "document_or_research", {}, PROPOSAL_DONE)) setCustom("");
   };
   const requestSuggested = (x: NewDimension) => {
     const q = suggestedRequest(x);
@@ -195,6 +207,17 @@ export function PersonaStep() {
   const visible = entries.filter((d) => matchesDimensionSearch(d, query));
   const recommendedRows = visible.filter((d) => suggested.has(d.id));
   const catalogRows = visible.filter((d) => !suggested.has(d.id));
+  // A removed row takes its button with it: focus goes to the next row's remove, else the previous
+  // one's, else the list, never to the page's top.
+  const chosenList = useRef<HTMLUListElement>(null);
+  const removeChosen = (id: string) => {
+    const at = approved.indexOf(id);
+    apply(removeDimension(store.get().project, id));
+    requestAnimationFrame(() => {
+      const left = chosenList.current?.querySelectorAll<HTMLButtonElement>("button[data-remove]");
+      (left?.[Math.min(at, left.length - 1)] ?? chosenList.current)?.focus();
+    });
+  };
   const toggle = (id: string) => apply(chosen.has(id) ? removeDimension(store.get().project, id) : addDimension(store.get().project, id));
   const storedN = Number(p.n) > 0 ? Number(p.n) : null;
   const n = storedN ?? r.n;
@@ -205,7 +228,7 @@ export function PersonaStep() {
         {step.failure ? <AiFailureCard failure={step.failure} title={t("research.persona.failedTitle")} onRetry={() => step.setFailure(null)} onContinue={(id) => void step.resume(id, (r) => setSuggestion(r as Suggestion))} /> : null}
 
         <StepSection title={t("research.persona.chosenTitle")} hint={t("research.persona.selectedHint")} aside={<span className="font-mono text-xs text-ink-muted">{approved.length}</span>}>
-          <ul className="flex flex-col divide-y divide-border" aria-label={t("research.persona.chosenTitle")}>
+          <ul ref={chosenList} tabIndex={-1} className="flex flex-col divide-y divide-border rounded-sm focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus-ring" aria-label={t("research.persona.chosenTitle")}>
             <li className="flex items-center gap-2 py-2 text-xs text-ink-muted">
               <Icon name="pin" size={12} className="text-ink-faint" />
               {t("research.persona.baseRow")}
@@ -223,7 +246,8 @@ export function PersonaStep() {
                   <button
                     type="button"
                     aria-label={tv("research.persona.remove", { label })}
-                    onClick={() => apply(removeDimension(store.get().project, id))}
+                    data-remove
+                    onClick={() => removeChosen(id)}
                     className="ml-auto inline-flex size-6 items-center justify-center rounded-sm text-ink-faint hover:text-ink focus-visible:outline-2 focus-visible:outline-focus-ring"
                   >
                     ×
@@ -278,9 +302,10 @@ export function PersonaStep() {
               ) : null}
               {catalogRows.length ? <DimensionGroup title={t("research.persona.groupCatalog")} rows={catalogRows} chosen={chosen} suggested={suggested} onToggle={toggle} /> : null}
             </>
-          ) : (
-            <p className="mt-3 text-sm text-ink-muted">{t("research.persona.noMatch")}</p>
-          )}
+          ) : null}
+          {/* Always mounted and never display:none (a hidden live region is not announced), so a search that
+              empties the catalogue is said, not only drawn; empty, it takes no space. */}
+          <div role="status" className="text-sm text-ink-muted">{visible.length ? null : <p className="mt-3">{t("research.persona.noMatch")}</p>}</div>
         </StepSection>
 
         {suggestion?.new_dimension_suggestions?.length ? (
@@ -344,12 +369,32 @@ export function PersonaStep() {
           </p>
         </section>
         <StepSection n={2} optional title={t("research.persona.customSummary")} hint={t("research.persona.customHelper")}>
-          <div className="flex flex-wrap items-end gap-2">
-            <Field label={t("research.persona.customLabel")} className="min-w-64 flex-1">
-              <TextInput className="w-full !rounded-control" value={custom} placeholder={t("research.persona.customPlaceholder")} onChange={(e) => setCustom(e.target.value)} />
+          <form
+            className="flex flex-wrap items-end gap-2"
+            onSubmit={(e) => {
+              e.preventDefault();
+              void requestCustom();
+            }}
+          >
+            <Field label={t("research.persona.customLabel")} className="min-w-0 flex-1 basis-64">
+              <TextInput
+                ref={customField}
+                className="w-full !rounded-control"
+                value={custom}
+                placeholder={t("research.persona.customPlaceholder")}
+                aria-invalid={emptyTried ? true : undefined}
+                aria-describedby={emptyTried ? customErrorId : undefined}
+                onChange={(e) => {
+                  setCustom(e.target.value);
+                  setEmptyTried(0);
+                }}
+              />
             </Field>
-            <Button className="!rounded-control" disabled={requesting} onClick={() => void requestCustom()}>{t("research.persona.customAdd")}</Button>
-          </div>
+            <Button type="submit" className="!rounded-control" disabled={requesting}>{t("research.persona.customAdd")}</Button>
+          </form>
+          {emptyTried ? (
+            <p key={emptyTried} id={customErrorId} role="alert" className="mt-2 text-sm text-status-fault">{REQUEST_EMPTY}</p>
+          ) : null}
           {requestError ? (
             <p role="alert" className="mt-3 rounded-control border border-status-fault/40 bg-status-fault-wash p-3 text-sm text-status-fault">
               <b>{t("research.persona.requestFailedTitle")}</b> {requestError}
