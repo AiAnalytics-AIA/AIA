@@ -31,7 +31,6 @@ const SLOTS: Slot[] = [
 type Body = {
   declares_no_client_data?: boolean;
   text: string; note: string; based_on?: string | null; version_number: number | null; reason: string;
-  prompt_version?: number; design_revision_id: string; action: string;
 };
 
 type Backend = {
@@ -39,9 +38,6 @@ type Backend = {
   active: Record<string, number | null>;
   history: Record<string, { activation_id: number; version_number: number | null; label: string | null; activated_by: string; reason: string; activated_at: string }[]>;
   refuseActivation: boolean;
-  jobs: Record<string, { status: string }>;
-  /** The deployment's fictional-client list, as the API reports it on a prompt's detail. */
-  draftClients: string[];
 };
 let backend: Backend;
 let calls: { method: string; url: string; body: unknown }[] = [];
@@ -51,15 +47,15 @@ const activeOf = (s: Slot): PromptActive => {
   const n = backend.active[s.id];
   const v = n === null ? undefined : backend.versions[s.id].find((x) => x.version_number === n);
   return v
-    ? { version_number: n, label: v.label, origin: "stored", text_sha256: v.text_sha256, activated_by: "USR-1", activated_at: new Date().toISOString(), reason: "" }
-    : { version_number: null, label: s.version, origin: "baseline", text_sha256: sha(s.baseline), activated_by: null, activated_at: null, reason: "" };
+    ? { version_number: n, label: v.label, origin: "stored", text_sha256: v.text_sha256, activated_by: "USR-1", activated_at: backend.history[s.id].at(-1)?.activated_at ?? null, reason: "" }
+    : { version_number: null, label: s.version, origin: "baseline", text_sha256: sha(s.baseline), activated_by: backend.history[s.id].at(-1)?.activated_by ?? null, activated_at: backend.history[s.id].at(-1)?.activated_at ?? null, reason: "" };
 };
 const summary = (s: Slot): PromptSlotSummary => ({
   prompt_id: s.id, family: s.family, wired: s.wired, unwired_reason: s.reason, baseline_version: s.version, baseline_chars: s.baseline.length,
   active: activeOf(s), version_count: backend.versions[s.id].length, latest_number: backend.versions[s.id].at(-1)?.version_number ?? null,
 });
 const detail = (s: Slot): PromptSlotDetail => ({
-  ...summary(s), fixed_prefix: s.wired ? FRAME : "", baseline_text: s.baseline, required_literals: s.literals, max_chars: 200, draft_test_client_ids: backend.draftClients,
+  ...summary(s), fixed_prefix: s.wired ? FRAME : "", baseline_text: s.baseline, required_literals: s.literals, max_chars: 200,
   versions: [...backend.versions[s.id]].reverse(), history: [...backend.history[s.id]].reverse(),
 });
 
@@ -69,8 +65,6 @@ function fakeApi(overrides: Record<string, (body: Body, m: RegExpMatchArray) => 
     active: Object.fromEntries(SLOTS.map((s) => [s.id, null])),
     history: Object.fromEntries(SLOTS.map((s) => [s.id, []])),
     refuseActivation: false,
-    jobs: {},
-    draftClients: ["CLI-a"],
   };
   calls = [];
   const refuse = (status: number, code: string, message: string) => new Response(JSON.stringify({ code, message }), { status });
@@ -93,15 +87,6 @@ function fakeApi(overrides: Record<string, (body: Body, m: RegExpMatchArray) => 
       backend.history[slot.id].push({ activation_id: backend.history[slot.id].length + 1, version_number: b.version_number, label: b.version_number === null ? null : `e${b.version_number}`, activated_by: "USR-1", reason: b.reason, activated_at: new Date().toISOString() });
       return activeOf(slot);
     }],
-    ["GET", /^\/api\/v1\/studies\/STU-1\/design\/revisions$/, () => ({ items: [
-      { revision_id: "REV-1", study_id: "STU-1", revision: 1, content_sha256: "x", parent_revision: null, source_stage: "brief", created_by: "USR-1", created_at: "" },
-      { revision_id: "REV-2", study_id: "STU-1", revision: 2, content_sha256: "y", parent_revision: 1, source_stage: "plan", created_by: "USR-1", created_at: "" },
-    ] })],
-    ["POST", /^\/api\/v1\/studies\/STU-1\/research\/agent-jobs$/, (b) => ({
-      run_id: "RUN-1", design_revision_id: b.design_revision_id, action: b.action, status: "COMPLETED", is_terminal: true, needs_attention: false,
-      context_sha256: "c", harness_version: "h", prompt_version: b.prompt_version ? `e${b.prompt_version}` : "1", prompt_origin: "stored", created_at: null, steps: [], actual_cost_usd: 0.0123,
-    })],
-    ["GET", /^\/api\/v1\/studies\/STU-1\/research\/agent-jobs\/RUN-1\/result$/, () => ({ result: { project: {}, proposal: { title: "Návrh z e1" } }, provenance: { agent_id: "a", design_revision_id: "REV-2", context_sha256: "c", status: "PROPOSED" } })],
   ];
   for (const [k, fn] of Object.entries(overrides)) {
     const [method, path] = k.split(" ");
@@ -554,6 +539,41 @@ describe("a prompt no running step reads", () => {
     expect(screen.queryByRole("button", { name: "Uložit jako novou verzi" })).toBeNull();
     expect(within(locked).getByText("Text z kódu, který běží")).toBeTruthy();
     expect(locked.textContent).toContain("Jsi respondent.");
+  });
+});
+
+describe("what waits to be switched on", () => {
+  const stored = (n: number, at: string): PromptVersion => ({ version_number: n, label: `e${n}`, text: `t${n}`, text_sha256: `s${n}`, material_sha256: `m${n}`, declared_class: "CLASS_C_INTERNAL", declared_by: "USR-1", declared_at: at, based_on: "baseline", note: "", created_by: "USR-1", created_at: at });
+  it("calls a version earlier, not waiting, after a rollback below it or a reset to the code's wording", async () => {
+    fakeApi();
+    backend.versions[ANALYZE] = [stored(1, "2026-10-01T10:00:00Z"), stored(2, "2026-10-02T10:00:00Z"), stored(3, "2026-10-03T10:00:00Z")];
+    // v3 was switched on, then v2 again: v3 is earlier, not waiting; so is v1, saved before both.
+    backend.history[ANALYZE] = [
+      { activation_id: 1, version_number: 3, label: "e3", activated_by: "USR-1", reason: "", activated_at: "2026-10-04T10:00:00Z" },
+      { activation_id: 2, version_number: 2, label: "e2", activated_by: "USR-1", reason: "", activated_at: "2026-10-05T10:00:00Z" },
+    ];
+    backend.active[ANALYZE] = 2;
+    mount();
+    const v3 = await versionRow("v3");
+    expect(v3.textContent).toContain("dřívější");
+    expect(v3.className).not.toContain("bg-status-you-wash");
+    expect(document.querySelector("[data-waiting-chip]")).toBeNull();
+    // The list cannot tell from its summary: it says nothing waits rather than guess.
+    expect((document.querySelector(`[data-prompt="${ANALYZE}"]`) as HTMLElement).getAttribute("data-waiting")).toBeNull();
+    cleanup();
+
+    fakeApi();
+    backend.versions[ANALYZE] = [stored(1, "2026-10-01T10:00:00Z"), stored(2, "2026-10-02T10:00:00Z"), stored(3, "2026-10-03T10:00:00Z")];
+    backend.history[ANALYZE] = [
+      { activation_id: 1, version_number: 3, label: "e3", activated_by: "USR-1", reason: "", activated_at: "2026-10-04T10:00:00Z" },
+      { activation_id: 2, version_number: null, label: null, activated_by: "USR-1", reason: "", activated_at: "2026-10-05T10:00:00Z" },
+    ];
+    backend.active[ANALYZE] = null;
+    mount();
+    // Every version predates the reset: none waits, v3 included.
+    for (const key of ["v1", "v2", "v3"]) expect((await versionRow(key)).textContent).toContain("dřívější");
+    expect(document.querySelector("[data-waiting-chip]")).toBeNull();
+    expect((document.querySelector(`[data-prompt="${ANALYZE}"]`) as HTMLElement).getAttribute("data-waiting")).toBeNull();
   });
 });
 

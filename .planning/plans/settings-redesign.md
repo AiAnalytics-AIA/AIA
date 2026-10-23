@@ -59,5 +59,12 @@ https://claude.ai/artifact/8W9LR8Ju9BWnR5JACmiWv7 (ten boards, one per tab) and 
 - The prompts' Verze table, with its actions in a fifth column, pushed the page wider than 1024 px
   once a version was saved (caught by proposal_prompt_journey on chunk 5): the actions now stand on a
   row of their own under each version's facts (SystemPromptsPanel.tsx Versions).
-- Chunk 5 removes Settings' draft test (X10), which is system-prompts-settings #14's web part; that
-  plan's tick belongs to the docs PR (a feature PR touches only its own plan file).
+- Chunk 5 removes Settings' draft test (X10): the web half of system-prompts-settings #14. The web no
+  longer sends `prompt_version` or reads `draft_test_client_ids`, but the server half stays open: the
+  agent-job route still accepts `prompt_version` (AgentJobStart.prompt_version) and the prompt detail
+  still answers `draft_test_client_ids` (SlotDetail). The backend builder removes them under #14 (D-15);
+  until then #14 is not done.
+- A stored version "waits" only when saved after the last switch-on (or with none made): a number above
+  the one in force read a rollback or a reset to the code's wording as waiting (review of #838). The
+  list's summary carries no version date, so the list says a version waits only when nothing was ever
+  switched on (SystemPromptsPanel.tsx waitsForActivation, standing).

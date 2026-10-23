@@ -136,12 +136,28 @@ function Workspace({ people }: { people: People }) {
 /** "v3": a stored version as the list and the Verze table say it. */
 const shortName = (n: number) => tv(`${P}.short`, { n });
 
-/** Where a prompt stands, in words: the version in force, and a newer saved one waiting to be switched on. */
+/**
+ * Whether a stored version waits to be switched on: saved after the last switch-on (or with none
+ * ever made). A number above the one in force is not enough -- a rollback to v2 or a reset to the
+ * code's wording leaves v3 "dřívější", not waiting (review of #838), and a switch-on settles every
+ * version saved before it.
+ */
+function waitsForActivation(v: Pick<PromptVersion, "version_number" | "created_at">, detail: Pick<PromptSlotDetail, "active" | "history">): boolean {
+  if (detail.active.origin === "stored" && detail.active.version_number === v.version_number) return false;
+  const last = [detail.active.activated_at, ...detail.history.map((h) => h.activated_at)].filter((x): x is string => !!x).sort().at(-1);
+  return last === undefined || v.created_at > last;
+}
+
+/**
+ * Where a prompt stands, in words: the version in force, and a saved one waiting -- said only where
+ * the list knows it. The summary carries no version's date, so a newer number waits only when nothing
+ * was ever switched on; otherwise the list does not say, and unknown never reads as waiting.
+ */
 function standing(row: PromptSlotSummary): { text: string; waiting: boolean } {
   if (!row.wired) return { text: t(`${P}.state.locked`), waiting: false };
   const active = row.active.origin === "stored" ? row.active.version_number : null;
   const live = active === null ? t(`${P}.state.baseline`) : tv(`${P}.state.inForce`, { v: shortName(active) });
-  const waiting = row.latest_number !== null && row.latest_number > (active ?? 0);
+  const waiting = row.latest_number !== null && row.active.activated_at === null && row.active.origin === "baseline";
   return { text: waiting ? `${live} · ${tv(`${P}.state.waiting`, { v: shortName(row.latest_number!) })}` : live, waiting };
 }
 
@@ -333,10 +349,10 @@ function EditorBody({ detail, people, reload, onDirty }: {
 
   const running = detail.active.origin === "stored" ? versionName(detail.active.label) : t(`${P}.baselineName`);
   const savedWaiting = offer !== null && detail.active.version_number !== offer ? offer : null;
-  // The newest stored version not in force, whoever saved it: the chip the design shows ("v4 čeká").
-  const activeNumber = detail.active.origin === "stored" ? detail.active.version_number : null;
-  const newest = Math.max(0, ...detail.versions.map((v) => v.version_number), justSaved?.version_number ?? 0);
-  const waitingNumber = newest > (activeNumber ?? 0) ? newest : null;
+  // The newest stored version waiting to be switched on, whoever saved it: the chip the design shows ("v4 čeká").
+  const waitingNumbers = detail.versions.filter((v) => waitsForActivation(v, detail)).map((v) => v.version_number);
+  if (justSaved && !detail.versions.some((v) => v.version_number === justSaved.version_number)) waitingNumbers.push(justSaved.version_number);
+  const waitingNumber = waitingNumbers.length ? Math.max(...waitingNumbers) : null;
   const basedOnName = basedOn === "baseline" ? t(`${P}.baselineName`) : versionName(basedOn);
 
   if (!detail.wired) {
@@ -530,7 +546,7 @@ function Versions({ detail, people, offered, onLoad, onCompare, onActivate }: {
   const cell = "border-t border-border px-2 py-2 align-top";
   const row = (v: PromptVersion | null) => {
     const running = v === null ? activeNumber === null : activeNumber === v.version_number;
-    const waiting = v !== null && v.version_number > (activeNumber ?? 0);
+    const waiting = v !== null && !running && waitsForActivation(v, detail);
     const key = v === null ? "baseline" : `v${v.version_number}`;
     const state = running ? t(`${P}.versions.stateInForce`) : waiting ? t(`${P}.versions.stateWaiting`) : v === null ? t(`${P}.versions.stateCode`) : t(`${P}.versions.stateEarlier`);
     const tone = running ? `${IN_FORCE} ${IN_FORCE_EDGE}` : waiting ? "bg-status-you-wash" : "";
