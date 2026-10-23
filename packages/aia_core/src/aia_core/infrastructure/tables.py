@@ -468,6 +468,10 @@ class OrganizationMemberRow(Base):
     organization_id: Mapped[str] = mapped_column(String(64), primary_key=True)
     user_id: Mapped[str] = mapped_column(String(64), primary_key=True)
     role: Mapped[str] = mapped_column(String(32), nullable=False, default="MEMBER")
+    # Deactivated in this organization (D-27, settings-backends SB2): the member resolves no
+    # scope here while set; their membership elsewhere and the account are untouched.
+    deactivated_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    deactivated_by: Mapped[str | None] = mapped_column(String(64))
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), nullable=False, default=utcnow
     )
@@ -912,6 +916,11 @@ class ResearcherLeadRow(Base):
     #: The researcher's standing choice to have the Lead's text edits accepted without a click
     #: (plan inline-decisions chunk 2). Off unless they turn it on.
     auto_accept_text_edits: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
+    #: Sealed when its researcher's membership is deactivated (ADR 0030, settings-backends SB2):
+    #: from then no route or worker reads it, the researcher included, until a reactivation
+    #: before ``erase_after`` unseals it; after that date the retention sweep erases it.
+    sealed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    erase_after: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
 
     __table_args__ = (
         ForeignKeyConstraint(
@@ -919,6 +928,7 @@ class ResearcherLeadRow(Base):
         ),
         ForeignKeyConstraint(["user_id"], ["users.user_id"], ondelete="CASCADE"),
         UniqueConstraint("organization_id", "user_id", name="researcher_lead_once"),
+        Index("ix_researcher_leads_erase_after", "erase_after"),
         CheckConstraint("length(soul) <= 2000", name="researcher_lead_soul_bounded"),
         CheckConstraint("length(user_profile) <= 2000", name="researcher_lead_user_bounded"),
     )

@@ -197,7 +197,7 @@ def test_the_harness_has_its_own_identity_beside_the_domain_prompt() -> None:
     assert harness_sha256() == harness_sha256()
     assert len(harness_sha256()) == 64
     assert harness_sha256() != prompt_template_sha256()
-    assert ANALYSIS_HARNESS_VERSION == "aia-analysis-harness-2"
+    assert ANALYSIS_HARNESS_VERSION == "aia-analysis-harness-3"
 
 
 def test_an_undeclared_lineage_is_sent_as_undeclared_for_the_licence_gate_to_refuse() -> None:

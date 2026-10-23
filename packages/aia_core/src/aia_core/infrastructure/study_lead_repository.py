@@ -6,21 +6,23 @@ three scope columns **and the calling researcher** (``scope.actor_id``): a conve
 one researcher's, so nobody reads another's turns, even on the same Study (the product
 owner, 2026-10-19). The table is append-only; a turn is never rewritten.
 
-The caller owns the transaction.
+The caller owns the transaction. The one exception to "never rewritten" is
+:func:`erase_member_turns`: the retention sweep erases a sealed Lead's conversations
+(ADR 0030, settings-backends SB2).
 """
 
 from __future__ import annotations
 
 from typing import Any
 
-from sqlalchemy import func, select
+from sqlalchemy import delete, func, select
 from sqlalchemy.orm import Session
 
 from ..domain.research_lead import LeadTurn, new_turn_id
 from ..domain.scope import ScopeDenied, StudyContext
 from .tables import StudyLeadTurnAnswerRow, StudyLeadTurnRow, StudyRow, as_utc, utcnow
 
-__all__ = ["StudyLeadRepository"]
+__all__ = ["StudyLeadRepository", "erase_member_turns"]
 
 
 def _to_domain(row: StudyLeadTurnRow) -> LeadTurn:
@@ -255,3 +257,17 @@ class StudyLeadRepository:
             for person_turn_id in person_turn_ids
         )
         self._session.flush()
+
+def erase_member_turns(session: Session, *, organization_id: str, user_id: str) -> list[str]:
+    """Erase every Lead turn of one member in one organization, every Study; returns the
+    runs those turns started, so their steps and artifacts can be erased too. The retention
+    sweep's alone, after the member's Lead was sealed for its full period."""
+    where = (
+        StudyLeadTurnRow.organization_id == organization_id,
+        StudyLeadTurnRow.user_id == user_id,
+    )
+    run_ids = sorted(
+        {r for r in session.scalars(select(StudyLeadTurnRow.run_id).where(*where)) if r is not None}
+    )
+    session.execute(delete(StudyLeadTurnRow).where(*where))
+    return run_ids

@@ -38,15 +38,17 @@ const chooseField = async (reference) => {
 };
 try {
   await page.goto(base + "/app/settings"); await page.getByRole("tablist", { name: "Oddíly nastavení" }).waitFor();
-  assert.equal(await page.getByRole("tab").count(), 8);
-  for (const id of ["ai", "prompts", "deep_research", "methodology", "access", "studies", "audit", "reference"]) {
+  assert.equal(await page.getByRole("tab").count(), 10);
+  // At 1440 every tab shows its line under its name (settings-redesign 1).
+  assert.equal(await page.locator("[data-tab-subtitle]:visible").count(), 10);
+  for (const id of ["ai", "prompts", "deep_research", "methodology", "access", "studies", "audit", "system", "reference", "data"]) {
     const panel = await tab(id); await panel.locator("h2").first().waitFor();
     if (id === "prompts") await page.getByLabel("Instrukce", { exact: true }).waitFor();
     if (id === "deep_research") await page.locator("[data-dr-setting]").first().waitFor({ state: "attached" });
     if (id === "methodology") await page.locator("[data-methodology-editor]").waitFor(); // an administrator opens on the editor
     await widths(`tab ${id}`); await screenshot(id);
   }
-  checks.push("All eight settings tabs load and fit desktop/tablet/phone without page overflow");
+  checks.push("All ten settings tabs load and fit desktop/tablet/phone without page overflow; each names its purpose under its name at 1440");
   // One technical switch per page instead of a disclosure arrow by every value (product owner, 2026-10-13).
   for (const id of ["ai", "access", "studies", "audit", "reference"]) {
     const panel = await tab(id);

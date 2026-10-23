@@ -82,10 +82,12 @@ from .modules import AnalysisModuleSpec
 
 __all__ = [
     "INTERVAL_LEVEL",
+    "MAX_HYPOTHESES",
     "MAX_RESEARCH_QUESTIONS",
     "NATIVE_EVIDENCE_VERSION",
     "NativeEvidence",
     "NativeEvidenceRefused",
+    "hypotheses_of",
     "native_evidence",
     "native_items",
     "native_preflight",
@@ -98,6 +100,8 @@ NATIVE_EVIDENCE_VERSION: Final = "aia-native-evidence-1"
 
 #: ``analysis_agent._research_questions``: at most eight.
 MAX_RESEARCH_QUESTIONS: Final = 8
+#: The most stated hypotheses the hypotheses module is given, as many as research questions.
+MAX_HYPOTHESES: Final = 8
 
 #: The aggregate's intervals are 95 % bootstrap intervals (``dotaznik.py``'s note).
 INTERVAL_LEVEL: Final = 0.95
@@ -155,6 +159,17 @@ def research_questions_of(design: Mapping[str, Any]) -> tuple[str, ...]:
     if not questions and isinstance(goal, str) and goal.strip():
         questions = [goal.strip()]
     return tuple(dict.fromkeys(questions))[:MAX_RESEARCH_QUESTIONS]
+
+
+def hypotheses_of(design: Mapping[str, Any]) -> tuple[str, ...]:
+    """The hypotheses the design states (``research_plan.hypotheses``), as the hypotheses module
+    is given them: a list of strings only, an exact repeat dropped, at most :data:`MAX_HYPOTHESES`.
+
+    The module evaluates only hypotheses it is supplied; before this it was supplied none, so it
+    answered "none supplied" whatever the design stated (Nigel, Q72, 2026-10-22)."""
+    plan = design.get("research_plan")
+    plan = plan if isinstance(plan, Mapping) else {}
+    return tuple(dict.fromkeys(_texts(plan.get("hypotheses"))))[:MAX_HYPOTHESES]
 
 
 # --------------------------------------------------------------------------- #

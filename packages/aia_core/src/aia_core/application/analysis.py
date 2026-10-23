@@ -99,6 +99,8 @@ class AnalysisInputs:
     system_fingerprint: str
     validation: ValidationState | None = None
     external_context: tuple[str, ...] = ()
+    #: The design's stated hypotheses, given to the hypotheses module alone (empty for others).
+    hypotheses: tuple[str, ...] = ()
 
 
 class ModuleOutcomeKind(StrEnum):
@@ -136,6 +138,7 @@ def input_fingerprint(module_id: AnalysisModuleId, inputs: AnalysisInputs) -> st
         method_status=method_status(inputs.validation, inputs.system_fingerprint),
         system_fingerprint=inputs.system_fingerprint,
         external_context=inputs.external_context,
+        hypotheses=inputs.hypotheses,
     )
 
 
@@ -174,6 +177,7 @@ def run_analysis_module(
         inputs.table,
         research_questions=inputs.research_questions,
         external_context=inputs.external_context,
+        hypotheses=inputs.hypotheses,
     )
     stamp = method_status(inputs.validation, inputs.system_fingerprint)
 
