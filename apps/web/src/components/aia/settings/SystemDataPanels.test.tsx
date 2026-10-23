@@ -195,6 +195,22 @@ describe("Správa dat", () => {
     expect(document.querySelector("[data-client-delete] [data-not-yet]")).toBeNull();
   });
 
+  it("reads the kept records again after a client is deleted", async () => {
+    let deletedClients = 0;
+    fake({
+      "POST /api/v1/clients/CLI-a/deletion": () => PREVIEW,
+      "DELETE /api/v1/clients/CLI-a": () => { deletedClients += 1; return { client_id: "CLI-a", already_deleted: false, deleted: {}, objects_deleted: 9, objects_failed: 0 }; },
+      "GET /api/v1/settings/kept-records": () => [{ record: "deleted_clients", count: deletedClients, kept_for: "indefinite", why: "x" }],
+    });
+    render(<DataPanel mayAdminister clients={CLIENTS} reload={() => {}} />);
+    const count = () => (document.querySelector('[data-kept="deleted_clients"] td:nth-child(2)') as HTMLElement | null)?.textContent;
+    await waitFor(() => expect(count()).toBe("0"));
+    const dialog = await openDialog();
+    fireEvent.click(within(dialog).getByRole("switch", { name: "Rozumím, že smazání nelze vrátit." }));
+    fireEvent.click(within(dialog).getByRole("button", { name: "Smazat klienta" }));
+    await waitFor(() => expect(count()).toBe("1"));
+  });
+
   it("lists the kept records in words, and says not in AIA yet without the routes", async () => {
     fake({ "GET /api/v1/settings/kept-records": () => [{ record: "usage_rows", count: 4812, kept_for: "indefinite", why: "each model call's tokens and cost" }] });
     render(<DataPanel mayAdminister clients={CLIENTS} reload={() => {}} />);

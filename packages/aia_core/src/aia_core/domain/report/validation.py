@@ -37,7 +37,6 @@ from aia_core.domain.report.model import (
     Inline,
     KeyFinding,
     KpiRow,
-    ListItem,
     NumberCell,
     Paragraph,
     Quote,
@@ -50,6 +49,7 @@ from aia_core.domain.report.model import (
     Text,
     TextCell,
     Value,
+    block_inlines,
 )
 from aia_core.domain.research_sociomap import MethodologyStatus
 
@@ -108,16 +108,7 @@ class ReportInvalid(ValueError):
 
 
 def _inlines(block: Block) -> Iterator[Inline]:
-    if isinstance(block, Paragraph | Callout):
-        yield from block.content
-    elif isinstance(block, BulletList):
-        yield from _item_inlines(block.items)
-
-
-def _item_inlines(items: tuple[ListItem, ...]) -> Iterator[Inline]:
-    for item in items:
-        yield from item.content
-        yield from _item_inlines(item.children)
+    yield from block_inlines(block)
 
 
 def _prose(block: Block) -> Iterator[str]:
@@ -239,9 +230,9 @@ def validate(doc: ReportDocument) -> tuple[Problem, ...]:
             # inside it would be a control within a control, which a reader one level deep (the
             # client-source reader) would lose.
             if (
-                isinstance(block, Paragraph | Callout)
+                isinstance(block, Paragraph | Callout | BulletList)
                 and block.control
-                and any(isinstance(inline, Value) for inline in block.content)
+                and any(isinstance(inline, Value) for inline in _inlines(block))
             ):
                 add(
                     ProblemCode.CONTROLLED_VALUE,

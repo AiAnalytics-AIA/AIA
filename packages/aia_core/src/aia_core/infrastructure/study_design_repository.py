@@ -14,7 +14,7 @@ from __future__ import annotations
 
 from typing import Any, Final
 
-from sqlalchemy import select
+from sqlalchemy import delete, select
 from sqlalchemy.orm import Session
 
 from ..domain.design import (
@@ -38,7 +38,12 @@ from .tables import (
     as_utc,
 )
 
-__all__ = ["AUTHORED_REASON", "DesignRevisionNotFound", "StudyDesignRepository"]
+__all__ = [
+    "AUTHORED_REASON",
+    "DesignRevisionNotFound",
+    "StudyDesignRepository",
+    "erase_client_designs",
+]
 
 #: ``project_revisions.reason`` for a design submitted from a stage: the provenance
 #: of a Design Revision without a column of its own.
@@ -376,3 +381,11 @@ class StudyDesignRepository:
             .limit(max(1, min(int(limit), 200)))
         ).all()
         return [_to_domain(r, self._scope.study_id) for r in rows]
+
+
+def erase_client_designs(session: Session, *, client_id: str) -> None:
+    """Delete a deleted client's Design Revision rows and reused-design citations (SB5); their
+    design projects go with the client's projects, after these."""
+    session.execute(delete(StudyDesignSourceRow).where(StudyDesignSourceRow.client_id == client_id))
+    session.execute(delete(StudyDesignRow).where(StudyDesignRow.client_id == client_id))
+    session.flush()

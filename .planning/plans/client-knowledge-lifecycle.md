@@ -29,7 +29,7 @@ chunks:
   - "[ ] K7a. W5 MVP research consumer proof: intake, reviewed/frozen knowledge, executable dimension, admitted report and same-client reuse; Simulation extension stays in K7 after MVP"
   - "[ ] K9. A cross-client what-needs-me portfolio: every study waiting for the signed-in researcher, across clients (D-47)"
   - "[ ] K10. Project memory searches approved reports too, beside designs (D-47)"
-  - "[ ] K11. Profil → Pravidla: the wallet ceiling, set by an OWNER or ADMIN, beside the posture setter deep-research-web-search 53 builds; both listed read-only in Settings (D-17)"
+  - "[x] K11. Profil → Pravidla: the wallet ceiling, set by an OWNER or ADMIN, beside the posture setter deep-research-web-search 53 builds; both listed read-only in Settings (D-17) (#853 @ 0eda121e)"
   - "[ ] K12. The Simulace tab and its new-simulation button hidden until simulation is built (MVP-31)"
 ---
 # Client knowledge that studies can use correctly

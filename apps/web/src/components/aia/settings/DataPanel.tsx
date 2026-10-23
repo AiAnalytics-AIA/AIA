@@ -62,7 +62,7 @@ function ClientDelete({ clients, reload }: { clients: Part<AdminClient[]>; reloa
   const retryFiles = async () => {
     if (!waiting) return;
     setBusy(true); setError(null);
-    try { finish(waiting, (await clientDeletion.remove(waiting.client_id, waiting.token)).objects_failed); }
+    try { finish(waiting, (await clientDeletion.remove(waiting.client_id, waiting.token)).objects_failed); reload(); }
     catch (e) { setError(describeError(e)); }
     finally { setBusy(false); }
   };
@@ -133,7 +133,8 @@ function ClientDelete({ clients, reload }: { clients: Part<AdminClient[]>; reloa
   );
 }
 
-function KeptRecords() {
+/** `version` moves after a deletion: the counts it changed (deleted clients, audit rows) are read again. */
+function KeptRecords({ version }: { version: number }) {
   const [read, setRead] = useState<{ state: "loading" } | { state: "ready"; data: KeptRecord[] } | { state: "not_yet" } | { state: "refused"; message: string }>({ state: "loading" });
   useEffect(() => {
     let live = true;
@@ -143,7 +144,7 @@ function KeptRecords() {
       (e: unknown) => { if (live) setRead(notBuilt(e) ? { state: "not_yet" } : { state: "refused", message: describeError(e) }); },
     );
     return () => { live = false; };
-  }, []);
+  }, [version]);
   const head = "px-2 py-1.5 text-left text-xs font-normal text-ink-faint";
   const cell = "border-t border-border px-2 py-2 align-top text-sm";
   return (
@@ -168,6 +169,9 @@ function KeptRecords() {
 }
 
 export function DataPanel({ mayAdminister, clients, reload }: { mayAdminister: boolean; clients: Part<AdminClient[]>; reload: () => void }) {
+  const [kept, setKept] = useState(0);
   if (!mayAdminister) return <section className={CARD}><p className="text-sm text-ink-muted">{t(`${D}.adminOnly`)}</p></section>;
-  return <div className="flex flex-col gap-4"><ClientDelete clients={clients} reload={reload} /><KeptRecords /></div>;
+  // A deletion reloads the clients and reads the kept records again.
+  const afterDelete = () => { reload(); setKept((n) => n + 1); };
+  return <div className="flex flex-col gap-4"><ClientDelete clients={clients} reload={afterDelete} /><KeptRecords version={kept} /></div>;
 }
