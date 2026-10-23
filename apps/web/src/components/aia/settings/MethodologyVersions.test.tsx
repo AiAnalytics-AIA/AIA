@@ -431,7 +431,7 @@ describe("the comparison with what is in force", () => {
 
   it("counts a long comparison's seconds and, past 10 s, says it is computing, never a silent wait", async () => {
     fakeApi();
-    render(<MethodologyPanel />);
+    render(<MethodologyPanel />); await openMap();
     await openEditor();
     const form = await editor();
     // The server takes its time: the comparison answers only when the test lets it.
