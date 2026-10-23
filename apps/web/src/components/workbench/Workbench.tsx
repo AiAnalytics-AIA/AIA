@@ -717,8 +717,12 @@ export function Workbench({ frame, step, store, memory, save, inspector, reload,
   // A Lead's show_diff (research-lead-workbench 14): the Lead's edits still to decide on the
   // stage, else its newest proposal still waiting for review; with neither, the stage itself.
   // `jobs` is the newest page only: a proposal older than it is asked of the server, which
-  // filters the pending ones before its page.
+  // filters the pending ones before its page. A lookup answering after the stage, the study or
+  // a newer show_diff moved on is dropped (`lookup`).
+  const lookup = useRef(0);
+  useEffect(() => () => { lookup.current++; }, [stage, frame.studyId]);
   showChanges.current = (target, reveal) => {
+    const mine = ++lookup.current;
     const what = changesToShow(target, open.map((x) => editStage(x.edit)), jobs);
     if (what?.kind === "proposal") return openJob(what.job);
     if (what?.kind === "edits") {
@@ -727,11 +731,12 @@ export function Workbench({ frame, step, store, memory, save, inspector, reload,
     }
     researchAgents.jobs(frame.studyId, true).then(
       (pending) => {
+        if (lookup.current !== mine) return;
         const older = changesToShow(target, [], pending);
         if (older?.kind === "proposal") openJob(older.job);
         else if (target !== stage) go(target);
       },
-      () => { if (target !== stage) go(target); },
+      () => { if (lookup.current === mine && target !== stage) go(target); },
     );
   };
 

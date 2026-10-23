@@ -699,6 +699,27 @@ describe("the Lead's show_diff (research-lead-workbench 14)", () => {
     expect(asked.every((u) => u.endsWith("/research/agent-jobs?pending=true"))).toBe(true);
   });
 
+  it("drops a pending-proposal lookup that answers after the person has moved to another stage (Codex on #809)", async () => {
+    push.mockClear();
+    const pending = { run_id: "RUN-old", action: "optimize_questionnaire", proposal_state: "pending", created_at: "2026-10-01T09:00:00Z", status: "COMPLETED", is_terminal: true, steps: [] } as unknown as ResearchAgentJob;
+    leadReads = [leadState({ busy: true, turns: [leadTurn("T1", 1)] }), leadState({ turns: [leadTurn("T1", 1), leadTurn("T2", 2, [{ op: "show_diff", stage: "questionnaire" }])] })];
+    const base = vi.mocked(fetch);
+    let answer: (r: Response) => void = () => {};
+    vi.stubGlobal("fetch", vi.fn(async (url: RequestInfo | URL, init?: RequestInit) => {
+      if (String(url).includes("/research/agent-jobs?")) return new Promise<Response>((r) => { answer = r; });
+      return base(url, init);
+    }));
+    const onOpenJob = vi.fn();
+    const store = new ResearchStore({ revision: 3, project: EMPTY_PROJECT as unknown as ResearchProject, analysis: null, save: { kind: "saved" }, checkEpoch: 0 }, "STU-1");
+    const props = { frame: TEST_FRAME, store, memory: new Map(), save: null, inspector: null, reload: vi.fn(), confirm: vi.fn(async () => true), onAgentStarted: vi.fn(), jobs: [], onOpenJob, onRefreshJobs: vi.fn(async () => []) };
+    const view = render(<Workbench {...props} step="questionnaire"><Stage /></Workbench>);
+    await waitFor(() => expect(vi.mocked(fetch).mock.calls.some(([u]) => String(u).includes("/research/agent-jobs?"))).toBe(true));
+    view.rerender(<Workbench {...props} step="audience"><Stage /></Workbench>);
+    await act(async () => { answer(new Response(JSON.stringify([pending]))); await new Promise((r) => setTimeout(r, 20)); });
+    expect(onOpenJob).not.toHaveBeenCalled();
+    expect(push).not.toHaveBeenCalled();
+  });
+
   it("opens the stage itself, through its leave guard, when nothing waits there", async () => {
     push.mockClear();
     leadReads = [leadState({ busy: true, turns: [leadTurn("T1", 1)] }), leadState({ turns: [leadTurn("T1", 1), leadTurn("T2", 2, [{ op: "show_diff", stage: "dimensions" }])] })];
