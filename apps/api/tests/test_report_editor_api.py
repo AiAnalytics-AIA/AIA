@@ -63,9 +63,12 @@ def _docx(text: str = "Koncept") -> bytes:
     return out.getvalue()
 
 
-def _reported_run(app: FastAPI, researcher: TestClient, world: Any) -> tuple[str, str]:
-    """A run of the primary study whose report step stored an internal draft: (run, draft)."""
-    revision = world.design(researcher, DESIGN).json()["revision_id"]
+def _reported_run(
+    app: FastAPI, researcher: TestClient, world: Any, *, title: str = "Ranní nápoj"
+) -> tuple[str, str]:
+    """A run of the primary study whose report step stored an internal draft: (run, draft);
+    another ``title`` is another design, so another run."""
+    revision = world.design(researcher, {**DESIGN, "title": title}).json()["revision_id"]
     runs = f"{API}/studies/{world.study_id()}/research/runs"
     started = researcher.post(runs, json={"design_revision_id": revision})
     assert started.status_code == 201, started.text
@@ -122,6 +125,7 @@ def test_the_config_is_signed_names_no_e_mail_and_fetches_its_version(
     assert body["line_id"] == draft and body["koncept"] == 1
     config = body["config"]
     signed = jwt.decode(config.pop("token"), SECRET, algorithms=["HS256"])
+    assert isinstance(signed.pop("exp"), int)  # a config's token expires
     assert signed == config  # the Document Server checks the config as signed
     user = config["editorConfig"]["user"]
     assert user["id"] == world.users["researcher"] and "@" not in user["name"]
@@ -142,19 +146,70 @@ def test_a_second_researcher_gets_the_same_key(
     assert second["editorConfig"]["user"]["id"] == world.users["lead"]
 
 
+def _signed_for(path: str, query: dict[str, Any]) -> dict[str, str]:
+    """The Document Server's JWT for a fetch of ``path`` with ``query``."""
+    token = query["token"][0] if isinstance(query["token"], list) else query["token"]
+    url = f"{PUBLIC}{path}?token={token}"
+    return {"Authorization": f"Bearer {jwt.encode({'url': url}, SECRET)}"}
+
+
 def test_the_document_is_served_only_to_the_document_server_for_its_url(
     app: FastAPI, researcher: TestClient, client: TestClient, world: Any
 ) -> None:
     run_id, _ = _reported_run(app, researcher, world)
-    url = researcher.post(_editor(world, run_id), json={}).json()["config"]["document"]["url"]
-    assert _fetch(client, url, signed=False).status_code == 403  # no Document Server JWT
+    body = researcher.post(_editor(world, run_id), json={}).json()
+    config, url = body["config"], body["config"]["document"]["url"]
     parsed = urlparse(url)
-    forged = {"token": jwt.encode({"kind": "document", "key": "x", "exp": 9e9}, SECRET)}
-    signed = {"Authorization": f"Bearer {jwt.encode({}, SECRET)}"}
+    query = parse_qs(parsed.query)
+    assert _fetch(client, url, signed=False).status_code == 403  # no Document Server JWT
+    # The browser's own JWT is under the same secret: a config's token is not the Server's.
+    as_browser = {"Authorization": f"Bearer {config['token']}"}
+    assert client.get(parsed.path, params=query, headers=as_browser).status_code == 403
+    # A Document Server JWT for another URL.
+    elsewhere = {"Authorization": f"Bearer {jwt.encode({'url': f'{PUBLIC}/x'}, SECRET)}"}
+    assert client.get(parsed.path, params=query, headers=elsewhere).status_code == 403
     # The editor's own secret does not sign AIA's URL tokens: they are under a derived key.
-    assert client.get(parsed.path, params=forged, headers=signed).status_code == 403
-    other = parsed.path.replace(world.study_id(), world.study_id("sibling"))
-    assert client.get(other, params=parse_qs(parsed.query), headers=signed).status_code == 404
+    forged = {"token": jwt.encode({"kind": "document", "key": "x", "exp": 9e9}, SECRET)}
+    assert (
+        client.get(parsed.path, params=forged, headers=_signed_for(parsed.path, forged))
+    ).status_code == 403
+    # The same URL under another study, or another run of this one: not this session's.
+    for other in (
+        parsed.path.replace(world.study_id(), world.study_id("sibling")),
+        parsed.path.replace(run_id, "RUN-0"),
+    ):
+        answer = client.get(other, params=query, headers=_signed_for(other, query))
+        assert answer.status_code == 404, other
+
+
+def test_an_expired_a_callbacks_or_another_lines_token_does_not_fetch(
+    app: FastAPI, researcher: TestClient, client: TestClient, world: Any
+) -> None:
+    from datetime import UTC, datetime, timedelta
+
+    from aia_api.editor_tokens import DOCUMENT_LIFETIME, EditorTokens
+
+    run_id, _ = _reported_run(app, researcher, world)
+    body = researcher.post(_editor(world, run_id), json={}).json()
+    key = body["config"]["document"]["key"]
+    path = urlparse(body["config"]["document"]["url"]).path
+    tokens = EditorTokens(SECRET)
+    past = datetime.now(UTC) - DOCUMENT_LIFETIME - timedelta(seconds=1)
+    expired = tokens.url_token(
+        "document", document_key=key, artifact_id=body["version_artifact_id"], now=past
+    )
+    callback = tokens.url_token("callback", document_key=key, now=datetime.now(UTC))
+    for refused in (expired, callback):
+        query = {"token": refused}
+        assert client.get(path, params=query, headers=_signed_for(path, query)).status_code == 403
+    # A version of another line: the run's second draft, which this session's line is not.
+    other_run, other_draft = _reported_run(app, researcher, world, title="Večerní nápoj")
+    researcher.post(_editor(world, other_run), json={})
+    stray = tokens.url_token(
+        "document", document_key=key, artifact_id=other_draft, now=datetime.now(UTC)
+    )
+    query = {"token": stray}
+    assert client.get(path, params=query, headers=_signed_for(path, query)).status_code == 404
 
 
 def test_the_client_report_is_refused_by_name(

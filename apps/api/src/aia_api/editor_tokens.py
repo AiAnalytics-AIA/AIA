@@ -22,9 +22,12 @@ import hmac
 from dataclasses import dataclass
 from datetime import datetime, timedelta
 from typing import Any, Final, Literal
+from urllib.parse import parse_qs, urlsplit
 
 import jwt
 
+#: A config is opened when the pane loads it; the pane asks for a new one each time it opens.
+CONFIG_LIFETIME: Final = timedelta(hours=12)
 #: A document URL is fetched when the editor opens; a co-editor joining later gets a new one.
 DOCUMENT_LIFETIME: Final = timedelta(minutes=30)
 #: A callback URL lasts as long as a session may: a day idle closes it, so a week is ample.
@@ -58,18 +61,30 @@ class EditorTokens:
 
     # -- ONLYOFFICE's JWT ----------------------------------------------------
 
-    def sign_config(self, config: dict[str, Any]) -> str:
-        """``config`` signed as the Document Server checks it (``config.token``)."""
-        return jwt.encode(config, self._secret, algorithm=_ALGORITHM)
+    def sign_config(self, config: dict[str, Any], *, now: datetime) -> str:
+        """``config`` signed as the Document Server checks it (``config.token``), for
+        :data:`CONFIG_LIFETIME`."""
+        claims = {**config, "exp": int((now + CONFIG_LIFETIME).timestamp())}
+        return jwt.encode(claims, self._secret, algorithm=_ALGORITHM)
 
-    def read_onlyoffice(self, token: str | None) -> dict[str, Any]:
-        """The payload of a JWT the Document Server signed, or :class:`TokenRefused`."""
+    def read_onlyoffice(self, token: str | None, *, url_path: str | None = None) -> dict[str, Any]:
+        """The payload of a JWT the Document Server signed, or :class:`TokenRefused`.
+
+        The browser holds a JWT under the same secret, its config's, so a signature alone does
+        not show the request is the Document Server's: a token shaped as a config (``document``
+        or ``editorConfig``) is refused, and with ``url_path`` the token must name the URL being
+        fetched (ONLYOFFICE signs it as ``url``, or ``payload.url``), its path and its query's
+        ``token``."""
         if not token:
             raise TokenRefused("no token")
         try:
             claims: dict[str, Any] = jwt.decode(token, self._secret, algorithms=[_ALGORITHM])
         except jwt.PyJWTError as exc:
             raise TokenRefused(str(exc)) from exc
+        if "document" in claims or "editorConfig" in claims:
+            raise TokenRefused("a config's token, not the Document Server's")
+        if url_path is not None and not _names(claims, url_path):
+            raise TokenRefused("the token names another URL")
         return claims
 
     # -- AIA's URL tokens ----------------------------------------------------
@@ -108,6 +123,18 @@ class EditorTokens:
         if (kind == "document") != isinstance(artifact, str):
             raise TokenRefused("a document token names one version")
         return UrlClaim(kind, str(claims["key"]), artifact)
+
+
+def _names(claims: dict[str, Any], url_path: str) -> bool:
+    """Whether ``claims`` name ``url_path`` (a path and its query) as the URL fetched."""
+    nested = claims.get("payload")
+    url = claims.get("url") or (nested.get("url") if isinstance(nested, dict) else None)
+    if not isinstance(url, str):
+        return False
+    signed, asked = urlsplit(url), urlsplit(url_path)
+    return signed.path == asked.path and parse_qs(signed.query).get("token") == parse_qs(
+        asked.query
+    ).get("token")
 
 
 def bearer(header: str | None) -> str | None:

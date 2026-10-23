@@ -31,7 +31,7 @@ from aia_core.application.report_editor import (
 from aia_core.application.research import research_artifacts
 from aia_core.application.scope import AuthenticatedPrincipal
 from aia_core.domain.scope import ScopeDenied, StudyContext
-from fastapi import APIRouter, Header, HTTPException, Query, Response
+from fastapi import APIRouter, Header, HTTPException, Query, Request, Response
 from pydantic import BaseModel, ConfigDict, Field
 
 from ..dependencies import (
@@ -139,7 +139,7 @@ def _config(
             "coEditing": {"mode": "fast", "change": False},
         },
     }
-    return {**config, "token": tokens.sign_config(config)}
+    return {**config, "token": tokens.sign_config(config, now=now)}
 
 
 @router.post(
@@ -235,6 +235,7 @@ def _session_scope(
     responses={403: {"model": ErrorResponse}},
 )
 def report_editor_document(
+    request: Request,
     study_id: StudyIdPath,
     run_id: RunIdPath,
     token: TokenQuery,
@@ -248,7 +249,7 @@ def report_editor_document(
     secret (its JWT) and only for a URL AIA handed it (the token, short-lived)."""
     tokens = _tokens(settings)
     try:
-        tokens.read_onlyoffice(bearer(authorization))
+        tokens.read_onlyoffice(bearer(authorization), url_path=f"{request.url.path}?token={token}")
         claim = tokens.read_url(token, "document", now=_now())
     except TokenRefused as exc:
         raise HTTPException(403, detail={"code": "editor_token_refused"}) from exc

@@ -409,7 +409,13 @@ opened it, the artifact a version of that session's line (404 otherwise), `Cache
 `test_report_editor_api.py` (SQLite and PostgreSQL): the config signed as the Document Server checks it with no
 e-mail anywhere, the version fetched, a second researcher under the same key, an unsigned fetch and a token signed
 with the editor's own secret refused, another study's path 404, the client report refused, every route 404 with the
-public origin unset, the setting an https origin only.
+public origin unset, the setting an https origin only. From review: the config's own JWT expires (`CONFIG_LIFETIME`, 12 hours); a JWT
+shaped as a config (`document`, `editorConfig`) is never read as the Document Server's, and the document fetch's
+must name the URL fetched (`url` or `payload.url`: its path and its query's token), so the browser's config token
+cannot stand in for the Document Server; the URL token never reaches a log: `deploy/develop/Caddyfile` deletes
+`token` from the query in the product's access log and the default logger, and `tools/caddy_routes.py`
+(`logs_drop_token`) refuses a Caddyfile that writes it. Tests: the browser's config token, a JWT for another URL, an
+expired document token, a callback token, another line's version and another run's path are each refused.
 
 **RPT8d. The pane opens the editor.**
 - 768 px and wider, with the editor configured: Zpráva's pane loads the Document Server's `api.js` from
