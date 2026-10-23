@@ -153,6 +153,14 @@ class ScopeRepository:
             role=OrganizationRole.OWNER,
         )
 
+    def organization_name(self, admin: OrganizationContext) -> str | None:
+        """The caller's organization's name, as it was created; None if the row is gone."""
+        return self._session.scalar(
+            select(OrganizationRow.name).where(
+                OrganizationRow.organization_id == admin.organization_id
+            )
+        )
+
     def upsert_user(
         self,
         *,
