@@ -777,6 +777,27 @@ describe("the settings tabs", () => {
     expect(within(reference).getByRole("status").textContent).toMatch(/^Zobrazeno \d+ z \d+ hodnot$/);
   });
 
+  it("lists each Reference value once, invariants under Invarianty only, and counts each chip under the filters", async () => {
+    api();
+    render(<ControlPanel />);
+    fireEvent.click(await screen.findByRole("tab", { name: "Reference" }));
+    const reference = panelOf("Reference");
+    await within(reference).findByText("Prostředí");
+    const keys = [...reference.querySelectorAll("tr[data-setting]")].map((r) => r.getAttribute("data-setting"));
+    expect(keys.length).toBe(new Set(keys).size);
+    const total = Number(/z (\d+) hodnot/.exec(within(reference).getByRole("status").textContent ?? "")?.[1]);
+    expect(total).toBe(keys.length);
+    expect(reference.querySelector('[data-reference-category="all"]')?.textContent).toBe(`Vše${total}`);
+    // Under Kdo mění, a chip counts only what its group then shows.
+    fireEvent.click(within(within(reference).getByRole("radiogroup", { name: "Kdo mění" })).getByRole("radio", { name: "Spravuje nasazení" }));
+    const deployment = reference.querySelector('[data-reference-category="deployment"]')?.textContent ?? "";
+    expect(Number(/(\d+)$/.exec(deployment)?.[1])).toBe(section("deployment").querySelectorAll('tr[data-owner="deployment"]').length);
+    expect(reference.querySelector('[data-reference-category="invariants"]')?.textContent).toMatch(/0$/);
+    // Nothing in the chosen category: said, though other groups still match.
+    fireEvent.click(reference.querySelector('[data-reference-category="invariants"]') as HTMLElement);
+    expect(within(reference).getByText("Nic neodpovídá výběru.")).toBeTruthy();
+  });
+
   it("shows one panel at a time and keeps the others' state when switching back", async () => {
     api();
     render(<ControlPanel />);

@@ -672,10 +672,13 @@ function PanelView({ panel, reload }: { panel: Panel; reload: () => void }) {
   const unknown = doc.groups.map((g) => g.key).filter((k) => !known.has(k));
   const referenceMatch = (item: SettingItem) => (referenceOwner === "all" || ownerOf(item.control) === referenceOwner)
     && `${itemName(item.key)} ${SETTING_HELP[item.key] ?? ""} ${item.key} ${item.source} ${String(item.value)}`.toLocaleLowerCase("cs").includes(referenceQuery.trim().toLocaleLowerCase("cs"));
+  // A reference group's own values: its invariants are listed once, under Invarianty.
+  const groupItems = (key: string) => (key === "invariants" ? invariants : (byKey.get(key)?.items ?? []).filter((i) => i.control !== "INVARIANT"));
   const section = (key: string, tab: TabId) => {
     const reference = TAB_SECTIONS.reference.includes(key) || unknown.includes(key);
     const query = referenceQuery.trim().toLocaleLowerCase("cs");
-    const items = (byKey.get(key)?.items ?? []).filter((item) => !reference || referenceMatch(item));
+    // An invariant is listed once, under Invarianty, not again in its group (review of #851).
+    const items = (byKey.get(key)?.items ?? []).filter((item) => !reference || (item.control !== "INVARIANT" && referenceMatch(item)));
     if (reference && (referenceCategory !== "all" && referenceCategory !== key)) return null;
     if (reference && (query || referenceOwner !== "all") && !items.length) return null;
     const rows = reference ? <ReferenceTable items={items} /> : <div data-setting-rows>{items.map((item) => <SettingRow key={item.key} item={item} />)}</div>;
@@ -696,7 +699,6 @@ function PanelView({ panel, reload }: { panel: Panel; reload: () => void }) {
     return (
       <>
         {tab === "reference" ? (() => {
-          const groupItems = (key: string) => (key === "invariants" ? invariants : (byKey.get(key)?.items ?? []));
           const total = [...keys, "invariants"].reduce((n, key) => n + groupItems(key).length, 0);
           const shown = [...keys, "invariants"].filter((key) => referenceCategory === "all" || referenceCategory === key).reduce((n, key) => n + groupItems(key).filter(referenceMatch).length, 0);
           const owners = (["all", "deployment", "fixed", "app"] as const).filter((o) => o === "all" || [...keys, "invariants"].some((key) => groupItems(key).some((i) => ownerOf(i.control) === o)));
@@ -709,7 +711,8 @@ function PanelView({ panel, reload }: { panel: Panel; reload: () => void }) {
             <div data-reference-categories className="flex flex-wrap gap-1.5">
               {["all", ...keys, "invariants"].map((key) => {
                 const on = referenceCategory === key;
-                const n = key === "all" ? total : groupItems(key).length;
+                // A chip counts what its group shows under the search and Kdo mění, as the tables do.
+                const n = (key === "all" ? [...keys, "invariants"] : [key]).reduce((sum, k) => sum + groupItems(k).filter(referenceMatch).length, 0);
                 const label = key === "all" ? t(`${P}.reference.all`) : t(`${P}.groups.${key}.title`).startsWith(P) ? key.replaceAll("_", " ") : t(`${P}.groups.${key}.title`);
                 return <button key={key} type="button" data-reference-category={key} aria-pressed={on} onClick={() => setReferenceCategory(key)}
                   className={`inline-flex min-h-8 items-center gap-1.5 rounded-pill border px-2.5 text-xs ${on ? "border-signal bg-signal-wash font-medium text-ink" : "border-border text-ink-muted hover:bg-surface-sunken"} focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus-ring`}>
@@ -722,7 +725,7 @@ function PanelView({ panel, reload }: { panel: Panel; reload: () => void }) {
         })() : null}
         {keys.map((key) => section(key, tab))}
         {tab === "reference" && (referenceCategory === "all" || referenceCategory === "invariants") && invariants.some(referenceMatch) ? <Section id="invariants"><ReferenceTable items={invariants.filter(referenceMatch)} /></Section> : null}
-        {tab === "reference" && ![...keys.map((k) => byKey.get(k)?.items ?? []).flat(), ...invariants].some(referenceMatch) ? <p role="status" className="text-sm text-ink-muted">{t(`${P}.reference.none`)}</p> : null}
+        {tab === "reference" && ![...keys, "invariants"].filter((k) => referenceCategory === "all" || referenceCategory === k).some((k) => groupItems(k).some(referenceMatch)) ? <p role="status" className="text-sm text-ink-muted">{t(`${P}.reference.none`)}</p> : null}
       </>
     );
   };
