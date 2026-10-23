@@ -86,6 +86,8 @@ class AnalysisModuleResult:
         for i, a in enumerate(self.research_question_answers):
             require(f"research_question_answers[{i}]", a.answer, a.claim_ids, [a.question])
         for i, f in enumerate(self.key_findings):
+            if not f.claim_ids:
+                raise UnbackedResult(f"key_findings[{i}] cites no admitted claim (MVP-23)")
             require(f"key_findings[{i}]", f.text, f.claim_ids, [])
         require("summary", self.summary, tuple(by_id), list(self.research_questions))
 

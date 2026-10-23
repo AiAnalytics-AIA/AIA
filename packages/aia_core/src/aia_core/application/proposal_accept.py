@@ -38,6 +38,7 @@ from ..domain.design_items import (
     named_items,
     wordings,
 )
+from ..domain.edit_log import WriteBy
 from ..domain.scope import Permission, StudyContext
 from ..domain.workspace import WorkingSave
 from ..infrastructure.study_design_repository import StudyDesignRepository
@@ -118,6 +119,7 @@ def accept_into_working_copy(
     expected_workspace_revision: int,
     source_stage: str,
     reason: str,
+    by: WriteBy,
     touched: Iterable[ItemKey] | None = None,
 ) -> AcceptedProposal:
     """Check, merge and write a proposal made on ``design_revision_id`` (the module's steps 1-4).
@@ -126,7 +128,8 @@ def accept_into_working_copy(
     changes, as the worker recorded them, else computed here from the baseline. A key recorded
     before item ids (WCE1: a plan-list item by its text) is read as the id it names now
     (``from_legacy_keys``), so a job finished before the deploy is checked and merged as one
-    after it. Needs
+    after it. The merged write is logged as ``by``, the person who accepts and the run proposed
+    (``domain/edit_log.py``; working-copy-edit-ops WCE2e). Needs
     ``EDIT_STUDY`` and ``APPROVE_GATE`` on an open Study: only a person accepts (ADR 0019 gate 1).
     """
     scope.require(Permission.EDIT_STUDY)
@@ -188,6 +191,7 @@ def accept_into_working_copy(
         analysis=merged.analysis,
         base_revision=now.revision,
         reason=reason,
+        by=by,
     )
     stored = workspaces.at_revision(scope, saved.revision)
     assert stored is not None  # save has just written or found it

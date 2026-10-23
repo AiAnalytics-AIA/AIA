@@ -76,7 +76,7 @@ __all__ = [
     "request_sha256",
 ]
 
-ANALYSIS_HARNESS_VERSION: Final = "aia-analysis-harness-2"
+ANALYSIS_HARNESS_VERSION: Final = "aia-analysis-harness-3"
 AGENT_ID: Final = "aia.analysis.module"
 AGENT_VERSION: Final = "1"
 PROMPT_ID: Final = "aia.analysis.module"
