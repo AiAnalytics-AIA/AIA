@@ -16,6 +16,7 @@ chunks:
   - "[x] 10b. Metodika module view: sub-tabs Výpočet / Verze a aktivace / Porovnání / Upravit, activation modal with reason chips, editor from the version in force, Metodik-only editing (D-14)"
   - "[x] 11. Stav systému and Správa dat: content over their backends"
   - "[x] 12. Profil → Pravidla: a client's data posture and wallet ceiling set where they are read (D-17, #853); opening to public research asks first"
+  - "[x] Q82-Q85. The product owner's answers of 2026-10-23: the Metodik editor's way in named, done as an ink ✓, dark needs-you #ffaa77 held apart by check:design, a budget-parked Lead turn coral for who can raise it"
 ---
 # Settings redesign (Nastavení)
 

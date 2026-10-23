@@ -16,7 +16,7 @@ export function Glyph({ tone, size = SIZE, title }: { tone: GlyphTone; size?: nu
   const c = s / 2;
   const r = s / 2 - 1.25;
   const label = title ?? undefined;
-  const common = { width: s, height: s, viewBox: `0 0 ${s} ${s}`, role: label ? 'img' : undefined, 'aria-label': label, 'aria-hidden': label ? undefined : true, className: 'glyph' } as const;
+  const common = { width: s, height: s, viewBox: `0 0 ${s} ${s}`, role: label ? 'img' : undefined, 'aria-label': label, 'aria-hidden': label ? undefined : true, className: 'glyph', 'data-tone': tone } as const;
   switch (tone) {
     case 'done':
       return (

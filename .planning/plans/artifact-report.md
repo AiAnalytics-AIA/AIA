@@ -421,6 +421,31 @@ https://${AIA_PUBLIC_HOSTNAME}` (the worker none); the editor stays off there un
 (`test_the_report_editor_reaches_the_api_on_its_public_origin_and_stays_off_until_set`). Tests: the browser's config token, a JWT for another URL, an
 expired document token, a callback token, another line's version and a key no session has are each refused.
 
+*RPT8c, part 3 (`feature/report-editor-callback`):* `POST /report-editor/callback?token=` (the Document Server's,
+beside its document route; token and body optional, the body read in the route, so anything that is not a JSON
+object is unsigned: 403, or 404 while off, never 422): ONLYOFFICE's JWT, which it sends once, in the body (`inBody`:
+the body's fields beside `iat`/`exp`) or in the header (the body as `payload`, which it may trim), read by
+`EditorTokens.read_callback`; both, when sent, agree on each of `key`, `status`, `url`, `users` that each carries,
+and only those signed fields are read; the URL token naming this session, the signed key the token's (403
+otherwise); each status as `callback_action` says, any other `{"error": 1}`. A session already closed takes nothing:
+a late or replayed save for it is `{"error": 1}` (`session_closed`), any other status `{"error": 0}`. A save (6, or 2,
+which then closes the session) is stored by `application/report_editor_saves.py` `store_save`, one at a time per line
+(the line's composed row held first, as `open` does; the session read again under it): its authors each one a
+config was signed for (`unknown_author`), the file's URL on the editor's exact origin under `/cache/files/`
+(`infrastructure/editor_fetch.py` `allowed`, checked before any fetcher is called, `not_the_editors_file`), fetched
+by `LiveSaveFetcher` (urllib3, the egress fence's newest named exit in `pyproject.toml`: no retry, no redirect, 64
+MB, a 403 `document_server_restarted`, a break while the body streams `document_server_unreachable`), a DOCX that opens (RPT8b's `census`, `save_unreadable`), then koncept N+1
+(`research_internal_docx_edit` / `…_with_research_edit`) depending on koncept N, produced by its first author, with
+RPT8b's changes against koncept 1 beside it (`research_report_changes`); the same bytes again store nothing. A save
+not stored answers `{"error": 1}` (the Document Server tries again) and stays on the session (`last_problem`), which
+the config answers as `problem` for the pane to say; the next stored save clears it. Not here: the edited version's
+PDF, which needs the PDF job to take an edit artifact (part 4). Tests: `test_report_editor_api.py` (SQLite and
+PostgreSQL): a force-save stores koncept 2 depending on koncept 1 with the changed number named, under the same key,
+and the same bytes twice once; status 2 closes and the next config has a new key; a file on another host, path or
+port refused unfetched; a restarted Document Server's save not stored and said; an author no config was signed for
+refused; an unsigned, wrongly signed or other-key callback 403; a version stored as its author's.
+`test_editor_fetch.py`: the origin rule, and the live fetcher refusing before sending anything.
+
 **RPT8d. The pane opens the editor.**
 - 768 px and wider, with the editor configured: Zpráva's pane loads the Document Server's `api.js` from
   `AIA_ONLYOFFICE_URL` and opens the default line's newest version (RPT8c) with the config the API signed.

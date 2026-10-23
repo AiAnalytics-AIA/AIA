@@ -33,6 +33,8 @@ DOCUMENT_LIFETIME: Final = timedelta(minutes=30)
 #: A callback URL lasts as long as a session may: a day idle closes it, so a week is ample.
 CALLBACK_LIFETIME: Final = timedelta(days=7)
 _URL_LABEL: Final = b"aia-report-editor-url-1"
+#: What AIA reads of a callback; anything else it carries, registered claims included, is not.
+CALLBACK_FIELDS: Final = ("key", "status", "url", "users")
 _ALGORITHM: Final = "HS256"
 
 Kind = Literal["document", "callback"]
@@ -86,6 +88,32 @@ class EditorTokens:
         if url_path is not None and not _names(claims, url_path):
             raise TokenRefused("the token names another URL")
         return claims
+
+    def read_callback(self, body_token: Any, header_token: str | None) -> dict[str, Any]:
+        """The callback a Document Server signed, or :class:`TokenRefused`.
+
+        ONLYOFFICE signs a callback once, in the body (``token``, the body's fields beside
+        ``iat`` and ``exp``) or in the header (the body as ``payload``, which it may trim when the
+        header grows too long), as its ``inBody`` setting says. Either is read; both, when sent,
+        must agree on every field AIA acts on (:data:`CALLBACK_FIELDS`) that each carries. The
+        signed fields are returned, never the body's own."""
+        signed: list[dict[str, Any]] = []
+        if body_token is not None:
+            if not isinstance(body_token, str):
+                raise TokenRefused("a body token is a string")
+            signed.append(self.read_onlyoffice(body_token))
+        if header_token is not None:
+            nested = self.read_onlyoffice(header_token).get("payload")
+            if not isinstance(nested, dict):
+                raise TokenRefused("a header token signs the body as its payload")
+            signed.append(nested)
+        if not signed:
+            raise TokenRefused("no token")
+        first = signed[0]
+        for other in signed[1:]:
+            if any(f in first and f in other and first[f] != other[f] for f in CALLBACK_FIELDS):
+                raise TokenRefused("the body's and the header's tokens disagree")
+        return {f: first[f] for f in CALLBACK_FIELDS if f in first}
 
     # -- AIA's URL tokens ----------------------------------------------------
 

@@ -136,6 +136,16 @@ class ReportEditor:
         version = self._repo.version(artifact_id)
         return version if version is not None and version.line_id == session.line_id else None
 
+    def keep_open(self, session: EditorSession, *, now: datetime) -> None:
+        """A callback for ``session`` came: it is in use."""
+        self._repo.touch(session.document_key, now=now)
+
+    def close(self, session: EditorSession, *, now: datetime, reason: str) -> None:
+        self._repo.close(session.document_key, now=now, reason=reason)
+
+    def note_problem(self, session: EditorSession, *, now: datetime, problem: str) -> None:
+        self._repo.note_problem(session.document_key, now=now, problem=problem)
+
     def lines(
         self, *, run_id: str, variant: str, deep_research_run_id: str | None = None
     ) -> list[LineHead]:
