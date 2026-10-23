@@ -55,6 +55,8 @@ from aia_core.domain.analysis import AnalysisModuleId
 from aia_core.domain.analysis.artifact import (
     ANALYSIS_MODULE_ARTIFACT,
     ANALYSIS_TURN_ARTIFACT,
+    finding_diagnostic,
+    no_supported_finding,
     parse_module_artifact,
 )
 from aia_core.domain.analysis.external import external_context_lines, public_context
@@ -439,7 +441,7 @@ def test_native_research_start_and_worker_complete_the_composed_analysis_graph(
         < body.index("Výsledky jednotlivých otázek")
     )
     assert "smyšlení respondenti" in body
-    assert report.metadata["report_contract"] == "aia-internal-report-16"
+    assert report.metadata["report_contract"] == "aia-internal-report-17"
     # The methodology chapter states the rules the run pinned (artifact-chain CHN9).
     assert "Pravidlo podpory aia-support-1" in body and "Agregace: metodika" in body
     # The document the DOCX was rendered from, beside it (report-delivery RD5a).
@@ -1698,6 +1700,207 @@ def test_a_retry_whose_specification_does_not_read_is_refused_by_name(
     assert last["error"]["reason"] == reason
     assert last["failure_class"] is FailureClass.SCHEMA_VIOLATION
     assert not any(s["attempts"] for s in _analysis(_run(world, started.run_id)).values())
+
+
+def test_the_hypotheses_module_is_given_the_design_s_stated_hypotheses(
+    world: Any, store: InMemoryArtifactStore, run_with: Callable[..., Worker]
+) -> None:
+    """Q72: before this, the module answered "none supplied" whatever the design stated."""
+    stated = ["Mladší pijí víc čaje než starší."]
+    design = {**DESIGN, "research_plan": {**DESIGN["research_plan"], "hypotheses": stated}}
+    models = RecordedModels()
+    worker = run_with(models)
+    with world.sessions() as session:
+        scope = world.lead_scope(session)
+        revision, _ = StudyDesignRepository(session, scope).submit_as_working_copy(
+            content=design, source_stage="run"
+        )
+        ResearchRuns(session, scope).start(
+            design_revision_id=revision.revision_id,
+            fieldwork_source=FieldworkSource.SYNTHETIC_FIXTURE,
+            analysis_enabled=True,
+        )
+        session.commit()
+    _drain(worker)
+    assert json.loads(models.messages("hypotheses", 1)[0])["stated_hypotheses"] == stated
+    assert "stated_hypotheses" not in json.loads(models.messages("executive", 1)[0])
+
+
+def test_a_module_completed_without_a_finding_is_asked_again_over_the_same_data(
+    world: Any, store: InMemoryArtifactStore, run_with: Callable[..., Worker]
+) -> None:
+    """MVPQ-04, evidence-integrity 9a: the executive summary, always expected to find, completed
+    with no key finding carries a diagnostic, never a finding, and a same-data retry asks it
+    again in a new round instead of reusing the empty answer; every other module is reused."""
+    models = RecordedModels(no_findings={"executive"})
+    worker = run_with(models)
+    first = _started_with_analysis(world)
+    _drain(worker)
+    with world.sessions() as session:
+        stored = stored_analysis(session, world.lead_scope(session), store, run_id=first)
+    record = stored.records[AnalysisModuleId.EXECUTIVE]
+    assert record.outcome == "COMPLETED" and record.finding_expected is True
+    assert no_supported_finding(record)
+    assert stored.retryable == (AnalysisModuleId.EXECUTIVE,)
+    # Results reads it beside the module, never as a finding (the analysis route).
+    from aia_api.routers.research import run_analysis
+
+    with world.sessions() as session:
+        shown = run_analysis(first, world.lead_scope(session), session, store)
+    executive = shown["modules"]["executive"]
+    assert executive["key_findings"] == []
+    assert executive["diagnostic"] == finding_diagnostic(record)
+    assert executive["diagnostic"]["reason"] == "no_supported_finding"
+    # The report waits on it (9b): the diagnostic does not satisfy the gate, so no draft is
+    # stored, the refusal names the module, and the analysis never reads as complete.
+    assert shown["complete"] is False and shown["holding"] == ["executive"]
+    report = {s["node_key"]: s for s in _run(world, first)["steps"]}["report"]
+    assert report["status"] is StepRunStatus.FAILED
+    refusal = report["attempts"][-1]["error"]
+    assert refusal["reason"] == "report_inputs_refused"
+    assert refusal["message"].endswith("waiting on: executive")
+    with world.sessions() as session:
+        kinds = {
+            a.artifact_type
+            for a in research_artifacts(session, world.lead_scope(session), store).recent(limit=200)
+            if a.metadata.get("run_id") == first
+        }
+    assert REPORT_ARTIFACT_TYPE not in kinds
+    asked_before = len(models.asked)
+
+    models.no_findings.clear()
+    retry = _retry_analysis(world, store, first)
+    _drain(worker)
+    assert models.asked[asked_before:] == [("executive", 2)], "only the empty module, once"
+    reused = [
+        m for m, step in _analysis(_run(world, retry.run_id)).items() if step["output"]["reused"]
+    ]
+    assert sorted(reused) == sorted(m for m in MODULES if m != "executive")
+    with world.sessions() as session:
+        again = stored_analysis(session, world.lead_scope(session), store, run_id=retry.run_id)
+    assert not no_supported_finding(again.records[AnalysisModuleId.EXECUTIVE])
+    assert again.retryable == ()
+    # Resolved by a supported finding, the retry's report composes.
+    assert {s["node_key"]: s for s in _run(world, retry.run_id)["steps"]}["report"][
+        "status"
+    ] is StepRunStatus.SUCCEEDED
+
+
+def test_a_same_data_round_that_still_states_nothing_is_not_offered_again(
+    world: Any, store: InMemoryArtifactStore, run_with: Callable[..., Worker]
+) -> None:
+    """9a: the same-data round is offered once. When the module asked again still states nothing,
+    the retry no longer lists it and its diagnostic names only a changed design or more data, so
+    nothing pays again for the same empty answer."""
+    models = RecordedModels(no_findings={"executive"})
+    worker = run_with(models)
+    first = _started_with_analysis(world)
+    _drain(worker)
+    retry = _retry_analysis(world, store, first)
+    _drain(worker)
+    assert models.calls("executive") == [1, 2], "asked again once, in the person's round"
+    with world.sessions() as session:
+        again = stored_analysis(session, world.lead_scope(session), store, run_id=retry.run_id)
+    assert no_supported_finding(again.records[AnalysisModuleId.EXECUTIVE])
+    assert again.retryable == ()
+    from aia_api.routers.research import run_analysis
+
+    with world.sessions() as session:
+        shown = run_analysis(retry.run_id, world.lead_scope(session), session, store)
+    assert shown["modules"]["executive"]["diagnostic"] == {
+        "reason": "no_supported_finding",
+        "resolutions": ["changed_design", "more_data"],
+    }
+    with pytest.raises(AnalysisNotRetryable) as nothing:
+        _retry_analysis(world, store, retry.run_id)
+    assert nothing.value.reason == "nothing_to_retry"
+
+
+def test_the_same_data_round_is_offered_once_across_a_retry_chain(
+    world: Any, store: InMemoryArtifactStore, run_with: Callable[..., Worker]
+) -> None:
+    """Review of #657: an empty module asked again in R2 is not offered again in R3, which a
+    module still failing in R2 started; the chain carries what it has tried."""
+    models = RecordedModels(no_findings={"executive"}, invent={"objects"})
+    worker = run_with(models)
+    first = _started_with_analysis(world)
+    _drain(worker)
+    second = _retry_analysis(world, store, first)  # asks executive and objects again
+    _drain(worker)
+    with world.sessions() as session:
+        r2 = stored_analysis(session, world.lead_scope(session), store, run_id=second.run_id)
+    assert r2.retryable == (AnalysisModuleId.OBJECTS,)
+    third = _retry_analysis(world, store, second.run_id)  # objects alone
+    _drain(worker)
+    assert models.calls("executive") == [1, 2], "the empty module was not asked a third time"
+    with world.sessions() as session:
+        r3 = stored_analysis(session, world.lead_scope(session), store, run_id=third.run_id)
+    assert AnalysisModuleId.EXECUTIVE not in r3.retryable
+    from aia_api.routers.research import run_analysis
+
+    with world.sessions() as session:
+        shown = run_analysis(third.run_id, world.lead_scope(session), session, store)
+    assert "same_data_retry" not in shown["modules"]["executive"]["diagnostic"]["resolutions"]
+
+
+def test_research_questions_the_run_recorded_as_gaps_hold_nothing(
+    world: Any, store: InMemoryArtifactStore, run_with: Callable[..., Worker]
+) -> None:
+    """9a: the fixture's design links no item to its research questions, so the run records each
+    as a gap at start; an answer that cites no number is then context_missing, never a hold."""
+    models = RecordedModels(no_findings={"research_questions"})
+    worker = run_with(models)
+    run_id = _started_with_analysis(world)
+    _drain(worker)
+    assert _run(world, run_id)["metadata"]["answerability"]["gaps"]
+    with world.sessions() as session:
+        stored = stored_analysis(session, world.lead_scope(session), store, run_id=run_id)
+    record = stored.records[AnalysisModuleId.RESEARCH_QUESTIONS]
+    assert record.finding_expected is False and not no_supported_finding(record)
+    assert stored.retryable == ()
+
+
+@pytest.mark.parametrize(("stated", "held"), [(True, True), (False, False)])
+def test_no_context_from_the_hypotheses_module_holds_only_when_the_design_states_some(
+    world: Any,
+    store: InMemoryArtifactStore,
+    run_with: Callable[..., Worker],
+    stated: bool,
+    held: bool,
+) -> None:
+    """Q72 (A), the guard: whether the hypotheses' context exists is decided by code from the
+    design, never from the model's "no context". With hypotheses stated, an empty answer holds
+    and is offered a same-data round; with none, it is context_missing and holds nothing."""
+    plan = {
+        **DESIGN["research_plan"],
+        **({"hypotheses": ["Mladší pijí víc čaje."]} if stated else {}),
+    }
+    models = RecordedModels(no_findings={"hypotheses"})
+    worker = run_with(models)
+    with world.sessions() as session:
+        scope = world.lead_scope(session)
+        revision, _ = StudyDesignRepository(session, scope).submit_as_working_copy(
+            content={**DESIGN, "research_plan": plan}, source_stage="run"
+        )
+        run_id = (
+            ResearchRuns(session, scope)
+            .start(
+                design_revision_id=revision.revision_id,
+                fieldwork_source=FieldworkSource.SYNTHETIC_FIXTURE,
+                analysis_enabled=True,
+            )
+            .run_id
+        )
+        session.commit()
+    _drain(worker)
+    with world.sessions() as session:
+        stored = stored_analysis(session, world.lead_scope(session), store, run_id=run_id)
+    record = stored.records[AnalysisModuleId.HYPOTHESES]
+    assert no_supported_finding(record) is held
+    assert (stored.retryable == (AnalysisModuleId.HYPOTHESES,)) is held
+    diagnostic = finding_diagnostic(record)
+    assert diagnostic is not None
+    assert diagnostic["reason"] == ("no_supported_finding" if held else "context_missing")
 
 
 def test_a_retry_round_asks_again_what_the_model_refused_and_replays_nothing_old(

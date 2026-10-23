@@ -14,6 +14,12 @@
 
 DOCS=(docker compose --project-directory "$DEPLOY_DIR/docs" --env-file "$ENV_FILE"
       -f "$DEPLOY_DIR/docs/docker-compose.yml")
+# Compose interpolates the whole file for every command, and the secret is required there (:?),
+# so once a rollback deleted it, down, status and logs would refuse too. Only up keeps the guard;
+# the others use no secret, and get a placeholder only when there is none.
+if [ "${1:-}" != "up" ]; then
+  export AIA_ONLYOFFICE_JWT_SECRET="${AIA_ONLYOFFICE_JWT_SECRET:-unused-unless-starting}"
+fi
 
 require_env_file
 

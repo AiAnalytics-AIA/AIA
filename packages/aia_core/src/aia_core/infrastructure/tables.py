@@ -468,6 +468,13 @@ class OrganizationMemberRow(Base):
     organization_id: Mapped[str] = mapped_column(String(64), primary_key=True)
     user_id: Mapped[str] = mapped_column(String(64), primary_key=True)
     role: Mapped[str] = mapped_column(String(32), nullable=False, default="MEMBER")
+    # The Metodik mark (D-14, settings-backends SB1): only a marked member stores and puts in
+    # force a methodology version. Granted and revoked by an OWNER; not a role.
+    methodologist: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
+    # Deactivated in this organization (D-27, settings-backends SB2): the member resolves no
+    # scope here while set; their membership elsewhere and the account are untouched.
+    deactivated_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    deactivated_by: Mapped[str | None] = mapped_column(String(64))
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), nullable=False, default=utcnow
     )
@@ -596,6 +603,27 @@ class StudyRow(Base):
         CheckConstraint("kind in ('RESEARCH','SIMULATION')", name="study_kind_known"),
         Index("ix_studies_client", "client_id", "status"),
         Index("ix_studies_org_modified", "organization_id", "modified_at"),
+    )
+
+
+class DeploySmokeResultRow(Base):
+    """One check of one deploy's smoke run (settings-backends SB4): its label and result, no
+    detail. Deployment-wide, not an organization's: the smoke proves the deployment."""
+
+    __tablename__ = "deploy_smoke_results"
+
+    result_id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    run_id: Mapped[str] = mapped_column(String(64), nullable=False)
+    build_sha: Mapped[str] = mapped_column(String(64), nullable=False)
+    position: Mapped[int] = mapped_column(Integer, nullable=False)
+    check_label: Mapped[str] = mapped_column(String(300), nullable=False)
+    status: Mapped[str] = mapped_column(String(16), nullable=False)
+    ran_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+
+    __table_args__ = (
+        CheckConstraint("status in ('ok', 'FAIL', 'NOT_RUNNABLE')", name="status_known"),
+        UniqueConstraint("run_id", "position", name="uq_deploy_smoke_results_run_id_position"),
+        Index("ix_deploy_smoke_results_ran_at", "ran_at"),
     )
 
 
@@ -865,6 +893,11 @@ class ResearcherLeadRow(Base):
     #: The researcher's standing choice to have the Lead's text edits accepted without a click
     #: (plan inline-decisions chunk 2). Off unless they turn it on.
     auto_accept_text_edits: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
+    #: Sealed when its researcher's membership is deactivated (ADR 0030, settings-backends SB2):
+    #: from then no route or worker reads it, the researcher included, until a reactivation
+    #: before ``erase_after`` unseals it; after that date the retention sweep erases it.
+    sealed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    erase_after: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
 
     __table_args__ = (
         ForeignKeyConstraint(
@@ -872,6 +905,7 @@ class ResearcherLeadRow(Base):
         ),
         ForeignKeyConstraint(["user_id"], ["users.user_id"], ondelete="CASCADE"),
         UniqueConstraint("organization_id", "user_id", name="researcher_lead_once"),
+        Index("ix_researcher_leads_erase_after", "erase_after"),
         CheckConstraint("length(soul) <= 2000", name="researcher_lead_soul_bounded"),
         CheckConstraint("length(user_profile) <= 2000", name="researcher_lead_user_bounded"),
     )
@@ -2526,6 +2560,41 @@ class DeepResearchSettingVersionRow(Base):
         ),
         CheckConstraint("version_number >= 1", name="dr_setting_version_positive"),
         Index("ix_dr_setting_versions_key", "organization_id", "setting_key", "version_number"),
+    )
+
+
+class DeepResearchSettingDeclineRow(Base):
+    """A proposed version taken back by its proposer (WITHDRAWN) or turned down by another
+    administrator (DECLINED). Append-only, at most one per version; a version with one is
+    never approved. The version itself stays, immutable (ADR 0022)."""
+
+    __tablename__ = "deep_research_setting_declines"
+
+    decline_id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    organization_id: Mapped[str] = mapped_column(String(64), nullable=False)
+    setting_key: Mapped[str] = mapped_column(String(128), nullable=False)
+    version_number: Mapped[int] = mapped_column(Integer, nullable=False)
+    kind: Mapped[str] = mapped_column(String(16), nullable=False)
+    declined_by: Mapped[str] = mapped_column(String(64), nullable=False)
+    reason: Mapped[str] = mapped_column(String(255), nullable=False)
+    declined_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), nullable=False, default=utcnow
+    )
+
+    __table_args__ = (
+        ForeignKeyConstraint(
+            ["organization_id", "setting_key", "version_number"],
+            [
+                "deep_research_setting_versions.organization_id",
+                "deep_research_setting_versions.setting_key",
+                "deep_research_setting_versions.version_number",
+            ],
+            name="fk_dr_setting_declines_version",
+        ),
+        CheckConstraint("kind in ('WITHDRAWN', 'DECLINED')", name="dr_setting_decline_kind"),
+        UniqueConstraint(
+            "organization_id", "setting_key", "version_number", name="uq_dr_setting_decline"
+        ),
     )
 
 

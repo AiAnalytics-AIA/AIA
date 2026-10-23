@@ -79,7 +79,9 @@ class ViewOpKind(StrEnum):
 
 
 #: The view operations the Lead's output carries today (``research_lead.ViewOp``).
-LIVE_VIEW_OPS: Final = frozenset({ViewOpKind.OPEN_STAGE, ViewOpKind.FOCUS, ViewOpKind.INSPECT})
+LIVE_VIEW_OPS: Final = frozenset(
+    {ViewOpKind.OPEN_STAGE, ViewOpKind.FOCUS, ViewOpKind.INSPECT, ViewOpKind.SHOW_DIFF}
+)
 
 
 class TargetKind(StrEnum):

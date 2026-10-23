@@ -47,13 +47,20 @@ export function ResearchAssistance({ step, studyName, canEdit, memory, actions, 
   starts?: boolean;
   children: (view: { card: ReactNode; panel: ReactNode; expanded: boolean; ask: (action: AdviceAction, question?: string) => void }) => ReactNode;
 }) {
+  const first: AdviceAction = isAdviceAction(actions[0]?.action ?? null) ? actions[0].action as AdviceAction : "answer_memory";
   const [opened, setOpened] = useState(false);
-  const [selected, setSelected] = useState<AdviceAction>(isAdviceAction(actions[0]?.action ?? null) ? actions[0].action as AdviceAction : "answer_memory");
+  const [selected, setSelected] = useState<AdviceAction>(first);
   const [questions, setQuestions] = useState<Partial<Record<AdviceAction, string>>>(() => {
     const saved = memory.get("contextual-ai-questions");
     return saved && typeof saved === "object" ? saved as Partial<Record<AdviceAction, string>> : {};
   });
   const [error, setError] = useState<string | null>(null);
+  // The study's screen stays mounted from stage to stage (research-lead-workbench 34): another stage
+  // opens its help closed, on its own first action, as a page of its own did; the questions stay.
+  const [helpStep, setHelpStep] = useState(step);
+  if (helpStep !== step) {
+    setHelpStep(step); setOpened(false); setSelected(first); setError(null);
+  }
   const narrow = useSyncExternalStore(subscribeNarrow, narrowSnapshot, serverSnapshot);
   const invoker = useRef<HTMLElement | null>(null);
   const fallback = useRef<HTMLElement | null>(null);

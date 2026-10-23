@@ -90,6 +90,7 @@ class ProblemCode(StrEnum):
     LIST_DEPTH = "list_depth"
     QUOTE_UNATTRIBUTED = "quote_unattributed"
     SOCIOMAP_NOT_APPROVED = "sociomap_not_approved"
+    CONTROLLED_VALUE = "controlled_value"
 
 
 @dataclass(frozen=True, slots=True)
@@ -234,6 +235,19 @@ def validate(doc: ReportDocument) -> tuple[Problem, ...]:
         for bi, block in enumerate(section.blocks):
             where = f"section {si + 1} ({section.title}), block {bi + 1}"
 
+            # Text code wrote from a stored source prints in one locked control; a ledger value
+            # inside it would be a control within a control, which a reader one level deep (the
+            # client-source reader) would lose.
+            if (
+                isinstance(block, Paragraph | Callout)
+                and block.control
+                and any(isinstance(inline, Value) for inline in block.content)
+            ):
+                add(
+                    ProblemCode.CONTROLLED_VALUE,
+                    "a block written from a stored source holds no ledger value",
+                    where,
+                )
             for ref in _prose_refs(block):
                 if ledger.is_suppressed(ref):
                     add(ProblemCode.SUPPRESSED_CITED, f"{ref!r} is suppressed", where)

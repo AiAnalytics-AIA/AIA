@@ -561,6 +561,49 @@ describe("Dotazník", () => {
     expect(body.content.title).toBe("Moje studie");
   });
 
+  it("says a file replaces the questionnaire there is, and takes the import back with Vrátit (QF-15)", async () => {
+    const mine = [{ id: "sec_m", type: "questions", title: "Moje", purpose: "", questions: [{ id: "Q9", text: "Moje otázka?", typ: "otevrena" }] }];
+    const loaded = [{ id: "sec_l", type: "questions", title: "Ze souboru", purpose: "", questions: [{ id: "Q1", text: "Ze souboru?", typ: "otevrena" }, { id: "Q2", text: "Také?", typ: "otevrena" }] }];
+    unitStub(
+      { ...BRIEF, sections: mine, research_plan: { status: "draft", objectives: ["Cíl"] }, ui_state: { questionnaire_path: "upload" } },
+      null,
+      { [IMPORT_PATH]: () => ({ sections: loaded, summary: { question_count: 2, tracked_sets: 0, sections: 1 }, filename: "dotaznik.xlsx" }) },
+    );
+    render(<ResearchScreen step="questionnaire" frame={TEST_FRAME} />);
+    expect(await screen.findByText("Načtený soubor nahradí současný dotazník. Hned potom ho půjde vrátit.")).toBeTruthy();
+    fireEvent.change(screen.getByLabelText("Vyplněný XLSX / CSV"), { target: { files: [new File(["x"], "dotaznik.xlsx")] } });
+    const toast = (await screen.findByText("Načteno: 2 otázky · 0 sledovaných sad")).closest("[role=status]") as HTMLElement;
+    expect(screen.getByRole("heading", { name: "2 otázky · 0 sledovaných sad" })).toBeTruthy();
+    fireEvent.click(within(toast).getByRole("button", { name: "Vrátit" }));
+    expect(await screen.findByRole("heading", { name: "1 otázka · 0 sledovaných sad" })).toBeTruthy();
+    await waitFor(() => expect((saves.at(-1) as unknown as { reason: string }).reason).toBe("questionnaire_import_undone"));
+    const body = saves.at(-1) as unknown as { content: { sections: unknown; research_plan: Record<string, unknown>; ui_state: Record<string, unknown> } };
+    expect(body.content.sections).toEqual(mine);
+    // Only the status the import set goes back: the rest of the plan is as it now is.
+    expect(body.content.research_plan.status).toBe("draft");
+    expect(body.content.research_plan.objectives).toEqual(["Cíl"]);
+    expect(body.content.ui_state.questionnaire_path).toBe("upload");
+  });
+
+  it("never takes an import back over a change made since, and says so", async () => {
+    const mine = [{ id: "sec_m", type: "questions", title: "Moje", purpose: "", questions: [] }];
+    unitStub(
+      { ...BRIEF, sections: mine, ui_state: { questionnaire_path: "upload" } },
+      null,
+      { [IMPORT_PATH]: () => ({ sections: SECTIONS, summary: {}, filename: "dotaznik.xlsx" }) },
+    );
+    render(<ResearchScreen step="questionnaire" frame={TEST_FRAME} />);
+    // A block with no questions yet is a questionnaire a file would replace.
+    expect(await screen.findByText("Načtený soubor nahradí současný dotazník. Hned potom ho půjde vrátit.")).toBeTruthy();
+    fireEvent.change(screen.getByLabelText("Vyplněný XLSX / CSV"), { target: { files: [new File(["x"], "dotaznik.xlsx")] } });
+    const toast = (await screen.findByText("Načteno: 2 otázky · 1 sledovaná sada")).closest("[role=status]") as HTMLElement;
+    // A question's wording changed after the import, then Vrátit.
+    fireEvent.change(screen.getAllByRole("textbox", { name: "Znění otázky" })[0]!, { target: { value: "Upraveno po načtení?" } });
+    fireEvent.click(within(toast).getByRole("button", { name: "Vrátit" }));
+    expect(await screen.findByText("Dotazník se od načtení změnil, import už se nevrátí.")).toBeTruthy();
+    expect(screen.getByRole("heading", { name: "2 otázky · 1 sledovaná sada" })).toBeTruthy();
+  });
+
   it("shows why a file did not import, in the words AIA gave", async () => {
     unitStub({ ...BRIEF, ui_state: { questionnaire_path: "upload" } }, null, {
       [IMPORT_PATH]: () => new Response(JSON.stringify({ code: "missing_columns", message: "Chybí povinné sloupce: typ" }), { status: 422 }),
@@ -569,6 +612,41 @@ describe("Dotazník", () => {
     fireEvent.change(await screen.findByLabelText("Vyplněný XLSX / CSV"), { target: { files: [new File(["x"], "dotaznik.csv")] } });
     expect((await screen.findByRole("alert")).textContent).toBe("Chybí povinné sloupce: typ");
     expect(saves).toEqual([]);
+  });
+
+  it("says an empty file, a refusal without words of its own and a lost connection in Czech, never the API's English", async () => {
+    let answer: () => Response = () => new Response(JSON.stringify({ code: "validation_error", message: "The request body or parameters are invalid." }), { status: 422 });
+    unitStub({ ...BRIEF, ui_state: { questionnaire_path: "upload" } }, null, { [IMPORT_PATH]: () => answer() });
+    render(<ResearchScreen step="questionnaire" frame={TEST_FRAME} />);
+    const pick = async (f: File) => fireEvent.change(await screen.findByLabelText("Vyplněný XLSX / CSV"), { target: { files: [f] } });
+    // An empty file is refused before it is sent (the API's 422 for it is English).
+    await pick(new File([], "prazdny.csv"));
+    expect((await screen.findByRole("alert")).textContent).toBe("prazdny.csv: soubor je prázdný");
+    expect(posted(IMPORT_PATH)).toEqual([]);
+    await pick(new File(["x"], "dotaznik.csv"));
+    await waitFor(() => expect(screen.getByRole("alert").textContent).toBe("dotaznik.csv: AIA soubor nepřijala (kód validation_error)"));
+    answer = () => {
+      throw new TypeError("Failed to fetch");
+    };
+    await pick(new File(["x"], "dotaznik.csv"));
+    await waitFor(() => expect(screen.getByRole("alert").textContent).toBe("dotaznik.csv: Spojení s AIA se nepodařilo; zkuste to znovu"));
+    // A file the browser cannot read was never sent, so no connection is blamed.
+    const sent = posted(IMPORT_PATH).length;
+    const gone = new File(["x"], "smazany.csv");
+    gone.arrayBuffer = () => Promise.reject(new DOMException("gone", "NotReadableError"));
+    await pick(gone);
+    await waitFor(() => expect(screen.getByRole("alert").textContent).toBe("smazany.csv: soubor se nepodařilo přečíst; vyberte ho znovu"));
+    expect(posted(IMPORT_PATH)).toHaveLength(sent);
+    expect(saves).toEqual([]);
+  });
+
+  it("says a template the API would not give in Czech, by its code", async () => {
+    unitStub({ ...BRIEF, ui_state: { questionnaire_path: "upload" } }, null, {
+      [TEMPLATE_PATH]: () => new Response(JSON.stringify({ code: "study_not_open", message: "Your role on this study does not permit that." }), { status: 403 }),
+    });
+    render(<ResearchScreen step="questionnaire" frame={TEST_FRAME} />);
+    fireEvent.click(await screen.findByRole("button", { name: "Stáhnout XLSX šablonu" }));
+    expect((await screen.findByRole("alert")).textContent).toBe("Šablonu se nepodařilo stáhnout (kód study_not_open)");
   });
 
   it("downloads AIA's template through the study, and links to nothing of the unit's", async () => {

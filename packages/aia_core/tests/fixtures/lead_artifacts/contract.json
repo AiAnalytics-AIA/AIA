@@ -41,7 +41,7 @@
     },
     {
       "op": "show_diff",
-      "live": false,
+      "live": true,
       "what": "show a waiting proposal's or a draft's changes against what is in force"
     }
   ],

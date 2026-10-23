@@ -29,6 +29,7 @@ const measure = async (name) => {
   assert(size.documentWidth <= size.width + 2, `${name}: horizontal page overflow ${JSON.stringify(size)}`); layouts.push({ name, ...size });
 };
 const widths = async (name) => { for (const width of [1440, 1024, 768, 390]) { await page.setViewportSize({ width, height: 1000 }); await measure(name); } await page.setViewportSize({ width: 1440, height: 1000 }); };
+const waitFor = async (check, what, ms = 15000) => { const end = Date.now() + ms; while (Date.now() < end) { if (await check()) return; await page.waitForTimeout(250); } throw new Error(`timed out: ${what}`); };
 const screenshot = async (name) => { await page.evaluate(() => scrollTo({ top: 0, left: 0, behavior: "instant" })); await page.screenshot({ path: join(out, `${name}.png`), fullPage: true, animations: "disabled" }); await page.screenshot({ path: join(out, `${name}-viewport.png`), animations: "disabled" }); };
 const chooseField = async (reference) => {
   const field = page.locator(`[data-field="${reference}"]`).first(); await field.waitFor({ state: "attached" });
@@ -38,15 +39,17 @@ const chooseField = async (reference) => {
 };
 try {
   await page.goto(base + "/app/settings"); await page.getByRole("tablist", { name: "Oddíly nastavení" }).waitFor();
-  assert.equal(await page.getByRole("tab").count(), 8);
-  for (const id of ["ai", "prompts", "deep_research", "methodology", "access", "studies", "audit", "reference"]) {
+  assert.equal(await page.getByRole("tab").count(), 10);
+  // At 1440 every tab shows its line under its name (settings-redesign 1).
+  assert.equal(await page.locator("[data-tab-subtitle]:visible").count(), 10);
+  for (const id of ["ai", "prompts", "deep_research", "methodology", "access", "studies", "audit", "system", "reference", "data"]) {
     const panel = await tab(id); await panel.locator("h2").first().waitFor();
     if (id === "prompts") await page.getByLabel("Instrukce", { exact: true }).waitFor();
     if (id === "deep_research") await page.locator("[data-dr-setting]").first().waitFor({ state: "attached" });
     if (id === "methodology") await page.locator("[data-methodology-editor]").waitFor(); // an administrator opens on the editor
     await widths(`tab ${id}`); await screenshot(id);
   }
-  checks.push("All eight settings tabs load and fit desktop/tablet/phone without page overflow");
+  checks.push("All ten settings tabs load and fit desktop/tablet/phone without page overflow; each names its purpose under its name at 1440");
   // One technical switch per page instead of a disclosure arrow by every value (product owner, 2026-10-13).
   for (const id of ["ai", "access", "studies", "audit", "reference"]) {
     const panel = await tab(id);
@@ -66,34 +69,34 @@ try {
   checks.push("Reference search finds purpose as well as identifiers; technical settings explain their ownership");
   await tab("access");
   const email = `ux.settings.${Date.now()}@example.invalid`;
-  const add = page.getByRole("button", { name: "Přidat člena", exact: true }).locator("xpath=ancestor::form");
-  assert.equal(await add.getByRole("combobox", { name: "Role", exact: true }).inputValue(), "MEMBER");
-  await add.getByLabel("E-mail", { exact: true }).fill(email); await add.getByLabel("Jméno", { exact: true }).fill("Fictional UX reader"); await add.getByRole("button", { name: "Přidat člena", exact: true }).click();
+  // The redesign (settings-redesign 3): add in an inline row, name and role changed where they are shown.
+  await page.getByRole("button", { name: "+ Přidat člena", exact: true }).click();
+  const newRole = page.getByRole("radiogroup", { name: "Role nového člena", exact: true });
+  assert.equal(await newRole.getByRole("radio", { name: "výzkumník", exact: true }).getAttribute("aria-checked"), "true");
+  await page.getByLabel("E-mail nového člena", { exact: true }).fill(email); await page.getByLabel("E-mail nového člena", { exact: true }).press("Enter");
   const member = page.locator("[data-member]").filter({ has: page.getByText(email, { exact: true }) }); await member.waitFor();
-  await member.getByRole("button", { name: "Upravit", exact: true }).click();
-  const memberEdit = page.locator(`[data-member-edit="${await member.getAttribute("data-member")}"]`);
-  await memberEdit.getByLabel("Jméno", { exact: true }).fill("Fictional UX administrator");
-  await memberEdit.getByRole("combobox", { name: `Role: ${email}`, exact: true }).selectOption("ADMIN");
-  await memberEdit.getByRole("button", { name: "Uložit", exact: true }).click();
+  await member.getByRole("button", { name: new RegExp(`^Upravit: Jméno: ${email.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}`) }).click();
+  const nameField = member.getByLabel(`Jméno: ${email}`, { exact: true }); await nameField.fill("Fictional UX administrator"); await nameField.press("Enter");
+  await page.getByRole("radiogroup", { name: `Role: ${email}`, exact: true }).getByRole("radio", { name: "správce", exact: true }).click();
+  await page.getByText(/je správce · zapsáno do auditu/).waitFor();
   await member.getByText("Fictional UX administrator", { exact: false }).waitFor();
   const savedMember = (await get("/api/v1/members")).find((m) => m.email === email);
   assert.equal(savedMember.organization_role, "ADMIN"); assert.equal(savedMember.display_name, "Fictional UX administrator");
-  await widths("access member editing"); checks.push("New member defaults to researcher; existing name/role edits persist through the audited API");
+  await widths("access member editing"); checks.push("New member is added in an inline row as a researcher; name and role change in place and persist through the audited API, with Vrátit");
   await tab("studies");
   const studies = await get("/api/v1/studies"); const study = studies[0]; const original = await get(`/api/v1/studies/${study.study_id}`);
-  await page.setViewportSize({ width: 390, height: 1000 });
-  const offscreen = await page.locator("[data-study]:not([hidden])").evaluateAll((rows) => rows.filter((row) => { const b = row.querySelector("button")?.getBoundingClientRect(); return !b || b.right > Math.min(innerWidth, row.closest(".overflow-x-auto").getBoundingClientRect().right); }).map((row) => row.dataset.study));
-  assert.deepEqual(offscreen, [], "390: a study's Upravit is out of view");
-  await page.setViewportSize({ width: 1440, height: 1000 });
-  await page.locator(`[data-study="${study.study_id}"]`).getByRole("button", { name: "Upravit", exact: true }).click();
-  const card = page.locator(`[data-study-edit="${study.study_id}"]`);
-  const budget = card.getByLabel("Rozpočet studie", { exact: true }); await budget.fill("20");
-  await page.getByRole("searchbox", { name: "Hledat studii nebo klienta" }).fill("no-such-study"); assert(!await card.isVisible());
-  await page.getByRole("searchbox", { name: "Hledat studii nebo klienta" }).fill(""); assert.equal(await budget.inputValue(), "20");
-  await budget.locator("xpath=ancestor::form").getByRole("button", { name: "Uložit", exact: true }).click();
-  await card.getByText("Uloženo.", { exact: true }).waitFor(); assert.equal((await get(`/api/v1/studies/${study.study_id}`)).budget_usd, 20);
-  if (original.budget_usd !== null) { await budget.fill(String(original.budget_usd)); await budget.locator("xpath=ancestor::form").getByRole("button", { name: "Uložit", exact: true }).click(); }
-  checks.push("Study filtering retains budget drafts; a budget edit persists to exactly the selected study");
+  const studyRow = page.locator(`[data-study="${study.study_id}"]`);
+  const budget = studyRow.getByRole("spinbutton", { name: `Rozpočet studie ${study.name}`, exact: true });
+  await budget.waitFor();
+  const target = Math.max(20, Math.ceil(original.spent_usd ?? 0) + 10);
+  await budget.fill(String(target));
+  await page.getByRole("searchbox", { name: "Hledat studii nebo klienta" }).fill("no-such-study"); assert(!await studyRow.isVisible());
+  await page.getByRole("searchbox", { name: "Hledat studii nebo klienta" }).fill(""); { const typed = await budget.inputValue(); assert.equal(Number(typed.replace(/\s/g, "").replace(",", ".")), target, `typed budget reads ${JSON.stringify(typed)}`); }
+  await budget.press("Enter");
+  await waitFor(async () => (await get(`/api/v1/studies/${study.study_id}`)).budget_usd === target, "the stepped budget reached the study");
+  await widths("studies table");
+  if (original.budget_usd !== null) { await budget.fill(String(original.budget_usd)); await budget.press("Enter"); await waitFor(async () => (await get(`/api/v1/studies/${study.study_id}`)).budget_usd === original.budget_usd, "the original budget restored"); }
+  checks.push("Study filtering retains a typed budget; the budget stepper persists to exactly the selected study and the table holds at every width");
   await tab("audit"); await page.getByRole("searchbox", { name: "Hledat v historii" }).fill(email);
   assert(await page.locator("#panel-audit li").count());
   await page.getByRole("searchbox", { name: "Hledat v historii" }).fill("no-such-event"); await page.getByText("Žádný záznam neodpovídá hledání.", { exact: true }).waitFor();

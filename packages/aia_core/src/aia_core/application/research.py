@@ -37,6 +37,7 @@ from ..domain.answerability import (
 from ..domain.deep_research.workflow import DEEP_RESEARCH
 from ..domain.design import DESIGN_PROJECT_OWNER, DesignRejected
 from ..domain.design_items import ItemKey
+from ..domain.edit_log import ActorKind, OpSource, WriteBy
 from ..domain.evidence import ClaimSurface
 from ..domain.evidence.support import AIA_SUPPORT_V1, SupportSpec
 from ..domain.fieldwork import FieldworkSource, PersonaSource, persona_source_of
@@ -104,7 +105,7 @@ from ..domain.research_trace import (
 )
 from ..domain.respondent_behavior import AIA_RESPONSE_V1, ResponseProcessSpec
 from ..domain.run_cost import CeilingUnknown, RunCostCeiling, run_cost_ceiling
-from ..domain.scope import OrganizationRole, Permission, StudyContext
+from ..domain.scope import Permission, StudyContext
 from ..domain.spend_attribution import ActivitySpend, run_spend
 from ..domain.support_forecast import SupportForecast, forecast_support, with_support_forecast
 from ..domain.workflow import RUNTIME_UNAVAILABLE_REASON, StepRunStatus, WorkflowRunStatus
@@ -112,7 +113,7 @@ from ..domain.workflow_templates import REPORT_PDF, RESEARCH, RESEARCH_AGENT
 from ..infrastructure.artifact_repository import Artifact, ArtifactRepository
 from ..infrastructure.client_knowledge_repository import ClientKnowledgeRepository
 from ..infrastructure.methodology_repository import methodology_in_force_for_study
-from ..infrastructure.prompt_repository import PromptRefused, PromptResolver
+from ..infrastructure.prompt_repository import PromptResolver
 from ..infrastructure.researcher_spend_repository import run_spend_facts
 from ..infrastructure.scope_repository import ScopeRepository
 from ..infrastructure.storage import ArtifactStore
@@ -387,6 +388,9 @@ class FrozenDataset:
     #: ``None`` only for a caller that names none; :func:`retry_failed_modules` always does.
     specification_artifact_id: str | None = None
     specification_sha256: str | None = None
+    #: Modules already asked again earlier in this retry chain (evidence-integrity 9a): with
+    #: :attr:`retried`, the chain's ``tried``, so a module still empty is offered no further round.
+    tried: tuple[str, ...] = ()
 
     def __post_init__(self) -> None:
         if self.analysis_round < 1:
@@ -396,7 +400,12 @@ class FrozenDataset:
         return {"run_id": self.run_id, "artifact_id": self.artifact_id, "sha256": self.sha256}
 
     def note(self) -> dict[str, Any]:
-        return {**self.step_input(), "round": self.analysis_round, "modules": list(self.retried)}
+        return {
+            **self.step_input(),
+            "round": self.analysis_round,
+            "modules": list(self.retried),
+            "tried": sorted({*self.tried, *self.retried}),
+        }
 
     def specification_input(self) -> dict[str, Any] | None:
         """The compile step's ``frozen_specification``; ``None`` when none is named."""
@@ -1012,6 +1021,7 @@ class ResearchRuns:
                     analysis_step_inputs(
                         ClaimSurface.INTERNAL,
                         analysis_round=frozen_dataset.analysis_round if frozen_dataset else 0,
+                        retried=frozen_dataset.retried if frozen_dataset else (),
                     )
                     if analysis_enabled
                     else {}
@@ -1696,9 +1706,6 @@ class ResearchAgentJobs:
 
     session: Session
     scope: StudyContext
-    #: The clients a draft prompt may be tested on (``AIA_AI_FICTIONAL_CLIENT_IDS``). Empty
-    #: by default, so a caller that does not pass it can run no draft at all.
-    draft_client_ids: frozenset[str] = frozenset()
     #: What one job can cost at most: the design job's reservation
     #: (``AIA_AI_RESEARCH_RESERVATION_USD``, a primary and one repair). ``None`` is unknown,
     #: never zero: with a threshold set, a new job is then refused (:class:`CostCeilingUnknown`).
@@ -1735,7 +1742,6 @@ class ResearchAgentJobs:
         design_revision_id: str,
         action: ResearchAction,
         instruction: str = "",
-        prompt_version: int | None = None,
         rebuild_of: str | None = None,
         confirm_cost_usd: float | None = None,
         _probe: bool = False,
@@ -1752,18 +1758,15 @@ class ResearchAgentJobs:
         which may hold edits the design does not. ``rebuild_of`` names the job this one rebuilds
         (:meth:`rebuild`), which it supersedes.
 
-        ``prompt_version`` names a stored version to run instead of the active one --
-        how a draft is tested before it is put live (ADR 0020). Only an organization
-        administrator may ask for it, and only on a client the deployment lists as
-        fictional: a draft is not what the organization runs, and an unreviewed prompt
-        is not tried on real client work.
+        A job runs the organization's active prompt, never a draft: a draft is compared and
+        activated, and its effect seen on the next real job (D-15, system-prompts-settings 14).
         """
         self.scope.require(Permission.EDIT_STUDY)
         self.scope.require(Permission.RUN_WORKFLOW)
         self.scope.require_open_study()
         if len(instruction.encode()) > 8000:
             raise ValueError("agent instruction exceeds 8 KB")
-        prompt = self._pin(action, prompt_version)
+        prompt = self._pin(action)
         designs = StudyDesignRepository(self.session, self.scope)
         revision = designs.get(design_revision_id)
         snapshot = context_snapshot(
@@ -1852,26 +1855,11 @@ class ResearchAgentJobs:
             )
         return started
 
-    def _pin(self, action: ResearchAction, prompt_version: int | None) -> PromptPin:
-        """The prompt this job will run: the organization's active one, or a draft to test."""
-        resolver = PromptResolver(self.session, self.scope.organization_id)
-        prompt_id = f"aia.research.{action.value}"
-        if prompt_version is None:
-            return resolver.pin_for(prompt_id)
-        if self.scope.organization_role not in (OrganizationRole.OWNER, OrganizationRole.ADMIN):
-            raise DesignRejected(
-                "only an organization administrator may test a prompt version",
-                reason="prompt_test_requires_administrator",
-            )
-        if self.scope.client_id not in self.draft_client_ids:
-            raise DesignRejected(
-                "a draft prompt can be tried only on a client listed as fictional",
-                reason="prompt_test_requires_fictional_client",
-            )
-        try:
-            return resolver.pin_for_version(prompt_id, prompt_version)
-        except PromptRefused as exc:
-            raise DesignRejected(str(exc), reason=exc.reason) from exc
+    def _pin(self, action: ResearchAction) -> PromptPin:
+        """The prompt this job will run: the organization's active one."""
+        return PromptResolver(self.session, self.scope.organization_id).pin_for(
+            f"aia.research.{action.value}"
+        )
 
     def get(self, run_id: str) -> dict[str, Any]:
         try:
@@ -2077,6 +2065,7 @@ class ResearchAgentJobs:
             expected_workspace_revision=expected_workspace_revision,
             source_stage=_ACCEPT_STAGES[action],
             reason="ai_proposal_accepted",
+            by=WriteBy(ActorKind.PERSON, self.scope.actor_id, OpSource.PROPOSAL_ACCEPT, run_id),
             touched=[ItemKey.parse(str(k)) for k in recorded]
             if isinstance(recorded, list)
             else None,
