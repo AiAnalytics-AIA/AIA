@@ -1454,6 +1454,37 @@ describe("Progress", () => {
     expect(list.querySelectorAll("[data-last-reported]")).toHaveLength(1);
   });
 
+  it("shows a panel run's quota cells filled by the respondents fieldwork reported (RQC7b)", async () => {
+    const feed = (id: number, message: string, payload: Record<string, unknown>) => ({
+      event_id: id, step_id: "STEP-run", attempt_id: "ATT-1", event_type: "STEP_PROGRESS", level: "INFO", message,
+      payload: { version: "aia-fieldwork-events-2", ...payload }, created_at: "2026-09-25T08:01:00Z",
+    });
+    api({
+      ...listed(PARKED),
+      [`GET /api/v1/studies/STU-1/research/runs/${PARKED.run_id}/events`]: () => [
+        feed(1, "fieldwork_sample", { quota_fields: ["pohlavi", "vek"], cells: [
+          { key: "zena/18-29", values: ["žena", "18-29"], n: 1 },
+          { key: "muz/30-44", values: ["muž", "30-44"], n: 2 },
+        ] }),
+        feed(2, "fieldwork_respondent", { respondent: 1, cell: "zena/18-29", sent: 1, replayed: 0 }),
+        feed(3, "fieldwork_respondent", { respondent: 2, cell: "muz/30-44", sent: 1, replayed: 0 }),
+      ],
+    });
+    render(<ResearchScreen step="progress" frame={TEST_FRAME} />);
+    const list = await screen.findByRole("list", { name: t("aia.stages.progress") });
+    const row = list.querySelector<HTMLElement>('li[data-step="run"]')!;
+    const fill = await waitFor(() => {
+      const el = row.querySelector<HTMLElement>("[data-quota-fill]");
+      expect(el).not.toBeNull();
+      return el!;
+    });
+    expect(within(fill).getByText(tv("research.exec.activity.quotaTitle", { full: 1, cells: 2 }))).toBeTruthy();
+    const cells = [...fill.querySelectorAll<HTMLElement>("tr[data-cell]")].map((tr) => tr.textContent);
+    expect(cells).toEqual(["žena · 18-29" + tv("research.exec.activity.quotaOf", { answered: 1, n: 1 }), "muž · 30-44" + tv("research.exec.activity.quotaOf", { answered: 1, n: 2 })]);
+    expect(fill.textContent).toContain(t("research.exec.activity.quotaNote"));
+    expect(list.querySelectorAll("[data-quota-fill]")).toHaveLength(1);
+  });
+
   it("shows no orb while fieldwork waits for the AI runtime", async () => {
     api(listed(PARKED));
     render(<ResearchScreen step="progress" frame={TEST_FRAME} />);

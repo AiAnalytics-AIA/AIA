@@ -1,6 +1,24 @@
 {
-  "version": "aia-fieldwork-events-1",
+  "version": "aia-fieldwork-events-2",
   "events": {
-    "fieldwork_progress": ["version", "respondents", "of", "sent", "replayed"]
+    "fieldwork_progress": [
+      "version",
+      "respondents",
+      "of",
+      "sent",
+      "replayed"
+    ],
+    "fieldwork_sample": [
+      "version",
+      "quota_fields",
+      "cells"
+    ],
+    "fieldwork_respondent": [
+      "version",
+      "respondent",
+      "cell",
+      "sent",
+      "replayed"
+    ]
   }
 }

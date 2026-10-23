@@ -64,7 +64,10 @@ from aia_core.domain.fieldwork_events import (
     FieldworkEvent,
     progress,
     progress_due,
+    respondent_cells,
 )
+from aia_core.domain.fieldwork_events import respondent as respondent_event
+from aia_core.domain.fieldwork_events import sample as sample_event
 from aia_core.domain.licence import DataLineage
 from aia_core.domain.material_rules import MaterialRule, classify_by_rule
 from aia_core.domain.methodology.pins import is_units_process, read_response_pin
@@ -80,7 +83,7 @@ from aia_core.domain.population.czech import CZ_SYNTHETIC_V17
 from aia_core.domain.population.enrichment import AudienceDimensionsEnricher
 from aia_core.domain.population.errors import PopulationError
 from aia_core.domain.population.runtime import RuntimePopulation
-from aia_core.domain.population.sampling import SamplingRefused
+from aia_core.domain.population.sampling import PanelSample, SamplingRefused
 from aia_core.domain.providers import Provider
 from aia_core.domain.research_design import ResearchSpecification
 from aia_core.domain.residency import DataClass
@@ -173,6 +176,11 @@ class AIFieldworkConfig:
     #: without one, so slow answering never reads as a stalled step. At most two lease-fenced
     #: feed writes a minute, so it is a switch (CLAUDE.md § 8).
     heartbeat: bool = False
+    #: ``AIA_AI_FIELDWORK_RESPONDENT_EVENTS`` (off by default, run-qc-and-checkpoint RQC7b): a
+    #: panel run's ``fieldwork_sample`` before its first respondent and a ``fieldwork_respondent``
+    #: after each, so Sběr dat fills each quota cell. One lease-fenced feed write per respondent,
+    #: so it is a switch (CLAUDE.md § 8).
+    respondent_events: bool = False
 
 
 @dataclass(frozen=True, slots=True)
@@ -287,6 +295,7 @@ class AIFieldwork:
         require_binding: str | None = None,
         scale_labels_in_prompt: bool | None = None,
         journal: _RunJournal | None = None,
+        quota: PanelSample | None = None,
     ) -> Answered | Failed:
         """Ask the model every block of every plan and draw the answers by code.
 
@@ -304,6 +313,11 @@ class AIFieldwork:
 
         ``journal`` keeps each answered block and replays a kept one instead of sending it again
         (RQC0). A replayed block's call record says so and costs this attempt nothing.
+
+        ``quota`` is a panel run's sample, whose respondents the plans are, in order (RQC7b): with
+        the composition's ``respondent_events`` on, its cells are written once the preflight
+        passed and each respondent's ``fieldwork_respondent`` names its cell. Without it (the
+        roster, a validation's arms) no cell and no respondent row is written.
         """
         cfg = self._config
         labelled = (
@@ -369,6 +383,10 @@ class AIFieldwork:
                 )
 
         binding = self.binding(resolution) if resolution is not None else ""
+        # A panel run's cells, once nothing refused it: a park writes none (RQC7b).
+        cells = respondent_cells(quota) if quota is not None and cfg.respondent_events else None
+        if quota is not None and cfg.respondent_events and (event := sample_event(quota)):
+            context.progress(FieldworkEvent.SAMPLE, **event)
         kept = journal.kept() if journal is not None else {}
         calls: list[dict[str, Any]] = []
         rows: list[tuple[Any, dict[str, Answer]]] = []
@@ -386,6 +404,7 @@ class AIFieldwork:
 
         for index, plan in enumerate(plans):
             context.checkpoint()
+            sent_before, replayed_before = sent, replayed
             answers: dict[str, Answer] = dict(plan.facts)
             detail: dict[str, dict[str, Any]] = {}
             for block in plan.blocks:
@@ -470,6 +489,16 @@ class AIFieldwork:
             rows.append((plan.persona, answers))
             details.append(detail)
             done = index + 1
+            if cells is not None:
+                context.progress(
+                    FieldworkEvent.RESPONDENT,
+                    **respondent_event(
+                        respondent=done,
+                        cell=cells[index],
+                        sent=sent - sent_before,
+                        replayed=replayed - replayed_before,
+                    ),
+                )
             idle = monotonic() - last_report if cfg.heartbeat else 0.0
             if progress_due(
                 respondents=done, of=len(plans), idle_seconds=idle, every=cfg.progress_every
@@ -612,6 +641,7 @@ class AIFieldwork:
             data_class=data_class,
             lineage=lineage,
             journal=_RunJournal(context, run_lineage) if run_lineage is not None else None,
+            quota=built.sample if built is not None else None,
         )
         if isinstance(answered, Failed):
             return answered

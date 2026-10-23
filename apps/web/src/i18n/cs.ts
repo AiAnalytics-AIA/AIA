@@ -2776,6 +2776,13 @@ export const cs = {
         fieldworkReplayed: "{replayed} bloků z uložených odpovědí, bez nového placení",
         // artifact-fieldwork FLD3: a stopped step's count, as it last reported it.
         lastReported: "Naposledy hlášeno: odpovědělo {done} z {of} respondentů",
+        // run-qc-and-checkpoint RQC7b: a panel run's quota cells and each one's fill.
+        fieldworkSample: "Vzorek rozdělen do {cells} kvótních buněk",
+        quotaTitle: "Kvóty vzorku: {full} z {cells} buněk naplněno",
+        quotaCell: "Buňka",
+        quotaAnswered: "Odpovědělo",
+        quotaOf: "{answered} z {n}",
+        quotaNote: "Kvóty určují složení vzorku, ne podporu dvojic v mapě. Podpora se ověří až z výsledných dat.",
         aiAnswered: "Model odpověděl · {tokensIn} → {tokensOut} tokenů · {cost} · {seconds} s",
         aiAnsweredNoTokens: "Model odpověděl · tokeny neuvedeny · {cost} · {seconds} s",
         tokensUnknown: "?",

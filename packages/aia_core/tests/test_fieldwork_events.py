@@ -12,6 +12,7 @@ from aia_core.domain.fieldwork_events import (
     FieldworkEvent,
     progress,
     progress_due,
+    respondent,
 )
 
 CONTRACT = Path(__file__).parent / "fixtures" / "fieldwork_events" / "contract.json"
@@ -23,6 +24,9 @@ def test_the_contract_is_the_case_file_the_web_reads() -> None:
     assert file["events"] == {event.value: list(keys) for event, keys in PAYLOAD_KEYS.items()}
     assert set(progress(respondents=1, of=2, sent=3, replayed=4)) == set(
         PAYLOAD_KEYS[FieldworkEvent.PROGRESS]
+    )
+    assert set(respondent(respondent=1, cell=None, sent=2, replayed=0)) == set(
+        PAYLOAD_KEYS[FieldworkEvent.RESPONDENT]
     )
 
 

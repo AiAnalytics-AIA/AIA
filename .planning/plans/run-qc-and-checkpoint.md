@@ -14,7 +14,8 @@ chunks:
   - "[x] RQC6d. Journey (artifact-sample SMP6): Vzorek's panel composition and forecast at 1440, 1100, 768 and 390 px over the population double, zero paid jobs"
   - "[ ] RQC7. The fieldwork event contract: heartbeat, quota-cell fill, a respondent grid, the park reason code"
   - "[x] RQC7a. The contract as data (aia-fieldwork-events-1): fieldwork_progress (respondents of n, blocks sent and replayed) every few respondents and, behind a switch, as a 30 s heartbeat; the park reason code as STEP_RECOVERY's error_reason, for every executor; the web words the progress"
-  - "[ ] RQC7b. Quota-cell fill and the respondent grid: each panel respondent's quota cell (the RQC6a keys), fill per cell, a per-respondent row, under aia-fieldwork-events-2"
+  - "[x] RQC7b. Quota-cell fill: each panel respondent's quota cell (the RQC6a keys), fill per cell, a per-respondent row, under aia-fieldwork-events-2"
+  - "[ ] RQC7c. The respondent grid on Sběr dat, from the per-respondent rows, once V2 draws one (the prototype has none)"
   - "[ ] RQC8. Readiness reads the worker's egress: a run whose route cannot carry Class A is flagged before it parks"
   - "[x] RQC9. One authority for the valid n: the domain readiness limits, read by the web and the Lead"
   - "[x] RQC10. A population double composed in both the API and the worker over HTTP, for tier A's AC-05"
@@ -151,8 +152,25 @@ Written first by S2; consumed by the Fieldwork artifact (`research-lead-workbenc
   default; at most two feed writes a minute). The park reason: the engine's `STEP_RECOVERY` payload carries
   the attempt's own `error.reason` as `error_reason` when it differs from the waiting reason
   (`workflow_repository._apply_recovery`), so every executor's park names why in the feed.
-- RQC7b needs each panel respondent's quota cell: `SampledRespondent` carries none, so the sample's
-  `audit.quota_fields` are looked up at the respondent's row (as `holdout/run.py` `cell_of` does).
+- RQC7b: `SampledRespondent.quota_cell` holds the respondent's place in `PanelSample.quota_cells`, set
+  by `draw_panel_sample` from the same join the allotment used. This is out of `provenance()`, so no
+  recorded run changes. `fieldwork_events` is version `aia-fieldwork-events-2`. It adds
+  `fieldwork_sample` (`sample()`: the quota fields and the cells allotted respondents, `{key, values, n}`;
+  none without quota fields) and `fieldwork_respondent` (`respondent()`: 1-based place, cell key, blocks
+  sent and replayed). Both are written by `answer_plans` only for a panel run (`quota=`), the cells once
+  the preflight passed (a park writes none). Both sit behind `AIA_AI_FIELDWORK_RESPONDENT_EVENTS` (off by
+  default, false on develop): one lease-fenced feed write per respondent, beside at least one model
+  request each.
+- The web folds them (`step-activity.ts`: `quota`, each cell's `answered`; a new attempt counts again; an
+  unreadable or empty list is no table). Průběh shows "Kvóty vzorku: X z Y buněk naplněno" under the
+  fieldwork step (`QuotaFillTable`), with the note that a quota is not pair support. A respondent is no
+  log line of its own.
+- Tests: `test_population_sampling.py::test_a_samples_quota_cells_are_the_units_largest_remainder` (each
+  respondent's cell, the event's cells and fill); `test_ai_fieldwork_answer_plans.py::test_each_respondent_names_its_cell_and_its_blocks_with_the_switch_on`,
+  `::test_a_park_writes_no_cells`; `test_ai_fieldwork.py::test_a_panel_run_writes_its_quota_cells_and_each_respondents_cell`
+  (the real worker); `step-activity.test.ts` and `ExecutionSteps.test.tsx` (RQC7b).
+- RQC7c: the per-respondent rows carry `sent` and `replayed` for a respondent grid. V2 draws none, so
+  the view waits for a design.
 
 **RQC8. Readiness reads the worker's egress: a run whose route cannot carry Class A is flagged before it parks**  
 The panel default needs the route widened and the API reads no egress key. Shares the composition record of `lead-orchestration#LO12b`.

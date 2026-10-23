@@ -116,7 +116,7 @@ import { useResource } from "@/components/aia/useResource";
 import { InspectorSlot } from "./Inspector";
 import { ResearchContext, useResearch } from "./context";
 import { SociomappingView } from "./SociomappingView";
-import { StepActivityPanel } from "./StepActivityPanel";
+import { QuotaFillTable, StepActivityPanel } from "./StepActivityPanel";
 import { useStepActivity } from "./useStepActivity";
 import { ObjectMapView } from "./ObjectMapView";
 import { InterpretationResearch } from "./InterpretationResearch";
@@ -1483,6 +1483,7 @@ export function ProgressStep() {
               </span>
               {waitingDetail(s) ? <span className="text-xs text-ink">{waitingDetail(s)}</span> : null}
               {last ? <span data-last-reported className="font-mono text-xs tabular-nums text-ink-muted">{last}</span> : null}
+              {stepActivity?.quota ? <QuotaFillTable quota={stepActivity.quota} /> : null}
               <StepActivityPanel orb={researchStepOrb(run, s)} activity={stepActivity} startedAt={s.started_at} label={stepLabel(s.node_key)} />
             </li>
             );

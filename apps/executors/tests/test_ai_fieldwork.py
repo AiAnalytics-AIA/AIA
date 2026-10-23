@@ -1272,6 +1272,44 @@ def test_a_run_pinned_to_its_population_is_answered_by_respondents_drawn_from_it
         assert steps[node]["output"]["data_origin"] == "MODELLED_AI_PANEL"
 
 
+def test_a_panel_run_writes_its_quota_cells_and_each_respondents_cell(
+    world: Any, run_with: Callable[..., Worker], grounded: Any
+) -> None:
+    """RQC7b under the real worker: with AIA_AI_FIELDWORK_RESPONDENT_EVENTS on, the feed holds the
+    sample's quota cells once and a row per respondent; each cell's fill is its respondents."""
+    from collections import Counter
+
+    from aia_core.domain.fieldwork_events import PAYLOAD_KEYS, FieldworkEvent
+    from aia_core.infrastructure.tables import WorkflowEventRow
+
+    run_id = _start_grounded(world, grounded)
+    env = {**_grounded_env(), "AIA_AI_FIELDWORK_RESPONDENT_EVENTS": "true"}
+    worker = run_with(ScriptedBedrock(), env=env, population=grounded.loader())
+    assert _drain(worker) == ["completed"] * 5
+    with world.sessions() as session:
+        rows = session.scalars(
+            select(WorkflowEventRow)
+            .where(
+                WorkflowEventRow.run_id == run_id,
+                WorkflowEventRow.event_type == "STEP_PROGRESS",
+            )
+            .order_by(WorkflowEventRow.event_id)
+        ).all()
+        feed = [(r.message, r.payload_json) for r in rows]
+    samples = [p for m, p in feed if m == FieldworkEvent.SAMPLE]
+    respondents = [p for m, p in feed if m == FieldworkEvent.RESPONDENT]
+    assert len(samples) == 1 and set(samples[0]) == set(PAYLOAD_KEYS[FieldworkEvent.SAMPLE])
+    cells = samples[0]["cells"]
+    assert sum(c["n"] for c in cells) == GROUNDED_N and samples[0]["quota_fields"]
+    # The cells come before the first respondent; every respondent once, in order, in a cell.
+    assert [m for m, _ in feed].index(FieldworkEvent.SAMPLE) < [m for m, _ in feed].index(
+        FieldworkEvent.RESPONDENT
+    )
+    assert [r["respondent"] for r in respondents] == list(range(1, GROUNDED_N + 1))
+    assert Counter(r["cell"] for r in respondents) == {c["key"]: c["n"] for c in cells if c["n"]}
+    assert all(r["sent"] > 0 and r["replayed"] == 0 for r in respondents)
+
+
 def test_a_panel_run_with_scale_labels_in_the_prompt_records_another_respondent_system(
     world: Any, store: InMemoryArtifactStore, run_with: Callable[..., Worker], grounded: Any
 ) -> None:

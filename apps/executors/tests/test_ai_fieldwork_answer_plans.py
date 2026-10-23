@@ -9,7 +9,13 @@ from typing import Any
 
 from aia_core.domain.ai_contracts import ModelCallFailed, validate_structured_output
 from aia_core.domain.ai_respondent import block_contract, fictional_roster, plan_respondent
-from aia_core.domain.fieldwork_events import PAYLOAD_KEYS, FieldworkEvent, progress
+from aia_core.domain.fieldwork_events import (
+    FIELDWORK_EVENTS_VERSION,
+    PAYLOAD_KEYS,
+    FieldworkEvent,
+    progress,
+    respondent,
+)
 from aia_core.domain.licence import DataLineage
 from aia_core.domain.providers import Provider
 from aia_core.domain.research_design import compile_design
@@ -81,6 +87,7 @@ def _setup(
     design: dict[str, Any] = DESIGN,
     scale_labels_in_prompt: bool = False,
     heartbeat: bool = False,
+    respondent_events: bool = False,
 ) -> tuple[AIFieldwork, Any, list[Any]]:
     spec, problems = compile_design(design)
     assert spec is not None, problems
@@ -108,6 +115,7 @@ def _setup(
             fictional_client_ids=frozenset(),
             scale_labels_in_prompt=scale_labels_in_prompt,
             heartbeat=heartbeat,
+            respondent_events=respondent_events,
         ),
         build=BuildIdentity(sha="abc"),
         caller_factory=lambda **_: caller,
@@ -461,3 +469,133 @@ def test_a_park_writes_no_progress_and_returns_its_reason() -> None:
     assert isinstance(parked, Failed) and caller.requests == []
     assert parked.error["reason"] == "egress_route_not_approved_for_class"
     assert context.progressed == []
+
+
+def _respondents(context: _Context) -> list[dict[str, Any]]:
+    return [e for e in context.progressed if e["message"] == FieldworkEvent.RESPONDENT]
+
+
+def test_each_respondent_names_its_cell_and_its_blocks_with_the_switch_on() -> None:
+    """RQC7b: one ``fieldwork_respondent`` per respondent, in order, with the cell it was given."""
+    from aia_core.domain.population.sampling import QuotaCell
+
+    journal = _Journal()
+    caller = _Caller()
+    fieldwork, spec, plans = _setup(caller, respondent_events=True)
+    # A panel sample's cells as the sampler names them (one allotted none), and each respondent's.
+    quota_cells = (
+        QuotaCell(("žena", "18-29"), 3),
+        QuotaCell(("muž", "65"), 0),
+        QuotaCell(("muž", "30-44"), 3),
+    )
+    at = [0, 2, 2, 0, 0, 2]
+    quota = SimpleNamespace(
+        quota_cells=quota_cells,
+        audit=SimpleNamespace(quota_fields=("pohlavi", "vek")),
+        respondents=tuple(SimpleNamespace(quota_cell=i) for i in at),
+    )
+    keys = ["zena/18-29", "muz/65", "muz/30-44"]
+    cells = [keys[i] for i in at]
+    context = _RunContext("RUN-1")
+    fieldwork.answer_plans(
+        plans,
+        spec,
+        context,  # type: ignore[arg-type]
+        seed=7,
+        response=AIA_RESPONSE_V1,
+        data_class=DataClass.CLASS_C_INTERNAL,
+        lineage=DataLineage(datasets=frozenset({"synthetic"})),
+        journal=journal,  # type: ignore[arg-type]
+        quota=quota,  # type: ignore[arg-type]
+    )
+    # The cells once, before the first respondent, without the one allotted none.
+    assert context.progressed[0] == {
+        "message": FieldworkEvent.SAMPLE,
+        "version": FIELDWORK_EVENTS_VERSION,
+        "quota_fields": ["pohlavi", "vek"],
+        "cells": [
+            {"key": "zena/18-29", "values": ["žena", "18-29"], "n": 3},
+            {"key": "muz/30-44", "values": ["muž", "30-44"], "n": 3},
+        ],
+    }
+    assert [e["message"] for e in context.progressed].count(FieldworkEvent.SAMPLE) == 1
+    rows = _respondents(context)
+    assert rows == [
+        {
+            "message": FieldworkEvent.RESPONDENT,
+            **respondent(respondent=i + 1, cell=cells[i], sent=len(p.blocks), replayed=0),
+        }
+        for i, p in enumerate(plans)
+    ]
+    for row in rows:
+        assert set(row) - {"message"} == set(PAYLOAD_KEYS[FieldworkEvent.RESPONDENT])
+    # Each row is written once its respondent is answered: before the progress that counts it.
+    progress_at = next(
+        i for i, e in enumerate(context.progressed) if e["message"] == FieldworkEvent.PROGRESS
+    )
+    assert context.progressed[progress_at - 1]["respondent"] == len(plans)
+
+    # Run again over the journal: every block replayed, none sent, each in its cell.
+    fieldwork, spec, plans = _setup(_Caller(), respondent_events=True)
+    again = _RunContext("RUN-2")
+    _answer_into(fieldwork, spec, plans, journal, again, quota=quota)
+    assert [(r["cell"], r["sent"], r["replayed"]) for r in _respondents(again)] == [
+        (cells[i], 0, len(p.blocks)) for i, p in enumerate(plans)
+    ]
+    # Without a panel sample (the roster, a validation's arms) no cell and no row is written.
+    fieldwork, spec, plans = _setup(_Caller(), respondent_events=True)
+    roster = _RunContext("RUN-3")
+    _answer_into(fieldwork, spec, plans, _Journal(), roster)
+    assert {e["message"] for e in roster.progressed} == {FieldworkEvent.PROGRESS}
+
+
+def test_a_park_writes_no_cells() -> None:
+    """The cells follow the preflight: a run the gateway refuses writes nothing (RQC7b)."""
+    from aia_core.domain.population.sampling import QuotaCell
+
+    class Refusing(_Caller):
+        def preflight(self, request: Any) -> Any:
+            raise ModelCallFailed(
+                "route closed",
+                failure=FailureClass.RUNTIME_UNAVAILABLE,
+                reason="egress_route_not_approved_for_class",
+            )
+
+    fieldwork, spec, plans = _setup(Refusing(), respondent_events=True)
+    context = _RunContext("RUN-1")
+    quota = SimpleNamespace(
+        quota_cells=(QuotaCell(("žena",), 6),),
+        audit=SimpleNamespace(quota_fields=("pohlavi",)),
+        respondents=tuple(SimpleNamespace(quota_cell=0) for _ in plans),
+    )
+    parked = _answer_into(fieldwork, spec, plans, _Journal(), context, quota=quota)
+    assert isinstance(parked, Failed) and context.progressed == []
+
+
+def test_without_the_switch_no_respondent_is_written() -> None:
+    fieldwork, spec, plans = _setup(_Caller())
+    context = _Context()
+    _plain(fieldwork, spec, plans, context)
+    assert _respondents(context) == []
+    assert {e["message"] for e in context.progressed} == {FieldworkEvent.PROGRESS}
+
+
+def _answer_into(
+    fieldwork: AIFieldwork,
+    spec: Any,
+    plans: list[Any],
+    journal: _Journal,
+    context: Any,
+    quota: Any = None,
+) -> Any:
+    return fieldwork.answer_plans(
+        plans,
+        spec,
+        context,
+        seed=7,
+        response=AIA_RESPONSE_V1,
+        data_class=DataClass.CLASS_C_INTERNAL,
+        lineage=DataLineage(datasets=frozenset({"synthetic"})),
+        journal=journal,  # type: ignore[arg-type]
+        quota=quota,
+    )
