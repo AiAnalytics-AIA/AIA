@@ -8,7 +8,7 @@ another administrator turns it down; append-only, never updated, and a version w
 never approved.
 
 Revision ID: d4f6b8c0e2a5
-Revises: f4b6d8a0c2e3
+Revises: c3e5a7b9d1f4
 Created: 2026-10-23 01:00:00.000000+00:00
 """
 
@@ -18,7 +18,7 @@ import sqlalchemy as sa
 from alembic import op
 
 revision: str = "d4f6b8c0e2a5"
-down_revision: str | None = "f4b6d8a0c2e3"
+down_revision: str | None = "c3e5a7b9d1f4"
 branch_labels = None
 depends_on = None
 
