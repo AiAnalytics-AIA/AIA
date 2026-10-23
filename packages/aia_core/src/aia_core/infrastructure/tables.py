@@ -2563,6 +2563,41 @@ class DeepResearchSettingVersionRow(Base):
     )
 
 
+class DeepResearchSettingDeclineRow(Base):
+    """A proposed version taken back by its proposer (WITHDRAWN) or turned down by another
+    administrator (DECLINED). Append-only, at most one per version; a version with one is
+    never approved. The version itself stays, immutable (ADR 0022)."""
+
+    __tablename__ = "deep_research_setting_declines"
+
+    decline_id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    organization_id: Mapped[str] = mapped_column(String(64), nullable=False)
+    setting_key: Mapped[str] = mapped_column(String(128), nullable=False)
+    version_number: Mapped[int] = mapped_column(Integer, nullable=False)
+    kind: Mapped[str] = mapped_column(String(16), nullable=False)
+    declined_by: Mapped[str] = mapped_column(String(64), nullable=False)
+    reason: Mapped[str] = mapped_column(String(255), nullable=False)
+    declined_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), nullable=False, default=utcnow
+    )
+
+    __table_args__ = (
+        ForeignKeyConstraint(
+            ["organization_id", "setting_key", "version_number"],
+            [
+                "deep_research_setting_versions.organization_id",
+                "deep_research_setting_versions.setting_key",
+                "deep_research_setting_versions.version_number",
+            ],
+            name="fk_dr_setting_declines_version",
+        ),
+        CheckConstraint("kind in ('WITHDRAWN', 'DECLINED')", name="dr_setting_decline_kind"),
+        UniqueConstraint(
+            "organization_id", "setting_key", "version_number", name="uq_dr_setting_decline"
+        ),
+    )
+
+
 class DeepResearchSettingApprovalRow(Base):
     """Which version of a setting is in force for an organization. Append-only.
 

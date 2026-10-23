@@ -11,6 +11,9 @@ Organization-level, like members and system prompts: every route takes an
   not in force until approved.
 * ``PUT  /deep-research/settings/{key}/approval`` -- approve a version, or with
   ``version_number: null`` return to the proposed default (an administrator).
+* ``POST /deep-research/settings/{key}/versions/{n}/withdrawal`` -- take back a pending
+  proposal (its proposer: WITHDRAWN) or turn it down (another administrator: DECLINED), with a
+  reason; append-only, audited, and the version is never approved afterwards.
 
 An approval changes only runs enqueued afterwards (chunk 43 pins them). Switches, secrets and
 the model route are not here: they stay in the deployment, and no setting can switch a rail
@@ -20,7 +23,7 @@ off. This module only reads and writes the settings store; it starts nothing.
 from __future__ import annotations
 
 from datetime import datetime
-from typing import Annotated, Any
+from typing import Annotated, Any, Literal
 
 from aia_core.domain.deep_research.settings import (
     CATALOGUE_VERSION,
@@ -62,6 +65,8 @@ _STATUS: dict[str, int] = {
     "self_approval_not_allowed": 403,
     "concurrent_edit": 409,
     "approved_value_invalid": 409,
+    "version_declined": 409,
+    "version_not_pending": 409,
 }
 
 
@@ -115,6 +120,16 @@ class SettingsOverview(BaseModel):
     settings: list[SettingSummary]
 
 
+class DeclineResponse(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    #: WITHDRAWN: its proposer took it back; DECLINED: another administrator turned it down.
+    kind: Literal["WITHDRAWN", "DECLINED"]
+    by: str
+    reason: str
+    at: datetime
+
+
 class VersionResponse(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
@@ -125,6 +140,8 @@ class VersionResponse(BaseModel):
     note: str
     created_by: str
     created_at: datetime
+    state: Literal["IN_FORCE", "APPROVED_BEFORE", "PENDING", "WITHDRAWN", "DECLINED"]
+    decline: DeclineResponse | None = None
 
 
 class ApprovalResponse(BaseModel):
@@ -152,6 +169,12 @@ class ProposeRequest(BaseModel):
     #: Where the value comes from (a terms page, a quota letter): an https URL, or empty.
     source_url: str = Field(default="", max_length=500)
     note: str = Field(default="", max_length=255)
+
+
+class WithdrawRequest(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    reason: str = Field(min_length=1, max_length=255)
 
 
 class ApproveRequest(BaseModel):
@@ -201,6 +224,17 @@ def _version(v: StoredSettingVersion) -> VersionResponse:
         note=v.note,
         created_by=v.created_by,
         created_at=v.created_at,
+        state=v.state,
+        decline=(
+            DeclineResponse(
+                kind=v.decline.kind,
+                by=v.decline.by,
+                reason=v.decline.reason,
+                at=v.decline.at,
+            )
+            if v.decline
+            else None
+        ),
     )
 
 
@@ -305,5 +339,29 @@ def approve(
             key, body.version_number, reason=body.reason
         )
         return _from_overview(_one(DeepResearchSettingsReader(session, org), key))
+    except (ScopeDenied, SettingRefused) as exc:
+        raise _refused(exc) from exc
+
+
+@router.post(
+    "/{key}/versions/{version_number}/withdrawal",
+    response_model=VersionResponse,
+    summary="Withdraw or decline a pending proposal",
+)
+def withdraw(
+    key: SettingKey,
+    version_number: Annotated[int, Path(ge=1)],
+    body: WithdrawRequest,
+    org: OrganizationDep,
+    session: SessionDep,
+) -> VersionResponse:
+    """Its proposer withdraws it; another administrator declines it. The version is kept,
+    immutable, and is never put in force afterwards: propose the value again to approve it."""
+    try:
+        return _version(
+            DeepResearchSettingsRepository(session, org).decline(
+                key, version_number, reason=body.reason
+            )
+        )
     except (ScopeDenied, SettingRefused) as exc:
         raise _refused(exc) from exc
