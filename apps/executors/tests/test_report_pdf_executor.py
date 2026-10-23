@@ -123,9 +123,10 @@ def _report(
     data: bytes = DOCX,
     *,
     metadata: dict[str, Any] | None = None,
+    artifact_type: str = INTERNAL_REPORT_ARTIFACT_TYPE,
 ) -> tuple[str, Any]:
     """A research run of the study and a stored report DOCX of it (fictional bytes), with
-    ``metadata`` beside what every report records."""
+    ``metadata`` beside what every report records; ``artifact_type``: which report it is."""
     with world.sessions() as session:
         scope = world.lead_scope(session)
         revision, _ = StudyDesignRepository(session, scope).submit_as_working_copy(
@@ -142,7 +143,7 @@ def _report(
             project_id=project_id,
             revision=revision.revision,
             stage_type="REPORT",
-            artifact_type=INTERNAL_REPORT_ARTIFACT_TYPE,
+            artifact_type=artifact_type,
             data=data,
             input_fingerprint=hashlib.sha256(data).hexdigest(),
             metadata={"run_id": started.run_id, "report_kind": "internal", **(metadata or {})},
@@ -213,6 +214,41 @@ def test_the_job_renders_exactly_the_stored_draft_and_asking_again_is_the_same_j
     again = _ask(world, run_id, docx)
     assert not again.created and again.run_id == first.run_id
     assert pdf.calls == 1
+
+
+def test_a_version_saved_in_the_report_editor_is_rendered_like_the_report(
+    world: Any, database_url: str, store: InMemoryArtifactStore, build: BuildIdentity
+) -> None:
+    """A version a person saved in the report editor (RPT8c) is a report the worker renders:
+    its job renders exactly its bytes."""
+    from aia_core.domain.report.editor import EDIT_ARTIFACT_TYPES
+
+    run_id, docx = _report(
+        world, store, b"PK edited version", artifact_type=EDIT_ARTIFACT_TYPES["internal"]
+    )
+    assert _ask(world, run_id, docx).created
+    pdf = _FakePdf()
+    assert _drain(_worker(world, database_url, store, build, pdf)) == ["completed"]
+    found = _pdf_state(world, store, run_id, docx)
+    assert found.state is PdfState.READY and found.artifact is not None
+    assert found.artifact.metadata["rendering_of"] == docx.artifact_id and pdf.calls == 1
+
+
+def test_an_edited_versions_pdf_without_a_converter_is_not_offered_again(
+    world: Any, database_url: str, store: InMemoryArtifactStore, build: BuildIdentity
+) -> None:
+    """Where the worker composes no converter, an edited version's PDF fails as a composed
+    report's does (pdf_disabled), and is not offered again."""
+    from aia_core.domain.report.editor import EDIT_ARTIFACT_TYPES
+
+    run_id, docx = _report(
+        world, store, b"PK edited version", artifact_type=EDIT_ARTIFACT_TYPES["internal"]
+    )
+    _ask(world, run_id, docx)
+    assert _drain(_worker(world, database_url, store, build, None)) == ["failed"]
+    failed = _pdf_state(world, store, run_id, docx)
+    assert failed.state is PdfState.FAILED and failed.reason == "pdf_disabled"
+    assert not failed.askable
 
 
 def test_a_pdf_that_failed_for_want_of_a_converter_is_rendered_once_a_person_asks_again(
