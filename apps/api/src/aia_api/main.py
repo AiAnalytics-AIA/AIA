@@ -99,11 +99,13 @@ def create_app(settings: Settings | None = None) -> FastAPI:
                 }
             },
         )
-        if resolved.sociomap_warmup_enabled:
-            app.state.warmup = start_object_map_warmup()
+        # Launched before uvicorn accepts connections, never waited for (warmup.py).
+        warmup = start_object_map_warmup() if resolved.sociomap_warmup_enabled else None
         try:
             yield
         finally:
+            if warmup is not None:
+                warmup.stop()
             engine = getattr(app.state, "engine", None)
             if owns_engine and engine is not None:
                 engine.dispose()
