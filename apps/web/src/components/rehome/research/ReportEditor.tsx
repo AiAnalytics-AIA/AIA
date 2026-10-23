@@ -77,6 +77,9 @@ export type ReportEditorProps = {
   review: string | null;
   /** The read-only draft: the pane whenever the editor is not on screen. */
   children: ReactNode;
+  /** Told the version the editor shows once it is ready, and null whenever it does not show one:
+   *  the doc bar approves only the version on screen. */
+  onShown?: (versionArtifactId: string | null) => void;
   /** Seams for the tests: the open route and the script loader. */
   open?: typeof research.openReportEditor;
   load?: (url: string) => Promise<DocsApi>;
@@ -84,7 +87,7 @@ export type ReportEditorProps = {
 };
 
 export function ReportEditor({
-  studyId, runId, variant, review, children, open = research.openReportEditor, load = loadDocsApi,
+  studyId, runId, variant, review, children, onShown, open = research.openReportEditor, load = loadDocsApi,
   timeoutMs = EDITOR_TIMEOUT_MS,
 }: ReportEditorProps) {
   const mode = useMode();
@@ -169,6 +172,8 @@ export function ReportEditor({
 
   const current = state.at === at ? state : { at, kind: "opening" as const };
   const status = up.at === at ? up : { ready: false, failed: false };
+  const shown = current.kind === "open" && status.ready && !status.failed ? current.opened.version_artifact_id : null;
+  useEffect(() => { onShown?.(shown); }, [shown, onShown]);
   if (current.kind === "off") return <>{children}</>;
   if (current.kind === "said" || (current.kind === "open" && status.failed)) {
     return (

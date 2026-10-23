@@ -499,7 +499,16 @@ load, an editor error or no `onAppReady` within `EDITOR_TIMEOUT_MS` (20 s) leave
 while building it: AIA's pages send no Content-Security-Policy (`next.config.ts` and the Caddyfile's product site set
 none), so the CSP the chunk names has nothing to add the editor's origin to; a CSP for the product is its own work, not
 started here. While the editor is open the read-only draft, and the `report:` targets the Lead focuses, is not on the
-page: the Lead in the document is RPT9. Tests: `report-editor.test.ts`, `ReportEditor.test.tsx`.
+page: the Lead in the document is RPT9. While the editor shows a version saved after the composed draft, the doc bar
+offers no approval of that draft (the version read is the version approved, RPT3a); approving an edited version from
+the pane is part 2. A risk, stated plainly (the stand-in's review of #875): ONLYOFFICE's api.js runs in AIA's own
+origin, beside the session's id and refresh tokens in `sessionStorage` (`lib/auth.ts`), so a compromised Document
+Server could read them; the editor's own domain keeps its documents and cookies apart, not this loader. Before
+activation the Zpráva session pins it: Subresource Integrity on the script (the hash of the pinned Document Server
+image's api.js, beside `AIA_ONLYOFFICE_URL`), checked against the real Document Server on develop, which must answer
+it with CORS for SRI to load; until then the editor stays off. Tests: `report-editor.test.ts`, `ReportEditor.test.tsx`,
+`ReportDocumentView.editor.test.tsx` (the client report never handed to the editor, the report with literature by its
+review, no approval of the composed draft while the editor shows a later version).
 
 Order: F1 (its own small PR) → RPT8a part 3 → RPT8b → RPT8c → RPT8d → RD0's change → activation (infra: the
 editor's own domain, its Caddy site without the docs gate, Route 53, SSM, the flag) → RPT9.

@@ -274,6 +274,9 @@ export function ReportDocumentView({ run }: { run: ResearchRun }) {
       ),
     };
   };
+  // The version the report editor shows for which document, if it shows one (RPT8d).
+  const [shownInEditor, setShownInEditor] = useState<{ doc: string; version: string | null } | null>(null);
+  const showInEditor = useCallback((version: string | null) => setShownInEditor({ doc: docId, version }), [docId]);
   const [stack, setStack] = useState<InspectorStack>(() => emptyStack("report"));
   // Inside the workbench a claim opens in its one item drawer, under the frame's Escape order;
   // outside it (and for a ref the target grammar refuses) in this view's own.
@@ -319,6 +322,9 @@ export function ReportDocumentView({ run }: { run: ResearchRun }) {
 
   const { stored, doc } = loaded;
   const controls = approval(stored);
+  // The doc bar approves the version on screen (RPT3a): while the editor shows a version saved
+  // after the composed draft, approving that draft from here would approve what is not read.
+  const edited = shownInEditor?.doc === docId && shownInEditor.version !== null && shownInEditor.version !== stored.report_artifact_id;
   const missing = unresolvedRefs(doc);
   const entry = (ref: string): LedgerEntry | undefined => doc.ledger.refs[ref];
   const claim = (ref: string) => <ul className="flex flex-col gap-1">{claimLines(entry(ref)).map((line) => <li key={line}>{line}</li>)}</ul>;
@@ -352,7 +358,9 @@ export function ReportDocumentView({ run }: { run: ResearchRun }) {
           <span>· {reviewWords(stored, kind === "client" ? "client" : "internal")}</span>
           {stored.approval ? <span data-approval>· {approvalWords(stored.approval, stored.approved_on)}</span> : null}
           <span className={`font-mono ${WRAPS}`}>· {stored.report_artifact_id}</span>
-          {controls.button}
+          {edited ? (
+            <span className="ml-auto" data-approval-edited>Editor ukazuje upravený koncept; ten se v tomto panelu zatím neschvaluje.</span>
+          ) : controls.button}
         </div>
         {controls.after}
         {missing.length ? (
@@ -360,7 +368,7 @@ export function ReportDocumentView({ run }: { run: ResearchRun }) {
         ) : null}
         {kind === "client" ? draft : (
           // The draft in the report editor where it is configured (RPT8d), else read here as before.
-          <ReportEditor studyId={frame.studyId} runId={run.run_id} variant={kind === "with_review" ? "context" : "internal"} review={review}>
+          <ReportEditor studyId={frame.studyId} runId={run.run_id} variant={kind === "with_review" ? "context" : "internal"} review={review} onShown={showInEditor}>
             {draft}
           </ReportEditor>
         )}
