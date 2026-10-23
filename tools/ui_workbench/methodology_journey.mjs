@@ -128,6 +128,8 @@ const storeAndActivate = async (moduleId) => {
   await (await chooseField(edit.reference)).fill(edit.typed);
   await form.getByRole("button", { name: "Porovnat s metodikou v platnosti", exact: true }).click();
   await page.locator("[data-methodology-compare]").waitFor({ timeout: 60000 });
+  // The comparison shows on the module's Porovnání (settings-redesign 10b); storing is on Upravit.
+  await page.getByRole("tab", { name: "Upravit", exact: true }).click();
   await form.getByRole("button", { name: "Zkontrolovat a uložit", exact: true }).click();
   await form.waitFor({ state: "detached", timeout: 60000 });
   const after = await get(`/api/v1/methodology/${moduleId}/versions`);
@@ -135,7 +137,9 @@ const storeAndActivate = async (moduleId) => {
   assert(created, `${moduleId}: no new version stored`);
   assert.equal(edit.read(created.spec), edit.value, `${moduleId}: stored ${JSON.stringify(edit.read(created.spec))}, typed ${edit.typed}`);
   await page.getByRole("button", { name: `Uvést ${created.name} v platnost`, exact: true }).click();
-  await page.locator("[data-methodology-activate]").getByRole("button", { name: "Potvrdit", exact: true }).click();
+  const dialog = page.locator("[data-methodology-activate]");
+  await dialog.getByRole("radio", { name: "Ověření na pilotní studii", exact: true }).click();
+  await dialog.getByRole("button", { name: /^Aktivovat( jako interní)?$/ }).click();
   await page.locator("[data-in-force]").filter({ hasText: created.name }).waitFor();
   assert.equal((await get(`/api/v1/methodology/${moduleId}/versions`)).in_force.version_number, created.version_number);
   stored[moduleId] = created.name;

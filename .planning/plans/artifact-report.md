@@ -422,14 +422,19 @@ https://${AIA_PUBLIC_HOSTNAME}` (the worker none); the editor stays off there un
 expired document token, a callback token, another line's version and a key no session has are each refused.
 
 *RPT8c, part 3 (`feature/report-editor-callback`):* `POST /report-editor/callback?token=` (the Document Server's,
-beside its document route; token and body optional, refused 403, never 422): ONLYOFFICE's JWT
-checked in the header (its `payload` the body's) and in the body, the URL token naming this session, the body's key
-the token's (403 otherwise); each status as `callback_action` says, any other `{"error": 1}`. A save (6, or 2, which
-then closes the session) is stored by `application/report_editor_saves.py` `store_save`: its authors each one a
+beside its document route; token and body optional, the body read in the route, so anything that is not a JSON
+object is unsigned: 403, or 404 while off, never 422): ONLYOFFICE's JWT, which it sends once, in the body (`inBody`:
+the body's fields beside `iat`/`exp`) or in the header (the body as `payload`, which it may trim), read by
+`EditorTokens.read_callback`; both, when sent, agree on each of `key`, `status`, `url`, `users` that each carries,
+and only those signed fields are read; the URL token naming this session, the signed key the token's (403
+otherwise); each status as `callback_action` says, any other `{"error": 1}`. A session already closed takes nothing:
+a late or replayed save for it is `{"error": 1}` (`session_closed`), any other status `{"error": 0}`. A save (6, or 2,
+which then closes the session) is stored by `application/report_editor_saves.py` `store_save`, one at a time per line
+(the line's composed row held first, as `open` does; the session read again under it): its authors each one a
 config was signed for (`unknown_author`), the file's URL on the editor's exact origin under `/cache/files/`
 (`infrastructure/editor_fetch.py` `allowed`, checked before any fetcher is called, `not_the_editors_file`), fetched
 by `LiveSaveFetcher` (urllib3, the egress fence's newest named exit in `pyproject.toml`: no retry, no redirect, 64
-MB, a 403 `document_server_restarted`), a DOCX that opens (RPT8b's `census`, `save_unreadable`), then koncept N+1
+MB, a 403 `document_server_restarted`, a break while the body streams `document_server_unreachable`), a DOCX that opens (RPT8b's `census`, `save_unreadable`), then koncept N+1
 (`research_internal_docx_edit` / `…_with_research_edit`) depending on koncept N, produced by its first author, with
 RPT8b's changes against koncept 1 beside it (`research_report_changes`); the same bytes again store nothing. A save
 not stored answers `{"error": 1}` (the Document Server tries again) and stays on the session (`last_problem`), which

@@ -21,6 +21,7 @@ pane to say.
 
 from __future__ import annotations
 
+import json
 import logging
 from datetime import UTC, datetime
 from typing import Annotated, Any, Literal
@@ -46,7 +47,7 @@ from aia_core.application.scope import AuthenticatedPrincipal
 from aia_core.domain.report.editor import CallbackAction, callback_action
 from aia_core.domain.report.saved_changes import changes_payload
 from aia_core.domain.scope import ScopeDenied, StudyContext
-from fastapi import APIRouter, Body, Header, HTTPException, Path, Query, Request, Response
+from fastapi import APIRouter, Depends, Header, HTTPException, Path, Query, Request, Response
 from pydantic import BaseModel, ConfigDict, Field
 
 from ..dependencies import (
@@ -303,6 +304,20 @@ def report_editor_document(
 log = logging.getLogger("aia.report_editor")
 
 
+async def _callback_body(request: Request) -> dict[str, Any]:
+    """The callback's JSON object, or ``{}`` for anything else: read in the route, so a body it
+    cannot parse is refused as unsigned (403, or 404 while the editor is off), never 422. Caddy
+    bounds its size."""
+    try:
+        parsed = json.loads(await request.body())
+    except (ValueError, RecursionError):  # a UnicodeDecodeError is a ValueError
+        return {}
+    return parsed if isinstance(parsed, dict) else {}
+
+
+CallbackBody = Annotated[dict[str, Any], Depends(_callback_body)]
+
+
 @document_server.post(
     "/callback",
     summary="The Document Server's callback for an editing session",
@@ -314,24 +329,22 @@ def report_editor_callback(
     settings: SettingsDep,
     resolver: ResolverDep,
     fetcher: EditorFetcherDep,
+    body: CallbackBody,
     token: TokenQuery = None,
-    # Optional, as the token: refused by the route, never answered 422.
-    body: Annotated[dict[str, Any] | None, Body()] = None,
     authorization: Annotated[str | None, Header()] = None,
 ) -> dict[str, int]:
-    """A session's news, as ONLYOFFICE posts it: its JWT checked in the header and the body,
-    the URL token naming this session, and the body's key the token's."""
+    """A session's news, as ONLYOFFICE posts it: its JWT (in the body or the header), the URL
+    token naming this session, and the signed key the token's. Only signed fields are read."""
     tokens = _tokens(settings)
     now = _now()
     try:
         if token is None or len(token) > MAX_TOKEN:
             raise TokenRefused("no token, or not one")
-        header = tokens.read_onlyoffice(bearer(authorization))
-        payload = tokens.read_onlyoffice((body or {}).get("token"))
+        payload = tokens.read_callback(body.get("token"), bearer(authorization))
         claim = tokens.read_url(token, "callback", now=now)
     except TokenRefused as exc:
         raise HTTPException(403, detail={"code": "editor_token_refused"}) from exc
-    if header.get("payload", payload) != payload or payload.get("key") != claim.document_key:
+    if payload.get("key") != claim.document_key:
         raise HTTPException(403, detail={"code": "editor_token_refused"})
     try:
         action = callback_action(int(payload.get("status", -1)))
@@ -343,6 +356,13 @@ def report_editor_callback(
     found, scope = _session_scope(
         session_by_key(session, claim.document_key), resolver, as_user=first
     )
+    if found.closed_at is not None:
+        # A session ends once (status 2 or 4, or idle): a late or replayed callback for it
+        # changes nothing, and a save it carries is not stored over a newer session's.
+        if action in (CallbackAction.STORE, CallbackAction.STORE_AND_CLOSE):
+            log.warning("report editor save not stored", extra={"reason": "session_closed"})
+            return {"error": 1}
+        return {"error": 0}
     editor = ReportEditor(session, scope)
     if action is CallbackAction.OPEN:
         editor.keep_open(found, now=now)
