@@ -135,3 +135,28 @@ describe("the draft in the report editor", () => {
     expect(made[0].destroyed).toBe(true);
   });
 });
+
+
+describe("an editor that gave up", () => {
+  it("is never revived by a script that loads late or an editor that says it is ready late", async () => {
+    const { api, made } = docsApi();
+    let arrive: (value: DocsApi) => void = () => undefined;
+    const late = new Promise<DocsApi>((resolve) => { arrive = resolve; });
+    show({ open: vi.fn().mockResolvedValue(OPENED), load: vi.fn().mockReturnValue(late), timeoutMs: 30 });
+    expect(await screen.findByText(/Editor zprávy neodpovídá/)).toBeTruthy();
+    await act(async () => { arrive(api); await late; });
+    expect(made).toHaveLength(0); // the script came after the timeout: nothing is built
+    expect(screen.getByText("Koncept jen ke čtení")).toBeTruthy();
+  });
+
+  it("stays given up when the editor answers ready after the timeout", async () => {
+    const { api, made } = docsApi();
+    show({ open: vi.fn().mockResolvedValue(OPENED), load: vi.fn().mockResolvedValue(api), timeoutMs: 30 });
+    await vi.waitFor(() => expect(made).toHaveLength(1));
+    expect(await screen.findByText(/Editor zprávy neodpovídá/)).toBeTruthy();
+    act(() => events(made[0].config).onAppReady());
+    expect(screen.getByText(/Editor zprávy neodpovídá/)).toBeTruthy();
+    expect(document.querySelector("[data-report-editor='ready']")).toBeNull();
+    expect(screen.getByText("Koncept jen ke čtení")).toBeTruthy();
+  });
+});

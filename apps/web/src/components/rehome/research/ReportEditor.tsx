@@ -118,8 +118,14 @@ export function ReportEditor({
     if (!opened || !element) return;
     let live = true;
     let editor: { destroyEditor?: () => void } | null = null;
+    // Failing ends this attempt for good: a script that loads late, or an editor that says it is
+    // ready after the timeout, builds and revives nothing (the host it would use is gone).
+    let failed = false;
+    const going = () => live && !failed;
     const fail = () => {
-      if (!live) return;
+      if (!going()) return;
+      failed = true;
+      clearTimeout(timer);
       editor?.destroyEditor?.();
       editor = null;
       setUp({ at, ready: false, failed: true });
@@ -128,7 +134,7 @@ export function ReportEditor({
     const timer = setTimeout(fail, timeoutMs);
     load(opened.script).then(
       (api) => {
-        if (!live) return;
+        if (!going()) return;
         // The editor replaces a node of its own, never one React renders.
         const node = document.createElement("div");
         node.id = placeholder;
@@ -139,16 +145,19 @@ export function ReportEditor({
             width: "100%",
             height: "100%",
             events: {
-              onAppReady: () => { if (live) { clearTimeout(timer); setUp({ at, ready: true, failed: false }); } },
-              onError: () => { clearTimeout(timer); fail(); },
+              onAppReady: () => {
+                if (!going()) return;
+                clearTimeout(timer);
+                setUp({ at, ready: true, failed: false });
+              },
+              onError: fail,
             },
           });
         } catch {
-          clearTimeout(timer);
           fail();
         }
       },
-      () => { clearTimeout(timer); fail(); },
+      fail,
     );
     return () => {
       live = false;
