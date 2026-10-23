@@ -11,7 +11,7 @@
 // stage in the AIA shell -- client, study and stage in the breadcrumbs, the
 // study's stages in its own rail -- and a stage AIA has not rebuilt says so.
 
-import { type ReactNode, createContext, useCallback, useContext, useEffect, useMemo, useState, useSyncExternalStore } from "react";
+import { type ReactNode, createContext, useCallback, useContext, useEffect, useLayoutEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
 
 import { t, tv } from "@/i18n/t";
 import { CANCEL_CONFIRM, JobError, type JobUpdate } from "@/research/jobs";
@@ -343,6 +343,14 @@ function Ready({ store, template, origin, memory, step, frame, reload }: {
   const Screen = STEP_SCREENS[step];
   const aiHelp = aiHelpFor(step);
   const workbench = useWorkbenchSwitch();
+  // Another stage opens at the page's top in the classic layout, as its own page did: the stage's
+  // page is empty now, and Next.js scrolls to no empty segment. The workbench resets its artifact.
+  const scrolledFor = useRef(step);
+  useLayoutEffect(() => {
+    if (scrolledFor.current === step) return;
+    scrolledFor.current = step;
+    if (workbench !== true) window.scrollTo(0, 0);
+  }, [step, workbench]);
   const onTrack = TRACK_STEPS.includes(step) && step !== "run" && step !== "progress" && step !== "results";
   // Stable across the editors' renders, so typing does not keep restarting the workbench's job poll.
   const refreshAgents = agents.refresh;
@@ -359,6 +367,16 @@ function Ready({ store, template, origin, memory, step, frame, reload }: {
   const starts = !leadOwns;
   // A card on another stage asked for this job's review: opened here once the jobs are read.
   const openAgent = agents.open;
+  // The screen stays mounted from stage to stage (research-lead-workbench 34): a review left open on
+  // the stage the person leaves is kept for later, as leaving the page kept it, never carried over
+  // the next stage. Declared before the review a card asked the next stage for, which it opens.
+  const review = agents.proposalReview ?? agents.adviceReview;
+  const reviewedOn = useRef(step);
+  useEffect(() => {
+    if (reviewedOn.current === step) return;
+    reviewedOn.current = step;
+    review?.decide("keep");
+  }, [step, review]);
   useEffect(() => {
     const wanted = memory.get(OPEN_REVIEW_KEY);
     if (typeof wanted !== "string" || agents.busy) return;
@@ -366,7 +384,7 @@ function Ready({ store, template, origin, memory, step, frame, reload }: {
     if (!job) return;
     memory.delete(OPEN_REVIEW_KEY);
     void openAgent(job);
-  }, [memory, agents.recent, agents.busy, openAgent]);
+  }, [memory, agents.recent, agents.busy, openAgent, step]);
 
   // The layout is the switch's: mounting the classic one while it is unread would read and record
   // the stage twice, once for each layout. Until then the stage's chrome says it is loading.
