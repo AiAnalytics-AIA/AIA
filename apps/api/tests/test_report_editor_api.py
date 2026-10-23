@@ -13,7 +13,11 @@ from urllib.parse import parse_qs, urlparse
 
 import jwt
 import pytest
-from aia_core.application.report import INTERNAL_REPORT_ARTIFACT_TYPE, INTERNAL_REPORT_MEDIA_TYPE
+from aia_core.application.report import (
+    INTERNAL_REPORT_ARTIFACT_TYPE,
+    INTERNAL_REPORT_MEDIA_TYPE,
+    INTERNAL_REPORT_PDF_ARTIFACT_TYPE,
+)
 from aia_core.application.research import research_artifacts
 from aia_core.application.scope import AuthenticatedPrincipal, ScopeResolver
 from aia_core.domain.report.saved_changes import read_changes_payload
@@ -86,10 +90,16 @@ def _docx(value: str = "42,5 %", prose: str = "Bance důvěřuje") -> bytes:
 
 
 def _reported_run(
-    app: FastAPI, researcher: TestClient, world: Any, *, title: str = "Ranní nápoj"
+    app: FastAPI,
+    researcher: TestClient,
+    world: Any,
+    *,
+    title: str = "Ranní nápoj",
+    with_pdf: bool = False,
 ) -> tuple[str, str]:
     """A run of the primary study whose report step stored an internal draft: (run, draft);
-    another ``title`` is another design, so another run."""
+    another ``title`` is another design, so another run. ``with_pdf``: the step rendered its
+    PDF too, as it does with the converter on."""
     revision = world.design(researcher, {**DESIGN, "title": title}).json()["revision_id"]
     runs = f"{API}/studies/{world.study_id()}/research/runs"
     started = researcher.post(runs, json={"design_revision_id": revision})
@@ -118,6 +128,18 @@ def _reported_run(
                 )
                 draft = artifact.artifact_id
                 output = {"artifact_id": draft}
+                if with_pdf:
+                    pdf, _ = research_artifacts(session, scope, app.state.artifact_store).put(
+                        project_id=work.project_id,
+                        revision=work.project_revision,
+                        stage_type="REPORT",
+                        artifact_type=INTERNAL_REPORT_PDF_ARTIFACT_TYPE,
+                        data=b"%PDF-1.7 the step's rendering",
+                        content_type="application/pdf",
+                        metadata={"run_id": run_id, "rendering_of": draft},
+                        reuse=False,
+                    )
+                    output["pdf"] = {"state": "READY", "artifact_id": pdf.artifact_id}
             workflow.complete_attempt(work.attempt_id, worker_id="editor-fixture", output=output)
         session.commit()
     assert draft
@@ -918,3 +940,31 @@ def test_a_versions_download_reads_its_docx_alone_not_what_it_changed(
         got = researcher.get(f"{versions}/download")
         assert got.status_code == 200 and got.content == _docx("50 %"), damage
         assert researcher.get(versions).status_code == 409, damage  # said, never guessed
+
+
+def test_the_first_version_serves_the_pdf_its_report_step_rendered(
+    app: FastAPI, researcher: TestClient, world: Any
+) -> None:
+    """Koncept 1 of the run's own line is the report its step composed: its PDF is that
+    report's, the step's rendering included, and never a second one asked for."""
+    from aia_core.infrastructure.tables import WorkflowRunRow
+    from sqlalchemy import func, select
+
+    run_id, draft = _reported_run(app, researcher, world, with_pdf=True)
+    researcher.post(_editor(world, run_id), json={})  # starts the line: koncept 1 is the draft
+    versions = f"{_editor(world, run_id)}/versions/{draft}"
+    said = researcher.get(versions).json()["pdf"]
+    report = researcher.get(f"{API}/studies/{world.study_id()}/research/runs/{run_id}/report")
+    assert said["state"] == "READY" and said == report.json()["pdf"]
+
+    def jobs() -> int:
+        with create_session_factory(app.state.engine)() as session:
+            return int(session.scalar(select(func.count()).select_from(WorkflowRunRow)) or 0)
+
+    before = jobs()
+    asked = researcher.post(f"{versions}/pdf")
+    assert asked.status_code == 200 and asked.json()["pdf"]["state"] == "READY"
+    assert jobs() == before
+    got = researcher.get(f"{versions}/pdf/download")
+    assert got.status_code == 200 and got.content == b"%PDF-1.7 the step's rendering"
+    assert got.headers["X-AIA-Artifact-Id"] == draft
