@@ -486,14 +486,18 @@ def report_editor_version(
     store: ArtifactStoreDep,
 ) -> dict[str, Any]:
     """A version of one of the run's report lines, for the doc bar and the approval dialog
-    (RPT8d): who saved it and from which version, its review and approval as the run's report
-    status says them, and what it changed in the numbers code wrote, as stored beside it (each
-    control changed, removed or added, each number typed outside one). ``changes`` null for
+    (RPT8d): who saved it (by display name) and from which version, its review and approval as
+    the run's report status says them, its line's newest version, and what it changed in the
+    numbers code wrote, as stored beside it (each control changed, removed or added, each number
+    typed outside one). ``changes`` null for
     koncept 1, the composer's own; ``uncomparable`` when there was nothing to compare it with,
     never an empty list read as no change. Served whether or not the editor is on: an approved
     version stays readable."""
     version, artifact, changes = _version(run_id, artifact_id, scope, session, store)
     mark = _mark(artifact, scope, session, store)
+    editor = ReportEditor(session, scope)
+    names = editor.names(version.authors)
+    newest = editor.newest(version.line_id)
     return {
         "run_id": run_id,
         "version_artifact_id": version.artifact_id,
@@ -503,7 +507,14 @@ def report_editor_version(
         "koncept": version.koncept,
         "edited_from": artifact.metadata.get("edited_from"),
         "authors": list(version.authors),
+        # Each author's display name, null for one with none (never an e-mail), in that order.
+        "author_names": [names.get(a) for a in version.authors],
         "saved_at": version.saved_at.isoformat(),
+        # The line's newest version: approving this one while a later save exists approves what
+        # the editor no longer shows, so the pane asks again (RPT8d).
+        "newest_in_line": {"version_artifact_id": newest.artifact_id, "koncept": newest.koncept}
+        if newest is not None
+        else None,
         **_review_fields(artifact, mark),
         **_approval_fields(artifact, scope, session, store),
         "changes": changes_payload(changes) if changes is not None else None,

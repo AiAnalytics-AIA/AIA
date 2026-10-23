@@ -22,6 +22,7 @@ from sqlalchemy.orm import Session
 from ..domain.report.editor import LineHead
 from ..domain.scope import StudyContext
 from .tables import (
+    OrganizationMemberRow,
     ProjectArtifactRow,
     ReportEditorSessionRow,
     ReportEditorVersionRow,
@@ -264,6 +265,21 @@ class ReportEditorRepository:
         row = self._session.get(UserRow, self._scope.actor_id)
         name = (row.display_name if row is not None else "") or ""
         return "" if "@" in name else name
+
+    def names(self, user_ids: Sequence[str]) -> dict[str, str]:
+        """Each of ``user_ids`` who is a member of the organization in scope, by display name,
+        never an e-mail; a person with neither is left out (the pane says "Člen týmu")."""
+        if not user_ids:
+            return {}
+        rows = self._session.execute(
+            select(UserRow.user_id, UserRow.display_name)
+            .join(OrganizationMemberRow, OrganizationMemberRow.user_id == UserRow.user_id)
+            .where(
+                OrganizationMemberRow.organization_id == self._scope.organization_id,
+                UserRow.user_id.in_(list(user_ids)),
+            )
+        )
+        return {uid: name for uid, name in rows if name and "@" not in name}
 
     # -- sessions ------------------------------------------------------------
 

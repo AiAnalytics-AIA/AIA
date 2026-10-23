@@ -15,6 +15,10 @@ import {
   problemWords, UNREACHABLE,
 } from "@/lib/report-editor";
 
+/** What the editor shows once it is ready: the line and version opened, and whether it holds
+ *  edits the Document Server has not saved yet (`onDocumentStateChange`). */
+export type EditorShown = { opened: EditorOpened; dirty: boolean };
+
 /** What api.js puts on the page: one constructor (ONLYOFFICE's DocsAPI). */
 export type DocsApi = {
   DocEditor: new (placeholderId: string, config: Record<string, unknown>) => { destroyEditor?: () => void };
@@ -75,11 +79,13 @@ export type ReportEditorProps = {
    *  never edited). */
   variant: "internal" | "context";
   review: string | null;
+  /** The line to open; null for the one with the newest version (the API's default). */
+  line?: string | null;
   /** The read-only draft: the pane whenever the editor is not on screen. */
   children: ReactNode;
-  /** Told the version the editor shows once it is ready, and null whenever it does not show one:
-   *  the doc bar approves only the version on screen. */
-  onShown?: (versionArtifactId: string | null) => void;
+  /** Told what the editor shows once it is ready, and null whenever it shows nothing: the doc bar
+   *  names that version and approves only it. */
+  onShown?: (shown: EditorShown | null) => void;
   /** Seams for the tests: the open route and the script loader. */
   open?: typeof research.openReportEditor;
   load?: (url: string) => Promise<DocsApi>;
@@ -87,20 +93,22 @@ export type ReportEditorProps = {
 };
 
 export function ReportEditor({
-  studyId, runId, variant, review, children, onShown, open = research.openReportEditor, load = loadDocsApi,
+  studyId, runId, variant, review, line = null, children, onShown, open = research.openReportEditor, load = loadDocsApi,
   timeoutMs = EDITOR_TIMEOUT_MS,
 }: ReportEditorProps) {
   const mode = useMode();
-  const at = `${studyId}:${runId}:${variant}:${review ?? ""}:${mode}`;
+  const at = `${studyId}:${runId}:${variant}:${review ?? ""}:${line ?? ""}:${mode}`;
   const [state, setState] = useState<State>({ at, kind: "opening" });
   // The editor came up (`onAppReady`), or it failed after the route answered: this document only.
   const [up, setUp] = useState<{ at: string; ready: boolean; failed: boolean }>({ at, ready: false, failed: false });
+  // Edits the Document Server holds unsaved, for this document only.
+  const [dirty, setDirty] = useState<{ at: string; dirty: boolean }>({ at, dirty: false });
   const host = useRef<HTMLDivElement>(null);
   const placeholder = `report-editor-${useId().replace(/[^a-zA-Z0-9-]/g, "")}`;
 
   useEffect(() => {
     let live = true;
-    open(studyId, runId, { variant, deep_research_run_id: variant === "context" ? review : null, mode }).then(
+    open(studyId, runId, { variant, deep_research_run_id: variant === "context" ? review : null, line, mode }).then(
       (opened) => {
         if (!live) return;
         const script = apiScriptUrl(opened.document_server);
@@ -113,7 +121,7 @@ export function ReportEditor({
       },
     );
     return () => { live = false; };
-  }, [at, studyId, runId, variant, review, mode, open]);
+  }, [at, studyId, runId, variant, review, line, mode, open]);
 
   const opened = state.at === at && state.kind === "open" ? state : null;
   useEffect(() => {
@@ -153,6 +161,9 @@ export function ReportEditor({
                 clearTimeout(timer);
                 setUp({ at, ready: true, failed: false });
               },
+              onDocumentStateChange: (event: { data?: unknown }) => {
+                if (going()) setDirty({ at, dirty: event?.data === true });
+              },
               onError: fail,
             },
           });
@@ -172,8 +183,9 @@ export function ReportEditor({
 
   const current = state.at === at ? state : { at, kind: "opening" as const };
   const status = up.at === at ? up : { ready: false, failed: false };
-  const shown = current.kind === "open" && status.ready && !status.failed ? current.opened.version_artifact_id : null;
-  useEffect(() => { onShown?.(shown); }, [shown, onShown]);
+  const shownOpened = current.kind === "open" && status.ready && !status.failed ? current.opened : null;
+  const unsaved = dirty.at === at && dirty.dirty;
+  useEffect(() => { onShown?.(shownOpened ? { opened: shownOpened, dirty: unsaved } : null); }, [shownOpened, unsaved, onShown]);
   if (current.kind === "off") return <>{children}</>;
   if (current.kind === "said" || (current.kind === "open" && status.failed)) {
     return (
@@ -196,9 +208,7 @@ export function ReportEditor({
   const problem = problemWords(current.opened.problem);
   return (
     <section aria-label="Zpráva v editoru" data-report-editor={status.ready ? "ready" : "loading"} data-mode={mode}>
-      <p className="mb-2 text-xs text-ink-muted" data-report-editor-version>
-        Koncept {current.opened.koncept}{mode === "view" ? " · jen ke čtení (úzká obrazovka)" : ""}
-      </p>
+      {mode === "view" ? <p className="mb-2 text-xs text-ink-muted" data-report-editor-view>Jen ke čtení (úzká obrazovka)</p> : null}
       {problem ? <p role="alert" className="mb-2 text-sm text-status-fault" data-report-editor-problem>{problem}</p> : null}
       {status.ready ? null : <p className="mb-2 text-sm text-ink-muted">Načítám editor…</p>}
       <div ref={host} className="h-[75vh] min-h-[480px] w-full overflow-hidden rounded-card border border-border bg-surface-raised" />

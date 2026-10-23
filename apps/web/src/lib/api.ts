@@ -7,7 +7,7 @@
 import type { RegisterEntry } from "@/lib/object-map-view";
 import type { BriefMaterials } from "@/lib/material-class";
 import type { Approval, StoredReportDocument } from "@/lib/artifacts/report";
-import type { EditorMode, EditorOpened } from "@/lib/report-editor";
+import type { EditorMode, EditorOpened, EditorVersionRead } from "@/lib/report-editor";
 import { currentIdToken, loadConfig } from "@/lib/auth";
 import type { EditDecisionResult, LeadPreferences, LeadState, LeadTurn, RequestApproval, ResearcherLead, SelfUpdateDecision } from "@/lib/lead";
 import type { OmittedPage, TurnManifest } from "@/lib/lead-manifest";
@@ -1408,6 +1408,9 @@ export const research = {
     runId: string,
     body: { variant: "internal" | "context"; deep_research_run_id?: string | null; line?: string | null; mode: EditorMode },
   ) => request<EditorOpened>("POST", `${studyPath(studyId)}/research/runs/${enc(runId)}/report/editor`, body),
+  /** A saved version of a report line: who saved it, its review, what it changed, its line's newest (RPT8d). */
+  reportEditorVersion: (studyId: string, runId: string, artifactId: string) =>
+    request<EditorVersionRead>("GET", `${studyPath(studyId)}/research/runs/${enc(runId)}/report/editor/versions/${enc(artifactId)}`),
   /** The run's internal draft as its stored document model, beside the DOCX it names (report-delivery RD5a). */
   reportDocument: (studyId: string, runId: string) =>
     request<StoredReportDocument>("GET", `${studyPath(studyId)}/research/runs/${enc(runId)}/report/document`),

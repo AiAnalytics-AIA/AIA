@@ -34,7 +34,8 @@ function docsApi() {
   return { api, made };
 }
 
-const events = (config: Record<string, unknown>) => config.events as { onAppReady: () => void; onError: () => void };
+const events = (config: Record<string, unknown>) =>
+  config.events as { onAppReady: () => void; onError: () => void; onDocumentStateChange: (e: { data: boolean }) => void };
 
 const show = (props: Partial<Parameters<typeof ReportEditor>[0]> = {}) =>
   render(
@@ -66,14 +67,35 @@ describe("the draft in the report editor", () => {
     const load = vi.fn().mockResolvedValue(api);
     show({ open, load });
     await vi.waitFor(() => expect(made).toHaveLength(1));
-    expect(open).toHaveBeenCalledWith("STU-1", "RUN-1", { variant: "internal", deep_research_run_id: null, mode: "edit" });
+    expect(open).toHaveBeenCalledWith("STU-1", "RUN-1", { variant: "internal", deep_research_run_id: null, line: null, mode: "edit" });
     expect(load).toHaveBeenCalledWith("https://docs.aia.example.test/web-apps/apps/api/documents/api.js");
     expect(made[0].config).toMatchObject({ token: "signed", document: { key: "ART-1.aaaa.1" } });
     expect(document.getElementById(made[0].id)).not.toBeNull();
     act(() => events(made[0].config).onAppReady());
     expect(document.querySelector("[data-report-editor]")?.getAttribute("data-report-editor")).toBe("ready");
     expect(screen.queryByText("Koncept jen ke čtení")).toBeNull();
-    expect(screen.getByText(/Koncept 2/)).toBeTruthy();
+  });
+
+  it("tells the pane what it shows once ready, and whether it holds edits not yet saved", async () => {
+    const { api, made } = docsApi();
+    const onShown = vi.fn();
+    show({ open: vi.fn().mockResolvedValue(OPENED), load: vi.fn().mockResolvedValue(api), onShown });
+    await vi.waitFor(() => expect(made).toHaveLength(1));
+    expect(onShown).toHaveBeenLastCalledWith(null);
+    act(() => events(made[0].config).onAppReady());
+    expect(onShown).toHaveBeenLastCalledWith({ opened: OPENED, dirty: false });
+    act(() => events(made[0].config).onDocumentStateChange({ data: true }));
+    expect(onShown).toHaveBeenLastCalledWith({ opened: OPENED, dirty: true });
+    act(() => events(made[0].config).onDocumentStateChange({ data: false }));
+    expect(onShown).toHaveBeenLastCalledWith({ opened: OPENED, dirty: false });
+    act(() => events(made[0].config).onError());
+    expect(onShown).toHaveBeenLastCalledWith(null);
+  });
+
+  it("opens the line asked for", async () => {
+    const open = vi.fn().mockResolvedValue(OPENED);
+    show({ open, load: vi.fn().mockResolvedValue(docsApi().api), line: "ART-old" });
+    await vi.waitFor(() => expect(open).toHaveBeenCalledWith("STU-1", "RUN-1", { variant: "internal", deep_research_run_id: null, line: "ART-old", mode: "edit" }));
   });
 
   it("opens the report with literature by its review, and in view mode below 768 px", async () => {
@@ -81,8 +103,8 @@ describe("the draft in the report editor", () => {
     const open = vi.fn().mockResolvedValue(OPENED);
     show({ open, load: vi.fn().mockResolvedValue(docsApi().api), variant: "context", review: "RUN-feed" });
     await vi.waitFor(() => expect(open).toHaveBeenCalled());
-    expect(open).toHaveBeenCalledWith("STU-1", "RUN-1", { variant: "context", deep_research_run_id: "RUN-feed", mode: "view" });
-    expect(await screen.findByText(/jen ke čtení \(úzká obrazovka\)/)).toBeTruthy();
+    expect(open).toHaveBeenCalledWith("STU-1", "RUN-1", { variant: "context", deep_research_run_id: "RUN-feed", line: null, mode: "view" });
+    expect(await screen.findByText(/Jen ke čtení \(úzká obrazovka\)/)).toBeTruthy();
   });
 
   it("keeps the read-only draft and says so when api.js does not load", async () => {

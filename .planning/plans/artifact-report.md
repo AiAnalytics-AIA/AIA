@@ -511,6 +511,26 @@ it with CORS for SRI to load; until then the editor stays off. Tests: `report-ed
 `ReportDocumentView.editor.test.tsx` (the client report never handed to the editor, the report with literature by its
 review, no approval of the composed draft while the editor shows the document).
 
+*RPT8d, part 2 (`feature/report-editor-doc-bar`), the doc bar on the editor's version:* while the editor shows a document
+(`ReportEditor` `onShown`: the line and version opened, and `dirty` from `onDocumentStateChange`), the doc bar is
+`EditorDocBar`: the version on screen read from `GET …/report/editor/versions/{id}`, and its line's newest when a later
+save exists (`newest_in_line`, new), named "Koncept N, uložen <kdy> · <kdo>" (`author_names`, new: display names of
+the organization's members, never an e-mail, null otherwise); "Upraveno ručně" with its count (against the line's
+first version, the composed draft) or why nothing compared, opening to each change in words (`changeWords`); the run's
+other lines, each opened in the editor (`line`); and "Schválit koncept N" for exactly that version. The approval reads
+the version again on the ask: a later save is said and shown, approving nothing; koncept 1 of the current composition
+goes through the pane's own question (its PDF read on the ask, as before); an edited version is asked by name with its
+changes listed (`editedApprovalQuestion`), then approved as itself (`POST …/report/approve`), and the report card
+hears it. While the editor holds unsaved edits the approval is disabled and says why. Not done: a change linked to its
+paragraph in the document. Reaching into the editor's document needs ONLYOFFICE's connector API (`createConnector`),
+which ONLYOFFICE documents for its Developer edition (not checked on the pinned Community image); RPT9 needs the same
+reach and decides it. A save the Document Server holds
+but has not yet sent to AIA is not the version on screen until stored; the approval says that unsaved edits are not
+included. Tests: `test_a_version_names_its_authors_and_its_lines_newest_version`,
+`test_an_author_is_named_only_as_a_member_and_never_by_an_e_mail`, `report-editor.test.ts`,
+`ReportEditor.test.tsx` ("tells the pane what it shows…", "opens the line asked for"),
+`ReportDocumentView.editor.test.tsx` ("the doc bar while the editor shows the document").
+
 Order: F1 (its own small PR) → RPT8a part 3 → RPT8b → RPT8c → RPT8d → RD0's change → RPT8e (SRI on api.js) → activation (infra: the
 editor's own domain, its Caddy site without the docs gate, Route 53, SSM, the flag) → RPT9.
 

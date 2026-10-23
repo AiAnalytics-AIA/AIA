@@ -854,6 +854,48 @@ def test_an_edited_version_says_what_it_changed_and_is_approved_as_itself(
     assert researcher.get(f"{versions}/{edited}/download").status_code == 200
 
 
+def test_a_version_names_its_authors_and_its_lines_newest_version(
+    app: FastAPI, researcher: TestClient, client: TestClient, world: Any, saves: Saves
+) -> None:
+    run_id, draft = _reported_run(app, researcher, world)
+    config = researcher.post(_editor(world, run_id), json={}).json()["config"]
+    me = world.users["researcher"]
+    name = config["editorConfig"]["user"]["name"]
+    versions = f"{_editor(world, run_id)}/versions"
+    first = saves.put(_docx("50 %"))
+    assert _callback(client, config, status=6, url=first, users=[me]).json() == {"error": 0}
+    edited = researcher.post(_editor(world, run_id), json={}).json()["version_artifact_id"]
+
+    said = researcher.get(f"{versions}/{edited}").json()
+    assert said["author_names"] == [name] and "@" not in name
+    assert said["newest_in_line"] == {"version_artifact_id": edited, "koncept": 2}
+    assert researcher.get(f"{versions}/{draft}").json()["newest_in_line"]["koncept"] == 2
+
+    later = saves.put(_docx("55 %"))
+    assert _callback(client, config, status=6, url=later, users=[me]).json() == {"error": 0}
+    moved = researcher.get(f"{versions}/{edited}").json()["newest_in_line"]
+    assert moved["koncept"] == 3 and moved["version_artifact_id"] != edited
+
+
+def test_an_author_is_named_only_as_a_member_and_never_by_an_e_mail(
+    app: FastAPI, world: Any
+) -> None:
+    from aia_core.application.report_editor import ReportEditor
+    from aia_core.infrastructure.tables import UserRow
+
+    me, lead = world.users["researcher"], world.users["lead"]
+    factory = create_session_factory(app.state.engine)
+    with factory() as session:
+        session.get(UserRow, me).display_name = "Jana Výzkumná"
+        session.get(UserRow, lead).display_name = "lead@art-chain.io"
+        session.add(UserRow(user_id="USR-stranger", email="x@else.test", display_name="Cizí"))
+        session.commit()
+        principal = AuthenticatedPrincipal(user_id=me, organization_id=world.organization_id)
+        scope = ScopeResolver(session).study_context(principal, study_id=world.study_id())
+        names = ReportEditor(session, scope).names([me, lead, "USR-stranger"])
+    assert names == {me: "Jana Výzkumná"}
+
+
 def test_no_author_of_an_edited_version_approves_it_where_self_approval_is_off(
     app: FastAPI,
     researcher: TestClient,
