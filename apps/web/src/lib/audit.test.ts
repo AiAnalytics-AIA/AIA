@@ -5,8 +5,8 @@ import auditActions from "./fixtures/audit-actions.json";
 
 // Every action code the backend writes to the access audit: content_free.py's AUDIT_ACTIONS, copied
 // to fixtures/audit-actions.json (the backend's own test holds that list to the repositories' writes).
-// Beside it, codes an upgraded database still holds or #841 writes outside the list.
-const KEPT_ELSEWHERE = ["DR_SETTING_PROPOSAL_WITHDRAWN", "DR_SETTING_PROPOSAL_DECLINED", "CLIENT_GRANT", "STUDY_GRANT", "CLIENT_SELF_GRANT", "CLIENT_REVOKE"];
+// Beside it, the grant era's codes, which an upgraded database still holds.
+const KEPT_ELSEWHERE = ["CLIENT_GRANT", "STUDY_GRANT", "CLIENT_SELF_GRANT", "CLIENT_REVOKE"];
 const SERVER_ACTIONS = [...auditActions.actions, ...KEPT_ELSEWHERE];
 
 describe("the audit's words", () => {

@@ -11,7 +11,8 @@ chunks:
   - "[x] 7. AI běh: route tiles, activities grouped with descriptions, the missing activities"
   - "[x] 8. Audit: categories with counts, period, search, Czech names for every action code"
   - "[x] 9. Reference: categories, Kdo mění filter, Co znamená column"
-  - "[ ] 10. Metodika: module cards with drawings and accent colours (no stage filter), -5 only, editor from the version in force, activation modal with reason chips"
+  - "[x] 10a. Metodika catalogue: a card per module with its drawing, accent and facts, no categories, the map first; -5 only, the reference map and H-Model not listed (D-13)"
+  - "[ ] 10b. Metodika module view: sub-tabs Výpočet / Verze a aktivace / Porovnání / Upravit, activation modal with reason chips, editor from the version in force, Metodik-only editing (D-14)"
   - "[ ] 11. Stav systému and Správa dat: content over their backends"
 ---
 # Settings redesign (Nastavení)
@@ -91,3 +92,9 @@ https://claude.ai/artifact/8W9LR8Ju9BWnR5JACmiWv7 (ten boards, one per tab) and 
   under "Ostatní", and a record without a time is in every period. The design's "Postoj dat",
   "Strop peněženky", "Štítek Metodik" and "Vedoucí zapečetěn" names are there for the codes that exist;
   the posture, ceiling and Metodik codes get names when their backends write them.
+- Chunk 10a keeps the module cards behind "Změnit oblast": the product owner's rule of 2026-10-13
+  (a methodologist opens on the editor, its sequence on the first screen; the settings journey holds it
+  at 1440x900) would break with the cards above the editor. The design's always-visible card grid is a
+  decision for the product owner, recorded for 10b.
+- 10a's accents are wayfinding tints only; readiness takes hue-slate, not the design's green, which is
+  "in force" alone. The support drawing's n = 30 line is ink, not fault red.
