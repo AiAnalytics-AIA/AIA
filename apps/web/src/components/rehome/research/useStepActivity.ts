@@ -20,6 +20,8 @@ const PAGE = 500;
  * tick, so it is read to its end: its last count is what a stopped step shows (FLD3).
  */
 const MAX_PAGES = 8;
+/** A stopped feed's failed read is tried again this many times, each wait twice the last. */
+export const STOPPED_RETRIES = 5;
 
 export type EventReader = (since: number) => Promise<RunEvent[]>;
 
@@ -57,11 +59,20 @@ export function useStepActivity(key: string | null, read: EventReader, live: boo
         if (events.length < PAGE || cursor.current.at === before) return;
       }
     };
+    let failures = 0;
     const tick = async () => {
       try {
         await drain();
+        failures = 0;
       } catch {
-        // Kept as read; the next tick tries again.
+        // Kept as read. Live, the next tick tries again; stopped, there is no next tick, so a
+        // failed read is tried again (backing off) until the feed is read to its end: a stopped
+        // step's count is the last one only once the whole feed is in.
+        failures += 1;
+        if (!stopped && !live && failures <= STOPPED_RETRIES) {
+          timer = setTimeout(tick, ACTIVITY_POLL_MS * 2 ** (failures - 1));
+          return;
+        }
       }
       if (!stopped && live) timer = setTimeout(tick, ACTIVITY_POLL_MS);
     };

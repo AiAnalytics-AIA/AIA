@@ -119,7 +119,9 @@ reads "deterministické"; an unknown state reads UNKNOWN (`run-state.ts`).
   attempt's own `replayed`, so one without it replayed none.
 - `useStepActivity` reads a stopped feed to its end, where before it stopped at eight pages. Průběh
   also reads the feed once more whenever a step's status or attempt changes, so a step that ran and
-  parked between two polls of the run still has its count.
+  parked between two polls of the run still has its count. A stopped feed's failed read is tried
+  again up to five times, each wait twice the last (Codex on #825): otherwise a transient failure
+  after the first page left an intermediate count shown as the last one, with no tick to fix it.
 - Blocks in flight: no event reports them, so nothing shows them. A count is never derived from
   `sent` (unknown, never guessed). The per-cell fill and the respondent grid are RQC7b.
 - Journey: the workbench's fictional fieldwork writes no `fieldwork_progress`, so `research_journey.mjs`
