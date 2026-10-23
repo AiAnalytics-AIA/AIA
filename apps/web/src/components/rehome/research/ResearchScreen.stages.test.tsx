@@ -23,7 +23,8 @@ function Probe({ name }: { name: string }) {
   return (
     <section>
       <h2>Stand-in {name}</h2>
-      <button type="button" onClick={() => memory.set(OPEN_REVIEW_KEY, "RUN-J1")}>Ask the next stage for the review</button>
+      {/* The card keeps the job itself; the stage opens the newest page's copy when it holds one. */}
+      <button type="button" onClick={() => memory.set(OPEN_REVIEW_KEY, { run_id: "RUN-J1" })}>Ask the next stage for the review</button>
     </section>
   );
 }
