@@ -243,10 +243,7 @@ def compose_registry(
         )["research_analysis"]
     children = population_store(os.environ)
     deep = deep_research_runtime(settings, transport=transport, signer=signer)
-    if on_deep_research is not None:
-        # What Settings' Dosah reads: the composition itself (deep-research-web-search 52).
-        on_deep_research(deep)
-    return registry_for(
+    registry = registry_for(
         store=store,
         materialize=materialize_executor(os.environ, store=children),
         research_agent=agent,
@@ -270,3 +267,8 @@ def compose_registry(
         sociomap_connectedness_interval=connectedness_interval,
         report_pdf=report_pdf_from_env(os.environ),
     )
+    if on_deep_research is not None:
+        # What Settings' Dosah reads (deep-research-web-search 52): recorded only once the whole
+        # composition stands, so a worker that fails to start leaves no record claiming routes.
+        on_deep_research(deep)
+    return registry

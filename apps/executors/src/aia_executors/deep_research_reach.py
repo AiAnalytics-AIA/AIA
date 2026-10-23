@@ -23,6 +23,7 @@ from aia_core.infrastructure.db import create_app_engine, create_session_factory
 from aia_core.infrastructure.deep_research_composition_repository import record_composition
 
 from .deep_research import DeepResearchRuntime
+from .deep_research.standing import STANDING_CONNECTORS
 from .deep_research_live import (
     BRAVE_ROUTE_ID,
     COMMON_CRAWL_ARCHIVE_ROUTE_ID,
@@ -72,7 +73,12 @@ def _composed(runtime: DeepResearchRuntime | None) -> list[tuple[ToolRoute, bool
     routes: list[tuple[ToolRoute, bool]] = []
     if runtime.retrieval is not None:
         routes += [(runtime.retrieval.search_route, False), (runtime.retrieval.fetch_route, False)]
-    routes += [(d.route, True) for d in (*runtime.datasets, *runtime.archives)]
+    # A standing index (Crossref, OpenAlex) is asked by the merge step in either mode
+    # (standing.py); every other connector and archive only by the agent-directed ladder.
+    routes += [
+        (d.route, d.connector.connector_id not in STANDING_CONNECTORS) for d in runtime.datasets
+    ]
+    routes += [(a.route, True) for a in runtime.archives]
     if runtime.archive is not None:
         routes += [(runtime.archive.index_route, True), (runtime.archive.archive_route, True)]
     return routes

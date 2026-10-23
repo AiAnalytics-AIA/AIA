@@ -36,7 +36,7 @@ BRAVE = {
     "AIA_DEEP_RESEARCH_BRAVE_API_KEY": "fictional-brave-key-0000",
     "AIA_DEEP_RESEARCH_BRAVE_USD_PER_1000": "5",
     "AIA_DEEP_RESEARCH_BRAVE_PRICES_AS_OF": "2026-10-09",
-    "AIA_DEEP_RESEARCH_CONNECTORS": "datastat,wayback",
+    "AIA_DEEP_RESEARCH_CONNECTORS": "datastat,wayback,crossref,openalex",
 }
 
 
@@ -74,6 +74,7 @@ def test_with_brave_and_connectors_composed_each_says_what_it_is(
     # Composed, but only the agent-directed ladder asks a connector, and it is off.
     datastat = routes["connector-datastat"]
     assert (datastat.state, datastat.reason) == (ReachState.BUILT, "agent_directed_off")
+    assert routes["connector-wayback"].reason == "agent_directed_off"
     assert routes["wikipedia-public-web_search"].state is ReachState.BUILT
 
 
@@ -140,3 +141,34 @@ def test_a_worker_that_cannot_record_still_starts() -> None:
         is False
     )
     assert record_reach(None, {}) is False
+
+
+def test_a_standing_index_is_reached_in_the_planned_mode_too(
+    research: ResearchWorld,  # noqa: F811
+) -> None:
+    """The merge step asks Crossref and OpenAlex for a work's standing whatever the mode
+    (deep_research/standing.py): with the ladder off they are still reached, and said so."""
+    routes = _reach(research, BRAVE)
+    for name in ("connector-crossref", "connector-openalex"):
+        assert routes[name].state is ReachState.ACTIVE, routes[name]
+
+
+def test_nothing_is_recorded_when_the_composition_fails_after_deep_research(
+    monkeypatch: Any,
+) -> None:
+    """A worker that fails to start (here its PDF renderer) records no composition: a crash
+    loop would otherwise write one per restart, each claiming routes no worker ran."""
+    import pytest
+    from aia_executors import registry
+
+    def broken(_env: Any) -> Any:
+        raise RuntimeError("AIA_REPORT_PDF_ENABLED needs soffice")
+
+    monkeypatch.setattr(registry, "report_pdf_from_env", broken)
+    seen: list[object] = []
+    with pytest.raises(RuntimeError):
+        registry.compose_registry(on_deep_research=seen.append)
+    assert seen == []
+    monkeypatch.undo()
+    registry.compose_registry(on_deep_research=seen.append)
+    assert len(seen) == 1
