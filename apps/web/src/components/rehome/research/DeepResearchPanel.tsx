@@ -18,6 +18,7 @@ import { DesignResearchReview } from "./DesignResearchReview";
 import { SearchedNothing } from "./SearchedNothing";
 import { VerifiedSourceButton } from "./VerifiedSourceButton";
 import { isDesignRun } from "@/lib/design-evidence";
+import { AskLead, useLeadOwnsAiStarts } from "./AskLead";
 import { useResearch } from "./context";
 import { canReview } from "./frame";
 
@@ -36,6 +37,9 @@ export function DeepResearchPanel() {
   const { frame, store, confirm, state } = useResearch();
   // Reading a finished review, choosing it for the report and stopping one: a closed study allows them.
   const mayReview = canReview(frame);
+  // In the workbench the Lead starts Design Research, on a card the person approves (the owner,
+  // 2026-10-22, QF-13): the panel keeps the runs, their review and a stop, and no start of its own.
+  const leadOwns = useLeadOwnsAiStarts();
   const [runs, setRuns] = useState<DeepResearchRun[]>([]);
   const [selected, setSelected] = useState<string | null>(null);
   const [bundle, setBundle] = useState<DeepResearchBundle | null>(null);
@@ -122,7 +126,9 @@ export function DeepResearchPanel() {
     <section className="rounded-md border border-border bg-surface-raised p-5" aria-labelledby="deep-research-title">
       <h2 id="deep-research-title" className="text-base font-semibold">Veřejný hloubkový výzkum</h2>
       <p className="mt-1 text-sm text-ink-muted">Vyhledávání veřejných zdrojů podle schváleného nastavení rešerše. Nálezy jsou podklady k interní revizi; nejde o hotový výstup pro klienta.</p>
-      {frame.canEdit ? <AiButton className="mt-3" small disabled={busy} onClick={() => void start()}>{busy ? "Spouštím…" : "Spustit veřejný výzkum"}</AiButton> : null}
+      {frame.canEdit ? (
+        leadOwns ? <AskLead className="mt-3" what="Rešerši" /> : <AiButton className="mt-3" small disabled={busy} onClick={() => void start()}>{busy ? "Spouštím…" : "Spustit veřejný výzkum"}</AiButton>
+      ) : null}
       {error ? <p role="alert" className="mt-3 text-sm text-status-fault">{error}</p> : null}
       {runs.length ? (
         <div className="mt-4 flex flex-wrap gap-2" aria-label="Uložené běhy výzkumu">
@@ -137,7 +143,7 @@ export function DeepResearchPanel() {
             <div key={step.node_key} className="text-status-fault">{deepStepLabel(step.node_key)}: <CodedWords coded={problem!} /></div>
           ))}
           <DeepResearchWaits run={current} studyId={frame.studyId} canEdit={frame.canEdit} onChanged={() => void refresh().catch((e: unknown) => setError(message(e)))} onError={(e) => setError(message(e))} />
-          {current.retryable && frame.canEdit ? <Button small variant="quiet" onClick={() => void retry(current.run_id)}>Opakovat běh</Button> : null}
+          {current.retryable && frame.canEdit && !leadOwns ? <Button small variant="quiet" onClick={() => void retry(current.run_id)}>Opakovat běh</Button> : null}
           {!current.is_terminal && mayReview ? <Button small variant="quiet" onClick={() => void deepResearch.cancel(frame.studyId, current.run_id).then(refresh).catch((e: unknown) => setError(message(e)))}>Zrušit běh</Button> : null}
         </div>
       ) : null}

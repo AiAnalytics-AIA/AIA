@@ -98,7 +98,11 @@ try {
     const name = page.locator("#qset_sec_wb_set").getByRole("button", { name: /^Upravit: Název sady/ });
     const room = await name.evaluate((el) => ({ column: el.closest("div")?.getBoundingClientRect().width ?? 0, clipped: el.scrollWidth > el.clientWidth + 1 }));
     assert(room.column >= 160 && !room.clipped, `the set's name at ${width}: ${Math.round(room.column)} px, clipped ${room.clipped}`);
-    check(`${width}: Závislosti lists the set's readers, the open question apart, no overflow`);
+    // Design Research is the Lead's to start in the workbench (QF-13): the panel has no start of its own.
+    const research = page.locator("section[aria-labelledby='deep-research-title']");
+    await research.getByText(/^Rešerši připraví Vedoucí výzkumu/).waitFor();
+    assert.equal(await research.getByRole("button", { name: "Spustit veřejný výzkum" }).count(), 0, `no start of its own at ${width}`);
+    check(`${width}: Závislosti lists the set's readers, the open question apart, no overflow; Design Research left to the Lead`);
 
     // A question's × stays beside its number at every width, never on a row of its own (the
     // browser audit's QF-9: at 390 px the type chips wrapped and pushed it 130 px down).

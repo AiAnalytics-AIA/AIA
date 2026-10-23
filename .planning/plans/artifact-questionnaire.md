@@ -323,11 +323,15 @@ preview shows it. Tests: `questionnaire-preview.test.ts`, `QuestionnaireStep.tes
 questions read Sledovaná sada 1, Otázka 2, Otázka 3 before the fix; the existing preview test had pinned
 "Sledovaná sada 3" beside the outline's S1, and now reads 1).
 
-*Question QF-13 (browser audit 2, 2026-10-22), for the PM:* in the workbench Dotazník shows its own
-"Spustit veřejný výzkum" (`QuestionnaireStep.tsx:351-359 @ 9607ee09`, `DeepResearchPanel`), although
-a stage in the workbench shows no AI start of its own (#550) and the Lead's contract lists
-`design_research` among Dotazník's starts (`lead_artifacts.py:280-285 @ 9607ee09`). No typed command
-or Lead card starts Design Research yet, so hiding the button would leave no way to run it. Left as is.
+*Finding QF-13 (browser audit 2, 2026-10-22):* in the workbench Dotazník showed its own "Spustit
+veřejný výzkum" and "Opakovat běh" (`DeepResearchPanel.tsx:125,140 @ 9607ee09`), although a stage in the
+workbench shows no AI start of its own (#550) and the Lead's contract lists `design_research` among
+Dotazník's starts (`lead_artifacts.py:280-285 @ 9607ee09`). Decision (the owner, 2026-10-22, /pmstatus
+Q80 (b)): "the deep research should be automated and controlled by the lead researcher, it can pop up a
+card to ask you to start it within the chat". Fix (fix/questionnaire-dr-start-lead): in the workbench the
+panel keeps its runs, their state, review and stop, and says the Lead prepares the research (AskLead);
+the classic layout keeps its start. The Lead's card is the Lead worker's (coordinator, 2026-10-22). Test:
+`ResearchScreen.workbench.test.tsx`.
 
 *Finding QF-16 (audit 3, 2026-10-22):* a questionnaire file that fails to import for any reason
 but the import's own rules is said in the API's English: an empty or over-25 MB file reads "The request
@@ -346,7 +350,7 @@ template the API would not give in Czech".
 - open-items.md: number QF-7 (the question's × named by its stored id), closed by fix/questionnaire-remove-label.
 - open-items.md: number QF-8 (Závislosti held sets the compiler takes), closed by feature/questionnaire-set-hard-max.
 - open-items.md: number QF-9 (a question's × on a row of its own at 390 px) and QF-10 ("validačním gate"), closed by fix/questionnaire-audit-390.
-- open-items.md: number QF-11 (a scale's right label apart from its end at 390 px), QF-12 (the research card half English) and QF-14 (the preview's running numbers), closed by fix/questionnaire-audit-2; QF-13 (Dotazník's own Design Research start in the workbench) open, for the PM.
+- open-items.md: number QF-11 (a scale's right label apart from its end at 390 px), QF-12 (the research card half English) and QF-14 (the preview's running numbers), closed by fix/questionnaire-audit-2; QF-13 (Dotazník's own Design Research start in the workbench), closed by fix/questionnaire-dr-start-lead.
 - open-items.md: number QF-16 (an import's failure said in English), closed by fix/questionnaire-audit-3.
 - Register this plan and its chunks. `research-lead-workbench#7`'s questionnaire half is QST5.
 - open-items.md: number QF-15 (an import replaced the questionnaire with no way back), closed by fix/questionnaire-import-undo.
