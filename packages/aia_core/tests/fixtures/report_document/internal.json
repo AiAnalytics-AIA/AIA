@@ -1,5 +1,5 @@
 {
- "contract": "aia-report-document-5",
+ "contract": "aia-report-document-6",
  "ledger": {
   "refs": {
    "n_total": {
@@ -635,6 +635,7 @@
     },
     {
      "attribution": "žena, 34 let, Brno",
+     "control": null,
      "id": "ch-findings.7",
      "refs": [],
      "synthetic": true,
@@ -983,6 +984,7 @@
    "appendix": true,
    "blocks": [
     {
+     "control": null,
      "entries": [
       [
        "Běh",

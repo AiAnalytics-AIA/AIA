@@ -420,6 +420,15 @@ left as it is. The contracts move (`aia-internal-report-18`, `aia-contextual-rep
 `test_report_design.py` `test_the_designs_numbers_print_under_the_specification_it_came_from`, `test_report_controls.py`,
 and `test_analysis_executor.py`'s composed report carrying `design:` and `run:` controls.
 
+*RPT8a, part 3, the literature and the audit (`feature/report-locked-facts-bundle`), closing part 3:* the literature
+chapter, written whole from the sealed bundle, goes under `bundle:<Deep Research run>` through `controls.under` (its
+counts, dates, L-labels and seal; P14), and the audit's values under `run:<run>` (`AuditBlock.control`, P15).
+`sources.with_source_audit` keeps the audit's control when it appends its rows. The stored model is
+`aia-report-document-6` (the audit's `control`); the contracts move (`aia-internal-report-19`,
+`aia-contextual-report-15`; the client report has neither chapter). Tests: `test_contextual_report.py`
+`test_every_number_the_bundle_writes_is_locked_under_its_review`, `test_report_controls.py`
+`test_the_audits_values_print_locked_and_the_source_audit_keeps_them`.
+
 **RPT9. The Lead in the document.** The Lead, on its own model (STUDY_LEAD), edits the same document
 through the edit operations:
 - **Suggestions (default, Q56, Q13):** each edit lands in the text as a tracked change under the Lead's
