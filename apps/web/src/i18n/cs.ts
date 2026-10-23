@@ -1815,6 +1815,13 @@ export const cs = {
           adminOnlyShort: "vidí vlastník nebo správce",
           postureCeiling: "Postoj dat · strop peněženky",
           changeInProfile: "Změnit v Profil → Pravidla",
+          posture: { OPEN: "OPEN", CLASSIFIED: "CLASSIFIED" },
+          postureUnset: "nenastaveno, platí CLASSIFIED",
+          // null is no client-level ceiling, not an uncapped wallet: the study budget still bounds it (ADR 0028).
+          noCeiling: "bez stropu klienta (platí rozpočet studie)",
+          ceilingOf: "strop peněženky {amount}",
+          rulesUnknown: "nezjištěno",
+          rulesMalformed: "Pravidla klientů přišla v nečitelném tvaru.",
         },
         approvals: {
           title: "Samoschválení",
