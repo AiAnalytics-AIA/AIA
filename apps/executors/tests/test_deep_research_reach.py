@@ -105,8 +105,23 @@ def test_for_an_organization_a_priced_route_waits_and_a_class_b_ask_is_refused(
         data_class=DataClass.CLASS_B_DERIVED_CLIENT,
         class_gates_advisory=True,
     )
-    brave = next(r for r in advisory if r.route == "brave-web-search")
+    by_route = {r.route: r for r in advisory}
+    brave = by_route["brave-web-search"]
     assert brave.state is ReachState.ACTIVE and brave.class_advisory
+    # Every other Class-C-only route is still refused by residency under advisory gates.
+    for r in composed_c:
+        if r.state is ReachState.ACTIVE and r.route != "brave-web-search":
+            assert not r.any_class_when_advisory
+            assert (by_route[r.route].state, by_route[r.route].reason) == (
+                ReachState.REFUSED,
+                "class",
+            )
+    # A route refused by its class names no setting to approve, even when settings are missing.
+    refused = for_organization(
+        routes, missing_for_live=["prices.brave"], data_class=DataClass.CLASS_B_DERIVED_CLIENT
+    )
+    brave_refused = next(r for r in refused if r.route == "brave-web-search")
+    assert brave_refused.state is ReachState.REFUSED and brave_refused.missing_settings == ()
 
 
 def test_off_everything_is_built_and_says_deep_research_is_off() -> None:

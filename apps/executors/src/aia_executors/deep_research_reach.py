@@ -100,6 +100,7 @@ def _active(route: ToolRoute, *, ladder_only: bool, directed: bool) -> RouteReac
         classes=tuple(sorted(route.route.approved_for, key=lambda c: c.value)),
         priced=route.needs_sign_off,
         zone=route.route.zone.value,
+        any_class_when_advisory=route.any_class_when_advisory,
     )
 
 

@@ -75,6 +75,10 @@ class RouteReach:
     missing_settings: tuple[str, ...] = field(default=())
     #: Advisory class gates: a class refusal is recorded and passed, not enforced.
     class_advisory: bool = False
+    #: The route's own exception under advisory gates (``ToolRoute.any_class_when_advisory``,
+    #: Brave's search only): it takes a query of any class there. Every other route a class
+    #: does not reach is still refused under advisory gates, by residency (RetrievalGate).
+    any_class_when_advisory: bool = False
 
 
 _ORDER: Final = {
@@ -99,11 +103,33 @@ def for_organization(
 ) -> list[RouteReach]:
     """``routes`` as they stand for one organization: a composed priced route ``waiting`` while
     ``missing_for_live`` is not empty, and with ``data_class``, a composed route that does not
-    take it ``refused: class`` (or marked advisory where the gates are)."""
+    take it ``refused: class`` -- under advisory gates too, unless the route itself takes any
+    class there (``any_class_when_advisory``), which is then marked advisory. A refused route
+    is never also waiting: it asks for no settings."""
     out: list[RouteReach] = []
     missing = tuple(sorted(missing_for_live))
     for r in routes:
         composed = r.state in (ReachState.ACTIVE, ReachState.WAITING)
+        # The class first: a route the class cannot reach is refused, and asks for no
+        # approval of its settings.
+        if composed and data_class is not None and data_class not in r.classes:
+            if class_gates_advisory and r.any_class_when_advisory:
+                r = replace(r, class_advisory=True)
+            else:
+                approved = ", ".join(c.value for c in r.classes) or "no class"
+                r = replace(
+                    r,
+                    state=ReachState.REFUSED,
+                    reason="class",
+                    detail=(
+                        f"approved for {approved}; refused by residency under advisory gates"
+                        if class_gates_advisory
+                        else f"approved for {approved}"
+                    ),
+                    missing_settings=(),
+                )
+                out.append(r)
+                continue
         if composed and r.priced and missing:
             r = replace(
                 r,
@@ -112,16 +138,6 @@ def for_organization(
                 detail="the organization has not approved every setting live needs",
                 missing_settings=missing,
             )
-        if composed and data_class is not None and data_class not in r.classes:
-            if class_gates_advisory:
-                r = replace(r, class_advisory=True)
-            else:
-                r = replace(
-                    r,
-                    state=ReachState.REFUSED,
-                    reason="class",
-                    detail=f"approved for {', '.join(c.value for c in r.classes) or 'no class'}",
-                )
         out.append(r)
     return order_reach(out)
 
@@ -138,6 +154,7 @@ def reach_record(routes: Sequence[RouteReach]) -> list[dict[str, object]]:
             "classes": [c.value for c in r.classes],
             "priced": r.priced,
             "zone": r.zone,
+            "any_class_when_advisory": r.any_class_when_advisory,
         }
         for r in routes
     ]
@@ -159,6 +176,7 @@ def reach_from_record(stored: Sequence[dict[str, object]]) -> list[RouteReach]:
                 classes=classes,
                 priced=bool(item.get("priced")),
                 zone=None if item.get("zone") is None else str(item["zone"]),
+                any_class_when_advisory=bool(item.get("any_class_when_advisory")),
             )
         )
     return out

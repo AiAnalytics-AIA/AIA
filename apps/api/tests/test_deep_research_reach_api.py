@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from datetime import UTC, datetime
+from datetime import UTC, datetime, timedelta
 from typing import Any
 
 from aia_core.domain.deep_research_reach import ReachKind, ReachState, RouteReach
@@ -16,7 +16,13 @@ URL = "/api/v1/settings/deep-research/reach"
 C = (DataClass.CLASS_C_INTERNAL,)
 
 
-def _record(app: FastAPI, *, class_gates: str = "enforce") -> None:
+def _record(
+    app: FastAPI,
+    *,
+    class_gates: str = "enforce",
+    worker: str = "worker-1",
+    composed_at: datetime | None = None,
+) -> None:
     routes = [
         RouteReach(
             "brave-web-search",
@@ -25,6 +31,7 @@ def _record(app: FastAPI, *, class_gates: str = "enforce") -> None:
             classes=C,
             priced=True,
             zone="NON_EU",
+            any_class_when_advisory=True,
         ),
         RouteReach(
             "public-web-fetch", ReachKind.FETCH, ReachState.ACTIVE, classes=C, zone="UNKNOWN"
@@ -40,9 +47,9 @@ def _record(app: FastAPI, *, class_gates: str = "enforce") -> None:
     with create_session_factory(app.state.engine)() as session:
         record_composition(
             session,
-            worker="worker-1",
+            worker=worker,
             build_sha="abc1234",
-            composed_at=datetime.now(UTC),
+            composed_at=composed_at or datetime.now(UTC),
             agent_directed=False,
             class_gates=class_gates,
             routes=routes,
@@ -80,11 +87,37 @@ def test_a_class_b_ask_refuses_every_class_c_route(app: FastAPI, as_user: Any) -
     assert as_user("researcher").get(URL, params={"data_class": "D"}).status_code == 422
 
 
-def test_advisory_gates_say_so_and_do_not_refuse(app: FastAPI, as_user: Any) -> None:
+def test_a_refused_priced_route_names_no_missing_setting(app: FastAPI, as_user: Any) -> None:
+    _record(app)
+    body = as_user("researcher").get(URL, params={"data_class": "B"}).json()
+    brave = next(r for r in body["routes"] if r["route"] == "brave-web-search")
+    # Refused by class: approving the settings would not let it run, so none are named.
+    assert (brave["state"], brave["reason"]) == ("refused", "class")
+    assert brave["missing_settings"] == []
+
+
+def test_advisory_gates_lift_only_a_route_that_declares_it(app: FastAPI, as_user: Any) -> None:
     _record(app, class_gates="advisory")
     body = as_user("researcher").get(URL, params={"data_class": "B"}).json()
-    fetch = next(r for r in body["routes"] if r["route"] == "public-web-fetch")
-    assert fetch["state"] == "active" and fetch["class_advisory"] is True
+    routes = {r["route"]: r for r in body["routes"]}
+    # Brave declares any_class_when_advisory: it waits on its settings, not its class.
+    assert routes["brave-web-search"]["state"] == "waiting"
+    assert routes["brave-web-search"]["class_advisory"] is True
+    # The fetch declares nothing: residency still refuses it, so Dosah says refused.
+    fetch = routes["public-web-fetch"]
+    assert (fetch["state"], fetch["reason"]) == ("refused", "class")
+    assert "residency" in fetch["detail"]
+
+
+def test_the_newest_is_the_last_recorded_not_the_latest_clock(app: FastAPI, as_user: Any) -> None:
+    _record(
+        app, worker="worker-early-clock-ahead", composed_at=datetime.now(UTC) + timedelta(hours=1)
+    )
+    _record(
+        app, worker="worker-late-clock-behind", composed_at=datetime.now(UTC) - timedelta(hours=1)
+    )
+    body = as_user("researcher").get(URL).json()
+    assert body["worker"] == "worker-late-clock-behind"
 
 
 def test_without_a_session_nothing_is_read(client: TestClient) -> None:

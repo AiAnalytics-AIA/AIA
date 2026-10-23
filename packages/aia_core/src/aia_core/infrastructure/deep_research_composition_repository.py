@@ -69,10 +69,9 @@ class DeepResearchCompositions:
         """The newest worker start's composition, or ``None`` when no worker recorded one."""
         row = self._session.scalar(
             select(DeepResearchCompositionRow)
-            .order_by(
-                DeepResearchCompositionRow.composed_at.desc(),
-                DeepResearchCompositionRow.composition_id.desc(),
-            )
+            # The database's own order, never a worker's clock: two workers whose clocks disagree
+            # would otherwise pick an older start as the newest. composed_at is shown only.
+            .order_by(DeepResearchCompositionRow.composition_id.desc())
             .limit(1)
         )
         if row is None:

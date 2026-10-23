@@ -34,7 +34,9 @@ def test_a_record_reads_back_as_written_and_an_unknown_state_is_refused() -> Non
             classes=(DataClass.CLASS_C_INTERNAL,),
             priced=True,
             zone="NON_EU",
-        )
+            any_class_when_advisory=True,
+        ),
+        RouteReach("public-web-fetch", ReachKind.FETCH, ReachState.ACTIVE),
     ]
     assert reach_from_record(reach_record(routes)) == routes
     bad = reach_record(routes)
