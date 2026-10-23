@@ -788,8 +788,11 @@ class ScopeRepository:
         ).all()
         own = {client_id, *(s.study_id for s in studies)}
         for entry in audit:
+            mine = entry.client_id in own or entry.study_id in own
+            if not mine and entry.client_id is not None:
+                continue  # another client's row: it cannot name this one, and is left as it is
             renamed = rename(entry.payload, names)
-            if entry.client_id in own or entry.study_id in own:
+            if mine:
                 # The client's own rows are kept content-free (MVPQ-07): ids, codes, numbers
                 # and times stay; any other text (a file name, a title) is erased.
                 renamed = content_free(renamed)
@@ -797,7 +800,7 @@ class ScopeRepository:
                 entry.payload = renamed
             if entry.reason:
                 entry.reason = rename(entry.reason, names)
-            if entry.reason and (entry.client_id in own or entry.study_id in own):
+            if entry.reason and mine:
                 entry.reason = content_free(entry.reason)
         self._session.add(
             AccessAuditRow(

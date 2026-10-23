@@ -7,7 +7,8 @@ name replaced by its id. The client and study rows stay as tombstones, so every 
 resolves; ``deleted_at`` marks one. A deletion is confirmed by a one-time ticket the preview
 issues to the person who asked, for ten minutes; only its hash is kept. The objects still to
 delete are listed in ``client_deletion_objects`` until each is gone, so an interrupted delete
-is retried. A wallet charge loses its foreign key to the run: it is money ledger and stays.
+is retried. A wallet charge loses its foreign key to the run: it is money ledger and stays. A
+downgrade restores the key NOT VALID, so the charges kept for deleted clients stay.
 
 Revision ID: f6b8d0e2a4c7
 Revises: e5a7c9d1f3b6
@@ -65,6 +66,9 @@ def downgrade() -> None:
             ["run_id"],
             ["run_id"],
             ondelete="CASCADE",
+            # NOT VALID: a deleted client's kept charges name runs that are gone; the key holds
+            # for new rows and the kept ones stay as they are.
+            postgresql_not_valid=True,
         )
     op.drop_table("client_deletion_objects")
     op.drop_index("ix_client_deletion_tickets_client", table_name="client_deletion_tickets")

@@ -10,7 +10,13 @@ from __future__ import annotations
 
 import re
 from collections.abc import Mapping
+from enum import StrEnum
 from typing import Any, Final
+
+from .client_sources import ReadingOutcome, SourceFamily, SourceOrigin
+from .knowledge import KnowledgeAuthor, KnowledgeDecision, KnowledgeKind
+from .scope import ClientStatus, OrganizationRole, StudyKind, StudyStatus
+from .workflow import AttemptStatus, ReservationStatus, StepRunStatus, WorkflowRunStatus
 
 __all__ = ["ERASED", "ID_PREFIXES", "content_free", "rename"]
 
@@ -27,8 +33,27 @@ ID_PREFIXES: Final = frozenset(
     }
 )  # fmt: skip
 _ID: Final = re.compile(r"^(?P<prefix>[A-Z]{2,5})-[0-9A-Za-z]{4,64}$")
-#: An enumerated code: upper case with at least one underscore (MEMBER_ADDED, CLASS_C_...).
+#: An enumerated code: upper case with at least one underscore (MEMBER_ADDED, CLASS_C_...),
+#: or a single word that is one of the code's own vocabularies (ARCHIVED, ADMIN, READ); any
+#: other single upper-case word ("SKODA") is text.
 _CODE: Final = re.compile(r"^[A-Z][A-Z0-9]*(?:_[A-Z0-9]+)+$")
+_ENUMS: Final[tuple[type[StrEnum], ...]] = (
+    ClientStatus,
+    OrganizationRole,
+    StudyKind,
+    StudyStatus,
+    WorkflowRunStatus,
+    StepRunStatus,
+    AttemptStatus,
+    ReservationStatus,
+    ReadingOutcome,
+    SourceFamily,
+    SourceOrigin,
+    KnowledgeAuthor,
+    KnowledgeDecision,
+    KnowledgeKind,
+)
+_WORDS: Final = frozenset(m.value for e in _ENUMS for m in e)
 _DIGEST: Final = re.compile(r"^[0-9a-f]{12,128}$")
 _TIME: Final = re.compile(r"^\d{4}-\d{2}-\d{2}(?:[T ][0-9:.]+(?:Z|[+-]\d{2}:?\d{2})?)?$")
 #: A name shorter than this is not searched for inside other text: "S" is in every id.
@@ -39,18 +64,21 @@ def _kept(text: str) -> bool:
     m = _ID.match(text)
     if m and m.group("prefix") in ID_PREFIXES:
         return True
-    return bool(_CODE.match(text) or _DIGEST.match(text) or _TIME.match(text))
+    return bool(text in _WORDS or _CODE.match(text) or _DIGEST.match(text) or _TIME.match(text))
 
 
 def rename(value: Any, names: Mapping[str, str]) -> Any:
     """``value`` with each of ``names`` (a name -> its id) replaced by its id: a whole string,
-    or, for a name of four characters or more, inside a longer one; nested."""
+    or, for a name of four characters or more, as a whole word inside a longer one (never
+    part of another word: "Pilot" is not in "Pilotní"); nested. A string that is itself an id,
+    a code, a digest or a time is never rewritten."""
     if isinstance(value, str):
         if value in names:
             return names[value]
+        if _kept(value):
+            return value
         for name in sorted((n for n in names if len(n) >= _MIN_NAME), key=len, reverse=True):
-            if name in value:
-                value = value.replace(name, names[name])
+            value = re.sub(rf"(?<!\w){re.escape(name)}(?!\w)", names[name], value)
         return value
     if isinstance(value, list):
         return [rename(v, names) for v in value]
