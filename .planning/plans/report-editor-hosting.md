@@ -5,7 +5,7 @@ chunks:
   - "[x] 2. docs.<hostname>: its own origin in the Caddyfile, every request through AIA's docs gate, the server-only paths refused; tools/caddy_routes.py holds it"
   - "[x] 3. The docs gate in the API: a docs-only session cookie on docs.<hostname> from a one-time ticket, refused without it"
   - "[x] 3b. A timed force-save every 5 minutes while a document is open (RPT8: every autosave a stored version), through one read-only configuration file"
-  - "[ ] 4a. Before activation, in a PR: smoke rows for docs.<hostname> (when aia_onlyoffice_enabled), and bin/deploy.sh stopping the Document Server when the switch is false"
+  - "[x] 4a. Before activation, in a PR: smoke rows for docs.<hostname> (when aia_onlyoffice_enabled), and bin/deploy.sh stopping the Document Server when the switch is false"
   - "[ ] 4. Activation on develop (operations, the owner's word; precondition: F1 fixed, __Host-aia_session in deployed environments): the host resized, docs.<hostname> in Route 53, the JWT secret in SSM, the flag on, the editor's own checks"
 ---
 # Report editor hosting: ONLYOFFICE Docs beside the develop stack
@@ -447,20 +447,46 @@ AIA's session (Findings, F1).
 - **Check:** its PR is merged to `develop` and deployed; the deploy's smoke still passes its sign-in and
   cookie rows. Nothing below starts before this.
 
-### 4a. The small PR before activation (owner: this session, on the owner's word)
+### 4a. The small PR before activation (built 2026-10-23, on the owner's word)
 
-- `bin/smoke.sh`, when `AIA_ONLYOFFICE_ENABLED` is true:
-  - `https://docs.<hostname>/` answers 401 without the cookie;
-  - `/healthcheck` and `/9.4.0-1/coauthoring/CommandService.ashx` answer 404;
-  - `/__aia/session` without a ticket is refused, never 200;
-  - the `onlyoffice` container is healthy.
-
-  These rows report and do not fail the deploy: "the Document Server never fails a deploy" holds, as in
-  `bin/deploy.sh`.
-- `bin/deploy.sh`: with the switch false, `bin/docs.sh down` when the project is running. Today a false
-  switch only stops it starting, so turning it off also needs a hand on the host, and this session has
-  no `ssm:SendCommand`.
-- **Check:** CI's develop-host job; a deploy with the switch still false shows the rows as not run.
+- `bin/smoke-docs.sh`, sourced by `bin/smoke.sh`, runs when `AIA_ONLYOFFICE_ENABLED` is true. With it
+  off, the smoke says `info  docs: the report editor is off`, asks nothing, and warns if the Document
+  Server still runs, which means the deploy's stop failed.
+  - A probe nothing answers (DNS or Caddy's certificate not ready) reads `000`, so it fails as a row
+    with that hint. Before this was caught in review, an unguarded `curl` under `lib.sh`'s errexit ended
+    the smoke with no row and no verdict. A 404 from the gate says that the API needs both
+    `AIA_ONLYOFFICE_URL` and the secret.
+  - **Fail the smoke**, because they are AIA's own and hold whether the Document Server runs or not:
+    - `https://docs.<hostname>/` answers 401 without the cookie (the docs gate answers before the
+      Document Server is asked);
+    - `/healthcheck`, `/coauthoring/CommandService.ashx`, `/9.4.0-1/coauthoring/CommandService.ashx`,
+      `//info/info.json` and `/AI-PROXY/x` answer 404 at Caddy;
+    - `/__aia/session` without a ticket answers 401 and sets no docs cookie, a `__Host-` prefixed one
+      included.
+  - **Warn only** (a new `WARN` row, never counted as a pass): the `onlyoffice` container is healthy.
+    The Document Server never fails a deploy (`bin/deploy.sh`), and without it Zpráva stays read-only.
+  - Changed from the first draft of this plan, which had every row warn: a gate that lets a request
+    through, or a server path that answers, is a security failure of AIA's own routing, and a warning
+    would let a deploy with it go green.
+- `bin/deploy.sh`: with the switch not true and the `aia-docs` project running, `bin/docs.sh down`
+  (bounded, 120 s; a failure is said and the deploy goes on). Turning it off is then the switch and a
+  deploy, with no hand on the host; this session has no `ssm:SendCommand`.
+- `bin/docs.sh down`, `status` and `logs` no longer need the secret. Compose interpolates the whole
+  file for every command, and `JWT_SECRET` is required there (`:?`), so after the rollback deletes the
+  secret they refused. Measured with Compose on 2026-10-23: `status` failed with "required variable
+  AIA_ONLYOFFICE_JWT_SECRET is missing a value". Every command but `up` now gets a placeholder when
+  there is no secret, and `up` still refuses without one (measured).
+- Tests:
+  - `packages/aia_core/tests/test_develop_docs_smoke.py` (16): the rows run as the smoke runs them,
+    beside smoke.sh's own helpers, with `curl` and `docker` stubbed. Cases: off, off but still running,
+    every row passing, each security row failing alone, nothing answering (seven failed rows, the
+    smoke run to its end; it fails without the guard), a gate with its settings missing, and the health
+    row only warning.
+  - `test_develop_image_retention.py::test_the_report_editor_follows_its_switch_on_every_deploy` (3):
+    the whole `deploy.sh` under its harness. On starts it; off while running stops it; off and not
+    running leaves it alone. The stop case fails on the previous `deploy.sh`.
+- **Check:** CI's backend and develop-host jobs. A deploy with the switch still false prints the `info`
+  row and changes nothing else.
 
 ### 1. DNS (owner: this session runs it, on the owner's word in this session)
 
@@ -527,8 +553,8 @@ aws ssm put-parameter --region eu-central-1 --name /aia/develop/aia_onlyoffice_e
 ### 5. Rollback
 
 - **Off:**
-  - `aia_onlyoffice_enabled` false, plus `bin/docs.sh down` on the host. Until 4a lands, `docs.sh down`
-    needs the owner, through SSM or CloudShell.
+  - `aia_onlyoffice_enabled` false, then a deploy: since 4a, `bin/deploy.sh` stops the Document Server
+    when the switch is not true (`bin/docs.sh down`, which needs no secret).
   - Deleting `aia_onlyoffice_url` also turns the API's docs routes to 404, and Zpráva goes back to its
     read-only pane. This session cannot delete parameters (`ssm:DeleteParameter` is denied), so the
     owner does it.

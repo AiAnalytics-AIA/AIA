@@ -162,6 +162,13 @@ if [ "${AIA_ONLYOFFICE_ENABLED:-false}" = "true" ]; then
   if ! timeout --kill-after=30 480 "$DEPLOY_DIR/bin/docs.sh" up; then
     log "WARNING: the Document Server did not start (above); Zpráva stays read-only; the deploy goes on"
   fi
+# Switched off while it runs: stopped here, so turning it off needs no hand on the host. Its
+# volumes are kept (bin/docs.sh down).
+elif [ -n "$(docker ps -q --filter label=com.docker.compose.project=aia-docs)" ]; then
+  log "stopping the Document Server: aia_onlyoffice_enabled is not true"
+  if ! timeout --kill-after=30 120 "$DEPLOY_DIR/bin/docs.sh" down; then
+    log "WARNING: the Document Server did not stop (above); the deploy goes on"
+  fi
 fi
 
 log "smoke tests"
