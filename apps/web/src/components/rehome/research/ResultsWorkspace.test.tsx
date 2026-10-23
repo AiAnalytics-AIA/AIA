@@ -3,6 +3,7 @@ import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 import { afterEach, expect, it, vi } from "vitest";
 import { useState } from "react";
 import type { ResearchRun } from "@/lib/api";
+import { t, tv } from "@/i18n/t";
 import { ResultsWorkspace } from "./ResultsWorkspace";
 
 const run = { run_id: "RUN-frozen", design_revision_id: "REV-frozen", design_revision: 4, phase: "COMPLETED", actual_cost_usd: null } as ResearchRun;
@@ -22,7 +23,7 @@ it("opens an overview without inventing zero cost and exposes only the selected 
   view();
   expect(screen.getByRole("tab", { name: "Přehled" }).getAttribute("aria-selected")).toBe("true");
   expect(screen.getAllByRole("tabpanel")).toHaveLength(1);
-  expect(screen.getByText("Zatím nejsou vykázané")).toBeTruthy();
+  expect(screen.getByText(t("research.exec.spend.unknown"))).toBeTruthy();
   expect(screen.getByText("Fiktivní data")).toBeTruthy();
   expect(screen.getByRole("link", { name: "Průběh tohoto běhu →" }).getAttribute("href")).toBe("/progress?run=RUN-frozen");
 });
@@ -181,4 +182,28 @@ it("opens a view named by the address scrolled to its tabs, and the overview whe
   } finally {
     Element.prototype.scrollIntoView = real;
   }
+});
+
+const spentLine = (r: Partial<ResearchRun>) => {
+  render(<ResultsWorkspace run={{ ...run, ...r } as ResearchRun} panels={panels} progressHref={null} notice={null} />);
+  return document.querySelector("[data-run-spent] dd")?.textContent;
+};
+
+it("reads what the run spent from its spend, never the attempts' sum", () => {
+  expect(spentLine({ actual_cost_usd: 0, is_terminal: true, spend: { spent_usd: 0.42, reserved_usd: 0.3, uncertain_calls: 0 } })).toBe("0,42 USD");
+});
+
+it("names a call the run could not price beside the sum, never a bare zero", () => {
+  // The attempts' sum reads 0 for a paid call that came back without a price; the run's spend counts it.
+  const unpriced = `${t("research.exec.spend.unpriced")}: ${tv("research.exec.spend.unpricedCalls", { count: 1 })}`;
+  expect(spentLine({ actual_cost_usd: 0, is_terminal: true, spend: { spent_usd: 0, reserved_usd: 0, uncertain_calls: 1 } }))
+    .toBe(`0,00 USD · ${unpriced} (${t("research.exec.spend.unpricedEnded")})`);
+  cleanup();
+  // While the run goes on, the call may still be in flight: said so, never called a failure.
+  expect(spentLine({ actual_cost_usd: 0, is_terminal: false, spend: { spent_usd: 0, reserved_usd: 0.1, uncertain_calls: 1 } }))
+    .toBe(`0,00 USD · ${unpriced} (${t("research.exec.spend.unpricedRunning")})`);
+});
+
+it("says the cost cannot be told when the run carries no spend, whatever its attempts sum to", () => {
+  expect(spentLine({ actual_cost_usd: 0, spend: null })).toBe(t("research.exec.spend.unknown"));
 });

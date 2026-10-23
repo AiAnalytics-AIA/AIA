@@ -124,6 +124,7 @@ __all__ = [
     "WorkflowNotFound",
     "WorkflowRepository",
     "charged_to_for_run",
+    "erase_lead_run_payloads",
 ]
 
 
@@ -3765,3 +3766,54 @@ def _ledger_entry(row: ApprovalDecisionRow) -> LedgerEntry:
         comment=row.comment,
         created_at=as_utc(row.created_at),
     )
+
+
+#: What an erased step or attempt keeps in place of its payload (settings-backends SB2).
+_ERASED: dict[str, Any] = {"erased": "lead_sealed"}
+
+
+def erase_lead_run_payloads(
+    session: Session, *, organization_id: str, user_id: str, run_ids: Collection[str]
+) -> list[str]:
+    """Erase what a sealed Lead's turns sent and got back (ADR 0030, settings-backends SB2):
+    the frozen context in each step's input, its output, and each attempt's output and error.
+    Only ``research_lead`` runs of that member in that organization; the run, its steps' states
+    and costs stay, so the money and approval ledgers still resolve. Returns the attempt ids,
+    whose artifacts the caller erases. The retention sweep's alone."""
+    if not run_ids:
+        return []
+    runs = [
+        r
+        for r in session.scalars(
+            select(WorkflowRunRow).where(
+                WorkflowRunRow.run_id.in_(list(run_ids)),
+                WorkflowRunRow.organization_id == organization_id,
+                WorkflowRunRow.workflow_type == "research_lead",
+            )
+        )
+        if (r.metadata_json or {}).get("user_id") == user_id
+    ]
+    step_ids = list(
+        session.scalars(
+            select(StepRunRow.step_id).where(StepRunRow.run_id.in_([r.run_id for r in runs]))
+        )
+    )
+    if not step_ids:
+        return []
+    session.execute(
+        update(StepRunRow)
+        .where(StepRunRow.step_id.in_(step_ids))
+        .values(input_json=_ERASED, output_json=_ERASED)
+    )
+    attempt_ids = list(
+        session.scalars(
+            select(StepAttemptRow.attempt_id).where(StepAttemptRow.step_id.in_(step_ids))
+        )
+    )
+    if attempt_ids:
+        session.execute(
+            update(StepAttemptRow)
+            .where(StepAttemptRow.attempt_id.in_(attempt_ids))
+            .values(output_json=_ERASED, error_json=_ERASED)
+        )
+    return attempt_ids

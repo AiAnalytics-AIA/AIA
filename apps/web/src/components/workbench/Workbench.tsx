@@ -11,7 +11,7 @@
 // gate, recorded as automatic -- shown as "Přijato automaticky" with Vrátit; structure still waits.
 
 import { useRouter } from "next/navigation";
-import { type CSSProperties, type KeyboardEvent as ReactKeyboardEvent, type ReactNode, type Ref, useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
+import { type CSSProperties, type KeyboardEvent as ReactKeyboardEvent, type ReactNode, type Ref, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
 
 import { ApiError, api, lead as leadApi, research, type Readiness, type ResearchAgentJob, type ResearchRun, type Study } from "@/lib/api";
 import { withBudget } from "@/lib/budget-line";
@@ -162,7 +162,7 @@ function autoList(memory: Map<string, unknown>): AutoList {
 }
 
 /** The stage whose heading takes the focus once it opens (FrameNavigation's `next.go`); module
- *  scope, because a move to another route remounts the workbench. */
+ *  scope, so it holds whatever the route change keeps mounted. */
 const headingFocus: { pending: { studyId: string; stage: WorkbenchStage } | null } = { pending: null };
 
 /** An item the Lead's `inspect` opens on another stage: opened once that stage is shown, module
@@ -246,6 +246,12 @@ export function Workbench({ frame, step, store, memory, save, inspector, reload,
     moveFocus(next.focus);
   }, [drawer, layout, moveFocus]);
   const [split, setSplit] = useState(() => readSplit(storage()));
+  // The workbench stays mounted from stage to stage (research-lead-workbench 34): another route's
+  // stage opens at its top, as its own page did; a view of the same route (a hash) keeps its place.
+  const artBody = useRef<HTMLDivElement>(null);
+  useLayoutEffect(() => {
+    if (artBody.current) artBody.current.scrollTop = 0;
+  }, [step]);
   // "Připravenost a pomoc" lies over the artifact: opening it takes the focus into it, and Escape
   // closes it before the drawer while it is the layer the person is in, giving the focus back to its
   // button (D21's one Escape order; workbench audit, 2026-10-22: it took neither the focus nor
@@ -384,11 +390,14 @@ export function Workbench({ frame, step, store, memory, save, inspector, reload,
     return () => window.removeEventListener("focus", onFocus);
   }, [waiting, onRefreshJobs]);
   // The budget meter is read again whenever a run, a design job or a Lead turn changes state: all spend.
+  // By their states, never the list's identity: the runs are read again on every stage (useRuns), and
+  // a stage change alone spends nothing (Codex on #835).
+  const runStates = runs?.map((r) => `${r.run_id}:${r.phase}:${(r.steps ?? []).map((s) => s.status).join("/")}`).join(",") ?? null;
   const jobStates = jobs.map((j) => `${j.run_id}:${j.status}`).join(",");
   const turnStates = turns.map((t) => `${t.turn_id}:${t.status}`).join(",");
   useEffect(() => {
     api.study(frame.studyId).then(setStudy, () => setStudy(null));
-  }, [frame.studyId, runs, jobStates, turnStates]);
+  }, [frame.studyId, runStates, jobStates, turnStates]);
 
 
   /** Opens a stage; true when it moved now, false when a stage's leave guard stopped it. */
@@ -406,7 +415,7 @@ export function Workbench({ frame, step, store, memory, save, inspector, reload,
   // A stage's forward action (FrameNavigation's `next`): the stage after this one in the workbench's
   // order, opened as the navigator opens it, then the focus on the new stage's heading. The pressed
   // button may be hidden by the move (Vzorek hides Dimenze's screen), so the focus would fall to the
-  // body; the heading names where the person is now. Kept across a route change, which remounts.
+  // body; the heading names where the person is now. Kept across a route change.
   const nextStage = STAGE_ORDER[STAGE_ORDER.indexOf(stage) + 1] ?? null;
   const frameNav = useMemo(() => ({
     next: nextStage ? {
@@ -794,7 +803,7 @@ export function Workbench({ frame, step, store, memory, save, inspector, reload,
               {autoHere.length ? <AutoBar items={autoHere} state={state} canEdit={frame.canEdit} onRevert={revert} onHide={() => autoStore.set((a) => a.filter((x) => editStage(x.edit) !== stage))} /> : null}
               {here.length ? <EditsBar items={here} state={state} marks={marks} canEdit={frame.canEdit} onAccept={(keys) => void decide("accept", keys)} onDismiss={(keys) => void decide("dismiss", keys)} /> : null}
               <div className="artstage">
-                <div className="artbody" id="artbody"><div className="wb-stage">
+                <div ref={artBody} className="artbody" id="artbody"><div className="wb-stage">
                   {stage === "sample" ? <SampleView project={state.project} onOpen={go} /> : null}
                   {/* Sample shows Dimenze's screen hidden, so its readiness still reaches the inspector. */}
                   <div hidden={stage === "sample"}><LeadAskContext.Provider value={askLead}><ItemInspectorContext.Provider value={itemInspector}><FrameNavigation.Provider value={frameNav}>{children}</FrameNavigation.Provider></ItemInspectorContext.Provider></LeadAskContext.Provider></div>

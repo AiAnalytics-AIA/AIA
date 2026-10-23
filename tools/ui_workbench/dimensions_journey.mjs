@@ -3,8 +3,8 @@
  * Dimenze in a browser (artifact-dimensions DIM3, the start of DIM6): the sample size is one
  * stepper inside data-aia="sample:n", bounded by the server's limits; a press saves n plus the
  * step, a value outside the limits is refused at the field and nothing is saved.
- * A chosen dimension is removed from the selection itself (each remove at least 24 px) and put back
- * from the catalogue (DIM-F5). The client's own dimensions (DIM4) are read and lead to "Populace běhu". Inside the workbench
+ * A chosen dimension is removed from the selection itself by keyboard (each remove at least 24 px,
+ * focus kept in the selection) and put back from the catalogue (DIM-F5, DIM-F7). The client's own dimensions (DIM4) are read and lead to "Populace běhu". Inside the workbench
  * "Další" goes on to Vzorek, the navigator's next stage (DIM-F4).
  * At 1440, 1100, 768 and 390 px, no page overflow. Zero paid starts: the only writes are saves of
  * the working copy and of the stage the person is on. The fixture's n is put back at the end; "Další"
@@ -98,16 +98,28 @@ try {
   const last = chosen.getByRole("button", { name: /^Odebrat dimenzi / }).last();
   const label = (await last.getAttribute("aria-label")).slice("Odebrat dimenzi ".length);
   let put = saved();
-  await last.click();
+  await last.focus();
+  await page.keyboard.press("Enter");
   removed = label;
   await put;
   assert.equal(await remove(label).count(), 0);
+  // DIM-F7: focus stays in the selection (the row before's remove), never back at the page's top.
+  assert(await chosen.evaluate((ul) => ul.contains(document.activeElement)), "focus stays in the selection after a remove");
   put = saved();
   await cardOf(label).click();
   await put;
   await remove(label).waitFor();
   removed = null;
-  check("a chosen dimension is removed from the selection and put back from the catalogue");
+  check("a chosen dimension is removed by keyboard, focus kept in the selection, and put back from the catalogue");
+
+  // DIM-F8: the search's live region is rendered (not display:none) before it has anything to say.
+  const catalogue = page.locator("section", { has: page.getByLabel("Hledat dimenzi") });
+  const live = catalogue.getByRole("status");
+  assert.notEqual(await live.evaluate((e) => getComputedStyle(e).display), "none", "the no-match status is rendered while empty");
+  await page.getByLabel("Hledat dimenzi").fill("zzz");
+  await live.getByText("Hledání nic nenašlo").waitFor();
+  await page.getByLabel("Hledat dimenzi").fill("");
+  check("a search that matches nothing is said in a status that was rendered before it");
 
   const before = Number((await n().getAttribute("aria-valuenow")) ?? NaN);
   const max = Number(await n().getAttribute("aria-valuemax"));

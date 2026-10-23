@@ -176,7 +176,7 @@ fieldwork, `ai_runtime_unavailable` (ADR 0016).
   grant them a client or a study. Someone who signs in with Google but is no
   member is told so.
 - **How.** `/login` turns the Google sign-in into an HttpOnly session cookie,
-  `aia_session`, through `POST /api/v1/session`; AIA's gate re-verifies it on
+  `__Host-aia_session` (deployed; `aia_session` locally), through `POST /api/v1/session`; AIA's gate re-verifies it on
   every request to `/app`. Caddy strips it before a request reaches the web
   client. Opening a session is recorded in the access audit (`AIA_SESSION`);
   individual requests are not.
@@ -330,7 +330,7 @@ patched), and it runs only when `aia_onlyoffice_enabled` is true.
 | `onlyoffice:80` on `aia-docs` | Caddy's way to it; nothing else of AIA's is on that network, so the Document Server reaches neither the API nor the database except through the public hostname |
 | refused at Caddy (404) | commands, conversion, the builder, the AI proxy, WOPI hosting, admin, info, internal, welcome, example, the health check, with or without the version prefix |
 
-AIA's `aia_session` cookie never reaches the editor's origin, and the editor's JavaScript never runs
+AIA's `__Host-aia_session` cookie never reaches the editor's origin, and the editor's JavaScript never runs
 on AIA's. The Document Server reaches AIA only through the public hostname, its request filter
 refusing private and metadata addresses: this host's containers can reach IMDS. Plugins (the AI one
 included), WOPI and the example are off. Community Edition takes 20 simultaneous connections.

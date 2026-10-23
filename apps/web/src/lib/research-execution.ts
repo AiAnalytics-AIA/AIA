@@ -121,6 +121,8 @@ export function parkedForRuntime(run: ResearchRun): ResearchStep | null {
 }
 
 const WAITING_STATUS = /^(WAITING|AWAITING)_|^RECOVERY_REQUIRED$/;
+/** A step parked or waiting: for budget, a provider, capacity or a person's recovery decision. */
+export const isWaiting = (status: string) => WAITING_STATUS.test(status);
 
 /**
  * Why a step waits, in words, or null when the step is not waiting. What the step recorded
@@ -129,7 +131,7 @@ const WAITING_STATUS = /^(WAITING|AWAITING)_|^RECOVERY_REQUIRED$/;
  * what is known: that the step waits, and why. It promises no action the page cannot take.
  */
 export function waitingDetail(step: Pick<ResearchStep, "status" | "waiting_reason" | "error_message" | "error_reason" | "recovery_reason">): string | null {
-  if (!WAITING_STATUS.test(step.status)) return null;
+  if (!isWaiting(step.status)) return null;
   // A paid call whose outcome is unknown outranks whatever error came with it: it is why nothing
   // repeats the step, and what a person decides on (PC14).
   if (step.status === "RECOVERY_REQUIRED" && step.recovery_reason === "paid_call_uncertain") return t("research.exec.wait.paid_call_uncertain");
