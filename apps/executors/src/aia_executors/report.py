@@ -55,7 +55,8 @@ REPORT_ARTIFACT_TYPE = INTERNAL_REPORT_ARTIFACT_TYPE
 # -16: KPI tiles, figures, the evidence appendix and suppressed counts locked too (RPT8a, part 2;
 # -15 is the brief's goal, F19).
 # -17: the map's numbers locked under their stored map (map:<battery>/<method>; RPT8a, part 3).
-REPORT_CONTRACT_VERSION = "aia-internal-report-17"
+# -18: the design and method chapters' numbers locked under their sources (design:, run:).
+REPORT_CONTRACT_VERSION = "aia-internal-report-18"
 REPORT_PDF_ARTIFACT_TYPE = INTERNAL_REPORT_PDF_ARTIFACT_TYPE
 REPORT_DOCUMENT_ARTIFACT_TYPE = INTERNAL_REPORT_DOCUMENT_ARTIFACT_TYPE
 
