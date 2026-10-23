@@ -34,6 +34,7 @@ from aia_core.application.research_lead import (
     set_study_budget,
     worker_readiness,
 )
+from aia_core.domain.edit_log import ActorKind, OpSource, WriteBy
 from aia_core.domain.research_lead import (
     RememberNote,
     SelfUpdate,
@@ -78,7 +79,12 @@ def _hatch(scoped: Any, session: Any, user: str = "lead") -> None:
 
 
 def _save(scope: Any, session: Any, content: dict[str, Any] = CONTENT) -> int:
-    saved = StudyWorkspaceRepository(session).save(scope, content=content, base_revision=None)
+    saved = StudyWorkspaceRepository(session).save(
+        scope,
+        content=content,
+        base_revision=None,
+        by=WriteBy(ActorKind.PERSON, scope.actor_id, OpSource.UI),
+    )
     return saved.revision
 
 
@@ -705,7 +711,10 @@ def test_an_accept_shown_on_an_older_working_copy_is_refused_whole(
     scope, turn_id = _ready(scoped, session, EDITS)
     base = StudyWorkspaceRepository(session).content(scope).revision
     StudyWorkspaceRepository(session).save(
-        scope, content={**CONTENT, "goal": "Jinde upraveno"}, base_revision=base
+        scope,
+        content={**CONTENT, "goal": "Jinde upraveno"},
+        base_revision=base,
+        by=WriteBy(ActorKind.PERSON, scope.actor_id, OpSource.UI),
     )
     with pytest.raises(LeadEditsStale) as stale:
         _lead(scope, session).decide_edits(

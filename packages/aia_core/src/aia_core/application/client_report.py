@@ -75,7 +75,8 @@ CLIENT_REPORT_ARTIFACT_TYPE = "research_client_docx"
 CLIENT_REPORT_DOCUMENT_ARTIFACT_TYPE = "research_client_document"
 # -5: a ledger number in prose, a table or a caption is a locked, tagged control (RPT8a, part 1).
 # -6: KPI tiles, figures, the evidence appendix and suppressed counts locked too (RPT8a, part 2).
-CLIENT_REPORT_CONTRACT = "aia-client-report-6"
+# -7: the map's numbers locked under their stored map (map:<battery>/<method>; RPT8a, part 3).
+CLIENT_REPORT_CONTRACT = "aia-client-report-7"
 CLIENT_REPORT_STAGE = "REPORT"
 
 

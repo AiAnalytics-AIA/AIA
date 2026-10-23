@@ -4,7 +4,7 @@ import { act, renderHook } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import type { RunEvent } from "@/lib/api";
-import { ACTIVITY_POLL_MS, useStepActivity } from "./useStepActivity";
+import { ACTIVITY_POLL_MS, STOPPED_RETRIES, useStepActivity } from "./useStepActivity";
 
 const ev = (event_id: number, message: string): RunEvent => ({
   event_id, step_id: "STEP-a", attempt_id: "ATT-1", event_type: "STEP_PROGRESS", level: "INFO",
@@ -76,5 +76,63 @@ describe("useStepActivity", () => {
     await flush(ACTIVITY_POLL_MS * 2);
     expect(read).not.toHaveBeenCalled();
     expect(result.current.cursor).toBe(0);
+  });
+
+  it("reads a stopped feed to its end, and once more when the steps change (FLD3)", async () => {
+    const feed = Array.from({ length: 4_600 }, (_, i) => ev(i + 1, `#${i + 1}`));
+    const read = vi.fn(async (since: number) => feed.filter((e) => e.event_id > since).slice(0, 500));
+    const { result, rerender } = renderHook(({ revision }) => useStepActivity("RUN-1", read, false, revision), {
+      initialProps: { revision: "run:WAITING_PROVIDER:1" },
+    });
+    await flush();
+    // Past the eight pages a live feed reads at once: a stopped feed has no next tick.
+    expect(result.current.cursor).toBe(4_600);
+
+    feed.push(ev(4_601, "zase stojí"));
+    await flush(ACTIVITY_POLL_MS * 3);
+    expect(result.current.cursor).toBe(4_600);
+    rerender({ revision: "run:AWAITING_BUDGET:2" });
+    await flush();
+    expect(result.current.cursor).toBe(4_601);
+    expect(result.current.steps["STEP-a"].lines.at(-1)?.text).toBe("zase stojí");
+  });
+
+  it("stops a page that moves its cursor nowhere instead of reading it forever", async () => {
+    const page = Array.from({ length: 500 }, (_, i) => ev(i + 1, `#${i + 1}`));
+    const read = vi.fn(async () => page);
+    renderHook(() => useStepActivity("RUN-1", read, false));
+    await flush();
+    expect(read).toHaveBeenCalledTimes(2);
+  });
+
+  it("tries a stopped feed's failed page again until the feed is read to its end", async () => {
+    const feed = Array.from({ length: 1_200 }, (_, i) => ev(i + 1, `#${i + 1}`));
+    let failing = 2;
+    const read = vi.fn(async (since: number) => {
+      // The second page fails twice, then answers.
+      if (since === 500 && failing-- > 0) throw new Error("network");
+      return feed.filter((e) => e.event_id > since).slice(0, 500);
+    });
+    const { result } = renderHook(() => useStepActivity("RUN-1", read, false));
+    await flush();
+    expect(result.current.cursor).toBe(500);
+    await flush(ACTIVITY_POLL_MS);
+    expect(result.current.cursor).toBe(500);
+    await flush(ACTIVITY_POLL_MS * 2);
+    expect(result.current.cursor).toBe(1_200);
+    expect(result.current.steps["STEP-a"].lines.at(-1)?.text).toBe("#1200");
+    // Read to its end, it stops.
+    const calls = read.mock.calls.length;
+    await flush(ACTIVITY_POLL_MS * 64);
+    expect(read.mock.calls.length).toBe(calls);
+  });
+
+  it("gives a stopped feed that keeps failing a bounded number of tries", async () => {
+    const read = vi.fn(async () => {
+      throw new Error("network");
+    });
+    renderHook(() => useStepActivity("RUN-1", read, false));
+    await flush(ACTIVITY_POLL_MS * 2 ** (STOPPED_RETRIES + 2));
+    expect(read).toHaveBeenCalledTimes(1 + STOPPED_RETRIES);
   });
 });

@@ -12,16 +12,29 @@ payload holds exactly that event's keys (:data:`PAYLOAD_KEYS`); the web holds th
   :data:`HEARTBEAT_SECONDS` passed without one. A single call that takes longer writes nothing
   until it returns.
 
+Behind the worker's ``AIA_AI_FIELDWORK_QUOTA_FILL`` (RQC7b, version 2), for a panel run:
+
+* ``fieldwork_sample``: once per attempt, once the gateway's preflight passed and before its
+  first respondent: the sample's quota fields and the cells allotted respondents, each with its
+  key (:func:`~.population.sampling.quota_keys`), its values and its allotment. How ``n`` is
+  spread, never a promise of support. None for a sample drawn without quota fields.
+* ``fieldwork_progress``'s ``cells``: the respondents answered in each cell since the attempt's
+  previous report, by key (a respondent without a cell is not in it); ``None`` when the attempt
+  reports no cells (the switch off, a roster run). A cell's fill is the sum of its counts, never
+  estimated. Carried by the report fieldwork writes anyway, so it adds no write of its own: a
+  replayed attempt writes exactly the reports it always did.
+
 Why a step stopped is not a fieldwork event: the engine's ``STEP_RECOVERY`` carries the
 executor's own reason as ``error_reason``, for every executor (``workflow_repository``).
-
-Quota-cell fill and the respondent grid follow in RQC7b, under a new version.
 """
 
 from __future__ import annotations
 
+from collections.abc import Mapping
 from enum import StrEnum
 from typing import Final
+
+from .population.sampling import PanelSample, quota_keys
 
 __all__ = [
     "FIELDWORK_EVENTS_VERSION",
@@ -30,29 +43,42 @@ __all__ = [
     "FieldworkEvent",
     "progress",
     "progress_due",
+    "respondent_cells",
+    "sample",
 ]
 
-FIELDWORK_EVENTS_VERSION: Final = "aia-fieldwork-events-1"
+FIELDWORK_EVENTS_VERSION: Final = "aia-fieldwork-events-2"
 HEARTBEAT_SECONDS: Final = 30.0
 
 
 class FieldworkEvent(StrEnum):
     PROGRESS = "fieldwork_progress"
+    SAMPLE = "fieldwork_sample"
 
 
 PAYLOAD_KEYS: Final[dict[FieldworkEvent, tuple[str, ...]]] = {
-    FieldworkEvent.PROGRESS: ("version", "respondents", "of", "sent", "replayed"),
+    FieldworkEvent.PROGRESS: ("version", "respondents", "of", "sent", "replayed", "cells"),
+    FieldworkEvent.SAMPLE: ("version", "quota_fields", "cells"),
 }
 
 
-def progress(*, respondents: int, of: int, sent: int, replayed: int) -> dict[str, object]:
-    """A ``fieldwork_progress`` payload: respondents answered of ``of``; blocks sent, replayed."""
+def progress(
+    *,
+    respondents: int,
+    of: int,
+    sent: int,
+    replayed: int,
+    cells: Mapping[str, int] | None = None,
+) -> dict[str, object]:
+    """A ``fieldwork_progress`` payload: respondents answered of ``of``; blocks sent, replayed;
+    and, for a panel run reporting its cells, those answered in each cell since the last report."""
     return {
         "version": FIELDWORK_EVENTS_VERSION,
         "respondents": respondents,
         "of": of,
         "sent": sent,
         "replayed": replayed,
+        "cells": None if cells is None else dict(cells),
     }
 
 
@@ -64,3 +90,28 @@ def progress_due(*, respondents: int, of: int, idle_seconds: float, every: int) 
         or (respondents > 0 and respondents % max(1, every) == 0)
         or idle_seconds >= HEARTBEAT_SECONDS
     )
+
+
+def sample(drawn: PanelSample) -> dict[str, object] | None:
+    """A ``fieldwork_sample`` payload: the sample's quota fields and the cells the sampler
+    allotted respondents to, in its order, each ``{key, values, n}``; ``None`` for a sample drawn
+    without quota fields. A cell allotted none is left out: nobody will answer in it."""
+    keys = quota_keys(drawn.quota_cells)
+    cells = [
+        {"key": key, "values": list(cell.values), "n": cell.n}
+        for key, cell in zip(keys, drawn.quota_cells, strict=True)
+        if cell.n > 0
+    ]
+    if not cells:
+        return None
+    return {
+        "version": FIELDWORK_EVENTS_VERSION,
+        "quota_fields": list(drawn.audit.quota_fields),
+        "cells": cells,
+    }
+
+
+def respondent_cells(drawn: PanelSample) -> tuple[str | None, ...]:
+    """Each sampled respondent's quota cell key, in sample order (``None`` without one)."""
+    keys = quota_keys(drawn.quota_cells)
+    return tuple(None if r.quota_cell is None else keys[r.quota_cell] for r in drawn.respondents)

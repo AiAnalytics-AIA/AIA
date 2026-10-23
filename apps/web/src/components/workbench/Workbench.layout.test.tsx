@@ -13,6 +13,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { ResearchProject } from "@/research/model";
 import { LEAD_REVEAL } from "@/lib/lead";
 import { ResearchStore } from "@/research/store";
+import type { ResearchAgentJob } from "@/lib/api";
 import { TEST_FRAME } from "../rehome/research/test-frame";
 import { EMPTY_PROJECT } from "../rehome/research/test-workspace";
 import { FrameNavigation } from "@/components/rehome/step";
@@ -87,6 +88,7 @@ beforeEach(() => {
       return impactAnswer ? new Response(JSON.stringify(impactAnswer)) : new Response(JSON.stringify({ code: "design_revision" }), { status: 404 });
     }
     if (u === "/api/v1/studies/STU-1") return new Response(JSON.stringify({ study_id: "STU-1", budget_usd: null, spent_usd: null }));
+    if (u.endsWith("/research/agent-jobs")) return new Response(JSON.stringify([]));
     return new Response(JSON.stringify({ code: "not_found" }), { status: 404 });
   }));
 });
@@ -644,6 +646,100 @@ describe("a stage's forward action through the frame (FrameNavigation's next)", 
   it("names Cílová skupina after Dotazník", () => {
     benchOn("questionnaire");
     expect(screen.getByRole("button", { name: "Další → Cílová skupina" })).toBeTruthy();
+  });
+});
+
+describe("the Lead's show_diff (research-lead-workbench 14)", () => {
+  it("marks the Lead's edits waiting on this stage", async () => {
+    Element.prototype.scrollIntoView = vi.fn();
+    const edit = { op: "question_edit", question_id: "q1", text: "Jak často pijete čaj ráno?", why: "přesnější" };
+    const t2 = leadTurn("T2", 2, [{ op: "show_diff", stage: "questionnaire" }]);
+    leadReads = [leadState({ busy: true, turns: [leadTurn("T1", 1)] }), leadState({ turns: [leadTurn("T1", 1), { ...t2, output: { ...t2.output, edits: [edit] } }] })];
+    bench();
+    const bar = await screen.findByRole("region", { name: "Návrhy Vedoucího" });
+    await waitFor(() => expect(bar.classList.contains("just")).toBe(true));
+  });
+
+  it("opens the stage's newest proposal still waiting for review when no edit waits there", async () => {
+    const pending = { run_id: "RUN-p", action: "optimize_questionnaire", proposal_state: "pending", created_at: "2026-10-22T09:00:00Z", status: "COMPLETED", is_terminal: true, steps: [] } as unknown as ResearchAgentJob;
+    leadReads = [leadState({ busy: true, turns: [leadTurn("T1", 1)] }), leadState({ turns: [leadTurn("T1", 1), leadTurn("T2", 2, [{ op: "show_diff", stage: "questionnaire" }])] })];
+    const onOpenJob = vi.fn();
+    const store = new ResearchStore({ revision: 3, project: EMPTY_PROJECT as unknown as ResearchProject, analysis: null, save: { kind: "saved" }, checkEpoch: 0 }, "STU-1");
+    render(
+      <Workbench frame={TEST_FRAME} step="questionnaire" store={store} memory={new Map()} save={null} inspector={null} reload={vi.fn()} confirm={vi.fn(async () => true)}
+        onAgentStarted={vi.fn()} jobs={[pending]} onOpenJob={onOpenJob} onRefreshJobs={vi.fn(async () => [])}>
+        <Stage />
+      </Workbench>,
+    );
+    await waitFor(() => expect(onOpenJob).toHaveBeenCalledWith(pending));
+  });
+
+  it("asks the server for the stage's pending proposals when the newest page holds none (Codex on #809)", async () => {
+    const pending = { run_id: "RUN-old", action: "optimize_questionnaire", proposal_state: "pending", created_at: "2026-10-01T09:00:00Z", status: "COMPLETED", is_terminal: true, steps: [] } as unknown as ResearchAgentJob;
+    leadReads = [leadState({ busy: true, turns: [leadTurn("T1", 1)] }), leadState({ turns: [leadTurn("T1", 1), leadTurn("T2", 2, [{ op: "show_diff", stage: "questionnaire" }])] })];
+    const base = vi.mocked(fetch);
+    const asked: string[] = [];
+    vi.stubGlobal("fetch", vi.fn(async (url: RequestInfo | URL, init?: RequestInit) => {
+      if (String(url).includes("/research/agent-jobs?")) {
+        asked.push(String(url));
+        return new Response(JSON.stringify([pending]));
+      }
+      return base(url, init);
+    }));
+    const onOpenJob = vi.fn();
+    const store = new ResearchStore({ revision: 3, project: EMPTY_PROJECT as unknown as ResearchProject, analysis: null, save: { kind: "saved" }, checkEpoch: 0 }, "STU-1");
+    render(
+      <Workbench frame={TEST_FRAME} step="questionnaire" store={store} memory={new Map()} save={null} inspector={null} reload={vi.fn()} confirm={vi.fn(async () => true)}
+        onAgentStarted={vi.fn()} jobs={[]} onOpenJob={onOpenJob} onRefreshJobs={vi.fn(async () => [])}>
+        <Stage />
+      </Workbench>,
+    );
+    await waitFor(() => expect(onOpenJob).toHaveBeenCalledWith(pending));
+    expect(asked.length).toBeGreaterThan(0);
+    expect(asked.every((u) => u.endsWith("/research/agent-jobs?pending=true"))).toBe(true);
+  });
+
+  it("drops a pending-proposal lookup that answers after the person has moved to another stage (Codex on #809)", async () => {
+    push.mockClear();
+    const pending = { run_id: "RUN-old", action: "optimize_questionnaire", proposal_state: "pending", created_at: "2026-10-01T09:00:00Z", status: "COMPLETED", is_terminal: true, steps: [] } as unknown as ResearchAgentJob;
+    leadReads = [leadState({ busy: true, turns: [leadTurn("T1", 1)] }), leadState({ turns: [leadTurn("T1", 1), leadTurn("T2", 2, [{ op: "show_diff", stage: "questionnaire" }])] })];
+    const base = vi.mocked(fetch);
+    let answer: (r: Response) => void = () => {};
+    vi.stubGlobal("fetch", vi.fn(async (url: RequestInfo | URL, init?: RequestInit) => {
+      if (String(url).includes("/research/agent-jobs?")) return new Promise<Response>((r) => { answer = r; });
+      return base(url, init);
+    }));
+    const onOpenJob = vi.fn();
+    const store = new ResearchStore({ revision: 3, project: EMPTY_PROJECT as unknown as ResearchProject, analysis: null, save: { kind: "saved" }, checkEpoch: 0 }, "STU-1");
+    const props = { frame: TEST_FRAME, store, memory: new Map(), save: null, inspector: null, reload: vi.fn(), confirm: vi.fn(async () => true), onAgentStarted: vi.fn(), jobs: [], onOpenJob, onRefreshJobs: vi.fn(async () => []) };
+    const view = render(<Workbench {...props} step="questionnaire"><Stage /></Workbench>);
+    await waitFor(() => expect(vi.mocked(fetch).mock.calls.some(([u]) => String(u).includes("/research/agent-jobs?"))).toBe(true));
+    view.rerender(<Workbench {...props} step="audience"><Stage /></Workbench>);
+    await act(async () => { answer(new Response(JSON.stringify([pending]))); await new Promise((r) => setTimeout(r, 20)); });
+    expect(onOpenJob).not.toHaveBeenCalled();
+    expect(push).not.toHaveBeenCalled();
+  });
+
+  for (const [what, answer, words] of [
+    ["nothing waits", () => new Response(JSON.stringify([])), /nic nečeká na rozhodnutí \(prohledáno posledních 200 úloh\)/],
+    ["the waiting proposals could not be read", () => new Response(JSON.stringify({ code: "unavailable" }), { status: 503 }), /nepodařilo načíst/],
+  ] as const) {
+    it(`says so on the stage the person is on when ${what} (stand-in review on #809)`, async () => {
+      leadReads = [leadState({ busy: true, turns: [leadTurn("T1", 1)] }), leadState({ turns: [leadTurn("T1", 1), leadTurn("T2", 2, [{ op: "show_diff", stage: "questionnaire" }])] })];
+      const base = vi.mocked(fetch);
+      vi.stubGlobal("fetch", vi.fn(async (url: RequestInfo | URL, init?: RequestInit) => (String(url).includes("/research/agent-jobs?") ? answer() : base(url, init))));
+      bench();
+      const note = await screen.findByText(words);
+      expect(note.closest('[role="status"]')).not.toBeNull();
+    });
+  }
+
+  it("opens the stage itself, through its leave guard, when nothing waits there", async () => {
+    push.mockClear();
+    leadReads = [leadState({ busy: true, turns: [leadTurn("T1", 1)] }), leadState({ turns: [leadTurn("T1", 1), leadTurn("T2", 2, [{ op: "show_diff", stage: "dimensions" }])] })];
+    bench();
+    await waitFor(() => expect(push).toHaveBeenCalledTimes(1));
+    expect(push.mock.calls[0][0]).toMatch(/\/dimensions$/);
   });
 });
 

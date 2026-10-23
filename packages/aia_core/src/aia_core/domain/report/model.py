@@ -95,9 +95,15 @@ class ParagraphRole(StrEnum):
 
 @dataclass(frozen=True, slots=True)
 class Paragraph:
+    """``control``: the tag of the locked control its text prints in, for a paragraph code
+    writes whole from a stored source that is not the ledger (a map's support, a design's
+    facts; ``control_tags.source_tag``). A guard against a stray keystroke: an editor may
+    unlock it, and what changed is shown, never refused (ADR 0035, amended 2026-10-22)."""
+
     content: tuple[Inline, ...]
     role: ParagraphRole = ParagraphRole.BODY
     refs: tuple[str, ...] = ()
+    control: str | None = None
 
 
 @dataclass(frozen=True, slots=True)
@@ -138,6 +144,8 @@ class Callout:
     kind: CalloutKind
     content: tuple[Inline, ...]
     title: str | None = None
+    #: As ``Paragraph.control``, for its text (the title stays editable).
+    control: str | None = None
     refs: tuple[str, ...] = ()
 
 
@@ -197,6 +205,8 @@ class Column:
 @dataclass(frozen=True, slots=True)
 class TextCell:
     text: str
+    #: As ``Paragraph.control``: a number code wrote into the cell from a stored source.
+    control: str | None = None
 
 
 @dataclass(frozen=True, slots=True)
@@ -238,6 +248,8 @@ class Table:
     base_ref: str | None = None
     notes: tuple[str, ...] = ()
     landscape: bool = False
+    #: As ``Paragraph.control``, for its notes, when code wrote numbers into them.
+    notes_control: str | None = None
 
 
 # ---------------------------------------------------------------------- figures
@@ -308,6 +320,8 @@ class SociomapFigure:
     source: str
     alt: str
     fit_caption: str | None = None
+    #: The tag of the locked control its caption's fit prints in (``map:<battery>/<method>``).
+    control: str | None = None
 
 
 # ---------------------------------------------------------------------- furniture

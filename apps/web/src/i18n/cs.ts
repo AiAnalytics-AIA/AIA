@@ -1079,7 +1079,7 @@ export const cs = {
           origin: { stored: "uložená verze", code: "z kódu" },
           pinNote:
             "Běh si metodiku v platnosti zapíše při spuštění a počítá podle ní; změna platí jen pro běhy spuštěné potom. Opakovaný běh si ponechá metodiku původního běhu.",
-          adminNote: "Upravit metodiku a uvést ji v platnost může vlastník nebo správce organizace; ostatní členové ji vidí a mohou si úpravu zkontrolovat.",
+          adminNote: "Upravit metodiku a uvést ji v platnost může jen člen se značkou Metodik (uděluje ji vlastník organizace); ostatní členové ji vidí a mohou si úpravu zkontrolovat.",
           list: "Uložené verze",
           none: "Žádná uložená verze: platí metodika z kódu.",
           current: "v platnosti",
@@ -1627,6 +1627,8 @@ export const cs = {
           newEmail: "E-mail nového člena",
           newRole: "Role nového člena",
           newHint: "Enter přidá · Esc zruší",
+          badEmail: "Zadejte e-mailovou adresu, např. jmeno@organizace.cz.",
+          selfDemoted: "Už nejste vlastník, a tak to sami nevrátíte: roli vlastníka vám může vrátit jiný vlastník.",
           add: "Přidat",
           cancel: "Zrušit",
           deactivateNotYet: "Deaktivace člena a štítek Metodik v AIA zatím nejsou.",
@@ -2229,6 +2231,8 @@ export const cs = {
       uploadIntro: "Použijte šablonu AIA. Druhý list šablony, NAVOD, popisuje každé pole – podle něj ji vyplníte ručně, nebo ji připraví jiná AI. AIA pak strukturu zkontroluje a otevře ve stejném editoru.",
       template: "Stáhnout XLSX šablonu",
       fileLabel: "Vyplněný XLSX / CSV",
+      fileUnreadable: "soubor se nepodařilo přečíst; vyberte ho znovu",
+      templateRefused: "Šablonu se nepodařilo stáhnout (kód {code})",
       load: "Načíst dotazník",
       loading: "Načítám dotazník",
       loadingSub: "Validuji strukturu a sledované sady…",
@@ -2257,6 +2261,8 @@ export const cs = {
         sets: { one: "1 sledovaná sada", few: "{n} sledované sady", many: "{n} sledovaných sad" },
       },
       imported: "Načteno: {counts}",
+      uploadReplaces: "Načtený soubor nahradí současný dotazník. Hned potom ho půjde vrátit.",
+      importUndoStale: "Dotazník se od načtení změnil, import už se nevrátí.",
       // Závislosti (artifact-questionnaire QST8): what reads each item downstream.
       dependencies: {
         title: "Závislosti",
@@ -2901,6 +2907,15 @@ export const cs = {
         // run-qc-and-checkpoint RQC7a: fieldwork's progress event, by its code.
         fieldworkProgress: "Odpovědělo {done} z {of} respondentů",
         fieldworkReplayed: "{replayed} bloků z uložených odpovědí, bez nového placení",
+        // artifact-fieldwork FLD3: a stopped step's count, as it last reported it.
+        lastReported: "Naposledy hlášeno: odpovědělo {done} z {of} respondentů",
+        // run-qc-and-checkpoint RQC7b: a panel run's quota cells and each one's fill.
+        fieldworkSample: "Vzorek rozdělen do {cells} kvótních buněk",
+        quotaTitle: "Kvóty vzorku: {full} z {cells} buněk naplněno",
+        quotaCell: "Buňka",
+        quotaAnswered: "Odpovědělo",
+        quotaOf: "{answered} z {n}",
+        quotaNote: "Kvóty určují složení vzorku, ne podporu dvojic v mapě. Podpora se ověří až z výsledných dat.",
         aiAnswered: "Model odpověděl · {tokensIn} → {tokensOut} tokenů · {cost} · {seconds} s",
         aiAnsweredNoTokens: "Model odpověděl · tokeny neuvedeny · {cost} · {seconds} s",
         tokensUnknown: "?",

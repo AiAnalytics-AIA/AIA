@@ -267,6 +267,15 @@ class ResearchLeadExecutor:
             ).encode()
         ).hexdigest()
         with context.transaction() as (session, _):
+            if ResearcherLeadRepository(session, context.scope).is_sealed():
+                # Deactivated after the turn was queued (ADR 0030): its Lead is read by no one.
+                return Failed(
+                    FailureClass.PERMISSION,
+                    error={
+                        "reason": "lead_sealed",
+                        "message": "Vedoucí výzkumu je zapečetěný: člen byl deaktivován.",
+                    },
+                )
             if StudyDesignRepository(session, context.scope).project_id() != step.project_id:
                 return _schema_violation("the turn's design project is not the Study's")
             artifacts = research_artifacts(session, context.scope, self._store)

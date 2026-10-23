@@ -8,7 +8,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { t } from "@/i18n/t";
 import { resetConfigCache } from "@/lib/auth";
-import { ResearchScreen, resetWorkbenchSwitch } from "./ResearchScreen";
+import { ResearchScreen, ResearchSession, resetWorkbenchSwitch } from "./ResearchScreen";
 import { TEST_FRAME } from "./test-frame";
 import { CONTENT_PATH, EMPTY_PROJECT, signedIn } from "./test-workspace";
 
@@ -20,6 +20,10 @@ const bodies: { url: string; body: Record<string, unknown> }[] = [];
 let stored: Record<string, unknown> = {};
 /** /config never answers: a proxy stall or a slow cold start. */
 let configHangs = false;
+/** The Lead's state, read in turn (the last one kept); null: no turns. */
+let leadAnswers: object[] | null = null;
+/** What GET …/agent-jobs?pending=true answers. */
+let pendingAnswer: object[] = [];
 function api(content: Record<string, unknown> = { title: "Alfa", goal: "Zjistit, co lidé chtějí od nové služby." }, analysis: Record<string, unknown> | null = null) {
   urls.length = 0;
   bodies.length = 0;
@@ -38,10 +42,11 @@ function api(content: Record<string, unknown> = { title: "Alfa", goal: "Zjistit,
       : u.endsWith("/research/readiness") ? { design_revision_id: "REV-3", revision: 3, ready: false, checks: [], questions: 0, batteries: 0, objects: 0, n: 0, rules: "test", fieldwork_source: "ai_runtime" }
       : u.endsWith("/research/runs") ? { items: [] }
       : u.endsWith("/design/revisions") && method === "POST" ? { revision_id: "REV-3", revision: 3 }
-      : u.endsWith("/research/agent-jobs") ? []
+      : u.endsWith("/research/agent-jobs") ? (String(url).includes("pending=true") ? pendingAnswer : [])
+      : u.endsWith("/result") ? { result: { project: {}, proposal: {} }, provenance: { agent_id: "aia.research.optimize", design_revision_id: "REV-2", context_sha256: "0".repeat(64), status: "COMPLETED" } }
       : u === "/api/v1/lead" ? { hatched: true, lead: { lead_id: "L", name: "Bára", hatched_at: "", updated_at: "", files: { soul: "", user: "" }, memories: [] } }
       : u.endsWith("/lead/turns") && method === "POST" ? { turns: [] }
-      : u.endsWith("/lead") ? { available: true, unavailable_reason: null, busy: false, turns: [] }
+      : u.endsWith("/lead") ? (leadAnswers ? (leadAnswers.length > 1 ? leadAnswers.shift() : leadAnswers[0]) : { available: true, unavailable_reason: null, busy: false, turns: [] })
       : null;
     return answer === null
       ? new Response(JSON.stringify({ code: "not_found", message: "not here" }), { status: 404 })
@@ -54,6 +59,8 @@ beforeEach(() => {
   resetWorkbenchSwitch();
   resetConfigCache();
   configHangs = false;
+  leadAnswers = null;
+  pendingAnswer = [];
   signedIn();
   api();
 });
@@ -86,6 +93,23 @@ describe("the workbench: the Lead owns the AI starts", () => {
     fireEvent.click(await screen.findByRole("button", { name: "Pokračovat na Návrh" }));
     await waitFor(() => expect(push).toHaveBeenCalledTimes(1));
     expect(push.mock.calls[0][0]).toMatch(/\/plan$/);
+  });
+
+  it("opens on its own stage a proposal the Lead's show_diff found older than the newest page (stand-in review on #809)", async () => {
+    push.mockClear();
+    const turn = (id: string, seq: number, view: object[] = []) => ({
+      turn_id: id, sequence_no: seq, actor: "lead", kind: "message", stage: "brief", text: null, focus: null, status: "COMPLETED", reason: null,
+      output: { reply: "Tady jsou změny.", view }, run_id: null, workspace_revision: 2, created_at: "2026-10-23T08:00:00Z", created_by: null,
+    });
+    const lead = (busy: boolean, turns: object[]) => ({ available: true, unavailable_reason: null, busy, turns });
+    leadAnswers = [lead(true, [turn("T1", 1)]), lead(false, [turn("T1", 1), turn("T2", 2, [{ op: "show_diff", stage: "questionnaire" }])])];
+    pendingAnswer = [{ run_id: "RUN-old", action: "optimize_questionnaire", proposal_state: "pending", created_at: "2026-10-01T09:00:00Z", status: "COMPLETED", is_terminal: true, steps: [] }];
+    // The study's layout holds the session, as ResearchStudy does; the route change remounts the stage.
+    const view = render(<ResearchSession studyId="STU-1"><ResearchScreen key="brief" step="brief" frame={TEST_FRAME} /></ResearchSession>);
+    await waitFor(() => expect(push).toHaveBeenCalledTimes(1));
+    expect(String(push.mock.calls[0][0])).toContain("questionnaire");
+    view.rerender(<ResearchSession studyId="STU-1"><ResearchScreen key="questionnaire" step="questionnaire" frame={TEST_FRAME} /></ResearchSession>);
+    await waitFor(() => expect(urls).toContain("GET /api/v1/studies/STU-1/research/agent-jobs/RUN-old/result"));
   });
 
   it("mounts a stage once on a fresh page, not the classic layout first and then the workbench", async () => {
