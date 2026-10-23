@@ -403,12 +403,14 @@ minutes, a callback URL one session for a week; the clock passed in). `routers/r
 view) opens the line through `ReportEditor.open` and answers the signed config (the session's key, the document
 and callback URLs on the public origin, the person's id and display name, never an e-mail, `forcesave`, co-editing
 `fast`) with the run's lines; `client` is refused by name (409 `client_report_not_editable`). `GET
-…/report/editor/document?token=` serves the version to the Document Server alone: its JWT in `Authorization` and
+/report-editor/document?token=` (the Document Server's routes are not under a study: the token's session names
+it, and a route under `/studies/{study_id}` is a person's, which MVP-ACCEPT AC01 sweeps as another organization)
+serves the version to the Document Server alone: its JWT in `Authorization` and
 the URL token both checked (403 otherwise), the session read by its key and the scope resolved for the person who
 opened it, the artifact a version of that session's line (404 otherwise), `Cache-Control: no-store`. Tests:
 `test_report_editor_api.py` (SQLite and PostgreSQL): the config signed as the Document Server checks it with no
 e-mail anywhere, the version fetched, a second researcher under the same key, an unsigned fetch and a token signed
-with the editor's own secret refused, another study's path 404, the client report refused, every route 404 with the
+with the editor's own secret refused, a key no session has 404, the client report refused, every route 404 with the
 public origin unset, the setting an https origin only. From review: the config's own JWT expires (`CONFIG_LIFETIME`, 12 hours); a JWT
 shaped as a config (`document`, `editorConfig`) is never read as the Document Server's, and the document fetch's
 must name the URL fetched (`url` or `payload.url`: its path and its query's token), so the browser's config token
@@ -417,7 +419,7 @@ cannot stand in for the Document Server; the URL token never reaches a log: `dep
 (`logs_drop_token`) refuses a Caddyfile that writes it. The develop Compose file hands the API `AIA_ONLYOFFICE_CALLBACK_BASE:
 https://${AIA_PUBLIC_HOSTNAME}` (the worker none); the editor stays off there until SSM sets its URL and secret
 (`test_the_report_editor_reaches_the_api_on_its_public_origin_and_stays_off_until_set`). Tests: the browser's config token, a JWT for another URL, an
-expired document token, a callback token, another line's version and another run's path are each refused.
+expired document token, a callback token, another line's version and a key no session has are each refused.
 
 **RPT8d. The pane opens the editor.**
 - 768 px and wider, with the editor configured: Zpráva's pane loads the Document Server's `api.js` from

@@ -20,6 +20,14 @@ from fastapi import FastAPI
 from fastapi.testclient import TestClient
 
 from aia_api.config import Environment, Settings
+from aia_api.editor_tokens import EditorTokens
+
+
+def _now() -> Any:
+    from datetime import UTC, datetime
+
+    return datetime.now(UTC)
+
 
 API = "/api/v1"
 EDITOR = "https://docs.aia.example.test"
@@ -133,7 +141,9 @@ def test_the_config_is_signed_names_no_e_mail_and_fetches_its_version(
     assert user["id"] == world.users["researcher"] and "@" not in user["name"]
     assert "@" not in response.text  # no e-mail anywhere in what the browser gets
     assert config["editorConfig"]["customization"]["forcesave"] is True
-    assert config["editorConfig"]["callbackUrl"].startswith(f"{PUBLIC}{API}/studies/")
+    # The Document Server's routes, outside any study: the token's session names it.
+    assert config["editorConfig"]["callbackUrl"].startswith(f"{PUBLIC}{API}/report-editor/")
+    assert config["document"]["url"].startswith(f"{PUBLIC}{API}/report-editor/document?")
     fetched = _fetch(client, config["document"]["url"])
     assert fetched.status_code == 200 and fetched.content == _docx()
 
@@ -175,13 +185,15 @@ def test_the_document_is_served_only_to_the_document_server_for_its_url(
     assert (
         client.get(parsed.path, params=forged, headers=_signed_for(parsed.path, forged))
     ).status_code == 403
-    # The same URL under another study, or another run of this one: not this session's.
-    for other in (
-        parsed.path.replace(world.study_id(), world.study_id("sibling")),
-        parsed.path.replace(run_id, "RUN-0"),
-    ):
-        answer = client.get(other, params=query, headers=_signed_for(other, query))
-        assert answer.status_code == 404, other
+    # A key no session has: nothing to serve.
+    stray = EditorTokens(SECRET).url_token(
+        "document", document_key="ART-0.x.1", artifact_id=body["version_artifact_id"], now=_now()
+    )
+    query = {"token": stray}
+    assert (
+        client.get(parsed.path, params=query, headers=_signed_for(parsed.path, query)).status_code
+        == 404
+    )
 
 
 def test_an_expired_a_callbacks_or_another_lines_token_does_not_fetch(

@@ -106,8 +106,6 @@ def _composed(
 def _config(
     opened: OpenedLine,
     *,
-    study_id: str,
-    run_id: str,
     scope: StudyContext,
     name: str,
     mode: str,
@@ -115,8 +113,8 @@ def _config(
     tokens: EditorTokens,
     now: datetime,
 ) -> dict[str, Any]:
-    base = f"{settings.onlyoffice_callback_base}{API_PREFIX}/studies/{study_id}"
-    base += f"/research/runs/{run_id}/report/editor"
+    # The Document Server's own routes: not under the study, which the token's session names.
+    base = f"{settings.onlyoffice_callback_base}{API_PREFIX}/report-editor"
     key = opened.session.document_key
     document = tokens.url_token(
         "document", document_key=key, artifact_id=opened.version.artifact_id, now=now
@@ -189,8 +187,6 @@ def open_report_editor(
         "document_server": settings.onlyoffice_url,
         "config": _config(
             opened,
-            study_id=study_id,
-            run_id=run_id,
             scope=scope,
             name=name,
             mode=body.mode,
@@ -215,31 +211,40 @@ def open_report_editor(
 
 
 def _session_scope(
-    found: EditorSession | None, study_id: str, run_id: str, resolver: Any
+    found: EditorSession | None, resolver: Any
 ) -> tuple[EditorSession, StudyContext]:
-    """The session a Document Server request names, and the scope of the person who opened it;
-    404 for a key of another study or run, or a person no longer a member."""
-    if found is None or found.study_id != study_id or found.run_id != run_id:
+    """The session a Document Server request names, and the scope of the person who opened it,
+    in the session's own study; 404 for a key no session has, or a person no longer a member."""
+    if found is None:
         raise _not_found("editor_session")
     principal = AuthenticatedPrincipal(
         user_id=found.opened_by, organization_id=found.organization_id, request_id="onlyoffice"
     )
     try:
-        return found, resolver.study_context(principal, study_id=study_id)
+        return found, resolver.study_context(principal, study_id=found.study_id)
     except ScopeDenied as exc:
         raise _not_found("editor_session") from exc
 
 
-@router.get(
-    "/research/runs/{run_id}/report/editor/document",
+#: The Document Server's routes. It carries no person's session, so these are not under a
+#: study: the URL token names the session, and the session its study and run, which the scope is
+#: resolved for. A route under ``/studies/{study_id}`` is a person's, scoped by the path first
+#: (MVP-ACCEPT AC01 sweeps them as another organization).
+document_server = APIRouter(
+    prefix="/report-editor",
+    tags=["report-editor"],
+    responses={404: {"model": ErrorResponse, "description": "Not found, or the editor is off"}},
+)
+
+
+@document_server.get(
+    "/document",
     response_class=Response,
     summary="A version's DOCX, as the Document Server fetches it",
     responses={403: {"model": ErrorResponse}},
 )
 def report_editor_document(
     request: Request,
-    study_id: StudyIdPath,
-    run_id: RunIdPath,
     session: SessionDep,
     store: ArtifactStoreDep,
     settings: SettingsDep,
@@ -257,9 +262,7 @@ def report_editor_document(
         claim = tokens.read_url(token, "document", now=_now())
     except TokenRefused as exc:
         raise HTTPException(403, detail={"code": "editor_token_refused"}) from exc
-    found, scope = _session_scope(
-        session_by_key(session, claim.document_key), study_id, run_id, resolver
-    )
+    found, scope = _session_scope(session_by_key(session, claim.document_key), resolver)
     version = ReportEditor(session, scope).version_of(found, str(claim.artifact_id))
     if version is None:
         raise _not_found("editor_version")

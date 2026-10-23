@@ -156,6 +156,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     app.include_router(client_sources.router, prefix=API_PREFIX)
     app.include_router(research.router, prefix=API_PREFIX)
     app.include_router(report_editor.router, prefix=API_PREFIX)
+    app.include_router(report_editor.document_server, prefix=API_PREFIX)
     app.include_router(lead.router, prefix=API_PREFIX)
     app.include_router(lead.profile_router, prefix=API_PREFIX)
     app.include_router(deep_research.router, prefix=API_PREFIX)
