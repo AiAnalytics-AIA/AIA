@@ -308,3 +308,19 @@ def test_a_part_declaring_a_dtd_is_never_parsed_for_the_stamp(
     )
     with pytest.raises(NotStampable, match="document type"):
         stamp_review(hostile, _mark(hostile))
+
+
+def test_a_footer_still_saying_draft_beside_its_status_run_is_not_stampable(
+    samples: dict[str, bytes],
+) -> None:
+    """The draft words typed into a footer beside its status run (an editor save, RPT8c):
+    stamping the run would leave the file saying approved and draft at once."""
+    stored = samples["client"]
+    footer = next(n for n in _parts(stored) if _footer(n))
+    draft = "KONCEPT — NESCHVÁLENO".encode()
+    typed = _rewritten(
+        stored,
+        {footer: lambda b: b.replace(b"</w:p>", b"<w:r><w:t>" + draft + b"</w:t></w:r></w:p>", 1)},
+    )
+    with pytest.raises(NotStampable, match="draft words"):
+        stamp_review(typed, _mark(typed))

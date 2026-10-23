@@ -124,6 +124,8 @@ def _store(
         saved = census(data)
     except DocumentRefused as exc:
         raise SaveNotStored("save_unreadable") from exc
+    # Tried before the line is held: a pass over the package that serialises nothing.
+    stamp_record = review_stamp_record(data)
     # One save of a line at a time: the line's composed row is held before its versions are
     # read, so two saves never number the same koncept (the version rows alone do not stop an
     # insert). The session is read again under it: one that closed meanwhile takes no save.
@@ -163,7 +165,7 @@ def _store(
     # (report_export.STATUS_IN_BODY) is never stamped.
     if composed.metadata.get("report_contract"):
         meta["report_contract"] = composed.metadata["report_contract"]
-    meta.update(review_stamp_record(data))
+    meta.update(stamp_record)
     version, _ = artifacts.put(
         project_id=composed.project_id,
         revision=composed.revision,

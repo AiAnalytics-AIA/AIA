@@ -140,6 +140,10 @@ def stamp_review(docx: bytes, mark: ReviewMark) -> bytes:
             line.addnext(second)
         else:
             texts[0].text = words
+        if t("draft") in _text(root):
+            # The draft words typed beside the status run (an editor save, RPT8c): a file
+            # never says approved and draft at once.
+            raise NotStampable(f"{name} states the draft words outside its status run")
         stamped[name] = etree.tostring(root, encoding="UTF-8", standalone=True)
     if not stamped:
         raise NotStampable("the package has no footer")
