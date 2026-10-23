@@ -3,7 +3,7 @@
 **STATUS: WAITING ON NIGEL. The report editor (ONLYOFFICE) is ready to activate; it needs his own word in this session.**
 Session `session_01LBR1SyjXK8uYR5VdBjGAEJ` ("AIA infra audit"): AWS develop, account 311141567391,
 eu-central-1, host `i-07159210266481227` (t3a.large since 2026-10-22), Terraform root `infra/develop`,
-IAM user `aia-claude-infra`. Updated 2026-10-23 07:40 UTC. Every fact below was observed, not
+IAM user `aia-claude-infra`. Updated 2026-10-23 21:45 UTC. Every fact below was observed, not
 assumed.
 
 ## Standing rules this session works under
@@ -54,6 +54,25 @@ Nigel answered in the Zpráva session at about 00:15 (relayed, so not yet confir
   - **Terraform:** the new domain's zone or record (who registers it?), then the activation steps
     rewritten for that name.
 - **If he keeps `docs.aia-develop.art-chain.io`**, the plan's chunk 4 applies as written.
+
+## Before anyone sets `aia_onlyoffice_url` (the coordinator's order, 2026-10-23 21:39)
+
+These must all be ticked:
+- [ ] **Nigel's word typed in this session** on the design and the domain.
+- [ ] **Zpráva's `api.js` SRI gate:**
+  - the hash is taken from the pinned image's `api.js`;
+  - it is checked with CORS against the real Document Server.
+- [x] F1, `__Host-aia_session` (#831, `ca14a942`).
+- [x] The JWT secret in SSM (v1).
+
+The coordinator reads Nigel's decision as follows. Activation removes the existing `docs.`
+ticket/cookie gate and serves the editor on its own domain with no AIA gate. ONLYOFFICE's JWT is the
+guard. That is the "If he confirms" branch above. It is still unconfirmed in this session, and the
+plan file (merged with #829) still describes `docs.<host>` behind the gate. Rewriting the plan file
+needs a PR, so it goes in with the redesign PR on Nigel's word.
+
+Since #864, the API also takes `AIA_ONLYOFFICE_CALLBACK_BASE=https://${AIA_PUBLIC_HOSTNAME}`
+(decision 4: the public origin).
 
 ## Activation, once decided (plan chunk 4, every step with its check)
 
