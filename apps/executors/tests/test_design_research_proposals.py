@@ -29,11 +29,13 @@ from aia_core.domain.deep_research.design_proposals import (
 )
 from aia_core.domain.deep_research.quarantine import design_input
 from aia_core.domain.design import DesignRejected
+from aia_core.domain.edit_log import ActorKind, OpSource, WriteBy
 from aia_core.domain.scope import WORKER_PERMISSIONS, ScopeDenied
 from aia_core.infrastructure.storage import InMemoryArtifactStore
 from aia_core.infrastructure.study_design_repository import StudyDesignRepository
 from aia_core.infrastructure.study_workspace_repository import StudyWorkspaceRepository
 from aia_core.infrastructure.tables import ApprovalDecisionRow
+from aia_core.infrastructure.workspace_edit_repository import WorkspaceEditRepository
 from deep_research_fixtures import (
     DESIGN,
 )
@@ -148,6 +150,16 @@ def test_an_accept_writes_one_revision_changing_only_the_design_research_key(
     assert revision.workspace_revision is not None
     assert revision.workspace_revision == working.revision
     assert working.content == stored
+    # Logged as the person who accepted, citing the run (working-copy-edit-ops WCE2e).
+    with world.sessions() as session:
+        person = world.lead_scope(session)
+        logged = WorkspaceEditRepository(session, person).rows(
+            after_revision=revision.workspace_revision - 1
+        )
+    assert logged and {r.result_revision for r in logged} == {revision.workspace_revision}
+    assert {r.by for r in logged} == {
+        WriteBy(ActorKind.PERSON, person.actor_id, OpSource.DESIGN_RESEARCH_ACCEPT, pass_one.run_id)
+    }
     block = stored[DESIGN_RESEARCH_KEY]
     assert block["contract_version"] == DESIGN_PROPOSAL_CONTRACT
     assert list(block["items"]) == taken

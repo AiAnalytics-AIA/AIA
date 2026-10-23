@@ -33,6 +33,7 @@ from ..domain.deep_research.design_proposals import (
 )
 from ..domain.design import DesignRejected
 from ..domain.design_items import Documents
+from ..domain.edit_log import ActorKind, OpSource, WriteBy
 from ..domain.research_agents import context_snapshot
 from ..domain.scope import Permission, StudyContext
 from ..domain.workflow import WorkflowRunStatus
@@ -140,6 +141,9 @@ class DesignResearchProposals:
             expected_workspace_revision=expected_workspace_revision,
             source_stage=SOURCE_STAGE,
             reason="design_research_accepted",
+            by=WriteBy(
+                ActorKind.PERSON, self.scope.actor_id, OpSource.DESIGN_RESEARCH_ACCEPT, run_id
+            ),
         )
         revision, created = accepted.revision, accepted.created
         if created:

@@ -401,6 +401,9 @@ class SampledRespondent:
     base_weight: float
     analysis_weight: float
     order: int
+    #: The position of its quota cell in :attr:`PanelSample.quota_cells`; ``None`` for a sample
+    #: drawn without quota fields. Out of :meth:`PanelSample.provenance`.
+    quota_cell: int | None = None
 
 
 @dataclass(frozen=True, slots=True)
@@ -593,6 +596,8 @@ def draw_panel_sample(
     if DONOR_FIELD in population.fields:
         column = population.column(DONOR_FIELD)
         donors = tuple(column[i] for i in audience)
+    # Each pick's cell, as the allotment named it: the same join over the same quota fields.
+    cell_at = {cell: i for i, cell in enumerate(draw.quotas)}
     respondents = tuple(
         SampledRespondent(
             row=audience[p],
@@ -600,6 +605,9 @@ def draw_panel_sample(
             base_weight=draw.base_weights[order],
             analysis_weight=draw.analysis_weights[order],
             order=order,
+            quota_cell=cell_at[_CELL_SEPARATOR.join(keys[f][p] for f in draw.quota_fields)]
+            if draw.quota_fields
+            else None,
         )
         for order, p in enumerate(draw.picks)
     )

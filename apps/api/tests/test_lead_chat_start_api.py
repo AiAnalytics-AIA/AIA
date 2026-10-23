@@ -16,6 +16,7 @@ import pytest
 from aia_core.application.scope import AuthenticatedPrincipal, ScopeResolver
 from aia_core.application.wallet import StudyWallets
 from aia_core.domain.approval_ledger import ApprovalSubject
+from aia_core.domain.edit_log import ActorKind, OpSource, WriteBy
 from aia_core.domain.money import WalletVerdict
 from aia_core.domain.workflow_templates import (
     RESEARCH,
@@ -91,7 +92,12 @@ def _save(app: FastAPI, world: Any, content: dict[str, Any] = DESIGN) -> None:
     with create_session_factory(app.state.engine)() as session:
         repo = StudyWorkspaceRepository(session)
         scope = _scope(world, session)
-        repo.save(scope, content=content, base_revision=repo.content(scope).revision)
+        repo.save(
+            scope,
+            content=content,
+            base_revision=repo.content(scope).revision,
+            by=WriteBy(ActorKind.PERSON, scope.actor_id, OpSource.UI),
+        )
         session.commit()
 
 

@@ -50,10 +50,11 @@ await context.addInitScript(() =>
   ),
 );
 const page = await context.newPage();
-const errors = [], writes = [], checks = [];
+const errors = [], writes = [], checks = [], requests = [], switches = [];
 page.on("pageerror", (e) => errors.push(String(e)));
 page.on("request", (r) => {
   const path = new URL(r.url()).pathname;
+  if (r.method() === "GET" && path.startsWith("/api/")) requests.push(path);
   if (!["GET", "HEAD", "OPTIONS"].includes(r.method()) && !path.startsWith("/_next/")) writes.push({ method: r.method(), path });
 });
 const check = (name) => checks.push(name);
@@ -86,6 +87,8 @@ try {
 
   // The Brief's Lead targets (artifact-brief BRF1): each field the contract names is one element
   // (an empty context field by its chip), and a name it does not hold finds nothing.
+  // Counted once the Brief has read its materials: until then it says it is loading.
+  await page.locator('[id="brief-goal"]').waitFor({ timeout: 30000 });
   const BRIEF_FIELDS = ["goal", "title", "objectives", "type", "files", "context", "briefing.product_description", "decision_use", "briefing.situation", "briefing.what_is_known", "briefing.constraints"];
   for (const f of BRIEF_FIELDS) assert.equal(await page.locator(`[id="brief-${f}"]`).count(), 1, `brief:${f}`);
   assert.equal(await page.locator('[id="brief-situation"]').count(), 0, "brief:situation is not a target");
@@ -131,16 +134,35 @@ try {
   assert.equal(await now(), 40, "focus modes never changed the width chosen");
   check("focus modes: rail, 68 %, back to the width chosen");
 
-  // The navigator opens each design stage on its own route.
-  for (const [label, slug] of [["Návrh", "plan"], ["Dotazník", "questionnaire"], ["Cíl. skupina", "audience"], ["Dimenze", "dimensions"]]) {
+  // The navigator opens each design stage on its own route, and only the stage's body swaps
+  // (research-lead-workbench 34): the Lead's composer is the same element, its draft kept, and the
+  // study's Lead is never read again. The switch is timed from the click to the new stage's title.
+  // A Lead not hatched yet (a fresh workbench; lead_journey hatches it) has no draft to keep: its
+  // composer is disabled, and the pane's identity is the check.
+  await page.locator("#composer").waitFor();
+  const draft = (await page.locator("#composer").isEnabled()) ? "Rozepsaná zpráva, neodeslaná" : null;
+  if (draft) await page.locator("#composer").fill(draft);
+  await page.evaluate(() => { window.__aiaComposer = document.getElementById("composer"); window.__aiaPane = document.querySelector(".conv"); });
+  const leadReads = () => requests.filter((r) => /\/api\/v1\/studies\/[^/]+\/lead$/.test(r)).length;
+  const leadBefore = leadReads();
+  for (const [label, slug, title] of [["Návrh", "plan", "Návrh"], ["Dotazník", "questionnaire", "Dotazník"], ["Cíl. skupina", "audience", "Cílová skupina"], ["Dimenze", "dimensions", "Dimenze"]]) {
+    const started = Date.now();
     await page.locator(".nav__stage", { hasText: label }).click();
     await page.waitForURL(`**${stagePath(slug)}`);
+    await page.waitForFunction((t) => document.querySelector(".art .arthead__title")?.textContent === t, title);
+    switches.push({ stage: slug, ms: Date.now() - started });
     await page.locator(".nav__stage.is-current", { hasText: label }).waitFor();
-    await page.locator("[data-workbench]").waitFor();
+    assert.equal(await page.evaluate(() => document.getElementById("composer") === window.__aiaComposer), true, `${slug}: the Lead's pane was drawn again`);
+    assert.equal(await page.evaluate(() => document.querySelector(".conv") === window.__aiaPane), true, `${slug}: the conversation was drawn again`);
+    if (draft) assert.equal(await page.locator("#composer").inputValue(), draft, `${slug}: the draft was lost`);
     await noOverflow(`${slug} @1440`);
     await shot(`1440-${slug}`);
   }
-  check("navigator opens Návrh, Dotazník, Cílová skupina and Dimenze on their routes");
+  assert.equal(leadReads(), leadBefore, "a stage change read the study's Lead again");
+  // Generous: a dev server compiles each route once; the measure is in report.json.
+  for (const s of switches) assert(s.ms < 5000, `switching to ${s.stage} took ${s.ms} ms`);
+  if (draft) await page.locator("#composer").fill("");
+  check(`navigator opens Návrh, Dotazník, Cílová skupina and Dimenze on their routes, the Lead's pane${draft ? " and draft" : ""} kept (${switches.map((s) => `${s.stage} ${s.ms} ms`).join(", ")})`);
 
   // Vzorek is a read-only view over Dimenze and Kontrola, on Dimenze's route.
   await page.locator(".nav__stage", { hasText: "Vzorek" }).click();
@@ -163,7 +185,12 @@ try {
   check("Sociomapa and Zpráva open Výsledky's views by hash");
 
   // Narrower: the split down to 1100 px, the side drawer from 768, the sheet below (26b, D21).
-  const layoutIs = async (want) => assert.equal(await page.locator("[data-workbench]").getAttribute("data-layout"), want);
+  // The layout follows the width's media query, a render after the resize's event: waited for, then
+  // asserted, so a read in between never decides it.
+  const layoutIs = async (want) => {
+    await page.waitForFunction((w) => document.querySelector("[data-workbench]")?.getAttribute("data-layout") === w, want, { timeout: 5000 }).catch(() => {});
+    assert.equal(await page.locator("[data-workbench]").getAttribute("data-layout"), want);
+  };
   for (const [width, want] of [[1280, "split"], [1100, "split"], [1099, "drawer"], [768, "drawer"], [390, "sheet"]]) {
     await page.setViewportSize({ width, height: 900 });
     await page.goto(base + stagePath("questionnaire"));
@@ -404,7 +431,7 @@ try {
   check("nothing paid started");
   assert.deepEqual(errors, [], `page errors: ${errors.join("\n")}`);
 } finally {
-  writeFileSync(join(out, "report.json"), JSON.stringify({ checks, errors, writes }, null, 2));
+  writeFileSync(join(out, "report.json"), JSON.stringify({ checks, errors, writes, switches }, null, 2));
   await browser.close();
 }
 console.log(checks.map((c) => `ok  ${c}`).join("\n"));
