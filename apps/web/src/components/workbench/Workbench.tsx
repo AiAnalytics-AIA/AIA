@@ -390,11 +390,14 @@ export function Workbench({ frame, step, store, memory, save, inspector, reload,
     return () => window.removeEventListener("focus", onFocus);
   }, [waiting, onRefreshJobs]);
   // The budget meter is read again whenever a run, a design job or a Lead turn changes state: all spend.
+  // By their states, never the list's identity: the runs are read again on every stage (useRuns), and
+  // a stage change alone spends nothing (Codex on #835).
+  const runStates = runs?.map((r) => `${r.run_id}:${r.phase}:${(r.steps ?? []).map((s) => s.status).join("/")}`).join(",") ?? null;
   const jobStates = jobs.map((j) => `${j.run_id}:${j.status}`).join(",");
   const turnStates = turns.map((t) => `${t.turn_id}:${t.status}`).join(",");
   useEffect(() => {
     api.study(frame.studyId).then(setStudy, () => setStudy(null));
-  }, [frame.studyId, runs, jobStates, turnStates]);
+  }, [frame.studyId, runStates, jobStates, turnStates]);
 
 
   /** Opens a stage; true when it moved now, false when a stage's leave guard stopped it. */

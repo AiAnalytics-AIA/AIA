@@ -11,7 +11,7 @@
 // stage in the AIA shell -- client, study and stage in the breadcrumbs, the
 // study's stages in its own rail -- and a stage AIA has not rebuilt says so.
 
-import { type ReactNode, createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
+import { type ReactNode, createContext, useCallback, useContext, useEffect, useLayoutEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
 
 import { t, tv } from "@/i18n/t";
 import { CANCEL_CONFIRM, JobError, type JobUpdate } from "@/research/jobs";
@@ -343,6 +343,14 @@ function Ready({ store, template, origin, memory, step, frame, reload }: {
   const Screen = STEP_SCREENS[step];
   const aiHelp = aiHelpFor(step);
   const workbench = useWorkbenchSwitch();
+  // Another stage opens at the page's top in the classic layout, as its own page did: the stage's
+  // page is empty now, and Next.js scrolls to no empty segment. The workbench resets its artifact.
+  const scrolledFor = useRef(step);
+  useLayoutEffect(() => {
+    if (scrolledFor.current === step) return;
+    scrolledFor.current = step;
+    if (workbench !== true) window.scrollTo(0, 0);
+  }, [step, workbench]);
   const onTrack = TRACK_STEPS.includes(step) && step !== "run" && step !== "progress" && step !== "results";
   // Stable across the editors' renders, so typing does not keep restarting the workbench's job poll.
   const refreshAgents = agents.refresh;

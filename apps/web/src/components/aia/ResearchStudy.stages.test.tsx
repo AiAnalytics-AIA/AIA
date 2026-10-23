@@ -85,6 +85,7 @@ describe("a study's stages in one workbench", () => {
       lead: count("GET /api/v1/studies/STU-1/lead"),
       me: count("GET /api/v1/lead"),
       content: count(`GET ${CONTENT_PATH}`),
+      study: count("GET /api/v1/studies/STU-1"),
     };
     expect(reads.content).toBe(1);
 
@@ -99,6 +100,22 @@ describe("a study's stages in one workbench", () => {
     expect(count("GET /api/v1/studies/STU-1/lead")).toBe(reads.lead);
     expect(count("GET /api/v1/lead")).toBe(reads.me);
     expect(count(`GET ${CONTENT_PATH}`)).toBe(1);
+    // The runs are the stage's lane, read on each; the study (the budget meter) only when they move.
+    expect(count("GET /api/v1/studies/STU-1/research/runs")).toBeGreaterThan(1);
+    expect(count("GET /api/v1/studies/STU-1")).toBe(reads.study);
+  });
+
+  it("opens another stage's artifact at its top", async () => {
+    const { rerender } = render(study());
+    await screen.findByText("Bára");
+    const body = document.getElementById("artbody")!;
+    let top = 480;
+    Object.defineProperty(body, "scrollTop", { configurable: true, get: () => top, set: (v: number) => { top = v; } });
+    nav.segment = "questionnaire";
+    await act(async () => rerender(study()));
+    await waitFor(() => expect(title()).toBe("Dotazník"));
+    expect(document.getElementById("artbody")).toBe(body);
+    expect(top).toBe(0);
   });
 
   it("draws nothing on the study's own address, which goes on to a stage", async () => {
