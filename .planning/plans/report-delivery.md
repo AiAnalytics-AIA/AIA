@@ -250,6 +250,15 @@ unless stated.
 
 ## Doc follow-up
 
+- `CLAUDE.md`, "Evidence is a capability": after "admitted `CLIENT_FACING` under the owner's recorded lift
+  (`MODELLED_CLIENT_REPORT_LIFT`, ADR 0024 §4 amendment) and the population certificate its run recorded, labelled
+  modelled;" add: "Since 2026-10-22 (the product owner, "Warnings for all of it"; report-delivery RD0) the client
+  gate's checks (`drill_down_content`, `unadmitted_number`, `gate_unrecorded`, and the Interní dokument check) warn in
+  the approval dialog and are recorded in the approval's ledger row; none refuses. Composition still admits only
+  `CLIENT_FACING` claims." Applied with RD0's change.
+- `docs/architecture/adr/0024-*.md` §4: an amendment dated 2026-10-22 with the same text and the owner's words
+  ("lets get rid of these strict gates"; "Relax RD0 too"; "Warnings for all of it"), applied with RD0's change.
+- `CLAUDE.md` §2, the `research` router: "409 client_gate_refused" removed wherever it is described, with RD0's change.
 - `open-items.md`: CR-5 is closed by `04ed258f` (number it closed, or not at all).
 - `CLAUDE.md` § The map, `CompleteReport` entry: the report card's origin part reads the run's
   origin kinds (fictional, modelled, unknown, mixed), never a fixed "Modelovaná data".
