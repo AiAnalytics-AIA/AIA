@@ -100,6 +100,7 @@ __all__ = [
     "MESSAGE_MAX_CHARS",
     "RUNS_IN_CONTEXT",
     "SELF_UPDATE_FILES",
+    "SHOW_DIFF_STAGES",
     "STAGES",
     "TEXT_EDIT_OPS",
     "TEXT_ONLY_FIELDS",
@@ -149,6 +150,7 @@ __all__ = [
     "question_add_problem",
     "readiness_layer",
     "self_update_base",
+    "show_diff_refusal",
     "split_self_update",
     "stale_files",
     "target_refusal",
@@ -169,7 +171,8 @@ LEAD_PROMPT_MAX_PIN_BYTES: Final = 12 * 1024
 #: grammar the contract publishes (ID_PATTERN); the output's view schema widened with it.
 #: 4: ``inspect`` joins the view: the Lead opens an element's detail in the item drawer, on a stage
 #: whose contract allows it (``lead_artifacts.allows_view``; research-lead-workbench 14).
-LEAD_HARNESS_VERSION: Final = "aia-research-lead-4"
+#: 5: ``show_diff`` joins the view: a stage's waiting changes shown (research-lead-workbench 14).
+LEAD_HARNESS_VERSION: Final = "aia-research-lead-5"
 #: A turn's stored output. Served only by the Lead's own routes, never the generic ones.
 ARTIFACT_TYPE: Final = "research_lead_turn"
 
@@ -273,7 +276,16 @@ class InspectItem(Closed):
     target: str = Field(min_length=3, max_length=200, pattern=_TARGET)
 
 
-ViewOp = Annotated[OpenStage | FocusItem | InspectItem, Field(discriminator="op")]
+class ShowDiff(Closed):
+    """Show a stage's waiting changes: the Lead's edits still to decide there, else the newest
+    proposal still waiting for review (the PM and the owner, 2026-10-22). Only a stage whose
+    contract allows it and shows its changes: :func:`ground_view`."""
+
+    op: Literal["show_diff"]
+    stage: Stage
+
+
+ViewOp = Annotated[OpenStage | FocusItem | InspectItem | ShowDiff, Field(discriminator="op")]
 
 
 # --------------------------------------------------------------------------- requests
@@ -667,12 +679,27 @@ def inspect_refusal(
     return "not_in_context"
 
 
+#: The stages whose screens show their waiting changes. Zpráva declares ``show_diff`` too, for a
+#: draft's tracked changes, which wait for report-delivery RD5.
+SHOW_DIFF_STAGES: Final = frozenset({"design", "questionnaire", "dimensions"})
+
+
+def show_diff_refusal(stage: str) -> str | None:
+    """Why the Lead may not show ``stage``'s waiting changes: ``not_available`` for a stage whose
+    contract has no ``show_diff`` or whose screen does not show its changes yet; None otherwise."""
+    from .lead_artifacts import allows_view  # lead_artifacts imports this module
+
+    return (
+        None if allows_view(stage, "show_diff") and stage in SHOW_DIFF_STAGES else "not_available"
+    )
+
+
 def ground_view(
     output: LeadOutput, content: Mapping[str, Any], analysis: Mapping[str, Any] | None = None
 ) -> tuple[LeadOutput, list[Dropped]]:
     """``output`` with only the targets the working content can show, and the rest named
-    (:func:`target_refusal`; an ``inspect`` also :func:`inspect_refusal`). Opening a stage is
-    always kept."""
+    (:func:`target_refusal`; an ``inspect`` also :func:`inspect_refusal`, a ``show_diff``
+    :func:`show_diff_refusal`). Opening a stage is always kept."""
     kept: list[Any] = []
     dropped: list[Dropped] = []
     for i, op in enumerate(output.view):
@@ -681,6 +708,8 @@ def ground_view(
             if isinstance(op, FocusItem)
             else inspect_refusal(op.target, content, analysis)
             if isinstance(op, InspectItem)
+            else show_diff_refusal(op.stage)
+            if isinstance(op, ShowDiff)
             else None
         )
         if reason is None:
@@ -825,7 +854,9 @@ Co děláš:
 - Pohled řídíš polem view: open_stage otevře fázi, focus zaměří položku jejím
   identifikátorem (například question:q3, brief:goal, plan:research_questions), inspect
   otevře detail výzkumné otázky, hypotézy nebo části návrhu (například rq:<id>, plan:sets)
-  v panelu nad artefaktem; jen s identifikátorem, který máš v kontextu.
+  v panelu nad artefaktem; jen s identifikátorem, který máš v kontextu. show_diff ukáže
+  čekající změny fáze design, questionnaire nebo dimensions: tvé návrhy změn, o kterých
+  výzkumník ještě nerozhodl, jinak nejnovější návrh specialisty, který čeká na kontrolu.
 - Do reply nepiš žádné číslo, které v kontextu není. Čísla neodhaduj, nepočítej ani
   nezaokrouhluj; aplikace odpověď s cizím číslem odmítne.
 - Odpovídej česky, stručně a prakticky: hlavní věc, její důsledek, další krok. V follow

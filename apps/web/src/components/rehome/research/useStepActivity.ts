@@ -15,16 +15,23 @@ import { EMPTY_ACTIVITY, foldActivity, type ActivityState } from "@/lib/step-act
 export const ACTIVITY_POLL_MS = 1500;
 /** The API's default page; a shorter page means the feed has been read to its end. */
 const PAGE = 500;
-/** Pages read in one go when a long run is first opened; the rest follows on the next ticks. */
+/**
+ * Pages read in one go while live; the rest follows on the next ticks. A stopped feed has no next
+ * tick, so it is read to its end: its last count is what a stopped step shows (FLD3).
+ */
 const MAX_PAGES = 8;
+/** A stopped feed's failed read is tried again this many times, each wait twice the last. */
+export const STOPPED_RETRIES = 5;
 
 export type EventReader = (since: number) => Promise<RunEvent[]>;
 
 /**
  * `key` names the feed (a run's id); a new key starts from nothing. `read` may change identity
- * between renders; the latest one is used. Null `key` reads nothing.
+ * between renders; the latest one is used. Null `key` reads nothing. A new `revision` (the
+ * steps' states, say) reads once more, so a step that ran and stopped between two reads of the
+ * run still has its events read.
  */
-export function useStepActivity(key: string | null, read: EventReader, live: boolean): ActivityState {
+export function useStepActivity(key: string | null, read: EventReader, live: boolean, revision = ""): ActivityState {
   const [held, setHeld] = useState<{ key: string | null; activity: ActivityState }>({ key, activity: EMPTY_ACTIVITY });
   const reader = useRef(read);
   useEffect(() => {
@@ -39,22 +46,33 @@ export function useStepActivity(key: string | null, read: EventReader, live: boo
     let stopped = false;
     let timer: ReturnType<typeof setTimeout> | undefined;
     const drain = async () => {
-      for (let page = 0; page < MAX_PAGES && !stopped; page++) {
-        const events = await reader.current(cursor.current.at);
+      for (let page = 0; (!live || page < MAX_PAGES) && !stopped; page++) {
+        const before = cursor.current.at;
+        const events = await reader.current(before);
         if (stopped) return;
         if (!Array.isArray(events)) throw new Error("the event feed is not a list");
         if (events.length) {
           cursor.current = { key, at: Math.max(cursor.current.at, ...events.map((e) => e.event_id)) };
           setHeld((h) => ({ key, activity: foldActivity(h.key === key ? h.activity : EMPTY_ACTIVITY, events) }));
         }
-        if (events.length < PAGE) return;
+        // A short page is the end; a page that moved nothing on would be read forever.
+        if (events.length < PAGE || cursor.current.at === before) return;
       }
     };
+    let failures = 0;
     const tick = async () => {
       try {
         await drain();
+        failures = 0;
       } catch {
-        // Kept as read; the next tick tries again.
+        // Kept as read. Live, the next tick tries again; stopped, there is no next tick, so a
+        // failed read is tried again (backing off) until the feed is read to its end: a stopped
+        // step's count is the last one only once the whole feed is in.
+        failures += 1;
+        if (!stopped && !live && failures <= STOPPED_RETRIES) {
+          timer = setTimeout(tick, ACTIVITY_POLL_MS * 2 ** (failures - 1));
+          return;
+        }
       }
       if (!stopped && live) timer = setTimeout(tick, ACTIVITY_POLL_MS);
     };
@@ -63,7 +81,7 @@ export function useStepActivity(key: string | null, read: EventReader, live: boo
       stopped = true;
       if (timer) clearTimeout(timer);
     };
-  }, [key, live]);
+  }, [key, live, revision]);
 
   return held.key === key ? held.activity : EMPTY_ACTIVITY;
 }

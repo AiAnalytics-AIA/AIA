@@ -32,7 +32,7 @@ from aia_core.infrastructure.prompt_repository import (
 from fastapi import APIRouter, HTTPException, Path
 from pydantic import BaseModel, ConfigDict, Field
 
-from ..dependencies import OrganizationDep, SessionDep, SettingsDep
+from ..dependencies import OrganizationDep, SessionDep
 from ..schemas.projects import ErrorResponse
 
 router = APIRouter(
@@ -133,8 +133,6 @@ class SlotDetail(SlotSummary):
     baseline_text: str
     required_literals: list[str]
     max_chars: int
-    #: The clients a draft may be tried on; empty means none, so the page offers no test.
-    draft_test_client_ids: list[str]
     versions: list[VersionResponse]
     history: list[ActivationResponse]
 
@@ -225,7 +223,7 @@ def _refused(exc: ScopeDenied | PromptRefused) -> HTTPException:
     )
 
 
-def _detail(repo: PromptRepository, prompt_id: str, draft_clients: frozenset[str]) -> SlotDetail:
+def _detail(repo: PromptRepository, prompt_id: str) -> SlotDetail:
     item = next((o for o in repo.overview() if o.slot.prompt_id == prompt_id), None)
     if item is None:
         raise PromptRefused(f"unknown prompt {prompt_id}", reason="unknown_prompt")
@@ -236,7 +234,6 @@ def _detail(repo: PromptRepository, prompt_id: str, draft_clients: frozenset[str
         baseline_text=slot.baseline_text,
         required_literals=list(slot.required_literals),
         max_chars=PROMPT_TEXT_MAX_CHARS,
-        draft_test_client_ids=sorted(draft_clients),
         versions=[_version(v) for v in repo.versions(prompt_id)],
         history=[ActivationResponse(**h) for h in repo.history(prompt_id)],
     )
@@ -258,11 +255,9 @@ def list_prompts(admin: OrganizationDep, session: SessionDep) -> list[SlotSummar
 @router.get(
     "/{prompt_id}", response_model=SlotDetail, summary="One prompt, its versions and history"
 )
-def read_prompt(
-    prompt_id: PromptId, admin: OrganizationDep, session: SessionDep, settings: SettingsDep
-) -> SlotDetail:
+def read_prompt(prompt_id: PromptId, admin: OrganizationDep, session: SessionDep) -> SlotDetail:
     try:
-        return _detail(PromptRepository(session, admin), prompt_id, settings.fictional_client_ids)
+        return _detail(PromptRepository(session, admin), prompt_id)
     except (ScopeDenied, PromptRefused) as exc:
         raise _refused(exc) from exc
 

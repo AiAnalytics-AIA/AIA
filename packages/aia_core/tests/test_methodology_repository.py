@@ -39,8 +39,17 @@ def _member(scoped: Any) -> Any:
     return scoped.resolver.organization_context(scoped.principal(scoped.users["lead"]))
 
 
+def _marked(scoped: Any, owner: Any = None) -> Any:
+    """``owner`` (the fixture's OWNER by default) with the Metodik mark (D-14), re-resolved."""
+    owner = owner or scoped.admin_context
+    scoped.scope_repo.set_methodologist(owner, user_id=owner.actor_id, methodologist=True)
+    return scoped.resolver.organization_context(
+        replace(scoped.principal(owner.actor_id), organization_id=owner.organization_id)
+    )
+
+
 def _repo(scoped: Any, session: Any) -> MethodologyRepository:
-    return MethodologyRepository(session, scoped.admin_context)
+    return MethodologyRepository(session, _marked(scoped))
 
 
 def _reader(scoped: Any, session: Any) -> MethodologyReader:
@@ -64,12 +73,16 @@ def _audit(session: Any) -> list[AccessAuditRow]:
     )
 
 
-def test_a_member_reads_but_only_an_administrator_changes(scoped: Any, session: Any) -> None:
+def test_a_member_reads_but_only_the_metodik_mark_changes(scoped: Any, session: Any) -> None:
     member = _member(scoped)
     assert MethodologyReader(session, member).in_force(SOCIOMAP).origin == "code"
     with pytest.raises(ScopeDenied) as denied:
         MethodologyRepository(session, member)
-    assert denied.value.reason == "insufficient_role"
+    assert denied.value.reason == "methodologist_required"
+    # The OWNER without the mark reads too, and changes nothing (D-14).
+    with pytest.raises(ScopeDenied) as owner:
+        MethodologyRepository(session, scoped.admin_context)
+    assert owner.value.reason == "methodologist_required"
 
 
 def test_with_nothing_stored_the_codes_preset_is_in_force(scoped: Any, session: Any) -> None:
@@ -161,7 +174,7 @@ def test_versions_are_immutable_and_numbered_per_organization(scoped: Any, sessi
     principal = replace(
         scoped.principal(other_owner.user_id), organization_id=other_org.organization_id
     )
-    owner = scoped.resolver.organization_context(principal)
+    owner = _marked(scoped, scoped.resolver.organization_context(principal))
     theirs = MethodologyRepository(session, owner)
     first = theirs.propose(SOCIOMAP, base_preset="aia-sociomap-3", spec=_spec(), formulas={})
     assert first.version_number == 1

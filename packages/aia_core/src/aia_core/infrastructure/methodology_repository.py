@@ -231,10 +231,10 @@ class MethodologyReader:
 
 
 class MethodologyRepository:
-    """Changes to the organization's methodology, by an issued administrator."""
+    """Changes to the organization's methodology, by a member holding the Metodik mark (D-14)."""
 
     def __init__(self, session: Session, admin: OrganizationContext) -> None:
-        admin.require_administer()
+        admin.require_methodologist()
         self._session = session
         self._admin = admin
 

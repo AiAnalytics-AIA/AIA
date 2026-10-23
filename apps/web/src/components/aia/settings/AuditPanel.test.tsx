@@ -12,7 +12,7 @@ const ago = (days: number) => new Date(Date.now() - days * 86_400_000).toISOStri
 const entry = (event_id: number, action: string, created_at: string | null, extra: Partial<AuditEntry> = {}): AuditEntry => ({
   event_id, action, client_id: null, study_id: null, subject_user_id: null, actor_id: "USR-1", role: null, reason: "", payload: {}, created_at, ...extra,
 });
-const members = { ok: true as const, data: [{ user_id: "USR-1", email: "owner@example.test", display_name: "Petr Kolář", is_active: true, organization_role: "OWNER" }] };
+const members = { ok: true as const, data: [{ user_id: "USR-1", email: "owner@example.test", display_name: "Petr Kolář", is_active: true, organization_role: "OWNER", methodologist: false }] };
 const clients = { ok: true as const, data: [{ client_id: "CLI-a", slug: "a", name: "Moravská pojišťovna", status: "ACTIVE", reference: "", study_count: 1, created_at: null }] };
 const studies = { ok: true as const, data: [{ study: { study_id: "STU-1", client_id: "CLI-a", name: "Vnímání značky" }, detail: { ok: false, message: "" } } as unknown as StudyRow] };
 
