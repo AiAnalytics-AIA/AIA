@@ -37,7 +37,7 @@ export function TechnicalProvider({ on, children }: { on: boolean; children: Rea
   return <TechnicalContext.Provider value={on}>{children}</TechnicalContext.Provider>;
 }
 
-export const useTechnical = () => useContext(TechnicalContext);
+const useTechnical = () => useContext(TechnicalContext);
 
 /** Shown only while the page's technical detail is on. */
 export function Technical({ children }: { children: ReactNode }) {

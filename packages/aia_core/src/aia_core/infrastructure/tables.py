@@ -639,6 +639,27 @@ class StudyRow(Base):
     )
 
 
+class DeploySmokeResultRow(Base):
+    """One check of one deploy's smoke run (settings-backends SB4): its label and result, no
+    detail. Deployment-wide, not an organization's: the smoke proves the deployment."""
+
+    __tablename__ = "deploy_smoke_results"
+
+    result_id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    run_id: Mapped[str] = mapped_column(String(64), nullable=False)
+    build_sha: Mapped[str] = mapped_column(String(64), nullable=False)
+    position: Mapped[int] = mapped_column(Integer, nullable=False)
+    check_label: Mapped[str] = mapped_column(String(300), nullable=False)
+    status: Mapped[str] = mapped_column(String(16), nullable=False)
+    ran_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+
+    __table_args__ = (
+        CheckConstraint("status in ('ok', 'FAIL', 'NOT_RUNNABLE')", name="status_known"),
+        UniqueConstraint("run_id", "position", name="uq_deploy_smoke_results_run_id_position"),
+        Index("ix_deploy_smoke_results_ran_at", "ran_at"),
+    )
+
+
 class AccessAuditRow(Base):
     """Append-only record of access grants, revocations and denials.
 
@@ -2543,6 +2564,24 @@ class PromptActivationRow(Base):
 # --------------------------------------------------------------------------- #
 
 
+class DeepResearchCompositionRow(Base):
+    """What one worker's Deep Research composition reached, recorded at its start
+    (deep-research-web-search 52). Deployment-wide; Settings reads the newest. ``routes``
+    holds ``domain.deep_research_reach.reach_record``'s list."""
+
+    __tablename__ = "deep_research_compositions"
+
+    composition_id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    worker: Mapped[str] = mapped_column(String(128), nullable=False)
+    build_sha: Mapped[str | None] = mapped_column(String(64))
+    composed_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+    agent_directed: Mapped[bool] = mapped_column(Boolean, nullable=False)
+    class_gates: Mapped[str | None] = mapped_column(String(16))
+    routes: Mapped[list[dict[str, Any]]] = mapped_column(JSONType, nullable=False)
+
+    __table_args__ = (Index("ix_deep_research_compositions_composed_at", "composed_at"),)
+
+
 class DeepResearchSettingVersionRow(Base):
     """One proposed value of a Deep Research setting. Immutable (ADR 0022).
 
@@ -2574,6 +2613,41 @@ class DeepResearchSettingVersionRow(Base):
         ),
         CheckConstraint("version_number >= 1", name="dr_setting_version_positive"),
         Index("ix_dr_setting_versions_key", "organization_id", "setting_key", "version_number"),
+    )
+
+
+class DeepResearchSettingDeclineRow(Base):
+    """A proposed version taken back by its proposer (WITHDRAWN) or turned down by another
+    administrator (DECLINED). Append-only, at most one per version; a version with one is
+    never approved. The version itself stays, immutable (ADR 0022)."""
+
+    __tablename__ = "deep_research_setting_declines"
+
+    decline_id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    organization_id: Mapped[str] = mapped_column(String(64), nullable=False)
+    setting_key: Mapped[str] = mapped_column(String(128), nullable=False)
+    version_number: Mapped[int] = mapped_column(Integer, nullable=False)
+    kind: Mapped[str] = mapped_column(String(16), nullable=False)
+    declined_by: Mapped[str] = mapped_column(String(64), nullable=False)
+    reason: Mapped[str] = mapped_column(String(255), nullable=False)
+    declined_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), nullable=False, default=utcnow
+    )
+
+    __table_args__ = (
+        ForeignKeyConstraint(
+            ["organization_id", "setting_key", "version_number"],
+            [
+                "deep_research_setting_versions.organization_id",
+                "deep_research_setting_versions.setting_key",
+                "deep_research_setting_versions.version_number",
+            ],
+            name="fk_dr_setting_declines_version",
+        ),
+        CheckConstraint("kind in ('WITHDRAWN', 'DECLINED')", name="dr_setting_decline_kind"),
+        UniqueConstraint(
+            "organization_id", "setting_key", "version_number", name="uq_dr_setting_decline"
+        ),
     )
 
 

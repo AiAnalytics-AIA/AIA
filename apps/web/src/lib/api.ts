@@ -1631,12 +1631,13 @@ export const researcherLead = {
 export const researchAgents = {
   design: (studyId: string, revisionId: string) => request<DesignRevision & { content: Record<string, unknown> }>("GET", `${studyPath(studyId)}/design/revisions/${enc(revisionId)}`),
   /**
-   * `promptVersion` runs a stored prompt version instead of the active one (organization administrators; ADR 0020).
    * `confirmCostUsd`: the ceiling a person confirmed when the study's threshold asked (409 cost_confirmation_required; LO15).
+   * The web never pins a prompt version: Settings' draft test is gone (X10); the route's `prompt_version`
+   * goes with system-prompts-settings #14's server half.
    */
-  start: (studyId: string, revisionId: string, action: ResearchAgentAction, instruction = "", promptVersion?: number, confirmCostUsd?: number) =>
+  start: (studyId: string, revisionId: string, action: ResearchAgentAction, instruction = "", confirmCostUsd?: number) =>
     request<ResearchAgentJob>("POST", agentsPath(studyId), {
-      design_revision_id: revisionId, action, instruction, ...(promptVersion === undefined ? {} : { prompt_version: promptVersion }),
+      design_revision_id: revisionId, action, instruction,
       ...(confirmCostUsd === undefined ? {} : { confirm_cost_usd: confirmCostUsd }),
     }),
   /** The newest 20 jobs; `pending`: every proposal still to decide among the newest 200, filtered on the server before the page. */
@@ -1785,8 +1786,6 @@ export type PromptSlotDetail = PromptSlotSummary & {
   /** The wording this code ships: the editable part's baseline. */
   baseline_text: string;
   required_literals: string[]; max_chars: number;
-  /** The clients a draft may be tried on (the deployment's fictional list); empty means none. */
-  draft_test_client_ids: string[];
   versions: PromptVersion[]; history: PromptActivation[];
 };
 

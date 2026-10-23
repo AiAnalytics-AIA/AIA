@@ -441,7 +441,7 @@ def test_native_research_start_and_worker_complete_the_composed_analysis_graph(
         < body.index("Výsledky jednotlivých otázek")
     )
     assert "smyšlení respondenti" in body
-    assert report.metadata["report_contract"] == "aia-internal-report-16"
+    assert report.metadata["report_contract"] == "aia-internal-report-18"
     # The methodology chapter states the rules the run pinned (artifact-chain CHN9).
     assert "Pravidlo podpory aia-support-1" in body and "Agregace: metodika" in body
     # The document the DOCX was rendered from, beside it (report-delivery RD5a).
@@ -464,6 +464,14 @@ def test_native_research_start_and_worker_complete_the_composed_analysis_graph(
     assert section_ids[-1] == "app-audit"
     titles = [section["title"] for section in payload["sections"]]
     assert "Výsledky jednotlivých otázek" in titles
+    # The design's and the run's own numbers print locked under their sources (RPT8a, part 3).
+    controls = {
+        block["control"].split(":", 1)[0]
+        for section in payload["sections"]
+        for block in section["blocks"]
+        if block.get("control")
+    }
+    assert {"design", "run"} <= controls, controls
     # The design chapter opens with what the brief asked, before how it was measured.
     design = next(s for s in payload["sections"] if s["id"] == "ch-design")
     printed = json.dumps(design["blocks"], ensure_ascii=False)

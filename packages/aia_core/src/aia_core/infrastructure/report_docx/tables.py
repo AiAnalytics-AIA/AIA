@@ -55,6 +55,7 @@ from aia_core.infrastructure.report_docx.ooxml import (
     full_width,
     header_row,
     keep_row,
+    locked,
     locked_inline,
     notes_row,
 )
@@ -79,33 +80,38 @@ def caption(
     base_ref: str | None,
     grade: PrintGrade | None,
     modelled_panel: bool = False,
-    extra: str | None = None,
+    extras: tuple[tuple[str, str | None], ...] = (),
 ) -> None:
     """ "Tabulka 3 — title (n = 480; měřeno)": the SEQ field, then what it rests on.
 
     ``modelled_panel``: some of its numbers rest on AI respondents built from the population,
     said once beside them (ADR 0024 §7). The disclosure begins with the modelled grade's word
     and says more, so a modelled grade prints as the disclosure alone, never the word twice.
+    ``extras``: what else the caption says, each part with the tag of the locked control it
+    prints in, or ``None`` (a map's fit is its map's, RPT8a P9; a methodology note is not).
     """
     p = container.add_paragraph(style=S.CAPTION)
     p.add_run(f"{word} ")
     add_field(p, f"SEQ {word} \\* ARABIC", str(number))
     p.add_run(f" — {title}")
-    basis: list[str] = []
+    parts: list[tuple[str, str | None]] = []
     if grade is not None and not (modelled_panel and grade is PrintGrade.MODELLED):
-        basis.append(_grade_phrase(grade))
+        parts.append((_grade_phrase(grade), None))
     if modelled_panel:
-        basis.append(MODELLED_DISCLOSURE)
-    if extra:
-        basis.append(extra)
-    if base_ref or basis:
+        parts.append((MODELLED_DISCLOSURE, None))
+    parts.extend(extras)
+    if base_ref or parts:
         p.add_run(" (", style=S.GRADE)
         if base_ref:
             # The base n is the ref's own number: locked and tagged ``<ref>#n`` (RPT8a, P4).
             with locked_inline(p, base_n_tag(base_ref)):
                 p.add_run(base_text(ctx, base_ref), style=S.GRADE)
-        rest = "; ".join(basis)
-        p.add_run(f"{'; ' if base_ref and rest else ''}{rest})", style=S.GRADE)
+        for index, (text, control) in enumerate(parts):
+            if base_ref or index:
+                p.add_run("; ", style=S.GRADE)
+            with locked(p, control):
+                p.add_run(text, style=S.GRADE)
+        p.add_run(")", style=S.GRADE)
     ctx.bookmarks.wrap(p, anchor)
 
 
@@ -117,6 +123,7 @@ def source_line(
     *,
     owner: str,
     indicative: bool = False,
+    notes_control: str | None = None,
 ) -> None:
     """ "Zdroj: …", what was removed and why, the notes, then what the dagger means. The count
     removed is computed from the evidence, so it is locked, tagged ``count:suppressed:<owner>``
@@ -138,7 +145,8 @@ def source_line(
     for note in notes:
         n = container.add_paragraph(style=S.SOURCE_KEPT)
         n.add_run(f"{t('note')}: ", style=S.STRONG)
-        n.add_run(note)
+        with locked(n, notes_control):
+            n.add_run(note)
         lines.append(n)
     if indicative:
         d = container.add_paragraph(style=S.SOURCE_KEPT)
@@ -155,11 +163,20 @@ def table_notes(
     *,
     owner: str,
     indicative: bool = False,
+    notes_control: str | None = None,
 ) -> None:
     """The table's source line and notes, in its notes row (``ooxml.notes_row``)."""
     cell = notes_row(table)
     empty = cell.paragraphs[0]
-    source_line(cell, source, removed, notes, indicative=indicative, owner=owner)
+    source_line(
+        cell,
+        source,
+        removed,
+        notes,
+        indicative=indicative,
+        owner=owner,
+        notes_control=notes_control,
+    )
     cell._tc.remove(empty._p)
 
 
@@ -194,7 +211,8 @@ def _write_cell(
     p.style = style
     run_style = S.STRONG if strong else None
     if isinstance(value, TextCell):
-        p.add_run(value.text, style=run_style)
+        with locked(p, value.control):
+            p.add_run(value.text, style=run_style)
         return False
     if isinstance(value, EmptyCell):
         p.add_run(value.reason, style=S.GRADE)
@@ -282,7 +300,13 @@ def render_table(ctx: RenderContext, container: Container, block: Table) -> None
             )
 
     table_notes(
-        table, block.source, removed, block.notes, indicative=any_indicative, owner=block.id
+        table,
+        block.source,
+        removed,
+        block.notes,
+        indicative=any_indicative,
+        owner=block.id,
+        notes_control=block.notes_control,
     )
     if block.landscape:
         layout.running(ctx, layout.end_section(ctx, layout.last_paragraph(ctx)))

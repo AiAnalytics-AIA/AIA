@@ -31,9 +31,9 @@ import hashlib
 import math
 import os
 import uuid
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from datetime import UTC, datetime, timedelta
-from typing import Any
+from typing import Any, Literal, cast
 from urllib.parse import urlsplit
 
 from sqlalchemy import delete, func, select
@@ -65,6 +65,7 @@ from aia_core.domain.scope import (
 from .tables import (
     AccessAuditRow,
     DeepResearchSettingApprovalRow,
+    DeepResearchSettingDeclineRow,
     DeepResearchSettingVersionRow,
     DeepResearchTestApprovalRow,
     DeepResearchTestPolicyRow,
@@ -78,6 +79,7 @@ __all__ = [
     "DeepResearchSettingsReader",
     "DeepResearchSettingsRepository",
     "SettingApproval",
+    "SettingDecline",
     "SettingOverview",
     "SettingRefused",
     "StoredSettingVersion",
@@ -98,6 +100,21 @@ class SettingRefused(Exception):
         self.reason = reason
 
 
+DeclineKind = Literal["WITHDRAWN", "DECLINED"]
+VersionState = Literal["IN_FORCE", "APPROVED_BEFORE", "PENDING", "WITHDRAWN", "DECLINED"]
+
+
+@dataclass(frozen=True, slots=True)
+class SettingDecline:
+    """A proposed version taken back (``WITHDRAWN``, by its proposer) or turned down
+    (``DECLINED``, by another administrator)."""
+
+    kind: DeclineKind
+    by: str
+    reason: str
+    at: datetime
+
+
 @dataclass(frozen=True, slots=True)
 class StoredSettingVersion:
     key: str
@@ -108,6 +125,10 @@ class StoredSettingVersion:
     note: str
     created_by: str
     created_at: datetime
+    #: ``IN_FORCE``, ``APPROVED_BEFORE`` (once in force, since replaced), ``PENDING`` (never
+    #: approved, never turned down), ``WITHDRAWN`` or ``DECLINED``; read from the logs.
+    state: VersionState = "PENDING"
+    decline: SettingDecline | None = None
 
 
 @dataclass(frozen=True, slots=True)
@@ -173,15 +194,66 @@ def _newest_approvals(session: Session, org: str) -> dict[str, DeepResearchSetti
 
 
 def _version_row(
-    session: Session, org: str, key: str, number: int
+    session: Session, org: str, key: str, number: int, *, lock: bool = False
 ) -> DeepResearchSettingVersionRow | None:
+    """One version; ``lock``: FOR UPDATE, so an approval and a withdrawal of the same version
+    decide one after the other, each reading what the other committed."""
+    query = select(DeepResearchSettingVersionRow).where(
+        DeepResearchSettingVersionRow.organization_id == org,
+        DeepResearchSettingVersionRow.setting_key == key,
+        DeepResearchSettingVersionRow.version_number == number,
+    )
+    if lock:
+        query = query.with_for_update().execution_options(populate_existing=True)
+    return session.scalar(query)
+
+
+def _decline_row(
+    session: Session, org: str, key: str, number: int
+) -> DeepResearchSettingDeclineRow | None:
     return session.scalar(
-        select(DeepResearchSettingVersionRow).where(
-            DeepResearchSettingVersionRow.organization_id == org,
-            DeepResearchSettingVersionRow.setting_key == key,
-            DeepResearchSettingVersionRow.version_number == number,
+        select(DeepResearchSettingDeclineRow).where(
+            DeepResearchSettingDeclineRow.organization_id == org,
+            DeepResearchSettingDeclineRow.setting_key == key,
+            DeepResearchSettingDeclineRow.version_number == number,
         )
     )
+
+
+def _ever_approved(session: Session, org: str, key: str, number: int) -> bool:
+    return bool(
+        session.scalar(
+            select(func.count())
+            .select_from(DeepResearchSettingApprovalRow)
+            .where(
+                DeepResearchSettingApprovalRow.organization_id == org,
+                DeepResearchSettingApprovalRow.setting_key == key,
+                DeepResearchSettingApprovalRow.version_number == number,
+            )
+        )
+    )
+
+
+def _with_state(session: Session, org: str, version: StoredSettingVersion) -> StoredSettingVersion:
+    """``version`` with where it stands, from the approval log and the decline record."""
+    declined = _decline_row(session, org, version.key, version.version_number)
+    if declined is not None:
+        return replace(
+            version,
+            state=cast(DeclineKind, declined.kind),
+            decline=SettingDecline(
+                kind=cast(DeclineKind, declined.kind),
+                by=declined.declined_by,
+                reason=declined.reason,
+                at=as_utc(declined.declined_at),
+            ),
+        )
+    newest = _newest_approvals(session, org).get(version.key)
+    if newest is not None and newest.version_number == version.version_number:
+        return replace(version, state="IN_FORCE")
+    if _ever_approved(session, org, version.key, version.version_number):
+        return replace(version, state="APPROVED_BEFORE")
+    return replace(version, state="PENDING")
 
 
 def _in_force(session: Session, org: str) -> EffectiveSettings:
@@ -400,7 +472,7 @@ class DeepResearchSettingsReader:
             )
             .order_by(DeepResearchSettingVersionRow.version_number.desc())
         )
-        return [_version(r) for r in rows]
+        return [_with_state(self._session, self._org, _version(r)) for r in rows]
 
     def history(self, key: str, *, limit: int = 50) -> list[SettingApproval]:
         """The approval log of a setting, newest first: what was in force, by whom, from when."""
@@ -637,9 +709,15 @@ class DeepResearchSettingsRepository:
         if version_number == current:
             return _in_force(self._session, org)[key]
         if version_number is not None:
-            row = _version_row(self._session, org, key, version_number)
+            # Locked before the checks: a withdrawal racing this approval waits, then reads it.
+            row = _version_row(self._session, org, key, version_number, lock=True)
             if row is None:
                 raise SettingRefused("no such version", reason="unknown_version")
+            if _decline_row(self._session, org, key, version_number) is not None:
+                raise SettingRefused(
+                    "this version was withdrawn or declined; propose it again to approve it",
+                    reason="version_declined",
+                )
             try:
                 validate_value(definition(key), row.value["value"])
             except SettingInvalid as exc:
@@ -666,6 +744,63 @@ class DeepResearchSettingsRepository:
             },
         )
         return _in_force(self._session, org)[key]
+
+    def decline(self, key: str, version_number: int, *, reason: str) -> StoredSettingVersion:
+        """Take back a pending proposal (its proposer: ``WITHDRAWN``) or turn it down (another
+        administrator: ``DECLINED``). Append-only and once per version; the version stays,
+        immutable, and is never approved afterwards. A version that is or was in force is no
+        longer a proposal: return to the default or approve another instead."""
+        _definition(key)
+        why = reason.strip()
+        if not why or len(why) > _MAX_NOTE:
+            raise SettingRefused(
+                "a reason of at most 255 characters is required", reason="reason_too_long"
+            )
+        org = self._admin.organization_id
+        # Locked before the checks: an approval racing this withdrawal waits, then reads it.
+        row = _version_row(self._session, org, key, version_number, lock=True)
+        if row is None:
+            raise SettingRefused("no such version", reason="unknown_version")
+        if _decline_row(self._session, org, key, version_number) is not None:
+            raise SettingRefused(
+                "this version was already withdrawn or declined", reason="version_declined"
+            )
+        if _ever_approved(self._session, org, key, version_number):
+            raise SettingRefused(
+                "this version has been in force; it is no longer a proposal",
+                reason="version_not_pending",
+            )
+        kind: DeclineKind = "WITHDRAWN" if row.created_by == self._admin.actor_id else "DECLINED"
+        try:
+            with self._session.begin_nested():
+                self._session.add(
+                    DeepResearchSettingDeclineRow(
+                        organization_id=org,
+                        setting_key=key,
+                        version_number=version_number,
+                        kind=kind,
+                        declined_by=self._admin.actor_id,
+                        reason=why,
+                    )
+                )
+                self._session.flush()
+        except IntegrityError as exc:
+            raise SettingRefused(
+                "this version was withdrawn or declined at the same time",
+                reason="version_declined",
+            ) from exc
+        self._audit(
+            f"DR_SETTING_PROPOSAL_{kind}",
+            reason=f"{key} v{version_number}",
+            payload={
+                "key": key,
+                "version": version_number,
+                "value_sha256": row.value_sha256,
+                "proposed_by": row.created_by,
+                "why": why,
+            },
+        )
+        return _with_state(self._session, org, _version(row))
 
     def _self_approval(self) -> SelfApprovalPolicy:
         org = self._session.get(OrganizationRow, self._admin.organization_id)

@@ -60,6 +60,7 @@ from aia_core.infrastructure.report_docx.ooxml import (
     full_width,
     header_row,
     keep_row,
+    locked,
     locked_inline,
     notes_row,
 )
@@ -185,7 +186,8 @@ def render_heading(ctx: RenderContext, container: Container, block: Heading) -> 
 def render_paragraph(ctx: RenderContext, container: Container, block: Paragraph) -> None:
     style = {ParagraphRole.LEDE: S.LEDE, ParagraphRole.LEAD_IN: S.LEAD_IN}.get(block.role, S.BODY)
     paragraph = container.add_paragraph(style=style)
-    write_inlines(ctx, paragraph, block.content)
+    with locked(paragraph, block.control):
+        write_inlines(ctx, paragraph, block.content)
     # One mark per grade, rather than a row of identical marks for every number.
     grades = dict.fromkeys(ctx.ledger.grade(ref) for ref in block.refs)
     for grade in grades:
@@ -221,7 +223,9 @@ def render_callout(ctx: RenderContext, container: Container, block: Callout) -> 
     if block.kind is CalloutKind.METHOD:
         container.add_paragraph(method_status_text(ctx.report.meta.method_status), style=S.CALLOUT)
     if block.content:
-        write_inlines(ctx, container.add_paragraph(style=S.CALLOUT), block.content)
+        body = container.add_paragraph(style=S.CALLOUT)
+        with locked(body, block.control):
+            write_inlines(ctx, body, block.content)
 
 
 # ---------------------------------------------------------------------- lists and quotes
@@ -231,7 +235,7 @@ def render_list(ctx: RenderContext, container: Container, block: BulletList) -> 
     num_id = ctx.numbering.new_ordered_list() if block.ordered else ctx.numbering.bullets
     styles = (S.NUMBER, S.NUMBER_2) if block.ordered else (S.BULLET, S.BULLET_2)
     for item in block.items:
-        _list_item(ctx, container, item, num_id, styles, 0)
+        _list_item(ctx, container, item, num_id, styles, 0, block.control)
 
 
 def _list_item(
@@ -241,12 +245,14 @@ def _list_item(
     num_id: int,
     styles: tuple[str, str],
     level: int,
+    control: str | None,
 ) -> None:
     p = container.add_paragraph(style=styles[level])
     Numbering.apply(p, num_id, level)
-    write_inlines(ctx, p, item.content)
+    with locked(p, control):
+        write_inlines(ctx, p, item.content)
     for child in item.children:
-        _list_item(ctx, container, child, num_id, styles, 1)
+        _list_item(ctx, container, child, num_id, styles, 1, control)
 
 
 def render_quote(ctx: RenderContext, container: Container, block: Quote) -> None:
