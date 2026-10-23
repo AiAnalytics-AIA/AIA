@@ -373,6 +373,168 @@ describe("the settings control panel", () => {
     }
   });
 
+  it("grants the Metodik mark as an OWNER, with Vrátit, and an administrator only reads it", async () => {
+    const team = () => [
+      { user_id: "USR-1", email: "owner@example.test", display_name: "Petr", is_active: true, organization_role: "OWNER", methodologist: false },
+      { user_id: "USR-2", email: "jana@example.test", display_name: "Jana", is_active: true, organization_role: "MEMBER", methodologist: false },
+      { user_id: "USR-3", email: "lucie@example.test", display_name: "Lucie", is_active: false, organization_role: "MEMBER", methodologist: true, deactivated_at: "2026-10-20T10:00:00Z", lead_sealed_at: "2026-10-20T10:00:00Z", lead_erase_after: "2026-11-19T10:00:00Z" },
+    ];
+    api({ "GET /api/v1/members": team });
+    render(<ControlPanel />);
+    fireEvent.click(await screen.findByRole("tab", { name: "Přístup a schvalování" }));
+    const panel = document.getElementById("panel-access") as HTMLElement;
+    const jana = await waitFor(() => panel.querySelector('[data-member="USR-2"]') as HTMLElement);
+    const mark = within(jana.parentElement as HTMLElement).getByRole("switch", { name: "Štítek Metodik: jana@example.test" });
+    fireEvent.click(mark);
+    await waitFor(() => expect(called("PUT", "/api/v1/members/USR-2/methodologist")).toHaveLength(1));
+    expect(called("PUT", "/api/v1/members/USR-2/methodologist")[0].body).toEqual({ methodologist: true });
+    fireEvent.click(await screen.findByRole("button", { name: "Vrátit" }));
+    await waitFor(() => expect(called("PUT", "/api/v1/members/USR-2/methodologist")).toHaveLength(2));
+    expect(called("PUT", "/api/v1/members/USR-2/methodologist")[1].body).toEqual({ methodologist: false });
+    // A deactivated member's mark is not changed here.
+    expect((within(panel).getByRole("switch", { name: "Štítek Metodik: lucie@example.test" }) as HTMLButtonElement).disabled).toBe(true);
+    expect(within(panel).getByText("1 Metodik")).toBeTruthy();
+    cleanup();
+    // An administrator who is not an OWNER reads the mark: the API refuses them (owner_only).
+    api({ "GET /api/v1/members": team, "GET /api/v1/settings": () => ({ ...DOC(true), your_role: "ADMIN" }) });
+    render(<ControlPanel />);
+    fireEvent.click(await screen.findByRole("tab", { name: "Přístup a schvalování" }));
+    const switches = await waitFor(() => { const all = screen.getAllByRole("switch", { name: /^Štítek Metodik:/ }); if (all.length < 3) throw new Error("not yet"); return all; });
+    expect(switches.every((sw) => (sw as HTMLButtonElement).disabled)).toBe(true);
+    expect(screen.getAllByText("Přiděluje jen vlastník.").length).toBeGreaterThan(0);
+  });
+
+  it("deactivates a member with Vrátit, says their Lead is sealed until it is erased, and restores them", async () => {
+    api({
+      "GET /api/v1/members": () => [
+        { user_id: "USR-1", email: "owner@example.test", display_name: "Petr", is_active: true, organization_role: "OWNER", methodologist: false },
+        { user_id: "USR-2", email: "jana@example.test", display_name: "Jana", is_active: true, organization_role: "MEMBER", methodologist: false },
+        { user_id: "USR-3", email: "lucie@example.test", display_name: "Lucie", is_active: false, organization_role: "MEMBER", methodologist: false, deactivated_at: "2026-10-20T10:00:00Z", lead_sealed_at: "2026-10-20T10:00:00Z", lead_erase_after: "2026-11-19T10:00:00Z" },
+      ],
+      "POST /api/v1/members/USR-2/deactivate": () => new Response(JSON.stringify({ code: "insufficient_role", message: "The organization's last OWNER cannot be demoted or deactivated.", details: { reason: "last_owner" } }), { status: 403 }),
+    });
+    render(<ControlPanel />);
+    fireEvent.click(await screen.findByRole("tab", { name: "Přístup a schvalování" }));
+    const panel = document.getElementById("panel-access") as HTMLElement;
+    await waitFor(() => expect(panel.querySelector('[data-member="USR-3"]')).toBeTruthy());
+    // Your own row offers no deactivation: you would lock yourself out.
+    const jana = await within(panel).findByRole("button", { name: "Deaktivovat jana@example.test" });
+    expect(within(panel).queryByRole("button", { name: "Deaktivovat owner@example.test" })).toBeNull();
+    // A refusal is said in the row.
+    fireEvent.click(jana);
+    expect(await within(panel).findByText("Poslední aktivní vlastník organizace nemůže přijít o roli ani být deaktivován.")).toBeTruthy();
+    // The deactivated member: their Lead sealed, its erasure dated, and Obnovit.
+    const lucie = panel.querySelector('[data-member="USR-3"]') as HTMLElement;
+    expect(lucie.getAttribute("data-deactivated")).toBe("true");
+    const sealed = panel.querySelector('[data-lead-sealed="USR-3"]') as HTMLElement;
+    expect(sealed.textContent).toMatch(/Vedoucí zapečetěn/);
+    expect(sealed.textContent).toMatch(/19\. 11\. 2026/);
+    fireEvent.click(within(panel).getByRole("button", { name: "Obnovit lucie@example.test" }));
+    await waitFor(() => expect(called("POST", "/api/v1/members/USR-3/reactivate")).toHaveLength(1));
+  });
+
+  it("claims no sealed Lead the API does not report, and offers an administrator no Obnovit on an OWNER", async () => {
+    api({
+      "GET /api/v1/settings": () => ({ ...DOC(true), your_role: "ADMIN" }),
+      "GET /api/v1/members": () => [
+        { user_id: "USR-1", email: "owner@example.test", display_name: "Petr", is_active: true, organization_role: "ADMIN", methodologist: false },
+        { user_id: "USR-4", email: "eva@example.test", display_name: "Eva", is_active: false, organization_role: "OWNER", methodologist: false, deactivated_at: "2026-10-20T10:00:00Z", lead_sealed_at: null, lead_erase_after: null },
+        { user_id: "USR-5", email: "ota@example.test", display_name: "Ota", is_active: false, organization_role: "MEMBER", methodologist: false, deactivated_at: "2026-10-20T10:00:00Z", lead_sealed_at: null, lead_erase_after: null },
+      ],
+    });
+    render(<ControlPanel />);
+    fireEvent.click(await screen.findByRole("tab", { name: "Přístup a schvalování" }));
+    const panel = document.getElementById("panel-access") as HTMLElement;
+    await waitFor(() => expect(panel.querySelector('[data-member="USR-5"]')).toBeTruthy());
+    expect(panel.querySelector("[data-lead-sealed]")).toBeNull();
+    expect(panel.textContent).not.toMatch(/zapečetěn:/);
+    expect(panel.querySelector('[data-lead-none="USR-5"]')?.textContent).toMatch(/žádný zapečetěný/);
+    const restoreOwner = within(panel).getByRole("button", { name: "Obnovit eva@example.test" }) as HTMLButtonElement;
+    expect(restoreOwner.disabled).toBe(true);
+    fireEvent.click(restoreOwner);
+    expect(called("POST", "/api/v1/members/USR-4/reactivate")).toEqual([]);
+    expect((within(panel).getByRole("button", { name: "Obnovit ota@example.test" }) as HTMLButtonElement).disabled).toBe(false);
+  });
+
+  it("says the Lead is sealed on deactivation only when the answer says so", async () => {
+    api({
+      "GET /api/v1/members": () => [
+        { user_id: "USR-1", email: "owner@example.test", display_name: "Petr", is_active: true, organization_role: "OWNER", methodologist: false },
+        { user_id: "USR-2", email: "jana@example.test", display_name: "Jana", is_active: true, organization_role: "MEMBER", methodologist: false },
+      ],
+      "POST /api/v1/members/USR-2/deactivate": () => ({ user_id: "USR-2", email: "jana@example.test", display_name: "Jana", is_active: false, organization_role: "MEMBER", methodologist: false, deactivated_at: "2026-10-23T04:00:00Z", lead_sealed_at: null, lead_erase_after: null }),
+    });
+    render(<ControlPanel />);
+    fireEvent.click(await screen.findByRole("tab", { name: "Přístup a schvalování" }));
+    fireEvent.click(await screen.findByRole("button", { name: "Deaktivovat jana@example.test" }));
+    expect(await screen.findByText("Jana: deaktivace hotova. Nepřihlásí se, studie zůstávají.")).toBeTruthy();
+    expect(screen.queryByText(/Vedoucí je zapečetěn/)).toBeNull();
+  });
+
+  it("knows your own row by your user id, not by the token's e-mail (review of #859)", async () => {
+    // The token names another e-mail (or none) under the same subject; /workspace/me says USR-1.
+    sessionStorage.setItem("aia.session", JSON.stringify({ idToken: "tok", refreshToken: "r", expiresAt: Date.now() + 3_600_000, email: "", subject: "s" }));
+    api({
+      "GET /api/v1/members": () => [
+        { user_id: "USR-1", email: "owner@example.test", display_name: "Petr", is_active: true, organization_role: "OWNER", methodologist: false },
+        { user_id: "USR-2", email: "jana@example.test", display_name: "Jana", is_active: true, organization_role: "MEMBER", methodologist: false },
+      ],
+    });
+    render(<ControlPanel />);
+    fireEvent.click(await screen.findByRole("tab", { name: "Přístup a schvalování" }));
+    const panel = document.getElementById("panel-access") as HTMLElement;
+    expect(await within(panel).findByRole("button", { name: "Deaktivovat jana@example.test" })).toBeTruthy();
+    expect(within(panel).queryByRole("button", { name: "Deaktivovat owner@example.test" })).toBeNull();
+  });
+
+  it("offers no deactivation while who you are is unread, since any row could be yours", async () => {
+    api({
+      "GET /api/v1/workspace/me": () => new Response('{"code":"internal","message":"x"}', { status: 500 }),
+      "GET /api/v1/members": () => [
+        { user_id: "USR-1", email: "owner@example.test", display_name: "Petr", is_active: true, organization_role: "OWNER", methodologist: false },
+        { user_id: "USR-2", email: "jana@example.test", display_name: "Jana", is_active: true, organization_role: "MEMBER", methodologist: false },
+      ],
+    });
+    render(<ControlPanel />);
+    fireEvent.click(await screen.findByRole("tab", { name: "Přístup a schvalování" }));
+    const panel = document.getElementById("panel-access") as HTMLElement;
+    await waitFor(() => expect(panel.querySelector('[data-member="USR-2"]')).toBeTruthy());
+    await waitFor(() => expect(called("GET", "/api/v1/workspace/me").length).toBeGreaterThan(0));
+    expect(within(panel).queryByRole("button", { name: /^Deaktivovat/ })).toBeNull();
+  });
+
+  it("draws the new member's row with the table's five cells (review of #859)", async () => {
+    api();
+    render(<ControlPanel />);
+    fireEvent.click(await screen.findByRole("tab", { name: "Přístup a schvalování" }));
+    const panel = document.getElementById("panel-access") as HTMLElement;
+    fireEvent.click(await within(panel).findByRole("button", { name: "+ Přidat člena" }));
+    const table = within(panel).getByRole("table", { name: "Členové" });
+    const columns = table.querySelectorAll('[role="columnheader"]').length;
+    expect(columns).toBe(5);
+    const row = table.querySelector("[data-member-new]") as HTMLElement;
+    expect(row.querySelectorAll(':scope > [role="cell"]')).toHaveLength(columns);
+    // The add and cancel buttons sit in the last, the action column.
+    expect(within(row.lastElementChild as HTMLElement).getByRole("button", { name: "Zrušit" })).toBeTruthy();
+  });
+
+  it("deactivates at once and offers Vrátit, which reactivates", async () => {
+    api({
+      "GET /api/v1/members": () => [
+        { user_id: "USR-1", email: "owner@example.test", display_name: "Petr", is_active: true, organization_role: "OWNER", methodologist: false },
+        { user_id: "USR-2", email: "jana@example.test", display_name: "Jana", is_active: true, organization_role: "MEMBER", methodologist: false },
+      ],
+      "POST /api/v1/members/USR-2/deactivate": () => ({ user_id: "USR-2", email: "jana@example.test", display_name: "Jana", is_active: false, organization_role: "MEMBER", methodologist: false, deactivated_at: "2026-10-23T04:00:00Z", lead_sealed_at: "2026-10-23T04:00:00Z", lead_erase_after: "2026-11-22T04:00:00Z" }),
+    });
+    render(<ControlPanel />);
+    fireEvent.click(await screen.findByRole("tab", { name: "Přístup a schvalování" }));
+    fireEvent.click(await screen.findByRole("button", { name: "Deaktivovat jana@example.test" }));
+    await waitFor(() => expect(called("POST", "/api/v1/members/USR-2/deactivate")).toHaveLength(1));
+    expect(await screen.findByText(/Vedoucí je zapečetěn/)).toBeTruthy();
+    fireEvent.click(screen.getByRole("button", { name: "Vrátit" }));
+    await waitFor(() => expect(called("POST", "/api/v1/members/USR-2/reactivate")).toHaveLength(1));
+  });
+
   it("sets, clears and adds a study's own self-approval rule, and returns the organization to the default", async () => {
     api({ "GET /api/v1/self-approval": () => ({ organization: false, clients: [], studies: [{ study_id: "STU-1", client_id: "CLI-a", allowed: false }] }) });
     render(<ControlPanel />);
@@ -397,14 +559,15 @@ describe("the settings control panel", () => {
     expect(called("PUT", "/api/v1/self-approval")[2].body).toEqual({ allowed: false, study_id: "STU-2" });
   });
 
-  it("says plainly that the Metodik mark and deactivating a member are not in AIA yet, and explains each role", async () => {
+  it("offers the Metodik mark and deactivation in each row, no longer says they are not in AIA, and explains each role", async () => {
     api();
     render(<ControlPanel />);
     fireEvent.click(await screen.findByRole("tab", { name: "Přístup a schvalování" }));
     const panel = document.getElementById("panel-access") as HTMLElement;
     await waitFor(() => expect(panel.querySelector('[data-member="USR-1"]')).toBeTruthy());
-    expect(within(panel).queryByRole("switch", { name: /Metodik/ })).toBeNull();
-    expect(within(panel).getByText("Deaktivace člena a štítek Metodik v AIA zatím nejsou.")).toBeTruthy();
+    expect(within(panel).getByRole("switch", { name: "Štítek Metodik: owner@example.test" })).toBeTruthy();
+    expect(within(panel).queryByText(/v AIA zatím nejsou/)).toBeNull();
+    expect(panel.querySelector("[data-member] [data-not-yet]")).toBeNull();
     expect([...panel.querySelectorAll("[data-role-box]")].map((b) => b.getAttribute("data-role-box"))).toEqual(["OWNER", "ADMIN", "MEMBER", "METODIK"]);
   });
 

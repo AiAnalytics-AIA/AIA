@@ -1735,7 +1735,13 @@ export type SettingsDocument = {
   vocabularies: Vocabularies;
 };
 
-export type Member = { user_id: string; email: string; display_name: string; is_active: boolean; organization_role: string; methodologist: boolean };
+export type Member = {
+  user_id: string; email: string; display_name: string; is_active: boolean; organization_role: string; methodologist: boolean;
+  /** Deactivated in this organization (D-27, #830); absent or null: not deactivated here. */
+  deactivated_at?: string | null;
+  /** Their Research Lead's seal (ADR 0030): unreadable from lead_sealed_at, erased after lead_erase_after. */
+  lead_sealed_at?: string | null; lead_erase_after?: string | null;
+};
 
 export type AdminClient = {
   client_id: string; slug: string; name: string; status: string; reference: string; study_count: number; created_at: string | null;
@@ -1802,6 +1808,12 @@ export const admin = {
   settings: () => request<SettingsDocument>("GET", "/api/v1/settings"),
   members: () => request<Member[]>("GET", "/api/v1/members"),
   addMember: (body: { email: string; role: string; display_name: string }) => request<Member>("POST", "/api/v1/members", body),
+  /** The Metodik mark (D-14, #823): only an OWNER grants or revokes it (owner_only). Audited. */
+  setMethodologist: (userId: string, methodologist: boolean) => request<Member>("PUT", `/api/v1/members/${enc(userId)}/methodologist`, { methodologist }),
+  /** Deactivate here (D-27, #830): the member's Lead is sealed at once and erased after 30 days. */
+  deactivateMember: (userId: string) => request<Member>("POST", `/api/v1/members/${enc(userId)}/deactivate`),
+  /** Within 30 days the Lead is unsealed for them alone; after, they hatch a new one. */
+  reactivateMember: (userId: string) => request<Member>("POST", `/api/v1/members/${enc(userId)}/reactivate`),
   clients: () => request<AdminClient[]>("GET", "/api/v1/clients?include_archived=true"),
   setClientStatus: (clientId: string, status: string) =>
     request<AdminClient>("PUT", `/api/v1/clients/${enc(clientId)}/status`, { status }),
