@@ -177,6 +177,8 @@ export function foldActivity(state: ActivityState, events: readonly RunEvent[], 
     if (!event.step_id) continue;
     const prev = steps[event.step_id] ?? blank(event.step_id);
     const next: StepActivity = { ...prev, model: { ...prev.model } };
+    // A new attempt counts from nothing: an earlier attempt's count, replays and cells are not its own.
+    if (event.event_type === "ATTEMPT_CLAIMED") Object.assign(next, { progress: null, replayed: 0, quota: null });
     const p = event.payload ?? {};
     if (event.event_type === "STEP_PROGRESS") {
       const done = num(p.respondents);

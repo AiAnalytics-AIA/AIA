@@ -11,6 +11,7 @@ import { useEffect, useState } from "react";
 import { isDayBreak, withDayBreaks } from "@/lib/day-label";
 
 import { ActivityOrb } from "@/components/brand/ActivityOrb";
+import { FOCUS, TOUCH } from "@/components/ui/parts";
 import { t, tv } from "@/i18n/t";
 import type { Orb } from "@/lib/activity-orb";
 import { fmtTime } from "@/research/jobs";
@@ -130,7 +131,7 @@ export function QuotaFillTable({ quota }: { quota: NonNullable<StepActivity["quo
   const full = quota.cells.filter((c) => c.answered >= c.n).length;
   return (
     <details data-quota-fill className="mt-1 text-xs">
-      <summary className="cursor-pointer text-ink-muted">{tv("research.exec.activity.quotaTitle", { full, cells: quota.cells.length })}</summary>
+      <summary className={`flex cursor-pointer items-center text-ink-muted ${TOUCH} ${FOCUS}`}>{tv("research.exec.activity.quotaTitle", { full, cells: quota.cells.length })}</summary>
       <table className="mt-2 w-full max-w-md border-collapse">
         <thead>
           <tr className="text-left text-ink-muted">

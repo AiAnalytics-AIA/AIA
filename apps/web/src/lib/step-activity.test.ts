@@ -160,6 +160,12 @@ group("the fieldwork event contract (run-qc-and-checkpoint RQC7)", () => {
       { key: "muz/30-44", values: ["muž", "30-44"], n: 1, answered: 1 },
     ]);
     expect(activityOf(state, "STEP-a")?.lines.at(-1)?.text).toBe(tv("research.exec.activity.fieldworkSample", { cells: 2 }));
+    // A new attempt's claim clears the last attempt's count, replays and cells (Codex on #836):
+    // until it reports, nothing of the earlier attempt is shown as its own.
+    const progressed = foldActivity(state, [ev({ message: "fieldwork_progress", payload: { respondents: 40, of: 300, sent: 10, replayed: 30 } })]);
+    const claimed = activityOf(foldActivity(progressed, [ev({ event_type: "ATTEMPT_CLAIMED", message: "run claimed by worker-2" })]), "STEP-a");
+    expect([claimed?.progress, claimed?.replayed, claimed?.quota]).toEqual([null, 0, null]);
+    expect(lastReported(claimed ?? null, "FAILED", false)).toBeNull();
     // A retried attempt reports its cells again and counts its respondents from the first.
     const retried = foldActivity(state, [of("fieldwork_sample"), respondent("muz/30-44")]);
     expect(activityOf(retried, "STEP-a")?.quota?.cells.map((c) => c.answered)).toEqual([0, 1]);

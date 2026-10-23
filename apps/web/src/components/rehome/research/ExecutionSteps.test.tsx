@@ -1491,6 +1491,9 @@ describe("Progress", () => {
     const cells = [...fill.querySelectorAll<HTMLElement>("tr[data-cell]")].map((tr) => tr.textContent);
     expect(cells).toEqual(["žena · 18-29" + tv("research.exec.activity.quotaOf", { answered: 1, n: 1 }), "muž · 30-44" + tv("research.exec.activity.quotaOf", { answered: 1, n: 2 })]);
     expect(fill.textContent).toContain(t("research.exec.activity.quotaNote"));
+    // A full-size touch target on a phone, with the shared focus ring (Codex on #836).
+    expect(fill.querySelector("summary")?.className).toMatch(/min-h-11/);
+    expect(fill.querySelector("summary")?.className).toMatch(/focus-visible/);
     expect(list.querySelectorAll("[data-quota-fill]")).toHaveLength(1);
   });
 
