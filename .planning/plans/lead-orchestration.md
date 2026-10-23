@@ -877,8 +877,13 @@ The chunks, each with its test:
     judged on the registry entry alone (Codex review on #818):
     - the amounts are `domain/money.py`'s, in its one precedence (`money.py:31-34 @ c42a73e7`):
       Rozpočet studie stops spending, Peněženka decides what may start without a card, Práh
-      potvrzení decides what asks again and is never a cap. A Lead action always has a card, so
-      what it is compared with is Rozpočet studie's remainder (`above_study_budget`, `:269`);
+      potvrzení decides what asks again and is never a cap;
+    - approving a Lead card is `StartPath.PERSON` (`start_verdict`, `money.py:319-340`): the
+      person's act is the card Peněženka saves, so Peněženka is not consulted there, and the
+      limit a card is compared with is Rozpočet studie's remainder (the reservation's own check,
+      `BudgetExceeded`, `infrastructure/workflow_repository.py:1344-1348`; shown as
+      `available_usd`, `:1735`). A plan's later steps are `StartPath.PLAN_STEP`: outside
+      Peněženka they park with `outside_wallet`, in their row (LO21e);
     - an action is left out only when its *cheapest* arguments' ceiling (`domain/run_cost.py`)
       is known and exceeds that remainder;
     - otherwise it is offered with that remainder, and each spec's ceiling function prices the
@@ -912,7 +917,8 @@ The chunks, each with its test:
 - **LO21e.** The `plan` kind: one action whose steps reference registered actions. It is LO4's
   card, with every step shown, one approval, live state per step, and a person's gate in its row.
   - Tests: a plan naming an unregistered or not-offered action is refused, and so is one naming
-    a workflow step (aggregation, report) as a row; a `research_run` row shows its template's
+    a workflow step (aggregation, report) as a row; a step outside Peněženka parks in its row
+    with `outside_wallet`, the rest of the plan's card intact; a `research_run` row shows its template's
     steps before it starts and its run's steps after; the per-step state follows each step's
     run.
 
