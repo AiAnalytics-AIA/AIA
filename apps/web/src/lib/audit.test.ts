@@ -1,25 +1,13 @@
 import { describe, expect, it } from "vitest";
 
 import { ACTION_NAMES, CATEGORY_NAMES, actionName, categoryOf, inPeriod } from "./audit";
+import auditActions from "./fixtures/audit-actions.json";
 
-// Every action code the API writes to the access audit, read from the server's code (apps/api,
-// packages/aia_core: each AccessAuditRow(action=…) and _audit("…")), and #841's two.
-const SERVER_ACTIONS = [
-  "AIA_SESSION", "AIA_SESSION_DENIED", "CLIENT_BUDGET_CHANGED", "CLIENT_CONTACT_ADDED", "CLIENT_CONTACT_CHANGED",
-  "CLIENT_CONTACT_REMOVED", "CLIENT_CREATED", "CLIENT_KNOWLEDGE_AUTHORED", "CLIENT_KNOWLEDGE_DECIDED",
-  "CLIENT_KNOWLEDGE_FOLDER_CREATED", "CLIENT_KNOWLEDGE_FOLDER_DELETED", "CLIENT_KNOWLEDGE_FOLDER_RENAMED",
-  "CLIENT_KNOWLEDGE_LABEL_CHANGED", "CLIENT_KNOWLEDGE_LABEL_CREATED", "CLIENT_KNOWLEDGE_LABEL_DELETED",
-  "CLIENT_KNOWLEDGE_ORGANIZED", "CLIENT_KNOWLEDGE_SELECTED", "CLIENT_KNOWLEDGE_UNSELECTED", "CLIENT_PROFILE_CHANGED",
-  "CLIENT_SOURCE_ADDED", "CLIENT_SOURCE_MARKED_INTERNAL", "CLIENT_SOURCE_REREAD", "CLIENT_SOURCE_UNMARKED_INTERNAL",
-  "CLIENT_STATUS_CHANGED", "DR_SETTING_APPROVED", "DR_SETTING_PROPOSED", "DR_SETTING_WITHDRAWN",
-  "DR_SETTING_PROPOSAL_WITHDRAWN", "DR_SETTING_PROPOSAL_DECLINED", "DR_TEST_POLICY_APPROVED",
-  "DR_TEST_POLICY_PROPOSED", "DR_TEST_POLICY_WITHDRAWN", "IDENTITY_SUBJECT_CLEARED", "LEAD_ERASED", "LEAD_SEALED",
-  "LEAD_UNSEALED", "MEMBER_ADDED", "MEMBER_DEACTIVATED", "MEMBER_REACTIVATED", "MEMBER_ROLE_DENIED",
-  "METHODOLOGY_ACTIVATED", "METHODOLOGY_PROPOSED", "METHODOLOGY_RESET", "ORGANIZATION_CREATED", "PERMISSION_DENIED",
-  "PROMPT_ACTIVATED", "PROMPT_RESET_TO_BASELINE", "PROMPT_VERSION_CREATED", "RESEARCH_LEAD_PREFERENCES_SET",
-  "SELF_APPROVAL_CONFIGURED", "STUDY_BUDGET_CHANGED", "STUDY_CREATED", "STUDY_SPEND_CONFIRM_CHANGED",
-  "STUDY_STATUS_CHANGED", "USER_DEACTIVATED",
-];
+// Every action code the backend writes to the access audit: content_free.py's AUDIT_ACTIONS, copied
+// to fixtures/audit-actions.json (the backend's own test holds that list to the repositories' writes).
+// Beside it, codes an upgraded database still holds or #841 writes outside the list.
+const KEPT_ELSEWHERE = ["DR_SETTING_PROPOSAL_WITHDRAWN", "DR_SETTING_PROPOSAL_DECLINED", "CLIENT_GRANT", "STUDY_GRANT", "CLIENT_SELF_GRANT", "CLIENT_REVOKE"];
+const SERVER_ACTIONS = [...auditActions.actions, ...KEPT_ELSEWHERE];
 
 describe("the audit's words", () => {
   it("names every action the server writes in Czech, none under Ostatní", () => {
@@ -37,6 +25,19 @@ describe("the audit's words", () => {
     expect(categoryOf("CLIENT_KNOWLEDGE_FOLDER_DELETED")).toBe("clients");
     expect(categoryOf("CLIENT_DELETED")).toBe("data");
     expect(CATEGORY_NAMES[categoryOf("DR_SETTING_PROPOSAL_DECLINED")]).toBe("Deep Research");
+    expect(categoryOf("CLIENT_RULES_CHANGED")).toBe("clients");
+    expect(actionName("CLIENT_RULES_CHANGED")).toBe("Změna pravidel klienta");
+    expect(categoryOf("CLIENT_DELETION_OBJECTS")).toBe("data");
+    expect(categoryOf("WORKSPACE_MIGRATED")).toBe("data");
+  });
+
+  it("names the grant-era records an upgraded database keeps, in Czech, under access", () => {
+    // Written before the grants were dropped (migration d8e2f4a6b1c3); access_audit keeps them.
+    for (const a of ["CLIENT_GRANT", "STUDY_GRANT", "CLIENT_SELF_GRANT", "CLIENT_REVOKE"]) {
+      expect(ACTION_NAMES[a], a).toBeTruthy();
+      expect(actionName(a), a).not.toMatch(/[A-Z_]{4,}|grant|revoke/);
+      expect(categoryOf(a), a).toBe("access");
+    }
   });
 
   it("spells out a code it does not know, under Ostatní, never dropping it", () => {

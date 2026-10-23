@@ -60,6 +60,7 @@ __all__ = [
     "LeadSeal",
     "LeadSeals",
     "ResearcherLeadRepository",
+    "erase_client_notes",
 ]
 
 _FIELD_ORDER = {"name": 0, "soul": 1, "user": 2}
@@ -541,3 +542,13 @@ class LeadSeals:
         )
         session.flush()
         return erased
+
+
+def erase_client_notes(session: Session, *, client_id: str) -> int:
+    """Delete every researcher's Lead note kept for a deleted client (settings-backends SB5).
+    The caller owns the transaction. Returns the notes deleted."""
+    result = session.execute(
+        delete(ResearcherLeadMemoryRow).where(ResearcherLeadMemoryRow.client_id == client_id)
+    )
+    session.flush()
+    return int(getattr(result, "rowcount", 0) or 0)

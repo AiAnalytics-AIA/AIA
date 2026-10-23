@@ -23,7 +23,7 @@ import hashlib
 from dataclasses import dataclass
 from datetime import datetime
 
-from sqlalchemy import select
+from sqlalchemy import delete, select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
@@ -33,7 +33,12 @@ from ..domain.holdout.scoring import SCORING_VERSION
 from ..domain.scope import Permission, ScopeDenied, StudyContext, StudyKind
 from .tables import HoldoutConfirmationRow, HoldoutPreregistrationRow, StudyRow, as_utc
 
-__all__ = ["HoldoutRepository", "StoredConfirmation", "StoredPreregistration"]
+__all__ = [
+    "HoldoutRepository",
+    "StoredConfirmation",
+    "StoredPreregistration",
+    "erase_client_holdouts",
+]
 
 
 @dataclass(frozen=True, slots=True)
@@ -254,3 +259,14 @@ def _confirmation(row: HoldoutConfirmationRow) -> StoredConfirmation:
         started_by=row.started_by,
         started_at=as_utc(row.started_at),
     )
+
+
+def erase_client_holdouts(session: Session, *, client_id: str) -> None:
+    """Delete a deleted client's holdout preregistrations and confirmations (SB5)."""
+    session.execute(
+        delete(HoldoutConfirmationRow).where(HoldoutConfirmationRow.client_id == client_id)
+    )
+    session.execute(
+        delete(HoldoutPreregistrationRow).where(HoldoutPreregistrationRow.client_id == client_id)
+    )
+    session.flush()

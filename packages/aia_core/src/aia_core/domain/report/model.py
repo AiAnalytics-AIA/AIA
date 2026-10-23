@@ -18,6 +18,7 @@ Two conventions hold throughout:
 
 from __future__ import annotations
 
+from collections.abc import Iterator
 from dataclasses import dataclass, field
 from datetime import date
 from enum import StrEnum
@@ -118,6 +119,8 @@ class BulletList:
 
     items: tuple[ListItem, ...]
     ordered: bool = False
+    #: As ``Paragraph.control``, for every item's text.
+    control: str | None = None
 
 
 @dataclass(frozen=True, slots=True)
@@ -127,6 +130,9 @@ class Quote:
     text: str
     attribution: str
     synthetic: bool
+    #: The tag of the locked control the quote and its attribution print in (``bundle:<run>`` for
+    #: a captured source's; RPT8a, part 3, P14).
+    control: str | None = None
 
 
 class CalloutKind(StrEnum):
@@ -347,6 +353,8 @@ class AuditBlock:
     """Run ids, fingerprints, provider and model. **Internal reports only.**"""
 
     entries: tuple[tuple[str, str], ...]
+    #: The tag of the locked control each value prints in (``run:<run>``; RPT8a, part 3, P15).
+    control: str | None = None
 
 
 Block = (
@@ -366,6 +374,21 @@ Block = (
     | EvidenceAppendix
     | AuditBlock
 )
+
+
+def block_inlines(block: object) -> tuple[Inline, ...]:
+    """A paragraph's, callout's or list's inlines, its items' children included; none else."""
+    if isinstance(block, Paragraph | Callout):
+        return block.content
+    if isinstance(block, BulletList):
+        return tuple(_items(block.items))
+    return ()
+
+
+def _items(items: tuple[ListItem, ...]) -> Iterator[Inline]:
+    for item in items:
+        yield from item.content
+        yield from _items(item.children)
 
 
 # ---------------------------------------------------------------------- document

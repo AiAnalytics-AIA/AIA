@@ -130,6 +130,28 @@ def test_source_claims_have_separate_citations_limits_and_fixture_disclosure() -
     )
 
 
+def test_every_number_the_bundle_writes_is_locked_under_its_review() -> None:
+    """The chapter is written whole from the sealed bundle: each block printing a digit (counts,
+    dates, L-labels, the seal) prints locked under ``bundle:<Deep Research run>`` (artifact-report
+    RPT8a, part 3, P14)."""
+    (section,) = literature_sections(bundle(), research_run_id="RUN-abc")
+    digits = 0
+    quotes = [b for b in section.blocks if isinstance(b, Quote)]
+    assert quotes and all(q.control == "bundle:RUN-abc" for q in quotes)
+    for b in section.blocks:
+        if isinstance(b, Paragraph) and any(
+            c.isdigit() for i in b.content if isinstance(i, Text) for c in i.text
+        ):
+            digits += 1
+            assert b.control == "bundle:RUN-abc", b
+        if isinstance(b, Table):
+            for row in b.rows:
+                for cell in row.cells:
+                    if isinstance(cell, TextCell) and any(c.isdigit() for c in cell.text):
+                        assert cell.control == "bundle:RUN-abc", cell
+    assert digits
+
+
 def test_an_empty_bundle_reports_a_gap_instead_of_inventing_a_review() -> None:
     written = prose(bundle(accepted=[], synthesis=None, quality_status="NO_EVIDENCE"))
     assert "žádné přijaté zjištění" in written

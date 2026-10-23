@@ -1352,6 +1352,7 @@ export const cs = {
           },
         },
         approve: {
+          unread: "Pravidlo se nepodařilo načíst: co schválení změní, nevíme, a tak ho nelze potvrdit.",
           reason: "Důvod (nepovinný)",
           short: "Schválit",
           rule: "Pravidlo",

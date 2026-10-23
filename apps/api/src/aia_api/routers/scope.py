@@ -17,6 +17,13 @@ import re
 from datetime import UTC, datetime
 from typing import Annotated, Any, Final, Literal
 
+from aia_core.application.client_deletion import (
+    ClientHasActiveWork,
+    delete_client,
+    deletion_preview,
+    finish_deletion,
+    kept_records,
+)
 from aia_core.application.membership import (
     deactivate_member,
     delete_objects,
@@ -850,3 +857,160 @@ def access_audit(
         return [AuditEntryResponse(**e) for e in resolver.audit_trail(admin, limit=limit)]
     except ScopeDenied as exc:
         raise _forbidden(exc) from exc
+
+
+# ---------------------------------------------------------------- client deletion (SB5)
+
+
+class DeletionPreviewResponse(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    client_id: str
+    name: str
+    status: str
+    #: studies, working_revisions, knowledge_items, sources, files, runs, artifacts
+    deleted: dict[str, int]
+    #: usage_rows (usage ledger and budget holds), approval_rows, audit_rows
+    kept: dict[str, int]
+    #: Not deleted yet, until the stores can (SDL2): population_children (a count) and
+    #: replaced_source_readings (``null``: not counted).
+    remains_until_sdl2: dict[str, int | None]
+    #: One-time, for this person and this client, valid ten minutes: DELETE sends it back.
+    confirm_token: str
+    expires_at: datetime
+
+
+class DeleteClientRequest(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    confirm_token: str = Field(min_length=1, max_length=128)
+
+
+class DeleteClientResponse(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    client_id: str
+    already_deleted: bool
+    deleted: dict[str, int]
+    #: Stored objects deleted by this call, and those that failed (kept listed; the next
+    #: DELETE on the tombstone tries them again).
+    objects_deleted: int
+    objects_failed: int
+
+
+class KeptRecordResponse(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    record: str
+    count: int
+    kept_for: str
+    why: str
+
+
+def _deletion_refused(exc: ScopeDenied) -> HTTPException:
+    if exc.reason == "unknown_client":
+        return HTTPException(
+            status_code=404, detail={"code": "not_found", "message": "No such client."}
+        )
+    if exc.reason in ("confirmation_invalid", "confirmation_expired"):
+        return HTTPException(
+            status_code=409,
+            detail={
+                "code": exc.reason,
+                "message": "Smazání potvrďte znovu: potvrzení je jiné osoby, jiného klienta, "
+                "už použité, nebo starší deseti minut.",
+            },
+        )
+    if exc.reason == "insufficient_role":
+        return _forbidden(exc)
+    raise exc
+
+
+@router.post(
+    "/clients/{client_id}/deletion",
+    response_model=DeletionPreviewResponse,
+    summary="What deleting a client removes and keeps, and a confirmation",
+)
+def client_deletion_preview(
+    client_id: str, admin: OrganizationDep, session: SessionDep
+) -> DeletionPreviewResponse:
+    """OWNER or ADMIN (settings-backends SB5). Counts what the deletion removes and keeps, and
+    issues a one-time confirmation valid ten minutes for this person; a deleted client is 404."""
+    try:
+        preview = deletion_preview(session, admin, client_id, now=datetime.now(UTC))
+    except ScopeDenied as exc:
+        raise _deletion_refused(exc) from exc
+    if preview is None:
+        raise HTTPException(
+            status_code=404, detail={"code": "not_found", "message": "The client is deleted."}
+        )
+    session.commit()  # the confirmation is kept before it is shown
+    return DeletionPreviewResponse(
+        client_id=preview.client_id,
+        name=preview.name,
+        status=preview.status,
+        deleted=preview.deleted,
+        kept=preview.kept,
+        remains_until_sdl2=preview.remains_until_sdl2,
+        confirm_token=preview.confirm_token,
+        expires_at=preview.expires_at,
+    )
+
+
+@router.delete(
+    "/clients/{client_id}",
+    response_model=DeleteClientResponse,
+    summary="Delete a client: its content gone, its ledgers kept (irreversible)",
+)
+def delete_client_route(
+    client_id: str,
+    body: DeleteClientRequest,
+    admin: OrganizationDep,
+    session: SessionDep,
+    store: ArtifactStoreDep,
+) -> DeleteClientResponse:
+    """OWNER or ADMIN, with the preview's confirmation. Deletes the content in one transaction,
+    then the stored objects; the usage and approval ledgers and the audit stay, names replaced
+    by ids. Audited CLIENT_DELETED. A second call answers ``already_deleted``."""
+    try:
+        done = delete_client(
+            session, admin, client_id, confirm_token=body.confirm_token, now=datetime.now(UTC)
+        )
+    except ClientHasActiveWork as exc:
+        raise HTTPException(
+            status_code=409,
+            detail={
+                "code": "client_has_active_work",
+                "message": "Klient má běhy, které neskončily: nejdřív je zrušte.",
+                "details": {"run_ids": exc.run_ids},
+            },
+        ) from exc
+    except ScopeDenied as exc:
+        raise _deletion_refused(exc) from exc
+    # The rows first, then the objects: a row never points at a deleted object. On a
+    # tombstone this retries what an earlier deletion left.
+    session.commit()
+    removed, failed = finish_deletion(session, admin, client_id, store)
+    return DeleteClientResponse(
+        client_id=client_id,
+        already_deleted=done.already_deleted,
+        deleted=done.deleted,
+        objects_deleted=removed,
+        objects_failed=failed,
+    )
+
+
+@router.get(
+    "/settings/kept-records",
+    response_model=list[KeptRecordResponse],
+    summary="What a client's deletion keeps, organization-wide",
+)
+def get_kept_records(admin: OrganizationDep, session: SessionDep) -> list[KeptRecordResponse]:
+    try:
+        records = kept_records(session, admin)
+    except ScopeDenied as exc:
+        raise _deletion_refused(exc) from exc
+    return [
+        KeptRecordResponse(record=r.record, count=r.count, kept_for=r.kept_for, why=r.why)
+        for r in records
+    ]
