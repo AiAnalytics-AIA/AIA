@@ -24,12 +24,15 @@
 	# request's URI. docs.<hostname>'s ticket (/__aia/session?ticket=…) is left unspent when the
 	# API is down, and a signed cache link's md5 and expiry would open the saved document without
 	# the gate until it expires, so neither is written here (its access log filters them the same).
+	# Nor the report editor's URL token (/api/v1/report-editor/document?token=…, …/callback?token=…),
+	# a bearer credential for one version or one editing session (artifact-report RPT8c).
 	log {
 		format filter {
 			request>uri query {
 				delete ticket
 				delete md5
 				delete expires
+				delete token
 			}
 			wrap json
 		}
@@ -104,9 +107,16 @@
 		}
 	}
 
+	# The report editor's URL token is a bearer credential (the Document Server's fetch of a
+	# version, its save callbacks): never written (artifact-report RPT8c).
 	log {
 		output stdout
-		format json
+		format filter {
+			request>uri query {
+				delete token
+			}
+			wrap json
+		}
 	}
 }
 

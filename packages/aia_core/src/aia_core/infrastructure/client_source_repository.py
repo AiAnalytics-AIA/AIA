@@ -60,7 +60,13 @@ from .tables import (
     utcnow,
 )
 
-__all__ = ["ClientSourceRepository", "ReadingPin", "SourceReadingChanged"]
+__all__ = [
+    "ClientSourceRepository",
+    "ReadingPin",
+    "SourceReadingChanged",
+    "count_client_sources",
+    "erase_client_sources",
+]
 
 
 @dataclass(frozen=True, slots=True)
@@ -496,3 +502,27 @@ class ClientSourceRepository:
         row = self._row(scope, source_id)
         changed = self._reread(scope, row)
         return self._records([row])[0], changed
+
+
+def count_client_sources(session: Session, *, client_id: str) -> int:
+    """How many sources the client keeps, for a deletion's preview (settings-backends SB5)."""
+    return len(
+        session.scalars(
+            select(ClientSourceRow.source_id).where(ClientSourceRow.client_id == client_id)
+        ).all()
+    )
+
+
+def erase_client_sources(session: Session, *, client_id: str) -> tuple[int, list[str]]:
+    """Delete a deleted client's sources and their occurrences (settings-backends SB5): the
+    count and the storage keys to delete once the caller has committed. A reading replaced by
+    a later reread is not named here (its key is no longer kept) and stays until the store can
+    delete a prefix (study-data-lifecycle SDL2)."""
+    rows = session.scalars(
+        select(ClientSourceRow).where(ClientSourceRow.client_id == client_id)
+    ).all()
+    keys = sorted({k for r in rows for k in (r.storage_key, r.reading_key) if k})
+    for row in rows:
+        session.delete(row)
+    session.flush()
+    return len(rows), keys

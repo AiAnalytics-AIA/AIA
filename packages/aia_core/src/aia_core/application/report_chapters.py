@@ -44,6 +44,8 @@ from aia_core.application.report_tables import (
 )
 from aia_core.domain.analysis import AnalysisModuleId
 from aia_core.domain.analysis.native import native_items
+from aia_core.domain.report.control_tags import source_tag
+from aia_core.domain.report.controls import under, under_blocks
 from aia_core.domain.report.model import ArtifactSource, Block, RunSource, Section, SpecSource
 from aia_core.domain.research_design import ResearchSpecification
 from aia_core.infrastructure.artifact_repository import ArtifactRepository, ArtifactStatus
@@ -157,6 +159,7 @@ def report_chapters(
         brief=analysis.brief,
     )
     meta = run.get("metadata") or {}
+    run_tag = source_tag("run", run_id)
     return ReportChapters(
         maps=tuple(
             sourced(section, the_map)
@@ -189,12 +192,13 @@ def report_chapters(
                 design.appendix, specification, SpecSource("questions"), SpecSource("batteries")
             ),
         ),
+        # The run's own record: its numbers print locked under it (RPT8a, part 3, P11).
         method=sourced(
-            compose_method_section(meta, first.record.labels.data_origin),
+            under(compose_method_section(meta, first.record.labels.data_origin), run_tag),
             dataset,
             *METHOD_SOURCES,
         ),
-        methodology=compose_methodology_rules(meta),
+        methodology=under_blocks(compose_methodology_rules(meta), run_tag),
         map_artifact_id=mapped.artifact_id,
         map_sha256=mapped.sha256,
         gaps=research_question_gaps(meta),

@@ -56,6 +56,7 @@ ignore = ["N818"]
 "packages/aia_core/src/aia_core/infrastructure/web_retrieval_live.py" = ["TID251"]  # urllib3 + socket.getaddrinfo: public web reads, resolved then pinned
 "packages/aia_core/src/aia_core/infrastructure/web_retrieval_brave.py" = ["TID251"]  # urllib3: the Brave search API
 "packages/aia_core/src/aia_core/infrastructure/common_crawl.py" = ["TID251"]  # urllib3: Athena's JSON POST
+"packages/aia_core/src/aia_core/infrastructure/editor_fetch.py" = ["TID251"]  # urllib3: a saved report, from the editor's own origin under /cache/files/ only
 "packages/aia_core/src/aia_core/infrastructure/http_transport.py" = ["TID251"]  # ssl: certificate_refused reads SSLCertVerificationError
 "apps/api/src/aia_api/identity/cognito.py" = ["TID251"]  # urllib.request: the Cognito JWKS fetch
 "packages/aia_core/src/aia_core/infrastructure/glitchtip_status.py" = ["TID251"]  # urllib.request: GlitchTip's read-only API, internal network, no proxy
@@ -130,6 +131,8 @@ source_modules = [
     "aia_core.application.report_variants",
     "aia_core.application.report_approval",
     "aia_core.application.report_export",
+    "aia_core.application.report_editor",
+    "aia_core.application.report_editor_saves",
     "aia_core.application.client_report",
     "aia_core.application.contextual_report",
     "aia_core.application.sociomapping_report",

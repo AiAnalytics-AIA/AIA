@@ -176,7 +176,11 @@ def compose_client_report(
     maps = compose_map_sections(
         mapped.body, object_map_snapshots(mapped.body), source=scope_line, client=True
     )
-    design = compose_design_sections(sources.specification, sources.research_questions)
+    # Unlocked: the client report never opens in the editor, and a control's tag would carry the
+    # specification's fingerprint into the client's file, which holds no identifier.
+    design = compose_design_sections(
+        sources.specification, sources.research_questions, locked=False
+    )
 
     names = ScopeRepository(session)
     meta = ReportMeta(

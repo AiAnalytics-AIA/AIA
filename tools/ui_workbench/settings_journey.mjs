@@ -211,6 +211,7 @@ try {
   await methodEditor.getByRole("button", { name: "Zrušit", exact: true }).click();
   if (await page.getByRole("button", { name: "Zahodit neuložené úpravy", exact: true }).count()) await page.getByRole("button", { name: "Zahodit neuložené úpravy", exact: true }).click();
   await methodEditor.waitFor({ state: "detached" });
+  assert.equal(await page.getByRole("tab", { name: "Výpočet", exact: true }).getAttribute("aria-selected"), "true", "methodology: a cancelled edit returns to Výpočet");
   await page.getByRole("searchbox", { name: "Hledat výpočet nebo parametr" }).waitFor();
 
   const defaultHeight = await page.locator("#panel-methodology").evaluate((e) => e.scrollHeight); assert(defaultHeight < 4500, `Methodology default height ${defaultHeight}`);
@@ -219,7 +220,7 @@ try {
   await widths("methodology technical and formula details");
   await page.getByRole("searchbox", { name: "Hledat výpočet nebo parametr" }).fill("");
   const beforeVersions = await get("/api/v1/methodology/sociomap/versions");
-  await page.getByRole("button", { name: "Upravit metodiku", exact: true }).click();
+  await page.getByRole("tab", { name: "Upravit", exact: true }).click();
   const methodForm = page.locator("[data-methodology-editor]");
   await (await chooseField("terrain.sigma")).fill("0,3"); await (await chooseField("relation.n_min")).fill("2");
   await methodForm.getByRole("button", { name: "Zkontrolovat", exact: true }).click(); await methodForm.getByText(/Kontrola neprošla/).waitFor();
@@ -235,7 +236,10 @@ try {
   await page.getByRole("button", { name: "Vážení: která váha patří respondentovi a co s neplatnou", exact: true }).click(); await page.getByRole("button", { name: "Ponechat", exact: true }).click();
   await widths("methodology editor"); await screenshot("methodology-editor");
   await methodForm.getByRole("button", { name: "Porovnat s metodikou v platnosti", exact: true }).click();
-  await page.locator("[data-methodology-compare]").waitFor(); await widths("methodology comparison");
+  // The comparison is the module's Porovnání (settings-redesign 10b); the draft stays on Upravit.
+  await page.locator("[data-methodology-compare]").waitFor(); assert.equal(await page.getByRole("tab", { name: "Porovnání", exact: true }).getAttribute("aria-selected"), "true");
+  await widths("methodology comparison");
+  await page.getByRole("tab", { name: "Upravit", exact: true }).click();
   await (await chooseField("terrain.sigma")).fill("0,31"); assert.equal(await page.locator("[data-methodology-compare]").count(), 0);
   await (await chooseField("terrain.sigma")).fill("0,3");
   let refused = false;
@@ -246,13 +250,22 @@ try {
   await methodForm.waitFor({ state: "detached" }); await page.unroute("**/api/v1/methodology/sociomap/versions");
   let versions = await get("/api/v1/methodology/sociomap/versions"); const created = versions.versions.find((v) => v.spec.terrain.sigma === 0.3 && v.spec.relation.n_min === 34 && !beforeVersions.versions.some((old) => old.version_number === v.version_number)); assert(created); assert.equal(versions.in_force.origin, "code");
   // Right after a save its confirmation offers the activation, the one button for that version.
+  // One I7 dialog: the reason chosen as a chip (required), the act named for an edited map.
   await page.getByRole("button", { name: `Uvést ${created.name} v platnost`, exact: true }).click();
-  await page.locator("[data-methodology-activate]").getByRole("button", { name: "Potvrdit", exact: true }).click();
+  const activateDialog = page.locator("[data-methodology-activate]");
+  await activateDialog.getByRole("button", { name: "Aktivovat jako interní", exact: true }).click(); await activateDialog.getByRole("alert").filter({ hasText: "Vyberte důvod" }).waitFor();
+  await activateDialog.getByRole("radio", { name: "Ověření na pilotní studii", exact: true }).click(); await widths("methodology activation dialog");
+  await activateDialog.getByRole("button", { name: "Aktivovat jako interní", exact: true }).click();
   await page.locator("[data-in-force]").filter({ hasText: created.name }).waitFor(); await page.reload();
   await page.locator("[data-in-force]").filter({ hasText: created.name }).waitFor();
   versions = await get("/api/v1/methodology/sociomap/versions"); assert.equal(versions.in_force.version_number, created.version_number);
   await screenshot("methodology-activated");
-  await page.getByRole("button", { name: /Vrátit na .* z kódu/ }).click(); await page.locator("[data-methodology-activate]").getByRole("button", { name: "Potvrdit", exact: true }).click();
+  await page.getByRole("tab", { name: "Verze a aktivace", exact: true }).click();
+  await page.getByRole("table", { name: "Historie platnosti" }).getByText("Ověření na pilotní studii").first().waitFor(); await widths("methodology versions");
+  await page.getByRole("button", { name: /Vrátit na .* z kódu/ }).click();
+  await page.locator("[data-methodology-activate]").getByRole("radio", { name: "Návrat k výchozí metodě", exact: true }).click();
+  await page.locator("[data-methodology-activate]").getByRole("button", { name: "Vrátit na výchozí", exact: true }).click();
+  await page.locator("[data-in-force]").filter({ hasText: "z kódu" }).waitFor();
   checks.push("Methodology section edits retain values, invalid fields reject, replacements guard, stale comparisons clear, failed saves retry, saved versions activate separately and survive reload");
   assert.equal(writes.filter((r) => /agent-jobs|research\/runs|deep-research\/runs/.test(r.path)).length, 0); assert.deepEqual(errors, []);
   const report = { status: "PASS", checks, layouts, writes, pageErrors: errors, paidJobs: 0, defaultMethodologyHeight: defaultHeight }; writeFileSync(join(out, "checks.json"), JSON.stringify(report, null, 2)); console.log(JSON.stringify({ ...report, writes: writes.length, layouts: layouts.length, out }, null, 2));
