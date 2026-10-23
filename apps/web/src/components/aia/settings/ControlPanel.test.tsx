@@ -778,7 +778,10 @@ describe("the settings tabs", () => {
   });
 
   it("lists each Reference value once, invariants under Invarianty only, and counts each chip under the filters", async () => {
-    api();
+    // An invariant in a reference group (as residency, workflow and evidence carry them).
+    const doc = DOC();
+    doc.groups = doc.groups.map((g) => (g.key === "deployment" ? { ...g, items: [...g.items, { key: "eu_residency", value: true, control: "INVARIANT" as const, source: "ADR 0008", unit: null }] } : g));
+    api({ "GET /api/v1/settings": () => doc });
     render(<ControlPanel />);
     fireEvent.click(await screen.findByRole("tab", { name: "Reference" }));
     const reference = panelOf("Reference");
