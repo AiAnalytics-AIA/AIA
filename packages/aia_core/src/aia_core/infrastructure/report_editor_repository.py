@@ -60,6 +60,8 @@ class EditorSession:
     last_seen_at: datetime
     closed_at: datetime | None
     closed_reason: str | None
+    last_problem: str | None = None
+    last_problem_at: datetime | None = None
 
 
 def _version(row: ReportEditorVersionRow) -> EditorVersion:
@@ -92,6 +94,8 @@ def _session(row: ReportEditorSessionRow) -> EditorSession:
         last_seen_at=as_utc(row.last_seen_at),
         closed_at=as_utc(row.closed_at) if row.closed_at is not None else None,
         closed_reason=row.closed_reason,
+        last_problem=row.last_problem,
+        last_problem_at=as_utc(row.last_problem_at) if row.last_problem_at is not None else None,
     )
 
 
@@ -285,6 +289,15 @@ class ReportEditorRepository:
         row.last_seen_at = now
         if user_id is not None and user_id not in (row.users or []):
             row.users = [*(row.users or []), user_id]
+        self._session.flush()
+
+    def note_problem(self, document_key: str, *, now: datetime, problem: str | None) -> None:
+        """Why the session's newest save was not stored, or ``None`` once one is."""
+        self._session.execute(
+            update(ReportEditorSessionRow)
+            .where(*self._sessions_in_scope(), ReportEditorSessionRow.document_key == document_key)
+            .values(last_problem=problem, last_problem_at=now if problem else None)
+        )
         self._session.flush()
 
     def close(self, document_key: str, *, now: datetime, reason: str) -> None:

@@ -361,7 +361,8 @@ refused), when an open session is joined (`reuse_session`: open, and seen within
 line that opens by default (`default_line`: newest version by stored time; ties by koncept, then id). Two tables
 (migration `75f40e2e74dd`): `report_editor_versions` (a line's koncepts, unique per line by koncept and by SHA-256,
 so the same bytes are never stored twice) and `report_editor_sessions` (one key per session, at most one open per
-line, the people a config was signed for); every artifact a row names cascades to it, so client deletion needs
+line, the people a config was signed for, and why its newest save was not stored, `last_problem`, for the pane
+to say); every artifact a row names cascades to it, so client deletion needs
 nothing of its own. `infrastructure/report_editor_repository.py` is their only reader and writer, scoped by the
 study; `session_by_key` alone reads unscoped, for a callback, which names a key and no person.
 `application/report_editor.py` (`ReportEditor.open`): the current composition's line started as koncept 1 if it has

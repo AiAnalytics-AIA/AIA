@@ -3035,6 +3035,10 @@ class ReportEditorSessionRow(Base):
     closed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     #: ``saved`` (status 2), ``unchanged`` (status 4) or ``idle`` (no callback for a day).
     closed_reason: Mapped[str | None] = mapped_column(String(16))
+    #: Why the newest save the Document Server sent was not stored (``document_server_restarted``
+    #: when its file link was refused, …), for the pane to say; cleared by the next stored save.
+    last_problem: Mapped[str | None] = mapped_column(String(64))
+    last_problem_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
 
     __table_args__ = (
         ForeignKeyConstraint(["line_id"], ["project_artifacts.artifact_id"], ondelete="CASCADE"),

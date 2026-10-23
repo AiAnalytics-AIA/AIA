@@ -272,3 +272,19 @@ def test_a_lines_rows_go_with_its_artifacts(editor_world: Any) -> None:
     )
     for table in (ReportEditorVersionRow, ReportEditorSessionRow):
         assert editor_world.session.scalar(select(func.count()).select_from(table)) == 0
+
+
+def test_a_save_not_stored_is_noted_on_the_session_and_cleared_by_the_next(
+    editor_world: Any,
+) -> None:
+    composed = editor_world.compose()
+    opened = editor_world.editor.open(composed, run_id="RUN-1", variant="internal", now=T0)
+    repo = ReportEditorRepository(editor_world.session, editor_world.scope)
+    key = opened.session.document_key
+    repo.note_problem(key, now=T0, problem="document_server_restarted")
+    noted = repo.session(key)
+    assert noted is not None and noted.last_problem == "document_server_restarted"
+    assert noted.last_problem_at == T0
+    repo.note_problem(key, now=T0, problem=None)
+    cleared = repo.session(key)
+    assert cleared is not None and cleared.last_problem is None and cleared.last_problem_at is None

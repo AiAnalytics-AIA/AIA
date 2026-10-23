@@ -43,6 +43,8 @@ def upgrade() -> None:
         sa.Column("last_seen_at", sa.DateTime(timezone=True), nullable=False),
         sa.Column("closed_at", sa.DateTime(timezone=True), nullable=True),
         sa.Column("closed_reason", sa.String(length=16), nullable=True),
+        sa.Column("last_problem", sa.String(length=64), nullable=True),
+        sa.Column("last_problem_at", sa.DateTime(timezone=True), nullable=True),
         sa.ForeignKeyConstraint(
             ["line_id"],
             ["project_artifacts.artifact_id"],
