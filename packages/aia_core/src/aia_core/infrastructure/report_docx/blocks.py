@@ -235,7 +235,7 @@ def render_list(ctx: RenderContext, container: Container, block: BulletList) -> 
     num_id = ctx.numbering.new_ordered_list() if block.ordered else ctx.numbering.bullets
     styles = (S.NUMBER, S.NUMBER_2) if block.ordered else (S.BULLET, S.BULLET_2)
     for item in block.items:
-        _list_item(ctx, container, item, num_id, styles, 0)
+        _list_item(ctx, container, item, num_id, styles, 0, block.control)
 
 
 def _list_item(
@@ -245,12 +245,14 @@ def _list_item(
     num_id: int,
     styles: tuple[str, str],
     level: int,
+    control: str | None,
 ) -> None:
     p = container.add_paragraph(style=styles[level])
     Numbering.apply(p, num_id, level)
-    write_inlines(ctx, p, item.content)
+    with locked(p, control):
+        write_inlines(ctx, p, item.content)
     for child in item.children:
-        _list_item(ctx, container, child, num_id, styles, 1)
+        _list_item(ctx, container, child, num_id, styles, 1, control)
 
 
 def render_quote(ctx: RenderContext, container: Container, block: Quote) -> None:

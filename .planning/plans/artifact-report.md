@@ -381,6 +381,22 @@ is refused (`controlled_value`): a control within a control, which the client-so
 `test_report_map_snapshots.py` `test_every_number_the_map_writes_is_locked_under_its_map` (under `-3` and `-5`),
 `test_report_docx_locked_numbers.py` `test_a_block_written_from_a_stored_source_holds_no_ledger_value`.
 
+*RPT8a, part 3, the design and the run (`feature/report-locked-facts-design`):* the design chapter and the
+questionnaire appendix lock every block printing a number code wrote from the specification (a set's scale and count,
+the planned n and audience bounds) under `design:<the specification fingerprint's first 16 hex>` (Word keeps a tag to
+64 characters; the manifest pins it whole; `report_design.compose_design_sections`, P10), a list's items included
+(`BulletList.control`, stored since `aia-report-document-5`). The questionnaire appendix is the questionnaire as asked,
+a record, so its question lists are locked whole; what the person wrote alone in the chapter (research questions, item
+names, the brief) stays as it is. The method chapter and the methodology rules go under
+`run:<run>` through `domain/report/controls.py` `under` / `under_blocks` (every block printing a digit, holding no
+ledger value and no control yet; P11), applied where `report_chapters` assembles them; the methodology deviation the internal report
+prints is under the run too. The client report locks none of these (`compose_design_sections(locked=False)`, its method
+chapter as it was): it never opens in the editor, and a tag would carry the run id or the specification's fingerprint
+into the client's file, which holds no identifier (review of #857). P12's refused count is the client report's and is
+left as it is. The contracts move (`aia-internal-report-18`, `aia-contextual-report-14`; the client report unchanged). Tests:
+`test_report_design.py` `test_the_designs_numbers_print_under_the_specification_it_came_from`, `test_report_controls.py`,
+and `test_analysis_executor.py`'s composed report carrying `design:` and `run:` controls.
+
 **RPT9. The Lead in the document.** The Lead, on its own model (STUDY_LEAD), edits the same document
 through the edit operations:
 - **Suggestions (default, Q56, Q13):** each edit lands in the text as a tracked change under the Lead's
