@@ -351,7 +351,8 @@ DROPS_TICKET = {
         "request>uri": {
             "filter": "query",
             "actions": [
-                {"type": "delete", "parameter": name} for name in ("ticket", "md5", "expires")
+                {"type": "delete", "parameter": name}
+                for name in ("ticket", "md5", "expires", "token")
             ],
         }
     },
@@ -577,3 +578,44 @@ def test_a_non_404_refusal_of_the_editors_paths_is_refused(routes: Any) -> None:
     docs.insert(-1, blocks)
     problems = routes.check(_with_docs_site(good(), docs))
     assert any("is refused, and the editor needs it" in p for p in problems)
+
+
+def _product_log(config: dict[str, Any], encoder: dict[str, Any]) -> dict[str, Any]:
+    config["apps"]["http"]["servers"]["srv0"]["logs"] = {
+        "logger_names": {"aia.example.test": ["log0"]}
+    }
+    config["logging"] = {"logs": {"log0": {"encoder": encoder}}}
+    return config
+
+
+DROPS_TOKEN = {
+    "format": "filter",
+    "fields": {
+        "request>uri": {"filter": "query", "actions": [{"type": "delete", "parameter": "token"}]}
+    },
+    "wrap": {"format": "json"},
+}
+
+
+def test_a_product_log_that_drops_the_editors_token_passes(routes: Any) -> None:
+    assert routes.check(_product_log(good(), DROPS_TOKEN)) == []
+
+
+@pytest.mark.parametrize(
+    "encoder",
+    [{"format": "json"}, {**DROPS_TOKEN, "fields": {"request>uri": {"filter": "query"}}}],
+)
+def test_a_product_log_that_writes_the_editors_token_is_refused(
+    routes: Any, encoder: dict[str, Any]
+) -> None:
+    """The report editor's document and callback URLs carry a bearer token in their query
+    (artifact-report RPT8c): the product's access log must never write it."""
+    problems = routes.check(_product_log(good(), encoder))
+    assert any("writes the report editor's token" in p for p in problems)
+
+
+def test_an_error_log_that_writes_the_editors_token_is_refused(routes: Any) -> None:
+    config = good()
+    config["logging"] = {"logs": {"default": {"encoder": {"format": "json"}}}}
+    problems = routes.check(config)
+    assert any("writes the report editor's token" in p for p in problems)
