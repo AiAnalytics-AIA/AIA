@@ -18,8 +18,6 @@ from collections.abc import Callable
 from typing import Any, Final
 from urllib.parse import unquote, urlsplit
 
-import urllib3
-
 __all__ = [
     "MAX_SAVE_BYTES",
     "LiveSaveFetcher",
@@ -69,7 +67,10 @@ def allowed(url: str, origin: str) -> bool:
 
 
 class LiveSaveFetcher:
-    """:data:`SaveFetcher` over ``urllib3``: no retry, no redirect, a bounded read."""
+    """:data:`SaveFetcher` over ``urllib3``: no retry, no redirect, a bounded read.
+
+    ``urllib3`` is imported here, as the other live transports do: it comes with the ``bedrock``
+    extra the images install, and the API's import path must not need it."""
 
     def __init__(
         self,
@@ -80,6 +81,9 @@ class LiveSaveFetcher:
         read_timeout_s: float = 60.0,
         ca_certs: str | None = None,
     ) -> None:
+        import urllib3
+
+        self._urllib3 = urllib3
         self._origin = origin
         self._max = max_bytes
         self._timeout = urllib3.Timeout(connect=connect_timeout_s, read=read_timeout_s)
@@ -100,7 +104,7 @@ class LiveSaveFetcher:
                 redirect=False,
                 timeout=self._timeout,
             )
-        except urllib3.exceptions.HTTPError as exc:
+        except self._urllib3.exceptions.HTTPError as exc:
             raise SaveFetchRefused("document_server_unreachable") from exc
         try:
             if response.status == 403:
