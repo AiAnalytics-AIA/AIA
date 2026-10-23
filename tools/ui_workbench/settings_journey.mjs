@@ -59,8 +59,16 @@ try {
     if (id === "deep_research") await page.locator("[data-dr-setting]").first().waitFor({ state: "attached" });
     if (id === "methodology") await page.locator("[data-methodology-editor]").waitFor(); // an administrator opens on the editor
     // Until #839 and #850 are deployed, both boards say so where they are met, never a fabricated state.
-    if (id === "system") { await page.locator("[data-system-readiness] [data-not-yet]").waitFor(); await page.locator("[data-system-errors] [data-not-yet]").waitFor(); }
-    if (id === "data") { await page.locator("[data-kept-records] [data-not-yet]").waitFor(); assert(await page.locator("[data-client-delete] select option").count() > 1, "data: the clients to choose from"); }
+    // Before #839 / #850 are deployed each board says it is not in AIA yet; after, it reads its route.
+    // Either way it settles on one of the states it can say, never stays loading or invents one.
+    if (id === "system") {
+      await page.locator("[data-system-readiness] :is([data-not-yet], [data-smoke-check], [data-smoke-none], [role=alert])").first().waitFor();
+      await page.locator("[data-system-errors] :is([data-not-yet], [data-glitchtip-unconfigured], h4, [role=alert])").first().waitFor();
+    }
+    if (id === "data") {
+      await page.locator("[data-kept-records] :is([data-not-yet], table, [role=alert])").first().waitFor();
+      assert(await page.locator("[data-client-delete] select option").count() > 1, "data: the clients to choose from");
+    }
     await widths(`tab ${id}`); await screenshot(id);
   }
   checks.push("All ten settings tabs load and fit desktop/tablet/phone without page overflow; each names its purpose under its name at 1440");
