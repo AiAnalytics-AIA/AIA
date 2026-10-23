@@ -10,12 +10,19 @@ this URL for this version); the scope is the one the token's session names, reso
 ScopeResolver for the person who opened it.
 
 Both answer 404 until the editor is configured (``Settings.report_editor_on``: the editor's
-origin, its secret and AIA's public origin, ``AIA_ONLYOFFICE_CALLBACK_BASE``). The callback, which
-stores a save, is the next chunk's.
+origin, its secret and AIA's public origin, ``AIA_ONLYOFFICE_CALLBACK_BASE``).
+``POST …/report/editor/callback`` is the Document Server telling AIA of a session: in use (1),
+saved (6, the timed autosave or a person's save; 2, everyone left), left unchanged (4), or a save
+it failed (3, 7). A save is fetched from the editor's own origin and stored as the line's next
+version (``report_editor_saves``). It answers ``{"error": 0}`` once done and ``{"error": 1}``
+otherwise, so the Document Server tries again; what was not stored is kept on the session for the
+pane to say.
 """
 
 from __future__ import annotations
 
+import json
+import logging
 from datetime import UTC, datetime
 from typing import Annotated, Any, Literal
 
@@ -29,14 +36,17 @@ from aia_core.application.report_editor import (
     ReportEditor,
     session_by_key,
 )
+from aia_core.application.report_editor_saves import SaveNotStored, store_save
 from aia_core.application.research import research_artifacts
 from aia_core.application.scope import AuthenticatedPrincipal
+from aia_core.domain.report.editor import CallbackAction, callback_action
 from aia_core.domain.scope import ScopeDenied, StudyContext
-from fastapi import APIRouter, Header, HTTPException, Query, Request, Response
+from fastapi import APIRouter, Depends, Header, HTTPException, Query, Request, Response
 from pydantic import BaseModel, ConfigDict, Field
 
 from ..dependencies import (
     ArtifactStoreDep,
+    EditorFetcherDep,
     ResolverDep,
     SessionDep,
     SettingsDep,
@@ -200,6 +210,8 @@ def open_report_editor(
         "line_id": opened.line_id,
         "koncept": opened.version.koncept,
         "version_artifact_id": opened.version.artifact_id,
+        #: Why the session's newest save was not stored, for the pane to say; null when none.
+        "problem": opened.session.last_problem,
         "lines": [
             {
                 "line_id": h.line_id,
@@ -214,14 +226,16 @@ def open_report_editor(
 
 
 def _session_scope(
-    found: EditorSession | None, resolver: Any
+    found: EditorSession | None, resolver: Any, *, as_user: str | None = None
 ) -> tuple[EditorSession, StudyContext]:
-    """The session a Document Server request names, and the scope of the person who opened it,
-    in the session's own study; 404 for a key no session has, or a person no longer a member."""
+    """The session a Document Server request names, and the scope of ``as_user`` (one of the
+    people a config was signed for; else the person who opened it), in the session's own study;
+    404 for a key no session has, or a person no longer a member."""
     if found is None:
         raise _not_found("editor_session")
+    user = as_user if as_user in found.users else found.opened_by
     principal = AuthenticatedPrincipal(
-        user_id=found.opened_by, organization_id=found.organization_id, request_id="onlyoffice"
+        user_id=user, organization_id=found.organization_id, request_id="onlyoffice"
     )
     try:
         return found, resolver.study_context(principal, study_id=found.study_id)
@@ -278,3 +292,100 @@ def report_editor_document(
         media_type=INTERNAL_REPORT_MEDIA_TYPE,
         headers={"Cache-Control": "no-store"},
     )
+
+
+#: Why a callback's save was not stored, logged without the URL (it carries the file link).
+log = logging.getLogger("aia.report_editor")
+
+
+async def _callback_body(request: Request) -> dict[str, Any]:
+    """The callback's JSON object, or ``{}`` for anything else: read in the route, so a body it
+    cannot parse is refused as unsigned (403, or 404 while the editor is off), never 422. Caddy
+    bounds its size."""
+    try:
+        parsed = json.loads(await request.body())
+    except (ValueError, RecursionError):  # a UnicodeDecodeError is a ValueError
+        return {}
+    return parsed if isinstance(parsed, dict) else {}
+
+
+CallbackBody = Annotated[dict[str, Any], Depends(_callback_body)]
+
+
+@document_server.post(
+    "/callback",
+    summary="The Document Server's callback for an editing session",
+    responses={403: {"model": ErrorResponse}},
+)
+def report_editor_callback(
+    session: SessionDep,
+    store: ArtifactStoreDep,
+    settings: SettingsDep,
+    resolver: ResolverDep,
+    fetcher: EditorFetcherDep,
+    body: CallbackBody,
+    token: TokenQuery = None,
+    authorization: Annotated[str | None, Header()] = None,
+) -> dict[str, int]:
+    """A session's news, as ONLYOFFICE posts it: its JWT (in the body or the header), the URL
+    token naming this session, and the signed key the token's. Only signed fields are read."""
+    tokens = _tokens(settings)
+    now = _now()
+    try:
+        if token is None or len(token) > MAX_TOKEN:
+            raise TokenRefused("no token, or not one")
+        payload = tokens.read_callback(body.get("token"), bearer(authorization))
+        claim = tokens.read_url(token, "callback", now=now)
+    except TokenRefused as exc:
+        raise HTTPException(403, detail={"code": "editor_token_refused"}) from exc
+    if payload.get("key") != claim.document_key:
+        raise HTTPException(403, detail={"code": "editor_token_refused"})
+    try:
+        action = callback_action(int(payload.get("status", -1)))
+    except (TypeError, ValueError):
+        return {"error": 1}
+    users = payload.get("users")
+    first = users[0] if isinstance(users, list) and users and isinstance(users[0], str) else None
+    # A version is stored as its first author's, when a config was signed for them.
+    found, scope = _session_scope(
+        session_by_key(session, claim.document_key), resolver, as_user=first
+    )
+    if found.closed_at is not None:
+        # A session ends once (status 2 or 4, or idle): a late or replayed callback for it
+        # changes nothing, and a save it carries is not stored over a newer session's.
+        if action in (CallbackAction.STORE, CallbackAction.STORE_AND_CLOSE):
+            log.warning("report editor save not stored", extra={"reason": "session_closed"})
+            return {"error": 1}
+        return {"error": 0}
+    editor = ReportEditor(session, scope)
+    if action is CallbackAction.OPEN:
+        editor.keep_open(found, now=now)
+    elif action is CallbackAction.CLOSE:
+        editor.close(found, now=now, reason="unchanged")
+    elif action is CallbackAction.LOG:
+        editor.note_problem(found, now=now, problem="document_server_save_failed")
+        log.warning("report editor save failed", extra={"status": payload.get("status")})
+    else:
+        url = payload.get("url")
+        if not isinstance(users, list) or not isinstance(url, str):
+            return {"error": 1}
+        try:
+            store_save(
+                session,
+                scope,
+                store,
+                found,
+                url=url,
+                origin=settings.onlyoffice_url,
+                fetcher=fetcher,
+                authors=[str(u) for u in users],
+                now=now,
+            )
+        except SaveNotStored as refused:
+            session.commit()  # the problem is kept for the pane
+            log.warning("report editor save not stored", extra={"reason": refused.reason})
+            return {"error": 1}
+        if action is CallbackAction.STORE_AND_CLOSE:
+            editor.close(found, now=now, reason="saved")
+    session.commit()
+    return {"error": 0}

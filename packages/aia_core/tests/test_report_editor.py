@@ -131,6 +131,7 @@ def editor_world(session: Any, scoped: Any) -> Any:
     world = World()
     world.session, world.scoped, world.scope = session, scoped, scope  # type: ignore[attr-defined]
     world.compose, world.save = compose, save  # type: ignore[attr-defined]
+    world.store = store  # type: ignore[attr-defined]
     world.editor = ReportEditor(session, scope)  # type: ignore[attr-defined]
     return world
 
@@ -356,3 +357,89 @@ def test_two_first_opens_of_a_new_line_meet_in_one_session(
         .where(ReportEditorSessionRow.closed_at.is_(None))
     )
     assert open_rows == 1
+
+
+def _docx(value: str) -> bytes:
+    import io
+    import zipfile
+
+    w = "http://schemas.openxmlformats.org/wordprocessingml/2006/main"
+    body = (
+        f'<w:document xmlns:w="{w}"><w:body><w:p><w:sdt><w:sdtPr><w:tag w:val="trust_total"/>'
+        f"</w:sdtPr><w:sdtContent><w:r><w:t>{value}</w:t></w:r></w:sdtContent></w:sdt></w:p>"
+        "</w:body></w:document>"
+    )
+    out = io.BytesIO()
+    with zipfile.ZipFile(out, "w") as z:
+        z.writestr(zipfile.ZipInfo("word/document.xml", (2026, 10, 23, 0, 0, 0)), body)
+    return out.getvalue()
+
+
+def test_two_saves_of_one_line_at_once_take_the_next_two_koncepts(
+    editor_world: Any, engine: Any, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Two force-saves of one session arrive together. The first is held after it stored its
+    koncept, holding the line; the second must wait for it and store the next one, never number
+    the same koncept (uq_report_editor_versions_koncept, a 500).
+
+    PostgreSQL only: the guard is a row lock, which SQLite does not take."""
+    import threading
+    import time
+
+    from aia_core.application.report_editor_saves import store_save
+    from aia_core.infrastructure.db import create_session_factory
+
+    if engine.dialect.name != "postgresql":
+        pytest.skip("row locks are PostgreSQL's; SQLite serialises writers")
+    origin = "https://docs.aia.example.test"
+    files = {f"{origin}/cache/files/{n}.docx": _docx(f"{n} %") for n in (50, 60)}
+    composed = editor_world.compose(data=_docx("42 %"))
+    opened = editor_world.editor.open(composed, run_id="RUN-1", variant="internal", now=T0)
+    editor_world.session.commit()
+    first_in, first_go = threading.Event(), threading.Event()
+    real = ReportEditorRepository.add_version
+
+    def held(self: ReportEditorRepository, **kw: Any) -> Any:
+        added = real(self, **kw)
+        if not first_in.is_set():
+            first_in.set()
+            assert first_go.wait(30)
+        return added
+
+    monkeypatch.setattr(ReportEditorRepository, "add_version", held)
+    factory = create_session_factory(engine)
+    koncepts: list[int] = []
+    errors: list[BaseException] = []
+
+    def save(url: str) -> None:
+        try:
+            with factory() as own:
+                scope = editor_world.scoped.scope()
+                stored = store_save(
+                    own,
+                    scope,
+                    editor_world.store,
+                    opened.session,
+                    url=url,
+                    origin=origin,
+                    fetcher=files.__getitem__,
+                    authors=[scope.actor_id],
+                    now=T0,
+                )
+                own.commit()
+                koncepts.append(stored.version.koncept)
+        except BaseException as exc:  # reported below, never swallowed
+            errors.append(exc)
+
+    one, two = list(files)
+    a = threading.Thread(target=save, args=(one,))
+    a.start()
+    assert first_in.wait(30)
+    b = threading.Thread(target=save, args=(two,))
+    b.start()
+    time.sleep(1.0)  # room for the second to race ahead if nothing held it
+    first_go.set()
+    a.join(30)
+    b.join(30)
+    assert not errors, errors
+    assert sorted(koncepts) == [2, 3]
