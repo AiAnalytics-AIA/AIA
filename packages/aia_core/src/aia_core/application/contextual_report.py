@@ -98,7 +98,9 @@ from aia_core.infrastructure.scope_repository import ScopeRepository
 from aia_core.infrastructure.storage import ArtifactStore, IntegrityError, ObjectNotFound
 
 # -10: a ledger number in prose, a table or a caption is a locked, tagged control (RPT8a, part 1).
-CONTEXT_REPORT_CONTRACT = "aia-contextual-report-10"
+# -12: KPI tiles, figures, the evidence appendix and suppressed counts locked too (RPT8a, part 2;
+# -11 is the brief's goal, F19).
+CONTEXT_REPORT_CONTRACT = "aia-contextual-report-12"
 #: The sealed Deep Research bundle the literature chapter is read from.
 BUNDLE_ARTIFACT = ARTIFACT_TYPES["bundle"]
 # Stored beside the run's own report, on the Study's design project (ADR 0016).

@@ -362,7 +362,7 @@ export type LabelItem = { text: string; x: number; y: number; font: string; prio
  * higher PRIMARY objects), each skipped when its box would overlap one already placed
  * (`placeLabels66`). `measure` is the canvas's text width in that font.
  */
-export function placeLabels(items: LabelItem[], measure: (text: string, font: string) => number): LabelItem[] {
+function placeLabels(items: LabelItem[], measure: (text: string, font: string) => number): LabelItem[] {
   const boxes: number[][] = [];
   const placed: LabelItem[] = [];
   for (const it of [...items].sort((a, b) => b.prio - a.prio)) {
@@ -570,7 +570,7 @@ export function mapStatements(map: ObjectMapArtifact, texts: StatementTexts): Ma
 
 /** The root mean square of the distances between the drawn objects (frame units), the unit the
  *  stored uncertainty radius is given in. */
-export function rmsDistance(points: { x: number; y: number }[]): number {
+function rmsDistance(points: { x: number; y: number }[]): number {
   let sum = 0, count = 0;
   for (let a = 0; a < points.length; a++) {
     for (let b = a + 1; b < points.length; b++) { sum += (points[a].x - points[b].x) ** 2 + (points[a].y - points[b].y) ** 2; count++; }

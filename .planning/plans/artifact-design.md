@@ -242,6 +242,18 @@ untested. Depends on `assumptions-and-open-answer-coding#AOC1`.
   narrow column (a container query, so a narrow workbench pane too) it is now its own glyph at 44 px
   (`proposal_prompt_journey.mjs`). The undrawn `n` props remain, `StepSection`'s callers' to remove.
 
+- **F-DSN-3.** Saving Návrh's follow-up answers twice puts the same "Doplnění k analýze" block in the
+  brief twice. Anchor: `apps/web/src/research/plan.ts:189 @ 491024f1` (`answerFollowUps` appends to
+  `briefing.what_is_known`, as the classic did), with `PlanStep.tsx`'s submit clearing the fields
+  afterwards, so the same answers can be typed and saved again. Reproduction: answer a follow-up,
+  "Uložit odpovědi", type the same answer, save again; `what_is_known` holds the block twice.
+  Consequence: a duplicated block in the brief the Lead and the analysis read (a reworded answer
+  sits beside the old one). Smallest fix: `answerFollowUps` replaces its own earlier "Doplnění k
+  analýze" block instead of appending, recorded as a parity deviation (a product call; parity kept
+  for now, the coordinator 2026-10-22). Test: `plan.test.ts`, the same answers applied twice leave
+  one block. Keeping the saved answers in their fields was tried and dropped: positional answers
+  under changed questions and a refused save read as saved (code review).
+
 ## 8. Owner questions
 
 None: D-44 settled the chain's reduction; MVPQ-02 the assumptions.

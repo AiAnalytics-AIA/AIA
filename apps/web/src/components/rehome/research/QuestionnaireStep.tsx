@@ -352,7 +352,6 @@ export function QuestionnaireStep() {
           <section className={CARD} aria-labelledby="q-final">
             <h2 id="q-final" className="text-base font-semibold">{t("research.questionnaire.finalTitle")}</h2>
             <p className="mt-1 text-[13px] leading-5 text-ink-muted">{t("research.questionnaire.finalIntro")}</p>
-            <p className="mt-1 text-xs text-ink-muted">{t("research.questionnaire.optimizeHelp")}</p>
             <details className="mt-3 rounded-control border border-border bg-surface px-3 py-2" open>
               <summary className="cursor-pointer text-[13px] font-medium">{t("research.questionnaire.deepTitle")}</summary>
               <div className="mt-2"><DeepResearchPanel /></div>
@@ -551,7 +550,7 @@ function Preview({ items }: { items: PreviewItem[] }) {
           items.map((it) =>
             it.kind === "question" ? (
               <li key={it.index} className={CARD}>
-                <div className="text-xs text-ink-muted">{tv("research.questionnaire.previewQuestion", { n: it.index })}</div>
+                <div className="text-xs text-ink-muted">{tv("research.questionnaire.previewQuestion", { n: it.number })}</div>
                 <div className="mt-0.5 text-[15px] font-medium leading-6">{it.text}</div>
                 {it.options.length ? (
                   <div className="mt-3 flex flex-col gap-1.5">
@@ -570,7 +569,7 @@ function Preview({ items }: { items: PreviewItem[] }) {
               </li>
             ) : (
               <li key={it.index} className={`${CARD} border-t-[3px] border-t-hue-violet`}>
-                <div className="text-xs text-ink-muted">{tv("research.questionnaire.previewSet", { n: it.index, title: it.title })}</div>
+                <div className="text-xs text-ink-muted">{tv("research.questionnaire.previewSet", { n: it.number, title: it.title })}</div>
                 {it.rows.slice(0, 2).map((r, i) => (
                   <div key={i} className="mt-3">
                     <div className="text-sm font-medium">{r}</div>

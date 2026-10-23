@@ -52,7 +52,7 @@ export const needsRepair = (step: ResearchStep): boolean =>
 /** The states of a step that has not started. Once its run has ended it never will: the engine
  *  claims no step of a finished run (PC14: a failed run's untouched modules read "Připraveno"). */
 const NOT_STARTED = new Set(["PENDING", "RUNNABLE", "BLOCKED"]);
-export const willNotRun = (step: Pick<ResearchStep, "status">, runEnded: boolean): boolean =>
+const willNotRun = (step: Pick<ResearchStep, "status">, runEnded: boolean): boolean =>
   runEnded && NOT_STARTED.has(step.status);
 
 export function stepTone(step: ResearchStep, runEnded = false): Tone {
@@ -173,7 +173,7 @@ export function reportHolds(run: ResearchRun): ReportHold[] {
 /** Origins that are never evidence: the fictional fixture, and AI respondents on fictional personas. */
 const SYNTHETIC_ORIGINS: ReadonlySet<string> = new Set(["SYNTHETIC_FIXTURE", "SYNTHETIC_AI_FICTIONAL"]);
 /** Origins of modelled evidence: AI respondents built from the run's own population (ADR 0024). */
-export const MODELLED_ORIGINS: ReadonlySet<string> = new Set(["MODELLED_AI_PANEL"]);
+const MODELLED_ORIGINS: ReadonlySet<string> = new Set(["MODELLED_AI_PANEL"]);
 /** What every modelled number says beside it (ADR 0024 §7); never "respondents said" or "measured". */
 export const MODELLED_DISCLOSURE = "modelováno: AI respondenti z populace";
 
@@ -378,14 +378,27 @@ export function fidelityRefusal(result: QuestionResult): string | null {
   return typeof rating.reason === "string" ? rating.reason : "";
 }
 
-export function resultTable(id: string, result: QuestionResult, topBox = 2, at: StoredPlaces = UNIT_PLACES): ResultTable {
+/** `ids` with the ones `order` names first, in its order, then the rest as they came. */
+export function inOrder<T extends string>(ids: readonly T[], order: readonly string[]): T[] {
+  const named = new Set(order);
+  return [...order.filter((id): id is T => ids.includes(id as T)), ...ids.filter((id) => !named.has(id))];
+}
+
+/**
+ * `options`: the question's options in the order the specification asks them. The stored aggregate
+ * is canonical JSON, its answers sorted by name, so without them a frequency scale reads out of
+ * order ("Jeden až dva dny" before "Každý den"); an answer the options do not name keeps its place
+ * after them.
+ */
+export function resultTable(id: string, result: QuestionResult, topBox = 2, at: StoredPlaces = UNIT_PLACES, options: readonly string[] = []): ResultTable {
   const suppressed = result.support_status === "SUPPRESS";
   const hide = (value: string | null) => (suppressed ? null : value);
   const rows: ResultRow[] = [];
   if (result.typ === "vyber" || result.typ === "multi") {
     const pct = (result.celkem_pct ?? {}) as Record<string, number>;
     const intervals = (result.intervaly_95 ?? {}) as Record<string, Interval>;
-    for (const [label, value] of Object.entries(pct)) {
+    for (const label of inOrder(Object.keys(pct), options)) {
+      const value = pct[label];
       const iv = intervals[label];
       rows.push({
         label,

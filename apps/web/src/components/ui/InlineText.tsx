@@ -207,6 +207,8 @@ export function InlineText({
       "aria-invalid": problem ? true : undefined,
       "aria-describedby": problem ? errorId : undefined,
       autoFocus: true,
+      // The value's own empty words stay while it is typed into.
+      placeholder,
       value: draft,
       onFocus: (e: { currentTarget: HTMLInputElement | HTMLTextAreaElement }) => e.currentTarget.select(),
       onKeyDown: onKey,

@@ -27,6 +27,7 @@ from docx.oxml.ns import qn
 from aia_core.domain.report.model import EvidenceAppendix, ReportDocument
 from aia_core.domain.report.outline import build_outline
 from aia_core.domain.report.print_tokens import FONTS
+from aia_core.domain.report.printable import printable
 from aia_core.domain.report.validation import require_valid
 from aia_core.infrastructure.report_docx import layout
 from aia_core.infrastructure.report_docx.blocks import chapter_heading
@@ -50,6 +51,7 @@ class DocxRenderer:
     media_type: str = "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
 
     def render(self, doc: ReportDocument) -> bytes:
+        doc = printable(doc)
         require_valid(doc)
         document = docx.Document()
         install_styles(document)

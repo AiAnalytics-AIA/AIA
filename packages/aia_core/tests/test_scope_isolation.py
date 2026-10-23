@@ -1047,3 +1047,83 @@ def test_regression_a_study_created_later_is_reachable_without_anyone_granting_i
     )
     assert second.study_id in resolver.accessible_studies(principal)
     assert world["acme_study"].study_id in resolver.accessible_studies(principal)
+
+
+# --------------------------------------------------------------------------- #
+# The OWNER role (security-audit-2026-10 S14, the product owner's answer (b))
+# --------------------------------------------------------------------------- #
+
+
+def _admin(scope_repo: ScopeRepository, resolver: ScopeResolver, world: dict[str, Any]) -> Any:
+    member = scope_repo.add_member(
+        world["admin"], email="admin@art-chain.io", role=OrganizationRole.ADMIN
+    )
+    return resolver.organization_context(world["principal"](member.user_id))
+
+
+def _role(scope_repo: ScopeRepository, world: dict[str, Any], email: str) -> str:
+    return next(
+        m["organization_role"] for m in scope_repo.members(world["admin"]) if m["email"] == email
+    )
+
+
+def test_an_admin_neither_grants_nor_removes_owner(
+    scope_repo: ScopeRepository, resolver: ScopeResolver, world: dict[str, Any]
+) -> None:
+    admin = _admin(scope_repo, resolver, world)
+    with pytest.raises(ScopeDenied) as granted:
+        scope_repo.add_member(admin, email="admin@art-chain.io", role=OrganizationRole.OWNER)
+    assert granted.value.reason == "owner_only"
+    with pytest.raises(ScopeDenied) as removed:
+        scope_repo.add_member(admin, email="owner@art-chain.io", role=OrganizationRole.MEMBER)
+    assert removed.value.reason == "owner_only"
+    with pytest.raises(ScopeDenied):
+        scope_repo.deactivate_user(admin, user_id=world["owner_id"])
+    assert _role(scope_repo, world, "owner@art-chain.io") == OrganizationRole.OWNER.value
+
+
+def test_the_last_owner_is_never_demoted_or_deactivated(
+    scope_repo: ScopeRepository, world: dict[str, Any]
+) -> None:
+    owner = world["admin"]  # the organization's one OWNER
+    with pytest.raises(ScopeDenied) as demoted:
+        scope_repo.add_member(owner, email="owner@art-chain.io", role=OrganizationRole.ADMIN)
+    assert demoted.value.reason == "last_owner"
+    with pytest.raises(ScopeDenied) as deactivated:
+        scope_repo.deactivate_user(owner, user_id=world["owner_id"])
+    assert deactivated.value.reason == "last_owner"
+
+
+def test_an_owner_grants_and_removes_owner_and_each_change_is_audited(
+    scope_repo: ScopeRepository, world: dict[str, Any]
+) -> None:
+    owner = world["admin"]
+    scope_repo.add_member(owner, email="researcher@art-chain.io", role=OrganizationRole.OWNER)
+    # Two owners now: the first may step down.
+    scope_repo.add_member(owner, email="owner@art-chain.io", role=OrganizationRole.ADMIN)
+    assert _role(scope_repo, world, "owner@art-chain.io") == OrganizationRole.ADMIN.value
+    changes = [
+        (r.subject_user_id, r.role, r.payload)
+        for r in scope_repo._session.scalars(
+            select(AccessAuditRow).where(AccessAuditRow.action == "MEMBER_ADDED")
+        )
+        if r.role in (OrganizationRole.OWNER.value, OrganizationRole.ADMIN.value)
+        and r.subject_user_id in (world["researcher"], world["owner_id"])
+    ]
+    assert changes[-2:] == [
+        (world["researcher"], "OWNER", {"from": "MEMBER", "to": "OWNER"}),
+        (world["owner_id"], "ADMIN", {"from": "OWNER", "to": "ADMIN"}),
+    ]
+
+
+def test_a_deactivated_owner_does_not_count_toward_keeping_one(
+    scope_repo: ScopeRepository, world: dict[str, Any]
+) -> None:
+    owner = world["admin"]
+    second = scope_repo.add_member(
+        owner, email="researcher@art-chain.io", role=OrganizationRole.OWNER
+    )
+    scope_repo.deactivate_user(owner, user_id=second.user_id)
+    with pytest.raises(ScopeDenied) as demoted:
+        scope_repo.add_member(owner, email="owner@art-chain.io", role=OrganizationRole.ADMIN)
+    assert demoted.value.reason == "last_owner"

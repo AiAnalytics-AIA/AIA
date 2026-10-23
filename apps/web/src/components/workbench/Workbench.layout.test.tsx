@@ -11,6 +11,7 @@ import { useContext, useEffect } from "react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import type { ResearchProject } from "@/research/model";
+import { LEAD_REVEAL } from "@/lib/lead";
 import { ResearchStore } from "@/research/store";
 import { TEST_FRAME } from "../rehome/research/test-frame";
 import { EMPTY_PROJECT } from "../rehome/research/test-workspace";
@@ -255,12 +256,29 @@ describe("the launcher and the drawer (26c)", () => {
     expect(screen.getByRole("dialog")).toBeTruthy();
     Element.prototype.scrollIntoView = vi.fn();
     const target = document.getElementById("qedit_q1")!;
-    await waitFor(() => expect(document.activeElement).toBe(target), { timeout: 4000 });
+    await waitFor(() => expect(document.activeElement).toBe(target));
     await waitFor(() => expect(screen.queryByRole("dialog")).toBeNull());
     expect(target.getAttribute("tabindex")).toBe("-1");
     fireEvent.click(screen.getByRole("button", { name: "Zpět k Vedoucímu" }));
     expect(screen.getByRole("dialog")).toBeTruthy();
     await waitFor(() => expect(document.activeElement?.id).toBe("composer"));
+  });
+
+  it("a focus on what is not on screen asks its screen once to show it (a target in a closed window)", async () => {
+    leadReads = [leadState({ busy: true, turns: [leadTurn("T1", 1)] }), leadState({ turns: [leadTurn("T1", 1), leadTurn("T2", 2, [{ op: "focus", target: "object:hudba/hudba-o2" }])] })];
+    const asked: unknown[] = [];
+    const on = (e: Event) => asked.push((e as CustomEvent<unknown>).detail);
+    window.addEventListener(LEAD_REVEAL, on);
+    try {
+      bench();
+      setWidth(1440);
+      await waitFor(() => expect(asked).toEqual(["object:hudba/hudba-o2"]), { timeout: 4000 });
+      // The look goes on without asking again.
+      await new Promise((resolve) => setTimeout(resolve, 400));
+      expect(asked).toHaveLength(1);
+    } finally {
+      window.removeEventListener(LEAD_REVEAL, on);
+    }
   });
 
   it("the launcher says whether the Lead answers: unknown until the worker reports ready, never on", async () => {
@@ -379,7 +397,7 @@ describe("the item inspector", () => {
   it("opens what the Lead's inspect names on this stage, as a click would (research-lead-workbench 14)", async () => {
     leadReads = [leadState({ busy: true, turns: [leadTurn("T1", 1)] }), leadState({ turns: [leadTurn("T1", 1), leadTurn("T2", 2, [{ op: "inspect", target: "question:q1" }])] })];
     bench();
-    await waitFor(() => expect(document.querySelector("[data-item-inspector]")?.getAttribute("data-item-inspector")).toBe("question:q1"), { timeout: 4000 });
+    await waitFor(() => expect(document.querySelector("[data-item-inspector]")?.getAttribute("data-item-inspector")).toBe("question:q1"));
     expect(push).not.toHaveBeenCalled();
     // Named by its words on the page, not by its id.
     await waitFor(() => expect(document.querySelector("[data-item-inspector]")!.textContent).toContain("Jak často pijete čaj?"));
@@ -391,7 +409,7 @@ describe("the item inspector", () => {
     push.mockClear();
     leadReads = [leadState({ busy: true, turns: [leadTurn("T1", 1)] }), leadState({ turns: [leadTurn("T1", 1), leadTurn("T2", 2, [{ op: "inspect", target: "rq:rq_1" }])] })];
     bench();
-    await waitFor(() => expect(push).toHaveBeenCalledTimes(1), { timeout: 4000 });
+    await waitFor(() => expect(push).toHaveBeenCalledTimes(1));
     expect(push.mock.calls[0][0]).toMatch(/\/plan$/);
     expect(document.querySelector("[data-item-inspector]")).toBeNull();
     // A route change remounts the workbench on Návrh: the drawer opens there.
@@ -406,12 +424,18 @@ describe("the item inspector", () => {
 
   it("leaves nothing pending when a leave guard stops the Lead's move to the inspected stage", async () => {
     push.mockClear();
-    const guard = (e: MouseEvent) => e.preventDefault();
+    // Held to the guard having stopped the move: without it, a move never tried would pass as stopped.
+    let stopped = 0;
+    const guard = (e: MouseEvent) => {
+      e.preventDefault();
+      if (e.target instanceof HTMLAnchorElement) stopped += 1;
+    };
     document.addEventListener("click", guard, true);
     try {
       leadReads = [leadState({ busy: true, turns: [leadTurn("T1", 1)] }), leadState({ turns: [leadTurn("T1", 1), leadTurn("T2", 2, [{ op: "inspect", target: "rq:rq_1" }])] })];
       bench();
-      await screen.findByRole("button", { name: /^Detail: / }, { timeout: 4000 });
+      await screen.findByRole("button", { name: /^Detail: / });
+      await waitFor(() => expect(stopped).toBe(1));
     } finally {
       document.removeEventListener("click", guard, true);
     }
@@ -676,7 +700,7 @@ describe("a typed analysis retry (the PM on #744)", () => {
         <Stage />
       </Workbench>,
     );
-    fireEvent.click(await screen.findByRole("button", { name: "Zopakovat analýzu" }, { timeout: 4000 }));
+    fireEvent.click(await screen.findByRole("button", { name: "Zopakovat analýzu" }));
     await waitFor(() => expect(sent).toHaveLength(2));
     expect(sent.map((b) => b.retry_run_id)).toEqual(["RUN-a1", "RUN-b2"]);
     expect(confirm).toHaveBeenCalledWith(expect.stringMatching(/novější běh s AI analýzou/));

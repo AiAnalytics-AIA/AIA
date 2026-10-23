@@ -13,16 +13,19 @@
  * journey itself starts nothing:
  *
  *   * the -5 panel at 1440 and 1100 (the workbench's split) and 768 and 390 px, no page overflow;
- *   * every listed object carries its Lead name `object:<battery>/<object>` (SOC1/SOC2), once, and
- *     the Lead's focus selector finds that button;
+ *   * every object listed in Správa objektů (Nastavení mapy) carries its Lead name
+ *     `object:<battery>/<object>` (SOC1/SOC2), once, and the Lead's focus selector finds that button;
  *   * Objekty / Respondenti opens each map with nothing selected (#562);
- *   * full screen draws the map's five strongest relations whatever is selected (#562);
- *   * a display change raises the filter bar, which says the computation is unchanged, and
- *     "Zrušit filtr" goes back to the opening (SOC3); the listed numbers do not move;
- *   * "Co je co" names the four registers (SOC3);
- *   * every pressed control reads in a colour apart from its background, on the -5 map and on an
- *     older method's run (workbench.css base layer, #591); once #598 lands, that run says it is an
- *     older method's and draws no map;
+ *   * full screen draws Top vztahy as the page does: the selected object's five, else the map's;
+ *   * a display change (Vše in Nástroje, Absolutní in Nastavení mapy) raises the filter bar, which
+ *     says the computation is unchanged, and "Zrušit filtr" goes back to the opening (SOC3); the
+ *     listed numbers do not move;
+ *   * "Co je co" in the ⓘ box names the four registers (SOC3);
+ *   * every pressed control on the -5 map reads in a colour apart from its background (#591);
+ *   * an older method's run says so, "Mapa ze starší metody; spusťte nový běh", and draws no map, at
+ *     1440, 1100, 768 and 390 px (signed-off-sociomap-method#8, #598). No new run can pin an older
+ *     method, so on a workbench without one from before, the -5 run is read as one: its Sociomap
+ *     artifact answered in the browser with no map in it;
  *   * no page error, and no write but the stage opened (PUT …/workspace/stage); zero paid jobs.
  *
  * Screenshots and journey.json go to --out (default tmp/ui-workbench/sociomap-journey).
@@ -153,6 +156,11 @@ const panel = page.locator('[data-testid="object-map-panel"]').first();
 const canvas = page.locator('[data-testid="object-map-canvas"]').first();
 const bar = page.locator('[data-testid="object-map-filter-bar"]');
 const button = (name) => panel.getByRole("button", { name, exact: true }).first();
+// The map's controls live in its windows: the dock opens Nastavení mapy (Správa objektů from it) or Nástroje.
+const openWindow = async (name) => {
+  if (name === "Správa objektů") await button("Nastavení mapy").click();
+  await button(name).click();
+};
 const attr = (name) => canvas.getAttribute(name);
 // The newest run on -5, by its id: a later run on another method does not take its place.
 const fiveRun = (await finishedRuns()).find((r) => isFive(r.methodology.sociomap.name)) ?? null;
@@ -164,19 +172,19 @@ const openMap = async () => {
   });
 };
 
-// The map fits where it is read: its toolbar and the whole canvas in one view of the pane (the
+// The map fits where it is read: the whole stage, its dock on the canvas, in one view of the pane (the
 // workbench's artifact pane, else the window under the shell's sticky header), and a narrow canvas no
 // taller than its width calls for (the map is drawn at the scale of its shorter side).
 const fits = async (where) => {
   await panel.evaluate((n) => n.scrollIntoView({ block: "start" }));
   const fit = await page.evaluate(() => {
     const box = (s) => document.querySelector(s)?.getBoundingClientRect();
-    const bar = box('[data-testid="object-map-panel"] [role=toolbar]'), stage = box('[data-testid="object-map-stage"]');
+    const stage = box('[data-testid="object-map-stage"]');
     const sticky = [...document.querySelectorAll("header")].filter((h) => getComputedStyle(h).position === "sticky").map((h) => h.getBoundingClientRect().height);
     const pane = document.querySelector(".artbody")?.getBoundingClientRect() ?? { top: Math.max(0, ...sticky), bottom: innerHeight };
-    return { top: bar.top, bottom: stage.bottom, paneTop: pane.top, paneBottom: pane.bottom, w: stage.width, h: stage.height };
+    return { top: stage.top, bottom: stage.bottom, paneTop: pane.top, paneBottom: pane.bottom, w: stage.width, h: stage.height };
   });
-  assert(fit.bottom - fit.top <= fit.paneBottom - fit.paneTop + 1, `${where}: toolbar and canvas (${Math.round(fit.bottom - fit.top)} px) fit the pane (${Math.round(fit.paneBottom - fit.paneTop)} px)`);
+  assert(fit.bottom - fit.top <= fit.paneBottom - fit.paneTop + 1, `${where}: the stage (${Math.round(fit.bottom - fit.top)} px) fit the pane (${Math.round(fit.paneBottom - fit.paneTop)} px)`);
   assert(fit.h <= Math.max(360, 1.5 * fit.w) + 1, `${where}: the canvas (${Math.round(fit.w)} x ${Math.round(fit.h)}) is no taller than its width calls for`);
 };
 
@@ -192,7 +200,7 @@ try {
     await fits(`@${width}x${height}`);
     await shot(`${width}x${height}-sociomap`);
   }
-  check("the -5 map at 1440, 1100, 768 and 390 px and on two short screens, no page overflow, toolbar and canvas in one view");
+  check("the -5 map at 1440, 1100, 768 and 390 px and on two short screens, no page overflow, the stage in one view");
 
   // The classic layout: project memory reads the same run under the shell, where the window scrolls
   // the panel and the shell's header stays over it from lg up.
@@ -203,11 +211,12 @@ try {
   await noOverflow("sociomap in project memory @1366x768");
   await fits("project memory @1366x768");
   await shot("1366x768-memory-sociomap");
-  check("project memory's map at 1366 x 768: toolbar and canvas in one view under the sticky header");
+  check("project memory's map at 1366 x 768: the stage in one view under the sticky header");
 
   await page.setViewportSize({ width: 1440, height: 900 });
   await openMap();
   await canvas.waitFor();
+  await openWindow("Správa objektů");
   const list = panel.locator('[data-testid="object-map-panel-list"] button');
   const names = await list.evaluateAll((bs) => bs.map((b) => b.getAttribute("data-aia")));
   assert(names.length > 0 && names.every((n) => /^object:[^/]+\/[^/~]+$/.test(n ?? "")), `every listed object named: ${names}`);
@@ -217,7 +226,6 @@ try {
   }
   check("every listed object carries its Lead name once, on its button");
 
-  const opening = (await attr("data-relations")).split(" ").sort().join(" ");
   await list.first().click();
   const chosen = await attr("data-selected");
   assert(chosen, "an object is selected");
@@ -229,23 +237,27 @@ try {
   check("Objekty / Respondenti opens each map with nothing selected");
 
   await list.first().click();
+  const onPage = (await attr("data-relations")).split(" ").sort().join(" ");
   await page.evaluate(() => document.querySelector('[data-testid="object-map-stage"]').requestFullscreen());
   await page.waitForFunction(() => document.fullscreenElement !== null);
   assert.equal(await attr("data-selected"), chosen);
-  assert.equal((await attr("data-relations")).split(" ").sort().join(" "), opening, "full screen draws the map's five strongest");
+  assert.equal((await attr("data-relations")).split(" ").sort().join(" "), onPage, "full screen draws the selected object's five, as the page");
   await shot("1440-fullscreen-top");
   await page.evaluate(() => document.exitFullscreen());
   await page.waitForFunction(() => document.fullscreenElement === null);
-  check("full screen: Top vztahy is the map's five strongest whatever is selected");
+  check("full screen: Top vztahy follows the selection, as on the page");
 
   const values = () => list.evaluateAll((bs) => bs.map((b) => b.textContent));
   const before = await values();
   assert.equal(await bar.count(), 0, "no filter bar at the opening");
+  await openWindow("Nástroje");
   await button("Vše").click();
+  await openWindow("Nastavení mapy");
   await button("Absolutní").click();
   const said = await bar.innerText();
   assert(said.includes("absolutní výšky, všechny vztahy"), said);
   assert(said.includes("beze změny"), said);
+  await button("Správa objektů").click();
   assert.deepEqual(await values(), before, "the listed numbers do not move");
   await shot("1440-filter-bar");
   await bar.getByRole("button", { name: "Zrušit filtr" }).click();
@@ -253,9 +265,10 @@ try {
   assert.equal(await attr("data-norm"), "range");
   check("the filter bar names a display change, says what did not change, and Zrušit filtr goes back");
 
+  await panel.getByRole("button", { name: /^Informace o mapě/ }).click();
   const registers = await panel.locator('[data-testid="object-map-registers"] [data-register]').evaluateAll((rs) => rs.map((r) => r.getAttribute("data-register")));
   assert.deepEqual(registers, ["computed", "display", "interpretation", "external"]);
-  check("Co je co: the four registers");
+  check("Co je co in the ⓘ box: the four registers");
 
   const pressed = await panel.locator('button[aria-pressed="true"]').evaluateAll((bs) => bs.map((b) => {
     const s = getComputedStyle(b);
@@ -265,31 +278,45 @@ try {
   for (const p of pressed) assert.notEqual(p.color, p.background, `pressed "${p.text}" reads apart from its background`);
   check("every pressed control reads apart from its background");
 
-  // An older method's run: its map is drawn as before (its pressed pills read apart from their
-  // background, the workbench base layer, #591) or, once signed-off-sociomap-method#8 (#598) lands, it
-  // says so and draws nothing. Without such a run there is nothing to look at, and the journey says so.
+  // An older method's run says so and draws no map (#598). A run from before -5 when the workbench
+  // has one; else the -5 run, its Sociomap artifact answered in the browser with no map of the
+  // signed-off method (no new run can pin an older method).
   const older = await olderRun();
-  if (!older) check("no older method's run on this workbench: the older-method check not made (--prepare makes one)");
-  else {
-    await page.goto(`${base}/app/clients/${client}/research/${study}/results?run=${older.run_id}#maps`);
-    const notice = page.locator("[data-older-method]").first();
-    const stage = page.locator('[data-testid="object-map-stage"]').first();
-    await Promise.race([notice.waitFor({ timeout: 120000 }), stage.waitFor({ timeout: 120000 })]);
-    if (await notice.count()) {
-      assert((await notice.innerText()).includes("Mapa ze starší metody"));
-      check(`older method's run (${older.methodology.sociomap.name}): it says so and draws no map`);
-    } else {
-      await stage.scrollIntoViewIfNeeded();
-      const pills = await stage.locator('button[aria-pressed="true"]').evaluateAll((bs) => bs.map((b) => {
-        const s = getComputedStyle(b);
-        return { text: b.textContent, color: s.color, background: s.backgroundColor };
-      }));
-      assert(pills.length > 0, "the older map has a pressed control");
-      for (const p of pills) assert.notEqual(p.color, p.background, `older map: pressed "${p.text}" reads apart from its background`);
-      await stage.screenshot({ path: join(out, "1440-older-method.png") });
-      check(`older method's run (${older.methodology.sociomap.name}): every pressed pill reads apart from its background`);
-    }
+  const read = older ?? fiveRun;
+  if (!older) {
+    await page.route(`**/research/runs/${fiveRun.run_id}/artifacts/*`, async (route) => {
+      try {
+        const response = await route.fetch();
+        const body = await response.json();
+        for (const b of body?.payload?.sociomap?.batteries ?? []) b.maps = {};
+        // The body is decoded and shorter now: the stored length and encoding no longer describe it.
+        const headers = { ...response.headers() };
+        delete headers["content-length"];
+        delete headers["content-encoding"];
+        await route.fulfill({ status: response.status(), headers, json: body });
+      } catch {
+        // Not rewritten (an answer that is not JSON, or the page moved on): passed on as it is.
+        await route.continue().catch(() => {});
+      }
+    });
   }
+  const label = older ? older.methodology.sociomap.name : `${fiveRun.methodology.sociomap.name} read without its maps`;
+  for (const width of [1440, 1100, 768, 390]) {
+    await page.setViewportSize({ width, height: 900 });
+    // On the -5 run this is the URL already open, which a goto would not load again.
+    const target = `${base}/app/clients/${client}/research/${study}/results?run=${read.run_id}#maps`;
+    if (page.url() === target) await page.reload();
+    else await page.goto(target);
+    const notice = page.locator("[data-older-method]").first();
+    await notice.waitFor({ timeout: 120000 });
+    assert.equal(await notice.innerText(), "Mapa ze starší metody; spusťte nový běh");
+    assert.equal(await page.locator('[data-testid="object-map-stage"]').count(), 0, `@${width}: an older method's run draws no map`);
+    await noOverflow(`older method @${width}`);
+    await notice.scrollIntoViewIfNeeded();
+    await shot(`${width}-older-method`);
+  }
+  await page.unroute(`**/research/runs/${fiveRun.run_id}/artifacts/*`);
+  check(`older method's run (${label}): it says so and draws no map, at 1440, 1100, 768 and 390 px`);
 
   assert.deepEqual(errors, [], "no page error");
   // Opening a stage records it (PUT …/workspace/stage, the study's last stage); nothing else is written.

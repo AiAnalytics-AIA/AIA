@@ -4,10 +4,10 @@ chunks:
   - "[ ] FLD1. Sběr dat's contract as data: view operations, pointable ids (run, step, cost line, quality flag) and V2's interaction contract"
   - "[x] FLD2. The run head and its steps as V2 draws them: done over target, status in words, each step marked deterministic or worker, from the run's steps"
   - "[ ] FLD3. Progress from the fieldwork event contract and the per-respondent checkpoint: answered respondents, blocks in flight, waits and parks in words"
-  - "[ ] FLD4. Náklady: spent, reserved, the run's ceiling and the study's remainder (no names on a run, Q76 (c))"
+  - "[x] FLD4. Náklady: spent, reserved, the run's ceiling and the study's remainder (no names on a run, Q76 (c))"
   - "[x] FLD4a. The run's spend over HTTP: GET …/research/runs/{id} answers spent, held and uncertain calls by the per-person fold's rules, whoever each charge is booked to"
   - "[x] FLD4b. Náklady on Průběh: spent and held beside the study's remainder; an uncertain call shown apart, never as zero"
-  - "[ ] FLD4d. The run's ceiling on Náklady: a run records the cost ceiling it started under (today only a spend confirmation's ledger row holds it), and the card shows it beside the spend"
+  - "[x] FLD4d. The run's ceiling on Náklady: a run records the cost ceiling it started under (today only a spend confirmation's ledger row holds it), and the card shows it beside the spend"
   - "[x] FLD4c. Who spent it: decided, no names on a run (Q76 (c), the product owner, 2026-10-22); per-person spend stays in Settings (Q40)"
   - "[ ] FLD5. Kvalita a zásah: the run's QC warnings and straight-liner flags, keep or flag; replacement shown unavailable until its method is set"
   - "[ ] FLD6. Spuštění: the Start stays with its gates and one spend dialog; the run also a Lead card; retries, resume and budget lift through the Lead's cards or a person's own gate"
@@ -127,6 +127,10 @@ reads "deterministické"; an unknown state reads UNKNOWN (`run-state.ts`).
   has ended "skončilo bez známé ceny" (the coordinator's note on #721). An action's answer carries no
   spend, so the card keeps the run's last spend until the next read. The inspector's "Skutečné náklady"
   (`actual_cost_usd`) is gone from Průběh, so the screen shows one cost.
+- FLD4d: `ResearchRuns.start` works out the ceiling for every run it creates (before, only when the study
+  had a confirmation threshold) and records it in the run's metadata as `cost_ceiling` (`usd`, or `unknown`
+  with the reason); the threshold is still checked against the same figure. The run answers
+  `cost_ceiling` with `VIEW_COSTS`; Náklady's "Strop běhu" reads it, "nezaznamenán" for a run started before.
 - The run_id indexes (migration e2a4c6b8d0f1) are plain `CREATE INDEX`: fine on develop; on a large
   production ledger they need `CREATE INDEX CONCURRENTLY` or a maintenance window (the coordinator, #721).
 - FLD4c, decided (/pmstatus Q76 (c), the product owner, 2026-10-22): a run's Náklady names nobody. It
@@ -219,5 +223,6 @@ None new (replacement is MVPQ-10, already open).
 - `CLAUDE.md` § 2, `routers/`: research's `GET …/research/runs/{id}` answers `spend` (`spent_usd`, `reserved_usd`, `uncertain_calls`; only on that read, with `VIEW_COSTS`; null on a listed run and on an action's answer), from `domain/spend_attribution.py` `run_spend` and `researcher_spend_repository.py` `run_spend_facts` (FLD4a); `tables.py`: `ix_usage_run`, `ix_reservations_run` (migration e2a4c6b8d0f1).
 - `CLAUDE.md` § 3, "A research run, end to end": `research_journey.mjs` also checks Start reachable and Progress at 1100, 768 and 390 px (steps, Kdo odpovídal, no overflow) and zero paid jobs (one fictional run at 0.00 USD); with `AIA_WEB_RESEARCH_WORKBENCH=true` also the run's card in the Lead's conversation (in the Lead's drawer below 1100 px), which the classic layout skips and says so (FLD8).
 - `CLAUDE.md` § 2, `src/lib/`: `run-spend.ts`, Průběh's Náklady in words (spendRows: spent, held, calls without a known price, the study's remainder; unknown never zero; totals only, Q76 (c)); `lib/api.ts` `ResearchRun.spend`; Průběh no longer shows `actual_cost_usd`; `research_journey.mjs` checks Náklady reads 0.00 USD spent on fictional fieldwork (FLD4b).
+- `CLAUDE.md` § 2, `routers/`: research's run answers `cost_ceiling` (`usd`, `unknown`; with `VIEW_COSTS`; null for a run started before FLD4d), recorded at start by `application/research.py` for every new run; `run-spend.ts` adds Náklady's "Strop běhu" (FLD4d).
 
 - Register this plan and its chunks.

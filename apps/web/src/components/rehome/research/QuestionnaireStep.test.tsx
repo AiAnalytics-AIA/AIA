@@ -109,7 +109,7 @@ describe("Dotazník", () => {
     fireEvent.click(screen.getByRole("radio", { name: "Náhled respondenta" }));
     const preview = screen.getByRole("region", { name: "Jak bude dotazník přibližně vypadat" });
     expect(within(preview).getByText("Otázka 1")).toBeTruthy();
-    expect(within(preview).getByText("Sledovaná sada 3 · Sledovaná sada — média")).toBeTruthy();
+    expect(within(preview).getByText("Sledovaná sada 1 · Sledovaná sada — média")).toBeTruthy();
     expect(within(preview).getAllByText("Jak často používáte TV?").length).toBe(1);
     expect(screen.queryByText(/zlepšit blok/)).toBeNull();
     expect((screen.getByRole("button", { name: /Další · cílová skupina/ }) as HTMLButtonElement).disabled).toBe(false);
@@ -245,6 +245,28 @@ describe("Dotazník", () => {
     expect(within(stored).getByText(/Zobrazí se jen těm, kdo u Q1/)).toBeTruthy();
     await waitFor(() => expect(within(stored).queryByRole("button", { name: "Upravit podmínku" })).toBeNull());
     expect(within(stored).getByRole("button", { name: "Odebrat podmínku" })).toBeTruthy();
+  });
+
+  it("introduces the topic and market research in Czech, promising nothing the panel lacks", async () => {
+    unitStub({ ...BRIEF, sections: SECTIONS, ui_state: { questionnaire_path: "manual" } });
+    render(<ResearchScreen step="questionnaire" frame={TEST_FRAME} />);
+    const section = await screen.findByRole("region", { name: "Před uzavřením dotazníku" });
+    // What Design Research looks into: the study's research questions and tracked objects, in approved
+    // client knowledge and on the web (deep_research/contracts.py SubjectKind, Channel).
+    expect(within(section).getByText("Volitelně si nechte udělat rešerši výzkumných otázek a sledovaných objektů studie ve schválených znalostech klienta a na webu. Čísla o výsledcích, která rešerše najde, AIA respondentům sama nikdy neukáže.")).toBeTruthy();
+    // The browser audit: half English, a model choice and an update the panel does not offer, and
+    // 18.6.6's topic list, which no track researches.
+    expect(section.textContent).not.toMatch(/research tématu|price\/value|Outcome|Existing|zvolený model|aktualizovat|motivace|konkurence/);
+  });
+
+  it("numbers the respondent's preview as the editor does, questions and sets each on their own", async () => {
+    // A set before the questions: 18.6.6's running count would read Sledovaná sada 1, Otázka 2, Otázka 3.
+    unitStub({ ...BRIEF, sections: [SECTIONS[1], SECTIONS[0]], ui_state: { questionnaire_path: "manual" } });
+    render(<ResearchScreen step="questionnaire" frame={TEST_FRAME} />);
+    fireEvent.click(await screen.findByRole("radio", { name: "Náhled respondenta" }));
+    const preview = await screen.findByRole("region", { name: "Jak bude dotazník přibližně vypadat" });
+    for (const label of ["Sledovaná sada 1 · Sledovaná sada — média", "Otázka 1", "Otázka 2"]) expect(within(preview).getByText(label)).toBeTruthy();
+    expect(within(preview).queryByText("Otázka 3")).toBeNull();
   });
 
   it("edits a question as the classic editor does: type, options and a scale", async () => {

@@ -101,6 +101,15 @@ export function describe(event: RunEvent): ActivityLine | null {
       ? line(tv("research.exec.activity.aiAnsweredNoTokens", vars))
       : line(tv("research.exec.activity.aiAnswered", { ...vars, tokensIn, tokensOut }));
   }
+  // The fieldwork event contract (run-qc-and-checkpoint RQC7a): counts as reported.
+  if (code === "fieldwork_progress") {
+    const done = num(p.respondents);
+    const of = num(p.of);
+    if (done === null || of === null) return null;
+    const replayed = num(p.replayed);
+    const text = tv("research.exec.activity.fieldworkProgress", { done, of });
+    return line(replayed ? `${text} · ${tv("research.exec.activity.fieldworkReplayed", { replayed })}` : text);
+  }
   if (code.startsWith(TOOL_PREFIX)) {
     const text = toolLine(code.slice(TOOL_PREFIX.length), p);
     return text ? line(text, code.endsWith("failed") || code.endsWith("uncertain") ? "warn" : "info") : null;

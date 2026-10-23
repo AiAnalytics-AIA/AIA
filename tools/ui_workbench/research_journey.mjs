@@ -176,7 +176,10 @@ ok(`Progress: Kdo odpovídal names the data's origin (${originCode})`);
 // Náklady (artifact-fieldwork FLD4b): the run's spend read from the API; fictional fieldwork spent nothing.
 const spent = (await page.locator('[data-run-spend] [data-spend="spent"] dd').first().textContent({ timeout: 30000 }).catch(() => null))?.trim();
 if (spent !== "0,00 USD") fail(`Náklady shows spent ${spent ?? "nothing"}, not 0,00 USD`);
-ok("Progress: Náklady reads the run's spend (0,00 USD on fictional fieldwork)");
+// The ceiling this start recorded (FLD4d): a new run always records one, never "nezaznamenán".
+const ceilingRow = (await page.locator('[data-run-spend] [data-spend="ceiling"] dd').first().textContent({ timeout: 30000 }).catch(() => null))?.trim();
+if (!ceilingRow || ceilingRow.startsWith("nezaznamenán")) fail(`Náklady shows the run's ceiling as ${ceilingRow ?? "nothing"}`);
+ok(`Progress: Náklady reads the run's spend (0,00 USD on fictional fieldwork) and its recorded ceiling (${ceilingRow})`);
 await shot("2-progress");
 
 // The same run at every layout (FLD8): split from 1100 px, the Lead a drawer from 768 and a sheet below.

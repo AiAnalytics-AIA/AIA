@@ -85,8 +85,10 @@ export function PlanNarrative({ disabled = false, onQuote }: { disabled?: boolea
       <InlineText
         value={n.problem_summary}
         label={t("research.plan.summaryLabel")}
+        // An empty summary says what to write where it can be written, and offers no words to quote.
+        placeholder={disabled ? undefined : t("research.plan.requiredSummary")}
         multiline
-        selectable
+        selectable={!!n.problem_summary}
         disabled={disabled}
         rules={{ maxLength: SUMMARY_MAX }}
         className="min-w-0 flex-1 text-[15px] leading-6"

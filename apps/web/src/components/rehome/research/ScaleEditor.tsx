@@ -238,8 +238,11 @@ export function ScaleEditor({
               disabledReason={disabledReason}
               onCommit={(v) => apply({ scale, labels: withEnd(labels, 0, v) }, 0)}
             />
-            <Boxes scale={scale} />
+            {/* On a phone the boxes take the first row and each end's label sits under its end:
+                beside them the right label wrapped to a row of its own, away from the end it names. */}
+            <Boxes scale={scale} className="max-sm:order-first max-sm:basis-full" />
             <LabelField
+              className="max-sm:ml-auto"
               list={ends}
               index={1}
               label={t("research.questionnaire.scaleHigh")}
@@ -265,17 +268,19 @@ export function ScaleEditor({
  * below as left out), at most SCALE_LABEL_MAX characters and never repeating another point's label,
  * both refused at the field (I9).
  */
-function LabelField({ list, index, label, placeholder, disabled = false, disabledReason, onCommit }: {
+function LabelField({ list, index, label, placeholder, disabled = false, disabledReason, className, onCommit }: {
   list: readonly string[];
   index: number;
   label: string;
   placeholder: string;
   disabled?: boolean;
   disabledReason?: string;
+  className?: string;
   onCommit: (value: string) => void;
 }) {
   return (
     <InlineText
+      className={className}
       value={list[index] ?? ""}
       label={label}
       placeholder={placeholder}
@@ -292,13 +297,13 @@ function LabelField({ list, index, label, placeholder, disabled = false, disable
 }
 
 /** The scale's points as boxes, or in words when there are too many to draw. */
-function Boxes({ scale }: { scale: Scale }) {
+function Boxes({ scale, className = "" }: { scale: Scale; className?: string }) {
   const n = points(scale);
   if (n > BOXES_MAX) {
-    return <span className="text-xs text-ink-muted">{tv("research.questionnaire.scaleEditor.wide", { range: rangeWords(scale), n })}</span>;
+    return <span className={`text-xs text-ink-muted ${className}`}>{tv("research.questionnaire.scaleEditor.wide", { range: rangeWords(scale), n })}</span>;
   }
   return (
-    <span aria-hidden="true" className="flex min-w-40 flex-1 gap-0.5">
+    <span aria-hidden="true" className={`flex min-w-40 flex-1 gap-0.5 ${className}`}>
       {Array.from({ length: n }, (_, i) => (
         <i key={i} className="flex h-6 flex-1 items-center justify-center rounded-sm border border-border-strong bg-surface-raised font-mono text-[10px] not-italic">
           {scale[0] + i}
