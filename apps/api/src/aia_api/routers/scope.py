@@ -1014,3 +1014,93 @@ def get_kept_records(admin: OrganizationDep, session: SessionDep) -> list[KeptRe
         KeptRecordResponse(record=r.record, count=r.count, kept_for=r.kept_for, why=r.why)
         for r in records
     ]
+
+
+# ------------------------------------------------------------------- client rules (SB7)
+
+
+class ClientRulesResponse(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    #: As stored: OPEN, CLASSIFIED, or ``null`` (never set).
+    data_posture: Literal["OPEN", "CLASSIFIED"] | None
+    #: As it applies: ``null`` reads as CLASSIFIED, never open.
+    effective_posture: Literal["OPEN", "CLASSIFIED"]
+    #: The bound on every open wallet of the client's studies; ``null``: a wallet may not
+    #: exceed its study's budget.
+    wallet_ceiling_usd: float | None
+    set_by: str | None
+    set_at: datetime | None
+
+
+class ClientRulesRow(ClientRulesResponse):
+    client_id: str
+    name: str
+
+
+class ClientRulesRequest(BaseModel):
+    """Only the fields sent change; ``null`` clears one."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    data_posture: Literal["OPEN", "CLASSIFIED"] | None = None
+    wallet_ceiling_usd: float | None = Field(default=None, ge=0, lt=1e9, allow_inf_nan=False)
+
+
+def _rules_refused(exc: ScopeDenied) -> HTTPException:
+    if exc.reason == "unknown_client":
+        return HTTPException(
+            status_code=404, detail={"code": "not_found", "message": "No such client."}
+        )
+    if exc.reason == "insufficient_role":
+        return _forbidden(exc)
+    raise exc
+
+
+@router.get(
+    "/clients/{client_id}/rules",
+    response_model=ClientRulesResponse,
+    summary="A client's data posture and wallet ceiling",
+)
+def get_client_rules(
+    client_id: str, scope: OrganizationDep, repo: ScopeRepositoryDep
+) -> ClientRulesResponse:
+    """Any member of the client's organization (ADR 0019)."""
+    try:
+        return ClientRulesResponse(**repo.client_rules(scope, client_id))
+    except ScopeDenied as exc:
+        raise _rules_refused(exc) from exc
+
+
+@router.put(
+    "/clients/{client_id}/rules",
+    response_model=ClientRulesResponse,
+    summary="Set a client's data posture and wallet ceiling",
+)
+def put_client_rules(
+    client_id: str,
+    body: ClientRulesRequest,
+    admin: OrganizationDep,
+    repo: ScopeRepositoryDep,
+) -> ClientRulesResponse:
+    """OWNER or ADMIN; audited CLIENT_RULES_CHANGED with each field's from and to. A Deep
+    Research run pins the posture in force when it is enqueued."""
+    try:
+        rules = repo.set_client_rules(
+            admin,
+            client_id,
+            changes=body.model_dump(exclude_unset=True),
+            now=datetime.now(UTC),
+        )
+    except ScopeDenied as exc:
+        raise _rules_refused(exc) from exc
+    return ClientRulesResponse(**rules)
+
+
+@router.get(
+    "/settings/client-rules",
+    response_model=list[ClientRulesRow],
+    summary="Every client's data posture and wallet ceiling, read-only",
+)
+def list_client_rules(scope: OrganizationDep, repo: ScopeRepositoryDep) -> list[ClientRulesRow]:
+    return [ClientRulesRow(**r) for r in repo.all_client_rules(scope)]

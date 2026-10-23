@@ -522,6 +522,11 @@ class ClientRow(Base):
     # orchestration LO1): set by an organization OWNER or ADMIN; NULL means a wallet may not
     # exceed its study's budget. Spends nothing itself.
     wallet_ceiling_usd: Mapped[float | None] = mapped_column(Float)
+    # The client's data posture (settings-backends SB7): OPEN or CLASSIFIED; NULL is not set and
+    # reads as CLASSIFIED (domain/client_rules.py). Who last set the rules, and when.
+    data_posture: Mapped[str | None] = mapped_column(String(16))
+    rules_set_by: Mapped[str | None] = mapped_column(String(64))
+    rules_set_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), nullable=False, default=utcnow
     )
@@ -545,6 +550,10 @@ class ClientRow(Base):
         CheckConstraint(
             "wallet_ceiling_usd is null or wallet_ceiling_usd >= 0",
             name="client_wallet_ceiling_non_negative",
+        ),
+        CheckConstraint(
+            "data_posture is null or data_posture in ('OPEN', 'CLASSIFIED')",
+            name="data_posture_known",
         ),
         CheckConstraint("status in ('ACTIVE','DORMANT','ARCHIVED')", name="client_status_known"),
         Index("ix_clients_org", "organization_id", "status"),
@@ -2953,4 +2962,105 @@ class DocsTicketSpendRow(Base):
     __table_args__ = (
         ForeignKeyConstraint(["user_id"], ["users.user_id"], ondelete="CASCADE"),
         Index("ix_docs_ticket_spends_expires", "expires_at"),
+    )
+
+
+class ReportEditorVersionRow(Base):
+    """**Insert-once**: one version of a report line in the editor (artifact-report RPT8c).
+
+    A line starts at a draft code composed: its koncept 1 is the composer's artifact, whose id
+    is ``line_id``. Each save the Document Server sends is the next koncept, an artifact of its
+    own (``domain/report/editor.py`` ``EDIT_ARTIFACT_TYPES``) beside what it changed
+    (``changes_artifact_id``; none for koncept 1). The same bytes are never a line's version
+    twice. Both artifacts' rows cascade here, so a deleted study's versions go with its
+    artifacts. Only ``ReportEditorRepository`` reads or writes it.
+    """
+
+    __tablename__ = "report_editor_versions"
+
+    artifact_id: Mapped[str] = mapped_column(String(64), primary_key=True)
+    line_id: Mapped[str] = mapped_column(String(64), nullable=False)
+    koncept: Mapped[int] = mapped_column(Integer, nullable=False)
+    organization_id: Mapped[str] = mapped_column(String(64), nullable=False)
+    client_id: Mapped[str] = mapped_column(String(64), nullable=False)
+    study_id: Mapped[str] = mapped_column(String(64), nullable=False)
+    run_id: Mapped[str] = mapped_column(String(64), nullable=False)
+    variant: Mapped[str] = mapped_column(String(16), nullable=False)
+    deep_research_run_id: Mapped[str | None] = mapped_column(String(64))
+    sha256: Mapped[str] = mapped_column(String(64), nullable=False)
+    changes_artifact_id: Mapped[str | None] = mapped_column(String(64))
+    #: The people the Document Server named as the version's authors; the composer for
+    #: koncept 1 (empty).
+    authors: Mapped[list[str]] = mapped_column(JSONType, nullable=False, default=list)
+    saved_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), nullable=False, default=utcnow
+    )
+
+    __table_args__ = (
+        ForeignKeyConstraint(
+            ["artifact_id"], ["project_artifacts.artifact_id"], ondelete="CASCADE"
+        ),
+        ForeignKeyConstraint(["line_id"], ["project_artifacts.artifact_id"], ondelete="CASCADE"),
+        ForeignKeyConstraint(
+            ["changes_artifact_id"], ["project_artifacts.artifact_id"], ondelete="SET NULL"
+        ),
+        ForeignKeyConstraint(["study_id"], ["studies.study_id"], ondelete="CASCADE"),
+        UniqueConstraint("line_id", "koncept", name="uq_report_editor_versions_koncept"),
+        UniqueConstraint("line_id", "sha256", name="uq_report_editor_versions_sha256"),
+        CheckConstraint("koncept >= 1", name="report_editor_version_koncept_positive"),
+        CheckConstraint("variant IN ('internal', 'context')", name="report_editor_version_variant"),
+        Index("ix_report_editor_versions_run", "study_id", "run_id"),
+    )
+
+
+class ReportEditorSessionRow(Base):
+    """One editing session of a report line, under one document key (artifact-report RPT8c).
+
+    Opened when its first config is signed, closed by a status 2 or 4 callback or by the next
+    open once no callback came for ``SESSION_IDLE``; at most one is open per line. ``users``
+    are the people a config was signed for, the only ones a callback may name as authors.
+    Only ``ReportEditorRepository`` reads or writes it.
+    """
+
+    __tablename__ = "report_editor_sessions"
+
+    document_key: Mapped[str] = mapped_column(String(128), primary_key=True)
+    line_id: Mapped[str] = mapped_column(String(64), nullable=False)
+    session_no: Mapped[int] = mapped_column(Integer, nullable=False)
+    #: The version the session opened on.
+    version_artifact_id: Mapped[str] = mapped_column(String(64), nullable=False)
+    organization_id: Mapped[str] = mapped_column(String(64), nullable=False)
+    client_id: Mapped[str] = mapped_column(String(64), nullable=False)
+    study_id: Mapped[str] = mapped_column(String(64), nullable=False)
+    run_id: Mapped[str] = mapped_column(String(64), nullable=False)
+    users: Mapped[list[str]] = mapped_column(JSONType, nullable=False, default=list)
+    opened_by: Mapped[str] = mapped_column(String(64), nullable=False)
+    opened_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), nullable=False, default=utcnow
+    )
+    last_seen_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), nullable=False, default=utcnow
+    )
+    closed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    #: ``saved`` (status 2), ``unchanged`` (status 4) or ``idle`` (no callback for a day).
+    closed_reason: Mapped[str | None] = mapped_column(String(16))
+    #: Why the newest save the Document Server sent was not stored (``document_server_restarted``
+    #: when its file link was refused, …), for the pane to say; cleared by the next stored save.
+    last_problem: Mapped[str | None] = mapped_column(String(64))
+    last_problem_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+
+    __table_args__ = (
+        ForeignKeyConstraint(["line_id"], ["project_artifacts.artifact_id"], ondelete="CASCADE"),
+        ForeignKeyConstraint(
+            ["version_artifact_id"], ["project_artifacts.artifact_id"], ondelete="CASCADE"
+        ),
+        ForeignKeyConstraint(["study_id"], ["studies.study_id"], ondelete="CASCADE"),
+        UniqueConstraint("line_id", "session_no", name="uq_report_editor_sessions_no"),
+        Index(
+            "uq_report_editor_sessions_open",
+            "line_id",
+            unique=True,
+            postgresql_where=text("closed_at IS NULL"),
+            sqlite_where=text("closed_at IS NULL"),
+        ),
     )
