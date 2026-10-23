@@ -277,7 +277,7 @@ blocking an approval. His other answers in the same session:
 | When an edit becomes a stored version | Every autosave the Document Server sends (its timed force-save, a close, the save button) |
 | A number code wrote, edited or deleted | Allowed; marked "Upraveno ručně" in the pane and the approval dialog; never refused, never blocking |
 | The client report's gate (RD0) | Relaxed too: every check a warning in the approval dialog, recorded with the approval; asked again about the unadmitted number alone: "Warnings for all of it" |
-| Map values (OQ-ED1) | Locked and tagged like ledger numbers (`map:<artifact_id>`), unlockable like them |
+| Map values (OQ-ED1) | Locked and tagged like ledger numbers (`map:<battery>/<method>`), unlockable like them |
 | Phones, under 768 px | Read-only |
 | Two researchers at once | Live co-editing, ONLYOFFICE's own |
 | The Lead's suggestions (RPT9) | After RPT8 works |
@@ -291,7 +291,7 @@ The chunks, as built from here:
 **RPT8a, part 3. The rest of the generated numbers locked and tagged.** Three PRs. A paragraph, callout, text cell,
 table's notes or Sociomap caption fit that code writes whole from a stored source other than the ledger carries
 `control`, the tag of the locked control its text prints in (`control_tags.source_tag`): the map's (P7-P9,
-`map:<battery>/<method>`, a battery's reading guide `map:<battery>`), then the design's and the run's (P10-P12,
+`map:<battery>/<method>`, the reading guide by the signed-off map its numbers come from), then the design's and the run's (P10-P12,
 `design:<revision>`, `run:<run>`), then the literature bundle's and the audit's (P14, P15, `bundle:<run>`, the L-labels
 inline). The lock is inline over the block's whole text (python-docx readers and the client-source reader `docx/2`
 read inline controls; a block-level control would hide its paragraphs from them), the section's manifest naming the
@@ -367,6 +367,19 @@ a25d2435`, and the `/session/docs*` routes go with the hosting plan's change).
 
 Order: F1 (its own small PR) → RPT8a part 3 → RPT8b → RPT8c → RPT8d → RD0's change → activation (infra: the
 editor's own domain, its Caddy site without the docs gate, Route 53, SSM, the flag) → RPT9.
+
+*RPT8a, part 3, the map (`feature/report-locked-facts-map`):* a paragraph, callout, text cell, table's notes or
+Sociomap caption fit that code writes whole from a stored source other than the ledger carries `control`
+(`domain/report/model.py`), the tag of the locked control its text prints in; `control_tags.source_tag` builds
+the `map:` tag and `parse_tag` reads it back (the design's, run's and bundle's kinds join with their PRs). The renderer locks the block's whole text
+inline (`ooxml.locked`), so python-docx's readers and `docx/2` still read it. `report_maps` tags every block it writes
+from a stored map `map:<battery>/<method>` (P7-P9: support and credibility prose, the weak-map and method callouts, the
+respondent reading, the pair table's r, n, Kish n, state and notes, the caption's fit, the methodology note beside it
+left out) and the reading guide by the signed-off map its numbers come from. A ledger value inside a controlled block
+is refused (`controlled_value`): a control within a control, which the client-source reader would lose. The stored document model carries each `control` (`aia-report-document-4`); the contracts move
+(`aia-internal-report-17`, `aia-client-report-7`, `aia-contextual-report-13`). Test:
+`test_report_map_snapshots.py` `test_every_number_the_map_writes_is_locked_under_its_map` (under `-3` and `-5`),
+`test_report_docx_locked_numbers.py` `test_a_block_written_from_a_stored_source_holds_no_ledger_value`.
 
 **RPT9. The Lead in the document.** The Lead, on its own model (STUDY_LEAD), edits the same document
 through the edit operations:

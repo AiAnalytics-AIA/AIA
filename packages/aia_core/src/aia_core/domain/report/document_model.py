@@ -23,7 +23,10 @@ outputs no section read, ``unread`` (artifact-chain CHN1, :mod:`~aia_core.domain
 A stored ``-1`` document is still read: it recorded no sources, and a reader says so rather than
 presuming any. Since ``-3`` every ledger entry carries its claim's ``level`` (aggregate, segment
 or individual), which the client deliverable's gate reads (report-delivery RD0); an older entry
-has none, so the gate cannot judge it.
+has none, so the gate cannot judge it. Since ``-4`` a paragraph, callout, text cell, table's
+notes and Sociomap figure carry ``control``: the tag of the locked control code wrote it in from
+a stored source that is not the ledger (``control_tags.source_tag``; null when none), which a
+saved version is compared with (artifact-report RPT8b); an older document has none.
 """
 
 from __future__ import annotations
@@ -71,11 +74,16 @@ from aia_core.domain.report.sources import report_sources, source_payload
 from aia_core.domain.report.validation import CLIENT_KINDS
 
 #: The stored form's contract. A reader refuses any other (:func:`read_document_payload`).
-DOCUMENT_MODEL_CONTRACT: Final = "aia-report-document-3"
+DOCUMENT_MODEL_CONTRACT: Final = "aia-report-document-4"
 #: Contracts still read: ``-1`` (RD5a) is ``-2`` without the manifest, ``-2`` is ``-3`` without
-#: each entry's level.
+#: each entry's level, ``-3`` is ``-4`` without the controls.
 READABLE_CONTRACTS: Final = frozenset(
-    {"aia-report-document-1", "aia-report-document-2", DOCUMENT_MODEL_CONTRACT}
+    {
+        "aia-report-document-1",
+        "aia-report-document-2",
+        "aia-report-document-3",
+        DOCUMENT_MODEL_CONTRACT,
+    }
 )
 DOCUMENT_MODEL_MEDIA_TYPE: Final = "application/json"
 
@@ -273,6 +281,7 @@ class _Writer:
                 "role": block.role.value,
                 "content": content,
                 "marks": self._refs(block.refs, refs),
+                "control": block.control,
             }
         if isinstance(block, BulletList):
             return {
@@ -295,6 +304,7 @@ class _Writer:
                 "title": block.title,
                 "content": content,
                 "marks": self._refs(block.refs, refs),
+                "control": block.control,
             }
         if isinstance(block, KeyFinding):
             return {
@@ -345,6 +355,7 @@ class _Writer:
                 "fit_caption": block.fit_caption,
                 "source": block.source,
                 "alt": block.alt,
+                "control": block.control,
             }
         if isinstance(block, PageBreak):
             return {"type": "page_break"}
@@ -377,7 +388,7 @@ class _Writer:
             cells: list[dict[str, Any]] = []
             for cell in row.cells:
                 if isinstance(cell, TextCell):
-                    cells.append({"type": "text", "text": cell.text})
+                    cells.append({"type": "text", "text": cell.text, "control": cell.control})
                 elif isinstance(cell, NumberCell):
                     refs.append(self._cite(cell.ref))
                     cells.append(
@@ -400,6 +411,7 @@ class _Writer:
             "source": table.source,
             "base_ref": self._cite_optional(table.base_ref, refs),
             "notes": list(table.notes),
+            "notes_control": table.notes_control,
         }
 
     def _chart(self, chart: Chart, refs: list[str]) -> dict[str, Any]:
