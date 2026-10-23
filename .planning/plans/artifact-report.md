@@ -421,7 +421,8 @@ https://${AIA_PUBLIC_HOSTNAME}` (the worker none); the editor stays off there un
 (`test_the_report_editor_reaches_the_api_on_its_public_origin_and_stays_off_until_set`). Tests: the browser's config token, a JWT for another URL, an
 expired document token, a callback token, another line's version and a key no session has are each refused.
 
-*RPT8c, part 3 (`feature/report-editor-callback`):* `POST …/report/editor/callback?token=`: ONLYOFFICE's JWT
+*RPT8c, part 3 (`feature/report-editor-callback`):* `POST /report-editor/callback?token=` (the Document Server's,
+beside its document route; token and body optional, refused 403, never 422): ONLYOFFICE's JWT
 checked in the header (its `payload` the body's) and in the body, the URL token naming this session, the body's key
 the token's (403 otherwise); each status as `callback_action` says, any other `{"error": 1}`. A save (6, or 2, which
 then closes the session) is stored by `application/report_editor_saves.py` `store_save`: its authors each one a
