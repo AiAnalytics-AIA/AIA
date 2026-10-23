@@ -2103,6 +2103,8 @@ export const cs = {
       uploadIntro: "Použijte šablonu AIA. Druhý list šablony, NAVOD, popisuje každé pole – podle něj ji vyplníte ručně, nebo ji připraví jiná AI. AIA pak strukturu zkontroluje a otevře ve stejném editoru.",
       template: "Stáhnout XLSX šablonu",
       fileLabel: "Vyplněný XLSX / CSV",
+      fileUnreadable: "soubor se nepodařilo přečíst; vyberte ho znovu",
+      templateRefused: "Šablonu se nepodařilo stáhnout (kód {code})",
       load: "Načíst dotazník",
       loading: "Načítám dotazník",
       loadingSub: "Validuji strukturu a sledované sady…",
