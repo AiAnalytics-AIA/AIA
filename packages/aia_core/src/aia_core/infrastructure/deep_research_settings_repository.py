@@ -193,15 +193,18 @@ def _newest_approvals(session: Session, org: str) -> dict[str, DeepResearchSetti
 
 
 def _version_row(
-    session: Session, org: str, key: str, number: int
+    session: Session, org: str, key: str, number: int, *, lock: bool = False
 ) -> DeepResearchSettingVersionRow | None:
-    return session.scalar(
-        select(DeepResearchSettingVersionRow).where(
-            DeepResearchSettingVersionRow.organization_id == org,
-            DeepResearchSettingVersionRow.setting_key == key,
-            DeepResearchSettingVersionRow.version_number == number,
-        )
+    """One version; ``lock``: FOR UPDATE, so an approval and a withdrawal of the same version
+    decide one after the other, each reading what the other committed."""
+    query = select(DeepResearchSettingVersionRow).where(
+        DeepResearchSettingVersionRow.organization_id == org,
+        DeepResearchSettingVersionRow.setting_key == key,
+        DeepResearchSettingVersionRow.version_number == number,
     )
+    if lock:
+        query = query.with_for_update().execution_options(populate_existing=True)
+    return session.scalar(query)
 
 
 def _decline_row(
@@ -705,7 +708,8 @@ class DeepResearchSettingsRepository:
         if version_number == current:
             return _in_force(self._session, org)[key]
         if version_number is not None:
-            row = _version_row(self._session, org, key, version_number)
+            # Locked before the checks: a withdrawal racing this approval waits, then reads it.
+            row = _version_row(self._session, org, key, version_number, lock=True)
             if row is None:
                 raise SettingRefused("no such version", reason="unknown_version")
             if _decline_row(self._session, org, key, version_number) is not None:
@@ -752,7 +756,8 @@ class DeepResearchSettingsRepository:
                 "a reason of at most 255 characters is required", reason="reason_too_long"
             )
         org = self._admin.organization_id
-        row = _version_row(self._session, org, key, version_number)
+        # Locked before the checks: an approval racing this withdrawal waits, then reads it.
+        row = _version_row(self._session, org, key, version_number, lock=True)
         if row is None:
             raise SettingRefused("no such version", reason="unknown_version")
         if _decline_row(self._session, org, key, version_number) is not None:
