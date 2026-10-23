@@ -6,7 +6,7 @@ chunks:
   - "[x] 3. Přístup a schvalování: role, status and self-approval chosen in their rows, name edited in place, inline add member, role change with Vrátit, roles boxes, samoschválení above Klienti"
   - "[ ] 3b. Přístup over its backends: Metodik switch (owner only), deactivate with Vrátit and the sealed Lead, a client's posture and wallet ceiling"
   - "[x] 4. Studie a rozpočty: the four money names, steppers with bounds, % and near-limit (90 %), spend tiles and per-researcher spend"
-  - "[ ] 5. Systémové prompty: grouped list, editor layout, in-force version in green, Verze table"
+  - "[x] 5. Systémové prompty: grouped list, editor layout, in-force version in green, Verze table"
   - "[ ] 6. Deep Research: Dosah, proposals in the Návrh cell, I7 modals, Pevné ochrany v kódu"
   - "[ ] 7. AI běh: route tiles, activities grouped with descriptions, the missing activities"
   - "[ ] 8. Audit: categories with counts, period, search, Czech names for every action code"
@@ -56,3 +56,15 @@ https://claude.ai/artifact/8W9LR8Ju9BWnR5JACmiWv7 (ten boards, one per tab) and 
   each run on the same workbench (4178 on a fresh one; 4502 after several runs), because each run
   stores and activates a methodology version and the tab lists every version. It passes on
   `workbench.py up --fresh`; chunk 10 (Metodika) redraws that tab and should settle it.
+- The prompts' Verze table, with its actions in a fifth column, pushed the page wider than 1024 px
+  once a version was saved (caught by proposal_prompt_journey on chunk 5): the actions now stand on a
+  row of their own under each version's facts (SystemPromptsPanel.tsx Versions).
+- Chunk 5 removes Settings' draft test (X10): the web half of system-prompts-settings #14. The web no
+  longer sends `prompt_version` or reads `draft_test_client_ids`, but the server half stays open: the
+  agent-job route still accepts `prompt_version` (AgentJobStart.prompt_version) and the prompt detail
+  still answers `draft_test_client_ids` (SlotDetail). The backend builder removes them under #14 (D-15);
+  until then #14 is not done.
+- A stored version "waits" only when saved after the last switch-on (or with none made): a number above
+  the one in force read a rollback or a reset to the code's wording as waiting (review of #838). The
+  list's summary carries no version date, so the list says a version waits only when nothing was ever
+  switched on (SystemPromptsPanel.tsx waitsForActivation, standing).

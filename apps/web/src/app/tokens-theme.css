@@ -34,6 +34,8 @@
   --color-on-status-you: var(--on-status-you);
   --color-status-you-ink: var(--status-you-ink);
   --color-status-you-wash: var(--status-you-wash);
+  --color-in-force: var(--in-force);
+  --color-in-force-wash: var(--in-force-wash);
   --color-status-world: var(--status-world);
   --color-status-world-wash: var(--status-world-wash);
   --color-status-fault: var(--status-fault);

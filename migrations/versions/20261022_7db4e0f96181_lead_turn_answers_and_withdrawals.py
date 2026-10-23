@@ -1,7 +1,7 @@
 """a Lead turn's answered messages and a queued message's withdrawal
 
 Revision ID: 7db4e0f96181
-Revises: d4f6b8c0e2a5
+Revises: e5a7c9d1f3b6
 Created: 2026-10-22 15:00:00+00:00
 
 lead-conversation LC5a (ADR 0041 decision 7): a message posted while the Lead works is stored at
@@ -28,7 +28,7 @@ import sqlalchemy as sa
 from alembic import op
 
 revision: str = "7db4e0f96181"
-down_revision: str | None = "d4f6b8c0e2a5"
+down_revision: str | None = "e5a7c9d1f3b6"
 branch_labels = None
 depends_on = None
 

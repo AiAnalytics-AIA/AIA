@@ -134,6 +134,14 @@ export const colors = {
     "light": "#fbe7e6",
     "dark": "#45301f"
   },
+  "in-force": {
+    "light": "#1d9a6c",
+    "dark": "#5fd1a5"
+  },
+  "in-force-wash": {
+    "light": "#e2f3ec",
+    "dark": "#16332a"
+  },
   "status-world": {
     "light": "#576574",
     "dark": "#97a7b7"
