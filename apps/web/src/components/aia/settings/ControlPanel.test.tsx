@@ -275,8 +275,8 @@ describe("the settings control panel", () => {
     render(<ControlPanel />);
     fireEvent.click(await screen.findByRole("tab", { name: "Přístup a schvalování" }));
     const org = await screen.findByRole("radiogroup", { name: "Samoschválení organizace" });
-    // Nothing stored: neither choice is shown as chosen, and the default is said in words.
-    expect(within(org).getAllByRole("radio").every((r) => r.getAttribute("aria-checked") === "false")).toBe(true);
+    // Nothing stored: Výchozí is chosen, and the default is said in words.
+    expect(within(org).getByRole("radio", { name: "Výchozí" }).getAttribute("aria-checked")).toBe("true");
     expect(screen.getByText(/Nenastaveno: platí výchozí pravidlo/)).toBeTruthy();
     fireEvent.click(within(org).getByRole("radio", { name: "Povolit" }));
     await waitFor(() => expect(called("PUT", "/api/v1/self-approval")).toHaveLength(1));
@@ -292,7 +292,8 @@ describe("the settings control panel", () => {
     await within(panel).findByRole("radiogroup", { name: "Samoschválení organizace" });
     const order = [...panel.querySelectorAll("section[id^='set-']")].map((e) => e.id).filter((id) => ["set-members", "set-self-approval", "set-clients"].includes(id));
     expect(order).toEqual(["set-members", "set-self-approval", "set-clients"]);
-    expect(within(panel).getByText(/Vnímání značky: povoleno/)).toBeTruthy();
+    const rule = within(panel).getByRole("radiogroup", { name: "Samoschválení studie Vnímání značky" });
+    expect(within(rule).getByRole("radio", { name: "Povolit" }).getAttribute("aria-checked")).toBe("true");
     const self = within(panel).getByRole("radiogroup", { name: "Samoschválení klienta Klient A" });
     expect(within(self).getByRole("radio", { name: "Zakázat" }).getAttribute("aria-checked")).toBe("true");
     fireEvent.click(within(self).getByRole("radio", { name: "Dědit" }));
@@ -305,6 +306,30 @@ describe("the settings control panel", () => {
     const row = panel.querySelector('[data-client="CLI-a"]') as HTMLElement;
     expect(row.parentElement?.querySelector("[data-not-yet]")).toBeTruthy();
     expect(within(panel).getByRole("link", { name: "Změnit v Profil → Pravidla" }).getAttribute("href")).toBe("/app/clients/CLI-a/profile");
+  });
+
+  it("sets, clears and adds a study's own self-approval rule, and returns the organization to the default", async () => {
+    api({ "GET /api/v1/self-approval": () => ({ organization: false, clients: [], studies: [{ study_id: "STU-1", client_id: "CLI-a", allowed: false }] }) });
+    render(<ControlPanel />);
+    fireEvent.click(await screen.findByRole("tab", { name: "Přístup a schvalování" }));
+    const panel = document.getElementById("panel-access") as HTMLElement;
+    const org = await within(panel).findByRole("radiogroup", { name: "Samoschválení organizace" });
+    fireEvent.click(within(org).getByRole("radio", { name: "Výchozí" }));
+    await waitFor(() => expect(called("PUT", "/api/v1/self-approval")).toHaveLength(1));
+    expect(called("PUT", "/api/v1/self-approval")[0].body).toEqual({ allowed: null });
+    const rule = within(panel).getByRole("radiogroup", { name: "Samoschválení studie Vnímání značky" });
+    fireEvent.click(within(rule).getByRole("radio", { name: "Dědit" }));
+    await waitFor(() => expect(called("PUT", "/api/v1/self-approval")).toHaveLength(2));
+    expect(called("PUT", "/api/v1/self-approval")[1].body).toEqual({ allowed: null, study_id: "STU-1" });
+    // A study with no rule of its own is offered for a new one; the study with a rule is not.
+    fireEvent.click(within(panel).getByRole("button", { name: "Přidat pravidlo pro studii" }));
+    const add = panel.querySelector("[data-add-study-rule]") as HTMLElement;
+    const select = within(add).getByRole("combobox", { name: "Vyberte studii…" }) as HTMLSelectElement;
+    expect([...select.options].map((o) => o.value)).toEqual(["", "STU-2"]);
+    fireEvent.change(select, { target: { value: "STU-2" } });
+    fireEvent.click(within(within(add).getByRole("radiogroup", { name: "Pravidlo vybrané studie" })).getByRole("radio", { name: "Zakázat" }));
+    await waitFor(() => expect(called("PUT", "/api/v1/self-approval")).toHaveLength(3));
+    expect(called("PUT", "/api/v1/self-approval")[2].body).toEqual({ allowed: false, study_id: "STU-2" });
   });
 
   it("says plainly that the Metodik mark and deactivating a member are not in AIA yet, and explains each role", async () => {
