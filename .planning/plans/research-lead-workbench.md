@@ -1758,8 +1758,9 @@ Measured on a fresh workbench at e508e483: 2 jobs and 10 model calls (20 ledger 
 at $0. The run took about 8 s and the DOCX was 1.5 MB. It passes once per fresh workbench; a second
 pass finds the jobs already done for the design.
 
-- **F19. The internal draft never says what the person asked for** *(open; the report's owner,
-  artifact-report)*.
+- **F19. The internal draft never says what the person asked for** *(partly fixed by #792, merged as
+  `f188646a`: the draft states the brief; the cover title and the client report remain, OI-195;
+  the report's owner, artifact-report)*.
   1. Claim: the brief's title, goal and decision use do not reach the internal draft. Its cover and
      introduction name the study record (`study.name`), and "Návrh studie" says it describes "co
      měl výzkum zjistit" but prints only the research questions, sets and sample.
