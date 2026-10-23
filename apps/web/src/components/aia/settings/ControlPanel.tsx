@@ -42,6 +42,8 @@ import { ResearcherSpendCard } from "./ResearcherSpendCard";
 import { StudiesTable } from "./StudiesPanel";
 import { ChoiceChips } from "../../ui/ChoiceChips";
 import { AUDIT_PAGE, AuditPanel } from "./AuditPanel";
+import { DataPanel } from "./DataPanel";
+import { SystemPanel } from "./SystemPanel";
 import { SETTING_HELP, TAB_GUIDE } from "./settings-guide";
 import { SystemPromptsPanel } from "./SystemPromptsPanel";
 import { Technical, TechnicalProvider, TechnicalSwitch, useTechnicalChoice } from "./technical";
@@ -693,8 +695,8 @@ function PanelView({ panel, reload }: { panel: Panel; reload: () => void }) {
     if (tab === "prompts") return <SystemPromptsSection doc={doc} members={members} />;
     if (tab === "deep_research") return <DeepResearchSection items={byKey.get("deep_research")?.items ?? NO_ITEMS} members={members} />;
     if (tab === "methodology") return <MethodologySection members={members} />;
-    if (tab === "system") return <SystemSection />;
-    if (tab === "data") return <DataSection />;
+    if (tab === "system") return <SystemPanel mayAdminister={doc.may_administer} />;
+    if (tab === "data") return <DataPanel mayAdminister={doc.may_administer} clients={clients} reload={reload} />;
     const keys = [...TAB_SECTIONS[tab].filter(present), ...(tab === "reference" ? unknown : [])];
     return (
       <>
@@ -784,37 +786,6 @@ function TabIcon({ tab, active }: { tab: TabId; active: boolean }) {
 }
 
 /** One card of a tab whose content AIA does not have yet: its heading, what it will hold, and the plain fact. */
-function NotYet({ id, title, holds }: { id: string; title: string; holds: string }) {
-  return (
-    <section id={`set-${id}`} aria-labelledby={`set-${id}-title`} className="rounded-md border border-border bg-surface-raised px-6 py-5">
-      <h3 id={`set-${id}-title`} className="text-base font-semibold">{title}</h3>
-      <p className="mt-1 text-sm leading-6 text-ink-muted">{holds}</p>
-      <p data-not-yet className="mt-3 inline-flex rounded-sm border border-dashed border-border-strong px-2 py-0.5 text-xs text-ink-muted">{t(`${P}.notYet`)}</p>
-    </section>
-  );
-}
-
-/** Stav systému: readiness after a deploy and error reporting (settings-redesign chunk 1; the content comes with its backend). */
-function SystemSection() {
-  const S = `${P}.system`;
-  return (
-    <div className="flex flex-col gap-4">
-      <NotYet id="readiness" title={t(`${S}.readiness`)} holds={t(`${S}.readinessHolds`)} />
-      <NotYet id="errors" title={t(`${S}.errors`)} holds={t(`${S}.errorsHolds`)} />
-    </div>
-  );
-}
-
-/** Správa dat: deleting a client and the records AIA keeps (settings-redesign chunk 1; the content comes with its backend). */
-function DataSection() {
-  const D = `${P}.data`;
-  return (
-    <div className="flex flex-col gap-4">
-      <NotYet id="client-delete" title={t(`${D}.clientDelete`)} holds={t(`${D}.clientDeleteHolds`)} />
-      <NotYet id="kept-records" title={t(`${D}.keptRecords`)} holds={t(`${D}.keptRecordsHolds`)} />
-    </div>
-  );
-}
 
 // The three tabs that read their own routes are memoised: the technical switch re-renders the
 // page, and redrawing Metodika's formulas on every toggle cost ~0.5 s (settings_journey).
