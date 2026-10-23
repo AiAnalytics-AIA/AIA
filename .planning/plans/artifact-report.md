@@ -392,6 +392,25 @@ variant `LineNotFound`. Tests: `test_report_editor.py` (SQLite and PostgreSQL), 
 joining under the same key, a new key after a close, a day's idle, and a recompose after an edit leaving the edited
 line's koncept 2 and starting a line whose koncept 1 is the composer's.
 
+*RPT8c, part 2 (`feature/report-editor-routes`):* `AIA_ONLYOFFICE_CALLBACK_BASE`, AIA's public https origin as the
+Document Server reaches it (report-editor-hosting decision 4: the public hostname, never the internal network,
+agreed with the infra session 2026-10-23), validated like `AIA_ONLYOFFICE_URL`; `Settings.report_editor_on` needs it,
+the editor's origin and its secret, else both routes are 404. `aia_api/editor_tokens.py`: ONLYOFFICE's JWT (HS256
+under the secret itself: the config signed, the Document Server's requests read) and AIA's URL tokens (HS256 under
+a key derived from it, so neither is ever the other: a document URL names one session's one version for 30
+minutes, a callback URL one session for a week; the clock passed in). `routers/report_editor.py`: `POST
+…/runs/{run_id}/report/editor` (`variant` internal or context with `deep_research_run_id`, `line`, `mode` edit or
+view) opens the line through `ReportEditor.open` and answers the signed config (the session's key, the document
+and callback URLs on the public origin, the person's id and display name, never an e-mail, `forcesave`, co-editing
+`fast`) with the run's lines; `client` is refused by name (409 `client_report_not_editable`). `GET
+…/report/editor/document?token=` serves the version to the Document Server alone: its JWT in `Authorization` and
+the URL token both checked (403 otherwise), the session read by its key and the scope resolved for the person who
+opened it, the artifact a version of that session's line (404 otherwise), `Cache-Control: no-store`. Tests:
+`test_report_editor_api.py` (SQLite and PostgreSQL): the config signed as the Document Server checks it with no
+e-mail anywhere, the version fetched, a second researcher under the same key, an unsigned fetch and a token signed
+with the editor's own secret refused, another study's path 404, the client report refused, every route 404 with the
+public origin unset, the setting an https origin only.
+
 **RPT8d. The pane opens the editor.**
 - 768 px and wider, with the editor configured: Zpráva's pane loads the Document Server's `api.js` from
   `AIA_ONLYOFFICE_URL` and opens the default line's newest version (RPT8c) with the config the API signed.
