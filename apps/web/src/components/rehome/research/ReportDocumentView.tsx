@@ -322,9 +322,10 @@ export function ReportDocumentView({ run }: { run: ResearchRun }) {
 
   const { stored, doc } = loaded;
   const controls = approval(stored);
-  // The doc bar approves the version on screen (RPT3a): while the editor shows a version saved
-  // after the composed draft, approving that draft from here would approve what is not read.
-  const edited = shownInEditor?.doc === docId && shownInEditor.version !== null && shownInEditor.version !== stored.report_artifact_id;
+  // The doc bar approves the version on screen (RPT3a): while the editor shows the document, what is
+  // read is the editor's, which a save can move past the composed draft at any time (koncept 1
+  // edited is koncept 2), so approving the draft from here could approve what is not read.
+  const edited = shownInEditor?.doc === docId && shownInEditor.version !== null;
   const missing = unresolvedRefs(doc);
   const entry = (ref: string): LedgerEntry | undefined => doc.ledger.refs[ref];
   const claim = (ref: string) => <ul className="flex flex-col gap-1">{claimLines(entry(ref)).map((line) => <li key={line}>{line}</li>)}</ul>;
@@ -359,7 +360,7 @@ export function ReportDocumentView({ run }: { run: ResearchRun }) {
           {stored.approval ? <span data-approval>· {approvalWords(stored.approval, stored.approved_on)}</span> : null}
           <span className={`font-mono ${WRAPS}`}>· {stored.report_artifact_id}</span>
           {edited ? (
-            <span className="ml-auto" data-approval-edited>Editor ukazuje upravený koncept; ten se v tomto panelu zatím neschvaluje.</span>
+            <span className="ml-auto" data-approval-edited>Zpráva je otevřená v editoru; verze z editoru se v tomto panelu zatím neschvaluje.</span>
           ) : controls.button}
         </div>
         {controls.after}

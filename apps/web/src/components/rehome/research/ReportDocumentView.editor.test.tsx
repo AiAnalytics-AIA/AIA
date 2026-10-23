@@ -70,7 +70,7 @@ describe("which document the editor is handed", () => {
     vi.mocked(research.clientReportDocument).mockResolvedValue(CLIENT);
     const { container } = show();
     await screen.findByRole("article", { name: "Koncept zprávy" });
-    expect(editor.handed).toEqual<Handed[]>([{ variant: "internal", review: null }]);
+    await waitFor(() => expect(editor.handed).toEqual<Handed[]>([{ variant: "internal", review: null }]));
     fireEvent.click(screen.getByRole("button", { name: "Klientská zpráva" }));
     await waitFor(() => expect(bar(container).textContent).toContain("ART-client"));
     expect(container.querySelector("[data-stub-editor]")).toBeNull();
@@ -100,12 +100,12 @@ describe("approving from the doc bar while the editor is open", () => {
     expect(research.approveReport).not.toHaveBeenCalled();
   });
 
-  it("is offered as before while the editor shows the composed draft itself, koncept 1", async () => {
+  it("is not offered while the editor shows koncept 1 either: an edit saved there moves it past the draft", async () => {
     editor.shows = "ART-docx";
     const { container } = show();
     await screen.findByRole("article", { name: "Koncept zprávy" });
-    expect(await within(bar(container)).findByRole("button", { name: /^Schválit/ })).toBeTruthy();
-    expect(container.querySelector("[data-approval-edited]")).toBeNull();
+    await waitFor(() => expect(container.querySelector("[data-approval-edited]")).not.toBeNull());
+    expect(within(bar(container)).queryByRole("button", { name: /^Schválit/ })).toBeNull();
   });
 
   it("is offered as before while the editor shows nothing (off, or not answering)", async () => {
