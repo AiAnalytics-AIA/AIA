@@ -15,6 +15,7 @@ chunks:
   - "[x] RPT8b. What a saved version changed: each tagged number edited or removed and each number typed outside one, shown as \"Upraveno ručně\", never refusing (changed 2026-10-22: the owner, ADR 0035 amended)"
   - "[x] RPT8c. The editor routes behind AIA_ONLYOFFICE_URL (unset: off): the config with its JWT and the docs ticket, the signed document URL, the callback storing every save as the next version (the hosting contract, report-editor-hosting); the internal draft and the report with literature"
   - "[ ] RPT8d. The pane opens the newest version in the editor from 768 px (view mode below), its doc bar naming the version and its \"Upraveno ručně\" changes; the read-only document stays where the editor is off"
+  - "[ ] RPT8e. Before activation, a hard gate: the editor's api.js loaded with Subresource Integrity, the hash taken from the pinned Document Server image's own api.js and configured beside AIA_ONLYOFFICE_URL, verified against the real Document Server with CORS; AIA_ONLYOFFICE_URL stays unset until this is ticked (the PM, 2026-10-23; owner: Zpráva)"
   - "[ ] RPT9. The Lead edits the same document: inline suggestions as tracked changes under the Lead's own name, with why, accepted or rejected one by one or all; direct edits per the researcher's setting (Q13) still attributed; every edit through the edit ops, every number a ledger ref passing the sentence check before accept"
   - "[ ] RPT10. Literature by the Lead: Interpretation Research proposed on a plan card (target, QUICK or STANDARD depth, STANDARD by default, cost), approved by the researcher, findings woven into the text with their sources (Q58); the panel's own start, depth and refresh removed once typed starts exist (Q48, LO5a.3), its findings readable beside the text"
 ---
@@ -488,7 +489,29 @@ PDF is ready, `approval_asks_pdf`); one whose footers changed is served as saved
   the callback with a fictional edited DOCX), zero paid jobs. A real Document Server is checked once on develop after
   activation.
 
-Order: F1 (its own small PR) → RPT8a part 3 → RPT8b → RPT8c → RPT8d → RD0's change → activation (infra: the
+*RPT8d, part 1 (`feature/report-editor-pane`), the editor in the pane:* `ReportDocumentView` hands the internal draft and the
+report with literature to `ReportEditor` (the client report is never edited), which opens them through
+`POST …/report/editor` (`research.openReportEditor`; mode `edit` from 768 px, `view` below, followed as the width
+changes) and mounts `DocsAPI.DocEditor` from the api.js of the origin the API named (`lib/report-editor.ts`
+`apiScriptUrl`: https alone, its origin alone; loaded once per page) with the config the API signed. A 404 (the editor
+off) is the read-only draft, saying nothing, as before; a refusal is said in words beside it; a script that does not
+load, an editor error or no `onAppReady` within `EDITOR_TIMEOUT_MS` (20 s) leaves the read-only draft and says so
+(`UNREACHABLE`), the editor destroyed. The line's last failed save (`problem`) is said in words (`problemWords`). Found
+while building it: AIA's pages send no Content-Security-Policy (`next.config.ts` and the Caddyfile's product site set
+none), so the CSP the chunk names has nothing to add the editor's origin to; a CSP for the product is its own work, not
+started here. While the editor is open the read-only draft, and the `report:` targets the Lead focuses, is not on the
+page: the Lead in the document is RPT9. While the editor shows the document, the doc bar offers no approval of the
+composed draft, koncept 1 included, since a save there moves it past the draft (the version read is the version
+approved, RPT3a; Codex on #875); approving the editor's version from the pane is part 2. A risk, stated plainly (the stand-in's review of #875): ONLYOFFICE's api.js runs in AIA's own
+origin, beside the session's id and refresh tokens in `sessionStorage` (`lib/auth.ts`), so a compromised Document
+Server could read them; the editor's own domain keeps its documents and cookies apart, not this loader. Before
+activation the Zpráva session pins it: Subresource Integrity on the script (the hash of the pinned Document Server
+image's api.js, beside `AIA_ONLYOFFICE_URL`), checked against the real Document Server on develop, which must answer
+it with CORS for SRI to load; until then the editor stays off. Tests: `report-editor.test.ts`, `ReportEditor.test.tsx`,
+`ReportDocumentView.editor.test.tsx` (the client report never handed to the editor, the report with literature by its
+review, no approval of the composed draft while the editor shows the document).
+
+Order: F1 (its own small PR) → RPT8a part 3 → RPT8b → RPT8c → RPT8d → RD0's change → RPT8e (SRI on api.js) → activation (infra: the
 editor's own domain, its Caddy site without the docs gate, Route 53, SSM, the flag) → RPT9.
 
 *RPT8a, part 3, the map (`feature/report-locked-facts-map`):* a paragraph, callout, text cell, table's notes or

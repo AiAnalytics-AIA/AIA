@@ -19,6 +19,7 @@ import { isModelled, stepOf } from "@/lib/research-execution";
 import { useFrame } from "./frame-hook";
 import { useItemInspector } from "@/components/workbench/item-inspector-context";
 import { ItemInspector } from "./ItemInspector";
+import { ReportEditor } from "./ReportEditor";
 import { canReview } from "./frame";
 import { type Ask, AskDialog, Button } from "../ui";
 import { t } from "@/i18n/t";
@@ -273,6 +274,9 @@ export function ReportDocumentView({ run }: { run: ResearchRun }) {
       ),
     };
   };
+  // The version the report editor shows for which document, if it shows one (RPT8d).
+  const [shownInEditor, setShownInEditor] = useState<{ doc: string; version: string | null } | null>(null);
+  const showInEditor = useCallback((version: string | null) => setShownInEditor({ doc: docId, version }), [docId]);
   const [stack, setStack] = useState<InspectorStack>(() => emptyStack("report"));
   // Inside the workbench a claim opens in its one item drawer, under the frame's Escape order;
   // outside it (and for a ref the target grammar refuses) in this view's own.
@@ -318,6 +322,10 @@ export function ReportDocumentView({ run }: { run: ResearchRun }) {
 
   const { stored, doc } = loaded;
   const controls = approval(stored);
+  // The doc bar approves the version on screen (RPT3a): while the editor shows the document, what is
+  // read is the editor's, which a save can move past the composed draft at any time (koncept 1
+  // edited is koncept 2), so approving the draft from here could approve what is not read.
+  const edited = shownInEditor?.doc === docId && shownInEditor.version !== null;
   const missing = unresolvedRefs(doc);
   const entry = (ref: string): LedgerEntry | undefined => doc.ledger.refs[ref];
   const claim = (ref: string) => <ul className="flex flex-col gap-1">{claimLines(entry(ref)).map((line) => <li key={line}>{line}</li>)}</ul>;
@@ -325,6 +333,21 @@ export function ReportDocumentView({ run }: { run: ResearchRun }) {
     const framed = inspector?.open({ id: `report:ref:${kind}:${ref}`, title: `Tvrzení ${ref}`, sub: "Číslo ve zprávě a jeho evidence" }, () => claim(ref));
     if (!framed) openOwn(ref);
   };
+  const draft = (
+    <article aria-label="Koncept zprávy" className="rounded-card border border-border bg-surface-raised px-4 py-5 font-serif shadow-sm sm:px-8 lg:px-14 lg:py-10">
+      <header className="mb-4 border-b border-border pb-4">
+        <p className="font-sans text-xs text-ink-muted">{doc.meta.client_name} · {doc.meta.study_name}</p>
+        <h1 className="mt-1 text-2xl font-semibold leading-tight sm:text-[28px]">{doc.meta.title}</h1>
+        <p className="mt-1 font-sans text-sm text-ink-muted">{doc.meta.subtitle}</p>
+      </header>
+      {doc.sections.map((section) => (
+        <DocSection key={section.id} section={section} entry={entry} onClaim={open} refs={Object.keys(doc.ledger.refs)} />
+      ))}
+      <footer className="mt-6 border-t border-border pt-2 font-sans text-[11px] text-ink-muted" data-report-foot>
+        {stored.review_state === "APPROVED_INTERNAL" ? "Schváleno" : "Koncept"} · {stored.review_state} · {run.run_id} · revize {doc.meta.revision} · dokument {stored.artifact_id}
+      </footer>
+    </article>
+  );
   return (
     // The pane's own width decides the layout, not the window's: the workbench's split can leave the
     // artifact narrow on a wide screen.
@@ -336,25 +359,20 @@ export function ReportDocumentView({ run }: { run: ResearchRun }) {
           <span>· {reviewWords(stored, kind === "client" ? "client" : "internal")}</span>
           {stored.approval ? <span data-approval>· {approvalWords(stored.approval, stored.approved_on)}</span> : null}
           <span className={`font-mono ${WRAPS}`}>· {stored.report_artifact_id}</span>
-          {controls.button}
+          {edited ? (
+            <span className="ml-auto" data-approval-edited>Zpráva je otevřená v editoru; verze z editoru se v tomto panelu zatím neschvaluje.</span>
+          ) : controls.button}
         </div>
         {controls.after}
         {missing.length ? (
           <p role="alert" className="mb-2 text-sm text-status-fault">Dokument cituje čísla, která jeho evidence nemá ({missing.join(", ")}); zobrazují se jako „?“.</p>
         ) : null}
-        <article aria-label="Koncept zprávy" className="rounded-card border border-border bg-surface-raised px-4 py-5 font-serif shadow-sm sm:px-8 lg:px-14 lg:py-10">
-          <header className="mb-4 border-b border-border pb-4">
-            <p className="font-sans text-xs text-ink-muted">{doc.meta.client_name} · {doc.meta.study_name}</p>
-            <h1 className="mt-1 text-2xl font-semibold leading-tight sm:text-[28px]">{doc.meta.title}</h1>
-            <p className="mt-1 font-sans text-sm text-ink-muted">{doc.meta.subtitle}</p>
-          </header>
-          {doc.sections.map((section) => (
-            <DocSection key={section.id} section={section} entry={entry} onClaim={open} refs={Object.keys(doc.ledger.refs)} />
-          ))}
-          <footer className="mt-6 border-t border-border pt-2 font-sans text-[11px] text-ink-muted" data-report-foot>
-            {stored.review_state === "APPROVED_INTERNAL" ? "Schváleno" : "Koncept"} · {stored.review_state} · {run.run_id} · revize {doc.meta.revision} · dokument {stored.artifact_id}
-          </footer>
-        </article>
+        {kind === "client" ? draft : (
+          // The draft in the report editor where it is configured (RPT8d), else read here as before.
+          <ReportEditor studyId={frame.studyId} runId={run.run_id} variant={kind === "with_review" ? "context" : "internal"} review={review} onShown={showInEditor}>
+            {draft}
+          </ReportEditor>
+        )}
         <Coverage lines={coverageRecord(run, doc.unread)} />
       </div>
       {/* Beside the document in a wide pane, a column only while a claim is open; in a narrow one, a sheet
