@@ -567,3 +567,27 @@ def test_a_save_is_stored_as_its_authors_when_a_config_was_signed_for_them(
         scope = ScopeResolver(session).study_context(principal, study_id=world.study_id())
         repo = research_artifacts(session, scope, app.state.artifact_store)
         assert repo.get(version_id).produced_by_user_id == author
+
+
+def test_the_browsers_config_token_does_not_post_a_save(
+    app: FastAPI, researcher: TestClient, client: TestClient, world: Any, saves: Saves
+) -> None:
+    """The browser holds a JWT under the editor's secret, its config's: it must not pass for
+    the Document Server's callback, in the header or the body."""
+    run_id, _ = _reported_run(app, researcher, world)
+    config = researcher.post(_editor(world, run_id), json={}).json()["config"]
+    url = urlparse(config["editorConfig"]["callbackUrl"])
+    body = {
+        "key": config["document"]["key"],
+        "status": 6,
+        "url": saves.put(_docx("50 %")),
+        "users": [world.users["researcher"]],
+        "token": config["token"],
+    }
+    answer = client.post(
+        url.path,
+        params=parse_qs(url.query),
+        json=body,
+        headers={"Authorization": f"Bearer {config['token']}"},
+    )
+    assert answer.status_code == 403 and saves.asked == []
