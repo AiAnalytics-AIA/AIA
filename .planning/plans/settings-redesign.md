@@ -15,6 +15,18 @@ chunks:
   - "[x] 10a. Metodika catalogue: a card per module with its drawing, accent and facts, no categories, the map first; -5 only, the reference map and H-Model not listed (D-13)"
   - "[x] 10b. Metodika module view: sub-tabs Výpočet / Verze a aktivace / Porovnání / Upravit, activation modal with reason chips, editor from the version in force, Metodik-only editing (D-14)"
   - "[x] 11. Stav systému and Správa dat: content over their backends"
+  - "[x] F1. Fidelity gap 2: the Metodika art and accents drawn (runtime colour properties, never Tailwind's --color-*)"
+  - "[ ] F2. Page frame and tab heads as the prototype draws them (breadcrumb, plain tab column, serif h1, one paragraph, status chips right)"
+  - "[ ] F3. One segmented control for role, status, self-approval, Audit period and Reference owner; Správa dat's client picker"
+  - "[ ] F4. Metodika opens on the module catalogue (one-line cards, 'Pro klienty' fact, the MVP note), back link and module header"
+  - "[ ] F5. Metodika → Výpočet: stage tiles, 'S parametry' filter, step rows with the formula on opening"
+  - "[ ] F6. Metodika → Upravit as one parameter list (original, stepper, bounds) over the existing guards, check/compare and activation with a reason; Verze and Porovnání as full tables even when empty; the Metodik rule kept"
+  - "[ ] F7. Studie a rozpočty: the 6-column table without the per-study status picker, the KPI tiles, per-researcher stacked bars; near-limit grey with ⚠ (gaps 4, 16, 17)"
+  - "[ ] F8. Deep Research: one flat rules table with Schválit/Stáhnout per row, readiness in the card head, Dosah always listing routes, the code's protections inside, unknown in ink (gaps 5, 6, 20, 21)"
+  - "[ ] F9. Přístup: three flat cards, the Naposledy column (gaps 7, 8)"
+  - "[ ] F10. Audit: category tiles and the Důvod / změna column in words (gap 10)"
+  - "[ ] F11. AI běh tiles and activity columns, Reference categories and tiles (gaps 13, 19)"
+  - "[ ] F12. Colour rules and copy: Stav systému's shared deployment not red, Správa dat's danger button, retention rows and inline Smaže se / Zůstane, Systémové prompty head chips and buttons (gaps 14, 15, 18)"
 ---
 # Settings redesign (Nastavení)
 
@@ -99,3 +111,12 @@ https://claude.ai/artifact/8W9LR8Ju9BWnR5JACmiWv7 (ten boards, one per tab) and 
   decision for the product owner, recorded for 10b.
 - 10a's accents are wayfinding tints only; readiness takes hue-slate, not the design's green, which is
   "in force" alone. The support drawing's n = 30 line is ink, not fault red.
+
+## Fidelity to the prototype v51 (the product owner, 2026-10-23)
+"Implement the settings pages just as we designed them; the current deploy is far from it."
+The tab-by-tab report (22 ranked gaps, side-by-side shots at 1440 and 390) is the fidelity
+agent's; chunks F1-F12 follow its order. His decisions on it: Metodika follows the prototype
+(catalogue first, Výpočet as stage tiles and step rows, Upravit as one parameter list over the
+existing guards, check/compare and activation with a reason; the Metodik rule kept); Studie a
+rozpočty drops the per-study status picker for the design's 6-column table; the global shell
+(gap 22) is not now. Each chunk is its own PR from a fresh develop, with side-by-side screenshots.
