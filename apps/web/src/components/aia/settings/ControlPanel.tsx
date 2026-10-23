@@ -40,13 +40,14 @@ import { DeepResearchSettingsPanel } from "./DeepResearchSettingsPanel";
 import { MethodologyPanel } from "./MethodologyPanel";
 import { ResearcherSpendCard } from "./ResearcherSpendCard";
 import { StudiesTable } from "./StudiesPanel";
+import { AuditPanel } from "./AuditPanel";
 import { SETTING_HELP, TAB_GUIDE } from "./settings-guide";
 import { SystemPromptsPanel } from "./SystemPromptsPanel";
 import { Technical, TechnicalProvider, TechnicalSwitch, useTechnicalChoice } from "./technical";
 import { Activity, BookOpen, Cpu, Database, History, type LucideIcon, ScrollText, Sigma, Telescope, Users, Wallet } from "lucide-react";
 import { Icon, type IconName } from "../../rehome/icons";
-import { Chip, Select, Tag, TextInput } from "../../rehome/ui";
-import { CARD, EYEBROW, Empty, Loaded } from "../states";
+import { Chip, Tag, TextInput } from "../../rehome/ui";
+import { CARD, EYEBROW, Loaded } from "../states";
 import { useResource } from "../useResource";
 
 const P = "aia.settings.panel";
@@ -114,7 +115,7 @@ async function loadPanel(): Promise<Panel> {
     part(admin.clients()),
     part(loadStudies()),
     doc.may_administer ? part(admin.selfApproval()) : Promise.resolve(null),
-    doc.may_administer ? part(admin.audit(50)) : Promise.resolve(null),
+    doc.may_administer ? part(admin.audit(500)) : Promise.resolve(null),
   ]);
   return { doc, runtime, members, clients, studies, levels, audit };
 }
@@ -502,36 +503,6 @@ function RoleMatrix({ vocab }: { vocab: Vocabularies }) {
   );
 }
 
-function AuditPanel({ audit, members }: { audit: Part<AuditEntry[]> | null; members: Part<Member[]> }) {
-  const [query, setQuery] = useState("");
-  const [actor, setActor] = useState("");
-  const [event, setEvent] = useState("");
-  if (audit === null) return <p className="text-sm text-ink-muted">{t(`${P}.audit.adminOnly`)}</p>;
-  if (!audit.ok) return <Unavailable what={t(`${P}.groups.audit.title`)} message={audit.message} />;
-  if (!audit.data.length) return <Empty>{t(`${P}.audit.none`)}</Empty>;
-  const who = new Map(members.ok ? members.data.map((m) => [m.user_id, m.email]) : []);
-  const person = (id: string | null) => (id ? (who.get(id) ?? id) : "—");
-  const names: Record<string, string> = { MEMBER_ADDED: "Přidání nebo úprava člena", USER_DEACTIVATED: "Deaktivace uživatele", CLIENT_CREATED: "Založení klienta", CLIENT_STATUS_CHANGED: "Změna stavu klienta", STUDY_CREATED: "Založení studie", STUDY_STATUS_CHANGED: "Změna stavu studie", STUDY_BUDGET_CHANGED: "Změna rozpočtu studie", STUDY_SPEND_CONFIRM_CHANGED: "Změna potvrzení útraty", SELF_APPROVAL_CONFIGURED: "Nastavení samoschválení", AIA_SESSION: "Přihlášení do AIA", PROMPT_ACTIVATED: "Aktivace systémového promptu", PROMPT_VERSION_CREATED: "Nová verze promptu", DR_TEST_POLICY_APPROVED: "Schválení testovacích pravidel rešerše", DR_TEST_POLICY_PROPOSED: "Návrh testovacích pravidel rešerše", CLIENT_GRANT: "Záznam přístupu ke klientovi", SELF_APPROVAL_CHANGED: "Změna samoschválení", ORGANIZATION_CREATED: "Založení organizace", AIA_SESSION_DENIED: "Odmítnuté přihlášení do AIA", MEMBER_ROLE_DENIED: "Odmítnutá změna role", IDENTITY_SUBJECT_CLEARED: "Uvolnění přihlašovací identity", PERMISSION_DENIED: "Odmítnutá akce", PROMPT_RESET_TO_BASELINE: "Návrat promptu na text z kódu", DR_SETTING_PROPOSED: "Návrh pravidla rešerše", DR_SETTING_APPROVED: "Schválení pravidla rešerše", DR_SETTING_WITHDRAWN: "Návrat pravidla rešerše na výchozí", METHODOLOGY_PROPOSED: "Nová verze metodiky", METHODOLOGY_ACTIVATED: "Uvedení metodiky v platnost", METHODOLOGY_RESET: "Návrat metodiky na verzi z kódu", CLIENT_KNOWLEDGE_AUTHORED: "Zápis znalosti klienta", CLIENT_KNOWLEDGE_DECIDED: "Rozhodnutí o návrhu znalosti" };
-  const actors = [...new Set(audit.data.map((entry) => entry.actor_id).filter((id): id is string => !!id))].sort((left, right) => person(left).localeCompare(person(right), "cs"));
-  const events = [...new Set(audit.data.map((entry) => entry.action))].sort((left, right) => (names[left] ?? left).localeCompare(names[right] ?? right, "cs"));
-  const visible = audit.data.filter((e) => (!actor || e.actor_id === actor) && (!event || e.action === event) && `${names[e.action] ?? e.action} ${person(e.actor_id)} ${person(e.subject_user_id)} ${e.study_id ?? e.client_id ?? ""} ${e.reason ?? ""}`.toLocaleLowerCase("cs").includes(query.trim().toLocaleLowerCase("cs")));
-  return <div className="flex min-w-0 flex-col gap-3">
-    <div className="grid gap-2 md:grid-cols-[minmax(0,1fr)_minmax(8rem,12rem)_minmax(8rem,14rem)]">
-      <TextInput type="search" aria-label={t(`${P}.auditSearch`)} placeholder={t(`${P}.auditSearchPlaceholder`)} value={query} onChange={(e) => setQuery(e.target.value)} />
-      <Select aria-label="Osoba v historii" value={actor} onChange={(e) => setActor(e.target.value)}><option value="">Všechny osoby</option>{actors.map((id) => <option key={id} value={id}>{person(id)}</option>)}</Select>
-      <Select aria-label="Typ události v historii" value={event} onChange={(e) => setEvent(e.target.value)}><option value="">Všechny události</option>{events.map((action) => <option key={action} value={action}>{names[action] ?? action.replaceAll("_", " ").toLocaleLowerCase("cs")}</option>)}</Select>
-    </div>
-    <p role="status" className="text-xs text-ink-muted">Zobrazeno {visible.length} z {audit.data.length} záznamů</p>
-    {!visible.length ? <p role="status" className="text-sm text-ink-muted">{t(`${P}.noSearchResults`)}</p> : null}
-    <ol className="flex flex-col gap-2">{visible.map((e) => <li key={e.event_id} className="rounded-md border border-border bg-surface p-3 text-sm">
-      <div className="flex flex-wrap items-start justify-between gap-2"><strong>{names[e.action] ?? e.action.replaceAll("_", " ").toLocaleLowerCase("cs")}</strong><time dateTime={e.created_at ?? undefined} className="text-xs text-ink-muted">{e.created_at ? new Intl.DateTimeFormat("cs-CZ", { dateStyle: "medium", timeStyle: "short", timeZone: "Europe/Prague" }).format(new Date(e.created_at)) : "—"}</time></div>
-      <p className="mt-1 break-words text-xs text-ink-muted">{t(`${P}.audit.actor`)}: {person(e.actor_id)}{e.subject_user_id ? ` · ${t(`${P}.audit.subject`)}: ${person(e.subject_user_id)}` : ""}</p>
-      {e.reason ? <p className="mt-2 break-words leading-6">{e.reason}</p> : null}
-      <Technical><p data-technical className="mt-2 break-all font-mono text-xs text-ink-faint">{e.action} · {e.study_id ?? e.client_id ?? "—"} · {e.role ?? "—"}</p></Technical>
-    </li>)}</ol>
-  </div>;
-}
-
 // ---------------------------------------------------------------- the panel
 
 // The page is split into tabs by what a person came to do. Every tab's panel stays
@@ -652,7 +623,7 @@ function PanelView({ panel, reload }: { panel: Panel; reload: () => void }) {
     residency: <DataClasses vocab={vocab} />,
     workflow: <Stages vocab={vocab} />,
     roles: <RoleMatrix vocab={vocab} />,
-    audit: <AuditPanel audit={audit} members={members} />,
+    audit: <AuditPanel audit={audit} members={members} clients={clients} studies={studies} />,
   };
   // A group is drawn when the API sent it; the AI section and audit always are. The role
   // matrix and the prototype's AI history are reference material: technical details only.

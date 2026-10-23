@@ -9,7 +9,7 @@ chunks:
   - "[x] 5. Systémové prompty: grouped list, editor layout, in-force version in green, Verze table"
   - "[x] 6. Deep Research: Dosah, proposals in the Návrh cell, I7 modals, Pevné ochrany v kódu"
   - "[x] 7. AI běh: route tiles, activities grouped with descriptions, the missing activities"
-  - "[ ] 8. Audit: categories with counts, period, search, Czech names for every action code"
+  - "[x] 8. Audit: categories with counts, period, search, Czech names for every action code"
   - "[ ] 9. Reference: categories, Kdo mění filter, Co znamená column"
   - "[ ] 10. Metodika: module cards with drawings and accent colours (no stage filter), -5 only, editor from the version in force, activation modal with reason chips"
   - "[ ] 11. Stav systému and Správa dat: content over their backends"
@@ -86,3 +86,8 @@ https://claude.ai/artifact/8W9LR8Ju9BWnR5JACmiWv7 (ten boards, one per tab) and 
   /config does not read their switches, so the built ones read "Stav nevidíme", never on or off. Their
   state belongs in the settings document's `ai_runtime` (backend follow-up), with their data classes;
   until then the board has no data-class column, rather than one written by hand.
+- Chunk 8 reads the last 500 audit records (the API's limit is 1000; it was 50) and files every action
+  the server writes under a category by rule (lib/audit.ts); a code it does not know reads as words
+  under "Ostatní", and a record without a time is in every period. The design's "Postoj dat",
+  "Strop peněženky", "Štítek Metodik" and "Vedoucí zapečetěn" names are there for the codes that exist;
+  the posture, ceiling and Metodik codes get names when their backends write them.
