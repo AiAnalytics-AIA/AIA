@@ -58,6 +58,21 @@ https://claude.ai/artifact/8W9LR8Ju9BWnR5JACmiWv7 (ten boards, one per tab) and 
   Never hide information behind toggles.
 
 ## Findings
+- Metodika → Upravit's "Porovnat s metodikou v platnosti" sat on "Porovnávám metodiky…" past the
+  settings journey's 30 s on the first comparison in a process with an empty numba kernel cache --
+  every container start, since NUMBA_CACHE_DIR is /tmp in a read-only image (python.Dockerfile).
+  Measured on a 4-vCPU Xeon 2.8 GHz (fresh process, empty cache): first compare 47.6 s, then 8.0 s;
+  warm 8.7 s and 7.9 s; five settings journeys on a warm workbench, compare 8.1-9.2 s, all passed.
+  The web clears its busy state in a finally (MethodologyVersions.tsx compare), so it was a slow
+  first compute, not a stuck state. Fix: AIA_SOCIOMAP_WARMUP_ENABLED (apps/api warmup.py) compiles
+  the kernels in a separate low-priority process after start (56 s alone; the API's health p95 8 ->
+  9 ms meanwhile, against 60 ms in a thread), and the editor counts a comparison's seconds after 3 s
+  and says why after 10 s. apps/api/tests/test_warmup.py, test_methodology_sociomap_check.py
+  "the warm-up computes the preset's map on every check panel", MethodologyVersions.test.tsx "counts
+  a long comparison's seconds". Not measured on develop's t3a.medium.
+- Hypothesis: a warm comparison takes 8-9 s (six aia-sociomap-5 maps, about 1.4 s each, with the
+  noise rule's 100 permutations and the layout's restarts). Unprofiled; it may be what -5 costs, or a
+  second finding. Not a person-blocking wait now that the editor says what it is doing.
 - The membership call (POST /api/v1/members) writes a member's name and role together, so a role chosen
   while the list was still re-reading a new name would have written the old name back. Caught by the
   settings journey on chunk 3; the row now sends the newest name (AccessPanel.tsx MemberRow), and

@@ -46,6 +46,7 @@ from .routers import (
     workspace,
 )
 from .routers import settings as settings_router
+from .warmup import start_object_map_warmup
 
 API_PREFIX = "/api/v1"
 
@@ -98,6 +99,8 @@ def create_app(settings: Settings | None = None) -> FastAPI:
                 }
             },
         )
+        if resolved.sociomap_warmup_enabled:
+            app.state.warmup = start_object_map_warmup()
         try:
             yield
         finally:

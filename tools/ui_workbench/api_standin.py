@@ -34,6 +34,7 @@ workbench venv, which holds the 18.6.6 unit's requirements.
 from __future__ import annotations
 
 import argparse
+import os
 import shutil
 import sys
 from pathlib import Path
@@ -83,6 +84,9 @@ def build(
         ai_research_reservation_usd=0.01,
         population_double=population_double,
         ai_population_personas_enabled=population_double,
+        # The object map's kernels compiled after start, as on develop, when asked for
+        # (AIA_SOCIOMAP_WARMUP_ENABLED=true in the environment): off by default here.
+        sociomap_warmup_enabled=os.environ.get("AIA_SOCIOMAP_WARMUP_ENABLED") == "true",
     )
     app = create_app(settings)
     return app, Base, seed_develop, Session

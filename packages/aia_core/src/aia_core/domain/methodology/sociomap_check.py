@@ -39,6 +39,7 @@ __all__ = [
     "PanelComparison",
     "compare_object_maps",
     "compare_with_in_force",
+    "warm_object_maps",
 ]
 
 #: Why the check compares K100's point and not its interval.
@@ -290,6 +291,16 @@ def compare_object_maps(
     return tuple(out)
 
 
+def _pin(payload: dict[str, Any] | None) -> tuple[SociomapSpecV3, Slots]:
+    """The object map's specification and formula slots a run started under ``payload`` pins
+    (``None``: the code's preset)."""
+    method = sociomap_methods_for(payload)[-1]
+    spec = method.resolve()
+    if not isinstance(spec, SociomapSpecV3):  # pragma: no cover - the pins guarantee it
+        raise TypeError("the object map's pin is not a contract-3 specification")
+    return spec, method.slots()
+
+
 def compare_with_in_force(
     in_force: dict[str, Any] | None, draft: dict[str, Any]
 ) -> tuple[PanelComparison, ...]:
@@ -297,12 +308,18 @@ def compare_with_in_force(
     ``in_force`` is the stored version in force (``None``: the code's preset), ``draft`` an
     edit validated by ``versions.validate_version``. Each is resolved through the run's own
     pin, formulas compiled, so the check computes exactly what a run would."""
+    return compare_object_maps(_pin(in_force), _pin(draft))
 
-    def pin(payload: dict[str, Any] | None) -> tuple[SociomapSpecV3, Slots]:
-        method = sociomap_methods_for(payload)[-1]
-        spec = method.resolve()
-        if not isinstance(spec, SociomapSpecV3):  # pragma: no cover - the pins guarantee it
-            raise TypeError("the object map's pin is not a contract-3 specification")
-        return spec, method.slots()
 
-    return compare_object_maps(pin(in_force), pin(draft))
+def warm_object_maps() -> int:
+    """Compute the code's preset map once on every :data:`CHECK_PANELS` panel and discard it.
+
+    The signed-off methodology's kernels are numba's, compiled on their first call in a process
+    whose kernel cache is empty -- every container start, since the image's filesystem is read
+    only (deploy/docker/python.Dockerfile) -- and that first compile takes about 40 s. Run once
+    in the background after start, the first comparison a person asks for meets compiled
+    kernels. Returns the number of panels computed."""
+    spec, slots = _pin(None)
+    for panel in CHECK_PANELS:
+        compute_object_map(panel.inputs(), spec, connectedness_interval=False, slots=slots)
+    return len(CHECK_PANELS)
