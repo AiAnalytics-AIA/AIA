@@ -54,7 +54,7 @@ from ..domain.methodology.pins import (
 )
 from ..domain.money import ThresholdVerdict, threshold_verdict
 from ..domain.panel_persona import persona_allowlist
-from ..domain.panel_source import panel_filters
+from ..domain.panel_source import panel_filters, with_panel_refusal
 from ..domain.pipeline import StageImpact, changed_fields, fingerprint, stage_impacts
 from ..domain.population import (
     CZ_LIVE,
@@ -84,14 +84,17 @@ from ..domain.research_design import (
     ReadinessSpec,
     ResearchSpecification,
     prepare,
+    routed_questions,
     selection_receipt,
 )
 from ..domain.research_sociomap import (
     SociomapMethod,
     default_methods,
+    is_retired,
     methods_fingerprint,
     read_methods,
     side_tables_of,
+    without_reference,
 )
 from ..domain.research_trace import (
     ResearchTrace,
@@ -102,6 +105,7 @@ from ..domain.research_trace import (
 from ..domain.respondent_behavior import AIA_RESPONSE_V1, ResponseProcessSpec
 from ..domain.run_cost import CeilingUnknown, RunCostCeiling, run_cost_ceiling
 from ..domain.scope import OrganizationRole, Permission, StudyContext
+from ..domain.spend_attribution import ActivitySpend, run_spend
 from ..domain.support_forecast import SupportForecast, forecast_support, with_support_forecast
 from ..domain.workflow import RUNTIME_UNAVAILABLE_REASON, StepRunStatus, WorkflowRunStatus
 from ..domain.workflow_templates import REPORT_PDF, RESEARCH, RESEARCH_AGENT
@@ -109,6 +113,7 @@ from ..infrastructure.artifact_repository import Artifact, ArtifactRepository
 from ..infrastructure.client_knowledge_repository import ClientKnowledgeRepository
 from ..infrastructure.methodology_repository import methodology_in_force_for_study
 from ..infrastructure.prompt_repository import PromptRefused, PromptResolver
+from ..infrastructure.researcher_spend_repository import run_spend_facts
 from ..infrastructure.scope_repository import ScopeRepository
 from ..infrastructure.storage import ArtifactStore
 from ..infrastructure.study_design_repository import DesignRevisionNotFound, StudyDesignRepository
@@ -142,6 +147,7 @@ __all__ = [
     "ResearchQuestionsUnanswerable",
     "ResearchRunNotFound",
     "ResearchRunNotRetryable",
+    "ResearchRunOnRetiredMethod",
     "ResearchRuns",
     "ResearchStepNotFound",
     "RunOutlook",
@@ -218,6 +224,26 @@ class ResearchRunNotRetryable(Exception):
     def __init__(self, status: WorkflowRunStatus) -> None:
         super().__init__(f"a {status.value} run cannot be retried")
         self.status = status
+
+
+class ResearchRunOnRetiredMethod(Exception):
+    """The run's object map is the earlier default's ``aia-sociomap-3`` (or it pinned the
+    reference map alone): it is never computed again. A new run over the same Design Revision
+    pins ``aia-sociomap-5``."""
+
+    def __init__(self, run: Mapping[str, Any], methods: list[str]) -> None:
+        run_id = str(run["run_id"])
+        design_revision_id = str(run["metadata"]["design_revision_id"])
+        super().__init__(
+            f"run {run_id} pinned {', '.join(methods)}, which no new run computes; start a new "
+            f"run over {design_revision_id} instead"
+        )
+        self.run_id = run_id
+        self.design_revision_id = design_revision_id
+        self.methods = methods
+        #: The start a new run takes to begin as this one did: the same revision, respondents,
+        #: population and research-question decision (a start's own fields, as the API reads them).
+        self.new_run = _new_run_start(run)
 
 
 class ResearchStepNotFound(LookupError):
@@ -423,6 +449,8 @@ class RunOutlook:
     answerability: Answerability | None = None
     #: The sample a panel run would draw (or the sampler's refusal); ``None`` when none was drawn.
     panel: PanelDraw | None = None
+    #: The support forecast readiness carries; ``None`` when this fieldwork forecasts none.
+    forecast: SupportForecast | None = None
 
 
 @dataclass(frozen=True, slots=True)
@@ -486,6 +514,10 @@ class ResearchRuns:
     #: Draws a panel run's sample over the population above (run-qc-and-checkpoint RQC6b);
     #: ``None``: none composed, so a panel run's support forecast reads unknown.
     panel_sampler: PanelSampler | None = None
+    #: ``AIA_ROUTING_ENABLED`` (off; working-copy-edit-ops WCE13 (d)): a valid display condition
+    #: passes readiness and a new run pins it (``routing``), which its preflight reads. Off until
+    #: fieldwork routes by it (run-qc-and-checkpoint RQC11).
+    routing_enabled: bool = False
 
     def _panel_draw(self, spec: ResearchSpecification) -> PanelDraw | None:
         """The sample a panel run of ``spec`` would draw: the design's filters, its n and the
@@ -594,6 +626,7 @@ class ResearchRuns:
         acknowledge: Acknowledgement | None = None,
         inherited_acknowledgement: tuple[Acknowledgement, str, str | None] | None = None,
         require_answerability: bool = False,
+        routing: bool | None = None,
         _probe: bool = False,
     ) -> StartedRun:
         """Run the research workflow over one Design Revision of the Study.
@@ -641,6 +674,14 @@ class ResearchRuns:
         child that is not this client's raises
         :class:`~aia_core.domain.population.UnknownDatasetVersion`, as a scope miss does.
 
+        The run pins whether fieldwork routes its display conditions (``routing``; the
+        composition's ``routing_enabled`` when not given, a retry the original's): readiness
+        passes a valid condition under it, and its preflight and fieldwork steps read the pin
+        (fieldwork fails a routed run by name until it routes, RQC11). With no valid condition
+        the pin changes nothing and is not recorded. It is not part of the run's key: without
+        it a design with a valid condition never starts, so every run of such a revision is
+        routed, and a start after the switch is turned off still finds its run.
+
         The run also pins its readiness limits (``readiness``; the organization's readiness
         version in force when not given, plan ``methodology-tab`` V1a): the start checks the
         design under them, and the run's compile and preflight steps read the pin. They decide
@@ -668,10 +709,11 @@ class ResearchRuns:
         The run pins its Sociomap methods here, each with its whole spec
         (``sociomap_methods``; :func:`~aia_core.domain.research_sociomap.default_methods`
         when not given): the ``sociomap`` step computes exactly those, whatever the
-        module's preset becomes before it runs or is retried. A set the caller chooses over
-        the default is part of the run's identity, so the same revision under two chosen
-        sets is two runs; taking the default is not, so a start over a revision that has a
-        run (made under an earlier default) returns that run and pays for nothing again.
+        module's preset becomes before it runs or is retried. The set is part of the run's
+        identity, the default's included, so the same revision under two sets is two runs: a
+        start over a revision whose run pinned an earlier default (``aia-sociomap-1`` with
+        ``-3``) starts a new run on ``aia-sociomap-5`` rather than returning the old one. A run
+        stored with the old default's bare key keeps it.
 
         Idempotent: the same revision starts one run, and so does retrying the
         same run -- a double submission gets the run that already exists. Needs
@@ -679,8 +721,9 @@ class ResearchRuns:
         :class:`~aia_core.infrastructure.study_design_repository.DesignRevisionNotFound`
         for a revision that is not this Study's.
 
-        When the study has a spend limit (``Study.spend_confirm_usd``) and this would create
-        a run, its cost ceiling is worked out here, never taken from the request. A ceiling
+        When this would create a run, its cost ceiling is worked out here, never taken from the
+        request, and recorded in the run's metadata as ``cost_ceiling`` (artifact-fieldwork
+        FLD4d). When the study has a spend limit (``Study.spend_confirm_usd``), a ceiling
         at or above the limit needs ``confirm_cost_usd`` to cover it
         (:class:`CostConfirmationRequired` otherwise) and the yes is recorded in the approval
         ledger with the run. A ceiling that cannot be worked out is not let by
@@ -699,11 +742,30 @@ class ResearchRuns:
         response_spec, response_version = self._response(response)
         limits, readiness_version = self._readiness(readiness)
         content = designs.content(revision.revision_id)
+        routing = self.routing_enabled if routing is None else routing
         _spec, checked = prepare(
             content,
             pair_n_min=side_tables_of(methods).n_min,
             limits=limits,
+            routing=routing,
         )
+        # Only a design with a valid condition is routed: elsewhere the pin changes nothing.
+        routed = _spec is not None and bool(routed_questions(_spec, routing=routing))
+        panel = persona_source is PersonaSource.PANEL
+        # As readiness drew it: a new panel run over LIVE (a run over a selected child, or a
+        # retry, which keeps the original's population, draws from one the sampler does not
+        # read). A sample the sampler refuses is a failed check, never a run fieldwork refuses.
+        drawn = (
+            self._panel_draw(_spec)
+            if panel
+            and _spec is not None
+            and fieldwork_source is FieldworkSource.AI_RUNTIME
+            and population_version_id is None
+            and retry_of is None
+            else None
+        )
+        if drawn is not None and drawn.sampler_refused is not None:
+            checked = with_panel_refusal(checked, drawn.sampler_refused, drawn.reasons)
         # A retry keeps the original's population and never re-chooses it.
         selected = self._selected(population_version_id if retry_of is None else None)
         project_id = designs.project_id()
@@ -718,11 +780,10 @@ class ResearchRuns:
             # An edited methodology is new identity: the same revision under it is another
             # run, and its cost goes through the spend confirmation below like any new run.
             key += f":methodology:{methodology['payload_sha256'][:16]}"
-        elif sociomap_methods is not None and methods != default_methods():
-            # Only a set the caller chose over the default is new identity. A start that
-            # takes the default keeps the key every earlier run of the revision has, so a
-            # re-start after the default changes returns the run that exists -- with the
-            # methods it pinned -- instead of paying for its fieldwork again.
+        else:
+            # The methods are identity, the default's too: a revision whose run pinned the old
+            # default (keyed bare, as every start that took a default was) gets a new run on
+            # the signed-off methodology, never the old run handed back as if it were one.
             key += f":sociomap:{methods_fingerprint(methods)[:16]}"
         if support_version is not None:
             key += f":support:{support_version['payload_sha256'][:16]}"
@@ -739,7 +800,6 @@ class ResearchRuns:
         if population_version_id is not None and retry_of is None:
             # A retry keeps the original's population; its key carries the original's id.
             key += f":population:{fingerprint(population_version_id)[:16]}"
-        panel = persona_source is PersonaSource.PANEL
         if panel and fieldwork_source is not FieldworkSource.AI_RUNTIME:
             raise ValueError("panel personas answer only through the ai_runtime source")
         if panel:
@@ -798,11 +858,8 @@ class ResearchRuns:
             forecast: SupportForecast | None = None
             if fieldwork_source is FieldworkSource.AI_RUNTIME:
                 _, slots = read_aggregation_pin(aggregation_pin)
-                # As readiness forecast it, so the gaps a person acknowledged there are these. A
-                # run over a selected child (or a retry, which keeps the original's population)
-                # draws from a population the sampler does not read: unknown, as before.
-                fresh_live = population_version_id is None and retry_of is None
-                drawn = self._panel_draw(_spec) if panel and fresh_live else None
+                # As readiness forecast it, from the sample drawn above, so the gaps a person
+                # acknowledged there are these; none drawn reads unknown, as before.
                 forecast = forecast_support(
                     _spec,
                     support=support_spec,
@@ -810,7 +867,7 @@ class ResearchRuns:
                     slots=slots,
                     sample=drawn.sample if drawn is not None else None,
                 )
-            items = question_outlook(_spec, forecast)
+            items = question_outlook(_spec, forecast, routing=routing)
             trace = trace_research(
                 _spec, research_questions_of(content), items, comparisons_of(content)
             )
@@ -845,8 +902,11 @@ class ResearchRuns:
             else:
                 answer_note = {**answerability_note(trace, answer), "enforced": False}
         confirmation: tuple[float, float] | None = None
+        # A run this start would create records the ceiling it started under (artifact-fieldwork
+        # FLD4d); a run it finds keeps what it recorded.
+        ceiling: RunCostCeiling | None = None
         limit = self.spend_limit()
-        if limit is not None and self._workflows().find_run_by_idempotency_key(key) is None:
+        if not exists:
             assert _spec is not None  # a ready design compiles
             ceiling = self.cost_ceiling(
                 _spec,
@@ -856,6 +916,7 @@ class ResearchRuns:
                 fieldwork_frozen=frozen_dataset is not None,
                 analysis_modules=frozen_dataset.modules_asked if frozen_dataset else None,
             )
+        if limit is not None and ceiling is not None:
             # The confirmation threshold's one rule (domain/money.py; ADR 0019 gate 2).
             verdict = threshold_verdict(ceiling.total_usd, limit, confirm_cost_usd)
             if verdict is ThresholdVerdict.CEILING_UNKNOWN:
@@ -890,9 +951,22 @@ class ResearchRuns:
                 **({"response_methodology": response_version} if response_version else {}),
                 "readiness": readiness_pin,
                 **({"readiness_methodology": readiness_version} if readiness_version else {}),
+                **({"routing": True} if routed else {}),
                 **({"retry_of": retry_of} if retry_of else {}),
                 **({"analysis_retry": frozen_dataset.note()} if frozen_dataset else {}),
                 "persona_source": persona_source.value,
+                **(
+                    {
+                        "cost_ceiling": {
+                            "usd": ceiling.total_usd,
+                            "unknown": (
+                                ceiling.unknown.value if ceiling.unknown is not None else None
+                            ),
+                        }
+                    }
+                    if ceiling is not None
+                    else {}
+                ),
                 **(
                     {"population": _population_note(population, read_by_fieldwork=panel)}
                     if population
@@ -922,15 +996,26 @@ class ResearchRuns:
                     "methods": pinned,
                     "persona_source": persona_source.value,
                     "readiness": readiness_pin,
+                    **({"routing": True} if routed else {}),
                 },
                 "run": {
                     "fieldwork_source": fieldwork_source.value,
                     "persona_source": persona_source.value,
+                    **({"routing": True} if routed else {}),
                     "response": response_pin,
                     **({"frozen_dataset": frozen_dataset.step_input()} if frozen_dataset else {}),
                 },
                 "aggregate": {"support": support_pin, "aggregation": aggregation_pin},
-                "sociomap": {"methods": pinned},
+                "sociomap": {
+                    "methods": pinned,
+                    # An analysis retry of a run on the earlier default reuses its stored map
+                    # and never computes that method again.
+                    **(
+                        {"reuse_only": True}
+                        if frozen_dataset is not None and is_retired(methods)
+                        else {}
+                    ),
+                },
                 **(
                     analysis_step_inputs(
                         ClaimSurface.INTERNAL,
@@ -980,10 +1065,12 @@ class ResearchRuns:
 
         A retry spends again, so it asks again: the limit and the confirmation work as they do
         for :meth:`start`. It pins the Sociomap methods the run it retries pinned, never the
-        current default; a run stored before methods were pinned retries as
-        ``aia-sociomap-1``, the method that computed it. It keeps the original's persona
-        source whatever the deployment's switch now says; a run stored before the source was
-        pinned retries on the fictional roster, which answered it.
+        current default, without the reference map; a run whose object map is ``aia-sociomap-3``
+        or that pinned the reference map alone (as a run stored before pins reads) is refused,
+        :class:`ResearchRunOnRetiredMethod`.
+        It keeps the original's persona source whatever the deployment's switch now says; a
+        run stored before the source was pinned retries on the fictional roster, which
+        answered it.
         """
         run = self.get(run_id)
         if not retryable(run["status"]):
@@ -1041,8 +1128,25 @@ class ResearchRuns:
         require_answerability: bool = False,
     ) -> StartedRun:
         """A new run linked to ``run``, under every pin it recorded, and the answerability
-        acknowledgement it recorded: it covers the retry only while the gaps are the same."""
+        acknowledgement it recorded: it covers the retry only while the gaps are the same.
+
+        A run whose methods no new run computes (:func:`~aia_core.domain.research_sociomap.
+        is_retired`) is refused (:class:`ResearchRunOnRetiredMethod`) before anything is started
+        or spent: the refusal names its Design Revision, over which a new run pins
+        ``aia-sociomap-5``. An analysis retry of such a run is let through when its Sociomap is
+        stored: it keeps the pins, so its step finds that map under the same inputs and computes
+        nothing (the step is told to reuse only, and fails rather than compute it again). A run
+        of an edited version is retried with that version alone: the reference map pinned
+        beside it is dropped. Retired is the code's old default only: a run whose methods came
+        from a version in force (an unchanged aia-sociomap-3 pins the preset's own name) is that
+        organization's choice, retried as it pinned it."""
         run_id = str(run["run_id"])
+        pinned = read_methods(run["metadata"].get("sociomap_methods"))
+        if is_retired(pinned) and not run["metadata"].get("methodology"):
+            if frozen_dataset is None or not _sociomap_stored(run):
+                raise ResearchRunOnRetiredMethod(run, [m.method_id for m in pinned])
+        else:
+            pinned = without_reference(pinned)
         return self.start(
             design_revision_id=str(run["metadata"]["design_revision_id"]),
             fieldwork_source=fieldwork_source,
@@ -1054,7 +1158,7 @@ class ResearchRuns:
             sociomapping_enabled=bool(run["metadata"].get("sociomapping_enabled", False)),
             reservations=reservations,
             confirm_cost_usd=confirm_cost_usd,
-            sociomap_methods=read_methods(run["metadata"].get("sociomap_methods")),
+            sociomap_methods=pinned,
             support=read_support_pin(run["metadata"].get("support")),
             aggregation=_aggregation_of(run["metadata"]),
             response=read_response_pin(run["metadata"].get("response")),
@@ -1072,6 +1176,7 @@ class ResearchRuns:
                 if run["metadata"].get(k)
             },
             persona_source=persona_source_of(run["metadata"]),
+            routing=run["metadata"].get("routing") is True,
             acknowledge=acknowledge,
             inherited_acknowledgement=_acknowledgement_of(run),
             require_answerability=require_answerability,
@@ -1348,6 +1453,7 @@ class ResearchRuns:
             pair_n_min=side_tables_of(methods).n_min,
             filters_applied=persona_source is PersonaSource.PANEL,
             limits=limits,
+            routing=self.routing_enabled,
         )
         if spec is None:
             return RunOutlook(spec=None, readiness=readiness, questions=(), trace=None)
@@ -1363,6 +1469,8 @@ class ResearchRuns:
             # read: unknown, as its start reads it.
             if persona_source is PersonaSource.PANEL and population_version_id is None:
                 panel = self._panel_draw(spec)
+                if panel is not None and panel.sampler_refused is not None:
+                    readiness = with_panel_refusal(readiness, panel.sampler_refused, panel.reasons)
             forecast = forecast_support(
                 spec,
                 support=support,
@@ -1371,7 +1479,7 @@ class ResearchRuns:
                 sample=panel.sample if panel is not None else None,
             )
             readiness = with_support_forecast(readiness, forecast, support=support)
-        questions = question_outlook(spec, forecast)
+        questions = question_outlook(spec, forecast, routing=self.routing_enabled)
         # The research questions as the analysis will read them, each traced to its measures.
         trace = trace_research(
             spec, research_questions_of(content), questions, comparisons_of(content)
@@ -1386,6 +1494,7 @@ class ResearchRuns:
             trace=decided_trace(trace, answer),
             answerability=answer,
             panel=panel,
+            forecast=forecast,
         )
 
     def _support(self, support: SupportSpec | None) -> tuple[SupportSpec, dict[str, Any] | None]:
@@ -1508,6 +1617,19 @@ class ResearchRuns:
         run["phase"] = phase_of(run["status"], attempted=run["attempted"])
         run["retryable"] = retryable(run["status"])
         return run
+
+    def spend(self, run: Mapping[str, Any]) -> ActivitySpend:
+        """What one research run of this Study has spent, holds open and could not settle, by
+        the rules a person's spend is read (``artifact-fieldwork`` FLD4). ``run`` is what
+        :meth:`get` found through this Study; the query is in the Study and organization too."""
+        self.scope.require(Permission.VIEW_COSTS)
+        usage, holds = run_spend_facts(
+            self.session,
+            organization_id=self.scope.organization_id,
+            study_id=self.scope.study_id,
+            run_id=str(run["run_id"]),
+        )
+        return run_spend(usage, holds)
 
     def runs(self, *, limit: int = 20, steps: bool = False) -> list[dict[str, Any]]:
         """This Study's research runs, newest first, with their phases.
@@ -2006,6 +2128,45 @@ def _ended_without_result(run: Mapping[str, Any]) -> bool:
         a["paid_call_dispatched"] and not a["paid_call_outcome_known"]
         for step in run["steps"]
         for a in step["attempts"]
+    )
+
+
+def _new_run_start(run: Mapping[str, Any]) -> dict[str, Any]:
+    """What a new run over ``run``'s Design Revision starts with to begin as ``run`` did: its
+    persona source, the materialized child it ran over (a pinned population names none), and
+    the research-question acknowledgement it recorded."""
+    meta = run["metadata"]
+    population = meta.get("population")
+    child = (
+        population.get("version_id")
+        if isinstance(population, Mapping) and population.get("population_id") is None
+        else None
+    )
+    acknowledged = _acknowledgement_of(run)
+    return {
+        "design_revision_id": str(meta["design_revision_id"]),
+        "persona_source": persona_source_of(meta).value,
+        **({"population_version_id": str(child)} if child else {}),
+        **(
+            {
+                "acknowledge_research_questions": {
+                    "digest": acknowledged[0].digest,
+                    "reason": acknowledged[0].reason,
+                }
+            }
+            if acknowledged is not None
+            else {}
+        ),
+    }
+
+
+def _sociomap_stored(run: Mapping[str, Any]) -> bool:
+    """Whether ``run``'s Sociomap step succeeded with a stored map."""
+    return any(
+        s.get("node_key") == "sociomap"
+        and s.get("status") is StepRunStatus.SUCCEEDED
+        and (s.get("output") or {}).get("artifact_id")
+        for s in run.get("steps") or ()
     )
 
 

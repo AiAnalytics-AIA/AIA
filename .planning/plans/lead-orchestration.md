@@ -647,6 +647,9 @@ same parent; whichever merges second re-points its `down_revision`).
   says whether a retry's charge replaces the original's (released when the original ended without
   paying), decided with the release question below. Test: a retried plan step's wallet holds one
   ceiling, not two.
+  *Linked (2026-10-22):* the stage's analysis retry (`POST …/analysis/retry`) and the typed
+  "Zopakuj analýzu" (below) charge the wallet nothing today, by the product manager's decision
+  (b). When F-LO1-1 is decided, both change together, in one PR.
 - **F-LO1-2 (P3-d). The wallet is not bounded by what the budget has left.** `effective_cap` takes
   `budget_usd`, not its remainder (`spent_usd` and open reservations). Anchor: `domain/wallet.py`
   `effective_cap` @ this PR's head. Reproduction: budget USD 10, wallet USD 10, a person-started run
@@ -1115,3 +1118,51 @@ head`, `alembic check`, `downgrade base`, `upgrade head` on PostgreSQL 16.
 - ADR 0028 *What enforces it*: "a typed start approved on a run another approval already started
   writes a `chat_start` row of decision `reuse` naming the run in its comment only, never in
   `run_id`: neither a start approval for attribution nor a charge authority".
+
+## The typed analysis retry (2026-10-22, `feature/lead-analysis-retry`; LO5, for artifact-analysis ANL6)
+
+The registry already named `analysis_retry` among Analýza's starts, but nothing started it from
+the conversation. A person types **"Zopakuj analýzu"** (no instruction), matched by code
+(`domain/lead_commands.py` `ANALYSIS_RETRY`, pinned in `commands.json`), and approves its card.
+- **One path with the stage.** `approve_chat_start` takes the study's newest research run that ran
+  analysis (`_newest_analysed_run`; one still running is refused, never passed over for an older
+  one) and calls the stage route's own `retry_failed_modules`: the same threshold (LO15), frozen
+  dataset, idempotency and refusals by name (`analysis_not_retryable` with `run_not_finished`,
+  `analysis_not_in_run`, `dataset_missing`, `specification_missing`, `nothing_to_retry`, and
+  `no_analysed_run` when the study has no run that ran analysis at all), mapped
+  once in `run_start_errors` for both routes. It writes `chat_start` naming the retry run (`reuse`
+  when the retry was already there).
+- **No wallet charge** (the product manager's decision (b), 2026-10-22): the stage route charges
+  none, so neither does the typed start; the card says so in words ("Opakování analýzy se
+  nestrhává z Peněženky."). Linked to F-LO1-1 above. With the wallet off (everywhere today)
+  nothing changes.
+- **The store.** `RunStartSettings.store` carries the artifact store the retry reads the run's
+  stored outcomes from; the Lead's approve route passes it.
+- **The card** (`LeadPane` `RequestCard`, kind `analysis_retry`): what it does, that no new data is
+  collected, and the payment line; approved through the same `onRequest` as every typed start.
+- **Tests.** `test_lead_chat_start_api.py` "a typed analysis retry with no analysed run is refused by
+  name", "… of a run still going is refused as the stage route is" (the stage route answers the
+  same), "… starts the stage retry on the newest analysed run" (the stage's start, the confirmation
+  passed on, `chat_start` with no ceiling, no charge with the wallet on); `test_lead_commands.py`;
+  `lead.test.ts` `commandRequest`; `LeadPane.test.tsx` "shows a typed analysis retry as the stage's
+  retry…".
+- **Not here:** removing the stage's own retry buttons is ANL6's (Analýza, behind 26f).
+- **Follow-up (the PM's optional points on #744, `feature/lead-analysis-retry-pin`).**
+  - *The card names its run.* GET /lead answers `analysis_retry_run` (the newest analysed run, by
+    `newest_analysed_run`'s rule) and the card shows "Který běh"; approval sends `retry_run_id`, and a
+    newer analysed run since is 409 `analysis_retry_target_moved` (`current_run_id`), nothing written,
+    asked as LO10 asks a moved design (`ANALYSIS_RETRY_MOVED_QUESTION`), then retried on the newer
+    run only on the person's yes. No migration: the run is bound at approval, as the revision is.
+  - *The Peněženka only with the wallet on.* GET /lead answers `wallet_enabled`; the retry's "nestrhává
+    se z Peněženky" and the typed run's "… a Peněženka se kontrolují" show only when it is on.
+  - Tests: `test_lead_chat_start_api.py` "a typed analysis retry names its run and never retries a newer
+    one unasked", "the conversation says whether the wallet is on"; `LeadPane.test.tsx` "… names the run
+    it retries and starts it on that run", "says a typed start is not charged to the Peněženka only with
+    the wallet on"; `Workbench.layout.test.tsx` "is approved on the run its card named, and on a newer one
+    only after the person's yes". The web tests fail without the change.
+
+### Doc follow-up (typed analysis retry)
+
+- `CLAUDE.md` map, `application/lead_chat_start.py` (and the commands list): "Zopakuj analýzu"
+  starts `retry_failed_modules` on the newest analysed run, `chat_start`, no wallet charge.
+

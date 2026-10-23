@@ -4,11 +4,13 @@ chunks:
   - "[ ] RES1. Výsledky's contract as data: view operations, pointable ids (measure, set, object row, open question) and V2's interaction contract"
   - "[ ] RES2. Results read admitted rows from the server: suppression and support decided there, no raw aggregate read by the screen"
   - "[ ] RES3. The body as V2 draws it: each set's means with intervals and Kish n, suppressed rows with their reason, the reading line (an order only where intervals part), shares with bases"
-  - "[ ] RES4. Původ a kvalita and the reopened note: run, revision, origin, suppression rule, QC count; 'Výsledky běhu z revize N; studie je na revizi M' when the design moved"
+  - "[x] RES4a. The reopened note: 'Výsledky běhu z revize N; studie je na revizi M' when the study holds a newer Design Revision than the run's"
+  - "[ ] RES4b. Původ a kvalita: run, revision, origin, suppression rule, QC count (QC after evidence-integrity#3)"
   - "[x] RES5a. Open answers on Results: up to five raw answers per open question, internal only and labelled as data (RQ1 = Q52 a)"
   - "[ ] RES5b. Their coded counts once coding exists (after assumptions-and-open-answer-coding#AOC8)"
   - "[ ] RES6. The Lead on Výsledky: Interpretation Research on a question or a set as a Lead card, the stage's own client-knowledge ask removed"
-  - "[ ] RES7. Journey: Výsledky at 1440, 1100, 768 and 390 px on a fictional run, zero paid jobs"
+  - "[x] RES7a. Journey: Výsledky's Data view at 1440, 1100, 768 and 390 px on a fictional run (layout, the Lead's ids, a measure by hash), zero paid jobs"
+  - "[ ] RES7b. The journey's Lead half: the Lead focusing measure:<id>, an Interpretation Research card on 12a's recorded web (after RES6)"
   - "[ ] RES8. CSV and XLSX export of the run's per-question tables, every cell an admitted claim, from the aggregate (report-delivery#RD12, moved here by the PM 2026-10-21)"
 ---
 # Artifact: Výsledky (Results)
@@ -104,6 +106,12 @@ missing interval reads unknown.
 **RES4. Původ a kvalita and the reopened note.** Test: a run on revision 3 with the study on 4 shows
 the note. Depends on `productization-coherence#PC5`, and `evidence-integrity#3` for QC.
 
+RES4a, as built: `revisionNote` (`result-reading.ts`) over the study's Design Revisions
+(`GET …/design/revisions`) and the run's `design_revision`; the note sits above the numbers. An unread
+list says nothing (never "the design moved" on unknown). Compared with Design Revisions, not working
+revisions: a run executes a Design Revision, and an edit not yet submitted has not moved its design.
+The stage track's half is `productization-coherence#PC5`'s.
+
 **RES5. Open answers.** RQ1 = Q52 (a): up to five raw answers per open question, labelled "data, ne
 připuštěná evidence; nejsou kódované", internal only: never exported, never in a client deliverable
 (RD0's no-drill-down rule). Coded counts after `assumptions-and-open-answer-coding#AOC8`. Test: at
@@ -142,6 +150,68 @@ report, analysis prompt or export reads them; RES8's export test repeats it for 
   records the aggregate artifact id and SHA-256. No raw open answer (RES5a).
 - Not paid. Depends on RES2 (the same admitted rows the screen shows).
 - Test: a suppressed cell never appears; the file's numbers equal the screen's; no `verbatimy`.
+
+RES7a, as built: `tools/ui_workbench/results_journey.mjs` (`make ui-results`, after `make ui-research`). It
+found F-R1 to F-R3 below, failed on each before its fix and passes after.
+
+## Findings
+
+Audit of Výsledky in a browser on the workbench's completed fictional run (persona fixture), 2026-10-21,
+anchors `@ bfe6d15b`.
+
+- **F-R1. The report card buries the data.** `ResultsWorkspace.tsx:51` renders the study's report card
+  (`CompleteReport`) above every view, so `#data` (the `results` stage) opened two screens above the
+  data at 1440 px and four at 390 px. Repro: `results_journey.mjs` on `bfe6d15b` fails "the study's
+  report card is not shown on Data". Fix: the card shows on Přehled and Rešerše a zpráva only,
+  hidden (kept mounted) elsewhere. Test: that journey check; `ExecutionSteps.test.tsx` "shows the
+  internal draft…" asserts it hidden on Data.
+- **F-R2. A measure's reading squeezed beside its chip.** `ExecutionSteps.tsx:1943` put the reading
+  inside the title column beside the support chip, so it ran 78 % of the card at 1440 px and about
+  half at 390 px. Fix: the reading runs the card's width under the title row. Test: the journey's
+  "every reading runs its card's width" (≥ 90 %).
+- **F-R3. A rated set's table wider than a phone.** `ExecutionSteps.tsx:1821` (`min-w-[30rem]`) made
+  the table 480 px at 390 px; Interval and Kish n were reachable only by a sideways scroll. Fix: the
+  interval band column is left out under 640 px, and the minimum width applies from 640 px. Test:
+  the journey's "nothing of the data view is wider than the screen".
+- **F-R4. A run's cost printed with a decimal point.** `ResultsWorkspace.tsx:62` (`toFixed(2)`) wrote
+  "0.00 USD" among Czech numbers. Fix: cs-CZ, "0,00 USD". No test of its own (one formatter).
+- **F-R6. A view opened by its address lands under the run's notices** (Sociomapa's audit,
+  `artifact-sociomap`, relayed by the PM). `ResultsWorkspace.tsx:77` (the tablist) sits below the
+  origin notices, the receipt and the run's header, so Sociomapa (`#maps`) and Výsledky (`#data`)
+  opened with their view 989 px down a 900 px screen (1,329 px at 390 px; 2,174 px with the report
+  card). Fix: a view named by the address scrolls its tabs into view and keeps them there while what
+  sits above loads (3 s, until the person scrolls, touches or types). Tests: `ResultsWorkspace.test.tsx`
+  "opens a view named by the address scrolled to its tabs"; the journey's "Data opens scrolled to its
+  view" and "Sociomapa opens scrolled to the map" at four widths.
+- **F-R5 (not Výsledky's).** `src/lib/artifacts/sample.test.ts` "keeps the pending ids pending only
+  while the contract lacks them" fails on `bfe6d15b` (`[ 'sample:ready', true ]` against `false`);
+  reported to the PM for Vzorek's owner.
+
+Second pass, 2026-10-22, anchors `@ 9607ee09` (each detail opened, the tabs by keyboard, the search, a
+study with no run):
+
+- **F-R7. A choice question's answers in name order.** `research-execution.ts:388` listed the stored
+  shares as the aggregate holds them, and the artifact store writes canonical JSON
+  (`artifact_repository.py:434`, `sort_keys=True`), so a frequency scale read "Jeden až dva dny, Každý
+  den, Méně často, Tři až čtyři dny". Fix: `resultTable(…, options)` lists the specification's options in
+  the order asked, any other answer after them. Test: `research-execution.test.ts` "lists a choice
+  question's answers in the order it asked them".
+- **F-R8. "Výsledky zatím nejsou." and nothing else.** `ExecutionSteps.tsx:1630` said neither why nor
+  where to go. Fix: no run says the study has not run and links to its run stage where the frame may
+  edit; a run says why it has none in its state's words (`runState`: running, waiting with its reason,
+  failed or cancelled, never "not finished" for a run that will never finish) and links to its Průběh.
+  Tests: `ExecutionSteps.test.tsx`, the no-run retry test, "says why a run without results has none"
+  and "never says a failed run is still going".
+- **F-R9. A question's detail table spilled out of its card on a phone.** `ExecutionSteps.tsx:1552`
+  gave the bar column 40 % at every width, so labels wrapped a word a line and a multi-option table ran
+  past its card's edge at 390 px (inside the screen, so F-R3's check passed). Fix: the bar column is left
+  out while the card is under 32rem, a container query on the card, so a narrow workbench pane is
+  covered as well as a phone; the set table now reads its card's width the same way. Test: the
+  journey's "nothing spills out of its measure card" (fails on `9607ee09` at 390 px). A choice
+  question's reading now breaks ties in the asked order too (`result-reading.test.ts`).
+
+Checked and sound: the view tabs by arrow keys, Home and End, the focus ring (2 px), the search's
+"Žádný výsledek neodpovídá filtru", no page error.
 
 ## 8. Owner questions
 

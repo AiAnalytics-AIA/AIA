@@ -44,6 +44,7 @@ const EDITS = {
   support: { reference: "results.min_layer_donors", typed: "20", read: (spec) => spec.results.min_layer_donors, value: 20 },
   aggregation: { reference: "top_box", typed: "1", read: (spec) => spec.top_box, value: 1 },
   response: { reference: "dont_know", typed: "0,2", read: (spec) => spec.dont_know, value: 0.2 },
+  readiness: { reference: "sample_size.min", typed: "40", read: (spec) => spec.sample_size.min, value: 40 },
 };
 
 const require = createRequire(import.meta.url);

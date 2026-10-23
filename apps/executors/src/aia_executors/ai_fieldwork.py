@@ -22,6 +22,7 @@ from __future__ import annotations
 
 from collections.abc import Callable, Sequence
 from dataclasses import dataclass
+from time import monotonic
 from typing import Any
 
 from aia_core.application.model_gateway import GovernedModelGateway
@@ -58,6 +59,12 @@ from aia_core.domain.ai_respondent import (
 )
 from aia_core.domain.deployment import DataClassGates
 from aia_core.domain.fieldwork import Answer, PersonaSource, persona_source_of
+from aia_core.domain.fieldwork_events import (
+    HEARTBEAT_SECONDS,
+    FieldworkEvent,
+    progress,
+    progress_due,
+)
 from aia_core.domain.licence import DataLineage
 from aia_core.domain.material_rules import MaterialRule, classify_by_rule
 from aia_core.domain.methodology.pins import is_units_process, read_response_pin
@@ -161,6 +168,11 @@ class AIFieldworkConfig:
     #: interrupted attempt or a retry of the run replays it instead of paying again. Two
     #: lease-fenced writes per block, so it is a switch (CLAUDE.md § 8).
     checkpoint: bool = False
+    #: ``AIA_AI_FIELDWORK_HEARTBEAT`` (off by default, run-qc-and-checkpoint RQC7a): a
+    #: ``fieldwork_progress`` between a respondent's blocks once ``HEARTBEAT_SECONDS`` passed
+    #: without one, so slow answering never reads as a stalled step. At most two lease-fenced
+    #: feed writes a minute, so it is a switch (CLAUDE.md § 8).
+    heartbeat: bool = False
 
 
 @dataclass(frozen=True, slots=True)
@@ -361,6 +373,17 @@ class AIFieldwork:
         calls: list[dict[str, Any]] = []
         rows: list[tuple[Any, dict[str, Answer]]] = []
         details: list[dict[str, dict[str, Any]]] = []
+        sent = replayed = 0
+        last_report = monotonic()
+
+        def report(done: int) -> None:
+            nonlocal last_report
+            context.progress(
+                FieldworkEvent.PROGRESS,
+                **progress(respondents=done, of=len(plans), sent=sent, replayed=replayed),
+            )
+            last_report = monotonic()
+
         for index, plan in enumerate(plans):
             context.checkpoint()
             answers: dict[str, Answer] = dict(plan.facts)
@@ -433,11 +456,25 @@ class AIFieldwork:
                 answers.update(drawn)
                 detail.update(meta)
                 calls.append(record)
+                if answer is None:
+                    sent += 1
+                else:
+                    replayed += 1
+                # The heartbeat between a respondent's blocks (the last one is counted below), so
+                # a respondent of many blocks on a slow model still reports. A single call that
+                # takes longer writes nothing until it returns: Průběh shows the step's own time.
+                last_block = block is plan.blocks[-1]
+                quiet = monotonic() - last_report >= HEARTBEAT_SECONDS
+                if cfg.heartbeat and not last_block and quiet:
+                    report(index)
             rows.append((plan.persona, answers))
             details.append(detail)
             done = index + 1
-            if done % max(1, cfg.progress_every) == 0 or done == len(plans):
-                context.progress("AI respondenti odpověděli", respondents=done, of=len(plans))
+            idle = monotonic() - last_report if cfg.heartbeat else 0.0
+            if progress_due(
+                respondents=done, of=len(plans), idle_seconds=idle, every=cfg.progress_every
+            ):
+                report(done)
 
         return Answered(
             rows=rows,

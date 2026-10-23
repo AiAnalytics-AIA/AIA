@@ -7,7 +7,7 @@ import type { DesignSourceLabels, MemoryHit, ResearchReport, ResearchRun, Resear
 import { hasUnknownOrigin, isModelled, isSynthetic } from "./research-execution";
 
 /** The server refuses a shorter query (MIN_QUERY_LENGTH); the page does not send one. */
-export const MIN_QUERY = 2;
+const MIN_QUERY = 2;
 
 /** The query to send, or null while it is too short to say anything. */
 export function sendable(q: string): string | null {
@@ -77,7 +77,7 @@ export function runLabels(run: ResearchRun | ResearchRunSummary, report?: Resear
 }
 
 /** The fields of a design the page draws, in the order the search reads them (domain/project_memory.py). */
-export const DESIGN_FIELDS = ["title", "goal", "decision_use", "research_questions", "objectives", "sections", "dimensions"] as const;
+const DESIGN_FIELDS = ["title", "goal", "decision_use", "research_questions", "objectives", "sections", "dimensions"] as const;
 export type DesignField = (typeof DESIGN_FIELDS)[number];
 
 const text = (v: unknown): string | null => (typeof v === "string" && v.trim() ? v.trim() : null);

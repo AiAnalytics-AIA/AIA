@@ -316,6 +316,52 @@ deploy. Off: delete the two DSN parameters (AIA stops reporting) and
 `bin/errors.sh status` shows its two services. GlitchTip's events are not in
 `bin/backup.sh`: they are operational, and the next failure rebuilds them.
 
+## Report editor
+
+ONLYOFFICE Docs Community (`docs/docker-compose.yml`) is the editor Zpráva opens a report draft in
+(plan `.planning/plans/report-editor-hosting.md`; artifact-report RPT8). It is upstream's image,
+unmodified and pinned by digest (`docs/NOTICE`: AGPL v3, the source, and what changes if it is ever
+patched), and it runs only when `aia_onlyoffice_enabled` is true.
+
+| Where | What |
+|---|---|
+| `https://docs.<public hostname>` | the editor's own origin, framed by AIA's pages alone; every request passes AIA's docs gate (`GET /api/v1/session/docs-gate`) |
+| `docs.<public hostname>/__aia/session?ticket=…&next=…` | the way in: a 60-second ticket from `POST /api/v1/session/docs-ticket`, spent once for the `aia_docs` cookie (8 h; the gate re-checks active membership on every request) |
+| `onlyoffice:80` on `aia-docs` | Caddy's way to it; nothing else of AIA's is on that network, so the Document Server reaches neither the API nor the database except through the public hostname |
+| refused at Caddy (404) | commands, conversion, the builder, the AI proxy, WOPI hosting, admin, info, internal, welcome, example, the health check, with or without the version prefix |
+
+AIA's `aia_session` cookie never reaches the editor's origin, and the editor's JavaScript never runs
+on AIA's. The Document Server reaches AIA only through the public hostname, its request filter
+refusing private and metadata addresses: this host's containers can reach IMDS. Plugins (the AI one
+included), WOPI and the example are off. Community Edition takes 20 simultaneous connections.
+
+### Turning it on (once)
+
+1. **Size**: the host is `t3a.large` (8 GiB). Upstream asks 4 GB and 2 GB swap; the container is
+   capped at 2 GiB, about 530 MiB idle (measured). `## Resize` says how.
+2. **DNS**: an A record for `docs.<public hostname>` to the host's address (Terraform output
+   `public_ip`). Caddy obtains the certificate itself.
+3. **Secret and switches**, from CloudShell:
+
+   ```bash
+   P=/aia/develop
+   aws ssm put-parameter --name $P/aia_onlyoffice_jwt_secret --type SecureString --value "$(openssl rand -hex 32)"
+   aws ssm put-parameter --name $P/aia_onlyoffice_url --type String --value "https://docs.<public hostname>"
+   aws ssm put-parameter --name $P/aia_onlyoffice_enabled --type String --value true
+   ```
+
+4. **Deploy** (any SHA): `write-env.sh` reads the three, the API gets the origin and the secret,
+   and `bin/deploy.sh` starts the Document Server after AIA is healthy (its first start generates
+   fonts: about a minute). A Document Server that will not start is said and does not fail the
+   deploy.
+5. **Check from outside**: `https://docs.<public hostname>/` answers 401 (no cookie);
+   `…/coauthoring/CommandService.ashx` and `…/healthcheck` answer 404.
+
+`bin/docs.sh status | logs` shows it. Off: `aia_onlyoffice_enabled` false and `bin/docs.sh down`
+(its volumes are kept); delete `aia_onlyoffice_url` too and Zpráva goes back to its read-only pane.
+Its editing sessions live in the container and `docs_cache`; a report's truth is AIA's stored draft,
+so nothing of it is in `bin/backup.sh`.
+
 ## Database
 
 **Connect** (debugging only; the port is not published anywhere):
@@ -493,6 +539,10 @@ Each is off when unset and absent from the develop Compose file; turning one on 
   and pays only for the blocks never answered (run-qc-and-checkpoint RQC0). An uncertain call still
   stops the step for recovery; nothing is replayed that was not answered. Two short lease-fenced
   database round trips per block. **Who:** the operator, after `make migrate`.
+- **`AIA_AI_FIELDWORK_HEARTBEAT`** (worker): fieldwork writes its `fieldwork_progress` between a
+  respondent's blocks once 30 s pass without one, so slow answering never reads as a stalled step on
+  Průběh (run-qc-and-checkpoint RQC7a). At most two lease-fenced feed writes a minute per step. **Who:**
+  the operator.
 - **`AIA_AI_SCALE_LABELS_IN_PROMPT`** (worker): AI respondents are told a scale question's labels
   (both ends, or one per point) as its design states them, not only the numbers (input-interactions
   3b1, #538). Turning it on changes what respondents read, so the respondent-system fingerprint moves

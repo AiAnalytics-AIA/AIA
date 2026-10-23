@@ -89,6 +89,9 @@ class FigureTexts:
     segment_grey: str
     segments_none: str
     segments_too_few: str
+    segments_too_few_objects: str  # {n}
+    indicative: Callable[[int, int], str]  # objects, the declared minimum
+    unplaceable: Callable[[int, int], str]  # objects, the ratings a respondent needs
     segments_hint: str  # {k}
     decimal_comma: bool
 
@@ -126,6 +129,15 @@ CZECH: Final = FigureTexts(
     segment_grey="není jasně v jednom segmentu",
     segments_none="Žádné zřetelné chuťové segmenty",
     segments_too_few="Chuťové segmenty se nehledají (málo dat)",
+    segments_too_few_objects="Chuťové segmenty se nehledají (méně než {n} objektů)",
+    indicative=lambda n, m: (
+        f"Sada má {n} {'objekty' if 2 <= n <= 4 else 'objektů'}: mapa respondentů je "
+        f"jen orientační (spolehlivá od {m})"
+    ),
+    unplaceable=lambda n, r: (
+        f"Sada má {n} {'objekty' if 2 <= n <= 4 else 'objektů'}: respondenty nelze "
+        f"umístit (potřeba aspoň {r} hodnocení)"
+    ),
     segments_hint="Náznak {k} skupin · nejisté, body nejsou obarvené",
     decimal_comma=True,
 )
@@ -733,6 +745,9 @@ def render_respondents(
         else:
             if seg.decision == "BORDERLINE" and seg.hint is not None:
                 line = texts.segments_hint.format(k=seg.hint.k)
+            elif seg.reason == "TOO_FEW_OBJECTS":
+                rules = artifact.spec.segments
+                line = texts.segments_too_few_objects.format(n=rules.min_ratings if rules else 5)
             else:
                 line = (
                     texts.segments_too_few
@@ -740,10 +755,29 @@ def render_respondents(
                     else texts.segments_none
                 )
             ax.text(14 * s, 26 * s, line, color="#8b96a3", **tx2)
+    # The panel's note under a respondent map of a small set: only indicative, or nobody placeable.
+    note = None
+    if not resp.informative:
+        placing = artifact.spec.respondent_map
+        ratings = placing.min_ratings if placing else 3
+        note = (
+            texts.indicative(m, resp.min_objects) if m >= ratings else texts.unplaceable(m, ratings)
+        )
+        ax.text(
+            w / 2,
+            h - 14 * s,
+            note,
+            ha="center",
+            va="bottom",
+            color="#ffd27a",
+            fontsize=6.8 * s,
+            weight="bold",
+            zorder=9.5,
+        )
     statement = _statement_texts(artifact, texts)
     if statement:
         _statement(ax, cam, *statement, s)
-    return {"pm": pm, "pr": pr, "labelled": n_lab, "statement": bool(statement)}
+    return {"pm": pm, "pr": pr, "labelled": n_lab, "statement": bool(statement), "note": note}
 
 
 def _rating_ends(artifact: SociomapArtifactV3) -> tuple[float, float] | None:

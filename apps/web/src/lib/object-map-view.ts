@@ -15,11 +15,11 @@
 
 import { type SignedOffRespondents, type SignedOffRespondentSpec, isSignedOffMap } from "./object-map-signed-off";
 
-/** The code's object maps, newest first; a run that pinned `aia-sociomap-2` reads it. A run
- *  started under an edited methodology (ADR 0023) pins its map under the version's own name,
- *  `aia-sociomap-3+e<n>`, and is read as well: the map is whichever contract-3 map the run
- *  stored, a known name first. */
-export const OBJECT_MAP_METHODS = ["aia-sociomap-4", "aia-sociomap-3", "aia-sociomap-2"] as const;
+/** The code's object maps, newest first: `aia-sociomap-5`, the one a new run pins, then the older
+ *  ones a stored run may hold. A run started under an edited methodology (ADR 0023) pins its map
+ *  under the version's own name, `aia-sociomap-5+e<n>`, and is read as well: the map is whichever
+ *  contract-3 map the run stored, a known name first. */
+export const OBJECT_MAP_METHODS = ["aia-sociomap-5", "aia-sociomap-4", "aia-sociomap-3", "aia-sociomap-2"] as const;
 
 export type PairState = "reliable" | "weak" | "unknown";
 
@@ -27,7 +27,7 @@ export type ObjectMapArtifact = {
   contract_version: "3";
   // `estimator` and the respondent sections: the signed-off methodology's (aia-sociomap-5 and the
   // versions edited from it), read by object-map-signed-off.ts.
-  spec: { methodology_version: string; relation: { basis: string; n_min: number; confidence: number; effect_floor?: number; estimator?: string; noise_rule?: { enabled: boolean } };
+  spec: { methodology_version: string; relation: { basis: string; n_min: number; confidence: number; effect_floor?: number; estimator?: string; noise_rule?: { enabled: boolean }; clear_effect?: number };
     ratings?: { person_normalization?: string }; terrain: { sigma: number; sigma_basis: string; method?: string } | null; respondent_map?: SignedOffRespondentSpec;
     // aia-sociomap-5: the declared taste-segment rules the segment texts quote.
     segments?: { min_respondents?: number; min_ratings?: number; colour_membership?: number } };
@@ -130,6 +130,15 @@ export function mapApproval(
     && e.status === "CLIENT_FACING") ?? null;
 }
 
+/**
+ * Whether the battery holds no map of the signed-off methodology (`aia-sociomap-5` or a version
+ * edited from it): a run stored under an older method (`aia-sociomap-1` to `-4`). Its panel says so
+ * and draws nothing; its data stays on the page.
+ */
+export function olderMethodOnly(battery: BatteryWithMaps): boolean {
+  return !Object.values(battery.maps ?? {}).some((m) => m?.artifact?.contract_version === "3" && isSignedOffMap(m.artifact));
+}
+
 export function readObjectMap(battery: BatteryWithMaps): ReadMap {
   const maps = battery.maps ?? {};
   const known: string[] = [...OBJECT_MAP_METHODS];
@@ -167,7 +176,7 @@ export function terraceBand(height: number): number {
 
 /** How high the lowest terrace is drawn: a thin sheet, so a hill never sits on the ground that
  * means "bez dat", yet the lowest band does not read as a slab (the approved design's base). */
-export const TERRACE_BASE = 0.03;
+const TERRACE_BASE = 0.03;
 
 /** The display elevation of a stored height: the top of its terrace, `TERRACE_BASE` plus a
  * tenth per band above the lowest. Presentation only; labels print the stored number. */
@@ -276,11 +285,6 @@ export function toScreen(x: number, y: number, span: number, view: ViewSize = { 
   const left = (view.width - side) / 2;
   const top = (view.height - side) / 2;
   return { sx: left + (x + span) * scale, sy: top + (span - y) * scale };
-}
-
-/** The screen size of one map unit in a view (the same on both axes). */
-export function screenScale(span: number, view: ViewSize): number {
-  return (Math.min(view.width, view.height) - 2 * MAP_VIEW.pad) / (2 * span);
 }
 
 /** A square of the map the view is centred on: its centre and half-width, in ruler units. */
@@ -432,11 +436,11 @@ export function pairDetail(battery: BatteryWithMaps, map: ObjectMapArtifact, a: 
 }
 
 /** An unordered pair's key, the same for (a, b) and (b, a). */
-export function pairKey(a: string, b: string): string {
+function pairKey(a: string, b: string): string {
   return [a, b].sort().join("|");
 }
 
-export function linkKey(link: MapLink): string {
+function linkKey(link: MapLink): string {
   return pairKey(link.a, link.b);
 }
 

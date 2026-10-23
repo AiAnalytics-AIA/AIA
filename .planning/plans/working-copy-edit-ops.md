@@ -21,7 +21,7 @@ chunks:
   - "[ ] WCE10. The Lead's edit vocabulary widened (Audience, Dimensions, Sample), with a prompt and harness version and an `is_text_edit` ruling per operation"
   - "[ ] WCE11. Auto-apply per stage (MVP-14, D18): the researcher's `auto_accept_text_edits` gains a per-stage structural choice, off by default"
   - "[ ] WCE12. Journey: two researchers, one study, recorded doubles (the I-1 exit)"
-  - "[ ] WCE13. Routing in the questionnaire (W1, with research-lead-workbench 17): route_set sets, edits and removes a display condition, validated by the domain (the condition names an earlier question and an option it has), and readiness accepts a valid conditional question"
+  - "[x] WCE13. Routing in the questionnaire (W1, with research-lead-workbench 17): route_set sets, edits and removes a display condition, validated by the domain (the condition names an earlier question and an option it has), and readiness accepts a valid conditional question (behind AIA_ROUTING_ENABLED, off until RQC11 routes fieldwork; #763, #766, #777, #788)"
   - "[ ] WCE14. A stimulus item: content shown to respondents before a question (respondents.context), in the edit vocabulary and the design (D-45)"
 ---
 # Working-copy edit operations, merge and the Sociomap lock
@@ -50,6 +50,89 @@ Today those items are keyed by normalised text (`design_items.py:120-172`), so a
 
 **WCE2. `workspace_edit_ops` (M1) and `apply_edit_ops`: the one writer of the working copy; every other writer becomes a recorded whole-copy operation**  
 The PUT, questionnaire import, reuse, the 18.6.6 migration, Design Research accept and the web autosave are the six other writers; none may change a locked item or skip the log. Test: a whole-copy write leaves an op and cannot change a locked item. Interfaces I8.
+
+WCE2 split (scoped 2026-10-22, approved by the PM): **2a** the log as values
+(`domain/edit_log.py`); **2b** M1, the table and `WorkspaceEditRepository`; **2c**
+`apply_edit_ops` for whole-copy writes, the PUT, `submit_as_working_copy` and reuse through it, the
+lock enforced; **2d** the Lead's `decide_edits` as vocabulary operations (closes F-WCE1-1); **2e**
+the agent-job and Design Research accepts; **2f** the 18.6.6 migration, then `save` and
+`import_migrated` reachable from `apply_edit_ops` alone (layer_check). The eight callers, at
+`3a544cb3`: `routers/workspace.py:2164` (PUT: autosave, every stage, questionnaire import),
+`application/research_lead.py:822` (Lead edits), `study_design_repository.py:226`
+(`submit_as_working_copy`, the template behind OI-173), `application/design_reuse.py:186`,
+`proposal_accept.py:185` from `research.py:1981` and `design_research.py:135`,
+`workspace_migration.py:151, :238`.
+
+- **WCE2a (2026-10-22).** `domain/edit_log.py`: a row per `(item, field)` a write touched
+  (`design_fields.changed_fields`), a whole-copy write's `op` `{"op": "whole_copy", "reason"}`;
+  a write no field counts (a re-spaced list entry, an id list) logs one `content:copy:` row, so no
+  write skips the log; `WriteBy` refuses a write without its author unless it is a migrated
+  revision, and only a person's (18.6.6 had no Lead); which code may name the `migration` source
+  is held by `layer_check` ("only the 18.6.6 migration logs a write as migrated":
+  `domain/edit_log.py` and `application/workspace_migration.py` alone), so the exemption is not a
+  label any writer can pick (review of #762); a key or field past its column is a prefix and a
+  digest, deterministic. Measured: a
+  40-question import into the template is 44 rows in 5.6 ms (median of 20), one wording edit on it
+  1 row in 7.3 ms. Tests: `test_edit_log.py`.
+- **WCE2b (2026-10-22).** M1: `workspace_edit_ops` (`migrations/versions/20261022_90dc672445b1_the_working_copy_operation_log.py`), insert-once
+  (a `before_update` listener; the downgrade refuses while a row is stored), the three scope
+  columns cascading with the study, CHECKs on the actor and source sets and on an author for
+  everything but a migrated revision (`workspace_edit_op_author_unless_migrated`), indexes for the
+  feed `(study_id, result_revision)` and for conflicts `(study_id, item_key, field)`. No foreign
+  key on the author: the log keeps who wrote it. `infrastructure/workspace_edit_repository.py` is
+  its only reader and writer (`append` under `EDIT_STUDY`, `rows(after_revision=)`), held by two
+  `layer_check` rules. `alembic check` against PostgreSQL 16: no difference from the model.
+  Tests: `test_workspace_edit_repository.py`.
+- **WCE2c (2026-10-22).** The lock and the log sit where every whole-copy write already passes, under
+  the study lock: `StudyWorkspaceRepository.save` refuses, after the stale check, a write that
+  changes a Sociomap input the current copy has locked (`sociomap_input_locked`, 409 on the PUT),
+  and logs a write that made a revision, one row per changed field, in its transaction, made by
+  `by` (`WriteBy`). The PUT passes the person (`ui`), `submit_as_working_copy` the person it acts
+  for (`authored`), reuse the person and the revision reused (`reuse`). The Lead's and the proposals'
+  accepts pass no `by` yet (WCE2d, WCE2e); WCE2f makes it required, so no write skips the log.
+  This is a refinement of the scoped split: `apply_edit_ops` stays the application entry for a
+  vocabulary batch (WCE2d), and `save` stays the one persistence point the batch and every
+  whole-copy writer reach, rather than a second writer beside it. Measured on PostgreSQL 16: a
+  40-question import over the template, 44 rows, 28.5 ms logged against 22.0 ms unlogged (median of
+  3). Evidence for the lock: on the workbench database (7 working copies) and a freshly seeded
+  develop world (0), no working copy declares a Sociomap input; no fixture or seed writes one, and
+  the web never writes `sociomap_rating` or `context_objects` (`research/readers.ts` reads them).
+  Tests: `test_workspace_writes_logged.py`, `test_design_reuse.py::test_a_reuse_is_logged_…`,
+  `test_client_api.py::test_a_put_is_logged_as_the_persons_and_cannot_change_a_declared_…`.
+  One existing test met the lock: `test_sociomap_acceptance.py::test_each_changed_input_is_a_new_…
+  [rating_input]` changed a declared rating question's scale in the same study's copy. That write is
+  now refused (`sociomap_input_locked`), which the case asserts; the engine's answer to a changed
+  rating input (a new specification, a new run, the map on the new scale, the first run untouched)
+  is read in a sibling study, where nothing is locked, until WCE8's recorded unlock exists.
+  The web's store meets the refusal (stand-in review of #784): on `sociomap_input_locked` it puts the
+  locked items back as AIA last held them (`research/sociomap-lock.ts` `restoreLocked`, the web's
+  reading of `locked_items`: each tracked set and rating question by id) and keeps every other change
+  to save on its own debounce ("Zamčený vstup Sociomapy vrácen … · ostatní změny se uloží"; a
+  section removed whole with a rating question goes back as saved); an item it cannot find again by id
+  leaves the copy blocked until a reload, so a refused change is never re-sent. The PUT says what
+  happened (`_workspace_conflict`). Pre-merge check for deployed develop (read-only; checked against
+  `tables.py` and run on a migrated PostgreSQL 16 schema): `select w.study_id from study_workspaces w
+  join projects p on p.project_id = w.project_id join project_revisions r on r.project_id =
+  p.project_id and r.revision = p.current_revision where r.content::text like '%"sociomap_rating"%'
+  or r.content::text like '%"context_objects"%';` Result: **0 studies affected on develop,
+  2026-10-22** (run read-only by the product owner, 16:35 UTC), so the lock changed no deployed study.
+- **WCE2d (2026-10-22).** The Lead's accepted edits are the vocabulary's operations:
+  `decide_edits` hands the edits it would apply to `application/working_copy.apply_edit_ops`,
+  which applies them in order to the copy as loaded, refuses alone an edit that writes a locked
+  Sociomap input (`lock_refusal`, `sociomap_input_locked`) or that the copy cannot take, and saves
+  once through `save`, which logs each edit under its own `op` (the edit without its `why`) for the
+  fields it touched (`edit_ops.touches`, keyed by the ids it was applied with) and the rest of the
+  write (the stages' `ui_state`, the analysis a plan or brief edit wrote, links followed) as a
+  `whole_copy` change (`edit_log.write_rows`). Made by `WriteBy(LEAD, researcher, lead_turn,
+  turn_id)`: the Lead wrote the change; the ledger row records the person's accept. A copy that
+  keeps the web's ids (`item_ids.stores_item_ids`) is settled (`settle_item_ids`), so a reworded
+  research question keeps its links: closes F-WCE1-1. A copy without ids is given none, so with
+  `AIA_WEB_STABLE_ITEM_IDS` off nothing writes an id. Tests: `test_lead_edits_logged.py` (three
+  failed before the change: the log, the lock refused alone, the links), `test_edit_log.py::
+  test_a_write_of_operations_…`, `test_item_ids.py::test_a_copy_keeps_ids_only_once_…`. One edge
+  left to WCE8: with ids kept and an input declared, a reword whose links follow onto a locked rating
+  question touches it, and `save` refuses the whole accept (409 `sociomap_input_locked`) rather than
+  half of it.
 
 **WCE3a. The web store on the server vocabulary, Brief and Design stages**  
 33 `store.update` sites in 9 files and about 1,900 lines of TypeScript with 18.6.6 parity tests are moved stage by stage; the parity tests stay green at every step.
@@ -161,6 +244,77 @@ From the independent cross-check of the master plan against the code (`mvp-maste
 **WCE8b. The questionnaire proposal keeps protected inputs and item identity (G49, X3).** `proposal_result` discards every non-library `object_battery` and `questions` section and gives every proposed section and question a fresh `ai_section_N` / `ai_q_N_M` id (`domain/research_agents.py:748-787`), and the closed output models cannot carry `context_objects` or `sociomap_rating` (`:155-159`). Once WCE8 makes the declarations settable and WCE2 locks them, a build or optimise accept on a map study is either refused by the lock or drops them, and per-change accept sees every item removed and re-added. This chunk copies a battery with `context_objects`, a tracked set and a `sociomap_rating` question from the baseline byte for byte under their ids (the context marks them fixed); `QuestionnaireProposal` sections and questions gain an optional baseline id that `proposal_result` keeps; `ai_*` ids only for new items; an omitted baseline item is a remove. Harness and `prompt_version_for` bump for build and optimise; a shared fixture case. WCE6 and `research-lead-workbench` 17 depend on it. Tests: an optimise accept over a battery with `context_objects` keeps both declarations and does not trip the lock; rewording one of five questions yields one changed item that can be accepted alone.
 
 **WCE13. Routing in the questionnaire (G53, X8; the owner, 2026-10-20: build routing end to end).** Today the code cannot run a condition: readiness FAILs any conditional question, the outlook marks it UNANSWERABLE and fieldwork asks every respondent every question. This chunk makes `route_set` set, edit and remove a display condition through the shared vocabulary, validated by the domain (the condition names an earlier question and one of its options; a cycle or a forward reference is refused by name), and readiness accepts a valid conditional question instead of failing it. Fieldwork is `run-qc-and-checkpoint#RQC11`, the filtered base `evidence-integrity#10`. Test: a condition on Q7 for those who answered "never" to Q2 is stored, passes readiness, and a condition naming a later question is refused.
+
+*Owner and order (the PM, 2026-10-22):* the Dotazník session, in four PRs: (a) the condition model
+and its checks in compile, (b) `route_set` in `edit_ops` with the web mirror (`lib/lead.ts`
+`applyLeadEdit`, held to `tests/fixtures/edit_ops/cases.json`), (c) the condition edited at the
+question on Dotazník, (d) readiness and the outlook accept a valid condition behind
+`AIA_ROUTING_ENABLED` (off; off on develop until RQC11 routes in fieldwork). With the switch off a
+conditional question fails readiness exactly as today.
+
+- *(a) Progress (feature/wce13-condition-model):* a question's `filtr` is
+  `{"question_id": <stored id>, "options": [...]}`, compiled into `SpecQuestion.condition`
+  (`SpecCondition`: the compiled id, the answers), absent from the fingerprint when there is none.
+  `read_condition` also reads the two expressions the 18.6.6 interface wrote that are exactly a
+  choice (`Q1 == 'Nikdy'`, `Q1 in [...]`); anything else stays as written and is refused by
+  name: `condition_unstructured` (also anything past 2,000 characters or the parser's depth,
+  and literals joined by juxtaposition), `condition_unknown_question`,
+  `condition_forward_reference` (a later question or itself; with only earlier references a cycle
+  cannot form), `condition_ambiguous_question` (two questions share the id, never bound to the
+  first), `condition_not_choice`, `condition_unknown_option`. An 18.6.6 expression names a
+  question as the unit resolved it: exactly, else case-insensitively by stored, then compiled id.
+  A condition on an earlier question compile refused adds nothing to that question's problem.
+  A refused condition does not stop compile (the PM, 2026-10-22: Kontrola keeps every other
+  check): the question carries `condition_problem` (its code and message, out of the fingerprint
+  when none), and readiness fails it by name as `condition:<question id>`. `has_filter` is held
+  equal to a declared condition, read or refused. A valid condition still fails
+  `conditional_questions`. Test: `test_research_conditions.py`.
+- *(b) Progress (feature/wce13-route-set):* `route_set` is applied (`edit_ops.RouteSet`: a question's
+  `condition` set, changed, or `null` removed), a person's alone: `WorkingOp` is every applied
+  payload, `EditOp` stays the Lead's eight (`in_lead_output` false). It is held to the compiler's
+  own rule before it is written (`research_design.condition_refusal`, the same `_condition`), and
+  refused with its words (`condition_*`, now in `REFUSALS`); it writes the question's `filtr`
+  (the catalogue's field), so the lock (`sociomap_input_locked`) and `touches` follow from it.
+  The web's mirror: `research/questionnaire.ts` `conditionRefusal`, `lib/lead.ts` `applyEdit` (the
+  Lead's `applyLeadEdit` beside it, `WorkingEdit`), held to the server by the shared case file's
+  route_set cases. Tests: `test_edit_ops.py`, `test_research_conditions.py`,
+  `edit-ops.cases.test.ts`.
+- *(c) Progress (feature/wce13-condition-editor):* the condition is edited at its question on
+  Dotazník (`components/rehome/research/QuestionCondition.tsx`), read by the question's place
+  (`research/questionnaire.ts` `conditionOf`). "Podmínka zobrazení" opens a form offering only what
+  a condition may stand on: earlier choice questions with answers, each the only question under its
+  id and numbered as Dotazník numbers them; nothing when the question's own id is shared, as
+  `route_set` names it by id. Their answers are chips; "Uložit podmínku" writes through `applyEdit`'s
+  `route_set`, and a refusal (the copy moved under the form) is said in the form, which stays open.
+  A condition in the design's form reads as a sentence (who is asked, after which answers) with
+  why the run still refuses it; one the rule refuses says why in the server's words
+  (`EDIT_REFUSAL_WORDS`) and can be set again; an 18.6.6 expression is shown as stored. "Odebrat
+  podmínku" removes it by the question's place. An 18.6.6 expression in the two forms the compiler
+  reads (`Q1 == 'x'`, `Q1 in [...]`) is judged as compile judges it (`readExpression`,
+  `expressionState`), held to the compiler by `tests/fixtures/conditions/expressions.json`; where
+  the web cannot know the server's answer (another form, a name only a compiled id matches) it is
+  shown as written, with no claim either way. Setting or editing one is behind the switch (d)
+  reads, `AIA_ROUTING_ENABLED`, through /config's `routing` (off: a stored condition is shown and
+  can be removed). Tests: `QuestionnaireStep.test.tsx`,
+  `questionnaire-conditions.test.ts`; `questionnaire_journey.mjs` sets, reads back and removes one
+  at 1440, 1100, 768 and 390 px, the sentence at a reading width (390 px squeezed it to 50 px).
+- *(d) Progress (feature/wce13-routing-switch):* `AIA_ROUTING_ENABLED` (the API's
+  `Settings.routing_enabled`, off by default and off on develop until RQC11 routes fieldwork) is
+  `ResearchRuns.routing_enabled`. Readiness (`assess_readiness`/`prepare`, `routing=`) passes a
+  valid condition under it (`conditional_questions` PASS, naming the questions) and fails it
+  exactly as before without it; a condition compile refused fails either way (`condition:<id>`).
+  The outlook (`question_outlook`, `routing=`) asks a routed question of part of the sample the
+  forecast does not model, so support the whole sample reaches is `support_unknown` there, never
+  good. A new run of a design with a valid condition pins it (`metadata.routing`, the preflight
+  and fieldwork steps' `routing`); its preflight reads the pin, never the worker's switch, and a
+  retry keeps the original's. Fieldwork fails a routed run by name (`routing_unavailable`) until a
+  source routes (RQC11), so the switch never yields answers everyone gave to a question some should not
+  see. The pin is not in the run's key: without it such a design never starts, so a start after
+  the switch is off still finds its run. A design with no condition pins nothing and keeps its
+  run. Metodika's readiness comparison reads the switch too (`readiness_impact(routing=)`). The Lead's typed start takes the switch with the rest (`RunStartSettings.routing_enabled`).
+  Metodika's sample-size step re-pinned to `assess_readiness`. Tests: `test_research_conditions.py`,
+  `apps/executors/tests/test_routing_pin.py`, `test_research_api.py`
+  (`test_the_routing_switch_passes_a_valid_condition_and_pins_it_on_the_run`).
 
 **WCE11, amended (G56, X11).** The chunk states who performs a structural auto-apply (the researcher's browser session, or a named server path under the person's standing authority, coordinated with G42), where the per-stage choice lives (Můj Vedoucí or the artifact header), and the rule once fieldwork exists (a structural auto-apply is refused or announced in the conversation, never applied silently). Today an automatic accept is an act of the signed-in browser after it sees a turn finish, and `decide_edits` needs the caller's `APPROVE_GATE` and own completed turn, so a continuation turn (LO6) finishing with no browser open applies nothing. Test: with a stage on and no browser open, a continuation turn's structural edit stays pending; after fieldwork exists it is not applied silently.
 
@@ -328,7 +482,8 @@ Plan tests: `test_a_reword_keeps_its_research_question_links`,
   branch's head. Reproduction: with `AIA_WEB_STABLE_ITEM_IDS` on, a Lead `list_replace` of a linked
   research question accepted by click leaves the link dangling; accepted with auto it does not.
   Consequence: a dangling link the trace names, only with the switch on. Smallest fix: WCE2's one
-  writer settles every write. Test: a WCE2 test of the accept route asserting no dangling link.
+  writer settles every write. Test: a WCE2 test of the accept route asserting no dangling link. **Closed
+  by WCE2d**: `test_lead_edits_logged.py::test_a_reworded_research_question_keeps_its_links_…`.
 - **F-WCE1-2. A whole-list replacement that keeps a stale id list reads as rewords, and with the
   switch on the web then moves questionnaire links onto a different research question.** Blocks
   turning `AIA_WEB_STABLE_ITEM_IDS` on; owner WCE8b with WCE2. Anchor: `domain/item_ids.py`

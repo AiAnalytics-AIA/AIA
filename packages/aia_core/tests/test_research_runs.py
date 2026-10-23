@@ -20,6 +20,7 @@ from aia_core.application.research import (
     ResearchAgentJobs,
     ResearchRunNotFound,
     ResearchRunNotRetryable,
+    ResearchRunOnRetiredMethod,
     ResearchRuns,
     ResearchStepNotFound,
     RunReservations,
@@ -30,9 +31,16 @@ from aia_core.domain.fieldwork import FieldworkSource
 from aia_core.domain.pipeline import ProjectType
 from aia_core.domain.research import ResearchPhase, phase_of, retryable
 from aia_core.domain.research_agents import ResearchAction
+from aia_core.domain.research_sociomap import (
+    LEGACY_METHODS,
+    SociomapMethod,
+    default_methods,
+    methods_fingerprint,
+)
 from aia_core.domain.respondent_behavior import AIA_RESPONSE_V1
 from aia_core.domain.run_cost import CeilingUnknown
 from aia_core.domain.scope import ScopeDenied, StudyStatus
+from aia_core.domain.sociomap.specification import AIA_SOCIOMAP_V3, AIA_SOCIOMAP_V5
 from aia_core.domain.workflow import (
     RUNTIME_UNAVAILABLE_REASON,
     FailureClass,
@@ -245,7 +253,7 @@ def test_analysis_graph_is_selected_by_composition_and_preserved_on_retry(
     assert analysed.created and analysed.run_id != basic.run_id
     assert (
         WorkflowRepository(session, scoped.scope()).find_run_by_idempotency_key(
-            f"{RESEARCH}:{revision}"
+            f"{RESEARCH}:{revision}:sociomap:{methods_fingerprint(default_methods())[:16]}"
         )
         is not None
     )
@@ -389,6 +397,103 @@ def test_only_a_failed_or_cancelled_run_is_retried_and_a_retry_is_a_linked_run(
     linked = runs().get(retry.run_id)
     assert linked["metadata"]["retry_of"] == original
     assert linked["metadata"]["design_revision_id"] == cancelled["metadata"]["design_revision_id"]
+
+
+#: What a run started before aia-sociomap-5 pinned: the reference map beside aia-sociomap-3.
+OLD_DEFAULT = (*LEGACY_METHODS, SociomapMethod.of(AIA_SOCIOMAP_V3))
+
+
+def test_a_new_run_pins_aia_sociomap_5_alone_at_its_fingerprint(runs: Any, design: Any) -> None:
+    run = runs().get(runs().start(design_revision_id=design(), fieldwork_source=AI).run_id)
+    (pin,) = run["metadata"]["sociomap_methods"]
+    assert pin == SociomapMethod.of(AIA_SOCIOMAP_V5).model_dump(mode="json")
+    assert pin["method_id"] == "aia-sociomap-5"
+    assert pin["spec_fingerprint"] == AIA_SOCIOMAP_V5.fingerprint()
+
+
+def test_a_revision_whose_run_pinned_the_old_default_gets_a_new_run(runs: Any, design: Any) -> None:
+    revision = design()
+    old = runs().start(
+        design_revision_id=revision, fieldwork_source=AI, sociomap_methods=OLD_DEFAULT
+    )
+    new = runs().start(design_revision_id=revision, fieldwork_source=AI)
+    assert new.created and new.run_id != old.run_id
+    pinned = runs().get(new.run_id)["metadata"]["sociomap_methods"]
+    assert [m["method_id"] for m in pinned] == ["aia-sociomap-5"]
+    # Starting the default again is the same new run, never a third.
+    again = runs().start(design_revision_id=revision, fieldwork_source=AI)
+    assert not again.created and again.run_id == new.run_id
+
+
+def test_a_retry_of_an_old_method_run_is_refused_with_its_revision_and_starts_nothing(
+    runs: Any, design: Any
+) -> None:
+    revision = design()
+    old = (
+        runs()
+        .start(design_revision_id=revision, fieldwork_source=AI, sociomap_methods=OLD_DEFAULT)
+        .run_id
+    )
+    runs().cancel(old)
+    assert runs().get(old)["retryable"] is True
+    before = [r["run_id"] for r in runs().runs(limit=50)]
+    with pytest.raises(ResearchRunOnRetiredMethod) as refused:
+        runs().retry(old, fieldwork_source=AI)
+    assert refused.value.design_revision_id == revision
+    assert refused.value.methods == ["aia-sociomap-1", "aia-sociomap-3"]
+    # The new run it offers starts as the refused one did: same revision and respondents.
+    assert refused.value.new_run == {
+        "design_revision_id": revision,
+        "persona_source": runs().get(old)["metadata"]["persona_source"],
+    }
+    assert [r["run_id"] for r in runs().runs(limit=50)] == before
+    # The link it offers: a new run over the same revision, on aia-sociomap-5.
+    new = runs().start(design_revision_id=revision, fieldwork_source=AI)
+    assert new.created
+    assert runs().get(new.run_id)["metadata"]["sociomap_methods"][0]["method_id"] == (
+        "aia-sociomap-5"
+    )
+
+
+def test_a_retry_of_an_edited_versions_run_keeps_its_version_and_drops_the_reference_map(
+    runs: Any, design: Any
+) -> None:
+    # What a run under an edited version pinned before: the reference map beside the version.
+    edited = AIA_SOCIOMAP_V5.model_copy(update={"methodology_version": "aia-sociomap-5+e1"})
+    pins = (*LEGACY_METHODS, SociomapMethod.of(edited))
+    run_id = (
+        runs().start(design_revision_id=design(), fieldwork_source=AI, sociomap_methods=pins).run_id
+    )
+    runs().cancel(run_id)
+    retry = runs().retry(run_id, fieldwork_source=AI)
+    assert retry.created
+    pinned = runs().get(retry.run_id)["metadata"]["sociomap_methods"]
+    assert pinned == [SociomapMethod.of(edited).model_dump(mode="json")]
+
+
+def test_an_analysis_retry_of_an_old_default_run_without_its_stored_map_is_refused(
+    runs: Any, design: Any
+) -> None:
+    from aia_core.application.research import FrozenDataset
+
+    old = (
+        runs()
+        .start(design_revision_id=design(), fieldwork_source=AI, sociomap_methods=OLD_DEFAULT)
+        .run_id
+    )
+    runs().cancel(old)  # its Sociomap step never ran: asking again would compute -1 and -3
+    frozen = FrozenDataset(
+        run_id=old,
+        artifact_id="ART-0000000000000000",
+        sha256="0" * 64,
+        analysis_round=1,
+        retried=("objects",),
+        modules_asked=1,
+    )
+    before = [r["run_id"] for r in runs().runs(limit=50)]
+    with pytest.raises(ResearchRunOnRetiredMethod):
+        runs().retry_analysis(old, frozen_dataset=frozen)
+    assert [r["run_id"] for r in runs().runs(limit=50)] == before
 
 
 def test_fieldwork_without_a_runtime_parks_the_run_and_nothing_downstream_runs(
@@ -939,3 +1044,40 @@ def test_the_worker_holds_no_authority_to_confirm_a_spend(
         WorkflowRepository(session, worker).record_spend_confirmation(
             started.run_id, ceiling_usd=CEILING, limit_usd=1.0, confirmed_usd=CEILING
         )
+
+
+def test_the_offered_new_run_starts_as_the_refused_one_did() -> None:
+    """Its respondents, the child population it ran over and the person's decision on the
+    research questions it could not answer, so the new run is the old one on aia-sociomap-5."""
+    from aia_core.application.research import _new_run_start
+
+    digest = "a" * 64
+    run = {
+        "run_id": "RUN-1",
+        "metadata": {
+            "design_revision_id": "REV-1",
+            "persona_source": "panel",
+            "population": {"population_id": None, "version_id": "VER-child"},
+            "answerability": {
+                "rules": "aia-answerability-1",
+                "capable": False,
+                "research_questions": [],
+                "gaps": [],
+                "digest": digest,
+                "acknowledgement": {"reason": "Pokračujeme s omezeními.", "by": "USR-1"},
+            },
+        },
+    }
+    assert _new_run_start(run) == {
+        "design_revision_id": "REV-1",
+        "persona_source": "panel",
+        "population_version_id": "VER-child",
+        "acknowledge_research_questions": {"digest": digest, "reason": "Pokračujeme s omezeními."},
+    }
+    # Over LIVE (a population named) and with nothing acknowledged: neither is carried.
+    live = {**run["metadata"], "population": {"population_id": "POP-1", "version_id": "VER-1"}}
+    del live["answerability"]
+    assert _new_run_start({"run_id": "RUN-1", "metadata": live}) == {
+        "design_revision_id": "REV-1",
+        "persona_source": "panel",
+    }

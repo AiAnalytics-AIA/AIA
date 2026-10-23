@@ -428,7 +428,8 @@ def test_ai_respondents_answer_and_the_run_continues_through_aggregate_and_socio
     for node in ("aggregate", "sociomap"):
         assert steps[node]["status"] is StepRunStatus.SUCCEEDED
         assert steps[node]["output"]["data_origin"] == "SYNTHETIC_AI_FICTIONAL"
-    assert steps["sociomap"]["output"]["methodology_status"] == "INTERNAL_ONLY"
+    # aia-sociomap-5, what a new run pins, is approved in the register.
+    assert steps["sociomap"]["output"]["methodology_status"] == "CLIENT_FACING"
 
 
 def test_ai_respondents_answer_under_the_response_process_their_run_pinned(
@@ -571,6 +572,22 @@ def test_a_run_pinned_to_its_population_waits_on_a_worker_without_that_path(
     assert fw["attempts"][-1]["failure_class"] is FailureClass.RUNTIME_UNAVAILABLE
     assert fw["attempts"][-1]["error"]["reason"] == "panel_personas_unavailable"
     assert bedrock.requests == [] and _ledger(world, run_id) == []
+    assert _park_reasons(world, run_id) == {"panel_personas_unavailable"}
+
+
+def _park_reasons(world: Any, run_id: str) -> set[str]:
+    """The executor's own reasons the engine's STEP_RECOVERY events carried (RQC7a)."""
+    from aia_core.infrastructure.tables import WorkflowEventRow
+
+    with world.sessions() as session:
+        rows = session.scalars(
+            select(WorkflowEventRow).where(
+                WorkflowEventRow.run_id == run_id, WorkflowEventRow.event_type == "STEP_RECOVERY"
+            )
+        ).all()
+        return {
+            str(r.payload_json["error_reason"]) for r in rows if "error_reason" in r.payload_json
+        }
 
 
 def test_a_route_approved_for_nothing_parks(world: Any, run_with: Callable[..., Worker]) -> None:
@@ -582,7 +599,9 @@ def test_a_route_approved_for_nothing_parks(world: Any, run_with: Callable[..., 
             env=_env(AIA_AI_ROUTE_APPROVED_FOR="", AIA_AI_FICTIONAL_CLIENT_IDS=world.client_id),
         )
     )
-    assert _assert_parked_before_network(world, run_id, bedrock)["reason"].startswith("egress_")
+    reason = _assert_parked_before_network(world, run_id, bedrock)["reason"]
+    assert reason.startswith("egress_")
+    assert _park_reasons(world, run_id) == {reason}
 
 
 def test_without_an_ai_runtime_the_production_registry_still_parks_and_never_substitutes(
@@ -600,6 +619,8 @@ def test_without_an_ai_runtime_the_production_registry_still_parks_and_never_sub
     fw = _steps(_run(world, run_id))["run"]
     assert fw["waiting_reason"] == RUNTIME_UNAVAILABLE_REASON
     assert "nic nebylo vymyšleno" in fw["attempts"][-1]["error"]["message"]
+    # The step's own reason is the waiting reason itself here, so nothing more is said.
+    assert _park_reasons(world, run_id) == set()
 
 
 # --------------------------------------------------------------------------- #

@@ -1,10 +1,12 @@
 // @vitest-environment jsdom
 // The Research Lead's pane (ADR 0026): the researcher hatches their own Lead, reads the session,
 // writes to it, and approves a prepared job only through the card; nothing is done for them.
-import { act, cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { act, cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import type { LeadState, LeadTurn, ResearcherLead } from "@/lib/lead";
+import type { PlanState } from "@/research/plan";
+import { itemTargets } from "@/research/plan-narrative";
 import { LeadPane, type LeadCardsContext } from "./LeadPane";
 
 const hatched: ResearcherLead = {
@@ -16,6 +18,17 @@ const turn = (over: Partial<LeadTurn>): LeadTurn => ({
   status: "COMPLETED", reason: null, output: null, run_id: "RUN-1", workspace_revision: 3, created_at: "2026-10-19T08:00:00Z", created_by: "USR-1",
   ...over,
 });
+
+// A turn's manifest as the server reads it from the frozen context (LC2): fictional ids; the
+// knowledge layer left 51 items out and lists the first fifty; Design Research was not recorded.
+const MANIFEST = {
+  turn_id: "LDT-1", recorded: true,
+  manifest: { manifest_version: 1, total_bytes: 41_200, ceiling_bytes: 98_304, layers: [
+    { layer: "knowledge", recorded: true, bytes: 21_000, ceiling_bytes: 20_480, bounded_bytes: 20_100, bound: "x", over_policy: "y", included: ["K-0"], included_count: 1,
+      omitted: Array.from({ length: 50 }, (_, i) => ({ id: `K-${i + 1}`, reason: "over_budget" })), omitted_count: 51 },
+    { layer: "external_context_not_evidence", recorded: false, ceiling_bytes: null, bound: "x", over_policy: "y", included: [], omitted: [] },
+  ] },
+};
 
 let me: ResearcherLead;
 let state: LeadState;
@@ -45,6 +58,10 @@ function api() {
       posts.push(JSON.parse(String(init?.body)));
       return new Response(JSON.stringify({ turns: [] }), { status: 201 });
     }
+    if (u.includes("/manifest/omitted")) {
+      return new Response(JSON.stringify({ layer: "knowledge", after: 50, total: 51, omitted: [{ id: "K-51", reason: "over_budget" }] }));
+    }
+    if (u.endsWith("/manifest")) return new Response(JSON.stringify(MANIFEST));
     if (u.endsWith("/lead")) return new Response(JSON.stringify(state));
     return new Response(JSON.stringify({ code: "not_found" }), { status: 404 });
   }));
@@ -76,6 +93,60 @@ const cards = (over: Partial<LeadCardsContext> = {}): LeadCardsContext => ({
 });
 
 describe("LeadPane", () => {
+  it("heads each local day of the conversation with its divider, before its first message", async () => {
+    vi.useFakeTimers({ toFake: ["Date"] });
+    vi.setSystemTime(new Date(2026, 9, 21, 10, 0));
+    try {
+      const at = (d: Date) => d.toISOString();
+      state.turns = [
+        turn({ turn_id: "LDT-0", actor: "person", text: "Včerejší otázka", run_id: null, created_at: at(new Date(2026, 9, 20, 23, 50)) }),
+        turn({ turn_id: "LDT-1", output: { reply: "Půlnoční odpověď" }, created_at: at(new Date(2026, 9, 21, 0, 5)) }),
+        turn({ turn_id: "LDT-2", actor: "person", text: "Ranní otázka", run_id: null, created_at: at(new Date(2026, 9, 21, 9, 0)) }),
+      ];
+      render(pane());
+      expect(await screen.findByText("Ranní otázka")).toBeTruthy();
+      const days = screen.getAllByRole("heading", { level: 3 }).filter((h) => h.classList.contains("conv__day"));
+      expect(days.map((h) => h.textContent)).toEqual(["Včera", "Dnes"]);
+      // Each divider stands before its day's first message, in the document's order.
+      const before = (a: Node, b: Node) => Boolean(a.compareDocumentPosition(b) & Node.DOCUMENT_POSITION_FOLLOWING);
+      expect(before(days[0], screen.getByText("Včerejší otázka"))).toBe(true);
+      expect(before(screen.getByText("Včerejší otázka"), days[1])).toBe(true);
+      expect(before(days[1], screen.getByText("Půlnoční odpověď"))).toBe(true);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it("opens what the last Lead turn could see from the Vidí chip, naming what it left out", async () => {
+    state.turns = [turn({ output: { reply: "Hotovo." } })];
+    render(pane());
+    const chip = await screen.findByRole("button", { name: /Vidí: / });
+    expect(chip.getAttribute("aria-expanded")).toBe("false");
+    fireEvent.click(chip);
+    expect(chip.getAttribute("aria-expanded")).toBe("true");
+    const panel = await screen.findByRole("region", { name: "Co Vedoucí viděl v poslední odpovědi" });
+    expect(await within(panel).findByText("Znalosti klienta")).toBeTruthy();
+    const left = within(panel).getByRole("list", { name: "Vynecháno z vrstvy Znalosti klienta" });
+    expect(within(left).getByText("K-1").closest("li")?.textContent).toBe("K-1 · nevešla se do limitu vrstvy");
+    expect(within(panel).getByText("Nezaznamenáno: tato odpověď vrstvu neměla.")).toBeTruthy();
+    fireEvent.click(within(panel).getByRole("button", { name: "Načíst další vynechané" }));
+    expect(await within(left).findByText("K-51")).toBeTruthy();
+    expect(within(panel).queryByRole("button", { name: "Načíst další vynechané" })).toBeNull();
+  });
+
+  it("opens the same panel in the compact drawer", async () => {
+    state.turns = [turn({ output: { reply: "Hotovo." } })];
+    render(pane({ onClose: vi.fn() }));
+    fireEvent.click(await screen.findByRole("button", { name: /Vidí: / }));
+    expect(await screen.findByRole("region", { name: "Co Vedoucí viděl v poslední odpovědi" })).toBeTruthy();
+  });
+
+  it("offers no chip before any Lead turn froze a context", async () => {
+    render(pane());
+    expect(await screen.findByText(/Vidí: /)).toBeTruthy();
+    expect(screen.queryByRole("button", { name: /Vidí: / })).toBeNull();
+  });
+
   it("offers hatching to a researcher without a Lead, and hatches it on their click", async () => {
     me = { hatched: false, lead: null };
     render(pane());
@@ -139,6 +210,33 @@ describe("LeadPane", () => {
     // The typed run starts from its card, not by opening Spuštění.
     fireEvent.click(screen.getByRole("button", { name: "Spustit výzkum" }));
     await waitFor(() => expect(onRequest).toHaveBeenCalledWith(expect.objectContaining({ turn_id: "LDT-8" }), expect.objectContaining({ kind: "research_run" })));
+  });
+
+  it("shows a typed analysis retry as the stage's retry, names the run it retries and starts it on that run", async () => {
+    state = { ...state, wallet_enabled: false, analysis_retry_run: { run_id: "RUN-a1", created_at: "2026-10-22T09:30:00Z", phase: "succeeded" },
+      turns: [turn({ turn_id: "LDT-10", actor: "person", text: "Zopakuj analýzu", command: "analysis_retry", run_id: null, output: null })] };
+    const onRequest = vi.fn(async () => {});
+    const { container } = render(pane({ onRequest, cards: cards() }));
+    expect(await screen.findByText("Opakování analýzy")).toBeTruthy();
+    const card = container.querySelector('[data-card="request"][data-typed]')!;
+    expect(card.textContent).toContain("nová data se nesbírají");
+    expect(card.textContent).toMatch(/Který běh.*Běh z /);
+    // With the wallet off the card does not speak of it (the PM on #744).
+    expect(card.textContent).not.toContain("Peněženk");
+    fireEvent.click(screen.getByRole("button", { name: "Zopakovat analýzu" }));
+    await waitFor(() => expect(onRequest).toHaveBeenCalledWith(expect.objectContaining({ turn_id: "LDT-10" }), { kind: "analysis_retry", why: "Spustí se až vaším potvrzením.", run_id: "RUN-a1" }));
+  });
+
+  it("says a typed start is not charged to the Peněženka only with the wallet on", async () => {
+    state = { ...state, wallet_enabled: true, analysis_retry_run: null,
+      turns: [turn({ turn_id: "LDT-11", actor: "person", text: "Zopakuj analýzu", command: "analysis_retry", run_id: null, output: null }),
+        turn({ turn_id: "LDT-12", actor: "person", text: "Spusť výzkum", command: "research_run", run_id: null, output: null })] };
+    const { container } = render(pane({ cards: cards() }));
+    await screen.findByText("Opakování analýzy");
+    const [retry, run] = Array.from(container.querySelectorAll('[data-card="request"][data-typed]'));
+    expect(retry!.textContent).toContain("Opakování analýzy se nestrhává z Peněženky.");
+    expect(retry!.textContent).toContain("Studie zatím nemá běh s AI analýzou");
+    expect(run!.textContent).toContain("práh potvrzení a Peněženka se kontrolují");
   });
 
   it("says a typed start approved again found the job already done, and shows that job once", async () => {
@@ -325,6 +423,18 @@ describe("LeadPane", () => {
     rerender(pane({ focus: null, stage: "design" }));
     state = { ...state, busy: false, turns: [turn({ output: { reply: "Hotovo." } })] };
     await waitFor(() => expect(posts.at(-1)).toEqual({ kind: "message", text: "Zkrať ji", stage: "brief", focus }));
+  });
+
+  it("names a view chip's research question or hypothesis by its words in the working copy (F18)", async () => {
+    const design = { project: { research_plan: { hypotheses: ["Mírnější varianta osloví širší publikum."] } }, analysis: null };
+    const target = itemTargets(design as unknown as PlanState).hypotheses[0]!;
+    state = { ...state, turns: [turn({ output: { reply: "Tady je.", view: [{ op: "inspect", target }, { op: "focus", target: "hypothesis:hyp_gone" }] } })] };
+    const onView = vi.fn();
+    render(pane({ design, onView }));
+    fireEvent.click(await screen.findByRole("button", { name: "Detail: Hypotéza: Mírnější varianta osloví širší publikum." }));
+    expect(onView).toHaveBeenCalledWith([{ op: "inspect", target }]);
+    // One the copy no longer holds keeps its id rather than borrowing words.
+    expect(screen.getByRole("button", { name: "Ukázat: Hypotéza hyp_gone" })).toBeTruthy();
   });
 
   it("keeps a message the server did not take, held until the researcher tries again", async () => {

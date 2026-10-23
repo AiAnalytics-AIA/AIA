@@ -7,7 +7,8 @@ elements; nothing decides content.
 
 from __future__ import annotations
 
-from collections.abc import Iterable
+from collections.abc import Iterable, Iterator
+from contextlib import contextmanager
 from typing import Any, Final
 
 from docx.opc.constants import RELATIONSHIP_TYPE as RT
@@ -25,6 +26,32 @@ def el(tag: str, **attrs: str) -> etree._Element:
     for name, value in attrs.items():
         e.set(qn(f"w:{name}"), value)
     return e
+
+
+#: What a locked control holds: its content cannot be edited, the control itself can be deleted
+#: (and a save that loses one is refused by the census, report-delivery RD6).
+LOCKED: Final = "sdtContentLocked"
+
+
+@contextmanager
+def locked_inline(paragraph: Paragraph, tag: str) -> Iterator[None]:
+    """Everything written to ``paragraph`` inside the block, wrapped in one inline content control
+    tagged ``tag`` whose content an editor will not let a person change (artifact-report RPT8a,
+    the editor spike's F-ED1): a printed number names the ledger ref it came from."""
+    p: etree._Element = paragraph._p
+    before = len(p)
+    yield
+    written: list[etree._Element] = list(p)[before:]
+    if not written:
+        return
+    sdt, pr, content = el("w:sdt"), el("w:sdtPr"), el("w:sdtContent")
+    pr.append(el("w:tag", val=tag))
+    pr.append(el("w:lock", val=LOCKED))
+    sdt.append(pr)
+    sdt.append(content)
+    written[0].addprevious(sdt)
+    for child in written:
+        content.append(child)
 
 
 def insert_in_order(parent: etree._Element, child: etree._Element, later: Iterable[str]) -> None:

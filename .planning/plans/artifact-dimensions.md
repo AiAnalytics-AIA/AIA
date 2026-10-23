@@ -1,7 +1,7 @@
 ---
 status: in-progress
 chunks:
-  - "[ ] DIM1. Dimenze's contract as data: view operations, pointable ids (dimension, sample size, own dimension) and V2's interaction contract"
+  - "[x] DIM1. Dimenze's contract as data: view operations, pointable ids (dimension, sample size, own dimension) and V2's interaction contract"
   - "[ ] DIM2. Selected dimensions as V2 draws them: name, definition, source in the population, use, and the persona topic or 'bez tématu persony', from the server's mapping"
   - "[x] DIM3. The sample size as one bounded stepper with its recommendation, never silently clamped"
   - "[ ] DIM4. Vlastní dimenze klienta: a requested dimension materialized as the client's owned child, its outcome, and the run it feeds"
@@ -121,6 +121,13 @@ V2: `DimensionsArt` (`SampleStages.tsx:206-230`).
   readiness limits in steps of 50, the recommendation stated beside it and one button to apply it; the
   slider and the 400/800/1200 presets are gone (audit B1). A value outside the limits is refused at the
   field and not saved. This is also the n half of `input-interactions#5`, which stays that plan's to tick.
+- DIM1 (#729): `lib/artifacts/dimensions.ts` builds Dimenze's ids (`dimensionAia`, `ownDimensionAia`), an id
+  outside the grammar left unmarked (the own-dimension rows used to call `aiaId`, which throws). The
+  stepper's `sample:n` comes from Vzorek's `sampleAia.n()`. The integration coordinator answered
+  (2026-10-22): the row gains `show_diff` (the plan's `show_changes`; Lead edits land on Dimenze), non-live
+  until the op is built, in the coordinator's next registry PR, with `tryAiaId` beside `aiaId`; `sample:n`
+  stays on the stepper, one value whose kind's stage is Vzorek (focus opens it there), no second target.
+  That PR (#739) landed; Dimenze's ids are built with `tryAiaId`.
 - DIM4, read half (#667): "Vlastní dimenze klienta" on Dimenze (`OwnDimensions.tsx`,
   `lib/own-dimensions.ts`) lists the study's materializations, each with its state, its reason and the
   target beside what was achieved (unknown never met), pointable as `own_dimension:<run id>`, and links
@@ -150,6 +157,29 @@ V2: `DimensionsArt` (`SampleStages.tsx:206-230`).
   #686 gives the stage the frame's next stage (`FrameNavigation`'s `next`, focus on its heading), and
   Dimenze's "Další · Vzorek" opens it (test "inside the workbench goes on to the frame's next stage",
   `dimensions_journey.mjs`); the classic layout keeps "Další · kontrola" to Spuštění.
+
+- **DIM-F5 (fixed in its own PR).** In the workbench a chosen dimension could be removed, and a requested
+  one seen, only in the inspector drawer ("Připravenost a pomoc"), which is closed unless opened: the main
+  "Vybrané dimenze" list had no remove and no waiting rows, and with nothing chosen it drew nothing
+  (`PersonaStep.tsx:205-243` vs `:249 @ 9607ee09`). So after "Přidat jako požadavek" the request was gone
+  from the screen once its toast closed. The drawer's × was 16 × 19 px, under WCAG 2.5.8's 24. Seen at
+  1440 px. The selection now carries its base row, a 24 px remove per dimension (V2's `removable`) and the
+  empty state, with the waiting requests as their own list beside it ("Požadované dimenze"); the drawer's
+  duplicate is gone. Tests: "removes a chosen dimension where it is listed and shows a waiting request
+  beside it…", `dimensions_journey.mjs` (remove targets at four widths, removed and put back),
+  `workspace_journey.mjs` (the request waiting after its toast).
+
+- **DIM-F6 (fixed in the same PR).** The society-factor note named the old product and said the run
+  "počítá s celou populací" (`cs.ts:2491 @ 9607ee09`), though a panel run draws under the audience and the
+  persona source is chosen before the run ("Kdo bude odpovídat"). It now says where respondents are
+  chosen, without naming a stage (the classic calls it Kontrola a spuštění, the workbench Sběr dat) or
+  promising the panel, which is offered only under `AIA_AI_POPULATION_PERSONAS_ENABLED`. Test: "goes on
+  calibrated… say they are not in AIA and where respondents are chosen".
+
+- **Not fixed, for others.** "Cena / value for money" keeps its English half: it is 18.6.6's label
+  (`ui_app.html:404`), pinned with the server's `DIMENSION_LABELS` (`project_memory.py:46`), so renaming is
+  the product owner's call. Every visit sends `GET …/design/source` three to four times and `…/research/impact`
+  once (both 404 by design) and `PUT …/workspace/stage` twice: the shared frame's, noted with the coordinator.
 
 ## 8. Owner questions
 

@@ -87,6 +87,36 @@ def test_a_researcher_creates_a_client_by_the_api_but_its_status_stays_with_admi
     assert owner.put(f"{API}/clients/{client_id}/status", json=archive).status_code == 200
 
 
+def test_a_client_or_study_named_by_blanks_is_refused_and_a_name_is_kept_without_them(
+    owner: TestClient, lead: TestClient, world: Any
+) -> None:
+    """A name of spaces names nothing (UX audit F4): every way a client or study is named
+    refuses it, and the blanks around a real name are not part of it."""
+    blank = "   "
+    client_id = world.client_id()
+    refused = [
+        lead.post(f"{API}/workspace/clients", json={"name": blank}),
+        lead.post(f"{API}/clients", json={"slug": "blank-name", "name": blank}),
+        start(lead, world, blank),
+        owner.post(
+            f"{API}/studies", json={"client_id": client_id, "slug": "blank-name", "name": blank}
+        ),
+        lead.post(
+            f"{API}/clients/{client_id}/memory/reuse",
+            json={
+                "source_study_id": "STU-x",
+                "source_revision_id": "REV-x",
+                "new_study_name": blank,
+            },
+        ),
+    ]
+    assert [r.status_code for r in refused] == [422] * len(refused)
+    made = lead.post(f"{API}/workspace/clients", json={"name": "  Trimmed s. r. o. "})
+    assert made.status_code == 201 and made.json()["name"] == "Trimmed s. r. o."
+    study = start(lead, world, "  Trimmed study ")
+    assert study.status_code == 201 and study.json()["name"] == "Trimmed study"
+
+
 def test_a_client_workspace_opens_for_every_member_and_an_unknown_one_is_404(
     lead: TestClient, other_client_lead: TestClient, outsider: TestClient, world: Any
 ) -> None:
@@ -1065,3 +1095,48 @@ def test_the_brief_materials_answer_each_entrys_class_by_rule(
     }
     sibling = f"{API}/studies/{world.study_id('sibling')}/workspace"
     assert lead.get(f"{sibling}/materials").json()["materials"] == []
+
+
+def test_a_put_is_logged_as_the_persons_and_cannot_change_a_declared_sociomap_input(
+    app: Any, lead: TestClient, world: Any
+) -> None:
+    """working-copy-edit-ops WCE2c: the PUT's write leaves one row per field it changed, under
+    the caller's own id, and a change to a declared Sociomap input is refused whole (409)."""
+    from aia_core.application.scope import AuthenticatedPrincipal, ScopeResolver
+    from aia_core.domain.edit_log import ActorKind, OpSource, WriteBy
+    from aia_core.infrastructure.workspace_edit_repository import WorkspaceEditRepository
+
+    url = f"{API}/studies/{world.study_id()}/workspace/content"
+    question = {"id": "Q1", "text": "Jak často?", "typ": "skala", "skala": [1, 5]}
+    declared = {
+        **BRIEF,
+        "sections": [{"id": "s", "type": "questions", "questions": [question]}],
+    }
+    declared["sections"][0]["questions"][0] = {**question, "sociomap_rating": True}
+    assert lead.put(url, json={"content": declared}).json()["revision"] == 1
+    moved = {
+        **declared,
+        "sections": [
+            {
+                **declared["sections"][0],
+                "questions": [{**question, "sociomap_rating": True, "text": "Jak moc často?"}],
+            }
+        ],
+    }
+    refused = lead.put(url, json={"content": moved, "base_revision": 1})
+    assert refused.status_code == 409 and refused.json()["code"] == "sociomap_input_locked"
+    # Said as what happened, never as a save made elsewhere (stand-in review of #784).
+    assert "Sociomap input" in refused.json()["message"]
+    renamed = lead.put(url, json={"content": {**declared, "title": "Jiný"}, "base_revision": 1})
+    assert renamed.status_code == 200 and renamed.json()["revision"] == 2
+
+    with app.state.session_factory() as session:
+        scope = ScopeResolver(session).study_context(
+            AuthenticatedPrincipal(
+                user_id=world.users["lead"], organization_id=world.organization_id
+            ),
+            study_id=world.study_id(),
+        )
+        rows = WorkspaceEditRepository(session, scope).rows(after_revision=1)
+    assert [(r.item_key, r.field) for r in rows] == [("content:brief:title", "text")]
+    assert rows[0].by == WriteBy(ActorKind.PERSON, world.users["lead"], OpSource.UI)

@@ -27,13 +27,20 @@ from aia_core.domain.research_design import (
     SELECTION_NOT_APPLIED,
     ResearchSpecification,
 )
-from aia_core.domain.research_sociomap import read_methods, research_sociomaps
-from aia_core.domain.sociomap import MapOutcome, SociomapArtifactV3, read_artifact
+from aia_core.domain.research_sociomap import SociomapMethod, read_methods, research_sociomaps
+from aia_core.domain.sociomap import (
+    AIA_SOCIOMAP_V1,
+    AIA_SOCIOMAP_V3,
+    MapOutcome,
+    SociomapArtifactV3,
+    read_artifact,
+)
 from aia_core.domain.synthetic_fieldwork import synthetic_dataset
 from aia_core.domain.workflow import WorkflowRunStatus
 from aia_core.infrastructure.build_identity import BuildIdentity
 from aia_core.infrastructure.storage import InMemoryArtifactStore
 from aia_core.infrastructure.study_design_repository import StudyDesignRepository
+from aia_core.infrastructure.study_workspace_repository import WorkspaceConflict
 from aia_executors.registry import registry_for
 from aia_executors.research import research_registry
 from aia_worker.settings import WorkerSettings
@@ -134,25 +141,66 @@ def worker(
     )
 
 
-def _start(world: Any, design: dict[str, Any]) -> str:
+#: The pins these acceptance runs take: the old default (the reference map beside
+#: aia-sociomap-3), whose object map every assertion here reads. A stored run of it still
+#: computes, and replays, exactly as it did; a new run's aia-sociomap-5 is accepted in
+#: ``test_sociomap_frozen_methods.py``.
+OLD_DEFAULT = (SociomapMethod.of(AIA_SOCIOMAP_V1), SociomapMethod.of(AIA_SOCIOMAP_V3))
+
+
+def _scope(world: Any, session: Session, study_id: str | None) -> Any:
+    if study_id is None:
+        return world.lead_scope(session)
+    from aia_core.application.scope import AuthenticatedPrincipal, ScopeResolver
+
+    return ScopeResolver(session).study_context(
+        AuthenticatedPrincipal(user_id=world.lead_id, organization_id=world.organization_id),
+        study_id=study_id,
+    )
+
+
+def _sibling_study(world: Any) -> str:
+    """A second ACTIVE study of the same client, with nothing in it."""
+    from aia_core.domain.scope import StudyStatus
+    from aia_core.infrastructure.scope_repository import ScopeRepository
+
     with world.sessions() as session:
-        scope = world.lead_scope(session)
+        repo = ScopeRepository(session)
+        study = repo.create_study(
+            world.admin_context(session),
+            client_id=world.client_id,
+            slug="s2",
+            name="S2",
+            budget_usd=25.0,
+        )
+        session.flush()
+        repo.set_study_status(_scope(world, session, study.study_id), StudyStatus.ACTIVE)
+        session.commit()
+        return str(study.study_id)
+
+
+def _start(world: Any, design: dict[str, Any], study_id: str | None = None) -> str:
+    with world.sessions() as session:
+        scope = _scope(world, session, study_id)
         revision, _ = StudyDesignRepository(session, scope).submit_as_working_copy(
             content=design, source_stage="run"
         )
         started = ResearchRuns(session, scope).start(
             design_revision_id=revision.revision_id,
             fieldwork_source=FieldworkSource.SYNTHETIC_FIXTURE,
+            sociomap_methods=OLD_DEFAULT,
         )
         session.commit()
         return started.run_id
 
 
-def _outputs(world: Any, store: InMemoryArtifactStore, run_id: str) -> dict[str, Any]:
+def _outputs(
+    world: Any, store: InMemoryArtifactStore, run_id: str, study_id: str | None = None
+) -> dict[str, Any]:
     with world.sessions() as session:
-        runs = ResearchRuns(session, world.lead_scope(session))
+        runs = ResearchRuns(session, _scope(world, session, study_id))
         run = runs.get(run_id)
-        research = research_artifacts(session, world.lead_scope(session), store)
+        research = research_artifacts(session, _scope(world, session, study_id), store)
         steps = {s["node_key"]: s for s in run["steps"]}
         return {
             "run": run,
@@ -237,17 +285,25 @@ def test_each_changed_input_is_a_new_specification_and_a_new_run(
         pass
     before = _outputs(world, store, first)
     edited = copy.deepcopy(DESIGN)
+    study_id: str | None = None
     if change == "dimension":
         edited["persona_dimensions"] = {"approved": ["finance", "ekologie"]}
     elif change == "audience":
         edited["audience"]["filters"] = {"vek": [60, 80]}
     else:
         edited["sections"][0]["questions"][0]["skala"] = [1, 5]
-    second = _start(world, edited)
+        # A declared rating input is locked in its study's working copy (ADR 0029 decision 8):
+        # changing it there is refused until a person records an unlock (WCE8). The engine's
+        # answer to a changed rating input is read in a sibling study, where nothing is locked.
+        with pytest.raises(WorkspaceConflict) as locked:
+            _start(world, edited)
+        assert locked.value.reason == "sociomap_input_locked"
+        study_id = _sibling_study(world)
+    second = _start(world, edited, study_id)
     assert second != first
     while worker.run_once() is not None:
         pass
-    after = _outputs(world, store, second)
+    after = _outputs(world, store, second, study_id)
     spec_before = ResearchSpecification.model_validate(before["spec"]["specification"])
     spec_after = ResearchSpecification.model_validate(after["spec"]["specification"])
     assert spec_before.fingerprint() != spec_after.fingerprint()

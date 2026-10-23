@@ -3,8 +3,8 @@ status: planned
 chunks:
   - "[ ] LC0. ADR 0041 accepted by the product owner (Proposed in this plan's PR): the relayed answers Q25-Q30 confirmed"
   - "[x] LC1. The layer table and the manifest: freeze_context as a pipeline over declared layers (order, floor, ceiling, over-policy, class rule), today's values first, a manifest stored per turn"
-  - "[ ] LC2. Co Vedoucí vidí: the Vidí chip opens the last turn's manifest in words, layer by layer, with what was left out and why"
-  - "[ ] LC3. The decision digest: a code-built record of what this conversation decided (edits, cards, notes, self-updates, lookups) in the conversation-memory layer, never dropped"
+  - "[x] LC2. Co Vedoucí vidí: the Vidí chip opens the last turn's manifest in words, layer by layer, with what was left out and why"
+  - "[x] LC3. The decision digest: a code-built record of what this conversation decided (edits, cards, notes, self-updates, lookups) in the conversation-memory layer, never dropped"
   - "[ ] LC4. Budgets enforced: ADR 0041's floors, ceilings and two-pass global allocation, the design layer's five-step shortening ladder, spare bytes to the verbatim conversation, every omission named"
   - "[ ] LC5. Queued messages stored on the server: immutable rows, queued / answered / withdrawn derived (an exact study_lead_turn_answers relation, a withdrawal row, queue position kept through an edit), bounded in bytes and count, a follow-on turn for what layer 9 cannot hold, LeadBusy retired for messages, visible in every tab"
   - "[ ] LC6. Cost, model and class on every Lead turn, from the usage ledger and the composition digest"
@@ -21,6 +21,7 @@ chunks:
   - "[ ] LC16. After the MVP: branch navigation over replaced turns, and Začít od čistého stolu"
   - "[ ] LC17. After the MVP, own ADR: semantic retrieval (an EU embedding route, pgvector), or a Lead-requested recall on ADR 0040's continuation pattern"
   - "[ ] LC18. After the MVP: personal prompt templates in the / list beside the command registry"
+  - "[x] LC19. Day dividers in every time-only feed: Dnes, Včera, the weekday and date within the past week, else the date; the viewer's local day; an unknown moment shows none"
 ---
 # The Lead's conversation and context
 
@@ -132,6 +133,40 @@ only); the pane's Vidí line becomes the chip that opens it inline in the pane, 
 layer. Omitted items beyond the first 50 page from the source through the stored range (`GET …/manifest/omitted?layer=&after=`). Tests: another researcher's turn is 404; the panel names an omitted knowledge item; it renders
 in the compact drawer.
 
+*As built (LC2):*
+- **Read, never rebuilt.** `ResearchLead.manifest(turn_id)` reads the context the turn froze from
+  its step's input (`WorkflowRepository.step_input(run_id, "turn")`) and passes it to
+  `domain/lead_context.manifest_view`. Nothing is recomputed from today's study.
+- **Not recorded is said.** Every declared layer is listed in `LEAD_LAYERS` order. A layer the
+  frozen context does not hold (a turn before LC3's digest, Design Research off) is
+  `recorded: false` with unknown counts (`null`), never an empty layer. A turn whose step holds no
+  context is `recorded: false` as a whole.
+- **A count only where one was counted.** The digest's layer says what its `left_out` froze.
+  Runs and Lead notes keep the newest and drop the rest uncounted (F4), so their
+  `omitted_count` is `null`, read "Starší vynechané se nepočítají", never 0 (review on #772).
+- **No class in the response.** The class a turn was sent as is not the browser's (`_public`);
+  LC6 shows it.
+- **Routes:**
+  - `GET …/lead/turns/{turn_id}/manifest`;
+  - `GET …/lead/turns/{turn_id}/manifest/omitted?layer=&after=`, fifty at a time, from the
+    frozen context (`omitted_page`).
+
+  Both serve the caller's own Lead turn only. Another researcher's turn, or a person's, is 404
+  `lead_turn_not_found` (tests: application and API).
+- **The web:**
+  - The Vidí line is a button (`aria-expanded`) once a Lead turn froze a context.
+  - `LeadSees.tsx` opens inline under the pane's head, the same in the compact drawer. It
+    shows each layer's size against its bound, its items counted in Czech and the ids it left
+    out with the reason, and pages the rest (`lib/lead-manifest.ts`, pure).
+  - Tests: `LeadPane.test.tsx` (the omitted knowledge item, paging, the drawer, no chip before
+    a turn) and `lead-manifest.test.ts`.
+- **The Lead's notes stay out of every report path (Q69):** the manifest names a note by its
+  `memory_id` only, never its text, and only to its researcher.
+- **In a browser:**
+  - `lead_journey.mjs` opens the chip and reads the panel.
+  - Checked by hand: at 1440, 1100, 768 and 390 px all ten layers are listed, Design Research
+    unrecorded, with no page or panel overflow.
+
 **LC3. The decision digest.** A pure projection over the ledger rows and turns of this conversation
 (`lead_edit`, `lead_job_request`, `lead_self_update`, plan and lookup rows when they exist), each line
 each at most 200 bytes: a decision line with its turn id and ledger row id, an event line (a lookup,
@@ -155,6 +190,42 @@ Tests:
 - 500 decisions stay within the digest's share (8 KB, or 5 KB at the layer floor), the stored manifest stays bounded (counts and a range), and every
   omitted decision pages from that range;
 - no line is rewritten.
+
+*As built (LC3):*
+- `domain/lead_digest.py` is pure:
+  - `decision_digest(decided, undecided, named=, share_bytes=)`;
+  - `edit_item`, which names an edit's item in the focus's words, so `brief:title`,
+    `question:q1` and `sample:n` find their decisions (test: the web's own focus ids). A list
+    entry (`plan:plan.hypotheses:<text>`) is named by its text, which no focus id carries: the
+    web names an objective, research question or hypothesis by its id. Its decisions reach the
+    latest group, never the named one, until LC7 maps list ids to their text.
+- The four groups keep their caps: 4 and 2 KB at the full 8 KB share, scaled at a smaller one.
+  The latest decisions give way, line by line, until the whole digest, its counts and ranges
+  included, fits the share.
+- `freeze_context(memory=)` adds the `memory` layer before the conversation.
+  `context_classification` classes it as the design (Class B: a list entry's item names its
+  text), raised to the class of every turn whose text a line carries
+  (`freeze_context(memory_classes=)`, stored as the layer's `turn_classes`); one turn of
+  unknown class refuses (ADR 0041 M3: the class of what it names). `LEAD_LAYERS` declares it
+  with its 8 KB ceiling.
+- A request waits in the digest only when it is a prepared agent job: a run or Deep Research
+  card is started from its own screen, never decided through the ledger (test).
+- `left_out.by_named_item` counts, per named item, the decisions its three lines left out.
+- The application builds it from the ledger's `lead_edit`, `lead_job_request` and
+  `lead_self_update` rows on the researcher's own Lead turns, which
+  `StudyLeadRepository.lead_turn_ids` reads (ids only, the researcher's own). Another
+  researcher's decisions in the same study never enter it (test).
+- An edit decided on a turn outside the 50-turn history window has no item. Its output is not
+  loaded, so it is a decision line with `item: null`, still exact by ledger row and turn.
+- Cost, not measured: each turn reads every Lead ledger row of the study and the researcher's
+  turn ids, filtering in Python; both grow with the study. A query joining the ledger to
+  `study_lead_turns` on the researcher bounds it; LC4 takes it with the allocation.
+  Naming those needs the turns' outputs; LC9's retrieval reads them.
+- Group 2's pointers cover the proposals in that window. No ledger range covers older undecided
+  proposals, so they are not counted. LC5 brings ids to every turn.
+- Event lines (a lookup, a client note kept with its turn) wait for their events. There is no
+  lookup yet (LO20), and a kept client note is not a ledger row today.
+- The share is the full 8 KB until LC4 allocates layer 10.
 
 **LC4. Budgets enforced.** ADR 0041 decision 2's floors, ceilings and two-pass allocation (floors,
 then the remainder in the declared priority order, each layer's over-policy applied to its
@@ -314,6 +385,32 @@ The recall numbers go in the PR.
 
 **LC14-LC18** are after the MVP and get their own chunk text when admitted.
 
+**LC19. Day dividers** (the product owner, relayed 2026-10-21). The rule:
+- A divider stands before the first entry of each calendar day in a feed whose entries show only
+  their time: "Dnes", "Včera", otherwise the date ("21. října 2026"), with the weekday before it
+  when the day is within the past week ("pondělí 19. října 2026"). Each entry keeps its time.
+- The day is the viewer's local calendar day, never UTC; days are counted as calendar dates, so
+  a 23- or 25-hour day across a DST change does not move a label.
+- An unknown or invalid moment has no day: it shows no divider and breaks none, never "Dnes".
+- The divider is text in a heading (or a list item in a list), never colour alone.
+
+*As built (LC19):*
+- `apps/web/src/lib/day-label.ts`, pure: `dayKey`, `dayLabel(at, now)`,
+  `withDayBreaks(items, at, now)` and `isDayBreak`. Tests across midnight, the week, both DST
+  changes of 2026 and invalid moments (`day-label.test.ts`, which runs in Europe/Prague, checked,
+  so the DST cases cross the transitions wherever it runs). `lead_journey.mjs` checks the "Dnes"
+  heading.
+- Wired into the two feeds that show a time alone:
+  - `components/workbench/LeadPane.tsx`: the conversation, an `h3.conv__day` before each day
+    (test: `LeadPane.test.tsx` "heads each local day of the conversation");
+  - `components/rehome/research/StepActivityPanel.tsx`: the live log, a list item marked
+    `data-day` (test: `ExecutionSteps.test.tsx` "opens a running step's space").
+- In a browser (UI workbench, the scripted Lead, turns backdated to 9, 3 and 1 days): "13. října
+  2026", "pondělí 19. října 2026", "Včera", "Dnes" as `h3` at 1440, 1100, 768 and 390 px, no
+  page overflow, no paid job; `lead_journey.mjs` passes unchanged.
+- Not wired, because they already show the date beside the time: Settings' audit log
+  (`settings/ControlPanel`) and Můj Vedoucí's notes and history.
+
 ## Findings
 
 - **F4.** Notes past the newest 40, or past 16 KB, leave the Lead's context without being counted:
@@ -340,3 +437,10 @@ The recall numbers go in the PR.
   once LC2 lands.
 - `mvp-execution-contracts.md`: a row for LC1-LC13 in W1-W3 as above, once LC0 admits them.
 - `open-items.md`: F1 and F2 as new OIs.
+- `CLAUDE.md` § The map, routers/ `lead`: "GET …/turns/{turn_id}/manifest (what the caller's own
+  turn could see, read from its frozen context; a layer it did not record said so) and
+  …/manifest/omitted?layer=&after= (the rest of a layer's left-out ids)"; components/workbench/:
+  "LeadSees: Co Vedoucí vidí, opened from the Vidí chip".
+- The UI standard (`docs/design/aia-design-system-brief.md` § 6, Implementation constraints):
+  the LC19 rule as written above, under a heading "Day dividers in a time-only feed", naming
+  `lib/day-label.ts` as the one implementation.

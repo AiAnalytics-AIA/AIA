@@ -9,7 +9,7 @@ chunks:
   - "[x] 5. Map credibility: split-half agreement, the no-reliable-structure statement, one uncertainty radius per map"
   - "[x] 6. Respondent map: vector-model placement, the chance test for placed / faded, the respondent terrain, the indicative note below six objects"
   - "[x] 7. Taste segments: the mixture on slopes, the shuffle guard, the step-down, profiles, colour only for clearly placed respondents, borderline segments"
-  - "[ ] 8. aia-sociomap-5 the only method of new runs: the code's default pins -5 by its own name, -1 to -4 leave every product path (run pins, Metodika presets and in-force, the web, the report), Metodika's in force is -5 (D-13)"
+  - "[x] 8. aia-sociomap-5 the only method of new runs: the code's default pins -5 by its own name, -1 to -4 leave every product path (run pins, Metodika presets and in-force, the web, the report), Metodika's in force is -5 (D-13); as built under the owner's decisions of 2026-10-21 (§ Chunk 8 as built)"
   - "[ ] 9. The report draws -5: object-map figure from heights.relative and the terrain method, objects_not_placed listed, credibility in place of Stress-1, the respondent-map and taste-segment figures (D-13)"
   - "[ ] 10. Methodology is edited only by the methodologist: a Metodik member mark an OWNER grants (held by A. Bahbouh) gates storing and activating methodology versions (D-14, Q4)"
   - "[ ] 11. Metodika shows -5 in full: the comparison (MapSummary) carries credibility, the respondent map and taste segments, and the -5 steps are what in force describes (Q8)"
@@ -300,3 +300,26 @@ branch.
 **Chunk 9's figure is built by #517's chunk 7.** Chunk 9 keeps the report chapter's text (credibility
 in place of Stress-1, unplaced objects listed) and the respondent-map and taste-segment figures'
 place in the chapter, drawn from #517's renderer.
+
+### Chunk 8 as built: the owner's decisions of 2026-10-21 (relayed by the coordinator)
+
+- **`-5` is registered client-facing.** `SOCIOMAP_REGISTER` holds `aia-sociomap-5` at its spec
+  fingerprint (`959a5877…`, with the relation detail's `clear_effect` in the spec; `8b0b4864…`
+  before it), decided by the methodology owner on 2026-10-21, beside the `-3` entry
+  that old runs still read. A version that changes anything (`-5+e<n>`) stays internal.
+- **Metodika keeps `-2`, `-3` and `-4` offered**, with `-5` listed first and in force; an edit starts
+  from the version in force, else from the preset in force.
+- **An unchanged preset in force pins its own name.** A stored version equal to its base preset (no
+  changed value, no replaced formula) is pinned as the preset itself (`sociomap_methods_for`), so it
+  keeps the register's approval; any change pins `<preset>+e<n>`.
+- **Retries.** A run whose object map is exactly `-3`, or that pinned the reference map alone, is
+  refused with the start of a new `-5` run over the same Design Revision, with the refused run's
+  respondents, population and research-question decision. A run of an edited version (which also
+  pinned `-1` beside it) is retried with its own version, without `-1`.
+- **Analysis retry of an old run is allowed when its map is stored**: its Sociomap step reuses the
+  map stored under the same inputs (the same input fingerprint) and computes no old method; with no
+  stored map it is refused like a retry.
+- **Provenance.** Each `-5` map records the worker's numpy, scipy, numba and llvmlite versions; the
+  numba cache path, a deployment detail, is not recorded.
+- **Client reports show the `-5` respondent map** beside its two object-map views.
+- **"Klienti"** is the team's own client handling.

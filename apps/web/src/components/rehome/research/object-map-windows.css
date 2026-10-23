@@ -1,0 +1,197 @@
+/* The signed-off map's window as the AIA panel draws it (ui_app.html: .npcMapDock1877, .socio66MapTools,
+   .npcMapHint27, .npcMapPanel27 / .npcObjManager27, the detail .socio66Side.right, and the later
+   somecs-floating-panels and somecs-map-glass rules), scoped under the map stage `.omw` so nothing
+   reaches the rest of the page. The glass tokens follow the page's own theme (data-theme on <html>,
+   none = the system's). */
+
+/* The stage is its own stacking context: the dock (300) and the windows (400 up) stay under the
+   page's sticky header, toasts and dialogs. */
+.omw {
+  isolation: isolate;
+  --glass66: rgba(255, 255, 255, .72);
+  --glassStrong66: rgba(10, 15, 20, .62);
+  --glassLine66: rgba(15, 23, 42, .14);
+  --glassBtn66: rgba(255, 255, 255, .45);
+  --glassCard66: rgba(255, 255, 255, .38);
+  --glassBlur66: blur(16px) saturate(150%);
+  /* Labels on the light glass: 4.5:1 over the glass where it lies on the map's dark ground. */
+  --omwMuted: #3d494f;
+  --omwAnswer: #54666f;
+  /* The detail stops short of the zoom column (13 + 39 px wide) and an 8 px gap, so its buttons stay free. */
+  --omw-zoom-gutter: 60px;
+}
+:root[data-theme="dark"] .omw {
+  --glass66: rgba(12, 17, 22, .64);
+  --glassLine66: rgba(255, 255, 255, .12);
+  --glassBtn66: rgba(255, 255, 255, .06);
+  --glassCard66: rgba(255, 255, 255, .04);
+  --omwMuted: #7c8f98;
+  --omwAnswer: #afbac0;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) .omw {
+    --glass66: rgba(12, 17, 22, .64);
+    --glassLine66: rgba(255, 255, 255, .12);
+    --glassBtn66: rgba(255, 255, 255, .06);
+    --glassCard66: rgba(255, 255, 255, .04);
+    --omwMuted: #7c8f98;
+    --omwAnswer: #afbac0;
+  }
+}
+@supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
+  .omw { --glass66: rgba(255, 255, 255, .94); --glassStrong66: rgba(10, 15, 20, .9); }
+  :root[data-theme="dark"] .omw { --glass66: rgba(12, 17, 22, .93); }
+  @media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .omw { --glass66: rgba(12, 17, 22, .93); } }
+}
+
+/* A corner under the pointer: the resize cursor over everything, as the panel's html.rszNwse66. */
+.omw[data-resize="nwse"] * { cursor: nwse-resize !important; }
+.omw[data-resize="nesw"] * { cursor: nesw-resize !important; }
+
+/* ---------- the dock (Mapa / Práce) ---------- */
+.omw-dock { position: absolute; left: 12px; right: 12px; top: 12px; z-index: 300; display: flex; flex-wrap: wrap; align-items: center; gap: 8px; pointer-events: none; }
+.omw-dock-bar { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; pointer-events: none; }
+.omw-group {
+  display: flex; align-items: center; gap: 3px; padding: 3px; border: 1px solid var(--glassLine66); border-radius: 10px;
+  background: var(--glassStrong66); -webkit-backdrop-filter: var(--glassBlur66); backdrop-filter: var(--glassBlur66);
+  box-shadow: 0 6px 20px rgba(0, 0, 0, .24); pointer-events: auto;
+}
+.omw-label { color: rgba(255, 255, 255, .56); font-size: 9px; font-weight: 800; letter-spacing: .04em; text-transform: uppercase; padding: 0 5px; white-space: nowrap; }
+.omw-group button { border: 0; background: transparent; color: #eef6f9; border-radius: 7px; padding: 7px 9px; font-size: 10px; font-weight: 800; line-height: normal; cursor: pointer; white-space: nowrap; }
+.omw-group button:hover { background: rgba(255, 255, 255, .13); }
+.omw-group button[aria-pressed="true"] { background: #176a89; color: #fff; }
+.omw-group button:disabled { opacity: .38; cursor: not-allowed; }
+.omw-group button:focus-visible, .omw-tools button:focus-visible, .omw-pill:focus-visible { outline: 2px solid #e8edf0; outline-offset: 1px; }
+@media (max-width: 950px) {
+  .omw-dock, .omw-dock-bar { gap: 5px; }
+  .omw-label { display: none; }
+  .omw-group button { padding: 7px 8px; }
+}
+
+/* ---------- the zoom / view column, under the dock ---------- */
+.omw-tools {
+  position: absolute; right: 13px; top: 61px; z-index: 5; display: flex; flex-direction: column; gap: 3px; padding: 4px;
+  border: 1px solid var(--glassLine66); border-radius: 7px;
+  background: var(--glassStrong66); -webkit-backdrop-filter: var(--glassBlur66); backdrop-filter: var(--glassBlur66);
+}
+.omw-tools button { width: 29px; height: 29px; border: 0; border-radius: 5px; background: transparent; color: #e8edf0; cursor: pointer; font-size: 13px; }
+.omw-tools button:hover, .omw-tools button[aria-pressed="true"] { background: rgba(255, 255, 255, .14); }
+
+/* ---------- the legend (bottom left) ---------- */
+.omw-legend { background: var(--glassStrong66) !important; -webkit-backdrop-filter: var(--glassBlur66); backdrop-filter: var(--glassBlur66); border-color: var(--glassLine66) !important; }
+
+/* ---------- the ⓘ info pill and its box ---------- */
+/* The dock's last row: wherever the dock wraps (a narrow stage, the filter bar), the ⓘ stays under it,
+   at the panel's 58 px under a one-row dock; its box opens under the pill. */
+.omw-hint { flex: 0 0 100%; margin-top: 3px; pointer-events: none; }
+.omw-hint .omw-pop { margin-top: 6px; max-width: min(520px, calc(100% - 46px)); }
+.omw-pill {
+  pointer-events: auto; height: 26px; min-width: 26px; padding: 0 10px; border: 1px solid var(--glassLine66); border-radius: 999px;
+  background: var(--glassStrong66); -webkit-backdrop-filter: var(--glassBlur66); backdrop-filter: var(--glassBlur66);
+  color: #dce9ef; font-size: 11px; font-weight: 700; cursor: pointer; white-space: nowrap;
+}
+.omw-pill[aria-expanded="true"] { background: #176a89; }
+.omw-pill.warn { color: #ffd27a; border-color: rgba(255, 190, 90, .45); }
+.omw-pop {
+  flex-basis: 100%; pointer-events: auto; max-height: 60vh; overflow: auto;
+  background: var(--glass66); -webkit-backdrop-filter: var(--glassBlur66); backdrop-filter: var(--glassBlur66);
+  border: 1px solid var(--glassLine66); box-shadow: 0 18px 50px rgba(0, 0, 0, .28); border-radius: 14px;
+  color: var(--ink); padding: 8px 10px; font-size: 11px; line-height: 1.45;
+}
+.omw-pop > b { display: block; }
+.omw-pop-facts { margin-top: 6px; padding-top: 6px; border-top: 1px solid var(--glassLine66); }
+.omw-pop-facts [data-testid="object-map-support"] { color: inherit; }
+
+/* ---------- the floating windows ---------- */
+.omw-win {
+  position: absolute; z-index: 400; display: flex; flex-direction: column; overflow: hidden; min-width: 260px; min-height: 140px;
+  background: var(--glass66); -webkit-backdrop-filter: var(--glassBlur66); backdrop-filter: var(--glassBlur66);
+  border: 1px solid var(--glassLine66); border-radius: 14px; box-shadow: 0 18px 50px rgba(0, 0, 0, .28);
+  color: var(--ink); font-size: 12.5px; line-height: 1.42;
+}
+.omw-win:focus { outline: none; }
+.omw-win:focus-visible { outline: 2px solid var(--focus-ring); outline-offset: 2px; }
+.omw-win--work { top: var(--omw-under-dock, 55px); left: 13px; width: min(430px, calc(100% - 26px)); max-height: calc(100% - var(--omw-under-dock, 55px) - 20px); }
+.omw-win--detail { top: var(--omw-under-dock, 55px); bottom: 14px; right: var(--omw-zoom-gutter); width: min(430px, calc(100% - var(--omw-zoom-gutter) - 14px)); }
+/* Windows open under the dock (--omw-under-dock, measured by the panel; 55px before it is).
+   Narrow: the work windows span the stage up to the zoom column; the detail keeps its place on the right.
+   A stage too narrow for 260 px beside the column (308 px at a 390 px phone) narrows its windows instead. */
+@media (max-width: 850px) {
+  .omw-win { min-width: min(260px, calc(100% - var(--omw-zoom-gutter) - 8px)); }
+  .omw-win--work { left: 8px; right: var(--omw-zoom-gutter); width: auto; }
+}
+
+/* The header drags the window; only the body scrolls. A touch on the header or a corner grip is a
+   drag or a resize, not the browser's pan. */
+.omw-grip { position: absolute; z-index: 3; width: 14px; height: 14px; touch-action: none; }
+.omw-grip--tl { left: 0; top: 0; } .omw-grip--tr { right: 0; top: 0; }
+.omw-grip--bl { left: 0; bottom: 0; } .omw-grip--br { right: 0; bottom: 0; }
+.omw-head { flex: none; display: flex; justify-content: space-between; gap: 10px; align-items: flex-start; padding: 12px; border-bottom: 1px solid var(--glassLine66); cursor: move; user-select: none; touch-action: none; }
+.omw-head > b { font-size: 13px; }
+.omw-side-title {
+  flex: none; height: 40px; display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 0 8px 0 14px;
+  border-bottom: 1px solid var(--glassLine66); font-size: 11.5px; letter-spacing: .08em; text-transform: uppercase; color: var(--omwMuted);
+  font-weight: 700; cursor: move; user-select: none; touch-action: none;
+}
+.omw-body { flex: 1 1 auto; min-height: 0; overflow: auto; padding: 12px; }
+.omw-win--detail .omw-body { padding: 13px 14px; }
+
+.omw-win button { font: inherit; color: inherit; }
+.omw-btn, .omw-head .omw-close {
+  border: 1px solid var(--glassLine66); background: var(--glassBtn66); border-radius: 7px; padding: 6px 8px; font-size: 12px !important; line-height: normal; cursor: pointer;
+}
+.omw-btn[aria-pressed="true"], .omw-btn.on { background: #176a89; border-color: #50a6c6; color: #fff; }
+.omw-btn:disabled { opacity: .45; cursor: not-allowed; }
+.omw-side-title .omw-close { flex: none; width: 29px; height: 29px; border: 1px solid var(--glassLine66); border-radius: 8px; background: var(--glassBtn66); font-weight: 900; font-size: 13px; letter-spacing: 0; cursor: pointer; }
+.omw-win button:focus-visible { outline: 2px solid var(--focus-ring); outline-offset: 1px; }
+.omw-win h4 { font-size: 15px; font-weight: 700; margin: 12px 0 4px; }
+.omw-win h4:first-child { margin-top: 0; }
+.omw-row { display: flex; gap: 6px; flex-wrap: wrap; align-items: center; margin: 6px 0; }
+.omw-note { font-size: 12px; color: var(--omwMuted); line-height: 1.42; }
+
+/* The object list (Správa objektů). */
+.omw-list { display: flex; flex-direction: column; }
+.omw-list button { display: grid; grid-template-columns: 12px minmax(0, 1fr) auto; align-items: center; gap: 8px; width: 100%; border: 0; border-radius: 6px; background: transparent; padding: 5px 6px; text-align: left; font-size: 12.5px; cursor: pointer; }
+.omw-list button:hover { background: var(--glassBtn66); }
+.omw-list button[aria-pressed="true"] { background: var(--glassCard66); font-weight: 700; box-shadow: inset 0 0 0 1px #50a6c6; }
+
+/* The detail's content (.socio66Fact, .socio66Answer, .socio66Rel, .socio66Hint, .socio66Side h3). */
+.omw-facts { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
+.omw-fact { border: 1px solid var(--glassLine66); border-radius: 6px; background: var(--glassCard66); padding: 7px; }
+.omw-fact small { display: block; color: var(--omwMuted); font-size: 11px; margin-bottom: 2px; }
+.omw-fact strong { font-size: 16px; font-variant-numeric: tabular-nums; }
+.omw-answer { display: flex; justify-content: space-between; gap: 10px; padding: 5px 0; border-bottom: 1px solid var(--glassLine66); font-size: 12px; background: transparent; }
+.omw-answer span { color: var(--omwAnswer); min-width: 0; }
+.omw-answer b { font-variant-numeric: tabular-nums; text-align: right; }
+.omw-rel { display: flex; flex-direction: column; gap: 6px; padding: 8px; border: 1px solid var(--glassLine66); border-radius: 7px; background: var(--glassCard66); margin-bottom: 7px; }
+.omw-tip { font-size: 12px; color: var(--omwMuted); line-height: 1.45; }
+.omw-h3 { font-size: 12px; letter-spacing: .07em; text-transform: uppercase; color: var(--omwMuted); margin: 15px 0 7px; font-weight: 700; }
+.omw-h3:first-child { margin-top: 0; }
+.omw-detail-label { display: block; font-size: 14px; margin: 4px 0 8px; }
+
+/* ---------- the display filter bar (SOC3), a glass chip in the dock's row ---------- */
+/* Short of the zoom column on the right, should the bar wrap down beside it. */
+.omw-status { min-width: 0; flex: 0 1 520px; max-width: calc(100% - 46px); pointer-events: none; }
+/* With no bar the live region takes no row of its own. */
+.omw-status:empty { flex-basis: 0; }
+.omw-filter {
+  pointer-events: auto; display: flex; flex-wrap: wrap; align-items: baseline; gap: 2px 6px; max-width: 100%; padding: 5px 10px;
+  border: 1px solid rgba(255, 190, 90, .45); border-radius: 13px;
+  background: var(--glassStrong66); -webkit-backdrop-filter: var(--glassBlur66); backdrop-filter: var(--glassBlur66);
+  color: #dce9ef; font-size: 11px; line-height: 1.4; box-shadow: 0 6px 20px rgba(0, 0, 0, .24);
+}
+.omw-filter b { color: #ffd27a; }
+.omw-filter-note { color: rgba(220, 233, 239, .66); }
+.omw-filter button { border: 0; background: transparent; padding: 0; color: #9cc7da; text-decoration: underline; text-underline-offset: 2px; cursor: pointer; font: inherit; font-weight: 700; }
+.omw-filter button:hover { text-decoration: none; }
+.omw-filter button:focus-visible { outline: 2px solid #e8edf0; outline-offset: 1px; }
+
+/* A relation on the object's card is a button that opens the pair (the panel's answer row). */
+button.omw-answer { width: 100%; border-width: 0 0 1px; border-style: solid; border-color: var(--glassLine66); text-align: left; cursor: pointer; }
+button.omw-answer:hover { background: var(--glassBtn66); }
+button.omw-answer[aria-pressed="true"] { font-weight: 700; background: var(--glassCard66); }
+button.omw-answer[aria-pressed="true"] span { color: inherit; }
+
+/* On the respondent map the object list only lists: no hover, no hand. */
+.omw-list button[aria-disabled="true"] { cursor: default; }
+.omw-list button[aria-disabled="true"]:hover { background: transparent; }

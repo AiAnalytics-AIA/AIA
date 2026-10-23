@@ -2,12 +2,29 @@
 
 from __future__ import annotations
 
+import io
 from typing import Any
 
-from aia_core.application.report_design import compose_design_sections
+from docx import Document
+from test_report_docx_render import _meta
+
+from aia_core.application.analysis_results import Brief
+from aia_core.application.report_design import NOT_STATED, compose_design_sections
 from aia_core.application.report_tables import scale_notes
-from aia_core.domain.report.model import BulletList, Paragraph, Text
+from aia_core.domain.report.document_model import document_bytes
+from aia_core.domain.report.model import (
+    BulletList,
+    Callout,
+    CalloutKind,
+    Heading,
+    Paragraph,
+    ReportDocument,
+    Section,
+    Text,
+)
 from aia_core.domain.research_design import compile_design
+from aia_core.infrastructure.report_docx.lint import lint_docx
+from aia_core.infrastructure.report_docx.renderer import DocxRenderer
 
 DESIGN: dict[str, Any] = {
     "title": "Ranní nápoj",
@@ -185,3 +202,97 @@ def test_a_subpanel_left_from_a_population_choice_is_not_an_external_audiences()
     words = _words(compose_design_sections(spec, ()).chapter.blocks)
     assert "podpanelu" not in words
     assert "mimo populaci AIA" in words
+
+
+def test_the_chapter_opens_with_what_the_brief_asked_for_before_how_it_was_measured() -> None:
+    """F19: the draft said "co měl výzkum zjistit" and printed only how it measured it."""
+    spec, problems = compile_design(DESIGN)
+    assert spec is not None, problems
+    blocks = compose_design_sections(
+        spec,
+        ("Co lidé ráno pijí?",),
+        brief=Brief(
+            goal="Zjistit, zda dojíždějící koupí ranní nápoj do 60 Kč.",
+            decision_use="Rozhodnutí o uvedení nápoje.",
+        ),
+    ).chapter.blocks
+    chapter = _words(blocks)
+    goal, use, question = (
+        chapter.index("Zjistit, zda dojíždějící koupí ranní nápoj do 60 Kč."),
+        chapter.index("Rozhodnutí o uvedení nápoje."),
+        chapter.index("Co lidé ráno pijí?"),
+    )
+    assert goal < use < question
+    headings = [b.text for b in blocks if isinstance(b, Heading)]
+    assert headings[:3] == ["Cíl studie", "Rozhodnutí, které má výzkum podpořit", "Výzkumné otázky"]
+
+
+def test_an_empty_brief_field_is_said_not_stated_never_left_out() -> None:
+    """A reader tells "the person wrote no goal" from "the report does not show it" (review)."""
+    spec, problems = compile_design(DESIGN)
+    assert spec is not None, problems
+    blocks = compose_design_sections(
+        spec, (), brief=Brief(goal=None, decision_use=None)
+    ).chapter.blocks
+    headings = [b.text for b in blocks if isinstance(b, Heading)]
+    assert headings[:2] == ["Cíl studie", "Rozhodnutí, které má výzkum podpořit"]
+    assert _words(blocks).count(NOT_STATED) == 2
+    # Without a brief (the client report) the chapter has neither heading.
+    plain = compose_design_sections(spec, ()).chapter.blocks
+    assert "Cíl studie" not in [b.text for b in plain if isinstance(b, Heading)]
+
+
+def test_a_goal_in_two_paragraphs_prints_as_two() -> None:
+    spec, problems = compile_design(DESIGN)
+    assert spec is not None, problems
+    blocks = compose_design_sections(
+        spec, (), brief=Brief(goal="První odstavec.\n\nDruhý odstavec.")
+    ).chapter.blocks
+    written = [_words((b,)) for b in blocks if isinstance(b, Paragraph)]
+    assert "První odstavec." in written and "Druhý odstavec." in written
+
+
+def test_a_control_character_in_the_brief_never_fails_the_report(report_ledger: Any) -> None:
+    """A soft line break pasted from Word (\\x0b) made python-docx refuse the draft (review)."""
+    spec, problems = compile_design(DESIGN)
+    assert spec is not None, problems
+    chapter = compose_design_sections(
+        spec, (), brief=Brief(goal="a\x0bb\x07c", decision_use="\x01")
+    ).chapter
+    assert "a\nbc" in _words(chapter.blocks) and NOT_STATED in _words(chapter.blocks)
+    doc = ReportDocument(
+        _meta(),
+        (Section("Návrh", (Callout(CalloutKind.METHOD, ()), *chapter.blocks)),),
+        report_ledger(),
+    )
+    assert lint_docx(DocxRenderer().render(doc)) == []
+
+
+def test_a_control_character_a_person_typed_never_fails_the_render(report_doc: Any) -> None:
+    """A research question or a question's wording carrying a character XML 1.0 cannot hold
+    (a vertical tab pasted from Word, a bell, a lone surrogate) failed the whole draft in
+    python-docx. Word's breaks print as a space, the rest are dropped, and the stored document
+    model holds the same text."""
+    design: dict[str, Any] = {**DESIGN}
+    sections = list(design["sections"])
+    first = dict(sections[0])
+    first["questions"] = [{**first["questions"][0], "text": "Jak často\x07 pijete kávu?"}]
+    design["sections"] = [first, *sections[1:]]
+    spec, problems = compile_design(design)
+    assert spec is not None, problems
+    composed = compose_design_sections(spec, ("Co lidé\x0bráno pijí?\x1f\ud800",))
+    doc = report_doc(
+        *composed.chapter.blocks, *composed.appendix.blocks, title="Důvěra\x0c v banky"
+    )
+
+    out = DocxRenderer().render(doc)
+
+    assert lint_docx(out) == []
+    read = Document(io.BytesIO(out))
+    cells = (c for t in read.tables for row in t.rows for c in row.cells)
+    words = "\n".join([p.text for p in read.paragraphs] + [c.text for c in cells])
+    assert "Co lidé ráno pijí?" in words  # the research question, its break a space
+    assert "Jak často pijete kávu?" in words  # the question as asked, its bell dropped
+    assert "\x07" not in words and "\x1f" not in words
+    assert read.core_properties.title == "Důvěra  v banky"
+    assert 'Co lidé ráno pijí?"' in document_bytes(doc).decode()  # as the DOCX printed it

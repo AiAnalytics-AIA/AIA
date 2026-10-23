@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { defaultsMerge } from "./model";
-import { applyNarrative, applyPlanSets, proposalAnalysis, validMeasurement } from "./plan-edit";
+import { MAX_OBJECTS, SET_FULL } from "./plan";
+import { applyNarrative, applyPlanSets, objectProblem, proposalAnalysis, setFieldProblem, withObject, withSetField } from "./plan-edit";
 
 describe("working proposal edits", () => {
   const project = defaultsMerge({ research_plan: { objectives: ["Stored objective"], method_reason: "Keep method" }, sections: [{ title: "Existing instrument" }], ui_state: { kept: true } }, { empty_project: {} });
@@ -16,13 +17,38 @@ describe("working proposal edits", () => {
     expect(result.analysis?._brief_signature).toBe("unchanged-brief");
     expect(result.analysis?.tracked_sets).toEqual(result.project.research_plan.tracked_sets);
   });
-  it("refuses ambiguous or incomplete measurement edits", () => {
-    const set = { title: "Concepts", purpose: "Compare concepts", objects: ["A", "B", "C", "D"], object_question: "Rate {object}", scale_labels: ["Never", "Always"] };
-    expect(validMeasurement(set)).toBe(true);
-    expect(validMeasurement({ ...set, objects: ["A", "a", "C", "D"] })).toBe(false);
-    expect(validMeasurement({ ...set, objects: ["A", "B", "C"] })).toBe(false);
-    expect(validMeasurement({ ...set, objects: Array.from({ length: 16 }, (_, i) => String(i)) })).toBe(false);
-    expect(validMeasurement({ ...set, scale_labels: ["", "Always"] })).toBe(false);
-    expect(validMeasurement({ ...set, object_question: "Rate the concept" })).toBe(false);
+  it("refuses an empty field and a question without {object}, at the field", () => {
+    expect(setFieldProblem("purpose", "  ")).toBe("Napište, co sada porovnává.");
+    expect(setFieldProblem("scale_high", "")).toBe("Napište popisek pro 10.");
+    expect(setFieldProblem("object_question", "Jak hodnotíte koncept?")).toBe("Otázka musí obsahovat {object}: tam se vloží název položky.");
+    expect(setFieldProblem("object_question", "Jak hodnotíte {object}?")).toBeNull();
+  });
+  it("writes one field, keeping the rest of the set and the other end of the scale the person saw", () => {
+    const set = { title: "Koncepty", purpose: "P", objects: ["A", "B", "C", "D"], extra: 1 };
+    expect(withSetField(set, "purpose", "  Nový účel ")).toEqual({ ...set, purpose: "Nový účel" });
+    expect(withSetField(set, "scale_high", "rozhodně")).toEqual({ ...set, scale_labels: ["vůbec", "rozhodně"] });
+    expect(withSetField({ ...set, scale_labels: ["nikdy", "vždy"] }, "scale_low", "zřídka").scale_labels).toEqual(["zřídka", "vždy"]);
+    // Stated ends stay as stored, as the preview shows them; a default fills only a set with none.
+    expect(withSetField({ ...set, scale_labels: ["", "vždy"] }, "scale_high", "často").scale_labels).toEqual(["", "často"]);
+  });
+  it("refuses a repeated item (case aside) and one past the full set", () => {
+    const set = { objects: ["Alfa", "Beta"] };
+    expect(objectProblem(set, " ALFA ")).toBe("Tato položka už v sadě je.");
+    expect(objectProblem(set, "Gama")).toBeNull();
+    // The full set is the limits in force (a stored max of 30 refuses the 31st), else the preset's
+    // 40 (Q75 (a)); above the recommended 15 is allowed.
+    const thirty = { min: 3, max: 30, recommended_min: 4, recommended_max: 15 };
+    const full = { objects: Array.from({ length: 30 }, (_, i) => String(i)) };
+    expect(objectProblem(full, "x", undefined, thirty)).toBe("Sledovaná sada má maximálně 30 položek.");
+    expect(objectProblem({ objects: full.objects.slice(1) }, "x", undefined, thirty)).toBeNull();
+    expect(objectProblem(full, "x")).toBeNull();
+    expect(objectProblem({ objects: Array.from({ length: MAX_OBJECTS }, (_, i) => String(i)) }, "x")).toBe(SET_FULL);
+    // A rename is checked against the others only: its own wording, or a full set, is no refusal.
+    expect(objectProblem(set, "alfa", 0)).toBeNull();
+    expect(objectProblem(set, "alfa", 1)).toBe("Tato položka už v sadě je.");
+    expect(objectProblem(full, "x", 3, thirty)).toBeNull();
+  });
+  it("rewords an item in its place, keeping the order", () => {
+    expect(withObject({ objects: ["A", "B", "C"], extra: 1 }, 1, " Beta ")).toEqual({ objects: ["A", "Beta", "C"], extra: 1 });
   });
 });

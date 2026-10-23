@@ -1,10 +1,12 @@
 // The live audience functions (panel-grounded-respondents 6e): AIA's catalogue, subpanels and
 // preview as the step reads them, and the range filter that no longer stores OI-50's 0.
+import { readFileSync } from "node:fs";
+import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 
 import type { AudienceCatalogue, AudiencePreview } from "@/lib/api";
 
-import { applyPopulationSubpanel, factorRefusal, filterableFactors, liveCatalog, liveSubpanels, liveVerdict, setAudienceRange, setRange, filterCountLines, type Catalog } from "./audience";
+import { applyPopulationSubpanel, factorRefusal, filterableFactors, liveCatalog, liveSubpanels, liveVerdict, setAudienceRange, setRange, filterCountLines, type Catalog, filterProblems, CATALOGUE_TOP_VALUES, rangeBounds, boundOf, endUnreadable, storedRange, pickValues, matchingValues, matchingSubpanels } from "./audience";
 import type { ResearchProject } from "./model";
 
 const project = (audience: Record<string, unknown> = {}) => ({ audience, briefing: {}, ui_state: {} }) as unknown as ResearchProject;
@@ -54,9 +56,9 @@ describe("AIA's catalogue", () => {
 
 describe("the range filter (OI-50 does not carry over)", () => {
   it("leaves an empty bound out, where the classic stored 0", () => {
-    expect(setRange(project(), "vek", "25", "").project.audience.filters).toEqual({ vek: { min: 25 } });
-    expect(setRange(project(), "vek", "", "40").project.audience.filters).toEqual({ vek: { max: 40 } });
-    expect(setRange(project({ filters: { vek: { min: 1 } } }), "vek", " ", "").project.audience.filters).toEqual({});
+    expect(setRange(project(), "vek", 25, null).project.audience.filters).toEqual({ vek: { min: 25 } });
+    expect(setRange(project(), "vek", null, 40).project.audience.filters).toEqual({ vek: { max: 40 } });
+    expect(setRange(project({ filters: { vek: { min: 1 } } }), "vek", null, null).project.audience.filters).toEqual({});
     // The classic's, kept for parity: an empty bound becomes 0.
     expect(setAudienceRange(project(), "vek", "25", "").project.audience.filters).toEqual({ vek: { min: 25, max: 0 } });
   });
@@ -75,6 +77,44 @@ const PREVIEW: AudiencePreview = {
   sample: { ok: true, status: "PASS", sample_donors: 380, effective_n: 470.2 },
   seed: 20261012,
 };
+
+describe("stored filters the population cannot honour (Findings F3)", () => {
+  const cat = (factors = CATALOGUE.factors) => liveCatalog({ ...CATALOGUE, factors });
+  const problems = (filters: Record<string, unknown>, factors = CATALOGUE.factors) => filterProblems(project({ filters }), cat(factors));
+
+  it("names values a complete value list lacks, and whether any is left", () => {
+    expect(problems({ kraj: ["Zlínský kraj", "Fiktivní kraj A"], vek: { min: 30 } })).toEqual([
+      { id: "kraj", label: "Kraj", reason: "values", unknownValues: ["Fiktivní kraj A"], noneKnown: false },
+    ]);
+    expect(problems({ kraj: "Fiktivní kraj A" })[0]).toMatchObject({ reason: "values", noneKnown: true }); // a scalar is one value, as on the server
+  });
+
+  it("names a filter refused whole: a factor not offered, one the policy refuses, one with no value", () => {
+    expect(problems({ prijem: ["Nad 60 000 Kč"] })).toEqual([{ id: "prijem", label: "prijem", reason: "factor", unknownValues: [], noneKnown: false }]);
+    expect(problems({ life_stage_derived: ["Rodič"] })[0]).toMatchObject({ reason: "policy" }); // policy_allowed false
+    expect(problems({ kraj: [] })[0]).toMatchObject({ reason: "empty" });
+    expect(problems({ kraj: [null] })[0]).toMatchObject({ reason: "empty" });
+  });
+
+  it("holds a numeric filter to the server's interval rule, case by shared case (_interval)", () => {
+    // packages/aia_core/tests/test_audience_interval_cases.py holds _interval to the same file.
+    const { cases } = JSON.parse(readFileSync(join(process.cwd(), "../../packages/aia_core/tests/fixtures/audience_interval/cases.json"), "utf8")) as { cases: { value: unknown; refused: boolean }[] };
+    expect(cases.length).toBeGreaterThan(10);
+    for (const { value, refused } of cases) {
+      expect(problems({ vek: value }), JSON.stringify(value)).toEqual(refused ? [{ id: "vek", label: "Věk", reason: "range", unknownValues: [], noneKnown: false }] : []);
+    }
+  });
+
+  it("says nothing it cannot prove: a cut value list, a number, a boolean, no catalogue", () => {
+    const cut = CATALOGUE.factors.map((f) => (f.id === "kraj" ? { ...f, values: Array.from({ length: CATALOGUE_TOP_VALUES }, (_, i) => ({ value: `K${i}`, count: 1 })) } : f));
+    expect(problems({ kraj: ["Fiktivní kraj A"] }, cut)).toEqual([]);
+    expect(problems({ kraj: [1] })).toEqual([]); // text the population keys may differ from JavaScript's (1.0)
+    expect(problems({ kraj: [true] })).toEqual([]);
+    expect(problems({ vek: { min: 200 } })).toEqual([]);
+    expect(problems({ kraj: ["Zlínský kraj"] })).toEqual([]);
+    expect(filterProblems(project({ filters: { kraj: ["Fiktivní kraj A"] } }), null)).toEqual([]);
+  });
+});
 
 describe("the preview in words", () => {
   it("names each filter's own count beside the combined one, by the catalogue's label (AUD3)", () => {
@@ -103,5 +143,73 @@ describe("the preview in words", () => {
     const bad = liveVerdict({ ...PREVIEW, selected_rows: null, audience: { ok: false, reason: "sampling_filter_invalid", reasons: ["vek: očekáván interval min/max"] }, sample: null });
     expect(bad).toEqual({ ok: false, lines: ["Některý filtr nelze použít: vek: očekáván interval min/max."] });
     expect(liveVerdict({ ...PREVIEW, audience: { ok: false, reason: "something_new" }, sample: null }).lines[0]).toContain("something_new");
+  });
+});
+
+describe("a numeric factor's range bounds (audit B6)", () => {
+  it("are the catalogue's ends: whole numbers when both are, else two decimals rounded outward; null when it states none", () => {
+    expect(rangeBounds({ id: "vek", min: 18, max: 89 })).toEqual({ min: 18, max: 89, decimals: 0 });
+    expect(rangeBounds({ id: "x", min: 0.5, max: 7.25 })).toEqual({ min: 0.5, max: 7.25, decimals: 2 });
+    expect(rangeBounds({ id: "x", min: 0.1234, max: 0.9876 })).toEqual({ min: 0.12, max: 0.99, decimals: 2 });
+    // A scale's ends stated by the catalogue say nothing of its values.
+    expect(rangeBounds({ id: "price_sensitivity_1_10", min: 1, max: 10, scale_hint: "1–10" })).toEqual({ min: 1, max: 10, decimals: 2 });
+    for (const f of [{ id: "x" }, { id: "x", min: 1 }, { id: "x", min: 5, max: 1 }, { id: "x", min: Number.NaN, max: 1 }]) expect(rangeBounds(f), JSON.stringify(f)).toBeNull();
+  });
+
+  it("reach the editor from the API: a catalogue-stated scale keeps its hint, so it takes decimals", () => {
+    const scale = { ...CATALOGUE.factors[0]!, id: "price_sensitivity_1_10", column: "price_sensitivity_1_10", label: "Citlivost na cenu", min: 1, max: 10, scale_hint: "1–10" };
+    const factor = liveCatalog({ ...CATALOGUE, factors: [...CATALOGUE.factors, scale] }).factors!.find((f) => f.id === "price_sensitivity_1_10")!;
+    expect(rangeBounds(factor)).toEqual({ min: 1, max: 10, decimals: 2 });
+  });
+
+  it("read a bare stored number as both ends, as the population does; rangeOf stays the classic's", () => {
+    const p = project({ filters: { vek: 40, x: { min: 30 }, y: [18, 29] } });
+    expect(storedRange(p, "vek")).toEqual({ lo: 40, hi: 40 });
+    expect(storedRange(p, "x")).toEqual({ lo: 30, hi: null });
+    expect(storedRange(p, "y")).toEqual({ lo: 18, hi: 29 });
+  });
+
+  it("read a stored end as the population does, and tell an unreadable end from no end", () => {
+    expect(boundOf(30)).toBe(30);
+    expect(boundOf(" 30 ")).toBe(30);
+    expect(boundOf("1_000")).toBe(1000);
+    for (const v of [null, "abc", "inf", Number.POSITIVE_INFINITY, {}]) expect(boundOf(v as never), String(v)).toBeNull();
+    expect(endUnreadable(null)).toBe(false);
+    expect(endUnreadable(30)).toBe(false);
+    expect(endUnreadable("abc")).toBe(true);
+  });
+});
+
+describe("picking a factor's values (audit B7)", () => {
+  it("keeps the stored order and every stored value not on screen, and adds the new ones after", () => {
+    const stored = ["Zlínský kraj", "Fiktivní kraj A"];
+    const listed = ["Hlavní město Praha", "Zlínský kraj"];
+    expect(pickValues(stored, listed, [])).toEqual(["Fiktivní kraj A"]);
+    expect(pickValues(stored, listed, ["Hlavní město Praha", "Zlínský kraj"])).toEqual(["Zlínský kraj", "Fiktivní kraj A", "Hlavní město Praha"]);
+    expect(pickValues([], listed, ["Zlínský kraj"])).toEqual(["Zlínský kraj"]);
+  });
+
+  it("keeps a stored value that is not text as stored, never as its text", () => {
+    // The population keys true as "1" or "True" (audience.py _values); "true" would match nothing.
+    expect(pickValues([true, 1, "Zlínský kraj"], ["Hlavní město Praha", "Zlínský kraj"], ["Hlavní město Praha"])).toEqual([true, 1, "Hlavní město Praha"]);
+    expect(pickValues([1], ["1", "2"], ["1", "2"])).toEqual([1, "2"]);
+  });
+
+  it("matches values as the factor search does", () => {
+    const values = [{ value: "Obec 2" }, { value: "Obec 20" }, { value: "Žďár" }];
+    expect(matchingValues(values, "obec 2").map((v) => v.value)).toEqual(["Obec 2", "Obec 20"]);
+    expect(matchingValues(values, "žď").map((v) => v.value)).toEqual(["Žďár"]);
+    expect(matchingValues(values, "")).toEqual(values);
+  });
+});
+
+describe("the built-in subpanels a search matches (audit B9)", () => {
+  it("by name or description, as the factor search does, the query trimmed", () => {
+    const all = CATALOGUE.subpanels;
+    expect(matchingSubpanels(all, "").map((s) => s.key)).toEqual(["young_18_29", "students"]);
+    expect(matchingSubpanels(all, "  ").map((s) => s.key)).toEqual(["young_18_29", "students"]);
+    expect(matchingSubpanels(all, " MLADÍ ").map((s) => s.key)).toEqual(["young_18_29"]);
+    expect(matchingSubpanels(all, "vestavěný").map((s) => s.key)).toEqual(["young_18_29"]);
+    expect(matchingSubpanels(all, "nikdo")).toEqual([]);
   });
 });

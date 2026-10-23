@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { dimensionTarget, dimensionTopic, dimensionTopicWords } from "./persona";
+import { dimensionTopic, dimensionTopicWords } from "./persona";
 
 describe("a chosen dimension's persona topic (artifact-dimensions DIM2)", () => {
   it("reads the server's answer: a topic, none, or not answered yet", () => {
@@ -15,12 +15,5 @@ describe("a chosen dimension's persona topic (artifact-dimensions DIM2)", () => 
     expect(dimensionTopicWords({ state: "matched", topic: "eko" })).toBe("téma persony: eko");
     expect(dimensionTopicWords({ state: "unmatched" })).toBe("bez tématu persony");
     expect(dimensionTopicWords({ state: "unknown" })).toBe("téma persony neověřeno");
-  });
-
-  it("points at a dimension only with an id the Lead's grammar takes", () => {
-    expect(dimensionTarget("ekologie")).toBe("dimension:ekologie");
-    expect(dimensionTarget("KNI-ai")).toBe("dimension:KNI-ai");
-    expect(dimensionTarget("Úplně nová věc")).toBeNull();
-    expect(dimensionTarget("x".repeat(81))).toBeNull();
   });
 });

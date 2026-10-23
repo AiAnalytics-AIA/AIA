@@ -44,14 +44,14 @@ function fakeApi({ mayAdminister = true, check, compare }: { mayAdminister?: boo
         return json({
           in_force: current
             ? { origin: "stored", preset: null, version_number: inForce, name: current.name }
-            : { origin: "code", preset: "aia-sociomap-3", version_number: null, name: "aia-sociomap-3" },
+            : { origin: "code", preset: "aia-sociomap-5", version_number: null, name: "aia-sociomap-5" },
           may_administer: mayAdminister,
           presets: doc.presets[id],
           versions: [...versions].reverse(),
           history: [...history].reverse(),
         });
       }
-      if (what === "compare") return json(compare ?? { valid: true, problems: {}, in_force: "aia-sociomap-3", panels: [] });
+      if (what === "compare") return json(compare ?? { valid: true, problems: {}, in_force: "aia-sociomap-5", panels: [] });
       if (what === "check") {
         return json(check?.(body as Record<string, unknown>) ?? { valid: true, problems: {}, not_computed: [], formulas_latex: {} });
       }
@@ -237,7 +237,7 @@ describe("the methodology's versions", () => {
     fakeApi();
     render(<MethodologyPanel />);
     const section = await versionsSection();
-    expect(within(section).getByText("aia-sociomap-3").closest("[data-in-force]")).not.toBeNull();
+    expect(within(section).getByText("aia-sociomap-5").closest("[data-in-force]")).not.toBeNull();
     expect(within(section).getByText("z kódu")).toBeTruthy();
     expect(within(section).getByText("Žádná uložená verze: platí metodika z kódu.")).toBeTruthy();
   });
@@ -249,22 +249,22 @@ describe("the methodology's versions", () => {
     await openEditor();
     const form = await editor();
     fireEvent.change(await field(form, "terrain.sigma"), { target: { value: "0,3" } });
-    fireEvent.change(await field(form, "layout.stress_bands"), { target: { value: "[0.05, 0.1, 0.25]" } });
+    fireEvent.change(await field(form, "relation.n_min"), { target: { value: "12" } });
     fireEvent.change(within(form).getByLabelText("Poznámka k verzi"), { target: { value: "širší kopec" } });
     fireEvent.click(within(form).getByRole("button", { name: "Zkontrolovat a uložit" }));
 
-    await waitFor(() => expect(within(section).getByText("Uloženo jako aia-sociomap-4+e1. V platnosti bude, až ji uvedete.")).toBeTruthy());
+    await waitFor(() => expect(within(section).getByText("Uloženo jako aia-sociomap-5+e1. V platnosti bude, až ji uvedete.")).toBeTruthy());
     const stored = sent.find((s) => s.method === "POST" && s.url.endsWith("/versions"));
-    expect(stored?.body?.base_preset).toBe("aia-sociomap-4"); // the newest preset: its own constants are editable
+    expect(stored?.body?.base_preset).toBe("aia-sociomap-5"); // the preset in force
     expect((stored?.body?.spec as { terrain: { sigma: number } }).terrain.sigma).toBe(0.3);
-    expect((stored?.body?.spec as { layout: { stress_bands: number[] } }).layout.stress_bands).toEqual([0.05, 0.1, 0.25]);
+    expect((stored?.body?.spec as { relation: { n_min: number } }).relation.n_min).toBe(12);
     expect(stored?.body?.formulas).toEqual({}); // nothing replaced: no built-in sent as an edit
     expect(sent.filter((s) => s.url.endsWith("/check"))).toHaveLength(1); // checked before stored
     const version = await found('[data-methodology-version="1"]', section);
-    expect(within(version).getByText(/layout\.stress_bands.*terrain\.sigma/)).toBeTruthy();
+    expect(within(version).getByText(/relation\.n_min.*terrain\.sigma/)).toBeTruthy();
 
     // The just-saved version is put in force from its confirmation, the one button offering it.
-    fireEvent.click(within(section).getByRole("button", { name: "Uvést aia-sociomap-4+e1 v platnost" }));
+    fireEvent.click(within(section).getByRole("button", { name: "Uvést aia-sociomap-5+e1 v platnost" }));
     const confirm = await found("[data-methodology-activate]", section);
     // Putting an edited Sociomap in force says its maps will be internal, before it is confirmed (PC17).
     expect(confirm.querySelector("[data-sociomap-internal]")).toBeTruthy();
@@ -274,7 +274,7 @@ describe("the methodology's versions", () => {
     expect(sent.find((s) => s.method === "PUT")?.body).toEqual({ version_number: 1, reason: "ověřeno" });
     expect(within(section).getByText("— ověřeno", { exact: false })).toBeTruthy();
 
-    fireEvent.click(within(section).getByRole("button", { name: "Vrátit na aia-sociomap-3 z kódu" }));
+    fireEvent.click(within(section).getByRole("button", { name: "Vrátit na aia-sociomap-5 z kódu" }));
     const back = await found("[data-methodology-activate]", section);
     // Back to the code's preset: nothing to warn about.
     expect(back.querySelector("[data-sociomap-internal]")).toBeNull();
@@ -511,9 +511,10 @@ describe("the editor a methodologist opens on (product owner, 2026-10-13)", () =
   it("opens on the editor, with no extra click", async () => {
     fakeApi(); render(<MethodologyPanel />);
     const form = await editor();
-    // It edits what is in force, and says so; the newer preset it saves over computes the same.
-    expect(within(form).getByRole("heading", { name: "Úprava metodiky v platnosti (aia-sociomap-3)" })).toBeTruthy();
-    expect(form.querySelector("[data-start-note]")?.textContent).toMatch(/^Úprava se uloží nad aia-sociomap-4: počítá stejně jako aia-sociomap-3 v platnosti/);
+    // It edits what is in force, aia-sociomap-5, and says so; it saves over that preset itself, not
+    // over the first one listed, so no note says it saves over another.
+    expect(within(form).getByRole("heading", { name: "Úprava metodiky v platnosti (aia-sociomap-5)" })).toBeTruthy();
+    expect(form.querySelector("[data-start-note]")).toBeNull();
     expect((within(form).getByLabelText("Začít od metodiky z kódu") as HTMLSelectElement).selectedOptions[0].textContent).toBe("Metodika v platnosti");
     expect(screen.queryByRole("button", { name: "Upravit metodiku" })).toBeNull();
     // The outline is the calculation in order, every editable step one click away.
@@ -527,13 +528,13 @@ describe("the editor a methodologist opens on (product owner, 2026-10-13)", () =
     fireEvent.change(await field(form, "terrain.sigma"), { target: { value: "0,3" } });
     fireEvent.click(within(form).getByRole("button", { name: "Zkontrolovat a uložit" }));
     const section = await versionsSection();
-    fireEvent.click(await within(section).findByRole("button", { name: "Uvést aia-sociomap-4+e1 v platnost" }));
+    fireEvent.click(await within(section).findByRole("button", { name: "Uvést aia-sociomap-5+e1 v platnost" }));
     fireEvent.click(within(await found("[data-methodology-activate]", section)).getByRole("button", { name: "Potvrdit" }));
     await waitFor(() => expect(within(section).getByText("uložená verze")).toBeTruthy());
     cleanup();
     render(<MethodologyPanel />);
     form = await editor();
-    expect(within(form).getByRole("heading", { name: "Úprava metodiky v platnosti (aia-sociomap-4+e1)" })).toBeTruthy();
+    expect(within(form).getByRole("heading", { name: "Úprava metodiky v platnosti (aia-sociomap-5+e1)" })).toBeTruthy();
     expect((await field(form, "terrain.sigma")).value).toBe("0.3"); // stored values are shown as stored
     // A stored version is edited as it is: no note about another preset.
     expect(form.querySelector("[data-start-note]")).toBeNull();
@@ -568,10 +569,10 @@ describe("the editor a methodologist opens on (product owner, 2026-10-13)", () =
     fireEvent.change(await field(form, "terrain.sigma"), { target: { value: "0,35" } });
     fireEvent.click(within(form).getByRole("button", { name: "Zkontrolovat a uložit" }));
     const section = await versionsSection();
-    const offer = await within(section).findByRole("button", { name: "Uvést aia-sociomap-4+e1 v platnost" });
+    const offer = await within(section).findByRole("button", { name: "Uvést aia-sociomap-5+e1 v platnost" });
     // Once the list holds the saved version, it still offers one button for it: the confirmation's.
     await found('[data-methodology-version="1"]', section);
-    expect(within(section).getAllByRole("button", { name: "Uvést aia-sociomap-4+e1 v platnost" })).toEqual([offer]);
+    expect(within(section).getAllByRole("button", { name: "Uvést aia-sociomap-5+e1 v platnost" })).toEqual([offer]);
     fireEvent.click(offer);
     const confirm = await found("[data-methodology-activate]", section);
     fireEvent.change(within(confirm).getByLabelText("Důvod (zapíše se do historie)"), { target: { value: "širší kopec" } });

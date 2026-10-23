@@ -32,7 +32,7 @@ export type Entry = {
 const TABLE = new Set([".csv", ".xlsx", ".xls", ".ods"]);
 const MEDIA = new Set([".png", ".jpg", ".jpeg", ".gif", ".webp", ".mp4", ".mov"]);
 
-export const extensionOf = (name: string): string => {
+const extensionOf = (name: string): string => {
   const dot = name.lastIndexOf(".");
   return dot > 0 ? name.slice(dot).toLowerCase() : "";
 };
@@ -117,7 +117,7 @@ export const isTable = (e: Entry): boolean => e.phase === "stored" && e.source?.
 /** The rows that become knowledge: kept, and not a repeat of another row. */
 export const addable = (entries: Entry[]): Entry[] => entries.filter((e) => e.phase === "stored" && !e.duplicateOf);
 
-export const stillReading = (entries: Entry[]): number => entries.filter((e) => e.phase === "reading").length;
+const stillReading = (entries: Entry[]): number => entries.filter((e) => e.phase === "reading").length;
 
 /** The columns a table's reading flagged as personal data, by their header or letter. */
 export function personalColumns(detail: SourceDetail | null): string[] {
@@ -126,7 +126,7 @@ export function personalColumns(detail: SourceDetail | null): string[] {
 }
 
 /** A table's reading in words: its sheets, the first sheet's columns and rows. */
-export function tableLine(detail: SourceDetail): string | null {
+function tableLine(detail: SourceDetail): string | null {
   const data = detail.reading.dataset;
   if (!data || detail.outcome !== "READ") return null;
   const first = data.sheets[0];

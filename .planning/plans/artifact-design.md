@@ -2,8 +2,9 @@
 status: in-progress
 chunks:
   - "[x] DSN1. Návrh's contract as data: view operations, pointable ids (rq, objective, hypothesis, set, assumption) and V2's interaction contract, in research-lead-workbench 14's and 16's tables"
-  - "[ ] DSN2. Research questions with their coverage on the working revision: measures, items, comparison and gaps from research_trace, pokryto / částečně / mezera by the trace's own verdict"
-  - "[ ] DSN3. The narrative as items: problem summary, objectives, hypotheses and comparable measurements edited in place and autosaved, ProposalEditor and MeasurementEditor retired"
+  - "[x] DSN2. Research questions with their coverage on the working revision: measures, items, comparison and gaps from research_trace, pokryto / částečně / mezera by the trace's own verdict"
+  - "[x] DSN3. The narrative as items: problem summary, objectives, hypotheses and comparable measurements edited in place and autosaved, ProposalEditor and MeasurementEditor retired"
+  - "[x] DSN3b. Select-to-comment on part of a narrative item, beside its direct in-place editing through the store, with stable item ids and the Lead's edit ops kept (the product owner, Q68 (b), 2026-10-22)"
   - "[ ] DSN4. Ve zprávě: each research question's report chapter and the analysis module answering it, from the newest run's stored report model"
   - "[ ] DSN5. Design Research in Návrh: findings per research question as external context, the review of its proposal (7b) mounted at the question, the panel moved here from Dotazník as a reader"
   - "[ ] DSN6. Tracked assumptions in Návrh, from the one assumption item contract"
@@ -134,6 +135,14 @@ když are not built. What stays is code-derived: measures, items, comparison, an
   "Návrh: Výzkumné otázky a jejich pokrytí"). Stays open for WCE7's working-revision coverage, the
   per-question `rq:<id>` target (WCE1's stable ids) and V2's "Celý řetěz" (needs `expand_chain` in
   `ARTIFACTS.design`).
+- Done (2026-10-22, `feature/design-coverage-working`): `DesignCoverage` reads readiness on the
+  working revision (`GET …/research/readiness/working`, WCE7) through `useSampleReadiness`: a
+  waiting edit saved first, nothing submitted, read again when the revision moves
+  (`PlanStep.test.tsx` "reads the coverage again once a research question's edit is saved"). It
+  never flushes a save and re-reads only when the research questions, their comparisons or the
+  questionnaire changed (`design-coverage.ts` `coverageInputs`), so a comment's save costs no
+  readiness. The per-question `rq:<id>` target is on the narrative's items (#702); V2's "Celý
+  řetěz" is DSN4's.
 
 **DSN3. The narrative as items.**
 - Replaces `ProposalEditor` and `MeasurementEditor`'s explicit save (A30, A33) with autosaved items.
@@ -147,6 +156,37 @@ když are not built. What stays is code-derived: measures, items, comparison, an
   browser selects no text, so a narrative item is commented on by its own "Komentovat" (quoting the
   item whole); selection still comments elsewhere (A35). Stays open for `MeasurementEditor` folded
   into the set card (A33) and the move onto WCE3a's vocabulary.
+- Progress (2026-10-22, `feature/design-set-card-in-place`): the measurement half. Each set's
+  title, purpose, question and scale ends are edited on its card (`InlineText`), one field per
+  store update. A question without `{object}` or an empty field is refused at the field
+  (`plan-edit.ts` `setFieldProblem`), and a repeated item or one past the full set at the chip
+  (`objectProblem`, `ChipInput` `refuse`; the full set is the limits in force, `readySetLimits`'s
+  `max`, which `addObject` refuses at too; above the recommendation only #736's warning, Q75 (a)). Each item is reworded in its place, its order kept
+  (`ChipInput` `rename`, `withObject`), as the retired editor's textarea allowed. A scale end
+  written on a set that states no ends keeps the other end the person saw (`withSetField`). A field
+  opened and left unchanged sends nothing. Since every field saves itself, only a draft refused at
+  its field is unsaved; while one is on the stage, every way out (a link, the workbench's
+  navigation, "Další · dotazník", a reload) asks first, and so does a change that would remount
+  it: adding or removing a set (every other card) or removing an item (that set's chips), since sets
+  and their items carry no id to key them by. `MeasurementEditor`, its leave guard and "Nejprve
+  použijte nebo zrušte rozepsané úpravy" are retired, and with them the form-only
+  `validMeasurement` and `lines` (`plan-edit.test.ts`, `PlanStep.test.tsx` "edits a set's
+  measurement field by field…", `proposal_prompt_journey.mjs`). Moving the store's writes onto the
+  server vocabulary is `working-copy-edit-ops#WCE3a`'s work, not this chunk's.
+
+**DSN3b. Select to comment, edit in place (Q68).**
+- The product owner answered Q68 with (b): a person selects part of an item's words to comment on
+  it, and still edits the item where it is shown.
+- `InlineText` takes `selectable`: the value is drawn as a focusable `role="button"` span, because
+  a browser selects no text inside a `<button>`. A single click opens the field once it settles
+  with nothing selected (`SELECT_SETTLE_MS`, 300 ms), so neither a drag nor a double-click on a word
+  opens it. Enter, F2 and Space open it at once. Disabled, it is the words alone and takes no focus.
+  The hidden "Upravit: …" label is never part of a selection.
+- The stage's Commentable picks up the selection. The item's own "Komentovat" stays, so a touch or
+  keyboard reader can quote the whole item. Edits keep going through `applyNarrative`, so the stable
+  item ids and the Lead's edit operations are unchanged.
+- Tests: `InlineText.test.tsx` "InlineText selectable"; `PlanStep.test.tsx` "comments on a part of
+  a narrative item selected in place"; `proposal_prompt_journey.mjs`, a real drag in Chromium.
 
 **DSN4. Ve zprávě.**
 - From the newest completed run's stored report model: the section id (`ch-2`, and any
@@ -193,6 +233,26 @@ untested. Depends on `assumptions-and-open-answer-coding#AOC1`.
   5. *Fix:* none. `addSet` stays the parity-tested port, and its parity case "without an analysis,
      one is started from the goal" holds.
   6. *Test:* the regression test above.
+
+- **F-DSN-2.** Komentáře's hint sends a person to "oddílu 2 nebo 3" (`cs.ts:2011 @ 9eb78f6c`), but
+  Návrh's sections draw no number (`StepSection`, `step.tsx`: `n` "is not drawn"), so the hint points
+  nowhere. Fixed on `fix/design-comments-hint`: it names them as the page's jump chips do,
+  "Porozumění nebo Sady" (`PlanStep.test.tsx` "names the sections a comment quotes as the page names
+  them…"). The same audit: "Komentovat" takes a third of a narrative item's row at 390 px; in a
+  narrow column (a container query, so a narrow workbench pane too) it is now its own glyph at 44 px
+  (`proposal_prompt_journey.mjs`). The undrawn `n` props remain, `StepSection`'s callers' to remove.
+
+- **F-DSN-3.** Saving Návrh's follow-up answers twice puts the same "Doplnění k analýze" block in the
+  brief twice. Anchor: `apps/web/src/research/plan.ts:189 @ 491024f1` (`answerFollowUps` appends to
+  `briefing.what_is_known`, as the classic did), with `PlanStep.tsx`'s submit clearing the fields
+  afterwards, so the same answers can be typed and saved again. Reproduction: answer a follow-up,
+  "Uložit odpovědi", type the same answer, save again; `what_is_known` holds the block twice.
+  Consequence: a duplicated block in the brief the Lead and the analysis read (a reworded answer
+  sits beside the old one). Smallest fix: `answerFollowUps` replaces its own earlier "Doplnění k
+  analýze" block instead of appending, recorded as a parity deviation (a product call; parity kept
+  for now, the coordinator 2026-10-22). Test: `plan.test.ts`, the same answers applied twice leave
+  one block. Keeping the saved answers in their fields was tried and dropped: positional answers
+  under changed questions and a refused save read as saved (code review).
 
 ## 8. Owner questions
 

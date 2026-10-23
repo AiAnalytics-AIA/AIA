@@ -191,6 +191,63 @@ describe("the settings control panel", () => {
     expect(called("POST", "/api/v1/clients/CLI-a/grants")).toHaveLength(0);
   });
 
+  it("offers an administrator no OWNER to grant and no OWNER row's role to change", async () => {
+    // Only an OWNER grants or removes OWNER (the API refuses it, owner_only): an ADMIN is not
+    // offered what the server refuses.
+    api({
+      "GET /api/v1/settings": () => ({ ...DOC(true), your_role: "ADMIN" }),
+      "GET /api/v1/members": () => [
+        { user_id: "USR-1", email: "owner@example.test", display_name: "", is_active: true, organization_role: "OWNER" },
+        { user_id: "USR-2", email: "admin@example.test", display_name: "", is_active: true, organization_role: "ADMIN" },
+      ],
+    });
+    render(<ControlPanel />);
+    const picker = (await screen.findByRole("combobox", { name: "Role", hidden: true })) as HTMLSelectElement;
+    expect([...picker.options].map((o) => o.textContent)).toEqual(["správce", "výzkumník"]);
+    const ownerRow = document.querySelector('[data-member="USR-1"]') as HTMLElement;
+    fireEvent.click(within(ownerRow).getByRole("button", { name: "Upravit", hidden: true }));
+    const edit = document.querySelector('[data-member-edit="USR-1"]') as HTMLElement;
+    expect(within(edit).queryByRole("combobox", { hidden: true })).toBeNull();
+    expect(within(edit).getByText("Roli vlastníka mění jen vlastník.")).toBeTruthy();
+    const adminRow = document.querySelector('[data-member="USR-2"]') as HTMLElement;
+    fireEvent.click(within(adminRow).getByRole("button", { name: "Upravit", hidden: true }));
+    const adminEdit = document.querySelector('[data-member-edit="USR-2"]') as HTMLElement;
+    const own = within(adminEdit).getByRole("combobox", { hidden: true }) as HTMLSelectElement;
+    expect([...own.options].map((o) => o.textContent)).toEqual(["správce", "výzkumník"]);
+  });
+
+  it("offers the organization's only active OWNER no demotion", async () => {
+    api();
+    render(<ControlPanel />);
+    fireEvent.click(await screen.findByRole("tab", { name: "Přístup a schvalování" }));
+    const member = document.querySelector('[data-member="USR-1"]') as HTMLElement;
+    fireEvent.click(within(member).getByRole("button", { name: "Upravit" }));
+    const edit = document.querySelector('[data-member-edit="USR-1"]') as HTMLElement;
+    expect(within(edit).queryByRole("combobox")).toBeNull();
+    expect(within(edit).getByText("Jediný aktivní vlastník organizace o roli přijít nemůže.")).toBeTruthy();
+  });
+
+  it("says an OWNER refusal in Czech, the API's English sentence left out", async () => {
+    // The list was read while a second OWNER was still active; the server decides.
+    api({
+      "GET /api/v1/members": () => [
+        { user_id: "USR-1", email: "owner@example.test", display_name: "", is_active: true, organization_role: "OWNER" },
+        { user_id: "USR-3", email: "second@example.test", display_name: "", is_active: true, organization_role: "OWNER" },
+      ],
+      "POST /api/v1/members": () =>
+        new Response('{"code":"insufficient_role","message":"The organization\'s last OWNER cannot be demoted or deactivated.","details":{"reason":"last_owner"}}', { status: 403 }),
+    });
+    render(<ControlPanel />);
+    fireEvent.click(await screen.findByRole("tab", { name: "Přístup a schvalování" }));
+    const member = document.querySelector('[data-member="USR-1"]') as HTMLElement;
+    fireEvent.click(within(member).getByRole("button", { name: "Upravit" }));
+    const edit = document.querySelector('[data-member-edit="USR-1"]') as HTMLElement;
+    fireEvent.change(within(edit).getByRole("combobox", { name: "Role: owner@example.test" }), { target: { value: "MEMBER" } });
+    fireEvent.click(within(edit).getByRole("button", { name: "Uložit" }));
+    expect(await within(edit).findByText("Poslední aktivní vlastník organizace nemůže přijít o roli ani být deaktivován.")).toBeTruthy();
+    expect(edit.textContent).not.toMatch(/last OWNER/);
+  });
+
   it("still renders a group the page has no panel for", async () => {
     api();
     render(<ControlPanel />);
@@ -205,6 +262,19 @@ describe("the settings control panel", () => {
     expect(within(hidden).getByText(/náklady nevidíte/)).toBeTruthy();
     const visible = screen.getByText("Vnímání značky").closest("[data-study]") as HTMLElement;
     expect(within(visible).getAllByText("500").length).toBeGreaterThan(0);
+  });
+
+  it("keeps a study's Upravit in view on a phone: client and status under the name, the rest but the budget from sm", async () => {
+    api();
+    render(<ControlPanel />);
+    for (const name of ["Vnímání značky", "Cizí studie"]) {
+      const row = (await screen.findByText(name)).closest("[data-study]") as HTMLElement;
+      const cells = [...row.children] as HTMLElement[];
+      const narrow = cells.filter((cell) => !cell.className.includes("hidden sm:table-cell"));
+      expect(narrow).toHaveLength(3);
+      expect(narrow[0].querySelector(".sm\\:hidden")?.textContent).toBe("Klient AAktivní");
+      expect(within(narrow[2]).getByRole("button", { name: "Upravit", hidden: true })).toBeTruthy();
+    }
   });
 
   it("changes the organization's self-approval through the API, then re-reads", async () => {
@@ -628,7 +698,13 @@ it("follows changed settings hashes and preserves the framework's navigation sta
 
 describe("usable settings controls", () => {
   it("offers existing member edits through the audited membership API and defaults a new member to researcher", async () => {
-    api({ "POST /api/v1/members": () => ({ user_id: "USR-1", email: "owner@example.test", organization_role: "ADMIN", display_name: "Updated", is_active: true }) });
+    api({
+      "GET /api/v1/members": () => [
+        { user_id: "USR-1", email: "owner@example.test", display_name: "", is_active: true, organization_role: "OWNER" },
+        { user_id: "USR-3", email: "second@example.test", display_name: "", is_active: true, organization_role: "OWNER" },
+      ],
+      "POST /api/v1/members": () => ({ user_id: "USR-1", email: "owner@example.test", organization_role: "ADMIN", display_name: "Updated", is_active: true }),
+    });
     render(<ControlPanel />);
     fireEvent.click(await screen.findByRole("tab", { name: "Přístup a schvalování" }));
     expect((screen.getByRole("combobox", { name: "Role" }) as HTMLSelectElement).value).toBe("MEMBER");

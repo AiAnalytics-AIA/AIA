@@ -8,19 +8,21 @@
 // artifact pane; its request is a decision card that starts nothing until the person approves.
 
 import Link from "next/link";
-import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
+import { createContext, useCallback, useContext, useEffect, useLayoutEffect, useRef, useState } from "react";
 
 import { lead as leadApi, researcherLead, ApiError, type Readiness, type ResearchAgentJob, type ResearchRun } from "@/lib/api";
 import { ACTION_LABELS } from "@/lib/research-agent-jobs";
 import { appRoutes } from "@/lib/app-routes";
-import type { LeadOutput, LeadRequest, LeadState, LeadTurn, LeadView, ResearcherLead, SelfUpdateDecision } from "@/lib/lead";
-import { commandRequest, composerHint, droppedLines, leadReasonWords as reasonWords, pendingSelfUpdate, targetLabel, TYPED_UNDECIDED_WHY } from "@/lib/lead";
+import type { LeadOutput, LeadRequest, LeadState, LeadTurn, LeadView, ResearcherLead, RetryRun, SelfUpdateDecision } from "@/lib/lead";
+import { commandRequest, composerHint, droppedLines, leadReasonWords as reasonWords, pendingSelfUpdate, targetLabel, type TargetWords, TYPED_UNDECIDED_WHY } from "@/lib/lead";
 import { conversationTimeline } from "@/lib/lead-cards";
+import { isDayBreak, withDayBreaks } from "@/lib/day-label";
 import { STAGES, isWorkbenchStage, type WorkbenchStage } from "@/lib/workbench-stages";
 import type { StepKey } from "@/research/steps";
 import { Glyph } from "./Glyph";
 import { Icon, Mark } from "./Icons";
 import { Facts, Pill, RunCardView, RunRequestCard, WorkerCardView } from "./LeadCards";
+import { LeadSees } from "./LeadSees";
 
 const POLL_MS = 1500;
 
@@ -62,7 +64,7 @@ const time = (iso: string) => {
 /** The newest Lead turn that finished: the one whose view tools have been applied. */
 const newestCompleted = (turns: LeadTurn[]) => [...turns].reverse().find((t) => t.actor === "lead" && t.status === "COMPLETED") ?? null;
 
-export function LeadPane({ studyId, stage, canEdit, focus, picking, onPick, onClearFocus, onView, onRequest, onTurns, onFocusMode, onClose, onSession, mode, epoch, jobs = [], onOpenJob, onLead, beforeMessage, cards, registerSend }: {
+export function LeadPane({ studyId, stage, canEdit, focus, picking, onPick, onClearFocus, onView, onRequest, onTurns, onFocusMode, onClose, onSession, mode, epoch, jobs = [], onOpenJob, onLead, beforeMessage, cards, registerSend, design }: {
   studyId: string;
   stage: WorkbenchStage;
   canEdit: boolean;
@@ -97,10 +99,13 @@ export function LeadPane({ studyId, stage, canEdit, focus, picking, onPick, onCl
   cards?: LeadCardsContext;
   /** Receives the way a stage sends the Lead a message, as the person would type it. */
   registerSend?: (send: (text: string) => void) => void;
+  /** The working copy a view chip's research question or hypothesis is named from (F18). */
+  design?: TargetWords | null;
 }) {
   const [me, setMe] = useState<ResearcherLead | null>(null);
   const [session, setSession] = useState<LeadState | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [seesOpen, setSeesOpen] = useState(false);
   const [draft, setDraft] = useState(() => kept.get(studyId)?.draft ?? "");
   // A message written while the Lead works keeps the stage and the element it was written about.
   const [queued, setQueued] = useState<Queued[]>(() => kept.get(studyId)?.queued ?? []);
@@ -243,13 +248,21 @@ export function LeadPane({ studyId, stage, canEdit, focus, picking, onPick, onCl
   }, [studyId, read]);
 
   const name = me?.lead?.name || "Vedoucí výzkumu";
+  // The Vidí chip opens what the newest Lead turn could see (LC2): only a turn that froze one.
+  const seenTurn = [...(session?.turns ?? [])].reverse().find((t) => t.actor === "lead" && t.run_id);
   return (
     <div className="conv">
       <div className="conv__head">
         <div className="conv__avatar"><Mark size={18} onDark /></div>
         <div style={{ minWidth: 0, flex: 1 }}>
           <div className="conv__who">{name}</div>
-          <div className="conv__sees">Vidí: {STAGES[stage].label} · pracovní kopie studie{focus ? ` · ${focus.label}` : ""}</div>
+          {seenTurn ? (
+            <button type="button" className="conv__sees conv__sees--chip" aria-expanded={seesOpen} aria-controls="lead-sees" title="Co Vedoucí viděl v poslední odpovědi" onClick={() => setSeesOpen((o) => !o)} data-lead-sees-chip>
+              Vidí: {STAGES[stage].label} · pracovní kopie studie{focus ? ` · ${focus.label}` : ""}
+            </button>
+          ) : (
+            <div className="conv__sees">Vidí: {STAGES[stage].label} · pracovní kopie studie{focus ? ` · ${focus.label}` : ""}</div>
+          )}
         </div>
         <Link className="iconbtn" href={appRoutes.lead()} title="Můj Vedoucí: jeho soubory a paměť" aria-label="Můj Vedoucí"><Icon name="user" size={16} /></Link>
         {onClose ? (
@@ -262,6 +275,9 @@ export function LeadPane({ studyId, stage, canEdit, focus, picking, onPick, onCl
           </button>
         )}
       </div>
+      {seenTurn && seesOpen ? <LeadSees key={seenTurn.turn_id} studyId={studyId} turnId={seenTurn.turn_id} id="lead-sees" /> : null}
+      <TypedCardFacts.Provider value={{ walletOn: session?.wallet_enabled === true, retryRun: session?.analysis_retry_run ?? null }}>
+      <ViewWords.Provider value={design ?? null}>
       <Conversation turns={session?.turns ?? []} jobs={jobs} cards={cards} studyId={studyId} onOpenJob={onOpenJob} busy={!!session?.busy || sending} name={name} onFollow={send} onView={onView} onRequest={onRequest} onSelfUpdate={decideSelfUpdate} canEdit={canEdit}>
         {error ? <div className="msg"><div className="notice"><Glyph tone="fault" size={11} />{error}</div></div> : null}
         {held ? (
@@ -271,6 +287,8 @@ export function LeadPane({ studyId, stage, canEdit, focus, picking, onPick, onCl
         {me && !me.hatched ? <HatchCard onHatch={hatch} /> : null}
         {session && !session.available ? <div className="msg"><div className="notice"><Glyph tone="inert" size={11} />{reasonWords(session.unavailable_reason ?? "research_lead_unavailable")}</div></div> : null}
       </Conversation>
+      </ViewWords.Provider>
+      </TypedCardFacts.Provider>
       <Composer draft={draft} setDraft={setDraft} onSend={send} busy={!!session?.busy || sending} queued={queued.map((q) => q.text)} onUnqueue={(i) => setQueued((q) => q.filter((_, j) => j !== i))}
         disabled={!canEdit || !me?.hatched || !session?.available} hint={composerHint({ canEdit, hatched: me?.hatched, available: session?.available, failed: error !== null })} focus={focus} picking={picking} onPick={onPick} onClearFocus={onClearFocus} />
     </div>
@@ -326,7 +344,9 @@ function Conversation({ turns, jobs, cards, studyId, onOpenJob, busy, name, onFo
       <div className="conv__scroll" ref={box} onScroll={onScroll} tabIndex={0} role="log" aria-label={`Konverzace: ${name}`} aria-live="polite" aria-relevant="additions">
         <div>
           {children}
-          {conversationTimeline(turns, jobs, runs, cards?.runOfTurn).map((x) => x.kind === "job"
+          {withDayBreaks(conversationTimeline(turns, jobs, runs, cards?.runOfTurn), (x) => x.at || null).map((x) => isDayBreak(x)
+            ? <h3 key={`day:${x.key}`} className="conv__day">{x.label}</h3>
+            : x.kind === "job"
             ? <WorkerCardView key={x.job.run_id} job={x.job} studyId={studyId} onOpen={onOpenJob} onStage={cards?.onStage} onChanged={cards?.onJobsChanged} />
             : x.kind === "run"
               ? (cards ? <RunCardView key={x.run.run_id} run={x.run} studyId={studyId} stepHref={cards.stepHref} /> : null)
@@ -359,13 +379,23 @@ function Conversation({ turns, jobs, cards, studyId, onOpenJob, busy, name, onFo
   );
 }
 
+/** What a typed start's card says beside the request (GET /lead): whether the wallet is on, and the
+ *  run a typed analysis retry would retry (the PM on #744). */
+const TypedCardFacts = createContext<{ walletOn: boolean; retryRun: RetryRun | null }>({ walletOn: false, retryRun: null });
+
+const retryRunWords = (run: RetryRun) =>
+  run.created_at ? `Běh z ${new Date(run.created_at).toLocaleString("cs-CZ", { day: "numeric", month: "numeric", hour: "2-digit", minute: "2-digit" })}` : "Poslední běh s AI analýzou";
+
 /** A person's message; a typed start (LO5) is followed by its card, theirs to approve, and then by
  *  the job or run it started. */
 function PersonTurn({ t, canEdit, onRequest, studyId, cards, onOpenJob, job, run }: {
   t: LeadTurn; canEdit: boolean; onRequest: (turn: LeadTurn, r: LeadRequest) => Promise<void>; studyId: string;
   cards?: LeadCardsContext; onOpenJob?: (job: ResearchAgentJob) => void; job: ResearchAgentJob | null; run: ResearchRun | null;
 }) {
-  const typed = t.command ? commandRequest(t) : null;
+  const facts = useContext(TypedCardFacts);
+  const command = t.command ? commandRequest(t) : null;
+  // A typed analysis retry is approved on the run its card names, never on a newer one unasked.
+  const typed = command?.kind === "analysis_retry" ? { ...command, run_id: facts.retryRun?.run_id } : command;
   return (
     <>
       <div className="msg msg--user" data-msg={t.turn_id}>
@@ -390,7 +420,10 @@ function Prose({ text }: { text: string }) {
   })}</>;
 }
 
-const VIEW_LABEL = (v: LeadView) => (v.op === "open_stage" ? `Otevřít ${isWorkbenchStage(v.stage) ? STAGES[v.stage].label : v.stage}` : `Ukázat: ${targetLabel(v.target)}`);
+/** The working copy a view chip's target is named from (F18). */
+const ViewWords = createContext<TargetWords | null>(null);
+
+const VIEW_LABEL = (v: LeadView, design: TargetWords | null) => (v.op === "open_stage" ? `Otevřít ${isWorkbenchStage(v.stage) ? STAGES[v.stage].label : v.stage}` : `${v.op === "inspect" ? "Detail" : "Ukázat"}: ${targetLabel(v.target, design)}`);
 
 function LeadTurnView({ t, name, last, busy, onFollow, onView, onRequest, onSelfUpdate, canEdit, job, onOpenJob, studyId, cards, run }: {
   t: LeadTurn; name: string; last: boolean; busy: boolean; canEdit: boolean; job: ResearchAgentJob | null; onOpenJob?: (job: ResearchAgentJob) => void;
@@ -398,6 +431,7 @@ function LeadTurnView({ t, name, last, busy, onFollow, onView, onRequest, onSelf
   onFollow: (t: string) => void; onView: (ops: LeadView[]) => void; onRequest: (turn: LeadTurn, r: LeadRequest) => Promise<void>;
   onSelfUpdate: (turn: LeadTurn, decision: "accept" | "dismiss") => Promise<SelfUpdateDecision | null>;
 }) {
+  const design = useContext(ViewWords);
   if (t.status === "QUEUED" || t.status === "RUNNING") {
     return (
       <div className="msg"><div className="lead"><div className="lead__av"><Mark size={14} onDark /></div>
@@ -420,7 +454,7 @@ function LeadTurnView({ t, name, last, busy, onFollow, onView, onRequest, onSelf
           {edits.length ? (
             <div className="links"><button type="button" className="linkchip" onClick={() => onView([{ op: "open_stage", stage: t.stage && isWorkbenchStage(t.stage) ? t.stage : "brief" }])}><Icon name="pencil" size={12} />{edits.length === 1 ? "1 návrh změny v artefaktu" : `${edits.length} návrhů změn v artefaktu`}</button></div>
           ) : null}
-          {o.view?.length ? <div className="links">{o.view.map((v, i) => <button key={i} type="button" className="linkchip" onClick={() => onView([v])}><Icon name="open" size={12} />{VIEW_LABEL(v)}</button>)}</div> : null}
+          {o.view?.length ? <div className="links">{o.view.map((v, i) => <button key={i} type="button" className="linkchip" onClick={() => onView([v])}><Icon name="open" size={12} />{VIEW_LABEL(v, design)}</button>)}</div> : null}
           <SelfUpdate t={t} o={o} canEdit={canEdit} onDecide={(d) => onSelfUpdate(t, d)} />
           {o.dropped?.length ? droppedLines(o.dropped).map((line) => <div key={line} className="cap">{line}</div>) : null}
         </div>
@@ -493,6 +527,7 @@ function SelfUpdate({ t, o, canEdit, onDecide }: { t: LeadTurn; o: LeadOutput; c
 const REQUEST_WORDS: Record<LeadRequest["kind"], { title: string; action: string }> = {
   agent_job: { title: "Návrhová úloha AI", action: "Spustit úlohu" },
   research_run: { title: "Spuštění výzkumu", action: "Otevřít Kontrolu a spuštění" },
+  analysis_retry: { title: "Opakování analýzy", action: "Zopakovat analýzu" },
   design_research: { title: "Hloubkový výzkum k návrhu", action: "Otevřít hloubkový výzkum" },
   interpretation_research: { title: "Hloubkový výzkum k výkladu", action: "Otevřít výklad výsledků" },
 };
@@ -502,6 +537,7 @@ const REQUEST_WORDS: Record<LeadRequest["kind"], { title: string; action: string
 const TYPED_RUN_WORDS = { title: "Spuštění výzkumu", action: "Spustit výzkum" };
 
 function RequestCard({ r, approved, onApprove, canEdit, typed = false }: { r: LeadRequest; approved: { run_id: string; reused?: boolean } | null; onApprove: () => Promise<void>; canEdit: boolean; typed?: boolean }) {
+  const { walletOn, retryRun } = useContext(TypedCardFacts);
   const [state, setState] = useState<"open" | "busy" | "done" | "kept">(approved ? "done" : "open");
   const w = typed && r.kind === "research_run" ? TYPED_RUN_WORDS : REQUEST_WORDS[r.kind];
   const paid = r.kind === "agent_job" || typed;
@@ -519,9 +555,14 @@ function RequestCard({ r, approved, onApprove, canEdit, typed = false }: { r: Le
           <div className="card__titlerow"><p className="dec__title">{w.title}</p><Pill word={pill.word} tone={pill.tone} /></div>
           {decided && r.why === TYPED_UNDECIDED_WHY ? null : <p className="dec__reason">{r.why}</p>}
           <Facts facts={reused
-            ? [{ label: "Výsledek", value: r.kind === "research_run" ? "Tento návrh už běží nebo doběhl" : "Tato úloha pro tento návrh už proběhla", sub: "Nic nového se nespustilo ani nezaplatilo; její karta je výše v konverzaci." }]
+            ? [{ label: "Výsledek", value: r.kind === "research_run" ? "Tento návrh už běží nebo doběhl" : r.kind === "analysis_retry" ? "Analýza tohoto běhu se už opakuje" : "Tato úloha pro tento návrh už proběhla", sub: "Nic nového se nespustilo ani nezaplatilo; její karta je výše v konverzaci." }]
+            : r.kind === "analysis_retry"
+            // The stage's own retry (decision (b), 2026-10-22): no wallet charge, said in words.
+            ? [{ label: "Co se stane", value: "Znovu se zeptá jen modulů analýzy, které v posledním běhu selhaly", sub: "Nad daty, která běh už sebral; nová data se nesbírají. Práh potvrzení se kontroluje jako na Výsledcích." },
+              ...(decided ? [] : [{ label: "Který běh", value: retryRun ? retryRunWords(retryRun) : "Studie zatím nemá běh s AI analýzou" }]),
+              { label: "Platba", value: "z rozpočtu studie", ...(walletOn ? { sub: "Opakování analýzy se nestrhává z Peněženky." } : {}) }]
             : typed && r.kind === "research_run"
-            ? [{ label: "Co se stane", value: "Spustí se výzkum s výchozím nastavením", sub: "Připravenost, práh potvrzení a peněženka se kontrolují jako na Spuštění." }]
+            ? [{ label: "Co se stane", value: "Spustí se výzkum s výchozím nastavením", sub: walletOn ? "Připravenost, práh potvrzení a Peněženka se kontrolují jako na Spuštění." : "Připravenost a práh potvrzení se kontrolují jako na Spuštění." }]
             : paid
             ? [{ label: "Úloha", value: ACTION_LABELS[(r as { action: string }).action as keyof typeof ACTION_LABELS] ?? (r as { action: string }).action }, { label: "Platba", value: "z rozpočtu studie", ...(decided ? {} : { sub: TYPED_UNDECIDED_WHY }) }]
             : [{ label: "Co se stane", value: "Otevře se krok, kde spuštění potvrdíte", sub: "Se všemi jeho kontrolami: připravenost, zodpověditelnost, limit útraty." }]} />

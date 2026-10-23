@@ -1,0 +1,21 @@
+ONLYOFFICE Docs Community Edition on the develop host
+
+Program:  ONLYOFFICE Docs (Document Server), Community Edition, version 9.4.0.1
+Image:    onlyoffice/documentserver:9.4.0.1
+          @sha256:3ab6ebc7c605e5a32b7ae3ff19daed4925090245acc8100ce2230bd766c88212
+          (as published by Ascensio System SIA on Docker Hub; not rebuilt, patched or
+          layered on)
+Licence:  GNU Affero General Public License, version 3, with the additional terms
+          under its section 7 that Ascensio System SIA publishes with the program
+Source:   https://github.com/ONLYOFFICE/DocumentServer (tag v9.4.0.1) and the
+          repositories it names; the image's own build at
+          https://github.com/ONLYOFFICE/Docker-DocumentServer
+
+AIA runs the program unmodified. It is configured only through the environment
+variables upstream documents (docker-compose.yml beside this file), and nothing
+in this repository changes, replaces or adds to its code. Its logo and notices
+stay as published (section 7 additional terms).
+
+If the image is ever patched or extended, this notice must instead offer the
+modified program's complete corresponding source to everyone who uses it over
+the network (AGPL v3, section 13), before that image is deployed.

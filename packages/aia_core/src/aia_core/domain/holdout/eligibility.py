@@ -28,7 +28,7 @@ from __future__ import annotations
 import math
 from collections.abc import Sequence
 from dataclasses import dataclass
-from typing import Final, Protocol
+from typing import Final, Protocol, TypeGuard
 
 from ..evidence.joint_status import CORE_BLOCKS
 from ..panel_persona import FACT_COLUMNS
@@ -96,8 +96,9 @@ class ItemAssessment:
         return not self.reasons
 
 
-def _missing(cell: Cell) -> bool:
-    return cell is None or cell.strip() in _NA_TOKENS
+def _present(cell: Cell) -> TypeGuard[str]:
+    """A cell that holds an answer: present and not a not-answered token."""
+    return cell is not None and cell.strip() not in _NA_TOKENS
 
 
 def donor_field(population: HoldoutPopulation, field: str) -> str | None:
@@ -110,10 +111,10 @@ def donor_field(population: HoldoutPopulation, field: str) -> str | None:
 
 
 def _age(cell: Cell) -> float | None:
-    if _missing(cell):
+    if not _present(cell):
         return None
     try:
-        age = float(cell)  # type: ignore[arg-type]
+        age = float(cell)
     except ValueError:
         return None
     return age if math.isfinite(age) else None
@@ -156,8 +157,14 @@ def assess_item(population: HoldoutPopulation, item: HoldoutItem) -> ItemAssessm
     weights = population.analysis_weight
     rows = scored_rows(population, item)
     codes = frozenset(item.codes)
-    answered = [i for i in rows if not _missing(cells[i])]
-    if any(cells[i].strip() not in codes for i in answered):  # type: ignore[union-attr]
+    answered: list[int] = []
+    off_option = False
+    for i in rows:
+        cell = cells[i]
+        if _present(cell):
+            answered.append(i)
+            off_option = off_option or cell.strip() not in codes
+    if off_option:
         reasons.append("value_not_an_option")
 
     asked_weight = math.fsum(weights[i] for i in rows)
@@ -175,7 +182,7 @@ def assess_item(population: HoldoutPopulation, item: HoldoutItem) -> ItemAssessm
         unknown = False
         for i in answered:
             donor = donor_cells[i]
-            if donor is None or _missing(donor):
+            if not _present(donor):
                 unknown = True
                 break
             per_donor[donor] = per_donor.get(donor, 0.0) + weights[i]

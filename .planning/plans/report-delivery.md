@@ -77,6 +77,11 @@ ledger shape; the with-literature variant's status does not carry it (retired by
 **RD3. The Approve and Export panel: what is approved and by whom; exports after approval; the slot in the Report artifact**  
 S1 hosts the slot (`research-lead-workbench` 21), same wave. Tests: approvals name the exact artifact fingerprint; a stale-version download is refused; both self-approval settings; an unauthorised download is refused. Today drafts download freely and approval follows the download (`research.py:2395-2449`); the panel makes the client export follow approval. Interfaces I12.
 
+*Q73 (c), the owner, 2026-10-22:* downloads stay free before approval; a draft's files say KONCEPT until their
+version is approved. "Exports after approval" is not built (`artifact-report#RPT3b`, closed as decided), and line
+28's "DOCX and PDF become available only after approval" is superseded for downloads. Approval moves to the
+document being read, in Zpráva's doc bar (`artifact-report#RPT3a`).
+
 *RD3, G66 (`feature/report-export-panel`):* `POST …/report/approve` answers `report_kind` (`internal`,
 `with_review` or `client`, `application/report_approval.py` `REPORT_KINDS`), and `internal_only` is false for the
 client report, which said `true` before. Test: `test_the_approved_client_report_downloads_stamped_and_is_read_once`
@@ -115,6 +120,20 @@ Each assumption of `assumptions-and-open-answer-coding#AOC1` with its status, th
 
 **RD10. The report's open-answer coding chapter (W3)**  
 The codebook version, each code's count as an admitted claim with its suppression stated, and the method's limits (`AOC4`); modelled answers are labelled modelled. Raw answer text is not printed as evidence. Test: a count not in the claim ledger cannot be composed.
+
+## Q69 (a): the Lead's study notes stay out of the draft report (the owner, 2026-10-22)
+
+"Even though it's a draft it should be as client ready as possible." No path that composes, stores,
+renders or approves a report reads the Lead's turns, its files or its notes: their tables
+(`study_lead_turns`, `researcher_leads`, `researcher_lead_revisions`, `researcher_lead_memories`), their
+repositories, or the Lead's turn artifact (`research_lead_turn`, stored on the design project by
+`apps/executors/src/aia_executors/research_lead.py:318-345 @ 05e475b5`, which every report module could list).
+Checked 2026-10-22 @ 05e475b5: none did. Held by the import contract "no report path reads the Lead's notes (Q69)"
+(root `pyproject.toml`, `make layer_check`) and by
+`test_report_reads_no_lead_notes.py::test_the_import_contract_covers_every_report_module` and
+`::test_no_report_module_names_the_leads_notes`; each was shown to fail on a planted read or a dropped module.
+The API router is not a source (it serves the Lead's routes too and composes no report). The Lead may still
+propose edits to the draft (Q56, `artifact-report#RPT9`); its notes never become the draft's text.
 
 ## Open: owner clarifications
 

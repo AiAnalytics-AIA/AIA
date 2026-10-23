@@ -2,8 +2,6 @@
 // swatches and a menu are one Tab stop, and the arrows move inside it (roving tabindex). Pure:
 // which index the key moves to, skipping the disabled ones, wrapping at the ends.
 
-export type RovingKey = "ArrowRight" | "ArrowDown" | "ArrowLeft" | "ArrowUp" | "Home" | "End";
-
 const FORWARD = new Set(["ArrowRight", "ArrowDown"]);
 const BACK = new Set(["ArrowLeft", "ArrowUp"]);
 

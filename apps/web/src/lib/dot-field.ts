@@ -148,10 +148,10 @@ export const FILM_H = 1080;
  * A's points (BOLD, the apex first) r 34.5, the rest r 13.5.
  * tools/film_frame0.py checks a film against this before it ships.
  */
-export const LATTICE = [8, 14, 20, 26, 32] as const;
-export const LATTICE_PITCH = 15;
-export const BOLD_R = 34.5;
-export const FAINT_R = 13.5;
+const LATTICE = [8, 14, 20, 26, 32] as const;
+const LATTICE_PITCH = 15;
+const BOLD_R = 34.5;
+const FAINT_R = 13.5;
 export const BOLD: readonly (readonly [number, number])[] = [[20, 8], [14, 14], [26, 14], [14, 20], [20, 20], [26, 20], [8, 26], [32, 26], [8, 32], [32, 32]];
 
 export type Target = { x: number; y: number; r: number; a: number; apex: boolean; row: number; col: number };
@@ -207,12 +207,12 @@ export function assignMark(dots: Dot[], starts: Point[]): Int16Array {
   return assign;
 }
 
-export const clamp01 = (x: number) => Math.max(0, Math.min(1, x));
+const clamp01 = (x: number) => Math.max(0, Math.min(1, x));
 /** Progress of h through [a, b], clamped to 0..1. */
-export const seg = (h: number, a: number, b: number) => clamp01((h - a) / (b - a));
-export const easeInOut = (x: number) => (x < 0.5 ? 4 * x * x * x : 1 - Math.pow(-2 * x + 2, 3) / 2);
-export const easeOut = (x: number) => 1 - Math.pow(1 - x, 3);
-export const lerp = (a: number, b: number, p: number) => a + (b - a) * p;
+const seg = (h: number, a: number, b: number) => clamp01((h - a) / (b - a));
+const easeInOut = (x: number) => (x < 0.5 ? 4 * x * x * x : 1 - Math.pow(-2 * x + 2, 3) / 2);
+const easeOut = (x: number) => 1 - Math.pow(1 - x, 3);
+const lerp = (a: number, b: number, p: number) => a + (b - a) * p;
 
 /** A dot as drawn: where, how big, how opaque, and how far its colour has gone from ink to the apex colour. */
 export type Drawn = { x: number; y: number; r: number; a: number; apex: number };

@@ -19,10 +19,13 @@
 // filters is the run's pin, and readiness says it ("audience").
 
 import { useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useContext, useEffect, useState } from "react";
 
+import { ChoiceChips } from "@/components/ui/ChoiceChips";
+import { Stepper } from "@/components/ui/Stepper";
 import { ApiError, type AudienceCatalogue, population } from "@/lib/api";
 import { audienceFilterAia, audiencePartAia, audienceSubpanelAia } from "@/lib/artifacts/audience";
+import { rangeWords } from "@/lib/number-input";
 import { isNativeResult } from "@/lib/research-agent-jobs";
 import { t, tv } from "@/i18n/t";
 import {
@@ -41,37 +44,49 @@ import {
   applyProposal,
   audienceReady,
   audienceView,
+  boundOf,
+  endUnreadable,
   chooseAudience,
   discoverText,
   factorRefusal,
   filterCategories,
   filterChips,
+  filterProblems,
   filterableFactors,
   humanFilters,
   humanSummary,
   liveCatalog,
   liveSubpanels,
+  matchingSubpanels,
   liveVerdict,
   proposePayload,
   proposeText,
-  rangeOf,
+  rangeBounds,
   removeAudienceFactor,
   searchKey,
-  selectedValues,
   setAnalyticsChoice,
   setAudienceCategory,
   setAudienceEntry,
   setDiscoverField,
   setRange,
+  storedRange,
+  storedValues,
+  CATALOGUE_TOP_VALUES,
+  VALUE_CHIPS_MAX,
+  matchingValues,
+  pickValues,
 } from "@/research/audience";
-import type { ResearchProject } from "@/research/model";
+import type { Json, ResearchProject } from "@/research/model";
 import { Icon } from "../icons";
-import { ActionDock, RadioCard, StepSection } from "../step";
+import { ActionDock, FrameNavigation, RadioCard, StepSection } from "../step";
 import { AiButton, Button, Chip, Field, Tag, TextArea, TextInput } from "../ui";
 import { useResearch } from "./context";
 import { InspectorSlot } from "./Inspector";
 import { AskLead, useLeadOwnsAiStarts } from "./AskLead";
 import { AiFailureCard, useAiStep } from "./useAiStep";
+
+/** A filter refused whole, in words (filterProblems' reasons other than `values`). */
+const PROBLEM_WORDS = { factor: "research.audience.problemFactor", policy: "research.audience.problemPolicy", empty: "research.audience.problemEmpty", range: "research.audience.problemRange" } as const;
 
 const NOT_IN_AIA = "rounded-control border border-status-you-ink/40 bg-status-you-wash p-4";
 const EYEBROW = "font-mono text-[11px] uppercase tracking-[0.08em] text-ink-faint";
@@ -118,6 +133,8 @@ function useLiveAudience(): Live {
 export function AudienceStep() {
   const { store, state, stepHref } = useResearch();
   const router = useRouter();
+  // Inside the workbench the frame opens the next stage (its leave guard, its heading's focus); outside it, the route.
+  const frameNav = useContext(FrameNavigation);
   const p = state.project;
   const view = audienceView(p);
   const ready = audienceReady(p);
@@ -233,7 +250,7 @@ export function AudienceStep() {
           ready={ready}
           note={ready ? (isLive ? t("research.audience.liveCheck") : t("research.audience.checkNotInAia")) : t("research.audience.nextHint")}
         >
-          <Button variant="primary" className="!rounded-control" disabled={!ready} onClick={() => router.push(stepHref("persona"))}>
+          <Button variant="primary" className="!rounded-control" disabled={!ready} onClick={() => (frameNav?.next ? frameNav.next.go() : router.push(stepHref("persona")))}>
             {t("research.audience.next")}
             <Icon name="next" size={14} />
           </Button>
@@ -270,6 +287,10 @@ function FilterEditor({ live }: { live: Live }) {
   const leadOwnsAiStarts = useLeadOwnsAiStarts();
   const [text, setText] = useState(String(state.project.audience.description || ""));
   const chips = filterChips(state.project, live.state === "ready" ? live.catalog : null);
+  // What the population cannot honour as stored, said now rather than at the preview or the run.
+  const version = live.state === "ready" ? live.api.version_label : null;
+  const problems = live.state === "ready" ? filterProblems(state.project, live.catalog) : [];
+  const problemOf = new Map(problems.map((x) => [x.id, x]));
   const change = (c: Change) => store.update(() => ({ project: c.project }), { reason: c.reason, invalidateCheck: c.invalidateCheck });
 
   // proposeAudience: the job; the model proposes a description, never filters (research_agents).
@@ -313,20 +334,38 @@ function FilterEditor({ live }: { live: Live }) {
           <>
             <p className="mt-3 text-xs text-ink-muted">{live.state === "ready" ? t("research.audience.selectedFilters") : t("research.audience.storedFilters")}</p>
             <ul className="mt-1 flex flex-wrap gap-1.5">
-              {chips.map((c) => (
-                <li key={c.id} data-aia={audienceFilterAia(c.id) ?? undefined} className="inline-flex items-center gap-1 rounded-sm border border-signal-edge bg-signal-wash py-0.5 pl-2 pr-0.5 text-xs">
+              {chips.map((c) => {
+                const problem = problemOf.get(c.id);
+                return (
+                <li key={c.id} data-aia={audienceFilterAia(c.id) ?? undefined} data-filter-problem={problem ? true : undefined} className={`inline-flex items-center gap-1 rounded-sm border pl-2 text-xs ${problem ? "border-status-you-ink/40 bg-status-you-wash" : "border-signal-edge bg-signal-wash"}`}>
                   <b>{c.label}</b>: {c.text}
+                  {problem ? <span className="font-medium text-status-you-ink"> · {t(problem.reason === "values" && !problem.noneKnown ? "research.audience.problemChipPartial" : "research.audience.problemChip")}</span> : null}
                   <button
                     type="button"
                     aria-label={tv("research.audience.removeFilter", { label: c.label })}
                     onClick={() => change(removeAudienceFactor(store.get().project, c.id))}
-                    className="rounded-sm px-1 text-ink-muted hover:text-ink focus-visible:outline-2 focus-visible:outline-focus-ring"
+                    className="inline-flex size-6 shrink-0 items-center justify-center rounded-sm text-ink-muted hover:text-ink focus-visible:outline-2 focus-visible:outline-focus-ring"
                   >
                     ×
                   </button>
                 </li>
-              ))}
+                );
+              })}
             </ul>
+            {problems.length ? (
+              <div role="note" data-filter-problems className="mt-2 rounded-control border border-status-you-ink/40 bg-status-you-wash p-3 text-xs leading-5">
+                <p className="font-medium">{tv("research.audience.problemTitle", { version: String(version) })}</p>
+                <ul className="mt-1 list-disc pl-5">
+                  {problems.map((x) => (
+                    <li key={x.id}>
+                      {x.reason === "values"
+                        ? tv(x.noneKnown ? "research.audience.problemValuesAll" : "research.audience.problemValues", { label: x.label, values: x.unknownValues.join(", ") })
+                        : tv(PROBLEM_WORDS[x.reason], { label: x.label })}
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            ) : null}
           </>
         ) : null}
       </section>
@@ -349,18 +388,18 @@ function LiveFilters({ live }: { live: Extract<Live, { state: "ready" }> }) {
       <p className="mt-1 text-xs text-ink-muted">
         {tv("research.audience.liveFiltersIntro", { version: live.api.version_label })} {t("research.audience.liveLogic")}
       </p>
-      <div role="group" aria-label={t("research.audience.filterTitle")} className="mt-3 flex flex-wrap gap-1.5">
-        {[{ id: "all", label: t("research.audience.categoryAll") }, ...categories].map((c) => (
-          <Button key={c.id} small variant={category === c.id ? "primary" : "secondary"} aria-pressed={category === c.id} onClick={() => setCategory(c.id)}>
-            {c.label || c.id}
-          </Button>
-        ))}
-      </div>
+      <ChoiceChips
+        className="mt-3"
+        label={t("research.audience.categoryLabel")}
+        options={[{ key: "all", label: t("research.audience.categoryAll") }, ...categories.map((c) => ({ key: c.id, label: c.label || c.id }))]}
+        value={category}
+        onChange={setCategory}
+      />
       {sensitive ? <p className="mt-2 text-xs text-ink-muted">{tv("research.audience.sensitiveCount", { n: sensitive })}</p> : null}
       <Field label={t("research.audience.searchFactors")} className="mt-3">
         <TextInput value={query} onChange={(e) => setQuery(e.target.value)} />
       </Field>
-      <p className="mt-2 text-xs text-ink-muted">{tv("research.audience.factorsShown", { shown: shown.length, total })}</p>
+      <p aria-live="polite" className="mt-2 text-xs text-ink-muted">{tv("research.audience.factorsShown", { shown: shown.length, total })}</p>
       <ul className="mt-2 flex flex-col gap-2">
         {shown.map((f) => (
           <li key={f.id}>
@@ -373,52 +412,129 @@ function LiveFilters({ live }: { live: Extract<Live, { state: "ready" }> }) {
   );
 }
 
+/**
+ * A numeric factor's range (input-interactions I2, audit B6): two steppers bounded by the
+ * population's own range, each also bounded by the other end, so a crossed range is refused at the
+ * field rather than swapped as the population would. An unset end is "Bez omezení", said, and an end
+ * is unset by its own button: the population's end then stands for it (setRange leaves it out).
+ * Nothing typed is clamped. A stored end the stepper cannot show is said, never shown as no end.
+ */
+function RangeEditor({ factor, legend, lo, hi, disabled, onSave }: { factor: Factor; legend: string; lo: Json; hi: Json; disabled: boolean; onSave: (min: number | null, max: number | null) => void }) {
+  const bounds = rangeBounds(factor);
+  if (!bounds) return <p className="text-xs text-ink-muted">{t("research.audience.rangeUnknown")}</p>;
+  const low = boundOf(lo);
+  const high = boundOf(hi);
+  const within = (v: number) => Math.min(Math.max(v, bounds.min), bounds.max);
+  const side = (end: "min" | "max") => {
+    const value = end === "min" ? low : high;
+    const unreadable = endUnreadable(end === "min" ? lo : hi);
+    const label = tv(end === "min" ? "research.audience.rangeFromOf" : "research.audience.rangeToOf", { factor: legend });
+    const save = (v: number | null) => (end === "min" ? onSave(v, high) : onSave(low, v));
+    return (
+      <div className="flex flex-col gap-1">
+        <span aria-hidden className="text-xs text-ink-muted">{t(end === "min" ? "research.audience.rangeMin" : "research.audience.rangeMax")}</span>
+        <Stepper
+          // Either end moving moves this field's bounds: it starts afresh, so a draft refused against
+          // the old bounds never outlives them.
+          key={`${String(low)}-${String(high)}`}
+          value={value}
+          label={label}
+          min={end === "min" ? bounds.min : within(low ?? bounds.min)}
+          max={end === "min" ? within(high ?? bounds.max) : bounds.max}
+          decimals={bounds.decimals}
+          showBounds={false}
+          disabled={disabled}
+          onCommit={save}
+          note={value === null ? <span className="text-xs text-ink-muted">{t(unreadable ? "research.audience.rangeUnreadable" : "research.audience.rangeOpen")}</span> : undefined}
+        />
+        {/* Beside the field, not its note: a refused value replaces the note, and clearing the end
+            is a way out of it. */}
+        {value === null ? null : (
+          <button type="button" disabled={disabled} aria-label={tv("research.audience.rangeClear", { label })} onClick={() => save(null)} className="min-h-6 self-start rounded-sm text-xs text-ink-muted underline hover:text-ink focus-visible:outline-2 focus-visible:outline-focus-ring">
+            {t("research.audience.rangeOpen")}
+          </button>
+        )}
+      </div>
+    );
+  };
+  return (
+    <>
+      <div className="flex flex-wrap items-start gap-4">
+        {side("min")}
+        {side("max")}
+      </div>
+      <p className="mt-1 text-xs text-ink-muted">
+        {tv("research.audience.rangeHint", { range: rangeWords(bounds) })}
+        {low !== null && high !== null ? ` ${t("research.audience.rangeOrder")}` : ""}
+      </p>
+    </>
+  );
+}
+
 /** One factor: a range for a numeric one, its values (with counts) for any other. */
 function FactorEditor({ factor, project, onChange }: { factor: Factor; project: ResearchProject; onChange: (c: Change) => void }) {
   const refusal = factorRefusal(factor);
   const legend = `${factor.label || factor.id}`;
   if (factor.kind === "numeric") {
-    const { lo, hi } = rangeOf(project, factor.id);
-    const commit = (min: string, max: string) => onChange(setRange(project, factor.id, min, max));
+    const { lo, hi } = storedRange(project, factor.id);
     return (
       <fieldset className="rounded-control border border-border p-3" disabled={!!refusal}>
         <legend className="px-1 text-sm font-medium">{legend}</legend>
         {refusal ? <p className="text-xs text-ink-muted">{refusal}</p> : null}
-        <div className="flex flex-wrap items-end gap-2">
-          <Field label={t("research.audience.rangeMin")}>
-            <TextInput key={`lo-${String(lo)}`} type="number" disabled={!!refusal} className="w-28" defaultValue={lo == null ? "" : String(lo)} onBlur={(e) => commit(e.target.value, hi == null ? "" : String(hi))} />
-          </Field>
-          <Field label={t("research.audience.rangeMax")}>
-            <TextInput key={`hi-${String(hi)}`} type="number" disabled={!!refusal} className="w-28" defaultValue={hi == null ? "" : String(hi)} onBlur={(e) => commit(lo == null ? "" : String(lo), e.target.value)} />
-          </Field>
-        </div>
-        {factor.min != null && factor.max != null ? (
-          <p className="mt-1 text-xs text-ink-muted">{tv("research.audience.rangeHint", { min: factor.min, max: factor.max })}</p>
-        ) : null}
+        <RangeEditor factor={factor} legend={legend} lo={lo} hi={hi} disabled={!!refusal} onSave={(min, max) => onChange(setRange(project, factor.id, min, max))} />
       </fieldset>
     );
   }
-  const chosen = selectedValues(project, factor.id);
-  const toggle = (value: string, on: boolean) => {
-    const next = new Set(chosen);
-    if (on) next.add(value);
-    else next.delete(value);
-    onChange(setAudienceCategory(project, factor.id, [...next]));
-  };
+  const chosen = storedValues(project, factor.id);
   return (
     <fieldset className="rounded-control border border-border p-3" disabled={!!refusal}>
       <legend className="px-1 text-sm font-medium">{legend}</legend>
       {refusal ? <p className="text-xs text-ink-muted">{refusal}</p> : null}
-      <div className="flex flex-wrap gap-x-4 gap-y-1">
-        {(factor.values || []).map((v) => (
-          <label key={v.value} className="inline-flex items-center gap-1.5 text-sm">
-            <input type="checkbox" disabled={!!refusal} checked={chosen.has(v.value)} onChange={(e) => toggle(v.value, e.target.checked)} />
-            {v.value}
-            {v.count != null ? <span className="text-xs text-ink-muted">({tv("research.audience.valueCount", { count: v.count.toLocaleString("cs-CZ") })})</span> : null}
-          </label>
-        ))}
-      </div>
+      <ValueChips legend={legend} values={factor.values || []} chosen={chosen} disabled={!!refusal} onPick={(next) => onChange(setAudienceCategory(project, factor.id, next))} />
     </fieldset>
+  );
+}
+
+/**
+ * A categorical factor's values as toggle chips, each with how many people hold it (input-interactions
+ * I3, audit B7); past VALUE_CHIPS_MAX, under a filter field. A stored value not on screen is kept.
+ */
+function ValueChips({ legend, values, chosen, disabled, onPick }: { legend: string; values: { value: string; count?: number }[]; chosen: Json[]; disabled: boolean; onPick: (values: Json[]) => void }) {
+  const [query, setQuery] = useState("");
+  const long = values.length > VALUE_CHIPS_MAX;
+  const shown = long ? matchingValues(values, query) : values;
+  const listed = shown.map((v) => v.value);
+  return (
+    <>
+      {long ? (
+        <>
+          <Field label={tv("research.audience.searchValues", { factor: legend })}>
+            <TextInput value={query} disabled={disabled} onChange={(e) => setQuery(e.target.value)} />
+          </Field>
+          <p className="mt-1 text-xs text-ink-muted">
+            {tv("research.audience.valuesShown", { shown: shown.length, total: values.length })}
+            {values.length >= CATALOGUE_TOP_VALUES ? ` ${tv("research.audience.valuesCut", { n: CATALOGUE_TOP_VALUES })}` : ""}
+          </p>
+        </>
+      ) : null}
+      <ChoiceChips
+        multiple
+        className={long ? "mt-2" : undefined}
+        label={tv("research.audience.valuesOf", { factor: legend })}
+        disabled={disabled}
+        options={shown.map((v) => ({
+          key: v.value,
+          label: (
+            <>
+              {v.value}
+              {v.count != null ? <span className="text-xs font-normal text-ink-muted">({tv("research.audience.valueCount", { count: v.count.toLocaleString("cs-CZ") })})</span> : null}
+            </>
+          ),
+        }))}
+        value={listed.filter((v) => chosen.some((c) => String(c) === v))}
+        onChange={(picked) => onPick(pickValues(chosen, listed, picked))}
+      />
+    </>
   );
 }
 
@@ -458,19 +574,33 @@ function Preview({ catalog }: { catalog: Catalog }) {
   );
 }
 
-/** The 18 built-in subpanels: each a filter on one factor, chosen like any audience (usePopulationSubpanel). */
+/**
+ * The 18 built-in subpanels: each a filter on one factor, chosen like any audience
+ * (usePopulationSubpanel), by a click on its card, never by moving through them (a choice rewrites
+ * the audience). A search above them (input-interactions I3, audit B9); the chosen one stays shown
+ * whatever the search, and the count says what matched.
+ */
 function Subpanels({ live }: { live: Extract<Live, { state: "ready" }> }) {
   const { store, state } = useResearch();
+  const [query, setQuery] = useState("");
   const current = String(state.project.audience.builtin_subpanel || "");
   const pick = (key: string) =>
     store.update(({ project }) => ({ project: applyPopulationSubpanel(project, key, live.subpanels) }), { reason: "population_subpanel", invalidateCheck: true });
+  const all = live.api.subpanels;
+  const matched = matchingSubpanels(all, query);
+  const shown = all.filter((sp) => sp.key === current || matched.includes(sp));
   return (
     <div className="mt-3 flex flex-col gap-3">
       <section aria-labelledby="aud-subpanels">
         <h3 id="aud-subpanels" className="text-sm font-semibold">{t("research.audience.subpanelsTitle")}</h3>
         <p className="mt-1 text-xs text-ink-muted">{tv("research.audience.subpanelsIntro", { measured: live.api.subpanels_measured_on })}</p>
+        <Field label={t("research.audience.searchSubpanels")} className="mt-2">
+          <TextInput value={query} onChange={(e) => setQuery(e.target.value)} />
+        </Field>
+        {/* The search's only feedback, so it is announced as the person types. */}
+        <p aria-live="polite" className="mt-1 text-xs text-ink-muted">{tv("research.audience.subpanelsShown", { shown: matched.length, total: all.length })}</p>
         <div role="radiogroup" aria-label={t("research.audience.subpanelsTitle")} className="mt-2 grid gap-2 [grid-template-columns:repeat(auto-fit,minmax(240px,1fr))]">
-          {live.api.subpanels.map((sp) => (
+          {shown.map((sp) => (
             <div key={sp.key} data-aia={audienceSubpanelAia(sp.key) ?? undefined} className="grid">
               <RadioCard checked={current === sp.key} disabled={sp.usable !== true} onSelect={() => current !== sp.key && pick(sp.key)} title={sp.name}>
                 {tv("research.audience.subpanelRows", { rows: sp.measured_by_18_6_6.rows.toLocaleString("cs-CZ"), donors: sp.measured_by_18_6_6.unique_core_donors.toLocaleString("cs-CZ") })}

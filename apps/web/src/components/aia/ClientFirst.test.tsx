@@ -152,6 +152,29 @@ describe("Klienti", () => {
     expect(called("POST", "/api/v1/workspace/clients")[0].body).toEqual({ name: "Nový" });
   });
 
+  it("keeps the new-client dialog open on a blank name and says why, never closing silently", async () => {
+    api();
+    render(<ClientDirectory />);
+    fireEvent.click(await screen.findByRole("button", { name: "Nový klient" }));
+    const dialog = await screen.findByRole("dialog");
+    expect(within(dialog).getByRole("heading", { name: "Nový klient" })).toBeTruthy();
+    fireEvent.change(within(dialog).getByRole("textbox", { name: "Název klienta" }), { target: { value: "   " } });
+    fireEvent.click(within(dialog).getByRole("button", { name: "Založit klienta" }));
+    const alert = await within(dialog).findByRole("alert");
+    expect(alert.textContent).toBe("Pole nesmí zůstat prázdné. Bez něj nic nevznikne.");
+    expect((dialog as HTMLDialogElement).open).toBe(true);
+    expect(screen.getByRole("dialog", { name: "Nový klient" })).toBe(dialog);
+    const field = within(dialog).getByRole("textbox");
+    expect(field.getAttribute("aria-invalid")).toBe("true");
+    expect(field.getAttribute("aria-describedby")).toBe(alert.id);
+    expect(document.activeElement).toBe(field);
+    expect(within(dialog).getByLabelText("Název klienta")).toBe(field);
+    // A second refusal is a new alert, so a screen reader announces it again.
+    fireEvent.click(within(dialog).getByRole("button", { name: "Založit klienta" }));
+    await waitFor(() => expect(within(dialog).getByRole("alert")).not.toBe(alert));
+    expect(called("POST", "/api/v1/workspace/clients")).toHaveLength(0);
+  });
+
   it("offers a new client to a researcher who may not administer (ADR 0019)", async () => {
     api({ "GET /api/v1/workspace/me": () => ({ user_id: "USR-3", email: null, organization_role: "MEMBER", may_administer: false }) });
     render(<ClientDirectory />);
@@ -402,6 +425,9 @@ describe("a client's workspace", () => {
     const first = within(table).getAllByRole("row")[1];
     expect(within(first).getByText("přijato: 2")).toBeTruthy();
     expect(within(first).getByText("čeká: 1")).toBeTruthy();
+    // On a phone the brought column is hidden; what waits for a person stays, under the status.
+    expect(within(first).getByText("ke schválení: 1").className).toContain("sm:hidden");
+    expect(within(within(table).getAllByRole("row")[2]).queryByText(/ke schválení/)).toBeNull();
     expect(within(first).getByRole("link").getAttribute("href")).toBe("/app/clients/CLI-a/research/STU-1/questionnaire");
 
     const filters = screen.getByRole("group", { name: "Stav studií" });
@@ -500,6 +526,22 @@ describe("a client's workspace", () => {
     expect(called("POST", "/api/v1/clients/CLI-a/studies")[0].body).toEqual({ name: "Brand 2027", kind: "RESEARCH" });
   });
 
+  it("keeps the new-study dialog open on a blank name, and names what its button starts", async () => {
+    path = "/app/clients/CLI-a/simulations";
+    api();
+    render(inClient("CLI-a", <StudyList kind="SIMULATION" />));
+    fireEvent.click(await screen.findByRole("button", { name: "Nová simulace" }));
+    const dialog = await screen.findByRole("dialog");
+    expect(within(dialog).getByRole("heading", { name: "Nová simulace" })).toBeTruthy();
+    expect(within(dialog).getByRole("textbox", { name: "Název" }).getAttribute("placeholder")).toBe("Např. Cenové scénáře 2027");
+    fireEvent.click(within(dialog).getByRole("button", { name: "Založit simulaci" }));
+    const alert = await within(dialog).findByRole("alert");
+    expect(alert.textContent).toBe("Pole nesmí zůstat prázdné. Bez něj nic nevznikne.");
+    expect((dialog as HTMLDialogElement).open).toBe(true);
+    expect(within(dialog).getByRole("textbox").getAttribute("aria-describedby")).toBe(alert.id);
+    expect(called("POST", "/api/v1/clients/CLI-a/studies")).toHaveLength(0);
+  });
+
   it("keeps the client's knowledge its own: a study's finding accepted by a person, even the one who offered it", async () => {
     path = "/app/clients/CLI-a/knowledge";
     api();
@@ -545,7 +587,8 @@ describe("a research, re-homed under its client", () => {
     await waitFor(() => expect(called("GET", "/api/v1/studies/STU-1/workspace/content")).toHaveLength(1));
     // Nothing reaches the 18.6.6 unit's project store any more.
     expect(calls.filter((c) => c.url.startsWith("/api/projects"))).toEqual([]);
-    const crumbs = within(screen.getByRole("navigation", { name: "Kde jste" })).getAllByRole("listitem");
+    // The stage's layout mounts once /config says which it is (not the classic one first).
+    const crumbs = within(await screen.findByRole("navigation", { name: "Kde jste" })).getAllByRole("listitem");
     expect(crumbs.map((c) => c.textContent?.replace("/", "").trim())).toEqual(["Klienti", "Klient A", "Výzkumy", "Vnímání značky", "Dotazník"]);
     await waitFor(() => expect(called("PUT", "/api/v1/studies/STU-1/workspace/stage")[0].body).toEqual({ stage: "questionnaire" }));
   });

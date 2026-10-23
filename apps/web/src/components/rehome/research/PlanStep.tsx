@@ -10,10 +10,11 @@
 // it. The inline editors call the same functions the classic prompts did.
 
 import { useRouter } from "next/navigation";
-import { type ReactNode, useEffect, useRef, useState } from "react";
+import { type ReactNode, useContext, useEffect, useRef, useState } from "react";
 
 import { t, tv } from "@/i18n/t";
 import { hashTarget } from "@/lib/answerability";
+import { plural } from "@/lib/format";
 import { openPlace, scrollToPlace } from "@/lib/open-place";
 import {
   type TrackedSet,
@@ -38,40 +39,46 @@ import {
   setTitle,
   toQuestionnaire,
   trackedSets,
+  QUESTION_DEFAULT,
+  SCALE_DEFAULT,
   SET_PURPOSE_DEFAULT,
 } from "@/research/plan";
+import { type SetLimits, setAboveRecommended, setSizeRefused, setWords } from "@/research/questionnaire";
 import type { Analysis } from "@/research/store";
-import { applyPlanSets, lines, proposalAnalysis, validMeasurement } from "@/research/plan-edit";
+import { type SetField, applyPlanSets, objectProblem, proposalAnalysis, setFieldProblem, withObject, withSetField } from "@/research/plan-edit";
 import { DesignCoverage } from "./DesignCoverage";
 import { PlanNarrative } from "./PlanNarrative";
 import { Icon, type IconName } from "../icons";
-import { ActionDock, ChipInput, InlineConfirm, StepSection } from "../step";
-import { AiButton, Button, Field, TextArea, TextInput } from "../ui";
+import { ActionDock, ChipInput, FrameNavigation, InlineConfirm, StepSection } from "../step";
+import { AiButton, Button } from "../ui";
+import { InlineText } from "../../ui/InlineText";
 import { useResearch } from "./context";
 import { SavedForLead, useLeadOwnsAiStarts } from "./AskLead";
 import { AnalysisFailureCard, modeOf, useAnalysis } from "./useAnalysis";
-import { readyLimits, useSampleLimits } from "./useSampleLimits";
+import { readyLimits, readySetLimits, useSampleLimits } from "./useSampleLimits";
 
 const FOCUS = "focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus-ring";
 const INPUT = `min-h-9 w-full rounded-control border border-border-strong bg-surface-raised px-2.5 text-sm text-ink placeholder:text-ink-faint ${FOCUS}`;
 const LABEL = "text-xs font-medium text-ink-muted";
 
-/** A comparable set is measured with 4–15 items (the questionnaire's SET_SIZE). */
-export const SET_MIN = 4;
-export const SET_MAX = 15;
-const outOfRange = (set: TrackedSet) => {
-  const n = (set.objects || []).length;
-  return n < SET_MIN || n > SET_MAX;
-};
+/** A set that stops the plan by the limits in force; above the recommendation it only warns (Q75 (a)). */
+const outOfRange = (set: TrackedSet, l: SetLimits) => setSizeRefused((set.objects || []).length, l);
 
 const jumpTo = (id: string) => scrollToPlace(id, "start");
+/**
+ * Whether a field inside `el` holds a draft refused at the field (I9), which a remount or a way out
+ * would drop. `remount: "items"`: only a chip being reworded, which an item's removal remounts
+ * (a chip of ChipInput's data-chips list; its add field, a sibling of the chips, keeps its draft).
+ */
+const holdsRefused = (el: Element | null, remount?: "items") =>
+  !!el?.querySelector(remount ? '[data-chips] > span [aria-invalid="true"]' : '[aria-invalid="true"]');
 
 /**
  * The follow-up answers, one per question, as the one block of text the classic
  * textarea took: each answered question with its answer. Unanswered ones are left
  * out; the AI resolves them by assumption.
  */
-export function followUpAnswers(questions: string[], answers: string[]): string {
+function followUpAnswers(questions: string[], answers: string[]): string {
   return questions
     .map((q, i) => ((answers[i] || "").trim() ? `${q}\n${(answers[i] || "").trim()}` : ""))
     .filter(Boolean)
@@ -81,7 +88,10 @@ export function followUpAnswers(questions: string[], answers: string[]): string 
 export function PlanStep() {
   const { store, state, toast, stepHref, confirm, frame } = useResearch();
   const sampleLimits = useSampleLimits(frame.studyId);
+  const setLimits = readySetLimits(sampleLimits);
   const router = useRouter();
+  // Inside the workbench the frame opens the next stage (its leave guard, its heading's focus); outside it, the route.
+  const frameNav = useContext(FrameNavigation);
   const { analyse, resume, failure, busy } = useAnalysis();
   const a = proposalAnalysis(state);
   const p = state.project;
@@ -89,23 +99,24 @@ export function PlanStep() {
   const sets = trackedSets(a);
   const questions = followUps(a);
   const comments = planComments(p);
-  const [editingSet, setEditingSet] = useState<string | null>(null);
   const [pendingVariant, setPendingVariant] = useState<string | null>(null);
-  const editing = editingSet !== null;
+  // Every field saves itself, so nothing is unsaved but a draft refused at its field, which stays
+  // there (I9). Leaving the stage would drop it: the person is asked first, on any way out.
+  const root = useRef<HTMLDivElement>(null);
+  const held = () => holdsRefused(root.current);
   useEffect(() => {
-    if (!editing) return;
-    const beforeUnload = (e: BeforeUnloadEvent) => e.preventDefault();
+    const beforeUnload = (e: BeforeUnloadEvent) => { if (held()) e.preventDefault(); };
     const leave = (e: MouseEvent) => {
-      if (e.defaultPrevented || e.button !== 0 || e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return;
+      if (e.defaultPrevented || e.button !== 0 || e.metaKey || e.ctrlKey || e.shiftKey || e.altKey || !held()) return;
       const link = (e.target as Element).closest?.("a[href]") as HTMLAnchorElement | null;
       if (!link || link.target || link.download || link.origin !== location.origin || link.pathname === location.pathname) return;
       e.preventDefault();
-      void confirm(t("research.plan.leaveEdits")).then((discard) => { if (discard) router.push(link.pathname + link.search + link.hash); });
+      void confirm(t("research.plan.setField.leave")).then((discard) => { if (discard) router.push(link.pathname + link.search + link.hash); });
     };
     window.addEventListener("beforeunload", beforeUnload);
     document.addEventListener("click", leave, true);
     return () => { window.removeEventListener("beforeunload", beforeUnload); document.removeEventListener("click", leave, true); };
-  }, [editing, confirm, router]);
+  }, [confirm, router]);
   // A link to a section of the plan (#plan-understanding: the Run stage's gap of a design with no
   // research question, lib/answerability.ts gapFixes) opens it, once the plan is drawn.
   const drawn = !!a;
@@ -130,19 +141,19 @@ export function PlanStep() {
   const seq = useRef(0);
   const answered = questions.filter((_, i) => (answers[i] || "").trim()).length;
 
-  const next = () => {
-    if (editing) { toast(t("research.plan.pendingEdits")); return; }
+  const next = async () => {
+    if (held() && !(await confirm(t("research.plan.setField.leave")))) return;
     store.update(({ project }) => ({ project: toQuestionnaire(project) }), { reason: "questionnaire_path", invalidateCheck: false });
-    router.push(stepHref("questionnaire"));
+    if (frameNav?.next) frameNav.next.go(); else router.push(stepHref("questionnaire"));
   };
-  const short = sets.find(outOfRange);
+  const short = sets.find((s) => outOfRange(s, setLimits));
   const dock = (
     <ActionDock
       back={{ href: stepHref("brief"), label: `1. ${t("aia.stages.brief")}` }}
-      ready={!short && !editing}
+      ready={!short}
       note={
-        editing ? t("research.plan.pendingEdits") : short
-          ? tv("research.plan.dockSetSize", { name: setTitle(short) || t("research.plan.untitledSet"), n: (short.objects || []).length })
+        short
+          ? tv("research.plan.dockSetSize", { name: setTitle(short) || t("research.plan.untitledSet"), count: plural((short.objects || []).length, "položku", "položky", "položek"), ...setWords(setLimits) })
           : comments.length
             ? tv("research.plan.dockComments", { n: comments.length })
             : a
@@ -150,7 +161,7 @@ export function PlanStep() {
               : null
       }
     >
-      <Button variant="primary" className="!rounded-control" disabled={editing} onClick={next}>
+      <Button variant="primary" className="!rounded-control" onClick={() => void next()}>
         {t("research.plan.next")}
         <Icon name="next" size={14} />
       </Button>
@@ -172,7 +183,6 @@ export function PlanStep() {
   };
   const variantSection = variants.length ? <>
     <Variants variants={variants} current={selectedVariant(p)} onApply={(id) => {
-      if (editing) { toast(t("research.plan.pendingEdits")); return; }
       if (p.ui_state.plan_manual_changed) setPendingVariant(id); else chooseVariant(id);
     }} />
     {pendingVariant ? <InlineConfirm message={t("research.plan.variantReplace")} action={t("research.plan.variantConfirm")} onConfirm={() => chooseVariant(pendingVariant)} onCancel={() => setPendingVariant(null)} /> : null}
@@ -190,7 +200,6 @@ export function PlanStep() {
             <Button icon="back" className="!rounded-control" onClick={() => router.push(stepHref("brief"))}>
               {t("research.plan.openBrief")}
             </Button>
-            <Button variant="quiet" className="!rounded-control" onClick={next}>{t("research.plan.skipToQuestionnaire")}</Button>
           </div>
         </section>
         {dock}
@@ -211,7 +220,7 @@ export function PlanStep() {
   let n = variants.length ? 1 : 0;
 
   return (
-    <div className="flex max-w-6xl flex-col gap-4">
+    <div ref={root} className="flex max-w-6xl flex-col gap-4">
       <header className="rounded-card border border-signal-edge bg-signal-wash p-4 sm:p-5">
         <h2 className="text-xl font-semibold">{t("research.plan.workspaceTitle")}</h2>
         <p className="mt-2 max-w-3xl text-sm leading-6 text-ink-muted">{t("research.plan.workspaceHint")}</p>
@@ -230,8 +239,8 @@ export function PlanStep() {
       <DesignCoverage />
       <Commentable onQuote={(quote) => setDrafts((d) => [...d, { key: ++seq.current, quote, text: "" }])}>
         <div className="flex flex-col gap-4">
-          <Understanding n={++n} changed={Boolean(p.ui_state.plan_changed26)} blocked={editingSet !== null || busy} onQuote={(quote) => { setDrafts((d) => [...d, { key: ++seq.current, quote, text: "" }]); jumpTo("plan-comments"); }} />
-          <Sets n={++n} analysis={a} editing={editingSet} onEditing={setEditingSet} blocked={busy} />
+          <Understanding n={++n} changed={Boolean(p.ui_state.plan_changed26)} blocked={busy} onQuote={(quote) => { setDrafts((d) => [...d, { key: ++seq.current, quote, text: "" }]); jumpTo("plan-comments"); }} />
+          <Sets n={++n} analysis={a} blocked={busy} limits={setLimits} />
         </div>
       </Commentable>
       {questions.length ? (
@@ -241,7 +250,7 @@ export function PlanStep() {
           answers={answers}
           answered={answered}
           setAnswers={setAnswers}
-          busy={busy || editing}
+          busy={busy}
           saveOnly={leadOwnsAiStarts}
           onSubmit={async () => {
             const r = answerFollowUps(store.get().project, followUpAnswers(questions, answers));
@@ -257,7 +266,7 @@ export function PlanStep() {
       {savedForLead === "answers" ? <SavedForLead saved="Odpovědi jsou uložené" message="Aktualizuj návrh podle mých odpovědí." /> : null}
       <Comments
         n={++n}
-        busy={busy || editing}
+        busy={busy}
         drafts={drafts}
         setDrafts={setDrafts}
         saveOnly={leadOwnsAiStarts}
@@ -378,21 +387,23 @@ function Understanding({ n, changed, blocked, onQuote }: { n: number; changed: b
       ) : null}
     >
       <PlanNarrative disabled={blocked} onQuote={onQuote} />
-      <details className="group mt-4 rounded-control border border-signal-edge bg-signal-tint px-3 py-2">
-        <summary className="cursor-pointer text-[13px] font-medium text-signal">{t("research.plan.principleSummary")}</summary>
-        <p className="mt-2 text-[13px] leading-5">
-          {t("research.plan.principleIntro")} <b>{t("research.plan.principleYes")}</b> {t("research.plan.principleYesText")} <b>{t("research.plan.principleNo")}</b>{" "}
-          {t("research.plan.principleNoText")}
-        </p>
-      </details>
     </StepSection>
   );
 }
 
-/** Porovnatelné sady: each set edited where it is drawn, through the classic editors. */
-function Sets({ n, analysis, editing, onEditing, blocked }: { n: number; analysis: Analysis; editing: string | null; onEditing: (v: string | null) => void; blocked: boolean }) {
-  const { store, toast } = useResearch();
+/** Porovnatelné sady: each set edited where it is drawn, one field at a time (audit A33). */
+function Sets({ n, analysis, blocked, limits }: { n: number; analysis: Analysis; blocked: boolean; limits: SetLimits }) {
+  const { store, toast, confirm } = useResearch();
   const sets = trackedSets(analysis);
+  // Cards and chips are keyed by place (sets and their items carry no id): adding or removing a set
+  // remounts every other card, and removing an item that set's chips, so a draft refused in one of
+  // them is asked about first. `remounts` names the cards whose drafts the change would drop.
+  const cards = useRef<HTMLDivElement>(null);
+  const keepDrafts = async (go: () => void, remounts: (i: number) => boolean = () => true, remount?: "items") => {
+    const held = [...(cards.current?.children ?? [])].some((card, i) => remounts(i) && holdsRefused(card, remount));
+    if (held && !(await confirm(t("research.plan.setField.leave")))) return;
+    go();
+  };
   const [adding, setAdding] = useState<string | null>(null);
   const put = (next: Analysis | null, reason: string) => {
     if (next) store.update((s) => applyPlanSets(s, trackedSets(next)), { reason });
@@ -408,9 +419,9 @@ function Sets({ n, analysis, editing, onEditing, blocked }: { n: number; analysi
       id="plan-sets"
       n={n}
       title={t("research.plan.setsTitle")}
-      hint={t("research.plan.setsHint")}
+      hint={tv("research.plan.setsHint", setWords(limits))}
       aside={
-        <Button small icon="plus" className="!rounded-control" disabled={blocked || editing !== null} onClick={() => setAdding("")}>
+        <Button small icon="plus" className="!rounded-control" disabled={blocked} onClick={() => setAdding("")}>
           {t("research.plan.addSet")}
         </Button>
       }
@@ -420,7 +431,7 @@ function Sets({ n, analysis, editing, onEditing, blocked }: { n: number; analysi
           className="mb-3 flex flex-wrap gap-2"
           onSubmit={(e) => {
             e.preventDefault();
-            create();
+            void keepDrafts(create);
           }}
         >
           <input
@@ -437,92 +448,134 @@ function Sets({ n, analysis, editing, onEditing, blocked }: { n: number; analysi
         </form>
       ) : null}
       {sets.length ? (
-        <div className="grid gap-4 xl:grid-cols-2">
+        <div ref={cards} className="grid gap-4 xl:grid-cols-2">
           {sets.map((set, si) => (
             <SetCard
-              key={`${si}-${setTitle(set)}`}
-              set={set} blocked={blocked || (editing !== null && editing !== String(si))} editing={editing === String(si)} onEditing={(value) => onEditing(value ? String(si) : null)}
-              onMeasurement={(updated) => { const fresh = trackedSets(current()); put({ ...current(), tracked_sets: fresh.map((s, i) => i === si ? updated : s) }, "plan_measurement_edited"); toast(t("research.plan.measurementChanged")); }}
+              // Keyed by place, as every edit names it: a rename keeps the card and its save note, and a
+              // set added or removed remounts every card, so no field's state moves to another set.
+              key={`${si}/${sets.length}`}
+              set={set} limits={limits} blocked={blocked}
+              onSet={(edit) => {
+                const a = current();
+                const fresh = trackedSets(a);
+                if (!fresh[si]) throw new Error(t("research.plan.narrative.gone"));
+                put({ ...a, tracked_sets: fresh.map((s, i) => (i === si ? edit(s) : s)) }, "plan_measurement_edited");
+              }}
               onAddObject={(value) => {
-                const r = addObject(current(), si, value);
+                // The chip refuses a repeat or one past the full set first (objectProblem); addObject's own
+                // refusal is said here should the copy have moved meanwhile.
+                const r = addObject(current(), si, value, limits.max);
                 if (r && "error" in r) return toast(r.error);
                 put(r?.analysis ?? null, "plan_objects");
               }}
               onRename={(value) => put(renameSet(current(), si, value), "plan_set_renamed")}
-              onRemove={() => put(removeSet(current(), si), "plan_set_removed")}
-              onRemoveObject={(oi) => put(removeObject(current(), si, oi), "plan_objects")}
+              onRemove={() => void keepDrafts(() => put(removeSet(current(), si), "plan_set_removed"), (i) => i !== si)}
+              onRemoveObject={(oi) => void keepDrafts(() => put(removeObject(current(), si, oi), "plan_objects"), (i) => i === si, "items")}
             />
           ))}
         </div>
       ) : (
         <p className="rounded-control border border-signal-edge bg-signal-wash p-3 text-sm">{t("research.plan.noSets")}</p>
       )}
+      {/* What belongs in one set: beside the sets it is about. */}
+      <details className="group mt-4 rounded-control border border-signal-edge bg-signal-tint px-3 py-2">
+        <summary className="cursor-pointer text-[13px] font-medium text-signal">{t("research.plan.principleSummary")}</summary>
+        <p className="mt-2 text-[13px] leading-5">
+          {t("research.plan.principleIntro")} <b>{t("research.plan.principleYes")}</b> {t("research.plan.principleYesText")} <b>{t("research.plan.principleNo")}</b>{" "}
+          {t("research.plan.principleNoText")}
+        </p>
+      </details>
     </StepSection>
   );
 }
 
-function SetCard({ set, onAddObject, onRename, onRemove, onRemoveObject, onMeasurement, onEditing, blocked, editing }: {
-  blocked: boolean; editing: boolean;
-  onEditing: (v: boolean) => void;
-  onMeasurement: (set: TrackedSet) => void;
+/** A set's question and the ends of its scale are short; its purpose a sentence or two. */
+const SET_FIELD_MAX = 500;
+
+function SetCard({ set, limits, onAddObject, onRename, onRemove, onRemoveObject, onSet, blocked }: {
+  blocked: boolean;
+  limits: SetLimits;
   set: TrackedSet;
+  /** The set rewritten by `edit`, from the copy as it stands now. */
+  onSet: (edit: (set: TrackedSet) => TrackedSet) => void;
   onAddObject: (value: string) => void;
   onRename: (value: string) => void;
   onRemove: () => void;
   onRemoveObject: (oi: number) => void;
 }) {
   const objects = set.objects || [];
-  const [title, setTitleDraft] = useState(setTitle(set));
   const [confirming, setConfirming] = useState(false);
-  const rows = objectQuestionRows(set);
-  const first = rows[0];
-  const bad = outOfRange(set);
-  const commit = () => {
-    if (title.trim() && title.trim() !== setTitle(set)) onRename(title);
-    else setTitleDraft(setTitle(set));
-  };
+  const first = objectQuestionRows(set)[0];
+  const bad = outOfRange(set, limits);
+  const title = setTitle(set);
+  // Each field is checked at the field (I9) and written alone; the store saves it.
+  const field = (name: SetField, label: string, value: string, placeholder: string, multiline = false) => (
+    <InlineText
+      value={value}
+      label={tv("research.plan.setField.label", { field: label, set: title || t("research.plan.untitledSet") })}
+      placeholder={placeholder}
+      multiline={multiline}
+      disabled={blocked}
+      // An unchanged value is not checked: a field opened and left as it was sends nothing.
+      rules={{ required: false, maxLength: SET_FIELD_MAX, validate: (v) => (v === value ? null : setFieldProblem(name, v)) }}
+      className="min-w-0 text-sm"
+      onCommit={(v) => onSet((s) => withSetField(s, name, v))}
+    />
+  );
   return (
     <article className="flex min-w-0 flex-col gap-3 rounded-card border border-border bg-surface p-4">
-      {editing ? <MeasurementEditor set={set} onCancel={() => onEditing(false)} onSave={(updated) => { onEditing(false); onMeasurement(updated); }} /> : <>
-
       <div className="flex items-start justify-between gap-2">
         <div className="min-w-0 flex-1">
           <div className="font-mono text-[11px] uppercase tracking-[0.08em] text-ink-faint">{comparableFamily(set)}</div>
-          <input
-            aria-label={t("research.plan.setName")}
-            disabled={blocked}
-            placeholder={t("research.plan.setName")}
+          <InlineText
             value={title}
-            onChange={(e) => setTitleDraft(e.target.value)}
-            onBlur={commit}
-            onKeyDown={(e) => e.key === "Enter" && (e.currentTarget as HTMLInputElement).blur()}
-            className={`-ml-1.5 mt-0.5 w-full rounded-control border border-transparent bg-transparent px-1.5 py-0.5 text-[15px] font-semibold text-ink hover:border-border focus:border-signal focus:bg-surface-raised ${FOCUS}`}
+            label={t("research.plan.setName")}
+            placeholder={t("research.plan.setName")}
+            disabled={blocked}
+            rules={{ maxLength: SET_FIELD_MAX }}
+            className="mt-0.5 min-w-0 text-[15px] font-semibold"
+            onCommit={onRename}
           />
         </div>
         <span className={`whitespace-nowrap rounded-md px-1.5 py-0.5 font-mono text-xs ${bad ? "bg-status-you-wash text-status-you-ink" : "bg-surface-sunken text-ink-muted"}`}>
-          {tv("research.plan.setCount", { n: objects.length })}
+          {tv("research.plan.setCount", { n: objects.length, ...setWords(limits) })}
         </span>
       </div>
-      <p className="rounded-control bg-signal-wash px-3 py-2 text-xs text-signal">
-        <b>{t("research.plan.compare")}</b> {set.purpose || SET_PURPOSE_DEFAULT}
-      </p>
+      <div className="flex flex-col gap-1 rounded-control bg-signal-wash px-3 py-2">
+        <span className="text-xs font-semibold text-signal">{t("research.plan.purposeLabel")}</span>
+        {field("purpose", t("research.plan.purposeLabel"), set.purpose || "", SET_PURPOSE_DEFAULT, true)}
+      </div>
       <div className="flex flex-col gap-1">
         <span className={LABEL}>{t("research.plan.setItems")}</span>
         <ChipInput
           disabled={blocked} label={t("research.plan.setItemAdd")}
           placeholder={t("research.plan.setItemAdd")}
           values={objects}
+          refuse={(v, i) => objectProblem(set, v, i, limits)}
+          rename={{ label: t("research.plan.setField.item"), onRename: (i, v) => onSet((s) => withObject(s, i, v)) }}
           onAdd={onAddObject}
           onRemove={onRemoveObject}
           backspaceRemoves
         />
+        {setAboveRecommended(objects.length, limits) ? (
+          <span className="text-xs text-status-you-ink">{tv("research.questionnaire.setAboveRecommended", { max: limits.recommended_max, hard: limits.max })}</span>
+        ) : null}
       </div>
-      {set.object_question ? (
+      <div className="flex flex-col gap-1">
+        <span className={LABEL}>{t("research.plan.setQuestion")}</span>
+        {field("object_question", t("research.plan.setQuestion"), set.object_question || "", QUESTION_DEFAULT, true)}
+        <p className="text-xs text-ink-muted">{t("research.plan.questionHelp")}</p>
+      </div>
+      <div className="grid grid-cols-2 gap-3">
         <div className="flex flex-col gap-1">
-          <span className={LABEL}>{t("research.plan.setQuestion")}</span>
-          <p className="text-sm">{String(set.object_question)}</p>
+          <span className={LABEL}>{t("research.plan.scaleLow")}</span>
+          {field("scale_low", t("research.plan.scaleLow"), set.scale_labels?.[0] ?? "", set.scale_labels ? "" : SCALE_DEFAULT[0])}
         </div>
-      ) : null}
+        <div className="flex flex-col gap-1">
+          <span className={LABEL}>{t("research.plan.scaleHigh")}</span>
+          {field("scale_high", t("research.plan.scaleHigh"), set.scale_labels?.[1] ?? "", set.scale_labels ? "" : SCALE_DEFAULT[1])}
+        </div>
+      </div>
       {first ? (
         <div className="rounded-control border border-border bg-surface-sunken px-3 py-2.5">
           <div className={LABEL}>{t("research.plan.example")}</div>
@@ -538,49 +591,17 @@ function SetCard({ set, onAddObject, onRename, onRemove, onRemoveObject, onMeasu
           </div>
         </div>
       ) : null}
-      <div className="flex flex-wrap justify-between gap-2">
-        <Button small disabled={blocked} onClick={() => onEditing(true)}>{t("research.plan.editMeasurement")}</Button>
+      <div className="flex flex-wrap justify-end gap-2">
         {confirming ? (
-          <InlineConfirm message={t("research.plan.removeSetConfirm")} action={t("research.plan.removeSetAction")} onConfirm={onRemove} onCancel={() => setConfirming(false)} />
+          <InlineConfirm message={t("research.plan.removeSetConfirm")} action={t("research.plan.removeSetAction")} onConfirm={() => { setConfirming(false); onRemove(); }} onCancel={() => setConfirming(false)} />
         ) : (
           <Button small disabled={blocked} variant="quiet" className="!rounded-control hover:!bg-status-fault-wash hover:!text-status-fault" onClick={() => setConfirming(true)}>
             {t("research.plan.removeSet")}
           </Button>
         )}
       </div>
-      </>}
     </article>
   );
-}
-
-function MeasurementEditor({ set, onSave, onCancel }: { set: TrackedSet; onSave: (s: TrackedSet) => void; onCancel: () => void }) {
-  const [title, setTitle] = useState(set.title || set.object_type || "");
-  const [purpose, setPurpose] = useState(set.purpose || "");
-  const [items, setItems] = useState((set.objects || []).join("\n"));
-  const [question, setQuestion] = useState(set.object_question || "Jak hodnotíte {object}?");
-  const [low, setLow] = useState(set.scale_labels?.[0] || "vůbec");
-  const [high, setHigh] = useState(set.scale_labels?.[1] || "velmi");
-  const [error, setError] = useState(false);
-  const updated: TrackedSet = { ...set, title: title.trim(), purpose: purpose.trim(), objects: lines(items), object_question: question.trim(), scale_labels: [low.trim(), high.trim()] };
-  const preview = objectQuestionRows(updated)[0];
-  return <form aria-label={t("research.plan.editMeasurement")} className="flex flex-col gap-3" onSubmit={(e) => {
-    e.preventDefault();
-    if (!validMeasurement(updated)) { setError(true); return; }
-    onSave(updated);
-  }}>
-    <Field label={t("research.plan.setName")}><TextInput autoFocus value={title} onChange={(e) => setTitle(e.target.value)} /></Field>
-    <Field label={t("research.plan.purposeLabel")}><TextArea rows={2} value={purpose} onChange={(e) => setPurpose(e.target.value)} /></Field>
-    <Field label={t("research.plan.objectsLabel")}><TextArea rows={5} value={items} onChange={(e) => setItems(e.target.value)} /></Field>
-    <Field label={t("research.plan.setQuestion")}><TextArea rows={2} value={question} aria-describedby="measurement-template-help" onChange={(e) => setQuestion(e.target.value)} /></Field>
-    <p id="measurement-template-help" className="text-xs text-ink-muted">{t("research.plan.questionHelp")}</p>
-    <div className="grid gap-3 sm:grid-cols-2">
-      <Field label={t("research.plan.scaleLow")}><TextInput value={low} onChange={(e) => setLow(e.target.value)} /></Field>
-      <Field label={t("research.plan.scaleHigh")}><TextInput value={high} onChange={(e) => setHigh(e.target.value)} /></Field>
-    </div>
-    {preview ? <div className="rounded-control border border-border bg-surface-sunken p-3 text-sm"><p className={LABEL}>{t("research.plan.example")}</p><p className="mt-1">{preview.question}</p><p className="mt-2 text-xs text-ink-muted">1 · {preview.low} — 10 · {preview.high}</p></div> : null}
-    {error ? <p role="alert" className="text-sm text-status-fault">{t("research.plan.measurementError")}</p> : null}
-    <div className="flex flex-wrap gap-2"><Button variant="primary" type="submit">{t("research.plan.saveMeasurement")}</Button><Button onClick={onCancel}>{t("research.plan.cancelEdits")}</Button></div>
-  </form>;
 }
 
 function FollowUps({ n, questions, answers, answered, setAnswers, busy, onSubmit, saveOnly = false }: {

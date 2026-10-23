@@ -16,7 +16,7 @@
 // panels and the customer audience upload were the unit's audience store, and the
 // step still says they are not in AIA.
 
-import type { AudienceCatalogue, AudiencePreview } from "@/lib/api";
+import type { AudienceCatalogue, AudienceCatalogueSubpanel, AudiencePreview } from "@/lib/api";
 
 import { type Json, PROVIDER_FORCED, type ResearchProject } from "./model";
 
@@ -125,14 +125,6 @@ export type Subpanel = { key: string; name?: string; description?: string; filte
 type SpecialPanel = { key: string; name?: string; support?: string };
 export type Catalogues = { population_subpanels?: Subpanel[]; special_panels?: SpecialPanel[] };
 
-/** The bootstrap's subpanels and special panels, as the presets read them. */
-export function catalogues(raw: Record<string, unknown>): Catalogues {
-  return {
-    population_subpanels: Array.isArray(raw.population_subpanels) ? (raw.population_subpanels as Subpanel[]) : [],
-    special_panels: Array.isArray(raw.special_panels) ? (raw.special_panels as SpecialPanel[]) : [],
-  };
-}
-
 /** usePopulationSubpanel (the classic name): the subpanel's own filters and support; unchanged if it is unknown. */
 export function applyPopulationSubpanel(p: ResearchProject, key: string, c: Catalogues): ResearchProject {
   const sp = (c.population_subpanels || []).find((x) => x.key === key);
@@ -215,7 +207,6 @@ export function selectAudienceDataset(p: ResearchProject, id: string, list: Save
 
 export const UPLOAD_NO_FILE = "Vyberte .xlsx nebo .csv soubor.";
 export const UPLOAD_DONE = "Audience je uložená a vybraná";
-export const UPLOAD_TIMEOUT_MS = 180_000;
 
 /** uploadAudience's body: the name defaults to the file's, the type to the project's source. */
 export function uploadBody(p: ResearchProject, file: { name: string; b64: string }, name: string, description: string): Record<string, unknown> {
@@ -248,6 +239,8 @@ export type Factor = {
   filterable?: boolean;
   min?: number;
   max?: number;
+  /** Set when the catalogue states a scale's ends (`*_1_10`) instead of reading them from the data. */
+  scale_hint?: string | null;
   values?: { value: string; count?: number }[];
   /** AIA's catalogue only: the version's field policy for audience filtering. */
   policy_allowed?: boolean;
@@ -301,6 +294,84 @@ export function rangeOf(p: ResearchProject, id: string): { lo: Json; hi: Json } 
   };
 }
 
+/**
+ * A numeric factor's stored ends as the population reads them (_interval): rangeOf's, and a bare
+ * number as both ends, an exact value (`vek: 40` is age 40 alone). rangeOf stays the classic's
+ * reading, which shows a bare number as no range.
+ */
+export function storedRange(p: ResearchProject, id: string): { lo: Json; hi: Json } {
+  const cur = filters(p)[id] as Json | undefined;
+  return typeof cur === "number" && Number.isFinite(cur) ? { lo: cur, hi: cur } : rangeOf(p, id);
+}
+
+/**
+ * What a numeric factor's two steppers may hold (input-interactions I2, audit B6): the population's
+ * own range from the catalogue, null when it states none (nothing to bound by, nothing guessed).
+ * Whole numbers only when both ends are whole numbers read from the data; a scale whose ends the
+ * catalogue states (`scale_hint`) says nothing of its values, and takes two decimals like any other.
+ * The ends are rounded outward to those decimals, so the population's own ends can be typed.
+ */
+export function rangeBounds(f: Factor): { min: number; max: number; decimals: number } | null {
+  const { min, max } = f;
+  if (typeof min !== "number" || typeof max !== "number" || !Number.isFinite(min) || !Number.isFinite(max) || min > max) return null;
+  const decimals = !f.scale_hint && Number.isInteger(min) && Number.isInteger(max) ? 0 : 2;
+  const scale = 10 ** decimals;
+  return { min: Math.floor(min * scale) / scale, max: Math.ceil(max * scale) / scale, decimals };
+}
+
+/**
+ * A stored end as a number, the way the population reads it (float(), rangeHolds), or null: no end,
+ * and an end the population cannot read (filterProblems names it, endUnreadable says so at the field).
+ */
+export function boundOf(v: Json): number | null {
+  if (typeof v === "number") return Number.isFinite(v) ? v : null;
+  if (typeof v !== "string" || !takesFloat(v)) return null;
+  const n = Number(v.trim().replace(/(\d)_(?=\d)/g, "$1"));
+  return Number.isFinite(n) ? n : null;
+}
+
+/** A stored end that is there but is no number the stepper can show. */
+export const endUnreadable = (v: Json): boolean => v !== null && v !== undefined && boundOf(v) === null;
+
+/** Up to this many values, a factor's values are toggle chips alone (input-interactions I3: 6–15);
+ * more, the same chips under a filter field (audit B7). */
+export const VALUE_CHIPS_MAX = 15;
+
+/** A factor's listed values matching a search, compared as the factor search compares (searchKey). */
+export function matchingValues<V extends { value: string }>(values: readonly V[], query: string): V[] {
+  const key = searchKey(query);
+  return key ? values.filter((v) => searchKey(v.value).includes(key)) : [...values];
+}
+
+/**
+ * A factor's values after a person picked among the `listed` ones (the chips on screen): the stored
+ * values in their stored order and as stored, less the listed ones not picked, then the newly picked.
+ * A stored value not on screen (filtered out, or one the population lacks, F3) is kept as it was,
+ * never dropped, moved or turned into text by a toggle of another: the population keys a stored
+ * `true` as "1" or "True", never "true" (audience.py _values).
+ */
+export function pickValues(stored: readonly Json[], listed: readonly string[], picked: readonly string[]): Json[] {
+  const text = stored.map(String);
+  const kept = stored.filter((_, i) => !listed.includes(text[i]) || picked.includes(text[i]));
+  return [...kept, ...picked.filter((v) => !text.includes(v))];
+}
+
+/** A categorical factor's stored values, as stored: a list, or one value as a list of one. */
+export function storedValues(p: ResearchProject, id: string): Json[] {
+  const cur = filters(p)[id] as Json | undefined;
+  return Array.isArray(cur) ? cur : cur != null ? [cur] : [];
+}
+
+/**
+ * The built-in subpanels a search matches (input-interactions I3, audit B9: 18 is past a plain
+ * list): by name or description, compared as the factor search compares (searchKey), the query
+ * trimmed. The screen shows the chosen one beside them whatever they are.
+ */
+export function matchingSubpanels(list: readonly AudienceCatalogueSubpanel[], query: string): AudienceCatalogueSubpanel[] {
+  const key = searchKey(query.trim());
+  return key ? list.filter((sp) => searchKey(`${sp.name} ${sp.description}`).includes(key)) : [...list];
+}
+
 /** factorEditor1793's selected values of a categorical factor. */
 export function selectedValues(p: ResearchProject, id: string): Set<string> {
   const cur = filters(p)[id] as Json | undefined;
@@ -308,7 +379,7 @@ export function selectedValues(p: ResearchProject, id: string): Set<string> {
 }
 
 /** setAudienceCategory1793 (then an automatic preview). */
-export function setAudienceCategory(p: ResearchProject, id: string, values: string[]): Change {
+export function setAudienceCategory(p: ResearchProject, id: string, values: Json[]): Change {
   const f = filters(p);
   if (values.length) f[id] = values;
   else delete f[id];
@@ -348,6 +419,69 @@ export function filterChips(p: ResearchProject, cat: Catalog | null): { id: stri
         : String(val);
     return { id, label: String(f?.label || id), text };
   });
+}
+
+/**
+ * How many of a factor's values the catalogue lists: its 60 most frequent
+ * (domain/population/audience_catalogue.py _TOP_VALUES). A list this long may be cut, so a value
+ * missing from it is unknown, never "not in the population".
+ */
+export const CATALOGUE_TOP_VALUES = 60;
+
+/**
+ * A stored filter the population cannot honour as stored, said before a preview or a run. `factor`,
+ * `policy` and `empty` refuse the whole audience (select_audience); `values` drops the values the
+ * population lacks, or refuses the audience when none is left (`noneKnown`).
+ */
+export type FilterProblem = { id: string; label: string; reason: "factor" | "policy" | "empty" | "range" | "values"; unknownValues: string[]; noneKnown: boolean };
+
+/** Whether Python's float() takes `x` (a bound _interval reads): a number, a boolean, numeric text. */
+const takesFloat = (x: unknown): boolean => {
+  if (typeof x === "number" || typeof x === "boolean") return true;
+  if (typeof x !== "string") return false;
+  const s = x.trim().replace(/(\d)_(?=\d)/g, "$1");
+  return s !== "" && (!Number.isNaN(Number(s)) || /^[+-]?(inf|infinity|nan)$/i.test(s));
+};
+
+/** domain/population/audience.py _interval's verdict on a numeric filter's stored value: a {min, max}
+ * whose present bounds are numbers, a pair of numbers, or one number. A bound left out takes the
+ * catalogue's, so it is never the problem. */
+function rangeHolds(v: unknown): boolean {
+  if (v && typeof v === "object" && !Array.isArray(v) && ("min" in v || "max" in v)) {
+    const r = v as Record<string, unknown>;
+    return (!("min" in r) || takesFloat(r.min)) && (!("max" in r) || takesFloat(r.max));
+  }
+  if (Array.isArray(v)) return v.length === 2 && v.every(takesFloat);
+  return typeof v === "number" || typeof v === "boolean";
+}
+
+/**
+ * The stored filters the catalogue shows cannot apply as stored (artifact-audience, Findings F3).
+ * A numeric filter is held to _interval's rule (`range`). Only what the catalogue proves is named
+ * otherwise: a value is compared as text, the way the population keys it, only when the factor's
+ * value list is complete (shorter than CATALOGUE_TOP_VALUES); a number, a boolean and a cut list
+ * say nothing.
+ */
+export function filterProblems(p: ResearchProject, cat: Catalog | null): FilterProblem[] {
+  if (!cat) return [];
+  const map = new Map((cat.factors || []).map((x) => [x.id, x]));
+  const out: FilterProblem[] = [];
+  const problem = (id: string, label: string, reason: FilterProblem["reason"], unknownValues: string[] = [], noneKnown = false) =>
+    out.push({ id, label, reason, unknownValues, noneKnown });
+  for (const [id, val] of Object.entries(filters(p))) {
+    const f = map.get(id);
+    const label = String(f?.label || id);
+    if (!f) { problem(id, label, "factor"); continue; }
+    if (f.policy_allowed === false) { problem(id, label, "policy"); continue; }
+    if (f.kind === "numeric") { if (!rangeHolds(val)) problem(id, label, "range"); continue; }
+    const asked = (Array.isArray(val) ? val : [val]).filter((v) => v != null);
+    if (!asked.length) { problem(id, label, "empty"); continue; }
+    if (!Array.isArray(f.values) || f.values.length >= CATALOGUE_TOP_VALUES || !asked.every((v) => typeof v === "string")) continue;
+    const known = new Set(f.values.map((v) => String(v.value)));
+    const unknownValues = (asked as string[]).filter((v) => !known.has(v));
+    if (unknownValues.length) problem(id, label, "values", unknownValues, unknownValues.length === asked.length);
+  }
+  return out;
 }
 
 // ---- the readable summary (1795) --------------------------------------------
@@ -474,6 +608,7 @@ export function liveCatalog(api: AudienceCatalogue): Catalog {
       filterable: f.filterable,
       min: f.min ?? undefined,
       max: f.max ?? undefined,
+      scale_hint: f.scale_hint ?? null,
       values: f.values ?? undefined,
       policy_allowed: f.policy_allowed,
       policy_reason: f.policy_reason,
@@ -507,19 +642,17 @@ export function liveSubpanels(api: AudienceCatalogue): Catalogues {
  * (setAudienceRange, kept above as the classic's); a filter that now decides who is sampled
  * leaves an empty bound out, and the population's own minimum or maximum stands for it.
  */
-export function setRange(p: ResearchProject, id: string, rawMin: string, rawMax: string): Change {
-  const bound = (raw: string) => (raw.trim() === "" ? null : Number(raw));
-  const lo = bound(rawMin);
-  const hi = bound(rawMax);
+export function setRange(p: ResearchProject, id: string, min: number | null, max: number | null): Change {
   const f = filters(p);
   const range: Obj = {};
-  if (lo !== null && Number.isFinite(lo)) range.min = lo;
-  if (hi !== null && Number.isFinite(hi)) range.max = hi;
+  if (min !== null && Number.isFinite(min)) range.min = min;
+  if (max !== null && Number.isFinite(max)) range.max = max;
   if (Object.keys(range).length) f[id] = range;
   else delete f[id];
   return { project: withAudience(p, { ...aud(p), filters: f }), reason: "aud_range", invalidateCheck: true };
 }
 
+/** The sampler's refusals in words, by reason code. */
 const PREVIEW_REASONS: Record<string, string> = {
   sampling_filter_invalid: "Některý filtr nelze použít",
   sampling_field_refused: "Politika pole nepovoluje filtrovat podle",
@@ -529,8 +662,17 @@ const PREVIEW_REASONS: Record<string, string> = {
   sampling_n_invalid: "Studie nemá platné N.",
 };
 
-function verdictWords(v: { reason?: string | null; reasons?: string[] | null }): string {
-  const base = PREVIEW_REASONS[v.reason || ""] || `Výběr odmítnut (${v.reason || "neznámý důvod"}).`;
+/** The two fragments above, finished when the refusal names nothing to finish them with. */
+const UNNAMED_REASONS: Record<string, string> = {
+  sampling_filter_invalid: "Některý filtr cílové skupiny nelze použít.",
+  sampling_field_refused: "Politika pole nepovoluje filtrovat podle některého z polí výběru.",
+};
+
+/** A refusal in words: its code's sentence, completed by what it names; never a fragment. */
+export function verdictWords(v: { reason?: string | null; reasons?: string[] | null }): string {
+  const code = v.reason || "";
+  if (!v.reasons?.length && UNNAMED_REASONS[code]) return UNNAMED_REASONS[code];
+  const base = PREVIEW_REASONS[code] || `Výběr odmítnut (${v.reason || "neznámý důvod"}).`;
   return v.reasons?.length ? `${base}: ${v.reasons.join("; ")}.` : base;
 }
 

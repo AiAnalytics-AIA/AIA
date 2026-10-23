@@ -9,6 +9,7 @@ import type { BriefMaterials } from "@/lib/material-class";
 import type { Approval, StoredReportDocument } from "@/lib/artifacts/report";
 import { currentIdToken, loadConfig } from "@/lib/auth";
 import type { EditDecisionResult, LeadPreferences, LeadState, LeadTurn, RequestApproval, ResearcherLead, SelfUpdateDecision } from "@/lib/lead";
+import type { OmittedPage, TurnManifest } from "@/lib/lead-manifest";
 export type { ResearcherLead as ResearcherLeadView } from "@/lib/lead";
 
 export class ApiError extends Error {
@@ -984,6 +985,9 @@ export type ResearchLimits = {
   methodology_version: string;
   version: number | null;
   sample_size: { min: number; max: number };
+  /** A tracked set's size: outside min-max a design does not compile, outside the recommended
+   * range readiness warns (research/questionnaire.ts SetLimits). Absent from an older server. */
+  tracked_set?: { min: number; max: number; recommended_min: number; recommended_max: number };
   /** The questionnaire's length rule from Metodika (artifact-questionnaire QST7): seconds per
    * answer by question type and per tracked-set object, with the methodology version. Absent, or
    * null, while the methodology owner has set none; read through research/length.ts readRule. */
@@ -1021,6 +1025,24 @@ export type Readiness = {
   persona_sources?: PersonaSourceOption[];
   /** Whether the run can answer every stated research question; absent from an older API. */
   answerability?: Answerability | null;
+  /** The sample a panel run would draw (run-qc-and-checkpoint RQC6b); `null` when none was drawn. */
+  sample_composition?: SampleComposition | null;
+};
+
+/** One quota cell: its id, its value in each quota field, its respondents. */
+export type QuotaCell = { key: string; values: string[]; n: number };
+/** How the sampler spreads n over its quota cells, or why it refused; never support for a cell. */
+export type SampleComposition = {
+  refused: string | null;
+  /** What the refusal names (the audience preview's `reasons`); absent from an older API. */
+  refused_reasons?: string[];
+  version_id: string | null;
+  seed: number | null;
+  quota_fields: string[];
+  cells: QuotaCell[];
+  sample_donors: number | null;
+  /** Whether the support forecast was counted from this sample; absent from an older API. */
+  support_counted?: boolean;
 };
 
 /** Readiness's fields, whichever revision it was read on. */
@@ -1086,6 +1108,12 @@ export type ResearchStep = {
   /** How the API reads `data_origin`: SIMULATED, MODELLED or UNKNOWN; absent from an older API. */
   data_origin_kind?: string | null;
 };
+/** A research run's spend, by the rules Settings reads a person's spend (Q40); it names nobody (Q76 (c)). */
+export type RunSpend = { spent_usd: number; reserved_usd: number; uncertain_calls: number };
+
+/** The most a run could cost when it started (FLD4d): usd null when it could not be worked out, `unknown` the reason. */
+export type RunCeiling = { usd: number | null; unknown: string | null };
+
 export type ResearchRun = {
   run_id: string;
   study_id: string;
@@ -1106,6 +1134,12 @@ export type ResearchRun = {
   steps: ResearchStep[];
   artifact_ids: string[];
   actual_cost_usd: number | null;
+  /** What the run has spent, holds and could not price (artifact-fieldwork FLD4a): only on the run read
+   *  alone (GET …/research/runs/{id}) with VIEW_COSTS; null on a listed run and on an action's answer. */
+  spend?: RunSpend | null;
+  /** The most the run could cost when it started (FLD4d): usd null with the reason when it could not be
+   *  worked out; null without VIEW_COSTS, or for a run started before runs recorded one. */
+  cost_ceiling?: RunCeiling | null;
   /** The population the run recorded (population-operations P3); absent or null: none. */
   population?: ResearchRunPopulation | null;
   /** The methods the run pinned when it started (methodology-tab Z1); absent from an older API. */
@@ -1478,6 +1512,10 @@ export const deepResearch = {
   /** Where the report with this review stands, composing nothing (research-integrity-report 3). */
   contextReport: (studyId: string, runId: string, deepRunId: string) =>
     request<ReportVariant>("GET", `${studyPath(studyId)}/research/runs/${enc(runId)}/report/context${query({ deep_research_run_id: deepRunId })}`),
+  /** The prepared report with this review as its stored document model, beside the DOCX it names (RPT3a);
+   *  409 context_report_not_prepared before it is prepared. */
+  contextReportDocument: (studyId: string, runId: string, deepRunId: string) =>
+    request<StoredReportDocument>("GET", `${studyPath(studyId)}/research/runs/${enc(runId)}/report/context/document${query({ deep_research_run_id: deepRunId })}`),
   /** Store the report with this review once and ask the worker for its PDF: the same draft in both formats. */
   prepareContextReport: (studyId: string, runId: string, deepRunId: string) =>
     request<ReportVariant>("POST", `${studyPath(studyId)}/research/runs/${enc(runId)}/report/context${query({ deep_research_run_id: deepRunId })}`),
@@ -1565,14 +1603,21 @@ export const lead = {
   /** Approve a turn's prepared design job: spend limit, ledger and start in one transaction. */
   /** `workspaceRevision`: the current working revision, sent only after a 409 stale_card and the
    *  person's yes to running the card on the design as it is now (lead-orchestration LO10). */
-  approveRequest: (studyId: string, turnId: string, confirmCostUsd?: number, workspaceRevision?: number) =>
+  approveRequest: (studyId: string, turnId: string, confirmCostUsd?: number, workspaceRevision?: number, retryRunId?: string) =>
     request<RequestApproval>("POST", `${studyPath(studyId)}/lead/turns/${enc(turnId)}/request`, {
       ...(confirmCostUsd === undefined ? {} : { confirm_cost_usd: confirmCostUsd }),
       ...(workspaceRevision === undefined ? {} : { workspace_revision: workspaceRevision }),
+      ...(retryRunId === undefined ? {} : { retry_run_id: retryRunId }),
     }),
   /** Keep or drop what a turn wants to remember for all of the researcher's work (once, in the ledger). */
   decideSelfUpdate: (studyId: string, turnId: string, decision: "accept" | "dismiss") =>
     request<SelfUpdateDecision>("POST", `${studyPath(studyId)}/lead/turns/${enc(turnId)}/self-update`, { decision }),
+  /** What a turn could see, layer by layer, read from the context it froze (lead-conversation LC2). */
+  manifest: (studyId: string, turnId: string) =>
+    request<TurnManifest>("GET", `${studyPath(studyId)}/lead/turns/${enc(turnId)}/manifest`),
+  /** A layer's left-out ids past the manifest's first fifty, from `after`. */
+  omitted: (studyId: string, turnId: string, layer: string, after: number) =>
+    request<OmittedPage>("GET", `${studyPath(studyId)}/lead/turns/${enc(turnId)}/manifest/omitted?layer=${enc(layer)}&after=${after}`),
 };
 
 /** The signed-in researcher's own Lead: its files, read only; hatched once (ADR 0026, Accepted with 6). */

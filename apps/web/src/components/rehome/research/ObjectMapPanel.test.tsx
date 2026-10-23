@@ -3,7 +3,10 @@
 // chunk 2): the map is routed to the panel's renderer by its stored estimator, an earlier method
 // keeps its terraces, and the panel's controls change only what is shown. Stored fixtures only;
 // the canvas is a recording stub (jsdom has none), its frames checked through what it was given.
-import { cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
+import { readFileSync } from "node:fs";
+import { join } from "node:path";
+
+import { act, cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { StrictMode } from "react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
@@ -12,7 +15,7 @@ import legacy from "@/lib/fixtures/object-map.json";
 import golden from "@/lib/fixtures/object-map-draw-golden.json";
 import { type BatteryWithMaps, mapLinks } from "@/lib/object-map-view";
 import { readTarget } from "@/lib/artifacts/sociomap";
-import { focusSelector } from "@/lib/lead";
+import { LEAD_REVEAL, focusSelector } from "@/lib/lead";
 import { parseAiaId } from "@/lib/workbench-artifacts";
 import { INITIAL_CAMERA, densityGrid, panelDots, panelNodes, projection, relationGeometry, storedGrid, terrainAt } from "@/lib/object-map-panel";
 import { type SignedOffRespondents, storedFrame } from "@/lib/object-map-signed-off";
@@ -48,6 +51,11 @@ afterEach(() => { cleanup(); vi.restoreAllMocks(); });
 const canvas = () => screen.getByTestId("object-map-canvas");
 const drawn = () => (canvas().getAttribute("data-relations") || "").split(" ").filter(Boolean);
 const camera = () => JSON.parse(canvas().getAttribute("data-camera")!);
+/** The map's windows, opened as a reader does: from the dock, and the object list from Nastavení mapy. */
+const openSettings = () => fireEvent.click(screen.getByRole("button", { name: "Nastavení mapy" }));
+const openTools = () => fireEvent.click(screen.getByRole("button", { name: "Nástroje" }));
+const openList = () => { openSettings(); fireEvent.click(screen.getByRole("button", { name: "Správa objektů" })); return within(screen.getByTestId("object-map-panel-list")); };
+const openInfo = () => fireEvent.click(screen.getByRole("button", { name: /^Informace o mapě/ }));
 /** Waits for the next drawn frame (draws are coalesced into animation frames). */
 const nextFrame = async (after = frames) => waitFor(() => expect(frames).toBeGreaterThan(after));
 
@@ -66,8 +74,9 @@ describe("which drawing a stored map gets", () => {
     expect(screen.queryByTestId("object-map-svg")).toBeNull();
     expect(screen.queryByTestId("object-map-terrain")).toBeNull();
     expect(screen.getByText("Mapa objektů (aia-sociomap-5)")).toBeTruthy();
-    // The page around the map stays the web's: the chips and the facts, without the terraces' texts.
+    // The page around the map stays the web's chips; the facts are in the map's ⓘ box, without the terraces' texts.
     expect(screen.getByTestId("object-map-origin").getAttribute("data-origin-kind")).toBe("SIMULATED");
+    openInfo();
     const facts = screen.getByTestId("object-map-support").textContent!;
     expect(facts).toContain("Dvojice: 62 spolehlivé · 4 slabé · 0 neznámé vztahy");
     expect(facts).not.toContain("deseti pásem");
@@ -100,6 +109,7 @@ describe("the panel's controls", () => {
     render(<ObjectMapView battery={hudba} dataOrigin={null} />);
     expect(camera()).toEqual({ yaw: -0.55, pitch: 0.72, zoom: 1, panX: 0, panY: 0 });
     expect(canvas().getAttribute("data-norm")).toBe("range");
+    openSettings();
     expect(screen.getByRole("button", { name: "Relativní" }).getAttribute("aria-pressed")).toBe("true");
     const strongest = mapLinks(map).sort((a, b) => Math.abs(b.r) - Math.abs(a.r)).slice(0, 5).map((l) => `${l.a}|${l.b}`);
     expect(drawn().sort()).toEqual(strongest.sort());
@@ -112,11 +122,13 @@ describe("the panel's controls", () => {
     const legend = () => screen.getByTestId("object-map-legend-scale").textContent;
     expect(legend()).toContain("rozsah");
     const before = frames;
+    openSettings();
     fireEvent.click(screen.getByRole("button", { name: "Absolutní" }));
     expect(canvas().getAttribute("data-norm")).toBe("absolute");
     await nextFrame(before);
     // Absolutni reads the declared 1-10 scale's ends.
     expect(legend()).toBe("1,00absolutní10,0");
+    openTools();
     fireEvent.click(screen.getByRole("button", { name: "Vše" }));
     expect(drawn()).toHaveLength(mapLinks(map).length);
     fireEvent.click(screen.getByRole("button", { name: "Vybraný" }));
@@ -127,16 +139,17 @@ describe("the panel's controls", () => {
     const old = structuredClone(hudba);
     delete (old.maps!["aia-sociomap-5"].artifact.terrain as { absolute_height?: unknown }).absolute_height;
     render(<ObjectMapView battery={old} dataOrigin={null} />);
+    openSettings();
     expect((screen.getByRole("button", { name: "Absolutní" }) as HTMLButtonElement).disabled).toBe(true);
     cleanup();
     render(<ObjectMapView battery={hudba} dataOrigin={null} />);
+    openSettings();
     expect((screen.getByRole("button", { name: "Absolutní" }) as HTMLButtonElement).disabled).toBe(false);
   });
 
   it("selects an object from the list: its relations, highlighted; again clears it", () => {
     render(<ObjectMapView battery={hudba} dataOrigin={null} />);
-    const list = within(screen.getByTestId("object-map-panel-list"));
-    const rock = list.getByRole("button", { name: "Vybrat objekt Rock" });
+    const rock = openList().getByRole("button", { name: "Vybrat objekt Rock" });
     fireEvent.click(rock);
     expect(rock.getAttribute("aria-pressed")).toBe("true");
     const id = canvas().getAttribute("data-selected")!;
@@ -144,9 +157,10 @@ describe("the panel's controls", () => {
     expect(drawn().length).toBeGreaterThan(0);
     expect(drawn().length).toBeLessThanOrEqual(5);
     for (const pair of drawn()) expect(pair.split("|")).toContain(id);
+    openTools();
     fireEvent.click(screen.getByRole("button", { name: "Vybraný" }));
     expect(drawn()).toEqual(mapLinks(map).filter((l) => l.a === id || l.b === id).map((l) => `${l.a}|${l.b}`));
-    fireEvent.click(rock);
+    fireEvent.click(openList().getByRole("button", { name: "Vybrat objekt Rock" }));
     expect(canvas().getAttribute("data-selected")).toBe("");
   });
 
@@ -235,7 +249,7 @@ describe("the display state, where the web leaves the panel", () => {
 
   it("starts the respondent map with nothing selected, and comes back to the objects with nothing selected", async () => {
     render(<ObjectMapView battery={hudba} dataOrigin={null} />);
-    fireEvent.click(within(screen.getByTestId("object-map-panel-list")).getAllByRole("button")[0]);
+    fireEvent.click(openList().getAllByRole("button")[0]);
     expect(canvas().getAttribute("data-selected")).not.toBe("");
     fireEvent.click(screen.getByRole("button", { name: "Respondenti" }));
     expect(canvas().getAttribute("data-selected")).toBe("");
@@ -263,27 +277,41 @@ describe("the display state, where the web leaves the panel", () => {
     expect(canvas().getAttribute("data-person")).toBe("");
   });
 
-  it("draws the map's five strongest relations under Top vztahy in full screen, a selection or not", () => {
+  it("draws Top vztahy in full screen as on the page: the selection's five, the map's five without one", () => {
     render(<ObjectMapView battery={hudba} dataOrigin={null} />);
-    fireEvent.click(within(screen.getByTestId("object-map-panel-list")).getAllByRole("button")[0]);
+    const first = openList().getAllByRole("button")[0];
+    fireEvent.click(first);
     const id = canvas().getAttribute("data-selected")!;
-    // On the page the selection's own five, with its detail card beside the map (the panel's rule).
     for (const pair of drawn()) expect(pair.split("|")).toContain(id);
     enterFull();
     expect(canvas().getAttribute("data-selected")).toBe(id);
-    expect(drawn().sort()).toEqual(strongest());
-    // Vybraný still means the selected object's relations, in full screen too.
-    fireEvent.click(screen.getByRole("button", { name: "Vybraný" }));
     for (const pair of drawn()) expect(pair.split("|")).toContain(id);
+    expect(drawn().sort()).not.toEqual(strongest());
+    // Nothing selected: the map's five strongest.
+    fireEvent.click(first);
+    expect(canvas().getAttribute("data-selected")).toBe("");
+    expect(drawn().sort()).toEqual(strongest());
   });
 });
 
 describe("accessibility", () => {
+  // The page holds the landmarks: the side column is layout, not a complementary region of its own
+  // nested inside them (axe landmark-complementary-is-top-level, Sociomapa audit 2026-10-22).
+  it("adds no landmark of its own beside the map, on the signed-off map and an older method's", () => {
+    const { unmount } = render(<ObjectMapView battery={hudba} dataOrigin={null} />);
+    expect(screen.queryAllByRole("complementary")).toHaveLength(0);
+    fireEvent.click(screen.getByRole("button", { name: "Respondenti" }));
+    expect(screen.queryAllByRole("complementary")).toHaveLength(0);
+    unmount();
+    render(<ObjectMapView battery={legacyBattery} dataOrigin={null} />);
+    expect(screen.queryAllByRole("complementary")).toHaveLength(0);
+  });
+
   it("names the canvas, describes its lines, and lists every object as a button", () => {
     render(<ObjectMapView battery={hudba} dataOrigin={null} />);
     const img = screen.getByRole("img", { name: "Mapa objektů Hudební žánry: 12 objektů na terénu průměrného hodnocení" });
     expect(document.getElementById(img.getAttribute("aria-describedby")!)!.textContent).toBe("Čar vztahů na mapě: 5");
-    const list = within(screen.getByTestId("object-map-panel-list"));
+    const list = openList();
     expect(list.getAllByRole("button")).toHaveLength(map.object_ids.length);
     // The list prints each stored mean on the declared scale, as the panel's object list.
     expect(list.getByRole("button", { name: "Vybrat objekt Pop" }).textContent).toContain("6,32");
@@ -306,15 +334,16 @@ describe("accessibility", () => {
     expect(screen.getByTestId("object-map-legend-info").textContent).toContain("relativní · nejnižší objekt = 15 % výšky nejvyššího");
   });
 
-  it("sizes the nodes by the whole set, objects nobody rated included", async () => {
+  it("sizes the nodes by the mapped objects, not by those nobody rated", async () => {
     const big = structuredClone(hudba);
     const stored = big.maps!["aia-sociomap-5"].artifact;
-    // 12 mapped + 38 nobody rated = 50 objects: nodes at sqrt(30 / 50) of their size.
+    // 12 mapped + 38 nobody rated: the 38 are left out of the map, so the nodes keep their full size
+    // (up to 30 objects); with 50 mapped they would shrink to sqrt(30 / 50).
     stored.objects_not_placed = Array.from({ length: 38 }, (_, k) => `extra-${k}`);
     stored.credibility = undefined; // no uncertainty circle among the measured discs
     render(<ObjectMapView battery={big} dataOrigin={null} />);
     await nextFrame(0);
-    const scale = Math.sqrt(30 / 50);
+    const scale = 1;
     expect(Math.max(...radii)).toBeCloseTo(5.7 * scale + 2.5, 9); // the white ring is 2.5 px wider, unscaled
     expect(Math.min(...radii)).toBeCloseTo(5.7 * scale, 9);
   });
@@ -364,9 +393,11 @@ describe("what the map says about itself", () => {
 
   it("names the objects nobody rated beside the map, in the panel's words", () => {
     render(<ObjectMapView battery={hudba} dataOrigin={null} />);
+    openList();
     expect(screen.getByTestId("object-map-unplaced-objects").textContent).toBe("Neumístěno (nikdo je nehodnotil, proto bez polohy na mapě): Reggae.");
     cleanup();
     render(<ObjectMapView battery={sum} dataOrigin={null} />);
+    openList();
     expect(screen.queryByTestId("object-map-unplaced-objects")).toBeNull();
   });
 });
@@ -390,6 +421,7 @@ describe("the respondent map", () => {
     expect(screen.queryByRole("group", { name: "Normalizace" })).toBeNull();
     expect(screen.getByTestId("object-map-legend-scale").textContent).toBe("0,00hustota1,00");
     expect(screen.getByTestId("object-map-legend-info").textContent).toContain("hustota jasně umístěných respondentů");
+    openInfo();
     const counts = screen.getByTestId("object-map-respondent-counts").textContent!;
     expect(counts).toContain("Jasný směr: 73 % (219) · tvoří výšku");
     expect(counts).toContain("Slabý směr: 25 % (75) · světlé body");
@@ -432,6 +464,7 @@ describe("the respondent map", () => {
     show();
     await nextFrame(0);
     expect(texts).toContain("Sada má 5 objektů: mapa respondentů je jen orientační (spolehlivá od 6)");
+    openInfo();
     expect(screen.getByTestId("object-map-respondent-counts").textContent).toContain("Mapa respondentů: jen orientační · 5 obj. (spolehlivá od 6)");
     cleanup();
     // An edited version may declare more ratings than the set has objects: the number is the declared one.
@@ -442,6 +475,7 @@ describe("the respondent map", () => {
     show();
     await nextFrame(before);
     expect(texts).toContain("Sada má 4 objekty: respondenty nelze umístit (potřeba aspoň 5 hodnocení)");
+    openInfo();
     expect(screen.getByTestId("object-map-respondent-counts").textContent).not.toContain("orientační");
   });
 
@@ -476,6 +510,7 @@ describe("taste segments", () => {
       render(<ObjectMapView battery={sources[name]} dataOrigin={null} />);
       fireEvent.click(screen.getByRole("button", { name: "Respondenti" }));
       expect(screen.getByTestId("object-map-segments").textContent).toBe(scene.legend);
+      openInfo();
       const row = screen.getByTestId("object-map-segments-row");
       expect(row.textContent).toBe(`Segmenty: ${scene.row!.value}`);
       expect(row.firstElementChild!.getAttribute("title")).toBe(scene.row!.help);
@@ -494,6 +529,7 @@ describe("taste segments", () => {
     b.maps!["aia-sociomap-5"].artifact.spec.segments = { min_respondents: 40, min_ratings: 6, colour_membership: 0.9 };
     render(<ObjectMapView battery={b} dataOrigin={null} />);
     fireEvent.click(screen.getByRole("button", { name: "Respondenti" }));
+    openInfo();
     expect(screen.getByTestId("object-map-segments-row").firstElementChild!.getAttribute("title")).toBe("Segmenty potřebují alespoň 40 lidí s alespoň 6 hodnocenými objekty.");
   });
 
@@ -502,6 +538,7 @@ describe("taste segments", () => {
     b.maps!["aia-sociomap-5"].artifact.spec.segments = { min_respondents: 30, min_ratings: 5, colour_membership: 0.9 };
     render(<ObjectMapView battery={b} dataOrigin={null} />);
     fireEvent.click(screen.getByRole("button", { name: "Respondenti" }));
+    openInfo();
     expect(screen.getByTestId("object-map-segments-row").firstElementChild!.getAttribute("title")).toContain("(≥ 90 %)");
   });
 
@@ -514,15 +551,16 @@ describe("taste segments", () => {
 });
 
 
-describe("what a click shows beside the map", () => {
+describe("what a click shows in the detail window", () => {
   const card = () => screen.getByTestId("object-map-detail");
   const label = (id: string) => hudba.objects.find((o) => o.id === id)!.label;
 
   it("asks for a click, then shows a chosen object's stored numbers and strongest relations", () => {
     render(<ObjectMapView battery={hudba} dataOrigin={null} />);
+    // Nothing chosen, no detail window; a chosen object opens it.
+    expect(screen.queryByTestId("object-map-detail")).toBeNull();
+    fireEvent.click(openList().getByRole("button", { name: "Vybrat objekt Rock" }));
     expect(card().textContent).toContain("Detail objektu / vztahu");
-    expect(card().textContent).toContain("Klikněte na objekt nebo vztah.");
-    fireEvent.click(within(screen.getByTestId("object-map-panel-list")).getByRole("button", { name: "Vybrat objekt Rock" }));
     expect(screen.getByTestId("object-map-detail-label").textContent).toBe("Rock");
     const k = map.object_ids.indexOf(canvas().getAttribute("data-selected")!);
     const text = card().textContent!;
@@ -543,7 +581,7 @@ describe("what a click shows beside the map", () => {
   // Enter and Space on a button are the browser's: the workbench check presses them (jsdom has no activation).
   it("opens a relation from the object's card, a focusable button named by what it shows, and closes it again", () => {
     render(<ObjectMapView battery={hudba} dataOrigin={null} />);
-    fireEvent.click(within(screen.getByTestId("object-map-panel-list")).getByRole("button", { name: "Vybrat objekt Rock" }));
+    fireEvent.click(openList().getByRole("button", { name: "Vybrat objekt Rock" }));
     const i = map.object_ids.indexOf(canvas().getAttribute("data-selected")!);
     const rows = within(screen.getByTestId("object-map-detail-relations")).getAllByRole("button");
     expect(rows.length).toBeGreaterThan(0);
@@ -591,7 +629,7 @@ describe("what a click shows beside the map", () => {
     // The object's own detail follows under the relation; choosing an object from the list drops the relation.
     expect(screen.getByTestId("object-map-detail-label").textContent).toBe(label(map.object_ids[i]));
     const reselect = () => { fireEvent.pointerDown(canvas(), { clientX: x, clientY: y, pointerId: 1 }); fireEvent.pointerUp(canvas(), { clientX: x, clientY: y, pointerId: 1 }); };
-    fireEvent.click(within(screen.getByTestId("object-map-panel-list")).getByRole("button", { name: `Vybrat objekt ${label(map.object_ids[j])}` }));
+    fireEvent.click(openList().getByRole("button", { name: `Vybrat objekt ${label(map.object_ids[j])}` }));
     expect(canvas().getAttribute("data-relation")).toBe("");
     expect(screen.queryByTestId("object-map-detail-relation")).toBeNull();
     // So does a click on an object on the map (the panel's list does; its canvas keeps a stale relation).
@@ -626,7 +664,7 @@ describe("what a click shows beside the map", () => {
     expect(screen.getByTestId("object-map-detail-relation").textContent).toContain("95 % -0,05 až +0,41");
   });
 
-  it("words a relation under |r| 0,3 as slabý, at or over it as zřetelný", async () => {
+  it("words a relation slabý below the declared |r| and zřetelný from it (0,3 on a map stored before it)", async () => {
     // A drawn pair's midpoint on the opening frame (it does not depend on r), clear of every object.
     const nodes = map.object_ids.map((_, k) => nodeAt(k));
     const index = (id: string) => map.object_ids.indexOf(id);
@@ -636,10 +674,12 @@ describe("what a click shows beside the map", () => {
       return [a, b, mid.x, mid.y];
     }).find(([, , mx, my]) => nodes.every((q) => Math.hypot(q.x - mx, q.y - my) > 14))!;
     // Set the pair to 0,25 and 0,30 and click it on "Vše".
-    const verdict = async (v: number) => {
+    const verdict = async (v: number, clear?: number) => {
       const r = map.relations.r.map((row, a) => row.map((x0, b) => ((a === i && b === j) || (a === j && b === i) ? v : x0)));
       const stored = hudba.maps!["aia-sociomap-5"];
-      render(<ObjectMapView battery={{ ...hudba, maps: { "aia-sociomap-5": { ...stored, artifact: { ...map, relations: { ...map.relations, r } } } } }} dataOrigin={null} />);
+      const spec = clear === undefined ? map.spec : { ...map.spec, relation: { ...map.spec.relation, clear_effect: clear } };
+      render(<ObjectMapView battery={{ ...hudba, maps: { "aia-sociomap-5": { ...stored, artifact: { ...map, spec, relations: { ...map.relations, r } } } } }} dataOrigin={null} />);
+      openTools();
       fireEvent.click(screen.getByRole("button", { name: "Vše" }));
       await nextFrame(0);
       fireEvent.pointerDown(canvas(), { clientX: x, clientY: y, pointerId: 1 });
@@ -649,16 +689,19 @@ describe("what a click shows beside the map", () => {
       frames = 0;
       return text;
     };
+    expect(map.spec.relation.clear_effect).toBeUndefined();
     expect(await verdict(0.25)).toBe("Spolehlivý slabý kladný vztah: silnější, než jaký vytvoří náhoda.");
     expect(await verdict(0.3)).toBe("Spolehlivý zřetelný kladný vztah: silnější, než jaký vytvoří náhoda.");
+    // An edited version's threshold (Metodika) moves the word.
+    expect(await verdict(0.25, 0.2)).toBe("Spolehlivý zřetelný kladný vztah: silnější, než jaký vytvoří náhoda.");
+    expect(await verdict(0.3, 0.4)).toBe("Spolehlivý slabý kladný vztah: silnější, než jaký vytvoří náhoda.");
   });
 
   it("shows a clicked respondent's profile on the respondent map, and asks for a click without one", async () => {
     render(<ObjectMapView battery={hudba} dataOrigin={null} />);
     fireEvent.click(screen.getByRole("button", { name: "Respondenti" }));
     await nextFrame(0);
-    expect(card().textContent).toContain("Profil respondenta");
-    expect(card().textContent).toContain("Klikněte na člověka v mapě.");
+    expect(screen.queryByTestId("object-map-detail")).toBeNull();
     const dots = panelDots(map, storedFrame(map)!);
     const grid = densityGrid(map)!;
     const P = projection(INITIAL_CAMERA, 900, 700);
@@ -669,6 +712,7 @@ describe("what a click shows beside the map", () => {
     const id = dots[lone].id, k = map.respondent_ids!.indexOf(id);
     const r = map.respondents as SignedOffRespondents;
     expect(screen.getByTestId("object-map-detail-person").textContent).toBe(id);
+    expect(card().textContent).toContain("Profil respondenta");
     const text = card().textContent!;
     expect(text).toContain("Poloha z odpovědí");
     expect(text).toContain(`Mapa vysvětluje ${Math.round(100 * (1 - r.misfit[k]!))} % rozdílů v jeho hodnoceních`);
@@ -690,6 +734,7 @@ describe("Export PNG", () => {
     const saved = save();
     render(<ObjectMapView battery={hudba} dataOrigin={null} />);
     await nextFrame(0);
+    openSettings();
     const button = screen.getByRole("button", { name: "Export PNG" });
     expect(button.getAttribute("title")).toBe("Uloží aktuální pohled na mapu jako obrázek PNG.");
     texts = [];
@@ -706,11 +751,482 @@ describe("Export PNG", () => {
     fireEvent.click(screen.getByRole("button", { name: "Respondenti" }));
     await nextFrame(0);
     texts = [];
+    openSettings();
     fireEvent.click(screen.getByRole("button", { name: "Export PNG" }));
     expect(saved.map((x) => x.name)).toEqual(["Sociomapa_respondenti.png"]);
     expect(texts.slice(0, 4)).toEqual(["VÝŠKA · SHLUKY RESPONDENTŮ", "0,00", "hustota", "1,00"]);
     expect(texts).toContain("CHUŤOVÉ SEGMENTY · PŘEKRÝVAJÍ SE");
     expect(texts.at(-1)).toBe("není jasně v jednom segmentu");
+  });
+});
+
+describe("the map's window, as the panel's", () => {
+  const dialog = (name: string) => screen.queryByRole("dialog", { name });
+  const stage = () => screen.getByTestId("object-map-stage");
+  const esc = () => fireEvent.keyDown(stage(), { key: "Escape" });
+  /** jsdom lays nothing out: a 900 x 700 stage, a work window at its default place (13, 55; 430 x 300),
+   *  the detail on the right; a moved window where its style puts it. */
+  const layout = () => vi.spyOn(HTMLElement.prototype, "getBoundingClientRect").mockImplementation(function (this: HTMLElement) {
+    const box = (left: number, top: number, width: number, height: number) => ({ left, top, width, height, right: left + width, bottom: top + height, x: left, y: top, toJSON: () => ({}) }) as DOMRect;
+    if (this.dataset.testid === "object-map-stage") return box(0, 0, 900, 700);
+    const id = this.dataset.window;
+    if (!id) return box(0, 0, 0, 0);
+    if (this.style.left) return box(parseFloat(this.style.left), parseFloat(this.style.top), parseFloat(this.style.width), parseFloat(this.style.height));
+    return id === "detail" ? box(456, 14, 430, 672) : box(13, 55, 430, 300);
+  });
+  const clickNode = (k: number) => {
+    const at = nodeAt(k);
+    fireEvent.pointerDown(canvas(), { clientX: at.x, clientY: at.y, pointerId: 1 });
+    fireEvent.pointerUp(canvas(), { clientX: at.x, clientY: at.y, pointerId: 1 });
+  };
+
+  it("toggles a work window from its dock button, the button pressed while it is open", () => {
+    render(<ObjectMapView battery={hudba} dataOrigin={null} />);
+    const button = screen.getByRole("button", { name: "Nastavení mapy" });
+    expect(button.getAttribute("aria-pressed")).toBe("false");
+    fireEvent.click(button);
+    expect(dialog("Nastavení mapy")).toBeTruthy();
+    expect(button.getAttribute("aria-pressed")).toBe("true");
+    fireEvent.click(button);
+    expect(dialog("Nastavení mapy")).toBeNull();
+    // The dock's groups as the panel's: Mapa and Práce, no Analýza (the web has no analyses here).
+    expect(screen.getByRole("group", { name: "Mapa" })).toBeTruthy();
+    expect(within(screen.getByRole("group", { name: "Práce" })).getAllByRole("button").map((b) => b.textContent)).toEqual(["Nastavení mapy", "Nástroje"]);
+  });
+
+  it("opens one work window at a time", () => {
+    render(<ObjectMapView battery={hudba} dataOrigin={null} />);
+    openSettings();
+    openTools();
+    expect(dialog("Nastavení mapy")).toBeNull();
+    expect(dialog("Nástroje mapy")).toBeTruthy();
+    openSettings();
+    fireEvent.click(screen.getByRole("button", { name: "Správa objektů" }));
+    expect(screen.getAllByRole("dialog").map((d) => d.getAttribute("aria-label"))).toEqual(["Správa objektů"]);
+    // Nástroje holds the relation display only on the object map.
+    fireEvent.click(screen.getByRole("button", { name: "Respondenti" }));
+    expect(screen.queryByRole("button", { name: "Nástroje" })).toBeNull();
+  });
+
+  it("closes with Esc in the panel's order: the work window, the detail, the ⓘ box", () => {
+    render(<ObjectMapView battery={hudba} dataOrigin={null} />);
+    openInfo();
+    fireEvent.click(openList().getByRole("button", { name: "Vybrat objekt Rock" }));
+    expect(dialog("Správa objektů")).toBeTruthy();
+    expect(dialog("Detail objektu / vztahu")).toBeTruthy();
+    esc();
+    expect(dialog("Správa objektů")).toBeNull();
+    expect(dialog("Detail objektu / vztahu")).toBeTruthy();
+    esc();
+    expect(dialog("Detail objektu / vztahu")).toBeNull();
+    expect(screen.getByTestId("object-map-info")).toBeTruthy();
+    esc();
+    expect(screen.queryByTestId("object-map-info")).toBeNull();
+    // The selection stays; only the windows closed.
+    expect(canvas().getAttribute("data-selected")).not.toBe("");
+  });
+
+  it("drags a window by its header, kept within the stage, and not from a control in the header", () => {
+    layout();
+    render(<ObjectMapView battery={hudba} dataOrigin={null} />);
+    openSettings();
+    const win = dialog("Nastavení mapy")!;
+    const head = screen.getByTestId("object-map-window-head-settings");
+    fireEvent.pointerDown(head, { clientX: 100, clientY: 70, button: 0 });
+    fireEvent.pointerMove(window, { clientX: 300, clientY: 170 });
+    expect([win.style.left, win.style.top]).toEqual(["213px", "155px"]);
+    // At least 100 px of it stays across the stage, its header inside.
+    fireEvent.pointerMove(window, { clientX: 5000, clientY: 5000 });
+    expect([win.style.left, win.style.top]).toEqual(["800px", "660px"]);
+    fireEvent.pointerMove(window, { clientX: -5000, clientY: -5000 });
+    expect([win.style.left, win.style.top]).toEqual(["-330px", "0px"]);
+    fireEvent.pointerUp(window);
+    fireEvent.pointerMove(window, { clientX: 300, clientY: 300 });
+    expect(win.style.left).toBe("-330px");
+    // A press on the × is the button's.
+    fireEvent.pointerDown(within(head).getByRole("button"), { clientX: 0, clientY: 10, button: 0 });
+    fireEvent.pointerMove(window, { clientX: 400, clientY: 400 });
+    expect(win.style.left).toBe("-330px");
+  });
+
+  it("resizes from any corner, never under 260 x 140", () => {
+    layout();
+    render(<ObjectMapView battery={hudba} dataOrigin={null} />);
+    openSettings();
+    const win = dialog("Nastavení mapy")!;
+    // Bottom right (443, 355): the grip is 14 px.
+    fireEvent.pointerDown(win, { clientX: 440, clientY: 352, button: 0 });
+    fireEvent.pointerMove(window, { clientX: 480, clientY: 392 });
+    expect([win.style.width, win.style.height]).toEqual(["470px", "340px"]);
+    fireEvent.pointerMove(window, { clientX: -1000, clientY: -1000 });
+    expect([win.style.width, win.style.height]).toEqual(["260px", "140px"]);
+    fireEvent.pointerUp(window);
+    // Top left: the opposite corner stays where it is.
+    const right = parseFloat(win.style.left) + parseFloat(win.style.width), bottom = parseFloat(win.style.top) + parseFloat(win.style.height);
+    fireEvent.pointerDown(win, { clientX: 16, clientY: 58, button: 0 });
+    fireEvent.pointerMove(window, { clientX: 6, clientY: 48 });
+    expect(parseFloat(win.style.left) + parseFloat(win.style.width)).toBe(right);
+    expect(parseFloat(win.style.top) + parseFloat(win.style.height)).toBe(bottom);
+    expect(win.style.width).toBe("270px");
+    fireEvent.pointerUp(window);
+    // Away from a corner, a press inside the window resizes nothing.
+    fireEvent.pointerDown(win, { clientX: 100, clientY: 120, button: 0 });
+    fireEvent.pointerMove(window, { clientX: 0, clientY: 0 });
+    expect(win.style.width).toBe("270px");
+  });
+
+  it("brings the clicked window to the front", () => {
+    render(<ObjectMapView battery={hudba} dataOrigin={null} />);
+    fireEvent.click(openList().getByRole("button", { name: "Vybrat objekt Rock" }));
+    const list = dialog("Správa objektů")!, detail = dialog("Detail objektu / vztahu")!;
+    const z = (el: HTMLElement) => Number(el.style.zIndex || 400);
+    fireEvent.pointerDown(list);
+    expect(z(list)).toBeGreaterThan(z(detail));
+    fireEvent.pointerDown(detail);
+    expect(z(detail)).toBeGreaterThan(z(list));
+    expect(Math.min(z(list), z(detail))).toBeGreaterThan(400);
+  });
+
+  it("shows a pick from Správa objektů in a detail in front of the list, the first pick and every next one", () => {
+    render(<ObjectMapView battery={hudba} dataOrigin={null} />);
+    const z = (el: HTMLElement) => Number(el.style.zIndex || 400);
+    const pick = (name: string) => {
+      const button = within(dialog("Správa objektů")!).getByRole("button", { name });
+      // As a person's click: the press brings the list forward first.
+      fireEvent.pointerDown(button);
+      fireEvent.click(button);
+    };
+    openList();
+    pick("Vybrat objekt Rock");
+    expect(z(dialog("Detail objektu / vztahu")!)).toBeGreaterThan(z(dialog("Správa objektů")!));
+    pick("Vybrat objekt Jazz");
+    expect(z(dialog("Detail objektu / vztahu")!)).toBeGreaterThan(z(dialog("Správa objektů")!));
+  });
+
+  it("opens the detail on a click on the map, and closes it by its × and by a click on free ground", async () => {
+    render(<ObjectMapView battery={hudba} dataOrigin={null} />);
+    await nextFrame(0);
+    expect(dialog("Detail objektu / vztahu")).toBeNull();
+    clickNode(0);
+    expect(within(dialog("Detail objektu / vztahu")!).getByTestId("object-map-detail-label").textContent).toBe(hudba.objects.find((o) => o.id === map.object_ids[0])!.label);
+    fireEvent.click(screen.getByRole("button", { name: "Zavřít: Detail objektu / vztahu" }));
+    expect(dialog("Detail objektu / vztahu")).toBeNull();
+    await nextFrame();
+    clickNode(0);
+    expect(dialog("Detail objektu / vztahu")).toBeTruthy();
+    fireEvent.pointerDown(canvas(), { clientX: 2, clientY: 2, pointerId: 1 });
+    fireEvent.pointerUp(canvas(), { clientX: 2, clientY: 2, pointerId: 1 });
+    expect(dialog("Detail objektu / vztahu")).toBeNull();
+    expect(canvas().getAttribute("data-selected")).toBe("");
+  });
+
+  it("reaches every object by keyboard: the windows take the focus, the list is one button per object", () => {
+    render(<ObjectMapView battery={hudba} dataOrigin={null} />);
+    openSettings();
+    expect(document.activeElement).toBe(dialog("Nastavení mapy"));
+    fireEvent.click(screen.getByRole("button", { name: "Správa objektů" }));
+    const list = dialog("Správa objektů")!;
+    expect(document.activeElement).toBe(list);
+    const buttons = within(list).getAllByRole("button", { name: /^Vybrat objekt / });
+    expect(buttons).toHaveLength(map.object_ids.length);
+    for (const b of buttons) expect(b.tagName).toBe("BUTTON");
+    // Closed by its ×, the focus goes back to the dock button it came from.
+    fireEvent.click(within(list).getByRole("button", { name: "Zavřít: Správa objektů" }));
+    expect(document.activeElement).toBe(screen.getByRole("button", { name: "Nastavení mapy" }));
+  });
+
+  it("shows the map's facts and its stored quality behind the ⓘ pill", () => {
+    render(<ObjectMapView battery={hudba} dataOrigin={null} />);
+    const pill = screen.getByRole("button", { name: "Informace o mapě: Kvalita mapy 78 %" });
+    expect(pill.getAttribute("aria-expanded")).toBe("false");
+    expect(screen.queryByTestId("object-map-support")).toBeNull();
+    fireEvent.click(pill);
+    expect(pill.getAttribute("aria-expanded")).toBe("true");
+    const box = screen.getByTestId("object-map-info").textContent!;
+    expect(box).toContain("Hudební žánry");
+    expect(box).toContain("Kvalita mapy: 78 % (50 % = náhoda)");
+    expect(box).toContain("Dvojice: 62 spolehlivé · 4 slabé · 0 neznámé vztahy");
+    cleanup();
+    render(<ObjectMapView battery={sum} dataOrigin={null} />);
+    expect(screen.getByRole("button", { name: "Informace o mapě: ⚠ Slabě určená mapa" }).className).toContain("warn");
+  });
+
+  it("keeps every window, the dock and the ⓘ box inside the stage, so they stay in its full screen", () => {
+    render(<ObjectMapView battery={hudba} dataOrigin={null} />);
+    const s = stage();
+    Object.assign(s, { requestFullscreen: () => Promise.resolve() });
+    fireEvent.click(screen.getByRole("button", { name: "Celá obrazovka" }));
+    Object.defineProperty(document, "fullscreenElement", { configurable: true, value: s });
+    fireEvent(document, new Event("fullscreenchange"));
+    openInfo();
+    fireEvent.click(openList().getByRole("button", { name: "Vybrat objekt Rock" }));
+    const inside = [...screen.getAllByRole("dialog"), screen.getByRole("toolbar", { name: "Ovládání mapy" }), screen.getByTestId("object-map-info"), screen.getByTestId("object-map-legend")];
+    expect(inside).toHaveLength(5);
+    for (const el of inside) expect(s.contains(el)).toBe(true);
+    // Esc in full screen closes the windows, whatever has the focus.
+    fireEvent.keyDown(document.body, { key: "Escape" });
+    expect(dialog("Správa objektů")).toBeNull();
+    Object.defineProperty(document, "fullscreenElement", { configurable: true, value: null });
+  });
+});
+
+describe("the map's window: review follow-ups", () => {
+  const dialog = (name: string) => screen.queryByRole("dialog", { name });
+  const dialogs = () => screen.queryAllByRole("dialog").map((d) => d.getAttribute("aria-label"));
+  const box = (left: number, top: number, width: number, height: number) => ({ left, top, width, height, right: left + width, bottom: top + height, x: left, y: top, toJSON: () => ({}) }) as DOMRect;
+  /** A 900 x 700 stage (or each stage of a page), a work window at (13, 55; 430 x 300), the detail on the right. */
+  const layout = () => vi.spyOn(HTMLElement.prototype, "getBoundingClientRect").mockImplementation(function (this: HTMLElement) {
+    if (this.dataset.testid === "object-map-stage") return box(0, 0, 900, 700);
+    const id = this.dataset.window;
+    if (!id) return box(0, 0, 0, 0);
+    if (this.style.left) return box(parseFloat(this.style.left), parseFloat(this.style.top), parseFloat(this.style.width), parseFloat(this.style.height));
+    return id === "detail" ? box(456, 14, 430, 672) : box(13, 55, 430, 300);
+  });
+  /** A ResizeObserver the test drives: `resize(w, h)` tells the canvas its new box. */
+  const observer = () => {
+    const callbacks: ResizeObserverCallback[] = [];
+    vi.stubGlobal("ResizeObserver", class { constructor(cb: ResizeObserverCallback) { callbacks.push(cb); } observe() {} disconnect() {} unobserve() {} });
+    return (width: number, height: number) => act(() => { for (const cb of callbacks) cb([{ contentRect: { width, height } } as ResizeObserverEntry], {} as ResizeObserver); });
+  };
+  afterEach(() => { vi.unstubAllGlobals(); });
+  const clickNode = (k: number) => {
+    const at = nodeAt(k);
+    fireEvent.pointerDown(canvas(), { clientX: at.x, clientY: at.y, pointerId: 1 });
+    fireEvent.pointerUp(canvas(), { clientX: at.x, clientY: at.y, pointerId: 1 });
+  };
+
+  it("opens its windows under the dock, so a picked object's detail leaves the dock's buttons free", async () => {
+    // The dock's bar on one row (12 + 34), then wrapped onto two (12 + 80), as on a narrow stage;
+    // then the filter bar on a row of its own under it (to 140), then the ⓘ on the last row (to 175).
+    let barHeight = 34, filterBottom = 0, infoBottom = 0;
+    vi.spyOn(HTMLElement.prototype, "getBoundingClientRect").mockImplementation(function (this: HTMLElement) {
+      if (this.dataset.testid === "object-map-stage") return box(0, 0, 900, 700);
+      if (this.getAttribute("role") === "toolbar") return box(12, 12, 400, barHeight);
+      if (this.dataset.testid === "object-map-filter-status") return box(12, 0, 500, filterBottom);
+      if (this.classList.contains("omw-pill")) return box(12, 0, 120, infoBottom);
+      return box(0, 0, 0, 0);
+    });
+    const resize = observer();
+    render(<ObjectMapView battery={hudba} dataOrigin={null} />);
+    await nextFrame(0);
+    clickNode(0);
+    const stage = screen.getByTestId("object-map-stage");
+    expect(screen.getByTestId("object-map-detail")).toBeTruthy();
+    expect(stage.style.getPropertyValue("--omw-under-dock")).toBe("55px");
+    barHeight = 80;
+    resize(390, 700);
+    expect(stage.style.getPropertyValue("--omw-under-dock")).toBe("101px");
+    filterBottom = 140;
+    resize(390, 700);
+    expect(stage.style.getPropertyValue("--omw-under-dock")).toBe("149px");
+    infoBottom = 175;
+    resize(390, 700);
+    expect(stage.style.getPropertyValue("--omw-under-dock")).toBe("184px");
+    // Both kinds of window start there; the detail no longer starts at the stage's top, over the dock.
+    const css = readFileSync(join(process.cwd(), "src/components/rehome/research/object-map-windows.css"), "utf8");
+    for (const kind of ["work", "detail"]) {
+      expect(css).toMatch(new RegExp(`\\.omw-win--${kind} \\{[^}]*top: var\\(--omw-under-dock, 55px\\)`));
+    }
+  });
+
+  it("opens the detail beside the zoom column, so its buttons stay free while an object is picked", () => {
+    const css = readFileSync(join(process.cwd(), "src/components/rehome/research/object-map-windows.css"), "utf8");
+    const px = (rule: string, prop: string) => Number(new RegExp(`${rule} \\{[^}]*?\\b${prop}: (\\d+)px`).exec(css)?.[1]);
+    // The column's width: its buttons, its padding on both sides and its 1 px border.
+    const column = px("\\.omw-tools", "right") + px("\\.omw-tools button", "width") + 2 * px("\\.omw-tools", "padding") + 2;
+    const gutter = Number(/--omw-zoom-gutter: (\d+)px/.exec(css)?.[1]);
+    expect(gutter).toBeGreaterThanOrEqual(column + 8);
+    expect(css).toMatch(/\.omw-win--detail \{[^}]*right: var\(--omw-zoom-gutter\)/);
+    expect(css).toMatch(/\.omw-win--detail \{[^}]*width: min\(430px, calc\(100% - var\(--omw-zoom-gutter\) - 14px\)\)/);
+    // Narrow, the work windows span the stage up to the column too.
+    const narrow = /@media \(max-width: 850px\) \{\n((?:  .*\n)*)\}/.exec(css)?.[1] ?? "";
+    expect(narrow).toMatch(/\.omw-win--work \{[^}]*right: var\(--omw-zoom-gutter\)/);
+    // A stage too narrow for 260 px beside the column narrows its windows rather than covering it.
+    expect(narrow).toMatch(/\.omw-win \{ min-width: min\(260px, calc\(100% - var\(--omw-zoom-gutter\) - 8px\)\)/);
+  });
+
+  it("isolates the stage, so its windows stay under the page's header, toasts and dialogs", () => {
+    render(<ObjectMapView battery={hudba} dataOrigin={null} />);
+    expect(screen.getByTestId("object-map-stage").className.split(" ")).toContain("isolate");
+  });
+
+  it("keeps the detail open beside a work window, one work window at a time", async () => {
+    render(<ObjectMapView battery={hudba} dataOrigin={null} />);
+    await nextFrame(0);
+    clickNode(0);
+    const steps = [openSettings, openTools, openSettings, () => fireEvent.click(screen.getByRole("button", { name: "Správa objektů" }))];
+    for (const step of steps) {
+      step();
+      expect(dialogs()).toContain("Detail objektu / vztahu");
+      expect(dialogs()).toHaveLength(2);
+    }
+    expect(dialogs().sort()).toEqual(["Detail objektu / vztahu", "Správa objektů"]);
+    // Nastavení mapy stays pressed while its object list is open.
+    expect(screen.getByRole("button", { name: "Nastavení mapy" }).getAttribute("aria-pressed")).toBe("true");
+    expect(screen.getByRole("button", { name: "Nástroje" }).getAttribute("aria-pressed")).toBe("false");
+  });
+
+  it("closes the detail and Nástroje when the map changes", async () => {
+    render(<ObjectMapView battery={hudba} dataOrigin={null} />);
+    await nextFrame(0);
+    clickNode(0);
+    openTools();
+    expect(dialogs()).toHaveLength(2);
+    fireEvent.click(screen.getByRole("button", { name: "Respondenti" }));
+    expect(dialogs()).toEqual([]);
+  });
+
+  // Selection is the object map's (artifact-sociomap audit): on Respondenti the list only lists, so a
+  // click there neither selects nor marks, and a ringed respondent's profile stays as it is.
+  it("on the respondent map, a list click selects nothing and leaves the respondent's profile as it is", async () => {
+    render(<ObjectMapView battery={hudba} dataOrigin={null} />);
+    fireEvent.click(screen.getByRole("button", { name: "Respondenti" }));
+    await nextFrame(0);
+    const dots = panelDots(map, storedFrame(map)!);
+    const grid = densityGrid(map)!;
+    const P = projection(INITIAL_CAMERA, 900, 700);
+    const at = dots.map((d) => P.project(d.x, d.y, terrainAt(grid, d.x, d.y) + 0.65));
+    const lone = at.findIndex((q, k) => at.every((o, j) => j === k || Math.hypot(o.x - q.x, o.y - q.y) > 16));
+    fireEvent.pointerDown(canvas(), { clientX: at[lone].x, clientY: at[lone].y, pointerId: 1 });
+    fireEvent.pointerUp(canvas(), { clientX: at[lone].x, clientY: at[lone].y, pointerId: 1 });
+    expect(screen.getByTestId("object-map-detail-person").textContent).toBe(dots[lone].id);
+    const pop = openList().getAllByRole("button").find((b) => b.textContent!.startsWith("Pop"))!;
+    fireEvent.click(pop);
+    expect(screen.getByTestId("object-map-detail-person").textContent).toBe(dots[lone].id);
+    expect(canvas().getAttribute("data-person")).toBe(dots[lone].id);
+    expect(canvas().getAttribute("data-selected")).toBe("");
+    expect(pop.hasAttribute("aria-pressed")).toBe(false);
+  });
+
+  it("gives the focus back to what opened the detail when it closes by × or by Esc from inside it", async () => {
+    render(<ObjectMapView battery={hudba} dataOrigin={null} />);
+    await nextFrame(0);
+    clickNode(0);
+    fireEvent.click(screen.getByRole("button", { name: "Zavřít: Detail objektu / vztahu" }));
+    expect(document.activeElement).toBe(canvas());
+    const rock = openList().getByRole("button", { name: "Vybrat objekt Rock" });
+    fireEvent.click(rock);
+    const close = within(dialog("Detail objektu / vztahu")!).getByRole("button", { name: "Zavřít: Detail objektu / vztahu" });
+    close.focus();
+    fireEvent.keyDown(close, { key: "Escape" }); // the work window first
+    expect(dialog("Správa objektů")).toBeNull();
+    // The list button is gone with its window: the focus falls back to the canvas.
+    close.focus();
+    fireEvent.keyDown(close, { key: "Escape" });
+    expect(dialog("Detail objektu / vztahu")).toBeNull();
+    expect(document.activeElement).toBe(canvas());
+    // From the list, with the list still open: back to the list button.
+    const again = openList().getByRole("button", { name: "Vybrat objekt Rock" });
+    fireEvent.click(again); // clears
+    fireEvent.click(again); // opens
+    fireEvent.click(screen.getByRole("button", { name: "Zavřít: Detail objektu / vztahu" }));
+    expect(document.activeElement).toBe(again);
+  });
+
+  it("puts a touch-proof grip at each of a window's corners", () => {
+    render(<ObjectMapView battery={hudba} dataOrigin={null} />);
+    openSettings();
+    expect([...dialog("Nastavení mapy")!.querySelectorAll(".omw-grip")].map((g) => g.className)).toEqual(["omw-grip omw-grip--tl", "omw-grip omw-grip--tr", "omw-grip omw-grip--bl", "omw-grip omw-grip--br"]);
+  });
+
+  it("re-clamps a moved window, place and size, when the stage shrinks or leaves full screen", () => {
+    const resize = observer();
+    layout();
+    render(<ObjectMapView battery={hudba} dataOrigin={null} />);
+    resize(900, 700);
+    openSettings();
+    const win = dialog("Nastavení mapy")!;
+    fireEvent.pointerDown(screen.getByTestId("object-map-window-head-settings"), { clientX: 100, clientY: 70, button: 0 });
+    fireEvent.pointerMove(window, { clientX: 5000, clientY: 5000 });
+    fireEvent.pointerUp(window);
+    expect([win.style.left, win.style.top]).toEqual(["800px", "660px"]);
+    resize(600, 400);
+    expect([win.style.left, win.style.top]).toEqual(["500px", "360px"]);
+    resize(300, 200);
+    expect([win.style.width, win.style.height, win.style.left, win.style.top]).toEqual(["300px", "200px", "200px", "160px"]);
+    // Full screen and back: the stage's box changes, and the window follows it.
+    const stage = screen.getByTestId("object-map-stage");
+    Object.defineProperty(document, "fullscreenElement", { configurable: true, value: stage });
+    fireEvent(document, new Event("fullscreenchange"));
+    // In the larger box it is back where it was put (the place is kept, only its showing is clamped).
+    resize(1600, 1000);
+    expect([win.style.left, win.style.top, win.style.width, win.style.height]).toEqual(["800px", "660px", "430px", "300px"]);
+    Object.defineProperty(document, "fullscreenElement", { configurable: true, value: null });
+    fireEvent(document, new Event("fullscreenchange"));
+    resize(250, 150);
+    expect([win.style.left, win.style.top]).toEqual(["150px", "110px"]);
+  });
+
+  it("scopes Esc to its own map, and to nothing from a control outside the maps", () => {
+    render(<><button type="button">outside</button><ObjectMapView battery={hudba} dataOrigin={null} /><ObjectMapView battery={hudba} dataOrigin={null} /></>);
+    const [a, b] = screen.getAllByTestId("object-map-stage");
+    for (const button of screen.getAllByRole("button", { name: "Nastavení mapy" })) fireEvent.click(button);
+    expect(dialogs()).toEqual(["Nastavení mapy", "Nastavení mapy"]);
+    fireEvent.keyDown(screen.getByRole("button", { name: "outside" }), { key: "Escape" });
+    expect(dialogs()).toHaveLength(2);
+    fireEvent.keyDown(a, { key: "Escape" });
+    expect(within(a).queryByRole("dialog")).toBeNull();
+    expect(within(b).getByRole("dialog", { name: "Nastavení mapy" })).toBeTruthy();
+  });
+
+  it("ignores an Esc another handler took, and one typed in a field", () => {
+    render(<ObjectMapView battery={hudba} dataOrigin={null} />);
+    openSettings();
+    const stage = screen.getByTestId("object-map-stage");
+    const taken = (e: Event) => e.preventDefault();
+    stage.addEventListener("keydown", taken);
+    fireEvent.keyDown(stage, { key: "Escape" });
+    expect(dialog("Nastavení mapy")).toBeTruthy();
+    stage.removeEventListener("keydown", taken);
+    const field = document.createElement("input");
+    stage.appendChild(field);
+    fireEvent.keyDown(field, { key: "Escape" });
+    expect(dialog("Nastavení mapy")).toBeTruthy();
+    field.remove();
+    fireEvent.keyDown(stage, { key: "Escape" });
+    expect(dialog("Nastavení mapy")).toBeNull();
+  });
+
+  it("resizes from the top-right and bottom-left corners, bounded by the stage", () => {
+    layout();
+    render(<ObjectMapView battery={hudba} dataOrigin={null} />);
+    openSettings();
+    const win = dialog("Nastavení mapy")!;
+    const rect = () => [win.style.left, win.style.top, win.style.width, win.style.height].map(parseFloat);
+    // Top right (443, 55): the left and bottom edges stay.
+    fireEvent.pointerDown(win, { clientX: 440, clientY: 58, button: 0 });
+    fireEvent.pointerMove(window, { clientX: 470, clientY: 25 });
+    fireEvent.pointerUp(window);
+    expect(rect()).toEqual([13, 22, 460, 333]);
+    // Bottom left (13, 355): the right and top edges stay.
+    fireEvent.pointerDown(win, { clientX: 16, clientY: 352, button: 0 });
+    fireEvent.pointerMove(window, { clientX: 6, clientY: 402 });
+    fireEvent.pointerUp(window);
+    expect(rect()).toEqual([3, 22, 470, 383]);
+    // Never past the stage: the bottom right pulled far out stops at its edges.
+    fireEvent.pointerDown(win, { clientX: 470, clientY: 402, button: 0 });
+    fireEvent.pointerMove(window, { clientX: 5000, clientY: 5000 });
+    fireEvent.pointerUp(window);
+    expect(rect()).toEqual([3, 22, 897, 678]);
+    // Nor past its top or left edge.
+    fireEvent.pointerDown(win, { clientX: 6, clientY: 25, button: 0 });
+    fireEvent.pointerMove(window, { clientX: -5000, clientY: -5000 });
+    fireEvent.pointerUp(window);
+    expect(rect()).toEqual([0, 0, 900, 700]);
+  });
+
+  it("neither drags nor resizes with the right mouse button", () => {
+    layout();
+    render(<ObjectMapView battery={hudba} dataOrigin={null} />);
+    openSettings();
+    const win = dialog("Nastavení mapy")!;
+    fireEvent.pointerDown(screen.getByTestId("object-map-window-head-settings"), { clientX: 100, clientY: 70, button: 2 });
+    fireEvent.pointerMove(window, { clientX: 300, clientY: 170 });
+    fireEvent.pointerUp(window);
+    fireEvent.pointerDown(win, { clientX: 440, clientY: 352, button: 2 });
+    fireEvent.pointerMove(window, { clientX: 600, clientY: 500 });
+    fireEvent.pointerUp(window);
+    expect(win.getAttribute("style") ?? "").not.toMatch(/left|width/);
   });
 });
 
@@ -720,16 +1236,31 @@ describe("Export PNG", () => {
 describe("the Lead's names on the map", () => {
   it("names every listed object by its battery, and the Lead's focus finds it", () => {
     render(<ObjectMapView battery={hudba} dataOrigin={null} />);
-    const buttons = within(screen.getByTestId("object-map-panel-list")).getAllByRole("button");
+    const buttons = openList().getAllByRole("button");
     expect(buttons.map((b) => b.getAttribute("data-aia"))).toEqual(map.object_ids.map((id) => `object:hudba/${id}`));
     const target = `object:hudba/${map.object_ids[2]}`;
     expect(parseAiaId(target)?.stage).toBe("sociomap");
     expect(document.querySelector(focusSelector(target))).toBe(buttons[2]);
   });
 
+  it("opens Správa objektů when the Lead points at one of its objects, and only then", () => {
+    render(<ObjectMapView battery={hudba} dataOrigin={null} />);
+    const reveal = (target: string) => act(() => { window.dispatchEvent(new CustomEvent(LEAD_REVEAL, { detail: target })); });
+    const list = () => screen.queryByRole("dialog", { name: "Správa objektů" });
+    reveal(`object:${sum.battery_id}/${map.object_ids[2]}`);
+    reveal("question:q1");
+    expect(list()).toBeNull();
+    const target = `object:hudba/${map.object_ids[2]}`;
+    reveal(target);
+    expect(list()).toBeTruthy();
+    expect(document.querySelector(focusSelector(target))?.tagName).toBe("BUTTON");
+  });
+
   it("names the selected relation in the detail card, one pair id either way, and each object once", async () => {
     render(<ObjectMapView battery={hudba} dataOrigin={null} />);
     await nextFrame(0);
+    // The objects' one element each is their button in Správa objektů, open beside the detail.
+    openList();
     const nodes = map.object_ids.map((_, k) => nodeAt(k));
     const [, i, j, x, y] = (golden.scenes.relativeInitial.hits as [string, number, number, number, number, number][])
       .find((h) => h[0] === "relation" && nodes.every((q) => Math.hypot(q.x - h[3], q.y - h[4]) > 14))!;
@@ -749,14 +1280,15 @@ describe("the Lead's names on the map", () => {
   });
 });
 
-// Around the map (artifact-sociomap SOC3): the filter bar names what the toolbar changed and that the
-// computation did not; the legend names the four kinds of content.
+// On the map (artifact-sociomap SOC3): the filter bar beside the ⓘ names what the dock's windows changed
+// and that the computation did not; the ⓘ box names the four kinds of content.
 describe("the filter bar and the four registers", () => {
   const bar = () => screen.queryByTestId("object-map-filter-bar");
 
   it("shows no bar at the map's opening, and the four registers beside it", () => {
     render(<ObjectMapView battery={hudba} dataOrigin={null} />);
     expect(bar()).toBeNull();
+    openInfo();
     const registers = screen.getByTestId("object-map-registers");
     expect([...registers.querySelectorAll("[data-register]")].map((r) => r.getAttribute("data-register"))).toEqual(["computed", "display", "interpretation", "external"]);
     expect(registers.textContent).toContain("Deterministický výsledek");
@@ -766,12 +1298,16 @@ describe("the filter bar and the four registers", () => {
   it("names a display change and says what did not change, leaving the map's numbers as they were", () => {
     render(<ObjectMapView battery={hudba} dataOrigin={null} />);
     const list = () => within(screen.getByTestId("object-map-panel-list")).getAllByRole("button").map((b) => b.textContent);
+    openList();
     const before = list();
+    openTools();
     fireEvent.click(screen.getByRole("button", { name: "Vše" }));
+    openSettings();
     fireEvent.click(screen.getByRole("button", { name: "Absolutní" }));
     expect(bar()!.textContent).toContain("Filtr zobrazení: absolutní výšky, všechny vztahy.");
     expect(bar()!.textContent).toContain("Výpočet, polohy objektů, výšky, vztahy a věrohodnost mapy beze změny.");
     expect(bar()!.getAttribute("data-aia-filters")).toBe("norm:absolute relations:all");
+    fireEvent.click(screen.getByRole("button", { name: "Správa objektů" }));
     expect(list()).toEqual(before);
   });
 
@@ -783,14 +1319,16 @@ describe("the filter bar and the four registers", () => {
     expect(bar()).toBeNull();
     expect(canvas().getAttribute("data-map")).toBe("objects");
     expect(canvas().getAttribute("data-norm")).toBe("range");
-    expect(screen.getByRole("button", { name: "Top vztahy" }).getAttribute("aria-pressed")).toBe("true");
+    openTools();
+    expect(screen.getByRole("button", { name: "Top vztahy na mapě" }).getAttribute("aria-pressed")).toBe("true");
   });
 
-  it("keeps the keyboard in the toolbar when Zrušit filtr removes its own bar, and announces the bar from a live region already there", async () => {
+  it("keeps the keyboard in the dock when Zrušit filtr removes its own bar, and announces the bar from a live region already there", async () => {
     render(<ObjectMapView battery={hudba} dataOrigin={null} />);
     const live = screen.getByTestId("object-map-filter-status");
     expect(live.getAttribute("role")).toBe("status");
     expect(live.textContent).toBe("");
+    openSettings();
     fireEvent.click(screen.getByRole("button", { name: "Absolutní" }));
     expect(screen.getByTestId("object-map-filter-status")).toBe(live);
     expect(live.textContent).toContain("absolutní výšky");
@@ -810,7 +1348,7 @@ describe("the object list on the respondent map", () => {
   it("lists the objects without offering a selection the respondent map cannot show", () => {
     render(<ObjectMapView battery={hudba} dataOrigin={null} />);
     fireEvent.click(screen.getByRole("button", { name: "Respondenti" }));
-    const buttons = within(screen.getByTestId("object-map-panel-list")).getAllByRole("button");
+    const buttons = openList().getAllByRole("button");
     expect(buttons.length).toBe(map.object_ids.length);
     for (const b of buttons) expect(b.getAttribute("aria-disabled")).toBe("true");
     // Read only, yet still a target the Lead can focus (Codex, #639): a disabled button takes no focus.

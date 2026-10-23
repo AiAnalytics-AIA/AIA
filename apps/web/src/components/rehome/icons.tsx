@@ -3,7 +3,7 @@
 // and "↗" become these.
 
 export type IconName =
-  | "home" | "research" | "simulation" | "assistant" | "library" | "settings" | "command" | "projects"
+  | "home" | "research" | "simulation" | "assistant" | "comment" | "library" | "settings" | "command" | "projects"
   | "external" | "plus" | "search" | "pin" | "tag" | "copy" | "archive" | "trash" | "restore" | "back"
   | "attach" | "link" | "next" | "download" | "client" | "knowledge" | "data" | "memory" | "intelligence"
   | "pencil" | "minus" | "chevron" | "more" | "inspector"
@@ -14,6 +14,7 @@ const PATHS: Record<IconName, string> = {
   research: "M7 11.5a4.5 4.5 0 1 0 0-9 4.5 4.5 0 0 0 0 9ZM10.5 10.5 14 14",
   simulation: "M2 12.5c2-6 4-6 6 0s4 6 6 0M2 3.5h12",
   assistant: "M3 3.5h10v7H7l-3 2.5v-2.5H3z",
+  comment: "M3 3.5h10v7H7l-3 2.5v-2.5H3zM5.5 6h5M5.5 8h3",
   library: "M3 2.5v11M6.5 2.5v11M10 3l3 10.5",
   settings: "M8 10a2 2 0 1 0 0-4 2 2 0 0 0 0 4ZM8 1.5v2M8 12.5v2M1.5 8h2M12.5 8h2M3.4 3.4l1.4 1.4M11.2 11.2l1.4 1.4M3.4 12.6l1.4-1.4M11.2 4.8l1.4-1.4",
   command: "M3 4.5 6 8l-3 3.5M8 11.5h5",

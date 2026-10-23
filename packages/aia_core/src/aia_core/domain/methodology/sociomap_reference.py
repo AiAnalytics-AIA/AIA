@@ -82,7 +82,7 @@ _STEPS: Final[tuple[MethodStep, ...]] = (
         title_cs="Váhy respondentů",
         formula_latex=r"w_k \leftarrow w_k \cdot \frac{N}{\sum_l w_l}",
         implements="aia_core.domain.research_sociomap:battery_sociomap",
-        source_sha256="da40e7aa1a961d47d191e425dbb923f20af780e718e7fae597138a5d57ccc3db",
+        source_sha256="d23fd10d6521a6c8736e9241dc2a6ad21f90970f5221d9e269feff79192a2722",
         symbols=(Symbol(r"N", "počet respondentů baterie"),),
         evidence=(_rule("LEGACY-R2"), _legacy("project_engine.py:34-35 (vaha)")),
         tests=(
@@ -432,6 +432,6 @@ SOCIOMAP_REFERENCE: Final = MethodModule(
     note_cs=(
         "Výpočet 18.6.6 zachovaný přesně (fixtury F1-F9), aby šel porovnat s objektovou mapou. "
         "Audit u několika kroků uvádí vadu; náprava je objektová mapa. Referenční mapa se "
-        "needituje, aby zůstala referencí."
+        "needituje, aby zůstala referencí. Nové běhy ji nepočítají; čtou ji jen uložené běhy."
     ),
 )

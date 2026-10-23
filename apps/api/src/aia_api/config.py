@@ -11,6 +11,7 @@ from __future__ import annotations
 
 from functools import lru_cache
 from typing import Literal
+from urllib.parse import urlparse
 
 from aia_core.application.deep_research_pricing import DeepResearchPricingSettings
 from aia_core.domain.deployment import (
@@ -24,7 +25,7 @@ from aia_core.domain.fieldwork import FieldworkSource
 from aia_core.infrastructure.build_identity import BuildIdentity, parse_build_sha
 from aia_core.infrastructure.error_tracking import DSN_ENV, ErrorTrackingSettings
 from aia_core.infrastructure.storage_settings import StorageBackend, StorageSettings
-from pydantic import Field, field_validator
+from pydantic import Field, SecretStr, field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 # The deployment environment is the domain's, so the API and the worker read one list.
@@ -107,11 +108,24 @@ class Settings(BaseSettings):
     # §8); on for develop through its Compose default (deploy/develop/docker-compose.yml), by the
     # owner's D1, 2026-10-17.
     research_answerability_gate: bool = False
+    # The report editor, ONLYOFFICE Docs, at an origin of its own (plan report-editor-hosting;
+    # artifact-report RPT8): its public origin (AIA_ONLYOFFICE_URL, e.g. https://docs.<hostname>)
+    # and the secret it signs every request with (AIA_ONLYOFFICE_JWT_SECRET), from which the
+    # docs gate's own key is derived. Both unset (the default): the editor is off, the docs
+    # session routes answer 404, and Zpráva keeps its read-only pane.
+    onlyoffice_url: str = ""
+    onlyoffice_jwt_secret: SecretStr = SecretStr("")
     # Whether a new ``ai_runtime`` run draws its AI respondents from the population it records
     # (AIA_AI_POPULATION_PERSONAS_ENABLED, plan panel-grounded-respondents 5c). Pinned on the run at
     # start, so a retry keeps the original's; the worker composes the panel path behind the same
     # key and parks a panel run it cannot serve. Off by default: every run is the fictional roster.
     ai_population_personas_enabled: bool = False
+    # Whether a valid display condition passes readiness and a new run pins it, so its preflight
+    # reads the pin (AIA_ROUTING_ENABLED, working-copy-edit-ops WCE13 (d)). Off by default and off
+    # on develop too (its Compose file does not set it) until fieldwork routes by it
+    # (run-qc-and-checkpoint RQC11); until then fieldwork fails a routed run by name. Off, a
+    # conditional question fails readiness as it always has.
+    routing_enabled: bool = False
     # The read-only directory the population's bundles are under (AIA_POPULATION_ASSET_ROOT,
     # the worker's key), read here only by the audience step's preview (plan
     # panel-grounded-respondents 6c): the API loads LIVE once per process and version and
@@ -218,6 +232,39 @@ class Settings(BaseSettings):
     # Request body ceiling. Dataset uploads go through a dedicated upload path with
     # its own limit; this guards ordinary JSON endpoints.
     max_request_bytes: int = 2 * 1024 * 1024
+
+    @field_validator("onlyoffice_url")
+    @classmethod
+    def _check_onlyoffice_url(cls, value: str) -> str:
+        """An origin only: https and a host, nothing else -- a ticket's URL is built on it, and
+        the ticket exchange compares the Host a browser sends with it, which carries no port."""
+        origin = value.rstrip("/")
+        parsed = urlparse(origin)
+        if origin and (
+            parsed.scheme != "https"
+            or not parsed.hostname
+            or parsed.netloc != parsed.hostname
+            or parsed.path
+            or parsed.params
+            or parsed.query
+            or parsed.fragment
+        ):
+            raise ValueError(
+                "AIA_ONLYOFFICE_URL must be an https origin, e.g. https://docs.example"
+            )
+        return origin
+
+    @field_validator("onlyoffice_jwt_secret")
+    @classmethod
+    def _check_onlyoffice_secret(cls, value: SecretStr) -> SecretStr:
+        if 0 < len(value.get_secret_value()) < 32:
+            raise ValueError("AIA_ONLYOFFICE_JWT_SECRET must be at least 32 characters")
+        return value
+
+    @property
+    def docs_editor_on(self) -> bool:
+        """The report editor is configured: its origin and its secret are both set."""
+        return bool(self.onlyoffice_url and self.onlyoffice_jwt_secret.get_secret_value())
 
     @field_validator("build_sha", mode="before")
     @classmethod

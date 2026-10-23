@@ -16,6 +16,12 @@ from docx.text.paragraph import Paragraph as DocxParagraph
 
 from aia_core.domain.fieldwork import MODELLED_DISCLOSURE
 from aia_core.domain.report import numbers
+from aia_core.domain.report.control_tags import (
+    APPENDIX_COLUMNS,
+    appendix_tag,
+    base_n_tag,
+    value_tag,
+)
 from aia_core.domain.report.copy import method_status_text, t
 from aia_core.domain.report.evidence import PrintGrade
 from aia_core.domain.report.model import (
@@ -54,6 +60,7 @@ from aia_core.infrastructure.report_docx.ooxml import (
     full_width,
     header_row,
     keep_row,
+    locked_inline,
     notes_row,
 )
 from aia_core.infrastructure.report_docx.styles import S, kept_style, row_keeps
@@ -114,13 +121,15 @@ def base_text(ctx: RenderContext, ref: str) -> str:
 
 
 def write_value(ctx: RenderContext, p: DocxParagraph, ref: str, *, with_interval: bool) -> None:
-    """``42,5 % (38,1-46,9 %)`` in the numeral face, its grade mark, "orientační"."""
-    p.add_run(value_text(ctx, ref, with_interval=with_interval), style=S.NUMERAL)
-    p.add_run(numbers.NBSP)
-    write_mark(ctx, p, ref)
-    write_disclosure(ctx, p, (ref,))
-    if ctx.ledger.is_indicative(ref):
-        p.add_run(f" ({t('indicative')})", style=S.GRADE)
+    """``42,5 % (38,1-46,9 %)`` in the numeral face, its grade mark, "orientační": one locked
+    control tagged with the ref, so an editor keeps the number as AIA printed it (RPT8a)."""
+    with locked_inline(p, value_tag(ref)):
+        p.add_run(value_text(ctx, ref, with_interval=with_interval), style=S.NUMERAL)
+        p.add_run(numbers.NBSP)
+        write_mark(ctx, p, ref)
+        write_disclosure(ctx, p, (ref,))
+        if ctx.ledger.is_indicative(ref):
+            p.add_run(f" ({t('indicative')})", style=S.GRADE)
 
 
 def write_mark(ctx: RenderContext, p: DocxParagraph, ref: str) -> None:
@@ -278,7 +287,9 @@ def render_recommendation(ctx: RenderContext, container: Container, block: Recom
 
 
 def render_kpi_row(ctx: RenderContext, container: Container, block: KpiRow) -> None:
-    """Stat tiles in a borderless table: value and mark, label, then base n."""
+    """Stat tiles in a borderless table: value and mark, label, then base n. The value with its
+    marks is one locked control tagged with the ref; the line under it, the base n with the
+    interval and "orientační", one more tagged ``<ref>#n`` (RPT8a, P3)."""
     table = ctx.document.add_table(rows=1, cols=len(block.items))
     table.style = S.KPI_TABLE
     full_width(table)
@@ -286,17 +297,20 @@ def render_kpi_row(ctx: RenderContext, container: Container, block: KpiRow) -> N
         value = cell.paragraphs[0]
         value.style = S.KPI_VALUE
         row = ctx.ledger.row(kpi.ref)
-        value.add_run(numbers.with_unit(row.value, row.decimals, row.unit))
-        value.add_run(numbers.NBSP)
-        write_mark(ctx, value, kpi.ref)
-        write_disclosure(ctx, value, (kpi.ref,))
+        with locked_inline(value, value_tag(kpi.ref)):
+            value.add_run(numbers.with_unit(row.value, row.decimals, row.unit))
+            value.add_run(numbers.NBSP)
+            write_mark(ctx, value, kpi.ref)
+            write_disclosure(ctx, value, (kpi.ref,))
         cell.add_paragraph(kpi.label, style=S.KPI_LABEL)
-        base = base_text(ctx, kpi.ref)
-        if row.interval is not None:  # the tile's interval sits under it, never dropped
-            base += f"{t('separator')}{numbers.interval(row.interval, row.decimals, row.unit)}"
-        if ctx.ledger.is_indicative(kpi.ref):
-            base += f", {t('indicative')}"
-        cell.add_paragraph(base, style=S.KPI_LABEL)
+        base = cell.add_paragraph(style=S.KPI_LABEL)
+        with locked_inline(base, base_n_tag(kpi.ref)):
+            base.add_run(base_text(ctx, kpi.ref))
+            if row.interval is not None:  # the tile's interval sits under it, never dropped
+                base.add_run(t("separator"))
+                base.add_run(numbers.interval(row.interval, row.decimals, row.unit))
+            if ctx.ledger.is_indicative(kpi.ref):
+                base.add_run(f", {t('indicative')}")
 
 
 # ---------------------------------------------------------------------- evidence
@@ -375,12 +389,18 @@ def render_evidence_appendix(
         added = table.add_row()
         keep_row(added)
         cells = added.cells
-        for i, (cell, value) in enumerate(zip(cells, values, strict=True)):
+        # The appendix is regenerated, never edited: every cell of a ref's row locked and tagged
+        # ``appendix:<ref>#<column>`` (RPT8a, P6); the ref ids hold digits of their own.
+        for i, (cell, value, column) in enumerate(
+            zip(cells, values, APPENDIX_COLUMNS, strict=True)
+        ):
             cell.width = Emu(int(width * shares[i]))
-            cell.paragraphs[0].style = kept_style(
+            p = cell.paragraphs[0]
+            p.style = kept_style(
                 S.MONO if i == 0 else S.TABLE_NUMBER if i in numeric else S.TABLE, keep
             )
-            cell.paragraphs[0].add_run(value)
+            with locked_inline(p, appendix_tag(ref, column)):
+                p.add_run(value)
     if used:  # the legend, in the table's notes row
         legend = notes_row(table)
         for i, d in enumerate(used):

@@ -30,6 +30,7 @@ import {
   type SettingsDocument,
   type Study,
   type Vocabularies,
+  ApiError,
   Unauthenticated,
   admin,
 } from "@/lib/api";
@@ -55,7 +56,13 @@ const H = `${P}.history`;
 /** One part of the panel: its data, or why it is missing. A part never blanks the page. */
 export type Part<T> = { ok: true; data: T } | { ok: false; message: string };
 
-const describe = describeError;
+/** The OWNER guard's refusals (details.reason) said in Czech; any other refusal as given. */
+const OWNER_REFUSALS = new Set(["owner_only", "last_owner"]);
+function describe(e: unknown): string {
+  const reason = e instanceof ApiError ? e.details.reason : undefined;
+  if (typeof reason === "string" && OWNER_REFUSALS.has(reason)) return t(`${P}.members.refused.${reason}`);
+  return describeError(e);
+}
 
 async function part<T>(p: Promise<T>): Promise<Part<T>> {
   try {
@@ -93,7 +100,7 @@ async function loadRuntimeConfig(): Promise<RuntimeConfig> {
   return { switches: ai.switches, region: ai.region ?? null, model: ai.model ?? null, approvedClasses: ai.approvedClasses };
 }
 
-export async function loadPanel(): Promise<Panel> {
+async function loadPanel(): Promise<Panel> {
   const doc = await admin.settings();
   // A document without its groups is not a settings document; say so rather than
   // render an empty page that looks like "no settings".
@@ -126,7 +133,7 @@ const CONTROL_ICON: Record<SettingControl, IconName> = {
 };
 
 /** How a setting is changed. Icon and word, so it reads in greyscale too. */
-export function ControlBadge({ control }: { control: SettingControl }) {
+function ControlBadge({ control }: { control: SettingControl }) {
   return (
     <span title={t(`${P}.controlHelp.${control}`)} data-control={control} className="inline-flex shrink-0">
       <Tag icon={CONTROL_ICON[control]}>{t(`${P}.control.${control}`)}</Tag>
@@ -135,7 +142,7 @@ export function ControlBadge({ control }: { control: SettingControl }) {
 }
 
 /** A value. Null is "not configured" and looks like it: never blank, never zero. */
-export function Value({ value, unit }: { value: SettingValue; unit?: string | null }) {
+function Value({ value, unit }: { value: SettingValue; unit?: string | null }) {
   if (value === null) {
     return (
       <span data-value="null" className="rounded-sm border border-dashed border-border-strong px-1.5 text-xs text-ink-muted">
@@ -177,7 +184,7 @@ function ApiHint({ item }: { item: SettingItem }) {
   return <span className="text-xs text-ink-muted">{t(where === "projectApi" ? `${P}.onProjectApi` : `${P}.inPanel`)}</span>;
 }
 
-export function SettingRow({ item }: { item: SettingItem }) {
+function SettingRow({ item }: { item: SettingItem }) {
   return (
     <div data-setting={item.key} className="grid grid-cols-1 gap-1 border-t border-border py-2 first:border-t-0 md:grid-cols-[minmax(0,2fr)_minmax(0,2fr)_auto] md:items-center md:gap-4">
       <div className="min-w-0">
@@ -218,6 +225,8 @@ function Sub({ children }: { children: ReactNode }) {
 
 const TH = "px-2 py-1 text-left font-mono text-[11px] font-normal uppercase tracking-[0.08em] text-ink-faint";
 const TD = "px-2 py-1.5 align-top text-sm";
+// Below sm a column that would push a row's action out of view: its content is shown in the row's first cell or not at all.
+const WIDE = "hidden sm:table-cell";
 
 // ---------------------------------------------------------------- actions
 
@@ -290,8 +299,14 @@ function RoleSelect({ roles, label, prefix, initial }: { roles: string[]; label:
 
 // ---------------------------------------------------------------- panels
 
-function MembersPanel({ members, vocab, canAdminister, reload }: { members: Part<Member[]>; vocab: Vocabularies; canAdminister: boolean; reload: () => void }) {
+function MembersPanel({ members, vocab, canAdminister, yourRole, reload }: { members: Part<Member[]>; vocab: Vocabularies; canAdminister: boolean; yourRole: string; reload: () => void }) {
   const [editing, setEditing] = useState<string | null>(null);
+  // Only an OWNER grants or removes OWNER (the API refuses it, owner_only): anyone else is
+  // offered the other roles, and an OWNER's role stays as it is.
+  const owner = yourRole === "OWNER";
+  const roles = owner ? vocab.organization_roles : vocab.organization_roles.filter((r) => r !== "OWNER");
+  // The last active OWNER is not offered a demotion the API refuses (last_owner).
+  const activeOwners = members.ok ? members.data.filter((m) => m.is_active && m.organization_role === "OWNER").length : 0;
   return <div className="flex min-w-0 flex-col gap-3">
     <Sub>{t(`${P}.members.title`)}</Sub>
     <p className="text-sm leading-6 text-ink-muted">{t(`${P}.members.roleHelp`)}</p>
@@ -308,7 +323,9 @@ function MembersPanel({ members, vocab, canAdminister, reload }: { members: Part
         canAdminister && editing === m.user_id ? <tr key={`${m.user_id}-edit`} data-member-edit={m.user_id}><td colSpan={5} className="bg-surface-sunken px-3 py-3">
           <ActionForm submit={t(`${P}.save`)} reload={reload} run={(f) => admin.addMember({ email: m.email, display_name: str(f, "display_name"), role: str(f, "role") })}>
             <Field label={t(`${P}.members.name`)}><TextInput name="display_name" defaultValue={m.display_name} className="w-full sm:w-56" /></Field>
-            <Field label={t(`${P}.members.role`)}><RoleSelect roles={vocab.organization_roles} label={`${t(`${P}.members.role`)}: ${m.email}`} prefix="aia.orgRoles" initial={m.organization_role} /></Field>
+            {m.organization_role !== "OWNER" || (owner && activeOwners > 1)
+              ? <Field label={t(`${P}.members.role`)}><RoleSelect roles={roles} label={`${t(`${P}.members.role`)}: ${m.email}`} prefix="aia.orgRoles" initial={m.organization_role} /></Field>
+              : <Field label={t(`${P}.members.role`)}><input type="hidden" name="role" value="OWNER" /><span className="text-sm">{t("aia.orgRoles.OWNER")}</span><span className="text-xs text-ink-muted">{t(`${P}.members.${owner ? "lastOwner" : "ownerOnly"}`)}</span></Field>}
           </ActionForm>
           <p className="mt-2 text-xs leading-5 text-ink-muted">{t(`${P}.members.editHelp`)}</p>
         </td></tr> : null,
@@ -317,7 +334,7 @@ function MembersPanel({ members, vocab, canAdminister, reload }: { members: Part
     {canAdminister ? <div className="rounded-md border border-border bg-surface-sunken p-4"><h4 className="mb-3 text-sm font-semibold">{t(`${P}.members.add`)}</h4><ActionForm submit={t(`${P}.members.add`)} reload={reload} run={(f) => admin.addMember({ email: str(f, "email"), display_name: str(f, "display_name"), role: str(f, "role") })}>
       <Field label="E-mail"><TextInput name="email" type="email" required className="w-full sm:w-64" /></Field>
       <Field label={t(`${P}.members.name`)}><TextInput name="display_name" className="w-full sm:w-48" /></Field>
-      <Field label={t(`${P}.members.role`)}><RoleSelect roles={vocab.organization_roles} label={t(`${P}.members.role`)} prefix="aia.orgRoles" initial="MEMBER" /></Field>
+      <Field label={t(`${P}.members.role`)}><RoleSelect roles={roles} label={t(`${P}.members.role`)} prefix="aia.orgRoles" initial="MEMBER" /></Field>
     </ActionForm><p className="mt-3 text-xs leading-5 text-ink-muted">{t(`${P}.members.note`)}</p></div> : null}
   </div>;
 }
@@ -369,22 +386,28 @@ function StudiesPanel({ studies, clients, vocab, reload }: {
     <div className="flex flex-col gap-2">
       <TextInput type="search" aria-label={t(`${P}.studySearch`)} placeholder={t(`${P}.studySearchPlaceholder`)} value={query} onChange={(e) => setQuery(e.target.value)} />
       <div className="overflow-x-auto"><table className="w-full">
-        <thead><tr><th className={TH}>{t(`${P}.col.study`)}</th><th className={TH}>{t(`${P}.col.client`)}</th><th className={TH}>{t(`${P}.col.status`)}</th><th className={`${TH} text-right`}>{t(`${P}.col.budget`)}</th><th className={`${TH} text-right`}>{t(`${P}.col.spent`)}</th><th className={`${TH} text-right`}>{t(`${P}.col.remaining`)}</th><th className={TH} /></tr></thead>
+        <thead><tr><th className={TH}>{t(`${P}.col.study`)}</th><th className={`${TH} ${WIDE}`}>{t(`${P}.col.client`)}</th><th className={`${TH} ${WIDE}`}>{t(`${P}.col.status`)}</th><th className={`${TH} text-right`}>{t(`${P}.col.budget`)}</th><th className={`${TH} ${WIDE} text-right`}>{t(`${P}.col.spent`)}</th><th className={`${TH} ${WIDE} text-right`}>{t(`${P}.col.remaining`)}</th><th className={TH} /></tr></thead>
         <tbody className="divide-y divide-border">
           {studies.data.map(({ study, detail }) => {
             const costs = detail.ok && detail.data.budget_usd !== null ? detail.data : null;
             const shown = `${study.name} ${clientName.get(study.client_id) ?? ""}`.toLocaleLowerCase("cs").includes(q);
             const open = editing === study.study_id;
+            const client = clientName.get(study.client_id) ?? study.client_id;
+            const status = <Tag>{t(`aia.status.${study.status}`)}</Tag>;
             return [
               <tr key={study.study_id} hidden={!shown} data-study={study.study_id}>
-                <td className={`${TD} font-medium`}>{study.name}</td>
-                <td className={`${TD} text-ink-muted`}>{clientName.get(study.client_id) ?? study.client_id}</td>
-                <td className={TD}><Tag>{t(`aia.status.${study.status}`)}</Tag></td>
+                <td className={`${TD} font-medium`}>{study.name}<span className="mt-0.5 flex flex-wrap items-center gap-x-2 font-normal text-ink-muted sm:hidden">{client}{status}</span></td>
+                <td className={`${TD} ${WIDE} text-ink-muted`}>{client}</td>
+                <td className={`${TD} ${WIDE}`}>{status}</td>
                 {costs ? <>
                   <td className={`${TD} text-right`}><Value value={costs.budget_usd} unit="USD" /></td>
-                  <td className={`${TD} text-right`}><Value value={costs.spent_usd} unit="USD" /></td>
-                  <td className={`${TD} text-right`}><Value value={costs.remaining_usd} unit="USD" /></td>
-                </> : <td colSpan={3} className={`${TD} text-right`}><span title={detail.ok ? "" : detail.message} className="rounded-sm border border-dashed border-border-strong px-1.5 text-xs">{t(`${P}.studies.costsHidden`)}</span></td>}
+                  <td className={`${TD} ${WIDE} text-right`}><Value value={costs.spent_usd} unit="USD" /></td>
+                  <td className={`${TD} ${WIDE} text-right`}><Value value={costs.remaining_usd} unit="USD" /></td>
+                </> : <>
+                  {/* No colSpan: one spanning hidden columns would add grid columns below sm. */}
+                  <td className={`${TD} text-right`}><span title={detail.ok ? "" : detail.message} className="rounded-sm border border-dashed border-border-strong px-1.5 text-xs">{t(`${P}.studies.costsHidden`)}</span></td>
+                  <td className={WIDE} /><td className={WIDE} />
+                </>}
                 <td className={`${TD} text-right`}><Button small aria-expanded={open} onClick={() => setEditing(open ? null : study.study_id)}>{open ? t(`${P}.closeEdit`) : t(`${P}.edit`)}</Button></td>
               </tr>,
               // Filtered out, an open edit is hidden, never unmounted: a typed budget survives the search.
@@ -720,7 +743,7 @@ function AuditPanel({ audit, members }: { audit: Part<AuditEntry[]> | null; memb
   if (!audit.data.length) return <Empty>{t(`${P}.audit.none`)}</Empty>;
   const who = new Map(members.ok ? members.data.map((m) => [m.user_id, m.email]) : []);
   const person = (id: string | null) => (id ? (who.get(id) ?? id) : "—");
-  const names: Record<string, string> = { MEMBER_ADDED: "Přidání nebo úprava člena", USER_DEACTIVATED: "Deaktivace uživatele", CLIENT_CREATED: "Založení klienta", CLIENT_STATUS_CHANGED: "Změna stavu klienta", STUDY_CREATED: "Založení studie", STUDY_STATUS_CHANGED: "Změna stavu studie", STUDY_BUDGET_CHANGED: "Změna rozpočtu studie", STUDY_SPEND_CONFIRM_CHANGED: "Změna potvrzení útraty", SELF_APPROVAL_CONFIGURED: "Nastavení samoschválení", AIA_SESSION: "Přihlášení do AIA", PROMPT_ACTIVATED: "Aktivace systémového promptu", PROMPT_VERSION_CREATED: "Nová verze promptu", DR_TEST_POLICY_APPROVED: "Schválení testovacích pravidel rešerše", DR_TEST_POLICY_PROPOSED: "Návrh testovacích pravidel rešerše", CLIENT_GRANT: "Záznam přístupu ke klientovi", SELF_APPROVAL_CHANGED: "Změna samoschválení", ORGANIZATION_CREATED: "Založení organizace", AIA_SESSION_DENIED: "Odmítnuté přihlášení do AIA", IDENTITY_SUBJECT_CLEARED: "Uvolnění přihlašovací identity", PERMISSION_DENIED: "Odmítnutá akce", PROMPT_RESET_TO_BASELINE: "Návrat promptu na text z kódu", DR_SETTING_PROPOSED: "Návrh pravidla rešerše", DR_SETTING_APPROVED: "Schválení pravidla rešerše", DR_SETTING_WITHDRAWN: "Návrat pravidla rešerše na výchozí", METHODOLOGY_PROPOSED: "Nová verze metodiky", METHODOLOGY_ACTIVATED: "Uvedení metodiky v platnost", METHODOLOGY_RESET: "Návrat metodiky na verzi z kódu", CLIENT_KNOWLEDGE_AUTHORED: "Zápis znalosti klienta", CLIENT_KNOWLEDGE_DECIDED: "Rozhodnutí o návrhu znalosti" };
+  const names: Record<string, string> = { MEMBER_ADDED: "Přidání nebo úprava člena", USER_DEACTIVATED: "Deaktivace uživatele", CLIENT_CREATED: "Založení klienta", CLIENT_STATUS_CHANGED: "Změna stavu klienta", STUDY_CREATED: "Založení studie", STUDY_STATUS_CHANGED: "Změna stavu studie", STUDY_BUDGET_CHANGED: "Změna rozpočtu studie", STUDY_SPEND_CONFIRM_CHANGED: "Změna potvrzení útraty", SELF_APPROVAL_CONFIGURED: "Nastavení samoschválení", AIA_SESSION: "Přihlášení do AIA", PROMPT_ACTIVATED: "Aktivace systémového promptu", PROMPT_VERSION_CREATED: "Nová verze promptu", DR_TEST_POLICY_APPROVED: "Schválení testovacích pravidel rešerše", DR_TEST_POLICY_PROPOSED: "Návrh testovacích pravidel rešerše", CLIENT_GRANT: "Záznam přístupu ke klientovi", SELF_APPROVAL_CHANGED: "Změna samoschválení", ORGANIZATION_CREATED: "Založení organizace", AIA_SESSION_DENIED: "Odmítnuté přihlášení do AIA", MEMBER_ROLE_DENIED: "Odmítnutá změna role", IDENTITY_SUBJECT_CLEARED: "Uvolnění přihlašovací identity", PERMISSION_DENIED: "Odmítnutá akce", PROMPT_RESET_TO_BASELINE: "Návrat promptu na text z kódu", DR_SETTING_PROPOSED: "Návrh pravidla rešerše", DR_SETTING_APPROVED: "Schválení pravidla rešerše", DR_SETTING_WITHDRAWN: "Návrat pravidla rešerše na výchozí", METHODOLOGY_PROPOSED: "Nová verze metodiky", METHODOLOGY_ACTIVATED: "Uvedení metodiky v platnost", METHODOLOGY_RESET: "Návrat metodiky na verzi z kódu", CLIENT_KNOWLEDGE_AUTHORED: "Zápis znalosti klienta", CLIENT_KNOWLEDGE_DECIDED: "Rozhodnutí o návrhu znalosti" };
   const actors = [...new Set(audit.data.map((entry) => entry.actor_id).filter((id): id is string => !!id))].sort((left, right) => person(left).localeCompare(person(right), "cs"));
   const events = [...new Set(audit.data.map((entry) => entry.action))].sort((left, right) => (names[left] ?? left).localeCompare(names[right] ?? right, "cs"));
   const visible = audit.data.filter((e) => (!actor || e.actor_id === actor) && (!event || e.action === event) && `${names[e.action] ?? e.action} ${person(e.actor_id)} ${person(e.subject_user_id)} ${e.study_id ?? e.client_id ?? ""} ${e.reason ?? ""}`.toLocaleLowerCase("cs").includes(query.trim().toLocaleLowerCase("cs")));
@@ -789,7 +812,7 @@ function tabFromHash(): TabId | null {
   return (TABS as readonly string[]).includes(id) ? (id as TabId) : null;
 }
 
-export function PanelView({ panel, reload }: { panel: Panel; reload: () => void }) {
+function PanelView({ panel, reload }: { panel: Panel; reload: () => void }) {
   const { doc, runtime, members, clients, studies, levels, audit } = panel;
   const vocab = doc.vocabularies;
   const byKey = new Map(doc.groups.map((g) => [g.key, g]));
@@ -839,7 +862,7 @@ export function PanelView({ panel, reload }: { panel: Panel; reload: () => void 
     ai_history: <HistoryPanel vocab={vocab} items={byKey.get("ai_history")?.items ?? []} />,
     access: (
       <>
-        <MembersPanel members={members} vocab={vocab} canAdminister={doc.may_administer} reload={reload} />
+        <MembersPanel members={members} vocab={vocab} canAdminister={doc.may_administer} yourRole={doc.your_role} reload={reload} />
         <ClientsPanel clients={clients} vocab={vocab} canAdminister={doc.may_administer} reload={reload} />
       </>
     ),

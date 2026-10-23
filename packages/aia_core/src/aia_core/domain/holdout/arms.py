@@ -144,13 +144,11 @@ def arm_plans(
     """Every respondent's plan under ``arm``. ``exclusions`` maps an item id to the fields its
     respondents are not given (a block's is the union over its items); ``S`` needs a seed.
     ``blocks``, when given, are the requests asked, each a list of item ids, in order."""
-    if arm is Arm.S and shuffle_seed is None:
-        raise ArmRefused("the shuffled arm needs its seed", reason="arm_seed_missing")
-    shown = (
-        derangement([p.persona_id for p in personas.personas], shuffle_seed)  # type: ignore[arg-type]
-        if arm is Arm.S
-        else None
-    )
+    shown: dict[str, str] | None = None
+    if arm is Arm.S:
+        if shuffle_seed is None:
+            raise ArmRefused("the shuffled arm needs its seed", reason="arm_seed_missing")
+        shown = derangement([p.persona_id for p in personas.personas], shuffle_seed)
     plans = []
     for persona in personas.personas:
         base = plan_respondent(spec, persona)

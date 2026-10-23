@@ -16,6 +16,8 @@
 #                        until every service is healthy
 #   errors               GlitchTip (bin/errors.sh up) when AIA_ERRORS_ENABLED is true;
 #                        optional, a failure does not stop the deploy
+#   docs                 ONLYOFFICE Docs (bin/docs.sh up) when AIA_ONLYOFFICE_ENABLED is
+#                        true; optional, a failure does not stop the deploy
 #   smoke                bin/smoke.sh against the public hostname
 #
 # Nothing of NPC Panel 18.6.6 is pulled, synced, started or waited on (ADR 0018
@@ -148,6 +150,17 @@ if [ "${AIA_ERRORS_ENABLED:-false}" = "true" ]; then
   log "starting GlitchTip"
   if ! timeout --kill-after=30 360 "$DEPLOY_DIR/bin/errors.sh" up; then
     log "WARNING: GlitchTip did not start (above); errors are not tracked; the deploy goes on"
+  fi
+fi
+
+# ONLYOFFICE Docs, Zpráva's report editor (docs/docker-compose.yml), when SSM
+# aia_onlyoffice_enabled is true: started or updated after AIA is healthy, in a project of its
+# own. Optional like GlitchTip: without it Zpráva keeps its read-only pane. Its first start
+# generates fonts (about a minute, measured), hence the longer bound.
+if [ "${AIA_ONLYOFFICE_ENABLED:-false}" = "true" ]; then
+  log "starting the Document Server"
+  if ! timeout --kill-after=30 480 "$DEPLOY_DIR/bin/docs.sh" up; then
+    log "WARNING: the Document Server did not start (above); Zpráva stays read-only; the deploy goes on"
   fi
 fi
 
