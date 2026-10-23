@@ -1581,6 +1581,8 @@ export const cs = {
           newEmail: "E-mail nového člena",
           newRole: "Role nového člena",
           newHint: "Enter přidá · Esc zruší",
+          badEmail: "Zadejte e-mailovou adresu, např. jmeno@organizace.cz.",
+          selfDemoted: "Už nejste vlastník, a tak to sami nevrátíte: roli vlastníka vám může vrátit jiný vlastník.",
           add: "Přidat",
           cancel: "Zrušit",
           deactivateNotYet: "Deaktivace člena a štítek Metodik v AIA zatím nejsou.",
