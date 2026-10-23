@@ -790,7 +790,11 @@ class DeepResearchSettingsRepository:
                 reason="version_declined",
             ) from exc
         self._audit(
-            f"DR_SETTING_PROPOSAL_{kind}",
+            # Each code written out, so the content-free scrub's vocabulary sees it
+            # (test_content_free.py::test_every_audit_action_the_code_writes_is_a_kept_code).
+            "DR_SETTING_PROPOSAL_WITHDRAWN"
+            if kind == "WITHDRAWN"
+            else "DR_SETTING_PROPOSAL_DECLINED",
             reason=f"{key} v{version_number}",
             payload={
                 "key": key,

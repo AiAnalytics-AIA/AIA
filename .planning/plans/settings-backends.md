@@ -8,7 +8,7 @@ chunks:
   - "[x] SB5. Správa dat (study-data-lifecycle SDL3, client part): a client's deletion preview with counts and a confirm token, the irreversible delete (content gone, ledgers and audit kept under the client's id), the kept-records listing"
   - "[ ] SB6. Dosah (deep-research-web-search 52): the worker's Deep Research composition recorded at start, every route and connector as built, approved, active or refused with the reason; read in Settings"
   - "[ ] SB8. A pending Deep Research setting proposal withdrawn by its proposer or declined by another administrator (Settings' \"Stáhnout návrh\"): append-only, audited, never approved after; each version's state (#841)"
-  - "[ ] SB7. Profil → Pravidla (deep-research-web-search 53 storage + client-knowledge-lifecycle K11): the client's data posture and wallet ceiling, set by an OWNER or ADMIN, audited, listed read-only in Settings; a Deep Research run pins the posture"
+  - "[x] SB7. Profil → Pravidla (deep-research-web-search 53 storage + client-knowledge-lifecycle K11): the client's data posture and wallet ceiling, set by an OWNER or ADMIN, audited, listed read-only in Settings; a Deep Research run pins the posture"
 ---
 # Settings backends: what the redesigned Settings reads and writes
 
