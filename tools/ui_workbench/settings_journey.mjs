@@ -44,6 +44,11 @@ try {
   assert.equal(await page.locator("[data-tab-subtitle]:visible").count(), 10);
   for (const id of ["ai", "prompts", "deep_research", "methodology", "access", "studies", "audit", "system", "reference", "data"]) {
     const panel = await tab(id); await panel.locator("h2").first().waitFor();
+    if (id === "ai") {
+      for (const g of ["study", "run", "out", "dr", "client"]) assert.equal(await page.locator(`[data-ai-group="${g}"]`).count(), 1, `ai: group ${g}`);
+      assert.equal(await page.locator('[data-activity="run_qc"][data-state="not_built"]').count(), 1, "ai: a not-built activity says so");
+      await page.locator("#panel-ai [data-config]").waitFor();
+    }
     if (id === "prompts") {
       await page.getByLabel("Instrukce", { exact: true }).waitFor();
       assert.equal(await page.locator("[data-change-steps] li").count(), 3, "prompts: three steps of a change");

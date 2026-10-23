@@ -265,29 +265,21 @@ function SwitchWord({ value }: { value: boolean | null | undefined }) {
   return <span className="font-mono text-sm">{t(`${R}.switchValue.${value === null ? "invalid" : value ? "on" : "off"}`)}</span>;
 }
 
-function ConfigRow({ label, source, children }: { label: string; source: string; children: ReactNode }) {
-  return (
-    <div className="grid grid-cols-1 gap-1 border-t border-border py-2 first:border-t-0 md:grid-cols-[minmax(0,2fr)_minmax(0,3fr)] md:items-center md:gap-4">
-      <div className="min-w-0">
-        <div className="text-sm text-ink">{label}</div>
-        <Technical><code className="break-all text-[11px] text-ink-faint">{source}</code></Technical>
-      </div>
-      <div className="min-w-0 break-all">{children}</div>
-    </div>
-  );
-}
-
 function ActivityRow({ runtime, activity, switches }: { runtime: NativeRuntime; activity: NativeActivity; switches: SwitchValues | null }) {
   const state = activityState(runtime, activity, switches);
   const A = `${R}.activity.${activity.key}`;
   const named = switchFor(state);
+  // The switch this activity has of its own; the master switch is said once, above the table.
+  const own = activity.switches.filter((x) => x !== runtime.switch);
   return (
-    <tr data-activity={activity.key} data-state={state.kind}>
+    <tr data-activity={activity.key} data-state={state.kind} className={state.kind === "configured" ? "" : "text-ink-muted"}>
       <td className={`${TD} min-w-48`}>
         <h3 className="text-sm font-semibold text-ink">{t(`${A}.title`)}</h3>
         <p className="mt-0.5 text-[13px] leading-5 text-ink-muted">{t(`${A}.text`)}</p>
       </td>
       <td className={`${TD} whitespace-nowrap`}><Chip tone={STATE_TONE[state.kind]}>{t(`${R}.state.${state.kind}`)}</Chip></td>
+      <td className={`${TD} break-all font-mono text-xs`}>{(own.length ? own : [runtime.switch]).join(" + ")}</td>
+      <td className={`${TD} text-xs`}>{t(`${R}.modelOf.${activity.key}`)}</td>
       <td className={TD}>
         <p data-reason className="break-words text-sm text-ink">{reasonFor(state, activity)}</p>
         <Technical>
@@ -305,21 +297,111 @@ function ActivityRow({ runtime, activity, switches }: { runtime: NativeRuntime; 
   );
 }
 
-/** Code facts from the settings document beside the deployment's switches from /config. */
+/** Where an activity sits on the AI běh board (the redesign's groups). */
+const GROUP_OF: Record<string, string> = {
+  study_lead: "study", design_agents: "study",
+  respondent_fieldwork: "run", research_analysis: "run",
+  deep_research: "dr", deep_research_lead: "dr",
+};
+const GROUPS = ["study", "run", "out", "dr", "client"] as const;
+/**
+ * Activities the settings document does not list yet: their switch is read by the worker, not by
+ * /config, so their state is unknown here, never on or off; and two not built at all. Each names
+ * its switch and what it runs on, from the code.
+ */
+const LISTED_ONLY: { key: string; group: (typeof GROUPS)[number]; switch: string; built: boolean }[] = [
+  { key: "lead_plans", group: "study", switch: "AIA_LEAD_PLANS_ENABLED", built: false },
+  { key: "population_personas", group: "run", switch: "AIA_AI_POPULATION_PERSONAS_ENABLED", built: true },
+  { key: "run_qc", group: "run", switch: "AIA_RUN_QC_ENABLED", built: false },
+  { key: "report_pdf", group: "out", switch: "AIA_REPORT_PDF_ENABLED", built: true },
+  { key: "client_source_proposals", group: "client", switch: "AIA_AI_CLIENT_SOURCE_PROPOSALS_ENABLED", built: true },
+];
+
+function ListedOnlyRow({ entry }: { entry: (typeof LISTED_ONLY)[number] }) {
+  const A = `${R}.activity.${entry.key}`;
+  return (
+    <tr data-activity={entry.key} data-state={entry.built ? "unread" : "not_built"} className="text-ink-muted">
+      <td className={`${TD} min-w-48`}>
+        <h3 className="text-sm font-semibold text-ink">{t(`${A}.title`)}</h3>
+        <p className="mt-0.5 text-[13px] leading-5 text-ink-muted">{t(`${A}.text`)}</p>
+      </td>
+      <td className={`${TD} whitespace-nowrap`}><Chip tone="neutral">{t(`${R}.state.${entry.built ? "unread" : "not_built"}`)}</Chip></td>
+      <td className={`${TD} break-all font-mono text-xs`}>{entry.switch}</td>
+      <td className={`${TD} text-xs`}>{t(`${R}.modelOf.${entry.key}`)}</td>
+      <td className={TD}><p data-reason className="break-words text-sm text-ink-muted">{t(`${R}.reason.${entry.built ? "unread" : "notBuilt"}`)}</p></td>
+    </tr>
+  );
+}
+
+function Tile({ label, children, note }: { label: string; children: ReactNode; note?: ReactNode }) {
+  return (
+    <div className="min-w-0 rounded-md border border-border px-3.5 py-3">
+      <div className="text-xs text-ink-faint">{label}</div>
+      <div className="mt-1 break-words text-sm font-medium">{children}</div>
+      {note ? <div className="mt-0.5 text-xs text-ink-muted">{note}</div> : null}
+    </div>
+  );
+}
+
+/** Code facts from the settings document beside the deployment's switches from /config: AI běh. */
 function RuntimePanel({ runtime, config, vocab }: { runtime: NativeRuntime; config: Part<RuntimeConfig>; vocab: Vocabularies }) {
   const switches = config.ok ? config.data.switches : null;
   const providers = runtime.providers.map((p) => p.label).join(", ");
+  const states = runtime.activities.map((a) => activityState(runtime, a, switches).kind);
+  const region = config.ok ? config.data.region : null;
   return (
     <div className="flex flex-col gap-4">
+      <div className="flex flex-wrap items-center gap-2">
+        <span className="inline-flex min-h-[22px] items-center rounded-pill border border-border px-2 text-xs text-ink-muted">{t(`${R}.readOnlyChip`)}</span>
+      </div>
       <div className="flex max-w-3xl flex-col gap-1 text-sm">
         <p>{tv(`${R}.powers`, { provider: providers })}</p>
         <p>{t(`${R}.credential.${runtime.credential}`)}</p>
       </div>
-      <div className="flex flex-col gap-2">
-        <Sub>{t(`${R}.activities`)}</Sub>
+      <section data-config aria-labelledby="ai-route-h" className="rounded-md border border-border p-4">
+        <div className="flex flex-wrap items-baseline justify-between gap-2">
+          <h3 id="ai-route-h" className="text-sm font-semibold">{t(`${R}.route`)}</h3>
+          <Technical><span className="text-[11px] text-ink-faint">{t(`${R}.configSource`)}</span></Technical>
+        </div>
+        {config.ok ? (
+          <div className="mt-2.5 grid grid-cols-[repeat(auto-fill,minmax(13rem,1fr))] gap-2.5">
+            <Tile label={t(`${R}.switchLabel`)} note={<Technical><code className="break-all">{runtime.switch}</code></Technical>}><SwitchWord value={config.data.switches[runtime.switch]} /></Tile>
+            <Tile label={t(`${R}.provider`)}>{providers}</Tile>
+            <Tile label={t(`${R}.region`)} note={region === null ? null : region.startsWith("eu-") ? t(`${R}.inEu`) : t(`${R}.notEu`)}><Value value={region} /></Tile>
+            <Tile label={t(`${R}.model`)} note={<Technical><code>AIA_BEDROCK_MODEL_ID</code></Technical>}><Value value={config.data.model} /></Tile>
+            <Tile label={t(`${R}.approved`)}>
+              {config.data.approvedClasses.length ? (
+                <ul className="flex flex-col gap-0.5">
+                  {approvedClasses(config.data.approvedClasses, vocab.data_classes).map((c) => (
+                    <li key={c.id} className="text-sm font-normal">
+                      <Technical><code className="mr-1 text-xs">{c.id}</code></Technical>
+                      <span className={c.known ? "text-ink" : "text-status-fault"}>{c.known ? t(`${P}.dataClass.${c.id}`) : `${c.id}: ${t(`${R}.unknownClass`)}`}</span>
+                    </li>
+                  ))}
+                </ul>
+              ) : <span className="text-sm font-normal text-ink-muted">{t(`${R}.approvedNone`)}</span>}
+            </Tile>
+          </div>
+        ) : <Unavailable what={t(`${R}.config`)} message={`${config.message} ${t(`${R}.configUnavailable`)}`} />}
+        <p className="mt-2.5 text-xs leading-5 text-ink-muted">{t(`${R}.whoChanges`)}</p>
+      </section>
+      <section aria-labelledby="ai-acts-h" className="flex flex-col gap-2">
+        <div className="flex flex-wrap items-center gap-2">
+          <h3 id="ai-acts-h" className="text-sm font-semibold">{t(`${R}.activities`)}</h3>
+          <span data-count="on" className="inline-flex min-h-[22px] items-center rounded-pill border border-border px-2 text-xs">{tv(`${R}.count.on`, { n: states.filter((k) => k === "configured").length })}</span>
+          <span data-count="off" className="inline-flex min-h-[22px] items-center rounded-pill border border-border px-2 text-xs">{tv(`${R}.count.off`, { n: states.filter((k) => k === "off").length })}</span>
+          <span data-count="new" className="inline-flex min-h-[22px] items-center rounded-pill border border-dashed border-border-strong px-2 text-xs text-ink-muted">{tv(`${R}.count.notBuilt`, { n: LISTED_ONLY.filter((e) => !e.built).length })}</span>
+        </div>
+        <p className="max-w-3xl text-xs leading-5 text-ink-muted">{t(`${R}.activitiesHelp`)}</p>
         <div className="overflow-x-auto"><table className="w-full">
-          <thead><tr><th className={TH}>{t(`${P}.col.capability`)}</th><th className={TH}>{t(`${P}.col.state`)}</th><th className={TH}>{t(`${P}.col.why`)}</th></tr></thead>
-          <tbody className="divide-y divide-border">{runtime.activities.map((a) => <ActivityRow key={a.key} runtime={runtime} activity={a} switches={switches} />)}</tbody>
+          <thead><tr><th className={TH}>{t(`${P}.col.capability`)}</th><th className={TH}>{t(`${P}.col.state`)}</th><th className={TH}>{t(`${R}.col.switch`)}</th><th className={TH}>{t(`${R}.col.model`)}</th><th className={TH}>{t(`${P}.col.why`)}</th></tr></thead>
+          {GROUPS.map((g) => (
+            <tbody key={g} data-ai-group={g} className="divide-y divide-border">
+              <tr><th colSpan={5} scope="colgroup" className="px-2 pb-1 pt-4 text-left text-[11px] font-normal uppercase tracking-[0.06em] text-ink-faint">{t(`${R}.group.${g}`)}</th></tr>
+              {runtime.activities.filter((a) => (GROUP_OF[a.key] ?? "run") === g).map((a) => <ActivityRow key={a.key} runtime={runtime} activity={a} switches={switches} />)}
+              {LISTED_ONLY.filter((e) => e.group === g && !runtime.activities.some((a) => a.key === e.key)).map((e) => <ListedOnlyRow key={e.key} entry={e} />)}
+            </tbody>
+          ))}
         </table></div>
         {runtime.unused_capabilities.length ? (
           <Technical>
@@ -330,32 +412,7 @@ function RuntimePanel({ runtime, config, vocab }: { runtime: NativeRuntime; conf
             </div>
           </Technical>
         ) : null}
-      </div>
-      <div data-config className="rounded-sm border border-border p-3">
-        <div className="flex flex-wrap items-baseline justify-between gap-2">
-          <Sub>{t(`${R}.config`)}</Sub>
-          <Technical><span className="text-[11px] text-ink-faint">{t(`${R}.configSource`)}</span></Technical>
-        </div>
-        {config.ok ? (
-          <div className="mt-1">
-            <ConfigRow label={t(`${R}.switchLabel`)} source={runtime.switch}><SwitchWord value={config.data.switches[runtime.switch]} /></ConfigRow>
-            <ConfigRow label={t(`${R}.region`)} source="AIA_BEDROCK_REGION"><Value value={config.data.region} /></ConfigRow>
-            <ConfigRow label={t(`${R}.model`)} source="AIA_BEDROCK_MODEL_ID"><Value value={config.data.model} /></ConfigRow>
-            <ConfigRow label={t(`${R}.approved`)} source="AIA_AI_ROUTE_APPROVED_FOR">
-              {config.data.approvedClasses.length ? (
-                <ul className="flex flex-col gap-0.5">
-                  {approvedClasses(config.data.approvedClasses, vocab.data_classes).map((c) => (
-                    <li key={c.id} className="text-sm">
-                      <Technical><code className="mr-1 text-xs">{c.id}</code></Technical>
-                      <span className={c.known ? "text-ink" : "text-status-fault"}>{c.known ? t(`${P}.dataClass.${c.id}`) : `${c.id}: ${t(`${R}.unknownClass`)}`}</span>
-                    </li>
-                  ))}
-                </ul>
-              ) : <span className="text-sm text-ink-muted">{t(`${R}.approvedNone`)}</span>}
-            </ConfigRow>
-          </div>
-        ) : <Unavailable what={t(`${R}.config`)} message={`${config.message} ${t(`${R}.configUnavailable`)}`} />}
-      </div>
+      </section>
       <p role="note" data-not-verified className="rounded-sm border border-border bg-surface-sunken p-3 text-sm text-ink">{t(`${R}.notVerified`)}</p>
     </div>
   );

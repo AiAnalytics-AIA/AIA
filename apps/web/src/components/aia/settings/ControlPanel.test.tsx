@@ -491,6 +491,33 @@ describe("what powers AIA", () => {
     expect(elsewhere()).toEqual([]);
   });
 
+  it("groups the activities by where AI works, counts them, and lists what /config cannot read as unknown, never off", async () => {
+    api();
+    render(<ControlPanel />);
+    await waitFor(() => expect(card("respondent_fieldwork")).toBeTruthy());
+    const group = (g: string) => section("ai").querySelector(`[data-ai-group="${g}"]`) as HTMLElement;
+    expect(within(group("study")).getByText("Návrh studie")).toBeTruthy();
+    expect(group("study").querySelector('[data-activity="design_agents"]')).toBeTruthy();
+    expect(group("run").querySelector('[data-activity="respondent_fieldwork"]')).toBeTruthy();
+    // Listed from the code, its switch not readable here: unknown, never off.
+    const personas = card("population_personas");
+    expect(personas.getAttribute("data-state")).toBe("unread");
+    expect(within(personas).getByText("Stav nevidíme")).toBeTruthy();
+    expect(within(personas).getByText("AIA_AI_POPULATION_PERSONAS_ENABLED")).toBeTruthy();
+    expect(card("run_qc").getAttribute("data-state")).toBe("not_built");
+    expect(within(card("run_qc")).getByText("Nepostaveno")).toBeTruthy();
+    expect(group("out").querySelector('[data-activity="report_pdf"]')).toBeTruthy();
+    expect(group("client").querySelector('[data-activity="client_source_proposals"]')).toBeTruthy();
+    // Fieldwork's own switch column and model, and its words no longer say every respondent is fictional.
+    expect(within(card("design_agents")).getByText("AIA_AI_RESEARCH_AGENTS_ENABLED")).toBeTruthy();
+    expect(within(card("respondent_fieldwork")).getByText(/fiktivní, nebo z populace/)).toBeTruthy();
+    expect(section("ai").querySelector('[data-count="on"]')?.textContent).toBe("1 zapnuto");
+    expect(section("ai").querySelector('[data-count="off"]')?.textContent).toBe("1 vypnuto");
+    expect(section("ai").querySelector('[data-count="new"]')?.textContent).toBe("2 nové, zatím nepostavené");
+    expect(within(section("ai")).getByText("Spravuje nasazení · jen ke čtení")).toBeTruthy();
+    expect(within(section("ai").querySelector("[data-config]") as HTMLElement).getByText("oblast v EU: data zůstávají v EU")).toBeTruthy();
+  });
+
   it("the runtime off: says which switch and what happens, and never suggests a login", async () => {
     technicalOn();
     api({ "GET /config": () => CONFIG({ enabled: false, switches: { AIA_AI_RUNTIME_ENABLED: false, AIA_AI_RESEARCH_AGENTS_ENABLED: true } }) });

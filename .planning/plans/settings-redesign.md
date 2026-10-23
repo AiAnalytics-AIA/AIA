@@ -8,7 +8,7 @@ chunks:
   - "[x] 4. Studie a rozpočty: the four money names, steppers with bounds, % and near-limit (90 %), spend tiles and per-researcher spend"
   - "[x] 5. Systémové prompty: grouped list, editor layout, in-force version in green, Verze table"
   - "[x] 6. Deep Research: Dosah, proposals in the Návrh cell, I7 modals, Pevné ochrany v kódu"
-  - "[ ] 7. AI běh: route tiles, activities grouped with descriptions, the missing activities"
+  - "[x] 7. AI běh: route tiles, activities grouped with descriptions, the missing activities"
   - "[ ] 8. Audit: categories with counts, period, search, Czech names for every action code"
   - "[ ] 9. Reference: categories, Kdo mění filter, Co znamená column"
   - "[ ] 10. Metodika: module cards with drawings and accent colours (no stage filter), -5 only, editor from the version in force, activation modal with reason chips"
@@ -78,3 +78,8 @@ https://claude.ai/artifact/8W9LR8Ju9BWnR5JACmiWv7 (ten boards, one per tab) and 
   server sends it; until #841 merges, the route answers 404 and the refusal is said in the modal.
 - Chunk 6 keeps the group list beside the rules (the catalogue has ~40 rules; the design's flat table
   had 8) and puts the design's columns in each group: Pravidlo, V platnosti, Návrh, Schválení.
+- Chunk 7 lists five activities the settings document does not carry (Lead plans and the run's
+  quality check, not built; population personas, the report PDF and client-source proposals, built).
+  /config does not read their switches, so the built ones read "Stav nevidíme", never on or off. Their
+  state belongs in the settings document's `ai_runtime` (backend follow-up), with their data classes;
+  until then the board has no data-class column, rather than one written by hand.

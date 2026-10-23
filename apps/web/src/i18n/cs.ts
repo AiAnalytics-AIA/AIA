@@ -1741,6 +1741,28 @@ export const cs = {
           configUnavailable: "Konfiguraci nasazení se nepodařilo načíst, takže stránka o stavu AI nic netvrdí.",
           configMissing: "/config nevrátil přepínače AI.",
           switchLabel: "Hlavní přepínač AI",
+          readOnlyChip: "Spravuje nasazení · jen ke čtení",
+          route: "Trasa modelu",
+          provider: "Poskytovatel",
+          inEu: "oblast v EU: data zůstávají v EU",
+          notEu: "oblast mimo EU",
+          whoChanges: "Kdo mění: operátor nasazení, klíče AIA_AI_* a AIA_BEDROCK_* v SSM; postup je v runbooku nasazení. Tato stránka nic nepřepíná.",
+          activitiesHelp: "Seskupeno podle toho, kde AI pracuje. „Zapnuto v konfiguraci“ znamená zapnuto v konfiguraci nasazení; že volání modelu opravdu projde, tato stránka neověřuje.",
+          count: { on: "{n} zapnuto", off: "{n} vypnuto", notBuilt: "{n} nové, zatím nepostavené" },
+          group: { study: "Návrh studie", run: "Běh a analýza", out: "Výstupy", dr: "Rešerše", client: "Klient" },
+          modelOf: {
+            study_lead: "vlastní model Vedoucího, je-li nastaven (AIA_AI_RESEARCH_LEAD_MODEL_ID); jinak model trasy",
+            design_agents: "model trasy",
+            respondent_fieldwork: "model trasy",
+            research_analysis: "model trasy",
+            deep_research: "model trasy a trasy vyhledávání (viz Deep Research)",
+            deep_research_lead: "model trasy, vlastní položka v politice modelů",
+            lead_plans: "—",
+            population_personas: "model trasy",
+            run_qc: "—",
+            report_pdf: "LibreOffice ve workeru, bez modelu",
+            client_source_proposals: "model trasy",
+          },
           region: "Zdrojová oblast",
           model: "Model (inferenční profil)",
           approved: "Schválené třídy dat",
@@ -1748,12 +1770,14 @@ export const cs = {
           unknownClass: "neznámá třída; zapnutý worker se s ní nespustí",
           switchValue: { on: "zapnuto", off: "vypnuto", invalid: "neplatná hodnota" },
           activities: "Co AI v AIA dělá",
-          col: { what: "Schopnost", state: "Stav v tomto nasazení", uses: "Žádá o", versions: "Verze", switches: "Přepínače" },
+          col: { what: "Schopnost", state: "Stav v tomto nasazení", uses: "Žádá o", versions: "Verze", switches: "Přepínače", switch: "Přepínač (operátor)", model: "Model" },
           state: {
             configured: "Zapnuto v konfiguraci",
             off: "Vypnuto",
             invalid: "Neplatná konfigurace",
             unknown: "Neznámé",
+            unread: "Stav nevidíme",
+            not_built: "Nepostaveno",
           },
           reason: {
             configured: "Nasazení ji zapíná. Neověřeno: tato stránka nevolá model.",
@@ -1764,6 +1788,8 @@ export const cs = {
             switchNamed: "Přepínač: {switch}",
             switchNeeds: "Přepínač: {switch} · chybí: {needs}",
             unknownConfig: "Konfiguraci nasazení se nepodařilo načíst, takže nic netvrdí.",
+            unread: "Tento přepínač čte worker, stránka ho z nasazení nedostává, takže o stavu nic netvrdí.",
+            notBuilt: "Činnost je v plánu, ale v AIA zatím není; přepínač zatím nic nezapíná.",
           },
           activity: {
             research_analysis: {
@@ -1773,7 +1799,7 @@ export const cs = {
             },
             respondent_fieldwork: {
               title: "Sběr dat AI respondenty",
-              text: "Fiktivní respondenti odpovídají na dotazník běhu výzkumu. Model vrací jen pravděpodobnosti odpovědí; fakta a výsledné odpovědi určuje kód. Data jsou označená jako fiktivní a nejsou zjištěním.",
+              text: "AI respondenti odpovídají na dotazník běhu: fiktivní, nebo z populace, jak si běh připnul. Model vrací jen pravděpodobnosti odpovědí; fakta a výsledné odpovědi určuje kód. Data fiktivních respondentů jsou označená jako fiktivní, data z populace jako modelovaná; ani jedno není zjištěním z terénu.",
               off: "Běh výzkumu počká u sběru dat a modelu se nic neodešle.",
             },
             design_agents: {
@@ -1790,6 +1816,26 @@ export const cs = {
               title: "Vedoucí výzkumník Deep Research",
               text: "Plánuje výzkum řízený agenty: témata podle úsilí, úkoly ve vlnách a nové plánování po každé vlně. Má vlastní položku v politice modelů.",
               off: "Výzkum řízený agenty plánují stopy plánovače, jako dřív.",
+            },
+            lead_plans: {
+              title: "Plán Vedoucího a peněženka",
+              text: "Plán placené práce, který Vedoucí připraví a výzkumník schválí v rámci peněženky studie.",
+            },
+            population_personas: {
+              title: "AI respondenti z populace",
+              text: "Běh smí nabídnout respondenty podle panelu populace; data z nich jsou modelovaná. Bez přepínače odpovídají jen fiktivní respondenti.",
+            },
+            run_qc: {
+              title: "Kontrola kvality běhu",
+              text: "Odhalí podezřelé vzorce odpovědí v datech běhu.",
+            },
+            report_pdf: {
+              title: "PDF interní zprávy",
+              text: "PDF vedle interní zprávy DOCX, převedené ve workeru; jeho selhání nic jiného nezastaví.",
+            },
+            client_source_proposals: {
+              title: "Návrhy znalostí z dokumentů",
+              text: "Návrhy znalostí z dokumentu klienta jako vlastní práce klienta, placené z rozpočtu klienta; každý návrh čeká na schválení člověkem.",
             },
             study_lead: {
               title: "Vedoucí výzkumu",
