@@ -130,6 +130,7 @@ source_modules = [
     "aia_core.application.report_variants",
     "aia_core.application.report_approval",
     "aia_core.application.report_export",
+    "aia_core.application.report_editor",
     "aia_core.application.client_report",
     "aia_core.application.contextual_report",
     "aia_core.application.sociomapping_report",

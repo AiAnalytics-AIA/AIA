@@ -350,6 +350,28 @@ a25d2435`, and the `/session/docs*` routes go with the hosting plan's change).
   edited line's koncept N unchanged and opens a new line whose koncept 1 is the composer's; the client report is
   refused; with the URL unset every route is 404.
 
+*RPT8c in four PRs.* Part 1, the lines and sessions; part 2, the config and document routes; part 3, the callback
+(the fetch guard, the version stored with RPT8b's changes, a Document Server restart's 403 said in words, never
+stored); part 4, approval of an edited version.
+
+*RPT8c, part 1 (`feature/report-editor-lines`):* `domain/report/editor.py` holds the rules, pure: the document key
+`<line>.<version SHA-256, 40 hex>.<session number>` (`document_key`, within `[0-9A-Za-z._=-]{1,128}`), what each
+callback status asks (`callback_action`: 1 open, 2 store and close, 4 close, 6 store, 3 and 7 logged, any other
+refused), when an open session is joined (`reuse_session`: open, and seen within `SESSION_IDLE`, a day) and the
+line that opens by default (`default_line`: newest version by stored time; ties by koncept, then id). Two tables
+(migration `75f40e2e74dd`): `report_editor_versions` (a line's koncepts, unique per line by koncept and by SHA-256,
+so the same bytes are never stored twice) and `report_editor_sessions` (one key per session, at most one open per
+line, the people a config was signed for); every artifact a row names cascades to it, so client deletion needs
+nothing of its own. `infrastructure/report_editor_repository.py` is their only reader and writer, scoped by the
+study; `session_by_key` alone reads unscoped, for a callback, which names a key and no person.
+`application/report_editor.py` (`ReportEditor.open`): the current composition's line started as koncept 1 if it has
+none, the line asked for or the default, and its session: the open one joined (the line's newest version, which a
+force-save under the same key holds), else one started on the newest version under a new key, an idle one closed
+first; the client report, another type or another run's draft refused (`NotEditable`), a line of another run or
+variant `LineNotFound`. Tests: `test_report_editor.py` (SQLite and PostgreSQL), among them a second researcher
+joining under the same key, a new key after a close, a day's idle, and a recompose after an edit leaving the edited
+line's koncept 2 and starting a line whose koncept 1 is the composer's.
+
 **RPT8d. The pane opens the editor.**
 - 768 px and wider, with the editor configured: Zpráva's pane loads the Document Server's `api.js` from
   `AIA_ONLYOFFICE_URL` and opens the default line's newest version (RPT8c) with the config the API signed.
