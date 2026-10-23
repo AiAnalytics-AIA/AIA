@@ -112,6 +112,15 @@ try {
   removed = null;
   check("a chosen dimension is removed by keyboard, focus kept in the selection, and put back from the catalogue");
 
+  // DIM-F8: the search's live region is rendered (not display:none) before it has anything to say.
+  const catalogue = page.locator("section", { has: page.getByLabel("Hledat dimenzi") });
+  const live = catalogue.getByRole("status");
+  assert.notEqual(await live.evaluate((e) => getComputedStyle(e).display), "none", "the no-match status is rendered while empty");
+  await page.getByLabel("Hledat dimenzi").fill("zzz");
+  await live.getByText("Hledání nic nenašlo").waitFor();
+  await page.getByLabel("Hledat dimenzi").fill("");
+  check("a search that matches nothing is said in a status that was rendered before it");
+
   const before = Number((await n().getAttribute("aria-valuenow")) ?? NaN);
   const max = Number(await n().getAttribute("aria-valuemax"));
   assert(Number.isFinite(before) && before + 50 <= max, `n ${before} can step up within ${max}`);

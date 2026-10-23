@@ -234,6 +234,9 @@ describe("Dimenze", () => {
     const section = search.closest("section") as HTMLElement;
     const status = within(section).getByRole("status");
     expect(status.textContent).toBe("");
+    // Never hidden while empty: a live region out of the accessibility tree is not announced (jsdom has no
+    // Tailwind, so the class is what can be checked here; dimensions_journey checks the computed style).
+    expect(status.className).not.toMatch(/hidden/);
     fireEvent.change(search, { target: { value: "zzz" } });
     expect(within(section).getByRole("status")).toBe(status);
     expect(status.textContent).toBe("Hledání nic nenašlo. Zkuste jiné slovo, nebo dimenzi požádejte níže.");
@@ -315,6 +318,11 @@ describe("Dimenze", () => {
     fireEvent.click(screen.getByRole("button", { name: "Přidat jako požadavek" }));
     expect((await screen.findByRole("alert")).textContent).toContain("does not permit proposing knowledge");
     expect(saves).toEqual([]);
+    // An empty try after it sends nothing, so the earlier failure is no longer said beside its error.
+    fireEvent.change(screen.getByLabelText("Název dimenze"), { target: { value: "" } });
+    fireEvent.click(screen.getByRole("button", { name: "Přidat jako požadavek" }));
+    expect(await screen.findByText(REQUEST_EMPTY)).toBeTruthy();
+    expect(screen.queryByText(/does not permit proposing knowledge/)).toBeNull();
   });
 
   it("the sample is one stepper: a press steps by 50 and saves, and below the recommendation says so (DIM3)", async () => {

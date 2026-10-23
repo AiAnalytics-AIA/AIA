@@ -183,6 +183,7 @@ export function PersonaStep() {
   const requestCustom = async () => {
     const label = requestLabel(custom);
     if (!label) {
+      setRequestError(null); // nothing is sent, so an earlier request's failure is no longer the news
       setEmptyTried((n) => n + 1);
       customField.current?.focus();
       return;
@@ -302,8 +303,9 @@ export function PersonaStep() {
               {catalogRows.length ? <DimensionGroup title={t("research.persona.groupCatalog")} rows={catalogRows} chosen={chosen} suggested={suggested} onToggle={toggle} /> : null}
             </>
           ) : null}
-          {/* Always mounted, so a search that empties the catalogue is announced, not only drawn. */}
-          <p role="status" className="mt-3 text-sm text-ink-muted empty:hidden">{visible.length ? "" : t("research.persona.noMatch")}</p>
+          {/* Always mounted and never display:none (a hidden live region is not announced), so a search that
+              empties the catalogue is said, not only drawn; empty, it takes no space. */}
+          <div role="status" className="text-sm text-ink-muted">{visible.length ? null : <p className="mt-3">{t("research.persona.noMatch")}</p>}</div>
         </StepSection>
 
         {suggestion?.new_dimension_suggestions?.length ? (
