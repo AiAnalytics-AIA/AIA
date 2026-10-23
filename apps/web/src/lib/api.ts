@@ -705,7 +705,7 @@ export type MemoryReuse = {
 };
 export type MemoryReused = { study_id: string; created_study: boolean; revision: DesignRevision; source: DesignSource };
 
-export type Me = { user_id: string; email: string | null; organization_role: string; may_administer: boolean; methodologist: boolean };
+export type Me = { user_id: string; email: string | null; organization_role: string; may_administer: boolean; methodologist: boolean; organization_name?: string | null };
 
 const enc = encodeURIComponent;
 const query = (q: Record<string, string | undefined>) => {

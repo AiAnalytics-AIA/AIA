@@ -57,6 +57,8 @@ def test_a_researcher_starts_a_client_and_every_member_can_open_it(
     """Starting a client needs no administration (ADR 0019; the owner, 2026-10-05)."""
     me = owner.get(f"{API}/workspace/me").json()
     assert me["may_administer"] is True and me["organization_role"] == "OWNER"
+    # Settings' breadcrumb names the organization (fidelity F2).
+    assert me["organization_name"] == "AI Analytics"
     assert lead.get(f"{API}/workspace/me").json()["may_administer"] is False
     made = lead.post(f"{API}/workspace/clients", json={"name": "Nový klient s. r. o."})
     assert made.status_code == 201 and made.json()["your_role"] == "RESEARCHER"

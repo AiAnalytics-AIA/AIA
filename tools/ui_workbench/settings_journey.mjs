@@ -43,7 +43,7 @@ try {
   // At 1440 every tab shows its line under its name (settings-redesign 1).
   assert.equal(await page.locator("[data-tab-subtitle]:visible").count(), 10);
   for (const id of ["ai", "prompts", "deep_research", "methodology", "access", "studies", "audit", "system", "reference", "data"]) {
-    const panel = await tab(id); await panel.locator("h2").first().waitFor();
+    const panel = await tab(id); await panel.locator("[data-tab-header] h1").waitFor();
     if (id === "ai") {
       for (const g of ["study", "run", "out", "dr", "client"]) assert.equal(await page.locator(`[data-ai-group="${g}"]`).count(), 1, `ai: group ${g}`);
       assert.equal(await page.locator('[data-activity="run_qc"][data-state="not_built"]').count(), 1, "ai: a not-built activity says so");
@@ -76,7 +76,9 @@ try {
   for (const id of ["ai", "access", "studies", "audit", "reference"]) {
     const panel = await tab(id);
     assert.equal(await panel.locator("details, summary").count(), 0, `${id}: a disclosure is back`);
-    assert.match(await panel.locator("[data-tab-facts]").innerText(), /^Platí pro: .+ · Mění: .+/);
+    // The prototype's head (v51): the tab's name as h1 and one paragraph; who may change it in chips.
+    assert.equal(await panel.locator("[data-tab-header] p").count(), 1, `${id}: one lede`);
+    assert.equal(await panel.locator("[data-tab-header] [role=switch]").count(), 0, `${id}: the switch is the page's`);
     for (const [width, height] of [[1710, 1000], [1920, 1080]]) { await page.setViewportSize({ width, height }); await measure(`tab ${id} ${width}`); }
     await page.setViewportSize({ width: 1440, height: 900 }); await measure(`tab ${id} 1440x900`); await page.setViewportSize({ width: 1440, height: 1000 });
   }
@@ -84,7 +86,7 @@ try {
   assert(await techPanel.locator("[data-reference-category]").count() > 2, "reference: categories");
   await techPanel.getByRole("radiogroup", { name: "Kdo mění" }).getByRole("radio", { name: "Pevné pravidlo", exact: true }).click();
   assert.equal(await techPanel.locator('[data-owner="deployment"]').count(), 0, "reference: the owner filter");
-  await techPanel.getByRole("radiogroup", { name: "Kdo mění" }).getByRole("radio", { name: "Vše", exact: true }).click(); const techSwitch = techPanel.getByRole("switch", { name: "Technické údaje", exact: true });
+  await techPanel.getByRole("radiogroup", { name: "Kdo mění" }).getByRole("radio", { name: "Vše", exact: true }).click(); const techSwitch = page.locator("[data-technical-switch]").getByRole("switch", { name: "Technické údaje", exact: true });
   const t0 = Date.now(); await techSwitch.click(); await techPanel.locator("[data-technical]").first().waitFor(); const techMs = Date.now() - t0; console.log(`technical details: ${techMs} ms`);
   assert(techMs < 400, `technical details: ${techMs} ms`); await widths("reference with technical details"); await screenshot("reference-technical");
   await techSwitch.click(); assert.equal(await techPanel.locator("[data-technical]").count(), 0);
@@ -140,7 +142,9 @@ try {
   await page.getByRole("searchbox", { name: "Hledat v historii" }).fill("no-such-event"); await page.getByText("Žádný záznam neodpovídá hledání.", { exact: true }).waitFor();
   checks.push("Readable audit entries filter by person, event and reason");
   await tab("deep_research"); const policyKey = "retention.snapshots";
-  assert.equal(await page.locator("[data-dr-reach] [data-not-yet]").count(), 1, "deep research: Dosah says it is not in AIA yet");
+  // Before the reach route is deployed Dosah says it is not in AIA yet; after, a worker's report or
+  // that none is recorded. It settles on one of those, never stays loading or invents a route.
+  await page.locator("[data-dr-reach] :is([data-not-yet], [data-reach-unrecorded], [data-reach-route])").first().waitFor();
   assert.equal(await page.locator("[data-dr-protections] li").count(), 5, "deep research: the code's five protections");
   await page.locator("[data-dr-posture]").getByRole("link", { name: "Přístup a schvalování", exact: true }).waitFor();
   await page.getByRole("searchbox", { name: "Hledat pravidlo rešerše" }).fill("zachycené");
