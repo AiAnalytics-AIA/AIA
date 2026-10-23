@@ -311,7 +311,7 @@ describe("the settings control panel", () => {
     expect(within(panel).getByRole("link", { name: "Změnit v Profil → Pravidla" }).getAttribute("href")).toBe("/app/clients/CLI-a/profile");
   });
 
-  it("reads each client's data posture and wallet ceiling, an unset posture as CLASSIFIED and no ceiling as bez stropu, never 0", async () => {
+  it("reads each client's data posture and wallet ceiling, an unset posture as CLASSIFIED and no client ceiling as the study budget still applying, never 0", async () => {
     api({
       "GET /api/v1/clients": () => [
         { client_id: "CLI-a", slug: "a", name: "Klient A", status: "ACTIVE", reference: "", study_count: 2, created_at: null },
@@ -338,7 +338,9 @@ describe("the settings control panel", () => {
     const b = await rules("CLI-b");
     expect(within(b).getByText("CLASSIFIED")).toBeTruthy();
     expect(within(b).getByText("nenastaveno, platí CLASSIFIED")).toBeTruthy();
-    expect(within(b).getByText("bez stropu")).toBeTruthy();
+    // No client ceiling is not an uncapped wallet: the study budget still bounds it (ADR 0028).
+    expect(within(b).getByText("bez stropu klienta (platí rozpočet studie)")).toBeTruthy();
+    expect(within(b).queryByText("bez stropu")).toBeNull();
     expect(b.textContent).not.toMatch(/\b0,00\b/);
     // A client the list does not answer for is unknown: never OPEN, never "bez stropu".
     const c = await rules("CLI-c");
