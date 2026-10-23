@@ -21,7 +21,7 @@ from sqlalchemy.orm import Session
 
 from ..domain.report.editor import LineHead
 from ..domain.scope import StudyContext
-from .tables import ReportEditorSessionRow, ReportEditorVersionRow, as_utc
+from .tables import ProjectArtifactRow, ReportEditorSessionRow, ReportEditorVersionRow, as_utc
 
 __all__ = [
     "EditorSession",
@@ -132,6 +132,17 @@ class ReportEditorRepository:
         )
 
     # -- versions ------------------------------------------------------------
+
+    def lock_line(self, line_id: str) -> None:
+        """Hold ``line_id``'s composed artifact row for the caller's transaction (PostgreSQL;
+        SQLite has one writer): it exists before the line's first version does, so two first
+        opens of one line take their turn instead of both inserting koncept 1. The caller
+        found the artifact through the Study's own research artifacts."""
+        self._session.execute(
+            select(ProjectArtifactRow.artifact_id)
+            .where(ProjectArtifactRow.artifact_id == line_id)
+            .with_for_update()
+        )
 
     def versions(self, line_id: str, *, for_update: bool = False) -> list[EditorVersion]:
         """``line_id``'s versions, koncept 1 first; with ``for_update`` its rows are locked, so

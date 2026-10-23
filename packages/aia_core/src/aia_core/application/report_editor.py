@@ -101,6 +101,8 @@ class ReportEditor:
         self._check(
             composed, run_id=run_id, variant=variant, deep_research_run_id=deep_research_run_id
         )
+        # The composed row, not the versions: before the first open there are none to lock.
+        self._repo.lock_line(composed.artifact_id)
         versions = self._repo.versions(composed.artifact_id, for_update=True)
         if versions:
             return versions
@@ -154,6 +156,8 @@ class ReportEditor:
             line_id = head.line_id
         elif line_id not in {h.line_id for h in heads}:
             raise LineNotFound(line_id)
+        if line_id != composed.artifact_id:
+            self._repo.lock_line(line_id)  # after the composed row, always in that order
         versions = self._repo.versions(line_id, for_update=True)
         current = self._repo.open_session(line_id)
         if current is not None and reuse_session(_state(current), now):

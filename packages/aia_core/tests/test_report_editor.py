@@ -288,3 +288,71 @@ def test_a_save_not_stored_is_noted_on_the_session_and_cleared_by_the_next(
     repo.note_problem(key, now=T0, problem=None)
     cleared = repo.session(key)
     assert cleared is not None and cleared.last_problem is None and cleared.last_problem_at is None
+
+
+def test_two_first_opens_of_a_new_line_meet_in_one_session(
+    editor_world: Any, engine: Any, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Two researchers open a freshly composed report at once. The first is held after it
+    started the line, holding its lock; the second must wait for it, then join its session,
+    never insert koncept 1 again (an IntegrityError, a 500).
+
+    PostgreSQL only: the guard is a row lock, which SQLite does not take (it serialises
+    writers instead)."""
+    import threading
+    import time
+
+    from sqlalchemy import func, select
+
+    from aia_core.infrastructure.db import create_session_factory
+    from aia_core.infrastructure.tables import ReportEditorSessionRow
+
+    if engine.dialect.name != "postgresql":
+        pytest.skip("row locks are PostgreSQL's; SQLite serialises writers")
+    composed = editor_world.compose()
+    editor_world.session.commit()
+    first_in, first_go = threading.Event(), threading.Event()
+    real = ReportEditorRepository.add_version
+
+    def held(self: ReportEditorRepository, **kw: Any) -> Any:
+        added = real(self, **kw)
+        if not first_in.is_set():  # the first opener: started the line, now held
+            first_in.set()
+            assert first_go.wait(30)
+        return added
+
+    monkeypatch.setattr(ReportEditorRepository, "add_version", held)
+    factory = create_session_factory(engine)
+    keys: list[str] = []
+    errors: list[BaseException] = []
+
+    def open_(user: str) -> None:
+        try:
+            with factory() as own:
+                scope = editor_world.scoped.scope(user=user)
+                opened = ReportEditor(own, scope).open(
+                    composed, run_id="RUN-1", variant="internal", now=T0
+                )
+                own.commit()
+                keys.append(opened.session.document_key)
+        except BaseException as exc:  # reported below, never swallowed
+            errors.append(exc)
+
+    a = threading.Thread(target=open_, args=("lead",))
+    a.start()
+    assert first_in.wait(30)
+    b = threading.Thread(target=open_, args=("other_lead",))
+    b.start()
+    time.sleep(1.0)  # room for the second to race ahead if nothing held it
+    first_go.set()
+    a.join(30)
+    b.join(30)
+    assert not errors, errors
+    assert len(keys) == 2 and keys[0] == keys[1]
+    editor_world.session.expire_all()
+    open_rows = editor_world.session.scalar(
+        select(func.count())
+        .select_from(ReportEditorSessionRow)
+        .where(ReportEditorSessionRow.closed_at.is_(None))
+    )
+    assert open_rows == 1
