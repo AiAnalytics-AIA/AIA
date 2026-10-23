@@ -120,7 +120,7 @@ export const colors = {
   },
   "status-you": {
     "light": "#ff8270",
-    "dark": "#fda258"
+    "dark": "#ffaa77"
   },
   "on-status-you": {
     "light": "#151a20",
@@ -128,7 +128,7 @@ export const colors = {
   },
   "status-you-ink": {
     "light": "#971c11",
-    "dark": "#fda258"
+    "dark": "#ffaa77"
   },
   "status-you-wash": {
     "light": "#fbe7e6",

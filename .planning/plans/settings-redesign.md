@@ -15,6 +15,7 @@ chunks:
   - "[x] 10a. Metodika catalogue: a card per module with its drawing, accent and facts, no categories, the map first; -5 only, the reference map and H-Model not listed (D-13)"
   - "[x] 10b. Metodika module view: sub-tabs Výpočet / Verze a aktivace / Porovnání / Upravit, activation modal with reason chips, editor from the version in force, Metodik-only editing (D-14)"
   - "[x] 11. Stav systému and Správa dat: content over their backends"
+  - "[x] Q82-Q85. The product owner's answers of 2026-10-23: the Metodik editor's way in named, done as an ink ✓, dark needs-you #ffaa77 held apart by check:design, a budget-parked Lead turn coral for who can raise it"
   - "[x] F1. Fidelity gap 2: the Metodika art and accents drawn (runtime colour properties, never Tailwind's --color-*)"
   - "[ ] F2. Page frame and tab heads as the prototype draws them (breadcrumb, plain tab column, serif h1, one paragraph, status chips right)"
   - "[ ] F3. One segmented control for role, status, self-approval, Audit period and Reference owner; Správa dat's client picker"
