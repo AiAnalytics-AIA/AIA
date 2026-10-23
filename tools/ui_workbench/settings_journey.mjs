@@ -192,7 +192,11 @@ try {
   await methodForm.getByLabel("Začít od metodiky z kódu", { exact: true }).selectOption("aia-sociomap-2"); await page.getByRole("button", { name: "Ponechat", exact: true }).click();
   assert.equal(await (await chooseField("terrain.sigma")).inputValue(), "0,3");
   await page.getByRole("button", { name: "Změnit oblast", exact: true }).click();
-  await page.getByRole("button", { name: "Sociomapa: referenční mapa (18.6.6)", exact: true }).click(); await page.getByRole("button", { name: "Ponechat", exact: true }).click();
+  // The cards: a drawing each, no category, neither the reference map nor the H-Model (D-13).
+  assert(await page.locator("[data-module-card] svg").count() >= 6, "methodology: each card its drawing");
+  assert.equal(await page.locator('[data-module-card="sociomap_reference"], [data-module-card="sociomapping"]').count(), 0, "methodology: D-13");
+  await widths("methodology cards");
+  await page.getByRole("button", { name: "Vážení: která váha patří respondentovi a co s neplatnou", exact: true }).click(); await page.getByRole("button", { name: "Ponechat", exact: true }).click();
   await widths("methodology editor"); await screenshot("methodology-editor");
   await methodForm.getByRole("button", { name: "Porovnat s metodikou v platnosti", exact: true }).click();
   await page.locator("[data-methodology-compare]").waitFor(); await widths("methodology comparison");

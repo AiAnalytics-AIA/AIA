@@ -344,12 +344,12 @@ describe("the methodology's versions", () => {
     expect(within(section).queryByRole("button", { name: "Upravit metodiku" })).toBeNull();
   });
 
-  it("are not offered for the reference map, which is shown and never edited", async () => {
+  it("are not offered for a read-only module, which is shown and never edited", async () => {
     fakeApi();
     render(<MethodologyPanel />);
     await versionsSection();
-    await openModule("Sociomapa: referenční mapa (18.6.6)");
-    await screen.findByRole("heading", { name: "Váhy respondentů" });
+    await openModule("Vážení: která váha patří respondentovi a co s neplatnou");
+    await screen.findByRole("heading", { name: "Kishovo efektivní n na čtyřech místech" });
     expect(screen.queryByRole("heading", { name: "Verze metodiky" })).toBeNull();
   });
 });
@@ -436,14 +436,14 @@ describe("guided methodology editing", () => {
     fireEvent.change(await field(form, "terrain.sigma"), { target: { value: "0,35" } });
     expect(screen.queryByRole("navigation", { name: "Oblasti metodiky" })).toBeNull();
     fireEvent.click(screen.getByRole("button", { name: "Změnit oblast" }));
-    fireEvent.click(screen.getByRole("button", { name: "Sociomapa: referenční mapa (18.6.6)" }));
+    fireEvent.click(screen.getByRole("button", { name: "Vážení: která váha patří respondentovi a co s neplatnou" }));
     fireEvent.click(screen.getByRole("button", { name: "Ponechat" }));
     expect(document.querySelector("[data-methodology-editor]")).toBeTruthy();
     expect(screen.queryByRole("navigation", { name: "Oblasti metodiky" })).toBeNull();
     fireEvent.click(screen.getByRole("button", { name: "Změnit oblast" }));
-    fireEvent.click(screen.getByRole("button", { name: "Sociomapa: referenční mapa (18.6.6)" }));
+    fireEvent.click(screen.getByRole("button", { name: "Vážení: která váha patří respondentovi a co s neplatnou" }));
     fireEvent.click(screen.getByRole("button", { name: "Zahodit úpravy a přepnout" }));
-    expect(await screen.findByRole("heading", { name: "Sociomapa: referenční mapa (18.6.6)" })).toBeTruthy();
+    expect(await screen.findByRole("heading", { name: "Vážení: která váha patří respondentovi a co s neplatnou" })).toBeTruthy();
     expect(document.querySelector("[data-methodology-editor]")).toBeNull();
   });
 

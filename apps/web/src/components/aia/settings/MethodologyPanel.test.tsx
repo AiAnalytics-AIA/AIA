@@ -66,22 +66,30 @@ describe("the Metodika tab", () => {
     expect(screen.queryByRole("navigation", { name: "Oblasti metodiky" })).toBeNull();
     fireEvent.click(screen.getByRole("button", { name: "Změnit oblast" }));
     const nav = await screen.findByRole("navigation", { name: "Oblasti metodiky" });
+    // One card per module, the map first; no categories (the product owner, 2026-10-21), and
+    // neither the 18.6.6 reference map nor the experimental H-Model (D-13).
     expect(within(nav).getAllByRole("button").map((b) => b.getAttribute("aria-label"))).toEqual([
+      "Sociomapa: objektová mapa",
       "Připravenost studie: kdy lze běh spustit",
-      "Sociomapa: objektová mapa", "Sociomapa: referenční mapa (18.6.6)", "Sociomapping: experimentální H-Model (kandidát AIA)",
-      "Agregace: z odpovědí odhad s intervalem", "Podpora a potlačení: kdy se číslo smí ukázat",
+      "Podpora a potlačení: kdy se číslo smí ukázat", "Agregace: z odpovědí odhad s intervalem",
       "Odpověď respondenta: od pravděpodobností modelu k odpovědi", "Vážení: která váha patří respondentovi a co s neplatnou",
       // Read-only and not a method module: the population's field policy (V1c).
       "Původ polí: k čemu smí sloužit",
     ]);
-    expect(within(nav).getByRole("group", { name: "Před spuštěním" })).toBeTruthy();
-    expect(within(nav).getByRole("group", { name: "Mapy objektů" })).toBeTruthy();
-    expect(within(nav).getByRole("group", { name: "Čísla ve výsledcích" })).toBeTruthy();
-    expect(within(nav).getByRole("group", { name: "Respondenti a váhy" })).toBeTruthy();
+    expect(within(nav).queryByRole("group")).toBeNull();
+    // Each card: its drawing, its accent, and its facts.
+    const map = nav.querySelector('[data-module-card="sociomap"]') as HTMLElement;
+    expect(map.querySelector("svg")).toBeTruthy();
+    expect(map.getAttribute("style")).toContain("--color-hue-blue");
+    expect(within(map.querySelector("[data-module-facts]") as HTMLElement).getByText("V platnosti")).toBeTruthy();
+    expect(map.textContent).toMatch(/\d+ kroků · \d+ etap/);
+    // No card takes a status colour or the in-force green.
+    expect(nav.innerHTML).not.toMatch(/status-you|status-fault|in-force|hue-green/);
     await screen.findByRole("heading", { name: "Vstupní hodnocení" });
     const groups = [...document.querySelectorAll("h3[id^=mg-]")].map((h) => h.textContent);
     expect(groups.slice(0, 8)).toEqual(["Metoda", "Vstupní hodnocení", "Vztahy mezi objekty", "Rozložení na mapě", "Věrohodnost mapy", "Skóre a výška objektů", "Terén", "Respondenti a podpora mapy"]);
-    expect(screen.getByRole("radio", { name: /aia-sociomap-5 · výchozí v kódu/ }).getAttribute("aria-checked")).toBe("true");
+    // D-13: one method offered, aia-sociomap-5, said rather than chosen.
+    expect(document.querySelector("[data-preset]")?.textContent).toMatch(/^aia-sociomap-5 · výchozí v kódu$/);
   });
 
   it("says where each step sits: what it is for, what it reads, what reads it, and its audit point", async () => {
@@ -131,14 +139,12 @@ describe("the Metodika tab", () => {
     expect(smacof.querySelector("[data-slot]")).toBeNull();
   });
 
-  it("says what another methodology omits, and never shows it as 0", async () => {
+  it("offers aia-sociomap-5 only, never the earlier methods (D-13)", async () => {
     fakeApi();
     render(<MethodologyPanel />);
-    fireEvent.click(await screen.findByRole("radio", { name: "aia-sociomap-2" }));
-    await waitFor(() => expect(calls.some((c) => c.includes("preset=aia-sociomap-2"))).toBe(true));
-    const terrain = await card("Terén jako obálka kopců");
-    const sigma = within(terrain).getByRole("rowheader", { name: /Šířka kopce/ }).closest("tr") as HTMLElement;
-    await waitFor(() => expect(within(sigma).getByText("v této metodice není")).toBeTruthy());
+    await waitFor(() => expect(document.querySelector("[data-preset]")?.textContent).toMatch(/^aia-sociomap-5/));
+    expect(screen.queryByRole("radiogroup", { name: /metodik|předvolb/i })).toBeNull();
+    expect(document.body.textContent).not.toMatch(/aia-sociomap-[1-4]\b/);
   });
 
   it("says where AIA does not compute a point yet", async () => {
@@ -149,22 +155,13 @@ describe("the Metodika tab", () => {
     expect(within(f14).getByText("Žádný krok: v AIA se zatím nepočítá.")).toBeTruthy();
   });
 
-  it("opens the reference map with its own steps", async () => {
+  it("does not list the 18.6.6 reference map or the experimental H-Model (D-13)", async () => {
     fakeApi();
     render(<MethodologyPanel />);
-    await openModule("Sociomapa: referenční mapa (18.6.6)");
-    await screen.findByRole("heading", { name: "Matice vztahů objektů (stupnice 1-10)" });
-    expect(calls).toContain("/api/v1/methodology/sociomap_reference?preset=aia-sociomap-1");
-  });
-
-  it("opens the experimental H-Model with its search parameters, shown and not offered for editing", async () => {
-    fakeApi();
-    render(<MethodologyPanel />);
-    await openModule("Sociomapping: experimentální H-Model (kandidát AIA)");
-    await screen.findByRole("heading", { name: "Rozložení (H-Model, kandidát AIA)" });
-    expect(calls).toContain("/api/v1/methodology/sociomapping?preset=aia_hmodel_candidate_v1");
-    expect(screen.getAllByText(/EXPERIMENTAL_AIA/).length).toBeGreaterThan(0);
-    expect(screen.queryByRole("button", { name: "Upravit metodiku" })).toBeNull();
+    fireEvent.click(await screen.findByRole("button", { name: "Změnit oblast" }));
+    const nav = await screen.findByRole("navigation", { name: "Oblasti metodiky" });
+    expect(within(nav).queryByRole("button", { name: /referenční mapa|H-Model/ })).toBeNull();
+    expect(calls.some((c) => c.includes("sociomap_reference") || c.includes("/sociomapping"))).toBe(false);
   });
 
   it("opens support and suppression with both rule sets side by side, editable by an administrator", async () => {

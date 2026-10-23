@@ -951,6 +951,15 @@ export const cs = {
         history: { title: "Historie zapnutí", none: "Zatím nic nebylo zapnuto; běží text z kódu." },
       },
       methodology: {
+        facts: {
+          inForce: "V platnosti",
+          fromCode: "z kódu",
+          calculation: "Výpočet",
+          steps: "{steps} kroků · {groups} etap",
+          edits: "Úpravy",
+          editable: "verze a aktivace",
+          readOnly: "jen ke čtení",
+        },
         fieldOrigin: {
           intro: "Každé z {n} polí populace {version} má ve slovníku zapsáno, odkud jeho hodnoty pocházejí a k čemu je smí použít. Z toho AIA u každého běhu rozhodne, k čemu pole smí posloužit: při výběru publika, při sestavení person a při převzetí čísla do výsledků. Mění se jen novou verzí populace nebo revidovanou změnou kódu.",
           noLive: "Populace v platnosti zatím není. Pravidla níže platí, pole a jejich počty se ukážou, až bude.",

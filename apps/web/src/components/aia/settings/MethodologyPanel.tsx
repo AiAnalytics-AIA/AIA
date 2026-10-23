@@ -10,7 +10,7 @@
 
 import { useCallback, useState } from "react";
 
-import { t } from "@/i18n/t";
+import { t, tv } from "@/i18n/t";
 import { type MethodFormula, type MethodModuleDetail, type MethodModuleSummary, type MethodStepOut, methodology } from "@/lib/api";
 import { groupSteps, showValue, stepNumbers, stepOrigin } from "@/lib/methodology";
 import { Button, Tag, TextInput } from "../../rehome/ui";
@@ -21,6 +21,7 @@ import { FieldOriginPanel } from "./FieldOriginPanel";
 import { Formula } from "./MethodologyFormula";
 import { StepContext } from "./MethodologyContext";
 import { MethodologyVersions, type People } from "./MethodologyVersions";
+import { ModuleArt, accentOf } from "./MethodologyArt";
 
 const M = "aia.settings.methodology";
 const WORDS = { absent: t(`${M}.absent`), none: t(`${M}.none`), yes: t(`${M}.yes`), no: t(`${M}.no`) };
@@ -42,13 +43,21 @@ const FIELD_ORIGIN: Area = {
   note_cs: "Co rozhoduje, k čemu smí posloužit každé pole populace: jeho původ, věta o použití ve slovníku a kvalita.",
   editable: false,
 };
-const PURPOSE_GROUPS = [
-  { title: "Před spuštěním", ids: ["readiness"] },
-  { title: "Mapy objektů", ids: ["sociomap", "sociomap_reference", "sociomapping"] },
-  { title: "Čísla ve výsledcích", ids: ["aggregation", "support"] },
-  { title: "Respondenti a váhy", ids: ["response", "weighting"] },
-  { title: "Populace a tvrzení", ids: ["field_origin"] },
-] as const;
+/** The order the cards stand in: the map first (full width), then before a run, the numbers, the
+ *  respondents, the population. No categories (the product owner, 2026-10-21: too few to filter). */
+const ORDER = ["sociomap", "readiness", "support", "aggregation", "response", "weighting", "field_origin"];
+/**
+ * What the MVP does not list (D-13): the experimental Sociomapping (H-Model) and the 18.6.6
+ * reference map are hidden; their pages stay readable by URL nowhere here, and the API still
+ * serves them for the record.
+ */
+const HIDDEN_MODULES = new Set(["sociomap_reference", "sociomapping"]);
+/** D-13: the MVP ships aia-sociomap-5 only. Earlier presets are not offered, unless one is in force. */
+function presetsShown(summary: Pick<MethodModuleSummary, "id" | "presets" | "in_force">): string[] {
+  if (summary.id !== "sociomap") return summary.presets;
+  const base = (p: string) => p.split("+")[0];
+  return summary.presets.filter((p) => base(p) === "aia-sociomap-5" || p === summary.in_force);
+}
 
 export function MethodologyPanel({ people = anyone }: { people?: People }) {
   const [res, retry] = useResource(loadList, []);
@@ -66,12 +75,12 @@ function Modules({ modules, people }: { modules: MethodModuleSummary[]; people: 
   const onDirty = useCallback((value: boolean) => setEditing(value), []);
   // Which area's editor is open: there the editor speaks for itself.
   const [openFor, setOpenFor] = useState<string | null>(null);
-  const areas: Area[] = [...modules, FIELD_ORIGIN];
+  const areas: Area[] = [...modules.filter((m) => !HIDDEN_MODULES.has(m.id)), FIELD_ORIGIN];
   const current = areas.find((m) => m.id === active) ?? null;
   const visible = areas.filter((m) => `${m.title_cs} ${m.note_cs}`.toLocaleLowerCase("cs").includes(query.trim().toLocaleLowerCase("cs")));
-  const groups: { title: string; modules: Area[] }[] = PURPOSE_GROUPS.map((group) => ({ title: group.title, modules: group.ids.map((id) => visible.find((module) => module.id === id)).filter((module): module is Area => module !== undefined) }));
-  const additional = visible.filter((module) => !PURPOSE_GROUPS.some((group) => (group.ids as readonly string[]).includes(module.id)));
-  if (additional.length) groups.push({ title: "Další výpočty", modules: additional });
+  const rank = (id: string) => (ORDER.includes(id) ? ORDER.indexOf(id) : ORDER.length);
+  const cards = [...visible].sort((a, b) => rank(a.id) - rank(b.id));
+  const summaryOf = (id: string) => modules.find((m) => m.id === id);
   return <div className="flex min-w-0 flex-col gap-4">
     {current ? (
       <header className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
@@ -83,17 +92,29 @@ function Modules({ modules, people }: { modules: MethodModuleSummary[]; people: 
     ) : <Button className="self-start" aria-expanded={chooserOpen} aria-controls="methodology-module-chooser" onClick={() => setChooserOpen((value) => !value)}>Změnit oblast</Button>}
     {chooserOpen ? <div id="methodology-module-chooser" className="flex flex-col gap-3">
       <TextInput type="search" aria-label={t(`${M}.search`)} placeholder={t(`${M}.searchPlaceholder`)} value={query} onChange={(e) => setQuery(e.target.value)} />
-      <nav aria-label={t(`${M}.modules`)} className="grid min-w-0 gap-3 md:grid-cols-2">
-        {groups.filter((group) => group.modules.length).map((group) => <div key={group.title} role="group" aria-label={group.title} className="rounded-md border border-border bg-surface-raised p-3">
-          <h3 className="mb-2 font-mono text-xs font-semibold uppercase tracking-wide text-ink-muted">{group.title}</h3>
-          <div className="flex flex-col gap-2">{group.modules.map((m) => <button key={m.id} type="button" aria-label={m.title_cs} aria-pressed={m.id === active} onClick={() => {
+      <nav aria-label={t(`${M}.modules`)} className="grid min-w-0 gap-3 md:grid-cols-2 xl:grid-cols-3">
+        {cards.map((m) => {
+          const summary = summaryOf(m.id);
+          const on = m.id === active;
+          return <button key={m.id} type="button" data-module-card={m.id} aria-label={m.title_cs} aria-pressed={on} onClick={() => {
             if (m.id === active) { setChooserOpen(false); return; }
             if (editing) setPending(m.id); else { setActive(m.id); setChooserOpen(false); }
-          }} className={`min-h-11 w-full rounded-md border p-3 text-left text-sm focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus-ring ${m.id === active ? "border-signal-edge bg-signal-wash" : "border-border bg-surface hover:border-border-strong"}`}>
-            <span className="flex flex-wrap items-center justify-between gap-2"><strong>{m.title_cs}</strong><Tag>{m.editable ? "Upravitelné" : "Jen ke čtení"}</Tag></span>
-            {m.note_cs ? <span className="mt-1 block line-clamp-2 text-xs leading-5 text-ink-muted">{m.note_cs}</span> : null}
-          </button>)}</div>
-        </div>)}
+          }} style={{ borderTopColor: `var(--color-${accentOf(m.id)})` }}
+            className={`group flex min-w-0 flex-col overflow-hidden rounded-md border border-t-4 text-left text-sm transition-transform duration-[var(--duration-confirm)] hover:-translate-y-0.5 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus-ring motion-reduce:transform-none ${m.id === "sociomap" ? "md:col-span-2 xl:col-span-3" : ""} ${on ? "border-signal-edge bg-signal-wash" : "border-border bg-surface-raised hover:border-border-strong"}`}>
+            <span className={`block ${m.id === "sociomap" ? "h-24" : "h-20"} border-b border-border bg-surface`}><ModuleArt id={m.id} /></span>
+            <span className="flex flex-col gap-1.5 p-3.5">
+              <span className="flex items-baseline justify-between gap-2"><strong className="text-sm font-semibold">{m.title_cs}</strong><span aria-hidden="true" style={{ color: `var(--color-${accentOf(m.id)})` }}>→</span></span>
+              {m.note_cs ? <span className="block text-xs leading-5 text-ink-muted">{m.note_cs}</span> : null}
+              <dl data-module-facts className="mt-1 grid grid-cols-[max-content_1fr] gap-x-3 gap-y-0.5 text-xs">
+                {summary ? <>
+                  <dt className="text-ink-faint">{t(`${M}.facts.inForce`)}</dt><dd className="break-words font-mono">{summary.in_force ?? t(`${M}.facts.fromCode`)}</dd>
+                  <dt className="text-ink-faint">{t(`${M}.facts.calculation`)}</dt><dd>{tv(`${M}.facts.steps`, { steps: summary.steps, groups: summary.groups.length })}</dd>
+                </> : null}
+                <dt className="text-ink-faint">{t(`${M}.facts.edits`)}</dt><dd>{t(`${M}.facts.${m.editable ? "editable" : "readOnly"}`)}</dd>
+              </dl>
+            </span>
+          </button>;
+        })}
       </nav>
     </div> : null}
     {!visible.length ? <p role="status" className="text-sm text-ink-muted">{t(`${M}.noMatch`)}</p> : null}
@@ -113,8 +134,9 @@ function ModuleView({ summary, people, onDirty, onOpen }: { summary: MethodModul
       <div className="rounded-md border border-border p-3">
         <p className="text-sm font-semibold">{t(`${M}.catalogueTitle`)}</p>
         <p className="mt-1 text-xs leading-5 text-ink-muted">{t(`${M}.catalogueHelp`)}</p>
-        {summary.presets.length > 1 ? <div role="radiogroup" aria-label={t(`${M}.preset`)} className="mt-3 flex flex-wrap gap-2">
-          {summary.presets.map((p) => <button key={p} type="button" role="radio" aria-checked={p === preset} onClick={() => setPreset(p)} className={`rounded-sm border px-3 py-2 font-mono text-xs focus-visible:outline-2 focus-visible:outline-focus-ring ${p === preset ? "border-signal-edge bg-signal-wash text-signal" : "border-border text-ink-muted"}`}>
+        {presetsShown(summary).length === 1 ? <p data-preset className="mt-2 font-mono text-xs text-ink-muted">{presetsShown(summary)[0]}{presetsShown(summary)[0] === summary.in_force ? ` · ${t(`${M}.codeDefault`)}` : ""}</p> : null}
+        {presetsShown(summary).length > 1 ? <div role="radiogroup" aria-label={t(`${M}.preset`)} className="mt-3 flex flex-wrap gap-2">
+          {presetsShown(summary).map((p) => <button key={p} type="button" role="radio" aria-checked={p === preset} onClick={() => setPreset(p)} className={`rounded-sm border px-3 py-2 font-mono text-xs focus-visible:outline-2 focus-visible:outline-focus-ring ${p === preset ? "border-signal-edge bg-signal-wash text-signal" : "border-border text-ink-muted"}`}>
             {p}{p === summary.in_force ? ` · ${t(`${M}.codeDefault`)}` : ""}
           </button>)}
         </div> : null}
