@@ -139,7 +139,8 @@ def with_source_audit(document: ReportDocument) -> ReportDocument:
     )
     audit = document.sections[at]
     blocks = tuple(
-        AuditBlock((*b.entries, *rows)) if isinstance(b, AuditBlock) else b for b in audit.blocks
+        replace(b, entries=(*b.entries, *rows)) if isinstance(b, AuditBlock) else b
+        for b in audit.blocks
     )
     sections = list(document.sections)
     sections[at] = replace(audit, blocks=blocks)

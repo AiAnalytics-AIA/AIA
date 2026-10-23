@@ -257,11 +257,15 @@ def _list_item(
 
 def render_quote(ctx: RenderContext, container: Container, block: Quote) -> None:
     """A verbatim quote in Czech quotation marks; a synthetic respondent says so."""
-    container.add_paragraph(f"\u201e{block.text}\u201c", style=S.QUOTE)
+    quote = container.add_paragraph(style=S.QUOTE)
+    with locked(quote, block.control):
+        quote.add_run(f"\u201e{block.text}\u201c")
     by = f"\u2014 {block.attribution}"
     if block.synthetic:
         by += f", {t('synthetic_quote')}"
-    container.add_paragraph(by, style=S.QUOTE_BY)
+    attribution = container.add_paragraph(style=S.QUOTE_BY)
+    with locked(attribution, block.control):
+        attribution.add_run(by)
 
 
 # ---------------------------------------------------------------------- findings
@@ -432,4 +436,5 @@ def render_audit(ctx: RenderContext, container: Container, block: AuditBlock) ->
         cells[0].paragraphs[0].style = S.TABLE
         cells[0].paragraphs[0].add_run(key)
         cells[1].paragraphs[0].style = S.MONO
-        cells[1].paragraphs[0].add_run(value)
+        with locked(cells[1].paragraphs[0], block.control):
+            cells[1].paragraphs[0].add_run(value)
