@@ -685,11 +685,12 @@ function PanelView({ panel, reload }: { panel: Panel; reload: () => void }) {
     if (reference && (referenceCategory !== "all" && referenceCategory !== key)) return null;
     if (reference && (query || referenceOwner !== "all") && !items.length) return null;
     const rows = reference ? <ReferenceTable items={items} /> : <div data-setting-rows>{items.map((item) => <SettingRow key={item.key} item={item} />)}</div>;
-    // A group with its own panel keeps the document's rows as technical details; a group
-    // without one (the reference) is its rows.
+    // A group with its own panel keeps the document's rows as technical details. A reference group
+    // is its rows, always: a search or category that finds a value shows it, and only each row's
+    // source waits for technical details (ReferenceRow), never the table (review of #851).
     return <Section key={key} id={key} tab={tab}>
       {extra[key] ?? null}
-      {OWN_ROWS.has(key) || key === "roles" || key === "audit" || !items.length ? null : extra[key] ? <Technical><Sub>{t(`${P}.relatedSettings`)}</Sub>{rows}</Technical> : rows}
+      {OWN_ROWS.has(key) || key === "roles" || key === "audit" || !items.length ? null : extra[key] && !reference ? <Technical><Sub>{t(`${P}.relatedSettings`)}</Sub>{rows}</Technical> : rows}
     </Section>;
   };
   const body = (tab: TabId): ReactNode => {

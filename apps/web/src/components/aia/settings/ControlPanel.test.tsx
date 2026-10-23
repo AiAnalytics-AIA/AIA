@@ -436,6 +436,22 @@ const elsewhere = () => calls.filter((c) => !c.url.startsWith("/api/v1/") && c.u
 const OVERCLAIM = /připojen|funkční spojení|spojení funguje|(?<!ne)ověřen[oaáý]|healthy|connected|\bverified\b/i;
 const LOGIN = /přihlaste se|zadejte (api )?klíč|api klíč se zadává|subscription login|ANTHROPIC_API_KEY/i;
 
+describe("the reference", () => {
+  it("shows a value found by search in a group with its own panel, its source alone behind technical details", async () => {
+    const doc = DOC();
+    doc.groups = [...doc.groups, { key: "workflow", items: [item("lease_seconds", 60, "CODE", "aia_core.domain.workflow:LEASE_SECONDS", "s")] }];
+    api({ "GET /api/v1/settings": () => doc });
+    render(<ControlPanel />);
+    fireEvent.click(await screen.findByRole("tab", { name: "Reference" }));
+    const panel = panelOf("Reference");
+    fireEvent.change(await within(panel).findByRole("searchbox", { name: "Hledat technickou hodnotu" }), { target: { value: "lease" } });
+    const row = await waitFor(() => { const r = panel.querySelector('[data-setting="lease_seconds"]') as HTMLElement | null; if (!r) throw new Error("no row"); return r; });
+    // The row is shown with technical details off; only its source waits for them.
+    expect(row.closest("[hidden]")).toBeNull();
+    expect(within(row).queryByText("aia_core.domain.workflow:LEASE_SECONDS")).toBeNull();
+  });
+});
+
 describe("what powers AIA", () => {
   it("names analysis activity and its disabled state in human-readable language", async () => {
     const doc = DOC();
