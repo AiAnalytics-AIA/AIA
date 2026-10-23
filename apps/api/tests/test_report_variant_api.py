@@ -665,11 +665,9 @@ def test_approving_a_variant_whose_pdf_is_not_rendered_yet_asks_for_none(
     assert body["pdf"]["state"] == "NOT_REQUESTED" and body["pdf"]["askable"] is True
 
 
-def test_an_approved_edit_of_the_report_with_literature_is_named_beside_its_draft(
-    app: FastAPI, researcher: TestClient, world: Any
-) -> None:
-    """A version of this report saved in the editor and approved (RPT8c) leaves the prepared
-    draft a draft: the variant's status names the approved edit beside it."""
+def _edit(app: FastAPI, world: Any, run_id: str, draft: str, *, by: str = "researcher") -> str:
+    """The prepared draft opened in the editor and a save of it stored as ``by``'s (RPT8c):
+    the edited version's artifact id."""
     import io
     import zipfile
     from datetime import UTC, datetime
@@ -677,7 +675,6 @@ def test_an_approved_edit_of_the_report_with_literature_is_named_beside_its_draf
     from aia_core.application.report_editor import ReportEditor
     from aia_core.application.report_editor_saves import store_save
 
-    run_id, draft = _prepared(app, researcher, world)
     w = "http://schemas.openxmlformats.org/wordprocessingml/2006/main"
     out = io.BytesIO()
     with zipfile.ZipFile(out, "w") as z:
@@ -689,7 +686,10 @@ def test_an_approved_edit_of_the_report_with_literature_is_named_beside_its_draf
     url = "https://docs.aia.example.test/cache/files/x.docx"
     now = datetime(2026, 10, 23, 9, 0, tzinfo=UTC)
     with create_session_factory(app.state.engine)() as session:
-        scope = _scope(session, world)
+        scope = ScopeResolver(session).study_context(
+            AuthenticatedPrincipal(user_id=world.users[by], organization_id=world.organization_id),
+            study_id=world.study_id(),
+        )
         store = app.state.artifact_store
         docx = research_artifacts(session, scope, store).get(draft)
         opened = ReportEditor(session, scope).open(
@@ -707,6 +707,16 @@ def test_an_approved_edit_of_the_report_with_literature_is_named_beside_its_draf
             now=now,
         ).version.artifact_id
         session.commit()
+    return edited
+
+
+def test_an_approved_edit_of_the_report_with_literature_is_named_beside_its_draft(
+    app: FastAPI, researcher: TestClient, world: Any
+) -> None:
+    """A version of this report saved in the editor and approved (RPT8c) leaves the prepared
+    draft a draft: the variant's status names the approved edit beside it."""
+    run_id, draft = _prepared(app, researcher, world)
+    edited = _edit(app, world, run_id, draft)
     runs = f"{_study(world)}/research/runs/{run_id}"
     approved = researcher.post(f"{runs}/report/approve", json={"artifact_id": edited})
     assert approved.status_code == 200, approved.text
@@ -718,3 +728,27 @@ def test_an_approved_edit_of_the_report_with_literature_is_named_beside_its_draf
     assert named["review_state"] == "APPROVED_INTERNAL"
     # The internal report's status is another report's: it names no edit of this one.
     assert researcher.get(f"{runs}/report").json().get("approved_edits", []) == []
+
+
+def test_who_prepared_the_report_does_not_approve_its_edit_where_self_approval_is_off(
+    app: FastAPI,
+    researcher: TestClient,
+    lead: TestClient,
+    owner: TestClient,
+    outsider: TestClient,
+    world: Any,
+) -> None:
+    """Koncept 1 of the report with literature names no author, but a person prepared it: an
+    edit someone else saved is still their work, so where independent review is on they may
+    not approve it, and neither may the editor."""
+    forbid = owner.put(
+        f"{API}/self-approval", json={"allowed": False, "client_id": world.client_id()}
+    )
+    assert forbid.status_code == 200, forbid.text
+    run_id, draft = _prepared(app, researcher, world)  # prepared as the researcher's
+    edited = _edit(app, world, run_id, draft, by="lead")
+    approve = f"{_study(world)}/research/runs/{run_id}/report/approve"
+    for person in (researcher, lead):
+        refused = person.post(approve, json={"artifact_id": edited})
+        assert refused.status_code == 403 and refused.json()["code"] == "separation_of_duties"
+    assert outsider.post(approve, json={"artifact_id": edited}).status_code == 200

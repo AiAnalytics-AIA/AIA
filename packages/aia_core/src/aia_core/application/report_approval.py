@@ -34,7 +34,7 @@ from aia_core.application.report_variants import approval_asks_pdf, draft_pdf_re
 from aia_core.application.research import ResearchRuns, research_artifacts
 from aia_core.domain.report.editor import EDIT_ARTIFACT_TYPES
 from aia_core.domain.scope import Permission, StudyContext
-from aia_core.infrastructure.artifact_repository import Artifact, ArtifactStatus
+from aia_core.infrastructure.artifact_repository import Artifact, ArtifactRepository, ArtifactStatus
 from aia_core.infrastructure.report_editor_repository import ReportEditorRepository
 from aia_core.infrastructure.storage import ArtifactStore
 
@@ -98,7 +98,7 @@ def approve_report(
         # approves past.
         require_client_gate(artifacts, artifact)
     authors = (
-        _line_authors(session, scope, artifact)
+        _line_authors(session, scope, artifacts, artifact)
         if artifact.artifact_type in EDITED_REPORT_KINDS
         else frozenset()
     )
@@ -118,17 +118,23 @@ def approve_report(
     return approved
 
 
-def _line_authors(session: Session, scope: StudyContext, artifact: Artifact) -> frozenset[str]:
-    """Everyone who saved an edited version's line up to it: its work, not only the one person
-    its artifact records as producer (a save's first author). Where self-approval is off, none
-    of them may approve it; where it is on, one who does is recorded as self-approving."""
+def _line_authors(
+    session: Session, scope: StudyContext, artifacts: ArtifactRepository, artifact: Artifact
+) -> frozenset[str]:
+    """Everyone whose work an edited version is: the person who produced its line's composed
+    report (koncept 1, which names no author: a report with literature is prepared by a
+    person) and everyone who saved the line up to it, not only the one person its artifact
+    records as producer (a save's first author). Where self-approval is off, none of them may
+    approve it; where it is on, one who does is recorded as self-approving."""
     repo = ReportEditorRepository(session, scope)
     version = repo.version(artifact.artifact_id)
     if version is None:
         raise ReportNotApprovable(artifact.artifact_id)
-    return frozenset(
+    composed = artifacts.get(version.line_id).produced_by_user_id
+    saved = {
         author
         for earlier in repo.versions(version.line_id)
         if earlier.koncept <= version.koncept
         for author in earlier.authors
-    )
+    }
+    return frozenset(saved | ({composed} if composed else set()))
