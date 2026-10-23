@@ -26,6 +26,7 @@ from aia_core.application.research_lead import ResearchLead
 from aia_core.application.scope import AuthenticatedPrincipal, ScopeResolver
 from aia_core.domain.ai_material import MaterialApproval, material_sha256
 from aia_core.domain.ai_models import ModelCapability
+from aia_core.domain.edit_log import ActorKind, OpSource, WriteBy
 from aia_core.domain.knowledge import KnowledgeKind
 from aia_core.domain.research_lead import LEAD_PROMPT_ID, RememberNote, SelfUpdate, lead_prompt
 from aia_core.domain.residency import DataClass
@@ -201,7 +202,12 @@ def post(world: Any, *, message: str | None = MESSAGE) -> str:
         scope = world.lead_scope(session)
         workspace = StudyWorkspaceRepository(session)
         if workspace.content(scope).revision is None:
-            workspace.save(scope, content=CONTENT, base_revision=None)
+            workspace.save(
+                scope,
+                content=CONTENT,
+                base_revision=None,
+                by=WriteBy(ActorKind.PERSON, scope.actor_id, OpSource.UI),
+            )
         lead = ResearchLead(session, scope, enabled=True)
         if message is None:
             turns = lead.post(kind="greeting", stage="brief")

@@ -11,6 +11,7 @@ from aia_core.application.research import ResearchAgentJobs, ResearchRunNotFound
 from aia_core.domain.ai_contracts import schema_node_is_open, schema_object_nodes
 from aia_core.domain.ai_material import MaterialApproval, material_sha256
 from aia_core.domain.design import DesignRejected
+from aia_core.domain.edit_log import ActorKind, OpSource, WriteBy
 from aia_core.domain.knowledge import KnowledgeItem, KnowledgeKind
 from aia_core.domain.research_agents import (
     CONTRACTS,
@@ -226,6 +227,7 @@ def test_reviewed_proposal_refuses_newer_design(session: Any, scoped: Any) -> No
         scope,
         content={**DESIGN, "title": "Reviewed"},
         base_revision=second.workspace_revision,
+        by=WriteBy(ActorKind.PERSON, scope.actor_id, OpSource.UI),
     )
     with pytest.raises(DesignRejected) as error:
         designs.submit_if_current(
