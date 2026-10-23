@@ -461,17 +461,22 @@ function Upload() {
       const imported = applyImport(before, r, template);
       store.update(() => ({ project: imported.project }), { reason: "questionnaire_import" });
       if (undo && hasQuestionnaire(before)) {
+        // The import as the store holds it: with stable item ids on, the update gave its items ids.
+        const held = JSON.stringify(store.get().project.sections);
         undo.offer({
           message: imported.toast,
           undo: () => {
             // Only while the questionnaire is still the file's: never over an edit, a Lead's change or a
             // reload made since. The plan keeps everything but the status the import set.
-            if (JSON.stringify(store.get().project.sections) !== JSON.stringify(imported.project.sections)) return toast(t("research.questionnaire.importUndoStale"));
+            if (JSON.stringify(store.get().project.sections) !== held) return toast(t("research.questionnaire.importUndoStale"));
             store.update(
               ({ project }) => {
                 const plan = { ...project.research_plan };
-                if (before.research_plan.status === undefined) delete plan.status;
-                else plan.status = before.research_plan.status;
+                // Only the status the import set goes back; one set since is a later decision and stays.
+                if (plan.status === imported.project.research_plan.status) {
+                  if (before.research_plan.status === undefined) delete plan.status;
+                  else plan.status = before.research_plan.status;
+                }
                 return { project: { ...project, sections: before.sections, research_plan: plan, ui_state: { ...project.ui_state, questionnaire_path: "upload" } } };
               },
               { reason: "questionnaire_import_undone" },
