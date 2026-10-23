@@ -104,6 +104,13 @@ def _store(
         saved = census(data)
     except DocumentRefused as exc:
         raise SaveNotStored("save_unreadable") from exc
+    # One save of a line at a time: the line's composed row is held before its versions are
+    # read, so two saves never number the same koncept (the version rows alone do not stop an
+    # insert). The session is read again under it: one that closed meanwhile takes no save.
+    repo.lock_line(editor_session.line_id)
+    current = repo.session(editor_session.document_key)
+    if current is None or current.closed_at is not None:
+        raise SaveNotStored("session_closed")
     versions = repo.versions(editor_session.line_id, for_update=True)
     sha256 = hashlib.sha256(data).hexdigest()
     same = next((v for v in versions if v.sha256 == sha256), None)

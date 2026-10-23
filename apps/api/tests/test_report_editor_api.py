@@ -6,6 +6,7 @@ from __future__ import annotations
 import io
 import json
 import os
+import time
 import zipfile
 from typing import Any
 from urllib.parse import parse_qs, urlparse
@@ -410,17 +411,27 @@ def saves(app: FastAPI) -> Saves:
     return fetched
 
 
-def _callback(client: TestClient, config: dict[str, Any], **body: Any) -> Any:
+def _onlyoffice(claims: dict[str, Any]) -> str:
+    """``claims`` signed as ONLYOFFICE signs (jsonwebtoken with ``expiresIn``): ``iat`` and
+    ``exp`` at the top level, beside whatever it signs."""
+    now = int(time.time())
+    return jwt.encode({**claims, "iat": now, "exp": now + 300}, SECRET)
+
+
+def _callback(
+    client: TestClient, config: dict[str, Any], *, signed: str = "body", **body: Any
+) -> Any:
     """``body`` posted to the config's callback URL as ONLYOFFICE posts it: signed in the body
-    and, wrapped as its ``payload``, in the header."""
+    (``inBody``), or in the header as its ``payload``, or, for the test, both."""
     body = {"key": config["document"]["key"], **body}
     url = urlparse(config["editorConfig"]["callbackUrl"])
-    return client.post(
-        url.path,
-        params=parse_qs(url.query),
-        json={**body, "token": jwt.encode(body, SECRET)},
-        headers={"Authorization": f"Bearer {jwt.encode({'payload': body}, SECRET)}"},
-    )
+    sent = dict(body)
+    headers: dict[str, str] = {}
+    if signed in ("body", "both"):
+        sent["token"] = _onlyoffice(body)
+    if signed in ("header", "both"):
+        headers["Authorization"] = f"Bearer {_onlyoffice({'payload': body})}"
+    return client.post(url.path, params=parse_qs(url.query), json=sent, headers=headers)
 
 
 def test_a_force_save_stores_the_next_koncept_with_its_changes_and_keeps_the_key(
@@ -457,6 +468,78 @@ def test_a_force_save_stores_the_next_koncept_with_its_changes_and_keeps_the_key
         "error": 0
     }
     assert researcher.post(_editor(world, run_id), json={}).json()["koncept"] == 2
+
+
+@pytest.mark.parametrize("signed", ["header", "both"])
+def test_a_save_signed_as_the_document_server_is_set_to_sign_it_is_stored(
+    app: FastAPI,
+    researcher: TestClient,
+    client: TestClient,
+    world: Any,
+    saves: Saves,
+    signed: str,
+) -> None:
+    """ONLYOFFICE signs a callback in the body or, by default, in the header as its payload;
+    either is a save, and both together must agree."""
+    run_id, _ = _reported_run(app, researcher, world)
+    config = researcher.post(_editor(world, run_id), json={}).json()["config"]
+    url = saves.put(_docx("50 %"))
+    me = world.users["researcher"]
+    answer = _callback(client, config, signed=signed, status=6, url=url, users=[me])
+    assert answer.json() == {"error": 0}, answer.text
+    assert researcher.post(_editor(world, run_id), json={}).json()["koncept"] == 2
+
+
+def test_a_body_and_header_that_disagree_are_refused_and_only_signed_fields_are_read(
+    app: FastAPI, researcher: TestClient, client: TestClient, world: Any, saves: Saves
+) -> None:
+    run_id, _ = _reported_run(app, researcher, world)
+    config = researcher.post(_editor(world, run_id), json={}).json()["config"]
+    me = world.users["researcher"]
+    key = config["document"]["key"]
+    callback = urlparse(config["editorConfig"]["callbackUrl"])
+    good, evil = saves.put(_docx("50 %")), saves.put(_docx("99 %"))
+    signed = {"key": key, "status": 6, "url": good, "users": [me]}
+    answer = client.post(
+        callback.path,
+        params=parse_qs(callback.query),
+        json={**signed, "token": _onlyoffice(signed)},
+        headers={"Authorization": f"Bearer {_onlyoffice({'payload': {**signed, 'url': evil}})}"},
+    )
+    assert answer.status_code == 403 and saves.asked == []
+    # The header signs a status-1; the body's own fields say "save this": nothing is fetched.
+    answer = client.post(
+        callback.path,
+        params=parse_qs(callback.query),
+        json={**signed, "status": 6, "url": evil},
+        headers={"Authorization": f"Bearer {_onlyoffice({'payload': {'key': key, 'status': 1}})}"},
+    )
+    assert answer.json() == {"error": 0} and saves.asked == []
+
+
+def test_a_save_for_a_session_already_closed_is_not_stored(
+    app: FastAPI, researcher: TestClient, client: TestClient, world: Any, saves: Saves
+) -> None:
+    """A status-2 closed the session and a new one saved since: a late or replayed force-save
+    for the old key (its callback URL lasts a week) must not become the newest koncept."""
+    run_id, _ = _reported_run(app, researcher, world)
+    config = researcher.post(_editor(world, run_id), json={}).json()["config"]
+    me = world.users["researcher"]
+    first, stale = saves.put(_docx("50 %")), saves.put(_docx("10 %"))
+    assert _callback(client, config, status=2, url=first, users=[me]).json() == {"error": 0}
+    later = researcher.post(_editor(world, run_id), json={}).json()["config"]
+    newer = saves.put(_docx("60 %"))
+    assert _callback(client, later, status=6, url=newer, users=[me]).json() == {"error": 0}
+    asked = len(saves.asked)
+    for status in (6, 2):
+        replay = _callback(client, config, status=status, url=stale, users=[me])
+        assert replay.json() == {"error": 1}
+    assert _callback(client, config, status=4).json() == {"error": 0}  # nothing to do
+    assert len(saves.asked) == asked
+    opened = researcher.post(_editor(world, run_id), json={}).json()
+    assert (
+        opened["koncept"] == 3 and opened["config"]["document"]["key"] == later["document"]["key"]
+    )
 
 
 def test_everyone_leaving_closes_the_session_and_the_next_opens_a_new_key(
@@ -596,12 +679,23 @@ def test_the_browsers_config_token_does_not_post_a_save(
 def test_a_callback_without_a_token_or_a_body_is_refused_not_invalid(
     app: FastAPI, researcher: TestClient, client: TestClient, world: Any
 ) -> None:
+    """Whatever the body, the route answers: 403 with the editor on, 404 off, never 422."""
     run_id, _ = _reported_run(app, researcher, world)
     callback = researcher.post(_editor(world, run_id), json={}).json()["config"]["editorConfig"]
     path = urlparse(callback["callbackUrl"]).path
-    assert client.post(path).status_code == 403
+    bodies: list[dict[str, Any]] = [
+        {},
+        {"content": b"not json", "headers": {"Content-Type": "application/json"}},
+        {"json": [1]},
+        {"content": b"\xff\xfe", "headers": {"Content-Type": "text/plain"}},
+        {"json": {"token": 7}},
+        {"content": b"[" * 100_000, "headers": {"Content-Type": "application/json"}},
+    ]
+    for kw in bodies:
+        assert client.post(path, **kw).status_code == 403, kw
     app.state.settings = app.state.settings.model_copy(update={"onlyoffice_callback_base": ""})
-    assert client.post(path).status_code == 404
+    for kw in bodies:
+        assert client.post(path, **kw).status_code == 404, kw
 
 
 def test_a_removed_opener_s_session_takes_no_save(

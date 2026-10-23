@@ -112,6 +112,9 @@ class LiveSaveFetcher:
             if response.status != 200:
                 raise SaveFetchRefused(f"document_server_answered_{response.status}")
             return _bounded(response, self._max)
+        except self._urllib3.exceptions.HTTPError as exc:
+            # preload_content=False: a timeout or reset while the body streams is raised here.
+            raise SaveFetchRefused("document_server_unreachable") from exc
         finally:
             response.release_conn()
 

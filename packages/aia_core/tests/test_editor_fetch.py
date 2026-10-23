@@ -102,3 +102,27 @@ def test_a_save_not_fetched_whole_is_refused_by_name(response: _Response, reason
     with pytest.raises(SaveFetchRefused) as refused:
         _fetch(response)
     assert refused.value.reason == reason and response.released
+
+
+class _Broken(_Response):
+    """A response whose body breaks while it streams (preload_content=False reads it late)."""
+
+    def __init__(self, error: Exception) -> None:
+        super().__init__(200, b"docx")
+        self._error = error
+
+    def stream(self, size: int) -> Any:
+        yield b"do"
+        raise self._error
+
+
+def test_a_save_broken_while_it_streams_is_refused_by_name() -> None:
+    urllib3 = pytest.importorskip("urllib3")
+    for error in (
+        urllib3.exceptions.ReadTimeoutError(None, URL, "read timed out"),
+        urllib3.exceptions.ProtocolError("connection reset"),
+    ):
+        response = _Broken(error)
+        with pytest.raises(SaveFetchRefused) as refused:
+            _fetch(response)
+        assert refused.value.reason == "document_server_unreachable" and response.released
