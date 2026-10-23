@@ -36,5 +36,16 @@ Updated 2026-10-20. Design prototype only: no product code, no product PR (scope
   (develop-spend-attribution, I20). Carried as develop-spend-attribution chunk 7 (plan PR in progress); the prototype label is removed.
 - Readability pass (2026-10-21, Nigel): Stav systému, Deep Research, Správa dat, Metodika: all information kept, sections separated.
 
+## Design system update (2026-10-23, Version 51)
+
+All ten artboards now use develop's Indigo tokens (1d7eae81) and the in-force green (be220ebc), light and dark, with no layout or content changes. Colour rules:
+- green only on what is in force (the Metodika version, the switched-on prompt);
+- coral only for "needs you", shown only to someone who can act; a non-admin sees slate;
+- slate for waiting on the world;
+- AI elements are purple;
+- the spend split uses viz-cat v1–v4.
+
+develop has no separate "parked" token, so each old amber was mapped by meaning to coral, slate or neutral. Contrast was checked on every changed pairing; the lowest text ratio is 4.69 (AI ink, dark). The coral dot gets a youink ring, because coral alone is 2.42:1.
+
 ## Open, with Nigel
 None.
