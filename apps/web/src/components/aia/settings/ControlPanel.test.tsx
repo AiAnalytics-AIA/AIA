@@ -418,9 +418,10 @@ describe("the settings control panel", () => {
     const panel = document.getElementById("panel-access") as HTMLElement;
     await waitFor(() => expect(panel.querySelector('[data-member="USR-3"]')).toBeTruthy());
     // Your own row offers no deactivation: you would lock yourself out.
+    const jana = await within(panel).findByRole("button", { name: "Deaktivovat jana@example.test" });
     expect(within(panel).queryByRole("button", { name: "Deaktivovat owner@example.test" })).toBeNull();
     // A refusal is said in the row.
-    fireEvent.click(within(panel).getByRole("button", { name: "Deaktivovat jana@example.test" }));
+    fireEvent.click(jana);
     expect(await within(panel).findByText("Poslední aktivní vlastník organizace nemůže přijít o roli ani být deaktivován.")).toBeTruthy();
     // The deactivated member: their Lead sealed, its erasure dated, and Obnovit.
     const lucie = panel.querySelector('[data-member="USR-3"]') as HTMLElement;
@@ -468,6 +469,53 @@ describe("the settings control panel", () => {
     fireEvent.click(await screen.findByRole("button", { name: "Deaktivovat jana@example.test" }));
     expect(await screen.findByText("Jana: deaktivace hotova. Nepřihlásí se, studie zůstávají.")).toBeTruthy();
     expect(screen.queryByText(/Vedoucí je zapečetěn/)).toBeNull();
+  });
+
+  it("knows your own row by your user id, not by the token's e-mail (review of #859)", async () => {
+    // The token names another e-mail (or none) under the same subject; /workspace/me says USR-1.
+    sessionStorage.setItem("aia.session", JSON.stringify({ idToken: "tok", refreshToken: "r", expiresAt: Date.now() + 3_600_000, email: "", subject: "s" }));
+    api({
+      "GET /api/v1/members": () => [
+        { user_id: "USR-1", email: "owner@example.test", display_name: "Petr", is_active: true, organization_role: "OWNER", methodologist: false },
+        { user_id: "USR-2", email: "jana@example.test", display_name: "Jana", is_active: true, organization_role: "MEMBER", methodologist: false },
+      ],
+    });
+    render(<ControlPanel />);
+    fireEvent.click(await screen.findByRole("tab", { name: "Přístup a schvalování" }));
+    const panel = document.getElementById("panel-access") as HTMLElement;
+    expect(await within(panel).findByRole("button", { name: "Deaktivovat jana@example.test" })).toBeTruthy();
+    expect(within(panel).queryByRole("button", { name: "Deaktivovat owner@example.test" })).toBeNull();
+  });
+
+  it("offers no deactivation while who you are is unread, since any row could be yours", async () => {
+    api({
+      "GET /api/v1/workspace/me": () => new Response('{"code":"internal","message":"x"}', { status: 500 }),
+      "GET /api/v1/members": () => [
+        { user_id: "USR-1", email: "owner@example.test", display_name: "Petr", is_active: true, organization_role: "OWNER", methodologist: false },
+        { user_id: "USR-2", email: "jana@example.test", display_name: "Jana", is_active: true, organization_role: "MEMBER", methodologist: false },
+      ],
+    });
+    render(<ControlPanel />);
+    fireEvent.click(await screen.findByRole("tab", { name: "Přístup a schvalování" }));
+    const panel = document.getElementById("panel-access") as HTMLElement;
+    await waitFor(() => expect(panel.querySelector('[data-member="USR-2"]')).toBeTruthy());
+    await waitFor(() => expect(called("GET", "/api/v1/workspace/me").length).toBeGreaterThan(0));
+    expect(within(panel).queryByRole("button", { name: /^Deaktivovat/ })).toBeNull();
+  });
+
+  it("draws the new member's row with the table's five cells (review of #859)", async () => {
+    api();
+    render(<ControlPanel />);
+    fireEvent.click(await screen.findByRole("tab", { name: "Přístup a schvalování" }));
+    const panel = document.getElementById("panel-access") as HTMLElement;
+    fireEvent.click(await within(panel).findByRole("button", { name: "+ Přidat člena" }));
+    const table = within(panel).getByRole("table", { name: "Členové" });
+    const columns = table.querySelectorAll('[role="columnheader"]').length;
+    expect(columns).toBe(5);
+    const row = table.querySelector("[data-member-new]") as HTMLElement;
+    expect(row.querySelectorAll(':scope > [role="cell"]')).toHaveLength(columns);
+    // The add and cancel buttons sit in the last, the action column.
+    expect(within(row.lastElementChild as HTMLElement).getByRole("button", { name: "Zrušit" })).toBeTruthy();
   });
 
   it("deactivates at once and offers Vrátit, which reactivates", async () => {

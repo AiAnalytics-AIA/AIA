@@ -13,9 +13,8 @@ import { useRouter } from "next/navigation";
 import { type KeyboardEvent, type ReactNode, useEffect, useRef, useState } from "react";
 
 import { t, tv } from "@/i18n/t";
-import { type AdminClient, type ClientRules, type Member, type SelfApprovalLevels, type Vocabularies, ApiError, Unauthenticated, admin, clientRules } from "@/lib/api";
+import { type AdminClient, type ClientRules, type Member, type SelfApprovalLevels, type Vocabularies, ApiError, Unauthenticated, admin, clientRules, workspace } from "@/lib/api";
 import { appRoutes } from "@/lib/app-routes";
-import { useSession } from "@/lib/auth";
 import type { SaveState } from "@/lib/inline-edit";
 import { usd } from "@/lib/researcher-spend";
 import { ChoiceChips } from "../../ui/ChoiceChips";
@@ -25,6 +24,7 @@ import { FOCUS, SaveNote } from "../../ui/parts";
 import { UndoToast, useUndo } from "../../ui/UndoToast";
 import { Button } from "../../rehome/ui";
 import { describeError, describeMemberError } from "./errors";
+import { useResource } from "../useResource";
 
 const P = "aia.settings.panel";
 const A = `${P}.accessTab`;
@@ -80,12 +80,14 @@ const GRID_HEAD = "px-2 py-1.5 text-left text-xs font-normal text-ink-faint";
 
 // ---------------------------------------------------------------- members
 
-function MemberRow({ m, roles, locked, lockedWhy, canAdminister, owner, self, reload, offerUndo }: {
+function MemberRow({ m, roles, locked, lockedWhy, canAdminister, owner, self, known, reload, offerUndo }: {
   m: Member; roles: readonly string[]; locked: boolean; lockedWhy: string | null; canAdminister: boolean;
   /** The signed-in person is an OWNER: only they grant the Metodik mark. */
   owner: boolean;
   /** The signed-in person's own row. */
   self: boolean;
+  /** Whether who you are was read: unknown, no row offers deactivation (it could be yours). */
+  known: boolean;
   reload: () => void;
   offerUndo: (message: string, undo: () => void) => void;
 }) {
@@ -170,7 +172,7 @@ function MemberRow({ m, roles, locked, lockedWhy, canAdminister, owner, self, re
         {membership.error ? <p role="alert" className="mt-1 max-w-56 text-xs text-status-fault">{membership.error}</p> : null}
       </div>
       <div role="cell" className="border-t border-border px-2 py-2">
-        {canAdminister && m.is_active && !self ? (
+        {canAdminister && m.is_active && known && !self ? (
           <Button small variant="quiet" disabled={locked || membership.state === "saving"} aria-label={tv(`${A}.deactivateOf`, { who: m.email })} onClick={() => void deactivate()}>{t(`${A}.deactivate`)}</Button>
         ) : null}
         {canAdminister && deactivatedHere ? (
@@ -225,6 +227,8 @@ function AddMemberRow({ roles, reload }: { roles: readonly string[]; reload: () 
       <div role="cell" className="border-t border-border bg-surface-sunken px-2 py-2">
         <ChoiceChips label={t(`${A}.newRole`)} value={role} options={choices.map((r) => ({ key: r, label: t(`aia.orgRoles.${r}`) }))} onChange={setRole} />
       </div>
+      {/* Metodik: a new member has no mark; the cell keeps the five columns in step (review of #859). */}
+      <div role="cell" className="border-t border-border bg-surface-sunken px-2 py-2" />
       <div role="cell" className="border-t border-border bg-surface-sunken px-2 py-2 text-xs leading-5 text-ink-muted">{t(`${P}.members.note`)}</div>
       <div role="cell" className="flex items-start gap-1 border-t border-border bg-surface-sunken px-2 py-2">
         <Button small variant="primary" disabled={!email.trim() || state === "saving"} onClick={() => void add()}>{t(`${A}.add`)}</Button>
@@ -240,7 +244,10 @@ export function MembersCard({ members, vocab, canAdminister, yourRole, reload }:
   members: Part<Member[]>; vocab: Vocabularies; canAdminister: boolean; yourRole: string; reload: () => void;
 }) {
   const undo = useUndo();
-  const me = useSession()?.email?.toLocaleLowerCase() ?? null;
+  // You are your user id, from /workspace/me: a token's e-mail can be missing or changed under the same
+  // subject (review of #859). Until the id is read, no row is yours and none offers deactivation.
+  const [who] = useResource(() => workspace.me(), []);
+  const myId = who.state === "ready" ? who.data.user_id : null;
   // Only an OWNER grants or removes OWNER (the API refuses it, owner_only); the last active OWNER
   // is not offered a demotion the API refuses (last_owner).
   const owner = yourRole === "OWNER";
@@ -276,7 +283,7 @@ export function MembersCard({ members, vocab, canAdminister, yourRole, reload }:
             const locked = isOwnerRow && !(owner && activeOwners > 1);
             const lockedWhy = isOwnerRow && canAdminister ? t(`${P}.members.${owner ? "lastOwner" : "ownerOnly"}`) : null;
             return <MemberRow key={m.user_id} m={m} roles={roles} locked={locked} lockedWhy={locked ? lockedWhy : null} canAdminister={canAdminister} owner={owner}
-              self={me !== null && m.email.toLocaleLowerCase() === me} reload={reload} offerUndo={(message, back) => undo.offer({ message, undo: back })} />;
+              self={myId === m.user_id} known={myId !== null} reload={reload} offerUndo={(message, back) => undo.offer({ message, undo: back })} />;
           })}
           {canAdminister ? <AddMemberRow roles={roles} reload={reload} /> : null}
         </div>
