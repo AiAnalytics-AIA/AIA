@@ -2160,6 +2160,8 @@ export const cs = {
         sets: { one: "1 sledovaná sada", few: "{n} sledované sady", many: "{n} sledovaných sad" },
       },
       imported: "Načteno: {counts}",
+      uploadReplaces: "Načtený soubor nahradí současný dotazník. Hned potom ho půjde vrátit.",
+      importUndoStale: "Dotazník se od načtení změnil, import už se nevrátí.",
       // Závislosti (artifact-questionnaire QST8): what reads each item downstream.
       dependencies: {
         title: "Závislosti",
