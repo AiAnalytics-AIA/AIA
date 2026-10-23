@@ -61,7 +61,9 @@ from ..domain.analysis.artifact import (
     ProducedBy,
     SourceRef,
     ViolationRecord,
+    finding_expected,
     module_reuse_fingerprint,
+    no_supported_finding,
     parse_module_artifact,
 )
 from ..domain.analysis.external import (
@@ -83,14 +85,16 @@ from ..domain.analysis.native import (
     NATIVE_EVIDENCE_VERSION,
     NativeEvidence,
     NativeEvidenceRefused,
+    hypotheses_of,
     native_evidence,
     native_preflight,
     research_questions_of,
 )
 from ..domain.analysis.steps import analysis_node_key, module_of_node
-from ..domain.answerability import Acknowledgement
+from ..domain.answerability import Acknowledgement, read_answerability_note
 from ..domain.deep_research.quarantine import AnalysisContext
 from ..domain.evidence import (
+    ClaimLevel,
     ClaimSurface,
     InstrumentPolicyRefused,
     Violation,
@@ -218,6 +222,11 @@ class NativeSources:
     dataset_origin: DataOrigin | None
     fieldwork_source: str | None
     research_questions: tuple[str, ...]
+    #: The hypotheses the design states, which the hypotheses module is given (Q72).
+    hypotheses: tuple[str, ...]
+    #: Research questions the run recorded as gaps at start, whitespace folded: none of them is
+    #: expected to be answered with a number (evidence-integrity 9a).
+    gap_questions: frozenset[str]
     #: The brief as the run's Design Revision states it (F19: the draft says what was asked).
     brief: Brief
     #: The support rules the run pinned (plan ``methodology-tab`` G1c); its ``analysis`` rule
@@ -444,6 +453,8 @@ def native_sources(
         dataset_origin=origin,
         fieldwork_source=dataset_row.metadata.get("fieldwork_source"),
         research_questions=research_questions_of(content),
+        hypotheses=hypotheses_of(content),
+        gap_questions=_gap_questions(run.get("metadata") or {}),
         support=support,
         respondent_system=respondent_system,
         joint_certificate=joint_certificate,
@@ -452,6 +463,19 @@ def native_sources(
             goal=_stated(content.get("goal")),
             decision_use=_stated(content.get("decision_use")),
         ),
+    )
+
+
+def _gap_questions(metadata: Mapping[str, Any]) -> frozenset[str]:
+    """The research questions the run recorded as gaps at start, whitespace folded; none when it
+    recorded none or its record does not read (then every question is expected, never fewer)."""
+    note = read_answerability_note(metadata)
+    if note is None:
+        return frozenset()
+    return frozenset(
+        " ".join(str(g["research_question"]).split())
+        for g in note["gaps"]
+        if isinstance(g, Mapping) and g.get("research_question")
     )
 
 
@@ -671,6 +695,7 @@ def prepare_module(
         language=language,
         system_fingerprint=evidence.system_fingerprint,
         external_context=sources.external.lines() if sources.external is not None else (),
+        hypotheses=sources.hypotheses if module_id is AnalysisModuleId.HYPOTHESES else (),
     )
     fingerprint = input_fingerprint(module_id, inputs)
     harness = harness_summary(language=language, max_repairs=max_repairs)
@@ -689,6 +714,24 @@ def prepare_module(
             evidence,
             surface=surface,
             research_questions=sources.research_questions,
+        ),
+    )
+
+
+def _finding_expected(prepared: PreparedModule) -> bool:
+    """:func:`~aia_core.domain.analysis.artifact.finding_expected` from the run's own data: the
+    evidence rows the module is given (a suppressed row is not there), the design's hypotheses
+    and research questions, the gaps the run recorded at start."""
+    sources = prepared.sources
+    rows = prepared.evidence.table.rows.values()
+    tracked = {b.question_id(o) for b in sources.specification.batteries for o in b.objects}
+    return finding_expected(
+        prepared.module_id,
+        tracked_sets=any(r.question_id in tracked for r in rows),
+        hypotheses=bool(sources.hypotheses),
+        segment_rows=any(r.level is ClaimLevel.SEGMENT for r in rows),
+        research_questions=any(
+            " ".join(q.split()) not in sources.gap_questions for q in sources.research_questions
         ),
     )
 
@@ -743,6 +786,7 @@ def module_artifact(
         labels=ModuleLabels.model_validate(harness_labels(origin=evidence.origin, surface=surface)),
         produced_by=produced_by,
         runtime_version=runtime_version,
+        finding_expected=_finding_expected(prepared),
     )
 
 
@@ -782,6 +826,9 @@ class RunAnalysis:
     #: names it was computed under (:class:`ModuleSources`), so what the run stands on is read
     #: here, never from a record; ``None`` when no outcome was stored yet.
     sources: ModuleSources | None = None
+    #: Modules asked again over the same data anywhere in this run's retry chain: a module among
+    #: them that still states nothing is not offered another round (9a).
+    retried: frozenset[AnalysisModuleId] = frozenset()
     #: The external context every module was shown, from the same verified read as its sources
     #: (evidence-integrity 7); ``None`` without a pin, or when no outcome was stored yet.
     external: ShownContext | None = None
@@ -801,11 +848,15 @@ class RunAnalysis:
     @property
     def retryable(self) -> tuple[AnalysisModuleId, ...]:
         """The modules a person may ask again over this run's frozen data (:func:`_retryable`)."""
-        return _retryable({m: o.record for m, o in self.modules.items()}, self.pending)
+        return _retryable(
+            {m: o.record for m, o in self.modules.items()}, self.pending, self.retried
+        )
 
 
 def _retryable(
-    records: Mapping[AnalysisModuleId, ModuleArtifact], pending: Mapping[AnalysisModuleId, str]
+    records: Mapping[AnalysisModuleId, ModuleArtifact],
+    pending: Mapping[AnalysisModuleId, str],
+    retried: frozenset[AnalysisModuleId] = frozenset(),
 ) -> tuple[AnalysisModuleId, ...]:
     """The modules a person may ask again over a run's frozen data, in module order.
 
@@ -813,6 +864,9 @@ def _retryable(
     ``FAILED`` or ``CANCELLED`` without an outcome, and a module completed under an earlier
     harness (:func:`_stale`): today's harness refuses to re-admit it, so the run's analysis,
     its literature report and its Interpretation Research stay dark until it is asked again.
+    A module the run held the context for that states nothing (:func:`no_supported_finding`): a
+    same-data round is one way out (MVPQ-04, evidence-integrity 9a), offered once: a module this
+    run already asked again (``retried``) and that still states nothing is not offered it again.
     Never a module the preflight blocked before any turn: code refused it, and the same data
     would refuse it again.
     """
@@ -821,6 +875,7 @@ def _retryable(
         for m in AnalysisModuleId
         if (m in records and records[m].outcome == "BLOCKED" and records[m].attempts > 0)
         or (m in records and _stale(records[m]))
+        or (m in records and no_supported_finding(records[m]) and m not in retried)
         or pending.get(m) in _RETRYABLE_STEP_STATES
     )
 
@@ -850,10 +905,12 @@ class StoredAnalysis:
     run_id: str
     records: Mapping[AnalysisModuleId, ModuleArtifact]
     pending: Mapping[AnalysisModuleId, str] = field(default_factory=dict)
+    #: Modules this run asked again over the same data (see :attr:`RunAnalysis.retried`).
+    retried: frozenset[AnalysisModuleId] = frozenset()
 
     @property
     def retryable(self) -> tuple[AnalysisModuleId, ...]:
-        return _retryable(self.records, self.pending)
+        return _retryable(self.records, self.pending, self.retried)
 
     @property
     def stale(self) -> tuple[AnalysisModuleId, ...]:
@@ -1016,6 +1073,16 @@ def _split(
     return outcomes, pending
 
 
+def _retried(run: Mapping[str, Any]) -> frozenset[AnalysisModuleId]:
+    """The modules asked again anywhere in this run's retry chain (its ``analysis_retry.tried``,
+    which carries every earlier round's forward; ``modules`` for a retry recorded before it)."""
+    note = (run.get("metadata") or {}).get("analysis_retry")
+    modules = (note.get("tried", note.get("modules"))) if isinstance(note, Mapping) else None
+    if not isinstance(modules, list):
+        return frozenset()
+    return frozenset(m for m in AnalysisModuleId if m.value in modules)
+
+
 def _stored_record(
     session: Session,
     scope: StudyContext,
@@ -1062,6 +1129,7 @@ def stored_analysis(
             if m in outcomes
         },
         pending=pending,
+        retried=_retried(run),
     )
 
 
@@ -1094,6 +1162,7 @@ def reconstruct_run(
         pending=pending,
         aggregation_deviation=deviation,
         sources=refs,
+        retried=_retried(run),
         external=external,
         brief=brief,
     )
@@ -1195,7 +1264,8 @@ def retry_failed_modules(
     if not retried:
         raise AnalysisNotRetryable(
             "nothing_to_retry",
-            f"run {run_id} has no analysis module a model failed or an earlier harness stored",
+            f"run {run_id} has no analysis module a model failed, left without a finding or an "
+            "earlier harness stored",
         )
     asked = sum(
         1
@@ -1218,6 +1288,7 @@ def retry_failed_modules(
         modules_asked=asked,
         specification_artifact_id=compiled_output["artifact_id"],
         specification_sha256=compiled_output["sha256"],
+        tried=tuple(m.value for m in analysis.retried),
     )
     return runs.retry_analysis(
         run_id,
