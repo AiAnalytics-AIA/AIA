@@ -130,7 +130,7 @@ from aia_core.domain.report.document_model import (
 )
 from aia_core.domain.report.review import ReviewMark, ReviewState
 from aia_core.domain.report.validation import ReportInvalid
-from aia_core.domain.research_agents import ResearchAction
+from aia_core.domain.research_agents import ProposalState, ResearchAction
 from aia_core.domain.research_design import settle_selection
 from aia_core.domain.research_trace import ResearchTrace
 from aia_core.domain.scope import (
@@ -2184,8 +2184,9 @@ def run_analysis(
     as shown, from the same verified read as the modules' sources; ``None`` without a pin or
     before any module has an outcome.
     Each module carries ``diagnostic``: ``{reason, resolutions}`` when it states nothing --
-    ``no_supported_finding`` where the run held its context (what the report's refusal, 9b, will
-    read; MVPQ-04, Q72) or ``context_missing`` where the run lacks it -- else ``None``."""
+    ``no_supported_finding`` where the run held its context (MVPQ-04, Q72) or ``context_missing``
+    where the run lacks it -- else ``None``. ``holding``: the modules the report waits on, in
+    module order (9b; :attr:`RunAnalysis.holding`); ``complete`` is true only when it is empty."""
     try:
         scope.require(Permission.EDIT_STUDY)
         analysis = reconstruct_run(session, scope, store, run_id=run_id)
@@ -2201,6 +2202,7 @@ def run_analysis(
     return {
         "run_id": run_id,
         "complete": analysis.complete,
+        "holding": [m.value for m in analysis.holding],
         "internal_only": True,
         "synthetic": any(o.record.labels.simulated_respondents for o in analysis.modules.values()),
         **_origin_flags(
@@ -2867,13 +2869,19 @@ def prepare_contextual_report(
     except _CONTEXT_REFUSALS as exc:
         # A refusal that names why carries it, so the screen can say it in words (PC17): the
         # analysis an earlier harness built (fingerprint_mismatch) is repaired on Průběh.
+        # A module that holds the report is named (9b), so the screen names it too.
         reason = getattr(exc, "reason", None)
+        modules = list(getattr(exc, "modules", ()))
         raise HTTPException(
             409,
             detail={
                 "code": "context_report_refused",
                 "message": str(exc),
-                "details": {"reason": reason} if isinstance(reason, str) else {},
+                "details": (
+                    {"reason": reason, **({"modules": modules} if modules else {})}
+                    if isinstance(reason, str)
+                    else {}
+                ),
             },
         ) from exc
     return _variant_response(
@@ -3381,11 +3389,9 @@ class AgentJobStart(BaseModel):
     design_revision_id: str = Field(max_length=64, pattern=r"^REV-[0-9a-f]{1,32}$")
     action: ResearchAction
     instruction: str = Field(default="", max_length=8000)
-    #: A stored prompt version to run instead of the active one, to test a draft (ADR 0020).
-    #: Organization administrators only, and only on a client the deployment lists as
-    #: fictional (409 ``prompt_test_requires_fictional_client`` otherwise); the job records
-    #: which prompt it ran.
-    prompt_version: int | None = Field(default=None, ge=1)
+    # No prompt_version: a job runs the organization's active prompt, never a draft (D-15,
+    # system-prompts-settings 14). Asking for one is 422 (extra="forbid"): no paid start
+    # outside the Lead stays reachable over HTTP.
     #: The ceiling a person confirmed when the study's confirmation threshold asked (409
     #: ``cost_confirmation_required``, lead-orchestration LO15). Never the ceiling itself: the
     #: server works that out from the design job's reservation.
@@ -3553,19 +3559,14 @@ def start_agent_job(
     response: Response,
 ) -> AgentJobResponse:
     with _agent_errors(session):
-        # The deployment's fictional-client list decides where a draft prompt may be tried.
         # What one job can cost at most, for the study's confirmation threshold (LO15).
         jobs = ResearchAgentJobs(
-            session,
-            scope,
-            draft_client_ids=settings.fictional_client_ids,
-            reservation_usd=settings.ai_research_reservation_usd,
+            session, scope, reservation_usd=settings.ai_research_reservation_usd
         )
         started = jobs.start(
             design_revision_id=body.design_revision_id,
             action=body.action,
             instruction=body.instruction,
-            prompt_version=body.prompt_version,
             confirm_cost_usd=body.confirm_cost_usd,
         )
         if not started.created:
@@ -3578,13 +3579,18 @@ def list_agent_jobs(
     scope: StudyScopeDep, session: SessionDep, pending: Annotated[bool, Query()] = False
 ) -> list[AgentJobResponse]:
     """The Study's agent jobs, newest first, each with its proposal's state (ADR 0026 d8).
-    ``pending=true``: only the proposals a person has still to decide."""
+    ``pending=true``: only the proposals a person has still to decide, among the Study's newest
+    200 jobs (``list_runs``' cap), filtered before the page, never the newest 20 filtered."""
     with _agent_errors(session):
         jobs = ResearchAgentJobs(session, scope)
+        if pending:
+            rows = jobs.jobs(limit=200)
+            states = jobs.proposal_states(rows)
+            waiting = [r["run_id"] for r in rows if states[r["run_id"]] is ProposalState.PENDING]
+            return [_agent_response(jobs.get(i), scope, "pending") for i in waiting]
         runs = [jobs.get(r["run_id"]) for r in jobs.jobs()]
         states = jobs.proposal_states(runs)
-        listed = [_agent_response(r, scope, (s := states[r["run_id"]]) and s.value) for r in runs]
-        return [j for j in listed if j.proposal_state == "pending"] if pending else listed
+        return [_agent_response(r, scope, (s := states[r["run_id"]]) and s.value) for r in runs]
 
 
 @router.get("/research/agent-jobs/{run_id}", response_model=AgentJobResponse)

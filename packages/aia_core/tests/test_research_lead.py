@@ -349,6 +349,29 @@ def test_an_inspect_target_is_held_to_the_focus_grammar() -> None:
     assert not _valid(_output(view=[{"op": "inspect"}])).ok
 
 
+def test_show_diff_only_where_the_stage_shows_its_waiting_changes() -> None:
+    """Návrh, Dotazník and Dimenze show their waiting changes; Zpráva declares show_diff for a
+    draft's tracked changes, which do not exist yet; Zadání declares none."""
+    output = LeadOutput.model_validate(
+        _output(
+            view=[
+                {"op": "show_diff", "stage": "questionnaire"},
+                {"op": "show_diff", "stage": "report"},
+                {"op": "show_diff", "stage": "brief"},
+            ]
+        )
+    )
+    grounded, dropped = ground_view(output, INSPECT_COPY)
+    assert [op.model_dump() for op in grounded.view] == [
+        {"op": "show_diff", "stage": "questionnaire"}
+    ]
+    assert [d.model_dump() for d in dropped] == [
+        {"index": 1, "op": "show_diff", "reason": "not_available"},
+        {"index": 2, "op": "show_diff", "reason": "not_available"},
+    ]
+    assert not _valid(_output(view=[{"op": "show_diff", "stage": "nowhere"}])).ok
+
+
 def test_bounds_on_lists_reply_and_follow() -> None:
     assert not _valid(_output(view=[{"op": "open_stage", "stage": "brief"}] * 4)).ok
     assert not _valid(_output(edits=[VALID_EDITS[0]] * 13)).ok

@@ -3076,3 +3076,28 @@ def test_a_step_passes_on_a_stored_code_never_free_text() -> None:
     assert _code("Trasa není schválená.") is None
     assert _code(None) is None
     assert _code(3) is None
+
+
+def test_a_report_a_module_holds_is_refused_naming_the_modules(
+    researcher: TestClient, world: Any, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Evidence-integrity 9b: the report with literature, asked for directly while a module states
+    no supported finding, is refused with its reason and the modules in its details, so the
+    screen says it in words (approvalRefusal) instead of the composer's English."""
+    from aia_core.application.report import ReportCompositionRefused
+
+    def held(*_a: Any, **_kw: Any) -> Any:
+        raise ReportCompositionRefused(
+            "waiting on: executive", reason="analysis_holds_report", modules=("executive",)
+        )
+
+    monkeypatch.setattr(research_router, "prepared_context_report", lambda *_a, **_kw: None)
+    monkeypatch.setattr(research_router, "stored_contextual_report", held)
+    refused = researcher.post(
+        f"{_runs(world)}/RUN-000000/report/context",
+        params={"deep_research_run_id": "RUN-000001"},
+    )
+    assert refused.status_code == 409, refused.text
+    body = refused.json()
+    assert body["code"] == "context_report_refused"
+    assert body["details"] == {"reason": "analysis_holds_report", "modules": ["executive"]}

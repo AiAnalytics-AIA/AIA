@@ -20,9 +20,11 @@ The caller owns the transaction.
 
 from __future__ import annotations
 
+from dataclasses import dataclass
+from datetime import datetime, timedelta
 from typing import Any
 
-from sqlalchemy import or_, select, update
+from sqlalchemy import delete, func, or_, select, update
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
@@ -50,7 +52,15 @@ from .tables import (
     utcnow,
 )
 
-__all__ = ["LeadAlreadyHatched", "LeadNotHatched", "ResearcherLeadRepository"]
+__all__ = [
+    "SEAL_DAYS",
+    "ErasedLead",
+    "LeadAlreadyHatched",
+    "LeadNotHatched",
+    "LeadSeal",
+    "LeadSeals",
+    "ResearcherLeadRepository",
+]
 
 _FIELD_ORDER = {"name": 0, "soul": 1, "user": 2}
 
@@ -108,6 +118,23 @@ class ResearcherLeadRepository:
         return (
             ResearcherLeadRow.organization_id == s.organization_id,
             ResearcherLeadRow.user_id == s.actor_id,
+            # A sealed Lead (ADR 0030) is read by no one, its researcher included.
+            ResearcherLeadRow.sealed_at.is_(None),
+        )
+
+    def is_sealed(self) -> bool:
+        """Whether the calling researcher's Lead is sealed (their membership deactivated):
+        a turn queued before the deactivation must not run."""
+        s = self._scope
+        return (
+            self._session.scalar(
+                select(ResearcherLeadRow.lead_id).where(
+                    ResearcherLeadRow.organization_id == s.organization_id,
+                    ResearcherLeadRow.user_id == s.actor_id,
+                    ResearcherLeadRow.sealed_at.is_not(None),
+                )
+            )
+            is not None
         )
 
     def _row(self, *, for_update: bool = False) -> ResearcherLeadRow | None:
@@ -362,3 +389,155 @@ class ResearcherLeadRepository:
             lead.updated_at = now
         self._session.flush()
         return SelfUpdateApplied(**applied)
+
+
+#: How long a sealed Lead is kept before it is erased (the product owner, 2026-10-22).
+SEAL_DAYS = 30
+
+
+@dataclass(frozen=True, slots=True)
+class LeadSeal:
+    """A member's sealed Lead: when it was sealed and when it is erased."""
+
+    user_id: str
+    sealed_at: datetime
+    erase_after: datetime
+
+
+@dataclass(frozen=True, slots=True)
+class ErasedLead:
+    """What the retention sweep erased of one sealed Lead: counts, never content."""
+
+    organization_id: str
+    user_id: str
+    lead_id: str
+    revisions: int
+    notes: int
+
+
+class LeadSeals:
+    """Sealing a deactivated member's Lead, and erasing it after :data:`SEAL_DAYS`
+    (ADR 0030, settings-backends SB2).
+
+    Sealing and unsealing are an organization OWNER's or ADMIN's, on a member of their own
+    organization; they read and change only the seal, never the Lead's content. Erasure is
+    the retention sweep's, an operator command with no request behind it.
+    """
+
+    def __init__(self, session: Session, admin: OrganizationContext) -> None:
+        admin.require_administer()
+        self._session, self._admin = session, admin
+
+    def _row(self, user_id: str) -> ResearcherLeadRow | None:
+        return self._session.scalar(
+            select(ResearcherLeadRow)
+            .where(
+                ResearcherLeadRow.organization_id == self._admin.organization_id,
+                ResearcherLeadRow.user_id == user_id,
+            )
+            .with_for_update()
+        )
+
+    def _audit(self, action: str, user_id: str, **payload: Any) -> None:
+        self._session.add(
+            AccessAuditRow(
+                organization_id=self._admin.organization_id,
+                subject_user_id=user_id,
+                actor_id=self._admin.actor_id,
+                action=action,
+                payload=dict(payload),
+                request_id=self._admin.request_id,
+            )
+        )
+
+    def seal(self, user_id: str, *, now: datetime) -> LeadSeal | None:
+        """Seal the member's Lead, if they hatched one; a sealed one keeps its dates."""
+        row = self._row(user_id)
+        if row is None:
+            return None
+        if row.sealed_at is None:
+            row.sealed_at, row.erase_after = now, now + timedelta(days=SEAL_DAYS)
+            self._audit("LEAD_SEALED", user_id, erase_after=row.erase_after.isoformat())
+            self._session.flush()
+        assert row.erase_after is not None
+        return LeadSeal(user_id, as_utc(row.sealed_at), as_utc(row.erase_after))
+
+    def unseal(self, user_id: str, *, now: datetime) -> bool:
+        """Unseal the member's Lead on their reactivation; ``False`` when there is none to
+        unseal (never hatched, or already erased) and when it is past its date: a Lead due for
+        erasure never comes back, whether or not the sweep has reached it."""
+        row = self._row(user_id)
+        if row is None or row.sealed_at is None:
+            return False
+        if row.erase_after is not None and as_utc(row.erase_after) <= now:
+            return False
+        row.sealed_at, row.erase_after = None, None
+        self._audit("LEAD_UNSEALED", user_id)
+        self._session.flush()
+        return True
+
+    def seals(self) -> dict[str, LeadSeal]:
+        """Every sealed Lead of the organization, by member."""
+        rows = self._session.scalars(
+            select(ResearcherLeadRow).where(
+                ResearcherLeadRow.organization_id == self._admin.organization_id,
+                ResearcherLeadRow.sealed_at.is_not(None),
+            )
+        ).all()
+        return {
+            r.user_id: LeadSeal(r.user_id, as_utc(r.sealed_at), as_utc(r.erase_after))
+            for r in rows
+            if r.sealed_at is not None and r.erase_after is not None
+        }
+
+    @staticmethod
+    def due(session: Session, *, now: datetime) -> list[tuple[str, str, str]]:
+        """The sealed Leads past their date, as ``(organization_id, user_id, lead_id)``."""
+        rows = session.execute(
+            select(
+                ResearcherLeadRow.organization_id,
+                ResearcherLeadRow.user_id,
+                ResearcherLeadRow.lead_id,
+            ).where(
+                ResearcherLeadRow.sealed_at.is_not(None),
+                ResearcherLeadRow.erase_after <= now,
+            )
+        ).all()
+        return [(o, u, lead) for o, u, lead in rows]
+
+    @staticmethod
+    def erase(session: Session, *, lead_id: str) -> ErasedLead | None:
+        """Erase one sealed Lead: its files, their history and its notes. Audited with
+        counts only. A Lead unsealed meanwhile is left alone (``None``)."""
+        row = session.scalar(
+            select(ResearcherLeadRow)
+            .where(ResearcherLeadRow.lead_id == lead_id, ResearcherLeadRow.sealed_at.is_not(None))
+            .with_for_update()
+        )
+        if row is None:
+            return None
+        revisions = session.scalar(
+            select(func.count()).where(ResearcherLeadRevisionRow.lead_id == lead_id)
+        )
+        notes = session.scalar(
+            select(func.count()).where(ResearcherLeadMemoryRow.lead_id == lead_id)
+        )
+        session.execute(
+            delete(ResearcherLeadRevisionRow).where(ResearcherLeadRevisionRow.lead_id == lead_id)
+        )
+        session.execute(
+            delete(ResearcherLeadMemoryRow).where(ResearcherLeadMemoryRow.lead_id == lead_id)
+        )
+        erased = ErasedLead(row.organization_id, row.user_id, lead_id, revisions or 0, notes or 0)
+        session.delete(row)
+        session.add(
+            AccessAuditRow(
+                organization_id=erased.organization_id,
+                subject_user_id=erased.user_id,
+                actor_id="system:lead-retention",
+                action="LEAD_ERASED",
+                payload={"revisions": erased.revisions, "notes": erased.notes},
+            )
+        )
+        session.flush()
+        return erased

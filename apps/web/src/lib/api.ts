@@ -705,7 +705,7 @@ export type MemoryReuse = {
 };
 export type MemoryReused = { study_id: string; created_study: boolean; revision: DesignRevision; source: DesignSource };
 
-export type Me = { user_id: string; email: string | null; organization_role: string; may_administer: boolean };
+export type Me = { user_id: string; email: string | null; organization_role: string; may_administer: boolean; methodologist: boolean };
 
 const enc = encodeURIComponent;
 const query = (q: Record<string, string | undefined>) => {
@@ -1214,6 +1214,9 @@ export type ResearchRunSummary = ResearchRun;
 export type ResearchAnalysis = {
   run_id: string;
   complete: boolean;
+  /** The modules the report waits on (evidence-integrity 9b): not stored, not completed, or with no
+   *  supported finding; absent from an API before it. */
+  holding?: string[];
   internal_only: true;
   synthetic: boolean;
   modelled?: boolean;
@@ -1637,8 +1640,9 @@ export const researchAgents = {
       design_revision_id: revisionId, action, instruction,
       ...(confirmCostUsd === undefined ? {} : { confirm_cost_usd: confirmCostUsd }),
     }),
-  jobs: async (studyId: string) => {
-    const jobs = await request<unknown>("GET", agentsPath(studyId));
+  /** The newest 20 jobs; `pending`: every proposal still to decide among the newest 200, filtered on the server before the page. */
+  jobs: async (studyId: string, pending = false) => {
+    const jobs = await request<unknown>("GET", `${agentsPath(studyId)}${pending ? "?pending=true" : ""}`);
     if (!Array.isArray(jobs) || jobs.some((j) => !j || typeof j.run_id !== "string" || typeof j.status !== "string" || !Array.isArray(j.steps))) {
       throw new Error("Seznam AI kroků má neplatný formát. Zkuste jej načíst znovu.");
     }
@@ -1731,7 +1735,7 @@ export type SettingsDocument = {
   vocabularies: Vocabularies;
 };
 
-export type Member = { user_id: string; email: string; display_name: string; is_active: boolean; organization_role: string };
+export type Member = { user_id: string; email: string; display_name: string; is_active: boolean; organization_role: string; methodologist: boolean };
 
 export type AdminClient = {
   client_id: string; slug: string; name: string; status: string; reference: string; study_count: number; created_at: string | null;
@@ -1975,7 +1979,7 @@ export type MethodActivation = {
 /** What a run started now pins: a stored version, or the code's preset. */
 export type MethodInForce = { origin: "stored" | "code"; preset: string | null; version_number: number | null; name: string };
 export type MethodVersions = {
-  in_force: MethodInForce; may_administer: boolean; presets: Record<string, Record<string, unknown>>;
+  in_force: MethodInForce; may_administer: boolean; may_edit: boolean; presets: Record<string, Record<string, unknown>>;
   versions: MethodVersion[]; history: MethodActivation[];
 };
 /** An edit: the whole specification and the formulas it replaces (by slot). */
