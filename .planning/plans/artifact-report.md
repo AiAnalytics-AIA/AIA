@@ -350,9 +350,9 @@ a25d2435`, and the `/session/docs*` routes go with the hosting plan's change).
   `line`): the editor config, signed with the JWT secret: the session's key, the document URL, the callback URL, the
   person's id and display name (never an e-mail), `mode: edit` for a study member (`view` below 768 px, RPT8d),
   `customization.forcesave: true`, co-editing `fast`. The client report is refused by name.
-- `GET …/report/editor/document?token=…`: the version's DOCX, the token short-lived and naming that artifact alone;
+- `GET /report-editor/document?token=…` (the Document Server's routes are outside the study tree, part 2): the version's DOCX, the token short-lived and naming that artifact alone;
   the Document Server's JWT checked as well.
-- `POST …/report/editor/callback?token=…`: the JWT checked (header and body); status 2 and 6 store the file, 1
+- `POST /report-editor/callback?token=…`: the JWT checked (header and body); status 2 and 6 store the file, 1
   marks the session open, 4 closes it with nothing stored, 3 and 7 are logged. The file is fetched by GET from
   `AIA_ONLYOFFICE_URL`'s exact origin only, at a path under `/cache/files/` (the Document Server's own link, signed
   by its secure link with `md5` and `expires`, which Caddy lets past alone, #829), never another host or path, never

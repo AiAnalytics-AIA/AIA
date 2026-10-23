@@ -3,10 +3,11 @@
 ``POST …/report/editor`` signs, for the person asking, the config ONLYOFFICE's ``api.js`` opens
 the editor with: the line's session key (a second researcher joins the same co-editing session),
 the version's document URL, the callback URL, the person's id and display name (never an
-e-mail). ``GET …/report/editor/document`` is the Document Server fetching that version: no
-person's session reaches it, so it is let in by two signatures, ONLYOFFICE's JWT (the request is
-from *that* Document Server) and AIA's URL token (it was handed this URL for this version), and
-the scope is resolved for the person who opened the session.
+e-mail). ``GET /report-editor/document`` is the Document Server fetching that version: no
+person's session reaches it, so it is outside the study tree and let in by two signatures,
+ONLYOFFICE's JWT (the request is from *that* Document Server) and AIA's URL token (it was handed
+this URL for this version); the scope is the one the token's session names, resolved through
+ScopeResolver for the person who opened it.
 
 Both answer 404 until the editor is configured (``Settings.report_editor_on``: the editor's
 origin, its secret and AIA's public origin, ``AIA_ONLYOFFICE_CALLBACK_BASE``). The callback, which
@@ -56,9 +57,11 @@ router = APIRouter(
 #: The API's prefix as main.py mounts it (``API_PREFIX``); a URL the Document Server fetches
 #: is built whole.
 API_PREFIX = "/api/v1"
-#: Optional, so a request without one is refused by the route (404 while the editor is off,
-#: else 403), never answered 422 before the editor's state is read.
-TokenQuery = Annotated[str | None, Query(max_length=2048)]
+#: Optional and unbounded here, so a request without one, or with one too long, is refused by the
+#: route (404 while the editor is off, else 403), never answered 422 before the editor's state is
+#: read; the route bounds it (:data:`MAX_TOKEN`).
+TokenQuery = Annotated[str | None, Query()]
+MAX_TOKEN = 2048
 
 
 class EditorRequest(BaseModel):
@@ -256,8 +259,8 @@ def report_editor_document(
     secret (its JWT) and only for a URL AIA handed it (the token, short-lived)."""
     tokens = _tokens(settings)
     try:
-        if token is None:
-            raise TokenRefused("no token")
+        if token is None or len(token) > MAX_TOKEN:
+            raise TokenRefused("no token, or not one")
         tokens.read_onlyoffice(bearer(authorization), url_path=f"{request.url.path}?token={token}")
         claim = tokens.read_url(token, "document", now=_now())
     except TokenRefused as exc:

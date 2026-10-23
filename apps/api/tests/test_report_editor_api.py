@@ -253,7 +253,11 @@ def test_a_fetch_without_a_token_is_refused_not_invalid(
 ) -> None:
     run_id, _ = _reported_run(app, researcher, world)
     url = researcher.post(_editor(world, run_id), json={}).json()["config"]["document"]["url"]
-    assert client.get(urlparse(url).path).status_code == 403
+    path = urlparse(url).path
+    assert client.get(path).status_code == 403
+    assert client.get(path, params={"token": "x" * 3000}).status_code == 403
+    app.state.settings = app.state.settings.model_copy(update={"onlyoffice_callback_base": ""})
+    assert client.get(path, params={"token": "x" * 3000}).status_code == 404  # off: never 422
 
 
 @pytest.mark.parametrize(
@@ -280,3 +284,85 @@ def test_the_editor_is_on_only_with_its_origin_its_secret_and_aias_public_origin
     assert on.report_editor_on
     for missing in ("onlyoffice_url", "onlyoffice_callback_base"):
         assert not on.model_copy(update={missing: ""}).report_editor_on
+
+
+# -- the Document Server's routes are outside the study tree: their scope, tested here ---------
+# (MVP-ACCEPT AC01 sweeps only routes naming {study_id}; these are scoped by the editor session the
+# signed URL token names, resolved through ScopeResolver for the person who opened it.)
+
+
+def _document_url(researcher: TestClient, world: Any, run_id: str) -> tuple[str, dict[str, Any]]:
+    body = researcher.post(_editor(world, run_id), json={}).json()
+    return body["config"]["document"]["url"], body
+
+
+def test_a_removed_opener_s_session_serves_nothing(
+    app: FastAPI, researcher: TestClient, client: TestClient, world: Any
+) -> None:
+    from datetime import UTC, datetime
+
+    from aia_core.infrastructure.scope_repository import ScopeRepository
+
+    run_id, _ = _reported_run(app, researcher, world)
+    url, _body = _document_url(researcher, world, run_id)
+    assert _fetch(client, url).status_code == 200
+    factory = create_session_factory(app.state.engine)
+    with factory() as session:
+        owner = AuthenticatedPrincipal(
+            user_id=world.users["owner"], organization_id=world.organization_id
+        )
+        admin = ScopeResolver(session).organization_context(owner)
+        ScopeRepository(session).deactivate_member(
+            admin, user_id=world.users["researcher"], now=datetime.now(UTC)
+        )
+        session.commit()
+    removed = _fetch(client, url)
+    assert removed.status_code == 404 and removed.json()["code"] == "editor_session_not_found"
+
+
+def test_a_token_pairing_a_session_with_another_organizations_version_serves_nothing(
+    app: FastAPI, researcher: TestClient, client: TestClient, world: Any
+) -> None:
+    """A URL token can only be minted under the editor's secret, but even so: a session key of
+    this organization naming another organization's artifact finds no version of its line."""
+    from aia_core.infrastructure.scope_repository import ScopeRepository
+    from aia_core.infrastructure.study_design_repository import StudyDesignRepository
+
+    run_id, _ = _reported_run(app, researcher, world)
+    url, body = _document_url(researcher, world, run_id)
+    factory = create_session_factory(app.state.engine)
+    with factory() as session:
+        repo, resolver = ScopeRepository(session), ScopeResolver(session)
+        org, owner = repo.create_organization(
+            slug="other-org", name="Other", owner_email="o@other.invalid", owner_name="O"
+        )
+        principal = AuthenticatedPrincipal(
+            user_id=owner.user_id, organization_id=org.organization_id
+        )
+        admin = resolver.organization_context(principal)
+        foreign_client = repo.create_client(admin, slug="c", name="C")
+        study = repo.create_study(admin, client_id=foreign_client.client_id, slug="s", name="S")
+        scope = resolver.study_context(principal, study_id=study.study_id)
+        designs = StudyDesignRepository(session, scope)
+        revision, _ = designs.submit_as_working_copy(content=DESIGN, source_stage="run")
+        foreign, _ = research_artifacts(session, scope, app.state.artifact_store).put(
+            project_id=str(designs.project_id()),
+            revision=revision.revision,
+            stage_type="REPORT",
+            artifact_type=INTERNAL_REPORT_ARTIFACT_TYPE,
+            data=_docx("Cizí"),
+            content_type=INTERNAL_REPORT_MEDIA_TYPE,
+            metadata={"run_id": run_id, "report_kind": "internal"},
+            reuse=False,
+        )
+        session.commit()
+    stray = EditorTokens(SECRET).url_token(
+        "document",
+        document_key=body["config"]["document"]["key"],
+        artifact_id=foreign.artifact_id,
+        now=_now(),
+    )
+    path = urlparse(url).path
+    query = {"token": stray}
+    answer = client.get(path, params=query, headers=_signed_for(path, query))
+    assert answer.status_code == 404 and answer.json()["code"] == "editor_version_not_found"
