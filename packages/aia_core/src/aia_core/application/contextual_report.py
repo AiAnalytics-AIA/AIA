@@ -101,7 +101,8 @@ from aia_core.infrastructure.storage import ArtifactStore, IntegrityError, Objec
 # -12: KPI tiles, figures, the evidence appendix and suppressed counts locked too (RPT8a, part 2;
 # -11 is the brief's goal, F19).
 # -13: the map's numbers locked under their stored map (map:<battery>/<method>; RPT8a, part 3).
-CONTEXT_REPORT_CONTRACT = "aia-contextual-report-13"
+# -14: the design and method chapters' numbers locked under their sources (design:, run:).
+CONTEXT_REPORT_CONTRACT = "aia-contextual-report-14"
 #: The sealed Deep Research bundle the literature chapter is read from.
 BUNDLE_ARTIFACT = ARTIFACT_TYPES["bundle"]
 # Stored beside the run's own report, on the Study's design project (ADR 0016).

@@ -24,9 +24,10 @@ A stored ``-1`` document is still read: it recorded no sources, and a reader say
 presuming any. Since ``-3`` every ledger entry carries its claim's ``level`` (aggregate, segment
 or individual), which the client deliverable's gate reads (report-delivery RD0); an older entry
 has none, so the gate cannot judge it. Since ``-4`` a paragraph, callout, text cell, table's
-notes and Sociomap figure carry ``control``: the tag of the locked control code wrote it in from
-a stored source that is not the ledger (``control_tags.source_tag``; null when none), which a
-saved version is compared with (artifact-report RPT8b); an older document has none.
+notes and Sociomap figure carry ``control`` (since ``-5`` a list too): the tag of the locked
+control code wrote it in from a stored source that is not the ledger (``control_tags.source_tag``;
+null when none), which a saved version is compared with (artifact-report RPT8b); an older
+document has none.
 """
 
 from __future__ import annotations
@@ -74,14 +75,15 @@ from aia_core.domain.report.sources import report_sources, source_payload
 from aia_core.domain.report.validation import CLIENT_KINDS
 
 #: The stored form's contract. A reader refuses any other (:func:`read_document_payload`).
-DOCUMENT_MODEL_CONTRACT: Final = "aia-report-document-4"
+DOCUMENT_MODEL_CONTRACT: Final = "aia-report-document-5"
 #: Contracts still read: ``-1`` (RD5a) is ``-2`` without the manifest, ``-2`` is ``-3`` without
-#: each entry's level, ``-3`` is ``-4`` without the controls.
+#: each entry's level, ``-3`` is ``-4`` without the controls, ``-4`` is ``-5`` without a list's.
 READABLE_CONTRACTS: Final = frozenset(
     {
         "aia-report-document-1",
         "aia-report-document-2",
         "aia-report-document-3",
+        "aia-report-document-4",
         DOCUMENT_MODEL_CONTRACT,
     }
 )
@@ -288,6 +290,7 @@ class _Writer:
                 "type": "list",
                 "ordered": block.ordered,
                 "items": [self._list_item(item, refs) for item in block.items],
+                "control": block.control,
             }
         if isinstance(block, Quote):
             return {
