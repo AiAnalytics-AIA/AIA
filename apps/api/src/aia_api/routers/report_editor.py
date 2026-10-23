@@ -56,7 +56,9 @@ router = APIRouter(
 #: The API's prefix as main.py mounts it (``API_PREFIX``); a URL the Document Server fetches
 #: is built whole.
 API_PREFIX = "/api/v1"
-TokenQuery = Annotated[str, Query(min_length=1, max_length=2048)]
+#: Optional, so a request without one is refused by the route (404 while the editor is off,
+#: else 403), never answered 422 before the editor's state is read.
+TokenQuery = Annotated[str | None, Query(max_length=2048)]
 
 
 class EditorRequest(BaseModel):
@@ -238,17 +240,19 @@ def report_editor_document(
     request: Request,
     study_id: StudyIdPath,
     run_id: RunIdPath,
-    token: TokenQuery,
     session: SessionDep,
     store: ArtifactStoreDep,
     settings: SettingsDep,
     resolver: ResolverDep,
+    token: TokenQuery = None,
     authorization: Annotated[str | None, Header()] = None,
 ) -> Response:
     """The version the URL token names, served only to the Document Server holding the editor's
     secret (its JWT) and only for a URL AIA handed it (the token, short-lived)."""
     tokens = _tokens(settings)
     try:
+        if token is None:
+            raise TokenRefused("no token")
         tokens.read_onlyoffice(bearer(authorization), url_path=f"{request.url.path}?token={token}")
         claim = tokens.read_url(token, "document", now=_now())
     except TokenRefused as exc:

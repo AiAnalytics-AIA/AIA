@@ -59,7 +59,9 @@ def settings() -> Settings:
 def _docx(text: str = "Koncept") -> bytes:
     out = io.BytesIO()
     with zipfile.ZipFile(out, "w") as z:
-        z.writestr("word/document.xml", f"<w:document>{text}</w:document>")
+        # A fixed time: the same content is the same bytes whenever it is built.
+        info = zipfile.ZipInfo("word/document.xml", (2026, 10, 23, 0, 0, 0))
+        z.writestr(info, f"<w:document>{text}</w:document>")
     return out.getvalue()
 
 
@@ -229,6 +231,17 @@ def test_with_the_editor_off_every_route_is_404(
     app.state.settings = app.state.settings.model_copy(update={"onlyoffice_callback_base": ""})
     assert researcher.post(_editor(world, run_id), json={}).status_code == 404
     assert _fetch(client, url).status_code == 404
+    # Without a token too: the editor's state answers first, never a 422 (MVP-ACCEPT AC01's
+    # sweep of every study route as another organization).
+    assert client.get(urlparse(url).path).status_code == 404
+
+
+def test_a_fetch_without_a_token_is_refused_not_invalid(
+    app: FastAPI, researcher: TestClient, client: TestClient, world: Any
+) -> None:
+    run_id, _ = _reported_run(app, researcher, world)
+    url = researcher.post(_editor(world, run_id), json={}).json()["config"]["document"]["url"]
+    assert client.get(urlparse(url).path).status_code == 403
 
 
 @pytest.mark.parametrize(
