@@ -52,7 +52,7 @@ import { Technical, TechnicalProvider, TechnicalSwitch, useTechnicalChoice } fro
 import { Icon, type IconName } from "../../rehome/icons";
 import { Chip, Tag, TextInput } from "../../rehome/ui";
 import { CARD, EYEBROW, Loaded } from "../states";
-import { useResource } from "../useResource";
+import { type Resource, useResource } from "../useResource";
 
 const P = "aia.settings.panel";
 const R = `${P}.runtime`;
@@ -88,7 +88,8 @@ export type Panel = {
   studies: Part<StudyRow[]>;
   levels: Part<SelfApprovalLevels> | null; // null: not an administrator, so not asked
   audit: Part<AuditEntry[]> | null;
-  me: Part<Me>;
+  /** Who you are: null while the page that holds the read has not finished it. */
+  me: Part<Me> | null;
 };
 
 async function loadRuntimeConfig(): Promise<RuntimeConfig> {
@@ -102,7 +103,8 @@ async function loadRuntimeConfig(): Promise<RuntimeConfig> {
   return { switches: ai.switches, region: ai.region ?? null, model: ai.model ?? null, approvedClasses: ai.approvedClasses };
 }
 
-async function loadPanel(): Promise<Panel> {
+/** `readMe`: false when the page passes its own /workspace/me read down (it is read once). */
+async function loadPanel(readMe: boolean): Promise<Panel> {
   const doc = await admin.settings();
   // A document without its groups is not a settings document; say so rather than
   // render an empty page that looks like "no settings".
@@ -121,7 +123,7 @@ async function loadPanel(): Promise<Panel> {
     part(loadStudies()),
     doc.may_administer ? part(admin.selfApproval()) : Promise.resolve(null),
     doc.may_administer ? part(admin.audit(AUDIT_PAGE)) : Promise.resolve(null),
-    part(workspace.me()),
+    readMe ? part(workspace.me()) : Promise.resolve(null),
   ]);
   return { doc, runtime, members, clients, studies, levels, audit, me };
 }
@@ -561,20 +563,20 @@ const TAB_GROUPS: { title: string; tabs: readonly TabId[] }[] = [
   { title: "Provoz", tabs: ["audit", "system", "reference", "data"] },
 ];
 /** A chip in a tab's head: who reads it and who may change it, as the prototype draws them. */
-type HeadChip = { label: string; tone?: "you" | "deployment" };
+type HeadChip = { label: string; tone?: "you" | "deployment"; glyph?: string };
 
 /** The tab head's chips. They say only what the API told this page (may_administer, the Metodik
  *  mark): a mark that could not be read claims nothing about editing. */
 function headChips(tab: TabId, mayAdminister: boolean, methodologist: boolean | null): HeadChip[] {
-  const c = (key: string, tone?: HeadChip["tone"]): HeadChip => ({ label: t(`${P}.chips.${key}`), tone });
+  const c = (key: string, tone?: HeadChip["tone"], glyph?: string): HeadChip => ({ label: t(`${P}.chips.${key}`), tone, glyph });
   switch (tab) {
     case "methodology": return [c("everyone"), methodologist ? c("methodologist", "you") : c("methodologistOnly")];
     case "prompts": return [mayAdminister ? c("promptsYou", "you") : c("promptsAdmin")];
-    case "deep_research": return [c("everyone"), ...(mayAdminister ? [c("drYou", "you")] : [])];
+    case "deep_research": return [c("everyone"), mayAdminister ? c("drYou", "you") : c("drAdmin")];
     case "ai": return [c("deployedReadOnly", "deployment")];
     case "access": return [mayAdminister ? c("accessYou", "you") : c("accessAdmin")];
     // ADR 0019: every member holds the study permissions, a budget's among them.
-    case "studies": return [c("studiesYou", "you")];
+    case "studies": return [c("studiesYou", "you", "✎")];
     case "system": return [c("deployed", "deployment")];
     case "data": return [c("adminOnly")];
     default: return [];
@@ -661,7 +663,7 @@ function PanelView({ panel, reload, footer }: { panel: Panel; reload: () => void
   const extra: Record<string, ReactNode> = {
     ai: <RuntimePanel runtime={doc.ai_runtime} config={runtime} vocab={vocab} />,
     ai_history: <HistoryPanel vocab={vocab} items={byKey.get("ai_history")?.items ?? []} />,
-    access: <MembersCard members={members} vocab={vocab} canAdminister={doc.may_administer} yourRole={doc.your_role} reload={reload} />,
+    access: <MembersCard members={members} vocab={vocab} canAdminister={doc.may_administer} yourRole={doc.your_role} reload={reload} myId={panel.me?.ok ? panel.me.data.user_id : null} />,
     studies: (
       <>
         <ResearcherSpendCard nearLimitCount={studies.ok ? nearLimitTally(studies.data.map(({ detail }) => detail)) : null} />
@@ -735,7 +737,7 @@ function PanelView({ panel, reload, footer }: { panel: Panel; reload: () => void
                 </button>;
               })}
             </div>
-            <ChoiceChips label={t(`${P}.reference.owner`)} value={referenceOwner} options={owners.map((o) => ({ key: o, label: t(`${P}.reference.owners.${o}`) }))} onChange={setReferenceOwner} />
+            <ChoiceChips look="segmented" small label={t(`${P}.reference.owner`)} value={referenceOwner} options={owners.map((o) => ({ key: o, label: t(`${P}.reference.owners.${o}`) }))} onChange={setReferenceOwner} />
           </div>;
         })() : null}
         {keys.map((key) => section(key, tab))}
@@ -744,7 +746,7 @@ function PanelView({ panel, reload, footer }: { panel: Panel; reload: () => void
       </>
     );
   };
-  const methodologist = panel.me.ok ? panel.me.data.methodologist === true : null;
+  const methodologist = panel.me?.ok ? panel.me.data.methodologist === true : null;
   return (
     <TechnicalProvider on={technical}>
     <div data-settings-workspace className="flex min-w-0 flex-1 flex-col xl:flex-row [&_button:not([data-dense])]:!min-h-11 [&_select]:!min-h-11 [&_input:not([type=checkbox]):not([type=radio])]:!min-h-11 [&_summary]:!min-h-11">
@@ -789,7 +791,7 @@ function PanelView({ panel, reload, footer }: { panel: Panel; reload: () => void
               <p data-tab-lede className="mt-1.5 max-w-[720px] text-sm leading-6 text-ink-muted">{t(`${P}.lede.${tab}`)}</p>
             </div>
             {chips.length ? <div data-tab-chips className="flex flex-wrap items-center gap-1.5">{chips.map((chip) => (
-              <span key={chip.label} data-chip-tone={chip.tone ?? "plain"} className={`inline-flex min-h-[22px] items-center gap-[5px] whitespace-nowrap rounded-[11px] border px-2 text-xs ${CHIP_TONE[chip.tone ?? "plain"]}`}>{chip.label}</span>
+              <span key={chip.label} data-chip-tone={chip.tone ?? "plain"} className={`inline-flex min-h-[22px] items-center gap-[5px] whitespace-nowrap rounded-[11px] border px-2 text-xs ${CHIP_TONE[chip.tone ?? "plain"]}`}>{chip.glyph ? <span aria-hidden="true">{chip.glyph}</span> : null}{chip.label}</span>
             ))}</div> : null}
           </header>
           {OWN_TABS.has(tab) && !drawn.has(tab) ? null : body(tab)}
@@ -836,9 +838,20 @@ const DeepResearchSection = memo(function DeepResearchSection({ items, members }
   );
 });
 
-export function ControlPanel({ footer }: { footer?: ReactNode } = {}) {
-  const [res, retry] = useResource(loadPanel, []);
-  // The page is edge to edge (AppShell bleed); a loading or failed read keeps the content's gutter.
-  if (res.state !== "ready") return <div className="px-4 py-5 md:px-8"><Loaded res={res} retry={retry}>{() => null}</Loaded>{footer}</div>;
-  return <PanelView panel={res.data} reload={retry} footer={footer} />;
+export function ControlPanel({ footer, me, rereadMe }: { footer?: ReactNode; me?: Resource<Me>; rereadMe?: () => void } = {}) {
+  const passed = me !== undefined;
+  const [res, reloadPanel] = useResource(() => loadPanel(!passed), [passed]);
+  // A change in the panel may be your own (your role, your Metodik mark): who you are is read again
+  // with it, or the heads keep the old answer (review of #870). The read keeps its value meanwhile.
+  const retry = () => { reloadPanel(); if (passed) rereadMe?.(); };
+  // The page is edge to edge (AppShell bleed); a loading or failed read keeps the content's gutter,
+  // and the page keeps its one heading in every state.
+  if (res.state !== "ready") {
+    return <div className="px-4 py-5 md:px-8">
+      <h1 className="font-serif text-2xl font-semibold leading-[30px]">{t("aia.settings.title")}</h1>
+      <Loaded res={res} retry={retry}>{() => null}</Loaded>{footer}
+    </div>;
+  }
+  const panel = passed ? { ...res.data, me: me.state === "ready" ? { ok: true as const, data: me.data } : me.state === "loading" ? null : { ok: false as const, message: me.state === "failed" ? me.message : "" } } : res.data;
+  return <PanelView panel={panel} reload={retry} footer={footer} />;
 }

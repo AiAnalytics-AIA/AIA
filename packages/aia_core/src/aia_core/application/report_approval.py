@@ -32,8 +32,10 @@ from aia_core.application.contextual_report import CONTEXT_REPORT_ARTIFACT_TYPE
 from aia_core.application.report import INTERNAL_REPORT_ARTIFACT_TYPE
 from aia_core.application.report_variants import approval_asks_pdf, draft_pdf_ready, request_pdf
 from aia_core.application.research import ResearchRuns, research_artifacts
+from aia_core.domain.report.editor import EDIT_ARTIFACT_TYPES
 from aia_core.domain.scope import Permission, StudyContext
-from aia_core.infrastructure.artifact_repository import Artifact, ArtifactStatus
+from aia_core.infrastructure.artifact_repository import Artifact, ArtifactRepository, ArtifactStatus
+from aia_core.infrastructure.report_editor_repository import ReportEditorRepository
 from aia_core.infrastructure.storage import ArtifactStore
 
 #: Each approvable report by its stored type, as the approval names it (report-delivery RD3, G66):
@@ -44,6 +46,16 @@ REPORT_KINDS: Final[Mapping[str, str]] = MappingProxyType(
         CONTEXT_REPORT_ARTIFACT_TYPE: "with_review",
         CLIENT_REPORT_ARTIFACT_TYPE: "client",
     }
+)
+#: A version a researcher saved in the editor (artifact-report RPT8c), by kind: approved as
+#: exactly that version, of whichever line, and frozen as any approved report is. The client
+#: report is never edited.
+EDITED_REPORT_KINDS: Final[Mapping[str, str]] = MappingProxyType(
+    {EDIT_ARTIFACT_TYPES["internal"]: "internal", EDIT_ARTIFACT_TYPES["context"]: "with_review"}
+)
+#: Every report a person approves, composed or edited.
+APPROVABLE_KINDS: Final[Mapping[str, str]] = MappingProxyType(
+    {**REPORT_KINDS, **EDITED_REPORT_KINDS}
 )
 #: The kinds a client receives: never internal_only.
 CLIENT_REPORT_KINDS: Final = frozenset({"client"})
@@ -72,7 +84,7 @@ def approve_report(
     artifacts = research_artifacts(session, scope, store)
     artifact = artifacts.get(artifact_id)
     if (
-        artifact.artifact_type not in REPORT_ARTIFACT_TYPES
+        artifact.artifact_type not in APPROVABLE_KINDS
         or artifact.status is not ArtifactStatus.VALID
         or artifact.metadata.get("run_id") != run_id
     ):
@@ -85,9 +97,14 @@ def approve_report(
         # The client deliverable's gate (RD0, MVPQ-09): it blocks, never a flag a reviewer
         # approves past.
         require_client_gate(artifacts, artifact)
+    authors = (
+        _line_authors(session, scope, artifacts, artifact)
+        if artifact.artifact_type in EDITED_REPORT_KINDS
+        else frozenset()
+    )
     # Read while it is still a draft: its own PDF, under the draft's key.
     ready = draft_pdf_ready(session, scope, store, docx=artifact, run_id=run_id)
-    artifacts.approve(artifact_id, note=note)
+    artifacts.approve(artifact_id, note=note, co_producers=authors)
     approved = artifacts.freeze(artifact_id)
     if approval_asks_pdf(scope, approved, pdf_ready=ready):
         request_pdf(
@@ -99,3 +116,25 @@ def approve_report(
             deep_research_run_id=approved.metadata.get("deep_research_run_id"),
         )
     return approved
+
+
+def _line_authors(
+    session: Session, scope: StudyContext, artifacts: ArtifactRepository, artifact: Artifact
+) -> frozenset[str]:
+    """Everyone whose work an edited version is: the person who produced its line's composed
+    report (koncept 1, which names no author: a report with literature is prepared by a
+    person) and everyone who saved the line up to it, not only the one person its artifact
+    records as producer (a save's first author). Where self-approval is off, none of them may
+    approve it; where it is on, one who does is recorded as self-approving."""
+    repo = ReportEditorRepository(session, scope)
+    version = repo.version(artifact.artifact_id)
+    if version is None:
+        raise ReportNotApprovable(artifact.artifact_id)
+    composed = artifacts.get(version.line_id).produced_by_user_id
+    saved = {
+        author
+        for earlier in repo.versions(version.line_id)
+        if earlier.koncept <= version.koncept
+        for author in earlier.authors
+    }
+    return frozenset(saved | ({composed} if composed else set()))

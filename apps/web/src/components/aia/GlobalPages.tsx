@@ -200,14 +200,14 @@ export function MemoryPage() {
 
 export function SettingsPage() {
   const session = useSession();
-  const [me] = useResource(() => workspace.me(), []);
+  const [me, rereadMe] = useResource(() => workspace.me(), []);
   // "Organizace <name> / Nastavení", as the prototype's top bar; a name the API did not send is
   // left out, never guessed.
   const organization = me.state === "ready" ? me.data.organization_name : null;
   const crumbs = organization ? [{ prefix: t("aia.settings.organization"), label: organization }, { label: t("aia.settings.title") }] : [{ label: t("aia.settings.title") }];
   return (
     <AppShell title={t("aia.settings.title")} crumbs={crumbs} topbar bleed>
-      <ControlPanel footer={
+      <ControlPanel me={me} rereadMe={rereadMe} footer={
         <details className="mt-6 border-t border-border pt-3 text-sm text-ink-muted">
           <summary className="cursor-pointer font-medium"><span>{t("aia.settings.account")}</span>{session?.email ? <span className="font-normal"> · {session.email}</span> : null}</summary>
           {me.state === "ready" ? <p className="mt-2">{tv("aia.settings.orgRole", { role: t(`aia.orgRoles.${me.data.organization_role}`) })}</p> : null}

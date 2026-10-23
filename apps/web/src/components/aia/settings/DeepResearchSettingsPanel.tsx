@@ -419,7 +419,7 @@ function ProposeInPlace({ setting: s, onChanged, onOpen }: { setting: DrSetting;
       : STATUS_VALUES.map((v) => ({ key: v, label: t(`${D}.status.${v}`) }));
     const value = s.value === null ? null : String(s.value);
     return <>
-      <ChoiceChips label={label} value={value} options={options} onChange={(k) => { if (k !== value) void propose(kind === "decision" ? k === "true" : k).catch(() => {}); }} />
+      <ChoiceChips look="segmented" small label={label} value={value} options={options} onChange={(k) => { if (k !== value) void propose(kind === "decision" ? k === "true" : k).catch(() => {}); }} />
       {shown}
     </>;
   }

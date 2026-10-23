@@ -443,3 +443,21 @@ def test_two_saves_of_one_line_at_once_take_the_next_two_koncepts(
     b.join(30)
     assert not errors, errors
     assert sorted(koncepts) == [2, 3]
+
+
+def test_approved_edits_are_read_from_the_approved_rows_alone(editor_world: Any) -> None:
+    """Whatever the length of a line's history, the run's approved edits are one query over
+    the approved rows: unapproved autosaves are never read one by one."""
+    composed = editor_world.compose()
+    line = editor_world.editor.open(composed, run_id="RUN-1", variant="internal", now=T0).line_id
+    saved = [
+        editor_world.save(line, n, f"save {n}".encode(), T0 + timedelta(minutes=n))
+        for n in range(2, 7)
+    ]
+    repo = ReportEditorRepository(editor_world.session, editor_world.scope)
+    assert repo.approved_edits(run_id="RUN-1", variant="internal", deep_research_run_id=None) == []
+    artifacts = research_artifacts(editor_world.session, editor_world.scope, editor_world.store)
+    artifacts.approve(saved[2])
+    found = repo.approved_edits(run_id="RUN-1", variant="internal", deep_research_run_id=None)
+    assert [v.artifact_id for v in found] == [saved[2]]
+    assert repo.approved_edits(run_id="RUN-1", variant="context", deep_research_run_id=None) == []

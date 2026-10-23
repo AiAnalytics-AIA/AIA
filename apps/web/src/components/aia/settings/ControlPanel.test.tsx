@@ -936,6 +936,37 @@ describe("what powers AIA", () => {
     expect(screen.getAllByRole("heading", { level: 1 }).filter((h) => !h.closest("[hidden]")).map((h) => h.textContent)).toEqual([open.getAttribute("aria-label")]);
   });
 
+  it("on the Settings page, who you are is read once and passed to the panel", async () => {
+    api({ "GET /api/v1/workspace/me": () => ({ user_id: "USR-1", email: "owner@example.test", organization_role: "OWNER", may_administer: true, methodologist: true }) });
+    render(<SettingsPage />);
+    await screen.findByRole("tablist");
+    await waitFor(() => expect(within(panelOf("Metodika").querySelector("[data-tab-chips]") as HTMLElement).getByText("Vy: Metodik · můžete upravovat")).toBeTruthy());
+    expect(called("GET", "/api/v1/workspace/me")).toHaveLength(1);
+  });
+
+  it("on the Settings page, your own Metodik mark changed in Přístup changes the Metodika head at once (review of #870)", async () => {
+    let marked = false;
+    api({
+      "GET /api/v1/workspace/me": () => ({ user_id: "USR-1", email: "owner@example.test", organization_role: "OWNER", may_administer: true, methodologist: marked }),
+      "GET /api/v1/members": () => [{ user_id: "USR-1", email: "owner@example.test", display_name: "Petr", is_active: true, organization_role: "OWNER", methodologist: marked }],
+      "PUT /api/v1/members/USR-1/methodologist": (body) => { marked = (body as { methodologist: boolean }).methodologist; return { user_id: "USR-1", email: "owner@example.test", display_name: "Petr", is_active: true, organization_role: "OWNER", methodologist: marked }; },
+    });
+    render(<SettingsPage />);
+    const head = () => panelOf("Metodika").querySelector("[data-tab-chips]") as HTMLElement;
+    await waitFor(() => expect(within(head()).getByText("Upravuje jen Metodik")).toBeTruthy());
+    fireEvent.click(tab("Přístup a schvalování"));
+    fireEvent.click(await within(panelOf("Přístup a schvalování")).findByRole("switch", { name: "Štítek Metodik: owner@example.test" }));
+    await waitFor(() => expect(within(head()).getByText("Vy: Metodik · můžete upravovat")).toBeTruthy());
+  });
+
+  it("keeps one h1 while the settings load and after a failed read", async () => {
+    api({ "GET /api/v1/settings": () => new Response('{"code":"internal","message":"Neznámá chyba."}', { status: 500 }) });
+    render(<SettingsPage />);
+    expect(screen.getAllByRole("heading", { level: 1 }).map((h) => h.textContent)).toEqual(["Nastavení"]);
+    await screen.findByRole("alert");
+    expect(screen.getAllByRole("heading", { level: 1 }).map((h) => h.textContent)).toEqual(["Nastavení"]);
+  });
+
   it("on the Settings page, a name the API did not send is left out of the breadcrumb, never guessed", async () => {
     api();
     render(<SettingsPage />);
@@ -1064,7 +1095,9 @@ describe("the settings tabs", () => {
     expect(chips("Deep Research")).toEqual(["Čte každý člen|plain", "Vy: navrhujete a schvalujete|you"]);
     expect(chips("AI běh")).toEqual(["Spravuje nasazení · jen ke čtení|deployment"]);
     expect(chips("Přístup a schvalování")).toEqual(["Vy: spravujete členy|you"]);
-    expect(chips("Studie a rozpočty")).toEqual(["✎ Upravujete|you"]);
+    expect(chips("Studie a rozpočty")).toEqual(["✎Upravujete|you"]);
+    // The pencil is decoration: a screen reader hears "Upravujete" alone.
+    expect((panelOf("Studie a rozpočty").querySelector("[data-tab-chips] [aria-hidden='true']") as HTMLElement).textContent).toBe("✎");
     expect(chips("Stav systému")).toEqual(["Spravuje nasazení|deployment"]);
     expect(chips("Správa dat")).toEqual(["Jen vlastník nebo správce|plain"]);
     expect(chips("Audit")).toEqual([]);
@@ -1081,7 +1114,8 @@ describe("the settings tabs", () => {
     const chips = (name: string) => [...(panelOf(name).querySelector("[data-tab-chips]")?.children ?? [])].map((c) => c.textContent);
     await waitFor(() => expect(chips("Metodika")).toEqual(["Čte každý člen", "Vy: Metodik · můžete upravovat"]));
     expect(chips("Systémové prompty")).toEqual(["Upravuje vlastník nebo správce"]);
-    expect(chips("Deep Research")).toEqual(["Čte každý člen"]);
+    // Who decides is said to a member too, as Systémové prompty and Přístup do.
+    expect(chips("Deep Research")).toEqual(["Čte každý člen", "Navrhuje a schvaluje vlastník nebo správce"]);
     expect(chips("Přístup a schvalování")).toEqual(["Členy spravuje vlastník nebo správce"]);
   });
 
@@ -1092,6 +1126,18 @@ describe("the settings tabs", () => {
     const head = panelOf("Metodika").querySelector("[data-tab-chips]") as HTMLElement;
     expect(within(head).getByText("Upravuje jen Metodik")).toBeTruthy();
     expect(within(head).queryByText(/Vy: Metodik/)).toBeNull();
+  });
+
+  it("draws Settings' one-of-a-few choices as the prototype's segmented bar (fidelity F3)", async () => {
+    api();
+    render(<ControlPanel />);
+    fireEvent.click(await screen.findByRole("tab", { name: "Přístup a schvalování" }));
+    const access = panelOf("Přístup a schvalování");
+    expect((await within(access).findByRole("radiogroup", { name: "Samoschválení organizace" })).getAttribute("data-look")).toBe("segmented");
+    fireEvent.click(tab("Audit"));
+    expect(within(panelOf("Audit")).getByRole("radiogroup", { name: "Období" }).getAttribute("data-look")).toBe("segmented");
+    fireEvent.click(tab("Reference"));
+    expect(within(panelOf("Reference")).getByRole("radiogroup", { name: "Kdo mění" }).getAttribute("data-look")).toBe("segmented");
   });
 
   it("reads Reference as tables by category, filters by category and by who changes a value, and says what each means", async () => {
