@@ -277,7 +277,11 @@ try {
   await rules.locator(":is([data-not-yet], [data-client-rules-editor], [role=alert])").first().waitFor();
   if (await rules.locator("[data-client-rules-editor]").count()) {
     assert(await rules.getByRole("radiogroup", { name: "Postoj dat" }).getByRole("radio", { checked: true }).count() === 1, "rules: one posture in force");
-    assert(!/0,00\s*USD/.test(await rules.innerText()) || await rules.getByLabel("Strop peněženky").count(), "rules: no ceiling read as 0");
+    // The ceiling says what it is: none ("bez stropu", an empty field, no amount) or an amount (0 is a real cap).
+    const noCeiling = (await rules.locator("[data-no-ceiling]").count()) > 0;
+    const field = rules.getByLabel("Strop peněženky", { exact: true });
+    if (await field.count()) assert.equal((await field.inputValue()) === "", noCeiling, "rules: the ceiling field is empty exactly when there is no ceiling");
+    else assert.equal(/\d,\d{2}\s*USD/.test(await rules.innerText()), !noCeiling, "rules: a member sees an amount exactly when there is a ceiling");
   }
   checks.push("Pravidla shows the client's posture and wallet ceiling, or says they are not in AIA yet");
   await measure("profile");

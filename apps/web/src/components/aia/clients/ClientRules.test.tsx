@@ -92,6 +92,40 @@ describe("a client's rules on its profile", () => {
     expect(await screen.findByText("Bez stropu: peněženka studie smí nejvýš do rozpočtu studie.")).toBeTruthy();
   });
 
+  it("reads a 0 ceiling as a real cap, never as none, for an administrator and a member", async () => {
+    fake(() => ({ ...UNSET, wallet_ceiling_usd: 0 }));
+    render(<ClientRulesEditor clientId="CLI-a" mayAdminister />);
+    expect(((await screen.findByLabelText("Strop peněženky")) as HTMLInputElement).value).toBe("0,00");
+    expect(screen.queryByText(/^Bez stropu:/)).toBeNull();
+    expect(screen.getByRole("button", { name: "Bez stropu" })).toBeTruthy();
+    cleanup();
+    fake(() => ({ ...UNSET, wallet_ceiling_usd: 0 }));
+    render(<ClientRulesEditor clientId="CLI-a" mayAdminister={false} />);
+    expect(await screen.findByText(/^0,00\s*USD$/)).toBeTruthy();
+    expect(screen.queryByText(/^Bez stropu:/)).toBeNull();
+  });
+
+  it("sends a typed 0 as a cap of 0, never as none", async () => {
+    fake(() => UNSET);
+    render(<ClientRulesEditor clientId="CLI-a" mayAdminister />);
+    const field = await screen.findByLabelText("Strop peněženky") as HTMLInputElement;
+    fireEvent.change(field, { target: { value: "0" } });
+    fireEvent.keyDown(field, { key: "Enter" });
+    await waitFor(() => expect(calls.filter((c) => c.method === "PUT")).toHaveLength(1));
+    expect(calls.find((c) => c.method === "PUT")?.body).toEqual({ wallet_ceiling_usd: 0 });
+    await waitFor(() => expect(screen.queryByText(/^Bez stropu:/)).toBeNull());
+  });
+
+  it("says a 422 at the field: the API's words, and the stepper unsaved", async () => {
+    fake(() => UNSET, () => new Response(JSON.stringify({ code: "validation_error", message: "wallet_ceiling_usd: must be less than 1e9" }), { status: 422 }));
+    render(<ClientRulesEditor clientId="CLI-a" mayAdminister />);
+    const field = await screen.findByLabelText("Strop peněženky") as HTMLInputElement;
+    fireEvent.change(field, { target: { value: "50" } });
+    fireEvent.keyDown(field, { key: "Enter" });
+    expect(await screen.findByText(/must be less than 1e9/)).toBeTruthy();
+    expect(await screen.findByText(/Neuloženo/)).toBeTruthy();
+  });
+
   it("shows a member the rules read-only, and says not in AIA yet without the route", async () => {
     fake(() => ({ data_posture: "OPEN", effective_posture: "OPEN", wallet_ceiling_usd: 25, set_by: "USR-1", set_at: null }));
     render(<ClientRulesEditor clientId="CLI-a" mayAdminister={false} />);
