@@ -141,6 +141,17 @@ case "$catalogue_status" in
   *) log "WARNING: an audience catalogue could not be kept (above); the deploy goes on" ;;
 esac
 
+# Sealed Research Leads past their 30 days (ADR 0030, settings-backends SB2): a deactivated
+# member's Lead, its conversations and what its turns sent and got back, erased. Acts as no
+# one; with nothing due it changes nothing. Optional and bounded like the catalogue: a
+# failure is said, the deploy goes on, and the next deploy picks up what is left.
+log "erasing sealed Leads past their date"
+retention_status=0
+timeout --kill-after=30 300 "${COMPOSE[@]}" run --rm --no-deps -T worker \
+  python -m aia_executors.lead_retention --apply || retention_status=$?
+if [ "$retention_status" -ne 0 ]; then
+  log "WARNING: the sealed-Lead retention sweep did not finish (status $retention_status); the deploy goes on"
+fi
 
 # GlitchTip, the error tracker (errors/docker-compose.yml), when SSM aia_errors_enabled is
 # true: started or updated after AIA is healthy, in a project of its own, so a change to

@@ -6,7 +6,7 @@ import { describe as group, expect, it } from "vitest";
 import { t, tv } from "@/i18n/t";
 
 import type { RunEvent } from "./api";
-import { EMPTY_ACTIVITY, KEEP_LINES, activityOf, describe, foldActivity } from "./step-activity";
+import { EMPTY_ACTIVITY, KEEP_LINES, activityOf, describe, foldActivity, lastReported } from "./step-activity";
 
 let id = 0;
 const ev = (over: Partial<RunEvent>): RunEvent => ({
@@ -140,5 +140,29 @@ group("the fieldwork event contract (run-qc-and-checkpoint RQC7a)", () => {
     expect(text(ev({ message: "fieldwork_progress", payload: {} }))).toBeNull();
     const folded = foldActivity(EMPTY_ACTIVITY, [ev({ message: "fieldwork_progress", payload: { respondents: 40, of: 300, sent: 70, replayed: 0 } })]);
     expect(activityOf(folded, "STEP-a")?.progress).toEqual({ done: 40, of: 300 });
+  });
+
+  it("keeps a stopped step's count as last reported, with what came from the checkpoint (FLD3)", () => {
+    const folded = foldActivity(EMPTY_ACTIVITY, [
+      ev({ message: "fieldwork_progress", payload: { respondents: 10, of: 300, sent: 10, replayed: 50 } }),
+      ev({ message: "fieldwork_progress", payload: { respondents: 40, of: 300, sent: 70, replayed: 50 } }),
+    ]);
+    const a = activityOf(folded, "STEP-a");
+    expect(a?.replayed).toBe(50);
+    const last = tv("research.exec.activity.lastReported", { done: 40, of: 300 });
+    const stopped = `${last} · ${tv("research.exec.activity.fieldworkReplayed", { replayed: 50 })}`;
+    for (const status of ["WAITING_PROVIDER", "AWAITING_BUDGET", "RECOVERY_REQUIRED", "FAILED", "CANCELLED"]) {
+      expect(lastReported(a, status, false)).toBe(stopped);
+    }
+    // A step still marked running in a run that ended stopped there.
+    expect(lastReported(a, "RUNNING", true)).toBe(stopped);
+    // Running (its panel says it), queued for another attempt, succeeded or skipped: no old count.
+    for (const status of ["RUNNING", "RUNNABLE", "CLAIMED", "BLOCKED", "SUCCEEDED", "SKIPPED"]) {
+      expect(lastReported(a, status, false)).toBeNull();
+    }
+    expect(lastReported(activityOf(EMPTY_ACTIVITY, "STEP-a"), "WAITING_PROVIDER", false)).toBeNull();
+    // A later attempt's event without `replayed` replayed nothing; the earlier attempt's count is not kept.
+    const retried = foldActivity(folded, [ev({ message: "fieldwork_progress", payload: { respondents: 4, of: 30, sent: 8 } })]);
+    expect(lastReported(activityOf(retried, "STEP-a"), "CANCELLED", false)).toBe(tv("research.exec.activity.lastReported", { done: 4, of: 30 }));
   });
 });

@@ -176,10 +176,31 @@ V2: `DimensionsArt` (`SampleStages.tsx:206-230`).
   promising the panel, which is offered only under `AIA_AI_POPULATION_PERSONAS_ENABLED`. Test: "goes on
   calibrated… say they are not in AIA and where respondents are chosen".
 
-- **Not fixed, for others.** "Cena / value for money" keeps its English half: it is 18.6.6's label
-  (`ui_app.html:404`), pinned with the server's `DIMENSION_LABELS` (`project_memory.py:46`), so renaming is
-  the product owner's call. Every visit sends `GET …/design/source` three to four times and `…/research/impact`
-  once (both 404 by design) and `PUT …/workspace/stage` twice: the shared frame's, noted with the coordinator.
+- **Not fixed, for the product owner.** "Cena / value for money" keeps its English half: it is 18.6.6's
+  label (`ui_app.html:404`), pinned with the server's `DIMENSION_LABELS` (`project_memory.py:46`).
+
+- **Fixed by the integration session in #807.** Every visit sent `GET …/design/source` three to four times
+  and `…/research/impact` once (both 404 by design) and `PUT …/workspace/stage` twice: the classic layout
+  mounted before /config answered, then the workbench (`ResearchScreen.tsx @ d4d093fd`; test "mounts a stage
+  once on a fresh page, not the classic layout first and then the workbench"). The integration session
+  measured a visit at 44 → 36 requests; what remains is `next dev`'s Strict Mode double effects and the
+  by-design 404.
+
+- **DIM-F7 (fixed in its own PR).** Removing a chosen dimension by keyboard left focus on the page's body:
+  the row took its button with it (`PersonaStep.tsx:226 @ 382b418a`). Focus now goes to the next row's
+  remove, else the previous one's, else the list, with a visible focus ring. Tests: "after a remove, focus goes to the next row's
+  remove…", `dimensions_journey.mjs` (removed by keyboard, focus kept in the selection).
+
+- **DIM-F8 (fixed in the same PR).** A search that matched nothing said so only visually: the message
+  was mounted in place of the catalogue, not in a live region (`PersonaStep.tsx:282 @ 382b418a`). It is now
+  an always-mounted `role="status"`. Test: "says a search that matches nothing in a status…".
+
+- **DIM-F9 (fixed in the same PR).** "Přidat jako požadavek" with an empty name read "Požadavek se
+  nepodařilo uložit · Napište název dimenze.", a failed save where nothing was sent, not tied to the field;
+  and Enter in the field did nothing (`PersonaStep.tsx:351-355 @ 382b418a`). The empty name is now the
+  field's own error, apart from a failed request: `aria-invalid`, described by the message, focus on the
+  field, announced again on a second try and cleared by typing; the field is a form that Enter sends. Test:
+  "requests a dimension the system does not have: refused when empty, proposed, recorded".
 
 ## 8. Owner questions
 
