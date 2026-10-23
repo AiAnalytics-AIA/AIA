@@ -302,14 +302,61 @@ describe("Deep Research settings", () => {
     await row(RETENTION);
     expect(screen.getByText("Čte každý člen")).toBeTruthy();
     expect(screen.getByText("Vy: navrhujete a schvalujete")).toBeTruthy();
+    // No reach route in this deployment (a 404): not in AIA yet, never an empty "nothing reachable".
     const reach = document.querySelector("[data-dr-reach]") as HTMLElement;
-    expect(within(reach).getByText("V AIA zatím není")).toBeTruthy();
+    expect(await within(reach).findByText("V AIA zatím není")).toBeTruthy();
     const posture = document.querySelector("[data-dr-posture]") as HTMLElement;
     expect(within(posture).getByRole("link", { name: "Přístup a schvalování" }).getAttribute("href")).toBe("/app/settings#access");
     const prot = document.querySelector("[data-dr-protections]") as HTMLElement;
     expect(within(prot).getAllByRole("listitem").map((li) => li.textContent)).toEqual([
       "respektuje robots.txt", "žádné přihlášení ani paywall", "žádné osobní údaje", "jen veřejné zdroje", "každé zjištění doložené citací",
     ]);
+  });
+
+  const REACH = (recorded: boolean) => new Response(JSON.stringify({
+    recorded, worker: recorded ? "worker-1" : null, build_sha: recorded ? "abc1234def" : null, composed_at: recorded ? new Date().toISOString() : null,
+    agent_directed: recorded ? false : null, class_gates: recorded ? "enforce" : null, data_class: null, missing_for_live: [RETENTION],
+    routes: recorded ? [
+      { route: "brave-web-search", kind: "search", state: "waiting", reason: "settings_unapproved", detail: "the organization has not approved every setting live needs", classes: ["C"], priced: true, zone: "NON_EU", missing_settings: [RETENTION], class_advisory: false },
+      { route: "wikipedia-public-web_search", kind: "search", state: "active", reason: null, detail: null, classes: ["C"], priced: false, zone: "EU", missing_settings: [], class_advisory: false },
+      { route: "common-crawl-athena-index", kind: "index", state: "built", reason: "common_crawl_off", detail: "AIA_DEEP_RESEARCH_COMMON_CRAWL is not true", classes: [], priced: false, zone: null, missing_settings: [], class_advisory: false },
+    ] : [],
+  }), { status: 200 });
+
+  it("reads Dosah from the worker's record, waiting first in coral for an administrator, each reason in Czech", async () => {
+    fakeApi(true, { "GET /api/v1/settings/deep-research/reach": REACH(true) });
+    render(<DeepResearchSettingsPanel people={people} />);
+    const brave = await waitFor(() => {
+      const el = document.querySelector('[data-reach-route="brave-web-search"]') as HTMLElement | null;
+      if (!el) throw new Error("no reach yet");
+      return el;
+    });
+    const reach = document.querySelector("[data-dr-reach]") as HTMLElement;
+    expect(within(reach).getByText("1 z 3 tras aktivní")).toBeTruthy();
+    expect([...reach.querySelectorAll("[data-reach-route]")].map((r) => r.getAttribute("data-reach-state"))).toEqual(["waiting", "active", "built"]);
+    expect(brave.className).toContain("bg-status-you-wash");
+    expect(within(brave).getByText("Brave Search")).toBeTruthy();
+    expect(within(brave).getByText(/Placená trasa se nezapne, dokud organizace neschválí pravidla/)).toBeTruthy();
+    expect(within(brave).getByText("zpracování mimo EU")).toBeTruthy();
+    // The server's English detail is a technical one, not the reason a person reads.
+    expect(within(brave).queryByText(/has not approved/)).toBeNull();
+    expect(within(reach.querySelector('[data-reach-route="common-crawl-athena-index"]') as HTMLElement).getByText("Common Crawl je v nasazení vypnutý.")).toBeTruthy();
+  });
+
+  it("says no worker has recorded Dosah yet, never that a route is reachable, and keeps a waiting route neutral for a member", async () => {
+    fakeApi(true, { "GET /api/v1/settings/deep-research/reach": REACH(false) });
+    render(<DeepResearchSettingsPanel people={people} />);
+    await waitFor(() => expect(document.querySelector("[data-reach-unrecorded]")).toBeTruthy());
+    expect(document.querySelector("[data-reach-route]")).toBeNull();
+    cleanup();
+    fakeApi(false, { "GET /api/v1/settings/deep-research/reach": REACH(true) });
+    render(<DeepResearchSettingsPanel people={people} />);
+    const brave = await waitFor(() => {
+      const el = document.querySelector('[data-reach-route="brave-web-search"]') as HTMLElement | null;
+      if (!el) throw new Error("no reach yet");
+      return el;
+    });
+    expect(brave.className).not.toContain("bg-status-you-wash");
   });
 
   it("proposes in the rule's Návrh cell, highlights the waiting proposal, and approves it through a modal", async () => {

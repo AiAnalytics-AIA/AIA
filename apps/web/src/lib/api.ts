@@ -1897,7 +1897,23 @@ export type DrSettingDetail = DrSetting & { versions: DrSettingVersion[]; histor
 const DR_SETTINGS = "/api/v1/deep-research/settings";
 
 /** Read by any member; proposing and approving are an administrator's (the API decides). */
+/** Settings → Deep Research → Dosah (#844): what the newest worker's composition reaches. Any member. */
+export type ReachRoute = {
+  route: string; kind: "search" | "fetch" | "connector" | "index" | "archive";
+  state: "waiting" | "active" | "refused" | "built";
+  /** A code (settings_unapproved, class, deep_research_off, …); `detail` is the server's English. */
+  reason: string | null; detail: string | null;
+  classes: string[]; priced: boolean; zone: string | null; missing_settings: string[]; class_advisory: boolean;
+};
+export type DeepResearchReach = {
+  /** false: no worker has recorded its composition, and nothing is presumed reachable. */
+  recorded: boolean; worker: string | null; build_sha: string | null; composed_at: string | null;
+  agent_directed: boolean | null; class_gates: "enforce" | "advisory" | null; data_class: "A" | "B" | "C" | null;
+  missing_for_live: string[]; routes: ReachRoute[];
+};
+
 export const deepResearchSettings = {
+  reach: () => request<DeepResearchReach>("GET", "/api/v1/settings/deep-research/reach"),
   list: () => request<DrSettingsOverview>("GET", DR_SETTINGS),
   get: (key: string) => request<DrSettingDetail>("GET", `${DR_SETTINGS}/${enc(key)}`),
   propose: (key: string, body: { value: DrSettingValue; source_url: string; note: string }) =>
