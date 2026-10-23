@@ -491,6 +491,82 @@ describe("what powers AIA", () => {
     expect(elsewhere()).toEqual([]);
   });
 
+  it("groups the activities by where AI works, counts them, and lists what /config cannot read as unknown, never off", async () => {
+    api();
+    render(<ControlPanel />);
+    await waitFor(() => expect(card("respondent_fieldwork")).toBeTruthy());
+    const group = (g: string) => section("ai").querySelector(`[data-ai-group="${g}"]`) as HTMLElement;
+    expect(within(group("study")).getByText("Návrh studie")).toBeTruthy();
+    expect(group("study").querySelector('[data-activity="design_agents"]')).toBeTruthy();
+    expect(group("run").querySelector('[data-activity="respondent_fieldwork"]')).toBeTruthy();
+    // Listed from the code, its switch not readable here: unknown, never off.
+    const personas = card("population_personas");
+    expect(personas.getAttribute("data-state")).toBe("unread");
+    expect(within(personas).getByText("Stav nevidíme")).toBeTruthy();
+    expect(within(personas).getByText("AIA_AI_POPULATION_PERSONAS_ENABLED")).toBeTruthy();
+    expect(card("run_qc").getAttribute("data-state")).toBe("not_built");
+    expect(within(card("run_qc")).getByText("Nepostaveno")).toBeTruthy();
+    expect(group("out").querySelector('[data-activity="report_pdf"]')).toBeTruthy();
+    expect(group("client").querySelector('[data-activity="client_source_proposals"]')).toBeTruthy();
+    // Fieldwork's own switch column and model, and its words no longer say every respondent is fictional.
+    expect(within(card("design_agents")).getByText("AIA_AI_RESEARCH_AGENTS_ENABLED")).toBeTruthy();
+    expect(within(card("respondent_fieldwork")).getByText(/fiktivní, nebo z populace/)).toBeTruthy();
+    expect(section("ai").querySelector('[data-count="on"]')?.textContent).toBe("1 zapnuto");
+    expect(section("ai").querySelector('[data-count="off"]')?.textContent).toBe("1 vypnuto");
+    expect(section("ai").querySelector('[data-count="new"]')?.textContent).toBe("2 nové, zatím nepostavené");
+    expect(within(section("ai")).getByText("Spravuje nasazení · jen ke čtení")).toBeTruthy();
+    expect(within(section("ai").querySelector("[data-config]") as HTMLElement).getByText("oblast v EU: data zůstávají v EU")).toBeTruthy();
+  });
+
+  it("keeps an activity the document comes to list in its own group, once, and marks the group headings as row groups", async () => {
+    const doc = DOC();
+    doc.ai_runtime = { ...AI_RUNTIME, activities: [...AI_RUNTIME.activities, {
+      key: "report_pdf", step_kind: "research_report", capabilities: [], versions: [], switches: ["AIA_AI_RUNTIME_ENABLED"], actions: [],
+    }] };
+    api({ "GET /api/v1/settings": () => doc });
+    render(<ControlPanel />);
+    await waitFor(() => expect(card("report_pdf")).toBeTruthy());
+    expect(section("ai").querySelectorAll('[data-activity="report_pdf"]')).toHaveLength(1);
+    expect(section("ai").querySelector('[data-ai-group="out"] [data-activity="report_pdf"]')).toBeTruthy();
+    expect(section("ai").querySelector('[data-ai-group="run"] [data-activity="report_pdf"]')).toBeNull();
+    for (const th of section("ai").querySelectorAll("[data-ai-group] th")) expect(th.getAttribute("scope")).toBe("rowgroup");
+  });
+
+  it("counts as new only what the document does not list yet: an activity it lists is neither new nor drawn twice", async () => {
+    const doc = DOC();
+    doc.ai_runtime = { ...AI_RUNTIME, activities: [...AI_RUNTIME.activities, {
+      key: "run_qc", step_kind: "research_run_qc", capabilities: [], versions: [], switches: ["AIA_RUN_QC_ENABLED"], actions: [],
+    }] };
+    api({ "GET /api/v1/settings": () => doc });
+    render(<ControlPanel />);
+    await waitFor(() => expect(card("run_qc")).toBeTruthy());
+    expect(section("ai").querySelectorAll('[data-activity="run_qc"]')).toHaveLength(1);
+    // lead_plans alone is still the code's list, not built.
+    expect(section("ai").querySelector('[data-count="new"]')?.textContent).toBe("1 nové, zatím nepostavené");
+  });
+
+  it("names the region's and the approved classes' sources under technical details, as the switch's and the model's", async () => {
+    api();
+    render(<ControlPanel />);
+    await waitFor(() => expect(card("respondent_fieldwork")).toBeTruthy());
+    const route = section("ai").querySelector("[data-config]") as HTMLElement;
+    expect(within(route).queryByText("AIA_BEDROCK_REGION")).toBeNull();
+    fireEvent.click(within(panelOf("AI běh")).getByRole("switch", { name: "Technické údaje", hidden: true }));
+    for (const source of ["AIA_BEDROCK_REGION", "AIA_AI_ROUTE_APPROVED_FOR", "AIA_BEDROCK_MODEL_ID"]) {
+      expect(await within(route).findByText(source)).toBeTruthy();
+    }
+    // The region's EU reading stays beside its source.
+    expect(within(route).getByText("oblast v EU: data zůstávají v EU")).toBeTruthy();
+  });
+
+  it("keeps an invalid activity standing out, and says the API reads the personas switch too", async () => {
+    api({ "GET /config": () => CONFIG({ switches: { AIA_AI_RUNTIME_ENABLED: null } }) });
+    render(<ControlPanel />);
+    await waitFor(() => expect(card("respondent_fieldwork").getAttribute("data-state")).toBe("invalid"));
+    expect(card("respondent_fieldwork").className).not.toContain("text-ink-muted");
+    expect(within(card("population_personas")).getByText(/čte API .* i worker/)).toBeTruthy();
+  });
+
   it("the runtime off: says which switch and what happens, and never suggests a login", async () => {
     technicalOn();
     api({ "GET /config": () => CONFIG({ enabled: false, switches: { AIA_AI_RUNTIME_ENABLED: false, AIA_AI_RESEARCH_AGENTS_ENABLED: true } }) });
