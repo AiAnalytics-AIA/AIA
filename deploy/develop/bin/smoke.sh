@@ -29,8 +29,10 @@ FAILED=0
 # the label and result only, never a detail line. Kept at the end, best effort.
 RESULTS="$(mktemp)"
 trap 'rm -f "$RESULTS"' EXIT
-pass() { printf 'ok    %s\n' "$1" | tee -a "$RESULTS"; }
-fail() { printf 'FAIL  %s\n' "$1" | tee -a "$RESULTS"; printf '      %s\n' "${2:-}"; FAILED=1; }
+# Each line is self-contained (the docs smoke's tests lift these helpers alone): a check line
+# is kept only when there is a results file, and the helpers behave as before without one.
+pass() { printf 'ok    %s\n' "$1"; if [ -n "${RESULTS:-}" ]; then printf 'ok    %s\n' "$1" >> "$RESULTS"; fi; }
+fail() { printf 'FAIL  %s\n      %s\n' "$1" "${2:-}"; if [ -n "${RESULTS:-}" ]; then printf 'FAIL  %s\n' "$1" >> "$RESULTS"; fi; FAILED=1; }
 # Said, never counted as a pass, and not a failure: what is optional by design (bin/smoke-docs.sh).
 warn() { printf 'WARN  %s\n      %s\n' "$1" "${2:-}"; }
 json() { python3 -c "import json,sys; d=json.load(sys.stdin); print($1)"; }
