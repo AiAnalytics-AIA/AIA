@@ -695,6 +695,37 @@ def test_a_withdrawn_message_is_never_answered(scoped: Any, session: Any) -> Non
         _lead(scoped.scope(user="researcher"), session).withdraw(kept["turn_id"])
 
 
+def test_erasing_a_members_turns_deletes_their_answer_rows_and_no_one_elses(
+    scoped: Any, session: Any
+) -> None:
+    from aia_core.infrastructure.study_lead_repository import erase_member_turns
+    from aia_core.infrastructure.tables import StudyLeadTurnAnswerRow, StudyLeadTurnRow
+
+    scope = _busy(scoped, session)
+    _lead(scope, session).post(kind="message", stage="brief", text="Ve frontě")
+    _complete(session, scope, {"reply": "Hotovo."})
+    assert _lead(scope, session).answer_queued()
+    other = scoped.scope(user="researcher")
+    _hatch(scoped, session, "researcher")
+    _message(_lead(other, session), "Jiný výzkumník")
+
+    def answers(user: str) -> int:
+        return len(
+            session.scalars(
+                select(StudyLeadTurnAnswerRow).where(StudyLeadTurnAnswerRow.user_id == user)
+            ).all()
+        )
+
+    assert answers(scope.actor_id) and answers(other.actor_id)
+    erase_member_turns(session, organization_id=scope.organization_id, user_id=scope.actor_id)
+    session.flush()
+    assert answers(scope.actor_id) == 0
+    assert not session.scalars(
+        select(StudyLeadTurnRow).where(StudyLeadTurnRow.user_id == scope.actor_id)
+    ).all()
+    assert answers(other.actor_id)  # another member's conversation is untouched
+
+
 def test_a_message_is_bounded_in_bytes_and_the_queue_in_count(scoped: Any, session: Any) -> None:
     scope = _busy(scoped, session)
     with pytest.raises(LeadRejected) as refused:

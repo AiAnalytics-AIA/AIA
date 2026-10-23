@@ -258,6 +258,7 @@ class StudyLeadRepository:
         )
         self._session.flush()
 
+
 def erase_member_turns(session: Session, *, organization_id: str, user_id: str) -> list[str]:
     """Erase every Lead turn of one member in one organization, every Study; returns the
     runs those turns started, so their steps and artifacts can be erased too. The retention
@@ -268,6 +269,13 @@ def erase_member_turns(session: Session, *, organization_id: str, user_id: str) 
     )
     run_ids = sorted(
         {r for r in session.scalars(select(StudyLeadTurnRow.run_id).where(*where)) if r is not None}
+    )
+    # The answer rows name these turns; deleted explicitly, never left to the FK's cascade.
+    session.execute(
+        delete(StudyLeadTurnAnswerRow).where(
+            StudyLeadTurnAnswerRow.organization_id == organization_id,
+            StudyLeadTurnAnswerRow.user_id == user_id,
+        )
     )
     session.execute(delete(StudyLeadTurnRow).where(*where))
     return run_ids
