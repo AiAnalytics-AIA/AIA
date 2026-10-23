@@ -21,7 +21,7 @@ type Doc = {
 const doc = fixture as unknown as Doc;
 type Sent = { method: string; url: string; body: Record<string, unknown> | null };
 
-function fakeApi({ mayAdminister = true, check, compare }: { mayAdminister?: boolean; check?: (body: Record<string, unknown>) => unknown; compare?: unknown } = {}) {
+function fakeApi({ mayAdminister = true, mayEdit = mayAdminister, check, compare }: { mayAdminister?: boolean; mayEdit?: boolean; check?: (body: Record<string, unknown>) => unknown; compare?: unknown } = {}) {
   const sent: Sent[] = [];
   const versions: Record<string, unknown>[] = [];
   const history: Record<string, unknown>[] = [];
@@ -46,6 +46,7 @@ function fakeApi({ mayAdminister = true, check, compare }: { mayAdminister?: boo
             ? { origin: "stored", preset: null, version_number: inForce, name: current.name }
             : { origin: "code", preset: "aia-sociomap-5", version_number: null, name: "aia-sociomap-5" },
           may_administer: mayAdminister,
+          may_edit: mayEdit,
           presets: doc.presets[id],
           versions: [...versions].reverse(),
           history: [...history].reverse(),
@@ -353,7 +354,7 @@ describe("the methodology's versions", () => {
     fakeApi({ mayAdminister: false });
     render(<MethodologyPanel />);
     const section = await versionsSection();
-    expect(within(section).getByText(/může vlastník nebo správce organizace/)).toBeTruthy();
+    expect(within(section).getByText(/může jen člen se značkou Metodik/)).toBeTruthy();
     expect(within(section).queryByRole("button", { name: "Upravit metodiku" })).toBeNull();
   });
 
@@ -632,6 +633,39 @@ describe("a module's view (settings-redesign 10b)", () => {
     expect((edit as HTMLButtonElement).disabled).toBe(true);
     expect(tab("Výpočet").getAttribute("aria-selected")).toBe("true");
     expect(document.querySelector("[data-methodology-editor]")).toBeNull();
+  });
+
+  it("follows the Metodik mark, not the organization role: an admin without it reads, a marked researcher edits", async () => {
+    fakeApi({ mayAdminister: true, mayEdit: false });
+    render(<MethodologyPanel />);
+    await screen.findByRole("tablist", { name: "Části modulu" });
+    expect((tab(/^Upravit · jen Metodik$/) as HTMLButtonElement).disabled).toBe(true);
+    expect(document.querySelector("[data-methodology-editor]")).toBeNull();
+    fireEvent.click(tab("Verze a aktivace"));
+    expect(screen.queryByRole("button", { name: /Vrátit na .* z kódu|Upravit z této verze/ })).toBeNull();
+    fireEvent.click(tab("Porovnání"));
+    expect(screen.queryByText(/Bez úpravy jsou obě strany stejné/)).toBeNull();
+    cleanup();
+    fakeApi({ mayAdminister: false, mayEdit: true });
+    render(<MethodologyPanel />);
+    expect(await editor()).toBeTruthy();
+    expect(tab("Upravit").getAttribute("aria-selected")).toBe("true");
+  });
+
+  it("never says both sides are the same while the edit starts from a version not in force", async () => {
+    fakeApi();
+    render(<MethodologyPanel />);
+    const form = await editor();
+    fireEvent.change(await field(form, "relation.n_min"), { target: { value: "12" } });
+    fireEvent.click(within(form).getByRole("button", { name: "Zkontrolovat a uložit" }));
+    // e1 is stored, not in force: an edit from it differs from what is in force before a key is pressed.
+    fireEvent.click(tab("Verze a aktivace"));
+    const version = await found('[data-methodology-version="1"]');
+    fireEvent.click(within(version).getByRole("button", { name: "Upravit z této verze" }));
+    await editor();
+    fireEvent.click(tab("Porovnání"));
+    expect(screen.queryByText(/Bez úpravy jsou obě strany stejné/)).toBeNull();
+    expect(screen.getByText(/Úpravu jste zatím neporovnali/)).toBeTruthy();
   });
 
   it("shows Porovnat s platnou's result on Porovnání, and before any comparison says both sides are the same", async () => {

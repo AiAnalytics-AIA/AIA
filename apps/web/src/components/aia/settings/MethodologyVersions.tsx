@@ -96,9 +96,9 @@ function Body({ summary, data, people, calc, reload, onEditing, onDirty }: { sum
     return { ...from, inForce: data.in_force.name };
   };
   // The methodologists who may edit open on the editor (product owner, 2026-10-13); anyone else on
-  // the calculation. Editing is theirs alone (D-14): the API's may_administer says who that is.
-  const [start, setStart] = useState<Start | null>(() => (data.may_administer ? editStart() : null));
-  const [view, setView] = useState<View>(data.may_administer ? "edit" : "calc");
+  // the calculation. Editing is theirs alone (D-14): the API's may_edit, the Metodik mark (#823), says who that is.
+  const [start, setStart] = useState<Start | null>(() => (data.may_edit ? editStart() : null));
+  const [view, setView] = useState<View>(data.may_edit ? "edit" : "calc");
   useEffect(() => { onEditing?.(view === "edit" && start !== null); }, [view, start, onEditing]);
   // The editor's last comparison, shown on Porovnání; any change to the draft clears it.
   const [comparison, setComparison] = useState<MethodCompare | null>(null);
@@ -117,6 +117,12 @@ function Body({ summary, data, people, calc, reload, onEditing, onDirty }: { sum
   const currentSpec = inForce.origin === "stored"
     ? data.versions.find((version) => version.version_number === inForce.version_number)?.spec
     : data.presets[inForce.preset ?? summary.in_force ?? ""];
+  const currentFormulas = inForce.origin === "stored" ? (data.versions.find((version) => version.version_number === inForce.version_number)?.formulas ?? {}) : {};
+  // Both sides are the same only when no edit is open, or the open one starts from exactly what is
+  // in force and is untouched: an edit from another version differs before a key is pressed.
+  const sameAsInForce = start === null || (!dirty && currentSpec !== undefined
+    && changedPaths(currentSpec, start.spec).filter((p) => p !== "methodology_version").length === 0
+    && JSON.stringify(Object.entries(start.formulas).sort()) === JSON.stringify(Object.entries(currentFormulas).sort()));
   return (
     <section aria-labelledby={`mv-${summary.id}`} data-methodology-versions={summary.id} className="flex flex-col gap-3 rounded-md border border-border bg-surface-raised p-4">
       <h3 id={`mv-${summary.id}`} className="text-sm font-semibold">{t(`${V}.title`)}</h3>
@@ -128,16 +134,16 @@ function Body({ summary, data, people, calc, reload, onEditing, onDirty }: { sum
       {done ? (
         <div role="status" className="flex flex-wrap items-center gap-3 text-sm">
           <span>{done.message}</span>
-          {done.version && data.may_administer && !activating ? <Button small variant="primary" onClick={() => setActivating({ version: done.version!.version_number })}>{tv(`${V}.activate`, { name: done.version.name })}</Button> : null}
+          {done.version && data.may_edit && !activating ? <Button small variant="primary" onClick={() => setActivating({ version: done.version!.version_number })}>{tv(`${V}.activate`, { name: done.version.name })}</Button> : null}
         </div>
       ) : null}
       <div role="tablist" aria-label={t(`${V}.tabs.label`)} className="flex flex-wrap gap-0.5 border-b border-border">
         {VIEWS.map((v) => {
-          const off = v === "edit" && !data.may_administer;
+          const off = v === "edit" && !data.may_edit;
           return (
             <button key={v} type="button" role="tab" id={`mv-${summary.id}-tab-${v}`} aria-controls={`mv-${summary.id}-${v}`} aria-selected={view === v} disabled={off}
               // Upravit with nothing open starts the edit from what is in force (product owner, 2026-10-13).
-              onClick={() => { if (v === "edit" && !start && data.may_administer) { setDone(null); changeStart(editStart()); } else setView(v); }}
+              onClick={() => { if (v === "edit" && !start && data.may_edit) { setDone(null); changeStart(editStart()); } else setView(v); }}
               className={`-mb-px min-h-10 border-b-2 px-3 text-sm disabled:cursor-not-allowed disabled:opacity-45 ${FOCUS} ${view === v ? "border-signal font-medium text-ink" : "border-transparent text-ink-muted hover:text-ink"}`}>
               {off ? t(`${V}.tabs.editMetodik`) : t(`${V}.tabs.${v}`)}
             </button>
@@ -172,10 +178,10 @@ function Body({ summary, data, people, calc, reload, onEditing, onDirty }: { sum
                     </div>
                     <div className="flex flex-wrap gap-2">
                       {/* A version just saved is activated from its confirmation above: one button, never two. */}
-                      {data.may_administer && inForce.version_number !== v.version_number && done?.version?.version_number !== v.version_number ? (
+                      {data.may_edit && inForce.version_number !== v.version_number && done?.version?.version_number !== v.version_number ? (
                         <Button small disabled={start !== null && dirty} onClick={() => { setDone(null); setActivating({ version: v.version_number }); }}>{tv(`${V}.activate`, { name: v.name })}</Button>
                       ) : null}
-                      {data.may_administer ? <Button small onClick={() => { setDone(null); changeStart(versionStart(v)); }}>{t(`${V}.editFrom`)}</Button> : null}
+                      {data.may_edit ? <Button small onClick={() => { setDone(null); changeStart(versionStart(v)); }}>{t(`${V}.editFrom`)}</Button> : null}
                     </div>
                   </li>
                 );
@@ -183,7 +189,7 @@ function Body({ summary, data, people, calc, reload, onEditing, onDirty }: { sum
             </ul>
           ) : <p className="mt-1 text-sm text-ink-muted">{t(`${V}.none`)}</p>}
         </div>
-        {data.may_administer && inForce.origin === "stored" ? (
+        {data.may_edit && inForce.origin === "stored" ? (
           <div><Button small disabled={start !== null && dirty} onClick={() => { setDone(null); setActivating({ version: null }); }}>{tv(`${V}.reset`, { preset: summary.in_force ?? "" })}</Button></div>
         ) : null}
         <div>
@@ -211,11 +217,11 @@ function Body({ summary, data, people, calc, reload, onEditing, onDirty }: { sum
         {comparison ? <>
           <p data-compare-draft className="self-start rounded-pill border border-status-you-ink/40 bg-status-you-wash px-2 py-0.5 text-xs">{t(`${V}.compareDraft`)}</p>
           <MethodologyComparison result={comparison} />
-        </> : <p data-compare-none className="text-sm text-ink-muted">{start && dirty ? t(`${V}.compareNotYet`) : t(`${V}.compareSame`)}</p>}
+        </> : <p data-compare-none className="text-sm text-ink-muted">{!data.may_edit ? t(`${V}.compareReader`) : sameAsInForce ? t(`${V}.compareSame`) : t(`${V}.compareNotYet`)}</p>}
       </div>
 
       <div role="tabpanel" id={`mv-${summary.id}-edit`} aria-labelledby={`mv-${summary.id}-tab-edit`} hidden={view !== "edit"} className="flex min-w-0 flex-col gap-3">
-        {data.may_administer && start ? (
+        {data.may_edit && start ? (
           <Editor
             key={`${start.from}`}
             summary={summary}
@@ -229,7 +235,7 @@ function Body({ summary, data, people, calc, reload, onEditing, onDirty }: { sum
             onCancel={() => changeStart(null)}
             onSaved={(saved) => { setStart(null); setDirty(false); setComparison(null); setView("versions"); setDone({ message: tv(`${V}.saved`, { name: saved.name }), version: saved }); reload(); }}
           />
-        ) : data.may_administer ? <div><Button variant="primary" small onClick={() => { setDone(null); changeStart(editStart()); }}>{t(`${V}.edit`)}</Button></div> : null}
+        ) : data.may_edit ? <div><Button variant="primary" small onClick={() => { setDone(null); changeStart(editStart()); }}>{t(`${V}.edit`)}</Button></div> : null}
       </div>
 
       {/* The calculation last in the document (one panel shows at a time): its thousands of nodes after
@@ -245,7 +251,7 @@ function Body({ summary, data, people, calc, reload, onEditing, onDirty }: { sum
           onDone={() => { setActivating(null); setDone({ message: t(`${V}.activated`), version: null }); reload(); }}
         />
       ) : null}
-      {data.may_administer ? null : <p className="text-xs text-ink-muted">{t(`${V}.adminNote`)}</p>}
+      {data.may_edit ? null : <p className="text-xs text-ink-muted">{t(`${V}.adminNote`)}</p>}
     </section>
   );
 }
