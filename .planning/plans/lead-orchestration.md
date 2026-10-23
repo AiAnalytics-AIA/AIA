@@ -811,10 +811,18 @@ Nigel's answers (2026-10-22 ~22:55 UTC):
     on you);
   - a step that needs a person surfaces in its row without breaking the card.
 
+  A plan's rows are its registered actions (LO21e). A `research_run` action is one row; under
+  it the card shows that run's own steps, read from its workflow template
+  (`domain/workflow_templates.py`) and, once started, from the run's steps. Those steps are
+  never actions of their own: the Lead cannot propose an aggregation or a report outside a run.
+
   Example plans:
-  - "Návrh dotazníku": Design Research → questionnaire job → readiness check;
-  - "Pilotní běh": 50 AI respondents → aggregation → report draft;
-  - "Plný běh": n respondents → aggregation → Sociomapa → 8 analysis modules → report;
+  - "Návrh dotazníku": Design Research → questionnaire job; the card then shows the readiness
+    check, read once both finish, which is a read and not a step;
+  - "Pilotní běh": one `research_run` row at n = 50, showing its steps (fieldwork, aggregation,
+    report draft);
+  - "Plný běh": one `research_run` row at n, showing its steps (fieldwork, aggregation,
+    Sociomapa, the 8 analysis modules, report);
   - "Interpretace výsledků": Interpretation Research on the strongest relations → report with
     literature;
   - "Oprava modulů": retry the failed analysis modules.
@@ -867,16 +875,30 @@ The chunks, each with its test:
   - Cost depends on the arguments (a focused Deep Research quote is cheaper than a whole
     design's, a QUICK preset than a STANDARD one, a run by its n), so the budget cannot be
     judged on the registry entry alone (Codex review on #818):
-    - an action is left out only when its *cheapest* arguments exceed what the study has left;
-    - otherwise it is offered with what the study has left, and each spec's ceiling function
-      prices the arguments the model chose when the turn is grounded;
-    - an action over budget keeps its card, with its cost beside what is left and the spend
-      limit's own confirmation (ADR 0019 gate 2); it is never dropped silently and never
-      started without that yes.
+    - the amounts are `domain/money.py`'s, in its one precedence (`money.py:31-34 @ c42a73e7`):
+      Rozpočet studie stops spending, Peněženka decides what may start without a card, Práh
+      potvrzení decides what asks again and is never a cap. A Lead action always has a card, so
+      what it is compared with is Rozpočet studie's remainder (`above_study_budget`, `:269`);
+    - an action is left out only when its *cheapest* arguments' ceiling (`domain/run_cost.py`)
+      is known and exceeds that remainder;
+    - otherwise it is offered with that remainder, and each spec's ceiling function prices the
+      arguments the model chose when the turn is grounded;
+    - an action whose ceiling exceeds the remainder keeps its card, but the card shows the
+      refusal, never a way to start it: its cost beside the remainder, and the way to raise
+      Rozpočet studie, named, with who may raise it. Práh potvrzení's confirmation
+      (`threshold_verdict`, `:195`, ADR 0019 gate 2) applies only to a card within the budget;
+    - an unknown ceiling (`total_usd: None`, `CeilingUnknown`: a panel run, an unpriced route)
+      is never compared as 0. Its action is offered and its card says the cost is unknown;
+      approving it is refused wherever a rule needs the ceiling
+      (`ThresholdVerdict.CEILING_UNKNOWN`, `money.py:183`);
+    - card copy uses the names in `money.py` (`MONEY`), never "what is left".
   - Tests: the section lists exactly the offered actions; an action that was not offered is
-    refused; the section's bytes stay bounded; with a budget that covers QUICK or focused work
-    but not STANDARD or whole-design work, the action is offered, a QUICK card is approvable,
-    and a STANDARD card shows its cost over what is left and asks for the confirmation.
+    refused; the section's bytes stay bounded; with Rozpočet studie's remainder covering QUICK
+    or focused work but not STANDARD or whole-design work, the action is offered, a QUICK card
+    is approvable (asking at Práh potvrzení when its ceiling reaches it), and a STANDARD card
+    shows the refusal and the way to raise the budget, with no approve; an action whose
+    cheapest ceiling is unknown is offered, its card says so, and its approval is refused with
+    `ceiling_unknown`.
 - **LO21c.** One generic card renderer (web) keyed on `card_kind`, with small per-kind slots.
   Each action is its own approve and decline and its own ledger decision (CARD-1); the route
   becomes `…/turns/{turn_id}/actions/{index}`.
@@ -889,8 +911,10 @@ The chunks, each with its test:
     before.
 - **LO21e.** The `plan` kind: one action whose steps reference registered actions. It is LO4's
   card, with every step shown, one approval, live state per step, and a person's gate in its row.
-  - Tests: a plan naming an unregistered or not-offered action is refused; the per-step state
-    follows each step's run.
+  - Tests: a plan naming an unregistered or not-offered action is refused, and so is one naming
+    a workflow step (aggregation, report) as a row; a `research_run` row shows its template's
+    steps before it starts and its run's steps after; the per-step state follows each step's
+    run.
 
 Order: after LO5a.1 and LO5a.2. LO21d migrates their cards; LO21e needs LO3 and LO4.
 
