@@ -2194,7 +2194,7 @@ function AggregateView({ artifact, run, specification }: { artifact: Artifact; r
           const anchor = measureAnchor(measure.id);
           const reading = readMeasure(measure.result, measure.scale, box, at, measure.options);
           return <section key={measure.id} id={anchor} aria-label={measure.title} data-aia={measure.target ?? undefined} data-focused={focused === anchor ? "true" : undefined}
-            className={`scroll-mt-24 rounded-md border bg-surface-raised p-4 ${focused === anchor ? "border-signal shadow-[0_0_0_1px_var(--color-signal)]" : "border-border"}`}>
+            className={`scroll-mt-24 rounded-md border bg-surface-raised p-4 ${focused === anchor ? "border-signal shadow-[0_0_0_1px_var(--signal)]" : "border-border"}`}>
             {/* The reading runs the card's full width under the title and its chip: beside the chip it
                 was squeezed to half a phone's width (artifact-results, Findings). The title keeps
                 14rem, below which the chip wraps under it. */}

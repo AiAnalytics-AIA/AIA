@@ -914,7 +914,7 @@ function QuestionCard({ n, q, si, sectionId, qi, update }: { n: number; q: Quest
   const unworded = !String(q.text || "").trim();
   const hint = `${questionElementId(q)}_missing`;
   return (
-    <div id={questionElementId(q)} data-aia={marks.questions[si]?.[qi]} data-unworded={unworded || undefined} className={`scroll-mt-40 rounded-card border bg-surface-raised p-4 ${FOCUS} ${unworded ? "border-status-you shadow-[0_0_0_3px_var(--color-status-you-wash)]" : "border-border"}`}>
+    <div id={questionElementId(q)} data-aia={marks.questions[si]?.[qi]} data-unworded={unworded || undefined} className={`scroll-mt-40 rounded-card border bg-surface-raised p-4 ${FOCUS} ${unworded ? "border-status-you shadow-[0_0_0_3px_var(--status-you-wash)]" : "border-border"}`}>
       {/* The number and the × keep the row's ends; the type chips wrap between them, so on a phone
           the × stays beside its question's number instead of falling to a row of its own. Both ends
           take a chip's height (TOUCH), so they sit level with the chips' first row. */}
