@@ -1376,6 +1376,7 @@ def test_a_panel_run_has_a_client_report_of_admitted_modelled_numbers_and_a_fict
     assert "Výsledky jednotlivých otázek" in body
     # Nothing internal reaches the client's file, not even as a content control's tag (RPT8a).
     assert 'w:val="run:' not in body and 'w:val="design:' not in body and run_id not in body
+    assert 'w:val="bundle:' not in body
     # The run tracks no set and has no map chapter, so its introduction names none and says
     # why not (it said "a mapy hodnocených objektů" whatever was composed; cross-review, PC17).
     assert not any((s.id or "").startswith("ch-native-map-") for s in document.sections)

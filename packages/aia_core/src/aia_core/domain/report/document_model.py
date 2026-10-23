@@ -24,9 +24,9 @@ A stored ``-1`` document is still read: it recorded no sources, and a reader say
 presuming any. Since ``-3`` every ledger entry carries its claim's ``level`` (aggregate, segment
 or individual), which the client deliverable's gate reads (report-delivery RD0); an older entry
 has none, so the gate cannot judge it. Since ``-4`` a paragraph, callout, text cell, table's
-notes and Sociomap figure carry ``control`` (since ``-5`` a list, since ``-6`` the audit): the
-tag of the locked control code wrote it in from a stored source that is not the ledger
-(``control_tags.source_tag``; null when none), which a saved version is compared with
+notes and Sociomap figure carry ``control`` (since ``-5`` a list, since ``-6`` the audit and a
+quote): the tag of the locked control code wrote it in from a stored source that is not the
+ledger (``control_tags.source_tag``; null when none), which a saved version is compared with
 (artifact-report RPT8b); an older document has none.
 """
 
@@ -78,7 +78,7 @@ from aia_core.domain.report.validation import CLIENT_KINDS
 DOCUMENT_MODEL_CONTRACT: Final = "aia-report-document-6"
 #: Contracts still read: ``-1`` (RD5a) is ``-2`` without the manifest, ``-2`` is ``-3`` without
 #: each entry's level, ``-3`` is ``-4`` without the controls, ``-4`` is ``-5`` without a list's,
-#: ``-5`` is ``-6`` without the audit's.
+#: ``-5`` is ``-6`` without the audit's and a quote's.
 READABLE_CONTRACTS: Final = frozenset(
     {
         "aia-report-document-1",
@@ -300,6 +300,7 @@ class _Writer:
                 "text": block.text,
                 "attribution": block.attribution,
                 "synthetic": block.synthetic,
+                "control": block.control,
             }
         if isinstance(block, Callout):
             content = self.inlines(block.content, refs)

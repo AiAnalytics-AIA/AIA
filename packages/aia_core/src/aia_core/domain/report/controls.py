@@ -18,6 +18,7 @@ from aia_core.domain.report.model import (
     Callout,
     Inline,
     Paragraph,
+    Quote,
     Section,
     Table,
     TableRow,
@@ -52,6 +53,9 @@ def _row(row: TableRow, tag: str) -> TableRow:
 def _block(block: Block, tag: str) -> Block:
     if isinstance(block, Paragraph | Callout | BulletList) and block.control is None:
         return replace(block, control=tag) if _prints_a_number(block_inlines(block)) else block
+    if isinstance(block, Quote) and block.control is None:
+        # Verbatim, and its label ([L1]) prints a number: locked whole.
+        return replace(block, control=tag) if _digits(block.text + block.attribution) else block
     if isinstance(block, Table):
         rows = tuple(_row(row, tag) for row in block.rows)
         notes = block.notes_control

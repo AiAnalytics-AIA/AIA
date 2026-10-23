@@ -130,6 +130,9 @@ class Quote:
     text: str
     attribution: str
     synthetic: bool
+    #: The tag of the locked control the quote and its attribution print in (``bundle:<run>`` for
+    #: a captured source's; RPT8a, part 3, P14).
+    control: str | None = None
 
 
 class CalloutKind(StrEnum):

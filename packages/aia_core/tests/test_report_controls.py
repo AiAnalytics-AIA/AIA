@@ -16,6 +16,7 @@ from aia_core.domain.report.model import (
     Column,
     ListItem,
     Paragraph,
+    Quote,
     ReportKind,
     Section,
     Table,
@@ -76,3 +77,13 @@ def test_the_audits_values_print_locked_and_the_source_audit_keeps_them(report_d
     with zipfile.ZipFile(io.BytesIO(DocxRenderer().render(audited))) as z:
         body = z.read("word/document.xml").decode()
     assert body.count(f'w:val="{TAG}"') == len(kept.entries)
+
+
+def test_a_quote_with_its_label_prints_locked_whole(report_doc: Any) -> None:
+    """A captured source's quote is verbatim and its label ([L1]) a number: the helper puts it
+    under the source, and both its paragraphs print in the source's control (P14)."""
+    (quote,) = under_blocks((Quote("Důvěra roste.", "[L1] Zdroj", synthetic=False),), TAG)
+    assert isinstance(quote, Quote) and quote.control == TAG
+    with zipfile.ZipFile(io.BytesIO(DocxRenderer().render(report_doc(quote)))) as z:
+        body = z.read("word/document.xml").decode()
+    assert body.count(f'w:val="{TAG}"') == 2

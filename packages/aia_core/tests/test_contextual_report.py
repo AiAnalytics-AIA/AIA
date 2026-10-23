@@ -136,6 +136,8 @@ def test_every_number_the_bundle_writes_is_locked_under_its_review() -> None:
     RPT8a, part 3, P14)."""
     (section,) = literature_sections(bundle(), research_run_id="RUN-abc")
     digits = 0
+    quotes = [b for b in section.blocks if isinstance(b, Quote)]
+    assert quotes and all(q.control == "bundle:RUN-abc" for q in quotes)
     for b in section.blocks:
         if isinstance(b, Paragraph) and any(
             c.isdigit() for i in b.content if isinstance(i, Text) for c in i.text
