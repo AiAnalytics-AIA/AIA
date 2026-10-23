@@ -544,6 +544,12 @@ Each is off when unset and absent from the develop Compose file; turning one on 
   respondent's blocks once 30 s pass without one, so slow answering never reads as a stalled step on
   Průběh (run-qc-and-checkpoint RQC7a). At most two lease-fenced feed writes a minute per step. **Who:**
   the operator.
+- **`AIA_AI_FIELDWORK_QUOTA_FILL`** (worker): a panel run's fieldwork writes its quota cells once per
+  attempt, after the gateway's preflight (`fieldwork_sample`), and each `fieldwork_progress` counts the
+  respondents answered in each cell since the previous report, so Průběh shows each cell's fill
+  (run-qc-and-checkpoint RQC7b). A roster run writes neither. One more feed write per attempt; the counts
+  ride the reports fieldwork writes anyway (every 10 respondents), so a replayed attempt writes no more
+  rows than with the switch off. **Who:** the operator.
 - **`AIA_AI_SCALE_LABELS_IN_PROMPT`** (worker): AI respondents are told a scale question's labels
   (both ends, or one per point) as its design states them, not only the numbers (input-interactions
   3b1, #538). Turning it on changes what respondents read, so the respondent-system fingerprint moves

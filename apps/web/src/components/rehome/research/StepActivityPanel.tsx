@@ -11,6 +11,7 @@ import { useEffect, useState } from "react";
 import { isDayBreak, withDayBreaks } from "@/lib/day-label";
 
 import { ActivityOrb } from "@/components/brand/ActivityOrb";
+import { FOCUS, TOUCH } from "@/components/ui/parts";
 import { t, tv } from "@/i18n/t";
 import type { Orb } from "@/lib/activity-orb";
 import { fmtTime } from "@/research/jobs";
@@ -119,5 +120,35 @@ export function ActivityLog({ activity, label }: { activity: StepActivity; label
         </li>
       ))}
     </ol>
+  );
+}
+
+/**
+ * A panel run's quota cells and each one's fill, as fieldwork reported them (RQC7b): how the n is
+ * spread, never a promise of support. Closed by default: a sample can have hundreds of cells.
+ */
+export function QuotaFillTable({ quota }: { quota: NonNullable<StepActivity["quota"]> }) {
+  const full = quota.cells.filter((c) => c.answered >= c.n).length;
+  return (
+    <details data-quota-fill className="mt-1 text-xs">
+      <summary className={`flex cursor-pointer items-center text-ink-muted ${TOUCH} ${FOCUS}`}>{tv("research.exec.activity.quotaTitle", { full, cells: quota.cells.length })}</summary>
+      <table className="mt-2 w-full max-w-md border-collapse">
+        <thead>
+          <tr className="text-left text-ink-muted">
+            <th scope="col" className="py-1 pr-3 font-medium">{t("research.exec.activity.quotaCell")}</th>
+            <th scope="col" className="py-1 text-right font-medium">{t("research.exec.activity.quotaAnswered")}</th>
+          </tr>
+        </thead>
+        <tbody>
+          {quota.cells.map((c) => (
+            <tr key={c.key} data-cell={c.key} className="border-t border-border">
+              <td className="py-1 pr-3">{c.values.join(" · ")}</td>
+              <td className="py-1 text-right font-mono tabular-nums">{tv("research.exec.activity.quotaOf", { answered: c.answered, n: c.n })}</td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+      <p className="mt-1 text-ink-muted">{t("research.exec.activity.quotaNote")}</p>
+    </details>
   );
 }

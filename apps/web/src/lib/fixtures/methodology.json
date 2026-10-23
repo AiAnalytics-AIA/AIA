@@ -20574,7 +20574,7 @@
       "reading_cs": "",
       "role_cs": "",
       "source_cs": "",
-      "source_sha256": "219eb3ea61b39facd62d6e02d85feef1377aac0b83b4deb704c418638e896290",
+      "source_sha256": "6b93c078adcf4bafe43fd920ef36569c8dde0cef4b66cc880da8b28b551855f6",
       "symbols": [
        {
         "latex": "A",
@@ -21008,7 +21008,7 @@
       "reading_cs": "",
       "role_cs": "",
       "source_cs": "",
-      "source_sha256": "219eb3ea61b39facd62d6e02d85feef1377aac0b83b4deb704c418638e896290",
+      "source_sha256": "6b93c078adcf4bafe43fd920ef36569c8dde0cef4b66cc880da8b28b551855f6",
       "symbols": [],
       "tests": [
        "packages/aia_core/tests/test_population_sampling.py::test_the_verdict_is_the_units"
