@@ -117,8 +117,8 @@ const versionRow = (key: string) =>
 const called = (method: string, url: string) => calls.filter((c) => c.method === method && c.url === url);
 
 const DOC = (may = true) => ({ may_administer: may }) as unknown as SettingsDocument;
-const members: Part<{ user_id: string; email: string; display_name: string; is_active: boolean; organization_role: string }[]> = {
-  ok: true, data: [{ user_id: "USR-1", email: "owner@example.test", display_name: "", is_active: true, organization_role: "OWNER" }],
+const members: Part<{ user_id: string; email: string; display_name: string; is_active: boolean; organization_role: string; methodologist: boolean }[]> = {
+  ok: true, data: [{ user_id: "USR-1", email: "owner@example.test", display_name: "", is_active: true, organization_role: "OWNER", methodologist: false }],
 };
 function mount(may = true, technical = false) {
   render(<TechnicalProvider on={technical}><SystemPromptsPanel doc={DOC(may)} members={members} /></TechnicalProvider>);

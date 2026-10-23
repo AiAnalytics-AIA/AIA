@@ -11,9 +11,9 @@
 // gate, recorded as automatic -- shown as "Přijato automaticky" with Vrátit; structure still waits.
 
 import { useRouter } from "next/navigation";
-import { type KeyboardEvent as ReactKeyboardEvent, type ReactNode, type Ref, useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
+import { type KeyboardEvent as ReactKeyboardEvent, type ReactNode, type Ref, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
 
-import { ApiError, api, lead as leadApi, research, type Readiness, type ResearchAgentJob, type ResearchRun, type Study } from "@/lib/api";
+import { ApiError, api, lead as leadApi, research, researchAgents, type Readiness, type ResearchAgentJob, type ResearchRun, type Study } from "@/lib/api";
 import { withBudget } from "@/lib/budget-line";
 import { backEntry, closeStack, emptyStack, type InspectorEntry, type InspectorStack, onStage, openEntry, topEntry } from "@/lib/inspector-stack";
 import { availabilityWords, leadAvailability, type LeadAvailability, type LeadStateWithWorker } from "@/lib/lead-availability";
@@ -25,7 +25,7 @@ import { guardedNavigate } from "@/lib/guarded-navigation";
 import { rovingIndex } from "@/lib/roving";
 import { useDismiss } from "../ui/parts";
 import {
-  LEAD_REASON_WORDS, ANALYSIS_RETRY_MOVED_QUESTION, STALE_CARD_QUESTION, LEAD_REVEAL, applyLeadEdit, autoAcceptPlan, describeEdit, editRefusalWords, editStage, focusSelector, revertTextEdit, targetLabel, targetOfElement, textEditInverse,
+  LEAD_REASON_WORDS, ANALYSIS_RETRY_MOVED_QUESTION, STALE_CARD_QUESTION, LEAD_REVEAL, applyLeadEdit, changesToShow, autoAcceptPlan, describeEdit, editRefusalWords, editStage, focusSelector, revertTextEdit, targetLabel, targetOfElement, textEditInverse,
   type LeadEdit, type LeadRequest, type LeadTurn, type LeadView, type ResearcherLead,
 } from "@/lib/lead";
 import {
@@ -162,7 +162,7 @@ function autoList(memory: Map<string, unknown>): AutoList {
 }
 
 /** The stage whose heading takes the focus once it opens (FrameNavigation's `next.go`); module
- *  scope, because a move to another route remounts the workbench. */
+ *  scope, so it holds whatever the route change keeps mounted. */
 const headingFocus: { pending: { studyId: string; stage: WorkbenchStage } | null } = { pending: null };
 
 /** An item the Lead's `inspect` opens on another stage: opened once that stage is shown, module
@@ -246,6 +246,12 @@ export function Workbench({ frame, step, store, memory, save, inspector, reload,
     moveFocus(next.focus);
   }, [drawer, layout, moveFocus]);
   const [split, setSplit] = useState(() => readSplit(storage()));
+  // The workbench stays mounted from stage to stage (research-lead-workbench 34): another route's
+  // stage opens at its top, as its own page did; a view of the same route (a hash) keeps its place.
+  const artBody = useRef<HTMLDivElement>(null);
+  useLayoutEffect(() => {
+    if (artBody.current) artBody.current.scrollTop = 0;
+  }, [step]);
   // "Připravenost a pomoc" lies over the artifact: opening it takes the focus into it, and Escape
   // closes it before the drawer while it is the layer the person is in, giving the focus back to its
   // button (D21's one Escape order; workbench audit, 2026-10-22: it took neither the focus nor
@@ -384,11 +390,14 @@ export function Workbench({ frame, step, store, memory, save, inspector, reload,
     return () => window.removeEventListener("focus", onFocus);
   }, [waiting, onRefreshJobs]);
   // The budget meter is read again whenever a run, a design job or a Lead turn changes state: all spend.
+  // By their states, never the list's identity: the runs are read again on every stage (useRuns), and
+  // a stage change alone spends nothing (Codex on #835).
+  const runStates = runs?.map((r) => `${r.run_id}:${r.phase}:${(r.steps ?? []).map((s) => s.status).join("/")}`).join(",") ?? null;
   const jobStates = jobs.map((j) => `${j.run_id}:${j.status}`).join(",");
   const turnStates = turns.map((t) => `${t.turn_id}:${t.status}`).join(",");
   useEffect(() => {
     api.study(frame.studyId).then(setStudy, () => setStudy(null));
-  }, [frame.studyId, runs, jobStates, turnStates]);
+  }, [frame.studyId, runStates, jobStates, turnStates]);
 
 
   /** Opens a stage; true when it moved now, false when a stage's leave guard stopped it. */
@@ -406,7 +415,7 @@ export function Workbench({ frame, step, store, memory, save, inspector, reload,
   // A stage's forward action (FrameNavigation's `next`): the stage after this one in the workbench's
   // order, opened as the navigator opens it, then the focus on the new stage's heading. The pressed
   // button may be hidden by the move (Vzorek hides Dimenze's screen), so the focus would fall to the
-  // body; the heading names where the person is now. Kept across a route change, which remounts.
+  // body; the heading names where the person is now. Kept across a route change.
   const nextStage = STAGE_ORDER[STAGE_ORDER.indexOf(stage) + 1] ?? null;
   const frameNav = useMemo(() => ({
     next: nextStage ? {
@@ -444,10 +453,12 @@ export function Workbench({ frame, step, store, memory, save, inspector, reload,
     if (want?.stage === stage && want.studyId === frame.studyId) nameFromPage(want.entry.id);
   }, [stage, frame.studyId, nameFromPage]);
 
+  // A Lead's show_diff, set once the waiting edits and the jobs' review are known below.
+  const showChanges = useRef<(target: WorkbenchStage, reveal: (selector: string) => void) => void>(() => {});
   const onView = useCallback((ops: LeadView[]) => {
     // In the drawer or the sheet the conversation steps aside so the person sees what the Lead pointed at.
     const last = ops[ops.length - 1];
-    if (compact && last) setDrawerState(nextDrawer(drawer, { type: "view", target: last.op === "open_stage" ? last.stage : last.target }, layout).state);
+    if (compact && last) setDrawerState(nextDrawer(drawer, { type: "view", target: last.op === "open_stage" || last.op === "show_diff" ? last.stage : last.target }, layout).state);
     for (const v of ops) {
       if (v.op === "open_stage") go(v.stage);
       else if (v.op === "inspect") {
@@ -463,33 +474,39 @@ export function Workbench({ frame, step, store, memory, save, inspector, reload,
           leadInspect.pending = { studyId: frame.studyId, stage: t.stage, entry };
           if (!go(t.stage)) leadInspect.pending = null;
         }
+      } else if (v.op === "show_diff") {
+        showChanges.current(v.stage, reveal);
       } else {
-        // After a stage change the element appears on the next render: look again briefly.
-        let tries = 0;
-        const find = () => {
-          const el = document.querySelector<HTMLElement>(focusSelector(v.target));
-          if (el) {
-            el.scrollIntoView({ block: "center", behavior: "smooth" });
-            // With the conversation stepped aside, focus follows to what the Lead pointed at.
-            // The artifact is inert until the drawer's step aside has rendered: try again briefly.
-            if (compact) {
-              if (!el.hasAttribute("tabindex")) el.setAttribute("tabindex", "-1");
-              let attempts = 0;
-              const take = () => {
-                el.focus({ preventScroll: true });
-                if (document.activeElement !== el && attempts++ < 10) setTimeout(take, 50);
-              };
-              take();
-            }
-            el.classList.add("just");
-            setTimeout(() => el.classList.remove("just"), 2300);
-          } else {
-            if (!tries) window.dispatchEvent(new CustomEvent(LEAD_REVEAL, { detail: v.target }));
-            if (tries++ < 10) setTimeout(find, 150);
-          }
-        };
-        find();
+        reveal(focusSelector(v.target), v.target);
       }
+    }
+    // What a view points at, scrolled to and marked; after a stage change it appears on the next
+    // render, so look again briefly. A focus target not on screen is announced (LEAD_REVEAL) once.
+    function reveal(selector: string, target?: string) {
+      let tries = 0;
+      const find = () => {
+        const el = document.querySelector<HTMLElement>(selector);
+        if (el) {
+          el.scrollIntoView({ block: "center", behavior: "smooth" });
+          // With the conversation stepped aside, focus follows to what the Lead pointed at.
+          // The artifact is inert until the drawer's step aside has rendered: try again briefly.
+          if (compact) {
+            if (!el.hasAttribute("tabindex")) el.setAttribute("tabindex", "-1");
+            let attempts = 0;
+            const take = () => {
+              el.focus({ preventScroll: true });
+              if (document.activeElement !== el && attempts++ < 10) setTimeout(take, 50);
+            };
+            take();
+          }
+          el.classList.add("just");
+          setTimeout(() => el.classList.remove("just"), 2300);
+        } else {
+          if (!tries && target) window.dispatchEvent(new CustomEvent(LEAD_REVEAL, { detail: target }));
+          if (tries++ < 10) setTimeout(find, 150);
+        }
+      };
+      find();
     }
   }, [go, compact, drawer, layout, stage, frame.studyId, nameFromPage, store]);
 
@@ -702,9 +719,41 @@ export function Workbench({ frame, step, store, memory, save, inspector, reload,
   const openJob = useCallback((job: ResearchAgentJob) => {
     const target = JOB_STAGE[job.action];
     if (!target || target === stage || !memory) return onOpenJob(job);
-    memory.set(OPEN_REVIEW_KEY, job.run_id);
+    memory.set(OPEN_REVIEW_KEY, job);
     go(target);
   }, [stage, memory, onOpenJob, go]);
+
+  // A Lead's show_diff (research-lead-workbench 14): the Lead's edits still to decide on the
+  // stage, else its newest proposal still waiting for review; with neither, the stage itself.
+  // `jobs` is the newest page only: a proposal older than it is asked of the server, which
+  // filters the pending ones before its page. A lookup answering after the stage, the study or
+  // a newer show_diff moved on is dropped (`lookup`).
+  const lookup = useRef(0);
+  useEffect(() => () => { lookup.current++; }, [stage, frame.studyId]);
+  showChanges.current = (target, reveal) => {
+    const mine = ++lookup.current;
+    const what = changesToShow(target, open.map((x) => editStage(x.edit)), jobs);
+    if (what?.kind === "proposal") return openJob(what.job);
+    if (what?.kind === "edits") {
+      if (target === stage || go(target)) reveal(EDITS_SELECTOR);
+      return;
+    }
+    researchAgents.jobs(frame.studyId, true).then(
+      (pending) => {
+        if (lookup.current !== mine) return;
+        const older = changesToShow(target, [], pending);
+        if (older?.kind === "proposal") openJob(older.job);
+        else if (target !== stage) go(target);
+        else setNotice(NOTHING_WAITS);
+      },
+      () => {
+        if (lookup.current !== mine) return;
+        // Not read is not "nothing waits": the person is told, and the stage still opens.
+        setNotice(PENDING_UNREAD);
+        if (target !== stage) go(target);
+      },
+    );
+  };
 
   // The prepared research run's card (chunk 23): the design the person sees submitted and read as
   // Spuštění reads it on a visit, then started through Spuštění's own route, POST …/research/runs
@@ -794,7 +843,7 @@ export function Workbench({ frame, step, store, memory, save, inspector, reload,
               {autoHere.length ? <AutoBar items={autoHere} state={state} canEdit={frame.canEdit} onRevert={revert} onHide={() => autoStore.set((a) => a.filter((x) => editStage(x.edit) !== stage))} /> : null}
               {here.length ? <EditsBar items={here} state={state} marks={marks} canEdit={frame.canEdit} onAccept={(keys) => void decide("accept", keys)} onDismiss={(keys) => void decide("dismiss", keys)} /> : null}
               <div className="artstage">
-                <div className="artbody" id="artbody"><div className="wb-stage">
+                <div ref={artBody} className="artbody" id="artbody"><div className="wb-stage">
                   {stage === "sample" ? <SampleView project={state.project} onOpen={go} /> : null}
                   {/* Sample shows Dimenze's screen hidden, so its readiness still reaches the inspector. */}
                   <div hidden={stage === "sample"}><LeadAskContext.Provider value={askLead}><ItemInspectorContext.Provider value={itemInspector}><FrameNavigation.Provider value={frameNav}>{children}</FrameNavigation.Provider></ItemInspectorContext.Provider></LeadAskContext.Provider></div>
@@ -820,6 +869,11 @@ export function Workbench({ frame, step, store, memory, save, inspector, reload,
   );
 }
 
+const EDITS_LABEL = "Návrhy Vedoucího";
+const NOTHING_WAITS = "Na této fázi nic nečeká na rozhodnutí (prohledáno posledních 200 úloh).";
+const PENDING_UNREAD = "Návrhy čekající na rozhodnutí se nepodařilo načíst. Zkuste to znovu.";
+const EDITS_SELECTOR = `[role="region"][aria-label="${EDITS_LABEL}"]`;
+
 function EditsBar({ items, state, marks, canEdit, onAccept, onDismiss }: {
   items: { key: string; edit: LeadEdit; turn: LeadTurn }[];
   state: ResearchState; marks: Record<string, EditMark>; canEdit: boolean;
@@ -828,7 +882,7 @@ function EditsBar({ items, state, marks, canEdit, onAccept, onDismiss }: {
   const content = { project: state.project, analysis: state.analysis };
   const keys = items.map((x) => x.key);
   return (
-    <div className="artbar artbar--you edits" role="region" aria-label="Návrhy Vedoucího">
+    <div className="artbar artbar--you edits" role="region" aria-label={EDITS_LABEL}>
       <div className="edits__head">
         <Glyph tone="you" size={12} />
         <div className="artbar__grow"><b>Vedoucí navrhuje {items.length === 1 ? "1 změnu" : `${items.length} změn`}</b> · nic se nezmění, dokud je nepřijmete</div>

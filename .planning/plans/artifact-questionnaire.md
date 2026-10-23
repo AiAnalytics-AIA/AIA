@@ -305,6 +305,15 @@ tracked objects, in approved client knowledge and on the web (`deep_research/con
 `Channel`), and AIA itself never shows respondents a finding's outcome numbers (the leakage rule); the
 line promising a model choice and an update is gone, with the four unused half-English keys beside it. Test: `QuestionnaireStep.test.tsx`.
 
+*Finding QF-15 (browser audit 3, 2026-10-22):* loading a questionnaire file replaces every block, question
+and set already there, with no word before and no way back (`QuestionnaireStep.tsx:456-458 @ 382b418a`):
+a person with a questionnaire who tries the template loses it on the first file. Fix
+(fix/questionnaire-import-undo): the upload card says a file replaces the questionnaire there is (any
+section, a block with no questions yet included: `hasQuestionnaire`), and an import over one is offered
+back with Vrátit (input standard I6): the sections and the plan's status as they were, the rest of the plan
+as it now is, and only while the questionnaire is still the file's, else it says it cannot. Tests:
+`QuestionnaireStep.test.tsx`.
+
 *Finding QF-14 (browser audit 2, 2026-10-22):* the respondent preview numbers its items with
 18.6.6's running count over questions and sets, so after four questions the set reads "Sledovaná sada 5"
 where the editor says Sada 1, and a question after a set skips a number (`QuestionnaireStep.tsx:554,573
@@ -320,10 +329,24 @@ a stage in the workbench shows no AI start of its own (#550) and the Lead's cont
 `design_research` among Dotazník's starts (`lead_artifacts.py:280-285 @ 9607ee09`). No typed command
 or Lead card starts Design Research yet, so hiding the button would leave no way to run it. Left as is.
 
+*Finding QF-16 (audit 3, 2026-10-22):* a questionnaire file that fails to import for any reason
+but the import's own rules is said in the API's English: an empty or over-25 MB file reads "The request
+body or parameters are invalid." (the schema's 422) and a dropped connection "Failed to fetch"
+(`QuestionnaireStep.tsx:461 @ 82541803`, the raw `e.message`); the template's download too
+(`:470`). Fix (fix/questionnaire-audit-3): an empty or too large file is refused before it is sent; a
+422 the import gave keeps its Czech words, and anything else is said in the Brief's upload words
+(`research/brief-upload.ts`), named by the file; a file the browser could not read is said as such,
+never as a lost connection; a refused template download names its code. The import's one English
+message (`questionnaire_import.py:324`, unreachable) is Czech too. Tests: `QuestionnaireStep.test.tsx`
+"says an empty file, a refusal without words of its own and a lost connection in Czech" and "says a
+template the API would not give in Czech".
+
 ## Doc follow-up
 
 - open-items.md: number QF-7 (the question's × named by its stored id), closed by fix/questionnaire-remove-label.
 - open-items.md: number QF-8 (Závislosti held sets the compiler takes), closed by feature/questionnaire-set-hard-max.
 - open-items.md: number QF-9 (a question's × on a row of its own at 390 px) and QF-10 ("validačním gate"), closed by fix/questionnaire-audit-390.
 - open-items.md: number QF-11 (a scale's right label apart from its end at 390 px), QF-12 (the research card half English) and QF-14 (the preview's running numbers), closed by fix/questionnaire-audit-2; QF-13 (Dotazník's own Design Research start in the workbench) open, for the PM.
+- open-items.md: number QF-16 (an import's failure said in English), closed by fix/questionnaire-audit-3.
 - Register this plan and its chunks. `research-lead-workbench#7`'s questionnaire half is QST5.
+- open-items.md: number QF-15 (an import replaced the questionnaire with no way back), closed by fix/questionnaire-import-undo.

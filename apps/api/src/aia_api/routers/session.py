@@ -18,8 +18,9 @@ organization is served AIA's pages at all. Caddy asks it before every request to
 * ``DELETE /session`` clears the cookie.
 
 The report editor, ONLYOFFICE Docs, is served at an origin of its own, ``docs.<hostname>``
-(plan report-editor-hosting), which ``aia_session`` -- host-only, and the id token itself --
-never reaches. It has a gate of its own, over a docs-only cookie (:mod:`aia_api.docs_pass`):
+(plan report-editor-hosting), which AIA's session cookie -- the id token itself, host-only, and
+deployed ``__Host-aia_session``, which no other host can set (F1) -- never reaches. It has a
+gate of its own, over a docs-only cookie (:mod:`aia_api.docs_pass`):
 
 * ``POST /session/docs-ticket``: a signed ticket, 60 s, for an active member calling the API
   with their own token; the pane loads ``<editor>/__aia/session?ticket=…&next=…`` with it.
@@ -41,7 +42,7 @@ all (ADR 0018 decision 5; the panel's own gate went with it).
 from __future__ import annotations
 
 from datetime import UTC, datetime
-from typing import Annotated
+from typing import Annotated, Any
 from urllib.parse import quote, urlencode, urlparse
 
 from aia_core.application.docs_session import DocsTicketSpent, open_docs_session
@@ -66,6 +67,10 @@ from ..identity import IdentityProvider
 router = APIRouter(prefix="/session", tags=["session"])
 
 SESSION_COOKIE = "aia_session"
+# Deployed, the cookie carries the __Host- prefix: the browser takes it only Secure, Path=/ and
+# without a Domain, so a script on docs.<hostname> cannot plant a twin AIA's gate would read
+# (report-editor-hosting F1). Local and test serve plain http, where the prefix cannot be set.
+HOST_SESSION_COOKIE = "__Host-aia_session"
 PAGE_METHODS = frozenset({"GET", "HEAD"})
 LOGIN_PATH = "/login"
 DOCS_COOKIE = "aia_docs"
@@ -112,18 +117,37 @@ def _local_path(uri: str | None) -> str:
     return uri
 
 
+def session_cookie(settings: Settings) -> str:
+    """The session cookie's name in this environment: prefixed wherever it is deployed."""
+    return HOST_SESSION_COOKIE if settings.is_production else SESSION_COOKIE
+
+
+def _cookie_attributes(settings: Settings) -> dict[str, Any]:
+    """What the session cookie is set and cleared with, once for both: a browser clears only
+    the cookie it set, and takes a __Host- cookie only Secure, at Path=/, with no Domain."""
+    return {"httponly": True, "secure": settings.is_production, "samesite": "lax", "path": "/"}
+
+
+def _session_credential(request: Request, settings: Settings) -> str | None:
+    """The session cookie's value, or ``None`` when it is absent or sent more than once.
+
+    A planted twin arrives under the same name (a nameless cookie is sent as its value alone),
+    and Starlette keeps whichever came last, so a repeated name is no session at all."""
+    name = session_cookie(settings)
+    # Keyed as Starlette's cookie_parser keys a chunk: split on the first "=", then stripped.
+    sent = [
+        chunk
+        for chunk in request.headers.get("cookie", "").split(";")
+        if "=" in chunk and chunk.split("=", 1)[0].strip() == name
+    ]
+    return request.cookies.get(name) if len(sent) == 1 else None
+
+
 def _set_cookie(response: Response, token: str, settings: Settings) -> None:
     # A browser-session cookie: no Max-Age. The id token inside expires within an
     # hour and is re-verified on every gate call, so an expired session is sent
     # back through /login, where the web client refreshes it.
-    response.set_cookie(
-        SESSION_COOKIE,
-        token,
-        httponly=True,
-        secure=settings.is_production,
-        samesite="lax",
-        path="/",
-    )
+    response.set_cookie(session_cookie(settings), token, **_cookie_attributes(settings))
 
 
 @router.post(
@@ -167,9 +191,10 @@ def open_session(
 def close_session(settings: SettingsDep) -> Response:
     """Clear the session cookie. Needs no credential: clearing one's own cookie is harmless."""
     response = Response(status_code=status.HTTP_204_NO_CONTENT)
-    response.delete_cookie(
-        SESSION_COOKIE, httponly=True, secure=settings.is_production, samesite="lax", path="/"
-    )
+    response.delete_cookie(session_cookie(settings), **_cookie_attributes(settings))
+    if settings.is_production:
+        # The unprefixed cookie a browser kept from before the prefix: an id token too.
+        response.delete_cookie(SESSION_COOKIE, **_cookie_attributes(settings))
     return response
 
 
@@ -180,10 +205,11 @@ def close_session(settings: SettingsDep) -> Response:
     responses={302: {"description": "Not signed in: go to /login"}},
 )
 def gate(
+    request: Request,
+    settings: SettingsDep,
     session: SessionDep,
     provider: ProviderDep,
     resolver: ResolverDep,
-    aia_session: Annotated[str | None, Cookie()] = None,
     x_forwarded_method: Annotated[str | None, Header()] = None,
     x_forwarded_uri: Annotated[str | None, Header()] = None,
     accept: Annotated[str | None, Header()] = None,
@@ -198,6 +224,8 @@ def gate(
         raise _forbidden("method_not_allowed", "AIA's pages take no writes; the API is /api/v1.")
 
     navigation = method == "GET" and "text/html" in (accept or "")
+    # By its name in this environment alone: deployed, an unprefixed aia_session is not AIA's.
+    aia_session = _session_credential(request, settings)
     try:
         if not aia_session:
             raise HTTPException(
