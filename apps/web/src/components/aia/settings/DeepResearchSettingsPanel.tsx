@@ -11,7 +11,7 @@
 // fixed protections, which no rule turns off. What is allowed is the API's to say: its
 // refusal is shown as it gave it.
 
-import { type FormEvent, useCallback, useEffect, useState } from "react";
+import { type FormEvent, type ReactNode, useCallback, useEffect, useState } from "react";
 
 import { useRouter } from "next/navigation";
 import { InlineConfirm } from "../../rehome/step";
@@ -121,7 +121,7 @@ function Overview({ overview, people, reload }: { overview: DrSettingsOverview; 
         <span className="inline-flex min-h-[22px] items-center rounded-pill border border-border px-2 text-ink-muted">{t(`${D}.board.readsEveryone`)}</span>
         <span className={`inline-flex min-h-[22px] items-center rounded-pill border px-2 ${overview.may_administer ? "border-signal-edge bg-signal-wash text-ink" : "border-border text-ink-muted"}`}>{t(`${D}.board.${overview.may_administer ? "youDecide" : "ownerDecides"}`)}</span>
       </div>
-      <Reach />
+      <Reach mayAdminister={overview.may_administer} />
       <Posture />
       {overview.may_administer ? null : <p className="text-sm text-ink-muted">{t(`${D}.adminNote`)}</p>}
       <Technical><p data-technical className="text-xs text-ink-faint">{tv(`${D}.catalogue`, { version: overview.catalogue_version })}</p></Technical>
@@ -189,15 +189,85 @@ function Overview({ overview, people, reload }: { overview: DrSettingsOverview; 
   );
 }
 
-/** Dosah: where Deep Research reaches. Its panel reads the worker's last report (#52), not built yet. */
-function Reach() {
+const ROUTE_NAMES: Record<string, string> = {
+  "wikipedia-public-web_search": "Wikipedie (vyhledávání)",
+  "wikipedia-public-web_fetch": "Wikipedie (stránky)",
+  "brave-web-search": "Brave Search",
+  "public-web-fetch": "Veřejné webové stránky",
+  "common-crawl-athena-index": "Common Crawl (index)",
+  "common-crawl-archive": "Common Crawl (archiv)",
+};
+const routeName = (id: string) => ROUTE_NAMES[id] ?? (id.startsWith("connector-") ? tv(`${D}.reach.connector`, { name: id.slice("connector-".length) }) : id);
+const REASONS = new Set(["settings_unapproved", "class", "deep_research_off", "search_route_other", "public_fetch_off", "connector_not_listed", "common_crawl_off", "agent_directed_off", "unavailable"]);
+
+/** Dosah: where Deep Research reaches, from the newest worker's record of its composition (#844). */
+function Reach({ mayAdminister }: { mayAdminister: boolean }) {
+  const [res, retry] = useResource(() => deepResearchSettings.reach(), []);
+  const head = (extra?: ReactNode) => (
+    <div className="flex flex-wrap items-center gap-2">
+      <h3 id="dr-reach-h" className="text-base font-semibold">{t(`${D}.reach.title`)}</h3>
+      {extra}
+    </div>
+  );
+  // Until the route is deployed (a 404), the panel says it is not in AIA yet, as before.
+  if (res.state === "not-found") return (
+    <section data-dr-reach aria-labelledby="dr-reach-h" className="rounded-md border border-border bg-surface-raised px-5 py-4">
+      {head(<span data-not-yet className="inline-flex min-h-[22px] items-center rounded-pill border border-dashed border-border-strong px-2 text-xs text-ink-muted">{t("aia.settings.panel.notYet")}</span>)}
+      <p className="mt-1 max-w-3xl text-sm leading-6 text-ink-muted">{t(`${D}.reach.notYet`)}</p>
+    </section>
+  );
   return (
     <section data-dr-reach aria-labelledby="dr-reach-h" className="rounded-md border border-border bg-surface-raised px-5 py-4">
-      <div className="flex flex-wrap items-center gap-2">
-        <h3 id="dr-reach-h" className="text-base font-semibold">{t(`${D}.reach.title`)}</h3>
-        <span data-not-yet className="inline-flex min-h-[22px] items-center rounded-pill border border-dashed border-border-strong px-2 text-xs text-ink-muted">{t("aia.settings.panel.notYet")}</span>
-      </div>
-      <p className="mt-1 max-w-3xl text-sm leading-6 text-ink-muted">{t(`${D}.reach.notYet`)}</p>
+      <Loaded res={res} retry={retry}>{(reach) => {
+        const active = reach.routes.filter((r) => r.state === "active").length;
+        if (!reach.recorded) return <>
+          {head()}
+          <p data-reach-unrecorded className="mt-1 max-w-3xl text-sm leading-6 text-ink-muted">{t(`${D}.reach.unrecorded`)}</p>
+        </>;
+        return <>
+          {head(<span className="text-xs text-ink-muted">{tv(`${D}.reach.summary`, { active, n: reach.routes.length })}</span>)}
+          <p className="mt-0.5 text-xs text-ink-muted">
+            {tv(`${D}.reach.source`, { when: when(reach.composed_at) })}
+            {reach.build_sha ? <> · {tv(`${D}.reach.build`, { sha: reach.build_sha.slice(0, 7) })}</> : null}
+            {reach.class_gates === "advisory" ? <> · {t(`${D}.reach.advisory`)}</> : null}
+          </p>
+          <p className="mt-1 max-w-3xl text-xs leading-5 text-ink-muted">{t(`${D}.reach.help`)}</p>
+          <div className="mt-2 overflow-x-auto"><table className="w-full">
+            <thead><tr>
+              <th className={TH}>{t(`${D}.reach.col.route`)}</th><th className={TH}>{t(`${D}.reach.col.kind`)}</th>
+              <th className={TH}>{t(`${D}.reach.col.classes`)}</th><th className={TH}>{t(`${D}.reach.col.state`)}</th>
+            </tr></thead>
+            <tbody className="divide-y divide-border">
+              {reach.routes.map((r) => {
+                const tone = r.state === "waiting" && mayAdminister ? "bg-status-you-wash" : r.state === "active" ? "" : "text-ink-muted";
+                return (
+                  <tr key={r.route} data-reach-route={r.route} data-reach-state={r.state} className={tone}>
+                    <td className={TD}>
+                      <span className="font-medium text-ink">{routeName(r.route)}</span>
+                      <Technical><code data-technical className="block break-all text-xs text-ink-faint">{r.route}</code></Technical>
+                    </td>
+                    <td className={TD}>
+                      {t(`${D}.reach.kind.${r.kind}`)}
+                      {r.priced ? <span className="block text-xs">{t(`${D}.reach.priced`)}</span> : null}
+                      {r.zone && r.zone !== "EU" ? <span className="block text-xs">{t(`${D}.reach.zone.${r.zone === "NON_EU" ? "nonEu" : "unknown"}`)}</span> : null}
+                    </td>
+                    <td className={TD}>{r.classes.length ? r.classes.join(", ") : "—"}</td>
+                    <td className={TD}>
+                      <span className={`font-medium ${r.state === "waiting" && mayAdminister ? "text-status-you-ink" : r.state === "active" ? "text-ink" : ""}`}>{t(`${D}.reach.state.${r.state}`)}</span>
+                      {r.reason ? <span data-reach-reason className="block max-w-prose text-xs leading-5">
+                        {REASONS.has(r.reason) ? t(`${D}.reach.reason.${r.reason}`) : r.reason}
+                        {r.reason === "settings_unapproved" && r.missing_settings.length ? ` ${tv(`${D}.reach.missing`, { n: r.missing_settings.length })}` : ""}
+                      </span> : null}
+                      {r.class_advisory ? <span className="block text-xs">{t(`${D}.reach.classAdvisory`)}</span> : null}
+                      {r.detail ? <Technical><span data-technical className="block break-words font-mono text-[11px] text-ink-faint">{r.detail}</span></Technical> : null}
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table></div>
+        </>;
+      }}</Loaded>
     </section>
   );
 }
