@@ -266,8 +266,9 @@ class StudyWorkspaceRepository:
         save that writes a revision logs it, one ``workspace_edit_ops`` row per ``(item, field)``
         it changed, made by ``by`` (``domain/edit_log.py``; working-copy-edit-ops WCE2): each of
         ``ops``, the vocabulary operations the write applied (``application/working_copy.py``),
-        under its own operation, the rest as a whole-copy change. ``None``: a writer not yet moved
-        onto the log (the proposals' accepts, WCE2e), which WCE2f refuses.
+        under its own operation, the rest as a whole-copy change. ``None`` logs nothing: every
+        writer passes ``by`` since WCE2e, and WCE2f makes it required (the 18.6.6 migration writes
+        through :meth:`import_migrated`, which WCE2f moves onto the log).
         """
         scope.require(Permission.EDIT_STUDY)
         scope.require_open_study()
