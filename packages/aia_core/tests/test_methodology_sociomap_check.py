@@ -11,6 +11,8 @@ from __future__ import annotations
 import math
 from typing import Any
 
+import pytest
+
 from aia_core.domain.methodology.expressions import compile_formula
 from aia_core.domain.methodology.sociomap_check import (
     CHECK_PANELS,
@@ -123,3 +125,22 @@ def test_with_nothing_stored_a_draft_is_compared_with_the_signed_off_map_over_wh
     roles = next(p for p in CHECK_PANELS if p.id == "weighted").inputs().roles
     # The weighted panel's context object is the one the signed-off map leaves out.
     assert ObjectRole.SECONDARY.value in {roles[o] for o in roles if o not in weighted.objects}
+
+
+def test_the_warm_up_computes_the_presets_map_on_every_check_panel(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """warm_object_maps computes what a comparison computes first -- the code's preset on each
+    check panel -- so the kernels a person's first comparison needs are compiled before it."""
+    from aia_core.domain.methodology import sociomap_check
+
+    seen: list[tuple[str, ...]] = []
+
+    def compute(inputs: Any, spec: Any, **kwargs: Any) -> None:
+        assert kwargs == {"connectedness_interval": False, "slots": sociomap_check._pin(None)[1]}
+        assert spec == sociomap_check._pin(None)[0]
+        seen.append(tuple(inputs.object_ids))
+
+    monkeypatch.setattr(sociomap_check, "compute_object_map", compute)
+    assert sociomap_check.warm_object_maps() == len(sociomap_check.CHECK_PANELS)
+    assert seen == [tuple(p.inputs().object_ids) for p in sociomap_check.CHECK_PANELS]
