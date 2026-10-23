@@ -109,3 +109,34 @@ def test_a_wrong_value_is_422_with_its_reason(
 def test_approving_an_unknown_version_is_404(owner: TestClient) -> None:
     refused = owner.put(f"{SETTINGS}/{RETENTION}/approval", json={"version_number": 9})
     assert refused.status_code == 404 and refused.json()["code"] == "unknown_version"
+
+
+def test_a_pending_proposal_is_withdrawn_with_a_reason_and_not_approved_after(
+    owner: TestClient, as_user: Any
+) -> None:
+    assert _propose(owner, RETENTION, 90).json()["state"] == "PENDING"
+    withdrawn = owner.post(
+        f"{SETTINGS}/{RETENTION}/versions/1/withdrawal", json={"reason": "špatná hodnota"}
+    )
+    assert withdrawn.status_code == 200, withdrawn.text
+    body = withdrawn.json()
+    assert body["state"] == "WITHDRAWN" and body["decline"]["reason"] == "špatná hodnota"
+    detail = owner.get(f"{SETTINGS}/{RETENTION}").json()
+    assert [(v["version_number"], v["state"]) for v in detail["versions"]] == [(1, "WITHDRAWN")]
+    refused = owner.put(f"{SETTINGS}/{RETENTION}/approval", json={"version_number": 1})
+    assert refused.status_code == 409 and refused.json()["code"] == "version_declined"
+    again = owner.post(f"{SETTINGS}/{RETENTION}/versions/1/withdrawal", json={"reason": "x"})
+    assert again.status_code == 409
+
+
+def test_a_withdrawal_takes_a_reason_and_an_administrator(owner: TestClient, as_user: Any) -> None:
+    _propose(owner, RETENTION, 90)
+    assert (
+        owner.post(f"{SETTINGS}/{RETENTION}/versions/1/withdrawal", json={"reason": ""}).status_code
+        == 422
+    )
+    member: TestClient = as_user("researcher")
+    refused = member.post(f"{SETTINGS}/{RETENTION}/versions/1/withdrawal", json={"reason": "x"})
+    assert refused.status_code == 403
+    missing = owner.post(f"{SETTINGS}/{RETENTION}/versions/9/withdrawal", json={"reason": "x"})
+    assert missing.status_code == 404

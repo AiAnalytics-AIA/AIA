@@ -495,6 +495,17 @@ forbid "only the 18.6.6 migration logs a write as migrated" \
 forbid "the API, worker and executors never log a write as migrated" \
   'OpSource\.MIGRATION' \
   apps
+# The working copy has one persistence point, StudyWorkspaceRepository.save, and every call names
+# its author (by: WriteBy, required; working-copy-edit-ops WCE2f). The one other way a revision is
+# written, the 18.6.6 migration's import, is reached from the migration alone, which logs it as
+# migrated: no writer can add revisions that skip the log or the lock.
+forbid "only the 18.6.6 migration imports a working copy" \
+  'import_migrated\(' \
+  "$CORE" \
+  "$CORE/infrastructure/study_workspace_repository.py" "$CORE/application/workspace_migration.py"
+forbid "the API, worker and executors never import a working copy" \
+  'import_migrated\(' \
+  apps
 # The working copy's operation log (ADR 0029 decision 3, working-copy-edit-ops WCE2): insert-once,
 # every query under the Study's three scope columns. Its repository is the only reader and writer,
 # so a row written anywhere else is a change of a study's design nobody logged through the one

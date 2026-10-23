@@ -826,6 +826,8 @@ class Me(BaseModel):
     email: str | None
     organization_role: str
     may_administer: bool
+    #: The Metodik mark (D-14): stores and puts in force methodology versions.
+    methodologist: bool
 
 
 class ClientStart(BaseModel):
@@ -844,6 +846,7 @@ def me(principal: PrincipalDep, admin: OrganizationDep) -> Me:
         email=principal.email,
         organization_role=admin.organization_role.value,
         may_administer=admin.may_administer,
+        methodologist=admin.methodologist,
     )
 
 

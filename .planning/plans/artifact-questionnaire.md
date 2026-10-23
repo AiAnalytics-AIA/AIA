@@ -305,6 +305,15 @@ tracked objects, in approved client knowledge and on the web (`deep_research/con
 `Channel`), and AIA itself never shows respondents a finding's outcome numbers (the leakage rule); the
 line promising a model choice and an update is gone, with the four unused half-English keys beside it. Test: `QuestionnaireStep.test.tsx`.
 
+*Finding QF-15 (browser audit 3, 2026-10-22):* loading a questionnaire file replaces every block, question
+and set already there, with no word before and no way back (`QuestionnaireStep.tsx:456-458 @ 382b418a`):
+a person with a questionnaire who tries the template loses it on the first file. Fix
+(fix/questionnaire-import-undo): the upload card says a file replaces the questionnaire there is (any
+section, a block with no questions yet included: `hasQuestionnaire`), and an import over one is offered
+back with Vrátit (input standard I6): the sections and the plan's status as they were, the rest of the plan
+as it now is, and only while the questionnaire is still the file's, else it says it cannot. Tests:
+`QuestionnaireStep.test.tsx`.
+
 *Finding QF-14 (browser audit 2, 2026-10-22):* the respondent preview numbers its items with
 18.6.6's running count over questions and sets, so after four questions the set reads "Sledovaná sada 5"
 where the editor says Sada 1, and a question after a set skips a number (`QuestionnaireStep.tsx:554,573
@@ -340,3 +349,4 @@ template the API would not give in Czech".
 - open-items.md: number QF-11 (a scale's right label apart from its end at 390 px), QF-12 (the research card half English) and QF-14 (the preview's running numbers), closed by fix/questionnaire-audit-2; QF-13 (Dotazník's own Design Research start in the workbench) open, for the PM.
 - open-items.md: number QF-16 (an import's failure said in English), closed by fix/questionnaire-audit-3.
 - Register this plan and its chunks. `research-lead-workbench#7`'s questionnaire half is QST5.
+- open-items.md: number QF-15 (an import replaced the questionnaire with no way back), closed by fix/questionnaire-import-undo.

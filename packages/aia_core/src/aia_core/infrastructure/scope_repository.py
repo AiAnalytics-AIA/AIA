@@ -1102,6 +1102,38 @@ class ScopeRepository:
             "remaining_usd": max(0.0, row.budget_usd - row.spent_usd),
         }
 
+    def set_methodologist(
+        self, admin: OrganizationContext, *, user_id: str, methodologist: bool
+    ) -> None:
+        """Grant or revoke the Metodik mark (D-14). Only an OWNER may; the target must be a
+        member of the OWNER's own organization. Audited; setting what is set changes nothing.
+        A context already issued keeps the mark it was issued with; the next resolution reads
+        the new one."""
+        if admin.organization_role is not OrganizationRole.OWNER:
+            raise ScopeDenied(
+                "only an OWNER grants or revokes the Metodik mark", reason="owner_only"
+            )
+        row = self._session.scalar(
+            select(OrganizationMemberRow).where(
+                OrganizationMemberRow.organization_id == admin.organization_id,
+                OrganizationMemberRow.user_id == user_id,
+            )
+        )
+        if row is None:
+            raise ScopeDenied("not found", reason="not_a_member")
+        if bool(row.methodologist) != methodologist:
+            row.methodologist = methodologist
+            self._session.add(
+                AccessAuditRow(
+                    organization_id=admin.organization_id,
+                    subject_user_id=user_id,
+                    actor_id=admin.actor_id,
+                    action="METHODOLOGIST_GRANTED" if methodologist else "METHODOLOGIST_REVOKED",
+                    request_id=admin.request_id,
+                )
+            )
+            self._session.flush()
+
     def members(self, admin: OrganizationContext) -> list[dict[str, Any]]:
         """List organization members with their roles."""
         rows = self._session.execute(
@@ -1117,6 +1149,7 @@ class ScopeRepository:
                 "display_name": user.display_name,
                 "is_active": user.is_active and member.deactivated_at is None,
                 "organization_role": member.role,
+                "methodologist": bool(member.methodologist),
                 "deactivated_at": member.deactivated_at,
             }
             for member, user in rows

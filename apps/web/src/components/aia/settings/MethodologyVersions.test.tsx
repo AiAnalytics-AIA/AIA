@@ -46,6 +46,7 @@ function fakeApi({ mayAdminister = true, check, compare }: { mayAdminister?: boo
             ? { origin: "stored", preset: null, version_number: inForce, name: current.name }
             : { origin: "code", preset: "aia-sociomap-5", version_number: null, name: "aia-sociomap-5" },
           may_administer: mayAdminister,
+          may_edit: mayAdminister,
           presets: doc.presets[id],
           versions: [...versions].reverse(),
           history: [...history].reverse(),
@@ -340,7 +341,7 @@ describe("the methodology's versions", () => {
     fakeApi({ mayAdminister: false });
     render(<MethodologyPanel />);
     const section = await versionsSection();
-    expect(within(section).getByText(/může vlastník nebo správce organizace/)).toBeTruthy();
+    expect(within(section).getByText(/může jen člen se značkou Metodik/)).toBeTruthy();
     expect(within(section).queryByRole("button", { name: "Upravit metodiku" })).toBeNull();
   });
 

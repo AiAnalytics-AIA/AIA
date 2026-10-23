@@ -327,6 +327,7 @@ patched), and it runs only when `aia_onlyoffice_enabled` is true.
 |---|---|
 | `https://docs.<public hostname>` | the editor's own origin, framed by AIA's pages alone; every request passes AIA's docs gate (`GET /api/v1/session/docs-gate`) |
 | `docs.<public hostname>/__aia/session?ticket=…&next=…` | the way in: a 60-second ticket from `POST /api/v1/session/docs-ticket`, spent once for the `aia_docs` cookie (8 h; the gate re-checks active membership on every request) |
+| `docs.<public hostname>/cache/files/…?md5=…&expires=…` | the one path without the docs gate: the Document Server's signed links to a saved document, which AIA's API fetches after a save callback; GET or HEAD, plain path segments, and its nginx refuses a forged or expired signature (403, 410) |
 | `onlyoffice:80` on `aia-docs` | Caddy's way to it; nothing else of AIA's is on that network, so the Document Server reaches neither the API nor the database except through the public hostname |
 | refused at Caddy (404) | commands, conversion, the builder, the AI proxy, WOPI hosting, admin, info, internal, welcome, example, the health check, with or without the version prefix |
 
@@ -543,6 +544,12 @@ Each is off when unset and absent from the develop Compose file; turning one on 
   respondent's blocks once 30 s pass without one, so slow answering never reads as a stalled step on
   Průběh (run-qc-and-checkpoint RQC7a). At most two lease-fenced feed writes a minute per step. **Who:**
   the operator.
+- **`AIA_AI_FIELDWORK_QUOTA_FILL`** (worker): a panel run's fieldwork writes its quota cells once per
+  attempt, after the gateway's preflight (`fieldwork_sample`), and each `fieldwork_progress` counts the
+  respondents answered in each cell since the previous report, so Průběh shows each cell's fill
+  (run-qc-and-checkpoint RQC7b). A roster run writes neither. One more feed write per attempt; the counts
+  ride the reports fieldwork writes anyway (every 10 respondents), so a replayed attempt writes no more
+  rows than with the switch off. **Who:** the operator.
 - **`AIA_AI_SCALE_LABELS_IN_PROMPT`** (worker): AI respondents are told a scale question's labels
   (both ends, or one per point) as its design states them, not only the numbers (input-interactions
   3b1, #538). Turning it on changes what respondents read, so the respondent-system fingerprint moves

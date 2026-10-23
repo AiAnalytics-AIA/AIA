@@ -84,7 +84,7 @@ function Body({ summary, data, people, reload, onEditing, onDirty }: { summary: 
     return { ...from, inForce: data.in_force.name };
   };
   // The methodologists who may edit open on the editor (product owner, 2026-10-13).
-  const [start, setStart] = useState<Start | null>(() => (data.may_administer ? editStart() : null));
+  const [start, setStart] = useState<Start | null>(() => (data.may_edit ? editStart() : null));
   const opened = useRef(start !== null);
   useEffect(() => {
     if (!opened.current) return;
@@ -112,14 +112,14 @@ function Body({ summary, data, people, reload, onEditing, onDirty }: { summary: 
       </p>
       {start ? null : <p className="max-w-3xl text-xs leading-5 text-ink-muted">{t(`${V}.pinNote`)}</p>}
       {pending ? <InlineConfirm message={t(`${V}.replaceDraft`)} action={t(`${V}.discardDraft`)} onCancel={() => setPending(null)} onConfirm={() => { setStart(pending.next); onEditing?.(pending.next !== null); setDirty(false); setPending(null); }} /> : null}
-      {data.may_administer ? null : <p className="text-xs text-ink-muted">{t(`${V}.adminNote`)}</p>}
+      {data.may_edit ? null : <p className="text-xs text-ink-muted">{t(`${V}.adminNote`)}</p>}
       {done ? (
         <div role="status" className="flex flex-wrap items-center gap-3 text-sm">
           <span>{done.message}</span>
-          {done.version && data.may_administer && !activating ? <Button small variant="primary" onClick={() => setActivating({ version: done.version!.version_number })}>{tv(`${V}.activate`, { name: done.version.name })}</Button> : null}
+          {done.version && data.may_edit && !activating ? <Button small variant="primary" onClick={() => setActivating({ version: done.version!.version_number })}>{tv(`${V}.activate`, { name: done.version.name })}</Button> : null}
         </div>
       ) : null}
-      {data.may_administer && start ? (
+      {data.may_edit && start ? (
         <Editor
           key={`${start.from}`}
           summary={summary}
@@ -159,10 +159,10 @@ function Body({ summary, data, people, reload, onEditing, onDirty }: { summary: 
                   </div>
                   <div className="flex flex-wrap gap-2">
                     {/* A version just saved is activated from its confirmation above: one button, never two. */}
-                    {data.may_administer && inForce.version_number !== v.version_number && done?.version?.version_number !== v.version_number ? (
+                    {data.may_edit && inForce.version_number !== v.version_number && done?.version?.version_number !== v.version_number ? (
                       <Button small disabled={start !== null && dirty} onClick={() => { setDone(null); setActivating({ version: v.version_number }); }}>{tv(`${V}.activate`, { name: v.name })}</Button>
                     ) : null}
-                    {data.may_administer ? <Button small onClick={() => { setDone(null); changeStart(versionStart(v)); }}>{t(`${V}.editFrom`)}</Button> : null}
+                    {data.may_edit ? <Button small onClick={() => { setDone(null); changeStart(versionStart(v)); }}>{t(`${V}.editFrom`)}</Button> : null}
                   </div>
                 </li>
               );
@@ -171,7 +171,7 @@ function Body({ summary, data, people, reload, onEditing, onDirty }: { summary: 
         ) : <p className="mt-1 text-sm text-ink-muted">{t(`${V}.none`)}</p>}
       </div>
 
-      {data.may_administer && inForce.origin === "stored" ? (
+      {data.may_edit && inForce.origin === "stored" ? (
         <div><Button small disabled={start !== null && dirty} onClick={() => { setDone(null); setActivating({ version: null }); }}>{tv(`${V}.reset`, { preset: summary.in_force ?? "" })}</Button></div>
       ) : null}
       {activating ? (
@@ -184,7 +184,7 @@ function Body({ summary, data, people, reload, onEditing, onDirty }: { summary: 
         />
       ) : null}
 
-      {data.may_administer && !start ? <div><Button variant="primary" small onClick={() => { setDone(null); changeStart(editStart()); }}>{t(`${V}.edit`)}</Button></div> : null}
+      {data.may_edit && !start ? <div><Button variant="primary" small onClick={() => { setDone(null); changeStart(editStart()); }}>{t(`${V}.edit`)}</Button></div> : null}
 
       <details>
         <summary className="cursor-pointer text-sm font-semibold">{t(`${V}.history`)}</summary>
