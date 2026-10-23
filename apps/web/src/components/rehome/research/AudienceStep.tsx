@@ -22,6 +22,7 @@ import { useRouter } from "next/navigation";
 import { useContext, useEffect, useState } from "react";
 
 import { ChoiceChips } from "@/components/ui/ChoiceChips";
+import { InlineText } from "@/components/ui/InlineText";
 import { Stepper } from "@/components/ui/Stepper";
 import { ApiError, type AudienceCatalogue, population } from "@/lib/api";
 import { audienceFilterAia, audiencePartAia, audienceSubpanelAia } from "@/lib/artifacts/audience";
@@ -79,7 +80,7 @@ import {
 import type { Json, ResearchProject } from "@/research/model";
 import { Icon } from "../icons";
 import { ActionDock, FrameNavigation, RadioCard, StepSection } from "../step";
-import { AiButton, Button, Chip, Field, Tag, TextArea, TextInput } from "../ui";
+import { AiButton, Button, Chip, Field, Tag, TextInput } from "../ui";
 import { useResearch } from "./context";
 import { InspectorSlot } from "./Inspector";
 import { AskLead, useLeadOwnsAiStarts } from "./AskLead";
@@ -512,7 +513,8 @@ function ValueChips({ legend, values, chosen, disabled, onPick }: { legend: stri
             <TextInput value={query} disabled={disabled} onChange={(e) => setQuery(e.target.value)} />
           </Field>
           <p className="mt-1 text-xs text-ink-muted">
-            {tv("research.audience.valuesShown", { shown: shown.length, total: values.length })}
+            {/* Only the count is announced as the person types; the cut list's note is read once. */}
+            <span aria-live="polite">{tv("research.audience.valuesShown", { shown: shown.length, total: values.length })}</span>
             {values.length >= CATALOGUE_TOP_VALUES ? ` ${tv("research.audience.valuesCut", { n: CATALOGUE_TOP_VALUES })}` : ""}
           </p>
         </>
@@ -620,15 +622,30 @@ function Subpanels({ live }: { live: Extract<Live, { state: "ready" }> }) {
 function DiscoverEditor() {
   const { store, state } = useResearch();
   const d = discoverText(state.project);
+  // I1 (audit B11): each value edited where it is shown; Ctrl/Cmd+Enter or leaving saves, Esc
+  // restores, and the study store saves it as it saves any change to the working copy.
+  const field = (key: "product" | "success", name: "product_description" | "success_definition", labelKey: string, placeholderKey: string) => (
+    <div className="mt-3">
+      <p aria-hidden className="text-sm font-medium">{t(labelKey)}</p>
+      <InlineText
+        multiline
+        value={d[key]}
+        label={t(labelKey)}
+        placeholder={t(placeholderKey)}
+        className="mt-1"
+        // Optional, as they were: emptied, the product falls back to the brief's (discoverText).
+        rules={{ required: false }}
+        // A study the person may not edit takes no edit here, rather than dropping it on commit.
+        disabled={state.save.kind === "readonly"}
+        onCommit={(v) => store.update(({ project }) => ({ project: setDiscoverField(project, name, v) }))}
+      />
+    </div>
+  );
   return (
     <section className="mt-4 rounded-control border border-border bg-surface p-4" aria-labelledby="aud-discover">
       <h2 id="aud-discover" className="text-base font-semibold">{t("research.audience.discoverTitle")}</h2>
-      <Field label={t("research.audience.discoverProduct")} className="mt-3">
-        <TextArea value={d.product} placeholder={t("research.audience.discoverProductPlaceholder")} onChange={(e) => store.update(({ project }) => ({ project: setDiscoverField(project, "product_description", e.target.value) }))} />
-      </Field>
-      <Field label={t("research.audience.discoverSuccess")} className="mt-3">
-        <TextArea value={d.success} placeholder={t("research.audience.discoverSuccessPlaceholder")} onChange={(e) => store.update(({ project }) => ({ project: setDiscoverField(project, "success_definition", e.target.value) }))} />
-      </Field>
+      {field("product", "product_description", "research.audience.discoverProduct", "research.audience.discoverProductPlaceholder")}
+      {field("success", "success_definition", "research.audience.discoverSuccess", "research.audience.discoverSuccessPlaceholder")}
       <p className="mt-3 rounded-sm border border-status-you-ink/40 bg-status-you-wash p-3 text-sm leading-6">
         <strong>{t("research.audience.discoverAdviceBold")}</strong> {t("research.audience.discoverAdvice")}
       </p>
