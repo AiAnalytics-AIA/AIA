@@ -13,8 +13,9 @@ A tag names where a printed span came from:
   section's manifest names by id and SHA-256;
 - ``design:<fingerprint>``: text code wrote from the research specification the run executed, by its
   fingerprint;
-- ``run:<run>``: text code wrote from the run's own record (its metadata, its pins, what admission
-  refused). The literature bundle's joins with the chunk that writes it.
+- ``run:<run>``: text code wrote from the run's own record (its metadata, its pins, its audit rows);
+- ``bundle:<Deep Research run>``: text code wrote from that run's sealed bundle (the literature
+  chapter).
 """
 
 from __future__ import annotations
@@ -35,11 +36,11 @@ APPENDIX_COLUMNS: Final = (
     "disclosures",
 )
 
-Source = Literal["map", "design", "run"]
+Source = Literal["map", "design", "run", "bundle"]
 Kind = Literal["value", "interval", "base_n", "appendix", "figure", "suppressed"] | Source
 
 #: The stored sources, other than the ledger, that code writes numbers from.
-SOURCE_KINDS: Final[tuple[Source, ...]] = ("map", "design", "run")
+SOURCE_KINDS: Final[tuple[Source, ...]] = ("map", "design", "run", "bundle")
 
 
 def value_tag(ref: str) -> str:

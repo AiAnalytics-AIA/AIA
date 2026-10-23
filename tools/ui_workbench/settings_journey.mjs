@@ -70,7 +70,7 @@ try {
     await page.setViewportSize({ width: 1440, height: 900 }); await measure(`tab ${id} 1440x900`); await page.setViewportSize({ width: 1440, height: 1000 });
   }
   const techPanel = await tab("reference"); const techSwitch = techPanel.getByRole("switch", { name: "Technické údaje", exact: true });
-  const t0 = Date.now(); await techSwitch.click(); await techPanel.locator("[data-technical]").first().waitFor(); const techMs = Date.now() - t0;
+  const t0 = Date.now(); await techSwitch.click(); await techPanel.locator("[data-technical]").first().waitFor(); const techMs = Date.now() - t0; console.log(`technical details: ${techMs} ms`);
   assert(techMs < 400, `technical details: ${techMs} ms`); await widths("reference with technical details"); await screenshot("reference-technical");
   await techSwitch.click(); assert.equal(await techPanel.locator("[data-technical]").count(), 0);
   checks.push(`Settings tabs carry no disclosures; one switch shows every technical detail in ${techMs} ms (< 400 ms)`);
@@ -108,8 +108,12 @@ try {
   await widths("studies table");
   if (original.budget_usd !== null) { await budget.fill(String(original.budget_usd)); await budget.press("Enter"); await waitFor(async () => (await get(`/api/v1/studies/${study.study_id}`)).budget_usd === original.budget_usd, "the original budget restored"); }
   checks.push("Study filtering retains a typed budget; the budget stepper persists to exactly the selected study and the table holds at every width");
-  await tab("audit"); await page.getByRole("searchbox", { name: "Hledat v historii" }).fill(email);
-  assert(await page.locator("#panel-audit li").count());
+  await tab("audit");
+  assert(await page.locator('[data-audit-category="access"]').count() === 1, "audit: categories with counts");
+  await page.getByRole("radiogroup", { name: "Období" }).getByRole("radio", { name: "Vše", exact: true }).click();
+  await page.getByRole("searchbox", { name: "Hledat v historii" }).fill(email);
+  assert(await page.locator("#panel-audit [data-audit-entry]").count(), "audit: the member added is in the history");
+  await widths("audit table");
   await page.getByRole("searchbox", { name: "Hledat v historii" }).fill("no-such-event"); await page.getByText("Žádný záznam neodpovídá hledání.", { exact: true }).waitFor();
   checks.push("Readable audit entries filter by person, event and reason");
   await tab("deep_research"); const policyKey = "retention.snapshots";

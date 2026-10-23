@@ -66,14 +66,25 @@ def test_every_audit_action_the_code_writes_is_a_kept_code() -> None:
                 func = node.func
                 name = func.attr if isinstance(func, ast.Attribute) else getattr(func, "id", "")
                 values = [kw.value for kw in node.keywords if kw.arg == "action"]
-                if name.endswith("_audit") and node.args:
-                    values += [a for a in node.args if isinstance(a, ast.Constant)]
+                if name.endswith("_audit"):
+                    kinds = (ast.Constant, ast.JoinedStr, ast.IfExp)
+                    values += [a for a in node.args if isinstance(a, kinds)]
                 for v in values:
+                    # A code built at run time cannot be checked here: write each one out.
+                    assert not isinstance(v, ast.JoinedStr), (
+                        f"{path}:{v.lineno}: an f-string action"
+                    )
                     if (
                         isinstance(v, ast.Constant)
                         and isinstance(v.value, str)
                         and v.value.isupper()
                     ):
                         written.add(v.value)
+                    elif isinstance(v, ast.IfExp):
+                        written.update(
+                            b.value
+                            for b in (v.body, v.orelse)
+                            if isinstance(b, ast.Constant) and isinstance(b.value, str)
+                        )
     assert written, "the scan found no audit action"
     assert written <= AUDIT_ACTIONS, sorted(written - AUDIT_ACTIONS)

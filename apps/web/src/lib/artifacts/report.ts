@@ -10,7 +10,7 @@ import { aiaId } from "@/lib/workbench-artifacts";
 /**
  * The contracts this reader knows; a document of any other is refused, never read in part. -2
  * (artifact-chain-to-draft-report CHN1) only adds each section's `sources` and the document's `unread`,
- * -3 (report-delivery RD0) each ledger entry's `level`, -4 and -5 (artifact-report RPT8a) a block's `control`,
+ * -3 (report-delivery RD0) each ledger entry's `level`, -4 to -6 (artifact-report RPT8a) a block's `control`,
  * the tag of the locked control code wrote it in: the draft is drawn without them, and Záznam pokrytí reads `unread` (RPT4).
  */
 export const DOCUMENT_CONTRACTS = [
@@ -19,6 +19,7 @@ export const DOCUMENT_CONTRACTS = [
   "aia-report-document-3",
   "aia-report-document-4",
   "aia-report-document-5",
+  "aia-report-document-6",
 ] as const;
 
 export type Inline =
