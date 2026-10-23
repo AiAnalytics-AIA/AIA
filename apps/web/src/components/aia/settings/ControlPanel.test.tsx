@@ -595,7 +595,9 @@ describe("what powers AIA", () => {
     expect(section("ai").querySelector('[data-count="on"]')?.textContent).toBe("1 zapnuto");
     expect(section("ai").querySelector('[data-count="off"]')?.textContent).toBe("1 vypnuto");
     expect(section("ai").querySelector('[data-count="new"]')?.textContent).toBe("2 nové, zatím nepostavené");
-    expect(within(section("ai")).getByText("Spravuje nasazení · jen ke čtení")).toBeTruthy();
+    // Who changes it is said once, in the tab's head (prototype v51), not again in the section.
+    expect(within(panelOf("AI běh").querySelector("[data-tab-chips]") as HTMLElement).getByText("Spravuje nasazení · jen ke čtení")).toBeTruthy();
+    expect(within(section("ai")).queryByText("Spravuje nasazení · jen ke čtení")).toBeNull();
     expect(within(section("ai").querySelector("[data-config]") as HTMLElement).getByText("oblast v EU: data zůstávají v EU")).toBeTruthy();
   });
 
@@ -632,7 +634,7 @@ describe("what powers AIA", () => {
     await waitFor(() => expect(card("respondent_fieldwork")).toBeTruthy());
     const route = section("ai").querySelector("[data-config]") as HTMLElement;
     expect(within(route).queryByText("AIA_BEDROCK_REGION")).toBeNull();
-    fireEvent.click(within(panelOf("AI běh")).getByRole("switch", { name: "Technické údaje", hidden: true }));
+    fireEvent.click(techSwitch());
     for (const source of ["AIA_BEDROCK_REGION", "AIA_AI_ROUTE_APPROVED_FOR", "AIA_BEDROCK_MODEL_ID"]) {
       expect(await within(route).findByText(source)).toBeTruthy();
     }
@@ -730,7 +732,7 @@ describe("what powers AIA", () => {
     // The history is reference material: not drawn until technical details are on.
     await waitFor(() => expect(card("respondent_fieldwork")).toBeTruthy());
     expect(document.querySelector("[data-history]")).toBeNull();
-    fireEvent.click(within(panelOf("AI běh")).getByRole("switch", { name: "Technické údaje", hidden: true }));
+    fireEvent.click(techSwitch());
     const history = await waitFor(() => {
       const found = document.querySelector("[data-history]") as HTMLElement | null;
       if (!found) throw new Error("no history yet");
@@ -760,6 +762,24 @@ describe("what powers AIA", () => {
     expect(section("ai")).toBeTruthy();
   });
 
+  it("on the Settings page, the top bar is the breadcrumb, Organizace <name> / Nastavení, and each tab's h1 the one heading", async () => {
+    api({ "GET /api/v1/workspace/me": () => ({ user_id: "USR-1", email: "owner@example.test", organization_role: "OWNER", may_administer: true, methodologist: false, organization_name: "Výzkumná agentura Delta" }) });
+    render(<SettingsPage />);
+    const crumbs = await screen.findByRole("navigation", { name: BREADCRUMBS });
+    await waitFor(() => expect(crumbs.textContent).toBe("OrganizaceVýzkumná agentura Delta/Nastavení"));
+    expect(within(crumbs).getByText("Nastavení").getAttribute("aria-current")).toBe("page");
+    await screen.findByRole("tablist");
+    const open = screen.getAllByRole("tab").find((x) => x.getAttribute("aria-selected") === "true") as HTMLElement;
+    expect(screen.getAllByRole("heading", { level: 1 }).filter((h) => !h.closest("[hidden]")).map((h) => h.textContent)).toEqual([open.getAttribute("aria-label")]);
+  });
+
+  it("on the Settings page, a name the API did not send is left out of the breadcrumb, never guessed", async () => {
+    api();
+    render(<SettingsPage />);
+    await screen.findByRole("tablist");
+    expect(screen.getByRole("navigation", { name: BREADCRUMBS }).textContent).toBe("Nastavení");
+  });
+
   it("on the Settings page, AI is one section, and the separate Bedrock card is gone", async () => {
     api();
     render(<SettingsPage />);
@@ -781,7 +801,10 @@ describe("what powers AIA", () => {
 
 // ---------------------------------------------------------------- the tabs
 
+const BREADCRUMBS = "Kde jste";
 const tab = (name: string) => screen.getByRole("tab", { name });
+// The page's one technical switch, under the tab list (prototype v51 has no place for it in a head).
+const techSwitch = () => within(document.querySelector("[data-technical-switch]") as HTMLElement).getByRole("switch", { name: "Technické údaje" });
 const panelOf = (name: string) => document.getElementById(tab(name).getAttribute("aria-controls") as string) as HTMLElement;
 
 describe("the settings tabs", () => {
@@ -789,7 +812,7 @@ describe("the settings tabs", () => {
     window.history.replaceState(null, "", "/app/settings");
   });
 
-  it("groups all ten settings tabs by purpose, each with its subtitle and icon, and opens on methodology", async () => {
+  it("groups all ten settings tabs by purpose, each with its subtitle, and opens on methodology", async () => {
     api();
     render(<ControlPanel />);
     await screen.findByRole("tablist", { name: "Oddíly nastavení" });
@@ -800,11 +823,11 @@ describe("the settings tabs", () => {
     expect(screen.getByRole("group", { name: "Tým a peníze" })).toBeTruthy();
     expect(screen.queryByRole("group", { name: "Tým a útrata" })).toBeNull();
     expect(screen.getByRole("group", { name: "Provoz" })).toBeTruthy();
-    // Each tab names what it holds under its title, and carries a decorative icon.
+    // Each tab names what it holds under its title; the prototype's plain column has no icons.
     expect(tab("Metodika").textContent).toContain("Jak se počítají mapy a čísla");
     expect(tab("AI běh").textContent).toContain("Co pohání AI · jen ke čtení");
     expect(tab("Správa dat").textContent).toContain("Smazání klienta, uchovávané záznamy");
-    for (const t of screen.getAllByRole("tab")) expect(t.querySelector("svg[aria-hidden='true']")).toBeTruthy();
+    for (const t of screen.getAllByRole("tab")) expect(t.querySelector("svg")).toBeNull();
     expect(tab("Metodika").getAttribute("aria-selected")).toBe("true");
     expect(panelOf("Metodika").hidden).toBe(false);
     for (const other of ["Systémové prompty", "Deep Research", "AI běh", "Přístup a schvalování", "Studie a rozpočty", "Audit", "Stav systému", "Reference", "Správa dat"]) {
@@ -844,7 +867,7 @@ describe("the settings tabs", () => {
     expect(panelOf("Přístup a schvalování").contains(section("approvals"))).toBe(true);
     // The role matrix is reference material: drawn only with technical details on.
     expect(section("roles")).toBeNull();
-    fireEvent.click(within(panelOf("Přístup a schvalování")).getByRole("switch", { name: "Technické údaje", hidden: true }));
+    fireEvent.click(techSwitch());
     expect(panelOf("Přístup a schvalování").contains(section("roles"))).toBe(true);
     expect(panelOf("Studie a rozpočty").contains(section("studies"))).toBe(true);
     expect(panelOf("Audit").contains(section("audit"))).toBe(true);
@@ -854,22 +877,58 @@ describe("the settings tabs", () => {
     expect(within(reference).getByText("something new")).toBeTruthy();
   });
 
-  it("heads each tab with what it is for and its scope, and hides nothing behind a disclosure", async () => {
+  it("heads each tab as the prototype does: a serif h1, one paragraph, who may change it in chips, and no disclosure", async () => {
     api();
     render(<ControlPanel />);
     await screen.findByRole("tablist");
     await waitFor(() => expect(card("respondent_fieldwork")).toBeTruthy());
-    for (const name of ["AI běh", "Přístup a schvalování", "Studie a rozpočty", "Audit", "Reference"]) {
+    const chips = (name: string) => [...(panelOf(name).querySelector("[data-tab-chips]")?.children ?? [])].map((c) => `${c.textContent}|${c.getAttribute("data-chip-tone")}`);
+    for (const name of ["Metodika", "Systémové prompty", "Deep Research", "AI běh", "Přístup a schvalování", "Studie a rozpočty", "Audit", "Stav systému", "Reference", "Správa dat"]) {
       fireEvent.click(tab(name));
-      const panel = panelOf(name);
-      const facts = panel.querySelector("[data-tab-facts]") as HTMLElement;
-      expect(facts.textContent).toMatch(/^Platí pro: .+ · Mění: .+/);
-      expect(within(panel).getByRole("switch", { name: "Technické údaje" })).toBeTruthy();
-      expect(panel.querySelectorAll("details, summary")).toHaveLength(0);
+      const head = panelOf(name).querySelector("[data-tab-header]") as HTMLElement;
+      expect(within(head).getByRole("heading", { level: 1 }).textContent).toBe(name);
+      expect(head.querySelectorAll("p")).toHaveLength(1);
+      // The switch is the page's, under the tabs; no head carries it, and no "Platí pro · Mění" line.
+      expect(within(head).queryByRole("switch")).toBeNull();
+      expect(head.querySelector("[data-tab-facts]")).toBeNull();
+      if (name !== "Metodika") expect(panelOf(name).querySelectorAll("details, summary")).toHaveLength(0);
     }
+    expect(techSwitch()).toBeTruthy();
+    expect(within(panelOf("Studie a rozpočty").querySelector("[data-tab-header]") as HTMLElement).getByText(/Rozpočty studií a útrata/)).toBeTruthy();
+    // An owner, without the Metodik mark (the fake's /workspace/me sends none).
+    expect(chips("Metodika")).toEqual(["Čte každý člen|plain", "Upravuje jen Metodik|plain"]);
+    expect(chips("Systémové prompty")).toEqual(["Vy: správce · můžete upravovat|you"]);
+    expect(chips("Deep Research")).toEqual(["Čte každý člen|plain", "Vy: navrhujete a schvalujete|you"]);
+    expect(chips("AI běh")).toEqual(["Spravuje nasazení · jen ke čtení|deployment"]);
+    expect(chips("Přístup a schvalování")).toEqual(["Vy: spravujete členy|you"]);
+    expect(chips("Studie a rozpočty")).toEqual(["✎ Upravujete|you"]);
+    expect(chips("Stav systému")).toEqual(["Spravuje nasazení|deployment"]);
+    expect(chips("Správa dat")).toEqual(["Jen vlastník nebo správce|plain"]);
+    expect(chips("Audit")).toEqual([]);
+    expect(chips("Reference")).toEqual([]);
     // The reference names its groups up front as categories with their counts.
     const cats = panelOf("Reference").querySelector("[data-reference-categories]") as HTMLElement;
     expect([...cats.querySelectorAll("[data-reference-category]")].map((b) => b.getAttribute("data-reference-category"))).toContain("invariants");
+  });
+
+  it("says in the heads what a member may not change, and names the Metodik mark only for its holder", async () => {
+    api({ "GET /api/v1/workspace/me": () => ({ user_id: "USR-1", email: "m@example.test", organization_role: "MEMBER", may_administer: false, methodologist: true }) }, false);
+    render(<ControlPanel />);
+    await screen.findByRole("tablist");
+    const chips = (name: string) => [...(panelOf(name).querySelector("[data-tab-chips]")?.children ?? [])].map((c) => c.textContent);
+    await waitFor(() => expect(chips("Metodika")).toEqual(["Čte každý člen", "Vy: Metodik · můžete upravovat"]));
+    expect(chips("Systémové prompty")).toEqual(["Upravuje vlastník nebo správce"]);
+    expect(chips("Deep Research")).toEqual(["Čte každý člen"]);
+    expect(chips("Přístup a schvalování")).toEqual(["Členy spravuje vlastník nebo správce"]);
+  });
+
+  it("claims no Metodik mark when who you are could not be read", async () => {
+    api({ "GET /api/v1/workspace/me": () => new Response('{"code":"internal","message":"x"}', { status: 500 }) });
+    render(<ControlPanel />);
+    await screen.findByRole("tablist");
+    const head = panelOf("Metodika").querySelector("[data-tab-chips]") as HTMLElement;
+    expect(within(head).getByText("Upravuje jen Metodik")).toBeTruthy();
+    expect(within(head).queryByText(/Vy: Metodik/)).toBeNull();
   });
 
   it("reads Reference as tables by category, filters by category and by who changes a value, and says what each means", async () => {
@@ -1012,7 +1071,7 @@ it("follows changed settings hashes and preserves the framework's navigation sta
     // No disclosure: the source is a technical detail, shown for the whole page by one switch.
     expect(env.querySelector("details")).toBeNull();
     expect(env.querySelector("[data-technical]")).toBeNull();
-    const toggle = within(panelOf("Reference")).getByRole("switch", { name: "Technické údaje", hidden: true });
+    const toggle = techSwitch();
     expect(toggle.getAttribute("aria-checked")).toBe("false");
     fireEvent.click(toggle);
     expect(env.querySelector("[data-technical]")?.textContent).toBeTruthy();

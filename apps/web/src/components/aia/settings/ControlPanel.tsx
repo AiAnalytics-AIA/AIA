@@ -19,6 +19,7 @@ import { type ActivityState, type SwitchValues, activityState, approvedClasses }
 import {
   type AdminClient,
   type AuditEntry,
+  type Me,
   type Member,
   type NativeActivity,
   type NativeRuntime,
@@ -31,6 +32,7 @@ import {
   type Vocabularies,
   Unauthenticated,
   admin,
+  workspace,
 } from "@/lib/api";
 import { appRoutes } from "@/lib/app-routes";
 import { nearLimitTally } from "@/lib/researcher-spend";
@@ -44,10 +46,9 @@ import { ChoiceChips } from "../../ui/ChoiceChips";
 import { AUDIT_PAGE, AuditPanel } from "./AuditPanel";
 import { DataPanel } from "./DataPanel";
 import { SystemPanel } from "./SystemPanel";
-import { SETTING_HELP, TAB_GUIDE } from "./settings-guide";
+import { SETTING_HELP } from "./settings-guide";
 import { SystemPromptsPanel } from "./SystemPromptsPanel";
 import { Technical, TechnicalProvider, TechnicalSwitch, useTechnicalChoice } from "./technical";
-import { Activity, BookOpen, Cpu, Database, History, type LucideIcon, ScrollText, Sigma, Telescope, Users, Wallet } from "lucide-react";
 import { Icon, type IconName } from "../../rehome/icons";
 import { Chip, Tag, TextInput } from "../../rehome/ui";
 import { CARD, EYEBROW, Loaded } from "../states";
@@ -87,6 +88,7 @@ export type Panel = {
   studies: Part<StudyRow[]>;
   levels: Part<SelfApprovalLevels> | null; // null: not an administrator, so not asked
   audit: Part<AuditEntry[]> | null;
+  me: Part<Me>;
 };
 
 async function loadRuntimeConfig(): Promise<RuntimeConfig> {
@@ -112,15 +114,16 @@ async function loadPanel(): Promise<Panel> {
     const details = await Promise.all(list.map((s) => part(admin.study(s.study_id))));
     return list.map((study, i) => ({ study, detail: details[i] }));
   };
-  const [runtime, members, clients, studies, levels, audit] = await Promise.all([
+  const [runtime, members, clients, studies, levels, audit, me] = await Promise.all([
     part(loadRuntimeConfig()),
     part(admin.members()),
     part(admin.clients()),
     part(loadStudies()),
     doc.may_administer ? part(admin.selfApproval()) : Promise.resolve(null),
     doc.may_administer ? part(admin.audit(AUDIT_PAGE)) : Promise.resolve(null),
+    part(workspace.me()),
   ]);
-  return { doc, runtime, members, clients, studies, levels, audit };
+  return { doc, runtime, members, clients, studies, levels, audit, me };
 }
 
 // ---------------------------------------------------------------- atoms
@@ -395,9 +398,6 @@ function RuntimePanel({ runtime, config, vocab }: { runtime: NativeRuntime; conf
   const region = config.ok ? config.data.region : null;
   return (
     <div className="flex flex-col gap-4">
-      <div className="flex flex-wrap items-center gap-2">
-        <span className="inline-flex min-h-[22px] items-center rounded-pill border border-border px-2 text-xs text-ink-muted">{t(`${R}.readOnlyChip`)}</span>
-      </div>
       <div className="flex max-w-3xl flex-col gap-1 text-sm">
         <p>{tv(`${R}.powers`, { provider: providers })}</p>
         <p>{t(`${R}.credential.${runtime.credential}`)}</p>
@@ -560,23 +560,31 @@ const TAB_GROUPS: { title: string; tabs: readonly TabId[] }[] = [
   { title: "Tým a peníze", tabs: ["access", "studies"] },
   { title: "Provoz", tabs: ["audit", "system", "reference", "data"] },
 ];
-// Each tab's line under its name in the side navigation, and its icon (decorative: the name is the label).
-const TAB_ICON: Record<TabId, LucideIcon> = {
-  methodology: Sigma, prompts: ScrollText, deep_research: Telescope, ai: Cpu,
-  access: Users, studies: Wallet,
-  audit: History, system: Activity, reference: BookOpen, data: Database,
-};
-const TAB_FACTS: Record<TabId, { scope: string; owner: string }> = {
-  methodology: { scope: "Budoucí běhy studií", owner: "Verze může upravovat vlastník nebo správce; účinná je až po aktivaci" },
-  prompts: { scope: "Nově zadané AI úlohy organizace", owner: "Vlastník nebo správce; uložení a zapnutí jsou samostatné kroky" },
-  deep_research: { scope: "Celá organizace", owner: "Vlastník nebo správce; návrh platí až po schválení" },
-  ai: { scope: "Toto nasazení", owner: "Modely a připojení spravuje nasazení" },
-  access: { scope: "Organizace, klient nebo studie", owner: "Změny podléhají roli a oprávnění ověřenému serverem" },
-  studies: { scope: "Jednotlivá studie", owner: "Rozpočet se mění jen s oprávněním pro danou studii" },
-  audit: { scope: "Historie organizace", owner: "Záznamy jsou jen ke čtení" },
-  system: { scope: "Toto nasazení", owner: "Jen ke čtení; připravenost hlásí nasazení, chyby GlitchTip" },
-  reference: { scope: "Toto nasazení a kód", owner: "Technické hodnoty a pevná pravidla zde nelze upravit" },
-  data: { scope: "Organizace a její klienti", owner: "Vlastník nebo správce; smazání klienta je nevratné" },
+/** A chip in a tab's head: who reads it and who may change it, as the prototype draws them. */
+type HeadChip = { label: string; tone?: "you" | "deployment" };
+
+/** The tab head's chips. They say only what the API told this page (may_administer, the Metodik
+ *  mark): a mark that could not be read claims nothing about editing. */
+function headChips(tab: TabId, mayAdminister: boolean, methodologist: boolean | null): HeadChip[] {
+  const c = (key: string, tone?: HeadChip["tone"]): HeadChip => ({ label: t(`${P}.chips.${key}`), tone });
+  switch (tab) {
+    case "methodology": return [c("everyone"), methodologist ? c("methodologist", "you") : c("methodologistOnly")];
+    case "prompts": return [mayAdminister ? c("promptsYou", "you") : c("promptsAdmin")];
+    case "deep_research": return [c("everyone"), ...(mayAdminister ? [c("drYou", "you")] : [])];
+    case "ai": return [c("deployedReadOnly", "deployment")];
+    case "access": return [mayAdminister ? c("accessYou", "you") : c("accessAdmin")];
+    // ADR 0019: every member holds the study permissions, a budget's among them.
+    case "studies": return [c("studiesYou", "you")];
+    case "system": return [c("deployed", "deployment")];
+    case "data": return [c("adminOnly")];
+    default: return [];
+  }
+}
+
+const CHIP_TONE: Record<NonNullable<HeadChip["tone"]> | "plain", string> = {
+  plain: "border-border bg-surface-raised text-ink-muted",
+  you: "border-signal-edge bg-signal-tint text-ink",
+  deployment: "border-status-world bg-status-world-wash text-ink",
 };
 
 const NO_ITEMS: SettingItem[] = [];
@@ -603,7 +611,7 @@ function tabFromHash(): TabId | null {
   return (TABS as readonly string[]).includes(id) ? (id as TabId) : null;
 }
 
-function PanelView({ panel, reload }: { panel: Panel; reload: () => void }) {
+function PanelView({ panel, reload, footer }: { panel: Panel; reload: () => void; footer?: ReactNode }) {
   const { doc, runtime, members, clients, studies, levels, audit } = panel;
   const vocab = doc.vocabularies;
   const byKey = new Map(doc.groups.map((g) => [g.key, g]));
@@ -736,12 +744,15 @@ function PanelView({ panel, reload }: { panel: Panel; reload: () => void }) {
       </>
     );
   };
+  const methodologist = panel.me.ok ? panel.me.data.methodologist === true : null;
   return (
     <TechnicalProvider on={technical}>
-    <div data-settings-workspace className="flex flex-col gap-4 [&_button:not([data-dense])]:!min-h-11 [&_select]:!min-h-11 [&_input:not([type=checkbox]):not([type=radio])]:!min-h-11 [&_summary]:!min-h-11">
-      <div className="grid min-w-0 gap-5 xl:grid-cols-[14.25rem_minmax(0,1fr)]">
-      <div role="tablist" aria-label={t(`${P}.tabs.label`)} onKeyDown={onKey} className="flex h-fit min-w-0 gap-3 overflow-x-auto border-b border-border bg-surface-raised p-2 xl:sticky xl:top-28 xl:flex-col xl:overflow-visible xl:rounded-md xl:border">
-        {TAB_GROUPS.map((group) => <div key={group.title} role="group" aria-label={group.title} className="flex shrink-0 gap-1 xl:flex-col">
+    <div data-settings-workspace className="flex min-w-0 flex-1 flex-col xl:flex-row [&_button:not([data-dense])]:!min-h-11 [&_select]:!min-h-11 [&_input:not([type=checkbox]):not([type=radio])]:!min-h-11 [&_summary]:!min-h-11">
+      {/* The tab list as the prototype's plain column (v51): 228 px, a rule on its right; a
+          scrolling row with the names alone on a phone. */}
+      <div data-settings-tabs className="flex min-w-0 shrink-0 flex-col border-b border-border xl:w-[228px] xl:border-b-0 xl:border-r">
+      <div role="tablist" aria-label={t(`${P}.tabs.label`)} onKeyDown={onKey} className="flex min-w-0 gap-0.5 overflow-x-auto px-4 py-2 xl:sticky xl:top-[47px] xl:flex-col xl:overflow-visible xl:px-3 xl:pb-3 xl:pt-5">
+        {TAB_GROUPS.map((group) => <div key={group.title} role="group" aria-label={group.title} className="flex shrink-0 gap-0.5 xl:flex-col">
           <p className="hidden px-2.5 pb-1.5 pt-3.5 text-[11px] uppercase tracking-[0.06em] text-ink-faint xl:block">{group.title}</p>
           {group.tabs.map((tab) => (
           <button
@@ -754,40 +765,40 @@ function PanelView({ panel, reload }: { panel: Panel; reload: () => void }) {
             aria-controls={`panel-${tab}`}
             tabIndex={active === tab ? 0 : -1}
             onClick={() => select(tab)}
-            className={`flex min-w-28 items-start gap-2.5 rounded-md border px-2.5 py-2 text-left text-sm focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus-ring xl:min-w-0 ${active === tab ? "border-transparent bg-signal-wash font-medium text-ink" : "border-transparent text-ink-muted hover:bg-surface-sunken hover:text-ink"}`}
+            className={`flex min-h-11 flex-col justify-center whitespace-nowrap rounded-[6px] px-2.5 py-[7px] text-left text-sm focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus-ring xl:whitespace-normal ${active === tab ? "bg-signal-wash font-medium text-ink" : "text-ink-muted hover:bg-surface-sunken hover:text-ink"}`}
           >
-            <TabIcon tab={tab} active={active === tab} />
-            <span className="min-w-0">
-              <span className="block whitespace-nowrap">{t(`${P}.tabs.${tab}`)}</span>
-              <span data-tab-subtitle className="hidden text-xs font-normal leading-4 text-ink-faint xl:block">{t(`${P}.tabSubtitles.${tab}`)}</span>
-            </span>
+            <span className="block">{t(`${P}.tabs.${tab}`)}</span>
+            <span data-tab-subtitle className="hidden text-xs font-normal leading-4 text-ink-faint xl:block">{t(`${P}.tabSubtitles.${tab}`)}</span>
           </button>
           ))}
         </div>)}
       </div>
-      <div className="min-w-0">{TABS.map((tab) => (
+      {/* One switch for the whole page's technical detail (the product owner, 2026-10-13); the
+          prototype has no place for it, so it waits under the tabs, out of every head. */}
+      <div data-technical-switch className="flex justify-end px-4 pb-2 xl:justify-start xl:px-5 xl:pb-5">
+        <TechnicalSwitch on={technical} onChange={setTechnical} />
+      </div>
+      </div>
+      <div className="min-w-0 max-w-[1180px] flex-1 px-4 pb-16 pt-4 md:px-8 md:pt-6">{TABS.map((tab) => {
+        const chips = headChips(tab, doc.may_administer, methodologist);
+        return (
         <div key={tab} id={`panel-${tab}`} role="tabpanel" aria-labelledby={`tab-${tab}`} hidden={active !== tab} className="flex flex-col gap-4">
-          <header data-tab-header className="flex flex-wrap items-start justify-between gap-x-6 gap-y-3 border-b border-border pb-4">
-            <div className="min-w-0 max-w-3xl flex-[1_1_28rem]">
-              <h2 className="text-lg font-semibold">{t(`${P}.tabs.${tab}`)}</h2>
-              <p className="mt-1 text-sm font-medium leading-6 text-ink">{TAB_GUIDE[tab].purpose}</p>
-              <p className="text-sm leading-6 text-ink-muted">{TAB_GUIDE[tab].action}</p>
-              <p data-tab-facts className="mt-2 text-sm leading-6 text-ink"><span className="font-medium">{t(`${P}.appliesTo`)}:</span> {TAB_FACTS[tab].scope} <span aria-hidden="true" className="text-ink-faint">·</span> <span className="font-medium">{t(`${P}.changedBy`)}:</span> {TAB_FACTS[tab].owner}</p>
+          <header data-tab-header className="mb-0.5 flex flex-wrap items-start justify-between gap-4">
+            <div className="min-w-0">
+              <h1 className="font-serif text-2xl font-semibold leading-[30px]">{t(`${P}.tabs.${tab}`)}</h1>
+              <p data-tab-lede className="mt-1.5 max-w-[720px] text-sm leading-6 text-ink-muted">{t(`${P}.lede.${tab}`)}</p>
             </div>
-            {tab === "methodology" ? null : <TechnicalSwitch on={technical} onChange={setTechnical} />}
+            {chips.length ? <div data-tab-chips className="flex flex-wrap items-center gap-1.5">{chips.map((chip) => (
+              <span key={chip.label} data-chip-tone={chip.tone ?? "plain"} className={`inline-flex min-h-[22px] items-center gap-[5px] whitespace-nowrap rounded-[11px] border px-2 text-xs ${CHIP_TONE[chip.tone ?? "plain"]}`}>{chip.label}</span>
+            ))}</div> : null}
           </header>
           {OWN_TABS.has(tab) && !drawn.has(tab) ? null : body(tab)}
         </div>
-      ))}</div></div>
+        );
+      })}{footer}</div>
     </div>
     </TechnicalProvider>
   );
-}
-
-/** A tab's icon in the side navigation: decorative, the tab's name is its label. */
-function TabIcon({ tab, active }: { tab: TabId; active: boolean }) {
-  const Glyph = TAB_ICON[tab];
-  return <Glyph aria-hidden="true" focusable="false" size={18} strokeWidth={1.75} className={`mt-px shrink-0 ${active ? "text-signal" : "text-ink-faint"}`} />;
 }
 
 /** One card of a tab whose content AIA does not have yet: its heading, what it will hold, and the plain fact. */
@@ -825,7 +836,9 @@ const DeepResearchSection = memo(function DeepResearchSection({ items, members }
   );
 });
 
-export function ControlPanel() {
+export function ControlPanel({ footer }: { footer?: ReactNode } = {}) {
   const [res, retry] = useResource(loadPanel, []);
-  return <Loaded res={res} retry={retry}>{(panel) => <PanelView panel={panel} reload={retry} />}</Loaded>;
+  // The page is edge to edge (AppShell bleed); a loading or failed read keeps the content's gutter.
+  if (res.state !== "ready") return <div className="px-4 py-5 md:px-8"><Loaded res={res} retry={retry}>{() => null}</Loaded>{footer}</div>;
+  return <PanelView panel={res.data} reload={retry} footer={footer} />;
 }
