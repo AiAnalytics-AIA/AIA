@@ -286,3 +286,25 @@ def test_the_study_s_own_words_never_hold_back_the_stamp(
     refused = _appended(stored, _paragraph("Stav: KONCEPT \u2014 NESCHVÁ", "LENO"))
     with pytest.raises(NotStampable):
         stamp_review(refused, _mark(refused))
+
+
+@pytest.mark.parametrize("which", ["styles", "footer"])
+def test_a_part_declaring_a_dtd_is_never_parsed_for_the_stamp(
+    samples: dict[str, bytes], which: str
+) -> None:
+    """A version saved in the report editor is a stranger's file: a styles or footer part that
+    declares a document type is refused before any entity is read (NotStampable), never
+    parsed with entities resolved."""
+    stored = samples["client"]
+    footer = next(n for n in _parts(stored) if _footer(n))
+    name = "word/styles.xml" if which == "styles" else footer
+    hostile = _rewritten(
+        stored,
+        {
+            name: lambda b: (
+                b'<?xml version="1.0"?><!DOCTYPE w [<!ENTITY x "1">]>' + b.split(b"?>", 1)[1]
+            )
+        },
+    )
+    with pytest.raises(NotStampable, match="document type"):
+        stamp_review(hostile, _mark(hostile))

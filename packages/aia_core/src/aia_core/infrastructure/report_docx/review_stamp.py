@@ -37,6 +37,7 @@ from lxml import etree
 
 from aia_core.domain.report.copy import t
 from aia_core.domain.report.review import ReviewMark, approved_lines, approved_words
+from aia_core.infrastructure.document_text import DtdDeclared, refuse_dtd
 from aia_core.infrastructure.report_docx.renderer import write_package
 from aia_core.infrastructure.report_docx.styles import S
 
@@ -52,11 +53,24 @@ class NotStampable(ValueError):
     """The document does not state its status in its footers alone, one run in each."""
 
 
+def _parse(name: str, data: bytes) -> etree._Element:
+    """A part of the package, parsed as a stranger's: a version saved in the report editor is
+    (RPT8c). A part declaring a document type is refused before any entity is read, and no
+    entity is ever resolved."""
+    try:
+        refuse_dtd(data)
+    except DtdDeclared as exc:
+        raise NotStampable(f"{name} declares a document type") from exc
+    return etree.fromstring(
+        data, etree.XMLParser(resolve_entities=False, no_network=True, huge_tree=False)
+    )
+
+
 def _style_ids(styles: bytes | None) -> dict[str, str]:
     """The id the package gives each of its styles, by the style's name."""
     ids: dict[str, str] = {}
     if styles is not None:
-        for style in etree.fromstring(styles).iter(f"{_W}style"):
+        for style in _parse("word/styles.xml", styles).iter(f"{_W}style"):
             name = style.find(f"{_W}name")
             if name is not None:
                 ids[str(name.get(f"{_W}val"))] = str(style.get(f"{_W}styleId"))
@@ -103,14 +117,14 @@ def stamp_review(docx: bytes, mark: ReviewMark) -> bytes:
     style_id, cover_id = ids[S.STATUS], ids.get(S.COVER_FOOTER)
     for name, data in parts:
         if _STORY.fullmatch(name):
-            root = etree.fromstring(data)
+            root = _parse(name, data)
             if _status_runs(root, style_id) or t("draft") in _text(root):
                 raise NotStampable(f"{name} states a status outside the footers")
     stamped: dict[str, bytes] = {}
     for name, data in parts:
         if not _FOOTER.fullmatch(name):
             continue
-        root = etree.fromstring(data)
+        root = _parse(name, data)
         runs = _status_runs(root, style_id)
         texts = runs[0].findall(f"{_W}t") if len(runs) == 1 else []
         if len(texts) != 1:
