@@ -14,6 +14,7 @@ Its authors are the people the Document Server names, each of whom a config was 
 from __future__ import annotations
 
 import hashlib
+import json
 from collections.abc import Sequence
 from dataclasses import dataclass
 from datetime import datetime
@@ -24,8 +25,14 @@ from aia_core.application.report import INTERNAL_REPORT_MEDIA_TYPE
 from aia_core.application.research import research_artifacts
 from aia_core.domain.deep_research.documents import DocumentRefused
 from aia_core.domain.report.editor import CHANGES_ARTIFACT_TYPE, EDIT_ARTIFACT_TYPES
-from aia_core.domain.report.saved_changes import changes_payload, compare
+from aia_core.domain.report.saved_changes import (
+    SavedChanges,
+    changes_payload,
+    compare,
+    read_changes_payload,
+)
 from aia_core.domain.scope import Permission, StudyContext
+from aia_core.infrastructure.artifact_repository import Artifact, ArtifactNotFound
 from aia_core.infrastructure.editor_fetch import SaveFetcher, SaveFetchRefused, allowed
 from aia_core.infrastructure.report_docx.census import census
 from aia_core.infrastructure.report_editor_repository import (
@@ -35,7 +42,19 @@ from aia_core.infrastructure.report_editor_repository import (
 )
 from aia_core.infrastructure.storage import ArtifactStore, IntegrityError, ObjectNotFound
 
-__all__ = ["SaveNotStored", "StoredSave", "store_save"]
+__all__ = [
+    "SaveNotStored",
+    "StoredSave",
+    "VersionNotFound",
+    "approved_versions",
+    "edited_version",
+    "store_save",
+    "version_changes",
+]
+
+
+class VersionNotFound(LookupError):
+    """Not a version of one of this run's report lines."""
 
 
 class SaveNotStored(Exception):
@@ -174,3 +193,56 @@ def _store(
         changes_artifact_id=changed.artifact_id,
     )
     return StoredSave(added, created=True)
+
+
+def edited_version(
+    session: Session, scope: StudyContext, store: ArtifactStore, *, run_id: str, artifact_id: str
+) -> tuple[EditorVersion, Artifact]:
+    """A version of one of ``run_id``'s lines and its artifact, or :class:`VersionNotFound`."""
+    scope.require(Permission.VIEW_RESULTS)
+    scope.require(Permission.EDIT_STUDY)  # an internal draft, as the run's report status asks
+    version = ReportEditorRepository(session, scope).version(artifact_id)
+    if version is None or version.run_id != run_id:
+        raise VersionNotFound(artifact_id)
+    try:
+        artifact = research_artifacts(session, scope, store).get(version.artifact_id)
+    except ArtifactNotFound as exc:  # its row outlived the artifact: nothing to serve
+        raise VersionNotFound(artifact_id) from exc
+    return version, artifact
+
+
+def version_changes(
+    session: Session, scope: StudyContext, store: ArtifactStore, *, run_id: str, artifact_id: str
+) -> tuple[EditorVersion, Artifact, SavedChanges | None]:
+    """:func:`edited_version` and what it changed in the numbers code wrote, as stored beside
+    it; ``None`` for koncept 1, the composer's own, which changed nothing."""
+    version, artifact = edited_version(
+        session, scope, store, run_id=run_id, artifact_id=artifact_id
+    )
+    if version.changes_artifact_id is None:
+        return version, artifact, None
+    data = research_artifacts(session, scope, store).read(version.changes_artifact_id)
+    return version, artifact, read_changes_payload(json.loads(data))
+
+
+def approved_versions(
+    session: Session,
+    scope: StudyContext,
+    store: ArtifactStore,
+    *,
+    run_id: str,
+    variant: str,
+    deep_research_run_id: str | None = None,
+) -> list[tuple[EditorVersion, Artifact]]:
+    """The run's edited versions of ``variant`` a person approved, oldest first: what a run's
+    report status names beside its composed draft, which an approved edit leaves a draft."""
+    artifacts = research_artifacts(session, scope, store)
+    found = []
+    for version in ReportEditorRepository(session, scope).approved_edits(
+        run_id=run_id, variant=variant, deep_research_run_id=deep_research_run_id
+    ):
+        try:
+            found.append((version, artifacts.get(version.artifact_id)))
+        except ArtifactNotFound:
+            continue  # its row outlived the artifact: nothing approved to name
+    return found

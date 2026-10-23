@@ -52,11 +52,12 @@ from aia_core.application.report import (
     ReportCompositionRefused,
 )
 from aia_core.application.report_approval import (
+    APPROVABLE_KINDS,
     CLIENT_REPORT_KINDS,
-    REPORT_KINDS,
     ReportNotApprovable,
     approve_report,
 )
+from aia_core.application.report_editor_saves import approved_versions
 from aia_core.application.report_export import (
     Export,
     ReviewUnrecorded,
@@ -2379,7 +2380,38 @@ def run_report(
         "approval_renders_pdf": approval_renders_pdf(
             scope, artifact, mark, pdf_ready=pdf is not None and pdf.get("state") == PdfState.READY
         ),
+        # The versions edited in the report editor that a person approved (RPT8c): approving
+        # one leaves this composed draft a draft, so the status names them beside it.
+        "approved_edits": _approved_edits(run_id, None, scope, session, store),
     }
+
+
+def _approved_edits(
+    run_id: str,
+    deep_research_run_id: str | None,
+    scope: StudyContext,
+    session: SessionDep,
+    store: ArtifactStoreDep,
+) -> list[dict[str, Any]]:
+    """The edited versions of the run's internal report, or of its report with
+    ``deep_research_run_id``'s review, that a person approved, each with its review."""
+    found = approved_versions(
+        session,
+        scope,
+        store,
+        run_id=run_id,
+        variant="internal" if deep_research_run_id is None else "context",
+        deep_research_run_id=deep_research_run_id,
+    )
+    return [
+        {
+            "artifact_id": version.artifact_id,
+            "line_id": version.line_id,
+            "koncept": version.koncept,
+            **_review_fields(edited, _mark(edited, scope, session, store)),
+        }
+        for version, edited in found
+    ]
 
 
 def _base_pdf(
@@ -2752,6 +2784,9 @@ class ReportVariantResponse(BaseModel):
     #: earlier one stays downloadable and approvable, and preparing composes it anew.
     contract: str | None = None
     contract_current: bool | None = None
+    #: The versions of this report edited in the report editor that a person approved (RPT8c):
+    #: approving one leaves the composed draft above a draft.
+    approved_edits: list[dict[str, Any]] = []
 
 
 def _variant_response(
@@ -2888,6 +2923,10 @@ def prepare_contextual_report(
         run_id,
         deep_research_run_id,
         _variant(run_id, deep_research_run_id, scope, session, store),
+    ).model_copy(
+        update={
+            "approved_edits": _approved_edits(run_id, deep_research_run_id, scope, session, store)
+        }
     )
 
 
@@ -2927,6 +2966,10 @@ def ask_contextual_report_pdf(
         run_id,
         deep_research_run_id,
         _variant(run_id, deep_research_run_id, scope, session, store),
+    ).model_copy(
+        update={
+            "approved_edits": _approved_edits(run_id, deep_research_run_id, scope, session, store)
+        }
     )
 
 
@@ -2946,6 +2989,10 @@ def contextual_report_status(
         run_id,
         deep_research_run_id,
         _variant(run_id, deep_research_run_id, scope, session, store),
+    ).model_copy(
+        update={
+            "approved_edits": _approved_edits(run_id, deep_research_run_id, scope, session, store)
+        }
     )
 
 
@@ -3295,7 +3342,7 @@ def approve_run_report(
             },
         ) from exc
     # Which report was approved, by kind: the client report is no internal document (G66).
-    kind = REPORT_KINDS[artifact.artifact_type]
+    kind = APPROVABLE_KINDS[artifact.artifact_type]
     return {
         "run_id": run_id,
         "artifact_id": artifact.artifact_id,

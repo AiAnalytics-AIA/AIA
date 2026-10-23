@@ -21,7 +21,7 @@ from __future__ import annotations
 
 import json
 import re
-from collections.abc import Sequence
+from collections.abc import Collection, Sequence
 from dataclasses import dataclass
 from datetime import datetime
 from enum import StrEnum
@@ -554,7 +554,9 @@ class ArtifactRepository:
         self._session.flush()
         return len(rows)
 
-    def approve(self, artifact_id: str, *, note: str = "") -> Artifact:
+    def approve(
+        self, artifact_id: str, *, note: str = "", co_producers: Collection[str] = ()
+    ) -> Artifact:
         """Record human sign-off on an artifact.
 
         Two independent checks, because either alone is insufficient:
@@ -572,14 +574,23 @@ class ArtifactRepository:
         :class:`StudyContext`, resolved from persisted state -- a caller cannot
         pass it in. The permission requirement is unaffected either way.
 
+        ``co_producers``: the other people whose work the artifact is, beyond the one row it
+        records as its producer (an edited report version's every author, RPT8c): the approver
+        among them is its producer for this check and for the ledger.
+
         The decision, the policy and its source are appended to
         ``approval_decisions``, so a sign-off remains reconstructible after the
         configuration changes.
         """
         self._scope.require(Permission.SIGN_OFF_DELIVERABLE)
         row = self._row(artifact_id)
+        producer = (
+            self._scope.actor_id
+            if self._scope.actor_id in co_producers
+            else row.produced_by_user_id
+        )
         independence = require_approval_independence(
-            producer_user_id=row.produced_by_user_id,
+            producer_user_id=producer,
             approving_user_id=self._scope.actor_id,
             policy=self._scope.self_approval,
             what=f"artifact {row.artifact_type}",

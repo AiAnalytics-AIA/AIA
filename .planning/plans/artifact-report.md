@@ -446,6 +446,25 @@ port refused unfetched; a restarted Document Server's save not stored and said; 
 refused; an unsigned, wrongly signed or other-key callback 403; a version stored as its author's.
 `test_editor_fetch.py`: the origin rule, and the live fetcher refusing before sending anything.
 
+*RPT8c, part 4 (`feature/report-editor-approval`):* `POST …/report/approve` takes an edited version
+(`report_approval.EDITED_REPORT_KINDS`, kind internal or with_review; `APPROVABLE_KINDS` is both), approved and frozen
+as exactly that version, of whichever line; `REPORT_ARTIFACT_TYPES` stays the composed reports the 2026-10-18 freeze
+migration names. Where self-approval is off, no author of any version of the line up to the one approved may approve
+it (an edited version records one producer, its save's first author). `GET …/report/editor/versions/{artifact_id}`: the
+version's provenance (authors, `edited_from`), its review and approval as the run's report status says them, and what it
+changed, as stored beside it (`report_editor_saves.version_changes`; `changes` null for koncept 1; a version of another
+run or study 404), for the doc bar and the approval dialog (RPT8d); `…/download`: exactly its DOCX with the report
+download's headers (`X-AIA-Artifact-Id`, `X-AIA-Review-State`), named `schvaleno-v-aia` once approved (it keeps the
+draft footer). Both answer with the editor off. `GET …/report` and the report with literature's status (`GET`/`POST
+…/report/context`) name the run's approved edits of that report beside its composed draft (`approved_edits`), which an
+approved edit leaves a draft; a version row whose artifact is gone is skipped there and 404 on its own route. Every author of the line is a producer for the ledger too
+(`ArtifactRepository.approve(co_producers=)`): a co-author approving where self-approval is on is recorded as self-approving.
+Noted, older than RPT8c: two concurrent first approvals of one report take no row lock between them (the stand-in's P3 on
+#869); not changed here. Still open in RPT8c: an edited version's PDF (the PDF job takes a composed report
+only, `report_variants.RENDERABLE_REPORTS`), and an approved edited version keeps the composer's draft footer (it is
+not stampable, so its export is its stored bytes). Tests: `test_an_edited_version_says_what_it_changed_and_is_approved_as_itself`,
+`test_no_author_of_an_edited_version_approves_it_where_self_approval_is_off`.
+
 **RPT8d. The pane opens the editor.**
 - 768 px and wider, with the editor configured: Zpráva's pane loads the Document Server's `api.js` from
   `AIA_ONLYOFFICE_URL` and opens the default line's newest version (RPT8c) with the config the API signed.
