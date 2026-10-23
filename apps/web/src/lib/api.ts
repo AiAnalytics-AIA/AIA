@@ -1782,7 +1782,8 @@ export type PromptSlotDetail = PromptSlotSummary & {
   baseline_text: string;
   required_literals: string[]; max_chars: number;
   /** The clients a draft may be tried on (the deployment's fictional list); empty means none. */
-  draft_test_client_ids: string[];
+  /** Gone from the API (D-15): no draft is tried from Settings. Kept optional until the panel drops its test. */
+  draft_test_client_ids?: string[];
   versions: PromptVersion[]; history: PromptActivation[];
 };
 
