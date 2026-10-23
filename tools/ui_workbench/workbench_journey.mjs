@@ -61,6 +61,10 @@ const check = (name) => checks.push(name);
 const fixtures = JSON.parse(readFileSync(join(repo, "tmp/ui-workbench/studies.json"), "utf8"));
 const { client, study } = fixtures.questionnaire;
 const stagePath = (slug) => `/app/clients/${client}/research/${study}/${slug}`;
+// A stage by its own name: its button also says its status and what reopened it, which can name
+// another stage ("změna dříve v návrhu"), so a text match on the button finds several.
+const navStage = (label, current = false) =>
+  page.locator(`.nav__stage${current ? ".is-current" : ""}`).filter({ has: page.locator(".nav__label", { hasText: new RegExp(`^${label}$`) }) });
 const shot = (name) => page.screenshot({ path: join(out, `${name}.png`) });
 const noOverflow = async (label) => {
   const r = await page.evaluate(() => ({ w: innerWidth, d: document.documentElement.scrollWidth }));
@@ -79,6 +83,27 @@ try {
   assert.equal((await page.locator(".nav__stage.is-current").innerText()).split("\n")[0], "Zadání");
   check("eleven stages in six phases, Zadání current");
 
+  // The navigator is one steady bar (research-lead-workbench 35): across the whole width, and every
+  // stage's slot where it was whichever stage is current, at 1440, 1280 and 1100 px.
+  for (const width of [1440, 1280, 1100]) {
+    await page.setViewportSize({ width, height: 900 });
+    const slots = [];
+    for (const slug of ["brief", "questionnaire", "audience", "results"]) {
+      await page.goto(base + stagePath(slug));
+      await page.locator(".nav__stage.is-current").waitFor();
+      slots.push(await stages.evaluateAll((els) => els.map((e) => { const r = e.getBoundingClientRect(); return `${Math.round(r.x)}:${Math.round(r.width)}:${Math.round(r.height)}`; })));
+    }
+    for (const other of slots.slice(1)) assert.deepEqual(other, slots[0], `the navigator shifted with the current stage @${width}`);
+    const last = await stages.last().evaluate((e) => e.getBoundingClientRect().right);
+    assert(last >= width - 24, `the navigator ends at ${last} of ${width} px`);
+    await noOverflow(`navigator @${width}`);
+    await page.locator("nav[aria-label='Kroky studie']").screenshot({ path: join(out, `${width}-navigator.png`) });
+  }
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await page.goto(base + stagePath("brief"));
+  await page.locator(".conv").waitFor();
+  check("the navigator spans the width, and no slot moves or grows with the current stage at 1440, 1280 and 1100");
+
   await page.locator(".conv").waitFor();
   assert(await page.locator(".art .arthead__title").innerText() === "Zadání");
   await noOverflow("brief @1440");
@@ -86,6 +111,8 @@ try {
 
   // The Brief's Lead targets (artifact-brief BRF1): each field the contract names is one element
   // (an empty context field by its chip), and a name it does not hold finds nothing.
+  // Counted once the Brief has read its materials: until then it says it is loading.
+  await page.locator('[id="brief-goal"]').waitFor({ timeout: 30000 });
   const BRIEF_FIELDS = ["goal", "title", "objectives", "type", "files", "context", "briefing.product_description", "decision_use", "briefing.situation", "briefing.what_is_known", "briefing.constraints"];
   for (const f of BRIEF_FIELDS) assert.equal(await page.locator(`[id="brief-${f}"]`).count(), 1, `brief:${f}`);
   assert.equal(await page.locator('[id="brief-situation"]').count(), 0, "brief:situation is not a target");
@@ -133,9 +160,9 @@ try {
 
   // The navigator opens each design stage on its own route.
   for (const [label, slug] of [["Návrh", "plan"], ["Dotazník", "questionnaire"], ["Cíl. skupina", "audience"], ["Dimenze", "dimensions"]]) {
-    await page.locator(".nav__stage", { hasText: label }).click();
+    await navStage(label).click();
     await page.waitForURL(`**${stagePath(slug)}`);
-    await page.locator(".nav__stage.is-current", { hasText: label }).waitFor();
+    await navStage(label, true).waitFor();
     await page.locator("[data-workbench]").waitFor();
     await noOverflow(`${slug} @1440`);
     await shot(`1440-${slug}`);
@@ -143,27 +170,32 @@ try {
   check("navigator opens Návrh, Dotazník, Cílová skupina and Dimenze on their routes");
 
   // Vzorek is a read-only view over Dimenze and Kontrola, on Dimenze's route.
-  await page.locator(".nav__stage", { hasText: "Vzorek" }).click();
+  await navStage("Vzorek").click();
   await page.waitForFunction(() => location.hash === "#sample");
   await page.locator("[data-sample-view]").waitFor();
   await shot("1440-sample");
-  await page.locator(".nav__stage", { hasText: "Dimenze" }).click();
-  await page.locator(".nav__stage.is-current", { hasText: "Dimenze" }).waitFor();
+  await navStage("Dimenze").click();
+  await navStage("Dimenze", true).waitFor();
   assert.equal(await page.locator("[data-sample-view]").count(), 0, "back on Dimenze, not Vzorek");
   check("Vzorek shows the sample read only, and Dimenze is one click back");
 
   // Výsledky's views are the hash ResultsWorkspace reads.
-  await page.locator(".nav__stage", { hasText: "Sociomapa" }).click();
+  await navStage("Sociomapa").click();
   await page.waitForURL(`**${stagePath("results")}#maps`);
-  await page.locator(".nav__stage.is-current", { hasText: "Sociomapa" }).waitFor();
-  await page.locator(".nav__stage", { hasText: "Zpráva" }).click();
+  await navStage("Sociomapa", true).waitFor();
+  await navStage("Zpráva").click();
   await page.waitForFunction(() => location.hash === "#report");
-  await page.locator(".nav__stage.is-current", { hasText: "Zpráva" }).waitFor();
+  await navStage("Zpráva", true).waitFor();
   await shot("1440-report");
   check("Sociomapa and Zpráva open Výsledky's views by hash");
 
   // Narrower: the split down to 1100 px, the side drawer from 768, the sheet below (26b, D21).
-  const layoutIs = async (want) => assert.equal(await page.locator("[data-workbench]").getAttribute("data-layout"), want);
+  // The layout follows the width's media query, a render after the resize's event: waited for, then
+  // asserted, so a read in between never decides it.
+  const layoutIs = async (want) => {
+    await page.waitForFunction((w) => document.querySelector("[data-workbench]")?.getAttribute("data-layout") === w, want, { timeout: 5000 }).catch(() => {});
+    assert.equal(await page.locator("[data-workbench]").getAttribute("data-layout"), want);
+  };
   for (const [width, want] of [[1280, "split"], [1100, "split"], [1099, "drawer"], [768, "drawer"], [390, "sheet"]]) {
     await page.setViewportSize({ width, height: 900 });
     await page.goto(base + stagePath("questionnaire"));
@@ -356,7 +388,7 @@ try {
   // Its links open the stages where things are set.
   await page.setViewportSize({ width: 1440, height: 900 });
   await page.getByRole("button", { name: "Pokračovat na Sběr dat" }).click();
-  await page.locator(".nav__stage.is-current", { hasText: "Sběr dat" }).waitFor();
+  await navStage("Sběr dat", true).waitFor();
   check("Vzorek: size, the server's forecast and readiness on the working copy at 1440, 1100, 768 and 390, nothing submitted, read only, no overflow; Sběr dat one click away");
 
   // Spuštění (artifact-fieldwork F-FLD-3, F-FLD-4, F-FLD-5): every link of the stage is the input
