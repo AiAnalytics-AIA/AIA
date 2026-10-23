@@ -25,7 +25,9 @@ const ACTIVITY_LABEL: Record<SpendActivity, string> = {
   other: "Ostatní",
 };
 
-const UNATTRIBUTED = "Nepřiřazeno";
+// Spend booked to nobody: from before spend was attributed, or paid work nobody started or approved
+// by name. Never attributed by guess (the product owner, 2026-10-22: "Neznámý").
+const UNATTRIBUTED = "Neznámý";
 
 const NUMBER = new Intl.NumberFormat("cs-CZ", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 
@@ -105,4 +107,27 @@ export function isSpendReport(value: unknown): value is ResearcherSpend {
   if (!value || typeof value !== "object") return false;
   const v = value as Partial<ResearcherSpend>;
   return Array.isArray(v.people) && typeof v.everyone === "boolean" && typeof v.period === "string";
+}
+
+/** A person's share of the period's total, whole percent; null when either is not known exactly. */
+export function shareOf(person: SpendFigures, total: SpendFigures): string | null {
+  if (person.uncertain_calls > 0 || total.uncertain_calls > 0 || total.total_usd <= 0) return null;
+  return `${Math.round((person.total_usd / total.total_usd) * 100)} %`;
+}
+
+export type BarPart = { activity: SpendActivity; label: string; percent: number };
+
+/** What a person's spend went on, as parts of one bar: the activities that cost something, in the API's order. */
+export function activityBar(byActivity: readonly (SpendFigures & { activity: SpendActivity })[]): BarPart[] {
+  const sum = byActivity.reduce((n, a) => n + Math.max(0, a.total_usd), 0);
+  if (sum <= 0) return [];
+  return byActivity.filter((a) => a.total_usd > 0).map((a) => ({ activity: a.activity, label: ACTIVITY_LABEL[a.activity], percent: (a.total_usd / sum) * 100 }));
+}
+
+/** "Téměř vyčerpáno": spent at or past 90 % of the study's budget (the product owner, 2026-10-22). Unknown is never near. */
+const NEAR_LIMIT = 0.9;
+export function nearLimit(s: { budget_usd: number | null; spent_usd: number | null }): boolean {
+  if (s.budget_usd === null || s.spent_usd === null) return false;
+  if (s.budget_usd <= 0) return s.spent_usd > 0;
+  return s.spent_usd / s.budget_usd >= NEAR_LIMIT;
 }

@@ -10,19 +10,23 @@ import { Fragment, useState } from "react";
 
 import { type ResearcherSpend, type SpendPeriod, admin } from "@/lib/api";
 import {
+  type BarPart,
   PERIOD_LABEL,
   SPEND_PERIODS,
   type AmountLine,
   isSpendReport,
+  activityBar,
   overall,
   parts,
   personLabel,
   reservedLine,
+  shareOf,
   studyCount,
   totalLine,
   usd,
 } from "@/lib/researcher-spend";
 import { Button } from "../../rehome/ui";
+import { MoneyNames } from "./StudiesPanel";
 import { EYEBROW, Empty } from "../states";
 import { useResource } from "../useResource";
 
@@ -44,6 +48,50 @@ function Amount({ line }: { line: AmountLine }) {
   );
 }
 
+// The bar's colours: the Lead, fieldwork, analysis and report, Deep Research, other (the design's four, and one more).
+const BAR: Record<BarPart["activity"], string> = {
+  lead: "bg-ink", fieldwork: "bg-signal", analysis_report: "bg-status-world", deep_research: "bg-ai", other: "bg-border-strong",
+};
+
+/** What a person's spend went on, as one bar; the amounts are beside it in words. */
+function ActivityBar({ items }: { items: BarPart[] }) {
+  if (!items.length) return null;
+  return (
+    <span data-activity-bar aria-hidden="true" className="mt-1 flex h-2 w-full max-w-56 overflow-hidden rounded-pill bg-surface-sunken">
+      {items.map((p) => <i key={p.activity} title={p.label} className={`block h-full ${BAR[p.activity]}`} style={{ width: `${p.percent}%` }} />)}
+    </span>
+  );
+}
+
+function Tile({ label, children, note, highlight = false }: { label: string; children: React.ReactNode; note: string; highlight?: boolean }) {
+  return (
+    <div data-spend-tile className={`rounded-md border px-3.5 py-3 ${highlight ? "border-status-you bg-status-you-wash" : "border-border"}`}>
+      <div className="text-xs text-ink-muted">{label}</div>
+      <div className="mt-1 text-[22px] font-semibold leading-7 tabular-nums">{children}</div>
+      <div className="mt-0.5 text-xs text-ink-muted">{note}</div>
+    </div>
+  );
+}
+
+/** "Útrata organizace": the period's spend, what running work holds, calls with no known bill, and
+ *  studies near their budget; then the four money names. A researcher sees their own only. */
+function OrgSpend({ report, nearLimitCount }: { report: ResearcherSpend; nearLimitCount: number | null }) {
+  const sum = overall(report);
+  const line = totalLine(sum);
+  return (
+    <section data-org-spend aria-labelledby="org-spend-h" className="min-w-0 rounded-md border border-border bg-surface-raised px-6 py-5">
+      <h3 id="org-spend-h" className="text-base font-semibold">{report.everyone ? "Útrata organizace" : "Vaše útrata"} · {PERIOD_LABEL[report.period].toLocaleLowerCase("cs")}</h3>
+      <div className="mt-3 grid grid-cols-[repeat(auto-fill,minmax(12.5rem,1fr))] gap-3">
+        <Tile label="Utraceno" note={line.note ?? `${report.people.filter((p) => p.user_id !== null && p.total_usd > 0).length} výzkumníků`}><Amount line={line} /></Tile>
+        <Tile label="Rezervováno" note="drží právě běžící práce">{usd(sum.reserved_usd)}</Tile>
+        <Tile label="Nejistá volání" note="počítají se zvlášť, nikdy jako nula USD">{sum.uncertain_calls}</Tile>
+        <Tile label="Téměř vyčerpané rozpočty" note="studie nad 90 % rozpočtu" highlight={(nearLimitCount ?? 0) > 0}>{nearLimitCount ?? "neznámo"}</Tile>
+      </div>
+      <MoneyNames />
+    </section>
+  );
+}
+
 function Parts({ items }: { items: ReturnType<typeof parts> }) {
   if (!items.length) return <span className="text-ink-faint">—</span>;
   return (
@@ -57,13 +105,15 @@ function Parts({ items }: { items: ReturnType<typeof parts> }) {
   );
 }
 
-export function ResearcherSpendCard() {
+export function ResearcherSpendCard({ nearLimitCount = null }: { nearLimitCount?: number | null }) {
   const [period, setPeriod] = useState<SpendPeriod>("this_month");
   const [open, setOpen] = useState<string | null>(null);
   const [res, retry] = useResource(() => load(period), [period]);
 
   return (
-    <section data-researcher-spend aria-labelledby="researcher-spend-h" className="min-w-0 rounded-md border border-border p-4">
+    <>
+    {res.state === "ready" ? <OrgSpend report={res.data} nearLimitCount={nearLimitCount} /> : null}
+    <section data-researcher-spend aria-labelledby="researcher-spend-h" className="min-w-0 rounded-md border border-border bg-surface-raised px-6 py-5">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div className="min-w-0 max-w-3xl">
           <h3 id="researcher-spend-h" className="text-base font-semibold">Útrata podle výzkumníka</h3>
@@ -97,6 +147,7 @@ export function ResearcherSpendCard() {
         Měsíce podle UTC. Drženo: částky blokované právě běžící prací, zatím neutracené. Otazník: některé volání nemá známou cenu, částka proto není přesná.
       </p>
     </section>
+    </>
   );
 }
 
@@ -132,8 +183,9 @@ function Table({ report, open, setOpen }: { report: ResearcherSpend; open: strin
                   <td className={`${TD} text-right`}>
                     <Amount line={line} />
                     {line.note ? <p className="text-xs text-ink-muted">{line.note}</p> : null}
+                    {report.everyone && shareOf(p, sum) ? <p data-share className="text-xs text-ink-muted">{shareOf(p, sum)} útraty organizace</p> : null}
                   </td>
-                  <td className={TD}><Parts items={parts(p.by_activity)} /></td>
+                  <td className={TD}><ActivityBar items={activityBar(p.by_activity)} /><Parts items={parts(p.by_activity)} /></td>
                   <td className={`${TD} text-right`}><span className="whitespace-nowrap font-mono tabular-nums">{p.reserved_usd > 0 ? usd(p.reserved_usd) : "—"}</span></td>
                   <td className={`${TD} text-right font-mono tabular-nums`}>{p.study_count}</td>
                   <td className={`${TD} text-right`}>

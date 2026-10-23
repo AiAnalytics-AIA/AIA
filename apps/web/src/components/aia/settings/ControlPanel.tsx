@@ -11,8 +11,7 @@
 // deployment). Neither is a connection, and the page says so.
 
 import Link from "next/link";
-import { useRouter } from "next/navigation";
-import { type FormEvent, type KeyboardEvent, type ReactNode, memo, useEffect, useState } from "react";
+import { type KeyboardEvent, type ReactNode, memo, useEffect, useState } from "react";
 
 import type { PublicConfig } from "@/lib/public-config";
 import { t, tv } from "@/i18n/t";
@@ -34,17 +33,19 @@ import {
   admin,
 } from "@/lib/api";
 import { appRoutes } from "@/lib/app-routes";
+import { nearLimit } from "@/lib/researcher-spend";
 import { ClientsCard, MembersCard, SelfApprovalCard } from "./AccessPanel";
 import { describeMemberError } from "./errors";
 import { DeepResearchSettingsPanel } from "./DeepResearchSettingsPanel";
 import { MethodologyPanel } from "./MethodologyPanel";
 import { ResearcherSpendCard } from "./ResearcherSpendCard";
+import { StudiesTable } from "./StudiesPanel";
 import { SETTING_HELP, TAB_GUIDE } from "./settings-guide";
 import { SystemPromptsPanel } from "./SystemPromptsPanel";
 import { Technical, TechnicalProvider, TechnicalSwitch, useTechnicalChoice } from "./technical";
 import { Activity, BookOpen, Cpu, Database, History, type LucideIcon, ScrollText, Sigma, Telescope, Users, Wallet } from "lucide-react";
 import { Icon, type IconName } from "../../rehome/icons";
-import { Button, Chip, Select, Tag, TextInput } from "../../rehome/ui";
+import { Chip, Select, Tag, TextInput } from "../../rehome/ui";
 import { CARD, EYEBROW, Empty, Loaded } from "../states";
 import { useResource } from "../useResource";
 
@@ -221,138 +222,10 @@ function Sub({ children }: { children: ReactNode }) {
 const TH = "px-2 py-1 text-left font-mono text-[11px] font-normal uppercase tracking-[0.08em] text-ink-faint";
 const TD = "px-2 py-1.5 align-top text-sm";
 // Below sm a column that would push a row's action out of view: its content is shown in the row's first cell or not at all.
-const WIDE = "hidden sm:table-cell";
 
 // ---------------------------------------------------------------- actions
 
-/** A form over one API call: shows the API's answer verbatim, then re-reads the panel. */
-function ActionForm({
-  run,
-  submit,
-  reload,
-  children,
-}: {
-  run: (form: FormData) => Promise<unknown>;
-  submit: string;
-  reload: () => void;
-  children: ReactNode;
-}) {
-  const router = useRouter();
-  const [busy, setBusy] = useState(false);
-  const [answer, setAnswer] = useState<{ ok: boolean; text: string } | null>(null);
-  async function onSubmit(e: FormEvent<HTMLFormElement>) {
-    e.preventDefault();
-    const form = new FormData(e.currentTarget);
-    setBusy(true);
-    setAnswer(null);
-    try {
-      await run(form);
-      setAnswer({ ok: true, text: t(`${P}.saved`) });
-      reload();
-    } catch (err) {
-      if (err instanceof Unauthenticated) {
-        router.replace(`/login?next=${encodeURIComponent(window.location.pathname + window.location.search + window.location.hash)}`);
-        return;
-      }
-      setAnswer({ ok: false, text: describe(err) });
-    } finally {
-      setBusy(false);
-    }
-  }
-  return (
-    <form onSubmit={onSubmit} className="flex flex-wrap items-end gap-2">
-      <fieldset disabled={busy} className="contents">{children}
-      <Button type="submit" small disabled={busy}>{busy ? t(`${P}.sending`) : submit}</Button></fieldset>
-      {answer ? (
-        <span role={answer.ok ? "status" : "alert"} className={`text-xs ${answer.ok ? "text-status-done" : "text-status-fault"}`}>{answer.text}</span>
-      ) : null}
-    </form>
-  );
-}
-
-const str = (form: FormData, name: string) => {
-  const v = form.get(name);
-  return typeof v === "string" ? v.trim() : "";
-};
-
-/** A budget is a number or it is refused -- an empty field is not a zero budget. */
-function budget(form: FormData): number {
-  const raw = str(form, "budget_usd");
-  const n = raw === "" ? NaN : Number(raw);
-  if (!Number.isFinite(n)) throw new Error(t(`${P}.studies.budgetInvalid`));
-  return n;
-}
-
 // ---------------------------------------------------------------- panels
-
-function StudiesPanel({ studies, clients, vocab, reload }: {
-  studies: Part<StudyRow[]>; clients: Part<AdminClient[]>; vocab: Vocabularies; reload: () => void;
-}) {
-  const [query, setQuery] = useState("");
-  const [editing, setEditing] = useState<string | null>(null);
-  const clientName = new Map(clients.ok ? clients.data.map((c) => [c.client_id, c.name]) : []);
-  if (!studies.ok) return <Unavailable what={t(`${P}.studies.title`)} message={studies.message} />;
-  if (!studies.data.length) return <Empty>{t(`${P}.studies.none`)}</Empty>;
-  const q = query.trim().toLocaleLowerCase("cs");
-  return (
-    <div className="flex flex-col gap-2">
-      <TextInput type="search" aria-label={t(`${P}.studySearch`)} placeholder={t(`${P}.studySearchPlaceholder`)} value={query} onChange={(e) => setQuery(e.target.value)} />
-      <div className="overflow-x-auto"><table className="w-full">
-        <thead><tr><th className={TH}>{t(`${P}.col.study`)}</th><th className={`${TH} ${WIDE}`}>{t(`${P}.col.client`)}</th><th className={`${TH} ${WIDE}`}>{t(`${P}.col.status`)}</th><th className={`${TH} text-right`}>{t(`${P}.col.budget`)}</th><th className={`${TH} ${WIDE} text-right`}>{t(`${P}.col.spent`)}</th><th className={`${TH} ${WIDE} text-right`}>{t(`${P}.col.remaining`)}</th><th className={TH} /></tr></thead>
-        <tbody className="divide-y divide-border">
-          {studies.data.map(({ study, detail }) => {
-            const costs = detail.ok && detail.data.budget_usd !== null ? detail.data : null;
-            const shown = `${study.name} ${clientName.get(study.client_id) ?? ""}`.toLocaleLowerCase("cs").includes(q);
-            const open = editing === study.study_id;
-            const client = clientName.get(study.client_id) ?? study.client_id;
-            const status = <Tag>{t(`aia.status.${study.status}`)}</Tag>;
-            return [
-              <tr key={study.study_id} hidden={!shown} data-study={study.study_id}>
-                <td className={`${TD} font-medium`}>{study.name}<span className="mt-0.5 flex flex-wrap items-center gap-x-2 font-normal text-ink-muted sm:hidden">{client}{status}</span></td>
-                <td className={`${TD} ${WIDE} text-ink-muted`}>{client}</td>
-                <td className={`${TD} ${WIDE}`}>{status}</td>
-                {costs ? <>
-                  <td className={`${TD} text-right`}><Value value={costs.budget_usd} unit="USD" /></td>
-                  <td className={`${TD} ${WIDE} text-right`}><Value value={costs.spent_usd} unit="USD" /></td>
-                  <td className={`${TD} ${WIDE} text-right`}><Value value={costs.remaining_usd} unit="USD" /></td>
-                </> : <>
-                  {/* No colSpan: one spanning hidden columns would add grid columns below sm. */}
-                  <td className={`${TD} text-right`}><span title={detail.ok ? "" : detail.message} className="rounded-sm border border-dashed border-border-strong px-1.5 text-xs">{t(`${P}.studies.costsHidden`)}</span></td>
-                  <td className={WIDE} /><td className={WIDE} />
-                </>}
-                <td className={`${TD} text-right`}><Button small aria-expanded={open} onClick={() => setEditing(open ? null : study.study_id)}>{open ? t(`${P}.closeEdit`) : t(`${P}.edit`)}</Button></td>
-              </tr>,
-              // Filtered out, an open edit is hidden, never unmounted: a typed budget survives the search.
-              open ? <tr key={`${study.study_id}-edit`} hidden={!shown} data-study-edit={study.study_id}><td colSpan={7} className="bg-surface-sunken px-3 py-3">
-                <div className="grid gap-4 lg:grid-cols-2">
-                  <div>
-                    <p className="mb-1 text-xs font-medium text-ink-muted">{t(`${P}.studies.status`)}</p>
-                    <ActionForm submit={t(`${P}.save`)} reload={reload} run={(f) => admin.setStudyStatus(study.study_id, str(f, "status"))}>
-                      <Select name="status" defaultValue={study.status} aria-label={t(`${P}.studies.status`)} className="w-auto">
-                        {vocab.study_statuses.map((s) => <option key={s} value={s}>{t(`aia.status.${s}`)}</option>)}
-                      </Select>
-                    </ActionForm>
-                  </div>
-                  <div>
-                    <p className="mb-1 text-xs font-medium text-ink-muted">{t(`${P}.studies.ceiling`)}</p>
-                    <ActionForm submit={t(`${P}.save`)} reload={reload} run={(f) => admin.setStudyBudget(study.study_id, budget(f))}>
-                      <TextInput
-                        name="budget_usd" type="number" min={0} max={1000000} step="0.01" required
-                        aria-label={t(`${P}.studies.ceiling`)} defaultValue={costs?.budget_usd ?? undefined} className="w-32"
-                      />
-                      <span className="pb-2 text-xs text-ink-faint">USD</span>
-                    </ActionForm>
-                  </div>
-                  <p className="text-xs text-ink-muted lg:col-span-2">{t(`${P}.studies.permissionNote`)}</p>
-                </div>
-              </td></tr> : null,
-            ];
-          })}
-        </tbody>
-      </table></div>
-    </div>
-  );
-}
 
 // ---- what powers AIA: code facts beside the deployment's switches --------
 
@@ -706,8 +579,8 @@ function PanelView({ panel, reload }: { panel: Panel; reload: () => void }) {
     access: <MembersCard members={members} vocab={vocab} canAdminister={doc.may_administer} yourRole={doc.your_role} reload={reload} />,
     studies: (
       <>
-        <ResearcherSpendCard />
-        <StudiesPanel studies={studies} clients={clients} vocab={vocab} reload={reload} />
+        <ResearcherSpendCard nearLimitCount={studies.ok ? studies.data.filter(({ detail }) => detail.ok && nearLimit(detail.data)).length : null} />
+        <StudiesTable studies={studies} clients={clients} vocab={vocab} reload={reload} />
       </>
     ),
     approvals: (

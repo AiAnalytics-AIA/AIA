@@ -253,21 +253,21 @@ describe("the settings control panel", () => {
     render(<ControlPanel />);
     const hidden = (await screen.findByText("Cizí studie")).closest("[data-study]") as HTMLElement;
     expect(within(hidden).getByText(/náklady nevidíte/)).toBeTruthy();
+    expect(within(hidden).queryByRole("spinbutton", { hidden: true })).toBeNull();
     const visible = screen.getByText("Vnímání značky").closest("[data-study]") as HTMLElement;
-    expect(within(visible).getAllByText("500").length).toBeGreaterThan(0);
+    const budget = within(visible).getByRole("spinbutton", { name: "Rozpočet studie Vnímání značky", hidden: true }) as HTMLInputElement;
+    expect(budget.value).toMatch(/^500/);
   });
 
-  it("keeps a study's Upravit in view on a phone: client and status under the name, the rest but the budget from sm", async () => {
-    api();
+  it("reads each study's spend against its budget, highlights one at 90 %, and points the wallet to the client's rules", async () => {
+    api({ "GET /api/v1/studies/STU-1": () => ({ ...STUDY("STU-1", "Vnímání značky"), budget_usd: 100, spent_usd: 92, remaining_usd: 8 }) });
     render(<ControlPanel />);
-    for (const name of ["Vnímání značky", "Cizí studie"]) {
-      const row = (await screen.findByText(name)).closest("[data-study]") as HTMLElement;
-      const cells = [...row.children] as HTMLElement[];
-      const narrow = cells.filter((cell) => !cell.className.includes("hidden sm:table-cell"));
-      expect(narrow).toHaveLength(3);
-      expect(narrow[0].querySelector(".sm\\:hidden")?.textContent).toBe("Klient AAktivní");
-      expect(within(narrow[2]).getByRole("button", { name: "Upravit", hidden: true })).toBeTruthy();
-    }
+    const row = (await screen.findByText("Vnímání značky")).closest("[data-study]") as HTMLElement;
+    await waitFor(() => expect(row.getAttribute("data-near")).toBe("true"));
+    expect(within(row).getByText(/92 % rozpočtu · zbývá 8,00 USD · téměř vyčerpáno/)).toBeTruthy();
+    const link = within(row).getByRole("link", { name: "Profil → Pravidla", hidden: true });
+    expect(link.getAttribute("href")).toContain("/app/clients/CLI-a/profile");
+    expect(screen.getByText("Cizí studie").closest("[data-study]")?.getAttribute("data-near")).toBeNull();
   });
 
   it("changes the organization's self-approval where it is shown, then re-reads", async () => {
@@ -318,19 +318,49 @@ describe("the settings control panel", () => {
     expect([...panel.querySelectorAll("[data-role-box]")].map((b) => b.getAttribute("data-role-box"))).toEqual(["OWNER", "ADMIN", "MEMBER", "METODIK"]);
   });
 
-  it("shows the API's refusal as given", async () => {
+  it("shows the API's refusal as given, at the study's budget", async () => {
     api({
       "PUT /api/v1/studies/STU-1/budget": () =>
         new Response('{"code":"insufficient_role","message":"Your role on this study does not permit that action."}', { status: 403 }),
     });
     render(<ControlPanel />);
     const row = (await screen.findByText("Vnímání značky")).closest("[data-study]") as HTMLElement;
-    fireEvent.click(within(row).getByRole("button", { name: "Upravit", hidden: true }));
-    const study = document.querySelector('[data-study-edit="STU-1"]') as HTMLElement;
-    fireEvent.change(within(study).getByLabelText("Rozpočet studie"), { target: { value: "900" } });
-    fireEvent.submit(within(study).getByLabelText("Rozpočet studie").closest("form") as HTMLFormElement);
-    expect(await within(study).findByText(/HTTP 403 · insufficient_role: Your role on this study/)).toBeTruthy();
+    const budget = await within(row).findByRole("spinbutton", { name: "Rozpočet studie Vnímání značky", hidden: true });
+    fireEvent.change(budget, { target: { value: "900" } });
+    fireEvent.keyDown(budget, { key: "Enter" });
+    expect(await within(row).findByText(/HTTP 403 · insufficient_role: Your role on this study/)).toBeTruthy();
     expect(called("PUT", "/api/v1/studies/STU-1/budget")[0].body).toEqual({ budget_usd: 900 });
+  });
+
+  it("keeps a saved budget in its field while the re-read has not caught up", async () => {
+    // The re-read answers the old budget: the field must not fall back to it after the PUT's yes.
+    api({ "PUT /api/v1/studies/STU-1/budget": () => ({ ...STUDY("STU-1", "Vnímání značky"), budget_usd: 900, spent_usd: 0, remaining_usd: 900 }) });
+    render(<ControlPanel />);
+    const row = (await screen.findByText("Vnímání značky")).closest("[data-study]") as HTMLElement;
+    const budget = await within(row).findByRole("spinbutton", { name: "Rozpočet studie Vnímání značky", hidden: true }) as HTMLInputElement;
+    fireEvent.change(budget, { target: { value: "900" } });
+    fireEvent.keyDown(budget, { key: "Enter" });
+    await waitFor(() => expect(called("PUT", "/api/v1/studies/STU-1/budget")).toHaveLength(1));
+    await waitFor(() => expect(called("GET", "/api/v1/studies/STU-1").length).toBeGreaterThan(1));
+    expect(budget.value).toMatch(/^900/);
+  });
+
+  it("sets a study's confirmation threshold by its stepper, and Nikdy clears it", async () => {
+    api({ "GET /api/v1/studies/STU-1": () => ({ ...STUDY("STU-1", "Vnímání značky"), budget_usd: 500, spent_usd: 0, remaining_usd: 500, spend_confirm_usd: 50 }) });
+    render(<ControlPanel />);
+    const row = (await screen.findByText("Vnímání značky")).closest("[data-study]") as HTMLElement;
+    const threshold = await within(row).findByRole("spinbutton", { name: "Práh potvrzení studie Vnímání značky", hidden: true });
+    fireEvent.change(threshold, { target: { value: "5" } });
+    fireEvent.keyDown(threshold, { key: "Enter" });
+    expect(called("PUT", "/api/v1/studies/STU-1/spend-confirm")).toEqual([]);
+    fireEvent.change(threshold, { target: { value: "60" } });
+    fireEvent.keyDown(threshold, { key: "Enter" });
+    await waitFor(() => expect(called("PUT", "/api/v1/studies/STU-1/spend-confirm")).toHaveLength(1));
+    fireEvent.click(within(row).getByRole("button", { name: "Nikdy", hidden: true }));
+    await waitFor(() => expect(called("PUT", "/api/v1/studies/STU-1/spend-confirm")).toHaveLength(2));
+    const bodies = called("PUT", "/api/v1/studies/STU-1/spend-confirm").map((c) => c.body);
+    expect(bodies[0]).toMatchObject({ limit_usd: 60 });
+    expect(Object.values(bodies[1] as object)).toContain(null);
   });
 
   it("does not ask a member for the self-approval levels or the audit", async () => {
@@ -742,8 +772,8 @@ it("follows changed settings hashes and preserves the framework's navigation sta
     expect(env.querySelector("[data-technical]")?.textContent).toBeTruthy();
     expect(sessionStorage.getItem("aia.settings.technical")).toBe("1");
     fireEvent.click(screen.getByRole("tab", { name: "Studie a rozpočty" }));
-    expect(await screen.findByText("12,71")).toBeTruthy();
-    expect(screen.getByText("7,29")).toBeTruthy();
+    expect(await screen.findByText("12,71 USD")).toBeTruthy();
+    expect(screen.getByText(/zbývá 7,29 USD/)).toBeTruthy();
     expect(screen.queryByText("12.714524700000009")).toBeNull();
   });
 
@@ -825,13 +855,10 @@ describe("usable settings controls", () => {
     api(); render(<ControlPanel />);
     fireEvent.click(await screen.findByRole("tab", { name: "Studie a rozpočty" }));
     const study = document.querySelector('[data-study="STU-1"]') as HTMLElement;
-    fireEvent.click(within(study).getByRole("button", { name: "Upravit" }));
-    const edit = document.querySelector('[data-study-edit="STU-1"]') as HTMLElement;
-    const budget = within(edit).getByLabelText("Rozpočet studie") as HTMLInputElement;
+    const budget = await within(study).findByRole("spinbutton", { name: "Rozpočet studie Vnímání značky" }) as HTMLInputElement;
     fireEvent.change(budget, { target: { value: "600" } });
     fireEvent.change(screen.getByRole("searchbox", { name: "Hledat studii nebo klienta" }), { target: { value: "Cizí" } });
     expect(study.hidden).toBe(true);
-    expect(edit.hidden).toBe(true);
     fireEvent.change(screen.getByRole("searchbox", { name: "Hledat studii nebo klienta" }), { target: { value: "Vnímání" } });
     expect(budget.value).toBe("600");
     expect(study.hidden).toBe(false);

@@ -29,6 +29,7 @@ const measure = async (name) => {
   assert(size.documentWidth <= size.width + 2, `${name}: horizontal page overflow ${JSON.stringify(size)}`); layouts.push({ name, ...size });
 };
 const widths = async (name) => { for (const width of [1440, 1024, 768, 390]) { await page.setViewportSize({ width, height: 1000 }); await measure(name); } await page.setViewportSize({ width: 1440, height: 1000 }); };
+const waitFor = async (check, what, ms = 15000) => { const end = Date.now() + ms; while (Date.now() < end) { if (await check()) return; await page.waitForTimeout(250); } throw new Error(`timed out: ${what}`); };
 const screenshot = async (name) => { await page.evaluate(() => scrollTo({ top: 0, left: 0, behavior: "instant" })); await page.screenshot({ path: join(out, `${name}.png`), fullPage: true, animations: "disabled" }); await page.screenshot({ path: join(out, `${name}-viewport.png`), animations: "disabled" }); };
 const chooseField = async (reference) => {
   const field = page.locator(`[data-field="${reference}"]`).first(); await field.waitFor({ state: "attached" });
@@ -84,19 +85,18 @@ try {
   await widths("access member editing"); checks.push("New member is added in an inline row as a researcher; name and role change in place and persist through the audited API, with Vrátit");
   await tab("studies");
   const studies = await get("/api/v1/studies"); const study = studies[0]; const original = await get(`/api/v1/studies/${study.study_id}`);
-  await page.setViewportSize({ width: 390, height: 1000 });
-  const offscreen = await page.locator("[data-study]:not([hidden])").evaluateAll((rows) => rows.filter((row) => { const b = row.querySelector("button")?.getBoundingClientRect(); return !b || b.right > Math.min(innerWidth, row.closest(".overflow-x-auto").getBoundingClientRect().right); }).map((row) => row.dataset.study));
-  assert.deepEqual(offscreen, [], "390: a study's Upravit is out of view");
-  await page.setViewportSize({ width: 1440, height: 1000 });
-  await page.locator(`[data-study="${study.study_id}"]`).getByRole("button", { name: "Upravit", exact: true }).click();
-  const card = page.locator(`[data-study-edit="${study.study_id}"]`);
-  const budget = card.getByLabel("Rozpočet studie", { exact: true }); await budget.fill("20");
-  await page.getByRole("searchbox", { name: "Hledat studii nebo klienta" }).fill("no-such-study"); assert(!await card.isVisible());
-  await page.getByRole("searchbox", { name: "Hledat studii nebo klienta" }).fill(""); assert.equal(await budget.inputValue(), "20");
-  await budget.locator("xpath=ancestor::form").getByRole("button", { name: "Uložit", exact: true }).click();
-  await card.getByText("Uloženo.", { exact: true }).waitFor(); assert.equal((await get(`/api/v1/studies/${study.study_id}`)).budget_usd, 20);
-  if (original.budget_usd !== null) { await budget.fill(String(original.budget_usd)); await budget.locator("xpath=ancestor::form").getByRole("button", { name: "Uložit", exact: true }).click(); }
-  checks.push("Study filtering retains budget drafts; a budget edit persists to exactly the selected study");
+  const studyRow = page.locator(`[data-study="${study.study_id}"]`);
+  const budget = studyRow.getByRole("spinbutton", { name: `Rozpočet studie ${study.name}`, exact: true });
+  await budget.waitFor();
+  const target = Math.max(20, Math.ceil(original.spent_usd ?? 0) + 10);
+  await budget.fill(String(target));
+  await page.getByRole("searchbox", { name: "Hledat studii nebo klienta" }).fill("no-such-study"); assert(!await studyRow.isVisible());
+  await page.getByRole("searchbox", { name: "Hledat studii nebo klienta" }).fill(""); { const typed = await budget.inputValue(); assert.equal(Number(typed.replace(/\s/g, "").replace(",", ".")), target, `typed budget reads ${JSON.stringify(typed)}`); }
+  await budget.press("Enter");
+  await waitFor(async () => (await get(`/api/v1/studies/${study.study_id}`)).budget_usd === target, "the stepped budget reached the study");
+  await widths("studies table");
+  if (original.budget_usd !== null) { await budget.fill(String(original.budget_usd)); await budget.press("Enter"); await waitFor(async () => (await get(`/api/v1/studies/${study.study_id}`)).budget_usd === original.budget_usd, "the original budget restored"); }
+  checks.push("Study filtering retains a typed budget; the budget stepper persists to exactly the selected study and the table holds at every width");
   await tab("audit"); await page.getByRole("searchbox", { name: "Hledat v historii" }).fill(email);
   assert(await page.locator("#panel-audit li").count());
   await page.getByRole("searchbox", { name: "Hledat v historii" }).fill("no-such-event"); await page.getByText("Žádný záznam neodpovídá hledání.", { exact: true }).waitFor();
