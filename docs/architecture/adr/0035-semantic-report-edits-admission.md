@@ -62,9 +62,13 @@ join or split paragraphs, move paragraphs and chapters, the client report's chap
 and remove sentences. An edit is expressed against the stored document by node id, so it can be
 shown, accepted and undone, but the set of edits is not a short closed list.
 
-### 3. What an edit can never change: the admission rule, checked by code on the whole document
+### 3. What an edit changed: the admission rules, computed by code on the whole document and shown
 
-An edited draft is admitted only when all of these hold over the **whole edited document**:
+*Amended 2026-10-22 (above): these rules no longer refuse an edit or block an approval. Code computes
+each of them on every saved version of the whole edited document and shows what it finds: in the
+pane, marked at the paragraph or sentence ("Upraveno ručně"), and in the approval dialog, where the
+person approves past it knowingly (artifact-report RPT8b, report-delivery RD0 and RD7). Until
+2026-10-22 an edited draft was admitted only when all of them held; the list keeps their wording:*
 
 1. **No typed number.** Edited text contains no numeric token; every number printed is an
    `evidence_ref` the renderer prints. This is a new check on edited prose, reusing the Lead's number
@@ -82,8 +86,8 @@ An edited draft is admitted only when all of these hold over the **whole edited 
    sentence.
 5. **The document validates whole** (`require_valid`).
 
-A failed edit is refused by name, naming the rule and the node, and the draft keeps its previous
-text.
+What each rule finds is named by the rule and the node, and stays on the version it was found in.
+*(Until 2026-10-22: a failed edit was refused by name and the draft kept its previous text.)*
 
 ### 4. A draft counter of its own; fieldwork never reopens
 
@@ -103,8 +107,10 @@ study notes ([ADR 0039](0039-the-study-context-file.md) decision 2):
 - **Direct rewrites**: the edit applies to the draft at once, marked *upraveno Vedoucím*, undoable,
   a ledger row marked automatic under the researcher's standing choice.
 
-Either way, decision 3's whole-document rule runs before an edit lands: a direct rewrite that would
-break it is not applied and is shown as a refused suggestion naming the rule. A direct rewrite never
+Either way, decision 3's rules are computed on the edit before it lands and shown on it: a suggestion
+carries what it would change (a number no longer matching its evidence, a sentence RD7 marks), and a
+direct rewrite lands with the same marks on the version it makes. *(Until 2026-10-22: a direct rewrite
+that broke decision 3 was not applied and was shown as a refused suggestion.)* A direct rewrite never
 approves a report; approval stays a person's act on the exact version (decision 6).
 
 ### 6. Approval is of the exact version
@@ -131,14 +137,14 @@ client deliverable follow approval (RD3).
 
 ## What enforces it
 
-- Tests: in suggestion mode an edit lands only when accepted; in direct mode it lands at once, is
-  marked *upraveno Vedoucím* and undoes, and one that breaks decision 3 is not applied; a direct
-  rewrite never approves; the stored document renders to the same DOCX bytes; ids are stable across a rerun with the
-  same fingerprint; joining two paragraphs keeps both refs; a typed number is refused; a ref the
-  composer did not admit for the surface is refused; removing a required module's last finding or a
-  required disclosure is refused by name; a comparison sentence with no admitting ref blocks approval
-  and names the sentence; reordering the client report's chapters is accepted; an accepted edit
-  changes no run artifact; an approval does not cover a later draft.
+- Tests (as amended 2026-10-22): in suggestion mode an edit lands only when accepted; in direct mode it
+  lands at once, is marked *upraveno Vedoucím* and undoes; a direct rewrite never approves; the stored
+  document renders to the same DOCX bytes; ids are stable across a rerun with the same fingerprint;
+  joining two paragraphs keeps both refs; a typed number, a ref the composer did not admit for the
+  surface, a removed required finding or disclosure, and a comparison sentence with no admitting ref
+  are each found and shown by name on the version, and none refuses the save or blocks approval; the
+  approval records what was shown; reordering the client report's chapters is accepted; an accepted
+  edit changes no run artifact; an approval does not cover a later draft.
 - An import contract: the report writer's executor does not import the composer's claim admission.
 
 ## Unblocks

@@ -1,7 +1,7 @@
 ---
 status: in-progress
 chunks:
-  - "[ ] RD0. Build the client deliverable's gate the owner set (MVPQ-09): no \"Interní dokument\" source, no drill-down content, no number without an admitted claim"
+  - "[ ] RD0. The client deliverable's checks the owner set (MVPQ-09): an \"Interní dokument\" source, drill-down content, a number without an admitted claim, each shown as a warning in the approval dialog and recorded with the approval, never refusing (changed 2026-10-22)"
   - "[ ] RD1. The client report PDF: extend `RENDERABLE_REPORTS`, the PDF is approved with its DOCX"
   - "[x] RD2. A reader for the approval ledger: "approved by whom, when" for a report and a snapshot"
   - "[ ] RD3. The Approve and Export panel: what is approved and by whom; exports after approval; the slot in the Report artifact"
@@ -9,7 +9,7 @@ chunks:
   - "[ ] RD5. Report draft revisions: a separate draft counter, tracked changes per paragraph; a report edit never reopens fieldwork"
   - "[x] RD5a. The report's document model stored and served (W2, before RD5 and RD7): the ReportDocument as JSON beside each DOCX under the same fingerprint, with stable paragraph ids and claim refs, read by a VIEW_RESULTS route"
   - "[ ] RD6. The accept destinations for the report writer, the map interpreter and the straight-liner flags: an artifact type, the composer input and its fingerprint; and, before any semantic report edit exists, the ADR with its deterministic admission rule that ADR 0026 decision 4 requires"
-  - "[ ] RD7. A sentence-level claim check: a sentence that claims a comparison with no admitted claim blocks approval, the refusal naming it"
+  - "[ ] RD7. A sentence-level claim check: a sentence that claims a comparison with no admitted claim is marked at the sentence, in the pane and the approval dialog, never blocking (changed 2026-10-22)"
   - "[ ] RD8. The producer of a client report is the run that composed it, not whoever first downloaded it"
   - "[ ] RD9. The report's assumptions chapter (W3, MVPQ-02): each tracked assumption with its status and its admitted or cited support, and nothing else"
   - "[ ] RD10. The report's open-answer coding chapter (W3, MVPQ-02): the codebook version, the coded counts as admitted claims with suppression named, and the method's limits"
@@ -27,11 +27,11 @@ Every chunk below is **open**; a chunk is built from this file, not from the mas
 
 - Separate approvals for the internal report, the client report and each map snapshot; DOCX and PDF become available only after approval (F17).
 - No unconditional second person: whether the producer may approve follows the client's existing self-approval setting (F17, withdrawn 2026-10-19).
-- The client report is **DOCX and PDF**, carries only approved maps and labelled modelled and client-reported numbers and no analysis prose. Its gate is the one the owner set on 2026-10-20 (MVPQ-09), replacing "the evidence audit and the legal source-use gate": before a client deliverable can be approved, no source marked "Interní dokument", no drill-down content and no number without an admitted claim; **no separate legal-rights review** in the MVP. Dropping the PDF or weakening this gate is a scope override and needs the owner's explicit yes.
+- The client report is **DOCX and PDF**, carries only approved maps and labelled modelled and client-reported numbers and no analysis prose. Its checks are the ones the owner set on 2026-10-20 (MVPQ-09), replacing "the evidence audit and the legal source-use gate": a source marked "Interní dokument", drill-down content and a number without an admitted claim; **no separate legal-rights review** in the MVP. Since 2026-10-22 they warn and never refuse: the owner gave that explicit yes in the Zpráva session ("Relax RD0 too", then "Warnings for all of it" for the unadmitted number as well), RD0 below.
 
 ## Chunks
 
-**RD0. Build the client deliverable's gate the owner set (MVPQ-09, 2026-10-20)**  
+**RD0. The client deliverable's checks the owner set (MVPQ-09, 2026-10-20; warnings since 2026-10-22, below)**  
 Three deterministic checks before approval, each refusing by name: no cited source marked "Interní dokument"; no drill-down content; no number without an admitted claim. No separate legal-rights review step: a source-class check is not a legal-rights determination, and the MVP does not claim one. A scientific check beyond admitted support stays the methodology owner's to add. Tests: a client report citing an internal source, carrying a drill-down field or an unadmitted number is refused by name and cannot be approved.
 
 *RD0, two of its three checks (`feature/client-deliverable-gate`):* `domain/report/client_gate.py` judges the stored
@@ -46,13 +46,19 @@ download, not reused. `POST …/report/approve` answers 409 `client_gate_refused
 `test_a_client_draft_with_no_stored_document_is_not_approvable`.
 
 *RD0, changed 2026-10-22 (the product owner, in the Zpráva session: "lets get rid of these strict gates", the
-relaxation reaching the client report too):* the checks stay, their answer changes. `client_gate.py`'s findings
-(`drill_down_content`, `unadmitted_number`, `gate_unrecorded`, and the "Interní dokument" check when RD11 gives it a
-source) are shown in the approval dialog, each naming its block, and never refuse: `POST …/report/approve` approves
+relaxation reaching the client report too, and asked again about the unadmitted number alone: "Warnings for all of
+it"):* the checks stay, their answer changes. `client_gate`'s findings (`domain/report/client_gate.py:28-31, 46 @
+a25d2435`: `drill_down_content`, `unadmitted_number`, `gate_unrecorded`, and the "Interní dokument" check when RD11
+gives it a source) are shown in the approval dialog, each naming its block, and never refuse
+(`apps/api/src/aia_api/routers/research.py:3263 @ a25d2435` is the 409 that goes): `POST …/report/approve` approves
 whatever they say and records the findings shown in the approval's ledger row, so who approved past which warning is
 on record. 409 `client_gate_refused` goes. Tests become: a client report carrying drill-down content is approved with
 the warning named in the dialog and in its ledger row; one with no stored document says "nelze ověřit" and is
-approvable. Built in `artifact-report#RPT8d`'s PR set.
+approvable. Built in `artifact-report#RPT8d`'s PR set. What it changes beyond this plan: a client report could
+then be approved while it prints a number its ledger does not hold for the client surface, which CLAUDE.md
+("Evidence is a capability") and ADR 0024 §4 state can never reach a client; composition still admits only
+client-facing claims, so this fires on a composer defect or a stale contract. Both documents change in that PR's
+Doc follow-up.
 The third check, `internal_source_cited`, waits for a chapter that cites a client source (RD11): no client report cites
 one, so it would read nothing. RD0 stays open until it lands.
 
@@ -118,7 +124,7 @@ S3 defines the type, S1 writes the worker against it (`lead-orchestration#LO9b`)
 
 **Prerequisite (ADR 0026 decision 4, Accepted):** semantic report edits get no command until their own ADR and a deterministic admission rule exist (a report is composed from admitted claims and frozen on approval). That the feature is wanted is settled (MVP-12); writing the ADR and the rule is this chunk's first step, and a wording edit never reopens completed fieldwork (an invariant, `RD5`).
 
-**RD7. A sentence-level claim check: a sentence that claims a comparison with no admitted claim blocks approval**  
+**RD7. A sentence-level claim check: a sentence that claims a comparison with no admitted claim (marks it since 2026-10-22, below)**  
 The prototype shows it (scenario M); the evidence validation checks numbers only. A new rule; its strictness is the owner's (MVPQ-09, 2026-10-20): it **blocks approval**, never a flag the reviewer may approve past, and the refusal names the sentence.
 *Changed 2026-10-22 (the owner, as RD0 above; ADR 0035, amended):* a sentence the check refuses is marked at the sentence, in the pane and the approval dialog; it never blocks approval.
 

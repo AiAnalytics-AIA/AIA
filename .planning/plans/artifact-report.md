@@ -276,12 +276,15 @@ blocking an approval. His other answers in the same session:
 | Which documents open in the editor | The internal draft and the report with literature; the client report stays composed by code |
 | When an edit becomes a stored version | Every autosave the Document Server sends (its timed force-save, a close, the save button) |
 | A number code wrote, edited or deleted | Allowed; marked "Upraveno ručně" in the pane and the approval dialog; never refused, never blocking |
-| The client report's gate (RD0) | Relaxed too: its checks are warnings in the approval dialog, recorded with the approval |
+| The client report's gate (RD0) | Relaxed too: every check a warning in the approval dialog, recorded with the approval; asked again about the unadmitted number alone: "Warnings for all of it" |
 | Map values (OQ-ED1) | Locked and tagged like ledger numbers (`map:<artifact_id>`), unlockable like them |
 | Phones, under 768 px | Read-only |
 | Two researchers at once | Live co-editing, ONLYOFFICE's own |
 | The Lead's suggestions (RPT9) | After RPT8 works |
 | Activation | The Zpráva session fixes F1 (`__Host-aia_session`); Route 53, SSM and the flag are the infra session's, on the owner's word |
+| A recompose after edits (asked on /pmstatus) | (a) "Keep both, separate": the edited line keeps its history, a recomposed draft starts a line of its own, nothing merged (relayed by the coordinator, 2026-10-22) |
+| Where the editor is served | Its own registrable domain, not `docs.<hostname>`: cookie tossing from it becomes impossible (#831's open finding) |
+| What guards the editor's domain | ONLYOFFICE's own JWT: no docs cookie or ticket (a third-party cookie Safari blocks); every document session needs a config AIA signed; the static files public, the server-only and admin paths still refused |
 
 The chunks, as built from here:
 
@@ -306,35 +309,52 @@ three; a save with prose edits only reports nothing; a version with no stored mo
 "beze změn".
 
 **RPT8c. The editor routes, behind `AIA_ONLYOFFICE_URL` and `AIA_ONLYOFFICE_JWT_SECRET` (both unset: every route
-404, the product unchanged).** On the hosting contract (`report-editor-hosting`, "The contract with RPT8"):
-- `POST …/runs/{run_id}/report/editor` (`variant`: `internal` or `context` with `deep_research_run_id`): the editor
-  config, signed with the JWT secret: the document's key (its edit line and the version's SHA-256, within ONLYOFFICE's
-  128 characters of `[0-9A-Za-z._=-]`), the document URL, the callback URL, the person's id and display name (never an
-  e-mail), `mode: edit` for a study member (`view` below 768 px, RPT8d), `customization.forcesave: true`, co-editing
-  `fast`; and a one-time docs ticket (`aia_api.docs_pass.DocsPasses`). The client report is refused by name.
+404, the product unchanged).** ONLYOFFICE is served from its own registrable domain and guarded by its JWT alone
+(the decisions above): no docs ticket and no docs cookie (`aia_api.docs_pass.DocsPasses`, `docs_pass.py:51 @
+a25d2435`, and the `/session/docs*` routes go with the hosting plan's change).
+- **Lines and versions.** A line starts at a composed draft: its koncept 1 is the composer's artifact, its id the
+  line's id. Each save the Document Server sends is the line's next version, koncept N+1, an artifact
+  (`research_internal_docx_edit` or `research_internal_docx_with_research_edit`) depending on the version it was
+  saved from, with RPT8b's changes beside it and its PDF rendered when `AIA_REPORT_PDF_ENABLED` is on. A recompose
+  by code (an analysis retry, a new report contract) starts a new line whose koncept 1 is the new composition, and
+  never touches another line's versions (/pmstatus (a)).
+- **Which line opens.** The run's line with the newest version (by its stored time) opens by default; the doc bar
+  lists every line of the run and variant, each with its newest koncept, and says when an edited line rests on an
+  older composition than the newest one. Approval binds the exact version shown, of whichever line.
+- **One session, one key.** A line's editing session has one document key, its line id and the SHA-256 of the
+  version it opened on, within ONLYOFFICE's 128 characters of `[0-9A-Za-z._=-]`. Recorded per line (a small table,
+  its migration in this chunk): opened when its first config is signed, closed by a status 2 or 4 callback, or by
+  the next open once no callback came for 24 hours. While it is open every config for the line carries that key, so
+  a second researcher joins the same co-editing session; a status 6 force-save stores the next version without
+  changing the key; the next session after a close opens on the newest version, with a new key.
+- `POST …/runs/{run_id}/report/editor` (`variant`: `internal` or `context` with `deep_research_run_id`, optional
+  `line`): the editor config, signed with the JWT secret: the session's key, the document URL, the callback URL, the
+  person's id and display name (never an e-mail), `mode: edit` for a study member (`view` below 768 px, RPT8d),
+  `customization.forcesave: true`, co-editing `fast`. The client report is refused by name.
 - `GET …/report/editor/document?token=…`: the version's DOCX, the token short-lived and naming that artifact alone;
   the Document Server's JWT checked as well.
-- `POST …/report/editor/callback?token=…`: the JWT checked (header and body); status 2 (closed, changed) and 6
-  (force-saved: the button, a close, the timer) store the file as the next version of the line, 1, 4 store nothing,
-  3 and 7 are logged. The file is fetched only from `AIA_ONLYOFFICE_URL`'s own origin (no other host, no redirect),
-  bounded in size, and must be a DOCX that opens; its users are the version's authors. Each version: a new artifact
-  (`research_internal_docx_edit` or `research_internal_docx_with_research_edit`) depending on the one it was saved
-  from, its counter "koncept N", RPT8b's changes beside it, its PDF rendered when `AIA_REPORT_PDF_ENABLED` is on.
-  Answers `{"error": 0}` once stored, an error otherwise, so the Document Server retries. A version already stored
-  under the same SHA-256 is not stored twice.
-- A recompose by code never touches an edited line (the /pmstatus question above).
+- `POST …/report/editor/callback?token=…`: the JWT checked (header and body); status 2 and 6 store the file, 1
+  marks the session open, 4 closes it with nothing stored, 3 and 7 are logged. The file is fetched from
+  `AIA_ONLYOFFICE_URL`'s own origin only, at the cache path the callback names (signed and expiring by ONLYOFFICE's
+  secure link), never another host, never a redirect, bounded in size, and must be a DOCX that opens; its users are
+  the version's authors. Answers `{"error": 0}` once stored, an error otherwise, so the Document Server retries. A
+  version already stored under the same SHA-256 is not stored twice.
 - Approval (`POST …/report/approve`) takes an edited version's id; the dialog shows its "Upraveno ručně" changes.
-- "Every autosave" needs the Document Server's timed force-save (`services.CoAuthoring.autoAssembly`, `enable: true`,
-  `interval: "5m"`) in its configuration: a request to the infra session (`deploy/develop/docs`), not this plan's file.
+- "Every autosave" is the Document Server's timed force-save (`services.CoAuthoring.autoAssembly`, every 5 minutes;
+  the infra session's #829, `deploy/develop/docs/local-production-linux.json`).
 - Tests: the config is signed and names no e-mail; an unsigned or wrongly signed callback is refused; a callback
   naming a file on another host is refused unfetched; status 6 stores koncept N+1 depending on N with RPT8b's
-  changes; the same bytes twice store once; the client report is refused; with the URL unset every route is 404.
+  changes and keeps the session's key; a second config while the session is open carries the same key; status 2
+  closes it and the next config has a new key; the same bytes twice store once; a recompose after an edit leaves the
+  edited line's koncept N unchanged and opens a new line whose koncept 1 is the composer's; the client report is
+  refused; with the URL unset every route is 404.
 
 **RPT8d. The pane opens the editor.**
-- 768 px and wider, with the editor configured: Zpráva's pane loads the Document Server's `api.js` through the
-  ticket (`/__aia/session?ticket=…&next=/web-apps/apps/api/documents/api.js`) and opens the line's newest version.
+- 768 px and wider, with the editor configured: Zpráva's pane loads the Document Server's `api.js` from
+  `AIA_ONLYOFFICE_URL` and opens the default line's newest version (RPT8c) with the config the API signed.
 - Below 768 px: the newest version in the editor's view mode; with the editor off, RPT2's read-only draft, as today.
-- The doc bar names the version shown ("koncept N, uloženo <kdy> · <kdo>"). Its "Upraveno ručně" count opens the list,
+- The doc bar names the version shown ("koncept N, uloženo <kdy> · <kdo>") and its line, and lists the run's other
+  lines (RPT8c). Its "Upraveno ručně" count opens the list,
   each change linked to its paragraph. "Schválit" approves that version, the dialog listing its changes and, for the
   client report, RD0's warnings.
 - `next.config` CSP: `frame-src` and `script-src` add `AIA_ONLYOFFICE_URL`'s origin, and only it.
@@ -344,7 +364,8 @@ three; a save with prose edits only reports nothing; a version with no stored mo
   the callback with a fictional edited DOCX), zero paid jobs. A real Document Server is checked once on develop after
   activation.
 
-Order: F1 (its own small PR) → RPT8a part 3 → RPT8b → RPT8c → RPT8d → RD0's change → activation (infra) → RPT9.
+Order: F1 (its own small PR) → RPT8a part 3 → RPT8b → RPT8c → RPT8d → RD0's change → activation (infra: the
+editor's own domain, its Caddy site without the docs gate, Route 53, SSM, the flag) → RPT9.
 
 **RPT9. The Lead in the document.** The Lead, on its own model (STUDY_LEAD), edits the same document
 through the edit operations:
@@ -463,10 +484,8 @@ sentence refused by RD7 is marked at the sentence. Depends on `report-delivery#R
 - Held at the feature freeze (the owner, 2026-10-22, 16:5x UTC: "stop developing new features, let's get the
   new deploy up and running"): RPT8a part 3 and RPT8b-d. Lifted for RPT8 by the owner in the Zpráva session the
   same evening ("Lift the freeze for RPT8 now"); RPT9 and RPT10 stay after it.
-- Open on /pmstatus (asked by the owner to go there): when code recomposes a run's draft (an analysis retry, a new
-  report contract), what happens to an edited one? (a) the edits keep their own history, the recomposed draft is a
-  separate line, nothing merged (recommended); (b) an edited draft is never recomposed; (c) recompose and re-apply
-  the edits. Until answered, RPT8c builds (a)'s minimum: a recompose never touches an edited version.
+- Decided on /pmstatus (2026-10-22, relayed by the coordinator): a recompose after edits keeps both, separate (a);
+  RPT8c's line model below.
 
 - Q73 (decided 2026-10-22, (c)): downloads stay free before approval; RPT3b is closed, not built.
 - Hosting ONLYOFFICE Document Server beside develop (RPT8): an operations change, for the coordinator to
