@@ -67,6 +67,7 @@ from ..schemas.projects import ErrorResponse
 from .research import (
     RunIdPath,
     _approval_fields,
+    _base_pdf,
     _export,
     _mark,
     _not_found,
@@ -443,9 +444,19 @@ def _edited(
 
 def _version_pdf(
     version: Any, artifact: Any, run_id: str, scope: StudyContext, session: Any, store: Any
-) -> Any:
+) -> tuple[Any, dict[str, Any]]:
+    """The version's PDF, ready or not, and its state. Koncept 1 of the run's own internal
+    line is the report its report step composed, so its PDF is that report's, the step's
+    rendering included (``research._base_pdf``, as ``…/report`` reads it); any other version's
+    is its own job's (``report_variants.variant_pdf``)."""
     try:
-        return variant_pdf(
+        if version.koncept == 1 and version.variant == "internal":
+            step, report = _report_for_run(run_id, scope, session, store)
+            if report is not None and report.artifact_id == artifact.artifact_id:
+                mark = _mark(report, scope, session, store)
+                pdf, said = _base_pdf(step, report, mark, run_id, scope, session, store)
+                return pdf, said or {"state": "NOT_REQUESTED"}
+        found = variant_pdf(
             session,
             scope,
             store,
@@ -455,6 +466,7 @@ def _version_pdf(
         )
     except ReviewUnrecorded as exc:
         raise _unrecorded(exc) from exc
+    return found.artifact, found.to_json()
 
 
 #: The variant a version's file names: the internal report's, or its Deep Research run's.
@@ -496,7 +508,7 @@ def report_editor_version(
         **_approval_fields(artifact, scope, session, store),
         "changes": changes_payload(changes) if changes is not None else None,
         # Its PDF, rendered from exactly this version (of its approved export once approved).
-        "pdf": _version_pdf(version, artifact, run_id, scope, session, store).to_json(),
+        "pdf": _version_pdf(version, artifact, run_id, scope, session, store)[1],
     }
 
 
@@ -556,21 +568,27 @@ def ask_report_editor_version_pdf(
     is left as it is; one never asked for, failed or invalid is asked again. Answers the PDF's
     state."""
     version, artifact = _edited(run_id, artifact_id, scope, session, store)
-    try:
-        asked = request_pdf(
-            session,
-            scope,
-            store,
-            docx=artifact,
-            run_id=run_id,
-            deep_research_run_id=version.deep_research_run_id,
-        )
-    except ScopeDenied as exc:
-        raise _refused(exc) from exc
-    except ReviewUnrecorded as exc:
-        raise _unrecorded(exc) from exc
-    session.commit()
-    return {"run_id": run_id, "version_artifact_id": version.artifact_id, "pdf": asked.to_json()}
+    ready, _said = _version_pdf(version, artifact, run_id, scope, session, store)
+    if ready is None:  # a rendering already made, the report step's too, is never made again
+        try:
+            request_pdf(
+                session,
+                scope,
+                store,
+                docx=artifact,
+                run_id=run_id,
+                deep_research_run_id=version.deep_research_run_id,
+            )
+        except ScopeDenied as exc:
+            raise _refused(exc) from exc
+        except ReviewUnrecorded as exc:
+            raise _unrecorded(exc) from exc
+        session.commit()
+    return {
+        "run_id": run_id,
+        "version_artifact_id": version.artifact_id,
+        "pdf": _version_pdf(version, artifact, run_id, scope, session, store)[1],
+    }
 
 
 @router.get(
@@ -592,17 +610,17 @@ def download_report_editor_version_pdf(
     except ScopeDenied as exc:
         raise _refused(exc) from exc
     version, artifact = _edited(run_id, artifact_id, scope, session, store)
-    pdf = _version_pdf(version, artifact, run_id, scope, session, store)
-    if pdf.artifact is None:
+    pdf, _said = _version_pdf(version, artifact, run_id, scope, session, store)
+    if pdf is None:
         raise _not_found("report_pdf")
     mark = _mark(artifact, scope, session, store)
     try:
-        data = research_artifacts(session, scope, store).read(pdf.artifact.artifact_id)
+        data = research_artifacts(session, scope, store).read(pdf.artifact_id)
     except (IntegrityError, ObjectNotFound) as exc:
         raise artifact_corrupt(session) from exc
     return Response(
         content=data,
-        media_type=pdf.artifact.content_type,  # application/pdf, as the rendering stored it
+        media_type=pdf.content_type,  # application/pdf, as the rendering stored it
         headers=_review_headers(
             mark,
             _report_filename(
@@ -611,7 +629,7 @@ def download_report_editor_version_pdf(
                 _file_variant(version),
                 mark,
                 "pdf",
-                stamped=pdf.artifact.metadata.get("stamped") is True,
+                stamped=pdf.metadata.get("stamped") is True,
             ),
         ),
     )
