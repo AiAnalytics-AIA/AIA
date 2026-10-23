@@ -12,7 +12,8 @@
 # Exit status: 0 only when every check passed. The AI check always reports
 # NOT_RUNNABLE: the smoke makes no paid model call, and the AI runtime -- off by
 # default -- is checked by its own acceptance (ADR 0010), not on each deploy.
-# It is printed as such and never counted as a pass.
+# It is printed as such and never counted as a pass. A WARN row (the Document Server's health)
+# is said and does not fail the smoke either.
 
 # shellcheck source=deploy/develop/bin/lib.sh
 . "$(dirname "${BASH_SOURCE[0]}")/lib.sh"
@@ -26,6 +27,8 @@ BASE="https://${AIA_PUBLIC_HOSTNAME}"
 FAILED=0
 pass() { printf 'ok    %s\n' "$1"; }
 fail() { printf 'FAIL  %s\n      %s\n' "$1" "${2:-}"; FAILED=1; }
+# Said, never counted as a pass, and not a failure: what is optional by design (bin/smoke-docs.sh).
+warn() { printf 'WARN  %s\n      %s\n' "$1" "${2:-}"; }
 json() { python3 -c "import json,sys; d=json.load(sys.stdin); print($1)"; }
 code() { curl -s -o /dev/null -w '%{http_code}' --max-time 10 "$@"; }
 
@@ -154,6 +157,11 @@ case "$port_bindings" in
   '{}'|'null') pass "security: the postgres service publishes no port" ;;
   *) fail "security: the postgres service publishes no port" "Docker host bindings: $port_bindings" ;;
 esac
+
+# --- docs: the report editor's origin, when switched on (bin/smoke-docs.sh) ---
+# shellcheck source=deploy/develop/bin/smoke-docs.sh
+. "$DEPLOY_DIR/bin/smoke-docs.sh"
+docs_checks
 
 # --- database ----------------------------------------------------------------
 current="$("${COMPOSE[@]}" run --rm --no-deps -T api alembic current 2>/dev/null | tail -1 || true)"
