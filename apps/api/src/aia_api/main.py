@@ -25,11 +25,13 @@ from .observability import (
 from .routers import (
     client_sources,
     deep_research,
+    deep_research_reach,
     deep_research_settings,
     health,
     lead,
     materialize,
     methodology,
+    organization_spend,
     population,
     projects,
     research,
@@ -38,6 +40,7 @@ from .routers import (
     scope,
     session,
     system_prompts,
+    system_status,
     wallet,
     workspace,
 )
@@ -162,6 +165,9 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     app.include_router(materialize.router, prefix=API_PREFIX)
     app.include_router(wallet.router, prefix=API_PREFIX)
     app.include_router(researcher_spend.router, prefix=API_PREFIX)
+    app.include_router(deep_research_reach.router, prefix=API_PREFIX)
+    app.include_router(system_status.router, prefix=API_PREFIX)
+    app.include_router(organization_spend.router, prefix=API_PREFIX)
     return app
 
 

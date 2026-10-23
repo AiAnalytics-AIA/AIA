@@ -11,8 +11,7 @@
 // deployment). Neither is a connection, and the page says so.
 
 import Link from "next/link";
-import { useRouter } from "next/navigation";
-import { type FormEvent, type KeyboardEvent, type ReactNode, memo, useEffect, useState } from "react";
+import { type KeyboardEvent, type ReactNode, memo, useEffect, useState } from "react";
 
 import type { PublicConfig } from "@/lib/public-config";
 import { t, tv } from "@/i18n/t";
@@ -30,21 +29,26 @@ import {
   type SettingsDocument,
   type Study,
   type Vocabularies,
-  ApiError,
   Unauthenticated,
   admin,
 } from "@/lib/api";
 import { appRoutes } from "@/lib/app-routes";
-import { describeError } from "./errors";
+import { nearLimitTally } from "@/lib/researcher-spend";
+import { ClientsCard, MembersCard, SelfApprovalCard } from "./AccessPanel";
+import { describeMemberError } from "./errors";
 import { DeepResearchSettingsPanel } from "./DeepResearchSettingsPanel";
 import { MethodologyPanel } from "./MethodologyPanel";
 import { ResearcherSpendCard } from "./ResearcherSpendCard";
+import { StudiesTable } from "./StudiesPanel";
+import { ChoiceChips } from "../../ui/ChoiceChips";
+import { AUDIT_PAGE, AuditPanel } from "./AuditPanel";
 import { SETTING_HELP, TAB_GUIDE } from "./settings-guide";
 import { SystemPromptsPanel } from "./SystemPromptsPanel";
-import { Technical, TechnicalProvider, TechnicalSwitch, useTechnical, useTechnicalChoice } from "./technical";
+import { Technical, TechnicalProvider, TechnicalSwitch, useTechnicalChoice } from "./technical";
+import { Activity, BookOpen, Cpu, Database, History, type LucideIcon, ScrollText, Sigma, Telescope, Users, Wallet } from "lucide-react";
 import { Icon, type IconName } from "../../rehome/icons";
-import { Button, Chip, Field, Select, Tag, TextInput } from "../../rehome/ui";
-import { CARD, EYEBROW, Empty, Loaded } from "../states";
+import { Chip, Tag, TextInput } from "../../rehome/ui";
+import { CARD, EYEBROW, Loaded } from "../states";
 import { useResource } from "../useResource";
 
 const P = "aia.settings.panel";
@@ -56,13 +60,7 @@ const H = `${P}.history`;
 /** One part of the panel: its data, or why it is missing. A part never blanks the page. */
 export type Part<T> = { ok: true; data: T } | { ok: false; message: string };
 
-/** The OWNER guard's refusals (details.reason) said in Czech; any other refusal as given. */
-const OWNER_REFUSALS = new Set(["owner_only", "last_owner"]);
-function describe(e: unknown): string {
-  const reason = e instanceof ApiError ? e.details.reason : undefined;
-  if (typeof reason === "string" && OWNER_REFUSALS.has(reason)) return t(`${P}.members.refused.${reason}`);
-  return describeError(e);
-}
+const describe = describeMemberError;
 
 async function part<T>(p: Promise<T>): Promise<Part<T>> {
   try {
@@ -118,7 +116,7 @@ async function loadPanel(): Promise<Panel> {
     part(admin.clients()),
     part(loadStudies()),
     doc.may_administer ? part(admin.selfApproval()) : Promise.resolve(null),
-    doc.may_administer ? part(admin.audit(50)) : Promise.resolve(null),
+    doc.may_administer ? part(admin.audit(AUDIT_PAGE)) : Promise.resolve(null),
   ]);
   return { doc, runtime, members, clients, studies, levels, audit };
 }
@@ -198,6 +196,43 @@ function SettingRow({ item }: { item: SettingItem }) {
   );
 }
 
+/** Who changes a reference value: the deployment, a rule in code (code or invariant), or AIA's own API. */
+type RefOwner = "deployment" | "fixed" | "app";
+const ownerOf = (c: SettingControl): RefOwner => (c === "DEPLOYMENT" ? "deployment" : c === "API" ? "app" : "fixed");
+const itemName = (key: string) => (t(`${P}.items.${key}`).startsWith(P) ? key.replaceAll("_", " ") : t(`${P}.items.${key}`));
+
+/** A reference value as a table row: Hodnota, Nastaveno, Kdo mění, Co znamená (the redesign's Reference). */
+function ReferenceRow({ item }: { item: SettingItem }) {
+  return (
+    <tr data-setting={item.key} data-owner={ownerOf(item.control)}>
+      <td className="border-t border-border px-2 py-2 align-top text-sm font-medium text-ink">
+        {itemName(item.key)}
+        <Technical><code data-technical className="mt-1 block break-all text-xs font-normal text-ink-faint">{item.source}</code></Technical>
+      </td>
+      <td className="border-t border-border px-2 py-2 align-top">{item.control === "API" ? <ApiHint item={item} /> : <Value value={item.value} unit={item.unit} />}</td>
+      <td className="whitespace-nowrap border-t border-border px-2 py-2 align-top"><ControlBadge control={item.control} /></td>
+      <td className="border-t border-border px-2 py-2 align-top text-xs leading-5 text-ink-muted">{SETTING_HELP[item.key] ?? "—"}</td>
+    </tr>
+  );
+}
+
+function ReferenceTable({ items }: { items: SettingItem[] }) {
+  const head = "px-2 py-1.5 text-left text-xs font-normal text-ink-faint";
+  return (
+    <div data-setting-rows className="overflow-x-auto">
+      <table className="w-full min-w-[36rem] border-collapse">
+        <thead><tr>
+          <th scope="col" className={`${head} w-[24%]`}>{t(`${P}.reference.col.value`)}</th>
+          <th scope="col" className={`${head} w-[22%]`}>{t(`${P}.reference.col.set`)}</th>
+          <th scope="col" className={head}>{t(`${P}.reference.col.owner`)}</th>
+          <th scope="col" className={head}>{t(`${P}.reference.col.means`)}</th>
+        </tr></thead>
+        <tbody>{items.map((item) => <ReferenceRow key={item.key} item={item} />)}</tbody>
+      </table>
+    </div>
+  );
+}
+
 function Unavailable({ what, message }: { what: string; message: string }) {
   return (
     <p role="alert" className="rounded-sm border border-status-fault/40 bg-status-fault-wash p-3 text-sm text-ink">
@@ -226,298 +261,10 @@ function Sub({ children }: { children: ReactNode }) {
 const TH = "px-2 py-1 text-left font-mono text-[11px] font-normal uppercase tracking-[0.08em] text-ink-faint";
 const TD = "px-2 py-1.5 align-top text-sm";
 // Below sm a column that would push a row's action out of view: its content is shown in the row's first cell or not at all.
-const WIDE = "hidden sm:table-cell";
 
 // ---------------------------------------------------------------- actions
 
-/** A form over one API call: shows the API's answer verbatim, then re-reads the panel. */
-function ActionForm({
-  run,
-  submit,
-  reload,
-  children,
-}: {
-  run: (form: FormData) => Promise<unknown>;
-  submit: string;
-  reload: () => void;
-  children: ReactNode;
-}) {
-  const router = useRouter();
-  const [busy, setBusy] = useState(false);
-  const [answer, setAnswer] = useState<{ ok: boolean; text: string } | null>(null);
-  async function onSubmit(e: FormEvent<HTMLFormElement>) {
-    e.preventDefault();
-    const form = new FormData(e.currentTarget);
-    setBusy(true);
-    setAnswer(null);
-    try {
-      await run(form);
-      setAnswer({ ok: true, text: t(`${P}.saved`) });
-      reload();
-    } catch (err) {
-      if (err instanceof Unauthenticated) {
-        router.replace(`/login?next=${encodeURIComponent(window.location.pathname + window.location.search + window.location.hash)}`);
-        return;
-      }
-      setAnswer({ ok: false, text: describe(err) });
-    } finally {
-      setBusy(false);
-    }
-  }
-  return (
-    <form onSubmit={onSubmit} className="flex flex-wrap items-end gap-2">
-      <fieldset disabled={busy} className="contents">{children}
-      <Button type="submit" small disabled={busy}>{busy ? t(`${P}.sending`) : submit}</Button></fieldset>
-      {answer ? (
-        <span role={answer.ok ? "status" : "alert"} className={`text-xs ${answer.ok ? "text-status-done" : "text-status-fault"}`}>{answer.text}</span>
-      ) : null}
-    </form>
-  );
-}
-
-const str = (form: FormData, name: string) => {
-  const v = form.get(name);
-  return typeof v === "string" ? v.trim() : "";
-};
-
-/** A budget is a number or it is refused -- an empty field is not a zero budget. */
-function budget(form: FormData): number {
-  const raw = str(form, "budget_usd");
-  const n = raw === "" ? NaN : Number(raw);
-  if (!Number.isFinite(n)) throw new Error(t(`${P}.studies.budgetInvalid`));
-  return n;
-}
-
-function RoleSelect({ roles, label, prefix, initial }: { roles: string[]; label: string; prefix: string; initial?: string }) {
-  const technical = useTechnical();
-  return (
-    <Select name="role" defaultValue={initial} aria-label={label} className="w-auto">
-      {roles.map((r) => <option key={r} value={r}>{t(`${prefix}.${r}`)}{technical ? ` (${r})` : ""}</option>)}
-    </Select>
-  );
-}
-
 // ---------------------------------------------------------------- panels
-
-function MembersPanel({ members, vocab, canAdminister, yourRole, reload }: { members: Part<Member[]>; vocab: Vocabularies; canAdminister: boolean; yourRole: string; reload: () => void }) {
-  const [editing, setEditing] = useState<string | null>(null);
-  // Only an OWNER grants or removes OWNER (the API refuses it, owner_only): anyone else is
-  // offered the other roles, and an OWNER's role stays as it is.
-  const owner = yourRole === "OWNER";
-  const roles = owner ? vocab.organization_roles : vocab.organization_roles.filter((r) => r !== "OWNER");
-  // The last active OWNER is not offered a demotion the API refuses (last_owner).
-  const activeOwners = members.ok ? members.data.filter((m) => m.is_active && m.organization_role === "OWNER").length : 0;
-  return <div className="flex min-w-0 flex-col gap-3">
-    <Sub>{t(`${P}.members.title`)}</Sub>
-    <p className="text-sm leading-6 text-ink-muted">{t(`${P}.members.roleHelp`)}</p>
-    {members.ok ? <div className="overflow-x-auto"><table className="w-full">
-      <thead><tr><th className={TH}>{t(`${P}.col.member`)}</th><th className={TH}>{t(`${P}.col.name`)}</th><th className={TH}>{t(`${P}.col.role`)}</th><th className={TH}>{t(`${P}.col.active`)}</th><th className={TH} /></tr></thead>
-      <tbody className="divide-y divide-border">{members.data.map((m) => [
-        <tr key={m.user_id} data-member={m.user_id}>
-          <td className={`${TD} break-all font-medium`}>{m.email}</td>
-          <td className={TD}>{m.display_name || <span className="text-ink-muted">{t(`${P}.members.noName`)}</span>}</td>
-          <td className={TD}><Tag>{t(`aia.orgRoles.${m.organization_role}`)}</Tag></td>
-          <td className={TD}>{t(`${P}.${m.is_active ? "yes" : "no"}`)}</td>
-          <td className={`${TD} text-right`}>{canAdminister ? <Button small aria-expanded={editing === m.user_id} onClick={() => setEditing(editing === m.user_id ? null : m.user_id)}>{editing === m.user_id ? t(`${P}.closeEdit`) : t(`${P}.edit`)}</Button> : null}</td>
-        </tr>,
-        canAdminister && editing === m.user_id ? <tr key={`${m.user_id}-edit`} data-member-edit={m.user_id}><td colSpan={5} className="bg-surface-sunken px-3 py-3">
-          <ActionForm submit={t(`${P}.save`)} reload={reload} run={(f) => admin.addMember({ email: m.email, display_name: str(f, "display_name"), role: str(f, "role") })}>
-            <Field label={t(`${P}.members.name`)}><TextInput name="display_name" defaultValue={m.display_name} className="w-full sm:w-56" /></Field>
-            {m.organization_role !== "OWNER" || (owner && activeOwners > 1)
-              ? <Field label={t(`${P}.members.role`)}><RoleSelect roles={roles} label={`${t(`${P}.members.role`)}: ${m.email}`} prefix="aia.orgRoles" initial={m.organization_role} /></Field>
-              : <Field label={t(`${P}.members.role`)}><input type="hidden" name="role" value="OWNER" /><span className="text-sm">{t("aia.orgRoles.OWNER")}</span><span className="text-xs text-ink-muted">{t(`${P}.members.${owner ? "lastOwner" : "ownerOnly"}`)}</span></Field>}
-          </ActionForm>
-          <p className="mt-2 text-xs leading-5 text-ink-muted">{t(`${P}.members.editHelp`)}</p>
-        </td></tr> : null,
-      ])}</tbody>
-    </table></div> : <Unavailable what={t(`${P}.members.title`)} message={members.message} />}
-    {canAdminister ? <div className="rounded-md border border-border bg-surface-sunken p-4"><h4 className="mb-3 text-sm font-semibold">{t(`${P}.members.add`)}</h4><ActionForm submit={t(`${P}.members.add`)} reload={reload} run={(f) => admin.addMember({ email: str(f, "email"), display_name: str(f, "display_name"), role: str(f, "role") })}>
-      <Field label="E-mail"><TextInput name="email" type="email" required className="w-full sm:w-64" /></Field>
-      <Field label={t(`${P}.members.name`)}><TextInput name="display_name" className="w-full sm:w-48" /></Field>
-      <Field label={t(`${P}.members.role`)}><RoleSelect roles={roles} label={t(`${P}.members.role`)} prefix="aia.orgRoles" initial="MEMBER" /></Field>
-    </ActionForm><p className="mt-3 text-xs leading-5 text-ink-muted">{t(`${P}.members.note`)}</p></div> : null}
-  </div>;
-}
-
-function ClientsPanel({ clients, vocab, canAdminister, reload }: {
-  clients: Part<AdminClient[]>; vocab: Vocabularies; canAdminister: boolean; reload: () => void;
-}) {
-  const technical = useTechnical();
-  return (
-    <div className="flex flex-col gap-3">
-      <Sub>{t(`${P}.clients.title`)}</Sub>
-      {!clients.ok ? <Unavailable what={t(`${P}.clients.title`)} message={clients.message} /> : !clients.data.length ? <Empty>{t(`${P}.clients.none`)}</Empty> : (
-        <div className="overflow-x-auto"><table className="w-full">
-          <thead><tr><th className={TH}>{t(`${P}.clients.name`)}</th>{technical ? <th className={TH}>ID</th> : null}<th className={TH}>{t(`${P}.clients.studies`)}</th><th className={TH}>{t(`${P}.clients.status`)}</th></tr></thead>
-          <tbody className="divide-y divide-border">
-            {clients.data.map((c) => (
-              <tr key={c.client_id} data-client={c.client_id}>
-                <td className={TD}>{c.name}</td>
-                {technical ? <td className={`${TD} font-mono text-xs`}>{c.client_id}</td> : null}
-                <td className={`${TD} font-mono text-xs`}>{c.study_count}</td>
-                <td className={TD}>
-                  {canAdminister ? (
-                    <ActionForm submit={t(`${P}.save`)} reload={reload} run={(f) => admin.setClientStatus(c.client_id, str(f, "status"))}>
-                      <Select name="status" defaultValue={c.status} aria-label={t(`${P}.clients.status`)} className="w-auto">
-                        {vocab.client_statuses.map((s) => <option key={s} value={s}>{t(`${P}.clientStatus.${s}`)}</option>)}
-                      </Select>
-                    </ActionForm>
-                  ) : t(`${P}.clientStatus.${c.status}`)}
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table></div>
-      )}
-    </div>
-  );
-}
-
-function StudiesPanel({ studies, clients, vocab, reload }: {
-  studies: Part<StudyRow[]>; clients: Part<AdminClient[]>; vocab: Vocabularies; reload: () => void;
-}) {
-  const [query, setQuery] = useState("");
-  const [editing, setEditing] = useState<string | null>(null);
-  const clientName = new Map(clients.ok ? clients.data.map((c) => [c.client_id, c.name]) : []);
-  if (!studies.ok) return <Unavailable what={t(`${P}.studies.title`)} message={studies.message} />;
-  if (!studies.data.length) return <Empty>{t(`${P}.studies.none`)}</Empty>;
-  const q = query.trim().toLocaleLowerCase("cs");
-  return (
-    <div className="flex flex-col gap-2">
-      <TextInput type="search" aria-label={t(`${P}.studySearch`)} placeholder={t(`${P}.studySearchPlaceholder`)} value={query} onChange={(e) => setQuery(e.target.value)} />
-      <div className="overflow-x-auto"><table className="w-full">
-        <thead><tr><th className={TH}>{t(`${P}.col.study`)}</th><th className={`${TH} ${WIDE}`}>{t(`${P}.col.client`)}</th><th className={`${TH} ${WIDE}`}>{t(`${P}.col.status`)}</th><th className={`${TH} text-right`}>{t(`${P}.col.budget`)}</th><th className={`${TH} ${WIDE} text-right`}>{t(`${P}.col.spent`)}</th><th className={`${TH} ${WIDE} text-right`}>{t(`${P}.col.remaining`)}</th><th className={TH} /></tr></thead>
-        <tbody className="divide-y divide-border">
-          {studies.data.map(({ study, detail }) => {
-            const costs = detail.ok && detail.data.budget_usd !== null ? detail.data : null;
-            const shown = `${study.name} ${clientName.get(study.client_id) ?? ""}`.toLocaleLowerCase("cs").includes(q);
-            const open = editing === study.study_id;
-            const client = clientName.get(study.client_id) ?? study.client_id;
-            const status = <Tag>{t(`aia.status.${study.status}`)}</Tag>;
-            return [
-              <tr key={study.study_id} hidden={!shown} data-study={study.study_id}>
-                <td className={`${TD} font-medium`}>{study.name}<span className="mt-0.5 flex flex-wrap items-center gap-x-2 font-normal text-ink-muted sm:hidden">{client}{status}</span></td>
-                <td className={`${TD} ${WIDE} text-ink-muted`}>{client}</td>
-                <td className={`${TD} ${WIDE}`}>{status}</td>
-                {costs ? <>
-                  <td className={`${TD} text-right`}><Value value={costs.budget_usd} unit="USD" /></td>
-                  <td className={`${TD} ${WIDE} text-right`}><Value value={costs.spent_usd} unit="USD" /></td>
-                  <td className={`${TD} ${WIDE} text-right`}><Value value={costs.remaining_usd} unit="USD" /></td>
-                </> : <>
-                  {/* No colSpan: one spanning hidden columns would add grid columns below sm. */}
-                  <td className={`${TD} text-right`}><span title={detail.ok ? "" : detail.message} className="rounded-sm border border-dashed border-border-strong px-1.5 text-xs">{t(`${P}.studies.costsHidden`)}</span></td>
-                  <td className={WIDE} /><td className={WIDE} />
-                </>}
-                <td className={`${TD} text-right`}><Button small aria-expanded={open} onClick={() => setEditing(open ? null : study.study_id)}>{open ? t(`${P}.closeEdit`) : t(`${P}.edit`)}</Button></td>
-              </tr>,
-              // Filtered out, an open edit is hidden, never unmounted: a typed budget survives the search.
-              open ? <tr key={`${study.study_id}-edit`} hidden={!shown} data-study-edit={study.study_id}><td colSpan={7} className="bg-surface-sunken px-3 py-3">
-                <div className="grid gap-4 lg:grid-cols-2">
-                  <div>
-                    <p className="mb-1 text-xs font-medium text-ink-muted">{t(`${P}.studies.status`)}</p>
-                    <ActionForm submit={t(`${P}.save`)} reload={reload} run={(f) => admin.setStudyStatus(study.study_id, str(f, "status"))}>
-                      <Select name="status" defaultValue={study.status} aria-label={t(`${P}.studies.status`)} className="w-auto">
-                        {vocab.study_statuses.map((s) => <option key={s} value={s}>{t(`aia.status.${s}`)}</option>)}
-                      </Select>
-                    </ActionForm>
-                  </div>
-                  <div>
-                    <p className="mb-1 text-xs font-medium text-ink-muted">{t(`${P}.studies.ceiling`)}</p>
-                    <ActionForm submit={t(`${P}.save`)} reload={reload} run={(f) => admin.setStudyBudget(study.study_id, budget(f))}>
-                      <TextInput
-                        name="budget_usd" type="number" min={0} max={1000000} step="0.01" required
-                        aria-label={t(`${P}.studies.ceiling`)} defaultValue={costs?.budget_usd ?? undefined} className="w-32"
-                      />
-                      <span className="pb-2 text-xs text-ink-faint">USD</span>
-                    </ActionForm>
-                  </div>
-                  <p className="text-xs text-ink-muted lg:col-span-2">{t(`${P}.studies.permissionNote`)}</p>
-                </div>
-              </td></tr> : null,
-            ];
-          })}
-        </tbody>
-      </table></div>
-    </div>
-  );
-}
-
-function Tri({ value }: { value: boolean | null }) {
-  if (value === null) return <span className="rounded-sm border border-dashed border-border-strong px-1.5 text-xs text-ink-muted">{t(`${P}.approvals.inherit`)}</span>;
-  // A plain tag: the "you" glyph is reserved for work waiting on the viewer (DS-3).
-  return <Tag>{t(value ? `${P}.approvals.allowed` : `${P}.approvals.forbidden`)}</Tag>;
-}
-
-function choice(form: FormData): boolean | null {
-  const c = str(form, "allowed");
-  if (c === "allow") return true;
-  if (c === "forbid") return false;
-  if (c === "inherit") return null;
-  throw new Error(t(`${P}.approvals.chooseFirst`));
-}
-
-function target(form: FormData): { client_id?: string; study_id?: string } {
-  const [kind, id] = str(form, "target").split(":", 2);
-  return kind === "client" ? { client_id: id } : kind === "study" ? { study_id: id } : {};
-}
-
-function TriSelect() {
-  return (
-    <Select name="allowed" defaultValue="" required aria-label={t(`${P}.approvals.choose`)} className="w-auto">
-      <option value="" disabled>{t(`${P}.approvals.choose`)}</option>
-      <option value="forbid">{t(`${P}.approvals.forbid`)}</option>
-      <option value="allow">{t(`${P}.approvals.allow`)}</option>
-      <option value="inherit">{t(`${P}.approvals.inheritOption`)}</option>
-    </Select>
-  );
-}
-
-function SelfApprovalPanel({ levels, clients, studies, reload }: {
-  levels: Part<SelfApprovalLevels> | null; clients: Part<AdminClient[]>; studies: Part<StudyRow[]>; reload: () => void;
-}) {
-  if (levels === null) return <p className="text-sm text-ink-muted">{t(`${P}.approvals.adminOnly`)}</p>;
-  if (!levels.ok) return <Unavailable what={t(`${P}.approvals.title`)} message={levels.message} />;
-  const clientName = new Map(clients.ok ? clients.data.map((c) => [c.client_id, c.name]) : []);
-  const studyName = new Map(studies.ok ? studies.data.map((s) => [s.study.study_id, s.study.name]) : []);
-  const set = (f: FormData) => admin.setSelfApproval({ allowed: choice(f), ...target(f) });
-  const row = (key: string, label: string, value: boolean | null, targetValue: string) => (
-    <tr key={key} data-level={key}>
-      <td className={TD}>{label}</td>
-      <td className={TD}><Tri value={value} /></td>
-      <td className={TD}>
-        <ActionForm submit={t(`${P}.save`)} reload={reload} run={set}>
-          <input type="hidden" name="target" value={targetValue} />
-          <TriSelect />
-        </ActionForm>
-      </td>
-    </tr>
-  );
-  return (
-    <div className="flex flex-col gap-3">
-      <Sub>{t(`${P}.approvals.title`)}</Sub>
-      <p className="text-sm text-ink-muted">{t(`${P}.approvals.rule`)}</p>
-      <div className="overflow-x-auto"><table className="w-full">
-        <thead><tr><th className={TH}>{t(`${P}.approvals.level`)}</th><th className={TH}>{t(`${P}.approvals.stored`)}</th><th className={TH} /></tr></thead>
-        <tbody className="divide-y divide-border">
-          {row("organization", t(`${P}.approvals.organization`), levels.data.organization, "")}
-          {levels.data.clients.map((c) => row(`client:${c.client_id}`, `${t(`${P}.clients.client`)}: ${clientName.get(c.client_id) ?? c.client_id}`, c.allowed, `client:${c.client_id}`))}
-          {levels.data.studies.map((s) => row(`study:${s.study_id}`, `${t(`${P}.studies.study`)}: ${studyName.get(s.study_id) ?? s.study_id}`, s.allowed, `study:${s.study_id}`))}
-        </tbody>
-      </table></div>
-      <div className="rounded-sm border border-border p-3">
-<p className="mb-2 text-xs font-medium text-ink-muted">{t(`${P}.approvals.addOverride`)}</p>
-        <ActionForm submit={t(`${P}.save`)} reload={reload} run={set}>
-          <Select name="target" required defaultValue="" aria-label={t(`${P}.approvals.chooseTarget`)} className="w-auto">
-            <option value="" disabled>{t(`${P}.approvals.chooseTarget`)}</option>
-            {clients.ok ? clients.data.map((c) => <option key={c.client_id} value={`client:${c.client_id}`}>{t(`${P}.clients.client`)}: {c.name}</option>) : null}
-            {studies.ok ? studies.data.map(({ study }) => <option key={study.study_id} value={`study:${study.study_id}`}>{t(`${P}.studies.study`)}: {study.name}</option>) : null}
-          </Select>
-          <TriSelect />
-        </ActionForm>
-      </div>
-    </div>
-  );
-}
 
 // ---- what powers AIA: code facts beside the deployment's switches --------
 
@@ -557,29 +304,21 @@ function SwitchWord({ value }: { value: boolean | null | undefined }) {
   return <span className="font-mono text-sm">{t(`${R}.switchValue.${value === null ? "invalid" : value ? "on" : "off"}`)}</span>;
 }
 
-function ConfigRow({ label, source, children }: { label: string; source: string; children: ReactNode }) {
-  return (
-    <div className="grid grid-cols-1 gap-1 border-t border-border py-2 first:border-t-0 md:grid-cols-[minmax(0,2fr)_minmax(0,3fr)] md:items-center md:gap-4">
-      <div className="min-w-0">
-        <div className="text-sm text-ink">{label}</div>
-        <Technical><code className="break-all text-[11px] text-ink-faint">{source}</code></Technical>
-      </div>
-      <div className="min-w-0 break-all">{children}</div>
-    </div>
-  );
-}
-
 function ActivityRow({ runtime, activity, switches }: { runtime: NativeRuntime; activity: NativeActivity; switches: SwitchValues | null }) {
   const state = activityState(runtime, activity, switches);
   const A = `${R}.activity.${activity.key}`;
   const named = switchFor(state);
+  // The switch this activity has of its own; the master switch is said once, above the table.
+  const own = activity.switches.filter((x) => x !== runtime.switch);
   return (
-    <tr data-activity={activity.key} data-state={state.kind}>
+    <tr data-activity={activity.key} data-state={state.kind} className={state.kind === "off" || state.kind === "unknown" ? "text-ink-muted" : ""}>
       <td className={`${TD} min-w-48`}>
         <h3 className="text-sm font-semibold text-ink">{t(`${A}.title`)}</h3>
         <p className="mt-0.5 text-[13px] leading-5 text-ink-muted">{t(`${A}.text`)}</p>
       </td>
       <td className={`${TD} whitespace-nowrap`}><Chip tone={STATE_TONE[state.kind]}>{t(`${R}.state.${state.kind}`)}</Chip></td>
+      <td className={`${TD} break-all font-mono text-xs`}>{(own.length ? own : [runtime.switch]).join(" + ")}</td>
+      <td className={`${TD} text-xs`}>{t(`${R}.modelOf.${activity.key}`)}</td>
       <td className={TD}>
         <p data-reason className="break-words text-sm text-ink">{reasonFor(state, activity)}</p>
         <Technical>
@@ -597,21 +336,117 @@ function ActivityRow({ runtime, activity, switches }: { runtime: NativeRuntime; 
   );
 }
 
-/** Code facts from the settings document beside the deployment's switches from /config. */
+/** Where an activity sits on the AI běh board (the redesign's groups). */
+const GROUP_OF: Record<string, string> = {
+  study_lead: "study", design_agents: "study",
+  respondent_fieldwork: "run", research_analysis: "run",
+  deep_research: "dr", deep_research_lead: "dr",
+};
+const GROUPS = ["study", "run", "out", "dr", "client"] as const;
+/**
+ * Activities the settings document does not list yet: their switch is read by the worker, not by
+ * /config, so their state is unknown here, never on or off; and two not built at all. Each names
+ * its switch and what it runs on, from the code.
+ */
+const LISTED_ONLY: { key: string; group: (typeof GROUPS)[number]; switch: string; built: boolean }[] = [
+  { key: "lead_plans", group: "study", switch: "AIA_LEAD_PLANS_ENABLED", built: false },
+  { key: "population_personas", group: "run", switch: "AIA_AI_POPULATION_PERSONAS_ENABLED", built: true },
+  { key: "run_qc", group: "run", switch: "AIA_RUN_QC_ENABLED", built: false },
+  { key: "report_pdf", group: "out", switch: "AIA_REPORT_PDF_ENABLED", built: true },
+  { key: "client_source_proposals", group: "client", switch: "AIA_AI_CLIENT_SOURCE_PROPOSALS_ENABLED", built: true },
+];
+
+/** An activity's group: the board's own, then the code-listed row's, else Běh a analýza. */
+const groupOf = (key: string): string => GROUP_OF[key] ?? LISTED_ONLY.find((e) => e.key === key)?.group ?? "run";
+
+function ListedOnlyRow({ entry }: { entry: (typeof LISTED_ONLY)[number] }) {
+  const A = `${R}.activity.${entry.key}`;
+  return (
+    <tr data-activity={entry.key} data-state={entry.built ? "unread" : "not_built"} className="text-ink-muted">
+      <td className={`${TD} min-w-48`}>
+        <h3 className="text-sm font-semibold text-ink">{t(`${A}.title`)}</h3>
+        <p className="mt-0.5 text-[13px] leading-5 text-ink-muted">{t(`${A}.text`)}</p>
+      </td>
+      <td className={`${TD} whitespace-nowrap`}><Chip tone="neutral">{t(`${R}.state.${entry.built ? "unread" : "not_built"}`)}</Chip></td>
+      <td className={`${TD} break-all font-mono text-xs`}>{entry.switch}</td>
+      <td className={`${TD} text-xs`}>{t(`${R}.modelOf.${entry.key}`)}</td>
+      <td className={TD}><p data-reason className="break-words text-sm text-ink-muted">{t(`${R}.reason.${!entry.built ? "notBuilt" : entry.key === "population_personas" ? "unreadApi" : "unread"}`)}</p></td>
+    </tr>
+  );
+}
+
+function Tile({ label, children, note }: { label: string; children: ReactNode; note?: ReactNode }) {
+  return (
+    <div className="min-w-0 rounded-md border border-border px-3.5 py-3">
+      <div className="text-xs text-ink-faint">{label}</div>
+      <div className="mt-1 break-words text-sm font-medium">{children}</div>
+      {note ? <div className="mt-0.5 text-xs text-ink-muted">{note}</div> : null}
+    </div>
+  );
+}
+
+/** Code facts from the settings document beside the deployment's switches from /config: AI běh. */
 function RuntimePanel({ runtime, config, vocab }: { runtime: NativeRuntime; config: Part<RuntimeConfig>; vocab: Vocabularies }) {
   const switches = config.ok ? config.data.switches : null;
   const providers = runtime.providers.map((p) => p.label).join(", ");
+  const states = runtime.activities.map((a) => activityState(runtime, a, switches).kind);
+  const region = config.ok ? config.data.region : null;
   return (
     <div className="flex flex-col gap-4">
+      <div className="flex flex-wrap items-center gap-2">
+        <span className="inline-flex min-h-[22px] items-center rounded-pill border border-border px-2 text-xs text-ink-muted">{t(`${R}.readOnlyChip`)}</span>
+      </div>
       <div className="flex max-w-3xl flex-col gap-1 text-sm">
         <p>{tv(`${R}.powers`, { provider: providers })}</p>
         <p>{t(`${R}.credential.${runtime.credential}`)}</p>
       </div>
-      <div className="flex flex-col gap-2">
-        <Sub>{t(`${R}.activities`)}</Sub>
+      <section data-config aria-labelledby="ai-route-h" className="rounded-md border border-border p-4">
+        <div className="flex flex-wrap items-baseline justify-between gap-2">
+          <h3 id="ai-route-h" className="text-sm font-semibold">{t(`${R}.route`)}</h3>
+          <Technical><span className="text-[11px] text-ink-faint">{t(`${R}.configSource`)}</span></Technical>
+        </div>
+        {config.ok ? (
+          <div className="mt-2.5 grid grid-cols-[repeat(auto-fill,minmax(13rem,1fr))] gap-2.5">
+            <Tile label={t(`${R}.switchLabel`)} note={<Technical><code className="break-all">{runtime.switch}</code></Technical>}><SwitchWord value={config.data.switches[runtime.switch]} /></Tile>
+            <Tile label={t(`${R}.provider`)}>{providers}</Tile>
+            <Tile label={t(`${R}.region`)} note={<>
+              {region === null ? null : <span className="block">{region.startsWith("eu-") ? t(`${R}.inEu`) : t(`${R}.notEu`)}</span>}
+              <Technical><code className="break-all">AIA_BEDROCK_REGION</code></Technical>
+            </>}><Value value={region} /></Tile>
+            <Tile label={t(`${R}.model`)} note={<Technical><code>AIA_BEDROCK_MODEL_ID</code></Technical>}><Value value={config.data.model} /></Tile>
+            <Tile label={t(`${R}.approved`)} note={<Technical><code className="break-all">AIA_AI_ROUTE_APPROVED_FOR</code></Technical>}>
+              {config.data.approvedClasses.length ? (
+                <ul className="flex flex-col gap-0.5">
+                  {approvedClasses(config.data.approvedClasses, vocab.data_classes).map((c) => (
+                    <li key={c.id} className="text-sm font-normal">
+                      <Technical><code className="mr-1 text-xs">{c.id}</code></Technical>
+                      <span className={c.known ? "text-ink" : "text-status-fault"}>{c.known ? t(`${P}.dataClass.${c.id}`) : `${c.id}: ${t(`${R}.unknownClass`)}`}</span>
+                    </li>
+                  ))}
+                </ul>
+              ) : <span className="text-sm font-normal text-ink-muted">{t(`${R}.approvedNone`)}</span>}
+            </Tile>
+          </div>
+        ) : <Unavailable what={t(`${R}.config`)} message={`${config.message} ${t(`${R}.configUnavailable`)}`} />}
+        <p className="mt-2.5 text-xs leading-5 text-ink-muted">{t(`${R}.whoChanges`)}</p>
+      </section>
+      <section aria-labelledby="ai-acts-h" className="flex flex-col gap-2">
+        <div className="flex flex-wrap items-center gap-2">
+          <h3 id="ai-acts-h" className="text-sm font-semibold">{t(`${R}.activities`)}</h3>
+          <span data-count="on" className="inline-flex min-h-[22px] items-center rounded-pill border border-border px-2 text-xs">{tv(`${R}.count.on`, { n: states.filter((k) => k === "configured").length })}</span>
+          <span data-count="off" className="inline-flex min-h-[22px] items-center rounded-pill border border-border px-2 text-xs">{tv(`${R}.count.off`, { n: states.filter((k) => k === "off").length })}</span>
+          <span data-count="new" className="inline-flex min-h-[22px] items-center rounded-pill border border-dashed border-border-strong px-2 text-xs text-ink-muted">{tv(`${R}.count.notBuilt`, { n: LISTED_ONLY.filter((e) => !e.built && !runtime.activities.some((a) => a.key === e.key)).length })}</span>
+        </div>
+        <p className="max-w-3xl text-xs leading-5 text-ink-muted">{t(`${R}.activitiesHelp`)}</p>
         <div className="overflow-x-auto"><table className="w-full">
-          <thead><tr><th className={TH}>{t(`${P}.col.capability`)}</th><th className={TH}>{t(`${P}.col.state`)}</th><th className={TH}>{t(`${P}.col.why`)}</th></tr></thead>
-          <tbody className="divide-y divide-border">{runtime.activities.map((a) => <ActivityRow key={a.key} runtime={runtime} activity={a} switches={switches} />)}</tbody>
+          <thead><tr><th className={TH}>{t(`${P}.col.capability`)}</th><th className={TH}>{t(`${P}.col.state`)}</th><th className={TH}>{t(`${R}.col.switch`)}</th><th className={TH}>{t(`${R}.col.model`)}</th><th className={TH}>{t(`${P}.col.why`)}</th></tr></thead>
+          {GROUPS.map((g) => (
+            <tbody key={g} data-ai-group={g} className="divide-y divide-border">
+              <tr><th colSpan={5} scope="rowgroup" className="px-2 pb-1 pt-4 text-left text-[11px] font-normal uppercase tracking-[0.06em] text-ink-faint">{t(`${R}.group.${g}`)}</th></tr>
+              {runtime.activities.filter((a) => groupOf(a.key) === g).map((a) => <ActivityRow key={a.key} runtime={runtime} activity={a} switches={switches} />)}
+              {LISTED_ONLY.filter((e) => e.group === g && !runtime.activities.some((a) => a.key === e.key)).map((e) => <ListedOnlyRow key={e.key} entry={e} />)}
+            </tbody>
+          ))}
         </table></div>
         {runtime.unused_capabilities.length ? (
           <Technical>
@@ -622,32 +457,7 @@ function RuntimePanel({ runtime, config, vocab }: { runtime: NativeRuntime; conf
             </div>
           </Technical>
         ) : null}
-      </div>
-      <div data-config className="rounded-sm border border-border p-3">
-        <div className="flex flex-wrap items-baseline justify-between gap-2">
-          <Sub>{t(`${R}.config`)}</Sub>
-          <Technical><span className="text-[11px] text-ink-faint">{t(`${R}.configSource`)}</span></Technical>
-        </div>
-        {config.ok ? (
-          <div className="mt-1">
-            <ConfigRow label={t(`${R}.switchLabel`)} source={runtime.switch}><SwitchWord value={config.data.switches[runtime.switch]} /></ConfigRow>
-            <ConfigRow label={t(`${R}.region`)} source="AIA_BEDROCK_REGION"><Value value={config.data.region} /></ConfigRow>
-            <ConfigRow label={t(`${R}.model`)} source="AIA_BEDROCK_MODEL_ID"><Value value={config.data.model} /></ConfigRow>
-            <ConfigRow label={t(`${R}.approved`)} source="AIA_AI_ROUTE_APPROVED_FOR">
-              {config.data.approvedClasses.length ? (
-                <ul className="flex flex-col gap-0.5">
-                  {approvedClasses(config.data.approvedClasses, vocab.data_classes).map((c) => (
-                    <li key={c.id} className="text-sm">
-                      <Technical><code className="mr-1 text-xs">{c.id}</code></Technical>
-                      <span className={c.known ? "text-ink" : "text-status-fault"}>{c.known ? t(`${P}.dataClass.${c.id}`) : `${c.id}: ${t(`${R}.unknownClass`)}`}</span>
-                    </li>
-                  ))}
-                </ul>
-              ) : <span className="text-sm text-ink-muted">{t(`${R}.approvedNone`)}</span>}
-            </ConfigRow>
-          </div>
-        ) : <Unavailable what={t(`${R}.config`)} message={`${config.message} ${t(`${R}.configUnavailable`)}`} />}
-      </div>
+      </section>
       <p role="note" data-not-verified className="rounded-sm border border-border bg-surface-sunken p-3 text-sm text-ink">{t(`${R}.notVerified`)}</p>
     </div>
   );
@@ -734,36 +544,6 @@ function RoleMatrix({ vocab }: { vocab: Vocabularies }) {
   );
 }
 
-function AuditPanel({ audit, members }: { audit: Part<AuditEntry[]> | null; members: Part<Member[]> }) {
-  const [query, setQuery] = useState("");
-  const [actor, setActor] = useState("");
-  const [event, setEvent] = useState("");
-  if (audit === null) return <p className="text-sm text-ink-muted">{t(`${P}.audit.adminOnly`)}</p>;
-  if (!audit.ok) return <Unavailable what={t(`${P}.groups.audit.title`)} message={audit.message} />;
-  if (!audit.data.length) return <Empty>{t(`${P}.audit.none`)}</Empty>;
-  const who = new Map(members.ok ? members.data.map((m) => [m.user_id, m.email]) : []);
-  const person = (id: string | null) => (id ? (who.get(id) ?? id) : "—");
-  const names: Record<string, string> = { MEMBER_ADDED: "Přidání nebo úprava člena", USER_DEACTIVATED: "Deaktivace uživatele", CLIENT_CREATED: "Založení klienta", CLIENT_STATUS_CHANGED: "Změna stavu klienta", STUDY_CREATED: "Založení studie", STUDY_STATUS_CHANGED: "Změna stavu studie", STUDY_BUDGET_CHANGED: "Změna rozpočtu studie", STUDY_SPEND_CONFIRM_CHANGED: "Změna potvrzení útraty", SELF_APPROVAL_CONFIGURED: "Nastavení samoschválení", AIA_SESSION: "Přihlášení do AIA", PROMPT_ACTIVATED: "Aktivace systémového promptu", PROMPT_VERSION_CREATED: "Nová verze promptu", DR_TEST_POLICY_APPROVED: "Schválení testovacích pravidel rešerše", DR_TEST_POLICY_PROPOSED: "Návrh testovacích pravidel rešerše", CLIENT_GRANT: "Záznam přístupu ke klientovi", SELF_APPROVAL_CHANGED: "Změna samoschválení", ORGANIZATION_CREATED: "Založení organizace", AIA_SESSION_DENIED: "Odmítnuté přihlášení do AIA", MEMBER_ROLE_DENIED: "Odmítnutá změna role", IDENTITY_SUBJECT_CLEARED: "Uvolnění přihlašovací identity", PERMISSION_DENIED: "Odmítnutá akce", PROMPT_RESET_TO_BASELINE: "Návrat promptu na text z kódu", DR_SETTING_PROPOSED: "Návrh pravidla rešerše", DR_SETTING_APPROVED: "Schválení pravidla rešerše", DR_SETTING_WITHDRAWN: "Návrat pravidla rešerše na výchozí", METHODOLOGY_PROPOSED: "Nová verze metodiky", METHODOLOGY_ACTIVATED: "Uvedení metodiky v platnost", METHODOLOGY_RESET: "Návrat metodiky na verzi z kódu", CLIENT_KNOWLEDGE_AUTHORED: "Zápis znalosti klienta", CLIENT_KNOWLEDGE_DECIDED: "Rozhodnutí o návrhu znalosti" };
-  const actors = [...new Set(audit.data.map((entry) => entry.actor_id).filter((id): id is string => !!id))].sort((left, right) => person(left).localeCompare(person(right), "cs"));
-  const events = [...new Set(audit.data.map((entry) => entry.action))].sort((left, right) => (names[left] ?? left).localeCompare(names[right] ?? right, "cs"));
-  const visible = audit.data.filter((e) => (!actor || e.actor_id === actor) && (!event || e.action === event) && `${names[e.action] ?? e.action} ${person(e.actor_id)} ${person(e.subject_user_id)} ${e.study_id ?? e.client_id ?? ""} ${e.reason ?? ""}`.toLocaleLowerCase("cs").includes(query.trim().toLocaleLowerCase("cs")));
-  return <div className="flex min-w-0 flex-col gap-3">
-    <div className="grid gap-2 md:grid-cols-[minmax(0,1fr)_minmax(8rem,12rem)_minmax(8rem,14rem)]">
-      <TextInput type="search" aria-label={t(`${P}.auditSearch`)} placeholder={t(`${P}.auditSearchPlaceholder`)} value={query} onChange={(e) => setQuery(e.target.value)} />
-      <Select aria-label="Osoba v historii" value={actor} onChange={(e) => setActor(e.target.value)}><option value="">Všechny osoby</option>{actors.map((id) => <option key={id} value={id}>{person(id)}</option>)}</Select>
-      <Select aria-label="Typ události v historii" value={event} onChange={(e) => setEvent(e.target.value)}><option value="">Všechny události</option>{events.map((action) => <option key={action} value={action}>{names[action] ?? action.replaceAll("_", " ").toLocaleLowerCase("cs")}</option>)}</Select>
-    </div>
-    <p role="status" className="text-xs text-ink-muted">Zobrazeno {visible.length} z {audit.data.length} záznamů</p>
-    {!visible.length ? <p role="status" className="text-sm text-ink-muted">{t(`${P}.noSearchResults`)}</p> : null}
-    <ol className="flex flex-col gap-2">{visible.map((e) => <li key={e.event_id} className="rounded-md border border-border bg-surface p-3 text-sm">
-      <div className="flex flex-wrap items-start justify-between gap-2"><strong>{names[e.action] ?? e.action.replaceAll("_", " ").toLocaleLowerCase("cs")}</strong><time dateTime={e.created_at ?? undefined} className="text-xs text-ink-muted">{e.created_at ? new Intl.DateTimeFormat("cs-CZ", { dateStyle: "medium", timeStyle: "short", timeZone: "Europe/Prague" }).format(new Date(e.created_at)) : "—"}</time></div>
-      <p className="mt-1 break-words text-xs text-ink-muted">{t(`${P}.audit.actor`)}: {person(e.actor_id)}{e.subject_user_id ? ` · ${t(`${P}.audit.subject`)}: ${person(e.subject_user_id)}` : ""}</p>
-      {e.reason ? <p className="mt-2 break-words leading-6">{e.reason}</p> : null}
-      <Technical><p data-technical className="mt-2 break-all font-mono text-xs text-ink-faint">{e.action} · {e.study_id ?? e.client_id ?? "—"} · {e.role ?? "—"}</p></Technical>
-    </li>)}</ol>
-  </div>;
-}
-
 // ---------------------------------------------------------------- the panel
 
 // The page is split into tabs by what a person came to do. Every tab's panel stays
@@ -771,13 +551,19 @@ function AuditPanel({ audit, members }: { audit: Part<AuditEntry[]> | null; memb
 // never lost by looking at another. A group the API adds later still renders -- in
 // Reference -- so a new control is never hidden. What powers AIA comes first: every
 // reader needs it, the deployment's posture only administrators.
-export const TABS = ["methodology", "prompts", "deep_research", "ai", "access", "studies", "audit", "reference"] as const;
+export const TABS = ["methodology", "prompts", "deep_research", "ai", "access", "studies", "audit", "system", "reference", "data"] as const;
 export type TabId = (typeof TABS)[number];
 const TAB_GROUPS: { title: string; tabs: readonly TabId[] }[] = [
   { title: "Nastavení výzkumu", tabs: ["methodology", "prompts", "deep_research", "ai"] },
-  { title: "Tým a útrata", tabs: ["access", "studies"] },
-  { title: "Provoz", tabs: ["audit", "reference"] },
+  { title: "Tým a peníze", tabs: ["access", "studies"] },
+  { title: "Provoz", tabs: ["audit", "system", "reference", "data"] },
 ];
+// Each tab's line under its name in the side navigation, and its icon (decorative: the name is the label).
+const TAB_ICON: Record<TabId, LucideIcon> = {
+  methodology: Sigma, prompts: ScrollText, deep_research: Telescope, ai: Cpu,
+  access: Users, studies: Wallet,
+  audit: History, system: Activity, reference: BookOpen, data: Database,
+};
 const TAB_FACTS: Record<TabId, { scope: string; owner: string }> = {
   methodology: { scope: "Budoucí běhy studií", owner: "Verze může upravovat vlastník nebo správce; účinná je až po aktivaci" },
   prompts: { scope: "Nově zadané AI úlohy organizace", owner: "Vlastník nebo správce; uložení a zapnutí jsou samostatné kroky" },
@@ -786,7 +572,9 @@ const TAB_FACTS: Record<TabId, { scope: string; owner: string }> = {
   access: { scope: "Organizace, klient nebo studie", owner: "Změny podléhají roli a oprávnění ověřenému serverem" },
   studies: { scope: "Jednotlivá studie", owner: "Rozpočet se mění jen s oprávněním pro danou studii" },
   audit: { scope: "Historie organizace", owner: "Záznamy jsou jen ke čtení" },
+  system: { scope: "Toto nasazení", owner: "Jen ke čtení; připravenost hlásí nasazení, chyby GlitchTip" },
   reference: { scope: "Toto nasazení a kód", owner: "Technické hodnoty a pevná pravidla zde nelze upravit" },
+  data: { scope: "Organizace a její klienti", owner: "Vlastník nebo správce; smazání klienta je nevratné" },
 };
 
 const NO_ITEMS: SettingItem[] = [];
@@ -796,7 +584,7 @@ const OWN_TABS = new Set<TabId>(["prompts", "deep_research", "methodology"]);
 
 // The settings-document groups each tab shows, in order. "roles", "audit" and
 // "invariants" are not API groups; the panel draws them itself.
-const TAB_SECTIONS: Record<Exclude<TabId, "prompts" | "deep_research" | "methodology">, string[]> = {
+const TAB_SECTIONS: Record<Exclude<TabId, "prompts" | "deep_research" | "methodology" | "system" | "data">, string[]> = {
   ai: ["ai", "ai_history"],
   access: ["access", "approvals", "roles"],
   studies: ["studies"],
@@ -819,6 +607,8 @@ function PanelView({ panel, reload }: { panel: Panel; reload: () => void }) {
   const invariants = doc.groups.flatMap((g) => g.items.filter((i) => i.control === "INVARIANT"));
   const [active, setActive] = useState<TabId>("methodology");
   const [referenceQuery, setReferenceQuery] = useState("");
+  const [referenceCategory, setReferenceCategory] = useState<string>("all");
+  const [referenceOwner, setReferenceOwner] = useState<"all" | RefOwner>("all");
   const [technical, setTechnical] = useTechnicalChoice();
   const [drawn, setDrawn] = useState<ReadonlySet<TabId>>(new Set<TabId>(["methodology"]));
   const select = (tab: TabId) => {
@@ -860,67 +650,96 @@ function PanelView({ panel, reload }: { panel: Panel; reload: () => void }) {
   const extra: Record<string, ReactNode> = {
     ai: <RuntimePanel runtime={doc.ai_runtime} config={runtime} vocab={vocab} />,
     ai_history: <HistoryPanel vocab={vocab} items={byKey.get("ai_history")?.items ?? []} />,
-    access: (
-      <>
-        <MembersPanel members={members} vocab={vocab} canAdminister={doc.may_administer} yourRole={doc.your_role} reload={reload} />
-        <ClientsPanel clients={clients} vocab={vocab} canAdminister={doc.may_administer} reload={reload} />
-      </>
-    ),
+    access: <MembersCard members={members} vocab={vocab} canAdminister={doc.may_administer} yourRole={doc.your_role} reload={reload} />,
     studies: (
       <>
-        <ResearcherSpendCard />
-        <StudiesPanel studies={studies} clients={clients} vocab={vocab} reload={reload} />
+        <ResearcherSpendCard nearLimitCount={studies.ok ? nearLimitTally(studies.data.map(({ detail }) => detail)) : null} />
+        <StudiesTable studies={studies} clients={clients} vocab={vocab} reload={reload} />
       </>
     ),
-    approvals: <SelfApprovalPanel levels={levels} clients={clients} studies={studies} reload={reload} />,
+    approvals: (
+      <>
+        <SelfApprovalCard levels={levels} canAdminister={doc.may_administer} reload={reload} studies={studies.ok ? studies.data.map(({ study }) => ({ study_id: study.study_id, name: study.name })) : []} />
+        <ClientsCard clients={clients} levels={levels} vocab={vocab} canAdminister={doc.may_administer} reload={reload} />
+      </>
+    ),
     residency: <DataClasses vocab={vocab} />,
     workflow: <Stages vocab={vocab} />,
     roles: <RoleMatrix vocab={vocab} />,
-    audit: <AuditPanel audit={audit} members={members} />,
+    audit: <AuditPanel audit={audit} members={members} clients={clients} studies={studies} />,
   };
   // A group is drawn when the API sent it; the AI section and audit always are. The role
   // matrix and the prototype's AI history are reference material: technical details only.
   const present = (k: string) => (byKey.has(k) || k === "ai" || k === "roles" || k === "audit") && (technical || (k !== "roles" && k !== "ai_history"));
   const known = new Set([...Object.values(TAB_SECTIONS).flat(), "deep_research"]);
   const unknown = doc.groups.map((g) => g.key).filter((k) => !known.has(k));
+  const referenceMatch = (item: SettingItem) => (referenceOwner === "all" || ownerOf(item.control) === referenceOwner)
+    && `${itemName(item.key)} ${SETTING_HELP[item.key] ?? ""} ${item.key} ${item.source} ${String(item.value)}`.toLocaleLowerCase("cs").includes(referenceQuery.trim().toLocaleLowerCase("cs"));
+  // A reference group's own values: its invariants are listed once, under Invarianty.
+  const groupItems = (key: string) => (key === "invariants" ? invariants : (byKey.get(key)?.items ?? []).filter((i) => i.control !== "INVARIANT"));
   const section = (key: string, tab: TabId) => {
     const reference = TAB_SECTIONS.reference.includes(key) || unknown.includes(key);
     const query = referenceQuery.trim().toLocaleLowerCase("cs");
-    const items = (byKey.get(key)?.items ?? []).filter((item) => !reference || !query || `${t(`${P}.items.${item.key}`)} ${SETTING_HELP[item.key] ?? ""} ${item.key} ${item.source} ${String(item.value)}`.toLocaleLowerCase("cs").includes(query));
-    if (reference && query && !items.length && !t(`${P}.groups.${key}.title`).toLocaleLowerCase("cs").includes(query)) return null;
-    const rows = <div data-setting-rows>{items.map((item) => <SettingRow key={item.key} item={item} />)}</div>;
-    // A group with its own panel keeps the document's rows as technical details; a group
-    // without one (the reference) is its rows.
+    // An invariant is listed once, under Invarianty, not again in its group (review of #851).
+    const items = (byKey.get(key)?.items ?? []).filter((item) => !reference || (item.control !== "INVARIANT" && referenceMatch(item)));
+    if (reference && (referenceCategory !== "all" && referenceCategory !== key)) return null;
+    if (reference && (query || referenceOwner !== "all") && !items.length) return null;
+    const rows = reference ? <ReferenceTable items={items} /> : <div data-setting-rows>{items.map((item) => <SettingRow key={item.key} item={item} />)}</div>;
+    // A group with its own panel keeps the document's rows as technical details. A reference group
+    // is its rows, always: a search or category that finds a value shows it, and only each row's
+    // source waits for technical details (ReferenceRow), never the table (review of #851).
     return <Section key={key} id={key} tab={tab}>
       {extra[key] ?? null}
-      {OWN_ROWS.has(key) || key === "roles" || key === "audit" || !items.length ? null : extra[key] ? <Technical><Sub>{t(`${P}.relatedSettings`)}</Sub>{rows}</Technical> : rows}
+      {OWN_ROWS.has(key) || key === "roles" || key === "audit" || !items.length ? null : extra[key] && !reference ? <Technical><Sub>{t(`${P}.relatedSettings`)}</Sub>{rows}</Technical> : rows}
     </Section>;
   };
   const body = (tab: TabId): ReactNode => {
-    if (tab === "prompts") return <SystemPromptsSection doc={doc} members={members} clients={clients} studies={studies} />;
+    if (tab === "prompts") return <SystemPromptsSection doc={doc} members={members} />;
     if (tab === "deep_research") return <DeepResearchSection items={byKey.get("deep_research")?.items ?? NO_ITEMS} members={members} />;
     if (tab === "methodology") return <MethodologySection members={members} />;
+    if (tab === "system") return <SystemSection />;
+    if (tab === "data") return <DataSection />;
     const keys = [...TAB_SECTIONS[tab].filter(present), ...(tab === "reference" ? unknown : [])];
     return (
       <>
-        {tab === "reference" ? <>
-          <TextInput type="search" aria-label={t(`${P}.referenceSearch`)} placeholder={t(`${P}.referenceSearchPlaceholder`)} value={referenceQuery} onChange={(e) => setReferenceQuery(e.target.value)} />
-          <nav aria-label={t(`${P}.referenceJump`)} data-reference-jump className="flex flex-wrap gap-2">
-            {[...keys, "invariants"].map((key) => <a key={key} href={`#set-${key}`} onClick={(e) => { e.preventDefault(); document.getElementById(`set-${key}`)?.scrollIntoView({ block: "start" }); }} className="rounded-sm border border-border px-3 py-2 text-sm text-ink hover:bg-surface-sunken focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus-ring">{t(`${P}.groups.${key}.title`).startsWith(P) ? key.replaceAll("_", " ") : t(`${P}.groups.${key}.title`)}</a>)}
-          </nav>
-        </> : null}
+        {tab === "reference" ? (() => {
+          const total = [...keys, "invariants"].reduce((n, key) => n + groupItems(key).length, 0);
+          const shown = [...keys, "invariants"].filter((key) => referenceCategory === "all" || referenceCategory === key).reduce((n, key) => n + groupItems(key).filter(referenceMatch).length, 0);
+          const owners = (["all", "deployment", "fixed", "app"] as const).filter((o) => o === "all" || [...keys, "invariants"].some((key) => groupItems(key).some((i) => ownerOf(i.control) === o)));
+          return <div data-reference-filters className={`${CARD} flex flex-col gap-3`}>
+            <TextInput type="search" aria-label={t(`${P}.referenceSearch`)} placeholder={t(`${P}.referenceSearchPlaceholder`)} value={referenceQuery} onChange={(e) => setReferenceQuery(e.target.value)} />
+            <div className="flex flex-wrap items-baseline justify-between gap-2">
+              <span className="text-xs text-ink-faint">{t(`${P}.reference.categories`)}</span>
+              <span role="status" className="text-xs text-ink-muted">{tv(`${P}.reference.shown`, { shown, total })}</span>
+            </div>
+            <div data-reference-categories className="flex flex-wrap gap-1.5">
+              {["all", ...keys, "invariants"].map((key) => {
+                const on = referenceCategory === key;
+                // A chip counts what its group shows under the search and Kdo mění, as the tables do.
+                const n = (key === "all" ? [...keys, "invariants"] : [key]).reduce((sum, k) => sum + groupItems(k).filter(referenceMatch).length, 0);
+                const label = key === "all" ? t(`${P}.reference.all`) : t(`${P}.groups.${key}.title`).startsWith(P) ? key.replaceAll("_", " ") : t(`${P}.groups.${key}.title`);
+                return <button key={key} type="button" data-reference-category={key} aria-pressed={on} onClick={() => setReferenceCategory(key)}
+                  className={`inline-flex min-h-8 items-center gap-1.5 rounded-pill border px-2.5 text-xs ${on ? "border-signal bg-signal-wash font-medium text-ink" : "border-border text-ink-muted hover:bg-surface-sunken"} focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus-ring`}>
+                  {label}<span className="font-mono tabular-nums text-ink-faint">{n}</span>
+                </button>;
+              })}
+            </div>
+            <ChoiceChips label={t(`${P}.reference.owner`)} value={referenceOwner} options={owners.map((o) => ({ key: o, label: t(`${P}.reference.owners.${o}`) }))} onChange={setReferenceOwner} />
+          </div>;
+        })() : null}
         {keys.map((key) => section(key, tab))}
-        {tab === "reference" ? <Section id="invariants"><div>{invariants.filter((item) => `${t(`${P}.items.${item.key}`)} ${SETTING_HELP[item.key] ?? ""} ${item.key}`.toLocaleLowerCase("cs").includes(referenceQuery.trim().toLocaleLowerCase("cs"))).map((item) => <SettingRow key={item.key} item={item} />)}</div></Section> : null}
+        {tab === "reference" && (referenceCategory === "all" || referenceCategory === "invariants") && invariants.some(referenceMatch) ? <Section id="invariants"><ReferenceTable items={invariants.filter(referenceMatch)} /></Section> : null}
+        {tab === "reference" && ![...keys, "invariants"].filter((k) => referenceCategory === "all" || referenceCategory === k).some((k) => groupItems(k).some(referenceMatch)) ? <p role="status" className="text-sm text-ink-muted">{t(`${P}.reference.none`)}</p> : null}
       </>
     );
   };
   return (
     <TechnicalProvider on={technical}>
     <div data-settings-workspace className="flex flex-col gap-4 [&_button:not([data-dense])]:!min-h-11 [&_select]:!min-h-11 [&_input:not([type=checkbox]):not([type=radio])]:!min-h-11 [&_summary]:!min-h-11">
-      <div className="grid min-w-0 gap-5 xl:grid-cols-[12rem_minmax(0,1fr)]">
+      <div className="grid min-w-0 gap-5 xl:grid-cols-[14.25rem_minmax(0,1fr)]">
       <div role="tablist" aria-label={t(`${P}.tabs.label`)} onKeyDown={onKey} className="flex h-fit min-w-0 gap-3 overflow-x-auto border-b border-border bg-surface-raised p-2 xl:sticky xl:top-28 xl:flex-col xl:overflow-visible xl:rounded-md xl:border">
         {TAB_GROUPS.map((group) => <div key={group.title} role="group" aria-label={group.title} className="flex shrink-0 gap-1 xl:flex-col">
-          <p className="hidden px-3 pt-2 font-mono text-[11px] font-semibold uppercase tracking-wider text-ink-faint xl:block">{group.title}</p>
+          <p className="hidden px-2.5 pb-1.5 pt-3.5 text-[11px] uppercase tracking-[0.06em] text-ink-faint xl:block">{group.title}</p>
           {group.tabs.map((tab) => (
           <button
             key={tab}
@@ -932,9 +751,13 @@ function PanelView({ panel, reload }: { panel: Panel; reload: () => void }) {
             aria-controls={`panel-${tab}`}
             tabIndex={active === tab ? 0 : -1}
             onClick={() => select(tab)}
-            className={`min-w-28 rounded-sm border px-3 py-2 text-left text-sm focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus-ring xl:min-w-0 ${active === tab ? "border-signal-edge bg-signal-wash font-semibold text-signal" : "border-transparent text-ink-muted hover:bg-surface-sunken hover:text-ink"}`}
+            className={`flex min-w-28 items-start gap-2.5 rounded-md border px-2.5 py-2 text-left text-sm focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus-ring xl:min-w-0 ${active === tab ? "border-transparent bg-signal-wash font-medium text-ink" : "border-transparent text-ink-muted hover:bg-surface-sunken hover:text-ink"}`}
           >
-            <span className="block">{t(`${P}.tabs.${tab}`)}</span>
+            <TabIcon tab={tab} active={active === tab} />
+            <span className="min-w-0">
+              <span className="block whitespace-nowrap">{t(`${P}.tabs.${tab}`)}</span>
+              <span data-tab-subtitle className="hidden text-xs font-normal leading-4 text-ink-faint xl:block">{t(`${P}.tabSubtitles.${tab}`)}</span>
+            </span>
           </button>
           ))}
         </div>)}
@@ -955,6 +778,45 @@ function PanelView({ panel, reload }: { panel: Panel; reload: () => void }) {
       ))}</div></div>
     </div>
     </TechnicalProvider>
+  );
+}
+
+/** A tab's icon in the side navigation: decorative, the tab's name is its label. */
+function TabIcon({ tab, active }: { tab: TabId; active: boolean }) {
+  const Glyph = TAB_ICON[tab];
+  return <Glyph aria-hidden="true" focusable="false" size={18} strokeWidth={1.75} className={`mt-px shrink-0 ${active ? "text-signal" : "text-ink-faint"}`} />;
+}
+
+/** One card of a tab whose content AIA does not have yet: its heading, what it will hold, and the plain fact. */
+function NotYet({ id, title, holds }: { id: string; title: string; holds: string }) {
+  return (
+    <section id={`set-${id}`} aria-labelledby={`set-${id}-title`} className="rounded-md border border-border bg-surface-raised px-6 py-5">
+      <h3 id={`set-${id}-title`} className="text-base font-semibold">{title}</h3>
+      <p className="mt-1 text-sm leading-6 text-ink-muted">{holds}</p>
+      <p data-not-yet className="mt-3 inline-flex rounded-sm border border-dashed border-border-strong px-2 py-0.5 text-xs text-ink-muted">{t(`${P}.notYet`)}</p>
+    </section>
+  );
+}
+
+/** Stav systému: readiness after a deploy and error reporting (settings-redesign chunk 1; the content comes with its backend). */
+function SystemSection() {
+  const S = `${P}.system`;
+  return (
+    <div className="flex flex-col gap-4">
+      <NotYet id="readiness" title={t(`${S}.readiness`)} holds={t(`${S}.readinessHolds`)} />
+      <NotYet id="errors" title={t(`${S}.errors`)} holds={t(`${S}.errorsHolds`)} />
+    </div>
+  );
+}
+
+/** Správa dat: deleting a client and the records AIA keeps (settings-redesign chunk 1; the content comes with its backend). */
+function DataSection() {
+  const D = `${P}.data`;
+  return (
+    <div className="flex flex-col gap-4">
+      <NotYet id="client-delete" title={t(`${D}.clientDelete`)} holds={t(`${D}.clientDeleteHolds`)} />
+      <NotYet id="kept-records" title={t(`${D}.keptRecords`)} holds={t(`${D}.keptRecordsHolds`)} />
+    </div>
   );
 }
 

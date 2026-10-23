@@ -16,6 +16,7 @@ from sqlalchemy import select
 
 from aia_core.application.workflows import start_workflow
 from aia_core.domain.design import DESIGN_MAX_BYTES, DesignRejected, validate_design
+from aia_core.domain.edit_log import ActorKind, OpSource, WriteBy
 from aia_core.domain.scope import ScopeDenied, StudyKind, StudyStatus
 from aia_core.infrastructure.repositories import ProjectNotFound, ProjectRepository
 from aia_core.infrastructure.study_design_repository import (
@@ -273,7 +274,12 @@ def test_a_design_names_the_working_revision_it_is_and_is_checked_by_hash(
 ) -> None:
     scope = scoped.scope()
     workspaces = StudyWorkspaceRepository(session)
-    saved = workspaces.save(scope, content=DESIGN, base_revision=None)
+    saved = workspaces.save(
+        scope,
+        content=DESIGN,
+        base_revision=None,
+        by=WriteBy(ActorKind.PERSON, scope.actor_id, OpSource.UI),
+    )
     repo = designs()
     revision, created = repo.submit(
         content=dict(DESIGN), source_stage="questionnaire", workspace_revision=saved.revision
@@ -288,7 +294,13 @@ def test_a_design_names_the_working_revision_it_is_and_is_checked_by_hash(
         assert refused.value.reason == "design_not_from_workspace"
     # The same design from a later working revision is the same Design Revision, which keeps
     # the working revision it was first written from.
-    later = workspaces.save(scope, content=DESIGN, analysis={"x": 1}, base_revision=saved.revision)
+    later = workspaces.save(
+        scope,
+        content=DESIGN,
+        analysis={"x": 1},
+        base_revision=saved.revision,
+        by=WriteBy(ActorKind.PERSON, scope.actor_id, OpSource.UI),
+    )
     assert later.revision == saved.revision + 1
     again, created = repo.submit(
         content=DESIGN, source_stage="run", workspace_revision=later.revision

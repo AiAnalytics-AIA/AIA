@@ -437,6 +437,14 @@ describe("LeadPane", () => {
     expect(screen.getByRole("button", { name: "Ukázat: Hypotéza hyp_gone" })).toBeTruthy();
   });
 
+  it("names a show_diff chip by the stage whose changes it shows", async () => {
+    state = { ...state, turns: [turn({ output: { reply: "Tady jsou.", view: [{ op: "show_diff", stage: "questionnaire" }] } })] };
+    const onView = vi.fn();
+    render(pane({ onView }));
+    fireEvent.click(await screen.findByRole("button", { name: "Změny: Dotazník" }));
+    expect(onView).toHaveBeenCalledWith([{ op: "show_diff", stage: "questionnaire" }]);
+  });
+
   it("keeps a message the server did not take, held until the researcher tries again", async () => {
     state = { ...state, turns: [turn({ output: { reply: "Dobrý den." } })] };
     render(pane());

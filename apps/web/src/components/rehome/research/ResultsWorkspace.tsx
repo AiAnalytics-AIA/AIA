@@ -4,7 +4,19 @@ import { type KeyboardEvent, type ReactNode, useEffect, useId, useRef, useState 
 import Link from "next/link";
 import type { ResearchRun } from "@/lib/api";
 import { runState } from "@/lib/run-state";
-import { usd } from "@/lib/researcher-spend";
+import { t } from "@/i18n/t";
+import { spendRows } from "@/lib/run-spend";
+
+/** What the run has spent, by Průběh's Náklady rule (#774): the attempts' sum would read a call that came
+ *  back without a price as nothing spent, so such calls are named beside it, said while the run goes on
+ *  as possibly still in flight. Only the spent and unpriced rows: holds and the remainder are Průběh's. */
+function spentWords(run: ResearchRun): ReactNode {
+  const rows = spendRows(run.spend, run.is_terminal, null, run.cost_ceiling);
+  if (!rows) return t("research.exec.spend.unknown");
+  const spent = rows.find((r) => r.key === "spent")?.value;
+  const unpriced = rows.find((r) => r.key === "unpriced");
+  return unpriced ? <>{spent} · {unpriced.label}: {unpriced.value} <span className="text-xs font-normal text-ink-muted">({unpriced.note})</span></> : spent;
+}
 
 export type ResultPanel = { id: string; label: string; description: string; content: ReactNode };
 
@@ -85,7 +97,7 @@ export function ResultsWorkspace({ run, panels, progressHref, notice, lead }: {
       <dl className="mt-4 flex flex-wrap gap-x-8 gap-y-2 border-t border-border pt-3 text-sm">
         <div><dt className="text-xs text-ink-muted">Stav běhu</dt><dd className="font-semibold">{runState(run).label}</dd></div>
         <div><dt className="text-xs text-ink-muted">Revize návrhu</dt><dd className="font-semibold">{run.design_revision}</dd></div>
-        <div><dt className="text-xs text-ink-muted">Skutečné náklady běhu</dt><dd className="font-semibold">{run.actual_cost_usd == null ? "Zatím nejsou vykázané" : usd(run.actual_cost_usd)}</dd></div>
+        <div data-run-spent><dt className="text-xs text-ink-muted">{t("research.exec.spend.spent")}</dt><dd className="font-semibold">{spentWords(run)}</dd></div>
         {run.methodology ? <div data-run-methodology><dt className="text-xs text-ink-muted">Metodika běhu</dt><dd className="flex flex-wrap gap-x-3 gap-y-1">
           {([["Sociomapa", run.methodology.sociomap], ["Podpora", run.methodology.support], ["Agregace", run.methodology.aggregation], ...(run.methodology.response ? [["Odpověď", run.methodology.response] as const] : [])] as const).map(([label, m]) =>
             m.name == null

@@ -210,11 +210,12 @@ try {
   await visit("/app/settings#prompts"); await page.getByLabel("Instrukce", { exact: true }).waitFor();
   assert(!await page.locator("#panel-prompts").innerText().then((s) => s.includes("aia.settings.prompts.names")));
   const catalog = page.getByRole("navigation", { name: "Seznam promptů" });
-  await page.getByRole("searchbox", { name: "Hledat prompt" }).fill("vedoucí"); assert.equal(await catalog.locator("[data-prompt]").count(), 1);
+  // "vedoucí": the study Lead (editable) and Deep Research's lead (read only).
+  await page.getByRole("searchbox", { name: "Hledat prompt" }).fill("vedoucí"); assert.equal(await catalog.locator("[data-prompt]").count(), 2);
   await page.getByRole("searchbox").fill("");
-  await page.getByLabel("Zobrazit prompty").selectOption("readOnly"); assert.equal(await catalog.locator("[data-prompt]").count(), 12);
-  await page.getByLabel("Zobrazit prompty").selectOption("all");
-  checks.push("All 20 prompt names render correctly; search and code-owned filters work");
+  assert.equal(await catalog.locator('[data-group="readOnly"] [data-prompt]').count(), 12);
+  assert.equal(await catalog.locator('[data-group="editable"] [data-prompt="aia.research.lead"]').count(), 1);
+  checks.push("All prompt names render correctly; search works and the list groups editable prompts apart from those read only");
   for (const width of [1440, 1024, 768, 390]) { await page.setViewportSize({ width, height: 1000 }); await measure("prompt settings"); }
   const baseline = await page.getByLabel("Instrukce", { exact: true }).inputValue();
   const text = baseline + `\nLocal fictional UX acceptance ${Date.now()}.`;
@@ -243,6 +244,7 @@ try {
   await page.reload(); await page.getByLabel("Instrukce", { exact: true }).waitFor();
   assert.equal(await page.getByLabel("Instrukce", { exact: true }).inputValue(), text);
   assert.equal(await page.locator(`[data-version="${versionKey}"]`).getAttribute("data-running"), "yes");
+  assert.equal(await page.locator("[data-prompt-in-force]").innerText(), `Zapnutá v${created.version_number}`);
   checks.push("Prompt save, protected switching/loading, explicit activation and reload work against the real API");
   for (const width of [1440, 1024, 768, 390]) { await page.setViewportSize({ width, height: 1000 }); await measure("prompt version cards"); }
   await page.screenshot({ path: join(out, "prompts-phone.png"), fullPage: true });

@@ -705,7 +705,7 @@ export type MemoryReuse = {
 };
 export type MemoryReused = { study_id: string; created_study: boolean; revision: DesignRevision; source: DesignSource };
 
-export type Me = { user_id: string; email: string | null; organization_role: string; may_administer: boolean };
+export type Me = { user_id: string; email: string | null; organization_role: string; may_administer: boolean; methodologist: boolean };
 
 const enc = encodeURIComponent;
 const query = (q: Record<string, string | undefined>) => {
@@ -1214,6 +1214,9 @@ export type ResearchRunSummary = ResearchRun;
 export type ResearchAnalysis = {
   run_id: string;
   complete: boolean;
+  /** The modules the report waits on (evidence-integrity 9b): not stored, not completed, or with no
+   *  supported finding; absent from an API before it. */
+  holding?: string[];
   internal_only: true;
   synthetic: boolean;
   modelled?: boolean;
@@ -1628,16 +1631,18 @@ export const researcherLead = {
 export const researchAgents = {
   design: (studyId: string, revisionId: string) => request<DesignRevision & { content: Record<string, unknown> }>("GET", `${studyPath(studyId)}/design/revisions/${enc(revisionId)}`),
   /**
-   * `promptVersion` runs a stored prompt version instead of the active one (organization administrators; ADR 0020).
    * `confirmCostUsd`: the ceiling a person confirmed when the study's threshold asked (409 cost_confirmation_required; LO15).
+   * The web never pins a prompt version: Settings' draft test is gone (X10); the route's `prompt_version`
+   * goes with system-prompts-settings #14's server half.
    */
-  start: (studyId: string, revisionId: string, action: ResearchAgentAction, instruction = "", promptVersion?: number, confirmCostUsd?: number) =>
+  start: (studyId: string, revisionId: string, action: ResearchAgentAction, instruction = "", confirmCostUsd?: number) =>
     request<ResearchAgentJob>("POST", agentsPath(studyId), {
-      design_revision_id: revisionId, action, instruction, ...(promptVersion === undefined ? {} : { prompt_version: promptVersion }),
+      design_revision_id: revisionId, action, instruction,
       ...(confirmCostUsd === undefined ? {} : { confirm_cost_usd: confirmCostUsd }),
     }),
-  jobs: async (studyId: string) => {
-    const jobs = await request<unknown>("GET", agentsPath(studyId));
+  /** The newest 20 jobs; `pending`: every proposal still to decide among the newest 200, filtered on the server before the page. */
+  jobs: async (studyId: string, pending = false) => {
+    const jobs = await request<unknown>("GET", `${agentsPath(studyId)}${pending ? "?pending=true" : ""}`);
     if (!Array.isArray(jobs) || jobs.some((j) => !j || typeof j.run_id !== "string" || typeof j.status !== "string" || !Array.isArray(j.steps))) {
       throw new Error("Seznam AI kroků má neplatný formát. Zkuste jej načíst znovu.");
     }
@@ -1730,7 +1735,7 @@ export type SettingsDocument = {
   vocabularies: Vocabularies;
 };
 
-export type Member = { user_id: string; email: string; display_name: string; is_active: boolean; organization_role: string };
+export type Member = { user_id: string; email: string; display_name: string; is_active: boolean; organization_role: string; methodologist: boolean };
 
 export type AdminClient = {
   client_id: string; slug: string; name: string; status: string; reference: string; study_count: number; created_at: string | null;
@@ -1781,8 +1786,6 @@ export type PromptSlotDetail = PromptSlotSummary & {
   /** The wording this code ships: the editable part's baseline. */
   baseline_text: string;
   required_literals: string[]; max_chars: number;
-  /** The clients a draft may be tried on (the deployment's fictional list); empty means none. */
-  draft_test_client_ids: string[];
   versions: PromptVersion[]; history: PromptActivation[];
 };
 
@@ -1886,6 +1889,10 @@ export type DrSettingsOverview = {
 export type DrSettingVersion = {
   version_number: number; value: DrSettingValue; value_sha256: string; source_url: string; note: string;
   created_by: string; created_at: string;
+  /** Where the version stands (#841); absent from a server before it, then read from the dates. */
+  state?: "IN_FORCE" | "APPROVED_BEFORE" | "PENDING" | "WITHDRAWN" | "DECLINED";
+  /** Its proposer took it back (WITHDRAWN) or another administrator turned it down (DECLINED). */
+  decline?: { kind: "WITHDRAWN" | "DECLINED"; by: string; reason: string; at: string } | null;
 };
 /** `version_number` null: the approval was withdrawn and the code's default came back into force. */
 export type DrSettingApproval = { approval_id: number; version_number: number | null; approved_by: string; reason: string; approved_at: string };
@@ -1894,11 +1901,30 @@ export type DrSettingDetail = DrSetting & { versions: DrSettingVersion[]; histor
 const DR_SETTINGS = "/api/v1/deep-research/settings";
 
 /** Read by any member; proposing and approving are an administrator's (the API decides). */
+/** Settings → Deep Research → Dosah (#844): what the newest worker's composition reaches. Any member. */
+export type ReachRoute = {
+  route: string; kind: "search" | "fetch" | "connector" | "index" | "archive";
+  state: "waiting" | "active" | "refused" | "built";
+  /** A code (settings_unapproved, class, deep_research_off, …); `detail` is the server's English. */
+  reason: string | null; detail: string | null;
+  classes: string[]; priced: boolean; zone: string | null; missing_settings: string[]; class_advisory: boolean;
+};
+export type DeepResearchReach = {
+  /** false: no worker has recorded its composition, and nothing is presumed reachable. */
+  recorded: boolean; worker: string | null; build_sha: string | null; composed_at: string | null;
+  agent_directed: boolean | null; class_gates: "enforce" | "advisory" | null; data_class: "A" | "B" | "C" | null;
+  missing_for_live: string[]; routes: ReachRoute[];
+};
+
 export const deepResearchSettings = {
+  reach: () => request<DeepResearchReach>("GET", "/api/v1/settings/deep-research/reach"),
   list: () => request<DrSettingsOverview>("GET", DR_SETTINGS),
   get: (key: string) => request<DrSettingDetail>("GET", `${DR_SETTINGS}/${enc(key)}`),
   propose: (key: string, body: { value: DrSettingValue; source_url: string; note: string }) =>
     request<DrSettingVersion>("POST", `${DR_SETTINGS}/${enc(key)}/versions`, body),
+  /** A pending proposal taken back (its proposer) or turned down (another administrator), with a reason. */
+  withdraw: (key: string, versionNumber: number, reason: string) =>
+    request<DrSettingVersion>("POST", `${DR_SETTINGS}/${enc(key)}/versions/${versionNumber}/withdrawal`, { reason }),
   /** `versionNumber` null returns the setting to the code's proposed default. */
   approve: (key: string, versionNumber: number | null, reason: string) =>
     request<DrSetting>("PUT", `${DR_SETTINGS}/${enc(key)}/approval`, { version_number: versionNumber, reason }),
@@ -1953,7 +1979,7 @@ export type MethodActivation = {
 /** What a run started now pins: a stored version, or the code's preset. */
 export type MethodInForce = { origin: "stored" | "code"; preset: string | null; version_number: number | null; name: string };
 export type MethodVersions = {
-  in_force: MethodInForce; may_administer: boolean; presets: Record<string, Record<string, unknown>>;
+  in_force: MethodInForce; may_administer: boolean; may_edit: boolean; presets: Record<string, Record<string, unknown>>;
   versions: MethodVersion[]; history: MethodActivation[];
 };
 /** An edit: the whole specification and the formulas it replaces (by slot). */

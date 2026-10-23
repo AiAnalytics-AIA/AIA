@@ -152,8 +152,10 @@ const restore = async () => {
 
 try {
   await openTab();
-  const modules = await get("/api/v1/methodology");
-  assert(modules.length >= 7, `only ${modules.length} modules`);
+  // D-13: the 18.6.6 reference map and the experimental H-Model are not listed on the tab.
+  const HIDDEN = new Set(["sociomap_reference", "sociomapping"]);
+  const modules = (await get("/api/v1/methodology")).filter((m) => !HIDDEN.has(m.id));
+  assert(modules.length >= 5, `only ${modules.length} modules`);
   for (const module of modules) {
     await openModule(module.title_cs);
     const editor = page.locator("[data-methodology-editor]");

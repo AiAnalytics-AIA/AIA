@@ -14,6 +14,7 @@ import pytest
 
 from aia_core.application.proposal_accept import StaleProposal, accept_into_working_copy
 from aia_core.domain.design_items import Documents, ItemKey
+from aia_core.domain.edit_log import ActorKind, OpSource, WriteBy
 from aia_core.domain.item_ids import derived_id
 from aia_core.infrastructure.study_design_repository import StudyDesignRepository
 from aia_core.infrastructure.study_workspace_repository import StudyWorkspaceRepository
@@ -44,7 +45,12 @@ def _edit(session: Any, scope: Any, change: Any) -> int:
     now = workspaces.content(scope)
     content = copy.deepcopy(now.content or {})
     change(content)
-    return workspaces.save(scope, content=content, base_revision=now.revision).revision
+    return workspaces.save(
+        scope,
+        content=content,
+        base_revision=now.revision,
+        by=WriteBy(ActorKind.PERSON, scope.actor_id, OpSource.UI),
+    ).revision
 
 
 def _accept(session: Any, scope: Any, design: str, proposed: dict[str, Any], **kw: Any) -> Any:
@@ -58,6 +64,7 @@ def _accept(session: Any, scope: Any, design: str, proposed: dict[str, Any], **k
         expected_workspace_revision=working,
         source_stage="brief",
         reason="ai_proposal_accepted",
+        by=WriteBy(ActorKind.PERSON, scope.actor_id, OpSource.PROPOSAL_ACCEPT, "RUN-1"),
         **kw,
     )
 

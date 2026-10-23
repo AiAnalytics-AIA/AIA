@@ -47,7 +47,7 @@ import { citedSnapshot } from "@/lib/verified-source";
 import { researchStepOrb, researchStepWork } from "@/lib/activity-orb";
 import { RECEIPT_TARGET, stepTarget } from "@/lib/artifacts/fieldwork";
 import { FOCUS, TOUCH, TOUCH_LINK } from "@/components/ui/parts";
-import { activityOf } from "@/lib/step-activity";
+import { activityOf, lastReported } from "@/lib/step-activity";
 import { type BatteryWithMaps, mapApproval, olderMethodOnly, readObjectMap, type RecordedMethod, type RegisterEntry } from "@/lib/object-map-view";
 import {
   STEP_ORDER,
@@ -95,7 +95,7 @@ import { runDestination, runState } from "@/lib/run-state";
 import { codedText, codeWords } from "@/lib/reason-words";
 import { readBudget, withBudget } from "@/lib/budget-line";
 import { spendRows } from "@/lib/run-spend";
-import { reportStatus, reportStatusWords } from "@/lib/report-status";
+import { holdingWords, reportStatus, reportStatusWords } from "@/lib/report-status";
 import type { Tone } from "@/lib/tone";
 import { AnalysisBlocked, ViolationList } from "./AnalysisBlocked";
 import { AnalysisCoverage, AnalysisMilestones } from "./AnalysisCoverage";
@@ -116,9 +116,11 @@ import { useResource } from "@/components/aia/useResource";
 import { InspectorSlot } from "./Inspector";
 import { ResearchContext, useResearch } from "./context";
 import { SociomappingView } from "./SociomappingView";
-import { StepActivityPanel } from "./StepActivityPanel";
+import { QuotaFillTable, StepActivityPanel } from "./StepActivityPanel";
 import { useStepActivity } from "./useStepActivity";
 import { ObjectMapView } from "./ObjectMapView";
+import { SociomapStage, useOnSociomapStage } from "./SociomapStage";
+import { useLeadOwnsAiStarts } from "./AskLead";
 import { InterpretationResearch } from "./InterpretationResearch";
 import { ReportDocumentView } from "./ReportDocumentView";
 import { ResultsWorkspace } from "./ResultsWorkspace";
@@ -386,7 +388,7 @@ function CostCard({ readiness, canEdit, onLimitSaved }: { readiness: Readiness; 
   );
 }
 
-/** The run's ceiling against the study's limit: amber when Start will ask first; the limit as a mark. */
+/** The run's ceiling against the study's limit: `status-you` (coral) when Start will ask first; the limit as a mark. */
 function CostBar({ ceiling, limit, asks }: { ceiling: number; limit: number | null; asks: boolean }) {
   const scale = Math.max(ceiling, limit ?? 0) * 1.4 || 1;
   const pct = (x: number) => `${Math.min(100, (x / scale) * 100)}%`;
@@ -1369,7 +1371,9 @@ export function ProgressStep() {
   const repairable = useRetryableModules(run);
   // The run's feed, read live while one of its steps runs (lib/step-activity.ts).
   const running = !!run && !run.is_terminal && run.steps.some((s) => s.status === "RUNNING");
-  const activity = useStepActivity(run?.run_id ?? null, (since) => research.events(frame.studyId, run!.run_id, since), running);
+  // A step that ran and stopped between two polls changes the steps' states: its events are read too.
+  const stepStates = run ? run.steps.map((s) => `${s.step_id}:${s.status}:${s.attempts_recorded ?? ""}`).join(",") : "";
+  const activity = useStepActivity(run?.run_id ?? null, (since) => research.events(frame.studyId, run!.run_id, since), running, stepStates);
 
   const act = useCallback(
     async (fn: () => Promise<ResearchRun>) => {
@@ -1456,7 +1460,10 @@ export function ProgressStep() {
       {repairable ? <AnalysisRepair run={run} modules={repairable} act={act} busy={busy} /> : null}
       <Card title={t("aia.stages.progress")}>
         <ol className="flex flex-col gap-3" aria-label={t("aia.stages.progress")}>
-          {listed.map((s) => (
+          {listed.map((s) => {
+            const stepActivity = activityOf(activity, s.step_id);
+            const last = lastReported(stepActivity, s.status, run.is_terminal);
+            return (
             // Pointable by the Lead (the coordinator's registry: fieldwork targets step:<node_key>).
             <li key={s.node_key} data-aia={stepTarget(s.node_key) ?? undefined} data-step={s.node_key} data-status={s.status} className="flex flex-col gap-0.5 text-sm">
               <div className="flex flex-wrap items-center gap-2">
@@ -1477,9 +1484,12 @@ export function ProgressStep() {
                 {s.attempts_recorded ? ` · ${tv("research.exec.attempts", { n: s.attempts_recorded, max: s.max_attempts })}` : null}
               </span>
               {waitingDetail(s) ? <span className="text-xs text-ink">{waitingDetail(s)}</span> : null}
-              <StepActivityPanel orb={researchStepOrb(run, s)} activity={activityOf(activity, s.step_id)} startedAt={s.started_at} label={stepLabel(s.node_key)} />
+              {last ? <span data-last-reported className="font-mono text-xs tabular-nums text-ink-muted">{last}</span> : null}
+              {stepActivity?.quota ? <QuotaFillTable quota={stepActivity.quota} /> : null}
+              <StepActivityPanel orb={researchStepOrb(run, s)} activity={stepActivity} startedAt={s.started_at} label={stepLabel(s.node_key)} />
             </li>
-          ))}
+            );
+          })}
         </ol>
       </Card>
     </div>
@@ -1618,6 +1628,8 @@ export function RunResults({ run, progressHref }: { run: ResearchRun | null; pro
   const shows = Boolean(run && stepOf(run, "aggregate")?.artifact_id);
   const [revisions] = useResource(() => (shows ? research.revisions(frame.studyId) : Promise.resolve([])), [frame.studyId, shows]);
   const sociomapping = useArtifact(run, "sociomapping");
+  const onSociomapStage = useOnSociomapStage();
+  const leadOwns = useLeadOwnsAiStarts();
   // The literature review the report variant adds (research-integrity-report 3): chosen once,
   // read by the report card above and the literature panel below, never two selections.
   const [review, setReview] = useState<string | null>(null);
@@ -1642,6 +1654,24 @@ export function RunResults({ run, progressHref }: { run: ResearchRun | null; pro
   }
   const showMap = Boolean(sociomap && sociomap.state !== "hidden");
   const showMapping = Boolean(sociomapping && sociomapping.state !== "hidden");
+  // The workbench's Sociomapa stage is the map (artifact-sociomap SOC9): the map first, what explains it
+  // under it, no results tabs. The classic layout keeps Sociomapy as a tab of Výsledky.
+  // The experimental Sociomapping, with its draft's review: on Výsledky's Sociomapy tab, and on the
+  // Sociomapa stage under the map (with no amber frame there, SOC12).
+  const mappingCard = (tone?: "notice") => sociomapping && sociomapping.state !== "hidden" ? (
+    <Card id="res-sociomapping" title={t("research.exec.results.sociomapping")} tone={tone}>
+      {sociomapping.state === "ready" ? (
+        <SociomappingView artifact={sociomapping.value} run={run} studyId={frame.studyId} canEdit={canReview(frame)} />
+      ) : null}
+      {sociomapping.state === "loading" ? <p className="text-sm text-ink-muted">{t("research.loading")}</p> : null}
+      {sociomapping.state === "failed" ? <p role="alert" className="text-sm text-status-fault">{sociomapping.message}</p> : null}
+    </Card>
+  ) : null;
+  if (onSociomapStage && leadOwns && (showMap || showMapping)) {
+    return <SociomapStage run={run} artifact={sociomap?.state === "ready" ? sociomap.value : null} loading={sociomap?.state === "loading"}
+      error={sociomap?.state === "failed" ? sociomap.message : null} after={mappingCard()}
+      notice={<><RevisionMoved note={revisionNote(run.design_revision, revisions.state === "ready" ? revisions.data.map((r) => r.revision) : null)} /><OriginBanners run={run} /></>} />;
+  }
   const showAnalysis = run.steps.some((step) => step.kind === "research_analysis");
   const knowledgeContext = <section aria-label="Kontext klienta a literatura" className="rounded-md border border-border bg-surface-raised p-4">
     <h3 className="text-sm font-semibold">Doplňte souvislosti k interpretaci</h3>
@@ -1677,15 +1707,7 @@ export function RunResults({ run, progressHref }: { run: ResearchRun | null; pro
           {sociomap.state === "failed" ? <p role="alert" className="text-sm text-status-fault">{sociomap.message}</p> : null}
         </Card>
       ) : null}
-      {sociomapping && sociomapping.state !== "hidden" ? (
-        <Card id="res-sociomapping" title={t("research.exec.results.sociomapping")} tone="notice">
-          {sociomapping.state === "ready" ? (
-            <SociomappingView artifact={sociomapping.value} run={run} studyId={frame.studyId} canEdit={canReview(frame)} />
-          ) : null}
-          {sociomapping.state === "loading" ? <p className="text-sm text-ink-muted">{t("research.loading")}</p> : null}
-          {sociomapping.state === "failed" ? <p role="alert" className="text-sm text-status-fault">{sociomapping.message}</p> : null}
-        </Card>
-      ) : null}
+      {mappingCard("notice")}
       </> }] : []),
       ...(showAnalysis ? [{ id: "analysis", label: "AI analýza", description: "Souhrn, odpovědi na výzkumné otázky a omezení. Interpretace vychází z podkladů tohoto běhu a čeká na posouzení výzkumníkem.", content: <div id="res-analysis"><AnalysisResults key={run.run_id} run={run} progressHref={progressHref} spec={pinnedSpecification(specification?.state === "ready" ? specification.value : null)} /></div> }] : []),
       { id: "report", label: "Rešerše a zpráva", description: "Zkontrolujte připravenost interní zprávy, přijaté externí podklady a omezení rešerše. Dostupnost stažení závisí na úplnosti analýzy.", content: <>
@@ -1882,6 +1904,8 @@ function AnalysisResults({ run, spec, progressHref }: { run: ResearchRun; spec: 
     const outcome = analysis?.modules[id];
     return outcome?.outcome === "COMPLETED" && outcome.key_findings.length ? [{ id, outcome }] : [];
   });
+  // Completed, yet holding the report: no supported finding (evidence-integrity 9b).
+  const withoutSupport = ANALYSIS_ORDER.filter((id) => analysis?.holding?.includes(id) && analysis.modules[id]?.outcome === "COMPLETED");
   const withoutFindings = ANALYSIS_ORDER.filter((id) => analysis?.modules[id]?.outcome === "BLOCKED").map((id) => stepLabel(`analysis_${id}`));
   return (
     <div ref={cardRef} data-analysis-card className="scroll-mt-2">
@@ -1911,7 +1935,9 @@ function AnalysisResults({ run, spec, progressHref }: { run: ResearchRun; spec: 
               ? "Některé části neprošly kontrolou; které a proč, uvádí oddíl Blokované nároky níže. Dokončení pracovního kroku samo o sobě neznamená platný analytický výstup."
               : analysis.complete
                 ? "Všechny části jsou uložené. Interpretaci a vhodnost pro zprávu musí posoudit výzkumník."
-                : "Zbývající části ještě čekají na dokončení. Zpráva může vzniknout až z úplné analýzy."}</p>
+                : withoutSupport.length && !Object.keys(analysis.pending).length
+                  ? holdingWords(withoutSupport)
+                  : "Zbývající části ještě čekají na dokončení. Zpráva může vzniknout až z úplné analýzy."}</p>
           </section>
           <AnalysisBlocked analysis={analysis} run={run} retryable={retryable?.modules ?? null} progressHref={progressHref} />
           <section aria-labelledby="key-findings-title" data-key-findings className="rounded-md border border-border bg-surface-raised p-4">
