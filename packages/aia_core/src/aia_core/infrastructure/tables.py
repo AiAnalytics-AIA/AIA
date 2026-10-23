@@ -528,6 +528,10 @@ class ClientRow(Base):
     modified_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), nullable=False, default=utcnow, onupdate=utcnow
     )
+    # Deleted (settings-backends SB5): its content is gone and the row stays, archived and named
+    # by its id, so the ledgers it keeps still resolve. NULL: not deleted.
+    deleted_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    deleted_by: Mapped[str | None] = mapped_column(String(64))
 
     __table_args__ = (
         ForeignKeyConstraint(
@@ -545,6 +549,35 @@ class ClientRow(Base):
         CheckConstraint("status in ('ACTIVE','DORMANT','ARCHIVED')", name="client_status_known"),
         Index("ix_clients_org", "organization_id", "status"),
     )
+
+
+class ClientDeletionTicketRow(Base):
+    """A one-time confirmation of a client's deletion (settings-backends SB5): issued by the
+    preview to the person who asked, for ten minutes, spent by the deletion. Only the token's
+    SHA-256 is kept."""
+
+    __tablename__ = "client_deletion_tickets"
+
+    token_sha256: Mapped[str] = mapped_column(String(64), primary_key=True)
+    organization_id: Mapped[str] = mapped_column(String(64), nullable=False)
+    client_id: Mapped[str] = mapped_column(String(64), nullable=False)
+    actor_id: Mapped[str] = mapped_column(String(64), nullable=False)
+    expires_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+    spent_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+
+    __table_args__ = (Index("ix_client_deletion_tickets_client", "client_id"),)
+
+
+class ClientDeletionObjectRow(Base):
+    """A deleted client's stored object still to delete (settings-backends SB5): written in the
+    deletion's transaction, cleared as each object is deleted after it commits, so a failed or
+    interrupted delete is retried by the next DELETE on the tombstone."""
+
+    __tablename__ = "client_deletion_objects"
+
+    client_id: Mapped[str] = mapped_column(String(64), primary_key=True)
+    storage_key: Mapped[str] = mapped_column(String(512), primary_key=True)
+    organization_id: Mapped[str] = mapped_column(String(64), nullable=False)
 
 
 class StudyRow(Base):
@@ -1868,7 +1901,8 @@ class StudyWalletChargeRow(Base):
 
     One charge per run (unique ``run_id``): a start that finds its run already there charges
     nothing again. ``plan_id`` names a ``lead_plans`` row once LO3 creates that table; until then
-    it is a bare id with no foreign key.
+    it is a bare id with no foreign key. ``run_id`` names its run by id, with no foreign key: a
+    charge is money ledger and stays when a deleted client's runs go (settings-backends SB5).
     """
 
     __tablename__ = "study_wallet_charges"
@@ -1890,7 +1924,8 @@ class StudyWalletChargeRow(Base):
     __table_args__ = (
         ForeignKeyConstraint(["wallet_id"], ["study_wallets.wallet_id"], ondelete="CASCADE"),
         ForeignKeyConstraint(["study_id"], ["studies.study_id"], ondelete="CASCADE"),
-        ForeignKeyConstraint(["run_id"], ["workflow_runs.run_id"], ondelete="CASCADE"),
+        # No foreign key to the run (settings-backends SB5): a charge is money ledger and
+        # names its run by id, as usage rows and holds do, so a client's deletion keeps it.
         CheckConstraint(
             "(plan_id is null) = (plan_step_id is null)", name="wallet_charge_plan_and_step"
         ),
