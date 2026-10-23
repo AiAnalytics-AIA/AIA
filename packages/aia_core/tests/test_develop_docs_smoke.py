@@ -20,6 +20,9 @@ import pytest
 
 BIN = Path(__file__).resolve().parents[3] / "deploy" / "develop" / "bin"
 HELPERS = ("pass", "fail", "warn", "code", "status_of")
+CACHE_LINK = (
+    "/cache/files/data/smoke/output.docx/output.docx?md5=AAAAAAAAAAAAAAAAAAAAAA&expires=4102444800"
+)
 GOOD = {
     "/": 401,
     "/healthcheck": 404,
@@ -27,6 +30,7 @@ GOOD = {
     "/9.4.0-1/coauthoring/CommandService.ashx": 404,
     "//info/info.json": 404,
     "/AI-PROXY/x": 404,
+    CACHE_LINK: 403,
     "/__aia/session": 401,
 }
 
@@ -126,7 +130,7 @@ def test_on_and_sound_every_row_passes(tmp_path: Path) -> None:
     result, calls = _run(tmp_path)
     assert result.returncode == 0, result.stdout + result.stderr
     rows = result.stdout.splitlines()
-    assert len(rows) == 4 and all(r.startswith("ok    docs: ") for r in rows), rows
+    assert len(rows) == 5 and all(r.startswith("ok    docs: ") for r in rows), rows
     assert calls == list(GOOD)
 
 
@@ -140,6 +144,11 @@ def test_on_and_sound_every_row_passes(tmp_path: Path) -> None:
         ({"/__aia/session": 302}, "", "without a ticket opens nothing"),
         ({}, "aia_docs", "without a ticket opens nothing"),
         ({}, "__Host-aia_docs", "without a ticket opens nothing"),
+        ({CACHE_LINK: 200}, "", "forged signature is refused"),
+        ({CACHE_LINK: 302}, "", "forged signature is refused"),
+        # The gate's 401 or a 404: the route without the gate is gone, and no save is fetched.
+        ({CACHE_LINK: 401}, "", "forged signature is refused"),
+        ({CACHE_LINK: 404}, "", "forged signature is refused"),
     ],
 )
 def test_what_aia_serves_there_fails_the_smoke(
@@ -167,6 +176,12 @@ def test_a_gate_without_its_settings_says_which_are_missing(tmp_path: Path) -> N
     result, _ = _run(tmp_path, codes={"/": 404, "/__aia/session": 404})
     assert result.returncode == 1
     assert result.stdout.count("AIA_ONLYOFFICE_URL and AIA_ONLYOFFICE_JWT_SECRET") == 2
+
+
+def test_a_cache_link_with_nothing_behind_it_only_warns(tmp_path: Path) -> None:
+    result, _ = _run(tmp_path, codes={CACHE_LINK: 502}, health="absent")
+    assert result.returncode == 0, result.stdout
+    assert "WARN  docs: a cache link with a forged signature is refused" in result.stdout
 
 
 @pytest.mark.parametrize("health", ["unhealthy", "starting", "absent"])

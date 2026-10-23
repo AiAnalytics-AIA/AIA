@@ -4,8 +4,9 @@
 # Run only when SSM aia_onlyoffice_enabled is true. What AIA itself serves on docs.<hostname>
 # fails the smoke like any other row, because it holds whether the Document Server runs or not:
 # the docs gate refuses a request without its cookie, the server's own paths are refused at
-# Caddy, and /__aia/session without a ticket opens nothing. The Document Server's health only
-# warns: it never fails a deploy (bin/deploy.sh), and without it Zpráva stays read-only.
+# Caddy, /__aia/session without a ticket opens nothing, and a forged cache link is not served. The
+# Document Server's health only warns: it never fails a deploy (bin/deploy.sh), and without it
+# Zpráva stays read-only.
 #
 # Uses smoke.sh's pass, fail, warn, code and status_of.
 
@@ -45,6 +46,18 @@ docs_checks() {
     [ "$c" = "404" ] || { refused=0; fail "docs: the Document Server's own paths are refused at Caddy" "GET $path returned $c, expected 404"; }
   done
   [ "$refused" = 1 ] && pass "docs: the Document Server's own paths are refused at Caddy (404)"
+
+  # The one route without the gate: the Document Server's signed links to a saved document. One
+  # with a forged signature must be refused by its own nginx (403). Anything served fails, and so
+  # does the gate's 401 or a 404: the route is gone and no save can be fetched. With the Document
+  # Server down there is nothing behind the route (000, 502-504): said, not failed.
+  c="$(code "$base/cache/files/data/smoke/output.docx/output.docx?md5=AAAAAAAAAAAAAAAAAAAAAA&expires=4102444800" || true)"
+  case "$c" in
+    403) pass "docs: a cache link with a forged signature is refused by the Document Server (403)" ;;
+    2*|3*) fail "docs: a cache link with a forged signature is refused by the Document Server" "it returned $c: the route without the gate serves unsigned links" ;;
+    000|502|503|504) warn "docs: a cache link with a forged signature is refused by the Document Server" "it returned $c, expected 403; the Document Server may be down" ;;
+    *) fail "docs: a cache link with a forged signature is refused by the Document Server" "it returned $c, expected 403: the cache links' route is missing or another route took them, and no save can be fetched" ;;
+  esac
 
   session="$(curl -s -o /dev/null -D - --max-time 10 "$base/__aia/session" || true)"
   c="$(status_of "$session")"

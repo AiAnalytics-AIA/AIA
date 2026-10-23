@@ -299,8 +299,25 @@ Each step needs the owner's word and the coordinator's approval:
   - each route is authorized by its own short-lived token and the Document Server's JWT, so the
     session gate is not involved;
   - the API's service name is therefore not part of the contract.
-- **Document key.** The stored version's artifact id and its SHA-256, as RPT8 proposed. ONLYOFFICE takes
-  at most 128 characters of `0-9 a-z A-Z . = _ -`; the artifact id plus 64 hex characters fits.
+- **The saved document's download** (added 2026-10-23, the #824 review's P1). A save callback (status 2
+  or 6) names the result as the Document Server's own signed link,
+  `https://docs.<hostname>/cache/files/…?md5=…&expires=…`, and its `changesurl` the same way. AIA's API
+  fetches it server to server, with no docs cookie. The docs gate would refuse it (401), and no version
+  would ever be stored.
+  - Caddy therefore serves exactly that shape without the gate. Only GET or HEAD, both signature
+    parameters, and plain path segments (chunk 4a below); the Document Server's nginx checks the
+    signature.
+  - RPT8 fetches only a URL whose origin is exactly `AIA_ONLYOFFICE_URL` and whose path is
+    `/cache/files/…`, follows no redirect and bounds the body. The URL comes from the callback, so this
+    is the API's SSRF guard.
+- **Document key.** ONLYOFFICE takes at most 128 characters of `0-9 a-z A-Z . = _ -`.
+  - Superseded 2026-10-23: the stored version's artifact id and its SHA-256. With a timed force-save
+    every 5 minutes, a key from the version's SHA would change on every save. Everyone who opens the
+    document after that gets a new key and so a separate editing session (the #824 review's P1).
+  - Instead, the key must stay the same while a document is being edited, force-saves (status 6)
+    included, and change only for the next session after a final save (status 2) or a close with no
+    changes (status 4). For example, the draft's id plus a session number the API raises at status 2
+    or 4. That is RPT8's to settle in its plan; the hosting side needs nothing for it.
 - **Outbound calls.** The Document Server makes exactly two kinds:
   - to `https://<hostname>`, for the document fetch and the save callback;
   - with plugins off, no third-party calls.
@@ -471,13 +488,48 @@ AIA's session (Findings, F1).
 - `bin/deploy.sh`: with the switch not true and the `aia-docs` project running, `bin/docs.sh down`
   (bounded, 120 s; a failure is said and the deploy goes on). Turning it off is then the switch and a
   deploy, with no hand on the host; this session has no `ssm:SendCommand`.
+- **The signed cache links, without the gate** (the #824 review's first P1; see the RPT8 contract,
+  "The saved document's download"). A `@cache_file` route sits after the server-path refusal: GET or
+  HEAD, `md5` and `expires` present, and the path
+  `^/cache/files/(?:[A-Za-z0-9_=-][A-Za-z0-9_.=-]*/)*[A-Za-z0-9_=-][A-Za-z0-9_.=-]*$`: a document key's
+  characters, never a leading dot. It is proxied to the Document Server with the cookie dropped.
+  - Neither Caddy log writes a signed link's `md5` or `expires`, nor the ticket: the docs access log and
+    the default logger both delete all three from the URI's query. A link in a log would open the
+    saved document without the gate until it expires. Measured: a fetched link was logged as
+    `…/output.docx?filename=output.docx`.
+  - `tools/caddy_routes.py` pins that exact match (`CACHE_FILE`, the methods in any order, the two query
+    keys) as the one ungated route. A wider pattern, a missing method or query condition, a kept cookie,
+    a rewrite or another upstream fails it, and so does a log that keeps the ticket, the `md5` or the
+    `expires`. A miss names how the route differs.
+  - The image's nginx (`ds-docservice.conf`) checks `secure_link $arg_md5,$arg_expires` under a secret
+    `run-document-server.sh` draws at each start (`pwgen -s 20`). Measured: the running container's
+    secret was 20 characters, not the template's `verysecretstring`.
+  - Measured 2026-10-23, Caddy 2.10.2 running this Caddyfile in front of the pinned image and a
+    stand-in gate:
+    - A correctly signed link answered 200 with the file, with no cookie, and the gate was not asked.
+      HEAD answered 200.
+    - An expired link answered 410, and a forged one 403.
+    - The same path without the parameters, a POST, an upper-case `/CACHE/`, and the traversals
+      `/cache/files/../web-apps/…`, `…/data/../../coauthoring/CommandService.ashx` and
+      `%2e%2e%2f…` / `x%2f..%2f..%2f..%2fweb-apps/…` all went to the gate (401). Their `healthcheck` form
+      hit the server-path refusal (404).
+    - Sent straight to the Document Server's nginx, `x%2f..%2f..%2f..%2fweb-apps/…` answers 200, so its
+      nginx does decode and resolve those. Caddy matches the decoded, cleaned path and agrees with it.
+      `…/data/x%2f..%2f..%2fweb-apps/y`, which cleans to a path still under `/cache/files/`, went by the
+      gate and was refused by the signature (403).
+    - Two backstops if a future Caddy changed: without cleaning, the `..` segments fail the pattern;
+      without decoding, the `%` does.
+  - A new smoke row: a cache link with a forged signature must be refused (403).
+    - A 2xx or 3xx fails the smoke: the ungated route serves unsigned links.
+    - So do a 401 or a 404: the route is gone, and no save could be fetched.
+    - Only nothing answering (000, or 502 to 504 with the Document Server down) warns.
 - `bin/docs.sh down`, `status` and `logs` no longer need the secret. Compose interpolates the whole
   file for every command, and `JWT_SECRET` is required there (`:?`), so after the rollback deletes the
   secret they refused. Measured with Compose on 2026-10-23: `status` failed with "required variable
   AIA_ONLYOFFICE_JWT_SECRET is missing a value". Every command but `up` now gets a placeholder when
   there is no secret, and `up` still refuses without one (measured).
 - Tests:
-  - `packages/aia_core/tests/test_develop_docs_smoke.py` (16): the rows run as the smoke runs them,
+  - `packages/aia_core/tests/test_develop_docs_smoke.py` (21): the rows run as the smoke runs them,
     beside smoke.sh's own helpers, with `curl` and `docker` stubbed. Cases: off, off but still running,
     every row passing, each security row failing alone, nothing answering (seven failed rows, the
     smoke run to its end; it fails without the guard), a gate with its settings missing, and the health
