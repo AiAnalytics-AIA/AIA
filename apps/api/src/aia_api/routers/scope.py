@@ -683,7 +683,9 @@ def set_methodologist(
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail={
-                "code": "insufficient_role",
+                # owner_only by name, as the contract says (settings-backends SB1); an actor
+                # who may not administer at all is the general role refusal.
+                "code": "owner_only" if exc.reason == "owner_only" else "insufficient_role",
                 "message": "Only an OWNER grants or revokes the Metodik mark.",
                 "details": {"reason": exc.reason},
             },

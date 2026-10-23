@@ -203,7 +203,7 @@ def test_a_member_reads_and_checks_but_cannot_change(who: str, as_user: Any) -> 
     proposed = member.post(f"{SOCIOMAP}/versions", json=_edit())
     assert proposed.status_code == 403 and proposed.json()["code"] == "methodologist_required"
     put = member.put(f"{SOCIOMAP}/activation", json={"version_number": None})
-    assert put.status_code == 403
+    assert put.status_code == 403 and put.json()["code"] == "methodologist_required"
 
 
 def test_an_owner_without_the_metodik_mark_reads_but_cannot_change(as_user: Any) -> None:
@@ -212,6 +212,8 @@ def test_an_owner_without_the_metodik_mark_reads_but_cannot_change(as_user: Any)
     assert versions["may_administer"] is True and versions["may_edit"] is False
     proposed = unmarked.post(f"{SOCIOMAP}/versions", json=_edit())
     assert proposed.status_code == 403 and proposed.json()["code"] == "methodologist_required"
+    put = unmarked.put(f"{SOCIOMAP}/activation", json={"version_number": None})
+    assert put.status_code == 403 and put.json()["code"] == "methodologist_required"
 
 
 def test_the_marked_owner_may_edit(owner: TestClient) -> None:
