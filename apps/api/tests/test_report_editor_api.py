@@ -602,3 +602,52 @@ def test_a_callback_without_a_token_or_a_body_is_refused_not_invalid(
     assert client.post(path).status_code == 403
     app.state.settings = app.state.settings.model_copy(update={"onlyoffice_callback_base": ""})
     assert client.post(path).status_code == 404
+
+
+def test_a_removed_opener_s_session_takes_no_save(
+    app: FastAPI, researcher: TestClient, client: TestClient, world: Any, saves: Saves
+) -> None:
+    """The callback is outside the study tree too: its scope is the session's, resolved through
+    ScopeResolver on every callback, so a member removed since stores nothing."""
+    from datetime import UTC, datetime
+
+    from aia_core.infrastructure.scope_repository import ScopeRepository
+
+    run_id, _ = _reported_run(app, researcher, world)
+    config = researcher.post(_editor(world, run_id), json={}).json()["config"]
+    factory = create_session_factory(app.state.engine)
+    with factory() as session:
+        owner = AuthenticatedPrincipal(
+            user_id=world.users["owner"], organization_id=world.organization_id
+        )
+        admin = ScopeResolver(session).organization_context(owner)
+        ScopeRepository(session).deactivate_member(
+            admin, user_id=world.users["researcher"], now=datetime.now(UTC)
+        )
+        session.commit()
+    url = saves.put(_docx("50 %"))
+    answer = _callback(client, config, status=6, url=url, users=[world.users["researcher"]])
+    assert answer.status_code == 404 and answer.json()["code"] == "editor_session_not_found"
+    assert saves.asked == []
+
+
+def test_a_save_naming_another_organizations_member_is_refused(
+    app: FastAPI, researcher: TestClient, client: TestClient, world: Any, saves: Saves
+) -> None:
+    """Only the people a config was signed for may be a save's authors: a member of another
+    organization (the acceptance world's other owner) is refused, and nothing is fetched."""
+    from aia_core.infrastructure.scope_repository import ScopeRepository
+
+    run_id, _ = _reported_run(app, researcher, world)
+    config = researcher.post(_editor(world, run_id), json={}).json()["config"]
+    factory = create_session_factory(app.state.engine)
+    with factory() as session:
+        _org, stranger = ScopeRepository(session).create_organization(
+            slug="other-org", name="Other", owner_email="o@other.invalid", owner_name="O"
+        )
+        session.commit()
+    url = saves.put(_docx("50 %"))
+    answer = _callback(client, config, status=6, url=url, users=[stranger.user_id])
+    assert answer.json() == {"error": 1} and saves.asked == []
+    opened = researcher.post(_editor(world, run_id), json={}).json()
+    assert opened["koncept"] == 1 and opened["problem"] == "unknown_author"
