@@ -19,7 +19,11 @@ export const ACTION_NAMES: Record<string, string> = {
   PERMISSION_DENIED: "Odmítnutá akce",
   SELF_APPROVAL_CONFIGURED: "Nastavení samoschválení",
   SELF_APPROVAL_CHANGED: "Změna samoschválení",
+  // The grant era (before migration d8e2f4a6b1c3): access_audit keeps these on an upgraded database.
   CLIENT_GRANT: "Záznam přístupu ke klientovi",
+  STUDY_GRANT: "Záznam přístupu ke studii",
+  CLIENT_SELF_GRANT: "Záznam vlastního přístupu ke klientovi",
+  CLIENT_REVOKE: "Odebrání přístupu ke klientovi",
   // Peníze
   STUDY_BUDGET_CHANGED: "Změna rozpočtu studie",
   STUDY_SPEND_CONFIRM_CHANGED: "Změna prahu potvrzení",
@@ -84,7 +88,8 @@ export const CATEGORY_NAMES: Record<AuditCategory, string> = {
 
 const MONEY = new Set(["STUDY_BUDGET_CHANGED", "STUDY_SPEND_CONFIRM_CHANGED", "CLIENT_BUDGET_CHANGED"]);
 const ACCESS = new Set([
-  "ORGANIZATION_CREATED", "USER_DEACTIVATED", "IDENTITY_SUBJECT_CLEARED", "PERMISSION_DENIED", "CLIENT_GRANT",
+  "ORGANIZATION_CREATED", "USER_DEACTIVATED", "IDENTITY_SUBJECT_CLEARED", "PERMISSION_DENIED",
+  "CLIENT_GRANT", "STUDY_GRANT", "CLIENT_SELF_GRANT", "CLIENT_REVOKE",
 ]);
 
 /** The category an action is filed under; a code no rule names is "other", still shown. */

@@ -39,6 +39,15 @@ describe("the audit's words", () => {
     expect(CATEGORY_NAMES[categoryOf("DR_SETTING_PROPOSAL_DECLINED")]).toBe("Deep Research");
   });
 
+  it("names the grant-era records an upgraded database keeps, in Czech, under access", () => {
+    // Written before the grants were dropped (migration d8e2f4a6b1c3); access_audit keeps them.
+    for (const a of ["CLIENT_GRANT", "STUDY_GRANT", "CLIENT_SELF_GRANT", "CLIENT_REVOKE"]) {
+      expect(ACTION_NAMES[a], a).toBeTruthy();
+      expect(actionName(a), a).not.toMatch(/[A-Z_]{4,}|grant|revoke/);
+      expect(categoryOf(a), a).toBe("access");
+    }
+  });
+
   it("spells out a code it does not know, under Ostatní, never dropping it", () => {
     expect(actionName("SOMETHING_NEW_HAPPENED")).toBe("something new happened");
     expect(categoryOf("SOMETHING_NEW_HAPPENED")).toBe("other");
