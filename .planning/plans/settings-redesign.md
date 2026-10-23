@@ -2,7 +2,7 @@
 status: in-progress
 chunks:
   - "[x] 1. Tab frame: ten tabs in three groups (Tým a peníze), a line under each name, Lucide icons; Stav systému and Správa dat as their own tabs"
-  - "[ ] 2. Shared inputs: Segmented, Stepper (bounds, Shift x10, refusal at the field), Switch, inline new row, Vrátit toast"
+  - "[x] 2. Shared inputs: one Switch (ui/Switch); Segmented = ChoiceChips, Stepper, InlineCreateRow, InlineText and UndoToast already in ui/ (input-interactions)"
   - "[ ] 3. Přístup a schvalování: segmented role and status, Metodik switch, inline add member, deactivate with Vrátit, roles boxes, samoschválení above Klienti"
   - "[ ] 4. Studie a rozpočty: the four money names, steppers with bounds, % and near-limit (90 %), spend tiles and per-researcher spend"
   - "[ ] 5. Systémové prompty: grouped list, editor layout, in-force version in green, Verze table"

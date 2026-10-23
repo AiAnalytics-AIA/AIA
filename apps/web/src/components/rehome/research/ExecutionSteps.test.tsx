@@ -1445,6 +1445,24 @@ describe("Progress", () => {
     expect(panel.textContent).not.toMatch(/%/);
   });
 
+  it("keeps parked fieldwork's last reported count beside the step, from its events (FLD3)", async () => {
+    api({
+      ...listed(PARKED),
+      [`GET /api/v1/studies/STU-1/research/runs/${PARKED.run_id}/events`]: () => [
+        { event_id: 7, step_id: "STEP-run", attempt_id: "ATT-1", event_type: "STEP_PROGRESS", level: "INFO", message: "fieldwork_progress",
+          payload: { version: "aia-fieldwork-events-1", respondents: 40, of: 300, sent: 70, replayed: 50 }, created_at: "2026-09-25T08:01:00Z" },
+      ],
+    });
+    render(<ResearchScreen step="progress" frame={TEST_FRAME} />);
+    const list = await screen.findByRole("list", { name: t("aia.stages.progress") });
+    const row = list.querySelector<HTMLElement>('li[data-step="run"]')!;
+    await waitFor(() => expect(row.querySelector("[data-last-reported]")?.textContent).toBe(
+      `${tv("research.exec.activity.lastReported", { done: 40, of: 300 })} · ${tv("research.exec.activity.fieldworkReplayed", { replayed: 50 })}`,
+    ));
+    expect(row.querySelector("[data-step-activity]")).toBeNull();
+    expect(list.querySelectorAll("[data-last-reported]")).toHaveLength(1);
+  });
+
   it("shows no orb while fieldwork waits for the AI runtime", async () => {
     api(listed(PARKED));
     render(<ResearchScreen step="progress" frame={TEST_FRAME} />);
