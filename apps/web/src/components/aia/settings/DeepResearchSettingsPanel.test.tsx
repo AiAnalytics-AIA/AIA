@@ -38,7 +38,7 @@ const CATALOGUE: DrSetting[] = [
   base(DENYLIST, "extraction", "host_list", { method: true, default: [], value: [] }),
 ];
 
-type Backend = { versions: Record<string, DrSettingVersion[]>; approvals: Record<string, DrSettingApproval[]> };
+type Backend = { versions: Record<string, DrSettingVersion[]>; approvals: Record<string, DrSettingApproval[]>; declines: Record<string, Record<number, NonNullable<DrSettingVersion["decline"]>>>; withStates: boolean };
 let backend: Backend;
 let calls: { method: string; url: string; body: Record<string, unknown> | null }[] = [];
 
@@ -55,7 +55,7 @@ const missing = () =>
   CATALOGUE.map(inForce).filter((s) => s.required_for_live && (s.origin !== "approved" || (s.type === "status" && s.value !== "approved"))).map((s) => s.key);
 
 function fakeApi(mayAdminister = true, refuse: Record<string, Response> = {}) {
-  backend = { versions: Object.fromEntries(CATALOGUE.map((s) => [s.key, []])), approvals: Object.fromEntries(CATALOGUE.map((s) => [s.key, []])) };
+  backend = { versions: Object.fromEntries(CATALOGUE.map((s) => [s.key, []])), approvals: Object.fromEntries(CATALOGUE.map((s) => [s.key, []])), declines: Object.fromEntries(CATALOGUE.map((s) => [s.key, {}])), withStates: false };
   calls = [];
   vi.stubGlobal("fetch", vi.fn(async (url: RequestInfo | URL, init?: RequestInit) => {
     const u = String(url).split("?")[0];
@@ -68,11 +68,29 @@ function fakeApi(mayAdminister = true, refuse: Record<string, Response> = {}) {
     if (method === "GET" && u === "/api/v1/deep-research/settings") {
       return json({ catalogue_version: "aia-dr-settings-catalogue-1", may_administer: mayAdminister, missing_for_live: missing(), settings: CATALOGUE.map(inForce) });
     }
-    const m = u.match(/^\/api\/v1\/deep-research\/settings\/([^/]+)(\/versions|\/approval)?$/);
+    const m = u.match(/^\/api\/v1\/deep-research\/settings\/([^/]+)(\/versions|\/approval|\/versions\/\d+\/withdrawal)?$/);
     const s = m && CATALOGUE.find((x) => x.key === decodeURIComponent(m[1]));
     if (!m || !s) return json({ code: "unknown_setting", message: "no such setting" }, 404);
+    // As #841 answers: each version's state and decline, read from the logs (only when the test asks).
+    const stated = (v: DrSettingVersion): DrSettingVersion => {
+      if (!backend.withStates) return v;
+      const decline = backend.declines[s.key][v.version_number] ?? null;
+      const approvals = backend.approvals[s.key];
+      const state = decline ? decline.kind : approvals.at(-1)?.version_number === v.version_number ? "IN_FORCE"
+        : approvals.some((a) => a.version_number === v.version_number) ? "APPROVED_BEFORE" : "PENDING";
+      return { ...v, state, decline };
+    };
+    const w = u.match(/\/versions\/(\d+)\/withdrawal$/);
+    if (method === "POST" && w) {
+      if (!String(body?.reason ?? "").trim()) return json({ code: "request_invalid", message: "reason required" }, 422);
+      const n = Number(w[1]);
+      const v = backend.versions[s.key].find((x) => x.version_number === n);
+      if (!v) return json({ code: "unknown_version", message: "no such version" }, 404);
+      backend.declines[s.key][n] = { kind: "WITHDRAWN", by: "USR-1", reason: String(body?.reason), at: new Date().toISOString() };
+      return json(stated(v));
+    }
     if (method === "GET") {
-      const detail: DrSettingDetail = { ...inForce(s), versions: [...backend.versions[s.key]].reverse(), history: [...backend.approvals[s.key]].reverse() };
+      const detail: DrSettingDetail = { ...inForce(s), versions: [...backend.versions[s.key]].reverse().map(stated), history: [...backend.approvals[s.key]].reverse() };
       return json(detail);
     }
     if (!mayAdminister) return json({ code: "insufficient_role", message: "Changing Deep Research settings requires an organization OWNER or ADMIN." }, 403);
@@ -309,7 +327,7 @@ describe("Deep Research settings", () => {
     const pending = await row(RETENTION);
     expect(pending.className).toContain("bg-status-you-wash");
     await waitFor(() => expect(pending.querySelector("[data-pending-value]")?.textContent).toContain("90"));
-    expect(within(pending).getByText(/Stáhnout návrh/).closest("[data-not-yet]")).toBeTruthy();
+    expect(within(pending).getByRole("button", { name: "Stáhnout návrh" })).toBeTruthy();
     // Nothing is in force until approved.
     expect(pending.querySelector("[data-origin]")?.textContent).toBe("Navržená výchozí");
     fireEvent.click(within(pending).getByRole("button", { name: "Schválit" }));
@@ -325,6 +343,33 @@ describe("Deep Research settings", () => {
     expect(called("PUT", `/api/v1/deep-research/settings/${RETENTION}/approval`)[0].body).toEqual({ version_number: 1, reason: "" });
     await waitFor(async () => expect((await row(RETENTION)).getAttribute("data-pending")).toBeNull());
     expect((await row(RETENTION)).querySelector("[data-value]")?.textContent).toBe("90");
+  });
+
+  it("withdraws a waiting proposal with a reason through a modal; the version stays, marked, and is not approvable", async () => {
+    fakeApi();
+    backend.withStates = true;
+    render(<DeepResearchSettingsPanel people={people} />);
+    await row(RETENTION);
+    fireEvent.click(document.querySelector('[data-dr-group-link="retention"]') as HTMLElement);
+    const field = within(await row(RETENTION)).getByRole("spinbutton", { name: /^Návrh:/ });
+    fireEvent.change(field, { target: { value: "90" } });
+    fireEvent.keyDown(field, { key: "Enter" });
+    await waitFor(async () => expect((await row(RETENTION)).getAttribute("data-pending")).toBe("1"));
+    fireEvent.click(within(await row(RETENTION)).getByRole("button", { name: "Stáhnout návrh" }));
+    const dialog = document.querySelector("[data-dr-withdraw]") as HTMLElement;
+    expect(within(dialog).getByText("90 dní")).toBeTruthy();
+    // A reason is required: nothing is sent without one.
+    fireEvent.click(within(dialog).getByRole("button", { name: "Stáhnout návrh" }));
+    expect(within(dialog).getByRole("alert").textContent).toBe("Napište důvod stažení.");
+    expect(calls.filter((c) => c.url.endsWith("/withdrawal"))).toEqual([]);
+    fireEvent.change(within(dialog).getByLabelText("Důvod (povinný)"), { target: { value: "špatná hodnota" } });
+    fireEvent.click(within(dialog).getByRole("button", { name: "Stáhnout návrh" }));
+    await waitFor(() => expect(called("POST", `/api/v1/deep-research/settings/${RETENTION}/versions/1/withdrawal`)).toHaveLength(1));
+    expect(called("POST", `/api/v1/deep-research/settings/${RETENTION}/versions/1/withdrawal`)[0].body).toEqual({ reason: "špatná hodnota" });
+    await waitFor(async () => expect((await row(RETENTION)).getAttribute("data-pending")).toBeNull());
+    const detail = await openDetail(RETENTION);
+    await waitFor(() => expect(detail.querySelector('[data-declined="WITHDRAWN"]')?.textContent).toContain("špatná hodnota"));
+    expect(within(detail).queryByRole("button", { name: "Schválit verzi 1" })).toBeNull();
   });
 
   it("proposes a status by its choice in place, and offers a member no proposal", async () => {

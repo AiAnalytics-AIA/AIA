@@ -73,7 +73,8 @@ https://claude.ai/artifact/8W9LR8Ju9BWnR5JACmiWv7 (ten boards, one per tab) and 
   (caught by the settings journey on chunk 6); the overview carries no version date, so a rule with a
   newer number is read once to decide (DeepResearchSettingsPanel.tsx usePending), and until then
   nothing waits.
-- Chunk 6's "Dosah" (#52) and "Stáhnout návrh" say "V AIA zatím není": the reach route and a way to
-  withdraw a proposal come from the backend builder; versions are immutable today.
+- Chunk 6's "Dosah" (#52) says "V AIA zatím není" until its route lands. "Stáhnout návrh" is wired to
+  #841's POST …/versions/{n}/withdrawal (reason required) and reads each version's `state` when the
+  server sends it; until #841 merges, the route answers 404 and the refusal is said in the modal.
 - Chunk 6 keeps the group list beside the rules (the catalogue has ~40 rules; the design's flat table
   had 8) and puts the design's columns in each group: Pravidlo, V platnosti, Návrh, Schválení.

@@ -282,7 +282,7 @@ function Row({ setting: s, shown, missing, people, open, onToggle, mayAdminister
         <td className={TD}>
           <div className="flex flex-col items-start gap-1.5">
             {waiting !== null && mayAdminister ? <ApproveButton setting={s} version={waiting} onDone={onChanged} /> : null}
-            {waiting !== null && mayAdminister ? <span data-not-yet title={t(`${D}.withdrawProposalNotYet`)} className="inline-flex min-h-[22px] items-center rounded-pill border border-dashed border-border-strong px-2 text-xs text-ink-muted">{t(`${D}.withdrawProposal`)} · {t("aia.settings.panel.notYet")}</span> : null}
+            {pending && mayAdminister ? <WithdrawButton setting={s} version={pending} onDone={onChanged} /> : null}
             <Button small variant="quiet" onClick={onToggle} aria-expanded={open} aria-controls={`dr-detail-${s.key}`}>{t(`${D}.${open ? "close" : mayAdminister ? "open" : "view"}`)}</Button>
           </div>
         </td>
@@ -300,14 +300,17 @@ function Row({ setting: s, shown, missing, people, open, onToggle, mayAdminister
  * The proposal waiting for approval, when there is one: the newest version saved after the rule's
  * last approval (or with none made). A number above the one in force is not enough -- a withdrawal
  * to the default leaves the version it withdrew from earlier, not waiting. The overview carries no
- * version's date, so a rule with a newer number is read once to decide; until then nothing waits.
+ * version's date or decline, so a rule with a newer number is read again whenever the overview is
+ * (a withdrawal changes no field of it); until then nothing waits.
  */
 function usePending(s: DrSetting): DrSettingVersion | null {
   const candidate = s.latest_number !== null && s.latest_number > (s.version ?? 0);
-  const [res] = useResource(() => (candidate ? deepResearchSettings.get(s.key) : Promise.resolve(null)), [s.key, candidate, s.latest_number, s.version, s.approved_at]);
+  const [res] = useResource(() => (candidate ? deepResearchSettings.get(s.key) : Promise.resolve(null)), [s, candidate]);
   if (!candidate || res.state !== "ready" || !res.data) return null;
+  // The server says where each version stands (#841); before it, a version saved after the last approval waits.
   const last = res.data.history.map((h) => h.approved_at).sort().at(-1);
-  const waiting = res.data.versions.filter((v) => v.version_number !== res.data!.version && (last === undefined || v.created_at > last));
+  const waiting = res.data.versions.filter((v) => v.state !== undefined ? v.state === "PENDING"
+    : v.version_number !== res.data!.version && (last === undefined || v.created_at > last));
   return waiting.sort((a, b) => b.version_number - a.version_number)[0] ?? null;
 }
 
@@ -358,6 +361,35 @@ function PendingValue({ setting: s, version: v }: { setting: DrSetting; version:
       <span className="block text-xs text-status-you-ink">{tv(`${D}.waitingVersion`, { version: v.version_number })}</span>
     </span>
   );
+}
+
+/** Stáhnout návrh: an I7 modal with a reason (required); the version stays, never approved after. */
+function WithdrawButton({ setting: s, version: v, onDone }: { setting: DrSetting; version: DrSettingVersion; onDone: () => void }) {
+  const [open, setOpen] = useState(false);
+  const [reason, setReason] = useState("");
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const fmt = (value: DrSettingValue) => `${showValue(s.type, value)}${value !== null && unitOf(s) ? ` ${unitOf(s)}` : ""}`;
+  const go = async () => {
+    if (!reason.trim()) { setError(t(`${D}.withdraw.reasonNeeded`)); return; }
+    setBusy(true); setError(null);
+    try { await deepResearchSettings.withdraw(s.key, v.version_number, reason.trim()); setOpen(false); setReason(""); onDone(); }
+    catch (e) { setError(describeError(e)); }
+    finally { setBusy(false); }
+  };
+  return <>
+    <Button small onClick={() => { setError(null); setOpen(true); }}>{t(`${D}.withdrawProposal`)}</Button>
+    {open ? (
+      <ConfirmDialog open marker="dr-withdraw" busy={busy} error={error} title={t(`${D}.withdraw.title`)}
+        rows={[{ label: t(`${D}.approve.rule`), value: labelOf(s) }, { label: t(`${D}.approve.from`), value: fmt(s.value) }, { label: t(`${D}.withdraw.taking`), value: fmt(v.value) }]}
+        text={t(`${D}.withdraw.consequence`)} confirmLabel={t(`${D}.withdraw.confirm`)} cancelLabel={t(`${D}.approve.cancel`)}
+        onConfirm={() => void go()} onCancel={() => setOpen(false)}>
+        <Field label={t(`${D}.withdraw.reason`)}>
+          <TextInput value={reason} maxLength={255} required onChange={(e) => setReason(e.target.value)} />
+        </Field>
+      </ConfirmDialog>
+    ) : null}
+  </>;
 }
 
 /** Schválit: an I7 modal with the rule, what holds and what is approved, and what follows. */
@@ -441,9 +473,10 @@ function DetailBody({ detail, people, mayAdminister, onChanged, onDirty }: { det
                     <strong>{tv(`${D}.detail.version`, { version: v.version_number })}</strong>
                     <span className="break-words font-mono">{showValue(detail.type, v.value)}</span>
                     {inForce === v.version_number ? <span className="text-xs font-semibold text-signal">{t(`${D}.detail.inForce`)}</span> : null}
+                    {v.decline ? <span data-declined={v.decline.kind} className="text-xs text-ink-muted">{t(`${D}.detail.${v.decline.kind === "WITHDRAWN" ? "withdrawnProposal" : "declinedProposal"}`)} · {people(v.decline.by)} · {when(v.decline.at)} — {v.decline.reason}</span> : null}
                     <span className="basis-full text-xs text-ink-muted">{people(v.created_by)} · {when(v.created_at)}{v.note ? ` · ${v.note}` : ""}</span>
                     {v.source_url ? <a className="text-xs underline" href={v.source_url} target="_blank" rel="noreferrer noopener">{t(`${D}.detail.source`)}</a> : null}
-                    {mayAdminister && inForce !== v.version_number ? (
+                    {mayAdminister && inForce !== v.version_number && !v.decline ? (
                       <Button small disabled={draftDirty} onClick={() => { setDone(null); setApproving({ version: v.version_number }); }}>{tv(`${D}.detail.approve`, { version: v.version_number })}</Button>
                     ) : null}
                   </li>
