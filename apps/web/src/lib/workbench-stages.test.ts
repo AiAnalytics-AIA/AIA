@@ -39,9 +39,29 @@ describe("workbench stages", () => {
       progress: { tone: "running" as const, line: "Běh 1: běží" },
       results: { tone: "idle" as const, line: "Zatím nic" },
     };
-    expect(stageState("sample", lane)).toEqual({ tone: "done", line: "2 dimenze · N=600" });
-    expect(stageState("fieldwork", lane)).toEqual({ tone: "running", line: "Běh 1: běží" });
-    expect(stageState("analysis", lane)).toEqual({ tone: "inert", line: "Zatím nic" });
-    expect(stageState("brief", lane)).toEqual({ tone: "inert", line: "" });
+    expect(stageState("sample", lane)).toEqual({ tone: "done", line: "2 dimenze · N=600", word: "Hotovo" });
+    expect(stageState("fieldwork", lane)).toEqual({ tone: "running", line: "Běh 1: běží", word: "Běží" });
+    expect(stageState("analysis", lane)).toEqual({ tone: "inert", line: "Zatím nic", word: "" });
+    expect(stageState("brief", lane)).toEqual({ tone: "inert", line: "", word: "" });
+  });
+
+  it("call Sběr dat done only when the newest run's results are ready, never because a run was started", () => {
+    const started = { tone: "done" as const, line: "Spuštěno 2×" };
+    const cancelled = { run: started, progress: { tone: "idle" as const, line: "Běh 2: zrušeno" }, results: { tone: "idle" as const, line: "Zatím nic" } };
+    expect(stageState("fieldwork", cancelled)).toEqual({ tone: "inert", line: "Běh 2: zrušeno", word: "" });
+    const unread = { run: started, progress: { tone: "idle" as const, line: "Běh 2: neznámý stav" } };
+    expect(stageState("fieldwork", unread)).toEqual({ tone: "inert", line: "Běh 2: neznámý stav", word: "" });
+    const none = { run: { tone: "idle" as const, line: "Nespuštěno" }, progress: { tone: "idle" as const, line: "Zatím žádný běh" } };
+    expect(stageState("fieldwork", none)).toEqual({ tone: "inert", line: "Nespuštěno", word: "" });
+    const ready = { run: started, progress: { tone: "done" as const, line: "Běh 2: výsledky připraveny" } };
+    expect(stageState("fieldwork", ready)).toEqual({ tone: "done", line: "Běh 2: výsledky připraveny", word: "Hotovo" });
+  });
+
+  it("call Výsledky done when a run's results are ready, and say nothing of Sociomapa, Analýza and Zpráva, which the lane does not know", () => {
+    const lane = { results: { tone: "done" as const, line: "Revize 2" } };
+    expect(stageState("results", lane)).toEqual({ tone: "done", line: "Revize 2", word: "Hotovo" });
+    for (const view of ["sociomap", "analysis", "report"] as const) {
+      expect(stageState(view, lane)).toEqual({ tone: "inert", line: "Revize 2", word: "" });
+    }
   });
 });

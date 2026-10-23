@@ -68,19 +68,31 @@ export function stageOf(step: StepKey, hash: string): WorkbenchStage {
 
 const TONE: Record<LaneTone, Tone> = { done: "done", you: "you", running: "running", fault: "fault", idle: "inert" };
 
+/** A stage's status in one word, by its tone: what the navigator shows under the stage's name. */
+const WORD: Record<Tone, string> = { done: "Hotovo", running: "Běží", you: "Čeká na vás", fault: "Chyba", ready: "Připraveno", inert: "" };
+
 /**
- * A stage's tone and line from the lane, keyed by step. Sample reads Dimenze's; Sběr dat reads
- * Průběh's while a run moves, else Kontrola's; the result views read Výsledky's. Unknown says
- * nothing: an empty line and the inert tone, never a guess.
+ * A stage's tone, line and word from the lane, keyed by step. Sample reads Dimenze's; the result
+ * data reads Výsledky's. Unknown says nothing: an empty word and the inert tone, never a guess, and
+ * a stage is done only where the lane says that stage is:
+ * - Sběr dat is done when the newest run's results are ready, moving, waiting or at fault as that
+ *   run is; a newest run cancelled or unread says so in its line, inert. Kontrola's "Spuštěno"
+ *   only says a run was started, never that the fieldwork is done.
+ * - Sociomapa, Analýza and Zpráva are Výsledky's views; the lane knows no map, module or report of
+ *   their own (research-lead-workbench F25), so they are inert, with Výsledky's line.
  */
-export function stageState(stage: WorkbenchStage, lane: Partial<Record<StepKey, LaneStage>>): { tone: Tone; line: string } {
+export function stageState(stage: WorkbenchStage, lane: Partial<Record<StepKey, LaneStage>>): { tone: Tone; line: string; word: string } {
+  const said = (tone: Tone, line: string) => ({ tone, line, word: WORD[tone] });
   const from = (step: StepKey) => {
     const s = lane[step];
-    return s ? { tone: TONE[s.tone], line: s.line } : { tone: "inert" as Tone, line: "" };
+    return s ? said(TONE[s.tone], s.line) : said("inert", "");
   };
   if (stage === "fieldwork") {
     const p = lane.progress;
-    return p && (p.tone === "running" || p.tone === "fault" || p.tone === "you") ? from("progress") : from("run");
+    if (p && p.tone !== "idle") return from("progress");
+    // No run yet: Kontrola's "Nespuštěno". A run whose state says nothing: its own line, inert.
+    return lane.run?.tone === "done" && p ? said("inert", p.line) : said("inert", lane.run?.line ?? "");
   }
+  if (stage === "sociomap" || stage === "analysis" || stage === "report") return said("inert", lane.results?.line ?? "");
   return from(STAGES[stage].step);
 }

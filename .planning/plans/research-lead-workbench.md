@@ -48,7 +48,7 @@ chunks:
   - "[ ] 32. The Lead pane's web results: inline citations with links and quotes, the result list as it arrives, each search's cost, and Kontext studie (the study's context file) readable with its version (Q5, Q6)"
   - "[ ] 33. Editor spike (Q19): Wordcraft, ONLYOFFICE Docs and Collabora Online compared against Tiptap for the study context file and reports, on Word-like UX, tracked changes and comments, Lead-driven edits, ledger refs through a round trip, DOCX fidelity, licence and EU self-hosting; a go/no-go to the owner"
   - "[x] 34. A stage change swaps only the stage's body: the study's layout draws the workbench (ResearchStages, the stage read from the address below it), so the Lead's pane, its draft, scroll and cards, the split, the header and the navigator stay mounted and nothing study-wide is read again; a review left open is kept as leaving the page kept it; the journey times each switch and asserts the same composer"
-  - "[ ] 35. The stage navigator as a steady, full-width bar: the six phases as labelled groups, fixed-width stage slots (the current stage marked, never grown), done, needs-you, fault, running and not-started each by glyph and tone; no shift at 1440, 1280 and 1100 px"
+  - "[x] 35. The stage navigator as a steady, full-width bar: the six phases as labelled groups, fixed-width stage slots (the current stage marked, never grown), done, needs-you, fault, running and not-started each by glyph and tone; no shift at 1440, 1280 and 1100 px"
 ---
 # Research Lead workbench
 
@@ -1862,4 +1862,43 @@ pass finds the jobs already done for the design.
 - **Not changed, recorded:** the runs are read again per route (`useRuns(studyId, step, …)`), and
   the study with them (the header's state follows the runs). They are the lane's input on every
   stage; sharing them across stages is another change.
+
+### The stage navigator, a steady full-width bar (2026-10-23, `fix/workbench-stage-bar`; chunk 35)
+
+- **F24. The navigator shifted and resized with the current stage, and said little of status** *(fixed)*.
+  1. Claim: the current stage was drawn bold (`font-weight: 600`), so its button grew and every
+     stage after it moved; the bar used a part of the width (it ended at 1094 px of 1440); the
+     phase labels hid below 1500 px; a stage's status was an 11 px glyph alone, a coral stripe for
+     "waiting on you" and nothing for a fault.
+  2. Anchor: `apps/web/src/components/workbench/workbench.css:89-99 @ a25d2435`.
+  3. Reproduction: on the UI workbench at 1440 px, Dotazník's slot at x 154, width 96 when
+     current, 94 otherwise; Cílová skupina 110 -> 113 px when current; every later slot moved 1-4 px.
+  4. Consequence: "the menu resizes depending on what stage you're currently on … it looks chaotic"
+     (Nigel, 2026-10-22).
+  5. Fix: the six phases as labelled groups across the whole width, each phase's width its stage
+     count, every stage an equal grid column; the current stage a fill and an underline, never a
+     weight; a stage's status by its glyph and a word under its name (Hotovo, Čeká na vás, Chyba,
+     Běží) and a strip in its tone on top, a needs-you or fault stage washed in its tone; a stage the
+     lane says nothing of says nothing, muted.
+  6. Test: `Workbench.layout.test.tsx` "the stage navigator: a steady, full-width bar" (groups and
+     slots, aria-current with the same content either way, the tones, the keys);
+     `workbench_journey.mjs` "the navigator spans the width, and no slot moves or grows with the
+     current stage at 1440, 1280 and 1100" (every slot's x, width and height equal across four
+     current stages).
+- The journey's stage locators match a stage by its own name: a button's words (its status, what
+  reopened it, "změna dříve v návrhu") can name another stage.
+- **Review on #840 (stand-in, thread 4355136231), fixed:** the word was the tone's, so a stage read
+  "Hotovo" where the lane never called it done: Sběr dat after a cancelled or unread newest run
+  (Kontrola's "Spuštěno N×" is done), and Sociomapa, Analýza and Zpráva whenever Výsledky was.
+  `stageState` now returns the word beside the tone (`lib/workbench-stages.ts`): Sběr dat is done
+  only when the newest run's results are ready, otherwise as that run is, or inert with its line;
+  the three views are inert with Výsledky's line. Tests: `workbench-stages.test.ts` (cancelled,
+  unread, none, ready; the three views) and `Workbench.layout.test.tsx` "never calls Sběr dat done
+  for a run that was only started and then cancelled…".
+- **F25, a follow-up (hypothesis until built):** Sociomapa, Analýza and Zpráva have no state of
+  their own in the lane, so the navigator says nothing of them. Each could: a map stored for the
+  newest finished run (and its register status), its analysis modules COMPLETED or BLOCKED
+  (`needsRepair`), its report composed or approved (`reportStatus`). Smallest fix: extend
+  `runLane` with `sociomap`, `analysis` and `report` from the run's steps as `run-state.ts` and
+  `report-status.ts` already read them, and route the three views to them in `stageState`.
 

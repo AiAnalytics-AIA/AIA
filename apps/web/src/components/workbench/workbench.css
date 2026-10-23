@@ -85,20 +85,33 @@
 .budgetmini__bar i { position: absolute; top: 0; bottom: 0; left: 0; background: var(--budget-spent); }
 .budgetmini__bar b { position: absolute; top: 0; bottom: 0; background: repeating-linear-gradient(135deg, var(--budget-reserved) 0 2px, transparent 2px 4px); }
 
-/* stage navigator */
-.nav { display: flex; align-items: stretch; gap: 0; height: 40px; padding: 0 8px 0 12px; border-bottom: 1px solid var(--border); background: var(--surface-raised); flex: none; container-type: inline-size; }
-.nav__phase { display: flex; align-items: center; gap: 2px; padding: 0 8px 0 0; margin-right: 8px; border-right: 1px solid var(--border); min-width: 0; }
-.nav__phase:last-of-type { border-right: 0; }
-.nav__plabel { font-size: 11px; color: var(--ink-faint); margin-right: 4px; white-space: nowrap; }
-@container (max-width: 1500px) { .nav__plabel { display: none; } }
-.nav__stage { position: relative; display: inline-flex; align-items: center; gap: 5px; height: 30px; padding: 0 8px; border: 0; border-radius: 4px; background: transparent; font-size: 13px; color: var(--ink); white-space: nowrap; }
+/* stage navigator (research-lead-workbench 35): the six phases across the whole width, each a
+   labelled group divided from the next, every stage a slot of the same width whatever is current.
+   A stage's status is its glyph, a word under its name and the tone's strip on top; the current
+   stage is filled and underlined, never grown, so nothing moves when it changes. */
+.nav { display: flex; align-items: stretch; gap: 0; height: 60px; padding: 0 12px; border-bottom: 1px solid var(--border); background: var(--surface-raised); flex: none; container-type: inline-size; }
+.nav__phase { display: flex; flex-direction: column; flex: var(--slots) 1 0; min-width: 0; padding: 0 6px; border-left: 1px solid var(--border); }
+.nav__phase:first-of-type { border-left: 0; padding-left: 0; }
+.nav__phase:last-of-type { padding-right: 0; }
+.nav__plabel { display: block; flex: none; height: 18px; padding: 4px 2px 0; font-size: 10.5px; line-height: 14px; font-weight: 600; letter-spacing: 0.04em; text-transform: uppercase; color: var(--ink-muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.nav__slots { display: grid; grid-template-columns: repeat(var(--slots), minmax(0, 1fr)); gap: 4px; flex: 1 1 auto; min-height: 0; padding-bottom: 4px; }
+.nav__stage { --tone: var(--border); position: relative; display: flex; flex-direction: column; justify-content: center; align-items: stretch; gap: 1px; min-width: 0; padding: 3px 8px 0; border: 0; border-radius: 4px; background: transparent; color: var(--ink); text-align: left; box-shadow: inset 0 3px 0 var(--tone); }
 .nav__stage:hover { background: var(--surface-sunken); }
-.nav__stage.is-current { background: var(--signal-wash); font-weight: 600; box-shadow: inset 0 -2px 0 var(--signal); border-radius: 4px 4px 0 0; }
-.nav__stage.is-inert { color: var(--ink-faint); }
-.nav__stage.is-you { box-shadow: inset 0 2px 0 var(--status-you); }
-.nav__stage.is-current.is-you { box-shadow: inset 0 -2px 0 var(--signal), inset 0 2px 0 var(--status-you); }
+.nav__label { min-width: 0; font-size: 13px; line-height: 18px; font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.nav__state { display: flex; align-items: center; gap: 5px; min-width: 0; height: 15px; }
+.nav__state .glyph { flex: none; }
+.nav__status { min-width: 0; font-size: 11px; line-height: 14px; color: var(--ink-muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.nav__stage[data-tone="done"] { --tone: var(--status-done); }
+.nav__stage[data-tone="running"] { --tone: var(--status-running); }
+.nav__stage[data-tone="running"] .nav__status { color: var(--status-running); }
+.nav__stage[data-tone="you"] { --tone: var(--status-you); background: var(--status-you-wash); }
+.nav__stage[data-tone="you"] .nav__status { color: var(--status-you-ink); font-weight: 600; }
+.nav__stage[data-tone="fault"] { --tone: var(--status-fault); background: var(--status-fault-wash); }
+.nav__stage[data-tone="fault"] .nav__status { color: var(--status-fault); font-weight: 600; }
+.nav__stage[data-tone="inert"] { color: var(--ink-muted); }
+.nav__stage.is-current { background: var(--signal-wash); box-shadow: inset 0 3px 0 var(--tone), inset 0 -2px 0 var(--signal); }
 /* The working copy reopened this stage (WCE7d): filled when its own input changed, a ring to re-check. */
-.nav__impact { flex: none; width: 6px; height: 6px; border-radius: 50%; }
+.nav__impact { position: absolute; bottom: 10px; right: 6px; width: 6px; height: 6px; border-radius: 50%; }
 .nav__impact--changed { background: var(--status-you); }
 .nav__impact--recheck { box-shadow: inset 0 0 0 1.5px var(--status-you); }
 .nav__more { margin-left: auto; display: flex; align-items: center; gap: 6px; }
@@ -131,18 +144,19 @@
    with the current stage in view; under 768 px one button names the stage and opens every stage
    grouped by phase, and the bar keeps only the study's name and the menu. */
 .nav--scroll { overflow-x: auto; overflow-y: hidden; scrollbar-width: thin; }
-.nav--scroll .nav__plabel { display: none; }
 .nav--scroll .nav__phase { flex: none; }
+.nav--scroll .nav__slots { grid-template-columns: repeat(var(--slots), 104px); }
 /* Not a query container in the sheet: a container is the containing block of its fixed
    descendants, and the stage list's scrim must cover the viewport, not the 40 px bar. */
-.nav--sheet { align-items: center; padding: 0 12px; container-type: normal; }
+.nav--sheet { align-items: center; height: 40px; padding: 0 12px; container-type: normal; }
 .nav__current { display: inline-flex; align-items: center; gap: 6px; height: 32px; padding: 0 8px; border: 0; border-radius: 4px; background: transparent; font-size: 13px; font-weight: 600; max-width: 100%; }
 .nav__current:hover { background: var(--surface-sunken); }
 .nav__currentlabel { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .nav__list { left: 8px; right: 8px; top: 38px; max-height: 70dvh; overflow-y: auto; padding: 8px; display: flex; flex-direction: column; gap: 6px; }
-.nav__list .nav__phase { flex-direction: column; align-items: stretch; border-right: 0; margin: 0; padding: 0; }
-.nav__list .nav__plabel { display: block; padding: 4px 8px 2px; }
-.nav__list .nav__stage { justify-content: flex-start; height: 36px; }
+.nav__list .nav__phase { flex: none; border-left: 0; margin: 0; padding: 0; }
+.nav__list .nav__plabel { height: auto; padding: 4px 8px 2px; }
+.nav__list .nav__slots { display: flex; flex-direction: column; gap: 4px; padding: 0; }
+.nav__list .nav__stage { min-height: 44px; padding: 5px 8px 2px; }
 .menu__info { display: flex; align-items: center; gap: 6px; padding: 8px 12px; font-size: 13px; color: var(--ink-muted); border-bottom: 1px solid var(--border); }
 &.wb--sheet .shead { gap: 8px; }
 &.wb--sheet .shead__home { min-width: 0; flex: 1 1 auto; }
