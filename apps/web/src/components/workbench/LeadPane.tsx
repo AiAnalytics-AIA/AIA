@@ -444,7 +444,11 @@ function LeadTurnView({ t, name, last, busy, onFollow, onView, onRequest, onSelf
     );
   }
   if (t.status !== "COMPLETED" || !t.output) {
-    return <div className="msg"><div className="notice"><Glyph tone={t.status === "WAITING" ? "world" : t.status === "CANCELLED" ? "cancelled" : "fault"} size={11} />{reasonWords(t.reason ?? t.status)}<span className="msgmeta">· {time(t.created_at)}</span></div></div>;
+    // Parked on the study's budget: coral for whoever can raise it (anyone who can edit the study,
+    // ADR 0019), slate for a reader who cannot (the product owner, 2026-10-23, Q85). Any other wait is slate.
+    const parkedOnBudget = t.status === "WAITING" && t.reason === "budget_exceeded";
+    const tone = parkedOnBudget && canEdit ? "you" : t.status === "WAITING" ? "world" : t.status === "CANCELLED" ? "cancelled" : "fault";
+    return <div className="msg"><div className="notice" data-lead-wait={t.reason ?? t.status}><Glyph tone={tone} size={11} />{reasonWords(t.reason ?? t.status)}<span className="msgmeta">· {time(t.created_at)}</span></div></div>;
   }
   const o: LeadOutput = t.output;
   const edits = o.edits ?? [];

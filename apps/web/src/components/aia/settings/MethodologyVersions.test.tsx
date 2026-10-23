@@ -633,6 +633,8 @@ describe("a module's view (settings-redesign 10b)", () => {
     expect((edit as HTMLButtonElement).disabled).toBe(true);
     expect(tab("Výpočet").getAttribute("aria-selected")).toBe("true");
     expect(document.querySelector("[data-methodology-editor]")).toBeNull();
+    // The editor is the Metodik's: the note says where the mark is granted (Q82, the product owner 2026-10-23).
+    expect(screen.getByText(/Značku uděluje vlastník organizace v Nastavení → Přístup a schvalování/)).toBeTruthy();
   });
 
   it("follows the Metodik mark, not the organization role: an admin without it reads, a marked researcher edits", async () => {
