@@ -14,7 +14,7 @@ from lxml import etree
 from aia_core.domain.deep_research.documents import DocumentRefused
 from aia_core.domain.report.model import Paragraph, Text, Value
 from aia_core.domain.report.saved_changes import ChangeKind, SavedChange, Uncomparable, compare
-from aia_core.infrastructure.document_text import ZIP_MAX_MEMBERS, DtdDeclared
+from aia_core.infrastructure.document_text import ZIP_MAX_MEMBERS
 from aia_core.infrastructure.report_docx.census import census
 from aia_core.infrastructure.report_docx.renderer import DocxRenderer
 
@@ -158,7 +158,7 @@ def test_a_saved_file_is_read_as_a_strangers(report_doc: Any) -> None:
                     b'<?xml version="1.0"?><!DOCTYPE w [<!ENTITY x "1">]>' + data.split(b"?>", 1)[1]
                 )
             target.writestr(info, data)
-    with pytest.raises(DtdDeclared):
+    with pytest.raises(DocumentRefused):
         census(out.getvalue())
     bodiless = io.BytesIO()
     with zipfile.ZipFile(bodiless, "w") as target:

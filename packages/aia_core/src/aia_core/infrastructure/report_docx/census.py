@@ -24,7 +24,7 @@ from lxml import etree
 from aia_core.domain.deep_research.documents import DocumentRefused
 from aia_core.domain.report.control_tags import parse_tag
 from aia_core.domain.report.saved_changes import Census, ControlSpan, LooseNumber
-from aia_core.infrastructure.document_text import check_zip_bounds, refuse_dtd
+from aia_core.infrastructure.document_text import DtdDeclared, check_zip_bounds, refuse_dtd
 
 W: Final = "{http://schemas.openxmlformats.org/wordprocessingml/2006/main}"
 BODY: Final = "word/document.xml"
@@ -88,8 +88,8 @@ def _malformed(exc: BaseException) -> DocumentRefused:
 def census(docx: bytes) -> Census:
     """The tagged controls and loose numbers of ``docx``'s body, in document order.
 
-    Raises ``DocumentRefused`` for a file past the ZIP bounds, not a ZIP or with no readable body,
-    and ``DtdDeclared`` for a body that declares a document type."""
+    Raises ``DocumentRefused`` for a file past the ZIP bounds, not a ZIP, with no readable body or
+    with a body that declares a document type."""
     check_zip_bounds(docx, "DOCX")
     try:
         # The member is first inflated here: a missing body, a bad CRC, a corrupt stream, an
@@ -98,11 +98,11 @@ def census(docx: bytes) -> Census:
             body = archive.read(BODY)
     except Exception as exc:
         raise _malformed(exc) from exc
-    refuse_dtd(body)
     try:
+        refuse_dtd(body)
         parser = etree.XMLParser(resolve_entities=False, no_network=True, huge_tree=False)
         root = etree.fromstring(body, parser)
-    except etree.XMLSyntaxError as exc:
+    except (DtdDeclared, etree.XMLSyntaxError) as exc:
         raise _malformed(exc) from exc
     controls = tuple(
         ControlSpan(tag, _text(sdt))
