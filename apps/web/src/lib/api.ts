@@ -1645,8 +1645,9 @@ export const researchAgents = {
       design_revision_id: revisionId, action, instruction, ...(promptVersion === undefined ? {} : { prompt_version: promptVersion }),
       ...(confirmCostUsd === undefined ? {} : { confirm_cost_usd: confirmCostUsd }),
     }),
-  jobs: async (studyId: string) => {
-    const jobs = await request<unknown>("GET", agentsPath(studyId));
+  /** The newest 20 jobs; `pending`: every proposal still to decide among the newest 200, filtered on the server before the page. */
+  jobs: async (studyId: string, pending = false) => {
+    const jobs = await request<unknown>("GET", `${agentsPath(studyId)}${pending ? "?pending=true" : ""}`);
     if (!Array.isArray(jobs) || jobs.some((j) => !j || typeof j.run_id !== "string" || typeof j.status !== "string" || !Array.isArray(j.steps))) {
       throw new Error("Seznam AI kroků má neplatný formát. Zkuste jej načíst znovu.");
     }
@@ -1791,7 +1792,8 @@ export type PromptSlotDetail = PromptSlotSummary & {
   baseline_text: string;
   required_literals: string[]; max_chars: number;
   /** The clients a draft may be tried on (the deployment's fictional list); empty means none. */
-  draft_test_client_ids: string[];
+  /** Gone from the API (D-15): no draft is tried from Settings. Kept optional until the panel drops its test. */
+  draft_test_client_ids?: string[];
   versions: PromptVersion[]; history: PromptActivation[];
 };
 

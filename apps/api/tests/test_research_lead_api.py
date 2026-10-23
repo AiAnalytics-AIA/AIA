@@ -14,6 +14,7 @@ import pytest
 from aia_core.application.research import research_artifacts
 from aia_core.application.scope import AuthenticatedPrincipal, ScopeResolver
 from aia_core.domain.approval_ledger import ApprovalSubject
+from aia_core.domain.edit_log import ActorKind, OpSource, WriteBy
 from aia_core.domain.research_lead import ARTIFACT_TYPE, EXTERNAL_LAYER
 from aia_core.domain.workflow import FailureClass
 from aia_core.domain.workflow_templates import RESEARCH_AGENT, RESEARCH_LEAD_TURN
@@ -61,7 +62,10 @@ def _scope(app: FastAPI, world: Any, session: Any, user: str = "researcher") -> 
 def _save_content(app: FastAPI, world: Any) -> int:
     with create_session_factory(app.state.engine)() as session:
         saved = StudyWorkspaceRepository(session).save(
-            _scope(app, world, session), content=CONTENT, base_revision=None
+            _scope(app, world, session),
+            content=CONTENT,
+            base_revision=None,
+            by=WriteBy(ActorKind.PERSON, _scope(app, world, session).actor_id, OpSource.UI),
         )
         session.commit()
         return saved.revision
@@ -797,6 +801,7 @@ def _person_saves(app: FastAPI, world: Any, base_revision: int) -> int:
             _scope(app, world, session),
             content={**CONTENT, "title": "Přepsáno rukou"},
             base_revision=base_revision,
+            by=WriteBy(ActorKind.PERSON, _scope(app, world, session).actor_id, OpSource.UI),
         )
         session.commit()
         return saved.revision
@@ -845,7 +850,10 @@ def test_a_save_landing_after_the_check_does_not_change_what_the_job_runs_on(
     def save_meanwhile(self: Any, confirm: float | None) -> Any:
         # Between the check and the submit, as another tab's save would land.
         StudyWorkspaceRepository(self.session).save(
-            self.scope, content={**CONTENT, "title": "Jinde"}, base_revision=1
+            self.scope,
+            content={**CONTENT, "title": "Jinde"},
+            base_revision=1,
+            by=WriteBy(ActorKind.PERSON, self.scope.actor_id, OpSource.UI),
         )
         return gate(self, confirm)
 

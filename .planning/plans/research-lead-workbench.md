@@ -1863,3 +1863,48 @@ pass finds the jobs already done for the design.
   the study with them (the header's state follows the runs). They are the lane's input on every
   stage; sharing them across stages is another change.
 
+### The Lead's `show_diff` (2026-10-22, `feature/lead-show-diff`; chunk 14)
+
+The owner's choice (2026-10-22, through the PM): on Návrh, Dotazník and Dimenze, `show_diff` shows that
+stage's waiting changes, the Lead's edits still to decide there, else the newest proposal still
+waiting for review. On Zpráva it waits for report-delivery RD5's tracked changes.
+- **Server.** `research_lead.ShowDiff` (`op: "show_diff"`, a stage) joins `ViewOp`; harness
+  `aia-research-lead-5`. `show_diff_refusal` drops one on a stage outside `SHOW_DIFF_STAGES`
+  (design, questionnaire, dimensions) or whose contract has none, as `not_available`, Zpráva
+  included. The prompt says where it applies. `show_diff` is live on both sides and in the fixture.
+- **Web.** `changesToShow` (pure): the Lead's edits waiting on the stage first, else the stage's
+  newest proposal with `proposal_state` pending (`JOB_STAGE`), else nothing.
+  - Workbench reveals the "Návrhy Vedoucího" bar (scrolled to and marked, as a focus is), or opens
+    the proposal as its card's review opens (`openJob`); with neither, it opens the stage through
+    its leave guard.
+  - The focus branch's find-and-mark is now `reveal(selector)`, shared by both.
+  - The chip reads "Změny: <stage>".
+- **Scripted Lead.** A message asking for "změny" on Návrh, Dotazník or Dimenze shows that stage's.
+- **Each stage shows it.** The frame does this generically for the three stages, so `show_diff` is
+  live with this change (the PM: "keep it out of the Lead's live ops until each stage shows it").
+- **In a browser** (UI workbench, the `questionnaire` fixture, scripted Lead, zero paid): at 1440 and
+  390 px, "Ukaž mi změny" proposes an edit and shows the bar, marked; the turn's chip reads
+  "Změny: Dotazník"; no page error, no overflow, no paid start.
+- **Tests.** `test_research_lead.py` "show_diff only where the stage shows its waiting changes";
+  `test_research_lead_workbench.py` "a scripted message asking for the changes…"; `lead.test.ts`
+  "changesToShow"; `LeadPane.test.tsx` "names a show_diff chip…"; `Workbench.layout.test.tsx`
+  "the Lead's show_diff": marks the edits, opens the waiting proposal, opens the stage when nothing
+  waits. Each fails without the change.
+- **Older than the page (Codex on #809).** The workbench's `jobs` are the newest 20, and the
+  server's `?pending=true` filtered that page, so a proposal waiting behind 20 newer jobs was never
+  shown. `?pending=true` now filters the study's newest 200 jobs (`list_runs`' cap) before reading
+  them in full, and show_diff asks it when its page holds no proposal for the stage. Tests:
+  `test_a_pending_proposal_older_than_the_newest_page_is_still_listed_as_pending`;
+  `Workbench.layout.test.tsx` "asks the server for the stage's pending proposals…".
+- **Review fixes after it was marked ready.**
+  - *A slow lookup could act after the person moved on* (Codex). Each `?pending=true` lookup carries
+    its own number (`lookup`), moved on by a newer show_diff, a stage change or a study change; an
+    older answer is ignored. Test: `Workbench.layout.test.tsx` "drops a pending-proposal lookup…".
+  - *An older proposal on another stage did not open* (stand-in review). `openJob` kept only the job's
+    id in page memory, and the next stage looked for it in the newest page alone. The job itself is
+    now kept (`OPEN_REVIEW_KEY`), the page's copy preferred. Test: `ResearchScreen.workbench.test.tsx`
+    "opens on its own stage a proposal the Lead's show_diff found older than the newest page".
+  - *Silence on the current stage* (stand-in review). Nothing found says "Na této fázi nic nečeká na
+    rozhodnutí (prohledáno posledních 200 úloh)."; a lookup that failed says the proposals could not be
+    read, never that nothing waits. Tests: `Workbench.layout.test.tsx` "says so on the stage the person
+    is on when…" (both).

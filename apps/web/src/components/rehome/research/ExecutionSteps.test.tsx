@@ -32,13 +32,6 @@ vi.mock("./AskLead", async (importOriginal) => {
   return { ...actual, useLeadOwnsAiStarts: () => layout.workbench ?? actual.useLeadOwnsAiStarts() };
 });
 
-/** Approval asks first, naming the version (input-interactions B22); answer yes. */
-async function confirmApproval(version?: string): Promise<void> {
-  const dialog = await screen.findByRole("dialog");
-  if (version) expect(dialog.textContent).toContain(`uloženou verzi ${version} (`);
-  fireEvent.click(within(dialog).getByRole("button", { name: t("research.exec.report.approveAsk.yes") }));
-}
-
 /** An approval made in the document pane's doc bar (RPT3a), as the pane announces it. */
 function approvedInPane(d: Partial<ReportApproved> & Pick<ReportApproved, "kind" | "artifactId">): void {
   const detail: ReportApproved = { runId: "RUN-1", reviewState: "APPROVED_INTERNAL", approvedOn: null, stamped: null, ...d };
@@ -1461,6 +1454,39 @@ describe("Progress", () => {
     ));
     expect(row.querySelector("[data-step-activity]")).toBeNull();
     expect(list.querySelectorAll("[data-last-reported]")).toHaveLength(1);
+  });
+
+  it("shows a panel run's quota cells filled by the respondents fieldwork reported (RQC7b)", async () => {
+    const feed = (id: number, message: string, payload: Record<string, unknown>) => ({
+      event_id: id, step_id: "STEP-run", attempt_id: "ATT-1", event_type: "STEP_PROGRESS", level: "INFO", message,
+      payload: { version: "aia-fieldwork-events-2", ...payload }, created_at: "2026-09-25T08:01:00Z",
+    });
+    api({
+      ...listed(PARKED),
+      [`GET /api/v1/studies/STU-1/research/runs/${PARKED.run_id}/events`]: () => [
+        feed(1, "fieldwork_sample", { quota_fields: ["pohlavi", "vek"], cells: [
+          { key: "zena/18-29", values: ["žena", "18-29"], n: 1 },
+          { key: "muz/30-44", values: ["muž", "30-44"], n: 2 },
+        ] }),
+        feed(2, "fieldwork_progress", { respondents: 2, of: 3, sent: 2, replayed: 0, cells: { "zena/18-29": 1, "muz/30-44": 1 } }),
+      ],
+    });
+    render(<ResearchScreen step="progress" frame={TEST_FRAME} />);
+    const list = await screen.findByRole("list", { name: t("aia.stages.progress") });
+    const row = list.querySelector<HTMLElement>('li[data-step="run"]')!;
+    const fill = await waitFor(() => {
+      const el = row.querySelector<HTMLElement>("[data-quota-fill]");
+      expect(el).not.toBeNull();
+      return el!;
+    });
+    expect(within(fill).getByText(tv("research.exec.activity.quotaTitle", { full: 1, cells: 2 }))).toBeTruthy();
+    const cells = [...fill.querySelectorAll<HTMLElement>("tr[data-cell]")].map((tr) => tr.textContent);
+    expect(cells).toEqual(["žena · 18-29" + tv("research.exec.activity.quotaOf", { answered: 1, n: 1 }), "muž · 30-44" + tv("research.exec.activity.quotaOf", { answered: 1, n: 2 })]);
+    expect(fill.textContent).toContain(t("research.exec.activity.quotaNote"));
+    // A full-size touch target on a phone, with the shared focus ring (Codex on #836).
+    expect(fill.querySelector("summary")?.className).toMatch(/min-h-11/);
+    expect(fill.querySelector("summary")?.className).toMatch(/focus-visible/);
+    expect(list.querySelectorAll("[data-quota-fill]")).toHaveLength(1);
   });
 
   it("shows no orb while fieldwork waits for the AI runtime", async () => {

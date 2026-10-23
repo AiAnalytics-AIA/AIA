@@ -22,6 +22,11 @@ export type StepActivity = {
   /** Fieldwork blocks answered from the checkpoint, not paid again (RQC7a `replayed`); 0 until reported. */
   replayed: number;
   /**
+   * A panel run's quota cells (RQC7b `fieldwork_sample`), each with the respondents answered in it
+   * as `fieldwork_progress`'s `cells` counted them; null until the cells are reported.
+   */
+  quota: { cells: QuotaFill[] } | null;
+  /**
    * Model requests the step reported answered (AIA_AI_STEP_EVENTS), summed from their events.
    * `tokens` is null once any answer came without its counts: unknown, never counted as none.
    */
@@ -29,6 +34,8 @@ export type StepActivity = {
   /** Web tool calls that completed, from Deep Research's tool events. */
   toolCalls: number;
 };
+
+export type QuotaFill = { key: string; values: string[]; n: number; answered: number };
 
 export type ActivityState = { cursor: number; steps: Readonly<Record<string, StepActivity>> };
 export const EMPTY_ACTIVITY: ActivityState = { cursor: 0, steps: {} };
@@ -115,6 +122,10 @@ export function describe(event: RunEvent): ActivityLine | null {
     if (done === null || of === null) return null;
     return line(withReplayed(tv("research.exec.activity.fieldworkProgress", { done, of }), num(p.replayed) ?? 0));
   }
+  if (code === "fieldwork_sample") {
+    const cells = quotaCells(p.cells);
+    return cells ? line(tv("research.exec.activity.fieldworkSample", { cells: cells.length })) : null;
+  }
   if (code.startsWith(TOOL_PREFIX)) {
     const text = toolLine(code.slice(TOOL_PREFIX.length), p);
     return text ? line(text, code.endsWith("failed") || code.endsWith("uncertain") ? "warn" : "info") : null;
@@ -134,19 +145,44 @@ export function describe(event: RunEvent): ActivityLine | null {
 }
 
 function blank(stepId: string): StepActivity {
-  return { stepId, lines: [], progress: null, replayed: 0, model: { answered: 0, tokens: 0, costUsd: 0 }, toolCalls: 0 };
+  return { stepId, lines: [], progress: null, replayed: 0, quota: null, model: { answered: 0, tokens: 0, costUsd: 0 }, toolCalls: 0 };
+}
+
+/** A `fieldwork_sample`'s cells, each readable or the whole list refused (never a partial table); none is no table. */
+function quotaCells(raw: unknown): QuotaFill[] | null {
+  if (!Array.isArray(raw) || !raw.length) return null;
+  const cells: QuotaFill[] = [];
+  for (const c of raw) {
+    const r = (c ?? {}) as Record<string, unknown>;
+    const key = str(r.key);
+    const n = num(r.n);
+    const values = Array.isArray(r.values) && r.values.every((v) => typeof v === "string") ? (r.values as string[]) : null;
+    if (!key || n === null || !values) return null;
+    cells.push({ key, values, n, answered: 0 });
+  }
+  return cells;
+}
+
+/** A report's per-cell counts: whole, non-negative numbers only; anything else counts nothing. */
+function cellCounts(raw: unknown): [string, number][] {
+  if (!raw || typeof raw !== "object" || Array.isArray(raw)) return [];
+  return Object.entries(raw as Record<string, unknown>).filter((e): e is [string, number] => Number.isInteger(e[1]) && (e[1] as number) >= 0);
 }
 
 /** Fold events read after the state's cursor; the same events twice change nothing. */
 export function foldActivity(state: ActivityState, events: readonly RunEvent[], keep = KEEP_LINES): ActivityState {
   let cursor = state.cursor;
   const steps: Record<string, StepActivity> = { ...state.steps };
+  // The steps whose quota this fold copied already, so it may count into it.
+  const owned = new Set<string>();
   for (const event of [...events].sort((a, b) => a.event_id - b.event_id)) {
     if (event.event_id <= cursor) continue;
     cursor = event.event_id;
     if (!event.step_id) continue;
     const prev = steps[event.step_id] ?? blank(event.step_id);
     const next: StepActivity = { ...prev, model: { ...prev.model } };
+    // A new attempt counts from nothing: an earlier attempt's count, replays and cells are not its own.
+    if (event.event_type === "ATTEMPT_CLAIMED") Object.assign(next, { progress: null, replayed: 0, quota: null });
     const p = event.payload ?? {};
     if (event.event_type === "STEP_PROGRESS") {
       const done = num(p.respondents);
@@ -154,6 +190,26 @@ export function foldActivity(state: ActivityState, events: readonly RunEvent[], 
       if (done !== null && of !== null) next.progress = { done, of };
       // Each event carries its attempt's own total: one without it says nothing was replayed.
       if (event.message === "fieldwork_progress") next.replayed = num(p.replayed) ?? 0;
+      // A new attempt reports its cells again and counts its respondents from the first.
+      if (event.message === "fieldwork_sample") {
+        const cells = quotaCells(p.cells);
+        next.quota = cells ? { cells } : null;
+        if (cells) owned.add(event.step_id);
+      }
+      // Each report counts the respondents answered per cell since the previous one (RQC7b).
+      const filled = event.message === "fieldwork_progress" ? cellCounts(p.cells) : [];
+      if (filled.length && next.quota) {
+        // Copied once per fold, then counted in place: a long feed never copies every cell per report.
+        if (!owned.has(event.step_id)) {
+          next.quota = { cells: next.quota.cells.map((c) => ({ ...c })) };
+          owned.add(event.step_id);
+        }
+        const byKey = new Map(next.quota.cells.map((c) => [c.key, c]));
+        for (const [key, count] of filled) {
+          const cell = byKey.get(key);
+          if (cell) cell.answered += count;
+        }
+      }
       if (event.message === "ai_request_answered") {
         next.model.answered += 1;
         const tokensIn = num(p.input_tokens);

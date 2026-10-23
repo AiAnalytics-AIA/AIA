@@ -464,7 +464,11 @@ function Prose({ text }: { text: string }) {
 /** The working copy a view chip's target is named from (F18). */
 const ViewWords = createContext<TargetWords | null>(null);
 
-const VIEW_LABEL = (v: LeadView, design: TargetWords | null) => (v.op === "open_stage" ? `Otevřít ${isWorkbenchStage(v.stage) ? STAGES[v.stage].label : v.stage}` : `${v.op === "inspect" ? "Detail" : "Ukázat"}: ${targetLabel(v.target, design)}`);
+const stageWords = (stage: string) => (isWorkbenchStage(stage) ? STAGES[stage].label : stage);
+const VIEW_LABEL = (v: LeadView, design: TargetWords | null) =>
+  v.op === "open_stage" ? `Otevřít ${stageWords(v.stage)}`
+  : v.op === "show_diff" ? `Změny: ${stageWords(v.stage)}`
+  : `${v.op === "inspect" ? "Detail" : "Ukázat"}: ${targetLabel(v.target, design)}`;
 
 function LeadTurnView({ t, name, last, busy, onFollow, onView, onRequest, onSelfUpdate, canEdit, job, onOpenJob, studyId, cards, run }: {
   t: LeadTurn; name: string; last: boolean; busy: boolean; canEdit: boolean; job: ResearchAgentJob | null; onOpenJob?: (job: ResearchAgentJob) => void;

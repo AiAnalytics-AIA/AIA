@@ -27,6 +27,7 @@ import pytest
 from sqlalchemy import Engine, select
 from sqlalchemy.orm import Session, sessionmaker
 
+from aia_core.domain.edit_log import ActorKind, OpSource, WriteBy
 from aia_core.domain.providers import Provider
 from aia_core.domain.workflow import (
     AttemptStatus,
@@ -1342,6 +1343,7 @@ def test_two_reviewed_design_proposals_cannot_overwrite_each_other(
                 workflows.scope,
                 content={**content, "goal": f"Reviewed proposal {index}"},
                 base_revision=base,
+                by=WriteBy(ActorKind.PERSON, workflows.scope.actor_id, OpSource.UI),
             )
             working[index] = saved.revision
         session.commit()
@@ -1396,7 +1398,10 @@ def test_two_editors_saving_from_one_revision_cannot_overwrite_each_other(
     session, workflows = _repo_in_new_session(pg_sessions, world)
     try:
         StudyWorkspaceRepository(session).save(
-            workflows.scope, content={"goal": "Original"}, base_revision=None
+            workflows.scope,
+            content={"goal": "Original"},
+            base_revision=None,
+            by=WriteBy(ActorKind.PERSON, workflows.scope.actor_id, OpSource.UI),
         )
         session.commit()
     finally:
@@ -1412,7 +1417,10 @@ def test_two_editors_saving_from_one_revision_cannot_overwrite_each_other(
             session.get(StudyRow, world["study_id"])
             try:
                 StudyWorkspaceRepository(session).save(
-                    workflows.scope, content={"goal": f"Editor {index}"}, base_revision=1
+                    workflows.scope,
+                    content={"goal": f"Editor {index}"},
+                    base_revision=1,
+                    by=WriteBy(ActorKind.PERSON, workflows.scope.actor_id, OpSource.UI),
                 )
                 session.commit()
                 return "saved"
@@ -1450,7 +1458,10 @@ def test_two_first_saves_create_one_working_project(
         try:
             try:
                 StudyWorkspaceRepository(session).save(
-                    workflows.scope, content={"goal": f"Tab {index}"}, base_revision=None
+                    workflows.scope,
+                    content={"goal": f"Tab {index}"},
+                    base_revision=None,
+                    by=WriteBy(ActorKind.PERSON, workflows.scope.actor_id, OpSource.UI),
                 )
                 session.commit()
                 return "saved"

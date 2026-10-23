@@ -39,6 +39,7 @@ from .routers import (
     scope,
     session,
     system_prompts,
+    system_status,
     wallet,
     workspace,
 )
@@ -163,6 +164,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     app.include_router(materialize.router, prefix=API_PREFIX)
     app.include_router(wallet.router, prefix=API_PREFIX)
     app.include_router(researcher_spend.router, prefix=API_PREFIX)
+    app.include_router(system_status.router, prefix=API_PREFIX)
     app.include_router(organization_spend.router, prefix=API_PREFIX)
     return app
 

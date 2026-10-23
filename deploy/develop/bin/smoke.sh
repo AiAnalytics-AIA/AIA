@@ -25,8 +25,14 @@ cd "$DEPLOY_DIR" || exit 1
 
 BASE="https://${AIA_PUBLIC_HOSTNAME}"
 FAILED=0
-pass() { printf 'ok    %s\n' "$1"; }
-fail() { printf 'FAIL  %s\n      %s\n' "$1" "${2:-}"; FAILED=1; }
+# Every check line is also kept here, for Settings → Stav systému (settings-backends SB4):
+# the label and result only, never a detail line. Kept at the end, best effort.
+RESULTS="$(mktemp)"
+trap 'rm -f "$RESULTS"' EXIT
+# Each line is self-contained (the docs smoke's tests lift these helpers alone): a check line
+# is kept only when there is a results file, and the helpers behave as before without one.
+pass() { printf 'ok    %s\n' "$1"; if [ -n "${RESULTS:-}" ]; then printf 'ok    %s\n' "$1" >> "$RESULTS"; fi; }
+fail() { printf 'FAIL  %s\n      %s\n' "$1" "${2:-}"; if [ -n "${RESULTS:-}" ]; then printf 'FAIL  %s\n' "$1" >> "$RESULTS"; fi; FAILED=1; }
 # Said, never counted as a pass, and not a failure: what is optional by design (bin/smoke-docs.sh).
 warn() { printf 'WARN  %s\n      %s\n' "$1" "${2:-}"; }
 json() { python3 -c "import json,sys; d=json.load(sys.stdin); print($1)"; }
@@ -181,9 +187,22 @@ else fail "worker: started at build $SHA" "no 'worker started' line with build_s
 # a real develop_snapshot run created as the seeded operator, executed by the
 # running worker, its artifact read back from S3 and hash-verified. It prints
 # its own ok/FAIL lines in this format and exits non-zero on any failure.
-if "${COMPOSE[@]}" run --rm --no-deps -T -e AIA_SEED_OWNER_EMAIL worker python -m aia_executors.smoke --expect-build "$SHA"; then
+# Its lines go to the results too (pipefail: the pipeline's status is the smoke's).
+if "${COMPOSE[@]}" run --rm --no-deps -T -e AIA_SEED_OWNER_EMAIL worker python -m aia_executors.smoke --expect-build "$SHA" | tee -a "$RESULTS"; then
   pass "storage + worker + slice: aia_executors.smoke passed"
 else fail "storage + worker + slice: aia_executors.smoke" "see the lines above"; fi
+
+# --- keep the results for Settings (never a reason to fail the deploy) -------
+# Labels and results only (aia_executors.smoke_record), passed or failed alike, so Settings
+# shows the run that is deployed. A failure here is said and does not change the verdict.
+if record_out="$(timeout --kill-after=10 120 "${COMPOSE[@]}" run --rm --no-deps -T worker \
+    python -m aia_executors.smoke_record --build "$SHA" --public-hostname "$AIA_PUBLIC_HOSTNAME" \
+    < "$RESULTS" 2>&1)"; then
+  printf 'info  smoke: results kept for Settings (Stav systému)\n'
+else
+  printf 'warn  smoke: results not kept; Settings shows the previous run (%s)\n' \
+    "$(printf '%s' "$record_out" | tail -n1)"
+fi
 
 echo
 if [ "$FAILED" -ne 0 ]; then echo "smoke: FAILED"; exit 1; fi
