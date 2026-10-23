@@ -243,11 +243,51 @@ function OrgSelfApproval({ value, canAdminister, reload }: { value: boolean | nu
   return (
     <div data-level="organization" className="mt-3.5 flex flex-wrap items-center gap-3">
       <b className="min-w-[7.5rem] text-sm font-medium">{t(`${P}.approvals.organization`)}</b>
-      <ChoiceChips label={t(`${A}.orgSelf`)} disabled={!canAdminister} value={value === null ? null : tri(value)}
-        options={[{ key: "allow" as const, label: t(`${P}.approvals.allow`) }, { key: "forbid" as const, label: t(`${P}.approvals.forbid`) }]}
+      {/* Výchozí clears the organization's rule (allowed: null): the code's default, allowed, applies again. */}
+      <ChoiceChips label={t(`${A}.orgSelf`)} disabled={!canAdminister} value={tri(value)}
+        options={[{ key: "inherit" as const, label: t(`${A}.orgDefaultChip`) }, { key: "allow" as const, label: t(`${P}.approvals.allow`) }, { key: "forbid" as const, label: t(`${P}.approvals.forbid`) }]}
         onChange={(k) => void run(() => admin.setSelfApproval({ allowed: allowed(k) }))} />
       <SaveNote state={state} />
       <span className="text-xs leading-5 text-ink-muted">{value === null ? t(`${A}.orgDefault`) : t(`${A}.orgHelp`)}</span>
+      {error ? <p role="alert" className="w-full text-xs text-status-fault">{error}</p> : null}
+    </div>
+  );
+}
+
+/** A study's own rule, set where it is listed: Dědit removes it, so the client's or organization's applies. */
+function StudyRule({ studyId, name, value, canAdminister, reload }: { studyId: string; name: string; value: Tri; canAdminister: boolean; reload: () => void }) {
+  const { state, error, run } = useSave(reload);
+  return (
+    <li data-study-rule={studyId} className="flex flex-wrap items-center gap-3">
+      <span className="min-w-[10rem] text-sm">{name}</span>
+      <ChoiceChips label={tv(`${A}.selfOfStudy`, { study: name })} disabled={!canAdminister} value={value}
+        options={[{ key: "inherit" as const, label: t(`${A}.inherit`) }, { key: "allow" as const, label: t(`${P}.approvals.allow`) }, { key: "forbid" as const, label: t(`${P}.approvals.forbid`) }]}
+        onChange={(k) => void run(() => admin.setSelfApproval({ allowed: allowed(k), study_id: studyId }))} />
+      <SaveNote state={state} />
+      {error ? <p role="alert" className="w-full text-xs text-status-fault">{error}</p> : null}
+    </li>
+  );
+}
+
+/** A new study rule: the study, then Povolit or Zakázat, which saves it. */
+function AddStudyRule({ studies, reload }: { studies: { study_id: string; name: string }[]; reload: () => void }) {
+  const [open, setOpen] = useState(false);
+  const [studyId, setStudyId] = useState("");
+  const { state, error, run } = useSave(reload);
+  if (!studies.length) return null;
+  if (!open) return <Button small className="mt-3" onClick={() => setOpen(true)}>{t(`${A}.addStudyRule`)}</Button>;
+  return (
+    <div data-add-study-rule className="mt-3 flex flex-wrap items-center gap-3">
+      <select aria-label={t(`${A}.chooseStudy`)} value={studyId} onChange={(e) => setStudyId(e.target.value)}
+        className={`min-h-9 min-w-[10rem] rounded-sm border border-border-strong bg-surface-raised px-2 text-sm ${FOCUS}`}>
+        <option value="">{t(`${A}.chooseStudy`)}</option>
+        {studies.map((s) => <option key={s.study_id} value={s.study_id}>{s.name}</option>)}
+      </select>
+      <ChoiceChips label={t(`${A}.newStudyRule`)} disabled={!studyId} value={null}
+        options={[{ key: "allow" as const, label: t(`${P}.approvals.allow`) }, { key: "forbid" as const, label: t(`${P}.approvals.forbid`) }]}
+        onChange={(k) => void run(() => admin.setSelfApproval({ allowed: allowed(k), study_id: studyId })).then((ok) => { if (ok) { setStudyId(""); setOpen(false); } })} />
+      <Button small variant="quiet" onClick={() => { setOpen(false); setStudyId(""); }}>{t(`${A}.cancel`)}</Button>
+      <SaveNote state={state} />
       {error ? <p role="alert" className="w-full text-xs text-status-fault">{error}</p> : null}
     </div>
   );
@@ -270,12 +310,15 @@ export function SelfApprovalCard({ levels, studies, canAdminister, reload }: {
         : !levels.ok ? <p role="alert" className="mt-3 text-sm text-status-fault">{levels.message}</p>
         : <>
           <OrgSelfApproval value={levels.data.organization} canAdminister={canAdminister} reload={reload} />
-          {levels.data.studies.length ? (
-            <div data-study-overrides className="mt-3 text-xs leading-5 text-ink-muted">
-              <span className="font-medium text-ink">{t(`${A}.studyOverrides`)}</span>{" "}
-              {levels.data.studies.map((s, i) => <span key={s.study_id}>{i ? ", " : ""}{studyName.get(s.study_id) ?? s.study_id}: {t(`${P}.approvals.${s.allowed ? "allowed" : "forbidden"}`)}</span>)}
-            </div>
-          ) : null}
+          <div data-study-overrides className="mt-4 border-t border-border pt-3">
+            <span className="text-sm font-medium">{t(`${A}.studyOverrides`)}</span>
+            {levels.data.studies.length ? (
+              <ul className="mt-1.5 flex flex-col gap-2">
+                {levels.data.studies.map((s) => <StudyRule key={s.study_id} studyId={s.study_id} name={studyName.get(s.study_id) ?? s.study_id} value={tri(s.allowed)} canAdminister={canAdminister} reload={reload} />)}
+              </ul>
+            ) : <p className="mt-1 text-xs text-ink-muted">{t(`${A}.noStudyRules`)}</p>}
+            {canAdminister ? <AddStudyRule studies={studies.filter((s) => !levels.data.studies.some((r) => r.study_id === s.study_id))} reload={reload} /> : null}
+          </div>
         </>}
     </section>
   );
