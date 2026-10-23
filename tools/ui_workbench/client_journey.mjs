@@ -47,7 +47,9 @@ const page = await context.newPage();
 const errors = [], checks = [], writes = [], httpErrors = [], records = [];
 page.on("pageerror", (e) => errors.push(String(e)));
 page.on("response", (r) => {
-  if (r.status() >= 400) httpErrors.push({ status: r.status(), path: new URL(r.url()).pathname });
+  // A client's rules (#853) answer 404 until their route is deployed; the page says "V AIA zatím není".
+  const notYetRules = r.status() === 404 && /^\/api\/v1\/clients\/[^/]+\/rules$/.test(new URL(r.url()).pathname);
+  if (r.status() >= 400 && !notYetRules) httpErrors.push({ status: r.status(), path: new URL(r.url()).pathname });
 });
 page.on("request", (r) => {
   const path = new URL(r.url()).pathname;
@@ -269,6 +271,15 @@ try {
   const history = main.locator("section").filter({ has: page.getByRole("heading", { name: "Historie profilu" }) });
   assert(!(await history.innerText()).includes(`${stamp}@klient.test`), "the history names an e-mail");
   checks.push("A contact is added and removed, and the history names it without its e-mail");
+  // Pravidla (D-17, #853): the data posture and the wallet ceiling, set here. Before the route is
+  // deployed the card says so; after, an unset posture reads CLASSIFIED and no ceiling "bez stropu".
+  const rules = main.locator("section").filter({ has: page.getByRole("heading", { name: "Pravidla" }) });
+  await rules.locator(":is([data-not-yet], [data-client-rules-editor], [role=alert])").first().waitFor();
+  if (await rules.locator("[data-client-rules-editor]").count()) {
+    assert(await rules.getByRole("radiogroup", { name: "Postoj dat" }).getByRole("radio", { checked: true }).count() === 1, "rules: one posture in force");
+    assert(!/0,00\s*USD/.test(await rules.innerText()) || await rules.getByLabel("Strop peněženky").count(), "rules: no ceiling read as 0");
+  }
+  checks.push("Pravidla shows the client's posture and wallet ceiling, or says they are not in AIA yet");
   await measure("profile");
 
   const paid = writes.filter((w) => /\/(research\/runs|research\/agent-jobs|deep-research|budget|spend-confirm)/.test(w.path));
