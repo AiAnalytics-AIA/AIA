@@ -160,3 +160,19 @@ def test_only_an_administrator_seals_a_lead(scoped: Any, session: Any) -> None:
         deactivate_member(session, member, user_id=scoped.users["lead"], now=NOW)
     with pytest.raises(ScopeDenied):
         LeadSeals(session, member)
+
+
+def test_a_membership_deactivated_in_one_organization_is_not_one_to_sign_in_to(
+    scoped: Any, session: Any
+) -> None:
+    """Sign-in picks the organization from the memberships: a user active in one and
+    deactivated in the other resolves to the one they are active in, with no hint."""
+    other, theirs = _other_world(scoped)
+    lead = scoped.users["lead"]
+    scoped.scope_repo.add_member(theirs, email="lead@art-chain.io")
+    assert len(scoped.scope_repo.memberships_for_user(lead)) == 2
+    deactivate_member(session, theirs, user_id=lead, now=NOW)
+    assert scoped.scope_repo.memberships_for_user(lead) == [scoped.admin_context.organization_id]
+    assert other.organization_id in scoped.scope_repo.memberships_for_user(
+        lead, include_deactivated=True
+    )

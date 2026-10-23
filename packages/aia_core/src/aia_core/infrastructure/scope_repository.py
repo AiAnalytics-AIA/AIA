@@ -213,7 +213,7 @@ class ScopeRepository:
 
         The presented subject is not recorded: it is another person's identifier.
         """
-        for organization_id in self.memberships_for_user(user_id):
+        for organization_id in self.memberships_for_user(user_id, include_deactivated=True):
             self._session.add(
                 AccessAuditRow(
                     organization_id=organization_id,
@@ -235,7 +235,9 @@ class ScopeRepository:
         administrator's own organization; audited.
         """
         admin.require_administer()
-        if admin.organization_id not in self.memberships_for_user(user_id):
+        if admin.organization_id not in self.memberships_for_user(
+            user_id, include_deactivated=True
+        ):
             raise ScopeDenied("not a member of this organization", reason="unknown_user")
         row = self._session.scalar(select(UserRow).where(UserRow.user_id == user_id))
         if row is None:  # pragma: no cover - a membership names an existing user
@@ -252,8 +254,9 @@ class ScopeRepository:
         )
         self._session.flush()
 
-    def memberships_for_user(self, user_id: str) -> list[str]:
-        """Return the organization ids a user belongs to.
+    def memberships_for_user(self, user_id: str, *, include_deactivated: bool = False) -> list[str]:
+        """Return the organization ids a user belongs to: those they may sign in to, a
+        membership deactivated there left out (D-27), unless ``include_deactivated``.
 
         Used during authentication to decide which organization a request is for.
         Returning a list rather than a single id keeps the door open for a
@@ -263,7 +266,12 @@ class ScopeRepository:
         return sorted(
             self._session.scalars(
                 select(OrganizationMemberRow.organization_id).where(
-                    OrganizationMemberRow.user_id == user_id
+                    OrganizationMemberRow.user_id == user_id,
+                    *(
+                        ()
+                        if include_deactivated
+                        else (OrganizationMemberRow.deactivated_at.is_(None),)
+                    ),
                 )
             ).all()
         )
@@ -320,14 +328,25 @@ class ScopeRepository:
         )
 
     def record_role_denied(
-        self, admin: OrganizationContext, *, email: str, role: str, reason: str
+        self,
+        admin: OrganizationContext,
+        *,
+        email: str = "",
+        user_id: str | None = None,
+        role: str,
+        reason: str,
+        change: str | None = None,
     ) -> None:
         """Audit a refused role change (``owner_only`` / ``last_owner``): the attempt is the
         security-relevant event. The caller commits it after rolling the refused change back,
         so a refused grant to a new address leaves no user behind. The person is the row's
-        subject when known; the address is not recorded (as ``record_subject_mismatch``)."""
-        address = email.strip().lower()
-        subject = self._session.scalar(select(UserRow.user_id).where(UserRow.email == address))
+        subject when known (``user_id``, else found by ``email``); the address is not recorded
+        (as ``record_subject_mismatch``). ``change`` names a refused deactivation or
+        reactivation (``deactivate`` / ``reactivate``) of an OWNER, kept in the payload."""
+        subject = user_id
+        if subject is None:
+            address = email.strip().lower()
+            subject = self._session.scalar(select(UserRow.user_id).where(UserRow.email == address))
         self._session.add(
             AccessAuditRow(
                 organization_id=admin.organization_id,
@@ -336,6 +355,7 @@ class ScopeRepository:
                 action="MEMBER_ROLE_DENIED",
                 role=role,
                 reason=reason,
+                payload={"change": change} if change else {},
                 request_id=admin.request_id,
             )
         )
@@ -409,7 +429,17 @@ class ScopeRepository:
         self._session.flush()
 
     def _member_row(self, admin: OrganizationContext, user_id: str) -> OrganizationMemberRow:
-        """A member of the admin's own organization, locked, or ``not_a_member`` (S15)."""
+        """A member of the admin's own organization, locked, or ``not_a_member`` (S15).
+
+        The organization row is locked first, in the order ``add_member`` takes them through
+        ``_guard_owner``: a deactivation and a role change of the same OWNER, the other way
+        round, would each hold the lock the other waits for.
+        """
+        self._session.execute(
+            select(OrganizationRow.organization_id)
+            .where(OrganizationRow.organization_id == admin.organization_id)
+            .with_for_update()
+        )
         row = self._session.scalar(
             select(OrganizationMemberRow)
             .where(

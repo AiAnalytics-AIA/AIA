@@ -636,17 +636,35 @@ def _member_or_404(admin: Any, repo: Any, session: Any, user_id: str) -> MemberR
     )
 
 
-def _membership_refused(exc: ScopeDenied) -> HTTPException:
+def _membership_refused(
+    exc: ScopeDenied, admin: Any, repo: Any, session: Any, *, user_id: str, change: str
+) -> HTTPException:
+    """The refusal of a deactivation or reactivation as the error contract says it. A refusal
+    of the OWNER rule is the security-relevant event: it is audited and committed after the
+    refused change is rolled back, before the 403 (as a refused role change). Any reason not
+    named here is not this route's to render, and propagates."""
     if exc.reason == "not_a_member":
         return HTTPException(
             status_code=404,
             detail={"code": "not_found", "message": "No such member of the organization."},
         )
-    message = _OWNER_REFUSALS.get(exc.reason, "Requires an organization OWNER or ADMIN.")
-    return HTTPException(
-        status_code=status.HTTP_403_FORBIDDEN,
-        detail={"code": "insufficient_role", "message": message, "details": {"reason": exc.reason}},
-    )
+    if exc.reason in _OWNER_REFUSALS:
+        session.rollback()
+        repo.record_role_denied(
+            admin, user_id=user_id, role="OWNER", reason=exc.reason, change=change
+        )
+        session.commit()
+        return HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail={
+                "code": "insufficient_role",
+                "message": _OWNER_REFUSALS[exc.reason],
+                "details": {"reason": exc.reason},
+            },
+        )
+    if exc.reason == "insufficient_role":
+        return _forbidden(exc)
+    raise exc
 
 
 @router.post(
@@ -665,7 +683,9 @@ def deactivate(
     try:
         deactivate_member(session, admin, user_id=user_id, now=datetime.now(UTC))
     except ScopeDenied as exc:
-        raise _membership_refused(exc) from exc
+        raise _membership_refused(
+            exc, admin, repo, session, user_id=user_id, change="deactivate"
+        ) from exc
     return _member_or_404(admin, repo, session, user_id)
 
 
@@ -688,7 +708,9 @@ def reactivate(
     try:
         back = reactivate_member(session, admin, user_id=user_id, now=datetime.now(UTC))
     except ScopeDenied as exc:
-        raise _membership_refused(exc) from exc
+        raise _membership_refused(
+            exc, admin, repo, session, user_id=user_id, change="reactivate"
+        ) from exc
     if back.erased_keys:
         # The erased rows first, then their objects: a row never points at a deleted object.
         session.commit()
