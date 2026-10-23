@@ -411,9 +411,12 @@ function RuntimePanel({ runtime, config, vocab }: { runtime: NativeRuntime; conf
           <div className="mt-2.5 grid grid-cols-[repeat(auto-fill,minmax(13rem,1fr))] gap-2.5">
             <Tile label={t(`${R}.switchLabel`)} note={<Technical><code className="break-all">{runtime.switch}</code></Technical>}><SwitchWord value={config.data.switches[runtime.switch]} /></Tile>
             <Tile label={t(`${R}.provider`)}>{providers}</Tile>
-            <Tile label={t(`${R}.region`)} note={region === null ? null : region.startsWith("eu-") ? t(`${R}.inEu`) : t(`${R}.notEu`)}><Value value={region} /></Tile>
+            <Tile label={t(`${R}.region`)} note={<>
+              {region === null ? null : <span className="block">{region.startsWith("eu-") ? t(`${R}.inEu`) : t(`${R}.notEu`)}</span>}
+              <Technical><code className="break-all">AIA_BEDROCK_REGION</code></Technical>
+            </>}><Value value={region} /></Tile>
             <Tile label={t(`${R}.model`)} note={<Technical><code>AIA_BEDROCK_MODEL_ID</code></Technical>}><Value value={config.data.model} /></Tile>
-            <Tile label={t(`${R}.approved`)}>
+            <Tile label={t(`${R}.approved`)} note={<Technical><code className="break-all">AIA_AI_ROUTE_APPROVED_FOR</code></Technical>}>
               {config.data.approvedClasses.length ? (
                 <ul className="flex flex-col gap-0.5">
                   {approvedClasses(config.data.approvedClasses, vocab.data_classes).map((c) => (
@@ -434,7 +437,7 @@ function RuntimePanel({ runtime, config, vocab }: { runtime: NativeRuntime; conf
           <h3 id="ai-acts-h" className="text-sm font-semibold">{t(`${R}.activities`)}</h3>
           <span data-count="on" className="inline-flex min-h-[22px] items-center rounded-pill border border-border px-2 text-xs">{tv(`${R}.count.on`, { n: states.filter((k) => k === "configured").length })}</span>
           <span data-count="off" className="inline-flex min-h-[22px] items-center rounded-pill border border-border px-2 text-xs">{tv(`${R}.count.off`, { n: states.filter((k) => k === "off").length })}</span>
-          <span data-count="new" className="inline-flex min-h-[22px] items-center rounded-pill border border-dashed border-border-strong px-2 text-xs text-ink-muted">{tv(`${R}.count.notBuilt`, { n: LISTED_ONLY.filter((e) => !e.built).length })}</span>
+          <span data-count="new" className="inline-flex min-h-[22px] items-center rounded-pill border border-dashed border-border-strong px-2 text-xs text-ink-muted">{tv(`${R}.count.notBuilt`, { n: LISTED_ONLY.filter((e) => !e.built && !runtime.activities.some((a) => a.key === e.key)).length })}</span>
         </div>
         <p className="max-w-3xl text-xs leading-5 text-ink-muted">{t(`${R}.activitiesHelp`)}</p>
         <div className="overflow-x-auto"><table className="w-full">
@@ -684,11 +687,12 @@ function PanelView({ panel, reload }: { panel: Panel; reload: () => void }) {
     if (reference && (referenceCategory !== "all" && referenceCategory !== key)) return null;
     if (reference && (query || referenceOwner !== "all") && !items.length) return null;
     const rows = reference ? <ReferenceTable items={items} /> : <div data-setting-rows>{items.map((item) => <SettingRow key={item.key} item={item} />)}</div>;
-    // A group with its own panel keeps the document's rows as technical details; a group
-    // without one (the reference) is its rows.
+    // A group with its own panel keeps the document's rows as technical details. A reference group
+    // is its rows, always: a search or category that finds a value shows it, and only each row's
+    // source waits for technical details (ReferenceRow), never the table (review of #851).
     return <Section key={key} id={key} tab={tab}>
       {extra[key] ?? null}
-      {OWN_ROWS.has(key) || key === "roles" || key === "audit" || !items.length ? null : extra[key] ? <Technical><Sub>{t(`${P}.relatedSettings`)}</Sub>{rows}</Technical> : rows}
+      {OWN_ROWS.has(key) || key === "roles" || key === "audit" || !items.length ? null : extra[key] && !reference ? <Technical><Sub>{t(`${P}.relatedSettings`)}</Sub>{rows}</Technical> : rows}
     </Section>;
   };
   const body = (tab: TabId): ReactNode => {

@@ -21,7 +21,7 @@ from ..domain.client_profile import ClientContact, ClientProfile, ContactDraft, 
 from ..domain.scope import ClientContext, ClientPermission, ScopeDenied
 from .tables import AccessAuditRow, ClientContactRow, ClientRow, as_utc, utcnow
 
-__all__ = ["PROFILE_ACTIONS", "ClientProfileRepository", "ProfileChange"]
+__all__ = ["PROFILE_ACTIONS", "ClientProfileRepository", "ProfileChange", "erase_client_profile"]
 
 #: The audit actions that make up a profile's history.
 PROFILE_ACTIONS: Final = (
@@ -218,3 +218,19 @@ class ClientProfileRepository:
             )
             for r in rows
         ]
+
+
+def erase_client_profile(session: Session, *, client_id: str) -> int:
+    """A deleted client's contacts deleted and its profile emptied (settings-backends SB5).
+    The caller owns the transaction. Returns the contacts deleted."""
+    contacts = session.scalars(
+        select(ClientContactRow).where(ClientContactRow.client_id == client_id)
+    ).all()
+    for contact in contacts:
+        session.delete(contact)
+    client = session.get(ClientRow, client_id)
+    if client is not None:
+        client.short_code = client.industry = client.market = client.description = ""
+        client.reference = ""
+    session.flush()
+    return len(contacts)

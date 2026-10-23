@@ -436,6 +436,22 @@ const elsewhere = () => calls.filter((c) => !c.url.startsWith("/api/v1/") && c.u
 const OVERCLAIM = /připojen|funkční spojení|spojení funguje|(?<!ne)ověřen[oaáý]|healthy|connected|\bverified\b/i;
 const LOGIN = /přihlaste se|zadejte (api )?klíč|api klíč se zadává|subscription login|ANTHROPIC_API_KEY/i;
 
+describe("the reference", () => {
+  it("shows a value found by search in a group with its own panel, its source alone behind technical details", async () => {
+    const doc = DOC();
+    doc.groups = [...doc.groups, { key: "workflow", items: [item("lease_seconds", 60, "CODE", "aia_core.domain.workflow:LEASE_SECONDS", "s")] }];
+    api({ "GET /api/v1/settings": () => doc });
+    render(<ControlPanel />);
+    fireEvent.click(await screen.findByRole("tab", { name: "Reference" }));
+    const panel = panelOf("Reference");
+    fireEvent.change(await within(panel).findByRole("searchbox", { name: "Hledat technickou hodnotu" }), { target: { value: "lease" } });
+    const row = await waitFor(() => { const r = panel.querySelector('[data-setting="lease_seconds"]') as HTMLElement | null; if (!r) throw new Error("no row"); return r; });
+    // The row is shown with technical details off; only its source waits for them.
+    expect(row.closest("[hidden]")).toBeNull();
+    expect(within(row).queryByText("aia_core.domain.workflow:LEASE_SECONDS")).toBeNull();
+  });
+});
+
 describe("what powers AIA", () => {
   it("names analysis activity and its disabled state in human-readable language", async () => {
     const doc = DOC();
@@ -530,6 +546,33 @@ describe("what powers AIA", () => {
     expect(section("ai").querySelector('[data-ai-group="out"] [data-activity="report_pdf"]')).toBeTruthy();
     expect(section("ai").querySelector('[data-ai-group="run"] [data-activity="report_pdf"]')).toBeNull();
     for (const th of section("ai").querySelectorAll("[data-ai-group] th")) expect(th.getAttribute("scope")).toBe("rowgroup");
+  });
+
+  it("counts as new only what the document does not list yet: an activity it lists is neither new nor drawn twice", async () => {
+    const doc = DOC();
+    doc.ai_runtime = { ...AI_RUNTIME, activities: [...AI_RUNTIME.activities, {
+      key: "run_qc", step_kind: "research_run_qc", capabilities: [], versions: [], switches: ["AIA_RUN_QC_ENABLED"], actions: [],
+    }] };
+    api({ "GET /api/v1/settings": () => doc });
+    render(<ControlPanel />);
+    await waitFor(() => expect(card("run_qc")).toBeTruthy());
+    expect(section("ai").querySelectorAll('[data-activity="run_qc"]')).toHaveLength(1);
+    // lead_plans alone is still the code's list, not built.
+    expect(section("ai").querySelector('[data-count="new"]')?.textContent).toBe("1 nové, zatím nepostavené");
+  });
+
+  it("names the region's and the approved classes' sources under technical details, as the switch's and the model's", async () => {
+    api();
+    render(<ControlPanel />);
+    await waitFor(() => expect(card("respondent_fieldwork")).toBeTruthy());
+    const route = section("ai").querySelector("[data-config]") as HTMLElement;
+    expect(within(route).queryByText("AIA_BEDROCK_REGION")).toBeNull();
+    fireEvent.click(within(panelOf("AI běh")).getByRole("switch", { name: "Technické údaje", hidden: true }));
+    for (const source of ["AIA_BEDROCK_REGION", "AIA_AI_ROUTE_APPROVED_FOR", "AIA_BEDROCK_MODEL_ID"]) {
+      expect(await within(route).findByText(source)).toBeTruthy();
+    }
+    // The region's EU reading stays beside its source.
+    expect(within(route).getByText("oblast v EU: data zůstávají v EU")).toBeTruthy();
   });
 
   it("keeps an invalid activity standing out, and says the API reads the personas switch too", async () => {

@@ -77,6 +77,15 @@ describe("the audit", () => {
     expect(row.getAttribute("data-category")).toBe("other");
   });
 
+  it("names an archived client from the archived-inclusive list, and keeps the id of a study the API does not list", () => {
+    // admin.clients() asks include_archived=true; a study of an archived client is not listed (ADR 0019): its id stays.
+    const archived = { ok: true as const, data: [...clients.data, { client_id: "CLI-z", slug: "z", name: "Archivní klient", status: "ARCHIVED", reference: "", study_count: 1, created_at: null }] };
+    render(<AuditPanel audit={{ ok: true, data: [entry(1, "STUDY_STATUS_CHANGED", ago(1), { client_id: "CLI-z", study_id: "STU-z" })] }} members={members} clients={archived} studies={studies} />);
+    const row = document.querySelector("[data-audit-entry]") as HTMLElement;
+    expect(row.textContent).toContain("Archivní klient");
+    expect(row.textContent).toContain("STU-z");
+  });
+
   it("names a deactivated member's sealed Lead and the system as its actor", () => {
     draw([entry(1, "LEAD_SEALED", ago(0), { actor_id: null, subject_user_id: "USR-1" })]);
     const row = document.querySelector("[data-audit-entry]") as HTMLElement;

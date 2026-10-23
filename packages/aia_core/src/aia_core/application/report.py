@@ -25,6 +25,7 @@ from aia_core.domain.analysis.artifact import ANALYSIS_MODULE_ARTIFACT, ModuleSo
 from aia_core.domain.analysis.steps import analysis_node_key
 from aia_core.domain.evidence import AdmittedClaim, ClaimSurface
 from aia_core.domain.fieldwork import MODELLED_DISCLOSURE, OriginKind, origin_kind
+from aia_core.domain.report.control_tags import source_tag
 from aia_core.domain.report.evidence import EvidenceLedger
 from aia_core.domain.report.model import (
     ArtifactSource,
@@ -266,7 +267,10 @@ def compose_internal_report(
     if deviation is not None:
         introduction.append(
             Callout(
-                CalloutKind.LIMITATION, text(_deviation_text(deviation)), title="Odchylka od 18.6.6"
+                CalloutKind.LIMITATION,
+                text(_deviation_text(deviation)),
+                title="Odchylka od 18.6.6",
+                control=source_tag("run", run.run_id),
             )
         )
     # The run's own sources: a module reused from an identical earlier run keeps that run's
@@ -366,7 +370,12 @@ def compose_internal_report(
                         *(
                             ()
                             if deviation is None
-                            else (Paragraph(text(_deviation_text(deviation))),)
+                            else (
+                                Paragraph(
+                                    text(_deviation_text(deviation)),
+                                    control=source_tag("run", run.run_id),
+                                ),
+                            )
                         ),
                     ),
                     id="methodology",
@@ -518,7 +527,11 @@ def compose_internal_report(
     )
     sections.append(
         Section(
-            "Audit", (AuditBlock(tuple(audit)),), id="app-audit", appendix=True, sources=tuple(read)
+            "Audit",
+            (AuditBlock(tuple(audit), control=source_tag("run", run.run_id)),),
+            id="app-audit",
+            appendix=True,
+            sources=tuple(read),
         )
     )
     sections[0] = _with_contents(sections[0], sections, literature=bool(context_sections))

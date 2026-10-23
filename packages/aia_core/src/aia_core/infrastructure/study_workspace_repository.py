@@ -23,7 +23,7 @@ from __future__ import annotations
 from collections.abc import Mapping, Sequence
 from typing import Any
 
-from sqlalchemy import or_, select
+from sqlalchemy import delete, or_, select
 from sqlalchemy.orm import Session
 
 from ..domain.attachments import (
@@ -68,7 +68,7 @@ from .tables import (
 )
 from .workspace_edit_repository import WorkspaceEditRepository
 
-__all__ = ["StudyWorkspaceRepository", "WorkspaceConflict"]
+__all__ = ["StudyWorkspaceRepository", "WorkspaceConflict", "erase_client_workspaces"]
 
 
 class WorkspaceConflict(Exception):
@@ -643,3 +643,10 @@ class StudyWorkspaceRepository:
             row.last_stage = stage
             self._session.flush()
         return _to_domain(row)
+
+
+def erase_client_workspaces(session: Session, *, client_id: str) -> None:
+    """Delete a deleted client's working-copy rows (SB5); their working projects go with the
+    client's projects, after these."""
+    session.execute(delete(StudyWorkspaceRow).where(StudyWorkspaceRow.client_id == client_id))
+    session.flush()

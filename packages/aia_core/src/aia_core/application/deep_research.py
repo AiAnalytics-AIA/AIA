@@ -58,6 +58,7 @@ from typing import Any, Final
 from pydantic import BaseModel, ConfigDict
 from sqlalchemy.orm import Session
 
+from ..domain.client_rules import DataPosture
 from ..domain.deep_research.budgets import (
     ROUTE_ALLOWANCES,
     CallKind,
@@ -766,6 +767,9 @@ class DeepResearchRuns:
                 "omitted_knowledge_ids": list(request.knowledge.omitted_ids),
                 "preset_table": PRESET_TABLE_VERSION,
                 "settings_pin": settings_pin,
+                # The client's data posture at enqueue (settings-backends SB7): what the run
+                # was started under; a retry keeps the original's, as with its settings.
+                "client_posture": self._posture(retry_of),
                 # ADR 0021: why, what and on which immutable state. The engine request
                 # itself is the plan step's input, below.
                 **run_spec_metadata(spec, purpose_source=purpose_source),
@@ -876,6 +880,15 @@ class DeepResearchRuns:
             settings_digest=admission.in_force.digest(),
             budget=budget,
         )
+
+    def _posture(self, retry_of: str | None) -> str:
+        """The posture a new run pins: a retry's original's, else the client's now (CLASSIFIED
+        when never set, never open)."""
+        if retry_of is not None:
+            pinned = self.get(retry_of)["metadata"].get("client_posture")
+            if isinstance(pinned, str):
+                return DataPosture(pinned).value
+        return ScopeRepository(self.session).client_posture(self.scope).value
 
     def retry(
         self,

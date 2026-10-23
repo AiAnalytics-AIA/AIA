@@ -12,7 +12,7 @@ chunks:
   - "[ ] RPT7. Journey: Zpráva at 1440, 1100, 768 and 390 px, a fictional run's internal draft, zero paid jobs (extended by RPT9's suggestion step)"
   - "[ ] RPT8. The editor is Zpráva's main surface: the stored draft opened in ONLYOFFICE Docs (Q35), the researcher editing directly, every number code wrote a locked, tagged control whose edits are shown, never refused (ADR 0035, amended 2026-10-22; split 2026-10-22: RPT8a-d)"
   - "[ ] RPT8a. Every printed number a locked content control tagged with its source (the editor spike's F-ED1): ledger values in prose, table cells, captions (part 1); KPI tiles, figures, the evidence appendix, suppressed counts (part 2); the map, design, run and bundle spans (part 3; the map locked and tagged like the rest, the owner 2026-10-22)"
-  - "[ ] RPT8b. What a saved version changed: each tagged number edited or removed and each number typed outside one, shown as \"Upraveno ručně\", never refusing (changed 2026-10-22: the owner, ADR 0035 amended)"
+  - "[x] RPT8b. What a saved version changed: each tagged number edited or removed and each number typed outside one, shown as \"Upraveno ručně\", never refusing (changed 2026-10-22: the owner, ADR 0035 amended)"
   - "[ ] RPT8c. The editor routes behind AIA_ONLYOFFICE_URL (unset: off): the config with its JWT and the docs ticket, the signed document URL, the callback storing every save as the next version (the hosting contract, report-editor-hosting); the internal draft and the report with literature"
   - "[ ] RPT8d. The pane opens the newest version in the editor from 768 px (view mode below), its doc bar naming the version and its \"Upraveno ručně\" changes; the read-only document stays where the editor is off"
   - "[ ] RPT9. The Lead edits the same document: inline suggestions as tracked changes under the Lead's own name, with why, accepted or rejected one by one or all; direct edits per the researcher's setting (Q13) still attributed; every edit through the edit ops, every number a ledger ref passing the sentence check before accept"
@@ -308,6 +308,25 @@ number retyped, one control deleted, one digit typed into prose and one paragrap
 three; a save with prose edits only reports nothing; a version with no stored model reads "nelze porovnat", never
 "beze změn".
 
+*RPT8b (`feature/report-saved-changes`):* `domain/report/saved_changes.py` compares two censuses (`compare`):
+`changed`, `removed` and `added` controls by the multiset of (tag, text), paired per tag in document order, and
+`typed` numbers outside every control, reported only where the save holds more of that number than the baseline
+*and* holds it in a paragraph the baseline did not, so prose edited around a cover date or a heading's number is no
+change, and neither is a number moved with its paragraph. No baseline is `no_baseline`, a baseline with no locked
+control (rendered before RPT8a) `no_controls`: `comparable` false, never an empty list read as "beze změn". The
+stored form is `aia-report-changes-1` (`changes_payload` / `read_changes_payload`, another contract refused);
+RPT8c stores it beside each version, RPT8d draws it. `infrastructure/report_docx/census.py` (`census`) reads a
+DOCX's body alone: controls whose tag is in the grammar, numbers outside them and outside every field's instruction
+and cached result (a TOC page, a SEQ caption number an editor updates on its own). The baseline is the line's
+koncept 1 as the composer stored it, which *is* the stored model rendered (the renderer is deterministic, RPT8a),
+so nothing is rendered twice and a model whose figures are not in its JSON is never needed. A saved file is read as
+a stranger's: `check_zip_bounds` and `refuse_dtd` before the parse, lxml without entities or network. Tests:
+`test_report_docx_census.py` (`test_a_save_reports_the_retyped_the_deleted_and_the_typed_but_not_the_moved`,
+`test_a_save_of_prose_edits_only_reports_nothing`, `test_a_fields_result_is_left_to_the_editor`,
+`test_a_draft_rendered_without_controls_cannot_be_compared`, `test_a_saved_file_is_read_as_a_strangers`) and
+`test_report_saved_changes.py`. Whether ONLYOFFICE keeps the tags as written is checked when RPT8c first opens a
+draft.
+
 **RPT8c. The editor routes, behind `AIA_ONLYOFFICE_URL` and `AIA_ONLYOFFICE_JWT_SECRET` (both unset: every route
 404, the product unchanged).** ONLYOFFICE is served from its own registrable domain and guarded by its JWT alone
 (the decisions above): no docs ticket and no docs cookie (`aia_api.docs_pass.DocsPasses`, `docs_pass.py:51 @
@@ -350,6 +369,29 @@ a25d2435`, and the `/session/docs*` routes go with the hosting plan's change).
   edited line's koncept N unchanged and opens a new line whose koncept 1 is the composer's; the client report is
   refused; with the URL unset every route is 404.
 
+*RPT8c in four PRs.* Part 1, the lines and sessions; part 2, the config and document routes; part 3, the callback
+(the fetch guard, the version stored with RPT8b's changes, a Document Server restart's 403 said in words, never
+stored); part 4, approval of an edited version.
+
+*RPT8c, part 1 (`feature/report-editor-lines`):* `domain/report/editor.py` holds the rules, pure: the document key
+`<line>.<version SHA-256, 40 hex>.<session number>` (`document_key`, within `[0-9A-Za-z._=-]{1,128}`), what each
+callback status asks (`callback_action`: 1 open, 2 store and close, 4 close, 6 store, 3 and 7 logged, any other
+refused), when an open session is joined (`reuse_session`: open, and seen within `SESSION_IDLE`, a day) and the
+line that opens by default (`default_line`: newest version by stored time; ties by koncept, then id). Two tables
+(migration `75f40e2e74dd`): `report_editor_versions` (a line's koncepts, unique per line by koncept and by SHA-256,
+so the same bytes are never stored twice) and `report_editor_sessions` (one key per session, at most one open per
+line, the people a config was signed for, and why its newest save was not stored, `last_problem`, for the pane
+to say); every artifact a row names cascades to it, so client deletion needs
+nothing of its own. `infrastructure/report_editor_repository.py` is their only reader and writer, scoped by the
+study; `session_by_key` alone reads unscoped, for a callback, which names a key and no person.
+`application/report_editor.py` (`ReportEditor.open`): the current composition's line started as koncept 1 if it has
+none, the line asked for or the default, and its session: the open one joined (the line's newest version, which a
+force-save under the same key holds), else one started on the newest version under a new key, an idle one closed
+first; the client report, another type or another run's draft refused (`NotEditable`), a line of another run or
+variant `LineNotFound`. Tests: `test_report_editor.py` (SQLite and PostgreSQL), among them a second researcher
+joining under the same key, a new key after a close, a day's idle, and a recompose after an edit leaving the edited
+line's koncept 2 and starting a line whose koncept 1 is the composer's.
+
 **RPT8d. The pane opens the editor.**
 - 768 px and wider, with the editor configured: Zpráva's pane loads the Document Server's `api.js` from
   `AIA_ONLYOFFICE_URL` and opens the default line's newest version (RPT8c) with the config the API signed.
@@ -380,6 +422,31 @@ is refused (`controlled_value`): a control within a control, which the client-so
 (`aia-internal-report-17`, `aia-client-report-7`, `aia-contextual-report-13`). Test:
 `test_report_map_snapshots.py` `test_every_number_the_map_writes_is_locked_under_its_map` (under `-3` and `-5`),
 `test_report_docx_locked_numbers.py` `test_a_block_written_from_a_stored_source_holds_no_ledger_value`.
+
+*RPT8a, part 3, the design and the run (`feature/report-locked-facts-design`):* the design chapter and the
+questionnaire appendix lock every block printing a number code wrote from the specification (a set's scale and count,
+the planned n and audience bounds) under `design:<the specification fingerprint's first 16 hex>` (Word keeps a tag to
+64 characters; the manifest pins it whole; `report_design.compose_design_sections`, P10), a list's items included
+(`BulletList.control`, stored since `aia-report-document-5`). The questionnaire appendix is the questionnaire as asked,
+a record, so its question lists are locked whole; what the person wrote alone in the chapter (research questions, item
+names, the brief) stays as it is. The method chapter and the methodology rules go under
+`run:<run>` through `domain/report/controls.py` `under` / `under_blocks` (every block printing a digit, holding no
+ledger value and no control yet; P11), applied where `report_chapters` assembles them; the methodology deviation the internal report
+prints is under the run too. The client report locks none of these (`compose_design_sections(locked=False)`, its method
+chapter as it was): it never opens in the editor, and a tag would carry the run id or the specification's fingerprint
+into the client's file, which holds no identifier (review of #857). P12's refused count is the client report's and is
+left as it is. The contracts move (`aia-internal-report-18`, `aia-contextual-report-14`; the client report unchanged). Tests:
+`test_report_design.py` `test_the_designs_numbers_print_under_the_specification_it_came_from`, `test_report_controls.py`,
+and `test_analysis_executor.py`'s composed report carrying `design:` and `run:` controls.
+
+*RPT8a, part 3, the literature and the audit (`feature/report-locked-facts-bundle`), closing part 3:* the literature
+chapter, written whole from the sealed bundle, goes under `bundle:<Deep Research run>` through `controls.under` (its
+counts, dates, L-labels and seal; P14), and the audit's values under `run:<run>` (`AuditBlock.control`, P15).
+`sources.with_source_audit` keeps the audit's control when it appends its rows. The stored model is
+`aia-report-document-6` (the audit's `control`); the contracts move (`aia-internal-report-19`,
+`aia-contextual-report-15`; the client report has neither chapter). Tests: `test_contextual_report.py`
+`test_every_number_the_bundle_writes_is_locked_under_its_review`, `test_report_controls.py`
+`test_the_audits_values_print_locked_and_the_source_audit_keeps_them`.
 
 **RPT9. The Lead in the document.** The Lead, on its own model (STUDY_LEAD), edits the same document
 through the edit operations:

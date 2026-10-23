@@ -13,17 +13,18 @@ first, which answered the same request.
 
 from __future__ import annotations
 
+from collections.abc import Sequence
 from typing import Any
 from uuid import uuid4
 
-from sqlalchemy import select
+from sqlalchemy import delete, select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
 from ..domain.scope import Permission, ScopeDenied, StudyContext
 from .tables import FieldworkJournalRow
 
-__all__ = ["FieldworkJournal"]
+__all__ = ["FieldworkJournal", "erase_study_fieldwork_journals"]
 
 
 class FieldworkJournal:
@@ -85,3 +86,12 @@ class FieldworkJournal:
                 FieldworkJournalRow.request_key == request_key,
             )
         )
+
+
+def erase_study_fieldwork_journals(session: Session, *, study_ids: Sequence[str]) -> None:
+    """Delete the fieldwork journals of a deleted client's studies (SB5)."""
+    if study_ids:
+        session.execute(
+            delete(FieldworkJournalRow).where(FieldworkJournalRow.study_id.in_(sorted(study_ids)))
+        )
+        session.flush()

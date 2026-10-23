@@ -13,7 +13,7 @@ import { Button } from "../rehome/ui";
 
 export type ConfirmRow = { label: string; value: ReactNode };
 
-export function ConfirmDialog({ open, title, rows = [], text, children, confirmLabel, cancelLabel, busy = false, error, marker, onConfirm, onCancel }: {
+export function ConfirmDialog({ open, title, rows = [], text, children, confirmLabel, cancelLabel, busy = false, confirmDisabled = false, error, marker, onConfirm, onCancel }: {
   open: boolean;
   title: string;
   /** What the action changes, a row each: "V platnosti 365 dní", "Schválíte 90 dní". */
@@ -24,6 +24,8 @@ export function ConfirmDialog({ open, title, rows = [], text, children, confirmL
   confirmLabel: string;
   cancelLabel?: string;
   busy?: boolean;
+  /** The act cannot be confirmed yet (what it changes is not read); cancelling stays open. */
+  confirmDisabled?: boolean;
   error?: string | null;
   /** A data attribute on the dialog's body (`data-<marker>`), for the page's own tests and journeys. */
   marker?: string;
@@ -68,7 +70,7 @@ export function ConfirmDialog({ open, title, rows = [], text, children, confirmL
           {error ? <p role="alert" className="rounded-sm border border-status-fault/40 bg-status-fault-wash p-2 text-[13px] text-status-fault">{error}</p> : null}
           <div className="flex flex-wrap justify-end gap-2">
             <Button variant="quiet" data-confirm-safe="" disabled={busy} onClick={onCancel}>{cancelLabel ?? t("dialog.cancel")}</Button>
-            <Button variant="primary" disabled={busy} onClick={onConfirm}>{confirmLabel}</Button>
+            <Button variant="primary" disabled={busy || confirmDisabled} onClick={onConfirm}>{confirmLabel}</Button>
           </div>
         </div>
       ) : null}

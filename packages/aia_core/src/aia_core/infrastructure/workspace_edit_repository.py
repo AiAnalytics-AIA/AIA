@@ -13,14 +13,14 @@ from __future__ import annotations
 from collections.abc import Sequence
 from typing import Any
 
-from sqlalchemy import select
+from sqlalchemy import delete, select
 from sqlalchemy.orm import Session
 
 from ..domain.edit_log import ActorKind, EditLogRow, OpSource, WriteBy
 from ..domain.scope import Permission, StudyContext
 from .tables import WorkspaceEditOpRow
 
-__all__ = ["WorkspaceEditRepository"]
+__all__ = ["WorkspaceEditRepository", "erase_client_edit_ops"]
 
 
 def _to_domain(row: WorkspaceEditOpRow) -> EditLogRow:
@@ -100,3 +100,9 @@ class WorkspaceEditRepository:
             )
         ).all()
         return [_to_domain(r) for r in found]
+
+
+def erase_client_edit_ops(session: Session, *, client_id: str) -> None:
+    """Delete a deleted client's working-copy operation log (settings-backends SB5)."""
+    session.execute(delete(WorkspaceEditOpRow).where(WorkspaceEditOpRow.client_id == client_id))
+    session.flush()

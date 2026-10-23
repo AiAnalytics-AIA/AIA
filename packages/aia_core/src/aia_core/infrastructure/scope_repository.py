@@ -8,6 +8,7 @@ decision having already been made.
 
 from __future__ import annotations
 
+import hashlib
 from collections.abc import Sequence
 from datetime import datetime
 from typing import Any
@@ -15,6 +16,8 @@ from typing import Any
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
+from ..domain.client_rules import DataPosture, effective_posture
+from ..domain.content_free import content_free, rename
 from ..domain.scope import (
     Client,
     ClientBudget,
@@ -42,11 +45,14 @@ from ..domain.workflow import ReservationStatus
 from .tables import (
     AccessAuditRow,
     BudgetReservationRow,
+    ClientDeletionObjectRow,
+    ClientDeletionTicketRow,
     ClientRow,
     OrganizationMemberRow,
     OrganizationRow,
     StudyRow,
     UserRow,
+    as_utc,
     utcnow,
 )
 
@@ -558,6 +564,92 @@ class ScopeRepository:
             raise ScopeDenied("not found", reason="unknown_client")
         return _client_to_domain(row)
 
+    def client_rules(self, reader: OrganizationContext, client_id: str) -> dict[str, Any]:
+        """A client's rules (settings-backends SB7): its data posture as stored (``None``: not
+        set, read as CLASSIFIED) and as it applies, its wallet ceiling, who set them and when.
+        Any member of the client's organization (ADR 0019)."""
+        row = self._rules_row(reader, client_id)
+        return _rules(row)
+
+    def all_client_rules(self, reader: OrganizationContext) -> list[dict[str, Any]]:
+        """Every client's rules in the organization, read-only, by name (Settings → Přístup)."""
+        rows = self._session.scalars(
+            select(ClientRow)
+            .where(
+                ClientRow.organization_id == reader.organization_id,
+                ClientRow.deleted_at.is_(None),
+            )
+            .order_by(ClientRow.name)
+        ).all()
+        return [{"client_id": r.client_id, "name": r.name, **_rules(r)} for r in rows]
+
+    def set_client_rules(
+        self,
+        admin: OrganizationContext,
+        client_id: str,
+        *,
+        changes: dict[str, Any],
+        now: datetime,
+    ) -> dict[str, Any]:
+        """Set a client's ``data_posture`` (OPEN, CLASSIFIED or None) and/or
+        ``wallet_ceiling_usd`` (>= 0 or None). OWNER or ADMIN; audited CLIENT_RULES_CHANGED with
+        each field's from and to. Setting what is already there changes nothing."""
+        admin.require_administer()
+        row = self._rules_row(admin, client_id)
+        before: dict[str, Any] = {
+            "data_posture": row.data_posture,
+            "wallet_ceiling_usd": row.wallet_ceiling_usd,
+        }
+        after = dict(before)
+        if "data_posture" in changes:
+            posture = changes["data_posture"]
+            after["data_posture"] = None if posture is None else DataPosture(posture).value
+        if "wallet_ceiling_usd" in changes:
+            ceiling = changes["wallet_ceiling_usd"]
+            if ceiling is not None and not (
+                isinstance(ceiling, int | float) and 0 <= ceiling < 1e9
+            ):
+                raise ValueError("the wallet ceiling is a non-negative amount or null")
+            after["wallet_ceiling_usd"] = None if ceiling is None else float(ceiling)
+        moved = {k: {"from": before[k], "to": after[k]} for k in after if after[k] != before[k]}
+        if not moved:
+            return _rules(row)
+        row.data_posture = after["data_posture"]
+        row.wallet_ceiling_usd = after["wallet_ceiling_usd"]
+        row.rules_set_by, row.rules_set_at = admin.actor_id, now
+        self._session.add(
+            AccessAuditRow(
+                organization_id=admin.organization_id,
+                client_id=client_id,
+                actor_id=admin.actor_id,
+                action="CLIENT_RULES_CHANGED",
+                role=admin.organization_role.value,
+                payload=moved,
+                request_id=admin.request_id,
+            )
+        )
+        self._session.flush()
+        return _rules(row)
+
+    def _rules_row(self, reader: OrganizationContext, client_id: str) -> ClientRow:
+        row = self._session.scalar(
+            select(ClientRow).where(
+                ClientRow.client_id == client_id,
+                ClientRow.organization_id == reader.organization_id,
+                ClientRow.deleted_at.is_(None),
+            )
+        )
+        if row is None:
+            raise ScopeDenied("not found", reason="unknown_client")
+        return row
+
+    def client_posture(self, scope: StudyContext) -> DataPosture:
+        """The posture a run of this Study pins (SB7): the client's, CLASSIFIED when not set."""
+        stored = self._session.scalar(
+            select(ClientRow.data_posture).where(ClientRow.client_id == scope.client_id)
+        )
+        return effective_posture(stored)
+
     def list_clients(
         self, admin: OrganizationContext, *, include_archived: bool = False
     ) -> list[Client]:
@@ -567,7 +659,10 @@ class ScopeRepository:
         so organization membership is sufficient. Reading a client's *studies*
         still requires a grant.
         """
-        stmt = select(ClientRow).where(ClientRow.organization_id == admin.organization_id)
+        stmt = select(ClientRow).where(
+            ClientRow.organization_id == admin.organization_id,
+            ClientRow.deleted_at.is_(None),  # a deleted client is a tombstone, never listed
+        )
         if not include_archived:
             stmt = stmt.where(ClientRow.status != ClientStatus.ARCHIVED.value)
         rows = self._session.scalars(stmt.order_by(ClientRow.name)).all()
@@ -584,7 +679,8 @@ class ScopeRepository:
                 ClientRow.organization_id == admin.organization_id,
             )
         )
-        if row is None:
+        if row is None or row.deleted_at is not None:
+            # A deleted client is not reopened: its content is gone (settings-backends SB5).
             raise ScopeDenied("not found", reason="unknown_client")
         row.status = status.value
         self._session.add(
@@ -599,6 +695,235 @@ class ScopeRepository:
         )
         self._session.flush()
         return _client_to_domain(row)
+
+    # ------------------------------------------------------- client deletion (SB5) --
+
+    def _deletable(self, admin: OrganizationContext, client_id: str) -> ClientRow:
+        admin.require_administer()
+        row = self._session.scalar(
+            select(ClientRow).where(
+                ClientRow.client_id == client_id,
+                ClientRow.organization_id == admin.organization_id,
+            )
+        )
+        if row is None:
+            raise ScopeDenied("not found", reason="unknown_client")
+        return row
+
+    def client_for_deletion(self, admin: OrganizationContext, client_id: str) -> Client | None:
+        """The client an OWNER or ADMIN may delete, in their own organization (else
+        ``unknown_client``); ``None`` when it is already deleted."""
+        row = self._deletable(admin, client_id)
+        return None if row.deleted_at is not None else _client_to_domain(row)
+
+    def client_study_ids(self, admin: OrganizationContext, client_id: str) -> list[str]:
+        self._deletable(admin, client_id)
+        return sorted(
+            self._session.scalars(select(StudyRow.study_id).where(StudyRow.client_id == client_id))
+        )
+
+    def client_audit_rows(self, admin: OrganizationContext, client_id: str) -> int:
+        """How many audit rows name the client: what a deletion keeps."""
+        self._deletable(admin, client_id)
+        return int(
+            self._session.scalar(
+                select(func.count())
+                .select_from(AccessAuditRow)
+                .where(
+                    AccessAuditRow.organization_id == admin.organization_id,
+                    AccessAuditRow.client_id == client_id,
+                )
+            )
+            or 0
+        )
+
+    def issue_deletion_ticket(
+        self, admin: OrganizationContext, client_id: str, *, token: str, expires_at: datetime
+    ) -> None:
+        """Keep a one-time confirmation of this client's deletion, for this person, by the
+        token's SHA-256 only."""
+        self._deletable(admin, client_id)
+        self._session.add(
+            ClientDeletionTicketRow(
+                token_sha256=hashlib.sha256(token.encode("utf-8")).hexdigest(),
+                organization_id=admin.organization_id,
+                client_id=client_id,
+                actor_id=admin.actor_id,
+                expires_at=expires_at,
+            )
+        )
+        self._session.flush()
+
+    def spend_deletion_ticket(
+        self, admin: OrganizationContext, client_id: str, *, token: str, now: datetime
+    ) -> None:
+        """Spend the confirmation: the same client, the same person, unspent and in time, or
+        ``ScopeDenied`` ``confirmation_invalid`` / ``confirmation_expired``."""
+        self._deletable(admin, client_id)
+        query = select(ClientDeletionTicketRow).where(
+            ClientDeletionTicketRow.token_sha256
+            == hashlib.sha256(token.encode("utf-8")).hexdigest()
+        )
+        if self._session.get_bind().dialect.name == "postgresql":
+            query = query.with_for_update()
+        ticket = self._session.scalar(query)
+        if (
+            ticket is None
+            or ticket.spent_at is not None
+            or (ticket.organization_id, ticket.client_id, ticket.actor_id)
+            != (admin.organization_id, client_id, admin.actor_id)
+        ):
+            raise ScopeDenied("confirmation does not match", reason="confirmation_invalid")
+        if as_utc(ticket.expires_at) <= now:
+            raise ScopeDenied("confirmation expired", reason="confirmation_expired")
+        ticket.spent_at = now
+        self._session.flush()
+
+    def lock_client(self, admin: OrganizationContext, client_id: str) -> None:
+        """Lock the client row for its deletion (FOR UPDATE on PostgreSQL): a status change, a
+        budget lift or a second deletion of the same client waits for this one."""
+        query = select(ClientRow.client_id).where(
+            ClientRow.client_id == client_id,
+            ClientRow.organization_id == admin.organization_id,
+        )
+        if self._session.get_bind().dialect.name == "postgresql":
+            query = query.with_for_update()
+        self._session.execute(query)
+
+    def client_names(self, admin: OrganizationContext, client_id: str) -> dict[str, str]:
+        """The client's and its studies' names, each to its id: what a deletion replaces."""
+        row = self._deletable(admin, client_id)
+        studies = self._session.execute(
+            select(StudyRow.name, StudyRow.study_id).where(StudyRow.client_id == client_id)
+        ).all()
+        names = {row.name: row.client_id} | {str(n): str(i) for n, i in studies}
+        return {k: v for k, v in names.items() if k and k != v}
+
+    def keep_pending_objects(
+        self, admin: OrganizationContext, client_id: str, keys: Sequence[str]
+    ) -> None:
+        """List a deleted client's stored objects still to delete, in the deletion's
+        transaction, so a delete interrupted after its commit is retried."""
+        for key in sorted(set(keys)):
+            self._session.merge(
+                ClientDeletionObjectRow(
+                    client_id=client_id, storage_key=key, organization_id=admin.organization_id
+                )
+            )
+        self._session.flush()
+
+    def pending_objects(self, admin: OrganizationContext, client_id: str) -> list[str]:
+        self._deletable(admin, client_id)
+        return sorted(
+            self._session.scalars(
+                select(ClientDeletionObjectRow.storage_key).where(
+                    ClientDeletionObjectRow.client_id == client_id,
+                    ClientDeletionObjectRow.organization_id == admin.organization_id,
+                )
+            )
+        )
+
+    def clear_pending_object(self, admin: OrganizationContext, client_id: str, key: str) -> None:
+        row = self._session.get(ClientDeletionObjectRow, (client_id, key))
+        if row is not None and row.organization_id == admin.organization_id:
+            self._session.delete(row)
+            self._session.flush()
+
+    def record_object_deletion(
+        self, admin: OrganizationContext, client_id: str, *, deleted: int, failed: int
+    ) -> None:
+        """Audit how many of a deleted client's objects were deleted and how many are left."""
+        self._session.add(
+            AccessAuditRow(
+                organization_id=admin.organization_id,
+                client_id=client_id,
+                actor_id=admin.actor_id,
+                action="CLIENT_DELETION_OBJECTS",
+                role=admin.organization_role.value,
+                payload={"deleted": deleted, "failed": failed},
+                request_id=admin.request_id,
+            )
+        )
+        self._session.flush()
+
+    def tombstone_client(
+        self,
+        admin: OrganizationContext,
+        client_id: str,
+        *,
+        now: datetime,
+        counts: dict[str, int],
+    ) -> None:
+        """What stays of a deleted client: its row and its studies' rows, archived, named and
+        slugged by their ids, so the kept ledgers still resolve; every kept audit row of the
+        organization with the client's or a study's name in it reads the id instead. Audited
+        CLIENT_DELETED with the counts, never a name."""
+        row = self._deletable(admin, client_id)
+        studies = self._session.scalars(
+            select(StudyRow).where(StudyRow.client_id == client_id)
+        ).all()
+        names = {row.name: row.client_id} | {s.name: s.study_id for s in studies}
+        names = {k: v for k, v in names.items() if k}
+        # A slug is the client's identity too ("acme-corp"), and the client's would keep holding
+        # client_slug_unique against a new client of that name. Each becomes its id, which no
+        # person can choose: a person's slug is lower case (scope.py _validate_slug).
+        for study in studies:
+            study.name = study.study_id
+            study.slug = study.study_id
+            study.status = StudyStatus.ARCHIVED.value
+        row.name = row.client_id
+        row.slug = row.client_id
+        row.status = ClientStatus.ARCHIVED.value
+        row.deleted_at, row.deleted_by = now, admin.actor_id
+        audit = self._session.scalars(
+            select(AccessAuditRow).where(AccessAuditRow.organization_id == admin.organization_id)
+        ).all()
+        own = {client_id, *(s.study_id for s in studies)}
+        for entry in audit:
+            mine = entry.client_id in own or entry.study_id in own
+            if not mine and entry.client_id is not None:
+                continue  # another client's row: it cannot name this one, and is left as it is
+            renamed = rename(entry.payload, names)
+            if mine:
+                # The client's own rows are kept content-free (MVPQ-07): ids, codes, numbers
+                # and times stay; any other text (a file name, a title) is erased.
+                renamed = content_free(renamed)
+            if renamed != entry.payload:
+                entry.payload = renamed
+            if entry.reason:
+                entry.reason = rename(entry.reason, names)
+            if entry.reason and mine:
+                entry.reason = content_free(entry.reason)
+        self._session.add(
+            AccessAuditRow(
+                organization_id=admin.organization_id,
+                client_id=client_id,
+                actor_id=admin.actor_id,
+                action="CLIENT_DELETED",
+                role=admin.organization_role.value,
+                payload=dict(counts),
+                request_id=admin.request_id,
+            )
+        )
+        self._session.flush()
+
+    def kept_after_deletion(self, admin: OrganizationContext) -> tuple[int, int]:
+        """The organization's audit rows and deleted clients' tombstones, OWNER or ADMIN."""
+        admin.require_administer()
+        audit = self._session.scalar(
+            select(func.count())
+            .select_from(AccessAuditRow)
+            .where(AccessAuditRow.organization_id == admin.organization_id)
+        )
+        tombstones = self._session.scalar(
+            select(func.count())
+            .select_from(ClientRow)
+            .where(
+                ClientRow.organization_id == admin.organization_id,
+                ClientRow.deleted_at.is_not(None),
+            )
+        )
+        return int(audit or 0), int(tombstones or 0)
 
     # ------------------------------------------------------------------ studies
 
@@ -1163,3 +1488,13 @@ class ScopeRepository:
             .group_by(StudyRow.client_id)
         ).all()
         return {client_id: int(count) for client_id, count in rows}
+
+
+def _rules(row: ClientRow) -> dict[str, Any]:
+    return {
+        "data_posture": row.data_posture,
+        "effective_posture": effective_posture(row.data_posture).value,
+        "wallet_ceiling_usd": row.wallet_ceiling_usd,
+        "set_by": row.rules_set_by,
+        "set_at": as_utc(row.rules_set_at) if row.rules_set_at is not None else None,
+    }
