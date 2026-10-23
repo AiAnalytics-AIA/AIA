@@ -52,8 +52,8 @@ from aia_core.application.report import (
     ReportCompositionRefused,
 )
 from aia_core.application.report_approval import (
+    APPROVABLE_KINDS,
     CLIENT_REPORT_KINDS,
-    REPORT_KINDS,
     ReportNotApprovable,
     approve_report,
 )
@@ -3295,7 +3295,7 @@ def approve_run_report(
             },
         ) from exc
     # Which report was approved, by kind: the client report is no internal document (G66).
-    kind = REPORT_KINDS[artifact.artifact_type]
+    kind = APPROVABLE_KINDS[artifact.artifact_type]
     return {
         "run_id": run_id,
         "artifact_id": artifact.artifact_id,

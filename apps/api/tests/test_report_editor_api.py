@@ -651,3 +651,37 @@ def test_a_save_naming_another_organizations_member_is_refused(
     assert answer.json() == {"error": 1} and saves.asked == []
     opened = researcher.post(_editor(world, run_id), json={}).json()
     assert opened["koncept"] == 1 and opened["problem"] == "unknown_author"
+
+
+# -- an edited version's changes and its approval (part 4) -------------------------------
+
+
+def test_an_edited_version_says_what_it_changed_and_is_approved_as_itself(
+    app: FastAPI, researcher: TestClient, client: TestClient, world: Any, saves: Saves
+) -> None:
+    run_id, draft = _reported_run(app, researcher, world)
+    config = researcher.post(_editor(world, run_id), json={}).json()["config"]
+    url = saves.put(_docx("50 %"))
+    me = world.users["researcher"]
+    assert _callback(client, config, status=6, url=url, users=[me]).json() == {"error": 0}
+    edited = researcher.post(_editor(world, run_id), json={}).json()["version_artifact_id"]
+
+    first = researcher.get(f"{_editor(world, run_id)}/versions/{draft}/changes")
+    assert first.status_code == 200 and first.json()["koncept"] == 1
+    assert first.json()["changes"] is None  # the composer's own changed nothing
+    said = researcher.get(f"{_editor(world, run_id)}/versions/{edited}/changes").json()
+    assert said["koncept"] == 2 and said["authors"] == [me]
+    assert said["changes"]["uncomparable"] is None
+    assert said["changes"]["changes"] == [
+        {"kind": "changed", "tag": "trust_total", "was": "42,5 %", "now": "50 %", "paragraph": None}
+    ]
+    other = f"{API}/studies/{world.study_id()}/research/runs/RUN-0/report/editor"
+    assert researcher.get(f"{other}/versions/{edited}/changes").status_code == 404
+
+    runs = f"{API}/studies/{world.study_id()}/research/runs/{run_id}"
+    approved = researcher.post(f"{runs}/report/approve", json={"artifact_id": edited})
+    assert approved.status_code == 200, approved.text
+    body = approved.json()
+    assert body["artifact_id"] == edited and body["report_kind"] == "internal"
+    assert body["artifact_type"] == "research_internal_docx_edit"
+    assert body["internal_only"] is True

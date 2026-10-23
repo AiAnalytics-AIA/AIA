@@ -35,12 +35,18 @@ from aia_core.application.report_editor import (
     ReportEditor,
     session_by_key,
 )
-from aia_core.application.report_editor_saves import SaveNotStored, store_save
+from aia_core.application.report_editor_saves import (
+    SaveNotStored,
+    VersionNotFound,
+    store_save,
+    version_changes,
+)
 from aia_core.application.research import research_artifacts
 from aia_core.application.scope import AuthenticatedPrincipal
 from aia_core.domain.report.editor import CallbackAction, callback_action
+from aia_core.domain.report.saved_changes import changes_payload
 from aia_core.domain.scope import ScopeDenied, StudyContext
-from fastapi import APIRouter, Body, Header, HTTPException, Query, Request, Response
+from fastapi import APIRouter, Body, Header, HTTPException, Path, Query, Request, Response
 from pydantic import BaseModel, ConfigDict, Field
 
 from ..dependencies import (
@@ -369,3 +375,44 @@ def report_editor_callback(
             editor.close(found, now=now, reason="saved")
     session.commit()
     return {"error": 0}
+
+
+ArtifactIdPath = Annotated[str, Path(max_length=64, pattern=r"^ART-[0-9a-f]{1,32}$")]
+
+
+@router.get(
+    "/research/runs/{run_id}/report/editor/versions/{artifact_id}/changes",
+    summary="What a saved version changed in the numbers code wrote (Upraveno ručně)",
+)
+def report_editor_version_changes(
+    run_id: RunIdPath,
+    artifact_id: ArtifactIdPath,
+    scope: StudyScopeDep,
+    session: SessionDep,
+    store: ArtifactStoreDep,
+    settings: SettingsDep,
+) -> dict[str, Any]:
+    """The version's changes, as stored beside it when it was saved, for the doc bar and the
+    approval dialog (RPT8d): each control changed, removed or added, each number typed outside
+    one; ``changes`` null for koncept 1, the composer's own; ``uncomparable`` when there was
+    nothing to compare it with, never an empty list read as no change."""
+    _tokens(settings)
+    try:
+        version, changes = version_changes(
+            session, scope, store, run_id=run_id, artifact_id=artifact_id
+        )
+    except ScopeDenied as exc:
+        raise _refused(exc) from exc
+    except VersionNotFound as exc:
+        raise _not_found("editor_version") from exc
+    except (IntegrityError, ObjectNotFound) as exc:
+        raise artifact_corrupt(session) from exc
+    return {
+        "run_id": run_id,
+        "version_artifact_id": version.artifact_id,
+        "line_id": version.line_id,
+        "koncept": version.koncept,
+        "authors": list(version.authors),
+        "saved_at": version.saved_at.isoformat(),
+        "changes": changes_payload(changes) if changes is not None else None,
+    }

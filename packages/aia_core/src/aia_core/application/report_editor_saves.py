@@ -14,6 +14,7 @@ Its authors are the people the Document Server names, each of whom a config was 
 from __future__ import annotations
 
 import hashlib
+import json
 from collections.abc import Sequence
 from dataclasses import dataclass
 from datetime import datetime
@@ -24,7 +25,12 @@ from aia_core.application.report import INTERNAL_REPORT_MEDIA_TYPE
 from aia_core.application.research import research_artifacts
 from aia_core.domain.deep_research.documents import DocumentRefused
 from aia_core.domain.report.editor import CHANGES_ARTIFACT_TYPE, EDIT_ARTIFACT_TYPES
-from aia_core.domain.report.saved_changes import changes_payload, compare
+from aia_core.domain.report.saved_changes import (
+    SavedChanges,
+    changes_payload,
+    compare,
+    read_changes_payload,
+)
 from aia_core.domain.scope import Permission, StudyContext
 from aia_core.infrastructure.editor_fetch import SaveFetcher, SaveFetchRefused, allowed
 from aia_core.infrastructure.report_docx.census import census
@@ -35,7 +41,11 @@ from aia_core.infrastructure.report_editor_repository import (
 )
 from aia_core.infrastructure.storage import ArtifactStore, IntegrityError, ObjectNotFound
 
-__all__ = ["SaveNotStored", "StoredSave", "store_save"]
+__all__ = ["SaveNotStored", "StoredSave", "VersionNotFound", "store_save", "version_changes"]
+
+
+class VersionNotFound(LookupError):
+    """Not a version of one of this run's report lines."""
 
 
 class SaveNotStored(Exception):
@@ -167,3 +177,17 @@ def _store(
         changes_artifact_id=changed.artifact_id,
     )
     return StoredSave(added, created=True)
+
+
+def version_changes(
+    session: Session, scope: StudyContext, store: ArtifactStore, *, run_id: str, artifact_id: str
+) -> tuple[EditorVersion, SavedChanges | None]:
+    """A version of one of ``run_id``'s lines and what it changed in the numbers code wrote,
+    as stored beside it; ``None`` for koncept 1, the composer's own, which changed nothing."""
+    version = ReportEditorRepository(session, scope).version(artifact_id)
+    if version is None or version.run_id != run_id:
+        raise VersionNotFound(artifact_id)
+    if version.changes_artifact_id is None:
+        return version, None
+    data = research_artifacts(session, scope, store).read(version.changes_artifact_id)
+    return version, read_changes_payload(json.loads(data))

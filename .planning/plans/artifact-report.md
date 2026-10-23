@@ -441,6 +441,15 @@ port refused unfetched; a restarted Document Server's save not stored and said; 
 refused; an unsigned, wrongly signed or other-key callback 403; a version stored as its author's.
 `test_editor_fetch.py`: the origin rule, and the live fetcher refusing before sending anything.
 
+*RPT8c, part 4 (`feature/report-editor-approval`):* `POST …/report/approve` takes an edited version
+(`report_approval.EDITED_REPORT_KINDS`, kind internal or with_review; `APPROVABLE_KINDS` is both), approved and frozen
+as exactly that version, of whichever line; `REPORT_ARTIFACT_TYPES` stays the composed reports the 2026-10-18 freeze
+migration names. `GET …/report/editor/versions/{artifact_id}/changes`: what the version changed, as stored beside it
+(`report_editor_saves.version_changes`; `changes` null for koncept 1; a version of another run 404), for the doc bar
+and the approval dialog (RPT8d). Still open in RPT8c: an edited version's PDF (the PDF job takes a composed report
+only, `report_variants.RENDERABLE_REPORTS`), and an approved edited version keeps the composer's draft footer (it is
+not stampable, so its export is its stored bytes). Test: `test_an_edited_version_says_what_it_changed_and_is_approved_as_itself`.
+
 **RPT8d. The pane opens the editor.**
 - 768 px and wider, with the editor configured: Zpráva's pane loads the Document Server's `api.js` from
   `AIA_ONLYOFFICE_URL` and opens the default line's newest version (RPT8c) with the config the API signed.
