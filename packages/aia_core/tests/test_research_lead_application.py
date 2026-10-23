@@ -758,7 +758,12 @@ def test_a_waiting_messages_focus_is_checked_again_when_its_turn_is_frozen(
         text="Proč tenhle filtr?",
         focus={"id": "audience:filter:kraj", "label": "Filtr: kraj"},
     )
-    StudyWorkspaceRepository(session).save(scope, content=CONTENT, base_revision=base)
+    StudyWorkspaceRepository(session).save(
+        scope,
+        content=CONTENT,
+        base_revision=base,
+        by=WriteBy(ActorKind.PERSON, scope.actor_id, OpSource.UI),
+    )
     _complete(session, scope, {"reply": "Hotovo."})
     (turn,) = _lead(scope, session).answer_queued()
     view = layer(_step_input(session, scope, turn["run_id"])["context"], "view")
