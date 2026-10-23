@@ -66,7 +66,7 @@ describe("ResearcherSpendCard", () => {
     expect(row.querySelector('[data-part="fieldwork"]')).toBeNull();
     expect(within(row).getByText("2,00 USD")).toBeTruthy();
     const nobody = document.querySelector('[data-person="__unattributed"]') as HTMLElement;
-    expect(within(nobody).getByText("Nepřiřazeno")).toBeTruthy();
+    expect(within(nobody).getByText("Neznámý")).toBeTruthy();
     expect(within(nobody).getByText("neznámá")).toBeTruthy();
     expect(nobody.textContent).not.toContain("0,00 USD");
     expect(screen.getByText(/Vlastník a správce vidí všechny členy/)).toBeTruthy();

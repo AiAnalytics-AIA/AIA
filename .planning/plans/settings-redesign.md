@@ -5,7 +5,7 @@ chunks:
   - "[x] 2. Shared inputs: one Switch (ui/Switch); Segmented = ChoiceChips, Stepper, InlineCreateRow, InlineText and UndoToast already in ui/ (input-interactions)"
   - "[x] 3. Přístup a schvalování: role, status and self-approval chosen in their rows, name edited in place, inline add member, role change with Vrátit, roles boxes, samoschválení above Klienti"
   - "[ ] 3b. Přístup over its backends: Metodik switch (owner only), deactivate with Vrátit and the sealed Lead, a client's posture and wallet ceiling"
-  - "[ ] 4. Studie a rozpočty: the four money names, steppers with bounds, % and near-limit (90 %), spend tiles and per-researcher spend"
+  - "[x] 4. Studie a rozpočty: the four money names, steppers with bounds, % and near-limit (90 %), spend tiles and per-researcher spend"
   - "[ ] 5. Systémové prompty: grouped list, editor layout, in-force version in green, Verze table"
   - "[ ] 6. Deep Research: Dosah, proposals in the Návrh cell, I7 modals, Pevné ochrany v kódu"
   - "[ ] 7. AI běh: route tiles, activities grouped with descriptions, the missing activities"
@@ -47,3 +47,12 @@ https://claude.ai/artifact/8W9LR8Ju9BWnR5JACmiWv7 (ten boards, one per tab) and 
   settings journey on chunk 3; the row now sends the newest name (AccessPanel.tsx MemberRow), and
   ControlPanel.test.tsx "never writes an old name back when a role is chosen while the new name is
   still being read" fails without it.
+- A stepped study budget fell back to its old value between the PUT's answer and the re-read, so
+  the field showed 0,00 after a save that had landed (caught by the settings journey on chunk 4). The
+  row now holds the answered value until the re-read reaches it (StudiesPanel.tsx useAnswered);
+  ControlPanel.test.tsx "keeps a saved budget in its field while the re-read has not caught up" fails
+  without it.
+- Hypothesis (no fix here): the settings journey's "Methodology default height < 4500" grows with
+  each run on the same workbench (4178 on a fresh one; 4502 after several runs), because each run
+  stores and activates a methodology version and the tab lists every version. It passes on
+  `workbench.py up --fresh`; chunk 10 (Metodika) redraws that tab and should settle it.
