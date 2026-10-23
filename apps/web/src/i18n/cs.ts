@@ -1945,6 +1945,7 @@ export const cs = {
           eventType: "Typ události v historii",
           allEvents: "Všechny události",
           newestFirst: "nejnovější nahoře · jen ke čtení",
+          truncated: "Načteno nejnovějších 500 záznamů; starší nejsou načteny, a počty sahající za ně jsou proto nejméně tolik.",
           category: "Kategorie",
           event: "Událost",
           concerns: "Čeho se týká",

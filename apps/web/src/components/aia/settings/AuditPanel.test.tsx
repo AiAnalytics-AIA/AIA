@@ -19,6 +19,24 @@ const studies = { ok: true as const, data: [{ study: { study_id: "STU-1", client
 const draw = (data: AuditEntry[]) => render(<AuditPanel audit={{ ok: true, data }} members={members} clients={clients} studies={studies} />);
 
 describe("the audit", () => {
+  it("colours no category with a status: no coral, fault red or green on a chip or a row", () => {
+    draw([entry(1, "STUDY_BUDGET_CHANGED", ago(0)), entry(2, "CLIENT_DELETED", ago(0)), entry(3, "MEMBER_ADDED", ago(0))]);
+    const html = (document.querySelector("[data-audit-categories]")?.outerHTML ?? "") + [...document.querySelectorAll("[data-audit-entry]")].map((r) => r.outerHTML).join("");
+    // The selected chip's signal wash is selection, not a status.
+    expect(html).not.toMatch(/status-you|status-fault|in-force|client-\d|bg-signal(?!-wash)/);
+  });
+
+  it("says a full page holds only the newest records, and counts a period reaching past them as at least", () => {
+    // 500 records, the oldest 3 days ago: 30 days reach past it.
+    draw(Array.from({ length: 500 }, (_, i) => entry(i + 1, "MEMBER_ADDED", ago((i * 3) / 500))));
+    expect(document.querySelector("[data-audit-truncated]")?.textContent).toMatch(/nejnovějších 500 záznamů; starší nejsou načteny/);
+    expect(document.querySelector('[data-audit-category="all"]')?.textContent).toBe("Vše≥ 500");
+    cleanup();
+    draw([entry(1, "MEMBER_ADDED", ago(0))]);
+    expect(document.querySelector("[data-audit-truncated]")).toBeNull();
+    expect(document.querySelector('[data-audit-category="all"]')?.textContent).toBe("Vše1");
+  });
+
   it("counts each category in the period, and filters by one", () => {
     draw([
       entry(1, "STUDY_BUDGET_CHANGED", ago(1), { study_id: "STU-1", reason: "100 → 120 USD" }),

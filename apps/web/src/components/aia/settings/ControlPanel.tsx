@@ -40,7 +40,7 @@ import { DeepResearchSettingsPanel } from "./DeepResearchSettingsPanel";
 import { MethodologyPanel } from "./MethodologyPanel";
 import { ResearcherSpendCard } from "./ResearcherSpendCard";
 import { StudiesTable } from "./StudiesPanel";
-import { AuditPanel } from "./AuditPanel";
+import { AUDIT_PAGE, AuditPanel } from "./AuditPanel";
 import { SETTING_HELP, TAB_GUIDE } from "./settings-guide";
 import { SystemPromptsPanel } from "./SystemPromptsPanel";
 import { Technical, TechnicalProvider, TechnicalSwitch, useTechnicalChoice } from "./technical";
@@ -115,7 +115,7 @@ async function loadPanel(): Promise<Panel> {
     part(admin.clients()),
     part(loadStudies()),
     doc.may_administer ? part(admin.selfApproval()) : Promise.resolve(null),
-    doc.may_administer ? part(admin.audit(500)) : Promise.resolve(null),
+    doc.may_administer ? part(admin.audit(AUDIT_PAGE)) : Promise.resolve(null),
   ]);
   return { doc, runtime, members, clients, studies, levels, audit };
 }

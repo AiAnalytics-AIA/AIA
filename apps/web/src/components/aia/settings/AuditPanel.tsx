@@ -23,10 +23,14 @@ import type { StudyRow } from "./StudiesPanel";
 const P = "aia.settings.panel";
 type Part<T> = { ok: true; data: T } | { ok: false; message: string };
 
+// Wayfinding tints and neutral ink only: a category is not a status, so never coral (needs you),
+// fault red, green (in force), the signal or a client's accent (review of #849).
 const DOT: Record<AuditCategory, string> = {
-  method: "bg-client-5", access: "bg-client-1", money: "bg-status-you", clients: "bg-client-4", dr: "bg-client-3",
-  prompts: "bg-signal", lead: "bg-ai", data: "bg-status-fault", other: "bg-border-strong",
+  method: "bg-hue-violet", access: "bg-hue-blue", money: "bg-hue-orange", clients: "bg-hue-teal", dr: "bg-hue-slate",
+  prompts: "bg-ink-faint", lead: "bg-ink-muted", data: "bg-ink", other: "bg-border-strong",
 };
+/** The page asks for this many records (admin.audit); a full page means older ones were not read. */
+export const AUDIT_PAGE = 500;
 const WHEN = new Intl.DateTimeFormat("cs-CZ", { dateStyle: "medium", timeStyle: "short", timeZone: "Europe/Prague" });
 const HEAD = "px-2 py-1.5 text-left text-xs font-normal text-ink-faint";
 const CELL = "border-t border-border px-2 py-2 align-top text-sm";
@@ -54,6 +58,12 @@ export function AuditPanel({ audit, members, clients, studies }: {
   ].filter(Boolean).join(" · ") || "—";
   const now = new Date();
   const inTime = audit.data.filter((e) => inPeriod(e.created_at, period, now));
+  // A full page holds the newest records only: a period reaching past the oldest one read may hold
+  // more than its count says, so the counts read "≥ n" there (review of #849).
+  const full = audit.data.length >= AUDIT_PAGE;
+  const oldest = audit.data.map((e) => e.created_at).filter((x): x is string => !!x).sort()[0];
+  const truncated = full && (period === "all" || (oldest !== undefined && inPeriod(oldest, period, now)));
+  const countWords = (n: number) => (truncated ? `≥ ${n}` : String(n));
   const counts = new Map<AuditCategory, number>();
   for (const e of inTime) counts.set(categoryOf(e.action), (counts.get(categoryOf(e.action)) ?? 0) + 1);
   const actors = [...new Set(audit.data.map((e) => e.actor_id).filter((id): id is string => !!id))].sort((a, b) => person(a).localeCompare(person(b), "cs"));
@@ -75,7 +85,7 @@ export function AuditPanel({ audit, members, clients, studies }: {
                 className={`inline-flex min-h-8 items-center gap-1.5 rounded-pill border px-2.5 text-xs ${on ? "border-signal bg-signal-wash font-medium text-ink" : "border-border text-ink-muted hover:bg-surface-sunken"} ${FOCUS}`}>
                 {c !== "all" ? <i aria-hidden="true" className={`size-2 rounded-full ${DOT[c]}`} /> : null}
                 {c === "all" ? t(`${P}.audit.all`) : CATEGORY_NAMES[c]}
-                <span className="font-mono tabular-nums text-ink-faint">{n}</span>
+                <span className="font-mono tabular-nums text-ink-faint">{countWords(n)}</span>
               </button>
             );
           })}
@@ -89,6 +99,7 @@ export function AuditPanel({ audit, members, clients, studies }: {
         <Select aria-label={t(`${P}.audit.person`)} value={actor} onChange={(e) => setActor(e.target.value)}><option value="">{t(`${P}.audit.allPeople`)}</option>{actors.map((id) => <option key={id} value={id}>{person(id)}</option>)}</Select>
         <Select aria-label={t(`${P}.audit.eventType`)} value={event} onChange={(e) => setEvent(e.target.value)}><option value="">{t(`${P}.audit.allEvents`)}</option>{events.map((a) => <option key={a} value={a}>{actionName(a)}</option>)}</Select>
       </div>
+      {full ? <p data-audit-truncated className="text-xs text-ink-muted">{t(`${P}.audit.truncated`)}</p> : null}
       <p className="text-xs text-ink-muted"><span role="status">Zobrazeno {visible.length} z {audit.data.length} záznamů</span> · {t(`${P}.audit.newestFirst`)}</p>
       {!visible.length ? <p role="status" className="text-sm text-ink-muted">{t(`${P}.noSearchResults`)}</p> : (
         <div className="overflow-x-auto">
