@@ -2,11 +2,12 @@
 status: in-progress
 chunks:
   - "[x] SB1. The Metodik mark (D-14): organization_members.methodologist, granted and revoked by an OWNER, audited; only a marked member stores and activates methodology; the migration marks the product owner"
-  - "[ ] SB2. Member deactivate and reactivate (D-27) with the sealed Lead (ADR 0030): routes, the seal at once, erasure after 30 days, unsealed for the member on a reactivation within 30 days; the target resolved in the acting admin's organization (S15)"
+  - "[x] SB2. Member deactivate and reactivate (D-27) with the sealed Lead (ADR 0030): routes, the seal at once, erasure after 30 days, unsealed for the member on a reactivation within 30 days; the target resolved in the acting admin's organization (S15)"
   - "[ ] SB3. The organization's spend for Settings (develop-spend-attribution 6): spent, reserved, uncertain calls and the studies near their budget (90 %), OWNER/ADMIN only"
   - "[ ] SB4. Stav systému (MP6): the deploy smoke's check lines kept, the latest read by Settings; GlitchTip read through a read-only token (alerts, uptime, last 7 days' issues), not configured without it"
   - "[ ] SB5. Správa dat (study-data-lifecycle SDL3, client part): a client's deletion preview with counts and a confirm token, the irreversible delete (content gone, ledgers and audit kept under the client's id), the kept-records listing"
   - "[ ] SB6. Dosah (deep-research-web-search 52): the worker's Deep Research composition recorded at start, every route and connector as built, approved, active or refused with the reason; read in Settings"
+  - "[ ] SB8. A pending Deep Research setting proposal withdrawn by its proposer or declined by another administrator (Settings' \"Stáhnout návrh\"): append-only, audited, never approved after; each version's state (#841)"
   - "[ ] SB7. Profil → Pravidla (deep-research-web-search 53 storage + client-knowledge-lifecycle K11): the client's data posture and wallet ceiling, set by an OWNER or ADMIN, audited, listed read-only in Settings; a Deep Research run pins the posture"
 ---
 # Settings backends: what the redesigned Settings reads and writes
@@ -125,4 +126,13 @@ All routes are under `/api/v1`, in Czech-free JSON; errors use the one error con
 
 ## Findings
 
-(none yet)
+- **Stav systému reads the whole deployment (SB4, security review of #839).** Smoke results and
+  GlitchTip's issues are every tenant's, but the routes are gated on an organization's OWNER or
+  ADMIN. Until an operator gate exists, both refuse 409 `deployment_shared` whenever the
+  deployment holds more than one organization (the develop seed's `aia-develop-smoke` not
+  counted). A multi-tenant deployment needs that operator gate before Settings can show them.
+  Anchor: `application/system_status.py` `_single_tenant`, test
+  `test_system_status_api.py::test_with_a_second_organization_both_are_refused_as_the_deployments`.
+- **SB4's contract changed:** no `detail` column on smoke results; only each check's label and
+  result are kept (infra, 2026-10-23).
+- **SB2 merged as #830** (32475bdc), with S15 fixed there.
