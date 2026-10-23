@@ -14,7 +14,7 @@ from lxml import etree
 from aia_core.domain.deep_research.documents import DocumentRefused
 from aia_core.domain.report.model import Paragraph, Text, Value
 from aia_core.domain.report.saved_changes import ChangeKind, SavedChange, Uncomparable, compare
-from aia_core.infrastructure.document_text import DtdDeclared
+from aia_core.infrastructure.document_text import ZIP_MAX_MEMBERS, DtdDeclared
 from aia_core.infrastructure.report_docx.census import census
 from aia_core.infrastructure.report_docx.renderer import DocxRenderer
 
@@ -163,8 +163,26 @@ def test_a_saved_file_is_read_as_a_strangers(report_doc: Any) -> None:
     bodiless = io.BytesIO()
     with zipfile.ZipFile(bodiless, "w") as target:
         target.writestr("word/other.xml", b"<x/>")
-    with pytest.raises(DocumentRefused):
-        census(bodiless.getvalue())
+    crowded = io.BytesIO()
+    with zipfile.ZipFile(crowded, "w") as target:
+        for i in range(ZIP_MAX_MEMBERS + 1):
+            target.writestr(f"m/{i}.xml", b"")
+    for refused in (bodiless.getvalue(), crowded.getvalue(), _damaged(draft)):
+        with pytest.raises(DocumentRefused):
+            census(refused)
+
+
+def _damaged(docx: bytes) -> bytes:
+    """``docx`` with its body stored uncompressed and a byte of it flipped: a bad CRC, met only
+    when the member is inflated."""
+    out = io.BytesIO()
+    with zipfile.ZipFile(io.BytesIO(docx)) as source, zipfile.ZipFile(out, "w") as target:
+        for info in source.infolist():
+            target.writestr(info.filename, source.read(info), zipfile.ZIP_STORED)
+    data = bytearray(out.getvalue())
+    at = data.index(b"<w:body")
+    data[at + 1] ^= 0x01
+    return bytes(data)
 
 
 def test_numbers_a_tab_parts_are_two(report_doc: Any) -> None:

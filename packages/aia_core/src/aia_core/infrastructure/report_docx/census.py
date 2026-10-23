@@ -81,6 +81,10 @@ def _loose(p: etree._Element) -> str:
     return "".join(out)
 
 
+def _malformed(exc: BaseException) -> DocumentRefused:
+    return DocumentRefused(f"the DOCX has no readable body: {exc}", reason="document_malformed")
+
+
 def census(docx: bytes) -> Census:
     """The tagged controls and loose numbers of ``docx``'s body, in document order.
 
@@ -88,15 +92,18 @@ def census(docx: bytes) -> Census:
     and ``DtdDeclared`` for a body that declares a document type."""
     check_zip_bounds(docx, "DOCX")
     try:
+        # The member is first inflated here: a missing body, a bad CRC, a corrupt stream, an
+        # encrypted or unsupported member each raise their own error; all are a damaged file.
         with zipfile.ZipFile(io.BytesIO(docx)) as archive:
             body = archive.read(BODY)
-        refuse_dtd(body)
+    except Exception as exc:
+        raise _malformed(exc) from exc
+    refuse_dtd(body)
+    try:
         parser = etree.XMLParser(resolve_entities=False, no_network=True, huge_tree=False)
         root = etree.fromstring(body, parser)
-    except (KeyError, etree.XMLSyntaxError) as exc:
-        raise DocumentRefused(
-            f"the DOCX has no readable body: {exc}", reason="document_malformed"
-        ) from exc
+    except etree.XMLSyntaxError as exc:
+        raise _malformed(exc) from exc
     controls = tuple(
         ControlSpan(tag, _text(sdt))
         for sdt in root.iter(f"{W}sdt")
