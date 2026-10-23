@@ -2529,6 +2529,24 @@ class PromptActivationRow(Base):
 # --------------------------------------------------------------------------- #
 
 
+class DeepResearchCompositionRow(Base):
+    """What one worker's Deep Research composition reached, recorded at its start
+    (deep-research-web-search 52). Deployment-wide; Settings reads the newest. ``routes``
+    holds ``domain.deep_research_reach.reach_record``'s list."""
+
+    __tablename__ = "deep_research_compositions"
+
+    composition_id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    worker: Mapped[str] = mapped_column(String(128), nullable=False)
+    build_sha: Mapped[str | None] = mapped_column(String(64))
+    composed_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+    agent_directed: Mapped[bool] = mapped_column(Boolean, nullable=False)
+    class_gates: Mapped[str | None] = mapped_column(String(16))
+    routes: Mapped[list[dict[str, Any]]] = mapped_column(JSONType, nullable=False)
+
+    __table_args__ = (Index("ix_deep_research_compositions_composed_at", "composed_at"),)
+
+
 class DeepResearchSettingVersionRow(Base):
     """One proposed value of a Deep Research setting. Immutable (ADR 0022).
 
