@@ -10,7 +10,7 @@ chunks:
   - "[x] 6. Deep Research: Dosah, proposals in the Návrh cell, I7 modals, Pevné ochrany v kódu"
   - "[x] 7. AI běh: route tiles, activities grouped with descriptions, the missing activities"
   - "[x] 8. Audit: categories with counts, period, search, Czech names for every action code"
-  - "[ ] 9. Reference: categories, Kdo mění filter, Co znamená column"
+  - "[x] 9. Reference: categories, Kdo mění filter, Co znamená column"
   - "[ ] 10. Metodika: module cards with drawings and accent colours (no stage filter), -5 only, editor from the version in force, activation modal with reason chips"
   - "[ ] 11. Stav systému and Správa dat: content over their backends"
 ---

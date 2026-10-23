@@ -751,9 +751,30 @@ describe("the settings tabs", () => {
       expect(within(panel).getByRole("switch", { name: "Technické údaje" })).toBeTruthy();
       expect(panel.querySelectorAll("details, summary")).toHaveLength(0);
     }
-    // The reference names its groups up front, each a link to the group.
-    const jump = panelOf("Reference").querySelector("[data-reference-jump]") as HTMLElement;
-    expect([...jump.querySelectorAll("a")].map((a) => a.getAttribute("href"))).toContain("#set-invariants");
+    // The reference names its groups up front as categories with their counts.
+    const cats = panelOf("Reference").querySelector("[data-reference-categories]") as HTMLElement;
+    expect([...cats.querySelectorAll("[data-reference-category]")].map((b) => b.getAttribute("data-reference-category"))).toContain("invariants");
+  });
+
+  it("reads Reference as tables by category, filters by category and by who changes a value, and says what each means", async () => {
+    api();
+    render(<ControlPanel />);
+    fireEvent.click(await screen.findByRole("tab", { name: "Reference" }));
+    const reference = panelOf("Reference");
+    const env = (await within(reference).findByText("Prostředí")).closest("tr") as HTMLElement;
+    expect(env.getAttribute("data-owner")).toBe("deployment");
+    expect(within(env).getByText(/Rozlišuje vývojové/)).toBeTruthy();
+    expect(within(section("deployment")).getAllByRole("columnheader").map((h) => h.textContent)).toEqual(["Hodnota", "Nastaveno", "Kdo mění", "Co znamená"]);
+    // Only the rules fixed in code.
+    fireEvent.click(within(within(reference).getByRole("radiogroup", { name: "Kdo mění" })).getByRole("radio", { name: "Pevné pravidlo" }));
+    expect(reference.querySelector('[data-owner="deployment"]')).toBeNull();
+    expect(reference.querySelector('[data-owner="fixed"]')).toBeTruthy();
+    fireEvent.click(within(within(reference).getByRole("radiogroup", { name: "Kdo mění" })).getByRole("radio", { name: "Vše" }));
+    // One category at a time.
+    fireEvent.click(reference.querySelector('[data-reference-category="invariants"]') as HTMLElement);
+    expect(section("deployment")).toBeNull();
+    expect(reference.contains(section("invariants"))).toBe(true);
+    expect(within(reference).getByRole("status").textContent).toMatch(/^Zobrazeno \d+ z \d+ hodnot$/);
   });
 
   it("shows one panel at a time and keeps the others' state when switching back", async () => {
