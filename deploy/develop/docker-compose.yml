@@ -150,6 +150,9 @@ services:
       AIA_AI_FICTIONAL_CLIENT_IDS: ${AIA_AI_FICTIONAL_CLIENT_IDS:-}
       # The API pins this deterministic engine and its report into newly queued runs.
       AIA_SOCIOMAPPING_EXPERIMENTAL_ENABLED: ${AIA_SOCIOMAPPING_EXPERIMENTAL_ENABLED:-false}
+      # The object map's numba kernels compiled in the background after start, so the first
+      # Metodika comparison after a deploy is not the ~40 s compile (apps/api warmup.py).
+      AIA_SOCIOMAP_WARMUP_ENABLED: ${AIA_SOCIOMAP_WARMUP_ENABLED:-true}
       # A run that cannot answer every research question its design states starts only on a
       # person's recorded choice to continue with limitations (plan research-integrity-report
       # chunk 1, ADR 0025). On for develop by the owner's D1, 2026-10-17; an SSM value of false

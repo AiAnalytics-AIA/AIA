@@ -620,7 +620,7 @@ function EditorForm({ summary, start, presets, detail, currentSpec, onBase, onDi
               <TextInput disabled={busy} value={note} maxLength={500} onChange={(e) => setNote(e.target.value)} />
             </Field>
             <Button className="min-h-11 w-full justify-center" type="submit" variant="primary" disabled={busy}>{t(`${V}.store`)}</Button>
-            {operation ? <span role="status" className="text-xs text-ink-muted">{operation === "check" ? "Kontroluji na serveru…" : operation === "compare" ? "Porovnávám metodiky…" : "Kontroluji a ukládám novou verzi…"}</span> : null}
+            {operation ? <OperationStatus key={operation} operation={operation} /> : null}
             <p className="text-xs leading-5 text-ink-muted">{t(`${V}.activateHint`)}</p>
           </div>
         </aside>
@@ -780,3 +780,22 @@ const StepEditor = memo(function StepEditor({ step, fields, hidden, busy, start,
     </fieldset>
   );
 }, (a, b) => a.signature === b.signature && a.stage === b.stage && a.titles === b.titles && a.linkable === b.linkable && a.step === b.step && a.start === b.start && a.currentSpec === b.currentSpec);
+
+/** What the editor is doing on the server, and for how long: a comparison computes maps on three
+ *  panels (about 10 s; the first after a deploy, while the kernels compile, up to a minute), so after
+ *  3 s the seconds count up and after 10 s it says why. The count is not announced each second. */
+function OperationStatus({ operation }: { operation: "check" | "compare" | "store" }) {
+  const [seconds, setSeconds] = useState(0);
+  useEffect(() => {
+    const started = Date.now();
+    const timer = window.setInterval(() => setSeconds(Math.floor((Date.now() - started) / 1000)), 1000);
+    return () => window.clearInterval(timer);
+  }, []);
+  return (
+    <span data-operation={operation} className="text-xs text-ink-muted">
+      <span role="status">{operation === "check" ? "Kontroluji na serveru…" : operation === "compare" ? "Porovnávám metodiky…" : "Kontroluji a ukládám novou verzi…"}</span>
+      {seconds >= 3 ? <span data-elapsed aria-hidden="true"> {tv(`${V}.elapsed`, { n: seconds })}</span> : null}
+      {operation === "compare" && seconds >= 10 ? <span role="status" data-compare-slow className="mt-1 block">{t(`${V}.compareSlow`)}</span> : null}
+    </span>
+  );
+}
