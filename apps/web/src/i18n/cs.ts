@@ -1189,6 +1189,9 @@ export const cs = {
           check: "Zkontrolovat",
           store: "Zkontrolovat a uložit",
           compareButton: "Porovnat s metodikou v platnosti",
+          // Said once a comparison has run 10 s: it computes the maps, it has not stalled.
+          compareSlow: "Porovnání spočítá obě mapy na třech zkušebních panelech; trvá obvykle kolem 10 s, první po nasazení až minutu.",
+          elapsed: "{n} s",
           checkOk: "Kontrola prošla.",
           checkFailed: "Kontrola neprošla ({count}). Nic se neuložilo.",
           compare: {
