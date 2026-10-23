@@ -4,8 +4,9 @@
 // keeps after it (settings-backends SB5, #850). OWNER or ADMIN. The deletion is one I7 modal: what
 // is deleted and what stays, with the server's counts, a one-time confirmation the server issued
 // for this person, an acknowledgement switch, and the act named, "Smazat klienta". A count the
-// server did not establish reads "nezjištěno", never 0. Until the routes are deployed (404),
-// both parts read "V AIA zatím není".
+// server did not establish reads "nezjištěno", never 0. Until the routes are deployed (a 404 no
+// route answers, http_404, or the 405 of the old GET preview), both parts read "V AIA zatím
+// není"; a 404 not_found is a client that no longer exists.
 
 import { useEffect, useState } from "react";
 
@@ -25,6 +26,10 @@ const DELETED = ["studies", "working_revisions", "knowledge_items", "sources", "
 const KEPT = ["usage_rows", "approval_rows", "audit_rows"] as const;
 const KNOWN_RECORDS = new Set(["usage_rows", "budget_holds", "approval_rows", "audit_rows", "deleted_clients"]);
 
+/** The route is not deployed: no route answered (http_404), or the old GET preview's 405. */
+const notBuilt = (e: unknown) => e instanceof ApiError && ((e.status === 404 && e.code === "http_404") || e.status === 405);
+const gone = (e: unknown) => e instanceof ApiError && e.status === 404 && e.code === "not_found";
+
 function NotYetChip() {
   return <p data-not-yet className="mt-3 inline-flex rounded-sm border border-dashed border-border-strong px-2 py-0.5 text-xs text-ink-muted">{t("aia.settings.panel.notYet")}</p>;
 }
@@ -42,20 +47,36 @@ function ClientDelete({ clients, reload }: { clients: Part<AdminClient[]>; reloa
     setError(null); setDone(null); setAck(false); setBusy(true);
     try { setPreview(await clientDeletion.preview(clientId)); }
     catch (e) {
-      // The route not deployed yet: a 404, or the 405 of a deployment still on the GET preview.
-      if (e instanceof ApiError && (e.status === 404 || e.status === 405)) setNotYet(true);
+      if (notBuilt(e)) setNotYet(true);
+      else if (gone(e)) { setChosen(null); setDone(t(`${D}.gone`)); reload(); }
       else setError(describeError(e));
     } finally { setBusy(false); }
+  };
+  // Files the store could not delete yet: the client has left the list, so the retry is kept here
+  // with the token, and repeating the delete (already_deleted) retries only those files.
+  const [waiting, setWaiting] = useState<{ client_id: string; name: string; token: string } | null>(null);
+  const finish = (target: { client_id: string; name: string; token: string }, failed: number) => {
+    setWaiting(failed > 0 ? target : null);
+    setDone(failed > 0 ? tv(`${D}.deletedSomeWaiting`, { name: target.name, n: failed }) : tv(`${D}.deleted`, { name: target.name }));
+  };
+  const retryFiles = async () => {
+    if (!waiting) return;
+    setBusy(true); setError(null);
+    try { finish(waiting, (await clientDeletion.remove(waiting.client_id, waiting.token)).objects_failed); }
+    catch (e) { setError(describeError(e)); }
+    finally { setBusy(false); }
   };
   const remove = async () => {
     if (!preview) return;
     setBusy(true); setError(null);
     try {
-      const r = await clientDeletion.remove(preview.client_id, preview.confirm_token);
+      const target = { client_id: preview.client_id, name: preview.name, token: preview.confirm_token };
+      const r = await clientDeletion.remove(target.client_id, target.token);
       setPreview(null); setChosen(null);
-      setDone(r.objects_failed > 0 ? tv(`${D}.deletedSomeWaiting`, { name: preview.name, n: r.objects_failed }) : tv(`${D}.deleted`, { name: preview.name }));
+      finish(target, r.objects_failed);
       reload();
     } catch (e) {
+      if (gone(e)) { setPreview(null); setChosen(null); setDone(t(`${D}.gone`)); reload(); return; }
       if (e instanceof ApiError && e.code === "client_has_active_work") {
         const runs = Array.isArray(e.details.run_ids) ? (e.details.run_ids as unknown[]).map(String) : [];
         setError(tv(`${D}.activeWork`, { runs: runs.join(", ") || "—" }));
@@ -82,6 +103,7 @@ function ClientDelete({ clients, reload }: { clients: Part<AdminClient[]>; reloa
           </div>
         )}
         {done ? <p role="status" data-deleted className="mt-3 text-sm">{done}</p> : null}
+        {waiting ? <Button className="mt-2" disabled={busy} onClick={() => void retryFiles()}>{t(`${D}.retryFiles`)}</Button> : null}
         {error && !preview ? <p role="alert" className="mt-3 text-sm text-status-fault">{error}</p> : null}
       </>}
       {preview ? (
@@ -118,7 +140,7 @@ function KeptRecords() {
     clientDeletion.kept().then(
       // A body that is not a list is not "nothing kept": said so, never drawn as an empty table.
       (data) => { if (live) setRead(Array.isArray(data) ? { state: "ready", data } : { state: "refused", message: t(`${D}.malformed`) }); },
-      (e: unknown) => { if (live) setRead(e instanceof ApiError && e.status === 404 ? { state: "not_yet" } : { state: "refused", message: describeError(e) }); },
+      (e: unknown) => { if (live) setRead(notBuilt(e) ? { state: "not_yet" } : { state: "refused", message: describeError(e) }); },
     );
     return () => { live = false; };
   }, []);

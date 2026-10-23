@@ -25,7 +25,8 @@ function fake(routes: Record<string, (body: unknown) => Response | unknown>) {
     calls.push({ method, url: u, body });
     if (u === "/config") return new Response(JSON.stringify({ apiBase: "", cognitoDomain: "", cognitoClientId: "", publicOrigin: "http://localhost", build: { sha: null } }));
     const answer = routes[`${method} ${u}`]?.(body);
-    if (answer === undefined) return new Response('{"code":"not_found","message":"Not Found"}', { status: 404 });
+    // A path no route answers, as the API's error contract says it (observability.py: http_<status>).
+    if (answer === undefined) return new Response('{"code":"http_404","message":"Not Found"}', { status: 404 });
     return answer instanceof Response ? answer : new Response(JSON.stringify(answer), { status: 200 });
   }));
 }
@@ -81,6 +82,25 @@ describe("Stav systému", () => {
     });
     render(<SystemPanel mayAdminister />);
     expect(await screen.findByText("Monitorování dostupnosti je vypnuté.")).toBeTruthy();
+  });
+
+  it("says GlitchTip could not be read, never that it has no rules or monitors", async () => {
+    fake({
+      "GET /api/v1/settings/system-status": () => ({ latest: null }),
+      "GET /api/v1/settings/error-tracking": () => ({ configured: true, dashboard_url: null, project: "aia", project_url: null, alerts: [], uptime: [], uptime_enabled: true, issues_7d: [], error: "glitchtip_unreachable" }),
+    });
+    render(<SystemPanel mayAdminister />);
+    expect(await screen.findByText("Pravidla upozornění se nepodařilo načíst.")).toBeTruthy();
+    expect(screen.getByText("Monitorování dostupnosti se nepodařilo načíst.")).toBeTruthy();
+    expect(screen.getByText("Problémy se nepodařilo načíst.")).toBeTruthy();
+    expect(screen.queryByText("Žádné pravidlo upozornění.")).toBeNull();
+    cleanup();
+    fake({
+      "GET /api/v1/settings/system-status": () => ({ latest: null }),
+      "GET /api/v1/settings/error-tracking": () => ({ configured: true, dashboard_url: null, project: "aia", project_url: null, alerts: [], uptime: [], uptime_enabled: true, issues_7d: [], error: null }),
+    });
+    render(<SystemPanel mayAdminister />);
+    expect(await screen.findByText(/žádný monitor dostupnosti zatím není nastaven/)).toBeTruthy();
   });
 
   it("says the server's words when the deployment holds several organizations", async () => {
@@ -142,7 +162,8 @@ describe("Správa dat", () => {
       "POST /api/v1/clients/CLI-a/deletion": () => PREVIEW,
       "DELETE /api/v1/clients/CLI-a": () => (++tries === 1
         ? refuse(409, "client_has_active_work", "Klient má běhy, které neskončily: nejdřív je zrušte.", { run_ids: ["RUN-1", "RUN-2"] })
-        : { client_id: "CLI-a", already_deleted: false, deleted: {}, objects_deleted: 7, objects_failed: 2 }),
+        : tries === 2 ? { client_id: "CLI-a", already_deleted: false, deleted: {}, objects_deleted: 7, objects_failed: 2 }
+        : { client_id: "CLI-a", already_deleted: true, deleted: {}, objects_deleted: 2, objects_failed: 0 }),
       "GET /api/v1/settings/kept-records": () => [],
     });
     render(<DataPanel mayAdminister clients={CLIENTS} reload={() => {}} />);
@@ -151,7 +172,27 @@ describe("Správa dat", () => {
     fireEvent.click(within(dialog).getByRole("button", { name: "Smazat klienta" }));
     expect(await within(dialog).findByText(/RUN-1, RUN-2/)).toBeTruthy();
     fireEvent.click(within(dialog).getByRole("button", { name: "Smazat klienta" }));
-    expect(await screen.findByText(/2 souborů ještě čeká na smazání: zopakujte smazání/)).toBeTruthy();
+    expect(await screen.findByText(/2 souborů ještě čeká na smazání/)).toBeTruthy();
+    // The client has left the list: the retry is offered here, with the same token.
+    fireEvent.click(screen.getByRole("button", { name: "Zkusit smazat soubory znovu" }));
+    await waitFor(() => expect(calls.filter((c) => c.method === "DELETE")).toHaveLength(3));
+    expect(calls.filter((c) => c.method === "DELETE")[2].body).toEqual({ confirm_token: "tok-1" });
+    expect(await screen.findByText(/Klient Kavárny Lípa je smazán/)).toBeTruthy();
+    expect(screen.queryByRole("button", { name: "Zkusit smazat soubory znovu" })).toBeNull();
+  });
+
+  it("says a client already deleted no longer exists and reloads the list, never that deletion is not in AIA", async () => {
+    fake({
+      "POST /api/v1/clients/CLI-a/deletion": () => refuse(404, "not_found", "No such client."),
+      "GET /api/v1/settings/kept-records": () => [],
+    });
+    const reload = vi.fn();
+    render(<DataPanel mayAdminister clients={CLIENTS} reload={reload} />);
+    fireEvent.change(await screen.findByRole("combobox", { name: "Vyberte klienta…" }), { target: { value: "CLI-a" } });
+    fireEvent.click(screen.getByRole("button", { name: "Smazat klienta Kavárny Lípa…" }));
+    expect(await screen.findByText("Klient už neexistuje; seznam je obnovený.")).toBeTruthy();
+    expect(reload).toHaveBeenCalled();
+    expect(document.querySelector("[data-client-delete] [data-not-yet]")).toBeNull();
   });
 
   it("lists the kept records in words, and says not in AIA yet without the routes", async () => {

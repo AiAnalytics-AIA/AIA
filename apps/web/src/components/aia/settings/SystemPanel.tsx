@@ -33,7 +33,8 @@ function useRead<T>(load: () => Promise<T>): Read<T> {
       (data) => { if (live) setRead(data && typeof data === "object" && !Array.isArray(data) ? { state: "ready", data } : { state: "refused", message: t(`${S}.malformed`) }); },
       (e: unknown) => {
         if (!live) return;
-        if (e instanceof ApiError && e.status === 404) setRead({ state: "not_yet" });
+        // Not deployed: no route answered (http_404).
+        if (e instanceof ApiError && e.status === 404 && e.code === "http_404") setRead({ state: "not_yet" });
         else if (e instanceof ApiError && e.status === 403) setRead({ state: "admin_only" });
         // 409 deployment_shared carries the server's Czech sentence: said as given.
         else if (e instanceof ApiError && e.code === "deployment_shared") setRead({ state: "refused", message: e.message });
@@ -116,12 +117,12 @@ function Errors() {
               <li key={a.name} data-alert>{a.name}<span className="block text-xs text-ink-muted">
                 {a.quantity !== null && a.timespan_minutes !== null ? tv(`${S}.alertRule`, { n: a.quantity, minutes: a.timespan_minutes }) : t(`${S}.alertRuleUnknown`)} · {tv(`${S}.recipients`, { n: a.recipients })}
               </span></li>
-            ))}</ul> : <p className="mt-1 text-sm text-ink-muted">{t(`${S}.noAlerts`)}</p>}
+            ))}</ul> : <p className="mt-1 text-sm text-ink-muted">{e.error ? t(`${S}.alertsUnread`) : t(`${S}.noAlerts`)}</p>}
           </div>
           <div>
             <h4 className="text-sm font-semibold">{t(`${S}.uptime`)}</h4>
             {e.uptime_enabled === false ? <p data-uptime-off className="mt-1 text-sm text-ink-muted">{t(`${S}.uptimeOff`)}</p>
-              : e.uptime_enabled === null && !e.uptime.length ? <p className="mt-1 text-sm text-ink-muted">{t(`${S}.uptimeUnknown`)}</p>
+              : !e.uptime.length ? <p className="mt-1 text-sm text-ink-muted">{e.error ? t(`${S}.uptimeUnread`) : e.uptime_enabled ? t(`${S}.uptimeNone`) : t(`${S}.uptimeUnknown`)}</p>
               : <ul className="mt-1 flex flex-col gap-1 text-sm">{e.uptime.map((m) => (
                 <li key={m.name} data-monitor={m.is_up === null ? "unknown" : m.is_up ? "up" : "down"}>
                   {m.name} · <span className={m.is_up === false ? "font-medium text-status-fault" : ""}>{t(`${S}.monitor.${m.is_up === null ? "unknown" : m.is_up ? "up" : "down"}`)}</span>

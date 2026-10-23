@@ -707,7 +707,7 @@ describe("the settings tabs", () => {
 
   it("opens Stav systému and Správa dat as their own tabs, saying plainly what AIA does not have yet", async () => {
     // Their routes not deployed: a 404 each.
-    const none = () => new Response('{"code":"not_found","message":"Not Found"}', { status: 404 });
+    const none = () => new Response('{"code":"http_404","message":"Not Found"}', { status: 404 });
     api({ "GET /api/v1/settings/system-status": none, "GET /api/v1/settings/error-tracking": none, "GET /api/v1/settings/kept-records": none });
     render(<ControlPanel />);
     await screen.findByRole("tablist");
