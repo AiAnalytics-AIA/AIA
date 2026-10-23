@@ -591,3 +591,14 @@ def test_the_browsers_config_token_does_not_post_a_save(
         headers={"Authorization": f"Bearer {config['token']}"},
     )
     assert answer.status_code == 403 and saves.asked == []
+
+
+def test_a_callback_without_a_token_or_a_body_is_refused_not_invalid(
+    app: FastAPI, researcher: TestClient, client: TestClient, world: Any
+) -> None:
+    run_id, _ = _reported_run(app, researcher, world)
+    callback = researcher.post(_editor(world, run_id), json={}).json()["config"]["editorConfig"]
+    path = urlparse(callback["callbackUrl"]).path
+    assert client.post(path).status_code == 403
+    app.state.settings = app.state.settings.model_copy(update={"onlyoffice_callback_base": ""})
+    assert client.post(path).status_code == 404
