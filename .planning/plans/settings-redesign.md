@@ -20,7 +20,7 @@ chunks:
   - "[x] F1. Fidelity gap 2: the Metodika art and accents drawn (runtime colour properties, never Tailwind's --color-*)"
   - "[x] F2. Page frame and tab heads as the prototype draws them (breadcrumb, plain tab column, serif h1, one paragraph, status chips right)"
   - "[x] F3. One segmented control for role, status, self-approval, Audit period and Reference owner; Správa dat's client picker"
-  - "[ ] F4. Metodika opens on the module catalogue (one-line cards, 'Pro klienty' fact, the MVP note), back link and module header"
+  - "[x] F4. Metodika opens on the module catalogue (one-line cards, 'Pro klienty' fact, the MVP note), back link and module header"
   - "[ ] F5. Metodika → Výpočet: stage tiles, 'S parametry' filter, step rows with the formula on opening"
   - "[ ] F6. Metodika → Upravit as one parameter list (original, stepper, bounds) over the existing guards, check/compare and activation with a reason; Verze and Porovnání as full tables even when empty; the Metodik rule kept"
   - "[ ] F7. Studie a rozpočty: the 6-column table without the per-study status picker, the KPI tiles, per-researcher stacked bars; near-limit grey with ⚠ (gaps 4, 16, 17)"

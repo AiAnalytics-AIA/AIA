@@ -11,12 +11,12 @@
 import { useCallback, useState } from "react";
 
 import { t, tv } from "@/i18n/t";
-import { type MethodFormula, type MethodModuleDetail, type MethodModuleSummary, type MethodStepOut, methodology } from "@/lib/api";
+import { type MethodFormula, type MethodModuleDetail, type MethodModuleSummary, type MethodStepOut, type MethodVersions, methodology } from "@/lib/api";
 import { groupSteps, showValue, stepNumbers, stepOrigin } from "@/lib/methodology";
-import { Button, Tag, TextInput } from "../../rehome/ui";
+import { Tag, TextInput } from "../../rehome/ui";
 import { InlineConfirm } from "../../rehome/step";
 import { Loaded } from "../states";
-import { useResource } from "../useResource";
+import { type Resource, useResource } from "../useResource";
 import { FieldOriginPanel } from "./FieldOriginPanel";
 import { Formula } from "./MethodologyFormula";
 import { StepContext } from "./MethodologyContext";
@@ -64,65 +64,123 @@ export function MethodologyPanel({ people = anyone }: { people?: People }) {
   return <Loaded res={res} retry={retry}>{(modules) => <Modules modules={modules} people={people} />}</Loaded>;
 }
 
+const BACK = "\u0000back";
+
 function Modules({ modules, people }: { modules: MethodModuleSummary[]; people: People }) {
-  const [active, setActive] = useState(modules[0]?.id ?? null);
-  const [query, setQuery] = useState("");
+  // The tab opens on the catalogue (prototype v51, fidelity F4); a card opens its module.
+  const [active, setActive] = useState<string | null>(null);
   const [editing, setEditing] = useState(false);
   const [pending, setPending] = useState<string | null>(null);
-  // The methodologists open on the editor of the area they last worked on; the chooser is a step away.
-  const [chooserOpen, setChooserOpen] = useState(false);
-  // Only unsaved changes make switching areas a decision; an open, untouched editor does not.
+  // Only unsaved changes make leaving a module a decision; an open, untouched editor does not.
   const onDirty = useCallback((value: boolean) => setEditing(value), []);
-  // Which area's editor is open: there the editor speaks for itself.
-  const [openFor, setOpenFor] = useState<string | null>(null);
-  const onOpen = useCallback((open: boolean) => setOpenFor(open ? active : null), [active]);
   const areas: Area[] = [...modules.filter((m) => !HIDDEN_MODULES.has(m.id)), FIELD_ORIGIN];
   const current = areas.find((m) => m.id === active) ?? null;
-  const visible = areas.filter((m) => `${m.title_cs} ${m.note_cs}`.toLocaleLowerCase("cs").includes(query.trim().toLocaleLowerCase("cs")));
   const rank = (id: string) => (ORDER.includes(id) ? ORDER.indexOf(id) : ORDER.length);
-  const cards = [...visible].sort((a, b) => rank(a.id) - rank(b.id));
+  const cards = [...areas].sort((a, b) => rank(a.id) - rank(b.id));
   const summaryOf = (id: string) => modules.find((m) => m.id === id);
-  return <div className="flex min-w-0 flex-col gap-4">
-    {current ? (
-      <header className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
-        <h3 className="text-xl font-semibold leading-7">{current.title_cs}</h3>
-        <Button small variant="quiet" aria-expanded={chooserOpen} aria-controls="methodology-module-chooser" onClick={() => setChooserOpen((value) => !value)}>{chooserOpen ? "Skrýt výběr" : "Změnit oblast"}</Button>
-        {/* A read-only area says why and what it is; an editable one lets the editor speak. */}
-        {openFor === current.id ? null : <p className="basis-full max-w-3xl text-sm leading-6 text-ink-muted">{current.editable ? t(`${M}.editableModule`) : `${t(`${M}.readOnlyModule`)}${current.note_cs ? ` ${current.note_cs}` : ""}`}</p>}
-      </header>
-    ) : <Button className="self-start" aria-expanded={chooserOpen} aria-controls="methodology-module-chooser" onClick={() => setChooserOpen((value) => !value)}>Změnit oblast</Button>}
-    {chooserOpen ? <div id="methodology-module-chooser" className="flex flex-col gap-3">
-      <TextInput type="search" aria-label={t(`${M}.search`)} placeholder={t(`${M}.searchPlaceholder`)} value={query} onChange={(e) => setQuery(e.target.value)} />
-      <nav aria-label={t(`${M}.modules`)} className="grid min-w-0 gap-3 md:grid-cols-2 xl:grid-cols-3">
-        {cards.map((m) => {
-          const summary = summaryOf(m.id);
-          const on = m.id === active;
-          return <button key={m.id} type="button" data-module-card={m.id} aria-label={m.title_cs} aria-pressed={on} onClick={() => {
-            if (m.id === active) { setChooserOpen(false); return; }
-            if (editing) setPending(m.id); else { setActive(m.id); setChooserOpen(false); }
-          }} style={{ borderTopColor: `var(--${accentOf(m.id)})` }}
-            className={`group flex min-w-0 flex-col overflow-hidden rounded-md border border-t-4 text-left text-sm transition-transform duration-[var(--duration-confirm)] hover:-translate-y-0.5 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus-ring motion-reduce:transform-none ${m.id === "sociomap" ? "md:col-span-2 xl:col-span-3" : ""} ${on ? "border-signal-edge bg-signal-wash" : "border-border bg-surface-raised hover:border-border-strong"}`}>
-            <span className={`block ${m.id === "sociomap" ? "h-24" : "h-20"} border-b border-border bg-surface`}><ModuleArt id={m.id} /></span>
-            <span className="flex flex-col gap-1.5 p-3.5">
-              <span className="flex items-baseline justify-between gap-2"><strong className="text-sm font-semibold">{m.title_cs}</strong><span aria-hidden="true" style={{ color: `var(--${accentOf(m.id)})` }}>→</span></span>
-              {m.note_cs ? <span className="block text-xs leading-5 text-ink-muted">{m.note_cs}</span> : null}
-              <dl data-module-facts className="mt-1 grid grid-cols-[max-content_1fr] gap-x-3 gap-y-0.5 text-xs">
-                {summary ? <>
-                  <dt className="text-ink-faint">{t(`${M}.facts.inForce`)}</dt><dd className="break-words font-mono"><InForceFact summary={summary} /></dd>
-                  <dt className="text-ink-faint">{t(`${M}.facts.calculation`)}</dt><dd>{tv(`${M}.facts.steps`, { steps: summary.steps, groups: summary.groups.length })}</dd>
-                </> : null}
-                <dt className="text-ink-faint">{t(`${M}.facts.edits`)}</dt><dd>{t(`${M}.facts.${m.editable ? "editable" : "readOnly"}`)}</dd>
-              </dl>
-            </span>
-          </button>;
-        })}
+  const go = (id: string | null) => { if (editing) setPending(id ?? BACK); else setActive(id); };
+  const confirm = pending ? <InlineConfirm message={t(`${M}.leaveEditor`)} action={t(`${M}.discardEditor`)} onCancel={() => setPending(null)} onConfirm={() => { setActive(pending === BACK ? null : pending); setPending(null); setEditing(false); }} /> : null;
+  if (!current) {
+    return <div className="flex min-w-0 flex-col gap-4">
+      <p data-mvp-note className="max-w-4xl rounded-md border border-signal-edge bg-signal-tint px-4 py-3 text-sm leading-6">{t(`${M}.mvpNote`)}</p>
+      <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
+        <h2 className="text-base font-semibold">{t(`${M}.catalogue`)}</h2>
+        <span className="text-xs text-ink-muted">{tv(`${M}.catalogueCount`, { n: cards.length })}</span>
+      </div>
+      <nav aria-label={t(`${M}.modules`)} className="grid min-w-0 gap-4 [grid-template-columns:repeat(auto-fill,minmax(min(100%,340px),1fr))]">
+        {cards.map((m) => <ModuleCard key={m.id} area={m} summary={summaryOf(m.id)} onOpen={() => go(m.id)} />)}
       </nav>
-    </div> : null}
-    {!visible.length ? <p role="status" className="text-sm text-ink-muted">{t(`${M}.noMatch`)}</p> : null}
-    {pending ? <InlineConfirm message={t(`${M}.leaveEditor`)} action={t(`${M}.discardEditor`)} onCancel={() => { setPending(null); setChooserOpen(false); }} onConfirm={() => { setActive(pending); setPending(null); setEditing(false); setChooserOpen(false); }} /> : null}
-    {current?.id === FIELD_ORIGIN.id ? <FieldOriginPanel /> : null}
-    {current && current.id !== FIELD_ORIGIN.id ? <ModuleView key={current.id} summary={modules.find((m) => m.id === current.id) as MethodModuleSummary} people={people} onDirty={onDirty} onOpen={onOpen} /> : null}
+    </div>;
+  }
+  const summary = summaryOf(current.id);
+  return <div className="flex min-w-0 flex-col gap-4">
+    <button type="button" data-methodology-back onClick={() => go(null)} className="inline-flex min-h-8 items-center gap-1.5 self-start rounded-sm px-2 text-sm text-ink-muted hover:bg-surface-sunken hover:text-ink focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus-ring">
+      <span aria-hidden="true">←</span>{t(`${M}.back`)}
+    </button>
+    {confirm}
+    <ModulePage key={current.id} area={current} summary={summary} people={people} onDirty={onDirty} />
   </div>;
+}
+
+/** An open module: its head and its parts, over one read of its versions -- the head's chips and the
+ *  versions' tabs read the same answer, and an activation's reload moves both (review of #873). */
+function ModulePage({ area, summary, people, onDirty }: { area: Area; summary: MethodModuleSummary | undefined; people: People; onDirty: (value: boolean) => void }) {
+  const versions = useModuleFacts(summary);
+  return <>
+    <header data-module-header className="flex flex-wrap items-start justify-between gap-4">
+      <div className="min-w-0 max-w-[720px]">
+        <h2 className="font-serif text-xl font-semibold leading-7">{area.title_cs}</h2>
+        <p className="mt-1.5 text-sm leading-6 text-ink-muted">{oneLine(area)}</p>
+        {/* Who changes it, and for a read-only module the API's own note on what it is. */}
+        <p data-module-note className="mt-1 text-xs leading-5 text-ink-faint">{area.editable ? t(`${M}.editableModule`) : `${t(`${M}.readOnlyModule`)}${area.note_cs ? ` ${area.note_cs}` : ""}`}</p>
+      </div>
+      {summary ? <ModuleChips summary={summary} res={versions.res} /> : null}
+    </header>
+    {area.id === FIELD_ORIGIN.id ? <FieldOriginPanel /> : null}
+    {area.id !== FIELD_ORIGIN.id && summary ? <ModuleView summary={summary} people={people} onDirty={onDirty} onOpen={noop} versions={versions} /> : null}
+  </>;
+}
+
+const noop = () => {};
+
+/** A module's one line, as the catalogue and the module's head say it; the API's note else. */
+function oneLine(area: Area): string {
+  const key = `${M}.oneLine.${area.id}`;
+  const line = t(key);
+  return line === key ? area.note_cs : line;
+}
+
+/** What a module's versions say about it: what is in force, the register's word on it, and whether
+ *  you may edit it. A read-only module has no versions to read; an unread answer is said, never
+ *  presumed (review of #852). */
+function useModuleFacts(summary: MethodModuleSummary | undefined): ModuleVersions {
+  const editable = summary?.editable ?? false;
+  const [res, reload] = useResource(() => (summary && editable ? methodology.versions(summary.id) : Promise.resolve(null)), [summary?.id, editable]);
+  return { res, reload, editable };
+}
+type ModuleVersions = { res: Resource<MethodVersions | null>; reload: () => void; editable: boolean };
+
+const CHIP = "inline-flex min-h-[22px] items-center gap-[5px] whitespace-nowrap rounded-[11px] border px-2 text-xs";
+
+function RegisterChip({ status, head = false }: { status: string | null | undefined; head?: boolean }) {
+  if (status === undefined) return <span data-register="loading" className="text-ink-muted">…</span>;
+  if (status !== "CLIENT_FACING" && status !== "INTERNAL_ONLY") return <span data-register="unknown" className={`${CHIP} border-border text-ink-muted`}>{t(`${M}.facts.unknown`)}</span>;
+  // Approved is a strong-edged chip, never green (green is only what is in force); internal is the fault's.
+  return <span data-register={status} className={`${CHIP} ${status === "CLIENT_FACING" ? "border-border-strong text-ink" : "border-status-fault bg-status-fault-wash text-status-fault"}`}>{t(`${M}.register.${head ? `head${status}` : status}`)}</span>;
+}
+
+function ModuleChips({ summary, res }: { summary: MethodModuleSummary; res: Resource<MethodVersions | null> }) {
+  const editable = summary.editable;
+  const name = !editable ? summary.in_force : res.state === "ready" && res.data ? res.data.in_force.name : null;
+  return <div data-module-chips className="flex flex-wrap items-center gap-1.5">
+    {name ? <span data-in-force-chip className={`${CHIP} border-in-force bg-in-force-wash font-mono font-medium text-ink`}><span aria-hidden="true" className="size-1.5 rounded-full bg-in-force" />{tv(`${M}.inForceChip`, { name })}</span> : null}
+    {summary.id === "sociomap" ? <RegisterChip head status={res.state === "ready" ? res.data?.in_force.register_status : res.state === "loading" ? undefined : null} /> : null}
+    <span className={`${CHIP} border-border text-ink-muted`}>{tv(`${M}.stepsChip`, { steps: summary.steps, groups: summary.groups.length })}</span>
+  </div>;
+}
+
+function ModuleCard({ area, summary, onOpen }: { area: Area; summary: MethodModuleSummary | undefined; onOpen: () => void }) {
+  const { res } = useModuleFacts(summary);
+  const versions = res.state === "ready" ? res.data : null;
+  const unread = res.state !== "loading" && res.state !== "ready";
+  const wide = area.id === "sociomap";
+  return <button type="button" data-module-card={area.id} aria-label={area.title_cs} onClick={onOpen} style={{ borderTopColor: `var(--${accentOf(area.id)})` }}
+    className={`group flex min-w-0 flex-col overflow-hidden rounded-md border border-t-4 border-border bg-surface-raised text-left text-sm transition-transform duration-[var(--duration-confirm)] hover:-translate-y-0.5 hover:border-border-strong focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus-ring motion-reduce:transform-none ${wide ? "col-span-full" : ""}`}>
+    <span className={`block ${wide ? "h-28" : "h-24"} border-b border-border bg-surface`}><ModuleArt id={area.id} /></span>
+    <span className="flex flex-col gap-1.5 p-4">
+      <span className="flex items-baseline justify-between gap-2"><strong className="text-[15px] font-semibold">{area.title_cs}</strong><span aria-hidden="true" style={{ color: `var(--${accentOf(area.id)})` }}>→</span></span>
+      <span data-module-line className="block text-[13px] leading-[19px] text-ink-muted">{oneLine(area)}</span>
+      <dl data-module-facts className="mt-1.5 grid grid-cols-[110px_1fr] gap-y-1.5 border-t border-border pt-2.5 text-xs">
+        {summary ? <>
+          <dt className="text-ink-faint">{t(`${M}.facts.inForce`)}</dt><dd className="break-words font-mono"><InForceFact summary={summary} res={res} /></dd>
+          {area.id === "sociomap" ? <><dt className="text-ink-faint">{t(`${M}.facts.forClients`)}</dt><dd><RegisterChip status={versions ? versions.in_force.register_status : unread ? null : undefined} /></dd></> : null}
+          <dt className="text-ink-faint">{t(`${M}.facts.calculation`)}</dt><dd>{tv(`${M}.facts.steps`, { steps: summary.steps, groups: summary.groups.length })}</dd>
+        </> : null}
+        <dt className="text-ink-faint">{t(`${M}.facts.edits`)}</dt>
+        <dd>{!area.editable ? t(`${M}.facts.readOnly`) : versions ? t(`${M}.facts.${versions.may_edit ? "youEdit" : "metodikEdits"}`) : unread ? t(`${M}.facts.unknown`) : "…"}</dd>
+      </dl>
+    </span>
+  </button>;
 }
 
 /**
@@ -130,8 +188,7 @@ function Modules({ modules, people }: { modules: MethodModuleSummary[]; people: 
  * (summary.in_force is only the code's preset); until read, "…", and unread, "nezjištěno". A
  * read-only module has no activations: its code preset, said as such (review of #852).
  */
-function InForceFact({ summary }: { summary: MethodModuleSummary }) {
-  const [res] = useResource(() => (summary.editable ? methodology.versions(summary.id) : Promise.resolve(null)), [summary.id, summary.editable]);
+function InForceFact({ summary, res }: { summary: MethodModuleSummary; res: Resource<MethodVersions | null> }) {
   if (!summary.editable) return <>{summary.in_force ? `${summary.in_force} · ${t(`${M}.codeDefault`)}` : t(`${M}.facts.fromCode`)}</>;
   if (res.state === "loading") return <>…</>;
   if (res.state !== "ready" || !res.data) return <span data-current-unknown>{t(`${M}.facts.unknown`)}</span>;
@@ -139,7 +196,7 @@ function InForceFact({ summary }: { summary: MethodModuleSummary }) {
   return <span data-current-name>{f.origin === "stored" ? f.name : `${f.name} · ${t(`${M}.codeDefault`)}`}</span>;
 }
 
-function ModuleView({ summary, people, onDirty, onOpen }: { summary: MethodModuleSummary; people: People; onDirty: (value: boolean) => void; onOpen: (open: boolean) => void }) {
+function ModuleView({ summary, people, onDirty, onOpen, versions }: { summary: MethodModuleSummary; people: People; onDirty: (value: boolean) => void; onOpen: (open: boolean) => void; versions: ModuleVersions }) {
   const [preset, setPreset] = useState(summary.in_force ?? undefined);
   const [res, retry] = useResource(() => methodology.get(summary.id, preset), [summary.id, preset]);
   const calc = <>
@@ -156,7 +213,7 @@ function ModuleView({ summary, people, onDirty, onOpen }: { summary: MethodModul
     <Loaded res={res} retry={retry}>{(detail) => <Steps key={detail.preset ?? detail.id} detail={detail} />}</Loaded>
   </>;
   // An editable module is its parts as tabs (settings-redesign 10b); a read-only one is its calculation.
-  if (summary.editable) return <MethodologyVersions summary={summary} people={people} calc={calc} onEditing={onOpen} onDirty={onDirty} />;
+  if (summary.editable) return <MethodologyVersions summary={summary} people={people} calc={calc} onEditing={onOpen} onDirty={onDirty} versions={{ res: versions.res as Resource<MethodVersions>, reload: versions.reload }} />;
   return <div className="flex min-w-0 flex-col gap-4">{calc}</div>;
 }
 

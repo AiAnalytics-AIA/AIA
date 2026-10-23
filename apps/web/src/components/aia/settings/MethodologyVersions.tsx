@@ -42,7 +42,7 @@ import { ChoiceChips } from "../../ui/ChoiceChips";
 import { ConfirmDialog } from "../../ui/ConfirmDialog";
 import { FOCUS } from "../../ui/parts";
 import { Loaded } from "../states";
-import { useResource } from "../useResource";
+import { type Resource, useResource } from "../useResource";
 import { describeError } from "./errors";
 import { MethodologyComparison } from "./MethodologyComparison";
 import { StepContext } from "./MethodologyContext";
@@ -53,8 +53,11 @@ const M = "aia.settings.methodology";
 export type People = (id: string | null) => string;
 const when = (iso: string) => relative(iso) ?? iso;
 
-export function MethodologyVersions({ summary, people, calc, onEditing, onDirty }: {
+export function MethodologyVersions({ summary, people, calc, onEditing, onDirty, versions }: {
   summary: MethodModuleSummary; people: People;
+  /** The page's own read of these versions and its reload, shared with the module's head; absent,
+   *  the component reads them itself. */
+  versions?: { res: Resource<MethodVersions>; reload: () => void };
   /** The module's calculation, shown on Výpočet (settings-redesign 10b). */
   calc?: ReactNode;
   /** The editor is open (the read-only catalogue steps aside). */
@@ -62,7 +65,9 @@ export function MethodologyVersions({ summary, people, calc, onEditing, onDirty 
   /** The open editor holds changes nothing has saved (leaving needs a decision). */
   onDirty?: (value: boolean) => void;
 }) {
-  const [res, retry] = useResource(() => methodology.versions(summary.id), [summary.id]);
+  const [own, ownRetry] = useResource(() => (versions ? Promise.resolve(null) : methodology.versions(summary.id)), [summary.id, versions === undefined]);
+  const res = versions ? versions.res : (own as Resource<MethodVersions>);
+  const retry = versions ? versions.reload : ownRetry;
   if (res.state === "ready") return <Body summary={summary} data={res.data} people={people} calc={calc} reload={retry} onEditing={onEditing} onDirty={onDirty} />;
   // Versions not read (yet): the calculation is still the module's, shown under why.
   return <div className="flex min-w-0 flex-col gap-4"><Loaded res={res} retry={retry}>{() => null}</Loaded>{calc}</div>;

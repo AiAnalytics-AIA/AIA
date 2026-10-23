@@ -2047,7 +2047,11 @@ export type MethodActivation = {
   activation_id: number; version_number: number | null; activated_by: string; reason: string; activated_at: string;
 };
 /** What a run started now pins: a stored version, or the code's preset. */
-export type MethodInForce = { origin: "stored" | "code"; preset: string | null; version_number: number | null; name: string };
+export type MethodInForce = {
+  origin: "stored" | "code"; preset: string | null; version_number: number | null; name: string;
+  /** The object map only: the Sociomap register's status for the method in force; null elsewhere, and absent from an API before it. */
+  register_status?: "CLIENT_FACING" | "INTERNAL_ONLY" | null;
+};
 export type MethodVersions = {
   in_force: MethodInForce; may_administer: boolean; may_edit: boolean; presets: Record<string, Record<string, unknown>>;
   versions: MethodVersion[]; history: MethodActivation[];
