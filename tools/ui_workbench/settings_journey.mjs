@@ -119,6 +119,23 @@ try {
   const savedMember = (await get("/api/v1/members")).find((m) => m.email === email);
   assert.equal(savedMember.organization_role, "ADMIN"); assert.equal(savedMember.display_name, "Fictional UX administrator");
   await widths("access member editing"); checks.push("New member is added in an inline row as a researcher; name and role change in place and persist through the audited API, with Vrátit");
+  // The Metodik mark (#823): the OWNER grants it in the row, Vrátit takes it back; the API agrees.
+  const markSwitch = page.getByRole("switch", { name: `Štítek Metodik: ${email}`, exact: true });
+  await markSwitch.click(); await page.getByText(/ho má · zapsáno do auditu/).waitFor();
+  await waitFor(async () => (await get("/api/v1/members")).find((m) => m.email === email)?.methodologist === true, "the mark reached the member");
+  await page.getByRole("button", { name: "Vrátit", exact: true }).click();
+  await waitFor(async () => (await get("/api/v1/members")).find((m) => m.email === email)?.methodologist === false, "Vrátit took the mark back");
+  // Deactivation (#830): at once, the Lead sealed with its erasure dated; Obnovit restores the member.
+  await page.getByRole("button", { name: `Deaktivovat ${email}`, exact: true }).click();
+  await waitFor(async () => !!(await get("/api/v1/members")).find((m) => m.email === email)?.deactivated_at, "the member deactivated");
+  const sealedRow = page.locator(`[data-member="${savedMember.user_id}"][data-deactivated="true"]`); await sealedRow.waitFor();
+  // Sealed only when the API reports a seal; this fictional member never hatched a Lead, so none is claimed.
+  const deactivatedMember = (await get("/api/v1/members")).find((m) => m.email === email);
+  await page.locator(deactivatedMember.lead_sealed_at ? `[data-lead-sealed="${savedMember.user_id}"]` : `[data-lead-none="${savedMember.user_id}"]`).waitFor();
+  await widths("access deactivated member");
+  await page.getByRole("button", { name: `Obnovit ${email}`, exact: true }).click();
+  await waitFor(async () => !(await get("/api/v1/members")).find((m) => m.email === email)?.deactivated_at, "the member restored");
+  checks.push("The OWNER grants the Metodik mark in the row and Vrátit takes it back; a member is deactivated with their Lead sealed and dated, and Obnovit restores them; the API agrees each time");
   await tab("studies");
   const studies = await get("/api/v1/studies"); const study = studies[0]; const original = await get(`/api/v1/studies/${study.study_id}`);
   const studyRow = page.locator(`[data-study="${study.study_id}"]`);
