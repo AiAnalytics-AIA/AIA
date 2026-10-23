@@ -22,6 +22,7 @@ from datetime import datetime
 from sqlalchemy.orm import Session
 
 from aia_core.application.report import INTERNAL_REPORT_MEDIA_TYPE
+from aia_core.application.report_export import review_stamp_record
 from aia_core.application.research import research_artifacts
 from aia_core.domain.deep_research.documents import DocumentRefused
 from aia_core.domain.report.editor import CHANGES_ARTIFACT_TYPE, EDIT_ARTIFACT_TYPES
@@ -155,6 +156,14 @@ def _store(
     }
     if previous.deep_research_run_id is not None:
         meta["deep_research_run_id"] = previous.deep_research_run_id
+    # Whether its footers still take the review stamp, tried on the saved bytes as on every
+    # stored report (report_export.review_stamp_record): approved, its export and its PDF then
+    # say SCHVÁLENO there; where the editor changed the footers, it is served as saved and says
+    # so. Its composition's contract comes with it, so a body that states its status
+    # (report_export.STATUS_IN_BODY) is never stamped.
+    if composed.metadata.get("report_contract"):
+        meta["report_contract"] = composed.metadata["report_contract"]
+    meta.update(review_stamp_record(data))
     version, _ = artifacts.put(
         project_id=composed.project_id,
         revision=composed.revision,

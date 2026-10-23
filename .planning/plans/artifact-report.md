@@ -13,7 +13,7 @@ chunks:
   - "[ ] RPT8. The editor is Zpráva's main surface: the stored draft opened in ONLYOFFICE Docs (Q35), the researcher editing directly, every number code wrote a locked, tagged control whose edits are shown, never refused (ADR 0035, amended 2026-10-22; split 2026-10-22: RPT8a-d)"
   - "[ ] RPT8a. Every printed number a locked content control tagged with its source (the editor spike's F-ED1): ledger values in prose, table cells, captions (part 1); KPI tiles, figures, the evidence appendix, suppressed counts (part 2); the map, design, run and bundle spans (part 3; the map locked and tagged like the rest, the owner 2026-10-22)"
   - "[x] RPT8b. What a saved version changed: each tagged number edited or removed and each number typed outside one, shown as \"Upraveno ručně\", never refusing (changed 2026-10-22: the owner, ADR 0035 amended)"
-  - "[ ] RPT8c. The editor routes behind AIA_ONLYOFFICE_URL (unset: off): the config with its JWT and the docs ticket, the signed document URL, the callback storing every save as the next version (the hosting contract, report-editor-hosting); the internal draft and the report with literature"
+  - "[x] RPT8c. The editor routes behind AIA_ONLYOFFICE_URL (unset: off): the config with its JWT and the docs ticket, the signed document URL, the callback storing every save as the next version (the hosting contract, report-editor-hosting); the internal draft and the report with literature"
   - "[ ] RPT8d. The pane opens the newest version in the editor from 768 px (view mode below), its doc bar naming the version and its \"Upraveno ručně\" changes; the read-only document stays where the editor is off"
   - "[ ] RPT9. The Lead edits the same document: inline suggestions as tracked changes under the Lead's own name, with why, accepted or rejected one by one or all; direct edits per the researcher's setting (Q13) still attributed; every edit through the edit ops, every number a ledger ref passing the sentence check before accept"
   - "[ ] RPT10. Literature by the Lead: Interpretation Research proposed on a plan card (target, QUICK or STANDARD depth, STANDARD by default, cost), approved by the researcher, findings woven into the text with their sources (Q58); the panel's own start, depth and refresh removed once typed starts exist (Q48, LO5a.3), its findings readable beside the text"
@@ -460,10 +460,18 @@ draft footer). Both answer with the editor off. `GET …/report` and the report 
 approved edit leaves a draft; a version row whose artifact is gone is skipped there and 404 on its own route. Every author of the line is a producer for the ledger too
 (`ArtifactRepository.approve(co_producers=)`): a co-author approving where self-approval is on is recorded as self-approving.
 Noted, older than RPT8c: two concurrent first approvals of one report take no row lock between them (the stand-in's P3 on
-#869); not changed here. Still open in RPT8c: an edited version's PDF (the PDF job takes a composed report
-only, `report_variants.RENDERABLE_REPORTS`), and an approved edited version keeps the composer's draft footer (it is
-not stampable, so its export is its stored bytes). Tests: `test_an_edited_version_says_what_it_changed_and_is_approved_as_itself`,
+#869); not changed here. Tests: `test_an_edited_version_says_what_it_changed_and_is_approved_as_itself`,
 `test_no_author_of_an_edited_version_approves_it_where_self_approval_is_off`.
+
+*RPT8c, part 5 (`feature/report-editor-pdf`), the chunk's last:* an edited version is a report the worker renders
+(`report_variants.RENDERABLE_REPORTS` holds both `EDIT_ARTIFACT_TYPES`): `POST …/report/editor/versions/{artifact_id}/pdf`
+asks for its PDF by the one rule (`request_pdf`), `GET …/pdf/download` serves it with the DOCX's review headers, and the
+version route answers its `pdf`. Each save is tried with the review stamp as every stored report is
+(`report_export.review_stamp_record`, ~200 ms a save) and keeps its composition's `report_contract`: approved, a version
+whose footers the editor kept says SCHVÁLENO there, in its DOCX and its approved PDF (asked on approval where its draft
+PDF is ready, `approval_asks_pdf`); one whose footers changed is served as saved, `schvaleno-v-aia`. Tests:
+`test_an_edited_version_renders_its_pdf_and_approved_says_so_in_its_footers`,
+`test_a_version_saved_in_the_report_editor_is_rendered_like_the_report`.
 
 **RPT8d. The pane opens the editor.**
 - 768 px and wider, with the editor configured: Zpráva's pane loads the Document Server's `api.js` from
