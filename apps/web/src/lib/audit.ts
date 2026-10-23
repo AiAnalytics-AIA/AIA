@@ -19,7 +19,15 @@ export const ACTION_NAMES: Record<string, string> = {
   PERMISSION_DENIED: "Odmítnutá akce",
   SELF_APPROVAL_CONFIGURED: "Nastavení samoschválení",
   SELF_APPROVAL_CHANGED: "Změna samoschválení",
+  CLIENT_RULES_CHANGED: "Změna pravidel klienta",
+  CLIENT_DELETED: "Smazání klienta",
+  CLIENT_DELETION_OBJECTS: "Mazání souborů smazaného klienta",
+  WORKSPACE_MIGRATED: "Převod obsahu studie z 18.6.6",
+  // The grant era (before migration d8e2f4a6b1c3): access_audit keeps these on an upgraded database.
   CLIENT_GRANT: "Záznam přístupu ke klientovi",
+  STUDY_GRANT: "Záznam přístupu ke studii",
+  CLIENT_SELF_GRANT: "Záznam vlastního přístupu ke klientovi",
+  CLIENT_REVOKE: "Odebrání přístupu ke klientovi",
   // Peníze
   STUDY_BUDGET_CHANGED: "Změna rozpočtu studie",
   STUDY_SPEND_CONFIRM_CHANGED: "Změna prahu potvrzení",
@@ -82,9 +90,12 @@ export const CATEGORY_NAMES: Record<AuditCategory, string> = {
   prompts: "Prompty", lead: "Vedoucí", data: "Správa dat", other: "Ostatní",
 };
 
+/** Správa dat: a client's deletion and its files, a study's content brought over from 18.6.6. */
+const DATA = new Set(["CLIENT_DELETION_OBJECTS", "WORKSPACE_MIGRATED"]);
 const MONEY = new Set(["STUDY_BUDGET_CHANGED", "STUDY_SPEND_CONFIRM_CHANGED", "CLIENT_BUDGET_CHANGED"]);
 const ACCESS = new Set([
-  "ORGANIZATION_CREATED", "USER_DEACTIVATED", "IDENTITY_SUBJECT_CLEARED", "PERMISSION_DENIED", "CLIENT_GRANT",
+  "ORGANIZATION_CREATED", "USER_DEACTIVATED", "IDENTITY_SUBJECT_CLEARED", "PERMISSION_DENIED",
+  "CLIENT_GRANT", "STUDY_GRANT", "CLIENT_SELF_GRANT", "CLIENT_REVOKE",
 ]);
 
 /** The category an action is filed under; a code no rule names is "other", still shown. */
@@ -94,7 +105,7 @@ export function categoryOf(action: string): AuditCategory {
   if (action.startsWith("DR_")) return "dr";
   if (action.startsWith("PROMPT_")) return "prompts";
   if (action.startsWith("LEAD_") || action.startsWith("RESEARCH_LEAD_")) return "lead";
-  if (action.endsWith("_DELETED") && action.startsWith("CLIENT_") && !action.startsWith("CLIENT_KNOWLEDGE_")) return "data";
+  if ((action.endsWith("_DELETED") && action.startsWith("CLIENT_") && !action.startsWith("CLIENT_KNOWLEDGE_")) || DATA.has(action)) return "data";
   if (ACCESS.has(action) || action.startsWith("MEMBER_") || action.startsWith("AIA_SESSION") || action.startsWith("SELF_APPROVAL_") || action.includes("METODIK") || action.includes("METHODOLOGIST")) return "access";
   if (action.startsWith("CLIENT_") || action.startsWith("STUDY_")) return "clients";
   return "other";

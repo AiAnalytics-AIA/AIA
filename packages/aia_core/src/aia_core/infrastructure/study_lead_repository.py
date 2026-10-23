@@ -22,7 +22,11 @@ from ..domain.research_lead import LeadTurn, new_turn_id
 from ..domain.scope import ScopeDenied, StudyContext
 from .tables import StudyLeadTurnRow, StudyRow, as_utc, utcnow
 
-__all__ = ["StudyLeadRepository", "erase_member_turns"]
+__all__ = [
+    "StudyLeadRepository",
+    "erase_client_lead_turns",
+    "erase_member_turns",
+]
 
 
 def _to_domain(row: StudyLeadTurnRow) -> LeadTurn:
@@ -192,3 +196,19 @@ def erase_member_turns(session: Session, *, organization_id: str, user_id: str) 
     )
     session.execute(delete(StudyLeadTurnRow).where(*where))
     return run_ids
+
+
+def erase_client_lead_turns(session: Session, *, client_id: str) -> int:
+    """Delete every Lead turn in a deleted client's studies (settings-backends SB5): a
+    person's own message has no run, so no cascade reaches it. Returns the turns deleted."""
+    turns = int(
+        session.scalar(
+            select(func.count())
+            .select_from(StudyLeadTurnRow)
+            .where(StudyLeadTurnRow.client_id == client_id)
+        )
+        or 0
+    )
+    session.execute(delete(StudyLeadTurnRow).where(StudyLeadTurnRow.client_id == client_id))
+    session.flush()
+    return turns

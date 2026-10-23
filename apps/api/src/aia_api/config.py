@@ -115,6 +115,12 @@ class Settings(BaseSettings):
     # session routes answer 404, and Zpráva keeps its read-only pane.
     onlyoffice_url: str = ""
     onlyoffice_jwt_secret: SecretStr = SecretStr("")
+    # AIA's own public origin as the Document Server reaches it (AIA_ONLYOFFICE_CALLBACK_BASE,
+    # e.g. https://<hostname>; artifact-report RPT8c): the document it fetches and the callback
+    # it posts each save to are built on it. The public hostname, never the internal network
+    # (report-editor-hosting decision 4: the Document Server is not on AIA's network and its
+    # request filter refuses private addresses). Unset, the editor's routes answer 404.
+    onlyoffice_callback_base: str = ""
     # Whether a new ``ai_runtime`` run draws its AI respondents from the population it records
     # (AIA_AI_POPULATION_PERSONAS_ENABLED, plan panel-grounded-respondents 5c). Pinned on the run at
     # start, so a retry keeps the original's; the worker composes the panel path behind the same
@@ -240,7 +246,7 @@ class Settings(BaseSettings):
     # its own limit; this guards ordinary JSON endpoints.
     max_request_bytes: int = 2 * 1024 * 1024
 
-    @field_validator("onlyoffice_url")
+    @field_validator("onlyoffice_url", "onlyoffice_callback_base")
     @classmethod
     def _check_onlyoffice_url(cls, value: str) -> str:
         """An origin only: https and a host, nothing else -- a ticket's URL is built on it, and
@@ -257,7 +263,8 @@ class Settings(BaseSettings):
             or parsed.fragment
         ):
             raise ValueError(
-                "AIA_ONLYOFFICE_URL must be an https origin, e.g. https://docs.example"
+                "AIA_ONLYOFFICE_URL and AIA_ONLYOFFICE_CALLBACK_BASE must be https origins, "
+                "e.g. https://docs.example"
             )
         return origin
 
@@ -272,6 +279,12 @@ class Settings(BaseSettings):
     def docs_editor_on(self) -> bool:
         """The report editor is configured: its origin and its secret are both set."""
         return bool(self.onlyoffice_url and self.onlyoffice_jwt_secret.get_secret_value())
+
+    @property
+    def report_editor_on(self) -> bool:
+        """Zpráva opens in the editor: the editor is configured and the Document Server has
+        AIA's public origin to fetch from and call back to (RPT8c)."""
+        return self.docs_editor_on and bool(self.onlyoffice_callback_base)
 
     @field_validator("build_sha", mode="before")
     @classmethod

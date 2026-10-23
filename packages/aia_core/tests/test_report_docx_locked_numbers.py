@@ -269,6 +269,10 @@ def test_the_tag_grammar_reads_back_what_it_writes() -> None:
     assert parse_tag(source_tag("map", "set-1/aia-sociomap-3")) == ControlTag(
         "map", "set-1/aia-sociomap-3"
     )
+    assert parse_tag(source_tag("design", "0123abcd0123abcd")) == ControlTag(
+        "design", "0123abcd0123abcd"
+    )
+    assert parse_tag(source_tag("run", "RUN-1")) == ControlTag("run", "RUN-1")
     for wrong in (
         "",
         "figure:",

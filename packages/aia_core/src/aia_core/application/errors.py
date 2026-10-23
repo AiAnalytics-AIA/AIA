@@ -11,11 +11,14 @@ raises; nothing is wrapped or translated.
 from __future__ import annotations
 
 from ..infrastructure.repositories import ProjectNotFound
+from ..infrastructure.storage import IntegrityError, ObjectNotFound
 from ..infrastructure.study_workspace_repository import WorkspaceConflict
 from ..infrastructure.workflow_repository import BudgetWaitNotLiftable, RuntimeParkNotResumable
 
 __all__ = [
     "BudgetWaitNotLiftable",
+    "IntegrityError",
+    "ObjectNotFound",
     "ProjectNotFound",
     "RuntimeParkNotResumable",
     "WorkspaceConflict",

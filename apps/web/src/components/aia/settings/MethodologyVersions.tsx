@@ -8,7 +8,7 @@
 // Storing makes a new immutable version; it is in force only once put, and then only for runs
 // started afterwards. The API refuses a non-administrator whatever this page shows.
 
-import { type Dispatch, type FormEvent, type SetStateAction, memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { type Dispatch, type FormEvent, type ReactNode, type SetStateAction, memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import { useRouter } from "next/navigation";
 import { InlineConfirm } from "../../rehome/step";
@@ -38,6 +38,9 @@ import {
   withPath,
 } from "@/lib/methodology-edit";
 import { Button, Field, Select, Tag, TextArea, TextInput } from "../../rehome/ui";
+import { ChoiceChips } from "../../ui/ChoiceChips";
+import { ConfirmDialog } from "../../ui/ConfirmDialog";
+import { FOCUS } from "../../ui/parts";
 import { Loaded } from "../states";
 import { useResource } from "../useResource";
 import { describeError } from "./errors";
@@ -50,15 +53,19 @@ const M = "aia.settings.methodology";
 export type People = (id: string | null) => string;
 const when = (iso: string) => relative(iso) ?? iso;
 
-export function MethodologyVersions({ summary, people, onEditing, onDirty }: {
+export function MethodologyVersions({ summary, people, calc, onEditing, onDirty }: {
   summary: MethodModuleSummary; people: People;
+  /** The module's calculation, shown on Výpočet (settings-redesign 10b). */
+  calc?: ReactNode;
   /** The editor is open (the read-only catalogue steps aside). */
   onEditing?: (value: boolean) => void;
   /** The open editor holds changes nothing has saved (leaving needs a decision). */
   onDirty?: (value: boolean) => void;
 }) {
   const [res, retry] = useResource(() => methodology.versions(summary.id), [summary.id]);
-  return <Loaded res={res} retry={retry}>{(data) => <Body summary={summary} data={data} people={people} reload={retry} onEditing={onEditing} onDirty={onDirty} />}</Loaded>;
+  if (res.state === "ready") return <Body summary={summary} data={res.data} people={people} calc={calc} reload={retry} onEditing={onEditing} onDirty={onDirty} />;
+  // Versions not read (yet): the calculation is still the module's, shown under why.
+  return <div className="flex min-w-0 flex-col gap-4"><Loaded res={res} retry={retry}>{() => null}</Loaded>{calc}</div>;
 }
 
 /** Where an edit starts: a code preset, or a stored version (its spec and its formulas). */
@@ -71,7 +78,12 @@ type Start = {
   inForce?: string;
 };
 
-function Body({ summary, data, people, reload, onEditing, onDirty }: { summary: MethodModuleSummary; data: MethodVersions; people: People; reload: () => void; onEditing?: (value: boolean) => void; onDirty?: (value: boolean) => void }) {
+/** A module's parts (settings-redesign 10b, design "Metodika" board): each a tab, all kept mounted
+ *  so an unsaved edit survives a look at the calculation or the versions. */
+type View = "calc" | "versions" | "compare" | "edit";
+const VIEWS: readonly View[] = ["calc", "versions", "compare", "edit"];
+
+function Body({ summary, data, people, calc, reload, onEditing, onDirty }: { summary: MethodModuleSummary; data: MethodVersions; people: People; calc?: ReactNode; reload: () => void; onEditing?: (value: boolean) => void; onDirty?: (value: boolean) => void }) {
   const [done, setDone] = useState<{ message: string; version: MethodVersion | null } | null>(null);
   const [activating, setActivating] = useState<{ version: number | null } | null>(null);
   const presetStart = (name: string): Start => ({ base: name, spec: data.presets[name] ?? {}, formulas: {}, from: name });
@@ -83,26 +95,34 @@ function Body({ summary, data, people, reload, onEditing, onDirty }: { summary: 
     const from = stored ? versionStart(stored) : presetStart(summary.in_force ?? summary.presets[0] ?? "");
     return { ...from, inForce: data.in_force.name };
   };
-  // The methodologists who may edit open on the editor (product owner, 2026-10-13).
+  // The methodologists who may edit open on the editor (product owner, 2026-10-13); anyone else on
+  // the calculation. Editing is theirs alone (D-14): the API's may_edit, the Metodik mark (#823), says who that is.
   const [start, setStart] = useState<Start | null>(() => (data.may_edit ? editStart() : null));
-  const opened = useRef(start !== null);
-  useEffect(() => {
-    if (!opened.current) return;
-    opened.current = false;
-    onEditing?.(true);
-  }, [onEditing]);
+  const [view, setView] = useState<View>(data.may_edit ? "edit" : "calc");
+  useEffect(() => { onEditing?.(view === "edit" && start !== null); }, [view, start, onEditing]);
+  // The editor's last comparison, shown on Porovnání; any change to the draft clears it.
+  const [comparison, setComparison] = useState<MethodCompare | null>(null);
+  const onCompared = useCallback((c: MethodCompare | null) => { setComparison(c); if (c) setView("compare"); }, []);
   const [dirty, setDirty] = useState(false);
   useEffect(() => { onDirty?.(start !== null && dirty); }, [start, dirty, onDirty]);
   const [pending, setPending] = useState<{ next: Start | null } | null>(null);
   const changeStart = (asked: Start | null) => {
     const next = asked && { ...asked, byPerson: true };
     if (start && dirty) { setPending({ next }); return; }
-    setStart(next); setDirty(false); onEditing?.(next !== null);
+    setStart(next); setDirty(false); setComparison(null);
+    // An edit opens on Upravit; a cancelled one returns to the calculation it was made against.
+    setView(next ? "edit" : "calc");
   };
   const inForce = data.in_force;
   const currentSpec = inForce.origin === "stored"
     ? data.versions.find((version) => version.version_number === inForce.version_number)?.spec
     : data.presets[inForce.preset ?? summary.in_force ?? ""];
+  const currentFormulas = inForce.origin === "stored" ? (data.versions.find((version) => version.version_number === inForce.version_number)?.formulas ?? {}) : {};
+  // Both sides are the same only when no edit is open, or the open one starts from exactly what is
+  // in force and is untouched: an edit from another version differs before a key is pressed.
+  const sameAsInForce = start === null || (!dirty && currentSpec !== undefined
+    && changedPaths(currentSpec, start.spec).filter((p) => p !== "methodology_version").length === 0
+    && JSON.stringify(Object.entries(start.formulas).sort()) === JSON.stringify(Object.entries(currentFormulas).sort()));
   return (
     <section aria-labelledby={`mv-${summary.id}`} data-methodology-versions={summary.id} className="flex flex-col gap-3 rounded-md border border-border bg-surface-raised p-4">
       <h3 id={`mv-${summary.id}`} className="text-sm font-semibold">{t(`${V}.title`)}</h3>
@@ -110,70 +130,118 @@ function Body({ summary, data, people, reload, onEditing, onDirty }: { summary: 
         {t(`${V}.inForce`)}: <strong className="font-mono">{inForce.name}</strong>{" "}
         <Tag>{t(`${V}.origin.${inForce.origin}`)}</Tag>
       </p>
-      {start ? null : <p className="max-w-3xl text-xs leading-5 text-ink-muted">{t(`${V}.pinNote`)}</p>}
-      {pending ? <InlineConfirm message={t(`${V}.replaceDraft`)} action={t(`${V}.discardDraft`)} onCancel={() => setPending(null)} onConfirm={() => { setStart(pending.next); onEditing?.(pending.next !== null); setDirty(false); setPending(null); }} /> : null}
-      {data.may_edit ? null : <p className="text-xs text-ink-muted">{t(`${V}.adminNote`)}</p>}
+      {pending ? <InlineConfirm message={t(`${V}.replaceDraft`)} action={t(`${V}.discardDraft`)} onCancel={() => setPending(null)} onConfirm={() => { setStart(pending.next); setView(pending.next ? "edit" : "calc"); setDirty(false); setComparison(null); setPending(null); }} /> : null}
       {done ? (
         <div role="status" className="flex flex-wrap items-center gap-3 text-sm">
           <span>{done.message}</span>
           {done.version && data.may_edit && !activating ? <Button small variant="primary" onClick={() => setActivating({ version: done.version!.version_number })}>{tv(`${V}.activate`, { name: done.version.name })}</Button> : null}
         </div>
       ) : null}
-      {data.may_edit && start ? (
-        <Editor
-          key={`${start.from}`}
-          summary={summary}
-          start={start}
-          currentSpec={currentSpec}
-          currentName={inForce.name}
-          presets={Object.keys(data.presets)}
-          onBase={(name) => changeStart(presetStart(name))}
-          onDirty={setDirty}
-          onCancel={() => changeStart(null)}
-          onSaved={(saved) => { setStart(null); setDirty(false); onEditing?.(false); setDone({ message: tv(`${V}.saved`, { name: saved.name }), version: saved }); reload(); }}
-        />
-      ) : null}
-
-      <div>
-        <h4 className="text-sm font-semibold">{t(`${V}.list`)}</h4>
-        {data.versions.length ? (
-          <ul className="mt-1 flex flex-col gap-2 text-sm">
-            {data.versions.map((v) => {
-              const changed = changedPaths(data.presets[v.base_preset] ?? {}, v.spec).filter((p) => p !== "methodology_version");
-              const formulas = Object.keys(v.formulas);
-              return (
-                <li key={v.version_number} data-methodology-version={v.version_number} className="flex flex-col gap-1 rounded-sm border border-border p-2">
-                  <div className="flex flex-wrap items-center gap-2">
-                    <strong className="font-mono">{v.name}</strong>
-                    <span className="text-ink-muted">· {people(v.created_by)} · {when(v.created_at)}</span>
-                    {inForce.version_number === v.version_number ? <Tag>{t(`${V}.current`)}</Tag> : null}
-                  </div>
-                  {v.note ? <p className="text-ink-muted">{v.note}</p> : null}
-                  <div className="text-xs">
-                    {changed.length || formulas.length ? (
-                      <>
-                        {tv(`${V}.changes`, { base: v.base_preset })}{" "}
-                        <span>{tv(`${V}.versionChangeCount`, { fields: changed.length, formulas: formulas.length })}</span><details className="mt-1"><summary className="cursor-pointer text-ink-muted">{t(`${V}.changeDetails`)}</summary><span className="break-all font-mono">{[...changed, ...formulas.map((f) => `ƒ ${f}`)].join(", ")}</span></details>
-                      </>
-                    ) : tv(`${V}.noChanges`, { base: v.base_preset })}
-                  </div>
-                  <div className="flex flex-wrap gap-2">
-                    {/* A version just saved is activated from its confirmation above: one button, never two. */}
-                    {data.may_edit && inForce.version_number !== v.version_number && done?.version?.version_number !== v.version_number ? (
-                      <Button small disabled={start !== null && dirty} onClick={() => { setDone(null); setActivating({ version: v.version_number }); }}>{tv(`${V}.activate`, { name: v.name })}</Button>
-                    ) : null}
-                    {data.may_edit ? <Button small onClick={() => { setDone(null); changeStart(versionStart(v)); }}>{t(`${V}.editFrom`)}</Button> : null}
-                  </div>
-                </li>
-              );
-            })}
-          </ul>
-        ) : <p className="mt-1 text-sm text-ink-muted">{t(`${V}.none`)}</p>}
+      <div role="tablist" aria-label={t(`${V}.tabs.label`)} className="flex flex-wrap gap-0.5 border-b border-border">
+        {VIEWS.map((v) => {
+          const off = v === "edit" && !data.may_edit;
+          return (
+            <button key={v} type="button" role="tab" id={`mv-${summary.id}-tab-${v}`} aria-controls={`mv-${summary.id}-${v}`} aria-selected={view === v} disabled={off}
+              // Upravit with nothing open starts the edit from what is in force (product owner, 2026-10-13).
+              onClick={() => { if (v === "edit" && !start && data.may_edit) { setDone(null); changeStart(editStart()); } else setView(v); }}
+              className={`-mb-px min-h-10 border-b-2 px-3 text-sm disabled:cursor-not-allowed disabled:opacity-45 ${FOCUS} ${view === v ? "border-signal font-medium text-ink" : "border-transparent text-ink-muted hover:text-ink"}`}>
+              {off ? t(`${V}.tabs.editMetodik`) : t(`${V}.tabs.${v}`)}
+            </button>
+          );
+        })}
       </div>
 
-      {data.may_edit && inForce.origin === "stored" ? (
-        <div><Button small disabled={start !== null && dirty} onClick={() => { setDone(null); setActivating({ version: null }); }}>{tv(`${V}.reset`, { preset: summary.in_force ?? "" })}</Button></div>
-      ) : null}
+      <div role="tabpanel" id={`mv-${summary.id}-versions`} aria-labelledby={`mv-${summary.id}-tab-versions`} hidden={view !== "versions"} className="flex min-w-0 flex-col gap-4">
+        <p className="max-w-3xl text-xs leading-5 text-ink-muted">{t(`${V}.pinNote`)}</p>
+        <div>
+          <h4 className="text-sm font-semibold">{t(`${V}.list`)}</h4>
+          {data.versions.length ? (
+            <ul className="mt-1 flex flex-col gap-2 text-sm">
+              {data.versions.map((v) => {
+                const changed = changedPaths(data.presets[v.base_preset] ?? {}, v.spec).filter((p) => p !== "methodology_version");
+                const formulas = Object.keys(v.formulas);
+                return (
+                  <li key={v.version_number} data-methodology-version={v.version_number} className="flex flex-col gap-1 rounded-sm border border-border p-2">
+                    <div className="flex flex-wrap items-center gap-2">
+                      <strong className="font-mono">{v.name}</strong>
+                      <span className="text-ink-muted">· {people(v.created_by)} · {when(v.created_at)}</span>
+                      {inForce.version_number === v.version_number ? <span data-in-force-version className="inline-flex min-h-[22px] items-center rounded-pill border border-in-force px-2 text-xs text-in-force">{t(`${V}.current`)}</span> : null}
+                    </div>
+                    {v.note ? <p className="text-ink-muted">{v.note}</p> : null}
+                    <div className="text-xs">
+                      {changed.length || formulas.length ? (
+                        <>
+                          {tv(`${V}.changes`, { base: v.base_preset })}{" "}
+                          <span>{tv(`${V}.versionChangeCount`, { fields: changed.length, formulas: formulas.length })}</span><details className="mt-1"><summary className="cursor-pointer text-ink-muted">{t(`${V}.changeDetails`)}</summary><span className="break-all font-mono">{[...changed, ...formulas.map((f) => `ƒ ${f}`)].join(", ")}</span></details>
+                        </>
+                      ) : tv(`${V}.noChanges`, { base: v.base_preset })}
+                    </div>
+                    <div className="flex flex-wrap gap-2">
+                      {/* A version just saved is activated from its confirmation above: one button, never two. */}
+                      {data.may_edit && inForce.version_number !== v.version_number && done?.version?.version_number !== v.version_number ? (
+                        <Button small disabled={start !== null && dirty} onClick={() => { setDone(null); setActivating({ version: v.version_number }); }}>{tv(`${V}.activate`, { name: v.name })}</Button>
+                      ) : null}
+                      {data.may_edit ? <Button small onClick={() => { setDone(null); changeStart(versionStart(v)); }}>{t(`${V}.editFrom`)}</Button> : null}
+                    </div>
+                  </li>
+                );
+              })}
+            </ul>
+          ) : <p className="mt-1 text-sm text-ink-muted">{t(`${V}.none`)}</p>}
+        </div>
+        {data.may_edit && inForce.origin === "stored" ? (
+          <div><Button small disabled={start !== null && dirty} onClick={() => { setDone(null); setActivating({ version: null }); }}>{tv(`${V}.reset`, { preset: summary.in_force ?? "" })}</Button></div>
+        ) : null}
+        <div>
+          <h4 className="text-sm font-semibold">{t(`${V}.history`)}</h4>
+          {data.history.length ? (
+            <div className="mt-1 overflow-x-auto">
+              <table aria-label={t(`${V}.history`)} className="w-full min-w-[28rem] border-collapse text-sm">
+                <thead><tr>{(["when", "who", "version", "why"] as const).map((c) => <th key={c} scope="col" className="px-2 py-1.5 text-left text-xs font-normal text-ink-faint">{t(`${V}.historyCol.${c}`)}</th>)}</tr></thead>
+                <tbody>{data.history.map((h) => (
+                  <tr key={h.activation_id} data-methodology-activation={h.activation_id}>
+                    <td className="whitespace-nowrap border-t border-border px-2 py-2 align-top text-ink-muted">{when(h.activated_at)}</td>
+                    <td className="border-t border-border px-2 py-2 align-top">{people(h.activated_by)}</td>
+                    <td className="border-t border-border px-2 py-2 align-top font-mono">{h.version_number === null ? tv(`${V}.backToPreset`, { preset: summary.in_force ?? "" }) : `e${h.version_number}`}</td>
+                    <td className="break-words border-t border-border px-2 py-2 align-top">{h.reason || <span className="text-ink-faint">{t(`${V}.noReason`)}</span>}</td>
+                  </tr>
+                ))}</tbody>
+              </table>
+            </div>
+          ) : <p className="mt-1 text-sm text-ink-muted">{t(`${V}.noHistory`)}</p>}
+        </div>
+      </div>
+
+      <div role="tabpanel" id={`mv-${summary.id}-compare`} aria-labelledby={`mv-${summary.id}-tab-compare`} hidden={view !== "compare"} className="flex min-w-0 flex-col gap-3">
+        <p className="max-w-3xl text-sm leading-6 text-ink-muted">{t(`${V}.compareHelp`)}</p>
+        {comparison ? <>
+          <p data-compare-draft className="self-start rounded-pill border border-status-you-ink/40 bg-status-you-wash px-2 py-0.5 text-xs">{t(`${V}.compareDraft`)}</p>
+          <MethodologyComparison result={comparison} />
+        </> : <p data-compare-none className="text-sm text-ink-muted">{!data.may_edit ? t(`${V}.compareReader`) : sameAsInForce ? t(`${V}.compareSame`) : t(`${V}.compareNotYet`)}</p>}
+      </div>
+
+      <div role="tabpanel" id={`mv-${summary.id}-edit`} aria-labelledby={`mv-${summary.id}-tab-edit`} hidden={view !== "edit"} className="flex min-w-0 flex-col gap-3">
+        {data.may_edit && start ? (
+          <Editor
+            key={`${start.from}`}
+            summary={summary}
+            start={start}
+            currentSpec={currentSpec}
+            currentName={inForce.name}
+            presets={Object.keys(data.presets)}
+            onBase={(name) => changeStart(presetStart(name))}
+            onDirty={setDirty}
+            onCompared={onCompared}
+            onCancel={() => changeStart(null)}
+            onSaved={(saved) => { setStart(null); setDirty(false); setComparison(null); setView("versions"); setDone({ message: tv(`${V}.saved`, { name: saved.name }), version: saved }); reload(); }}
+          />
+        ) : data.may_edit ? <div><Button variant="primary" small onClick={() => { setDone(null); changeStart(editStart()); }}>{t(`${V}.edit`)}</Button></div> : null}
+      </div>
+
+      {/* The calculation last in the document (one panel shows at a time): its thousands of nodes after
+          the editor keep a label's lookup of its field short (jsdom walks the tree in order). */}
+      <div role="tabpanel" id={`mv-${summary.id}-calc`} aria-labelledby={`mv-${summary.id}-tab-calc`} hidden={view !== "calc"} className="flex min-w-0 flex-col gap-4">{calc}</div>
+
       {activating ? (
         <Activate
           moduleId={summary.id}
@@ -183,36 +251,30 @@ function Body({ summary, data, people, reload, onEditing, onDirty }: { summary: 
           onDone={() => { setActivating(null); setDone({ message: t(`${V}.activated`), version: null }); reload(); }}
         />
       ) : null}
-
-      {data.may_edit && !start ? <div><Button variant="primary" small onClick={() => { setDone(null); changeStart(editStart()); }}>{t(`${V}.edit`)}</Button></div> : null}
-
-      <details>
-        <summary className="cursor-pointer text-sm font-semibold">{t(`${V}.history`)}</summary>
-        {data.history.length ? (
-          <ul className="mt-1 flex flex-col gap-1 text-sm">
-            {data.history.map((h) => (
-              <li key={h.activation_id} data-methodology-activation={h.activation_id}>
-                <strong className="font-mono">{h.version_number === null ? tv(`${V}.backToPreset`, { preset: summary.in_force ?? "" }) : `e${h.version_number}`}</strong>
-                {" "}· {people(h.activated_by)} · {when(h.activated_at)}
-                {h.reason ? <span className="text-ink-muted"> — {h.reason}</span> : null}
-              </li>
-            ))}
-          </ul>
-        ) : <p className="mt-1 text-sm text-ink-muted">{t(`${V}.noHistory`)}</p>}
-      </details>
+      {data.may_edit ? null : <p className="text-xs text-ink-muted">{t(`${V}.adminNote`)}</p>}
     </section>
   );
 }
 
+/** Why a version is put in force: one of four, said in the audit, and a note if the person adds one. */
+const REASONS = ["fix", "pilot", "owner", "default"] as const;
+type Reason = (typeof REASONS)[number];
+
+/** Putting a version in force, or back to the code (I7): one dialog that names the act, with the
+ *  reason required, chosen as a chip (the design's four) and an optional note. */
 function Activate({ moduleId, version, name, onCancel, onDone }: { moduleId: string; version: number | null; name: string; onCancel: () => void; onDone: () => void }) {
-  const [reason, setReason] = useState("");
+  const [why, setWhy] = useState<Reason | null>(null);
+  const [note, setNote] = useState("");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  // An edited Sociomap is internal until the register approves it (PC17): the act says so.
+  const internal = moduleId === "sociomap" && version !== null;
   const go = async () => {
+    if (!why) { setError(t(`${V}.reasonNeeded`)); return; }
     setBusy(true);
     setError(null);
     try {
-      await methodology.activate(moduleId, version, reason.trim());
+      await methodology.activate(moduleId, version, `${t(`${V}.reasons.${why}`)}${note.trim() ? `: ${note.trim()}` : ""}`);
       onDone();
     } catch (e) {
       setError(describeError(e));
@@ -221,40 +283,42 @@ function Activate({ moduleId, version, name, onCancel, onDone }: { moduleId: str
     }
   };
   return (
-    <div data-methodology-activate className="flex flex-col gap-2 rounded-sm border border-border p-3">
-      <h4 className="text-sm font-semibold">{tv(version === null ? `${V}.resetTitle` : `${V}.activateTitle`, { name })}</h4>
-      <p className="text-xs text-ink-muted">{t(`${V}.pinNote`)}</p>
-      {/* The Sociomap register approves one exact method (aia-sociomap-3 as the code has it): a map
-          computed by an edited version is internal until the register approves it, so the client
-          report of a run started under it has no maps. The rule is the register's; this says it
-          where it takes effect (PC17). */}
-      {moduleId === "sociomap" && version !== null ? (
-        <p role="note" data-sociomap-internal className="rounded-sm border border-status-you-ink/40 bg-status-you-wash p-2 text-xs">{t(`${V}.sociomapInternal`)}</p>
-      ) : null}
-      <Field label={t(`${V}.reason`)}>
-        <TextInput value={reason} maxLength={500} onChange={(e) => setReason(e.target.value)} />
-      </Field>
-      {error ? <p role="alert" className="text-sm text-status-fault">{error}</p> : null}
-      <div className="flex gap-2">
-        <Button variant="primary" disabled={busy} onClick={() => void go()}>{t(`${V}.confirm`)}</Button>
-        <Button disabled={busy} onClick={onCancel}>{t(`${V}.cancel`)}</Button>
+    <ConfirmDialog open marker="methodology-activate" busy={busy} error={error}
+      title={tv(version === null ? `${V}.resetTitle` : `${V}.activateTitle`, { name })}
+      text={<>
+        <p className="text-ink-muted">{t(`${V}.pinNote`)}</p>
+        {/* The Sociomap register approves one exact method (aia-sociomap-3 as the code has it): a map
+            computed by an edited version is internal until the register approves it, so the client
+            report of a run started under it has no maps. The rule is the register's; this says it
+            where it takes effect (PC17). */}
+        {internal ? <p role="note" data-sociomap-internal className="mt-2 rounded-sm border border-status-you-ink/40 bg-status-you-wash p-2 text-xs">{t(`${V}.sociomapInternal`)}</p> : null}
+      </>}
+      confirmLabel={version === null ? t(`${V}.resetConfirm`) : internal ? t(`${V}.activateInternal`) : t(`${V}.activateConfirm`)}
+      cancelLabel={t(`${V}.cancel`)}
+      onConfirm={() => void go()} onCancel={onCancel}>
+      <div className="flex flex-col gap-2">
+        <p aria-hidden="true" className="text-xs text-ink-muted">{t(`${V}.reasonLabel`)}</p>
+        <ChoiceChips label={t(`${V}.reasonLabel`)} value={why} options={REASONS.map((r) => ({ key: r, label: t(`${V}.reasons.${r}`) }))} onChange={(r) => { setWhy(r); setError(null); }} />
+        <TextInput aria-label={t(`${V}.reasonNote`)} placeholder={t(`${V}.reasonNotePlaceholder`)} value={note} maxLength={400} onChange={(e) => setNote(e.target.value)} />
       </div>
-    </div>
+    </ConfirmDialog>
   );
 }
 
 function Editor(props: {
   summary: MethodModuleSummary; start: Start; presets: string[]; currentSpec?: Record<string, unknown>; currentName: string;
-  onBase: (name: string) => void; onDirty: (value: boolean) => void; onCancel: () => void; onSaved: (v: MethodVersion) => void;
+  onBase: (name: string) => void; onDirty: (value: boolean) => void; onCompared: (c: MethodCompare | null) => void; onCancel: () => void; onSaved: (v: MethodVersion) => void;
 }) {
   // The labels and slots of the preset the edit is based on; the values come from `start`.
   const [res, retry] = useResource(() => methodology.get(props.summary.id, props.start.base), [props.summary.id, props.start.base]);
   return <Loaded res={res} retry={retry}>{(detail) => <EditorForm {...props} detail={detail} />}</Loaded>;
 }
 
-function EditorForm({ summary, start, presets, detail, currentSpec, onBase, onDirty, onCancel, onSaved }: {
+function EditorForm({ summary, start, presets, detail, currentSpec, onBase, onDirty, onCompared, onCancel, onSaved }: {
   summary: MethodModuleSummary; start: Start; presets: string[]; detail: MethodModuleDetail; currentSpec?: Record<string, unknown>; currentName: string;
-  onBase: (name: string) => void; onDirty: (value: boolean) => void; onCancel: () => void; onSaved: (v: MethodVersion) => void;
+  onBase: (name: string) => void; onDirty: (value: boolean) => void;
+  /** The comparison, shown on the module's Porovnání; null when the draft changed under it. */
+  onCompared: (c: MethodCompare | null) => void; onCancel: () => void; onSaved: (v: MethodVersion) => void;
 }) {
   const steps = useMemo(() => editableSteps(detail), [detail]);
   const builtin = useMemo(() => new Map(steps.flatMap(({ step }) => step.formulas.map((f) => [f.slot_id, f.expression] as const))), [steps]);
@@ -309,7 +373,7 @@ function EditorForm({ summary, start, presets, detail, currentSpec, onBase, onDi
     window.addEventListener("beforeunload", unload); document.addEventListener("click", leave, true);
     return () => { window.removeEventListener("beforeunload", unload); document.removeEventListener("click", leave, true); };
   }, [dirty]);
-  const clearPreview = useCallback(() => { setCheck(null); setComparison(null); setError(null); }, []);
+  const clearPreview = useCallback(() => { setCheck(null); setComparison(null); setError(null); onCompared(null); }, [onCompared]);
   const showFirstProblem = (problems: Record<string, string>) => {
     const first = steps.find(({ step, fields }) => fields.some((f) => problemsFor(problems, `spec.${f.reference}`).length) || step.formulas.some((f) => problemsFor(problems, `formula.${f.slot_id}`).length));
     if (first) setSelectedStep(first.step.id);
@@ -351,6 +415,7 @@ function EditorForm({ summary, start, presets, detail, currentSpec, onBase, onDi
   const compare = async () => {
     setError(null);
     setComparison(null);
+    onCompared(null);
     const built = build();
     if ("local" in built) {
       setCheck({ valid: false, problems: built.local, not_computed: [], formulas_latex: {} }); showFirstProblem(built.local);
@@ -359,7 +424,7 @@ function EditorForm({ summary, start, presets, detail, currentSpec, onBase, onDi
     setOperation("compare");
     try {
       const result = await methodology.compare(summary.id, built.edit);
-      if (result.valid) setComparison(result);
+      if (result.valid) { setComparison(result); onCompared(result); }
       else { setCheck({ valid: false, problems: result.problems, not_computed: [], formulas_latex: {} }); showFirstProblem(result.problems); }
     } catch (e) {
       setError(describeError(e));
@@ -522,7 +587,6 @@ function EditorForm({ summary, start, presets, detail, currentSpec, onBase, onDi
               />
             );
           })}
-          {comparison ? <MethodologyComparison result={comparison} /> : null}
         </div>
 
         {/* Impact and the decision, in the safe order. */}
