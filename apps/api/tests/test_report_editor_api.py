@@ -779,3 +779,38 @@ def test_an_edited_version_says_what_it_changed_and_is_approved_as_itself(
     assert body["artifact_id"] == edited and body["report_kind"] == "internal"
     assert body["artifact_type"] == "research_internal_docx_edit"
     assert body["internal_only"] is True
+
+
+def test_no_author_of_an_edited_version_approves_it_where_self_approval_is_off(
+    app: FastAPI,
+    researcher: TestClient,
+    lead: TestClient,
+    owner: TestClient,
+    outsider: TestClient,
+    client: TestClient,
+    world: Any,
+    saves: Saves,
+) -> None:
+    """An edited version records one producer, its save's first author; where independent
+    review is on, everyone who saved the line up to it is refused, not only that one."""
+    forbid = owner.put(
+        f"{API}/self-approval", json={"allowed": False, "client_id": world.client_id()}
+    )
+    assert forbid.status_code == 200, forbid.text
+    run_id, _ = _reported_run(app, researcher, world)
+    config = researcher.post(_editor(world, run_id), json={}).json()["config"]
+    lead.post(_editor(world, run_id), json={})  # the lead joins the same session
+    me, colleague = world.users["researcher"], world.users["lead"]
+    second = saves.put(_docx("50 %"))
+    assert _callback(client, config, status=6, url=second, users=[colleague]).json() == {"error": 0}
+    third = saves.put(_docx("60 %"))
+    assert _callback(client, config, status=6, url=third, users=[me, colleague]).json() == {
+        "error": 0
+    }
+    edited = researcher.post(_editor(world, run_id), json={}).json()["version_artifact_id"]
+    approve = f"{API}/studies/{world.study_id()}/research/runs/{run_id}/report/approve"
+    for author in (researcher, lead):
+        refused = author.post(approve, json={"artifact_id": edited})
+        assert refused.status_code == 403 and refused.json()["code"] == "separation_of_duties"
+    approved = outsider.post(approve, json={"artifact_id": edited})
+    assert approved.status_code == 200, approved.text

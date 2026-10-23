@@ -33,8 +33,9 @@ from aia_core.application.report import INTERNAL_REPORT_ARTIFACT_TYPE
 from aia_core.application.report_variants import approval_asks_pdf, draft_pdf_ready, request_pdf
 from aia_core.application.research import ResearchRuns, research_artifacts
 from aia_core.domain.report.editor import EDIT_ARTIFACT_TYPES
-from aia_core.domain.scope import Permission, StudyContext
+from aia_core.domain.scope import Permission, StudyContext, require_approval_independence
 from aia_core.infrastructure.artifact_repository import Artifact, ArtifactStatus
+from aia_core.infrastructure.report_editor_repository import ReportEditorRepository
 from aia_core.infrastructure.storage import ArtifactStore
 
 #: Each approvable report by its stored type, as the approval names it (report-delivery RD3, G66):
@@ -96,6 +97,8 @@ def approve_report(
         # The client deliverable's gate (RD0, MVPQ-09): it blocks, never a flag a reviewer
         # approves past.
         require_client_gate(artifacts, artifact)
+    if artifact.artifact_type in EDITED_REPORT_KINDS:
+        _require_independent_of_every_author(session, scope, artifact)
     # Read while it is still a draft: its own PDF, under the draft's key.
     ready = draft_pdf_ready(session, scope, store, docx=artifact, run_id=run_id)
     artifacts.approve(artifact_id, note=note)
@@ -110,3 +113,28 @@ def approve_report(
             deep_research_run_id=approved.metadata.get("deep_research_run_id"),
         )
     return approved
+
+
+def _require_independent_of_every_author(
+    session: Session, scope: StudyContext, artifact: Artifact
+) -> None:
+    """An edited version is the work of everyone who saved its line up to it, not only the one
+    person its artifact records as producer (a save's first author): where self-approval is
+    off, none of them may approve it (``SeparationOfDutiesViolation``)."""
+    repo = ReportEditorRepository(session, scope)
+    version = repo.version(artifact.artifact_id)
+    if version is None:
+        raise ReportNotApprovable(artifact.artifact_id)
+    authors = {
+        author
+        for earlier in repo.versions(version.line_id)
+        if earlier.koncept <= version.koncept
+        for author in earlier.authors
+    }
+    for author in sorted(authors):
+        require_approval_independence(
+            producer_user_id=author,
+            approving_user_id=scope.actor_id,
+            policy=scope.self_approval,
+            what=f"artifact {artifact.artifact_type}",
+        )
