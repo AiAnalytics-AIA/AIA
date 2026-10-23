@@ -85,3 +85,23 @@ def test_nothing_kept_reads_none_and_only_an_administrator_reads(scoped: Any, se
     member = scoped.resolver.organization_context(scoped.principal(scoped.users["researcher"]))
     with pytest.raises(ScopeDenied):
         DeploySmokeRepository(session, member)
+
+
+def test_the_seeds_smoke_organization_is_no_tenant_on_develop_only(
+    scoped: Any, session: Any
+) -> None:
+    """Deployment state is read by an organization's admin only while it is the one tenant; on
+    develop the seed's synthetic smoke organization is the deployment's own and not counted."""
+    from aia_core.application.develop_seed import SMOKE_ORGANIZATION_SLUG
+    from aia_core.application.system_status import latest_smoke_run
+    from aia_core.domain.deployment import DeploymentEnvironment
+
+    admin = scoped.admin_context
+    assert latest_smoke_run(session, admin, environment=DeploymentEnvironment.TEST) is None
+    scoped.scope_repo.create_organization(
+        slug=SMOKE_ORGANIZATION_SLUG, name="Smoke", owner_email="s@example.invalid"
+    )
+    assert latest_smoke_run(session, admin, environment=DeploymentEnvironment.DEVELOP) is None
+    with pytest.raises(ScopeDenied) as shared:
+        latest_smoke_run(session, admin, environment=DeploymentEnvironment.TEST)
+    assert shared.value.reason == "deployment_shared"

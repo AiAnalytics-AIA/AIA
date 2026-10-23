@@ -35,6 +35,7 @@ ROUTES: dict[str, Any] = {
             "lastSeen": "2026-10-22T10:00:00Z",
         },
         {"id": "12", "title": "Old", "count": 1, "lastSeen": "2026-10-01T10:00:00Z"},
+        {"id": "a/b?c", "title": "Odd id", "lastSeen": "2026-10-22T09:00:00Z"},
         {"id": "13", "title": "No date"},
     ],
     "/api/0/projects/aia/backend/alerts/": [
@@ -92,8 +93,9 @@ def test_the_dsns_project_is_read_with_the_token_as_a_bearer_only(stub: str) -> 
     assert status.error is None
     assert status.project == "AIA backend"
     assert status.project_url == "https://errors.aia-develop.example/aia/issues?project=1"
-    assert [i.title for i in status.issues_7d] == ["KeyError: 'x'"]  # last 7 days, dated
-    [issue] = status.issues_7d
+    assert [i.title for i in status.issues_7d] == ["KeyError: 'x'", "Odd id"]  # 7 days, dated
+    issue, odd = status.issues_7d
+    assert odd.url == "https://errors.aia-develop.example/aia/issues/a%2Fb%3Fc"
     assert issue.count == 4 and issue.url == "https://errors.aia-develop.example/aia/issues/11"
     assert [(a.name, a.quantity, a.timespan_minutes, a.recipients) for a in status.alerts] == [
         ("Any error", 1, 10, 1)
@@ -116,14 +118,14 @@ def test_what_was_read_before_a_failure_is_kept(stub: str) -> None:
     del _Stub.routes["/api/0/projects/aia/backend/alerts/"]
     status = _read(stub)
     assert status.error == "glitchtip_http_404"
-    assert len(status.issues_7d) == 1 and status.alerts == [] and status.uptime_enabled is None
+    assert len(status.issues_7d) == 2 and status.alerts == [] and status.uptime_enabled is None
 
 
 def test_uptime_switched_off_in_glitchtip_is_said_and_is_no_failure(stub: str) -> None:
     del _Stub.routes["/api/0/organizations/aia/monitors/"]
     status = _read(stub)
     assert status.error is None and status.uptime_enabled is False and status.uptime == []
-    assert len(status.issues_7d) == 1 and len(status.alerts) == 1
+    assert len(status.issues_7d) == 2 and len(status.alerts) == 1
 
 
 def test_an_unreachable_glitchtip_is_said() -> None:

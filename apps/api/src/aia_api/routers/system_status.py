@@ -92,8 +92,10 @@ class SystemStatusResponse(BaseModel):
     response_model=SystemStatusResponse,
     summary="The deployment's latest smoke run",
 )
-def get_system_status(scope: OrganizationDep, session: SessionDep) -> SystemStatusResponse:
-    run = _admin_only(lambda: latest_smoke_run(session, scope))
+def get_system_status(
+    scope: OrganizationDep, session: SessionDep, settings: SettingsDep
+) -> SystemStatusResponse:
+    run = _admin_only(lambda: latest_smoke_run(session, scope, environment=settings.env))
     if run is None:
         return SystemStatusResponse(latest=None)
     failed = sum(1 for c in run.checks if c.status is SmokeStatus.FAIL)
@@ -169,6 +171,7 @@ def get_error_tracking(
         lambda: error_tracking(
             session,
             scope,
+            environment=settings.env,
             token=settings.glitchtip_api_token.get_secret_value(),
             api_url=settings.glitchtip_api_url,
             dashboard_url=settings.glitchtip_dashboard_url,

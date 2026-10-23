@@ -198,7 +198,7 @@ def read_glitchtip(
                     culprit=(str(item["culprit"])[:300] if item.get("culprit") else None),
                     count=_int(item.get("count")),
                     last_seen=seen,
-                    url=f"{dashboard}/{org_q}/issues/{issue_id}"
+                    url=f"{dashboard}/{org_q}/issues/{quote(str(issue_id), safe='')}"
                     if dashboard and issue_id
                     else None,
                 )

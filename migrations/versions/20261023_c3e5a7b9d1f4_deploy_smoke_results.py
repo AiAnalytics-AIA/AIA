@@ -6,7 +6,7 @@ passed. One row per check per smoke run: its label, its result (ok / FAIL / NOT_
 and its place in the run. No detail line, URL or response body is kept.
 
 Revision ID: c3e5a7b9d1f4
-Revises: f4b6d8a0c2e3
+Revises: a1c3e5f7b9d1
 Created: 2026-10-23 00:00:00.000000+00:00
 """
 
@@ -16,7 +16,7 @@ import sqlalchemy as sa
 from alembic import op
 
 revision: str = "c3e5a7b9d1f4"
-down_revision: str | None = "f4b6d8a0c2e3"
+down_revision: str | None = "a1c3e5f7b9d1"
 branch_labels = None
 depends_on = None
 

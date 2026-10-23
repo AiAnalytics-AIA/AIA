@@ -91,7 +91,8 @@ def test_with_a_second_organization_both_are_refused_as_the_deployments(
             slug=SMOKE_ORGANIZATION_SLUG, name="Smoke", owner_email="s@example.invalid"
         )
         session.commit()
-    assert owner.get(f"{API}/system-status").status_code == 200  # the seed's own: no tenant
+    # Outside develop an organization of the seed's name is a tenant like any other.
+    assert owner.get(f"{API}/system-status").status_code == 409
     with create_session_factory(app.state.engine)() as session:
         ScopeRepository(session).create_organization(
             slug="tenant-two", name="Tenant two", owner_email="t@example.org"
