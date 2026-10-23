@@ -185,12 +185,13 @@ else fail "storage + worker + slice: aia_executors.smoke" "see the lines above";
 # --- keep the results for Settings (never a reason to fail the deploy) -------
 # Labels and results only (aia_executors.smoke_record), passed or failed alike, so Settings
 # shows the run that is deployed. A failure here is said and does not change the verdict.
-if timeout --kill-after=10 120 "${COMPOSE[@]}" run --rm --no-deps -T worker \
+if record_out="$(timeout --kill-after=10 120 "${COMPOSE[@]}" run --rm --no-deps -T worker \
     python -m aia_executors.smoke_record --build "$SHA" --public-hostname "$AIA_PUBLIC_HOSTNAME" \
-    < "$RESULTS" > /dev/null 2>&1; then
+    < "$RESULTS" 2>&1)"; then
   printf 'info  smoke: results kept for Settings (Stav systému)\n'
 else
-  printf 'warn  smoke: results not kept; Settings shows the previous run\n'
+  printf 'warn  smoke: results not kept; Settings shows the previous run (%s)\n' \
+    "$(printf '%s' "$record_out" | tail -n1)"
 fi
 
 echo

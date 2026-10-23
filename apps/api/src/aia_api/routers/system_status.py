@@ -6,7 +6,10 @@
 rules and uptime monitors, read with a read-only token; ``configured: false`` without one, and
 a GlitchTip that cannot be read answers ``error``, never a 500. The token is never returned.
 
-OWNER and ADMIN only, refused 403 ``insufficient_role``. Read-only.
+OWNER and ADMIN only, refused 403 ``insufficient_role``; and only while the deployment holds
+one organization (the develop seed's smoke organization not counted): both are the
+deployment's, every tenant's, so with more they are refused 409 ``deployment_shared`` until an
+operator's gate exists. Read-only.
 """
 
 from __future__ import annotations
@@ -37,6 +40,15 @@ def _admin_only[T](read: Callable[[], T]) -> T:
     try:
         return read()
     except ScopeDenied as exc:
+        if exc.reason == "deployment_shared":
+            raise HTTPException(
+                status_code=status.HTTP_409_CONFLICT,
+                detail={
+                    "code": "deployment_shared",
+                    "message": "Stav nasazení a chyby z GlitchTipu patří celému nasazení, ve "
+                    "kterém je víc organizací; čte je jen provozovatel, ne správce organizace.",
+                },
+            ) from exc
         if exc.reason != "insufficient_role":
             raise
         raise HTTPException(
@@ -136,9 +148,12 @@ class ErrorTrackingResponse(BaseModel):
     project_url: str | None
     alerts: list[AlertOut]
     uptime: list[MonitorOut]
+    #: False: uptime monitoring is off in GlitchTip (no failure); ``null``: not read.
+    uptime_enabled: bool | None
     issues_7d: list[IssueOut]
     #: What could not be read, by code (``glitchtip_unreachable``, ``glitchtip_refused_token``,
-    #: ``glitchtip_http_<n>``, ``glitchtip_no_project``, ``glitchtip_unexpected_answer``).
+    #: ``glitchtip_http_<n>``, ``glitchtip_redirect``, ``glitchtip_url_invalid``,
+    #: ``glitchtip_no_project``, ``glitchtip_unexpected_answer``).
     error: str | None
 
 
@@ -147,9 +162,12 @@ class ErrorTrackingResponse(BaseModel):
     response_model=ErrorTrackingResponse,
     summary="GlitchTip: issues, alerts and uptime",
 )
-def get_error_tracking(scope: OrganizationDep, settings: SettingsDep) -> ErrorTrackingResponse:
+def get_error_tracking(
+    scope: OrganizationDep, session: SessionDep, settings: SettingsDep
+) -> ErrorTrackingResponse:
     read = _admin_only(
         lambda: error_tracking(
+            session,
             scope,
             token=settings.glitchtip_api_token.get_secret_value(),
             api_url=settings.glitchtip_api_url,
@@ -172,6 +190,7 @@ def get_error_tracking(scope: OrganizationDep, settings: SettingsDep) -> ErrorTr
             )
             for a in s.alerts
         ],
+        uptime_enabled=s.uptime_enabled,
         uptime=[
             MonitorOut(name=m.name, is_up=m.is_up, last_change=m.last_change) for m in s.uptime
         ],

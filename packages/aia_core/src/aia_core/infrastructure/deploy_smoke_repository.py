@@ -13,14 +13,14 @@ from collections.abc import Sequence
 from dataclasses import dataclass
 from datetime import datetime
 
-from sqlalchemy import select
+from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
 from ..domain.deploy_smoke import SmokeCheck, SmokeStatus, order_checks
 from ..domain.scope import OrganizationContext
-from .tables import DeploySmokeResultRow, as_utc
+from .tables import DeploySmokeResultRow, OrganizationRow, as_utc
 
-__all__ = ["DeploySmokeRepository", "SmokeRun", "record_smoke_run"]
+__all__ = ["DeploySmokeRepository", "SmokeRun", "record_smoke_run", "tenant_count"]
 
 
 @dataclass(frozen=True, slots=True)
@@ -54,6 +54,19 @@ def record_smoke_run(
         )
     session.flush()
     return len(checks)
+
+
+def tenant_count(session: Session, *, excluding_slugs: frozenset[str]) -> int:
+    """How many organizations the deployment holds, those named in ``excluding_slugs`` (the
+    develop seed's synthetic smoke organization) left out."""
+    return int(
+        session.scalar(
+            select(func.count())
+            .select_from(OrganizationRow)
+            .where(OrganizationRow.slug.not_in(sorted(excluding_slugs)))
+        )
+        or 0
+    )
 
 
 class DeploySmokeRepository:

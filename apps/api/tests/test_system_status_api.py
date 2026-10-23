@@ -75,6 +75,33 @@ def test_without_a_token_error_tracking_is_not_configured(owner: TestClient) -> 
     body = owner.get(f"{API}/error-tracking").json()
     assert body["configured"] is False and body["error"] is None
     assert body["issues_7d"] == [] and body["alerts"] == [] and body["uptime"] == []
+    assert body["uptime_enabled"] is None
+
+
+def test_with_a_second_organization_both_are_refused_as_the_deployments(
+    app: FastAPI, owner: TestClient
+) -> None:
+    """Smoke results and GlitchTip's issues are every tenant's: an organization's admin reads
+    them only while the deployment holds that organization alone."""
+    from aia_core.application.develop_seed import SMOKE_ORGANIZATION_SLUG
+    from aia_core.infrastructure.scope_repository import ScopeRepository
+
+    with create_session_factory(app.state.engine)() as session:
+        ScopeRepository(session).create_organization(
+            slug=SMOKE_ORGANIZATION_SLUG, name="Smoke", owner_email="s@example.invalid"
+        )
+        session.commit()
+    assert owner.get(f"{API}/system-status").status_code == 200  # the seed's own: no tenant
+    with create_session_factory(app.state.engine)() as session:
+        ScopeRepository(session).create_organization(
+            slug="tenant-two", name="Tenant two", owner_email="t@example.org"
+        )
+        session.commit()
+    for path in ("system-status", "error-tracking"):
+        refused = owner.get(f"{API}/{path}")
+        assert refused.status_code == 409, refused.text
+        assert refused.json()["code"] == "deployment_shared"
+        assert "provozovatel" in refused.json()["message"]
 
 
 class _Stub(BaseHTTPRequestHandler):
@@ -135,4 +162,5 @@ class TestWithAToken:
         assert body["project"] == "AIA backend"
         assert [(i["title"], i["count"]) for i in body["issues_7d"]] == [("Boom", 2)]
         assert body["uptime"] == [{"name": "API", "is_up": False, "last_change": None}]
+        assert body["uptime_enabled"] is True
         assert TOKEN not in response.text

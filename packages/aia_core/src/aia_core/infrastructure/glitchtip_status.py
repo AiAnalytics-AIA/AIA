@@ -70,6 +70,9 @@ class ErrorTrackingStatus:
     issues_7d: list[Issue] = field(default_factory=list)
     alerts: list[AlertRule] = field(default_factory=list)
     uptime: list[Monitor] = field(default_factory=list)
+    #: False: GlitchTip's uptime monitoring is off (its monitors route answers 404, as with
+    #: GLITCHTIP_ENABLE_UPTIME false on develop); ``None``: not read.
+    uptime_enabled: bool | None = None
     #: The first thing that could not be read, by code; ``None`` when all of it was read.
     error: str | None = None
 
@@ -110,8 +113,18 @@ class _Refused(Exception):
 Fetch = Callable[[str], Any]
 
 
+class _NoRedirect(urllib.request.HTTPRedirectHandler):
+    """A redirect is refused, never followed: urllib would carry the bearer header to
+    whatever host the Location names."""
+
+    def redirect_request(self, *_: Any, **__: Any) -> None:
+        raise _Refused("glitchtip_redirect")
+
+
 def _fetcher(api_url: str, token: str) -> Fetch:
-    opener = urllib.request.build_opener(urllib.request.ProxyHandler({}))
+    if urlsplit(api_url).scheme not in ("http", "https"):
+        raise _Refused("glitchtip_url_invalid")
+    opener = urllib.request.build_opener(urllib.request.ProxyHandler({}), _NoRedirect())
     base = api_url.rstrip("/")
 
     def fetch(path: str) -> Any:
@@ -148,10 +161,10 @@ def read_glitchtip(
     """Read the project's last seven days of open issues, its alert rules and the
     organization's uptime monitors. Each part read before a failure is kept; the failure is
     ``error``."""
-    get = fetch or _fetcher(api_url, token)
     status = ErrorTrackingStatus()
     dashboard = (dashboard_url or "").rstrip("/") or None
     try:
+        get = fetch or _fetcher(api_url, token)
         projects = get("/api/0/projects/")
         if not isinstance(projects, list) or not projects:
             raise _Refused("glitchtip_no_project")
@@ -207,7 +220,14 @@ def read_glitchtip(
             if isinstance(a, dict)
         ]
 
-        monitors = get(f"/api/0/organizations/{org_q}/monitors/")
+        try:
+            monitors = get(f"/api/0/organizations/{org_q}/monitors/")
+        except _Refused as refused:
+            if refused.code != "glitchtip_http_404":
+                raise
+            status.uptime_enabled = False  # uptime off in GlitchTip: no failure, nothing to list
+            return status
+        status.uptime_enabled = True
         if not isinstance(monitors, list):
             raise _Refused("glitchtip_unexpected_answer")
         status.uptime = [
