@@ -39,6 +39,7 @@ from aia_core.application.report_editor import (
 from aia_core.application.report_editor_saves import (
     SaveNotStored,
     VersionNotFound,
+    edited_version,
     store_save,
     version_changes,
 )
@@ -486,7 +487,15 @@ def download_report_editor_version(
         scope.require(Permission.EXPORT_DELIVERABLE)
     except ScopeDenied as exc:
         raise _refused(exc) from exc
-    version, artifact, _changes = _version(run_id, artifact_id, scope, session, store)
+    try:
+        version, artifact = edited_version(
+            session, scope, store, run_id=run_id, artifact_id=artifact_id
+        )
+    except ScopeDenied as exc:
+        raise _refused(exc) from exc
+    except VersionNotFound as exc:
+        raise _not_found("editor_version") from exc
+    # Only the DOCX is read: what it changed is the version route's, never the download's.
     exported = _export(artifact, scope, session, store)
     return Response(
         content=exported.data,

@@ -47,6 +47,7 @@ __all__ = [
     "StoredSave",
     "VersionNotFound",
     "approved_versions",
+    "edited_version",
     "store_save",
     "version_changes",
 ]
@@ -194,25 +195,33 @@ def _store(
     return StoredSave(added, created=True)
 
 
-def version_changes(
+def edited_version(
     session: Session, scope: StudyContext, store: ArtifactStore, *, run_id: str, artifact_id: str
-) -> tuple[EditorVersion, Artifact, SavedChanges | None]:
-    """A version of one of ``run_id``'s lines, its artifact, and what it changed in the numbers
-    code wrote, as stored beside it; ``None`` for koncept 1, the composer's own, which changed
-    nothing."""
+) -> tuple[EditorVersion, Artifact]:
+    """A version of one of ``run_id``'s lines and its artifact, or :class:`VersionNotFound`."""
     scope.require(Permission.VIEW_RESULTS)
     scope.require(Permission.EDIT_STUDY)  # an internal draft, as the run's report status asks
     version = ReportEditorRepository(session, scope).version(artifact_id)
     if version is None or version.run_id != run_id:
         raise VersionNotFound(artifact_id)
-    artifacts = research_artifacts(session, scope, store)
     try:
-        artifact = artifacts.get(version.artifact_id)
+        artifact = research_artifacts(session, scope, store).get(version.artifact_id)
     except ArtifactNotFound as exc:  # its row outlived the artifact: nothing to serve
         raise VersionNotFound(artifact_id) from exc
+    return version, artifact
+
+
+def version_changes(
+    session: Session, scope: StudyContext, store: ArtifactStore, *, run_id: str, artifact_id: str
+) -> tuple[EditorVersion, Artifact, SavedChanges | None]:
+    """:func:`edited_version` and what it changed in the numbers code wrote, as stored beside
+    it; ``None`` for koncept 1, the composer's own, which changed nothing."""
+    version, artifact = edited_version(
+        session, scope, store, run_id=run_id, artifact_id=artifact_id
+    )
     if version.changes_artifact_id is None:
         return version, artifact, None
-    data = artifacts.read(version.changes_artifact_id)
+    data = research_artifacts(session, scope, store).read(version.changes_artifact_id)
     return version, artifact, read_changes_payload(json.loads(data))
 
 
@@ -229,13 +238,11 @@ def approved_versions(
     report status names beside its composed draft, which an approved edit leaves a draft."""
     artifacts = research_artifacts(session, scope, store)
     found = []
-    for version in ReportEditorRepository(session, scope).edited_versions(
+    for version in ReportEditorRepository(session, scope).approved_edits(
         run_id=run_id, variant=variant, deep_research_run_id=deep_research_run_id
     ):
         try:
-            artifact = artifacts.get(version.artifact_id)
+            found.append((version, artifacts.get(version.artifact_id)))
         except ArtifactNotFound:
             continue  # its row outlived the artifact: nothing approved to name
-        if artifact.is_approved:
-            found.append((version, artifact))
-    return sorted(found, key=lambda pair: (pair[0].saved_at, pair[0].koncept))
+    return found

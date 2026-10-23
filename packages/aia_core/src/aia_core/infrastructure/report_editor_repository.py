@@ -170,12 +170,17 @@ class ReportEditorRepository:
         )
         return _version(row) if row is not None else None
 
-    def edited_versions(
+    def approved_edits(
         self, *, run_id: str, variant: str, deep_research_run_id: str | None
     ) -> list[EditorVersion]:
-        """Every version a person saved (koncept 2 on) of the run's lines of ``variant``."""
+        """The versions a person saved (koncept 2 on) of the run's lines of ``variant`` whose
+        artifact a person approved: one query, whatever the length of the line's history."""
         rows = self._session.scalars(
             select(ReportEditorVersionRow)
+            .join(
+                ProjectArtifactRow,
+                ProjectArtifactRow.artifact_id == ReportEditorVersionRow.artifact_id,
+            )
             .where(
                 *self._versions_in_scope(),
                 ReportEditorVersionRow.run_id == run_id,
@@ -184,8 +189,9 @@ class ReportEditorRepository:
                 if deep_research_run_id is None
                 else ReportEditorVersionRow.deep_research_run_id == deep_research_run_id,
                 ReportEditorVersionRow.koncept > 1,
+                ProjectArtifactRow.is_approved.is_(True),
             )
-            .order_by(ReportEditorVersionRow.line_id, ReportEditorVersionRow.koncept)
+            .order_by(ReportEditorVersionRow.saved_at, ReportEditorVersionRow.koncept)
         )
         return [_version(r) for r in rows]
 

@@ -888,3 +888,33 @@ def test_a_co_author_who_approves_an_edited_version_is_recorded_as_self_approvin
     assert lead.post(approve, json={"artifact_id": edited}).status_code == 200
     said = lead.get(f"{_editor(world, run_id)}/versions/{edited}").json()["approval"]
     assert said["self_approved"] is True and said["by_you"] is True
+
+
+def test_a_versions_download_reads_its_docx_alone_not_what_it_changed(
+    app: FastAPI, researcher: TestClient, client: TestClient, world: Any, saves: Saves
+) -> None:
+    """The changes stored beside a version are the version route's to read: a download of
+    an intact DOCX never fails because the changes beside it are damaged or gone."""
+    run_id, _ = _reported_run(app, researcher, world)
+    config = researcher.post(_editor(world, run_id), json={}).json()["config"]
+    url = saves.put(_docx("50 %"))
+    me = world.users["researcher"]
+    assert _callback(client, config, status=6, url=url, users=[me]).json() == {"error": 0}
+    edited = researcher.post(_editor(world, run_id), json={}).json()["version_artifact_id"]
+    factory = create_session_factory(app.state.engine)
+    with factory() as session:
+        principal = AuthenticatedPrincipal(user_id=me, organization_id=world.organization_id)
+        scope = ScopeResolver(session).study_context(principal, study_id=world.study_id())
+        version = ReportEditorRepository(session, scope).version(edited)
+        assert version is not None and version.changes_artifact_id is not None
+        repo = research_artifacts(session, scope, app.state.artifact_store)
+        key = repo.get(version.changes_artifact_id).storage_key
+    versions = f"{_editor(world, run_id)}/versions/{edited}"
+    for damage in ("tampered", "gone"):
+        if damage == "tampered":
+            app.state.artifact_store.put(key, b'{"tampered": true}')
+        else:
+            app.state.artifact_store.delete(key)
+        got = researcher.get(f"{versions}/download")
+        assert got.status_code == 200 and got.content == _docx("50 %"), damage
+        assert researcher.get(versions).status_code == 409, damage  # said, never guessed
