@@ -29,7 +29,7 @@ declare global {
 const scripts = new Map<string, Promise<DocsApi>>();
 
 /** api.js from `url`, loaded once per page; a load that failed is tried again next time. */
-export function loadDocsApi(url: string): Promise<DocsApi> {
+function loadDocsApi(url: string): Promise<DocsApi> {
   const known = scripts.get(url);
   if (known) return known;
   const loaded = new Promise<DocsApi>((resolve, reject) => {
