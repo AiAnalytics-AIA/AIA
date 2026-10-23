@@ -16,7 +16,12 @@ from __future__ import annotations
 from datetime import UTC, datetime
 from typing import Annotated, Any, Literal
 
-from aia_core.application.membership import deactivate_member, lead_seals, reactivate_member
+from aia_core.application.membership import (
+    deactivate_member,
+    delete_objects,
+    lead_seals,
+    reactivate_member,
+)
 from aia_core.application.research_lead import set_study_budget as change_study_budget
 from aia_core.application.wallet import set_study_status as change_study_status
 from aia_core.domain.scope import (
@@ -31,6 +36,7 @@ from fastapi import APIRouter, Depends, HTTPException, Path, Query, Response, st
 from pydantic import BaseModel, ConfigDict, Field
 
 from ..dependencies import (
+    ArtifactStoreDep,
     OrganizationDep,
     PrincipalDep,
     ResolverDep,
@@ -669,15 +675,24 @@ def deactivate(
     summary="Reactivate a member, unsealing their Lead",
 )
 def reactivate(
-    user_id: str, admin: OrganizationDep, repo: ScopeRepositoryDep, session: SessionDep
+    user_id: str,
+    admin: OrganizationDep,
+    repo: ScopeRepositoryDep,
+    session: SessionDep,
+    store: ArtifactStoreDep,
 ) -> MemberResponse:
     """Reactivate a member deactivated in the caller's organization. Within 30 days their Lead
-    is unsealed, for them alone; after that it is gone and they hatch a new one. OWNER or
-    ADMIN; only an OWNER restores an OWNER. Audited."""
+    is unsealed, for them alone; after that it is erased here, if the retention sweep has not
+    erased it yet, and they hatch a new one. OWNER or ADMIN; only an OWNER restores an OWNER.
+    Audited."""
     try:
-        reactivate_member(session, admin, user_id=user_id)
+        back = reactivate_member(session, admin, user_id=user_id, now=datetime.now(UTC))
     except ScopeDenied as exc:
         raise _membership_refused(exc) from exc
+    if back.erased_keys:
+        # The erased rows first, then their objects: a row never points at a deleted object.
+        session.commit()
+        delete_objects(store, back.erased_keys)
     return _member_or_404(admin, repo, session, user_id)
 
 

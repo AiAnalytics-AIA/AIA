@@ -462,11 +462,14 @@ class LeadSeals:
         assert row.erase_after is not None
         return LeadSeal(user_id, as_utc(row.sealed_at), as_utc(row.erase_after))
 
-    def unseal(self, user_id: str) -> bool:
+    def unseal(self, user_id: str, *, now: datetime) -> bool:
         """Unseal the member's Lead on their reactivation; ``False`` when there is none to
-        unseal (never hatched, or already erased)."""
+        unseal (never hatched, or already erased) and when it is past its date: a Lead due for
+        erasure never comes back, whether or not the sweep has reached it."""
         row = self._row(user_id)
         if row is None or row.sealed_at is None:
+            return False
+        if row.erase_after is not None and as_utc(row.erase_after) <= now:
             return False
         row.sealed_at, row.erase_after = None, None
         self._audit("LEAD_UNSEALED", user_id)

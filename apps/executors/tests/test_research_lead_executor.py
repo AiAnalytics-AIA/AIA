@@ -35,6 +35,7 @@ from aia_core.infrastructure.client_knowledge_repository import ClientKnowledgeR
 from aia_core.infrastructure.model_adapters.transport import HttpRequest, HttpResponse
 from aia_core.infrastructure.prompt_repository import PromptRepository
 from aia_core.infrastructure.researcher_lead_repository import ResearcherLeadRepository
+from aia_core.infrastructure.study_lead_repository import StudyLeadRepository
 from aia_core.infrastructure.study_workspace_repository import StudyWorkspaceRepository
 from aia_core.infrastructure.tables import PromptVersionRow
 from aia_core.infrastructure.workflow_repository import WorkflowRepository
@@ -777,6 +778,19 @@ def _step(world: Any, run_id: str) -> Any:
         return step.status, dict(step.input_json), [dict(a.error_json) for a in attempts]
 
 
+def _nothing_left(world: Any, *, now: datetime) -> None:
+    """The erased member, reactivated, finds no Lead and no Lead turn: read through the Lead's
+    repositories, the only readers of its tables (``make layer_check``)."""
+    with world.sessions() as session:
+        reactivate_member(session, world.admin_context(session), user_id=world.lead_id, now=now)
+        session.commit()
+    with world.sessions() as session:
+        scope = world.lead_scope(session)
+        assert ResearcherLeadRepository(session, scope).get() is None
+        assert ResearcherLeadRepository(session, scope).is_sealed() is False
+        assert StudyLeadRepository(session, scope).turns() == []
+
+
 def test_a_deactivated_members_queued_turn_never_runs_and_comes_back_with_them(
     ready: Any, database_url: str, store: Any, build: Any
 ) -> None:
@@ -797,7 +811,9 @@ def test_a_deactivated_members_queued_turn_never_runs_and_comes_back_with_them(
     assert status == "FAILED" and errors[-1]["reason"] == "lead_sealed"
 
     with ready.sessions() as session:
-        back = reactivate_member(session, ready.admin_context(session), user_id=ready.lead_id)
+        back = reactivate_member(
+            session, ready.admin_context(session), user_id=ready.lead_id, now=datetime.now(UTC)
+        )
         session.commit()
     assert back.lead_unsealed is True
     with ready.sessions() as session:
@@ -811,12 +827,7 @@ def test_a_sealed_lead_past_its_date_is_erased_with_its_turns_and_what_they_sent
     ready: Any, database_url: str, store: Any, build: Any
 ) -> None:
     from aia_core.infrastructure.storage import ObjectNotFound
-    from aia_core.infrastructure.tables import (
-        ProjectArtifactRow,
-        ResearcherLeadRow,
-        StudyLeadTurnRow,
-        WorkflowRunRow,
-    )
+    from aia_core.infrastructure.tables import ProjectArtifactRow, WorkflowRunRow
 
     turn_id = post(ready)
     assert worker(ready, database_url, store, build, RecordedBedrock([REPLY])).run_once()
@@ -833,22 +844,52 @@ def test_a_sealed_lead_past_its_date_is_erased_with_its_turns_and_what_they_sent
     _deactivate(ready)
     now = datetime.now(UTC)
     assert erase_sealed_leads(ready.sessions, store, now=now) == []  # not yet due
-    with ready.sessions() as session:
-        session.execute(
-            update(ResearcherLeadRow)
-            .where(ResearcherLeadRow.user_id == ready.lead_id)
-            .values(erase_after=now - timedelta(seconds=1))
-        )
-        session.commit()
-    erased = erase_sealed_leads(ready.sessions, store, now=now)
+    late = now + timedelta(days=31)
+    erased = erase_sealed_leads(ready.sessions, store, now=late)
     assert [e.user_id for e in erased] == [ready.lead_id]
 
+    _nothing_left(ready, now=late)
     with ready.sessions() as session:
-        assert session.query(ResearcherLeadRow).filter_by(user_id=ready.lead_id).count() == 0
-        assert session.query(StudyLeadTurnRow).filter_by(user_id=ready.lead_id).count() == 0
         assert session.get(ProjectArtifactRow, artifact_id) is None
         assert session.get(WorkflowRunRow, run_id) is not None  # the ledgers still resolve
     status, inputs, _ = _step(ready, run_id)
     assert status == "SUCCEEDED" and inputs == {"erased": "lead_sealed"}
+    with pytest.raises(ObjectNotFound):
+        store.get(key)
+
+
+def test_a_lead_past_its_date_is_erased_on_reactivation_with_what_its_turns_stored(
+    ready: Any, database_url: str, store: Any, build: Any
+) -> None:
+    """The review of #830: reactivated after its date and before the sweep, the Lead is erased
+    then, with its turns, their payloads and stored objects; it never comes back unsealed."""
+    from aia_core.application.membership import delete_objects
+    from aia_core.infrastructure.storage import ObjectNotFound
+    from aia_core.infrastructure.tables import ProjectArtifactRow, StepRunRow
+
+    turn_id = post(ready)
+    assert worker(ready, database_url, store, build, RecordedBedrock([REPLY])).run_once()
+    run_id = lead_turn(ready, turn_id)["run_id"]
+    with ready.sessions() as session:
+        step = session.query(StepRunRow).filter(StepRunRow.run_id == run_id).one()
+        key = session.get(ProjectArtifactRow, step.output_json["artifact_id"]).storage_key
+
+    _deactivate(ready)
+    late = datetime.now(UTC) + timedelta(days=31)
+    with ready.sessions() as session:
+        back = reactivate_member(
+            session, ready.admin_context(session), user_id=ready.lead_id, now=late
+        )
+        session.commit()
+    delete_objects(store, back.erased_keys)
+    assert (back.lead_unsealed, back.lead_erased) == (False, True)
+    assert key in back.erased_keys
+
+    with ready.sessions() as session:
+        scope = ready.lead_scope(session)
+        assert ResearcherLeadRepository(session, scope).get() is None
+        assert StudyLeadRepository(session, scope).turns() == []
+    _, inputs, _ = _step(ready, run_id)
+    assert inputs == {"erased": "lead_sealed"}
     with pytest.raises(ObjectNotFound):
         store.get(key)

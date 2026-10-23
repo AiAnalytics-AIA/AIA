@@ -15,7 +15,7 @@ on its own and deletes the stored objects after its commit.
 from __future__ import annotations
 
 import logging
-from collections.abc import Callable
+from collections.abc import Callable, Sequence
 from dataclasses import dataclass
 from datetime import datetime
 
@@ -33,6 +33,7 @@ __all__ = [
     "Deactivation",
     "Reactivation",
     "deactivate_member",
+    "delete_objects",
     "erase_sealed_leads",
     "reactivate_member",
 ]
@@ -54,6 +55,10 @@ class Reactivation:
 
     changed: bool
     lead_unsealed: bool
+    #: The Lead was past its date: erased now rather than unsealed (the sweep may not have
+    #: reached it yet). Its stored objects are deleted by the caller once it has committed.
+    lead_erased: bool = False
+    erased_keys: tuple[str, ...] = ()
 
 
 def deactivate_member(
@@ -65,11 +70,23 @@ def deactivate_member(
 
 
 def reactivate_member(
-    session: Session, admin: OrganizationContext, *, user_id: str
+    session: Session, admin: OrganizationContext, *, user_id: str, now: datetime
 ) -> Reactivation:
-    """Reactivate the member; their Lead is unsealed when it has not been erased yet."""
+    """Reactivate the member. Within :data:`SEAL_DAYS` their Lead is unsealed. Past its date
+    it is erased here, as the sweep would have erased it, and never unsealed: the member then
+    hatches a new one. The caller commits, then deletes ``erased_keys`` from the store
+    (:func:`delete_objects`)."""
     changed = ScopeRepository(session).reactivate_member(admin, user_id=user_id)
-    return Reactivation(changed, LeadSeals(session, admin).unseal(user_id) if changed else False)
+    if not changed:
+        return Reactivation(False, False)
+    seals = LeadSeals(session, admin)
+    for organization_id, due_user, lead_id in LeadSeals.due(session, now=now):
+        if (organization_id, due_user) == (admin.organization_id, user_id):
+            done, keys = _erase_one(
+                session, organization_id=organization_id, user_id=user_id, lead_id=lead_id
+            )
+            return Reactivation(True, False, lead_erased=done is not None, erased_keys=keys)
+    return Reactivation(True, seals.unseal(user_id, now=now))
 
 
 def lead_seals(session: Session, admin: OrganizationContext) -> dict[str, LeadSeal]:
@@ -92,22 +109,41 @@ def erase_sealed_leads(
     erased: list[ErasedLead] = []
     for organization_id, user_id, lead_id in due:
         with sessions() as session:
-            done = LeadSeals.erase(session, lead_id=lead_id)
+            done, keys = _erase_one(
+                session, organization_id=organization_id, user_id=user_id, lead_id=lead_id
+            )
             if done is None:
                 session.rollback()
                 continue
-            run_ids = erase_member_turns(session, organization_id=organization_id, user_id=user_id)
-            attempts = erase_lead_run_payloads(
-                session, organization_id=organization_id, user_id=user_id, run_ids=run_ids
-            )
-            keys = erase_artifacts_of_attempts(session, attempts)
             session.commit()
-        for key in keys:
-            try:
-                store.delete(key)
-            except ObjectNotFound:
-                pass
-            except Exception:  # an orphaned object harms nothing; a later sweep is not needed
-                log.exception("a sealed Lead's object could not be deleted")
+        delete_objects(store, keys)
         erased.append(done)
     return erased
+
+
+def _erase_one(
+    session: Session, *, organization_id: str, user_id: str, lead_id: str
+) -> tuple[ErasedLead | None, tuple[str, ...]]:
+    """Erase one sealed Lead and its member's Lead turns, what they sent and got back, and
+    their artifact rows, in ``session``; the storage keys to delete once it has committed.
+    ``(None, ())`` for a Lead unsealed meanwhile."""
+    done = LeadSeals.erase(session, lead_id=lead_id)
+    if done is None:
+        return None, ()
+    run_ids = erase_member_turns(session, organization_id=organization_id, user_id=user_id)
+    attempts = erase_lead_run_payloads(
+        session, organization_id=organization_id, user_id=user_id, run_ids=run_ids
+    )
+    return done, tuple(erase_artifacts_of_attempts(session, attempts))
+
+
+def delete_objects(store: ArtifactStore, keys: Sequence[str]) -> None:
+    """Delete an erased Lead's stored objects, after the transaction that erased their rows
+    committed (a row is never left pointing at a deleted object)."""
+    for key in keys:
+        try:
+            store.delete(key)
+        except ObjectNotFound:
+            pass
+        except Exception:  # an orphaned object harms nothing; a later sweep is not needed
+            log.exception("a sealed Lead's object could not be deleted")

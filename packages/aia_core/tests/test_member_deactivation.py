@@ -4,7 +4,7 @@ target is resolved through the acting admin's own organization, never found else
 from __future__ import annotations
 
 from dataclasses import replace
-from datetime import UTC, datetime
+from datetime import UTC, datetime, timedelta
 from typing import Any
 
 import pytest
@@ -71,7 +71,7 @@ def test_a_deactivated_member_resolves_no_scope_here_but_keeps_their_other_membe
 
     again = deactivate_member(session, scoped.admin_context, user_id=lead, now=NOW)
     assert again.changed is False
-    back = reactivate_member(session, scoped.admin_context, user_id=lead)
+    back = reactivate_member(session, scoped.admin_context, user_id=lead, now=NOW)
     assert back.changed is True
     assert scoped.resolver.organization_context(scoped.principal(lead))
     actions = [
@@ -124,10 +124,34 @@ def test_deactivating_seals_the_lead_for_everyone_and_reactivating_unseals_it(
     assert ResearcherLeadRepository(session, own).is_sealed() is True
     assert set(LeadSeals(session, scoped.admin_context).seals()) == {lead}
 
-    back = reactivate_member(session, scoped.admin_context, user_id=lead)
+    back = reactivate_member(session, scoped.admin_context, user_id=lead, now=NOW)
     assert back.lead_unsealed is True
     assert ResearcherLeadRepository(session, own).get() is not None
     assert LeadSeals(session, scoped.admin_context).seals() == {}
+
+
+def test_a_lead_past_its_date_is_erased_on_reactivation_never_unsealed(
+    scoped: Any, session: Any
+) -> None:
+    """Reactivated on day 31 with no sweep in between (it runs per deploy): the Lead is erased
+    then and there, as the sweep would have, and its member hatches a new one."""
+    lead = scoped.users["lead"]
+    own = scoped.resolver.organization_context(scoped.principal(lead))
+    ResearcherLeadRepository(session, own).hatch()
+    deactivate_member(session, scoped.admin_context, user_id=lead, now=NOW)
+    late = NOW + timedelta(days=SEAL_DAYS + 1)
+    assert LeadSeals(session, scoped.admin_context).unseal(lead, now=late) is False
+
+    back = reactivate_member(session, scoped.admin_context, user_id=lead, now=late)
+    assert (back.lead_unsealed, back.lead_erased) == (False, True)
+    assert LeadSeals(session, scoped.admin_context).seals() == {}
+    assert ResearcherLeadRepository(session, own).get() is None
+    assert ResearcherLeadRepository(session, own).is_sealed() is False
+    ResearcherLeadRepository(session, own).hatch()  # a new Lead, not the old one back
+    actions = session.scalars(
+        select(AccessAuditRow.action).where(AccessAuditRow.subject_user_id == lead)
+    ).all()
+    assert "LEAD_ERASED" in actions and "LEAD_UNSEALED" not in actions
 
 
 def test_only_an_administrator_seals_a_lead(scoped: Any, session: Any) -> None:
