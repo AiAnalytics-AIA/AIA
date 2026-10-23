@@ -318,6 +318,8 @@ def report_editor_callback(
     tokens = _tokens(settings)
     now = _now()
     try:
+        if token is None or len(token) > MAX_TOKEN:
+            raise TokenRefused("no token, or not one")
         header = tokens.read_onlyoffice(bearer(authorization))
         payload = tokens.read_onlyoffice((body or {}).get("token"))
         claim = tokens.read_url(token, "callback", now=now)
