@@ -41,12 +41,11 @@ const P = "aia.settings.prompts";
 
 /**
  * The version in force, marked the same way wherever it is shown: the list's dot, the editor's chip
- * and the Verze table's row. Green is the redesign's colour for "in force" alone; until its token
- * lands with the Indigo palette (#816) it is the signal wash, and only this constant changes then.
+ * and the Verze table's row. Green (`in-force`) is the interface's colour for "in force" alone.
  */
-const IN_FORCE = "bg-signal-wash";
-const IN_FORCE_EDGE = "shadow-[inset_3px_0_0_var(--color-signal)]";
-const IN_FORCE_DOT = "bg-signal";
+const IN_FORCE = "bg-in-force-wash";
+const IN_FORCE_EDGE = "shadow-[inset_3px_0_0_var(--color-in-force)]";
+const IN_FORCE_DOT = "bg-in-force";
 
 export const nameOf = (id: string) => {
   const key = `${P}.names.${id.replaceAll(".", "_")}`;
@@ -478,7 +477,7 @@ function Heading({ detail, dirty, waiting }: { detail: PromptSlotDetail; dirty: 
       <div className="flex flex-wrap items-center gap-x-3 gap-y-1.5">
         <h3 className="text-xl font-semibold">{nameOf(detail.prompt_id)}</h3>
         {!detail.wired ? <span className={`${chip} border-border text-ink-muted`}>{t(`${P}.chips.fixed`)}</span> : <>
-          <span data-prompt-in-force className={`${chip} border-signal-edge font-medium text-ink ${IN_FORCE}`}>
+          <span data-prompt-in-force className={`${chip} border-in-force font-medium text-ink ${IN_FORCE}`}>
             {detail.active.origin === "stored" ? tv(`${P}.chips.inForce`, { v: shortName(detail.active.version_number!) }) : t(`${P}.chips.inForceBaseline`)}
           </span>
           {waiting !== null ? <span data-waiting-chip className={`${chip} border-status-you-ink/40 bg-status-you-wash text-ink`}>{tv(`${P}.chips.waiting`, { v: shortName(waiting) })}</span> : null}
