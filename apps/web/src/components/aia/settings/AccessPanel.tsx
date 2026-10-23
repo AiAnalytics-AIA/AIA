@@ -13,7 +13,7 @@ import { useRouter } from "next/navigation";
 import { type KeyboardEvent, type ReactNode, useEffect, useRef, useState } from "react";
 
 import { t, tv } from "@/i18n/t";
-import { type AdminClient, type ClientRules, type Member, type SelfApprovalLevels, type Vocabularies, ApiError, Unauthenticated, admin, clientRules, workspace } from "@/lib/api";
+import { type AdminClient, type ClientRules, type Member, type SelfApprovalLevels, type Vocabularies, ApiError, Unauthenticated, admin, clientRules } from "@/lib/api";
 import { appRoutes } from "@/lib/app-routes";
 import type { SaveState } from "@/lib/inline-edit";
 import { usd } from "@/lib/researcher-spend";
@@ -24,7 +24,6 @@ import { FOCUS, SaveNote } from "../../ui/parts";
 import { UndoToast, useUndo } from "../../ui/UndoToast";
 import { Button } from "../../rehome/ui";
 import { describeError, describeMemberError } from "./errors";
-import { useResource } from "../useResource";
 
 const P = "aia.settings.panel";
 const A = `${P}.accessTab`;
@@ -240,14 +239,14 @@ function AddMemberRow({ roles, reload }: { roles: readonly string[]; reload: () 
 
 const ROLE_BOXES = ["OWNER", "ADMIN", "MEMBER", "METODIK"] as const;
 
-export function MembersCard({ members, vocab, canAdminister, yourRole, reload }: {
+export function MembersCard({ members, vocab, canAdminister, yourRole, reload, myId }: {
   members: Part<Member[]>; vocab: Vocabularies; canAdminister: boolean; yourRole: string; reload: () => void;
+  /** Your own user id, from the page's one /workspace/me read; null while unread or refused. */
+  myId: string | null;
 }) {
   const undo = useUndo();
-  // You are your user id, from /workspace/me: a token's e-mail can be missing or changed under the same
-  // subject (review of #859). Until the id is read, no row is yours and none offers deactivation.
-  const [who] = useResource(() => workspace.me(), []);
-  const myId = who.state === "ready" ? who.data.user_id : null;
+  // You are your user id: a token's e-mail can be missing or changed under the same subject (review
+  // of #859). Until the id is read, no row is yours and none offers deactivation.
   // Only an OWNER grants or removes OWNER (the API refuses it, owner_only); the last active OWNER
   // is not offered a demotion the API refuses (last_owner).
   const owner = yourRole === "OWNER";

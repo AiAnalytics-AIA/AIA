@@ -663,7 +663,7 @@ function PanelView({ panel, reload, footer }: { panel: Panel; reload: () => void
   const extra: Record<string, ReactNode> = {
     ai: <RuntimePanel runtime={doc.ai_runtime} config={runtime} vocab={vocab} />,
     ai_history: <HistoryPanel vocab={vocab} items={byKey.get("ai_history")?.items ?? []} />,
-    access: <MembersCard members={members} vocab={vocab} canAdminister={doc.may_administer} yourRole={doc.your_role} reload={reload} />,
+    access: <MembersCard members={members} vocab={vocab} canAdminister={doc.may_administer} yourRole={doc.your_role} reload={reload} myId={panel.me?.ok ? panel.me.data.user_id : null} />,
     studies: (
       <>
         <ResearcherSpendCard nearLimitCount={studies.ok ? nearLimitTally(studies.data.map(({ detail }) => detail)) : null} />
