@@ -13,8 +13,9 @@ them were dropped (plan chunk 6). The organization is the boundary.
 
 from __future__ import annotations
 
+import re
 from datetime import UTC, datetime
-from typing import Annotated, Any, Literal
+from typing import Annotated, Any, Final, Literal
 
 from aia_core.application.membership import (
     deactivate_member,
@@ -33,7 +34,7 @@ from aia_core.domain.scope import (
     StudyStatus,
 )
 from fastapi import APIRouter, Depends, HTTPException, Path, Query, Response, status
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict, Field, field_validator
 
 from ..dependencies import (
     ArtifactStoreDep,
@@ -159,6 +160,10 @@ class StudySpendConfirmRequest(BaseModel):
     limit_usd: float | None = Field(ge=0, le=1_000_000)
 
 
+#: The shape of an address sign-in can bind: one @, a dotted domain, no spaces.
+_EMAIL: Final = re.compile(r"^[^@\s]+@[^@\s]+\.[^@\s]+$")
+
+
 class MemberRequest(BaseModel):
     """Add a user to the organization."""
 
@@ -167,6 +172,16 @@ class MemberRequest(BaseModel):
     email: str = Field(max_length=320)
     role: Literal["OWNER", "ADMIN", "MEMBER"] = "MEMBER"
     display_name: str = Field(default="", max_length=255)
+
+    @field_validator("email")
+    @classmethod
+    def _an_address(cls, value: str) -> str:
+        """An e-mail address a person can sign in with, or 422: "alice" made a member who could
+        never sign in, since sign-in binds a member by their e-mail."""
+        address = value.strip()
+        if not _EMAIL.match(address):
+            raise ValueError("not an e-mail address")
+        return address
 
 
 class MemberResponse(BaseModel):
