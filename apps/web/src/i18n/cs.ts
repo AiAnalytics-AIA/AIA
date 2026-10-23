@@ -1056,7 +1056,7 @@ export const cs = {
           origin: { stored: "uložená verze", code: "z kódu" },
           pinNote:
             "Běh si metodiku v platnosti zapíše při spuštění a počítá podle ní; změna platí jen pro běhy spuštěné potom. Opakovaný běh si ponechá metodiku původního běhu.",
-          adminNote: "Upravit metodiku a uvést ji v platnost může vlastník nebo správce organizace; ostatní členové ji vidí a mohou si úpravu zkontrolovat.",
+          adminNote: "Upravit metodiku a uvést ji v platnost může jen člen se značkou Metodik (uděluje ji vlastník organizace); ostatní členové ji vidí a mohou si úpravu zkontrolovat.",
           list: "Uložené verze",
           none: "Žádná uložená verze: platí metodika z kódu.",
           current: "v platnosti",
@@ -2160,6 +2160,8 @@ export const cs = {
         sets: { one: "1 sledovaná sada", few: "{n} sledované sady", many: "{n} sledovaných sad" },
       },
       imported: "Načteno: {counts}",
+      uploadReplaces: "Načtený soubor nahradí současný dotazník. Hned potom ho půjde vrátit.",
+      importUndoStale: "Dotazník se od načtení změnil, import už se nevrátí.",
       // Závislosti (artifact-questionnaire QST8): what reads each item downstream.
       dependencies: {
         title: "Závislosti",
@@ -2804,6 +2806,8 @@ export const cs = {
         // run-qc-and-checkpoint RQC7a: fieldwork's progress event, by its code.
         fieldworkProgress: "Odpovědělo {done} z {of} respondentů",
         fieldworkReplayed: "{replayed} bloků z uložených odpovědí, bez nového placení",
+        // artifact-fieldwork FLD3: a stopped step's count, as it last reported it.
+        lastReported: "Naposledy hlášeno: odpovědělo {done} z {of} respondentů",
         aiAnswered: "Model odpověděl · {tokensIn} → {tokensOut} tokenů · {cost} · {seconds} s",
         aiAnsweredNoTokens: "Model odpověděl · tokeny neuvedeny · {cost} · {seconds} s",
         tokensUnknown: "?",

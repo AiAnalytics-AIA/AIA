@@ -468,6 +468,9 @@ class OrganizationMemberRow(Base):
     organization_id: Mapped[str] = mapped_column(String(64), primary_key=True)
     user_id: Mapped[str] = mapped_column(String(64), primary_key=True)
     role: Mapped[str] = mapped_column(String(32), nullable=False, default="MEMBER")
+    # The Metodik mark (D-14, settings-backends SB1): only a marked member stores and puts in
+    # force a methodology version. Granted and revoked by an OWNER; not a role.
+    methodologist: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
     # Deactivated in this organization (D-27, settings-backends SB2): the member resolves no
     # scope here while set; their membership elsewhere and the account are untouched.
     deactivated_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
