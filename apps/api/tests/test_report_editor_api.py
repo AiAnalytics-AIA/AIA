@@ -4,6 +4,7 @@
 from __future__ import annotations
 
 import io
+import json
 import os
 import zipfile
 from typing import Any
@@ -14,7 +15,9 @@ import pytest
 from aia_core.application.report import INTERNAL_REPORT_ARTIFACT_TYPE, INTERNAL_REPORT_MEDIA_TYPE
 from aia_core.application.research import research_artifacts
 from aia_core.application.scope import AuthenticatedPrincipal, ScopeResolver
+from aia_core.domain.report.saved_changes import read_changes_payload
 from aia_core.infrastructure.db import create_session_factory
+from aia_core.infrastructure.report_editor_repository import ReportEditorRepository
 from aia_core.infrastructure.workflow_repository import WorkflowRepository
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
@@ -64,12 +67,20 @@ def settings() -> Settings:
     )
 
 
-def _docx(text: str = "Koncept") -> bytes:
+W = "http://schemas.openxmlformats.org/wordprocessingml/2006/main"
+
+
+def _docx(value: str = "42,5 %", prose: str = "Bance důvěřuje") -> bytes:
+    """A report body with one locked number, ``value`` under ``trust_total``."""
+    body = (
+        f'<w:document xmlns:w="{W}"><w:body><w:p><w:r><w:t>{prose} </w:t></w:r>'
+        '<w:sdt><w:sdtPr><w:tag w:val="trust_total"/></w:sdtPr><w:sdtContent>'
+        f"<w:r><w:t>{value}</w:t></w:r></w:sdtContent></w:sdt></w:p></w:body></w:document>"
+    )
     out = io.BytesIO()
     with zipfile.ZipFile(out, "w") as z:
         # A fixed time: the same content is the same bytes whenever it is built.
-        info = zipfile.ZipInfo("word/document.xml", (2026, 10, 23, 0, 0, 0))
-        z.writestr(info, f"<w:document>{text}</w:document>")
+        z.writestr(zipfile.ZipInfo("word/document.xml", (2026, 10, 23, 0, 0, 0)), body)
     return out.getvalue()
 
 
@@ -366,3 +377,193 @@ def test_a_token_pairing_a_session_with_another_organizations_version_serves_not
     query = {"token": stray}
     answer = client.get(path, params=query, headers=_signed_for(path, query))
     assert answer.status_code == 404 and answer.json()["code"] == "editor_version_not_found"
+
+
+# -- the callback (part 3) ---------------------------------------------------------
+
+
+class Saves:
+    """The Document Server's files, as a fetcher serves them, and every URL asked for."""
+
+    def __init__(self) -> None:
+        self.files: dict[str, bytes] = {}
+        self.asked: list[str] = []
+        self.refuse: str | None = None
+
+    def put(self, data: bytes, name: str = "output.docx") -> str:
+        url = f"{EDITOR}/cache/files/data/{len(self.files)}/{name}?md5=x&expires=1"
+        self.files[url] = data
+        return url
+
+    def __call__(self, url: str) -> bytes:
+        from aia_core.infrastructure.editor_fetch import SaveFetchRefused
+
+        self.asked.append(url)
+        if self.refuse:
+            raise SaveFetchRefused(self.refuse)
+        return self.files[url]
+
+
+@pytest.fixture
+def saves(app: FastAPI) -> Saves:
+    app.state.editor_fetcher = fetched = Saves()
+    return fetched
+
+
+def _callback(client: TestClient, config: dict[str, Any], **body: Any) -> Any:
+    """``body`` posted to the config's callback URL as ONLYOFFICE posts it: signed in the body
+    and, wrapped as its ``payload``, in the header."""
+    body = {"key": config["document"]["key"], **body}
+    url = urlparse(config["editorConfig"]["callbackUrl"])
+    return client.post(
+        url.path,
+        params=parse_qs(url.query),
+        json={**body, "token": jwt.encode(body, SECRET)},
+        headers={"Authorization": f"Bearer {jwt.encode({'payload': body}, SECRET)}"},
+    )
+
+
+def test_a_force_save_stores_the_next_koncept_with_its_changes_and_keeps_the_key(
+    app: FastAPI, researcher: TestClient, client: TestClient, world: Any, saves: Saves
+) -> None:
+    run_id, draft = _reported_run(app, researcher, world)
+    config = researcher.post(_editor(world, run_id), json={}).json()["config"]
+    me = world.users["researcher"]
+    url = saves.put(_docx("50 %"))
+    answer = _callback(client, config, status=6, url=url, users=[me])
+    assert answer.status_code == 200 and answer.json() == {"error": 0}, answer.text
+    again = researcher.post(_editor(world, run_id), json={}).json()
+    assert again["config"]["document"]["key"] == config["document"]["key"]
+    assert again["koncept"] == 2 and again["line_id"] == draft
+    assert again["problem"] is None
+    factory = create_session_factory(app.state.engine)
+    with factory() as session:
+        principal = AuthenticatedPrincipal(user_id=me, organization_id=world.organization_id)
+        scope = ScopeResolver(session).study_context(principal, study_id=world.study_id())
+        repo = research_artifacts(session, scope, app.state.artifact_store)
+        version = repo.get(again["version_artifact_id"])
+        assert version.artifact_type == "research_internal_docx_edit"
+        assert version.produced_by_user_id == me
+        assert [d.artifact_id for d in repo.dependencies(version.artifact_id)] == [draft]
+        assert version.metadata["koncept"] == 2 and version.metadata["authors"] == [me]
+        stored = ReportEditorRepository(session, scope).version(version.artifact_id)
+        assert stored is not None and stored.changes_artifact_id is not None
+        changes = read_changes_payload(json.loads(repo.read(stored.changes_artifact_id)))
+        assert [(c.kind.value, c.tag, c.was, c.now) for c in changes.changes] == [
+            ("changed", "trust_total", "42,5 %", "50 %")
+        ]
+    # The same bytes again (a retried callback) store nothing new.
+    assert _callback(client, config, status=6, url=saves.put(_docx("50 %")), users=[me]).json() == {
+        "error": 0
+    }
+    assert researcher.post(_editor(world, run_id), json={}).json()["koncept"] == 2
+
+
+def test_everyone_leaving_closes_the_session_and_the_next_opens_a_new_key(
+    app: FastAPI, researcher: TestClient, client: TestClient, world: Any, saves: Saves
+) -> None:
+    run_id, _ = _reported_run(app, researcher, world)
+    config = researcher.post(_editor(world, run_id), json={}).json()["config"]
+    me = world.users["researcher"]
+    assert _callback(client, config, status=1, users=[me]).json() == {"error": 0}
+    url = saves.put(_docx("50 %"))
+    assert _callback(client, config, status=2, url=url, users=[me]).json() == {"error": 0}
+    reopened = researcher.post(_editor(world, run_id), json={}).json()
+    assert reopened["config"]["document"]["key"] != config["document"]["key"]
+    assert reopened["koncept"] == 2
+    closed = reopened["config"]
+    assert _callback(client, closed, status=4).json() == {"error": 0}
+    assert researcher.post(_editor(world, run_id), json={}).json()["config"]["document"][
+        "key"
+    ] not in (
+        config["document"]["key"],
+        closed["document"]["key"],
+    )
+
+
+def test_a_callback_naming_another_host_is_refused_unfetched(
+    app: FastAPI, researcher: TestClient, client: TestClient, world: Any, saves: Saves
+) -> None:
+    run_id, _ = _reported_run(app, researcher, world)
+    config = researcher.post(_editor(world, run_id), json={}).json()["config"]
+    me = world.users["researcher"]
+    for url in (
+        "https://evil.example.test/cache/files/x.docx",
+        f"{EDITOR}/healthcheck",
+        f"{EDITOR}/cache/files/../../etc/passwd",
+        f"{EDITOR}:8443/cache/files/x.docx",
+    ):
+        assert _callback(client, config, status=6, url=url, users=[me]).json() == {"error": 1}
+    assert saves.asked == []
+    opened = researcher.post(_editor(world, run_id), json={}).json()
+    assert opened["koncept"] == 1 and opened["problem"] == "not_the_editors_file"
+
+
+def test_a_restarted_document_servers_save_is_not_stored_and_said(
+    app: FastAPI, researcher: TestClient, client: TestClient, world: Any, saves: Saves
+) -> None:
+    run_id, _ = _reported_run(app, researcher, world)
+    config = researcher.post(_editor(world, run_id), json={}).json()["config"]
+    saves.refuse = "document_server_restarted"
+    url = saves.put(_docx("50 %"))
+    answer = _callback(client, config, status=6, url=url, users=[world.users["researcher"]])
+    assert answer.json() == {"error": 1}
+    opened = researcher.post(_editor(world, run_id), json={}).json()
+    assert opened["koncept"] == 1 and opened["problem"] == "document_server_restarted"
+
+
+def test_a_save_by_someone_no_config_was_signed_for_is_refused(
+    app: FastAPI, researcher: TestClient, client: TestClient, world: Any, saves: Saves
+) -> None:
+    run_id, _ = _reported_run(app, researcher, world)
+    config = researcher.post(_editor(world, run_id), json={}).json()["config"]
+    url = saves.put(_docx("50 %"))
+    answer = _callback(client, config, status=6, url=url, users=[world.users["lead"]])
+    assert answer.json() == {"error": 1} and saves.asked == []
+
+
+def test_an_unsigned_or_wrongly_signed_callback_is_refused(
+    app: FastAPI, researcher: TestClient, client: TestClient, world: Any, saves: Saves
+) -> None:
+    run_id, _ = _reported_run(app, researcher, world)
+    config = researcher.post(_editor(world, run_id), json={}).json()["config"]
+    url = urlparse(config["editorConfig"]["callbackUrl"])
+    body = {"key": config["document"]["key"], "status": 4}
+    wrong = jwt.encode(body, "w" * 48)
+    for headers, token in (({}, None), ({"Authorization": f"Bearer {wrong}"}, wrong)):
+        answer = client.post(
+            url.path, params=parse_qs(url.query), json={**body, "token": token}, headers=headers
+        )
+        assert answer.status_code == 403
+    # A body signed for another key than the URL's.
+    other = {"key": "ART-0.aaaa.1", "status": 4}
+    answer = client.post(
+        url.path,
+        params=parse_qs(url.query),
+        json={**other, "token": jwt.encode(other, SECRET)},
+        headers={"Authorization": f"Bearer {jwt.encode({'payload': other}, SECRET)}"},
+    )
+    assert answer.status_code == 403
+
+
+def test_a_save_is_stored_as_its_authors_when_a_config_was_signed_for_them(
+    app: FastAPI,
+    researcher: TestClient,
+    lead: TestClient,
+    client: TestClient,
+    world: Any,
+    saves: Saves,
+) -> None:
+    run_id, _ = _reported_run(app, researcher, world)
+    config = researcher.post(_editor(world, run_id), json={}).json()["config"]
+    lead.post(_editor(world, run_id), json={})  # the lead joins the same session
+    author = world.users["lead"]
+    url = saves.put(_docx("50 %"))
+    assert _callback(client, config, status=6, url=url, users=[author]).json() == {"error": 0}
+    version_id = researcher.post(_editor(world, run_id), json={}).json()["version_artifact_id"]
+    factory = create_session_factory(app.state.engine)
+    with factory() as session:
+        principal = AuthenticatedPrincipal(user_id=author, organization_id=world.organization_id)
+        scope = ScopeResolver(session).study_context(principal, study_id=world.study_id())
+        repo = research_artifacts(session, scope, app.state.artifact_store)
+        assert repo.get(version_id).produced_by_user_id == author
