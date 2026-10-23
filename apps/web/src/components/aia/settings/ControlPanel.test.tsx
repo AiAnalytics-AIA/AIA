@@ -357,6 +357,17 @@ describe("the settings control panel", () => {
     expect(called("PUT", "/api/v1/studies/STU-1/budget")[0].body).toEqual({ budget_usd: 900 });
   });
 
+  it("does not count a study whose costs it could not read as not near its budget", async () => {
+    // STU-2's GET fails (404 in the fake): the tile cannot say 0.
+    api({ "GET /api/v1/settings/researcher-spend": () => ({ period: "this_month", start: "", end: "", everyone: true, currency: "USD", people: [] }) });
+    render(<ControlPanel />);
+    fireEvent.click(await screen.findByRole("tab", { name: "Studie a rozpočty" }));
+    const tile = (await within(panelOf("Studie a rozpočty")).findByText("Téměř vyčerpané rozpočty")).parentElement as HTMLElement;
+    await waitFor(() => expect(tile.textContent).toContain("neznámo"));
+    expect(tile.textContent).toContain("u 1 nevíme");
+    expect(tile.textContent).not.toMatch(/rozpočty0/);
+  });
+
   it("keeps a saved budget in its field while the re-read has not caught up", async () => {
     // The re-read answers the old budget: the field must not fall back to it after the PUT's yes.
     api({ "PUT /api/v1/studies/STU-1/budget": () => ({ ...STUDY("STU-1", "Vnímání značky"), budget_usd: 900, spent_usd: 0, remaining_usd: 900 }) });

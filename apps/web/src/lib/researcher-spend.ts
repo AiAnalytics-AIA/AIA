@@ -131,3 +131,19 @@ export function nearLimit(s: { budget_usd: number | null; spent_usd: number | nu
   if (s.budget_usd <= 0) return s.spent_usd > 0;
   return s.spent_usd / s.budget_usd >= NEAR_LIMIT;
 }
+
+/** How many studies are near their budget, and how many could not be judged (costs hidden or unread). */
+export type NearLimitTally = { near: number; unknown: number };
+export function nearLimitTally(rows: readonly ({ ok: true; data: { budget_usd: number | null; spent_usd: number | null } } | { ok: false })[]): NearLimitTally {
+  let near = 0, unknown = 0;
+  for (const r of rows) {
+    if (!r.ok || r.data.budget_usd === null || r.data.spent_usd === null) unknown++;
+    else if (nearLimit(r.data)) near++;
+  }
+  return { near, unknown };
+}
+/** The tile's value: an exact count only when every study was judged; never 0 over an unknown (A6). */
+export function nearLimitWords(t: NearLimitTally): string {
+  if (!t.unknown) return String(t.near);
+  return t.near ? `≥ ${t.near}` : "neznámo";
+}

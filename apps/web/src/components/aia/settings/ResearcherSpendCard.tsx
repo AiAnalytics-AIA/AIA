@@ -14,6 +14,8 @@ import {
   PERIOD_LABEL,
   SPEND_PERIODS,
   type AmountLine,
+  type NearLimitTally,
+  nearLimitWords,
   isSpendReport,
   activityBar,
   overall,
@@ -75,7 +77,7 @@ function Tile({ label, children, note, highlight = false }: { label: string; chi
 
 /** "Útrata organizace": the period's spend, what running work holds, calls with no known bill, and
  *  studies near their budget; then the four money names. A researcher sees their own only. */
-function OrgSpend({ report, nearLimitCount }: { report: ResearcherSpend; nearLimitCount: number | null }) {
+function OrgSpend({ report, nearLimitCount }: { report: ResearcherSpend; nearLimitCount: NearLimitTally | null }) {
   const sum = overall(report);
   const line = totalLine(sum);
   return (
@@ -85,7 +87,11 @@ function OrgSpend({ report, nearLimitCount }: { report: ResearcherSpend; nearLim
         <Tile label="Utraceno" note={line.note ?? `${report.people.filter((p) => p.user_id !== null && p.total_usd > 0).length} výzkumníků`}><Amount line={line} /></Tile>
         <Tile label="Rezervováno" note="drží právě běžící práce">{usd(sum.reserved_usd)}</Tile>
         <Tile label="Nejistá volání" note="počítají se zvlášť, nikdy jako nula USD">{sum.uncertain_calls}</Tile>
-        <Tile label="Téměř vyčerpané rozpočty" note="studie nad 90 % rozpočtu" highlight={(nearLimitCount ?? 0) > 0}>{nearLimitCount ?? "neznámo"}</Tile>
+        <Tile label="Téměř vyčerpané rozpočty"
+          note={nearLimitCount?.unknown ? `studie nad 90 % rozpočtu · u ${nearLimitCount.unknown} nevíme` : "studie nad 90 % rozpočtu"}
+          highlight={(nearLimitCount?.near ?? 0) > 0}>
+          {nearLimitCount ? nearLimitWords(nearLimitCount) : "neznámo"}
+        </Tile>
       </div>
       <MoneyNames />
     </section>
@@ -105,7 +111,7 @@ function Parts({ items }: { items: ReturnType<typeof parts> }) {
   );
 }
 
-export function ResearcherSpendCard({ nearLimitCount = null }: { nearLimitCount?: number | null }) {
+export function ResearcherSpendCard({ nearLimitCount = null }: { nearLimitCount?: NearLimitTally | null }) {
   const [period, setPeriod] = useState<SpendPeriod>("this_month");
   const [open, setOpen] = useState<string | null>(null);
   const [res, retry] = useResource(() => load(period), [period]);

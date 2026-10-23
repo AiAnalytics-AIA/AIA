@@ -1566,7 +1566,7 @@ export const cs = {
         },
         studiesTab: {
           count: "{n} studií",
-          tableHelp: "Rozpočet studie a práh potvrzení měníte krokem přímo v řádku. Studie nad 90 % rozpočtu jsou zvýrazněné. Utraceno je za celou dobu studie.",
+          tableHelp: "Čísla měníte krokem přímo v řádku. Studie nad 90 % rozpočtu jsou zvýrazněné. Utraceno je za celou dobu studie.",
           statusOf: "Stav studie {study}",
           budgetOf: "Rozpočet studie {study}",
           budgetNote: "ne pod utracené",
