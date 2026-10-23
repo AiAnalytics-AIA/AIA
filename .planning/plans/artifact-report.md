@@ -350,9 +350,9 @@ a25d2435`, and the `/session/docs*` routes go with the hosting plan's change).
   `line`): the editor config, signed with the JWT secret: the session's key, the document URL, the callback URL, the
   person's id and display name (never an e-mail), `mode: edit` for a study member (`view` below 768 px, RPT8d),
   `customization.forcesave: true`, co-editing `fast`. The client report is refused by name.
-- `GET …/report/editor/document?token=…`: the version's DOCX, the token short-lived and naming that artifact alone;
+- `GET /report-editor/document?token=…` (the Document Server's routes are outside the study tree, part 2): the version's DOCX, the token short-lived and naming that artifact alone;
   the Document Server's JWT checked as well.
-- `POST …/report/editor/callback?token=…`: the JWT checked (header and body); status 2 and 6 store the file, 1
+- `POST /report-editor/callback?token=…`: the JWT checked (header and body); status 2 and 6 store the file, 1
   marks the session open, 4 closes it with nothing stored, 3 and 7 are logged. The file is fetched by GET from
   `AIA_ONLYOFFICE_URL`'s exact origin only, at a path under `/cache/files/` (the Document Server's own link, signed
   by its secure link with `md5` and `expires`, which Caddy lets past alone, #829), never another host or path, never
@@ -391,6 +391,35 @@ first; the client report, another type or another run's draft refused (`NotEdita
 variant `LineNotFound`. Tests: `test_report_editor.py` (SQLite and PostgreSQL), among them a second researcher
 joining under the same key, a new key after a close, a day's idle, and a recompose after an edit leaving the edited
 line's koncept 2 and starting a line whose koncept 1 is the composer's.
+
+*RPT8c, part 2 (`feature/report-editor-routes`):* `AIA_ONLYOFFICE_CALLBACK_BASE`, AIA's public https origin as the
+Document Server reaches it (report-editor-hosting decision 4: the public hostname, never the internal network,
+agreed with the infra session 2026-10-23), validated like `AIA_ONLYOFFICE_URL`; `Settings.report_editor_on` needs it,
+the editor's origin and its secret, else both routes are 404. `aia_api/editor_tokens.py`: ONLYOFFICE's JWT (HS256
+under the secret itself: the config signed, the Document Server's requests read) and AIA's URL tokens (HS256 under
+a key derived from it, so neither is ever the other: a document URL names one session's one version for 30
+minutes, a callback URL one session for a week; the clock passed in). `routers/report_editor.py`: `POST
+…/runs/{run_id}/report/editor` (`variant` internal or context with `deep_research_run_id`, `line`, `mode` edit or
+view) opens the line through `ReportEditor.open` and answers the signed config (the session's key, the document
+and callback URLs on the public origin, the person's id and display name, never an e-mail, `forcesave`, co-editing
+`fast`) with the run's lines; `client` is refused by name (409 `client_report_not_editable`). `GET
+/report-editor/document?token=` (the Document Server's routes are not under a study: the token's session names
+it, and a route under `/studies/{study_id}` is a person's, which MVP-ACCEPT AC01 sweeps as another organization)
+serves the version to the Document Server alone: its JWT in `Authorization` and
+the URL token both checked (403 otherwise), the session read by its key and the scope resolved for the person who
+opened it, the artifact a version of that session's line (404 otherwise), `Cache-Control: no-store`. Tests:
+`test_report_editor_api.py` (SQLite and PostgreSQL): the config signed as the Document Server checks it with no
+e-mail anywhere, the version fetched, a second researcher under the same key, an unsigned fetch and a token signed
+with the editor's own secret refused, a key no session has 404, the client report refused, every route 404 with the
+public origin unset, the setting an https origin only. From review: the config's own JWT expires (`CONFIG_LIFETIME`, 12 hours); a JWT
+shaped as a config (`document`, `editorConfig`) is never read as the Document Server's, and the document fetch's
+must name the URL fetched (`url` or `payload.url`: its path and its query's token), so the browser's config token
+cannot stand in for the Document Server; the URL token never reaches a log: `deploy/develop/Caddyfile` deletes
+`token` from the query in the product's access log and the default logger, and `tools/caddy_routes.py`
+(`logs_drop_token`) refuses a Caddyfile that writes it. The develop Compose file hands the API `AIA_ONLYOFFICE_CALLBACK_BASE:
+https://${AIA_PUBLIC_HOSTNAME}` (the worker none); the editor stays off there until SSM sets its URL and secret
+(`test_the_report_editor_reaches_the_api_on_its_public_origin_and_stays_off_until_set`). Tests: the browser's config token, a JWT for another URL, an
+expired document token, a callback token, another line's version and a key no session has are each refused.
 
 **RPT8d. The pane opens the editor.**
 - 768 px and wider, with the editor configured: Zpráva's pane loads the Document Server's `api.js` from

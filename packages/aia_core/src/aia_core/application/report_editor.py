@@ -34,9 +34,18 @@ from aia_core.infrastructure.report_editor_repository import (
     EditorSession,
     EditorVersion,
     ReportEditorRepository,
+    session_by_key,
 )
 
-__all__ = ["LineNotFound", "NotEditable", "OpenedLine", "ReportEditor"]
+__all__ = [
+    "EditorSession",
+    "EditorVersion",
+    "LineNotFound",
+    "NotEditable",
+    "OpenedLine",
+    "ReportEditor",
+    "session_by_key",
+]
 
 #: The composed draft each variant's line starts at.
 _COMPOSED_TYPES = {
@@ -117,6 +126,15 @@ class ReportEditor:
             saved_at=composed.created_at or datetime.now(UTC),
         )
         return [first]
+
+    def display_name(self) -> str:
+        """The caller's name for co-editors, never their e-mail (empty when none)."""
+        return self._repo.display_name()
+
+    def version_of(self, session: EditorSession, artifact_id: str) -> EditorVersion | None:
+        """``artifact_id`` when it is a version of ``session``'s line, else ``None``."""
+        version = self._repo.version(artifact_id)
+        return version if version is not None and version.line_id == session.line_id else None
 
     def lines(
         self, *, run_id: str, variant: str, deep_research_run_id: str | None = None

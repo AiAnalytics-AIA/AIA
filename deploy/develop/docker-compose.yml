@@ -202,6 +202,11 @@ services:
       # Unset (the default), the docs session routes answer 404 and Zpráva stays read-only.
       AIA_ONLYOFFICE_URL: ${AIA_ONLYOFFICE_URL:-}
       AIA_ONLYOFFICE_JWT_SECRET: ${AIA_ONLYOFFICE_JWT_SECRET:-}
+      # AIA's public origin, which the Document Server fetches a version from and posts each
+      # save to (artifact-report RPT8c): the public hostname, never the internal network, which
+      # the Document Server is not on (report-editor-hosting decision 4). The editor's routes
+      # answer only with it, the URL and the secret all set; the URL and secret unset, still 404.
+      AIA_ONLYOFFICE_CALLBACK_BASE: https://${AIA_PUBLIC_HOSTNAME}
     volumes:
       - ${AIA_POPULATION_DIR:-/opt/aia/population}:/srv/population:ro
     expose: ["8000"]

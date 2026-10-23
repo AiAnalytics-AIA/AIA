@@ -21,7 +21,13 @@ from sqlalchemy.orm import Session
 
 from ..domain.report.editor import LineHead
 from ..domain.scope import StudyContext
-from .tables import ProjectArtifactRow, ReportEditorSessionRow, ReportEditorVersionRow, as_utc
+from .tables import (
+    ProjectArtifactRow,
+    ReportEditorSessionRow,
+    ReportEditorVersionRow,
+    UserRow,
+    as_utc,
+)
 
 __all__ = [
     "EditorSession",
@@ -226,6 +232,13 @@ class ReportEditorRepository:
         self._session.add(row)
         self._session.flush()
         return _version(row)
+
+    def display_name(self) -> str:
+        """The caller's name as the editor shows it to co-editors: their display name, never
+        their e-mail; empty when none is recorded."""
+        row = self._session.get(UserRow, self._scope.actor_id)
+        name = (row.display_name if row is not None else "") or ""
+        return "" if "@" in name else name
 
     # -- sessions ------------------------------------------------------------
 

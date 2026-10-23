@@ -114,6 +114,9 @@ CACHE_QUERY = {"expires": ["*"], "md5": ["*"]}
 # What a log must not write from a docs.<hostname> URI's query: the one-time ticket, and a signed
 # cache link's signature and expiry, which open the saved document without the gate until then.
 LOG_SECRETS = ("ticket", "md5", "expires")
+# What a log must not write from the product's URIs: the report editor's URL token, a bearer
+# credential for one version or one editing session (artifact-report RPT8c, ?token=…).
+PRODUCT_LOG_SECRETS = ("token",)
 # What the editor itself loads, which the refusal must leave alone.
 EDITOR_PATHS = (
     "/web-apps/apps/api/documents/api.js",
@@ -249,6 +252,11 @@ def check(config: dict[str, Any]) -> list[str]:
             )
     if DOCS in hosts(config):
         problems.extend(check_docs(config))
+    if not logs_drop_token(config):
+        problems.append(
+            f"{PRODUCT}'s access log or Caddy's error log writes the report editor's token in a "
+            "URI's query"
+        )
     routes = site(config, PRODUCT)
 
     def only(path: str) -> dict[str, Any] | None:
@@ -381,6 +389,31 @@ def check_docs(config: dict[str, Any]) -> list[str]:
             "query, or Caddy's error log does"
         )
     return problems
+
+
+def _drops(config: dict[str, Any], name: str, secrets: tuple[str, ...]) -> bool:
+    encoder = config.get("logging", {}).get("logs", {}).get(name, {}).get("encoder", {})
+    uri = encoder.get("fields", {}).get("request>uri", {})
+    return (
+        encoder.get("format") == "filter"
+        and uri.get("filter") == "query"
+        and set(secrets)
+        <= {a.get("parameter") for a in uri.get("actions", []) if a.get("type") == "delete"}
+    )
+
+
+def logs_drop_token(config: dict[str, Any]) -> bool:
+    """Whether every log that records the product's URIs -- its access logs, and the default
+    logger, which records an upstream error with its request's URI -- deletes the report
+    editor's URL token from the query. No log configured writes nothing."""
+    names = [
+        name
+        for server in config["apps"]["http"]["servers"].values()
+        for name in server.get("logs", {}).get("logger_names", {}).get(PRODUCT, [])
+    ]
+    if "default" in config.get("logging", {}).get("logs", {}):
+        names.append("default")
+    return all(_drops(config, n, PRODUCT_LOG_SECRETS) for n in names)
 
 
 def logs_drop_ticket(config: dict[str, Any]) -> bool:
