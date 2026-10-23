@@ -139,7 +139,11 @@ the agent-job and Design Research accepts; **2f** the 18.6.6 migration, then `sa
   `design_research_accept` for a Design Research proposal, `DesignResearchProposals.accept`). The
   lock already held for them through `save` (WCE2c). Tests: the accept tests in
   `test_research_agent_executor.py` and `test_design_research_proposals.py` assert the rows (both
-  failed before the change).
+  failed before the change). With it, two tests WCE2d's review asked for (`test_lead_edits_logged.py`):
+  an automatic accept takes the unlocked text edit and refuses the locked one alone; a reword whose
+  links follow onto a locked question refuses the whole accept and writes nothing (the WCE8 edge).
+  Held at the 2026-10-22 feature freeze; released by the product owner overnight ("Drive all to
+  merge").
 
 **WCE3a. The web store on the server vocabulary, Brief and Design stages**  
 33 `store.update` sites in 9 files and about 1,900 lines of TypeScript with 18.6.6 parity tests are moved stage by stage; the parity tests stay green at every step.
