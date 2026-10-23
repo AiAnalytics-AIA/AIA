@@ -285,13 +285,17 @@ blocking an approval. His other answers in the same session:
 
 The chunks, as built from here:
 
-**RPT8a, part 3. The rest of the generated numbers locked and tagged.** The map's (P7-P9: the pair table as one block
-control, the support and credibility prose and the caption's fit as inline controls, each `map:<artifact_id>`), the
-design's and the run's (P10, P11: `spec:<path>`, `run:<path>`) and the literature bundle's (P14 with ED-R2's anchors:
-`bundle:<run_id>`), each an inline control on its numeric span (ED-R1), the grammar in `control_tags.py`. A lock is a
-guard against a stray keystroke, not a rule: ONLYOFFICE's content-control settings unlock it and a deletion removes
-it. Test: every sample kind and the report with literature, each generated numeric token inside a control whose tag
-`parse_tag` reads; the contracts move.
+**RPT8a, part 3. The rest of the generated numbers locked and tagged.** Three PRs. A paragraph, callout, text cell,
+table's notes or Sociomap caption fit that code writes whole from a stored source other than the ledger carries
+`control`, the tag of the locked control its text prints in (`control_tags.source_tag`): the map's (P7-P9,
+`map:<battery>/<method>`, a battery's reading guide `map:<battery>`), then the design's and the run's (P10-P12,
+`design:<revision>`, `run:<run>`), then the literature bundle's and the audit's (P14, P15, `bundle:<run>`, the L-labels
+inline). The lock is inline over the block's whole text (python-docx readers and the client-source reader `docx/2`
+read inline controls; a block-level control would hide its paragraphs from them), the section's manifest naming the
+source artifact by id and SHA-256. A lock is a guard against a stray keystroke, not a rule: ONLYOFFICE's
+content-control settings unlock it and a deletion removes it. The stored document model carries each `control`
+(`aia-report-document-4`). Test, per PR: every block of its chapters that prints a digit carries its source's control,
+and that text sits in a locked control under the same tag in the DOCX; the contracts move.
 
 **RPT8b. What a saved version changed ("Upraveno ručně"), never refusing.** A pure function over the stored document
 model rendered again and a saved DOCX: each tagged control changed or removed (by the multiset of (tag, text), so a
