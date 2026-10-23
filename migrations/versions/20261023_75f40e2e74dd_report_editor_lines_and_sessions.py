@@ -8,7 +8,7 @@ names cascades to it, so a deleted study's versions and sessions go with its art
 tables are new and empty: the downgrade drops them.
 
 Revision ID: 75f40e2e74dd
-Revises: f6b8d0e2a4c7
+Revises: a7c9e1f3b5d8
 Created: 2026-10-23 07:48:40.954591+00:00
 """
 
@@ -19,7 +19,7 @@ from alembic import op
 from sqlalchemy.dialects import postgresql
 
 revision: str = "75f40e2e74dd"
-down_revision: str | None = "f6b8d0e2a4c7"
+down_revision: str | None = "a7c9e1f3b5d8"
 branch_labels = None
 depends_on = None
 
