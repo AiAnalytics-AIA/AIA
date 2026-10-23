@@ -37,6 +37,7 @@ let failPosts = 0;
 let selfUpdates: unknown[];
 let staleAnswer: string[];
 let drains = 0;
+let failDrains = 0;
 let withdrawn: string[] = [];
 function api() {
   vi.stubGlobal("fetch", vi.fn(async (url: RequestInfo | URL, init?: RequestInit) => {
@@ -54,6 +55,10 @@ function api() {
     if (u === "/api/v1/lead") return new Response(JSON.stringify(me));
     if (u.endsWith("/lead/turns/queued")) {
       drains += 1;
+      if (failDrains > 0) {
+        failDrains -= 1;
+        return new Response(JSON.stringify({ code: "service_unavailable" }), { status: 500 });
+      }
       return new Response(JSON.stringify({ turns: [] }));
     }
     if (u.endsWith("/withdraw")) {
@@ -85,6 +90,7 @@ beforeEach(() => {
   drains = 0;
   withdrawn = [];
   failPosts = 0;
+  failDrains = 0;
   me = hatched;
   state = { available: true, unavailable_reason: null, busy: false, turns: [] };
   api();
@@ -460,6 +466,18 @@ describe("LeadPane", () => {
     state = { ...state, turns: [turn({ output: { reply: "Hotovo." } }), waiting] };
     rerender(pane({ epoch: 1 }));
     await waitFor(() => expect(drains).toBe(2));
+  });
+
+  it("says when asking the Lead to answer the queue failed, and asks again on Zkusit znovu", async () => {
+    const waiting = turn({ turn_id: "LDT-9", actor: "person", text: "Jsi tam?", run_id: null, queued: true });
+    state = { ...state, busy: false, turns: [turn({ output: { reply: "Hotovo." } }), waiting] };
+    failDrains = 1;
+    render(pane());
+    expect(await screen.findByText(/Vedoucí zatím neodpovídá na zprávy ve frontě/)).toBeTruthy();
+    expect(drains).toBe(1);
+    fireEvent.click(screen.getByRole("button", { name: "Zkusit znovu" }));
+    await waitFor(() => expect(drains).toBe(2));
+    await waitFor(() => expect(screen.queryByText(/Vedoucí zatím neodpovídá/)).toBeNull());
   });
 
   it("names a view chip's research question or hypothesis by its words in the working copy (F18)", async () => {

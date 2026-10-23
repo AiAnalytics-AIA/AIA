@@ -232,6 +232,9 @@ export function LeadPane({ studyId, stage, canEdit, focus, picking, onPick, onCl
   // free (the server starts one, however many tabs ask).
   const waiting = (session?.turns ?? []).filter((t) => t.actor === "person" && t.queued);
   const asked = useRef<string | null>(null);
+  // An ask that failed is said, with its reason and a retry: nothing else would ask again, and the
+  // queue would read as answered soon while no turn is coming.
+  const [drainFailed, setDrainFailed] = useState<string | null>(null);
   useEffect(() => {
     if (!session?.available || session.busy || sending || !waiting.length) return;
     // Asked again whenever the newest Lead turn moves on (a budget wait lifted and the turn
@@ -241,7 +244,10 @@ export function LeadPane({ studyId, stage, canEdit, focus, picking, onPick, onCl
     const key = `${waiting.map((t) => t.turn_id).join(",")}|${newest?.turn_id ?? ""}:${newest?.status ?? ""}`;
     if (asked.current === key) return;
     asked.current = key;
-    leadApi.answerQueued(studyId).then(() => read(), (e: unknown) => setError(e instanceof ApiError ? reasonWords(e.code) : String(e)));
+    leadApi.answerQueued(studyId).then(
+      () => { setDrainFailed(null); return read(); },
+      (e: unknown) => setDrainFailed(e instanceof ApiError ? reasonWords(e.code) : String(e)),
+    );
   }, [session, sending, waiting, studyId, read]);
   const unqueue = async (key: string) => {
     if (key.startsWith("local:")) {
@@ -314,6 +320,10 @@ export function LeadPane({ studyId, stage, canEdit, focus, picking, onPick, onCl
         {held ? (
           <div className="msg"><div className="notice"><Glyph tone="fault" size={11} />Zprávu se nepodařilo odeslat. Čeká ve frontě.
             <button type="button" className="chip" onClick={() => { setError(null); setHeld(false); }}>Zkusit znovu</button></div></div>
+        ) : null}
+        {drainFailed ? (
+          <div className="msg"><div className="notice"><Glyph tone="fault" size={11} />Vedoucí zatím neodpovídá na zprávy ve frontě: {drainFailed}
+            <button type="button" className="chip" onClick={() => { asked.current = null; setDrainFailed(null); void read(); }}>Zkusit znovu</button></div></div>
         ) : null}
         {me && !me.hatched ? <HatchCard onHatch={hatch} /> : null}
         {session && !session.available ? <div className="msg"><div className="notice"><Glyph tone="inert" size={11} />{reasonWords(session.unavailable_reason ?? "research_lead_unavailable")}</div></div> : null}
