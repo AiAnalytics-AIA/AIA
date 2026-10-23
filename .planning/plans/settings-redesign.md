@@ -13,7 +13,7 @@ chunks:
   - "[x] 8. Audit: categories with counts, period, search, Czech names for every action code"
   - "[x] 9. Reference: categories, Kdo mění filter, Co znamená column"
   - "[x] 10a. Metodika catalogue: a card per module with its drawing, accent and facts, no categories, the map first; -5 only, the reference map and H-Model not listed (D-13)"
-  - "[ ] 10b. Metodika module view: sub-tabs Výpočet / Verze a aktivace / Porovnání / Upravit, activation modal with reason chips, editor from the version in force, Metodik-only editing (D-14)"
+  - "[x] 10b. Metodika module view: sub-tabs Výpočet / Verze a aktivace / Porovnání / Upravit, activation modal with reason chips, editor from the version in force, Metodik-only editing (D-14)"
   - "[x] 11. Stav systému and Správa dat: content over their backends"
 ---
 # Settings redesign (Nastavení)
