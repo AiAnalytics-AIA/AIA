@@ -74,4 +74,18 @@ describe("ChoiceChips (I3, I11)", () => {
     fireEvent.keyDown(radios[1], { key: "ArrowRight" });
     expect(onChange).toHaveBeenCalled();
   });
+
+  it("segmented, full size: a long label wraps and is never clipped; a small bar stays on one line (review of #870)", () => {
+    const long = "Velmi dlouhý název klienta ".repeat(5).trim().slice(0, 120);
+    expect(long).toHaveLength(120);
+    const { unmount } = render(<ChoiceChips look="segmented" label="Klient" options={[{ key: "a", label: long }, { key: "b", label: "Krátký" }]} value={null} onChange={() => {}} />);
+    const radio = screen.getByRole("radio", { name: long });
+    expect(radio.textContent).toBe(long);
+    expect(radio.className).not.toContain("whitespace-nowrap");
+    expect(radio.className).not.toContain("truncate");
+    expect(radio.className).toContain("break-words");
+    unmount();
+    render(<ChoiceChips look="segmented" small label="Role" options={AGES} value={null} onChange={() => {}} />);
+    expect(screen.getAllByRole("radio")[0].className).toContain("whitespace-nowrap");
+  });
 });

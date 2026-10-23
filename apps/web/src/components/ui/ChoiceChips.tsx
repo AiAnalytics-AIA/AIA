@@ -81,7 +81,9 @@ export function ChoiceChips<K extends string>(
             // data-dense: the bar keeps its own height where a page enlarges every button (Settings).
             data-dense={segmented ? "" : undefined}
             className={segmented
-              ? `inline-flex min-h-11 items-center whitespace-nowrap border-border px-2.5 text-xs last:border-0 ${small ? "border-r" : "border-b sm:border-b-0 sm:border-r"} disabled:cursor-not-allowed disabled:opacity-50 focus-visible:relative focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-focus-ring ${small ? "sm:min-h-7 sm:px-2" : "sm:min-h-8"} ${
+              // A full-size bar's labels wrap (a client's name may be long, review of #870); a small
+              // bar holds fixed short choices and stays on one line.
+              ? `inline-flex min-h-11 min-w-0 items-center border-border px-2.5 text-left text-xs last:border-0 ${small ? "whitespace-nowrap border-r" : "break-words py-1.5 border-b sm:border-b-0 sm:border-r [overflow-wrap:anywhere]"} disabled:cursor-not-allowed disabled:opacity-50 focus-visible:relative focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-focus-ring ${small ? "sm:min-h-7 sm:px-2" : "sm:min-h-8"} ${
                 on ? "bg-signal text-on-signal" : "text-ink hover:bg-surface-sunken"
               }`
               : `inline-flex ${TOUCH} items-center gap-1.5 rounded-pill border px-3 text-[13px] transition-colors duration-[var(--duration-confirm)] disabled:opacity-50 ${FOCUS} ${
