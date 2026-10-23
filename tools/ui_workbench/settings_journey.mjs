@@ -123,9 +123,9 @@ try {
   let policy = await get(`/api/v1/deep-research/settings/${policyKey}`); const policyVersion = policy.versions.find((v) => v.value === 365);
   assert(policyVersion); assert.equal(policy.origin, "proposed_default");
   await ruleDetail.getByRole("button", { name: `Schválit verzi ${policyVersion.version_number}`, exact: true }).click();
-  await ruleDetail.locator("[data-dr-approve]").getByRole("button", { name: "Potvrdit", exact: true }).click();
+  await ruleDetail.locator("[data-dr-approve]").getByRole("button", { name: "Schválit", exact: true }).click();
   await row.locator('[data-origin="approved"]').waitFor(); policy = await get(`/api/v1/deep-research/settings/${policyKey}`); assert.equal(policy.value, 365);
-  await ruleDetail.getByRole("button", { name: "Vrátit na výchozí", exact: true }).click(); await ruleDetail.locator("[data-dr-approve]").getByRole("button", { name: "Potvrdit", exact: true }).click();
+  await ruleDetail.getByRole("button", { name: "Vrátit na výchozí", exact: true }).click(); await ruleDetail.locator("[data-dr-approve]").getByRole("button", { name: "Vrátit na výchozí", exact: true }).click();
   // A proposal made in the rule's Návrh cell waits, highlighted, until approved through the modal.
   await page.locator("[data-dr-approve]").waitFor({ state: "detached" });
   await row.getByRole("button", { name: "Zavřít", exact: true }).click();
@@ -134,11 +134,11 @@ try {
   await widths("research policy waiting proposal");
   await row.getByRole("button", { name: "Schválit", exact: true }).click();
   const modal = page.locator("dialog [data-dr-approve]"); await modal.getByText("200 dní", { exact: false }).waitFor();
-  await modal.getByRole("button", { name: "Potvrdit", exact: true }).click();
+  await modal.getByRole("button", { name: "Schválit", exact: true }).click();
   await page.locator(`[data-dr-setting="${policyKey}"]:not([data-pending])`).waitFor();
   assert.equal((await get(`/api/v1/deep-research/settings/${policyKey}`)).value, 200);
   await row.getByRole("button", { name: "Upravit", exact: true }).click();
-  await ruleDetail.getByRole("button", { name: "Vrátit na výchozí", exact: true }).click(); await ruleDetail.locator("[data-dr-approve]").getByRole("button", { name: "Potvrdit", exact: true }).click();
+  await ruleDetail.getByRole("button", { name: "Vrátit na výchozí", exact: true }).click(); await ruleDetail.locator("[data-dr-approve]").getByRole("button", { name: "Vrátit na výchozí", exact: true }).click();
   await page.locator("[data-dr-approve]").waitFor({ state: "detached" });
   checks.push("A rule's proposal made in its Návrh cell waits highlighted and is approved through the I7 modal; Dosah says it is not in AIA yet");
   checks.push("Policy purpose search, draft protection across close/tab changes and separate propose/approve work through real APIs");

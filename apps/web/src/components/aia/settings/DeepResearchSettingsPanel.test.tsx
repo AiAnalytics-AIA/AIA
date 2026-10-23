@@ -226,7 +226,7 @@ describe("Deep Research settings", () => {
     fireEvent.click(await screen.findByRole("button", { name: "Schválit verzi 1" }));
     const approve = document.querySelector("[data-dr-approve]") as HTMLElement;
     fireEvent.change(within(approve).getByLabelText("Důvod (nepovinný)"), { target: { value: "podepsáno" } });
-    fireEvent.click(within(approve).getByRole("button", { name: "Potvrdit" }));
+    fireEvent.click(within(approve).getByRole("button", { name: "Schválit" }));
     await screen.findByText("Hotovo. Platí pro běhy zařazené od teď.");
     expect(called("PUT", `/api/v1/deep-research/settings/${RETENTION}/approval`)[0].body).toEqual({ version_number: 1, reason: "podepsáno" });
     await waitFor(async () => {
@@ -238,7 +238,7 @@ describe("Deep Research settings", () => {
     await waitFor(() => expect(document.querySelector('[data-dr-flow] [data-state="now"]')).toBeNull());
 
     fireEvent.click(await screen.findByRole("button", { name: "Vrátit na výchozí" }));
-    fireEvent.click(within(document.querySelector("[data-dr-approve]") as HTMLElement).getByRole("button", { name: "Potvrdit" }));
+    fireEvent.click(within(document.querySelector("[data-dr-approve]") as HTMLElement).getByRole("button", { name: "Vrátit na výchozí" }));
     await waitFor(() => expect(called("PUT", `/api/v1/deep-research/settings/${RETENTION}/approval`)).toHaveLength(2));
     expect(called("PUT", `/api/v1/deep-research/settings/${RETENTION}/approval`)[1].body).toEqual({ version_number: null, reason: "" });
     await waitFor(async () => expect((await row(RETENTION)).querySelector("[data-origin]")?.textContent).toBe("Navržená výchozí"));
@@ -338,7 +338,7 @@ describe("Deep Research settings", () => {
     });
     expect(within(dialog).getByText("neznámé")).toBeTruthy();
     expect(within(dialog).getByText(/zařazené od teď/)).toBeTruthy();
-    fireEvent.click(within(dialog).getByRole("button", { name: "Potvrdit" }));
+    fireEvent.click(within(dialog).getByRole("button", { name: "Schválit" }));
     await waitFor(() => expect(called("PUT", `/api/v1/deep-research/settings/${RETENTION}/approval`)).toHaveLength(1));
     expect(called("PUT", `/api/v1/deep-research/settings/${RETENTION}/approval`)[0].body).toEqual({ version_number: 1, reason: "" });
     await waitFor(async () => expect((await row(RETENTION)).getAttribute("data-pending")).toBeNull());
@@ -370,6 +370,52 @@ describe("Deep Research settings", () => {
     const detail = await openDetail(RETENTION);
     await waitFor(() => expect(detail.querySelector('[data-declined="WITHDRAWN"]')?.textContent).toContain("špatná hodnota"));
     expect(within(detail).queryByRole("button", { name: "Schválit verzi 1" })).toBeNull();
+  });
+
+  it("does not call a proposal an approval passed over waiting, though the server still says PENDING", async () => {
+    fakeApi();
+    backend.withStates = true;
+    const at = (d: string) => `2026-10-${d}T10:00:00.000Z`;
+    const version = (n: number, value: number, d: string): DrSettingVersion => ({ version_number: n, value, value_sha256: "x", source_url: "", note: "", created_by: "USR-1", created_at: at(d) });
+    // v1 and v2 proposed, v2 approved, v3 proposed and withdrawn: v1 is PENDING to the server, but no proposal waits.
+    backend.versions[RETENTION] = [version(1, 90, "01"), version(2, 120, "02"), version(3, 150, "04")];
+    backend.approvals[RETENTION] = [{ approval_id: 1, version_number: 2, approved_by: "USR-1", reason: "", approved_at: at("03") }];
+    backend.declines[RETENTION] = { 3: { kind: "WITHDRAWN", by: "USR-1", reason: "ne", at: at("05") } };
+    render(<DeepResearchSettingsPanel people={people} />);
+    await row(RETENTION);
+    await new Promise((r) => setTimeout(r, 50));
+    expect((await row(RETENTION)).getAttribute("data-pending")).toBeNull();
+  });
+
+  it("refuses at the field a number outside a rule's bounds, a lower-only cap above its default included, and sends nothing", async () => {
+    fakeApi();
+    render(<DeepResearchSettingsPanel people={people} />);
+    await row(CRAWL);
+    const tryValue = async (key: string, group: string, value: string) => {
+      fireEvent.click(document.querySelector(`[data-dr-group-link="${group}"]`) as HTMLElement);
+      const field = within(await row(key)).getByRole("spinbutton", { name: /^Návrh:/ });
+      fireEvent.change(field, { target: { value } });
+      fireEvent.keyDown(field, { key: "Enter" });
+      expect(within(await row(key)).getByRole("alert")).toBeTruthy();
+      fireEvent.keyDown(field, { key: "Escape" });
+    };
+    await tryValue(CRAWL, "budgets", "1001");
+    await tryValue(RETENTION, "retention", "0");
+    await tryValue(RETENTION, "retention", "3651");
+    expect(calls.filter((c) => c.method === "POST")).toEqual([]);
+  });
+
+  it("shows a member a waiting proposal neutral: coral is for someone who can act on it", async () => {
+    fakeApi(false);
+    backend.versions[RETENTION] = [{ version_number: 1, value: 90, value_sha256: "x", source_url: "", note: "", created_by: "USR-1", created_at: new Date().toISOString() }];
+    render(<DeepResearchSettingsPanel people={people} />);
+    await row(RETENTION);
+    fireEvent.click(document.querySelector('[data-dr-group-link="retention"]') as HTMLElement);
+    await waitFor(async () => expect((await row(RETENTION)).getAttribute("data-pending")).toBe("1"));
+    const r = await row(RETENTION);
+    expect(r.className).not.toContain("bg-status-you-wash");
+    expect(r.querySelector("[data-pending-value] .text-status-you-ink")).toBeNull();
+    expect(within(r).queryByRole("button", { name: "Schválit" })).toBeNull();
   });
 
   it("proposes a status by its choice in place, and offers a member no proposal", async () => {

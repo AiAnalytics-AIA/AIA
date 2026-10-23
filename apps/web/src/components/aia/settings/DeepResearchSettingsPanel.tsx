@@ -254,7 +254,7 @@ function Row({ setting: s, shown, missing, people, open, onToggle, mayAdminister
   return (
     <>
       <tr data-dr-setting={s.key} data-missing={missing ? s.key : undefined} data-pending={waiting !== null ? waiting : undefined} hidden={!shown}
-        className={open ? "bg-signal-wash/50" : waiting !== null ? "bg-status-you-wash" : undefined}>
+        className={open ? "bg-signal-wash/50" : waiting !== null ? (mayAdminister ? "bg-status-you-wash" : "bg-surface-sunken") : undefined}>
         <td className={TD}>
           <div className="font-medium text-ink">{labelOf(s)}</div>
           <p className="mt-0.5 max-w-prose text-[13px] leading-5 text-ink-muted">{researchPolicyHelp(s.key, s.group)}</p>
@@ -275,7 +275,7 @@ function Row({ setting: s, shown, missing, people, open, onToggle, mayAdminister
           ) : null}
         </td>
         <td className={TD}>
-          {pending ? <PendingValue setting={s} version={pending} />
+          {pending ? <PendingValue setting={s} version={pending} yours={mayAdminister} />
             : mayAdminister ? <ProposeInPlace setting={s} onChanged={onChanged} onOpen={onToggle} />
             : <span className="text-xs text-ink-faint">{t(`${D}.noProposal`)}</span>}
         </td>
@@ -307,10 +307,12 @@ function usePending(s: DrSetting): DrSettingVersion | null {
   const candidate = s.latest_number !== null && s.latest_number > (s.version ?? 0);
   const [res] = useResource(() => (candidate ? deepResearchSettings.get(s.key) : Promise.resolve(null)), [s, candidate]);
   if (!candidate || res.state !== "ready" || !res.data) return null;
-  // The server says where each version stands (#841); before it, a version saved after the last approval waits.
+  // Saved after the last approval, in both cases: a PENDING version from before it is one an approval
+  // passed over (review of #842). The server's state (#841), where sent, adds what the dates cannot
+  // say: a withdrawn or declined version waits for nothing.
   const last = res.data.history.map((h) => h.approved_at).sort().at(-1);
-  const waiting = res.data.versions.filter((v) => v.state !== undefined ? v.state === "PENDING"
-    : v.version_number !== res.data!.version && (last === undefined || v.created_at > last));
+  const waiting = res.data.versions.filter((v) => (v.state !== undefined ? v.state === "PENDING" : v.version_number !== res.data!.version)
+    && (last === undefined || v.created_at > last));
   return waiting.sort((a, b) => b.version_number - a.version_number)[0] ?? null;
 }
 
@@ -354,11 +356,12 @@ function ProposeInPlace({ setting: s, onChanged, onOpen }: { setting: DrSetting;
 }
 
 /** The waiting proposal's value. */
-function PendingValue({ setting: s, version: v }: { setting: DrSetting; version: DrSettingVersion }) {
+/** Coral means "needs you": only for someone who can approve it; a member reads it neutral. */
+function PendingValue({ setting: s, version: v, yours }: { setting: DrSetting; version: DrSettingVersion; yours: boolean }) {
   return (
     <span data-pending-value className="text-sm">
       <span className="font-mono">{showValue(s.type, v.value)}</span>{v.value !== null && unitOf(s) ? <span className="text-ink-muted"> {unitOf(s)}</span> : null}
-      <span className="block text-xs text-status-you-ink">{tv(`${D}.waitingVersion`, { version: v.version_number })}</span>
+      <span className={`block text-xs ${yours ? "text-status-you-ink" : "text-ink-muted"}`}>{tv(`${D}.waitingVersion`, { version: v.version_number })}</span>
     </span>
   );
 }
@@ -536,7 +539,7 @@ function Approve({ settingKey, version, onCancel, onDone }: { settingKey: string
         { label: version === null ? t(`${D}.approve.toDefault`) : t(`${D}.approve.to`), value: detail ? fmt(to) : "…" },
       ]}
       text={t(`${D}.approve.consequence`)}
-      confirmLabel={t(`${D}.approve.confirm`)} cancelLabel={t(`${D}.approve.cancel`)}
+      confirmLabel={t(`${D}.approve.${version === null ? "confirmWithdraw" : "confirm"}`)} cancelLabel={t(`${D}.approve.cancel`)}
       onConfirm={() => void go()} onCancel={onCancel}>
       <Field label={t(`${D}.approve.reason`)}>
         <TextInput value={reason} maxLength={255} onChange={(e) => setReason(e.target.value)} />
