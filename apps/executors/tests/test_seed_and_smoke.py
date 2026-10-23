@@ -24,7 +24,7 @@ from aia_core.domain.workflow_templates import DEVELOP_SNAPSHOT
 from aia_core.infrastructure.repositories import ProjectRepository
 from aia_core.infrastructure.scope_repository import ScopeRepository
 from aia_core.infrastructure.storage import InMemoryArtifactStore
-from aia_core.infrastructure.tables import OrganizationRow
+from aia_core.infrastructure.tables import OrganizationMemberRow, OrganizationRow
 from aia_core.infrastructure.workflow_repository import WorkflowRepository
 from aia_executors import smoke
 from aia_worker.worker import Worker
@@ -227,6 +227,32 @@ def test_seed_admits_a_new_operator_to_an_existing_world(
         again = seed_develop(session, owner_email=OWNER)
         session.commit()
     assert again.owner_user_id == first.owner_user_id
+
+
+def _marked(session: Session, organization_id: str, user_id: str) -> bool:
+    row = session.scalar(
+        select(OrganizationMemberRow.methodologist).where(
+            OrganizationMemberRow.organization_id == organization_id,
+            OrganizationMemberRow.user_id == user_id,
+        )
+    )
+    return bool(row)
+
+
+def test_a_new_world_marks_its_operator_metodik_once(sessions: sessionmaker[Session]) -> None:
+    # D-14: only a marked member edits the methodology; a world the seed creates gives its
+    # operator the mark, never the smoke's owner, and a later seed never re-grants it.
+    with sessions() as session:
+        first = seed_develop(session, owner_email=OWNER)
+        session.commit()
+        assert _marked(session, first.organization_id, first.owner_user_id)
+        assert not _marked(session, first.smoke_organization_id, first.smoke_owner_user_id)
+        session.execute(OrganizationMemberRow.__table__.update().values(methodologist=False))
+        session.commit()
+    with sessions() as session:
+        again = seed_develop(session, owner_email=OWNER)
+        session.commit()
+        assert not _marked(session, again.organization_id, again.owner_user_id)
 
 
 def test_seed_names_why_an_archived_seed_client_is_denied(

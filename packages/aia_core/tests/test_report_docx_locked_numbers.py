@@ -28,6 +28,7 @@ from aia_core.domain.report.control_tags import (
     figure_tag,
     interval_tag,
     parse_tag,
+    source_tag,
     suppressed_tag,
     value_tag,
 )
@@ -229,7 +230,7 @@ def test_every_sample_kind_locks_every_ledger_number_it_prints(
     and KPI tile is a locked control tagged with its ref, a KPI tile's base line too; each
     figure's picture is locked; with an evidence appendix, every cell of each cited ref's row;
     a suppressed count names its table or figure; and every tag parses and names a source the
-    document holds. The map's own numbers (a Sociomap caption's fit) are part 3 (RPT8a)."""
+    document holds. The map's own numbers carry their map's tag (part 3; the map's own test)."""
     doc = report_samples.build(kind, report_ledger)
     data = DocxRenderer().render(doc)
     assert lint_docx(data) == []
@@ -247,7 +248,7 @@ def test_every_sample_kind_locks_every_ledger_number_it_prints(
             assert parsed.name in cited, tag
         elif parsed.kind == "figure":
             assert parsed.name in figures, tag
-        else:
+        elif parsed.kind == "suppressed":
             assert parsed.name in tables | figures, tag
     assert {value_tag(r) for r in printed} <= tags, printed - tags
     assert {base_n_tag(r) for r in kpis} <= tags
@@ -265,7 +266,31 @@ def test_the_tag_grammar_reads_back_what_it_writes() -> None:
     assert parse_tag(appendix_tag("q2", "value")) == ControlTag("appendix", "q2", "value")
     assert parse_tag(figure_tag("fig-1")) == ControlTag("figure", "fig-1")
     assert parse_tag(suppressed_tag("tab-regions")) == ControlTag("suppressed", "tab-regions")
-    for wrong in ("", "figure:", "count:suppressed:", "appendix:q2#nope", "q2#other", "x:y"):
+    assert parse_tag(source_tag("map", "set-1/aia-sociomap-3")) == ControlTag(
+        "map", "set-1/aia-sociomap-3"
+    )
+    for wrong in (
+        "",
+        "figure:",
+        "count:suppressed:",
+        "appendix:q2#nope",
+        "q2#other",
+        "x:y",
+        "map:",
+    ):
         assert parse_tag(wrong) is None, wrong
     with pytest.raises(ValueError):
         suppressed_tag("")
+    with pytest.raises(ValueError):
+        source_tag("map", "")
+
+
+def test_a_block_written_from_a_stored_source_holds_no_ledger_value(report_doc: Any) -> None:
+    """A ledger value inside it would be a locked control within a locked control, and the
+    client-source reader, one control deep, would lose the number (review of RPT8a part 3)."""
+    from aia_core.domain.report.validation import ProblemCode, validate
+
+    mixed = Paragraph((Text("Poměr "), Value("trust_total")), control=source_tag("map", "s/m"))
+    assert ProblemCode.CONTROLLED_VALUE in {p.code for p in validate(report_doc(mixed))}
+    alone = Paragraph((Text("Stress-1 je 0,123."),), control=source_tag("map", "s/m"))
+    assert ProblemCode.CONTROLLED_VALUE not in {p.code for p in validate(report_doc(alone))}

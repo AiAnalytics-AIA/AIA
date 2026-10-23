@@ -1027,6 +1027,63 @@ describe("usable settings controls", () => {
     members = members.map((m) => (m.user_id === "USR-3" ? { ...m, display_name: "Nové jméno", organization_role: "ADMIN" } : m));
   });
 
+  it("drops a refused name, so a later role change does not send it again", async () => {
+    let posts = 0;
+    api({
+      "GET /api/v1/members": () => [
+        { user_id: "USR-1", email: "owner@example.test", display_name: "", is_active: true, organization_role: "OWNER" },
+        { user_id: "USR-3", email: "second@example.test", display_name: "Staré", is_active: true, organization_role: "MEMBER" },
+      ],
+      "POST /api/v1/members": (b) => (++posts === 1
+        ? new Response('{"code":"request_invalid","message":"display_name too long"}', { status: 422 })
+        : { user_id: "USR-3", is_active: true, ...(b as object) }),
+    });
+    render(<ControlPanel />);
+    fireEvent.click(await screen.findByRole("tab", { name: "Přístup a schvalování" }));
+    const row = await waitFor(() => document.querySelector('[data-member="USR-3"]') as HTMLElement);
+    fireEvent.click(within(row).getByRole("button", { name: /^Upravit: Jméno: second@example.test/ }));
+    const field = within(row).getByLabelText("Jméno: second@example.test");
+    fireEvent.change(field, { target: { value: "Odmítnuté" } });
+    fireEvent.keyDown(field, { key: "Enter" });
+    await waitFor(() => expect(called("POST", "/api/v1/members")).toHaveLength(1));
+    // The person reverts the field, then changes the role.
+    fireEvent.keyDown(within(row).queryByLabelText("Jméno: second@example.test") ?? field, { key: "Escape" });
+    fireEvent.click(within(screen.getByRole("radiogroup", { name: "Role: second@example.test" })).getByRole("radio", { name: "správce" }));
+    await waitFor(() => expect(called("POST", "/api/v1/members")).toHaveLength(2));
+    expect(called("POST", "/api/v1/members")[1].body).toEqual({ email: "second@example.test", display_name: "Staré", role: "ADMIN" });
+  });
+
+  it("offers an owner who steps down no Vrátit, and says another owner restores it", async () => {
+    api({
+      "GET /api/v1/members": () => [
+        { user_id: "USR-1", email: "owner@example.test", display_name: "", is_active: true, organization_role: "OWNER" },
+        { user_id: "USR-3", email: "second@example.test", display_name: "Druhý", is_active: true, organization_role: "OWNER" },
+      ],
+      "POST /api/v1/members": (b) => ({ user_id: "USR-1", display_name: "", is_active: true, ...(b as object) }),
+    });
+    render(<ControlPanel />);
+    fireEvent.click(await screen.findByRole("tab", { name: "Přístup a schvalování" }));
+    const mine = await screen.findByRole("radiogroup", { name: "Role: owner@example.test" });
+    fireEvent.click(within(mine).getByRole("radio", { name: "správce" }));
+    await waitFor(() => expect(called("POST", "/api/v1/members")).toHaveLength(1));
+    expect(await screen.findByText(/roli vlastníka vám může vrátit jiný vlastník/)).toBeTruthy();
+    expect(screen.queryByRole("button", { name: /Vrátit/ })).toBeNull();
+  });
+
+  it("refuses an address that is not an e-mail at the field, and sends nothing", async () => {
+    api();
+    render(<ControlPanel />);
+    fireEvent.click(await screen.findByRole("tab", { name: "Přístup a schvalování" }));
+    fireEvent.click(await screen.findByRole("button", { name: "+ Přidat člena" }));
+    const email = screen.getByLabelText("E-mail nového člena");
+    fireEvent.change(email, { target: { value: "alice" } });
+    fireEvent.keyDown(email, { key: "Enter" });
+    expect(screen.getByText("Zadejte e-mailovou adresu, např. jmeno@organizace.cz.")).toBeTruthy();
+    expect(email.getAttribute("aria-invalid")).toBe("true");
+    fireEvent.click(screen.getByRole("button", { name: "Přidat" }));
+    expect(called("POST", "/api/v1/members")).toEqual([]);
+  });
+
   it("names the methodology and research-policy events in words, their codes only as technical detail", async () => {
     const entry = (event_id: number, action: string) => ({ event_id, action, client_id: null, study_id: null, subject_user_id: null, actor_id: "USR-1", role: null, reason: null, payload: {}, created_at: null });
     api({ "GET /api/v1/access-audit": () => [entry(1, "METHODOLOGY_RESET"), entry(2, "DR_SETTING_WITHDRAWN")] });

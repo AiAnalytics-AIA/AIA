@@ -3,7 +3,7 @@ status: in-progress
 chunks:
   - "[x] WCE0. The contract: the closed operation set, ids, validation, the lock rule and the text-only marker, with one shared fixture (tests/fixtures/edit_ops/cases.json) read by the Python and the TypeScript tests"
   - "[x] WCE1. Stable item identity: ids for objectives, research questions, hypotheses, options, battery objects and sections; existing content gets ids on load; `FOCUS_ID` and `design_items` keys use them"
-  - "[ ] WCE2. `workspace_edit_ops` (M1) and `apply_edit_ops`: the one writer of the working copy; every other writer becomes a recorded whole-copy operation"
+  - "[x] WCE2. `workspace_edit_ops` (M1) and `apply_edit_ops`: the one writer of the working copy; every other writer becomes a recorded whole-copy operation"
   - "[ ] WCE3a. The web store on the server vocabulary, Brief and Design stages"
   - "[ ] WCE3b. The web store on the server vocabulary, Questionnaire (manual operations, move, remove, reference by stable id)"
   - "[ ] WCE3c. The web store on the server vocabulary, Audience, Dimensions and Sample"
@@ -133,6 +133,29 @@ the agent-job and Design Research accepts; **2f** the 18.6.6 migration, then `sa
   left to WCE8: with ids kept and an input declared, a reword whose links follow onto a locked rating
   question touches it, and `save` refuses the whole accept (409 `sociomap_input_locked`) rather than
   half of it.
+- **WCE2e (2026-10-22).** The proposal accepts are logged: `accept_into_working_copy` takes `by`
+  (required) and its merged write is logged as a whole-copy write made by the person who accepts,
+  citing the run (`proposal_accept` for an agent job, `ResearchAgentJobs.accept`;
+  `design_research_accept` for a Design Research proposal, `DesignResearchProposals.accept`). The
+  lock already held for them through `save` (WCE2c). Tests: the accept tests in
+  `test_research_agent_executor.py` and `test_design_research_proposals.py` assert the rows (both
+  failed before the change). With it, two tests WCE2d's review asked for (`test_lead_edits_logged.py`):
+  an automatic accept takes the unlocked text edit and refuses the locked one alone; a reword whose
+  links follow onto a locked question refuses the whole accept and writes nothing (the WCE8 edge).
+  Held at the 2026-10-22 feature freeze; released by the product owner overnight ("Drive all to
+  merge").
+- **WCE2f (2026-10-23).** No write of the working copy skips the log. `save` takes `by` (required,
+  no `None`); `import_migrated` takes `by` and logs each revision it writes against the one before
+  it, as the 18.6.6 migration passes it: `WriteBy(PERSON, None, MIGRATION)`, the one write logged
+  without its author, because the unit recorded none (`workspace_migration.MIGRATED`; the person
+  who ran it stays on the `WORKSPACE_MIGRATED` event and the lineage). `make layer_check`: only the
+  migration calls `import_migrated` ("only the 18.6.6 migration imports a working copy", and the
+  API, worker and executors never). The scoped split named `apply_edit_ops` as the gate; as WCE2c
+  recorded, `save` is the one persistence point every writer reaches, so the guarantee is the
+  required author there and the import rule, not a second wrapper. Test:
+  `test_workspace_migration.py::test_a_study_gets_every_revision_…` asserts the migrated rows
+  (failed before the change); every other test of a save names its author. Released with WCE2e by
+  the product owner's "Drive all to merge" (2026-10-23).
 
 **WCE3a. The web store on the server vocabulary, Brief and Design stages**  
 33 `store.update` sites in 9 files and about 1,900 lines of TypeScript with 18.6.6 parity tests are moved stage by stage; the parity tests stay green at every step.

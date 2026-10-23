@@ -47,6 +47,8 @@ chunks:
   - "[ ] 31. Results: charts on the result views and a CSV/XLSX export of the per-question tables from admitted claims (report-delivery RD12) (D-41)"
   - "[ ] 32. The Lead pane's web results: inline citations with links and quotes, the result list as it arrives, each search's cost, and Kontext studie (the study's context file) readable with its version (Q5, Q6)"
   - "[ ] 33. Editor spike (Q19): Wordcraft, ONLYOFFICE Docs and Collabora Online compared against Tiptap for the study context file and reports, on Word-like UX, tracked changes and comments, Lead-driven edits, ledger refs through a round trip, DOCX fidelity, licence and EU self-hosting; a go/no-go to the owner"
+  - "[x] 34. A stage change swaps only the stage's body: the study's layout draws the workbench (ResearchStages, the stage read from the address below it), so the Lead's pane, its draft, scroll and cards, the split, the header and the navigator stay mounted and nothing study-wide is read again; a review left open is kept as leaving the page kept it; the journey times each switch and asserts the same composer"
+  - "[ ] 35. The stage navigator as a steady, full-width bar: the six phases as labelled groups, fixed-width stage slots (the current stage marked, never grown), done, needs-you, fault, running and not-started each by glyph and tone; no shift at 1440, 1280 and 1100 px"
 ---
 # Research Lead workbench
 
@@ -1831,3 +1833,78 @@ pass finds the jobs already done for the design.
   once.
 - **Left, a hypothesis:** limits are still read by several components on one visit (4 in a
   production build). Sharing them is another change, not this one.
+
+### The stages remounted the whole workbench on every click (2026-10-23, `fix/workbench-persistent-stages`; chunk 34)
+
+- **F23. Every stage change drew the Lead's pane anew and read the whole study again** *(fixed)*.
+  1. Claim: each stage was the page of its own route segment (`[stage]/page.tsx` rendered
+     `ResearchStage` -> `ResearchScreen` -> `Ready` -> `Workbench` -> `LeadPane`), and Next.js
+     remounts a page when its dynamic segment changes; only the study's layout (the session and
+     its store) survived. The Lead's pane, its draft and scroll, the jobs, runs, limits, the
+     study and the Lead's turns were all read again.
+  2. Anchor: `apps/web/src/components/aia/ResearchStudy.tsx:131-137 @ 82541803`.
+  3. Reproduction: `ResearchStudy.stages.test.tsx` "keeps the Lead's pane, its draft and the
+     study's reads when the stage changes" fails with the screen keyed by its step (a remount per
+     stage). In a browser on the UI workbench (`next dev`, warm): Zadání -> Návrh -> Dotazník ->
+     Cílová skupina -> Dimenze -> Zadání took 297, 344, 381, 251 and 251 ms with 22-26 API reads
+     each, the Lead's composer a new element every time.
+  4. Consequence: a lag and a flash of the conversation on every stage click (Nigel, 2026-10-22).
+  5. Fix: the study's layout draws the stages (`ResearchStages`, `useSelectedLayoutSegment`); the
+     stage page only answers an unknown stage with 404. The screen tolerated a step change
+     already (the item drawer, the runs, the heading focus); what a remount used to reset is reset
+     on the step: an open proposal or advice review is kept for later ("keep", as the unmount
+     did), the AI pomoc panel closes, the artifact opens at its top. A card that opens a review on
+     another stage still opens it there (the effect follows the step).
+  6. Test: the test above and `workbench_journey.mjs` (the same composer and conversation, the
+     draft kept, no read of the study's Lead, each switch timed). After: 187, 234, 187, 208 and
+     146 ms, 4-9 reads each, all the stage's own (its runs, limits, readiness, PUT
+     `/workspace/stage`); the journey's four switches 138-229 ms.
+- **Not changed, recorded:** the runs are read again per route (`useRuns(studyId, step, …)`), and
+  the study with them (the header's state follows the runs). They are the lane's input on every
+  stage; sharing them across stages is another change.
+
+### The Lead's `show_diff` (2026-10-22, `feature/lead-show-diff`; chunk 14)
+
+The owner's choice (2026-10-22, through the PM): on Návrh, Dotazník and Dimenze, `show_diff` shows that
+stage's waiting changes, the Lead's edits still to decide there, else the newest proposal still
+waiting for review. On Zpráva it waits for report-delivery RD5's tracked changes.
+- **Server.** `research_lead.ShowDiff` (`op: "show_diff"`, a stage) joins `ViewOp`; harness
+  `aia-research-lead-5`. `show_diff_refusal` drops one on a stage outside `SHOW_DIFF_STAGES`
+  (design, questionnaire, dimensions) or whose contract has none, as `not_available`, Zpráva
+  included. The prompt says where it applies. `show_diff` is live on both sides and in the fixture.
+- **Web.** `changesToShow` (pure): the Lead's edits waiting on the stage first, else the stage's
+  newest proposal with `proposal_state` pending (`JOB_STAGE`), else nothing.
+  - Workbench reveals the "Návrhy Vedoucího" bar (scrolled to and marked, as a focus is), or opens
+    the proposal as its card's review opens (`openJob`); with neither, it opens the stage through
+    its leave guard.
+  - The focus branch's find-and-mark is now `reveal(selector)`, shared by both.
+  - The chip reads "Změny: <stage>".
+- **Scripted Lead.** A message asking for "změny" on Návrh, Dotazník or Dimenze shows that stage's.
+- **Each stage shows it.** The frame does this generically for the three stages, so `show_diff` is
+  live with this change (the PM: "keep it out of the Lead's live ops until each stage shows it").
+- **In a browser** (UI workbench, the `questionnaire` fixture, scripted Lead, zero paid): at 1440 and
+  390 px, "Ukaž mi změny" proposes an edit and shows the bar, marked; the turn's chip reads
+  "Změny: Dotazník"; no page error, no overflow, no paid start.
+- **Tests.** `test_research_lead.py` "show_diff only where the stage shows its waiting changes";
+  `test_research_lead_workbench.py` "a scripted message asking for the changes…"; `lead.test.ts`
+  "changesToShow"; `LeadPane.test.tsx` "names a show_diff chip…"; `Workbench.layout.test.tsx`
+  "the Lead's show_diff": marks the edits, opens the waiting proposal, opens the stage when nothing
+  waits. Each fails without the change.
+- **Older than the page (Codex on #809).** The workbench's `jobs` are the newest 20, and the
+  server's `?pending=true` filtered that page, so a proposal waiting behind 20 newer jobs was never
+  shown. `?pending=true` now filters the study's newest 200 jobs (`list_runs`' cap) before reading
+  them in full, and show_diff asks it when its page holds no proposal for the stage. Tests:
+  `test_a_pending_proposal_older_than_the_newest_page_is_still_listed_as_pending`;
+  `Workbench.layout.test.tsx` "asks the server for the stage's pending proposals…".
+- **Review fixes after it was marked ready.**
+  - *A slow lookup could act after the person moved on* (Codex). Each `?pending=true` lookup carries
+    its own number (`lookup`), moved on by a newer show_diff, a stage change or a study change; an
+    older answer is ignored. Test: `Workbench.layout.test.tsx` "drops a pending-proposal lookup…".
+  - *An older proposal on another stage did not open* (stand-in review). `openJob` kept only the job's
+    id in page memory, and the next stage looked for it in the newest page alone. The job itself is
+    now kept (`OPEN_REVIEW_KEY`), the page's copy preferred. Test: `ResearchScreen.workbench.test.tsx`
+    "opens on its own stage a proposal the Lead's show_diff found older than the newest page".
+  - *Silence on the current stage* (stand-in review). Nothing found says "Na této fázi nic nečeká na
+    rozhodnutí (prohledáno posledních 200 úloh)."; a lookup that failed says the proposals could not be
+    read, never that nothing waits. Tests: `Workbench.layout.test.tsx` "says so on the stage the person
+    is on when…" (both).
