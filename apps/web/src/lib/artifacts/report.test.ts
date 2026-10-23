@@ -33,7 +33,7 @@ describe("readDocument", () => {
 
   it("refuses another contract, never reading it in part", () => {
     expect(readDocument({ ...(FIXTURE as object), contract: "aia-report-document-0" })).toBeNull();
-    expect(readDocument({ ...(FIXTURE as object), contract: "aia-report-document-6" })).toBeNull();
+    expect(readDocument({ ...(FIXTURE as object), contract: "aia-report-document-7" })).toBeNull();
     expect(readDocument({ ...(FIXTURE as object), sections: undefined })).toBeNull();
     expect(readDocument(null)).toBeNull();
     expect(readDocument("text")).toBeNull();

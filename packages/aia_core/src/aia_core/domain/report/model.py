@@ -350,6 +350,8 @@ class AuditBlock:
     """Run ids, fingerprints, provider and model. **Internal reports only.**"""
 
     entries: tuple[tuple[str, str], ...]
+    #: The tag of the locked control each value prints in (``run:<run>``; RPT8a, part 3, P15).
+    control: str | None = None
 
 
 Block = (

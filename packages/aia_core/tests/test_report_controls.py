@@ -3,12 +3,21 @@
 
 from __future__ import annotations
 
+import io
+import zipfile
+from dataclasses import replace
+from typing import Any
+
 from aia_core.domain.report.controls import under_blocks
 from aia_core.domain.report.model import (
+    AuditBlock,
     BulletList,
+    Classification,
     Column,
     ListItem,
     Paragraph,
+    ReportKind,
+    Section,
     Table,
     TableRow,
     Text,
@@ -16,6 +25,8 @@ from aia_core.domain.report.model import (
     Value,
     text,
 )
+from aia_core.domain.report.sources import with_source_audit
+from aia_core.infrastructure.report_docx.renderer import DocxRenderer
 
 TAG = "run:RUN-1"
 
@@ -45,3 +56,23 @@ def test_a_block_printing_a_number_is_put_under_the_source_and_the_rest_left_alo
     (row,) = locked.rows
     assert [c.control for c in row.cells if isinstance(c, TextCell)] == [None, TAG]
     assert locked.notes_control == TAG
+
+
+def test_the_audits_values_print_locked_and_the_source_audit_keeps_them(report_doc: Any) -> None:
+    """Run ids and fingerprints are the run's record (P15): each value prints in a locked control
+    under the run, and the source audit that appends its rows keeps that (domain/report/sources.py,
+    which rebuilt the block and dropped what it did not name)."""
+    audit = AuditBlock((("Běh", "RUN-1"), ("Otisk", "abc123")), control=TAG)
+    doc = report_doc()
+    internal = replace(doc.meta, kind=ReportKind.INTERNAL, classification=Classification.INTERNAL)
+    doc = replace(
+        doc,
+        meta=internal,
+        sections=(*doc.sections, Section("Audit", (audit,), id="app-audit", appendix=True)),
+    )
+    audited = with_source_audit(doc)
+    (kept,) = (b for s in audited.sections for b in s.blocks if isinstance(b, AuditBlock))
+    assert kept.control == TAG and len(kept.entries) > len(audit.entries)
+    with zipfile.ZipFile(io.BytesIO(DocxRenderer().render(audited))) as z:
+        body = z.read("word/document.xml").decode()
+    assert body.count(f'w:val="{TAG}"') == len(kept.entries)

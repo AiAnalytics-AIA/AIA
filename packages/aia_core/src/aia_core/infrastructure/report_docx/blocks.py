@@ -432,4 +432,5 @@ def render_audit(ctx: RenderContext, container: Container, block: AuditBlock) ->
         cells[0].paragraphs[0].style = S.TABLE
         cells[0].paragraphs[0].add_run(key)
         cells[1].paragraphs[0].style = S.MONO
-        cells[1].paragraphs[0].add_run(value)
+        with locked(cells[1].paragraphs[0], block.control):
+            cells[1].paragraphs[0].add_run(value)
