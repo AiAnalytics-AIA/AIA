@@ -315,7 +315,7 @@ describe("the Metodika tab", () => {
     await waitFor(() => expect(document.querySelectorAll("article[data-step]").length).toBeGreaterThan(10));
     expect(document.querySelector("[data-step-body]")).toBeNull();
     // One stage by its tile; the other stages' steps leave the page.
-    fireEvent.click(within(tiles).getByRole("button", { name: /^M6 · Terén/ }));
+    fireEvent.click(within(tiles).getByRole("button", { name: /^M6\s·\sTerén/ }));
     const sections = [...document.querySelectorAll("section[aria-labelledby^='mg-']:not([data-not-computed] section)")].map((x) => x.querySelector("h3")?.textContent);
     expect(sections).toEqual(["Terén"]);
     fireEvent.click(all);
@@ -337,8 +337,8 @@ describe("the Metodika tab", () => {
     const tiles = await screen.findByRole("group", { name: "Etapy" });
     const count = (tile: RegExp) => within(tiles).getByRole("button", { name: tile }).querySelector(".text-xs")?.textContent;
     expect(count(/^Všechny etapy/)).toBe("17 kroků");
-    expect(count(/^M1 · Schéma vah/)).toBe("3 kroky");
-    expect(count(/^M2 · Součty populace/)).toBe("1 krok");
+    expect(count(/^M1\s·\sSchéma vah/)).toBe("3 kroky");
+    expect(count(/^M2\s·\sSoučty populace/)).toBe("1 krok");
     const head = screen.getByRole("heading", { name: "Součty populace" }).closest("section") as HTMLElement;
     expect(within(head).getByText("1 krok")).toBeTruthy();
     // The catalogue's cards count the same way.
@@ -351,7 +351,7 @@ describe("the Metodika tab", () => {
     fakeApi(); render(<MethodologyPanel />); await openMap();
     await openModule("Vážení: která váha patří respondentovi a co s neplatnou");
     const tiles = await screen.findByRole("group", { name: "Etapy" });
-    fireEvent.click(within(tiles).getByRole("button", { name: /^M4 · Neplatná váha/ }));
+    fireEvent.click(within(tiles).getByRole("button", { name: /^M4\s·\sNeplatná váha/ }));
     expect(document.querySelectorAll("article[data-step]").length).toBe(2);
     fireEvent.click(within(screen.getByRole("radiogroup", { name: "Jen kroky" })).getByRole("radio", { name: "S parametry" }));
     expect(document.querySelector("article[data-step]")).toBeNull();
@@ -373,7 +373,7 @@ describe("the Metodika tab", () => {
   it("follows a context link out of a single stage: all stages again, the step open and focused", async () => {
     fakeApi(); render(<MethodologyPanel />); await openMap();
     const tiles = await screen.findByRole("group", { name: "Etapy" });
-    fireEvent.click(within(tiles).getByRole("button", { name: /^M3 · Rozložení na mapě/ }));
+    fireEvent.click(within(tiles).getByRole("button", { name: /^M3\s·\sRozložení na mapě/ }));
     expect(document.getElementById("ms-f3_correlation")).toBeNull();
     const distance = await card("Cílová vzdálenost z korelace");
     Element.prototype.scrollIntoView = vi.fn();

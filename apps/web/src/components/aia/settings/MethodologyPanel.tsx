@@ -271,7 +271,7 @@ function Steps({ detail }: { detail: MethodModuleDetail }) {
       </div>
       <div role="group" aria-label={t(`${M}.stagesGroup`)} className="mt-2.5 grid gap-2 [grid-template-columns:repeat(auto-fill,minmax(130px,1fr))]">
         {tile(null, t(`${M}.allStages`), live.reduce((n, g) => n + g.steps.length, 0))}
-        {live.map((g) => tile(key(g), g.group ? `${stages.get(g.group.id) ? `M${stages.get(g.group.id)} · ` : ""}${g.group.title_cs}` : t(`${M}.calculation`), g.steps.length))}
+        {live.map((g) => tile(key(g), g.group ? `${stages.get(g.group.id) ? `M${stages.get(g.group.id)}\u00a0·\u00a0` : ""}${g.group.title_cs}` : t(`${M}.calculation`), g.steps.length))}
       </div>
       <div className="mt-2.5 flex flex-wrap items-center gap-2 text-xs text-ink-muted">
         <span aria-hidden="true">{t(`${M}.onlySteps`)}</span>

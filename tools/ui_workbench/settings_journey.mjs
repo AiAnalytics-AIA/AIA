@@ -232,7 +232,7 @@ try {
   // has 48 steps (5,904 px measured at F5); the product owner chose this limit on 2026-10-24 (#876).
   // It still catches the page growing with the versions stored on a workbench.
   const defaultHeight = await page.locator("#panel-methodology").evaluate((e) => e.scrollHeight); assert(defaultHeight < 6200, `Methodology default height ${defaultHeight}`);
-  await stageTiles.getByRole("button", { name: /^M6 · Terén/ }).click();
+  await stageTiles.getByRole("button", { name: /^M6\s·\sTerén/ }).click();
   assert.equal(await page.locator("#panel-methodology section[aria-labelledby^='mg-'] h3").filter({ hasText: /^Terén$/ }).count(), 1, "methodology: one stage by its tile");
   await stageTiles.getByRole("button", { name: /^Všechny etapy/ }).click();
   await page.getByRole("radiogroup", { name: "Jen kroky" }).getByRole("radio", { name: "S parametry", exact: true }).click();
