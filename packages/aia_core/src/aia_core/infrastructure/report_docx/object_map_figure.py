@@ -119,7 +119,7 @@ def object_map_snapshot(
     if artifact.layout is None:
         return None
     if is_signed_off(artifact) and isinstance(artifact.terrain, EnvelopeTerrain):
-        return signed_off_snapshots(artifact, labels).get(view)
+        return signed_off_snapshots(artifact, labels, only=view).get(view)
     if view == "3d" and not isinstance(artifact.terrain, EnvelopeTerrain):
         return None
     return draw_object_map_snapshot(artifact, labels, perspective=view == "3d")

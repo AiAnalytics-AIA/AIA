@@ -3480,6 +3480,22 @@ def test_a_map_snapshot_is_drawn_on_the_server_from_the_stored_map_and_approved_
 
     foreign = f"{_runs(world, 'other_client')}/{run_id}/map-snapshots/{snapshot['artifact_id']}"
     assert other_client_lead.get(foreign).status_code == 404
+    # A member of another organization finds neither the study nor its snapshot.
+    from aia_core.infrastructure.scope_repository import ScopeRepository
+
+    with create_session_factory(app.state.engine)() as session:
+        ScopeRepository(session).create_organization(
+            slug="elsewhere", name="Elsewhere", owner_email="o@elsewhere.example"
+        )
+        session.commit()
+    app.state.identity_provider.register(
+        "token-elsewhere", subject="o@elsewhere.example", email="o@elsewhere.example"
+    )
+    stranger = TestClient(app)
+    stranger.headers.update({"Authorization": "Bearer token-elsewhere"})
+    for path in ("", "/download"):
+        assert stranger.get(f"{url}/{snapshot['artifact_id']}{path}").status_code == 404
+    assert stranger.post(url, json=asked).status_code == 404
     approved = outsider.post(f"{one}/approve", json={"note": "Zkontrolováno."})
     assert approved.status_code == 200, approved.text
     assert approved.json()["review_state"] == "APPROVED_INTERNAL"
@@ -3540,16 +3556,21 @@ def test_a_snapshot_of_a_method_the_register_does_not_approve_is_internal() -> N
     assert _status(edited, "aia-sociomap-3") is MethodologyStatus.INTERNAL_ONLY
 
 
+@pytest.mark.parametrize("unapproved", ["another_spec", "stored_edit"])
 def test_a_map_the_register_does_not_approve_is_internal_through_every_route_and_its_approval(
-    app: FastAPI, researcher: TestClient, outsider: TestClient, world: Any
+    app: FastAPI, researcher: TestClient, outsider: TestClient, world: Any, unapproved: str
 ) -> None:
     """The snapshot's status is the register's for the map's method, read at every read: a
-    method at a specification the register never approved is INTERNAL_ONLY when drawn, read
-    and downloaded, and approving the snapshot does not make it the client's."""
+    method at a specification the register never approved, or a stored methodology edit of an
+    approved one, is INTERNAL_ONLY when drawn, read and downloaded, and approving the snapshot
+    does not make it the client's."""
     revision = submit(researcher, world).json()["revision_id"]
     run_id = start(researcher, world, revision).json()["run_id"]
     body = _fictional_map()
-    body["methods"][0]["spec_fingerprint"] = "0" * 64
+    if unapproved == "another_spec":
+        body["methods"][0]["spec_fingerprint"] = "0" * 64
+    else:
+        body["methods"][0]["formulas"] = {"relation": "fiktivní"}
     _store_map(app, world, run_id, body)
     url = f"{_runs(world)}/{run_id}/map-snapshots"
     drawn = researcher.post(
