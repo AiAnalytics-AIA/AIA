@@ -133,6 +133,7 @@ from aia_core.domain.report.document_model import (
 )
 from aia_core.domain.report.editor import SeenEdit
 from aia_core.domain.report.review import ReviewMark, ReviewState
+from aia_core.domain.report.sentence_check import sentence_findings
 from aia_core.domain.report.validation import ReportInvalid
 from aia_core.domain.research_agents import ProposalState, ResearchAction
 from aia_core.domain.research_design import settle_selection
@@ -2728,6 +2729,8 @@ def run_report_document(
         "report_sha256": report.sha256,
         **_review_fields(report, mark),
         **_approval_fields(report, scope, session, store),
+        # The sentence check on this version (RD7): marks, never a refusal.
+        "warnings": [f.to_json() for f in sentence_findings(document)],
         "document": document,
     }
 
@@ -3042,6 +3045,8 @@ def contextual_report_document_route(
         "report_sha256": docx.sha256,
         **_review_fields(docx, _mark(docx, scope, session, store)),
         **_approval_fields(docx, scope, session, store),
+        # The sentence check on this version (RD7): marks, never a refusal.
+        "warnings": [f.to_json() for f in sentence_findings(document)],
         "document": document,
     }
 
@@ -3307,9 +3312,12 @@ def _client_document_body(
         "report_sha256": report.sha256,
         **_review_fields(report, mark),
         **_approval_fields(report, scope, session, store),
-        # The client deliverable's checks on this version (RD0): warnings the approval dialog
-        # shows and the approval records, never a refusal.
-        "warnings": [f.to_json() for f in client_gate(document)],
+        # The client deliverable's checks (RD0) and the sentence check (RD7) on this version:
+        # warnings the approval dialog shows and the approval records, never a refusal.
+        "warnings": [
+            *(f.to_json() for f in client_gate(document)),
+            *(f.to_json() for f in sentence_findings(document)),
+        ],
         "document": document,
     }
 

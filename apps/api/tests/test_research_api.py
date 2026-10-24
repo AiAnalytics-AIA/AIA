@@ -883,18 +883,10 @@ def test_a_person_approves_a_runs_stored_report_once_and_only_that(
         decisions = session.scalars(
             select(ApprovalDecisionRow).where(ApprovalDecisionRow.subject_id == report_id)
         ).all()
-        # Nothing checked on an internal report: SQL NULL, never JSON null (RD0), so the
-        # migration's downgrade counts only the rows that recorded warnings.
-        unchecked = session.scalar(
-            select(func.count())
-            .select_from(ApprovalDecisionRow)
-            .where(
-                ApprovalDecisionRow.subject_id == report_id,
-                ApprovalDecisionRow.warnings.is_(None),
-            )
-        )
     assert [(d.decision, d.comment) for d in decisions] == [("APPROVED", "Přečteno.")]
-    assert unchecked == 1
+    # Its document was checked (RD7) and nothing found: an empty list, never NULL, which says
+    # nothing was checked (the next test).
+    assert decisions[0].warnings == []
 
 
 def _prague_today() -> str:
@@ -1479,6 +1471,68 @@ def test_a_client_report_carrying_drill_down_content_is_approved_with_its_warnin
             select(ApprovalDecisionRow).where(ApprovalDecisionRow.subject_id == version)
         ).one()
         assert row.warnings == [warning]
+
+
+def test_a_sentence_comparing_in_words_alone_is_marked_and_approved_on_record(
+    app: FastAPI, researcher: TestClient, outsider: TestClient, world: Any
+) -> None:
+    """RD7 (MVPQ-09), marking since 2026-10-22: the internal draft's document names a
+    sentence of the analysis prose that compares with no number from the ledger; approving
+    goes through and records it, as RD0's warnings are recorded."""
+    app.state.settings = app.state.settings.model_copy(update={"ai_analysis_enabled": True})
+    revision = submit(researcher, world).json()["revision_id"]
+    run_id = start(researcher, world, revision).json()["run_id"]
+    model = json.loads(_document_model())
+    model["sections"][0]["sources"] = [
+        {"kind": "artifact", "artifact_type": "research_analysis_module"}
+    ]
+    model["sections"][0]["blocks"][0]["content"] = [
+        {"type": "text", "text": "Fiktivní. Nejvíc důvěřují lidé v Praze.", "emphasis": "none"}
+    ]
+    report_id = _store_internal_report(
+        app, world, run_id, b"PK\x03\x04draft", model=json.dumps(model).encode()
+    )
+    url = f"{_runs(world)}/{run_id}/report"
+    marked = {
+        "code": "unsupported_comparison",
+        "where": "intro.1",
+        "message": "srovnání bez doloženého čísla: „Nejvíc důvěřují lidé v Praze.“",
+        "sentence": 1,
+        "text": "Nejvíc důvěřují lidé v Praze.",
+    }
+    assert researcher.get(f"{url}/document").json()["warnings"] == [marked]
+    approved = outsider.post(f"{url}/approve", json={"artifact_id": report_id})
+    assert approved.status_code == 200, approved.text
+    assert approved.json()["approval"]["warnings"] == [marked]
+    with create_session_factory(app.state.engine)() as session:
+        row = session.scalars(
+            select(ApprovalDecisionRow).where(ApprovalDecisionRow.subject_id == report_id)
+        ).one()
+        assert row.warnings == [marked]
+
+
+def test_a_version_with_no_stored_document_is_approved_unchecked(
+    app: FastAPI, researcher: TestClient, outsider: TestClient, world: Any
+) -> None:
+    """A version with no stored document is not checked: SQL NULL, never JSON null (RD0), so
+    the migration's downgrade counts only the rows that recorded warnings."""
+    app.state.settings = app.state.settings.model_copy(update={"ai_analysis_enabled": True})
+    run_id = start(researcher, world, submit(researcher, world).json()["revision_id"]).json()[
+        "run_id"
+    ]
+    report_id = _store_internal_report(app, world, run_id, b"PK\x03\x04before-rd5a")
+    approve = f"{_runs(world)}/{run_id}/report/approve"
+    assert outsider.post(approve, json={"artifact_id": report_id}).status_code == 200
+    with create_session_factory(app.state.engine)() as session:
+        unchecked = session.scalar(
+            select(func.count())
+            .select_from(ApprovalDecisionRow)
+            .where(
+                ApprovalDecisionRow.subject_id == report_id,
+                ApprovalDecisionRow.warnings.is_(None),
+            )
+        )
+    assert unchecked == 1
 
 
 def test_the_client_report_is_prepared_to_be_read_without_a_download(

@@ -141,6 +141,29 @@ S3 defines the type, S1 writes the worker against it (`lead-orchestration#LO9b`)
 The prototype shows it (scenario M); the evidence validation checks numbers only. A new rule; its strictness is the owner's (MVPQ-09, 2026-10-20): it **blocks approval**, never a flag the reviewer may approve past, and the refusal names the sentence.
 *Changed 2026-10-22 (the owner, as RD0 above; ADR 0035, amended):* a sentence the check refuses is marked at the sentence, in the pane and the approval dialog; it never blocks approval.
 
+*RD7a, the check (`feature/sentence-claim-check`):* `domain/report/sentence_check.py` `sentence_findings` reads a stored
+document model: each paragraph, list item and callout of a section written from an analysis module (its section
+sources), split into sentences. Text and word lists are compared folded (lower case, no diacritics), so inflections
+and capitals read alike. A sentence claims a comparison when it holds "než", a comparative in any inflection (vyšší,
+vyššího, nižší, větší, menší, lepší, horší, delší, kratší, dražší, mladší, starší; "-ější"; častěji, silněji…), a
+superlative ("nej…", not the negations nejsou / nejde / nejistota… nor nejen / nejprve / nejdřív / nejspíš /
+nejpozději), "oproti", "ve srovnání", "v porovnání", "rozdíl…", "převyšuje", "převažuje" or "převládá" (not
+většina / menšina, a share; "dvou nejvyšších bodů" is a metric's name). **The word lists are PROVISIONAL** (the PM,
+2026-10-24): AIA's starting reading, for the methodology owner (Aram) to review; the case file names a known
+over-mark ("na větším vzorku", a comparative about the method). It is
+supported when it prints a ledger number: a `value` inline, a `cross_ref` to a figure or table, or the printed text of
+a number its block cites (analysis prose writes its numbers as text and cites their claims on the paragraph); a
+suppressed number supports nothing. Anything else is `unsupported_comparison`, naming its block, its sentence's index
+and its text. Not read: the composer's own text (map reading guides, method, the question chapter's intro, the
+questionnaire), a lead-in and a `control` block. A reading rule, deliberately plain, not a methodology: it flags a
+comparison stated without a number and says nothing of whether a cited number bears it out. The internal draft's,
+the report with literature's and the client report's document routes answer the findings in `warnings` (the client's
+beside RD0's), and `approve_report` records them on the approval's ledger row (RD0's mechanism); a version with no
+stored document (a report-editor version, one stored before RD5a) records `NULL`, nothing checked, never "nothing
+found". Cases: `tests/fixtures/report_sentences/cases.json`. Tests: `test_sentence_check.py`; `test_research_api.py`
+`test_a_sentence_comparing_in_words_alone_is_marked_and_approved_on_record`. RD7b, the pane marking the sentence and
+the approval dialog naming it, follows.
+
 **RD8. The producer of a client report is the run that composed it, not whoever first downloaded it**  
 With self-approval off, the reviewer who opens it first cannot approve it today ◇.
 
