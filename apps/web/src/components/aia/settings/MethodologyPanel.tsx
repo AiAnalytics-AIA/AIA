@@ -8,12 +8,13 @@
 // An editable module also shows its versions and, for an administrator, the editor
 // (MethodologyVersions.tsx).
 
-import { useCallback, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 
 import { t, tv } from "@/i18n/t";
 import { type MethodFormula, type MethodModuleDetail, type MethodModuleSummary, type MethodStepOut, type MethodVersions, methodology } from "@/lib/api";
-import { groupSteps, showValue, stepNumbers, stepOrigin } from "@/lib/methodology";
-import { Tag, TextInput } from "../../rehome/ui";
+import { type GroupedSteps, groupSteps, isParameter, methodologyCount, showValue, stageNumbers, stepNumbers, stepOrigin } from "@/lib/methodology";
+import { Tag } from "../../rehome/ui";
+import { ChoiceChips } from "../../ui/ChoiceChips";
 import { InlineConfirm } from "../../rehome/step";
 import { Loaded } from "../states";
 import { type Resource, useResource } from "../useResource";
@@ -155,7 +156,7 @@ function ModuleChips({ summary, res }: { summary: MethodModuleSummary; res: Reso
   return <div data-module-chips className="flex flex-wrap items-center gap-1.5">
     {name ? <span data-in-force-chip className={`${CHIP} border-in-force bg-in-force-wash font-mono font-medium text-ink`}><span aria-hidden="true" className="size-1.5 rounded-full bg-in-force" />{tv(`${M}.inForceChip`, { name })}</span> : null}
     {summary.id === "sociomap" ? <RegisterChip head status={res.state === "ready" ? res.data?.in_force.register_status : res.state === "loading" ? undefined : null} /> : null}
-    <span className={`${CHIP} border-border text-ink-muted`}>{tv(`${M}.stepsChip`, { steps: summary.steps, groups: summary.groups.length })}</span>
+    <span className={`${CHIP} border-border text-ink-muted`}>{tv(`${M}.stepsChip`, { steps: methodologyCount(summary.steps, "step"), groups: methodologyCount(summary.groups.length, "stageIn") })}</span>
   </div>;
 }
 
@@ -174,7 +175,7 @@ function ModuleCard({ area, summary, onOpen }: { area: Area; summary: MethodModu
         {summary ? <>
           <dt className="text-ink-faint">{t(`${M}.facts.inForce`)}</dt><dd className="break-words font-mono"><InForceFact summary={summary} res={res} /></dd>
           {area.id === "sociomap" ? <><dt className="text-ink-faint">{t(`${M}.facts.forClients`)}</dt><dd><RegisterChip status={versions ? versions.in_force.register_status : unread ? null : undefined} /></dd></> : null}
-          <dt className="text-ink-faint">{t(`${M}.facts.calculation`)}</dt><dd>{tv(`${M}.facts.steps`, { steps: summary.steps, groups: summary.groups.length })}</dd>
+          <dt className="text-ink-faint">{t(`${M}.facts.calculation`)}</dt><dd>{tv(`${M}.facts.steps`, { steps: methodologyCount(summary.steps, "step"), groups: methodologyCount(summary.groups.length, "stage") })}</dd>
         </> : null}
         <dt className="text-ink-faint">{t(`${M}.facts.edits`)}</dt>
         <dd>{!area.editable ? t(`${M}.facts.readOnly`) : versions ? t(`${M}.facts.${versions.may_edit ? "youEdit" : "metodikEdits"}`) : unread ? t(`${M}.facts.unknown`) : "…"}</dd>
@@ -200,16 +201,18 @@ function ModuleView({ summary, people, onDirty, onOpen, versions }: { summary: M
   const [preset, setPreset] = useState(summary.in_force ?? undefined);
   const [res, retry] = useResource(() => methodology.get(summary.id, preset), [summary.id, preset]);
   const calc = <>
-    <div className="rounded-md border border-border p-3">
+    {/* What the steps below document: the code's preset. One preset is said in a line (what is in
+        force is in the head's chips); several are a choice, with what choosing does and does not do. */}
+    {presetsShown(summary).length === 1 ? <p data-preset className="text-xs text-ink-muted">{tv(`${M}.documents`, { preset: presetsShown(summary)[0] })}</p> : null}
+    {presetsShown(summary).length > 1 ? <div className="rounded-md border border-border p-3">
       <p className="text-sm font-semibold">{t(`${M}.catalogueTitle`)}</p>
       <p className="mt-1 text-xs leading-5 text-ink-muted">{t(`${M}.catalogueHelp`)}</p>
-      {presetsShown(summary).length === 1 ? <p data-preset className="mt-2 font-mono text-xs text-ink-muted">{presetsShown(summary)[0]}{presetsShown(summary)[0] === summary.in_force ? ` · ${t(`${M}.codeDefault`)}` : ""}</p> : null}
-      {presetsShown(summary).length > 1 ? <div role="radiogroup" aria-label={t(`${M}.preset`)} className="mt-3 flex flex-wrap gap-2">
+      <div role="radiogroup" aria-label={t(`${M}.preset`)} className="mt-3 flex flex-wrap gap-2">
         {presetsShown(summary).map((p) => <button key={p} type="button" role="radio" aria-checked={p === preset} onClick={() => setPreset(p)} className={`rounded-sm border px-3 py-2 font-mono text-xs focus-visible:outline-2 focus-visible:outline-focus-ring ${p === preset ? "border-signal-edge bg-signal-wash text-signal" : "border-border text-ink-muted"}`}>
           {p}{p === summary.in_force ? ` · ${t(`${M}.codeDefault`)}` : ""}
         </button>)}
-      </div> : null}
-    </div>
+      </div>
+    </div> : null}
     <Loaded res={res} retry={retry}>{(detail) => <Steps key={detail.preset ?? detail.id} detail={detail} />}</Loaded>
   </>;
   // An editable module is its parts as tabs (settings-redesign 10b); a read-only one is its calculation.
@@ -217,54 +220,121 @@ function ModuleView({ summary, people, onDirty, onOpen, versions }: { summary: M
   return <div className="flex min-w-0 flex-col gap-4">{calc}</div>;
 }
 
+/**
+ * Výpočet (prototype v51, fidelity F5): the stages as tiles that pick one, a "S parametry" filter,
+ * and each stage's steps as rows in the order the computation runs; a row opens on its formula,
+ * its values and where they come from. A stage AIA does not compute yet is listed apart, never as a
+ * tile with nothing behind it.
+ */
 function Steps({ detail }: { detail: MethodModuleDetail }) {
   const groups = groupSteps(detail);
   const numbers = stepNumbers(detail.groups);
+  const stages = stageNumbers(detail.groups);
   const titles = Object.fromEntries(detail.step_details.map((s) => [s.id, s.title_cs]));
-  const [query, setQuery] = useState("");
-  const shown = groups.map((item) => ({ ...item, steps: item.steps.filter((step) => `${step.title_cs} ${step.note_cs} ${step.values.map((v) => `${v.label_cs} ${v.reference} ${String(v.value)}`).join(" ")} ${step.formulas.map((f) => `${f.title_cs} ${f.note_cs}`).join(" ")}`.toLocaleLowerCase("cs").includes(query.trim().toLocaleLowerCase("cs"))) }));
+  const live = groups.filter((g) => g.steps.length);
+  const notYet = groups.filter((g) => !g.steps.length && g.group);
+  const key = (g: GroupedSteps[number]) => g.group?.id ?? "all";
+  const [stage, setStage] = useState<string | null>(null);
+  const [withValues, setWithValues] = useState(false);
+  const [open, setOpen] = useState<ReadonlySet<string>>(() => new Set());
+  const [goTo, setGoTo] = useState<string | null>(null);
+  // "S parametry": the steps that read a value a version can change, not a code constant or the
+  // method's own name.
+  const filtered = (g: GroupedSteps[number]) => (withValues ? g.steps.filter((x) => x.values.some(isParameter)) : g.steps);
+  const shown = live.filter((g) => stage === null || key(g) === stage).map((g) => ({ ...g, steps: filtered(g) })).filter((g) => g.steps.length);
+  const allOpen = shown.length > 0 && shown.every((g) => g.steps.every((x) => open.has(x.id)));
+  const toggle = (id: string) => setOpen((o) => { const n = new Set(o); if (n.has(id)) n.delete(id); else n.add(id); return n; });
+  // A context link opens the step it names wherever it is, then moves to it once drawn.
+  const pick = (id: string) => { setStage(null); setWithValues(false); setOpen((o) => new Set(o).add(id)); setGoTo(id); };
+  useEffect(() => {
+    if (!goTo) return;
+    const heading = document.getElementById(`ms-${goTo}`);
+    heading?.scrollIntoView({ block: "start" });
+    // The focus follows the move: the next Tab starts from the step the link named.
+    heading?.querySelector<HTMLElement>("button[aria-expanded]")?.focus({ preventScroll: true });
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- a one-shot move, cleared once made
+    setGoTo(null);
+  }, [goTo]);
+  const tile = (id: string | null, label: string, count: number) => {
+    const on = stage === id;
+    return <button key={id ?? "all"} type="button" data-stage-tile={id ?? "all"} aria-pressed={on} onClick={() => setStage(id)}
+      className={`flex min-h-11 flex-col items-start rounded-md border px-3 py-2 text-left text-sm focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus-ring ${on ? "border-signal bg-signal-wash" : "border-border bg-surface-raised hover:border-border-strong"}`}>
+      <span className="font-medium">{label}</span><span className="text-xs text-ink-muted">{methodologyCount(count, "step")}</span>
+    </button>;
+  };
   return <div className="flex min-w-0 flex-col gap-3">
-    <TextInput type="search" aria-label={t(`${M}.findStep`)} placeholder={t(`${M}.findStepPlaceholder`)} value={query} onChange={(e) => setQuery(e.target.value)} />
-    {shown.map(({ group, steps }, i) => {
-      const original = groups[i];
-      if (query.trim() && !steps.length && original.steps.length) return null;
-      return <section key={group?.id ?? "all"} aria-labelledby={group ? `mg-${detail.id}-${group.id}` : undefined}>
-        <details open={!!query.trim() || (i === 1 || groups.length === 1)} className="group rounded-md border border-border bg-surface-raised">
-          <summary className="flex cursor-pointer list-none items-center justify-between gap-3 p-4">
-            <div className="min-w-0"><h3 id={group ? `mg-${detail.id}-${group.id}` : undefined} className="text-sm font-semibold">{group?.title_cs ?? t(`${M}.calculation`)}</h3>
-            {group?.note_cs ? <p className="mt-1 text-xs leading-5 text-ink-muted">{group.note_cs}</p> : null}</div>
-            <span className="shrink-0 text-xs text-ink-muted">{steps.length} {t(`${M}.steps`)} <span aria-hidden="true">⌄</span></span>
-          </summary>
-          <div className="flex min-w-0 flex-col gap-3 border-t border-border p-3">
-            {steps.length ? steps.map((step) => <StepCard key={step.id} step={step} number={numbers.get(step.id)} editable={detail.editable} titles={titles} />) : <p className="text-sm text-ink-muted">{t(`${M}.noSteps`)}</p>}
+    <section aria-labelledby={`mstages-${detail.id}`} className="rounded-md border border-border bg-surface-raised px-5 py-4">
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <h3 id={`mstages-${detail.id}`} className="text-sm font-semibold">{t(`${M}.stages`)}</h3>
+        <button type="button" data-dense onClick={() => setOpen(allOpen ? new Set() : new Set(shown.flatMap((g) => g.steps.map((x) => x.id))))}
+          className="min-h-8 rounded-sm px-2 text-sm text-ink-muted hover:bg-surface-sunken hover:text-ink focus-visible:outline-2 focus-visible:outline-focus-ring">{t(`${M}.${allOpen ? "collapseAll" : "expandAll"}`)}</button>
+      </div>
+      <div role="group" aria-label={t(`${M}.stagesGroup`)} className="mt-2.5 grid gap-2 [grid-template-columns:repeat(auto-fill,minmax(130px,1fr))]">
+        {tile(null, t(`${M}.allStages`), live.reduce((n, g) => n + g.steps.length, 0))}
+        {live.map((g) => tile(key(g), g.group ? `${stages.get(g.group.id) ? `M${stages.get(g.group.id)}\u00a0·\u00a0` : ""}${g.group.title_cs}` : t(`${M}.calculation`), g.steps.length))}
+      </div>
+      <div className="mt-2.5 flex flex-wrap items-center gap-2 text-xs text-ink-muted">
+        <span aria-hidden="true">{t(`${M}.onlySteps`)}</span>
+        <ChoiceChips look="segmented" small label={t(`${M}.onlySteps`)} value={withValues ? "values" : "all"} options={[{ key: "all", label: t(`${M}.allSteps`) }, { key: "values", label: t(`${M}.withValues`) }]} onChange={(k) => setWithValues(k === "values")} />
+        <span>{t(`${M}.stepsHelp`)}</span>
+      </div>
+    </section>
+    {shown.map((g) => (
+      <section key={key(g)} aria-labelledby={g.group ? `mg-${detail.id}-${g.group.id}` : undefined} className="rounded-md border border-border bg-surface-raised px-5 py-4">
+        <div className="flex flex-wrap items-baseline justify-between gap-2 border-b border-border pb-2">
+          <div className="flex items-center gap-2.5">
+            {g.group && stages.get(g.group.id) ? <span data-stage-number className="inline-flex min-h-[22px] items-center rounded-[11px] border border-border px-2 font-mono text-xs text-ink-muted">M{stages.get(g.group.id)}</span> : null}
+            <h3 id={g.group ? `mg-${detail.id}-${g.group.id}` : undefined} className="text-sm font-semibold">{g.group?.title_cs ?? t(`${M}.calculation`)}</h3>
           </div>
-        </details>
-      </section>;
-    })}
-    {query.trim() && !shown.some((g) => g.steps.length) ? <p role="status" className="text-sm text-ink-muted">{t(`${M}.noMatch`)}</p> : null}
+          <span className="text-xs text-ink-muted">{methodologyCount(g.steps.length, "step")}</span>
+        </div>
+        {g.group?.note_cs ? <p className="mt-2 break-words text-xs leading-5 text-ink-muted">{g.group.note_cs}</p> : null}
+        {g.steps.map((step) => <StepRow key={step.id} step={step} number={numbers.get(step.id)} editable={detail.editable} titles={titles} open={open.has(step.id)} onToggle={() => toggle(step.id)} onPick={pick} />)}
+      </section>
+    ))}
+    {withValues && !shown.length ? <p role="status" className="text-sm text-ink-muted">{t(`${M}.noValues`)}</p> : null}
+    {notYet.length ? <section data-not-computed className="rounded-md border border-dashed border-border-strong px-5 py-4">
+      <p className="text-sm font-semibold">{t(`${M}.notYet`)}</p>
+      {/* One line each; the whole note on hover and to a screen reader. */}
+      {notYet.map((g) => <section key={g.group!.id} aria-labelledby={`mg-${detail.id}-${g.group!.id}`} className="mt-2">
+        <h3 id={`mg-${detail.id}-${g.group!.id}`} className="text-sm">{g.group!.title_cs} <span aria-hidden="true" className="text-ink-faint">·</span> <span className="text-xs font-normal text-ink-faint">{t(`${M}.noSteps`)}</span></h3>
+        {g.group!.note_cs ? <p title={g.group!.note_cs} className="line-clamp-1 text-xs text-ink-muted">{g.group!.note_cs}</p> : null}
+      </section>)}
+    </section> : null}
   </div>;
 }
 
-/** Moves to a step's card: its stage opens if it was closed, then the card scrolls into view. */
-function showStep(stepId: string) {
-  const heading = document.getElementById(`ms-${stepId}`);
-  if (!heading) return;
-  const stage = heading.closest("details");
-  if (stage) stage.open = true;
-  heading.scrollIntoView({ block: "start" });
+/** A step as a row: its number, title, what it is for and its values; open, its formula, values,
+ *  where they come from and what holds it. The heading names the step, so it can be found. */
+function StepRow({ step, number, editable, titles, open, onToggle, onPick }: { step: MethodStepOut; number?: string; editable: boolean; titles: Record<string, string>; open: boolean; onToggle: () => void; onPick: (id: string) => void }) {
+  const line = step.role_cs || step.note_cs.split(/(?<=\.)\s/)[0] || "";
+  return <article aria-labelledby={`ms-${step.id}`} data-step={step.id} className="border-b border-border last:border-b-0">
+    <h4 id={`ms-${step.id}`} aria-labelledby={`mst-${step.id}`} className="scroll-mt-4">
+      <button type="button" aria-expanded={open} aria-labelledby={`mst-${step.id}`} aria-describedby={line ? `msl-${step.id}` : undefined} onClick={onToggle}
+        className="flex w-full items-start gap-2.5 px-1 py-2 text-left focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus-ring">
+        <span data-step-number className="w-12 shrink-0 pt-0.5 font-mono text-xs text-ink-faint">{number ?? ""}</span>
+        <span className="flex min-w-0 flex-1 flex-col gap-1">
+          <span id={`mst-${step.id}`} className="text-sm font-medium">{step.title_cs}</span>
+          {line ? <span id={`msl-${step.id}`} className="text-xs leading-5 text-ink-muted">{line}</span> : null}
+          {step.values.length ? <span className="flex flex-wrap gap-1.5">{step.values.map((v) => (
+            <span key={v.reference} data-step-value className="inline-flex min-h-[22px] max-w-full flex-wrap items-center rounded-[11px] border border-border px-2 text-xs font-normal text-ink-muted">{v.label_cs}: <b className="ml-1 break-all font-mono font-medium text-ink">{showValue(v, WORDS)}{v.unit && !v.absent && v.value !== null ? ` ${v.unit}` : ""}</b></span>
+          ))}</span> : null}
+        </span>
+        <span aria-hidden="true" className="pt-0.5 text-ink-faint">{open ? "▾" : "▸"}</span>
+      </button>
+    </h4>
+    {open ? <div data-step-body className="flex min-w-0 flex-col gap-3 pb-4 pl-1 sm:pl-[3.625rem]"><StepBody step={step} editable={editable} titles={titles} onPick={onPick} /></div> : null}
+  </article>;
 }
 
-function StepCard({ step, number, editable, titles }: { step: MethodStepOut; number?: string; editable: boolean; titles: Record<string, string> }) {
+/** An open step's detail: its formula, note, context, symbols, values, formulas, evidence and code. */
+function StepBody({ step, editable, titles, onPick }: { step: MethodStepOut; editable: boolean; titles: Record<string, string>; onPick: (id: string) => void }) {
   return (
-    <article aria-labelledby={`ms-${step.id}`} className="flex min-w-0 flex-col gap-3 rounded-md border border-border bg-surface-raised p-4">
-      <div className="flex flex-wrap items-baseline justify-between gap-3">
-        <h4 id={`ms-${step.id}`} className="scroll-mt-4 text-sm font-semibold">{step.title_cs}</h4>
-        {number ? <span data-step-number className="shrink-0 font-mono text-xs text-ink-faint">{number}</span> : null}
-      </div>
-      {step.audit ? <p data-step-origin className="-mt-2 text-xs text-ink-faint">{stepOrigin(step.audit)}</p> : null}
-      <div className="text-ink"><Formula latex={step.formula_latex} /></div>
-      {step.note_cs ? <p className="max-w-3xl text-sm text-ink-muted">{step.note_cs}</p> : null}
-      <StepContext step={step} titles={titles} onPick={showStep} />
+    <>
+      {step.audit ? <p data-step-origin className="text-xs text-ink-faint">{stepOrigin(step.audit)}</p> : null}
+      <div className="min-w-0 overflow-x-auto text-ink"><Formula latex={step.formula_latex} /></div>
+      {step.note_cs ? <p className="max-w-3xl break-words text-sm text-ink-muted">{step.note_cs}</p> : null}
+      <StepContext step={step} titles={titles} onPick={onPick} />
       {step.symbols.length ? (
         <dl aria-label={t(`${M}.symbols`)} className="grid grid-cols-[minmax(0,6rem)_minmax(0,1fr)] gap-x-4 gap-y-1 text-sm">
           {step.symbols.map((y) => (
@@ -316,7 +386,7 @@ function StepCard({ step, number, editable, titles }: { step: MethodStepOut; num
           </>
         ) : null}
       </details>
-    </article>
+    </>
   );
 }
 
@@ -327,12 +397,12 @@ function EditableFormula({ formula, editable }: { formula: MethodFormula; editab
     <details aria-label={`${t(`${M}.editable`)}: ${formula.title_cs}`} data-slot={formula.slot_id} className="rounded-sm border border-border p-3">
       <summary className="cursor-pointer text-xs font-semibold text-ink-muted">{t(`${M}.editable`)} · {formula.title_cs}</summary><div className="mt-3 flex min-w-0 flex-col gap-2">
       <p className="text-xs text-ink-muted">{t(editable ? `${M}.editableHelp` : `${M}.editableHelpLater`)}</p>
-      <div className="text-ink"><Formula latex={formula.latex} /></div>
+      <div className="min-w-0 overflow-x-auto text-ink"><Formula latex={formula.latex} /></div>
       <p className="text-sm">
         <span className="text-xs text-ink-muted">{t(`${M}.expression`)}: </span>
         <code className="whitespace-pre-wrap break-all font-mono text-xs">{formula.expression}</code>
       </p>
-      {formula.note_cs ? <p className="text-xs text-ink-muted">{formula.note_cs}</p> : null}
+      {formula.note_cs ? <p className="break-words text-xs text-ink-muted">{formula.note_cs}</p> : null}
       {formula.kept_cs.length ? (
         <div data-kept className="text-xs">
           <p className="text-ink-muted">{t(`${M}.kept`)}:</p>

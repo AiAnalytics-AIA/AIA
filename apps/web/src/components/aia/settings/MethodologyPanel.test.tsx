@@ -35,10 +35,13 @@ function fakeApi(list: unknown = doc.modules) {
 
 const card = (title: string) =>
   waitFor(() => {
+    // A step is a row (fidelity F5): its heading's button opens it on its formula and values.
     const heading = screen.getByRole("heading", { name: title, hidden: true });
-    const group = heading.closest("details") as HTMLDetailsElement;
-    if (group && !group.open) fireEvent.click(group.querySelector("summary")!);
-    return heading.closest("article") as HTMLElement;
+    const button = heading.querySelector("button[aria-expanded]");
+    if (button?.getAttribute("aria-expanded") === "false") fireEvent.click(button);
+    const article = heading.closest("article") as HTMLElement;
+    if (!article.querySelector("[data-step-body]")) throw new Error(`${title} did not open`);
+    return article;
   });
 
 /** The tab opens on the module catalogue (fidelity F4): back to it if a module is open, then a card. */
@@ -111,7 +114,7 @@ describe("the Metodika tab", () => {
     const groups = [...document.querySelectorAll("h3[id^=mg-]")].map((h) => h.textContent);
     expect(groups.slice(0, 8)).toEqual(["Metoda", "Vstupní hodnocení", "Vztahy mezi objekty", "Rozložení na mapě", "Věrohodnost mapy", "Skóre a výška objektů", "Terén", "Respondenti a podpora mapy"]);
     // D-13: one method offered, aia-sociomap-5, said rather than chosen.
-    expect(document.querySelector("[data-preset]")?.textContent).toMatch(/^aia-sociomap-5 · výchozí v kódu$/);
+    expect(document.querySelector("[data-preset]")?.textContent).toMatch(/^Kroky popisují metodu aia-sociomap-5 tak, jak je v kódu/);
   });
 
   it("says where each step sits: what it is for, what it reads, what reads it, and its audit point", async () => {
@@ -126,12 +129,14 @@ describe("the Metodika tab", () => {
     // The first step reads the answers themselves; the last ones hand their result to the reader.
     const declared = await card("Hodnocení na společné škále 0-1");
     expect(within(declared.querySelector("[data-context=from]") as HTMLElement).getByText(/odpovědi respondentů/)).toBeTruthy();
-    // A link opens the step it names, even in a stage that is closed.
+    // A link opens the step it names, closed until then, and moves to it.
     const smacofHeading = document.getElementById("ms-f6_smacof")!;
-    smacofHeading.scrollIntoView = vi.fn();
+    expect(smacofHeading.closest("article")?.querySelector("[data-step-body]")).toBeNull();
+    const scrolled = vi.fn();
+    Element.prototype.scrollIntoView = scrolled;
     fireEvent.click(context.querySelector('[data-context-link="f6_smacof"]')!);
-    expect(smacofHeading.scrollIntoView).toHaveBeenCalled();
-    expect((smacofHeading.closest("details") as HTMLDetailsElement).open).toBe(true);
+    await waitFor(() => expect(scrolled).toHaveBeenCalled());
+    expect(document.getElementById("ms-f6_smacof")?.closest("article")?.querySelector("[data-step-body]")).toBeTruthy();
   });
 
   it("shows each value with where it comes from, and draws the formula as MathML", async () => {
@@ -145,7 +150,9 @@ describe("the Metodika tab", () => {
     expect(within(floor).getByText("kód")).toBeTruthy();
     expect(status.querySelector("math")).not.toBeNull();
     const smacof = await card("Rozložení objektů (SMACOF na pevném pravítku)");
-    expect(within(smacof).getByText("10⁻¹²")).toBeTruthy();
+    expect(within(smacof.querySelector("[data-step-body]") as HTMLElement).getByText("10⁻¹²")).toBeTruthy();
+    // A closed row says its values too, as chips beside its title.
+    expect(within(smacof.querySelector("h4") as HTMLElement).getAllByText("10⁻¹²").length).toBe(1);
   });
 
   it("shows a step's formula as the expression the engine evaluates, and an algorithm without one", async () => {
@@ -185,7 +192,7 @@ describe("the Metodika tab", () => {
   it("offers aia-sociomap-5 only, never the earlier methods (D-13)", async () => {
     fakeApi();
     render(<MethodologyPanel />); await openMap();
-    await waitFor(() => expect(document.querySelector("[data-preset]")?.textContent).toMatch(/^aia-sociomap-5/));
+    await waitFor(() => expect(document.querySelector("[data-preset]")?.textContent).toMatch(/metodu aia-sociomap-5 /));
     expect(screen.queryByRole("radiogroup", { name: /metodik|předvolb/i })).toBeNull();
     // Nothing offers or names an earlier method as one to use: the preset line, the module's chips.
     // (A step's own note may cite an earlier method as its history -- "as in aia-sociomap-4" -- which
@@ -196,7 +203,7 @@ describe("the Metodika tab", () => {
   it("says where AIA does not compute a point yet", async () => {
     fakeApi();
     render(<MethodologyPanel />); await openMap();
-    const f14 = (await screen.findByRole("heading", { name: "Zatím v AIA není: testy při porovnání oblastí (F14)" })).closest("section") as HTMLElement;
+    const f14 = (await screen.findByRole("heading", { name: /^Zatím v AIA není: testy při porovnání oblastí \(F14\)/ })).closest("section") as HTMLElement;
     expect(within(f14).getByText(/V AIA zatím není/)).toBeTruthy();
     expect(within(f14).getByText("Žádný krok: v AIA se zatím nepočítá.")).toBeTruthy();
   });
@@ -237,6 +244,7 @@ describe("the Metodika tab", () => {
     fakeApi();
     render(<MethodologyPanel />); await openMap();
     await openModule("Agregace: z odpovědí odhad s intervalem");
+    fireEvent.click(await screen.findByRole("button", { name: "Rozbalit všechny kroky" }));
     await screen.findByRole("heading", { name: "Interval: bootstrap dárců" });
     expect(screen.getByRole("heading", { name: "Věrohodnost otázky" })).toBeTruthy();
     expect(screen.getAllByText(/aia-aggregate-1/).length).toBeGreaterThan(0);
@@ -254,9 +262,10 @@ describe("the Metodika tab", () => {
     fakeApi();
     render(<MethodologyPanel />); await openMap();
     await openModule("Vážení: která váha patří respondentovi a co s neplatnou");
+    fireEvent.click(await screen.findByRole("button", { name: "Rozbalit všechny kroky" }));
     await screen.findByRole("heading", { name: "Kishovo efektivní n na čtyřech místech" });
     expect(screen.getAllByText(/aia-weighting-1/).length).toBeGreaterThan(0);
-    expect(screen.getByText("vaha_strukturalni_2025")).toBeTruthy();
+    expect(screen.getAllByText("vaha_strukturalni_2025").length).toBeGreaterThan(0); // its chip and, open, its row
     // What a run's respondent weighs: the sampler's raking, its values the code's constants.
     expect(screen.getByRole("heading", { name: "Váha respondenta běhu: vzorek z panelu" })).toBeTruthy();
     expect(screen.getByText("Raking vzorku na cíle")).toBeTruthy();
@@ -265,7 +274,9 @@ describe("the Metodika tab", () => {
     expect(screen.queryByText("median")).toBeNull();
     expect(screen.getByText("Váha v datové sadě běhu")).toBeTruthy();
     // A total the contract does not declare is said, never shown as 0.
-    expect(screen.getAllByText("žádná (null)").length).toBe(4);
+    // Four values, each said once in its row's chip and once in its open table.
+    expect([...document.querySelectorAll("[data-step-body]")].flatMap((b) => within(b as HTMLElement).queryAllByText("žádná (null)")).length).toBe(4);
+    expect([...document.querySelectorAll("[data-step-value]")].filter((c) => c.textContent?.includes("žádná (null)")).length).toBe(4);
     expect(screen.getAllByText(/nález D1/).length).toBeGreaterThan(0);
     expect(screen.getAllByText(/GREG ani jiná kalibrace v AIA nejsou/).length).toBeGreaterThan(0);
     // Read-only until W1c, and the page says so.
@@ -277,6 +288,7 @@ describe("the Metodika tab", () => {
     fakeApi();
     render(<MethodologyPanel />); await openMap();
     await openModule("Odpověď respondenta: od pravděpodobností modelu k odpovědi");
+    fireEvent.click(await screen.findByRole("button", { name: "Rozbalit všechny kroky" }));
     await screen.findByRole("heading", { name: "Mechanismy odpovědi" });
     expect(screen.getAllByText(/aia-response-1/).length).toBeGreaterThan(0);
     expect(screen.getByText("Losování odpovědi kódem")).toBeTruthy();
@@ -294,14 +306,80 @@ describe("the Metodika tab", () => {
   });
 });
 
-  it("focuses the calculation with search and keeps provenance available on demand", async () => {
+  it("lays the calculation out as the prototype does: stage tiles, a parameter filter, and rows that open on their formula", async () => {
     fakeApi(); render(<MethodologyPanel />); await openMap();
-    const input = await screen.findByRole("searchbox", { name: "Hledat výpočet nebo parametr" });
-    fireEvent.change(input, { target: { value: "Kish" } });
-    const cards = [...document.querySelectorAll("article")];
-    expect(cards.length).toBeGreaterThan(0);
-    expect(cards.every((c) => c.textContent?.includes("Kish"))).toBe(true);
-    expect([...document.querySelectorAll("section > details")].every((d) => (d as HTMLDetailsElement).open)).toBe(true);
-    fireEvent.change(input, { target: { value: "no-such-calculation" } });
-    expect(screen.getByRole("status").textContent).toBe("Žádná část neodpovídá hledání.");
+    const tiles = await screen.findByRole("group", { name: "Etapy" });
+    const all = within(tiles).getByRole("button", { name: /^Všechny etapy/ });
+    expect(all.getAttribute("aria-pressed")).toBe("true");
+    // Rows are closed: a title, what it is for, its values as chips -- the formula on opening.
+    await waitFor(() => expect(document.querySelectorAll("article[data-step]").length).toBeGreaterThan(10));
+    expect(document.querySelector("[data-step-body]")).toBeNull();
+    // One stage by its tile; the other stages' steps leave the page.
+    fireEvent.click(within(tiles).getByRole("button", { name: /^M6\s·\sTerén/ }));
+    const sections = [...document.querySelectorAll("section[aria-labelledby^='mg-']:not([data-not-computed] section)")].map((x) => x.querySelector("h3")?.textContent);
+    expect(sections).toEqual(["Terén"]);
+    fireEvent.click(all);
+    // Only the steps that read a parameter, each showing it as a chip.
+    fireEvent.click(within(screen.getByRole("radiogroup", { name: "Jen kroky" })).getByRole("radio", { name: "S parametry" }));
+    const rows = [...document.querySelectorAll("article[data-step]")];
+    expect(rows.length).toBeGreaterThan(0);
+    expect(rows.every((r) => r.querySelector("[data-step-value]"))).toBe(true);
+    // Every row opens at once, and closes.
+    fireEvent.click(screen.getByRole("button", { name: "Rozbalit všechny kroky" }));
+    expect(document.querySelectorAll("[data-step-body]").length).toBe(rows.length);
+    fireEvent.click(screen.getByRole("button", { name: "Sbalit všechny kroky" }));
+    expect(document.querySelector("[data-step-body]")).toBeNull();
   });
+
+  it("counts steps in Czech on the tiles and the stage heads: 1 krok, 3 kroky, 17 kroků", async () => {
+    fakeApi(); render(<MethodologyPanel />); await openMap();
+    await openModule("Vážení: která váha patří respondentovi a co s neplatnou");
+    const tiles = await screen.findByRole("group", { name: "Etapy" });
+    const count = (tile: RegExp) => within(tiles).getByRole("button", { name: tile }).querySelector(".text-xs")?.textContent;
+    expect(count(/^Všechny etapy/)).toBe("17 kroků");
+    expect(count(/^M1\s·\sSchéma vah/)).toBe("3 kroky");
+    expect(count(/^M2\s·\sSoučty populace/)).toBe("1 krok");
+    const head = screen.getByRole("heading", { name: "Součty populace" }).closest("section") as HTMLElement;
+    expect(within(head).getByText("1 krok")).toBeTruthy();
+    // The catalogue's cards count the same way.
+    fireEvent.click(document.querySelector<HTMLElement>("[data-methodology-back]")!);
+    const readiness = await waitFor(() => document.querySelector('[data-module-card="readiness"]') as HTMLElement);
+    expect(readiness.textContent).toContain("3 kroky · 3 etapy");
+  });
+
+  it("says a stage has no step with a parameter rather than showing nothing", async () => {
+    fakeApi(); render(<MethodologyPanel />); await openMap();
+    await openModule("Vážení: která váha patří respondentovi a co s neplatnou");
+    const tiles = await screen.findByRole("group", { name: "Etapy" });
+    fireEvent.click(within(tiles).getByRole("button", { name: /^M4\s·\sNeplatná váha/ }));
+    expect(document.querySelectorAll("article[data-step]").length).toBe(2);
+    fireEvent.click(within(screen.getByRole("radiogroup", { name: "Jen kroky" })).getByRole("radio", { name: "S parametry" }));
+    expect(document.querySelector("article[data-step]")).toBeNull();
+    expect(screen.getByRole("status").textContent).toBe("Žádný krok této etapy nečte parametr.");
+  });
+
+  it("counts as a parameter only what a version can change, never a code constant or the method's name", async () => {
+    fakeApi(); render(<MethodologyPanel />); await openMap();
+    await openModule("Vážení: která váha patří respondentovi a co s neplatnou");
+    await screen.findByRole("group", { name: "Etapy" });
+    fireEvent.click(within(screen.getByRole("radiogroup", { name: "Jen kroky" })).getByRole("radio", { name: "S parametry" }));
+    // The method's own step (its name) and the run's raking (code constants) are not among them.
+    const shown = [...document.querySelectorAll("article[data-step] [id^='mst-']")].map((n) => n.textContent);
+    expect(shown).not.toContain("Váha respondenta běhu: vzorek z panelu");
+    expect(screen.queryByRole("heading", { name: "Vážení" })).toBeNull();
+    expect(shown.length).toBe(2);
+  });
+
+  it("follows a context link out of a single stage: all stages again, the step open and focused", async () => {
+    fakeApi(); render(<MethodologyPanel />); await openMap();
+    const tiles = await screen.findByRole("group", { name: "Etapy" });
+    fireEvent.click(within(tiles).getByRole("button", { name: /^M3\s·\sRozložení na mapě/ }));
+    expect(document.getElementById("ms-f3_correlation")).toBeNull();
+    const distance = await card("Cílová vzdálenost z korelace");
+    Element.prototype.scrollIntoView = vi.fn();
+    fireEvent.click(distance.querySelector('[data-context="from"] [data-context-link="f3_correlation"]')!);
+    await waitFor(() => expect(document.getElementById("ms-f3_correlation")?.closest("article")?.querySelector("[data-step-body]")).toBeTruthy());
+    expect(within(tiles).getByRole("button", { name: /^Všechny etapy/ }).getAttribute("aria-pressed")).toBe("true");
+    expect(document.activeElement).toBe(document.querySelector("#ms-f3_correlation button[aria-expanded]"));
+  });
+
