@@ -1,7 +1,7 @@
 """the edit starts a report editor's pages report (artifact-report RPT8f)
 
 Revision ID: 9c1e3a5b7d2f
-Revises: 75f40e2e74dd
+Revises: 3abba24ff47c
 Created: 2026-10-24
 
 An edited report's approval is decided by the server: each page reports its edit starts (its own
@@ -19,7 +19,7 @@ import sqlalchemy as sa
 from alembic import op
 
 revision: str = "9c1e3a5b7d2f"
-down_revision: str | None = "75f40e2e74dd"
+down_revision: str | None = "3abba24ff47c"
 branch_labels = None
 depends_on = None
 
