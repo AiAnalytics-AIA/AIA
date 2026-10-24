@@ -1,7 +1,8 @@
 ---
 status: in-progress
 chunks:
-  - "[ ] RD0. The client deliverable's checks the owner set (MVPQ-09): an \"Interní dokument\" source, drill-down content, a number without an admitted claim, each shown as a warning in the approval dialog and recorded with the approval, never refusing (changed 2026-10-22)"
+  - "[x] RD0. The client deliverable's checks the owner set (MVPQ-09): drill-down content and a number without an admitted claim, each shown as a warning in the approval dialog and recorded with the approval, never refusing (changed 2026-10-22); the \"Interní dokument\" check is RD0b"
+  - "[ ] RD0b. RD0's third check: a cited source marked \"Interní dokument\" as a warning, with RD11 (the first chapter that cites a client source)"
   - "[x] RD1. The client report PDF: extend `RENDERABLE_REPORTS`, the PDF is approved with its DOCX"
   - "[x] RD2. A reader for the approval ledger: "approved by whom, when" for a report and a snapshot"
   - "[ ] RD3. The Approve and Export panel: what is approved and by whom; exports after approval; the slot in the Report artifact"
@@ -60,7 +61,8 @@ then be approved while it prints a number its ledger does not hold for the clien
 client-facing claims, so this fires on a composer defect or a stale contract. Both documents change in that PR's
 Doc follow-up.
 The third check, `internal_source_cited`, waits for a chapter that cites a client source (RD11): no client report cites
-one, so it would read nothing. RD0 stays open until it lands.
+one, so it would read nothing. It is chunk RD0b, built with RD11; RD0 is ticked for the two checks built (the PM,
+2026-10-24). The id RD0 is kept for them because the master plan cites `report-delivery#RD0`.
 
 *RD0's change, built (`feature/client-report-warnings`):* `client_gate` returns findings (`GateFinding`), never
 refusals; `application/client_report.py` `client_gate_findings` replaces `require_client_gate` and `ClientGateRefused`

@@ -1583,6 +1583,137 @@ def test_the_client_report_is_the_runs_work_not_its_first_downloaders(
     assert approved.json()["approval"]["self_approved"] is False
 
 
+def _held_after(real: Any, applies: Any) -> tuple[Any, Any]:
+    """``real`` held after it ran: the first call that ``applies`` to waits, its write not yet
+    committed, until a second has written too (no lock), or for 10 s (the second waits on the
+    lock). Answers the replacement and the event the first call sets."""
+    import threading
+
+    first_in, second_done = threading.Event(), threading.Event()
+
+    def held(self: Any, *args: Any, **kw: Any) -> Any:
+        done = real(self, *args, **kw)
+        if not applies(*args, **kw):
+            return done
+        if not first_in.is_set():
+            first_in.set()
+            second_done.wait(10)
+        else:
+            second_done.set()
+        return done
+
+    return held, first_in
+
+
+def _at_once(app: FastAPI, world: Any, first_in: Any, calls: list[tuple[str, Any]]) -> None:
+    """Each of ``calls`` (a user, then what it does in its own session and scope) in a thread of
+    its own, the second started once the first holds; every error raised here."""
+    import threading
+
+    factory = create_session_factory(app.state.engine)
+    errors: list[BaseException] = []
+
+    def run(user: str, act: Any) -> None:
+        try:
+            with factory() as own:
+                principal = AuthenticatedPrincipal(
+                    user_id=world.users[user], organization_id=world.organization_id
+                )
+                act(own, ScopeResolver(own).study_context(principal, study_id=world.study_id()))
+                own.commit()
+        except BaseException as exc:  # reported below, never swallowed
+            errors.append(exc)
+
+    threads = [threading.Thread(target=run, args=call) for call in calls]
+    threads[0].start()
+    assert first_in.wait(30)
+    threads[1].start()
+    for thread in threads:
+        thread.join(30)
+    assert not errors, errors
+
+
+def test_two_first_reads_of_the_client_report_store_one_draft(
+    app: FastAPI, researcher: TestClient, world: Any, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Two first reads at once (two people opening Zpráva) store one draft: the second waits on
+    the run's lock and finds the first's, so the version one approves is the one the other read.
+    PostgreSQL only: the guard is a row lock, which SQLite does not take (it serialises writers
+    instead)."""
+    from aia_core.infrastructure.artifact_repository import ArtifactRepository
+
+    if app.state.engine.dialect.name != "postgresql":
+        pytest.skip("row locks are PostgreSQL's; SQLite serialises writers")
+    app.state.settings = app.state.settings.model_copy(update={"ai_analysis_enabled": True})
+    run_id = start(researcher, world, submit(researcher, world).json()["revision_id"]).json()[
+        "run_id"
+    ]
+    monkeypatch.setattr(
+        client_report, "compose_client_report", _composing(_client_report_document())
+    )
+    held, first_in = _held_after(
+        ArtifactRepository.put,
+        lambda **kw: kw.get("artifact_type") == CLIENT_REPORT_ARTIFACT_TYPE,
+    )
+    monkeypatch.setattr(ArtifactRepository, "put", held)
+    ids: list[str] = []
+
+    def read(session: Any, scope: Any) -> None:
+        found, _data = client_report.stored_client_report(
+            session, scope, app.state.artifact_store, run_id=run_id
+        )
+        ids.append(found.artifact_id)
+
+    _at_once(app, world, first_in, [("researcher", read), ("lead", read)])
+    assert len(ids) == 2 and ids[0] == ids[1]
+    with create_session_factory(app.state.engine)() as session:
+        stored = session.scalar(
+            select(func.count())
+            .select_from(ProjectArtifactRow)
+            .where(ProjectArtifactRow.artifact_type == CLIENT_REPORT_ARTIFACT_TYPE)
+        )
+    assert stored == 1
+
+
+def test_two_approvals_of_one_report_at_once_record_one_decision(
+    app: FastAPI,
+    researcher: TestClient,
+    outsider: TestClient,
+    world: Any,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Approve once: the second approval waits on the run's lock, then reads the report
+    approved and records nothing. PostgreSQL only, as the store race above."""
+    from aia_core.application.report_approval import approve_report
+    from aia_core.infrastructure.artifact_repository import ArtifactRepository
+
+    if app.state.engine.dialect.name != "postgresql":
+        pytest.skip("row locks are PostgreSQL's; SQLite serialises writers")
+    app.state.settings = app.state.settings.model_copy(update={"ai_analysis_enabled": True})
+    run_id = start(researcher, world, submit(researcher, world).json()["revision_id"]).json()[
+        "run_id"
+    ]
+    monkeypatch.setattr(
+        client_report, "compose_client_report", _composing(_client_report_document())
+    )
+    report = f"{_runs(world)}/{run_id}/report/client/download"
+    version = outsider.get(report).headers["X-AIA-Artifact-Id"]
+    held, first_in = _held_after(ArtifactRepository.approve, lambda *a, **kw: True)
+    monkeypatch.setattr(ArtifactRepository, "approve", held)
+
+    def approve(session: Any, scope: Any) -> None:
+        approve_report(session, scope, app.state.artifact_store, run_id=run_id, artifact_id=version)
+
+    _at_once(app, world, first_in, [("outsider", approve), ("lead", approve)])
+    with create_session_factory(app.state.engine)() as session:
+        decisions = session.scalar(
+            select(func.count())
+            .select_from(ApprovalDecisionRow)
+            .where(ApprovalDecisionRow.subject_id == version)
+        )
+    assert decisions == 1
+
+
 def test_a_client_report_carrying_drill_down_content_is_approved_with_its_warning_on_record(
     app: FastAPI,
     researcher: TestClient,
