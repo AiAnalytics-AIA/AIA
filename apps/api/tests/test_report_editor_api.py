@@ -8,6 +8,7 @@ import json
 import os
 import time
 import zipfile
+from datetime import datetime
 from typing import Any
 from urllib.parse import parse_qs, urlparse
 
@@ -852,6 +853,106 @@ def test_an_edited_version_says_what_it_changed_and_is_approved_as_itself(
     app.state.settings = app.state.settings.model_copy(update={"onlyoffice_callback_base": ""})
     assert researcher.get(f"{versions}/{edited}").status_code == 200
     assert researcher.get(f"{versions}/{edited}/download").status_code == 200
+
+
+def test_a_version_names_its_authors_and_its_lines_newest_version(
+    app: FastAPI, researcher: TestClient, client: TestClient, world: Any, saves: Saves
+) -> None:
+    run_id, draft = _reported_run(app, researcher, world)
+    config = researcher.post(_editor(world, run_id), json={}).json()["config"]
+    me = world.users["researcher"]
+    name = config["editorConfig"]["user"]["name"]
+    versions = f"{_editor(world, run_id)}/versions"
+    first = saves.put(_docx("50 %"))
+    assert _callback(client, config, status=6, url=first, users=[me]).json() == {"error": 0}
+    edited = researcher.post(_editor(world, run_id), json={}).json()["version_artifact_id"]
+
+    said = researcher.get(f"{versions}/{edited}").json()
+    assert said["author_names"] == [name] and "@" not in name
+    assert said["content_at"] is None  # this save named no lastsave
+    assert datetime.fromisoformat(said["server_now"]).tzinfo is not None
+    assert said["newest_in_line"] == {"version_artifact_id": edited, "koncept": 2}
+    assert researcher.get(f"{versions}/{draft}").json()["newest_in_line"]["koncept"] == 2
+
+    later = saves.put(_docx("55 %"))
+    assert _callback(client, config, status=6, url=later, users=[me]).json() == {"error": 0}
+    moved = researcher.get(f"{versions}/{edited}").json()["newest_in_line"]
+    assert moved["koncept"] == 3 and moved["version_artifact_id"] != edited
+
+
+def test_a_version_asked_as_its_lines_newest_is_refused_once_a_later_save_exists(
+    app: FastAPI, researcher: TestClient, client: TestClient, world: Any, saves: Saves
+) -> None:
+    run_id, draft = _reported_run(app, researcher, world)
+    config = researcher.post(_editor(world, run_id), json={}).json()["config"]
+    me = world.users["researcher"]
+    saved = _callback(client, config, status=6, url=saves.put(_docx("50 %")), users=[me])
+    assert saved.json() == {"error": 0}
+    second = researcher.post(_editor(world, run_id), json={}).json()["version_artifact_id"]
+    # The question was open while a save stored koncept 3.
+    saved = _callback(client, config, status=6, url=saves.put(_docx("55 %")), users=[me])
+    assert saved.json() == {"error": 0}
+    third = researcher.post(_editor(world, run_id), json={}).json()["version_artifact_id"]
+    approve = f"{API}/studies/{world.study_id()}/research/runs/{run_id}/report/approve"
+
+    stale = researcher.post(approve, json={"artifact_id": second, "newest_of_line": True})
+    assert stale.status_code == 409, stale.text
+    assert stale.json()["code"] == "report_version_stale"
+    assert stale.json()["details"] == {"newest_artifact_id": third, "koncept": 3}
+    assert researcher.get(f"{_editor(world, run_id)}/versions/{second}").json()["approval"] is None
+    # Koncept 1, the composed draft, is no newest once the line moved on either.
+    first = researcher.post(approve, json={"artifact_id": draft, "newest_of_line": True})
+    assert first.status_code == 409 and first.json()["details"]["koncept"] == 3
+
+    newest = researcher.post(approve, json={"artifact_id": third, "newest_of_line": True})
+    assert newest.status_code == 200, newest.text
+    assert newest.json()["artifact_id"] == third
+    # Without the flag an older version is approved as itself, as before.
+    older = researcher.post(approve, json={"artifact_id": second})
+    assert older.status_code == 200, older.text
+
+
+def test_a_save_keeps_the_time_of_its_last_change_as_the_document_server_said_it(
+    app: FastAPI, researcher: TestClient, client: TestClient, world: Any, saves: Saves
+) -> None:
+    run_id, _draft = _reported_run(app, researcher, world)
+    config = researcher.post(_editor(world, run_id), json={}).json()["config"]
+    me = world.users["researcher"]
+    saved = _callback(
+        client,
+        config,
+        status=6,
+        url=saves.put(_docx("50 %")),
+        users=[me],
+        lastsave="2026-10-24T00:30:12.000Z",
+    )
+    assert saved.json() == {"error": 0}
+    edited = researcher.post(_editor(world, run_id), json={}).json()["version_artifact_id"]
+    said = researcher.get(f"{_editor(world, run_id)}/versions/{edited}").json()
+    assert said["content_at"] == "2026-10-24T00:30:12+00:00"
+    # A time that is not an aware ISO time is kept as nothing, never guessed.
+    _callback(client, config, status=6, url=saves.put(_docx("51 %")), users=[me], lastsave="today")
+    later = researcher.post(_editor(world, run_id), json={}).json()["version_artifact_id"]
+    assert researcher.get(f"{_editor(world, run_id)}/versions/{later}").json()["content_at"] is None
+
+
+def test_an_author_is_named_only_as_a_member_and_never_by_an_e_mail(
+    app: FastAPI, world: Any
+) -> None:
+    from aia_core.application.report_editor import ReportEditor
+    from aia_core.infrastructure.tables import UserRow
+
+    me, lead = world.users["researcher"], world.users["lead"]
+    factory = create_session_factory(app.state.engine)
+    with factory() as session:
+        session.get(UserRow, me).display_name = "Jana Výzkumná"
+        session.get(UserRow, lead).display_name = "lead@art-chain.io"
+        session.add(UserRow(user_id="USR-stranger", email="x@else.test", display_name="Cizí"))
+        session.commit()
+        principal = AuthenticatedPrincipal(user_id=me, organization_id=world.organization_id)
+        scope = ScopeResolver(session).study_context(principal, study_id=world.study_id())
+        names = ReportEditor(session, scope).names([me, lead, "USR-stranger"])
+    assert names == {me: "Jana Výzkumná"}
 
 
 def test_no_author_of_an_edited_version_approves_it_where_self_approval_is_off(

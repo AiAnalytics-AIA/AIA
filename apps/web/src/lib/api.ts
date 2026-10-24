@@ -7,7 +7,7 @@
 import type { RegisterEntry } from "@/lib/object-map-view";
 import type { BriefMaterials } from "@/lib/material-class";
 import type { Approval, StoredReportDocument } from "@/lib/artifacts/report";
-import type { EditorMode, EditorOpened } from "@/lib/report-editor";
+import type { EditorMode, EditorOpened, EditorVersionRead } from "@/lib/report-editor";
 import { currentIdToken, loadConfig } from "@/lib/auth";
 import type { EditDecisionResult, LeadPreferences, LeadState, LeadTurn, RequestApproval, ResearcherLead, SelfUpdateDecision } from "@/lib/lead";
 import type { OmittedPage, TurnManifest } from "@/lib/lead-manifest";
@@ -1253,6 +1253,16 @@ export type ReportPdf = {
   reason?: string | null;
   askable?: boolean;
 };
+/** An edited version of a run's report a person approved (RPT8c): the composed draft stays a
+ *  draft beside it, so a status names these apart. */
+export type ApprovedEdit = {
+  artifact_id: string;
+  line_id: string;
+  koncept: number;
+  review_state: "DRAFT_UNAPPROVED" | "APPROVED_INTERNAL";
+  approved_on?: string | null;
+  stamped?: boolean | null;
+};
 /** The report of a run with one chosen literature review, and the PDF rendered from that very draft. */
 export type ReportVariant = {
   run_id: string;
@@ -1274,6 +1284,8 @@ export type ReportVariant = {
    * one stays the report (downloadable, approvable) until it is prepared anew. */
   contract?: string | null;
   contract_current?: boolean | null;
+  /** Its edited versions a person approved (RPT8c); absent from an API before them. */
+  approved_edits?: ApprovedEdit[];
 };
 export type ResearchReport = {
   run_id: string;
@@ -1297,6 +1309,8 @@ export type ResearchReport = {
   pdf?: ReportPdf | null;
   /** As ReportVariant's: whether approving the draft now gives its approved version a PDF too. */
   approval_renders_pdf?: boolean;
+  /** As ReportVariant's: its edited versions a person approved. */
+  approved_edits?: ApprovedEdit[];
 };
 
 const studyPath = (studyId: string) => `/api/v1/studies/${enc(studyId)}`;
@@ -1408,6 +1422,12 @@ export const research = {
     runId: string,
     body: { variant: "internal" | "context"; deep_research_run_id?: string | null; line?: string | null; mode: EditorMode },
   ) => request<EditorOpened>("POST", `${studyPath(studyId)}/research/runs/${enc(runId)}/report/editor`, body),
+  /** A saved version of a report line as its DOCX, its review in the headers (RPT8c). */
+  downloadReportEditorVersion: (studyId: string, runId: string, artifactId: string) =>
+    requestStored(`${studyPath(studyId)}/research/runs/${enc(runId)}/report/editor/versions/${enc(artifactId)}/download`),
+  /** A saved version of a report line: who saved it, its review, what it changed, its line's newest (RPT8d). */
+  reportEditorVersion: (studyId: string, runId: string, artifactId: string) =>
+    request<EditorVersionRead>("GET", `${studyPath(studyId)}/research/runs/${enc(runId)}/report/editor/versions/${enc(artifactId)}`),
   /** The run's internal draft as its stored document model, beside the DOCX it names (report-delivery RD5a). */
   reportDocument: (studyId: string, runId: string) =>
     request<StoredReportDocument>("GET", `${studyPath(studyId)}/research/runs/${enc(runId)}/report/document`),
@@ -1439,7 +1459,9 @@ export const research = {
   downloadReportPdf: (studyId: string, runId: string) =>
     requestStored(`${studyPath(studyId)}/research/runs/${enc(runId)}/report/pdf/download`),
   /** A person approves a stored report of the run: internal, with literature or the client report (recorded in the ledger). */
-  approveReport: (studyId: string, runId: string, artifactId: string, note = "") =>
+  /** `newestOfLine`: a report-editor version approved only while it is its line's newest (RPT8d):
+   *  409 `report_version_stale` once a save stored the next koncept. */
+  approveReport: (studyId: string, runId: string, artifactId: string, note = "", newestOfLine = false) =>
     request<{
       run_id: string;
       artifact_id: string;
@@ -1452,7 +1474,8 @@ export const research = {
       report_kind?: "internal" | "with_review" | "client";
       internal_only: boolean;
     }>(
-      "POST", `${studyPath(studyId)}/research/runs/${enc(runId)}/report/approve`, { artifact_id: artifactId, note },
+      "POST", `${studyPath(studyId)}/research/runs/${enc(runId)}/report/approve`,
+      newestOfLine ? { artifact_id: artifactId, note, newest_of_line: true } : { artifact_id: artifactId, note },
     ),
   /** The experimental Sociomapping's internal draft: status, then the DOCX (plan sociomapping-engine I3). */
   sociomappingReport: (studyId: string, runId: string) =>

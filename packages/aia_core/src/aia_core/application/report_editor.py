@@ -13,6 +13,7 @@ The client report is never a line: it opens nowhere (:class:`NotEditable`).
 
 from __future__ import annotations
 
+from collections.abc import Sequence
 from dataclasses import dataclass
 from datetime import UTC, datetime
 
@@ -130,6 +131,15 @@ class ReportEditor:
     def display_name(self) -> str:
         """The caller's name for co-editors, never their e-mail (empty when none)."""
         return self._repo.display_name()
+
+    def names(self, user_ids: Sequence[str]) -> dict[str, str]:
+        """The display names of those of ``user_ids`` in the organization, never an e-mail."""
+        return self._repo.names(user_ids)
+
+    def newest(self, line_id: str) -> EditorVersion | None:
+        """``line_id``'s newest version: the one a save after the one read would have replaced."""
+        versions = self._repo.versions(line_id)
+        return versions[-1] if versions else None
 
     def version_of(self, session: EditorSession, artifact_id: str) -> EditorVersion | None:
         """``artifact_id`` when it is a version of ``session``'s line, else ``None``."""

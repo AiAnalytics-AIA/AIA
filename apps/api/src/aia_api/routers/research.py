@@ -55,6 +55,7 @@ from aia_core.application.report_approval import (
     APPROVABLE_KINDS,
     CLIENT_REPORT_KINDS,
     ReportNotApprovable,
+    ReportVersionStale,
     approve_report,
 )
 from aia_core.application.report_editor_saves import approved_versions
@@ -3228,6 +3229,9 @@ class ReportApprovalRequest(BaseModel):
 
     artifact_id: str = Field(pattern=r"^ART-[0-9a-f]{16}$")
     note: str = Field(default="", max_length=2000)
+    #: A report-editor version approved only while it is its line's newest (RPT8d): 409
+    #: ``report_version_stale`` once a save stored the next koncept.
+    newest_of_line: bool = False
 
 
 @router.get(
@@ -3304,8 +3308,23 @@ def approve_run_report(
 ) -> dict[str, Any]:
     try:
         artifact = approve_report(
-            session, scope, store, run_id=run_id, artifact_id=body.artifact_id, note=body.note
+            session,
+            scope,
+            store,
+            run_id=run_id,
+            artifact_id=body.artifact_id,
+            note=body.note,
+            newest_of_line=body.newest_of_line,
         )
+    except ReportVersionStale as exc:
+        raise HTTPException(
+            409,
+            detail={
+                "code": "report_version_stale",
+                "message": "A later version of this report was saved; it is the one shown now.",
+                "details": {"newest_artifact_id": exc.newest_artifact_id, "koncept": exc.koncept},
+            },
+        ) from exc
     except SeparationOfDutiesViolation as exc:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,

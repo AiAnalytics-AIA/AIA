@@ -4,6 +4,7 @@
 // (RPT8c): the page only loads the script the API names and hands it the config the API signed.
 
 import { ApiError } from "./api";
+import type { Approval } from "./artifacts/report";
 
 /** What `POST …/report/editor` answers: the Document Server's origin, the signed config, and the
  *  line and version opened (RPT8c). */
@@ -93,4 +94,117 @@ const PROBLEMS: Record<string, string> = {
 export function problemWords(problem: string | null | undefined): string | null {
   if (!problem) return null;
   return PROBLEMS[problem] ?? `Poslední uložení AIA nepřevzala (${problem}).`;
+}
+
+/** A number the save changed, as `GET …/report/editor/versions/{id}` stores it (RPT8b). */
+export type SavedChange = {
+  kind: "changed" | "removed" | "added" | "typed";
+  /** The locked control's tag; null for a number typed outside one. */
+  tag: string | null;
+  was: string | null;
+  now: string | null;
+  /** For `typed`: the paragraph the number sits in, as saved. */
+  paragraph: string | null;
+};
+
+/** A saved version of a report line, as the doc bar and its approval read it (RPT8c). */
+export type EditorVersionRead = {
+  version_artifact_id: string;
+  line_id: string;
+  koncept: number;
+  edited_from: string | null;
+  author_names: (string | null)[];
+  saved_at: string;
+  review_state: "DRAFT_UNAPPROVED" | "APPROVED_INTERNAL";
+  approved_on: string | null;
+  approval: Approval | null;
+  /** Null for koncept 1, the composer's own, which changed nothing. */
+  changes: { uncomparable: string | null; changes: SavedChange[] } | null;
+  /** The line's newest version; another than this one means a later save exists. */
+  newest_in_line: { version_artifact_id: string; koncept: number } | null;
+  /** The last change the file holds, as the Document Server said it (`lastsave`); null when it did
+   *  not, and for koncept 1. */
+  content_at?: string | null;
+  /** The server's time when it answered: the clock `content_at` and `saved_at` are on. */
+  server_now?: string;
+};
+
+/** How far an edit may precede the last change a save holds and still count as held: the
+ *  Document Server's time is read to the second, and the two clocks are matched over one request. */
+const HOLD_TOLERANCE_MS = 1_000;
+
+/** Whether `version` holds an edit this person started at `startedAt` (this browser's clock): its
+ *  last change, as the Document Server signed it (`content_at`), is no earlier than the edit, both
+ *  on the server's clock. Without that time nothing says what the file holds (when AIA stored it is
+ *  when the callback came, which a snapshot taken before the edit can reach after it), so it holds
+ *  nothing. The server answered `server_now` somewhere between
+ *  the request leaving (`sentAt`) and its answer arriving, so the edit is placed as late on the
+ *  server's clock as that allows (`server_now - sentAt`): a slow answer holds the approval longer,
+ *  never certifies a snapshot from before the edit. A time that does not parse holds nothing. */
+export function holdsEdit(
+  version: Pick<EditorVersionRead, "content_at" | "server_now">, startedAt: number, sentAt: number,
+): boolean {
+  if (!version.server_now) return false;
+  const latest = Date.parse(version.server_now) - sentAt;
+  const held = version.content_at ? Date.parse(version.content_at) : Number.NaN;
+  if (Number.isNaN(held) || Number.isNaN(latest)) return false;
+  return held >= startedAt + latest - HOLD_TOLERANCE_MS;
+}
+
+const stamp = new Intl.DateTimeFormat("cs-CZ", {
+  day: "numeric", month: "numeric", year: "numeric", hour: "2-digit", minute: "2-digit", timeZone: "Europe/Prague",
+});
+
+/** "Koncept 3, uložen 23. 10. 2026 22:10 · Jana Nováková": the version and who saved it; an author
+ *  the server does not name (no display name, or no longer a member) is "neznámý autor", never
+ *  presumed a member; a time that does not parse is said as stored, never guessed. */
+export function savedWords(v: Pick<EditorVersionRead, "koncept" | "saved_at" | "author_names">): string {
+  const at = Number.isNaN(Date.parse(v.saved_at)) ? v.saved_at : stamp.format(new Date(v.saved_at));
+  const who = v.author_names.map((n) => n ?? "neznámý autor").join(", ");
+  return v.koncept === 1
+    ? `Koncept 1 (složená zpráva), uložen ${at}`
+    : `Koncept ${v.koncept}, uložen ${at}${who ? ` · ${who}` : ""}`;
+}
+
+/** One change in words: what code wrote and what the person left there. */
+export function changeWords(c: SavedChange): string {
+  const of = c.tag ? `Číslo ${c.tag}` : "Číslo";
+  switch (c.kind) {
+    case "changed": return `${of}: ${c.was ?? "?"} → ${c.now ?? "?"}`;
+    case "removed": return `${of} odstraněno (bylo ${c.was ?? "?"})`;
+    case "added": return `${of} přidáno: ${c.now ?? "?"}`;
+    case "typed": return `Číslo napsané ručně: ${c.now ?? "?"}${c.paragraph ? ` (v odstavci „${c.paragraph}“)` : ""}`;
+  }
+}
+
+const UNCOMPARABLE: Record<string, string> = {
+  no_baseline: "první verze této řady není uložena",
+  no_controls: "zpráva byla složena dřív, než kód zamykal svá čísla",
+};
+
+/** What "Upraveno ručně" says of a version, against its line's first version (the composed
+ *  draft): null for koncept 1, the reason when nothing could be compared (never "no change"), else
+ *  the count. */
+export function editedWords(v: Pick<EditorVersionRead, "changes">): string | null {
+  if (v.changes === null) return null;
+  if (v.changes.uncomparable) {
+    return `Upraveno ručně: nelze porovnat (${UNCOMPARABLE[v.changes.uncomparable] ?? v.changes.uncomparable})`;
+  }
+  const n = v.changes.changes.length;
+  return n === 0 ? "Upraveno ručně: žádné číslo" : `Upraveno ručně: ${n} ${n === 1 ? "číslo" : n < 5 ? "čísla" : "čísel"}`;
+}
+
+/** The changes a dialog names, at most `max`, the rest counted. */
+export function changesListed(changes: SavedChange[], max = 8): string {
+  const shown = changes.slice(0, max).map(changeWords).join("; ");
+  return changes.length > max ? `${shown}; a ${changes.length - max} dalších` : shown;
+}
+
+/** The question an edited version's approval asks: the version by name, and what it changed. */
+export function editedApprovalQuestion(v: EditorVersionRead, document: string): string {
+  const head = `Schválit ${document}, koncept ${v.koncept} (${v.version_artifact_id})?`;
+  const edited = editedWords(v);
+  if (!edited) return `${head} Je to složená zpráva bez ručních úprav.`;
+  const list = v.changes?.changes.length ? ` ${changesListed(v.changes.changes)}.` : "";
+  return `${head} ${edited}.${list} Neuložené úpravy v editoru schválení nezahrnuje.`;
 }

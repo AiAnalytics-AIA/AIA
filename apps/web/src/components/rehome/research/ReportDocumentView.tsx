@@ -19,7 +19,8 @@ import { isModelled, stepOf } from "@/lib/research-execution";
 import { useFrame } from "./frame-hook";
 import { useItemInspector } from "@/components/workbench/item-inspector-context";
 import { ItemInspector } from "./ItemInspector";
-import { ReportEditor } from "./ReportEditor";
+import { EditorDocBar } from "./EditorDocBar";
+import { type EditorShown, ReportEditor } from "./ReportEditor";
 import { canReview } from "./frame";
 import { type Ask, AskDialog, Button } from "../ui";
 import { t } from "@/i18n/t";
@@ -57,6 +58,9 @@ export type ReportApproved = {
 };
 
 type Approved = Awaited<ReturnType<typeof research.approveReport>>;
+
+/** A composed draft's approval asked from the editor's doc bar: why it must wait, or null. */
+type EditorAsk = { held: () => string | null };
 
 /** Which document the pane reads: the internal draft, the client report (RD3), or the report with
  *  one completed literature review (RPT3a). */
@@ -184,7 +188,10 @@ export function ReportDocumentView({ run }: { run: ResearchRun }) {
   const unshownInternal = kind !== "client" && (loaded.state === "not_stored" || loaded.state === "refused" || loaded.state === "failed");
   const currentSlot = loaded.state === "ready" ? slotOf(loaded.stored) : unshownInternal ? slotOf(null) : "";
   useEffect(() => { slotNow.current = currentSlot; }, [currentSlot]);
-  const confirm = (slot: string, version: string, file: VersionReview, pdf: boolean, shown: StoredReportDocument | null) => {
+  // `editor`: asked from the editor's doc bar (RPT8d), where the draft is koncept 1 of the line shown:
+  // approved as that line's newest, and only while `held()` says no edit waits to be stored, read on
+  // the yes as on the ask (an edit can start while the status is read or the question is open).
+  const confirm = (slot: string, version: string, file: VersionReview, pdf: boolean, shown: StoredReportDocument | null, editor?: EditorAsk) => {
     const question = approvalQuestion(kind, version, { pdf, review });
     // What the file carries, as the card says it (D2): known only when stamped.
     const carries = reviewLine(file, pdf);
@@ -194,8 +201,10 @@ export function ReportDocumentView({ run }: { run: ResearchRun }) {
       yes: t("research.exec.report.approveAsk.yes"),
       resolve: (ok) => {
         if (!ok) return;
+        const held = editor?.held();
+        if (held) return setAct({ slot, ask: null, busy: false, refused: held });
         setAct({ slot, ask: null, busy: true, refused: null });
-        research.approveReport(frame.studyId, run.run_id, version).then(
+        (editor ? research.approveReport(frame.studyId, run.run_id, version, "", true) : research.approveReport(frame.studyId, run.run_id, version)).then(
           (done) => {
             setAct(shown ? null : { slot, ask: null, busy: false, refused: null, done: true });
             if (shown) approved(version, done);
@@ -218,7 +227,7 @@ export function ReportDocumentView({ run }: { run: ResearchRun }) {
   // `shown`: the document on screen, or null for an internal draft or a report with literature the
   // pane cannot show (stored before its document, or refused), approved as the version its run
   // names: the DOCX its download hands over, as the card approved it before.
-  const askApproval = (shown: StoredReportDocument | null) => {
+  const askApproval = (shown: StoredReportDocument | null, editor?: EditorAsk) => {
     const slot = slotOf(shown);
     if (kind === "client") {
       if (shown) confirm(slot, shown.report_artifact_id, { version: shown.report_artifact_id, reviewState: shown.review_state, approvedOn: shown.approved_on, stamped: shown.stamped }, false, shown);
@@ -249,8 +258,10 @@ export function ReportDocumentView({ run }: { run: ResearchRun }) {
           tell(done);
           return;
         }
+        const held = editor?.held();
+        if (held) return refuse(held);
         confirm(slot, version, { version, reviewState: report.review_state, approvedOn: report.approved_on, stamped: report.stamped },
-          pdfStatesReview(report.review_state, report.pdf, report.approval_renders_pdf), shown);
+          pdfStatesReview(report.review_state, report.pdf, report.approval_renders_pdf), shown, editor);
       },
       (error: unknown) => { if (slotNow.current === slot) setAct({ slot, ask: null, busy: false, refused: `Stav zprávy se nepodařilo načíst: ${message(error)}` }); },
     );
@@ -274,9 +285,10 @@ export function ReportDocumentView({ run }: { run: ResearchRun }) {
       ),
     };
   };
-  // The version the report editor shows for which document, if it shows one (RPT8d).
-  const [shownInEditor, setShownInEditor] = useState<{ doc: string; version: string | null } | null>(null);
-  const showInEditor = useCallback((version: string | null) => setShownInEditor({ doc: docId, version }), [docId]);
+  // What the report editor shows for which document, if it shows one, and the line asked for (RPT8d).
+  const [shownInEditor, setShownInEditor] = useState<{ doc: string; shown: EditorShown | null } | null>(null);
+  const showInEditor = useCallback((shown: EditorShown | null) => setShownInEditor({ doc: docId, shown }), [docId]);
+  const [lineAsked, setLineAsked] = useState<{ doc: string; line: string } | null>(null);
   const [stack, setStack] = useState<InspectorStack>(() => emptyStack("report"));
   // Inside the workbench a claim opens in its one item drawer, under the frame's Escape order;
   // outside it (and for a ref the target grammar refuses) in this view's own.
@@ -322,10 +334,10 @@ export function ReportDocumentView({ run }: { run: ResearchRun }) {
 
   const { stored, doc } = loaded;
   const controls = approval(stored);
-  // The doc bar approves the version on screen (RPT3a): while the editor shows the document, what is
-  // read is the editor's, which a save can move past the composed draft at any time (koncept 1
-  // edited is koncept 2), so approving the draft from here could approve what is not read.
-  const edited = shownInEditor?.doc === docId && shownInEditor.version !== null;
+  // The doc bar names and approves the version on screen (RPT3a): while the editor shows the
+  // document, that is the editor's version, read from the API (RPT8d), not the composed draft.
+  const inEditor = shownInEditor?.doc === docId ? shownInEditor.shown : null;
+  const line = lineAsked?.doc === docId ? lineAsked.line : null;
   const missing = unresolvedRefs(doc);
   const entry = (ref: string): LedgerEntry | undefined => doc.ledger.refs[ref];
   const claim = (ref: string) => <ul className="flex flex-col gap-1">{claimLines(entry(ref)).map((line) => <li key={line}>{line}</li>)}</ul>;
@@ -356,20 +368,30 @@ export function ReportDocumentView({ run }: { run: ResearchRun }) {
         {choose}
         <div className="mb-2.5 flex flex-wrap items-center gap-2 text-xs text-ink-muted" data-report-docbar>
           <span className="font-semibold text-ink">{KIND_NAME[kind]}</span>
-          <span>· {reviewWords(stored, kind === "client" ? "client" : "internal")}</span>
-          {stored.approval ? <span data-approval>· {approvalWords(stored.approval, stored.approved_on)}</span> : null}
-          <span className={`font-mono ${WRAPS}`}>· {stored.report_artifact_id}</span>
-          {edited ? (
-            <span className="ml-auto" data-approval-edited>Zpráva je otevřená v editoru; verze z editoru se v tomto panelu zatím neschvaluje.</span>
-          ) : controls.button}
+          {inEditor ? <span>· v editoru</span> : (
+            <>
+              <span>· {reviewWords(stored, kind === "client" ? "client" : "internal")}</span>
+              {stored.approval ? <span data-approval>· {approvalWords(stored.approval, stored.approved_on)}</span> : null}
+              <span className={`font-mono ${WRAPS}`}>· {stored.report_artifact_id}</span>
+              {controls.button}
+            </>
+          )}
         </div>
+        {inEditor ? (
+          // Read again once the composed draft's review moves (koncept 1 approved through the pane).
+          <EditorDocBar
+            key={`${docId}:${stored.review_state}`} studyId={frame.studyId} runId={run.run_id} shown={inEditor} composedId={stored.report_artifact_id}
+            documentName={kind === "with_review" ? "zprávu s rešerší" : "interní zprávu"} canApprove={canReview(frame)}
+            approveComposed={(held) => askApproval(stored, { held })} onApproved={tell} onOpenLine={(l) => setLineAsked({ doc: docId, line: l })}
+          />
+        ) : null}
         {controls.after}
         {missing.length ? (
           <p role="alert" className="mb-2 text-sm text-status-fault">Dokument cituje čísla, která jeho evidence nemá ({missing.join(", ")}); zobrazují se jako „?“.</p>
         ) : null}
         {kind === "client" ? draft : (
           // The draft in the report editor where it is configured (RPT8d), else read here as before.
-          <ReportEditor studyId={frame.studyId} runId={run.run_id} variant={kind === "with_review" ? "context" : "internal"} review={review} onShown={showInEditor}>
+          <ReportEditor studyId={frame.studyId} runId={run.run_id} variant={kind === "with_review" ? "context" : "internal"} review={review} line={line} onShown={showInEditor}>
             {draft}
           </ReportEditor>
         )}
