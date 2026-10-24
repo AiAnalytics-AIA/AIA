@@ -71,6 +71,7 @@ from aia_core.application.report_method import research_question_gap, research_q
 from aia_core.application.report_tables import EXPORT_MEDIA_TYPES, export_question_tables
 from aia_core.application.report_variants import (
     PdfState,
+    VariantPdf,
     VariantState,
     VariantStatus,
     approval_renders_pdf,
@@ -3225,7 +3226,146 @@ def prepare_client_report_route(
             session, scope, store, run_id=run_id, build=settings.build.sha or ""
         ),
     )
+    # Its PDF is asked for as the report with literature's is when prepared (report-delivery
+    # RD1), so an approval finds the draft's rendering ready and asks for the approved one;
+    # only where asking can start one, so preparing is never refused for it.
+    if _client_pdf(run_id, report, scope, session, store).askable:
+        _ask_client_pdf(run_id, report, scope, session, store)
     return _client_document_body(run_id, report, model, scope, session, store)
+
+
+def _client_pdf(
+    run_id: str,
+    report: Artifact,
+    scope: StudyContext,
+    session: SessionDep,
+    store: ArtifactStoreDep,
+) -> VariantPdf:
+    """The PDF rendered from exactly the stored client report ``report`` (report-delivery RD1):
+    of its stored bytes while a draft, of its approved export once approved."""
+    try:
+        return variant_pdf(
+            session, scope, store, docx=report, run_id=run_id, deep_research_run_id=None
+        )
+    except ReviewUnrecorded as exc:
+        raise _unrecorded(exc) from exc
+
+
+def _client_pdf_fields(
+    run_id: str,
+    report: Artifact,
+    mark: ReviewMark,
+    scope: StudyContext,
+    session: SessionDep,
+    store: ArtifactStoreDep,
+) -> dict[str, Any]:
+    """A stored client report's PDF (report-delivery RD1), and whether approving it now gives
+    the approved version one too, as far as AIA knows (report_variants.approval_renders_pdf)."""
+    pdf = _client_pdf(run_id, report, scope, session, store)
+    return {
+        "pdf": pdf.to_json(),
+        "approval_renders_pdf": approval_renders_pdf(
+            scope, report, mark, pdf_ready=pdf.state is PdfState.READY
+        ),
+    }
+
+
+def _ask_client_pdf(
+    run_id: str,
+    report: Artifact,
+    scope: StudyContext,
+    session: SessionDep,
+    store: ArtifactStoreDep,
+) -> None:
+    try:
+        request_pdf(session, scope, store, docx=report, run_id=run_id, deep_research_run_id=None)
+    except ScopeDenied as exc:
+        raise _refused(exc) from exc
+    except ReviewUnrecorded as exc:
+        raise _unrecorded(exc) from exc
+
+
+def _stored_client_version(
+    run_id: str, scope: StudyContext, session: SessionDep, store: ArtifactStoreDep
+) -> tuple[Artifact, Artifact | None]:
+    """The run's stored client report, composing nothing: 404 while none is stored."""
+    try:
+        found = client_report_document(session, scope, store, run_id=run_id)
+    except ScopeDenied as exc:
+        raise _refused(exc) from exc
+    except ResearchRunNotFound as exc:
+        raise _not_found("run") from exc
+    if found is None:
+        raise _not_found("report")
+    return found
+
+
+@router.post(
+    "/research/runs/{run_id}/report/client/pdf",
+    response_model=dict[str, Any],
+    summary="Ask again for the PDF of the run's stored client report",
+    responses={404: {"model": ErrorResponse}, 409: {"model": ErrorResponse}},
+)
+def ask_client_report_pdf(
+    run_id: RunIdPath, scope: StudyScopeDep, session: SessionDep, store: ArtifactStoreDep
+) -> dict[str, Any]:
+    """A rendering of the client report as stored (the approved version's export once there
+    is one), after its PDF failed or became invalid; one ready or under way is left as it is.
+    Composes nothing: 404 while no client report is stored (``…/client/prepare`` stores it)."""
+    report, _model = _stored_client_version(run_id, scope, session, store)
+    _ask_client_pdf(run_id, report, scope, session, store)
+    # The version and its PDF, never its document: a version stored before RD5a has none and
+    # still renders (its DOCX is what the job reads).
+    mark = _mark(report, scope, session, store)
+    return {
+        "run_id": run_id,
+        "report_artifact_id": report.artifact_id,
+        "report_sha256": report.sha256,
+        **_review_fields(report, mark),
+        **_client_pdf_fields(run_id, report, mark, scope, session, store),
+    }
+
+
+@router.get(
+    "/research/runs/{run_id}/report/client/pdf/download",
+    response_class=Response,
+    summary="The PDF of the run's stored client report: its approved version, else its draft",
+    responses={404: {"model": ErrorResponse}, 409: {"model": ErrorResponse}},
+)
+def download_client_report_pdf(
+    run_id: RunIdPath, scope: StudyScopeDep, session: SessionDep, store: ArtifactStoreDep
+) -> Response:
+    """The rendering of exactly the stored client report the DOCX download names: an approved
+    version's PDF renders its export, never its draft's (``report_variants.variant_pdf``). 404
+    ``report_pdf_not_found`` while none is ready."""
+    try:
+        scope.require(Permission.EXPORT_DELIVERABLE)
+    except ScopeDenied as exc:
+        raise _refused(exc) from exc
+    report, _model = _stored_client_version(run_id, scope, session, store)
+    mark = _mark(report, scope, session, store)
+    pdf = _client_pdf(run_id, report, scope, session, store)
+    if pdf.artifact is None:
+        raise _not_found("report_pdf")
+    try:
+        data = research_artifacts(session, scope, store).read(pdf.artifact.artifact_id)
+    except (IntegrityError, ObjectNotFound) as exc:
+        raise artifact_corrupt(session) from exc
+    return Response(
+        content=data,
+        media_type=PDF_MEDIA_TYPE,
+        headers=_review_headers(
+            mark,
+            _report_filename(
+                scope.study_id,
+                run_id,
+                "klient",
+                mark,
+                "pdf",
+                stamped=pdf.artifact.metadata.get("stamped") is True,
+            ),
+        ),
+    )
 
 
 class SeenEditRequest(BaseModel):
@@ -3358,6 +3498,7 @@ def _client_document_body(
         "report_sha256": report.sha256,
         **_review_fields(report, mark),
         **_approval_fields(report, scope, session, store),
+        **_client_pdf_fields(run_id, report, mark, scope, session, store),
         # The client deliverable's checks on this version (RD0): warnings the approval dialog
         # shows and the approval records, never a refusal.
         "warnings": [f.to_json() for f in client_gate(document)],
