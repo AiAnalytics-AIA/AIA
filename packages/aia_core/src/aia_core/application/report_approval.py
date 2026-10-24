@@ -117,7 +117,7 @@ def approve_report(
     :class:`ReportEditsUnsaved` while an edit of the line's open session, or ``seen_edit`` (the
     approving page's last edit start), is not held by it (``unsaved_edits``)."""
     scope.require(Permission.SIGN_OFF_DELIVERABLE)
-    ResearchRuns(session, scope).get(run_id)
+    run = ResearchRuns(session, scope).get(run_id)
     artifacts = research_artifacts(session, scope, store)
     artifact = artifacts.get(artifact_id)
     if (
@@ -142,11 +142,14 @@ def approve_report(
         if artifact.artifact_type == CLIENT_REPORT_ARTIFACT_TYPE
         else None
     )
-    authors = (
-        _line_authors(session, scope, artifacts, artifact)
-        if artifact.artifact_type in EDITED_REPORT_KINDS
-        else frozenset()
-    )
+    if artifact.artifact_type in EDITED_REPORT_KINDS:
+        authors = _line_authors(session, scope, artifacts, artifact)
+    elif artifact.artifact_type == CLIENT_REPORT_ARTIFACT_TYPE and run.get("triggered_by"):
+        # The client report is the run's work, composed by code, whoever's download stored it
+        # (RD8): its producer is the person who started the run, as the internal report's is.
+        authors = frozenset({str(run["triggered_by"])})
+    else:
+        authors = frozenset()
     # Read while it is still a draft: its own PDF, under the draft's key.
     ready = draft_pdf_ready(session, scope, store, docx=artifact, run_id=run_id)
     artifacts.approve(artifact_id, note=note, co_producers=authors, warnings=warnings)

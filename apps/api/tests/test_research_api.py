@@ -1435,6 +1435,38 @@ def _composing(document: ReportDocument) -> Any:
     return compose
 
 
+def test_the_client_report_is_the_runs_work_not_its_first_downloaders(
+    app: FastAPI,
+    owner: TestClient,
+    researcher: TestClient,
+    outsider: TestClient,
+    world: Any,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """RD8: the client report is stored on whoever's read first asks for it, but code composed
+    it from the run. With independent review on, the person who downloaded it first may approve
+    it; the person who started the run may not, as for the run's internal report."""
+    app.state.settings = app.state.settings.model_copy(update={"ai_analysis_enabled": True})
+    revision = submit(researcher, world).json()["revision_id"]
+    run_id = start(researcher, world, revision).json()["run_id"]
+    monkeypatch.setattr(
+        client_report, "compose_client_report", _composing(_client_report_document())
+    )
+    forbid = owner.put(
+        f"{API}/self-approval", json={"allowed": False, "client_id": world.client_id()}
+    )
+    assert forbid.status_code == 200, forbid.text
+    url = f"{_runs(world)}/{run_id}/report"
+    # The reviewer reads it first: that read stores the draft.
+    version = outsider.get(f"{url}/client/download").headers["X-AIA-Artifact-Id"]
+    own = researcher.post(f"{url}/approve", json={"artifact_id": version})
+    assert own.status_code == 403 and own.json()["code"] == "separation_of_duties"
+    approved = outsider.post(f"{url}/approve", json={"artifact_id": version})
+    assert approved.status_code == 200, approved.text
+    assert approved.json()["report_kind"] == "client"
+    assert approved.json()["approval"]["self_approved"] is False
+
+
 def test_a_client_report_carrying_drill_down_content_is_approved_with_its_warning_on_record(
     app: FastAPI,
     researcher: TestClient,
