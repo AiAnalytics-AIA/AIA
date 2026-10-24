@@ -79,6 +79,13 @@ describe("a saved version in words", () => {
       .toBe("Číslo napsané ručně: 33 % (v odstavci „Důvěra roste“)");
   });
 
+  it("ends a long span's text in an ellipsis, never dropping that it changed", () => {
+    const long = "Sledovaná sada — varianty — 4 položky hodnocené otázkou „Jak vás oslovuje …?“ na škále 1 až 10.";
+    const said = changeWords(change({ tag: "design:a1", was: long, now: `91,5 % ${long}` }));
+    expect(said).toMatch(/^Číslo design:a1: Sledovaná sada — .{20,}… → 91,5 % Sledovaná sada .{20,}…$/);
+    expect(said.length).toBeLessThan(190);
+  });
+
   it("counts Upraveno ručně, says why nothing compared, and nothing for koncept 1", () => {
     expect(editedWords(version())).toBe("Upraveno ručně: 1 číslo");
     expect(editedWords(version({ changes: { uncomparable: null, changes: [change({}), change({}), change({})] } }))).toBe("Upraveno ručně: 3 čísla");

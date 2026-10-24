@@ -166,14 +166,19 @@ export function savedWords(v: Pick<EditorVersionRead, "koncept" | "saved_at" | "
     : `Koncept ${v.koncept}, uložen ${at}${who ? ` · ${who}` : ""}`;
 }
 
+/** A control's text as a change line shows it: a locked span (a design, run or map span) can be a
+ *  whole paragraph, so past `max` characters it ends in "…"; unknown is "?". */
+const clip = (text: string | null, max = 80): string =>
+  text === null ? "?" : text.length > max ? `${text.slice(0, max - 1).trimEnd()}…` : text;
+
 /** One change in words: what code wrote and what the person left there. */
 export function changeWords(c: SavedChange): string {
   const of = c.tag ? `Číslo ${c.tag}` : "Číslo";
   switch (c.kind) {
-    case "changed": return `${of}: ${c.was ?? "?"} → ${c.now ?? "?"}`;
-    case "removed": return `${of} odstraněno (bylo ${c.was ?? "?"})`;
-    case "added": return `${of} přidáno: ${c.now ?? "?"}`;
-    case "typed": return `Číslo napsané ručně: ${c.now ?? "?"}${c.paragraph ? ` (v odstavci „${c.paragraph}“)` : ""}`;
+    case "changed": return `${of}: ${clip(c.was)} → ${clip(c.now)}`;
+    case "removed": return `${of} odstraněno (bylo ${clip(c.was)})`;
+    case "added": return `${of} přidáno: ${clip(c.now)}`;
+    case "typed": return `Číslo napsané ručně: ${clip(c.now)}${c.paragraph ? ` (v odstavci „${clip(c.paragraph)}“)` : ""}`;
   }
 }
 

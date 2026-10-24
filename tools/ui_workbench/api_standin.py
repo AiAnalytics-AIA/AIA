@@ -22,6 +22,10 @@ The audience step's catalogue and preview read a fictional LIVE population built
 the sampler's fixture rows (``fictional_population.py``), unless ``--no-audience-population``;
 research runs still record the Czech LIVE, which the workbench never establishes.
 
+``AIA_WORKBENCH_REPORT_EDITOR=true`` switches the report editor on against a stand-in Document
+Server (``report_editor_standin.py``): fictional origins, a fictional secret, saves read from
+``tmp/ui-workbench/editor-saves``. ``report_editor_journey.mjs`` drives it.
+
 ``--population-double`` composes the population double instead (RQC10, local and test only):
 runs record its LIVE, the panel is offered and the default, and readiness draws the run's own
 sample from it, so Vzorek shows the sample by quota cell (run-qc-and-checkpoint RQC6d). It needs
@@ -39,10 +43,13 @@ import shutil
 import sys
 from pathlib import Path
 
+import report_editor_standin
+
 REPO = Path(__file__).resolve().parents[2]
 HOME = REPO / "tmp" / "ui-workbench"
 DB = HOME / "aia.sqlite"
 WORKBENCH_EMAIL = "workbench@example.invalid"
+REPORT_EDITOR = os.environ.get("AIA_WORKBENCH_REPORT_EDITOR") == "true"
 
 
 def build(
@@ -87,8 +94,15 @@ def build(
         # The object map's kernels compiled after start, as on develop, when asked for
         # (AIA_SOCIOMAP_WARMUP_ENABLED=true in the environment): off by default here.
         sociomap_warmup_enabled=os.environ.get("AIA_SOCIOMAP_WARMUP_ENABLED") == "true",
+        # Zpráva in the report editor (artifact-report RPT8d), when asked for
+        # (AIA_WORKBENCH_REPORT_EDITOR=true): against the stand-in Document Server, whose saves
+        # are read from a local directory (report_editor_standin.py); off by default, as in every
+        # deployment until it is activated.
+        **(report_editor_standin.settings() if REPORT_EDITOR else {}),
     )
     app = create_app(settings)
+    if REPORT_EDITOR:
+        app.state.editor_fetcher = report_editor_standin.WorkbenchSaves()
     return app, Base, seed_develop, Session
 
 
