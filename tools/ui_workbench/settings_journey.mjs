@@ -228,7 +228,10 @@ try {
   // Výpočet as the prototype draws it (fidelity F5): stage tiles, the parameter filter, rows.
   const stageTiles = page.getByRole("group", { name: "Etapy", exact: true }); await stageTiles.waitFor();
 
-  const defaultHeight = await page.locator("#panel-methodology").evaluate((e) => e.scrollHeight); assert(defaultHeight < 4500, `Methodology default height ${defaultHeight}`);
+  // 6,200 px: Výpočet lists every step as a closed row, as prototype v51 draws it, and the object map
+  // has 48 steps (5,904 px measured at F5); the product owner chose this limit on 2026-10-24 (#876).
+  // It still catches the page growing with the versions stored on a workbench.
+  const defaultHeight = await page.locator("#panel-methodology").evaluate((e) => e.scrollHeight); assert(defaultHeight < 6200, `Methodology default height ${defaultHeight}`);
   await stageTiles.getByRole("button", { name: /^Terén/ }).click();
   assert.equal(await page.locator("#panel-methodology section[aria-labelledby^='mg-'] h3").filter({ hasText: /^Terén$/ }).count(), 1, "methodology: one stage by its tile");
   await stageTiles.getByRole("button", { name: /^Všechny etapy/ }).click();
