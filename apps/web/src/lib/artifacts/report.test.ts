@@ -9,7 +9,7 @@ import { describe, expect, it } from "vitest";
 import { parseAiaId } from "@/lib/workbench-artifacts";
 
 import {
-  approvalWords, blockTarget, claimLines, claimTarget, gradeWords, readDocument, reviewWords, sectionTarget,
+  approvalWords, blockTarget, claimLines, claimTarget, gradeWords, readDocument, reviewWords, sectionTarget, warningsWords,
   supportWords, unresolvedRefs, valueWords, type LedgerEntry, type ReportDocumentModel,
 } from "./report";
 
@@ -131,6 +131,29 @@ describe("who approved, in words (RD2)", () => {
     expect(approvalWords({ ...base, by_you: true }, "2026-10-22")).toBe("schválili jste 22. 10. 2026");
     expect(approvalWords({ ...base, approver_name: null }, "2026-10-22")).toBe("schválil(a) člen bez jména 22. 10. 2026");
     expect(approvalWords({ ...base, self_approved: true }, "2026-10-22")).toBe("schválil(a) Fiktivní Recenzentka 22. 10. 2026 · vlastní práce");
+  });
+
+  it("says an approval that went past the client checks' warnings, and none when it went past none", () => {
+    const warned = { ...base, warnings: [{ code: "drill_down_content", where: "v.1", message: "doslovná odpověď" }] };
+    expect(approvalWords(warned, "2026-10-24")).toBe("schválil(a) Fiktivní Recenzentka 24. 10. 2026 přes 1 upozornění");
+    expect(approvalWords({ ...base, warnings: [] }, "2026-10-24")).toBe("schválil(a) Fiktivní Recenzentka 24. 10. 2026");
+    expect(approvalWords({ ...base, warnings: null }, "2026-10-24")).toBe("schválil(a) Fiktivní Recenzentka 24. 10. 2026");
+  });
+
+  it("names where each warning is in words, and says nothing for none or none read", () => {
+    expect(warningsWords([{ code: "gate_unrecorded", where: "report", message: "verze nemá uložený dokument, nelze ji ověřit" }]))
+      .toBe("Upozornění (1): verze nemá uložený dokument, nelze ji ověřit (celá zpráva). Schválením je berete na vědomí; zaznamenají se se schválením.");
+    const document = { sections: [{ id: "ch-a", title: "Shrnutí", appendix: false, refs: [], blocks: [{ id: "ch-a.1" }] }] } as never;
+    expect(warningsWords([
+      { code: "unadmitted_number", where: "evidence", message: "čísla nejsou pro klienta" },
+      { code: "drill_down_content", where: "ch-a.1", message: "doslovná odpověď" },
+      { code: "drill_down_content", where: "ch-z.9", message: "doslovná odpověď" },
+    ], document)).toBe(
+      "Upozornění (3): čísla nejsou pro klienta (čísla zprávy); doslovná odpověď (oddíl „Shrnutí“); doslovná odpověď (blok ch-z.9). "
+      + "Schválením je berete na vědomí; zaznamenají se se schválením.",
+    );
+    expect(warningsWords([])).toBeNull();
+    expect(warningsWords(undefined)).toBeNull();
   });
 
   it("says nothing for a draft", () => {
