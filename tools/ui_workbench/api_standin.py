@@ -22,6 +22,10 @@ The audience step's catalogue and preview read a fictional LIVE population built
 the sampler's fixture rows (``fictional_population.py``), unless ``--no-audience-population``;
 research runs still record the Czech LIVE, which the workbench never establishes.
 
+``AIA_WORKBENCH_REPORT_EDITOR=true`` switches the report editor on against a stand-in Document
+Server (``report_editor_standin.py``): fictional origins, a fictional secret, saves read from
+``tmp/ui-workbench/editor-saves``. ``report_editor_journey.mjs`` drives it.
+
 ``--population-double`` composes the population double instead (RQC10, local and test only):
 runs record its LIVE, the panel is offered and the default, and readiness draws the run's own
 sample from it, so Vzorek shows the sample by quota cell (run-qc-and-checkpoint RQC6d). It needs
@@ -38,11 +42,25 @@ import os
 import shutil
 import sys
 from pathlib import Path
+from typing import Any
 
 REPO = Path(__file__).resolve().parents[2]
 HOME = REPO / "tmp" / "ui-workbench"
 DB = HOME / "aia.sqlite"
 WORKBENCH_EMAIL = "workbench@example.invalid"
+
+
+def _report_editor_standin() -> Any:
+    """The stand-in Document Server beside this file, loaded by its path: this file is itself
+    loaded by path (the API's tests), where its directory is on no import path."""
+    import importlib.util
+
+    path = Path(__file__).with_name("report_editor_standin.py")
+    spec = importlib.util.spec_from_file_location("ui_workbench_report_editor_standin", path)
+    assert spec and spec.loader
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    return module
 
 
 def build(
@@ -58,6 +76,11 @@ def build(
     from aia_core.infrastructure.tables import Base
     from sqlalchemy.orm import Session
 
+    standin = (
+        _report_editor_standin()
+        if os.environ.get("AIA_WORKBENCH_REPORT_EDITOR") == "true"
+        else None
+    )
     settings = Settings(
         env=Environment.LOCAL,
         database_url=f"sqlite+pysqlite:///{db}",
@@ -87,8 +110,15 @@ def build(
         # The object map's kernels compiled after start, as on develop, when asked for
         # (AIA_SOCIOMAP_WARMUP_ENABLED=true in the environment): off by default here.
         sociomap_warmup_enabled=os.environ.get("AIA_SOCIOMAP_WARMUP_ENABLED") == "true",
+        # Zpráva in the report editor (artifact-report RPT8d), when asked for
+        # (AIA_WORKBENCH_REPORT_EDITOR=true): against the stand-in Document Server, whose saves
+        # are read from a local directory (report_editor_standin.py); off by default, as in every
+        # deployment until it is activated.
+        **(standin.settings() if standin else {}),
     )
     app = create_app(settings)
+    if standin:
+        app.state.editor_fetcher = standin.WorkbenchSaves()
     return app, Base, seed_develop, Session
 
 

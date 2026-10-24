@@ -203,3 +203,43 @@ def test_the_downgrade_refuses_while_the_ledger_holds_a_lane_decision(
                 migration.downgrade()
         finally:
             transaction.rollback()
+
+
+# ------------------------------------------- the warnings column's downgrade (3abba24ff47c)
+
+WARNINGS_MIGRATION = REPO / "migrations/versions/20261024_3abba24ff47c_approval_warnings.py"
+
+
+def _downgrade_warnings(engine: Any) -> None:
+    spec = importlib.util.spec_from_file_location("approval_warnings", WARNINGS_MIGRATION)
+    assert spec and spec.loader
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    with engine.connect() as connection:
+        transaction = connection.begin()
+        try:
+            with Operations.context(MigrationContext.configure(connection)):
+                module.downgrade()
+        finally:
+            transaction.rollback()  # PostgreSQL DDL is transactional: the schema is as it was
+
+
+def test_an_approval_that_recorded_no_warning_does_not_hold_the_downgrade(
+    postgres: Any, session: Session, scoped: Any
+) -> None:
+    """[] is a check that found nothing (RD7): nothing the downgrade would erase."""
+    session.add(_row(scoped.scope(), "artifact", warnings=[]))
+    session.add(_row(scoped.scope(), "artifact", subject_id="S-2"))  # NULL: nothing checked
+    session.commit()
+    _downgrade_warnings(postgres)
+
+
+def test_an_approval_that_recorded_a_warning_holds_the_downgrade(
+    postgres: Any, session: Session, scoped: Any
+) -> None:
+    warning = {"code": "unsupported_comparison", "where": "ch-a.1", "message": "srovnání"}
+    session.add(_row(scoped.scope(), "artifact", warnings=[warning]))
+    session.add(_row(scoped.scope(), "artifact", subject_id="S-2", warnings=[]))
+    session.commit()
+    with pytest.raises(RuntimeError, match="1 approval"):
+        _downgrade_warnings(postgres)

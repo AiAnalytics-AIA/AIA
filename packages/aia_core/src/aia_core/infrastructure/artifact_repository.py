@@ -146,6 +146,9 @@ class ApprovalRecord:
     self_approval_allowed: bool
     self_approval_source: str
     note: str
+    #: The warnings the person approved past (a client report's checks, RD0); ``None`` where
+    #: nothing was checked, ``()`` where the checks found nothing.
+    warnings: tuple[dict[str, str], ...] | None = None
 
 
 def _to_domain(row: ProjectArtifactRow) -> Artifact:
@@ -327,6 +330,7 @@ class ArtifactRepository:
         depends_on: list[str] | None = None,
         reuse: bool = True,
         artifact_id: str | None = None,
+        by_person: bool = True,
     ) -> tuple[Artifact, bool]:
         """Store an artifact, reusing an existing one when the inputs match.
 
@@ -341,6 +345,11 @@ class ArtifactRepository:
         ``artifact_id`` is for a caller that must name the artifact before it is
         stored -- the 18.6.6 migration writes a revision citing a file in the same
         transaction -- and is one :func:`new_artifact_id` made; any other is refused.
+
+        ``by_person=False``: what code composed from a run's own outputs, which the caller only
+        happened to be the one to store (the client report on its first download, RD8): it records
+        no person as its producer, so whoever's read stored it is not its author. It can name no
+        one else; the approval names the run's people (``approve(co_producers=)``).
         """
         self._scope.require(Permission.EDIT_STUDY)
         if artifact_id is not None and not _ARTIFACT_ID.fullmatch(artifact_id):
@@ -405,8 +414,8 @@ class ArtifactRepository:
             produced_by_job_id=produced_by_job_id,
             # Recorded from the authorised scope, never from a caller argument,
             # so the separation-of-duties check cannot be defeated by passing
-            # someone else's id.
-            produced_by_user_id=self._scope.actor_id,
+            # someone else's id; ``by_person=False`` records no one.
+            produced_by_user_id=self._scope.actor_id if by_person else None,
             artifact_metadata=metadata or {},
         )
         self._session.add(row)
@@ -555,7 +564,12 @@ class ArtifactRepository:
         return len(rows)
 
     def approve(
-        self, artifact_id: str, *, note: str = "", co_producers: Collection[str] = ()
+        self,
+        artifact_id: str,
+        *,
+        note: str = "",
+        co_producers: Collection[str] = (),
+        warnings: Sequence[dict[str, str]] | None = None,
     ) -> Artifact:
         """Record human sign-off on an artifact.
 
@@ -580,7 +594,8 @@ class ArtifactRepository:
 
         The decision, the policy and its source are appended to
         ``approval_decisions``, so a sign-off remains reconstructible after the
-        configuration changes.
+        configuration changes. ``warnings``: what the person was warned of and approved past
+        (a client report's checks, RD0), kept on the same row; ``None`` where nothing was checked.
         """
         self._scope.require(Permission.SIGN_OFF_DELIVERABLE)
         row = self._row(artifact_id)
@@ -608,6 +623,7 @@ class ArtifactRepository:
                 artifact_type=row.artifact_type,
                 decision="APPROVED",
                 comment=note,
+                warnings=list(warnings) if warnings is not None else None,
                 request_id=self._scope.request_id,
                 **independence.audit_fields(),
             )
@@ -654,6 +670,7 @@ class ArtifactRepository:
             self_approval_allowed=decision.self_approval_allowed,
             self_approval_source=decision.self_approval_source,
             note=decision.comment,
+            warnings=tuple(decision.warnings) if decision.warnings is not None else None,
         )
 
     def freeze(self, artifact_id: str) -> Artifact:

@@ -13,6 +13,7 @@ The client report is never a line: it opens nowhere (:class:`NotEditable`).
 
 from __future__ import annotations
 
+from collections.abc import Sequence
 from dataclasses import dataclass
 from datetime import UTC, datetime
 
@@ -34,6 +35,7 @@ from aia_core.infrastructure.report_editor_repository import (
     EditorSession,
     EditorVersion,
     ReportEditorRepository,
+    TooManyPages,
     session_by_key,
 )
 
@@ -44,6 +46,7 @@ __all__ = [
     "NotEditable",
     "OpenedLine",
     "ReportEditor",
+    "TooManyPages",
     "session_by_key",
 ]
 
@@ -131,6 +134,15 @@ class ReportEditor:
         """The caller's name for co-editors, never their e-mail (empty when none)."""
         return self._repo.display_name()
 
+    def names(self, user_ids: Sequence[str]) -> dict[str, str]:
+        """The display names of those of ``user_ids`` in the organization, never an e-mail."""
+        return self._repo.names(user_ids)
+
+    def newest(self, line_id: str) -> EditorVersion | None:
+        """``line_id``'s newest version: the one a save after the one read would have replaced."""
+        versions = self._repo.versions(line_id)
+        return versions[-1] if versions else None
+
     def version_of(self, session: EditorSession, artifact_id: str) -> EditorVersion | None:
         """``artifact_id`` when it is a version of ``session``'s line, else ``None``."""
         version = self._repo.version(artifact_id)
@@ -145,6 +157,31 @@ class ReportEditor:
 
     def note_problem(self, session: EditorSession, *, now: datetime, problem: str) -> None:
         self._repo.note_problem(session.document_key, now=now, problem=problem)
+
+    def record_edit(
+        self,
+        document_key: str,
+        *,
+        run_id: str,
+        page: str,
+        seq: int,
+        now: datetime,
+    ) -> None:
+        """An edit start the caller's page reports in the open session ``document_key`` of
+        ``run_id`` (RPT8f): :class:`LineNotFound` for a session that is not the run's, not open,
+        or not one a config was signed for the caller in; ``TooManyPages`` beyond its pages."""
+        found = self._repo.session(document_key)
+        if (
+            found is None
+            or found.run_id != run_id
+            or found.closed_at is not None
+            or self._scope.actor_id not in found.users
+        ):
+            raise LineNotFound(document_key)
+        # The line's lock first, as a save and an approval take it: an approval reading the
+        # marks waits for this one, so no edit is recorded beside an approval that missed it.
+        self._repo.lock_line(found.line_id)
+        self._repo.record_edit(document_key, page=page, seq=seq, now=now)
 
     def lines(
         self, *, run_id: str, variant: str, deep_research_run_id: str | None = None

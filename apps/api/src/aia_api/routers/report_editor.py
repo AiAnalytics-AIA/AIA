@@ -34,12 +34,15 @@ from aia_core.application.report_editor import (
     NotEditable,
     OpenedLine,
     ReportEditor,
+    TooManyPages,
     session_by_key,
 )
 from aia_core.application.report_editor_saves import (
     SaveNotStored,
     VersionNotFound,
+    content_held,
     edited_version,
+    edits_verdict,
     store_save,
     version_changes,
 )
@@ -47,7 +50,7 @@ from aia_core.application.report_export import ReviewUnrecorded
 from aia_core.application.report_variants import request_pdf, variant_pdf
 from aia_core.application.research import research_artifacts
 from aia_core.application.scope import AuthenticatedPrincipal
-from aia_core.domain.report.editor import CallbackAction, callback_action
+from aia_core.domain.report.editor import CallbackAction, SeenEdit, UnsavedEdits, callback_action
 from aia_core.domain.report.saved_changes import changes_payload
 from aia_core.domain.scope import Permission, ScopeDenied, StudyContext
 from fastapi import APIRouter, Depends, Header, HTTPException, Path, Query, Request, Response
@@ -108,6 +111,15 @@ class EditorRequest(BaseModel):
     line: str | None = Field(default=None, max_length=64, pattern=r"^ART-[0-9a-f]{1,32}$")
     #: ``view`` below 768 px (RPT8d): the same session, read only.
     mode: Literal["edit", "view"] = "edit"
+
+
+class EditReport(BaseModel):
+    """An edit start a page reports (RPT8f): the page's id and its count from 1."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    page: str = Field(pattern=r"^[0-9A-Za-z_-]{8,64}$")
+    seq: int = Field(ge=1, le=2_000_000_000)
 
 
 def _tokens(settings: Any) -> EditorTokens:
@@ -246,6 +258,51 @@ def open_report_editor(
             for h in lines
         ],
     }
+
+
+@router.post(
+    "/research/runs/{run_id}/report/editor/sessions/{document_key}/edits",
+    status_code=204,
+    response_class=Response,
+    summary="An edit start the page reports in an editing session",
+    responses={409: {"model": ErrorResponse}},
+)
+def report_editor_edit(
+    run_id: RunIdPath,
+    body: EditReport,
+    scope: StudyScopeDep,
+    session: SessionDep,
+    settings: SettingsDep,
+    document_key: Annotated[str, Path(pattern=r"^[0-9A-Za-z._=-]{1,128}$")],
+) -> Response:
+    """The caller's page started edit ``seq`` in the open session ``document_key``: kept with
+    AIA's time of receipt, so an approval is refused while no stored version holds it (409
+    ``report_edits_unsaved``). 404 for a session that is not the run's, not open, or not one a
+    config was signed for the caller in; 409 ``editor_pages_exhausted`` for a new page beyond the
+    session's pages."""
+    _tokens(settings)
+    try:
+        ReportEditor(session, scope).record_edit(
+            document_key,
+            run_id=run_id,
+            page=body.page,
+            seq=body.seq,
+            now=_now(),
+        )
+    except ScopeDenied as exc:
+        raise _refused(exc) from exc
+    except LineNotFound as exc:
+        raise _not_found("editor_session") from exc
+    except TooManyPages as exc:
+        raise HTTPException(
+            409,
+            detail={
+                "code": "editor_pages_exhausted",
+                "message": "This editing session keeps edit reports for no more pages.",
+            },
+        ) from exc
+    session.commit()
+    return Response(status_code=204)
 
 
 def _session_scope(
@@ -403,6 +460,7 @@ def report_editor_callback(
                 fetcher=fetcher,
                 authors=[str(u) for u in users],
                 now=now,
+                content_at=_held_through(_lastsave(payload.get("lastsave")), now),
             )
         except SaveNotStored as refused:
             session.commit()  # the problem is kept for the pane
@@ -412,6 +470,35 @@ def report_editor_callback(
             editor.close(found, now=now, reason="saved")
     session.commit()
     return {"error": 0}
+
+
+def _lastsave(value: Any) -> datetime | None:
+    """ONLYOFFICE's ``lastsave`` (signed, with the rest of the callback): the time of the last
+    change the saved file holds; ``None`` for anything that is not an aware ISO time."""
+    if not isinstance(value, str) or len(value) > 40:
+        return None
+    try:
+        parsed = datetime.fromisoformat(value)
+    except ValueError:
+        return None
+    return parsed.astimezone(UTC) if parsed.tzinfo is not None else None
+
+
+def _edits(reason: UnsavedEdits | None) -> dict[str, Any]:
+    return {"edits": {"saved": reason is None, "reason": reason.value if reason else None}}
+
+
+def _held_through(lastsave: datetime | None, now: datetime) -> datetime | None:
+    """``lastsave`` no later than ``now``, AIA's receipt of the callback that says it (RPT8f): a
+    change cannot be later than the save that reports it, so a Document Server clock running ahead
+    can only make an edit look later, never held early. Logged when it is ahead."""
+    if lastsave is not None and lastsave > now:
+        log.warning(
+            "report editor lastsave is ahead of AIA's clock",
+            extra={"ahead_ms": int((lastsave - now).total_seconds() * 1000)},
+        )
+        return now
+    return lastsave
 
 
 ArtifactIdPath = Annotated[str, Path(max_length=64, pattern=r"^ART-[0-9a-f]{1,32}$")]
@@ -484,16 +571,34 @@ def report_editor_version(
     scope: StudyScopeDep,
     session: SessionDep,
     store: ArtifactStoreDep,
+    seen_key: Annotated[str | None, Query(pattern=r"^[0-9A-Za-z._=-]{1,128}$")] = None,
+    seen_page: Annotated[str | None, Query(pattern=r"^[0-9A-Za-z_-]{8,64}$")] = None,
+    seen_seq: Annotated[int | None, Query(ge=1, le=2_000_000_000)] = None,
 ) -> dict[str, Any]:
     """A version of one of the run's report lines, for the doc bar and the approval dialog
-    (RPT8d): who saved it and from which version, its review and approval as the run's report
-    status says them, and what it changed in the numbers code wrote, as stored beside it (each
-    control changed, removed or added, each number typed outside one). ``changes`` null for
+    (RPT8d): who saved it (by display name) and from which version, its review and approval as
+    the run's report status says them, its line's newest version, and what it changed in the
+    numbers code wrote, as stored beside it (each control changed, removed or added, each number
+    typed outside one). ``changes`` null for
     koncept 1, the composer's own; ``uncomparable`` when there was nothing to compare it with,
     never an empty list read as no change. Served whether or not the editor is on: an approved
-    version stays readable."""
+    version stays readable. ``seen_*``: the asking page's last edit start, all three or none,
+    which ``edits`` then counts (RPT8f)."""
+    named = (seen_key, seen_page, seen_seq)
+    if any(v is not None for v in named) and not all(v is not None for v in named):
+        raise HTTPException(
+            422, detail={"code": "invalid_request", "message": "seen_* come all three or none."}
+        )
+    seen = (
+        SeenEdit(seen_key, seen_page, seen_seq)
+        if seen_key is not None and seen_page is not None and seen_seq is not None
+        else None
+    )
     version, artifact, changes = _version(run_id, artifact_id, scope, session, store)
     mark = _mark(artifact, scope, session, store)
+    editor = ReportEditor(session, scope)
+    names = editor.names(version.authors)
+    newest = editor.newest(version.line_id)
     return {
         "run_id": run_id,
         "version_artifact_id": version.artifact_id,
@@ -503,7 +608,24 @@ def report_editor_version(
         "koncept": version.koncept,
         "edited_from": artifact.metadata.get("edited_from"),
         "authors": list(version.authors),
+        # Each author's display name, null for one with none (never an e-mail), in that order.
+        "author_names": [names.get(a) for a in version.authors],
         "saved_at": version.saved_at.isoformat(),
+        # The last change the file holds, as the Document Server said it (null when it did not,
+        # and for koncept 1), and this server's time, so the pane can place an edit it saw
+        # before or after it on one clock.
+        # Moved on by a later save of the same bytes (RPT8f).
+        "content_at": held.isoformat() if (held := content_held(version, artifact)) else None,
+        "server_now": _now().isoformat(),
+        # The server's own verdict (RPT8f): whether this version holds every edit its line's open
+        # session reported and the asking page's, by the rule an approval is refused under, and
+        # why not; the pane's hold follows it and guesses nothing.
+        **_edits(edits_verdict(session, scope, version, artifact, seen)),
+        # The line's newest version: approving this one while a later save exists approves what
+        # the editor no longer shows, so the pane asks again (RPT8d).
+        "newest_in_line": {"version_artifact_id": newest.artifact_id, "koncept": newest.koncept}
+        if newest is not None
+        else None,
         **_review_fields(artifact, mark),
         **_approval_fields(artifact, scope, session, store),
         "changes": changes_payload(changes) if changes is not None else None,

@@ -1,5 +1,6 @@
 """The client deliverable's gate (report-delivery RD0, MVPQ-09), over the stored document model:
-drill-down content or an unadmitted number each refuses the deliverable, naming its block."""
+drill-down content or an unadmitted number is each a warning naming its block (warnings since
+2026-10-22, never a refusal)."""
 
 from __future__ import annotations
 
@@ -60,11 +61,19 @@ def test_a_ref_the_stored_ledger_does_not_hold_is_unadmitted(report_ledger: Any)
     ]
 
 
-def test_a_document_on_another_surface_is_refused_whole(report_ledger: Any) -> None:
-    document = _without_quotes(build("client", report_ledger))
+def test_a_document_on_another_surface_is_said_and_its_blocks_still_checked(
+    report_ledger: Any,
+) -> None:
+    document = build("client", report_ledger)
     internal = replace(document.ledger, surface=ClaimSurface.INTERNAL)
-    refusals = client_gate(document_payload(replace(document, ledger=internal)))
-    assert [(r.code, r.where) for r in refusals] == [(GateCode.UNADMITTED_NUMBER, "evidence")]
+    payload = document_payload(replace(document, ledger=internal))
+    quote = next(b["id"] for s in payload["sections"] for b in s["blocks"] if b["type"] == "quote")
+    findings = client_gate(payload)
+    # The whole-document warning first, and the block's own after it, never instead of it.
+    assert [(f.code, f.where) for f in findings] == [
+        (GateCode.LEDGER_NOT_CLIENT_FACING, "evidence"),
+        (GateCode.DRILL_DOWN, quote),
+    ]
 
 
 def test_every_refusal_is_reported_not_only_the_first(report_ledger: Any) -> None:

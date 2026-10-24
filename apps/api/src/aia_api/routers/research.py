@@ -25,7 +25,6 @@ from aia_core.application.analysis_results import (
 from aia_core.application.audience_preview import PanelDraw, PanelSampler
 from aia_core.application.client_report import (
     CLIENT_REPORT_DOCUMENT_ARTIFACT_TYPE,
-    ClientGateRefused,
     ClientReportRefused,
     client_report_document,
     prepare_client_report,
@@ -54,7 +53,9 @@ from aia_core.application.report import (
 from aia_core.application.report_approval import (
     APPROVABLE_KINDS,
     CLIENT_REPORT_KINDS,
+    ReportEditsUnsaved,
     ReportNotApprovable,
+    ReportVersionStale,
     approve_report,
 )
 from aia_core.application.report_editor_saves import approved_versions
@@ -67,8 +68,10 @@ from aia_core.application.report_export import (
     stampable,
 )
 from aia_core.application.report_method import research_question_gap, research_question_gaps
+from aia_core.application.report_tables import EXPORT_MEDIA_TYPES, export_question_tables
 from aia_core.application.report_variants import (
     PdfState,
+    VariantPdf,
     VariantState,
     VariantStatus,
     approval_renders_pdf,
@@ -124,12 +127,15 @@ from aia_core.domain.methodology.pins import response_deviates, run_methods
 from aia_core.domain.persona_topics import dimension_topic
 from aia_core.domain.population import PopulationError, UnknownDatasetVersion
 from aia_core.domain.population.sampling import quota_keys
+from aia_core.domain.report.client_gate import client_gate
 from aia_core.domain.report.document_model import (
     DOCUMENT_MODEL_MEDIA_TYPE,
     DocumentModelInvalid,
     read_document_payload,
 )
+from aia_core.domain.report.editor import SeenEdit
 from aia_core.domain.report.review import ReviewMark, ReviewState
+from aia_core.domain.report.sentence_check import sentence_findings
 from aia_core.domain.report.validation import ReportInvalid
 from aia_core.domain.research_agents import ProposalState, ResearchAction
 from aia_core.domain.research_design import settle_selection
@@ -2541,6 +2547,9 @@ def _approval_fields(
             "self_approval_allowed": record.self_approval_allowed,
             "self_approval_source": record.self_approval_source,
             "note": record.note,
+            # What the approver was warned of and approved past (a client report's checks,
+            # RD0); null where nothing was checked.
+            "warnings": list(record.warnings) if record.warnings is not None else None,
         }
     }
 
@@ -2722,6 +2731,8 @@ def run_report_document(
         "report_sha256": report.sha256,
         **_review_fields(report, mark),
         **_approval_fields(report, scope, session, store),
+        # The sentence check on this version (RD7): marks, never a refusal.
+        "warnings": [f.to_json() for f in sentence_findings(document)],
         "document": document,
     }
 
@@ -3036,6 +3047,8 @@ def contextual_report_document_route(
         "report_sha256": docx.sha256,
         **_review_fields(docx, _mark(docx, scope, session, store)),
         **_approval_fields(docx, scope, session, store),
+        # The sentence check on this version (RD7): marks, never a refusal.
+        "warnings": [f.to_json() for f in sentence_findings(document)],
         "document": document,
     }
 
@@ -3218,7 +3231,156 @@ def prepare_client_report_route(
             session, scope, store, run_id=run_id, build=settings.build.sha or ""
         ),
     )
+    # Its PDF is asked for as the report with literature's is when prepared (report-delivery
+    # RD1), so an approval finds the draft's rendering ready and asks for the approved one;
+    # only where asking can start one, so preparing is never refused for it.
+    if _client_pdf(run_id, report, scope, session, store).askable:
+        _ask_client_pdf(run_id, report, scope, session, store)
     return _client_document_body(run_id, report, model, scope, session, store)
+
+
+def _client_pdf(
+    run_id: str,
+    report: Artifact,
+    scope: StudyContext,
+    session: SessionDep,
+    store: ArtifactStoreDep,
+) -> VariantPdf:
+    """The PDF rendered from exactly the stored client report ``report`` (report-delivery RD1):
+    of its stored bytes while a draft, of its approved export once approved."""
+    try:
+        return variant_pdf(
+            session, scope, store, docx=report, run_id=run_id, deep_research_run_id=None
+        )
+    except ReviewUnrecorded as exc:
+        raise _unrecorded(exc) from exc
+
+
+def _client_pdf_fields(
+    run_id: str,
+    report: Artifact,
+    mark: ReviewMark,
+    scope: StudyContext,
+    session: SessionDep,
+    store: ArtifactStoreDep,
+) -> dict[str, Any]:
+    """A stored client report's PDF (report-delivery RD1), and whether approving it now gives
+    the approved version one too, as far as AIA knows (report_variants.approval_renders_pdf)."""
+    pdf = _client_pdf(run_id, report, scope, session, store)
+    return {
+        "pdf": pdf.to_json(),
+        "approval_renders_pdf": approval_renders_pdf(
+            scope, report, mark, pdf_ready=pdf.state is PdfState.READY
+        ),
+    }
+
+
+def _ask_client_pdf(
+    run_id: str,
+    report: Artifact,
+    scope: StudyContext,
+    session: SessionDep,
+    store: ArtifactStoreDep,
+) -> None:
+    try:
+        request_pdf(session, scope, store, docx=report, run_id=run_id, deep_research_run_id=None)
+    except ScopeDenied as exc:
+        raise _refused(exc) from exc
+    except ReviewUnrecorded as exc:
+        raise _unrecorded(exc) from exc
+
+
+def _stored_client_version(
+    run_id: str, scope: StudyContext, session: SessionDep, store: ArtifactStoreDep
+) -> tuple[Artifact, Artifact | None]:
+    """The run's stored client report, composing nothing: 404 while none is stored."""
+    try:
+        found = client_report_document(session, scope, store, run_id=run_id)
+    except ScopeDenied as exc:
+        raise _refused(exc) from exc
+    except ResearchRunNotFound as exc:
+        raise _not_found("run") from exc
+    if found is None:
+        raise _not_found("report")
+    return found
+
+
+@router.post(
+    "/research/runs/{run_id}/report/client/pdf",
+    response_model=dict[str, Any],
+    summary="Ask again for the PDF of the run's stored client report",
+    responses={404: {"model": ErrorResponse}, 409: {"model": ErrorResponse}},
+)
+def ask_client_report_pdf(
+    run_id: RunIdPath, scope: StudyScopeDep, session: SessionDep, store: ArtifactStoreDep
+) -> dict[str, Any]:
+    """A rendering of the client report as stored (the approved version's export once there
+    is one), after its PDF failed or became invalid; one ready or under way is left as it is.
+    Composes nothing: 404 while no client report is stored (``…/client/prepare`` stores it)."""
+    report, _model = _stored_client_version(run_id, scope, session, store)
+    _ask_client_pdf(run_id, report, scope, session, store)
+    # The version and its PDF, never its document: a version stored before RD5a has none and
+    # still renders (its DOCX is what the job reads).
+    mark = _mark(report, scope, session, store)
+    return {
+        "run_id": run_id,
+        "report_artifact_id": report.artifact_id,
+        "report_sha256": report.sha256,
+        **_review_fields(report, mark),
+        **_client_pdf_fields(run_id, report, mark, scope, session, store),
+    }
+
+
+@router.get(
+    "/research/runs/{run_id}/report/client/pdf/download",
+    response_class=Response,
+    summary="The PDF of the run's stored client report: its approved version, else its draft",
+    responses={404: {"model": ErrorResponse}, 409: {"model": ErrorResponse}},
+)
+def download_client_report_pdf(
+    run_id: RunIdPath, scope: StudyScopeDep, session: SessionDep, store: ArtifactStoreDep
+) -> Response:
+    """The rendering of exactly the stored client report the DOCX download names: an approved
+    version's PDF renders its export, never its draft's (``report_variants.variant_pdf``). 404
+    ``report_pdf_not_found`` while none is ready."""
+    try:
+        scope.require(Permission.EXPORT_DELIVERABLE)
+    except ScopeDenied as exc:
+        raise _refused(exc) from exc
+    report, _model = _stored_client_version(run_id, scope, session, store)
+    mark = _mark(report, scope, session, store)
+    pdf = _client_pdf(run_id, report, scope, session, store)
+    if pdf.artifact is None:
+        raise _not_found("report_pdf")
+    try:
+        data = research_artifacts(session, scope, store).read(pdf.artifact.artifact_id)
+    except (IntegrityError, ObjectNotFound) as exc:
+        raise artifact_corrupt(session) from exc
+    return Response(
+        content=data,
+        media_type=PDF_MEDIA_TYPE,
+        headers=_review_headers(
+            mark,
+            _report_filename(
+                scope.study_id,
+                run_id,
+                "klient",
+                mark,
+                "pdf",
+                stamped=pdf.artifact.metadata.get("stamped") is True,
+            ),
+        ),
+    )
+
+
+class SeenEditRequest(BaseModel):
+    """An edit start a page reported: its session's key, the page's id, its count from 1."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    document_key: str = Field(pattern=r"^[0-9A-Za-z._=-]{1,128}$")
+    page: str = Field(pattern=r"^[0-9A-Za-z_-]{8,64}$")
+    seq: int = Field(ge=1, le=2_000_000_000)
 
 
 class ReportApprovalRequest(BaseModel):
@@ -3228,6 +3390,62 @@ class ReportApprovalRequest(BaseModel):
 
     artifact_id: str = Field(pattern=r"^ART-[0-9a-f]{16}$")
     note: str = Field(default="", max_length=2000)
+    #: A report-editor version approved only while it is its line's newest (RPT8d): 409
+    #: ``report_version_stale`` once a save stored the next koncept.
+    newest_of_line: bool = False
+    #: The approving page's last edit start in the editor (RPT8f); with ``newest_of_line``, 409
+    #: ``report_edits_unsaved`` until a stored version holds it and every edit AIA received.
+    seen_edit: SeenEditRequest | None = None
+
+
+@router.get(
+    "/research/runs/{run_id}/report/tables/{file_format}",
+    response_class=Response,
+    summary="Download a run's per-question tables as CSV or XLSX",
+    responses={409: {"model": ErrorResponse}},
+)
+def download_question_tables(
+    run_id: RunIdPath,
+    file_format: Literal["csv", "xlsx"],
+    scope: StudyScopeDep,
+    session: SessionDep,
+    store: ArtifactStoreDep,
+    document: Literal["internal", "client"] = "internal",
+) -> Response:
+    """The per-question tables of the run's stored internal draft, or of its stored client
+    report (``document=client``), as CSV or XLSX (report-delivery RD12, D-41): read from the
+    stored document model as its document route reads it (the same checks, the same 404 and 409
+    answers), every cell a number that report admitted for its surface, printed as it prints it.
+    The client's export is the client report's numbers alone. 409 ``no_question_tables`` for a
+    document without one."""
+    try:
+        scope.require(Permission.EXPORT_DELIVERABLE)
+    except ScopeDenied as exc:
+        raise _refused(exc) from exc
+    body = (
+        run_report_document(run_id, scope, session, store)
+        if document == "internal"
+        else client_report_document_route(run_id, scope, session, store)
+    )
+    data = export_question_tables(body["document"], file_format)
+    if data is None:
+        raise HTTPException(409, detail={"code": "no_question_tables"})
+    # The stored report these tables are from, and its review, as every download names them.
+    approved_on = body["approved_on"]
+    mark = ReviewMark(
+        ReviewState(body["review_state"]),
+        str(body["report_artifact_id"]),
+        str(body["report_sha256"]),
+        date.fromisoformat(approved_on) if approved_on else None,
+    )
+    state = "schvaleno" if mark.state is ReviewState.APPROVED else "koncept"
+    variant = "zakladni" if document == "internal" else "klient"
+    name = f"AIA-{scope.study_id}-{run_id}-tabulky-{variant}-{mark.artifact_id}-{state}"
+    return Response(
+        content=data,
+        media_type=EXPORT_MEDIA_TYPES[file_format],
+        headers=_review_headers(mark, f"{name}.{file_format}"),
+    )
 
 
 @router.get(
@@ -3285,6 +3503,13 @@ def _client_document_body(
         "report_sha256": report.sha256,
         **_review_fields(report, mark),
         **_approval_fields(report, scope, session, store),
+        **_client_pdf_fields(run_id, report, mark, scope, session, store),
+        # The client deliverable's checks (RD0) and the sentence check (RD7) on this version:
+        # warnings the approval dialog shows and the approval records, never a refusal.
+        "warnings": [
+            *(f.to_json() for f in client_gate(document)),
+            *(f.to_json() for f in sentence_findings(document)),
+        ],
         "document": document,
     }
 
@@ -3304,8 +3529,37 @@ def approve_run_report(
 ) -> dict[str, Any]:
     try:
         artifact = approve_report(
-            session, scope, store, run_id=run_id, artifact_id=body.artifact_id, note=body.note
+            session,
+            scope,
+            store,
+            run_id=run_id,
+            artifact_id=body.artifact_id,
+            note=body.note,
+            newest_of_line=body.newest_of_line,
+            seen_edit=(
+                SeenEdit(body.seen_edit.document_key, body.seen_edit.page, body.seen_edit.seq)
+                if body.seen_edit is not None
+                else None
+            ),
         )
+    except ReportEditsUnsaved as exc:
+        raise HTTPException(
+            409,
+            detail={
+                "code": "report_edits_unsaved",
+                "message": "An edit made in the editor is not in a saved version yet.",
+                "details": {"reason": exc.reason.value},
+            },
+        ) from exc
+    except ReportVersionStale as exc:
+        raise HTTPException(
+            409,
+            detail={
+                "code": "report_version_stale",
+                "message": "A later version of this report was saved; it is the one shown now.",
+                "details": {"newest_artifact_id": exc.newest_artifact_id, "koncept": exc.koncept},
+            },
+        ) from exc
     except SeparationOfDutiesViolation as exc:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
@@ -3320,15 +3574,6 @@ def approve_run_report(
         raise _not_found("run") from exc
     except ArtifactNotFound as exc:
         raise _not_found("report") from exc
-    except ClientGateRefused as exc:
-        raise HTTPException(
-            409,
-            detail={
-                "code": "client_gate_refused",
-                "message": "Klientskou zprávu nelze schválit: " + str(exc),
-                "details": {"refusals": [r.to_json() for r in exc.refusals]},
-            },
-        ) from exc
     except (IntegrityError, ObjectNotFound) as exc:
         raise artifact_corrupt(session) from exc
     except DocumentModelInvalid as exc:

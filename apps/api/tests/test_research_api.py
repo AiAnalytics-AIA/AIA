@@ -570,6 +570,122 @@ def _document_model(title: str = "Úvod a rámec studie") -> bytes:
     ).encode()
 
 
+def _question_table_model() -> bytes:
+    """A stored internal document with one per-question table, as the composer anchors it."""
+    model = json.loads(_document_model())
+    model["sections"].append(
+        {
+            "id": "ch-tables",
+            "title": "Výsledky jednotlivých otázek",
+            "appendix": False,
+            "refs": ["q1.pct.1", "q1.n"],
+            "blocks": [
+                {
+                    "id": "ch-tables.1",
+                    "type": "table",
+                    "anchor": "tab-question-1",
+                    "title": "@Jak často nakupujete?",
+                    "columns": [{"label": "Ukazatel", "align": "left", "unit": None}],
+                    "rows": [
+                        {
+                            "cells": [
+                                {"type": "text", "text": "Denně", "control": None},
+                                {"type": "number", "ref": "q1.pct.1", "with_interval": True},
+                            ],
+                            "emphasis": False,
+                        },
+                        {
+                            "cells": [
+                                {"type": "text", "text": "platné odpovědi", "control": None},
+                                {"type": "number", "ref": "q1.n", "with_interval": False},
+                            ],
+                            "emphasis": False,
+                        },
+                    ],
+                    "suppressed_rows": 1,
+                    "source": "Fiktivní",
+                    "base_ref": "q1.n",
+                    "notes": [],
+                    "notes_control": None,
+                    "refs": ["q1.pct.1", "q1.n"],
+                }
+            ],
+        }
+    )
+    entry = {"suppressed": False, "grade": "measured", "modelled_panel": False}
+    model["ledger"]["refs"] = {
+        "q1.pct.1": {
+            **entry,
+            "value_text": "42,5 %",
+            "interval_text": "38,1 až 46,9 %",
+            "base_text": "n = 480",
+        },
+        "q1.n": {**entry, "value_text": "480", "interval_text": None, "base_text": None},
+    }
+    return json.dumps(model, sort_keys=True, separators=(",", ":")).encode()
+
+
+def test_a_runs_question_tables_export_as_the_report_prints_them(
+    app: FastAPI,
+    researcher: TestClient,
+    other_client_lead: TestClient,
+    world: Any,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """RD12 (D-41): the per-question tables of the stored internal draft as CSV and XLSX, each
+    number the text the report prints; the client report's alone with document=client."""
+    import csv
+    import io
+
+    import openpyxl
+
+    app.state.settings = app.state.settings.model_copy(update={"ai_analysis_enabled": True})
+    revision = submit(researcher, world).json()["revision_id"]
+    run_id = start(researcher, world, revision).json()["run_id"]
+    url = f"{_runs(world)}/{run_id}/report/tables"
+    assert researcher.get(f"{url}/csv").status_code == 404  # no report yet
+    report_id = _store_internal_report(
+        app, world, run_id, b"PK\x03\x04draft", model=_question_table_model()
+    )
+
+    got = researcher.get(f"{url}/csv")
+    assert got.status_code == 200, got.text
+    assert got.headers["content-type"].startswith("text/csv")
+    assert got.headers["x-aia-artifact-id"] == report_id
+    assert (
+        got.headers["x-aia-artifact-sha256"]
+        == researcher.get(f"{_runs(world)}/{run_id}/report/document").json()["report_sha256"]
+    )
+    assert got.headers["x-aia-review-state"] == "DRAFT_UNAPPROVED"
+    assert f"-tabulky-zakladni-{report_id}-koncept.csv" in got.headers["content-disposition"]
+    rows = list(csv.reader(io.StringIO(got.content.decode("utf-8-sig")), delimiter=";"))
+    title = "'@Jak často nakupujete?"  # a formula's first character, kept as text
+    assert rows == [
+        ["Otázka", "Ukazatel", "Hodnota", "95% interval", "Základ", "Evidence", "Původ"],
+        [title, "Denně", "42,5 %", "38,1 až 46,9 %", "n = 480", "Měřeno", ""],
+        [title, "platné odpovědi", "480", "", "", "Měřeno", ""],
+        [title, "vynecháno pro nedostatečnou oporu: 1", "", "", "", "", ""],
+    ]
+
+    book = researcher.get(f"{url}/xlsx")
+    assert book.status_code == 200, book.text
+    sheet = openpyxl.load_workbook(io.BytesIO(book.content)).active
+    cells = [[c if c is not None else "" for c in r] for r in sheet.iter_rows(values_only=True)]
+    # A workbook cell is text, never a formula: it carries the title as written, unguarded.
+    assert cells == [[c.removeprefix("'") for c in row] for row in rows]
+
+    # The client report's export is its own: this one has no question table, said by name.
+    monkeypatch.setattr(
+        client_report, "compose_client_report", _composing(_client_report_document())
+    )
+    assert researcher.get(f"{_runs(world)}/{run_id}/report/client/download").status_code == 200
+    none = researcher.get(f"{url}/csv", params={"document": "client"})
+    assert none.status_code == 409 and none.json()["code"] == "no_question_tables"
+    assert researcher.get(f"{url}/pdf").status_code == 422
+    foreign = f"{_runs(world, 'other_client')}/{run_id}/report/tables/csv"
+    assert other_client_lead.get(foreign).status_code == 404
+
+
 def test_the_internal_draft_is_read_as_its_document_beside_its_docx(
     app: FastAPI,
     researcher: TestClient,
@@ -884,6 +1000,9 @@ def test_a_person_approves_a_runs_stored_report_once_and_only_that(
             select(ApprovalDecisionRow).where(ApprovalDecisionRow.subject_id == report_id)
         ).all()
     assert [(d.decision, d.comment) for d in decisions] == [("APPROVED", "Přečteno.")]
+    # Its document was checked (RD7) and nothing found: an empty list, never NULL, which says
+    # nothing was checked (the next test).
+    assert decisions[0].warnings == []
 
 
 def _prague_today() -> str:
@@ -1424,14 +1543,56 @@ def _composing(document: ReportDocument) -> Any:
     return compose
 
 
-def test_a_client_report_carrying_drill_down_content_cannot_be_approved(
+def test_the_client_report_is_the_runs_work_not_its_first_downloaders(
+    app: FastAPI,
+    owner: TestClient,
+    researcher: TestClient,
+    outsider: TestClient,
+    world: Any,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """RD8: the client report is stored on whoever's read first asks for it, but code composed
+    it from the run. With independent review on, the person who downloaded it first may approve
+    it; the person who started the run may not, as for the run's internal report."""
+    app.state.settings = app.state.settings.model_copy(update={"ai_analysis_enabled": True})
+    revision = submit(researcher, world).json()["revision_id"]
+    run_id = start(researcher, world, revision).json()["run_id"]
+    # Every run names its starter: no run reaches a client report without a producer.
+    with create_session_factory(app.state.engine)() as session:
+        principal = AuthenticatedPrincipal(
+            user_id=world.users["researcher"], organization_id=world.organization_id
+        )
+        scope = ScopeResolver(session).study_context(principal, study_id=world.study_id())
+        run = WorkflowRepository(session, scope).get_run(run_id)
+    assert run["triggered_by"] == world.users["researcher"]
+    monkeypatch.setattr(
+        client_report, "compose_client_report", _composing(_client_report_document())
+    )
+    forbid = owner.put(
+        f"{API}/self-approval", json={"allowed": False, "client_id": world.client_id()}
+    )
+    assert forbid.status_code == 200, forbid.text
+    url = f"{_runs(world)}/{run_id}/report"
+    # The reviewer reads it first: that read stores the draft.
+    version = outsider.get(f"{url}/client/download").headers["X-AIA-Artifact-Id"]
+    own = researcher.post(f"{url}/approve", json={"artifact_id": version})
+    assert own.status_code == 403 and own.json()["code"] == "separation_of_duties"
+    approved = outsider.post(f"{url}/approve", json={"artifact_id": version})
+    assert approved.status_code == 200, approved.text
+    assert approved.json()["report_kind"] == "client"
+    assert approved.json()["approval"]["self_approved"] is False
+
+
+def test_a_client_report_carrying_drill_down_content_is_approved_with_its_warning_on_record(
     app: FastAPI,
     researcher: TestClient,
     outsider: TestClient,
     world: Any,
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    """RD0 (MVPQ-09): the gate refuses by name, and blocks: no reviewer approves past it."""
+    """RD0 (MVPQ-09), warnings since 2026-10-22 (the product owner: "Warnings for all of it"):
+    the check names what it found before the approval and never refuses it; the approval records
+    the warning it went past, on its ledger row."""
     app.state.settings = app.state.settings.model_copy(update={"ai_analysis_enabled": True})
     revision = submit(researcher, world).json()["revision_id"]
     run_id = start(researcher, world, revision).json()["run_id"]
@@ -1448,18 +1609,86 @@ def test_a_client_report_carrying_drill_down_content_cannot_be_approved(
     monkeypatch.setattr(client_report, "compose_client_report", _composing(quoted))
     url = f"{_runs(world)}/{run_id}/report"
     version = researcher.get(f"{url}/client/download").headers["X-AIA-Artifact-Id"]
-    refused = outsider.post(f"{url}/approve", json={"artifact_id": version})
-    assert refused.status_code == 409, refused.text
-    assert refused.json()["code"] == "client_gate_refused"
-    assert refused.json()["details"]["refusals"] == [
-        {
-            "code": "drill_down_content",
-            "where": "v.1",
-            "message": "doslovná odpověď jednoho respondenta",
-        }
-    ]
+    warning = {
+        "code": "drill_down_content",
+        "where": "v.1",
+        "message": "doslovná odpověď jednoho respondenta",
+    }
+    before = researcher.get(f"{url}/client/document").json()
+    assert before["warnings"] == [warning] and before["approval"] is None
+    approved = outsider.post(f"{url}/approve", json={"artifact_id": version})
+    assert approved.status_code == 200, approved.text
+    assert approved.json()["approval"]["warnings"] == [warning]
     after = researcher.get(f"{url}/client/document").json()
-    assert after["review_state"] == "DRAFT_UNAPPROVED"
+    assert after["review_state"] == "APPROVED_INTERNAL"
+    assert after["approval"]["warnings"] == [warning]
+    with create_session_factory(app.state.engine)() as session:
+        row = session.scalars(
+            select(ApprovalDecisionRow).where(ApprovalDecisionRow.subject_id == version)
+        ).one()
+        assert row.warnings == [warning]
+
+
+def test_a_sentence_comparing_in_words_alone_is_marked_and_approved_on_record(
+    app: FastAPI, researcher: TestClient, outsider: TestClient, world: Any
+) -> None:
+    """RD7 (MVPQ-09), marking since 2026-10-22: the internal draft's document names a
+    sentence of the analysis prose that compares with no number from the ledger; approving
+    goes through and records it, as RD0's warnings are recorded."""
+    app.state.settings = app.state.settings.model_copy(update={"ai_analysis_enabled": True})
+    revision = submit(researcher, world).json()["revision_id"]
+    run_id = start(researcher, world, revision).json()["run_id"]
+    model = json.loads(_document_model())
+    model["sections"][0]["sources"] = [
+        {"kind": "artifact", "artifact_type": "research_analysis_module"}
+    ]
+    model["sections"][0]["blocks"][0]["content"] = [
+        {"type": "text", "text": "Fiktivní. Nejvíc důvěřují lidé v Praze.", "emphasis": "none"}
+    ]
+    report_id = _store_internal_report(
+        app, world, run_id, b"PK\x03\x04draft", model=json.dumps(model).encode()
+    )
+    url = f"{_runs(world)}/{run_id}/report"
+    marked = {
+        "code": "unsupported_comparison",
+        "where": "intro.1",
+        "message": "srovnání bez doloženého čísla: „Nejvíc důvěřují lidé v Praze.“",
+        "sentence": 1,
+        "text": "Nejvíc důvěřují lidé v Praze.",
+    }
+    assert researcher.get(f"{url}/document").json()["warnings"] == [marked]
+    approved = outsider.post(f"{url}/approve", json={"artifact_id": report_id})
+    assert approved.status_code == 200, approved.text
+    assert approved.json()["approval"]["warnings"] == [marked]
+    with create_session_factory(app.state.engine)() as session:
+        row = session.scalars(
+            select(ApprovalDecisionRow).where(ApprovalDecisionRow.subject_id == report_id)
+        ).one()
+        assert row.warnings == [marked]
+
+
+def test_a_version_with_no_stored_document_is_approved_unchecked(
+    app: FastAPI, researcher: TestClient, outsider: TestClient, world: Any
+) -> None:
+    """A version with no stored document is not checked: SQL NULL, never JSON null (RD0), so
+    the migration's downgrade counts only the rows that recorded warnings."""
+    app.state.settings = app.state.settings.model_copy(update={"ai_analysis_enabled": True})
+    run_id = start(researcher, world, submit(researcher, world).json()["revision_id"]).json()[
+        "run_id"
+    ]
+    report_id = _store_internal_report(app, world, run_id, b"PK\x03\x04before-rd5a")
+    approve = f"{_runs(world)}/{run_id}/report/approve"
+    assert outsider.post(approve, json={"artifact_id": report_id}).status_code == 200
+    with create_session_factory(app.state.engine)() as session:
+        unchecked = session.scalar(
+            select(func.count())
+            .select_from(ApprovalDecisionRow)
+            .where(
+                ApprovalDecisionRow.subject_id == report_id,
+                ApprovalDecisionRow.warnings.is_(None),
+            )
+        )
+    assert unchecked == 1
 
 
 def test_the_client_report_is_prepared_to_be_read_without_a_download(
@@ -1534,10 +1763,11 @@ def test_a_client_document_of_an_older_contract_is_stored_again_on_download(
     assert outsider.post(f"{url}/approve", json={"artifact_id": version}).status_code == 200
 
 
-def test_a_client_draft_with_no_stored_document_is_not_approvable(
+def test_a_client_draft_with_no_stored_document_is_approved_as_unverifiable(
     app: FastAPI, researcher: TestClient, outsider: TestClient, world: Any
 ) -> None:
-    """A draft stored before its document (RD5a) cannot be judged: unknown, never passed."""
+    """A draft stored before its document (RD5a) cannot be checked: unknown, never passed, and
+    said as a warning the approval records ("nelze ověřit"), never a refusal (RD0, 2026-10-22)."""
     app.state.settings = app.state.settings.model_copy(update={"ai_analysis_enabled": True})
     revision = submit(researcher, world).json()["revision_id"]
     run_id = start(researcher, world, revision).json()["run_id"]
@@ -1558,11 +1788,12 @@ def test_a_client_draft_with_no_stored_document_is_not_approvable(
             metadata={"run_id": run_id, "report_kind": "client", **REVIEW_STAMP_RECORD},
         )
         session.commit()
-    refused = outsider.post(
+    approved = outsider.post(
         f"{_runs(world)}/{run_id}/report/approve", json={"artifact_id": stored.artifact_id}
     )
-    assert refused.status_code == 409
-    assert [r["code"] for r in refused.json()["details"]["refusals"]] == ["gate_unrecorded"]
+    assert approved.status_code == 200, approved.text
+    (warning,) = approved.json()["approval"]["warnings"]
+    assert warning["code"] == "gate_unrecorded" and "nelze ji ověřit" in warning["message"]
 
 
 def test_a_client_report_stored_before_its_document_says_so(

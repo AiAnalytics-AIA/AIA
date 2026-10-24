@@ -8,6 +8,7 @@ import json
 import os
 import time
 import zipfile
+from datetime import datetime
 from typing import Any
 from urllib.parse import parse_qs, urlparse
 
@@ -854,6 +855,106 @@ def test_an_edited_version_says_what_it_changed_and_is_approved_as_itself(
     assert researcher.get(f"{versions}/{edited}/download").status_code == 200
 
 
+def test_a_version_names_its_authors_and_its_lines_newest_version(
+    app: FastAPI, researcher: TestClient, client: TestClient, world: Any, saves: Saves
+) -> None:
+    run_id, draft = _reported_run(app, researcher, world)
+    config = researcher.post(_editor(world, run_id), json={}).json()["config"]
+    me = world.users["researcher"]
+    name = config["editorConfig"]["user"]["name"]
+    versions = f"{_editor(world, run_id)}/versions"
+    first = saves.put(_docx("50 %"))
+    assert _callback(client, config, status=6, url=first, users=[me]).json() == {"error": 0}
+    edited = researcher.post(_editor(world, run_id), json={}).json()["version_artifact_id"]
+
+    said = researcher.get(f"{versions}/{edited}").json()
+    assert said["author_names"] == [name] and "@" not in name
+    assert said["content_at"] is None  # this save named no lastsave
+    assert datetime.fromisoformat(said["server_now"]).tzinfo is not None
+    assert said["newest_in_line"] == {"version_artifact_id": edited, "koncept": 2}
+    assert researcher.get(f"{versions}/{draft}").json()["newest_in_line"]["koncept"] == 2
+
+    later = saves.put(_docx("55 %"))
+    assert _callback(client, config, status=6, url=later, users=[me]).json() == {"error": 0}
+    moved = researcher.get(f"{versions}/{edited}").json()["newest_in_line"]
+    assert moved["koncept"] == 3 and moved["version_artifact_id"] != edited
+
+
+def test_a_version_asked_as_its_lines_newest_is_refused_once_a_later_save_exists(
+    app: FastAPI, researcher: TestClient, client: TestClient, world: Any, saves: Saves
+) -> None:
+    run_id, draft = _reported_run(app, researcher, world)
+    config = researcher.post(_editor(world, run_id), json={}).json()["config"]
+    me = world.users["researcher"]
+    saved = _callback(client, config, status=6, url=saves.put(_docx("50 %")), users=[me])
+    assert saved.json() == {"error": 0}
+    second = researcher.post(_editor(world, run_id), json={}).json()["version_artifact_id"]
+    # The question was open while a save stored koncept 3.
+    saved = _callback(client, config, status=6, url=saves.put(_docx("55 %")), users=[me])
+    assert saved.json() == {"error": 0}
+    third = researcher.post(_editor(world, run_id), json={}).json()["version_artifact_id"]
+    approve = f"{API}/studies/{world.study_id()}/research/runs/{run_id}/report/approve"
+
+    stale = researcher.post(approve, json={"artifact_id": second, "newest_of_line": True})
+    assert stale.status_code == 409, stale.text
+    assert stale.json()["code"] == "report_version_stale"
+    assert stale.json()["details"] == {"newest_artifact_id": third, "koncept": 3}
+    assert researcher.get(f"{_editor(world, run_id)}/versions/{second}").json()["approval"] is None
+    # Koncept 1, the composed draft, is no newest once the line moved on either.
+    first = researcher.post(approve, json={"artifact_id": draft, "newest_of_line": True})
+    assert first.status_code == 409 and first.json()["details"]["koncept"] == 3
+
+    newest = researcher.post(approve, json={"artifact_id": third, "newest_of_line": True})
+    assert newest.status_code == 200, newest.text
+    assert newest.json()["artifact_id"] == third
+    # Without the flag an older version is approved as itself, as before.
+    older = researcher.post(approve, json={"artifact_id": second})
+    assert older.status_code == 200, older.text
+
+
+def test_a_save_keeps_the_time_of_its_last_change_as_the_document_server_said_it(
+    app: FastAPI, researcher: TestClient, client: TestClient, world: Any, saves: Saves
+) -> None:
+    run_id, _draft = _reported_run(app, researcher, world)
+    config = researcher.post(_editor(world, run_id), json={}).json()["config"]
+    me = world.users["researcher"]
+    saved = _callback(
+        client,
+        config,
+        status=6,
+        url=saves.put(_docx("50 %")),
+        users=[me],
+        lastsave="2026-10-24T00:30:12.000Z",
+    )
+    assert saved.json() == {"error": 0}
+    edited = researcher.post(_editor(world, run_id), json={}).json()["version_artifact_id"]
+    said = researcher.get(f"{_editor(world, run_id)}/versions/{edited}").json()
+    assert said["content_at"] == "2026-10-24T00:30:12+00:00"
+    # A time that is not an aware ISO time is kept as nothing, never guessed.
+    _callback(client, config, status=6, url=saves.put(_docx("51 %")), users=[me], lastsave="today")
+    later = researcher.post(_editor(world, run_id), json={}).json()["version_artifact_id"]
+    assert researcher.get(f"{_editor(world, run_id)}/versions/{later}").json()["content_at"] is None
+
+
+def test_an_author_is_named_only_as_a_member_and_never_by_an_e_mail(
+    app: FastAPI, world: Any
+) -> None:
+    from aia_core.application.report_editor import ReportEditor
+    from aia_core.infrastructure.tables import UserRow
+
+    me, lead = world.users["researcher"], world.users["lead"]
+    factory = create_session_factory(app.state.engine)
+    with factory() as session:
+        session.get(UserRow, me).display_name = "Jana Výzkumná"
+        session.get(UserRow, lead).display_name = "lead@art-chain.io"
+        session.add(UserRow(user_id="USR-stranger", email="x@else.test", display_name="Cizí"))
+        session.commit()
+        principal = AuthenticatedPrincipal(user_id=me, organization_id=world.organization_id)
+        scope = ScopeResolver(session).study_context(principal, study_id=world.study_id())
+        names = ReportEditor(session, scope).names([me, lead, "USR-stranger"])
+    assert names == {me: "Jana Výzkumná"}
+
+
 def test_no_author_of_an_edited_version_approves_it_where_self_approval_is_off(
     app: FastAPI,
     researcher: TestClient,
@@ -968,3 +1069,208 @@ def test_the_first_version_serves_the_pdf_its_report_step_rendered(
     got = researcher.get(f"{versions}/pdf/download")
     assert got.status_code == 200 and got.content == b"%PDF-1.7 the step's rendering"
     assert got.headers["X-AIA-Artifact-Id"] == draft
+
+
+def _stamp(at: Any) -> str:
+    return at.isoformat(timespec="milliseconds").replace("+00:00", "Z")
+
+
+def _ago(seconds: float) -> str:
+    from datetime import UTC, datetime, timedelta
+
+    return _stamp(datetime.now(UTC) - timedelta(seconds=seconds))
+
+
+PAGE = "page-0123456789"
+
+
+class _Line:
+    """One run's report line open in the editor, as the RPT8f tests drive it."""
+
+    def __init__(
+        self, app: FastAPI, researcher: TestClient, client: TestClient, world: Any, saves: Saves
+    ) -> None:
+        self.run_id, self.draft = _reported_run(app, researcher, world)
+        self.researcher, self.client, self.world, self.saves = researcher, client, world, saves
+        self.config = researcher.post(_editor(world, self.run_id), json={}).json()["config"]
+        self.key = self.config["document"]["key"]
+        self.edits = f"{_editor(world, self.run_id)}/sessions/{self.key}/edits"
+        self.approve_url = (
+            f"{API}/studies/{world.study_id()}/research/runs/{self.run_id}/report/approve"
+        )
+
+    def report(self, seq: int, *, page: str = PAGE, by: TestClient | None = None) -> int:
+        body = {"page": page, "seq": seq}
+        return (by or self.researcher).post(self.edits, json=body).status_code
+
+    def save(self, value: str, *, lastsave: str, by: str = "researcher") -> str:
+        answer = _callback(
+            self.client,
+            self.config,
+            status=6,
+            url=self.saves.put(_docx(value)),
+            users=[self.world.users[by]],
+            lastsave=lastsave,
+        )
+        assert answer.json() == {"error": 0}, answer.text
+        opened = self.researcher.post(_editor(self.world, self.run_id), json={}).json()
+        return str(opened["version_artifact_id"])
+
+    def approve(
+        self, version: str, seq: int | None = None, *, newest: bool = True, page: str = PAGE
+    ) -> Any:
+        body: dict[str, Any] = {"artifact_id": version}
+        if newest:
+            body["newest_of_line"] = True
+        if seq is not None:
+            body["seen_edit"] = {"document_key": self.key, "page": page, "seq": seq}
+        return self.researcher.post(self.approve_url, json=body)
+
+    def verdict(self, version: str, seq: int | None = None) -> Any:
+        params = {"seen_key": self.key, "seen_page": PAGE, "seen_seq": seq} if seq else {}
+        url = f"{_editor(self.world, self.run_id)}/versions/{version}"
+        return self.researcher.get(url, params=params).json()["edits"]
+
+
+def _held(answer: Any, reason: str) -> None:
+    assert answer.status_code == 409, answer.text
+    assert answer.json()["code"] == "report_edits_unsaved"
+    assert answer.json()["details"] == {"reason": reason}
+
+
+def test_an_approval_waits_until_a_save_holds_every_edit_the_server_received(
+    app: FastAPI, researcher: TestClient, client: TestClient, world: Any, saves: Saves
+) -> None:
+    """RPT8f: the server, not the page, decides whether the version holds the edits made."""
+    line = _Line(app, researcher, client, world, saves)
+    assert line.report(1) == 204
+    older = line.save("50 %", lastsave=_ago(3600))  # its last change long before the edit's report
+    _held(line.approve(older, 1), "edit_not_saved")
+    assert line.verdict(older, 1) == {"saved": False, "reason": "edit_not_saved"}
+    # The page made edit 2 and its report has not arrived: the approval leaving first waits.
+    _held(line.approve(older, 2), "edit_not_received")
+    assert line.verdict(older, 2) == {"saved": False, "reason": "edit_not_received"}
+    url = f"{_editor(world, line.run_id)}/versions/{older}"
+    assert researcher.get(url).json()["approval"] is None
+    assert researcher.get(url, params={"seen_key": line.key}).status_code == 422  # all or none
+    # Edit 2 reported, then a save whose last change follows it holds both.
+    assert line.report(2) == 204
+    newer = line.save("51 %", lastsave=_ago(0))
+    assert line.report(1) == 204  # late or twice: the page's highest is kept
+    assert line.verdict(newer, 2) == {"saved": True, "reason": None}
+    assert line.approve(newer, 2).status_code == 200
+
+
+def test_a_lastsave_ahead_of_aias_clock_counts_as_aias_receipt_and_never_holds_a_later_edit(
+    app: FastAPI, researcher: TestClient, client: TestClient, world: Any, saves: Saves
+) -> None:
+    """A Document Server clock running ahead must not make a save hold an edit made after it:
+    its lastsave is kept no later than AIA's receipt of the callback (fails closed)."""
+    from datetime import UTC, datetime, timedelta
+
+    line = _Line(app, researcher, client, world, saves)
+    before = datetime.now(UTC)
+    ahead = line.save("50 %", lastsave=_stamp(datetime.now(UTC) + timedelta(minutes=5)))
+    said = researcher.get(f"{_editor(world, line.run_id)}/versions/{ahead}").json()
+    assert before <= datetime.fromisoformat(said["content_at"]) <= datetime.now(UTC)
+    assert line.report(1) == 204  # typed after that save
+    _held(line.approve(ahead, 1), "edit_not_saved")
+
+
+def test_an_edit_report_arriving_after_its_save_is_released_by_the_next_save_of_the_same_bytes(
+    app: FastAPI, researcher: TestClient, client: TestClient, world: Any, saves: Saves
+) -> None:
+    """The wedge: the save holding an edit landed before the edit's report, so it does not count
+    it. A later save of the same bytes stores no koncept but says a later lastsave, and releases
+    it; one whose lastsave is still earlier (a Document Server clock behind) does not: fails
+    closed."""
+    line = _Line(app, researcher, client, world, saves)
+    version = line.save("50 %", lastsave=_ago(1))
+    assert line.report(1) == 204  # late
+    _held(line.approve(version, 1), "edit_not_saved")
+    assert line.save("50 %", lastsave=_ago(60)) == version  # the clock behind: still held
+    _held(line.approve(version, 1), "edit_not_saved")
+    assert line.save("50 %", lastsave=_ago(0)) == version  # no new koncept
+    assert researcher.post(_editor(world, line.run_id), json={}).json()["koncept"] == 2
+    assert line.verdict(version, 1) == {"saved": True, "reason": None}
+    assert line.approve(version, 1).status_code == 200
+
+
+def test_a_co_authors_edit_and_an_earlier_page_of_the_session_hold_the_approval_too(
+    app: FastAPI,
+    researcher: TestClient,
+    lead: TestClient,
+    client: TestClient,
+    world: Any,
+    saves: Saves,
+) -> None:
+    line = _Line(app, researcher, client, world, saves)
+    version = line.save("50 %", lastsave=_ago(1))
+    # Not signed into the session yet: the lead's report is no session of theirs.
+    assert line.report(1, page="page-lead-0000", by=lead) == 404
+    lead.post(_editor(world, line.run_id), json={})
+    assert line.report(1, page="page-lead-0000", by=lead) == 204
+    _held(line.approve(version), "edit_not_saved")
+    assert line.verdict(version) == {"saved": False, "reason": "edit_not_saved"}
+    # A reload is a new page: the edit the old page reported still waits for its save.
+    assert line.report(1, page="page-old-00000") == 204
+    _held(line.approve(version, page="page-new-00000"), "edit_not_saved")
+    newest = line.save("52 %", lastsave=_ago(0), by="lead")
+    assert line.approve(newest).status_code == 200
+
+
+def test_every_edited_version_is_checked_whether_or_not_the_caller_asks_for_the_newest(
+    app: FastAPI, researcher: TestClient, client: TestClient, world: Any, saves: Saves
+) -> None:
+    line = _Line(app, researcher, client, world, saves)
+    version = line.save("50 %", lastsave=_ago(1))
+    assert line.report(1) == 204
+    _held(line.approve(version, newest=False), "edit_not_saved")
+
+
+def test_an_edit_in_the_seen_session_still_holds_once_that_session_closed(
+    app: FastAPI, researcher: TestClient, client: TestClient, world: Any, saves: Saves
+) -> None:
+    """The page's own session closed under it (everyone else left) before its edit was saved:
+    the approval naming it is not let through by the close."""
+    line = _Line(app, researcher, client, world, saves)
+    version = line.save("50 %", lastsave=_ago(1))
+    assert line.report(1) == 204
+    _callback(client, line.config, status=4, users=[world.users["researcher"]])
+    _held(line.approve(version, 1), "edit_not_saved")
+
+
+def test_an_edit_is_reported_only_in_an_open_session_of_the_run_the_caller_was_signed_into(
+    app: FastAPI, researcher: TestClient, client: TestClient, world: Any, saves: Saves
+) -> None:
+    line = _Line(app, researcher, client, world, saves)
+    body = {"page": PAGE, "seq": 1}
+    nowhere = f"{_editor(world, line.run_id)}/sessions/NO-SUCH/edits"
+    assert researcher.post(nowhere, json=body).status_code == 404
+    other = f"{API}/studies/{world.study_id()}/research/runs/RUN-0000000000000000/report/editor"
+    assert researcher.post(f"{other}/sessions/{line.key}/edits", json=body).status_code in (
+        404,
+        422,
+    )
+    for bad in (
+        {"page": "short", "seq": 1},
+        {"page": PAGE, "seq": 0},
+        {"page": PAGE, "seq": 1, "clean": True},
+    ):
+        assert researcher.post(line.edits, json=bad).status_code == 422
+    # Everyone left: the session is closed and takes no edit.
+    _callback(client, line.config, status=4, users=[world.users["researcher"]])
+    assert researcher.post(line.edits, json=body).status_code == 404
+
+
+def test_a_session_keeps_edit_reports_for_a_bounded_number_of_pages(
+    app: FastAPI, researcher: TestClient, client: TestClient, world: Any, saves: Saves
+) -> None:
+    from aia_core.domain.report.editor import MAX_PAGES_PER_SESSION
+
+    line = _Line(app, researcher, client, world, saves)
+    pages = [f"page-{n:010d}" for n in range(MAX_PAGES_PER_SESSION + 1)]
+    assert all(line.report(1, page=p) == 204 for p in pages[:-1])
+    refused = researcher.post(line.edits, json={"page": pages[-1], "seq": 1})
+    assert refused.status_code == 409 and refused.json()["code"] == "editor_pages_exhausted"
+    assert line.report(2, page=pages[0]) == 204  # a page it keeps still reports

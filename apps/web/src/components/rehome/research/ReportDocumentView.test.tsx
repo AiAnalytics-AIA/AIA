@@ -21,7 +21,7 @@ import { TEST_FRAME } from "./test-frame";
 
 vi.mock("@/lib/api", async () => ({
   ApiError: (await vi.importActual<typeof import("@/lib/api")>("@/lib/api")).ApiError,
-  research: { reportDocument: vi.fn(), clientReportDocument: vi.fn(), prepareClientReport: vi.fn(), approveReport: vi.fn(), report: vi.fn() },
+  research: { reportDocument: vi.fn(), clientReportDocument: vi.fn(), prepareClientReport: vi.fn(), approveReport: vi.fn(), report: vi.fn(), openReportEditor: vi.fn() },
   deepResearch: { runs: vi.fn(), contextReport: vi.fn(), contextReportDocument: vi.fn(), prepareContextReport: vi.fn() },
 }));
 
@@ -45,11 +45,13 @@ beforeEach(() => {
   // No literature review by default: the pane offers the reports a run has.
   vi.mocked(deepResearch.runs).mockResolvedValue([]);
   vi.mocked(research.report).mockResolvedValue({ artifact_id: "ART-docx", pdf: { state: "NOT_REQUESTED" }, approval_renders_pdf: false } as never);
+  // The report editor off (AIA_ONLYOFFICE_URL unset, the default): the read-only draft is the pane.
+  vi.mocked(research.openReportEditor).mockRejectedValue(new ApiError(404, "not_found", "No such resource.", null));
 });
 
 afterEach(() => {
   cleanup();
-  for (const f of [research.reportDocument, research.clientReportDocument, research.prepareClientReport, research.approveReport, research.report,
+  for (const f of [research.reportDocument, research.clientReportDocument, research.prepareClientReport, research.approveReport, research.report, research.openReportEditor,
     deepResearch.runs, deepResearch.contextReport, deepResearch.contextReportDocument, deepResearch.prepareContextReport]) vi.mocked(f).mockReset();
 });
 
@@ -241,10 +243,47 @@ describe("approved on the document being read, in the doc bar (RPT3a)", () => {
     expect(research.clientReportDocument).toHaveBeenCalledTimes(1);
   });
 
+  it("names the client checks' warnings in the question and approves past them (RD0, warnings since 2026-10-22)", async () => {
+    vi.mocked(research.reportDocument).mockResolvedValue(STORED);
+    const warnings = [{ code: "drill_down_content", where: "ch-summary.2", message: "doslovná odpověď jednoho respondenta" }];
+    vi.mocked(research.clientReportDocument).mockResolvedValue({ ...CLIENT, warnings });
+    vi.mocked(research.approveReport).mockResolvedValue({ artifact_id: "ART-client", review_state: "APPROVED_INTERNAL", approved_on: "2026-10-24", stamped: true, approval: null } as never);
+    const container = await openClient();
+    fireEvent.click(within(bar(container)).getByRole("button", { name: APPROVE }));
+    const dialog = container.querySelector("dialog[open]") as HTMLElement;
+    expect(dialog.textContent).toContain("Upozornění (1): doslovná odpověď jednoho respondenta (oddíl „Shrnutí pro vedení“). Schválením je berete na vědomí");
+    fireEvent.click(within(dialog).getByRole("button", { name: "Schválit" }));
+    await waitFor(() => expect(research.approveReport).toHaveBeenCalledWith(TEST_FRAME.studyId, "RUN-1", "ART-client"));
+  });
+
+  it("marks a sentence that compares with no number where it stands, names it in the question and approves past it (RD7)", async () => {
+    const sentence = "Nejvíc důvěřují lidé v Praze, nejméně v Ostravě; rozdíl je dost velký na to, aby rozhodl o tom, kde začít.";
+    const elsewhere = "Věta, kterou žádný úsek textu neobsahuje celou.";
+    const mark = (where: string, text: string, n: number) => ({ code: "unsupported_comparison", where, message: `srovnání bez doloženého čísla: „${text}“`, sentence: n, text });
+    vi.mocked(research.reportDocument).mockResolvedValue({ ...STORED, warnings: [mark("ch-summary.1", sentence, 1), mark("ch-confidence.1", elsewhere, 0)] });
+    vi.mocked(research.approveReport).mockResolvedValue({ artifact_id: "ART-docx", review_state: "APPROVED_INTERNAL", approved_on: "2026-10-24", stamped: false, approval: null } as never);
+    const { container } = show();
+    await screen.findByRole("article", { name: "Koncept zprávy" });
+    // In place, inside its paragraph, every other word of it kept and unmarked.
+    const marked = container.querySelector('[data-aia="report:ch-summary.1"] mark[data-sentence-mark]') as HTMLElement;
+    expect(marked.textContent).toBe(`${sentence} (srovnání bez doloženého čísla)`);
+    expect(container.querySelector('[data-aia="report:ch-summary.1"] p')?.textContent).toContain("Bankám v Česku důvěřuje");
+    // One no inline holds whole is named under its block, never dropped.
+    const under = container.querySelector('[data-aia="report:ch-confidence.1"] p[data-sentence-mark]');
+    expect(under?.textContent).toBe(`Upozornění: srovnání bez doloženého čísla: „${elsewhere}“`);
+    expect(container.querySelectorAll("[data-sentence-mark]")).toHaveLength(2);
+    fireEvent.click(within(bar(container)).getByRole("button", { name: "Schválit pro interní použití" }));
+    await waitFor(() => expect(container.querySelector("dialog[open]")).not.toBeNull());
+    const dialog = container.querySelector("dialog[open]") as HTMLElement;
+    expect(dialog.textContent).toContain(`Upozornění (2): srovnání bez doloženého čísla: „${sentence}“ (oddíl „`);
+    fireEvent.click(within(dialog).getByRole("button", { name: "Schválit" }));
+    await waitFor(() => expect(research.approveReport).toHaveBeenCalledWith(TEST_FRAME.studyId, "RUN-1", "ART-docx"));
+  });
+
   it("says a refusal in words over the version refused only, and tells the card nothing", async () => {
     vi.mocked(research.reportDocument).mockResolvedValue(STORED);
     vi.mocked(research.clientReportDocument).mockResolvedValue(CLIENT);
-    vi.mocked(research.approveReport).mockRejectedValue(new ApiError(409, "client_gate_refused", "Zprávu nelze schválit.", null));
+    vi.mocked(research.approveReport).mockRejectedValue(new ApiError(409, "report_not_approvable", "Zprávu nelze schválit.", null));
     const container = await openClient();
     fireEvent.click(within(bar(container)).getByRole("button", { name: APPROVE }));
     fireEvent.click(within(container.querySelector("dialog[open]") as HTMLElement).getByRole("button", { name: "Schválit" }));

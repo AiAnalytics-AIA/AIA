@@ -12,18 +12,21 @@ import { ApiError, deepResearch, type DeepResearchRun, research, type ResearchRu
 import {
   type Block, type Cell, claimLines, claimTarget, gradeWords, type Inline, type LedgerEntry, type ListItem,
   approvalWords, readDocument, type ReportDocumentModel, reviewWords, type Section, sectionTarget, blockTarget,
-  type StoredReportDocument, unresolvedRefs, valueWords,
+  type StoredReportDocument, markSpans, sentenceMarks, unresolvedRefs, valueWords, warningsWords,
 } from "@/lib/artifacts/report";
 import { backEntry, closeStack, emptyStack, openEntry, type InspectorStack } from "@/lib/inspector-stack";
 import { isModelled, stepOf } from "@/lib/research-execution";
 import { useFrame } from "./frame-hook";
 import { useItemInspector } from "@/components/workbench/item-inspector-context";
 import { ItemInspector } from "./ItemInspector";
+import { EditorDocBar } from "./EditorDocBar";
+import { type EditorShown, ReportEditor } from "./ReportEditor";
 import { canReview } from "./frame";
 import { type Ask, AskDialog, Button } from "../ui";
 import { t } from "@/i18n/t";
 import { approvalQuestion, pdfStatesReview, reviewLine, reviewsFor, type VersionReview } from "@/lib/report-variant";
 import { approvalRefusal, reviewStatus } from "@/lib/report-status";
+import { type SeenEdit, unsavedWords } from "@/lib/report-editor";
 import { coverageRecord, type CoverageLine } from "@/lib/artifacts/report-coverage";
 
 // A line carrying an id or a SHA-256 breaks anywhere: an unbroken hash would widen the page past a
@@ -56,6 +59,9 @@ export type ReportApproved = {
 };
 
 type Approved = Awaited<ReturnType<typeof research.approveReport>>;
+
+/** A composed draft's approval asked from the editor's doc bar: why it must wait, or null. */
+type EditorAsk = { held: () => string | null; seen: () => SeenEdit | null };
 
 /** Which document the pane reads: the internal draft, the client report (RD3), or the report with
  *  one completed literature review (RPT3a). */
@@ -183,24 +189,32 @@ export function ReportDocumentView({ run }: { run: ResearchRun }) {
   const unshownInternal = kind !== "client" && (loaded.state === "not_stored" || loaded.state === "refused" || loaded.state === "failed");
   const currentSlot = loaded.state === "ready" ? slotOf(loaded.stored) : unshownInternal ? slotOf(null) : "";
   useEffect(() => { slotNow.current = currentSlot; }, [currentSlot]);
-  const confirm = (slot: string, version: string, file: VersionReview, pdf: boolean, shown: StoredReportDocument | null) => {
+  // `editor`: asked from the editor's doc bar (RPT8d), where the draft is koncept 1 of the line shown:
+  // approved as that line's newest, and only while `held()` says no edit waits to be stored, read on
+  // the yes as on the ask (an edit can start while the status is read or the question is open).
+  const confirm = (slot: string, version: string, file: VersionReview, pdf: boolean, shown: StoredReportDocument | null, editor?: EditorAsk) => {
     const question = approvalQuestion(kind, version, { pdf, review });
     // What the file carries, as the card says it (D2): known only when stamped.
     const carries = reviewLine(file, pdf);
+    // The version's checks (RD0 on the client report, RD7 on every report): warnings named in the
+    // question, recorded with the yes.
+    const warned = warningsWords(shown?.warnings, shown?.document);
     const ask: Ask = {
       kind: "confirm",
-      message: carries ? `${question} ${carries}` : question,
+      message: [question, carries, warned].filter(Boolean).join(" "),
       yes: t("research.exec.report.approveAsk.yes"),
       resolve: (ok) => {
         if (!ok) return;
+        const held = editor?.held();
+        if (held) return setAct({ slot, ask: null, busy: false, refused: held });
         setAct({ slot, ask: null, busy: true, refused: null });
-        research.approveReport(frame.studyId, run.run_id, version).then(
+        (editor ? research.approveReport(frame.studyId, run.run_id, version, "", true, editor.seen()) : research.approveReport(frame.studyId, run.run_id, version)).then(
           (done) => {
             setAct(shown ? null : { slot, ask: null, busy: false, refused: null, done: true });
             if (shown) approved(version, done);
             tell(done);
           },
-          (error: unknown) => setAct({ slot, ask: null, busy: false, refused: approvalRefusal(error) }),
+          (error: unknown) => setAct({ slot, ask: null, busy: false, refused: unsavedWords(error) ?? approvalRefusal(error) }),
         );
       },
     };
@@ -217,7 +231,7 @@ export function ReportDocumentView({ run }: { run: ResearchRun }) {
   // `shown`: the document on screen, or null for an internal draft or a report with literature the
   // pane cannot show (stored before its document, or refused), approved as the version its run
   // names: the DOCX its download hands over, as the card approved it before.
-  const askApproval = (shown: StoredReportDocument | null) => {
+  const askApproval = (shown: StoredReportDocument | null, editor?: EditorAsk) => {
     const slot = slotOf(shown);
     if (kind === "client") {
       if (shown) confirm(slot, shown.report_artifact_id, { version: shown.report_artifact_id, reviewState: shown.review_state, approvedOn: shown.approved_on, stamped: shown.stamped }, false, shown);
@@ -248,8 +262,10 @@ export function ReportDocumentView({ run }: { run: ResearchRun }) {
           tell(done);
           return;
         }
+        const held = editor?.held();
+        if (held) return refuse(held);
         confirm(slot, version, { version, reviewState: report.review_state, approvedOn: report.approved_on, stamped: report.stamped },
-          pdfStatesReview(report.review_state, report.pdf, report.approval_renders_pdf), shown);
+          pdfStatesReview(report.review_state, report.pdf, report.approval_renders_pdf), shown, editor);
       },
       (error: unknown) => { if (slotNow.current === slot) setAct({ slot, ask: null, busy: false, refused: `Stav zprávy se nepodařilo načíst: ${message(error)}` }); },
     );
@@ -273,6 +289,10 @@ export function ReportDocumentView({ run }: { run: ResearchRun }) {
       ),
     };
   };
+  // What the report editor shows for which document, if it shows one, and the line asked for (RPT8d).
+  const [shownInEditor, setShownInEditor] = useState<{ doc: string; shown: EditorShown | null } | null>(null);
+  const showInEditor = useCallback((shown: EditorShown | null) => setShownInEditor({ doc: docId, shown }), [docId]);
+  const [lineAsked, setLineAsked] = useState<{ doc: string; line: string } | null>(null);
   const [stack, setStack] = useState<InspectorStack>(() => emptyStack("report"));
   // Inside the workbench a claim opens in its one item drawer, under the frame's Escape order;
   // outside it (and for a ref the target grammar refuses) in this view's own.
@@ -318,13 +338,34 @@ export function ReportDocumentView({ run }: { run: ResearchRun }) {
 
   const { stored, doc } = loaded;
   const controls = approval(stored);
+  // The doc bar names and approves the version on screen (RPT3a): while the editor shows the
+  // document, that is the editor's version, read from the API (RPT8d), not the composed draft.
+  const inEditor = shownInEditor?.doc === docId ? shownInEditor.shown : null;
+  const line = lineAsked?.doc === docId ? lineAsked.line : null;
   const missing = unresolvedRefs(doc);
+  // The sentences the check marks (RD7), by block: marked where they are, never refused.
+  const marks = sentenceMarks(stored.warnings);
   const entry = (ref: string): LedgerEntry | undefined => doc.ledger.refs[ref];
   const claim = (ref: string) => <ul className="flex flex-col gap-1">{claimLines(entry(ref)).map((line) => <li key={line}>{line}</li>)}</ul>;
   const open = (ref: string) => {
     const framed = inspector?.open({ id: `report:ref:${kind}:${ref}`, title: `Tvrzení ${ref}`, sub: "Číslo ve zprávě a jeho evidence" }, () => claim(ref));
     if (!framed) openOwn(ref);
   };
+  const draft = (
+    <article aria-label="Koncept zprávy" className="rounded-card border border-border bg-surface-raised px-4 py-5 font-serif shadow-sm sm:px-8 lg:px-14 lg:py-10">
+      <header className="mb-4 border-b border-border pb-4">
+        <p className="font-sans text-xs text-ink-muted">{doc.meta.client_name} · {doc.meta.study_name}</p>
+        <h1 className="mt-1 text-2xl font-semibold leading-tight sm:text-[28px]">{doc.meta.title}</h1>
+        <p className="mt-1 font-sans text-sm text-ink-muted">{doc.meta.subtitle}</p>
+      </header>
+      {doc.sections.map((section) => (
+        <DocSection key={section.id} section={section} entry={entry} onClaim={open} refs={Object.keys(doc.ledger.refs)} marks={marks} />
+      ))}
+      <footer className="mt-6 border-t border-border pt-2 font-sans text-[11px] text-ink-muted" data-report-foot>
+        {stored.review_state === "APPROVED_INTERNAL" ? "Schváleno" : "Koncept"} · {stored.review_state} · {run.run_id} · revize {doc.meta.revision} · dokument {stored.artifact_id}
+      </footer>
+    </article>
+  );
   return (
     // The pane's own width decides the layout, not the window's: the workbench's split can leave the
     // artifact narrow on a wide screen.
@@ -333,28 +374,33 @@ export function ReportDocumentView({ run }: { run: ResearchRun }) {
         {choose}
         <div className="mb-2.5 flex flex-wrap items-center gap-2 text-xs text-ink-muted" data-report-docbar>
           <span className="font-semibold text-ink">{KIND_NAME[kind]}</span>
-          <span>· {reviewWords(stored, kind === "client" ? "client" : "internal")}</span>
-          {stored.approval ? <span data-approval>· {approvalWords(stored.approval, stored.approved_on)}</span> : null}
-          <span className={`font-mono ${WRAPS}`}>· {stored.report_artifact_id}</span>
-          {controls.button}
+          {inEditor ? <span>· v editoru</span> : (
+            <>
+              <span>· {reviewWords(stored, kind === "client" ? "client" : "internal")}</span>
+              {stored.approval ? <span data-approval>· {approvalWords(stored.approval, stored.approved_on)}</span> : null}
+              <span className={`font-mono ${WRAPS}`}>· {stored.report_artifact_id}</span>
+              {controls.button}
+            </>
+          )}
         </div>
+        {inEditor ? (
+          // Read again once the composed draft's review moves (koncept 1 approved through the pane).
+          <EditorDocBar
+            key={`${docId}:${stored.review_state}`} studyId={frame.studyId} runId={run.run_id} shown={inEditor} composedId={stored.report_artifact_id}
+            documentName={kind === "with_review" ? "zprávu s rešerší" : "interní zprávu"} canApprove={canReview(frame)}
+            approveComposed={(held, seen) => askApproval(stored, { held, seen })} onApproved={tell} onOpenLine={(l) => setLineAsked({ doc: docId, line: l })}
+          />
+        ) : null}
         {controls.after}
         {missing.length ? (
           <p role="alert" className="mb-2 text-sm text-status-fault">Dokument cituje čísla, která jeho evidence nemá ({missing.join(", ")}); zobrazují se jako „?“.</p>
         ) : null}
-        <article aria-label="Koncept zprávy" className="rounded-card border border-border bg-surface-raised px-4 py-5 font-serif shadow-sm sm:px-8 lg:px-14 lg:py-10">
-          <header className="mb-4 border-b border-border pb-4">
-            <p className="font-sans text-xs text-ink-muted">{doc.meta.client_name} · {doc.meta.study_name}</p>
-            <h1 className="mt-1 text-2xl font-semibold leading-tight sm:text-[28px]">{doc.meta.title}</h1>
-            <p className="mt-1 font-sans text-sm text-ink-muted">{doc.meta.subtitle}</p>
-          </header>
-          {doc.sections.map((section) => (
-            <DocSection key={section.id} section={section} entry={entry} onClaim={open} refs={Object.keys(doc.ledger.refs)} />
-          ))}
-          <footer className="mt-6 border-t border-border pt-2 font-sans text-[11px] text-ink-muted" data-report-foot>
-            {stored.review_state === "APPROVED_INTERNAL" ? "Schváleno" : "Koncept"} · {stored.review_state} · {run.run_id} · revize {doc.meta.revision} · dokument {stored.artifact_id}
-          </footer>
-        </article>
+        {kind === "client" ? draft : (
+          // The draft in the report editor where it is configured (RPT8d), else read here as before.
+          <ReportEditor studyId={frame.studyId} runId={run.run_id} variant={kind === "with_review" ? "context" : "internal"} review={review} line={line} onShown={showInEditor}>
+            {draft}
+          </ReportEditor>
+        )}
         <Coverage lines={coverageRecord(run, doc.unread)} />
       </div>
       {/* Beside the document in a wide pane, a column only while a claim is open; in a narrow one, a sheet
@@ -426,24 +472,57 @@ type Read = {
   refs: string[];
 };
 
-function DocSection({ section, ...read }: { section: Section } & Read) {
+/** The words a marked sentence says beside it (RD7). */
+const MARK_WORDS = "srovnání bez doloženého čísla";
+
+function DocSection({ section, marks, ...read }: { section: Section; marks: Map<string, string[]> } & Read) {
   return (
     <section data-aia={sectionTarget(section)} className="mb-2">
       <h2 className="mb-1.5 mt-5 font-sans text-base font-semibold">{section.appendix ? `Příloha · ${section.title}` : section.title}</h2>
-      {section.blocks.map((block) => (
-        <div key={block.id} data-aia={blockTarget(block)} className="mb-2.5">
-          <DocBlock block={block} {...read} point={pointer(block)} />
-        </div>
-      ))}
+      {section.blocks.map((block) => {
+        const marked = marks.get(block.id) ?? [];
+        // A sentence no single inline holds whole is named under its block, never dropped.
+        const texts = blockTexts(block);
+        const unplaced = marked.filter((sentence) => !texts.some((t) => t.includes(sentence)));
+        return (
+          <div key={block.id} data-aia={blockTarget(block)} className="mb-2.5">
+            <DocBlock block={block} {...read} point={pointer(block)} marked={marked} />
+            {unplaced.map((sentence) => (
+              <p key={sentence} className="mt-1 font-sans text-xs text-status-you-ink" data-sentence-mark>Upozornění: {MARK_WORDS}: „{sentence}“</p>
+            ))}
+          </div>
+        );
+      })}
     </section>
   );
+}
+
+/** A block's text inlines, as Inlines renders them: where a marked sentence can be marked. */
+function blockTexts(block: Block): string[] {
+  const of = (content: Inline[]) => content.flatMap((i) => (i.type === "text" ? [i.text] : []));
+  const items = (list: ListItem[]): string[] => list.flatMap((item) => [...of(item.content), ...items(item.children)]);
+  if (block.type === "paragraph" || block.type === "callout") return of(block.content);
+  if (block.type === "list") return items(block.items);
+  return [];
 }
 
 /** A number as a chip: the DOCX's text for it; a click opens its claim. Suppressed: never a number. */
 type Chip = Pick<Read, "entry" | "onClaim"> & {
   /** The chip's `data-aia` in its block: the first chip of a ref only, so no two elements share an id. */
   point: (ref: string) => string | undefined;
+  /** The block's sentences the check marks (RD7). */
+  marked?: readonly string[];
 };
+
+/** A text inline's words, a sentence the check marks in a `mark` that says why (RD7). */
+function Marked({ text, marked }: { text: string; marked?: readonly string[] }): ReactNode {
+  if (!marked?.length) return text;
+  return markSpans(text, marked).map((span, i) => span.marked ? (
+    <mark key={i} data-sentence-mark title={MARK_WORDS} className="rounded-sm bg-status-you-wash text-ink underline decoration-status-you-ink decoration-dotted underline-offset-2">
+      {span.text}<span className="sr-only"> ({MARK_WORDS})</span>
+    </mark>
+  ) : <span key={i}>{span.text}</span>);
+}
 
 /** A block's pointer: `report:<block id>:<ref>` for a ref's first chip in the block, none after. */
 function pointer(block: Block): (ref: string) => string | undefined {
@@ -474,8 +553,10 @@ function Marks({ refs, ...chip }: { refs: string[] } & Chip) {
 function Inlines({ content, ...chip }: { content: Inline[] } & Chip): ReactNode {
   return content.map((inline, i) => {
     switch (inline.type) {
-      case "text":
-        return inline.emphasis === "strong" ? <strong key={i}>{inline.text}</strong> : inline.emphasis === "em" ? <em key={i}>{inline.text}</em> : <span key={i}>{inline.text}</span>;
+      case "text": {
+        const words = <Marked text={inline.text} marked={chip.marked} />;
+        return inline.emphasis === "strong" ? <strong key={i}>{words}</strong> : inline.emphasis === "em" ? <em key={i}>{words}</em> : <span key={i}>{words}</span>;
+      }
       case "value":
         return <Claim key={i} ref_={inline.ref} withInterval={inline.with_interval} {...chip} />;
       case "footnote":
@@ -504,23 +585,24 @@ function TableCell({ cell, ...chip }: { cell: Cell } & Chip) {
   return <Claim ref_={cell.ref} withInterval={cell.with_interval} {...chip} />;
 }
 
-function DocBlock({ block, entry, onClaim, refs, point }: { block: Block; point: Chip["point"] } & Read) {
+function DocBlock({ block, entry, onClaim, refs, point, marked }: { block: Block; point: Chip["point"]; marked: readonly string[] } & Read) {
   const read = { entry, onClaim, point };
+  const prose = { ...read, marked };
   switch (block.type) {
     case "heading":
       return block.level === 2 ? <h3 className="mt-3 font-sans text-[15px] font-semibold">{block.text}</h3> : <h4 className="mt-2 font-sans text-sm font-semibold">{block.text}</h4>;
     case "paragraph":
       return <p className={block.role === "lede" ? "text-[17px] leading-7" : block.role === "lead_in" ? "font-sans text-sm font-semibold" : "text-[15px] leading-6"}>
-        <Inlines content={block.content} {...read} /><Marks refs={block.marks} {...read} />
+        <Inlines content={block.content} {...prose} /><Marks refs={block.marks} {...read} />
       </p>;
     case "list":
-      return <Items items={block.items} ordered={block.ordered} {...read} />;
+      return <Items items={block.items} ordered={block.ordered} {...prose} />;
     case "quote":
       return <blockquote className="border-l-2 border-border pl-3 text-[15px] italic leading-6">„{block.text}“ <span className="font-sans text-xs not-italic text-ink-muted">— {block.attribution}{block.synthetic ? " (smyšlený respondent)" : ""}</span></blockquote>;
     case "callout":
       return <div className="rounded-control border border-border bg-surface-sunken px-3 py-2 font-sans text-sm leading-6" data-callout={block.kind}>
         {block.title ? <p className="font-semibold">{block.title}<Marks refs={block.marks} {...read} /></p> : null}
-        <p><Inlines content={block.content} {...read} />{block.title ? null : <Marks refs={block.marks} {...read} />}</p>
+        <p><Inlines content={block.content} {...prose} />{block.title ? null : <Marks refs={block.marks} {...read} />}</p>
       </div>;
     case "key_finding":
       return <div className="border-l-2 border-signal pl-3 text-[15px] leading-6">

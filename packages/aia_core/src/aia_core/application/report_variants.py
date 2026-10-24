@@ -48,6 +48,7 @@ from ..infrastructure.artifact_repository import (
 )
 from ..infrastructure.storage import ArtifactStore
 from ..infrastructure.workflow_repository import WorkflowRepository
+from .client_report import CLIENT_REPORT_ARTIFACT_TYPE
 from .contextual_report import (
     CONTEXT_REPORT_ARTIFACT_TYPE,
     CONTEXT_REPORT_CONTRACT,
@@ -76,10 +77,16 @@ __all__ = [
 
 
 #: The report DOCX types a ``report_pdf`` job renders: the run's own report and the report with
-#: a chosen literature review, and a version of either a person saved in the report editor
-#: (RPT8c); the client report is DOCX only, and never edited.
+#: a chosen literature review, a version of either a person saved in the report editor (RPT8c),
+#: and the client report (report-delivery RD1), which is never edited. Each PDF renders exactly
+#: the stored DOCX it names, so a client report's PDF is the client report a person approves.
 RENDERABLE_REPORTS = frozenset(
-    {INTERNAL_REPORT_ARTIFACT_TYPE, CONTEXT_REPORT_ARTIFACT_TYPE, *EDIT_ARTIFACT_TYPES.values()}
+    {
+        INTERNAL_REPORT_ARTIFACT_TYPE,
+        CONTEXT_REPORT_ARTIFACT_TYPE,
+        CLIENT_REPORT_ARTIFACT_TYPE,
+        *EDIT_ARTIFACT_TYPES.values(),
+    }
 )
 
 

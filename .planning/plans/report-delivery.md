@@ -2,19 +2,19 @@
 status: in-progress
 chunks:
   - "[ ] RD0. The client deliverable's checks the owner set (MVPQ-09): an \"Interní dokument\" source, drill-down content, a number without an admitted claim, each shown as a warning in the approval dialog and recorded with the approval, never refusing (changed 2026-10-22)"
-  - "[ ] RD1. The client report PDF: extend `RENDERABLE_REPORTS`, the PDF is approved with its DOCX"
+  - "[x] RD1. The client report PDF: extend `RENDERABLE_REPORTS`, the PDF is approved with its DOCX"
   - "[x] RD2. A reader for the approval ledger: "approved by whom, when" for a report and a snapshot"
   - "[ ] RD3. The Approve and Export panel: what is approved and by whom; exports after approval; the slot in the Report artifact"
   - "[ ] RD4. The map snapshot: an approvable object rendered server-side from the stored map and camera parameters, never browser bytes; one ledger shape"
   - "[ ] RD5. Report draft revisions: a separate draft counter, tracked changes per paragraph; a report edit never reopens fieldwork"
   - "[x] RD5a. The report's document model stored and served (W2, before RD5 and RD7): the ReportDocument as JSON beside each DOCX under the same fingerprint, with stable paragraph ids and claim refs, read by a VIEW_RESULTS route"
   - "[ ] RD6. The accept destinations for the report writer, the map interpreter and the straight-liner flags: an artifact type, the composer input and its fingerprint; and, before any semantic report edit exists, the ADR with its deterministic admission rule that ADR 0026 decision 4 requires"
-  - "[ ] RD7. A sentence-level claim check: a sentence that claims a comparison with no admitted claim is marked at the sentence, in the pane and the approval dialog, never blocking (changed 2026-10-22)"
-  - "[ ] RD8. The producer of a client report is the run that composed it, not whoever first downloaded it"
+  - "[x] RD7. A sentence-level claim check: a sentence that claims a comparison with no admitted claim is marked at the sentence, in the pane and the approval dialog, never blocking (changed 2026-10-22)"
+  - "[x] RD8. The producer of a client report is the run that composed it, not whoever first downloaded it"
   - "[ ] RD9. The report's assumptions chapter (W3, MVPQ-02): each tracked assumption with its status and its admitted or cited support, and nothing else"
   - "[ ] RD10. The report's open-answer coding chapter (W3, MVPQ-02): the codebook version, the coded counts as admitted claims with suppression named, and the method's limits"
   - "[ ] RD11. Deep Research context in the client report: accepted findings as cited context in its research-context chapter, labelled external, never respondent evidence (MVP-26)"
-  - "[ ] RD12. Export of a run's per-question tables as CSV and XLSX, every cell an admitted claim for the surface (D-41)"
+  - "[x] RD12. Export of a run's per-question tables as CSV and XLSX, every cell an admitted claim for the surface (D-41)"
 ---
 # Report delivery: approval, export and the map snapshot
 
@@ -62,6 +62,19 @@ Doc follow-up.
 The third check, `internal_source_cited`, waits for a chapter that cites a client source (RD11): no client report cites
 one, so it would read nothing. RD0 stays open until it lands.
 
+*RD0's change, built (`feature/client-report-warnings`):* `client_gate` returns findings (`GateFinding`), never
+refusals; `application/client_report.py` `client_gate_findings` replaces `require_client_gate` and `ClientGateRefused`
+(a version with no stored document is the `gate_unrecorded` warning, "nelze ji ověřit"); a ledger off the client surface is the
+`ledger_not_client_facing` warning, and the block checks still run beside it (the PM, 2026-10-24: a warning about the
+whole never hides one about a block). `approve_report` records them
+on the approval's ledger row: `approval_decisions.warnings` (JSON, nullable: NULL where nothing is checked; migration
+`3abba24ff47c`), read back as `ApprovalRecord.warnings` and answered in every approval's `approval.warnings`. `GET
+…/report/client/document` answers the version's `warnings` before the approval; the pane's question names each with its
+block ("Upozornění (n): …; Schválením je berete na vědomí"), and the doc bar says "přes n upozornění" after. 409
+`client_gate_refused` is gone. Tests: `test_a_client_report_carrying_drill_down_content_is_approved_with_its_warning_on_record`,
+`test_a_client_draft_with_no_stored_document_is_approved_as_unverifiable`, `report.test.ts` (approvalWords, warningsWords),
+`ReportDocumentView.test.tsx` ("names the client checks' warnings in the question…").
+
 **Findings (RD0).**
 - *The prose-number half of G63 is not built.* A client report's prose is written by code alone and states design and
   method numbers: the scale's ends and the planned n (`application/report_design.py`), the day of the owner's decision
@@ -71,6 +84,21 @@ one, so it would read nothing. RD0 stays open until it lands.
 
 **RD1. The client report PDF: extend `RENDERABLE_REPORTS`, the PDF is approved with its DOCX**  
 The client report is DOCX only today (`report_variants.py:78`).
+
+*RD1, done (`feature/client-report-pdf`):* `research_client_docx` is in `RENDERABLE_REPORTS`, so a `report_pdf` job
+renders exactly the stored client report it names, and its PDF records `report_kind: client` from its DOCX
+(`aia_executors.report.ReportPdfExecutor`; the run's own report's stays `internal`). `POST …/report/client/prepare` asks
+for the draft's PDF where asking can start one (never refused for it), as preparing the report with literature does; so
+approving the client report finds its draft's rendering ready and asks for the approved version's PDF under its review
+(`report_approval.approve_report`, unchanged). `GET …/report/client/document` (and prepare) answer `pdf` and
+`approval_renders_pdf`; `POST …/report/client/pdf` asks again, composing nothing (404 while none is stored);
+`GET …/report/client/pdf/download` serves the rendering of exactly the version the DOCX download names
+(`AIA-…-klient-<version>-koncept|schvaleno.pdf`, `X-AIA-Artifact-Id`). The PDF artifact keeps the type every report
+PDF has (`research_internal_pdf`, the `report_pdf` template's target); its `report_kind` says whose it is. Tests:
+`test_report_variant_api.py` `test_the_client_report_has_a_pdf_and_it_is_approved_with_its_docx` (fails before: no
+draft PDF counted as ready, so the approval promised none); `test_report_pdf_executor.py`
+`test_the_client_report_is_rendered_and_its_pdf_says_it_is_the_clients`. The download buttons are
+`research-lead-workbench#31`'s.
 
 **RD2. A reader for the approval ledger: "approved by whom, when" for a report and a snapshot**  
 
@@ -128,8 +156,56 @@ S3 defines the type, S1 writes the worker against it (`lead-orchestration#LO9b`)
 The prototype shows it (scenario M); the evidence validation checks numbers only. A new rule; its strictness is the owner's (MVPQ-09, 2026-10-20): it **blocks approval**, never a flag the reviewer may approve past, and the refusal names the sentence.
 *Changed 2026-10-22 (the owner, as RD0 above; ADR 0035, amended):* a sentence the check refuses is marked at the sentence, in the pane and the approval dialog; it never blocks approval.
 
+*RD7a, the check (`feature/sentence-claim-check`):* `domain/report/sentence_check.py` `sentence_findings` reads a stored
+document model: each paragraph, list item and callout of a section written from an analysis module (its section
+sources), split into sentences. Text and word lists are compared folded (lower case, no diacritics), so inflections
+and capitals read alike. A sentence claims a comparison when it holds "než", a comparative in any inflection (vyšší,
+vyššího, nižší, větší, menší, lepší, horší, delší, kratší, dražší, mladší, starší; "-ější"; častěji, silněji…), a
+superlative ("nej…", not the negations nejsou / nejde / nejistota… nor nejen / nejprve / nejdřív / nejspíš /
+nejpozději), "oproti", "ve srovnání", "v porovnání", "rozdíl…", "převyšuje", "převažuje" or "převládá" (not
+většina / menšina, a share; "dvou nejvyšších bodů" is a metric's name); a sentence that asks ("…?", or "zda" / "zdali" /
+"jestli": a research question or a study's goal restated, as the workbench's fictional draft does) claims nothing and
+is not marked. **The word lists are PROVISIONAL** (the PM,
+2026-10-24): AIA's starting reading, for the methodology owner (Aram) to review; the case file names a known
+over-mark ("na větším vzorku", a comparative about the method). It is
+supported when it prints a ledger number: a `value` inline, a `cross_ref` to a figure or table, or the printed text of
+a number its block cites (analysis prose writes its numbers as text and cites their claims on the paragraph), the
+numbers compared parsed, so a decimal point or comma and any thousands space read alike; a suppressed number supports
+nothing. A sentence ends at its stop or after a closing quote or bracket that follows it. Anything else is `unsupported_comparison`, naming its block, its sentence's index
+and its text. Not read: the composer's own text (map reading guides, method, the question chapter's intro, the
+questionnaire), a lead-in and a `control` block. A reading rule, deliberately plain, not a methodology: it flags a
+comparison stated without a number and says nothing of whether a cited number bears it out. The internal draft's,
+the report with literature's and the client report's document routes answer the findings in `warnings` (the client's
+beside RD0's), and `approve_report` records them on the approval's ledger row (RD0's mechanism); a version with no
+stored document (a report-editor version, one stored before RD5a) records `NULL`, nothing checked, never "nothing
+found". Migration `3abba24ff47c`'s downgrade now refuses only while a row holds at least one warning (`[]` holds none),
+changed in place: Alembic runs a revision's downgrade from its file, so no later migration could change what it counts
+(`test_approval_ledger.py`, the two `…downgrade` tests on PostgreSQL). Cases: `tests/fixtures/report_sentences/cases.json`. Tests: `test_sentence_check.py`; `test_research_api.py`
+`test_a_sentence_comparing_in_words_alone_is_marked_and_approved_on_record`.
+
+*RD7b, the marks (`feature/sentence-marks`; the check is RD7a's, #884):* Zpráva's pane marks each sentence the version's
+`warnings` name `unsupported_comparison` where it stands, in a `mark` saying "srovnání bez doloženého čísla" (also to a
+screen reader), every other word kept (`lib/artifacts/report.ts` `sentenceMarks`, `markSpans`); a sentence no single
+text inline holds whole is named under its block, never dropped. The approval question names every warning of the
+version, on every report kind (RD0's were the client report's alone), and the approval records them. Tests:
+`report.test.ts`; `ReportDocumentView.test.tsx` "marks a sentence that compares with no number where it stands…";
+`report_journey.mjs` at 1440, 1100, 768 and 390 px: exactly the sentences the server marked, each in its block. Run
+with RD7a on the workbench's fictional draft (2026-10-24): one sentence marked and shown at all four widths, a study's
+goal restated ("Zjistit, zda …, komu nejvíc …"), which RD7a then stopped marking (a sentence that asks claims
+nothing); run again, none marked and none shown.
+
 **RD8. The producer of a client report is the run that composed it, not whoever first downloaded it**  
 With self-approval off, the reviewer who opens it first cannot approve it today ◇.
+
+*RD8, done (`fix/client-report-producer`):* the client report is stored on whoever's read first asks for it
+(`application/client_report.py` `_client_report`), but code composed it from the run, so it is stored with
+`ArtifactRepository.put(by_person=False)`, which records no person as its producer and can name no one else (the
+producer is still never a caller argument). Its approval names the run's starter as its producer through
+`approve(co_producers=)`, as the internal report's worker-written producer is the run's `triggered_by` (now on
+`WorkflowRepository.get_run`): with independent review on, the starter may not approve it and the reviewer who
+downloaded it first may. A draft stored before this keeps its downloader as producer until the run's sources change.
+Test: `test_research_api.py` `test_the_client_report_is_the_runs_work_not_its_first_downloaders` (fails before: the
+starter's approval went through and the downloader's was refused). No run reaches a client report without a starter: the one writer of a run row records `triggered_by=scope.actor_id` (`workflow_repository.py:630 @ ee20550f`), and every scope refuses an empty `actor_id` (`domain/scope.py:724 @ ee20550f`); the column is nullable only since the first workflow migration (`20260922_e0e14f1b5e3c`), and no row is written without it. Pinned by `test_the_client_report_is_the_runs_work_not_its_first_downloaders`, which reads the run's starter back.
 
 **RD9. The report's assumptions chapter (W3)**  
 Each assumption of `assumptions-and-open-answer-coding#AOC1` with its status, the person's accept that set it, and its support: admitted claims by reference, cited Deep Research findings as context labelled external. A status with no accepted decision or no support is not printed as established. Test: a report built from an assumption set to supported without support is refused by the composer.
@@ -204,6 +280,27 @@ From the independent cross-check of the master plan against the code (`mvp-maste
 Source: the owner's answers of 2026-10-20 (`.planning/evidence/scope-freeze/answers-2026-10-20.md`, decision ids from `decision-list.md`), applied by freeze step 4; the proposals they settle are in `proposed-edits.md`.
 
 **New chunks.** RD11 (W3), already decided by MVP-26 and missing a chunk. RD12 (W3), D-41 in.
+
+*RD12, done (`feature/question-tables-export`):* `GET …/research/runs/{run_id}/report/tables/{csv|xlsx}`
+(`?document=internal`, the default, or `client`) exports the per-question tables of the run's stored report document,
+read through its document route (the same checks, the same 404 and 409 answers; `EXPORT_DELIVERABLE`). The rows are
+`domain/report/table_export.py` `question_rows`: the tables the composer anchors `tab-question-<n>`, one row per printed
+number with the report's own text for the value, its interval where the table asks for it, the base, the evidence grade
+(with "orientační" where the report prints it beside a low-support number) and "modelováno: AI respondenti z populace"
+for a modelled-panel number; a table's rows left out for want of support are counted, never numbers; a question the
+evidence gate refused, which has no table, is the row of the chapter's limitation callout (internal: the question and the
+gate's reasons; client: how many), so no refused question is read as none. Nothing is computed or re-rounded, so every
+cell is a claim that report admitted for its surface, and the client's export is the client report's alone. CSV is UTF-8
+with its mark and `;` between cells, and a text cell a spreadsheet would read as a formula keeps a leading apostrophe
+(numbers print U+2212, so none is touched); XLSX is one sheet of text cells, never formulas, without a guard, a character
+XML cannot carry left out (`infrastructure/xlsx_writer.py`, the standard-library writer the questionnaire template now
+shares, its bytes unchanged and pinned to `aia_sablona.xlsx`). The headers are every download's (`_review_headers`: the
+version's id, SHA-256 and review). The internal export is the run's composed draft (koncept 1), as the internal DOCX
+download is, even where a person approved an edited version of it (RPT8c); an edited version's tables wait for its
+document model. 409 `no_question_tables` for a document with no question table and no refusal. The Results screen's
+download control is
+`research-lead-workbench#31`'s. Tests: `test_table_export.py`; `test_research_api.py`
+`test_a_runs_question_tables_export_as_the_report_prints_them`.
 
 **Existing chunks, changed.**
 

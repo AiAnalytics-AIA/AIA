@@ -234,6 +234,32 @@ def test_a_version_saved_in_the_report_editor_is_rendered_like_the_report(
     assert found.artifact.metadata["rendering_of"] == docx.artifact_id and pdf.calls == 1
 
 
+def test_the_client_report_is_rendered_and_its_pdf_says_it_is_the_clients(
+    world: Any, database_url: str, store: InMemoryArtifactStore, build: BuildIdentity
+) -> None:
+    """RD1: the client report is a report the worker renders, exactly its bytes, and its PDF
+    is labelled the client's, as its DOCX is; the run's own report's PDF stays internal."""
+    from aia_core.application.client_report import CLIENT_REPORT_ARTIFACT_TYPE
+
+    run_id, docx = _report(
+        world,
+        store,
+        b"PK client report",
+        artifact_type=CLIENT_REPORT_ARTIFACT_TYPE,
+        metadata={"report_kind": "client"},
+    )
+    _internal_run, internal = _report(world, store)
+    assert _ask(world, run_id, docx).created and _ask(world, _internal_run, internal).created
+    pdf = _FakePdf()
+    assert _drain(_worker(world, database_url, store, build, pdf)) == ["completed", "completed"]
+    found = _pdf_state(world, store, run_id, docx)
+    assert found.state is PdfState.READY and found.artifact is not None
+    assert found.artifact.metadata["rendering_of"] == docx.artifact_id
+    assert found.artifact.metadata["report_kind"] == "client"
+    other = _pdf_state(world, store, _internal_run, internal).artifact
+    assert other is not None and other.metadata["report_kind"] == "internal"
+
+
 def test_an_edited_versions_pdf_without_a_converter_is_not_offered_again(
     world: Any, database_url: str, store: InMemoryArtifactStore, build: BuildIdentity
 ) -> None:
