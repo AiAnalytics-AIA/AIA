@@ -64,7 +64,9 @@ one, so it would read nothing. RD0 stays open until it lands.
 
 *RD0's change, built (`feature/client-report-warnings`):* `client_gate` returns findings (`GateFinding`), never
 refusals; `application/client_report.py` `client_gate_findings` replaces `require_client_gate` and `ClientGateRefused`
-(a version with no stored document is the `gate_unrecorded` warning, "nelze ji ověřit"). `approve_report` records them
+(a version with no stored document is the `gate_unrecorded` warning, "nelze ji ověřit"); a ledger off the client surface is the
+`ledger_not_client_facing` warning, and the block checks still run beside it (the PM, 2026-10-24: a warning about the
+whole never hides one about a block). `approve_report` records them
 on the approval's ledger row: `approval_decisions.warnings` (JSON, nullable: NULL where nothing is checked; migration
 `3abba24ff47c`), read back as `ApprovalRecord.warnings` and answered in every approval's `approval.warnings`. `GET
 …/report/client/document` answers the version's `warnings` before the approval; the pane's question names each with its

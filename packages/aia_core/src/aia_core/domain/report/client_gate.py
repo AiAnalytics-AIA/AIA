@@ -9,7 +9,9 @@ with the approval, so who approved past which warning is on record. Each names i
   the individual level (the drill-down stays the researcher's, never in a client export; F2);
 * ``unadmitted_number``: every ref the document prints is one its ledger holds, on the client
   surface (the renderer's validation refused anything else before the DOCX was written; this
-  reads the stored version, whatever wrote it).
+  reads the stored version, whatever wrote it);
+* ``ledger_not_client_facing``: the document's numbers were admitted for another surface. The
+  block checks still run over it, so a warning about the whole never hides one about a block.
 
 ``internal_source_cited`` waits for a chapter that cites a client source (RD11): no client
 report cites one yet, so there is nothing to read. It is not a legal-rights review either way.
@@ -29,6 +31,7 @@ from aia_core.domain.report.document_model import DOCUMENT_MODEL_CONTRACT
 class GateCode(StrEnum):
     DRILL_DOWN = "drill_down_content"
     UNADMITTED_NUMBER = "unadmitted_number"
+    LEDGER_NOT_CLIENT_FACING = "ledger_not_client_facing"
     #: The version has no stored document to judge: unknown, never passed.
     UNRECORDED = "gate_unrecorded"
 
@@ -58,16 +61,16 @@ def client_gate(document: Mapping[str, Any]) -> tuple[GateFinding, ...]:
             ),
         )
     ledger = document["ledger"]
+    findings: list[GateFinding] = []
     if ledger["surface"] != ClaimSurface.CLIENT_FACING.value:
-        return (
+        findings.append(
             GateFinding(
-                GateCode.UNADMITTED_NUMBER,
+                GateCode.LEDGER_NOT_CLIENT_FACING,
                 "evidence",
                 f"čísla jsou připuštěna pro {ledger['surface']}, ne pro klienta",
-            ),
+            )
         )
     entries: Mapping[str, Any] = ledger["refs"]
-    findings: list[GateFinding] = []
     for section in document["sections"]:
         for block in section["blocks"]:
             where = block["id"]
