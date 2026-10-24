@@ -120,6 +120,11 @@ PAGE: Final = re.compile(r"[0-9A-Za-z_-]{8,64}")
 #: The most pages one session keeps edit reports for: a reload is a new page, so a person's
 #: session sees a few; beyond this a new page's report is refused (RPT8f).
 MAX_PAGES_PER_SESSION: Final = 64
+#: How long after a page's clean report a save must reach AIA to count as holding its edits
+#: (RPT8f, the PM's choice (b), 2026-10-24). A callback carries nothing that ties its snapshot to
+#: an edit, so a force-save already converting when the clean report arrives would otherwise
+#: count: with the margin, a wrong hold needs a conversion longer than this.
+SNAPSHOT_MARGIN: Final = timedelta(seconds=10)
 
 
 @dataclass(frozen=True, slots=True)
@@ -167,13 +172,13 @@ class UnsavedEdits(StrEnum):
 def _held(mark: EditMark, version: Coverage) -> bool:
     if mark.seq == 0:
         return True  # a clean report with no edit of its own: nothing to hold
-    # A save of these bytes came after the page said the edit had reached the Document Server:
-    # both times AIA's.
+    # A save of these bytes came at least SNAPSHOT_MARGIN after the page said the edit had
+    # reached the Document Server: both times AIA's.
     if (
         mark.clean_seq >= mark.seq
         and mark.clean_at is not None
         and version.saved_at is not None
-        and mark.clean_at < version.saved_at
+        and mark.clean_at + SNAPSHOT_MARGIN <= version.saved_at
     ):
         return True
     # The save's own last change is no earlier than the edit's report: received after the person

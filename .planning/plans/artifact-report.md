@@ -567,18 +567,21 @@ approval take. The approval names `seen_edit` (`{document_key, page, seq}`, read
 (koncept 2 on, whatever the caller asks) and any version approved with `newest_of_line`, `approve_report` refuses under
 the line's lock 409 `report_edits_unsaved`: `edit_not_received` (the page's edit has not arrived) or `edit_not_saved`
 (an edit of the line's open session, or of the seen one, is held by no save of the version). An edit is held
-(`domain/report/editor.py` `unsaved_edits`) when a save of the version's exact bytes reached AIA after the page's clean
-report covering it (AIA's clock on both sides), or when the version's `content_at` is no earlier than the edit's report;
+(`domain/report/editor.py` `unsaved_edits`) when a save of the version's exact bytes reached AIA at least
+`SNAPSHOT_MARGIN` (10 s) after the page's clean report covering it (AIA's clock on both sides; the margin, the PM's choice
+(b) on Codex's P1 of 2026-10-24, because a callback carries nothing tying its snapshot to an edit: a wrong hold now needs
+a force-save whose conversion takes longer than 10 s), or when the version's `content_at` is no earlier than the edit's
+report;
 `content_at` is the callback's `lastsave`, never later than AIA's receipt of that callback (a later one is logged as
 skew). A save of the newest version's bytes again moves its `content_at` and `last_saved_at` on and stores no koncept, so
 the next save releases a hold. Koncept 1 and a save that said nothing hold no edit: unknown, never held.
 
 What stays open, failing closed: the reports both arrive after the only save that holds the edit (the wedge): the approval
-waits for the next save, which the person can make (Ctrl+S; the bar says so) or which comes with the next change or as
-everyone leaves. What stays open, failing open: a co-editor's edit whose reports never reach AIA cannot be known; and a
-force-save already converting when an edit's report arrives, its `lastsave` after the report though its file is not, is
-held by `content_at` (the window is that conversion, the clamp to AIA's receipt bounding it; the clean-report rule alone
-would close it at the cost of holding every first save). Tests: `test_report_editor.py`
+waits for a save at least 10 s after the clean report, which the person can make (the bar says to save "za chvíli",
+Ctrl+S) or which comes with the next change or as everyone leaves. What stays open, failing open: a co-editor's edit whose reports never reach AIA cannot be known; a force-save
+whose conversion outlasts `SNAPSHOT_MARGIN` after a clean report; and a force-save already converting when an edit's
+report arrives, its `lastsave` after the report though its file is not, held by `content_at` (the window is that
+conversion, the clamp to AIA's receipt bounding it). Tests: `test_report_editor.py`
 `test_an_edit_is_held_by_a_later_save_or_one_after_its_clean_report`,
 `test_an_edit_reported_while_an_approval_checks_the_line_is_never_missed` (PostgreSQL); `test_report_editor_api.py`
 (the wait, a `lastsave` ahead of AIA's clock, the wedge, a co-author and a reload, every edited version, a closed seen

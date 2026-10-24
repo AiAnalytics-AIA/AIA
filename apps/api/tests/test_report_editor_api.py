@@ -1084,6 +1084,31 @@ def _ago(seconds: float) -> str:
 PAGE = "page-0123456789"
 
 
+class _Clock:
+    """AIA's clock as the editor routes read it, moved on by the test: a save placed either side
+    of SNAPSHOT_MARGIN after a clean report without waiting for it."""
+
+    def __init__(self) -> None:
+        from datetime import timedelta
+
+        self.offset = timedelta(0)
+
+    def advance(self, seconds: float) -> None:
+        from datetime import timedelta
+
+        self.offset += timedelta(seconds=seconds)
+
+
+@pytest.fixture
+def clock(monkeypatch: pytest.MonkeyPatch) -> _Clock:
+    from aia_api.routers import report_editor
+
+    moved = _Clock()
+    real = report_editor._now
+    monkeypatch.setattr(report_editor, "_now", lambda: real() + moved.offset)
+    return moved
+
+
 class _Line:
     """One run's report line open in the editor, as the RPT8f tests drive it."""
 
@@ -1140,7 +1165,12 @@ def _held(answer: Any, reason: str) -> None:
 
 
 def test_an_approval_waits_until_a_save_holds_every_edit_the_server_received(
-    app: FastAPI, researcher: TestClient, client: TestClient, world: Any, saves: Saves
+    app: FastAPI,
+    researcher: TestClient,
+    client: TestClient,
+    world: Any,
+    saves: Saves,
+    clock: _Clock,
 ) -> None:
     """RPT8f: the server, not the page, decides whether the version holds the edits made."""
     line = _Line(app, researcher, client, world, saves)
@@ -1152,10 +1182,15 @@ def test_an_approval_waits_until_a_save_holds_every_edit_the_server_received(
     assert (
         researcher.get(f"{_editor(world, line.run_id)}/versions/{older}").json()["approval"] is None
     )
-    # Edit 2 reported, then its changes reached the Document Server; a save after that holds
-    # them by AIA's clock alone, though this save's own lastsave says an hour ago.
+    # Edit 2 reported, then its changes reached the Document Server. A save 5 s later may be a
+    # snapshot converting from before them: it holds nothing yet. One received SNAPSHOT_MARGIN
+    # after the clean report holds them by AIA's clock alone, though its lastsave says an hour ago.
     assert line.report(2) == 204 and line.report(2, clean=True) == 204
+    clock.advance(5)
     newer = line.save("51 %", lastsave=_ago(3600))
+    _held(line.approve(newer, 2), "edit_not_saved")
+    clock.advance(5)  # exactly the margin
+    assert line.save("51 %", lastsave=_ago(3600)) == newer
     assert line.report(1) == 204  # late or twice: the page's highest is kept
     assert line.approve(newer, 2).status_code == 200
 
@@ -1177,15 +1212,25 @@ def test_a_lastsave_ahead_of_aias_clock_counts_as_aias_receipt_and_never_holds_a
 
 
 def test_an_edit_report_arriving_after_its_save_is_released_by_the_next_save_of_the_same_bytes(
-    app: FastAPI, researcher: TestClient, client: TestClient, world: Any, saves: Saves
+    app: FastAPI,
+    researcher: TestClient,
+    client: TestClient,
+    world: Any,
+    saves: Saves,
+    clock: _Clock,
 ) -> None:
     """The wedge: the save holding an edit landed before the edit's reports, so it holds nothing
-    by either rule. The next save, though it holds the same bytes and stores no koncept (Ctrl+S,
-    or the save as everyone leaves), comes after the clean report and releases it."""
+    by either rule. A save of the same bytes right after the clean report releases nothing (it
+    may be a snapshot from before); one made a moment later (Ctrl+S "za chvíli", or the save as
+    everyone leaves) stores no koncept and releases it."""
     line = _Line(app, researcher, client, world, saves)
     version = line.save("50 %", lastsave=_ago(1))
     assert line.report(1) == 204 and line.report(1, clean=True) == 204  # both late
     _held(line.approve(version, 1), "edit_not_saved")
+    clock.advance(9)
+    assert line.save("50 %", lastsave=_ago(1)) == version
+    _held(line.approve(version, 1), "edit_not_saved")
+    clock.advance(2)
     assert line.save("50 %", lastsave=_ago(1)) == version  # no new koncept
     assert researcher.post(_editor(world, line.run_id), json={}).json()["koncept"] == 2
     assert line.approve(version, 1).status_code == 200
@@ -1198,6 +1243,7 @@ def test_a_co_authors_edit_and_an_earlier_page_of_the_session_hold_the_approval_
     client: TestClient,
     world: Any,
     saves: Saves,
+    clock: _Clock,
 ) -> None:
     line = _Line(app, researcher, client, world, saves)
     version = line.save("50 %", lastsave=_ago(1))
@@ -1211,6 +1257,7 @@ def test_a_co_authors_edit_and_an_earlier_page_of_the_session_hold_the_approval_
     assert line.report(1, page="page-old-00000") == 204
     _held(line.approve(version, page="page-new-00000"), "edit_not_saved")
     assert line.report(1, clean=True, page="page-old-00000") == 204
+    clock.advance(11)
     newest = line.save("52 %", lastsave=_ago(1), by="lead")
     assert line.approve(newest).status_code == 200
 

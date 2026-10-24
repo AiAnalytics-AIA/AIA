@@ -167,7 +167,7 @@ describe("the edit sequence (RPT8f)", () => {
 
   it("says why the server held an approval, and nothing for another refusal", () => {
     const held = (reason: string) => new ApiError(409, "report_edits_unsaved", "…", null, { reason });
-    expect(unsavedWords(held("edit_not_saved"))).toBe(`${UNSTORED} Neuloží-li editor koncept sám, uložte ho v editoru (Ctrl+S).`);
+    expect(unsavedWords(held("edit_not_saved"))).toBe(`${UNSTORED} Neuloží-li editor koncept sám, uložte ho za chvíli v editoru (Ctrl+S).`);
     expect(unsavedWords(held("edit_not_received"))).toMatch(/nedorazila do AIA/);
     expect(unsavedWords(new ApiError(409, "report_version_stale", "…", null, {}))).toBeNull();
     expect(unsavedWords(new Error("x"))).toBeNull();

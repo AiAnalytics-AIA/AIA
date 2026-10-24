@@ -465,6 +465,7 @@ def test_approved_edits_are_read_from_the_approved_rows_alone(editor_world: Any)
 
 def test_an_edit_is_held_by_a_later_save_or_one_after_its_clean_report() -> None:
     from aia_core.domain.report.editor import (
+        SNAPSHOT_MARGIN,
         Coverage,
         EditMark,
         SeenEdit,
@@ -479,13 +480,18 @@ def test_an_edit_is_held_by_a_later_save_or_one_after_its_clean_report() -> None
     assert unsaved_edits(Coverage(T0, T0 + s), [mark], seen) is None
     late = Coverage(T0 - s, T0 - s)  # the save came before the edit's report
     assert unsaved_edits(late, [mark], seen) is UnsavedEdits.NOT_SAVED
-    # By AIA's clock alone: the page said edit 3 reached the Document Server, then a save came.
+    # By AIA's clock alone: the page said edit 3 reached the Document Server, then a save came at
+    # least SNAPSHOT_MARGIN later; one sooner may be a snapshot converting from before the edit.
     cleaned = EditMark("K.1", "page-0123456789", 3, T0, clean_seq=3, clean_at=T0 + s)
-    assert unsaved_edits(Coverage(T0 - s, T0 + 2 * s), [cleaned], seen) is None
-    assert unsaved_edits(Coverage(T0 - s, T0 + s), [cleaned], seen) is UnsavedEdits.NOT_SAVED
+    after = T0 + s + SNAPSHOT_MARGIN
+    assert unsaved_edits(Coverage(T0 - s, after), [cleaned], seen) is None
+    assert unsaved_edits(Coverage(T0 - s, after - timedelta(milliseconds=1)), [cleaned], seen) is (
+        UnsavedEdits.NOT_SAVED
+    )
+    assert unsaved_edits(Coverage(T0 - s, T0 + 2 * s), [cleaned], seen) is UnsavedEdits.NOT_SAVED
     # A clean report for an earlier edit covers none after it.
     partly = EditMark("K.1", "page-0123456789", 3, T0, clean_seq=2, clean_at=T0 + s)
-    assert unsaved_edits(Coverage(T0 - s, T0 + 2 * s), [partly], seen) is UnsavedEdits.NOT_SAVED
+    assert unsaved_edits(Coverage(T0 - s, after), [partly], seen) is UnsavedEdits.NOT_SAVED
     # Koncept 1, or a save that said nothing: unknown, never held.
     assert unsaved_edits(Coverage(None, None), [mark], seen) is UnsavedEdits.NOT_SAVED
     assert unsaved_edits(Coverage(None, None), [], None) is None
