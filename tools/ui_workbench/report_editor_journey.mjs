@@ -16,7 +16,7 @@
  */
 import assert from "node:assert/strict";
 import { execFileSync, execSync } from "node:child_process";
-import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { createRequire } from "node:module";
 import { dirname, join } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
@@ -28,7 +28,10 @@ const base = arg("facade", "http://127.0.0.1:8780");
 assert(["127.0.0.1", "localhost"].includes(new URL(base).hostname), "This journey uses local fictional identity only");
 const out = arg("out", join(repo, "tmp/ui-workbench/report-editor-journey"));
 const fixture = arg("fixture", "persona"); // the study make ui-research ran
-const python = process.env.AIA_PYTHON || join(repo, ".venv/bin/python");
+// The repository's Python, as workbench.py's _api_python() picks it: AIA_API_PYTHON, else the
+// project venv, else python3 from PATH -- never a path assumed (AGENTS.md: tooling resolves its interpreter).
+const venvPython = join(repo, ".venv/bin/python");
+const python = process.env.AIA_API_PYTHON || (existsSync(venvPython) ? venvPython : "python3");
 mkdirSync(out, { recursive: true });
 const EDITOR_ORIGIN = "https://docs.workbench.invalid"; // report_editor_standin.ORIGIN
 const IDENTITY = "workbench@example.invalid";
