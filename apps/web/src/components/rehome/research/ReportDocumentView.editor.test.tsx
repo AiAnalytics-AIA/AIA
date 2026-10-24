@@ -104,7 +104,9 @@ describe("which document the editor is handed", () => {
     await screen.findByRole("article", { name: "Koncept zprávy" });
     fireEvent.click(await screen.findByRole("button", { name: "Zpráva s rešerší" }));
     await waitFor(() => expect(bar(container).textContent).toContain("ART-context"));
-    expect(editor.handed).toContainEqual({ variant: "context", review: "RUN-deep" });
+    // The editor is handed the document by an effect after the bar names it: waited for, never
+    // read in the same tick (it raced on a loaded CI runner).
+    await waitFor(() => expect(editor.handed).toContainEqual({ variant: "context", review: "RUN-deep" }));
   });
 });
 
