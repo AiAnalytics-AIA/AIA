@@ -303,9 +303,11 @@ def store_pdf_rendering(
                 runtime_version=build.sha or "",
                 produced_by_job_id=step.attempt_id,
                 metadata={
+                    # The report it renders is the client's or internal: the client report's
+                    # PDF (report-delivery RD1) says so, as its DOCX does.
+                    "report_kind": ReportKind.INTERNAL.value,
                     **metadata,
                     "step_id": step.step_id,
-                    "report_kind": ReportKind.INTERNAL.value,
                     "rendering_of": docx_id,
                     "converter": pdf.version,
                     "conversion_seconds": seconds,
@@ -416,6 +418,9 @@ class ReportPdfExecutor:
                 approved=exported if mark.state is ReviewState.APPROVED else None,
                 metadata={
                     "run_id": payload.get("run_id"),
+                    "report_kind": str(
+                        artifact.metadata.get("report_kind") or ReportKind.INTERNAL.value
+                    ),
                     **(
                         {"deep_research_run_id": payload["deep_research_run_id"]}
                         if payload.get("deep_research_run_id")
