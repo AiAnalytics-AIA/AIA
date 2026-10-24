@@ -63,6 +63,7 @@ from aia_core.domain.report.model import (
     SpecSource,
     text,
 )
+from aia_core.domain.report.sentence_check import SentenceFinding, sentence_findings
 from aia_core.domain.report.validation import require_valid
 from aia_core.domain.scope import Permission, StudyContext
 from aia_core.infrastructure.artifact_repository import Artifact, ArtifactRepository, ArtifactStatus
@@ -474,9 +475,12 @@ def _document_of(stored: list[Artifact], docx: Artifact) -> Artifact | None:
     return models[-1] if models else None
 
 
-def client_gate_findings(artifacts: ArtifactRepository, docx: Artifact) -> tuple[GateFinding, ...]:
-    """What the client deliverable's checks (RD0) find on ``docx``, a stored client report, read
-    from the document it was rendered from: warnings the approval shows and records, never a
+def client_gate_findings(
+    artifacts: ArtifactRepository, docx: Artifact
+) -> tuple[GateFinding | SentenceFinding, ...]:
+    """What the client deliverable's checks (RD0) and the sentence check (RD7) find on
+    ``docx``, a stored client report, read from the document it was rendered from: warnings
+    the approval shows and records, never a
     refusal (the product owner, 2026-10-22). A version with no stored document (stored before
     RD5a) cannot be checked, which is itself the warning (``gate_unrecorded``: unknown, never
     passed); its next download stores the document beside it. Raises the store's errors for a
@@ -495,4 +499,5 @@ def client_gate_findings(artifacts: ArtifactRepository, docx: Artifact) -> tuple
                 "verze nemá uložený dokument, nelze ji ověřit; stáhněte ji znovu",
             ),
         )
-    return client_gate(read_document_payload(artifacts.read(model.artifact_id)))
+    document = read_document_payload(artifacts.read(model.artifact_id))
+    return (*client_gate(document), *sentence_findings(document))
