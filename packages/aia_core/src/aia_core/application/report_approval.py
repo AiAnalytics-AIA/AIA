@@ -24,22 +24,31 @@ from __future__ import annotations
 
 from collections.abc import Mapping
 from types import MappingProxyType
-from typing import Final
+from typing import Any, Final
 
 from sqlalchemy.orm import Session
 
 from aia_core.application.client_report import CLIENT_REPORT_ARTIFACT_TYPE, client_gate_findings
-from aia_core.application.contextual_report import CONTEXT_REPORT_ARTIFACT_TYPE
-from aia_core.application.report import INTERNAL_REPORT_ARTIFACT_TYPE
+from aia_core.application.contextual_report import (
+    CONTEXT_REPORT_ARTIFACT_TYPE,
+    CONTEXT_REPORT_DOCUMENT_ARTIFACT_TYPE,
+)
+from aia_core.application.report import (
+    INTERNAL_REPORT_ARTIFACT_TYPE,
+    INTERNAL_REPORT_DOCUMENT_ARTIFACT_TYPE,
+)
+from aia_core.application.report_document import document_of
 from aia_core.application.report_editor_saves import content_held
 from aia_core.application.report_variants import approval_asks_pdf, draft_pdf_ready, request_pdf
 from aia_core.application.research import ResearchRuns, research_artifacts
+from aia_core.domain.report.document_model import read_document_payload
 from aia_core.domain.report.editor import (
     EDIT_ARTIFACT_TYPES,
     SeenEdit,
     UnsavedEdits,
     unsaved_edits,
 )
+from aia_core.domain.report.sentence_check import sentence_findings
 from aia_core.domain.scope import Permission, StudyContext
 from aia_core.infrastructure.artifact_repository import Artifact, ArtifactRepository, ArtifactStatus
 from aia_core.infrastructure.report_editor_repository import ReportEditorRepository
@@ -137,11 +146,7 @@ def approve_report(
     # The client deliverable's checks (RD0, MVPQ-09): warnings since 2026-10-22, never a refusal
     # (the product owner, "Warnings for all of it"); what they find is recorded with the approval,
     # so who approved past which warning is on record.
-    warnings = (
-        [f.to_json() for f in client_gate_findings(artifacts, artifact)]
-        if artifact.artifact_type == CLIENT_REPORT_ARTIFACT_TYPE
-        else None
-    )
+    warnings = _warnings(artifacts, artifact)
     if artifact.artifact_type in EDITED_REPORT_KINDS:
         authors = _line_authors(session, scope, artifacts, artifact)
     elif artifact.artifact_type == CLIENT_REPORT_ARTIFACT_TYPE and run.get("triggered_by"):
@@ -211,3 +216,27 @@ def _line_authors(
         for author in earlier.authors
     }
     return frozenset(saved | ({composed} if composed else set()))
+
+
+#: The document model each composed report kind stores beside its DOCX (RD5a).
+_DOCUMENTS: Final[Mapping[str, str]] = MappingProxyType(
+    {
+        INTERNAL_REPORT_ARTIFACT_TYPE: INTERNAL_REPORT_DOCUMENT_ARTIFACT_TYPE,
+        CONTEXT_REPORT_ARTIFACT_TYPE: CONTEXT_REPORT_DOCUMENT_ARTIFACT_TYPE,
+    }
+)
+
+
+def _warnings(artifacts: ArtifactRepository, artifact: Artifact) -> list[dict[str, Any]] | None:
+    """What the checks on the version find, recorded with its approval: the client
+    deliverable's (RD0) and the sentence check (RD7) on a client report; the sentence check on
+    a report composed beside its document. ``None`` -- nothing checked, never "nothing found" --
+    for a version with no stored document: a report-editor version, or one stored before RD5a."""
+    if artifact.artifact_type == CLIENT_REPORT_ARTIFACT_TYPE:
+        return [f.to_json() for f in client_gate_findings(artifacts, artifact)]
+    kind = _DOCUMENTS.get(artifact.artifact_type)
+    model = document_of(artifacts, artifact, kind) if kind else None
+    if model is None:
+        return None
+    document = read_document_payload(artifacts.read(model.artifact_id))
+    return [f.to_json() for f in sentence_findings(document)]

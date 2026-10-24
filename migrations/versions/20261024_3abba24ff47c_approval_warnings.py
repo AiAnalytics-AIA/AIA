@@ -34,8 +34,15 @@ def upgrade() -> None:
 
 
 def downgrade() -> None:
-    held = op.get_bind().exec_driver_sql(
-        "SELECT count(*) FROM approval_decisions WHERE warnings IS NOT NULL"
+    # Only rows that hold a warning are refused: [] (checked, nothing found; report-delivery RD7)
+    # holds none. Changed in place on 2026-10-24, not in a new migration: Alembic runs this body
+    # from the file whenever it downgrades past this revision, so a later migration could never
+    # change what this guard counts; the revision and its schema are unchanged.
+    bind = op.get_bind()
+    length = "jsonb_array_length" if bind.dialect.name == "postgresql" else "json_array_length"
+    held = bind.exec_driver_sql(
+        "SELECT count(*) FROM approval_decisions "
+        f"WHERE warnings IS NOT NULL AND {length}(warnings) > 0"
     ).scalar()
     if held:
         raise RuntimeError(
