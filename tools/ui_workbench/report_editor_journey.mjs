@@ -181,9 +181,8 @@ try {
   await docbar().getByRole("button", { name: `Schválit koncept ${k + 2}` }).click();
   dialog = page.getByRole("dialog");
   await dialog.waitFor({ timeout: 10000 });
-  // A person's edit, past the second the Document Server's time is read to: an edit within it of the last
-  // save counts as held (HOLD_TOLERANCE_MS), and this journey is faster than anyone types.
-  await page.waitForTimeout(1500);
+  // A person's edit comes after the last save: kept apart from it on AIA's clock, as typing would be.
+  await page.waitForTimeout(200);
   await page.evaluate(() => window.__standinEditor.events.onDocumentStateChange({ data: true }));
   await dialog.getByRole("button", { name: `Schválit koncept ${k + 2}` }).click();
   await docbar().getByText("V editoru jsou úpravy, které AIA ještě neuložila jako koncept; schválit lze až uložený koncept.").first().waitFor({ timeout: 10000 });

@@ -166,12 +166,10 @@ class ReportEditor:
         page: str,
         seq: int,
         now: datetime,
-        clean: bool = False,
     ) -> None:
         """An edit start the caller's page reports in the open session ``document_key`` of
-        ``run_id``, or with ``clean`` that its edits up to ``seq`` reached the Document Server
-        (RPT8f): :class:`LineNotFound` for a session that is not the run's, not open, or not one
-        a config was signed for the caller in; ``TooManyPages`` beyond the session's pages."""
+        ``run_id`` (RPT8f): :class:`LineNotFound` for a session that is not the run's, not open,
+        or not one a config was signed for the caller in; ``TooManyPages`` beyond its pages."""
         found = self._repo.session(document_key)
         if (
             found is None
@@ -183,7 +181,7 @@ class ReportEditor:
         # The line's lock first, as a save and an approval take it: an approval reading the
         # marks waits for this one, so no edit is recorded beside an approval that missed it.
         self._repo.lock_line(found.line_id)
-        self._repo.record_edit(document_key, page=page, seq=seq, clean=clean, now=now)
+        self._repo.record_edit(document_key, page=page, seq=seq, now=now)
 
     def lines(
         self, *, run_id: str, variant: str, deep_research_run_id: str | None = None

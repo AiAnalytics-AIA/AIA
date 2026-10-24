@@ -121,6 +121,7 @@ const version = (over: Partial<EditorVersionRead> = {}): EditorVersionRead => ({
   saved_at: "2026-10-23T20:10:00+00:00", review_state: "DRAFT_UNAPPROVED", approved_on: null, approval: null,
   changes: { uncomparable: null, changes: [{ kind: "changed", tag: "trust_total", was: "42,5 %", now: "50 %", paragraph: null }] },
   newest_in_line: { version_artifact_id: "ART-edit", koncept: 2 },
+  edits: { saved: true, reason: null },
   ...over,
 });
 const versions = (...list: EditorVersionRead[]) =>

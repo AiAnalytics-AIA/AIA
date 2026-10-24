@@ -31,7 +31,7 @@ from sqlalchemy.orm import Session
 from aia_core.application.client_report import CLIENT_REPORT_ARTIFACT_TYPE, client_gate_findings
 from aia_core.application.contextual_report import CONTEXT_REPORT_ARTIFACT_TYPE
 from aia_core.application.report import INTERNAL_REPORT_ARTIFACT_TYPE
-from aia_core.application.report_editor_saves import coverage
+from aia_core.application.report_editor_saves import content_held
 from aia_core.application.report_variants import approval_asks_pdf, draft_pdf_ready, request_pdf
 from aia_core.application.research import ResearchRuns, research_artifacts
 from aia_core.domain.report.editor import (
@@ -183,7 +183,7 @@ def _check_line(
     if newest and last.artifact_id != artifact.artifact_id:
         raise ReportVersionStale(artifact.artifact_id, last.artifact_id, last.koncept)
     marks = repo.edit_marks(version.line_id, also=seen.document_key if seen else None)
-    reason = unsaved_edits(coverage(version, artifact), marks, seen)
+    reason = unsaved_edits(content_held(version, artifact), marks, seen)
     if reason is not None:
         raise ReportEditsUnsaved(artifact.artifact_id, reason)
 

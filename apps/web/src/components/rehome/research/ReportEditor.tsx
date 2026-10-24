@@ -19,7 +19,7 @@ import {
  *  started an edit (`onDocumentStateChange` with `true`, by this browser's clock; null before any),
  *  and whether an edit is not yet sent to the Document Server (`dirty`). An edit is not a stored
  *  version: `false` only says it reached the Document Server, so the pane asks the API whether a
- *  version stored since holds it (`lib/report-editor.ts` `holdsEdit`). */
+ *  version stored since holds it (the version read's `edits`, RPT8f). */
 export type EditorShown = {
   opened: EditorOpened;
   startedAt: number | null;
@@ -29,8 +29,8 @@ export type EditorShown = {
   seen: () => SeenEdit | null;
 };
 
-/** A report that did not reach AIA is sent once more after this long; an edit start that still
- *  fails holds the approval (`edit_not_received`) until the next edit's report arrives. */
+/** A report of an edit start that did not reach AIA is sent once more after this long; one that
+ *  still fails holds the approval (`edit_not_received`) until the next edit's report arrives. */
 const REPORT_RETRY_MS = 2_000;
 
 /** What api.js puts on the page: one constructor (ONLYOFFICE's DocsAPI). */
@@ -189,16 +189,12 @@ export function ReportEditor({
                 const dirty = event?.data === true;
                 const now = Date.now();
                 const key = documentKeyOf(opened.opened.config);
-                // An edit start is reported as the next of this session; its changes all sent (false),
-                // as clean up to the last one, so a save AIA receives after that holds them by AIA's
-                // clock alone.
-                const was = key ? last.current.get(key) : undefined;
-                if (key && (dirty || was)) {
+                // An edit start is reported to AIA as the next of this session (RPT8f).
+                if (dirty && key) {
                   page.current ??= newPageId();
-                  const edit = dirty ? { document_key: key, page: page.current, seq: (was?.seq ?? 0) + 1 } : was!;
+                  const edit = { document_key: key, page: page.current, seq: (last.current.get(key)?.seq ?? 0) + 1 };
                   last.current.set(key, edit);
-                  const body = dirty ? { page: edit.page, seq: edit.seq } : { page: edit.page, seq: edit.seq, clean: true };
-                  const send = () => report(studyId, runId, key, body);
+                  const send = () => report(studyId, runId, key, { page: edit.page, seq: edit.seq });
                   send().catch(() => setTimeout(() => { send().catch(() => undefined); }, REPORT_RETRY_MS));
                 }
                 setEdits((was) => ({ at, startedAt: dirty ? now : was.at === at ? was.startedAt : null, dirty }));

@@ -463,55 +463,29 @@ def test_approved_edits_are_read_from_the_approved_rows_alone(editor_world: Any)
     assert repo.approved_edits(run_id="RUN-1", variant="context", deep_research_run_id=None) == []
 
 
-def test_an_edit_is_held_by_a_later_save_or_one_after_its_clean_report() -> None:
-    from aia_core.domain.report.editor import (
-        SNAPSHOT_MARGIN,
-        Coverage,
-        EditMark,
-        SeenEdit,
-        UnsavedEdits,
-        unsaved_edits,
-    )
+def test_an_edit_is_held_only_by_a_save_no_earlier_than_its_report() -> None:
+    from aia_core.domain.report.editor import EditMark, SeenEdit, UnsavedEdits, unsaved_edits
 
-    s = timedelta(seconds=1)
     mark = EditMark("K.1", "page-0123456789", 3, T0)
     seen = SeenEdit("K.1", "page-0123456789", 3)
-    # By the save's last change, bounded by AIA's receipt of it: no earlier than the report.
-    assert unsaved_edits(Coverage(T0, T0 + s), [mark], seen) is None
-    late = Coverage(T0 - s, T0 - s)  # the save came before the edit's report
-    assert unsaved_edits(late, [mark], seen) is UnsavedEdits.NOT_SAVED
-    # By AIA's clock alone: the page said edit 3 reached the Document Server, then a save came at
-    # least SNAPSHOT_MARGIN later; one sooner may be a snapshot converting from before the edit.
-    cleaned = EditMark("K.1", "page-0123456789", 3, T0, clean_seq=3, clean_at=T0 + s)
-    after = T0 + s + SNAPSHOT_MARGIN
-    assert unsaved_edits(Coverage(T0 - s, after), [cleaned], seen) is None
-    assert unsaved_edits(Coverage(T0 - s, after - timedelta(milliseconds=1)), [cleaned], seen) is (
-        UnsavedEdits.NOT_SAVED
-    )
-    assert unsaved_edits(Coverage(T0 - s, T0 + 2 * s), [cleaned], seen) is UnsavedEdits.NOT_SAVED
-    # A clean report for an earlier edit covers none after it.
-    partly = EditMark("K.1", "page-0123456789", 3, T0, clean_seq=2, clean_at=T0 + s)
-    assert unsaved_edits(Coverage(T0 - s, after), [partly], seen) is UnsavedEdits.NOT_SAVED
-    # Koncept 1, or a save that said nothing: unknown, never held.
-    assert unsaved_edits(Coverage(None, None), [mark], seen) is UnsavedEdits.NOT_SAVED
-    assert unsaved_edits(Coverage(None, None), [], None) is None
-    # A clean report that came before its edit's: nothing of its own to hold.
-    assert (
-        unsaved_edits(Coverage(None, None), [EditMark("K.1", "p" * 8, 0, T0, 1, T0)], None) is None
-    )
+    assert unsaved_edits(T0, [mark], seen) is None
+    assert unsaved_edits(T0 - timedelta(milliseconds=1), [mark], seen) is UnsavedEdits.NOT_SAVED
+    # Koncept 1, or a save that named no time: unknown, never held.
+    assert unsaved_edits(None, [mark], seen) is UnsavedEdits.NOT_SAVED
+    assert unsaved_edits(None, [], None) is None
     # The page's own edit 4 has not arrived; another page's or another session's is not its.
-    assert unsaved_edits(Coverage(T0, T0), [mark], SeenEdit("K.1", "page-0123456789", 4)) is (
+    assert unsaved_edits(T0, [mark], SeenEdit("K.1", "page-0123456789", 4)) is (
         UnsavedEdits.NOT_RECEIVED
     )
-    assert unsaved_edits(Coverage(T0, T0), [mark], SeenEdit("K.1", "page-other-0000", 1)) is (
+    assert unsaved_edits(T0, [mark], SeenEdit("K.1", "page-other-0000", 1)) is (
         UnsavedEdits.NOT_RECEIVED
     )
-    assert unsaved_edits(Coverage(T0, T0), [mark], SeenEdit("K.2", "page-0123456789", 1)) is (
+    assert unsaved_edits(T0, [mark], SeenEdit("K.2", "page-0123456789", 1)) is (
         UnsavedEdits.NOT_RECEIVED
     )
     # A co-editor's edit no save holds keeps the approval waiting too.
-    other = EditMark("K.1", "page-other-0000", 1, T0 + s)
-    assert unsaved_edits(Coverage(T0, T0), [mark, other], seen) is UnsavedEdits.NOT_SAVED
+    other = EditMark("K.1", "page-other-0000", 1, T0 + timedelta(seconds=1))
+    assert unsaved_edits(T0, [mark, other], seen) is UnsavedEdits.NOT_SAVED
 
 
 def test_an_edit_reported_while_an_approval_checks_the_line_is_never_missed(

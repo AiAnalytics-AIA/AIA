@@ -136,14 +136,13 @@ describe("the draft in the report editor", () => {
     expect(first.page).toMatch(/^[0-9A-Za-z_-]{8,64}$/);
     act(() => events(made[0].config).onDocumentStateChange({ data: false })); // sent, not an edit
     expect(seen()).toEqual(first);
+    expect(report).toHaveBeenCalledTimes(1);
     act(() => events(made[0].config).onDocumentStateChange({ data: true }));
     expect(seen()).toEqual({ ...first, seq: 2 });
-    // The first report failed and is sent once more; each names the page and its count, the
-    // clean one the edit it covers.
+    // The first report failed and is sent once more; each names the page and its count.
     await act(async () => { await vi.advanceTimersByTimeAsync(2_500); });
     expect(report.mock.calls).toEqual([
       ["STU-1", "RUN-1", "ART-1.aaaa.1", { page: first.page, seq: 1 }],
-      ["STU-1", "RUN-1", "ART-1.aaaa.1", { page: first.page, seq: 1, clean: true }],
       ["STU-1", "RUN-1", "ART-1.aaaa.1", { page: first.page, seq: 2 }],
       ["STU-1", "RUN-1", "ART-1.aaaa.1", { page: first.page, seq: 1 }],
     ]);

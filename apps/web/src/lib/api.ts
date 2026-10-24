@@ -1422,11 +1422,8 @@ export const research = {
     runId: string,
     body: { variant: "internal" | "context"; deep_research_run_id?: string | null; line?: string | null; mode: EditorMode },
   ) => request<EditorOpened>("POST", `${studyPath(studyId)}/research/runs/${enc(runId)}/report/editor`, body),
-  /** An edit start this page made in an editing session, or (`clean`) its edits up to `seq` sent to
-   *  the Document Server (RPT8f): kept by AIA with its time of receipt. */
-  reportEditorEdit: (
-    studyId: string, runId: string, documentKey: string, body: { page: string; seq: number; clean?: boolean },
-  ) =>
+  /** An edit start this page made in an editing session (RPT8f): kept by AIA with its time of receipt. */
+  reportEditorEdit: (studyId: string, runId: string, documentKey: string, body: { page: string; seq: number }) =>
     request<void>(
       "POST", `${studyPath(studyId)}/research/runs/${enc(runId)}/report/editor/sessions/${enc(documentKey)}/edits`, body,
     ),
@@ -1434,8 +1431,12 @@ export const research = {
   downloadReportEditorVersion: (studyId: string, runId: string, artifactId: string) =>
     requestStored(`${studyPath(studyId)}/research/runs/${enc(runId)}/report/editor/versions/${enc(artifactId)}/download`),
   /** A saved version of a report line: who saved it, its review, what it changed, its line's newest (RPT8d). */
-  reportEditorVersion: (studyId: string, runId: string, artifactId: string) =>
-    request<EditorVersionRead>("GET", `${studyPath(studyId)}/research/runs/${enc(runId)}/report/editor/versions/${enc(artifactId)}`),
+  reportEditorVersion: (studyId: string, runId: string, artifactId: string, seen: SeenEdit | null = null) =>
+    request<EditorVersionRead>(
+      "GET",
+      `${studyPath(studyId)}/research/runs/${enc(runId)}/report/editor/versions/${enc(artifactId)}${
+        seen ? `?seen_key=${enc(seen.document_key)}&seen_page=${enc(seen.page)}&seen_seq=${seen.seq}` : ""}`,
+    ),
   /** The run's internal draft as its stored document model, beside the DOCX it names (report-delivery RD5a). */
   reportDocument: (studyId: string, runId: string) =>
     request<StoredReportDocument>("GET", `${studyPath(studyId)}/research/runs/${enc(runId)}/report/document`),

@@ -1084,31 +1084,6 @@ def _ago(seconds: float) -> str:
 PAGE = "page-0123456789"
 
 
-class _Clock:
-    """AIA's clock as the editor routes read it, moved on by the test: a save placed either side
-    of SNAPSHOT_MARGIN after a clean report without waiting for it."""
-
-    def __init__(self) -> None:
-        from datetime import timedelta
-
-        self.offset = timedelta(0)
-
-    def advance(self, seconds: float) -> None:
-        from datetime import timedelta
-
-        self.offset += timedelta(seconds=seconds)
-
-
-@pytest.fixture
-def clock(monkeypatch: pytest.MonkeyPatch) -> _Clock:
-    from aia_api.routers import report_editor
-
-    moved = _Clock()
-    real = report_editor._now
-    monkeypatch.setattr(report_editor, "_now", lambda: real() + moved.offset)
-    return moved
-
-
 class _Line:
     """One run's report line open in the editor, as the RPT8f tests drive it."""
 
@@ -1124,10 +1099,8 @@ class _Line:
             f"{API}/studies/{world.study_id()}/research/runs/{self.run_id}/report/approve"
         )
 
-    def report(
-        self, seq: int, *, clean: bool = False, page: str = PAGE, by: TestClient | None = None
-    ) -> int:
-        body = {"page": page, "seq": seq, **({"clean": True} if clean else {})}
+    def report(self, seq: int, *, page: str = PAGE, by: TestClient | None = None) -> int:
+        body = {"page": page, "seq": seq}
         return (by or self.researcher).post(self.edits, json=body).status_code
 
     def save(self, value: str, *, lastsave: str, by: str = "researcher") -> str:
@@ -1140,22 +1113,23 @@ class _Line:
             lastsave=lastsave,
         )
         assert answer.json() == {"error": 0}, answer.text
-        return str(
-            self.researcher.post(_editor(self.world, self.run_id), json={}).json()[
-                "version_artifact_id"
-            ]
-        )
+        opened = self.researcher.post(_editor(self.world, self.run_id), json={}).json()
+        return str(opened["version_artifact_id"])
 
     def approve(
         self, version: str, seq: int | None = None, *, newest: bool = True, page: str = PAGE
     ) -> Any:
-        body: dict[str, Any] = {
-            "artifact_id": version,
-            **({"newest_of_line": True} if newest else {}),
-        }
+        body: dict[str, Any] = {"artifact_id": version}
+        if newest:
+            body["newest_of_line"] = True
         if seq is not None:
             body["seen_edit"] = {"document_key": self.key, "page": page, "seq": seq}
         return self.researcher.post(self.approve_url, json=body)
+
+    def verdict(self, version: str, seq: int | None = None) -> Any:
+        params = {"seen_key": self.key, "seen_page": PAGE, "seen_seq": seq} if seq else {}
+        url = f"{_editor(self.world, self.run_id)}/versions/{version}"
+        return self.researcher.get(url, params=params).json()["edits"]
 
 
 def _held(answer: Any, reason: str) -> None:
@@ -1165,33 +1139,25 @@ def _held(answer: Any, reason: str) -> None:
 
 
 def test_an_approval_waits_until_a_save_holds_every_edit_the_server_received(
-    app: FastAPI,
-    researcher: TestClient,
-    client: TestClient,
-    world: Any,
-    saves: Saves,
-    clock: _Clock,
+    app: FastAPI, researcher: TestClient, client: TestClient, world: Any, saves: Saves
 ) -> None:
     """RPT8f: the server, not the page, decides whether the version holds the edits made."""
     line = _Line(app, researcher, client, world, saves)
     assert line.report(1) == 204
     older = line.save("50 %", lastsave=_ago(3600))  # its last change long before the edit's report
     _held(line.approve(older, 1), "edit_not_saved")
+    assert line.verdict(older, 1) == {"saved": False, "reason": "edit_not_saved"}
     # The page made edit 2 and its report has not arrived: the approval leaving first waits.
     _held(line.approve(older, 2), "edit_not_received")
-    assert (
-        researcher.get(f"{_editor(world, line.run_id)}/versions/{older}").json()["approval"] is None
-    )
-    # Edit 2 reported, then its changes reached the Document Server. A save 5 s later may be a
-    # snapshot converting from before them: it holds nothing yet. One received SNAPSHOT_MARGIN
-    # after the clean report holds them by AIA's clock alone, though its lastsave says an hour ago.
-    assert line.report(2) == 204 and line.report(2, clean=True) == 204
-    clock.advance(5)
-    newer = line.save("51 %", lastsave=_ago(3600))
-    _held(line.approve(newer, 2), "edit_not_saved")
-    clock.advance(5)  # exactly the margin
-    assert line.save("51 %", lastsave=_ago(3600)) == newer
+    assert line.verdict(older, 2) == {"saved": False, "reason": "edit_not_received"}
+    url = f"{_editor(world, line.run_id)}/versions/{older}"
+    assert researcher.get(url).json()["approval"] is None
+    assert researcher.get(url, params={"seen_key": line.key}).status_code == 422  # all or none
+    # Edit 2 reported, then a save whose last change follows it holds both.
+    assert line.report(2) == 204
+    newer = line.save("51 %", lastsave=_ago(0))
     assert line.report(1) == 204  # late or twice: the page's highest is kept
+    assert line.verdict(newer, 2) == {"saved": True, "reason": None}
     assert line.approve(newer, 2).status_code == 200
 
 
@@ -1212,27 +1178,21 @@ def test_a_lastsave_ahead_of_aias_clock_counts_as_aias_receipt_and_never_holds_a
 
 
 def test_an_edit_report_arriving_after_its_save_is_released_by_the_next_save_of_the_same_bytes(
-    app: FastAPI,
-    researcher: TestClient,
-    client: TestClient,
-    world: Any,
-    saves: Saves,
-    clock: _Clock,
+    app: FastAPI, researcher: TestClient, client: TestClient, world: Any, saves: Saves
 ) -> None:
-    """The wedge: the save holding an edit landed before the edit's reports, so it holds nothing
-    by either rule. A save of the same bytes right after the clean report releases nothing (it
-    may be a snapshot from before); one made a moment later (Ctrl+S "za chvíli", or the save as
-    everyone leaves) stores no koncept and releases it."""
+    """The wedge: the save holding an edit landed before the edit's report, so it does not count
+    it. A later save of the same bytes stores no koncept but says a later lastsave, and releases
+    it; one whose lastsave is still earlier (a Document Server clock behind) does not: fails
+    closed."""
     line = _Line(app, researcher, client, world, saves)
     version = line.save("50 %", lastsave=_ago(1))
-    assert line.report(1) == 204 and line.report(1, clean=True) == 204  # both late
+    assert line.report(1) == 204  # late
     _held(line.approve(version, 1), "edit_not_saved")
-    clock.advance(9)
-    assert line.save("50 %", lastsave=_ago(1)) == version
+    assert line.save("50 %", lastsave=_ago(60)) == version  # the clock behind: still held
     _held(line.approve(version, 1), "edit_not_saved")
-    clock.advance(2)
-    assert line.save("50 %", lastsave=_ago(1)) == version  # no new koncept
+    assert line.save("50 %", lastsave=_ago(0)) == version  # no new koncept
     assert researcher.post(_editor(world, line.run_id), json={}).json()["koncept"] == 2
+    assert line.verdict(version, 1) == {"saved": True, "reason": None}
     assert line.approve(version, 1).status_code == 200
 
 
@@ -1243,7 +1203,6 @@ def test_a_co_authors_edit_and_an_earlier_page_of_the_session_hold_the_approval_
     client: TestClient,
     world: Any,
     saves: Saves,
-    clock: _Clock,
 ) -> None:
     line = _Line(app, researcher, client, world, saves)
     version = line.save("50 %", lastsave=_ago(1))
@@ -1252,13 +1211,11 @@ def test_a_co_authors_edit_and_an_earlier_page_of_the_session_hold_the_approval_
     lead.post(_editor(world, line.run_id), json={})
     assert line.report(1, page="page-lead-0000", by=lead) == 204
     _held(line.approve(version), "edit_not_saved")
+    assert line.verdict(version) == {"saved": False, "reason": "edit_not_saved"}
     # A reload is a new page: the edit the old page reported still waits for its save.
-    assert line.report(1, clean=True, page="page-lead-0000", by=lead) == 204
     assert line.report(1, page="page-old-00000") == 204
     _held(line.approve(version, page="page-new-00000"), "edit_not_saved")
-    assert line.report(1, clean=True, page="page-old-00000") == 204
-    clock.advance(11)
-    newest = line.save("52 %", lastsave=_ago(1), by="lead")
+    newest = line.save("52 %", lastsave=_ago(0), by="lead")
     assert line.approve(newest).status_code == 200
 
 
@@ -1288,12 +1245,8 @@ def test_an_edit_is_reported_only_in_an_open_session_of_the_run_the_caller_was_s
 ) -> None:
     line = _Line(app, researcher, client, world, saves)
     body = {"page": PAGE, "seq": 1}
-    assert (
-        researcher.post(
-            f"{_editor(world, line.run_id)}/sessions/NO-SUCH/edits", json=body
-        ).status_code
-        == 404
-    )
+    nowhere = f"{_editor(world, line.run_id)}/sessions/NO-SUCH/edits"
+    assert researcher.post(nowhere, json=body).status_code == 404
     other = f"{API}/studies/{world.study_id()}/research/runs/RUN-0000000000000000/report/editor"
     assert researcher.post(f"{other}/sessions/{line.key}/edits", json=body).status_code in (
         404,
@@ -1302,7 +1255,7 @@ def test_an_edit_is_reported_only_in_an_open_session_of_the_run_the_caller_was_s
     for bad in (
         {"page": "short", "seq": 1},
         {"page": PAGE, "seq": 0},
-        {"page": PAGE, "seq": 1, "x": 1},
+        {"page": PAGE, "seq": 1, "clean": True},
     ):
         assert researcher.post(line.edits, json=bad).status_code == 422
     # Everyone left: the session is closed and takes no edit.

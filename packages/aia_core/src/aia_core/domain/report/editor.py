@@ -120,26 +120,17 @@ PAGE: Final = re.compile(r"[0-9A-Za-z_-]{8,64}")
 #: The most pages one session keeps edit reports for: a reload is a new page, so a person's
 #: session sees a few; beyond this a new page's report is refused (RPT8f).
 MAX_PAGES_PER_SESSION: Final = 64
-#: How long after a page's clean report a save must reach AIA to count as holding its edits
-#: (RPT8f, the PM's choice (b), 2026-10-24). A callback carries nothing that ties its snapshot to
-#: an edit, so a force-save already converting when the clean report arrives would otherwise
-#: count: with the margin, a wrong hold needs a conversion longer than this.
-SNAPSHOT_MARGIN: Final = timedelta(seconds=10)
 
 
 @dataclass(frozen=True, slots=True)
 class EditMark:
-    """What one page reported of its edits in an open session (RPT8f), every time by AIA's clock:
-    ``seq``, its newest edit start (counted from 1), received at ``received_at``; ``clean_seq``,
-    the newest edit it said had reached the Document Server (its changes all sent), received at
-    ``clean_at``. A page whose clean report came first has ``seq`` 0 until its edit's does."""
+    """The newest edit start one page reported in an open session (RPT8f): its sequence, the
+    page's own count from 1, and when AIA received it, by AIA's clock."""
 
     document_key: str
     page: str
     seq: int
     received_at: datetime
-    clean_seq: int = 0
-    clean_at: datetime | None = None
 
 
 @dataclass(frozen=True, slots=True)
@@ -151,47 +142,23 @@ class SeenEdit:
     seq: int
 
 
-@dataclass(frozen=True, slots=True)
-class Coverage:
-    """What a version is known to hold (RPT8f). ``content_at``: the latest last change a save of
-    its bytes said it held (``lastsave``, never later than AIA's receipt of that save);
-    ``saved_at``: when AIA last received a save of its bytes, by AIA's clock. ``None``: no save
-    said one."""
-
-    content_at: datetime | None
-    saved_at: datetime | None
-
-
 class UnsavedEdits(StrEnum):
     #: The approving page made an edit AIA has not received: its report is in flight.
     NOT_RECEIVED = "edit_not_received"
-    #: An edit AIA received is held by no save of the version.
+    #: An edit AIA received is later than the last change the version holds.
     NOT_SAVED = "edit_not_saved"
 
 
-def _held(mark: EditMark, version: Coverage) -> bool:
-    if mark.seq == 0:
-        return True  # a clean report with no edit of its own: nothing to hold
-    # A save of these bytes came at least SNAPSHOT_MARGIN after the page said the edit had
-    # reached the Document Server: both times AIA's.
-    if (
-        mark.clean_seq >= mark.seq
-        and mark.clean_at is not None
-        and version.saved_at is not None
-        and mark.clean_at + SNAPSHOT_MARGIN <= version.saved_at
-    ):
-        return True
-    # The save's own last change is no earlier than the edit's report: received after the person
-    # typed, so the edit came first. Across two clocks, the save's bounded by AIA's receipt.
-    return version.content_at is not None and mark.received_at <= version.content_at
-
-
 def unsaved_edits(
-    version: Coverage, marks: Iterable[EditMark], seen: SeenEdit | None
+    content_at: datetime | None, marks: Iterable[EditMark], seen: SeenEdit | None
 ) -> UnsavedEdits | None:
-    """Why ``version`` does not hold every edit of the line's open sessions (``marks``) and the
-    one the approving page saw (``seen``); ``None`` when it does. Unknown is never held: a version
-    no save described (koncept 1) holds no edit."""
+    """Why a version whose saves hold changes up to ``content_at`` (the latest ``lastsave`` of a
+    save of its bytes, kept no later than AIA's receipt of that save; ``None`` for koncept 1 or a
+    save that said none) does not hold every edit of the line's open sessions (``marks``) and the
+    one the approving page saw (``seen``); ``None`` when it does. An edit counts as held only when
+    AIA received its report no later than ``content_at``: received after the person typed, so the
+    edit came first. A save made while the report was in flight holds it only once a later save
+    says a later ``lastsave``: late, never early. Unknown is never held."""
     marks = list(marks)
     if seen is not None:
         own = next(
@@ -199,6 +166,6 @@ def unsaved_edits(
         )
         if own is None or own.seq < seen.seq:
             return UnsavedEdits.NOT_RECEIVED
-    if not all(_held(m, version) for m in marks):
+    if any(content_at is None or m.received_at > content_at for m in marks):
         return UnsavedEdits.NOT_SAVED
     return None
