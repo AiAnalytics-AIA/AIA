@@ -240,6 +240,9 @@ const KNOWN = [
   /^(PUT|POST) \/api\/v1\/studies\/[^/]+\/workspace\/content$/,
   /^PUT \/api\/v1\/studies\/[^/]+\/workspace\/stage$/, // the stage a person is on, kept per visit
   /^POST \/api\/v1\/studies\/[^/]+\/design\/revisions$/,
+  // Zpráva opening its draft in the report editor, on a workbench started with it on
+  // (AIA_WORKBENCH_REPORT_EDITOR=true): a session for the draft, nothing paid (artifact-report RPT8d).
+  /^POST \/api\/v1\/studies\/[^/]+\/research\/runs\/[^/]+\/report\/editor$/,
 ];
 const starts = writes.filter((w) => /^POST \/api\/v1\/studies\/[^/]+\/research\/runs$/.test(w));
 const unknown = writes.filter((w) => !starts.includes(w) && !KNOWN.some((k) => k.test(w)));

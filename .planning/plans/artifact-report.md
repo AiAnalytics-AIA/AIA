@@ -14,7 +14,7 @@ chunks:
   - "[ ] RPT8a. Every printed number a locked content control tagged with its source (the editor spike's F-ED1): ledger values in prose, table cells, captions (part 1); KPI tiles, figures, the evidence appendix, suppressed counts (part 2); the map, design, run and bundle spans (part 3; the map locked and tagged like the rest, the owner 2026-10-22)"
   - "[x] RPT8b. What a saved version changed: each tagged number edited or removed and each number typed outside one, shown as \"Upraveno ručně\", never refusing (changed 2026-10-22: the owner, ADR 0035 amended)"
   - "[x] RPT8c. The editor routes behind AIA_ONLYOFFICE_URL (unset: off): the config with its JWT and the docs ticket, the signed document URL, the callback storing every save as the next version (the hosting contract, report-editor-hosting); the internal draft and the report with literature"
-  - "[ ] RPT8d. The pane opens the newest version in the editor from 768 px (view mode below), its doc bar naming the version and its \"Upraveno ručně\" changes; the read-only document stays where the editor is off"
+  - "[x] RPT8d. The pane opens the newest version in the editor from 768 px (view mode below), its doc bar naming the version and its \"Upraveno ručně\" changes; the read-only document stays where the editor is off"
   - "[ ] RPT8e. Before activation, a hard gate: the editor's api.js loaded with Subresource Integrity, the hash taken from the pinned Document Server image's own api.js and configured beside AIA_ONLYOFFICE_URL, verified against the real Document Server with CORS; AIA_ONLYOFFICE_URL stays unset until this is ticked (the PM, 2026-10-23; owner: Zpráva)"
   - "[ ] RPT8f. Before activation, a hard gate beside RPT8e: the server decides an edited version's approval from the edit sequence (each edit start reported to AIA with a per-session sequence and its time of receipt; each save records the highest sequence its lastsave holds; approve_report(newest_of_line) refuses 409 report_edits_unsaved under the line's lock unless the newest stored version holds the sequence the page saw and no higher one arrived); AIA_ONLYOFFICE_URL stays unset until RPT8e and RPT8f are both ticked (the PM, 2026-10-24; owner: Zpráva)"
   - "[ ] RPT9. The Lead edits the same document: inline suggestions as tracked changes under the Lead's own name, with why, accepted or rejected one by one or all; direct edits per the researcher's setting (Q13) still attributed; every edit through the edit ops, every number a ledger ref passing the sentence check before accept"
@@ -576,6 +576,22 @@ catch their stored saves only. Tests: `test_a_version_names_its_authors_and_its_
 `CompleteReport.edits.test.tsx`, `report-editor.test.ts`,
 `ReportEditor.test.tsx` ("tells the pane what it shows…", "opens the line asked for"),
 `ReportDocumentView.editor.test.tsx` ("the doc bar while the editor shows the document").
+
+*RPT8d, part 3 (`feature/report-editor-journey`), the journey:* `report_editor_journey.mjs` drives Zpráva in the editor
+in a real browser against a stand-in Document Server (`tools/ui_workbench/report_editor_standin.py`): no ONLYOFFICE
+runs. The workbench's API, started with `AIA_WORKBENCH_REPORT_EDITOR=true`, is configured for fictional `.invalid`
+origins and a fictional secret, and is given a fetcher that reads a save from `tmp/ui-workbench/editor-saves` under
+the live fetcher's own URL rule (`app.state.editor_fetcher`, as a test's is); the page loads a stand-in api.js the
+journey serves for that origin (`fixtures/report_editor/api.js`), and a save is made as a Document Server makes one:
+the composed draft with one ledger number edited, written where the fetcher reads it, the callback posted, signed.
+It checks edit mode at 1440, 1100 and 768 px and view mode at 390, the doc bar on the version shown and no draft
+approval, no overflow; an edit holding the approval off past the editor's own "saved" until AIA stores the next
+koncept; that koncept's Upraveno ručně naming the number; a save while the question is open approving nothing; an edit
+started while the question is open approving nothing until its save is stored (the PM's ask on #877); the newest
+approved with `newest_of_line` and downloaded from the report card; nothing paid. It runs again on the same
+workbench. `research_journey.mjs` takes the editor's open as a known write. Found while building it: a locked span's
+text (a design span is a paragraph) made a change line unreadable; `changeWords` cuts a long pair around where the two
+differ, so "…" never hides the difference (Codex on #878).
 
 Order: F1 (its own small PR) → RPT8a part 3 → RPT8b → RPT8c → RPT8d → RD0's change → RPT8e (SRI on api.js) and RPT8f (the server's edit sequence) → activation (infra: the
 editor's own domain, its Caddy site without the docs gate, Route 53, SSM, the flag) → RPT9.
