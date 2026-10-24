@@ -106,9 +106,16 @@ describe("whether a stored version holds an edit", () => {
 
   it("holds an edit its last change is no earlier than, on the server's clock", () => {
     // The browser runs 10 s behind the server: an edit at its 00:29:45 is the server's 00:29:55.
-    const answered = at("2026-10-24T00:29:50.000Z");
-    expect(holdsEdit(version("2026-10-24T00:29:56.000Z"), at("2026-10-24T00:29:45.000Z"), answered)).toBe(true);
-    expect(holdsEdit(version("2026-10-24T00:29:50.000Z"), at("2026-10-24T00:29:45.000Z"), answered)).toBe(false);
+    const sent = at("2026-10-24T00:29:50.000Z");
+    expect(holdsEdit(version("2026-10-24T00:29:56.000Z"), at("2026-10-24T00:29:45.000Z"), sent)).toBe(true);
+    expect(holdsEdit(version("2026-10-24T00:29:50.000Z"), at("2026-10-24T00:29:45.000Z"), sent)).toBe(false);
+  });
+
+  it("never takes a slow answer for clock skew: a snapshot from before the edit holds nothing", () => {
+    // Clocks agree. Snapshot at 00:00:00; the edit and the request at 00:00:10, the server answering
+    // then; the answer arriving at 00:00:25. Placed by its arrival, the edit would read as 00:29:55.
+    const snapshot = version("2026-10-24T00:00:00.000Z", "2026-10-24T00:00:10.000Z");
+    expect(holdsEdit(snapshot, at("2026-10-24T00:00:10.000Z"), at("2026-10-24T00:00:10.000Z"))).toBe(false);
   });
 
   it("allows the second the Document Server reads its time to, no more", () => {
@@ -117,10 +124,11 @@ describe("whether a stored version holds an edit", () => {
     expect(holdsEdit(version("2026-10-24T00:30:00.000Z"), now + 1_500, now)).toBe(false);
   });
 
-  it("falls back on the time AIA stored it, and holds nothing on a time that does not parse", () => {
+  it("falls back on the time AIA stored it, and holds nothing on a time that does not parse or no server time", () => {
     const now = at("2026-10-24T00:30:00.000Z");
     expect(holdsEdit(version(null), at("2026-10-24T00:29:58.000Z"), now)).toBe(true);
     expect(holdsEdit(version(null), at("2026-10-24T00:30:10.000Z"), now)).toBe(false);
     expect(holdsEdit(version("včera"), now - 60_000, now)).toBe(false);
+    expect(holdsEdit({ content_at: "2026-10-24T00:30:00.000Z", saved_at: "2026-10-24T00:30:00.000Z" }, now - 60_000, now)).toBe(false);
   });
 });

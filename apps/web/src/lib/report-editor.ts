@@ -135,15 +135,18 @@ const HOLD_TOLERANCE_MS = 1_000;
 
 /** Whether `version` holds an edit this person started at `startedAt` (this browser's clock): its
  *  last change (else, when the Document Server did not say, the time AIA stored it) is no earlier
- *  than the edit, both on the server's clock (`server_now` read at `answeredAt`). A time that does
- *  not parse holds nothing, never presumed. */
+ *  than the edit, both on the server's clock. The server answered `server_now` somewhere between
+ *  the request leaving (`sentAt`) and its answer arriving, so the edit is placed as late on the
+ *  server's clock as that allows (`server_now - sentAt`): a slow answer holds the approval longer,
+ *  never certifies a snapshot from before the edit. A time that does not parse holds nothing. */
 export function holdsEdit(
-  version: Pick<EditorVersionRead, "content_at" | "saved_at" | "server_now">, startedAt: number, answeredAt: number,
+  version: Pick<EditorVersionRead, "content_at" | "saved_at" | "server_now">, startedAt: number, sentAt: number,
 ): boolean {
-  const offset = version.server_now ? Date.parse(version.server_now) - answeredAt : 0;
+  if (!version.server_now) return false;
+  const latest = Date.parse(version.server_now) - sentAt;
   const held = Date.parse(version.content_at ?? version.saved_at);
-  if (Number.isNaN(held) || Number.isNaN(offset)) return false;
-  return held >= startedAt + offset - HOLD_TOLERANCE_MS;
+  if (Number.isNaN(held) || Number.isNaN(latest)) return false;
+  return held >= startedAt + latest - HOLD_TOLERANCE_MS;
 }
 
 const stamp = new Intl.DateTimeFormat("cs-CZ", {

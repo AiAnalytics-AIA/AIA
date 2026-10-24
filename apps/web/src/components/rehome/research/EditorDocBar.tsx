@@ -53,9 +53,18 @@ const MOVED = (koncept: number) => `Editor mezitím uložil koncept ${koncept}; 
 /** The version `id` and, when a later save of its line exists, that one instead: the newest is the
  *  one the editor shows once its edits are saved. */
 async function newestOf(studyId: string, runId: string, id: string): Promise<EditorVersionRead> {
+  return (await newestRead(studyId, runId, id)).version;
+}
+
+/** As `newestOf`, with when the request that answered it left (this browser's clock), which
+ *  bounds the server's clock for `holdsEdit`. */
+async function newestRead(studyId: string, runId: string, id: string): Promise<{ version: EditorVersionRead; sentAt: number }> {
+  let sentAt = Date.now();
   const read = await research.reportEditorVersion(studyId, runId, id);
   const newest = read.newest_in_line?.version_artifact_id;
-  return newest && newest !== id ? research.reportEditorVersion(studyId, runId, newest) : read;
+  if (!newest || newest === id) return { version: read, sentAt };
+  sentAt = Date.now();
+  return { version: await research.reportEditorVersion(studyId, runId, newest), sentAt };
 }
 
 export function EditorDocBar({
@@ -77,12 +86,11 @@ export function EditorDocBar({
   const [held, setHeld] = useState<number | null>(null);
   useEffect(() => {
     let live = true;
-    newestOf(studyId, runId, opened.version_artifact_id).then(
-      (version) => {
+    newestRead(studyId, runId, opened.version_artifact_id).then(
+      ({ version, sentAt }) => {
         if (!live) return;
-        const answeredAt = Date.now();
         setRead({ at, version, error: null });
-        if (startedAt !== null && holdsEdit(version, startedAt, answeredAt)) setHeld((was) => Math.max(was ?? 0, startedAt));
+        if (startedAt !== null && holdsEdit(version, startedAt, sentAt)) setHeld((was) => Math.max(was ?? 0, startedAt));
       },
       (error: unknown) => { if (live) setRead({ at, version: null, error: message(error) }); },
     );
