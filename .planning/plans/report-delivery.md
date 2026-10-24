@@ -2,7 +2,7 @@
 status: in-progress
 chunks:
   - "[ ] RD0. The client deliverable's checks the owner set (MVPQ-09): an \"Interní dokument\" source, drill-down content, a number without an admitted claim, each shown as a warning in the approval dialog and recorded with the approval, never refusing (changed 2026-10-22)"
-  - "[ ] RD1. The client report PDF: extend `RENDERABLE_REPORTS`, the PDF is approved with its DOCX"
+  - "[x] RD1. The client report PDF: extend `RENDERABLE_REPORTS`, the PDF is approved with its DOCX"
   - "[x] RD2. A reader for the approval ledger: "approved by whom, when" for a report and a snapshot"
   - "[ ] RD3. The Approve and Export panel: what is approved and by whom; exports after approval; the slot in the Report artifact"
   - "[ ] RD4. The map snapshot: an approvable object rendered server-side from the stored map and camera parameters, never browser bytes; one ledger shape"
@@ -84,6 +84,21 @@ block ("Upozornění (n): …; Schválením je berete na vědomí"), and the doc
 
 **RD1. The client report PDF: extend `RENDERABLE_REPORTS`, the PDF is approved with its DOCX**  
 The client report is DOCX only today (`report_variants.py:78`).
+
+*RD1, done (`feature/client-report-pdf`):* `research_client_docx` is in `RENDERABLE_REPORTS`, so a `report_pdf` job
+renders exactly the stored client report it names, and its PDF records `report_kind: client` from its DOCX
+(`aia_executors.report.ReportPdfExecutor`; the run's own report's stays `internal`). `POST …/report/client/prepare` asks
+for the draft's PDF where asking can start one (never refused for it), as preparing the report with literature does; so
+approving the client report finds its draft's rendering ready and asks for the approved version's PDF under its review
+(`report_approval.approve_report`, unchanged). `GET …/report/client/document` (and prepare) answer `pdf` and
+`approval_renders_pdf`; `POST …/report/client/pdf` asks again, composing nothing (404 while none is stored);
+`GET …/report/client/pdf/download` serves the rendering of exactly the version the DOCX download names
+(`AIA-…-klient-<version>-koncept|schvaleno.pdf`, `X-AIA-Artifact-Id`). The PDF artifact keeps the type every report
+PDF has (`research_internal_pdf`, the `report_pdf` template's target); its `report_kind` says whose it is. Tests:
+`test_report_variant_api.py` `test_the_client_report_has_a_pdf_and_it_is_approved_with_its_docx` (fails before: no
+draft PDF counted as ready, so the approval promised none); `test_report_pdf_executor.py`
+`test_the_client_report_is_rendered_and_its_pdf_says_it_is_the_clients`. The download buttons are
+`research-lead-workbench#31`'s.
 
 **RD2. A reader for the approval ledger: "approved by whom, when" for a report and a snapshot**  
 

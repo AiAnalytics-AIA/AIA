@@ -26,6 +26,8 @@ from aia_core.domain.evidence import ClaimSurface
 from aia_core.domain.evidence.validation import METHOD_STATUS_PENDING
 from aia_core.domain.report.evidence import EvidenceLedger
 from aia_core.domain.report.model import (
+    Callout,
+    CalloutKind,
     Classification,
     Paragraph,
     ReportDocument,
@@ -881,3 +883,97 @@ def test_an_edited_versions_pdf_is_found_only_through_its_own_run_and_study(
         assert asker.post(f"{versions}/pdf").status_code == 404, study
         assert asker.get(f"{versions}/pdf/download").status_code == 404, study
     assert _jobs(app) == before
+
+
+def _client_run(app: FastAPI, researcher: TestClient, world: Any, monkeypatch: Any) -> str:
+    """A run whose client report composes a fictional client document (the real stored path;
+    composing is stubbed, as a real composition needs a population-grounded run)."""
+    from aia_core.application import client_report
+
+    meta = ReportMeta(
+        ReportKind.CLIENT,
+        "Výzkumná zpráva",
+        "Fiktivní data",
+        "Fiktivní klient",
+        "Fiktivní studie",
+        "STU-1",
+        date(2026, 10, 18),
+        1,
+        METHOD_STATUS_PENDING,
+        classification=Classification.CLIENT_CONFIDENTIAL,
+    )
+    ledger = EvidenceLedger.from_claims([], surface=ClaimSurface.CLIENT_FACING)
+    method = Callout(CalloutKind.METHOD, text("Fiktivní data."), title="Jak číst tuto zprávu")
+    section = Section("Shrnutí", (method, Paragraph(text("Fiktivní zpráva pro klienta."))))
+    document = ReportDocument(meta, (section,), ledger)
+
+    def compose(session: Any, scope: Any, store: Any, *, run_id: str) -> Any:
+        return client_report.ComposedClientReport(
+            document=document,
+            sources={"contract": client_report.CLIENT_REPORT_CONTRACT, "run_id": run_id},
+            depends_on=(),
+        )
+
+    monkeypatch.setattr(client_report, "compose_client_report", compose)
+    made = world.design(researcher, DESIGN)
+    assert made.status_code in (200, 201), made.text
+    started = researcher.post(
+        f"{_study(world)}/research/runs", json={"design_revision_id": made.json()["revision_id"]}
+    )
+    assert started.status_code == 201, started.text
+    return str(started.json()["run_id"])
+
+
+def test_the_client_report_has_a_pdf_and_it_is_approved_with_its_docx(
+    app: FastAPI, researcher: TestClient, world: Any, monkeypatch: Any
+) -> None:
+    """RD1: preparing the client report asks for its PDF, as the report with literature's is;
+    approving it asks for the approved version's PDF under its review, and the PDF downloaded
+    is the rendering of exactly the version the DOCX download names."""
+    run_id = _client_run(app, researcher, world, monkeypatch)
+    base = f"{_study(world)}/research/runs/{run_id}/report/client"
+    # Nothing stored yet: no PDF to ask for again, nothing composed.
+    assert researcher.post(f"{base}/pdf").status_code == 404
+    assert researcher.get(f"{base}/pdf/download").status_code == 404
+    prepared = researcher.post(f"{base}/prepare")
+    assert prepared.status_code == 200, prepared.text
+    version = prepared.json()["report_artifact_id"]
+    assert prepared.json()["pdf"]["state"] == "RENDERING"
+    assert researcher.get(f"{base}/pdf/download").status_code == 404  # not rendered yet
+    _render_pdfs(app, world)
+    drafted = researcher.get(f"{base}/document").json()
+    assert drafted["pdf"]["state"] == "READY" and drafted["approval_renders_pdf"] is True
+    draft_pdf = researcher.get(f"{base}/pdf/download")
+    assert draft_pdf.status_code == 200, draft_pdf.text
+    assert draft_pdf.headers["X-AIA-Artifact-Id"] == version
+    assert draft_pdf.headers["content-disposition"].endswith(f'-klient-{version}-koncept.pdf"')
+    # Asking again while one is ready asks nothing.
+    jobs = _jobs(app)
+    assert researcher.post(f"{base}/pdf").json()["pdf"]["state"] == "READY"
+    assert _jobs(app) == jobs
+
+    approved = researcher.post(
+        f"{_study(world)}/research/runs/{run_id}/report/approve", json={"artifact_id": version}
+    )
+    assert approved.status_code == 200, approved.text
+    after = researcher.get(f"{base}/document").json()
+    assert after["pdf"]["state"] == "RENDERING" and after["approval_renders_pdf"] is False
+    with create_session_factory(app.state.engine)() as session:
+        scope = _scope(session, world)
+        docx = research_artifacts(session, scope, app.state.artifact_store).get(version)
+        asked = WorkflowRepository(session, scope).list_runs(
+            project_id=docx.project_id,
+            workflow_type=REPORT_PDF,
+            key_prefix=report_pdf_key(run_id, None, version, approved=True),
+            limit=10,
+        )
+    assert len(asked) == 1 and asked[0]["metadata"]["docx_artifact_id"] == version
+    _render_pdfs(app, world)
+    for route, ext in (("download", "docx"), ("pdf/download", "pdf")):
+        got = researcher.get(f"{base}/{route}")
+        assert got.status_code == 200, got.text
+        assert got.headers["X-AIA-Artifact-Id"] == version, route
+        assert got.headers["content-disposition"].endswith(f'-klient-{version}-schvaleno.{ext}"'), (
+            route
+        )
+    assert researcher.get(f"{base}/pdf/download").content != draft_pdf.content
