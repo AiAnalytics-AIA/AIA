@@ -877,6 +877,38 @@ def test_a_version_names_its_authors_and_its_lines_newest_version(
     assert moved["koncept"] == 3 and moved["version_artifact_id"] != edited
 
 
+def test_a_version_asked_as_its_lines_newest_is_refused_once_a_later_save_exists(
+    app: FastAPI, researcher: TestClient, client: TestClient, world: Any, saves: Saves
+) -> None:
+    run_id, draft = _reported_run(app, researcher, world)
+    config = researcher.post(_editor(world, run_id), json={}).json()["config"]
+    me = world.users["researcher"]
+    saved = _callback(client, config, status=6, url=saves.put(_docx("50 %")), users=[me])
+    assert saved.json() == {"error": 0}
+    second = researcher.post(_editor(world, run_id), json={}).json()["version_artifact_id"]
+    # The question was open while a save stored koncept 3.
+    saved = _callback(client, config, status=6, url=saves.put(_docx("55 %")), users=[me])
+    assert saved.json() == {"error": 0}
+    third = researcher.post(_editor(world, run_id), json={}).json()["version_artifact_id"]
+    approve = f"{API}/studies/{world.study_id()}/research/runs/{run_id}/report/approve"
+
+    stale = researcher.post(approve, json={"artifact_id": second, "newest_of_line": True})
+    assert stale.status_code == 409, stale.text
+    assert stale.json()["code"] == "report_version_stale"
+    assert stale.json()["details"] == {"newest_artifact_id": third, "koncept": 3}
+    assert researcher.get(f"{_editor(world, run_id)}/versions/{second}").json()["approval"] is None
+    # Koncept 1, the composed draft, is no newest once the line moved on either.
+    first = researcher.post(approve, json={"artifact_id": draft, "newest_of_line": True})
+    assert first.status_code == 409 and first.json()["details"]["koncept"] == 3
+
+    newest = researcher.post(approve, json={"artifact_id": third, "newest_of_line": True})
+    assert newest.status_code == 200, newest.text
+    assert newest.json()["artifact_id"] == third
+    # Without the flag an older version is approved as itself, as before.
+    older = researcher.post(approve, json={"artifact_id": second})
+    assert older.status_code == 200, older.text
+
+
 def test_an_author_is_named_only_as_a_member_and_never_by_an_e_mail(
     app: FastAPI, world: Any
 ) -> None:

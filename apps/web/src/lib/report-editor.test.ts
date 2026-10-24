@@ -64,9 +64,9 @@ const version = (over: Partial<EditorVersionRead> = {}): EditorVersionRead => ({
 });
 
 describe("a saved version in words", () => {
-  it("names the koncept, the time in Prague and who saved it, a nameless author as a member", () => {
+  it("names the koncept, the time in Prague and who saved it, an unnamed author as unknown", () => {
     expect(savedWords(version())).toBe("Koncept 2, uložen 23. 10. 2026 22:10 · Jana");
-    expect(savedWords(version({ author_names: ["Jana", null] }))).toBe("Koncept 2, uložen 23. 10. 2026 22:10 · Jana, člen týmu");
+    expect(savedWords(version({ author_names: ["Jana", null] }))).toBe("Koncept 2, uložen 23. 10. 2026 22:10 · Jana, neznámý autor");
     expect(savedWords(version({ koncept: 1, author_names: [] }))).toBe("Koncept 1 (složená zpráva), uložen 23. 10. 2026 22:10");
     expect(savedWords(version({ saved_at: "nevím" }))).toBe("Koncept 2, uložen nevím · Jana");
   });

@@ -76,18 +76,21 @@ describe("the draft in the report editor", () => {
     expect(screen.queryByText("Koncept jen ke čtení")).toBeNull();
   });
 
-  it("tells the pane what it shows once ready, and whether it holds edits not yet saved", async () => {
+  it("tells the pane what it shows once ready, and each time this person starts editing", async () => {
     const { api, made } = docsApi();
     const onShown = vi.fn();
     show({ open: vi.fn().mockResolvedValue(OPENED), load: vi.fn().mockResolvedValue(api), onShown });
     await vi.waitFor(() => expect(made).toHaveLength(1));
     expect(onShown).toHaveBeenLastCalledWith(null);
     act(() => events(made[0].config).onAppReady());
-    expect(onShown).toHaveBeenLastCalledWith({ opened: OPENED, dirty: false });
+    expect(onShown).toHaveBeenLastCalledWith({ opened: OPENED, edits: 0 });
     act(() => events(made[0].config).onDocumentStateChange({ data: true }));
-    expect(onShown).toHaveBeenLastCalledWith({ opened: OPENED, dirty: true });
+    expect(onShown).toHaveBeenLastCalledWith({ opened: OPENED, edits: 1 });
+    // false: the edit reached the Document Server, not AIA; it is no stored version, so it counts nothing.
     act(() => events(made[0].config).onDocumentStateChange({ data: false }));
-    expect(onShown).toHaveBeenLastCalledWith({ opened: OPENED, dirty: false });
+    expect(onShown).toHaveBeenLastCalledWith({ opened: OPENED, edits: 1 });
+    act(() => events(made[0].config).onDocumentStateChange({ data: true }));
+    expect(onShown).toHaveBeenLastCalledWith({ opened: OPENED, edits: 2 });
     act(() => events(made[0].config).onError());
     expect(onShown).toHaveBeenLastCalledWith(null);
   });

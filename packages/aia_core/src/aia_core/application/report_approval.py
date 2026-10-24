@@ -66,6 +66,16 @@ class ReportNotApprovable(Exception):
     """The artifact is not a valid stored report of this run."""
 
 
+class ReportVersionStale(Exception):
+    """A version asked to be approved as its line's newest is no longer the newest: a save
+    stored the next koncept while the person read the question (artifact-report RPT8d)."""
+
+    def __init__(self, artifact_id: str, newest_artifact_id: str, koncept: int) -> None:
+        super().__init__(f"{artifact_id} is not its line's newest version ({newest_artifact_id})")
+        self.newest_artifact_id = newest_artifact_id
+        self.koncept = koncept
+
+
 def approve_report(
     session: Session,
     scope: StudyContext,
@@ -74,11 +84,16 @@ def approve_report(
     run_id: str,
     artifact_id: str,
     note: str = "",
+    newest_of_line: bool = False,
 ) -> Artifact:
     """Approve ``artifact_id`` as ``run_id``'s report, freeze it and, where its draft's own PDF
     is ready, ask for its approved PDF. A report already approved records no second decision
     and asks for nothing again (a person asks for a PDF on the report itself); one approved
-    before approving froze is frozen now, so no approved version stays deletable."""
+    before approving froze is frozen now, so no approved version stays deletable.
+
+    ``newest_of_line``: approve a version of a report-editor line only while it is that line's
+    newest (the editor shows the newest), under the line's lock a save also takes, so a save
+    and this approval take their turn; :class:`ReportVersionStale` otherwise."""
     scope.require(Permission.SIGN_OFF_DELIVERABLE)
     ResearchRuns(session, scope).get(run_id)
     artifacts = research_artifacts(session, scope, store)
@@ -89,6 +104,8 @@ def approve_report(
         or artifact.metadata.get("run_id") != run_id
     ):
         raise ReportNotApprovable(artifact_id)
+    if newest_of_line:
+        _require_newest(session, scope, artifact_id)
     if artifact.is_approved:
         # Approved before this release, which froze nothing: invalidate_stage and delete spare
         # only a frozen artifact. Freezing is no decision, so the ledger keeps its one row.
@@ -116,6 +133,17 @@ def approve_report(
             deep_research_run_id=approved.metadata.get("deep_research_run_id"),
         )
     return approved
+
+
+def _require_newest(session: Session, scope: StudyContext, artifact_id: str) -> None:
+    repo = ReportEditorRepository(session, scope)
+    version = repo.version(artifact_id)
+    if version is None:
+        raise ReportNotApprovable(artifact_id)
+    repo.lock_line(version.line_id)  # as store_save does, before the versions are read
+    newest = repo.versions(version.line_id)[-1]
+    if newest.artifact_id != artifact_id:
+        raise ReportVersionStale(artifact_id, newest.artifact_id, newest.koncept)
 
 
 def _line_authors(

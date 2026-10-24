@@ -4,7 +4,8 @@
 // screen by name ("Koncept N, uložen <kdy> · <kdo>"), what it changed in the numbers code wrote
 // ("Upraveno ručně"), the run's other lines, and "Schválit" for exactly that version, its changes
 // listed in the question. The version is read from the API (RPT8c), never from the editor: a save
-// the editor made is approved only once AIA stored it, and a later save asks again.
+// the editor made is approved only once AIA stored it, and a later save, before the ask or before
+// the yes, asks again.
 
 import { useCallback, useEffect, useState } from "react";
 
@@ -30,13 +31,22 @@ export type EditorDocBarProps = {
   /** The document by name, for the question ("interní zprávu"). */
   documentName: string;
   canApprove: boolean;
-  /** Approve the composed draft through the pane's own flow (its PDF and status read on the ask). */
+  /** Approve the composed draft through the pane's own flow (its PDF and status read on the ask),
+   *  as its line's newest: the server refuses once a save moved the line on. */
   approveComposed: () => void;
   /** An edited version was approved, as the server answered. */
   onApproved: (done: Approved) => void;
   /** Open another line in the editor. */
   onOpenLine: (lineId: string) => void;
+  /** How often the bar reads again while an edit waits to be stored (a seam for the tests). */
+  pollMs?: number;
 };
+
+/** An edit is stored by the Document Server's next save (a forcesave or the timed autosave), not as
+ *  it is typed: while one waits, the bar reads the line again this often. */
+const POLL_MS = 10_000;
+
+const MOVED = (koncept: number) => `Editor mezitím uložil koncept ${koncept}; zkontrolujte jeho změny a schvalte znovu.`; // = approvalRefusal's report_version_stale
 
 /** The version `id` and, when a later save of its line exists, that one instead: the newest is the
  *  one the editor shows once its edits are saved. */
@@ -47,7 +57,7 @@ async function newestOf(studyId: string, runId: string, id: string): Promise<Edi
 }
 
 export function EditorDocBar({
-  studyId, runId, shown, composedId, documentName, canApprove, approveComposed, onApproved, onOpenLine,
+  studyId, runId, shown, composedId, documentName, canApprove, approveComposed, onApproved, onOpenLine, pollMs = POLL_MS,
 }: EditorDocBarProps) {
   const opened = shown.opened;
   const at = `${opened.line_id}:${opened.version_artifact_id}`;
@@ -57,20 +67,39 @@ export function EditorDocBar({
   const [reads, setReads] = useState(0);
   const again = useCallback(() => setReads((n) => n + 1), []);
 
+  // An edit this person started that no stored version holds yet: set at each start, with the newest
+  // version a read made after it found (`from`, null until that read answers); cleared only once a
+  // later read finds a newer one. The editor's own "saved" is no stored version (it means the edit
+  // reached the Document Server), so it clears nothing.
+  const [pending, setPending] = useState<{ from: string | null } | null>(null);
+  const [starts, setStarts] = useState(shown.edits);
+  if (starts !== shown.edits) {
+    setStarts(shown.edits);
+    if (shown.edits > starts) {
+      setPending({ from: null });
+      setReads((n) => n + 1);
+    }
+  }
+
   useEffect(() => {
     let live = true;
     newestOf(studyId, runId, opened.version_artifact_id).then(
-      (version) => { if (live) setRead({ at, version, error: null }); },
+      (version) => {
+        if (!live) return;
+        setRead({ at, version, error: null });
+        const id = version.version_artifact_id;
+        setPending((was) => (was === null ? null : was.from === null ? { from: id } : was.from === id ? was : null));
+      },
       (error: unknown) => { if (live) setRead({ at, version: null, error: message(error) }); },
     );
     return () => { live = false; };
   }, [at, studyId, runId, opened.version_artifact_id, reads]);
-  // Edits just saved: the line may have a newer version now.
-  const [wasDirty, setWasDirty] = useState(shown.dirty);
-  if (wasDirty !== shown.dirty) {
-    setWasDirty(shown.dirty);
-    if (!shown.dirty) setReads((n) => n + 1);
-  }
+  const waiting = pending !== null;
+  useEffect(() => {
+    if (!waiting) return;
+    const timer = setInterval(again, pollMs);
+    return () => clearInterval(timer);
+  }, [waiting, again, pollMs]);
 
   const current = read?.at === at ? read : null;
   const version = current?.version ?? null;
@@ -83,7 +112,7 @@ export function EditorDocBar({
       (now) => {
         setRead({ at, version: now, error: null });
         if (now.version_artifact_id !== version.version_artifact_id) {
-          return setAct({ ask: null, busy: false, said: `Editor mezitím uložil koncept ${now.koncept}; zkontrolujte jeho změny a schvalte znovu.` });
+          return setAct({ ask: null, busy: false, said: MOVED(now.koncept) });
         }
         if (reviewStatus(now.review_state) === "APPROVED") return setAct({ ask: null, busy: false, said: null });
         if (now.version_artifact_id === composedId) {
@@ -97,14 +126,29 @@ export function EditorDocBar({
           resolve: (ok) => {
             if (!ok) return setAct({ ask: null, busy: false, said: null });
             setAct({ ask: null, busy: true, said: null });
-            research.approveReport(studyId, runId, now.version_artifact_id).then(
-              (done) => {
-                setAct({ ask: null, busy: false, said: null });
-                onApproved(done);
-                again();
-              },
-              (error: unknown) => setAct({ ask: null, busy: false, said: approvalRefusal(error) }),
-            );
+            // Read again on the yes: the dialog may have stayed open while a save stored the next koncept.
+            newestOf(studyId, runId, now.version_artifact_id)
+              .then((latest) => {
+                if (latest.version_artifact_id !== now.version_artifact_id) {
+                  setRead({ at, version: latest, error: null });
+                  setAct({ ask: null, busy: false, said: MOVED(latest.koncept) });
+                  return null;
+                }
+                // The server's check is the last word: it refuses once the line has moved on.
+                return research.approveReport(studyId, runId, now.version_artifact_id, "", true);
+              })
+              .then(
+                (done) => {
+                  if (!done) return;
+                  setAct({ ask: null, busy: false, said: null });
+                  onApproved(done);
+                  again();
+                },
+                (error: unknown) => {
+                  setAct({ ask: null, busy: false, said: approvalRefusal(error) });
+                  again();
+                },
+              );
           },
         };
         setAct({ ask, busy: false, said: null });
@@ -132,12 +176,12 @@ export function EditorDocBar({
           <span>Načítám verzi v editoru…</span>
         )}
         {canApprove && version && !approved ? (
-          <Button className="!min-h-11 ml-auto" disabled={act.busy || shown.dirty} onClick={approve}>
+          <Button className="!min-h-11 ml-auto" disabled={act.busy || waiting} onClick={approve}>
             Schválit koncept {version.koncept}
           </Button>
         ) : null}
       </div>
-      {shown.dirty ? <p data-editor-unsaved>V editoru jsou neuložené úpravy; schválit lze až uložený koncept.</p> : null}
+      {waiting ? <p data-editor-unsaved>V editoru jsou úpravy, které AIA ještě neuložila jako koncept; schválit lze až uložený koncept.</p> : null}
       {edited ? (
         changes.length ? (
           <div>

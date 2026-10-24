@@ -15,9 +15,11 @@ import {
   problemWords, UNREACHABLE,
 } from "@/lib/report-editor";
 
-/** What the editor shows once it is ready: the line and version opened, and whether it holds
- *  edits the Document Server has not saved yet (`onDocumentStateChange`). */
-export type EditorShown = { opened: EditorOpened; dirty: boolean };
+/** What the editor shows once it is ready: the line and version opened, and how many times this
+ *  person started editing it (`onDocumentStateChange` with `true`). An edit is not a stored version:
+ *  the event's `false` only says the edit reached the Document Server, so the pane counts the starts
+ *  and asks the API whether a version was stored since. */
+export type EditorShown = { opened: EditorOpened; edits: number };
 
 /** What api.js puts on the page: one constructor (ONLYOFFICE's DocsAPI). */
 export type DocsApi = {
@@ -101,8 +103,8 @@ export function ReportEditor({
   const [state, setState] = useState<State>({ at, kind: "opening" });
   // The editor came up (`onAppReady`), or it failed after the route answered: this document only.
   const [up, setUp] = useState<{ at: string; ready: boolean; failed: boolean }>({ at, ready: false, failed: false });
-  // Edits the Document Server holds unsaved, for this document only.
-  const [dirty, setDirty] = useState<{ at: string; dirty: boolean }>({ at, dirty: false });
+  // How many times this person started editing, for this document only.
+  const [edits, setEdits] = useState<{ at: string; n: number }>({ at, n: 0 });
   const host = useRef<HTMLDivElement>(null);
   const placeholder = `report-editor-${useId().replace(/[^a-zA-Z0-9-]/g, "")}`;
 
@@ -162,7 +164,7 @@ export function ReportEditor({
                 setUp({ at, ready: true, failed: false });
               },
               onDocumentStateChange: (event: { data?: unknown }) => {
-                if (going()) setDirty({ at, dirty: event?.data === true });
+                if (going() && event?.data === true) setEdits((was) => ({ at, n: was.at === at ? was.n + 1 : 1 }));
               },
               onError: fail,
             },
@@ -184,8 +186,8 @@ export function ReportEditor({
   const current = state.at === at ? state : { at, kind: "opening" as const };
   const status = up.at === at ? up : { ready: false, failed: false };
   const shownOpened = current.kind === "open" && status.ready && !status.failed ? current.opened : null;
-  const unsaved = dirty.at === at && dirty.dirty;
-  useEffect(() => { onShown?.(shownOpened ? { opened: shownOpened, dirty: unsaved } : null); }, [shownOpened, unsaved, onShown]);
+  const started = edits.at === at ? edits.n : 0;
+  useEffect(() => { onShown?.(shownOpened ? { opened: shownOpened, edits: started } : null); }, [shownOpened, started, onShown]);
   if (current.kind === "off") return <>{children}</>;
   if (current.kind === "said" || (current.kind === "open" && status.failed)) {
     return (

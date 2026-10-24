@@ -512,7 +512,8 @@ it with CORS for SRI to load; until then the editor stays off. Tests: `report-ed
 review, no approval of the composed draft while the editor shows the document).
 
 *RPT8d, part 2 (`feature/report-editor-doc-bar`), the doc bar on the editor's version:* while the editor shows a document
-(`ReportEditor` `onShown`: the line and version opened, and `dirty` from `onDocumentStateChange`), the doc bar is
+(`ReportEditor` `onShown`: the line and version opened, and how many times this person started editing,
+`onDocumentStateChange` with `true`), the doc bar is
 `EditorDocBar`: the version on screen read from `GET …/report/editor/versions/{id}`, and its line's newest when a later
 save exists (`newest_in_line`, new), named "Koncept N, uložen <kdy> · <kdo>" (`author_names`, new: display names of
 the organization's members, never an e-mail, null otherwise); "Upraveno ručně" with its count (against the line's
@@ -520,14 +521,25 @@ first version, the composed draft) or why nothing compared, opening to each chan
 other lines, each opened in the editor (`line`); and "Schválit koncept N" for exactly that version. The approval reads
 the version again on the ask: a later save is said and shown, approving nothing; koncept 1 of the current composition
 goes through the pane's own question (its PDF read on the ask, as before); an edited version is asked by name with its
-changes listed (`editedApprovalQuestion`), then approved as itself (`POST …/report/approve`), and the report card
-hears it. While the editor holds unsaved edits the approval is disabled and says why. Not done: a change linked to its
+changes listed (`editedApprovalQuestion`), read again on the yes (a save while the question was open approves
+nothing), then approved as itself (`POST …/report/approve`), and the report card hears it. An edit is not a stored
+version: the event's `false` only says the edit reached the Document Server, and AIA stores a version on the callback's
+status 6 or 2. So an edit started holds the approval off, re-reading the line every 10 s, until a read finds a version
+newer than the one a read after that edit found (the stand-in's review of #877). The server is the last word: the
+bar approves with `newest_of_line` (koncept 1's question too), and `approve_report` then takes the line's lock a save
+takes and refuses 409 `report_version_stale` (with the newest's id and koncept) once a later version exists. An author
+the server does not name reads "neznámý autor". The report card downloads each approved edit as itself
+(`approved_edits`, `…/versions/{id}/download`, the file checked to be that version approved), beside the composed
+draft that stays a draft (Codex on #877). Not done: a change linked to its
 paragraph in the document. Reaching into the editor's document needs ONLYOFFICE's connector API (`createConnector`),
 which ONLYOFFICE documents for its Developer edition (not checked on the pinned Community image); RPT9 needs the same
 reach and decides it. A save the Document Server holds
 but has not yet sent to AIA is not the version on screen until stored; the approval says that unsaved edits are not
-included. Tests: `test_a_version_names_its_authors_and_its_lines_newest_version`,
-`test_an_author_is_named_only_as_a_member_and_never_by_an_e_mail`, `report-editor.test.ts`,
+included. A co-editor's unstored edits start no event in this person's editor; the reads on the ask and on the yes
+catch their stored saves only. Tests: `test_a_version_names_its_authors_and_its_lines_newest_version`,
+`test_an_author_is_named_only_as_a_member_and_never_by_an_e_mail`,
+`test_a_version_asked_as_its_lines_newest_is_refused_once_a_later_save_exists`, `EditorDocBar.test.tsx`,
+`CompleteReport.edits.test.tsx`, `report-editor.test.ts`,
 `ReportEditor.test.tsx` ("tells the pane what it shows…", "opens the line asked for"),
 `ReportDocumentView.editor.test.tsx` ("the doc bar while the editor shows the document").
 

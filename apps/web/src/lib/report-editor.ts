@@ -128,11 +128,12 @@ const stamp = new Intl.DateTimeFormat("cs-CZ", {
   day: "numeric", month: "numeric", year: "numeric", hour: "2-digit", minute: "2-digit", timeZone: "Europe/Prague",
 });
 
-/** "Koncept 3, uloženo 23. 10. 2026 22:10 · Jana Nováková": the version and who saved it; an author
- *  with no name is "člen týmu", a time that does not parse is said as stored, never guessed. */
+/** "Koncept 3, uložen 23. 10. 2026 22:10 · Jana Nováková": the version and who saved it; an author
+ *  the server does not name (no display name, or no longer a member) is "neznámý autor", never
+ *  presumed a member; a time that does not parse is said as stored, never guessed. */
 export function savedWords(v: Pick<EditorVersionRead, "koncept" | "saved_at" | "author_names">): string {
   const at = Number.isNaN(Date.parse(v.saved_at)) ? v.saved_at : stamp.format(new Date(v.saved_at));
-  const who = v.author_names.map((n) => n ?? "člen týmu").join(", ");
+  const who = v.author_names.map((n) => n ?? "neznámý autor").join(", ");
   return v.koncept === 1
     ? `Koncept 1 (složená zpráva), uložen ${at}`
     : `Koncept ${v.koncept}, uložen ${at}${who ? ` · ${who}` : ""}`;

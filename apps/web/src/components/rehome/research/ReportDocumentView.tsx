@@ -185,7 +185,7 @@ export function ReportDocumentView({ run }: { run: ResearchRun }) {
   const unshownInternal = kind !== "client" && (loaded.state === "not_stored" || loaded.state === "refused" || loaded.state === "failed");
   const currentSlot = loaded.state === "ready" ? slotOf(loaded.stored) : unshownInternal ? slotOf(null) : "";
   useEffect(() => { slotNow.current = currentSlot; }, [currentSlot]);
-  const confirm = (slot: string, version: string, file: VersionReview, pdf: boolean, shown: StoredReportDocument | null) => {
+  const confirm = (slot: string, version: string, file: VersionReview, pdf: boolean, shown: StoredReportDocument | null, newestOfLine = false) => {
     const question = approvalQuestion(kind, version, { pdf, review });
     // What the file carries, as the card says it (D2): known only when stamped.
     const carries = reviewLine(file, pdf);
@@ -196,7 +196,7 @@ export function ReportDocumentView({ run }: { run: ResearchRun }) {
       resolve: (ok) => {
         if (!ok) return;
         setAct({ slot, ask: null, busy: true, refused: null });
-        research.approveReport(frame.studyId, run.run_id, version).then(
+        (newestOfLine ? research.approveReport(frame.studyId, run.run_id, version, "", true) : research.approveReport(frame.studyId, run.run_id, version)).then(
           (done) => {
             setAct(shown ? null : { slot, ask: null, busy: false, refused: null, done: true });
             if (shown) approved(version, done);
@@ -219,7 +219,8 @@ export function ReportDocumentView({ run }: { run: ResearchRun }) {
   // `shown`: the document on screen, or null for an internal draft or a report with literature the
   // pane cannot show (stored before its document, or refused), approved as the version its run
   // names: the DOCX its download hands over, as the card approved it before.
-  const askApproval = (shown: StoredReportDocument | null) => {
+  // `newestOfLine`: asked from the editor's doc bar, where the draft is koncept 1 of the line shown.
+  const askApproval = (shown: StoredReportDocument | null, newestOfLine = false) => {
     const slot = slotOf(shown);
     if (kind === "client") {
       if (shown) confirm(slot, shown.report_artifact_id, { version: shown.report_artifact_id, reviewState: shown.review_state, approvedOn: shown.approved_on, stamped: shown.stamped }, false, shown);
@@ -251,7 +252,7 @@ export function ReportDocumentView({ run }: { run: ResearchRun }) {
           return;
         }
         confirm(slot, version, { version, reviewState: report.review_state, approvedOn: report.approved_on, stamped: report.stamped },
-          pdfStatesReview(report.review_state, report.pdf, report.approval_renders_pdf), shown);
+          pdfStatesReview(report.review_state, report.pdf, report.approval_renders_pdf), shown, newestOfLine);
       },
       (error: unknown) => { if (slotNow.current === slot) setAct({ slot, ask: null, busy: false, refused: `Stav zprávy se nepodařilo načíst: ${message(error)}` }); },
     );
@@ -372,7 +373,7 @@ export function ReportDocumentView({ run }: { run: ResearchRun }) {
           <EditorDocBar
             key={`${docId}:${stored.review_state}`} studyId={frame.studyId} runId={run.run_id} shown={inEditor} composedId={stored.report_artifact_id}
             documentName={kind === "with_review" ? "zprávu s rešerší" : "interní zprávu"} canApprove={canReview(frame)}
-            approveComposed={() => askApproval(stored)} onApproved={tell} onOpenLine={(l) => setLineAsked({ doc: docId, line: l })}
+            approveComposed={() => askApproval(stored, true)} onApproved={tell} onOpenLine={(l) => setLineAsked({ doc: docId, line: l })}
           />
         ) : null}
         {controls.after}
