@@ -1424,14 +1424,16 @@ def _composing(document: ReportDocument) -> Any:
     return compose
 
 
-def test_a_client_report_carrying_drill_down_content_cannot_be_approved(
+def test_a_client_report_carrying_drill_down_content_is_approved_with_its_warning_on_record(
     app: FastAPI,
     researcher: TestClient,
     outsider: TestClient,
     world: Any,
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    """RD0 (MVPQ-09): the gate refuses by name, and blocks: no reviewer approves past it."""
+    """RD0 (MVPQ-09), warnings since 2026-10-22 (the product owner: "Warnings for all of it"):
+    the check names what it found before the approval and never refuses it; the approval records
+    the warning it went past, on its ledger row."""
     app.state.settings = app.state.settings.model_copy(update={"ai_analysis_enabled": True})
     revision = submit(researcher, world).json()["revision_id"]
     run_id = start(researcher, world, revision).json()["run_id"]
@@ -1448,18 +1450,24 @@ def test_a_client_report_carrying_drill_down_content_cannot_be_approved(
     monkeypatch.setattr(client_report, "compose_client_report", _composing(quoted))
     url = f"{_runs(world)}/{run_id}/report"
     version = researcher.get(f"{url}/client/download").headers["X-AIA-Artifact-Id"]
-    refused = outsider.post(f"{url}/approve", json={"artifact_id": version})
-    assert refused.status_code == 409, refused.text
-    assert refused.json()["code"] == "client_gate_refused"
-    assert refused.json()["details"]["refusals"] == [
-        {
-            "code": "drill_down_content",
-            "where": "v.1",
-            "message": "doslovná odpověď jednoho respondenta",
-        }
-    ]
+    warning = {
+        "code": "drill_down_content",
+        "where": "v.1",
+        "message": "doslovná odpověď jednoho respondenta",
+    }
+    before = researcher.get(f"{url}/client/document").json()
+    assert before["warnings"] == [warning] and before["approval"] is None
+    approved = outsider.post(f"{url}/approve", json={"artifact_id": version})
+    assert approved.status_code == 200, approved.text
+    assert approved.json()["approval"]["warnings"] == [warning]
     after = researcher.get(f"{url}/client/document").json()
-    assert after["review_state"] == "DRAFT_UNAPPROVED"
+    assert after["review_state"] == "APPROVED_INTERNAL"
+    assert after["approval"]["warnings"] == [warning]
+    with create_session_factory(app.state.engine)() as session:
+        row = session.scalars(
+            select(ApprovalDecisionRow).where(ApprovalDecisionRow.subject_id == version)
+        ).one()
+        assert row.warnings == [warning]
 
 
 def test_the_client_report_is_prepared_to_be_read_without_a_download(
@@ -1534,10 +1542,11 @@ def test_a_client_document_of_an_older_contract_is_stored_again_on_download(
     assert outsider.post(f"{url}/approve", json={"artifact_id": version}).status_code == 200
 
 
-def test_a_client_draft_with_no_stored_document_is_not_approvable(
+def test_a_client_draft_with_no_stored_document_is_approved_as_unverifiable(
     app: FastAPI, researcher: TestClient, outsider: TestClient, world: Any
 ) -> None:
-    """A draft stored before its document (RD5a) cannot be judged: unknown, never passed."""
+    """A draft stored before its document (RD5a) cannot be checked: unknown, never passed, and
+    said as a warning the approval records ("nelze ověřit"), never a refusal (RD0, 2026-10-22)."""
     app.state.settings = app.state.settings.model_copy(update={"ai_analysis_enabled": True})
     revision = submit(researcher, world).json()["revision_id"]
     run_id = start(researcher, world, revision).json()["run_id"]
@@ -1558,11 +1567,12 @@ def test_a_client_draft_with_no_stored_document_is_not_approvable(
             metadata={"run_id": run_id, "report_kind": "client", **REVIEW_STAMP_RECORD},
         )
         session.commit()
-    refused = outsider.post(
+    approved = outsider.post(
         f"{_runs(world)}/{run_id}/report/approve", json={"artifact_id": stored.artifact_id}
     )
-    assert refused.status_code == 409
-    assert [r["code"] for r in refused.json()["details"]["refusals"]] == ["gate_unrecorded"]
+    assert approved.status_code == 200, approved.text
+    (warning,) = approved.json()["approval"]["warnings"]
+    assert warning["code"] == "gate_unrecorded" and "nelze ji ověřit" in warning["message"]
 
 
 def test_a_client_report_stored_before_its_document_says_so(

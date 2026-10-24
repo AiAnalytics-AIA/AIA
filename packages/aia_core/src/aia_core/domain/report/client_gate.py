@@ -1,7 +1,9 @@
-"""The client deliverable's gate (report-delivery RD0; the product owner, MVPQ-09, 2026-10-20).
+"""The client deliverable's checks (report-delivery RD0; the product owner, MVPQ-09, 2026-10-20).
 
 Read at approval over the stored document model the client DOCX was rendered from (RD5a), so
-the version a person approves is the version judged. Each refusal names its block:
+the version a person approves is the version judged. Since 2026-10-22 each is a warning, never a
+refusal (the product owner: "Warnings for all of it"): shown in the approval dialog and recorded
+with the approval, so who approved past which warning is on record. Each names its block:
 
 * ``drill_down_content``: nothing that reads one respondent -- a verbatim quote, or a claim at
   the individual level (the drill-down stays the researcher's, never in a client export; F2);
@@ -32,8 +34,8 @@ class GateCode(StrEnum):
 
 
 @dataclass(frozen=True, slots=True)
-class GateRefusal:
-    """One reason the deliverable may not be approved, and the block it is in."""
+class GateFinding:
+    """One thing the deliverable's checks found, and the block it is in: a warning."""
 
     code: GateCode
     where: str
@@ -43,48 +45,48 @@ class GateRefusal:
         return {"code": self.code.value, "where": self.where, "message": self.message}
 
 
-def client_gate(document: Mapping[str, Any]) -> tuple[GateRefusal, ...]:
-    """Every refusal of a stored client document model (``document_model.document_payload``);
-    empty when it passes."""
+def client_gate(document: Mapping[str, Any]) -> tuple[GateFinding, ...]:
+    """Every finding on a stored client document model (``document_model.document_payload``);
+    empty when nothing was found."""
     if document.get("contract") != DOCUMENT_MODEL_CONTRACT:
         # An older stored form names no claim's level: not judged, so not passed.
         return (
-            GateRefusal(
+            GateFinding(
                 GateCode.UNRECORDED,
                 "report",
-                "dokument verze je ve starší podobě, brána ho nemůže posoudit; stáhněte ji znovu",
+                "dokument verze je ve starší podobě, nelze ho ověřit; stáhněte ji znovu",
             ),
         )
     ledger = document["ledger"]
     if ledger["surface"] != ClaimSurface.CLIENT_FACING.value:
         return (
-            GateRefusal(
+            GateFinding(
                 GateCode.UNADMITTED_NUMBER,
                 "evidence",
                 f"čísla jsou připuštěna pro {ledger['surface']}, ne pro klienta",
             ),
         )
     entries: Mapping[str, Any] = ledger["refs"]
-    refusals: list[GateRefusal] = []
+    findings: list[GateFinding] = []
     for section in document["sections"]:
         for block in section["blocks"]:
             where = block["id"]
             if block["type"] == "quote":
-                refusals.append(
-                    GateRefusal(GateCode.DRILL_DOWN, where, "doslovná odpověď jednoho respondenta")
+                findings.append(
+                    GateFinding(GateCode.DRILL_DOWN, where, "doslovná odpověď jednoho respondenta")
                 )
             for ref in block["refs"]:
                 entry = entries.get(ref)
                 if entry is None:
-                    refusals.append(
-                        GateRefusal(
+                    findings.append(
+                        GateFinding(
                             GateCode.UNADMITTED_NUMBER, where, f"tiskne nepřipuštěné číslo {ref}"
                         )
                     )
                 elif not entry["suppressed"] and entry["level"] == ClaimLevel.INDIVIDUAL.value:
-                    refusals.append(
-                        GateRefusal(
+                    findings.append(
+                        GateFinding(
                             GateCode.DRILL_DOWN, where, f"číslo {ref} čte jednoho respondenta"
                         )
                     )
-    return tuple(refusals)
+    return tuple(findings)

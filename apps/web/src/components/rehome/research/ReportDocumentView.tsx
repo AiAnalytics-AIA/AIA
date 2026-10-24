@@ -12,7 +12,7 @@ import { ApiError, deepResearch, type DeepResearchRun, research, type ResearchRu
 import {
   type Block, type Cell, claimLines, claimTarget, gradeWords, type Inline, type LedgerEntry, type ListItem,
   approvalWords, readDocument, type ReportDocumentModel, reviewWords, type Section, sectionTarget, blockTarget,
-  type StoredReportDocument, unresolvedRefs, valueWords,
+  type StoredReportDocument, unresolvedRefs, valueWords, warningsWords,
 } from "@/lib/artifacts/report";
 import { backEntry, closeStack, emptyStack, openEntry, type InspectorStack } from "@/lib/inspector-stack";
 import { isModelled, stepOf } from "@/lib/research-execution";
@@ -195,9 +195,11 @@ export function ReportDocumentView({ run }: { run: ResearchRun }) {
     const question = approvalQuestion(kind, version, { pdf, review });
     // What the file carries, as the card says it (D2): known only when stamped.
     const carries = reviewLine(file, pdf);
+    // The client report's checks (RD0): warnings named in the question, recorded with the yes.
+    const warned = kind === "client" ? warningsWords(shown?.warnings) : null;
     const ask: Ask = {
       kind: "confirm",
-      message: carries ? `${question} ${carries}` : question,
+      message: [question, carries, warned].filter(Boolean).join(" "),
       yes: t("research.exec.report.approveAsk.yes"),
       resolve: (ok) => {
         if (!ok) return;
