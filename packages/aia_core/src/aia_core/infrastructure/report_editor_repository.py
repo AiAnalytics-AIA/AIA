@@ -19,7 +19,7 @@ from typing import Any
 from sqlalchemy import ColumnElement, func, select, update
 from sqlalchemy.orm import Session
 
-from ..domain.report.editor import EditMark, LineHead
+from ..domain.report.editor import MAX_PAGES_PER_SESSION, EditMark, LineHead
 from ..domain.scope import StudyContext
 from .tables import (
     OrganizationMemberRow,
@@ -35,8 +35,13 @@ __all__ = [
     "EditorSession",
     "EditorVersion",
     "ReportEditorRepository",
+    "TooManyPages",
     "session_by_key",
 ]
+
+
+class TooManyPages(Exception):
+    """A session already keeps edit reports for its most pages (RPT8f)."""
 
 
 @dataclass(frozen=True)
@@ -51,6 +56,9 @@ class EditorVersion:
     changes_artifact_id: str | None
     authors: tuple[str, ...]
     saved_at: datetime
+    #: What the latest save of these bytes said the version holds (RPT8f); ``None`` when none said.
+    content_at: datetime | None = None
+    last_saved_at: datetime | None = None
 
 
 @dataclass(frozen=True)
@@ -84,6 +92,8 @@ def _version(row: ReportEditorVersionRow) -> EditorVersion:
         changes_artifact_id=row.changes_artifact_id,
         authors=tuple(row.authors or ()),
         saved_at=as_utc(row.saved_at),
+        content_at=as_utc(row.content_at) if row.content_at is not None else None,
+        last_saved_at=as_utc(row.last_saved_at) if row.last_saved_at is not None else None,
     )
 
 
@@ -239,6 +249,8 @@ class ReportEditorRepository:
         saved_at: datetime,
         authors: Sequence[str] = (),
         changes_artifact_id: str | None = None,
+        content_at: datetime | None = None,
+        last_saved_at: datetime | None = None,
     ) -> EditorVersion:
         s = self._scope
         row = ReportEditorVersionRow(
@@ -255,10 +267,31 @@ class ReportEditorRepository:
             changes_artifact_id=changes_artifact_id,
             authors=list(authors),
             saved_at=saved_at,
+            content_at=content_at,
+            last_saved_at=last_saved_at,
         )
         self._session.add(row)
         self._session.flush()
         return _version(row)
+
+    def cover(self, artifact_id: str, *, saved_at: datetime, content_at: datetime | None) -> None:
+        """A later save held exactly ``artifact_id``'s bytes: AIA received it at ``saved_at``, its
+        last change at ``content_at``. The version holds what that save holds too; never moved
+        back."""
+        row = self._session.scalar(
+            select(ReportEditorVersionRow).where(
+                *self._versions_in_scope(), ReportEditorVersionRow.artifact_id == artifact_id
+            )
+        )
+        if row is None:
+            raise LookupError(artifact_id)
+        if row.last_saved_at is None or as_utc(row.last_saved_at) < saved_at:
+            row.last_saved_at = saved_at
+        if content_at is not None and (
+            row.content_at is None or as_utc(row.content_at) < content_at
+        ):
+            row.content_at = content_at
+        self._session.flush()
 
     def display_name(self) -> str:
         """The caller's name as the editor shows it to co-editors: their display name, never
@@ -380,38 +413,50 @@ class ReportEditorRepository:
 
     # -- edit starts ---------------------------------------------------------
 
-    def record_edit(self, document_key: str, *, page: str, seq: int, now: datetime) -> None:
-        """``page``'s edit start ``seq`` in the session, received ``now``: kept when it is the
-        page's highest, so a report that arrives late or twice changes nothing. The session's
-        row is locked first, so two reports of one page take their turn (PostgreSQL)."""
+    def record_edit(
+        self, document_key: str, *, page: str, seq: int, clean: bool, now: datetime
+    ) -> None:
+        """``page``'s report in the session, received ``now``: edit start ``seq``, or with
+        ``clean`` that its edits up to ``seq`` reached the Document Server. Each keeps the page's
+        highest, so a report that arrives late or twice changes nothing. The session's row is
+        locked first, so two reports of one session take their turn (PostgreSQL);
+        :class:`TooManyPages` for a new page beyond :data:`MAX_PAGES_PER_SESSION`."""
         self._session.execute(
             select(ReportEditorSessionRow.document_key)
             .where(*self._sessions_in_scope(), ReportEditorSessionRow.document_key == document_key)
             .with_for_update()
         )
+        in_scope = (
+            ReportEditorEditRow.organization_id == self._scope.organization_id,
+            ReportEditorEditRow.client_id == self._scope.client_id,
+            ReportEditorEditRow.study_id == self._scope.study_id,
+            ReportEditorEditRow.document_key == document_key,
+        )
         row = self._session.scalar(
-            select(ReportEditorEditRow).where(
-                ReportEditorEditRow.organization_id == self._scope.organization_id,
-                ReportEditorEditRow.client_id == self._scope.client_id,
-                ReportEditorEditRow.study_id == self._scope.study_id,
-                ReportEditorEditRow.document_key == document_key,
-                ReportEditorEditRow.page == page,
-            )
+            select(ReportEditorEditRow).where(*in_scope, ReportEditorEditRow.page == page)
         )
         if row is None:
-            s = self._scope
-            self._session.add(
-                ReportEditorEditRow(
-                    document_key=document_key,
-                    page=page,
-                    organization_id=s.organization_id,
-                    client_id=s.client_id,
-                    study_id=s.study_id,
-                    user_id=s.actor_id,
-                    seq=seq,
-                    received_at=now,
-                )
+            pages = self._session.scalar(
+                select(func.count()).select_from(ReportEditorEditRow).where(*in_scope)
             )
+            if (pages or 0) >= MAX_PAGES_PER_SESSION:
+                raise TooManyPages(document_key)
+            s = self._scope
+            row = ReportEditorEditRow(
+                document_key=document_key,
+                page=page,
+                organization_id=s.organization_id,
+                client_id=s.client_id,
+                study_id=s.study_id,
+                user_id=s.actor_id,
+                seq=0,
+                received_at=now,
+                clean_seq=0,
+            )
+            self._session.add(row)
+        if clean:
+            if seq > (row.clean_seq or 0):
+                row.clean_seq, row.clean_at = seq, now
         elif seq > row.seq:
             row.seq, row.received_at = seq, now
         self._session.flush()
@@ -434,4 +479,14 @@ class ReportEditorRepository:
                 open_or_named,
             )
         )
-        return [EditMark(r.document_key, r.page, r.seq, as_utc(r.received_at)) for r in rows]
+        return [
+            EditMark(
+                r.document_key,
+                r.page,
+                r.seq,
+                as_utc(r.received_at),
+                r.clean_seq,
+                as_utc(r.clean_at) if r.clean_at is not None else None,
+            )
+            for r in rows
+        ]

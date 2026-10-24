@@ -2995,6 +2995,12 @@ class ReportEditorVersionRow(Base):
     saved_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), nullable=False, default=utcnow
     )
+    #: What a save of exactly these bytes says the version holds (RPT8f), moved on by a later save
+    #: of the same bytes, so a save that changed nothing still releases a hold: ``content_at``,
+    #: the latest ``lastsave`` (never later than AIA's receipt of it), and ``last_saved_at``, AIA's
+    #: latest receipt. Null for koncept 1, a save that said none, and rows from before.
+    content_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    last_saved_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
 
     __table_args__ = (
         ForeignKeyConstraint(
@@ -3085,6 +3091,9 @@ class ReportEditorEditRow(Base):
     user_id: Mapped[str] = mapped_column(String(64), nullable=False)
     seq: Mapped[int] = mapped_column(Integer, nullable=False)
     received_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+    #: The newest edit the page said had reached the Document Server, and when AIA heard it.
+    clean_seq: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
+    clean_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
 
     __table_args__ = (
         ForeignKeyConstraint(

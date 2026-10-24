@@ -1422,8 +1422,11 @@ export const research = {
     runId: string,
     body: { variant: "internal" | "context"; deep_research_run_id?: string | null; line?: string | null; mode: EditorMode },
   ) => request<EditorOpened>("POST", `${studyPath(studyId)}/research/runs/${enc(runId)}/report/editor`, body),
-  /** An edit start this page made in an editing session (RPT8f): kept by AIA with its time of receipt. */
-  reportEditorEdit: (studyId: string, runId: string, documentKey: string, body: { page: string; seq: number }) =>
+  /** An edit start this page made in an editing session, or (`clean`) its edits up to `seq` sent to
+   *  the Document Server (RPT8f): kept by AIA with its time of receipt. */
+  reportEditorEdit: (
+    studyId: string, runId: string, documentKey: string, body: { page: string; seq: number; clean?: boolean },
+  ) =>
     request<void>(
       "POST", `${studyPath(studyId)}/research/runs/${enc(runId)}/report/editor/sessions/${enc(documentKey)}/edits`, body,
     ),

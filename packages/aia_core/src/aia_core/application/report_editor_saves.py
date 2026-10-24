@@ -25,7 +25,7 @@ from aia_core.application.report import INTERNAL_REPORT_MEDIA_TYPE
 from aia_core.application.report_export import review_stamp_record
 from aia_core.application.research import research_artifacts
 from aia_core.domain.deep_research.documents import DocumentRefused
-from aia_core.domain.report.editor import CHANGES_ARTIFACT_TYPE, EDIT_ARTIFACT_TYPES
+from aia_core.domain.report.editor import CHANGES_ARTIFACT_TYPE, EDIT_ARTIFACT_TYPES, Coverage
 from aia_core.domain.report.saved_changes import (
     SavedChanges,
     changes_payload,
@@ -48,6 +48,7 @@ __all__ = [
     "StoredSave",
     "VersionNotFound",
     "approved_versions",
+    "coverage",
     "edited_version",
     "store_save",
     "version_changes",
@@ -151,6 +152,9 @@ def _store(
     sha256 = hashlib.sha256(data).hexdigest()
     same = next((v for v in versions if v.sha256 == sha256), None)
     if same is not None:
+        # The newest's bytes again, saved later: it holds what this save holds too (RPT8f).
+        if same is versions[-1]:
+            repo.cover(same.artifact_id, saved_at=now, content_at=content_at)
         return StoredSave(same, created=False)
     first, previous = versions[0], versions[-1]
     artifacts = research_artifacts(session, scope, store)
@@ -218,8 +222,19 @@ def _store(
         saved_at=now,
         authors=authors,
         changes_artifact_id=changed.artifact_id,
+        content_at=content_at,
+        last_saved_at=now,
     )
     return StoredSave(added, created=True)
+
+
+def coverage(version: EditorVersion, artifact: Artifact) -> Coverage:
+    """What ``version`` (``artifact``) is known to hold (RPT8f): what the latest save of its bytes
+    said, else its own save's ``lastsave`` as stored before RPT8f; ``None`` for koncept 1 and a save
+    that said none: unknown, never held."""
+    stamp = artifact.metadata.get("content_at")
+    stored = datetime.fromisoformat(stamp) if isinstance(stamp, str) else None
+    return Coverage(content_at=version.content_at or stored, saved_at=version.last_saved_at)
 
 
 def edited_version(

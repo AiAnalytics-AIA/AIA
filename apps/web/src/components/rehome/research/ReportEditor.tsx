@@ -29,8 +29,8 @@ export type EditorShown = {
   seen: () => SeenEdit | null;
 };
 
-/** A report of an edit start that did not reach AIA is sent once more after this long; one that
- *  still fails holds the approval (`edit_not_received`) until the next edit's report arrives. */
+/** A report that did not reach AIA is sent once more after this long; an edit start that still
+ *  fails holds the approval (`edit_not_received`) until the next edit's report arrives. */
 const REPORT_RETRY_MS = 2_000;
 
 /** What api.js puts on the page: one constructor (ONLYOFFICE's DocsAPI). */
@@ -120,11 +120,12 @@ export function ReportEditor({
   // When this person last started an edit, and whether one is not yet sent: this document only.
   const [edits, setEdits] = useState<{ at: string; startedAt: number | null; dirty: boolean }>({ at, startedAt: null, dirty: false });
   const host = useRef<HTMLDivElement>(null);
-  // This page's edit starts in the session on screen, counted from 1 (RPT8f): a new session's key
-  // starts the count again.
+  // This page's edit starts, counted from 1 in each session (RPT8f), and the session on screen: the
+  // approval names that session's last one, never another line's.
   const page = useRef<string | null>(null);
-  const last = useRef<SeenEdit | null>(null);
-  const seen = useCallback(() => last.current, []);
+  const last = useRef(new Map<string, SeenEdit>());
+  const onScreen = useRef<string | null>(null);
+  const seen = useCallback(() => (onScreen.current ? last.current.get(onScreen.current) ?? null : null), []);
   const placeholder = `report-editor-${useId().replace(/[^a-zA-Z0-9-]/g, "")}`;
 
   useEffect(() => {
@@ -145,6 +146,7 @@ export function ReportEditor({
   }, [at, studyId, runId, variant, review, line, mode, open]);
 
   const opened = state.at === at && state.kind === "open" ? state : null;
+  useEffect(() => { onScreen.current = opened ? documentKeyOf(opened.opened.config) : null; }, [opened]);
   useEffect(() => {
     const element = host.current;
     if (!opened || !element) return;
@@ -187,12 +189,16 @@ export function ReportEditor({
                 const dirty = event?.data === true;
                 const now = Date.now();
                 const key = documentKeyOf(opened.opened.config);
-                if (dirty && key) {
+                // An edit start is reported as the next of this session; its changes all sent (false),
+                // as clean up to the last one, so a save AIA receives after that holds them by AIA's
+                // clock alone.
+                const was = key ? last.current.get(key) : undefined;
+                if (key && (dirty || was)) {
                   page.current ??= newPageId();
-                  const seq = last.current?.document_key === key ? last.current.seq + 1 : 1;
-                  const edit = { document_key: key, page: page.current, seq };
-                  last.current = edit;
-                  const send = () => report(studyId, runId, key, { page: edit.page, seq });
+                  const edit = dirty ? { document_key: key, page: page.current, seq: (was?.seq ?? 0) + 1 } : was!;
+                  last.current.set(key, edit);
+                  const body = dirty ? { page: edit.page, seq: edit.seq } : { page: edit.page, seq: edit.seq, clean: true };
+                  const send = () => report(studyId, runId, key, body);
                   send().catch(() => setTimeout(() => { send().catch(() => undefined); }, REPORT_RETRY_MS));
                 }
                 setEdits((was) => ({ at, startedAt: dirty ? now : was.at === at ? was.startedAt : null, dirty }));

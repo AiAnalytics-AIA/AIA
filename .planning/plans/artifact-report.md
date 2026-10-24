@@ -558,40 +558,32 @@ it approves, under the line's lock:
    `report_edits_unsaved` unless the newest stored version holds that sequence and no higher one was received.
 4. The browser's hold stays as the visible state, no longer the gate.
 
-*RPT8f, built (`feature/report-edit-sequence`).* `POST …/report/editor/sessions/{document_key}/edits` (`{page, seq}`,
-204; 404 for a session not the run's, not open, or not one a config was signed for the caller in) keeps each page's
-highest edit start with AIA's time of receipt (`report_editor_edits`, migration `9c1e3a5b7d2f`, one row per session
-and page, the session's row locked first). The approval names `seen_edit` (`{document_key, page, seq}`, read as it
-leaves); `approve_report(newest_of_line=True)`, under the line's lock, refuses 409 `report_edits_unsaved` with
-`details.reason` `edit_not_received` (the page's edit has not arrived) or `edit_not_saved` (an edit of the line's open
-session, or of the seen one, was received after the newest version's `content_at`, or the version has none:
-`domain/report/editor.py` `unsaved_edits`). Held is received no later than `lastsave`: a save made while an edit's
-report was in flight holds the approval until the next save (late, never early; Ctrl+S forces one). The page
-(`ReportEditor`) counts edit starts per session from 1 under a random page id, reports each, once more after 2 s on a
-failure; the bar and koncept 1's question send it and say the server's reason. Tests: `test_report_editor.py`
-`test_an_edit_is_held_only_by_a_version_whose_last_change_is_no_earlier_than_its_receipt`; `test_report_editor_api.py`
-`test_an_approval_waits_for_a_save_that_holds_every_edit_the_server_received`,
-`test_an_edit_is_reported_only_in_an_open_session_of_the_run_the_caller_was_signed_into`; `ReportEditor.test.tsx`,
-`EditorDocBar.test.tsx`, `report-editor.test.ts` ("the edit sequence (RPT8f)").
-It is RPT8f, a gate before activation beside RPT8e (the PM, 2026-10-24). Meanwhile the yes checks the hold again as
-the approval leaves, after its read, which narrows the window to the moment between that check and the server's lock. The server is the last word: the
-bar approves with `newest_of_line` (koncept 1's question too), and `approve_report` then takes the line's lock a save
-takes and refuses 409 `report_version_stale` (with the newest's id and koncept) once a later version exists. An author
-the server does not name reads "neznámý autor". The report card downloads each approved edit as itself
-(`approved_edits`, `…/versions/{id}/download`, the file checked to be that version approved), beside the composed
-draft that stays a draft (Codex on #877). Not done: a change linked to its
-paragraph in the document. Reaching into the editor's document needs ONLYOFFICE's connector API (`createConnector`),
-which ONLYOFFICE documents for its Developer edition (not checked on the pinned Community image); RPT9 needs the same
-reach and decides it. A save the Document Server holds
-but has not yet sent to AIA is not the version on screen until stored; the approval says that unsaved edits are not
-included. A co-editor's unstored edits start no event in this person's editor; the reads on the ask and on the yes
-catch their stored saves only. Tests: `test_a_version_names_its_authors_and_its_lines_newest_version`,
-`test_an_author_is_named_only_as_a_member_and_never_by_an_e_mail`,
-`test_a_version_asked_as_its_lines_newest_is_refused_once_a_later_save_exists`,
-`test_a_save_keeps_the_time_of_its_last_change_as_the_document_server_said_it`, `EditorDocBar.test.tsx`,
-`CompleteReport.edits.test.tsx`, `report-editor.test.ts`,
-`ReportEditor.test.tsx` ("tells the pane what it shows…", "opens the line asked for"),
-`ReportDocumentView.editor.test.tsx` ("the doc bar while the editor shows the document").
+*RPT8f, built (`feature/report-edit-sequence`).* `POST …/report/editor/sessions/{document_key}/edits` (`{page, seq,
+clean?}`, 204; 404 for a session not the run's, not open, or not one a config was signed for the caller in; 409
+`editor_pages_exhausted` for a new page beyond 64 in a session) keeps per session and page the newest edit start and the
+newest edit the page said had reached the Document Server (its `dirty: false`), each with AIA's time of receipt
+(`report_editor_edits`, migration `9c1e3a5b7d2f`), under the line's lock and then the session's, the order a save and an
+approval take. The approval names `seen_edit` (`{document_key, page, seq}`, read as it leaves). For every edited version
+(koncept 2 on, whatever the caller asks) and any version approved with `newest_of_line`, `approve_report` refuses under
+the line's lock 409 `report_edits_unsaved`: `edit_not_received` (the page's edit has not arrived) or `edit_not_saved`
+(an edit of the line's open session, or of the seen one, is held by no save of the version). An edit is held
+(`domain/report/editor.py` `unsaved_edits`) when a save of the version's exact bytes reached AIA after the page's clean
+report covering it (AIA's clock on both sides), or when the version's `content_at` is no earlier than the edit's report;
+`content_at` is the callback's `lastsave`, never later than AIA's receipt of that callback (a later one is logged as
+skew). A save of the newest version's bytes again moves its `content_at` and `last_saved_at` on and stores no koncept, so
+the next save releases a hold. Koncept 1 and a save that said nothing hold no edit: unknown, never held.
+
+What stays open, failing closed: the reports both arrive after the only save that holds the edit (the wedge): the approval
+waits for the next save, which the person can make (Ctrl+S; the bar says so) or which comes with the next change or as
+everyone leaves. What stays open, failing open: a co-editor's edit whose reports never reach AIA cannot be known; and a
+force-save already converting when an edit's report arrives, its `lastsave` after the report though its file is not, is
+held by `content_at` (the window is that conversion, the clamp to AIA's receipt bounding it; the clean-report rule alone
+would close it at the cost of holding every first save). Tests: `test_report_editor.py`
+`test_an_edit_is_held_by_a_later_save_or_one_after_its_clean_report`,
+`test_an_edit_reported_while_an_approval_checks_the_line_is_never_missed` (PostgreSQL); `test_report_editor_api.py`
+(the wait, a `lastsave` ahead of AIA's clock, the wedge, a co-author and a reload, every edited version, a closed seen
+session, the session's bounds); `ReportEditor.test.tsx` (each report, clean included; only the session on screen's edit
+named), `EditorDocBar.test.tsx`, `report-editor.test.ts` ("the edit sequence (RPT8f)").
 
 *RPT8d, part 3 (`feature/report-editor-journey`), the journey:* `report_editor_journey.mjs` drives Zpráva in the editor
 in a real browser against a stand-in Document Server (`tools/ui_workbench/report_editor_standin.py`): no ONLYOFFICE

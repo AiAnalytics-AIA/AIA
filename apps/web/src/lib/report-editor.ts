@@ -103,7 +103,7 @@ export function unsavedWords(error: unknown): string | null {
   if (!(error instanceof ApiError) || error.code !== "report_edits_unsaved") return null;
   return error.details.reason === "edit_not_received"
     ? "Poslední úprava z editoru ještě nedorazila do AIA; schvalte znovu za chvíli."
-    : UNSTORED;
+    : `${UNSTORED} Neuloží-li editor koncept sám, uložte ho v editoru (Ctrl+S).`;
 }
 
 export const UNREACHABLE = "Editor zprávy neodpovídá; zobrazuje se koncept jen ke čtení.";
